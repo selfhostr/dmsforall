@@ -1,0 +1,62 @@
+# Secrets et configuration locale — JAMAIS commités
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials.json
+
+# Dépendances
+node_modules/
+.pnpm-store/
+.yarn/
+jspm_packages/
+
+# Build
+dist/
+build/
+out/
+.vite/
+*.tsbuildinfo
+
+# Tests et couverture
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+blob-report/
+
+# Caches outils
+.eslintcache
+.turbo/
+.cache/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+
+# Données locales (dumps Postgres, volumes Docker, uploads de dev)
+*.dump
+*.sql.gz
+.docker-data/
+uploads/
+tmp/
+
+# Éditeurs et OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+

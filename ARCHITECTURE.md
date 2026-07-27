@@ -24,7 +24,7 @@
 4. **i18n dès le jour 1.** Aucune chaîne en dur ; FR d'abord, DE/IT ensuite. Les documents clients (factures, devis, OR) sont générés dans la langue du client final.
 5. **Piste d'audit.** Toute modification sur les entités sensibles (documents de vente, OR, mouvements de stock) est journalisée (qui, quoi, quand, avant/après). Nécessaire pour la confiance et les litiges.
 
-## 3. Stack proposée (à valider)
+## 3. Stack (validée le 27.07.2026)
 
 | Couche | Choix | Pourquoi |
 |---|---|---|
