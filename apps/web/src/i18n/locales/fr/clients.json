@@ -1,0 +1,92 @@
+{
+  "titre": "Clients",
+  "nouveau": "Nouveau client",
+  "liste": {
+    "titre": "Clients",
+    "colonnes": {
+      "numero": "N° client",
+      "nom": "Nom / Raison sociale",
+      "localite": "Localité",
+      "telephone": "Mobile",
+      "vehicules": "Véhicules",
+      "dernierPassage": "Dernier passage"
+    },
+    "filtres": {
+      "type": "Type de client",
+      "statut": "Statut",
+      "inclureInactifs": "Inclure les inactifs"
+    },
+    "types": {
+      "particulier": "Particulier",
+      "entreprise": "Entreprise"
+    },
+    "statuts": {
+      "actif": "Actif",
+      "inactif": "Inactif",
+      "bloque": "Bloqué"
+    }
+  },
+  "fiche": {
+    "titre": "Fiche client",
+    "ouvrirOr": "Ouvrir un OR",
+    "actions": {
+      "fusionner": "Fusionner"
+    }
+  },
+  "alertes": {
+    "bloque": "Bloqué – impayés",
+    "alerte": "⚠ Alerte client"
+  },
+  "identite": {
+    "numero": "N° client",
+    "nom": "Nom",
+    "prenom": "Prénom",
+    "raisonSociale": "Raison sociale",
+    "ide": "IDE",
+    "langue": "Langue de correspondance",
+    "po": "N° de commande (PO)"
+  },
+  "conditions": {
+    "titre": "Conditions commerciales",
+    "rabaisMo": "Rabais main-d'œuvre",
+    "rabaisPieces": "Rabais pièces",
+    "rabaisPneus": "Rabais pneus",
+    "delaiPaiement": "Délai de paiement",
+    "tauxHoraire": "Taux horaire",
+    "plafond": "Plafond d'engagement",
+    "dateEffet": "En vigueur depuis le"
+  },
+  "contacts": {
+    "titre": "Contacts",
+    "ajouter": "Ajouter un contact",
+    "roles": {
+      "conducteur": "Conducteur",
+      "gestionnaireFl": "Gestionnaire de flotte",
+      "signataire": "Signataire",
+      "comptabilite": "Comptabilité"
+    }
+  },
+  "adresses": {
+    "titre": "Adresses",
+    "ajouter": "Ajouter une adresse",
+    "types": {
+      "principale": "Principale",
+      "facturation": "Facturation",
+      "livraison": "Livraison"
+    }
+  },
+  "notes": {
+    "titre": "Notes",
+    "interne": "Note interne (non imprimée)",
+    "alerte": "Alerte (affichée en rouge)"
+  },
+  "fusion": {
+    "titre": "Fusionner deux clients",
+    "confirmation": "Tapez le nom du client à absorber pour confirmer"
+  },
+  "vide": {
+    "premier": "Aucun client enregistré. Créez le premier.",
+    "recherche": "Aucun client trouvé.",
+    "filtre": "Aucun résultat avec ces filtres."
+  }
+}

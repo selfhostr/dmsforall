@@ -6,10 +6,52 @@ import { JETON_REDIS } from './redis.provider';
 import type { ResultatLimitationDebit, ServiceLimitationDebit } from './limitation-debit.types';
 
 /**
- * Limitation de débit à fenêtre glissante, sur Redis (ZSET par clé). Utilisée par
- * expert-auth sur `POST /auth/connexion` (par IP et par email), verrouillage progressif du
- * compte. Un seul ZSET par clé : on purge les entrées hors fenêtre à chaque appel, puis on
- * compare le compte restant à la limite avant d'ajouter la tentative courante.
+ * Purge + comptage + ajout conditionnel, en UN SEUL aller-retour Redis.
+ *
+ * Correctif finding 5 (audit sécurité) : l'ancienne implémentation faisait `zremrangebyscore`
+ * puis `zcard` puis `multi()/zadd` — trois allers-retours distincts, sans atomicité entre eux.
+ * Sous requêtes parallèles (N requêtes simultanées sur la même clé), toutes lisaient le même
+ * `zcard` avant qu'aucun `zadd` ne soit commis : la limite de 5 tentatives devenait ~N essais
+ * par salve. Un script Lua `EVAL` s'exécute de façon atomique côté serveur Redis (mono-thread,
+ * aucune commande d'un autre client ne peut s'intercaler pendant son exécution) : la lecture du
+ * compte et l'ajout de la tentative ne peuvent plus être désynchronisés par la concurrence.
+ *
+ * KEYS[1] = clé Redis (namespace `limitation:` déjà appliqué par l'appelant).
+ * ARGV[1] = horodatage courant (ms). ARGV[2] = largeur de fenêtre (ms). ARGV[3] = limite.
+ * ARGV[4] = identifiant unique de la tentative courante (membre du ZSET).
+ *
+ * Renvoie `{1, 0}` si autorisé (tentative ajoutée), ou `{0, <score du membre le plus ancien
+ * restant>}` si refusé — le score sert à calculer `resteSecondes` côté appelant sans repasser
+ * par Redis.
+ */
+const SCRIPT_CONSOMMER = `
+local cle = KEYS[1]
+local maintenant = tonumber(ARGV[1])
+local fenetreMs = tonumber(ARGV[2])
+local limite = tonumber(ARGV[3])
+local membre = ARGV[4]
+
+redis.call('ZREMRANGEBYSCORE', cle, 0, maintenant - fenetreMs)
+local compteActuel = redis.call('ZCARD', cle)
+
+if compteActuel >= limite then
+  local plusAncien = redis.call('ZRANGE', cle, 0, 0, 'WITHSCORES')
+  local scorePlusAncien = maintenant
+  if plusAncien[2] then
+    scorePlusAncien = tonumber(plusAncien[2])
+  end
+  return {0, scorePlusAncien}
+end
+
+redis.call('ZADD', cle, maintenant, membre)
+redis.call('PEXPIRE', cle, fenetreMs)
+return {1, 0}
+`;
+
+/**
+ * Limitation de débit à fenêtre glissante, sur Redis (ZSET par clé, purgé et incrémenté par un
+ * script Lua atomique — voir `SCRIPT_CONSOMMER`). Utilisée par expert-auth sur
+ * `POST /auth/connexion` (par IP et par email), verrouillage progressif du compte.
  *
  * Le suffixe `Redis` distingue l'implémentation de l'interface `ServiceLimitationDebit` qu'elle
  * réalise : les consommateurs injectent l'interface par jeton, jamais cette classe.
@@ -24,22 +66,27 @@ export class ServiceLimitationDebitRedis implements ServiceLimitationDebit {
   async consommer(cle: string, limite: number, fenetreSecondes: number): Promise<ResultatLimitationDebit> {
     const cleRedis = `limitation:${cle}`;
     const maintenantMs = this.horloge.maintenant().getTime();
-    const debutFenetreMs = maintenantMs - fenetreSecondes * 1000;
+    const fenetreMs = fenetreSecondes * 1000;
+    const membre = `${maintenantMs}:${randomUUID()}`;
 
-    await this.redis.zremrangebyscore(cleRedis, 0, debutFenetreMs);
-    const compteActuel = await this.redis.zcard(cleRedis);
+    // Signature publique inchangée (contrat gelé, module auth dépendant) : seule la mécanique
+    // interne devient atomique.
+    const resultat = (await this.redis.eval(
+      SCRIPT_CONSOMMER,
+      1,
+      cleRedis,
+      maintenantMs,
+      fenetreMs,
+      limite,
+      membre,
+    )) as [number, number];
 
-    if (compteActuel >= limite) {
-      const plusAncien = await this.redis.zrange(cleRedis, 0, 0, 'WITHSCORES');
-      const scoreLePlusAncien = plusAncien[1] ? Number(plusAncien[1]) : maintenantMs;
-      const resteMs = scoreLePlusAncien + fenetreSecondes * 1000 - maintenantMs;
+    const [autoriseBrut, scorePlusAncien] = resultat;
+
+    if (autoriseBrut === 0) {
+      const resteMs = scorePlusAncien + fenetreMs - maintenantMs;
       return { autorise: false, resteSecondes: Math.max(1, Math.ceil(resteMs / 1000)) };
     }
-
-    const pipeline = this.redis.multi();
-    pipeline.zadd(cleRedis, maintenantMs, `${maintenantMs}:${randomUUID()}`);
-    pipeline.expire(cleRedis, fenetreSecondes);
-    await pipeline.exec();
 
     return { autorise: true, resteSecondes: 0 };
   }

@@ -1,0 +1,21 @@
+{
+  "titre": "Recherche rapide",
+  "placeholder": "Plaque, VIN, client, tel… (Ctrl+K)",
+  "aide": "Saisissez une plaque (VD 123456), un VIN, le nom du client ou un numéro de téléphone",
+  "resultatsGroupes": {
+    "vehicules": "{count, plural, one {# véhicule} other {# véhicules}}",
+    "clients": "{count, plural, one {# client} other {# clients}}",
+    "ordres": "{count, plural, one {# OR} other {# OR}}"
+  },
+  "details": {
+    "plaqueHistorique": "Ancienne plaque de {client} jusqu'au {date}",
+    "plaqueInterchangeable": "Plaque partagée – {count} véhicules",
+    "plaqueProfessionnelle": "Plaque du garage (U)",
+    "orEnCours": "OR en cours"
+  },
+  "vide": {
+    "titre": "Aucun résultat",
+    "description": "Vérifiez la saisie et réessayez"
+  },
+  "chargement": "Recherche…"
+}

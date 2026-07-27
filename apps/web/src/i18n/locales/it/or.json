@@ -1,0 +1,277 @@
+{
+  "titre": "Ordine di riparazione",
+  "numero": "OR-{numero}",
+  "statuts": {
+    "planifie": "Programmato",
+    "ouvert": "Aperto",
+    "enCours": "In corso",
+    "attenteAccord": "In attesa di approvazione",
+    "attentePieces": "In attesa di ricambi",
+    "attenteExterne": "In attesa di subfornitura",
+    "controle": "Controllo",
+    "termine": "Terminato",
+    "facture": "Fatturato",
+    "restitue": "Restituito",
+    "cloture": "Chiuso",
+    "annule": "Annullato"
+  },
+  "statutsAide": {
+    "planifie": "Veicolo non ancora arrivato, appuntamento confermato",
+    "ouvert": "Veicolo accettato, in attesa di diagnosi",
+    "enCours": "Lavori in corso",
+    "attenteAccord": "In attesa di approvazione del cliente per preventivo supplementare",
+    "attentePieces": "Ricambi ordinati in arrivo",
+    "attenteExterne": "Lavori presso subfornitore",
+    "controle": "Controllo qualità in corso",
+    "termine": "Lavori terminati, pronto al ritiro",
+    "facture": "Fatturato, in attesa di pagamento",
+    "restitue": "Veicolo restituito al cliente",
+    "cloture": "Pratica chiusa",
+    "annule": "Pratica annullata"
+  },
+  "bandeau": {
+    "numero": "Ordine",
+    "plaque": "Targa",
+    "client": "Cliente",
+    "kmEntree": "Km ingresso",
+    "kmSortie": "Km uscita",
+    "localisation": "Localizzazione",
+    "restitutionPromise": "Restituzione promessa",
+    "plafond": "Tetto di spesa",
+    "totalDuJour": "Oggi",
+    "techniciensEnCours": "Tecnici attivi",
+    "numeroPo": "PO cliente"
+  },
+  "localisations": {
+    "parc": "Parcheggio",
+    "atelier": "Officina",
+    "sousTraitant": "Da {fournisseur}",
+    "essaiRoutier": "Prova su strada",
+    "lavage": "Lavaggio",
+    "pretAuRetrait": "Pronto al ritiro",
+    "restitue": "Restituito",
+    "sortiProvisoirement": "Uscita provvisoria"
+  },
+  "lignes": {
+    "titre": "Lavori",
+    "vide": "Nessun lavoro registrato.",
+    "ajouter": "Aggiungi lavoro",
+    "groupes": {
+      "aValider": "Da approvare",
+      "aFaire": "Da fare / In corso",
+      "fait": "Fatto",
+      "refuse": "Rifiutato / Rinviato",
+      "annule": "Annullato"
+    },
+    "colonnes": {
+      "origine": "Origine",
+      "designation": "Descrizione",
+      "quantite": "Qta",
+      "tempsBareme": "Tempo tariffario",
+      "tempsPointe": "Tempo registrato",
+      "prixUnitaire": "Prezzo unitario",
+      "rabais": "Sconto",
+      "payeur": "Pagante",
+      "technicien": "Tecnico",
+      "totalTtc": "Totale IVA inc.",
+      "statut": "Stato"
+    },
+    "types": {
+      "mainOeuvreBaremee": "M.O. tariffaria",
+      "mainOeuvreTempsReel": "M.O. tempo reale",
+      "forfait": "Forfait",
+      "piece": "Ricambio",
+      "fourniture": "Accessorio",
+      "sousTraitance": "Subfornitura",
+      "produitAtelier": "Prodotto officina",
+      "taxeElimination": "Tassa / Smaltimento",
+      "remise": "Sconto",
+      "texte": "Informazione"
+    },
+    "origines": {
+      "commandee": "Cliente",
+      "constatee": "Constatata",
+      "campagne": "Campagna",
+      "garantie": "Garanzia",
+      "retouche": "Rilavorazione",
+      "interne": "Interna"
+    },
+    "statuts": {
+      "proposee": "Proposta",
+      "aValider": "Da approvare",
+      "validee": "Approvata",
+      "enCours": "In corso",
+      "realisee": "Eseguita",
+      "facturee": "Fatturata",
+      "refusee": "Rifiutata",
+      "annulee": "Annullata"
+    },
+    "payeurs": {
+      "client": "Cliente",
+      "constructeur": "Costruttore",
+      "assurance": "Assicurazione",
+      "tiers": "Terzi",
+      "garage": "Officina"
+    },
+    "urgences": {
+      "urgent": "Urgente",
+      "aFaire": "Da fare",
+      "aSurveiller": "Da monitorare"
+    },
+    "marqueurs": {
+      "securite": "Sicurezza",
+      "pieceARestituer": "Ricambio da restituire",
+      "fournieParClient": "Fornito dal cliente",
+      "attentePiece": "In attesa ricambio",
+      "tempsPartage": "Tempo condiviso"
+    },
+    "saisieRapide": {
+      "placeholder": "Inserisci descrizione (Ctrl+Invio)",
+      "aide": "Inserimento rapido: Invio crea, Maiusc+Invio rimane in riga, Esc abbandona. Alt+T/R/F/P/S per tipo",
+      "raccourcis": {
+        "travail": "Alt+T = M.O. tariffaria",
+        "tempsReel": "Alt+R = Tempo reale",
+        "forfait": "Alt+F = Forfait",
+        "piece": "Alt+P = Ricambio",
+        "sousTraitance": "Alt+S = Subfornitura"
+      }
+    },
+    "actions": {
+      "valider": "Approva",
+      "refuser": "Rifiuta",
+      "annuler": "Annulla",
+      "dupliquer": "Duplica",
+      "marquerRealisee": "Segna come fatto",
+      "affecterTechnicien": "Assegna tecnico",
+      "changerPayeur": "Cambia pagante"
+    },
+    "annulation": {
+      "titre": "Annulla lavoro",
+      "motifRequis": "Il motivo è obbligatorio",
+      "motifPlaceholder": "Motivo dell'annullamento",
+      "confirmer": "Conferma annullamento"
+    }
+  },
+  "demandes": {
+    "titre": "Richieste del cliente",
+    "verbatim": "Testuale",
+    "ajouter": "Aggiungi",
+    "aide": "Le richieste non vengono mai riformulate – mantengono i termini esatti del cliente",
+    "jamaisReformule": "Conservato come dichiarato"
+  },
+  "plafond": {
+    "libelle": "Tetto di spesa",
+    "restant": "{restant} rimanente",
+    "depasse": "Tetto superato di {depasse}",
+    "modifier": "Modifica tetto",
+    "autorisePar": "Autorizzato da",
+    "zeroSignifieAccordSysteme": "Zero = qualsiasi lavoro aggiuntivo richiede approvazione"
+  },
+  "devisComplementaire": {
+    "titre": "Preventivi supplementari",
+    "numero": "Preventivo #{numero}",
+    "creer": "Crea nuovo preventivo",
+    "lignesSoumises": "Lavori sottoposti",
+    "nouveauPlafond": "Nuovo tetto richiesto",
+    "impactRestitution": "Impatto su restituzione",
+    "canaux": {
+      "telephone": "Telefono",
+      "sms": "SMS",
+      "email": "E-mail",
+      "lienSignature": "Link firma"
+    },
+    "reponse": {
+      "titre": "Risposta",
+      "decision": {
+        "accepte": "Accettato",
+        "refuse": "Rifiutato",
+        "partiel": "Parziale"
+      },
+      "interlocuteur": "Persona che ha risposto",
+      "interlocuteurRequis": "Il nome è obbligatorio",
+      "retranscription": "Testo libero",
+      "enregistrer": "Salva risposta"
+    },
+    "enAttenteDepuis": "In sospeso da {duree}",
+    "immuable": "Risposta registrata – non modificabile"
+  },
+  "controleQualite": {
+    "titre": "Controllo qualità",
+    "checklist": "Checklist",
+    "controleur": "Controllore",
+    "resultat": "Risultato",
+    "pointsManquants": "Punti da completare prima di terminare",
+    "conforme": "Conforme",
+    "nonConforme": "Non conforme"
+  },
+  "pret": {
+    "titre": "Veicolo sostitutivo",
+    "conducteur": "Conducente",
+    "permis": "N° patente",
+    "kmDepart": "Km partenza",
+    "kmRetour": "Km ritorno",
+    "carburant": "Carburante",
+    "depart": "Partenza",
+    "retour": "Ritorno",
+    "franchise": "Franchigia",
+    "ecartsConstates": "Scostamenti rilevati"
+  },
+  "signature": {
+    "titre": "Firme & Documenti",
+    "manquante": "Mancante",
+    "signee": "Firmato {date} alle {heure} da {nom}",
+    "differee": "Rinviato",
+    "faireSigner": "Fai firmare",
+    "langueDocument": "Lingua: {langue}",
+    "nonEnregistree": "Firma non registrata – non chiudere questa finestra"
+  },
+  "transitions": {
+    "receptionner": "Accetta veicolo",
+    "passerEnControle": "Passa a controllo",
+    "validerControle": "Valida controllo",
+    "terminer": "Termina",
+    "facturer": "Fattura",
+    "restituer": "Restituisci veicolo",
+    "cloturer": "Chiudi",
+    "annuler": "Annulla ordine",
+    "rouvrir": "Riapri",
+    "reprendreTravaux": "Riprendi lavori"
+  },
+  "refus": {
+    "ligneAValider": "Alcuni lavori sono in attesa di approvazione. Sono elencati di seguito.",
+    "pointageOuvert": "Ci sono timbrature aperte. Sono elencate di seguito.",
+    "ligneNonRealisee": "Alcuni lavori approvati non sono stati eseguiti. Sono elencati di seguito.",
+    "receptionRequise": "Il veicolo deve essere accettato prima di poter lavorare su di esso.",
+    "orFacture": "Un ordine fatturato non può essere riaperto direttamente. Crea un ordine di rilavorazione collegato.",
+    "checklistIncomplete": "Checklist incompleta. Punti mancanti elencati di seguito.",
+    "poManquant": "Il numero d'ordine (PO) è obbligatorio per questo cliente.",
+    "reserveSecuriteRequise": "Una dichiarazione di sicurezza deve essere sottoscritta prima della restituzione."
+  },
+  "vues": {
+    "titre": "Viste eccezioni",
+    "enCours": "In corso",
+    "attenteAccord": "In attesa di approvazione",
+    "attentePieces": "In attesa di ricambi",
+    "attenteExterne": "In attesa di subfornitura",
+    "pretsAuRetrait": "Pronti al ritiro",
+    "restitutionAujourdhui": "Restituzione oggi",
+    "pointagesAnormaux": "Timbrature anomale"
+  },
+  "journal": {
+    "titre": "Registro",
+    "avant": "Prima",
+    "apres": "Dopo",
+    "par": "da",
+    "le": "il"
+  },
+  "vide": {
+    "aucunOr": "Nessun ordine registrato.",
+    "aucuneLigne": "Nessun lavoro al momento.",
+    "aucunDevis": "Nessun preventivo supplementare.",
+    "aucunResultat": "Nessun risultato."
+  },
+  "chargement": {
+    "or": "Caricamento ordine…",
+    "lignes": "Caricamento lavori…"
+  }
+}

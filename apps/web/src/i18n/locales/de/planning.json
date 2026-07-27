@@ -1,0 +1,97 @@
+{
+  "titre": "Planung",
+  "nouveau": "Neuer Termin",
+  "jour": "Tag",
+  "semaine": "Woche",
+  "charge": {
+    "titre": "Werkstatt-Auslastung",
+    "capacite": "{heures} h / {capacite} h",
+    "saturation": "Werkstatt überlastet"
+  },
+  "rdv": {
+    "heure": "Zeit",
+    "duree": "Dauer",
+    "plaque": "Kennzeichen",
+    "client": "Kunde",
+    "motif": "Grund",
+    "motifs": "Gründe",
+    "modeAttente": "Wartemodus",
+    "ressource": "Ressource",
+    "vehiculeRempl": "Ersatzfahrzeug",
+    "presetVehicule": "Ersatzfahrzeug reserviert"
+  },
+  "modesAttente": {
+    "place": "Wartet vor Ort",
+    "depot": "Abgabe – Abholung nächster Termin",
+    "depotVeille": "Abgabe – Schlüsselversteck",
+    "navette": "Werkstatt-Shuttle",
+    "prise": "Abholung"
+  },
+  "motifs": {
+    "service": "Wartung / Service",
+    "expertise": "MFK / Expertise",
+    "preExpertise": "Vor-MFK",
+    "pneus": "Reifen",
+    "diagnostic": "Diagnose",
+    "carrosserie": "Karosserie",
+    "rappel": "Herstellerrückruf",
+    "retouche": "Nacharbeit",
+    "devis": "Kostenvoranschlag"
+  },
+  "statuts": {
+    "demande": "Anfrage",
+    "planifie": "Geplant",
+    "honore": "Angenommen",
+    "absent": "Abwesend",
+    "annuleyClient": "Storniert (Kunde)",
+    "annuleyGarage": "Storniert (Werkstatt)",
+    "reporte": "Verschoben"
+  },
+  "transitions": {
+    "honorer": "Annehmen",
+    "absent": "Abwesend markieren",
+    "annulerClient": "Stornieren (Kunde)",
+    "annulerGarage": "Stornieren (Werkstatt)",
+    "reporter": "Verschieben"
+  },
+  "alertes": {
+    "titre": "Alerts & Chancen",
+    "travauxReportes": "Zurückgestellte Arbeiten",
+    "campagnes": "Offene Rückrufe",
+    "expertise": "MFK nächste Fälligkeit",
+    "garantie": "Garantie",
+    "alerteClient": "Kundenalert",
+    "importe": "Importiertes Fahrzeug",
+    "ajouter": "Zu diesem Termin hinzufügen"
+  },
+  "colonnes": {
+    "vehiculesAttendus": "Erwartete Fahrzeuge",
+    "orDuJour": "RA des Tages",
+    "restitutions": "Versprochene Rückgaben"
+  },
+  "formulaire": {
+    "titre": "Neuer Termin",
+    "plaque": "Kennzeichen",
+    "vehicule": "Fahrzeug",
+    "client": "Kunde",
+    "motifs": "Gründe",
+    "verbatim": "Kundenangabe",
+    "date": "Datum",
+    "heure": "Zeit",
+    "duree": "Geschätzte Dauer",
+    "heuresAtelier": "Werkstatt-Stunden",
+    "modeAttente": "Wartemodus",
+    "vehiculeRempl": "Ersatzfahrzeug",
+    "ressource": "Ressource",
+    "creer": "Termin erstellen",
+    "enCours": "Ersteller…",
+    "avertissements": {
+      "aucunVehicule": "Kann so nicht in einen RA konvertiert werden",
+      "ressourceChevauchement": "Ressource ist bereits für diese Zeit reserviert"
+    }
+  },
+  "vide": {
+    "premier": "Keine Termine für diesen Tag geplant.",
+    "recherche": "Keine Ergebnisse."
+  }
+}

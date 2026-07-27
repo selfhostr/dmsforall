@@ -18,6 +18,7 @@
  * fonction — panne qui n'apparaîtrait qu'avec des valeurs nulles, donc jamais au premier test.
  */
 
+import { isIP } from 'node:net';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { OnModuleDestroy } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
@@ -54,16 +55,27 @@ import type {
 const TAILLE_POOL_AMORCAGE = 4;
 
 /**
- * Forme admissible d'une adresse pour le type `inet` : IPv4 pointée, ou IPv6 hexadécimale
- * (éventuellement avec zone `%eth0`), avec préfixe CIDR optionnel.
+ * Valide qu'une chaîne est une adresse IPv4 ou IPv6 acceptable pour le cast `::inet`.
  *
- * Volontairement permissif — PostgreSQL fera la validation réelle. Le seul objectif est
- * d'écarter ce qui ferait échouer le cast `::inet`, car cette valeur provient d'un en-tête
- * `X-Forwarded-For` que n'importe qui peut forger : une chaîne arbitraire ferait planter la
- * journalisation d'un échec de connexion. Autrement dit, un attaquant pourrait s'effacer du
- * journal de sécurité en envoyant un en-tête malformé. On préfère perdre l'IP que la trace.
+ * Correctif finding 6 (audit sécurité étape 0) : l'ancien motif `/^[0-9a-f.:%A-Z]{2,49}
+ * (\/\d{1,3})?$/i` était inopérant — le drapeau `i` rend `A-Z` équivalent à TOUTES les lettres
+ * (`MOTIF_IP.test('zzzzzz')` est vrai), donc n'importe quelle chaîne alphabétique le passait.
+ * Une valeur invalide partait vers `${ip}::inet`, Postgres levait `22P02 invalid input syntax
+ * for type inet`, `amorcage.journaliser_securite` échouait, et l'appelant avalait l'erreur :
+ * une campagne de force brute pouvait rester totalement absente de `journal_securite`.
+ *
+ * `isIP()` de `node:net` fait la même validation stricte que PostgreSQL attend pour `inet`
+ * (IPv4 pointée ou IPv6 hexadécimale, sans zone ni CIDR — ce que `req.ip`/`socket.remoteAddress`
+ * ne produisent de toute façon jamais). Une IP invalide n'empêche jamais la journalisation :
+ * on écrit l'événement avec `ip = NULL` plutôt que de le perdre — perdre l'IP est acceptable,
+ * perdre l'événement ne l'est pas.
+ *
+ * Exportée uniquement pour le test colocalisé (`acces-amorcage.service.spec.ts`) — reste hors
+ * de la surface publique `db/index.ts`, comme le reste de ce fichier.
  */
-const MOTIF_IP = /^[0-9a-f.:%A-Z]{2,49}(\/\d{1,3})?$/i;
+export function estAdresseIpValide(valeur: string): boolean {
+  return isIP(valeur) !== 0;
+}
 
 @Injectable()
 export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
@@ -247,8 +259,8 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
     // pilote choisir sa représentation, et un `null` sans cast arriverait en type inconnu.
     const details = evenement.details === null ? null : JSON.stringify(evenement.details);
 
-    // Voir MOTIF_IP : une IP malformée ne doit jamais empêcher l'écriture de la trace.
-    const ip = evenement.ip !== null && MOTIF_IP.test(evenement.ip) ? evenement.ip : null;
+    // Voir estAdresseIpValide : une IP malformée ne doit jamais empêcher l'écriture de la trace.
+    const ip = evenement.ip !== null && estAdresseIpValide(evenement.ip) ? evenement.ip : null;
 
     await this.base.execute(sql`
       select amorcage.journaliser_securite(

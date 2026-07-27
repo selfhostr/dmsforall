@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { SQL } from 'drizzle-orm';
+import { PgDialect } from 'drizzle-orm/pg-core';
 
 import type { Config } from '../../config/config.types';
 import type { AccesAmorcage, AccesBase, UtilisateurAmorcage } from '../../db/db.types';
@@ -185,16 +187,39 @@ describe('ServiceAuthentificationImpl.connecter', () => {
     expect(servicePwd.verifier).not.toHaveBeenCalled();
   });
 
-  it('refuse un compte déjà verrouillé SANS même vérifier le mot de passe', async () => {
+  // Finding sécurité #3 : le verrouillage n'est révélé (423) que si le mot de passe fourni est
+  // correct — sinon (peu importe l'état de verrouillage) l'attaquant reçoit EXACTEMENT le même
+  // 401 générique, et paie systématiquement le coût Argon2 réel. Voir aussi les deux tests
+  // dédiés au finding #3 plus bas dans ce describe.
+  it('compte déjà verrouillé + mot de passe CORRECT : 423, mot de passe vérifié malgré tout', async () => {
     accesAmorcage.utilisateurParEmail = vi
       .fn()
       .mockResolvedValue(utilisateurTest({ verrouilleJusquA: new Date(Date.now() + 60_000) }));
+    servicePwd.verifier = vi.fn().mockResolvedValue(true);
 
     await expect(
-      service().connecter({ email: 'garage@example.ch', motDePasse: 'x' }, null, null),
+      service().connecter({ email: 'garage@example.ch', motDePasse: 'bon' }, null, null),
     ).rejects.toBeInstanceOf(ErreurCompteVerrouille);
 
-    expect(servicePwd.verifier).not.toHaveBeenCalled();
+    expect(servicePwd.verifier).toHaveBeenCalledOnce();
+    expect(serviceSession.ouvrir).not.toHaveBeenCalled();
+  });
+
+  it('compte déjà verrouillé + mot de passe FAUX : même 401 générique qu’un compte non verrouillé (pas de fuite du 423)', async () => {
+    accesAmorcage.utilisateurParEmail = vi
+      .fn()
+      .mockResolvedValue(utilisateurTest({ verrouilleJusquA: new Date(Date.now() + 60_000) }));
+    servicePwd.verifier = vi.fn().mockResolvedValue(false);
+
+    const erreur = await service()
+      .connecter({ email: 'garage@example.ch', motDePasse: 'faux' }, null, null)
+      .catch((e: unknown) => e);
+
+    expect(erreur).toBeInstanceOf(ErreurIdentifiantsInvalides);
+    expect(erreur).not.toBeInstanceOf(ErreurCompteVerrouille);
+    // Coût Argon2 payé malgré le verrouillage préexistant — c'est précisément ce qui égalise la
+    // latence avec la branche « compte non verrouillé, mauvais mot de passe ».
+    expect(servicePwd.verifier).toHaveBeenCalledOnce();
   });
 
   it('rejette avec 429 quand la limitation de débit par IP est dépassée, sans requêter la base', async () => {
@@ -322,6 +347,126 @@ describe('ServiceAuthentificationImpl.connecter', () => {
       service().connecter({ email: 'garage@example.ch', motDePasse: 'bon' }, null, null),
     ).resolves.toBeDefined();
   });
+
+  // Finding sécurité #6 (volet auth) : une IP syntaxiquement invalide ne doit jamais atteindre
+  // `journaliserSecurite()` telle quelle (elle ferait échouer le cast `::inet` côté base, et donc
+  // disparaître l'événement de sécurité tout entier avec elle) — elle est remplacée par `null`.
+  it('journalise ip = null quand l’IP fournie n’est pas une IPv4/IPv6 valide (au lieu de risquer l’échec de l’INSERT)', async () => {
+    await service().connecter(
+      { email: 'garage@example.ch', motDePasse: 'bon' },
+      "1' OR '1'='1", // chaîne non-IP, passait le motif regex historique (drapeau `i` + `A-Z`)
+      'ua-test',
+    );
+
+    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock.calls;
+    expect(appelsJournal.length).toBeGreaterThan(0);
+    for (const [evenement] of appelsJournal) {
+      expect((evenement as { ip: string | null }).ip).toBeNull();
+    }
+  });
+
+  it('journalise l’IP telle quelle quand elle est une IPv4 valide', async () => {
+    await service().connecter(
+      { email: 'garage@example.ch', motDePasse: 'bon' },
+      '203.0.113.42',
+      'ua-test',
+    );
+
+    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock.calls;
+    const evenementReussi = appelsJournal.find(
+      ([e]) => (e as { type: string }).type === 'connexion_reussie',
+    )?.[0] as { ip: string | null } | undefined;
+    expect(evenementReussi?.ip).toBe('203.0.113.42');
+  });
+});
+
+describe('ServiceAuthentificationImpl.sessionCourante — scoping tenant (finding sécurité #9)', () => {
+  it('filtre les requêtes `utilisateur` et `session` par tenantId, pas seulement par id (le RLS est le filet, pas le mécanisme)', async () => {
+    const clausesWhere: unknown[] = [];
+    const donnees = {
+      utilisateur: [
+        {
+          id: 'utilisateur-id',
+          email: 'garage@example.ch',
+          prenom: 'Jean',
+          nom: 'Dupont',
+          role: 'admin',
+          langue: 'fr',
+        },
+      ],
+      tenant: [
+        {
+          id: 'tenant-id',
+          slug: 'garage-dupont',
+          raisonSociale: 'Garage Dupont Sàrl',
+          langueDefaut: 'fr',
+        },
+      ],
+      sites: [{ id: 'site-id', code: 'SION', nom: 'Sion', actif: true }],
+      session: [{ expireLe: new Date('2026-07-28T12:00:00.000Z') }],
+    };
+
+    const tx = {
+      select: () => ({
+        from: (table: unknown) => ({
+          where: (clause: unknown) => {
+            clausesWhere.push(clause);
+            if (table === tableUtilisateur) return requeteMock(donnees.utilisateur);
+            if (table === tableTenant) return requeteMock(donnees.tenant);
+            if (table === tableSite) return requeteMock(donnees.sites);
+            if (table === tableSession) return requeteMock(donnees.session);
+            throw new Error('Table inattendue dans le mock de test.');
+          },
+        }),
+      }),
+    };
+    const accesBase: AccesBase = {
+      enTenant: vi.fn((_ctx, travail) => travail(tx as never)),
+      verifierConnexion: vi.fn(),
+      verifierPostureRls: vi.fn(),
+    };
+
+    const svc = new ServiceAuthentificationImpl(
+      configTest(),
+      accesBase,
+      {
+        utilisateurParEmail: vi.fn(),
+        sessionParEmpreinte: vi.fn(),
+        toucherSession: vi.fn(),
+        enregistrerEchecConnexion: vi.fn(),
+        reinitialiserEchecsConnexion: vi.fn(),
+        journaliserSecurite: vi.fn(),
+      },
+      {
+        hacher: vi.fn(),
+        verifier: vi.fn(),
+        verifierLeurre: vi.fn(),
+        doitEtreRehache: vi.fn(),
+      },
+      { ouvrir: vi.fn(), resoudre: vi.fn(), fermer: vi.fn() },
+      { consommer: vi.fn() },
+      contexteTest(),
+    );
+
+    await svc.sessionCourante({
+      sessionId: 'session-id',
+      tenantId: 'tenant-id',
+      utilisateurId: 'utilisateur-id',
+      role: 'admin',
+      langue: 'fr',
+    });
+
+    // Ordre d'appel déterministe dans `sessionCourante()` : utilisateur (0), tenant (1),
+    // sites (2), session (3) — voir authentification.service.ts.
+    const dialecte = new PgDialect();
+    const requeteUtilisateur = dialecte.sqlToQuery(clausesWhere[0] as SQL);
+    const requeteSession = dialecte.sqlToQuery(clausesWhere[3] as SQL);
+
+    // Un `.where()` scopé UNIQUEMENT par id (régression du finding #9) n'aurait qu'UN seul
+    // paramètre bindé ; la correction en exige deux : id ET tenant_id.
+    expect(requeteUtilisateur.params).toEqual(['utilisateur-id', 'tenant-id']);
+    expect(requeteSession.params).toEqual(['session-id', 'tenant-id']);
+  });
 });
 
 describe('ServiceAuthentificationImpl.deconnecter', () => {
@@ -366,5 +511,56 @@ describe('ServiceAuthentificationImpl.deconnecter', () => {
     const [evenement] = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock
       .calls[0] as [{ type: string }];
     expect(evenement.type).toBe('deconnexion');
+  });
+
+  // Finding sécurité #7 : si la révocation en base échoue, l'erreur ne doit JAMAIS être avalée en
+  // silence — elle doit être à la fois loguée et journalisée comme événement de sécurité distinct,
+  // pour rester reconstituable dans `journal_securite` a posteriori (le contrôleur, lui, garde le
+  // droit de l'avaler pour rester idempotent côté client — voir auth.controller.ts).
+  it('propage l’erreur ET journalise un événement d’échec quand `fermer()` échoue (ne l’avale pas en silence)', async () => {
+    const erreurFermeture = new Error('statement_timeout');
+    const serviceSession: ServiceSession = {
+      ouvrir: vi.fn(),
+      resoudre: vi.fn(),
+      fermer: vi.fn().mockRejectedValue(erreurFermeture),
+    };
+    const accesAmorcage: AccesAmorcage = {
+      utilisateurParEmail: vi.fn(),
+      sessionParEmpreinte: vi.fn(),
+      toucherSession: vi.fn(),
+      enregistrerEchecConnexion: vi.fn(),
+      reinitialiserEchecsConnexion: vi.fn(),
+      journaliserSecurite: vi.fn().mockResolvedValue(undefined),
+    };
+    const svc = new ServiceAuthentificationImpl(
+      configTest(),
+      accesBaseTest(),
+      accesAmorcage,
+      {
+        hacher: vi.fn(),
+        verifier: vi.fn(),
+        verifierLeurre: vi.fn(),
+        doitEtreRehache: vi.fn(),
+      },
+      serviceSession,
+      { consommer: vi.fn() },
+      contexteTest(),
+    );
+
+    await expect(
+      svc.deconnecter({
+        sessionId: 'session-id',
+        tenantId: 'tenant-id',
+        utilisateurId: 'utilisateur-id',
+        role: 'admin',
+        langue: 'fr',
+      }),
+    ).rejects.toBe(erreurFermeture);
+
+    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock.calls;
+    expect(appelsJournal).toHaveLength(1);
+    const [evenement] = appelsJournal[0] as [{ type: string; details: unknown }];
+    expect(evenement.type).toBe('deconnexion');
+    expect(evenement.details).toMatchObject({ resultat: 'echec_revocation' });
   });
 });

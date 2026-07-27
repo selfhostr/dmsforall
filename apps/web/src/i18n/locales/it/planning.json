@@ -1,0 +1,97 @@
+{
+  "titre": "Pianificazione",
+  "nouveau": "Nuovo appuntamento",
+  "jour": "Giorno",
+  "semaine": "Settimana",
+  "charge": {
+    "titre": "Carico officina",
+    "capacite": "{heures} h / {capacite} h",
+    "saturation": "Officina satura"
+  },
+  "rdv": {
+    "heure": "Ora",
+    "duree": "Durata",
+    "plaque": "Targa",
+    "client": "Cliente",
+    "motif": "Motivo",
+    "motifs": "Motivi",
+    "modeAttente": "Modalità d'attesa",
+    "ressource": "Risorsa",
+    "vehiculeRempl": "Veicolo sostitutivo",
+    "presetVehicule": "Veicolo sostitutivo prenotato"
+  },
+  "modesAttente": {
+    "place": "Aspetta in officina",
+    "depot": "Deposito – ritiro al prossimo appuntamento",
+    "depotVeille": "Deposito – cassetta con chiavi",
+    "navette": "Navetta officina",
+    "prise": "Ritiro"
+  },
+  "motifs": {
+    "service": "Manutenzione / Servizio",
+    "expertise": "Collaudo / Ispezione",
+    "preExpertise": "Pre-collaudo",
+    "pneus": "Pneumatici",
+    "diagnostic": "Diagnosi",
+    "carrosserie": "Carrozzeria",
+    "rappel": "Richiamo costruttore",
+    "retouche": "Rilavorazione",
+    "devis": "Preventivo"
+  },
+  "statuts": {
+    "demande": "Richiesta",
+    "planifie": "Programmato",
+    "honore": "Onorario",
+    "absent": "Assente",
+    "annuleyClient": "Annullato (cliente)",
+    "annuleyGarage": "Annullato (officina)",
+    "reporte": "Rimandato"
+  },
+  "transitions": {
+    "honorer": "Onora",
+    "absent": "Segna assente",
+    "annulerClient": "Annulla (cliente)",
+    "annulerGarage": "Annulla (officina)",
+    "reporter": "Rimanda"
+  },
+  "alertes": {
+    "titre": "Avvisi & opportunità",
+    "travauxReportes": "Lavori rinviati",
+    "campagnes": "Richiami aperti",
+    "expertise": "Collaudo prossimo",
+    "garantie": "Garanzia",
+    "alerteClient": "Avviso cliente",
+    "importe": "Veicolo importato",
+    "ajouter": "Aggiungi a questo appuntamento"
+  },
+  "colonnes": {
+    "vehiculesAttendus": "Veicoli attesi",
+    "orDuJour": "Ordini del giorno",
+    "restitutions": "Restituzione promessa"
+  },
+  "formulaire": {
+    "titre": "Nuovo appuntamento",
+    "plaque": "Targa",
+    "vehicule": "Veicolo",
+    "client": "Cliente",
+    "motifs": "Motivi",
+    "verbatim": "Dichiarazione cliente",
+    "date": "Data",
+    "heure": "Ora",
+    "duree": "Durata stimata",
+    "heuresAtelier": "Ore officina",
+    "modeAttente": "Modalità d'attesa",
+    "vehiculeRempl": "Veicolo sostitutivo",
+    "ressource": "Risorsa",
+    "creer": "Crea appuntamento",
+    "enCours": "Creazione…",
+    "avertissements": {
+      "aucunVehicule": "Non potrà essere convertito in ordine così com'è",
+      "ressourceChevauchement": "Questa risorsa è già prenotata per questo orario"
+    }
+  },
+  "vide": {
+    "premier": "Nessun appuntamento programmato per questo giorno.",
+    "recherche": "Nessun risultato."
+  }
+}

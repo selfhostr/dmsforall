@@ -7,8 +7,10 @@
  * `ServiceMotDePasse.verifierLeurre()` — sinon la simple observation du code d'erreur (ou de sa
  * latence) permet d'énumérer les comptes existants.
  */
+import { isIP } from 'node:net';
+
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import type { EntreeConnexion, SessionCourante, TypeEvenementSecurite } from '@dfa/shared';
 
 import { JETON_CONFIG } from '../../config/config.jetons';
@@ -82,12 +84,20 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
       throw new ErreurIdentifiantsInvalides();
     }
 
-    if (u.verrouilleJusquA !== null && u.verrouilleJusquA.getTime() > Date.now()) {
-      await this.journaliser('compte_verrouille', u.tenantId, u.id, email, ip, ua, {
-        raison: 'deja_verrouille',
-      });
-      throw new ErreurCompteVerrouille(this.secondesAvant(u.verrouilleJusquA));
-    }
+    // Le mot de passe est vérifié AVANT le verrouillage (et non l'inverse) : un compte verrouillé
+    // ne fait l'objet d'aucun court-circuit avant Argon2, pour deux raisons (finding sécurité
+    // #3) :
+    // 1. Latence : un court-circuit avant Argon2 répondrait en quelques ms pour un compte
+    //    verrouillé contre ~50ms (`verifierLeurre()`) pour un email inconnu — un oracle de
+    //    chronométrage qui, combiné au code 423 lui-même, permet d'énumérer les comptes existants
+    //    et même de verrouiller à volonté le compte d'un employé nommément identifié.
+    // 2. Confidentialité du statut : tant que le mot de passe n'est pas prouvé correct, révéler
+    //    « ce compte est verrouillé » (423) est une fuite d'existence de compte au même titre
+    //    qu'un email inconnu — voir le commentaire d'en-tête de ce fichier. Le 423 n'est donc
+    //    renvoyé que si le mot de passe fourni est le bon (l'attaquant qui le connaît déjà
+    //    n'apprend rien de nouveau) ; sinon, EXACTEMENT le même 401 générique que pour un mot de
+    //    passe faux sur un compte non verrouillé.
+    const dejaVerrouilleJusquA = u.verrouilleJusquA;
 
     const motDePasseValide = await this.servicePwd.verifier(u.motDePasseHash, entree.motDePasse);
 
@@ -104,8 +114,16 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
           echecsConnexion: nouveauxEchecs,
         });
       }
-      // MÊME code d'erreur que « email inconnu » ci-dessus — voir le commentaire d'en-tête.
+      // MÊME code d'erreur que « email inconnu » ci-dessus, QUE le compte ait déjà été verrouillé
+      // ou non avant cette tentative — voir le commentaire d'en-tête.
       throw new ErreurIdentifiantsInvalides();
+    }
+
+    if (dejaVerrouilleJusquA !== null && dejaVerrouilleJusquA.getTime() > Date.now()) {
+      await this.journaliser('compte_verrouille', u.tenantId, u.id, email, ip, ua, {
+        raison: 'deja_verrouille',
+      });
+      throw new ErreurCompteVerrouille(this.secondesAvant(dejaVerrouilleJusquA));
     }
 
     // Mot de passe prouvé correct : à partir d'ici, révéler un statut suspendu ne constitue plus
@@ -148,8 +166,34 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
   }
 
   async deconnecter(principal: PrincipalAuthentifie): Promise<void> {
-    await this.serviceSession.fermer(principal);
     const ctx = this.contexte.actuelOuNull();
+
+    try {
+      await this.serviceSession.fermer(principal);
+    } catch (erreur) {
+      // Finding sécurité #7 : le contrôleur (`auth.controller.ts`) reste délibérément idempotent
+      // — 204 systématique même si CET appel échoue, cookie effacé côté client dans tous les cas
+      // (le bon choix pour une tablette d'atelier partagée : « se déconnecter » ne doit jamais
+      // planter). Mais côté serveur, si `fermer()` échoue, `revoquee_le` reste NULL et le jeton
+      // reste valide jusqu'à expiration naturelle (8h, ou 2h d'inactivité) : quiconque a capté le
+      // cookie garde un accès authentifié. On ne doit donc PAS avaler cette erreur en silence :
+      // on la crie fort en log ET on journalise un événement de sécurité distinct pour que
+      // l'échec reste reconstituable a posteriori dans `journal_securite`, puis on la
+      // repropage (le contrôleur, lui, l'avale volontairement).
+      // Limite résiduelle documentée : tant que cette écriture échoue, aucune action côté serveur
+      // ne révoque la session immédiatement ; seule l'expiration naturelle, une nouvelle tentative
+      // de déconnexion réussie, ou une révocation manuelle y met fin.
+      this.logger.error(
+        `Échec de révocation de session à la déconnexion (sessionId=${principal.sessionId}, ` +
+          `utilisateurId=${principal.utilisateurId}) : ${String(erreur)}`,
+      );
+      await this.journaliser('deconnexion', principal.tenantId, principal.utilisateurId, null, ctx?.ip ?? null, ctx?.userAgent ?? null, {
+        resultat: 'echec_revocation',
+        erreur: String(erreur),
+      });
+      throw erreur;
+    }
+
     await this.journaliser(
       'deconnexion',
       principal.tenantId,
@@ -179,7 +223,12 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             langue: utilisateur.langue,
           })
           .from(utilisateur)
-          .where(eq(utilisateur.id, principal.utilisateurId));
+          .where(
+            // Le RLS est le filet, pas le mécanisme : cette requête reste scopée tenant
+            // explicitement, même si `enTenant()` positionne déjà le contexte RLS ci-dessus
+            // (finding sécurité #9 — voir `ServiceSession.fermer()` pour la même forme).
+            and(eq(utilisateur.id, principal.utilisateurId), eq(utilisateur.tenantId, principal.tenantId)),
+          );
 
         const [ligneTenant] = await tx
           .select({
@@ -200,7 +249,10 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
         const [ligneSession] = await tx
           .select({ expireLe: session.expireLe })
           .from(session)
-          .where(eq(session.id, principal.sessionId));
+          .where(
+            // Idem — voir le commentaire au-dessus, sur la requête `utilisateur`.
+            and(eq(session.id, principal.sessionId), eq(session.tenantId, principal.tenantId)),
+          );
 
         if (!ligneUtilisateur || !ligneTenant || !ligneSession) {
           // Ne devrait jamais arriver : RLS + FK garantissent la cohérence tenant/utilisateur/
@@ -291,13 +343,23 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
     userAgent: string | null,
     details: Record<string, unknown> | null,
   ): Promise<void> {
+    // Défense en profondeur (finding sécurité #6, volet auth) : une IP malformée envoyée telle
+    // quelle finirait en `${ip}::inet` côté base, ferait échouer l'INSERT (22P02 — cast Postgres
+    // invalide) et ferait disparaître l'ÉVÉNEMENT DE SÉCURITÉ ENTIER dans le catch ci-dessous, pas
+    // seulement l'IP. `isIP()` (contrairement à un motif regex) ne laisse passer que de vraies
+    // IPv4/IPv6 ; toute autre valeur est journalisée avec `ip = null` plutôt que de risquer
+    // l'échec de l'écriture — perdre l'IP est acceptable, perdre l'événement ne l'est pas. (Le
+    // même filet existe indépendamment côté `db/acces-amorcage.service.ts`, propriété d'un autre
+    // agent — ceci est le filet côté service auth, au point d'entrée unique de tous ses
+    // événements.)
+    const ipValidee = ip !== null && isIP(ip) !== 0 ? ip : null;
     try {
       await this.accesAmorcage.journaliserSecurite({
         type,
         tenantId,
         utilisateurId,
         emailTente,
-        ip,
+        ip: ipValidee,
         userAgent,
         details,
       });

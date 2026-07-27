@@ -1,0 +1,97 @@
+{
+  "titre": "Planning",
+  "nouveau": "Nouveau rendez-vous",
+  "jour": "Jour",
+  "semaine": "Semaine",
+  "charge": {
+    "titre": "Charge atelier",
+    "capacite": "{heures} h / {capacite} h",
+    "saturation": "Atelier saturé"
+  },
+  "rdv": {
+    "heure": "Heure",
+    "duree": "Durée",
+    "plaque": "Plaque",
+    "client": "Client",
+    "motif": "Motif",
+    "motifs": "Motifs",
+    "modeAttente": "Mode d'attente",
+    "ressource": "Ressource",
+    "vehiculeRempl": "Véhicule de remplacement",
+    "presetVehicule": "Véhicule de remplacement réservé"
+  },
+  "modesAttente": {
+    "place": "Attend sur place",
+    "depot": "Dépôt – retrait prochain passage",
+    "depotVeille": "Dépôt – boîte à clés",
+    "navette": "Navette garage",
+    "prise": "Prise en charge"
+  },
+  "motifs": {
+    "service": "Entretien / Service",
+    "expertise": "Expertise / MFK",
+    "preExpertise": "Pré-expertise",
+    "pneus": "Pneus",
+    "diagnostic": "Diagnostic",
+    "carrosserie": "Carrosserie",
+    "rappel": "Rappel constructeur",
+    "retouche": "Retouche",
+    "devis": "Devis"
+  },
+  "statuts": {
+    "demande": "Demande",
+    "planifie": "Planifié",
+    "honore": "Honoré",
+    "absent": "Absent",
+    "annuleyClient": "Annulé client",
+    "annuleyGarage": "Annulé garage",
+    "reporte": "Reporté"
+  },
+  "transitions": {
+    "honorer": "Honorer",
+    "absent": "Marquer absent",
+    "annulerClient": "Annuler (client)",
+    "annulerGarage": "Annuler (garage)",
+    "reporter": "Reporter"
+  },
+  "alertes": {
+    "titre": "Alertes & opportunités",
+    "travauxReportes": "Travaux reportés",
+    "campagnes": "Campagnes ouvertes",
+    "expertise": "Expertise prochaine",
+    "garantie": "Garantie",
+    "alerteClient": "Alerte client",
+    "importe": "Véhicule importé",
+    "ajouter": "Ajouter à ce RDV"
+  },
+  "colonnes": {
+    "vehiculesAttendus": "Véhicules attendus",
+    "orDuJour": "OR du jour",
+    "restitutions": "Restitutions promises"
+  },
+  "formulaire": {
+    "titre": "Nouveau rendez-vous",
+    "plaque": "Plaque",
+    "vehicule": "Véhicule",
+    "client": "Client",
+    "motifs": "Motifs",
+    "verbatim": "Verbatim client",
+    "date": "Date",
+    "heure": "Heure",
+    "duree": "Durée estimée",
+    "heuresAtelier": "Heures atelier",
+    "modeAttente": "Mode d'attente",
+    "vehiculeRempl": "Véhicule de remplacement",
+    "ressource": "Ressource",
+    "creer": "Créer le RDV",
+    "enCours": "Création…",
+    "avertissements": {
+      "aucunVehicule": "Ne pourra pas être converti en OR tel quel",
+      "ressourceChevauchement": "Ressource déjà réservée pour cet horaire"
+    }
+  },
+  "vide": {
+    "premier": "Aucun rendez-vous prévu pour ce jour.",
+    "recherche": "Aucun résultat."
+  }
+}

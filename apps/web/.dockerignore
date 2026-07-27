@@ -1,0 +1,34 @@
+# Défense en profondeur pour le build de apps/web/Dockerfile — voir le commentaire équivalent
+# dans apps/api/.dockerignore (même rôle, même limite : ce Dockerfile ne fait jamais
+# `COPY . .`, chaque étape copie nommément ce dont elle a besoin).
+
+# Jamais de secret dans une image (aucun n'est censé exister côté front, mais on ne prend pas
+# de risque si un `.env` local traîne).
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Dépendances et artefacts de build — reconstruits dans le conteneur, pas copiés depuis l'hôte.
+node_modules/
+dist/
+.vite/
+.pnpm-store/
+*.tsbuildinfo
+
+# Tests, coverage, doc interne, outillage dev — inutiles au bundle statique de production.
+src/test/
+coverage/
+docs/
+scripts/
+.eslintcache
+
+# Éditeurs, VCS, CI — sans rapport avec l'image.
+.git/
+.github/
+.vscode/
+.idea/
+*.log

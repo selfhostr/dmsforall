@@ -1,0 +1,21 @@
+{
+  "titre": "Schnellsuche",
+  "placeholder": "Kennzeichen, VIN, Kunde, Tel… (Ctrl+K)",
+  "aide": "Geben Sie ein Kennzeichen ein (VD 123456), einen VIN, den Namen des Kunden oder eine Telefonnummer",
+  "resultatsGroupes": {
+    "vehicules": "{count, plural, one {# Fahrzeug} other {# Fahrzeuge}}",
+    "clients": "{count, plural, one {# Kunde} other {# Kunden}}",
+    "ordres": "{count, plural, one {# RA} other {# RA}}"
+  },
+  "details": {
+    "plaqueHistorique": "Früheres Kennzeichen von {client} bis {date}",
+    "plaqueInterchangeable": "Gemeinsames Kennzeichen – {count} Fahrzeuge",
+    "plaqueProfessionnelle": "Werkstatt-Kennzeichen (U)",
+    "orEnCours": "RA in Bearbeitung"
+  },
+  "vide": {
+    "titre": "Kein Ergebnis",
+    "description": "Überprüfen Sie Ihre Eingabe und versuchen Sie es erneut"
+  },
+  "chargement": "Suche läuft…"
+}

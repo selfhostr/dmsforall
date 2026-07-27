@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import swc from 'unplugin-swc';
 
 /**
  * Deux profils de test, dans un seul fichier de configuration (fonctionnalité "projects" de
@@ -18,11 +19,25 @@ import { defineConfig } from 'vitest/config';
  *   "test:watch":       "vitest --project unitaire"   (confort dev, optionnel)
  *
  * Nécessite vitest ^3 (API `test.projects`).
+ *
+ * Transpilation SWC (et non esbuild, le défaut de Vite) : esbuild ne supporte pas
+ * `emitDecoratorMetadata`, donc sous esbuild `design:paramtypes` n'est jamais émis et Nest ne
+ * peut résoudre AUCUNE dépendance injectée par type (`Reflector`, `ServiceContexteRequete`,
+ * etc.) — l'injection par jeton (`@Inject(JETON_X)`) fonctionne quand même par hasard, ce qui
+ * masque le problème jusqu'à ce qu'un provider injecté par type apparaisse. `unplugin-swc` lit
+ * `experimentalDecorators`/`emitDecoratorMetadata` depuis tsconfig.json (déjà activés) et
+ * remplace entièrement la transformation esbuild pour les fichiers .ts. Appliqué aux deux
+ * projets : "integration" en a besoin pour démarrer l'app Nest réelle ; "unitaire" doit rester
+ * cohérent avec la même chaîne de transpilation (des specs unitaires instancient aussi des
+ * providers via Nest testing module) et ne doit pas régresser avec ce changement.
  */
+const pluginSwc = swc.vite({ module: { type: 'es6' } });
+
 export default defineConfig({
   test: {
     projects: [
       {
+        plugins: [pluginSwc],
         test: {
           name: 'unitaire',
           include: ['src/**/*.spec.ts'],
@@ -34,6 +49,7 @@ export default defineConfig({
         },
       },
       {
+        plugins: [pluginSwc],
         test: {
           name: 'integration',
           include: ['test/integration/**/*.spec.ts', 'test/contrat/**/*.spec.ts'],

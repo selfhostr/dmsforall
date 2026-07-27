@@ -17,3 +17,6 @@ allowBuilds:
   # exigeraient une chaîne de compilation C++ sous Windows, et ssh2 fonctionne sans.
   cpu-features: false
   ssh2: false
+  # Binaire natif du compilateur SWC, requis par Vitest pour émettre les métadonnées de
+  # décorateurs sans lesquelles l'injection de dépendances NestJS ne se résout pas en test.
+  '@swc/core': true

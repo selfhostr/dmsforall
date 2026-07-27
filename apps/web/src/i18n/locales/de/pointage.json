@@ -1,0 +1,84 @@
+{
+  "titre": "Zeiterfassung",
+  "identification": {
+    "titre": "Wer sind Sie?",
+    "saisisseCode": "PIN eingeben"
+  },
+  "repos": {
+    "titre": "Heute zu tun",
+    "mesOr": "Meine RA heute",
+    "lignesFaire": "{count} Arbeit zu erledigen",
+    "lignesFaire_plural": "{count} Arbeiten zu erledigen"
+  },
+  "enCours": {
+    "demarrer": "Zeiterfassung starten",
+    "terminer": "Beenden",
+    "changerLigne": "Arbeit wechseln",
+    "signaler": "Befund melden"
+  },
+  "chrono": {
+    "enCours": "Läuft",
+    "titre": "Stoppuhr"
+  },
+  "constat": {
+    "titre": "Befund melden",
+    "description": "Kurzbeschreibung",
+    "urgence": "Priorität",
+    "urgent": "Dringend",
+    "aFaire": "Zu tun",
+    "aSurveiller": "Beobachten",
+    "enregistrer": "Registrieren"
+  },
+  "activites": {
+    "titre": "Indirekte Tätigkeiten",
+    "nettoyage": "Reinigung",
+    "attentePieces": "Wartend auf Teile",
+    "attenteAccord": "Wartend auf Freigabe",
+    "magasin": "Lager",
+    "formation": "Schulung",
+    "pause": "Pause",
+    "absence": "Abwesenheit"
+  },
+  "synchronisation": {
+    "aJour": "Aktuell",
+    "enAttente": "{count} Zeiterfassung ausstehend",
+    "enAttente_plural": "{count} Zeiterfassungen ausstehend",
+    "horsLigne": "Offline seit {heure}",
+    "anomalie": "{count} Zeiterfassung zu korrigieren",
+    "anomalie_plural": "{count} Zeiterfassungen zu korrigieren"
+  },
+  "cloturAuto": {
+    "titre": "Zeiterfassung beendet",
+    "message": "Ihre Zeiterfassung auf {or} wurde um {heure} beendet",
+    "corriger": "Endzeit korrigieren"
+  },
+  "anomalies": {
+    "titre": "Ungewöhnliche Zeiterfassungen",
+    "motifs": {
+      "dureeTrop": "Dauer > 10 h",
+      "nuit": "Überschreitung der Nacht",
+      "chevauchement": "Überlappung",
+      "periodeVerrouillee": "Periode gesperrt",
+      "orFacture": "RA fakturiert",
+      "ligneNonPointable": "Arbeit nicht erfassbar"
+    },
+    "corbeille": "Papierkorb anzeigen",
+    "corriger": "Zu korrigieren"
+  },
+  "correction": {
+    "titre": "Zeiterfassung korrigieren",
+    "heure": "Zeit",
+    "lignes": "Arbeit",
+    "motif": "Grund der Änderung",
+    "motifRequis": "Der Grund ist erforderlich",
+    "enregistrer": "Korrektur speichern"
+  },
+  "donnees": {
+    "titre": "Daten-Status",
+    "date": "Daten von {date} um {heure}",
+    "perimees": "Daten veraltet"
+  },
+  "vide": {
+    "aucunOr": "Für Sie heute keine Arbeiten zu erfassen."
+  }
+}

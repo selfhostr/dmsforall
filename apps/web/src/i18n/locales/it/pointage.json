@@ -1,0 +1,84 @@
+{
+  "titre": "Timbratura",
+  "identification": {
+    "titre": "Chi sei?",
+    "saisisseCode": "Inserisci codice PIN"
+  },
+  "repos": {
+    "titre": "Lavoro del giorno",
+    "mesOr": "I miei ordini di oggi",
+    "lignesFaire": "{count} lavoro da fare",
+    "lignesFaire_plural": "{count} lavori da fare"
+  },
+  "enCours": {
+    "demarrer": "Inizia timbratura",
+    "terminer": "Termina",
+    "changerLigne": "Cambia lavoro",
+    "signaler": "Segnala constatazione"
+  },
+  "chrono": {
+    "enCours": "In corso",
+    "titre": "Cronometro"
+  },
+  "constat": {
+    "titre": "Segnala constatazione",
+    "description": "Breve descrizione",
+    "urgence": "Priorità",
+    "urgent": "Urgente",
+    "aFaire": "Da fare",
+    "aSurveiller": "Da monitorare",
+    "enregistrer": "Registra"
+  },
+  "activites": {
+    "titre": "Attività indirette",
+    "nettoyage": "Pulizia",
+    "attentePieces": "Attesa ricambi",
+    "attenteAccord": "Attesa approvazione",
+    "magasin": "Magazzino",
+    "formation": "Formazione",
+    "pause": "Pausa",
+    "absence": "Assenza"
+  },
+  "synchronisation": {
+    "aJour": "Aggiornato",
+    "enAttente": "{count} timbratura in sospeso",
+    "enAttente_plural": "{count} timbrature in sospeso",
+    "horsLigne": "Offline da {heure}",
+    "anomalie": "{count} timbratura da correggere",
+    "anomalie_plural": "{count} timbrature da correggere"
+  },
+  "cloturAuto": {
+    "titre": "Timbratura chiusa",
+    "message": "La tua timbratura su {or} è stata chiusa a {heure}",
+    "corriger": "Correggi ora di fine"
+  },
+  "anomalies": {
+    "titre": "Timbrature anomale",
+    "motifs": {
+      "dureeTrop": "Durata > 10 h",
+      "nuit": "Attraversamento notturno",
+      "chevauchement": "Sovrapposizione",
+      "periodeVerrouillee": "Periodo bloccato",
+      "orFacture": "Ordine fatturato",
+      "ligneNonPointable": "Lavoro non timbrabile"
+    },
+    "corbeille": "Mostra cestino",
+    "corriger": "Da correggere"
+  },
+  "correction": {
+    "titre": "Correggi timbratura",
+    "heure": "Ora",
+    "lignes": "Lavoro",
+    "motif": "Motivo della correzione",
+    "motifRequis": "Il motivo è obbligatorio",
+    "enregistrer": "Salva correzione"
+  },
+  "donnees": {
+    "titre": "Stato dati",
+    "date": "Dati del {date} alle {heure}",
+    "perimees": "Dati obsoleti"
+  },
+  "vide": {
+    "aucunOr": "Nessun lavoro da timbrare per te oggi."
+  }
+}

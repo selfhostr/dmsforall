@@ -1,0 +1,84 @@
+{
+  "titre": "Pointage",
+  "identification": {
+    "titre": "Qui êtes-vous ?",
+    "saisisseCode": "Saisissez le code PIN"
+  },
+  "repos": {
+    "titre": "Travail du jour",
+    "mesOr": "Mes OR du jour",
+    "lignesFaire": "{count} ligne à faire",
+    "lignesFaire_plural": "{count} lignes à faire"
+  },
+  "enCours": {
+    "demarrer": "Démarrer le pointage",
+    "terminer": "Terminer",
+    "changerLigne": "Changer de ligne",
+    "signaler": "Signaler un constat"
+  },
+  "chrono": {
+    "enCours": "En cours",
+    "titre": "Chronomètre"
+  },
+  "constat": {
+    "titre": "Signaler un constat",
+    "description": "Description brève",
+    "urgence": "Urgence",
+    "urgent": "Urgent",
+    "aFaire": "À faire",
+    "aSurveiller": "À surveiller",
+    "enregistrer": "Enregistrer"
+  },
+  "activites": {
+    "titre": "Activités indirectes",
+    "nettoyage": "Nettoyage",
+    "attentePieces": "Attente pièces",
+    "attenteAccord": "Attente accord",
+    "magasin": "Magasin",
+    "formation": "Formation",
+    "pause": "Pause",
+    "absence": "Absence"
+  },
+  "synchronisation": {
+    "aJour": "À jour",
+    "enAttente": "{count} pointage en attente d'envoi",
+    "enAttente_plural": "{count} pointages en attente d'envoi",
+    "horsLigne": "Hors ligne depuis {heure}",
+    "anomalie": "{count} pointage à corriger",
+    "anomalie_plural": "{count} pointages à corriger"
+  },
+  "cloturAuto": {
+    "titre": "Pointage clôturé",
+    "message": "Votre pointage sur {or} a été clôturé à {heure}",
+    "corriger": "Corriger l'heure de fin"
+  },
+  "anomalies": {
+    "titre": "Pointages anormaux",
+    "motifs": {
+      "dureeTrop": "Durée > 10 h",
+      "nuit": "Chevauchement de nuit",
+      "chevauchement": "Chevauchement",
+      "periodeVerrouillee": "Période verrouillée",
+      "orFacture": "OR facturé",
+      "ligneNonPointable": "Ligne non pointable"
+    },
+    "corbeille": "Afficher la corbeille",
+    "corriger": "À corriger"
+  },
+  "correction": {
+    "titre": "Corriger le pointage",
+    "heure": "Heure",
+    "lignes": "Ligne",
+    "motif": "Motif de la correction",
+    "motifRequis": "Le motif est obligatoire",
+    "enregistrer": "Enregistrer la correction"
+  },
+  "donnees": {
+    "titre": "État des données",
+    "date": "Données du {date} à {heure}",
+    "perimees": "Données périmées"
+  },
+  "vide": {
+    "aucunOr": "Aucun OR à pointer pour vous aujourd'hui."
+  }
+}

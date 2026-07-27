@@ -111,7 +111,11 @@ export class AuthController {
         if (principal) {
           // Best-effort : un problème serveur pendant la fermeture de session ne doit jamais
           // empêcher le client de considérer qu'il s'est déconnecté (cookie effacé plus bas de
-          // toute façon).
+          // toute façon). Ce `.catch` avale l'erreur ICI (idempotence côté client, 204
+          // systématique — voir le commentaire de la méthode), mais PAS en silence côté serveur :
+          // `authService.deconnecter()` journalise déjà un `error` de log ET un événement de
+          // sécurité dédié avant de repropager (finding sécurité #7) — c'est cette trace-là qui
+          // permet de reconstituer l'incident, pas ce `.catch`.
           await this.authService.deconnecter(principal).catch(() => undefined);
         }
       } catch {

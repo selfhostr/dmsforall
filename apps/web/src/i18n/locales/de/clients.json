@@ -1,0 +1,92 @@
+{
+  "titre": "Kunden",
+  "nouveau": "Neuer Kunde",
+  "liste": {
+    "titre": "Kunden",
+    "colonnes": {
+      "numero": "Kundennummer",
+      "nom": "Name / Firmenname",
+      "localite": "Ort",
+      "telephone": "Mobil",
+      "vehicules": "Fahrzeuge",
+      "dernierPassage": "Letzter Besuch"
+    },
+    "filtres": {
+      "type": "Kundentyp",
+      "statut": "Status",
+      "inclureInactifs": "Inaktive anzeigen"
+    },
+    "types": {
+      "particulier": "Privatperson",
+      "entreprise": "Unternehmen"
+    },
+    "statuts": {
+      "actif": "Aktiv",
+      "inactif": "Inaktiv",
+      "bloque": "Gesperrt"
+    }
+  },
+  "fiche": {
+    "titre": "Kundenkarte",
+    "ouvrirOr": "RA öffnen",
+    "actions": {
+      "fusionner": "Zusammenführen"
+    }
+  },
+  "alertes": {
+    "bloque": "Gesperrt – Zahlungsrückstände",
+    "alerte": "⚠ Kundenalert"
+  },
+  "identite": {
+    "numero": "Kundennummer",
+    "nom": "Name",
+    "prenom": "Vorname",
+    "raisonSociale": "Firmenname",
+    "ide": "UID",
+    "langue": "Korrespondenzsprache",
+    "po": "Bestellnummer (PO)"
+  },
+  "conditions": {
+    "titre": "Handelsbedingungen",
+    "rabaisMo": "Arbeitsstundenrabatt",
+    "rabaisPieces": "Teilrabatt",
+    "rabaisPneus": "Reifenrabatt",
+    "delaiPaiement": "Zahlungsfrist",
+    "tauxHoraire": "Stundensatz",
+    "plafond": "Kostengrenze",
+    "dateEffet": "Gültig seit"
+  },
+  "contacts": {
+    "titre": "Kontakte",
+    "ajouter": "Kontakt hinzufügen",
+    "roles": {
+      "conducteur": "Fahrer",
+      "gestionnaireFl": "Fuhrparkverwalter",
+      "signataire": "Unterzeichner",
+      "comptabilite": "Buchhaltung"
+    }
+  },
+  "adresses": {
+    "titre": "Adressen",
+    "ajouter": "Adresse hinzufügen",
+    "types": {
+      "principale": "Hauptadresse",
+      "facturation": "Rechnungsadresse",
+      "livraison": "Lieferadresse"
+    }
+  },
+  "notes": {
+    "titre": "Notizen",
+    "interne": "Interne Notiz (nicht gedruckt)",
+    "alerte": "Alert (rot angezeigt)"
+  },
+  "fusion": {
+    "titre": "Zwei Kunden zusammenführen",
+    "confirmation": "Geben Sie den Namen des zu absorbierenden Kunden ein, um zu bestätigen"
+  },
+  "vide": {
+    "premier": "Kein Kunde registriert. Erstellen Sie den ersten.",
+    "recherche": "Kein Kunde gefunden.",
+    "filtre": "Keine Ergebnisse mit diesen Filtern."
+  }
+}

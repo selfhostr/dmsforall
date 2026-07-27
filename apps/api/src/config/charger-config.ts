@@ -26,6 +26,15 @@ export const schemaConfig = z
     SESSION_DUREE_MINUTES: z.coerce.number().int().min(5).max(43_200).default(480),
     SESSION_INACTIVITE_MINUTES: z.coerce.number().int().min(5).max(1_440).default(120),
     COOKIE_DOMAINE: z.string().optional(),
+    // Nombre EXACT de reverse proxies entre le client et le conteneur API (Express `trust
+    // proxy`, passé tel quel comme nombre de hops — jamais `true`, voir le commentaire sur
+    // TRUST_PROXY_HOPS dans .env.example). Défaut 0 = aucun proxy de confiance, `req.ip` reste
+    // l'adresse TCP entrante : c'est le comportement historique, sûr par défaut. En production
+    // derrière un reverse proxy (déploiement prévu), doit être réglé au nombre réel de hops,
+    // sous peine que la limitation de débit par IP scope tous les tenants sur une seule clé
+    // (finding 2, audit sécurité) — et jamais à un nombre supérieur au nombre réel de proxies,
+    // sous peine qu'un `X-Forwarded-For` forgé par le client contourne la limitation par IP.
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(0),
     // `.default()` AVANT `.transform()` : en zod 4, la valeur par défaut est typée sur la
     // sortie de la chaîne. Placée après le transform, elle devrait être un booléen, pas la
     // chaîne 'true' issue de l'environnement.
@@ -40,9 +49,15 @@ export const schemaConfig = z
     LIMITE_CONNEXION_COMPTE: z.coerce.number().int().min(1).default(5),
     LIMITE_FENETRE_SECONDES: z.coerce.number().int().min(30).default(900),
     LOG_NIVEAU: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+    // Défaut 'false' (finding 8, audit sécurité) : Swagger/OpenAPI est monté directement sur
+    // Express par `SwaggerModule.setup()` (main.ts), donc HORS du graphe Nest — l'`APP_GUARD`
+    // d'authentification ne s'y applique pas. Un oubli de variable en production exposerait
+    // sans authentification `GET /api/docs.json` (cartographie complète des endpoints, schémas,
+    // nom exact du cookie de session). C'est le seul point du socle qui doive être fail-closed
+    // par défaut plutôt que de dépendre d'un opérateur qui pense à le désactiver.
     OPENAPI_EXPOSER_DOCS: z
       .enum(['true', 'false'])
-      .default('true')
+      .default('false')
       .transform((v) => v === 'true'),
     VERSION_APP: z.string().default('0.0.0-dev'),
   })

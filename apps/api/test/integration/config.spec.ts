@@ -46,7 +46,9 @@ describe("validation de la configuration au démarrage (schéma zod, échec rapi
     delete env.DATABASE_URL;
     delete env.REDIS_URL;
 
-    expect.assertions(2);
+    // 1 assertion pour le type d'erreur + 1 par variable fautive attendue (3 ici) : la vérification
+    // porte précisément sur le fait que TOUTES sont listées, pas seulement la première.
+    expect.assertions(4);
     try {
       chargerConfig(env);
     } catch (erreur) {

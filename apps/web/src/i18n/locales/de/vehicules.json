@@ -1,0 +1,110 @@
+{
+  "titre": "Fahrzeuge",
+  "identite": {
+    "marque": "Marke",
+    "modele": "Modell",
+    "version": "Version",
+    "vin": "VIN",
+    "codeType": "CH-Code",
+    "plaque": "Kennzeichen",
+    "mise1reCirc": "1. Zulassung",
+    "kmActuels": "Km aktuell"
+  },
+  "plaques": {
+    "titre": "Kennzeichen",
+    "canton": "Kanton",
+    "type": "Typ",
+    "historique": "Kennzeichen-Verlauf"
+  },
+  "detentions": {
+    "titre": "Halter",
+    "detenteur": "Aktueller Halter",
+    "historique": "Halter-Verlauf",
+    "changer": "Halter ändern",
+    "motifs": {
+      "vente": "Verkauf",
+      "reprise": "Rücknahme",
+      "deces": "Todesfall",
+      "correction": "Berichtigung"
+    }
+  },
+  "kilometrage": {
+    "titre": "Kilometerstand",
+    "relevek": "Kilometerstand erfassen",
+    "valeur": "Km",
+    "date": "Datum",
+    "source": "Quelle",
+    "sources": {
+      "reception": "Annahme",
+      "or": "RA",
+      "expertise": "MFK",
+      "vente": "Verkauf",
+      "declaratif": "Kundengabe",
+      "import": "Import"
+    }
+  },
+  "expertise": {
+    "titre": "MFK (Motorfahrzeugkontrolle)",
+    "derniere": "Letzte MFK",
+    "prochaine": "Nächste MFK",
+    "source": "Quelle",
+    "sources": {
+      "calculee": "Berechnet",
+      "convocation": "Vorladung"
+    },
+    "echue": "Abgelaufen",
+    "eche": "Ablauf in {mois, plural, one {# Monat} other {# Monaten}}"
+  },
+  "garantie": {
+    "titre": "Garantie",
+    "constructeur": "Hersteller",
+    "debut": "Garantiebeginn",
+    "duree": "Dauer",
+    "plafond": "km Grenze",
+    "enchantier": "Gültig",
+    "echue": "Abgelaufen"
+  },
+  "campagnes": {
+    "titre": "Herstellerrückrufe",
+    "code": "Code",
+    "description": "Beschreibung",
+    "obligatoire": "Obligatorisch",
+    "optionnelle": "Optional"
+  },
+  "travauxReportes": {
+    "titre": "Zurückgestellte Arbeiten",
+    "urgence": "Priorität",
+    "urgences": {
+      "urgent": "Dringend",
+      "aFaire": "Zu tun",
+      "aSurveiller": "Beobachten"
+    },
+    "montant": "Geschätzter Betrag",
+    "date": "Datum",
+    "km": "Km damals"
+  },
+  "donnees": {
+    "titre": "Werkstattdaten",
+    "pneus": "Reifen",
+    "ete": "Sommer",
+    "hiver": "Winter",
+    "pression": "Druck (bar)",
+    "huile": "Öl",
+    "type": "Typ",
+    "quantite": "Menge (l)",
+    "batterie": "Batterie",
+    "codeRadio": "Radiocode",
+    "intervalle": "Wartungsintervall"
+  },
+  "importation": {
+    "titre": "Import",
+    "importe": "Importiert",
+    "pays": "Herkunftsland",
+    "date": "Importdatum"
+  },
+  "vide": {
+    "identite": "Fahrzeug nicht identifiziert",
+    "plaques": "Kein Kennzeichen registriert",
+    "kilometrage": "Kein Kilometerstand erfasst"
+  }
+}

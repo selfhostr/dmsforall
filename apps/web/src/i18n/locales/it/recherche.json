@@ -1,0 +1,21 @@
+{
+  "titre": "Ricerca rapida",
+  "placeholder": "Targa, VIN, cliente, tel… (Ctrl+K)",
+  "aide": "Inserire una targa (VD 123456), un VIN, il nome del cliente o un numero di telefono",
+  "resultatsGroupes": {
+    "vehicules": "{count, plural, one {# veicolo} other {# veicoli}}",
+    "clients": "{count, plural, one {# cliente} other {# clienti}}",
+    "ordres": "{count, plural, one {# ordine} other {# ordini}}"
+  },
+  "details": {
+    "plaqueHistorique": "Targa precedente di {client} fino al {date}",
+    "plaqueInterchangeable": "Targa condivisa – {count} veicoli",
+    "plaqueProfessionnelle": "Targa dell'officina (U)",
+    "orEnCours": "Ordine in corso"
+  },
+  "vide": {
+    "titre": "Nessun risultato",
+    "description": "Verificare l'immissione e riprovare"
+  },
+  "chargement": "Ricerca in corso…"
+}

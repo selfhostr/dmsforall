@@ -21,6 +21,11 @@ const CHEMIN_CONNEXION = '/api/v1/auth/connexion';
 const CHEMIN_DECONNEXION = '/api/v1/auth/deconnexion';
 const CHEMIN_MOI = '/api/v1/auth/moi';
 
+/** Reflète `SEUIL_VERROUILLAGE` (authentification.service.ts) — constante interne du service,
+ *  PAS une variable de `Config` : il n'existe donc aucun moyen de la lire depuis un test, on la
+ *  duplique ici en la documentant comme telle. */
+const SEUIL_VERROUILLAGE_ATTENDU = 5;
+
 let bdd: BaseEphemere;
 let redis: RedisEphemere;
 let ctx: AppTest;
@@ -54,6 +59,30 @@ function cookieDe(tokenClair: string): string {
   return `${ctx.config.SESSION_COOKIE_NOM}=${tokenClair}`;
 }
 
+let compteurUtilisateursDeTest = 0;
+
+/** Fixture dédiée à un seul test, avec un email jamais réutilisé ailleurs dans ce fichier.
+ *
+ *  Nécessaire pour "validité de session" et "déconnexion" : `verifierLimitationDebit` (voir
+ *  authentification.service.ts) consomme le même budget Redis `LIMITE_CONNEXION_COMPTE` par
+ *  email pour TOUTE tentative de connexion, y compris les connexions RÉUSSIES — pas seulement
+ *  les échecs. Réutiliser `utilisateurA` pour connecter/reconnecter dans chacun des 6 tests de
+ *  ces deux describe (en plus des 3 déjà faits sur ce même email dans "connexion réussie" et
+ *  "connexion refusée") dépasserait le budget par défaut (5 / 900s) et ferait échouer ces tests
+ *  sur un 429 sans rapport avec ce qu'ils vérifient (expiration, inactivité, suspension,
+ *  déconnexion). Une fixture dédiée par test isole chacun de ce budget partagé — voir aussi le
+ *  signalement dans la réponse finale de la mission : le couplage entre rate-limiting Redis et
+ *  verrouillage de compte (tous deux à 5 par défaut) mériterait d'être revu côté src/auth. */
+async function nouvelUtilisateurDeTest(): Promise<UtilisateurFixture> {
+  compteurUtilisateursDeTest += 1;
+  return ajouterUtilisateurFixture(bdd, demo.tenantA.id, {
+    prenom: 'Test',
+    nom: `SessionUnitaire${compteurUtilisateursDeTest}`,
+    role: 'technicien',
+    email: `test.session.${compteurUtilisateursDeTest}@garage-martin.test`,
+  });
+}
+
 beforeAll(async () => {
   bdd = await demarrerBaseEphemere();
   demo = await semerGarageDemo(bdd);
@@ -63,9 +92,11 @@ beforeAll(async () => {
 }, 180_000);
 
 afterAll(async () => {
-  await ctx.fermer();
-  await redis.fermer();
-  await bdd.fermer();
+  // Défensif : si `beforeAll` a échoué avant d'initialiser une ressource, `?.` évite de
+  // masquer la VRAIE erreur (celle du beforeAll) derrière un TypeError secondaire ici.
+  await ctx?.fermer();
+  await redis?.fermer();
+  await bdd?.fermer();
 });
 
 describe('connexion réussie', () => {
@@ -142,37 +173,92 @@ describe('connexion refusée', () => {
     expect(reponse.body.code).toBe('AUTH_ORIGINE_REFUSEE');
   });
 
-  it('le compte est verrouillé (423) après LIMITE_CONNEXION_COMPTE tentatives échouées consécutives, même avec le bon mot de passe ensuite', async () => {
-    const utilisateurVerrouillage = await ajouterUtilisateurFixture(bdd, demo.tenantA.id, {
-      prenom: 'Test',
-      nom: 'Verrouillage',
-      role: 'technicien',
-      email: 'test.verrouillage@garage-martin.test',
-    });
+  it('le compte est verrouillé (423) après SEUIL_VERROUILLAGE tentatives échouées consécutives, même avec le bon mot de passe ensuite', async () => {
+    // Deux dispositifs anti-brute-force INDÉPENDANTS protègent /auth/connexion (voir
+    // authentification.service.ts) : un verrouillage de compte progressif après
+    // `SEUIL_VERROUILLAGE` (constante interne = 5, non configurable) échecs consécutifs — celui
+    // que ce test vérifie —, et une limitation de débit Redis PAR EMAIL (`LIMITE_CONNEXION_COMPTE`,
+    // par défaut aussi 5) qui compte TOUTE tentative, y compris la dernière ici (mot de passe
+    // correct). `verifierLimitationDebit` s'exécute avant toute autre vérification : avec la
+    // config par défaut, les deux seuils coïncident à 5, donc la 6e requête de ce test (mot de
+    // passe correct, après 5 échecs) tombe systématiquement sur le 429 du rate-limiter Redis
+    // AVANT même d'atteindre le code qui rendrait 423 — le comportement documenté ("423 si le
+    // mot de passe est le bon") devient inatteignable. C'est un vrai problème d'ordonnancement
+    // dans src/auth/services/authentification.service.ts (à signaler à l'équipe propriétaire de
+    // ce module, hors périmètre de ce dépôt de tests), pas une erreur de ce test : on isole donc
+    // ici la mécanique qu'on veut PROUVER (le verrouillage de compte) de celle qu'on ne veut pas
+    // exercer (le rate-limiter Redis) en pointant cette requête sur une app de test dédiée dont
+    // le budget par email est délibérément desserré — la base et le Redis éphémères restent les
+    // mêmes, seule la configuration lue par CETTE instance change.
+    //
+    // Une fois ce masquage levé, ce test révèle un SECOND bug, plus profond, dans
+    // authentification.service.ts:122 (`dejaVerrouilleJusquA.getTime()`) : à l'exécution,
+    // `u.verrouilleJusquA` (renvoyé par `AccesAmorcage.utilisateurParEmail`, lui-même une requête
+    // brute `drizzle.execute(sql\`... from amorcage.utilisateur_par_email(...)\`)`, voir
+    // src/db/acces-amorcage.service.ts) n'est PAS une instance de `Date` malgré son typage
+    // `Date | null` — vraisemblablement une chaîne ISO brute renvoyée par le driver `pg` pour
+    // cette requête SQL non typée par le schéma drizzle (contrairement aux colonnes déclarées
+    // via `timestamp({ mode: 'date' })` dans un schéma drizzle, qui, elles, sont converties).
+    // Résultat : la 6e requête plante avec un TypeError non typé, capturé par `FiltreProbleme`
+    // comme `ERREUR_INTERNE`/500 au lieu du 423 attendu. Ce test reste donc INTENTIONNELLEMENT
+    // rouge — c'est la preuve que le verrouillage de compte est actuellement cassé en pratique,
+    // pas une erreur de ce fichier. Signalé dans le rapport de mission ; correction hors
+    // périmètre de apps/api/test/** (src/auth/** et src/db/acces-amorcage.service.ts).
+    const ctxSansRateLimitEmail = await creerAppTest(bdd, redis.url, { LIMITE_CONNEXION_COMPTE: '1000' });
+    try {
+      const utilisateurVerrouillage = await ajouterUtilisateurFixture(bdd, demo.tenantA.id, {
+        prenom: 'Test',
+        nom: 'Verrouillage',
+        role: 'technicien',
+        email: 'test.verrouillage@garage-martin.test',
+      });
 
-    for (let tentative = 0; tentative < ctx.config.LIMITE_CONNEXION_COMPTE; tentative += 1) {
-      const reponse = await connecter(utilisateurVerrouillage.email, 'mauvais-mot-de-passe');
-      expect(reponse.status).toBe(401);
+      const connecterSansRateLimitEmail = (email: string, motDePasse: string) =>
+        ctxSansRateLimitEmail.requete
+          .post(CHEMIN_CONNEXION)
+          .set('Origin', ctxSansRateLimitEmail.config.WEB_URL_PUBLIQUE)
+          .send({ email, motDePasse });
+
+      for (let tentative = 0; tentative < SEUIL_VERROUILLAGE_ATTENDU; tentative += 1) {
+        const reponse = await connecterSansRateLimitEmail(utilisateurVerrouillage.email, 'mauvais-mot-de-passe');
+        expect(reponse.status).toBe(401);
+      }
+
+      const reponseApresVerrouillage = await connecterSansRateLimitEmail(
+        utilisateurVerrouillage.email,
+        utilisateurVerrouillage.motDePasseClair,
+      );
+      expect(reponseApresVerrouillage.status).toBe(423);
+      expect(reponseApresVerrouillage.body.code).toBe('AUTH_COMPTE_VERROUILLE');
+    } finally {
+      await ctxSansRateLimitEmail.fermer();
     }
-
-    const reponseApresVerrouillage = await connecter(utilisateurVerrouillage.email, utilisateurVerrouillage.motDePasseClair);
-    expect(reponseApresVerrouillage.status).toBe(423);
-    expect(reponseApresVerrouillage.body.code).toBe('AUTH_COMPTE_VERROUILLE');
   });
 });
 
 describe('validité de session', () => {
   it('une session dont l\'expiration absolue est dépassée est refusée (401) même si elle a été "vue" à l\'instant', async () => {
-    const { tokenClair, sessionId } = await connecterEtRecupererSession(utilisateurA);
+    const utilisateur = await nouvelUtilisateurDeTest();
+    const { tokenClair, sessionId } = await connecterEtRecupererSession(utilisateur);
     await ctx.horloge.fixerDerniereActiviteSession(sessionId, new Date());
-    await ctx.horloge.fixerExpirationSession(sessionId, new Date(Date.now() - 60_000));
+    // La contrainte `session_expire_le_coherent_chk` (expire_le > cree_le) interdit de reculer
+    // expire_le à une date arbitraire dans le passé : la session vient d'être créée, donc
+    // `cree_le` est lui-même quasiment "maintenant". On la fixe juste après `cree_le` (encore
+    // valide au regard de la contrainte) — le temps que la requête HTTP suivante parte suffit à
+    // ce qu'elle soit déjà dans le passé au moment où l'application la relit.
+    const { rows } = await ctx.poolMigrateur.query<{ cree_le: Date }>('select cree_le from session where id = $1', [
+      sessionId,
+    ]);
+    const creeLe = rows[0]!.cree_le;
+    await ctx.horloge.fixerExpirationSession(sessionId, new Date(creeLe.getTime() + 1));
 
     const reponse = await ctx.requete.get(CHEMIN_MOI).set('Cookie', cookieDe(tokenClair));
     expect(reponse.status).toBe(401);
   });
 
   it("une session inactive au-delà du seuil glissant (SESSION_INACTIVITE_MINUTES) est refusée (401) même si l'expiration absolue n'est pas atteinte", async () => {
-    const { tokenClair, sessionId } = await connecterEtRecupererSession(utilisateurA);
+    const utilisateur = await nouvelUtilisateurDeTest();
+    const { tokenClair, sessionId } = await connecterEtRecupererSession(utilisateur);
     await ctx.horloge.fixerExpirationSession(sessionId, new Date(Date.now() + 6 * 3_600_000)); // très loin dans le futur
     await ctx.horloge.fixerDerniereActiviteSession(
       sessionId,
@@ -184,18 +270,20 @@ describe('validité de session', () => {
   });
 
   it('un utilisateur passé "suspendu" voit sa session invalidée dès la requête suivante', async () => {
-    const { tokenClair } = await connecterEtRecupererSession(utilisateurA);
-    await bdd.poolMigrateur.query("update utilisateur set statut = 'suspendu' where id = $1", [utilisateurA.id]);
+    const utilisateur = await nouvelUtilisateurDeTest();
+    const { tokenClair } = await connecterEtRecupererSession(utilisateur);
+    await bdd.poolMigrateur.query("update utilisateur set statut = 'suspendu' where id = $1", [utilisateur.id]);
     try {
       const reponse = await ctx.requete.get(CHEMIN_MOI).set('Cookie', cookieDe(tokenClair));
       expect(reponse.status).toBe(401);
     } finally {
-      await bdd.poolMigrateur.query("update utilisateur set statut = 'actif' where id = $1", [utilisateurA.id]);
+      await bdd.poolMigrateur.query("update utilisateur set statut = 'actif' where id = $1", [utilisateur.id]);
     }
   });
 
   it('un tenant passé "suspendu" invalide toute session de ses utilisateurs dès la requête suivante', async () => {
-    const { tokenClair } = await connecterEtRecupererSession(utilisateurA);
+    const utilisateur = await nouvelUtilisateurDeTest();
+    const { tokenClair } = await connecterEtRecupererSession(utilisateur);
     // `tenant` est sous FORCE ROW LEVEL SECURITY : seul le superutilisateur peut le modifier
     // sans contexte tenant déjà posé (voir garage-demo.ts pour la même remarque sur le seed).
     await bdd.poolSuperutilisateur.query("update tenant set statut = 'suspendu' where id = $1", [demo.tenantA.id]);
@@ -218,7 +306,8 @@ describe('déconnexion', () => {
   });
 
   it('après une déconnexion réelle, le jeton précédemment valide ne permet plus GET /auth/moi', async () => {
-    const { tokenClair } = await connecterEtRecupererSession(utilisateurA);
+    const utilisateur = await nouvelUtilisateurDeTest();
+    const { tokenClair } = await connecterEtRecupererSession(utilisateur);
 
     const reponseDeconnexion = await ctx.requete
       .post(CHEMIN_DECONNEXION)

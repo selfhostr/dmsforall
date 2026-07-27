@@ -28,6 +28,7 @@ import supertest from 'supertest';
 
 import { chargerConfig, ConfigModule, type Config } from '../../src/config';
 import { DbModule, type AccesBase } from '../../src/db';
+import { FiltreProbleme } from '../../src/common/erreurs';
 import { AppModule } from '../../src/app.module';
 import type { BaseEphemere } from './postgres-ephemere';
 
@@ -146,14 +147,26 @@ export async function creerAppTest(
   }).compile();
 
   const app = moduleRef.createNestApplication();
-  // Répliqué ici depuis ce que main.ts doit faire pour que le cookie de session soit lisible
-  // par GardeSession (contrat §2.10 : "lit le cookie ... jamais un header") et pour obtenir le
-  // préfixe /api/v1 (contrat §4). Si main.ts factorise un jour cette configuration dans une
-  // fonction exportée (ex. `configurerApplication(app)`), la remplacer ici évite la
-  // duplication — pour l'instant les deux copies doivent rester synchronisées manuellement.
+  // Répliqué ici depuis ce que main.ts doit faire (§7 de son commentaire d'en-tête) pour que le
+  // cookie de session soit lisible par GardeSession (contrat §2.10 : "lit le cookie ... jamais
+  // un header"), pour obtenir le préfixe /api/v1 (contrat §4), et pour que toute `ErreurMetier`
+  // (qui n'est PAS une HttpException Nest — voir common/erreurs/erreur-metier.ts) ressorte en
+  // application/problem+json avec le bon statut au lieu d'un 500 générique : `FiltreProbleme`
+  // est délibérément fourni comme provider ORDINAIRE, pas en APP_FILTER (voir
+  // common.module.ts), donc SEUL `app.useGlobalFilters(app.get(FiltreProbleme))` l'active — il
+  // n'y a aucun mécanisme automatique qui le fait à notre place. Si main.ts factorise un jour
+  // cette configuration dans une fonction exportée (ex. `configurerApplication(app)`), la
+  // remplacer ici évite la duplication — pour l'instant les deux copies doivent rester
+  // synchronisées manuellement.
+  app.useGlobalFilters(app.get(FiltreProbleme));
   app.use(cookieParser());
   app.setGlobalPrefix('api');
-  app.enableVersioning({ type: VersioningType.URI });
+  // `defaultVersion: '1'` doit être IDENTIQUE à main.ts : sans lui, un contrôleur qui ne pose pas
+  // `@Version()` explicitement (c'est le cas ici, contrat §4 — voir le commentaire en tête
+  // d'auth.controller.ts) n'est monté sous AUCUNE version, donc invisible sous /api/v1/... et
+  // toute requête de test rend 404 "Cannot POST ..." — un faux négatif qui n'a rien à voir avec
+  // le code applicatif testé.
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   await app.init();
 
   return {

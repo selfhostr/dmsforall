@@ -47,12 +47,32 @@ Terminologie automobile et métier garage suisse : FR (source) / DE (conventions
 - **Allemand suisse** : Vouvoiement formel (Sie) partout. Jamais de « ß », toujours « ss ». Éviter jargon informatique (ex : « Passwort » pas « Password »).
 - **Italien (Tessin)** : Formel aussi. « Officina » préféré à « garage » en IT. « Meccanico » + « tecnico » coexistent — préférer contexte (diagnostic = tecnico, repair = meccanico).
 
+## Termes de l'étape 1 (Atelier + Clients) — STABLE
+
+| FR | DE | IT | Notes & ambiguïtés |
+|---|---|---|---|
+| **Réceptionnaire** | Annahmestelle / Berater | Receptionist / Accettatore | Agent au comptoir. DE : « Berater » courant en Suisse alémanique, parfois « Annahmebeamte » pour l'autorité. IT : « accettatore » plus formel. |
+| **Chef d'atelier** | Werkstattleiter | Responsabile officina | Supervision, planification. DE : variant « Schichtleiter » si poste) ; IT stable. |
+| **Réception** (étape B) | Annahme | Accettazione / Presa in carico | Premier bilan du véhicule. IT : « accettazione » légale, « presa in carico » courant atelier. |
+| **Localisation du véhicule** | Fahrzeugposition / Standort | Localizzazione / Ubicazione | Où est le véhicule en ce moment. Terminologie stable. |
+| **Travaux reportés** | Zurückgestellte Arbeiten | Lavori rinviati | Constatations non exécutées, représentées au prochain RDV. Stable. |
+| **Véhicule de remplacement** | Ersatzfahrzeug | Veicolo sostitutivo | Voiture de courtoisie. Terminologie stable. |
+| **Boîte à clés** | Schlüsselversteck | Cassetta con chiavi | Dépôt de nuit. Terminologie régionale, stable en Suisse. |
+| **Mandat de réparation** | Reparaturvollmacht | Mandato di riparazione | Accord signé client. Stable. |
+| **Devis complémentaire** | Nachtragsofferte / Kostenvoranschlag | Preventivo supplementare | Accord sur travaux constatés. Supra noté. DE : « Nachtragsofferte » + précis, « Kostenvoranschlag » + générique. IT : stable. |
+| **Contrôle qualité** | Qualitätskontrolle | Controllo qualità | Inspectionpost-travaux. Stable. |
+| **Signature réception** | Annahmesignatur | Firma di accettazione | Mandat signé à la réception. Stable. |
+| **Pièce à restituer** | Austauschteil / Ersatzteil-Rückgabe | Pezzo da restituire / Ricambio da rendere | Pièce remplacée remise au client. Terminologie stable. |
+| **Montant plafond** | Kostendach / Kostengrenze | Tetto di spesa | Supra noté. |
+
 ## Termes à surveiller après lancements phase 1 (Atelier + Clients)
 
 - Ambiguïtés régionales (certains cantons, certains garagistes) :
   - Reprise/Permuta : valider avec 3+ garages VD/VS/TI
   - Expertise : si garage offre MFK externe, comment l'appeler en IT/DE ?
+  - **Réceptionnaire** : titre exact varie par garage (conseiller, chargé, agent) — jamais « administrateur » ou jargon IT
 - Évolution possible (feedback utilisateur) :
   - Rôles : « Chef d'atelier » parfois aussi « Superviseur » en DE
   - Pointage : si intégration externe, exposer termes de cette interface (ex: Swisstime labels)
+  - Localisation : certains garages utilisent des localisations supplémentaires spécifiques (« post 1 », « post 2 »)
 

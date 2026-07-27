@@ -69,6 +69,15 @@ GRANT USAGE ON SCHEMA public TO dfa_app;
 -- migrations et non ici, pour que sa définition reste versionnée avec le reste du schéma.
 -- Seul le droit de le créer est accordé ici, parce qu'il relève du provisionnement de la base.
 --
--- Le nom de la base n'est pas écrit en dur : ce script est rejoué tel quel en production sur
--- une base au nom différent. \gexec exécute la commande construite par le SELECT.
-SELECT format('GRANT CREATE ON DATABASE %I TO dfa_migrator', current_database()) \gexec
+-- Le nom de la base n'est pas écrit en dur : ce script est rejoué tel quel en production sur une
+-- base au nom différent, et par le harnais de tests d'intégration sur une base éphémère.
+--
+-- Bloc DO plutôt que la méta-commande psql `\gexec` : ce fichier doit rester exécutable par un
+-- pilote SQL ordinaire. Les tests d'intégration (testcontainers) le rejouent via le pilote `pg`
+-- pour reproduire exactement la posture de production — et un pilote ne connaît aucune
+-- méta-commande psql, il verrait `\gexec` comme une erreur de syntaxe.
+DO $$
+BEGIN
+  EXECUTE format('GRANT CREATE ON DATABASE %I TO dfa_migrator', current_database());
+END
+$$;

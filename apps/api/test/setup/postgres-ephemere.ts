@@ -247,13 +247,22 @@ export async function dumperSchema(conteneur: StartedPostgreSqlContainer, roleMi
 }
 
 /** Retire tout ce qui peut varier sans que le SCHÉMA lui-même ait changé (commentaires,
- *  lignes vides, espaces de fin de ligne) — pour que la comparaison up→down→up ne soit pas
- *  polluée par du bruit purement cosmétique. */
+ *  lignes vides, espaces de fin de ligne, méta-commandes psql non déterministes) — pour que la
+ *  comparaison up→down→up ne soit pas polluée par du bruit purement cosmétique.
+ *
+ *  En particulier, pg_dump 18 encadre sa sortie de `\restrict <jeton>` / `\unrestrict <jeton>`
+ *  (mécanisme de verrouillage de session psql, sans rapport avec le schéma) où `<jeton>` est
+ *  généré aléatoirement À CHAQUE appel de pg_dump — deux dumps du MÊME schéma, produits par
+ *  deux appels différents, diffèrent donc toujours sur ces deux lignes si on ne les retire pas.
+ *  On les reconnaît par leur mot-clé en tête de ligne, jamais par le jeton lui-même (qui est
+ *  justement ce qui varie) : ce filtre ne retire que ces deux méta-commandes précises, aucune
+ *  ligne de définition de schéma (CREATE/ALTER/...) ne commence par un backslash. */
 export function normaliserDumpSchema(dumpBrut: string): string {
   return dumpBrut
     .split('\n')
     .map((ligne) => ligne.trimEnd())
     .filter((ligne) => ligne.length > 0 && !ligne.startsWith('--'))
+    .filter((ligne) => !ligne.startsWith('\\restrict ') && !ligne.startsWith('\\unrestrict '))
     .join('\n');
 }
 

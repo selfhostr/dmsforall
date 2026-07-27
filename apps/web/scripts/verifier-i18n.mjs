@@ -17,7 +17,34 @@ const racineWeb = path.resolve(racineDepuisScript, '..');
 const dossierSrc = path.join(racineWeb, 'src');
 const dossierLocales = path.join(dossierSrc, 'i18n', 'locales');
 const LANGUES = ['fr', 'de', 'it'];
-const NAMESPACES = ['commun', 'auth', 'navigation', 'accueil', 'erreurs', 'validation'];
+
+/**
+ * Les namespaces sont DÉCOUVERTS sur le disque, jamais listés en dur.
+ *
+ * Une liste figée est un contrôle qui ment : quand l'étape 1 a ajouté sept namespaces, la
+ * vérification a continué d'afficher « OK » en n'en contrôlant que six. Trois clés dont le NOM
+ * avait été traduit en italien (`pointsManquants` → `pointsManquanti`) sont passées à travers —
+ * des clés introuvables à l'exécution, donc des libellés bruts affichés au garagiste.
+ *
+ * La référence est le répertoire `fr` : le français est la langue source, un namespace n'existe
+ * que s'il y est défini. Un fichier présent en `de` ou `it` mais absent en `fr` est signalé
+ * comme orphelin plutôt qu'ignoré.
+ */
+const NAMESPACES = readdirSync(path.join(dossierLocales, 'fr'))
+  .filter((f) => f.endsWith('.json'))
+  .map((f) => f.replace(/\.json$/, ''))
+  .sort();
+
+for (const langue of LANGUES.filter((l) => l !== 'fr')) {
+  const orphelins = readdirSync(path.join(dossierLocales, langue))
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => f.replace(/\.json$/, ''))
+    .filter((n) => !NAMESPACES.includes(n));
+  if (orphelins.length > 0) {
+    console.error(`i18n:check — namespace(s) présent(s) en ${langue} mais absent(s) en fr : ${orphelins.join(', ')}`);
+    process.exit(1);
+  }
+}
 
 function listerFichiersSource(dossier) {
   const resultats = [];

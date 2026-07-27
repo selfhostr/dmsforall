@@ -1,0 +1,63 @@
+{
+  "titre": "Réception",
+  "nouveau": "Ouvrir un OR",
+  "sections": {
+    "vehicule": "Véhicule et client",
+    "kilometrage": "Kilométrage",
+    "demandes": "Demandes du client",
+    "plafond": "Montant plafond",
+    "restitution": "Restitution",
+    "tour": "Tour du véhicule",
+    "pieces": "Pièces remplacées",
+    "vehiculeRempl": "Véhicule de remplacement",
+    "signature": "Signature du mandat"
+  },
+  "champs": {
+    "kmEntree": "Km à l'entrée (obligatoire)",
+    "kmSortie": "Km prévus à la sortie",
+    "demandes": "Demandes du client (verbatim)",
+    "plafond": "Montant plafond (CHF)",
+    "autorisePar": "Autorisé par",
+    "restitutionPromise": "Restitution promise",
+    "heure": "Heure",
+    "telephoneJoignable": "Téléphone joignable dans la journée",
+    "pieces": "Pièces remplacées à restituer",
+    "signatureDifferee": "Signature différée (boîte à clés)"
+  },
+  "tour": {
+    "titre": "Tour du véhicule",
+    "dégâts": "Dégâts préexistants",
+    "roueSecours": "Roue de secours / kit",
+    "effets": "Effets personnels",
+    "carburant": "Niveau de carburant",
+    "photos": "Photos"
+  },
+  "vehiculeRempl": {
+    "titre": "Véhicule de remplacement",
+    "conducteur": "Conducteur",
+    "permis": "N° permis",
+    "kmDepart": "Km au départ",
+    "carburantDepart": "Carburant au départ",
+    "franchise": "Franchise",
+    "contrat": "Contrat de prêt signé"
+  },
+  "signature": {
+    "titre": "Signature du mandat",
+    "bouton": "Faire signer",
+    "langue": "Langue du document : {langue}"
+  },
+  "mandat": {
+    "titre": "Mandat de réparation",
+    "demandes": "Demandes de réparation",
+    "plafond": "Montant plafond autorisé",
+    "cgv": "Conditions générales acceptées",
+    "essai": "Essai routier autorisé",
+    "donnees": "Protection des données acceptée"
+  },
+  "brouillon": "Brouillon repris de {heure}",
+  "reprendre": "Reprendre la saisie",
+  "recommencer": "Repartir de zéro",
+  "enregistrer": "Enregistrer",
+  "enCours": "Enregistrement…",
+  "succes": "OR créé avec succès"
+}

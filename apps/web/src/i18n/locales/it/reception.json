@@ -1,0 +1,63 @@
+{
+  "titre": "Accettazione",
+  "nouveau": "Apri ordine",
+  "sections": {
+    "vehicule": "Veicolo e cliente",
+    "kilometrage": "Chilometraggio",
+    "demandes": "Richieste del cliente",
+    "plafond": "Tetto di spesa",
+    "restitution": "Restituzione",
+    "tour": "Ispezione del veicolo",
+    "pieces": "Ricambi sostituiti",
+    "vehiculeRempl": "Veicolo sostitutivo",
+    "signature": "Firma del mandato"
+  },
+  "champs": {
+    "kmEntree": "Km all'ingresso (obbligatorio)",
+    "kmSortie": "Km stimati all'uscita",
+    "demandes": "Richieste del cliente (testuale)",
+    "plafond": "Tetto di spesa (CHF)",
+    "autorisePar": "Autorizzato da",
+    "restitutionPromise": "Restituzione promessa",
+    "heure": "Ora",
+    "telephoneJoignable": "Telefono raggiungibile durante il giorno",
+    "pieces": "Ricambi sostituiti da restituire",
+    "signatureDifferee": "Firma rinviata (cassetta con chiavi)"
+  },
+  "tour": {
+    "titre": "Ispezione del veicolo",
+    "dégâts": "Danni preesistenti",
+    "roueSecours": "Ruota di scorta / Kit",
+    "effets": "Effetti personali",
+    "carburant": "Livello carburante",
+    "photos": "Foto"
+  },
+  "vehiculeRempl": {
+    "titre": "Veicolo sostitutivo",
+    "conducteur": "Conducente",
+    "permis": "N° patente",
+    "kmDepart": "Km partenza",
+    "carburantDepart": "Carburante partenza",
+    "franchise": "Franchigia",
+    "contrat": "Contratto di noleggio firmato"
+  },
+  "signature": {
+    "titre": "Firma del mandato",
+    "bouton": "Fai firmare",
+    "langue": "Lingua documento: {langue}"
+  },
+  "mandat": {
+    "titre": "Mandato di riparazione",
+    "demandes": "Richieste di riparazione",
+    "plafond": "Tetto di spesa autorizzato",
+    "cgv": "Condizioni accettate",
+    "essai": "Prova su strada autorizzata",
+    "donnees": "Protezione dei dati accettata"
+  },
+  "brouillon": "Bozza ripresa da {heure}",
+  "reprendre": "Riprendi immissione",
+  "recommencer": "Ricomincia da zero",
+  "enregistrer": "Salva",
+  "enCours": "Salvataggio…",
+  "succes": "Ordine creato con successo"
+}

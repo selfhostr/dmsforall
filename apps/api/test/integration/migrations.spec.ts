@@ -25,7 +25,9 @@ beforeAll(async () => {
 }, 180_000);
 
 afterAll(async () => {
-  await bdd.fermer();
+  // Défensif : si `beforeAll` a échoué avant d'initialiser la base, `?.` évite de masquer la
+  // VRAIE erreur (celle du beforeAll) derrière un TypeError secondaire ici.
+  await bdd?.fermer();
 });
 
 describe('réversibilité des migrations', () => {

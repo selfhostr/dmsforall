@@ -1,0 +1,277 @@
+{
+  "titre": "Ordre de réparation",
+  "numero": "OR-{numero}",
+  "statuts": {
+    "planifie": "Planifié",
+    "ouvert": "Ouvert",
+    "enCours": "En cours",
+    "attenteAccord": "Attente accord",
+    "attentePieces": "Attente pièces",
+    "attenteExterne": "Attente externe",
+    "controle": "Contrôle",
+    "termine": "Terminé",
+    "facture": "Facturé",
+    "restitue": "Restitué",
+    "cloture": "Clôturé",
+    "annule": "Annulé"
+  },
+  "statutsAide": {
+    "planifie": "Véhicule non encore arrivé, rendez-vous confirmé",
+    "ouvert": "Véhicule réceptionné, en attente de diagnostic",
+    "enCours": "Travaux en cours de réalisation",
+    "attenteAccord": "En attente de la réponse du client à un devis",
+    "attentePieces": "Pièces commandées en cours d'arrivage",
+    "attenteExterne": "Travaux chez un sous-traitant",
+    "controle": "En cours de contrôle qualité",
+    "termine": "Travaux terminés, prêt au retrait",
+    "facture": "Facturé, en attente de paiement",
+    "restitue": "Véhicule restitué au client",
+    "cloture": "Dossier fermé",
+    "annule": "Dossier annulé"
+  },
+  "bandeau": {
+    "numero": "OR",
+    "plaque": "Plaque",
+    "client": "Client",
+    "kmEntree": "Km entrée",
+    "kmSortie": "Km sortie",
+    "localisation": "Localisation",
+    "restitutionPromise": "Restitution promise",
+    "plafond": "Plafond",
+    "totalDuJour": "Aujourd'hui",
+    "techniciensEnCours": "Techniciens en cours",
+    "numeroPo": "PO du client"
+  },
+  "localisations": {
+    "parc": "Parc",
+    "atelier": "Atelier",
+    "sousTraitant": "Chez {fournisseur}",
+    "essaiRoutier": "Essai routier",
+    "lavage": "Lavage",
+    "pretAuRetrait": "Prêt au retrait",
+    "restitue": "Restitué",
+    "sortiProvisoirement": "Sortie provisoire"
+  },
+  "lignes": {
+    "titre": "Travaux",
+    "vide": "Aucun travail enregistré.",
+    "ajouter": "Ajouter une ligne",
+    "groupes": {
+      "aValider": "À valider",
+      "aFaire": "À faire / En cours",
+      "fait": "Fait",
+      "refuse": "Refusé / Reporté",
+      "annule": "Annulé"
+    },
+    "colonnes": {
+      "origine": "Origine",
+      "designation": "Désignation",
+      "quantite": "Qté",
+      "tempsBareme": "Temps barémé",
+      "tempsPointe": "Temps pointé",
+      "prixUnitaire": "PU",
+      "rabais": "Rabais",
+      "payeur": "Payeur",
+      "technicien": "Technicien",
+      "totalTtc": "Total TTC",
+      "statut": "Statut"
+    },
+    "types": {
+      "mainOeuvreBaremee": "M.O. barémée",
+      "mainOeuvreTempsReel": "M.O. temps réel",
+      "forfait": "Forfait",
+      "piece": "Pièce",
+      "fourniture": "Fourniture",
+      "sousTraitance": "Sous-traitance",
+      "produitAtelier": "Produit d'atelier",
+      "taxeElimination": "Taxe / Élimination",
+      "remise": "Remise",
+      "texte": "Information"
+    },
+    "origines": {
+      "commandee": "Client",
+      "constatee": "Constatée",
+      "campagne": "Campagne",
+      "garantie": "Garantie",
+      "retouche": "Retouche",
+      "interne": "Interne"
+    },
+    "statuts": {
+      "proposee": "Proposée",
+      "aValider": "À valider",
+      "validee": "Validée",
+      "enCours": "En cours",
+      "realisee": "Réalisée",
+      "facturee": "Facturée",
+      "refusee": "Refusée",
+      "annulee": "Annulée"
+    },
+    "payeurs": {
+      "client": "Client",
+      "constructeur": "Constructeur",
+      "assurance": "Assurance",
+      "tiers": "Tiers",
+      "garage": "Garage"
+    },
+    "urgences": {
+      "urgent": "Urgent",
+      "aFaire": "À faire",
+      "aSurveiller": "À surveiller"
+    },
+    "marqueurs": {
+      "securite": "Sécurité",
+      "pieceARestituer": "Pièce à restituer",
+      "fournieParClient": "Fournie par client",
+      "attentePiece": "Attente pièce",
+      "tempsPartage": "Temps partagé"
+    },
+    "saisieRapide": {
+      "placeholder": "Saisissez une désignation (Ctrl+Entrée)",
+      "aide": "Saisie rapide : Entrée crée, Maj+Entrée reste sur la ligne, Échap abandonne. Alt+T/R/F/P/S pour type",
+      "raccourcis": {
+        "travail": "Alt+T = M.O. barémée",
+        "tempsReel": "Alt+R = Temps réel",
+        "forfait": "Alt+F = Forfait",
+        "piece": "Alt+P = Pièce",
+        "sousTraitance": "Alt+S = Sous-traitance"
+      }
+    },
+    "actions": {
+      "valider": "Valider",
+      "refuser": "Refuser",
+      "annuler": "Annuler",
+      "dupliquer": "Dupliquer",
+      "marquerRealisee": "Marquer réalisée",
+      "affecterTechnicien": "Affecter technicien",
+      "changerPayeur": "Changer payeur"
+    },
+    "annulation": {
+      "titre": "Annuler la ligne",
+      "motifRequis": "Le motif est obligatoire",
+      "motifPlaceholder": "Raison de l'annulation",
+      "confirmer": "Confirmer l'annulation"
+    }
+  },
+  "demandes": {
+    "titre": "Demandes du client",
+    "verbatim": "Verbatim",
+    "ajouter": "Ajouter",
+    "aide": "Les demandes ne sont jamais reformulées – elles gardent les termes exacts du client",
+    "jamaisReformule": "Conservé tel quel"
+  },
+  "plafond": {
+    "libelle": "Montant plafond",
+    "restant": "{restant} restant",
+    "depasse": "Plafond dépassé de {depasse}",
+    "modifier": "Modifier le plafond",
+    "autorisePar": "Autorisé par",
+    "zeroSignifieAccordSysteme": "Zéro = tout supplément nécessite un accord"
+  },
+  "devisComplementaire": {
+    "titre": "Devis complémentaires",
+    "numero": "Devis #{numero}",
+    "creer": "Créer un devis",
+    "lignesSoumises": "Lignes soumises",
+    "nouveauPlafond": "Nouveau plafond demandé",
+    "impactRestitution": "Impact sur restitution",
+    "canaux": {
+      "telephone": "Téléphone",
+      "sms": "SMS",
+      "email": "E-mail",
+      "lienSignature": "Lien de signature"
+    },
+    "reponse": {
+      "titre": "Réponse",
+      "decision": {
+        "accepte": "Accepté",
+        "refuse": "Refusé",
+        "partiel": "Partiel"
+      },
+      "interlocuteur": "Personne qui a répondu",
+      "interlocuteurRequis": "Le nom de l'interlocuteur est obligatoire",
+      "retranscription": "Retranscription libre",
+      "enregistrer": "Enregistrer la réponse"
+    },
+    "enAttenteDepuis": "En attente depuis {duree}",
+    "immuable": "Réponse enregistrée – non modifiable"
+  },
+  "controleQualite": {
+    "titre": "Contrôle qualité",
+    "checklist": "Check-list",
+    "controleur": "Contrôleur",
+    "resultat": "Résultat",
+    "pointsManquants": "Points à compléter avant de terminer",
+    "conforme": "Conforme",
+    "nonConforme": "Non conforme"
+  },
+  "pret": {
+    "titre": "Véhicule de remplacement",
+    "conducteur": "Conducteur",
+    "permis": "N° permis",
+    "kmDepart": "Km départ",
+    "kmRetour": "Km retour",
+    "carburant": "Carburant",
+    "depart": "Départ",
+    "retour": "Retour",
+    "franchise": "Franchise",
+    "ecartsConstates": "Écarts constatés"
+  },
+  "signature": {
+    "titre": "Signatures & documents",
+    "manquante": "Manquante",
+    "signee": "Signée {date} à {heure} par {nom}",
+    "differee": "Différée",
+    "faireSigner": "Faire signer",
+    "langueDocument": "Langue : {langue}",
+    "nonEnregistree": "Signature non enregistrée – ne fermez pas cet écran"
+  },
+  "transitions": {
+    "receptionner": "Réceptionner le véhicule",
+    "passerEnControle": "Passer en contrôle",
+    "validerControle": "Valider le contrôle",
+    "terminer": "Terminer",
+    "facturer": "Facturer",
+    "restituer": "Restituer le véhicule",
+    "cloturer": "Clôturer",
+    "annuler": "Annuler l'OR",
+    "rouvrir": "Rouvrir",
+    "reprendreTravaux": "Reprendre les travaux"
+  },
+  "refus": {
+    "ligneAValider": "Certaines lignes attendent un accord. Elles sont listées ci-dessous.",
+    "pointageOuvert": "Des pointages sont en cours. Ils sont listés ci-dessous.",
+    "ligneNonRealisee": "Certaines lignes validées n'ont pas été exécutées. Elles sont listées ci-dessous.",
+    "receptionRequise": "Le véhicule doit être réceptionné avant de pouvoir travailler dessus.",
+    "orFacture": "Un OR facturé ne peut pas être réouvert directement. Créez un OR de retouche lié.",
+    "checklistIncomplete": "La check-list n'est pas complète. Points manquants listés ci-dessous.",
+    "poManquant": "Le numéro de commande (PO) est obligatoire pour ce client.",
+    "reserveSecuriteRequise": "Une mention de sécurité doit être signée avant la restitution."
+  },
+  "vues": {
+    "titre": "Vues d'exception",
+    "enCours": "En cours",
+    "attenteAccord": "Attente accord",
+    "attentePieces": "Attente pièces",
+    "attenteExterne": "Attente externe",
+    "pretsAuRetrait": "Prêts au retrait",
+    "restitutionAujourdhui": "Restitution aujourd'hui",
+    "pointagesAnormaux": "Pointages anormaux"
+  },
+  "journal": {
+    "titre": "Journal",
+    "avant": "Avant",
+    "apres": "Après",
+    "par": "par",
+    "le": "le"
+  },
+  "vide": {
+    "aucunOr": "Aucun OR enregistré.",
+    "aucuneLigne": "Aucun travail pour le moment.",
+    "aucunDevis": "Aucun devis complémentaire.",
+    "aucunResultat": "Aucun résultat."
+  },
+  "chargement": {
+    "or": "Chargement de l'OR…",
+    "lignes": "Chargement des lignes…"
+  }
+}

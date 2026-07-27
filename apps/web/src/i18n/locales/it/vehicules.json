@@ -1,0 +1,110 @@
+{
+  "titre": "Veicoli",
+  "identite": {
+    "marque": "Marca",
+    "modele": "Modello",
+    "version": "Versione",
+    "vin": "VIN",
+    "codeType": "Codice CH",
+    "plaque": "Targa",
+    "mise1reCirc": "1ª immatricolazione",
+    "kmActuels": "Km attuali"
+  },
+  "plaques": {
+    "titre": "Targhe",
+    "canton": "Cantone",
+    "type": "Tipo",
+    "historique": "Storico delle targhe"
+  },
+  "detentions": {
+    "titre": "Proprietà",
+    "detenteur": "Proprietario attuale",
+    "historique": "Storico dei proprietari",
+    "changer": "Cambia proprietario",
+    "motifs": {
+      "vente": "Vendita",
+      "reprise": "Ripresa",
+      "deces": "Decesso",
+      "correction": "Correzione"
+    }
+  },
+  "kilometrage": {
+    "titre": "Chilometraggio",
+    "relevek": "Registra chilometraggio",
+    "valeur": "Km",
+    "date": "Data",
+    "source": "Fonte",
+    "sources": {
+      "reception": "Accettazione",
+      "or": "Ordine",
+      "expertise": "Collaudo",
+      "vente": "Vendita",
+      "declaratif": "Dichiarazione cliente",
+      "import": "Importazione"
+    }
+  },
+  "expertise": {
+    "titre": "Collaudo",
+    "derniere": "Ultimo collaudo",
+    "prochaine": "Prossimo collaudo",
+    "source": "Fonte",
+    "sources": {
+      "calculee": "Calcolata",
+      "convocation": "Convocazione"
+    },
+    "echue": "Scaduta",
+    "eche": "Scade tra {mois, plural, one {# mese} other {# mesi}}"
+  },
+  "garantie": {
+    "titre": "Garanzia",
+    "constructeur": "Costruttore",
+    "debut": "Inizio garanzia",
+    "duree": "Durata",
+    "plafond": "Limite km",
+    "enchantier": "Valida",
+    "echue": "Scaduta"
+  },
+  "campagnes": {
+    "titre": "Richiami costruttore",
+    "code": "Codice",
+    "description": "Descrizione",
+    "obligatoire": "Obbligatorio",
+    "optionnelle": "Facoltativo"
+  },
+  "travauxReportes": {
+    "titre": "Lavori rinviati",
+    "urgence": "Priorità",
+    "urgences": {
+      "urgent": "Urgente",
+      "aFaire": "Da fare",
+      "aSurveiller": "Da monitorare"
+    },
+    "montant": "Importo stimato",
+    "date": "Data",
+    "km": "Km del giorno"
+  },
+  "donnees": {
+    "titre": "Dati officina",
+    "pneus": "Pneumatici",
+    "ete": "Estivi",
+    "hiver": "Invernali",
+    "pression": "Pressione (bar)",
+    "huile": "Olio",
+    "type": "Tipo",
+    "quantite": "Quantità (l)",
+    "batterie": "Batteria",
+    "codeRadio": "Codice radio",
+    "intervalle": "Intervallo manutenzione"
+  },
+  "importation": {
+    "titre": "Importazione",
+    "importe": "Importato",
+    "pays": "Paese di provenienza",
+    "date": "Data importazione"
+  },
+  "vide": {
+    "identite": "Veicolo non identificato",
+    "plaques": "Nessuna targa registrata",
+    "kilometrage": "Nessun chilometraggio registrato"
+  }
+}

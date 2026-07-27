@@ -1,0 +1,110 @@
+{
+  "titre": "Véhicules",
+  "identite": {
+    "marque": "Marque",
+    "modele": "Modèle",
+    "version": "Version",
+    "vin": "VIN",
+    "codeType": "Code type CH",
+    "plaque": "Plaque",
+    "mise1reCirc": "1re mise en circulation",
+    "kmActuels": "Km actuels"
+  },
+  "plaques": {
+    "titre": "Plaques",
+    "canton": "Canton",
+    "type": "Type",
+    "historique": "Historique des plaques"
+  },
+  "detentions": {
+    "titre": "Détention",
+    "detenteur": "Détenteur actuel",
+    "historique": "Historique des détenteurs",
+    "changer": "Changer le détenteur",
+    "motifs": {
+      "vente": "Vente",
+      "reprise": "Reprise",
+      "deces": "Décès",
+      "correction": "Correction"
+    }
+  },
+  "kilometrage": {
+    "titre": "Kilométrage",
+    "relevek": "Relever le kilométrage",
+    "valeur": "Km",
+    "date": "Date",
+    "source": "Source",
+    "sources": {
+      "reception": "Réception",
+      "or": "OR",
+      "expertise": "Expertise",
+      "vente": "Vente",
+      "declaratif": "Déclaratif client",
+      "import": "Import"
+    }
+  },
+  "expertise": {
+    "titre": "Expertise (MFK)",
+    "derniere": "Dernière expertise",
+    "prochaine": "Prochaine expertise",
+    "source": "Source",
+    "sources": {
+      "calculee": "Calculée",
+      "convocation": "Convocation"
+    },
+    "echue": "Échue",
+    "eche": "Échoit dans {mois, plural, one {# mois} other {# mois}}"
+  },
+  "garantie": {
+    "titre": "Garantie",
+    "constructeur": "Constructeur",
+    "debut": "Début de garantie",
+    "duree": "Durée",
+    "plafond": "Plafond km",
+    "enchantier": "En chantier",
+    "echue": "Échue"
+  },
+  "campagnes": {
+    "titre": "Campagnes constructeur",
+    "code": "Code",
+    "description": "Description",
+    "obligatoire": "Obligatoire",
+    "optionnelle": "Optionnelle"
+  },
+  "travauxReportes": {
+    "titre": "Travaux reportés",
+    "urgence": "Urgence",
+    "urgences": {
+      "urgent": "Urgent",
+      "aFaire": "À faire",
+      "aSurveiller": "À surveiller"
+    },
+    "montant": "Montant estimé",
+    "date": "Date",
+    "km": "Km du jour"
+  },
+  "donnees": {
+    "titre": "Données d'atelier",
+    "pneus": "Pneus",
+    "ete": "Été",
+    "hiver": "Hiver",
+    "pression": "Pression (bar)",
+    "huile": "Huile",
+    "type": "Type",
+    "quantite": "Quantité (l)",
+    "batterie": "Batterie",
+    "codeRadio": "Code radio",
+    "intervalle": "Intervalle d'entretien"
+  },
+  "importation": {
+    "titre": "Importation",
+    "importe": "Importé",
+    "pays": "Pays d'origine",
+    "date": "Date d'importation"
+  },
+  "vide": {
+    "identite": "Véhicule non identifié",
+    "plaques": "Aucune plaque enregistrée",
+    "kilometrage": "Aucun kilométrage relevé"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "titre": "Annahme",
+  "nouveau": "RA öffnen",
+  "sections": {
+    "vehicule": "Fahrzeug und Kunde",
+    "kilometrage": "Kilometerstand",
+    "demandes": "Kundenangaben",
+    "plafond": "Kostengrenze",
+    "restitution": "Rückgabe",
+    "tour": "Fahrzeuginspektion",
+    "pieces": "Ersetzte Teile",
+    "vehiculeRempl": "Ersatzfahrzeug",
+    "signature": "Unterschrift der Vollmacht"
+  },
+  "champs": {
+    "kmEntree": "Km bei Ankunft (erforderlich)",
+    "kmSortie": "Km bei Abfahrt (geschätzt)",
+    "demandes": "Kundenangaben (Wortlaut)",
+    "plafond": "Kostengrenze (CHF)",
+    "autorisePar": "Genehmigt durch",
+    "restitutionPromise": "Versprochene Rückgabe",
+    "heure": "Zeit",
+    "telephoneJoignable": "Telefonnummer tagsüber erreichbar",
+    "pieces": "Ersetzte Teile zur Rückgabe",
+    "signatureDifferee": "Unterschrift aufgeschoben (Schlüsselversteck)"
+  },
+  "tour": {
+    "titre": "Fahrzeuginspektion",
+    "dégâts": "Vorhandene Beschädigungen",
+    "roueSecours": "Ersatzrad / Notfall-Set",
+    "effets": "Persönliche Gegenstände",
+    "carburant": "Tankstand",
+    "photos": "Fotos"
+  },
+  "vehiculeRempl": {
+    "titre": "Ersatzfahrzeug",
+    "conducteur": "Fahrer",
+    "permis": "Führerscheinnummer",
+    "kmDepart": "Km Abfahrt",
+    "carburantDepart": "Tankstand Abfahrt",
+    "franchise": "Haftung",
+    "contrat": "Leihvertrag unterzeichnet"
+  },
+  "signature": {
+    "titre": "Unterschrift unter Vollmacht",
+    "bouton": "Unterschreiben lassen",
+    "langue": "Dokumentsprache: {langue}"
+  },
+  "mandat": {
+    "titre": "Reparaturvollmacht",
+    "demandes": "Reparaturanfragen",
+    "plafond": "Genehmigte Kostengrenze",
+    "cgv": "Bedingungen angenommen",
+    "essai": "Probefahrt genehmigt",
+    "donnees": "Datenschutz akzeptiert"
+  },
+  "brouillon": "Entwurf von {heure} wiederhergestellt",
+  "reprendre": "Saisie fortsetzen",
+  "recommencer": "Neu beginnen",
+  "enregistrer": "Speichern",
+  "enCours": "Speichern…",
+  "succes": "RA erfolgreich erstellt"
+}

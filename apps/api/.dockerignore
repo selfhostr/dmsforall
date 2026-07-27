@@ -1,0 +1,37 @@
+# Défense en profondeur pour le build de apps/api/Dockerfile.
+#
+# Le contexte de ce build est la RACINE du monorepo (voir le commentaire en tête de
+# apps/api/Dockerfile), et ce Dockerfile ne fait jamais `COPY . .` — chaque étape copie
+# nommément ce dont elle a besoin. Ce fichier n'est donc pas la protection principale contre
+# une fuite de secret ou un gonflement de l'image, mais un filet supplémentaire : il s'applique
+# automatiquement si un outil (BuildKit récent) le résout comme ignore-file dédié au Dockerfile
+# `apps/api/Dockerfile.dockerignore`, et sert de référence lisible pour quiconque build
+# manuellement `docker build apps/api` (contexte = apps/api seul, pour un test rapide hors
+# monorepo) sans passer par docker-compose.yml.
+
+# Jamais de secret dans une image.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Dépendances et artefacts de build — reconstruits dans le conteneur, pas copiés depuis l'hôte.
+node_modules/
+dist/
+.pnpm-store/
+*.tsbuildinfo
+
+# Tests, coverage, outillage dev — inutiles au runtime, alourdissent inutilement le contexte.
+test/
+coverage/
+.eslintcache
+
+# Éditeurs, VCS, CI — sans rapport avec l'image.
+.git/
+.github/
+.vscode/
+.idea/
+*.log

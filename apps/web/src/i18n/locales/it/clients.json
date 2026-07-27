@@ -1,0 +1,92 @@
+{
+  "titre": "Clienti",
+  "nouveau": "Nuovo cliente",
+  "liste": {
+    "titre": "Clienti",
+    "colonnes": {
+      "numero": "N° cliente",
+      "nom": "Nome / Ragione sociale",
+      "localite": "Località",
+      "telephone": "Cellulare",
+      "vehicules": "Veicoli",
+      "dernierPassage": "Ultima visita"
+    },
+    "filtres": {
+      "type": "Tipo di cliente",
+      "statut": "Stato",
+      "inclureInactifs": "Includere inattivi"
+    },
+    "types": {
+      "particulier": "Persona fisica",
+      "entreprise": "Azienda"
+    },
+    "statuts": {
+      "actif": "Attivo",
+      "inactif": "Inattivo",
+      "bloque": "Bloccato"
+    }
+  },
+  "fiche": {
+    "titre": "Scheda cliente",
+    "ouvrirOr": "Apri ordine",
+    "actions": {
+      "fusionner": "Unisci"
+    }
+  },
+  "alertes": {
+    "bloque": "Bloccato – arretrati",
+    "alerte": "⚠ Avviso cliente"
+  },
+  "identite": {
+    "numero": "N° cliente",
+    "nom": "Nome",
+    "prenom": "Cognome",
+    "raisonSociale": "Ragione sociale",
+    "ide": "CHE",
+    "langue": "Lingua di corrispondenza",
+    "po": "N° ordine (PO)"
+  },
+  "conditions": {
+    "titre": "Condizioni commerciali",
+    "rabaisMo": "Sconto manodopera",
+    "rabaisPieces": "Sconto ricambi",
+    "rabaisPneus": "Sconto pneumatici",
+    "delaiPaiement": "Termini di pagamento",
+    "tauxHoraire": "Tariffa oraria",
+    "plafond": "Tetto di spesa",
+    "dateEffet": "Valido dal"
+  },
+  "contacts": {
+    "titre": "Contatti",
+    "ajouter": "Aggiungi contatto",
+    "roles": {
+      "conducteur": "Conducente",
+      "gestionnaireFl": "Gestore flotta",
+      "signataire": "Firmatario",
+      "comptabilite": "Contabilità"
+    }
+  },
+  "adresses": {
+    "titre": "Indirizzi",
+    "ajouter": "Aggiungi indirizzo",
+    "types": {
+      "principale": "Principale",
+      "facturation": "Fatturazione",
+      "livraison": "Consegna"
+    }
+  },
+  "notes": {
+    "titre": "Note",
+    "interne": "Nota interna (non stampata)",
+    "alerte": "Avviso (mostrato in rosso)"
+  },
+  "fusion": {
+    "titre": "Unisci due clienti",
+    "confirmation": "Digitare il nome del cliente da unire per confermare"
+  },
+  "vide": {
+    "premier": "Nessun cliente registrato. Crearne uno.",
+    "recherche": "Nessun cliente trovato.",
+    "filtre": "Nessun risultato con questi filtri."
+  }
+}

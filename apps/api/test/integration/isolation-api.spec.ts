@@ -34,9 +34,11 @@ beforeAll(async () => {
 }, 180_000);
 
 afterAll(async () => {
-  await ctx.fermer();
-  await redis.fermer();
-  await bdd.fermer();
+  // Défensif : si `beforeAll` a échoué avant d'initialiser une ressource, `?.` évite de
+  // masquer la VRAIE erreur (celle du beforeAll) derrière un TypeError secondaire ici.
+  await ctx?.fermer();
+  await redis?.fermer();
+  await bdd?.fermer();
 });
 
 describe('isolation tenant de bout en bout via HTTP', () => {
