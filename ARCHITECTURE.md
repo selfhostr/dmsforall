@@ -33,7 +33,7 @@
 | Front | **React + Vite** (SPA) + shadcn/ui | UI moderne et rapide ; SPA suffit (app métier derrière login, pas de besoin SEO). |
 | Jobs/asynchrone | BullMQ (Redis) | Imports catalogues, génération PDF, envois d'e-mails, synchros connecteurs. |
 | PDF (factures, OR, devis) | Génération serveur (Typst ou Playwright) | QR-facture = exigences de mise en page précises. |
-| Auth | Sessions + rôles par tenant ; TOTP en option | Rôles : direction, vendeur, chef d'atelier, technicien, magasinier, comptable, admin. |
+| Auth | Sessions + rôles par tenant ; TOTP en option | Rôles : direction, vendeur, **réceptionnaire**, chef d'atelier, technicien, magasinier, comptable, admin. |
 | Hébergement | **Infomaniak ou Exoscale** (Suisse) | nLPD + argument de vente. Docker Compose au début, on complexifie seulement si nécessaire. |
 | Monitoring | Sentry + logs structurés | Toi seul au support au début : il faut voir les erreurs avant les clients. |
 

@@ -1,0 +1,19 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+# Scripts de post-installation autorisés. pnpm les bloque par défaut : un script
+# d'installation s'exécute avec les droits de l'utilisateur, c'est le vecteur classique de
+# compromission de chaîne d'approvisionnement. On n'autorise donc que le strict nécessaire.
+allowBuilds:
+  # Indispensable : télécharge le binaire natif utilisé par Vite, Vitest et tsx.
+  esbuild: true
+  # Génère le service worker de MSW, utilisé par les tests du front.
+  msw: true
+  # Dépendance de testcontainers ; sans son build, le chargement retombe sur du JS pur.
+  protobufjs: true
+  # Télémétrie tierce : refusée, elle n'apporte rien au projet.
+  '@scarf/scarf': false
+  # Accélérations natives optionnelles de ssh2 (via testcontainers). Refusées : elles
+  # exigeraient une chaîne de compilation C++ sous Windows, et ssh2 fonctionne sans.
+  cpu-features: false
+  ssh2: false

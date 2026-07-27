@@ -1,0 +1,41 @@
+{
+  "reseau": {
+    "titre": "Connexion impossible",
+    "description": "Vérifiez votre connexion internet, puis réessayez."
+  },
+  "serveur": {
+    "titre": "Service momentanément indisponible",
+    "description": "Le serveur ne répond pas. Réessayez dans un instant."
+  },
+  "inattendue": {
+    "titre": "Une erreur s'est produite",
+    "description": "L'opération n'a pas pu être effectuée. Réessayez."
+  },
+  "fatale": {
+    "titre": "L'application a rencontré un problème",
+    "description": "Rechargez l'application. Si le problème persiste, contactez le support."
+  },
+  "pageIntrouvable": {
+    "titre": "Cette page n'existe pas",
+    "description": "Le lien est peut-être incorrect ou la page a été déplacée."
+  },
+  "configuration": {
+    "titre": "Application mal configurée",
+    "description": "Contactez le support technique."
+  },
+  "codes": {
+    "VALIDATION_ECHOUEE": "Certaines informations sont incorrectes.",
+    "AUTH_IDENTIFIANTS_INVALIDES": "Adresse e-mail ou mot de passe incorrect.",
+    "AUTH_SESSION_ABSENTE": "Veuillez vous connecter pour continuer.",
+    "AUTH_SESSION_EXPIREE": "Votre session a expiré. Veuillez vous reconnecter.",
+    "AUTH_COMPTE_SUSPENDU": "Ce compte est désactivé. Contactez le responsable de votre garage.",
+    "AUTH_COMPTE_VERROUILLE": "Ce compte est temporairement verrouillé après plusieurs tentatives. Réessayez plus tard.",
+    "AUTH_TENANT_SUSPENDU": "L'accès de votre garage est suspendu. Contactez le support.",
+    "AUTH_TROP_DE_TENTATIVES": "Trop de tentatives. Réessayez dans {minutes, plural, one {# minute} other {# minutes}}.",
+    "AUTH_ORIGINE_REFUSEE": "Requête refusée pour des raisons de sécurité. Rechargez l'application.",
+    "DROIT_INSUFFISANT": "Vous n'avez pas les droits pour cette action.",
+    "RESSOURCE_INTROUVABLE": "Cet élément est introuvable.",
+    "CONFLIT": "Cet élément a été modifié entre-temps. Rechargez la page.",
+    "ERREUR_INTERNE": "Une erreur interne s'est produite. Réessayez."
+  }
+}

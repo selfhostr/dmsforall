@@ -1,0 +1,124 @@
+name: CI
+
+# Push sur main (post-merge) et toute PR ciblant main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Annule les runs obsolètes d'une même branche/PR quand de nouveaux commits arrivent :
+# évite de consommer des minutes CI sur du code déjà dépassé.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Permissions minimales : ce workflow ne fait que lire le code et exécuter des vérifications,
+# il ne publie ni ne modifie rien dans le dépôt ou sur GitHub.
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+  # Doit rester aligné avec `packageManager` dans package.json.
+  PNPM_VERSION: '11'
+
+jobs:
+  # Lint, typecheck, tests unitaires et build — le socle de vérification rapide sur
+  # chaque push/PR. Les workspaces (apps/api, apps/web) sont attendus, mais les scripts
+  # racine (package.json) agrègent via `pnpm -r`, qui saute silencieusement un workspace
+  # n'ayant pas encore le script correspondant : le job reste valide même en cours de
+  # construction du monorepo.
+  verifier:
+    name: Vérifier (lint, typecheck, tests, build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Installer les dépendances (lockfile figé)
+        run: pnpm install --frozen-lockfile
+
+      - name: Formatage (Prettier)
+        run: pnpm format:check
+
+      - name: Lint (ESLint)
+        run: pnpm lint
+
+      - name: Vérification des types (TypeScript)
+        run: pnpm typecheck
+
+      - name: Tests unitaires
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  # Tests d'intégration : utilisent testcontainers (Postgres + Redis éphémères démarrés par
+  # les tests eux-mêmes), donc AUCUN `services:` déclaré ici — ce serait redondant et
+  # risquerait d'entrer en conflit sur les ports avec les conteneurs de testcontainers.
+  # ubuntu-latest fournit Docker nativement, requis par testcontainers.
+  tests-integration:
+    name: Tests d'intégration (testcontainers)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Installer les dépendances (lockfile figé)
+        run: pnpm install --frozen-lockfile
+
+      - name: Tests d'intégration
+        run: pnpm test:integration
+        env:
+          # Valeurs de test en dur, aucun secret réel. testcontainers démarre ses propres
+          # conteneurs Postgres/Redis éphémères ; DATABASE_URL/DATABASE_URL_MIGRATION/REDIS_URL
+          # ci-dessous ne servent qu'à satisfaire la validation zod au démarrage si le code lit
+          # l'env avant de basculer sur les conteneurs éphémères — ils ne pointent vers aucun
+          # service réel du CI. Les deux DATABASE_URL* utilisent des rôles différents
+          # (dfa_app / dfa_migrator), comme l'exige la validation zod (RLS — voir
+          # docker/postgres/init/01-roles.sql).
+          NODE_ENV: test
+          PORT: '3000'
+          API_URL_PUBLIQUE: http://localhost:3000
+          WEB_URL_PUBLIQUE: http://localhost:5173
+          DATABASE_URL: postgresql://dfa_app:dfa_app_dev@localhost:5432/dfa_test
+          DATABASE_URL_MIGRATION: postgresql://dfa_migrator:dfa_migrator_dev@localhost:5432/dfa_test
+          DATABASE_POOL_MAX: '10'
+          DATABASE_TIMEOUT_REQUETE_MS: '10000'
+          REDIS_URL: redis://localhost:6379
+          SESSION_COOKIE_NOM: dfa_session
+          SESSION_DUREE_MINUTES: '480'
+          SESSION_INACTIVITE_MINUTES: '120'
+          COOKIE_SECURE: 'false'
+          ARGON2_MEMOIRE_KIB: '19456'
+          ARGON2_ITERATIONS: '2'
+          ARGON2_PARALLELISME: '1'
+          LIMITE_CONNEXION_IP: '20'
+          LIMITE_CONNEXION_COMPTE: '5'
+          LIMITE_FENETRE_SECONDES: '900'
+          LOG_NIVEAU: debug
+          OPENAPI_EXPOSER_DOCS: 'true'
+          VERSION_APP: 0.1.0-ci

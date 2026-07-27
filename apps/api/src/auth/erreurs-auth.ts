@@ -1,0 +1,131 @@
+/**
+ * Exceptions du module auth.
+ *
+ * Chacune porte un `CodeErreur` du contrat partagé (`@dfa/shared`) dans le corps de la réponse
+ * NestJS (`getResponse()`), aux côtés d'un `message` humain FR. Le filtre d'exception global
+ * (`apps/api/src/common/`, hors périmètre de ce module) est responsable de transformer ce corps
+ * en `ProblemeDetail` complet (`type`, `title`, `instance` = requeteId, etc.) — ce fichier ne
+ * connaît que le `code` et le `status` HTTP, qui sont la partie du contrat qui nous appartient.
+ */
+import { HttpException, HttpStatus } from '@nestjs/common';
+import type { CodeErreur, ErreurChamp } from '@dfa/shared';
+
+export interface CorpsErreurAuth {
+  readonly code: CodeErreur;
+  readonly message: string;
+  readonly retryApresSecondes?: number;
+  readonly erreurs?: ReadonlyArray<ErreurChamp>;
+}
+
+export abstract class ErreurAuth extends HttpException {
+  protected constructor(status: number, corps: CorpsErreurAuth) {
+    super(corps, status);
+  }
+
+  get code(): CodeErreur {
+    return (this.getResponse() as CorpsErreurAuth).code;
+  }
+}
+
+/** 400 — corps de `POST /auth/connexion` ne respectant pas `schemaConnexion`. */
+export class ErreurValidation extends ErreurAuth {
+  constructor(erreurs: ReadonlyArray<ErreurChamp>) {
+    super(HttpStatus.BAD_REQUEST, {
+      code: 'VALIDATION_ECHOUEE',
+      message: 'Requête invalide.',
+      erreurs,
+    });
+  }
+}
+
+/** 401 — email inconnu OU mot de passe faux. Ces deux cas sont RIGOUREUSEMENT indifférenciés. */
+export class ErreurIdentifiantsInvalides extends ErreurAuth {
+  constructor() {
+    super(HttpStatus.UNAUTHORIZED, {
+      code: 'AUTH_IDENTIFIANTS_INVALIDES',
+      message: 'Identifiants invalides.',
+    });
+  }
+}
+
+/** 401 — aucun cookie de session présent sur une route qui en exige un. */
+export class ErreurSessionAbsente extends ErreurAuth {
+  constructor() {
+    super(HttpStatus.UNAUTHORIZED, {
+      code: 'AUTH_SESSION_ABSENTE',
+      message: 'Aucune session active.',
+    });
+  }
+}
+
+/** 401 — cookie présent mais session inconnue, révoquée, ou expirée (absolu ou glissant). */
+export class ErreurSessionExpiree extends ErreurAuth {
+  constructor() {
+    super(HttpStatus.UNAUTHORIZED, {
+      code: 'AUTH_SESSION_EXPIREE',
+      message: 'Session expirée, merci de vous reconnecter.',
+    });
+  }
+}
+
+/** 403 — compte existant mais `statut !== 'actif'` (invité ou suspendu). */
+export class ErreurCompteSuspendu extends ErreurAuth {
+  constructor() {
+    super(HttpStatus.FORBIDDEN, {
+      code: 'AUTH_COMPTE_SUSPENDU',
+      message: 'Ce compte est suspendu.',
+    });
+  }
+}
+
+/** 403 — mot de passe correct mais tenant du compte `statut !== 'actif'`. */
+export class ErreurTenantSuspendu extends ErreurAuth {
+  constructor() {
+    super(HttpStatus.FORBIDDEN, {
+      code: 'AUTH_TENANT_SUSPENDU',
+      message: "L'accès de votre entreprise est suspendu.",
+    });
+  }
+}
+
+/** 403 — méthode mutante (≠ GET/HEAD) sans en-tête `Origin` valide. */
+export class ErreurOrigineRefusee extends ErreurAuth {
+  constructor() {
+    super(HttpStatus.FORBIDDEN, {
+      code: 'AUTH_ORIGINE_REFUSEE',
+      message: 'Origine de la requête refusée.',
+    });
+  }
+}
+
+/** 403 — session valide mais rôle ne portant pas l'action requise (`MATRICE_DROITS`). */
+export class ErreurDroitInsuffisant extends ErreurAuth {
+  constructor() {
+    super(HttpStatus.FORBIDDEN, {
+      code: 'DROIT_INSUFFISANT',
+      message: 'Droit insuffisant pour cette action.',
+    });
+  }
+}
+
+/** 423 — compte verrouillé (verrouillage progressif après échecs répétés). */
+export class ErreurCompteVerrouille extends ErreurAuth {
+  constructor(retryApresSecondes: number) {
+    super(423 /* Locked — absent de HttpStatus dans certaines versions de @nestjs/common */, {
+      code: 'AUTH_COMPTE_VERROUILLE',
+      message: 'Compte temporairement verrouillé après plusieurs échecs.',
+      retryApresSecondes,
+    });
+  }
+}
+
+/** 429 — trop de tentatives de connexion (par IP ou par email) sur la fenêtre glissante. */
+export class ErreurTropDeTentatives extends ErreurAuth {
+  constructor(retryApresSecondes: number) {
+    super(HttpStatus.TOO_MANY_REQUESTS, {
+      code: 'AUTH_TROP_DE_TENTATIVES',
+      message: 'Trop de tentatives de connexion, réessayez plus tard.',
+      retryApresSecondes,
+    });
+  }
+}

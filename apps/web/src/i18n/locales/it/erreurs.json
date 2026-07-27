@@ -1,0 +1,41 @@
+{
+  "reseau": {
+    "titre": "Connessione impossibile",
+    "description": "Controlla la tua connessione internet e riprova."
+  },
+  "serveur": {
+    "titre": "Servizio temporaneamente non disponibile",
+    "description": "Il server non risponde. Riprova tra un momento."
+  },
+  "inattendue": {
+    "titre": "Si è verificato un errore",
+    "description": "L'operazione non ha potuto essere completata. Riprova."
+  },
+  "fatale": {
+    "titre": "L'applicazione ha riscontrato un problema",
+    "description": "Ricarica l'applicazione. Se il problema persiste, contatta il support."
+  },
+  "pageIntrouvable": {
+    "titre": "Questa pagina non esiste",
+    "description": "Il link potrebbe essere non corretto o la pagina è stata spostata."
+  },
+  "configuration": {
+    "titre": "Applicazione non configurata correttamente",
+    "description": "Contatta il support tecnico."
+  },
+  "codes": {
+    "VALIDATION_ECHOUEE": "Alcune informazioni non sono corrette.",
+    "AUTH_IDENTIFIANTS_INVALIDES": "Indirizzo e-mail o password non corretti.",
+    "AUTH_SESSION_ABSENTE": "Accedi per continuare.",
+    "AUTH_SESSION_EXPIREE": "La tua sessione è scaduta. Accedi di nuovo.",
+    "AUTH_COMPTE_SUSPENDU": "Questo account è disabilitato. Contatta il responsabile della tua officina.",
+    "AUTH_COMPTE_VERROUILLE": "Questo account è temporaneamente bloccato dopo diversi tentativi. Riprova più tardi.",
+    "AUTH_TENANT_SUSPENDU": "L'accesso alla tua officina è sospeso. Contatta il support.",
+    "AUTH_TROP_DE_TENTATIVES": "Troppi tentativi. Riprova tra {minutes, plural, one {# minuto} other {# minuti}}.",
+    "AUTH_ORIGINE_REFUSEE": "Richiesta rifiutata per motivi di sicurezza. Ricarica l'applicazione.",
+    "DROIT_INSUFFISANT": "Non hai i permessi per questa azione.",
+    "RESSOURCE_INTROUVABLE": "Questo elemento non è stato trovato.",
+    "CONFLIT": "Questo elemento è stato modificato nel frattempo. Ricarica la pagina.",
+    "ERREUR_INTERNE": "Si è verificato un errore interno. Riprova."
+  }
+}

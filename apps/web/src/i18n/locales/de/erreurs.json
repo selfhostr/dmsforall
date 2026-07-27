@@ -1,0 +1,41 @@
+{
+  "reseau": {
+    "titre": "Verbindung unmöglich",
+    "description": "Überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut."
+  },
+  "serveur": {
+    "titre": "Service vorübergehend nicht verfügbar",
+    "description": "Der Server antwortet nicht. Versuchen Sie es gleich erneut."
+  },
+  "inattendue": {
+    "titre": "Ein Fehler ist aufgetreten",
+    "description": "Der Vorgang konnte nicht abgeschlossen werden. Versuchen Sie es erneut."
+  },
+  "fatale": {
+    "titre": "Die Anwendung ist auf ein Problem gestossen",
+    "description": "Laden Sie die Anwendung neu. Wenn das Problem weiterhin besteht, kontaktieren Sie den Support."
+  },
+  "pageIntrouvable": {
+    "titre": "Diese Seite existiert nicht",
+    "description": "Der Link ist möglicherweise falsch oder die Seite wurde verschoben."
+  },
+  "configuration": {
+    "titre": "Anwendung nicht korrekt konfiguriert",
+    "description": "Kontaktieren Sie den technischen Support."
+  },
+  "codes": {
+    "VALIDATION_ECHOUEE": "Einige Informationen sind nicht korrekt.",
+    "AUTH_IDENTIFIANTS_INVALIDES": "E-Mail-Adresse oder Passwort nicht korrekt.",
+    "AUTH_SESSION_ABSENTE": "Bitte melden Sie sich an, um fortzufahren.",
+    "AUTH_SESSION_EXPIREE": "Ihre Sitzung ist abgelaufen. Melden Sie sich bitte erneut an.",
+    "AUTH_COMPTE_SUSPENDU": "Dieses Konto ist deaktiviert. Kontaktieren Sie den Verantwortlichen Ihrer Werkstatt.",
+    "AUTH_COMPTE_VERROUILLE": "Dieses Konto ist nach mehreren Versuchen vorübergehend gesperrt. Versuchen Sie es später erneut.",
+    "AUTH_TENANT_SUSPENDU": "Der Zugriff auf Ihre Werkstatt ist gesperrt. Kontaktieren Sie den Support.",
+    "AUTH_TROP_DE_TENTATIVES": "Zu viele Versuche. Versuchen Sie es in {minutes, plural, one {# Minute} other {# Minuten}} erneut.",
+    "AUTH_ORIGINE_REFUSEE": "Anfrage aus Sicherheitsgründen abgelehnt. Laden Sie die Anwendung neu.",
+    "DROIT_INSUFFISANT": "Sie haben nicht die erforderlichen Rechte für diese Aktion.",
+    "RESSOURCE_INTROUVABLE": "Dieses Element wurde nicht gefunden.",
+    "CONFLIT": "Dieses Element wurde inzwischen geändert. Laden Sie die Seite neu.",
+    "ERREUR_INTERNE": "Ein interner Fehler ist aufgetreten. Versuchen Sie es erneut."
+  }
+}

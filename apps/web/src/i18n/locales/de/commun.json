@@ -1,0 +1,40 @@
+{
+  "marque": {
+    "nom": "dmsforall",
+    "nomCourt": "DFA"
+  },
+  "actions": {
+    "reessayer": "Erneut versuchen",
+    "rechargerApplication": "Anwendung neu laden",
+    "retourAccueil": "Zur Startseite",
+    "fermer": "Schliessen"
+  },
+  "chargement": {
+    "enCours": "Wird geladen…"
+  },
+  "langue": {
+    "libelle": "Sprache",
+    "choisir": "Sprache wählen"
+  },
+  "langues": {
+    "fr": "Français",
+    "de": "Deutsch",
+    "it": "Italiano"
+  },
+  "titres": {
+    "modele": "{page} – dmsforall",
+    "connexion": "Anmeldung",
+    "accueil": "Startseite",
+    "pageIntrouvable": "Seite nicht gefunden"
+  },
+  "roles": {
+    "direction": "Geschäftsführung",
+    "vendeur": "Verkaufsberater",
+    "receptionnaire": "Serviceberater",
+    "chefAtelier": "Werkstattleiter",
+    "technicien": "Techniker",
+    "magasinier": "Lagerverwaltung",
+    "comptable": "Buchhaltung",
+    "admin": "Administrator"
+  }
+}

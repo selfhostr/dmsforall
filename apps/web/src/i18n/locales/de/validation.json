@@ -1,0 +1,7 @@
+{
+  "requis": "Dieses Feld ist erforderlich.",
+  "email": {
+    "invalide": "Diese E-Mail-Adresse ist nicht gültig."
+  },
+  "longueurMin": "Mindestens {min, plural, one {# Zeichen} other {# Zeichen}}."
+}

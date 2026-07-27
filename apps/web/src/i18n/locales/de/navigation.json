@@ -1,0 +1,17 @@
+{
+  "principale": {
+    "aria": "Hauptnavigation"
+  },
+  "liens": {
+    "accueil": "Startseite"
+  },
+  "menu": {
+    "ouvrir": "Menü öffnen",
+    "fermer": "Menü schliessen"
+  },
+  "entete": {
+    "garage": "Werkstatt",
+    "site": "Website",
+    "compte": "Mein Konto"
+  }
+}

@@ -1,0 +1,8 @@
+node_modules
+dist
+build
+coverage
+pnpm-lock.yaml
+apps/web/src/api/schema.d.ts
+apps/api/openapi.json
+apps/api/drizzle/**/*.sql

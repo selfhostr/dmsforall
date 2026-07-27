@@ -1,0 +1,17 @@
+{
+  "principale": {
+    "aria": "Navigation principale"
+  },
+  "liens": {
+    "accueil": "Accueil"
+  },
+  "menu": {
+    "ouvrir": "Ouvrir le menu",
+    "fermer": "Fermer le menu"
+  },
+  "entete": {
+    "garage": "Garage",
+    "site": "Site",
+    "compte": "Mon compte"
+  }
+}

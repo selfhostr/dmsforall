@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node10",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    // Pas de `rootDir` ici : cette configuration sert au typecheck ET à l'éditeur, et couvre
+    // donc `src/` comme `test/`. C'est `tsconfig.build.json` qui fixe `rootDir: ./src` pour
+    // que l'émission dans `dist/` ne contienne que le code de production, sans les tests.
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

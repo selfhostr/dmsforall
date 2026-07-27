@@ -1,0 +1,265 @@
+/**
+ * Implémentation de `AccesAmorcage` — les 6 seules opérations hors contexte tenant.
+ *
+ * Règle absolue de ce fichier : **aucune requête Drizzle directe sur les tables**. Tout passe
+ * par les fonctions SECURITY DEFINER du schéma `amorcage` (migration 0001). La raison est
+ * simple : ces opérations s'exécutent avant que le tenant soit connu, donc sans la protection
+ * du RLS. La surface qui échappe à l'isolation doit être minuscule, figée et auditable d'un
+ * seul coup d'œil — six fonctions au corps SQL statique, plutôt qu'un service libre d'écrire
+ * la requête qu'il veut sur des tables non filtrées.
+ *
+ * Deux conséquences pratiques :
+ *   - toute évolution du besoin d'amorçage passe par une MIGRATION, donc par une revue ;
+ *   - les colonnes retournées sont énumérées côté base ET côté appel : une colonne ajoutée plus
+ *     tard à `utilisateur` (secret TOTP, jeton de récupération) ne peut pas fuiter par accident.
+ *
+ * Chaque paramètre est explicitement typé côté SQL (`$1::uuid`, `$1::inet`…). Sans cela, un
+ * paramètre NULL arrive en type inconnu et PostgreSQL échoue à résoudre la surcharge de la
+ * fonction — panne qui n'apparaîtrait qu'avec des valeurs nulles, donc jamais au premier test.
+ */
+
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { OnModuleDestroy } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+
+/**
+ * Convertit en `Date` un horodatage renvoyé par la base.
+ *
+ * Les colonnes `timestamptz` traversent une fonction `SECURITY DEFINER` renvoyant un `TABLE(…)`,
+ * et le pilote ne garantit pas toujours de rendre un `Date` plutôt qu'une chaîne ISO selon le
+ * chemin d'exécution. Annoter le type ne suffit pas : c'est une promesse de compilation, pas une
+ * garantie d'exécution — et la panne se manifeste par un `expireLe.getTime is not a function`
+ * au premier appel authentifié, c'est-à-dire sur le chemin critique de TOUTES les requêtes.
+ *
+ * On normalise donc explicitement à la frontière de la base, là où la donnée entre dans le
+ * domaine applicatif.
+ */
+function enDate(valeur: Date | string): Date {
+  return valeur instanceof Date ? valeur : new Date(valeur);
+}
+
+import { JETON_CONFIG_BASE } from './db.jetons.interne';
+import type {
+  AccesAmorcage,
+  ConfigBase,
+  EvenementSecuriteEntree,
+  SessionAmorcage,
+  UtilisateurAmorcage,
+} from './db.types';
+
+/** Pool dédié : voir la justification dans le constructeur. */
+const TAILLE_POOL_AMORCAGE = 4;
+
+/**
+ * Forme admissible d'une adresse pour le type `inet` : IPv4 pointée, ou IPv6 hexadécimale
+ * (éventuellement avec zone `%eth0`), avec préfixe CIDR optionnel.
+ *
+ * Volontairement permissif — PostgreSQL fera la validation réelle. Le seul objectif est
+ * d'écarter ce qui ferait échouer le cast `::inet`, car cette valeur provient d'un en-tête
+ * `X-Forwarded-For` que n'importe qui peut forger : une chaîne arbitraire ferait planter la
+ * journalisation d'un échec de connexion. Autrement dit, un attaquant pourrait s'effacer du
+ * journal de sécurité en envoyant un en-tête malformé. On préfère perdre l'IP que la trace.
+ */
+const MOTIF_IP = /^[0-9a-f.:%A-Z]{2,49}(\/\d{1,3})?$/i;
+
+@Injectable()
+export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
+  private readonly journal = new Logger(ServiceAccesAmorcage.name);
+  private readonly pool: Pool;
+  private readonly base: NodePgDatabase<Record<string, never>>;
+
+  constructor(@Inject(JETON_CONFIG_BASE) config: ConfigBase) {
+    // Pool SÉPARÉ de celui d'AccesBase, avec la même URL (donc le même rôle dfa_app, soumis au
+    // RLS pour tout ce qui n'est pas une fonction SECURITY DEFINER).
+    //
+    // Pourquoi ne pas partager le pool applicatif :
+    //   1. cloisonnement de disponibilité — si un rapport lourd sature le pool métier,
+    //      l'authentification continue de fonctionner. Une application où plus personne ne peut
+    //      se connecter parce qu'une requête traîne est une panne totale ; une application lente
+    //      mais accessible reste exploitable ;
+    //   2. `AccesBase` ne doit exposer ni son handle Drizzle ni son `Pool` (contrat §2.8) : le
+    //      partager exigerait une fuite d'abstraction ou un provider global supplémentaire ;
+    //   3. `application_name` distinct rend le trafic d'authentification immédiatement lisible
+    //      dans pg_stat_activity.
+    //
+    // Coût : 4 connexions supplémentaires au maximum. Négligeable au regard du dimensionnement
+    // d'une instance qui sert 200 tenants.
+    this.pool = new Pool({
+      connectionString: config.DATABASE_URL,
+      max: Math.min(TAILLE_POOL_AMORCAGE, config.DATABASE_POOL_MAX),
+      application_name: 'dfa-api-amorcage',
+      statement_timeout: config.DATABASE_TIMEOUT_REQUETE_MS,
+      connectionTimeoutMillis: 5_000,
+    });
+
+    this.pool.on('error', (erreur) => {
+      this.journal.error(`Erreur sur une connexion inactive du pool d'amorçage : ${erreur.message}`);
+    });
+
+    // Sans schéma : ce service n'a délibérément accès à aucune table typée. Le typage ne peut
+    // pas l'aider à écrire une requête directe, ce qui est exactement le but.
+    this.base = drizzle(this.pool);
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.pool.end();
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // 1. Résolution du compte à la connexion
+  // -------------------------------------------------------------------------------------------
+
+  async utilisateurParEmail(email: string): Promise<UtilisateurAmorcage | null> {
+    const resultat = await this.base.execute<{
+      id: string;
+      tenant_id: string;
+      email: string;
+      mot_de_passe_hash: string;
+      statut: UtilisateurAmorcage['statut'];
+      statut_tenant: UtilisateurAmorcage['statutTenant'];
+      role: UtilisateurAmorcage['role'];
+      langue: UtilisateurAmorcage['langue'];
+      echecs_connexion: number;
+      verrouille_jusqu_a: Date | null;
+    }>(sql`
+      select id, tenant_id, email, mot_de_passe_hash, statut, statut_tenant,
+             role, langue, echecs_connexion, verrouille_jusqu_a
+        from amorcage.utilisateur_par_email(${email}::text)
+    `);
+
+    const l = resultat.rows[0];
+    if (l === undefined) {
+      return null;
+    }
+
+    return {
+      id: l.id,
+      tenantId: l.tenant_id,
+      email: l.email,
+      motDePasseHash: l.mot_de_passe_hash,
+      statut: l.statut,
+      statutTenant: l.statut_tenant,
+      role: l.role,
+      langue: l.langue,
+      echecsConnexion: Number(l.echecs_connexion),
+      verrouilleJusquA: l.verrouille_jusqu_a,
+    };
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // 2. Résolution du cookie de session — exécutée à chaque requête authentifiée
+  // -------------------------------------------------------------------------------------------
+
+  async sessionParEmpreinte(empreinte: Buffer): Promise<SessionAmorcage | null> {
+    // Garde-fou de cohérence avec la contrainte CHECK de la table : mieux vaut échouer ici, avec
+    // un message clair, qu'obtenir un `null` indistinguable d'une session inconnue.
+    if (empreinte.length !== 32) {
+      throw new Error(
+        `L'empreinte de session doit faire exactement 32 octets (SHA-256), reçu ${String(empreinte.length)}.`,
+      );
+    }
+
+    const resultat = await this.base.execute<{
+      session_id: string;
+      tenant_id: string;
+      utilisateur_id: string;
+      cree_le: Date;
+      expire_le: Date;
+      vu_le: Date;
+      revoquee_le: Date | null;
+      role: SessionAmorcage['role'];
+      langue: SessionAmorcage['langue'];
+      statut_utilisateur: SessionAmorcage['statutUtilisateur'];
+      statut_tenant: SessionAmorcage['statutTenant'];
+    }>(sql`
+      select session_id, tenant_id, utilisateur_id, cree_le, expire_le, vu_le,
+             revoquee_le, role, langue, statut_utilisateur, statut_tenant
+        from amorcage.session_par_empreinte(${empreinte}::bytea)
+    `);
+
+    const l = resultat.rows[0];
+    if (l === undefined) {
+      return null;
+    }
+
+    return {
+      sessionId: l.session_id,
+      tenantId: l.tenant_id,
+      utilisateurId: l.utilisateur_id,
+      creeLe: enDate(l.cree_le),
+      expireLe: enDate(l.expire_le),
+      vuLe: enDate(l.vu_le),
+      revoqueeLe: l.revoquee_le === null ? null : enDate(l.revoquee_le),
+      role: l.role,
+      langue: l.langue,
+      statutUtilisateur: l.statut_utilisateur,
+      statutTenant: l.statut_tenant,
+    };
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // 3. Expiration glissante
+  // -------------------------------------------------------------------------------------------
+
+  async toucherSession(sessionId: string, vuLe: Date): Promise<void> {
+    // La fonction SQL ignore d'elle-même une session révoquée ou un horodatage qui recule :
+    // l'appel est idempotent et sans effet de bord indésirable, y compris sur des requêtes
+    // concurrentes arrivées dans le désordre.
+    await this.base.execute(sql`
+      select amorcage.session_toucher(${sessionId}::uuid, ${vuLe}::timestamptz)
+    `);
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // 4 & 5. Compteur d'échecs et verrouillage progressif
+  // -------------------------------------------------------------------------------------------
+
+  async enregistrerEchecConnexion(
+    utilisateurId: string,
+    verrouilleJusquA: Date | null,
+  ): Promise<void> {
+    await this.base.execute(sql`
+      select amorcage.echec_connexion(
+        ${utilisateurId}::uuid,
+        ${verrouilleJusquA}::timestamptz
+      )
+    `);
+  }
+
+  async reinitialiserEchecsConnexion(utilisateurId: string, connecteLe: Date): Promise<void> {
+    await this.base.execute(sql`
+      select amorcage.reinitialiser_echecs(
+        ${utilisateurId}::uuid,
+        ${connecteLe}::timestamptz
+      )
+    `);
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // 6. Journal de sécurité
+  // -------------------------------------------------------------------------------------------
+
+  async journaliserSecurite(evenement: EvenementSecuriteEntree): Promise<void> {
+    // `details` est sérialisé explicitement puis casté : passer un objet JS brut laisserait le
+    // pilote choisir sa représentation, et un `null` sans cast arriverait en type inconnu.
+    const details = evenement.details === null ? null : JSON.stringify(evenement.details);
+
+    // Voir MOTIF_IP : une IP malformée ne doit jamais empêcher l'écriture de la trace.
+    const ip = evenement.ip !== null && MOTIF_IP.test(evenement.ip) ? evenement.ip : null;
+
+    await this.base.execute(sql`
+      select amorcage.journaliser_securite(
+        ${evenement.type}::type_evenement_securite,
+        ${evenement.tenantId}::uuid,
+        ${evenement.utilisateurId}::uuid,
+        ${evenement.emailTente}::text,
+        ${ip}::inet,
+        ${evenement.userAgent}::text,
+        ${details}::jsonb
+      )
+    `);
+  }
+}

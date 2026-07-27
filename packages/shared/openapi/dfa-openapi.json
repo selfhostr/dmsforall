@@ -1,0 +1,775 @@
+{
+  "components": {
+    "schemas": {
+      "ErreurChampCommunDto": {
+        "properties": {
+          "champ": {
+            "description": "Chemin du champ fautif (notation pointée).",
+            "example": "email",
+            "type": "string"
+          },
+          "code": {
+            "description": "Code machine de la violation.",
+            "example": "invalid_string",
+            "type": "string"
+          },
+          "message": {
+            "description": "Message FR — jamais affiché tel quel par le front.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "champ",
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "ErreurChampDto": {
+        "properties": {
+          "champ": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "champ",
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "PageSiteResumeDto": {
+        "properties": {
+          "curseurSuivant": {
+            "description": "Opaque base64url ; null = fin de liste.",
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/SiteResumeDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
+      "ProblemeDetailCommunDto": {
+        "properties": {
+          "code": {
+            "description": "Contrat machine : seul champ que le front doit lire.",
+            "enum": [
+              "VALIDATION_ECHOUEE",
+              "AUTH_IDENTIFIANTS_INVALIDES",
+              "AUTH_SESSION_ABSENTE",
+              "AUTH_SESSION_EXPIREE",
+              "AUTH_COMPTE_SUSPENDU",
+              "AUTH_COMPTE_VERROUILLE",
+              "AUTH_TENANT_SUSPENDU",
+              "AUTH_TROP_DE_TENTATIVES",
+              "AUTH_ORIGINE_REFUSEE",
+              "DROIT_INSUFFISANT",
+              "RESSOURCE_INTROUVABLE",
+              "CONFLIT",
+              "ERREUR_INTERNE"
+            ],
+            "type": "string"
+          },
+          "detail": {
+            "description": "Détail technique — jamais affiché à l'utilisateur final.",
+            "type": "string"
+          },
+          "erreurs": {
+            "items": {
+              "$ref": "#/components/schemas/ErreurChampCommunDto"
+            },
+            "type": "array"
+          },
+          "instance": {
+            "description": "Identifiant de la requête, = en-tête X-Requete-Id.",
+            "type": "string"
+          },
+          "status": {
+            "example": 400,
+            "type": "number"
+          },
+          "title": {
+            "description": "Libellé FR stable — JAMAIS affiché par le front.",
+            "example": "Validation échouée",
+            "type": "string"
+          },
+          "type": {
+            "example": "https://docs.dmsforall.example/erreurs/VALIDATION_ECHOUEE",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code",
+          "instance"
+        ],
+        "type": "object"
+      },
+      "ProblemeDetailDto": {
+        "properties": {
+          "code": {
+            "enum": [
+              "VALIDATION_ECHOUEE",
+              "AUTH_IDENTIFIANTS_INVALIDES",
+              "AUTH_SESSION_ABSENTE",
+              "AUTH_SESSION_EXPIREE",
+              "AUTH_COMPTE_SUSPENDU",
+              "AUTH_COMPTE_VERROUILLE",
+              "AUTH_TENANT_SUSPENDU",
+              "AUTH_TROP_DE_TENTATIVES",
+              "AUTH_ORIGINE_REFUSEE",
+              "DROIT_INSUFFISANT",
+              "RESSOURCE_INTROUVABLE",
+              "CONFLIT",
+              "ERREUR_INTERNE"
+            ],
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "erreurs": {
+            "items": {
+              "$ref": "#/components/schemas/ErreurChampDto"
+            },
+            "type": "array"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "status": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code",
+          "instance"
+        ],
+        "type": "object"
+      },
+      "SanteDto": {
+        "properties": {
+          "statut": {
+            "enum": [
+              "ok"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "example": "0.1.0-dev",
+            "type": "string"
+          }
+        },
+        "required": [
+          "statut",
+          "version"
+        ],
+        "type": "object"
+      },
+      "SantePreteDto": {
+        "properties": {
+          "base": {
+            "enum": [
+              "ok"
+            ],
+            "type": "string"
+          },
+          "redis": {
+            "enum": [
+              "ok"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "base",
+          "redis"
+        ],
+        "type": "object"
+      },
+      "SessionCouranteDto": {
+        "properties": {
+          "expireLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sites": {
+            "items": {
+              "$ref": "#/components/schemas/SiteResumeDto"
+            },
+            "type": "array"
+          },
+          "tenant": {
+            "$ref": "#/components/schemas/TenantCourantDto"
+          },
+          "utilisateur": {
+            "$ref": "#/components/schemas/UtilisateurCourantDto"
+          }
+        },
+        "required": [
+          "utilisateur",
+          "tenant",
+          "sites",
+          "expireLe"
+        ],
+        "type": "object"
+      },
+      "SiteResumeDto": {
+        "properties": {
+          "actif": {
+            "type": "boolean"
+          },
+          "code": {
+            "example": "SION",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "nom": {
+            "example": "Sion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "nom",
+          "actif"
+        ],
+        "type": "object"
+      },
+      "TenantCourantDto": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "langueDefaut": {
+            "enum": [
+              "fr",
+              "de",
+              "it"
+            ],
+            "type": "string"
+          },
+          "raisonSociale": {
+            "example": "Garage du Léman Sàrl",
+            "type": "string"
+          },
+          "slug": {
+            "example": "garage-du-leman",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "raisonSociale",
+          "langueDefaut"
+        ],
+        "type": "object"
+      },
+      "UtilisateurCourantDto": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "langue": {
+            "enum": [
+              "fr",
+              "de",
+              "it"
+            ],
+            "type": "string"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "prenom": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "admin",
+              "direction",
+              "vendeur",
+              "receptionnaire",
+              "chef_atelier",
+              "technicien",
+              "magasinier",
+              "comptable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "prenom",
+          "nom",
+          "role",
+          "langue"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "cookie": {
+        "in": "cookie",
+        "name": "dfa_session",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "contact": {},
+    "description": "API du DMS (Dealer Management System) pour garages et concessions suisses. Contrat d'erreur unique application/problem+json (schéma ProblemeDetailCommunDto, code machine stable). Le tenant est toujours résolu depuis la session — aucun endpoint n'accepte de tenantId en paramètre.",
+    "title": "API dmsforall (DFA)",
+    "version": "0.1.0-dev"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/auth/connexion": {
+      "post": {
+        "description": "Email inconnu et mot de passe incorrect renvoient EXACTEMENT la même erreur 401 AUTH_IDENTIFIANTS_INVALIDES, avec un temps de réponse égalisé — ceci est un choix de sécurité délibéré (anti-énumération de comptes), pas une omission.",
+        "operationId": "AuthController_connexion",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCouranteDto"
+                }
+              }
+            },
+            "description": "Session ouverte."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE — corps de requête invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_IDENTIFIANTS_INVALIDES."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_COMPTE_SUSPENDU, AUTH_TENANT_SUSPENDU ou AUTH_ORIGINE_REFUSEE."
+          },
+          "423": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_COMPTE_VERROUILLE."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_TROP_DE_TENTATIVES."
+          }
+        },
+        "summary": "Connexion par email et mot de passe.",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/auth/deconnexion": {
+      "post": {
+        "operationId": "AuthController_deconnexion",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Cookie de session effacé (session fermée si elle existait)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_ORIGINE_REFUSEE."
+          }
+        },
+        "summary": "Déconnexion. Idempotente : 204 même sans session active.",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/auth/moi": {
+      "get": {
+        "operationId": "AuthController_moi",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCouranteDto"
+                }
+              }
+            },
+            "description": "Session courante."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE."
+          }
+        },
+        "summary": "Session courante de l’utilisateur authentifié.",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/sante": {
+      "get": {
+        "description": "Ne vérifie aucune dépendance externe : répond tant que le process Node tourne.",
+        "operationId": "SanteController_sante",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SanteDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Sonde de vie",
+        "tags": [
+          "Santé"
+        ]
+      }
+    },
+    "/sante/pret": {
+      "get": {
+        "description": "Vérifie Postgres et Redis. 503 si l'une des deux dépendances est indisponible.",
+        "operationId": "SanteController_pret",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SantePreteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Une dépendance (base ou cache) est indisponible."
+          }
+        },
+        "summary": "Sonde de disponibilité",
+        "tags": [
+          "Santé"
+        ]
+      }
+    },
+    "/sites": {
+      "get": {
+        "description": "Pagination par curseur opaque, tri stable (cree_le desc, id desc).",
+        "operationId": "SiteController_lister",
+        "parameters": [
+          {
+            "description": "Curseur opaque renvoyé par la page précédente.",
+            "in": "query",
+            "name": "curseur",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Entre 1 et 200, défaut 50.",
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageSiteResumeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Curseur illisible ou paramètres de pagination invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans socle.site.lire)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Liste des sites du tenant courant",
+        "tags": [
+          "Socle"
+        ]
+      }
+    },
+    "/sites/{siteId}": {
+      "get": {
+        "operationId": "SiteController_parId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "siteId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteResumeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Identifiant de site mal formé (uuid attendu)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans socle.site.lire)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Site introuvable pour ce tenant — y compris s'il existe pour un autre tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Détail d'un site du tenant courant",
+        "tags": [
+          "Socle"
+        ]
+      }
+    },
+    "/tenant/courant": {
+      "get": {
+        "description": "Renvoie le tenant (entreprise cliente) de l'utilisateur authentifié. Ne prend aucun paramètre : le tenant vient exclusivement de la session.",
+        "operationId": "TenantController_courant",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantCourantDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans socle.tenant.lire)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Tenant courant",
+        "tags": [
+          "Socle"
+        ]
+      }
+    }
+  },
+  "servers": [],
+  "tags": [
+    {
+      "description": "Connexion, déconnexion, session courante.",
+      "name": "Auth"
+    },
+    {
+      "description": "Tenant courant et sites.",
+      "name": "Socle"
+    },
+    {
+      "description": "Sondes de vie et de disponibilité applicative.",
+      "name": "Santé"
+    }
+  ]
+}

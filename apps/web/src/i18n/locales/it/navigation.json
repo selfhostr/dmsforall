@@ -1,0 +1,17 @@
+{
+  "principale": {
+    "aria": "Navigazione principale"
+  },
+  "liens": {
+    "accueil": "Home"
+  },
+  "menu": {
+    "ouvrir": "Apri menu",
+    "fermer": "Chiudi menu"
+  },
+  "entete": {
+    "garage": "Officina",
+    "site": "Sito",
+    "compte": "Il mio account"
+  }
+}
