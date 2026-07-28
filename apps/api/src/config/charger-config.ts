@@ -46,8 +46,26 @@ export const schemaConfig = z
     ARGON2_ITERATIONS: z.coerce.number().int().min(2).default(2),
     ARGON2_PARALLELISME: z.coerce.number().int().min(1).default(1),
     LIMITE_CONNEXION_IP: z.coerce.number().int().min(1).default(20),
-    LIMITE_CONNEXION_COMPTE: z.coerce.number().int().min(1).default(5),
+    // Budget Redis anti-brute-force PAR EMAIL (fenêtre glissante `LIMITE_FENETRE_SECONDES`).
+    // Défaut 15, STRICTEMENT supérieur à SEUIL_VERROUILLAGE_COMPTE (défaut 5, voir plus bas) :
+    // les deux dispositifs sont indépendants (l'un un compteur Redis à fenêtre glissante, l'autre
+    // un verrouillage progressif persisté en base) et ne doivent PAS partager la même valeur,
+    // sous peine que les tentatives échouées qui déclenchent le verrouillage épuisent aussi tout
+    // le budget de débit avant que la tentative suivante (mot de passe enfin correct) puisse
+    // prouver le verrouillage et recevoir `423 AUTH_COMPTE_VERROUILLE` — elle recevrait alors
+    // `429 AUTH_TROP_DE_TENTATIVES` à la place, rendant le 423 inatteignable en pratique
+    // (bloquant B1, rapport QA étape 0). Le fond de la correction, dans
+    // `authentification.service.ts`, est que ce budget n'est de toute façon plus consommé que
+    // sur ÉCHEC de vérification (jamais sur une connexion réussie, bloquant B2) — cette marge
+    // reste néanmoins une seconde barrière indépendante.
+    LIMITE_CONNEXION_COMPTE: z.coerce.number().int().min(1).default(15),
     LIMITE_FENETRE_SECONDES: z.coerce.number().int().min(30).default(900),
+    // Nombre d'échecs de mot de passe CONSÉCUTIFS avant le premier verrouillage progressif du
+    // compte (persisté en base, `utilisateur.verrouille_jusqu_a` — voir
+    // `authentification.service.ts:calculerVerrouillage`). Distinct et indépendant de
+    // LIMITE_CONNEXION_COMPTE ci-dessus : voir le commentaire sur cette variable pour le
+    // pourquoi de la séparation (bloquant B1, rapport QA étape 0).
+    SEUIL_VERROUILLAGE_COMPTE: z.coerce.number().int().min(1).default(5),
     LOG_NIVEAU: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
     // Défaut 'false' (finding 8, audit sécurité) : Swagger/OpenAPI est monté directement sur
     // Express par `SwaggerModule.setup()` (main.ts), donc HORS du graphe Nest — l'`APP_GUARD`
@@ -75,6 +93,20 @@ export const schemaConfig = z
         path: ['DATABASE_URL_MIGRATION'],
         message:
           'DATABASE_URL et DATABASE_URL_MIGRATION doivent être différentes (rôles dfa_app et dfa_migrator distincts, voir RLS).',
+      });
+    }
+    // Bloquant B1 (rapport QA étape 0) : si le budget de débit par email n'est pas STRICTEMENT
+    // supérieur au seuil de verrouillage, les échecs qui déclenchent le verrouillage épuisent
+    // aussi le budget Redis, et la tentative suivante avec le bon mot de passe — celle qui doit
+    // prouver le verrouillage et rendre 423 — se fait refuser par le limiteur avant même
+    // d'atteindre la vérification du mot de passe, et rend 429 à la place. Fail-fast plutôt que
+    // de laisser ce piège de configuration se reproduire silencieusement.
+    if (c.LIMITE_CONNEXION_COMPTE <= c.SEUIL_VERROUILLAGE_COMPTE) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['LIMITE_CONNEXION_COMPTE'],
+        message:
+          'LIMITE_CONNEXION_COMPTE doit être strictement supérieure à SEUIL_VERROUILLAGE_COMPTE, sinon le 423 AUTH_COMPTE_VERROUILLE devient inatteignable (voir bloquant B1, rapport QA étape 0).',
       });
     }
   });

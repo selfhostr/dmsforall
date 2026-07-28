@@ -1,0 +1,261 @@
+name: Publier les images
+
+# Comble l'écart documenté dans docs/deploiement-production.md §3.1 : docker-compose.yml
+# déploie par image taguée (API_IMAGE/WEB_IMAGE) et le rollback (§10) consiste à redéployer le
+# tag précédent — ce workflow est ce qui produit ces images taguées, immuables et retrouvables.
+#
+# Déclencheurs, volontairement seulement ces deux-là (pas de pull_request : une PR n'a de toute
+# façon pas accès en écriture à GITHUB_TOKEN sur un fork, et publier une image depuis du code non
+# mergé n'a pas de sens ici) :
+#   - push d'un tag vX.Y.Z (glob GitHub Actions, pas une regex : `[0-9]+` = un ou plusieurs
+#     chiffres, `.` = littéral) → image de RELEASE, tag immuable = le tag Git lui-même. C'est le
+#     tag que §5/§10 de docs/deploiement-production.md placent dans API_IMAGE/WEB_IMAGE.
+#   - push sur main → image de PRÉ-PRODUCTION, tag immuable `main-<sha-court>` (jamais `latest`
+#     ni `main` seul : un tag mouvant empêcherait de redéployer précisément la version d'avant,
+#     exactement ce que le rollback documenté doit pouvoir faire à 2h du matin).
+# Pas de tags pré-release (v1.2.3-rc1) : le projet n'en utilise pas à ce jour (voir les exemples
+# de tags dans docs/deploiement-production.md, toujours vX.Y.Z nu) — à élargir le jour où le
+# besoin apparaît réellement, pas avant.
+on:
+  push:
+    branches: [main]
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+# Un push de tag est un événement unique (on ne pousse pas deux fois le même tag) : annuler un
+# run de publication de release en cours serait dangereux. Sur main, en revanche, des pushes
+# rapprochés sont courants : annuler le run pré-production obsolète au profit du plus récent est
+# le comportement voulu. `github.ref` distingue déjà les deux cas (refs/tags/vX.Y.Z vs
+# refs/heads/main), donc un seul groupe suffit.
+concurrency:
+  group: publier-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Permission par défaut du workflow : lecture seule. Chaque job qui a réellement besoin de plus
+# (ici uniquement `construire-publier`, pour pousser sur ghcr.io et signer une attestation)
+# déclare son propre bloc `permissions:`, qui remplace celui-ci pour ce job — jamais l'inverse.
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+  # Doit rester aligné avec `packageManager` dans package.json (voir aussi ci.yml).
+  PNPM_VERSION: '11'
+  REGISTRY: ghcr.io
+
+jobs:
+  # --- Porte de qualité : identique à ci.yml -----------------------------------------------
+  # Volontairement dupliqué plutôt que factorisé via un `workflow_call` : un push de tag n'a
+  # jamais fait tourner ci.yml (son déclencheur ne couvre que push sur main + pull_request), donc
+  # rien ne garantit qu'une release ait été vérifiée par ci.yml au moment où elle est taguée. Ce
+  # workflow doit donc pouvoir juger la qualité par lui-même, sans dépendre d'un run externe. Le
+  # coût (deux exécutions de lint/typecheck/test/build sur un push main, une dans ci.yml et une
+  # ici) est accepté sciemment — factoriser en `workflow_call` est la prochaine étape naturelle si
+  # les minutes CI deviennent un jour un vrai problème, pas avant (philosophie du projet : ne pas
+  # complexifier sans contrainte réelle).
+  verifier:
+    name: Vérifier (lint, typecheck, tests, build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Installer les dépendances (lockfile figé)
+        run: pnpm install --frozen-lockfile
+
+      - name: Formatage (Prettier)
+        run: pnpm format:check
+
+      - name: Lint (ESLint)
+        run: pnpm lint
+
+      - name: Vérification des types (TypeScript)
+        run: pnpm typecheck
+
+      - name: Tests unitaires
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  tests-integration:
+    name: Tests d'intégration (testcontainers)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Installer les dépendances (lockfile figé)
+        run: pnpm install --frozen-lockfile
+
+      - name: Tests d'intégration
+        run: pnpm test:integration
+        env:
+          # Identique à ci.yml : valeurs de test en dur, aucun secret réel, testcontainers
+          # démarre ses propres conteneurs Postgres/Redis éphémères.
+          NODE_ENV: test
+          PORT: '3000'
+          API_URL_PUBLIQUE: http://localhost:3000
+          WEB_URL_PUBLIQUE: http://localhost:5173
+          DATABASE_URL: postgresql://dfa_app:dfa_app_dev@localhost:5432/dfa_test
+          DATABASE_URL_MIGRATION: postgresql://dfa_migrator:dfa_migrator_dev@localhost:5432/dfa_test
+          DATABASE_POOL_MAX: '10'
+          DATABASE_TIMEOUT_REQUETE_MS: '10000'
+          REDIS_URL: redis://localhost:6379
+          SESSION_COOKIE_NOM: dfa_session
+          SESSION_DUREE_MINUTES: '480'
+          SESSION_INACTIVITE_MINUTES: '120'
+          COOKIE_SECURE: 'false'
+          ARGON2_MEMOIRE_KIB: '19456'
+          ARGON2_ITERATIONS: '2'
+          ARGON2_PARALLELISME: '1'
+          LIMITE_CONNEXION_IP: '20'
+          LIMITE_CONNEXION_COMPTE: '5'
+          LIMITE_FENETRE_SECONDES: '900'
+          LOG_NIVEAU: debug
+          OPENAPI_EXPOSER_DOCS: 'true'
+          VERSION_APP: 0.1.0-ci
+
+  # --- Construction et publication -----------------------------------------------------------
+  # Une image publiée est une image potentiellement déployée (docker-compose.yml n'a aucun
+  # garde-fou qui distingue une image « bonne » d'une image « mauvaise » au moment du
+  # déploiement) : ce job ne démarre donc que si les deux jobs de qualité ci-dessus réussissent.
+  construire-publier:
+    name: Construire et publier dfa-${{ matrix.image }} (ghcr.io)
+    needs: [verifier, tests-integration]
+    runs-on: ubuntu-latest
+    # Permissions minimales pour CE job seulement : `packages: write` pour pousser sur ghcr.io,
+    # `id-token`/`attestations: write` pour la signature Sigstore de la provenance (voir plus bas).
+    # `contents: read` est répété explicitement car déclarer `permissions:` sur un job remplace
+    # entièrement le bloc du workflow, il n'y a pas d'addition implicite.
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    strategy:
+      # Un échec sur l'image web ne doit pas empêcher de savoir si l'image api, elle, est publiable
+      # (et inversement) : les deux builds sont indépendants.
+      fail-fast: false
+      matrix:
+        include:
+          - image: api
+            dockerfile: apps/api/Dockerfile
+          - image: web
+            dockerfile: apps/web/Dockerfile
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      # ghcr.io exige un chemin d'image strictement en minuscules ; `github.repository_owner`
+      # peut contenir des majuscules (nom d'utilisateur/organisation GitHub).
+      - name: Nom du propriétaire en minuscule (exigence ghcr.io)
+        id: repo
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: echo "owner=$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      # `github.ref_name` (nom du tag Git) est en théorie une valeur fournie par qui pousse le
+      # tag : on la fait transiter par `env:` plutôt que de l'interpoler directement dans le
+      # script `run:`, pour ne pas l'exposer à une injection de commande shell (recommandation de
+      # sécurité standard GitHub Actions pour toute valeur issue du contexte `github.*`).
+      - name: Déterminer le tag d'image (immuable)
+        id: image-tag
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          SHA_COURT=$(git rev-parse --short HEAD)
+          if [ "$REF_TYPE" = "tag" ]; then
+            TAG="$REF_NAME"
+          else
+            TAG="main-${SHA_COURT}"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "sha_court=${SHA_COURT}" >> "$GITHUB_OUTPUT"
+
+      - name: Préparer Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Authentification ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          # GITHUB_TOKEN suffit (permissions du job ci-dessus) : aucun secret supplémentaire à
+          # créer ou faire tourner pour publier sur GitHub Container Registry.
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Contexte de build = racine du dépôt (`.`), jamais apps/api ou apps/web : les deux
+      # Dockerfiles l'exigent (pnpm workspaces + packages/shared, voir leurs en-têtes). Un
+      # `context: apps/api` ou `apps/web` ici ferait échouer `pnpm install --frozen-lockfile` dès
+      # la première étape du Dockerfile, faute de voir pnpm-lock.yaml/pnpm-workspace.yaml.
+      #
+      # Une seule plateforme, linux/amd64 : Infomaniak et Exoscale (les deux hébergeurs suisses
+      # visés, voir docs/deploiement-production.md §2) ne proposent que du x86_64 en Compute/VM.
+      # Construire aussi linux/arm64 impliquerait l'émulation QEMU (beaucoup plus lent) pour une
+      # plateforme qu'aucun environnement de déploiement ne consomme — le poste de dev
+      # Windows/WSL2 de @laupernoe n'entre pas en ligne de compte ici, ces images ne tournent jamais sur
+      # son poste, seulement sur le serveur de prod.
+      #
+      # `provenance: false` : désactive l'attestation de provenance interne (non signée) que
+      # buildx attache par défaut au manifeste lors d'un push, qui transformerait chaque image en
+      # manifeste multi-plateforme même en single-arch. On préfère UNE attestation, signée via
+      # Sigstore/GitHub OIDC (étape suivante), plutôt que deux mécanismes qui se chevauchent — et
+      # cela garde `docker-compose.yml` face à un manifeste d'image simple, sans surprise
+      # pour la version de Docker Engine installée sur le serveur.
+      - name: Construire et publier l'image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          platforms: linux/amd64
+          provenance: false
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.repo.outputs.owner }}/dfa-${{ matrix.image }}:${{ steps.image-tag.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ steps.repo.outputs.owner }}/dfa-${{ matrix.image }}:sha-${{ steps.image-tag.outputs.sha_court }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.image-tag.outputs.tag }}
+          # Cache GitHub Actions (gratuit, pas d'infrastructure supplémentaire), une portée par
+          # image : api et web ne partagent pas les mêmes couches (Dockerfiles différents), un
+          # cache commun écraserait alternativement l'un puis l'autre à chaque run.
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+      # Attestation de provenance SLSA, signée keylessly via l'identité OIDC de ce workflow
+      # (Sigstore), enregistrée sur ghcr.io à côté de l'image. Coût marginal (quelques secondes,
+      # aucune infrastructure à opérer) pour une garantie vérifiable après coup : quelle définition
+      # de workflow, quel commit, sur quel dépôt, a produit exactement cette image. Se vérifie avec
+      # `gh attestation verify oci://<image>@<digest> --owner <org>`.
+      - name: Attestation de provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ steps.repo.outputs.owner }}/dfa-${{ matrix.image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true

@@ -57,7 +57,7 @@
     "VEHICULE_KILOMETRAGE_REGRESSIF": "Il chilometraggio inserito è inferiore a quello precedente. Indicare un motivo per continuare.",
     "VEHICULE_PLAQUE_COLLISION": "Questa targa è già utilizzata da un altro veicolo in circolazione.",
     "RDV_RESSOURCE_CHEVAUCHEMENT": "Questa risorsa è già prenotata per questo orario.",
-    "RDV_VEHICULE_NON_IDENTIFIE": "Un appuntamento con cliente e veicolo identificati è necessario per confermarlo.",
+    "RDV_IDENTIFICATION_INCOMPLETE": "Un appuntamento con cliente e veicolo identificati è necessario per confermarlo.",
     "CLIENT_DOUBLON_PROBABLE": "Un cliente simile esiste già nel database.",
     "CLIENT_BLOQUE": "Questo cliente è bloccato (arretrati). Confermare per continuare."
   }

@@ -1,0 +1,266 @@
+# Production DFA : API + front + reverse proxy, en conteneurs. Postgres et Redis sont des
+# services EXTERNES MANAGÉS (Infomaniak/Exoscale) — volontairement absents de ce fichier, voir
+# docs/deploiement-production.md. Aucun `build:` ici : le déploiement consiste à pointer
+# `API_IMAGE`/`WEB_IMAGE` sur une image déjà construite et taguée par la CI, jamais à compiler
+# sur le serveur — c'est ce qui rend le rollback trivial (redéployer le tag précédent, voir
+# docs/deploiement-production.md §Retour arrière).
+#
+# `name:` fixe le nom de projet Compose indépendamment du chemin de checkout sur le serveur —
+# les noms de conteneurs/réseau/volumes restent stables même si le dépôt est un jour recloné
+# dans un autre dossier. Important à 2h du matin : `docker ps`/`docker compose logs` doivent
+# toujours montrer les mêmes noms, peu importe qui a déployé où.
+name: dfa-prod
+
+# Toutes les valeurs variables (images, domaine, e-mail ACME, secrets applicatifs) viennent de
+# l'environnement — AUCUN secret n'est écrit dans ce fichier, qui est versionné dans Git. En
+# pratique : `docker compose -f docker-compose.yml --env-file .env.production <commande>`,
+# où `.env.production` (jamais commité — déjà couvert par `.env.*` dans .gitignore) sert un
+# double rôle documenté dans docs/deploiement-production.md :
+#   1. interpolation des `${VARIABLE}` de CE fichier au moment du `docker compose config`/`up` ;
+#   2. injection des mêmes variables DANS le conteneur `api` via `env_file:` (c'est le fichier
+#      que lit ensuite le schéma zod de apps/api/src/config au démarrage du process).
+# Toute variable requise utilise la forme `${VAR:?message}` : Compose refuse de démarrer avec un
+# message clair plutôt que de lancer un service à moitié configuré — même philosophie fail-closed
+# que la validation zod de l'API elle-même.
+
+x-logging: &logging-defaut
+  # json-file avec rotation : suffisant pour un seul opérateur qui lit `docker compose logs`
+  # (pas encore d'agrégation centralisée, voir docs/deploiement-production.md §Monitoring).
+  # Bornée en taille pour ne jamais remplir le disque du serveur silencieusement.
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '5'
+
+x-restart-defaut: &restart-defaut unless-stopped
+
+x-securite-defaut: &securite-defaut
+  # Empêche un process du conteneur de regagner des privilèges (ex. via un binaire setuid) même
+  # s'il est compromis. Ne casse rien pour des images qui ne s'appuient pas là-dessus — c'est le
+  # cas des trois images ci-dessous.
+  - no-new-privileges:true
+
+services:
+  # --- API (NestJS) --------------------------------------------------------------------------
+  api:
+    container_name: dfa-api
+    image: ${API_IMAGE:?Définir API_IMAGE (ex. ghcr.io/dmsforall/api:v0.4.2) dans .env.production}
+    restart: *restart-defaut
+    # `.env.production` porte TOUTES les variables validées par apps/api/src/config (schéma
+    # zod) : DATABASE_URL/DATABASE_URL_MIGRATION (rôles dfa_app/dfa_migrator sur la base
+    # managée), REDIS_URL, secrets de session, etc. Rien de tout cela ne transite par ce fichier.
+    env_file:
+      - .env.production
+    environment:
+      # Ces deux valeurs sont FIXÉES ici plutôt que laissées à .env.production, en défense en
+      # profondeur — `environment:` a priorité sur `env_file:` dans Compose :
+      #   - NODE_ENV : un `.env.production` copié-collé depuis `.env.example` (qui vaut
+      #     `development`) ne doit jamais faire tourner l'API en mode dev par accident. La
+      #     validation zod exige déjà COOKIE_SECURE=true quand NODE_ENV=production — encore
+      #     faut-il que NODE_ENV soit effectivement `production`.
+      #   - PORT : doit rester 3000 car le Caddyfile ci-dessous (bloc `configs`) cible
+      #     l'upstream fixe `api:3000`. Le rendre configurable via .env.production casserait le
+      #     routage du reverse proxy sans erreur visible (juste des 502).
+      - NODE_ENV=production
+      - PORT=3000
+    # Aucun `ports:` : l'API n'est joignable que par les autres conteneurs de ce réseau (le
+    # reverse proxy). Le seul point d'entrée public de toute la stack est le service
+    # `reverse-proxy` ci-dessous.
+    networks:
+      - interne
+    # Postgres/Redis sont externes et managés : aucun `depends_on` de service de base de données
+    # n'a de sens ici. `GET /api/v1/sante` (le HEALTHCHECK de l'image, hérité tel quel — jamais
+    # redéfini ici pour éviter une divergence avec apps/api/Dockerfile) ne vérifie déjà aucune
+    # dépendance externe, exprès : un Postgres managé momentanément indisponible ne doit pas
+    # faire redémarrer l'API en boucle. C'est `GET /api/v1/sante/pret` qui vérifie Postgres et
+    # Redis — réservé à la supervision externe (uptime check), voir
+    # docs/deploiement-production.md §Monitoring.
+    stop_grace_period: 30s
+    security_opt: *securite-defaut
+    # L'image tourne déjà en utilisateur non-root dédié (USER dfa, apps/api/Dockerfile) et n'a
+    # besoin d'aucune capacité Linux particulière (port 3000, pas de bind privilégié, pas de
+    # chown) : on les retire toutes.
+    cap_drop:
+      - ALL
+    logging: *logging-defaut
+    deploy:
+      resources:
+        # Valeurs de départ pour un premier premier garage — à ajuster ici (fichier versionné,
+        # changement passant par une revue Git plutôt qu'une variable d'environnement cachée) une
+        # fois le gabarit réel du serveur connu. `docker compose up` (Compose v2, hors Swarm)
+        # applique bien ces limites, ce n'est pas réservé à `docker stack deploy`.
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # --- Migrations (job ponctuel, jamais démarré par un `docker compose up` normal) -----------
+  # Réutilise EXACTEMENT la même image que le service `api` (même tag, donc même code compilé) :
+  # les migrations appliquées sont toujours celles que la version déployée attend, aucun risque
+  # de décalage entre le schéma migré et le code qui tourne. `dist/db/migrer.js` (nest build
+  # compile src/db/migrer.ts) se connecte avec DATABASE_URL_MIGRATION (rôle dfa_migrator),
+  # jamais DATABASE_URL — voir apps/api/src/db/migrer.ts.
+  #
+  # `profiles:` l'exclut d'un `docker compose up` normal : il faut l'invoquer explicitement,
+  # voir docs/deploiement-production.md §Migrations :
+  #   docker compose -f docker-compose.yml --env-file .env.production \
+  #     --profile migration run --rm migrate
+  migrate:
+    image: ${API_IMAGE:?Définir API_IMAGE (ex. ghcr.io/dmsforall/api:v0.4.2) dans .env.production}
+    profiles: ['migration']
+    command: ['node', 'dist/db/migrer.js']
+    env_file:
+      - .env.production
+    environment:
+      - NODE_ENV=production
+    networks:
+      - interne
+    security_opt: *securite-defaut
+    cap_drop:
+      - ALL
+    logging: *logging-defaut
+
+  # --- Front (SPA statique servie par nginx) --------------------------------------------------
+  web:
+    container_name: dfa-web
+    image: ${WEB_IMAGE:?Définir WEB_IMAGE (ex. ghcr.io/dmsforall/web:v0.4.2) dans .env.production}
+    restart: *restart-defaut
+    # Pas de `env_file:` : les variables `VITE_*` sont inlinées dans le bundle AU BUILD (voir
+    # apps/web/Dockerfile, `ARG VITE_API_URL`), le conteneur nginx ne lit aucune variable
+    # d'environnement au runtime. Un changement de VITE_API_URL exige une nouvelle image, jamais
+    # un redémarrage de conteneur avec une variable différente.
+    networks:
+      - interne
+    security_opt: *securite-defaut
+    # Déjà non-root de bout en bout (USER nginx, apps/web/Dockerfile) ; nginx n'a besoin d'aucune
+    # capacité particulière sur le port non privilégié 8080.
+    cap_drop:
+      - ALL
+    logging: *logging-defaut
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+
+  # --- Reverse proxy public (Caddy) -----------------------------------------------------------
+  # Seul service exposé sur l'hôte. Termine le TLS (HTTPS automatique via Let's Encrypt), route
+  # sur un DOMAINE UNIQUE : `/api/*` vers `api:3000`, tout le reste vers `web:8080` — c'est
+  # l'architecture que supposent déjà apps/web/nginx.conf (CSP `connect-src 'self'`,
+  # VITE_API_URL=/api/v1 en chemin relatif) et apps/web/Dockerfile (« le front est toujours
+  # servi derrière le même reverse proxy que l'API »). En clair : API_URL_PUBLIQUE et
+  # WEB_URL_PUBLIQUE (.env.production) doivent pointer vers la MÊME origine publique — voir
+  # docs/deploiement-production.md §Domaine et CORS.
+  #
+  # TRUST_PROXY_HOPS (.env.production, lu par l'API) doit valoir 1 ici : Caddy est l'unique
+  # reverse proxy entre Internet et le conteneur `api`.
+  #
+  # Le Caddyfile est fourni en `configs:` avec `content:` INLINE plutôt qu'en fichier séparé —
+  # ce n'est pas une préférence de style : ce déploiement ne doit ajouter QUE ce fichier
+  # docker-compose.yml et docs/deploiement-production.md, aucun fichier de configuration
+  # tiers. `content:` est interpolé par Compose exactement comme le reste de ce document, donc
+  # `${WEB_URL_PUBLIQUE}` et `${ACME_EMAIL}` ci-dessous viennent de .env.production — attention,
+  # c'est la syntaxe Compose `${VAR}`, PAS la syntaxe native de substitution de Caddy `{$VAR}`
+  # (les deux sont d'ailleurs volontairement incompatibles en apparence, donc sans collision
+  # possible : Compose ne touche jamais à un `{$VAR}` littéral).
+  reverse-proxy:
+    container_name: dfa-reverse-proxy
+    # Épinglée en version majeure seulement, comme postgres:16-alpine/redis:7-alpine dans le
+    # docker-compose.yml de dev — le tag mineur suit les correctifs de sécurité en amont.
+    image: caddy:2-alpine
+    restart: *restart-defaut
+    ports:
+      - '80:80'
+      - '443:443'
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+    volumes:
+      # Persistance OBLIGATOIRE : `caddy_data` contient les certificats Let's Encrypt émis.
+      # Sans volume nommé, chaque recréation du conteneur redemanderait un certificat neuf —
+      # Let's Encrypt impose des quotas hebdomadaires par domaine, largement atteignables en
+      # quelques redéploiements successifs sans ce volume.
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - interne
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    # NOTE (limite connue, à durcir plus tard) : l'image officielle `caddy:2-alpine` tourne en
+    # root (nécessaire pour lier les ports 80/443 sans capacité ajoutée) et ne fournit pas
+    # d'utilisateur non-root alternatif prêt à l'emploi — contrairement à `api`/`web`, qui sont
+    # nos propres images. `no-new-privileges` reste appliqué ; un `cap_drop: [ALL]` n'est
+    # volontairement PAS ajouté ici : impossible de vérifier sans lancer de conteneur (hors
+    # périmètre de cette tâche) l'ensemble minimal de capacités dont Caddy a besoin pour
+    # renouveler ses certificats, et un mauvais réglage casserait silencieusement le TLS en
+    # production. À reprendre avec une image Caddy construite maison si ce point devient
+    # bloquant pour une certification/conformité.
+    security_opt: *securite-defaut
+    healthcheck:
+      # Cible l'API d'administration de Caddy (liée à 127.0.0.1:2019 par défaut, jamais publiée
+      # sur l'hôte) plutôt qu'une route HTTPS publique : reste vert même pendant la négociation
+      # initiale d'un certificat ACME (qui peut prendre plusieurs secondes), et ne dépend donc
+      # pas de la disponibilité de `api`/`web` en aval — même logique que le HEALTHCHECK de
+      # l'API elle-même (sonde de vie, pas de disponibilité des dépendances).
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://127.0.0.1:2019/config/']
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging: *logging-defaut
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+
+networks:
+  # Réseau bridge ordinaire, PAS `internal: true` : l'API doit conserver un accès sortant vers
+  # Postgres/Redis managés (Internet ou réseau privé de l'hébergeur) et Caddy vers les serveurs
+  # ACME de Let's Encrypt. L'isolation recherchée ici (api/web injoignables depuis l'hôte) vient
+  # de l'absence de `ports:` sur ces deux services, pas d'un réseau fermé.
+  interne:
+
+configs:
+  caddyfile:
+    content: |
+      {
+        email ${ACME_EMAIL:?Définir ACME_EMAIL (notifications d'expiration Let's Encrypt) dans .env.production}
+      }
+
+      ${WEB_URL_PUBLIQUE:?Définir WEB_URL_PUBLIQUE (ex. https://app.dmsforall.example) dans .env.production} {
+        encode gzip
+
+        header {
+          # Seul endroit de toute la stack où HSTS est posé (voir apps/web/nginx.conf, qui
+          # l'omet explicitement au profit d'ici) : Caddy est le seul point qui sait avec
+          # certitude que la connexion cliente est en HTTPS.
+          Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        }
+
+        # `/api/*` vers l'API ; tout le reste (SPA + assets statiques) vers le front — les noms
+        # `api`/`web` sont les noms de service Compose ci-dessus, résolus par le DNS interne du
+        # réseau `interne`.
+        handle /api/* {
+          reverse_proxy api:3000
+        }
+
+        handle {
+          reverse_proxy web:8080
+        }
+      }
+
+volumes:
+  caddy_data:
+  caddy_config:

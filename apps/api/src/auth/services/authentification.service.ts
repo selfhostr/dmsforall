@@ -32,9 +32,6 @@ import {
   ErreurTropDeTentatives,
 } from '../erreurs-auth';
 
-/** Échecs consécutifs avant le premier verrouillage du compte. */
-const SEUIL_VERROUILLAGE = 5;
-
 /**
  * Verrouillage progressif : plus un compte accumule d'échecs au-delà du seuil, plus la durée de
  * verrouillage s'allonge. Freine un brute-force distribué (qui contournerait la seule limitation
@@ -70,11 +67,16 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
     // (une même adresse doit toujours désigner le même compte, quelle que soit la casse saisie).
     const email = entree.email.trim().toLowerCase();
 
-    await this.verifierLimitationDebit(email, ip);
+    // Budget par IP : inconditionnel, consommé sur TOUTE tentative (succès compris). C'est la
+    // seule des deux limitations Redis qui reste ainsi — voir `verifierLimitationDebitEmail`
+    // ci-dessous pour le pourquoi de l'asymétrie (bloquant B2, rapport QA étape 0).
+    await this.verifierLimitationDebitIp(ip);
 
     const u = await this.accesAmorcage.utilisateurParEmail(email);
 
     if (!u) {
+      // Budget par email consommé ICI (échec) — voir `verifierLimitationDebitEmail`.
+      await this.verifierLimitationDebitEmail(email);
       // Coût CPU équivalent à un vrai `verifier()`, pour ne pas laisser filtrer par chronométrage
       // le fait que cet email n'existe pas.
       await this.servicePwd.verifierLeurre();
@@ -97,11 +99,24 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
     //    renvoyé que si le mot de passe fourni est le bon (l'attaquant qui le connaît déjà
     //    n'apprend rien de nouveau) ; sinon, EXACTEMENT le même 401 générique que pour un mot de
     //    passe faux sur un compte non verrouillé.
-    const dejaVerrouilleJusquA = u.verrouilleJusquA;
+    //
+    // Défense en profondeur sur le typage : `u.verrouilleJusquA` est contractuellement `Date |
+    // null` (`db/db.types.ts`), mais rien ne garantit à l'exécution qu'un pilote SQL renvoie une
+    // véritable instance `Date` sur CE chemin précis — les 6 fonctions d'amorçage passent par du
+    // SQL non typé par le schéma Drizzle habituel. Une chaîne ISO brute ferait planter
+    // `.getTime()` (ligne plus bas) avec un `TypeError` NON typé, capturé par `FiltreProbleme`
+    // comme `500 ERREUR_INTERNE` au lieu du `423 AUTH_COMPTE_VERROUILLE` attendu — précisément
+    // sur le chemin qui vérifie le verrouillage d'un compte. Coercition défensive plutôt que
+    // confiance aveugle dans le typage d'une frontière externe (même principe que `isIP()` dans
+    // `journaliser()` plus bas).
+    const dejaVerrouilleJusquA = this.versDateOuNull(u.verrouilleJusquA);
 
     const motDePasseValide = await this.servicePwd.verifier(u.motDePasseHash, entree.motDePasse);
 
     if (!motDePasseValide) {
+      // Budget par email consommé ICI (échec) — voir `verifierLimitationDebitEmail`. Une
+      // connexion réussie, elle, ne l'atteint jamais (bloquant B2).
+      await this.verifierLimitationDebitEmail(email);
       const nouveauxEchecs = u.echecsConnexion + 1;
       const verrouilleJusquA = this.calculerVerrouillage(nouveauxEchecs);
       await this.accesAmorcage.enregistrerEchecConnexion(u.id, verrouilleJusquA);
@@ -273,20 +288,44 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
     );
   }
 
-  private async verifierLimitationDebit(email: string, ip: string | null): Promise<void> {
-    if (ip !== null) {
-      const resultatIp = await this.limiteur.consommer(
-        `auth:connexion:ip:${ip}`,
-        this.config.LIMITE_CONNEXION_IP,
-        this.config.LIMITE_FENETRE_SECONDES,
+  /**
+   * Budget Redis PAR IP — inconditionnel, consommé sur TOUTE tentative (échec comme succès).
+   * Seul rempart contre un brute-force distribué sur de nombreux comptes depuis une même
+   * source ; ne peut donc pas être conditionné au résultat de la tentative comme le budget par
+   * email ci-dessous (bloquant B2, rapport QA étape 0).
+   */
+  private async verifierLimitationDebitIp(ip: string | null): Promise<void> {
+    if (ip === null) return;
+    const resultatIp = await this.limiteur.consommer(
+      `auth:connexion:ip:${ip}`,
+      this.config.LIMITE_CONNEXION_IP,
+      this.config.LIMITE_FENETRE_SECONDES,
+    );
+    if (!resultatIp.autorise) {
+      throw new ErreurTropDeTentatives(
+        resultatIp.resteSecondes ?? this.config.LIMITE_FENETRE_SECONDES,
       );
-      if (!resultatIp.autorise) {
-        throw new ErreurTropDeTentatives(
-          resultatIp.resteSecondes ?? this.config.LIMITE_FENETRE_SECONDES,
-        );
-      }
     }
+  }
 
+  /**
+   * Budget Redis PAR EMAIL — appelé UNIQUEMENT depuis les branches d'échec de `connecter()`
+   * (email inconnu, mot de passe invalide), JAMAIS depuis le chemin de succès.
+   *
+   * Bloquant B2 (rapport QA étape 0) : consommer ce budget sur toute tentative, succès compris,
+   * finit par bloquer un utilisateur légitime qui enchaîne des connexions réussies sur des
+   * postes partagés (le mode d'usage normal d'un garage) avec un message « trop de tentatives »
+   * qui n'a aucun sens pour lui. Un budget qui ne se consomme que sur échec reste un frein
+   * efficace contre le devinage de mot de passe sans jamais gêner un utilisateur légitime.
+   *
+   * Effet de bord notable sur le bloquant B1 : en ne consommant plus JAMAIS ce budget sur le
+   * chemin de succès, la 6e requête d'un scénario « 5 échecs puis bon mot de passe » n'a plus
+   * aucune raison de heurter ce limiteur — elle atteint la vérification du verrouillage et rend
+   * 423 comme attendu, indépendamment de la valeur de LIMITE_CONNEXION_COMPTE. La séparation de
+   * LIMITE_CONNEXION_COMPTE et SEUIL_VERROUILLAGE_COMPTE (voir `charger-config.ts`) reste une
+   * seconde barrière indépendante, pas la seule ligne de défense.
+   */
+  private async verifierLimitationDebitEmail(email: string): Promise<void> {
     const resultatEmail = await this.limiteur.consommer(
       `auth:connexion:email:${email}`,
       this.config.LIMITE_CONNEXION_COMPTE,
@@ -300,17 +339,21 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
   }
 
   private calculerVerrouillage(nouveauxEchecs: number): Date | null {
-    if (nouveauxEchecs < SEUIL_VERROUILLAGE) return null;
-    const indexPalier = Math.min(
-      nouveauxEchecs - SEUIL_VERROUILLAGE,
-      PALIERS_VERROUILLAGE_MINUTES.length - 1,
-    );
+    const seuil = this.config.SEUIL_VERROUILLAGE_COMPTE;
+    if (nouveauxEchecs < seuil) return null;
+    const indexPalier = Math.min(nouveauxEchecs - seuil, PALIERS_VERROUILLAGE_MINUTES.length - 1);
     const minutes = PALIERS_VERROUILLAGE_MINUTES[indexPalier] ?? PALIERS_VERROUILLAGE_MINUTES[0];
     return new Date(Date.now() + minutes * MS_PAR_MINUTE);
   }
 
   private secondesAvant(date: Date): number {
     return Math.max(1, Math.ceil((date.getTime() - Date.now()) / MS_PAR_SECONDE));
+  }
+
+  /** Voir le commentaire au point d'appel (défense en profondeur sur `verrouilleJusquA`). */
+  private versDateOuNull(valeur: Date | string | null): Date | null {
+    if (valeur === null) return null;
+    return valeur instanceof Date ? valeur : new Date(valeur);
   }
 
   private rehacherEnArrierePlan(utilisateurId: string, tenantId: string, motDePasseClair: string): void {

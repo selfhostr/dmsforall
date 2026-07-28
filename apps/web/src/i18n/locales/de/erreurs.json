@@ -57,7 +57,7 @@
     "VEHICULE_KILOMETRAGE_REGRESSIF": "Der eingegebene Kilometerstand ist niedriger als der vorherige. Geben Sie einen Grund an, um fortzufahren.",
     "VEHICULE_PLAQUE_COLLISION": "Diese Plakette wird bereits von einem anderen verkehrszugelassenen Fahrzeug verwendet.",
     "RDV_RESSOURCE_CHEVAUCHEMENT": "Diese Ressource ist bereits für diese Zeit reserviert.",
-    "RDV_VEHICULE_NON_IDENTIFIE": "Ein Termin mit identifiziertem Kunde und Fahrzeug ist erforderlich, um ihn anzunehmen.",
+    "RDV_IDENTIFICATION_INCOMPLETE": "Ein Termin mit identifiziertem Kunde und Fahrzeug ist erforderlich, um ihn anzunehmen.",
     "CLIENT_DOUBLON_PROBABLE": "Ein ähnlicher Kunde existiert bereits in der Datenbank.",
     "CLIENT_BLOQUE": "Dieser Kunde ist gesperrt (Zahlungsrückstände). Bestätigen Sie, um fortzufahren."
   }

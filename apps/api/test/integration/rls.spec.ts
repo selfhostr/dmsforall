@@ -261,6 +261,79 @@ describe('couverture RLS générique — attrape automatiquement toute future ta
       client.release();
     }
   });
+
+  // -----------------------------------------------------------------------------------------
+  // B4 (rapport QA étape 0) : les deux tests ci-dessus comptent les politiques SANS regarder ce
+  // qu'elles filtrent. `using (true) with check (true)` — le motif exact des politiques
+  // `tenant_migrator` / `site_migrator` légitimes, à quelques lignes des politiques de dfa_app
+  // dans 0001_socle_rls.sql — les satisferait pleinement. Ce test inspecte le CONTENU : pour
+  // toute politique qui s'applique à `dfa_app` (explicitement, ou implicitement via un `TO`
+  // absent, qui vaut PUBLIC — polroles = '{0}'), USING et WITH CHECK doivent tous deux référencer
+  // `tenant_courant()`. Les politiques `dfa_migrator` (using (true) légitime, voir §4 de la
+  // migration) sont volontairement exclues : polroles ne contient alors ni 0 (PUBLIC) ni l'oid de
+  // dfa_app, donc `vise_dfa_app` est faux pour elles et ce test ne les évalue pas.
+  //
+  // Preuve que ce test attrape le défaut qu'il vise (menée manuellement pendant le développement,
+  // pas conservée ici pour ne pas polluer la suite) : une table temporaire avec une politique
+  // `to dfa_app using (true) with check (true)` fait bien rougir ce test, message à l'appui.
+  // -----------------------------------------------------------------------------------------
+  it("pour toute politique qui s'applique à dfa_app, USING et WITH CHECK référencent tous deux tenant_courant() — jamais using(true)/with check(true)", async () => {
+    const client = await bdd.poolSuperutilisateur.connect();
+    try {
+      const { rows } = await client.query<{
+        table_nom: string;
+        politique_nom: string;
+        vise_dfa_app: boolean;
+        expr_using: string | null;
+        expr_with_check: string | null;
+      }>(`
+        select
+          c.relname as table_nom,
+          p.polname as politique_nom,
+          (
+            0 = any(p.polroles)
+            or (select oid from pg_roles where rolname = 'dfa_app') = any(p.polroles)
+          ) as vise_dfa_app,
+          pg_get_expr(p.polqual, p.polrelid)      as expr_using,
+          pg_get_expr(p.polwithcheck, p.polrelid) as expr_with_check
+        from pg_policy p
+        join pg_class c on c.oid = p.polrelid
+        join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public'
+          and c.relkind = 'r'
+          and (
+            exists (
+              select 1 from pg_attribute a
+              where a.attrelid = c.oid and a.attname = 'tenant_id' and not a.attisdropped
+            )
+            or c.relname = 'tenant'
+          )
+        order by c.relname, p.polname
+      `);
+
+      expect(rows.length, 'aucune politique trouvée — le schéma est-il migré ?').toBeGreaterThan(0);
+
+      const politiquesVisantDfaApp = rows.filter((r) => r.vise_dfa_app);
+      expect(
+        politiquesVisantDfaApp.length,
+        'aucune politique ne vise dfa_app — la frontière de sécurité multi-tenant serait absente',
+      ).toBeGreaterThan(0);
+
+      for (const ligne of politiquesVisantDfaApp) {
+        expect
+          .soft(ligne.expr_using, `${ligne.table_nom}.${ligne.politique_nom} : USING doit référencer tenant_courant()`)
+          .toMatch(/tenant_courant\(\)/);
+        expect
+          .soft(
+            ligne.expr_with_check,
+            `${ligne.table_nom}.${ligne.politique_nom} : WITH CHECK doit référencer tenant_courant()`,
+          )
+          .toMatch(/tenant_courant\(\)/);
+      }
+    } finally {
+      client.release();
+    }
+  });
 });
 
 describe('parité des enums Postgres avec les unions TypeScript de @dfa/shared', () => {

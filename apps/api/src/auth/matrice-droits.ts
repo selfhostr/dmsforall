@@ -12,7 +12,17 @@
  * même matrice avec deux clés de métadonnées voisines (`dfa:action` / `dfa:actions`) créaient un
  * piège silencieux : décorer avec l'un et garder avec l'autre laissait passer TOUT rôle
  * authentifié, sans erreur ni test rouge.
+ *
+ * Bloquant B3 (rapport QA étape 0) : `MATRICE_DROITS` est typée `Record<RoleUtilisateur, …>`, pas
+ * `Record<string, …>`. Avec `string`, rien n'imposait qu'un rôle de `ROLES_UTILISATEUR` figure
+ * dans la matrice — un rôle ajouté à l'enum sans être ajouté ici compilait, lintait et testait
+ * vert, puis recevait `403 DROIT_INSUFFISANT` sur l'intégralité de l'application en production
+ * (`GardeDroit` évalue `MATRICE_DROITS[role] ?? []`). `Record<RoleUtilisateur, …>` fait échouer
+ * la compilation si un rôle manque ; `matrice-droits.spec.ts` couvre en plus le cas où quelqu'un
+ * réélargirait le type à `string` pour « débloquer » un typecheck rouge.
  */
+
+import type { RoleUtilisateur } from '@dfa/shared';
 
 /**
  * Action métier protégée. Convention : `domaine.ressource.verbe`.
@@ -39,4 +49,4 @@ export const MATRICE_DROITS = {
   technicien: LECTURE_SOCLE,
   magasinier: LECTURE_SOCLE,
   comptable: LECTURE_SOCLE,
-} as const satisfies Readonly<Record<string, readonly Action[]>>;
+} as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;

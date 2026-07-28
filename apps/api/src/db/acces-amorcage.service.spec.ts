@@ -13,7 +13,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { estAdresseIpValide } from './acces-amorcage.service';
+import { enDate, estAdresseIpValide } from './acces-amorcage.service';
 
 describe('estAdresseIpValide', () => {
   it('accepte une adresse IPv4 valide', () => {
@@ -46,5 +46,40 @@ describe('estAdresseIpValide', () => {
 
   it('refuse une IPv4 avec un suffixe CIDR (non accepté par le cast Postgres ::inet à ce point du code)', () => {
     expect(estAdresseIpValide('203.0.113.0/24')).toBe(false);
+  });
+});
+
+/**
+ * `enDate` normalise les `timestamptz` à la frontière de la base.
+ *
+ * Le défaut qu'elle corrige s'est produit deux fois : d'abord sur `expireLe` (session), puis sur
+ * `verrouilleJusquA` (verrouillage de compte). Dans les deux cas l'appelant fait `.getTime()` sur
+ * la valeur ; une chaîne ISO y lève une TypeError que le filtre global rend en 500. Sur le
+ * verrouillage, cela rendait le 423 AUTH_COMPTE_VERROUILLE purement inatteignable.
+ */
+describe('enDate', () => {
+  it('laisse passer une Date telle quelle', () => {
+    const date = new Date('2026-07-28T08:00:00.000Z');
+
+    expect(enDate(date)).toBe(date);
+  });
+
+  it('convertit une chaîne ISO en Date, sans décalage', () => {
+    const converti = enDate('2026-07-28T08:00:00.000Z');
+
+    expect(converti).toBeInstanceOf(Date);
+    expect(converti.toISOString()).toBe('2026-07-28T08:00:00.000Z');
+  });
+
+  it('rend une valeur sur laquelle .getTime() est appelable — ce que le contrat promet', () => {
+    // C'est l'assertion qui compte : c'est exactement l'appel que fait le consommateur.
+    expect(enDate('2026-07-28T08:00:00.000Z').getTime()).toBe(
+      Date.parse('2026-07-28T08:00:00.000Z'),
+    );
+  });
+
+  it('préserve le décalage horaire suisse d\'une chaîne avec offset explicite', () => {
+    // Postgres rend un timestamptz avec offset (« 2026-07-28 10:00:00+02 ») selon le chemin.
+    expect(enDate('2026-07-28T10:00:00+02:00').toISOString()).toBe('2026-07-28T08:00:00.000Z');
   });
 });

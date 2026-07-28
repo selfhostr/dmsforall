@@ -37,8 +37,11 @@ import { Pool } from 'pg';
  *
  * On normalise donc explicitement à la frontière de la base, là où la donnée entre dans le
  * domaine applicatif.
+ *
+ * Exportée uniquement pour le test colocalisé, comme `estAdresseIpValide` — reste hors de la
+ * surface publique `db/index.ts`.
  */
-function enDate(valeur: Date | string): Date {
+export function enDate(valeur: Date | string): Date {
   return valeur instanceof Date ? valeur : new Date(valeur);
 }
 
@@ -135,7 +138,9 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
       role: UtilisateurAmorcage['role'];
       langue: UtilisateurAmorcage['langue'];
       echecs_connexion: number;
-      verrouille_jusqu_a: Date | null;
+      // `Date | string` et non `Date` : voir enDate(). Déclarer `Date` ici serait un mensonge
+      // qui rendrait l'appel à enDate() ci-dessous inutile en apparence — et donc supprimable.
+      verrouille_jusqu_a: Date | string | null;
     }>(sql`
       select id, tenant_id, email, mot_de_passe_hash, statut, statut_tenant,
              role, langue, echecs_connexion, verrouille_jusqu_a
@@ -157,7 +162,11 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
       role: l.role,
       langue: l.langue,
       echecsConnexion: Number(l.echecs_connexion),
-      verrouilleJusquA: l.verrouille_jusqu_a,
+      // Même normalisation que sur les horodatages de session : le contrat annonce `Date | null`,
+      // et l'appelant appelle `.getTime()` dessus pour décider du 423 AUTH_COMPTE_VERROUILLE. Une
+      // chaîne ISO y lèverait une TypeError, convertie en 500 par le filtre global — le
+      // verrouillage de compte deviendrait alors inatteignable au lieu d'être signalé.
+      verrouilleJusquA: l.verrouille_jusqu_a === null ? null : enDate(l.verrouille_jusqu_a),
     };
   }
 
@@ -174,14 +183,17 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
       );
     }
 
+    // `Date | string` sur toutes les colonnes timestamptz : c'est ce que le pilote peut
+    // réellement rendre à travers une fonction SECURITY DEFINER (voir enDate()). Le typage honnête
+    // est ce qui rend les conversions ci-dessous manifestement nécessaires.
     const resultat = await this.base.execute<{
       session_id: string;
       tenant_id: string;
       utilisateur_id: string;
-      cree_le: Date;
-      expire_le: Date;
-      vu_le: Date;
-      revoquee_le: Date | null;
+      cree_le: Date | string;
+      expire_le: Date | string;
+      vu_le: Date | string;
+      revoquee_le: Date | string | null;
       role: SessionAmorcage['role'];
       langue: SessionAmorcage['langue'];
       statut_utilisateur: SessionAmorcage['statutUtilisateur'];

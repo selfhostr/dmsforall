@@ -57,7 +57,7 @@
     "VEHICULE_KILOMETRAGE_REGRESSIF": "Le kilométrage saisi est inférieur au précédent. Indiquez un motif pour continuer.",
     "VEHICULE_PLAQUE_COLLISION": "Cette plaque est déjà utilisée par un autre véhicule en circulation.",
     "RDV_RESSOURCE_CHEVAUCHEMENT": "Cette ressource est déjà réservée pour cet horaire.",
-    "RDV_VEHICULE_NON_IDENTIFIE": "Un RDV avec client et véhicule identifiés est nécessaire pour l'honorer.",
+    "RDV_IDENTIFICATION_INCOMPLETE": "Un RDV avec client et véhicule identifiés est nécessaire pour l'honorer.",
     "CLIENT_DOUBLON_PROBABLE": "Un client similaire existe déjà dans la base.",
     "CLIENT_BLOQUE": "Ce client est bloqué (impayés). Confirmez pour continuer."
   }

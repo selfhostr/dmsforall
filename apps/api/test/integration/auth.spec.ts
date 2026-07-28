@@ -21,11 +21,6 @@ const CHEMIN_CONNEXION = '/api/v1/auth/connexion';
 const CHEMIN_DECONNEXION = '/api/v1/auth/deconnexion';
 const CHEMIN_MOI = '/api/v1/auth/moi';
 
-/** Reflète `SEUIL_VERROUILLAGE` (authentification.service.ts) — constante interne du service,
- *  PAS une variable de `Config` : il n'existe donc aucun moyen de la lire depuis un test, on la
- *  duplique ici en la documentant comme telle. */
-const SEUIL_VERROUILLAGE_ATTENDU = 5;
-
 let bdd: BaseEphemere;
 let redis: RedisEphemere;
 let ctx: AppTest;
@@ -173,66 +168,39 @@ describe('connexion refusée', () => {
     expect(reponse.body.code).toBe('AUTH_ORIGINE_REFUSEE');
   });
 
-  it('le compte est verrouillé (423) après SEUIL_VERROUILLAGE tentatives échouées consécutives, même avec le bon mot de passe ensuite', async () => {
+  it('le compte est verrouillé (423) après SEUIL_VERROUILLAGE_COMPTE tentatives échouées consécutives, même avec le bon mot de passe ensuite', async () => {
     // Deux dispositifs anti-brute-force INDÉPENDANTS protègent /auth/connexion (voir
     // authentification.service.ts) : un verrouillage de compte progressif après
-    // `SEUIL_VERROUILLAGE` (constante interne = 5, non configurable) échecs consécutifs — celui
-    // que ce test vérifie —, et une limitation de débit Redis PAR EMAIL (`LIMITE_CONNEXION_COMPTE`,
-    // par défaut aussi 5) qui compte TOUTE tentative, y compris la dernière ici (mot de passe
-    // correct). `verifierLimitationDebit` s'exécute avant toute autre vérification : avec la
-    // config par défaut, les deux seuils coïncident à 5, donc la 6e requête de ce test (mot de
-    // passe correct, après 5 échecs) tombe systématiquement sur le 429 du rate-limiter Redis
-    // AVANT même d'atteindre le code qui rendrait 423 — le comportement documenté ("423 si le
-    // mot de passe est le bon") devient inatteignable. C'est un vrai problème d'ordonnancement
-    // dans src/auth/services/authentification.service.ts (à signaler à l'équipe propriétaire de
-    // ce module, hors périmètre de ce dépôt de tests), pas une erreur de ce test : on isole donc
-    // ici la mécanique qu'on veut PROUVER (le verrouillage de compte) de celle qu'on ne veut pas
-    // exercer (le rate-limiter Redis) en pointant cette requête sur une app de test dédiée dont
-    // le budget par email est délibérément desserré — la base et le Redis éphémères restent les
-    // mêmes, seule la configuration lue par CETTE instance change.
+    // `SEUIL_VERROUILLAGE_COMPTE` échecs consécutifs — celui que ce test vérifie —, et une
+    // limitation de débit Redis PAR EMAIL (`LIMITE_CONNEXION_COMPTE`). Avant la correction du
+    // bloquant B1 (rapport QA étape 0), les deux seuils coïncidaient à 5 et le budget par email
+    // était consommé même par une connexion RÉUSSIE : la 6e requête de ce test (mot de passe
+    // correct, après 5 échecs) tombait systématiquement sur le 429 du rate-limiter Redis AVANT
+    // d'atteindre le code qui rend 423, rendant le 423 documenté inatteignable. Ce test
+    // s'exécutait alors sur une app de test dédiée avec un budget par email desserré à la main
+    // pour isoler la mécanique de verrouillage de celle du rate-limiter.
     //
-    // Une fois ce masquage levé, ce test révèle un SECOND bug, plus profond, dans
-    // authentification.service.ts:122 (`dejaVerrouilleJusquA.getTime()`) : à l'exécution,
-    // `u.verrouilleJusquA` (renvoyé par `AccesAmorcage.utilisateurParEmail`, lui-même une requête
-    // brute `drizzle.execute(sql\`... from amorcage.utilisateur_par_email(...)\`)`, voir
-    // src/db/acces-amorcage.service.ts) n'est PAS une instance de `Date` malgré son typage
-    // `Date | null` — vraisemblablement une chaîne ISO brute renvoyée par le driver `pg` pour
-    // cette requête SQL non typée par le schéma drizzle (contrairement aux colonnes déclarées
-    // via `timestamp({ mode: 'date' })` dans un schéma drizzle, qui, elles, sont converties).
-    // Résultat : la 6e requête plante avec un TypeError non typé, capturé par `FiltreProbleme`
-    // comme `ERREUR_INTERNE`/500 au lieu du 423 attendu. Ce test reste donc INTENTIONNELLEMENT
-    // rouge — c'est la preuve que le verrouillage de compte est actuellement cassé en pratique,
-    // pas une erreur de ce fichier. Signalé dans le rapport de mission ; correction hors
-    // périmètre de apps/api/test/** (src/auth/** et src/db/acces-amorcage.service.ts).
-    const ctxSansRateLimitEmail = await creerAppTest(bdd, redis.url, { LIMITE_CONNEXION_COMPTE: '1000' });
-    try {
-      const utilisateurVerrouillage = await ajouterUtilisateurFixture(bdd, demo.tenantA.id, {
-        prenom: 'Test',
-        nom: 'Verrouillage',
-        role: 'technicien',
-        email: 'test.verrouillage@garage-martin.test',
-      });
+    // Ce contournement n'a plus lieu d'être : `SEUIL_VERROUILLAGE_COMPTE` est désormais
+    // configurable et distinct de `LIMITE_CONNEXION_COMPTE` (15 par défaut, strictement
+    // supérieur), et le budget par email n'est plus consommé que sur ÉCHEC (bloquant B2) — une
+    // connexion réussie ne le touche plus. Le test tourne donc directement sur `ctx`, avec la
+    // configuration par défaut de test (voir envTest, app-test.ts), exactement comme en
+    // production.
+    const utilisateurVerrouillage = await ajouterUtilisateurFixture(bdd, demo.tenantA.id, {
+      prenom: 'Test',
+      nom: 'Verrouillage',
+      role: 'technicien',
+      email: 'test.verrouillage@garage-martin.test',
+    });
 
-      const connecterSansRateLimitEmail = (email: string, motDePasse: string) =>
-        ctxSansRateLimitEmail.requete
-          .post(CHEMIN_CONNEXION)
-          .set('Origin', ctxSansRateLimitEmail.config.WEB_URL_PUBLIQUE)
-          .send({ email, motDePasse });
-
-      for (let tentative = 0; tentative < SEUIL_VERROUILLAGE_ATTENDU; tentative += 1) {
-        const reponse = await connecterSansRateLimitEmail(utilisateurVerrouillage.email, 'mauvais-mot-de-passe');
-        expect(reponse.status).toBe(401);
-      }
-
-      const reponseApresVerrouillage = await connecterSansRateLimitEmail(
-        utilisateurVerrouillage.email,
-        utilisateurVerrouillage.motDePasseClair,
-      );
-      expect(reponseApresVerrouillage.status).toBe(423);
-      expect(reponseApresVerrouillage.body.code).toBe('AUTH_COMPTE_VERROUILLE');
-    } finally {
-      await ctxSansRateLimitEmail.fermer();
+    for (let tentative = 0; tentative < ctx.config.SEUIL_VERROUILLAGE_COMPTE; tentative += 1) {
+      const reponse = await connecter(utilisateurVerrouillage.email, 'mauvais-mot-de-passe');
+      expect(reponse.status).toBe(401);
     }
+
+    const reponseApresVerrouillage = await connecter(utilisateurVerrouillage.email, utilisateurVerrouillage.motDePasseClair);
+    expect(reponseApresVerrouillage.status).toBe(423);
+    expect(reponseApresVerrouillage.body.code).toBe('AUTH_COMPTE_VERROUILLE');
   });
 });
 

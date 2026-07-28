@@ -116,7 +116,12 @@ export function envTest(bdd: BaseEphemere, redisUrl: string, surcharges: Partial
     ARGON2_ITERATIONS: '2',
     ARGON2_PARALLELISME: '1',
     LIMITE_CONNEXION_IP: '20',
-    LIMITE_CONNEXION_COMPTE: '5',
+    // Doit rester STRICTEMENT supérieur à SEUIL_VERROUILLAGE_COMPTE (schemaConfig,
+    // charger-config.ts) depuis la correction du bloquant B1 (rapport QA étape 0) : sinon
+    // `chargerConfig` refuse de démarrer (ErreurConfigInvalide), pour toute app de test, pas
+    // seulement pour auth.spec.ts. Valeurs alignées sur les défauts de production.
+    LIMITE_CONNEXION_COMPTE: '15',
+    SEUIL_VERROUILLAGE_COMPTE: '5',
     LIMITE_FENETRE_SECONDES: '900',
     LOG_NIVEAU: 'fatal',
     OPENAPI_EXPOSER_DOCS: 'true',

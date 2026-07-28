@@ -25,8 +25,9 @@ import {
 function configTest(overrides: Partial<Config> = {}): Config {
   return {
     LIMITE_CONNEXION_IP: 20,
-    LIMITE_CONNEXION_COMPTE: 5,
+    LIMITE_CONNEXION_COMPTE: 15,
     LIMITE_FENETRE_SECONDES: 900,
+    SEUIL_VERROUILLAGE_COMPTE: 5,
     ...overrides,
   } as Config;
 }
@@ -234,15 +235,100 @@ describe('ServiceAuthentificationImpl.connecter', () => {
     expect(accesAmorcage.utilisateurParEmail).not.toHaveBeenCalled();
   });
 
-  it('rejette avec 429 quand la limitation de débit par email est dépassée', async () => {
+  // Bloquant B2 (rapport QA étape 0) : le budget par email n'est plus consulté qu'APRÈS un échec
+  // de vérification — jamais avant, jamais sur une tentative qui va réussir. On simule donc ici
+  // un mot de passe FAUX (la seule façon d'atteindre ce budget) pour prouver qu'il reste
+  // effectif contre le devinage de mot de passe.
+  it('rejette avec 429 quand la limitation de débit par email est dépassée (après un échec de mot de passe)', async () => {
+    servicePwd.verifier = vi.fn().mockResolvedValue(false);
     limiteur.consommer = vi
       .fn()
       .mockResolvedValueOnce({ autorise: true, resteSecondes: 0 }) // IP
-      .mockResolvedValueOnce({ autorise: false, retryApresSecondes: 7 }); // email
+      .mockResolvedValueOnce({ autorise: false, resteSecondes: 7 }); // email, consommé après l'échec
 
     await expect(
-      service().connecter({ email: 'garage@example.ch', motDePasse: 'x' }, '203.0.113.1', null),
+      service().connecter({ email: 'garage@example.ch', motDePasse: 'faux' }, '203.0.113.1', null),
     ).rejects.toBeInstanceOf(ErreurTropDeTentatives);
+  });
+
+  // Bloquant B2 (rapport QA étape 0) : sur des postes partagés d'atelier, plusieurs connexions
+  // RÉUSSIES en peu de temps sont l'usage normal, pas une attaque. Une connexion réussie ne doit
+  // ni consulter ni consommer le budget par email — seul le budget par IP, inconditionnel, est
+  // sollicité.
+  it('B2 — une connexion réussie ne consulte ni ne consomme jamais le budget de débit par email', async () => {
+    await service().connecter({ email: 'garage@example.ch', motDePasse: 'bon' }, '203.0.113.1', 'ua-test');
+
+    expect(limiteur.consommer).toHaveBeenCalledTimes(1);
+    expect(limiteur.consommer).toHaveBeenCalledWith(
+      'auth:connexion:ip:203.0.113.1',
+      20,
+      900,
+    );
+  });
+
+  // Bloquant B1 (rapport QA étape 0) : avant correction, `verifierLimitationDebit()` consommait
+  // inconditionnellement le budget par email en tout PREMIER, avant même la vérification du mot
+  // de passe — la 6e requête (mot de passe enfin correct, après 5 échecs ayant déjà épuisé le
+  // budget par défaut) tombait donc systématiquement sur 429 avant d'atteindre le code qui rend
+  // 423. Le fond de la correction : le budget par email n'est plus consulté DU TOUT sur le
+  // chemin de succès (voir le test B2 ci-dessus) — la vérification du verrouillage reste donc
+  // TOUJOURS atteignable, quel que soit l'état du budget Redis par email.
+  it('B1 — compte déjà verrouillé + mot de passe CORRECT : 423, même si le budget de débit par email seraît épuisé', async () => {
+    accesAmorcage.utilisateurParEmail = vi
+      .fn()
+      .mockResolvedValue(utilisateurTest({ verrouilleJusquA: new Date(Date.now() + 60_000) }));
+    servicePwd.verifier = vi.fn().mockResolvedValue(true);
+    // Si le budget par email était encore consulté sur ce chemin, cette réponse « refusé »
+    // ferait échouer le test avec un 429 au lieu du 423 attendu.
+    limiteur.consommer = vi.fn().mockResolvedValue({ autorise: false, resteSecondes: 1 });
+
+    const erreur = await service()
+      .connecter({ email: 'garage@example.ch', motDePasse: 'bon' }, null, null)
+      .catch((e: unknown) => e);
+
+    expect(erreur).toBeInstanceOf(ErreurCompteVerrouille);
+  });
+
+  // Bloquant B1 (rapport QA étape 0) : le seuil de verrouillage n'était pas configurable
+  // (constante interne `SEUIL_VERROUILLAGE = 5`). Il l'est désormais via
+  // `SEUIL_VERROUILLAGE_COMPTE`, distinct de `LIMITE_CONNEXION_COMPTE` (voir `charger-config.ts`).
+  it('B1 — le seuil de verrouillage est configurable via SEUIL_VERROUILLAGE_COMPTE', async () => {
+    accesAmorcage.utilisateurParEmail = vi
+      .fn()
+      .mockResolvedValue(utilisateurTest({ echecsConnexion: 2 }));
+    servicePwd.verifier = vi.fn().mockResolvedValue(false);
+
+    await expect(
+      service(configTest({ SEUIL_VERROUILLAGE_COMPTE: 3 })).connecter(
+        { email: 'garage@example.ch', motDePasse: 'faux' },
+        null,
+        null,
+      ),
+    ).rejects.toBeInstanceOf(ErreurIdentifiantsInvalides);
+
+    const [, verrouilleJusquA] = (accesAmorcage.enregistrerEchecConnexion as ReturnType<typeof vi.fn>)
+      .mock.calls[0] as [string, Date | null];
+    // 3e échec avec un seuil réglé à 3 : le compte doit déjà être verrouillé (contre un seuil
+    // par défaut de 5, où ce 3e échec ne verrouillerait pas encore).
+    expect(verrouilleJusquA).not.toBeNull();
+    expect((verrouilleJusquA as Date).getTime()).toBeGreaterThan(Date.now());
+  });
+
+  // Bug distinct signalé avec B1 (rapport QA étape 0) : `u.verrouilleJusquA` est contractuellement
+  // `Date | null`, mais un pilote SQL peut renvoyer une chaîne ISO brute sur ce chemin d'amorçage
+  // non typé par Drizzle. Sans coercition défensive, `.getTime()` lève un `TypeError` NON typé,
+  // capturé comme `500 ERREUR_INTERNE` au lieu du `423 AUTH_COMPTE_VERROUILLE` attendu — sur le
+  // chemin de sécurité qui vérifie le verrouillage. `versDateOuNull()` neutralise ce cas.
+  it("verrouilleJusquA reçu comme chaîne ISO brute (pilote SQL non garanti) rend 423, pas 500", async () => {
+    const dateFuture = new Date(Date.now() + 60_000);
+    accesAmorcage.utilisateurParEmail = vi.fn().mockResolvedValue(
+      utilisateurTest({ verrouilleJusquA: dateFuture.toISOString() as unknown as Date }),
+    );
+    servicePwd.verifier = vi.fn().mockResolvedValue(true);
+
+    await expect(
+      service().connecter({ email: 'garage@example.ch', motDePasse: 'bon' }, null, null),
+    ).rejects.toBeInstanceOf(ErreurCompteVerrouille);
   });
 
   it('incrémente les échecs et verrouille le compte au seuil (5e échec)', async () => {
