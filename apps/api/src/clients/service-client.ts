@@ -1,0 +1,450 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { and, eq, isNull, notInArray, sql } from 'drizzle-orm';
+import type {
+  ClientResume,
+  ElementBloquant,
+  EntreeCreationClient,
+  EntreeDesactivationClient,
+  PageCurseur,
+  ParametresDoublonsClients,
+  ReponseAvecAvertissements,
+  ReponseClient,
+  ReponseDoublonsClients,
+} from '@dfa/shared';
+import { schemaModificationClient } from '@dfa/shared';
+
+import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
+import { JETON_DB } from '../db';
+import { client, clientAdresse, clientCondition, clientNote, ordreReparation, vehiculeDetention } from '../db/schema';
+import type { LigneClient, NouveauClient } from '../db/schema';
+import { CollecteurAvertissements } from '../common/avertissements';
+import { ErreurMetier } from '../common/erreurs';
+import { Horloge } from '../common/horloge';
+import { JETON_IDEMPOTENCE } from '../common/idempotence';
+import type { ReponseMemorisable, ResultatIdempotent, ServiceIdempotence } from '../common/idempotence';
+import { PipeZod } from '../common/validation';
+import { JETON_COMPTEURS } from '../parametrage/compteurs/compteurs.jetons';
+import type { ServiceCompteurs } from '../parametrage/compteurs/compteurs.types';
+
+import { detecterDoublons } from './detection-doublons';
+import { versClientResponse, versClientResume } from './mappers';
+import {
+  construireConditionKeyset,
+  construireOrderBy,
+  decoderCurseurPourTri,
+  encoderCurseurTrie,
+  type DefinitionTri,
+} from './pagination-triee';
+import type { ParametresListeClients } from './schemas';
+import { normaliserTelephoneCh } from './telephone';
+
+/**
+ * Clé de compteur du numéro de client (RM-11) : `annee` fixe et jamais recalculée sur
+ * l'année courante — contrairement au numéro d'OR (réinitialisable par
+ * `parametre_atelier.or_reset_annuel`), un numéro de client est CONTINU par tenant, sans reset,
+ * pour toute la vie du tenant. Fixer `annee` garantit que la clé `(tenant, 'client', annee, null)`
+ * de `compteur_document` reste identique indéfiniment, donc que le compteur ne recommence
+ * jamais à 1 au changement d'année.
+ */
+const ANNEE_COMPTEUR_CLIENT = 2000;
+
+function formaterNumeroClient(n: number): string {
+  return `CL-${String(n).padStart(6, '0')}`;
+}
+
+function choisirTelephonePrincipal(
+  telephones: readonly { readonly valeur: string; readonly principal: boolean }[],
+): string | null {
+  if (telephones.length === 0) return null;
+  return telephones.find((t) => t.principal)?.valeur ?? telephones[0]!.valeur;
+}
+
+function normaliserValeurCurseur(valeur: string | number | Date | null): string | number | null {
+  return valeur instanceof Date ? valeur.toISOString() : valeur;
+}
+
+/** Statuts terminaux d'un OR au sens de RM-12 : un OR dans un autre statut est « ouvert ». */
+const STATUTS_OR_TERMINAUX = ['cloture', 'annule'] as const;
+
+const DEFINITIONS_TRI_CLIENTS: Readonly<Record<ParametresListeClients['tri'], DefinitionTri>> = {
+  'nom:asc': {
+    expression: sql`coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''))`,
+    sens: 'asc',
+    nullable: false,
+  },
+  'nom:desc': {
+    expression: sql`coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''))`,
+    sens: 'desc',
+    nullable: false,
+  },
+  'numeroClient:asc': { expression: sql`c.numero`, sens: 'asc', nullable: false },
+  'numeroClient:desc': { expression: sql`c.numero`, sens: 'desc', nullable: false },
+  'creeLe:desc': { expression: sql`c.cree_le`, sens: 'desc', nullable: false },
+  /**
+   * Pas de colonne `dernier_passage_le` sur `client` (GAP DE CONTRAT signalé en réponse de
+   * tâche) : dérivé d'une sous-requête sur `ordre_reparation.ouvert_le`, non indexée pour ce
+   * tri précis — acceptable au volume du lot 1 (§6.3 du plan : « à ~50 OR/jour c'est invisible »).
+   */
+  'dernierPassageLe:desc': {
+    expression: sql`(select max(o.ouvert_le) from public.ordre_reparation o where o.tenant_id = c.tenant_id and o.client_id = c.id)`,
+    sens: 'desc',
+    nullable: true,
+  },
+};
+
+/** Colonnes de `client`, aliasées en camelCase — nécessaire car `tx.execute()` (SQL brut) rend les noms de colonnes réels, pas le mapping Drizzle. */
+const COLONNES_CLIENT_ALIASEES = sql`
+  c.id as "id", c.tenant_id as "tenantId", c.numero as "numero", c.type as "type",
+  c.civilite as "civilite", c.nom as "nom", c.prenom as "prenom", c.raison_sociale as "raisonSociale",
+  c.ide as "ide", c.langue as "langue", c.email as "email", c.telephone as "telephone",
+  c.telephone_e164 as "telephoneE164", c.canal_prefere as "canalPrefere", c.statut as "statut",
+  c.po_obligatoire as "poObligatoire", c.groupe_client_id as "groupeClientId",
+  c.fusionne_vers_client_id as "fusionneVersClientId", c.reference_externe as "referenceExterne",
+  c.cree_le as "creeLe", c.modifie_le as "modifieLe"
+`;
+
+export interface EntreeCreationClientResultat {
+  readonly statutHttp: number;
+  readonly corps: ReponseAvecAvertissements<ReponseClient>;
+}
+
+/**
+ * Service cœur du domaine clients : CRUD de la fiche, détection de doublons (RM-05), immuabilité
+ * du type (RM-01), désactivation gardée (RM-12). Les sous-collections (adresses, contacts,
+ * conditions, consentements, notes) et les projections (véhicules/OR du client) sont des
+ * services distincts — voir `service-client-*.ts`.
+ */
+@Injectable()
+export class ServiceClient {
+  constructor(
+    @Inject(JETON_DB) private readonly acces: AccesBase,
+    @Inject(JETON_IDEMPOTENCE) private readonly idempotence: ServiceIdempotence,
+    @Inject(JETON_COMPTEURS) private readonly compteurs: ServiceCompteurs,
+    private readonly horloge: Horloge,
+  ) {}
+
+  async lister(ctx: ContexteTenant, params: ParametresListeClients): Promise<PageCurseur<ClientResume>> {
+    const definition = DEFINITIONS_TRI_CLIENTS[params.tri];
+    const idExpr = sql`c.id`;
+    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    // RM-... / §6.2 : défaut `actif`+`bloque` — un client bloqué reste visible au comptoir.
+    const statuts = params.statut && params.statut.length > 0 ? params.statut : (['actif', 'bloque'] as const);
+
+    return this.acces.enTenant(ctx, async (tx) => {
+      const conditions = [sql`c.tenant_id = ${ctx.tenantId}`, sql`c.statut::text in (${sql.join(statuts.map((s) => sql`${s}`), sql`, `)})`];
+
+      if (params.type) conditions.push(sql`c.type = ${params.type}`);
+      if (params.groupeId) conditions.push(sql`c.groupe_client_id = ${params.groupeId}`);
+      if (params.poObligatoire !== undefined) conditions.push(sql`c.po_obligatoire = ${params.poObligatoire}`);
+      // `siteId` (P-30) : `client` ne porte aucune colonne de site — filtre ignoré au lot 1 (voir
+      // le commentaire de `schemaFiltresClients.siteId`, `@dfa/shared` : « ignoré sinon »).
+      if (params.q) {
+        const motif = `%${params.q}%`;
+        const chiffres = `%${params.q.replace(/[^0-9+]/g, '')}%`;
+        conditions.push(sql`(
+          public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''))) % public.normaliser_recherche(${params.q})
+          or c.numero ilike ${motif}
+          or c.email ilike ${motif}
+          or c.ide ilike ${motif}
+          or c.telephone_e164 like ${chiffres}
+        )`);
+      }
+      if (curseurDecode) {
+        conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
+      }
+
+      const requete = sql`
+        select ${COLONNES_CLIENT_ALIASEES}, ${definition.expression} as "triValeur"
+          from public.client c
+         where ${sql.join(conditions, sql` and `)}
+         order by ${construireOrderBy(definition, idExpr)}
+         limit ${params.limite + 1}
+      `;
+
+      const resultat = await tx.execute<LigneClient & { triValeur: string | number | Date | null }>(requete);
+      const lignes = resultat.rows;
+      const aUnePageSuivante = lignes.length > params.limite;
+      const pageLignes = aUnePageSuivante ? lignes.slice(0, params.limite) : lignes;
+      const derniere = pageLignes[pageLignes.length - 1];
+
+      return {
+        donnees: pageLignes.map(versClientResume),
+        curseurSuivant:
+          aUnePageSuivante && derniere
+            ? encoderCurseurTrie({ tri: params.tri, valeur: normaliserValeurCurseur(derniere.triValeur), id: derniere.id })
+            : null,
+        limite: params.limite,
+      };
+    });
+  }
+
+  async creer(
+    ctx: ContexteTenant,
+    entree: EntreeCreationClient,
+    cleIdempotence: string,
+  ): Promise<ResultatIdempotent<EntreeCreationClientResultat & ReponseMemorisable>> {
+    return this.idempotence.executer(
+      ctx,
+      { methode: 'POST', chemin: '/clients', cle: cleIdempotence, corps: entree },
+      async (tx) => {
+        const collecteur = new CollecteurAvertissements();
+
+        const telephonePrincipal = choisirTelephonePrincipal(entree.telephones);
+        const telephoneE164 = normaliserTelephoneCh(telephonePrincipal);
+
+        const nomComplet =
+          entree.type === 'entreprise'
+            ? (entree.raisonSociale ?? '')
+            : [entree.nom, entree.prenom].filter((v): v is string => Boolean(v)).join(' ');
+
+        // RM-05 : détection AVANT création, jamais bloquante (CT-01) — voir `detection-doublons.ts`.
+        const candidats = await detecterDoublons(tx, ctx.tenantId, {
+          nomComplet: nomComplet || undefined,
+          npa: entree.adressePrincipale.npa,
+          email: entree.email ?? undefined,
+          telephoneE164: telephoneE164 ?? undefined,
+          ide: entree.type === 'entreprise' ? (entree.ide ?? undefined) : undefined,
+        });
+        if (candidats.length > 0) {
+          collecteur.ajouter(
+            'CLIENT_DOUBLON_PROBABLE',
+            `${candidats.length} fiche(s) client existante(s) ressemble(nt) à celle-ci.`,
+            { candidats },
+          );
+        }
+
+        const numeroBrut = await this.compteurs.prochainNumero(tx, {
+          tenantId: ctx.tenantId,
+          typeDocument: 'client',
+          annee: ANNEE_COMPTEUR_CLIENT,
+          siteId: null,
+        });
+        const numero = formaterNumeroClient(numeroBrut);
+
+        const [ligne] = await tx
+          .insert(client)
+          .values({
+            tenantId: ctx.tenantId,
+            numero,
+            type: entree.type,
+            civilite: entree.civilite ?? null,
+            nom: entree.nom ?? null,
+            prenom: entree.prenom ?? null,
+            raisonSociale: entree.raisonSociale ?? null,
+            ide: entree.ide ?? null,
+            langue: entree.langueCorrespondance,
+            email: entree.email ?? null,
+            telephone: telephonePrincipal,
+            telephoneE164,
+            poObligatoire: entree.poObligatoire,
+            groupeClientId: entree.groupeId ?? null,
+            referenceExterne: entree.referenceExterne ?? null,
+          })
+          .returning();
+        if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du client.');
+
+        await tx.insert(clientAdresse).values({
+          tenantId: ctx.tenantId,
+          clientId: ligne.id,
+          type: 'principale',
+          rue: entree.adressePrincipale.rue,
+          complement: entree.adressePrincipale.complement ?? null,
+          npa: entree.adressePrincipale.npa,
+          localite: entree.adressePrincipale.localite,
+          pays: entree.adressePrincipale.pays,
+        });
+
+        if (entree.conditions) {
+          await tx.insert(clientCondition).values({
+            tenantId: ctx.tenantId,
+            clientId: ligne.id,
+            rabaisMoPourmille: entree.conditions.rabaisMoPourmille,
+            rabaisPiecesPourmille: entree.conditions.rabaisPiecesPourmille,
+            rabaisPneusPourmille: entree.conditions.rabaisPneusPourmille,
+            tauxHoraireCode: entree.conditions.tauxHoraireCode ?? null,
+            delaiPaiementJours: entree.conditions.delaiPaiementJours ?? null,
+            modePaiement: entree.conditions.modePaiement ?? null,
+            plafondCentimes: entree.conditions.plafondCentimes ?? null,
+            valideDu: this.dateDuJour(),
+            valideAu: null,
+          });
+        }
+
+        return { statutHttp: 201, corps: collecteur.envelopper(versClientResponse(ligne, null)) };
+      },
+    );
+  }
+
+  async parId(ctx: ContexteTenant, clientId: string): Promise<ReponseClient> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const ligne = await this.chargerOu404(tx, ctx, clientId);
+      const dernierPassageLe = await this.dernierPassage(tx, ctx, clientId);
+      return versClientResponse(ligne, dernierPassageLe);
+    });
+  }
+
+  /**
+   * `type` n'est PAS dans `schemaModificationClient` (RM-01) : sa présence dans le corps BRUT
+   * (avant tout `parse`) doit être détectée ici, sinon zod la retire silencieusement et le refus
+   * `409 CLIENT_TYPE_IMMUABLE` attendu par le contrat ne se produit jamais.
+   */
+  async modifier(
+    ctx: ContexteTenant,
+    clientId: string,
+    corpsBrut: Record<string, unknown>,
+  ): Promise<ReponseAvecAvertissements<ReponseClient>> {
+    if ('type' in corpsBrut) {
+      throw new ErreurMetier('CLIENT_TYPE_IMMUABLE', "Le type d'un client est figé après sa création (RM-01).");
+    }
+    const entree = new PipeZod(schemaModificationClient).transform(corpsBrut);
+
+    return this.acces.enTenant(ctx, async (tx) => {
+      await this.chargerOu404(tx, ctx, clientId);
+
+      const valeurs: Partial<NouveauClient> = {};
+      if ('civilite' in entree) valeurs.civilite = entree.civilite ?? null;
+      if ('nom' in entree) valeurs.nom = entree.nom ?? null;
+      if ('prenom' in entree) valeurs.prenom = entree.prenom ?? null;
+      if ('raisonSociale' in entree) valeurs.raisonSociale = entree.raisonSociale ?? null;
+      if ('ide' in entree) valeurs.ide = entree.ide ?? null;
+      if ('langueCorrespondance' in entree && entree.langueCorrespondance) valeurs.langue = entree.langueCorrespondance;
+      if ('email' in entree) valeurs.email = entree.email ?? null;
+      if ('telephone' in entree) {
+        valeurs.telephone = entree.telephone ?? null;
+        valeurs.telephoneE164 = normaliserTelephoneCh(entree.telephone ?? null);
+      }
+      if ('poObligatoire' in entree && entree.poObligatoire !== undefined) valeurs.poObligatoire = entree.poObligatoire;
+      if ('groupeId' in entree) valeurs.groupeClientId = entree.groupeId ?? null;
+      if ('referenceExterne' in entree) valeurs.referenceExterne = entree.referenceExterne ?? null;
+
+      if (Object.keys(valeurs).length > 0) {
+        await tx.update(client).set(valeurs).where(and(eq(client.tenantId, ctx.tenantId), eq(client.id, clientId)));
+      }
+
+      const ligneMaj = await this.chargerOu404(tx, ctx, clientId);
+      const dernierPassageLe = await this.dernierPassage(tx, ctx, clientId);
+      return new CollecteurAvertissements().envelopper(versClientResponse(ligneMaj, dernierPassageLe));
+    });
+  }
+
+  /**
+   * RM-12 : refuse si des OR ou des détentions restent ouverts. RDV omis délibérément — la table
+   * `rendez_vous` n'existe pas au lot 1 (voir `plan-lot1-execution.md` §L1-05 Δ4).
+   *
+   * GAP DE CONTRAT signalé en réponse de tâche : `TypeElementBloquant` (`@dfa/shared`) ne porte
+   * aucune valeur pour une détention de véhicule — seules les OR ouverts sont nommés dans
+   * `blocages[]`, une détention ouverte est signalée via `detail` (texte libre) faute de type.
+   */
+  async desactiver(
+    ctx: ContexteTenant,
+    clientId: string,
+    entree: EntreeDesactivationClient,
+  ): Promise<ReponseAvecAvertissements<ReponseClient>> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      await this.chargerOu404(tx, ctx, clientId);
+
+      const orsOuverts = await tx
+        .select({ id: ordreReparation.id, numero: ordreReparation.numero })
+        .from(ordreReparation)
+        .where(
+          and(
+            eq(ordreReparation.tenantId, ctx.tenantId),
+            eq(ordreReparation.clientId, clientId),
+            // `notInArray` exige un tableau mutable pour ce overload ; `STATUTS_OR_TERMINAUX` est
+            // un tuple `as const` (readonly) — on le déroule au point d'appel plutôt que de perdre
+            // sa littéralité à la déclaration (TS2769).
+            notInArray(ordreReparation.statut, [...STATUTS_OR_TERMINAUX]),
+          ),
+        )
+        .limit(50);
+
+      const detentionsOuvertes = await tx
+        .select({ id: vehiculeDetention.id })
+        .from(vehiculeDetention)
+        .where(
+          and(
+            eq(vehiculeDetention.tenantId, ctx.tenantId),
+            eq(vehiculeDetention.clientId, clientId),
+            isNull(vehiculeDetention.au),
+          ),
+        )
+        .limit(1);
+
+      if (orsOuverts.length > 0 || detentionsOuvertes.length > 0) {
+        const blocages: ElementBloquant[] = orsOuverts.map((or) => ({
+          type: 'ordre_reparation',
+          id: or.id,
+          libelle: `Ordre de réparation ${or.numero}`,
+        }));
+        throw new ErreurMetier(
+          'CLIENT_DESACTIVATION_IMPOSSIBLE',
+          'Désactivation impossible : le client a encore des ordres de réparation ou des détentions de véhicule ouverts (RM-12).',
+          {
+            blocages,
+            detail:
+              detentionsOuvertes.length > 0
+                ? 'Au moins une détention de véhicule est encore ouverte pour ce client.'
+                : undefined,
+            actionsProposees: [{ code: 'RAFRAICHIR' }],
+          },
+        );
+      }
+
+      await tx.update(client).set({ statut: 'inactif' }).where(and(eq(client.tenantId, ctx.tenantId), eq(client.id, clientId)));
+
+      // `client` ne porte aucune colonne « motif de désactivation » (GAP DE CONTRAT signalé en
+      // réponse de tâche) : le motif est conservé sous forme de note interne plutôt que perdu.
+      await tx.insert(clientNote).values({
+        tenantId: ctx.tenantId,
+        clientId,
+        nature: 'interne',
+        texte: `Désactivation : ${entree.motif}`,
+        auteurId: ctx.utilisateurId,
+      });
+
+      const ligneMaj = await this.chargerOu404(tx, ctx, clientId);
+      const dernierPassageLe = await this.dernierPassage(tx, ctx, clientId);
+      return new CollecteurAvertissements().envelopper(versClientResponse(ligneMaj, dernierPassageLe));
+    });
+  }
+
+  async doublons(ctx: ContexteTenant, params: ParametresDoublonsClients): Promise<ReponseDoublonsClients> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const telephoneE164 = params.telephoneMobile ? (normaliserTelephoneCh(params.telephoneMobile) ?? undefined) : undefined;
+      const candidats = await detecterDoublons(tx, ctx.tenantId, {
+        nomComplet: params.nom,
+        npa: params.npa,
+        email: params.email,
+        telephoneE164,
+        ide: params.ide,
+        exclureClientId: params.exclureClientId,
+      });
+      return { candidats };
+    });
+  }
+
+  private async chargerOu404(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<LigneClient> {
+    const lignes = await tx
+      .select()
+      .from(client)
+      .where(and(eq(client.tenantId, ctx.tenantId), eq(client.id, clientId)))
+      .limit(1);
+    const ligne = lignes[0];
+    // 404, jamais 403 : un client d'un autre tenant ne doit même pas laisser deviner qu'il existe.
+    if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Client introuvable.');
+    return ligne;
+  }
+
+  private async dernierPassage(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<Date | null> {
+    const resultat = await tx.execute<{ dernier: Date | null }>(sql`
+      select max(o.ouvert_le) as dernier
+        from public.ordre_reparation o
+       where o.tenant_id = ${ctx.tenantId} and o.client_id = ${clientId}
+    `);
+    return resultat.rows[0]?.dernier ?? null;
+  }
+
+  private dateDuJour(): string {
+    return this.horloge.maintenant().toISOString().slice(0, 10);
+  }
+}

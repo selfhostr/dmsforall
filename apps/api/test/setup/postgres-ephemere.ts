@@ -21,7 +21,7 @@
 
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { Client, Pool } from 'pg';
+import { Client, Pool, type PoolClient } from 'pg';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 
 // Module CommonJS : `__dirname` est fourni par le runtime, pas besoin de `import.meta.url`.
@@ -291,6 +291,37 @@ export async function requeteSousTenant<T extends Record<string, unknown> = Reco
     // Toujours annuler : ces requêtes ne doivent jamais laisser de trace, y compris les
     // tentatives d'écriture volontairement invalides (violations RLS attendues).
     await client.query('rollback').catch(() => undefined);
+    client.release();
+  }
+}
+
+// -------------------------------------------------------------------------------------------
+// Ajout additif (L1-15, lot 1) — pendant du `requeteSousTenant` ci-dessus pour les cas où PLUSIEURS
+// instructions doivent s'exécuter sous le MÊME contexte tenant et laisser une trace persistante
+// (fixtures métier `client`/`vehicule`/`ordre_reparation`/`ligne_or` amorcées via le pool `dfa_app`
+// — donc soumises au RLS comme n'importe quelle écriture applicative — et tests de machine à états
+// qui créent une ligne puis la font transiter). `requeteSousTenant` fait TOUJOURS un rollback : il
+// convient aux assertions ponctuelles, pas à la construction d'un jeu de données réutilisé par
+// d'autres tests. `ecrireSousTenant` COMMIT si `executer` réussit, ROLLBACK sinon — jamais l'inverse
+// implicite d'un throw qui laisserait une transaction ouverte sur une connexion rendue au pool.
+// -------------------------------------------------------------------------------------------
+
+export async function ecrireSousTenant<T>(
+  pool: Pool,
+  tenantId: string,
+  executer: (client: PoolClient) => Promise<T>,
+): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    await client.query('select set_config($1, $2, true)', ['app.tenant_id', tenantId]);
+    const resultat = await executer(client);
+    await client.query('commit');
+    return resultat;
+  } catch (erreur) {
+    await client.query('rollback').catch(() => undefined);
+    throw erreur;
+  } finally {
     client.release();
   }
 }

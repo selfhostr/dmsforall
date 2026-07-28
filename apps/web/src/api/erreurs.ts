@@ -1,9 +1,23 @@
 import type { TFunction } from 'i18next';
 
-import { CODES_ERREUR, type CodeErreur, type ProblemeDetail } from '@dfa/shared';
+import {
+  CODES_ERREUR,
+  type ActionProposee,
+  type CodeConfirmation,
+  type CodeErreur,
+  type ElementBloquant,
+  type ProblemeDetail,
+} from '@dfa/shared';
 
 /** Erreur applicative : le serveur a répondu, avec un corps `problem+json` exploitable (ou
- *  synthétisé si le corps réel était inexploitable, voir `synthetiserErreurInterne`). */
+ *  synthétisé si le corps réel était inexploitable, voir `synthetiserErreurInterne`).
+ *
+ *  `blocages`, `confirmationsRequises` et `actionsProposees` sont exposés en accesseurs à côté de
+ *  `probleme` (qui reste la source de vérité complète) : c'est l'invariant produit n°8 — « aucun
+ *  refus sans chemin de sortie » — rendu directement consommable par l'UI, sans que chaque
+ *  composant `RefusBloquant` ne réécrive `erreur.probleme.blocages ?? []`. Rien n'est perdu entre
+ *  `construireErreurApi` (qui reconstruit `probleme` en préservant tous ses champs, y compris
+ *  ceux-ci) et ces accesseurs : ils lisent `probleme`, ils ne le dupliquent pas. */
 export class ErreurApi extends Error {
   readonly probleme: ProblemeDetail;
   /** Secondes avant nouvelle tentative autorisée, lues depuis l'en-tête `Retry-After` sur un
@@ -15,6 +29,26 @@ export class ErreurApi extends Error {
     this.name = 'ErreurApi';
     this.probleme = probleme;
     this.retryApresSecondes = retryApresSecondes;
+  }
+
+  /** Ce qui bloque, nommément (§3.2 du contrat) — toujours un tableau, jamais `undefined`, même
+   *  quand le serveur n'a rien envoyé (ex. `ERREUR_INTERNE` synthétisé) : simplifie
+   *  `erreur.blocages.map(...)` côté écran sans garde répétée. */
+  get blocages(): readonly ElementBloquant[] {
+    return this.probleme.blocages ?? [];
+  }
+
+  /** Codes à renvoyer dans `confirmations[]` du corps pour rejouer la requête (§4.4). Vide en
+   *  dehors d'un `409 CONFIRMATION_REQUISE`. */
+  get confirmationsRequises(): readonly CodeConfirmation[] {
+    return this.probleme.confirmationsRequises ?? [];
+  }
+
+  /** Le chemin de sortie proposé (§3.3). Vide uniquement quand aucune sortie n'existe (état
+   *  terminal) — un refus avec un tableau vide ici, hors état terminal, est un défaut serveur à
+   *  corriger côté API, pas à compenser côté écran. */
+  get actionsProposees(): readonly ActionProposee[] {
+    return this.probleme.actionsProposees ?? [];
   }
 }
 

@@ -52,7 +52,15 @@ export default defineConfig({
         plugins: [pluginSwc],
         test: {
           name: 'integration',
-          include: ['test/integration/**/*.spec.ts', 'test/contrat/**/*.spec.ts'],
+          // 'test/lot1/**' (additif, L1-15) : périmètre exclusif d'expert-tests pour le lot 1
+          // (fixtures + intégration + contrat), voir plan-lot1-execution.md §7.1. Aucun autre
+          // agent ne possède ce fichier ; l'ajout est la seule façon de faire tourner ces
+          // specs sous `pnpm test:integration` sans dupliquer test/integration/ ou test/contrat/.
+          include: [
+            'test/integration/**/*.spec.ts',
+            'test/contrat/**/*.spec.ts',
+            'test/lot1/**/*.spec.ts',
+          ],
           exclude: ['**/node_modules/**', 'dist/**'],
           environment: 'node',
           // Démarrage de conteneur + migrations peuvent prendre du temps sur un poste de dev

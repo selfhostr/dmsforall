@@ -78,13 +78,17 @@
     "PRET_CONDUCTEUR_REQUIS": "Le informazioni del conducente sono obbligatorie.",
     "CONFIRMATION_REQUISE": "Una conferma e richiesta per continuare.",
     "IDEMPOTENCE_CONFLIT": "Questa richiesta e gia stata inviata con un corpo diverso.",
-    "FONCTION_NON_DISPONIBLE": "Questa funzionalita non e ancora disponibile."
-  },
-  "avertissements": {
+    "FONCTION_NON_DISPONIBLE": "Questa funzionalita non e ancora disponibile.",
     "VEHICULE_VIN_COURT": "Questo VIN e piu breve del normale.",
     "VEHICULE_IDENTIFICATION_INCOMPLETE": "Il VIN non e registrato per questo veicolo.",
     "VEHICULE_KILOMETRAGE_ABERRANT": "Il chilometraggio inserito sembra anomalo.",
-    "VEHICULE_EXPERTISE_ECHUE": "Il collaudo (MFK) e scaduto."
+    "VEHICULE_EXPERTISE_ECHUE": "Il collaudo (MFK) e scaduto.",
+    "OR_MULTI_PAYEURS_DESACTIVE": "La ripartizione tra piu pagatori non e attivata nella vostra officina.",
+    "OR_SANS_RDV": "Questo ordine di riparazione non ha un appuntamento associato.",
+    "PLANNING_CAPACITE_DEPASSEE": "Il carico previsto per questo giorno supera la capacita dell'officina.",
+    "POINTAGE_CLOTURE_AUTOMATIQUE": "Questa timbratura e stata chiusa automaticamente alla chiusura dell'officina.",
+    "PRET_CASCADE_RESTITUTION": "La restituzione del veicolo comportera la restituzione del veicolo di prestito.",
+    "VEHICULE_DEUX_OR_OUVERTS": "Un ordine di riparazione e gia aperto per questo veicolo."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Crea preventivo supplementare",

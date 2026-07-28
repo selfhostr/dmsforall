@@ -25,6 +25,9 @@
   "chargement": {
     "enCours": "Wird geladen…"
   },
+  "etats": {
+    "lectureSeule": "Schreibgeschützt"
+  },
   "langue": {
     "libelle": "Sprache",
     "choisir": "Sprache wählen"

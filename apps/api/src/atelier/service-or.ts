@@ -1,0 +1,580 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { and, desc, eq, inArray } from 'drizzle-orm';
+import type {
+  AttentesOr,
+  EntreeCreationOrdreReparation,
+  EntreeDemandeOrdreReparation,
+  EntreeModificationOrdreReparation,
+  FiltresJournal,
+  FiltresOrdresReparation,
+  ReponseAvecAvertissements,
+  ReponseEntreeJournal,
+  ReponseOrdreReparation,
+  ReponseOrdreReparationDemande,
+} from '@dfa/shared';
+
+import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
+import { ordreReparation, ordreReparationDemande, type LigneOrdreReparation } from '../db/schema';
+import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
+import { ErreurMetier } from '../common/erreurs/erreur-metier';
+import { Horloge } from '../common/horloge/horloge';
+import { JETON_AUDIT, type ServiceAudit } from '../common/audit';
+import { JETON_EVENEMENTS, type ServiceEvenements } from '../common/evenements';
+import { JETON_IDEMPOTENCE, type ReponseMemorisable, type ResultatIdempotent, type ServiceIdempotence } from '../common/idempotence';
+import { JETON_COMPTEURS } from '../parametrage/compteurs/compteurs.jetons';
+import type { ServiceCompteurs } from '../parametrage/compteurs/compteurs.types';
+
+import { verifierConfirmation } from './confirmations';
+import { calculerActionsDisponiblesPourRole, calculerEtatAffiche } from './etat-affiche';
+import { convertirEnKm } from './kilometrage';
+import { mapperDemande, mapperDevis, mapperLigneOr, roleVoitLesMontants } from './mappeurs';
+import {
+  chargerControleQualite,
+  chargerLigneOrPourEcriture,
+  chargerOr,
+  chargerOrOuNull,
+  chargerOrPourEcriture,
+  listerDemandesOr,
+  listerDevisOr,
+  listerLignesDevis,
+  listerLignesOr,
+} from './or-requetes';
+import {
+  chargerClientLigne,
+  chargerParametresAtelier,
+  chargerPlaqueCourante,
+  chargerResumeUtilisateur,
+  chargerVehiculeLigne,
+  construireVehiculeResume,
+  versClientResume,
+} from './references';
+import { ServiceSnapshotOr } from './service-snapshot-or';
+import { calculerTotauxParPayeur } from './totaux-payeur';
+
+/** OR encore actif — sert la garde P-29 (deux OR ouverts sur le même véhicule). */
+const STATUTS_OR_ACTIFS = ['planifie', 'ouvert', 'en_cours', 'controle'] as const;
+
+/** OR verrouillé (I-15) : plus aucune modification d'en-tête ni de ligne. */
+const STATUTS_OR_VERROUILLES = ['facture', 'restitue', 'cloture', 'annule'] as const;
+
+export function estOrVerrouille(statut: LigneOrdreReparation['statut']): boolean {
+  return (STATUTS_OR_VERROUILLES as readonly string[]).includes(statut);
+}
+
+@Injectable()
+export class ServiceOr {
+  constructor(
+    @Inject(JETON_DB) private readonly acces: AccesBase,
+    @Inject(JETON_IDEMPOTENCE) private readonly idempotence: ServiceIdempotence,
+    @Inject(JETON_EVENEMENTS) private readonly evenements: ServiceEvenements,
+    @Inject(JETON_AUDIT) private readonly audit: ServiceAudit,
+    @Inject(JETON_COMPTEURS) private readonly compteurs: ServiceCompteurs,
+    private readonly snapshot: ServiceSnapshotOr,
+    private readonly horloge: Horloge,
+  ) {}
+
+  /**
+   * `POST /ordres-reparation` — RM-49 : un rejeu ne brûle jamais un numéro. Toute la commande
+   * (gardes confirmables, snapshot RM-50, numérotation, insertion, demandes, événement) tourne
+   * DANS la transaction ouverte par `ServiceIdempotence.executer` — un rollback (échec d'une
+   * garde) rend le numéro consommé par `ServiceCompteurs`.
+   */
+  async creer(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    entree: EntreeCreationOrdreReparation,
+    cleIdempotence: string,
+  ): Promise<ResultatIdempotent<ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseOrdreReparation> }>> {
+    return this.idempotence.executer(
+      ctx,
+      { methode: 'POST', chemin: '/ordres-reparation', cle: cleIdempotence, corps: entree },
+      async (tx) => {
+        const clientLigne = await chargerClientLigne(tx, ctx, entree.clientId);
+        if (clientLigne.statut === 'bloque') {
+          verifierConfirmation('CLIENT_BLOQUE', principal.role, entree.confirmations);
+        }
+        await chargerVehiculeLigne(tx, ctx, entree.vehiculeId);
+
+        const parametres = await chargerParametresAtelier(tx, ctx);
+
+        if (parametres.deuxOrMemeVehicule !== 'autoriser') {
+          const orsOuverts = await tx
+            .select({ id: ordreReparation.id })
+            .from(ordreReparation)
+            .where(
+              and(
+                eq(ordreReparation.tenantId, ctx.tenantId),
+                eq(ordreReparation.vehiculeId, entree.vehiculeId),
+                inArray(ordreReparation.statut, [...STATUTS_OR_ACTIFS]),
+              ),
+            );
+          if (orsOuverts.length > 0) {
+            if (parametres.deuxOrMemeVehicule === 'bloquer') {
+              throw new ErreurMetier('CONFLIT', 'Un ordre de réparation est déjà ouvert sur ce véhicule.', {
+                blocages: orsOuverts.map((o) => ({ type: 'ordre_reparation' as const, id: o.id, libelle: 'OR déjà ouvert' })),
+                actionsProposees: [{ code: 'RAFRAICHIR' }],
+              });
+            }
+            verifierConfirmation('VEHICULE_DEUX_OR_OUVERTS', principal.role, entree.confirmations);
+          }
+        }
+
+        if (!parametres.orSansRdvAutorise && !entree.rendezVousId) {
+          verifierConfirmation('OR_SANS_RDV', principal.role, entree.confirmations);
+        }
+
+        if (entree.statutInitial === 'planifie' && !parametres.etatPlanifieActif) {
+          throw new ErreurMetier('VALIDATION_ECHOUEE', "L'état « planifié » n'est pas activé pour ce garage (P-22).", {
+            erreurs: [{ champ: 'statutInitial', code: 'etat_planifie_inactif', message: 'État planifié désactivé.' }],
+          });
+        }
+
+        const kilometrageEntreeKm =
+          entree.kilometrageEntree != null ? convertirEnKm(entree.kilometrageEntree, entree.uniteKilometrage) : null;
+
+        if (entree.statutInitial === 'ouvert' && parametres.kmEntreeObligatoire && kilometrageEntreeKm === null) {
+          throw new ErreurMetier('OR_KM_ENTREE_REQUIS', "Le kilométrage d'entrée est obligatoire à la réception (RM-51).");
+        }
+
+        const maintenant = this.horloge.maintenant();
+        const snapshot = await this.snapshot.capturer(tx, ctx, entree.clientId, entree.vehiculeId, maintenant);
+        const numero = await this.genererNumero(tx, ctx, entree.siteId, parametres, maintenant);
+
+        const [ligne] = await tx
+          .insert(ordreReparation)
+          .values({
+            tenantId: ctx.tenantId,
+            numero,
+            siteId: entree.siteId,
+            type: entree.type,
+            statut: entree.statutInitial,
+            clientId: entree.clientId,
+            vehiculeId: entree.vehiculeId,
+            clientDesignationFigee: snapshot.clientDesignationFigee,
+            adresseFacturationFigee: snapshot.adresseFacturationFigee,
+            conditionsFigees: snapshot.conditionsFigees ?? {},
+            plaqueFigee: snapshot.plaqueFigee,
+            detenteurFigeClientId: snapshot.detenteurFigeClientId,
+            conducteurPresentNom: entree.conducteurPresentNom ?? null,
+            kmEntree: kilometrageEntreeKm,
+            plafondCentimes: entree.plafondCentimes ?? null,
+            plafondAutorisePar: entree.plafondAutorisePar ?? null,
+            restitutionPromiseLe: entree.restitutionPromiseLe ? new Date(entree.restitutionPromiseLe) : null,
+            restitutionInitialeLe: entree.restitutionPromiseLe ? new Date(entree.restitutionPromiseLe) : null,
+            ordreReparationParentId: entree.ordreReparationParentId ?? null,
+            motifLien: entree.motifLien ?? null,
+            rendezVousId: entree.rendezVousId ?? null,
+            numeroCommandeInterne: entree.numeroCommandeInterne ?? null,
+            receptionnaireId: principal.utilisateurId,
+            ouvertLe: entree.statutInitial === 'ouvert' ? maintenant : null,
+          })
+          .returning();
+        if (!ligne) {
+          throw new ErreurMetier('ERREUR_INTERNE', "L'insertion de l'ordre de réparation n'a rendu aucune ligne.");
+        }
+
+        let ordreDemande = 1;
+        for (const demande of entree.demandes) {
+          // eslint-disable-next-line no-await-in-loop -- append-only, ordre strictement croissant
+          await tx.insert(ordreReparationDemande).values({
+            tenantId: ctx.tenantId,
+            ordreReparationId: ligne.id,
+            ordre: ordreDemande++,
+            verbatim: demande.verbatim,
+            saisiParId: principal.utilisateurId,
+          });
+        }
+
+        if (ligne.statut === 'ouvert') {
+          await this.evenements.publier(tx, ctx, {
+            type: 'ordre_reparation.ouvert',
+            versionSchema: 1,
+            siteId: entree.siteId,
+            ressource: { type: 'ordre_reparation', id: ligne.id, numero },
+            donnees: { statut: 'ouvert' },
+          });
+        }
+
+        const document = await this.assemblerDocument(tx, ctx, principal.role, ligne.id);
+        return { statutHttp: 201, corps: { donnees: document, avertissements: [] } };
+      },
+    );
+  }
+
+  async obtenirComplet(ctx: ContexteTenant, principal: PrincipalAuthentifie, orId: string): Promise<ReponseOrdreReparation> {
+    return this.acces.enTenant(ctx, (tx) => this.assemblerDocument(tx, ctx, principal.role, orId));
+  }
+
+  /**
+   * `PATCH /ordres-reparation/{orId}` — `If-Match` obligatoire (§9). Version comparée DANS la
+   * transaction pour éviter la course entre la lecture de l'ETag côté client et l'écriture.
+   */
+  async modifier(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    orId: string,
+    ifMatch: string | undefined,
+    entree: EntreeModificationOrdreReparation,
+  ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
+    const versionAttendue = extraireVersionETag(ifMatch);
+
+    return this.acces.enTenant(ctx, async (tx) => {
+      const ligne = await chargerOrPourEcriture(tx, ctx, orId);
+
+      if (versionAttendue !== ligne.version) {
+        throw new ErreurMetier('CONFLIT', "La version de l'ordre de réparation a changé depuis la dernière lecture.", {
+          detail: `version_attendue=${String(versionAttendue)};version_actuelle=${String(ligne.version)}`,
+          actionsProposees: [{ code: 'RAFRAICHIR' }],
+        });
+      }
+
+      if (estOrVerrouille(ligne.statut)) {
+        throw new ErreurMetier('OR_LIGNE_VERROUILLEE', `Ordre de réparation verrouillé (statut ${ligne.statut}).`, {
+          blocages: [{ type: 'ordre_reparation', id: orId, libelle: ligne.numero, donnees: { statutActuel: ligne.statut } }],
+          actionsProposees: [{ code: 'RAFRAICHIR' }],
+        });
+      }
+
+      const reporteLaRestitution =
+        entree.restitutionPromiseLe !== undefined &&
+        entree.restitutionPromiseLe !== (ligne.restitutionPromiseLe?.toISOString() ?? null);
+      if (reporteLaRestitution && !entree.motifReport) {
+        throw new ErreurMetier('VALIDATION_ECHOUEE', 'Un report de restitution exige un motif (RM-56).', {
+          erreurs: [{ champ: 'motifReport', code: 'requis', message: 'Motif de report requis.' }],
+        });
+      }
+
+      await tx
+        .update(ordreReparation)
+        .set({
+          ...(entree.localisation !== undefined ? { localisation: entree.localisation } : {}),
+          ...(entree.sousTraitantNom !== undefined ? { sousTraitantNom: entree.sousTraitantNom ?? null } : {}),
+          ...(entree.restitutionPromiseLe !== undefined
+            ? { restitutionPromiseLe: entree.restitutionPromiseLe ? new Date(entree.restitutionPromiseLe) : null }
+            : {}),
+          ...(entree.plafondCentimes !== undefined ? { plafondCentimes: entree.plafondCentimes } : {}),
+          ...(entree.plafondAutorisePar !== undefined ? { plafondAutorisePar: entree.plafondAutorisePar ?? null } : {}),
+          ...(entree.numeroCommandeInterne !== undefined ? { numeroCommandeInterne: entree.numeroCommandeInterne ?? null } : {}),
+          ...(entree.conducteurPresentNom !== undefined ? { conducteurPresentNom: entree.conducteurPresentNom ?? null } : {}),
+        })
+        .where(and(eq(ordreReparation.tenantId, ctx.tenantId), eq(ordreReparation.id, orId)));
+
+      const document = await this.assemblerDocument(tx, ctx, principal.role, orId);
+      return { donnees: document, avertissements: [] };
+    });
+  }
+
+  async listerDemandes(ctx: ContexteTenant, orId: string): Promise<readonly ReponseOrdreReparationDemande[]> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      await chargerOr(tx, ctx, orId);
+      const lignes = await listerDemandesOr(tx, ctx, orId);
+      return Promise.all(lignes.map(async (l) => mapperDemande(l, await chargerResumeUtilisateur(tx, ctx, l.saisiParId))));
+    });
+  }
+
+  async ajouterDemande(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    orId: string,
+    entree: EntreeDemandeOrdreReparation,
+  ): Promise<ReponseOrdreReparationDemande> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const or = await chargerOrPourEcriture(tx, ctx, orId);
+      if (estOrVerrouille(or.statut)) {
+        throw new ErreurMetier('OR_LIGNE_VERROUILLEE', `Ordre de réparation verrouillé (statut ${or.statut}).`, {
+          blocages: [{ type: 'ordre_reparation', id: orId, libelle: or.numero, donnees: { statutActuel: or.statut } }],
+          actionsProposees: [{ code: 'RAFRAICHIR' }],
+        });
+      }
+      const existantes = await listerDemandesOr(tx, ctx, orId);
+      const prochainOrdre = (existantes.at(-1)?.ordre ?? 0) + 1;
+      const [ligne] = await tx
+        .insert(ordreReparationDemande)
+        .values({
+          tenantId: ctx.tenantId,
+          ordreReparationId: orId,
+          ordre: prochainOrdre,
+          verbatim: entree.verbatim,
+          saisiParId: principal.utilisateurId,
+        })
+        .returning();
+      if (!ligne) {
+        throw new ErreurMetier('ERREUR_INTERNE', "L'insertion de la demande n'a rendu aucune ligne.");
+      }
+      return mapperDemande(ligne, await chargerResumeUtilisateur(tx, ctx, ligne.saisiParId));
+    });
+  }
+
+  /**
+   * `GET /ordres-reparation/{orId}/journal` (RM-59, RM-111) : historique COMPLET de l'OR — son
+   * propre en-tête, plus chacune de ses lignes et de ses devis. `ServiceAudit.pourEntite` ne sait
+   * lire qu'un couple (entité, id) à la fois (port gelé, `common/audit/audit.types.ts`) : ce
+   * service agrège donc N+1 lectures, acceptable au volume d'un seul OR (quelques dizaines de
+   * lignes au plus au lot 1).
+   *
+   * Pagination et filtres implémentés en mémoire après fusion/tri — SIMPLIFICATION SIGNALÉE :
+   * pas le mécanisme de curseur trié partagé (`common/pagination/curseur.ts`, conçu pour un tri
+   * SQL), un curseur d'offset opaque suffit à ce volume et reste conforme au contrat (opaque,
+   * `400 VALIDATION_ECHOUEE` sur curseur illisible).
+   */
+  async journal(
+    ctx: ContexteTenant,
+    orId: string,
+    filtres: FiltresJournal,
+    limite: number,
+    curseur: string | undefined,
+  ): Promise<{ donnees: readonly ReponseEntreeJournal[]; curseurSuivant: string | null }> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      await chargerOr(tx, ctx, orId);
+      const [lignes, devisRows] = await Promise.all([listerLignesOr(tx, ctx, orId), listerDevisOr(tx, ctx, orId)]);
+
+      const entites: readonly { entite: 'ordre_reparation' | 'ligne_or' | 'devis_complementaire'; id: string }[] = [
+        { entite: 'ordre_reparation', id: orId },
+        ...lignes.map((l) => ({ entite: 'ligne_or' as const, id: l.id })),
+        ...devisRows.map((d) => ({ entite: 'devis_complementaire' as const, id: d.id })),
+      ];
+
+      const brutes = (
+        await Promise.all(entites.map(({ entite, id }) => this.audit.pourEntite(ctx, entite, id)))
+      ).flat();
+
+      const filtrees = brutes.filter((entree) => {
+        if (filtres.entite && entree.entite !== filtres.entite) return false;
+        if (filtres.action && entree.action !== filtres.action) return false;
+        if (filtres.du && entree.creeLe < new Date(filtres.du)) return false;
+        if (filtres.au && entree.creeLe > new Date(filtres.au)) return false;
+        return true;
+      });
+
+      const croissant = filtres.tri === 'survenuLe:asc';
+      filtrees.sort((a, b) => (croissant ? a.creeLe.getTime() - b.creeLe.getTime() : b.creeLe.getTime() - a.creeLe.getTime()));
+
+      const decalage = decoderCurseurOffset(curseur);
+      const page = filtrees.slice(decalage, decalage + limite);
+      const suite = decalage + limite < filtrees.length ? encoderCurseurOffset(decalage + limite) : null;
+
+      const donnees = await Promise.all(
+        page.map(async (entree): Promise<ReponseEntreeJournal> => ({
+          id: entree.id,
+          entite: entree.entite,
+          entiteId: entree.entiteId,
+          action: entree.action,
+          survenuLe: entree.creeLe.toISOString(),
+          auteur: await chargerResumeUtilisateur(tx, ctx, entree.utilisateurId),
+          avant: (entree.valeurAvant as Record<string, unknown> | null) ?? null,
+          apres: (entree.valeurApres as Record<string, unknown> | null) ?? null,
+          motif: null,
+          confirmations: [],
+        })),
+      );
+
+      return { donnees, curseurSuivant: suite };
+    });
+  }
+
+  /**
+   * `GET /ordres-reparation` — SOUS-ENSEMBLE des filtres du contrat (§6.2) : `siteId`, `statut`
+   * (multi), `clientId`, `vehiculeId`, tri `ouvertLe:desc` par défaut. SIMPLIFICATION SIGNALÉE :
+   * `vue`, `attente`, `localisation`, `q`, `technicienId`, les bornes de date et les tris
+   * alternatifs ne sont pas câblés dans cette passe — chacun est une combinaison de filtres
+   * primitifs déjà exprimable par `statut`/`siteId` pour l'essentiel des vues, et la recherche
+   * plein texte (`q`) est le périmètre de `recherche/` (L1-11), pas d'`atelier`.
+   */
+  async lister(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    filtres: FiltresOrdresReparation,
+    limite: number,
+    curseur: string | undefined,
+  ): Promise<{ donnees: readonly ReponseOrdreReparation[]; curseurSuivant: string | null }> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const conditions = [eq(ordreReparation.tenantId, ctx.tenantId)];
+      if (filtres.siteId) conditions.push(eq(ordreReparation.siteId, filtres.siteId));
+      if (filtres.clientId) conditions.push(eq(ordreReparation.clientId, filtres.clientId));
+      if (filtres.vehiculeId) conditions.push(eq(ordreReparation.vehiculeId, filtres.vehiculeId));
+      if (filtres.statut && filtres.statut.length > 0) conditions.push(inArray(ordreReparation.statut, filtres.statut));
+
+      const decalage = decoderCurseurOffset(curseur);
+      const lignes = await tx
+        .select()
+        .from(ordreReparation)
+        .where(and(...conditions))
+        .orderBy(desc(ordreReparation.ouvertLe), desc(ordreReparation.creeLe))
+        .limit(limite + 1)
+        .offset(decalage);
+
+      const page = lignes.slice(0, limite);
+      const suite = lignes.length > limite ? encoderCurseurOffset(decalage + limite) : null;
+
+      const donnees = await Promise.all(page.map((l) => this.assemblerDocument(tx, ctx, principal.role, l.id)));
+      return { donnees, curseurSuivant: suite };
+    });
+  }
+
+  // -----------------------------------------------------------------------------------------
+  // Assemblage du document complet (§8.3) — appelé par ce service ET par service-transitions /
+  // service-ligne-or / service-devis, qui doivent tous renvoyer la même représentation.
+  // -----------------------------------------------------------------------------------------
+
+  async assemblerDocument(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    role: PrincipalAuthentifie['role'],
+    orId: string,
+  ): Promise<ReponseOrdreReparation> {
+    const or = await chargerOr(tx, ctx, orId);
+
+    const [clientLigne, vehiculeLigne, plaque, demandesRows, lignesToutes, devisRows, controle, journalOr] = await Promise.all([
+      chargerClientLigne(tx, ctx, or.clientId),
+      chargerVehiculeLigne(tx, ctx, or.vehiculeId),
+      chargerPlaqueCourante(tx, ctx, or.vehiculeId),
+      listerDemandesOr(tx, ctx, orId),
+      listerLignesOr(tx, ctx, orId),
+      listerDevisOr(tx, ctx, orId),
+      chargerControleQualite(tx, ctx, orId),
+      this.audit.pourEntite(ctx, 'ordre_reparation', orId),
+    ]);
+
+    const demandes = await Promise.all(
+      demandesRows.map(async (d) => mapperDemande(d, await chargerResumeUtilisateur(tx, ctx, d.saisiParId))),
+    );
+    const devis = await Promise.all(
+      devisRows.map(async (d) => {
+        const lignesDevis = await listerLignesDevis(tx, ctx, d.id);
+        const emetteur = await chargerResumeUtilisateur(tx, ctx, d.emetteurId);
+        return mapperDevis(d, lignesDevis, emetteur, role);
+      }),
+    );
+
+    const lignesTronquees = lignesToutes.length > 200;
+    const lignesEmbarquees = lignesTronquees ? lignesToutes.slice(0, 200) : lignesToutes;
+
+    const attentes: AttentesOr = { accord: or.attenteAccord, pieces: or.attentePieces, externe: or.attenteExterne };
+    const dernierEvenement = journalOr.at(-1) ?? null;
+    const modifiePar = await chargerResumeUtilisateur(tx, ctx, dernierEvenement?.utilisateurId ?? null);
+    const voitMontants = roleVoitLesMontants(role);
+
+    return {
+      id: or.id,
+      numero: or.numero,
+      siteId: or.siteId,
+      type: or.type,
+      statut: or.statut,
+      client: versClientResume(clientLigne),
+      vehicule: construireVehiculeResume(vehiculeLigne, plaque),
+      figees: {
+        clientDesignation: or.clientDesignationFigee,
+        adresseFacturation: (or.adresseFacturationFigee as Record<string, unknown> | null) ?? null,
+        ...(voitMontants ? { conditions: (or.conditionsFigees as Record<string, unknown> | null) ?? null } : {}),
+        plaque: or.plaqueFigee,
+        detenteurClientId: or.detenteurFigeClientId,
+      },
+      conducteurPresentNom: or.conducteurPresentNom,
+      kilometrageEntree: or.kmEntree,
+      kilometrageSortie: or.kmSortie,
+      ...(voitMontants
+        ? {
+            plafondCentimes: or.plafondCentimes ?? undefined,
+            plafondAutorisePar: or.plafondAutorisePar,
+            totalValideCentimes: or.totalValideCentimes,
+          }
+        : {}),
+      restitutionPromiseLe: or.restitutionPromiseLe ? or.restitutionPromiseLe.toISOString() : null,
+      restitutionInitialeLe: or.restitutionInitialeLe ? or.restitutionInitialeLe.toISOString() : null,
+      localisation: or.localisation,
+      sousTraitantNom: or.sousTraitantNom,
+      ordreReparationParentId: or.ordreReparationParentId,
+      motifLien: or.motifLien,
+      rendezVousId: or.rendezVousId,
+      numeroCommandeInterne: or.numeroCommandeInterne,
+      receptionnaireId: or.receptionnaireId,
+      retentionInvoqueeLe: or.retentionInvoqueeLe ? or.retentionInvoqueeLe.toISOString() : null,
+      litigeOuvertLe: or.litigeOuvertLe ? or.litigeOuvertLe.toISOString() : null,
+      ouvertLe: or.ouvertLe ? or.ouvertLe.toISOString() : null,
+      termineLe: or.termineLe ? or.termineLe.toISOString() : null,
+      factureLe: or.factureLe ? or.factureLe.toISOString() : null,
+      restitueLe: or.restitueLe ? or.restitueLe.toISOString() : null,
+      clotureLe: or.clotureLe ? or.clotureLe.toISOString() : null,
+      annuleLe: or.annuleLe ? or.annuleLe.toISOString() : null,
+      motifAnnulation: or.motifAnnulation,
+      demandes,
+      lignes: lignesEmbarquees.map((l) => mapperLigneOr(l, role)),
+      nombreLignes: lignesToutes.length,
+      lignesTronquees,
+      devisComplementaires: devis,
+      controleQualite: controle
+        ? {
+            controleurId: controle.controleurId ?? '',
+            controleLe: controle.controleLe.toISOString(),
+            conforme: controle.conforme,
+            motifNonConformite: controle.motifNonConformite,
+            // Aucune colonne dédiée pour le détail des points contrôlés au lot 1
+            // (`or_controle_qualite`, migrations/0008_atelier.sql, T-12) — check-lists outillées
+            // = P-08 `selon_type`, lot 2. Champ exposé vide plutôt qu'omis (contrat non additif
+            // sur ce point : `pointsControles` est requis, non optionnel).
+            pointsControles: [],
+          }
+        : null,
+      signatures: [],
+      pret: null,
+      cumulsPointage: { totalCentiemes: 0, parTechnicien: [], pointagesOuverts: 0 },
+      ...(voitMontants ? { totauxParPayeur: calculerTotauxParPayeur(lignesToutes) } : {}),
+      attentes,
+      etatAffiche: calculerEtatAffiche(or.statut, attentes),
+      actionsDisponibles: calculerActionsDisponiblesPourRole(or.statut, role),
+      version: or.version,
+      creeLe: or.creeLe.toISOString(),
+      modifieLe: or.modifieLe.toISOString(),
+      modifiePar,
+    };
+  }
+
+  private async genererNumero(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    siteId: string,
+    parametres: Awaited<ReturnType<typeof chargerParametresAtelier>>,
+    le: Date,
+  ): Promise<string> {
+    const anneeCompteur = parametres.orResetAnnuel ? le.getFullYear() : 0;
+    const siteCompteur = parametres.orPorteeNumerotation === 'site' ? siteId : null;
+    const numero = await this.compteurs.prochainNumero(tx, {
+      tenantId: ctx.tenantId,
+      typeDocument: 'ordre_reparation',
+      annee: anneeCompteur,
+      siteId: siteCompteur,
+    });
+    const prefixe = parametres.orPrefixe ?? 'OR';
+    return parametres.orResetAnnuel ? `${prefixe}-${String(le.getFullYear())}-${String(numero)}` : `${prefixe}-${String(numero)}`;
+  }
+}
+
+/** `W/"<version>"` -> entier. `undefined`/format invalide -> `400 VALIDATION_ECHOUEE` (§9). */
+function extraireVersionETag(ifMatch: string | undefined): number {
+  const correspondance = ifMatch ? /^W\/"(\d+)"$/.exec(ifMatch.trim()) : null;
+  if (!correspondance?.[1]) {
+    throw new ErreurMetier('VALIDATION_ECHOUEE', 'En-tête If-Match requis et doit porter la forme W/"<version>".', {
+      erreurs: [{ champ: 'If-Match', code: 'requis', message: 'En-tête If-Match manquant ou invalide.' }],
+    });
+  }
+  return Number(correspondance[1]);
+}
+
+function encoderCurseurOffset(decalage: number): string {
+  return Buffer.from(String(decalage), 'utf8').toString('base64url');
+}
+
+function decoderCurseurOffset(curseur: string | undefined): number {
+  if (!curseur) return 0;
+  const brut = Number(Buffer.from(curseur, 'base64url').toString('utf8'));
+  if (!Number.isInteger(brut) || brut < 0) {
+    throw new ErreurMetier('VALIDATION_ECHOUEE', 'Curseur de pagination invalide.', {
+      erreurs: [{ champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' }],
+    });
+  }
+  return brut;
+}
+
+// Réexporté pour les actions de transition (marquage réalisée, etc.) qui doivent charger une
+// ligne pour écriture sans dupliquer l'import.
+export { chargerLigneOrPourEcriture, chargerOrOuNull };

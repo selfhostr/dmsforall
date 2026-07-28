@@ -58,6 +58,129 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/parametres-atelier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Paramètres atelier du tenant courant.
+         * @description Singleton, regroupé par domaine (§8.2) — jamais de liste plate de `P-xx`. `fonctionnalites` est calculé, pas stocké : c'est le drapeau d'étape qui remplace un endpoint qui répondrait `501`. `ETag` stable (dérivé de `modifie_le`) ; `304 Not Modified` si `If-None-Match` le couvre.
+         */
+        get: operations["ParametresAtelierController_obtenir"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Modifie les paramètres atelier, par domaine, partiellement.
+         * @description Un paramètre dont le drapeau de fonctionnalité est `false` au lot 1 est en lecture seule : toute tentative de le modifier renvoie `501 FONCTION_NON_DISPONIBLE` — jamais une écriture silencieusement acceptée mais sans effet. `version` et `fonctionnalites` ne sont jamais entrants (calculés côté serveur).
+         */
+        patch: operations["ParametresAtelierController_modifier"];
+        trace?: never;
+    };
+    "/recherche": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Recherche comptoir unifiée — véhicules, clients, ordres de réparation.
+         * @description Projection, pas une collection : aucun curseur, `limite` <= 50 (défaut 20). La normalisation (casse, accents, espaces, apostrophes, tirets, points) est strictement serveur (§7.5) — le front ne normalise que pour l'affichage. `types` est répétable (`?types=vehicule&types=client`), jamais une liste séparée par virgules. Une plaque historique (RM-17) reste trouvable : `correspondance.historique = true` + `porteeJusquLe`. Une plaque interchangeable (RM-18) renvoie les DEUX véhicules et `plaqueInterchangeable = true` — le serveur ne choisit jamais à la place de l'utilisateur.
+         */
+        get: operations["RechercheController_rechercher"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referentiels/prestations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Catalogue de prestations, avec prix courant. Pagination par curseur. */
+        get: operations["PrestationsController_lister"];
+        put?: never;
+        /**
+         * Crée une prestation du catalogue.
+         * @description Si `prixCentimes` est fourni, ouvre immédiatement une période de prix valide à partir d'aujourd'hui.
+         */
+        post: operations["PrestationsController_creer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referentiels/prestations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Modifie une prestation (jamais son `code`).
+         * @description Changer `prixCentimes` clôture le prix couramment ouvert (`valide_au` = aujourd'hui) et en ouvre un nouveau daté à aujourd'hui — l'historique des prix passés n'est jamais réécrit (RM-65, prix figés sur les lignes d'OR existantes).
+         */
+        patch: operations["PrestationsController_modifier"];
+        trace?: never;
+    };
+    "/referentiels/taux-horaires": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liste des taux horaires (datés, RM-65). Pagination par curseur. */
+        get: operations["TauxHorairesController_lister"];
+        put?: never;
+        /**
+         * Crée une période de taux horaire.
+         * @description Deux périodes valides du même code ne peuvent jamais se chevaucher pour un tenant (contrainte EXCLUDE en base) — une tentative de chevauchement renvoie `409 CONFLIT`.
+         */
+        post: operations["TauxHorairesController_creer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/referentiels/taux-horaires/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Modifie partiellement une période de taux horaire (jamais son `code`). */
+        patch: operations["TauxHorairesController_modifier"];
+        trace?: never;
+    };
     "/sante": {
         parameters: {
             query?: never;
@@ -135,6 +258,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sites/{siteId}/parametres-atelier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Paramètres du site (P-20 capacité, P-31 clôture pointage). */
+        get: operations["ParametresSiteController_obtenir"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Modifie partiellement les paramètres du site. */
+        patch: operations["ParametresSiteController_modifier"];
+        trace?: never;
+    };
     "/tenant/courant": {
         parameters: {
             query?: never;
@@ -155,10 +296,277 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/vehicules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liste des véhicules du tenant courant (§6.2, §7.4). */
+        get: operations["VehiculeController_lister"];
+        put?: never;
+        /**
+         * Création d'un véhicule.
+         * @description `Idempotency-Key` obligatoire (uuid v4) : un doublon de véhicule pollue durablement la recherche par plaque, le point d’entrée n°1 du comptoir.
+         */
+        post: operations["VehiculeController_creer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vehicules/{vehiculeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Détail d'un véhicule. */
+        get: operations["VehiculeController_parId"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Modification des données d'atelier et de garantie (RM-26, RM-33). */
+        patch: operations["VehiculeController_modifier"];
+        trace?: never;
+    };
+    "/vehicules/{vehiculeId}/archiver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archivage d'un véhicule (RM-31) — aucun DELETE n'existe. */
+        post: operations["VehiculeController_archiver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vehicules/{vehiculeId}/changer-detenteur": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Changement de détenteur ATOMIQUE (RM-20/21, CT-47).
+         * @description Clôture de la détention en cours, ouverture de la nouvelle, et plaque éventuelle — dans une seule transaction. Le geste normal, préféré à `POST /detentions` + `/cloturer`.
+         */
+        post: operations["VehiculeDetentionController_changerDetenteur"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vehicules/{vehiculeId}/detentions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Historique des détentions d'un véhicule (RM-20/21). */
+        get: operations["VehiculeDetentionController_lister"];
+        put?: never;
+        /** Correction ou import de détention — le geste normal est `changer-detenteur`. */
+        post: operations["VehiculeDetentionController_creer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vehicules/{vehiculeId}/detentions/{detentionId}/cloturer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clôture manuelle de détention — correction/import. */
+        post: operations["VehiculeDetentionController_cloturer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vehicules/{vehiculeId}/expertises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Historique des expertises MFK (RM-28). */
+        get: operations["VehiculeExpertiseController_lister"];
+        put?: never;
+        /**
+         * Enregistrement d'une expertise (RM-28, CT-10).
+         * @description Une convocation cantonale (`sourceEcheance: "convocation"`) prime toujours sur une périodicité calculée.
+         */
+        post: operations["VehiculeExpertiseController_creer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vehicules/{vehiculeId}/fusionner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fusion de deux fiches véhicule en doublon (RM-32).
+         * @description Droit `direction` (contrat §7.4) resserré au niveau du service — voir le commentaire de `ServiceVehicule.fusionner` sur le manque d’action dédiée dans `matrice-droits.ts`.
+         */
+        post: operations["VehiculeController_fusionner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vehicules/{vehiculeId}/kilometrages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Historique des relevés kilométriques (RM-23), append-only. */
+        get: operations["VehiculeKilometrageController_lister"];
+        put?: never;
+        /**
+         * Nouveau relevé kilométrique (RM-23/24/25).
+         * @description Conversion mi→km faite par le serveur avant comparaison de régression (CT-08).
+         */
+        post: operations["VehiculeKilometrageController_creer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vehicules/{vehiculeId}/plaques": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Historique des plaques d'un véhicule (RM-17). */
+        get: operations["VehiculePlaqueController_lister"];
+        put?: never;
+        /** Attribution d’une nouvelle plaque (RM-18/19). */
+        post: operations["VehiculePlaqueController_creer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vehicules/{vehiculeId}/plaques/{plaqueId}/cloturer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clôture (fin de validité) de la plaque (RM-17). */
+        post: operations["VehiculePlaqueController_cloturer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AvertissementVehiculeDto: {
+            /** @enum {string} */
+            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE";
+            donnees?: {
+                [key: string]: unknown;
+            };
+            /** @description Libellé FR stable — jamais affiché tel quel par le front. */
+            message: string;
+        };
+        ClientResumeDetentionDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Meier Hans */
+            nomAffiche: string;
+            /** @example C-004128 */
+            numeroClient: string;
+        };
+        CorrespondanceRechercheDto: {
+            /**
+             * @description Champ où la correspondance a été trouvée.
+             * @example plaque
+             */
+            champ: string;
+            /** @description CT-05/RM-17 : `true` quand la plaque a été portée par ce véhicule dans le passé. Le véhicule courant sort en premier, l'historique est signalé, jamais confondu. */
+            historique: boolean;
+            /**
+             * @description Date de fin de port de la plaque (si `historique`).
+             * @example 2025-02-01
+             */
+            porteeJusquLe?: string;
+            /** @example VD 123456 */
+            valeur: string;
+        };
+        DesignationPrestationDto: {
+            /** @example Service A */
+            de: string;
+            /** @example Service A */
+            fr: string;
+            /** @example Service A */
+            it: string;
+        };
+        DocumentsParametresAtelierDto: {
+            /** @enum {string} */
+            langue: "client" | "site";
+            /** @enum {string} */
+            mentionSecurite: "obligatoire" | "desactivee";
+        };
+        EnveloppeKilometrageDto: {
+            avertissements: components["schemas"]["AvertissementVehiculeDto"][];
+            donnees: components["schemas"]["ReponseVehiculeKilometrageDto"];
+        };
+        EnveloppeVehiculeDetenteurChangeDto: {
+            avertissements: components["schemas"]["AvertissementVehiculeDto"][];
+            donnees: components["schemas"]["ReponseVehiculeDto"];
+        };
+        EnveloppeVehiculeDto: {
+            avertissements: components["schemas"]["AvertissementVehiculeDto"][];
+            donnees: components["schemas"]["ReponseVehiculeDto"];
+        };
         ErreurChampCommunDto: {
             /**
              * @description Chemin du champ fautif (notation pointée).
@@ -178,6 +586,61 @@ export interface components {
             code: string;
             message: string;
         };
+        FacturationParametresAtelierDto: {
+            multiPayeursAutorise: boolean;
+            /** @description Aucune colonne dédiée en base au lot 1 (domaine inerte, `fonctionnalites.facturation=false`) — valeur par défaut posée en attendant le schéma de l'étape 2. */
+            piecesClientAutorisees: boolean;
+            /** @enum {string} */
+            politiqueDemontageRefuse: "facturer" | "offrir" | "au_dela_seuil";
+            produitsAtelier: components["schemas"]["ProduitsAtelierDto"];
+            restitutionAvantPaiement: boolean;
+            /** @description Idem : aucune colonne dédiée en base au lot 1. */
+            seuilDemontageCentimes: number | null;
+        };
+        FonctionnalitesAtelierDto: {
+            /** @example false */
+            depotPneus: boolean;
+            /** @example false */
+            facturation: boolean;
+            /** @example false */
+            prets: boolean;
+            /** @example false */
+            stockPieces: boolean;
+        };
+        GarantieVehiculeDto: {
+            active: boolean;
+            /** Format: date */
+            debutLe: string | null;
+            /** Format: date */
+            finLe: string | null;
+            plafondKm: number | null;
+        };
+        ImportationVehiculeDto: {
+            estImporte: boolean;
+            /** Format: date */
+            importeLe: string | null;
+            /** @example DE */
+            paysOrigine: string | null;
+        };
+        OrParametresAtelierDto: {
+            /** @enum {string} */
+            deuxOrMemeVehicule: "bloquer" | "avertir" | "autoriser";
+            /** @description P-22 : l'état `planifie` est-il utilisé par ce garage ? */
+            etatPlanifieActif: boolean;
+            /** @enum {string} */
+            porteeNumerotation: "tenant" | "site";
+            /** @example OR */
+            prefixe: string;
+            rdvRetroactifAuto: boolean;
+            resetAnnuel: boolean;
+            /** @description P-21 : un OR sans RDV est-il autorisé ? */
+            sansRdvAutorise: boolean;
+        };
+        PagePrestationDto: {
+            curseurSuivant: string | null;
+            donnees: components["schemas"]["ReponsePrestationDto"][];
+            limite: number;
+        };
         PageSiteResumeDto: {
             /** @description Opaque base64url ; null = fin de liste. */
             curseurSuivant: string | null;
@@ -185,12 +648,30 @@ export interface components {
             /** @example 50 */
             limite: number;
         };
+        PageTauxHoraireDto: {
+            curseurSuivant: string | null;
+            donnees: components["schemas"]["ReponseTauxHoraireDto"][];
+            limite: number;
+        };
+        PageVehiculeResumeDto: {
+            /** @description Opaque base64url ; null = fin de liste. */
+            curseurSuivant?: string | null;
+            donnees: components["schemas"]["VehiculeResumeDto"][];
+            /** @example 50 */
+            limite: number;
+        };
+        PlanningParametresAtelierDto: {
+            noShowSeuilAlerte: number;
+            /** @description Aucune colonne en base au lot 1 (domaine `planning` inerte) — valeur par défaut de contrats-api-etape-1.md §8.2. */
+            rappel: components["schemas"]["RappelPlanningDto"];
+            tamponPretMinutes: number;
+        };
         ProblemeDetailCommunDto: {
             /**
              * @description Contrat machine : seul champ que le front doit lire.
              * @enum {string}
              */
-            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE";
+            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE" | "OR_TRANSITION_INTERDITE" | "OR_RECEPTION_REQUISE" | "OR_KM_ENTREE_REQUIS" | "OR_LIGNES_A_VALIDER" | "OR_POINTAGE_OUVERT" | "OR_LIGNE_NON_REALISEE" | "OR_CHECKLIST_INCOMPLETE" | "OR_PLAFOND_DEPASSE" | "OR_ANNULATION_IMPOSSIBLE" | "OR_LIGNE_VERROUILLEE" | "OR_PO_MANQUANT" | "OR_RESERVE_SECURITE_REQUISE" | "OR_FACTURATION_AUCUNE_LIGNE" | "LIGNE_TRANSITION_INTERDITE" | "LIGNE_SUPPRESSION_IMPOSSIBLE" | "DEVIS_IMMUABLE" | "DEVIS_INTERLOCUTEUR_REQUIS" | "RDV_TRANSITION_INTERDITE" | "RDV_IDENTIFICATION_INCOMPLETE" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_ANNULATION_IMPOSSIBLE" | "RDV_HORS_OUVERTURE" | "POINTAGE_TRANSITION_INTERDITE" | "POINTAGE_CHEVAUCHEMENT" | "POINTAGE_OR_NON_MODIFIABLE" | "POINTAGE_LIGNE_NON_POINTABLE" | "POINTAGE_PERIODE_VERROUILLEE" | "POINTAGE_MOTIF_REQUIS" | "POINTAGE_HORODATAGE_INVALIDE" | "VEHICULE_KILOMETRAGE_REGRESSIF" | "VEHICULE_PLAQUE_COLLISION" | "VEHICULE_VIN_EXISTANT" | "VEHICULE_ARCHIVAGE_IMPOSSIBLE" | "CLIENT_TYPE_IMMUABLE" | "CLIENT_DESACTIVATION_IMPOSSIBLE" | "PRET_VEHICULE_INDISPONIBLE" | "PRET_CONDUCTEUR_REQUIS" | "CONFIRMATION_REQUISE" | "IDEMPOTENCE_CONFLIT" | "FONCTION_NON_DISPONIBLE";
             /** @description Détail technique — jamais affiché à l'utilisateur final. */
             detail?: string;
             erreurs?: components["schemas"]["ErreurChampCommunDto"][];
@@ -208,13 +689,263 @@ export interface components {
         };
         ProblemeDetailDto: {
             /** @enum {string} */
-            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE";
+            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE" | "OR_TRANSITION_INTERDITE" | "OR_RECEPTION_REQUISE" | "OR_KM_ENTREE_REQUIS" | "OR_LIGNES_A_VALIDER" | "OR_POINTAGE_OUVERT" | "OR_LIGNE_NON_REALISEE" | "OR_CHECKLIST_INCOMPLETE" | "OR_PLAFOND_DEPASSE" | "OR_ANNULATION_IMPOSSIBLE" | "OR_LIGNE_VERROUILLEE" | "OR_PO_MANQUANT" | "OR_RESERVE_SECURITE_REQUISE" | "OR_FACTURATION_AUCUNE_LIGNE" | "LIGNE_TRANSITION_INTERDITE" | "LIGNE_SUPPRESSION_IMPOSSIBLE" | "DEVIS_IMMUABLE" | "DEVIS_INTERLOCUTEUR_REQUIS" | "RDV_TRANSITION_INTERDITE" | "RDV_IDENTIFICATION_INCOMPLETE" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_ANNULATION_IMPOSSIBLE" | "RDV_HORS_OUVERTURE" | "POINTAGE_TRANSITION_INTERDITE" | "POINTAGE_CHEVAUCHEMENT" | "POINTAGE_OR_NON_MODIFIABLE" | "POINTAGE_LIGNE_NON_POINTABLE" | "POINTAGE_PERIODE_VERROUILLEE" | "POINTAGE_MOTIF_REQUIS" | "POINTAGE_HORODATAGE_INVALIDE" | "VEHICULE_KILOMETRAGE_REGRESSIF" | "VEHICULE_PLAQUE_COLLISION" | "VEHICULE_VIN_EXISTANT" | "VEHICULE_ARCHIVAGE_IMPOSSIBLE" | "CLIENT_TYPE_IMMUABLE" | "CLIENT_DESACTIVATION_IMPOSSIBLE" | "PRET_VEHICULE_INDISPONIBLE" | "PRET_CONDUCTEUR_REQUIS" | "CONFIRMATION_REQUISE" | "IDEMPOTENCE_CONFLIT" | "FONCTION_NON_DISPONIBLE";
             detail?: string;
             erreurs?: components["schemas"]["ErreurChampDto"][];
             instance: string;
             status: number;
             title: string;
             type: string;
+        };
+        ProduitsAtelierDto: {
+            /** @enum {string} */
+            mode: "pourcentage_plafonne" | "forfait" | "lignes_reelles" | "desactive";
+            plafondCentimes: number | null;
+            pourmille: number | null;
+        };
+        RappelPlanningDto: {
+            /** @enum {string} */
+            canal: "sms" | "email" | "aucun";
+            joursAvant: number;
+        };
+        ReceptionParametresAtelierDto: {
+            kmEntreeObligatoire: boolean;
+            kmSortieObligatoire: boolean;
+            /**
+             * @description Q-02 : `null` = aucun plafond convenu (la garde RM-54 ne s'exécute jamais) ; `0` = accord requis pour toute validation payante ; n>0 = plafond nominal. ÉCART avec le contrat TS gelé `ReponseParametresAtelier` (`number` non nullable) — signalé, `null` est une valeur métier réelle qu'un `0` de repli confondrait avec « accord systématique requis ».
+             * @example 30000
+             */
+            plafondDefautCentimes: number | null;
+            /** @enum {string} */
+            signature: "obligatoire" | "recommandee" | "desactivee";
+        };
+        ReponseParametresAtelierDto: {
+            documents: components["schemas"]["DocumentsParametresAtelierDto"];
+            facturation: components["schemas"]["FacturationParametresAtelierDto"];
+            fonctionnalites: components["schemas"]["FonctionnalitesAtelierDto"];
+            or: components["schemas"]["OrParametresAtelierDto"];
+            planning: components["schemas"]["PlanningParametresAtelierDto"];
+            reception: components["schemas"]["ReceptionParametresAtelierDto"];
+            travaux: components["schemas"]["TravauxParametresAtelierDto"];
+            vehicule: components["schemas"]["VehiculeParametresAtelierDto"];
+            /**
+             * @description Sert l'ETag (`W/"<version>"`) et la revalidation conditionnelle (`If-None-Match`). Dérivé de `modifie_le` (aucune colonne de révision dédiée en base) — signalé.
+             * @example 1785312862000
+             */
+            version: number;
+        };
+        ReponseParametresSiteDto: {
+            /** @description P-20. `null` = non saisie — jamais `0` (une barre de charge à zéro serait un mensonge). */
+            capaciteHeuresJourCentiemes: number | null;
+            /** @description P-31 : heure de clôture automatique des pointages ouverts. */
+            heureCloturePointage: string | null;
+            /**
+             * @description Format `HH:MM`.
+             * @example 18:00
+             */
+            heureFermeture: string | null;
+            /**
+             * @description Format `HH:MM`.
+             * @example 08:00
+             */
+            heureOuverture: string | null;
+            /**
+             * @example [
+             *       "2026-12-25",
+             *       "2027-01-01"
+             *     ]
+             */
+            joursFermeture: string[];
+            /** Format: uuid */
+            siteId: string;
+            /** @description Sert l'ETag (`W/"<version>"`). Dérivé de `modifie_le`. */
+            version: number;
+        };
+        ReponsePrestationDto: {
+            actif: boolean;
+            /** @example SRV-A */
+            code: string;
+            designation: components["schemas"]["DesignationPrestationDto"];
+            /** Format: uuid */
+            id: string;
+            /**
+             * @description Prix valide AUJOURD'HUI ; `null` si aucun prix n'est ouvert.
+             * @example 19500
+             */
+            prixCentimes: number | null;
+            /** @example MEC */
+            tauxHoraireCode: string | null;
+            /**
+             * @description Pour mille. `81` = 8,1 %.
+             * @example 81
+             */
+            tauxTvaPourmille: number;
+            /**
+             * @description Centièmes d'heure. `120` = 1,2 h.
+             * @example 120
+             */
+            tempsBaremeCentiemes: number | null;
+            /** @enum {string} */
+            typeLigne: "main_oeuvre_bareme" | "main_oeuvre_temps_reel" | "forfait" | "piece" | "fourniture" | "sous_traitance" | "produit_atelier" | "taxe" | "remise" | "texte";
+        };
+        ReponseRechercheDto: {
+            /** @description RM-18/§6.9 : `true` quand la plaque cherchée est interchangeable — les DEUX véhicules sont alors présents dans `resultats`. Le serveur ne choisit jamais à la place de l'utilisateur. */
+            plaqueInterchangeable: boolean;
+            resultats: components["schemas"]["ResultatRechercheDto"][];
+        };
+        ReponseTauxHoraireDto: {
+            /** @example MEC */
+            code: string;
+            /** Format: uuid */
+            id: string;
+            /** @example Mécanique générale */
+            libelle: string;
+            /**
+             * @description Centimes. `130.00 CHF/h` = `13000`.
+             * @example 14500
+             */
+            montantCentimes: number;
+            /** @example null */
+            valideAuLe: string | null;
+            /** @example 2026-01-01 */
+            valideDuLe: string;
+        };
+        ReponseVehiculeDetentionDto: {
+            client: components["schemas"]["ClientResumeDetentionDto"];
+            /** Format: date */
+            debutLe: string;
+            /** Format: date */
+            finLe: string | null;
+            /** Format: uuid */
+            id: string;
+            motifFin: string | null;
+        };
+        ReponseVehiculeDto: {
+            batterie: string | null;
+            boite: string | null;
+            /** @example VD */
+            canton: string | null;
+            carburant: string | null;
+            codeCle: string | null;
+            codeCouleur: string | null;
+            codeRadio: string | null;
+            /** @example 1ZM431 */
+            codeTypeCh: string | null;
+            conducteurHabituel: string | null;
+            couleur: string | null;
+            /** Format: date-time */
+            creeLe: string;
+            cylindreeCm3: number | null;
+            /** @example VW Touran 2.0 TDI */
+            designation: string;
+            finition: string | null;
+            /** Format: uuid */
+            fusionneVersVehiculeId: string | null;
+            garantieConstructeur: components["schemas"]["GarantieVehiculeDto"] | null;
+            garantieGarage: components["schemas"]["GarantieVehiculeDto"] | null;
+            huileQuantiteDl: number | null;
+            huileType: string | null;
+            /** Format: uuid */
+            id: string;
+            identificationIncomplete: boolean;
+            importe: components["schemas"]["ImportationVehiculeDto"];
+            intervalleEntretienKm: number | null;
+            intervalleEntretienMois: number | null;
+            /** @example VW */
+            marque: string;
+            /** @example Touran */
+            modele: string;
+            /** Format: date-time */
+            modifieLe: string;
+            motifArchivage: string | null;
+            normeEmission: string | null;
+            places: number | null;
+            /** @example VD 123456 */
+            plaque: string | null;
+            pneusEte: string | null;
+            pneusHiver: string | null;
+            poidsTotalKg: number | null;
+            poidsVideKg: number | null;
+            /** Format: date */
+            premiereMiseEnCirculationLe: string | null;
+            pressionPneus: string | null;
+            /** Format: uuid */
+            proprietaireEconomiqueClientId: string | null;
+            puissanceKw: number | null;
+            /** @enum {string} */
+            statut: "actif" | "archive";
+            transmission: string | null;
+            version: string | null;
+            /** @example WVGZZZ1TZJW123456 */
+            vin: string | null;
+        };
+        ReponseVehiculeExpertiseDto: {
+            /** Format: date */
+            dateContreVisiteLe: string | null;
+            /** Format: date */
+            dateLe: string;
+            defauts: string | null;
+            /** Format: date */
+            delaiContreVisiteLe: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            prochaineEcheanceLe?: string | null;
+            /** @enum {string} */
+            resultat: "accepte" | "accepte_avec_defauts" | "refuse";
+            /**
+             * @description Une convocation prime toujours (RM-28, CT-10).
+             * @enum {string}
+             */
+            sourceEcheance: "calculee" | "convocation";
+        };
+        ReponseVehiculeKilometrageDto: {
+            /** Format: uuid */
+            id: string;
+            motifRegression: string | null;
+            /** Format: uuid */
+            ordreReparationId: string | null;
+            /** Format: date-time */
+            releveLe: string;
+            /** @enum {string} */
+            source: "reception" | "ordre_reparation" | "expertise" | "vente" | "declaratif" | "import";
+            /** @enum {string} */
+            unite: "km" | "mi";
+            /** @example 187450 */
+            valeur: number;
+            /**
+             * @description Converti en km par le serveur (CT-08).
+             * @example 187450
+             */
+            valeurKm: number;
+        };
+        ReponseVehiculePlaqueDto: {
+            /** @example VD */
+            canton: string | null;
+            /** Format: date */
+            debutLe: string;
+            /** Format: date */
+            finLe: string | null;
+            /** Format: uuid */
+            id: string;
+            interchangeable: boolean;
+            /** @example CH */
+            pays: string;
+            professionnelle: boolean;
+            /** @example VD 123456 */
+            valeur: string;
+        };
+        ResultatRechercheDto: {
+            correspondance: components["schemas"]["CorrespondanceRechercheDto"];
+            /** Format: uuid */
+            id: string;
+            /** @description Résumé d'affichage, dépendant de `type`. Additif : de nouvelles clés peuvent apparaître, jamais retirées. Les clés monétaires sont retirées côté serveur pour un rôle sans droit aux montants (aucune clé monétaire au lot 1 — voir la note de livraison). */
+            resume: {
+                [key: string]: unknown;
+            };
+            /** @description Pertinence, décroissante. */
+            score: number;
+            type: components["schemas"]["TypeResultatRecherche"];
         };
         SanteDto: {
             /** @enum {string} */
@@ -254,6 +985,22 @@ export interface components {
             /** @example garage-du-leman */
             slug: string;
         };
+        TravauxParametresAtelierDto: {
+            /** @enum {string} */
+            arrondiPointage: "minute" | "dixieme" | "quart";
+            chevauchementPointageAutorise: boolean;
+            /**
+             * @description Restreint à `jamais`/`toujours` au lot 1 (Δ3) — le type complet à 4 valeurs est réservé au lot 2.
+             * @enum {string}
+             */
+            controleQualite: "jamais" | "toujours" | "selon_type" | "au_dela_montant";
+            dureeMaxPointageHeures: number;
+            pointageObligatoirePourTerminer: boolean;
+            /** @enum {string} */
+            uniteTemps: "heures_decimales" | "unites_constructeur";
+        };
+        /** @enum {string} */
+        TypeResultatRecherche: "vehicule" | "client" | "ordre_reparation";
         UtilisateurCourantDto: {
             /** Format: email */
             email: string;
@@ -265,6 +1012,22 @@ export interface components {
             prenom: string;
             /** @enum {string} */
             role: "admin" | "direction" | "vendeur" | "receptionnaire" | "chef_atelier" | "technicien" | "magasinier" | "comptable";
+        };
+        VehiculeParametresAtelierDto: {
+            expertiseAlerteMois: number;
+            /** @enum {string} */
+            visibiliteHistoriqueNouveauDetenteur: "tout" | "technique" | "rien";
+        };
+        VehiculeResumeDto: {
+            canton: string | null;
+            designation: string;
+            /** Format: uuid */
+            id: string;
+            identificationIncomplete: boolean;
+            plaque: string | null;
+            /** Format: date */
+            premiereMiseEnCirculationLe: string | null;
+            vin: string | null;
         };
     };
     responses: never;
@@ -392,6 +1155,352 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemeDetailDto"];
+                };
+            };
+        };
+    };
+    ParametresAtelierController_obtenir: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paramètres atelier. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseParametresAtelierDto"];
+                };
+            };
+            /** @description Non modifié depuis `If-None-Match`. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESSOURCE_INTROUVABLE — aucune ligne de paramétrage pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    ParametresAtelierController_modifier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paramètres atelier mis à jour. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseParametresAtelierDto"];
+                };
+            };
+            /** @description VALIDATION_ECHOUEE — corps invalide, ou valeur hors périmètre lot 1 (ex. `travaux.controleQualite`). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description RESSOURCE_INTROUVABLE — aucune ligne de paramétrage pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description FONCTION_NON_DISPONIBLE — le champ modifié dépend d'une fonctionnalité non livrée au lot 1. */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    RechercheController_rechercher: {
+        parameters: {
+            query: {
+                /** @description Entre 1 et 50, défaut 20. */
+                limite?: number;
+                /** @description Répétable. Par défaut, les trois natures sont cherchées. */
+                types?: ("vehicule" | "client" | "ordre_reparation")[];
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseRechercheDto"];
+                };
+            };
+            /** @description Paramètres de recherche invalides (q vide, limite hors bornes, type inconnu). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (rôle sans recherche.executer). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    PrestationsController_lister: {
+        parameters: {
+            query?: {
+                curseur?: string;
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Page de prestations. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagePrestationDto"];
+                };
+            };
+        };
+    };
+    PrestationsController_creer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Prestation créée. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponsePrestationDto"];
+                };
+            };
+            /** @description VALIDATION_ECHOUEE — corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description CONFLIT — code de prestation déjà utilisé par ce tenant. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    PrestationsController_modifier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Prestation mise à jour. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponsePrestationDto"];
+                };
+            };
+            /** @description VALIDATION_ECHOUEE — corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description RESSOURCE_INTROUVABLE — prestation inconnue de ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    TauxHorairesController_lister: {
+        parameters: {
+            query?: {
+                curseur?: string;
+                limite?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Page de taux horaires. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageTauxHoraireDto"];
+                };
+            };
+        };
+    };
+    TauxHorairesController_creer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Taux horaire créé. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseTauxHoraireDto"];
+                };
+            };
+            /** @description VALIDATION_ECHOUEE — corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description CONFLIT — période chevauchant une période valide existante du même code. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    TauxHorairesController_modifier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Taux horaire mis à jour. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseTauxHoraireDto"];
+                };
+            };
+            /** @description VALIDATION_ECHOUEE — corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description RESSOURCE_INTROUVABLE — taux horaire inconnu de ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description CONFLIT — nouvelle période chevauchant une période valide existante du même code. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
                 };
             };
         };
@@ -551,6 +1660,84 @@ export interface operations {
             };
         };
     };
+    ParametresSiteController_obtenir: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                siteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paramètres du site. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseParametresSiteDto"];
+                };
+            };
+            /** @description Non modifié depuis `If-None-Match`. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESSOURCE_INTROUVABLE — site inconnu de ce tenant, ou sans ligne de paramétrage. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    ParametresSiteController_modifier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                siteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paramètres du site mis à jour. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseParametresSiteDto"];
+                };
+            };
+            /** @description VALIDATION_ECHOUEE — corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description RESSOURCE_INTROUVABLE — site inconnu de ce tenant, ou sans ligne de paramétrage. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
     TenantController_courant: {
         parameters: {
             query?: never;
@@ -579,6 +1766,995 @@ export interface operations {
             };
             /** @description Droit insuffisant (rôle sans socle.tenant.lire). */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeController_lister: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageVehiculeResumeDto"];
+                };
+            };
+            /** @description Filtres, tri ou curseur invalides. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (rôle sans vehicule.lire). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeController_creer: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description uuid v4, identité de la requête. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnveloppeVehiculeDto"];
+                };
+            };
+            /** @description Corps invalide ou Idempotency-Key manquante/mal formée. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (rôle sans vehicule.creer). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description VEHICULE_VIN_EXISTANT, VEHICULE_PLAQUE_COLLISION ou IDEMPOTENCE_CONFLIT. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeController_parId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseVehiculeDto"];
+                };
+            };
+            /** @description Identifiant mal formé. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeController_modifier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnveloppeVehiculeDto"];
+                };
+            };
+            /** @description Corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description VEHICULE_VIN_EXISTANT. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeController_archiver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnveloppeVehiculeDto"];
+                };
+            };
+            /** @description Motif manquant. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description VEHICULE_ARCHIVAGE_IMPOSSIBLE — blocages = les OR ouverts. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeDetentionController_changerDetenteur: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnveloppeVehiculeDetenteurChangeDto"];
+                };
+            };
+            /** @description Corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description VALIDATION_ECHOUEE (deux détenteurs courants) ou VEHICULE_PLAQUE_COLLISION. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeDetentionController_lister: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseVehiculeDetentionDto"][];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeDetentionController_creer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseVehiculeDetentionDto"];
+                };
+            };
+            /** @description Corps invalide ou deux détenteurs courants (VALIDATION_ECHOUEE). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeDetentionController_cloturer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+                detentionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseVehiculeDetentionDto"];
+                };
+            };
+            /** @description Corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Détention introuvable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Détention déjà clôturée. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeExpertiseController_lister: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseVehiculeExpertiseDto"][];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeExpertiseController_creer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseVehiculeExpertiseDto"];
+                };
+            };
+            /** @description Corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeController_fusionner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Le véhicule SURVIVANT. */
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnveloppeVehiculeDto"];
+                };
+            };
+            /** @description VIN de confirmation manquant ou incorrect. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (réservé à la direction). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeKilometrageController_lister: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseVehiculeKilometrageDto"][];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeKilometrageController_creer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnveloppeKilometrageDto"];
+                };
+            };
+            /** @description Corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description VEHICULE_KILOMETRAGE_REGRESSIF (CT-07) — motifsAcceptes dans actionsProposees. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculePlaqueController_lister: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseVehiculePlaqueDto"][];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculePlaqueController_creer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseVehiculePlaqueDto"];
+                };
+            };
+            /** @description Corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description VEHICULE_PLAQUE_COLLISION (CT-06). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculePlaqueController_cloturer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+                plaqueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseVehiculePlaqueDto"];
+                };
+            };
+            /** @description Corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Plaque introuvable pour ce véhicule. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Plaque déjà clôturée. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

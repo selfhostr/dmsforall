@@ -25,6 +25,9 @@
   "chargement": {
     "enCours": "Caricamento..."
   },
+  "etats": {
+    "lectureSeule": "Sola lettura"
+  },
   "langue": {
     "libelle": "Lingua",
     "choisir": "Scegli la lingua"

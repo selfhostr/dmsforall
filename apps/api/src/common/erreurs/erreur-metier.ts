@@ -1,4 +1,9 @@
-import { STATUT_HTTP_PAR_CODE_ERREUR, type CodeErreur, type ErreurChamp } from '@dfa/shared';
+import {
+  STATUT_HTTP_PAR_CODE_ERREUR,
+  type CodeErreur,
+  type ErreurChamp,
+  type ProblemeDetail,
+} from '@dfa/shared';
 
 /**
  * Statut HTTP associé à chaque code métier — ré-export du contrat partagé (gelé,
@@ -11,6 +16,16 @@ export interface OptionsErreurMetier {
   /** Détail technique complémentaire — jamais affiché à l'utilisateur final par le front. */
   readonly detail?: string;
   readonly erreurs?: ReadonlyArray<ErreurChamp>;
+  /**
+   * Ce qui bloque, nommément (contrat `ProblemeDetail.blocages`, §3.5 règle 1) — réutilisé tel
+   * quel depuis `@dfa/shared`, jamais redéclaré ici. Voir `common/avertissements/` pour la
+   * matière brute produite depuis le SQLSTATE `ZDFA1` (transition interdite).
+   */
+  readonly blocages?: ProblemeDetail['blocages'];
+  /** Codes à renvoyer dans `confirmations[]` pour rejouer la requête (§4.4). */
+  readonly confirmationsRequises?: ProblemeDetail['confirmationsRequises'];
+  /** Le chemin de sortie proposé à l'appelant (§3.3, invariant frontend n°8). */
+  readonly actionsProposees?: ProblemeDetail['actionsProposees'];
   /** En-têtes additionnels à renvoyer avec la réponse (ex. `Retry-After` sur 429). */
   readonly enTetes?: Readonly<Record<string, string>>;
   /**
@@ -34,6 +49,9 @@ export class ErreurMetier extends Error {
   readonly status: number;
   readonly detail?: string;
   readonly erreurs?: ReadonlyArray<ErreurChamp>;
+  readonly blocages?: ProblemeDetail['blocages'];
+  readonly confirmationsRequises?: ProblemeDetail['confirmationsRequises'];
+  readonly actionsProposees?: ProblemeDetail['actionsProposees'];
   readonly enTetes?: Readonly<Record<string, string>>;
 
   constructor(code: CodeErreur, message: string, options: OptionsErreurMetier = {}) {
@@ -43,6 +61,9 @@ export class ErreurMetier extends Error {
     this.status = options.status ?? STATUT_PAR_CODE_ERREUR[code];
     this.detail = options.detail;
     this.erreurs = options.erreurs;
+    this.blocages = options.blocages;
+    this.confirmationsRequises = options.confirmationsRequises;
+    this.actionsProposees = options.actionsProposees;
     this.enTetes = options.enTetes;
   }
 }

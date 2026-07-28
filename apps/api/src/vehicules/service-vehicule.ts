@@ -1,0 +1,482 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { and, eq, sql, type SQL } from 'drizzle-orm';
+import type {
+  EntreeArchivageVehicule,
+  EntreeCreationVehicule,
+  EntreeFusionVehicule,
+  EntreeModificationVehicule,
+  FiltresVehicules,
+  PageCurseur,
+  ReponseVehicule,
+  VehiculeResume,
+} from '@dfa/shared';
+import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
+import { vehicule, type LigneVehicule } from '../db/schema';
+import { CollecteurAvertissements } from '../common/avertissements';
+import { ErreurMetier } from '../common/erreurs';
+import { Horloge } from '../common/horloge';
+import { decoderCurseurTrie, encoderCurseurTrie } from '../common/pagination';
+import { interpreterContrainteVehicule } from './erreurs-contraintes';
+import { versVehiculeResume } from './vehicule.mappers';
+import { chargerLigneVehicule, construireReponseVehicule, listerOrOuverts } from './vehicule-requetes';
+
+/**
+ * VIN accepté mais de moins de 17 caractères (RM-15) → avertissement `VEHICULE_VIN_COURT`.
+ * L'unicité (`VEHICULE_VIN_EXISTANT`) ne porte, elle, que sur un VIN complet (index partiel
+ * `vehicule_vin_actif_uk`, sur véhicule `actif`) — un VIN court n'entre jamais en collision.
+ */
+const LONGUEUR_VIN_COMPLET = 17;
+
+export interface ResultatEcritureVehicule {
+  readonly donnees: ReponseVehicule;
+  readonly avertissements: CollecteurAvertissements;
+}
+
+@Injectable()
+export class ServiceVehicule {
+  constructor(
+    @Inject(JETON_DB) private readonly acces: AccesBase,
+    private readonly horloge: Horloge,
+  ) {}
+
+  async lister(
+    ctx: ContexteTenant,
+    filtres: FiltresVehicules,
+    pagination: { readonly limite: number; readonly curseur?: string },
+  ): Promise<PageCurseur<VehiculeResume>> {
+    const tri = filtres.tri;
+    const limite = pagination.limite;
+    const curseurDecode = pagination.curseur ? decoderCurseurTrie(pagination.curseur, tri) : null;
+
+    return this.acces.enTenant(ctx, async (tx) => {
+      const lignes = await executerListeVehicules(tx, ctx.tenantId, filtres, tri, curseurDecode, limite);
+
+      const aUnePageSuivante = lignes.length > limite;
+      const pageLignes = aUnePageSuivante ? lignes.slice(0, limite) : lignes;
+      const derniere = pageLignes[pageLignes.length - 1];
+
+      return {
+        donnees: pageLignes.map((ligne) =>
+          versVehiculeResume(ligne, ligne.plaqueValeur ? { valeur: ligne.plaqueValeur, canton: ligne.plaqueCanton } : null),
+        ),
+        curseurSuivant:
+          aUnePageSuivante && derniere
+            ? encoderCurseurTrie({ tri, valeur: valeurDeTri(derniere, tri), id: derniere.id })
+            : null,
+        limite,
+      };
+    });
+  }
+
+  async parId(ctx: ContexteTenant, vehiculeId: string): Promise<ReponseVehicule> {
+    return this.acces.enTenant(ctx, (tx) => construireReponseVehicule(tx, ctx, vehiculeId, this.horloge.maintenant()));
+  }
+
+  /**
+   * `POST /vehicules` — appelée par le contrôleur À L'INTÉRIEUR de `ServiceIdempotence.executer`
+   * (l'`Idempotency-Key` est obligatoire, RM-15/RM-16 : un doublon de véhicule pollue la recherche
+   * par plaque). `tx` est donc fournie par l'appelant, jamais ouverte ici.
+   */
+  async creerDansTransaction(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    entree: EntreeCreationVehicule,
+  ): Promise<ResultatEcritureVehicule> {
+    const avertissements = new CollecteurAvertissements();
+    const identificationIncomplete = !entree.vin;
+
+    if (entree.vin && entree.vin.length < LONGUEUR_VIN_COMPLET) {
+      avertissements.ajouter('VEHICULE_VIN_COURT', 'VIN de moins de 17 caractères — accepté (RM-15).', {
+        longueur: entree.vin.length,
+      });
+    }
+    if (identificationIncomplete) {
+      avertissements.ajouter('VEHICULE_IDENTIFICATION_INCOMPLETE', 'Véhicule créé sans VIN (RM-16).');
+    }
+
+    let inseree: LigneVehicule;
+    try {
+      const lignes = await tx
+        .insert(vehicule)
+        .values({
+          tenantId: ctx.tenantId,
+          vin: entree.vin ?? null,
+          marque: entree.marque,
+          modele: entree.modele,
+          version: entree.version ?? null,
+          finition: entree.finition ?? null,
+          codeTypeCh: entree.codeTypeCh ?? null,
+          date1reCirculation: entree.premiereMiseEnCirculationLe ?? null,
+          carburant: entree.carburant ?? null,
+          cylindreeCm3: entree.cylindreeCm3 ?? null,
+          puissanceKw: entree.puissanceKw ?? null,
+          boite: entree.boite ?? null,
+          transmission: entree.transmission ?? null,
+          couleur: entree.couleur ?? null,
+          conducteurHabituel: entree.conducteurHabituel ?? null,
+          proprietaireEconomiqueClientId: entree.proprietaireEconomiqueClientId ?? null,
+          importe: entree.importe,
+          paysOrigine: entree.paysOrigine ?? null,
+          dateImportation: entree.importeLe ?? null,
+          identificationIncomplete,
+        })
+        .returning();
+      const premiere = lignes[0];
+      if (!premiere) {
+        throw new ErreurMetier('ERREUR_INTERNE', "L'insertion du véhicule n'a rendu aucune ligne.");
+      }
+      inseree = premiere;
+    } catch (erreur) {
+      relancerErreurContrainte(erreur);
+    }
+
+    if (entree.plaque) {
+      try {
+        await tx.execute(sql`
+          insert into public.vehicule_plaque (tenant_id, vehicule_id, valeur, canton, pays, du, interchangeable, professionnelle)
+          values (${ctx.tenantId}, ${inseree.id}, ${entree.plaque}, ${entree.canton ?? null}, 'CH', ${jourIso(this.horloge.maintenant())}, false, false)
+        `);
+      } catch (erreur) {
+        relancerErreurContrainte(erreur);
+      }
+    }
+
+    if (entree.detenteurId) {
+      await tx.execute(sql`
+        insert into public.vehicule_detention (tenant_id, vehicule_id, client_id, du)
+        values (${ctx.tenantId}, ${inseree.id}, ${entree.detenteurId}, ${jourIso(this.horloge.maintenant())})
+      `);
+    }
+
+    const reponse = await this.chargerReponse(tx, ctx, inseree.id);
+    return { donnees: reponse, avertissements };
+  }
+
+  async modifierDansTransaction(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    vehiculeId: string,
+    entree: EntreeModificationVehicule,
+  ): Promise<ResultatEcritureVehicule> {
+    const avertissements = new CollecteurAvertissements();
+    const existante = await chargerLigneVehicule(tx, ctx, vehiculeId);
+
+    if (entree.vin !== undefined && entree.vin && entree.vin.length < LONGUEUR_VIN_COMPLET) {
+      avertissements.ajouter('VEHICULE_VIN_COURT', 'VIN de moins de 17 caractères — accepté (RM-15).');
+    }
+    const identificationIncomplete = entree.vin !== undefined ? !entree.vin : existante.identificationIncomplete;
+    if (entree.vin !== undefined && !entree.vin) {
+      avertissements.ajouter('VEHICULE_IDENTIFICATION_INCOMPLETE', 'Véhicule modifié sans VIN (RM-16).');
+    }
+
+    try {
+      await tx
+        .update(vehicule)
+        .set({
+          vin: entree.vin !== undefined ? (entree.vin ?? null) : undefined,
+          marque: entree.marque,
+          modele: entree.modele,
+          version: entree.version !== undefined ? (entree.version ?? null) : undefined,
+          finition: entree.finition !== undefined ? (entree.finition ?? null) : undefined,
+          codeTypeCh: entree.codeTypeCh !== undefined ? (entree.codeTypeCh ?? null) : undefined,
+          date1reCirculation:
+            entree.premiereMiseEnCirculationLe !== undefined ? (entree.premiereMiseEnCirculationLe ?? null) : undefined,
+          carburant: entree.carburant !== undefined ? (entree.carburant ?? null) : undefined,
+          cylindreeCm3: entree.cylindreeCm3 !== undefined ? (entree.cylindreeCm3 ?? null) : undefined,
+          puissanceKw: entree.puissanceKw !== undefined ? (entree.puissanceKw ?? null) : undefined,
+          boite: entree.boite !== undefined ? (entree.boite ?? null) : undefined,
+          transmission: entree.transmission !== undefined ? (entree.transmission ?? null) : undefined,
+          couleur: entree.couleur !== undefined ? (entree.couleur ?? null) : undefined,
+          conducteurHabituel: entree.conducteurHabituel !== undefined ? (entree.conducteurHabituel ?? null) : undefined,
+          proprietaireEconomiqueClientId:
+            entree.proprietaireEconomiqueClientId !== undefined ? (entree.proprietaireEconomiqueClientId ?? null) : undefined,
+          importe: entree.importe,
+          paysOrigine: entree.paysOrigine !== undefined ? (entree.paysOrigine ?? null) : undefined,
+          dateImportation: entree.importeLe !== undefined ? (entree.importeLe ?? null) : undefined,
+          pneusEte: entree.pneusEte !== undefined ? (entree.pneusEte ?? null) : undefined,
+          pneusHiver: entree.pneusHiver !== undefined ? (entree.pneusHiver ?? null) : undefined,
+          pressionPneus: entree.pressionPneus !== undefined ? (entree.pressionPneus ?? null) : undefined,
+          huileType: entree.huileType !== undefined ? (entree.huileType ?? null) : undefined,
+          huileQuantiteDl: entree.huileQuantiteDl !== undefined ? (entree.huileQuantiteDl ?? null) : undefined,
+          batterie: entree.batterie !== undefined ? (entree.batterie ?? null) : undefined,
+          codeRadio: entree.codeRadio !== undefined ? (entree.codeRadio ?? null) : undefined,
+          codeCle: entree.codeCle !== undefined ? (entree.codeCle ?? null) : undefined,
+          intervalleEntretienKm: entree.intervalleEntretienKm !== undefined ? (entree.intervalleEntretienKm ?? null) : undefined,
+          intervalleEntretienMois:
+            entree.intervalleEntretienMois !== undefined ? (entree.intervalleEntretienMois ?? null) : undefined,
+          garantieDebut: entree.garantieDebutLe !== undefined ? (entree.garantieDebutLe ?? null) : undefined,
+          garantieMois: entree.garantieMois !== undefined ? (entree.garantieMois ?? null) : undefined,
+          garantieKm: entree.garantieKm !== undefined ? (entree.garantieKm ?? null) : undefined,
+          identificationIncomplete,
+        })
+        .where(and(eq(vehicule.tenantId, ctx.tenantId), eq(vehicule.id, vehiculeId)));
+    } catch (erreur) {
+      relancerErreurContrainte(erreur);
+    }
+
+    const reponse = await construireReponseVehicule(tx, ctx, vehiculeId, this.horloge.maintenant());
+    return { donnees: reponse, avertissements };
+  }
+
+  /** `PATCH /vehicules/{id}` — pas d'idempotence requise (contrat §7.4), transaction ouverte ici. */
+  async modifier(
+    ctx: ContexteTenant,
+    vehiculeId: string,
+    entree: EntreeModificationVehicule,
+  ): Promise<ResultatEcritureVehicule> {
+    return this.acces.enTenant(ctx, (tx) => this.modifierDansTransaction(tx, ctx, vehiculeId, entree));
+  }
+
+  async archiver(ctx: ContexteTenant, vehiculeId: string, entree: EntreeArchivageVehicule): Promise<ResultatEcritureVehicule> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      await chargerLigneVehicule(tx, ctx, vehiculeId);
+
+      const orOuverts = await listerOrOuverts(tx, ctx, vehiculeId);
+      if (orOuverts.length > 0) {
+        throw new ErreurMetier('VEHICULE_ARCHIVAGE_IMPOSSIBLE', 'Le véhicule porte encore des ordres de réparation ouverts.', {
+          blocages: orOuverts.map((or) => ({
+            type: 'ordre_reparation' as const,
+            id: or.id,
+            libelle: or.numero,
+            donnees: { statut: or.statut },
+          })),
+        });
+      }
+
+      await tx
+        .update(vehicule)
+        .set({ statut: 'archive', motifArchivage: entree.motifArchivage })
+        .where(and(eq(vehicule.tenantId, ctx.tenantId), eq(vehicule.id, vehiculeId)));
+
+      const reponse = await construireReponseVehicule(tx, ctx, vehiculeId, this.horloge.maintenant());
+      return { donnees: reponse, avertissements: new CollecteurAvertissements() };
+    });
+  }
+
+  /**
+   * RM-32 — fusion de doublon. AMBIGUÏTÉ DE CONTRAT SIGNALÉE : le contrat d'API (§7.4) exige le
+   * droit `direction` seul, mais `auth/matrice-droits.ts` (lecture seule pour ce module, propriété
+   * d'un autre agent) ne déclare AUCUNE action `vehicule.fusionner` — seule `vehicule.archiver`
+   * s'en approche (réceptionnaire/chef d'atelier/direction). Faute d'action dédiée, ce service
+   * réutilise `vehicule.archiver` au niveau du `@ExigerDroit` du contrôleur ET resserre ICI,
+   * explicitement, au rôle `direction`/`admin` — sans modifier la matrice, qui n'est pas de mon
+   * périmètre. À faire trancher par expert-auth/lead-backend : soit une action dédiée est ajoutée
+   * à la matrice, soit ce resserrement in-service devient la règle documentée.
+   */
+  async fusionner(
+    ctx: ContexteTenant,
+    principalRole: string,
+    vehiculeId: string,
+    entree: EntreeFusionVehicule,
+  ): Promise<ResultatEcritureVehicule> {
+    if (principalRole !== 'direction' && principalRole !== 'admin') {
+      throw new ErreurMetier('DROIT_INSUFFISANT', 'La fusion de véhicules est réservée à la direction.');
+    }
+
+    return this.acces.enTenant(ctx, async (tx) => {
+      await chargerLigneVehicule(tx, ctx, vehiculeId);
+      const source = await chargerLigneVehicule(tx, ctx, entree.vehiculeSourceId);
+
+      if (!source.vin || source.vin.toUpperCase() !== entree.confirmationVin.toUpperCase()) {
+        throw new ErreurMetier('VALIDATION_ECHOUEE', 'Le VIN de confirmation ne correspond pas au véhicule source.', {
+          erreurs: [{ champ: 'confirmationVin', code: 'vin_incorrect', message: 'Le VIN saisi ne correspond pas.' }],
+        });
+      }
+
+      await tx
+        .update(vehicule)
+        .set({ statut: 'archive', motifArchivage: 'doublon', fusionneVersVehiculeId: vehiculeId })
+        .where(and(eq(vehicule.tenantId, ctx.tenantId), eq(vehicule.id, entree.vehiculeSourceId)));
+
+      const reponse = await construireReponseVehicule(tx, ctx, vehiculeId, this.horloge.maintenant());
+      return { donnees: reponse, avertissements: new CollecteurAvertissements() };
+    });
+  }
+
+  /**
+   * Projection `ReponseVehicule` complète, à l'intérieur d'une transaction déjà ouverte par
+   * l'appelant (mêmes garanties que `construireReponseVehicule`, dont c'est un simple relais lié
+   * à l'horloge de ce service — voir `creerDansTransaction`).
+   */
+  private async chargerReponse(tx: TransactionDfa, ctx: ContexteTenant, vehiculeId: string): Promise<ReponseVehicule> {
+    return construireReponseVehicule(tx, ctx, vehiculeId, this.horloge.maintenant());
+  }
+}
+
+function jourIso(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function relancerErreurContrainte(erreur: unknown): never {
+  const interpretation = interpreterContrainteVehicule(erreur);
+  if (interpretation) {
+    throw new ErreurMetier(interpretation.code, `Contrainte violée : ${interpretation.contrainte}.`);
+  }
+  throw erreur;
+}
+
+// -----------------------------------------------------------------------------------------
+// Liste paginée triable (GET /vehicules) — SQL direct : jointures LATERAL pour la plaque
+// courante et la prochaine échéance d'expertise, nécessaires aux 4 tris exposés (§6.2) et non
+// exprimables simplement avec le query-builder Drizzle. Colonnes rescoped sur tenant_id (défense
+// en profondeur, RLS déjà actif via enTenant()).
+// -----------------------------------------------------------------------------------------
+
+type LigneListeVehiculeBrute = {
+  readonly id: string;
+  readonly marque: string;
+  readonly modele: string;
+  readonly version: string | null;
+  readonly vin: string | null;
+  readonly date_1re_circulation: string | null;
+  readonly identification_incomplete: boolean;
+  readonly cree_le: Date;
+  readonly plaque_valeur: string | null;
+  readonly plaque_canton: string | null;
+  readonly prochaine_expertise_le: string | null;
+};
+
+interface LigneListeVehicule {
+  readonly id: string;
+  readonly marque: string;
+  readonly modele: string;
+  readonly version: string | null;
+  readonly vin: string | null;
+  readonly date1reCirculation: string | null;
+  readonly identificationIncomplete: boolean;
+  readonly creeLe: Date;
+  readonly plaqueValeur: string | null;
+  readonly plaqueCanton: string | null;
+  readonly prochaineExpertiseLe: string | null;
+}
+
+function versLigneListe(brute: LigneListeVehiculeBrute): LigneListeVehicule {
+  return {
+    id: brute.id,
+    marque: brute.marque,
+    modele: brute.modele,
+    version: brute.version,
+    vin: brute.vin,
+    date1reCirculation: brute.date_1re_circulation,
+    identificationIncomplete: brute.identification_incomplete,
+    creeLe: brute.cree_le,
+    plaqueValeur: brute.plaque_valeur,
+    plaqueCanton: brute.plaque_canton,
+    prochaineExpertiseLe: brute.prochaine_expertise_le,
+  };
+}
+
+function valeurDeTri(ligne: LigneListeVehicule, tri: string): string | number | null {
+  if (tri === 'plaque:asc' || tri === 'plaque:desc') return ligne.plaqueValeur;
+  if (tri === 'prochaineExpertiseLe:asc') return ligne.prochaineExpertiseLe;
+  return ligne.creeLe.toISOString();
+}
+
+async function executerListeVehicules(
+  tx: TransactionDfa,
+  tenantId: string,
+  filtres: FiltresVehicules,
+  tri: string,
+  curseur: { readonly valeur: string | number | null; readonly id: string } | null,
+  limite: number,
+): Promise<readonly LigneListeVehicule[]> {
+  const conditions: SQL[] = [sql`v.tenant_id = ${tenantId}`];
+  if (filtres.statut && filtres.statut.length > 0) {
+    conditions.push(sql`v.statut = any(${filtres.statut})`);
+  }
+  if (filtres.marque) {
+    conditions.push(sql`v.marque ilike ${`%${filtres.marque}%`}`);
+  }
+  if (filtres.importe !== undefined) {
+    conditions.push(sql`v.importe = ${filtres.importe}`);
+  }
+  if (filtres.detenteurId) {
+    conditions.push(sql`exists (
+      select 1 from public.vehicule_detention d
+       where d.tenant_id = v.tenant_id and d.vehicule_id = v.id and d.au is null and d.client_id = ${filtres.detenteurId}
+    )`);
+  }
+  if (filtres.prochaineExpertiseAu) {
+    conditions.push(sql`exists (
+      select 1 from public.vehicule_expertise e
+       where e.tenant_id = v.tenant_id and e.vehicule_id = v.id
+         and e.prochaine_echeance is not null and e.prochaine_echeance <= ${filtres.prochaineExpertiseAu}
+    )`);
+  }
+  if (filtres.q) {
+    const motif = `%${filtres.q}%`;
+    conditions.push(sql`(
+      public.normaliser_recherche(coalesce(v.marque,'') || ' ' || coalesce(v.modele,'')) like public.normaliser_recherche(${motif})
+      or public.normaliser_recherche(coalesce(v.vin,'')) like public.normaliser_recherche(${motif})
+      or exists (
+        select 1 from public.vehicule_plaque p
+         where p.tenant_id = v.tenant_id and p.vehicule_id = v.id and p.au is null
+           and public.normaliser_recherche(p.valeur) like public.normaliser_recherche(${motif})
+      )
+    )`);
+  }
+
+  const { ordre, seuil } = construireTriEtSeuil(tri, curseur);
+  conditions.push(seuil);
+
+  const requete = sql`
+    select v.id, v.marque, v.modele, v.version, v.vin, v.date_1re_circulation, v.identification_incomplete, v.cree_le,
+           pc.valeur as plaque_valeur, pc.canton as plaque_canton,
+           ne.prochaine_echeance as prochaine_expertise_le
+      from public.vehicule v
+      left join lateral (
+        select valeur, canton from public.vehicule_plaque
+         where tenant_id = v.tenant_id and vehicule_id = v.id and au is null
+         order by du desc limit 1
+      ) pc on true
+      left join lateral (
+        select prochaine_echeance from public.vehicule_expertise
+         where tenant_id = v.tenant_id and vehicule_id = v.id and prochaine_echeance is not null
+         order by prochaine_echeance desc limit 1
+      ) ne on true
+     where ${sql.join(conditions, sql` and `)}
+     order by ${ordre}
+     limit ${limite + 1}
+  `;
+
+  const resultat = await tx.execute<LigneListeVehiculeBrute>(requete);
+  return resultat.rows.map(versLigneListe);
+}
+
+function construireTriEtSeuil(
+  tri: string,
+  curseur: { readonly valeur: string | number | null; readonly id: string } | null,
+): { readonly ordre: SQL; readonly seuil: SQL } {
+  // Sentinelles NULLS LAST : `plaque_valeur`/`prochaine_echeance` sont non vides quand présents
+  // (contrainte `vehicule_plaque_valeur_non_vide_chk`, dates ISO), donc `''`/`'0001-01-01'`
+  // trient toujours avant une vraie valeur et `'￿'`/`'9999-12-31'` toujours après.
+  if (tri === 'plaque:asc') {
+    const v = typeof curseur?.valeur === 'string' ? curseur.valeur : '￿';
+    const id = curseur?.id ?? '';
+    const seuil = curseur
+      ? sql`(coalesce(pc.valeur, '￿'), v.id) > (${v}, ${id})`
+      : sql`true`;
+    return { ordre: sql`coalesce(pc.valeur, '￿') asc, v.id asc`, seuil };
+  }
+  if (tri === 'plaque:desc') {
+    const v = typeof curseur?.valeur === 'string' ? curseur.valeur : '';
+    const id = curseur?.id ?? '';
+    const seuil = curseur
+      ? sql`(coalesce(pc.valeur, ''), v.id) < (${v}, ${id})`
+      : sql`true`;
+    return { ordre: sql`coalesce(pc.valeur, '') desc, v.id desc`, seuil };
+  }
+  if (tri === 'prochaineExpertiseLe:asc') {
+    const v = typeof curseur?.valeur === 'string' ? curseur.valeur : '9999-12-31';
+    const id = curseur?.id ?? '';
+    const seuil = curseur
+      ? sql`(coalesce(ne.prochaine_echeance::text, '9999-12-31'), v.id) > (${v}, ${id})`
+      : sql`true`;
+    return { ordre: sql`coalesce(ne.prochaine_echeance, '9999-12-31'::date) asc, v.id asc`, seuil };
+  }
+  // creeLe:desc (défaut de `decoderCurseurTrie`)
+  const v = typeof curseur?.valeur === 'string' ? curseur.valeur : null;
+  const id = curseur?.id ?? '';
+  const seuil = curseur && v ? sql`(v.cree_le, v.id) < (${v}::timestamptz, ${id})` : sql`true`;
+  return { ordre: sql`v.cree_le desc, v.id desc`, seuil };
+}

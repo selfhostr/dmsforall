@@ -1,0 +1,303 @@
+/**
+ * Module véhicules — `vehicule`, `vehicule_plaque`, `vehicule_detention`, `vehicule_kilometrage`,
+ * `vehicule_expertise`, `vehicule_campagne`, `vehicule_travail_reporte`.
+ * Détail des règles : migrations/0007_vehicules.sql (FK vers `ordre_reparation`/`ligne_or`
+ * ajoutées par migrations/0008_atelier.sql, non modélisées ici — Drizzle ne décrit qu'un état
+ * final, les deux migrations ensemble).
+ */
+
+import { sql } from 'drizzle-orm';
+import {
+  boolean,
+  char,
+  check,
+  date,
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  smallint,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
+
+import { colonneCreeLe, colonnesHorodatage, colonneId, colonneTenantId } from '../colonnes-communes';
+import { tenant } from '../tenant';
+import { utilisateur } from '../utilisateur';
+import { client } from './client';
+import {
+  motifArchivageVehiculeEnum,
+  motifFinDetentionEnum,
+  motifKilometrageRegressifEnum,
+  resultatExpertiseEnum,
+  sourceEcheanceExpertiseEnum,
+  sourceKilometrageEnum,
+  statutCampagneEnum,
+  statutTravailReporteEnum,
+  statutVehiculeEnum,
+  uniteDistanceEnum,
+  urgenceTravailEnum,
+} from './enums';
+
+export const vehicule = pgTable(
+  'vehicule',
+  {
+    id: colonneId(),
+    tenantId: colonneTenantId().references(() => tenant.id, { onDelete: 'restrict' }),
+    vin: text('vin'),
+    marque: text('marque').notNull(),
+    modele: text('modele').notNull(),
+    version: text('version'),
+    finition: text('finition'),
+    codeTypeCh: text('code_type_ch'),
+    date1reCirculation: date('date_1re_circulation'),
+    carburant: text('carburant'),
+    cylindreeCm3: integer('cylindree_cm3'),
+    puissanceKw: integer('puissance_kw'),
+    boite: text('boite'),
+    transmission: text('transmission'),
+    normeEmission: text('norme_emission'),
+    couleur: text('couleur'),
+    codeCouleur: text('code_couleur'),
+    poidsVideKg: integer('poids_vide_kg'),
+    poidsTotalKg: integer('poids_total_kg'),
+    places: smallint('places'),
+    pneusEte: text('pneus_ete'),
+    pneusHiver: text('pneus_hiver'),
+    pressionPneus: text('pression_pneus'),
+    huileType: text('huile_type'),
+    huileQuantiteDl: integer('huile_quantite_dl'),
+    batterie: text('batterie'),
+    codeRadio: text('code_radio'),
+    codeCle: text('code_cle'),
+    intervalleEntretienKm: integer('intervalle_entretien_km'),
+    intervalleEntretienMois: smallint('intervalle_entretien_mois'),
+    importe: boolean('importe').notNull().default(false),
+    paysOrigine: char('pays_origine', { length: 2 }),
+    dateImportation: date('date_importation'),
+    garantieDebut: date('garantie_debut'),
+    garantieMois: smallint('garantie_mois'),
+    garantieKm: integer('garantie_km'),
+    proprietaireEconomiqueClientId: uuid('proprietaire_economique_client_id'),
+    conducteurHabituel: text('conducteur_habituel'),
+    identificationIncomplete: boolean('identification_incomplete').notNull().default(false),
+    statut: statutVehiculeEnum('statut').notNull().default('actif'),
+    motifArchivage: motifArchivageVehiculeEnum('motif_archivage'),
+    fusionneVersVehiculeId: uuid('fusionne_vers_vehicule_id'),
+    /** Accroche étape 4 (véhicules en stock) : sans FK tant que la cible n'existe pas. */
+    vehiculeStockId: uuid('vehicule_stock_id'),
+    ...colonnesHorodatage(),
+  },
+  (t) => [
+    unique('vehicule_tenant_id_uk').on(t.tenantId, t.id),
+    foreignKey({
+      name: 'vehicule_fk_proprietaire_eco',
+      columns: [t.tenantId, t.proprietaireEconomiqueClientId],
+      foreignColumns: [client.tenantId, client.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'vehicule_fk_fusionne_vers',
+      columns: [t.tenantId, t.fusionneVersVehiculeId],
+      foreignColumns: [t.tenantId, t.id],
+    }).onDelete('restrict'),
+    check(
+      'vehicule_vin_format_chk',
+      sql`${t.vin} is null or length(${t.vin}) <> 17 or ${t.vin} ~ '^[A-HJ-NPR-Z0-9]{17}$'`,
+    ),
+    check('vehicule_marque_non_vide_chk', sql`length(btrim(${t.marque})) > 0`),
+    check('vehicule_modele_non_vide_chk', sql`length(btrim(${t.modele})) > 0`),
+    check(
+      'vehicule_archivage_coherent_chk',
+      sql`(${t.statut} = 'archive') = (${t.motifArchivage} is not null)`,
+    ),
+    index('vehicule_pagination_idx').on(t.tenantId, t.creeLe.desc(), t.id.desc()),
+  ],
+);
+
+export const vehiculePlaque = pgTable(
+  'vehicule_plaque',
+  {
+    id: colonneId(),
+    tenantId: uuid('tenant_id').notNull(),
+    vehiculeId: uuid('vehicule_id').notNull(),
+    valeur: text('valeur').notNull(),
+    canton: char('canton', { length: 2 }),
+    pays: char('pays', { length: 2 }).notNull().default('CH'),
+    du: date('du').notNull(),
+    au: date('au'),
+    interchangeable: boolean('interchangeable').notNull().default(false),
+    professionnelle: boolean('professionnelle').notNull().default(false),
+    ...colonnesHorodatage(),
+  },
+  (t) => [
+    unique('vehicule_plaque_tenant_id_uk').on(t.tenantId, t.id),
+    foreignKey({
+      name: 'vehicule_plaque_fk',
+      columns: [t.tenantId, t.vehiculeId],
+      foreignColumns: [vehicule.tenantId, vehicule.id],
+    }).onDelete('restrict'),
+    check('vehicule_plaque_valeur_non_vide_chk', sql`length(btrim(${t.valeur})) > 0`),
+    index('vehicule_plaque_courante_idx').on(t.tenantId, t.vehiculeId),
+  ],
+);
+
+export const vehiculeDetention = pgTable(
+  'vehicule_detention',
+  {
+    id: colonneId(),
+    tenantId: uuid('tenant_id').notNull(),
+    vehiculeId: uuid('vehicule_id').notNull(),
+    clientId: uuid('client_id').notNull(),
+    du: date('du').notNull(),
+    au: date('au'),
+    motifFin: motifFinDetentionEnum('motif_fin'),
+    ...colonnesHorodatage(),
+  },
+  (t) => [
+    unique('vehicule_detention_tenant_id_uk').on(t.tenantId, t.id),
+    foreignKey({
+      name: 'vehicule_detention_fk_vehicule',
+      columns: [t.tenantId, t.vehiculeId],
+      foreignColumns: [vehicule.tenantId, vehicule.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'vehicule_detention_fk_client',
+      columns: [t.tenantId, t.clientId],
+      foreignColumns: [client.tenantId, client.id],
+    }).onDelete('restrict'),
+    check('vehicule_detention_motif_fin_chk', sql`(${t.au} is null) = (${t.motifFin} is null)`),
+    index('vehicule_detention_courante_idx').on(t.tenantId, t.vehiculeId),
+    index('vehicule_detention_client_idx').on(t.tenantId, t.clientId, t.du.desc()),
+  ],
+);
+
+/** Append-only (RM-23/24/25) : pas de `modifie_le`. `valeur_km` est GENERATED — non modélisée
+ *  côté Drizzle (colonne calculée en base, exposée en lecture via `$type` sur `integer`). */
+export const vehiculeKilometrage = pgTable(
+  'vehicule_kilometrage',
+  {
+    id: colonneId(),
+    tenantId: uuid('tenant_id').notNull(),
+    vehiculeId: uuid('vehicule_id').notNull(),
+    valeur: integer('valeur').notNull(),
+    unite: uniteDistanceEnum('unite').notNull(),
+    releveLe: timestamp('releve_le', { withTimezone: true, mode: 'date' }).notNull(),
+    source: sourceKilometrageEnum('source').notNull(),
+    motifRegression: motifKilometrageRegressifEnum('motif_regression'),
+    /** FK ajoutée par migrations/0008_atelier.sql, une fois `ordre_reparation` créé. */
+    ordreReparationId: uuid('ordre_reparation_id'),
+    saisiParId: uuid('saisi_par_id'),
+    valeurKm: integer('valeur_km'),
+    creeLe: colonneCreeLe(),
+  },
+  (t) => [
+    unique('vehicule_kilometrage_tenant_id_uk').on(t.tenantId, t.id),
+    foreignKey({
+      name: 'vehicule_kilometrage_fk_vehicule',
+      columns: [t.tenantId, t.vehiculeId],
+      foreignColumns: [vehicule.tenantId, vehicule.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'vehicule_kilometrage_fk_saisi_par',
+      columns: [t.tenantId, t.saisiParId],
+      foreignColumns: [utilisateur.tenantId, utilisateur.id],
+    }).onDelete('restrict'),
+    check('vehicule_kilometrage_valeur_chk', sql`${t.valeur} >= 0`),
+    index('vehicule_kilometrage_dernier_idx').on(t.tenantId, t.vehiculeId, t.releveLe.desc()),
+  ],
+);
+
+export const vehiculeExpertise = pgTable(
+  'vehicule_expertise',
+  {
+    id: colonneId(),
+    tenantId: uuid('tenant_id').notNull(),
+    vehiculeId: uuid('vehicule_id').notNull(),
+    dateExpertise: date('date_expertise').notNull(),
+    resultat: resultatExpertiseEnum('resultat').notNull(),
+    defauts: text('defauts'),
+    delaiContreVisite: date('delai_contre_visite'),
+    dateContreVisite: date('date_contre_visite'),
+    prochaineEcheance: date('prochaine_echeance'),
+    sourceEcheance: sourceEcheanceExpertiseEnum('source_echeance'),
+    ...colonnesHorodatage(),
+  },
+  (t) => [
+    unique('vehicule_expertise_tenant_id_uk').on(t.tenantId, t.id),
+    foreignKey({
+      name: 'vehicule_expertise_fk',
+      columns: [t.tenantId, t.vehiculeId],
+      foreignColumns: [vehicule.tenantId, vehicule.id],
+    }).onDelete('restrict'),
+    index('vehicule_expertise_echeance_idx').on(t.tenantId, t.prochaineEcheance),
+  ],
+);
+
+export const vehiculeCampagne = pgTable(
+  'vehicule_campagne',
+  {
+    id: colonneId(),
+    tenantId: uuid('tenant_id').notNull(),
+    vehiculeId: uuid('vehicule_id').notNull(),
+    code: text('code').notNull(),
+    description: text('description'),
+    obligatoire: boolean('obligatoire').notNull().default(false),
+    statut: statutCampagneEnum('statut').notNull().default('ouverte'),
+    closeLe: timestamp('close_le', { withTimezone: true, mode: 'date' }),
+    /** FK ajoutée par migrations/0008_atelier.sql. */
+    ordreReparationId: uuid('ordre_reparation_id'),
+    ...colonnesHorodatage(),
+  },
+  (t) => [
+    unique('vehicule_campagne_tenant_id_uk').on(t.tenantId, t.id),
+    foreignKey({
+      name: 'vehicule_campagne_fk',
+      columns: [t.tenantId, t.vehiculeId],
+      foreignColumns: [vehicule.tenantId, vehicule.id],
+    }).onDelete('restrict'),
+    check('vehicule_campagne_code_non_vide_chk', sql`length(btrim(${t.code})) > 0`),
+    index('vehicule_campagne_ouverte_idx').on(t.tenantId, t.vehiculeId),
+  ],
+);
+
+export const vehiculeTravailReporte = pgTable(
+  'vehicule_travail_reporte',
+  {
+    id: colonneId(),
+    tenantId: uuid('tenant_id').notNull(),
+    vehiculeId: uuid('vehicule_id').notNull(),
+    designation: text('designation').notNull(),
+    urgence: urgenceTravailEnum('urgence').notNull(),
+    montantEstimeCentimes: integer('montant_estime_centimes'),
+    kmConstat: integer('km_constat'),
+    dateConstat: date('date_constat').notNull(),
+    /** FK ajoutées par migrations/0008_atelier.sql. */
+    ordreReparationOrigineId: uuid('ordre_reparation_origine_id'),
+    ligneOrOrigineId: uuid('ligne_or_origine_id'),
+    securite: boolean('securite').notNull().default(false),
+    statut: statutTravailReporteEnum('statut').notNull().default('ouvert'),
+    ordreReparationRepriseId: uuid('ordre_reparation_reprise_id'),
+    ...colonnesHorodatage(),
+  },
+  (t) => [
+    unique('vehicule_travail_reporte_tenant_id_uk').on(t.tenantId, t.id),
+    foreignKey({
+      name: 'vehicule_travail_reporte_fk',
+      columns: [t.tenantId, t.vehiculeId],
+      foreignColumns: [vehicule.tenantId, vehicule.id],
+    }).onDelete('restrict'),
+    check('vehicule_travail_reporte_designation_non_vide_chk', sql`length(btrim(${t.designation})) > 0`),
+    index('vehicule_travail_reporte_ouvert_idx').on(t.tenantId, t.vehiculeId),
+  ],
+);
+
+export type LigneVehicule = typeof vehicule.$inferSelect;
+export type NouveauVehicule = typeof vehicule.$inferInsert;
+export type LigneVehiculePlaque = typeof vehiculePlaque.$inferSelect;
+export type LigneVehiculeDetention = typeof vehiculeDetention.$inferSelect;
+export type LigneVehiculeKilometrage = typeof vehiculeKilometrage.$inferSelect;
+export type LigneVehiculeExpertise = typeof vehiculeExpertise.$inferSelect;
+export type LigneVehiculeCampagne = typeof vehiculeCampagne.$inferSelect;
+export type LigneVehiculeTravailReporte = typeof vehiculeTravailReporte.$inferSelect;

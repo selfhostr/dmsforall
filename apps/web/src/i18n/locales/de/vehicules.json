@@ -32,7 +32,8 @@
       "vente": "Verkauf",
       "reprise": "Rücknahme",
       "deces": "Todesfall",
-      "correction": "Berichtigung"
+      "correction": "Berichtigung",
+      "export": "Export"
     }
   },
   "kilometrage": {
@@ -75,6 +76,7 @@
   "garantie": {
     "titre": "Garantie",
     "constructeur": "Hersteller",
+    "garage": "Werkstatt",
     "debut": "Garantiebeginn",
     "duree": "Dauer",
     "plafond": "km Grenze",
@@ -102,6 +104,7 @@
   },
   "donnees": {
     "titre": "Werkstattdaten",
+    "vide": "Daten nicht eingegeben",
     "pneus": "Reifen",
     "ete": "Sommer",
     "hiver": "Winter",
@@ -111,7 +114,9 @@
     "quantite": "Menge (l)",
     "batterie": "Batterie",
     "codeRadio": "Radiocode",
-    "intervalle": "Wartungsintervall"
+    "codeCle": "Schlüsselcode",
+    "intervalle": "Wartungsintervall",
+    "intervalleMois": "{mois, plural, one {# Monat} other {# Monaten}}"
   },
   "importation": {
     "titre": "Import",
@@ -135,6 +140,11 @@
     "kilometrage": "Kein Kilometerstand erfasst",
     "nouveau": "Erstellen Sie Ihr erstes Fahrzeug",
     "recherche": "Kein Fahrzeug gefunden",
-    "filtre": "Keine Ergebnisse mit diesen Filtern"
+    "filtre": "Keine Ergebnisse mit diesen Filtern",
+    "travauxReportes": "Keine aufgeschobenen Arbeiten",
+    "detentions": "Kein Halterwechsel registriert"
+  },
+  "badges": {
+    "identificationIncomplete": "Identifikation unvollständig"
   }
 }

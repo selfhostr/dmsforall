@@ -25,6 +25,9 @@
   "chargement": {
     "enCours": "Chargement…"
   },
+  "etats": {
+    "lectureSeule": "Lecture seule"
+  },
   "langue": {
     "libelle": "Langue",
     "choisir": "Choisir la langue"

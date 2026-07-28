@@ -32,7 +32,8 @@
       "vente": "Vente",
       "reprise": "Reprise",
       "deces": "Décès",
-      "correction": "Correction"
+      "correction": "Correction",
+      "export": "Export"
     }
   },
   "kilometrage": {
@@ -75,6 +76,7 @@
   "garantie": {
     "titre": "Garantie",
     "constructeur": "Constructeur",
+    "garage": "Garage",
     "debut": "Début de garantie",
     "duree": "Durée",
     "plafond": "Plafond km",
@@ -102,6 +104,7 @@
   },
   "donnees": {
     "titre": "Données d'atelier",
+    "vide": "Données non saisies",
     "pneus": "Pneus",
     "ete": "Été",
     "hiver": "Hiver",
@@ -111,7 +114,9 @@
     "quantite": "Quantité (l)",
     "batterie": "Batterie",
     "codeRadio": "Code radio",
-    "intervalle": "Intervalle d'entretien"
+    "codeCle": "Code clé",
+    "intervalle": "Intervalle d'entretien",
+    "intervalleMois": "{mois, plural, one {# mois} other {# mois}}"
   },
   "importation": {
     "titre": "Importation",
@@ -135,6 +140,11 @@
     "kilometrage": "Aucun kilométrage relevé",
     "nouveau": "Créez votre premier véhicule",
     "recherche": "Aucun véhicule trouvé",
-    "filtre": "Aucun résultat avec ces filtres"
+    "filtre": "Aucun résultat avec ces filtres",
+    "travauxReportes": "Aucun travail reporté",
+    "detentions": "Aucune détention enregistrée"
+  },
+  "badges": {
+    "identificationIncomplete": "Identification incomplète"
   }
 }

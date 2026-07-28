@@ -27,7 +27,22 @@ function estCodeErreur(valeur: unknown): valeur is CodeErreur {
  */
 const TITRE_PAR_CODE = TITRE_FR_PAR_CODE_ERREUR;
 
-function construireCorps(code: CodeErreur, status: number, instance: string, detail?: string, erreurs?: ProblemeDetail['erreurs']): ProblemeDetail {
+/** Champs facultatifs de `ProblemeDetail` au-delà du socle (type/title/status/code/instance). */
+interface ChampsCorpsFacultatifs {
+  readonly detail?: ProblemeDetail['detail'];
+  readonly erreurs?: ProblemeDetail['erreurs'];
+  readonly blocages?: ProblemeDetail['blocages'];
+  readonly confirmationsRequises?: ProblemeDetail['confirmationsRequises'];
+  readonly actionsProposees?: ProblemeDetail['actionsProposees'];
+}
+
+/**
+ * N'émet chacun de ces cinq champs QUE quand ils sont présents (tous facultatifs sur
+ * `ProblemeDetail`) : un `JSON.stringify` d'une clé `undefined` la fait disparaître, mais
+ * autant ne jamais la poser sur l'objet plutôt que de compter sur ce comportement.
+ */
+function construireCorps(code: CodeErreur, status: number, instance: string, champs: ChampsCorpsFacultatifs = {}): ProblemeDetail {
+  const { detail, erreurs, blocages, confirmationsRequises, actionsProposees } = champs;
   return {
     type: `${TYPE_BASE}/${code}`,
     title: TITRE_PAR_CODE[code],
@@ -36,6 +51,9 @@ function construireCorps(code: CodeErreur, status: number, instance: string, det
     ...(detail !== undefined ? { detail } : {}),
     instance,
     ...(erreurs !== undefined ? { erreurs } : {}),
+    ...(blocages !== undefined ? { blocages } : {}),
+    ...(confirmationsRequises !== undefined ? { confirmationsRequises } : {}),
+    ...(actionsProposees !== undefined ? { actionsProposees } : {}),
   };
 }
 
@@ -80,7 +98,13 @@ export class FiltreProbleme implements ExceptionFilter {
         // invalides, qui ne sont jamais envoyées à Sentry — voir capturer-erreur-inattendue.ts).
         capturerErreurInattendue(exception, contexteSentry);
       }
-      const corps = construireCorps(exception.code, exception.status, instance, exception.detail, exception.erreurs);
+      const corps = construireCorps(exception.code, exception.status, instance, {
+        detail: exception.detail,
+        erreurs: exception.erreurs,
+        blocages: exception.blocages,
+        confirmationsRequises: exception.confirmationsRequises,
+        actionsProposees: exception.actionsProposees,
+      });
       if (exception.enTetes) {
         for (const [nom, valeur] of Object.entries(exception.enTetes)) {
           reponse.setHeader(nom, valeur);
@@ -121,7 +145,7 @@ export class FiltreProbleme implements ExceptionFilter {
           reponse.setHeader('Retry-After', String(corpsSource.retryApresSecondes));
         }
 
-        const corps = construireCorps(corpsSource.code, status, instance, undefined, corpsSource.erreurs);
+        const corps = construireCorps(corpsSource.code, status, instance, { erreurs: corpsSource.erreurs });
         reponse.status(status).contentType('application/problem+json').json(corps);
         return;
       }

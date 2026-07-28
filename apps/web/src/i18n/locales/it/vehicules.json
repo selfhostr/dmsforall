@@ -32,7 +32,8 @@
       "vente": "Vendita",
       "reprise": "Ripresa",
       "deces": "Decesso",
-      "correction": "Correzione"
+      "correction": "Correzione",
+      "export": "Esportazione"
     }
   },
   "kilometrage": {
@@ -75,6 +76,7 @@
   "garantie": {
     "titre": "Garanzia",
     "constructeur": "Costruttore",
+    "garage": "Officina",
     "debut": "Inizio garanzia",
     "duree": "Durata",
     "plafond": "Limite km",
@@ -102,6 +104,7 @@
   },
   "donnees": {
     "titre": "Dati officina",
+    "vide": "Dati non inseriti",
     "pneus": "Pneumatici",
     "ete": "Estivi",
     "hiver": "Invernali",
@@ -111,7 +114,9 @@
     "quantite": "Quantita (l)",
     "batterie": "Batteria",
     "codeRadio": "Codice radio",
-    "intervalle": "Intervallo manutenzione"
+    "codeCle": "Codice chiave",
+    "intervalle": "Intervallo manutenzione",
+    "intervalleMois": "{mois, plural, one {# mese} other {# mesi}}"
   },
   "importation": {
     "titre": "Importazione",
@@ -135,6 +140,11 @@
     "kilometrage": "Nessun chilometraggio registrato",
     "nouveau": "Crea il tuo primo veicolo",
     "recherche": "Nessun veicolo trovato",
-    "filtre": "Nessun risultato con questi filtri"
+    "filtre": "Nessun risultato con questi filtri",
+    "travauxReportes": "Nessun lavoro rinviato",
+    "detentions": "Nessun cambio proprietario registrato"
+  },
+  "badges": {
+    "identificationIncomplete": "Identificazione incompleta"
   }
 }

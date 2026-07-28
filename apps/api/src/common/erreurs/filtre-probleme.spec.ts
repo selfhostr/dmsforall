@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ArgumentsHost, ForbiddenException, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import type { ActionProposee, ElementBloquant } from '@dfa/shared';
 import { ErreurIdentifiantsInvalides } from '../../auth/erreurs-auth';
 import type { PrincipalAuthentifie } from '../contexte/contexte-requete.types';
 import type { ServiceContexteRequete } from '../contexte/contexte-requete.service';
@@ -175,5 +176,104 @@ describe('FiltreProbleme — envoi Sentry réservé aux erreurs INATTENDUES', ()
     const contexteEnvoye = capturerErreurInattendue.mock.calls[0]?.[1];
     expect(contexteEnvoye.tenantId).toBeUndefined();
     expect(contexteEnvoye.role).toBeUndefined();
+  });
+});
+
+describe('FiltreProbleme — blocages, confirmationsRequises et actionsProposees (invariant « aucun refus sans chemin de sortie »)', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('émet blocages ET actionsProposees dans le corps problem+json d\'un refus complet (409 OR_LIGNES_A_VALIDER)', () => {
+    const filtre = new FiltreProbleme(serviceContexteTest(PRINCIPAL_TEST), serviceJournalTest());
+    const reponse = reponseTest();
+    const blocages: readonly ElementBloquant[] = [
+      { type: 'ligne_or', id: 'ligne-1', libelle: 'Ligne 1 — remplacement plaquettes' },
+      { type: 'technicien', id: 'technicien-1', libelle: 'Pointage encore ouvert' },
+    ];
+    const actionsProposees: readonly ActionProposee[] = [
+      { code: 'VALIDER_LIGNES', methode: 'POST', chemin: '/api/v1/atelier/or/or-1/lignes/valider' },
+      { code: 'ARRETER_POINTAGES' },
+    ];
+    const exception = new ErreurMetier('OR_LIGNES_A_VALIDER', 'des lignes attendent une décision', {
+      blocages,
+      actionsProposees,
+    });
+
+    filtre.catch(exception, hostTest(requeteTest(), reponse));
+
+    expect(reponse.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'OR_LIGNES_A_VALIDER',
+        blocages,
+        actionsProposees,
+      }),
+    );
+    // Pas de confirmationsRequises sur ce refus : absent du corps, jamais `undefined` posé.
+    const corpsEnvoye = (reponse.json as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
+    expect(corpsEnvoye).not.toHaveProperty('confirmationsRequises');
+  });
+
+  it('émet confirmationsRequises dans le corps problem+json d\'un 409 CONFIRMATION_REQUISE', () => {
+    const filtre = new FiltreProbleme(serviceContexteTest(PRINCIPAL_TEST), serviceJournalTest());
+    const reponse = reponseTest();
+    const exception = new ErreurMetier('CONFIRMATION_REQUISE', 'confirmation requise', {
+      confirmationsRequises: ['CLIENT_BLOQUE'],
+      actionsProposees: [{ code: 'REJOUER_AVEC_CONFIRMATION' }],
+    });
+
+    filtre.catch(exception, hostTest(requeteTest(), reponse));
+
+    expect(reponse.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'CONFIRMATION_REQUISE',
+        confirmationsRequises: ['CLIENT_BLOQUE'],
+        actionsProposees: [{ code: 'REJOUER_AVEC_CONFIRMATION' }],
+      }),
+    );
+    const corpsEnvoye = (reponse.json as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
+    expect(corpsEnvoye).not.toHaveProperty('blocages');
+  });
+
+  it("n'émet aucun des trois champs quand l'ErreurMetier ne les porte pas (comportement inchangé)", () => {
+    const filtre = new FiltreProbleme(serviceContexteTest(), serviceJournalTest());
+    const reponse = reponseTest();
+    const exception = new ErreurMetier('RESSOURCE_INTROUVABLE', 'client introuvable');
+
+    filtre.catch(exception, hostTest(requeteTest(), reponse));
+
+    const corpsEnvoye = (reponse.json as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
+    expect(corpsEnvoye).not.toHaveProperty('blocages');
+    expect(corpsEnvoye).not.toHaveProperty('confirmationsRequises');
+    expect(corpsEnvoye).not.toHaveProperty('actionsProposees');
+  });
+
+  it("n'envoie jamais blocages/actionsProposees à Sentry — même quand l'ErreurMetier ERREUR_INTERNE les porte (le contexte Sentry reste limité à des identifiants techniques)", () => {
+    const filtre = new FiltreProbleme(serviceContexteTest(PRINCIPAL_TEST), serviceJournalTest());
+    const requete = requeteTest({ method: 'POST', routePath: '/api/v1/atelier/or/:id/cloturer' });
+    const reponse = reponseTest();
+    // Un `libelle` porteur d'un nom de technicien : donnée personnelle sous nLPD, jamais
+    // acceptable dans le contexte de diagnostic envoyé à Sentry (voir observabilite/nettoyer-evenement.ts).
+    const blocages: readonly ElementBloquant[] = [
+      { type: 'technicien', id: 'technicien-1', libelle: 'Pointage ouvert — Jean Dupont' },
+    ];
+    const exception = new ErreurMetier('ERREUR_INTERNE', 'panne interne pendant la clôture', { blocages });
+
+    filtre.catch(exception, hostTest(requete, reponse));
+
+    expect(capturerErreurInattendue).toHaveBeenCalledTimes(1);
+    // Assertion stricte (toEqual, pas objectContaining) : le contexte Sentry n'a PAS de clé
+    // `blocages` — s'il en gagnait une un jour, cette assertion échouerait avant que la donnée
+    // personnelle n'atteigne réellement le réseau.
+    expect(capturerErreurInattendue).toHaveBeenCalledWith(exception, {
+      requeteId: 'requete-id-1',
+      tenantId: 'tenant-id-uuid',
+      role: 'admin',
+      endpoint: '/api/v1/atelier/or/:id/cloturer',
+      methode: 'POST',
+    });
+    // Le corps HTTP, lui, porte bien blocages — c'est la réponse au client, pas l'envoi Sentry.
+    const corpsEnvoye = (reponse.json as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
+    expect(corpsEnvoye).toHaveProperty('blocages', blocages);
   });
 });

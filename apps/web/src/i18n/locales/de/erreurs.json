@@ -78,13 +78,17 @@
     "PRET_CONDUCTEUR_REQUIS": "Die Fahrerinformationen sind erforderlich.",
     "CONFIRMATION_REQUISE": "Eine Bestätigung ist erforderlich, um fortzufahren.",
     "IDEMPOTENCE_CONFLIT": "Diese Anfrage wurde bereits mit einem anderen Inhalt gesendet.",
-    "FONCTION_NON_DISPONIBLE": "Diese Funktion ist noch nicht verfügbar."
-  },
-  "avertissements": {
+    "FONCTION_NON_DISPONIBLE": "Diese Funktion ist noch nicht verfügbar.",
     "VEHICULE_VIN_COURT": "Diese Fahrgestellnummer ist kürzer als normal.",
     "VEHICULE_IDENTIFICATION_INCOMPLETE": "Die Fahrgestellnummer ist für dieses Fahrzeug nicht registriert.",
     "VEHICULE_KILOMETRAGE_ABERRANT": "Der eingegebene Kilometerstand scheint anormal zu sein.",
-    "VEHICULE_EXPERTISE_ECHUE": "Die MFK (Motorfahrzeugkontrolle) ist fällig."
+    "VEHICULE_EXPERTISE_ECHUE": "Die MFK (Motorfahrzeugkontrolle) ist fällig.",
+    "OR_MULTI_PAYEURS_DESACTIVE": "Die Aufteilung auf mehrere Zahler ist in Ihrer Werkstatt nicht aktiviert.",
+    "OR_SANS_RDV": "Dieser Reparaturauftrag hat keinen zugeordneten Termin.",
+    "PLANNING_CAPACITE_DEPASSEE": "Die geplante Auslastung für diesen Tag überschreitet die Werkstattkapazität.",
+    "POINTAGE_CLOTURE_AUTOMATIQUE": "Diese Zeiterfassung wurde bei Werkstattschluss automatisch beendet.",
+    "PRET_CASCADE_RESTITUTION": "Die Rückgabe des Fahrzeugs führt zur Rückgabe des Leihfahrzeugs.",
+    "VEHICULE_DEUX_OR_OUVERTS": "Ein Reparaturauftrag ist für dieses Fahrzeug bereits offen."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Nachtragsofferte erstellen",

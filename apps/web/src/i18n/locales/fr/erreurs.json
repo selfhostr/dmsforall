@@ -78,13 +78,17 @@
     "PRET_CONDUCTEUR_REQUIS": "Les informations du conducteur sont obligatoires.",
     "CONFIRMATION_REQUISE": "Une confirmation est requise pour poursuivre.",
     "IDEMPOTENCE_CONFLIT": "Cette requête a déjà été envoyée avec un corps différent.",
-    "FONCTION_NON_DISPONIBLE": "Cette fonctionnalité n'est pas encore disponible."
-  },
-  "avertissements": {
+    "FONCTION_NON_DISPONIBLE": "Cette fonctionnalité n'est pas encore disponible.",
     "VEHICULE_VIN_COURT": "Ce VIN est plus court que la normale.",
     "VEHICULE_IDENTIFICATION_INCOMPLETE": "Le VIN n'est pas enregistré pour ce véhicule.",
     "VEHICULE_KILOMETRAGE_ABERRANT": "Le kilométrage saisi semble anormal.",
-    "VEHICULE_EXPERTISE_ECHUE": "L'expertise (MFK) est en retard."
+    "VEHICULE_EXPERTISE_ECHUE": "L'expertise (MFK) est en retard.",
+    "OR_MULTI_PAYEURS_DESACTIVE": "La répartition entre plusieurs payeurs n'est pas activée pour votre garage.",
+    "OR_SANS_RDV": "Cet ordre de réparation n'a pas de rendez-vous associé.",
+    "PLANNING_CAPACITE_DEPASSEE": "La charge prévue pour ce jour dépasse la capacité de l'atelier.",
+    "POINTAGE_CLOTURE_AUTOMATIQUE": "Ce pointage a été clôturé automatiquement à la fermeture.",
+    "PRET_CASCADE_RESTITUTION": "La restitution du véhicule entraînera celle du véhicule de prêt.",
+    "VEHICULE_DEUX_OR_OUVERTS": "Un ordre de réparation est déjà ouvert pour ce véhicule."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Créer un devis complémentaire",
