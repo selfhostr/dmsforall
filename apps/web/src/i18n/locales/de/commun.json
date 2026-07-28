@@ -7,7 +7,20 @@
     "reessayer": "Erneut versuchen",
     "rechargerApplication": "Anwendung neu laden",
     "retourAccueil": "Zur Startseite",
-    "fermer": "Schliessen"
+    "fermer": "Schliessen",
+    "annuler": "Abbrechen",
+    "enregistrer": "Speichern",
+    "modifier": "Ändern",
+    "ajouter": "Hinzufügen",
+    "rechercher": "Suchen",
+    "filtrer": "Filtern",
+    "effacerFiltres": "Filter löschen",
+    "continuerQuandMeme": "Trotzdem fortfahren",
+    "confirmer": "Bestätigen",
+    "chargerPlus": "Mehr laden",
+    "copier": "Kopieren",
+    "imprimer": "Drucken",
+    "voir": "Ansehen"
   },
   "chargement": {
     "enCours": "Wird geladen…"
@@ -25,7 +38,12 @@
     "modele": "{page} – dmsforall",
     "connexion": "Anmeldung",
     "accueil": "Startseite",
-    "pageIntrouvable": "Seite nicht gefunden"
+    "pageIntrouvable": "Seite nicht gefunden",
+    "clients": "Kunden",
+    "vehicules": "Fahrzeuge",
+    "recherche": "Suchen",
+    "clientDetail": "Kundenkarte",
+    "vehiculeDetail": "Fahrzeugkarte"
   },
   "roles": {
     "direction": "Geschäftsführung",

@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { CODES_ERREUR, type CodeErreur, type ErreurChamp, type ProblemeDetail } from '@dfa/shared';
 import { ServiceContexteRequete } from '../contexte/contexte-requete.service';
 import { ServiceJournal } from '../journal/service-journal';
+import { capturerErreurInattendue, type ContexteErreurSentry } from '../../observabilite';
 import { ErreurMetier, STATUT_PAR_CODE_ERREUR } from './erreur-metier';
 
 const TYPE_BASE = 'https://docs.dmsforall.example/erreurs';
@@ -60,11 +61,28 @@ export class FiltreProbleme implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const reponse = ctx.getResponse<Response>();
 
-    const instance = this.contexte.actuelOuNull()?.requeteId ?? randomUUID();
+    const contexteRequete = this.contexte.actuelOuNull();
+    const instance = contexteRequete?.requeteId ?? randomUUID();
+
+    // Contexte Sentry — identifiants techniques uniquement (voir observabilite/) : jamais
+    // l'e-mail ni le nom de l'utilisateur, seulement tenantId (UUID technique, pas une donnée
+    // personnelle) et le rôle. `route?.path` est le PATRON de route (ex. `/clients/:id`),
+    // jamais l'URL résolue : une valeur de paramètre (VIN, plaque…) ne doit jamais finir en tag.
+    const requete = ctx.getRequest<Request>();
+    const contexteSentry: ContexteErreurSentry = {
+      requeteId: instance,
+      tenantId: contexteRequete?.principal?.tenantId,
+      role: contexteRequete?.principal?.role,
+      endpoint: typeof requete?.route?.path === 'string' ? requete.route.path : undefined,
+      methode: requete?.method,
+    };
 
     if (exception instanceof ErreurMetier) {
       if (exception.code === 'ERREUR_INTERNE') {
         this.journal.error('Erreur métier ERREUR_INTERNE', exception, { requeteId: instance });
+        // Erreur INATTENDUE (par opposition aux erreurs métier normales comme un 401 identifiants
+        // invalides, qui ne sont jamais envoyées à Sentry — voir capturer-erreur-inattendue.ts).
+        capturerErreurInattendue(exception, contexteSentry);
       }
       const corps = construireCorps(exception.code, exception.status, instance, exception.detail, exception.erreurs);
       if (exception.enTetes) {
@@ -118,6 +136,15 @@ export class FiltreProbleme implements ExceptionFilter {
       const code: CodeErreur = status === 400 ? 'VALIDATION_ECHOUEE' : 'ERREUR_INTERNE';
       if (code === 'ERREUR_INTERNE') {
         this.journal.error('HttpException Nest non mappée', exception, { requeteId: instance, status });
+        // Sentry seulement si le statut D'ORIGINE est déjà serveur (>= 500) : une route
+        // inexistante (NotFoundException Nest, 404 — faute de frappe client, bot qui scanne
+        // l'API) ou un 403 générique se retrouvent normalisés en ERREUR_INTERNE/500 dans la
+        // réponse HTTP par la ligne au-dessus, mais ne sont PAS des incidents — les envoyer à
+        // Sentry noierait les vraies alertes sous du bruit de trafic routinier (règle du
+        // contrat : seules les erreurs INATTENDUES partent, voir capturer-erreur-inattendue.ts).
+        if (status >= 500) {
+          capturerErreurInattendue(exception, contexteSentry);
+        }
       }
       const corps = construireCorps(code, STATUT_PAR_CODE_ERREUR[code], instance);
       reponse.status(STATUT_PAR_CODE_ERREUR[code]).contentType('application/problem+json').json(corps);
@@ -127,6 +154,7 @@ export class FiltreProbleme implements ExceptionFilter {
     // Tout le reste (erreur de programmation, exception non typée…) : jamais exposé tel
     // quel. On journalise la vraie erreur, on renvoie un ERREUR_INTERNE générique.
     this.journal.error('Exception non typée capturée par FiltreProbleme', exception, { requeteId: instance });
+    capturerErreurInattendue(exception, contexteSentry);
     const corps = construireCorps('ERREUR_INTERNE', 500, instance);
     reponse.status(500).contentType('application/problem+json').json(corps);
   }

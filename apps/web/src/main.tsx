@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import '@/i18n';
 import '@/index.css';
 import { ErreurEnvInvalide, initialiserEnv } from '@/config/env';
+import { initialiserSentry } from '@/observabilite/sentry';
 
 const conteneur = document.getElementById('root');
 if (!conteneur) {
@@ -15,6 +16,9 @@ const racine = createRoot(conteneur);
 // App (et donc jamais api/client.ts, qui lit VITE_API_URL) — import dynamique volontaire.
 try {
   initialiserEnv();
+  // Non bloquant à dessein : initialiserSentry() charge le SDK en tâche de fond (voire ne fait
+  // rien si VITE_SENTRY_DSN est absent) et ne doit jamais retarder le premier rendu.
+  initialiserSentry();
   const { default: App } = await import('@/App');
   racine.render(
     <StrictMode>

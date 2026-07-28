@@ -56,3 +56,75 @@ describe('bloquant B1 (rapport QA étape 0) — LIMITE_CONNEXION_COMPTE doit res
     }
   });
 });
+
+describe('finding M4 (audit sécurité) — refus des mots de passe de dev (dfa_app_dev/dfa_migrator_dev) en production', () => {
+  it('accepte les identifiants de dev en développement (usage légitime, dev/CI)', () => {
+    const env = envValide({
+      NODE_ENV: 'development',
+      DATABASE_URL: 'postgresql://dfa_app:dfa_app_dev@localhost:5432/dfa_dev',
+      DATABASE_URL_MIGRATION: 'postgresql://dfa_migrator:dfa_migrator_dev@localhost:5432/dfa_dev',
+      COOKIE_SECURE: 'false',
+    });
+    expect(() => chargerConfig(env)).not.toThrow();
+  });
+
+  it('refuse DATABASE_URL portant le mot de passe de dev dfa_app_dev en production', () => {
+    const env = envValide({
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgresql://dfa_app:dfa_app_dev@db.prod.dmsforall.example:5432/dfa_prod',
+      DATABASE_URL_MIGRATION: 'postgresql://dfa_migrator:un-mot-de-passe-fort@db.prod.dmsforall.example:5432/dfa_prod',
+      COOKIE_SECURE: 'true',
+    });
+    expect.assertions(2);
+    try {
+      chargerConfig(env);
+    } catch (erreur) {
+      expect(erreur).toBeInstanceOf(ErreurConfigInvalide);
+      const variablesFautives = (erreur as ErreurConfigInvalide).problemes.map((p) => p.variable);
+      expect(variablesFautives).toContain('DATABASE_URL');
+    }
+  });
+
+  it('refuse DATABASE_URL_MIGRATION portant le mot de passe de dev dfa_migrator_dev en production', () => {
+    const env = envValide({
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgresql://dfa_app:un-mot-de-passe-fort@db.prod.dmsforall.example:5432/dfa_prod',
+      DATABASE_URL_MIGRATION: 'postgresql://dfa_migrator:dfa_migrator_dev@db.prod.dmsforall.example:5432/dfa_prod',
+      COOKIE_SECURE: 'true',
+    });
+    expect.assertions(2);
+    try {
+      chargerConfig(env);
+    } catch (erreur) {
+      expect(erreur).toBeInstanceOf(ErreurConfigInvalide);
+      const variablesFautives = (erreur as ErreurConfigInvalide).problemes.map((p) => p.variable);
+      expect(variablesFautives).toContain('DATABASE_URL_MIGRATION');
+    }
+  });
+
+  it('le message d\'erreur renvoie vers la procédure de rotation (docs/deploiement-production.md §3.2)', () => {
+    const env = envValide({
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgresql://dfa_app:dfa_app_dev@db.prod.dmsforall.example:5432/dfa_prod',
+      DATABASE_URL_MIGRATION: 'postgresql://dfa_migrator:un-mot-de-passe-fort@db.prod.dmsforall.example:5432/dfa_prod',
+      COOKIE_SECURE: 'true',
+    });
+    expect.assertions(1);
+    try {
+      chargerConfig(env);
+    } catch (erreur) {
+      const messages = (erreur as ErreurConfigInvalide).problemes.map((p) => p.message).join(' ');
+      expect(messages).toContain('docs/deploiement-production.md §3.2');
+    }
+  });
+
+  it('accepte des mots de passe forts en production, sans trace des identifiants de dev', () => {
+    const env = envValide({
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgresql://dfa_app:un-mot-de-passe-fort@db.prod.dmsforall.example:5432/dfa_prod',
+      DATABASE_URL_MIGRATION: 'postgresql://dfa_migrator:un-autre-mot-de-passe-fort@db.prod.dmsforall.example:5432/dfa_prod',
+      COOKIE_SECURE: 'true',
+    });
+    expect(() => chargerConfig(env)).not.toThrow();
+  });
+});

@@ -43,8 +43,8 @@
     "planifie": "Geplant",
     "honore": "Angenommen",
     "absent": "Abwesend",
-    "annuleyClient": "Storniert (Kunde)",
-    "annuleyGarage": "Storniert (Werkstatt)",
+    "annuleClient": "Storniert (Kunde)",
+    "annuleGarage": "Storniert (Werkstatt)",
     "reporte": "Verschoben"
   },
   "transitions": {
@@ -53,16 +53,6 @@
     "annulerClient": "Stornieren (Kunde)",
     "annulerGarage": "Stornieren (Werkstatt)",
     "reporter": "Verschieben"
-  },
-  "alertes": {
-    "titre": "Alerts & Chancen",
-    "travauxReportes": "Zurückgestellte Arbeiten",
-    "campagnes": "Offene Rückrufe",
-    "expertise": "MFK nächste Fälligkeit",
-    "garantie": "Garantie",
-    "alerteClient": "Kundenalert",
-    "importe": "Importiertes Fahrzeug",
-    "ajouter": "Zu diesem Termin hinzufügen"
   },
   "colonnes": {
     "vehiculesAttendus": "Erwartete Fahrzeuge",

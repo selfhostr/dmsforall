@@ -7,8 +7,7 @@
   "repos": {
     "titre": "Lavoro del giorno",
     "mesOr": "I miei ordini di oggi",
-    "lignesFaire": "{count} lavoro da fare",
-    "lignesFaire_plural": "{count} lavori da fare"
+    "lignesFaire": "{count, plural, one {# lavoro da fare} other {# lavori da fare}}"
   },
   "enCours": {
     "demarrer": "Inizia timbratura",
@@ -23,14 +22,14 @@
   "constat": {
     "titre": "Segnala constatazione",
     "description": "Breve descrizione",
-    "urgence": "Priorità",
+    "urgence": "Priorita",
     "urgent": "Urgente",
     "aFaire": "Da fare",
     "aSurveiller": "Da monitorare",
     "enregistrer": "Registra"
   },
   "activites": {
-    "titre": "Attività indirette",
+    "titre": "Attivita indirette",
     "nettoyage": "Pulizia",
     "attentePieces": "Attesa ricambi",
     "attenteAccord": "Attesa approvazione",
@@ -41,15 +40,13 @@
   },
   "synchronisation": {
     "aJour": "Aggiornato",
-    "enAttente": "{count} timbratura in sospeso",
-    "enAttente_plural": "{count} timbrature in sospeso",
+    "enAttente": "{count, plural, one {# timbratura in sospeso} other {# timbrature in sospeso}}",
     "horsLigne": "Offline da {heure}",
-    "anomalie": "{count} timbratura da correggere",
-    "anomalie_plural": "{count} timbrature da correggere"
+    "anomalie": "{count, plural, one {# timbratura da correggere} other {# timbrature da correggere}}"
   },
   "cloturAuto": {
     "titre": "Timbratura chiusa",
-    "message": "La tua timbratura su {or} è stata chiusa a {heure}",
+    "message": "La tua timbratura su {or} e stata chiusa a {heure}",
     "corriger": "Correggi ora di fine"
   },
   "anomalies": {
@@ -70,7 +67,7 @@
     "heure": "Ora",
     "lignes": "Lavoro",
     "motif": "Motivo della correzione",
-    "motifRequis": "Il motivo è obbligatorio",
+    "motifRequis": "Il motivo e obbligatorio",
     "enregistrer": "Salva correzione"
   },
   "donnees": {

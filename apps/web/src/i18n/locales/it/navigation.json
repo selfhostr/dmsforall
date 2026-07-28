@@ -3,7 +3,9 @@
     "aria": "Navigazione principale"
   },
   "liens": {
-    "accueil": "Home"
+    "accueil": "Home",
+    "clients": "Clienti",
+    "vehicules": "Veicoli"
   },
   "menu": {
     "ouvrir": "Apri menu",

@@ -6,7 +6,7 @@
     "colonnes": {
       "numero": "N° cliente",
       "nom": "Nome / Ragione sociale",
-      "localite": "Località",
+      "localite": "Localita",
       "telephone": "Cellulare",
       "vehicules": "Veicoli",
       "dernierPassage": "Ultima visita"
@@ -31,11 +31,19 @@
     "ouvrirOr": "Apri ordine",
     "actions": {
       "fusionner": "Unisci"
-    }
+    },
+    "onglets": {
+      "contacts": "Contatti",
+      "adresses": "Indirizzi",
+      "consentements": "Consensi",
+      "notes": "Note"
+    },
+    "vehicules": "Veicoli del cliente",
+    "derniersOr": "Ultimi passaggi in officina"
   },
   "alertes": {
-    "bloque": "Bloccato – arretrati",
-    "alerte": "⚠ Avviso cliente"
+    "bloque": "Bloccato - arretrati",
+    "alerte": "Avviso cliente"
   },
   "identite": {
     "numero": "N° cliente",
@@ -63,7 +71,7 @@
       "conducteur": "Conducente",
       "gestionnaireFl": "Gestore flotta",
       "signataire": "Firmatario",
-      "comptabilite": "Contabilità"
+      "comptabilite": "Contabilita"
     }
   },
   "adresses": {
@@ -80,9 +88,43 @@
     "interne": "Nota interna (non stampata)",
     "alerte": "Avviso (mostrato in rosso)"
   },
+  "doublons": {
+    "titre": "Duplicati rilevati",
+    "clientSimiliaire": "Esiste un cliente simile",
+    "voir": "Visualizza scheda",
+    "creerQuandMeme": "Crea comunque",
+    "criteres": {
+      "nom_npa": "Nome e CAP",
+      "email": "Indirizzo e-mail",
+      "telephone": "Numero di telefono",
+      "ide": "Numero di identificazione"
+    },
+    "score": "Punteggio di similitudine"
+  },
+  "consentements": {
+    "titre": "Consensi",
+    "ajouter": "Aggiungi consenso",
+    "types": {
+      "newsletter": "Newsletter",
+      "telephone": "Chiamate commerciali",
+      "sms": "Messaggi SMS",
+      "email": "E-mail commerciali"
+    }
+  },
+  "desactivation": {
+    "titre": "Disattiva cliente",
+    "motif": "Motivo della disattivazione"
+  },
   "fusion": {
     "titre": "Unisci due clienti",
-    "confirmation": "Digitare il nome del cliente da unire per confermare"
+    "confirmation": "Digitare il nome del cliente da unire per confermare",
+    "irreversible": "Questa azione e irreversibile.",
+    "transferer": "Le seguenti informazioni verranno trasferite",
+    "colonnes": {
+      "client1": "Cliente da mantenere",
+      "client2": "Cliente da unire"
+    },
+    "confirmer": "Unisci definitivamente"
   },
   "vide": {
     "premier": "Nessun cliente registrato. Crearne uno.",

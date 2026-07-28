@@ -15,7 +15,8 @@ export function EcranConfigInvalide({ erreur }: Props) {
   const { t } = useTranslation('erreurs');
 
   if (erreur) {
-    // eslint-disable-next-line no-console -- diagnostic volontaire pour l'intégrateur, jamais affiché à l'écran
+    // Diagnostic volontaire pour l'intégrateur, jamais affiché à l'écran (`console.error` est
+    // explicitement autorisé par la configuration ESLint du dépôt, règle `no-console`).
     console.error('Configuration frontend invalide :', erreur.problemes);
   }
 

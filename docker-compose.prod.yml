@@ -1,9 +1,16 @@
-# Production DFA : API + front + reverse proxy, en conteneurs. Postgres et Redis sont des
-# services EXTERNES MANAGÉS (Infomaniak/Exoscale) — volontairement absents de ce fichier, voir
-# docs/deploiement-production.md. Aucun `build:` ici : le déploiement consiste à pointer
-# `API_IMAGE`/`WEB_IMAGE` sur une image déjà construite et taguée par la CI, jamais à compiler
-# sur le serveur — c'est ce qui rend le rollback trivial (redéployer le tag précédent, voir
-# docs/deploiement-production.md §Retour arrière).
+# Production DFA : Postgres + Redis + API + front + reverse proxy, TOUT en conteneurs sur le(s)
+# serveur(s) propres de @laupernoe (aucun service managé par un hébergeur — décision actée : ni
+# Infomaniak ni Exoscale ne portent la base de données ou le cache). Voir
+# docs/deploiement-production.md pour tout ce que cette décision change par rapport à un
+# Postgres/Redis managé : sauvegardes, montée de version, chiffrement au repos, TLS, ce qui
+# n'est raisonnablement pas atteignable seul.
+#
+# Aucun `build:` ici pour `api`/`web` : le déploiement consiste à pointer `API_IMAGE`/`WEB_IMAGE`
+# sur une image déjà construite et taguée par la CI (`.github/workflows/publier-images.yml`),
+# jamais à compiler sur le serveur — c'est ce qui rend le rollback trivial (redéployer le tag
+# précédent, voir docs/deploiement-production.md §Retour arrière). `postgres`/`redis`, eux,
+# utilisent directement les images officielles (mêmes tags que docker-compose.yml de dev, pour
+# ne jamais tester une version différente de celle qui tourne en production).
 #
 # `name:` fixe le nom de projet Compose indépendamment du chemin de checkout sur le serveur —
 # les noms de conteneurs/réseau/volumes restent stables même si le dépôt est un jour recloné
@@ -11,8 +18,9 @@
 # toujours montrer les mêmes noms, peu importe qui a déployé où.
 name: dfa-prod
 
-# Toutes les valeurs variables (images, domaine, e-mail ACME, secrets applicatifs) viennent de
-# l'environnement — AUCUN secret n'est écrit dans ce fichier, qui est versionné dans Git. En
+# Toutes les valeurs variables (images, domaine, e-mail ACME, secrets applicatifs ET secrets
+# d'infrastructure — mots de passe Postgres/Redis, désormais sous notre responsabilité) viennent
+# de l'environnement — AUCUN secret n'est écrit dans ce fichier, qui est versionné dans Git. En
 # pratique : `docker compose -f docker-compose.yml --env-file .env.production <commande>`,
 # où `.env.production` (jamais commité — déjà couvert par `.env.*` dans .gitignore) sert un
 # double rôle documenté dans docs/deploiement-production.md :
@@ -22,6 +30,12 @@ name: dfa-prod
 # Toute variable requise utilise la forme `${VAR:?message}` : Compose refuse de démarrer avec un
 # message clair plutôt que de lancer un service à moitié configuré — même philosophie fail-closed
 # que la validation zod de l'API elle-même.
+#
+# CE FICHIER NE SUFFIT PLUS SEUL SUR LE SERVEUR (différence avec la version managée précédente) :
+# `postgres` monte `docker/postgres/init/01-roles.sql` en lecture seule au même chemin relatif
+# que le docker-compose.yml de dev. Il faut donc un checkout du dépôt sur le serveur (ex.
+# `git clone --branch <tag> --depth 1`), pas seulement une copie de ce fichier — voir
+# docs/deploiement-production.md §4.
 
 x-logging: &logging-defaut
   # json-file avec rotation : suffisant pour un seul opérateur qui lit `docker compose logs`
@@ -36,19 +50,205 @@ x-restart-defaut: &restart-defaut unless-stopped
 
 x-securite-defaut: &securite-defaut
   # Empêche un process du conteneur de regagner des privilèges (ex. via un binaire setuid) même
-  # s'il est compromis. Ne casse rien pour des images qui ne s'appuient pas là-dessus — c'est le
-  # cas des trois images ci-dessous.
+  # s'il est compromis. Ne casse rien pour des images qui ne s'appuient pas là-dessus.
   - no-new-privileges:true
 
 services:
+  # --- PostgreSQL (données applicatives) --------------------------------------------------
+  # Réintégré ici (absent de la version managée précédente) : sur ses propres serveurs, @laupernoe est
+  # responsable du cycle de vie complet — versions, tuning mémoire, volumes, sauvegardes (§7 du
+  # doc), montée de version majeure (§3.7 du doc). Même image/tag que docker-compose.yml de dev
+  # (postgres:16-alpine) : jamais une version testée en dev différente de celle qui tourne ici.
+  postgres:
+    image: postgres:16-alpine
+    container_name: dfa-postgres
+    restart: *restart-defaut
+    environment:
+      # `dfa` est le rôle SUPERUSER de bootstrap (identique en nom à docker-compose.yml de dev),
+      # utilisé UNIQUEMENT pour l'initialisation du conteneur et la rotation ponctuelle de mots
+      # de passe (docs/deploiement-production.md §3.2/§8) — l'API ne s'y connecte JAMAIS (voir
+      # docker/postgres/init/01-roles.sql, qui explique pourquoi un superuser contournerait
+      # silencieusement le RLS). Nom FIXÉ ici (constante versionnée, changement par revue Git),
+      # seul le mot de passe vient de .env.production.
+      POSTGRES_USER: dfa
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?Définir POSTGRES_SUPERUSER_PASSWORD (mot de passe fort et dédié, jamais réutilisé) dans .env.production}
+      # Nom de base FIXÉ ici pour la même raison que NODE_ENV/PORT sur le service `api` plus bas :
+      # un `.env.production` mal renseigné ne doit jamais pouvoir faire pointer un déploiement
+      # vers une base différente de celle attendue.
+      POSTGRES_DB: dfa_prod
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C.UTF-8'
+    volumes:
+      - dfa_postgres_data:/var/lib/postgresql/data
+      # Strictement identique au mécanisme de dev : ne s'exécute qu'à l'initdb d'un volume vide.
+      # Crée dfa_migrator/dfa_app avec les mots de passe de DEV (dfa_migrator_dev/dfa_app_dev) —
+      # c'est attendu au tout premier démarrage (réseau interne, encore inaccessible depuis
+      # Internet à ce stade) : la procédure de première mise en production (doc §4) les fait
+      # tourner vers des valeurs fortes IMMÉDIATEMENT après, avant d'ouvrir `reverse-proxy` au
+      # public. Simplification notable par rapport à la base managée précédente : plus besoin de
+      # rejouer ce script à la main via psql contre un hébergeur, le conteneur le fait lui-même
+      # comme en dev. Filet en cas d'oubli de cette rotation : ces deux mots de passe de dev
+      # expirent d'eux-mêmes 7 jours après ce démarrage sur la base `dfa_prod` (voir le script SQL
+      # lui-même et docs/deploiement-production.md §3.2/§8) — un déploiement qui a oublié la
+      # rotation tombe en panne visible plutôt que de tourner indéfiniment avec des identifiants
+      # publics.
+      - ./docker/postgres/init/01-roles.sql:/docker-entrypoint-initdb.d/01-roles.sql:ro
+    # Réglages mémoire/connexions pour un premier serveur de départ (hypothèse : 8 Go RAM / 4
+    # vCPU dédiés à Postgres, cohérent avec `deploy.resources` ci-dessous). Valeurs hardcodées et
+    # versionnées (changement par revue Git) plutôt que variables d'environnement cachées — même
+    # philosophie que les limites CPU/mémoire des autres services. À RECALCULER si le gabarit réel
+    # du serveur diffère (méthode : https://pgtune.leopard.in.ua/, profil "Web application", en
+    # ajustant `max_connections` à la réalité de DATABASE_POOL_MAX ci-dessous plutôt qu'au défaut
+    # de l'outil) — voir docs/deploiement-production.md §3.7.
+    #   - shared_buffers = 25 % de la RAM allouée à Postgres.
+    #   - effective_cache_size = 75 % (estimation du cache disque que l'OS gardera disponible).
+    #   - max_connections = 50 : largement au-dessus de DATABASE_POOL_MAX (10, .env.example) +
+    #     le rôle `migrate` (jamais concurrent avec lui-même, verrou consultatif) + une marge pour
+    #     une session psql manuelle d'astreinte à 2h du matin.
+    #   - log_min_duration_statement : journalise toute requête > 1s vers stdout (donc vers
+    #     `docker compose logs postgres`, capturé par le driver json-file comme le reste) — c'est
+    #     tout le monitoring de requêtes lentes dont ce projet a besoin au stade actuel, sans
+    #     outil supplémentaire (philosophie §0 : ne pas complexifier avant besoin réel).
+    command:
+      - postgres
+      - -c
+      - shared_buffers=2GB
+      - -c
+      - effective_cache_size=6GB
+      - -c
+      - maintenance_work_mem=512MB
+      - -c
+      - work_mem=20MB
+      - -c
+      - wal_buffers=16MB
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - max_connections=50
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - log_min_duration_statement=1000
+    # Aucun `ports:` : contrairement à docker-compose.yml (dev), Postgres n'est PAS publié sur
+    # l'hôte. Seul `api`/`migrate` (réseau `interne`) le joignent. Pour une session psql manuelle
+    # depuis le serveur : `docker compose -f docker-compose.yml --env-file .env.production
+    # exec postgres psql -U dfa -d dfa_prod` — jamais besoin d'exposer le port pour ça, voir
+    # docs/deploiement-production.md §11.
+    networks:
+      - interne
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U dfa -d dfa_prod']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    # Laisse le temps à un CHECKPOINT propre avant l'envoi de SIGKILL — un arrêt brutal de
+    # Postgres n'est jamais destructeur grâce au WAL (récupération au redémarrage), mais un arrêt
+    # propre est plus rapide à redémarrer et évite de dépendre de la relecture du WAL.
+    stop_grace_period: 60s
+    security_opt: *securite-defaut
+    # PAS de `cap_drop: [ALL]` ici (contrairement à `api`/`web`, nos propres images) — même
+    # exception documentée que `reverse-proxy` plus bas : l'entrypoint officiel de l'image
+    # `postgres` a besoin, au tout premier démarrage sur un volume vide, de `chown` le répertoire
+    # de données avant de basculer sur l'utilisateur `postgres` (uid non-root) en interne. Retirer
+    # CAP_CHOWN casserait l'initialisation elle-même, redécouvert seulement à la toute première
+    # mise en production. `no-new-privileges` reste appliqué.
+    logging: *logging-defaut
+    deploy:
+      resources:
+        # Cohérent avec les réglages `command:` ci-dessus (shared_buffers=2GB) : la limite laisse
+        # de la marge au-dessus pour le cache OS et les connexions actives, sans laisser Postgres
+        # déborder sur la mémoire réservée à `api`/`web`/`redis` sur le même hôte.
+        limits:
+          cpus: '2.0'
+          memory: 3G
+        reservations:
+          cpus: '1.0'
+          memory: 2560M
+
+  # --- Redis (cache + files BullMQ) --------------------------------------------------------
+  # Réintégré pour la même raison que `postgres` : plus de Redis managé. Persistance AOF comme en
+  # dev (docker-compose.yml) : les jobs BullMQ en attente ne doivent pas disparaître à un
+  # redémarrage de conteneur.
+  redis:
+    image: redis:7-alpine
+    container_name: dfa-redis
+    restart: *restart-defaut
+    environment:
+      # Utilisée UNIQUEMENT par le CLIENT `redis-cli` du HEALTHCHECK ci-dessous — `REDISCLI_AUTH`
+      # est lue automatiquement par `redis-cli`, contrairement à l'option `-a <mot-de-passe>` qui
+      # exposerait le mot de passe en clair dans `ps aux`/`/proc/<pid>/cmdline` À CHAQUE exécution
+      # du healthcheck (toutes les 10s). Le SERVEUR `redis-server` ne lit pas cette variable : son
+      # mot de passe vient exclusivement du fichier `redis.conf` monté ci-dessous (`configs:`),
+      # jamais d'un argument `command:` ni d'une variable d'environnement du process serveur —
+      # correctif d'audit (secrets en argv visibles via `ps aux`, `docker inspect`, `docker
+      # compose config` : voir docs/deploiement-production.md §Rotation des secrets).
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?Définir REDIS_PASSWORD dans .env.production}
+    # Fichier de config plutôt qu'argument `--requirepass` sur la ligne de commande (voir
+    # `configs:` en bas de ce document pour le contenu, interpolé exactement comme le Caddyfile
+    # inline du service `reverse-proxy`) : un argument de ligne de commande du process 1 d'un
+    # conteneur est lisible EN CLAIR par tout compte du système hôte via `/proc/1/cmdline` et
+    # `ps aux` — aucune permission Docker requise — et réapparaît dans `docker inspect`/`docker
+    # compose config`, commande qui figure dans la procédure de diagnostic de
+    # docs/deploiement-production.md §11 et qu'on colle volontiers dans un ticket. Un fichier
+    # monté en lecture seule, propriété de l'utilisateur `redis` de l'image officielle (uid/gid
+    # 999 — voir `configs:` plus bas) et non lisible par les autres utilisateurs, n'apparaît dans
+    # aucun des trois écrans ci-dessus.
+    command: ['redis-server', '/usr/local/etc/redis/redis.conf']
+    configs:
+      # uid/gid 999 : convention stable de l'image officielle `redis:7-alpine` (utilisateur
+      # `redis`, vers lequel l'entrypoint officiel abaisse ses privilèges avant d'exécuter
+      # `redis-server`). NOTE (limite connue, à vérifier au premier déploiement réel — non
+      # vérifiable sans lancer de conteneur, hors périmètre de cette tâche, même limite que le
+      # `cap_drop` de `postgres`/`redis` ci-dessous) : si cette convention d'uid changeait ou
+      # était mal supposée, `redis-server` échouerait à lire ce fichier au démarrage avec une
+      # erreur explicite dans `docker compose logs redis` (jamais un échec silencieux) — dans ce
+      # cas, retirer `uid:`/`gid:`/`mode:` pour retomber sur le défaut Compose (racine, 0444,
+      # lisible par tous les utilisateurs du conteneur) le temps d'investiguer.
+      - source: redis-conf
+        target: /usr/local/etc/redis/redis.conf
+        uid: '999'
+        gid: '999'
+        mode: 0400
+    volumes:
+      - dfa_redis_data:/data
+    # Aucun `ports:` : même raisonnement que `postgres`, accessible uniquement depuis `api` sur
+    # le réseau `interne`.
+    networks:
+      - interne
+    healthcheck:
+      # `redis-cli` lit `REDISCLI_AUTH` (défini ci-dessus dans `environment:`) tout seul — plus
+      # besoin de `-a "$$REDIS_PASSWORD"` en argument, qui exposait le mot de passe dans `ps aux`
+      # du conteneur à chaque exécution du healthcheck.
+      test: ['CMD-SHELL', 'redis-cli ping 2>/dev/null | grep -q PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    security_opt: *securite-defaut
+    # Même exception que `postgres` : l'image officielle bascule elle-même sur un utilisateur non
+    # root en interne après une préparation qui suppose certaines capacités par défaut ; non
+    # vérifiable sans lancer de conteneur (hors périmètre de cette tâche), donc pas de
+    # `cap_drop: [ALL]` ici — voir la note équivalente sur `postgres` ci-dessus.
+    logging: *logging-defaut
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
   # --- API (NestJS) --------------------------------------------------------------------------
   api:
     container_name: dfa-api
     image: ${API_IMAGE:?Définir API_IMAGE (ex. ghcr.io/dmsforall/api:v0.4.2) dans .env.production}
     restart: *restart-defaut
     # `.env.production` porte TOUTES les variables validées par apps/api/src/config (schéma
-    # zod) : DATABASE_URL/DATABASE_URL_MIGRATION (rôles dfa_app/dfa_migrator sur la base
-    # managée), REDIS_URL, secrets de session, etc. Rien de tout cela ne transite par ce fichier.
+    # zod) : DATABASE_URL/DATABASE_URL_MIGRATION (rôles dfa_app/dfa_migrator, hôte `postgres` —
+    # nom de service Compose, résolu par le DNS interne du réseau `interne`), REDIS_URL (hôte
+    # `redis`, avec mot de passe, voir plus haut), secrets de session, etc. Rien de tout cela ne
+    # transite par ce fichier.
     env_file:
       - .env.production
     environment:
@@ -68,13 +268,22 @@ services:
     # `reverse-proxy` ci-dessous.
     networks:
       - interne
-    # Postgres/Redis sont externes et managés : aucun `depends_on` de service de base de données
-    # n'a de sens ici. `GET /api/v1/sante` (le HEALTHCHECK de l'image, hérité tel quel — jamais
-    # redéfini ici pour éviter une divergence avec apps/api/Dockerfile) ne vérifie déjà aucune
-    # dépendance externe, exprès : un Postgres managé momentanément indisponible ne doit pas
-    # faire redémarrer l'API en boucle. C'est `GET /api/v1/sante/pret` qui vérifie Postgres et
-    # Redis — réservé à la supervision externe (uptime check), voir
+    # `depends_on` sur `postgres`/`redis` EN PLUS de `condition: service_healthy` : différence
+    # structurante avec la version managée précédente, où ces deux dépendances étaient hors de ce
+    # fichier et donc invisibles de Compose. Ici, Compose sait que `postgres`/`redis` doivent être
+    # sains AVANT de démarrer `api` — utile en particulier au tout premier démarrage d'un hôte
+    # (volume vide, initdb en cours). `GET /api/v1/sante` (le HEALTHCHECK de l'image, hérité tel
+    # quel — jamais redéfini ici pour éviter une divergence avec apps/api/Dockerfile) continue de
+    # ne vérifier aucune dépendance externe, exprès : un Postgres/Redis brièvement indisponible
+    # APRÈS le démarrage initial (ex. `docker compose restart postgres` pour appliquer un nouveau
+    # `command:`) ne doit pas faire redémarrer l'API en boucle. C'est `GET /api/v1/sante/pret` qui
+    # vérifie Postgres et Redis en continu — réservé à la supervision externe (uptime check), voir
     # docs/deploiement-production.md §Monitoring.
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     stop_grace_period: 30s
     security_opt: *securite-defaut
     # L'image tourne déjà en utilisateur non-root dédié (USER dfa, apps/api/Dockerfile) et n'a
@@ -117,6 +326,9 @@ services:
       - NODE_ENV=production
     networks:
       - interne
+    depends_on:
+      postgres:
+        condition: service_healthy
     security_opt: *securite-defaut
     cap_drop:
       - ALL
@@ -160,18 +372,28 @@ services:
   # TRUST_PROXY_HOPS (.env.production, lu par l'API) doit valoir 1 ici : Caddy est l'unique
   # reverse proxy entre Internet et le conteneur `api`.
   #
+  # AUCUN fournisseur ne termine plus le TLS en amont de Caddy (ça n'a d'ailleurs jamais changé :
+  # Caddy a toujours géré Let's Encrypt lui-même, même sous l'hypothèse managée précédente). Ce
+  # qui change réellement en auto-hébergement : il n'y a plus de load balancer/CDN d'hébergeur en
+  # frontal pour absorber une panne réseau, et si le serveur qui héberge ce conteneur est chez lui
+  # ou en colocation, la joignabilité des ports 80/443 depuis Internet (IP publique fixe, pas de
+  # CGNAT, ports non bloqués par le FAI) est un prérequis SILENCIEUX dont dépend tout le
+  # renouvellement ACME — voir docs/deploiement-production.md §5 (TLS) pour la checklist et le
+  # comportement en cas d'échec de renouvellement.
+  #
   # Le Caddyfile est fourni en `configs:` avec `content:` INLINE plutôt qu'en fichier séparé —
   # ce n'est pas une préférence de style : ce déploiement ne doit ajouter QUE ce fichier
-  # docker-compose.yml et docs/deploiement-production.md, aucun fichier de configuration
-  # tiers. `content:` est interpolé par Compose exactement comme le reste de ce document, donc
-  # `${WEB_URL_PUBLIQUE}` et `${ACME_EMAIL}` ci-dessous viennent de .env.production — attention,
-  # c'est la syntaxe Compose `${VAR}`, PAS la syntaxe native de substitution de Caddy `{$VAR}`
-  # (les deux sont d'ailleurs volontairement incompatibles en apparence, donc sans collision
-  # possible : Compose ne touche jamais à un `{$VAR}` littéral).
+  # docker-compose.yml et docs/deploiement-production.md (et, depuis la réintégration de
+  # Postgres/Redis, docker/postgres/init/01-roles.sql — déjà présent dans le dépôt), aucun
+  # fichier de configuration tiers. `content:` est interpolé par Compose exactement comme le
+  # reste de ce document, donc `${WEB_URL_PUBLIQUE}` et `${ACME_EMAIL}` ci-dessous viennent de
+  # .env.production — attention, c'est la syntaxe Compose `${VAR}`, PAS la syntaxe native de
+  # substitution de Caddy `{$VAR}` (les deux sont d'ailleurs volontairement incompatibles en
+  # apparence, donc sans collision possible : Compose ne touche jamais à un `{$VAR}` littéral).
   reverse-proxy:
     container_name: dfa-reverse-proxy
-    # Épinglée en version majeure seulement, comme postgres:16-alpine/redis:7-alpine dans le
-    # docker-compose.yml de dev — le tag mineur suit les correctifs de sécurité en amont.
+    # Épinglée en version majeure seulement, comme postgres:16-alpine/redis:7-alpine ci-dessus —
+    # le tag mineur suit les correctifs de sécurité en amont.
     image: caddy:2-alpine
     restart: *restart-defaut
     ports:
@@ -226,10 +448,12 @@ services:
           memory: 32M
 
 networks:
-  # Réseau bridge ordinaire, PAS `internal: true` : l'API doit conserver un accès sortant vers
-  # Postgres/Redis managés (Internet ou réseau privé de l'hébergeur) et Caddy vers les serveurs
-  # ACME de Let's Encrypt. L'isolation recherchée ici (api/web injoignables depuis l'hôte) vient
-  # de l'absence de `ports:` sur ces deux services, pas d'un réseau fermé.
+  # Réseau bridge ordinaire, PAS `internal: true` : `reverse-proxy` doit conserver un accès
+  # sortant vers les serveurs ACME de Let's Encrypt. L'isolation recherchée ici (postgres/redis/
+  # api/web injoignables depuis l'hôte ou Internet) vient de l'absence de `ports:` sur ces quatre
+  # services, pas d'un réseau fermé — `postgres`/`redis` eux-mêmes n'ont d'ailleurs besoin
+  # d'AUCUN accès sortant (ni migré ni managé à distance), contrairement à la version précédente
+  # où l'API sortait vers un hébergeur externe pour les joindre.
   interne:
 
 configs:
@@ -261,6 +485,22 @@ configs:
         }
       }
 
+  # Contenu inline pour la même raison que `caddyfile` ci-dessus : ce déploiement n'ajoute AUCUN
+  # fichier tiers au dépôt, tout part de `.env.production` interpolé par Compose. `requirepass`
+  # ici plutôt que dans `command:` du service `redis` — voir le commentaire détaillé sur ce
+  # service (correctif d'audit, secrets en argv).
+  redis-conf:
+    content: |
+      requirepass ${REDIS_PASSWORD:?Définir REDIS_PASSWORD dans .env.production}
+      appendonly yes
+
 volumes:
+  # `dfa_postgres_data`/`dfa_redis_data` : nouveaux par rapport à la version managée précédente.
+  # Volumes Docker nommés ORDINAIRES — AUCUN chiffrement au repos de leur propre fait. Le
+  # chiffrement au repos exigé par le nLPD (docs/deploiement-production.md §2) doit venir d'une
+  # couche EN DESSOUS de Docker (LUKS sur le disque/partition qui héberge
+  # /var/lib/docker/volumes) : un volume nommé, seul, ne suffit pas à l'argument de conformité.
+  dfa_postgres_data:
+  dfa_redis_data:
   caddy_data:
   caddy_config:

@@ -43,8 +43,8 @@
     "planifie": "Planifié",
     "honore": "Honoré",
     "absent": "Absent",
-    "annuleyClient": "Annulé client",
-    "annuleyGarage": "Annulé garage",
+    "annuleClient": "Annulé client",
+    "annuleGarage": "Annulé garage",
     "reporte": "Reporté"
   },
   "transitions": {
@@ -53,16 +53,6 @@
     "annulerClient": "Annuler (client)",
     "annulerGarage": "Annuler (garage)",
     "reporter": "Reporter"
-  },
-  "alertes": {
-    "titre": "Alertes & opportunités",
-    "travauxReportes": "Travaux reportés",
-    "campagnes": "Campagnes ouvertes",
-    "expertise": "Expertise prochaine",
-    "garantie": "Garantie",
-    "alerteClient": "Alerte client",
-    "importe": "Véhicule importé",
-    "ajouter": "Ajouter à ce RDV"
   },
   "colonnes": {
     "vehiculesAttendus": "Véhicules attendus",

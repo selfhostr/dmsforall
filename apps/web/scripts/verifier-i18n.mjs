@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-// Vérifie deux invariants i18n (voir CONTRIBUTING.md : « aucune chaîne en dur ») :
+// Vérifie trois invariants i18n (voir CONTRIBUTING.md : « aucune chaîne en dur ») :
 //   1. toute clé `t('ns:chemin.cle')` utilisée dans src/ existe dans le FR (langue source) ;
-//   2. FR, DE et IT exposent EXACTEMENT le même jeu de clés, namespace par namespace.
+//   2. FR, DE et IT exposent EXACTEMENT le même jeu de clés, namespace par namespace ;
+//   3. tout namespace présent sur disque est ENREGISTRÉ À L'EXÉCUTION dans `src/i18n/index.ts`
+//      (voir §3 ci-dessous — c'était l'angle mort qui a laissé passer le lot 1 en silence).
 //
 // Convention imposée dans tout src/apps/web : les appels à `t()` utilisent TOUJOURS une clé
 // pleinement qualifiée `namespace:chemin.cle` (jamais une clé courte reposant sur le
@@ -16,6 +18,7 @@ const racineDepuisScript = path.dirname(fileURLToPath(import.meta.url));
 const racineWeb = path.resolve(racineDepuisScript, '..');
 const dossierSrc = path.join(racineWeb, 'src');
 const dossierLocales = path.join(dossierSrc, 'i18n', 'locales');
+const cheminIndexI18n = path.join(dossierSrc, 'i18n', 'index.ts');
 const LANGUES = ['fr', 'de', 'it'];
 
 /**
@@ -120,6 +123,107 @@ function verifierClesUtiliseesExistentEnFr(clesUtilisees, ressources) {
   return problemes;
 }
 
+/**
+ * §3 — Enregistrement runtime. Un namespace peut exister au complet sur disque (fichiers FR/DE/IT
+ * en parité stricte, `i18n:check` déjà vert sur les points 1 et 2) sans jamais être chargé par
+ * i18next, si personne ne l'a ajouté à `NAMESPACES` et à `ressources` dans `src/i18n/index.ts`.
+ * Dans ce cas, `t('nsOublié:cle')` rend la clé BRUTE à l'écran — aucun test, aucun lint, aucune
+ * CI ne le voit tant que ce contrôle n'existe pas (c'est exactement ce qui s'est produit avec les
+ * sept namespaces du lot 1 : voir docs/plan-lot1-frontend-execution.md §2.3).
+ *
+ * Lecture par regex plutôt que par exécution de `index.ts` : ce script est du Node pur (`.mjs`),
+ * sans étape de build ni de runtime TypeScript. Les deux motifs recherchés (le tableau
+ * `NAMESPACES` et l'objet `ressources`) ont une forme stable et volontairement simple — voir la
+ * garde en tête de chaque fonction si cette forme change un jour.
+ */
+function extraireBlocEquilibre(contenu, indexAccoladeOuverte) {
+  let profondeur = 0;
+  for (let i = indexAccoladeOuverte; i < contenu.length; i += 1) {
+    if (contenu[i] === '{') profondeur += 1;
+    else if (contenu[i] === '}') {
+      profondeur -= 1;
+      if (profondeur === 0) return contenu.slice(indexAccoladeOuverte, i + 1);
+    }
+  }
+  return null;
+}
+
+function extraireNamespacesDuTableau(contenuIndex) {
+  const correspondance = contenuIndex.match(/export const NAMESPACES\s*=\s*\[([\s\S]*?)\]\s*as const/);
+  if (!correspondance) return null;
+  return [...correspondance[1].matchAll(/['"`]([a-zA-Z0-9_]+)['"`]/g)].map((m) => m[1]);
+}
+
+function extraireNamespacesParLangueDeRessources(contenuIndex) {
+  const debutObjet = contenuIndex.indexOf('const ressources = {');
+  if (debutObjet === -1) return null;
+  const blocRessources = extraireBlocEquilibre(contenuIndex, debutObjet + 'const ressources = '.length);
+  if (!blocRessources) return null;
+
+  const resultat = {};
+  for (const langue of LANGUES) {
+    const motif = new RegExp(`\\b${langue}:\\s*\\{`);
+    const correspondanceLangue = blocRessources.match(motif);
+    if (!correspondanceLangue) return null;
+    const debutBlocLangue = blocRessources.indexOf('{', correspondanceLangue.index);
+    const blocLangue = extraireBlocEquilibre(blocRessources, debutBlocLangue);
+    if (!blocLangue) return null;
+    // Clés d'objet en tête de ligne : `nom: identifiant,` — pas de valeurs imbriquées ici,
+    // seulement des références vers les imports JSON.
+    resultat[langue] = [...blocLangue.matchAll(/(?:^|[{,])\s*([a-zA-Z0-9_]+)\s*:/g)].map((m) => m[1]);
+  }
+  return resultat;
+}
+
+/** Le contrôle demandé : tout namespace présent sur disque (fr = référence) doit apparaître à la
+ *  fois dans `NAMESPACES` et dans le bloc `ressources` des trois langues de `src/i18n/index.ts`. */
+function verifierEnregistrementRuntime() {
+  const problemes = [];
+  let contenuIndex;
+  try {
+    contenuIndex = readFileSync(cheminIndexI18n, 'utf-8');
+  } catch {
+    return [`Impossible de lire ${path.relative(racineWeb, cheminIndexI18n)}.`];
+  }
+
+  const namespacesTableau = extraireNamespacesDuTableau(contenuIndex);
+  if (namespacesTableau === null) {
+    return [
+      `Impossible de repérer le tableau « export const NAMESPACES = [...] as const » dans ` +
+        `${path.relative(racineWeb, cheminIndexI18n)} — sa forme a changé, ce contrôle doit être adapté avant de continuer.`,
+    ];
+  }
+
+  const manquantsDuTableau = NAMESPACES.filter((ns) => !namespacesTableau.includes(ns));
+  if (manquantsDuTableau.length > 0) {
+    problemes.push(
+      `Namespace(s) présent(s) sur disque (src/i18n/locales/fr/) mais absent(s) du tableau NAMESPACES ` +
+        `dans src/i18n/index.ts : ${manquantsDuTableau.join(', ')} — t('${manquantsDuTableau[0]}:...') afficherait ` +
+        `la clé brute à l'écran au lieu d'une traduction.`,
+    );
+  }
+
+  const namespacesParLangue = extraireNamespacesParLangueDeRessources(contenuIndex);
+  if (namespacesParLangue === null) {
+    problemes.push(
+      `Impossible de repérer l'objet « const ressources = {...} » (ou l'un des blocs fr/de/it) dans ` +
+        `${path.relative(racineWeb, cheminIndexI18n)} — sa forme a changé, ce contrôle doit être adapté avant de continuer.`,
+    );
+  } else {
+    for (const langue of LANGUES) {
+      const manquants = NAMESPACES.filter((ns) => !namespacesParLangue[langue].includes(ns));
+      if (manquants.length > 0) {
+        problemes.push(
+          `Namespace(s) présent(s) sur disque mais absent(s) du bloc « ${langue}: {...} » de ` +
+            `ressources dans src/i18n/index.ts : ${manquants.join(', ')}.`,
+        );
+      }
+    }
+  }
+
+  return problemes;
+}
+
 function verifierParite(ressources) {
   const problemes = [];
   for (const ns of NAMESPACES) {
@@ -143,7 +247,8 @@ function main() {
 
   const problemesUtilisation = verifierClesUtiliseesExistentEnFr(clesUtilisees, ressources);
   const problemesParite = verifierParite(ressources);
-  const problemes = [...problemesUtilisation, ...problemesParite];
+  const problemesEnregistrement = verifierEnregistrementRuntime();
+  const problemes = [...problemesUtilisation, ...problemesParite, ...problemesEnregistrement];
 
   if (problemes.length > 0) {
     console.error(`i18n:check — ${problemes.length} problème(s) :\n`);
@@ -152,7 +257,7 @@ function main() {
     return;
   }
 
-  console.log(
+  console.warn(
     `i18n:check — OK (${clesUtilisees.size} clés utilisées, ${NAMESPACES.length} namespaces × ${LANGUES.length} langues en parité).`,
   );
 }

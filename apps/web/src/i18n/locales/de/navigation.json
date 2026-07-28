@@ -3,7 +3,9 @@
     "aria": "Hauptnavigation"
   },
   "liens": {
-    "accueil": "Startseite"
+    "accueil": "Startseite",
+    "clients": "Kunden",
+    "vehicules": "Fahrzeuge"
   },
   "menu": {
     "ouvrir": "Menü öffnen",

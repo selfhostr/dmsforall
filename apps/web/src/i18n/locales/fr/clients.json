@@ -35,7 +35,7 @@
   },
   "alertes": {
     "bloque": "Bloqué – impayés",
-    "alerte": "⚠ Alerte client"
+    "alerte": "Alerte client"
   },
   "identite": {
     "numero": "N° client",
@@ -80,9 +80,58 @@
     "interne": "Note interne (non imprimée)",
     "alerte": "Alerte (affichée en rouge)"
   },
+  "doublons": {
+    "titre": "Doublons détectés",
+    "clientSimiliaire": "Un client similaire existe",
+    "voir": "Voir la fiche",
+    "creerQuandMeme": "Créer quand même",
+    "criteres": {
+      "nom_npa": "Nom et NPA",
+      "email": "Adresse e-mail",
+      "telephone": "Téléphone",
+      "ide": "Numéro d'identification"
+    },
+    "score": "Score de similitude"
+  },
+  "consentements": {
+    "titre": "Consentements",
+    "ajouter": "Ajouter un consentement",
+    "types": {
+      "newsletter": "Infolettre",
+      "telephone": "Appels commerciaux",
+      "sms": "Messages SMS",
+      "email": "Courriels commerciaux"
+    }
+  },
+  "fiche": {
+    "titre": "Fiche client",
+    "ouvrirOr": "Ouvrir un OR",
+    "actions": {
+      "fusionner": "Fusionner"
+    },
+    "onglets": {
+      "contacts": "Contacts",
+      "adresses": "Adresses",
+      "consentements": "Consentements",
+      "notes": "Notes"
+    },
+    "vehicules": "Véhicules du client",
+    "derniersOr": "Derniers passages à l'atelier"
+  },
+  "desactivation": {
+    "titre": "Désactiver le client",
+    "motif": "Motif de la désactivation"
+  },
   "fusion": {
     "titre": "Fusionner deux clients",
-    "confirmation": "Tapez le nom du client à absorber pour confirmer"
+    "confirmation": "Tapez le nom du client à absorber pour confirmer",
+    "irreversible": "Cette action est irréversible.",
+    "transferer": "Les informations suivantes seront transférées",
+    "colonnes": {
+      "client1": "Client à conserver",
+      "client2": "Client à absorber"
+    },
+    "confirmer": "Fusionner définitivement"
   },
   "vide": {
     "premier": "Aucun client enregistré. Créez le premier.",

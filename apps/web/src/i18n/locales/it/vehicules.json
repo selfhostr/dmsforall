@@ -1,5 +1,11 @@
 {
   "titre": "Veicoli",
+  "nouveau": "Nuovo veicolo",
+  "creer": "Crea veicolo",
+  "archiver": {
+    "titre": "Archivia veicolo",
+    "motif": "Motivo dell'archiviazione"
+  },
   "identite": {
     "marque": "Marca",
     "modele": "Modello",
@@ -7,8 +13,9 @@
     "vin": "VIN",
     "codeType": "Codice CH",
     "plaque": "Targa",
-    "mise1reCirc": "1ª immatricolazione",
-    "kmActuels": "Km attuali"
+    "mise1reCirc": "1a immatricolazione",
+    "kmActuels": "Km attuali",
+    "copierCodeType": "Copia codice tipo"
   },
   "plaques": {
     "titre": "Targhe",
@@ -17,7 +24,7 @@
     "historique": "Storico delle targhe"
   },
   "detentions": {
-    "titre": "Proprietà",
+    "titre": "Proprieta",
     "detenteur": "Proprietario attuale",
     "historique": "Storico dei proprietari",
     "changer": "Cambia proprietario",
@@ -30,7 +37,7 @@
   },
   "kilometrage": {
     "titre": "Chilometraggio",
-    "relevek": "Registra chilometraggio",
+    "relever": "Registra chilometraggio",
     "valeur": "Km",
     "date": "Data",
     "source": "Fonte",
@@ -41,6 +48,16 @@
       "vente": "Vendita",
       "declaratif": "Dichiarazione cliente",
       "import": "Importazione"
+    },
+    "motifsRegression": {
+      "compteur_remplace": "Contachilometri sostituito",
+      "erreur_saisie": "Errore di immissione",
+      "changement_unite": "Cambio unita",
+      "correction": "Correzione"
+    },
+    "unites": {
+      "km": "Chilometri",
+      "mi": "Miglia"
     }
   },
   "expertise": {
@@ -73,7 +90,7 @@
   },
   "travauxReportes": {
     "titre": "Lavori rinviati",
-    "urgence": "Priorità",
+    "urgence": "Priorita",
     "urgences": {
       "urgent": "Urgente",
       "aFaire": "Da fare",
@@ -91,7 +108,7 @@
     "pression": "Pressione (bar)",
     "huile": "Olio",
     "type": "Tipo",
-    "quantite": "Quantità (l)",
+    "quantite": "Quantita (l)",
     "batterie": "Batteria",
     "codeRadio": "Codice radio",
     "intervalle": "Intervallo manutenzione"
@@ -102,9 +119,22 @@
     "pays": "Paese di provenienza",
     "date": "Data importazione"
   },
+  "alertes": {
+    "titre": "Avvisi & opportunita",
+    "travauxReportes": "Lavori rinviati",
+    "campagnes": "Richiami aperti",
+    "expertise": "Collaudo prossimo",
+    "garantie": "Garanzia",
+    "alerteClient": "Avviso cliente",
+    "importe": "Veicolo importato",
+    "ajouter": "Aggiungi a questo appuntamento"
+  },
   "vide": {
     "identite": "Veicolo non identificato",
     "plaques": "Nessuna targa registrata",
-    "kilometrage": "Nessun chilometraggio registrato"
+    "kilometrage": "Nessun chilometraggio registrato",
+    "nouveau": "Crea il tuo primo veicolo",
+    "recherche": "Nessun veicolo trovato",
+    "filtre": "Nessun risultato con questi filtri"
   }
 }

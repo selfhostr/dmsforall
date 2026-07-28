@@ -7,7 +7,20 @@
     "reessayer": "Réessayer",
     "rechargerApplication": "Recharger l'application",
     "retourAccueil": "Retour à l'accueil",
-    "fermer": "Fermer"
+    "fermer": "Fermer",
+    "annuler": "Annuler",
+    "enregistrer": "Enregistrer",
+    "modifier": "Modifier",
+    "ajouter": "Ajouter",
+    "rechercher": "Rechercher",
+    "filtrer": "Filtrer",
+    "effacerFiltres": "Effacer les filtres",
+    "continuerQuandMeme": "Continuer quand même",
+    "confirmer": "Confirmer",
+    "chargerPlus": "Charger plus",
+    "copier": "Copier",
+    "imprimer": "Imprimer",
+    "voir": "Voir"
   },
   "chargement": {
     "enCours": "Chargement…"
@@ -25,7 +38,12 @@
     "modele": "{page} – dmsforall",
     "connexion": "Connexion",
     "accueil": "Accueil",
-    "pageIntrouvable": "Page introuvable"
+    "pageIntrouvable": "Page introuvable",
+    "clients": "Clients",
+    "vehicules": "Véhicules",
+    "recherche": "Recherche",
+    "clientDetail": "Fiche client",
+    "vehiculeDetail": "Fiche véhicule"
   },
   "roles": {
     "direction": "Direction",

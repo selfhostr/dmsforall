@@ -1,5 +1,11 @@
 {
   "titre": "Fahrzeuge",
+  "nouveau": "Neues Fahrzeug",
+  "creer": "Fahrzeug erstellen",
+  "archiver": {
+    "titre": "Fahrzeug archivieren",
+    "motif": "Grund für Archivierung"
+  },
   "identite": {
     "marque": "Marke",
     "modele": "Modell",
@@ -8,7 +14,8 @@
     "codeType": "CH-Code",
     "plaque": "Kennzeichen",
     "mise1reCirc": "1. Zulassung",
-    "kmActuels": "Km aktuell"
+    "kmActuels": "Km aktuell",
+    "copierCodeType": "CH-Code kopieren"
   },
   "plaques": {
     "titre": "Kennzeichen",
@@ -30,7 +37,7 @@
   },
   "kilometrage": {
     "titre": "Kilometerstand",
-    "relevek": "Kilometerstand erfassen",
+    "relever": "Kilometerstand erfassen",
     "valeur": "Km",
     "date": "Datum",
     "source": "Quelle",
@@ -41,6 +48,16 @@
       "vente": "Verkauf",
       "declaratif": "Kundengabe",
       "import": "Import"
+    },
+    "motifsRegression": {
+      "compteur_remplace": "Tacho ersetzt",
+      "erreur_saisie": "Eingabefehler",
+      "changement_unite": "Einheitswechsel",
+      "correction": "Berichtigung"
+    },
+    "unites": {
+      "km": "Kilometer",
+      "mi": "Meilen"
     }
   },
   "expertise": {
@@ -102,9 +119,22 @@
     "pays": "Herkunftsland",
     "date": "Importdatum"
   },
+  "alertes": {
+    "titre": "Alerts & Chancen",
+    "travauxReportes": "Zurückgestellte Arbeiten",
+    "campagnes": "Offene Rückrufe",
+    "expertise": "MFK nächste Fälligkeit",
+    "garantie": "Garantie",
+    "alerteClient": "Kundenalert",
+    "importe": "Importiertes Fahrzeug",
+    "ajouter": "Zu diesem Termin hinzufügen"
+  },
   "vide": {
     "identite": "Fahrzeug nicht identifiziert",
     "plaques": "Kein Kennzeichen registriert",
-    "kilometrage": "Kein Kilometerstand erfasst"
+    "kilometrage": "Kein Kilometerstand erfasst",
+    "nouveau": "Erstellen Sie Ihr erstes Fahrzeug",
+    "recherche": "Kein Fahrzeug gefunden",
+    "filtre": "Keine Ergebnisse mit diesen Filtern"
   }
 }

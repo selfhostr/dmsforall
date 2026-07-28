@@ -8,6 +8,10 @@ import { z } from 'zod';
  */
 const schemaEnv = z.object({
   VITE_API_URL: z.string().trim().min(1, 'VITE_API_URL est obligatoire.'),
+  // Optionnelle à dessein : Sentry est un outil de supervision, pas une dépendance de
+  // fonctionnement. Son absence (dev local, garage sans configuration Sentry) ne doit jamais
+  // empêcher l'application de démarrer — voir observabilite/sentry.ts.
+  VITE_SENTRY_DSN: z.string().trim().min(1).optional(),
 });
 
 export type EnvWeb = Readonly<z.infer<typeof schemaEnv>>;

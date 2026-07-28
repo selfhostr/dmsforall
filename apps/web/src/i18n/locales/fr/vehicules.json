@@ -1,5 +1,11 @@
 {
   "titre": "Véhicules",
+  "nouveau": "Nouveau véhicule",
+  "creer": "Créer le véhicule",
+  "archiver": {
+    "titre": "Archiver le véhicule",
+    "motif": "Motif de l'archivage"
+  },
   "identite": {
     "marque": "Marque",
     "modele": "Modèle",
@@ -8,7 +14,8 @@
     "codeType": "Code type CH",
     "plaque": "Plaque",
     "mise1reCirc": "1re mise en circulation",
-    "kmActuels": "Km actuels"
+    "kmActuels": "Km actuels",
+    "copierCodeType": "Copier le code type"
   },
   "plaques": {
     "titre": "Plaques",
@@ -30,7 +37,7 @@
   },
   "kilometrage": {
     "titre": "Kilométrage",
-    "relevek": "Relever le kilométrage",
+    "relever": "Relever le kilométrage",
     "valeur": "Km",
     "date": "Date",
     "source": "Source",
@@ -41,6 +48,16 @@
       "vente": "Vente",
       "declaratif": "Déclaratif client",
       "import": "Import"
+    },
+    "motifsRegression": {
+      "compteur_remplace": "Compteur remplacé",
+      "erreur_saisie": "Erreur de saisie",
+      "changement_unite": "Changement d'unité",
+      "correction": "Correction"
+    },
+    "unites": {
+      "km": "Kilomètres",
+      "mi": "Milles"
     }
   },
   "expertise": {
@@ -102,9 +119,22 @@
     "pays": "Pays d'origine",
     "date": "Date d'importation"
   },
+  "alertes": {
+    "titre": "Alertes & opportunités",
+    "travauxReportes": "Travaux reportés",
+    "campagnes": "Campagnes ouvertes",
+    "expertise": "Expertise prochaine",
+    "garantie": "Garantie",
+    "alerteClient": "Alerte client",
+    "importe": "Véhicule importé",
+    "ajouter": "Ajouter à ce RDV"
+  },
   "vide": {
     "identite": "Véhicule non identifié",
     "plaques": "Aucune plaque enregistrée",
-    "kilometrage": "Aucun kilométrage relevé"
+    "kilometrage": "Aucun kilométrage relevé",
+    "nouveau": "Créez votre premier véhicule",
+    "recherche": "Aucun véhicule trouvé",
+    "filtre": "Aucun résultat avec ces filtres"
   }
 }

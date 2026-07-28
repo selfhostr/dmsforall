@@ -3,7 +3,9 @@
     "aria": "Navigation principale"
   },
   "liens": {
-    "accueil": "Accueil"
+    "accueil": "Accueil",
+    "clients": "Clients",
+    "vehicules": "Véhicules"
   },
   "menu": {
     "ouvrir": "Ouvrir le menu",

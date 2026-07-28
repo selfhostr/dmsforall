@@ -7,8 +7,7 @@
   "repos": {
     "titre": "Heute zu tun",
     "mesOr": "Meine RA heute",
-    "lignesFaire": "{count} Arbeit zu erledigen",
-    "lignesFaire_plural": "{count} Arbeiten zu erledigen"
+    "lignesFaire": "{count, plural, one {# Arbeit zu erledigen} other {# Arbeiten zu erledigen}}"
   },
   "enCours": {
     "demarrer": "Zeiterfassung starten",
@@ -41,11 +40,9 @@
   },
   "synchronisation": {
     "aJour": "Aktuell",
-    "enAttente": "{count} Zeiterfassung ausstehend",
-    "enAttente_plural": "{count} Zeiterfassungen ausstehend",
+    "enAttente": "{count, plural, one {# Zeiterfassung ausstehend} other {# Zeiterfassungen ausstehend}}",
     "horsLigne": "Offline seit {heure}",
-    "anomalie": "{count} Zeiterfassung zu korrigieren",
-    "anomalie_plural": "{count} Zeiterfassungen zu korrigieren"
+    "anomalie": "{count, plural, one {# Zeiterfassung zu korrigieren} other {# Zeiterfassungen zu korrigieren}}"
   },
   "cloturAuto": {
     "titre": "Zeiterfassung beendet",

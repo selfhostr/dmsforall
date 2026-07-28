@@ -7,25 +7,43 @@
     "reessayer": "Riprova",
     "rechargerApplication": "Ricarica l'applicazione",
     "retourAccueil": "Torna alla home",
-    "fermer": "Chiudi"
+    "fermer": "Chiudi",
+    "annuler": "Annulla",
+    "enregistrer": "Salva",
+    "modifier": "Modifica",
+    "ajouter": "Aggiungi",
+    "rechercher": "Cerca",
+    "filtrer": "Filtra",
+    "effacerFiltres": "Cancella filtri",
+    "continuerQuandMeme": "Continua comunque",
+    "confirmer": "Conferma",
+    "chargerPlus": "Carica altro",
+    "copier": "Copia",
+    "imprimer": "Stampa",
+    "voir": "Visualizza"
   },
   "chargement": {
-    "enCours": "Caricamento…"
+    "enCours": "Caricamento..."
   },
   "langue": {
     "libelle": "Lingua",
     "choisir": "Scegli la lingua"
   },
   "langues": {
-    "fr": "Français",
+    "fr": "Francais",
     "de": "Deutsch",
     "it": "Italiano"
   },
   "titres": {
-    "modele": "{page} – dmsforall",
+    "modele": "{page} - dmsforall",
     "connexion": "Accesso",
     "accueil": "Home",
-    "pageIntrouvable": "Pagina non trovata"
+    "pageIntrouvable": "Pagina non trovata",
+    "clients": "Clienti",
+    "vehicules": "Veicoli",
+    "recherche": "Ricerca",
+    "clientDetail": "Scheda cliente",
+    "vehiculeDetail": "Scheda veicolo"
   },
   "roles": {
     "direction": "Direzione",
@@ -34,7 +52,7 @@
     "chefAtelier": "Responsabile officina",
     "technicien": "Meccanico",
     "magasinier": "Gestione magazzino",
-    "comptable": "Contabilità",
+    "comptable": "Contabilita",
     "admin": "Amministratore"
   }
 }

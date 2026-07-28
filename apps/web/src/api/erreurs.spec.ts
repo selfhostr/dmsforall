@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import '@/i18n';
 import i18n from '@/i18n';
@@ -69,6 +69,30 @@ describe('construireErreurApi / messageErreur', () => {
     );
     const erreur = construireErreurApi(reponse, await reponse.clone().text());
     expect(erreur.probleme.code).toBe('ERREUR_INTERNE');
+  });
+
+  it('journalise en console.error le code inconnu et l’URL au lieu de rester silencieux', async () => {
+    await attendreI18nPret();
+    const espionConsole = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const reponse = new Response(
+        JSON.stringify({
+          type: 'https://docs.dmsforall.example/erreurs/VEHICULE_KILOMETRAGE_REGRESSIF',
+          title: 'Kilométrage régressif',
+          status: 409,
+          code: 'VEHICULE_KILOMETRAGE_REGRESSIF',
+          instance: 'req-3',
+        }),
+        { status: 409, headers: { 'content-type': 'application/problem+json' } },
+      );
+      construireErreurApi(reponse, await reponse.clone().text());
+
+      expect(espionConsole).toHaveBeenCalledTimes(1);
+      const [message] = espionConsole.mock.calls[0] as [string];
+      expect(message).toContain('VEHICULE_KILOMETRAGE_REGRESSIF');
+    } finally {
+      espionConsole.mockRestore();
+    }
   });
 
   it('produit un message réseau distinct pour ErreurReseau', async () => {

@@ -30,6 +30,92 @@ const TABLES_SANS_FORCE_RLS: ReadonlySet<string> = new Set([
   'journal_securite',
 ]);
 
+// -----------------------------------------------------------------------------------------------
+// Marqueurs de posture déclarée (voir migrations/0002_posture_declaree.sql)
+//
+// Une table qui déroge au motif standard le DÉCLARE dans son commentaire (`comment on table`),
+// dans la même migration que son `create table`. Le contrôle ci-dessous ne fait jamais confiance
+// à la déclaration seule : il vérifie qu'elle correspond aux privilèges réellement détenus par le
+// rôle de connexion. Déclarer ne donne donc aucun droit — cela décrit une posture, et une posture
+// qui ne se vérifie pas fait échouer le démarrage malgré la déclaration.
+//
+// Pourquoi le commentaire de table plutôt qu'une liste blanche en TypeScript : poser un
+// commentaire exige d'être propriétaire de la table, donc dfa_migrator. dfa_app ne peut pas
+// s'auto-déclarer une exception. Et la déclaration vit dans la base, pas dans un fichier qui peut
+// diverger de la base qu'il prétend décrire.
+// -----------------------------------------------------------------------------------------------
+
+/** Table sans `tenant_id`, identique pour tous les tenants. Exigé : dfa_app y a SELECT et rien d'autre. */
+export const MARQUEUR_REFERENTIEL = 'dfa:referentiel-partage';
+
+/** Table sans `tenant_id` hors d'atteinte de l'application. Exigé : dfa_app n'y a AUCUN privilège. */
+export const MARQUEUR_HORS_PORTEE = 'dfa:hors-portee-app';
+
+/** dfa_app a le droit de supprimer physiquement des lignes. Sans ce marqueur, DELETE est refusé. */
+export const MARQUEUR_SUPPRESSION = 'dfa:suppression-physique';
+
+const MARQUEURS_CONNUS: ReadonlySet<string> = new Set([
+  MARQUEUR_REFERENTIEL,
+  MARQUEUR_HORS_PORTEE,
+  MARQUEUR_SUPPRESSION,
+]);
+
+/**
+ * Grammaire d'un marqueur : `[dfa:motif-en-minuscules]`, n'importe où dans le commentaire.
+ *
+ * Volontairement PERMISSIF à la capture (tout ce qui n'est ni espace ni crochet fermant) et
+ * STRICT à la validation, contre `MARQUEURS_CONNUS`. Un motif restreint à `[a-z0-9-]` ne
+ * reconnaîtrait pas `[dfa:referentiel_partage]` ni `[dfa:Referentiel-Partage]` : la coquille
+ * passerait pour une absence de marqueur au lieu d'un refus nommé, et l'auteur chercherait
+ * longtemps. Le drapeau `i` sert le même but — reconnaître pour refuser, pas pour accepter.
+ */
+const MOTIF_MARQUEUR = /\[(dfa:[^\]\s]+)\]/gi;
+
+/**
+ * Longueur minimale de la justification en clair exigée à côté d'un marqueur.
+ * Un `comment on table x is '[dfa:referentiel-partage]'` posé à la va-vite doit être refusé :
+ * l'intérêt d'une exception déclarée est qu'elle porte la raison, relisible sans archéologie git.
+ */
+const LONGUEUR_MIN_JUSTIFICATION = 15;
+
+/** Marqueurs extraits d'un commentaire de table, avec ce qui reste une fois retirés. */
+export interface DeclarationPosture {
+  readonly marqueurs: ReadonlySet<string>;
+  /** Marqueurs `[dfa:…]` qui ne figurent pas au vocabulaire — typiquement une faute de frappe. */
+  readonly inconnus: readonly string[];
+  /** Texte hors marqueurs, normalisé. Sert à exiger une justification. */
+  readonly justification: string;
+}
+
+/**
+ * Analyse le commentaire d'une table. Séparée pour être testable telle quelle : c'est le point où
+ * une faute de frappe (`[dfa:referentiel_partage]`) doit devenir un refus bruyant et non une
+ * déclaration silencieusement absente.
+ */
+export function lireDeclaration(commentaire: string | null): DeclarationPosture {
+  if (commentaire === null || commentaire.trim() === '') {
+    return { marqueurs: new Set(), inconnus: [], justification: '' };
+  }
+
+  const marqueurs = new Set<string>();
+  const inconnus: string[] = [];
+
+  for (const trouve of commentaire.matchAll(MOTIF_MARQUEUR)) {
+    const nom = trouve[1] ?? '';
+    if (MARQUEURS_CONNUS.has(nom)) {
+      marqueurs.add(nom);
+    } else {
+      inconnus.push(nom);
+    }
+  }
+
+  // Les marqueurs inconnus sont retirés eux aussi : sinon un `[dfa:typo]` compterait comme
+  // justification, ce qui reviendrait à récompenser la faute de frappe.
+  const justification = commentaire.replace(MOTIF_MARQUEUR, ' ').replace(/\s+/g, ' ').trim();
+
+  return { marqueurs, inconnus, justification };
+}
+
 /** Accepte tout UUID canonique, quelle que soit la version. */
 const MOTIF_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -65,6 +151,26 @@ export type PostureTable = {
   politiques_non_isolantes: string[];
   /** Toutes les politiques permissives applicables, décrites — sert à rendre l'erreur lisible. */
   inventaire_politiques: string[];
+  /** `comment on table` — porte les marqueurs de posture déclarée. */
+  commentaire: string | null;
+  /**
+   * Privilèges EFFECTIFS du rôle de connexion (héritages de rôles et privilèges PUBLIC compris).
+   * On lit ce que le rôle peut faire, pas ce qu'un GRANT nominatif lui a donné : ce sont deux
+   * choses différentes, et seule la première est une propriété de sécurité.
+   */
+  peut_selectionner: boolean;
+  peut_inserer: boolean;
+  peut_modifier: boolean;
+  peut_supprimer: boolean;
+  peut_tronquer: boolean;
+  /**
+   * `true` si cette table est une PARTITION d'une autre. Vérifié en exécution : une partition
+   * n'hérite ni de `relrowsecurity`, ni de `FORCE`, ni des politiques de sa table mère — mais
+   * elle hérite bien des privilèges, que les `default privileges` lui accordent à la création.
+   */
+  est_partition: boolean;
+  /** Table mère, si `est_partition`. Sert à rendre le diagnostic actionnable. */
+  table_mere: string | null;
 };
 
 @Injectable()
@@ -325,11 +431,38 @@ export class ServiceAccesBase implements AccesBase, OnModuleInit, OnModuleDestro
                   where j.polrelid = c.oid
                ),
                '{}'::text[]
-             )                                          as inventaire_politiques
+             )                                          as inventaire_politiques,
+             -- Déclaration de posture : voir 0002_posture_declaree.sql. Sans commentaire, une
+             -- table sans tenant_id n'a rien déclaré et sera refusée.
+             pg_catalog.obj_description(c.oid, 'pg_class') as commentaire,
+             -- Privilèges EFFECTIFS du rôle de connexion : has_table_privilege et non
+             -- information_schema.table_privileges, qui n'énumère que les GRANT nominatifs et
+             -- manquerait un privilège hérité d'un rôle ou accordé à PUBLIC.
+             pg_catalog.has_table_privilege(c.oid, 'SELECT')   as peut_selectionner,
+             pg_catalog.has_table_privilege(c.oid, 'INSERT')   as peut_inserer,
+             pg_catalog.has_table_privilege(c.oid, 'UPDATE')   as peut_modifier,
+             pg_catalog.has_table_privilege(c.oid, 'DELETE')   as peut_supprimer,
+             pg_catalog.has_table_privilege(c.oid, 'TRUNCATE') as peut_tronquer,
+             c.relispartition                                  as est_partition,
+             (
+               select h.inhparent::regclass::text
+                 from pg_catalog.pg_inherits h
+                where h.inhrelid = c.oid
+                limit 1
+             )                                                 as table_mere
         from pg_catalog.pg_class c
         join pg_catalog.pg_namespace n on n.oid = c.relnamespace
        where n.nspname = 'public'
-         and c.relkind = 'r'
+         -- 'p' = table PARTITIONNÉE (la mère). Sans elle, une table partitionnée — l'étape 1 en
+         -- prévoit une, audit_atelier — serait purement et simplement invisible à ce contrôle,
+         -- donc dispensée de RLS, de politique et de tout le reste.
+         -- Les PARTITIONS, elles, sont des relations 'r' ordinaires et sont jugées une à une,
+         -- comme n'importe quelle table. Ce n'est pas un excès de zèle : mesuré sur cette base,
+         -- une partition créée par « create table … partition of » n'hérite NI de
+         -- relrowsecurity, NI de FORCE, NI des politiques de sa mère — mais hérite bien des
+         -- privilèges. Un « select * from audit_atelier_2026_08 » en dfa_app rendait donc les
+         -- lignes de TOUS les tenants pendant que la mère, elle, était irréprochable.
+         and c.relkind in ('r', 'p')
        order by c.relname
     `);
 
@@ -361,15 +494,112 @@ export function analyserPostureTables(
   }
 
   for (const t of tables) {
+    const problemesTable = analyserTable(t, nomRole);
+
+    // Une partition est jugée comme n'importe quelle table — mais l'auteur du DDL, lui, croit
+    // légitimement avoir tout fait en posant la politique sur la mère. Sans cette précision, le
+    // message « ROW LEVEL SECURITY non activé » sur une table qu'on n'a jamais écrite à la main
+    // (elle est créée par un job mensuel) envoie chercher au mauvais endroit.
+    if (t.est_partition && problemesTable.length > 0) {
+      const mere = t.table_mere ?? 'sa table mère';
+      problemes.push(
+        ...problemesTable.map(
+          (p) =>
+            `${p}\n      ↳ « ${t.table_name} » est une PARTITION de ${mere}. Une partition n'hérite ` +
+            `NI de ROW LEVEL SECURITY, NI de FORCE, NI des politiques de sa mère — mais elle hérite ` +
+            `des PRIVILÈGES. La politique de ${mere} ne s'applique qu'aux accès PAR ${mere} : un ` +
+            `« select … from ${t.table_name} » la contourne entièrement et rend les lignes de tous les ` +
+            `tenants. Le job qui crée les partitions doit rejouer sur chacune enable + force + la ` +
+            `politique d'isolation de ${mere}, et échouer bruyamment s'il n'y parvient pas.`,
+        ),
+      );
+      continue;
+    }
+
+    problemes.push(...problemesTable);
+  }
+
+  return problemes;
+}
+
+/** Verdict sur une table isolée. Extrait pour que l'appelant puisse enrichir le diagnostic. */
+function analyserTable(t: PostureTable, nomRole: string): string[] {
+  const problemes: string[] = [];
+  const declaration = lireDeclaration(t.commentaire);
+
+    // --- Hygiène de la déclaration elle-même ---------------------------------------------------
+    // Un marqueur mal orthographié est le pire des cas : l'auteur croit avoir déclaré, le contrôle
+    // ne voit rien, et le verdict dépend d'une coquille. On refuse tout `[dfa:…]` hors vocabulaire.
+    for (const inconnu of declaration.inconnus) {
+      problemes.push(
+        `table « ${t.table_name} » : marqueur de posture « [${inconnu}] » inconnu. Vocabulaire admis : ` +
+          `[${MARQUEUR_REFERENTIEL}], [${MARQUEUR_HORS_PORTEE}], [${MARQUEUR_SUPPRESSION}] ` +
+          `(voir 0002_posture_declaree.sql).`,
+      );
+    }
+
+    if (
+      declaration.marqueurs.size > 0 &&
+      declaration.justification.length < LONGUEUR_MIN_JUSTIFICATION
+    ) {
+      problemes.push(
+        `table « ${t.table_name} » : marqueur de posture posé sans justification. Le commentaire doit expliquer ` +
+          `POURQUOI cette table déroge, en clair et à côté du marqueur (au moins ${String(LONGUEUR_MIN_JUSTIFICATION)} ` +
+          `caractères). Une exception dont la raison n'est pas écrite se perd à la première relecture.`,
+      );
+    }
+
+    // --- TRUNCATE : refus inconditionnel, aucun marqueur ne l'ouvre -----------------------------
+    // TRUNCATE ne consulte AUCUNE politique RLS : un seul ordre viderait la table de tous les
+    // tenants à la fois, y compris depuis une injection SQL réussie dans une requête métier.
+    // Aucun besoin applicatif ne le justifie — la purge s'écrit en DELETE, sous RLS.
+    if (t.peut_tronquer) {
+      problemes.push(
+        `table « ${t.table_name} » : le rôle « ${nomRole} » détient TRUNCATE. TRUNCATE contourne intégralement ` +
+          `le RLS et supprimerait les lignes de TOUS les tenants. Aucune déclaration ne l'autorise : ` +
+          `revoke truncate on public.${t.table_name} from ${nomRole}.`,
+      );
+    }
+
+    // --- DELETE : autorisé seulement s'il est déclaré -------------------------------------------
+    // Correctif du trou n°2 : `alter default privileges` accordait DELETE à toute nouvelle table,
+    // et la règle « rien n'est physiquement supprimé » ne tenait qu'à un `revoke delete` à ne pas
+    // oublier dans chaque migration. 0002 retire DELETE du défaut ; ce contrôle rattrape le cas
+    // restant — une migration qui écrit un `grant delete` ou un `grant all` explicite.
+    if (t.peut_supprimer && !declaration.marqueurs.has(MARQUEUR_SUPPRESSION)) {
+      problemes.push(
+        `table « ${t.table_name} » : le rôle « ${nomRole} » détient DELETE sans déclaration. La suppression est ` +
+          `LOGIQUE par défaut dans dmsforall (documents de vente, mouvements de stock, pointages : rien n'est ` +
+          `physiquement supprimé). Soit la migration ajoute « revoke delete on public.${t.table_name} from ` +
+          `${nomRole} », soit elle déclare l'exception : comment on table public.${t.table_name} is '… ` +
+          `[${MARQUEUR_SUPPRESSION}] <raison> '.`,
+      );
+    }
+
     if (!t.rls_active) {
       problemes.push(`table « ${t.table_name} » : ROW LEVEL SECURITY non activé`);
-      continue;
+      return problemes;
     }
 
     // La table `tenant` s'isole sur `id` et non sur `tenant_id` : elle est son propre tenant.
     const doitEtreIsolee = t.porte_tenant_id || t.table_name === 'tenant';
+
     if (!doitEtreIsolee) {
-      continue;
+      problemes.push(...analyserTableSansTenant(t, declaration, nomRole));
+      return problemes;
+    }
+
+    // Un marqueur de portée sur une table qui PORTE `tenant_id` est une contradiction : soit la
+    // table est un référentiel partagé et elle n'a rien à faire d'un tenant_id, soit elle est
+    // métier et le marqueur est un copier-coller. Dans les deux cas, quelqu'un s'est trompé.
+    for (const marqueur of [MARQUEUR_REFERENTIEL, MARQUEUR_HORS_PORTEE]) {
+      if (declaration.marqueurs.has(marqueur)) {
+        problemes.push(
+          `table « ${t.table_name} » : marqueur « [${marqueur}] » posé sur une table qui porte tenant_id. ` +
+            `Ce marqueur ne concerne que les tables SANS tenant_id — une table métier doit suivre le motif ` +
+            `standard (politique isolante + FORCE), jamais s'en déclarer dispensée.`,
+        );
+      }
     }
 
     // Une politique permissive qui n'isole pas est PIRE qu'une politique manquante : elle rouvre
@@ -401,8 +631,105 @@ export function analyserPostureTables(
     if (!t.rls_force && !TABLES_SANS_FORCE_RLS.has(t.table_name)) {
       problemes.push(
         `table « ${t.table_name} » : FORCE ROW LEVEL SECURITY manquant (exception admise uniquement pour ${[...TABLES_SANS_FORCE_RLS].join(', ')})`,
+    );
+  }
+
+  return problemes;
+}
+
+/**
+ * Verdict sur une table SANS `tenant_id`.
+ *
+ * C'est ici que se joue le trou n°1. Jusqu'à 0002, une telle table était simplement ignorée :
+ * une table métier à laquelle on avait oublié `tenant_id`, munie de la politique du socle recopiée
+ * (`to dfa_app using (true) with check (true)`), démarrait l'API sans un mot — et dfa_app y lisait,
+ * écrivait et supprimait toutes les lignes hors de tout contexte tenant. Constaté en exécution.
+ *
+ * Désormais : pas de déclaration, pas de démarrage. Et la déclaration n'ouvre rien par elle-même,
+ * puisqu'on vérifie qu'elle correspond aux privilèges réels — c'est ce qui interdit qu'une table
+ * métier « passe pour un référentiel » : il faudrait pour cela qu'elle soit effectivement en
+ * lecture seule, auquel cas elle ne serait plus une table métier.
+ *
+ * Ce que le RLS ne peut PAS faire ici, et pourquoi le privilège est le bon levier : une table sans
+ * `tenant_id` n'a aucune colonne sur laquelle une politique pourrait discriminer. `using (true)`
+ * est donc la seule politique écrivable, et elle ne protège rien. La seule frontière disponible
+ * est le privilège de table — d'où le contrôle sur SELECT/INSERT/UPDATE/DELETE et non sur les
+ * politiques.
+ */
+function analyserTableSansTenant(
+  t: PostureTable,
+  declaration: DeclarationPosture,
+  nomRole: string,
+): string[] {
+  const problemes: string[] = [];
+
+  const estReferentiel = declaration.marqueurs.has(MARQUEUR_REFERENTIEL);
+  const estHorsPortee = declaration.marqueurs.has(MARQUEUR_HORS_PORTEE);
+
+  if (estReferentiel && estHorsPortee) {
+    problemes.push(
+      `table « ${t.table_name} » : marqueurs « [${MARQUEUR_REFERENTIEL}] » et « [${MARQUEUR_HORS_PORTEE}] » ` +
+        `posés ensemble. Ils s'excluent : le premier accorde SELECT à ${nomRole}, le second exige zéro privilège.`,
+    );
+    return problemes;
+  }
+
+  if (!estReferentiel && !estHorsPortee) {
+    problemes.push(
+      `table « ${t.table_name} » : aucune colonne tenant_id et aucune déclaration de posture. ` +
+        `Une table du schéma public sans tenant_id est, par défaut, une table métier à laquelle on l'a OUBLIÉ — ` +
+        `et elle est alors lisible et modifiable par tous les tenants à la fois, sans qu'aucune politique RLS ne ` +
+        `puisse l'en empêcher (il n'y a pas de colonne sur laquelle filtrer). Deux issues, aucune par omission : ` +
+        `(1) ajouter « tenant_id uuid not null » et la politique standard ; ` +
+        `(2) si c'est réellement un référentiel partagé par tous les tenants, le déclarer dans la migration — ` +
+        `comment on table public.${t.table_name} is '<raison> [${MARQUEUR_REFERENTIEL}] <justification>' — ` +
+        `et n'accorder que SELECT à ${nomRole}. Voir 0002_posture_declaree.sql.`,
+    );
+    return problemes;
+  }
+
+  // --- La déclaration doit correspondre aux privilèges réels ------------------------------------
+
+  if (estReferentiel) {
+    // Un référentiel partagé est en LECTURE SEULE pour l'application, sans quoi un tenant
+    // modifierait les données vues par tous les autres — le contraire exact de l'étanchéité, et
+    // avec un rayon d'action bien plus large qu'une fuite entre deux tenants.
+    const interdits = [
+      t.peut_inserer ? 'INSERT' : null,
+      t.peut_modifier ? 'UPDATE' : null,
+      t.peut_supprimer ? 'DELETE' : null,
+    ].filter((p): p is string => p !== null);
+
+    if (interdits.length > 0) {
+      problemes.push(
+        `table « ${t.table_name} » : déclarée « [${MARQUEUR_REFERENTIEL}] » mais « ${nomRole} » y détient ` +
+          `${interdits.join(', ')}. Un référentiel partagé est en lecture seule pour l'application : une écriture ` +
+          `y modifierait les données vues par TOUS les tenants. Son contenu appartient aux migrations. ` +
+          `Correction : revoke ${interdits.join(', ').toLowerCase()} on public.${t.table_name} from ${nomRole}.`,
       );
     }
+    // Rien à exiger côté politiques : avec SELECT seul, la politique `using (true)` ne peut
+    // qu'autoriser une lecture d'un contenu identique pour tous. FORCE n'est pas exigé non plus —
+    // il empêcherait dfa_migrator d'alimenter le référentiel sans lui ajouter une politique.
+    return problemes;
+  }
+
+  // estHorsPortee : la déclaration affirme que l'application ne touche pas cette table. On le
+  // vérifie, sinon le marqueur devient un laissez-passer pour n'importe quelle table technique.
+  const detenus = [
+    t.peut_selectionner ? 'SELECT' : null,
+    t.peut_inserer ? 'INSERT' : null,
+    t.peut_modifier ? 'UPDATE' : null,
+    t.peut_supprimer ? 'DELETE' : null,
+  ].filter((p): p is string => p !== null);
+
+  if (detenus.length > 0) {
+    problemes.push(
+      `table « ${t.table_name} » : déclarée « [${MARQUEUR_HORS_PORTEE}] » mais « ${nomRole} » y détient ` +
+        `${detenus.join(', ')}. Ce marqueur affirme que l'application n'a AUCUN accès à cette table ; ` +
+        `il ne peut pas servir à dispenser d'isolation une table réellement accessible. ` +
+        `Correction : revoke all on public.${t.table_name} from ${nomRole}, ou déclarer la vraie posture.`,
+    );
   }
 
   return problemes;

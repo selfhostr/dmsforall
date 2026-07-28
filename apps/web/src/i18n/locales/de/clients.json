@@ -35,7 +35,7 @@
   },
   "alertes": {
     "bloque": "Gesperrt – Zahlungsrückstände",
-    "alerte": "⚠ Kundenalert"
+    "alerte": "Kundenalert"
   },
   "identite": {
     "numero": "Kundennummer",
@@ -80,9 +80,58 @@
     "interne": "Interne Notiz (nicht gedruckt)",
     "alerte": "Alert (rot angezeigt)"
   },
+  "doublons": {
+    "titre": "Dubletten erkannt",
+    "clientSimiliaire": "Ein ähnlicher Kunde existiert",
+    "voir": "Kundenkarte ansehen",
+    "creerQuandMeme": "Trotzdem erstellen",
+    "criteres": {
+      "nom_npa": "Name und PLZ",
+      "email": "E-Mail-Adresse",
+      "telephone": "Telefonnummer",
+      "ide": "Identifikationsnummer"
+    },
+    "score": "Ähnlichkeitswert"
+  },
+  "consentements": {
+    "titre": "Genehmigungen",
+    "ajouter": "Genehmigung hinzufügen",
+    "types": {
+      "newsletter": "Newsletter",
+      "telephone": "Geschäftsanrufe",
+      "sms": "SMS-Nachrichten",
+      "email": "Geschäfts-E-Mails"
+    }
+  },
+  "fiche": {
+    "titre": "Kundenkarte",
+    "ouvrirOr": "RA öffnen",
+    "actions": {
+      "fusionner": "Zusammenführen"
+    },
+    "onglets": {
+      "contacts": "Kontakte",
+      "adresses": "Adressen",
+      "consentements": "Genehmigungen",
+      "notes": "Notizen"
+    },
+    "vehicules": "Fahrzeuge des Kunden",
+    "derniersOr": "Letzte Werkstattbesuche"
+  },
+  "desactivation": {
+    "titre": "Kunden deaktivieren",
+    "motif": "Grund für Deaktivierung"
+  },
   "fusion": {
     "titre": "Zwei Kunden zusammenführen",
-    "confirmation": "Geben Sie den Namen des zu absorbierenden Kunden ein, um zu bestätigen"
+    "confirmation": "Geben Sie den Namen des zu absorbierenden Kunden ein, um zu bestätigen",
+    "irreversible": "Diese Aktion ist nicht umkehrbar.",
+    "transferer": "Die folgenden Informationen werden übertragen",
+    "colonnes": {
+      "client1": "Kunde, der beibehalten wird",
+      "client2": "Kunde, der absorbiert wird"
+    },
+    "confirmer": "Endgültig zusammenführen"
   },
   "vide": {
     "premier": "Kein Kunde registriert. Erstellen Sie den ersten.",

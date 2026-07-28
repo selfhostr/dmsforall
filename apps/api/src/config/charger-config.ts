@@ -78,6 +78,30 @@ export const schemaConfig = z
       .default('false')
       .transform((v) => v === 'true'),
     VERSION_APP: z.string().default('0.0.0-dev'),
+    // --- Supervision (Sentry, auto-hébergé en Suisse — décision @laupernoe, cohérence nLPD) --------
+    // DSN de l'instance Sentry. OPTIONNELLE et SANS DÉFAUT : son absence ne doit JAMAIS
+    // empêcher l'API de démarrer, elle désactive proprement la supervision (voir
+    // `observabilite/initialiser-sentry.ts`). Auto-hébergement : ce DSN pointe une instance
+    // Sentry interne plutôt que sentry.io — même format d'URL (`https://<clé>@<hôte>/<projet>`),
+    // rien de spécifique à coder côté SDK, seul l'hôte change selon l'environnement.
+    // `.preprocess` transforme la chaîne vide (valeur laissée en blanc dans .env.example ou un
+    // `.env` local) en `undefined`, sinon `z.string().url().optional()` la rejetterait (une
+    // chaîne vide n'est pas une URL valide, et `.optional()` n'autorise que `undefined`).
+    SENTRY_DSN: z.preprocess((v) => (v === '' ? undefined : v), z.string().url().optional()),
+    // Nom d'environnement affiché dans Sentry (production | staging | development…). OPTIONNELLE :
+    // à défaut, `initialiserSentry` retombe sur NODE_ENV — évite de dupliquer la même valeur
+    // dans deux variables en usage courant, tout en laissant la main pour un déploiement où les
+    // deux devraient diverger (ex. plusieurs environnements de staging sous NODE_ENV=production).
+    SENTRY_ENVIRONMENT: z.string().min(1).optional(),
+    // Taux d'échantillonnage des traces de performance (0 à 1). Défaut À ZÉRO (audit sécurité,
+    // finding H2) : le tracing produit des événements de TRANSACTION, qui contiennent les mêmes
+    // catégories de données que les erreurs (requête, URL, spans avec leurs attributs) mais dont
+    // le nettoyage (`beforeSendTransaction`/`beforeSendSpan`, voir observabilite/) est un ajout
+    // récent et donc moins éprouvé que celui des erreurs — tant qu'aucun besoin de traçage de
+    // performance n'est identifié, ne pas activer une seconde voie de sortie du tout. À monter
+    // explicitement par déploiement une fois ce besoin réel et le nettoyage éprouvé en
+    // production.
+    SENTRY_TAUX_ECHANTILLONNAGE_TRACES: z.coerce.number().min(0).max(1).default(0),
   })
   .superRefine((c, ctx) => {
     if (c.NODE_ENV === 'production' && !c.COOKIE_SECURE) {
@@ -94,6 +118,32 @@ export const schemaConfig = z
         message:
           'DATABASE_URL et DATABASE_URL_MIGRATION doivent être différentes (rôles dfa_app et dfa_migrator distincts, voir RLS).',
       });
+    }
+    // Finding M4 (audit sécurité) : `docker/postgres/init/01-roles.sql` fixe en dur les mots de
+    // passe de dev (`dfa_app_dev`, `dfa_migrator_dev`), publiés dans le dépôt Git, et ce script
+    // rejoue à chaque initialisation d'un volume Postgres vide — y compris sur le conteneur de
+    // production, lors d'une montée de version majeure de Postgres. `pg_dump -d` ne sauvegarde
+    // pas les rôles : une restauration ne corrige rien, et le chemin de moindre résistance à 2h
+    // du matin est de remettre l'identifiant de dev dans `.env.production`. Uniquement en
+    // production (dev/CI utilisent légitimement ces identifiants) : refus fail-fast plutôt que
+    // de laisser la base de dizaines de garages tourner avec un mot de passe lisible sur GitHub.
+    if (c.NODE_ENV === 'production') {
+      const IDENTIFIANTS_DEV = ['dfa_app_dev', 'dfa_migrator_dev'];
+      for (const [variable, url] of [
+        ['DATABASE_URL', c.DATABASE_URL],
+        ['DATABASE_URL_MIGRATION', c.DATABASE_URL_MIGRATION],
+      ] as const) {
+        if (IDENTIFIANTS_DEV.some((identifiant) => url.includes(identifiant))) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [variable],
+            message:
+              `${variable} porte un mot de passe de développement (dfa_app_dev/dfa_migrator_dev) en production — ` +
+              'ces valeurs sont publiées dans le dépôt Git. Rejouer la procédure de rotation des ' +
+              'mots de passe PostgreSQL avant de redémarrer : docs/deploiement-production.md §3.2.',
+          });
+        }
+      }
     }
     // Bloquant B1 (rapport QA étape 0) : si le budget de débit par email n'est pas STRICTEMENT
     // supérieur au seuil de verrouillage, les échecs qui déclenchent le verrouillage épuisent

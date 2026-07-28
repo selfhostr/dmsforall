@@ -32,11 +32,18 @@ function estCodeErreurConnu(valeur: unknown): valeur is CodeErreur {
   return typeof valeur === 'string' && (CODES_ERREUR as readonly string[]).includes(valeur);
 }
 
-function estProblemeValide(valeur: unknown): valeur is ProblemeDetail {
+/** Forme d'un problem+json, INDÉPENDAMMENT de savoir si `code` est un `CodeErreur` connu du
+ *  front. Distinguée de la vérification du `code` (`estCodeErreurConnu`) pour séparer deux modes
+ *  de panne bien différents : un corps qui ne respecte pas RFC 9457 (proxy, 502 HTML…) contre un
+ *  corps parfaitement formé dont seul le `code` échappe à `CODES_ERREUR` — voir
+ *  `construireErreurApi`, qui journalise ce second cas au lieu de le laisser silencieux. */
+function estFormeProblemeValide(
+  valeur: unknown,
+): valeur is Omit<ProblemeDetail, 'code'> & { readonly code: string } {
   if (typeof valeur !== 'object' || valeur === null) return false;
   const candidat = valeur as Record<string, unknown>;
   return (
-    estCodeErreurConnu(candidat.code) &&
+    typeof candidat.code === 'string' &&
     typeof candidat.status === 'number' &&
     typeof candidat.type === 'string' &&
     typeof candidat.title === 'string' &&
@@ -58,14 +65,51 @@ export function synthetiserErreurInterne(reponse: Response): ProblemeDetail {
 }
 
 /** Construit une `ErreurApi` à partir d'une réponse HTTP non-ok : problem+json valide si le
- *  Content-Type et le corps le permettent, sinon ERREUR_INTERNE synthétisé. */
+ *  Content-Type et le corps le permettent, sinon ERREUR_INTERNE synthétisé.
+ *
+ *  STRATÉGIE DE REPLI SUR CODE INCONNU — délibérément conservée, argumentée ici plutôt que
+ *  changée en silence. Un `code` absent de `CODES_ERREUR` est un cas *normal* de production : le
+ *  front est un artefact déployé séparément du serveur, et un décalage d'une version (front en
+ *  retard sur une API qui vient d'apprendre un nouveau refus métier, ou l'inverse pendant un
+ *  déploiement progressif) arrivera. Trois options existaient :
+ *   1. Propager le `code` inconnu tel quel jusqu'à l'UI. Rejeté : rien ne garantit qu'une clé
+ *      `erreurs:codes.<CODE>` existe pour ce code, donc rien ne garantit qu'i18next ne rende pas
+ *      la clé brute à l'écran — exactement la panne silencieuse que ce correctif doit éliminer.
+ *   2. Laisser planter (exception non rattrapée). Rejeté : un `409` métier bien formé ne doit
+ *      jamais faire planter un écran, invariant n°8 du produit (aucun refus sans chemin de sortie
+ *      pour l'utilisateur, même dégradé).
+ *   3. **Synthétiser `ERREUR_INTERNE`** (comportement retenu, inchangé par ce correctif) : le
+ *      garagiste voit un message stable et traduit, avec une action claire (« réessayez »).
+ *      Ce n'est plus un mode de panne SILENCIEUX depuis ce correctif : le `code` réel et l'URL
+ *      sont journalisés en `console.error` ci-dessous, ce qui rend l'écart visible en
+ *      développement, en CI (logs de test) et via toute supervision qui capte la console
+ *      (ex. Sentry `captureConsoleIntegration`, hors périmètre ici). Le jour où `CODES_ERREUR`
+ *      grandit (V1, voir docs/plan-lot1-frontend-execution.md §2.1), ce repli redevient
+ *      transparent sans aucun changement de code ici. */
 export function construireErreurApi(reponse: Response, corpsTexte: string): ErreurApi {
   const contentType = reponse.headers.get('content-type') ?? '';
   if (contentType.includes('application/problem+json') && corpsTexte.length > 0) {
     try {
       const candidat: unknown = JSON.parse(corpsTexte);
-      if (estProblemeValide(candidat)) {
-        return new ErreurApi(candidat, lireRetryApres(reponse));
+      if (estFormeProblemeValide(candidat)) {
+        if (estCodeErreurConnu(candidat.code)) {
+          // `estCodeErreurConnu` ne narrowe que la lecture `candidat.code`, pas le type de
+          // `candidat` dans son ensemble (TS ne remonte pas la narrowing d'une propriété au
+          // type de l'objet porteur) : on reconstruit donc explicitement un `ProblemeDetail`
+          // dont le `code` est bien typé `CodeErreur`, plutôt que d'élargir `ProblemeDetail`
+          // pour accepter un `code: string` — ça aurait fait fuiter l'incertitude jusqu'à
+          // `messageErreur`, qui doit pouvoir compter sur un `code` toujours connu du contrat.
+          const probleme: ProblemeDetail = { ...candidat, code: candidat.code };
+          return new ErreurApi(probleme, lireRetryApres(reponse));
+        }
+        // Corps RFC 9457 par ailleurs impeccable (blocages, actionsProposees potentiellement
+        // inclus) mais `code` que ce front ne sait pas encore traduire — voir le bloc de
+        // commentaire ci-dessus. Sans ce log, ce cas était totalement invisible : ni test, ni
+        // lint, ni CI ne le détectait (voir docs/plan-lot1-frontend-execution.md §2.1).
+        console.error(
+          `[erreurs] Code d'erreur inconnu du front reçu depuis ${reponse.url || 'une URL non disponible'} : "${candidat.code}". ` +
+            'ERREUR_INTERNE est synthétisé en repli — voir le commentaire de construireErreurApi pour la justification.',
+        );
       }
     } catch {
       // Corps annoncé problem+json mais illisible : on tombe dans la synthèse ci-dessous.

@@ -7,8 +7,7 @@
   "repos": {
     "titre": "Travail du jour",
     "mesOr": "Mes OR du jour",
-    "lignesFaire": "{count} ligne à faire",
-    "lignesFaire_plural": "{count} lignes à faire"
+    "lignesFaire": "{count, plural, one {# ligne à faire} other {# lignes à faire}}"
   },
   "enCours": {
     "demarrer": "Démarrer le pointage",
@@ -41,11 +40,9 @@
   },
   "synchronisation": {
     "aJour": "À jour",
-    "enAttente": "{count} pointage en attente d'envoi",
-    "enAttente_plural": "{count} pointages en attente d'envoi",
+    "enAttente": "{count, plural, one {# pointage en attente d'envoi} other {# pointages en attente d'envoi}}",
     "horsLigne": "Hors ligne depuis {heure}",
-    "anomalie": "{count} pointage à corriger",
-    "anomalie_plural": "{count} pointages à corriger"
+    "anomalie": "{count, plural, one {# pointage à corriger} other {# pointages à corriger}}"
   },
   "cloturAuto": {
     "titre": "Pointage clôturé",

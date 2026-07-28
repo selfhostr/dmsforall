@@ -30,6 +30,7 @@ import { chargerConfig, ConfigModule, type Config } from '../../src/config';
 import { DbModule, type AccesBase } from '../../src/db';
 import { FiltreProbleme } from '../../src/common/erreurs';
 import { AppModule } from '../../src/app.module';
+import { initialiserSentry } from '../../src/observabilite';
 import type { BaseEphemere } from './postgres-ephemere';
 
 // -----------------------------------------------------------------------------------------
@@ -146,6 +147,15 @@ export async function creerAppTest(
   surcharges: Partial<NodeJS.ProcessEnv> = {},
 ): Promise<AppTest> {
   const config = chargerConfig(envTest(bdd, redisUrl, surcharges));
+
+  // Répliqué depuis main.ts (§7, étape 2) : Sentry doit être initialisé — ou rester un no-op
+  // propre si SENTRY_DSN est absent, ce qui est le cas de TOUTE la suite d'intégration sauf
+  // observabilite-sentry.spec.ts qui le surcharge explicitement — AVANT la création de l'app,
+  // exactement comme en production. Sans cet appel ici, aucun test d'intégration n'exercerait
+  // jamais le VRAI chemin d'initialisation/capture Sentry, seulement la fonction de nettoyage
+  // testée en isolation (voir observabilite/nettoyer-evenement.spec.ts) — ce qui ne prouve pas
+  // qu'elle est réellement branchée sur le chemin qui compte.
+  initialiserSentry(config);
 
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule.pourConfig(config)],

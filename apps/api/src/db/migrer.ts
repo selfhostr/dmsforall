@@ -173,6 +173,18 @@ export async function appliquerMigrations(
     await client.query(`alter table public.${TABLE_SUIVI} enable row level security`);
     await client.query(`revoke all on public.${TABLE_SUIVI} from dfa_app`);
 
+    // Déclaration de posture (voir 0002_posture_declaree.sql) : cette table n'a pas de
+    // `tenant_id`, et `verifierPostureRls()` refuse au démarrage toute table sans `tenant_id`
+    // qui ne déclare pas pourquoi. Le marqueur est posé ICI et non dans une migration parce que
+    // la table est créée par ce runner, avant que la moindre migration ne s'exécute — y compris
+    // sur une base vierge. `comment on table` est idempotent.
+    await client.query(`
+      comment on table public.${TABLE_SUIVI} is
+        'Suivi des migrations appliquées (nom, empreinte, durée). [dfa:hors-portee-app] '
+        'Table d''infrastructure du runner de migrations : dfa_app n''y a aucun privilège, '
+        'elle n''est lisible que par dfa_migrator.'
+    `);
+
     // --- Verrou : deux instances qui démarrent ensemble ne doivent pas migrer en parallèle -----
     journaliser("Acquisition du verrou de migration…");
     await client.query('select pg_advisory_lock($1)', [VERROU_MIGRATION.toString()]);

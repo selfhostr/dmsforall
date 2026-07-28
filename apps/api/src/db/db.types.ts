@@ -77,7 +77,15 @@ export interface AccesBase {
    * - une table du schéma public n'a pas `relrowsecurity` ;
    * - une table portant `tenant_id` (ou la table `tenant`) n'a pas de politique complète
    *   (`USING` **et** `WITH CHECK`) applicable au rôle courant ;
-   * - une table censée porter `FORCE ROW LEVEL SECURITY` ne l'a pas.
+   * - une table censée porter `FORCE ROW LEVEL SECURITY` ne l'a pas ;
+   * - une table **sans `tenant_id`** ne déclare pas pourquoi, par un marqueur de posture dans son
+   *   commentaire (`[dfa:referentiel-partage]` ou `[dfa:hors-portee-app]`), ou déclare une posture
+   *   que ses privilèges réels contredisent ;
+   * - le rôle courant détient `DELETE` sur une table non déclarée `[dfa:suppression-physique]`,
+   *   ou `TRUNCATE` sur quoi que ce soit.
+   *
+   * Voir `migrations/0002_posture_declaree.sql` pour le vocabulaire des marqueurs et le
+   * raisonnement : une déclaration n'accorde rien, elle décrit une posture qui est vérifiée.
    *
    * Fail-closed : mieux vaut une API qui refuse de démarrer qu'une API qui tourne sans RLS.
    */

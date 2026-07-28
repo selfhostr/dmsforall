@@ -14,20 +14,46 @@ import deCommun from './locales/de/commun.json';
 import deErreurs from './locales/de/erreurs.json';
 import deNavigation from './locales/de/navigation.json';
 import deValidation from './locales/de/validation.json';
+import deRecherche from './locales/de/recherche.json';
+import deClients from './locales/de/clients.json';
+import deVehicules from './locales/de/vehicules.json';
+import dePlanning from './locales/de/planning.json';
+import deReception from './locales/de/reception.json';
+import dePointage from './locales/de/pointage.json';
+import deOr from './locales/de/or.json';
 import frAccueil from './locales/fr/accueil.json';
 import frAuth from './locales/fr/auth.json';
 import frCommun from './locales/fr/commun.json';
 import frErreurs from './locales/fr/erreurs.json';
 import frNavigation from './locales/fr/navigation.json';
 import frValidation from './locales/fr/validation.json';
+import frRecherche from './locales/fr/recherche.json';
+import frClients from './locales/fr/clients.json';
+import frVehicules from './locales/fr/vehicules.json';
+import frPlanning from './locales/fr/planning.json';
+import frReception from './locales/fr/reception.json';
+import frPointage from './locales/fr/pointage.json';
+import frOr from './locales/fr/or.json';
 import itAccueil from './locales/it/accueil.json';
 import itAuth from './locales/it/auth.json';
 import itCommun from './locales/it/commun.json';
 import itErreurs from './locales/it/erreurs.json';
 import itNavigation from './locales/it/navigation.json';
 import itValidation from './locales/it/validation.json';
+import itRecherche from './locales/it/recherche.json';
+import itClients from './locales/it/clients.json';
+import itVehicules from './locales/it/vehicules.json';
+import itPlanning from './locales/it/planning.json';
+import itReception from './locales/it/reception.json';
+import itPointage from './locales/it/pointage.json';
+import itOr from './locales/it/or.json';
 
-/** 6 namespaces par domaine (propriété expert-i18n) : jamais modifiés ici, seulement importés. */
+/** 13 namespaces par domaine (propriété expert-i18n) : jamais modifiés ici, seulement importés.
+ *  Les 6 premiers sont le socle (étape 0) ; les 7 suivants (`recherche` à `or`) sont le lot 1 —
+ *  voir docs/plan-lot1-frontend-execution.md §2.3 (verrou V3). `scripts/verifier-i18n.mjs`
+ *  échoue désormais si un namespace présent sur disque (`src/i18n/locales/fr/*.json`) n'apparaît
+ *  pas ici : ne jamais ajouter un fichier de traduction sans l'enregistrer à la fois dans ce
+ *  tableau et dans `ressources` ci-dessous, pour les trois langues. */
 export const NAMESPACES = [
   'commun',
   'auth',
@@ -35,6 +61,13 @@ export const NAMESPACES = [
   'accueil',
   'erreurs',
   'validation',
+  'recherche',
+  'clients',
+  'vehicules',
+  'planning',
+  'reception',
+  'pointage',
+  'or',
 ] as const;
 
 const ressources = {
@@ -45,6 +78,13 @@ const ressources = {
     accueil: frAccueil,
     erreurs: frErreurs,
     validation: frValidation,
+    recherche: frRecherche,
+    clients: frClients,
+    vehicules: frVehicules,
+    planning: frPlanning,
+    reception: frReception,
+    pointage: frPointage,
+    or: frOr,
   },
   de: {
     commun: deCommun,
@@ -53,6 +93,13 @@ const ressources = {
     accueil: deAccueil,
     erreurs: deErreurs,
     validation: deValidation,
+    recherche: deRecherche,
+    clients: deClients,
+    vehicules: deVehicules,
+    planning: dePlanning,
+    reception: deReception,
+    pointage: dePointage,
+    or: deOr,
   },
   it: {
     commun: itCommun,
@@ -61,6 +108,13 @@ const ressources = {
     accueil: itAccueil,
     erreurs: itErreurs,
     validation: itValidation,
+    recherche: itRecherche,
+    clients: itClients,
+    vehicules: itVehicules,
+    planning: itPlanning,
+    reception: itReception,
+    pointage: itPointage,
+    or: itOr,
   },
 } as const;
 

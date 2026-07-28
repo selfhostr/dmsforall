@@ -4,7 +4,7 @@ DMS pour garages et concessions suisses. Cent pour cent navigateur, multi-tenant
 
 ## Statut
 
-Étape 0 (socle technique) en cours : authentification, tenants, sites, rôles, i18n (FR/DE/IT), API OpenAPI, squelette UI. Aucun module métier encore. Voir [ARCHITECTURE.md](ARCHITECTURE.md) § 6 pour la feuille de route complète.
+**Étape 0 (socle technique) livrée et vérifiée en exécution** : authentification, tenants, sites, rôles, i18n (FR/DE/IT), API OpenAPI, squelette UI, 191 tests verts (111 unitaires API, 32 web, 48 intégration), typecheck et lint à zéro. Aucun module métier encore. Voir [ARCHITECTURE.md](ARCHITECTURE.md) § 6 pour la feuille de route complète.
 
 ## Stack
 
@@ -39,6 +39,14 @@ pnpm dev
 ```
 
 L'API est accessible sur `http://localhost:3000`, le front sur `http://localhost:5173`.
+
+### Pièges connus
+
+Ces trois points ont coûté du temps et bloqueront un nouveau venu — ils sont donc testés :
+
+- **`cp .env.example .env` est obligatoire** : Node ne lit **aucun** fichier `.env` de lui-même. Sans cette copie, `pnpm install` échouera sur des variables manquantes.
+- **Docker Desktop + Windows = WSL2 obligatoire** : sans WSL2 activé, le moteur Docker ne démarre pas du tout. Activation : Panneau de config → Programmes → Activer/désactiver les fonctionnalités Windows → [✓] Sous-système Windows pour Linux.
+- **Après modification de `docker/postgres/init/01-roles.sql`, `docker compose down -v` est obligatoire** : les scripts d'initialisation Postgres ne rejouent que sur un volume vide. Sans `down -v`, la nouvelle config ne sera jamais appliquée.
 
 Pour vérifier que les services répondent :
 ```bash
@@ -106,11 +114,11 @@ pnpm build             # Build production tous les apps
 pnpm lint              # ESLint sur tout le monorepo
 pnpm lint:fix          # ESLint + fix
 pnpm typecheck         # TypeScript strict sur tout
-pnpm test              # Tous les tests (unitaires + intégration)
+pnpm test              # Tests unitaires (@dfa/api et @dfa/web)
 pnpm test:integration  # Intégration uniquement (@dfa/api)
 pnpm db:generate       # Générer types Drizzle depuis le schéma
 pnpm db:migrate        # Appliquer migrations Drizzle
-pnpm db:seed           # Injecter données de test (si implémenté)
+pnpm db:seed           # Injecter données de test (garage démo, admin@garage-martin.ch / Demo1234!Garage)
 pnpm api:openapi       # Exporter le schéma OpenAPI
 pnpm web:types         # Générer types frontend depuis OpenAPI
 pnpm docker:up         # Postgres + Redis background
