@@ -1,21 +1,11 @@
-import type { CodeErreur, ErreurChamp } from '@dfa/shared';
+import { STATUT_HTTP_PAR_CODE_ERREUR, type CodeErreur, type ErreurChamp } from '@dfa/shared';
 
-/** Statut HTTP associé à chaque code métier — mapping unique et centralisé. */
-export const STATUT_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> = {
-  VALIDATION_ECHOUEE: 400,
-  AUTH_IDENTIFIANTS_INVALIDES: 401,
-  AUTH_SESSION_ABSENTE: 401,
-  AUTH_SESSION_EXPIREE: 401,
-  AUTH_COMPTE_SUSPENDU: 403,
-  AUTH_COMPTE_VERROUILLE: 423,
-  AUTH_TENANT_SUSPENDU: 403,
-  AUTH_TROP_DE_TENTATIVES: 429,
-  AUTH_ORIGINE_REFUSEE: 403,
-  DROIT_INSUFFISANT: 403,
-  RESSOURCE_INTROUVABLE: 404,
-  CONFLIT: 409,
-  ERREUR_INTERNE: 500,
-};
+/**
+ * Statut HTTP associé à chaque code métier — ré-export du contrat partagé (gelé,
+ * `packages/shared/src/contrats/probleme.ts`). Ne JAMAIS dupliquer cette table ici : c'est
+ * elle qui rend impossible, à la compilation, l'ajout d'un code sans statut.
+ */
+export const STATUT_PAR_CODE_ERREUR = STATUT_HTTP_PAR_CODE_ERREUR;
 
 export interface OptionsErreurMetier {
   /** Détail technique complémentaire — jamais affiché à l'utilisateur final par le front. */

@@ -60,3 +60,132 @@
     color: hsl(var(--foreground));
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Statuts métier — docs/design-etape-1-atelier.md §8.1 et §5.
+   Réservés EXCLUSIVEMENT au statut d'OR et au statut de ligne (§5.1). Toute
+   autre dimension (payeur, origine, localisation, urgence, marqueurs — sauf
+   l'exception documentée « sécurité ») se rend en foreground/muted-foreground
+   + forme + mot, jamais avec un de ces tokens.
+
+   La sémantique de statut ne repose jamais sur la couleur seule : chaque
+   badge associe forme + icône lucide + mot (clé i18n `or:statuts.*` /
+   `or:lignes.statuts.*`), voir docs/design-comptoir.md « Vérification
+   daltonisme » pour la méthode.
+
+   Valeurs de L (luminosité) ajustées par rapport au design doc pour les
+   deux tokens qui échouaient la mesure de contraste — voir le tableau
+   « Contraste mesuré » dans docs/design-comptoir.md :
+     - --statut-neutre     : 46% → 44% (était 4.42:1 sur --muted, sous le seuil)
+     - --statut-attention  : 34% → 30% (était 3.93:1 sur --muted, sous le seuil)
+   Les quatre autres tokens sont repris tels quels, déjà conformes. ────────── */
+:root {
+  --statut-neutre: 240 4% 44%; /* planifié, proposée, annulée */
+  --statut-info: 217 91% 45%; /* ouvert, en cours, validée */
+  --statut-attention: 38 95% 30%; /* attente_*, contrôle, à valider */
+  --statut-succes: 142 72% 27%; /* terminé, facturé, restitué, réalisée */
+  --statut-danger: 0 72% 42%; /* annulé, refusée, marqueur sécurité */
+  --statut-terminal: 240 6% 30%; /* clôturé */
+}
+
+@theme inline {
+  --color-statut-neutre: hsl(var(--statut-neutre));
+  --color-statut-info: hsl(var(--statut-info));
+  --color-statut-attention: hsl(var(--statut-attention));
+  --color-statut-succes: hsl(var(--statut-succes));
+  --color-statut-danger: hsl(var(--statut-danger));
+  --color-statut-terminal: hsl(var(--statut-terminal));
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Densités et échelle typographique — docs/design-etape-1-atelier.md §8.2 et
+   §8.3. Arbitrage lead-frontend (docs/plan-lot1-frontend-execution.md
+   F1-U0) : contrat en variables CSS, pas en `lib/densites.ts`.
+
+   Chaque contexte (`dense` = bureau/comptoir, `aeree` = tablette atelier,
+   `tres-aeree` = pointage) pose un seul jeu de variables custom properties,
+   héritées par toute la sous-arborescence. Les composants ne lisent jamais
+   40px/56px/72px en dur : ils lisent `var(--densite-hauteur-ligne)` etc., de
+   sorte qu'un `<Table densite="aeree">` (ou toute liste dense non-tableau)
+   change de gabarit sans dupliquer de classes. Fallbacks alignés sur
+   `dense` : un composant qui oublie de se nicher sous une classe
+   `.densite-*` dégrade sur le gabarit bureau plutôt que de casser.
+   ────────────────────────────────────────────────────────────────────── */
+.densite-dense,
+.densite-aeree,
+.densite-tres-aeree {
+  --densite-tuile-or-largeur: 280px;
+  --densite-tuile-or-hauteur: 120px;
+}
+
+.densite-dense {
+  --densite-hauteur-ligne: 40px;
+  --densite-padding-x: 0.75rem; /* px-3 */
+  --densite-padding-y: 0.5rem; /* py-2 */
+  --densite-cible-tactile: 32px;
+
+  --texte-corps-taille: 0.875rem; /* 14px */
+  --texte-corps-hauteur: 1.25rem; /* 20px */
+  --texte-libelle-taille: 0.75rem; /* 12px */
+  --texte-libelle-hauteur: 1rem; /* 16px */
+  --texte-titre-taille: 1rem; /* 16px */
+  --texte-titre-hauteur: 1.5rem; /* 24px */
+  --texte-donnee-taille: 1.25rem; /* 20px */
+}
+
+.densite-aeree {
+  --densite-hauteur-ligne: 56px;
+  --densite-padding-x: 1rem; /* px-4 */
+  --densite-padding-y: 0.75rem; /* py-3 */
+  --densite-cible-tactile: 48px;
+
+  --texte-corps-taille: 1rem; /* 16px */
+  --texte-corps-hauteur: 1.5rem; /* 24px */
+  --texte-libelle-taille: 0.875rem; /* 14px */
+  --texte-libelle-hauteur: 1.25rem; /* 20px */
+  --texte-titre-taille: 1.125rem; /* 18px */
+  --texte-titre-hauteur: 1.75rem; /* 28px */
+  --texte-donnee-taille: 1.5rem; /* 24px */
+}
+
+.densite-tres-aeree {
+  --densite-hauteur-ligne: 72px;
+  --densite-padding-x: 1rem; /* px-4 */
+  --densite-padding-y: 1rem; /* py-4 */
+  --densite-cible-tactile: 72px;
+
+  --texte-corps-taille: 1.125rem; /* 18px */
+  --texte-corps-hauteur: 1.75rem; /* 28px */
+  --texte-libelle-taille: 1rem; /* 16px */
+  --texte-libelle-hauteur: 1.5rem; /* 24px */
+  --texte-titre-taille: 1.25rem; /* 20px */
+  --texte-titre-hauteur: 1.75rem; /* 28px */
+  --texte-chiffre-geant-taille: 3.75rem; /* 60px, entre les 56–64px demandés */
+}
+
+@layer utilities {
+  .texte-corps {
+    font-size: var(--texte-corps-taille, 0.875rem);
+    line-height: var(--texte-corps-hauteur, 1.25rem);
+  }
+  .texte-libelle {
+    font-size: var(--texte-libelle-taille, 0.75rem);
+    line-height: var(--texte-libelle-hauteur, 1rem);
+    color: hsl(var(--muted-foreground));
+  }
+  .texte-titre-section {
+    font-size: var(--texte-titre-taille, 1rem);
+    line-height: var(--texte-titre-hauteur, 1.5rem);
+    font-weight: 600;
+  }
+  .texte-donnee-proeminente {
+    font-size: var(--texte-donnee-taille, 1.25rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .texte-chiffre-geant {
+    font-size: var(--texte-chiffre-geant-taille, 3.75rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+}

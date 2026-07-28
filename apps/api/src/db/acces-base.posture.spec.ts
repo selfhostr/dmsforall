@@ -464,31 +464,66 @@ describe('analyserPostureTables — suppression physique', () => {
 // =================================================================================================
 
 describe('analyserPostureTables — partitions', () => {
-  const partitionNue = (o: Partial<PostureTable> = {}): PostureTable =>
+  /**
+   * Partition CONFORME : aucun privilège pour dfa_app (règle R3 — l'accès applicatif passe par
+   * la table mère), et malgré cela la posture d'isolation complète, parce qu'une partition
+   * n'hérite ni de RLS, ni de FORCE, ni des politiques de sa mère.
+   */
+  const partitionConforme = (o: Partial<PostureTable> = {}): PostureTable =>
     tableConforme({
       table_name: 'audit_atelier_2026_08',
       est_partition: true,
       table_mere: 'audit_atelier',
+      peut_selectionner: false,
+      peut_inserer: false,
+      peut_modifier: false,
+      ...o,
+    });
+
+  /** Ce que produit un `create table … partition of` sans rien de plus : privilèges hérités, aucune posture. */
+  const partitionNue = (o: Partial<PostureTable> = {}): PostureTable =>
+    partitionConforme({
       rls_active: false,
       rls_force: false,
       politiques_isolantes: 0,
       politiques_non_isolantes: [],
       inventaire_politiques: [],
+      peut_selectionner: true,
+      peut_inserer: true,
+      peut_modifier: true,
       ...o,
     });
 
   it('REFUSE une partition qui n\'a pas repris la posture de sa mère', () => {
     const problemes = analyserPostureTables([partitionNue()], ROLE);
 
+    // Deux fautes distinctes, deux messages : les privilèges hérités (R3) et l'absence de RLS.
+    expect(problemes).toHaveLength(2);
+    expect(problemes.join('\n')).toContain('ROW LEVEL SECURITY non activé');
+    for (const probleme of problemes) {
+      expect(probleme).toContain('audit_atelier_2026_08');
+    }
+  });
+
+  it('REFUSE les privilèges hérités par une partition, même irréprochable par ailleurs', () => {
+    // Le cas réellement dangereux : la mère est parfaite, la partition porte politique et FORCE,
+    // et pourtant `select … from audit_atelier_2026_08` rend tous les tenants — parce que ce
+    // chemin d'accès ne consulte aucune politique de la mère.
+    const problemes = analyserPostureTables(
+      [partitionConforme({ peut_selectionner: true, peut_inserer: true })],
+      ROLE,
+    );
+
     expect(problemes).toHaveLength(1);
-    expect(problemes[0]).toContain('audit_atelier_2026_08');
-    expect(problemes[0]).toContain('ROW LEVEL SECURITY non activé');
+    expect(problemes[0]).toContain('SELECT, INSERT');
+    expect(problemes[0]).toContain('revoke all on public.audit_atelier_2026_08 from dfa_app');
+    expect(problemes[0]).toContain('TOUS les tenants');
   });
 
   it('explique le piège de la partition, sinon on cherche au mauvais endroit', () => {
     // La partition est créée par un job mensuel, pas écrite à la main : sans cette explication,
     // le message envoie relire une migration où tout est correct.
-    const [probleme] = analyserPostureTables([partitionNue()], ROLE);
+    const probleme = analyserPostureTables([partitionNue()], ROLE).join('\n');
 
     expect(probleme).toContain('PARTITION de audit_atelier');
     expect(probleme).toContain("n'hérite");
@@ -496,13 +531,8 @@ describe('analyserPostureTables — partitions', () => {
     expect(probleme).toContain('enable + force');
   });
 
-  it('accepte une partition qui porte sa propre posture complète', () => {
-    expect(
-      analyserPostureTables(
-        [tableConforme({ table_name: 'audit_atelier_2026_08', est_partition: true, table_mere: 'audit_atelier' })],
-        ROLE,
-      ),
-    ).toEqual([]);
+  it('accepte une partition sans aucun privilège ET portant sa propre posture', () => {
+    expect(analyserPostureTables([partitionConforme()], ROLE)).toEqual([]);
   });
 
   it('n\'ajoute l\'explication qu\'aux partitions, jamais à une table ordinaire', () => {
@@ -511,21 +541,18 @@ describe('analyserPostureTables — partitions', () => {
     expect(probleme).not.toContain('PARTITION');
   });
 
-  it('exige aussi de la partition qu\'elle ne détienne pas DELETE', () => {
+  it('réclame « revoke all » et non « revoke delete » quand une partition détient DELETE', () => {
+    // Un seul message, et surtout le BON remède : retirer DELETE laisserait SELECT, donc la
+    // fuite. R3 remplace les contrôles DELETE/TRUNCATE ordinaires, elle ne s'y ajoute pas.
     const problemes = analyserPostureTables(
-      [
-        tableConforme({
-          table_name: 'audit_atelier_2026_08',
-          est_partition: true,
-          table_mere: 'audit_atelier',
-          peut_supprimer: true,
-        }),
-      ],
+      [partitionConforme({ peut_supprimer: true, peut_tronquer: true })],
       ROLE,
     );
 
     expect(problemes).toHaveLength(1);
-    expect(problemes[0]).toContain('DELETE sans déclaration');
+    expect(problemes[0]).toContain('DELETE, TRUNCATE');
+    expect(problemes[0]).toContain('revoke all');
+    expect(problemes[0]).not.toContain('DELETE sans déclaration');
   });
 });
 

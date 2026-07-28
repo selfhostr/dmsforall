@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { CODES_ERREUR } from '@dfa/shared';
+
 import '@/i18n';
 import i18n from '@/i18n';
 
@@ -75,12 +77,16 @@ describe('construireErreurApi / messageErreur', () => {
     await attendreI18nPret();
     const espionConsole = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
+      // Code délibérément fictif (préfixe `CODE_ARTIFICIEL_` absent de toute famille métier de
+      // `CODES_ERREUR` — OR_, VEHICULE_, CLIENT_, POINTAGE_, RDV_, DEVIS_, LIGNE_, PRET_, AUTH_,
+      // CONFIRMATION_, IDEMPOTENCE_, FONCTION_) : il ne doit jamais pouvoir devenir un vrai code
+      // métier ajouté à l'étape 2, contrairement à un nom plausible qui aurait fini par exister.
       const reponse = new Response(
         JSON.stringify({
-          type: 'https://docs.dmsforall.example/erreurs/VEHICULE_KILOMETRAGE_REGRESSIF',
-          title: 'Kilométrage régressif',
+          type: 'https://docs.dmsforall.example/erreurs/CODE_ARTIFICIEL_INTROUVABLE',
+          title: 'Code de test',
           status: 409,
-          code: 'VEHICULE_KILOMETRAGE_REGRESSIF',
+          code: 'CODE_ARTIFICIEL_INTROUVABLE',
           instance: 'req-3',
         }),
         { status: 409, headers: { 'content-type': 'application/problem+json' } },
@@ -89,9 +95,35 @@ describe('construireErreurApi / messageErreur', () => {
 
       expect(espionConsole).toHaveBeenCalledTimes(1);
       const [message] = espionConsole.mock.calls[0] as [string];
-      expect(message).toContain('VEHICULE_KILOMETRAGE_REGRESSIF');
+      expect(message).toContain('CODE_ARTIFICIEL_INTROUVABLE');
     } finally {
       espionConsole.mockRestore();
+    }
+  });
+
+  it('reconnaît les 53 codes de CODES_ERREUR sans jamais retomber sur le repli ERREUR_INTERNE (sauf lui-même)', async () => {
+    await attendreI18nPret();
+    for (const code of CODES_ERREUR) {
+      const reponse = new Response(
+        JSON.stringify({
+          type: `https://docs.dmsforall.example/erreurs/${code}`,
+          title: 'Titre de test',
+          status: 400,
+          code,
+          instance: 'req-contrat',
+        }),
+        { status: 400, headers: { 'content-type': 'application/problem+json' } },
+      );
+      const erreur = construireErreurApi(reponse, await reponse.clone().text());
+      // Le repli ne doit se déclencher pour aucun de ces codes : le code reconstruit doit être
+      // exactement celui envoyé (identité, pas de substitution silencieuse par ERREUR_INTERNE).
+      expect(erreur.probleme.code).toBe(code);
+
+      // Chaque code doit aussi avoir sa traduction dans erreurs:codes.<CODE> — sinon i18next
+      // rend la clé brute (`codes.<CODE>`) à l'écran, la panne silencieuse que ce test couvre.
+      const message = messageErreur(erreur, i18n.t);
+      expect(message).toBeTruthy();
+      expect(message.startsWith('codes.')).toBe(false);
     }
   });
 

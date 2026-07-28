@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { CODES_ERREUR, type CodeErreur, type ErreurChamp, type ProblemeDetail } from '@dfa/shared';
+import {
+  CODES_ERREUR,
+  TITRE_FR_PAR_CODE_ERREUR,
+  type CodeErreur,
+  type ErreurChamp,
+  type ProblemeDetail,
+} from '@dfa/shared';
 import { ServiceContexteRequete } from '../contexte/contexte-requete.service';
 import { ServiceJournal } from '../journal/service-journal';
 import { capturerErreurInattendue, type ContexteErreurSentry } from '../../observabilite';
@@ -14,22 +20,12 @@ function estCodeErreur(valeur: unknown): valeur is CodeErreur {
   return typeof valeur === 'string' && (CODES_ERREUR as readonly string[]).includes(valeur);
 }
 
-/** Libellés FR stables — JAMAIS affichés par le front (voir contrat ProblemeDetail.title). */
-const TITRE_PAR_CODE: Readonly<Record<CodeErreur, string>> = {
-  VALIDATION_ECHOUEE: 'Validation échouée',
-  AUTH_IDENTIFIANTS_INVALIDES: 'Identifiants invalides',
-  AUTH_SESSION_ABSENTE: 'Session absente',
-  AUTH_SESSION_EXPIREE: 'Session expirée',
-  AUTH_COMPTE_SUSPENDU: 'Compte suspendu',
-  AUTH_COMPTE_VERROUILLE: 'Compte verrouillé',
-  AUTH_TENANT_SUSPENDU: 'Tenant suspendu',
-  AUTH_TROP_DE_TENTATIVES: 'Trop de tentatives',
-  AUTH_ORIGINE_REFUSEE: 'Origine refusée',
-  DROIT_INSUFFISANT: 'Droit insuffisant',
-  RESSOURCE_INTROUVABLE: 'Ressource introuvable',
-  CONFLIT: 'Conflit',
-  ERREUR_INTERNE: 'Erreur interne',
-};
+/**
+ * Libellés FR stables — JAMAIS affichés par le front (voir contrat ProblemeDetail.title).
+ * Ré-export du contrat partagé (gelé, `packages/shared/src/contrats/probleme.ts`) : ne
+ * JAMAIS dupliquer cette table ici.
+ */
+const TITRE_PAR_CODE = TITRE_FR_PAR_CODE_ERREUR;
 
 function construireCorps(code: CodeErreur, status: number, instance: string, detail?: string, erreurs?: ProblemeDetail['erreurs']): ProblemeDetail {
   return {

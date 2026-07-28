@@ -19,6 +19,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 
 import { DbAmorcageModule } from '../db/db-amorcage.module';
+import { GardeDroit } from '../common/droits';
 import { AuthController } from './auth.controller';
 import { GardeSession } from './garde-session';
 import { JETON_SERVICE_MOT_DE_PASSE, JETON_SERVICE_SESSION } from './jetons';
@@ -44,10 +45,20 @@ import { ServiceSessionImpl } from './services/session.service';
     // oublie de décorer est donc protégé par défaut, ce qui est le sens correct de l'oubli.
     { provide: APP_GUARD, useClass: GardeSession },
 
-    // L'AUTORISATION n'est pas déclarée ici : `GardeDroit` (common/droits) est le mécanisme
-    // unique, appliqué endpoint par endpoint via `@ExigerDroit(...)`. Il lit `MATRICE_DROITS`
-    // depuis `auth/matrice-droits.ts`, un module de données pures — c'est ce qui évite le cycle
-    // d'imports common ↔ auth.
+    // Garde d'AUTORISATION, appliquée à TOUTE l'application en second `APP_GUARD` — l'ordre de
+    // déclaration dans ce tableau fixe l'ordre d'exécution : `GardeSession` résout et attache le
+    // principal avant que `GardeDroit` ne l'évalue. Enregistrée ici (et non laissée au seul
+    // `@UseGuards(GardeDroit)` posé au cas par cas sur les contrôleurs) parce que compter sur une
+    // douzaine de contrôleurs du lot 1 (54 actions) pour poser chacun ce guard à la main est
+    // exactement le genre de discipline qui finit par s'oublier une fois — voir le commentaire
+    // d'en-tête de `GardeDroit.canActivate` sur le refus par défaut qui rend cet oubli visible
+    // (403) plutôt que silencieux. `GardeDroit` lui-même reste fourni comme provider ordinaire par
+    // `CommonModule` (`@Global()`) : un `@UseGuards(GardeDroit)` explicite sur un contrôleur reste
+    // possible mais devient redondant avec ce guard global — le check est un pur calcul sans effet
+    // de bord (aucune écriture, aucun log), donc l'exécuter deux fois ne casse rien, ça ne fait
+    // que gaspiller un cycle. `MATRICE_DROITS` reste lue depuis `auth/matrice-droits.ts`, un
+    // module de données pures — c'est ce qui évite le cycle d'imports common ↔ auth.
+    { provide: APP_GUARD, useClass: GardeDroit },
   ],
   exports: [JETON_SERVICE_SESSION],
 })

@@ -496,6 +496,13 @@ export function analyserPostureTables(
   for (const t of tables) {
     const problemesTable = analyserTable(t, nomRole);
 
+    // R3 — la règle propre aux partitions : zéro privilège. Elle est évaluée AVANT les règles
+    // d'isolation et indépendamment d'elles, parce qu'elle est la seule des deux à être une
+    // frontière effective. Voir `analyserPartition`.
+    if (t.est_partition) {
+      problemes.push(...analyserPartition(t, nomRole));
+    }
+
     // Une partition est jugée comme n'importe quelle table — mais l'auteur du DDL, lui, croit
     // légitimement avoir tout fait en posant la politique sur la mère. Sans cette précision, le
     // message « ROW LEVEL SECURITY non activé » sur une table qu'on n'a jamais écrite à la main
@@ -520,6 +527,56 @@ export function analyserPostureTables(
   }
 
   return problemes;
+}
+
+/**
+ * Verdict sur une PARTITION — règle R3 : le rôle applicatif n'y détient AUCUN privilège.
+ *
+ * Pourquoi c'est la règle la plus importante des trois, mesuré sur cette base et non déduit :
+ * une partition créée par `create table … partition of` n'hérite NI de `relrowsecurity`, NI de
+ * `FORCE`, NI des politiques de sa mère — mais elle hérite bien des PRIVILÈGES, que les
+ * `default privileges` lui accordent au moment même de sa création. Une partition d'audit
+ * fraîchement créée est donc, par défaut, entièrement lisible par `dfa_app` sans le moindre
+ * filtre de tenant. Vérifié à deux reprises :
+ *   - une politique `using (false)` posée sur la partition n'empêche NI la lecture NI l'écriture
+ *     effectuées à travers la mère (les politiques de la partition ne sont consultées que si la
+ *     partition est nommée dans la requête) ;
+ *   - inversement, `select … from audit_atelier_2026_08` ne consulte AUCUNE politique de
+ *     `audit_atelier`.
+ *
+ * Conséquence : le privilège est la seule frontière qui couvre les deux chemins d'accès. Les
+ * règles d'isolation (RLS + FORCE + politique isolante) continuent malgré tout d'être exigées
+ * de chaque partition — voir `analyserPostureTables`. Ce n'est pas de la redondance décorative :
+ * elles ne coûtent rien (la lecture par la mère les ignore, mesuré), et elles sont ce qui
+ * contient la fuite le jour où quelqu'un exécute un `grant select on all tables in schema public
+ * to dfa_app` — un ordre qui semble anodin et qui, sans elles, rouvre d'un coup toutes les
+ * partitions à tous les tenants.
+ */
+function analyserPartition(t: PostureTable, nomRole: string): string[] {
+  const detenus = [
+    t.peut_selectionner ? 'SELECT' : null,
+    t.peut_inserer ? 'INSERT' : null,
+    t.peut_modifier ? 'UPDATE' : null,
+    t.peut_supprimer ? 'DELETE' : null,
+    t.peut_tronquer ? 'TRUNCATE' : null,
+  ].filter((p): p is string => p !== null);
+
+  if (detenus.length === 0) {
+    return [];
+  }
+
+  const mere = t.table_mere ?? 'sa table mère';
+
+  return [
+    `table « ${t.table_name} » : PARTITION de ${mere} sur laquelle « ${nomRole} » détient ${detenus.join(', ')}. ` +
+      `Une partition n'hérite NI des politiques de sa mère, NI de ROW LEVEL SECURITY, NI de FORCE — mais elle ` +
+      `hérite des PRIVILÈGES, que les « default privileges » lui accordent à la création. Un ` +
+      `« select … from ${t.table_name} » ne consulte donc aucune politique de ${mere} et rend les lignes de TOUS ` +
+      `les tenants. L'application n'a aucun besoin d'accéder à une partition nommément : la lecture, l'écriture ` +
+      `et le routage passent tous par ${mere}, dont les politiques, elles, s'appliquent. ` +
+      `Correction : revoke all on public.${t.table_name} from ${nomRole} — dans la migration ET dans le job qui ` +
+      `crée les partitions, qui doit échouer bruyamment plutôt que laisser derrière lui une partition nue.`,
+  ];
 }
 
 /** Verdict sur une table isolée. Extrait pour que l'appelant puisse enrichir le diagnostic. */
@@ -553,7 +610,12 @@ function analyserTable(t: PostureTable, nomRole: string): string[] {
     // TRUNCATE ne consulte AUCUNE politique RLS : un seul ordre viderait la table de tous les
     // tenants à la fois, y compris depuis une injection SQL réussie dans une requête métier.
     // Aucun besoin applicatif ne le justifie — la purge s'écrit en DELETE, sous RLS.
-    if (t.peut_tronquer) {
+    //
+    // Les partitions sont exemptées de CE contrôle-ci et du suivant, non par tolérance mais par
+    // sévérité : `analyserPartition` leur interdit TOUT privilège, TRUNCATE et DELETE compris.
+    // Les laisser passer ici produirait deux messages pour une seule faute, dont un qui
+    // proposerait le mauvais remède (« revoke delete » là où il faut « revoke all »).
+    if (t.peut_tronquer && !t.est_partition) {
       problemes.push(
         `table « ${t.table_name} » : le rôle « ${nomRole} » détient TRUNCATE. TRUNCATE contourne intégralement ` +
           `le RLS et supprimerait les lignes de TOUS les tenants. Aucune déclaration ne l'autorise : ` +
@@ -566,7 +628,7 @@ function analyserTable(t: PostureTable, nomRole: string): string[] {
     // et la règle « rien n'est physiquement supprimé » ne tenait qu'à un `revoke delete` à ne pas
     // oublier dans chaque migration. 0002 retire DELETE du défaut ; ce contrôle rattrape le cas
     // restant — une migration qui écrit un `grant delete` ou un `grant all` explicite.
-    if (t.peut_supprimer && !declaration.marqueurs.has(MARQUEUR_SUPPRESSION)) {
+    if (t.peut_supprimer && !t.est_partition && !declaration.marqueurs.has(MARQUEUR_SUPPRESSION)) {
       problemes.push(
         `table « ${t.table_name} » : le rôle « ${nomRole} » détient DELETE sans déclaration. La suppression est ` +
           `LOGIQUE par défaut dans dmsforall (documents de vente, mouvements de stock, pointages : rien n'est ` +

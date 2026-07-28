@@ -13,6 +13,7 @@ import { schemaConnexion, type SessionCourante } from '@dfa/shared';
 import { JETON_CONFIG } from '../config/config.jetons';
 import type { Config } from '../config/config.types';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
+import { AucunDroitRequis } from '../common/droits';
 import { Principal } from './decorateurs/principal.decorator';
 import { Public } from './decorateurs/public.decorator';
 import { construireAttributsCookie, effacerCookieSession, poserCookieSession } from './cookie';
@@ -126,6 +127,11 @@ export class AuthController {
     effacerCookieSession(res, this.config);
   }
 
+  // `GardeDroit` est en refus par défaut (voir common/droits/garde-droit.ts) : ce marqueur
+  // déclare EXPLICITEMENT que « authentifié suffit » pour lire sa propre session — pas de
+  // `@UseGuards(GardeDroit)` local nécessaire, la garde s'applique déjà globalement en second
+  // `APP_GUARD` (voir auth.module.ts) pour toute l'application, y compris ce contrôleur.
+  @AucunDroitRequis()
   @Get('moi')
   @ApiOperation({ summary: 'Session courante de l’utilisateur authentifié.' })
   @ApiResponse({ status: 200, description: 'Session courante.', type: SessionCouranteDto })
