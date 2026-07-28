@@ -64,9 +64,17 @@ function ligneOrBrute(champs: Partial<Record<string, unknown>> = {}): Record<str
   };
 }
 
-function txFactice(clientRows: readonly unknown[], executeRows: readonly unknown[]) {
+/**
+ * `ligneClient` charge le client (`select().from().where().limit()`), puis DEUX requêtes
+ * `execute()` s'enchaînent, dans l'ordre : (1) le complément de désambiguïsation comptoir
+ * (`localite`/`nombreVehicules`/`dernierPassageLe`, une seule fois pour ce client — voir
+ * `ServiceClientOrdresReparation.lister`), (2) la liste des OR elle-même. `executeRowsQueue`
+ * fournit donc, DANS CET ORDRE, les lignes que chaque appel `execute()` doit rendre.
+ */
+function txFactice(clientRows: readonly unknown[], executeRowsQueue: ReadonlyArray<readonly unknown[]>) {
+  const queue = [...executeRowsQueue];
   const whereArgs: unknown[] = [];
-  const executeMock = vi.fn((_requete: unknown) => Promise.resolve({ rows: executeRows }));
+  const executeMock = vi.fn((_requete: unknown) => Promise.resolve({ rows: queue.shift() ?? [] }));
   const tx = {
     select: () => ({
       from: () => ({
@@ -81,17 +89,14 @@ function txFactice(clientRows: readonly unknown[], executeRows: readonly unknown
   return { tx: tx as unknown as TransactionDfa, whereArgs, executeMock };
 }
 
-function accesFactice(tx: TransactionDfa): AccesBase {
-  return {
-    enTenant: vi.fn((_ctx, travail) => travail(tx)),
-    verifierConnexion: vi.fn(),
-    verifierPostureRls: vi.fn(),
-  };
+/** Raccourci pour les tests qui ne portent pas sur la désambiguïsation comptoir : pas de complément (défauts null/0), puis les OR fournis. */
+function txFacticeSimple(clientRows: readonly unknown[], lignesOr: readonly unknown[]) {
+  return txFactice(clientRows, [[], lignesOr]);
 }
 
 describe('ServiceClientOrdresReparation.lister — priorité de blocage accord > pièces > externe (RM-58)', () => {
   it('un OR actif en attente accord ET pièces affiche "attente_accord" (l’accord prime)', async () => {
-    const { tx } = txFactice(
+    const { tx } = txFacticeSimple(
       [ligneClient()],
       [ligneOrBrute({ statut: 'en_cours', aAttenteAccord: true, aAttentePieces: true, aAttenteExterne: true })],
     );
@@ -103,7 +108,7 @@ describe('ServiceClientOrdresReparation.lister — priorité de blocage accord >
   });
 
   it('sans attente accord, un OR actif en attente pièces ET externe affiche "attente_pieces"', async () => {
-    const { tx } = txFactice(
+    const { tx } = txFacticeSimple(
       [ligneClient()],
       [ligneOrBrute({ statut: 'ouvert', aAttenteAccord: false, aAttentePieces: true, aAttenteExterne: true })],
     );
@@ -115,10 +120,7 @@ describe('ServiceClientOrdresReparation.lister — priorité de blocage accord >
   });
 
   it("un OR déjà clôturé n'affiche jamais un état d'attente, même si les lignes en gardent la trace (l'attente ne concerne que le travail actif)", async () => {
-    const { tx } = txFactice(
-      [ligneClient()],
-      [ligneOrBrute({ statut: 'cloture', aAttenteAccord: true })],
-    );
+    const { tx } = txFacticeSimple([ligneClient()], [ligneOrBrute({ statut: 'cloture', aAttenteAccord: true })]);
     const service = new ServiceClientOrdresReparation(accesFactice(tx));
 
     const page = await service.lister(CTX, 'c1', PARAMS_DEFAUT, true);
@@ -129,7 +131,7 @@ describe('ServiceClientOrdresReparation.lister — priorité de blocage accord >
 
 describe('ServiceClientOrdresReparation.lister — visibilité des montants selon le droit appelant', () => {
   it('avecMontants: true expose totalTtcCentimes', async () => {
-    const { tx } = txFactice([ligneClient()], [ligneOrBrute({ totalTtcCentimes: 24500 })]);
+    const { tx } = txFacticeSimple([ligneClient()], [ligneOrBrute({ totalTtcCentimes: 24500 })]);
     const service = new ServiceClientOrdresReparation(accesFactice(tx));
 
     const page = await service.lister(CTX, 'c1', PARAMS_DEFAUT, true);
@@ -138,12 +140,41 @@ describe('ServiceClientOrdresReparation.lister — visibilité des montants selo
   });
 
   it("avecMontants: false n'expose PAS totalTtcCentimes (clé absente, pas juste undefined)", async () => {
-    const { tx } = txFactice([ligneClient()], [ligneOrBrute({ totalTtcCentimes: 24500 })]);
+    const { tx } = txFacticeSimple([ligneClient()], [ligneOrBrute({ totalTtcCentimes: 24500 })]);
     const service = new ServiceClientOrdresReparation(accesFactice(tx));
 
     const page = await service.lister(CTX, 'c1', PARAMS_DEFAUT, false);
 
     expect(page.donnees[0]).not.toHaveProperty('totalTtcCentimes');
+  });
+});
+
+describe('ServiceClientOrdresReparation.lister — client embarqué (désambiguïsation comptoir)', () => {
+  it("un client sans adresse principale et sans véhicule détenu ressort avec localite: null et nombreVehicules: 0 (une seule requête complémentaire, pas par ligne d'OR)", async () => {
+    const { tx, executeMock } = txFactice([ligneClient()], [[], [ligneOrBrute()]]);
+    const service = new ServiceClientOrdresReparation(accesFactice(tx));
+
+    const page = await service.lister(CTX, 'c1', PARAMS_DEFAUT, false);
+
+    expect(page.donnees[0]?.client.localite).toBeNull();
+    expect(page.donnees[0]?.client.nombreVehicules).toBe(0);
+    expect(page.donnees[0]?.client.dernierPassageLe).toBeNull();
+    // Une seule requête complémentaire (pas une par ligne d'OR), avant la requête des OR elle-même.
+    expect(executeMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('le complément de désambiguïsation (localite/nombreVehicules/dernierPassageLe) est propagé sur le client embarqué de chaque OR', async () => {
+    const { tx } = txFactice(
+      [ligneClient()],
+      [[{ localite: 'Lausanne', nombreVehicules: 2, dernierPassageLe: new Date('2026-06-01T00:00:00.000Z') }], [ligneOrBrute()]],
+    );
+    const service = new ServiceClientOrdresReparation(accesFactice(tx));
+
+    const page = await service.lister(CTX, 'c1', PARAMS_DEFAUT, false);
+
+    expect(page.donnees[0]?.client.localite).toBe('Lausanne');
+    expect(page.donnees[0]?.client.nombreVehicules).toBe(2);
+    expect(page.donnees[0]?.client.dernierPassageLe).toBe('2026-06-01T00:00:00.000Z');
   });
 });
 
@@ -158,8 +189,8 @@ describe('ServiceClientOrdresReparation.lister — isolation tenant', () => {
     });
   });
 
-  it('la vérification du client et la requête des OR filtrent toutes deux sur le tenantId du contexte', async () => {
-    const { tx, whereArgs, executeMock } = txFactice([ligneClient()], [ligneOrBrute()]);
+  it('la vérification du client, le complément client et la requête des OR filtrent tous sur le tenantId du contexte', async () => {
+    const { tx, whereArgs, executeMock } = txFacticeSimple([ligneClient()], [ligneOrBrute()]);
     const service = new ServiceClientOrdresReparation(accesFactice(tx));
 
     await service.lister(CTX, 'c1', PARAMS_DEFAUT, false);
@@ -169,9 +200,21 @@ describe('ServiceClientOrdresReparation.lister — isolation tenant', () => {
     expect(texteClient).toContain('tenant_id');
     expect(paramsClient).toContain('tid-1');
 
-    const requeteOr = executeMock.mock.calls[0]?.[0] as SQL;
+    const requeteExtra = executeMock.mock.calls[0]?.[0] as SQL;
+    const { params: paramsExtra } = dialect.sqlToQuery(requeteExtra);
+    expect(paramsExtra).toContain('tid-1');
+
+    const requeteOr = executeMock.mock.calls[1]?.[0] as SQL;
     const { sql: texteOr, params: paramsOr } = dialect.sqlToQuery(requeteOr);
     expect(texteOr).toContain('o.tenant_id');
     expect(paramsOr).toContain('tid-1');
   });
 });
+
+function accesFactice(tx: TransactionDfa): AccesBase {
+  return {
+    enTenant: vi.fn((_ctx, travail) => travail(tx)),
+    verifierConnexion: vi.fn(),
+    verifierPostureRls: vi.fn(),
+  };
+}

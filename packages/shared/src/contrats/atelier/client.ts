@@ -76,11 +76,26 @@ export interface ReponseClient {
   readonly fusionneVersClientId: string | null;
   readonly referenceExterne: string | null;
   readonly dernierPassageLe: string | null;
+  /**
+   * Notes de nature `alerte` UNIQUEMENT (RM-13 : « affichée en rouge à l'ouverture de la fiche,
+   * au RDV et à la réception »). Embarquées ici pour un affichage sans aller-retour réseau
+   * supplémentaire — même principe que `ReponseContexteAtelierVehicule.alertesClient`
+   * (`atelier/vehicule.ts`). Les notes `interne` ne sortent JAMAIS ici : uniquement via
+   * `GET /clients/{clientId}/notes`.
+   */
+  readonly notesAlerte: readonly ReponseClientNote[];
   readonly creeLe: string;
   readonly modifieLe: string;
 }
 
-/** Projection minimale d'un client, embarquée dans les autres ressources. */
+/**
+ * Projection minimale d'un client, embarquée dans les autres ressources — et forme de
+ * `GET /clients` (liste paginée). Les quatre champs suivants (`telephone`, `localite`,
+ * `nombreVehicules`, `dernierPassageLe`) existent pour la DÉSAMBIGUÏSATION au comptoir : deux
+ * homonymes dans le fichier client sont ordinaires, et sans un repère au-delà du nom le
+ * réceptionniste choisit au hasard — l'erreur ne se découvre alors qu'à la facturation, quand
+ * elle coûte le plus cher à corriger. Ce ne sont pas des colonnes de confort.
+ */
 export interface ClientResume {
   readonly id: string;
   readonly numeroClient: string;
@@ -89,6 +104,14 @@ export interface ClientResume {
   readonly statut: StatutClient;
   readonly langueCorrespondance: Langue;
   readonly poObligatoire: boolean;
+  /** Colonne directe de la fiche client. */
+  readonly telephone: string | null;
+  /** Localité de l'adresse PRINCIPALE active du client. `null` si aucune adresse — cas normal (fiche fraîche). */
+  readonly localite: string | null;
+  /** Véhicules actuellement détenus par le client (détentions ouvertes, `vehicule_detention.au is null`). */
+  readonly nombreVehicules: number;
+  /** Même donnée que `ReponseClient.dernierPassageLe` (dérivée du dernier OR ouvert) — un seul calcul, jamais deux qui divergeraient. */
+  readonly dernierPassageLe: string | null;
 }
 
 export interface ReponseClientAdresse {

@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { MOTIFS_KILOMETRAGE_REGRESSIF, type EntreeKilometrageVehicule, type ReponseVehiculeKilometrage } from '@dfa/shared';
+import { MOTIFS_KILOMETRAGE_REGRESSIF, type EntreeKilometrageVehicule, type ReponseVehiculeKilometrage, type RoleUtilisateur } from '@dfa/shared';
+import { MATRICE_DROITS } from '../auth/matrice-droits';
 import { JETON_DB, type AccesBase, type ContexteTenant } from '../db';
 import { vehiculeKilometrage, type LigneVehiculeKilometrage } from '../db/schema';
 import { CollecteurAvertissements } from '../common/avertissements';
@@ -62,7 +63,26 @@ export class ServiceVehiculeKilometrage {
     });
   }
 
-  async creer(ctx: ContexteTenant, vehiculeId: string, entree: EntreeKilometrageVehicule): Promise<ResultatEcritureKilometrage> {
+  /**
+   * `role` (§10 L962) — vient TOUJOURS du principal de session (`ServiceContexteRequete.exigerPrincipal`
+   * côté contrôleur), jamais d'un paramètre client, exactement comme `ctx.tenantId`.
+   *
+   * FAILLE É-01 CORRIGÉE (audit sécurité) : `@ExigerDroit('vehicule.kilometrage.saisir')`, posé de
+   * façon STATIQUE sur la route par `VehiculeKilometrageController`, autorise tout rôle qui peut
+   * saisir un kilométrage NORMAL (y compris `technicien`) — la même route sert aussi la correction
+   * à la baisse (§10 L962, réservée à `chef_atelier`/`direction`), qui n'a PAS d'action séparée sur
+   * la route et ne peut donc pas être distinguée par un `@ExigerDroit` statique. Le contrôle du
+   * droit fort `vehicule.kilometrage.corriger_regression` doit donc être posé ICI, explicitement,
+   * uniquement sur la branche RÉGRESSIVE — jamais en permanence (ce qui interdirait au technicien
+   * la saisie normale) et jamais côté route (elle ne connaît pas encore, au moment de la garde,
+   * si CE relevé sera régressif : ça dépend du dernier relevé connu, une donnée métier).
+   */
+  async creer(
+    ctx: ContexteTenant,
+    vehiculeId: string,
+    entree: EntreeKilometrageVehicule,
+    role: RoleUtilisateur,
+  ): Promise<ResultatEcritureKilometrage> {
     return this.acces.enTenant(ctx, async (tx) => {
       const avertissements = new CollecteurAvertissements();
       await chargerLigneVehicule(tx, ctx, vehiculeId);
@@ -89,6 +109,21 @@ export class ServiceVehiculeKilometrage {
             : undefined,
           actionsProposees: [{ code: 'FOURNIR_MOTIF', parametres: { motifsAcceptes: MOTIFS_KILOMETRAGE_REGRESSIF } }],
         });
+      }
+
+      // Branche régressive AVEC motif fourni : c'est une CORRECTION (§10 L962), pas une saisie
+      // normale — droit fort exigé ICI, avant tout écriture (aucune ligne insérée en cas de refus).
+      // Même idiome que `GardeDroit.canActivate` (MATRICE_DROITS[role] ?? [], .includes(action)) :
+      // un seul endroit sait ce qu'un rôle peut faire, mais cette vérification-CI ne peut vivre que
+      // côté service, parce que seul le service sait si CE relevé est régressif.
+      if (decision.regressif) {
+        const droitsDuRole = MATRICE_DROITS[role] ?? [];
+        if (!droitsDuRole.includes('vehicule.kilometrage.corriger_regression')) {
+          throw new ErreurMetier(
+            'DROIT_INSUFFISANT',
+            `Le rôle "${role}" n'a pas le droit de corriger un kilométrage régressif (RM-24, §10 L962).`,
+          );
+        }
       }
 
       if (decision.aberrant) {

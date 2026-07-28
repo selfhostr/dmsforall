@@ -28,6 +28,10 @@ export const clesQuery = {
 
   parametres: {
     atelier: () => ['parametres', 'atelier'] as const,
+    /** Absent de la vague 0 (gelée) alors que `GET /sites/{id}/parametres-atelier` existe déjà
+     *  côté API — ajout additif pour `useParametresSite` (hooks/parametres/), même forme que les
+     *  autres clés paramétrées par ressource ci-dessous. */
+    site: (siteId: string) => ['parametres', 'site', siteId] as const,
   },
 
   referentiels: {
@@ -43,6 +47,15 @@ export const clesQuery = {
     vehicules: (id: string) => ['clients', 'vehicules', id] as const,
     ordres: (id: string) => ['clients', 'ordres', id] as const,
     doublons: (critere: string) => ['clients', 'doublons', critere] as const,
+    // Sous-collections de la fiche (onglets) — ajoutées lors du câblage des écrans liste/fiche
+    // (L1-16) : `ServiceClientSousCollections` (apps/api/src/clients/) les expose séparément de
+    // `GET /clients/{id}`, contrairement aux notes d'ALERTE, embarquées dans `ReponseClient` via
+    // `notesAlerte` (RM-13) — donc pas de clé dédiée pour celles-ci, elles vivent sous `detail`.
+    contacts: (id: string) => ['clients', 'contacts', id] as const,
+    adresses: (id: string) => ['clients', 'adresses', id] as const,
+    conditions: (id: string) => ['clients', 'conditions', id] as const,
+    consentements: (id: string) => ['clients', 'consentements', id] as const,
+    notes: (id: string) => ['clients', 'notes', id] as const,
   },
 
   vehicules: {

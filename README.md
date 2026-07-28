@@ -1,10 +1,12 @@
 # dmsforall (DFA)
 
-DMS pour garages et concessions suisses. Cent pour cent navigateur, multi-tenant avec isolation RLS, hébergé en Suisse (nLPD). Pensé dès le départ pour garage indépendant et concession multi-sites multi-marques.
+**DMS pour garages et concessions suisses**. 100 % navigateur — zéro installation client. Multi-tenant avec isolation par ligne (RLS Postgres). Hébergé en Suisse (nLPD). Conçu pour garage indépendant ET concession multi-sites multi-marques.
 
-## Statut
+## État du projet
 
-**Étape 0 (socle technique) livrée et vérifiée en exécution** : authentification, tenants, sites, rôles, i18n (FR/DE/IT), API OpenAPI, squelette UI, 191 tests verts (111 unitaires API, 32 web, 48 intégration), typecheck et lint à zéro. Aucun module métier encore. Voir [ARCHITECTURE.md](ARCHITECTURE.md) § 6 pour la feuille de route complète.
+**Étape 0 (socle technique) livrée et vérifiée** : authentification par session Argon2id, multi-tenant avec isolation RLS, gestion des sites et rôles, i18n FR/DE/IT, API OpenAPI, squelette UI, tests d'intégration sur base Postgres réelle. Aucun module métier (atelier, clients, facturation) — ceux-ci sont en cours d'assemblage pour l'étape 1.
+
+Voir [ARCHITECTURE.md](ARCHITECTURE.md) pour la vision complète et la feuille de route (étapes 1-5).
 
 ## Stack
 
@@ -17,50 +19,70 @@ DMS pour garages et concessions suisses. Cent pour cent navigateur, multi-tenant
 | PDF | Typst ou Playwright | QR-facture suisse intégrée |
 | Auth | Sessions + rôles par tenant | TOTP optionnel, 7 rôles métier |
 
-## Démarrage rapide
+## Prérequis
 
-Prérequis : **Node.js 22+**, **pnpm**, **Docker Desktop** (avec WSL2 activé sur Windows).
+- **Node.js 22+** — aucune version antérieure testée.
+- **pnpm** — gestionnaire de paquets du monorepo.
+- **Docker Desktop** — contient Postgres 16 et Redis localement.
+
+### ⚠️ Windows + Docker = WSL2 obligatoire
+
+Si vous êtes sous **Windows 11/10** : WSL2 doit être **activé** pour que Docker Desktop fonctionne. C'est un piège qui bloque immédiatement.
+
+Vérifier l'activation :
+```powershell
+wsl --list --verbose
+```
+
+Si WSL2 n'apparaît pas ou n'est pas en mode 2, l'activer :
+```powershell
+Panneau de config → Programmes → Activer/désactiver les fonctionnalités Windows → [✓] Sous-système Windows pour Linux
+```
+
+Puis redémarrer. Docker Desktop refusera de démarrer sans cela.
+
+## Démarrage en 5 commandes
 
 ```bash
-# 1. Copier la configuration
-cp .env.example .env              # PowerShell : Copy-Item .env.example .env
+# 1. Copier le fichier de configuration
+cp .env.example .env    # (PowerShell : Copy-Item .env.example .env)
 
 # 2. Installer les dépendances
 pnpm install
 
-# 3. Démarrer Postgres + Redis en arrière-plan
+# 3. Démarrer Postgres et Redis (conteneurs en arrière-plan)
 pnpm docker:up
 
-# 4. Appliquer les migrations
+# 4. Appliquer les migrations de schéma
 pnpm db:migrate
 
-# 5. Démarrer l'API et le front en hot-reload
-pnpm dev
+# 5. Charger les données de démo et démarrer l'app
+pnpm db:seed           # crée un garage de démo
+pnpm dev               # API :3000 + front :5173
 ```
 
-L'API est accessible sur `http://localhost:3000`, le front sur `http://localhost:5173`.
+**Important** : L'étape 1 (`cp .env.example .env`) est obligatoire. Node ne lit **aucun** fichier `.env` tout seul — sans cette copie, `pnpm install` échouera sur des variables manquantes (erreur « variable X not found »).
 
-### Pièges connus
+### Identifiants de démonstration
 
-Ces trois points ont coûté du temps et bloqueront un nouveau venu — ils sont donc testés :
+Après `pnpm db:seed`, se connecter sur `http://localhost:5173` avec :
+- **Email** : `admin@garage-martin.ch`
+- **Mot de passe** : `Demo1234!Garage`
 
-- **`cp .env.example .env` est obligatoire** : Node ne lit **aucun** fichier `.env` de lui-même. Sans cette copie, `pnpm install` échouera sur des variables manquantes.
-- **Docker Desktop + Windows = WSL2 obligatoire** : sans WSL2 activé, le moteur Docker ne démarre pas du tout. Activation : Panneau de config → Programmes → Activer/désactiver les fonctionnalités Windows → [✓] Sous-système Windows pour Linux.
-- **Après modification de `docker/postgres/init/01-roles.sql`, `docker compose down -v` est obligatoire** : les scripts d'initialisation Postgres ne rejouent que sur un volume vide. Sans `down -v`, la nouvelle config ne sera jamais appliquée.
+Cela crée un garage de démo (Garage Martin SA) avec un administrateur locataire.
 
-Pour vérifier que les services répondent :
+### Vérifier que tout tourne
+
 ```bash
-docker compose ps                          # Postgres et Redis doivent être "healthy"
-psql postgresql://dfa_app:dfa_app_dev@localhost:5432/dfa_dev -c "select 1;"
-redis-cli -h localhost -p 6379 ping
+docker compose ps                 # Postgres et Redis doivent être "healthy"
+curl http://localhost:3000/docs   # Documentation OpenAPI interactive
+curl http://localhost:5173        # Application web
 ```
 
-Repartir de zéro (réinitialiser volumes et rôles Postgres) :
+Pour tout réinitialiser (volumes Postgres + Redis) :
 ```bash
-pnpm docker:reset
+pnpm docker:reset    # équivalent à : docker compose down -v && docker compose up -d
 ```
-
-Voir [docs/deploiement-local.md](docs/deploiement-local.md) pour le détail et les pièges connus (Windows WSL2, fin de lignes LF, rôles Postgres).
 
 ## Structure du dépôt
 
@@ -83,18 +105,71 @@ dms/
 └── package.json                   # Scripts root (dev, build, lint, test, db:*, docker:*)
 ```
 
+## Pièges connus du dépôt
+
+Trois points vérifiés — ils bloqueront un nouveau venu, d'où leur documentation explicite ici :
+
+### 1. `docker compose down -v` obligatoire après modification de rôles Postgres
+
+Si vous éditez `docker/postgres/init/01-roles.sql`, la nouvelle configuration ne sera appliquée que si le volume Postgres est vide :
+
+```bash
+docker compose down -v    # supprimer le volume
+pnpm docker:up            # redémarrer (réexécute les scripts d'init)
+pnpm db:migrate           # réappliquer les migrations
+```
+
+Sans `down -v`, les scripts d'initialisation ne rejouent jamais — la nouvelle config reste inaccessible.
+
+### 2. `pnpm api:openapi` compile la partie build, échoue via `tsx`
+
+Ne pas lancer `tsx dist/main.js` directement pour exporter l'OpenAPI. La commande doit compiler d'abord :
+
+```bash
+pnpm api:openapi     # Correct : compile + exporte
+# Ne pas faire : pnpm --filter @dfa/api exec tsx dist/src/openapi/export.ts
+```
+
+esbuild ne décorte pas les métadonnées TypeScript avec `tsx`, et NestJS ne peut plus résoudre ses dépendances d'injection.
+
+### 3. Ne jamais convertir un import de classe injectée en `import type` dans `apps/api`
+
+Exemple **incorrect** :
+
+```typescript
+// ❌ Casse l'injection de dépendance
+import type { AuthService } from './auth.service';
+
+export class MyController {
+  constructor(private readonly auth: AuthService) {} // erreur à l'exécution
+}
+```
+
+Correct :
+
+```typescript
+// ✅ Conserve l'import de classe
+import { AuthService } from './auth.service';
+
+export class MyController {
+  constructor(private readonly auth: AuthService) {}
+}
+```
+
+La règle ESLint qui interdit cette conversion est désactivée exprès pour l'API.
+
 ## Conventions essentielles
 
-Avant de coder dans ce dépôt, lire [CONTRIBUTING.md](CONTRIBUTING.md) entièrement — il documente les règles qui surprennent les nouveaux venus. Les points clés :
+Lire [CONTRIBUTING.md](CONTRIBUTING.md) entièrement avant de coder. Les règles clés :
 
-- **Montants en centimes** : toujours integer, jamais float. TVA calculée par ligne puis agrégée.
-- **Multi-tenant** : `tenant_id` NOT NULL + RLS sur toute table métier. Le tenant est résolu depuis la session/token, **jamais** depuis un paramètre de requête.
-- **Types frontend** : générés depuis l'OpenAPI, **jamais** écrits à la main.
-- **Aucune chaîne en dur** : i18n FR/DE/IT dès le jour 1, clés structurées par domaine.
-- **API-first** : chaque fonctionnalité existe d'abord comme endpoint OpenAPI, puis comme écran.
-- **Langue de travail** : français dans le code, les commentaires et les docs.
+- **Montants en centimes** : integer toujours, jamais float. TVA par ligne, arrondi au 5 ct pour totaux espèces.
+- **Multi-tenant** : `tenant_id` NOT NULL + politique RLS sur toute table métier. Le tenant se résout depuis la session/token, **jamais** depuis un paramètre URL.
+- **Types frontend** : générés depuis OpenAPI, jamais écrits à la main.
+- **Aucune chaîne en dur** : i18n FR/DE/IT dès le départ. Clés structurées par domaine (`atelier.or.statut.enCours`).
+- **API-first** : chaque fonctionnalité = endpoint OpenAPI documenté d'abord, écran ensuite.
+- **Langue de travail** : français (code, commentaires, documentation).
 
-Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour le détail complet, y compris les conventions base de données, audit trail, tests d'isolation tenant et arithmétique financière.
+Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour audit trail, isolation tenant en tests, arithmétique financière exacte.
 
 ## Ressources
 
@@ -102,26 +177,31 @@ Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour le détail complet, y compris les c
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — Conventions de code non négociables, équipe d'agents, rôles et périmètres.
 - **[docs/deploiement-local.md](docs/deploiement-local.md)** — Guide complet pour démarrer en dev, pièges Windows, rôles Postgres, tests d'intégration.
 
-## Scripts utiles
+## Commandes utiles
 
-Depuis la racine (voir `package.json` pour la liste complète) :
+Depuis la racine du dépôt :
 
-```bash
-pnpm dev                # API + front en hot-reload
-pnpm dev:api           # API seule
-pnpm dev:web           # Front seul
-pnpm build             # Build production tous les apps
-pnpm lint              # ESLint sur tout le monorepo
-pnpm lint:fix          # ESLint + fix
-pnpm typecheck         # TypeScript strict sur tout
-pnpm test              # Tests unitaires (@dfa/api et @dfa/web)
-pnpm test:integration  # Intégration uniquement (@dfa/api)
-pnpm db:generate       # Générer types Drizzle depuis le schéma
-pnpm db:migrate        # Appliquer migrations Drizzle
-pnpm db:seed           # Injecter données de test (garage démo, admin@garage-martin.ch / Demo1234!Garage)
-pnpm api:openapi       # Exporter le schéma OpenAPI
-pnpm web:types         # Générer types frontend depuis OpenAPI
-pnpm docker:up         # Postgres + Redis background
-pnpm docker:down       # Arrêter les services (garder les volumes)
-pnpm docker:reset      # Arrêter + supprimer volumes + redémarrer
-```
+| Commande | Effet |
+|----------|--------|
+| **`pnpm dev`** | API + front en hot-reload simultanés |
+| `pnpm dev:api` | API seule (http://localhost:3000) |
+| `pnpm dev:web` | Front seul (http://localhost:5173) |
+| `pnpm build` | Build production (tous les apps) |
+| **`pnpm typecheck`** | Validation TypeScript strict sur tout le monorepo |
+| **`pnpm lint`** | ESLint sur tout le monorepo |
+| `pnpm lint:fix` | ESLint + corrections automatiques |
+| **`pnpm test`** | Tests unitaires (API + web) |
+| `pnpm test:integration` | Tests d'intégration sur Postgres (API uniquement) |
+| **`pnpm --filter @dfa/api exec vitest run --project unitaire src/auth/cookie.spec.ts`** | Lancer un seul fichier de test |
+| **`pnpm --filter @dfa/api exec vitest run --project unitaire src/auth/cookie.spec.ts -t "connexion valide"`** | Lancer un seul test par son nom |
+| `pnpm db:generate` | Générer types Drizzle depuis le schéma Postgres |
+| **`pnpm db:migrate`** | Appliquer les migrations Drizzle (idempotent) |
+| **`pnpm db:seed`** | Charger données de démo (garage + admin) |
+| `pnpm api:openapi` | Exporter le schéma OpenAPI en JSON |
+| `pnpm web:types` | Générer types TypeScript frontend depuis OpenAPI |
+| **`pnpm --filter @dfa/web i18n:check`** | Vérifier la couverture i18n (FR→DE/IT) |
+| `pnpm docker:up` | Démarrer Postgres + Redis (arrière-plan) |
+| `pnpm docker:down` | Arrêter services (garder volumes) |
+| **`pnpm docker:reset`** | Arrêter + supprimer volumes + redémarrer (repartir de zéro) |
+
+Les commandes en **gras** sont celles utilisées au quotidien.

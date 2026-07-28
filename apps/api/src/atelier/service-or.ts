@@ -15,6 +15,7 @@ import type {
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import { ordreReparation, ordreReparationDemande, type LigneOrdreReparation } from '../db/schema';
+import { MATRICE_DROITS } from '../auth/matrice-droits';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { Horloge } from '../common/horloge/horloge';
@@ -244,6 +245,30 @@ export class ServiceOr {
         });
       }
 
+      // FINDING DE SÉCURITÉ CORRIGÉ — même famille que É-01 (ServiceVehiculeKilometrage.creer,
+      // vehicule.kilometrage.corriger_regression) : `PATCH /ordres-reparation/{orId}` sert TOUS
+      // les champs libres de l'en-tête sous le SEUL droit `atelier.or.modifier`, alors que
+      // `plafondCentimes` (le montant au-delà duquel l'accord du client est requis, RM-54, §10
+      // L969) mérite son propre droit `atelier.or.plafond_modifier`, structurellement plus fort.
+      // Un `@ExigerDroit` STATIQUE posé sur cette route interdirait AUSSI les modifications
+      // ordinaires (localisation, sous-traitant, report de restitution…) à tout rôle qui aurait
+      // `atelier.or.modifier` sans `atelier.or.plafond_modifier` — la route est partagée entre les
+      // deux usages, et seul le service, après avoir chargé la valeur actuelle sous verrou, sait si
+      // CETTE requête précise touche réellement le plafond. Contrôle posé ICI, avant toute
+      // écriture, uniquement quand la valeur change effectivement (renvoyer la valeur déjà en
+      // place n'est pas une modification) — même idiome que `GardeDroit.canActivate`
+      // (`MATRICE_DROITS[role] ?? []`, `.includes(action)`).
+      const modifiePlafond = entree.plafondCentimes !== undefined && entree.plafondCentimes !== (ligne.plafondCentimes ?? undefined);
+      if (modifiePlafond) {
+        const droitsDuRole = MATRICE_DROITS[principal.role] ?? [];
+        if (!droitsDuRole.includes('atelier.or.plafond_modifier')) {
+          throw new ErreurMetier(
+            'DROIT_INSUFFISANT',
+            `Le rôle "${principal.role}" n'a pas le droit de modifier le plafond de l'ordre de réparation (§10 L969).`,
+          );
+        }
+      }
+
       await tx
         .update(ordreReparation)
         .set({
@@ -424,8 +449,10 @@ export class ServiceOr {
   ): Promise<ReponseOrdreReparation> {
     const or = await chargerOr(tx, ctx, orId);
 
-    const [clientLigne, vehiculeLigne, plaque, demandesRows, lignesToutes, devisRows, controle, journalOr] = await Promise.all([
-      chargerClientLigne(tx, ctx, or.clientId),
+    const clientLigne = await chargerClientLigne(tx, ctx, or.clientId);
+
+    const [clientResume, vehiculeLigne, plaque, demandesRows, lignesToutes, devisRows, controle, journalOr] = await Promise.all([
+      versClientResume(tx, ctx, clientLigne),
       chargerVehiculeLigne(tx, ctx, or.vehiculeId),
       chargerPlaqueCourante(tx, ctx, or.vehiculeId),
       listerDemandesOr(tx, ctx, orId),
@@ -460,7 +487,7 @@ export class ServiceOr {
       siteId: or.siteId,
       type: or.type,
       statut: or.statut,
-      client: versClientResume(clientLigne),
+      client: clientResume,
       vehicule: construireVehiculeResume(vehiculeLigne, plaque),
       figees: {
         clientDesignation: or.clientDesignationFigee,
@@ -560,11 +587,17 @@ function extraireVersionETag(ifMatch: string | undefined): number {
   return Number(correspondance[1]);
 }
 
-function encoderCurseurOffset(decalage: number): string {
+/**
+ * Réexportés : `service-ligne-or.ts` et `service-devis.ts` paginent leurs sous-collections
+ * (`GET .../lignes`, `GET .../devis-complementaires`) avec le MÊME curseur d'offset opaque que
+ * `journal()` ci-dessus, pour la même raison (volume d'un seul OR, quelques dizaines d'éléments
+ * au plus au lot 1) — un seul mécanisme plutôt que trois copies incohérentes.
+ */
+export function encoderCurseurOffset(decalage: number): string {
   return Buffer.from(String(decalage), 'utf8').toString('base64url');
 }
 
-function decoderCurseurOffset(curseur: string | undefined): number {
+export function decoderCurseurOffset(curseur: string | undefined): number {
   if (!curseur) return 0;
   const brut = Number(Buffer.from(curseur, 'base64url').toString('utf8'));
   if (!Number.isInteger(brut) || brut < 0) {

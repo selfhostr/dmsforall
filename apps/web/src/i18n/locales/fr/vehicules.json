@@ -2,6 +2,40 @@
   "titre": "Véhicules",
   "nouveau": "Nouveau véhicule",
   "creer": "Créer le véhicule",
+  "liste": {
+    "titre": "Véhicules",
+    "colonnes": {
+      "vehicule": "Véhicule",
+      "vin": "VIN"
+    },
+    "filtres": {
+      "statut": "Statut",
+      "statutTous": "Tous les statuts",
+      "statuts": {
+        "actif": "Actif",
+        "archive": "Archivé"
+      },
+      "importe": "Importé uniquement"
+    },
+    "tri": {
+      "label": "Trier par",
+      "plaqueAsc": "Plaque (A→Z)",
+      "plaqueDesc": "Plaque (Z→A)",
+      "creeLeDesc": "Plus récents",
+      "prochaineExpertiseLeAsc": "Expertise la plus proche"
+    },
+    "erreur": {
+      "titre": "Impossible de charger les véhicules"
+    }
+  },
+  "fiche": {
+    "erreur": {
+      "titre": "Impossible de charger le véhicule"
+    },
+    "erreurSection": {
+      "titre": "Section indisponible"
+    }
+  },
   "archiver": {
     "titre": "Archiver le véhicule",
     "motif": "Motif de l'archivage"
@@ -42,6 +76,8 @@
     "valeur": "Km",
     "date": "Date",
     "source": "Source",
+    "unite": "Unité",
+    "motif": "Motif de la régression",
     "sources": {
       "reception": "Réception",
       "or": "OR",

@@ -11,7 +11,7 @@
     "controle": "Kontrolle",
     "termine": "Abgeschlossen",
     "facture": "Fakturiert",
-    "restitue": "Restituted",
+    "restitue": "Zurückgegeben",
     "cloture": "Geschlossen",
     "annule": "Storniert"
   },
@@ -40,7 +40,8 @@
     "plafond": "Kostengrenze",
     "totalDuJour": "Heute",
     "techniciensEnCours": "Techniker aktiv",
-    "numeroPo": "Kundenauftrag"
+    "numeroPo": "Kundenauftrag",
+    "restitutionReportee": "Verschoben"
   },
   "localisations": {
     "parc": "Stellplatz",
@@ -56,6 +57,7 @@
     "titre": "Arbeiten",
     "vide": "Keine Arbeiten erfasst.",
     "ajouter": "Arbeit hinzufügen",
+    "tronquees": "Einige Positionen werden hier nicht angezeigt (Limite erreicht) — vollständige Liste konsultieren.",
     "groupes": {
       "aValider": "Zur Freigabe",
       "aFaire": "Zu tun / In Bearbeitung",
@@ -66,6 +68,7 @@
     "colonnes": {
       "origine": "Ursprung",
       "designation": "Bezeichnung",
+      "type": "Typ",
       "quantite": "Menge",
       "tempsBareme": "Richtzeitenfallschirm",
       "tempsPointe": "Erfasste Zeit",
@@ -227,7 +230,9 @@
   },
   "transitions": {
     "receptionner": "Fahrzeug annahme",
+    "demarrer": "Arbeiten starten",
     "passerEnControle": "Zur Kontrolle",
+    "refuserControle": "Kontrolle ablehnen",
     "validerControle": "Kontrolle validieren",
     "terminer": "Abschliessen",
     "facturer": "Fakturieren",
@@ -273,5 +278,62 @@
   "chargement": {
     "or": "RA wird geladen…",
     "lignes": "Arbeiten werden geladen…"
+  },
+  "liste": {
+    "titre": "Reparaturaufträge",
+    "colonnes": {
+      "numero": "RA-Nr.",
+      "vehicule": "Fahrzeug",
+      "client": "Kunde",
+      "etat": "Status",
+      "restitutionPromise": "Voraussichtliche Rückgabe",
+      "total": "Total inkl. MWST"
+    },
+    "filtres": {
+      "statut": "Status",
+      "statutTous": "Alle Status"
+    },
+    "tri": {
+      "label": "Sortieren nach",
+      "ouvertLeDesc": "Eröffnung (neueste zuerst)",
+      "ouvertLeAsc": "Eröffnung (älteste zuerst)",
+      "restitutionPromiseLeAsc": "Nächste Rückgabe",
+      "restitutionPromiseLeDesc": "Späteste Rückgabe",
+      "numeroSequenceDesc": "RA-Nr. (absteigend)",
+      "numeroSequenceAsc": "RA-Nr. (aufsteigend)",
+      "joursAttenteRetraitDesc": "Wartezeit bei Abholung (am längsten)"
+    },
+    "erreur": {
+      "titre": "Reparaturaufträge konnten nicht geladen werden"
+    },
+    "vide": {
+      "premierUsage": "Noch kein Reparaturauftrag erfasst.",
+      "recherche": "Kein Reparaturauftrag entspricht dieser Suche.",
+      "filtre": "Kein Ergebnis mit diesem Filter."
+    }
+  },
+  "fiche": {
+    "erreur": {
+      "titre": "Reparaturauftrag konnte nicht geladen werden"
+    },
+    "montantIndisponible": "Nicht mitgeteilt",
+    "controleurAuto": "Sie werden als Kontrolleur erfasst."
+  },
+  "actions": {
+    "titre": "Aktionen",
+    "confirmer": "Bestätigen",
+    "confirmerAction": "Bestätigen Sie diese Aktion.",
+    "motif": "Grund",
+    "motifRequis": "Der Grund ist obligatorisch",
+    "kilometrageEntree": "Kilometerstand bei Annahme",
+    "kilometrageSortie": "Kilometerstand bei Abfahrt",
+    "signatureDifferee": "Später unterschreiben",
+    "motifSignatureDifferee": "Grund für die aufgeschobene Unterschrift",
+    "paiementRecu": "Zahlung bei Rückgabe erhalten",
+    "aucuneActionDisponible": "Momentan keine Aktion möglich."
+  },
+  "totaux": {
+    "titre": "Totale",
+    "totalValide": "Validiertes Total"
   }
 }

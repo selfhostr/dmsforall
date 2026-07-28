@@ -7,3 +7,4 @@ export * from './vehicule-kilometrage.dto';
 export * from './vehicule-expertise.dto';
 export * from './vehicule-campagne.dto';
 export * from './vehicule-travail-reporte.dto';
+export * from './vehicule-contexte-atelier.dto';

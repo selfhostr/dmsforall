@@ -12,10 +12,11 @@
  *   6. filtre d'erreurs global (`FiltreProbleme`) ;
  *   7. `cookie-parser` ;
  *   8. CORS, allowlist stricte sur `WEB_URL_PUBLIQUE`, `credentials: true` ;
- *   9. en-têtes de réponse globaux (`Cache-Control`, `X-Content-Type-Options`) ;
- *   10. préfixe `api` + versioning URI (`/api/v1/…`) ;
- *   11. Swagger sur `/api/docs` (+ `/api/docs.json`) si `OPENAPI_EXPOSER_DOCS` ;
- *   12. `listen(PORT)`.
+ *   9. en-têtes de sécurité HTTP (HSTS/CSP/X-Frame-Options/Referrer-Policy) ;
+ *   10. en-têtes de réponse globaux (`Cache-Control`, `X-Content-Type-Options`) ;
+ *   11. préfixe `api` + versioning URI (`/api/v1/…`) ;
+ *   12. Swagger sur `/api/docs` (+ `/api/docs.json`) si `OPENAPI_EXPOSER_DOCS` ;
+ *   13. `listen(PORT)`.
  *
  * Étape 5 (ex-étape 4) ajoutée après l'audit sécurité étape 0 (finding 2) : absente, `req.ip`
  * vaut l'adresse TCP entrante derrière un reverse proxy — l'IP du proxy, identique pour tous
@@ -23,7 +24,7 @@
  * global (une seule clé Redis pour tout le produit) et vide `journal_securite.ip` de toute valeur
  * probante.
  *
- * Étape 9 ajoutée après l'audit sécurité observabilité (finding M5) : sans `Cache-Control:
+ * Étape 10 ajoutée après l'audit sécurité observabilité (finding M5) : sans `Cache-Control:
  * no-store, private`, une réponse contenant des données de session (`GET /auth/moi` — e-mail,
  * nom, sites) peut être écrite en cache disque par le navigateur d'une tablette d'atelier
  * partagée ; l'utilisateur suivant la retrouve via le cache ou le bouton retour, même après
@@ -31,6 +32,13 @@
  * global pour couvrir toute réponse, y compris Swagger. `X-Content-Type-Options: nosniff` en
  * même temps : coût nul, empêche un navigateur de réinterpréter un corps `application/json`
  * comme un autre type de contenu (défense en profondeur XSS/MIME-sniffing).
+ *
+ * Étape 9 ajoutée après l'audit sécurité lot 1 (finding H-01) : HSTS, CSP et `X-Frame-Options`
+ * étaient absents — voir `apps/api/src/common/securite/en-tetes-securite.middleware.ts` pour le
+ * détail (HSTS conditionné à `NODE_ENV === 'production'` ET `req.secure`, CSP scindée entre l'API
+ * — `default-src 'none'` — et `/api/docs*`, seule route qui a réellement besoin de charger ses
+ * propres scripts/styles pour s'afficher). Posée AVANT le préfixe global, comme l'étape 10, pour
+ * couvrir toute réponse.
  *
  * Avec `apps/api/src/config/charger-config.ts`, ce fichier est le SEUL du dépôt autorisé à
  * lire `process.env`.
@@ -45,6 +53,7 @@ import { SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { chargerConfig, chargerFichierEnv, ErreurConfigInvalide } from './config';
 import { FiltreProbleme } from './common/erreurs';
+import { construireMiddlewareEnTetesSecurite } from './common/securite';
 import { JETON_DB } from './db/db.jetons';
 import type { AccesBase } from './db/db.types';
 import { construireDocument } from './openapi';
@@ -111,7 +120,12 @@ async function main(): Promise<void> {
     credentials: true,
   });
 
-  // 9. En-têtes de réponse globaux — AVANT le préfixe pour couvrir toute réponse (voir finding
+  // 9. En-têtes de sécurité HTTP — AVANT le préfixe pour couvrir toute réponse, y compris
+  // Swagger (finding H-01, commentaire de tête de fichier). Voir
+  // `common/securite/en-tetes-securite.middleware.ts` pour le détail par en-tête.
+  app.use(construireMiddlewareEnTetesSecurite(config));
+
+  // 10. En-têtes de réponse globaux — AVANT le préfixe pour couvrir toute réponse (voir finding
   // M5, commentaire de tête de fichier). `no-store` (pas seulement `no-cache`) : aucune donnée
   // de session ne doit même être écrite sur disque, y compris pour une revalidation ultérieure.
   app.use((_req: Request, res: Response, next: NextFunction) => {
@@ -120,11 +134,11 @@ async function main(): Promise<void> {
     next();
   });
 
-  // 10. Préfixe + versioning URI → toutes les routes en /api/v1/…
+  // 11. Préfixe + versioning URI → toutes les routes en /api/v1/…
   app.setGlobalPrefix('api');
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
 
-  // 11. Swagger — uniquement si explicitement activé (OPENAPI_EXPOSER_DOCS, défaut 'false').
+  // 12. Swagger — uniquement si explicitement activé (OPENAPI_EXPOSER_DOCS, défaut 'false').
   if (config.OPENAPI_EXPOSER_DOCS) {
     const document = construireDocument(app, {
       versionApp: config.VERSION_APP,
@@ -133,7 +147,7 @@ async function main(): Promise<void> {
     SwaggerModule.setup('api/docs', app, document, { jsonDocumentUrl: 'api/docs.json' });
   }
 
-  // 12. Écoute.
+  // 13. Écoute.
   await app.listen(config.PORT);
 }
 

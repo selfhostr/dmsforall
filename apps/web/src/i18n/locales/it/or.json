@@ -40,7 +40,8 @@
     "plafond": "Tetto di spesa",
     "totalDuJour": "Oggi",
     "techniciensEnCours": "Tecnici attivi",
-    "numeroPo": "PO cliente"
+    "numeroPo": "PO cliente",
+    "restitutionReportee": "Posticipata"
   },
   "localisations": {
     "parc": "Parcheggio",
@@ -56,6 +57,7 @@
     "titre": "Lavori",
     "vide": "Nessun lavoro registrato.",
     "ajouter": "Aggiungi lavoro",
+    "tronquees": "Alcune righe non sono visualizzate qui (limite raggiunto) — consultare l'elenco completo.",
     "groupes": {
       "aValider": "Da approvare",
       "aFaire": "Da fare / In corso",
@@ -66,6 +68,7 @@
     "colonnes": {
       "origine": "Origine",
       "designation": "Descrizione",
+      "type": "Tipo",
       "quantite": "Qta",
       "tempsBareme": "Tempo tariffario",
       "tempsPointe": "Tempo registrato",
@@ -227,7 +230,9 @@
   },
   "transitions": {
     "receptionner": "Accetta veicolo",
+    "demarrer": "Avvia i lavori",
     "passerEnControle": "Passa a controllo",
+    "refuserControle": "Rifiuta il controllo",
     "validerControle": "Valida controllo",
     "terminer": "Termina",
     "facturer": "Fattura",
@@ -273,5 +278,62 @@
   "chargement": {
     "or": "Caricamento ordine…",
     "lignes": "Caricamento lavori…"
+  },
+  "liste": {
+    "titre": "Ordini di riparazione",
+    "colonnes": {
+      "numero": "N. ordine",
+      "vehicule": "Veicolo",
+      "client": "Cliente",
+      "etat": "Stato",
+      "restitutionPromise": "Restituzione prevista",
+      "total": "Totale IVA incl."
+    },
+    "filtres": {
+      "statut": "Stato",
+      "statutTous": "Tutti gli stati"
+    },
+    "tri": {
+      "label": "Ordina per",
+      "ouvertLeDesc": "Apertura (più recenti)",
+      "ouvertLeAsc": "Apertura (più vecchi)",
+      "restitutionPromiseLeAsc": "Restituzione più vicina",
+      "restitutionPromiseLeDesc": "Restituzione più lontana",
+      "numeroSequenceDesc": "N. ordine (decrescente)",
+      "numeroSequenceAsc": "N. ordine (crescente)",
+      "joursAttenteRetraitDesc": "Attesa al ritiro (la più lunga)"
+    },
+    "erreur": {
+      "titre": "Impossibile caricare gli ordini di riparazione"
+    },
+    "vide": {
+      "premierUsage": "Nessun ordine di riparazione registrato per il momento.",
+      "recherche": "Nessun ordine di riparazione corrisponde a questa ricerca.",
+      "filtre": "Nessun risultato con questo filtro."
+    }
+  },
+  "fiche": {
+    "erreur": {
+      "titre": "Impossibile caricare l'ordine di riparazione"
+    },
+    "montantIndisponible": "Non comunicato",
+    "controleurAuto": "Sarete registrati come controllore."
+  },
+  "actions": {
+    "titre": "Azioni",
+    "confirmer": "Confermare",
+    "confirmerAction": "Confermare questa azione.",
+    "motif": "Motivo",
+    "motifRequis": "Il motivo è obbligatorio",
+    "kilometrageEntree": "Chilometraggio all'ingresso",
+    "kilometrageSortie": "Chilometraggio all'uscita",
+    "signatureDifferee": "Firmare più tardi",
+    "motifSignatureDifferee": "Motivo del rinvio della firma",
+    "paiementRecu": "Pagamento ricevuto alla restituzione",
+    "aucuneActionDisponible": "Nessuna azione disponibile al momento."
+  },
+  "totaux": {
+    "titre": "Totali",
+    "totalValide": "Totale validato"
   }
 }

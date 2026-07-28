@@ -8,7 +8,6 @@ import type {
   LigneClientNote,
 } from '../db/schema';
 import {
-  calculerNomAffiche,
   versAdresseResponse,
   versClientResponse,
   versClientResume,
@@ -45,31 +44,23 @@ function ligneClient(champs: Partial<LigneClient> = {}): LigneClient {
   } as LigneClient;
 }
 
-describe('calculerNomAffiche — raisonSociale prime toujours (client_identite_chk)', () => {
-  it('une entreprise affiche sa raison sociale', () => {
-    expect(
-      calculerNomAffiche({ raisonSociale: 'Garage Martin SA', nom: null, prenom: null }),
-    ).toBe('Garage Martin SA');
-  });
-
-  it('un particulier affiche "nom prénom"', () => {
-    expect(calculerNomAffiche({ raisonSociale: null, nom: 'Dupont', prenom: 'Jean' })).toBe('Dupont Jean');
-  });
-
-  it('un particulier sans prénom affiche seulement le nom', () => {
-    expect(calculerNomAffiche({ raisonSociale: null, nom: 'Dupont', prenom: null })).toBe('Dupont');
-  });
-
-  it('raisonSociale et nom présents ensemble : raisonSociale prime (jamais recomposé côté client)', () => {
-    expect(
-      calculerNomAffiche({ raisonSociale: 'Garage Martin SA', nom: 'Dupont', prenom: 'Jean' }),
-    ).toBe('Garage Martin SA');
-  });
-});
+// `calculerNomAffiche` a été retiré de ce module : c'était l'une de trois implémentations quasi
+// identiques (`clients/`, `vehicules/`, `recherche/`) qui avaient divergé. L'implémentation
+// unique vit désormais dans `common/identite-client/nom-affiche.ts`, avec sa propre suite de
+// tests (`nom-affiche.spec.ts`).
+//
+// L'ancien test ci-dessous («raisonSociale et nom présents ensemble : raisonSociale prime»)
+// n'a PAS été repris tel quel : il figeait un comportement contraire à RM-01
+// (docs/specification-etape-1-atelier-clients.md:235 ; arbitrage @laupernoe du 28.07.2026), qui établit
+// que `type` — immuable après création — fait autorité, jamais la simple présence d'un champ
+// modifiable comme `raisonSociale`. Le test qui remplace celui-ci
+// (`nom-affiche.spec.ts` — describe "RM-01") attend désormais l'inverse : un `particulier` avec
+// une `raisonSociale` résiduelle affiche "nom prénom", pas la raison sociale. Ne pas restaurer
+// l'ancien comportement en croyant réparer une régression.
 
 describe('versClientResponse', () => {
   it('projette toutes les dates en ISO et calcule nomAffiche', () => {
-    const dto = versClientResponse(ligneClient(), null);
+    const dto = versClientResponse(ligneClient(), null, []);
     expect(dto.creeLe).toBe('2026-01-01T00:00:00.000Z');
     expect(dto.modifieLe).toBe('2026-07-27T09:14:22.000Z');
     expect(dto.nomAffiche).toBe('Dupont Jean');
@@ -77,24 +68,34 @@ describe('versClientResponse', () => {
   });
 
   it('dernierPassageLe null (client sans OR) est rendu null, jamais absent', () => {
-    const dto = versClientResponse(ligneClient(), null);
+    const dto = versClientResponse(ligneClient(), null, []);
     expect(dto.dernierPassageLe).toBeNull();
   });
 
   it('dernierPassageLe fourni est projeté en ISO', () => {
-    const dto = versClientResponse(ligneClient(), new Date('2026-05-10T08:00:00.000Z'));
+    const dto = versClientResponse(ligneClient(), new Date('2026-05-10T08:00:00.000Z'), []);
     expect(dto.dernierPassageLe).toBe('2026-05-10T08:00:00.000Z');
   });
 
   it('fusionneVersClientId est propagé tel quel', () => {
-    const dto = versClientResponse(ligneClient({ fusionneVersClientId: 'c-absorbant' }), null);
+    const dto = versClientResponse(ligneClient({ fusionneVersClientId: 'c-absorbant' }), null, []);
     expect(dto.fusionneVersClientId).toBe('c-absorbant');
+  });
+
+  it('notesAlerte est propagé tel quel (le filtrage nature=alerte est la responsabilité de ServiceClient, pas du mapper)', () => {
+    const note = { id: 'n1', nature: 'alerte' as const, texte: 'Rappeler avant tout supplément', auteur: null, creeLe: '2026-07-01T00:00:00.000Z' };
+    const dto = versClientResponse(ligneClient(), null, [note]);
+    expect(dto.notesAlerte).toEqual([note]);
   });
 });
 
 describe('versClientResume', () => {
-  it('ne projette que les champs de synthèse, avec nomAffiche calculé', () => {
-    const resume = versClientResume(ligneClient({ raisonSociale: null, nom: 'Muster', prenom: 'Hans' }));
+  it('ne projette que les champs de synthèse, avec nomAffiche calculé, et le téléphone de la fiche', () => {
+    const resume = versClientResume(ligneClient({ raisonSociale: null, nom: 'Muster', prenom: 'Hans', telephone: '021 123 45 67' }), {
+      localite: null,
+      nombreVehicules: 0,
+      dernierPassageLe: null,
+    });
     expect(resume).toEqual({
       id: 'c1',
       numeroClient: 'CL-000001',
@@ -103,7 +104,28 @@ describe('versClientResume', () => {
       statut: 'actif',
       langueCorrespondance: 'fr',
       poObligatoire: false,
+      telephone: '021 123 45 67',
+      localite: null,
+      nombreVehicules: 0,
+      dernierPassageLe: null,
     });
+  });
+
+  it("un client sans adresse ni véhicule ressort avec localite: null et nombreVehicules: 0 — jamais exclu (pas d'INNER JOIN malencontreux)", () => {
+    const resume = versClientResume(ligneClient(), { localite: null, nombreVehicules: 0, dernierPassageLe: null });
+    expect(resume.localite).toBeNull();
+    expect(resume.nombreVehicules).toBe(0);
+  });
+
+  it('localite, nombreVehicules et dernierPassageLe proviennent du complément fourni par l’appelant (une seule requête, jamais recalculés ici)', () => {
+    const resume = versClientResume(ligneClient(), {
+      localite: 'Lausanne',
+      nombreVehicules: 3,
+      dernierPassageLe: new Date('2026-05-10T08:00:00.000Z'),
+    });
+    expect(resume.localite).toBe('Lausanne');
+    expect(resume.nombreVehicules).toBe(3);
+    expect(resume.dernierPassageLe).toBe('2026-05-10T08:00:00.000Z');
   });
 });
 

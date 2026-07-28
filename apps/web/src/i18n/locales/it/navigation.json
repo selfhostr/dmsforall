@@ -5,7 +5,8 @@
   "liens": {
     "accueil": "Home",
     "clients": "Clienti",
-    "vehicules": "Veicoli"
+    "vehicules": "Veicoli",
+    "recherche": "Ricerca"
   },
   "menu": {
     "ouvrir": "Apri menu",

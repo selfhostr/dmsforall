@@ -6,6 +6,7 @@ import {
   client,
   clientAdresse,
   clientCondition,
+  ordreReparation,
   parametreAtelier,
   utilisateur,
   vehicule,
@@ -73,7 +74,34 @@ export async function chargerVehiculeLigne(
   return ligne;
 }
 
-export function versClientResume(ligne: LigneClient): ClientResume {
+/**
+ * `ClientResume.telephone/localite/nombreVehicules/dernierPassageLe` (§ champs de désambiguïsation
+ * comptoir) ÉCART DE CONTRAT SIGNALÉ : `packages/shared` a étendu `ClientResume` avec ces quatre
+ * champs pendant l'écriture de ce module (voir `clients/mappers.ts`, doctrine identique côté
+ * `clients/`) — aucun ne se déduit de `LigneClient` seule. Copie locale de la même doctrine, PAS
+ * un appel à `clients/mappers.ts` (pas de dépendance de compilation entre modules d'experts
+ * parallèles). Un seul appel par assemblage de document OR (un seul client par OR), jamais dans
+ * une boucle de liste — le coût de ces requêtes supplémentaires est borné.
+ */
+export async function versClientResume(tx: TransactionDfa, ctx: ContexteTenant, ligne: LigneClient): Promise<ClientResume> {
+  const [adressePrincipale] = await tx
+    .select({ localite: clientAdresse.localite })
+    .from(clientAdresse)
+    .where(and(eq(clientAdresse.tenantId, ctx.tenantId), eq(clientAdresse.clientId, ligne.id), eq(clientAdresse.type, 'principale'), eq(clientAdresse.actif, true)))
+    .limit(1);
+
+  const vehiculesDetenus = await tx
+    .select({ id: vehiculeDetention.id })
+    .from(vehiculeDetention)
+    .where(and(eq(vehiculeDetention.tenantId, ctx.tenantId), eq(vehiculeDetention.clientId, ligne.id), isNull(vehiculeDetention.au)));
+
+  const [dernierOrOuvert] = await tx
+    .select({ ouvertLe: ordreReparation.ouvertLe })
+    .from(ordreReparation)
+    .where(and(eq(ordreReparation.tenantId, ctx.tenantId), eq(ordreReparation.clientId, ligne.id)))
+    .orderBy(desc(ordreReparation.ouvertLe))
+    .limit(1);
+
   return {
     id: ligne.id,
     numeroClient: ligne.numero,
@@ -82,6 +110,10 @@ export function versClientResume(ligne: LigneClient): ClientResume {
     statut: ligne.statut,
     langueCorrespondance: ligne.langue,
     poObligatoire: ligne.poObligatoire,
+    telephone: ligne.telephone,
+    localite: adressePrincipale?.localite ?? null,
+    nombreVehicules: vehiculesDetenus.length,
+    dernierPassageLe: dernierOrOuvert?.ouvertLe ? dernierOrOuvert.ouvertLe.toISOString() : null,
   };
 }
 

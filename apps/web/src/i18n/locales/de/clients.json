@@ -1,6 +1,9 @@
 {
   "titre": "Kunden",
   "nouveau": "Neuer Kunde",
+  "actions": {
+    "creer": "Kunde erstellen"
+  },
   "liste": {
     "titre": "Kunden",
     "colonnes": {
@@ -13,6 +16,7 @@
     },
     "filtres": {
       "type": "Kundentyp",
+      "tousLesTypes": "Alle Typen",
       "statut": "Status",
       "inclureInactifs": "Inaktive anzeigen"
     },
@@ -31,7 +35,17 @@
     "ouvrirOr": "RA öffnen",
     "actions": {
       "fusionner": "Zusammenführen"
-    }
+    },
+    "onglets": {
+      "contacts": "Kontakte",
+      "adresses": "Adressen",
+      "consentements": "Genehmigungen",
+      "notes": "Notizen"
+    },
+    "vehicules": "Fahrzeuge des Kunden",
+    "vehiculesVide": "Kein Fahrzeug zugeordnet.",
+    "derniersOr": "Letzte Werkstattbesuche",
+    "derniersOrVide": "Kein Besuch erfasst."
   },
   "alertes": {
     "bloque": "Gesperrt – Zahlungsrückstände",
@@ -44,7 +58,9 @@
     "raisonSociale": "Firmenname",
     "ide": "UID",
     "langue": "Korrespondenzsprache",
-    "po": "Bestellnummer (PO)"
+    "po": "Bestellnummer (PO)",
+    "telephone": "Telefon",
+    "email": "E-Mail"
   },
   "conditions": {
     "titre": "Handelsbedingungen",
@@ -54,7 +70,8 @@
     "delaiPaiement": "Zahlungsfrist",
     "tauxHoraire": "Stundensatz",
     "plafond": "Kostengrenze",
-    "dateEffet": "Gültig seit"
+    "dateEffet": "Gültig seit",
+    "vide": "Keine Handelsbedingungen erfasst."
   },
   "contacts": {
     "titre": "Kontakte",
@@ -64,7 +81,11 @@
       "gestionnaireFl": "Fuhrparkverwalter",
       "signataire": "Unterzeichner",
       "comptabilite": "Buchhaltung"
-    }
+    },
+    "champs": {
+      "roles": "Rollen"
+    },
+    "vide": "Kein Kontakt erfasst."
   },
   "adresses": {
     "titre": "Adressen",
@@ -73,12 +94,21 @@
       "principale": "Hauptadresse",
       "facturation": "Rechnungsadresse",
       "livraison": "Lieferadresse"
-    }
+    },
+    "champs": {
+      "type": "Adresstyp",
+      "rue": "Strasse und Hausnummer",
+      "npa": "PLZ",
+      "localite": "Ort"
+    },
+    "vide": "Keine Adresse erfasst."
   },
   "notes": {
     "titre": "Notizen",
     "interne": "Interne Notiz (nicht gedruckt)",
-    "alerte": "Alert (rot angezeigt)"
+    "alerte": "Alert (rot angezeigt)",
+    "champTexte": "Text der Notiz",
+    "vide": "Keine Notiz erfasst."
   },
   "doublons": {
     "titre": "Dubletten erkannt",
@@ -97,26 +127,16 @@
     "titre": "Genehmigungen",
     "ajouter": "Genehmigung hinzufügen",
     "types": {
-      "newsletter": "Newsletter",
-      "telephone": "Geschäftsanrufe",
-      "sms": "SMS-Nachrichten",
-      "email": "Geschäfts-E-Mails"
-    }
-  },
-  "fiche": {
-    "titre": "Kundenkarte",
-    "ouvrirOr": "RA öffnen",
-    "actions": {
-      "fusionner": "Zusammenführen"
+      "marketing_email": "Werbung per E-Mail",
+      "marketing_sms": "Werbung per SMS",
+      "marketing_appel": "Telefonwerbung"
     },
-    "onglets": {
-      "contacts": "Kontakte",
-      "adresses": "Adressen",
-      "consentements": "Genehmigungen",
-      "notes": "Notizen"
+    "champs": {
+      "type": "Art der Genehmigung",
+      "accorde": "Erteilt",
+      "revoque": "Widerrufen"
     },
-    "vehicules": "Fahrzeuge des Kunden",
-    "derniersOr": "Letzte Werkstattbesuche"
+    "vide": "Keine Genehmigung erfasst."
   },
   "desactivation": {
     "titre": "Kunden deaktivieren",
@@ -135,7 +155,10 @@
   },
   "vide": {
     "premier": "Kein Kunde registriert. Erstellen Sie den ersten.",
+    "premierDescription": "Erstellen Sie Ihren ersten Kunden.",
     "recherche": "Kein Kunde gefunden.",
-    "filtre": "Keine Ergebnisse mit diesen Filtern."
+    "rechercheDescription": "Versuchen Sie eine andere Suche.",
+    "filtre": "Keine Ergebnisse mit diesen Filtern.",
+    "filtreDescription": "Ändern oder löschen Sie die aktiven Filter."
   }
 }

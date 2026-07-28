@@ -2,6 +2,40 @@
   "titre": "Veicoli",
   "nouveau": "Nuovo veicolo",
   "creer": "Crea veicolo",
+  "liste": {
+    "titre": "Veicoli",
+    "colonnes": {
+      "vehicule": "Veicolo",
+      "vin": "VIN"
+    },
+    "filtres": {
+      "statut": "Stato",
+      "statutTous": "Tutti gli stati",
+      "statuts": {
+        "actif": "Attivo",
+        "archive": "Archiviato"
+      },
+      "importe": "Solo importati"
+    },
+    "tri": {
+      "label": "Ordina per",
+      "plaqueAsc": "Targa (A→Z)",
+      "plaqueDesc": "Targa (Z→A)",
+      "creeLeDesc": "Più recenti",
+      "prochaineExpertiseLeAsc": "Collaudo più vicino"
+    },
+    "erreur": {
+      "titre": "Impossibile caricare i veicoli"
+    }
+  },
+  "fiche": {
+    "erreur": {
+      "titre": "Impossibile caricare il veicolo"
+    },
+    "erreurSection": {
+      "titre": "Sezione non disponibile"
+    }
+  },
   "archiver": {
     "titre": "Archivia veicolo",
     "motif": "Motivo dell'archiviazione"
@@ -42,6 +76,8 @@
     "valeur": "Km",
     "date": "Data",
     "source": "Fonte",
+    "unite": "Unità",
+    "motif": "Motivo della regressione",
     "sources": {
       "reception": "Accettazione",
       "or": "Ordine",

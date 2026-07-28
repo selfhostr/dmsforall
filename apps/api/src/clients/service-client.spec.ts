@@ -295,3 +295,156 @@ describe('ServiceClient — isolation tenant : le tenant du contexte est explici
     expect(params).toContain('tid-1');
   });
 });
+
+describe(
+  'ServiceClient.lister — désambiguïsation comptoir (telephone/localite/nombreVehicules/dernierPassageLe) : ' +
+    'UNE seule requête, LEFT JOIN, jamais de N+1 ni de client exclu faute d’adresse ou de véhicule',
+  () => {
+    it('exécute une seule requête (un seul appel execute()) même enrichie des trois LATERAL', async () => {
+      const { tx } = txFactice({ executes: [{ rows: [] }] });
+      const acces = accesFactice(tx);
+      const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+
+      await service.lister(CTX, { tri: 'nom:asc', limite: 20 });
+
+      expect((tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);
+    });
+
+    it('les trois jointures ajoutées sont des LEFT JOIN LATERAL — un client sans adresse ni véhicule ne doit jamais disparaître de la page', async () => {
+      const { tx } = txFactice({ executes: [{ rows: [] }] });
+      const acces = accesFactice(tx);
+      const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+
+      await service.lister(CTX, { tri: 'nom:asc', limite: 20 });
+
+      const appel = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as SQL;
+      const { sql: texte } = dialect.sqlToQuery(appel);
+      const occurrencesJoinLateral = (texte.match(/join lateral/g) ?? []).length;
+      const occurrencesLeftJoinLateral = (texte.match(/left join lateral/g) ?? []).length;
+      // Les 3 LATERAL (adresse, véhicules, dernier passage) sont TOUS des `left join lateral` —
+      // si l'un d'eux glissait en `inner join lateral` (ou `join lateral` nu), les deux comptes
+      // divergeraient. C'est précisément le piège classique de ce genre d'enrichissement : un
+      // client neuf, sans adresse ni véhicule, disparaîtrait silencieusement de la page.
+      expect(occurrencesJoinLateral).toBe(3);
+      expect(occurrencesLeftJoinLateral).toBe(3);
+    });
+
+    it(
+      "un client sans adresse principale active et sans détention ouverte ressort bien dans la page, avec " +
+        'localite: null et nombreVehicules: 0 (pas exclu de la liste)',
+      async () => {
+        const { tx } = txFactice({
+          executes: [
+            {
+              rows: [
+                {
+                  ...ligneClient({ id: 'c-neuf', numero: 'CL-000099' }),
+                  triValeur: 'Nouveau Client',
+                  localite: null,
+                  nombreVehicules: 0,
+                  dernierPassageLe: null,
+                },
+              ],
+            },
+          ],
+        });
+        const acces = accesFactice(tx);
+        const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+
+        const page = await service.lister(CTX, { tri: 'nom:asc', limite: 20 });
+
+        expect(page.donnees).toHaveLength(1);
+        expect(page.donnees[0]).toMatchObject({ id: 'c-neuf', localite: null, nombreVehicules: 0, dernierPassageLe: null });
+      },
+    );
+
+    it('propage telephone (colonne directe), localite, nombreVehicules et dernierPassageLe pour un client renseigné', async () => {
+      const { tx } = txFactice({
+        executes: [
+          {
+            rows: [
+              {
+                ...ligneClient({ telephone: '021 123 45 67' }),
+                triValeur: 'Dupont Jean',
+                localite: 'Lausanne',
+                nombreVehicules: 2,
+                dernierPassageLe: new Date('2026-06-15T00:00:00.000Z'),
+              },
+            ],
+          },
+        ],
+      });
+      const acces = accesFactice(tx);
+      const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+
+      const page = await service.lister(CTX, { tri: 'nom:asc', limite: 20 });
+
+      expect(page.donnees[0]).toMatchObject({
+        telephone: '021 123 45 67',
+        localite: 'Lausanne',
+        nombreVehicules: 2,
+        dernierPassageLe: '2026-06-15T00:00:00.000Z',
+      });
+    });
+  },
+);
+
+describe("ServiceClient.parId — notesAlerte (RM-13) : uniquement les notes de nature 'alerte', jamais les notes internes", () => {
+  it("mappe la note d'alerte renvoyée par la requête, avec son auteur", async () => {
+    const { tx } = txFactice({
+      selects: [[ligneClient()]],
+      executes: [
+        { rows: [{ dernier: null }] },
+        {
+          rows: [
+            {
+              id: 'n1',
+              texte: 'Rappeler avant tout supplément',
+              creeLe: new Date('2026-07-01T00:00:00.000Z'),
+              auteurId: 'u1',
+              auteurPrenom: 'Marie',
+              auteurNom: 'Rey',
+            },
+          ],
+        },
+      ],
+    });
+    const acces = accesFactice(tx);
+    const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+
+    const dto = await service.parId(CTX, 'c1');
+
+    expect(dto.notesAlerte).toEqual([
+      {
+        id: 'n1',
+        nature: 'alerte',
+        texte: 'Rappeler avant tout supplément',
+        auteur: { utilisateurId: 'u1', nomAffiche: 'Marie Rey' },
+        creeLe: '2026-07-01T00:00:00.000Z',
+      },
+    ]);
+  });
+
+  it(
+    "la requête de notes exécutée filtre explicitement sur nature = 'alerte' (et le tenant) — " +
+      "une note 'interne' (ex. le motif de désactivation) ne peut donc jamais fuiter ici ; " +
+      "seul GET /clients/{id}/notes les expose",
+    async () => {
+      const { tx } = txFactice({
+        selects: [[ligneClient()]],
+        executes: [{ rows: [{ dernier: null }] }, { rows: [] }],
+      });
+      const acces = accesFactice(tx);
+      const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+
+      await service.parId(CTX, 'c1');
+
+      // Deuxième appel execute() de parId() : dernierPassage() est le premier, chargerNotesAlerte() le second.
+      const appelNotes = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls[1]?.[0] as SQL;
+      const { sql: texte, params } = dialect.sqlToQuery(appelNotes);
+      expect(texte).toContain("nature = 'alerte'");
+      expect(texte).not.toContain("nature = 'interne'");
+      expect(params).toContain('tid-1');
+    },
+  );
+});

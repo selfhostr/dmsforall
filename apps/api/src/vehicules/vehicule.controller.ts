@@ -13,6 +13,7 @@ import {
   type EntreeCreationVehicule,
   type EntreeFusionVehicule,
   type EntreeModificationVehicule,
+  type ReponseContexteAtelier,
   type ReponseVehicule,
 } from '@dfa/shared';
 
@@ -21,8 +22,9 @@ import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { JETON_IDEMPOTENCE, type ServiceIdempotence } from '../common/idempotence';
 import { PipeZod } from '../common/validation';
-import { EnveloppeDto, PageVehiculeResumeDto, ReponseVehiculeDto } from './dto';
+import { EnveloppeDto, PageVehiculeResumeDto, ReponseContexteAtelierDto, ReponseVehiculeDto } from './dto';
 import { ServiceVehicule } from './service-vehicule';
+import { ServiceVehiculeContexteAtelier } from './service-vehicule-contexte-atelier';
 
 const EnveloppeVehiculeDto = EnveloppeDto(ReponseVehiculeDto, 'Vehicule');
 
@@ -44,6 +46,7 @@ type EntreeListeVehicules = z.infer<typeof schemaListeVehicules>;
 export class VehiculeController {
   constructor(
     private readonly serviceVehicule: ServiceVehicule,
+    private readonly serviceContexteAtelier: ServiceVehiculeContexteAtelier,
     @Inject(JETON_IDEMPOTENCE) private readonly serviceIdempotence: ServiceIdempotence,
     private readonly contexte: ServiceContexteRequete,
   ) {}
@@ -110,6 +113,30 @@ export class VehiculeController {
   async parId(@Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string): Promise<ReponseVehicule> {
     const ctx = this.contexte.contexteTenant();
     return this.serviceVehicule.parId(ctx, vehiculeId);
+  }
+
+  @Get(':vehiculeId/contexte-atelier')
+  @ExigerDroit('vehicule.lire')
+  @ApiOperation({
+    summary: 'Contexte atelier complet du véhicule (RM-36, D-01, CT-13, §8.1).',
+    description:
+      "Agrégat consommé au même instant à la prise de RDV ET à la réception du matin : travaux " +
+      "reportés, campagnes ouvertes, échéance d'expertise (MFK), garantie, alertes client et OR " +
+      "déjà ouverts. Chaque section projette la MÊME donnée que sa ressource dédiée — aucun champ " +
+      "n'existe uniquement ici.",
+  })
+  @ApiParam({ name: 'vehiculeId', format: 'uuid' })
+  @ApiOkResponse({ type: ReponseContexteAtelierDto })
+  @ApiReponseProbleme(400, 'Identifiant mal formé.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  @ApiReponseProbleme(404, 'Véhicule introuvable pour ce tenant.')
+  async contexteAtelier(
+    @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
+  ): Promise<ReponseContexteAtelier> {
+    const ctx = this.contexte.contexteTenant();
+    const principal = this.contexte.exigerPrincipal();
+    return this.serviceContexteAtelier.obtenir(ctx, vehiculeId, principal.role);
   }
 
   @Patch(':vehiculeId')

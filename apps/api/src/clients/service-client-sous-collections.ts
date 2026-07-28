@@ -20,6 +20,7 @@ import { JETON_DB } from '../db';
 import { client, clientAdresse, clientCondition, clientConsentement, clientContact, clientNote, utilisateur } from '../db/schema';
 import { CollecteurAvertissements } from '../common/avertissements';
 import { ErreurMetier } from '../common/erreurs';
+import { ServiceJournal } from '../common/journal';
 import { decoderCurseur, encoderCurseur } from '../common/pagination';
 
 import type { AuteurNote } from './mappers';
@@ -50,7 +51,10 @@ function estViolation(erreur: unknown, sqlstate: string, contrainte?: string): b
  */
 @Injectable()
 export class ServiceClientSousCollections {
-  constructor(@Inject(JETON_DB) private readonly acces: AccesBase) {}
+  constructor(
+    @Inject(JETON_DB) private readonly acces: AccesBase,
+    private readonly journal: ServiceJournal,
+  ) {}
 
   // -----------------------------------------------------------------------------------------
   // Adresses (RM-03)
@@ -115,6 +119,12 @@ export class ServiceClientSousCollections {
     adresseId: string,
     entree: Partial<EntreeAdresseClient> & { readonly actif?: boolean },
   ): Promise<ReponseAvecAvertissements<ReponseClientAdresse>> {
+    // F-01 (audit sécurité) : un corps vide n'est pas une erreur interne — c'est une entrée
+    // invalide, refusée AVANT d'ouvrir la transaction, avant même de vérifier que le client
+    // existe. Sans cette garde, `tx.update(...).set({})` atteint Drizzle/Postgres, qui refuse
+    // avec un message d'infrastructure ("No values to set") — c'est CE message qui fuitait au
+    // client via `detail` (voir `traduireViolationAdresse`, corrigé dans le même correctif).
+    this.exigerCorpsNonVide(entree);
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);
       try {
@@ -145,7 +155,13 @@ export class ServiceClientSousCollections {
         erreurs: [{ champ: 'type', code: 'adresse_active_unique', message: `Une adresse « ${type ?? ''} » active existe déjà.` }],
       });
     }
-    return erreur instanceof ErreurMetier ? erreur : new ErreurMetier('ERREUR_INTERNE', "Échec sur l'adresse.", { detail: String(erreur) });
+    if (erreur instanceof ErreurMetier) return erreur;
+    // F-01 (audit sécurité) : JAMAIS `String(erreur)` en `detail` — `FiltreProbleme` recopie ce
+    // champ tel quel dans la réponse HTTP pour TOUT `ErreurMetier`, y compris `ERREUR_INTERNE`.
+    // Une erreur pg brute non reconnue (message du pilote, nom de contrainte) reste donc
+    // JOURNALISÉE (`ServiceJournal`, jamais exposée) — le client ne reçoit qu'un code stable.
+    this.journal.error("Échec technique non typé sur une adresse client", erreur, { clientOperation: 'adresse' });
+    return new ErreurMetier('ERREUR_INTERNE', "Échec sur l'adresse.");
   }
 
   // -----------------------------------------------------------------------------------------
@@ -208,6 +224,9 @@ export class ServiceClientSousCollections {
     contactId: string,
     entree: Partial<EntreeContactClient> & { readonly actif?: boolean },
   ): Promise<ReponseAvecAvertissements<ReponseClientContact>> {
+    // F-01 (audit sécurité) : même garde que `modifierAdresse` — un corps vide est une entrée
+    // invalide, refusée avant d'atteindre la base.
+    this.exigerCorpsNonVide(entree);
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);
       const valeurs = 'telephone' in entree ? { ...entree, telephoneE164: normaliserTelephoneCh(entree.telephone ?? null) } : entree;
@@ -298,7 +317,11 @@ export class ServiceClientSousCollections {
             erreurs: [{ champ: 'valideDuLe', code: 'periode_chevauchement', message: 'Période de validité en conflit avec une autre.' }],
           });
         }
-        throw erreur instanceof ErreurMetier ? erreur : new ErreurMetier('ERREUR_INTERNE', 'Échec sur la condition.', { detail: String(erreur) });
+        if (erreur instanceof ErreurMetier) throw erreur;
+        // F-01 (audit sécurité) : même règle que `traduireViolationAdresse` — jamais `String(erreur)`
+        // en `detail`, toujours journalisé côté serveur, jamais exposé au client.
+        this.journal.error('Échec technique non typé sur une condition client', erreur, { clientOperation: 'condition' });
+        throw new ErreurMetier('ERREUR_INTERNE', 'Échec sur la condition.');
       }
     });
   }
@@ -424,6 +447,26 @@ export class ServiceClientSousCollections {
   // -----------------------------------------------------------------------------------------
   // Utilitaires partagés
   // -----------------------------------------------------------------------------------------
+
+  /**
+   * F-01 (audit sécurité) : un `PATCH` dont le corps ne porte AUCUN champ (`{}`, ou un corps qui
+   * ne contient que des clés inconnues — zod les a déjà retirées en amont) n'est pas une panne
+   * serveur, c'est une entrée invalide. Avant ce garde, `modifierAdresse`/`modifierContact`
+   * laissaient un tel corps atteindre `tx.update(...).set({})` : Drizzle/Postgres refuse alors
+   * avec un message d'infrastructure ("No values to set"), que le code appelant promouvait au
+   * rang de `detail` exposé — exactement le défaut que ce correctif ferme. Réutilisé par toute
+   * sous-collection PATCH-able ; conditions/consentements/notes n'ont pas de `PATCH` (RM-07 daté,
+   * RM-09/RM-13 append-only), donc pas besoin de cette garde.
+   */
+  private exigerCorpsNonVide(entree: Readonly<Record<string, unknown>>): void {
+    if (Object.keys(entree).length === 0) {
+      throw new ErreurMetier('VALIDATION_ECHOUEE', 'Le corps de la requête ne contient aucun champ à modifier.', {
+        erreurs: [
+          { champ: '(corps)', code: 'corps_vide', message: 'Au moins un champ doit être fourni pour une modification.' },
+        ],
+      });
+    }
+  }
 
   private async verifierClientExiste(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<void> {
     const lignes = await tx

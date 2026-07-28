@@ -118,6 +118,24 @@ jobs:
           ARGON2_PARALLELISME: '1'
           LIMITE_CONNEXION_IP: '20'
           LIMITE_CONNEXION_COMPTE: '5'
+          # DOIT rester STRICTEMENT INFÉRIEUR à LIMITE_CONNEXION_COMPTE ci-dessus (contrainte
+          # croisée du schéma zod, apps/api/src/config/charger-config.ts, superRefine) : sans
+          # cette ligne, SEUIL_VERROUILLAGE_COMPTE retombe sur son défaut de 5, identique à
+          # LIMITE_CONNEXION_COMPTE, et `chargerConfig` refuse de démarrer (ErreurConfigInvalide)
+          # pour tout chemin qui l'invoquerait avec ces variables. Abaissé ici plutôt que relevé
+          # LIMITE_CONNEXION_COMPTE (qui resterait à 15, le défaut de prod) : ce bloc sert de
+          # filet si un chemin de code lit un jour process.env avant de basculer sur les
+          # conteneurs éphémères (voir le commentaire de tête de ce bloc), pas à faire tourner de
+          # test de brute-force lui-même — le garder bas maintient ce filet rapide à satisfaire.
+          # Mêmes valeurs que apps/api/test/setup/app-test.ts::envTest() dans leur RELATION
+          # (compte < limite), pas dans leur montant : ce fichier n'a pas besoin de coller aux
+          # défauts de prod (15/5), seulement de rester valide. Rappel du pourquoi de la
+          # contrainte elle-même (bloquant B1, rapport QA étape 0) : si le budget de débit par
+          # email s'épuise au même rythme ou avant le seuil de verrouillage, la tentative qui doit
+          # PROUVER le verrouillage (bon mot de passe, compte déjà verrouillé) se fait refuser par
+          # le limiteur de débit et rend 429 au lieu du 423 attendu — le verrouillage devient
+          # untestable.
+          SEUIL_VERROUILLAGE_COMPTE: '3'
           LIMITE_FENETRE_SECONDES: '900'
           LOG_NIVEAU: debug
           OPENAPI_EXPOSER_DOCS: 'true'

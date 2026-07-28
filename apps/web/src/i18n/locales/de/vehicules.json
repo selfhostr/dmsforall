@@ -2,6 +2,40 @@
   "titre": "Fahrzeuge",
   "nouveau": "Neues Fahrzeug",
   "creer": "Fahrzeug erstellen",
+  "liste": {
+    "titre": "Fahrzeuge",
+    "colonnes": {
+      "vehicule": "Fahrzeug",
+      "vin": "VIN"
+    },
+    "filtres": {
+      "statut": "Status",
+      "statutTous": "Alle Status",
+      "statuts": {
+        "actif": "Aktiv",
+        "archive": "Archiviert"
+      },
+      "importe": "Nur importierte"
+    },
+    "tri": {
+      "label": "Sortieren nach",
+      "plaqueAsc": "Kennzeichen (A→Z)",
+      "plaqueDesc": "Kennzeichen (Z→A)",
+      "creeLeDesc": "Neueste zuerst",
+      "prochaineExpertiseLeAsc": "Nächste MFK-Fälligkeit"
+    },
+    "erreur": {
+      "titre": "Fahrzeuge konnten nicht geladen werden"
+    }
+  },
+  "fiche": {
+    "erreur": {
+      "titre": "Fahrzeug konnte nicht geladen werden"
+    },
+    "erreurSection": {
+      "titre": "Bereich nicht verfügbar"
+    }
+  },
   "archiver": {
     "titre": "Fahrzeug archivieren",
     "motif": "Grund für Archivierung"
@@ -42,6 +76,8 @@
     "valeur": "Km",
     "date": "Datum",
     "source": "Quelle",
+    "unite": "Einheit",
+    "motif": "Grund für die Abweichung",
     "sources": {
       "reception": "Annahme",
       "or": "RA",

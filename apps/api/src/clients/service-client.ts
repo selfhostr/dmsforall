@@ -9,6 +9,7 @@ import type {
   ParametresDoublonsClients,
   ReponseAvecAvertissements,
   ReponseClient,
+  ReponseClientNote,
   ReponseDoublonsClients,
 } from '@dfa/shared';
 import { schemaModificationClient } from '@dfa/shared';
@@ -153,22 +154,63 @@ export class ServiceClient {
         conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
       }
 
+      // Désambiguïsation comptoir (§ arbitrage L1-16bis) : `localite`, `nombreVehicules` et
+      // `dernierPassageLe` sont produits dans CETTE MÊME requête via `LEFT JOIN LATERAL` — jamais
+      // une requête par ligne, qui tiendrait très bien sur le garage de démo et s'effondrerait
+      // chez un client réel à plusieurs milliers de fiches. Trois LATERAL, TOUJOURS en LEFT JOIN
+      // (jamais INNER) : un client sans adresse ou sans véhicule doit rester dans la page, pas en
+      // disparaître silencieusement — les deux dernières sont des agrégats bruts (`count`, `max`)
+      // qui rendent systématiquement une ligne (0 / null), même sur zéro correspondance ; seule la
+      // sous-requête `a` (adresse) peut légitimement ne rien renvoyer, d'où le LEFT JOIN LATERAL.
       const requete = sql`
-        select ${COLONNES_CLIENT_ALIASEES}, ${definition.expression} as "triValeur"
+        select ${COLONNES_CLIENT_ALIASEES}, ${definition.expression} as "triValeur",
+               a.localite as "localite",
+               coalesce(v.nombre, 0) as "nombreVehicules",
+               dp.dernier as "dernierPassageLe"
           from public.client c
+          left join lateral (
+            select ca.localite
+              from public.client_adresse ca
+             where ca.tenant_id = c.tenant_id and ca.client_id = c.id and ca.type = 'principale' and ca.actif = true
+             order by ca.cree_le desc
+             limit 1
+          ) a on true
+          left join lateral (
+            select count(*)::int as nombre
+              from public.vehicule_detention vd
+             where vd.tenant_id = c.tenant_id and vd.client_id = c.id and vd.au is null
+          ) v on true
+          left join lateral (
+            select max(o.ouvert_le) as dernier
+              from public.ordre_reparation o
+             where o.tenant_id = c.tenant_id and o.client_id = c.id
+          ) dp on true
          where ${sql.join(conditions, sql` and `)}
          order by ${construireOrderBy(definition, idExpr)}
          limit ${params.limite + 1}
       `;
 
-      const resultat = await tx.execute<LigneClient & { triValeur: string | number | Date | null }>(requete);
+      const resultat = await tx.execute<
+        LigneClient & {
+          triValeur: string | number | Date | null;
+          localite: string | null;
+          nombreVehicules: number;
+          dernierPassageLe: Date | null;
+        }
+      >(requete);
       const lignes = resultat.rows;
       const aUnePageSuivante = lignes.length > params.limite;
       const pageLignes = aUnePageSuivante ? lignes.slice(0, params.limite) : lignes;
       const derniere = pageLignes[pageLignes.length - 1];
 
       return {
-        donnees: pageLignes.map(versClientResume),
+        donnees: pageLignes.map((ligne) =>
+          versClientResume(ligne, {
+            localite: ligne.localite,
+            nombreVehicules: ligne.nombreVehicules,
+            dernierPassageLe: ligne.dernierPassageLe,
+          }),
+        ),
         curseurSuivant:
           aUnePageSuivante && derniere
             ? encoderCurseurTrie({ tri: params.tri, valeur: normaliserValeurCurseur(derniere.triValeur), id: derniere.id })
@@ -270,7 +312,8 @@ export class ServiceClient {
           });
         }
 
-        return { statutHttp: 201, corps: collecteur.envelopper(versClientResponse(ligne, null)) };
+        // Fiche fraîchement créée : aucune note d'alerte ne peut encore exister pour elle.
+        return { statutHttp: 201, corps: collecteur.envelopper(versClientResponse(ligne, null, [])) };
       },
     );
   }
@@ -279,7 +322,8 @@ export class ServiceClient {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await this.chargerOu404(tx, ctx, clientId);
       const dernierPassageLe = await this.dernierPassage(tx, ctx, clientId);
-      return versClientResponse(ligne, dernierPassageLe);
+      const notesAlerte = await this.chargerNotesAlerte(tx, ctx, clientId);
+      return versClientResponse(ligne, dernierPassageLe, notesAlerte);
     });
   }
 
@@ -323,7 +367,8 @@ export class ServiceClient {
 
       const ligneMaj = await this.chargerOu404(tx, ctx, clientId);
       const dernierPassageLe = await this.dernierPassage(tx, ctx, clientId);
-      return new CollecteurAvertissements().envelopper(versClientResponse(ligneMaj, dernierPassageLe));
+      const notesAlerte = await this.chargerNotesAlerte(tx, ctx, clientId);
+      return new CollecteurAvertissements().envelopper(versClientResponse(ligneMaj, dernierPassageLe, notesAlerte));
     });
   }
 
@@ -404,7 +449,8 @@ export class ServiceClient {
 
       const ligneMaj = await this.chargerOu404(tx, ctx, clientId);
       const dernierPassageLe = await this.dernierPassage(tx, ctx, clientId);
-      return new CollecteurAvertissements().envelopper(versClientResponse(ligneMaj, dernierPassageLe));
+      const notesAlerte = await this.chargerNotesAlerte(tx, ctx, clientId);
+      return new CollecteurAvertissements().envelopper(versClientResponse(ligneMaj, dernierPassageLe, notesAlerte));
     });
   }
 
@@ -446,5 +492,44 @@ export class ServiceClient {
 
   private dateDuJour(): string {
     return this.horloge.maintenant().toISOString().slice(0, 10);
+  }
+
+  /**
+   * RM-13 : notes de nature `alerte` UNIQUEMENT (`ReponseClient.notesAlerte`) — les notes
+   * `interne` (ex. le motif de désactivation ci-dessus) ne sortent JAMAIS par ce chemin, elles
+   * ne sont exposées que par `GET /clients/{clientId}/notes` (`ServiceClientSousCollections`).
+   * Non paginé : le volume d'alertes actives sur une fiche est borné par construction métier
+   * (on ne laisse pas s'accumuler des dizaines d'alertes non traitées).
+   *
+   * SQL brut (`tx.execute`), comme `dernierPassage` ci-dessus — même raison : une projection en
+   * lecture composée (jointure auteur) n'a pas besoin de passer par le query builder Drizzle ici.
+   */
+  private async chargerNotesAlerte(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<ReponseClientNote[]> {
+    const resultat = await tx.execute<{
+      id: string;
+      texte: string;
+      creeLe: Date;
+      auteurId: string | null;
+      auteurPrenom: string | null;
+      auteurNom: string | null;
+    }>(sql`
+      select n.id as "id", n.texte as "texte", n.cree_le as "creeLe",
+             n.auteur_id as "auteurId", u.prenom as "auteurPrenom", u.nom as "auteurNom"
+        from public.client_note n
+        left join public.utilisateur u on u.tenant_id = n.tenant_id and u.id = n.auteur_id
+       where n.tenant_id = ${ctx.tenantId} and n.client_id = ${clientId} and n.nature = 'alerte'
+       order by n.cree_le desc
+    `);
+
+    return resultat.rows.map((ligne) => ({
+      id: ligne.id,
+      nature: 'alerte' as const,
+      texte: ligne.texte,
+      auteur:
+        ligne.auteurId && ligne.auteurPrenom && ligne.auteurNom
+          ? { utilisateurId: ligne.auteurId, nomAffiche: `${ligne.auteurPrenom} ${ligne.auteurNom}` }
+          : null,
+      creeLe: ligne.creeLe.toISOString(),
+    }));
   }
 }

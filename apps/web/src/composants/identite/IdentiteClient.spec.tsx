@@ -6,6 +6,9 @@ import '@/i18n';
 
 import { IdentiteClient } from './IdentiteClient';
 
+// Client créé à la volée au comptoir : fiche fraîche, sans téléphone ni adresse encore saisis,
+// aucun véhicule rattaché. C'est le cas le plus fréquent sur les fiches récentes — `IdentiteClient`
+// ne doit rien en faire planter ni afficher un `undefined`/tiret ambigu.
 const CLIENT: ClientResume = {
   id: 'c1',
   numeroClient: 'CL-00042',
@@ -14,6 +17,10 @@ const CLIENT: ClientResume = {
   statut: 'actif',
   langueCorrespondance: 'fr',
   poObligatoire: false,
+  telephone: null,
+  localite: null,
+  nombreVehicules: 0,
+  dernierPassageLe: null,
 };
 
 describe('IdentiteClient', () => {

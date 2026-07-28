@@ -17,6 +17,11 @@ function construireChemin(base: string, parametres: Record<string, string | unde
 }
 
 export const chemins = {
+  /** Absent avant cet ajout alors que `GET /recherche` existe déjà côté API et que l'écran est en
+   *  cours d'écriture (agent dédié) — même forme que `clients`/`vehicules` ci-dessous. */
+  recherche: {
+    globale: (site?: string) => construireChemin('/recherche', { site }),
+  },
   clients: {
     liste: (site?: string) => construireChemin('/clients', { site }),
     nouveau: (site?: string) => construireChemin('/clients/nouveau', { site }),

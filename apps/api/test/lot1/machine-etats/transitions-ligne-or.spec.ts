@@ -105,6 +105,40 @@ describe('ligne_or — transitions autorisées', () => {
     const resultat = await transitionnerLigne(garage.tenantA.tenant.id, ligne.id, 'a_valider');
     expect(resultat.statut).toBe('a_valider');
   });
+
+  // --- 0009 : comble la lacune de 0003 §5.2 — une ligne saisie par erreur, jamais montrée au
+  // client (proposee) ou en attente d'une décision qui n'est jamais venue (a_valider), doit
+  // pouvoir être retirée de l'OR sans attendre qu'elle soit validée puis annulée pour de faux.
+
+  it('proposee → annulee (saisie erronée avant toute décision client, motif obligatoire — 0009)', async () => {
+    const ligne = await nouvelleLigne(9);
+    const resultat = await annulerLigne(
+      garage.tenantA.tenant.id,
+      ligne.id,
+      'Test 0009 : mauvais véhicule sélectionné au comptoir',
+    );
+    expect(resultat.statut).toBe('annulee');
+  });
+
+  it("a_valider → annulee (question posée retirée avant réponse du client, distinct d'un refus — 0009)", async () => {
+    const ligne = await nouvelleLigne(10);
+    await transitionnerLigne(garage.tenantA.tenant.id, ligne.id, 'a_valider');
+    const resultat = await annulerLigne(
+      garage.tenantA.tenant.id,
+      ligne.id,
+      'Test 0009 : doublon avec la ligne 9, retiré avant envoi du devis',
+    );
+    expect(resultat.statut).toBe('annulee');
+  });
+
+  it('proposee → annulee sans motif est refusée par ligne_or_annulation_motif_chk (0008), indépendamment de 0009', async () => {
+    const ligne = await nouvelleLigne(11);
+    await expect(
+      ecrireSousTenant(bdd.poolApp, garage.tenantA.tenant.id, (client) =>
+        client.query("update ligne_or set statut = 'annulee' where id = $1", [ligne.id]),
+      ),
+    ).rejects.toMatchObject({ code: '23514' }); // check_violation
+  });
 });
 
 describe('ligne_or — transitions INTERDITES', () => {
@@ -118,8 +152,20 @@ describe('ligne_or — transitions INTERDITES', () => {
       expect(e.code).toBe('ZDFA1');
       expect(e.table).toBe('ligne_or');
       expect(e.detail).toBe('entite=ligne_or;depuis=proposee;vers=en_cours');
-      expect(e.hint).toBe('Depuis « proposee », transitions autorisées : a_valider, validee.');
+      // Tri alphabétique (order by statut_vers) : a_valider < annulee < validee sous locale C.
+      // « annulee » a rejoint la liste avec 0009 — ce hint est donc le témoin direct que le
+      // référentiel a bien changé, pas seulement que la transition testée reste interdite.
+      expect(e.hint).toBe('Depuis « proposee », transitions autorisées : a_valider, annulee, validee.');
     }
+  });
+
+  it("refusee → annulee reste refusée (0009 ne touche pas refusee : un refus client se rouvre via a_valider, jamais en annulation directe)", async () => {
+    const ligne = await nouvelleLigne(12);
+    await transitionnerLigne(garage.tenantA.tenant.id, ligne.id, 'a_valider');
+    await transitionnerLigne(garage.tenantA.tenant.id, ligne.id, 'refusee');
+    await expect(
+      annulerLigne(garage.tenantA.tenant.id, ligne.id, 'Tentative : ne doit pas passer'),
+    ).rejects.toMatchObject({ code: 'ZDFA1' });
   });
 
   it("a_valider → en_cours est refusée (RM-93 : on ne travaille pas sur ce qui n'est pas encore accordé)", async () => {

@@ -120,7 +120,25 @@ export class ServiceClientOrdresReparation {
       const lignesClient = await tx.select().from(client).where(and(eq(client.tenantId, ctx.tenantId), eq(client.id, clientId))).limit(1);
       const ligneClient = lignesClient[0];
       if (!ligneClient) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Client introuvable.');
-      const clientResume = versClientResume(ligneClient);
+      // Une seule requête supplémentaire, exécutée UNE FOIS pour ce client (pas par ligne d'OR) :
+      // même doctrine « pas de N+1 » que `ServiceClient.lister`, ici triviale puisque tous les OR
+      // de cette page partagent le même client.
+      const extraResultat = await tx.execute<{ localite: string | null; nombreVehicules: number; dernierPassageLe: Date | null }>(sql`
+        select
+          (select ca.localite
+             from public.client_adresse ca
+            where ca.tenant_id = ${ctx.tenantId} and ca.client_id = ${clientId} and ca.type = 'principale' and ca.actif = true
+            order by ca.cree_le desc
+            limit 1) as "localite",
+          (select count(*)::int
+             from public.vehicule_detention vd
+            where vd.tenant_id = ${ctx.tenantId} and vd.client_id = ${clientId} and vd.au is null) as "nombreVehicules",
+          (select max(o.ouvert_le)
+             from public.ordre_reparation o
+            where o.tenant_id = ${ctx.tenantId} and o.client_id = ${clientId}) as "dernierPassageLe"
+      `);
+      const extraClient = extraResultat.rows[0] ?? { localite: null, nombreVehicules: 0, dernierPassageLe: null };
+      const clientResume = versClientResume(ligneClient, extraClient);
 
       const conditions = [sql`o.tenant_id = ${ctx.tenantId}`, sql`o.client_id = ${clientId}`];
       if (params.statut && params.statut.length > 0) {

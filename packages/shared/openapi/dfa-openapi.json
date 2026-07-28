@@ -1,6 +1,97 @@
 {
   "components": {
     "schemas": {
+      "AttentesOrDto": {
+        "properties": {
+          "accord": {
+            "description": "Un devis complémentaire attend une réponse.",
+            "type": "boolean"
+          },
+          "externe": {
+            "description": "Une ligne bloquée « externe » attend un tiers (sous-traitant, expertise…).",
+            "type": "boolean"
+          },
+          "pieces": {
+            "description": "Une ligne bloquée « pièces » attend un approvisionnement.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accord",
+          "pieces",
+          "externe"
+        ],
+        "type": "object"
+      },
+      "AuteurNoteDto": {
+        "properties": {
+          "nomAffiche": {
+            "type": "string"
+          },
+          "utilisateurId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "utilisateurId",
+          "nomAffiche"
+        ],
+        "type": "object"
+      },
+      "AvertissementDto": {
+        "properties": {
+          "code": {
+            "description": "Traduit côté front via `erreurs:codes.<CODE>` — jamais affiché tel quel.",
+            "example": "CLIENT_DOUBLON_PROBABLE",
+            "type": "object"
+          },
+          "donnees": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "message": {
+            "description": "Libellé FR stable (support, logs). Jamais affiché par le front.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "AvertissementOrDto": {
+        "properties": {
+          "code": {
+            "enum": [
+              "CLIENT_DOUBLON_PROBABLE",
+              "VEHICULE_VIN_COURT",
+              "VEHICULE_IDENTIFICATION_INCOMPLETE",
+              "VEHICULE_KILOMETRAGE_ABERRANT",
+              "VEHICULE_EXPERTISE_ECHUE",
+              "PLANNING_CAPACITE_DEPASSEE",
+              "POINTAGE_CLOTURE_AUTOMATIQUE",
+              "PRET_CASCADE_RESTITUTION",
+              "OR_MULTI_PAYEURS_DESACTIVE"
+            ],
+            "type": "string"
+          },
+          "donnees": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "message": {
+            "description": "Libellé FR stable — jamais affiché tel quel par le front.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
       "AvertissementVehiculeDto": {
         "properties": {
           "code": {
@@ -32,6 +123,546 @@
         ],
         "type": "object"
       },
+      "CandidatDoublonClientDto": {
+        "properties": {
+          "clientId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "critere": {
+            "enum": [
+              "nom_npa",
+              "email",
+              "telephone",
+              "ide"
+            ],
+            "type": "string"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "npa": {
+            "nullable": true,
+            "type": "string"
+          },
+          "numeroClient": {
+            "example": "CL-000042",
+            "type": "string"
+          },
+          "score": {
+            "example": 0.9,
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "clientId",
+          "numeroClient",
+          "nom",
+          "npa",
+          "critere",
+          "score"
+        ],
+        "type": "object"
+      },
+      "ClientAdresseAvecAvertissementsDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ClientAdresseDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "ClientAdresseDto": {
+        "properties": {
+          "actif": {
+            "type": "boolean"
+          },
+          "complement": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "localite": {
+            "type": "string"
+          },
+          "npa": {
+            "type": "string"
+          },
+          "pays": {
+            "example": "CH",
+            "type": "string"
+          },
+          "rue": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "principale",
+              "facturation",
+              "livraison"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "rue",
+          "complement",
+          "npa",
+          "localite",
+          "pays",
+          "actif"
+        ],
+        "type": "object"
+      },
+      "ClientAvecAvertissementsDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ClientDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "ClientConditionAvecAvertissementsDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ClientConditionDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "ClientConditionDto": {
+        "properties": {
+          "delaiPaiementJours": {
+            "nullable": true,
+            "type": "number"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "modePaiement": {
+            "nullable": true,
+            "type": "string"
+          },
+          "plafondCentimes": {
+            "nullable": true,
+            "type": "number"
+          },
+          "rabaisMoPourmille": {
+            "example": 0,
+            "type": "number"
+          },
+          "rabaisPiecesPourmille": {
+            "example": 0,
+            "type": "number"
+          },
+          "rabaisPneusPourmille": {
+            "example": 0,
+            "type": "number"
+          },
+          "tauxHoraireCode": {
+            "nullable": true,
+            "type": "string"
+          },
+          "valideAuLe": {
+            "description": "null = ouvert.",
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "valideDuLe": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "rabaisMoPourmille",
+          "rabaisPiecesPourmille",
+          "rabaisPneusPourmille",
+          "tauxHoraireCode",
+          "delaiPaiementJours",
+          "modePaiement",
+          "plafondCentimes",
+          "valideDuLe",
+          "valideAuLe"
+        ],
+        "type": "object"
+      },
+      "ClientConsentementAvecAvertissementsDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ClientConsentementDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "ClientConsentementDto": {
+        "properties": {
+          "accorde": {
+            "type": "boolean"
+          },
+          "canal": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "recueilliLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "marketing_email",
+              "marketing_sms",
+              "marketing_appel"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "accorde",
+          "recueilliLe",
+          "canal"
+        ],
+        "type": "object"
+      },
+      "ClientContactAvecAvertissementsDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ClientContactDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "ClientContactDto": {
+        "properties": {
+          "actif": {
+            "type": "boolean"
+          },
+          "email": {
+            "nullable": true,
+            "type": "string"
+          },
+          "fonction": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "langue": {
+            "enum": [
+              "fr",
+              "de",
+              "it"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "nom": {
+            "type": "string"
+          },
+          "prenom": {
+            "nullable": true,
+            "type": "string"
+          },
+          "roles": {
+            "description": "Rôles CUMULABLES (RM-04).",
+            "items": {
+              "enum": [
+                "conducteur",
+                "gestionnaire_flotte",
+                "signataire",
+                "comptabilite"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "telephone": {
+            "nullable": true,
+            "type": "string"
+          },
+          "telephoneE164": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nom",
+          "prenom",
+          "fonction",
+          "telephone",
+          "telephoneE164",
+          "email",
+          "langue",
+          "roles",
+          "actif"
+        ],
+        "type": "object"
+      },
+      "ClientDto": {
+        "properties": {
+          "civilite": {
+            "nullable": true,
+            "type": "string"
+          },
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dernierPassageLe": {
+            "description": "Dérivé du dernier OR ouvert pour ce client.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "email": {
+            "nullable": true,
+            "type": "string"
+          },
+          "fusionneVersClientId": {
+            "description": "Renseigné sur la fiche ABSORBÉE (RM-06, lot 2).",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "groupeId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ide": {
+            "example": "CHE-123.456.789",
+            "nullable": true,
+            "type": "string"
+          },
+          "langueCorrespondance": {
+            "enum": [
+              "fr",
+              "de",
+              "it"
+            ],
+            "type": "string"
+          },
+          "modifieLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "nom": {
+            "nullable": true,
+            "type": "string"
+          },
+          "nomAffiche": {
+            "description": "Rendu d’affichage calculé par le serveur (raisonSociale, ou nom prenom).",
+            "type": "string"
+          },
+          "notesAlerte": {
+            "description": "Notes de nature `alerte` UNIQUEMENT (RM-13) — affichée à l'ouverture de la fiche, au RDV et à la réception. Les notes `interne` ne sortent JAMAIS ici, voir GET .../notes.",
+            "items": {
+              "$ref": "#/components/schemas/ClientNoteDto"
+            },
+            "type": "array"
+          },
+          "numeroClient": {
+            "description": "Numéro continu par tenant, jamais réutilisé (RM-11).",
+            "example": "CL-000123",
+            "type": "string"
+          },
+          "poObligatoire": {
+            "description": "RM-14 : impose `numeroCommandeInterne` sur les OR de ce client.",
+            "type": "boolean"
+          },
+          "prenom": {
+            "nullable": true,
+            "type": "string"
+          },
+          "raisonSociale": {
+            "nullable": true,
+            "type": "string"
+          },
+          "referenceExterne": {
+            "nullable": true,
+            "type": "string"
+          },
+          "statut": {
+            "enum": [
+              "actif",
+              "inactif",
+              "bloque"
+            ],
+            "type": "string"
+          },
+          "telephone": {
+            "nullable": true,
+            "type": "string"
+          },
+          "telephoneE164": {
+            "example": "+41791234567",
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "description": "Immuable après création (RM-01).",
+            "enum": [
+              "particulier",
+              "entreprise"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "numeroClient",
+          "type",
+          "statut",
+          "civilite",
+          "nom",
+          "prenom",
+          "raisonSociale",
+          "nomAffiche",
+          "ide",
+          "langueCorrespondance",
+          "email",
+          "telephone",
+          "telephoneE164",
+          "poObligatoire",
+          "groupeId",
+          "fusionneVersClientId",
+          "referenceExterne",
+          "dernierPassageLe",
+          "notesAlerte",
+          "creeLe",
+          "modifieLe"
+        ],
+        "type": "object"
+      },
+      "ClientNoteAvecAvertissementsDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ClientNoteDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "ClientNoteDto": {
+        "properties": {
+          "auteur": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuteurNoteDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          },
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "nature": {
+            "enum": [
+              "interne",
+              "alerte"
+            ],
+            "type": "string"
+          },
+          "texte": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nature",
+          "texte",
+          "auteur",
+          "creeLe"
+        ],
+        "type": "object"
+      },
       "ClientResumeDetentionDto": {
         "properties": {
           "id": {
@@ -51,6 +682,192 @@
           "id",
           "numeroClient",
           "nomAffiche"
+        ],
+        "type": "object"
+      },
+      "ClientResumeDto": {
+        "properties": {
+          "dernierPassageLe": {
+            "description": "Dérivé du dernier OR ouvert pour ce client.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "langueCorrespondance": {
+            "enum": [
+              "fr",
+              "de",
+              "it"
+            ],
+            "type": "string"
+          },
+          "localite": {
+            "description": "Localité de l'adresse PRINCIPALE active du client. `null` si aucune adresse (fiche fraîche, cas normal).",
+            "nullable": true,
+            "type": "string"
+          },
+          "nomAffiche": {
+            "type": "string"
+          },
+          "nombreVehicules": {
+            "description": "Véhicules actuellement détenus (détentions ouvertes).",
+            "type": "number"
+          },
+          "numeroClient": {
+            "example": "CL-000123",
+            "type": "string"
+          },
+          "poObligatoire": {
+            "type": "boolean"
+          },
+          "statut": {
+            "enum": [
+              "actif",
+              "inactif",
+              "bloque"
+            ],
+            "type": "string"
+          },
+          "telephone": {
+            "description": "Colonne directe de la fiche client — désambiguïsation comptoir.",
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "particulier",
+              "entreprise"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "numeroClient",
+          "nomAffiche",
+          "type",
+          "statut",
+          "langueCorrespondance",
+          "poObligatoire",
+          "telephone",
+          "localite",
+          "nombreVehicules",
+          "dernierPassageLe"
+        ],
+        "type": "object"
+      },
+      "ClientResumeOrDto": {
+        "properties": {
+          "dernierPassageLe": {
+            "description": "Dérivée du dernier OR ouvert.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "langueCorrespondance": {
+            "enum": [
+              "fr",
+              "de",
+              "it"
+            ],
+            "type": "string"
+          },
+          "localite": {
+            "description": "Localité de l'adresse PRINCIPALE active du client. `null` si aucune adresse.",
+            "nullable": true,
+            "type": "string"
+          },
+          "nomAffiche": {
+            "description": "Rendu d’affichage calculé par le serveur (raisonSociale, ou nom prenom).",
+            "type": "string"
+          },
+          "nombreVehicules": {
+            "description": "Véhicules actuellement détenus (détentions ouvertes).",
+            "type": "number"
+          },
+          "numeroClient": {
+            "example": "CL-000123",
+            "type": "string"
+          },
+          "poObligatoire": {
+            "description": "RM-14 : impose `numeroCommandeInterne` sur les OR de ce client.",
+            "type": "boolean"
+          },
+          "statut": {
+            "enum": [
+              "actif",
+              "inactif",
+              "bloque"
+            ],
+            "type": "string"
+          },
+          "telephone": {
+            "description": "Colonne directe de la fiche client.",
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "particulier",
+              "entreprise"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "numeroClient",
+          "nomAffiche",
+          "type",
+          "statut",
+          "langueCorrespondance",
+          "poObligatoire",
+          "telephone",
+          "localite",
+          "nombreVehicules",
+          "dernierPassageLe"
+        ],
+        "type": "object"
+      },
+      "ControleQualiteOrDto": {
+        "properties": {
+          "conforme": {
+            "type": "boolean"
+          },
+          "controleLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "controleurId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "motifNonConformite": {
+            "nullable": true,
+            "type": "string"
+          },
+          "pointsControles": {
+            "description": "Check-lists outillées = lot 2 (P-08 `selon_type`) ; toujours vide au lot 1.",
+            "items": {
+              "$ref": "#/components/schemas/PointControleDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "controleurId",
+          "controleLe",
+          "conforme",
+          "motifNonConformite",
+          "pointsControles"
         ],
         "type": "object"
       },
@@ -79,6 +896,49 @@
           "champ",
           "valeur",
           "historique"
+        ],
+        "type": "object"
+      },
+      "CumulsPointageOrDto": {
+        "properties": {
+          "parTechnicien": {
+            "items": {
+              "$ref": "#/components/schemas/CumulTechnicienDto"
+            },
+            "type": "array"
+          },
+          "pointagesOuverts": {
+            "type": "number"
+          },
+          "totalCentiemes": {
+            "description": "Toujours 0 au lot 1 (module pointage absent, Δ4).",
+            "type": "number"
+          }
+        },
+        "required": [
+          "totalCentiemes",
+          "parTechnicien",
+          "pointagesOuverts"
+        ],
+        "type": "object"
+      },
+      "CumulTechnicienDto": {
+        "properties": {
+          "centiemes": {
+            "type": "number"
+          },
+          "nomAffiche": {
+            "type": "string"
+          },
+          "technicienId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "technicienId",
+          "nomAffiche",
+          "centiemes"
         ],
         "type": "object"
       },
@@ -127,6 +987,24 @@
         ],
         "type": "object"
       },
+      "EnveloppeDevisComplementaireDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementOrDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ReponseDevisComplementaireDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
       "EnveloppeKilometrageDto": {
         "properties": {
           "avertissements": {
@@ -137,6 +1015,78 @@
           },
           "donnees": {
             "$ref": "#/components/schemas/ReponseVehiculeKilometrageDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "EnveloppeLigneOrDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementOrDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ReponseLigneOrDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "EnveloppeOrdreReparationActionLignesDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementOrDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ReponseOrdreReparationDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "EnveloppeOrdreReparationDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementOrDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ReponseOrdreReparationDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "EnveloppeOrdreReparationTransitionDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementOrDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ReponseOrdreReparationDto"
           }
         },
         "required": [
@@ -341,6 +1291,112 @@
         ],
         "type": "object"
       },
+      "MontantsLigneOrDto": {
+        "properties": {
+          "montantHtCentimes": {
+            "description": "Signé : négatif pour une ligne de type `remise`.",
+            "type": "number"
+          },
+          "montantTtcCentimes": {
+            "type": "number"
+          },
+          "montantTvaCentimes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "montantHtCentimes",
+          "montantTvaCentimes",
+          "montantTtcCentimes"
+        ],
+        "type": "object"
+      },
+      "OrdreReparationResumeDto": {
+        "properties": {
+          "client": {
+            "$ref": "#/components/schemas/ClientResumeDto"
+          },
+          "etatAffiche": {
+            "description": "Le statut, OU le drapeau d’attente le plus bloquant (priorité accord > pieces > externe), calculé côté serveur.",
+            "enum": [
+              "planifie",
+              "ouvert",
+              "en_cours",
+              "attente_accord",
+              "attente_pieces",
+              "attente_externe",
+              "controle",
+              "termine",
+              "facture",
+              "restitue",
+              "cloture",
+              "annule"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "localisation": {
+            "type": "object"
+          },
+          "nombreLignes": {
+            "type": "number"
+          },
+          "numero": {
+            "type": "string"
+          },
+          "ouvertLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "restitutionPromiseLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "statut": {
+            "enum": [
+              "planifie",
+              "ouvert",
+              "en_cours",
+              "controle",
+              "termine",
+              "facture",
+              "restitue",
+              "cloture",
+              "annule"
+            ],
+            "type": "string"
+          },
+          "totalTtcCentimes": {
+            "description": "Absent pour un rôle sans droit aux montants (ex. technicien).",
+            "type": "number"
+          },
+          "type": {
+            "type": "object"
+          },
+          "vehicule": {
+            "$ref": "#/components/schemas/VehiculeResumeDto"
+          }
+        },
+        "required": [
+          "id",
+          "numero",
+          "statut",
+          "etatAffiche",
+          "type",
+          "localisation",
+          "ouvertLe",
+          "restitutionPromiseLe",
+          "vehicule",
+          "client",
+          "nombreLignes"
+        ],
+        "type": "object"
+      },
       "OrParametresAtelierDto": {
         "properties": {
           "deuxOrMemeVehicule": {
@@ -385,6 +1441,275 @@
           "sansRdvAutorise",
           "rdvRetroactifAuto",
           "deuxOrMemeVehicule"
+        ],
+        "type": "object"
+      },
+      "PageClientAdresseDto": {
+        "properties": {
+          "curseurSuivant": {
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ClientAdresseDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
+      "PageClientConditionDto": {
+        "properties": {
+          "curseurSuivant": {
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ClientConditionDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
+      "PageClientConsentementDto": {
+        "properties": {
+          "curseurSuivant": {
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ClientConsentementDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
+      "PageClientContactDto": {
+        "properties": {
+          "curseurSuivant": {
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ClientContactDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
+      "PageClientNoteDto": {
+        "properties": {
+          "curseurSuivant": {
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ClientNoteDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
+      "PageClientResumeDto": {
+        "properties": {
+          "curseurSuivant": {
+            "description": "Opaque base64url ; null = fin de liste.",
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ClientResumeDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
+      "PageDevisComplementaireDto": {
+        "properties": {
+          "curseurSuivant": {
+            "description": "Opaque base64url ; null = fin de liste.",
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ReponseDevisComplementaireDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
+      "PageEntreeJournalDto": {
+        "properties": {
+          "curseurSuivant": {
+            "description": "Opaque base64url ; null = fin de liste.",
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ReponseEntreeJournalDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
+      "PageLigneOrDto": {
+        "properties": {
+          "curseurSuivant": {
+            "description": "Opaque base64url ; null = fin de liste.",
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ReponseLigneOrDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
+      "PageOrdreReparationDto": {
+        "properties": {
+          "curseurSuivant": {
+            "description": "Opaque base64url ; null = fin de liste.",
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ReponseOrdreReparationDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
+      "PageOrdreReparationResumeDto": {
+        "properties": {
+          "curseurSuivant": {
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/OrdreReparationResumeDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
         ],
         "type": "object"
       },
@@ -504,6 +1829,26 @@
           "noShowSeuilAlerte",
           "tamponPretMinutes",
           "rappel"
+        ],
+        "type": "object"
+      },
+      "PointControleDto": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "conforme": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "libelle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "libelle",
+          "conforme"
         ],
         "type": "object"
       },
@@ -771,6 +2116,867 @@
           "kmSortieObligatoire",
           "signature",
           "plafondDefautCentimes"
+        ],
+        "type": "object"
+      },
+      "ReponseDevisComplementaireDto": {
+        "properties": {
+          "canal": {
+            "enum": [
+              "telephone",
+              "sms",
+              "email",
+              "comptoir",
+              "lien"
+            ],
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "accepte",
+              "refuse",
+              "partiel"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "destinataireContactId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "emetteur": {
+            "nullable": true,
+            "properties": {
+              "nomAffiche": {
+                "type": "string"
+              },
+              "utilisateurId": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "envoyeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "impactRestitutionLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "interlocuteurNom": {
+            "description": "Le NOM DE LA PERSONNE qui a répondu (RM-81). Obligatoire dès qu’il y a une réponse.",
+            "nullable": true,
+            "type": "string"
+          },
+          "lignes": {
+            "items": {
+              "$ref": "#/components/schemas/ReponseDevisLigneDto"
+            },
+            "type": "array"
+          },
+          "montantTtcCentimes": {
+            "description": "Absent pour un rôle sans droit aux montants. Calculé par le serveur depuis les lignes référencées.",
+            "type": "number"
+          },
+          "nouveauPlafondCentimes": {
+            "description": "Absent pour un rôle sans droit aux montants.",
+            "type": "number"
+          },
+          "numeroOrdre": {
+            "description": "Rang du devis dans l’OR (1, 2, 3…).",
+            "type": "number"
+          },
+          "ordreReparationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "repondueLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "retranscription": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "ordreReparationId",
+          "numeroOrdre",
+          "lignes",
+          "impactRestitutionLe",
+          "canal",
+          "destinataireContactId",
+          "envoyeLe",
+          "emetteur",
+          "interlocuteurNom",
+          "repondueLe",
+          "decision",
+          "retranscription"
+        ],
+        "type": "object"
+      },
+      "ReponseDevisLigneDto": {
+        "properties": {
+          "decision": {
+            "description": "`null` tant que le devis n'a pas reçu de réponse `partiel` (CT-33).",
+            "enum": [
+              "accepte",
+              "refuse",
+              "partiel"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "ligneId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ligneId",
+          "decision"
+        ],
+        "type": "object"
+      },
+      "ReponseDoublonsClientsDto": {
+        "properties": {
+          "candidats": {
+            "items": {
+              "$ref": "#/components/schemas/CandidatDoublonClientDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "candidats"
+        ],
+        "type": "object"
+      },
+      "ReponseEntreeJournalDto": {
+        "properties": {
+          "action": {
+            "enum": [
+              "creation",
+              "modification",
+              "transition",
+              "annulation",
+              "fusion"
+            ],
+            "type": "string"
+          },
+          "apres": {
+            "additionalProperties": true,
+            "nullable": true,
+            "type": "object"
+          },
+          "auteur": {
+            "nullable": true,
+            "properties": {
+              "nomAffiche": {
+                "type": "string"
+              },
+              "utilisateurId": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "avant": {
+            "additionalProperties": true,
+            "description": "Avant/après, restreints aux champs modifiés. Montants filtrés par rôle.",
+            "nullable": true,
+            "type": "object"
+          },
+          "confirmations": {
+            "description": "Confirmations données lors du geste (§4.4) — un forçage se trace.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "entite": {
+            "enum": [
+              "ordre_reparation",
+              "ligne_or",
+              "devis_complementaire",
+              "pointage",
+              "vehicule_detention",
+              "vehicule_kilometrage",
+              "client",
+              "rendez_vous",
+              "pret_courtoisie"
+            ],
+            "type": "string"
+          },
+          "entiteId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "motif": {
+            "nullable": true,
+            "type": "string"
+          },
+          "survenuLe": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "entite",
+          "entiteId",
+          "action",
+          "survenuLe",
+          "auteur",
+          "avant",
+          "apres",
+          "motif",
+          "confirmations"
+        ],
+        "type": "object"
+      },
+      "ReponseLigneOrDto": {
+        "properties": {
+          "aRestituer": {
+            "description": "RM-78 : pièce remplacée que le client demande à récupérer.",
+            "type": "boolean"
+          },
+          "articleId": {
+            "description": "Accroche étape 3 (stock pièces).",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "blocage": {
+            "enum": [
+              "aucun",
+              "accord",
+              "pieces",
+              "externe"
+            ],
+            "type": "string"
+          },
+          "codeDefaut": {
+            "nullable": true,
+            "type": "string"
+          },
+          "codeOperation": {
+            "nullable": true,
+            "type": "string"
+          },
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "designation": {
+            "type": "string"
+          },
+          "factureId": {
+            "description": "Accroche étape 2 (facturation).",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "figeLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "fournieParClient": {
+            "description": "RM-77 : pièce apportée par le client (décharge).",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "modifieLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "montants": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MontantsLigneOrDto"
+              }
+            ],
+            "description": "Absent pour un rôle sans droit aux montants."
+          },
+          "motifAnnulation": {
+            "nullable": true,
+            "type": "string"
+          },
+          "numeroAccord": {
+            "nullable": true,
+            "type": "string"
+          },
+          "numeroOrdre": {
+            "description": "Rang d'affichage dans l'OR, stable.",
+            "type": "number"
+          },
+          "numeroSinistre": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ordreReparationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "origine": {
+            "description": "`constatee` déclenche l'événement `ligne_or.constatee`.",
+            "enum": [
+              "commandee",
+              "constatee",
+              "campagne",
+              "garantie",
+              "retouche",
+              "interne"
+            ],
+            "type": "string"
+          },
+          "payeur": {
+            "description": "Les lignes `garage` sont valorisées à 0.00 (RM-70).",
+            "enum": [
+              "client",
+              "constructeur",
+              "assurance",
+              "tiers",
+              "garage"
+            ],
+            "type": "string"
+          },
+          "prixUnitaireCentimes": {
+            "description": "Figé à la création (RM-65). Absent pour un rôle sans montants.",
+            "nullable": true,
+            "type": "number"
+          },
+          "quantiteMillieme": {
+            "description": "Millièmes. `2500` = 2,5.",
+            "example": 1000,
+            "type": "number"
+          },
+          "rabaisPourmille": {
+            "example": 0,
+            "type": "number"
+          },
+          "referenceTexte": {
+            "nullable": true,
+            "type": "string"
+          },
+          "restituee": {
+            "type": "boolean"
+          },
+          "securite": {
+            "description": "Une ligne de sécurité refusée déclenche `OR_RESERVE_SECURITE_REQUISE` à la restitution (§6.12).",
+            "type": "boolean"
+          },
+          "statut": {
+            "enum": [
+              "proposee",
+              "a_valider",
+              "validee",
+              "en_cours",
+              "realisee",
+              "facturee",
+              "refusee",
+              "annulee"
+            ],
+            "type": "string"
+          },
+          "tauxHoraireCentimes": {
+            "description": "Figé à la création (RM-65). Absent pour un rôle sans montants.",
+            "nullable": true,
+            "type": "number"
+          },
+          "tauxTvaPourmille": {
+            "example": 81,
+            "type": "number"
+          },
+          "technicienId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "tempsBaremeCentiemes": {
+            "nullable": true,
+            "type": "number"
+          },
+          "tempsBaremeConstructeurCentiemes": {
+            "description": "RM-69 : barème constructeur, conservé même si le garage applique le sien.",
+            "nullable": true,
+            "type": "number"
+          },
+          "tempsReelCentiemes": {
+            "description": "Toujours `null` au lot 1 (module pointage absent, Δ4).",
+            "nullable": true,
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "main_oeuvre_bareme",
+              "main_oeuvre_temps_reel",
+              "forfait",
+              "piece",
+              "fourniture",
+              "sous_traitance",
+              "produit_atelier",
+              "taxe",
+              "remise",
+              "texte"
+            ],
+            "type": "string"
+          },
+          "urgence": {
+            "enum": [
+              "urgent",
+              "a_faire",
+              "a_surveiller"
+            ],
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "ordreReparationId",
+          "numeroOrdre",
+          "type",
+          "origine",
+          "statut",
+          "payeur",
+          "blocage",
+          "designation",
+          "referenceTexte",
+          "articleId",
+          "quantiteMillieme",
+          "tempsBaremeCentiemes",
+          "tempsBaremeConstructeurCentiemes",
+          "tempsReelCentiemes",
+          "rabaisPourmille",
+          "tauxTvaPourmille",
+          "figeLe",
+          "technicienId",
+          "codeOperation",
+          "codeDefaut",
+          "numeroSinistre",
+          "numeroAccord",
+          "urgence",
+          "securite",
+          "fournieParClient",
+          "aRestituer",
+          "restituee",
+          "motifAnnulation",
+          "factureId",
+          "creeLe",
+          "modifieLe"
+        ],
+        "type": "object"
+      },
+      "ReponseOrdreReparationDemandeDto": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ordre": {
+            "type": "number"
+          },
+          "saisiLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "saisiPar": {
+            "nullable": true,
+            "properties": {
+              "nomAffiche": {
+                "type": "string"
+              },
+              "utilisateurId": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "verbatim": {
+            "description": "VERBATIM du client (RM-52) : aucun `PATCH` n’existe, un verbatim est un fait.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "ordre",
+          "verbatim",
+          "saisiLe",
+          "saisiPar"
+        ],
+        "type": "object"
+      },
+      "ReponseOrdreReparationDto": {
+        "properties": {
+          "actionsDisponibles": {
+            "description": "Actions possibles pour l’appelant courant (statut + droits + paramètres). N’exempte pas de la vérification serveur.",
+            "items": {
+              "enum": [
+                "receptionner",
+                "demarrer",
+                "reprendre-travaux",
+                "passer-en-controle",
+                "refuser-controle",
+                "valider-controle",
+                "terminer",
+                "rouvrir",
+                "restituer",
+                "cloturer",
+                "annuler",
+                "valider-lignes",
+                "refuser-lignes",
+                "annuler-lignes",
+                "soumettre-lignes-a-devis"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "annuleLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "attentes": {
+            "$ref": "#/components/schemas/AttentesOrDto"
+          },
+          "client": {
+            "$ref": "#/components/schemas/ClientResumeOrDto"
+          },
+          "clotureLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "conducteurPresentNom": {
+            "nullable": true,
+            "type": "string"
+          },
+          "controleQualite": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ControleQualiteOrDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          },
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "cumulsPointage": {
+            "$ref": "#/components/schemas/CumulsPointageOrDto"
+          },
+          "demandes": {
+            "items": {
+              "$ref": "#/components/schemas/ReponseOrdreReparationDemandeDto"
+            },
+            "type": "array"
+          },
+          "devisComplementaires": {
+            "items": {
+              "$ref": "#/components/schemas/ReponseDevisComplementaireDto"
+            },
+            "type": "array"
+          },
+          "etatAffiche": {
+            "description": "Le plus bloquant des attentes, sinon le statut. Calculé UNE FOIS côté serveur.",
+            "enum": [
+              "planifie",
+              "ouvert",
+              "en_cours",
+              "attente_accord",
+              "attente_pieces",
+              "attente_externe",
+              "controle",
+              "termine",
+              "facture",
+              "restitue",
+              "cloture",
+              "annule"
+            ],
+            "type": "string"
+          },
+          "factureLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "figees": {
+            "$ref": "#/components/schemas/ValeursFigeesOrDto"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kilometrageEntree": {
+            "nullable": true,
+            "type": "number"
+          },
+          "kilometrageSortie": {
+            "nullable": true,
+            "type": "number"
+          },
+          "lignes": {
+            "items": {
+              "$ref": "#/components/schemas/ReponseLigneOrDto"
+            },
+            "type": "array"
+          },
+          "lignesTronquees": {
+            "description": "Au-delà de 200 lignes (`SEUIL_LIGNES_EMBARQUEES`), `lignes` est tronqué : paginer `GET .../lignes`.",
+            "type": "boolean"
+          },
+          "litigeOuvertLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "localisation": {
+            "enum": [
+              "parc",
+              "atelier",
+              "sous_traitant",
+              "essai_routier",
+              "lavage",
+              "pret_au_retrait",
+              "sorti_provisoirement",
+              "restitue"
+            ],
+            "type": "string"
+          },
+          "modifieLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "modifiePar": {
+            "nullable": true,
+            "properties": {
+              "nomAffiche": {
+                "type": "string"
+              },
+              "utilisateurId": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "motifAnnulation": {
+            "nullable": true,
+            "type": "string"
+          },
+          "motifLien": {
+            "enum": [
+              "retouche",
+              "suite"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "nombreLignes": {
+            "type": "number"
+          },
+          "numero": {
+            "description": "Numéro continu (RM-49), brûlé dans la transaction métier.",
+            "example": "OR-2026-1042",
+            "type": "string"
+          },
+          "numeroCommandeInterne": {
+            "description": "RM-14 : la « PO » du client entreprise. Son absence bloque `OR_PO_MANQUANT`.",
+            "nullable": true,
+            "type": "string"
+          },
+          "ordreReparationParentId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "ouvertLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "plafondAutorisePar": {
+            "description": "Absent pour un rôle sans droit aux montants.",
+            "nullable": true,
+            "type": "string"
+          },
+          "plafondCentimes": {
+            "description": "Absent pour un rôle sans droit aux montants.",
+            "type": "number"
+          },
+          "pret": {
+            "additionalProperties": true,
+            "description": "Prêt de véhicule de courtoisie lié. Toujours `null` au lot 1 (module lot 5).",
+            "nullable": true,
+            "type": "object"
+          },
+          "receptionnaireId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "rendezVousId": {
+            "description": "Accroche lot 3 (planning).",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "restitueLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "restitutionInitialeLe": {
+            "description": "RM-56 : la promesse INITIALE, conservée pour que le report soit visible et motivé.",
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "restitutionPromiseLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "retentionInvoqueeLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "signatures": {
+            "items": {
+              "$ref": "#/components/schemas/SignatureOrDto"
+            },
+            "type": "array"
+          },
+          "siteId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sousTraitantNom": {
+            "nullable": true,
+            "type": "string"
+          },
+          "statut": {
+            "enum": [
+              "planifie",
+              "ouvert",
+              "en_cours",
+              "controle",
+              "termine",
+              "facture",
+              "restitue",
+              "cloture",
+              "annule"
+            ],
+            "type": "string"
+          },
+          "termineLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "totalValideCentimes": {
+            "description": "Dérivé, maintenu par trigger (RM-54). Absent pour un rôle sans droit aux montants.",
+            "type": "number"
+          },
+          "totauxParPayeur": {
+            "description": "Absent pour un rôle sans droit aux montants.",
+            "items": {
+              "$ref": "#/components/schemas/TotauxPayeurOrDto"
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "service",
+              "reparation",
+              "diagnostic",
+              "expertise",
+              "pneus",
+              "carrosserie",
+              "retouche",
+              "interne"
+            ],
+            "type": "string"
+          },
+          "vehicule": {
+            "$ref": "#/components/schemas/VehiculeResumeOrDto"
+          },
+          "version": {
+            "description": "Entier monotone, aussi rendu en en-tête `ETag: W/\"<version>\"`.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "numero",
+          "siteId",
+          "type",
+          "statut",
+          "client",
+          "vehicule",
+          "figees",
+          "conducteurPresentNom",
+          "kilometrageEntree",
+          "kilometrageSortie",
+          "restitutionPromiseLe",
+          "restitutionInitialeLe",
+          "localisation",
+          "sousTraitantNom",
+          "ordreReparationParentId",
+          "motifLien",
+          "rendezVousId",
+          "numeroCommandeInterne",
+          "receptionnaireId",
+          "retentionInvoqueeLe",
+          "litigeOuvertLe",
+          "ouvertLe",
+          "termineLe",
+          "factureLe",
+          "restitueLe",
+          "clotureLe",
+          "annuleLe",
+          "motifAnnulation",
+          "demandes",
+          "lignes",
+          "nombreLignes",
+          "lignesTronquees",
+          "devisComplementaires",
+          "controleQualite",
+          "signatures",
+          "pret",
+          "cumulsPointage",
+          "attentes",
+          "etatAffiche",
+          "actionsDisponibles",
+          "version",
+          "creeLe",
+          "modifieLe",
+          "modifiePar"
         ],
         "type": "object"
       },
@@ -1537,6 +3743,41 @@
         ],
         "type": "object"
       },
+      "SignatureOrDto": {
+        "properties": {
+          "appareil": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "signataireNom": {
+            "type": "string"
+          },
+          "signeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "reception",
+              "restitution",
+              "reserve_securite"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "signataireNom",
+          "signeLe",
+          "appareil"
+        ],
+        "type": "object"
+      },
       "SiteResumeDto": {
         "properties": {
           "actif": {
@@ -1591,6 +3832,43 @@
           "slug",
           "raisonSociale",
           "langueDefaut"
+        ],
+        "type": "object"
+      },
+      "TotauxPayeurOrDto": {
+        "properties": {
+          "montantHtCentimes": {
+            "type": "number"
+          },
+          "montantTtcCentimes": {
+            "type": "number"
+          },
+          "montantTvaCentimes": {
+            "type": "number"
+          },
+          "payeur": {
+            "enum": [
+              "client",
+              "constructeur",
+              "assurance",
+              "tiers",
+              "garage"
+            ],
+            "type": "string"
+          },
+          "tva": {
+            "items": {
+              "$ref": "#/components/schemas/VentilationTvaDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "payeur",
+          "montantHtCentimes",
+          "montantTvaCentimes",
+          "montantTtcCentimes",
+          "tva"
         ],
         "type": "object"
       },
@@ -1697,6 +3975,40 @@
         ],
         "type": "object"
       },
+      "ValeursFigeesOrDto": {
+        "properties": {
+          "adresseFacturation": {
+            "additionalProperties": true,
+            "nullable": true,
+            "type": "object"
+          },
+          "clientDesignation": {
+            "type": "string"
+          },
+          "conditions": {
+            "additionalProperties": true,
+            "description": "Absentes pour un rôle sans montants.",
+            "nullable": true,
+            "type": "object"
+          },
+          "detenteurClientId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "plaque": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientDesignation",
+          "adresseFacturation",
+          "plaque",
+          "detenteurClientId"
+        ],
+        "type": "object"
+      },
       "VehiculeParametresAtelierDto": {
         "properties": {
           "expertiseAlerteMois": {
@@ -1755,6 +4067,71 @@
           "vin",
           "premiereMiseEnCirculationLe",
           "identificationIncomplete"
+        ],
+        "type": "object"
+      },
+      "VehiculeResumeOrDto": {
+        "properties": {
+          "canton": {
+            "example": "VD",
+            "nullable": true,
+            "type": "string"
+          },
+          "designation": {
+            "example": "VW Touran 2.0 TDI",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "identificationIncomplete": {
+            "type": "boolean"
+          },
+          "plaque": {
+            "example": "VD 123456",
+            "nullable": true,
+            "type": "string"
+          },
+          "premiereMiseEnCirculationLe": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "vin": {
+            "example": "WVGZZZ1TZJW123456",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "plaque",
+          "canton",
+          "designation",
+          "vin",
+          "premiereMiseEnCirculationLe",
+          "identificationIncomplete"
+        ],
+        "type": "object"
+      },
+      "VentilationTvaDto": {
+        "properties": {
+          "baseHtCentimes": {
+            "type": "number"
+          },
+          "montantCentimes": {
+            "type": "number"
+          },
+          "tauxPourmille": {
+            "example": 81,
+            "type": "number"
+          }
+        },
+        "required": [
+          "tauxPourmille",
+          "baseHtCentimes",
+          "montantCentimes"
         ],
         "type": "object"
       }
@@ -1902,6 +4279,3951 @@
         "summary": "Session courante de l’utilisateur authentifié.",
         "tags": [
           "Authentification"
+        ]
+      }
+    },
+    "/clients": {
+      "get": {
+        "operationId": "ClientController_lister",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageClientResumeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans client.lire)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Liste paginée des clients du tenant courant (§6.2, §7.3).",
+        "tags": [
+          "Clients"
+        ]
+      },
+      "post": {
+        "description": "`Idempotency-Key` obligatoire (uuid v4) : un rejeu ne doit pas brûler un numéro de client (RM-11). La détection de doublon (RM-05) n'est jamais bloquante : un candidat probable revient en `avertissements[]` (`CLIENT_DOUBLON_PROBABLE`), la création a lieu quand même.",
+        "operationId": "ClientController_creer",
+        "parameters": [
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans client.creer)."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "IDEMPOTENCE_CONFLIT — même clé, corps différent ou exécution encore en cours."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Création d'une fiche client.",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/clients/{clientId}": {
+      "get": {
+        "description": "Répond `200` même si la fiche a été absorbée par une fusion (`fusionneVersClientId` renseigné, RM-06) : un connecteur qui détient l’ancien identifiant doit pouvoir suivre la trace, pas recevoir un 404.",
+        "operationId": "ClientController_parId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Identifiant mal formé."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Fiche d'un client.",
+        "tags": [
+          "Clients"
+        ]
+      },
+      "patch": {
+        "description": "`type` est IMMUABLE après création (RM-01) : le poser dans le corps produit `409 CLIENT_TYPE_IMMUABLE`, jamais un `400`. `statut` est en lecture seule — la désactivation passe par `POST /clients/{id}/desactiver`.",
+        "operationId": "ClientController_modifier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "CLIENT_TYPE_IMMUABLE — `type` présent dans le corps."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modification d'une fiche client.",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/clients/{clientId}/adresses": {
+      "get": {
+        "operationId": "ClientAdresseController_lister",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageClientAdresseDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Adresses du client (RM-03).",
+        "tags": [
+          "Clients"
+        ]
+      },
+      "post": {
+        "operationId": "ClientAdresseController_creer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientAdresseAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou une adresse active de ce type existe déjà."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Ajout d'une adresse (RM-03).",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/clients/{clientId}/adresses/{adresseId}": {
+      "patch": {
+        "operationId": "ClientAdresseController_modifier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "adresseId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientAdresseAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou une adresse active de ce type existe déjà."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client ou adresse introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modification d'une adresse (RM-03).",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/clients/{clientId}/conditions": {
+      "get": {
+        "operationId": "ClientConditionController_lister",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageClientConditionDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Conditions commerciales DATÉES du client (RM-07).",
+        "tags": [
+          "Clients"
+        ]
+      },
+      "post": {
+        "description": "Aucun `PATCH` : une correction ouvre une NOUVELLE période. Un chevauchement de dates produit `400 VALIDATION_ECHOUEE`, jamais un `409` — c'est une erreur de saisie, pas un conflit de ressource. Figées sur l’OR à sa création (RM-50).",
+        "operationId": "ClientConditionController_creer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientConditionAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou période chevauchant une condition existante."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (réservé à la direction)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Ouverture d’une nouvelle période de conditions commerciales (RM-07, CT-03).",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/clients/{clientId}/consentements": {
+      "get": {
+        "operationId": "ClientConsentementController_lister",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageClientConsentementDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Consentements APPEND-ONLY du client (RM-09, nLPD).",
+        "tags": [
+          "Clients"
+        ]
+      },
+      "post": {
+        "description": "Aucun `PATCH` ni `DELETE` : une révocation est une NOUVELLE ligne `accorde: false`, jamais une mise à jour — c'est ce qui donne sa valeur de preuve.",
+        "operationId": "ClientConsentementController_creer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientConsentementAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Enregistrement (ou révocation) d’un consentement (RM-09, nLPD).",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/clients/{clientId}/contacts": {
+      "get": {
+        "operationId": "ClientContactController_lister",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageClientContactDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Contacts du client (RM-04) — rôles CUMULABLES.",
+        "tags": [
+          "Clients"
+        ]
+      },
+      "post": {
+        "operationId": "ClientContactController_creer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientContactAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide (au moins un rôle requis)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Ajout d'un contact (RM-04).",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/clients/{clientId}/contacts/{contactId}": {
+      "patch": {
+        "operationId": "ClientContactController_modifier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "contactId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientContactAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client ou contact introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modification d'un contact (RM-04).",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/clients/{clientId}/desactiver": {
+      "post": {
+        "description": "Aucun `DELETE` n'existe. Refusée s'il reste des OR ou des détentions de véhicule ouverts.",
+        "operationId": "ClientController_desactiver",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Motif manquant."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "CLIENT_DESACTIVATION_IMPOSSIBLE — `blocages[]` nomme chaque OR/détention ouvert."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Désactivation d'une fiche client (RM-12).",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/clients/{clientId}/notes": {
+      "get": {
+        "operationId": "ClientNoteController_lister",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageClientNoteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Notes du client (RM-13) — `alerte` remonte au contexte-atelier (RM-36).",
+        "tags": [
+          "Clients"
+        ]
+      },
+      "post": {
+        "operationId": "ClientNoteController_creer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientNoteAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Ajout d'une note (RM-13).",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/clients/{clientId}/ordres-reparation": {
+      "get": {
+        "description": "`totalTtcCentimes` absent pour un rôle sans droit aux montants (`technicien`, `ROLES_SANS_MONTANT` — invariant front n°10), retiré CÔTÉ SERVEUR.",
+        "operationId": "ClientOrdresReparationController_lister",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOrdreReparationResumeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Ordres de réparation du client (RM-21).",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/clients/{clientId}/vehicules": {
+      "get": {
+        "description": "Les détentions CLOSES ne sont visibles que sur demande explicite (`inclureAnciennesDetentions`).",
+        "operationId": "ClientVehiculesController_lister",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageVehiculeResumeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Véhicules détenus par le client (RM-20).",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/doublons-clients": {
+      "get": {
+        "operationId": "DoublonsClientsController_lister",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseDoublonsClientsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Aucun critère de recherche fourni."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Candidats doublons pour un nom, un NPA, un email, un téléphone ou un IDE (RM-05).",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/ordres-reparation": {
+      "get": {
+        "description": "SOUS-ENSEMBLE des filtres du contrat au lot 1 (`siteId`, `statut`, `clientId`, `vehiculeId`) — voir `ServiceOr.lister` pour le détail des filtres non câblés (signalé, non silencieux).",
+        "operationId": "OrdreReparationController_lister",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOrdreReparationDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans atelier.or.lire)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Liste des ordres de réparation du tenant courant (§6.2, §6.3, §7.6).",
+        "tags": [
+          "Ordres de réparation"
+        ]
+      },
+      "post": {
+        "description": "`Idempotency-Key` obligatoire (uuid v4) : un rejeu ne doit jamais brûler un numéro d'OR (RM-49). `confirmations` couvre `CLIENT_BLOQUE`, `VEHICULE_DEUX_OR_OUVERTS` et `OR_SANS_RDV`, évaluées en une passe.",
+        "operationId": "OrdreReparationController_creer",
+        "parameters": [
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide, Idempotency-Key manquante/mal formée, ou état planifié désactivé (P-22)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client ou véhicule introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "CONFLIT (OR déjà ouvert), CONFIRMATION_REQUISE, OR_KM_ENTREE_REQUIS ou IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Création d'un ordre de réparation (§7.6).",
+        "tags": [
+          "Ordres de réparation"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}": {
+      "get": {
+        "operationId": "OrdreReparationController_parId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseOrdreReparationDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Identifiant mal formé."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Fiche complète d'un ordre de réparation — le document entier (D-10, §8.3).",
+        "tags": [
+          "Ordres de réparation"
+        ]
+      },
+      "patch": {
+        "description": "`If-Match: W/\"<version>\"` OBLIGATOIRE. Un report de restitution exige `motifReport` (RM-56).",
+        "operationId": "OrdreReparationController_modifier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "W/\"<version>\" lu sur la dernière lecture (ETag).",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide, `If-Match` manquant/mal formé, ou `motifReport` absent sur un report de restitution."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "CONFLIT (version périmée) ou OR_LIGNE_VERROUILLEE (OR facturé/restitué/clôturé/annulé)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modification des champs libres de l'en-tête (localisation, sous-traitant, restitution promise, plafond, PO — §9).",
+        "tags": [
+          "Ordres de réparation"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/annuler": {
+      "post": {
+        "description": "Refusée s’il existe des pointages, des pièces engagées ou une facture (CT-25, CT-26).",
+        "operationId": "OrdreReparationTransitionsController_annuler",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationTransitionDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Motif manquant."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_TRANSITION_INTERDITE ou OR_ANNULATION_IMPOSSIBLE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "T-20 `{planifie,ouvert} -> annule` : motif obligatoire (RM-62).",
+        "tags": [
+          "Ordres de réparation — transitions"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/annuler-lignes": {
+      "post": {
+        "description": "Refusée par la base depuis `proposee`/`a_valider` (lacune connue de `transition_autorisee`, migration 0003 §5.2).",
+        "operationId": "LigneOrController_annulerLignes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationActionLignesDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Motif manquant ou liste de lignes vide/invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_LIGNE_VERROUILLEE ou LIGNE_TRANSITION_INTERDITE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Action groupée ATOMIQUE : annulation avec motif obligatoire (RM-71).",
+        "tags": [
+          "Ordres de réparation — lignes"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/cloturer": {
+      "post": {
+        "operationId": "OrdreReparationTransitionsController_cloturer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationTransitionDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_TRANSITION_INTERDITE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "T-19 `restitue -> cloture` : plus rien en suspens.",
+        "tags": [
+          "Ordres de réparation — transitions"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/demandes": {
+      "get": {
+        "operationId": "OrdreReparationController_listerDemandes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReponseOrdreReparationDemandeDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Demandes du client au verbatim (RM-52).",
+        "tags": [
+          "Ordres de réparation"
+        ]
+      },
+      "post": {
+        "operationId": "OrdreReparationController_ajouterDemande",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseOrdreReparationDemandeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Verbatim manquant ou vide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_LIGNE_VERROUILLEE (OR facturé/restitué/clôturé/annulé)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Ajout d'une demande client au verbatim (RM-52) — append-only, aucun `PATCH`.",
+        "tags": [
+          "Ordres de réparation"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/demarrer": {
+      "post": {
+        "operationId": "OrdreReparationTransitionsController_demarrer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationTransitionDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_TRANSITION_INTERDITE ou OR_RECEPTION_REQUISE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "T-04 `ouvert -> en_cours` : démarrage des travaux (I-07 : réception requise au préalable).",
+        "tags": [
+          "Ordres de réparation — transitions"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/devis-complementaires": {
+      "get": {
+        "operationId": "DevisComplementaireController_lister",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageDevisComplementaireDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Collection paginée des devis complémentaires d'un OR.",
+        "tags": [
+          "Ordres de réparation — devis complémentaires"
+        ]
+      },
+      "post": {
+        "description": "`Idempotency-Key` obligatoire (uuid v4) : pièce à valeur probante. `montantTtcCentimes` calculé par le serveur depuis les lignes référencées, déjà figées (RM-65) — jamais fourni par le client.",
+        "operationId": "DevisComplementaireController_creer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeDevisComplementaireDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation ou ligne référencée introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_LIGNE_VERROUILLEE ou IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Envoi d'un devis complémentaire au client (RM-79).",
+        "tags": [
+          "Ordres de réparation — devis complémentaires"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/devis-complementaires/{devisId}/repondre": {
+      "post": {
+        "description": "`Idempotency-Key` obligatoire : une double réponse est un litige (RM-81). `partiel` fait prendre à chaque ligne sa propre décision. L’OR reprend son cours, il n’est JAMAIS annulé (RM-84).",
+        "operationId": "DevisComplementaireController_repondre",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "devisId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeDevisComplementaireDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation ou devis introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DEVIS_IMMUABLE, OR_LIGNE_VERROUILLEE ou IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Enregistrement de la réponse du client (RM-81, CT-33).",
+        "tags": [
+          "Ordres de réparation — devis complémentaires"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/journal": {
+      "get": {
+        "operationId": "OrdreReparationController_journal",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageEntreeJournalDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans atelier.journal.lire)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Journal d'audit complet de l'OR — en-tête, lignes et devis (RM-59, RM-111).",
+        "tags": [
+          "Ordres de réparation"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/lignes": {
+      "get": {
+        "description": "L'écran lit les lignes EMBARQUÉES dans le document OR (§8.3) ; ce endpoint sert la pagination hors de ce seuil.",
+        "operationId": "LigneOrController_lister",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageLigneOrDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Collection paginée des lignes d'un OR — destinée aux connecteurs.",
+        "tags": [
+          "Ordres de réparation — lignes"
+        ]
+      },
+      "post": {
+        "description": "`Idempotency-Key` obligatoire (uuid v4) : la saisie se fait en rafale au comptoir.",
+        "operationId": "LigneOrController_creer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeLigneOrDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide, Idempotency-Key manquante/mal formée, ou taux horaire introuvable pour une ligne de main d’œuvre."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_LIGNE_VERROUILLEE ou IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Ajout d'une ligne à l'OR — saisie libre (RM-65 : taux horaire et prix figés par le serveur).",
+        "tags": [
+          "Ordres de réparation — lignes"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/lignes/{ligneId}": {
+      "patch": {
+        "description": "Sur une ligne déjà `validee`, une hausse de montant peut produire `409 OR_PLAFOND_DEPASSE`.",
+        "operationId": "LigneOrController_modifier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ligneId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeLigneOrDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation ou ligne introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_LIGNE_VERROUILLEE ou OR_PLAFOND_DEPASSE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modification libre d'une ligne (§10 L970/L971 : rabais/payeur bornés par le service, pas ce guard).",
+        "tags": [
+          "Ordres de réparation — lignes"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/lignes/{ligneId}/marquer-realisee": {
+      "post": {
+        "operationId": "LigneOrController_marquerRealisee",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ligneId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeLigneOrDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation ou ligne introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "LIGNE_TRANSITION_INTERDITE ou OR_LIGNE_VERROUILLEE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "`en_cours -> realisee`. `refusee -> realisee` n’existe pas (RM-72, CT-28) — `LIGNE_TRANSITION_INTERDITE`.",
+        "tags": [
+          "Ordres de réparation — lignes"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/passer-en-controle": {
+      "post": {
+        "operationId": "OrdreReparationTransitionsController_passerEnControle",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationTransitionDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_TRANSITION_INTERDITE, OR_LIGNES_A_VALIDER ou OR_POINTAGE_OUVERT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "T-11 `{ouvert,en_cours} -> controle` (I-08 : lignes à valider ; I-09 : pointage ouvert).",
+        "tags": [
+          "Ordres de réparation — transitions"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/receptionner": {
+      "post": {
+        "operationId": "OrdreReparationTransitionsController_receptionner",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationTransitionDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_TRANSITION_INTERDITE ou VEHICULE_KILOMETRAGE_REGRESSIF."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "T-03 `planifie -> ouvert` : réception du véhicule, kilométrage d’entrée (RM-51).",
+        "tags": [
+          "Ordres de réparation — transitions"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/refuser-controle": {
+      "post": {
+        "operationId": "OrdreReparationTransitionsController_refuserControle",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationTransitionDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Motif manquant."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_TRANSITION_INTERDITE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "T-12 `controle -> en_cours` : contrôle qualité non conforme, motif obligatoire.",
+        "tags": [
+          "Ordres de réparation — transitions"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/refuser-lignes": {
+      "post": {
+        "operationId": "LigneOrController_refuserLignes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationActionLignesDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Liste de lignes vide ou invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_LIGNE_VERROUILLEE ou LIGNE_TRANSITION_INTERDITE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Action groupée ATOMIQUE : `a_valider -> refusee` (CT-33).",
+        "tags": [
+          "Ordres de réparation — lignes"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/reprendre-travaux": {
+      "post": {
+        "operationId": "OrdreReparationTransitionsController_reprendreTravaux",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationTransitionDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "T-06/T-08/T-10 : lève les blocages sur tout ou partie des lignes (A-03, pas une transition de statut).",
+        "tags": [
+          "Ordres de réparation — transitions"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/restituer": {
+      "post": {
+        "operationId": "OrdreReparationTransitionsController_restituer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationTransitionDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_TRANSITION_INTERDITE ou OR_RESERVE_SECURITE_REQUISE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "T-17/T-18 `{facture,termine} -> restitue` — réserve de sécurité obligatoire si une ligne de sécurité est refusée (§6.12).",
+        "tags": [
+          "Ordres de réparation — transitions"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/rouvrir": {
+      "post": {
+        "description": "Depuis `facture`, la base rejette (I-02) et propose `CREER_OR_RETOUCHE` — jamais une réouverture directe.",
+        "operationId": "OrdreReparationTransitionsController_rouvrir",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationTransitionDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Motif manquant."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_TRANSITION_INTERDITE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "T-15 `termine -> en_cours` : réouverture avant facturation, motif obligatoire.",
+        "tags": [
+          "Ordres de réparation — transitions"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/soumettre-lignes-a-devis": {
+      "post": {
+        "description": "Prépare l’envoi d’un devis complémentaire (`POST .../devis-complementaires`) — ne l’envoie pas elle-même.",
+        "operationId": "LigneOrController_soumettreLignesADevis",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationActionLignesDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Liste de lignes vide ou invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_LIGNE_VERROUILLEE ou LIGNE_TRANSITION_INTERDITE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Action groupée ATOMIQUE : `proposee -> a_valider` (blocage `accord`).",
+        "tags": [
+          "Ordres de réparation — lignes"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/terminer": {
+      "post": {
+        "description": "Gardes I-08 (lignes à valider), I-09 (pointage ouvert), I-10 (lignes validées non réalisées), RM-14 (PO client).",
+        "operationId": "OrdreReparationTransitionsController_terminer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationTransitionDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_TRANSITION_INTERDITE, OR_LIGNES_A_VALIDER, OR_POINTAGE_OUVERT, OR_LIGNE_NON_REALISEE ou OR_PO_MANQUANT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "T-14 `{ouvert,en_cours} -> termine` — REFUSÉE si le contrôle qualité est obligatoire pour ce garage (P-08).",
+        "tags": [
+          "Ordres de réparation — transitions"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/valider-controle": {
+      "post": {
+        "operationId": "OrdreReparationTransitionsController_validerControle",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationTransitionDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_TRANSITION_INTERDITE ou OR_POINTAGE_OUVERT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "T-13 `controle -> termine` (I-09 : un contrôle qualité ne clôt pas un pointage ouvert).",
+        "tags": [
+          "Ordres de réparation — transitions"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/valider-lignes": {
+      "post": {
+        "description": "Le plafond de l’OR (RM-54) est vérifié UNE FOIS sur la somme du lot avant toute écriture — tout ou rien.",
+        "operationId": "LigneOrController_validerLignes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeOrdreReparationActionLignesDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Liste de lignes vide ou invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_PLAFOND_DEPASSE, OR_LIGNE_VERROUILLEE ou LIGNE_TRANSITION_INTERDITE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Action groupée ATOMIQUE : `proposee|a_valider -> validee` (§10 L967).",
+        "tags": [
+          "Ordres de réparation — lignes"
         ]
       }
     },

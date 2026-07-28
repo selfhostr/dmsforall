@@ -40,7 +40,8 @@
     "plafond": "Plafond",
     "totalDuJour": "Aujourd'hui",
     "techniciensEnCours": "Techniciens en cours",
-    "numeroPo": "PO du client"
+    "numeroPo": "PO du client",
+    "restitutionReportee": "Reportée"
   },
   "localisations": {
     "parc": "Parc",
@@ -56,6 +57,7 @@
     "titre": "Travaux",
     "vide": "Aucun travail enregistré.",
     "ajouter": "Ajouter une ligne",
+    "tronquees": "Certaines lignes ne sont pas affichées ici (limite atteinte) — consultez la liste complète des lignes.",
     "groupes": {
       "aValider": "À valider",
       "aFaire": "À faire / En cours",
@@ -66,6 +68,7 @@
     "colonnes": {
       "origine": "Origine",
       "designation": "Désignation",
+      "type": "Type",
       "quantite": "Qté",
       "tempsBareme": "Temps barémé",
       "tempsPointe": "Temps pointé",
@@ -227,7 +230,9 @@
   },
   "transitions": {
     "receptionner": "Réceptionner le véhicule",
+    "demarrer": "Démarrer les travaux",
     "passerEnControle": "Passer en contrôle",
+    "refuserControle": "Refuser le contrôle",
     "validerControle": "Valider le contrôle",
     "terminer": "Terminer",
     "facturer": "Facturer",
@@ -273,5 +278,62 @@
   "chargement": {
     "or": "Chargement de l'OR…",
     "lignes": "Chargement des lignes…"
+  },
+  "liste": {
+    "titre": "Ordres de réparation",
+    "colonnes": {
+      "numero": "N° OR",
+      "vehicule": "Véhicule",
+      "client": "Client",
+      "etat": "État",
+      "restitutionPromise": "Restitution prévue",
+      "total": "Total TTC"
+    },
+    "filtres": {
+      "statut": "Statut",
+      "statutTous": "Tous les statuts"
+    },
+    "tri": {
+      "label": "Trier par",
+      "ouvertLeDesc": "Ouverture (plus récents)",
+      "ouvertLeAsc": "Ouverture (plus anciens)",
+      "restitutionPromiseLeAsc": "Restitution la plus proche",
+      "restitutionPromiseLeDesc": "Restitution la plus lointaine",
+      "numeroSequenceDesc": "N° OR (décroissant)",
+      "numeroSequenceAsc": "N° OR (croissant)",
+      "joursAttenteRetraitDesc": "Attente au retrait (le plus long)"
+    },
+    "erreur": {
+      "titre": "Impossible de charger les ordres de réparation"
+    },
+    "vide": {
+      "premierUsage": "Aucun ordre de réparation enregistré pour le moment.",
+      "recherche": "Aucun ordre de réparation ne correspond à cette recherche.",
+      "filtre": "Aucun résultat avec ce filtre."
+    }
+  },
+  "fiche": {
+    "erreur": {
+      "titre": "Impossible de charger l'ordre de réparation"
+    },
+    "montantIndisponible": "Non communiqué",
+    "controleurAuto": "Vous serez enregistré comme contrôleur."
+  },
+  "actions": {
+    "titre": "Actions",
+    "confirmer": "Confirmer",
+    "confirmerAction": "Confirmez cette action.",
+    "motif": "Motif",
+    "motifRequis": "Le motif est obligatoire",
+    "kilometrageEntree": "Kilométrage à l'entrée",
+    "kilometrageSortie": "Kilométrage à la sortie",
+    "signatureDifferee": "Signer plus tard",
+    "motifSignatureDifferee": "Motif du report de signature",
+    "paiementRecu": "Paiement reçu à la restitution",
+    "aucuneActionDisponible": "Aucune action possible pour le moment."
+  },
+  "totaux": {
+    "titre": "Totaux",
+    "totalValide": "Total validé"
   }
 }

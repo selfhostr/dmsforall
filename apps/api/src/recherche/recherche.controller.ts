@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { ServiceContexteRequete } from '../common/contexte';
 import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
+import { GardeLimitationRecherche } from '../common/securite';
 import { PipeZod } from '../common/validation';
 import { ReponseRechercheDto } from './dto';
 import { ServiceRecherche } from './service-recherche';
@@ -27,11 +28,19 @@ const schemaParametresRechercheRequete = schemaParametresRecherche.extend({
   ),
 });
 
-/** `GET /recherche` — §7.5 du contrat d'API (D-08), point d'entrée n°1 du comptoir (RM-112). */
+/**
+ * `GET /recherche` — §7.5 du contrat d'API (D-08), point d'entrée n°1 du comptoir (RM-112).
+ *
+ * `GardeLimitationRecherche` (finding D-01, audit sécurité, `common/securite/`) APRÈS `GardeDroit`
+ * dans la liste : un rôle sans le droit `recherche.executer` est refusé (403) avant de consommer
+ * le budget de débit — voir `garde-limitation-recherche.ts` pour le détail de la limite (par
+ * utilisateur, jamais par IP) et son motif (scan non indexé sur `ordre_reparation`, pool de
+ * connexions partagé entre tous les tenants).
+ */
 @ApiTags('Recherche')
 @ApiCookieAuth()
 @Controller({ path: 'recherche', version: '1' })
-@UseGuards(GardeDroit)
+@UseGuards(GardeDroit, GardeLimitationRecherche)
 @ExigerDroit('recherche.executer')
 export class RechercheController {
   constructor(
@@ -66,6 +75,11 @@ export class RechercheController {
   @ApiReponseProbleme(400, 'Paramètres de recherche invalides (q vide, limite hors bornes, type inconnu).')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans recherche.executer).')
+  @ApiReponseProbleme(
+    429,
+    "Trop de recherches pour cet utilisateur (limitation de débit, finding D-01). L'en-tête " +
+      'Retry-After indique le nombre de secondes à attendre avant de retenter.',
+  )
   async rechercher(
     @Query(new PipeZod(schemaParametresRechercheRequete)) params: ParametresRecherche,
   ): Promise<ReponseRechercheDto> {

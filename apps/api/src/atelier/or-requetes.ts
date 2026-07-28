@@ -146,6 +146,32 @@ export async function listerLignesDevis(
     .where(and(eq(devisComplementaireLigne.tenantId, ctx.tenantId), eq(devisComplementaireLigne.devisComplementaireId, devisId)));
 }
 
+/** Verrouille et rend un devis complémentaire, ou lève `RESSOURCE_INTROUVABLE` — point d'entrée
+ *  de `ServiceDevis.repondre` (RM-79 : un devis répondu est immuable, la garde doit voir l'état
+ *  final sous verrou pour ne jamais accepter une double réponse concurrente). */
+export async function chargerDevisPourEcriture(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  orId: string,
+  devisId: string,
+): Promise<LigneDevisComplementaire> {
+  const [ligne] = await tx
+    .select()
+    .from(devisComplementaire)
+    .where(
+      and(
+        eq(devisComplementaire.tenantId, ctx.tenantId),
+        eq(devisComplementaire.ordreReparationId, orId),
+        eq(devisComplementaire.id, devisId),
+      ),
+    )
+    .for('update');
+  if (!ligne) {
+    throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Devis complémentaire ${devisId} introuvable sur l'OR ${orId}.`);
+  }
+  return ligne;
+}
+
 export async function chargerControleQualite(
   tx: TransactionDfa,
   ctx: ContexteTenant,

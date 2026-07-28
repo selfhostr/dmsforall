@@ -132,6 +132,13 @@ jobs:
           ARGON2_PARALLELISME: '1'
           LIMITE_CONNEXION_IP: '20'
           LIMITE_CONNEXION_COMPTE: '5'
+          # DOIT rester STRICTEMENT INFÉRIEUR à LIMITE_CONNEXION_COMPTE ci-dessus (contrainte
+          # croisée du schéma zod, superRefine) — voir le commentaire détaillé sur cette même
+          # ligne dans ci.yml (dont ce bloc est la copie) : sans elle, SEUIL_VERROUILLAGE_COMPTE
+          # retombe sur son défaut de 5, égal à LIMITE_CONNEXION_COMPTE, et `chargerConfig` refuse
+          # de démarrer (ErreurConfigInvalide). Abaissé plutôt que relevé LIMITE_CONNEXION_COMPTE,
+          # pour garder ce filet rapide à satisfaire.
+          SEUIL_VERROUILLAGE_COMPTE: '3'
           LIMITE_FENETRE_SECONDES: '900'
           LOG_NIVEAU: debug
           OPENAPI_EXPOSER_DOCS: 'true'

@@ -1,26 +1,47 @@
 import { Module } from '@nestjs/common';
 
+import {
+  ClientAdresseController,
+  ClientConditionController,
+  ClientConsentementController,
+  ClientContactController,
+  ClientNoteController,
+} from './client-sous-collections.controller';
+import { ClientOrdresReparationController, ClientVehiculesController } from './client-projections.controller';
+import { ClientController } from './client.controller';
+import { DoublonsClientsController } from './doublons-clients.controller';
 import { ServiceClient } from './service-client';
 import { ServiceClientOrdresReparation } from './service-client-ordres-reparation';
 import { ServiceClientSousCollections } from './service-client-sous-collections';
 import { ServiceClientVehicules } from './service-client-vehicules';
 
 /**
- * AUCUN contrôleur : `apps/api/src/clients/**` ne contient, à ce jour, que la couche domaine
- * (services + mappers + règles), jamais de `@Controller`. Contrairement à `vehicules/`,
- * `parametrage/` et `recherche/`, aucune tâche n'a livré de couche HTTP pour ce module au
- * moment de L1-16 — signalé dans la réponse de tâche plutôt que comblé ici : écrire des
- * endpoints REST (routes, DTO de requête, codes de droit, exemples OpenAPI) sans le contrat
- * gelé (`contrats-api-etape-1.md`) reviendrait à inventer un contrat, hors périmètre de
- * l'assemblage.
+ * Couche HTTP du domaine clients (contrat gelé désormais disponible, `@dfa/shared`,
+ * `contrats-api-etape-1.md` §7.3 — le blocage documenté dans une version antérieure de ce fichier
+ * n'a plus lieu d'être). Six contrôleurs, chacun sur son périmètre disjoint de routes :
  *
- * Les quatre services sont néanmoins déclarés ici et exportés : `JETON_COMPTEURS`
- * (`ServiceClient`) est fourni par `CompteursModule` (`@Global`, importé depuis
- * `ParametrageModule`), donc résolu sans import explicite. Exporter les services permet à un
- * futur `ClientsController` (ou à un autre module métier qui aurait un besoin de lecture
- * légitime) de les injecter sans dupliquer cette déclaration.
+ *  - `ClientController` : CRUD cœur de la fiche (`/clients`, `/clients/{id}`, désactivation).
+ *  - `DoublonsClientsController` : `/doublons-clients`, à la RACINE (RM-05).
+ *  - `ClientAdresseController` / `ClientContactController` / `ClientConditionController` /
+ *    `ClientConsentementController` / `ClientNoteController` : sous-collections de la fiche.
+ *  - `ClientVehiculesController` / `ClientOrdresReparationController` : projections en lecture
+ *    seule (véhicules détenus, OR du client).
+ *
+ * `JETON_COMPTEURS` (`ServiceClient`) est fourni par `CompteursModule` (`@Global`, importé depuis
+ * `ParametrageModule`), donc résolu sans import explicite ici — voir `app.module.ts`.
  */
 @Module({
+  controllers: [
+    ClientController,
+    DoublonsClientsController,
+    ClientAdresseController,
+    ClientContactController,
+    ClientConditionController,
+    ClientConsentementController,
+    ClientNoteController,
+    ClientVehiculesController,
+    ClientOrdresReparationController,
+  ],
   providers: [ServiceClient, ServiceClientOrdresReparation, ServiceClientSousCollections, ServiceClientVehicules],
   exports: [ServiceClient, ServiceClientOrdresReparation, ServiceClientSousCollections, ServiceClientVehicules],
 })

@@ -7,7 +7,7 @@ import { CollecteurAvertissements } from '../common/avertissements';
 import { ErreurMetier } from '../common/erreurs';
 import { JETON_EVENEMENTS, type ServiceEvenements } from '../common/evenements';
 import { Horloge } from '../common/horloge';
-import { calculerNomAfficheClient } from './client-resume.helper';
+import { calculerNomAffiche } from '../common/identite-client';
 import { interpreterContrainteVehicule } from './erreurs-contraintes';
 import type { EntreeClotureDetentionVehicule } from './schemas-locales';
 import {
@@ -25,7 +25,7 @@ function versReponse(entree: DetentionAvecClient): ReponseVehiculeDetention {
     client: {
       id: entree.client.id,
       numeroClient: entree.client.numero,
-      nomAffiche: calculerNomAfficheClient(entree.client),
+      nomAffiche: calculerNomAffiche(entree.client),
     },
     debutLe: entree.detention.du,
     finLe: entree.detention.au,

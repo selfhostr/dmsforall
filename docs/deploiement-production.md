@@ -12,6 +12,42 @@ complexifie (haute disponibilité, orchestrateur, réplication, serveur dédié 
 quand un besoin réel l'impose — pas avant. Le §2 est franc sur ce que ce choix coûte et sur le
 moment où il faudra le reconsidérer : ce n'est pas gratuit, et le prétendre serait malhonnête.
 
+## 0. Décisions ouvertes — à trancher par @laupernoe avant la mise en production
+
+Liste consolidée de tout ce qui, dans ce document, dépend d'un choix pas encore fait (matériel
+réel, nom de domaine, fournisseur) — pour ne pas avoir à le chasser dans les 800 lignes qui
+suivent. À tenir à jour à chaque révision plutôt que laissé à dériver silencieusement.
+
+- ⚠️ **Variante d'hébergement** (§2.1) : serveur loué en datacenter suisse (auto-administré) vs
+  serveur physique chez @laupernoe/en local professionnel. Le reste du document suppose la première par
+  défaut (recommandation §2.1) ; la seconde ajoute la checklist IP fixe/CGNAT/ports du §5 et
+  l'onduleur/RAID du §3.4.
+- ⚠️ **Fournisseur du serveur loué**, si cette variante est retenue (§2.1) — non nommé à ce jour.
+- ⚠️ **Nom de domaine réel** — `app.dmsforall.example` est un exemple utilisé dans tout le document
+  (§1, §3.5, §5, §9). À remplacer par le domaine effectivement possédé avant le premier
+  déploiement (DNS, Caddyfile généré, `API_URL_PUBLIQUE`/`WEB_URL_PUBLIQUE`).
+- ⚠️ **Propriétaire GitHub pour `ghcr.io`** (§3.1) — `<org>`/`<propriétaire>` dans les exemples
+  d'image (`ghcr.io/<org>/dfa-api:...`) doit devenir le nom réel (organisation ou compte
+  personnel) du dépôt, en minuscules — `.github/workflows/publier-images.yml` le calcule déjà
+  automatiquement pour les images qu'il publie, seuls les exemples de commandes manuelles du
+  document restent à personnaliser au cas par cas.
+- ⚠️ **Gabarit réel du serveur applicatif** (RAM/vCPU) — les réglages Postgres (`command:` du
+  service `postgres`, `docker-compose.yml`) et les `deploy.resources` de tous les services
+  supposent un serveur de départ à 8 Go RAM / 4 vCPU (§3.4, §3.7). À recalculer avec
+  [pgtune](https://pgtune.leopard.in.ua/) dès que le matériel réel est connu.
+- ⚠️ **Sentry auto-hébergé (pile complète) vs GlitchTip** — recommandation du projet : GlitchTip
+  (`docs/sentry-auto-heberge.md` §1), nettement plus léger (2-4 Go RAM contre 16 Go et plus) et
+  sans le risque de mise à jour cassante de la pile complète. Décision finale à @laupernoe. Si la pile
+  complète est malgré tout retenue, elle doit tourner sur un **second serveur**, jamais sur celui
+  de DFA (`docs/sentry-auto-heberge.md` §2.1/§2.6) — un serveur supplémentaire à prévoir dans ce
+  cas.
+- ⚠️ **Fournisseur de stockage objet pour les sauvegardes hors site** (§7.1, `S3_ENDPOINT`/
+  `S3_BUCKET`) — Infomaniak Swiss Backup, Exoscale SOS, ou un second serveur physique sous
+  contrôle de @laupernoe (alternative sans tiers, même paragraphe). Non tranché à ce jour.
+- ⚠️ **Chiffrement de disque (LUKS), onduleur, RAID1** (§3.4) — dépendent du matériel/OS réel
+  retenu ; à vérifier explicitement avant le premier déploiement, jamais supposés actifs par
+  défaut.
+
 ## 1. Vue d'ensemble
 
 ```
@@ -158,21 +194,39 @@ chiffrement au repos exigé par le nLPD doit venir d'une couche **en dessous** d
 
 ## 3. Prérequis avant la toute première mise en production
 
-### 3.1 Publier des images taguées (prérequis bloquant, pas encore automatisé)
+### 3.1 Publier des images taguées
 
 `docker-compose.yml` exige `API_IMAGE`/`WEB_IMAGE` pointant vers des images déjà
-construites. **À la date d'écriture, `.github/workflows/ci.yml` ne construit ni ne publie
-d'image** — le job `verifier` lance `pnpm build` (compilation TypeScript) mais aucune étape
-`docker build`/`docker push` n'existe encore. C'est un prérequis à ajouter avant toute mise en
-production, indépendamment de ce document (changement CI, hors périmètre de ces deux fichiers) :
-un job qui, sur push de tag (`v*`) ou sur `main`, construit `apps/api/Dockerfile` et
-`apps/web/Dockerfile` depuis la racine du dépôt (voir les deux Dockerfiles pour la raison du
-contexte racine) et pousse vers un registre — GitHub Container Registry (`ghcr.io`) est le choix
-le plus simple, aucune infrastructure supplémentaire, intégré à l'authentification GitHub Actions
-existante.
+construites. **`.github/workflows/publier-images.yml` automatise cette publication** (une version
+antérieure de ce document décrivait ceci comme un prérequis manquant — comblé depuis) : il rejoue
+d'abord les mêmes portes de qualité que `ci.yml` (lint, typecheck, tests unitaires, tests
+d'intégration), puis, seulement si elles passent :
 
-**En attendant cette automatisation**, la toute première image peut être construite et publiée à
-la main depuis un poste avec Docker :
+- sur push d'un tag `vX.Y.Z`, publie `ghcr.io/<propriétaire>/dfa-api:vX.Y.Z` et
+  `ghcr.io/<propriétaire>/dfa-web:vX.Y.Z` (`<propriétaire>` = organisation ou compte GitHub du
+  dépôt, mis en minuscules automatiquement par le workflow — exigence ghcr.io) ;
+- sur push sur `main`, publie la même paire sous le tag immuable `main-<sha-court>` (jamais
+  `latest` ni `main` seul, pour que le rollback §10 puisse toujours retrouver précisément la
+  version d'avant).
+
+Chaque image est en outre signée (attestation de provenance SLSA via Sigstore/OIDC GitHub,
+vérifiable avec `gh attestation verify oci://<image>@<digest> --owner <org>`).
+
+Mettre en production le résultat d'un tag `vX.Y.Z` revient donc à reporter ces deux références
+dans `.env.production` :
+
+```bash
+API_IMAGE=ghcr.io/<propriétaire>/dfa-api:vX.Y.Z
+WEB_IMAGE=ghcr.io/<propriétaire>/dfa-web:vX.Y.Z
+```
+
+Convention de tag : aligner sur `VERSION_APP` (`.env.production`) et sur la version de
+`package.json` — le tag apparaît dans `GET /api/v1/sante` et doit permettre de corréler une
+erreur Sentry à un déploiement précis (voir §9).
+
+**Secours manuel** (GitHub Actions indisponible, ou tout premier bootstrap avant d'avoir jamais
+poussé de tag) : la même construction peut être reproduite à la main depuis un poste avec Docker,
+identique à ce que fait le workflow :
 
 ```bash
 # Depuis la racine du dépôt (contexte de build obligatoire, voir les Dockerfiles)
@@ -183,10 +237,6 @@ docker login ghcr.io -u <utilisateur-github>
 docker push ghcr.io/<org>/dfa-api:v0.1.0
 docker push ghcr.io/<org>/dfa-web:v0.1.0
 ```
-
-Convention de tag : aligner sur `VERSION_APP` (`.env.production`) et sur la version de
-`package.json` — le tag apparaît dans `GET /api/v1/sante` et doit permettre de corréler une
-erreur Sentry à un déploiement précis (voir §9).
 
 ### 3.2 PostgreSQL — rôles et mots de passe (auto-hébergé)
 
@@ -473,9 +523,10 @@ tort quand les prérequis réseau sont réunis.
 Workflow normal une fois la première mise en production faite :
 
 1. La CI construit et teste (`lint`, `typecheck`, `test`, `test:integration`, `build`) sur chaque
-   push — déjà en place (`.github/workflows/ci.yml`). Une fois le job de publication d'image
-   ajouté (§3.1), chaque tag `vX.Y.Z` produit `dfa-api:vX.Y.Z` et `dfa-web:vX.Y.Z` sur le
-   registre.
+   push — déjà en place (`.github/workflows/ci.yml`). La publication d'image est un workflow
+   séparé, lui aussi déjà en place (`.github/workflows/publier-images.yml`, voir §3.1) : chaque
+   tag `vX.Y.Z` produit `dfa-api:vX.Y.Z` et `dfa-web:vX.Y.Z` sur le registre, chaque push sur
+   `main` produit `dfa-api:main-<sha>` et `dfa-web:main-<sha>`.
 2. Sur le serveur, mettre à jour `.env.production` : `API_IMAGE`/`WEB_IMAGE` sur le nouveau tag.
 3. **Migrer avant de redéployer le code** :
 

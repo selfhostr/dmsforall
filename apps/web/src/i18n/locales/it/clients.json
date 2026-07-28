@@ -1,6 +1,9 @@
 {
   "titre": "Clienti",
   "nouveau": "Nuovo cliente",
+  "actions": {
+    "creer": "Crea cliente"
+  },
   "liste": {
     "titre": "Clienti",
     "colonnes": {
@@ -13,6 +16,7 @@
     },
     "filtres": {
       "type": "Tipo di cliente",
+      "tousLesTypes": "Tutti i tipi",
       "statut": "Stato",
       "inclureInactifs": "Includere inattivi"
     },
@@ -39,7 +43,9 @@
       "notes": "Note"
     },
     "vehicules": "Veicoli del cliente",
-    "derniersOr": "Ultimi passaggi in officina"
+    "vehiculesVide": "Nessun veicolo associato.",
+    "derniersOr": "Ultimi passaggi in officina",
+    "derniersOrVide": "Nessun passaggio registrato."
   },
   "alertes": {
     "bloque": "Bloccato - arretrati",
@@ -52,7 +58,9 @@
     "raisonSociale": "Ragione sociale",
     "ide": "CHE",
     "langue": "Lingua di corrispondenza",
-    "po": "N° ordine (PO)"
+    "po": "N° ordine (PO)",
+    "telephone": "Telefono",
+    "email": "E-mail"
   },
   "conditions": {
     "titre": "Condizioni commerciali",
@@ -62,7 +70,8 @@
     "delaiPaiement": "Termini di pagamento",
     "tauxHoraire": "Tariffa oraria",
     "plafond": "Tetto di spesa",
-    "dateEffet": "Valido dal"
+    "dateEffet": "Valido dal",
+    "vide": "Nessuna condizione commerciale registrata."
   },
   "contacts": {
     "titre": "Contatti",
@@ -72,7 +81,11 @@
       "gestionnaireFl": "Gestore flotta",
       "signataire": "Firmatario",
       "comptabilite": "Contabilita"
-    }
+    },
+    "champs": {
+      "roles": "Ruoli"
+    },
+    "vide": "Nessun contatto registrato."
   },
   "adresses": {
     "titre": "Indirizzi",
@@ -81,12 +94,21 @@
       "principale": "Principale",
       "facturation": "Fatturazione",
       "livraison": "Consegna"
-    }
+    },
+    "champs": {
+      "type": "Tipo di indirizzo",
+      "rue": "Via e numero",
+      "npa": "CAP",
+      "localite": "Localita"
+    },
+    "vide": "Nessun indirizzo registrato."
   },
   "notes": {
     "titre": "Note",
     "interne": "Nota interna (non stampata)",
-    "alerte": "Avviso (mostrato in rosso)"
+    "alerte": "Avviso (mostrato in rosso)",
+    "champTexte": "Testo della nota",
+    "vide": "Nessuna nota registrata."
   },
   "doublons": {
     "titre": "Duplicati rilevati",
@@ -105,11 +127,16 @@
     "titre": "Consensi",
     "ajouter": "Aggiungi consenso",
     "types": {
-      "newsletter": "Newsletter",
-      "telephone": "Chiamate commerciali",
-      "sms": "Messaggi SMS",
-      "email": "E-mail commerciali"
-    }
+      "marketing_email": "Pubblicita via e-mail",
+      "marketing_sms": "Pubblicita via SMS",
+      "marketing_appel": "Chiamate promozionali"
+    },
+    "champs": {
+      "type": "Tipo di consenso",
+      "accorde": "Concesso",
+      "revoque": "Revocato"
+    },
+    "vide": "Nessun consenso registrato."
   },
   "desactivation": {
     "titre": "Disattiva cliente",
@@ -128,7 +155,10 @@
   },
   "vide": {
     "premier": "Nessun cliente registrato. Crearne uno.",
+    "premierDescription": "Inizia creando il tuo primo cliente.",
     "recherche": "Nessun cliente trovato.",
-    "filtre": "Nessun risultato con questi filtri."
+    "rechercheDescription": "Prova un'altra ricerca.",
+    "filtre": "Nessun risultato con questi filtri.",
+    "filtreDescription": "Modifica o cancella i filtri attivi."
   }
 }

@@ -49,7 +49,10 @@ export class VehiculeKilometrageController {
   @ApiResponse({ status: 201, type: EnveloppeKilometrageDto })
   @ApiReponseProbleme(400, 'Corps invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  @ApiReponseProbleme(
+    403,
+    "Droit insuffisant — ou, sur une saisie RÉGRESSIVE avec motif, rôle sans vehicule.kilometrage.corriger_regression (§10 L962, chef d'atelier/direction uniquement).",
+  )
   @ApiReponseProbleme(404, 'Véhicule introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'VEHICULE_KILOMETRAGE_REGRESSIF (CT-07) — motifsAcceptes dans actionsProposees.')
   async creer(
@@ -57,7 +60,8 @@ export class VehiculeKilometrageController {
     @Body(new PipeZod(schemaKilometrageVehicule)) entree: EntreeKilometrageVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
-    const { donnees, avertissements } = await this.service.creer(ctx, vehiculeId, entree);
+    const principal = this.contexte.exigerPrincipal();
+    const { donnees, avertissements } = await this.service.creer(ctx, vehiculeId, entree, principal.role);
     return avertissements.envelopper(donnees);
   }
 }

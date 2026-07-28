@@ -15,17 +15,7 @@ import type {
   LigneClientContact,
   LigneClientNote,
 } from '../db/schema';
-
-/**
- * Rendu d'affichage calculé par le serveur — jamais recomposé côté client (voir le commentaire
- * de `ReponseClient.nomAffiche` dans `@dfa/shared`). `raisonSociale` prime : le CHECK
- * `client_identite_chk` garantit qu'il est renseigné pour toute entreprise, `nom`/`prenom` pour
- * tout particulier.
- */
-export function calculerNomAffiche(ligne: Pick<LigneClient, 'raisonSociale' | 'nom' | 'prenom'>): string {
-  if (ligne.raisonSociale) return ligne.raisonSociale;
-  return [ligne.nom, ligne.prenom].filter((valeur): valeur is string => Boolean(valeur)).join(' ');
-}
+import { calculerNomAffiche } from '../common/identite-client';
 
 /**
  * `dernierPassageLe` n'est PAS une colonne de `client` (aucune table ne la matérialise) : c'est
@@ -34,7 +24,11 @@ export function calculerNomAffiche(ligne: Pick<LigneClient, 'raisonSociale' | 'n
  * ligne — GAP DE CONTRAT signalé en réponse de tâche : `ReponseClient.dernierPassageLe` existe
  * dans le contrat gelé sans colonne ni index dédiés côté schéma.
  */
-export function versClientResponse(ligne: LigneClient, dernierPassageLe: Date | null): ReponseClient {
+export function versClientResponse(
+  ligne: LigneClient,
+  dernierPassageLe: Date | null,
+  notesAlerte: readonly ReponseClientNote[],
+): ReponseClient {
   return {
     id: ligne.id,
     numeroClient: ligne.numero,
@@ -55,12 +49,27 @@ export function versClientResponse(ligne: LigneClient, dernierPassageLe: Date | 
     fusionneVersClientId: ligne.fusionneVersClientId,
     referenceExterne: ligne.referenceExterne,
     dernierPassageLe: dernierPassageLe ? dernierPassageLe.toISOString() : null,
+    notesAlerte,
     creeLe: ligne.creeLe.toISOString(),
     modifieLe: ligne.modifieLe.toISOString(),
   };
 }
 
-export function versClientResume(ligne: LigneClient): ClientResume {
+/**
+ * Champs de désambiguïsation comptoir (`ClientResume.telephone/localite/nombreVehicules/
+ * dernierPassageLe`) : jamais déductibles de `LigneClient` seule (adresse, détentions et OR sont
+ * d'autres tables) — TOUJOURS fournis par l'appelant, qui les a obtenus par une jointure/agrégat
+ * dans SA requête (jamais une requête par ligne ici). Voir `ServiceClient.lister` (une seule
+ * requête, LEFT JOIN LATERAL) et `ServiceClientOrdresReparation.lister` (une seule requête
+ * supplémentaire, exécutée une fois pour le client de l'OR, pas par ligne).
+ */
+export interface ExtraClientResume {
+  readonly localite: string | null;
+  readonly nombreVehicules: number;
+  readonly dernierPassageLe: Date | null;
+}
+
+export function versClientResume(ligne: LigneClient, extra: ExtraClientResume): ClientResume {
   return {
     id: ligne.id,
     numeroClient: ligne.numero,
@@ -69,6 +78,10 @@ export function versClientResume(ligne: LigneClient): ClientResume {
     statut: ligne.statut,
     langueCorrespondance: ligne.langue,
     poObligatoire: ligne.poObligatoire,
+    telephone: ligne.telephone,
+    localite: extra.localite,
+    nombreVehicules: extra.nombreVehicules,
+    dernierPassageLe: extra.dernierPassageLe ? extra.dernierPassageLe.toISOString() : null,
   };
 }
 

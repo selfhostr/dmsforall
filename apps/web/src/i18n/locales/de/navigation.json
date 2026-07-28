@@ -5,7 +5,8 @@
   "liens": {
     "accueil": "Startseite",
     "clients": "Kunden",
-    "vehicules": "Fahrzeuge"
+    "vehicules": "Fahrzeuge",
+    "recherche": "Suche"
   },
   "menu": {
     "ouvrir": "Menü öffnen",

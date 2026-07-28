@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import type { ClientResume, PageCurseur, ReponseAvecAvertissements, ReponseClient } from '@dfa/shared';
 
 import { AvertissementDto } from './avertissement.dto';
+import { ClientNoteDto } from './client-note.dto';
 
 export class ClientDto implements ReponseClient {
   @ApiProperty({ format: 'uuid' })
@@ -61,6 +62,14 @@ export class ClientDto implements ReponseClient {
   @ApiProperty({ type: String, format: 'date-time', nullable: true, description: 'Dérivé du dernier OR ouvert pour ce client.' })
   readonly dernierPassageLe!: string | null;
 
+  @ApiProperty({
+    type: () => [ClientNoteDto],
+    description:
+      "Notes de nature `alerte` UNIQUEMENT (RM-13) — affichée à l'ouverture de la fiche, au RDV " +
+      "et à la réception. Les notes `interne` ne sortent JAMAIS ici, voir GET .../notes.",
+  })
+  readonly notesAlerte!: readonly ClientNoteDto[];
+
   @ApiProperty({ format: 'date-time' })
   readonly creeLe!: string;
 
@@ -89,6 +98,22 @@ export class ClientResumeDto implements ClientResume {
 
   @ApiProperty()
   readonly poObligatoire!: boolean;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Colonne directe de la fiche client — désambiguïsation comptoir.' })
+  readonly telephone!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: "Localité de l'adresse PRINCIPALE active du client. `null` si aucune adresse (fiche fraîche, cas normal).",
+  })
+  readonly localite!: string | null;
+
+  @ApiProperty({ description: 'Véhicules actuellement détenus (détentions ouvertes).' })
+  readonly nombreVehicules!: number;
+
+  @ApiProperty({ type: String, format: 'date-time', nullable: true, description: 'Dérivé du dernier OR ouvert pour ce client.' })
+  readonly dernierPassageLe!: string | null;
 }
 
 export class PageClientResumeDto implements PageCurseur<ClientResumeDto> {

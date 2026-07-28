@@ -1,6 +1,9 @@
 {
   "titre": "Clients",
   "nouveau": "Nouveau client",
+  "actions": {
+    "creer": "Créer le client"
+  },
   "liste": {
     "titre": "Clients",
     "colonnes": {
@@ -13,6 +16,7 @@
     },
     "filtres": {
       "type": "Type de client",
+      "tousLesTypes": "Tous les types",
       "statut": "Statut",
       "inclureInactifs": "Inclure les inactifs"
     },
@@ -31,7 +35,17 @@
     "ouvrirOr": "Ouvrir un OR",
     "actions": {
       "fusionner": "Fusionner"
-    }
+    },
+    "onglets": {
+      "contacts": "Contacts",
+      "adresses": "Adresses",
+      "consentements": "Consentements",
+      "notes": "Notes"
+    },
+    "vehicules": "Véhicules du client",
+    "vehiculesVide": "Aucun véhicule rattaché.",
+    "derniersOr": "Derniers passages à l'atelier",
+    "derniersOrVide": "Aucun passage enregistré."
   },
   "alertes": {
     "bloque": "Bloqué – impayés",
@@ -44,7 +58,9 @@
     "raisonSociale": "Raison sociale",
     "ide": "IDE",
     "langue": "Langue de correspondance",
-    "po": "N° de commande (PO)"
+    "po": "N° de commande (PO)",
+    "telephone": "Téléphone",
+    "email": "E-mail"
   },
   "conditions": {
     "titre": "Conditions commerciales",
@@ -54,7 +70,8 @@
     "delaiPaiement": "Délai de paiement",
     "tauxHoraire": "Taux horaire",
     "plafond": "Plafond d'engagement",
-    "dateEffet": "En vigueur depuis le"
+    "dateEffet": "En vigueur depuis le",
+    "vide": "Aucune condition commerciale enregistrée."
   },
   "contacts": {
     "titre": "Contacts",
@@ -64,7 +81,11 @@
       "gestionnaireFl": "Gestionnaire de flotte",
       "signataire": "Signataire",
       "comptabilite": "Comptabilité"
-    }
+    },
+    "champs": {
+      "roles": "Rôles"
+    },
+    "vide": "Aucun contact enregistré."
   },
   "adresses": {
     "titre": "Adresses",
@@ -73,12 +94,21 @@
       "principale": "Principale",
       "facturation": "Facturation",
       "livraison": "Livraison"
-    }
+    },
+    "champs": {
+      "type": "Type d'adresse",
+      "rue": "Rue et numéro",
+      "npa": "NPA",
+      "localite": "Localité"
+    },
+    "vide": "Aucune adresse enregistrée."
   },
   "notes": {
     "titre": "Notes",
     "interne": "Note interne (non imprimée)",
-    "alerte": "Alerte (affichée en rouge)"
+    "alerte": "Alerte (affichée en rouge)",
+    "champTexte": "Texte de la note",
+    "vide": "Aucune note enregistrée."
   },
   "doublons": {
     "titre": "Doublons détectés",
@@ -97,26 +127,16 @@
     "titre": "Consentements",
     "ajouter": "Ajouter un consentement",
     "types": {
-      "newsletter": "Infolettre",
-      "telephone": "Appels commerciaux",
-      "sms": "Messages SMS",
-      "email": "Courriels commerciaux"
-    }
-  },
-  "fiche": {
-    "titre": "Fiche client",
-    "ouvrirOr": "Ouvrir un OR",
-    "actions": {
-      "fusionner": "Fusionner"
+      "marketing_email": "Publicité par e-mail",
+      "marketing_sms": "Publicité par SMS",
+      "marketing_appel": "Démarchage téléphonique"
     },
-    "onglets": {
-      "contacts": "Contacts",
-      "adresses": "Adresses",
-      "consentements": "Consentements",
-      "notes": "Notes"
+    "champs": {
+      "type": "Type de consentement",
+      "accorde": "Accordé",
+      "revoque": "Révoqué"
     },
-    "vehicules": "Véhicules du client",
-    "derniersOr": "Derniers passages à l'atelier"
+    "vide": "Aucun consentement enregistré."
   },
   "desactivation": {
     "titre": "Désactiver le client",
@@ -135,7 +155,10 @@
   },
   "vide": {
     "premier": "Aucun client enregistré. Créez le premier.",
+    "premierDescription": "Commencez par créer votre premier client.",
     "recherche": "Aucun client trouvé.",
-    "filtre": "Aucun résultat avec ces filtres."
+    "rechercheDescription": "Essayez une autre recherche.",
+    "filtre": "Aucun résultat avec ces filtres.",
+    "filtreDescription": "Modifiez ou effacez les filtres actifs."
   }
 }
