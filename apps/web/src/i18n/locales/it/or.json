@@ -335,5 +335,50 @@
   "totaux": {
     "titre": "Totali",
     "totalValide": "Totale validato"
+  },
+  "nouveau": {
+    "titre": "Nuovo ordine di riparazione",
+    "siteManquant": {
+      "titre": "Nessuna sede selezionata",
+      "description": "Selezionare una sede prima di aprire un ordine di riparazione: la numerazione e i parametri dell'ordine ne dipendono."
+    },
+    "client": {
+      "requisTitre": "Nessun cliente selezionato",
+      "requisDescription": "Aprire un ordine di riparazione dalla scheda del cliente (pulsante «Apri ordine»), oppure cercare prima il cliente."
+    },
+    "vehicule": {
+      "titre": "Veicolo",
+      "aucun": "Questo cliente non ha alcun veicolo registrato a suo nome.",
+      "erreur": "Impossibile caricare i veicoli di questo cliente"
+    },
+    "type": {
+      "libelle": "Tipo di ordine",
+      "service": "Service",
+      "reparation": "Riparazione",
+      "diagnostic": "Diagnosi",
+      "expertise": "Perizia",
+      "pneus": "Pneumatici",
+      "carrosserie": "Carrozzeria",
+      "retouche": "Rilavorazione",
+      "interne": "Interno"
+    },
+    "champs": {
+      "statutInitial": "Stato all'apertura",
+      "avance": "Informazioni supplementari",
+      "kmInvalide": "Il chilometraggio inserito supera il limite consentito.",
+      "plafondInvalide": "Il tetto di spesa non può essere negativo.",
+      "conducteurPresentNom": "Conducente presente"
+    },
+    "demandes": {
+      "placeholder": "Descrivere la richiesta del cliente, testualmente…",
+      "retirer": "Rimuovi questa richiesta"
+    },
+    "erreur": {
+      "titre": "Impossibile aprire l'ordine di riparazione"
+    },
+    "actions": {
+      "creer": "Apri ordine",
+      "enCours": "Apertura in corso…"
+    }
   }
 }

@@ -335,5 +335,50 @@
   "totaux": {
     "titre": "Totale",
     "totalValide": "Validiertes Total"
+  },
+  "nouveau": {
+    "titre": "Neuer Reparaturauftrag",
+    "siteManquant": {
+      "titre": "Kein Standort ausgewählt",
+      "description": "Wählen Sie einen Standort, bevor Sie einen Reparaturauftrag eröffnen: Die Nummerierung und die Einstellungen des RA hängen davon ab."
+    },
+    "client": {
+      "requisTitre": "Kein Kunde ausgewählt",
+      "requisDescription": "Eröffnen Sie einen Reparaturauftrag über die Kundenkarte (Schaltfläche «RA eröffnen»), oder suchen Sie den Kunden zuerst."
+    },
+    "vehicule": {
+      "titre": "Fahrzeug",
+      "aucun": "Für diesen Kunden ist kein Fahrzeug erfasst.",
+      "erreur": "Die Fahrzeuge dieses Kunden konnten nicht geladen werden"
+    },
+    "type": {
+      "libelle": "RA-Typ",
+      "service": "Service",
+      "reparation": "Reparatur",
+      "diagnostic": "Diagnose",
+      "expertise": "MFK-Prüfung",
+      "pneus": "Reifen",
+      "carrosserie": "Karosserie",
+      "retouche": "Nacharbeit",
+      "interne": "Intern"
+    },
+    "champs": {
+      "statutInitial": "Status bei Eröffnung",
+      "avance": "Weitere Angaben",
+      "kmInvalide": "Der eingegebene Kilometerstand überschreitet die zulässige Grenze.",
+      "plafondInvalide": "Die Kostengrenze darf nicht negativ sein.",
+      "conducteurPresentNom": "Anwesender Fahrer"
+    },
+    "demandes": {
+      "placeholder": "Kundenwunsch wörtlich beschreiben…",
+      "retirer": "Diese Angabe entfernen"
+    },
+    "erreur": {
+      "titre": "Der Reparaturauftrag konnte nicht eröffnet werden"
+    },
+    "actions": {
+      "creer": "RA eröffnen",
+      "enCours": "Wird eröffnet…"
+    }
   }
 }

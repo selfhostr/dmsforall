@@ -119,6 +119,63 @@ export const CODES_ERREUR = [
   // repli faute de code dédié — le statut restait 405 mais le code métier travestissait un cas
   // de fonctionnement normal en panne serveur. Voir apps/api/src/common/erreurs/filtre-probleme.ts.
   'METHODE_NON_AUTORISEE',
+  // --- Étape 2 : chaîne documentaire (devis → bon de commande → facture → avoir) ---
+  // `document_verrouille` est le code STABLE cité verbatim par la spécification métier
+  // (docs/specification-etape-2-facturation.md, RF-11, CF-16) : un UPDATE sur un document émis
+  // — y compris un caractère d'adresse, y compris à la seconde qui suit l'émission — est refusé
+  // sans exception (MD-20, MD-21). Nom conservé au plus près du texte source.
+  'DOCUMENT_VERROUILLE',
+  // Transition hors de `transition_document_autorisee` (MD-17) — même patron qu'OR_TRANSITION_INTERDITE.
+  'DOCUMENT_TRANSITION_INTERDITE',
+  // RF-8 : un devis accepté donne un bon de commande OU une facture, jamais les deux.
+  'DOCUMENT_SOURCE_DEJA_TRANSFORME',
+  // MD-34 : aucune émission dans une période comptable close.
+  'DOCUMENT_PERIODE_CLOSE',
+  // MD-29 : le PDF est généré après le COMMIT (job asynchrone) ; un duplicata ou un envoi demandé
+  // avant la fin du job reçoit ce code plutôt qu'un 404 trompeur.
+  'DOCUMENT_PDF_INDISPONIBLE',
+  // --- Étape 2 : facturation d'un OR ---
+  // RF-85, RF-86 : émission refusée tant qu'une ligne d'OR est dans un état indécis
+  // (proposee | a_valider | validee | en_cours) — `blocages` liste les lignes concernées.
+  'FACTURATION_LIGNES_INDECISES',
+  // --- Étape 2 : QR-facture ---
+  // RF-54, PF-03 : le bloc créancier du tenant est incomplet, l'émission est refusée en nommant
+  // le champ manquant plutôt que de laisser partir une facture sans section paiement.
+  'QR_CREANCIER_INCOMPLET',
+  // --- Étape 2 : avoir ---
+  // MD-23 : Σ avoirs sur une facture, par taux de TVA, ne peut jamais dépasser son total en
+  // valeur absolue — protège aussi contre un second avoir sur une ligne déjà créditée (CF-25).
+  'AVOIR_MONTANT_EXCEDENTAIRE',
+  // RF-117 : émission d'avoir par un réceptionnaire plafonnée en montant ; au-delà, la direction
+  // ou le comptable prend le relais.
+  'AVOIR_PLAFOND_DEPASSE',
+  // --- Étape 2 : remises ---
+  // RF-118, MD-61 : plafond de remise par rôle contrôlé À L'ÉMISSION sur le montant effectivement
+  // remisé (ligne + part de remise globale), jamais à la saisie du brouillon.
+  'REMISE_PLAFOND_DEPASSE',
+  // --- Étape 2 : paiements et imputations ---
+  // MD-51 (a) et (b) : Σ imputations d'un document ≤ son total, et Σ imputations 'reglement'
+  // d'un paiement ≤ son montant. Un seul code pour les deux faces du même invariant.
+  'IMPUTATION_MONTANT_EXCEDENTAIRE',
+  // MD-56 : un acompte facturé ne peut être déduit qu'une fois, sur une seule facture finale.
+  'ACOMPTE_DEJA_DEDUIT',
+  // --- Étape 2 : export fiduciaire (déclarés par avance, même patron que RDV_*/POINTAGE_* au
+  // lot 1 — émis par le module d'export dont le contrat HTTP complet reste à concevoir) ---
+  // RF-28, RF-105 : la continuité de numérotation est vérifiée de façon BLOQUANTE avant tout
+  // export ; un trou détecté ne part jamais chez la fiduciaire.
+  'EXPORT_TROU_NUMEROTATION',
+  // RF-104, MD-85 : une écriture déséquilibrée fait échouer le lot entier — on ne transmet jamais
+  // un journal partiellement faux.
+  'EXPORT_ECRITURES_DESEQUILIBREES',
+  // RF-112, MD-86 : le mapping comptable (compte ou code TVA) est incomplet pour la cible et la
+  // période demandées — nomme ce qui manque, à remplir avec la fiduciaire.
+  'EXPORT_MAPPING_INCOMPLET',
+  // RF-109, MD-92 : un document déjà exporté ne repart pas dans un autre lot sans une action
+  // d'exploitation explicite et tracée — évite le double comptage découvert au bouclement.
+  'EXPORT_DEJA_TRANSMIS',
+  // RF-112, RF-113 : changement de cible, de granularité ou de mapping refusé hors d'une
+  // frontière de période comptable — jamais en cours de mois.
+  'BASCULE_FIDUCIAIRE_HORS_FRONTIERE',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -198,6 +255,23 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   FONCTION_NON_DISPONIBLE: 501,
   RECHERCHE_TROP_DE_REQUETES: 429,
   METHODE_NON_AUTORISEE: 405,
+  DOCUMENT_VERROUILLE: 409,
+  DOCUMENT_TRANSITION_INTERDITE: 409,
+  DOCUMENT_SOURCE_DEJA_TRANSFORME: 409,
+  DOCUMENT_PERIODE_CLOSE: 409,
+  DOCUMENT_PDF_INDISPONIBLE: 409,
+  FACTURATION_LIGNES_INDECISES: 409,
+  QR_CREANCIER_INCOMPLET: 409,
+  AVOIR_MONTANT_EXCEDENTAIRE: 409,
+  AVOIR_PLAFOND_DEPASSE: 409,
+  REMISE_PLAFOND_DEPASSE: 409,
+  IMPUTATION_MONTANT_EXCEDENTAIRE: 409,
+  ACOMPTE_DEJA_DEDUIT: 409,
+  EXPORT_TROU_NUMEROTATION: 409,
+  EXPORT_ECRITURES_DESEQUILIBREES: 409,
+  EXPORT_MAPPING_INCOMPLET: 409,
+  EXPORT_DEJA_TRANSMIS: 409,
+  BASCULE_FIDUCIAIRE_HORS_FRONTIERE: 409,
 };
 
 /**
@@ -263,6 +337,23 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   FONCTION_NON_DISPONIBLE: 'Fonctionnalité non disponible',
   RECHERCHE_TROP_DE_REQUETES: 'Trop de requêtes de recherche',
   METHODE_NON_AUTORISEE: 'Méthode HTTP non supportée',
+  DOCUMENT_VERROUILLE: 'Document verrouillé',
+  DOCUMENT_TRANSITION_INTERDITE: 'Transition interdite pour ce document',
+  DOCUMENT_SOURCE_DEJA_TRANSFORME: 'Document source déjà transformé',
+  DOCUMENT_PERIODE_CLOSE: 'Période comptable close',
+  DOCUMENT_PDF_INDISPONIBLE: 'Document PDF pas encore disponible',
+  FACTURATION_LIGNES_INDECISES: 'Des lignes attendent encore une décision avant facturation',
+  QR_CREANCIER_INCOMPLET: 'Bloc créancier QR incomplet',
+  AVOIR_MONTANT_EXCEDENTAIRE: "Montant d'avoir excédentaire",
+  AVOIR_PLAFOND_DEPASSE: "Plafond d'avoir dépassé pour ce rôle",
+  REMISE_PLAFOND_DEPASSE: 'Plafond de remise dépassé pour ce rôle',
+  IMPUTATION_MONTANT_EXCEDENTAIRE: "Montant d'imputation excédentaire",
+  ACOMPTE_DEJA_DEDUIT: 'Acompte déjà déduit',
+  EXPORT_TROU_NUMEROTATION: 'Trou de numérotation détecté avant export',
+  EXPORT_ECRITURES_DESEQUILIBREES: 'Écritures comptables déséquilibrées',
+  EXPORT_MAPPING_INCOMPLET: 'Mapping comptable incomplet',
+  EXPORT_DEJA_TRANSMIS: 'Document déjà transmis à la fiduciaire',
+  BASCULE_FIDUCIAIRE_HORS_FRONTIERE: 'Bascule de fiduciaire hors frontière de période',
 };
 
 /**

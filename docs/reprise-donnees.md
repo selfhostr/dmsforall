@@ -25,6 +25,12 @@
 6. [Plan de bascule](#6-plan-de-bascule)
 7. [Questions et risques](#7-questions-et-risques)
 8. [Décisions à prendre et prochaines actions](#8-décisions-à-prendre-et-prochaines-actions)
+9. [Ordre de bascule et graphe de dépendances](#9-ordre-de-bascule-et-graphe-de-dépendances)
+10. [Contraintes réelles de la destination](#10-contraintes-réelles-de-la-destination)
+11. [Pièges de correspondance — les cas du terrain suisse](#11-pièges-de-correspondance--les-cas-du-terrain-suisse)
+12. [La ligne de coupe et sa preuve](#12-la-ligne-de-coupe-et-sa-preuve)
+13. [Runbook du jour J et marche arrière](#13-runbook-du-jour-j-et-marche-arrière)
+14. [Zones aveugles — ce que seul le terrain peut donner](#14-zones-aveugles--ce-que-seul-le-terrain-peut-donner)
 
 ---
 
@@ -55,12 +61,30 @@ d'investigation, le modèle cible et ses pertes structurelles, les règles de qu
 dépendent des données, pas du logiciel), l'architecture d'import (elle dépend de DFA) et le plan
 de bascule.
 
-**État du dépôt au moment de la rédaction** : seul le socle est en base
-(`apps/api/src/db/schema/` = `tenant`, `site`, `utilisateur`, `session`, `journal_securite`).
-Les tables `client`, `vehicule`, `ordre_reparation`, `facture` n'existent pas encore : le mapping
-de la §2 vise le **modèle métier spécifié** (spec étape 1 §7) et le **schéma planifié**
-(`docs/plan-etape-1-backend.md`). Il devra être revérifié champ à champ quand l'étape 1 sera en
-base — c'est une revue d'une demi-journée, pas une réécriture.
+**État du dépôt — mise à jour du 29.07.2026.** La destination n'est plus un plan : elle est en
+base. `client` et ses satellites (`0006_clients.sql`), `vehicule` et les siens
+(`0007_vehicules.sql`), `ordre_reparation` et `ligne_or` (`0008`), `document_vente`,
+`ligne_document`, `document_vente_tva`, `paiement` (`0010_facturation.sql`) existent, avec leurs
+contraintes, leurs triggers et leur RLS.
+
+Trois conséquences, qui changent la nature de ce document :
+
+1. **Le mapping de la §2 n'est plus une intention, il est vérifiable.** Certaines cibles qu'il
+   nommait n'existent pas sous ce nom (`numero_ide` → `ide`), d'autres sont plus contraintes que
+   prévu (`vehicule.marque`/`modele` sont `NOT NULL`). La **§10 corrige le mapping champ à champ
+   contre le schéma réel** et prime sur la §2 partout où les deux divergent.
+2. **La demande transmise à `expert-facturation` (§8.2) a été honorée.** `document_vente` porte
+   `origine enum('dfa','reprise')`, `numero_origine`, `tva_non_ventilee`, `taux_tva_pourmille` au
+   niveau document, `ecart_reprise_centimes`, un type de ligne `ecart_reprise`, un index unique
+   `document_vente_numero_origine_uk` et un motif de bulletin `creance_reprise`. **La reprise n'a
+   donc pas besoin de la table `document_repris` esquissée en §5.6** : une facture reprise est un
+   `document_vente` comme un autre, avec `origine = 'reprise'`. La §10.4 remplace la §5.6.
+3. **Les triggers d'immuabilité s'appliquent aussi à l'import.** Il n'existe aucune porte dérobée
+   « mode migration ». L'import écrit avec les mêmes privilèges que l'API et se plie aux mêmes
+   machines à états — ce qui impose un ordre d'écriture précis, décrit en §9 et §10.4.
+
+Ce qui reste inconnu est inchangé : **la source**. Le mapping a maintenant une extrémité solide et
+une extrémité vide.
 
 ---
 
@@ -68,6 +92,11 @@ base — c'est une revue d'une demi-journée, pas une réécriture.
 
 > Objectif d'un passage chez un garage : repartir avec une **fiche d'inventaire remplie** (§1.4)
 > et, si possible, un **échantillon de 20 lignes par entité**. Pas avec une impression.
+>
+> 📋 **Version imprimable et exécutable** : [reprise-donnees-questionnaire.md](reprise-donnees-questionnaire.md)
+> — checklist de départ, commandes d'empreinte, les **12 requêtes de profilage**, la fiche
+> d'inventaire, le texte de la demande d'export à l'éditeur et les 6 questions à poser devant
+> l'écran. C'est ce document-là qu'on emporte ; celui-ci est la méthode qui le justifie.
 
 ### 1.1 Avant le déplacement
 
@@ -246,6 +275,12 @@ indépendamment de la responsabilité réelle.
 > Toute case « Perte / approximation » de cette section est un point à **annoncer au garagiste
 > avant la bascule**, pas à découvrir avec lui après. Une perte annoncée est un choix ; la même
 > perte découverte est une faute.
+>
+> ⚠️ **Cette section a été écrite contre le modèle *spécifié*. Le schéma *réel* est en base depuis
+> les migrations 0006 à 0010 et diffère sur une dizaine de points.** Les intentions ci-dessous
+> restent valables ; les **noms de colonnes, les nullabilités et les contraintes qui font échouer
+> un `INSERT` sont donnés en §10**, qui prime en cas de divergence. Ne pas écrire un chargeur à
+> partir de la seule §2.
 
 ### 2.1 Client → `client` (+ adresses, contacts, conditions, consentements)
 
@@ -811,10 +846,18 @@ update compteur_document
 écran, aucun endpoint, aucun script ne la modifie. Correction = avoir, y compris sur un document
 repris. Le seul droit d'écriture est celui du chargeur, avant la bascule.
 
-### 5.6 L'archive documentaire
+### 5.6 L'archive documentaire ⚠️ SUPERSÉDÉE PAR LA §10.4
+
+> **Cette section décrit une table `document_repris` qui n'a pas été construite, et qui ne doit
+> pas l'être.** L'étape 2 a intégré la reprise directement dans `document_vente`
+> (`origine = 'reprise'`, `numero_origine`, `tva_non_ventilee`, `ecart_reprise_centimes`) —
+> exactement la contrainte transmise en §8.2. Un document repris vit donc dans la même table, la
+> même recherche, la même fiche client et le même écran que les documents émis par DFA, ce qui est
+> très supérieur à une archive séparée : le garagiste ne se demande jamais « dans quel écran je
+> cherche ». **Lire la §10.4.** Le texte ci-dessous est conservé pour la trace du raisonnement.
 
 ```
-document_repris
+document_repris   -- NON CONSTRUIT — voir §10.4
   tenant_id, id, origine_lot_id, numero_origine, type (facture/avoir/or/devis),
   date_emission date, client_id (nullable), vehicule_id (nullable),
   client_libelle_fige text, vehicule_libelle_fige text, plaque_figee text,
@@ -1061,6 +1104,9 @@ signifie que quelque chose n'est pas compris — pas qu'il est petit.
 - **QE-06** — Un **accès en lecture** peut-il être maintenu N mois après la résiliation ?
 - **QE-07** — Le contrat s'oppose-t-il à ce que le garage lise sa propre base de données via un
   outil tiers ?
+- **QE-08** — Le logiciel permet-il de **saisir une facture en forçant son numéro** ? *(Ce n'est
+  pas une question d'export : elle décide de la procédure de marche arrière, §13.4. Si l'éditeur
+  ne répond pas, la réponse se teste sur la copie restaurée pendant la répétition générale de S-1.)*
 
 **Conserver toutes les réponses, y compris les non-réponses.** Un refus écrit d'export, ou un
 silence de 30 jours, est un élément utile — commercialement et, le cas échéant, juridiquement.
@@ -1094,13 +1140,18 @@ silence de 30 jours, est un élément utile — commercialement et, le cas éch�
 | 4 | L'import est-il un CLI seul, ou aussi un endpoint admin ? | CLI seul en étape 1-2 |
 | 5 | L'archive froide est-elle hébergée par DFA (service payant) ou remise au garage ? | Remise au garage + copie chiffrée chez DFA pendant 12 mois |
 | 6 | Pivot d'année à 2 chiffres (`N-05`) | 30 |
+| 7 | **Numéro de client d'origine** : dans `client.numero` ou dans `reference_externe` ? (`D-26`, §10.2) | Option A — `numero` = numéro source verbatim, compteur calé au maximum observé |
+| 8 | **Véhicule sans marque ou sans modèle** — `NOT NULL` en base (`D-27`, §10.3) | Déduction depuis le libellé, puis sentinelle lisible `MODÈLE INCONNU` + `identification_incomplete` |
+| 9 | **Date d'expertise sans résultat** (`D-28`, §10.3) | Note véhicule, **pas** de ligne `vehicule_expertise` — on n'invente pas un résultat de MFK |
+| 10 | **`ordre_reparation` doit-il recevoir `origine` + `numero_origine` ?** (§10.5, `Z-17`) | Oui — coût nul aujourd'hui, élevé après la première bascule. À arbitrer avec `expert-database` |
+| 11 | **Marche arrière** : l'ancien système accepte-t-il de forcer un numéro de facture ? (§13.4, `QE-08`) | À tester en S-1. Défaut si non : annulation par avoir dans DFA |
 
 ### 8.2 À transmettre aux autres experts
 
 | Destinataire | Contrainte issue de ce document |
 |---|---|
-| **expert-facturation** (étape 2) | Le modèle de document doit porter **dès sa conception** `numero_origine text null`, `origine enum('dfa','reprise')`, `tva_non_ventilee boolean`, et une **unicité de numéro couvrant les deux origines**. Le taux TVA doit accepter les valeurs historiques (76, 80, 77, 81 ‰). Ajouter ça après coup impose une migration sur des documents verrouillés (§5.5, `D-23`) |
-| **expert-database** (étape 1) | Colonne `origine_lot_id uuid null` + index partiel sur les tables recevant un import ; tables de reprise sous RLS `FORCE` avec `USING` **et** `WITH CHECK` ; FK composites `(tenant_id, lot_id)` sur le modèle de `site_tenant_id_uk` (§5.2, §5.4) |
+| ~~**expert-facturation** (étape 2)~~ | ✅ **HONORÉ** dans `0010_facturation.sql` : `origine enum('dfa','reprise')`, `numero_origine`, `tva_non_ventilee`, `taux_tva_pourmille` au niveau document, `ecart_reprise_centimes`, type de ligne `ecart_reprise`, régime TVA `marge` pour l'avant-2018, index `document_vente_numero_origine_uk`, motif de bulletin `creance_reprise`. **La contrainte a été prise en compte avant qu'elle ne coûte cher** — c'est le seul point du document qui soit déjà réglé. Détail et protocole d'écriture : §10.4 |
+| **expert-database** (étape 1) | Colonne `origine_lot_id uuid null` + index partiel sur les tables recevant un import ; tables de reprise sous RLS `FORCE` avec `USING` **et** `WITH CHECK` ; FK composites `(tenant_id, lot_id)` sur le modèle de `site_tenant_id_uk` (§5.2, §5.4). **Rien de tout ceci n'est en base** (`Z-20`). ⚠️ **Nouveau, et urgent** : `ordre_reparation` doit recevoir `origine` + `numero_origine` comme `document_vente` (§10.5, `Z-17`) — coût nul tant qu'aucun garage n'est en production |
 | **expert-metier** | Les champs sans équivalent source (origine de ligne, payeur, consentements, conditions datées) doivent tolérer un état « inconnu / repris » sans casser une règle métier. Une règle qui exige une valeur qu'aucun système source ne fournit rend la reprise impossible (§2.5) |
 | **lead-qa** | Le test d'isolation d'import (§5.4) et le test d'idempotence (« deux passes du même fichier ⇒ mêmes UUID, aucun doublon ») sont des tests de la règle n°1 du projet, pas des tests de confort |
 | **expert-devops** | Le staging peut peser plusieurs Go ; prévoir l'espace, la sauvegarde avant/après import, et la procédure de restauration testée exigée au GO (§6.3, critère 6) |
@@ -1116,3 +1167,808 @@ silence de 30 jours, est un élément utile — commercialement et, le cas éch�
    tout le reste et se mesure en semaines.
 4. Puis seulement : écrire l'adaptateur et les chargeurs (§5.1). Le code est la partie facile et
    la dernière ; l'investigation est la partie difficile et la première.
+
+---
+
+## 9. Ordre de bascule et graphe de dépendances
+
+> Écrit contre le schéma réel (`0005` → `0010`). Chaque « ce qui casse » nomme la contrainte
+> PostgreSQL qui se déclenche, ou dit explicitement qu'**aucune** ne se déclenche — c'est le
+> second cas qui coûte cher.
+
+### 9.1 La règle qui gouverne l'ordre
+
+L'intuition « clients avant véhicules, véhicules avant historique » est juste mais insuffisante.
+La vraie règle est plus exigeante :
+
+> **Une entité ne s'écrit que lorsque toutes les dates qui la datent sont connues.**
+
+Parce que trois tables de destination sont **historisées avec une contrainte d'exclusion GiST** —
+`vehicule_plaque`, `vehicule_detention`, `client_condition` — et qu'une contrainte d'exclusion ne
+pardonne pas une date approximative : elle rejette la deuxième ligne, pas la mauvaise. Or les
+dates qui datent un véhicule (depuis quand ce client le détient, depuis quand il porte cette
+plaque) ne sont **pas** dans le fichier véhicules : elles sont dans les documents, qui se
+chargent après. D'où le découpage en deux temps de la §9.3.
+
+### 9.2 Les phases, dans l'ordre
+
+| # | Phase | Écrit dans | Dépend de |
+|---|---|---|---|
+| **0** | **Socle du tenant** | `tenant`, `site`, `utilisateur` | Rien. Créé à la main, jamais importé (`D-12`) |
+| **1** | **Paramétrage** | `parametre_atelier`, `parametre_site`, `taux_horaire`, `prestation`, `compteur_document` | Phase 0. Ressaisi à la main (`D-13`) |
+| **2** | **Profilage des dates** — *ne écrit rien en base métier* | `reprise_ligne_source` (staging) uniquement | Extraction complète, **documents compris** |
+| **3** | **Clients** | `client`, puis `client_adresse` / `contact` / `condition` / `note` | Phase 1 (compteur), phase 2 (dédoublonnage) |
+| **4** | **Groupes de clients** — 2ᵉ passe sur `client` | `client.groupe_client_id` | Phase 3 complète |
+| **5** | **Véhicules** | `vehicule` | Phase 3 (`proprietaire_economique_client_id`) |
+| **6** | **Plaques et détentions** | `vehicule_plaque`, `vehicule_detention` | Phases 2, 3, 5 — **c'est la phase critique** |
+| **7** | **Satellites véhicule** | `vehicule_kilometrage`, `_expertise`, `_campagne` | Phase 5 |
+| **8** | **Ordres de réparation** | `ordre_reparation`, `ligne_or` | Phases 3, 5 (+ site, réceptionnaire) |
+| **9** | **Travaux reportés** | `vehicule_travail_reporte` | Phase 8 (FK `..._fk_or_origine`, posée en `0008`) |
+| **10** | **Factures reprises** | `document_vente` + `ligne_document` + `document_vente_tva` | Phases 3, 5, 8. **Deux temps** (§10.4) |
+| **11** | **Avoirs repris** | `document_vente` (type `avoir`) | Phase 10 : `facture_annulee_id` doit exister |
+| **12** | **Paiements et soldes** | `paiement`, `imputation_paiement` | Phase 10 |
+| **13** | **Calage des compteurs** | `compteur_document` | Phases 3, 8, 10 terminées |
+| **14** | **Clôture des périodes comptables** | `periode_comptable` | **Tout le reste. En dernier, sans exception** |
+
+### 9.3 Ce qui casse, précisément
+
+| Inversion | Ce qui se passe | Bruyant ou silencieux ? |
+|---|---|---|
+| **Véhicule avant client** | `vehicule_fk_proprietaire_eco` échoue — mais **seulement si** le leaser est renseigné, ce qui est rare. Puis `vehicule_detention_fk_client` échoue à la phase 6 | Bruyant, mais **tardif** : l'erreur sort 40 minutes après la vraie cause |
+| **Détention avant profilage des dates** | `vehicule_detention.du` est `NOT NULL`. Sans date de premier document, le chargeur met la date d'import. Résultat : des OR et des factures **datés avant le début de la détention** du véhicule qu'ils concernent | ⚠️ **Silencieux.** Aucune contrainte ne relie la date d'un document à la période de détention. La fiche véhicule est fausse et personne ne le voit avant qu'un client conteste |
+| **Deux détenteurs successifs écrits avec des périodes qui se chevauchent** | `vehicule_detention_unicite_excl` (EXCLUDE GiST) rejette la 2ᵉ ligne | Bruyant, mais le message ne dit pas *laquelle* des deux est fausse |
+| **Plaque réattribuée écrite sans dates** | Deux véhicules, même plaque, `du` = date d'import, `au` = NULL ⇒ `vehicule_plaque_collision_excl` rejette. Le chargeur s'arrête sur un véhicule arbitraire — celui qui passe en second dans le fichier | Bruyant et **trompeur** : l'erreur désigne le mauvais véhicule |
+| **Plaques chargées avant identification des plaques interchangeables / professionnelles** | L'EXCLUDE ne se lève que `where not interchangeable and not professionnelle and pays = 'CH'`. Un jeu de plaques interchangeables non déclaré est traité comme une collision et **une des deux voitures perd sa plaque** | Bruyant, mais la « correction » naturelle (clôturer une plaque) détruit une donnée juste |
+| **Dédoublonnage clients après le chargement des véhicules et documents** | Il faut alors fusionner *a posteriori* : repointer les FK, et `client_fusionne_inactif_chk` impose `statut = 'inactif'` sur la fiche absorbée. Or `dfa_app` **n'a pas le droit `DELETE`** sur `client` : la fiche fusionnée reste à vie | ⚠️ **Irréversible.** Le fichier client porte définitivement les doublons désactivés |
+| **OR avant véhicule** | `ordre_reparation_fk_vehicule` (`ordre_reparation.vehicule_id` est `NOT NULL`) | Bruyant, immédiat |
+| **Facture avant OR** | Rien ne casse : `document_vente.ordre_reparation_id` est nullable. Mais le lien facture ↔ OR est **perdu**, et `ligne_document.ligne_or_id` reste vide | ⚠️ **Silencieux.** Le garagiste ouvre un OR clôturé et ne voit pas sa facture |
+| **Avoir avant sa facture** | `document_vente_avoir_facture_annulee_chk` : un avoir **exige** `facture_annulee_id` | Bruyant |
+| **Clôture d'une période comptable avant l'import des documents de cette période** | `document_vente_verifier_periode` lève `ZDFA5` au passage brouillon → émis. **Toutes les lignes du document ont déjà été écrites** quand l'erreur survient | Bruyant mais **coûteux** : reprise du lot après nettoyage manuel |
+| **Calage du compteur avant la fin du chargement des documents** | Le compteur est calé sur un maximum partiel. La première facture DFA porte un numéro **déjà utilisé** par un document repris chargé ensuite ⇒ `document_vente_numero_uk` | Bruyant — le jour où le garage facture, c'est-à-dire au pire moment |
+| **Import lancé avec `DATABASE_URL_MIGRATION`** (rôle `dfa_migrator`) | Les politiques `*_migrator` sont `using (true) with check (true)` : **le RLS ne filtre plus rien**. Un `tenant_id` erroné dans un chargeur écrit chez le voisin sans la moindre erreur | ⚠️ **Silencieux et catastrophique.** C'est exactement la faille que tout le projet évite (§5.1) |
+
+### 9.4 Le découpage en deux temps du chargeur véhicule
+
+C'est la conséquence pratique de la §9.1, et la seule partie de l'ordonnancement qui n'est pas
+évidente :
+
+```
+Phase 2  (staging, aucune écriture métier)
+  Pour chaque document source (facture, OR), extraire le triplet :
+      (clé_véhicule, clé_client, date_document, plaque_imprimée_sur_le_document)
+  Agréger par véhicule :
+      premier_doc[véhicule], dernier_doc[véhicule]
+      par (véhicule, client) : premier, dernier
+      par (véhicule, plaque)  : premier, dernier
+  → ces agrégats vivent dans le staging, ils sont la matière première des phases 6 et 13.
+
+Phase 5  vehicule            -- attributs seuls, aucune date de relation
+Phase 6  vehicule_plaque     -- du/au calculés en phase 2
+         vehicule_detention  -- idem, invariant « un seul détenteur courant » vérifié AVANT insert
+Phase 10 document_vente      -- rattaché aux véhicules et clients déjà en place
+```
+
+**Le corollaire à ne pas manquer** : même si l'on décide de **ne pas reprendre** l'historique des
+documents (`D-08`), il faut quand même **l'extraire** pour dater les détentions et les plaques.
+Extraction et reprise ne sont pas le même périmètre. C'est contre-intuitif, et c'est ce qui fait
+que « on ne reprend que les clients et les véhicules » n'est jamais un projet plus simple.
+
+### 9.5 Les deux passes qui n'ont pas d'ordre naturel
+
+- **`client.groupe_client_id`** : auto-référence (`client_fk_groupe`, FK composite
+  `(tenant_id, groupe_client_id) → client(tenant_id, id)`). Impossible à résoudre en une passe si
+  la maison mère apparaît après sa filiale dans le fichier. Deuxième passe d'`UPDATE` après la
+  phase 3, jamais un tri du fichier source (il n'y a aucune garantie qu'il soit triable).
+- **`vehicule.fusionne_vers_vehicule_id` / `client.fusionne_vers_client_id`** : **jamais écrits
+  par l'import** (`D-21`). La fusion est un geste du garagiste dans DFA, après la bascule.
+
+---
+
+## 10. Contraintes réelles de la destination
+
+> Cette section est le contrat que le chargeur doit respecter, relevé dans les migrations
+> `0005` → `0010`. Elle **remplace** la §2 en cas de divergence et **remplace** la §5.6.
+
+### 10.1 Les sept règles non négociables
+
+| # | Règle | Où elle est imposée | Ce qu'elle interdit à l'import |
+|---|---|---|---|
+| 1 | **`tenant_id` sur chaque table métier**, `NOT NULL`, avec RLS `ENABLE` + `FORCE` et politique `USING` **et** `WITH CHECK` | Toutes les migrations `0006` → `0010` | Lire un `tenant_id` depuis un fichier source (§5.4) |
+| 2 | **Toute FK entre deux tables métier est composite `(tenant_id, cible_id)`** vers un `unique (tenant_id, id)` | ex. `client_adresse_fk`, `vehicule_detention_fk_client`, `document_vente_fk_facture_annulee` | Rattacher une entité d'un tenant à une entité d'un autre : c'est structurellement impossible, même RLS désactivé |
+| 3 | **L'import se connecte en `dfa_app`**, jamais en `dfa_migrator` | `DATABASE_URL` vs `DATABASE_URL_MIGRATION` | Toute élévation de privilège « pour simplifier l'import ». Les politiques `*_migrator` (`using (true)`) sont réservées aux migrations de schéma |
+| 4 | **Aucun `DELETE`** n'est accordé à `dfa_app`, sur aucune table métier — sauf `ligne_document` (lignes de brouillon) | `revoke delete on … from dfa_app` + assertions de fin de migration | ⚠️ **`importer annuler-lot` ne peut rien supprimer.** Voir §10.6 |
+| 5 | **Append-only strict** sur `vehicule_kilometrage`, `client_consentement`, `document_vente_tva`, `imputation_paiement`, `bulletin_paiement`, `ordre_reparation_demande` : `SELECT, INSERT` seulement | grants + assertions | Corriger un relevé km importé par `UPDATE`. Un relevé faux se corrige par un **nouveau relevé** motivé |
+| 6 | **Argent en centimes entiers.** `integer` sur les lignes, `bigint` sur les agrégats de document | `ligne_document.*_centimes`, `document_vente.total_*_centimes` | Tout flottant. Et tout dépassement : `ligne_document_montant_ttc_chk` plafonne à ±100 000 000 centimes (1 mio CHF) **par ligne** |
+| 7 | **Immuabilité après émission** | `document_vente_verrouiller_apres_emission` (`ZDFA2`), `ordre_reparation_verrouiller_figes`, `client_verrouiller_type` (`ZDFA3`) | Rejouer un import sur un document déjà émis. L'idempotence de la §5.5 s'arrête à la porte de l'émission (§10.4) |
+
+### 10.2 Client — corrections du mapping §2.1
+
+| §2.1 disait | Le schéma dit | Conséquence pour le chargeur |
+|---|---|---|
+| `numero_ide` | **`client.ide`**, `CHECK ide ~ '^CHE-[0-9]{3}\.[0-9]{3}\.[0-9]{3}$'` | Un IDE source `CHE-123.456.789 TVA`, `CHE123456789` ou `CHE-123.456.789 MWST` est **rejeté par la base**. Normaliser (retirer le suffixe, réinsérer les points) ; si le format reste invalide, `ide = NULL` + anomalie, jamais un `INSERT` qui échoue |
+| `numero_origine` (nouveau champ) | **N'existe pas sur `client`.** Il y a `numero text NOT NULL` (unique par tenant) et `reference_externe text NULL` | Décision à prendre, cf. `D-26` ci-dessous |
+| `type` déduit | `client_identite_chk` : `particulier` ⇒ `nom NOT NULL` · `entreprise` ⇒ `raison_sociale NOT NULL`. Trigger `client_verrouiller_type` (`ZDFA3`) | Un client source dont le seul champ nom est vide **ne peut pas être inséré du tout**. Il n'y a pas de fiche sans nom : ligne rejetée en anomalie bloquante, pas de fiche fantôme |
+| `telephone`, `mobile`, `telephone_source` | **`telephone text`** (libre) et **`telephone_e164 text`** avec `CHECK ~ '^\+[1-9][0-9]{6,14}$'`. **Pas de colonne `mobile`** | La distinction fixe/mobile déduite du préfixe `07x` (§2.1) **n'a pas de destination**. Le numéro principal va en `telephone` (verbatim) et, s'il est normalisable, en `telephone_e164`. Les numéros supplémentaires vont en `client_contact` ou en note. Perte à ajouter à la §2.6 |
+| `langue` par défaut = langue du tenant | `client.langue` est `NOT NULL`, enum `('fr','de','it')` | Confirmé : jamais de `NULL` possible, donc le choix du défaut est structurant. Le vérifier avec `CR-08` |
+| une adresse `principale` | `client_adresse_principale_uk` : index unique partiel `(tenant_id, client_id) where type='principale' and actif` | Deux adresses source marquées principales ⇒ échec du 2ᵉ `INSERT`. Dédoublonner **avant**, la 2ᵉ devient `facturation` ou `actif = false` |
+| conditions commerciales | `client_condition_periode_excl` (EXCLUDE GiST sur `daterange(valide_du, valide_au)`) | Une seule ligne à l'import, `valide_du` = date de bascule, `valide_au = NULL`. Deux lignes chevauchantes sont rejetées par la base |
+| consentements | `client_consentement` : `SELECT, INSERT` seulement, append-only | Cohérent avec `D-11` (non repris). Si un jour on reprend un consentement prouvé, il s'insère, il ne se corrige jamais |
+
+**`D-26` — Où va le numéro de client d'origine ?** Deux options, à trancher avec le garagiste :
+
+- **Option A (recommandée)** — `client.numero` = **numéro source verbatim**,
+  `reference_externe` = clé technique source. Le garagiste continue d'appeler ses clients par le
+  numéro qu'il connaît ; les anciens listings papier restent utilisables. Condition : les numéros
+  source sont uniques, non vides, et il faut caler `compteur_document` (`type_document = 'client'`)
+  au maximum numérique observé.
+- **Option B** — `client.numero` = numérotation DFA neuve, `reference_externe` = numéro source.
+  À retenir uniquement si les numéros source sont en collision, absents, ou dans un format que
+  DFA ne peut pas continuer. La recherche par ancien numéro doit alors porter sur
+  `reference_externe`, ce qui est une exigence à vérifier auprès de `expert-api` avant de choisir.
+
+À la différence des documents, **le numéro de client n'a pas de valeur légale** : l'option A est
+un confort d'exploitation, pas une obligation. C'est pour cela qu'elle est ouverte.
+
+### 10.3 Véhicule — corrections du mapping §2.2
+
+| §2.2 disait | Le schéma dit | Conséquence pour le chargeur |
+|---|---|---|
+| `marque_id` (référentiel), `modele` | **`vehicule.marque text NOT NULL`** et **`modele text NOT NULL`**, avec `CHECK length(btrim(...)) > 0` | ⚠️ **Un véhicule sans modèle ne peut pas être inséré.** Cas fréquent sur les tableurs et les vieux fichiers. Il faut une valeur de repli — voir `D-27` |
+| VIN validé 17 caractères sans I/O/Q | `vehicule_vin_format_chk` : `vin is null or length(vin) <> 17 or vin ~ '^[A-HJ-NPR-Z0-9]{17}$'` | Un VIN de **17 caractères contenant un `O`, un `I` ou un `Q`** (la faute de frappe classique) est **rejeté par la base**. Un VIN de 16 ou 18 caractères passe sans contrôle |
+| unicité du VIN | `vehicule_vin_actif_uk` : unique partiel `(tenant_id, vin) where vin is not null and statut = 'actif'` | Deux véhicules actifs avec le même VIN dans le source ⇒ échec. Il faut trancher **avant** : lequel reste `actif`, lequel passe `archive` + `motif_archivage = 'doublon'` |
+| plaque, `du` reconstruit ou `null` | **`vehicule_plaque.du date NOT NULL`** + EXCLUDE `vehicule_plaque_collision_excl` | ⚠️ `du = NULL` est impossible. Voir §11.2 |
+| détention, `motif_fin = 'correction'` | `motif_fin_detention` = `('vente','reprise','deces','correction','export')` · `vehicule_detention_motif_fin_chk : (au is null) = (motif_fin is null)` | ✅ Confirmé : `'correction'` existe et est le bon choix quand on ignore la cause réelle. Fermer une détention **oblige** à donner un motif |
+| kilométrage, `source = 'import'` | `source_kilometrage` = `('reception','ordre_reparation','expertise','vente','declaratif','import')` | ✅ Confirmé, la valeur `'import'` existe. `releve_le timestamptz NOT NULL` : sans date source, utiliser la date du document d'où le km est tiré, jamais la date d'import |
+| expertise « une seule ligne, sans détail » | **`vehicule_expertise.resultat NOT NULL`** (enum `accepte` / `accepte_avec_defauts` / `refuse`) | ⚠️ Une date d'expertise nue **ne suffit pas** à créer la ligne. Il faut inventer un résultat, ce qui est interdit. Voir `D-28` |
+| travaux reportés | `urgence NOT NULL` (enum), `date_constat NOT NULL`, `designation NOT NULL` non vide | Un travail reporté sans urgence source ⇒ défaut `'a_surveiller'` (le moins engageant), jamais `'urgent'` |
+| campagnes, garantie | `vehicule.garantie_debut/_mois/_km` existent · `vehicule_campagne` existe | Cohérent avec §2.2 : garantie reconstruite « estimée », campagnes non reprises |
+| identification incomplète | **`vehicule.identification_incomplete boolean NOT NULL DEFAULT false`** | ✅ La colonne existe : c'est le drapeau à lever sur tout véhicule sans VIN **ou** dont le VIN a été refusé |
+
+**`D-27` — Véhicule sans marque ou sans modèle.** `NOT NULL` sur les deux. Trois voies, par ordre
+de préférence :
+
+1. **Déduire du texte disponible** — un champ unique « VW Golf 1.6 TDI » se coupe au premier
+   espace : `marque = 'VW'`, `modele = reste`. Fiable quand la marque est en tête, ce qui est la
+   convention de saisie dans tous les garages observés. À valider par échantillon.
+2. **Déduire du VIN** — les 3 premiers caractères (WMI) identifient le constructeur. N'aide pas
+   pour le modèle.
+3. **Sentinelle explicite** — `modele = 'MODÈLE INCONNU'` (jamais `'-'`, jamais une chaîne vide
+   déguisée), `identification_incomplete = true`, anomalie `avertissement`, et la liste sort en
+   nettoyage manuel. **Une sentinelle lisible dans l'UI vaut mieux qu'un tiret que personne ne
+   sait interpréter dans deux ans.**
+
+**`D-28` — Expertise sans résultat.** Ne pas créer la ligne `vehicule_expertise`. Une date
+d'expertise sans résultat n'est pas une expertise : c'est une **échéance**. Deux issues :
+soit le champ source est manifestement une *prochaine* échéance et il n'a pas sa place dans une
+table d'expertises passées, soit c'est une expertise passée dont on ignore le résultat, et
+inventer `'accepte'` reviendrait à certifier un contrôle technique qu'on n'a pas vu. La date part
+en **note véhicule** (`nature = 'interne'`), et l'expertise réelle se saisit au premier passage.
+⚠️ **À VALIDER AVEC @laupernoe** : c'est un arbitrage entre perdre la relance MFK (RM-29) sur le premier
+cycle et écrire une donnée fausse. Le document tranche pour la seconde option ; le garagiste
+pourrait préférer l'inverse.
+
+### 10.4 Facture reprise — le protocole d'écriture en deux temps
+
+**C'est la contrainte la plus contre-intuitive de tout le document.** Elle découle de deux
+triggers de `0010_facturation.sql` :
+
+```
+document_vente_creation_brouillon        BEFORE INSERT
+  → « tout document naît en brouillon (MD-19) — aucune insertion directe dans un autre statut »
+document_vente_verrouiller_apres_emission BEFORE UPDATE
+  → dès que old.statut <> 'brouillon', seule une liste blanche de 13 colonnes reste modifiable
+```
+
+**Il est donc impossible d'insérer une facture reprise directement à l'état émis.** Le chargeur
+procède ainsi, par document :
+
+```
+1. INSERT  document_vente
+     origine        = 'reprise'
+     statut         = 'brouillon'          -- imposé par le trigger BEFORE INSERT
+     numero         = NULL                 -- imposé par document_vente_numero_brouillon_chk
+     numero_origine = '<numéro source verbatim>'   -- imposé par document_vente_origine_numero_chk
+     numero_sequence= NULL                 -- idem : une reprise ne consomme pas la séquence
+     exercice       = NULL                 -- imposé par document_vente_exercice_brouillon_chk
+     emis_le        = NULL                 -- imposé par document_vente_emis_le_brouillon_chk
+     client_id, site_id, client_designation_figee, langue_figee,
+     adresse_facturation_figee             -- tous NOT NULL : à fabriquer, cf. ci-dessous
+     total_ht_centimes, total_tva_centimes, total_ttc_centimes,
+     ecart_reprise_centimes = total_ttc − total_ht − total_tva
+                                           -- document_vente_totaux_coherents_chk
+
+2. INSERT  ligne_document (× n)            -- si les lignes sont exportables
+   INSERT  document_vente_tva (× régimes)  -- append-only, une ligne par (régime, taux)
+
+3. UPDATE  document_vente SET statut='emis', numero=numero_origine,
+                              exercice=year(date_document), emis_le=…
+   → passe verifier_transition_document  (brouillon→emis autorisé pour les 4 types)
+   → passe document_vente_verifier_periode  UNIQUEMENT si aucune période comptable close
+     ne couvre date_document  (ZDFA5) — d'où la phase 14 de la §9.2
+
+4. Le document est désormais VERROUILLÉ. Un rejeu de l'import ne peut plus le toucher.
+```
+
+**Points de vigilance issus des contraintes réelles :**
+
+| Contrainte | Ce qu'elle impose |
+|---|---|
+| `document_vente.client_id NOT NULL` | Le « client technique repris non identifié » de la §2.4 n'est pas une commodité, c'est une **obligation**. Il doit être créé en phase 3, avant tout document |
+| `client_designation_figee`, `langue_figee`, `adresse_facturation_figee` (jsonb) `NOT NULL` | À **fabriquer** depuis la fiche client au moment de l'import, pas depuis le document source (qui ne les porte généralement pas). ⚠️ Perte à annoncer : l'adresse figée sur une facture reprise est l'adresse **actuelle** du client, pas celle imprimée à l'époque. Si le PDF d'origine existe, il fait foi (`D-04`) |
+| `document_vente.site_id NOT NULL` | Sur un garage mono-site, trivial. Sur un multi-site, le site d'émission doit être déterminé — s'il n'est pas dans le source, un seul site par défaut, décidé et journalisé |
+| `document_vente_taux_tva_doc_reprise_chk` | `taux_tva_pourmille` au niveau document n'est autorisé **que** si `tva_non_ventilee = true` **et** `origine = 'reprise'`. C'est exactement le cas « TVA globale non ventilée » de la §2.4 : la base l'a prévu |
+| `type_ligne_document` contient `'ecart_reprise'` | L'écart Σlignes ≠ total (§4.6, `N-06`) a une **ligne dédiée et visible**, plus une colonne `ecart_reprise_centimes` au niveau document. L'écart n'est ni absorbé ni caché |
+| `ligne_document.taux_tva_pourmille NOT NULL` et `date_prestation NOT NULL` | Une ligne sans taux ni date n'existe pas. Sur un document à TVA non ventilée : soit on n'importe **aucune** ligne (entête + PDF seuls, §2.4), soit on importe les lignes avec le taux du document. Ne pas mélanger les deux au sein d'un même lot |
+| `ligne_document_mode_ttc_lot_pilote_chk` | `mode_calcul_tva = 'ttc'` obligatoire au lot pilote. Un source qui raisonne en HT doit être converti **à l'import**, avec le contrôle Σ = total |
+| `regime_tva` contient `'marge'` | Prévu pour « documents repris antérieurs à 2018 (imposition de la marge, abrogée au 01.01.2018) ». Le régime existe pour l'historique — l'utiliser plutôt que de forcer `'normal'` |
+| `document_vente_numero_origine_uk` | Unique `(tenant_id, type_document, numero_origine)`. **C'est l'idempotence de l'import garantie par la base** : un numéro source ne peut pas être importé deux fois, même si `correspondance_reprise` est perdue |
+| `document_vente_numero_uk` | Unique `(tenant_id, type_document, numero)` **sans distinction d'origine** : la non-collision entre numéros repris et numéros DFA est structurelle, comme demandé en §8.2 |
+| Avoir repris | `document_vente_avoir_facture_annulee_chk` (facture obligatoire), `document_vente_avoir_motif_emis_chk` (motif obligatoire à l'émission), `document_vente_signe_avoir_chk` (**tous les totaux ≤ 0**). Un source qui stocke les avoirs en positif doit être **inversé**, et le motif absent devient `motif_avoir = 'autre'` + `motif_avoir_libre` explicite |
+| `bulletin_paiement.motif` contient `'creance_reprise'` | Les créances ouvertes reprises peuvent recevoir un bulletin de versement QR sans être confondues avec une relance ordinaire |
+
+### 10.5 Ordre de réparation repris — le trou identifié
+
+`ordre_reparation` (`0008_atelier.sql`) porte `numero text NOT NULL` avec
+`ordre_reparation_tenant_numero_uk unique (tenant_id, numero)`, mais **ni colonne `origine`, ni
+colonne `numero_origine`**, à la différence de `document_vente`.
+
+Conséquence : un OR repris n'a pas d'endroit où déposer son numéro d'origine sans occuper
+`numero`, c'est-à-dire sans entrer dans la même série que les OR que DFA va émettre — ce que
+`D-23` interdit pour les documents et qui pose le même problème ici (les OR ne sont pas des
+pièces comptables, mais le garagiste les cite au téléphone et les retrouve sur ses fiches).
+
+Trois issues, par ordre de préférence :
+
+1. **Aligner `ordre_reparation` sur `document_vente`** : migration *expand* ajoutant
+   `origine public.origine_document NOT NULL DEFAULT 'dfa'` et `numero_origine text NULL`, avec
+   l'index unique correspondant. Le coût est **nul aujourd'hui** (aucune donnée en production) et
+   élevé après la première bascule. ⚠️ **À VALIDER AVEC @laupernoe** — c'est une demande à adresser à
+   `expert-database`, hors périmètre de ce document.
+2. **Préfixer** les numéros d'OR repris (`R-2019-0042`) dans `numero`. Fonctionne, ne casse rien,
+   mais brouille la lecture et rend le tri chronologique faux.
+3. **Ne pas reprendre les OR** et se contenter des factures (§3, `D-08`). Défendable si le garage
+   consulte peu son historique atelier — c'est précisément ce que mesure `QG-04`.
+
+Autres contraintes d'un OR repris, s'il est repris : `site_id`, `client_id`, `vehicule_id`,
+`client_designation_figee`, `adresse_facturation_figee`, `conditions_figees` sont **tous
+`NOT NULL`** ; `statut` prend directement `'cloture'` (aucun trigger `BEFORE INSERT` ne l'interdit,
+à la différence de `document_vente`) ; le trigger `ordre_reparation_verrouiller_figes` interdit de
+réécrire les valeurs figées ensuite ; `ligne_or.origine` prend `'commandee'` faute de mieux
+(§2.5) et `payeur` prend `'client'`.
+
+### 10.6 `annuler-lot` — correction de la §5.5
+
+La §5.5 annonce qu'`importer annuler-lot <id>` « supprime les entités créées par ce lot ».
+**C'est impossible avec le rôle `dfa_app`** : `revoke delete … from dfa_app` est posé sur chaque
+table métier, avec une assertion de fin de migration qui fait échouer la migration si le droit
+réapparaît. Seule `ligne_document` accepte un `DELETE` (lignes de brouillon).
+
+La commande doit donc être redéfinie :
+
+| Portée | Ce que `annuler-lot` peut réellement faire |
+|---|---|
+| **Documents non encore émis** (brouillons) | `statut = 'abandonne'` (transition autorisée), suppression des `ligne_document` |
+| **Documents émis** | **Rien.** Un document émis, même repris, ne s'annule que par avoir (`D-24`). Il n'y a pas de retour en arrière |
+| **Clients** | `statut = 'inactif'`. La fiche reste. Le numéro reste consommé |
+| **Véhicules** | `statut = 'archive'` + `motif_archivage`. La fiche reste |
+| **Relevés km, consentements, récapitulatifs TVA** | **Rien** : append-only |
+
+**Conséquence opérationnelle, et elle est structurante :** la mise au point d'un import ne se fait
+**jamais** par annulation, mais par **re-création du tenant bac à sable**. La procédure de mise au
+point est « je détruis le tenant `<garage>-bac` et je rejoue l'import complet », et elle doit être
+assez rapide (`pnpm db:migrate` + import) pour être exécutée dix fois. `annuler-lot` reste utile
+pour reprendre un lot interrompu en cours de route, pas pour défaire une bascule.
+
+Corollaire pour le jour J : **la marche arrière n'est pas une suppression dans DFA** (§13.4).
+
+### 10.7 Verdict sur `detection-doublons.ts`
+
+`apps/api/src/clients/detection-doublons.ts` implémente `detecterDoublons(tx, tenantId, criteres)`
+— quatre critères exacts après normalisation (`ide` = 1.0, `email` = 0.9, `telephone` = 0.8,
+`nom + NPA` = 0.6), maximum 5 candidats par critère, tri par score décroissant.
+
+**Sert-il à la reprise ? Partiellement, et pas là où on l'attend.**
+
+| Usage | Verdict |
+|---|---|
+| **Produire la « liste de fusion à traiter » après l'import** (`D-21`) | ✅ **Oui, et c'est exactement le bon outil.** Ses critères correspondent aux règles « fusion automatique proposée » de la §4.3, sa prudence (égalité stricte, jamais de similarité floue `pg_trgm %`) correspond à la consigne conservatrice de la reprise, et son score permet de trier la liste par valeur |
+| **Dédoublonner le fichier source avant insertion** | ❌ **Non.** Il compare un candidat aux clients **déjà en base**. Il ne voit pas deux lignes du fichier source qui sont doublons entre elles tant qu'aucune des deux n'est insérée. Or c'est le cas dominant à l'import : les 600 doublons sont **dans le fichier**, pas entre le fichier et la base |
+| **Passer 8 000 clients** | ❌ **Non, tel quel.** La fonction fait jusqu'à 4 requêtes par client appelé — soit ~32 000 allers-retours pour un fichier moyen. Ce n'est pas un défaut de conception : elle est écrite pour le comptoir (une fiche en cours de saisie), pas pour un lot |
+| **Le critère `nom + NPA`** | ⚠️ Il joint `client_adresse` (`type = 'principale' and actif`). Pendant l'import, si les adresses sont écrites après les clients (phase 3), ce critère **ne remonte rien**. Il faut écrire client + adresse dans la même transaction, ou lancer la détection après la phase 3 complète |
+
+**Ce qu'il faut en plus — et ce qu'il ne faut pas dupliquer :**
+
+Un **dédoublonnage ensembliste sur le staging**, en une requête `GROUP BY` sur
+`reprise_ligne_source`, appliquant les **mêmes clés normalisées** que `detecterDoublons` — IDE,
+`lower(email)`, téléphone E.164, `normaliser_recherche(nom) + NPA`. Le point important est de
+réutiliser **la fonction SQL `normaliser_recherche()`** (posée en `0003`) et non de réécrire une
+normalisation en TypeScript : deux normalisations différentes produiraient deux vérités, et le
+garagiste verrait des candidats à fusion qui ne se retrouvent pas à la recherche.
+
+Les exclusions de la §4.3 (e-mails génériques, téléphone du garage, fiches « comptoir » /
+« client de passage ») sont **absentes** de `detecterDoublons`, et c'est normal : au comptoir, un
+faux candidat se rejette d'un coup d'œil. À l'import, une clé de regroupement sur `info@garage.ch`
+fusionnerait des centaines de fiches. **La liste d'exclusion est donc une donnée d'entrée du lot
+d'import, construite avec le garagiste**, pas une constante du code.
+
+---
+
+## 11. Pièges de correspondance — les cas du terrain suisse
+
+> Chaque cas ci-dessous est décrit par : ce qu'on observe, ce que la base fait si on ne fait rien,
+> et la règle retenue. Les cas sont réels et récurrents ; les **volumes** attendus ne le sont pas
+> et devront venir du profilage (§1.3).
+
+### 11.1 Le VIN saisi à la main
+
+**Ce qu'on observe.** Le VIN est recopié depuis le permis de circulation, à la main, souvent par
+téléphone. Les confusions constantes : `O`↔`0`, `I`↔`1`, `Q`↔`0`, `S`↔`5`, `B`↔`8`. On voit aussi
+des VIN tronqués aux 10 derniers caractères (habitude d'un ancien logiciel qui limitait le champ),
+des VIN avec des espaces tous les 4 caractères, et des VIN qui sont en fait le **numéro de moteur**.
+
+**Ce que fait la base.** `vehicule_vin_format_chk` ne contrôle **que** les VIN de 17 caractères :
+`vin is null or length(vin) <> 17 or vin ~ '^[A-HJ-NPR-Z0-9]{17}$'`. Donc :
+
+- VIN de 17 caractères contenant un `O` ⇒ `INSERT` **rejeté**, le chargeur s'arrête.
+- VIN de 10 caractères (tronqué) ⇒ **accepté sans broncher**, et il devient une clé de
+  déduplication silencieusement fausse.
+
+**Règle retenue.**
+
+1. Normaliser d'abord ce qui est sûr : `upper()`, suppression des espaces, des tirets et des points.
+2. **Ne jamais transliterer `O`→`0` automatiquement.** Un VIN corrigé à tort est pire qu'un VIN
+   absent : il devient une clé, et il rattache le mauvais véhicule au mauvais client. La correction
+   `O`→`0` est **proposée** dans la liste de nettoyage, appliquée par un humain.
+3. VIN de 17 caractères invalide ⇒ `vin = NULL`, `identification_incomplete = true`, valeur brute
+   conservée dans `reprise_ligne_source` **et** recopiée en `client_note`/note véhicule pour rester
+   visible au comptoir, anomalie `avertissement`.
+4. VIN de longueur ≠ 17 ⇒ accepté (la base l'accepte : véhicules d'avant 1981, machines,
+   remorques), mais **jamais utilisé comme clé de déduplication** s'il fait moins de 17 caractères.
+   Clé de repli : `plaque active + marque + modèle` (§4.4).
+5. Un VIN identique sur deux véhicules actifs déclenche `vehicule_vin_actif_uk`. **Trancher avant
+   l'insert**, jamais après : celui qui porte le document le plus récent reste `actif`, l'autre
+   passe `archive` + `motif_archivage = 'doublon'`. L'index étant **partiel** (`where … statut =
+   'actif'`), l'archivé libère le VIN — c'est exactement pour ce cas que RM-32 l'a rendu partiel.
+
+### 11.2 La plaque réattribuée
+
+**Ce qu'on observe.** En Suisse, la plaque suit le **détenteur**, pas le véhicule. Un client
+change de voiture et garde `VS 12345`. Dans un DMS ancien, il n'y a qu'un champ plaque par
+véhicule, écrasé ou laissé tel quel : on retrouve donc la même plaque sur deux, parfois trois
+véhicules du fichier, sans aucune date pour les départager.
+
+**Ce que fait la base.** `vehicule_plaque_collision_excl` — EXCLUDE GiST sur
+`(tenant_id, normaliser_recherche(valeur), daterange(du, au, '[)'))`, avec la levée
+`where (not interchangeable and not professionnelle and pays = 'CH')`. Et `du date NOT NULL`.
+
+Donc si le chargeur écrit naïvement `du = date_import, au = NULL` pour les deux véhicules :
+le premier passe, **le second est rejeté**. Le chargeur s'arrête sur le véhicule qui se trouve en
+second dans le fichier — c'est-à-dire un véhicule choisi par le hasard de l'ordre de tri, ce qui
+rend le message d'erreur trompeur.
+
+**Règle retenue** (elle raffine la §4.4, dont le point « `du = null` » est impossible) :
+
+```
+Entrée : plaques[] = { véhicule, valeur, premier_doc, dernier_doc }  -- issus de la phase 2
+Grouper par normaliser_recherche(valeur) :
+
+  Cas 1 — un seul véhicule porte la plaque
+      du = premier_doc(véhicule)  ou, à défaut, date_1re_circulation, ou date de bascule
+      au = NULL   (plaque active)
+
+  Cas 2 — plusieurs véhicules, dates de documents disjointes  ← le cas normal
+      trier par premier_doc
+      pour chaque véhicule sauf le dernier :
+          du = premier_doc, au = premier_doc(véhicule suivant)   -- intervalles jointifs
+          → la plaque reste cherchable, en « correspondance historique » (RM-17)
+      dernier véhicule : du = premier_doc, au = NULL              -- plaque active
+
+  Cas 3 — plusieurs véhicules, dates chevauchantes ou absentes
+      AUCUNE plaque n'est écrite. Anomalie BLOQUANTE, une par groupe.
+      Le garagiste tranche avant le jour J : « laquelle de ces deux voitures roule aujourd'hui ? »
+      C'est une question à laquelle il répond en deux secondes et à laquelle aucun algorithme
+      ne peut répondre.
+
+  Cas 4 — plaques interchangeables ou professionnelles (plaques U du garage)
+      interchangeable = true / professionnelle = true → l'EXCLUDE ne s'applique pas.
+      ⚠️ Ces cas doivent être IDENTIFIÉS AVEC LE GARAGISTE AVANT l'import : sans le drapeau,
+      l'algorithme les traite comme des collisions (cas 2 ou 3) et clôture une plaque légitime.
+```
+
+**Ce que le garagiste doit savoir**, et qui se dit en une phrase : « la recherche par plaque
+retrouvera aussi les véhicules qui l'ont portée avant — c'est voulu, et c'est marqué comme
+historique. » Sans cette phrase, la première recherche qui remonte deux voitures passe pour un bug.
+
+### 11.3 Le client en double dans le système d'origine
+
+**Ce qu'on observe, dans l'ordre de fréquence.**
+
+| Motif du doublon | Signature | Fusionnable automatiquement ? |
+|---|---|---|
+| Le client a déménagé et un employé a recréé une fiche | même nom, même téléphone, NPA différent | Oui si téléphone E.164 identique (score 0.8) |
+| Saisi une fois par le comptoir, une fois par l'atelier | même nom, une fiche avec véhicules, l'autre vide | Oui — la fiche vide est absorbée |
+| Madame et Monsieur, même ménage, même voiture | noms différents, même adresse, même véhicule | ❌ **Non. Ce ne sont pas des doublons.** L'écraser serait une faute |
+| Le nom mal orthographié une fois (`Müller` / `Mueller` / `Muller`) | e-mail identique | Oui si l'e-mail n'est pas générique |
+| Reprise ratée d'un système antérieur (`QG-01`) | doublons **systématiques**, souvent une fiche sur deux | ⚠️ Signal d'alerte : si le taux de doublons dépasse 15 %, la cause n'est pas la saisie, c'est une migration précédente. Le traitement change : on repart du fichier le plus ancien |
+| Entreprise saisie une fois au nom du patron, une fois à la raison sociale | `Rossier Jean` et `Rossier SA`, même adresse, même IDE parfois | ❌ **Jamais automatiquement** — voir §11.4 |
+
+**Ce que fait la base.** Rien ne l'empêche : `client` n'a **aucune** contrainte d'unicité métier
+(seulement `(tenant_id, numero)`). Les doublons entrent tous. La sanction est ailleurs : ils sont
+irréversibles, puisque `dfa_app` n'a pas `DELETE` sur `client` et que
+`client_fusionne_inactif_chk` impose le statut `inactif` sur la fiche absorbée. **Un doublon
+importé est un doublon à vie**, au mieux désactivé.
+
+**Règle retenue.** Le dédoublonnage se fait **sur le staging, avant insertion** (§10.7), avec :
+
+- **fusion automatique** pour les identités fortes (IDE, e-mail non générique, mobile E.164) — mais
+  **validée en lot par le garagiste avant le jour J**, pas au moment de l'import ;
+- **rien** pour tout le reste : les candidats entrent tels quels et sortent en liste triée par
+  valeur (nombre de véhicules, puis nombre de documents, puis montant cumulé), traitée dans DFA
+  après la bascule à raison de 10 par jour (`D-21`).
+
+Le calcul économique est simple et se dit au garagiste : fusionner à tort deux clients coûte une
+fiche irrécupérable et un client mécontent ; ne pas fusionner deux doublons coûte 30 secondes au
+comptoir, une fois.
+
+### 11.4 L'entreprise saisie comme un particulier
+
+**Ce qu'on observe.** C'est le piège le plus coûteux, parce qu'il est **irréversible par
+construction**. Les formes rencontrées :
+
+- `Garage Rossier` saisi avec `nom = Rossier`, `prenom = Garage` ;
+- une raison sociale complète dans le champ `nom` d'une fiche typée particulier ;
+- un garant/leaser (`Multilease AG`) enregistré comme particulier parce que le champ type
+  n'existait pas dans le source ;
+- une **commune** ou un **service de l'État** (`Commune de Bagnes`, `Service des automobiles`) —
+  toujours une entreprise pour la facturation, jamais un particulier ;
+- une raison sociale **tronquée** à 25 ou 30 caractères par l'ancien logiciel
+  (`Transports International de la Bro`), ce qui casse les heuristiques de suffixe.
+
+**Ce que fait la base.** `client.type` est protégé par le trigger `client_verrouiller_type`
+(`ZDFA3`) : **il ne se corrige pas**. Se tromper coûte une nouvelle fiche + une fusion — c'est-à-dire
+un doublon volontaire, avec le numéro consommé, la fiche absorbée désactivée à vie, et tous les
+documents émis entre-temps qui portent la mauvaise désignation figée
+(`document_vente.client_designation_figee`, non modifiable après émission).
+
+**Règle retenue** (elle précise la §4.2 avec les contraintes réelles) :
+
+1. **IDE valide** ⇒ `entreprise`, certain. Attention : l'IDE doit d'abord passer la normalisation
+   du format (§10.2), sinon la base le rejette et on perd le meilleur signal disponible.
+2. **Suffixe ou préfixe juridique** : `SA`, `S.A.`, `Sàrl`, `SARL`, `AG`, `GmbH`, `SNC`, `Sagl`,
+   `SAGL`, `Ltd`, `Ets`, `Sté`, `Cie` — **en fin de chaîne**, pour éviter de typer `Sarah Dupont`
+   en entreprise. Et par mot entier : `AGATHE` n'est pas une `AG`.
+3. **Vocabulaire d'activité en tête** : `Garage`, `Carrosserie`, `Transports`, `Boulangerie`,
+   `Commune de`, `Ville de`, `Bourgeoisie de`, `Hôpital`, `Fondation`, `Association`, `Paroisse`,
+   `EMS`, `Auto-école`, `Taxi`.
+4. **Signal négatif** : civilité `M.`/`Mme`/`Herr`/`Frau`/`Sig.` **et** prénom non vide ⇒
+   `particulier`.
+5. **Signal de volume** : un « particulier » qui porte **plus de 3 véhicules** ou plus de 40
+   factures est presque toujours une entreprise. C'est le meilleur détecteur du lot, et il n'est
+   disponible qu'après la phase 2 — donc l'arbitrage du type se fait **après le profilage des
+   documents**, pas à la lecture du fichier client.
+6. Défaut : `particulier` + anomalie `avertissement`.
+
+**Et surtout — la seule mesure qui protège vraiment** : la liste des cas douteux (typiquement 2 à
+5 % du fichier, plus le lot du signal 5) sort **en S-4**, sur papier, triée par nombre de
+véhicules décroissant, et le garagiste la relit. Vingt minutes de son temps contre des fiches
+irrécupérables : c'est le meilleur rapport du projet, et c'est le genre de tâche qu'il accepte
+volontiers parce qu'il reconnaît ses clients.
+
+### 11.5 Les cas plus discrets, qui mordent quand même
+
+| Cas | Ce qui se passe | Règle |
+|---|---|---|
+| **Plaque française ou allemande** (garage frontalier) | `vehicule_plaque.pays` par défaut `'CH'`, et l'EXCLUDE ne s'applique que si `pays = 'CH'` | Détecter le format (`AB-123-CD` = FR, `M-AB 1234` = DE) et poser `pays` correctement. Une plaque étrangère typée `CH` peut entrer en collision avec une plaque suisse réelle |
+| **Le même véhicule sous deux plaques cantonales** (déménagement VD → VS) | Deux fiches véhicule dans le source | Fusion candidate sur le VIN. Si pas de VIN : deux fiches, à fusionner par le garagiste |
+| **Un client qui est aussi fournisseur** (garage voisin, dépanneur) | Deux fiches dans le source, l'une côté client l'autre côté fournisseur | DFA n'a pas de table fournisseur au lot pilote : ne reprendre que la face client |
+| **Le compte « divers » / « client comptoir »** | Une fiche unique portant des centaines de documents | ✅ **La reprendre telle quelle**, et l'exclure de toutes les clés de dédoublonnage. Elle est légitime et le garage s'en sert tous les jours |
+| **Véhicule interne du garage** (voiture de courtoisie, véhicule de démonstration) | Détenteur = le garage lui-même | Créer la fiche client du garage et rattacher. Sinon les OR internes n'ont pas de client, et `ordre_reparation.client_id` est `NOT NULL` |
+| **Deux tenants dans un même fichier** (installation mutualisée, groupe de garages) | — | **Arrêt immédiat** (`R-08`). Le filtrage se fait côté source. Le `tenant_id` ne vient jamais du fichier (§5.4) |
+
+---
+
+## 12. La ligne de coupe et sa preuve
+
+### 12.1 La ligne de coupe, en une page pour le garagiste
+
+La §3 dit ce qu'on ne reprend pas et pourquoi. Voici la **version qui se présente**, celle qui
+tient sur une feuille et qu'on lit à voix haute avant de signer.
+
+> **On reprend, sans discussion :**
+> vos clients actifs, tous leurs véhicules, qui possède quoi aujourd'hui, **toutes vos factures et
+> tous vos avoirs**, vos impayés, les travaux que vos clients ont refusés et qui restent à faire,
+> et vos rendez-vous à venir.
+>
+> **On ne reprend pas, et voici pourquoi :**
+>
+> | Ce qu'on laisse | Pourquoi | Où c'est, si vous en avez besoin |
+> |---|---|---|
+> | Les fiches de clients que vous n'avez pas vus depuis 5 ans | Elles encombrent la recherche au comptoir. Vous en avez ~5 000 sur 8 000 | Archive, retrouvable en 20 minutes. Et si le client revient, on refait sa fiche en 30 secondes — avec sa vraie adresse |
+> | L'historique atelier de plus de 2 ans | Vous ne l'ouvrez presque jamais, et les factures, elles, sont toutes là | Archive + les factures, qui contiennent le détail des travaux |
+> | Les devis abandonnés | Aucune valeur : ni légale, ni commerciale. La voiture a souvent changé de mains | Rien |
+> | Les rendez-vous passés | Ils sont déjà devenus des réparations ou des absences | Rien |
+> | Le stock de pièces (les quantités) | Un stock repris est faux dès le lendemain. **Toutes** les migrations qui le reprennent finissent par un inventaire | Inventaire le samedi de la bascule. Vos références et vos prix, eux, sont repris |
+> | Les pointages de vos mécaniciens | Vos indicateurs ne seraient pas comparables, et vous les croiriez vrais | Vos indicateurs repartent au jour J. On garde une copie des anciens |
+> | Les consentements publicitaires | Un consentement doit se prouver. Repris sans preuve, il est inventé, et c'est vous qui êtes exposé | On les redemande — c'est aussi l'occasion de nettoyer votre liste |
+>
+> **Ce que ça vous coûte concrètement** : le mardi qui suit la bascule, si un client de 2016 se
+> présente, vous refaites sa fiche pendant qu'il vous parle. Ça arrive une à deux fois par mois.
+>
+> **Ce que ça vous rapporte** : une recherche qui trouve du premier coup, des compteurs justes,
+> une migration qui coûte moitié moins et qui se vérifie vraiment.
+
+### 12.2 L'argument qui emporte la décision
+
+Ce n'est pas le coût, c'est **la recette**. On ne vérifie pas 400 000 lignes ; on vérifie 20 000.
+Un garagiste qui a vérifié son fichier fait confiance à son outil. Un garagiste à qui on a promis
+« tout est là » et qui trouve une anomalie le troisième jour ne fait plus confiance à rien —
+et il a raison, parce que **personne** ne peut lui dire ce qui est juste et ce qui ne l'est pas.
+
+La phrase à dire, mot pour mot : *« Je préfère vous livrer 3 000 fiches dont je réponds que 8 000
+dont je ne réponds pas. »*
+
+### 12.3 Comment on prouve que rien n'est perdu
+
+**L'équation de conservation.** C'est le seul dispositif de preuve qui tienne. Pour chaque entité,
+toute ligne source atterrit dans **exactement un** de trois bacs, et les trois se somment au total
+source :
+
+```
+lignes_source  =  importées  +  écartées_par_règle  +  rejetées_en_anomalie
+                                     (D-07, D-08…)        (bloquantes)
+```
+
+Trois exigences, et elles ne se négocient pas :
+
+1. **Aucun bac « autre », aucun « non expliqué ».** Un écart de 3 lignes non attribué invalide le
+   rapport entier, quelle que soit sa taille. Ce n'est pas une question de proportion : c'est la
+   preuve qu'on ne sait pas ce qui se passe.
+2. **Chaque bac est un fichier ouvrable**, pas un nombre. `ecartes-clients-<lot>.csv` contient les
+   5 096 fiches écartées, avec nom, dernière date et motif. Le garagiste peut l'ouvrir dans Excel,
+   chercher un nom, et constater lui-même que c'est bien un client qu'il ne voit plus.
+3. **Le comptage source se fait sur `reprise_ligne_source`**, le staging verbatim, **jamais** en
+   réinterrogeant le système d'origine. Deux raisons : le système source continue de vivre entre
+   l'extraction et la réconciliation (une facture de plus, un client corrigé) et les écarts qui en
+   résultent sont indémêlables ; et le staging porte l'empreinte SHA-256 du fichier, donc la
+   preuve que c'est bien ce fichier-là qui a été compté.
+
+**Les trois niveaux de preuve, dans l'ordre où ils convainquent.**
+
+| Niveau | Ce qu'il prouve | Ce qu'il ne prouve pas | Qui le fait |
+|---|---|---|---|
+| **1. Comptage** | Qu'aucune ligne n'a disparu en route | Que le contenu est juste | Automatique (§6.6) |
+| **2. Somme** | Que les montants n'ont pas été déformés | Que les montants sont sur les bons clients | Automatique |
+| **3. Nominatif** | Que le système dit la vérité sur *ses* clients à *lui* | Rien d'autre — mais c'est le seul qui emporte l'adhésion | **Le garagiste**, `CR-01` → `CR-12` |
+
+**Les sommes à faire tomber au centime**, et par quel chemin :
+
+| Somme | Source | Destination | Tolérance |
+|---|---|---|---|
+| Total TTC des factures, **par année civile** | `Σ` du staging, groupé sur l'année de la date d'émission | `Σ document_vente.total_ttc_centimes where origine='reprise' and type_document='facture'`, groupé par `exercice` | **0 centime** |
+| Total des avoirs, par année | idem | idem, `type_document='avoir'`, valeurs **négatives** | 0 centime |
+| Créances ouvertes (solde) | `Σ` des soldes source | `Σ document_vente.solde_centimes` | 0 centime |
+| Écart Σlignes − total, par document | calculé au chargement | `Σ document_vente.ecart_reprise_centimes` | **doit être égal**, et chaque document concerné est listé |
+| Nombre de détenteurs courants | 1 par véhicule repris | `count(*) from vehicule_detention where au is null` | **exactement le nombre de véhicules** |
+
+Le dernier contrôle est celui qui attrape les erreurs de reconstruction de détention (§9.3), et il
+ne coûte qu'une requête.
+
+**Le contrôle qui vaut tous les autres, et qui ne vient pas des données** : `CR-07`, le chiffre
+d'affaires d'un mois passé, comparé à celui de la **fiduciaire** — c'est-à-dire à une source
+tierce qui n'a rien à voir avec la migration. Écart 0, ou on ne bascule pas.
+
+**Trois chiffres à faire dire au garagiste avant de lui montrer quoi que ce soit** — et à noter
+sur un papier, devant lui, avant l'import : combien de clients il pense avoir vus l'an dernier,
+son chiffre d'affaires de l'an dernier, et combien de voitures il pense suivre. Quand les trois
+chiffres du rapport tombent dans son ordre de grandeur, la conversation est terminée en deux
+minutes. Quand ils n'y tombent pas, **c'est souvent lui qui a raison sur le sens de l'écart** et
+c'est une information de première valeur sur le fichier source.
+
+---
+
+## 13. Runbook du jour J et marche arrière
+
+> Le calendrier de 8 semaines est en §6.2 ; les critères GO/NO-GO en §6.3. Cette section est le
+> **déroulé horaire** du week-end de bascule et la procédure de retour arrière.
+
+### 13.1 La réponse à « quelle fenêtre d'indisponibilité ? »
+
+**Zéro minute le lundi matin.** Un garage qui ouvre à 7h30 a son premier client à 7h25, avec sa
+voiture, sa clé et son problème. Il n'existe aucune fenêtre acceptable à ce moment-là, pas même
+dix minutes.
+
+L'indisponibilité est donc **entièrement contenue dans le week-end**, et elle porte sur l'**ancien**
+système, pas sur le nouveau :
+
+| Moment | Ancien système | DFA |
+|---|---|---|
+| Vendredi jusqu'à 17h30 | écriture normale | fermé |
+| Vendredi 18h00 → dimanche | **lecture seule** | import en cours |
+| Dimanche 18h00 | lecture seule | **opérationnel et vérifié** |
+| Lundi 7h30 | lecture seule (consultation, 30 jours) | seul système en écriture |
+
+**La conséquence à assumer** : le garage ne peut rien facturer entre vendredi 18h et lundi 7h30.
+C'est acceptable — la plupart des garages sont fermés — **à condition** que la permanence du
+samedi matin, si elle existe, soit prévue : soit elle n'écrit rien (bons de commande manuscrits
+saisis le lundi), soit on décale la bascule. `QG-14` et `QG-16` doivent répondre à ça.
+
+**La règle qui rend tout ça tenable, et c'est la plus importante de la section** :
+
+> **Le lundi matin n'est pas une fenêtre technique. C'est une décision GO/NO-GO sur un import
+> déjà terminé, déjà vérifié et déjà sauvegardé le dimanche soir.**
+
+Si quoi que ce soit reste à faire le lundi matin, la bascule est déjà ratée.
+
+### 13.2 Le déroulé, heure par heure
+
+**Vendredi (J-3) — arrêt de l'écriture**
+
+| Heure | Qui | Quoi | Vérification |
+|---|---|---|---|
+| 17h30 | Réceptionnaire | Dernière facture émise dans l'ancien système | Numéro noté **sur papier** — c'est la référence du calage des compteurs |
+| 17h45 | Réceptionnaire | Encaissements du jour clôturés | Ruban de caisse imprimé et conservé |
+| 18h00 | @laupernoe | Ancien système **en lecture seule** | Un utilisateur tente une écriture et échoue. Testé, pas supposé |
+| 18h15 | @laupernoe | Sauvegarde complète de l'ancien système + empreinte SHA-256 | **Restauration testée** sur le poste isolé |
+
+**Samedi (J-2) — inventaire et extraction**
+
+| Heure | Qui | Quoi |
+|---|---|---|
+| 08h00–12h00 | Garage + @laupernoe | **Inventaire physique des pièces** (`D-14`), saisi directement dans DFA |
+| 13h00 | @laupernoe | Extraction finale depuis la **copie restaurée**, jamais depuis la production |
+| 14h00 | @laupernoe | Contrôle d'intégrité des fichiers : empreintes, nombres de lignes, encodage (§4.1) |
+| 15h00 | @laupernoe | Chargement en staging (`reprise_ligne_source`) + **phase 2 : profilage des dates** (§9.4) |
+| 16h00 | @laupernoe | **Point de contrôle n°1** : les compteurs du staging correspondent-ils à ceux de la répétition générale de S-1 ? Un écart de plus de 2 % = quelque chose a changé, on s'arrête et on comprend |
+
+**Dimanche (J-1) — import et recette**
+
+| Heure | Qui | Quoi | Si ça échoue |
+|---|---|---|---|
+| 08h00 | @laupernoe | Sauvegarde de la base DFA **avant** import (tenant vide, paramétrage saisi) | — |
+| 08h30 | @laupernoe | Import phases 3 → 12 (§9.2), transactions par blocs de 500 | Reprise au dernier bloc via `derniere_ligne_traitee` |
+| 12h00 | @laupernoe | **Point de contrôle n°2** : anomalies bloquantes = 0 ? | **Si non : NO-GO. On arrête.** L'ancien système repasse en écriture lundi matin, sans autre conséquence que le report |
+| 13h00 | @laupernoe | Phase 13 : calage des compteurs sur le numéro noté vendredi | Vérifier : `compteur_document` ≥ max des numéros repris, pour **chaque** type et **chaque** année |
+| 13h30 | @laupernoe | Rapport de réconciliation (§6.6, §12.3) | Écart ≠ 0 sur un montant ⇒ **NO-GO** |
+| 14h00–16h00 | **Le garagiste** | `CR-01` → `CR-12` (§6.4), sur son écran, avec ses exemples | Un contrôle échoué ⇒ analyse. Deux ⇒ NO-GO |
+| 16h30 | @laupernoe | Sauvegarde de la base DFA **après** import + **restauration testée** | Critère 6 du GO |
+| 17h00 | @laupernoe | Constitution de l'archive froide (`D-20`), chiffrée, empreinte, procédure de consultation écrite | — |
+| **18h00** | **@laupernoe + garagiste** | **Décision GO/NO-GO écrite et signée** | **Heure limite absolue.** Après 18h00 le dimanche, c'est NO-GO par défaut, quelle que soit la proximité du but. Un GO décidé à 22h par deux personnes fatiguées est le pire moment de tout le projet |
+
+**Lundi (J) — ouverture**
+
+| Heure | Qui | Quoi |
+|---|---|---|
+| 06h30 | @laupernoe | Sur place. Vérification de démarrage : API, base, sauvegarde de la nuit |
+| 06h45 | @laupernoe | **Test de fumée** : chercher un client, ouvrir un véhicule, ouvrir un OR, imprimer une facture reprise en PDF. 4 gestes, 5 minutes |
+| 07h00 | @laupernoe + garagiste | Confirmation de l'ouverture. Postes connectés, sessions ouvertes, imprimante testée |
+| 07h15 | Réceptionnaire | **Une réception à blanc** sur son propre véhicule, avant l'arrivée du premier client |
+| **07h30** | Tous | **Ouverture.** @laupernoe reste au comptoir, debout, toute la journée |
+| 12h00 | @laupernoe | Point mi-journée : journal des incidents relu |
+| 17h00 | @laupernoe + réceptionnaire | Point du soir. **Contrôle croisé** : total facturé du jour dans DFA vs ruban de caisse (§6.5) |
+
+**J+1 à J+5** : @laupernoe présent le mardi matin, joignable ensuite ; point quotidien à 17h ; contrôle
+croisé quotidien. Vigilance renforcée décrite en §6.5.
+
+### 13.3 Qui fait quoi — les quatre rôles
+
+| Rôle | Qui | Ce dont il répond | Ce qu'il ne fait **pas** |
+|---|---|---|---|
+| **Opérateur de bascule** | @laupernoe | Extraction, import, réconciliation, GO/NO-GO technique | Il ne coche **aucun** contrôle `CR-xx` à la place du garagiste |
+| **Référent garage** | le garagiste, ou le réceptionnaire désigné (`QG-15`) | La recette métier, la décision GO/NO-GO, la marche arrière | Il ne touche pas aux fichiers |
+| **Réceptionnaire** | celui qui ouvre le lundi | Les premiers gestes réels, le journal des incidents | — |
+| **Fiduciaire** | externe | Le chiffre de référence de `CR-07` | Elle n'a rien à valider, mais elle doit être **prévenue** de la date |
+
+**S'il n'y a pas de référent garage nommé, il n'y a pas de bascule.** C'est un critère de NO-GO à
+part entière, et il se vérifie en S-8, pas le vendredi soir.
+
+### 13.4 La marche arrière
+
+**Ce qu'elle n'est pas.** Ce n'est **pas** une suppression de données dans DFA. Elle est
+techniquement impossible (§10.6 : aucun `DELETE`, documents verrouillés après émission) et elle
+serait une mauvaise idée de toute façon : la base DFA du tenant est la **pièce à conviction** de ce
+qui s'est passé. Elle est conservée intacte, jamais effacée, jamais « nettoyée ».
+
+**Ce qu'elle est.** Le retour de l'écriture dans l'ancien système, plus la ressaisie de ce que DFA
+a produit entre-temps.
+
+**Les trois fenêtres, par coût croissant :**
+
+| Fenêtre | Coût réel | Décision |
+|---|---|---|
+| **Dimanche 18h (NO-GO avant ouverture)** | ~0. Rien n'a été émis dans DFA. L'ancien système repasse en écriture lundi matin, le garage ne s'aperçoit de rien | La seule marche arrière **gratuite**. C'est pour ça que l'heure limite de 18h existe |
+| **J → J+5** | Ressaisie des documents émis dans DFA. Un garage émet 15 à 40 factures par jour : 1 à 3 jours-homme au pire | Recevable. Les critères sont en §6.3 |
+| **Après J+5** | La ressaisie coûte plus cher que la correction, et l'ancien système a 5 jours de retard sur la réalité de l'atelier | **Non recevable.** On corrige dans DFA. Il faut le dire au garagiste **avant** le jour J, pas au moment où il le demande |
+
+**La procédure, dans l'ordre :**
+
+1. **Décision** par le référent garage, tracée (date, heure, motif, critère §6.3 déclenché).
+2. **Ancien système remis en écriture.** ⚠️ **Le mécanisme exact doit avoir été testé en S-1**, à
+   la répétition générale. « On remettra les droits » n'est pas une procédure : selon les
+   logiciels, la mise en lecture seule se fait par droits utilisateur, par attribut de fichier, ou
+   par arrêt d'un service — et toutes ne se défont pas aussi facilement.
+3. **DFA passe en lecture seule** pour le tenant (suspension des comptes utilisateurs, ou
+   `tenant.statut = 'suspendu'`). Aucune donnée n'est touchée.
+4. **Ressaisie dans l'ancien système** des documents émis par DFA pendant la fenêtre.
+5. **Réconciliation inverse** : les totaux ressaisis dans l'ancien système doivent égaler les
+   totaux de `document_vente where origine='dfa'` du tenant. Même exigence, écart 0.
+6. **Archive froide conservée**, ancien contrat toujours en cours (`R-01` — d'où la règle de ne
+   jamais résilier avant J+30).
+
+**Le point qui coince, et qu'il faut avoir tranché avant le jour J :**
+
+> Une facture émise dans DFA porte un numéro de la série du garage. Si on la ressaisit dans
+> l'ancien système, ce système doit accepter **le même numéro** — sinon la série a un trou ou un
+> doublon, et c'est un problème comptable, pas un problème informatique.
+
+Deux réponses possibles, à choisir **en S-3** et à écrire dans le plan :
+
+- **A** — L'ancien système permet de forcer un numéro : on ressaisit à l'identique. Propre.
+- **B** — Il ne le permet pas : chaque facture émise dans DFA est **annulée par un avoir dans
+  DFA** (elle garde son numéro et sa place dans la série, `annule_par_avoir`), et l'ancien système
+  émet une facture neuve avec son propre numéro. Le client reçoit deux documents et une
+  explication. Moins propre, mais comptablement défendable — et c'est la seule voie si l'ancien
+  système ne cède pas.
+
+⚠️ **À VALIDER AVEC @laupernoe** : le choix dépend du logiciel source et doit être vérifié, pas supposé.
+C'est typiquement une question à poser à l'éditeur (`QE-08`, à ajouter à la §7.2) ou à tester sur
+la copie restaurée pendant la répétition générale.
+
+---
+
+## 14. Zones aveugles — ce que seul le terrain peut donner
+
+> Tout ce qui suit est **inconnu**, et aucune analyse supplémentaire du dépôt ne le résoudra. Ce
+> sont les entrées manquantes du projet. Elles sont classées par ce qu'elles bloquent.
+
+### 14.1 Bloque l'écriture du premier chargeur
+
+| # | Ce qui manque | Comment l'obtenir | Sans ça |
+|---|---|---|---|
+| **Z-01** | **Un export réel**, de n'importe quel garage, de n'importe quelle entité | Une visite, méthode §1.2 | Les colonnes « rôle du champ source » de la §2 restent vides. Aucun code ne peut être écrit |
+| **Z-02** | Le **moteur de stockage** réel d'Auto-i et de Nextlane **chez ce garage-là** | §1.2 étapes A→C, deux indices croisés | On ne sait pas si l'extraction prend 2 heures ou 6 semaines (`R-02`) |
+| **Z-03** | L'**existence et le contenu d'une fonction d'export** dans le logiciel | Photographier les dialogues (§1.2 étape A) | On prépare une lecture directe de base là où trois clics suffisaient |
+| **Z-04** | Les **lignes de documents sont-elles exportables**, ou seulement les entêtes ? | `QE-04`, ou test sur un export réel | Le choix « entête + PDF » vs « document complet » (§2.4) reste ouvert, et il change la valeur perçue de toute la reprise |
+| **Z-05** | Le **format des numéros de facture** du garage | Une facture papier | Impossible de décider entre bascule au 1er janvier et calage de compteur (`D-23`) |
+
+### 14.2 Bloque le chiffrage et le périmètre
+
+| # | Ce qui manque | Comment l'obtenir | Sans ça |
+|---|---|---|---|
+| **Z-06** | Les **9 chiffres de profilage** par entité (§1.3) | Requêtes de profilage sur place | `D-07` (5 ans) et `D-08` (24 mois) sont des défauts proposés, pas des décisions. Le chiffrage est une devinette |
+| **Z-07** | Le **taux de doublons réel** | `group by` sur clés normalisées | On ne sait pas si le dédoublonnage est une demi-journée ou une semaine, ni si une reprise antérieure a raté (§11.3) |
+| **Z-08** | La **proportion de véhicules sans VIN** | `count(*) where vin is null or length(vin) <> 17` | La clé de correspondance véhicule n'est pas décidable |
+| **Z-09** | Le **nombre de plaques portées par plusieurs véhicules** | `group by plaque having count(distinct véhicule) > 1` | Le cas 3 de la §11.2 (anomalie bloquante) peut concerner 3 véhicules ou 300 |
+| **Z-10** | Combien d'années d'historique le garage **consulte vraiment** (`QG-04`) | Question ouverte, en face | La ligne de coupe (§12.1) n'a pas d'argument chiffré |
+| **Z-11** | Le **volume des pièces jointes** (Go) et leur valeur | Inventaire du répertoire (§1.2 étape B) | `D-17` n'est pas arbitrable |
+
+### 14.3 Bloque le calendrier
+
+| # | Ce qui manque | Comment l'obtenir | Sans ça |
+|---|---|---|---|
+| **Z-12** | Le **contrat de licence** : échéance, préavis, reconduction, réversibilité | Demander le PDF (§1.1) | La date de bascule peut être annoncée puis annulée (`R-01`) |
+| **Z-13** | Le **coût d'extraction** facturé par l'éditeur | `QE-02` | Un devis peut être invalidé par 3 000 CHF de frais surprise (`R-03`) |
+| **Z-14** | Le **délai de réponse réel** d'un éditeur à une demande d'export | Envoyer `QE-01` à un éditeur, maintenant | On planifie 8 semaines là où il en faut 16 |
+| **Z-15** | L'ancien système accepte-t-il de **forcer un numéro de facture** ? | Test sur la copie restaurée | La marche arrière (§13.4) n'a pas de procédure choisie |
+| **Z-16** | Le garage a-t-il une **permanence le samedi matin** ? | `QG-14`, `QG-16` | La fenêtre d'indisponibilité (§13.1) n'est pas validée |
+
+### 14.4 Bloque des décisions produit, hors périmètre de ce document
+
+| # | Question | Destinataire |
+|---|---|---|
+| **Z-17** | `ordre_reparation` doit-il recevoir `origine` + `numero_origine` comme `document_vente` ? (§10.5) | `expert-database` — **coût nul aujourd'hui, élevé après la première bascule** |
+| **Z-18** | Le numéro de client d'origine va-t-il dans `client.numero` ou dans `reference_externe` ? (`D-26`) | `expert-api` (la recherche doit couvrir le choix retenu) + @laupernoe |
+| **Z-19** | Une date d'expertise sans résultat : note, ou expertise inventée ? (`D-28`) | @laupernoe |
+| **Z-20** | Les tables de reprise (`lot_reprise`, `reprise_ligne_source`, `correspondance_reprise`, `reprise_anomalie`) et la colonne `origine_lot_id` ne sont **pas** en base. §5.2 et §5.3 restent des plans | `expert-database`, quand la première migration réelle sera engagée |
+| **Z-21** | Le module `apps/api/src/reprise/` n'existe pas (§5.1 est une conception) | `lead-backend`, après Z-01 |
+
+### 14.5 La séquence qui débloque le plus, dans l'ordre
+
+1. **Z-14** — envoyer une demande d'export à un éditeur **aujourd'hui**. C'est le seul élément dont
+   le délai se compte en semaines et qui ne dépend d'aucun travail préalable.
+2. **Z-01 + Z-06** — une visite, une fiche d'inventaire remplie, un échantillon de 20 lignes par
+   entité. Une demi-journée qui transforme la moitié de ce document en travail exécutable.
+3. **Z-12** — lire un contrat. Une heure, et ça peut décaler une bascule de six mois.
+4. **Z-17** — trancher la question de `ordre_reparation.numero_origine` tant qu'aucune donnée n'est
+   en production.
+
+Le reste attend, et c'est normal : **le code est la partie facile et la dernière**.

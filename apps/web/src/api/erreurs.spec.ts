@@ -101,7 +101,7 @@ describe('construireErreurApi / messageErreur', () => {
     }
   });
 
-  it('reconnaît les 53 codes de CODES_ERREUR sans jamais retomber sur le repli ERREUR_INTERNE (sauf lui-même)', async () => {
+  it('reconnaît tous les codes de CODES_ERREUR sans jamais retomber sur le repli ERREUR_INTERNE (sauf lui-même) — un échec pointe un code ajouté sans sa traduction erreurs:codes.<CODE>', async () => {
     await attendreI18nPret();
     for (const code of CODES_ERREUR) {
       const reponse = new Response(

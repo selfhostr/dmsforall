@@ -120,14 +120,26 @@ describe('routeur — protection par défaut', () => {
     expect(await screen.findByText('Retrouvez un client, un véhicule ou un ordre')).toBeInTheDocument();
   });
 
-  it('un lien vers la création d’OR (écran pas encore écrit) affiche un message honnête, jamais une page introuvable', async () => {
-    // La fiche client navigue déjà vers `/atelier/ordres-reparation/nouveau` alors qu'aucun écran
-    // de création n'existe (hors périmètre — voir EcranFonctionAVenir.tsx). Un 404 générique
-    // laisserait croire à un lien cassé.
+  it('la route de création d’OR rend l’écran réel, pas le placeholder « fonction à venir »', async () => {
+    // Défaut que ce test attrape : `atelier/ordres-reparation/nouveau` câblé sur
+    // `EcranFonctionAVenir` (repli générique) plutôt que sur `EcranNouvelOrdreReparation` — les deux
+    // écrans peuvent se ressembler à l'oeil (un titre, un bouton retour), donc l'assertion porte sur
+    // un texte que SEUL l'écran réel produit : le repli « site manquant » de
+    // `EcranNouvelOrdreReparation.tsx`, déclenché ici en n'apportant aucun `?site=`.
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
     renduAvecRoutes(routesConfig, { routeInitiale: '/atelier/ordres-reparation/nouveau' });
-    expect(await screen.findByText("Cette fonctionnalité n'est pas encore disponible.")).toBeInTheDocument();
+    expect(await screen.findByText('Site non sélectionné')).toBeInTheDocument();
+    expect(screen.queryByText("Cette fonctionnalité n'est pas encore disponible.")).not.toBeInTheDocument();
     expect(screen.queryByText("Cette page n'existe pas")).not.toBeInTheDocument();
+  });
+
+  it('la route de création d’OR reçoit `site` et `clientId` par paramètres de requête (jamais de chemin)', async () => {
+    // Complète le test ci-dessus : une fois `?site=` fourni mais sans `?clientId=`, l'écran affiche
+    // son second repli honnête (« client non sélectionné ») plutôt que de deviner un client — preuve
+    // que le câblage passe bien par la query string, pas par un paramètre de route.
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    renduAvecRoutes(routesConfig, { routeInitiale: '/atelier/ordres-reparation/nouveau?site=site-1' });
+    expect(await screen.findByText('Client non sélectionné')).toBeInTheDocument();
   });
 
   it('la fiche d’OR reçoit son identifiant depuis l’URL (`:orId`) et déclenche son chargement', async () => {

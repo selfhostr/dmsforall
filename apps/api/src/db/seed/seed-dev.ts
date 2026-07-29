@@ -143,6 +143,18 @@ const SITES_DEMO = [
   },
 ] as const;
 
+/**
+ * Un compte par rôle réellement démonstratif du lot 1 — pas la totalité de `MATRICE_DROITS`
+ * (`src/auth/matrice-droits.ts`), seulement les rôles dont l'absence rendait une protection
+ * INVISIBLE à l'écran alors qu'elle est déjà couverte par des tests :
+ *   - `technicien` : seul rôle de `ROLES_SANS_MONTANT` (matrice-droits.ts) — sans ce compte,
+ *     personne ne pouvait constater que le serveur retire les montants de la charge utile pour
+ *     ce rôle (et non un simple masquage d'affichage) ;
+ *   - `receptionnaire` : seul rôle explicitement cité comme manquant par la spec (§2.1 ligne 58,
+ *     acteur central de la réception) et, avec `technicien`, l'un des deux rôles à qui
+ *     `vehicule.kilometrage.corriger_regression` est explicitement refusé (§10 L962) — sans lui,
+ *     le refus 403 d'une correction de kilométrage régressive n'était démontrable qu'en théorie.
+ */
 const UTILISATEURS_DEMO = [
   {
     email: 'admin@garage-martin.ch',
@@ -156,6 +168,20 @@ const UTILISATEURS_DEMO = [
     prenom: 'Sophie',
     nom: 'Rossier',
     role: 'chef_atelier',
+    langue: 'fr',
+  },
+  {
+    email: 'technicien@garage-martin.ch',
+    prenom: 'Nicolas',
+    nom: 'Antille',
+    role: 'technicien',
+    langue: 'fr',
+  },
+  {
+    email: 'receptionniste@garage-martin.ch',
+    prenom: 'Laura',
+    nom: 'Zufferey',
+    role: 'receptionnaire',
     langue: 'fr',
   },
 ] as const;
@@ -288,11 +314,30 @@ const VEHICULES_DEMO = [
   },
 ] as const;
 
+/**
+ * Clé stable d'un véhicule de démo, pour le retrouver après upsert sans réinterroger la base :
+ * le VIN quand il existe, sinon le triplet marque/modèle/version — EXACTEMENT le même critère que
+ * la clause `where` utilisée pour l'upsert ci-dessous (`critereVehicule`), afin qu'un appelant
+ * (ex. `seed-atelier-demo.ts`) retrouve le même véhicule qu'il ait ou non un VIN.
+ */
+function cleVehiculeDemo(v: Pick<(typeof VEHICULES_DEMO)[number], 'vin' | 'marque' | 'modele' | 'version'>): string {
+  return v.vin ?? `${v.marque}::${v.modele}::${v.version}`;
+}
+
 // ---------------------------------------------------------------------------------------------
 // Seed
 // ---------------------------------------------------------------------------------------------
 
-export async function semerDev(options: OptionsSeed): Promise<{ tenantId: string }> {
+export interface ResultatSeedDev {
+  readonly tenantId: string;
+  readonly idsSitesParCode: ReadonlyMap<string, string>;
+  readonly idsClientsParNumero: ReadonlyMap<string, string>;
+  readonly idsVehiculesParCle: ReadonlyMap<string, string>;
+  /** Un seul compte par rôle dans `UTILISATEURS_DEMO` — voir sa note de tête. */
+  readonly idsUtilisateursParRole: ReadonlyMap<string, string>;
+}
+
+export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
   const journaliser = options.journaliser ?? ((m: string) => process.stdout.write(`${m}\n`));
 
   // Garde-fou non négociable : ce script crée des comptes dont le mot de passe est public.
@@ -375,12 +420,16 @@ export async function semerDev(options: OptionsSeed): Promise<{ tenantId: string
     }
 
     // --- Utilisateurs --------------------------------------------------------------------------
+    // Un seul compte par rôle dans UTILISATEURS_DEMO (contrainte du jeu de démo) : la clé du rôle
+    // suffit donc à retrouver l'id, ce qui évite d'inventer une clé composite pour un besoin qui
+    // ne se présente pas ici.
+    const idsUtilisateursParRole = new Map<string, string>();
     for (const u of UTILISATEURS_DEMO) {
       // Hachage à chaque exécution : le sel change, le mot de passe non. C'est idempotent au
       // sens qui compte — l'état final permet toujours de se connecter avec MOT_DE_PASSE_DEMO.
       const motDePasseHash = await hacher(MOT_DE_PASSE_DEMO);
 
-      await base
+      const [ligneUtilisateur] = await base
         .insert(utilisateur)
         .values({
           tenantId,
@@ -406,7 +455,13 @@ export async function semerDev(options: OptionsSeed): Promise<{ tenantId: string
             echecsConnexion: 0,
             verrouilleJusquA: null,
           },
-        });
+        })
+        .returning({ id: utilisateur.id });
+      const idUtilisateur = ligneUtilisateur?.id;
+      if (idUtilisateur === undefined) {
+        throw new Error(`Utilisateur « ${u.email} » introuvable après upsert.`);
+      }
+      idsUtilisateursParRole.set(u.role, idUtilisateur);
       journaliser(`  utilisateur ${u.email} (${u.role})`);
     }
 
@@ -569,6 +624,7 @@ export async function semerDev(options: OptionsSeed): Promise<{ tenantId: string
     journaliser(`  ${String(CLIENTS_DEMO.length)} clients`);
 
     // --- Véhicules (4) + plaque + détention + kilométrages -----------------------------------
+    const idsVehiculesParCle = new Map<string, string>();
     for (const v of VEHICULES_DEMO) {
       const critereVehicule = v.vin
         ? and(eq(vehicule.tenantId, tenantId), eq(vehicule.vin, v.vin))
@@ -596,6 +652,7 @@ export async function semerDev(options: OptionsSeed): Promise<{ tenantId: string
       if (idVehicule === undefined) {
         throw new Error(`Véhicule « ${v.marque} ${v.modele} » introuvable après insertion.`);
       }
+      idsVehiculesParCle.set(cleVehiculeDemo(v), idVehicule);
 
       const idClient = idsClientsParNumero.get(v.clientNumero);
       if (idClient === undefined) {
@@ -719,7 +776,7 @@ export async function semerDev(options: OptionsSeed): Promise<{ tenantId: string
     journaliser('');
     journaliser(`Connexion : ${UTILISATEURS_DEMO[0].email} / ${MOT_DE_PASSE_DEMO}`);
 
-    return { tenantId };
+    return { tenantId, idsSitesParCode, idsClientsParNumero, idsVehiculesParCle, idsUtilisateursParRole };
   } catch (erreur) {
     await client.query('rollback');
     throw erreur;
@@ -743,9 +800,24 @@ async function principal(): Promise<void> {
   const { chargerConfig } = await import('../../config/charger-config');
   const config = chargerConfig(process.env);
 
-  await semerDev({
+  const resultat = await semerDev({
     urlMigration: config.DATABASE_URL_MIGRATION,
     nodeEnv: config.NODE_ENV,
+  });
+
+  // Étape 2 du seed : ordres de réparation de démonstration, dans des états différents. Séparé de
+  // `semerDev` (qui n'a besoin que du rôle `dfa_migrator`, hors contexte tenant) parce que ceci
+  // appelle les VRAIS services métier de `atelier/` (via `AccesBase.enTenant`, rôle `dfa_app`,
+  // sous RLS) plutôt que d'insérer des lignes brutes — voir la note de tête de
+  // `seed-atelier-demo.ts` sur pourquoi ce fichier n'utilise jamais `NestFactory`.
+  const { semerAtelierDemo } = await import('./seed-atelier-demo');
+  await semerAtelierDemo({
+    config,
+    tenantId: resultat.tenantId,
+    idsSitesParCode: resultat.idsSitesParCode,
+    idsClientsParNumero: resultat.idsClientsParNumero,
+    idsVehiculesParCle: resultat.idsVehiculesParCle,
+    idsUtilisateursParRole: resultat.idsUtilisateursParRole,
   });
 }
 

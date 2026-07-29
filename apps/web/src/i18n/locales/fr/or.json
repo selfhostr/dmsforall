@@ -335,5 +335,50 @@
   "totaux": {
     "titre": "Totaux",
     "totalValide": "Total validé"
+  },
+  "nouveau": {
+    "titre": "Nouvel ordre de réparation",
+    "siteManquant": {
+      "titre": "Site non sélectionné",
+      "description": "Choisissez un site avant d'ouvrir un ordre de réparation : la numérotation et le paramétrage de l'OR en dépendent."
+    },
+    "client": {
+      "requisTitre": "Client non sélectionné",
+      "requisDescription": "Ouvrez un ordre de réparation depuis la fiche d'un client (bouton « Ouvrir un OR »), ou recherchez-le d'abord."
+    },
+    "vehicule": {
+      "titre": "Véhicule",
+      "aucun": "Ce client n'a aucun véhicule enregistré à son nom.",
+      "erreur": "Impossible de charger les véhicules de ce client"
+    },
+    "type": {
+      "libelle": "Type d'OR",
+      "service": "Service",
+      "reparation": "Réparation",
+      "diagnostic": "Diagnostic",
+      "expertise": "Expertise",
+      "pneus": "Pneus",
+      "carrosserie": "Carrosserie",
+      "retouche": "Retouche",
+      "interne": "Interne"
+    },
+    "champs": {
+      "statutInitial": "Statut à l'ouverture",
+      "avance": "Informations complémentaires",
+      "kmInvalide": "Le kilométrage saisi dépasse la limite acceptée.",
+      "plafondInvalide": "Le montant plafond ne peut pas être négatif.",
+      "conducteurPresentNom": "Conducteur présent"
+    },
+    "demandes": {
+      "placeholder": "Décrire la demande du client, mot pour mot…",
+      "retirer": "Retirer cette demande"
+    },
+    "erreur": {
+      "titre": "Impossible d'ouvrir l'ordre de réparation"
+    },
+    "actions": {
+      "creer": "Ouvrir l'OR",
+      "enCours": "Création en cours…"
+    }
   }
 }

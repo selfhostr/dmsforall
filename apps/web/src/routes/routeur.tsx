@@ -5,6 +5,7 @@ import { EcranAccueil } from '@/ecrans/EcranAccueil';
 import { EcranConnexion } from '@/ecrans/EcranConnexion';
 import { EcranFicheOrdreReparation } from '@/ecrans/atelier/EcranFicheOrdreReparation';
 import { EcranListeOrdresReparation } from '@/ecrans/atelier/EcranListeOrdresReparation';
+import { EcranNouvelOrdreReparation } from '@/ecrans/atelier/EcranNouvelOrdreReparation';
 import { EcranFicheClient } from '@/ecrans/clients/EcranFicheClient';
 import { EcranListeClients } from '@/ecrans/clients/EcranListeClients';
 import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
@@ -12,7 +13,6 @@ import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
 import { EcranFicheVehicule } from '@/ecrans/vehicules/EcranFicheVehicule';
 import { EcranListeVehicules } from '@/ecrans/vehicules/EcranListeVehicules';
 
-import { EcranFonctionAVenir } from './EcranFonctionAVenir';
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
 
@@ -59,9 +59,10 @@ export const routesConfig: RouteObject[] = [
       // client, recherche) : ils construisent l'URL en chaîne (`/ordres-reparation/${id}`), le nom
       // du paramètre de route ne joue aucun rôle dans cette construction.
       { path: 'ordres-reparation/:orId', element: <EcranFicheOrdreReparation /> },
-      // Pas d'écran de création d'OR à ce jour (hors périmètre) : repli honnête plutôt qu'un 404
-      // qui laisserait croire à un lien cassé (la fiche client y navigue déjà).
-      { path: 'atelier/ordres-reparation/nouveau', element: <EcranFonctionAVenir /> },
+      // L'écran lit `?site=` et `?clientId=` en paramètres de requête (jamais de paramètre de
+      // chemin ici) — voir EcranNouvelOrdreReparation.tsx pour le détail des deux repos honnêtes
+      // affichés quand l'un des deux manque.
+      { path: 'atelier/ordres-reparation/nouveau', element: <EcranNouvelOrdreReparation /> },
     ],
   },
   { path: '*', element: <EcranPageIntrouvable /> },

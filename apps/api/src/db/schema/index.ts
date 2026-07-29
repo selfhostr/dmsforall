@@ -18,3 +18,4 @@ export * from './utilisateur';
 export * from './session';
 export * from './journal-securite';
 export * from './atelier';
+export * from './facturation';

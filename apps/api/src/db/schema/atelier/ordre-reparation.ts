@@ -22,6 +22,11 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import { colonneCreeLe, colonnesHorodatage, colonneId } from '../colonnes-communes';
+// Import direct du fichier (pas du barrel '../facturation') : le barrel réexporte
+// document-vente.ts, qui importe ordreReparation/ligneOr depuis CE fichier — passer par le
+// barrel créerait un cycle d'import. enums.ts n'importe rien d'atelier, donc ce chemin direct est
+// sûr (Z-17, migrations/0011_ordre_reparation_origine_reprise.sql).
+import { origineDocumentEnum } from '../facturation/enums';
 import { site } from '../site';
 import { utilisateur } from '../utilisateur';
 import { client } from './client';
@@ -47,6 +52,13 @@ export const ordreReparation = pgTable(
     id: colonneId(),
     tenantId: uuid('tenant_id').notNull(),
     numero: text('numero').notNull(),
+    /**
+     * Z-17 (migrations/0011_ordre_reparation_origine_reprise.sql) : même enum et même sémantique
+     * que `documentVente.origine` (0010) — dfa (créé par DFA) ou reprise (importé).
+     */
+    origine: origineDocumentEnum('origine').notNull().default('dfa'),
+    /** Z-17/MD-04 : numéro source verbatim d'un OR repris, jamais retouché. NULL si origine=dfa. */
+    numeroOrigine: text('numero_origine'),
     siteId: uuid('site_id').notNull(),
     type: typeOrdreReparationEnum('type').notNull(),
     statut: statutOrdreReparationEnum('statut').notNull(),
@@ -146,10 +158,18 @@ export const ordreReparation = pgTable(
       'ordre_reparation_annulation_coherente_chk',
       sql`${t.statut} <> 'annule' or ${t.motifAnnulation} is not null`,
     ),
+    // Z-17 (0011) : même motif que document_vente (0010) — reprise ⟺ numero_origine renseigné.
+    check(
+      'ordre_reparation_origine_numero_origine_chk',
+      sql`(${t.origine} = 'dfa') = (${t.numeroOrigine} is null)`,
+    ),
     index('ordre_reparation_actifs_idx').on(t.tenantId, t.siteId, t.statut),
     index('ordre_reparation_vehicule_idx').on(t.tenantId, t.vehiculeId, t.ouvertLe.desc()),
     index('ordre_reparation_client_idx').on(t.tenantId, t.clientId, t.ouvertLe.desc()),
     index('ordre_reparation_pagination_idx').on(t.tenantId, t.creeLe.desc(), t.id.desc()),
+    // ordre_reparation_numero_origine_uk (index unique PARTIEL, where numero_origine is not
+    // null — 0011) n'est pas modélisable via `unique()` de pg-core (pas de clause WHERE) : posé
+    // en SQL brut, comme les index uniques partiels de document_vente (voir schema/facturation).
   ],
 );
 

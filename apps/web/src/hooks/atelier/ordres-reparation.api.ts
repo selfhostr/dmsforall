@@ -8,6 +8,7 @@ import type {
   EntreeActionRouvrir,
   EntreeActionTerminer,
   EntreeActionValiderControle,
+  EntreeCreationOrdreReparation,
   OrdreReparationResume,
   PageCurseur,
   ReponseAvecAvertissements,
@@ -83,6 +84,25 @@ export async function recupererOrdreReparation(orId: string): Promise<ReponseOrd
     throw new Error('Réponse OR inattendue : corps vide.');
   }
   return or;
+}
+
+/** `POST /ordres-reparation` (§7.6) — `Idempotency-Key` OBLIGATOIRE : un rejeu (double-clic
+ *  comptoir, ou nouvelle tentative après confirmation d'un 409 `CONFIRMATION_REQUISE`) ne doit
+ *  jamais brûler un numéro d'OR (RM-49). Voir `useCreationOrdreReparation.ts` pour la gestion de
+ *  la clé côté appelant. */
+export async function creerOrdreReparation(
+  entree: EntreeCreationOrdreReparation,
+  idempotencyKey: string,
+): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseOrdreReparation>>('/ordres-reparation', {
+    method: 'POST',
+    body: JSON.stringify(entree),
+    idempotencyKey,
+  });
+  if (!reponse) {
+    throw new Error('Réponse vide inattendue : POST /ordres-reparation.');
+  }
+  return reponse;
 }
 
 /** Toutes les actions de transition (§7.7) renvoient le DOCUMENT COMPLET dans l'enveloppe : après
