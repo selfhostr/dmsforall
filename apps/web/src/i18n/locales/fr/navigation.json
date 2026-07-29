@@ -15,6 +15,7 @@
   "entete": {
     "garage": "Garage",
     "site": "Site",
+    "tousLesSites": "Tous les sites",
     "compte": "Mon compte"
   }
 }

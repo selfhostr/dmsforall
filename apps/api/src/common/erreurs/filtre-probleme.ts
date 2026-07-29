@@ -11,7 +11,7 @@ import {
 import { ServiceContexteRequete } from '../contexte/contexte-requete.service';
 import { ServiceJournal } from '../journal/service-journal';
 import { capturerErreurInattendue, type ContexteErreurSentry } from '../../observabilite';
-import { ErreurMetier, STATUT_PAR_CODE_ERREUR } from './erreur-metier';
+import { ErreurMetier } from './erreur-metier';
 
 const TYPE_BASE = 'https://docs.dmsforall.example/erreurs';
 
@@ -151,23 +151,48 @@ export class FiltreProbleme implements ExceptionFilter {
       }
 
       // Exceptions Nest génériques (ex. corps JSON malformé rejeté par le parseur avant même
-      // d'atteindre un contrôleur) : on les fait rentrer dans le contrat problem+json plutôt
-      // que de laisser passer le format par défaut de Nest.
-      const code: CodeErreur = status === 400 ? 'VALIDATION_ECHOUEE' : 'ERREUR_INTERNE';
-      if (code === 'ERREUR_INTERNE') {
-        this.journal.error('HttpException Nest non mappée', exception, { requeteId: instance, status });
-        // Sentry seulement si le statut D'ORIGINE est déjà serveur (>= 500) : une route
-        // inexistante (NotFoundException Nest, 404 — faute de frappe client, bot qui scanne
-        // l'API) ou un 403 générique se retrouvent normalisés en ERREUR_INTERNE/500 dans la
-        // réponse HTTP par la ligne au-dessus, mais ne sont PAS des incidents — les envoyer à
-        // Sentry noierait les vraies alertes sous du bruit de trafic routinier (règle du
-        // contrat : seules les erreurs INATTENDUES partent, voir capturer-erreur-inattendue.ts).
-        if (status >= 500) {
-          capturerErreurInattendue(exception, contexteSentry);
+      // d'atteindre un contrôleur, route inexistante, méthode HTTP non supportée…) : on les
+      // fait rentrer dans le contrat problem+json plutôt que de laisser passer le format par
+      // défaut de Nest.
+      //
+      // Le statut D'ORIGINE reste toujours celui renvoyé au client — un 4xx (404 route
+      // inexistante, 405 méthode non supportée…) ne doit JAMAIS se travestir en panne serveur
+      // 500 : c'était le bug constaté sur `GET /api/sante` (faute de frappe cliente), qui
+      // faisait perdre une étape de diagnostic. Seul un statut D'ORIGINE déjà serveur (>= 500 —
+      // incident réel) reste normalisé en ERREUR_INTERNE/500, comportement inchangé.
+      if (status < 500) {
+        // `codeConnu` : statuts qui ont un code métier dédié et déjà défini dans le contrat
+        // partagé (§4.3, `STATUT_HTTP_PAR_CODE_ERREUR`). Pour les 4xx génériques restants sans
+        // code dédié, ERREUR_INTERNE sert de repli ; le statut HTTP, lui, reste toujours correct.
+        const codeConnu: CodeErreur | undefined =
+          status === 400
+            ? 'VALIDATION_ECHOUEE'
+            : status === 404
+              ? 'RESSOURCE_INTROUVABLE'
+              : status === 405
+                ? 'METHODE_NON_AUTORISEE'
+                : undefined;
+        const code = codeConnu ?? 'ERREUR_INTERNE';
+        if (code === 'ERREUR_INTERNE') {
+          // Routine (faute de frappe d'URL, bot qui scanne l'API, mauvais verbe HTTP…), jamais
+          // un incident : journalisé pour le diagnostic, jamais envoyé à Sentry (règle du
+          // contrat : seules les erreurs INATTENDUES partent, voir capturer-erreur-inattendue.ts).
+          this.journal.warn('HttpException Nest 4xx sans code métier dédié', {
+            requeteId: instance,
+            status,
+          });
         }
+        const corps = construireCorps(code, status, instance);
+        reponse.status(status).contentType('application/problem+json').json(corps);
+        return;
       }
-      const corps = construireCorps(code, STATUT_PAR_CODE_ERREUR[code], instance);
-      reponse.status(STATUT_PAR_CODE_ERREUR[code]).contentType('application/problem+json').json(corps);
+
+      // Statut D'ORIGINE déjà serveur (>= 500) : comportement inchangé — ERREUR_INTERNE/500,
+      // journalisé en erreur et envoyé à Sentry (incident réel, jamais du trafic routinier).
+      this.journal.error('HttpException Nest non mappée', exception, { requeteId: instance, status });
+      capturerErreurInattendue(exception, contexteSentry);
+      const corps = construireCorps('ERREUR_INTERNE', 500, instance);
+      reponse.status(500).contentType('application/problem+json').json(corps);
       return;
     }
 

@@ -17,59 +17,43 @@
  *
  * Réutilise `ServiceLimitationDebit` (Redis, fenêtre glissante, `apps/api/src/common/limitation/`)
  * — déjà éprouvé sur `POST /auth/connexion` — plutôt que d'écrire un second mécanisme de comptage.
- * Sur refus, lève `ErreurMetier('AUTH_TROP_DE_TENTATIVES', …, { enTetes: { 'Retry-After': … } })` :
+ * Sur refus, lève `ErreurMetier('RECHERCHE_TROP_DE_REQUETES', …, { enTetes: { 'Retry-After': … } })` :
  * `FiltreProbleme` (`apps/api/src/common/erreurs/filtre-probleme.ts`) sait déjà relayer
  * `enTetes` telles quelles sur la réponse — c'est le mécanisme générique prévu pour `Retry-After`
  * (voir le commentaire de `OptionsErreurMetier.enTetes` : « ex. Retry-After sur 429 »), le même
  * levier que celui posé une seconde fois par le code d'auth, jamais un troisième mécanisme.
  *
- * CODE RÉUTILISÉ, PAS DÉDIÉ — SIGNALÉ : `AUTH_TROP_DE_TENTATIVES` est le seul code `CodeErreur` à
- * statut 429 du contrat partagé aujourd'hui (`packages/shared/src/contrats/probleme.ts`), et son
- * libellé i18n FR (`apps/web/…/erreurs.json`) est phrasé en MINUTES (« Réessayez dans X minutes »),
- * pertinent pour la fenêtre de connexion (900s) mais pas pour la fenêtre courte de la recherche
- * (`FENETRE_RECHERCHE_SECONDES` ci-dessous). `packages/shared/` et `apps/web/` sont hors du
- * périmètre d'écriture de cette correction (propriété d'autres agents) : le code, le statut HTTP et
- * l'en-tête `Retry-After` sont corrects et suffisants pour le contrat HTTP, mais un code dédié
- * (ex. `RECHERCHE_TROP_DE_REQUETES` ou un `TROP_DE_REQUETES` générique, phrasé en secondes) est un
- * suivi propre à planifier avec le propriétaire de `packages/shared/`.
+ * CODE DÉDIÉ (résolu, voir historique de ce fichier) : ce garde utilisait initialement
+ * `AUTH_TROP_DE_TENTATIVES` par réutilisation — seul code `CodeErreur` à statut 429 du contrat à
+ * l'époque — mais son libellé i18n FR (`apps/web/…/erreurs.json`) est phrasé en MINUTES
+ * (« Réessayez dans X minutes »), pertinent pour la fenêtre de connexion (900s) mais faux pour la
+ * fenêtre courte de la recherche (`LIMITE_RECHERCHE_FENETRE_SECONDES` ci-dessous, 30s par défaut),
+ * et le mot « tentatives » évoque une erreur d'identifiants plutôt qu'une recherche trop fréquente.
+ * `RECHERCHE_TROP_DE_REQUETES` (`packages/shared/src/contrats/probleme.ts`) est le code dédié,
+ * ajouté EN FIN de `CODES_ERREUR` (garde de compilation `GardePrefixeSocleErreur` — le socle et les
+ * codes de l'étape 1 gardent leurs positions), avec son propre libellé i18n dans les trois langues.
  *
- * SEUILS VOLONTAIREMENT EN CONSTANTES, PAS DANS LE SCHÉMA ZOD DE CONFIG — SIGNALÉ : par convention
- * du dépôt (voir l'en-tête de `main.ts`), `apps/api/src/main.ts` et
- * `apps/api/src/config/charger-config.ts` sont les DEUX SEULS fichiers autorisés à lire
- * `process.env`, et `charger-config.ts` est hors du périmètre d'écriture exclusif confié pour cette
- * correction (`apps/api/src/config/charger-config.spec.ts` le documente explicitement : « propriété
- * expert-auth, dans son périmètre exclusif »). Rendre ces seuils configurables par variable
- * d'environnement — ce que demande l'audit — appelle donc une coordination avec le propriétaire de
- * ce fichier plutôt qu'une modification directe ici. Schéma zod prêt à intégrer tel quel :
- *
- *   LIMITE_RECHERCHE_UTILISATEUR: z.coerce.number().int().min(1).default(40),
- *   LIMITE_RECHERCHE_FENETRE_SECONDES: z.coerce.number().int().min(1).default(30),
- *
- * Défaut retenu (40 requêtes / 30 secondes, soit ≈ 1,3 req/s en régime soutenu par utilisateur) :
- * la recherche est tapée à CHAQUE véhicule qui se présente au comptoir (RM-112) — un seuil trop
- * bas rend le produit inutilisable. Une plaque suisse tapée caractère par caractère SANS debounce
- * (~8-10 caractères) tient largement sous 10 requêtes en quelques secondes ; le front debounce en
- * pratique, ce qui réduit encore ce chiffre. 40/30s laisse la marge de plusieurs recherches
- * complètes à la suite (véhicule après véhicule) tout en bornant un script ou un compte compromis à
- * un débit très en-dessous de ce qu'il faudrait pour, à lui seul, épuiser un pool de 10 connexions
- * partagées entre tenants.
+ * SEUILS CONFIGURABLES (résolu, voir historique de ce fichier) : `LIMITE_RECHERCHE_UTILISATEUR` et
+ * `LIMITE_RECHERCHE_FENETRE_SECONDES` vivent désormais dans le schéma zod de config
+ * (`apps/api/src/config/charger-config.ts`, où le dimensionnement 40/30s est documenté et
+ * justifié) et sont injectées ici via `JETON_CONFIG` — plus de constante en dur, un seul chemin de
+ * configuration, cohérent avec la convention du dépôt (toute config passe par le schéma zod validé
+ * au démarrage).
  */
 import { Inject, Injectable, type CanActivate, type ExecutionContext } from '@nestjs/common';
 
+import type { Config } from '../../config/config.types';
+import { JETON_CONFIG } from '../../config/config.jetons';
 import { ServiceContexteRequete } from '../contexte/contexte-requete.service';
 import { ErreurMetier } from '../erreurs/erreur-metier';
 import { JETON_SERVICE_LIMITATION_DEBIT } from '../limitation/limitation-debit.jetons';
 import type { ServiceLimitationDebit } from '../limitation/limitation-debit.types';
 
-/** Voir le commentaire de tête de fichier — à remplacer par une lecture de config dès que
- *  `LIMITE_RECHERCHE_UTILISATEUR`/`LIMITE_RECHERCHE_FENETRE_SECONDES` existent dans le schéma zod. */
-export const LIMITE_RECHERCHE_UTILISATEUR = 40;
-export const LIMITE_RECHERCHE_FENETRE_SECONDES = 30;
-
 @Injectable()
 export class GardeLimitationRecherche implements CanActivate {
   constructor(
     @Inject(JETON_SERVICE_LIMITATION_DEBIT) private readonly limiteur: ServiceLimitationDebit,
+    @Inject(JETON_CONFIG) private readonly config: Config,
     private readonly contexte: ServiceContexteRequete,
   ) {}
 
@@ -80,13 +64,13 @@ export class GardeLimitationRecherche implements CanActivate {
 
     const resultat = await this.limiteur.consommer(
       `recherche:utilisateur:${principal.utilisateurId}`,
-      LIMITE_RECHERCHE_UTILISATEUR,
-      LIMITE_RECHERCHE_FENETRE_SECONDES,
+      this.config.LIMITE_RECHERCHE_UTILISATEUR,
+      this.config.LIMITE_RECHERCHE_FENETRE_SECONDES,
     );
 
     if (!resultat.autorise) {
       throw new ErreurMetier(
-        'AUTH_TROP_DE_TENTATIVES',
+        'RECHERCHE_TROP_DE_REQUETES',
         'Trop de requêtes de recherche pour cet utilisateur, réessayez plus tard.',
         { enTetes: { 'Retry-After': String(resultat.resteSecondes) } },
       );

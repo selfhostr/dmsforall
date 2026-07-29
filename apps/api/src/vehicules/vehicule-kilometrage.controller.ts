@@ -1,8 +1,9 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { schemaFiltresKilometrages, schemaIdentifiant, schemaKilometrageVehicule, type EntreeKilometrageVehicule } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
+import { CorpsZod } from '../common/documentation';
 import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
@@ -57,7 +58,10 @@ export class VehiculeKilometrageController {
   @ApiReponseProbleme(409, 'VEHICULE_KILOMETRAGE_REGRESSIF (CT-07) — motifsAcceptes dans actionsProposees.')
   async creer(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
-    @Body(new PipeZod(schemaKilometrageVehicule)) entree: EntreeKilometrageVehicule,
+    @CorpsZod(schemaKilometrageVehicule, {
+      exemple: { valeur: 84200, unite: 'km', releveLe: '2026-07-15T08:30:00.000Z', source: 'reception' },
+    })
+    entree: EntreeKilometrageVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();

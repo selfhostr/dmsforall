@@ -1,9 +1,10 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { schemaCloturePlaque, schemaIdentifiant, schemaPlaqueVehicule, type EntreePlaqueVehicule } from '@dfa/shared';
 import type { EntreeCloturePlaqueVehicule } from './schemas-locales';
 
 import { ServiceContexteRequete } from '../common/contexte';
+import { CorpsZod } from '../common/documentation';
 import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
@@ -46,7 +47,10 @@ export class VehiculePlaqueController {
   @ApiReponseProbleme(409, 'VEHICULE_PLAQUE_COLLISION (CT-06).')
   async creer(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
-    @Body(new PipeZod(schemaPlaqueVehicule)) entree: EntreePlaqueVehicule,
+    @CorpsZod(schemaPlaqueVehicule, {
+      exemple: { valeur: 'VD 123456', canton: 'VD', pays: 'CH', debutLe: '2026-07-15', interchangeable: false, professionnelle: false },
+    })
+    entree: EntreePlaqueVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
     return this.service.creer(ctx, vehiculeId, entree);
@@ -66,7 +70,7 @@ export class VehiculePlaqueController {
   async cloturer(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
     @Param('plaqueId', new PipeZod(schemaIdentifiant)) plaqueId: string,
-    @Body(new PipeZod(schemaCloturePlaque)) entree: EntreeCloturePlaqueVehicule,
+    @CorpsZod(schemaCloturePlaque, { exemple: { finLe: '2026-07-15' } }) entree: EntreeCloturePlaqueVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
     return this.service.cloturer(ctx, vehiculeId, plaqueId, entree.finLe);

@@ -1,5 +1,6 @@
 import { LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router';
 
 import { useDeconnexion } from '@/hooks/useDeconnexion';
 import { useSession } from '@/hooks/useSession';
@@ -14,10 +15,19 @@ export function EnTete() {
   const { t } = useTranslation(['navigation', 'auth']);
   const { data: session } = useSession();
   const deconnexion = useDeconnexion();
+  const [searchParams] = useSearchParams();
 
   if (!session) return null;
 
-  const site = session.sites.find((candidat) => candidat.actif) ?? session.sites[0];
+  // Le site affiché suit le site réellement consulté (`?site=` dans l'URL), jamais un défaut
+  // de session — même mécanisme que BarreLaterale.tsx / EcranListeVehicules (routes/chemins.ts),
+  // pas un troisième. `?site=` absent => l'utilisateur est sur « tous les sites », un contexte
+  // réel qu'on affiche tel quel plutôt que d'y substituer un site deviné. Un id présent mais qui
+  // ne correspond à aucun site de la session (lien obsolète, site renommé/supprimé entre-temps)
+  // retombe sur la même mention : jamais la valeur brute de l'URL, non fiable, affichée à l'écran.
+  const siteId = searchParams.get('site');
+  const site = siteId ? session.sites.find((candidat) => candidat.id === siteId) : undefined;
+  const libelleSite = site?.nom ?? t('navigation:entete.tousLesSites');
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b bg-background px-4">
@@ -25,11 +35,9 @@ export function EnTete() {
         <p className="truncate font-semibold" title={session.tenant.raisonSociale}>
           {session.tenant.raisonSociale}
         </p>
-        {site ? (
-          <p className="truncate text-sm text-muted-foreground" title={site.nom}>
-            {site.nom}
-          </p>
-        ) : null}
+        <p className="truncate text-sm text-muted-foreground" title={libelleSite}>
+          {libelleSite}
+        </p>
       </div>
       <div className="flex items-center gap-3">
         <SelecteurLangue />

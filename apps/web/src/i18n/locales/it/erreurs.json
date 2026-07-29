@@ -88,7 +88,9 @@
     "PLANNING_CAPACITE_DEPASSEE": "Il carico previsto per questo giorno supera la capacita dell'officina.",
     "POINTAGE_CLOTURE_AUTOMATIQUE": "Questa timbratura e stata chiusa automaticamente alla chiusura dell'officina.",
     "PRET_CASCADE_RESTITUTION": "La restituzione del veicolo comportera la restituzione del veicolo di prestito.",
-    "VEHICULE_DEUX_OR_OUVERTS": "Un ordine di riparazione e gia aperto per questo veicolo."
+    "VEHICULE_DEUX_OR_OUVERTS": "Un ordine di riparazione e gia aperto per questo veicolo.",
+    "RECHERCHE_TROP_DE_REQUETES": "Troppe ricerche in poco tempo. Attendi qualche secondo e riprova.",
+    "METHODE_NON_AUTORISEE": "Questo metodo HTTP non e supportato."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Crea preventivo supplementare",

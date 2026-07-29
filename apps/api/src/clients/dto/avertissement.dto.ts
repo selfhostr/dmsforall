@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { Avertissement } from '@dfa/shared';
+import { CODES_AVERTISSEMENT, type Avertissement } from '@dfa/shared';
 
 /**
  * `avertissements[]` de l'enveloppe d'écriture (contrats-api-etape-1.md §7.1). Présent même vide
@@ -7,7 +7,11 @@ import type { Avertissement } from '@dfa/shared';
  * canonique côté clients : succès AVEC réserve, jamais un refus.
  */
 export class AvertissementDto implements Avertissement {
-  @ApiProperty({ example: 'CLIENT_DOUBLON_PROBABLE', description: 'Traduit côté front via `erreurs:codes.<CODE>` — jamais affiché tel quel.' })
+  @ApiProperty({
+    enum: CODES_AVERTISSEMENT,
+    example: 'CLIENT_DOUBLON_PROBABLE',
+    description: 'Traduit côté front via `erreurs:codes.<CODE>` — jamais affiché tel quel.',
+  })
   readonly code!: Avertissement['code'];
 
   @ApiProperty({ description: 'Libellé FR stable (support, logs). Jamais affiché par le front.' })

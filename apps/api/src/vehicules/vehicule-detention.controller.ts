@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   schemaChangementDetenteur,
@@ -10,6 +10,7 @@ import {
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
+import { CorpsZod } from '../common/documentation';
 import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
@@ -54,7 +55,8 @@ export class VehiculeDetentionController {
   @ApiReponseProbleme(404, 'Véhicule introuvable pour ce tenant.')
   async creer(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
-    @Body(new PipeZod(schemaDetentionVehicule)) entree: EntreeDetentionVehicule,
+    @CorpsZod(schemaDetentionVehicule, { exemple: { clientId: '3f9a1c2e-6b4d-4a1f-9c2e-8b7a6d5c4e3f', debutLe: '2024-05-01' } })
+    entree: EntreeDetentionVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
     return this.service.creer(ctx, vehiculeId, entree);
@@ -74,7 +76,8 @@ export class VehiculeDetentionController {
   async cloturer(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
     @Param('detentionId', new PipeZod(schemaIdentifiant)) detentionId: string,
-    @Body(new PipeZod(schemaClotureDetention)) entree: EntreeClotureDetentionVehicule,
+    @CorpsZod(schemaClotureDetention, { exemple: { finLe: '2026-06-30', motifFin: 'vente' } })
+    entree: EntreeClotureDetentionVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
     return this.service.cloturer(ctx, vehiculeId, detentionId, entree);
@@ -97,7 +100,15 @@ export class VehiculeDetentionController {
   @ApiReponseProbleme(409, 'VALIDATION_ECHOUEE (deux détenteurs courants) ou VEHICULE_PLAQUE_COLLISION.')
   async changerDetenteur(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
-    @Body(new PipeZod(schemaChangementDetenteur)) entree: EntreeChangementDetenteur,
+    @CorpsZod(schemaChangementDetenteur, {
+      exemple: {
+        nouveauClientId: '3f9a1c2e-6b4d-4a1f-9c2e-8b7a6d5c4e3f',
+        changementLe: '2026-07-15',
+        motifFin: 'vente',
+        nouvellePlaque: { valeur: 'VD 654321', canton: 'VD', pays: 'CH', interchangeable: false, professionnelle: false },
+      },
+    })
+    entree: EntreeChangementDetenteur,
   ) {
     const ctx = this.contexte.contexteTenant();
     const { donnees, avertissements } = await this.service.changerDetenteur(ctx, vehiculeId, entree);

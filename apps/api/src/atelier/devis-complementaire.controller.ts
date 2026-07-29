@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { z } from 'zod';
@@ -12,6 +12,7 @@ import {
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
+import { CorpsZod } from '../common/documentation';
 import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
@@ -77,7 +78,15 @@ export class DevisComplementaireController {
   @ApiReponseProbleme(409, 'OR_LIGNE_VERROUILLEE ou IDEMPOTENCE_CONFLIT.')
   async creer(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
-    @Body(new PipeZod(schemaCreationDevisComplementaire)) entree: EntreeCreationDevisComplementaire,
+    @CorpsZod(schemaCreationDevisComplementaire, {
+      exemple: {
+        ligneIds: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'],
+        nouveauPlafondCentimes: 90_000,
+        canal: 'telephone',
+        impactRestitutionLe: '2026-08-04T16:00:00.000Z',
+      },
+    })
+    entree: EntreeCreationDevisComplementaire,
     @Headers('idempotency-key') cleIdempotence: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {
@@ -110,7 +119,16 @@ export class DevisComplementaireController {
   async repondre(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
     @Param('devisId', new PipeZod(schemaIdentifiant)) devisId: string,
-    @Body(new PipeZod(schemaReponseDevisComplementaire)) entree: EntreeReponseDevisComplementaire,
+    @CorpsZod(schemaReponseDevisComplementaire, {
+      exemple: {
+        decision: 'accepte',
+        canal: 'telephone',
+        interlocuteurNom: 'Mme Perret',
+        repondueLe: '2026-08-04T16:12:00.000Z',
+        retranscription: 'Le client accepte le devis complémentaire pour le remplacement des disques.',
+      },
+    })
+    entree: EntreeReponseDevisComplementaire,
     @Headers('idempotency-key') cleIdempotence: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {

@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { CandidatDoublonClient, ReponseDoublonsClients } from '@dfa/shared';
+import {
+  CRITERES_DOUBLON_CLIENT,
+  type CandidatDoublonClient,
+  type ReponseDoublonsClients,
+} from '@dfa/shared';
 
 export class CandidatDoublonClientDto implements CandidatDoublonClient {
   @ApiProperty({ format: 'uuid' })
@@ -14,7 +18,7 @@ export class CandidatDoublonClientDto implements CandidatDoublonClient {
   @ApiProperty({ type: String, nullable: true })
   readonly npa!: string | null;
 
-  @ApiProperty({ enum: ['nom_npa', 'email', 'telephone', 'ide'] })
+  @ApiProperty({ enum: CRITERES_DOUBLON_CLIENT })
   readonly critere!: CandidatDoublonClient['critere'];
 
   @ApiProperty({ minimum: 0, maximum: 1, example: 0.9 })

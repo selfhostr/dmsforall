@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { PageCurseur, ReponseAvecAvertissements, ReponseClientAdresse } from '@dfa/shared';
+import {
+  TYPES_ADRESSE,
+  type PageCurseur,
+  type ReponseAvecAvertissements,
+  type ReponseClientAdresse,
+} from '@dfa/shared';
 
 import { AvertissementDto } from './avertissement.dto';
 
@@ -7,7 +12,7 @@ export class ClientAdresseDto implements ReponseClientAdresse {
   @ApiProperty({ format: 'uuid' })
   readonly id!: string;
 
-  @ApiProperty({ enum: ['principale', 'facturation', 'livraison'] })
+  @ApiProperty({ enum: TYPES_ADRESSE })
   readonly type!: ReponseClientAdresse['type'];
 
   @ApiProperty()

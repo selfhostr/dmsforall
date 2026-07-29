@@ -1,8 +1,7 @@
 import { Car, Home, Search, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { NavLink } from 'react-router';
+import { NavLink, useSearchParams } from 'react-router';
 
-import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +22,13 @@ function classeLien({ isActive }: { readonly isActive: boolean }): string {
  * ci-dessous pointe vers un écran réellement atteignable.
  *
  * `chemins.*` conserve le site courant (`?site=`) plutôt que de le perdre à la navigation
- * (voir routes/chemins.ts) — d'où la lecture de la session ici pour connaître le site actif.
+ * (voir routes/chemins.ts). Le site actif est lu **depuis l'URL courante**, exactement comme
+ * `EcranListeVehicules` (même mécanisme, pas un second) : deux onglets sur deux sites différents
+ * ne doivent pas se contredire, et un utilisateur qui a navigué vers un site différent de celui
+ * par défaut de sa session ne doit pas y être silencieusement ramené en cliquant un lien de cette
+ * barre. La session n'est **jamais** consultée ici — si `?site=` est absent de l'URL, il reste
+ * absent des liens : ce n'est pas une valeur manquante à combler, c'est l'affichage « tous
+ * sites », un choix explicite de l'utilisateur qu'on ne remplace pas par un défaut inventé.
  *
  * NOTE I18N : `navigation:liens.recherche` n'existe pas encore dans les fichiers de traduction
  * (seuls `accueil`, `clients` et `vehicules` y sont, ajoutés en vague 0/récemment) — signalé
@@ -31,8 +36,8 @@ function classeLien({ isActive }: { readonly isActive: boolean }): string {
  */
 export function BarreLaterale({ className }: Props) {
   const { t } = useTranslation('navigation');
-  const { data: session } = useSession();
-  const site = session?.sites.find((candidat) => candidat.actif)?.id ?? session?.sites[0]?.id;
+  const [searchParams] = useSearchParams();
+  const site = searchParams.get('site') ?? undefined;
 
   return (
     <nav aria-label={t('navigation:principale.aria')} className={cn('flex flex-col gap-1 p-3', className)}>

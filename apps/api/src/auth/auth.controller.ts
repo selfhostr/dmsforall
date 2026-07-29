@@ -14,6 +14,7 @@ import { JETON_CONFIG } from '../config/config.jetons';
 import type { Config } from '../config/config.types';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { AucunDroitRequis } from '../common/droits';
+import { ApiCorpsZod } from '../common/documentation';
 import { Principal } from './decorateurs/principal.decorator';
 import { Public } from './decorateurs/public.decorator';
 import { construireAttributsCookie, effacerCookieSession, poserCookieSession } from './cookie';
@@ -49,6 +50,7 @@ export class AuthController {
       '401 AUTH_IDENTIFIANTS_INVALIDES, avec un temps de réponse égalisé — ceci est un choix de ' +
       'sécurité délibéré (anti-énumération de comptes), pas une omission.',
   })
+  @ApiCorpsZod(schemaConnexion, { exemple: { email: 'accueil@garage-martin.ch', motDePasse: 'Demo1234!Garage' } })
   @ApiResponse({ status: 200, description: 'Session ouverte.', type: SessionCouranteDto })
   @ApiResponse({ status: 400, description: 'VALIDATION_ECHOUEE — corps de requête invalide.', type: ProblemeDetailDto })
   @ApiResponse({ status: 401, description: 'AUTH_IDENTIFIANTS_INVALIDES.', type: ProblemeDetailDto })

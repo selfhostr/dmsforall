@@ -57,6 +57,32 @@ describe('bloquant B1 (rapport QA étape 0) — LIMITE_CONNEXION_COMPTE doit res
   });
 });
 
+describe('finding D-01 (audit sécurité) — LIMITE_RECHERCHE_UTILISATEUR / LIMITE_RECHERCHE_FENETRE_SECONDES configurables', () => {
+  it('les valeurs par défaut (40 requêtes / 30 s) sont chargées sans erreur', () => {
+    const config = chargerConfig(envValide());
+    expect(config.LIMITE_RECHERCHE_UTILISATEUR).toBe(40);
+    expect(config.LIMITE_RECHERCHE_FENETRE_SECONDES).toBe(30);
+  });
+
+  it('accepte une valeur personnalisée pour dimensionner la limitation de débit de la recherche', () => {
+    const config = chargerConfig(
+      envValide({ LIMITE_RECHERCHE_UTILISATEUR: '80', LIMITE_RECHERCHE_FENETRE_SECONDES: '60' }),
+    );
+    expect(config.LIMITE_RECHERCHE_UTILISATEUR).toBe(80);
+    expect(config.LIMITE_RECHERCHE_FENETRE_SECONDES).toBe(60);
+  });
+
+  it('refuse LIMITE_RECHERCHE_UTILISATEUR à zéro ou négative (le budget doit rester consommable)', () => {
+    const env = envValide({ LIMITE_RECHERCHE_UTILISATEUR: '0' });
+    expect(() => chargerConfig(env)).toThrow(ErreurConfigInvalide);
+  });
+
+  it('refuse LIMITE_RECHERCHE_FENETRE_SECONDES à zéro ou négative (fenêtre glissante non nulle exigée)', () => {
+    const env = envValide({ LIMITE_RECHERCHE_FENETRE_SECONDES: '0' });
+    expect(() => chargerConfig(env)).toThrow(ErreurConfigInvalide);
+  });
+});
+
 describe('finding M4 (audit sécurité) — refus des mots de passe de dev (dfa_app_dev/dfa_migrator_dev) en production', () => {
   it('accepte les identifiants de dev en développement (usage légitime, dev/CI)', () => {
     const env = envValide({

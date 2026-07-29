@@ -216,7 +216,11 @@ export class LigneOrController {
   @ExigerDroit('atelier.ligne.annuler')
   @ApiOperation({
     summary: 'Action groupée ATOMIQUE : annulation avec motif obligatoire (RM-71).',
-    description: 'Refusée par la base depuis `proposee`/`a_valider` (lacune connue de `transition_autorisee`, migration 0003 §5.2).',
+    description:
+      'Couvre TOUTE ligne non facturée : `proposee -> annulee` et `a_valider -> annulee` (migration 0009, comble la ' +
+      'lacune connue de `transition_autorisee` signalée dans 0003 §5.2 — une ligne saisie par erreur avant toute ' +
+      'décision client ne reste plus définitivement coincée sur l’OR), en plus de `validee|en_cours|realisee -> annulee` ' +
+      '(0003, inchangées). `facturee` reste un état terminal sans aucune sortie (RM-71/I-15).',
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })

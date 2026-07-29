@@ -6,7 +6,7 @@
  * `auth/matrice-droits.ts`). `ETag` + `Cache-Control: private, must-revalidate` sur `GET`.
  */
 import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Body, Controller, Get, Header, Headers, Patch, Res } from '@nestjs/common';
+import { Controller, Get, Header, Headers, Patch, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import {
   MODES_PRODUITS_ATELIER,
@@ -17,8 +17,8 @@ import {
 
 import { ApiReponseProbleme } from '../../common/erreurs';
 import { ServiceContexteRequete } from '../../common/contexte';
+import { CorpsZod } from '../../common/documentation';
 import { ExigerDroit } from '../../common/droits';
-import { PipeZod } from '../../common/validation';
 import { calculerEtag, ifNoneMatchSatisfait } from '../etag';
 import { ReponseParametresAtelierDto } from '../dto/reponse-parametres-atelier.dto';
 import { ServiceParametresAtelier } from './service-parametres-atelier';
@@ -75,7 +75,10 @@ export class ParametresAtelierController {
   @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — aucune ligne de paramétrage pour ce tenant.')
   @ApiReponseProbleme(501, 'FONCTION_NON_DISPONIBLE — le champ modifié dépend d\'une fonctionnalité non livrée au lot 1.')
   async modifier(
-    @Body(new PipeZod(schemaModificationParametresAtelier)) corps: EntreeModificationParametresAtelier,
+    @CorpsZod(schemaModificationParametresAtelier, {
+      exemple: { or: { prefixe: 'OR', resetAnnuel: true, sansRdvAutorise: false } },
+    })
+    corps: EntreeModificationParametresAtelier,
   ): Promise<ReponseParametresAtelierDto> {
     const dto = await this.service.modifier(this.contexte.contexteTenant(), corps);
     return {

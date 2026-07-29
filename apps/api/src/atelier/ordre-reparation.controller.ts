@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Inject, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Headers, HttpCode, HttpStatus, Inject, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { z } from 'zod';
@@ -17,6 +17,7 @@ import {
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
+import { CorpsZod } from '../common/documentation';
 import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { JETON_IDEMPOTENCE, type ServiceIdempotence } from '../common/idempotence';
@@ -98,7 +99,22 @@ export class OrdreReparationController {
   @ApiReponseProbleme(404, 'Client ou véhicule introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'CONFLIT (OR déjà ouvert), CONFIRMATION_REQUISE, OR_KM_ENTREE_REQUIS ou IDEMPOTENCE_CONFLIT.')
   async creer(
-    @Body(new PipeZod(schemaCreationOrdreReparation)) entree: EntreeCreationOrdreReparation,
+    @CorpsZod(schemaCreationOrdreReparation, {
+      exemple: {
+        siteId: '2f6c9e1a-8b3d-4e7a-9c2b-1a5d6e8f9012',
+        vehiculeId: '3a7d0f2b-9c4e-4f8b-0d3c-2b6e7f900123',
+        clientId: '4b8e1f3c-0d5f-4a9c-1e4d-3c7f80a11234',
+        type: 'reparation',
+        kilometrageEntree: 84_500,
+        uniteKilometrage: 'km',
+        demandes: [{ verbatim: 'Bruit au freinage à l’avant droit, à vérifier.' }],
+        plafondCentimes: 60_000,
+        plafondAutorisePar: 'Mme Perret (accord téléphonique)',
+        numeroCommandeInterne: 'PO-4821',
+        statutInitial: 'ouvert',
+      },
+    })
+    entree: EntreeCreationOrdreReparation,
     @Headers('idempotency-key') cleIdempotence: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {
@@ -149,7 +165,14 @@ export class OrdreReparationController {
   async modifier(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
     @Headers('if-match') ifMatch: string | undefined,
-    @Body(new PipeZod(schemaModificationOrdreReparation)) entree: EntreeModificationOrdreReparation,
+    @CorpsZod(schemaModificationOrdreReparation, {
+      exemple: {
+        localisation: 'atelier',
+        restitutionPromiseLe: '2026-08-03T15:00:00.000Z',
+        motifReport: 'Pièce commandée, délai fournisseur de 48h.',
+      },
+    })
+    entree: EntreeModificationOrdreReparation,
     @Res({ passthrough: true }) res: Response,
   ) {
     const ctx = this.contexte.contexteTenant();
@@ -185,7 +208,10 @@ export class OrdreReparationController {
   @ApiReponseProbleme(409, 'OR_LIGNE_VERROUILLEE (OR facturé/restitué/clôturé/annulé).')
   async ajouterDemande(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
-    @Body(new PipeZod(schemaDemandeOrdreReparation)) entree: EntreeDemandeOrdreReparation,
+    @CorpsZod(schemaDemandeOrdreReparation, {
+      exemple: { verbatim: 'Le client signale un bruit au freinage à l’avant droit.' },
+    })
+    entree: EntreeDemandeOrdreReparation,
   ): Promise<ReponseOrdreReparationDemande> {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();

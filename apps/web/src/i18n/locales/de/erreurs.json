@@ -88,7 +88,9 @@
     "PLANNING_CAPACITE_DEPASSEE": "Die geplante Auslastung für diesen Tag überschreitet die Werkstattkapazität.",
     "POINTAGE_CLOTURE_AUTOMATIQUE": "Diese Zeiterfassung wurde bei Werkstattschluss automatisch beendet.",
     "PRET_CASCADE_RESTITUTION": "Die Rückgabe des Fahrzeugs führt zur Rückgabe des Leihfahrzeugs.",
-    "VEHICULE_DEUX_OR_OUVERTS": "Ein Reparaturauftrag ist für dieses Fahrzeug bereits offen."
+    "VEHICULE_DEUX_OR_OUVERTS": "Ein Reparaturauftrag ist für dieses Fahrzeug bereits offen.",
+    "RECHERCHE_TROP_DE_REQUETES": "Zu viele Suchanfragen in kurzer Zeit. Warten Sie einige Sekunden und versuchen Sie es erneut.",
+    "METHODE_NON_AUTORISEE": "Diese HTTP-Methode wird nicht unterstützt."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Nachtragsofferte erstellen",

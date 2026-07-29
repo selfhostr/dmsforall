@@ -66,6 +66,24 @@ export const schemaConfig = z
     // LIMITE_CONNEXION_COMPTE ci-dessus : voir le commentaire sur cette variable pour le
     // pourquoi de la séparation (bloquant B1, rapport QA étape 0).
     SEUIL_VERROUILLAGE_COMPTE: z.coerce.number().int().min(1).default(5),
+    // --- Limitation de débit sur la recherche (GET /recherche, finding D-01 audit sécurité) ---
+    // PAR UTILISATEUR, jamais par IP ni globalement (voir garde-limitation-recherche.ts pour le
+    // détail du raisonnement) : le pool de connexions Postgres (DATABASE_POOL_MAX) est PARTAGÉ
+    // entre tous les tenants — sans cette limite, une salve de requêtes sur /recherche l'épuise
+    // pour l'ENSEMBLE des garages, pas seulement pour l'auteur des requêtes.
+    // Dimensionnement retenu : 40 requêtes / 30 s, soit ≈ 1,3 req/s par utilisateur — calibré
+    // pour une plaque suisse tapée caractère par caractère (8 à 10 requêtes en quelques
+    // secondes), avec de la marge pour des recherches consécutives au comptoir (véhicule après
+    // véhicule), tout en restant loin de ce qu'il faudrait pour épuiser à lui seul le pool de 10
+    // connexions par défaut (DATABASE_POOL_MAX). C'est un débit moyen soutenu, pas une limite de
+    // concurrence : les valeurs par défaut de ces deux dispositifs sont donc volontairement dans
+    // un rapport où LIMITE_RECHERCHE_UTILISATEUR (40) dépasse DATABASE_POOL_MAX (10) sans que ce
+    // soit un piège de configuration analogue à LIMITE_CONNEXION_COMPTE/SEUIL_VERROUILLAGE_COMPTE
+    // ci-dessus — il n'y a ici qu'un seul dispositif (un compteur Redis à fenêtre glissante), pas
+    // deux mécanismes indépendants pouvant se rendre mutuellement inatteignables. Voir le
+    // commentaire ci-dessus sur ce couple pour la distinction.
+    LIMITE_RECHERCHE_UTILISATEUR: z.coerce.number().int().min(1).default(40),
+    LIMITE_RECHERCHE_FENETRE_SECONDES: z.coerce.number().int().min(1).default(30),
     LOG_NIVEAU: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
     // Défaut 'false' (finding 8, audit sécurité) : Swagger/OpenAPI est monté directement sur
     // Express par `SwaggerModule.setup()` (main.ts), donc HORS du graphe Nest — l'`APP_GUARD`

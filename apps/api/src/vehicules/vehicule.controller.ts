@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Inject, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Headers, HttpCode, HttpStatus, Inject, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { z } from 'zod';
@@ -18,6 +18,7 @@ import {
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
+import { CorpsZod } from '../common/documentation';
 import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { JETON_IDEMPOTENCE, type ServiceIdempotence } from '../common/idempotence';
@@ -80,7 +81,21 @@ export class VehiculeController {
   @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans vehicule.creer).')
   @ApiReponseProbleme(409, 'VEHICULE_VIN_EXISTANT, VEHICULE_PLAQUE_COLLISION ou IDEMPOTENCE_CONFLIT.')
   async creer(
-    @Body(new PipeZod(schemaCreationVehicule)) entree: EntreeCreationVehicule,
+    @CorpsZod(schemaCreationVehicule, {
+      exemple: {
+        vin: 'WVWZZZ1KZAW123456',
+        marque: 'Volkswagen',
+        modele: 'Golf',
+        version: 'VIII',
+        finition: 'Life',
+        codeTypeCh: '1ZM431',
+        premiereMiseEnCirculationLe: '2021-03-15',
+        plaque: 'VD 123456',
+        canton: 'VD',
+        importe: false,
+      },
+    })
+    entree: EntreeCreationVehicule,
     @Headers('idempotency-key') cleIdempotence: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {
@@ -151,7 +166,10 @@ export class VehiculeController {
   @ApiReponseProbleme(409, 'VEHICULE_VIN_EXISTANT.')
   async modifier(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
-    @Body(new PipeZod(schemaModificationVehicule)) entree: EntreeModificationVehicule,
+    @CorpsZod(schemaModificationVehicule, {
+      exemple: { pneusHiver: 'Continental 205/55 R16', intervalleEntretienKm: 15000, garantieMois: 24 },
+    })
+    entree: EntreeModificationVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
     const { donnees, avertissements } = await this.serviceVehicule.modifier(ctx, vehiculeId, entree);
@@ -170,7 +188,8 @@ export class VehiculeController {
   @ApiReponseProbleme(409, 'VEHICULE_ARCHIVAGE_IMPOSSIBLE — blocages = les OR ouverts.')
   async archiver(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
-    @Body(new PipeZod(schemaArchivageVehicule)) entree: EntreeArchivageVehicule,
+    @CorpsZod(schemaArchivageVehicule, { exemple: { motifArchivage: 'detruit', motif: 'Épave suite sinistre, non réparable' } })
+    entree: EntreeArchivageVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
     const { donnees, avertissements } = await this.serviceVehicule.archiver(ctx, vehiculeId, entree);
@@ -193,7 +212,10 @@ export class VehiculeController {
   @ApiReponseProbleme(404, 'Véhicule introuvable pour ce tenant.')
   async fusionner(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
-    @Body(new PipeZod(schemaFusionVehicule)) entree: EntreeFusionVehicule,
+    @CorpsZod(schemaFusionVehicule, {
+      exemple: { vehiculeSourceId: '7c3e1b2a-9f4d-4e6a-8b1c-2d5f6a7b8c9d', confirmationVin: 'WVWZZZ1KZAW123456' },
+    })
+    entree: EntreeFusionVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();

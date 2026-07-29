@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { ClientResume, PageCurseur, ReponseAvecAvertissements, ReponseClient } from '@dfa/shared';
+import {
+  LANGUES,
+  STATUTS_CLIENT,
+  TYPES_CLIENT,
+  type ClientResume,
+  type PageCurseur,
+  type ReponseAvecAvertissements,
+  type ReponseClient,
+} from '@dfa/shared';
 
 import { AvertissementDto } from './avertissement.dto';
 import { ClientNoteDto } from './client-note.dto';
@@ -11,10 +19,10 @@ export class ClientDto implements ReponseClient {
   @ApiProperty({ example: 'CL-000123', description: 'Numéro continu par tenant, jamais réutilisé (RM-11).' })
   readonly numeroClient!: string;
 
-  @ApiProperty({ enum: ['particulier', 'entreprise'], description: 'Immuable après création (RM-01).' })
+  @ApiProperty({ enum: TYPES_CLIENT, description: 'Immuable après création (RM-01).' })
   readonly type!: ReponseClient['type'];
 
-  @ApiProperty({ enum: ['actif', 'inactif', 'bloque'] })
+  @ApiProperty({ enum: STATUTS_CLIENT })
   readonly statut!: ReponseClient['statut'];
 
   @ApiProperty({ type: String, nullable: true })
@@ -35,7 +43,7 @@ export class ClientDto implements ReponseClient {
   @ApiProperty({ type: String, nullable: true, example: 'CHE-123.456.789' })
   readonly ide!: string | null;
 
-  @ApiProperty({ enum: ['fr', 'de', 'it'] })
+  @ApiProperty({ enum: LANGUES })
   readonly langueCorrespondance!: ReponseClient['langueCorrespondance'];
 
   @ApiProperty({ type: String, nullable: true })
@@ -87,13 +95,13 @@ export class ClientResumeDto implements ClientResume {
   @ApiProperty()
   readonly nomAffiche!: string;
 
-  @ApiProperty({ enum: ['particulier', 'entreprise'] })
+  @ApiProperty({ enum: TYPES_CLIENT })
   readonly type!: ClientResume['type'];
 
-  @ApiProperty({ enum: ['actif', 'inactif', 'bloque'] })
+  @ApiProperty({ enum: STATUTS_CLIENT })
   readonly statut!: ClientResume['statut'];
 
-  @ApiProperty({ enum: ['fr', 'de', 'it'] })
+  @ApiProperty({ enum: LANGUES })
   readonly langueCorrespondance!: ClientResume['langueCorrespondance'];
 
   @ApiProperty()

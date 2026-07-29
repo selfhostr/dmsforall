@@ -386,7 +386,7 @@ export interface paths {
         put?: never;
         /**
          * Action groupée ATOMIQUE : annulation avec motif obligatoire (RM-71).
-         * @description Refusée par la base depuis `proposee`/`a_valider` (lacune connue de `transition_autorisee`, migration 0003 §5.2).
+         * @description Couvre TOUTE ligne non facturée : `proposee -> annulee` et `a_valider -> annulee` (migration 0009, comble la lacune connue de `transition_autorisee` signalée dans 0003 §5.2 — une ligne saisie par erreur avant toute décision client ne reste plus définitivement coincée sur l’OR), en plus de `validee|en_cours|realisee -> annulee` (0003, inchangées). `facturee` reste un état terminal sans aucune sortie (RM-71/I-15).
          */
         post: operations["LigneOrController_annulerLignes"];
         delete?: never;
@@ -1079,6 +1079,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/vehicules/{vehiculeId}/contexte-atelier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Contexte atelier complet du véhicule (RM-36, D-01, CT-13, §8.1).
+         * @description Agrégat consommé au même instant à la prise de RDV ET à la réception du matin : travaux reportés, campagnes ouvertes, échéance d'expertise (MFK), garantie, alertes client et OR déjà ouverts. Chaque section projette la MÊME donnée que sa ressource dédiée — aucun champ n'existe uniquement ici.
+         */
+        get: operations["VehiculeController_contexteAtelier"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/vehicules/{vehiculeId}/detentions": {
         parameters: {
             query?: never;
@@ -1215,6 +1235,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AlerteClientContexteDto: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            nature: "alerte";
+            texte: string;
+        };
         AttentesOrDto: {
             /** @description Un devis complémentaire attend une réponse. */
             accord: boolean;
@@ -1232,8 +1259,9 @@ export interface components {
             /**
              * @description Traduit côté front via `erreurs:codes.<CODE>` — jamais affiché tel quel.
              * @example CLIENT_DOUBLON_PROBABLE
+             * @enum {string}
              */
-            code: Record<string, never>;
+            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE";
             donnees?: {
                 [key: string]: unknown;
             };
@@ -1257,6 +1285,14 @@ export interface components {
             };
             /** @description Libellé FR stable — jamais affiché tel quel par le front. */
             message: string;
+        };
+        CampagneOuverteContexteDto: {
+            /** @example 23K7 */
+            code: string;
+            description: string;
+            /** Format: uuid */
+            id: string;
+            obligatoire: boolean;
         };
         CandidatDoublonClientDto: {
             /** Format: uuid */
@@ -1512,6 +1548,15 @@ export interface components {
             /** Format: uuid */
             technicienId: string;
         };
+        DernierKilometrageContexteDto: {
+            /** Format: date-time */
+            releveLe: string;
+            /** @enum {string} */
+            source: "reception" | "ordre_reparation" | "expertise" | "vente" | "declaratif" | "import";
+            /** @enum {string} */
+            unite: "km" | "mi";
+            valeurKm: number;
+        };
         DesignationPrestationDto: {
             /** @example Service A */
             de: string;
@@ -1519,6 +1564,21 @@ export interface components {
             fr: string;
             /** @example Service A */
             it: string;
+        };
+        DetenteurCourantContexteDto: {
+            /** Format: uuid */
+            clientId: string;
+            /** Format: date */
+            depuisLe: string;
+            /** @enum {string} */
+            langueCorrespondance: "fr" | "de" | "it";
+            /** @example Meier Hans */
+            nom: string;
+            /** @example C-004128 */
+            numeroClient: string;
+            poObligatoire: boolean;
+            /** @enum {string} */
+            statut: "actif" | "inactif" | "bloque";
         };
         DocumentsParametresAtelierDto: {
             /** @enum {string} */
@@ -1577,6 +1637,20 @@ export interface components {
             code: string;
             message: string;
         };
+        ExpertiseContexteDto: {
+            /** Format: date */
+            derniereLe: string | null;
+            /** @description Calculé serveur — jamais recalculé côté client. */
+            echue: boolean;
+            joursDepuisEcheance: number | null;
+            /** Format: date */
+            prochaineLe: string | null;
+            /**
+             * @description Une convocation prime toujours (RM-28, CT-10).
+             * @enum {string}
+             */
+            source: "calculee" | "convocation";
+        };
         FacturationParametresAtelierDto: {
             multiPayeursAutorise: boolean;
             /** @description Aucune colonne dédiée en base au lot 1 (domaine inerte, `fonctionnalites.facturation=false`) — valeur par défaut posée en attendant le schéma de l'étape 2. */
@@ -1597,6 +1671,10 @@ export interface components {
             prets: boolean;
             /** @example false */
             stockPieces: boolean;
+        };
+        GarantieContexteDto: {
+            constructeur: components["schemas"]["GarantieVehiculeDto"] | null;
+            garage: components["schemas"]["GarantieVehiculeDto"] | null;
         };
         GarantieVehiculeDto: {
             active: boolean;
@@ -1619,6 +1697,12 @@ export interface components {
             montantTtcCentimes: number;
             montantTvaCentimes: number;
         };
+        OrdreReparationOuvertContexteDto: {
+            /** Format: uuid */
+            id: string;
+            numero: string;
+            statut: string;
+        };
         OrdreReparationResumeDto: {
             client: components["schemas"]["ClientResumeDto"];
             /**
@@ -1628,7 +1712,8 @@ export interface components {
             etatAffiche: "planifie" | "ouvert" | "en_cours" | "attente_accord" | "attente_pieces" | "attente_externe" | "controle" | "termine" | "facture" | "restitue" | "cloture" | "annule";
             /** Format: uuid */
             id: string;
-            localisation: Record<string, never>;
+            /** @enum {string} */
+            localisation: "parc" | "atelier" | "sous_traitant" | "essai_routier" | "lavage" | "pret_au_retrait" | "sorti_provisoirement" | "restitue";
             nombreLignes: number;
             numero: string;
             /** Format: date-time */
@@ -1639,7 +1724,8 @@ export interface components {
             statut: "planifie" | "ouvert" | "en_cours" | "controle" | "termine" | "facture" | "restitue" | "cloture" | "annule";
             /** @description Absent pour un rôle sans droit aux montants (ex. technicien). */
             totalTtcCentimes?: number;
-            type: Record<string, never>;
+            /** @enum {string} */
+            type: "service" | "reparation" | "diagnostic" | "expertise" | "pneus" | "carrosserie" | "retouche" | "interne";
             vehicule: components["schemas"]["VehiculeResumeDto"];
         };
         OrParametresAtelierDto: {
@@ -1767,7 +1853,7 @@ export interface components {
              * @description Contrat machine : seul champ que le front doit lire.
              * @enum {string}
              */
-            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE" | "OR_TRANSITION_INTERDITE" | "OR_RECEPTION_REQUISE" | "OR_KM_ENTREE_REQUIS" | "OR_LIGNES_A_VALIDER" | "OR_POINTAGE_OUVERT" | "OR_LIGNE_NON_REALISEE" | "OR_CHECKLIST_INCOMPLETE" | "OR_PLAFOND_DEPASSE" | "OR_ANNULATION_IMPOSSIBLE" | "OR_LIGNE_VERROUILLEE" | "OR_PO_MANQUANT" | "OR_RESERVE_SECURITE_REQUISE" | "OR_FACTURATION_AUCUNE_LIGNE" | "LIGNE_TRANSITION_INTERDITE" | "LIGNE_SUPPRESSION_IMPOSSIBLE" | "DEVIS_IMMUABLE" | "DEVIS_INTERLOCUTEUR_REQUIS" | "RDV_TRANSITION_INTERDITE" | "RDV_IDENTIFICATION_INCOMPLETE" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_ANNULATION_IMPOSSIBLE" | "RDV_HORS_OUVERTURE" | "POINTAGE_TRANSITION_INTERDITE" | "POINTAGE_CHEVAUCHEMENT" | "POINTAGE_OR_NON_MODIFIABLE" | "POINTAGE_LIGNE_NON_POINTABLE" | "POINTAGE_PERIODE_VERROUILLEE" | "POINTAGE_MOTIF_REQUIS" | "POINTAGE_HORODATAGE_INVALIDE" | "VEHICULE_KILOMETRAGE_REGRESSIF" | "VEHICULE_PLAQUE_COLLISION" | "VEHICULE_VIN_EXISTANT" | "VEHICULE_ARCHIVAGE_IMPOSSIBLE" | "CLIENT_TYPE_IMMUABLE" | "CLIENT_DESACTIVATION_IMPOSSIBLE" | "PRET_VEHICULE_INDISPONIBLE" | "PRET_CONDUCTEUR_REQUIS" | "CONFIRMATION_REQUISE" | "IDEMPOTENCE_CONFLIT" | "FONCTION_NON_DISPONIBLE";
+            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE" | "OR_TRANSITION_INTERDITE" | "OR_RECEPTION_REQUISE" | "OR_KM_ENTREE_REQUIS" | "OR_LIGNES_A_VALIDER" | "OR_POINTAGE_OUVERT" | "OR_LIGNE_NON_REALISEE" | "OR_CHECKLIST_INCOMPLETE" | "OR_PLAFOND_DEPASSE" | "OR_ANNULATION_IMPOSSIBLE" | "OR_LIGNE_VERROUILLEE" | "OR_PO_MANQUANT" | "OR_RESERVE_SECURITE_REQUISE" | "OR_FACTURATION_AUCUNE_LIGNE" | "LIGNE_TRANSITION_INTERDITE" | "LIGNE_SUPPRESSION_IMPOSSIBLE" | "DEVIS_IMMUABLE" | "DEVIS_INTERLOCUTEUR_REQUIS" | "RDV_TRANSITION_INTERDITE" | "RDV_IDENTIFICATION_INCOMPLETE" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_ANNULATION_IMPOSSIBLE" | "RDV_HORS_OUVERTURE" | "POINTAGE_TRANSITION_INTERDITE" | "POINTAGE_CHEVAUCHEMENT" | "POINTAGE_OR_NON_MODIFIABLE" | "POINTAGE_LIGNE_NON_POINTABLE" | "POINTAGE_PERIODE_VERROUILLEE" | "POINTAGE_MOTIF_REQUIS" | "POINTAGE_HORODATAGE_INVALIDE" | "VEHICULE_KILOMETRAGE_REGRESSIF" | "VEHICULE_PLAQUE_COLLISION" | "VEHICULE_VIN_EXISTANT" | "VEHICULE_ARCHIVAGE_IMPOSSIBLE" | "CLIENT_TYPE_IMMUABLE" | "CLIENT_DESACTIVATION_IMPOSSIBLE" | "PRET_VEHICULE_INDISPONIBLE" | "PRET_CONDUCTEUR_REQUIS" | "CONFIRMATION_REQUISE" | "IDEMPOTENCE_CONFLIT" | "FONCTION_NON_DISPONIBLE" | "RECHERCHE_TROP_DE_REQUETES" | "METHODE_NON_AUTORISEE";
             /** @description Détail technique — jamais affiché à l'utilisateur final. */
             detail?: string;
             erreurs?: components["schemas"]["ErreurChampCommunDto"][];
@@ -1785,7 +1871,7 @@ export interface components {
         };
         ProblemeDetailDto: {
             /** @enum {string} */
-            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE" | "OR_TRANSITION_INTERDITE" | "OR_RECEPTION_REQUISE" | "OR_KM_ENTREE_REQUIS" | "OR_LIGNES_A_VALIDER" | "OR_POINTAGE_OUVERT" | "OR_LIGNE_NON_REALISEE" | "OR_CHECKLIST_INCOMPLETE" | "OR_PLAFOND_DEPASSE" | "OR_ANNULATION_IMPOSSIBLE" | "OR_LIGNE_VERROUILLEE" | "OR_PO_MANQUANT" | "OR_RESERVE_SECURITE_REQUISE" | "OR_FACTURATION_AUCUNE_LIGNE" | "LIGNE_TRANSITION_INTERDITE" | "LIGNE_SUPPRESSION_IMPOSSIBLE" | "DEVIS_IMMUABLE" | "DEVIS_INTERLOCUTEUR_REQUIS" | "RDV_TRANSITION_INTERDITE" | "RDV_IDENTIFICATION_INCOMPLETE" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_ANNULATION_IMPOSSIBLE" | "RDV_HORS_OUVERTURE" | "POINTAGE_TRANSITION_INTERDITE" | "POINTAGE_CHEVAUCHEMENT" | "POINTAGE_OR_NON_MODIFIABLE" | "POINTAGE_LIGNE_NON_POINTABLE" | "POINTAGE_PERIODE_VERROUILLEE" | "POINTAGE_MOTIF_REQUIS" | "POINTAGE_HORODATAGE_INVALIDE" | "VEHICULE_KILOMETRAGE_REGRESSIF" | "VEHICULE_PLAQUE_COLLISION" | "VEHICULE_VIN_EXISTANT" | "VEHICULE_ARCHIVAGE_IMPOSSIBLE" | "CLIENT_TYPE_IMMUABLE" | "CLIENT_DESACTIVATION_IMPOSSIBLE" | "PRET_VEHICULE_INDISPONIBLE" | "PRET_CONDUCTEUR_REQUIS" | "CONFIRMATION_REQUISE" | "IDEMPOTENCE_CONFLIT" | "FONCTION_NON_DISPONIBLE";
+            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE" | "OR_TRANSITION_INTERDITE" | "OR_RECEPTION_REQUISE" | "OR_KM_ENTREE_REQUIS" | "OR_LIGNES_A_VALIDER" | "OR_POINTAGE_OUVERT" | "OR_LIGNE_NON_REALISEE" | "OR_CHECKLIST_INCOMPLETE" | "OR_PLAFOND_DEPASSE" | "OR_ANNULATION_IMPOSSIBLE" | "OR_LIGNE_VERROUILLEE" | "OR_PO_MANQUANT" | "OR_RESERVE_SECURITE_REQUISE" | "OR_FACTURATION_AUCUNE_LIGNE" | "LIGNE_TRANSITION_INTERDITE" | "LIGNE_SUPPRESSION_IMPOSSIBLE" | "DEVIS_IMMUABLE" | "DEVIS_INTERLOCUTEUR_REQUIS" | "RDV_TRANSITION_INTERDITE" | "RDV_IDENTIFICATION_INCOMPLETE" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_ANNULATION_IMPOSSIBLE" | "RDV_HORS_OUVERTURE" | "POINTAGE_TRANSITION_INTERDITE" | "POINTAGE_CHEVAUCHEMENT" | "POINTAGE_OR_NON_MODIFIABLE" | "POINTAGE_LIGNE_NON_POINTABLE" | "POINTAGE_PERIODE_VERROUILLEE" | "POINTAGE_MOTIF_REQUIS" | "POINTAGE_HORODATAGE_INVALIDE" | "VEHICULE_KILOMETRAGE_REGRESSIF" | "VEHICULE_PLAQUE_COLLISION" | "VEHICULE_VIN_EXISTANT" | "VEHICULE_ARCHIVAGE_IMPOSSIBLE" | "CLIENT_TYPE_IMMUABLE" | "CLIENT_DESACTIVATION_IMPOSSIBLE" | "PRET_VEHICULE_INDISPONIBLE" | "PRET_CONDUCTEUR_REQUIS" | "CONFIRMATION_REQUISE" | "IDEMPOTENCE_CONFLIT" | "FONCTION_NON_DISPONIBLE" | "RECHERCHE_TROP_DE_REQUETES" | "METHODE_NON_AUTORISEE";
             detail?: string;
             erreurs?: components["schemas"]["ErreurChampDto"][];
             instance: string;
@@ -1814,6 +1900,26 @@ export interface components {
             plafondDefautCentimes: number | null;
             /** @enum {string} */
             signature: "obligatoire" | "recommandee" | "desactivee";
+        };
+        ReponseContexteAtelierDto: {
+            alertesClient: components["schemas"]["AlerteClientContexteDto"][];
+            avertissements: components["schemas"]["AvertissementVehiculeDto"][];
+            campagnesOuvertes: components["schemas"]["CampagneOuverteContexteDto"][];
+            /**
+             * @description Réservé à l'hôtel à pneus — toujours `null` au lot 1 (place retenue dans le contrat). `type` fixé explicitement : le type TS `null` seul ne produit aucune métadonnée `design:type` côté `emitDecoratorMetadata` (TypeScript ne sait pas sérialiser un type littéral `null`), ce qui faisait échouer la génération Swagger au démarrage avec un faux positif « circular dependency » (voir schema-object-factory.js, createNotBuiltInTypeReference).
+             * @example null
+             */
+            depotPneus?: {
+                [key: string]: unknown;
+            } | null;
+            dernierKilometrage: components["schemas"]["DernierKilometrageContexteDto"] | null;
+            detenteurCourant: components["schemas"]["DetenteurCourantContexteDto"] | null;
+            expertise: components["schemas"]["ExpertiseContexteDto"] | null;
+            garantie: components["schemas"]["GarantieContexteDto"];
+            /** @description Alimente la confirmation VEHICULE_DEUX_OR_OUVERTS (P-29). */
+            ordresReparationOuverts: components["schemas"]["OrdreReparationOuvertContexteDto"][];
+            travauxReportes: components["schemas"]["TravauxReportesContexteDto"];
+            vehicule: components["schemas"]["VehiculeContexteAtelierDto"];
         };
         ReponseDevisComplementaireDto: {
             /** @enum {string} */
@@ -2171,6 +2277,27 @@ export interface components {
             /** @example 2026-01-01 */
             valideDuLe: string;
         };
+        ReponseTravailReporteDto: {
+            /** Format: date */
+            constateLe: string;
+            designation: string;
+            /** Format: uuid */
+            id: string;
+            kilometrageAlors: number | null;
+            /** Format: uuid */
+            ligneOrOrigineId: string | null;
+            /** @description Absent pour les rôles de ROLES_SANS_MONTANT. */
+            montantEstimeCentimes?: number | null;
+            /** Format: uuid */
+            ordreReparationOrigineId: string | null;
+            /** Format: uuid */
+            ordreReparationRepriseId: string | null;
+            securite: boolean;
+            /** @enum {string} */
+            statut: "ouvert" | "repris" | "abandonne";
+            /** @enum {string} */
+            urgence: "urgent" | "a_faire" | "a_surveiller";
+        };
         ReponseVehiculeDetentionDto: {
             client: components["schemas"]["ClientResumeDetentionDto"];
             /** Format: date */
@@ -2378,6 +2505,12 @@ export interface components {
             /** @enum {string} */
             uniteTemps: "heures_decimales" | "unites_constructeur";
         };
+        TravauxReportesContexteDto: {
+            /** @description Borné à MAX_TRAVAUX_REPORTES_CONTEXTE (10). */
+            elements: components["schemas"]["ReponseTravailReporteDto"][];
+            /** @description Compte réel des travaux OUVERTS — peut dépasser `elements.length` (borné). */
+            total: number;
+        };
         /** @enum {string} */
         TypeResultatRecherche: "vehicule" | "client" | "ordre_reparation";
         UtilisateurCourantDto: {
@@ -2404,6 +2537,22 @@ export interface components {
             /** Format: uuid */
             detenteurClientId: string | null;
             plaque: string | null;
+        };
+        VehiculeContexteAtelierDto: {
+            /** @example VD */
+            canton: string | null;
+            codeTypeCh: string | null;
+            /** @example VW Touran 2.0 TDI */
+            designation: string;
+            /** Format: uuid */
+            id: string;
+            identificationIncomplete: boolean;
+            importe: components["schemas"]["ImportationVehiculeDto"];
+            /** @example VD 123456 */
+            plaque: string | null;
+            /** Format: date */
+            premiereMiseEnCirculationLe: string | null;
+            vin: string | null;
         };
         VehiculeParametresAtelierDto: {
             expertiseAlerteMois: number;
@@ -2458,7 +2607,15 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: email */
+                    email: string;
+                    motDePasse: string;
+                };
+            };
+        };
         responses: {
             /** @description Session ouverte. */
             200: {
@@ -2628,7 +2785,53 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    adressePrincipale: {
+                        complement?: string | null;
+                        localite: string;
+                        npa: string;
+                        /** @default CH */
+                        pays?: string;
+                        rue: string;
+                    };
+                    civilite?: string | null;
+                    conditions?: {
+                        delaiPaiementJours?: number | null;
+                        modePaiement?: string | null;
+                        plafondCentimes?: number | null;
+                        /** @default 0 */
+                        rabaisMoPourmille?: number;
+                        /** @default 0 */
+                        rabaisPiecesPourmille?: number;
+                        /** @default 0 */
+                        rabaisPneusPourmille?: number;
+                        tauxHoraireCode?: string | null;
+                    };
+                    confirmations?: ("CLIENT_BLOQUE" | "VEHICULE_DEUX_OR_OUVERTS" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_HORS_OUVERTURE" | "PRET_VEHICULE_INDISPONIBLE" | "OR_SANS_RDV")[];
+                    email?: string | null;
+                    groupeId?: string | null;
+                    ide?: string | null;
+                    /** @enum {string} */
+                    langueCorrespondance: "fr" | "de" | "it";
+                    nom?: string | null;
+                    /** @default false */
+                    poObligatoire?: boolean;
+                    prenom?: string | null;
+                    raisonSociale?: string | null;
+                    referenceExterne?: string | null;
+                    /** @default [] */
+                    telephones?: {
+                        /** @default false */
+                        principal?: boolean;
+                        valeur: string;
+                    }[];
+                    /** @enum {string} */
+                    type: "particulier" | "entreprise";
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -2742,7 +2945,25 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        /** @description `type` est volontairement absent de ce schéma (immuable, RM-01) — l'envoyer produit `409 CLIENT_TYPE_IMMUABLE`, détecté sur le corps brut par le service. */
+        requestBody: {
+            content: {
+                "application/json": {
+                    civilite?: string | null;
+                    email?: string | null;
+                    groupeId?: string | null;
+                    ide?: string | null;
+                    /** @enum {string} */
+                    langueCorrespondance?: "fr" | "de" | "it";
+                    nom?: string | null;
+                    poObligatoire?: boolean;
+                    prenom?: string | null;
+                    raisonSociale?: string | null;
+                    referenceExterne?: string | null;
+                    telephone?: string | null;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -2856,7 +3077,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    complement?: string | null;
+                    localite: string;
+                    npa: string;
+                    /** @default CH */
+                    pays?: string;
+                    rue: string;
+                    /** @enum {string} */
+                    type: "principale" | "facturation" | "livraison";
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -2914,7 +3148,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    actif?: boolean;
+                    complement?: string | null;
+                    localite?: string;
+                    npa?: string;
+                    /** @default CH */
+                    pays?: string;
+                    rue?: string;
+                    /** @enum {string} */
+                    type?: "principale" | "facturation" | "livraison";
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -3019,7 +3267,25 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    delaiPaiementJours?: number | null;
+                    modePaiement?: string | null;
+                    plafondCentimes?: number | null;
+                    /** @default 0 */
+                    rabaisMoPourmille?: number;
+                    /** @default 0 */
+                    rabaisPiecesPourmille?: number;
+                    /** @default 0 */
+                    rabaisPneusPourmille?: number;
+                    tauxHoraireCode?: string | null;
+                    valideAuLe?: string | null;
+                    /** Format: date */
+                    valideDuLe: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -3124,7 +3390,18 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    accorde: boolean;
+                    canal?: string | null;
+                    /** Format: date-time */
+                    recueilliLe: string;
+                    /** @enum {string} */
+                    type: "marketing_email" | "marketing_sms" | "marketing_appel";
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -3229,7 +3506,19 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    email?: string | null;
+                    fonction?: string | null;
+                    langue?: ("fr" | "de" | "it") | null;
+                    nom: string;
+                    prenom?: string | null;
+                    roles: ("conducteur" | "gestionnaire_flotte" | "signataire" | "comptabilite")[];
+                    telephone?: string | null;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -3287,7 +3576,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    actif?: boolean;
+                    email?: string | null;
+                    fonction?: string | null;
+                    langue?: ("fr" | "de" | "it") | null;
+                    nom?: string;
+                    prenom?: string | null;
+                    roles?: ("conducteur" | "gestionnaire_flotte" | "signataire" | "comptabilite")[];
+                    telephone?: string | null;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -3344,7 +3646,13 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    motif: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -3458,7 +3766,15 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    nature: "interne" | "alerte";
+                    texte: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -3722,7 +4038,44 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    clientId: string;
+                    conducteurPresentNom?: string | null;
+                    confirmations?: ("CLIENT_BLOQUE" | "VEHICULE_DEUX_OR_OUVERTS" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_HORS_OUVERTURE" | "PRET_VEHICULE_INDISPONIBLE" | "OR_SANS_RDV")[];
+                    /** @default [] */
+                    demandes?: {
+                        verbatim: string;
+                    }[];
+                    kilometrageEntree?: number | null;
+                    motifLien?: ("retouche" | "suite") | null;
+                    numeroCommandeInterne?: string | null;
+                    ordreReparationParentId?: string | null;
+                    plafondAutorisePar?: string | null;
+                    plafondCentimes?: number;
+                    rendezVousId?: string | null;
+                    restitutionPromiseLe?: string | null;
+                    /** Format: uuid */
+                    siteId: string;
+                    /**
+                     * @default ouvert
+                     * @enum {string}
+                     */
+                    statutInitial?: "planifie" | "ouvert";
+                    /** @enum {string} */
+                    type: "service" | "reparation" | "diagnostic" | "expertise" | "pneus" | "carrosserie" | "retouche" | "interne";
+                    /**
+                     * @default km
+                     * @enum {string}
+                     */
+                    uniteKilometrage?: "km" | "mi";
+                    /** Format: uuid */
+                    vehiculeId: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -3848,7 +4201,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    conducteurPresentNom?: string | null;
+                    confirmations?: ("CLIENT_BLOQUE" | "VEHICULE_DEUX_OR_OUVERTS" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_HORS_OUVERTURE" | "PRET_VEHICULE_INDISPONIBLE" | "OR_SANS_RDV")[];
+                    /** @enum {string} */
+                    localisation?: "parc" | "atelier" | "sous_traitant" | "essai_routier" | "lavage" | "pret_au_retrait" | "sorti_provisoirement" | "restitue";
+                    motifReport?: string;
+                    numeroCommandeInterne?: string | null;
+                    plafondAutorisePar?: string | null;
+                    plafondCentimes?: number;
+                    restitutionPromiseLe?: string | null;
+                    sousTraitantNom?: string | null;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -3914,7 +4282,13 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    motif: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -3980,7 +4354,14 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    ligneIds: string[];
+                    motif: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -4046,7 +4427,13 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    confirmations?: ("CLIENT_BLOQUE" | "VEHICULE_DEUX_OR_OUVERTS" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_HORS_OUVERTURE" | "PRET_VEHICULE_INDISPONIBLE" | "OR_SANS_RDV")[];
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -4151,7 +4538,13 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    verbatim: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -4217,7 +4610,13 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    confirmations?: ("CLIENT_BLOQUE" | "VEHICULE_DEUX_OR_OUVERTS" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_HORS_OUVERTURE" | "PRET_VEHICULE_INDISPONIBLE" | "OR_SANS_RDV")[];
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -4334,7 +4733,18 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    canal: "telephone" | "sms" | "email" | "comptoir" | "lien";
+                    destinataireContactId?: string | null;
+                    impactRestitutionLe?: string | null;
+                    ligneIds: string[];
+                    nouveauPlafondCentimes: number;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -4404,7 +4814,26 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    canal: "telephone" | "sms" | "email" | "comptoir" | "lien";
+                    /** @enum {string} */
+                    decision: "accepte" | "refuse" | "partiel";
+                    interlocuteurNom: string;
+                    lignes?: {
+                        /** @enum {string} */
+                        decision: "accepte" | "refuse";
+                        /** Format: uuid */
+                        ligneId: string;
+                    }[];
+                    /** Format: date-time */
+                    repondueLe: string;
+                    retranscription?: string | null;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -4587,7 +5016,46 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @default aucun
+                     * @enum {string}
+                     */
+                    blocage?: "aucun" | "accord" | "pieces" | "externe";
+                    codeDefaut?: string | null;
+                    codeOperation?: string | null;
+                    designation: string;
+                    /** @default false */
+                    fournieParClient?: boolean;
+                    numeroAccord?: string | null;
+                    numeroSinistre?: string | null;
+                    /** @enum {string} */
+                    origine: "commandee" | "constatee" | "campagne" | "garantie" | "retouche" | "interne";
+                    /**
+                     * @default client
+                     * @enum {string}
+                     */
+                    payeur?: "client" | "constructeur" | "assurance" | "tiers" | "garage";
+                    /** @default false */
+                    pieceARestituer?: boolean;
+                    prixUnitaireCentimes?: number | null;
+                    /** @default 1000 */
+                    quantiteMillieme?: number;
+                    /** @default 0 */
+                    rabaisPourmille?: number;
+                    referenceTexte?: string | null;
+                    /** @default false */
+                    securite?: boolean;
+                    technicienId?: string | null;
+                    tempsBaremeCentiemes?: number | null;
+                    /** @enum {string} */
+                    type: "main_oeuvre_bareme" | "main_oeuvre_temps_reel" | "forfait" | "piece" | "fourniture" | "sous_traitance" | "produit_atelier" | "taxe" | "remise" | "texte";
+                    urgence?: ("urgent" | "a_faire" | "a_surveiller") | null;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -4654,7 +5122,41 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    blocage?: "aucun" | "accord" | "pieces" | "externe";
+                    codeDefaut?: string | null;
+                    codeOperation?: string | null;
+                    designation?: string;
+                    /** @default false */
+                    fournieParClient?: boolean;
+                    numeroAccord?: string | null;
+                    numeroSinistre?: string | null;
+                    /**
+                     * @default client
+                     * @enum {string}
+                     */
+                    payeur?: "client" | "constructeur" | "assurance" | "tiers" | "garage";
+                    /** @default false */
+                    pieceARestituer?: boolean;
+                    prixUnitaireCentimes?: number | null;
+                    /** @default 1000 */
+                    quantiteMillieme?: number;
+                    /** @default 0 */
+                    rabaisPourmille?: number;
+                    referenceTexte?: string | null;
+                    /** @default false */
+                    securite?: boolean;
+                    technicienId?: string | null;
+                    tempsBaremeCentiemes?: number | null;
+                    /** @enum {string} */
+                    type?: "main_oeuvre_bareme" | "main_oeuvre_temps_reel" | "forfait" | "piece" | "fourniture" | "sous_traitance" | "produit_atelier" | "taxe" | "remise" | "texte";
+                    urgence?: ("urgent" | "a_faire" | "a_surveiller") | null;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -4721,7 +5223,13 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    tempsReelCentiemes?: number;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -4787,7 +5295,13 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    confirmations?: ("CLIENT_BLOQUE" | "VEHICULE_DEUX_OR_OUVERTS" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_HORS_OUVERTURE" | "PRET_VEHICULE_INDISPONIBLE" | "OR_SANS_RDV")[];
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -4844,7 +5358,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    confirmations?: ("CLIENT_BLOQUE" | "VEHICULE_DEUX_OR_OUVERTS" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_HORS_OUVERTURE" | "PRET_VEHICULE_INDISPONIBLE" | "OR_SANS_RDV")[];
+                    kilometrageEntree: number;
+                    motifDifferee?: string;
+                    /** @default false */
+                    signatureDifferee?: boolean;
+                    /**
+                     * @default km
+                     * @enum {string}
+                     */
+                    unite?: "km" | "mi";
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -4910,7 +5439,13 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    motif: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -4976,7 +5511,14 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    ligneIds: string[];
+                    motif?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -5042,7 +5584,14 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    ligneIds?: string[];
+                    motif?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -5099,7 +5648,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    confirmations?: ("CLIENT_BLOQUE" | "VEHICULE_DEUX_OR_OUVERTS" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_HORS_OUVERTURE" | "PRET_VEHICULE_INDISPONIBLE" | "OR_SANS_RDV")[];
+                    kilometrageSortie?: number | null;
+                    paiementRecu?: boolean;
+                    piecesRestituees?: string[];
+                    /**
+                     * @default km
+                     * @enum {string}
+                     */
+                    unite?: "km" | "mi";
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -5165,7 +5728,13 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    motif: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -5231,7 +5800,13 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    ligneIds: string[];
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -5297,7 +5872,19 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    confirmations?: ("CLIENT_BLOQUE" | "VEHICULE_DEUX_OR_OUVERTS" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_HORS_OUVERTURE" | "PRET_VEHICULE_INDISPONIBLE" | "OR_SANS_RDV")[];
+                    kilometrageSortie?: number | null;
+                    /**
+                     * @default km
+                     * @enum {string}
+                     */
+                    unite?: "km" | "mi";
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -5363,7 +5950,19 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    controleurId: string;
+                    /** @default [] */
+                    pointsControles?: {
+                        code: string;
+                        conforme: boolean;
+                    }[];
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -5429,7 +6028,13 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    ligneIds: string[];
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -5529,7 +6134,75 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    documents?: {
+                        /** @enum {string} */
+                        langue?: "client" | "site";
+                        /** @enum {string} */
+                        mentionSecurite?: "obligatoire" | "desactivee";
+                    };
+                    facturation?: {
+                        multiPayeursAutorise?: boolean;
+                        piecesClientAutorisees?: boolean;
+                        /** @enum {string} */
+                        politiqueDemontageRefuse?: "facturer" | "offrir" | "au_dela_seuil";
+                        produitsAtelier?: {
+                            /** @enum {string} */
+                            mode: "pourcentage_plafonne" | "forfait" | "lignes_reelles" | "desactive";
+                            plafondCentimes?: number | null;
+                            pourmille?: number | null;
+                        };
+                        restitutionAvantPaiement?: boolean;
+                        seuilDemontageCentimes?: number | null;
+                    };
+                    or?: {
+                        /** @enum {string} */
+                        deuxOrMemeVehicule?: "bloquer" | "avertir" | "autoriser";
+                        etatPlanifieActif?: boolean;
+                        /** @enum {string} */
+                        porteeNumerotation?: "tenant" | "site";
+                        prefixe?: string;
+                        rdvRetroactifAuto?: boolean;
+                        resetAnnuel?: boolean;
+                        sansRdvAutorise?: boolean;
+                    };
+                    planning?: {
+                        noShowSeuilAlerte?: number;
+                        rappel?: {
+                            /** @enum {string} */
+                            canal: "sms" | "email" | "aucun";
+                            joursAvant: number;
+                        };
+                        tamponPretMinutes?: number;
+                    };
+                    reception?: {
+                        kmEntreeObligatoire?: boolean;
+                        kmSortieObligatoire?: boolean;
+                        plafondDefautCentimes?: number;
+                        /** @enum {string} */
+                        signature?: "obligatoire" | "recommandee" | "desactivee";
+                    };
+                    travaux?: {
+                        /** @enum {string} */
+                        arrondiPointage?: "minute" | "dixieme" | "quart";
+                        chevauchementPointageAutorise?: boolean;
+                        /** @enum {string} */
+                        controleQualite?: "jamais" | "toujours" | "selon_type" | "au_dela_montant";
+                        dureeMaxPointageHeures?: number;
+                        pointageObligatoirePourTerminer?: boolean;
+                        /** @enum {string} */
+                        uniteTemps?: "heures_decimales" | "unites_constructeur";
+                    };
+                    vehicule?: {
+                        expertiseAlerteMois?: number;
+                        /** @enum {string} */
+                        visibiliteHistoriqueNouveauDetenteur?: "tout" | "technique" | "rien";
+                    };
+                };
+            };
+        };
         responses: {
             /** @description Paramètres atelier mis à jour. */
             200: {
@@ -5619,6 +6292,15 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemeDetailCommunDto"];
                 };
             };
+            /** @description Trop de recherches pour cet utilisateur (limitation de débit, finding D-01). L'en-tête Retry-After indique le nombre de secondes à attendre avant de retenter. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
         };
     };
     PrestationsController_lister: {
@@ -5651,7 +6333,23 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    code: string;
+                    designationDe?: string | null;
+                    designationFr: string;
+                    designationIt?: string | null;
+                    prixCentimes?: number | null;
+                    tauxHoraireCode?: string | null;
+                    /** @default 81 */
+                    tauxTvaPourmille?: number;
+                    tempsBaremeCentiemes?: number | null;
+                    /** @enum {string} */
+                    typeLigne: "main_oeuvre_bareme" | "main_oeuvre_temps_reel" | "forfait" | "piece" | "fourniture" | "sous_traitance" | "produit_atelier" | "taxe" | "remise" | "texte";
+                };
+            };
+        };
         responses: {
             /** @description Prestation créée. */
             201: {
@@ -5691,7 +6389,23 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    actif?: boolean;
+                    designationDe?: string | null;
+                    designationFr?: string;
+                    designationIt?: string | null;
+                    prixCentimes?: number | null;
+                    tauxHoraireCode?: string | null;
+                    /** @default 81 */
+                    tauxTvaPourmille?: number;
+                    tempsBaremeCentiemes?: number | null;
+                    /** @enum {string} */
+                    typeLigne?: "main_oeuvre_bareme" | "main_oeuvre_temps_reel" | "forfait" | "piece" | "fourniture" | "sous_traitance" | "produit_atelier" | "taxe" | "remise" | "texte";
+                };
+            };
+        };
         responses: {
             /** @description Prestation mise à jour. */
             200: {
@@ -5752,7 +6466,18 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    code: string;
+                    libelle: string;
+                    montantCentimes: number;
+                    valideAuLe?: string | null;
+                    /** Format: date */
+                    valideDuLe: string;
+                };
+            };
+        };
         responses: {
             /** @description Taux horaire créé. */
             201: {
@@ -5792,7 +6517,17 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    libelle?: string;
+                    montantCentimes?: number;
+                    valideAuLe?: string | null;
+                    /** Format: date */
+                    valideDuLe?: string;
+                };
+            };
+        };
         responses: {
             /** @description Taux horaire mis à jour. */
             200: {
@@ -6034,7 +6769,17 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    capaciteHeuresJourCentiemes?: number | null;
+                    heureCloturePointage?: string | null;
+                    heureFermeture?: string | null;
+                    heureOuverture?: string | null;
+                    joursFermeture?: string[];
+                };
+            };
+        };
         responses: {
             /** @description Paramètres du site mis à jour. */
             200: {
@@ -6158,7 +6903,34 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    boite?: string | null;
+                    canton?: string | null;
+                    carburant?: string | null;
+                    codeTypeCh?: string | null;
+                    conducteurHabituel?: string | null;
+                    couleur?: string | null;
+                    cylindreeCm3?: number | null;
+                    detenteurId?: string | null;
+                    finition?: string | null;
+                    /** @default false */
+                    importe?: boolean;
+                    importeLe?: string | null;
+                    marque: string;
+                    modele: string;
+                    paysOrigine?: string | null;
+                    plaque?: string | null;
+                    premiereMiseEnCirculationLe?: string | null;
+                    proprietaireEconomiqueClientId?: string | null;
+                    puissanceKw?: number | null;
+                    transmission?: string | null;
+                    version?: string | null;
+                    vin?: string | null;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -6272,7 +7044,44 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    batterie?: string | null;
+                    boite?: string | null;
+                    carburant?: string | null;
+                    codeCle?: string | null;
+                    codeRadio?: string | null;
+                    codeTypeCh?: string | null;
+                    conducteurHabituel?: string | null;
+                    couleur?: string | null;
+                    cylindreeCm3?: number | null;
+                    finition?: string | null;
+                    garantieDebutLe?: string | null;
+                    garantieKm?: number | null;
+                    garantieMois?: number | null;
+                    huileQuantiteDl?: number | null;
+                    huileType?: string | null;
+                    /** @default false */
+                    importe?: boolean;
+                    importeLe?: string | null;
+                    intervalleEntretienKm?: number | null;
+                    intervalleEntretienMois?: number | null;
+                    marque?: string;
+                    modele?: string;
+                    paysOrigine?: string | null;
+                    pneusEte?: string | null;
+                    pneusHiver?: string | null;
+                    premiereMiseEnCirculationLe?: string | null;
+                    pressionPneus?: string | null;
+                    proprietaireEconomiqueClientId?: string | null;
+                    puissanceKw?: number | null;
+                    transmission?: string | null;
+                    version?: string | null;
+                    vin?: string | null;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -6338,7 +7147,15 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    motif: string;
+                    /** @enum {string} */
+                    motifArchivage: "detruit" | "exporte" | "vendu_hors_clientele" | "doublon";
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -6404,7 +7221,28 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: date */
+                    changementLe: string;
+                    /** @enum {string} */
+                    motifFin: "vente" | "reprise" | "deces" | "correction" | "export";
+                    /** Format: uuid */
+                    nouveauClientId: string;
+                    nouvellePlaque?: {
+                        canton?: string | null;
+                        /** @default false */
+                        interchangeable?: boolean;
+                        /** @default CH */
+                        pays?: string;
+                        /** @default false */
+                        professionnelle?: boolean;
+                        valeur: string;
+                    };
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -6452,6 +7290,63 @@ export interface operations {
             };
             /** @description VALIDATION_ECHOUEE (deux détenteurs courants) ou VEHICULE_PLAQUE_COLLISION. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeController_contexteAtelier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseContexteAtelierDto"];
+                };
+            };
+            /** @description Identifiant mal formé. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6518,7 +7413,16 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    clientId: string;
+                    /** Format: date */
+                    debutLe: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -6576,7 +7480,16 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: date */
+                    finLe: string;
+                    /** @enum {string} */
+                    motifFin: "vente" | "reprise" | "deces" | "correction" | "export";
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -6690,7 +7603,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    dateContreVisiteLe?: string | null;
+                    /** Format: date */
+                    dateLe: string;
+                    defauts?: string | null;
+                    delaiContreVisiteLe?: string | null;
+                    prochaineEcheanceLe?: string | null;
+                    /** @enum {string} */
+                    resultat: "accepte" | "accepte_avec_defauts" | "refuse";
+                    /** @enum {string} */
+                    sourceEcheance: "calculee" | "convocation";
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -6748,7 +7676,15 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    confirmationVin: string;
+                    /** Format: uuid */
+                    vehiculeSourceId: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -6853,7 +7789,24 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    motifRegression?: ("compteur_remplace" | "erreur_saisie" | "changement_unite" | "correction") | null;
+                    ordreReparationId?: string | null;
+                    /** Format: date-time */
+                    releveLe: string;
+                    /** @enum {string} */
+                    source: "reception" | "ordre_reparation" | "expertise" | "vente" | "declaratif" | "import";
+                    /**
+                     * @default km
+                     * @enum {string}
+                     */
+                    unite?: "km" | "mi";
+                    valeur: number;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -6881,7 +7834,7 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemeDetailCommunDto"];
                 };
             };
-            /** @description Droit insuffisant. */
+            /** @description Droit insuffisant — ou, sur une saisie RÉGRESSIVE avec motif, rôle sans vehicule.kilometrage.corriger_regression (§10 L962, chef d'atelier/direction uniquement). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6967,7 +7920,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    canton?: string | null;
+                    /** Format: date */
+                    debutLe: string;
+                    /** @default false */
+                    interchangeable?: boolean;
+                    /** @default CH */
+                    pays?: string;
+                    /** @default false */
+                    professionnelle?: boolean;
+                    valeur: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -7034,7 +8002,14 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: date */
+                    finLe: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {

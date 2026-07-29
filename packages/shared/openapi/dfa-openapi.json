@@ -1,6 +1,29 @@
 {
   "components": {
     "schemas": {
+      "AlerteClientContexteDto": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "nature": {
+            "enum": [
+              "alerte"
+            ],
+            "type": "string"
+          },
+          "texte": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nature",
+          "texte"
+        ],
+        "type": "object"
+      },
       "AttentesOrDto": {
         "properties": {
           "accord": {
@@ -43,8 +66,19 @@
         "properties": {
           "code": {
             "description": "Traduit côté front via `erreurs:codes.<CODE>` — jamais affiché tel quel.",
+            "enum": [
+              "CLIENT_DOUBLON_PROBABLE",
+              "VEHICULE_VIN_COURT",
+              "VEHICULE_IDENTIFICATION_INCOMPLETE",
+              "VEHICULE_KILOMETRAGE_ABERRANT",
+              "VEHICULE_EXPERTISE_ECHUE",
+              "PLANNING_CAPACITE_DEPASSEE",
+              "POINTAGE_CLOTURE_AUTOMATIQUE",
+              "PRET_CASCADE_RESTITUTION",
+              "OR_MULTI_PAYEURS_DESACTIVE"
+            ],
             "example": "CLIENT_DOUBLON_PROBABLE",
-            "type": "object"
+            "type": "string"
           },
           "donnees": {
             "additionalProperties": true,
@@ -120,6 +154,31 @@
         "required": [
           "code",
           "message"
+        ],
+        "type": "object"
+      },
+      "CampagneOuverteContexteDto": {
+        "properties": {
+          "code": {
+            "example": "23K7",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "obligatoire": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "description",
+          "obligatoire"
         ],
         "type": "object"
       },
@@ -942,6 +1001,42 @@
         ],
         "type": "object"
       },
+      "DernierKilometrageContexteDto": {
+        "properties": {
+          "releveLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "reception",
+              "ordre_reparation",
+              "expertise",
+              "vente",
+              "declaratif",
+              "import"
+            ],
+            "type": "string"
+          },
+          "unite": {
+            "enum": [
+              "km",
+              "mi"
+            ],
+            "type": "string"
+          },
+          "valeurKm": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "valeurKm",
+          "unite",
+          "releveLe",
+          "source"
+        ],
+        "type": "object"
+      },
       "DesignationPrestationDto": {
         "properties": {
           "de": {
@@ -961,6 +1056,55 @@
           "fr",
           "de",
           "it"
+        ],
+        "type": "object"
+      },
+      "DetenteurCourantContexteDto": {
+        "properties": {
+          "clientId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "depuisLe": {
+            "format": "date",
+            "type": "string"
+          },
+          "langueCorrespondance": {
+            "enum": [
+              "fr",
+              "de",
+              "it"
+            ],
+            "type": "string"
+          },
+          "nom": {
+            "example": "Meier Hans",
+            "type": "string"
+          },
+          "numeroClient": {
+            "example": "C-004128",
+            "type": "string"
+          },
+          "poObligatoire": {
+            "type": "boolean"
+          },
+          "statut": {
+            "enum": [
+              "actif",
+              "inactif",
+              "bloque"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientId",
+          "numeroClient",
+          "nom",
+          "langueCorrespondance",
+          "statut",
+          "depuisLe",
+          "poObligatoire"
         ],
         "type": "object"
       },
@@ -1174,6 +1318,44 @@
         ],
         "type": "object"
       },
+      "ExpertiseContexteDto": {
+        "properties": {
+          "derniereLe": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "echue": {
+            "description": "Calculé serveur — jamais recalculé côté client.",
+            "type": "boolean"
+          },
+          "joursDepuisEcheance": {
+            "nullable": true,
+            "type": "number"
+          },
+          "prochaineLe": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "source": {
+            "description": "Une convocation prime toujours (RM-28, CT-10).",
+            "enum": [
+              "calculee",
+              "convocation"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "derniereLe",
+          "prochaineLe",
+          "source",
+          "echue",
+          "joursDepuisEcheance"
+        ],
+        "type": "object"
+      },
       "FacturationParametresAtelierDto": {
         "properties": {
           "multiPayeursAutorise": {
@@ -1237,6 +1419,33 @@
           "stockPieces",
           "depotPneus",
           "prets"
+        ],
+        "type": "object"
+      },
+      "GarantieContexteDto": {
+        "properties": {
+          "constructeur": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GarantieVehiculeDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          },
+          "garage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GarantieVehiculeDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "constructeur",
+          "garage"
         ],
         "type": "object"
       },
@@ -1311,6 +1520,26 @@
         ],
         "type": "object"
       },
+      "OrdreReparationOuvertContexteDto": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "numero": {
+            "type": "string"
+          },
+          "statut": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "numero",
+          "statut"
+        ],
+        "type": "object"
+      },
       "OrdreReparationResumeDto": {
         "properties": {
           "client": {
@@ -1339,7 +1568,17 @@
             "type": "string"
           },
           "localisation": {
-            "type": "object"
+            "enum": [
+              "parc",
+              "atelier",
+              "sous_traitant",
+              "essai_routier",
+              "lavage",
+              "pret_au_retrait",
+              "sorti_provisoirement",
+              "restitue"
+            ],
+            "type": "string"
           },
           "nombreLignes": {
             "type": "number"
@@ -1376,7 +1615,17 @@
             "type": "number"
           },
           "type": {
-            "type": "object"
+            "enum": [
+              "service",
+              "reparation",
+              "diagnostic",
+              "expertise",
+              "pneus",
+              "carrosserie",
+              "retouche",
+              "interne"
+            ],
+            "type": "string"
           },
           "vehicule": {
             "$ref": "#/components/schemas/VehiculeResumeDto"
@@ -1909,7 +2158,9 @@
               "PRET_CONDUCTEUR_REQUIS",
               "CONFIRMATION_REQUISE",
               "IDEMPOTENCE_CONFLIT",
-              "FONCTION_NON_DISPONIBLE"
+              "FONCTION_NON_DISPONIBLE",
+              "RECHERCHE_TROP_DE_REQUETES",
+              "METHODE_NON_AUTORISEE"
             ],
             "type": "string"
           },
@@ -2006,7 +2257,9 @@
               "PRET_CONDUCTEUR_REQUIS",
               "CONFIRMATION_REQUISE",
               "IDEMPOTENCE_CONFLIT",
-              "FONCTION_NON_DISPONIBLE"
+              "FONCTION_NON_DISPONIBLE",
+              "RECHERCHE_TROP_DE_REQUETES",
+              "METHODE_NON_AUTORISEE"
             ],
             "type": "string"
           },
@@ -2116,6 +2369,91 @@
           "kmSortieObligatoire",
           "signature",
           "plafondDefautCentimes"
+        ],
+        "type": "object"
+      },
+      "ReponseContexteAtelierDto": {
+        "properties": {
+          "alertesClient": {
+            "items": {
+              "$ref": "#/components/schemas/AlerteClientContexteDto"
+            },
+            "type": "array"
+          },
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementVehiculeDto"
+            },
+            "type": "array"
+          },
+          "campagnesOuvertes": {
+            "items": {
+              "$ref": "#/components/schemas/CampagneOuverteContexteDto"
+            },
+            "type": "array"
+          },
+          "depotPneus": {
+            "additionalProperties": true,
+            "description": "Réservé à l'hôtel à pneus — toujours `null` au lot 1 (place retenue dans le contrat). `type` fixé explicitement : le type TS `null` seul ne produit aucune métadonnée `design:type` côté `emitDecoratorMetadata` (TypeScript ne sait pas sérialiser un type littéral `null`), ce qui faisait échouer la génération Swagger au démarrage avec un faux positif « circular dependency » (voir schema-object-factory.js, createNotBuiltInTypeReference).",
+            "example": null,
+            "nullable": true,
+            "type": "object"
+          },
+          "dernierKilometrage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DernierKilometrageContexteDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          },
+          "detenteurCourant": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DetenteurCourantContexteDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          },
+          "expertise": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExpertiseContexteDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          },
+          "garantie": {
+            "$ref": "#/components/schemas/GarantieContexteDto"
+          },
+          "ordresReparationOuverts": {
+            "description": "Alimente la confirmation VEHICULE_DEUX_OR_OUVERTS (P-29).",
+            "items": {
+              "$ref": "#/components/schemas/OrdreReparationOuvertContexteDto"
+            },
+            "type": "array"
+          },
+          "travauxReportes": {
+            "$ref": "#/components/schemas/TravauxReportesContexteDto"
+          },
+          "vehicule": {
+            "$ref": "#/components/schemas/VehiculeContexteAtelierDto"
+          }
+        },
+        "required": [
+          "vehicule",
+          "detenteurCourant",
+          "dernierKilometrage",
+          "expertise",
+          "garantie",
+          "campagnesOuvertes",
+          "travauxReportes",
+          "alertesClient",
+          "ordresReparationOuverts",
+          "avertissements"
         ],
         "type": "object"
       },
@@ -3204,6 +3542,77 @@
         ],
         "type": "object"
       },
+      "ReponseTravailReporteDto": {
+        "properties": {
+          "constateLe": {
+            "format": "date",
+            "type": "string"
+          },
+          "designation": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kilometrageAlors": {
+            "nullable": true,
+            "type": "number"
+          },
+          "ligneOrOrigineId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "montantEstimeCentimes": {
+            "description": "Absent pour les rôles de ROLES_SANS_MONTANT.",
+            "nullable": true,
+            "type": "number"
+          },
+          "ordreReparationOrigineId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "ordreReparationRepriseId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "securite": {
+            "type": "boolean"
+          },
+          "statut": {
+            "enum": [
+              "ouvert",
+              "repris",
+              "abandonne"
+            ],
+            "type": "string"
+          },
+          "urgence": {
+            "enum": [
+              "urgent",
+              "a_faire",
+              "a_surveiller"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "designation",
+          "urgence",
+          "kilometrageAlors",
+          "constateLe",
+          "securite",
+          "statut",
+          "ordreReparationOrigineId",
+          "ligneOrOrigineId",
+          "ordreReparationRepriseId"
+        ],
+        "type": "object"
+      },
       "ReponseVehiculeDetentionDto": {
         "properties": {
           "client": {
@@ -3919,6 +4328,26 @@
         ],
         "type": "object"
       },
+      "TravauxReportesContexteDto": {
+        "properties": {
+          "elements": {
+            "description": "Borné à MAX_TRAVAUX_REPORTES_CONTEXTE (10).",
+            "items": {
+              "$ref": "#/components/schemas/ReponseTravailReporteDto"
+            },
+            "type": "array"
+          },
+          "total": {
+            "description": "Compte réel des travaux OUVERTS — peut dépasser `elements.length` (borné).",
+            "type": "number"
+          }
+        },
+        "required": [
+          "total",
+          "elements"
+        ],
+        "type": "object"
+      },
       "TypeResultatRecherche": {
         "enum": [
           "vehicule",
@@ -4006,6 +4435,59 @@
           "adresseFacturation",
           "plaque",
           "detenteurClientId"
+        ],
+        "type": "object"
+      },
+      "VehiculeContexteAtelierDto": {
+        "properties": {
+          "canton": {
+            "example": "VD",
+            "nullable": true,
+            "type": "string"
+          },
+          "codeTypeCh": {
+            "nullable": true,
+            "type": "string"
+          },
+          "designation": {
+            "example": "VW Touran 2.0 TDI",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "identificationIncomplete": {
+            "type": "boolean"
+          },
+          "importe": {
+            "$ref": "#/components/schemas/ImportationVehiculeDto"
+          },
+          "plaque": {
+            "example": "VD 123456",
+            "nullable": true,
+            "type": "string"
+          },
+          "premiereMiseEnCirculationLe": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "vin": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "plaque",
+          "canton",
+          "designation",
+          "premiereMiseEnCirculationLe",
+          "vin",
+          "codeTypeCh",
+          "importe",
+          "identificationIncomplete"
         ],
         "type": "object"
       },
@@ -4157,6 +4639,41 @@
         "description": "Email inconnu et mot de passe incorrect renvoient EXACTEMENT la même erreur 401 AUTH_IDENTIFIANTS_INVALIDES, avec un temps de réponse égalisé — ceci est un choix de sécurité délibéré (anti-énumération de comptes), pas une omission.",
         "operationId": "AuthController_connexion",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "email": "accueil@garage-martin.ch",
+                    "motDePasse": "Demo1234!Garage"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "maxLength": 320,
+                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                    "type": "string"
+                  },
+                  "motDePasse": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email",
+                  "motDePasse"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -4352,6 +4869,310 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "adressePrincipale": {
+                      "localite": "Lausanne",
+                      "npa": "1003",
+                      "pays": "CH",
+                      "rue": "Rue du Lac 12"
+                    },
+                    "civilite": "Madame",
+                    "email": "claire.dubois@example.ch",
+                    "langueCorrespondance": "fr",
+                    "nom": "Dubois",
+                    "poObligatoire": false,
+                    "prenom": "Claire",
+                    "telephones": [
+                      {
+                        "principal": true,
+                        "valeur": "+41 79 123 45 67"
+                      }
+                    ],
+                    "type": "particulier"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "adressePrincipale": {
+                    "properties": {
+                      "complement": {
+                        "anyOf": [
+                          {
+                            "maxLength": 200,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "localite": {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "npa": {
+                        "maxLength": 10,
+                        "minLength": 4,
+                        "type": "string"
+                      },
+                      "pays": {
+                        "default": "CH",
+                        "maxLength": 2,
+                        "minLength": 2,
+                        "type": "string"
+                      },
+                      "rue": {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "rue",
+                      "npa",
+                      "localite"
+                    ],
+                    "type": "object"
+                  },
+                  "civilite": {
+                    "anyOf": [
+                      {
+                        "maxLength": 20,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "conditions": {
+                    "properties": {
+                      "delaiPaiementJours": {
+                        "anyOf": [
+                          {
+                            "maximum": 365,
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "modePaiement": {
+                        "anyOf": [
+                          {
+                            "maxLength": 40,
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "plafondCentimes": {
+                        "anyOf": [
+                          {
+                            "maximum": 9007199254740991,
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "rabaisMoPourmille": {
+                        "default": 0,
+                        "maximum": 1000,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "rabaisPiecesPourmille": {
+                        "default": 0,
+                        "maximum": 1000,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "rabaisPneusPourmille": {
+                        "default": 0,
+                        "maximum": 1000,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "tauxHoraireCode": {
+                        "anyOf": [
+                          {
+                            "maxLength": 40,
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "email": {
+                    "anyOf": [
+                      {
+                        "format": "email",
+                        "maxLength": 320,
+                        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "groupeId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ide": {
+                    "anyOf": [
+                      {
+                        "pattern": "^CHE-\\d{3}\\.\\d{3}\\.\\d{3}$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "langueCorrespondance": {
+                    "enum": [
+                      "fr",
+                      "de",
+                      "it"
+                    ],
+                    "type": "string"
+                  },
+                  "nom": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "poObligatoire": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "prenom": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "raisonSociale": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "referenceExterne": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "telephones": {
+                    "default": [],
+                    "items": {
+                      "properties": {
+                        "principal": {
+                          "default": false,
+                          "type": "boolean"
+                        },
+                        "valeur": {
+                          "maxLength": 30,
+                          "minLength": 4,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "valeur"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 5,
+                    "type": "array"
+                  },
+                  "type": {
+                    "enum": [
+                      "particulier",
+                      "entreprise"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "langueCorrespondance",
+                  "adressePrincipale"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -4506,6 +5327,144 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "email": "claire.dubois@example.ch",
+                    "poObligatoire": true,
+                    "telephone": "+41 21 555 12 34"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "civilite": {
+                    "anyOf": [
+                      {
+                        "maxLength": 20,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "email": {
+                    "anyOf": [
+                      {
+                        "format": "email",
+                        "maxLength": 320,
+                        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "groupeId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ide": {
+                    "anyOf": [
+                      {
+                        "pattern": "^CHE-\\d{3}\\.\\d{3}\\.\\d{3}$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "langueCorrespondance": {
+                    "enum": [
+                      "fr",
+                      "de",
+                      "it"
+                    ],
+                    "type": "string"
+                  },
+                  "nom": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "poObligatoire": {
+                    "type": "boolean"
+                  },
+                  "prenom": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "raisonSociale": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "referenceExterne": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "telephone": {
+                    "anyOf": [
+                      {
+                        "maxLength": 30,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "description": "`type` est volontairement absent de ce schéma (immuable, RM-01) — l'envoyer produit `409 CLIENT_TYPE_IMMUABLE`, détecté sur le corps brut par le service.",
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -4658,6 +5617,76 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "localite": "Sion",
+                    "npa": "1950",
+                    "pays": "CH",
+                    "rue": "Avenue de la Gare 5",
+                    "type": "facturation"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "complement": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "localite": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "npa": {
+                    "maxLength": 10,
+                    "minLength": 4,
+                    "type": "string"
+                  },
+                  "pays": {
+                    "default": "CH",
+                    "maxLength": 2,
+                    "minLength": 2,
+                    "type": "string"
+                  },
+                  "rue": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "principale",
+                      "facturation",
+                      "livraison"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "rue",
+                  "npa",
+                  "localite"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -4744,6 +5773,70 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "actif": true,
+                    "complement": "Bâtiment B, 2e étage"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "actif": {
+                    "type": "boolean"
+                  },
+                  "complement": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "localite": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "npa": {
+                    "maxLength": 10,
+                    "minLength": 4,
+                    "type": "string"
+                  },
+                  "pays": {
+                    "default": "CH",
+                    "maxLength": 2,
+                    "minLength": 2,
+                    "type": "string"
+                  },
+                  "rue": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "principale",
+                      "facturation",
+                      "livraison"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -4887,6 +5980,117 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "delaiPaiementJours": 30,
+                    "modePaiement": "virement",
+                    "plafondCentimes": 500000,
+                    "rabaisMoPourmille": 100,
+                    "rabaisPiecesPourmille": 50,
+                    "rabaisPneusPourmille": 0,
+                    "tauxHoraireCode": "FLOTTE",
+                    "valideAuLe": null,
+                    "valideDuLe": "2026-01-01"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "delaiPaiementJours": {
+                    "anyOf": [
+                      {
+                        "maximum": 365,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "modePaiement": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "plafondCentimes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "rabaisMoPourmille": {
+                    "default": 0,
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "rabaisPiecesPourmille": {
+                    "default": 0,
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "rabaisPneusPourmille": {
+                    "default": 0,
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "tauxHoraireCode": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "valideAuLe": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "valideDuLe": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "valideDuLe"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -5030,6 +6234,60 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "accorde": true,
+                    "canal": "formulaire_reception",
+                    "recueilliLe": "2026-07-28T09:15:00Z",
+                    "type": "marketing_email"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "accorde": {
+                    "type": "boolean"
+                  },
+                  "canal": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "recueilliLe": {
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "marketing_email",
+                      "marketing_sms",
+                      "marketing_appel"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "accorde",
+                  "recueilliLe"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -5172,6 +6430,119 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "email": "j.moret@transports-moret.ch",
+                    "fonction": "Responsable flotte",
+                    "langue": "fr",
+                    "nom": "Moret",
+                    "prenom": "Julien",
+                    "roles": [
+                      "gestionnaire_flotte",
+                      "signataire"
+                    ],
+                    "telephone": "+41 78 234 56 78"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "email": {
+                    "anyOf": [
+                      {
+                        "format": "email",
+                        "maxLength": 320,
+                        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "fonction": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "langue": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "fr",
+                          "de",
+                          "it"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "nom": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "prenom": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "roles": {
+                    "items": {
+                      "enum": [
+                        "conducteur",
+                        "gestionnaire_flotte",
+                        "signataire",
+                        "comptabilite"
+                      ],
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "telephone": {
+                    "anyOf": [
+                      {
+                        "maxLength": 30,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "nom",
+                  "roles"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -5258,6 +6629,110 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "actif": true,
+                    "telephone": "+41 78 234 56 79"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "actif": {
+                    "type": "boolean"
+                  },
+                  "email": {
+                    "anyOf": [
+                      {
+                        "format": "email",
+                        "maxLength": 320,
+                        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "fonction": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "langue": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "fr",
+                          "de",
+                          "it"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "nom": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "prenom": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "roles": {
+                    "items": {
+                      "enum": [
+                        "conducteur",
+                        "gestionnaire_flotte",
+                        "signataire",
+                        "comptabilite"
+                      ],
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "telephone": {
+                    "anyOf": [
+                      {
+                        "maxLength": 30,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -5336,6 +6811,33 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motif": "Fonds de commerce repris, clientèle transférée au nouveau garage"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -5488,6 +6990,42 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "nature": "alerte",
+                    "texte": "Client difficile — exiger un acompte de 50% avant toute intervention."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "nature": {
+                    "enum": [
+                      "interne",
+                      "alerte"
+                    ],
+                    "type": "string"
+                  },
+                  "texte": {
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "nature",
+                  "texte"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -5835,6 +7373,224 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "clientId": "4b8e1f3c-0d5f-4a9c-1e4d-3c7f80a11234",
+                    "demandes": [
+                      {
+                        "verbatim": "Bruit au freinage à l’avant droit, à vérifier."
+                      }
+                    ],
+                    "kilometrageEntree": 84500,
+                    "numeroCommandeInterne": "PO-4821",
+                    "plafondAutorisePar": "Mme Perret (accord téléphonique)",
+                    "plafondCentimes": 60000,
+                    "siteId": "2f6c9e1a-8b3d-4e7a-9c2b-1a5d6e8f9012",
+                    "statutInitial": "ouvert",
+                    "type": "reparation",
+                    "uniteKilometrage": "km",
+                    "vehiculeId": "3a7d0f2b-9c4e-4f8b-0d3c-2b6e7f900123"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "clientId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "conducteurPresentNom": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "demandes": {
+                    "default": [],
+                    "items": {
+                      "properties": {
+                        "verbatim": {
+                          "maxLength": 4000,
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "verbatim"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  },
+                  "kilometrageEntree": {
+                    "anyOf": [
+                      {
+                        "maximum": 9999999,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "motifLien": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "retouche",
+                          "suite"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "numeroCommandeInterne": {
+                    "anyOf": [
+                      {
+                        "maxLength": 60,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ordreReparationParentId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "plafondAutorisePar": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "plafondCentimes": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "rendezVousId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "restitutionPromiseLe": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "siteId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "statutInitial": {
+                    "default": "ouvert",
+                    "enum": [
+                      "planifie",
+                      "ouvert"
+                    ],
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "service",
+                      "reparation",
+                      "diagnostic",
+                      "expertise",
+                      "pneus",
+                      "carrosserie",
+                      "retouche",
+                      "interne"
+                    ],
+                    "type": "string"
+                  },
+                  "uniteKilometrage": {
+                    "default": "km",
+                    "enum": [
+                      "km",
+                      "mi"
+                    ],
+                    "type": "string"
+                  },
+                  "vehiculeId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "siteId",
+                  "vehiculeId",
+                  "clientId",
+                  "type"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -6007,6 +7763,124 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "localisation": "atelier",
+                    "motifReport": "Pièce commandée, délai fournisseur de 48h.",
+                    "restitutionPromiseLe": "2026-08-03T15:00:00.000Z"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "conducteurPresentNom": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "localisation": {
+                    "enum": [
+                      "parc",
+                      "atelier",
+                      "sous_traitant",
+                      "essai_routier",
+                      "lavage",
+                      "pret_au_retrait",
+                      "sorti_provisoirement",
+                      "restitue"
+                    ],
+                    "type": "string"
+                  },
+                  "motifReport": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  },
+                  "numeroCommandeInterne": {
+                    "anyOf": [
+                      {
+                        "maxLength": 60,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "plafondAutorisePar": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "plafondCentimes": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "restitutionPromiseLe": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "sousTraitantNom": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -6095,6 +7969,33 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motif": "Le client renonce, véhicule repris par un tiers."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -6170,7 +8071,7 @@
     },
     "/ordres-reparation/{orId}/annuler-lignes": {
       "post": {
-        "description": "Refusée par la base depuis `proposee`/`a_valider` (lacune connue de `transition_autorisee`, migration 0003 §5.2).",
+        "description": "Couvre TOUTE ligne non facturée : `proposee -> annulee` et `a_valider -> annulee` (migration 0009, comble la lacune connue de `transition_autorisee` signalée dans 0003 §5.2 — une ligne saisie par erreur avant toute décision client ne reste plus définitivement coincée sur l’OR), en plus de `validee|en_cours|realisee -> annulee` (0003, inchangées). `facturee` reste un état terminal sans aucune sortie (RM-71/I-15).",
         "operationId": "LigneOrController_annulerLignes",
         "parameters": [
           {
@@ -6183,6 +8084,47 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "ligneIds": [
+                      "5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10"
+                    ],
+                    "motif": "Pièce indisponible chez le fournisseur"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "ligneIds": {
+                    "items": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "maxItems": 200,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ligneIds",
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -6270,6 +8212,38 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {}
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -6415,6 +8389,33 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "verbatim": "Le client signale un bruit au freinage à l’avant droit."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "verbatim": {
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "verbatim"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -6502,6 +8503,38 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {}
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -6664,6 +8697,84 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "canal": "telephone",
+                    "impactRestitutionLe": "2026-08-04T16:00:00.000Z",
+                    "ligneIds": [
+                      "5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10"
+                    ],
+                    "nouveauPlafondCentimes": 90000
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "canal": {
+                    "enum": [
+                      "telephone",
+                      "sms",
+                      "email",
+                      "comptoir",
+                      "lien"
+                    ],
+                    "type": "string"
+                  },
+                  "destinataireContactId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "impactRestitutionLe": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ligneIds": {
+                    "items": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "maxItems": 200,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "nouveauPlafondCentimes": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "ligneIds",
+                  "nouveauPlafondCentimes",
+                  "canal"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -6770,6 +8881,100 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "canal": "telephone",
+                    "decision": "accepte",
+                    "interlocuteurNom": "Mme Perret",
+                    "repondueLe": "2026-08-04T16:12:00.000Z",
+                    "retranscription": "Le client accepte le devis complémentaire pour le remplacement des disques."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "canal": {
+                    "enum": [
+                      "telephone",
+                      "sms",
+                      "email",
+                      "comptoir",
+                      "lien"
+                    ],
+                    "type": "string"
+                  },
+                  "decision": {
+                    "enum": [
+                      "accepte",
+                      "refuse",
+                      "partiel"
+                    ],
+                    "type": "string"
+                  },
+                  "interlocuteurNom": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "lignes": {
+                    "items": {
+                      "properties": {
+                        "decision": {
+                          "enum": [
+                            "accepte",
+                            "refuse"
+                          ],
+                          "type": "string"
+                        },
+                        "ligneId": {
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "ligneId",
+                        "decision"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 200,
+                    "type": "array"
+                  },
+                  "repondueLe": {
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                    "type": "string"
+                  },
+                  "retranscription": {
+                    "anyOf": [
+                      {
+                        "maxLength": 4000,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "decision",
+                  "canal",
+                  "interlocuteurNom",
+                  "repondueLe"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7020,6 +9225,217 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "designation": "Remplacement plaquettes de frein avant",
+                    "origine": "constatee",
+                    "payeur": "client",
+                    "quantiteMillieme": 1000,
+                    "tempsBaremeCentiemes": 80,
+                    "type": "main_oeuvre_bareme"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "blocage": {
+                    "default": "aucun",
+                    "enum": [
+                      "aucun",
+                      "accord",
+                      "pieces",
+                      "externe"
+                    ],
+                    "type": "string"
+                  },
+                  "codeDefaut": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "codeOperation": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "designation": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "fournieParClient": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "numeroAccord": {
+                    "anyOf": [
+                      {
+                        "maxLength": 60,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "numeroSinistre": {
+                    "anyOf": [
+                      {
+                        "maxLength": 60,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "origine": {
+                    "enum": [
+                      "commandee",
+                      "constatee",
+                      "campagne",
+                      "garantie",
+                      "retouche",
+                      "interne"
+                    ],
+                    "type": "string"
+                  },
+                  "payeur": {
+                    "default": "client",
+                    "enum": [
+                      "client",
+                      "constructeur",
+                      "assurance",
+                      "tiers",
+                      "garage"
+                    ],
+                    "type": "string"
+                  },
+                  "pieceARestituer": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "prixUnitaireCentimes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "quantiteMillieme": {
+                    "default": 1000,
+                    "maximum": 9007199254740991,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "rabaisPourmille": {
+                    "default": 0,
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "referenceTexte": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "securite": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "technicienId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tempsBaremeCentiemes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "type": {
+                    "enum": [
+                      "main_oeuvre_bareme",
+                      "main_oeuvre_temps_reel",
+                      "forfait",
+                      "piece",
+                      "fourniture",
+                      "sous_traitance",
+                      "produit_atelier",
+                      "taxe",
+                      "remise",
+                      "texte"
+                    ],
+                    "type": "string"
+                  },
+                  "urgence": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "urgent",
+                          "a_faire",
+                          "a_surveiller"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "type",
+                  "origine",
+                  "designation"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -7117,6 +9533,196 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "designation": "Remplacement plaquettes + disques avant",
+                    "rabaisPourmille": 50
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "blocage": {
+                    "enum": [
+                      "aucun",
+                      "accord",
+                      "pieces",
+                      "externe"
+                    ],
+                    "type": "string"
+                  },
+                  "codeDefaut": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "codeOperation": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "designation": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "fournieParClient": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "numeroAccord": {
+                    "anyOf": [
+                      {
+                        "maxLength": 60,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "numeroSinistre": {
+                    "anyOf": [
+                      {
+                        "maxLength": 60,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "payeur": {
+                    "default": "client",
+                    "enum": [
+                      "client",
+                      "constructeur",
+                      "assurance",
+                      "tiers",
+                      "garage"
+                    ],
+                    "type": "string"
+                  },
+                  "pieceARestituer": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "prixUnitaireCentimes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "quantiteMillieme": {
+                    "default": 1000,
+                    "maximum": 9007199254740991,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "rabaisPourmille": {
+                    "default": 0,
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "referenceTexte": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "securite": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "technicienId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tempsBaremeCentiemes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "type": {
+                    "enum": [
+                      "main_oeuvre_bareme",
+                      "main_oeuvre_temps_reel",
+                      "forfait",
+                      "piece",
+                      "fourniture",
+                      "sous_traitance",
+                      "produit_atelier",
+                      "taxe",
+                      "remise",
+                      "texte"
+                    ],
+                    "type": "string"
+                  },
+                  "urgence": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "urgent",
+                          "a_faire",
+                          "a_surveiller"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7213,6 +9819,30 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "tempsReelCentiemes": 75
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "tempsReelCentiemes": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7300,6 +9930,38 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {}
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7377,6 +10039,67 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "kilometrageEntree": 84500,
+                    "signatureDifferee": false,
+                    "unite": "km"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "kilometrageEntree": {
+                    "maximum": 9999999,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "motifDifferee": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  },
+                  "signatureDifferee": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "unite": {
+                    "default": "km",
+                    "enum": [
+                      "km",
+                      "mi"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kilometrageEntree"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7464,6 +10187,33 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motif": "Fuite d’huile constatée au contrôle final, retour en atelier."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7551,6 +10301,46 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "ligneIds": [
+                      "5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10"
+                    ],
+                    "motif": "Client refuse le devis complémentaire"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "ligneIds": {
+                    "items": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "maxItems": 200,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ligneIds"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7638,6 +10428,43 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "ligneIds": [
+                      "5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10"
+                    ],
+                    "motif": "Pièce reçue, travaux repris."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "ligneIds": {
+                    "items": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "maxItems": 200,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7715,6 +10542,77 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "kilometrageSortie": 84560,
+                    "paiementRecu": true,
+                    "piecesRestituees": [
+                      "5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10"
+                    ],
+                    "unite": "km"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "kilometrageSortie": {
+                    "anyOf": [
+                      {
+                        "maximum": 9999999,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "paiementRecu": {
+                    "type": "boolean"
+                  },
+                  "piecesRestituees": {
+                    "items": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "maxItems": 200,
+                    "type": "array"
+                  },
+                  "unite": {
+                    "default": "km",
+                    "enum": [
+                      "km",
+                      "mi"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7803,6 +10701,33 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motif": "Le client signale que le bruit persiste après restitution."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7891,6 +10816,40 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "ligneIds": [
+                      "5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10"
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "ligneIds": {
+                    "items": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "maxItems": 200,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "ligneIds"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -7979,6 +10938,61 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "kilometrageSortie": 84560,
+                    "unite": "km"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "kilometrageSortie": {
+                    "anyOf": [
+                      {
+                        "maximum": 9999999,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "unite": {
+                    "default": "km",
+                    "enum": [
+                      "km",
+                      "mi"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -8066,6 +11080,69 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "controleurId": "6c9e2d4b-7a10-4e2e-8f0a-1c9e2e2f0a4b",
+                    "pointsControles": [
+                      {
+                        "code": "freinage",
+                        "conforme": true
+                      },
+                      {
+                        "code": "eclairage",
+                        "conforme": true
+                      },
+                      {
+                        "code": "niveaux",
+                        "conforme": true
+                      }
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "controleurId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "pointsControles": {
+                    "default": [],
+                    "items": {
+                      "properties": {
+                        "code": {
+                          "maxLength": 40,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "conforme": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "conforme"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "controleurId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -8154,6 +11231,40 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "ligneIds": [
+                      "5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10"
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "ligneIds": {
+                    "items": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "maxItems": 200,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "ligneIds"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -8271,6 +11382,279 @@
         "description": "Un paramètre dont le drapeau de fonctionnalité est `false` au lot 1 est en lecture seule : toute tentative de le modifier renvoie `501 FONCTION_NON_DISPONIBLE` — jamais une écriture silencieusement acceptée mais sans effet. `version` et `fonctionnalites` ne sont jamais entrants (calculés côté serveur).",
         "operationId": "ParametresAtelierController_modifier",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "or": {
+                      "prefixe": "OR",
+                      "resetAnnuel": true,
+                      "sansRdvAutorise": false
+                    }
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "documents": {
+                    "properties": {
+                      "langue": {
+                        "enum": [
+                          "client",
+                          "site"
+                        ],
+                        "type": "string"
+                      },
+                      "mentionSecurite": {
+                        "enum": [
+                          "obligatoire",
+                          "desactivee"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "facturation": {
+                    "properties": {
+                      "multiPayeursAutorise": {
+                        "type": "boolean"
+                      },
+                      "piecesClientAutorisees": {
+                        "type": "boolean"
+                      },
+                      "politiqueDemontageRefuse": {
+                        "enum": [
+                          "facturer",
+                          "offrir",
+                          "au_dela_seuil"
+                        ],
+                        "type": "string"
+                      },
+                      "produitsAtelier": {
+                        "properties": {
+                          "mode": {
+                            "enum": [
+                              "pourcentage_plafonne",
+                              "forfait",
+                              "lignes_reelles",
+                              "desactive"
+                            ],
+                            "type": "string"
+                          },
+                          "plafondCentimes": {
+                            "anyOf": [
+                              {
+                                "maximum": 9007199254740991,
+                                "minimum": 0,
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "pourmille": {
+                            "anyOf": [
+                              {
+                                "maximum": 1000,
+                                "minimum": 0,
+                                "type": "integer"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "type": "object"
+                      },
+                      "restitutionAvantPaiement": {
+                        "type": "boolean"
+                      },
+                      "seuilDemontageCentimes": {
+                        "anyOf": [
+                          {
+                            "maximum": 9007199254740991,
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "or": {
+                    "properties": {
+                      "deuxOrMemeVehicule": {
+                        "enum": [
+                          "bloquer",
+                          "avertir",
+                          "autoriser"
+                        ],
+                        "type": "string"
+                      },
+                      "etatPlanifieActif": {
+                        "type": "boolean"
+                      },
+                      "porteeNumerotation": {
+                        "enum": [
+                          "tenant",
+                          "site"
+                        ],
+                        "type": "string"
+                      },
+                      "prefixe": {
+                        "maxLength": 10,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "rdvRetroactifAuto": {
+                        "type": "boolean"
+                      },
+                      "resetAnnuel": {
+                        "type": "boolean"
+                      },
+                      "sansRdvAutorise": {
+                        "type": "boolean"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "planning": {
+                    "properties": {
+                      "noShowSeuilAlerte": {
+                        "maximum": 20,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "rappel": {
+                        "properties": {
+                          "canal": {
+                            "enum": [
+                              "sms",
+                              "email",
+                              "aucun"
+                            ],
+                            "type": "string"
+                          },
+                          "joursAvant": {
+                            "maximum": 30,
+                            "minimum": 0,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "canal",
+                          "joursAvant"
+                        ],
+                        "type": "object"
+                      },
+                      "tamponPretMinutes": {
+                        "maximum": 1440,
+                        "minimum": 0,
+                        "type": "integer"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "reception": {
+                    "properties": {
+                      "kmEntreeObligatoire": {
+                        "type": "boolean"
+                      },
+                      "kmSortieObligatoire": {
+                        "type": "boolean"
+                      },
+                      "plafondDefautCentimes": {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "signature": {
+                        "enum": [
+                          "obligatoire",
+                          "recommandee",
+                          "desactivee"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "travaux": {
+                    "properties": {
+                      "arrondiPointage": {
+                        "enum": [
+                          "minute",
+                          "dixieme",
+                          "quart"
+                        ],
+                        "type": "string"
+                      },
+                      "chevauchementPointageAutorise": {
+                        "type": "boolean"
+                      },
+                      "controleQualite": {
+                        "enum": [
+                          "jamais",
+                          "toujours",
+                          "selon_type",
+                          "au_dela_montant"
+                        ],
+                        "type": "string"
+                      },
+                      "dureeMaxPointageHeures": {
+                        "maximum": 24,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "pointageObligatoirePourTerminer": {
+                        "type": "boolean"
+                      },
+                      "uniteTemps": {
+                        "enum": [
+                          "heures_decimales",
+                          "unites_constructeur"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "vehicule": {
+                    "properties": {
+                      "expertiseAlerteMois": {
+                        "maximum": 24,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "visibiliteHistoriqueNouveauDetenteur": {
+                        "enum": [
+                          "tout",
+                          "technique",
+                          "rien"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -8407,6 +11791,16 @@
               }
             },
             "description": "Droit insuffisant (rôle sans recherche.executer)."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Trop de recherches pour cet utilisateur (limitation de débit, finding D-01). L'en-tête Retry-After indique le nombre de secondes à attendre avant de retenter."
           }
         },
         "security": [
@@ -8467,6 +11861,126 @@
         "description": "Si `prixCentimes` est fourni, ouvre immédiatement une période de prix valide à partir d'aujourd'hui.",
         "operationId": "PrestationsController_creer",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "code": "VIDANGE-STD",
+                    "designationFr": "Vidange standard + filtre à huile",
+                    "prixCentimes": 9500,
+                    "tauxHoraireCode": "MECANIQUE",
+                    "tauxTvaPourmille": 81,
+                    "tempsBaremeCentiemes": 50,
+                    "typeLigne": "forfait"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "code": {
+                    "maxLength": 40,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "designationDe": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "designationFr": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "designationIt": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "prixCentimes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tauxHoraireCode": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tauxTvaPourmille": {
+                    "default": 81,
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "tempsBaremeCentiemes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "typeLigne": {
+                    "enum": [
+                      "main_oeuvre_bareme",
+                      "main_oeuvre_temps_reel",
+                      "forfait",
+                      "piece",
+                      "fourniture",
+                      "sous_traitance",
+                      "produit_atelier",
+                      "taxe",
+                      "remise",
+                      "texte"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "designationFr",
+                  "typeLigne"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -8525,6 +12039,114 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "actif": true,
+                    "prixCentimes": 9900
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "actif": {
+                    "type": "boolean"
+                  },
+                  "designationDe": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "designationFr": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "designationIt": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "prixCentimes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tauxHoraireCode": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tauxTvaPourmille": {
+                    "default": 81,
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "tempsBaremeCentiemes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "typeLigne": {
+                    "enum": [
+                      "main_oeuvre_bareme",
+                      "main_oeuvre_temps_reel",
+                      "forfait",
+                      "piece",
+                      "fourniture",
+                      "sous_traitance",
+                      "produit_atelier",
+                      "taxe",
+                      "remise",
+                      "texte"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -8615,6 +12237,66 @@
         "description": "Deux périodes valides du même code ne peuvent jamais se chevaucher pour un tenant (contrainte EXCLUDE en base) — une tentative de chevauchement renvoie `409 CONFLIT`.",
         "operationId": "TauxHorairesController_creer",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "code": "MECANIQUE",
+                    "libelle": "Taux horaire mécanique",
+                    "montantCentimes": 14500,
+                    "valideDuLe": "2026-01-01"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "code": {
+                    "maxLength": 40,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "libelle": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "montantCentimes": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "valideAuLe": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "valideDuLe": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "libelle",
+                  "montantCentimes",
+                  "valideDuLe"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -8672,6 +12354,53 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "montantCentimes": 15000,
+                    "valideAuLe": "2026-12-31"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "libelle": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "montantCentimes": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "valideAuLe": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "valideDuLe": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -8998,6 +12727,82 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "capaciteHeuresJourCentiemes": 4800,
+                    "heureCloturePointage": "18:30",
+                    "heureFermeture": "18:00",
+                    "heureOuverture": "07:30"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "capaciteHeuresJourCentiemes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "heureCloturePointage": {
+                    "anyOf": [
+                      {
+                        "pattern": "^\\d{2}:\\d{2}$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "heureFermeture": {
+                    "anyOf": [
+                      {
+                        "pattern": "^\\d{2}:\\d{2}$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "heureOuverture": {
+                    "anyOf": [
+                      {
+                        "pattern": "^\\d{2}:\\d{2}$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "joursFermeture": {
+                    "items": {
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                      "type": "string"
+                    },
+                    "maxItems": 400,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -9159,6 +12964,262 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "canton": "VD",
+                    "codeTypeCh": "1ZM431",
+                    "finition": "Life",
+                    "importe": false,
+                    "marque": "Volkswagen",
+                    "modele": "Golf",
+                    "plaque": "VD 123456",
+                    "premiereMiseEnCirculationLe": "2021-03-15",
+                    "version": "VIII",
+                    "vin": "WVWZZZ1KZAW123456"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "boite": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canton": {
+                    "anyOf": [
+                      {
+                        "maxLength": 2,
+                        "minLength": 2,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "carburant": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "codeTypeCh": {
+                    "anyOf": [
+                      {
+                        "maxLength": 20,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "conducteurHabituel": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "couleur": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "cylindreeCm3": {
+                    "anyOf": [
+                      {
+                        "maximum": 20000,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "detenteurId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "finition": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "importe": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "importeLe": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "marque": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "modele": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "paysOrigine": {
+                    "anyOf": [
+                      {
+                        "maxLength": 2,
+                        "minLength": 2,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "plaque": {
+                    "anyOf": [
+                      {
+                        "maxLength": 20,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "premiereMiseEnCirculationLe": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "proprietaireEconomiqueClientId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "puissanceKw": {
+                    "anyOf": [
+                      {
+                        "maximum": 2000,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "transmission": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "vin": {
+                    "anyOf": [
+                      {
+                        "maxLength": 17,
+                        "minLength": 5,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "marque",
+                  "modele"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -9311,6 +13372,365 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "garantieMois": 24,
+                    "intervalleEntretienKm": 15000,
+                    "pneusHiver": "Continental 205/55 R16"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "batterie": {
+                    "anyOf": [
+                      {
+                        "maxLength": 60,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "boite": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "carburant": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "codeCle": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "codeRadio": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "codeTypeCh": {
+                    "anyOf": [
+                      {
+                        "maxLength": 20,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "conducteurHabituel": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "couleur": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "cylindreeCm3": {
+                    "anyOf": [
+                      {
+                        "maximum": 20000,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "finition": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "garantieDebutLe": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "garantieKm": {
+                    "anyOf": [
+                      {
+                        "maximum": 1000000,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "garantieMois": {
+                    "anyOf": [
+                      {
+                        "maximum": 240,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "huileQuantiteDl": {
+                    "anyOf": [
+                      {
+                        "maximum": 500,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "huileType": {
+                    "anyOf": [
+                      {
+                        "maxLength": 60,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "importe": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "importeLe": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "intervalleEntretienKm": {
+                    "anyOf": [
+                      {
+                        "maximum": 200000,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "intervalleEntretienMois": {
+                    "anyOf": [
+                      {
+                        "maximum": 120,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "marque": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "modele": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "paysOrigine": {
+                    "anyOf": [
+                      {
+                        "maxLength": 2,
+                        "minLength": 2,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "pneusEte": {
+                    "anyOf": [
+                      {
+                        "maxLength": 60,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "pneusHiver": {
+                    "anyOf": [
+                      {
+                        "maxLength": 60,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "premiereMiseEnCirculationLe": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "pressionPneus": {
+                    "anyOf": [
+                      {
+                        "maxLength": 60,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "proprietaireEconomiqueClientId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "puissanceKw": {
+                    "anyOf": [
+                      {
+                        "maximum": 2000,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "transmission": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "vin": {
+                    "anyOf": [
+                      {
+                        "maxLength": 17,
+                        "minLength": 5,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -9398,6 +13818,44 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motif": "Épave suite sinistre, non réparable",
+                    "motifArchivage": "detruit"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  },
+                  "motifArchivage": {
+                    "enum": [
+                      "detruit",
+                      "exporte",
+                      "vendu_hors_clientele",
+                      "doublon"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motifArchivage",
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -9486,6 +13944,98 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "changementLe": "2026-07-15",
+                    "motifFin": "vente",
+                    "nouveauClientId": "3f9a1c2e-6b4d-4a1f-9c2e-8b7a6d5c4e3f",
+                    "nouvellePlaque": {
+                      "canton": "VD",
+                      "interchangeable": false,
+                      "pays": "CH",
+                      "professionnelle": false,
+                      "valeur": "VD 654321"
+                    }
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "changementLe": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  },
+                  "motifFin": {
+                    "enum": [
+                      "vente",
+                      "reprise",
+                      "deces",
+                      "correction",
+                      "export"
+                    ],
+                    "type": "string"
+                  },
+                  "nouveauClientId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "nouvellePlaque": {
+                    "properties": {
+                      "canton": {
+                        "anyOf": [
+                          {
+                            "maxLength": 2,
+                            "minLength": 2,
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "interchangeable": {
+                        "default": false,
+                        "type": "boolean"
+                      },
+                      "pays": {
+                        "default": "CH",
+                        "maxLength": 2,
+                        "minLength": 2,
+                        "type": "string"
+                      },
+                      "professionnelle": {
+                        "default": false,
+                        "type": "boolean"
+                      },
+                      "valeur": {
+                        "maxLength": 20,
+                        "minLength": 2,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "valeur"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "nouveauClientId",
+                  "changementLe",
+                  "motifFin"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -9554,6 +14104,84 @@
           }
         ],
         "summary": "Changement de détenteur ATOMIQUE (RM-20/21, CT-47).",
+        "tags": [
+          "Véhicules"
+        ]
+      }
+    },
+    "/vehicules/{vehiculeId}/contexte-atelier": {
+      "get": {
+        "description": "Agrégat consommé au même instant à la prise de RDV ET à la réception du matin : travaux reportés, campagnes ouvertes, échéance d'expertise (MFK), garantie, alertes client et OR déjà ouverts. Chaque section projette la MÊME donnée que sa ressource dédiée — aucun champ n'existe uniquement ici.",
+        "operationId": "VehiculeController_contexteAtelier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vehiculeId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseContexteAtelierDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Identifiant mal formé."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Véhicule introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Contexte atelier complet du véhicule (RM-36, D-01, CT-13, §8.1).",
         "tags": [
           "Véhicules"
         ]
@@ -9641,6 +14269,40 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "clientId": "3f9a1c2e-6b4d-4a1f-9c2e-8b7a6d5c4e3f",
+                    "debutLe": "2024-05-01"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "clientId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "debutLe": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "clientId",
+                  "debutLe"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -9727,6 +14389,45 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "finLe": "2026-06-30",
+                    "motifFin": "vente"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "finLe": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  },
+                  "motifFin": {
+                    "enum": [
+                      "vente",
+                      "reprise",
+                      "deces",
+                      "correction",
+                      "export"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "finLe",
+                  "motifFin"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -9883,6 +14584,102 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "dateLe": "2026-06-02",
+                    "defauts": "Jeu léger rotule de direction",
+                    "prochaineEcheanceLe": "2030-06-02",
+                    "resultat": "accepte_avec_defauts",
+                    "sourceEcheance": "calculee"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "dateContreVisiteLe": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "dateLe": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  },
+                  "defauts": {
+                    "anyOf": [
+                      {
+                        "maxLength": 4000,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "delaiContreVisiteLe": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "prochaineEcheanceLe": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "resultat": {
+                    "enum": [
+                      "accepte",
+                      "accepte_avec_defauts",
+                      "refuse"
+                    ],
+                    "type": "string"
+                  },
+                  "sourceEcheance": {
+                    "enum": [
+                      "calculee",
+                      "convocation"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "dateLe",
+                  "resultat",
+                  "sourceEcheance"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -9962,6 +14759,40 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "confirmationVin": "WVWZZZ1KZAW123456",
+                    "vehiculeSourceId": "7c3e1b2a-9f4d-4e6a-8b1c-2d5f6a7b8c9d"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confirmationVin": {
+                    "maxLength": 17,
+                    "minLength": 5,
+                    "type": "string"
+                  },
+                  "vehiculeSourceId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "vehiculeSourceId",
+                  "confirmationVin"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -10108,6 +14939,90 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "releveLe": "2026-07-15T08:30:00.000Z",
+                    "source": "reception",
+                    "unite": "km",
+                    "valeur": 84200
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "motifRegression": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "compteur_remplace",
+                          "erreur_saisie",
+                          "changement_unite",
+                          "correction"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ordreReparationId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "releveLe": {
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                    "type": "string"
+                  },
+                  "source": {
+                    "enum": [
+                      "reception",
+                      "ordre_reparation",
+                      "expertise",
+                      "vente",
+                      "declaratif",
+                      "import"
+                    ],
+                    "type": "string"
+                  },
+                  "unite": {
+                    "default": "km",
+                    "enum": [
+                      "km",
+                      "mi"
+                    ],
+                    "type": "string"
+                  },
+                  "valeur": {
+                    "maximum": 9999999,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "valeur",
+                  "releveLe",
+                  "source"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -10147,7 +15062,7 @@
                 }
               }
             },
-            "description": "Droit insuffisant."
+            "description": "Droit insuffisant — ou, sur une saisie RÉGRESSIVE avec motif, rôle sans vehicule.kilometrage.corriger_regression (§10 L962, chef d'atelier/direction uniquement)."
           },
           "404": {
             "content": {
@@ -10263,6 +15178,70 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "canton": "VD",
+                    "debutLe": "2026-07-15",
+                    "interchangeable": false,
+                    "pays": "CH",
+                    "professionnelle": false,
+                    "valeur": "VD 123456"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "canton": {
+                    "anyOf": [
+                      {
+                        "maxLength": 2,
+                        "minLength": 2,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "debutLe": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  },
+                  "interchangeable": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "pays": {
+                    "default": "CH",
+                    "maxLength": 2,
+                    "minLength": 2,
+                    "type": "string"
+                  },
+                  "professionnelle": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "valeur": {
+                    "maxLength": 20,
+                    "minLength": 2,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "valeur",
+                  "debutLe"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "content": {
@@ -10359,6 +15338,33 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "finLe": "2026-07-15"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "finLe": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "finLe"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {

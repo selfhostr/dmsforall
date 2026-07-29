@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import { Controller, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import {
   schemaActionAnnuler,
@@ -24,6 +24,7 @@ import {
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
+import { CorpsZod } from '../common/documentation';
 import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
@@ -61,7 +62,10 @@ export class OrdreReparationTransitionsController {
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE ou VEHICULE_KILOMETRAGE_REGRESSIF.')
   async receptionner(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
-    @Body(new PipeZod(schemaActionReceptionner)) entree: EntreeActionReceptionner,
+    @CorpsZod(schemaActionReceptionner, {
+      exemple: { kilometrageEntree: 84_500, unite: 'km', signatureDifferee: false },
+    })
+    entree: EntreeActionReceptionner,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
@@ -77,7 +81,10 @@ export class OrdreReparationTransitionsController {
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE ou OR_RECEPTION_REQUISE.')
-  async demarrer(@Param('orId', new PipeZod(schemaIdentifiant)) orId: string, @Body(new PipeZod(schemaActionDemarrer)) _entree: unknown) {
+  async demarrer(
+    @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
+    @CorpsZod(schemaActionDemarrer, { exemple: {} }) _entree: unknown,
+  ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
     return this.transitions.demarrer(ctx, principal, orId);
@@ -94,7 +101,10 @@ export class OrdreReparationTransitionsController {
   @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
   async reprendreTravaux(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
-    @Body(new PipeZod(schemaActionReprendreTravaux)) entree: EntreeActionReprendreTravaux,
+    @CorpsZod(schemaActionReprendreTravaux, {
+      exemple: { ligneIds: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'], motif: 'Pièce reçue, travaux repris.' },
+    })
+    entree: EntreeActionReprendreTravaux,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
@@ -110,7 +120,10 @@ export class OrdreReparationTransitionsController {
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE, OR_LIGNES_A_VALIDER ou OR_POINTAGE_OUVERT.')
-  async passerEnControle(@Param('orId', new PipeZod(schemaIdentifiant)) orId: string, @Body(new PipeZod(schemaActionPasserEnControle)) _entree: unknown) {
+  async passerEnControle(
+    @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
+    @CorpsZod(schemaActionPasserEnControle, { exemple: {} }) _entree: unknown,
+  ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
     return this.transitions.passerEnControle(ctx, principal, orId);
@@ -128,7 +141,10 @@ export class OrdreReparationTransitionsController {
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE.')
   async refuserControle(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
-    @Body(new PipeZod(schemaActionRefuserControle)) entree: EntreeActionRefuserControle,
+    @CorpsZod(schemaActionRefuserControle, {
+      exemple: { motif: 'Fuite d’huile constatée au contrôle final, retour en atelier.' },
+    })
+    entree: EntreeActionRefuserControle,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
@@ -147,7 +163,17 @@ export class OrdreReparationTransitionsController {
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE ou OR_POINTAGE_OUVERT.')
   async validerControle(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
-    @Body(new PipeZod(schemaActionValiderControle)) entree: EntreeActionValiderControle,
+    @CorpsZod(schemaActionValiderControle, {
+      exemple: {
+        controleurId: '6c9e2d4b-7a10-4e2e-8f0a-1c9e2e2f0a4b',
+        pointsControles: [
+          { code: 'freinage', conforme: true },
+          { code: 'eclairage', conforme: true },
+          { code: 'niveaux', conforme: true },
+        ],
+      },
+    })
+    entree: EntreeActionValiderControle,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
@@ -172,7 +198,8 @@ export class OrdreReparationTransitionsController {
   )
   async terminer(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
-    @Body(new PipeZod(schemaActionTerminer)) entree: EntreeActionTerminer,
+    @CorpsZod(schemaActionTerminer, { exemple: { kilometrageSortie: 84_560, unite: 'km' } })
+    entree: EntreeActionTerminer,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
@@ -194,7 +221,8 @@ export class OrdreReparationTransitionsController {
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE.')
   async rouvrir(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
-    @Body(new PipeZod(schemaActionRouvrir)) entree: EntreeActionRouvrir,
+    @CorpsZod(schemaActionRouvrir, { exemple: { motif: 'Le client signale que le bruit persiste après restitution.' } })
+    entree: EntreeActionRouvrir,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
@@ -213,7 +241,15 @@ export class OrdreReparationTransitionsController {
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE ou OR_RESERVE_SECURITE_REQUISE.')
   async restituer(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
-    @Body(new PipeZod(schemaActionRestituer)) entree: EntreeActionRestituer,
+    @CorpsZod(schemaActionRestituer, {
+      exemple: {
+        kilometrageSortie: 84_560,
+        unite: 'km',
+        piecesRestituees: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'],
+        paiementRecu: true,
+      },
+    })
+    entree: EntreeActionRestituer,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
@@ -229,7 +265,10 @@ export class OrdreReparationTransitionsController {
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE.')
-  async cloturer(@Param('orId', new PipeZod(schemaIdentifiant)) orId: string, @Body(new PipeZod(schemaActionCloturer)) _entree: unknown) {
+  async cloturer(
+    @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
+    @CorpsZod(schemaActionCloturer, { exemple: {} }) _entree: unknown,
+  ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
     return this.transitions.cloturer(ctx, principal, orId);
@@ -250,7 +289,8 @@ export class OrdreReparationTransitionsController {
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE ou OR_ANNULATION_IMPOSSIBLE.')
   async annuler(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
-    @Body(new PipeZod(schemaActionAnnuler)) entree: EntreeActionAnnuler,
+    @CorpsZod(schemaActionAnnuler, { exemple: { motif: 'Le client renonce, véhicule repris par un tiers.' } })
+    entree: EntreeActionAnnuler,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();

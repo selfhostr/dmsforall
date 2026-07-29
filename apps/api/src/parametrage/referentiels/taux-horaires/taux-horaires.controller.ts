@@ -2,7 +2,7 @@
  * `GET|POST /referentiels/taux-horaires` · `PATCH /{id}` (contrats-api-etape-1.md §7.12, RM-65).
  */
 import { ApiCookieAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
 import {
   schemaCreationTauxHoraire,
   schemaIdentifiant,
@@ -14,6 +14,7 @@ import {
 
 import { ApiReponseProbleme } from '../../../common/erreurs';
 import { ServiceContexteRequete } from '../../../common/contexte';
+import { CorpsZod } from '../../../common/documentation';
 import { ExigerDroit } from '../../../common/droits';
 import { PipeZod } from '../../../common/validation';
 import { PageTauxHoraireDto, ReponseTauxHoraireDto } from '../../dto/reponse-taux-horaire.dto';
@@ -53,7 +54,10 @@ export class TauxHorairesController {
   @ApiReponseProbleme(400, 'VALIDATION_ECHOUEE — corps invalide.')
   @ApiReponseProbleme(409, 'CONFLIT — période chevauchant une période valide existante du même code.')
   async creer(
-    @Body(new PipeZod(schemaCreationTauxHoraire)) corps: EntreeCreationTauxHoraire,
+    @CorpsZod(schemaCreationTauxHoraire, {
+      exemple: { code: 'MECANIQUE', libelle: 'Taux horaire mécanique', montantCentimes: 14500, valideDuLe: '2026-01-01' },
+    })
+    corps: EntreeCreationTauxHoraire,
   ): Promise<ReponseTauxHoraireDto> {
     return this.service.creer(this.contexte.contexteTenant(), corps);
   }
@@ -68,7 +72,8 @@ export class TauxHorairesController {
   @ApiReponseProbleme(409, 'CONFLIT — nouvelle période chevauchant une période valide existante du même code.')
   async modifier(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,
-    @Body(new PipeZod(schemaModificationTauxHoraire)) corps: EntreeModificationTauxHoraire,
+    @CorpsZod(schemaModificationTauxHoraire, { exemple: { montantCentimes: 15000, valideAuLe: '2026-12-31' } })
+    corps: EntreeModificationTauxHoraire,
   ): Promise<ReponseTauxHoraireDto> {
     return this.service.modifier(this.contexte.contexteTenant(), id, corps);
   }

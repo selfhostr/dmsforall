@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { PageCurseur, ReponseAvecAvertissements, ReponseClientContact } from '@dfa/shared';
+import {
+  LANGUES,
+  ROLES_CONTACT,
+  type PageCurseur,
+  type ReponseAvecAvertissements,
+  type ReponseClientContact,
+} from '@dfa/shared';
 
 import { AvertissementDto } from './avertissement.dto';
 
@@ -25,10 +31,10 @@ export class ClientContactDto implements ReponseClientContact {
   @ApiProperty({ type: String, nullable: true })
   readonly email!: string | null;
 
-  @ApiProperty({ type: String, nullable: true, enum: ['fr', 'de', 'it'] })
+  @ApiProperty({ type: String, nullable: true, enum: LANGUES })
   readonly langue!: ReponseClientContact['langue'];
 
-  @ApiProperty({ enum: ['conducteur', 'gestionnaire_flotte', 'signataire', 'comptabilite'], isArray: true, description: 'Rôles CUMULABLES (RM-04).' })
+  @ApiProperty({ enum: ROLES_CONTACT, isArray: true, description: 'Rôles CUMULABLES (RM-04).' })
   readonly roles!: readonly ReponseClientContact['roles'][number][];
 
   @ApiProperty()

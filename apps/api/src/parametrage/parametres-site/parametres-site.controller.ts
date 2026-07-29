@@ -8,12 +8,13 @@
  * tenant » — la même réponse dans les deux cas est la propriété recherchée.
  */
 import { ApiCookieAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Body, Controller, Get, Headers, Param, Patch, Res } from '@nestjs/common';
+import { Controller, Get, Headers, Param, Patch, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { schemaIdentifiant, schemaModificationParametresSite, type EntreeModificationParametresSite } from '@dfa/shared';
 
 import { ApiReponseProbleme } from '../../common/erreurs';
 import { ServiceContexteRequete } from '../../common/contexte';
+import { CorpsZod } from '../../common/documentation';
 import { ExigerDroit } from '../../common/droits';
 import { PipeZod } from '../../common/validation';
 import { calculerEtag, ifNoneMatchSatisfait } from '../etag';
@@ -61,7 +62,10 @@ export class ParametresSiteController {
   @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — site inconnu de ce tenant, ou sans ligne de paramétrage.')
   async modifier(
     @Param('siteId', new PipeZod(schemaIdentifiant)) siteId: string,
-    @Body(new PipeZod(schemaModificationParametresSite)) corps: EntreeModificationParametresSite,
+    @CorpsZod(schemaModificationParametresSite, {
+      exemple: { heureOuverture: '07:30', heureFermeture: '18:00', heureCloturePointage: '18:30', capaciteHeuresJourCentiemes: 4800 },
+    })
+    corps: EntreeModificationParametresSite,
   ): Promise<ReponseParametresSiteDto> {
     return this.service.modifier(this.contexte.contexteTenant(), siteId, corps);
   }

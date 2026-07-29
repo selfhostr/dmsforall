@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { PageCurseur, ReponseAvecAvertissements, ReponseClientConsentement } from '@dfa/shared';
+import {
+  TYPES_CONSENTEMENT,
+  type PageCurseur,
+  type ReponseAvecAvertissements,
+  type ReponseClientConsentement,
+} from '@dfa/shared';
 
 import { AvertissementDto } from './avertissement.dto';
 
@@ -8,7 +13,7 @@ export class ClientConsentementDto implements ReponseClientConsentement {
   @ApiProperty({ format: 'uuid' })
   readonly id!: string;
 
-  @ApiProperty({ enum: ['marketing_email', 'marketing_sms', 'marketing_appel'] })
+  @ApiProperty({ enum: TYPES_CONSENTEMENT })
   readonly type!: ReponseClientConsentement['type'];
 
   @ApiProperty()

@@ -1,8 +1,9 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { schemaExpertiseVehicule, schemaIdentifiant, type EntreeExpertiseVehicule } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
+import { CorpsZod } from '../common/documentation';
 import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
@@ -47,7 +48,10 @@ export class VehiculeExpertiseController {
   @ApiReponseProbleme(404, 'Véhicule introuvable pour ce tenant.')
   async creer(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
-    @Body(new PipeZod(schemaExpertiseVehicule)) entree: EntreeExpertiseVehicule,
+    @CorpsZod(schemaExpertiseVehicule, {
+      exemple: { dateLe: '2026-06-02', resultat: 'accepte_avec_defauts', defauts: 'Jeu léger rotule de direction', prochaineEcheanceLe: '2030-06-02', sourceEcheance: 'calculee' },
+    })
+    entree: EntreeExpertiseVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
     return this.service.creer(ctx, vehiculeId, entree);

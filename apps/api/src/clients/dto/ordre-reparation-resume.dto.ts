@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { OrdreReparationResume, PageCurseur } from '@dfa/shared';
+import {
+  ETATS_AFFICHES_ORDRE_REPARATION,
+  LOCALISATIONS_VEHICULE,
+  STATUTS_ORDRE_REPARATION,
+  TYPES_ORDRE_REPARATION,
+  type OrdreReparationResume,
+  type PageCurseur,
+} from '@dfa/shared';
 
 import { ClientResumeDto } from './client.dto';
 import { VehiculeResumeDto } from './vehicule-resume.dto';
@@ -16,19 +23,19 @@ export class OrdreReparationResumeDto implements OrdreReparationResume {
   @ApiProperty()
   readonly numero!: string;
 
-  @ApiProperty({ enum: ['planifie', 'ouvert', 'en_cours', 'controle', 'termine', 'facture', 'restitue', 'cloture', 'annule'] })
+  @ApiProperty({ enum: STATUTS_ORDRE_REPARATION })
   readonly statut!: OrdreReparationResume['statut'];
 
   @ApiProperty({
-    enum: ['planifie', 'ouvert', 'en_cours', 'attente_accord', 'attente_pieces', 'attente_externe', 'controle', 'termine', 'facture', 'restitue', 'cloture', 'annule'],
+    enum: ETATS_AFFICHES_ORDRE_REPARATION,
     description: 'Le statut, OU le drapeau d’attente le plus bloquant (priorité accord > pieces > externe), calculé côté serveur.',
   })
   readonly etatAffiche!: OrdreReparationResume['etatAffiche'];
 
-  @ApiProperty()
+  @ApiProperty({ enum: TYPES_ORDRE_REPARATION })
   readonly type!: OrdreReparationResume['type'];
 
-  @ApiProperty()
+  @ApiProperty({ enum: LOCALISATIONS_VEHICULE })
   readonly localisation!: OrdreReparationResume['localisation'];
 
   @ApiProperty({ type: String, format: 'date-time', nullable: true })

@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { PageCurseur, ReponseAvecAvertissements, ReponseClientNote } from '@dfa/shared';
+import {
+  NATURES_NOTE,
+  type PageCurseur,
+  type ReponseAvecAvertissements,
+  type ReponseClientNote,
+} from '@dfa/shared';
 
 import { AvertissementDto } from './avertissement.dto';
 
@@ -16,7 +21,7 @@ export class ClientNoteDto implements ReponseClientNote {
   @ApiProperty({ format: 'uuid' })
   readonly id!: string;
 
-  @ApiProperty({ enum: ['interne', 'alerte'] })
+  @ApiProperty({ enum: NATURES_NOTE })
   readonly nature!: ReponseClientNote['nature'];
 
   @ApiProperty()

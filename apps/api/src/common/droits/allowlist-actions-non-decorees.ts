@@ -35,13 +35,16 @@ import type { Action } from '../../auth/matrice-droits';
  *  3. Ajouter une action ici est un choix qui s'assume : si elle peut être câblée par un
  *     `@ExigerDroit` normal, câblez-la plutôt que de l'ajouter ici. Cette liste n'existe que pour
  *     les deux cas ci-dessus, jamais comme échappatoire de confort pour « faire passer le test ».
- *     (Un exemple réel de ce qu'il NE FAUT PAS faire : `atelier.or.plafond_modifier` existe dans
- *     la matrice, la route qui modifie le plafond existe et répond, mais elle est gardée par
- *     `atelier.or.modifier` — plus large — au lieu de sa propre action. Ce n'est ni une vérification
- *     conditionnelle en service (rien ne vérifie `plafond_modifier` nulle part) ni une action
- *     inerte (la route existe et fonctionne) : ça n'a donc pas sa place ici, et le test sibling la
- *     signale à raison comme non couverte, tant qu'elle n'est pas câblée par son propre
- *     `@ExigerDroit` ou par un contrôle conditionnel réel en service.)
+ *     (Ce qu'il NE FAUT PAS faire, à titre d'exemple hypothétique : inscrire ici une action dont la
+ *     route existe et répond, mais qui reste gardée par un `@ExigerDroit` DIFFÉRENT et plus large —
+ *     sans qu'aucun contrôle réel, nulle part en service, ne vérifie CETTE action précise. Ce n'est
+ *     alors ni une vérification conditionnelle en service (rien ne la vérifie), ni une action
+ *     inerte (la route existe et fonctionne) : ça n'a pas sa place ici, et le test sibling doit la
+ *     signaler comme non couverte tant qu'elle n'est pas câblée par son propre `@ExigerDroit` ou par
+ *     un contrôle conditionnel réel en service. `atelier.or.plafond_modifier`, ci-dessous, a été un
+ *     temps ce cas précis — refusé à raison dans cette liste jusqu'à ce qu'un contrôle réel existe —
+ *     avant qu'un contrôle conditionnel en service ne soit effectivement posé dans
+ *     `ServiceOr.modifier`, ce qui justifie désormais sa présence ici.)
  */
 
 export type CategorieAllowlistAction = 'verification-conditionnelle-service' | 'action-inerte-anticipee';
@@ -73,6 +76,31 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
       "(!droitsDuRole.includes('vehicule.kilometrage.corriger_regression')) throw ... }`, exécuté UNIQUEMENT quand le " +
       'relevé nouvellement soumis est inférieur au dernier relevé connu — jamais en permanence, sinon la saisie ' +
       'normale du technicien (droit vehicule.kilometrage.saisir) serait aussi bloquée par ce droit plus fort.',
+  },
+  {
+    // Même famille que `vehicule.kilometrage.corriger_regression` ci-dessus. `PATCH
+    // /ordres-reparation/{orId}` (ServiceOr.modifier) sert TOUS les champs libres de l'en-tête de
+    // l'OR sous le SEUL droit `atelier.or.modifier`, alors que `plafondCentimes` (le montant
+    // au-delà duquel l'accord du client est requis, RM-54, §10 L969) mérite son propre droit,
+    // structurellement plus fort, `atelier.or.plafond_modifier`. Un `@ExigerDroit` STATIQUE sur
+    // cette route interdirait AUSSI les modifications ordinaires (localisation, sous-traitant,
+    // report de restitution…) à tout rôle qui a `atelier.or.modifier` sans `atelier.or.plafond_modifier`
+    // — la route est partagée entre les deux usages, et seul le service, après avoir chargé la
+    // valeur actuelle sous verrou, sait si CETTE requête précise touche réellement le plafond.
+    action: 'atelier.or.plafond_modifier',
+    categorie: 'verification-conditionnelle-service',
+    justification:
+      'Contrôle réel : ServiceOr.modifier() (apps/api/src/atelier/service-or.ts, ~lignes 248-270), bloc ' +
+      "`const modifiePlafond = entree.plafondCentimes !== undefined && entree.plafondCentimes !== (ligne.plafondCentimes " +
+      '?? undefined); if (modifiePlafond) { const droitsDuRole = MATRICE_DROITS[principal.role] ?? []; if ' +
+      "(!droitsDuRole.includes('atelier.or.plafond_modifier')) throw ... }`, exécuté UNIQUEMENT quand la valeur de " +
+      'plafondCentimes soumise diffère de la valeur actuelle en base (resoumettre la même valeur ne déclenche pas la ' +
+      'garde) — jamais en permanence, sinon les modifications ordinaires des autres champs de la même route seraient ' +
+      "aussi bloquées par ce droit plus fort. Le rôle est lu depuis l'appelant (principal.role), jamais depuis le " +
+      'client. Couvert par 5 tests dans apps/api/src/atelier/service-or.spec.ts : refus 403 sans écriture en base ' +
+      "pour un rôle non habilité qui tente de RELEVER le plafond, acceptation pour un rôle habilité (réceptionnaire), " +
+      'un champ ordinaire (localisation) reste modifiable sans le droit fort, resoumission de la même valeur ne ' +
+      'déclenche pas la garde, et une BAISSE du plafond est bloquée aussi (pas seulement une hausse).',
   },
 
   // ---------------------------------------------------------------------------------------------

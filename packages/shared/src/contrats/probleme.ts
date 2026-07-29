@@ -108,6 +108,17 @@ export const CODES_ERREUR = [
   'CONFIRMATION_REQUISE',
   'IDEMPOTENCE_CONFLIT',
   'FONCTION_NON_DISPONIBLE',
+  // --- Étape 1 : limitation de débit dédiée (finding D-01, audit sécurité) ---
+  // Code dédié pour GET /recherche, distinct d'AUTH_TROP_DE_TENTATIVES : même statut 429 et même
+  // mécanisme Retry-After, mais un libellé i18n phrasé en secondes (fenêtre courte, 30s par
+  // défaut) plutôt qu'en minutes, et qui ne parle pas de « tentatives » (pas une erreur
+  // d'identifiants). Voir apps/api/src/common/securite/garde-limitation-recherche.ts.
+  'RECHERCHE_TROP_DE_REQUETES',
+  // --- Correction du repli 4xx générique (finding audit statuts) ---
+  // Un 405 (méthode HTTP non supportée sur une route existante) portait ERREUR_INTERNE/500 par
+  // repli faute de code dédié — le statut restait 405 mais le code métier travestissait un cas
+  // de fonctionnement normal en panne serveur. Voir apps/api/src/common/erreurs/filtre-probleme.ts.
+  'METHODE_NON_AUTORISEE',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -185,6 +196,8 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   CONFIRMATION_REQUISE: 409,
   IDEMPOTENCE_CONFLIT: 409,
   FONCTION_NON_DISPONIBLE: 501,
+  RECHERCHE_TROP_DE_REQUETES: 429,
+  METHODE_NON_AUTORISEE: 405,
 };
 
 /**
@@ -248,6 +261,8 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   CONFIRMATION_REQUISE: 'Confirmation requise',
   IDEMPOTENCE_CONFLIT: "Conflit de clé d'idempotence",
   FONCTION_NON_DISPONIBLE: 'Fonctionnalité non disponible',
+  RECHERCHE_TROP_DE_REQUETES: 'Trop de requêtes de recherche',
+  METHODE_NON_AUTORISEE: 'Méthode HTTP non supportée',
 };
 
 /**

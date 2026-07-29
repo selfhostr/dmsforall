@@ -4,7 +4,7 @@
  * à aujourd'hui — voir `service-prestations.ts`.
  */
 import { ApiCookieAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
 import {
   schemaCreationPrestation,
   schemaIdentifiant,
@@ -16,6 +16,7 @@ import {
 
 import { ApiReponseProbleme } from '../../../common/erreurs';
 import { ServiceContexteRequete } from '../../../common/contexte';
+import { CorpsZod } from '../../../common/documentation';
 import { ExigerDroit } from '../../../common/droits';
 import { PipeZod } from '../../../common/validation';
 import { PagePrestationDto, ReponsePrestationDto } from '../../dto/reponse-prestation.dto';
@@ -50,7 +51,20 @@ export class PrestationsController {
   @ApiResponse({ status: 201, description: 'Prestation créée.', type: ReponsePrestationDto })
   @ApiReponseProbleme(400, 'VALIDATION_ECHOUEE — corps invalide.')
   @ApiReponseProbleme(409, 'CONFLIT — code de prestation déjà utilisé par ce tenant.')
-  async creer(@Body(new PipeZod(schemaCreationPrestation)) corps: EntreeCreationPrestation): Promise<ReponsePrestationDto> {
+  async creer(
+    @CorpsZod(schemaCreationPrestation, {
+      exemple: {
+        code: 'VIDANGE-STD',
+        designationFr: 'Vidange standard + filtre à huile',
+        typeLigne: 'forfait',
+        tempsBaremeCentiemes: 50,
+        tauxHoraireCode: 'MECANIQUE',
+        tauxTvaPourmille: 81,
+        prixCentimes: 9500,
+      },
+    })
+    corps: EntreeCreationPrestation,
+  ): Promise<ReponsePrestationDto> {
     return this.service.creer(this.contexte.contexteTenant(), corps);
   }
 
@@ -69,7 +83,8 @@ export class PrestationsController {
   @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — prestation inconnue de ce tenant.')
   async modifier(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,
-    @Body(new PipeZod(schemaModificationPrestation)) corps: EntreeModificationPrestation,
+    @CorpsZod(schemaModificationPrestation, { exemple: { prixCentimes: 9900, actif: true } })
+    corps: EntreeModificationPrestation,
   ): Promise<ReponsePrestationDto> {
     return this.service.modifier(this.contexte.contexteTenant(), id, corps);
   }

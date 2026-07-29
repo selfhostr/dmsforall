@@ -88,7 +88,9 @@
     "PLANNING_CAPACITE_DEPASSEE": "La charge prévue pour ce jour dépasse la capacité de l'atelier.",
     "POINTAGE_CLOTURE_AUTOMATIQUE": "Ce pointage a été clôturé automatiquement à la fermeture.",
     "PRET_CASCADE_RESTITUTION": "La restitution du véhicule entraînera celle du véhicule de prêt.",
-    "VEHICULE_DEUX_OR_OUVERTS": "Un ordre de réparation est déjà ouvert pour ce véhicule."
+    "VEHICULE_DEUX_OR_OUVERTS": "Un ordre de réparation est déjà ouvert pour ce véhicule.",
+    "RECHERCHE_TROP_DE_REQUETES": "Trop de recherches en peu de temps. Patientez quelques secondes, puis réessayez.",
+    "METHODE_NON_AUTORISEE": "Méthode HTTP non supportée."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Créer un devis complémentaire",

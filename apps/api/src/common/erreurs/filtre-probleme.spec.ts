@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ArgumentsHost, ForbiddenException, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  MethodNotAllowedException,
+  NotFoundException,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import type { ActionProposee, ElementBloquant } from '@dfa/shared';
 import { ErreurIdentifiantsInvalides } from '../../auth/erreurs-auth';
@@ -105,7 +112,7 @@ describe('FiltreProbleme — envoi Sentry réservé aux erreurs INATTENDUES', ()
     expect(capturerErreurInattendue).not.toHaveBeenCalled();
   });
 
-  it('ne capture PAS une route inexistante (404 NotFoundException générique Nest) — trafic routinier, pas un incident', () => {
+  it('une route inexistante (404 NotFoundException générique Nest) reste un 404 — jamais travesti en panne serveur', () => {
     const filtre = new FiltreProbleme(serviceContexteTest(), serviceJournalTest());
     const reponse = reponseTest();
     const exception = new NotFoundException('Cannot GET /api/sante');
@@ -113,9 +120,25 @@ describe('FiltreProbleme — envoi Sentry réservé aux erreurs INATTENDUES', ()
     filtre.catch(exception, hostTest(requeteTest({ routePath: undefined }), reponse));
 
     expect(capturerErreurInattendue).not.toHaveBeenCalled();
-    // Le corps répond quand même en problem+json (contrat conservé), même si le statut retombe
-    // sur ERREUR_INTERNE/500 par normalisation existante — seul le NON-ENVOI à Sentry change ici.
-    expect(reponse.status).toHaveBeenCalledWith(500);
+    expect(reponse.status).toHaveBeenCalledWith(404);
+    // Même code que la « ressource d'un autre tenant » (voir services métier) : une route qui
+    // n'existe pas et une ressource hors périmètre tenant doivent rester indistinguables par le
+    // `code` — sans quoi le 404 devient un canal d'énumération inter-tenant.
+    const corpsEnvoye = (reponse.json as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
+    expect(corpsEnvoye).toMatchObject({ code: 'RESSOURCE_INTROUVABLE', status: 404 });
+  });
+
+  it('une méthode HTTP non supportée (405 MethodNotAllowedException générique Nest) reste un 405 — jamais travesti en panne serveur', () => {
+    const filtre = new FiltreProbleme(serviceContexteTest(), serviceJournalTest());
+    const reponse = reponseTest();
+    const exception = new MethodNotAllowedException('Cannot DELETE /api/v1/sante');
+
+    filtre.catch(exception, hostTest(requeteTest({ method: 'DELETE' }), reponse));
+
+    expect(capturerErreurInattendue).not.toHaveBeenCalled();
+    expect(reponse.status).toHaveBeenCalledWith(405);
+    const corpsEnvoye = (reponse.json as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
+    expect(corpsEnvoye).toMatchObject({ code: 'METHODE_NON_AUTORISEE', status: 405 });
   });
 
   it('ne capture PAS un 403 générique Nest (ForbiddenException sans code métier)', () => {
@@ -127,22 +150,41 @@ describe('FiltreProbleme — envoi Sentry réservé aux erreurs INATTENDUES', ()
     expect(capturerErreurInattendue).not.toHaveBeenCalled();
   });
 
-  it('capture une HttpException générique dont le statut D\'ORIGINE est déjà serveur (>= 500)', () => {
+  it('capture une HttpException générique dont le statut D\'ORIGINE est déjà serveur (>= 500) — comportement 5xx inchangé, normalisé en 500', () => {
     const filtre = new FiltreProbleme(serviceContexteTest(), serviceJournalTest());
+    const reponse = reponseTest();
     const exception = new HttpException('service externe indisponible', HttpStatus.BAD_GATEWAY);
 
-    filtre.catch(exception, hostTest(requeteTest(), reponseTest()));
+    filtre.catch(exception, hostTest(requeteTest(), reponse));
 
     expect(capturerErreurInattendue).toHaveBeenCalledTimes(1);
+    expect(reponse.status).toHaveBeenCalledWith(500);
   });
 
-  it('ne capture PAS un 400 générique (corps JSON malformé, VALIDATION_ECHOUEE)', () => {
+  it('un corps JSON malformé reste toujours un 400 VALIDATION_ECHOUEE', () => {
     const filtre = new FiltreProbleme(serviceContexteTest(), serviceJournalTest());
+    const reponse = reponseTest();
     const exception = new HttpException('JSON malformé', HttpStatus.BAD_REQUEST);
 
-    filtre.catch(exception, hostTest(requeteTest(), reponseTest()));
+    filtre.catch(exception, hostTest(requeteTest(), reponse));
 
     expect(capturerErreurInattendue).not.toHaveBeenCalled();
+    expect(reponse.status).toHaveBeenCalledWith(400);
+    const corpsEnvoye = (reponse.json as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
+    expect(corpsEnvoye).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+  });
+
+  it('une exception non typée (erreur de programmation) reste toujours un 500, sans détail interne exposé', () => {
+    const filtre = new FiltreProbleme(serviceContexteTest(PRINCIPAL_TEST), serviceJournalTest());
+    const reponse = reponseTest();
+    const exceptionNonTypee = new TypeError('undefined is not a function — détail interne sensible');
+
+    filtre.catch(exceptionNonTypee, hostTest(requeteTest({ routePath: '/api/v1/atelier/or/:id' }), reponse));
+
+    expect(reponse.status).toHaveBeenCalledWith(500);
+    const corpsEnvoye = (reponse.json as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
+    expect(corpsEnvoye).toMatchObject({ code: 'ERREUR_INTERNE', status: 500 });
+    expect(JSON.stringify(corpsEnvoye)).not.toContain('détail interne sensible');
   });
 
   it('capture toute exception non typée (erreur de programmation)', () => {

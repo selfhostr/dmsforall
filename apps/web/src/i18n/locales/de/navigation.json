@@ -15,6 +15,7 @@
   "entete": {
     "garage": "Werkstatt",
     "site": "Website",
+    "tousLesSites": "Alle Werkstätten",
     "compte": "Mein Konto"
   }
 }

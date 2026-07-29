@@ -15,6 +15,7 @@
   "entete": {
     "garage": "Officina",
     "site": "Sito",
+    "tousLesSites": "Tutte le officine",
     "compte": "Il mio account"
   }
 }

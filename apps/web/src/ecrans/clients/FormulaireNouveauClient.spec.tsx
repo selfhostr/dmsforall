@@ -83,7 +83,12 @@ describe('FormulaireNouveauClient', () => {
     await remplirIdentiteMinimale(utilisateur);
 
     // Aperçu live non bloquant : le candidat apparaît sous les champs avant toute soumission.
-    expect(await screen.findByText(/Isabelle Rossi/)).toBeInTheDocument();
+    // Timeout généreux (défaut 1000 ms sinon) : le composant applique un debounce de 400 ms avant
+    // d'interroger /api/v1/doublons-clients (MSW), et l'ensemble peut dépasser la fenêtre par
+    // défaut quand la suite tourne à pleine charge (CPU partagé entre workers) — sans que le
+    // comportement réel change. Un timeout trop court ici fait échouer le test par lenteur
+    // d'exécution, pas par régression du composant.
+    expect(await screen.findByText(/Isabelle Rossi/, {}, { timeout: 3000 })).toBeInTheDocument();
 
     await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
 
