@@ -76,8 +76,9 @@ Cela crée un garage de démo (Garage Martin SA) avec un administrateur locatair
 ```bash
 docker compose ps                 # Postgres et Redis doivent être "healthy"
 curl http://localhost:3000/docs   # Documentation OpenAPI interactive
-curl http://localhost:5173        # Application web
 ```
+
+**`curl http://localhost:5173` ne suffit PAS** pour vérifier le front : la commande renvoie un code 200 même quand la configuration `VITE_*` est absente ou invalide — elle ne fait que récupérer la coquille HTML, avant que React ne s'exécute et ne valide la config dans le navigateur. Ouvrir `http://localhost:5173` dans un navigateur et confirmer que l'écran de connexion s'affiche (pas « Configuration frontend invalide »). Si le doute persiste, `pnpm --filter @dfa/web build` échoue bruyamment (code de sortie non nul) si `VITE_API_URL` n'est pas résolue — voir piège n°4 ci-dessous.
 
 Pour tout réinitialiser (volumes Postgres + Redis) :
 ```bash
@@ -107,7 +108,7 @@ dms/
 
 ## Pièges connus du dépôt
 
-Trois points vérifiés — ils bloqueront un nouveau venu, d'où leur documentation explicite ici :
+Quatre points vérifiés — ils bloqueront un nouveau venu, d'où leur documentation explicite ici :
 
 ### 1. `docker compose down -v` obligatoire après modification de rôles Postgres
 
@@ -157,6 +158,18 @@ export class MyController {
 ```
 
 La règle ESLint qui interdit cette conversion est désactivée exprès pour l'API.
+
+### 4. Le front ne lit qu'un seul `.env`, celui de la racine
+
+`apps/web/vite.config.ts` fixe `envDir` sur la racine du monorepo : Vite y cherche son `.env`,
+jamais dans `apps/web/`. Il n'existe volontairement aucun `apps/web/.env.example` — le
+`.env.example` racine est l'unique référence des variables `VITE_*`, deux copies de la même
+documentation divergeant tôt ou tard. La séquence de démarrage en 5 commandes ci-dessus
+(`cp .env.example .env` **à la racine**) suffit et reste la seule à suivre.
+
+Si `VITE_API_URL` n'est pas résolue, `pnpm dev`/`pnpm --filter @dfa/web build` échouent
+immédiatement avec un message explicite (garde-fou dans `vite.config.ts`) plutôt que de
+démarrer avec une configuration invalide détectée seulement dans le navigateur.
 
 ## Conventions essentielles
 

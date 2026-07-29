@@ -49,9 +49,15 @@ COPY apps/web/components.json apps/web/components.json
 COPY apps/web/src apps/web/src
 # Vite inline les variables `VITE_*` dans le bundle AU BUILD, pas au démarrage du conteneur
 # (contrairement à la config de l'API, validée au runtime) — voir docs/deploiement-production.md
-# pour l'implication sur les rollbacks/redeploiements. Valeur alignée sur apps/web/.env.example :
-# chemin relatif, le front est toujours servi derrière le même reverse proxy que l'API, en dev
-# comme en prod, donc cette valeur ne varie normalement jamais entre environnements.
+# pour l'implication sur les rollbacks/redeploiements. Valeur alignée sur le `.env.example` de la
+# racine du dépôt : chemin relatif, le front est toujours servi derrière le même reverse proxy
+# que l'API, en dev comme en prod, donc cette valeur ne varie normalement jamais entre
+# environnements.
+#
+# Aucun `.env` n'est copié dans ce contexte de build : `apps/web/vite.config.ts` lit VITE_API_URL
+# via `loadEnv`, qui retombe sur `process.env` en l'absence de fichier — l'`ENV` Docker
+# ci-dessous suffit donc à satisfaire le garde-fou qui fait échouer `vite build` si la variable
+# est absente (vérifié : build sans .env + VITE_API_URL en variable de process = succès).
 ARG VITE_API_URL=/api/v1
 ENV VITE_API_URL=${VITE_API_URL}
 RUN pnpm --filter @dfa/web build
