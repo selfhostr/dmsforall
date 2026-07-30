@@ -98,6 +98,9 @@
     "DOCUMENT_PDF_INDISPONIBLE": "Il PDF non e ancora pronto. Attendi alcuni istanti.",
     "FACTURATION_LIGNES_INDECISES": "Alcune righe sono in attesa di approvazione del cliente prima della fatturazione.",
     "QR_CREANCIER_INCOMPLET": "Le informazioni di fatturazione (blocco creditore QR) sono incomplete. Contatta il supporto.",
+    "IBAN_INVALIDE": "Questo IBAN sembra errato (forma o cifra di controllo). Verifica l'inserimento, cifra per cifra.",
+    "IBAN_EST_UN_QR_IBAN": "Questo è un QR-IBAN: inseriscilo nel campo «QR-IBAN», non nel campo «IBAN».",
+    "QR_IBAN_SANS_IID_RESERVE": "Questo è un IBAN ordinario, non un QR-IBAN: inseriscilo nel campo «IBAN», non nel campo «QR-IBAN».",
     "AVOIR_MONTANT_EXCEDENTAIRE": "L'importo della nota di credito supera il totale della fattura. Riduci l'importo della correzione.",
     "AVOIR_PLAFOND_DEPASSE": "Hai superato il limite di note di credito. Contatta il responsabile dell'officina o il contabile.",
     "REMISE_PLAFOND_DEPASSE": "Hai superato il limite di sconto. Contatta il responsabile dell'officina o il contabile.",
@@ -107,7 +110,20 @@
     "EXPORT_ECRITURES_DESEQUILIBREES": "Le registrazioni contabili non sono bilanciate. Contatta il tuo revisore.",
     "EXPORT_MAPPING_INCOMPLET": "La mappatura contabile non e completa per questo target. Contatta il tuo revisore.",
     "EXPORT_DEJA_TRANSMIS": "Questo documento e gia stato inviato al revisore. Contatta il tuo revisore per gli adeguamenti.",
-    "BASCULE_FIDUCIAIRE_HORS_FRONTIERE": "Il cambio di revisore non e possibile durante il mese. Attendi la fine del periodo."
+    "BASCULE_FIDUCIAIRE_HORS_FRONTIERE": "Il cambio di revisore non e possibile durante il mese. Attendi la fine del periodo.",
+    "ARTICLE_REFERENCE_COLLISION": "Questo riferimento è già utilizzato da un altro articolo.",
+    "ARTICLE_REMPLACANT_REQUIS": "Indica l'articolo che sostituisce questo.",
+    "ARTICLE_DESACTIVATION_IMPOSSIBLE": "Questo articolo non può essere disattivato perché è prenotato. Libera prima le prenotazioni.",
+    "STOCK_INSUFFISANT": "Scorta insufficiente. Verifica se alcuni esemplari sono prenotati per altri ordini di riparazione.",
+    "MOUVEMENT_MOTIF_REQUIS": "Indica il motivo di questo movimento di magazzino.",
+    "RESERVATION_TRANSITION_INTERDITE": "Questa prenotazione non è più in uno stato che consente questa azione.",
+    "RESERVATION_SITE_INCOHERENT": "Il pezzo deve essere soddisfatto presso il sito dell'ordine di riparazione.",
+    "COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE": "Questo ordine fornitore non è più in uno stato che consente questa azione.",
+    "COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE": "Questo residuo è già stato consegnato o annullato. Non puoi modificarlo.",
+    "RECEPTION_REFERENCE_NON_EQUIVALENTE": "Questo riferimento non è riconosciuto come equivalente a quello ordinato.",
+    "CONSIGNE_TRANSITION_INTERDITE": "Questa cauzione non è più in uno stato che consente questa azione.",
+    "POINTAGE_PIN_INVALIDE": "Codice PIN non riconosciuto. Verificare il codice e riprovare.",
+    "POINTAGE_PIN_VERROUILLE": "Codice PIN temporaneamente bloccato. Contatta il responsabile dell'officina per continuare."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Crea preventivo supplementare",
@@ -135,6 +151,8 @@
     "travail_reporte": "{count, plural, one {# lavoro rinviato} other {# lavori rinviati}}",
     "ressource_planning": "{count, plural, one {# risorsa non disponibile} other {# risorse non disponibili}}",
     "ordre_reparation": "{count, plural, one {# ordine bloccato} other {# ordini bloccati}}",
-    "champ": "Campo obbligatorio"
+    "champ": "Campo obbligatorio",
+    "document_vente": "{count, plural, one {# documento bloccato} other {# documenti bloccati}}",
+    "ligne_document": "{count, plural, one {# riga bloccata} other {# righe bloccate}}"
   }
 }

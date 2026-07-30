@@ -141,7 +141,7 @@ export type StatutTravailReporte = (typeof STATUTS_TRAVAIL_REPORTE)[number];
  *
  * C'est la machine à états : y ajouter une valeur, c'est changer le cycle de vie, ce qui est une
  * rupture métier bien avant d'être une rupture technique. `facture` est présent dès la v1 mais
- * n'est atteignable qu'à l'étape 2 (T-16, action `/facturer` non publiée).
+ * n'est atteignable qu'à l'étape 2 (T-16, action `facturer` — voir `facturation/facturer-or.ts`).
  *
  * `attente_accord` / `attente_pieces` / `attente_externe` ne sont PAS des statuts (A-03 du plan
  * backend) : ce sont des drapeaux orthogonaux — voir `ATTENTES_ORDRE_REPARATION` et
@@ -240,8 +240,20 @@ export type StatutInitialOrdreReparation = (typeof STATUTS_INITIAUX_ORDRE_REPARA
  * vocabulaire exact que porte le champ dérivé `actionsDisponibles`.
  *
  * Verbes à l'INFINITIF, jamais de substantif (arbitrage D-a) : un segment verbe implique `POST`
- * seul, jamais de `GET`. `facturer` est volontairement ABSENT : le nom est réservé pour l'étape 2
- * mais la route n'est pas publiée — un connecteur ne doit pas pouvoir coder contre elle.
+ * seul, jamais de `GET`.
+ *
+ * `facturer` — PUBLIÉ (étape 2, `RF-81`, `facturation/facturer-or.ts`). Il était volontairement
+ * ABSENT tant que la route n'existait pas (« le nom est réservé, un connecteur ne doit pas pouvoir
+ * coder contre elle ») ; ce garde-fou n'a plus lieu d'être puisque `POST
+ * /ordres-reparation/{orId}/facturer` est maintenant un contrat gelé. AJOUT SÛR au sens strict de
+ * la compatibilité ascendante (§11.2, §11.4) : `ACTIONS_ORDRE_REPARATION` est extensible, et
+ * `actionsDisponibles` n'est qu'une liste — un client existant qui ignore les valeurs qu'il ne
+ * connaît pas (règle imposée à tout consommateur de cette API) ne voit RIEN de changé tant qu'il
+ * ne cherche pas spécifiquement `'facturer'`. Une action listée dans `actionsDisponibles` d'un OR
+ * `termine` uniquement s'il reste au moins un groupe payeur `(payeur, payeurClientId)` non encore
+ * facturé (`RF-84`) — voir `facturer-or.ts` pour la mécanique complète, y compris la facturation
+ * étalée dans le temps (`RF-83`, `MD-65`) qui rend cette action rejouable plusieurs fois sur le
+ * même OR tant qu'il reste des groupes en attente.
  *
  * Extensible. `actionsDisponibles` est calculé pour l'appelant courant (statut + droits +
  * paramètres) ; il ne remplace pas la vérification serveur, il évite au client de la rejouer.
@@ -264,6 +276,7 @@ export const ACTIONS_ORDRE_REPARATION = [
   'refuser-lignes',
   'annuler-lignes',
   'soumettre-lignes-a-devis',
+  'facturer',
 ] as const;
 export type ActionOrdreReparation = (typeof ACTIONS_ORDRE_REPARATION)[number];
 
@@ -447,7 +460,17 @@ export type StatutPretCourtoisie = (typeof STATUTS_PRET_COURTOISIE)[number];
 /* Audit et référentiels transverses                                   */
 /* ------------------------------------------------------------------ */
 
-/** `entite_auditee` — extensible. Filtre `entite` de `GET /ordres-reparation/{id}/journal`. */
+/**
+ * `entite_auditee` — extensible. Filtre `entite` de `GET /ordres-reparation/{id}/journal`.
+ *
+ * Miroir exact de l'enum Postgres `entite_auditee`, dans l'ordre de sa création : les neuf
+ * premières valeurs posées par `db/migrations/0003_prealables_etape1.sql` §3 (lot 1 — atelier),
+ * puis les six ajoutées par `alter type ... add value` dans `db/migrations/0010_facturation.sql`
+ * §2 (étape 2 — facturation, AC-25). Cette déclaration est la SEULE source de vérité côté
+ * TypeScript : `apps/api/src/common/audit/audit.types.ts` la réexporte plutôt que de la
+ * redéclarer, précisément pour rendre impossible la divergence qui existait avant (deux miroirs
+ * de ce même enum, l'un à 9 valeurs et l'autre à 15).
+ */
 export const ENTITES_AUDITEES = [
   'ordre_reparation',
   'ligne_or',
@@ -458,6 +481,13 @@ export const ENTITES_AUDITEES = [
   'client',
   'rendez_vous',
   'pret_courtoisie',
+  'document_vente',
+  'paiement',
+  'imputation_paiement',
+  'periode_comptable',
+  'export_comptable',
+  'mapping_compte',
+  'tenant_bloc_creancier',
 ] as const;
 export type EntiteAuditee = (typeof ENTITES_AUDITEES)[number];
 
@@ -487,7 +517,7 @@ export const ENTITES_A_TRANSITIONS = [
 export type EntiteATransitions = (typeof ENTITES_A_TRANSITIONS)[number];
 
 /** Types de ressource renvoyés par `GET /recherche` (§7.5). Extensible. */
-export const TYPES_RESULTAT_RECHERCHE = ['vehicule', 'client', 'ordre_reparation'] as const;
+export const TYPES_RESULTAT_RECHERCHE = ['vehicule', 'client', 'ordre_reparation', 'document_vente'] as const;
 export type TypeResultatRecherche = (typeof TYPES_RESULTAT_RECHERCHE)[number];
 
 /* ------------------------------------------------------------------ */

@@ -2,7 +2,7 @@
 
 > Périmètre : extraction, mapping, qualité, chargement et bascule des données d'un garage depuis
 > son DMS actuel (Auto-i, Nextlane, logiciel local, tableurs) vers dmsforall.
-> Public : @laupernoe (terrain), lead-backend, expert-database, expert-facturation, expert-devops.
+> Public : @laupernoe (terrain), expert-database, expert-facturation, expert-devops.
 > Statut : **méthode de référence**. Elle ferme la question ouverte d'`ARCHITECTURE.md §7`
 > (« modalités d'export inconnues ») en donnant le protocole d'investigation, pas la réponse :
 > la réponse s'obtient garage par garage, sur place.
@@ -1153,7 +1153,7 @@ silence de 30 jours, est un élément utile — commercialement et, le cas éch�
 | ~~**expert-facturation** (étape 2)~~ | ✅ **HONORÉ** dans `0010_facturation.sql` : `origine enum('dfa','reprise')`, `numero_origine`, `tva_non_ventilee`, `taux_tva_pourmille` au niveau document, `ecart_reprise_centimes`, type de ligne `ecart_reprise`, régime TVA `marge` pour l'avant-2018, index `document_vente_numero_origine_uk`, motif de bulletin `creance_reprise`. **La contrainte a été prise en compte avant qu'elle ne coûte cher** — c'est le seul point du document qui soit déjà réglé. Détail et protocole d'écriture : §10.4 |
 | **expert-database** (étape 1) | Colonne `origine_lot_id uuid null` + index partiel sur les tables recevant un import ; tables de reprise sous RLS `FORCE` avec `USING` **et** `WITH CHECK` ; FK composites `(tenant_id, lot_id)` sur le modèle de `site_tenant_id_uk` (§5.2, §5.4). **Rien de tout ceci n'est en base** (`Z-20`). ⚠️ **Nouveau, et urgent** : `ordre_reparation` doit recevoir `origine` + `numero_origine` comme `document_vente` (§10.5, `Z-17`) — coût nul tant qu'aucun garage n'est en production |
 | **expert-metier** | Les champs sans équivalent source (origine de ligne, payeur, consentements, conditions datées) doivent tolérer un état « inconnu / repris » sans casser une règle métier. Une règle qui exige une valeur qu'aucun système source ne fournit rend la reprise impossible (§2.5) |
-| **lead-qa** | Le test d'isolation d'import (§5.4) et le test d'idempotence (« deux passes du même fichier ⇒ mêmes UUID, aucun doublon ») sont des tests de la règle n°1 du projet, pas des tests de confort |
+| **expert-tests** | Le test d'isolation d'import (§5.4) et le test d'idempotence (« deux passes du même fichier ⇒ mêmes UUID, aucun doublon ») sont des tests de la règle n°1 du projet, pas des tests de confort |
 | **expert-devops** | Le staging peut peser plusieurs Go ; prévoir l'espace, la sauvegarde avant/après import, et la procédure de restauration testée exigée au GO (§6.3, critère 6) |
 
 ### 8.3 Ce qui débloque la suite, dans l'ordre
@@ -1959,7 +1959,7 @@ la copie restaurée pendant la répétition générale.
 | **Z-18** | Le numéro de client d'origine va-t-il dans `client.numero` ou dans `reference_externe` ? (`D-26`) | `expert-api` (la recherche doit couvrir le choix retenu) + @laupernoe |
 | **Z-19** | Une date d'expertise sans résultat : note, ou expertise inventée ? (`D-28`) | @laupernoe |
 | **Z-20** | Les tables de reprise (`lot_reprise`, `reprise_ligne_source`, `correspondance_reprise`, `reprise_anomalie`) et la colonne `origine_lot_id` ne sont **pas** en base. §5.2 et §5.3 restent des plans | `expert-database`, quand la première migration réelle sera engagée |
-| **Z-21** | Le module `apps/api/src/reprise/` n'existe pas (§5.1 est une conception) | `lead-backend`, après Z-01 |
+| **Z-21** | Le module `apps/api/src/reprise/` n'existe pas (§5.1 est une conception) | À décomposer en tâches backend, après Z-01 |
 
 ### 14.5 La séquence qui débloque le plus, dans l'ordre
 

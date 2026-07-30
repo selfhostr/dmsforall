@@ -102,8 +102,13 @@ export interface BlocPaiementQrFige {
   readonly qrLangue: string;
   readonly creancier: BlocCreancierFige;
   /** `null` quand l'adresse du débiteur était incomplète à l'émission (`RF-59`) — jamais un objet
-   *  partiellement rempli. */
-  readonly debiteur: AdresseStructureeQr & { readonly nom: string };
+   *  partiellement rempli. Corrigé (signalement `fact-documents`, `service-emission.ts::debiteurQr`
+   *  déjà typé `DebiteurQr | null` en implémentation, colonne `qr_debiteur_present`) : le type
+   *  contredisait ce commentaire depuis sa rédaction, ELARGISSEMENT DE TYPE DE RÉPONSE vers
+   *  `| null` — un client qui supposait la valeur toujours présente doit désormais la garder. Le
+   *  serveur pouvait déjà rendre `null` ; seul le type mentait, ce n'est pas un changement de
+   *  contrat serveur. */
+  readonly debiteur: (AdresseStructureeQr & { readonly nom: string }) | null;
 }
 
 /**

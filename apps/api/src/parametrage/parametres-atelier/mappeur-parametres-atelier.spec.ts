@@ -10,6 +10,7 @@ function ligneFactice(champs: Partial<schema.LigneParametreAtelier> = {}): schem
     orResetAnnuel: true,
     uniteTemps: 'heures_decimales',
     plafondDefautCentimes: 30000,
+    plafondAvoirReceptionnaireCentimes: null,
     chevauchementPointageAutorise: false,
     pointageObligatoirePourTerminer: false,
     controleQualite: 'jamais',
@@ -79,6 +80,23 @@ describe('versDtoParametresAtelier', () => {
     expect(dtoZero.reception.plafondDefautCentimes).toBe(0);
   });
 
+  it('plafondAvoirReceptionnaireCentimes NULL en base (RF-117 : aucun plafond convenu) reste null dans la réponse', () => {
+    const dto = versDtoParametresAtelier(ligneFactice({ plafondAvoirReceptionnaireCentimes: null }));
+    expect(dto.reception.plafondAvoirReceptionnaireCentimes).toBeNull();
+  });
+
+  it('plafondAvoirReceptionnaireCentimes NULL n\'est JAMAIS confondu avec 0 (toute émission doit escalader)', () => {
+    const dtoNul = versDtoParametresAtelier(ligneFactice({ plafondAvoirReceptionnaireCentimes: null }));
+    const dtoZero = versDtoParametresAtelier(ligneFactice({ plafondAvoirReceptionnaireCentimes: 0 }));
+    expect(dtoNul.reception.plafondAvoirReceptionnaireCentimes).not.toBe(dtoZero.reception.plafondAvoirReceptionnaireCentimes);
+    expect(dtoZero.reception.plafondAvoirReceptionnaireCentimes).toBe(0);
+  });
+
+  it('plafondAvoirReceptionnaireCentimes nominal restitué tel quel', () => {
+    const dto = versDtoParametresAtelier(ligneFactice({ plafondAvoirReceptionnaireCentimes: 500000 }));
+    expect(dto.reception.plafondAvoirReceptionnaireCentimes).toBe(500000);
+  });
+
   it('facturation.piecesClientAutorisees et seuilDemontageCentimes : valeurs par défaut sans colonne', () => {
     const dto = versDtoParametresAtelier(ligneFactice());
     expect(dto.facturation.piecesClientAutorisees).toBe(false);
@@ -126,6 +144,28 @@ describe('versColonnesMiseAJour', () => {
       controleQualite: 'toujours',
       expertiseAlerteMois: 4,
     });
+  });
+
+  it('traduit reception.plafondAvoirReceptionnaireCentimes (RF-117) vers sa colonne camelCase', () => {
+    const colonnes = versColonnesMiseAJour({
+      reception: { plafondAvoirReceptionnaireCentimes: 500000 },
+    });
+    expect(colonnes).toEqual({ plafondAvoirReceptionnaireCentimes: 500000 });
+  });
+
+  it('reception.plafondAvoirReceptionnaireCentimes = null (explicite) écrit NULL, pas omis', () => {
+    const colonnes = versColonnesMiseAJour({
+      reception: { plafondAvoirReceptionnaireCentimes: null },
+    }) as Record<string, unknown>;
+    expect('plafondAvoirReceptionnaireCentimes' in colonnes).toBe(true);
+    expect(colonnes.plafondAvoirReceptionnaireCentimes).toBeNull();
+  });
+
+  it('reception.plafondAvoirReceptionnaireCentimes omis : colonne absente (jamais écrasée)', () => {
+    const colonnes = versColonnesMiseAJour({
+      reception: { kmEntreeObligatoire: true },
+    }) as Record<string, unknown>;
+    expect('plafondAvoirReceptionnaireCentimes' in colonnes).toBe(false);
   });
 
   it("n'écrit jamais piecesClientAutorisees ni seuilDemontageCentimes (aucune colonne)", () => {

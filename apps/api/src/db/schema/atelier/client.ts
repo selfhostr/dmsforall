@@ -88,6 +88,13 @@ export const clientAdresse = pgTable(
     clientId: uuid('client_id').notNull(),
     type: typeAdresseEnum('type').notNull(),
     rue: text('rue'),
+    /**
+     * Numéro de rue séparé (migration 0014), requis pour le bloc débiteur du QR-facture
+     * (RF-60) mais NULLABLE à dessein — case postale/lieu-dit/hameau n'en ont pas. Aucune
+     * reprise automatique depuis `rue` pour les adresses existantes : voir 0014 en tête de
+     * fichier.
+     */
+    numero: text('numero'),
     complement: text('complement'),
     npa: text('npa'),
     localite: text('localite'),

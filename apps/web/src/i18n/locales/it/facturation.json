@@ -1,0 +1,306 @@
+{
+  "titre": "Fatturazione",
+  "document": {
+    "type": {
+      "devis": "Preventivo",
+      "bonCommande": "Ordine di acquisto",
+      "facture": "Fattura",
+      "factureAcompte": "Fattura d'acconto",
+      "avoir": "Nota di credito",
+      "bulletinPaiement": "Polizza di versamento"
+    },
+    "etat": {
+      "brouillon": "Bozza",
+      "emis": "Emessa",
+      "annuleParAvoir": "Annullata da nota di credito"
+    }
+  },
+  "reglement": {
+    "statut": {
+      "nonRegle": "Non pagata",
+      "partiel": "Pagata parzialmente",
+      "regle": "Pagata",
+      "tropPercu": "Eccedenza incassata",
+      "irrecouvrable": "Inesigibile"
+    }
+  },
+  "retard": {
+    "premierNiveau": "in ritardo",
+    "relanceAvancee": "in ritardo — {niveau}° sollecito",
+    "relanceLe": "Sollecito inviato il {date}"
+  },
+  "recapTva": {
+    "titre": "Riepilogo IVA",
+    "colonnes": {
+      "taux": "Aliquota",
+      "base": "Base imponibile",
+      "tva": "IVA"
+    },
+    "totalGeneral": "Totale IVA incl."
+  },
+  "ligneDepuisOrGenerique": "dall'ordine di riparazione",
+  "verrouille": {
+    "message": "Questa fattura è emessa e non può più essere modificata.",
+    "corriger": "Correggere con una nota di credito →"
+  },
+  "paiementVerrouille": {
+    "message": "Questo pagamento è registrato e non può più essere modificato.",
+    "corriger": "Registrare un pagamento correttivo →"
+  },
+  "avanceClient": {
+    "message": "Questo incasso supera il saldo di {montant} — l'eccedenza sarà registrata come acconto cliente, da imputare in seguito.",
+    "aucuneFactureOuverte": "Questo incasso sarà registrato come acconto cliente."
+  },
+  "motifsAvoir": {
+    "erreurAdresse": "Errore d'indirizzo",
+    "erreurMontant": "Errore d'importo",
+    "erreurDestinataire": "Errore di destinatario",
+    "erreurTaux": "Errore di aliquota",
+    "prestationAnnulee": "Prestazione annullata",
+    "gesteCommercial": "Gesto commerciale",
+    "autre": "Altro",
+    "autrePlaceholder": "Precisare il motivo",
+    "champ": "Motivo",
+    "champObligatoire": "Il motivo è obbligatorio",
+    "autreTexteObligatoire": "Un motivo «Altro» richiede un testo libero"
+  },
+  "moyensPaiement": {
+    "especes": "Contanti",
+    "carte": "Carta",
+    "virement": "Bonifico",
+    "qr": "Fattura QR",
+    "twint": "TWINT",
+    "compensation": "Compensazione",
+    "leasing": "Leasing"
+  },
+  "champs": {
+    "destinataire": "Destinatario",
+    "rue": "Via",
+    "numero": "N.",
+    "npa": "NPA",
+    "localite": "Località",
+    "pays": "Paese",
+    "adresseIncompleteEmission": "Indirizzo incompleto — la polizza sarà emessa senza destinatario precompilato.",
+    "adresseIncompleteEmis": "Indirizzo incompleto — la polizza è stata emessa senza destinatario precompilato.",
+    "completerFiche": "Completare la scheda →",
+    "remiseGlobale": {
+      "titre": "Sconto globale",
+      "libelle": "Descrizione",
+      "libellePlaceholder": "Es. Sconto fedeltà",
+      "montant": "Importo",
+      "pourcentage": "Percentuale",
+      "resultat": "{libelle} {taux} : −{montant}"
+    }
+  },
+  "facturerOr": {
+    "titre": "Fatturare l'ordine di riparazione",
+    "retour": "Torna all'ordine",
+    "refusBloquant": {
+      "titre": "{count, plural, one {# riga impedisce la fatturazione} other {# righe impediscono la fatturazione}}",
+      "resoudre": "Risolvere →"
+    },
+    "demontage": {
+      "message": "È stato eseguito uno smontaggio per un preventivo rifiutato — fatturabile: {montant} IVA incl.",
+      "ajouter": "Aggiungere questa riga alla fattura del cliente"
+    },
+    "groupe": {
+      "titre": "Gruppo pagante «{payeur}»",
+      "facturerMaintenant": "Fatturare ora",
+      "sousTotal": "Subtotale",
+      "motifReport": "Motivo del rinvio (facoltativo)",
+      "motifReportPlaceholder": "Es. pratica sinistro in attesa di approvazione"
+    },
+    "ligneOfferte": "offerto ({raison})",
+    "lignesRefusees": {
+      "message": "{count, plural, one {# riga rifiutata dal cliente non sarà fatturata} other {# righe rifiutate dal cliente non saranno fatturate}} — rinviata/e nel seguito del veicolo.",
+      "voir": "Vedere i lavori rinviati →"
+    },
+    "consigne": {
+      "message": "Un deposito cauzionale di {montant} IVA incl. sarà fatturato ora. Al ritorno del pezzo vecchio, viene rimborsato con una nota di credito parziale — non aspettando il ritorno."
+    },
+    "action": {
+      "unSingulier": "Creare 1 fattura ({payeur}) — {montant} IVA incl.",
+      "plusieurs": "Creare {count} fatture — {montant} IVA incl. in totale",
+      "enCours": "Creazione in corso…"
+    },
+    "vide": {
+      "titre": "Nessuna riga fatturabile su questo ordine",
+      "description": "Tutte le righe di questo ordine sono state rifiutate o annullate."
+    },
+    "erreur": {
+      "titre": "Impossibile creare le fatture"
+    },
+    "chargement": "Caricamento…"
+  },
+  "fiche": {
+    "issueDeOr": "proveniente da un ordine di riparazione →",
+    "emiseLe": "emessa il {date}",
+    "destinataire": {
+      "titre": "Destinatario"
+    },
+    "lignes": {
+      "titre": "Righe",
+      "colonnes": {
+        "designation": "Descrizione",
+        "quantite": "Qta",
+        "prixUnitaire": "PU IVA incl.",
+        "montant": "Importo IVA incl.",
+        "tva": "IVA"
+      },
+      "ajouterDemontage": "Aggiungere la riga di smontaggio proposta",
+      "retirer": "Rimuovere",
+      "vide": "Nessuna riga su questo documento."
+    },
+    "documentsLies": {
+      "titre": "Documenti collegati",
+      "or": "Ordine di riparazione collegato →",
+      "facture": "Fattura d'origine →",
+      "avoir": "Nota di credito collegata →",
+      "vide": "Nessun documento collegato."
+    },
+    "journal": {
+      "titre": "Registro"
+    },
+    "totalTtc": "Totale IVA incl.",
+    "bulletin": {
+      "payableA": "Pagabile a",
+      "payablePar": "Pagabile da",
+      "iban": "IBAN",
+      "reference": "Riferimento",
+      "sansReference": "Senza riferimento"
+    },
+    "actions": {
+      "emettre": "Emettere",
+      "encaisser": "Incassare",
+      "autresActions": "Altre azioni",
+      "menu": {
+        "imprimer": "Stampare / scaricare il PDF",
+        "envoyer": "Inviare per e-mail",
+        "dupliquer": "Duplicare (ristampa)",
+        "corriger": "Correggere questa fattura",
+        "creerAvoir": "Creare una nota di credito",
+        "journal": "Vedere il registro"
+      }
+    },
+    "dialogueEmission": {
+      "titre": "Emettere la fattura?",
+      "titreAvoir": "Emettere la nota di credito?",
+      "resume": "Fattura per {destinataire} — {montant} IVA incl.",
+      "resumeAvoir": "Nota di credito sulla fattura {numero} — {montant} IVA incl.",
+      "avertissement": "Una volta emessa, questa fattura non potrà più essere modificata — solo una correzione tramite nota di credito sarà possibile in seguito.",
+      "avertissementAvoir": "Riduce la fattura {numero} e non potrà essere annullata una volta emessa.",
+      "confirmer": "Emettere",
+      "enCours": "Emissione…"
+    },
+    "refusEmission": {
+      "blocCreancierIncomplet": "Impossibile emettere — le coordinate bancarie dell'officina sono incomplete.",
+      "completerParametres": "Completare nei parametri →"
+    },
+    "annuleeParAvoir": {
+      "message": "Questa fattura è stata annullata da una nota di credito. Vedere il documento collegato qui accanto."
+    },
+    "correction": {
+      "titre": "Correggere la fattura {numero}",
+      "explication": "Una fattura emessa è bloccata: non è possibile modificarla direttamente. DFA creerà una nota di credito che annulla questa fattura, poi una nuova fattura con la correzione. Entrambe mantengono il proprio numero nella serie — nulla scompare, nulla viene rinumerato.",
+      "motif": "Motivo della correzione",
+      "adresse": {
+        "rue": "Via e numero",
+        "npa": "NPA",
+        "localite": "Località"
+      },
+      "motifMontantTaux": "Le correzioni di importo o di aliquota si effettuano tramite la schermata Nota di credito: non sono gestite qui.",
+      "corrigerFiche": "Correggere anche la scheda cliente con questo indirizzo",
+      "confirmer": "Correggere la fattura",
+      "enCours": "Correzione in corso…",
+      "plafondDepasse": "Sottoporre per approvazione",
+      "succes": "Fattura {ancien} corretta → nuova fattura {nouveau}",
+      "voirAvoir": "Vedere la nota di credito →"
+    },
+    "erreur": {
+      "titre": "Impossibile caricare questa fattura"
+    },
+    "montantIndisponible": "Non comunicato"
+  },
+  "encaissement": {
+    "titre": "Incassare · {destinataire}",
+    "titreGenerique": "Nuovo incasso",
+    "facturesOuvertes": {
+      "titre": "Fatture aperte",
+      "resteDu": "residuo dovuto {montant}",
+      "emiseLe": "emessa il {date}",
+      "totalSelectionne": "Totale selezionato",
+      "vide": "Nessuna fattura aperta"
+    },
+    "lignes": {
+      "titre": "Incassi",
+      "moyen": "Modalità",
+      "montant": "Importo",
+      "ajouter": "Aggiungere una modalità di pagamento",
+      "retirer": "Rimuovere questa modalità di pagamento",
+      "arrondi": "arrotondamento {ecart}"
+    },
+    "lignesInvalides": "Ogni modalità di pagamento deve avere un importo superiore a zero.",
+    "resteAEncaisser": "Residuo da incassare",
+    "confirmer": "Registrare l'incasso",
+    "enCours": "Registrazione…",
+    "erreur": {
+      "titre": "Impossibile registrare l'incasso"
+    },
+    "chargement": "Caricamento delle fatture aperte…"
+  },
+  "avoir": {
+    "titre": "Nota di credito sulla fattura {numero} — {destinataire}",
+    "motif": "Motivo",
+    "lignesOrigine": {
+      "titre": "Righe della fattura d'origine",
+      "dejaCreditee": "già accreditata",
+      "toutSelectionner": "Selezionare tutto (nota di credito totale)"
+    },
+    "totalAvoir": "Totale della nota di credito",
+    "motifObligatoire": "Motivo obbligatorio, richiesto all'emissione",
+    "action": {
+      "emettre": "Emettere la nota di credito",
+      "enCours": "Creazione in corso…"
+    },
+    "erreur": {
+      "titre": "Impossibile creare la nota di credito"
+    }
+  },
+  "liste": {
+    "titre": "Fatturazione",
+    "onglets": {
+      "toutes": "Tutte",
+      "nonReglees": "Non pagate",
+      "enRetard": "In ritardo",
+      "aRelancer": "Da sollecitare"
+    },
+    "colonnes": {
+      "numero": "N.",
+      "client": "Cliente",
+      "emiseLe": "Emessa il",
+      "montant": "Importo IVA incl.",
+      "statut": "Stato",
+      "retard": "Ritardo"
+    },
+    "actionEncaisser": "Incassare",
+    "erreur": {
+      "titre": "Impossibile caricare le fatture"
+    },
+    "vide": {
+      "premierUsage": "Nessuna fattura emessa per il momento. Le fatture si creano a partire da un ordine di riparazione terminato.",
+      "voirOr": "Vedere gli ordini di riparazione →",
+      "nonReglees": "Nessuna fattura non pagata — tutto è aggiornato.",
+      "enRetard": "Nessuna fattura in ritardo — tutto è aggiornato.",
+      "aRelancer": "Nessuna fattura da sollecitare al momento.",
+      "recherche": "Nessuna fattura corrisponde a questa ricerca."
+    }
+  },
+  "actions": {
+    "emettre": "Emettere",
+    "creer": "Creare",
+    "enregistrer": "Salvare",
+    "encaisser": "Incassare",
+    "corriger": "Correggere",
+    "modifier": "Modificare"
+  }
+}

@@ -139,9 +139,34 @@ export class VentilationTvaDto {
   readonly montantCentimes!: number;
 }
 
+const DESTINATAIRE_PAYEUR_PROPERTIES = { clientId: { type: 'string' as const, format: 'uuid' }, nomAffiche: { type: 'string' as const } };
+
 export class TotauxPayeurOrDto implements TotauxPayeurOr {
   @ApiProperty({ enum: PAYEURS_LIGNE_OR })
   readonly payeur!: TotauxPayeurOr['payeur'];
+
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description:
+      "Clé de regroupement, DEUXIÈME MOITIÉ (MD-62 : regroupement par `(payeur, payeurClientId)`, jamais " +
+      "`payeur` seul — deux assureurs sur le même OR sont deux groupes distincts). `null` pour `payeur = " +
+      "'client'` (destinataire = l'OR lui-même) et pour `'garage'` (RF-92, fusionné dans le groupe `'client'`, " +
+      "n'apparaît donc jamais ici). Colonne `ligne_or.payeur_client_id` (migration 0017).",
+  })
+  readonly payeurClientId!: TotauxPayeurOr['payeurClientId'];
+
+  @ApiProperty({
+    type: 'object',
+    nullable: true,
+    properties: DESTINATAIRE_PAYEUR_PROPERTIES,
+    description:
+      "Projection minimale du destinataire réel de ce groupe (RF-87), résolu via `common/identite-client/` " +
+      "(RM-01 : le `type` du client fait autorité pour le nom affiché). `null` uniquement pour `payeur = " +
+      "'garage'` (personne, RF-92) — n'apparaît jamais ici, fusionné dans `'client'`.",
+  })
+  readonly destinataire!: TotauxPayeurOr['destinataire'];
 
   @ApiProperty()
   readonly montantHtCentimes!: number;

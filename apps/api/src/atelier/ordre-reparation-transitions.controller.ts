@@ -1,6 +1,8 @@
-import { Controller, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { Controller, Headers, HttpCode, HttpStatus, Param, Post, Res, UseGuards } from '@nestjs/common';
+import { ApiCookieAuth, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import {
+  EN_TETE_IDEMPOTENCE,
   schemaActionAnnuler,
   schemaActionCloturer,
   schemaActionDemarrer,
@@ -12,6 +14,7 @@ import {
   schemaActionRouvrir,
   schemaActionTerminer,
   schemaActionValiderControle,
+  schemaFacturationOrdreReparation,
   schemaIdentifiant,
   type EntreeActionAnnuler,
   type EntreeActionReceptionner,
@@ -21,6 +24,7 @@ import {
   type EntreeActionRouvrir,
   type EntreeActionTerminer,
   type EntreeActionValiderControle,
+  type EntreeFacturationOrdreReparation,
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
@@ -29,16 +33,23 @@ import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 
-import { EnveloppeOrDto, ReponseOrdreReparationDto } from './dto';
+import { EnveloppeOrDto, ReponseFacturationOrdreReparationDto, ReponseOrdreReparationDto } from './dto';
+import { ServiceFacturationOr } from './service-facturation-or';
 import { ServiceTransitions } from './service-transitions';
 
 const EnveloppeOrdreReparationDto = EnveloppeOrDto(ReponseOrdreReparationDto, 'OrdreReparationTransition');
+const EnveloppeFacturationOrDto = EnveloppeOrDto(ReponseFacturationOrdreReparationDto, 'FacturationOr');
 
 /**
  * Les 11 actions de transition de l'OR (§7.7, §5.1) : chacune porte son CORPS propre, son DROIT
  * propre et ses codes d'erreur propres — DÉCISION STRUCTURANTE du contrat, jamais un
  * `PATCH {"statut": ...}` générique (voir `packages/shared/src/contrats/atelier/ordre-reparation.ts`).
  * Toutes rendent le document OR COMPLET (§7.7), avec l'`ETag` de sa nouvelle version.
+ *
+ * `POST .../facturer` (`RF-81`) est un DOUZIÈME geste, posé ici plutôt que dans un contrôleur
+ * dédié : même racine `ordres-reparation`, mais forme de réponse et statut HTTP différents (201,
+ * `Idempotency-Key` obligatoire — création de document, pas transition de statut pure) — voir
+ * `service-facturation-or.ts` pour la logique.
  */
 @ApiTags('Ordres de réparation — transitions')
 @ApiCookieAuth()
@@ -47,6 +58,7 @@ const EnveloppeOrdreReparationDto = EnveloppeOrDto(ReponseOrdreReparationDto, 'O
 export class OrdreReparationTransitionsController {
   constructor(
     private readonly transitions: ServiceTransitions,
+    private readonly facturation: ServiceFacturationOr,
     private readonly contexte: ServiceContexteRequete,
   ) {}
 
@@ -295,5 +307,45 @@ export class OrdreReparationTransitionsController {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
     return this.transitions.annuler(ctx, principal, orId, entree);
+  }
+
+  @Post(':orId/facturer')
+  @HttpCode(HttpStatus.CREATED)
+  @ExigerDroit('facturation.document.creer')
+  @ApiOperation({
+    summary: "RF-81 : transforme les lignes `realisee` d'un OR `termine` en brouillon(s) de facture, un par groupe payeur choisi.",
+    description:
+      "Sélection par GROUPE PAYEUR `(payeur, payeurClientId)` (RF-87, MD-62), jamais ligne par ligne. Rejouable tant que l'OR reste " +
+      "`termine` et qu'il reste un groupe facturable (RF-83/RF-84, facturation partielle assumée) : `ordreReparation.statut` ne passe " +
+      "à `facture` que lorsque cet appel traite le DERNIER groupe encore facturable. Ne crée que des BROUILLONS — l'émission reste " +
+      "`POST /documents-vente/{id}/emettre`.",
+  })
+  @ApiParam({ name: 'orId', format: 'uuid' })
+  @ApiHeader({ name: EN_TETE_IDEMPOTENCE, required: true, description: 'uuid v4 — porte sur CET appel (ce sous-ensemble de groupes, ce corps exact), pas sur l’historique de facturation de l’OR.' })
+  @ApiResponse({ status: 201, type: EnveloppeFacturationOrDto })
+  @ApiReponseProbleme(400, 'Corps invalide (groupe dupliqué, payeurClientId incohérent, Idempotency-Key manquante/mal formée).')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  @ApiReponseProbleme(404, "Ordre de réparation, client destinataire ou tiers payeur introuvable pour ce tenant.")
+  @ApiReponseProbleme(
+    409,
+    'OR_TRANSITION_INTERDITE, FACTURATION_LIGNES_INDECISES, OR_FACTURATION_AUCUNE_LIGNE, CONFIRMATION_REQUISE ou IDEMPOTENCE_CONFLIT.',
+  )
+  async facturer(
+    @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
+    @CorpsZod(schemaFacturationOrdreReparation, {
+      exemple: { groupes: [{ payeur: 'client' }] },
+    })
+    entree: EntreeFacturationOrdreReparation,
+    @Headers(EN_TETE_IDEMPOTENCE.toLowerCase()) cleIdempotence: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<unknown> {
+    const ctx = this.contexte.contexteTenant();
+    const principal = this.contexte.exigerPrincipal();
+    const resultat = await this.facturation.facturer(ctx, principal, orId, entree, cleIdempotence ?? '');
+
+    res.status(resultat.reponse.statutHttp);
+    if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
+    return resultat.reponse.corps;
   }
 }

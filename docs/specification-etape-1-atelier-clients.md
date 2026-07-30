@@ -1,7 +1,7 @@
 # Spécification métier — Étape 1 : Atelier + Clients
 
 > Périmètre : clients, véhicules, rendez-vous, ordre de réparation (OR), pointage.
-> Public : lead-backend, lead-frontend, expert-database, expert-api, expert-tests.
+> Public : expert-database, expert-api, expert-tests.
 > Statut : spécification métier de référence. Les points marqués **[À VALIDER]** doivent être
 > confirmés avec un garagiste avant implémentation (voir §12).
 > Convention : `RM-xx` = règle métier testable, `CT-xx` = cas de test métier,
@@ -1116,16 +1116,16 @@ ce sont des données personnelles. Durées de conservation à définir, droit d'
 
 ---
 
-## Annexe — Points d'attention pour les leads
+## Annexe — Points d'attention architecturale
 
-**Pour lead-backend**
+**Backend et schéma**
 - L'état `attente_*` de l'OR est **dérivé** des drapeaux portés par les lignes, pas saisi (§5.1, T-21). Décider tôt : colonne calculée ou état matérialisé recalculé à chaque transition.
 - Les valeurs **figées** (taux horaire, prix, conditions, adresse, plaque, détenteur) sont copiées sur l'OR et ses lignes à la création. C'est de la dénormalisation volontaire et non négociable (RM-50, RM-65).
 - Le pointage a besoin d'un **verrou par technicien** pour garantir RM-88 sous concurrence (deux terminaux atelier).
 - Les travaux reportés sont une **projection** de lignes refusées/reportées vers le véhicule : décider s'ils sont matérialisés (recommandé, ils sont éditables et « éteignables ») ou calculés.
 - Prévoir dès l'étape 1 les champs `article_id` (étape 3) et `facture_id` (étape 2) nullables, pour éviter une migration destructive.
 
-**Pour lead-frontend**
+**Frontend et ergonomie**
 - Trois écrans portent 90 % de l'usage : le **planning du jour**, la **fiche OR**, l'**écran atelier du technicien** (grand tactile, gants, pointage en un geste).
 - La recherche par plaque est le point d'entrée n°1 : elle doit être présente sur tous les écrans, tolérante et instantanée.
 - La réception du matin est un rush : la saisie doit être possible dans le désordre, sans champ obligatoire bloquant hors km et véhicule.

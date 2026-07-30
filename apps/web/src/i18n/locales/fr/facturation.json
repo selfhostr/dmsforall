@@ -1,0 +1,306 @@
+{
+  "titre": "Facturation",
+  "document": {
+    "type": {
+      "devis": "Devis",
+      "bonCommande": "Bon de commande",
+      "facture": "Facture",
+      "factureAcompte": "Facture d'acompte",
+      "avoir": "Avoir",
+      "bulletinPaiement": "Bulletin de versement"
+    },
+    "etat": {
+      "brouillon": "Brouillon",
+      "emis": "Émise",
+      "annuleParAvoir": "Annulée par avoir"
+    }
+  },
+  "reglement": {
+    "statut": {
+      "nonRegle": "Non réglée",
+      "partiel": "Partiellement réglée",
+      "regle": "Réglée",
+      "tropPercu": "Trop perçu",
+      "irrecouvrable": "Irrécouvrable"
+    }
+  },
+  "retard": {
+    "premierNiveau": "en retard",
+    "relanceAvancee": "en retard — {niveau}e relance",
+    "relanceLe": "Relance envoyée le {date}"
+  },
+  "recapTva": {
+    "titre": "Récapitulatif TVA",
+    "colonnes": {
+      "taux": "Taux",
+      "base": "Base HT",
+      "tva": "TVA"
+    },
+    "totalGeneral": "Total TTC"
+  },
+  "ligneDepuisOrGenerique": "depuis l'OR",
+  "verrouille": {
+    "message": "Cette facture est émise et ne peut plus être modifiée.",
+    "corriger": "Corriger par un avoir →"
+  },
+  "paiementVerrouille": {
+    "message": "Ce paiement est enregistré et ne peut plus être modifié.",
+    "corriger": "Enregistrer un paiement correctif →"
+  },
+  "avanceClient": {
+    "message": "Cet encaissement dépasse le solde de {montant} — l'excédent sera enregistré comme avance client, à affecter plus tard.",
+    "aucuneFactureOuverte": "Cet encaissement sera enregistré comme avance client."
+  },
+  "motifsAvoir": {
+    "erreurAdresse": "Erreur d'adresse",
+    "erreurMontant": "Erreur de montant",
+    "erreurDestinataire": "Erreur de destinataire",
+    "erreurTaux": "Erreur de taux",
+    "prestationAnnulee": "Prestation annulée",
+    "gesteCommercial": "Geste commercial",
+    "autre": "Autre",
+    "autrePlaceholder": "Précisez le motif",
+    "champ": "Motif",
+    "champObligatoire": "Le motif est obligatoire",
+    "autreTexteObligatoire": "Un motif « Autre » exige un texte libre"
+  },
+  "moyensPaiement": {
+    "especes": "Espèces",
+    "carte": "Carte",
+    "virement": "Virement",
+    "qr": "QR-facture",
+    "twint": "TWINT",
+    "compensation": "Compensation",
+    "leasing": "Leasing"
+  },
+  "champs": {
+    "destinataire": "Destinataire",
+    "rue": "Rue",
+    "numero": "N°",
+    "npa": "NPA",
+    "localite": "Localité",
+    "pays": "Pays",
+    "adresseIncompleteEmission": "Adresse incomplète — le bulletin sera émis sans destinataire pré-rempli.",
+    "adresseIncompleteEmis": "Adresse incomplète — le bulletin a été émis sans destinataire pré-rempli.",
+    "completerFiche": "Compléter la fiche →",
+    "remiseGlobale": {
+      "titre": "Remise globale",
+      "libelle": "Libellé",
+      "libellePlaceholder": "Ex. Remise fidélité",
+      "montant": "Montant",
+      "pourcentage": "Pourcentage",
+      "resultat": "{libelle} {taux} : −{montant}"
+    }
+  },
+  "facturerOr": {
+    "titre": "Facturer l'ordre de réparation",
+    "retour": "Retour à l'OR",
+    "refusBloquant": {
+      "titre": "{count, plural, one {# ligne empêche la facturation} other {# lignes empêchent la facturation}}",
+      "resoudre": "Résoudre →"
+    },
+    "demontage": {
+      "message": "Un démontage a été réalisé pour un devis refusé — facturable : {montant} TTC",
+      "ajouter": "Ajouter cette ligne à la facture client"
+    },
+    "groupe": {
+      "titre": "Groupe payeur « {payeur} »",
+      "facturerMaintenant": "Facturer maintenant",
+      "sousTotal": "Sous-total",
+      "motifReport": "Raison du report (facultatif)",
+      "motifReportPlaceholder": "Ex. dossier sinistre en attente d'accord"
+    },
+    "ligneOfferte": "offert ({raison})",
+    "lignesRefusees": {
+      "message": "{count, plural, one {# ligne refusée par le client ne sera pas facturée} other {# lignes refusées par le client ne seront pas facturées}} — reportée(s) dans le suivi du véhicule.",
+      "voir": "Voir les travaux reportés →"
+    },
+    "consigne": {
+      "message": "Une consigne de {montant} TTC sera facturée maintenant. Au retour de l'ancienne pièce, elle se rembourse par un avoir partiel — pas en attendant le retour."
+    },
+    "action": {
+      "unSingulier": "Créer 1 facture ({payeur}) — {montant} TTC",
+      "plusieurs": "Créer {count} factures — {montant} TTC au total",
+      "enCours": "Création en cours…"
+    },
+    "vide": {
+      "titre": "Aucune ligne facturable sur cet OR",
+      "description": "Toutes les lignes de cet OR ont été refusées ou annulées."
+    },
+    "erreur": {
+      "titre": "Impossible de créer les factures"
+    },
+    "chargement": "Chargement…"
+  },
+  "fiche": {
+    "issueDeOr": "issue d'un ordre de réparation →",
+    "emiseLe": "émise le {date}",
+    "destinataire": {
+      "titre": "Destinataire"
+    },
+    "lignes": {
+      "titre": "Lignes",
+      "colonnes": {
+        "designation": "Désignation",
+        "quantite": "Qté",
+        "prixUnitaire": "PU TTC",
+        "montant": "Montant TTC",
+        "tva": "TVA"
+      },
+      "ajouterDemontage": "Ajouter la ligne de démontage proposée",
+      "retirer": "Retirer",
+      "vide": "Aucune ligne sur ce document."
+    },
+    "documentsLies": {
+      "titre": "Documents liés",
+      "or": "Ordre de réparation lié →",
+      "facture": "Facture d'origine →",
+      "avoir": "Avoir lié →",
+      "vide": "Aucun document lié."
+    },
+    "journal": {
+      "titre": "Journal"
+    },
+    "totalTtc": "Total TTC",
+    "bulletin": {
+      "payableA": "Payable à",
+      "payablePar": "Payable par",
+      "iban": "IBAN",
+      "reference": "Référence",
+      "sansReference": "Sans référence"
+    },
+    "actions": {
+      "emettre": "Émettre",
+      "encaisser": "Encaisser",
+      "autresActions": "Autres actions",
+      "menu": {
+        "imprimer": "Imprimer / télécharger le PDF",
+        "envoyer": "Envoyer par e-mail",
+        "dupliquer": "Dupliquer (réimpression)",
+        "corriger": "Corriger cette facture",
+        "creerAvoir": "Créer un avoir",
+        "journal": "Voir le journal"
+      }
+    },
+    "dialogueEmission": {
+      "titre": "Émettre la facture ?",
+      "titreAvoir": "Émettre l'avoir ?",
+      "resume": "Facture pour {destinataire} — {montant} TTC",
+      "resumeAvoir": "Avoir sur facture {numero} — {montant} TTC",
+      "avertissement": "Une fois émise, cette facture ne pourra plus être modifiée — seule une correction par avoir sera possible ensuite.",
+      "avertissementAvoir": "Il vient en réduction de la facture {numero} et ne pourra pas être annulé une fois émis.",
+      "confirmer": "Émettre",
+      "enCours": "Émission…"
+    },
+    "refusEmission": {
+      "blocCreancierIncomplet": "Impossible d'émettre — les coordonnées bancaires du garage sont incomplètes.",
+      "completerParametres": "Compléter dans les paramètres →"
+    },
+    "annuleeParAvoir": {
+      "message": "Cette facture a été annulée par un avoir. Voir le document lié ci-contre."
+    },
+    "correction": {
+      "titre": "Corriger la facture {numero}",
+      "explication": "Une facture émise est figée : impossible de la modifier directement. DFA va créer un avoir qui annule cette facture, puis une nouvelle facture avec la correction. Les deux gardent leur numéro dans la série — rien ne disparaît, rien ne se renumérote.",
+      "motif": "Motif de la correction",
+      "adresse": {
+        "rue": "Rue et n°",
+        "npa": "NPA",
+        "localite": "Localité"
+      },
+      "motifMontantTaux": "Les corrections de montant ou de taux se font par l'écran Avoir : elles ne sont pas prises en charge ici.",
+      "corrigerFiche": "Corriger aussi la fiche client avec cette adresse",
+      "confirmer": "Corriger la facture",
+      "enCours": "Correction en cours…",
+      "plafondDepasse": "Soumettre pour validation",
+      "succes": "Facture {ancien} corrigée → nouvelle facture {nouveau}",
+      "voirAvoir": "Voir l'avoir →"
+    },
+    "erreur": {
+      "titre": "Impossible de charger cette facture"
+    },
+    "montantIndisponible": "Non communiqué"
+  },
+  "encaissement": {
+    "titre": "Encaisser · {destinataire}",
+    "titreGenerique": "Nouvel encaissement",
+    "facturesOuvertes": {
+      "titre": "Factures ouvertes",
+      "resteDu": "reste dû {montant}",
+      "emiseLe": "émise le {date}",
+      "totalSelectionne": "Total sélectionné",
+      "vide": "Aucune facture ouverte"
+    },
+    "lignes": {
+      "titre": "Encaissements",
+      "moyen": "Moyen",
+      "montant": "Montant",
+      "ajouter": "Ajouter un moyen de paiement",
+      "retirer": "Retirer ce moyen de paiement",
+      "arrondi": "arrondi {ecart}"
+    },
+    "lignesInvalides": "Chaque moyen de paiement doit porter un montant supérieur à zéro.",
+    "resteAEncaisser": "Reste à encaisser",
+    "confirmer": "Enregistrer l'encaissement",
+    "enCours": "Enregistrement…",
+    "erreur": {
+      "titre": "Impossible d'enregistrer l'encaissement"
+    },
+    "chargement": "Chargement des factures ouvertes…"
+  },
+  "avoir": {
+    "titre": "Avoir sur facture {numero} — {destinataire}",
+    "motif": "Motif",
+    "lignesOrigine": {
+      "titre": "Lignes de la facture d'origine",
+      "dejaCreditee": "déjà créditée",
+      "toutSelectionner": "Tout sélectionner (avoir total)"
+    },
+    "totalAvoir": "Total de l'avoir",
+    "motifObligatoire": "Motif obligatoire, requis à l'émission",
+    "action": {
+      "emettre": "Émettre l'avoir",
+      "enCours": "Création en cours…"
+    },
+    "erreur": {
+      "titre": "Impossible de créer l'avoir"
+    }
+  },
+  "liste": {
+    "titre": "Facturation",
+    "onglets": {
+      "toutes": "Toutes",
+      "nonReglees": "Non réglées",
+      "enRetard": "En retard",
+      "aRelancer": "À relancer"
+    },
+    "colonnes": {
+      "numero": "N°",
+      "client": "Client",
+      "emiseLe": "Émise le",
+      "montant": "Montant TTC",
+      "statut": "Statut",
+      "retard": "Retard"
+    },
+    "actionEncaisser": "Encaisser",
+    "erreur": {
+      "titre": "Impossible de charger les factures"
+    },
+    "vide": {
+      "premierUsage": "Aucune facture émise pour l'instant. Les factures se créent depuis un OR terminé.",
+      "voirOr": "Voir les ordres de réparation →",
+      "nonReglees": "Aucune facture non réglée — tout est à jour.",
+      "enRetard": "Aucune facture en retard — tout est à jour.",
+      "aRelancer": "Aucune facture à relancer pour le moment.",
+      "recherche": "Aucune facture ne correspond à cette recherche."
+    }
+  },
+  "actions": {
+    "emettre": "Émettre",
+    "creer": "Créer",
+    "enregistrer": "Enregistrer",
+    "encaisser": "Encaisser",
+    "corriger": "Corriger",
+    "modifier": "Modifier"
+  }
+}

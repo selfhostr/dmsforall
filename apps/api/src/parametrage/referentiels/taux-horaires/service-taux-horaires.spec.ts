@@ -5,9 +5,21 @@ import { ServiceTauxHoraires } from './service-taux-horaires';
 
 const CTX: ContexteTenant = { tenantId: 'tid', utilisateurId: null, requeteId: null };
 
-function ligne(champs: Partial<schema.LigneTauxHoraire> = {}): schema.LigneTauxHoraire {
+// `decoderCurseurTrie` (common/pagination/curseur.ts) exige un `id` au format UUID pour tout
+// curseur v2 — voir parametrage/referentiels/pagination-defaut.spec.ts pour le même constat.
+const ID_TH_1 = '11111111-1111-4111-8111-111111111111';
+const ID_TH_RECENT = '22222222-2222-4222-8222-222222222222';
+const ID_TH_ANCIEN = '33333333-3333-4333-8333-333333333333';
+
+/** Ligne de test, avec `creeLeTexte` — le texte natif Postgres consommé par `pageDepuisLignes()`
+ *  (voir `service-taux-horaires.ts`, `.select({ ...getTableColumns(...), creeLeTexte: sql\`...::text\` })`).
+ *  Absent par défaut : les tests qui ne paginent pas (limite > nombre de lignes) n'en ont pas besoin. */
+function ligne(
+  champs: Partial<schema.LigneTauxHoraire> = {},
+  creeLeTexte?: string,
+): schema.LigneTauxHoraire & { readonly creeLeTexte?: string } {
   return {
-    id: 'th-1',
+    id: ID_TH_1,
     tenantId: 'tid',
     code: 'MEC',
     libelle: 'Mécanique générale',
@@ -17,11 +29,12 @@ function ligne(champs: Partial<schema.LigneTauxHoraire> = {}): schema.LigneTauxH
     creeLe: new Date('2026-01-01T00:00:00.000Z'),
     modifieLe: new Date('2026-01-01T00:00:00.000Z'),
     ...champs,
+    ...(creeLeTexte !== undefined ? { creeLeTexte } : {}),
   } as schema.LigneTauxHoraire;
 }
 
 interface OptionsAcces {
-  readonly lignesListe?: readonly schema.LigneTauxHoraire[];
+  readonly lignesListe?: readonly (schema.LigneTauxHoraire & { readonly creeLeTexte?: string })[];
   readonly ligneInsert?: schema.LigneTauxHoraire | undefined;
   readonly erreurInsert?: unknown;
   readonly ligneUpdate?: schema.LigneTauxHoraire | undefined;
@@ -74,6 +87,34 @@ describe('ServiceTauxHoraires.lister', () => {
     expect(page.donnees).toHaveLength(1);
     expect(page.donnees[0]?.code).toBe('MEC');
     expect(page.limite).toBe(50);
+  });
+
+  it('curseur suivant : conserve la microseconde exacte de la dernière ligne (pas de passage par Date)', async () => {
+    // Deux lignes qui ne diffèrent que par la microseconde (même milliseconde) — motif du
+    // constat mesuré sur `GET /vehicules` (4 lignes de même milliseconde de création). Si le
+    // curseur était construit depuis `getTableColumns().creeLe` (un `Date`, résolution
+    // milliseconde) plutôt que depuis `creeLeTexte`, `.171200` serait tronqué en `.171000`.
+    const recente = ligne({ id: ID_TH_RECENT }, '2026-07-29 13:37:35.171200+00');
+    const ancienne = ligne({ id: ID_TH_ANCIEN }, '2026-07-29 13:37:35.171100+00');
+
+    const service = new ServiceTauxHoraires(accesFactice({ lignesListe: [recente, ancienne] }));
+    const page = await service.lister(CTX, 1, undefined);
+
+    expect(page.donnees.map((d) => d.id)).toEqual([ID_TH_RECENT]);
+    expect(page.curseurSuivant).not.toBeNull();
+    const charge = JSON.parse(Buffer.from(page.curseurSuivant!, 'base64url').toString('utf8')) as {
+      t: string;
+      v: string;
+      i: string;
+    };
+    expect(charge.v).toBe('2026-07-29T13:37:35.171200+00:00');
+    expect(charge.i).toBe(ID_TH_RECENT);
+
+    // La page suivante, pour CE curseur, rend bien la ligne restante — preuve que le seuil
+    // réinjecté en SQL (`curseurDecode.creeLeTexte::timestamptz`) distingue les deux lignes.
+    const serviceSuite = new ServiceTauxHoraires(accesFactice({ lignesListe: [ancienne] }));
+    const pageSuite = await serviceSuite.lister(CTX, 1, page.curseurSuivant!);
+    expect(pageSuite.donnees.map((d) => d.id)).toEqual([ID_TH_ANCIEN]);
   });
 });
 

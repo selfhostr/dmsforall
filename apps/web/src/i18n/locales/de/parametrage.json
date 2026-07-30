@@ -1,0 +1,48 @@
+{
+  "titre": "Rechnungseinstellungen",
+  "creancier": {
+    "titre": "Bankverbindung der Garage",
+    "description": "Diese Angaben erscheinen auf dem QR-Zahlteil jeder ausgestellten Rechnung. Solange sie unvollständig sind, kann keine Rechnung mit einer zahlbaren QR-Rechnung ausgestellt werden.",
+    "nonConfigure": "Diese Angaben wurden noch nie erfasst.",
+    "identite": {
+      "titre": "Identität",
+      "nom": "Name der Garage"
+    },
+    "adresse": {
+      "titre": "Adresse",
+      "rue": "Strasse",
+      "numero": "Hausnummer",
+      "numeroAide": "Leer lassen, wenn keine Hausnummer vorhanden ist (Postfach, Weiler). Achtung: Für die Ausstellung einer Rechnung mit QR-Zahlteil ist sie erforderlich — ohne sie bleibt die Ausstellung blockiert, bis sie ergänzt wird.",
+      "npa": "PLZ",
+      "localite": "Ort",
+      "pays": "Land"
+    },
+    "comptes": {
+      "titre": "Bankkonten",
+      "explication": "Ein QR-IBAN (Konto bei einem für QR-Rechnungen reservierten Institut) verlangt auf jeder Rechnung eine QR-Referenz. Ein gewöhnlicher IBAN akzeptiert nur eine SCOR-Referenz oder keine Referenz. Es handelt sich um zwei unterschiedliche Konten: nie das eine im Feld des anderen erfassen, sonst wird der Zahlteil von der Bank abgelehnt.",
+      "iban": "IBAN (gewöhnliches Konto)",
+      "ibanAide": "Das übliche Kontokorrentkonto der Garage — kein QR-IBAN.",
+      "qrIban": "QR-IBAN",
+      "qrIbanAide": "Für QR-Rechnungen reserviertes Konto (Institut-Identifikation zwischen 30000 und 31999)."
+    },
+    "completude": {
+      "titre": "Für die Ausstellung einer Rechnung mit QR-Zahlteil nötig",
+      "complet": "Alle nötigen Angaben sind erfasst.",
+      "nom": "Der Name der Garage",
+      "adresse": "Eine vollständige Adresse (Strasse, Hausnummer, PLZ, Ort)",
+      "compte": "Ein Bankkonto, IBAN oder QR-IBAN"
+    },
+    "actions": {
+      "enregistrer": "Speichern"
+    },
+    "enregistrementReussi": "Angaben gespeichert.",
+    "erreur": {
+      "titre": "Bankverbindung konnte nicht geladen werden"
+    },
+    "refus": {
+      "titre": "Zugriff nur für Geschäftsleitung und Buchhaltung",
+      "description": "Dieser Bildschirm verwaltet die Bankverbindung der Garage — eine sensible finanzielle Angabe. Er ist nur den Rollen Geschäftsleitung und Buchhaltung zugänglich — nie der Rolle Admin, die zwar Benutzerkonten verwaltet, aber über keinerlei finanzielle Rechte verfügt. Melden Sie sich mit einem Konto der Geschäftsleitung oder der Buchhaltung erneut an, um fortzufahren.",
+      "retourAccueil": "Zurück zur Startseite"
+    }
+  }
+}

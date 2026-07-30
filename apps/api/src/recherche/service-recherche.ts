@@ -5,16 +5,25 @@ import {
   type ParametresRecherche,
   type ReponseRecherche,
   type ResultatRecherche,
+  type StatutDocumentVente,
   type StatutOrdreReparation,
   type TypeClient,
+  type TypeDocumentVente,
   type TypeResultatRecherche,
 } from '@dfa/shared';
 
+// Import en LECTURE SEULE de `MATRICE_DROITS` (propriété `apps/api/src/auth/`, hors périmètre
+// `apps/api/src/recherche/**`) — même patron déjà établi par `common/droits/garde-droit.ts` pour
+// consulter la matrice sans y ajouter d'action. Sert uniquement à RF-116 (voir `chercherDocuments`
+// ci-dessous) : aucune action n'est créée, modifiée ni retirée ici.
+import { MATRICE_DROITS } from '../auth/matrice-droits';
+import { ServiceContexteRequete } from '../common/contexte';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
   anneeDepuisDate,
   designationVehicule,
   etatAfficheOrdreReparation,
+  formaterDateJour,
   motifFragment,
   nomAfficheClient,
 } from './utilitaires-recherche';
@@ -22,11 +31,11 @@ import {
 /**
  * `GET /recherche` — §7.5 du contrat d'API (D-08).
  *
- * Trois recherches indépendantes (véhicules, clients, ordres de réparation), exécutées dans la
- * MÊME transaction `enTenant` (donc sur la même connexion : `Promise.all` ne les parallélise pas
- * réellement — `pg` les met en pipeline sur la connexion et les résout dans l'ordre — mais ne nuit
- * pas non plus, et garde le code lisible). Chaque recherche rescope explicitement sur `tenant_id`
- * en plus du RLS posé par `enTenant()` (le RLS est le filet, jamais le mécanisme).
+ * Quatre recherches indépendantes (véhicules, clients, ordres de réparation, documents de vente),
+ * exécutées dans la MÊME transaction `enTenant` (donc sur la même connexion : `Promise.all` ne les
+ * parallélise pas réellement — `pg` les met en pipeline sur la connexion et les résout dans l'ordre
+ * — mais ne nuit pas non plus, et garde le code lisible). Chaque recherche rescope explicitement
+ * sur `tenant_id` en plus du RLS posé par `enTenant()` (le RLS est le filet, jamais le mécanisme).
  *
  * PÉRIMÈTRE DÉLIBÉRÉMENT RESTREINT par rapport à §7.5 / RM-112, signalé plutôt que deviné :
  *   - la recherche par TÉLÉPHONE (mentionnée par RM-112) N'EST PAS implémentée ici. Elle est
@@ -42,14 +51,56 @@ import {
  *     fragment d'adresse e-mail n'a pas de sens métier au comptoir (contrairement à un fragment de
  *     plaque ou de nom).
  *
- * INDEX MANQUANT SIGNALÉ (à créer par expert-database, pas ici — `src/db/` n'est pas mon
- * périmètre) : `ordre_reparation.numero` n'a AUCUN index d'expression trigram. La recherche par
- * fragment de numéro d'OR (ci-dessous, `chercherOrdres`) force donc un scan complet des OR du
- * tenant. Acceptable au lot 1 (quelques milliers d'OR par tenant, largement sous le seuil où ça se
- * sent), mais à corriger avant que le volume ne grossisse — le motif exact serait
- * `create index ordre_reparation_numero_recherche_idx on ordre_reparation using gin
- * (tenant_id, public.normaliser_recherche(numero) gin_trgm_ops)`, même famille que les trois index
- * de plaque/VIN/nom déjà posés par 0006/0007.
+ * INDEX SUR `ordre_reparation.numero` — RÉSOLU (migration 0013) : GIN trigram sur
+ * `(tenant_id, normaliser_recherche(numero))`, même famille que plaque/VIN/nom (0006/0007). Vérifié
+ * de nouveau ici (`chercherOrdres` matche exactement l'expression indexée), et re-confirmé en
+ * exécution le 30.07.2026 : `GET /recherche?q=2026-2&types=ordre_reparation` sur la base semée
+ * renvoie l'OR attendu.
+ *
+ * DOCUMENTS DE VENTE (devis/bon de commande/facture/avoir, numérotation `AAAA-NNNNN`, étape 2) —
+ * cherchables par `numero` depuis le 30.07.2026 (`chercherDocuments` ci-dessous), sur le MÊME
+ * mécanisme de normalisation que les trois autres natures (`public.normaliser_recherche()` — PAS la
+ * colonne générée `numero_normalise` de `document_vente`, qui normalise différemment : voir la
+ * mesure ci-dessous). Deux points réglés en le construisant, chacun documenté au plus près du code :
+ *
+ *   1. CONTRAT GELÉ — `TypeResultatRecherche` (`packages/shared/src/contrats/atelier/enums.ts:520`)
+ *      porte désormais `'document_vente'` (posé par l'agent propriétaire de `packages/shared/`, pas
+ *      ici). Une seule déclaration de la constante dans le dépôt, vérifiée par l'agent qui l'a posée.
+ *
+ *   2. INDEX — TOUJOURS MANQUANT au 30.07.2026, signalé et relayé à l'agent propriétaire de
+ *      `apps/api/src/db/`, PAS créé ici (`db/` n'est pas mon périmètre). AUCUN index n'exploite
+ *      `normaliser_recherche(numero)` sur `document_vente` : le seul index existant,
+ *      `document_vente_numero_recherche_idx`, est un btree sur la colonne générée `numero_normalise`
+ *      (`upper(regexp_replace(numero, '[^0-9A-Za-z]', '', 'g'))`) — une normalisation DIFFÉRENTE de
+ *      `normaliser_recherche()` (celle de tout le reste de ce moteur de recherche). Réutiliser
+ *      `numero_normalise` aurait recréé exactement l'incohérence à éviter (deux normalisations pour
+ *      une même saisie, `2026-2` ne trouvant pas la même chose selon la nature de résultat) — donc
+ *      PAS réutilisé, `normaliser_recherche()` retenu par cohérence, au prix d'un index à poser.
+ *      Mesuré le 30.07.2026, volume synthétique 91 254 lignes (5 ans × 50 documents/jour, même
+ *      ordre de grandeur que le banc de 0013), transaction annulée (`rollback`) sur `dfa_dev` :
+ *        - `numero_normalise LIKE '%...%'` (mécanisme `document_vente` existant, incohérent avec le
+ *          reste, PAS RETENU) : Bitmap Heap Scan, 15.5 ms — le btree existant ne sert de toute façon
+ *          pas un `LIKE '%fragment%'`, le plan retombe sur `document_vente_client_idx` puis filtre
+ *          en tas.
+ *        - `normaliser_recherche(numero) LIKE normaliser_recherche('%2026-2%')` (mécanisme RETENU
+ *          ci-dessous, sans index dédié aujourd'hui) : 229 ms.
+ *        - `normaliser_recherche(numero) = normaliser_recherche('2026-00002')` (numéro complet, sans
+ *          index dédié) : 195 ms.
+ *        - MÊME requête fragment, avec un index
+ *          `create index document_vente_numero_recherche_trgm_idx on document_vente
+ *          using gin (tenant_id, normaliser_recherche(numero) gin_trgm_ops)` posé DANS LA MÊME
+ *          transaction annulée (donc jamais committé) : Bitmap Index Scan, 2.2 ms fragment / 2.1 ms
+ *          exact. Même famille exacte que `ordre_reparation_numero_recherche_idx` (0013).
+ *      CONSÉQUENCE ACCEPTÉE EN ATTENDANT : `chercherDocuments` tourne aujourd'hui en Bitmap Heap
+ *      Scan (~230 ms au volume mesuré), pas en Bitmap Index Scan — correct fonctionnellement, lent
+ *      au grand volume. Pas de solution de repli plus rapide sans réintroduire l'incohérence de
+ *      normalisation que la mesure ci-dessus a justement écartée.
+ *
+ * RF-116 (visibilité des montants) : AUCUNE clé monétaire dans `resume` pour `document_vente`, même
+ * posture que les trois autres natures — pas d'arbitrage nécessaire (`ResultatRechercheDto` le
+ * documente déjà). Portillon supplémentaire posé sur `facturation.document.lire`
+ * (`MATRICE_DROITS`, lu ici en lecture seule) : accordé à TOUS les rôles aujourd'hui donc no-op
+ * fonctionnel, posé par cohérence défensive si ce droit venait à se restreindre.
  */
 
 /** Miroir de `vehicules/vehicules.constants.ts::STATUTS_OR_OUVERTS` (module voisin, L1-09, hors
@@ -127,17 +178,6 @@ interface CorrespondanceVehiculeChoisie {
   readonly historique: boolean;
   readonly porteeJusquLe: string | undefined;
   readonly score: number;
-}
-
-function formaterDateJour(valeur: string | Date): string {
-  if (valeur instanceof Date) {
-    // ISO jour seul (pas d'heure) — cohérent avec le format d'entrée d'une colonne `date`.
-    const annee = String(valeur.getFullYear()).padStart(4, '0');
-    const mois = String(valeur.getMonth() + 1).padStart(2, '0');
-    const jour = String(valeur.getDate()).padStart(2, '0');
-    return `${annee}-${mois}-${jour}`;
-  }
-  return valeur.slice(0, 10);
 }
 
 /** Un véhicule ne peut apparaître qu'UNE fois : on garde la correspondance de plus haut score. */
@@ -518,12 +558,91 @@ async function chercherOrdres(
 }
 
 // =================================================================================================
+// Documents de vente — numéro (devis, bon de commande, facture, avoir)
+// =================================================================================================
+
+type LigneDocumentMatchBrute = {
+  readonly id: string;
+  readonly numero: string;
+  readonly type_document: TypeDocumentVente;
+  readonly statut: StatutDocumentVente;
+  /** Figée sur le document lui-même (MD-24) — pas de jointure sur `client` nécessaire, et le nom
+   *  affiché reste celui du moment de l'émission même si le client a changé de raison sociale
+   *  depuis (cohérent avec l'immuabilité documentaire, RF-1→RF-19). */
+  readonly client_designation_figee: string;
+  readonly date_document: string | Date | null;
+  readonly score: number;
+};
+
+/**
+ * Même patron que `chercherOrdres` ci-dessus : normalisation par `public.normaliser_recherche()`
+ * (cohérence du moteur — voir la note de tête de fichier pour la mesure qui a écarté
+ * `numero_normalise`), score par paliers (exact > préfixe > fragment), tenant scopé explicitement
+ * EN PLUS du RLS (`document_vente_isolation_tenant`, migration 0010).
+ *
+ * `d.numero is not null` : filtre défensif, PAS structurellement nécessaire — un brouillon a
+ * `numero is null` (contrainte `document_vente_numero_brouillon_chk`) et
+ * `normaliser_recherche(null)` vaut déjà `null`, qu'aucun `like` ne matche. Explicite plutôt
+ * qu'implicite : un brouillon n'a pas vocation à sortir d'une recherche comptoir par numéro.
+ *
+ * RF-116 : AUCUNE clé monétaire dans `resume` (voir note de tête de fichier) — ni ici, ni dans la
+ * requête SQL elle-même (aucune colonne `*_centimes` sélectionnée).
+ */
+async function chercherDocuments(
+  tx: TransactionDfa,
+  tenantId: string,
+  q: string,
+  motif: string,
+  limiteInterne: number,
+): Promise<readonly ResultatRecherche[]> {
+  const resultat = await tx.execute<LigneDocumentMatchBrute>(sql`
+    select
+      d.id                       as id,
+      d.numero                   as numero,
+      d.type_document            as type_document,
+      d.statut                   as statut,
+      d.client_designation_figee as client_designation_figee,
+      d.date_document            as date_document,
+      case
+        when public.normaliser_recherche(d.numero) = public.normaliser_recherche(${q}) then 1.0
+        when public.normaliser_recherche(d.numero) like public.normaliser_recherche(${q}) || '%' then 0.85
+        else 0.6
+      end                        as score
+      from public.document_vente d
+     where d.tenant_id = ${tenantId}
+       and d.numero is not null
+       and public.normaliser_recherche(d.numero) like public.normaliser_recherche(${motif})
+     order by score desc
+     limit ${limiteInterne}
+  `);
+
+  return resultat.rows.map(
+    (ligne): ResultatRecherche => ({
+      type: 'document_vente',
+      id: ligne.id,
+      score: ligne.score,
+      correspondance: { champ: 'numero', valeur: ligne.numero, historique: false },
+      resume: {
+        numero: ligne.numero,
+        typeDocument: ligne.type_document,
+        statut: ligne.statut,
+        clientNom: ligne.client_designation_figee,
+        ...(ligne.date_document !== null ? { dateDocument: formaterDateJour(ligne.date_document) } : {}),
+      },
+    }),
+  );
+}
+
+// =================================================================================================
 // Service
 // =================================================================================================
 
 @Injectable()
 export class ServiceRecherche {
-  constructor(@Inject(JETON_DB) private readonly acces: AccesBase) {}
+  constructor(
+    @Inject(JETON_DB) private readonly acces: AccesBase,
+    private readonly contexte: ServiceContexteRequete,
+  ) {}
 
   async rechercher(ctx: ContexteTenant, params: ParametresRecherche): Promise<ReponseRecherche> {
     const q = params.q.trim();
@@ -542,8 +661,16 @@ export class ServiceRecherche {
     const limite = params.limite;
     const motif = motifFragment(q);
 
+    // RF-116 : portillon supplémentaire, indépendant de `recherche.executer` (déjà vérifié par
+    // `GardeDroit` au niveau route, pour les QUATRE natures de résultat) — un rôle qui n'a pas
+    // `facturation.document.lire` ne voit AUCUN résultat `document_vente`, pas seulement leurs
+    // montants (qui n'apparaissent de toute façon jamais dans `resume`, voir `chercherDocuments`).
+    // `MATRICE_DROITS` est lue ici, jamais modifiée (`apps/api/src/auth/` hors périmètre).
+    const role = this.contexte.exigerPrincipal().role;
+    const peutVoirDocuments = (MATRICE_DROITS[role] ?? []).includes('facturation.document.lire');
+
     return this.acces.enTenant(ctx, async (tx) => {
-      const [vehicules, clients, ordres] = await Promise.all([
+      const [vehicules, clients, ordres, documents] = await Promise.all([
         typesDemandes.has('vehicule')
           ? chercherVehicules(tx, ctx.tenantId, motif, limite)
           : Promise.resolve<ResultatVehicules>({
@@ -557,6 +684,9 @@ export class ServiceRecherche {
         typesDemandes.has('ordre_reparation')
           ? chercherOrdres(tx, ctx.tenantId, q, motif, limite)
           : Promise.resolve<readonly ResultatRecherche[]>([]),
+        typesDemandes.has('document_vente') && peutVoirDocuments
+          ? chercherDocuments(tx, ctx.tenantId, q, motif, limite)
+          : Promise.resolve<readonly ResultatRecherche[]>([]),
       ]);
 
       // RM-18 : la paire interchangeable ne doit JAMAIS être tronquée par `limite`, y compris
@@ -568,6 +698,7 @@ export class ServiceRecherche {
         ...vehicules.resultats.filter((r) => !vehicules.vehiculeIdsGarantis.has(r.id)),
         ...clients,
         ...ordres,
+        ...documents,
       ].sort((a, b) => b.score - a.score);
 
       const limiteEffective = Math.max(limite, garantis.length);

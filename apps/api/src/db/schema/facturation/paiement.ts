@@ -6,8 +6,13 @@
  * §14, ALTER TABLE), posée après la création de `export_comptable` — non modélisée ici pour
  * éviter une dépendance circulaire entre fichiers de schéma sans bénéfice de typage réel
  * (`drizzle-kit` ne sert que de contrôle de dérive, voir schema/index.ts).
+ *
+ * `imputationPaiement.exportId` → `export_comptable` : même choix, migration 0019. C'est là que
+ * vit désormais la granularité réelle du suivi d'export comptable (MD-91) — voir 0019 pour la
+ * raison : l'écriture comptable naît à l'imputation, pas au paiement.
  */
 
+import type { DeviseFacturation } from '@dfa/shared';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -42,7 +47,9 @@ export const paiement = pgTable(
     moyen: moyenPaiementEnum('moyen').notNull(),
     /** Signé : négatif = remboursement / contre-passation (MD-50). */
     montantCentimes: bigint('montant_centimes', { mode: 'bigint' }).notNull(),
-    devise: char('devise', { length: 3 }).notNull().default('CHF'),
+    /** `paiement_devise_chk` (migration 0010) restreint exactement à CHF/EUR — même ensemble que
+     * `DEVISES_FACTURATION` (`@dfa/shared`), d'où le type littéral dérivé ici. */
+    devise: char('devise', { length: 3 }).notNull().default('CHF').$type<DeviseFacturation>(),
     payeurClientId: uuid('payeur_client_id'),
     payeurLibelle: text('payeur_libelle').notNull(),
 
@@ -90,7 +97,10 @@ export const paiement = pgTable(
 /**
  * Ce que le paiement solde (MD-50). MD-51 : deux invariants agrégés vérifiés par trigger AFTER
  * INSERT (voir la migration), pas exprimables en CHECK — ils portent sur des SOMMES.
- * Append-only : `dfa_app` n'a que SELECT, INSERT.
+ * Append-only par privilège : `dfa_app` a SELECT/INSERT/UPDATE (0019), mais `imputation_
+ * paiement_verrouiller` (trigger BEFORE UPDATE) n'autorise que `exporteLe`/`exportId` à changer
+ * après création — même doctrine que `paiement` (`paiement_verrouiller`). `exporteLe`/`exportId`
+ * (0019, MD-91) : granularité réelle du suivi d'export comptable, voir la migration.
  */
 export const imputationPaiement = pgTable(
   'imputation_paiement',
@@ -103,6 +113,9 @@ export const imputationPaiement = pgTable(
     nature: natureImputationEnum('nature').notNull(),
     imputeLe: timestamp('impute_le', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
     imputeParId: uuid('impute_par_id'),
+
+    exporteLe: timestamp('exporte_le', { withTimezone: true, mode: 'date' }),
+    exportId: uuid('export_id'),
 
     creeLe: colonneCreeLe(),
   },

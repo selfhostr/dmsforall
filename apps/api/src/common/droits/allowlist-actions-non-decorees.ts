@@ -145,6 +145,52 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
       'actions rendez_vous.confirmation.* ci-dessus.',
   },
   {
+    // `POST /documents-vente/{id}/emettre` expose UN SEUL endpoint pour les QUATRE types de document
+    // (`schemaEmissionDocumentVente` ne distingue pas), alors que RF-114 donne des lignes DIFFÉRENTES
+    // pour « Émettre un devis / bon de commande » selon le rôle — `@ExigerDroit` est statique par
+    // route, il ne peut pas choisir entre les trois droits d'émission selon le `typeDocument` réel,
+    // connu seulement APRÈS chargement du document en base. `facturation.document.emettre` reste posé
+    // sur la route (portillon générique, accordé à qui a au moins un des trois droits d'émission).
+    action: 'facturation.document.emettre_devis_bc',
+    categorie: 'verification-conditionnelle-service',
+    justification:
+      "Contrôle réel : ServiceEmissionDocument.verifierDroitEmission() (apps/api/src/facturation/documents/" +
+      'service-emission.ts, ~lignes 237-251), appelée par emettre() juste après chargement du document et AVANT ' +
+      "tout effet de bord (ligne 66, avant recalcul TVA/numérotation). Calcule `action` selon `typeDocument` réel " +
+      "('devis'/'bon_commande' → 'facturation.document.emettre_devis_bc', 'facture' → '..._facture', 'avoir' → " +
+      "'..._avoir'), puis vérifie `MATRICE_DROITS[principal.role].includes(action)` et lève DROIT_INSUFFISANT sinon " +
+      '— même patron que atelier.or.plafond_modifier (ServiceOr.modifier). Le rôle est lu depuis principal.role ' +
+      "(jamais depuis le client). Pas de test dédié à ce jour (hors périmètre de l'agent auth/common-droits qui a " +
+      'posé cette entrée — signalé, pas masqué : à couvrir par des tests d’intégration sur ServiceEmissionDocument).',
+  },
+  {
+    // Même route, même mécanisme que `facturation.document.emettre_devis_bc` ci-dessus — voir sa
+    // justification pour le détail du contrôle réel (même fonction, même appel, seule la valeur de
+    // `typeDocument` change).
+    action: 'facturation.document.emettre_facture',
+    categorie: 'verification-conditionnelle-service',
+    justification:
+      "Même contrôle réel que facturation.document.emettre_devis_bc ci-dessus : ServiceEmissionDocument." +
+      'verifierDroitEmission() (apps/api/src/facturation/documents/service-emission.ts, ~lignes 237-251), branche ' +
+      "`typeDocument === 'facture' → action = 'facturation.document.emettre_facture'`, vérifiée contre " +
+      'MATRICE_DROITS[principal.role] avant tout effet de bord. « Émettre une facture » est ✅ pour receptionnaire, ' +
+      '❌ pour chef_atelier (RF-114 littéral, casse la hiérarchie chef_atelier ⊇ receptionnaire) — précisément le ' +
+      'cas que ce contrôle dynamique protège, un @ExigerDroit statique sur la route ne pourrait pas le distinguer.',
+  },
+  {
+    // Même route, même mécanisme — voir `facturation.document.emettre_devis_bc` ci-dessus.
+    action: 'facturation.document.emettre_avoir',
+    categorie: 'verification-conditionnelle-service',
+    justification:
+      "Même contrôle réel que facturation.document.emettre_devis_bc ci-dessus : ServiceEmissionDocument." +
+      'verifierDroitEmission() (apps/api/src/facturation/documents/service-emission.ts, ~lignes 237-251), branche ' +
+      "`typeDocument === 'avoir' → action = 'facturation.document.emettre_avoir'`, vérifiée contre " +
+      'MATRICE_DROITS[principal.role] avant tout effet de bord. ⚠️ RF-117 (plafond de montant sur l’émission ' +
+      "d'avoir par receptionnaire) NON IMPLÉMENTÉ ici : aucune colonne de paramétrage pour ce plafond n'existe, la " +
+      'vérification reste binaire (a le droit / ne l’a pas), sans notion de montant — dégradé documenté, voir ' +
+      'auth/matrice-droits.ts et auth/matrice-droits.spec.ts pour le détail.',
+  },
+  {
     // `vehicules.module.ts` (commentaire de tête, au-dessus du décorateur `@Module`) est explicite :
     // « ServiceVehiculeCampagne ... n'a, comme clients/, aucun contrôleur qui appelle LEURS
     // méthodes (CRUD) au lot 1 (aucune route POST/PATCH campagnes ... publiée) — déclaré ici quand
@@ -161,18 +207,5 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
       "apps/api/src/vehicules/vehicules.module.ts, juste au-dessus du décorateur @Module. Le service et le provider " +
       "existent, prêts pour un futur contrôleur d'écriture ; la lecture (campagnes ouvertes) passe par GET " +
       '.../contexte-atelier sous le droit vehicule.lire, pas sous cette action.',
-  },
-  {
-    // Même commentaire source que `vehicule.campagne.gerer` ci-dessus (même paragraphe de tête de
-    // `vehicules.module.ts`) : `ServiceVehiculeTravailReporte` est enregistré comme provider, sans
-    // aucun `@Controller` qui appelle ses méthodes d'écriture. La lecture des travaux reportés
-    // passe par la même route `GET .../contexte-atelier` que les campagnes.
-    action: 'vehicule.travail_reporte.gerer',
-    categorie: 'action-inerte-anticipee',
-    justification:
-      'Aucune route HTTP pour ServiceVehiculeTravailReporte au lot 1 — voir le commentaire de tête de ' +
-      'apps/api/src/vehicules/vehicules.module.ts (même paragraphe que vehicule.campagne.gerer, juste au-dessus du ' +
-      "décorateur @Module). La lecture des travaux reportés passe par GET .../contexte-atelier sous vehicule.lire ; " +
-      "l'écriture n'a pas encore de route.",
   },
 ];

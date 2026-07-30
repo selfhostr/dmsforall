@@ -252,6 +252,15 @@ export const ligneOr = pgTable(
     /** Accroche étape 2 (facturation) : sans FK. */
     factureId: uuid('facture_id'),
 
+    /**
+     * `AC-08` (0017) : désigne le tiers payeur (assurance/constructeur/tiers) quand `payeur`
+     * n'est PAS `client`/`garage` — voir `ligne_or_payeur_client_coherent_chk`. Nullable : une
+     * ligne peut naître avec `payeur = 'assurance'` avant que l'assureur exact ne soit connu
+     * (`MD-65`) ; l'obligation de le renseigner avant émission est un contrôle applicatif, pas
+     * une NOT NULL en base (même choix que `tenant_bloc_creancier`, 0014/0016).
+     */
+    payeurClientId: uuid('payeur_client_id'),
+
     ...colonnesHorodatage(),
   },
   (t) => [
@@ -267,6 +276,14 @@ export const ligneOr = pgTable(
       columns: [t.tenantId, t.technicienId],
       foreignColumns: [utilisateur.tenantId, utilisateur.id],
     }).onDelete('restrict'),
+    // Composite avec tenant_id (règle n°1 du projet) : une FK sur client.id seul permettrait de
+    // désigner le client d'un AUTRE tenant. Même forme que ordre_reparation_fk_client/
+    // paiement_fk_payeur.
+    foreignKey({
+      name: 'ligne_or_fk_payeur_client',
+      columns: [t.tenantId, t.payeurClientId],
+      foreignColumns: [client.tenantId, client.id],
+    }).onDelete('restrict'),
     check(
       'ligne_or_montant_coherent_chk',
       sql`${t.montantTtcCentimes} = ${t.montantHtCentimes} + ${t.montantTvaCentimes}`,
@@ -280,9 +297,23 @@ export const ligneOr = pgTable(
       'ligne_or_taux_horaire_requis_chk',
       sql`${t.type} not in ('main_oeuvre_bareme', 'main_oeuvre_temps_reel') or ${t.tauxHoraireCentimes} is not null`,
     ),
+    // AC-08 (0017) : payeur_client_id ne se renseigne que pour un payeur tiers réel — voir
+    // 0017_ligne_or_payeur_client_id.sql §2 pour la justification complète (MD-66 : les lignes
+    // payeur=garage sont facturées à personne ; payeur=client désigne implicitement
+    // ordre_reparation.client_id).
+    check(
+      'ligne_or_payeur_client_coherent_chk',
+      sql`${t.payeurClientId} is null or ${t.payeur} in ('constructeur', 'assurance', 'tiers')`,
+    ),
     index('ligne_or_or_idx').on(t.tenantId, t.ordreReparationId, t.numeroOrdre),
     index('ligne_or_technicien_idx').on(t.tenantId, t.technicienId),
     index('ligne_or_blocage_idx').on(t.tenantId, t.ordreReparationId),
+    // Partiel : sert « toutes les lignes d'un payeur tiers donné », inter-OR (ex. relance d'un
+    // assureur) — même forme que paiement_payeur_idx (0010). Mesuré (0017) : 11.27 ms → 1.59 ms
+    // à 90 000 lignes/tenant.
+    index('ligne_or_payeur_client_idx')
+      .on(t.tenantId, t.payeurClientId)
+      .where(sql`${t.payeurClientId} is not null`),
   ],
 );
 

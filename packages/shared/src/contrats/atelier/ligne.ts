@@ -63,6 +63,25 @@ export interface ReponseLigneOr {
   readonly origine: OrigineLigneOr;
   readonly statut: StatutLigneOr;
   readonly payeur: PayeurLigneOr;
+  /**
+   * Désigne QUI, précisément, quand `payeur !== 'client'` : l'assurance, l'importateur ou le tiers
+   * facturé (`AC-08`, `MD-67`, `RF-87`). `null` pour `payeur = 'client'` (le destinataire est
+   * alors l'OR lui-même, sans ambiguïté) et pour `payeur = 'garage'` (`RF-92` : personne, ses
+   * lignes voyagent avec le groupe `'client'`).
+   *
+   * INFÉRENCE, PAS ENCORE POSÉE EN BASE : `AC-08` documente ce champ (« à poser en étape 1 »,
+   * `docs/modele-documentaire-facturation.md` §4.5) mais la colonne `payeur_client_id` n'existe pas
+   * dans `db/migrations/0008_atelier.sql` — seuls `numero_sinistre` et `numero_accord` (texte
+   * libre) y figurent. Ce champ active le contrat documenté ; SANS la migration qui l'accompagne
+   * (colonne `ligne_or.payeur_client_id uuid null`, FK vers `client`), `POST
+   * /ordres-reparation/{orId}/facturer` (`facturer-or.ts`) n'a AUCUN moyen de savoir à qui adresser
+   * une facture `assurance` / `constructeur` / `tiers` — `MD-62` groupe précisément par
+   * `(payeur, payeurClientId)` : deux assureurs sur le même OR sont deux groupes, donc deux
+   * factures distinctes, jamais fusionnées sous prétexte qu'ils partagent `payeur = 'assurance'`.
+   * Migration et implémentation (`atelier/service-ligne-or.ts`, écran de saisie de ligne) restent
+   * HORS PÉRIMÈTRE de ce fichier — à confier à expert-database / expert-nestjs / expert-react.
+   */
+  readonly payeurClientId: string | null;
   /** Ce qui remonte dans les drapeaux `attentes` de l'OR (A-03). */
   readonly blocage: BlocageLigneOr;
   readonly designation: string;
@@ -152,6 +171,13 @@ export const schemaCreationLigneOr = z.object({
   prixUnitaireCentimes: schemaCentimes.nullish(),
   rabaisPourmille: schemaPourmille.default(0),
   payeur: z.enum(PAYEURS_LIGNE_OR).default('client'),
+  /** Obligatoire (règle SERVEUR, pas zod — même patron que le reste de ce schéma, aucun autre
+   *  champ n'y est croisé avec `payeur` ici) quand `payeur` vaut `'assurance'`, `'constructeur'`
+   *  ou `'tiers'` ; refusé sinon. Voir le commentaire de `ReponseLigneOr.payeurClientId`
+   *  (`AC-08`, `MD-62`, `MD-67`) — PAS de `.refine()` croisé à ce niveau : `schemaCreationLigneOr`
+   *  doit rester un `ZodObject` nu pour que `schemaModificationLigneOr` puisse continuer à
+   *  l'`.omit()`/`.partial()` (une `ZodEffects` issue d'un `.refine()` n'expose plus ces méthodes). */
+  payeurClientId: schemaIdentifiant.nullish(),
   technicienId: schemaIdentifiant.nullish(),
   urgence: z.enum(URGENCES_TRAVAIL).nullish(),
   securite: z.boolean().default(false),

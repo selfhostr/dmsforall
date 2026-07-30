@@ -14,6 +14,7 @@ function ligneBrute(champs: Partial<schema.LigneParametreAtelier> = {}): schema.
     orResetAnnuel: true,
     uniteTemps: 'heures_decimales',
     plafondDefautCentimes: 30000,
+    plafondAvoirReceptionnaireCentimes: null,
     chevauchementPointageAutorise: false,
     pointageObligatoirePourTerminer: false,
     controleQualite: 'jamais',
@@ -94,6 +95,22 @@ describe('ServiceParametresAtelier.modifier', () => {
     );
     const dto = await service.modifier(CTX, { or: { prefixe: 'REP' } });
     expect(dto.or.prefixe).toBe('REP');
+  });
+
+  it('reception.plafondAvoirReceptionnaireCentimes (RF-117) : écrit et rend la ligne mise à jour', async () => {
+    const service = new ServiceParametresAtelier(
+      accesFactice({ ligneUpdate: ligneBrute({ plafondAvoirReceptionnaireCentimes: 500000 }) }),
+    );
+    const dto = await service.modifier(CTX, { reception: { plafondAvoirReceptionnaireCentimes: 500000 } });
+    expect(dto.reception.plafondAvoirReceptionnaireCentimes).toBe(500000);
+  });
+
+  it('reception.plafondAvoirReceptionnaireCentimes : `null` explicite remet « aucun plafond convenu »', async () => {
+    const service = new ServiceParametresAtelier(
+      accesFactice({ ligneUpdate: ligneBrute({ plafondAvoirReceptionnaireCentimes: null }) }),
+    );
+    const dto = await service.modifier(CTX, { reception: { plafondAvoirReceptionnaireCentimes: null } });
+    expect(dto.reception.plafondAvoirReceptionnaireCentimes).toBeNull();
   });
 
   it('domaine inerte (facturation) : 501 FONCTION_NON_DISPONIBLE, AVANT tout accès base', async () => {

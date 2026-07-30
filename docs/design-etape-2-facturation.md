@@ -7,7 +7,7 @@
 > livrées et n'en ajoute que là où la facturation introduit un besoin réellement nouveau (§2, §8).
 >
 > Portée : les cinq écrans demandés — passage OR→facture, facture (édition/émission/verrouillage),
-> encaissement, avoir, liste des factures. Public : expert-react, expert-ui (revue), lead-frontend.
+> encaissement, avoir, liste des factures. Public : expert-react, expert-ui (revue).
 >
 > **Deux décisions de @laupernoe qui structurent tout ce document, non renégociables ici :**
 > 1. **Le prix annoncé est toujours TTC**, y compris en B2B. Le HT n'apparaît que dans le

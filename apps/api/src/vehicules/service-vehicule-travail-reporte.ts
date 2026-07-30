@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
-import type { EntreeModificationTravailReporte, ReponseTravailReporte, RoleUtilisateur } from '@dfa/shared';
+import type { EntreeModificationTravailReporte, ReponseTravailReporte, RoleUtilisateur, UrgenceTravail } from '@dfa/shared';
 import { ROLES_SANS_MONTANT } from '../auth/matrice-droits';
-import { JETON_DB, type AccesBase, type ContexteTenant } from '../db';
+import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import { vehiculeTravailReporte, type LigneVehiculeTravailReporte } from '../db/schema';
 import { ErreurMetier } from '../common/erreurs';
 import type { FiltresTravauxReportes } from './schemas-locales';
-import { chargerLigneVehicule, listerTravauxReportes } from './vehicule-requetes';
+import { chargerLigneVehicule, lireDernierKilometrage, listerTravauxReportes } from './vehicule-requetes';
 
 /**
  * `montantEstimeCentimes` retiré pour les rôles de `ROLES_SANS_MONTANT` (invariant front n°10) —
@@ -31,9 +31,75 @@ export function versReponseTravailReporte(ligne: LigneVehiculeTravailReporte, ro
   return { ...base, montantEstimeCentimes: ligne.montantEstimeCentimes };
 }
 
+/* ------------------------------------------------------------------ */
+/* Port RM-73 — CÔTÉ FOURNISSEUR (`vehicules`), à consommer par `atelier`                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Entrée du port `CreationTravailReporte` (voir plus bas), tel qu'`atelier/service-ligne-or.ts`
+ * (`refuserLignes`, hors périmètre de ce fichier) devra l'appeler pour chaque ligne refusée.
+ *
+ * Champs volontairement MINIMAUX : tout ce que `vehicules` peut déduire lui-même (kilométrage au
+ * constat, date du constat, statut initial `ouvert`) reste calculé ICI, dans
+ * `ServiceVehiculeTravailReporte.creerDepuisRefus` — `atelier` n'a pas à connaître le dernier
+ * relevé kilométrique du véhicule, c'est un détail du domaine `vehicules`.
+ *
+ * AMBIGUÏTÉ RÉSOLUE — `vehicule_travail_reporte.motif_refus` (migrations/0021, `db/schema/atelier/
+ * vehicule.ts`) existe désormais : `text` nullable, gardé par une contrainte `CHECK` qui refuse la
+ * chaîne vide/blanche (`vehicule_travail_reporte_motif_refus_non_vide_chk`). Choix de table
+ * ARBITRÉ, PAS À ROUVRIR : le motif vit sur le travail reporté, pas sur `ligne_or` — c'est LE
+ * travail reporté qu'on consulte au retour du véhicule, souvent après que l'OR d'origine a été
+ * facturé et archivé ; le motif doit vivre là où on le relit. `creerDepuisRefus` PERSISTE
+ * désormais `motifRefus`, normalisé pour ne jamais heurter la contrainte `CHECK` (voir le corps de
+ * la méthode) — `service-ligne-or.ts::refuserLignes` transmet `entree.motif ?? null`.
+ *
+ * DETTE SÉPARÉE, SIGNALÉE, PAS DE MON RESSORT : `vehicule_travail_reporte` n'est auditée par rien
+ * (aucun trigger, absente de l'enum `entite_auditee`) alors que le rôle applicatif peut la
+ * modifier — le motif sera lisible, mais une modification ultérieure ne laissera aucune trace.
+ * Nécessite une migration, hors périmètre de ce fichier.
+ */
+export interface EntreeCreationTravailReporteDepuisRefus {
+  readonly vehiculeId: string;
+  readonly ordreReparationId: string;
+  readonly ligneOrId: string;
+  readonly designation: string;
+  /**
+   * INTERPRÉTATION RETENUE : `urgence` est nullable sur `ReponseLigneOr` (une ligne saisie sans
+   * urgence explicite) mais NOT NULL sur `vehicule_travail_reporte` — faute d'urgence connue,
+   * `creerDepuisRefus` retient `'a_faire'` (ni `'urgent'` ni `'a_surveiller'`, les deux extrêmes de
+   * `URGENCES_TRAVAIL`) plutôt que d'inventer une urgence. À confirmer avec expert-metier.
+   */
+  readonly urgence: UrgenceTravail | null;
+  readonly montantEstimeCentimes: number | null;
+  readonly securite: boolean;
+  readonly motifRefus: string | null;
+}
+
+/**
+ * Port à déclarer par le CONSOMMATEUR (`atelier`), doctrine `atelier.jetons.ts` (« le port est
+ * déclaré par le CONSOMMATEUR, jamais par le fournisseur ») — reproduite ici uniquement parce
+ * qu'`atelier/` est hors périmètre de cet agent. Voir la réponse de tâche pour le câblage exact
+ * attendu côté `atelier` : nom du jeton (`JETON_CREATION_TRAVAIL_REPORTE`), et où
+ * `AtelierModule` doit lier ce jeton à `ServiceVehiculeTravailReporte` (`useExisting`, après avoir
+ * importé `VehiculesModule` — `ServiceVehiculeTravailReporte` est désormais EXPORTÉ par
+ * `vehicules.module.ts` précisément pour cet usage).
+ *
+ * `tx` en premier paramètre, comme `LecturePointage.pointagesOuvertsPourOr` : la création du
+ * travail reporté doit vivre DANS LA MÊME TRANSACTION que le passage de la ligne à `refusee` —
+ * sinon un refus pourrait s'écrire sans que le travail reporté associé ne s'écrive (ou l'inverse).
+ */
+export interface CreationTravailReporte {
+  creerDepuisRefus(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    entree: EntreeCreationTravailReporteDepuisRefus,
+    maintenant: Date,
+  ): Promise<void>;
+}
+
 /** Travaux reportés (RM-73) — MATÉRIALISÉS, éditables, jamais une vue calculée sur `ligne_or`. */
 @Injectable()
-export class ServiceVehiculeTravailReporte {
+export class ServiceVehiculeTravailReporte implements CreationTravailReporte {
   constructor(@Inject(JETON_DB) private readonly acces: AccesBase) {}
 
   async lister(
@@ -102,4 +168,68 @@ export class ServiceVehiculeTravailReporte {
       return versReponseTravailReporte(mise, role);
     });
   }
+
+  /**
+   * Port `CreationTravailReporte` (RM-73) — appelée par `atelier` DANS la transaction qui refuse la
+   * ligne d'origine, jamais dans une transaction séparée (voir le commentaire de l'interface).
+   *
+   * `tx` fourni par l'appelant : PAS de `this.acces.enTenant(...)` ici, à la différence de
+   * `lister`/`modifier` — ouvrir une deuxième transaction romprait l'atomicité avec le refus de
+   * ligne qui déclenche cet appel.
+   *
+   * IDEMPOTENT par construction légère : si un travail reporté `ouvert` existe déjà pour cette
+   * `ligneOrOrigineId` (rejeu d'un appel — `POST .../refuser-lignes` ne porte pas d'Idempotency-Key
+   * côté atelier, hors périmètre de ce fichier), l'insertion est simplement SAUTÉE plutôt que de
+   * dupliquer le travail reporté. Défense en profondeur, pas un substitut à une vraie idempotence
+   * côté atelier si le contrat l'exige un jour.
+   */
+  async creerDepuisRefus(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    entree: EntreeCreationTravailReporteDepuisRefus,
+    maintenant: Date,
+  ): Promise<void> {
+    const existants = await tx
+      .select({ id: vehiculeTravailReporte.id })
+      .from(vehiculeTravailReporte)
+      .where(
+        and(
+          eq(vehiculeTravailReporte.tenantId, ctx.tenantId),
+          eq(vehiculeTravailReporte.ligneOrOrigineId, entree.ligneOrId),
+          eq(vehiculeTravailReporte.statut, 'ouvert'),
+        ),
+      )
+      .limit(1);
+    if (existants[0]) {
+      return;
+    }
+
+    const dernierKm = await lireDernierKilometrage(tx, ctx, entree.vehiculeId);
+
+    await tx.insert(vehiculeTravailReporte).values({
+      tenantId: ctx.tenantId,
+      vehiculeId: entree.vehiculeId,
+      designation: entree.designation,
+      // INTERPRÉTATION RETENUE, voir le commentaire du champ sur `EntreeCreationTravailReporteDepuisRefus.urgence`.
+      urgence: entree.urgence ?? 'a_faire',
+      montantEstimeCentimes: entree.montantEstimeCentimes,
+      kmConstat: dernierKm?.valeurKm ?? null,
+      dateConstat: jourIso(maintenant),
+      ordreReparationOrigineId: entree.ordreReparationId,
+      ligneOrOrigineId: entree.ligneOrId,
+      // NORMALISATION DÉFENSIVE : `vehicule_travail_reporte_motif_refus_non_vide_chk` (migrations/0021)
+      // refuse une chaîne vide ou blanche — une saisie ' ' insérée telle quelle ferait échouer TOUTE
+      // l'action groupée `refuser-lignes` côté atelier pour une raison illisible au comptoir. `schemaMotif`
+      // (côté `atelier`, `EntreeRefusLignes.motif`) trim déjà et impose `min(3)`, donc ce cas ne devrait
+      // jamais survenir en pratique — mais ce port ne fait pas confiance à l'appelant sur un simple
+      // "ne devrait jamais" : la garde est reposée ICI, à la frontière réelle avec la contrainte SQL.
+      motifRefus: entree.motifRefus?.trim() || null,
+      securite: entree.securite,
+      statut: 'ouvert',
+    });
+  }
+}
+
+function jourIso(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }

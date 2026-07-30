@@ -258,17 +258,17 @@ export type IssueAvanceClient = (typeof ISSUES_AVANCE_CLIENT)[number];
 /* ------------------------------------------------------------------ */
 
 /**
- * `cible_export` — extensible. Cibles retenues pour le pilote : **WinBIZ et iReach** (décision de
- * @laupernoe, communiquée pour ce lot). `csv` reste la sortie générique de secours (`RF-101`).
+ * `cible_export` — extensible. Cibles retenues pour le pilote : **WinBIZ** (prioritaire).
+ * `csv` reste la sortie générique de secours (`RF-101`). Les autres cibles (`bexio`, `abacus`,
+ * `banana`) sont **différées** : elles ne sont pas abandonnées, seulement derrière WinBIZ pour
+ * le premier garage, mais restent dans l'enum pour les futurs clients. `ireach` a été retiré du
+ * contrat : il s'agit d'un DMS automobile concurrent (sujet de reprise de données, non une cible
+ * d'export).
  *
- * ÉCART SIGNALÉ : `docs/specification-etape-2-facturation.md` §0.3 et
- * `docs/modele-documentaire-facturation.md` §6 documentent encore **Bexio, WinBIZ, Banana** (+
- * Abacus explicitement hors périmètre étape 2). La consigne reçue pour ce lot remplace Bexio et
- * Banana par iReach. Les deux documents sources n'ont pas été mis à jour dans ce lot — périmètre
- * `docs/`, propriété d'un autre agent — donc l'écart doit être résolu avant que quiconque
- * implémente un adaptateur d'après le texte de la spécification plutôt que d'après cet enum.
+ * L'enum PostgreSQL `cible_export` en migration 0010 contient déjà toutes ces valeurs — ce
+ * contrat TypeScript doit rester aligné avec la base.
  */
-export const CIBLES_EXPORT = ['winbiz', 'ireach', 'csv'] as const;
+export const CIBLES_EXPORT = ['bexio', 'winbiz', 'abacus', 'banana', 'csv'] as const;
 export type CibleExport = (typeof CIBLES_EXPORT)[number];
 
 /**

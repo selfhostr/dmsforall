@@ -6,13 +6,25 @@ import { ServicePrestations } from './service-prestations';
 
 const CTX: ContexteTenant = { tenantId: 'tid', utilisateurId: null, requeteId: null };
 
+// `decoderCurseurTrie` (common/pagination/curseur.ts) exige un `id` au format UUID pour tout
+// curseur v2 — voir parametrage/referentiels/pagination-defaut.spec.ts pour le même constat.
+const ID_PR_1 = '11111111-1111-4111-8111-111111111111';
+const ID_PR_RECENTE = '22222222-2222-4222-8222-222222222222';
+const ID_PR_ANCIENNE = '33333333-3333-4333-8333-333333333333';
+
 function horlogeFigee(): Horloge {
   return { maintenant: () => new Date('2026-07-28T10:00:00.000Z') } as Horloge;
 }
 
-function prestationBrute(champs: Partial<schema.LignePrestation> = {}): schema.LignePrestation {
+/** `creeLeTexte` : texte natif Postgres consommé par `pageDepuisLignes()` (voir
+ *  `service-prestations.ts`, `.select({ ...getTableColumns(...), creeLeTexte: sql\`...::text\` })`).
+ *  Absent par défaut : les tests qui ne paginent pas (limite > nombre de lignes) n'en ont pas besoin. */
+function prestationBrute(
+  champs: Partial<schema.LignePrestation> = {},
+  creeLeTexte?: string,
+): schema.LignePrestation & { readonly creeLeTexte?: string } {
   return {
-    id: 'pr-1',
+    id: ID_PR_1,
     tenantId: 'tid',
     code: 'SRV-A',
     designationFr: 'Service A',
@@ -26,11 +38,12 @@ function prestationBrute(champs: Partial<schema.LignePrestation> = {}): schema.L
     creeLe: new Date('2026-01-01T00:00:00.000Z'),
     modifieLe: new Date('2026-01-01T00:00:00.000Z'),
     ...champs,
+    ...(creeLeTexte !== undefined ? { creeLeTexte } : {}),
   } as schema.LignePrestation;
 }
 
 interface OptionsAcces {
-  readonly lignesPrestation?: readonly schema.LignePrestation[];
+  readonly lignesPrestation?: readonly (schema.LignePrestation & { readonly creeLeTexte?: string })[];
   readonly lignesPrix?: readonly { prestationId: string; prixCentimes: number }[];
   readonly lignePrestationInseree?: schema.LignePrestation;
   readonly erreurInsertPrestation?: unknown;
@@ -100,7 +113,7 @@ function accesFactice(options: OptionsAcces, journal: string[] = []): AccesBase 
 describe('ServicePrestations.lister', () => {
   it('fusionne le prix courant par prestation', async () => {
     const service = new ServicePrestations(
-      accesFactice({ lignesPrestation: [prestationBrute()], lignesPrix: [{ prestationId: 'pr-1', prixCentimes: 19500 }] }),
+      accesFactice({ lignesPrestation: [prestationBrute()], lignesPrix: [{ prestationId: ID_PR_1, prixCentimes: 19500 }] }),
       horlogeFigee(),
     );
     const page = await service.lister(CTX, 50, undefined);
@@ -120,6 +133,40 @@ describe('ServicePrestations.lister', () => {
     const service = new ServicePrestations(accesFactice({ lignesPrestation: [prestationBrute()], lignesPrix: [] }), horlogeFigee());
     const page = await service.lister(CTX, 50, undefined);
     expect(page.donnees[0]?.designation).toEqual({ fr: 'Service A', de: 'Service A', it: 'Service A' });
+  });
+
+  it('curseur suivant : conserve la microseconde exacte de la dernière ligne (pas de passage par Date)', async () => {
+    // Deux lignes qui ne diffèrent que par la microseconde (même milliseconde) — motif du
+    // constat mesuré sur `GET /vehicules` (4 lignes de même milliseconde de création). Si le
+    // curseur était construit depuis `getTableColumns().creeLe` (un `Date`, résolution
+    // milliseconde) plutôt que depuis `creeLeTexte`, `.171200` serait tronqué en `.171000`.
+    const recente = prestationBrute({ id: ID_PR_RECENTE, code: 'SRV-B' }, '2026-07-29 13:37:35.171200+00');
+    const ancienne = prestationBrute({ id: ID_PR_ANCIENNE, code: 'SRV-C' }, '2026-07-29 13:37:35.171100+00');
+
+    const service = new ServicePrestations(
+      accesFactice({ lignesPrestation: [recente, ancienne], lignesPrix: [] }),
+      horlogeFigee(),
+    );
+    const page = await service.lister(CTX, 1, undefined);
+
+    expect(page.donnees.map((d) => d.id)).toEqual([ID_PR_RECENTE]);
+    expect(page.curseurSuivant).not.toBeNull();
+    const charge = JSON.parse(Buffer.from(page.curseurSuivant!, 'base64url').toString('utf8')) as {
+      t: string;
+      v: string;
+      i: string;
+    };
+    expect(charge.v).toBe('2026-07-29T13:37:35.171200+00:00');
+    expect(charge.i).toBe(ID_PR_RECENTE);
+
+    // La page suivante, pour CE curseur, rend bien la ligne restante — preuve que le seuil
+    // réinjecté en SQL (`curseurDecode.creeLeTexte::timestamptz`) distingue les deux lignes.
+    const serviceSuite = new ServicePrestations(
+      accesFactice({ lignesPrestation: [ancienne], lignesPrix: [] }),
+      horlogeFigee(),
+    );
+    const pageSuite = await serviceSuite.lister(CTX, 1, page.curseurSuivant!);
+    expect(pageSuite.donnees.map((d) => d.id)).toEqual([ID_PR_ANCIENNE]);
   });
 });
 

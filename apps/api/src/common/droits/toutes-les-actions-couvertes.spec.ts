@@ -53,7 +53,7 @@ import { MODULE_METADATA } from '@nestjs/common/constants';
 import { AppModule } from '../../app.module';
 import { chargerConfig } from '../../config';
 import { CLE_META_ACTION } from './garde-droit';
-import { DROIT_PAR_CONFIRMATION, type Action } from '../../auth/matrice-droits';
+import { DROIT_PAR_CONFIRMATION, TOUTES_ACTIONS, type Action } from '../../auth/matrice-droits';
 import { ALLOWLIST_ACTIONS_SANS_DECORATEUR, type EntreeAllowlistAction } from './allowlist-actions-non-decorees';
 
 // -----------------------------------------------------------------------------------------------
@@ -150,77 +150,27 @@ const ACTIONS_PAR_CONFIRMATION = new Set<Action>(Object.values(DROIT_PAR_CONFIRM
 const ACTIONS_ALLOWLIST = new Set<Action>(ALLOWLIST_ACTIONS_SANS_DECORATEUR.map((e) => e.action));
 
 /**
- * Énumération exhaustive de l'union `Action`. Un `Record<Action, true>` littéral assigné à ce
- * type échoue à COMPILER (donc à `pnpm typecheck`) si une valeur d'`Action` manque ici (propriété
- * requise absente) OU si une clé en trop y figure (vérification des propriétés en excès sur un
- * littéral d'objet assigné directement à un type annoté) — même principe que `MATRICE_DROITS:
- * Record<RoleUtilisateur, …>` documenté en tête de `matrice-droits.ts` (bloquant B3). C'est ce qui
- * garantit que cette liste reste synchronisée avec le type au fil du temps : on ne peut pas
- * ajouter/renommer/retirer une `Action` sans que ce fichier réclame la même modification.
+ * Énumération exhaustive de l'union `Action` — dérivée DIRECTEMENT de `TOUTES_ACTIONS`
+ * (`auth/matrice-droits.ts`), la même constante qui définit désormais le type `Action` lui-même
+ * (`export type Action = (typeof TOUTES_ACTIONS)[number]`, voir son commentaire de tête).
  *
- * Ce filet de compilation ne suffit PAS à lui seul : la chaîne de transpilation de test (SWC, voir
- * `vitest.config.ts`) transforme le TypeScript sans le type-checker — un `pnpm vitest run` seul ne
- * verrait donc pas une divergence purement typée. C'est pourquoi la 2e section de tests ci-dessous
- * revérifie, À L'EXÉCUTION, que chaque `action` de l'allowlist appartient bien à cette énumération
- * — un test qui, lui, tourne rouge sous `vitest run` seul, sans dépendre de `pnpm typecheck`.
+ * AVANT ce refactor, cette énumération était un `Record<Action, true>` recopié À LA MAIN dans CE
+ * fichier, distinct de la déclaration du type dans `matrice-droits.ts`. La garantie de synchronisation
+ * n'existait qu'à la COMPILATION (`pnpm typecheck` rougissait si les deux divergeaient, excès ou
+ * défaut de propriété sur un littéral assigné à un type annoté) — invisible sous `vitest run` seul :
+ * la chaîne de transpilation de test (SWC, voir `vitest.config.ts`) efface les types avant
+ * exécution, donc une divergence PUREMENT TYPÉE ne pouvait jamais faire rougir ce test. C'est
+ * exactement ce qui s'est produit : 14 actions de facturation ajoutées au type `Action` sont restées
+ * invisibles à ce test structurel — qui prétend pourtant garantir qu'aucune action n'échappe au
+ * contrôle — pendant tout un cycle d'agents, découvertes seulement par un `tsc --noEmit` isolé, pas
+ * par cette suite. En import ant `TOUTES_ACTIONS` au lieu de le recopier, il n'existe plus deux
+ * listes à synchroniser : il y en a une seule, et TOUT ajout/retrait/renommage dans
+ * `matrice-droits.ts` est désormais visible ICI, À L'EXÉCUTION, sous `vitest run` seul — sans
+ * dépendre de `pnpm typecheck`. Le filet de compilation (assignation à `Record<Action, true>`)
+ * disparaît avec lui : il n'a plus de raison d'être, la divergence qu'il détectait est devenue
+ * structurellement impossible.
  */
-const TOUTES_LES_ACTIONS_DE_LUNION: Readonly<Record<Action, true>> = {
-  'socle.tenant.lire': true,
-  'socle.site.lire': true,
-  'parametrage.atelier.lire': true,
-  'parametrage.atelier.modifier': true,
-  'parametrage.referentiel.lire': true,
-  'parametrage.referentiel.modifier': true,
-  'client.lire': true,
-  'client.creer': true,
-  'client.modifier': true,
-  'client.desactiver': true,
-  'client.condition.modifier': true,
-  'client.consentement.enregistrer': true,
-  'client.note.ecrire': true,
-  'vehicule.lire': true,
-  'vehicule.creer': true,
-  'vehicule.modifier': true,
-  'vehicule.archiver': true,
-  'vehicule.plaque.gerer': true,
-  'vehicule.detention.changer': true,
-  'vehicule.detention.corriger': true,
-  'vehicule.kilometrage.saisir': true,
-  'vehicule.kilometrage.corriger_regression': true,
-  'vehicule.expertise.saisir': true,
-  'vehicule.campagne.gerer': true,
-  'vehicule.travail_reporte.gerer': true,
-  'recherche.executer': true,
-  'atelier.or.lire': true,
-  'atelier.or.creer': true,
-  'atelier.or.modifier': true,
-  'atelier.or.plafond_modifier': true,
-  'atelier.or.receptionner': true,
-  'atelier.or.demarrer': true,
-  'atelier.or.passer_en_controle': true,
-  'atelier.or.controler': true,
-  'atelier.or.terminer': true,
-  'atelier.or.rouvrir': true,
-  'atelier.or.restituer': true,
-  'atelier.or.cloturer': true,
-  'atelier.or.annuler': true,
-  'atelier.ligne.creer': true,
-  'atelier.ligne.modifier': true,
-  'atelier.ligne.valider': true,
-  'atelier.ligne.refuser': true,
-  'atelier.ligne.annuler': true,
-  'atelier.ligne.marquer_realisee': true,
-  'atelier.devis.creer': true,
-  'atelier.devis.repondre': true,
-  'atelier.journal.lire': true,
-  'atelier.confirmation.client_bloque': true,
-  'atelier.confirmation.deux_or_ouverts': true,
-  'atelier.confirmation.or_sans_rdv': true,
-  'rendez_vous.confirmation.ressource_chevauchement': true,
-  'rendez_vous.confirmation.hors_ouverture': true,
-  'pret_vehicule.confirmation.indisponible': true,
-};
-const UNIVERS_ACTIONS: readonly Action[] = Object.keys(TOUTES_LES_ACTIONS_DE_LUNION) as Action[];
+const UNIVERS_ACTIONS: readonly Action[] = TOUTES_ACTIONS;
 
 function estCouverte(action: Action): boolean {
   return ACTIONS_EXIGEES_PAR_DECORATEUR.has(action) || ACTIONS_PAR_CONFIRMATION.has(action) || ACTIONS_ALLOWLIST.has(action);
@@ -280,9 +230,7 @@ describe("allowlist-actions-non-decorees.ts — hygiène de la liste (elle ne do
   });
 
   it("chaque entrée référence une action qui existe RÉELLEMENT dans l'union Action (aucune entrée fantôme, aucune action renommée/supprimée laissée derrière)", () => {
-    const fantomes = ALLOWLIST_ACTIONS_SANS_DECORATEUR.filter(
-      (entree) => !Object.prototype.hasOwnProperty.call(TOUTES_LES_ACTIONS_DE_LUNION, entree.action),
-    );
+    const fantomes = ALLOWLIST_ACTIONS_SANS_DECORATEUR.filter((entree) => !UNIVERS_ACTIONS.includes(entree.action));
     if (fantomes.length > 0) {
       const liste = fantomes.map((e) => `'${e.action}'`).join('\n  - ');
       throw new Error(

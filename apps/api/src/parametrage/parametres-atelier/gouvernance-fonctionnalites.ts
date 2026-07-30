@@ -57,8 +57,9 @@ type FonctionnaliteLot1 = keyof typeof FONCTIONNALITES_LOT1;
  *     ACTIF : il gouverne l'affichage du temps sur les LIGNES d'OR (L1-12), indépendant du
  *     pointage. `travaux.controleQualite` reste ACTIF (Δ3).
  *
- * `or.*`, `reception.kmEntreeObligatoire/kmSortieObligatoire/plafondDefautCentimes`,
- * `documents.*`, `vehicule.*` : actifs au lot 1, non gouvernés ici.
+ * `or.*`, `reception.kmEntreeObligatoire/kmSortieObligatoire/plafondDefautCentimes/
+ * plafondAvoirReceptionnaireCentimes` (RF-117, 0018), `documents.*`, `vehicule.*` : actifs au
+ * lot 1, non gouvernés ici.
  */
 const FONCTIONNALITE_PAR_CHAMP: Readonly<Record<string, FonctionnaliteLot1>> = {
   'facturation.multiPayeursAutorise': 'facturation',

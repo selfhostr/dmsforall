@@ -234,6 +234,7 @@ const PARAMETRES_ATELIER_PAR_DEFAUT: Omit<LigneParametreAtelier, 'tenantId' | 'c
   orResetAnnuel: true,
   uniteTemps: 'heures_decimales',
   plafondDefautCentimes: null,
+  plafondAvoirReceptionnaireCentimes: null,
   chevauchementPointageAutorise: false,
   pointageObligatoirePourTerminer: false,
   controleQualite: 'jamais',

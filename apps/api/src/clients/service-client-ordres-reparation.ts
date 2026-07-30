@@ -3,7 +3,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import type { ClientResume, EtatAfficheOrdreReparation, OrdreReparationResume, PageCurseur, VehiculeResume } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant } from '../db';
-import { JETON_DB } from '../db';
+import { enDate, JETON_DB } from '../db';
 import { client } from '../db/schema';
 import { ErreurMetier } from '../common/erreurs';
 
@@ -13,6 +13,8 @@ import {
   construireOrderBy,
   decoderCurseurPourTri,
   encoderCurseurTrie,
+  expressionTriValeur,
+  valeurCurseurDepuisTri,
   type DefinitionTri,
 } from './pagination-triee';
 import type { ParametresListeOrDuClient } from './schemas';
@@ -30,8 +32,8 @@ import type { ParametresListeOrDuClient } from './schemas';
  * réconcilier à l'intégration (L1-16) — voir aussi L1-10 sur ce même risque pour `contexte-atelier`.
  */
 const DEFINITIONS_TRI_OR: Readonly<Record<ParametresListeOrDuClient['tri'], DefinitionTri>> = {
-  'ouvertLe:asc': { expression: sql`o.ouvert_le`, sens: 'asc', nullable: true },
-  'ouvertLe:desc': { expression: sql`o.ouvert_le`, sens: 'desc', nullable: true },
+  'ouvertLe:asc': { expression: sql`o.ouvert_le`, sens: 'asc', nullable: true, temporel: true },
+  'ouvertLe:desc': { expression: sql`o.ouvert_le`, sens: 'desc', nullable: true, temporel: true },
 };
 
 /** Lignes exclues des totaux et de la détection de blocage : annulée n'a jamais eu lieu, refusée n'est pas retenue. */
@@ -43,8 +45,14 @@ type LigneOrDuClientBrute = {
   readonly statut: OrdreReparationResume['statut'];
   readonly type: OrdreReparationResume['type'];
   readonly localisation: OrdreReparationResume['localisation'];
-  readonly ouvertLe: Date | null;
-  readonly restitutionPromiseLe: Date | null;
+  // `Date | string` : SQL brut (`tx.execute`) — mesuré, le pilote `pg` y rend en fait `timestamptz`
+  // en `Date` (pas en chaîne) par défaut ; `enDate()` reste défensif au cas où un chemin
+  // d'exécution différent rendrait un jour une chaîne à la place (voir `enDate()`,
+  // `db/acces-amorcage.service.ts`). Purement des champs d'AFFICHAGE (`versOrdreReparationResume`),
+  // sans rapport avec `triValeur` ci-dessous — qui, lui, DOIT être du texte natif PostgreSQL, voir
+  // sa déclaration.
+  readonly ouvertLe: Date | string | null;
+  readonly restitutionPromiseLe: Date | string | null;
   readonly vehiculeId: string;
   readonly vehiculePlaque: string | null;
   readonly vehiculeCanton: string | null;
@@ -57,7 +65,12 @@ type LigneOrDuClientBrute = {
   readonly aAttenteAccord: boolean;
   readonly aAttentePieces: boolean;
   readonly aAttenteExterne: boolean;
-  readonly triValeur: string | number | Date | null;
+  // `string | number | null`, jamais `Date` : `ouvertLe:asc/desc` est `temporel: true`
+  // (`DEFINITIONS_TRI_OR` ci-dessus), donc `expressionTriValeur()` cast explicitement cette colonne
+  // en `::text` dans le `SELECT` — pour empêcher le pilote de la rendre en `Date` et d'en tronquer
+  // la microseconde avant que la valeur de curseur ne soit construite (voir `pagination-triee.ts`,
+  // `valeurCurseurDepuisTri()`, et `common/pagination/valeur-temporelle.ts`).
+  readonly triValeur: string | number | null;
 }
 
 /** Priorité `accord > pieces > externe` (RM-58), et UNIQUEMENT sur un OR encore actif. */
@@ -93,8 +106,8 @@ function versOrdreReparationResume(
     etatAffiche: calculerEtatAffiche(ligne),
     type: ligne.type,
     localisation: ligne.localisation,
-    ouvertLe: ligne.ouvertLe ? ligne.ouvertLe.toISOString() : null,
-    restitutionPromiseLe: ligne.restitutionPromiseLe ? ligne.restitutionPromiseLe.toISOString() : null,
+    ouvertLe: ligne.ouvertLe ? enDate(ligne.ouvertLe).toISOString() : null,
+    restitutionPromiseLe: ligne.restitutionPromiseLe ? enDate(ligne.restitutionPromiseLe).toISOString() : null,
     vehicule: versVehiculeResume(ligne),
     client: clientResume,
     nombreLignes: ligne.nombreLignes,
@@ -123,7 +136,12 @@ export class ServiceClientOrdresReparation {
       // Une seule requête supplémentaire, exécutée UNE FOIS pour ce client (pas par ligne d'OR) :
       // même doctrine « pas de N+1 » que `ServiceClient.lister`, ici triviale puisque tous les OR
       // de cette page partagent le même client.
-      const extraResultat = await tx.execute<{ localite: string | null; nombreVehicules: number; dernierPassageLe: Date | null }>(sql`
+      const extraResultat = await tx.execute<{
+        localite: string | null;
+        nombreVehicules: number;
+        // `Date | string` : SQL brut — voir `enDate()`.
+        dernierPassageLe: Date | string | null;
+      }>(sql`
         select
           (select ca.localite
              from public.client_adresse ca
@@ -161,7 +179,7 @@ export class ServiceClientOrdresReparation {
           exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'accord' and l.statut::text not in (${sql.join(STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`), sql`, `)})) as "aAttenteAccord",
           exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'pieces' and l.statut::text not in (${sql.join(STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`), sql`, `)})) as "aAttentePieces",
           exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'externe' and l.statut::text not in (${sql.join(STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`), sql`, `)})) as "aAttenteExterne",
-          ${definition.expression} as "triValeur"
+          ${expressionTriValeur(definition)} as "triValeur"
         from public.ordre_reparation o
         join public.vehicule v on v.tenant_id = o.tenant_id and v.id = o.vehicule_id
         left join public.vehicule_plaque p on p.tenant_id = v.tenant_id and p.vehicule_id = v.id and p.au is null
@@ -182,7 +200,7 @@ export class ServiceClientOrdresReparation {
           aUnePageSuivante && derniere
             ? encoderCurseurTrie({
                 tri: params.tri,
-                valeur: derniere.triValeur instanceof Date ? derniere.triValeur.toISOString() : derniere.triValeur,
+                valeur: valeurCurseurDepuisTri(definition, derniere.triValeur),
                 id: derniere.id,
               })
             : null,

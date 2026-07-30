@@ -140,3 +140,43 @@ jobs:
           LOG_NIVEAU: debug
           OPENAPI_EXPOSER_DOCS: 'true'
           VERSION_APP: 0.1.0-ci
+
+  # Réversibilité des migrations : la règle du dépôt (« migrations réversibles, expand/contract,
+  # jamais destructives ») était vérifiée À LA MAIN jusqu'ici — appliquer la montante, dumper le
+  # schéma, appliquer l'inverse, réappliquer la montante, comparer les dumps. Protocole qui a
+  # réellement trouvé quelque chose (un `comment on table` que 0012 ne restaurait pas mot pour mot,
+  # alors que `verifierPostureRls()` au démarrage de l'API lit CE commentaire). scripts/verifier-
+  # reversibilite-migrations.sh l'automatise : CHAQUE migration existante est testée
+  # INDIVIDUELLEMENT (pas un seul cycle « up all → down all → up all », qui désignerait mal le
+  # coupable), dans l'ordre où elle a réellement été appliquée. Voir l'en-tête du script pour
+  # l'arbitrage détaillé (granularité, périmètre historique complet plutôt que diff de branche) et
+  # pour ce que ce garde-fou NE détecte PAS (aucune donnée réelle, aucun verrou de production,
+  # aucun rollback de plusieurs migrations d'affilée).
+  #
+  # AUCUN `services:` Postgres ici : le script démarre et détruit lui-même son propre conteneur
+  # Postgres jetable (jamais `dfa_dev`/`dfa_test`), et route tout `psql`/`pg_dump` via `docker exec`
+  # dedans — donc AUCUN outil client Postgres n'est requis sur le runner, seuls `docker` (natif sur
+  # ubuntu-latest) et `pnpm` le sont.
+  verifier-reversibilite-migrations:
+    name: Réversibilité des migrations (up → down → up, une par une)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      # Pas de `pnpm install` séparé : le script l'exécute lui-même, UNE seule fois pour toute la
+      # vérification (jamais par migration) — voir son en-tête. Le cache pnpm ci-dessus (même clé
+      # que les deux jobs précédents, basée sur pnpm-lock.yaml) s'applique de la même façon.
+      - name: Vérifier la réversibilité de chaque migration
+        run: scripts/verifier-reversibilite-migrations.sh

@@ -50,4 +50,12 @@ describe('BarreLaterale', () => {
     expect(hrefDuLien(/clients/i)).toBe('/clients?site=zurich-nord');
     expect(hrefDuLien(/véhicules/i)).toBe('/vehicules?site=zurich-nord');
   });
+
+  it('expose un lien Facturation vers /factures', () => {
+    // Régression : la facturation (étape 2) n'était atteignable qu'en tapant l'URL à la main, sans
+    // aucun point d'entrée depuis le menu principal.
+    rendre('/');
+
+    expect(hrefDuLien(/facturation/i)).toBe('/factures');
+  });
 });

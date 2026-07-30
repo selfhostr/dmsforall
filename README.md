@@ -65,11 +65,25 @@ pnpm dev               # API :3000 + front :5173
 
 ### Identifiants de démonstration
 
-Après `pnpm db:seed`, se connecter sur `http://localhost:5173` avec :
-- **Email** : `admin@garage-martin.ch`
-- **Mot de passe** : `Demo1234!Garage`
+Après `pnpm db:seed`, se connecter sur `http://localhost:5173` avec **l'un des 6 comptes** ci-dessous (Garage Martin SA). Tous utilisent le mot de passe `Demo1234!Garage`.
 
-Cela crée un garage de démo (Garage Martin SA) avec un administrateur locataire.
+**⚠️ Important** : le compte `admin@` est un **rôle technique** sans aucun droit financier (RF-115). Tout refus d'action financière avec ce compte est **correct, pas un bug**. Utiliser `direction@` pour parcourir la facturation.
+
+| Compte | Rôle | Périmètre |
+|---|---|---|
+| `admin@garage-martin.ch` | admin | Gestion des comptes utilisateurs. **Aucun droit émission de devis/facture ni encaissement.** |
+| `direction@garage-martin.ch` | direction | Tous les droits : facturation, encaissement, remboursement, paramétrage (coordonnées bancaires). |
+| `comptable@garage-martin.ch` | comptable | Encaissement, remboursement, export fiduciaire. Même droits que `direction` sur l'argent. |
+| `receptionniste@garage-martin.ch` | réceptionnaire | Comptoir : émet devis et factures, encaisse les paiements. Pas de remboursement d'avance. |
+| `chef.atelier@garage-martin.ch` | chef d'atelier | Émet des devis/bons de commande. **Ni facture ni avoir, ni encaissement.** (Démontre l'asymétrie des droits.) |
+| `technicien@garage-martin.ch` | technicien | Lecture seule côté montants — le serveur retire les montants de toute réponse pour ce rôle. |
+
+**Ce que le jeu de démo contient** (pour savoir quoi parcourir une fois connecté) :
+- **4 ordres de réparation** à des états variés (neuf, en cours, en contrôle, terminé) sur des véhicules différents.
+- **1 devis émis** (Golf, client Meier) reprenant les deux travaux reportés constatés en atelier.
+- **1 facture brouillon** (Octavia, client Dupont) non finalisée.
+- **1 facture émise et numérotée** (Master, client Transports Rhône) avec son bulletin de versement QR suisse.
+- **1 virement de 150.00 CHF** imputé partiellement sur la facture Master → solde ouvert, facture non soldée.
 
 ### Vérifier que tout tourne
 
@@ -171,6 +185,114 @@ Si `VITE_API_URL` n'est pas résolue, `pnpm dev`/`pnpm --filter @dfa/web build` 
 immédiatement avec un message explicite (garde-fou dans `vite.config.ts`) plutôt que de
 démarrer avec une configuration invalide détectée seulement dans le navigateur.
 
+## Dev sans Node ni pnpm sur l'hôte (tout conteneurisé)
+
+Section distincte du flux ci-dessus. **Le flux normal reste `pnpm install` + `pnpm dev` sur
+l'hôte** (Node 22+ requis) — cette section est pour un poste qui n'a **ni Node ni pnpm** et où
+tout doit passer par Docker, y compris l'installation des dépendances et l'exécution du code.
+Seuls Postgres et Redis (`docker-compose.yml`) sont communs aux deux flux.
+
+Ajoute `docker-compose.dev.yml`, qui **complète** `docker-compose.yml` (jamais ne le remplace) :
+deux services `api`/`web` construits sur l'image officielle `node:22-alpine` (pas de Dockerfile
+dédié), avec le dépôt entier bind-monté et le code source rechargé à chaud. Toutes les commandes
+ci-dessous utilisent donc **systématiquement les deux fichiers** :
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml <commande>
+```
+
+### Séquence de démarrage
+
+```bash
+# 1. Copier le fichier de configuration (identique au flux Node local, à la racine)
+cp .env.example .env
+
+# 2. Démarrer Postgres et Redis
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres redis
+
+# 3. Installer les dépendances DANS un conteneur (peuple des volumes nommés, réutilisés
+#    ensuite par les services api/web — voir docker-compose.dev.yml). Construit aussi
+#    packages/shared (`tsc -b`) : apps/api en a besoin au démarrage (résolution de module vers
+#    packages/shared/dist, jamais vers les sources côté API — contrairement à Vite côté web).
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm api \
+  sh -c "corepack enable && pnpm install && pnpm --filter @dfa/shared build"
+
+# 4. Appliquer les migrations, puis charger les données de démo
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm api \
+  sh -c "corepack enable && pnpm db:migrate"
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm api \
+  sh -c "corepack enable && pnpm db:seed"
+
+# 5. Démarrer l'API (:3000) et le front (:5173) en hot-reload
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d api web
+```
+
+`corepack enable` est répété en tête de **chaque** commande one-off (`run --rm`, jamais dans les
+services `api`/`web` déjà démarrés, où c'est fait une fois au lancement) : chaque `run` part d'un
+conteneur éphémère neuf, et l'activation du shim `pnpm` par corepack ne survit pas d'un conteneur
+à l'autre (elle modifie `/usr/local/bin`, une couche de l'image, jamais un volume). Les deux
+volumes `dfa_dev_pnpm_store`/`dfa_dev_corepack_cache` évitent seulement de retélécharger à
+chaque fois — aucune conséquence fonctionnelle s'ils sont supprimés.
+
+Les 6 comptes de démo (section « Identifiants de démonstration » ci-dessus) sont disponibles sur
+`http://localhost:5173` avec le mot de passe `Demo1234!Garage`. Le mot de passe est identique au flux Node local.
+
+### Commandes courantes en conteneur
+
+| Besoin | Commande |
+|---|---|
+| Logs en direct | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f api web` |
+| Typecheck (tout le monorepo) | `… run --rm api sh -c "corepack enable && pnpm typecheck"` |
+| Lint | `… run --rm api sh -c "corepack enable && pnpm lint"` |
+| Tests (API + web) | `… run --rm api sh -c "corepack enable && pnpm test"` |
+| Un seul fichier de test (API) | `… run --rm api sh -c "corepack enable && pnpm --filter @dfa/api exec vitest run --project unitaire src/auth/cookie.spec.ts"` |
+| Un seul fichier de test (web) | `… run --rm api sh -c "corepack enable && pnpm --filter @dfa/web exec vitest run src/api/client.spec.ts"` |
+| Réinstaller après changement de `pnpm-lock.yaml` | `… run --rm api sh -c "corepack enable && pnpm install"` |
+| Arrêter | `docker compose -f docker-compose.yml -f docker-compose.dev.yml down` |
+| Repartir de zéro (efface aussi node_modules/cache conteneur) | `docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v` |
+
+`pnpm api:openapi` (compile puis exporte, voir piège n°2 ci-dessus) fonctionne à l'identique via
+`… run --rm api sh -c "corepack enable && pnpm api:openapi"` — jamais `tsx` directement dessus,
+même piège qu'en Node local.
+
+### Pourquoi un override plutôt qu'un fichier autonome
+
+`docker-compose.dev.yml` est fait pour être utilisé **avec** `docker-compose.yml`
+(`-f docker-compose.yml -f docker-compose.dev.yml`), jamais seul. Ce choix (documenté en tête du
+fichier) laisse les nouveaux services `api`/`web` rejoindre automatiquement le réseau par défaut
+du projet Compose (nom de dossier du dépôt) sans une seule ligne de configuration réseau — c'est
+la « simplicité qui marche » plutôt qu'un fichier autonome qui aurait dû référencer en dur le nom
+généré de ce réseau.
+
+### `node_modules` : piège spécifique au bind-mount
+
+Le dépôt entier est monté dans le conteneur pour le hot-reload. Sans précaution, un
+`node_modules` installé pour une architecture (ex. macOS/arm64 côté hôte, s'il existait) écrase
+silencieusement celui installé pour arm64/musl **dans** le conteneur — cassant à l'exécution,
+pas à la compilation (voir `@node-rs/argon2`, binaire natif). `docker-compose.dev.yml` règle ça
+avec des volumes nommés montés sur chaque chemin `node_modules` du monorepo (racine,
+`apps/api`, `apps/web`, `packages/shared`), qui masquent ces sous-dossiers du bind-mount et ne
+vivent que dans le conteneur. Un `pnpm install` sur l'hôte (si Node y est installé un jour) reste
+sans effet sur ces volumes — aucun risque de collision.
+
+### Compromis honnêtes
+
+- **Hot-reload perceptiblement rapide, mais pas instantané comme en Node natif** : mesuré en
+  pratique sur ce dépôt, un changement de fichier source (API comme front) est détecté et
+  recompilé/rechargé en **1 à 2 secondes** via le bind-mount macOS (VirtioFS, Docker Desktop
+  moderne) — un peu plus lent qu'en Node local, sans être gênant à l'usage.
+- **`pnpm install` répété est explicite, pas automatique** : les services `api`/`web` ne lancent
+  jamais `pnpm install` eux-mêmes au démarrage (`docker compose … up`) — seule l'étape 3
+  ci-dessus le fait. Après un changement de dépendance (`pnpm-lock.yaml` modifié), il faut
+  relancer cette commande manuellement avant de redémarrer `api`/`web`.
+- **`packages/shared` n'est pas surveillé en continu** : `pnpm --filter @dfa/shared build`
+  (étape 3) compile une fois ; un changement dans `packages/shared/src` exige de relancer ce
+  build (identique au flux Node local — `pnpm dev` à la racine ne surveille que `apps/*`).
+- **`pnpm test:integration` (testcontainers) n'est pas couvert par ce flux** : testcontainers
+  démarre ses propres conteneurs Postgres/Redis en parlant au démon Docker directement — hors
+  périmètre de cette section (exigerait de monter le socket Docker dans le conteneur `api`, une
+  complexité supplémentaire non nécessaire pour le dev quotidien).
+
 ## Conventions essentielles
 
 Lire [CONTRIBUTING.md](CONTRIBUTING.md) entièrement avant de coder. Les règles clés :
@@ -209,7 +331,7 @@ Depuis la racine du dépôt :
 | **`pnpm --filter @dfa/api exec vitest run --project unitaire src/auth/cookie.spec.ts -t "connexion valide"`** | Lancer un seul test par son nom |
 | `pnpm db:generate` | Générer types Drizzle depuis le schéma Postgres |
 | **`pnpm db:migrate`** | Appliquer les migrations Drizzle (idempotent) |
-| **`pnpm db:seed`** | Charger données de démo (garage + admin) |
+| **`pnpm db:seed`** | Charger données de démo (garage + 6 comptes utilisateurs) |
 | `pnpm api:openapi` | Exporter le schéma OpenAPI en JSON |
 | `pnpm web:types` | Générer types TypeScript frontend depuis OpenAPI |
 | **`pnpm --filter @dfa/web i18n:check`** | Vérifier la couverture i18n (FR→DE/IT) |

@@ -26,6 +26,12 @@ export { DbAmorcageModule } from './db-amorcage.module';
 
 export { ErreurPostureRls } from './acces-base.service';
 
+// `enDate` normalise à `Date` un horodatage qui peut arriver en chaîne ISO : le pilote ne
+// garantit pas de rendre un `Date` plutôt qu'une chaîne selon le chemin d'exécution (SQL brut via
+// `tx.execute()`, fonctions SECURITY DEFINER). Utilitaire UNIQUE pour tout le dépôt — voir sa
+// documentation dans `acces-amorcage.service.ts`. Ne pas en écrire un second dans un autre module.
+export { enDate } from './acces-amorcage.service';
+
 // Le schéma est exporté pour les requêtes métier (`tx.select().from(site)`) et pour les
 // fixtures des tests d'intégration.
 export * as schema from './schema';

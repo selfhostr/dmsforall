@@ -18,7 +18,8 @@ import {
  * DTO Swagger de `GET /parametres-atelier` (contrats-api-etape-1.md §8.2). Structure calquée sur
  * `DtoParametresAtelier` (`../parametres-atelier/mappeur-parametres-atelier.ts`) — voir ce fichier
  * pour l'écart signalé sur `reception.plafondDefautCentimes` (`number | null`, pas `number` comme
- * le déclare `ReponseParametresAtelier` gelé de `packages/shared`).
+ * le déclare `ReponseParametresAtelier` gelé de `packages/shared`), et pour le second écart de même
+ * nature sur `reception.plafondAvoirReceptionnaireCentimes` (RF-117, champ absent du contrat gelé).
  */
 export class OrParametresAtelierDto {
   @ApiProperty({ example: 'OR' }) readonly prefixe!: string;
@@ -45,6 +46,19 @@ export class ReceptionParametresAtelierDto {
     example: 30000,
   })
   readonly plafondDefautCentimes!: number | null;
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description:
+      'RF-117 (0018) : plafond d\'émission d\'AVOIR par un `receptionnaire` seul — au-delà, ' +
+      '`direction`/`comptable` prennent le relais. MÊME sémantique que `plafondDefautCentimes` ' +
+      'ci-dessus : `null` = aucun plafond convenu (défaut — le réceptionnaire émet sans limite, ' +
+      'dégradé documenté préservé) ; `0` = toute émission par un réceptionnaire doit escalader ; ' +
+      'n>0 = plafond nominal en centimes. Absent du contrat TS gelé `ReponseParametresAtelier` ' +
+      '(`packages/shared`) — signalé, même écart que `plafondDefautCentimes`.',
+    example: 500000,
+  })
+  readonly plafondAvoirReceptionnaireCentimes!: number | null;
 }
 
 export class TravauxParametresAtelierDto {

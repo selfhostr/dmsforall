@@ -57,7 +57,8 @@
       "chevauchement": "Chevauchement",
       "periodeVerrouillee": "Période verrouillée",
       "orFacture": "OR facturé",
-      "ligneNonPointable": "Ligne non pointable"
+      "ligneNonPointable": "Ligne non pointable",
+      "deriveHorloge": "Horloge décalée"
     },
     "corbeille": "Afficher la corbeille",
     "corriger": "À corriger"

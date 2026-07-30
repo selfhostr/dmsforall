@@ -19,3 +19,4 @@ export * from './session';
 export * from './journal-securite';
 export * from './atelier';
 export * from './facturation';
+export * from './pieces';

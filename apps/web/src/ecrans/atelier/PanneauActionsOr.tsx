@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 
 import {
   schemaActionAnnuler,
@@ -54,6 +55,17 @@ import { useSession } from '@/hooks/useSession';
  * explicite (`AvertissementConfirmable`) — rare pour une transition (les codes de
  * `CODES_CONFIRMATION` visent surtout la création), mais le chemin existe pour rester honnête
  * avec le contrat.
+ *
+ * Exception au patron « un clic = un dialogue de confirmation » : `facturer` ne mute rien
+ * ici-même. Le contrat (`RF-81`) sélectionne par GROUPE payeur `(payeur, payeurClientId)` — une
+ * réparation partagée entre le client, une assurance et une garantie constructeur donne
+ * plusieurs factures à plusieurs destinataires, un choix que ce panneau ne peut pas réduire à un
+ * bouton unique sans risquer de fusionner deux destinataires. Le bouton est donc un lien vers
+ * `EcranFacturerOrdreReparation`, qui porte lui-même ce choix groupe par groupe. La disponibilité
+ * reste néanmoins gouvernée EXACTEMENT comme les dix autres : uniquement si le serveur liste
+ * `facturer` dans `or.actionsDisponibles` (statut `termine` ET droit `facturation.document.creer`
+ * de l'appelant courant, §`atelier/etat-affiche.ts`) — aucune règle d'état ni de droit
+ * recodée côté client.
  */
 
 const ACTIONS_LIGNE: ReadonlySet<ActionOrdreReparation> = new Set([
@@ -74,6 +86,7 @@ const CLES_TRANSITION: Partial<Record<ActionOrdreReparation, string>> = {
   'refuser-controle': 'refuserControle',
   'valider-controle': 'validerControle',
   terminer: 'terminer',
+  facturer: 'facturer',
   rouvrir: 'rouvrir',
   restituer: 'restituer',
   cloturer: 'cloturer',
@@ -192,14 +205,22 @@ export function PanneauActionsOr({ or }: Props) {
         {actionsNiveauOr.map((action) => {
           const cle = CLES_TRANSITION[action];
           if (!cle) return null;
+          const variant = action === 'annuler' ? 'destructive' : action === 'receptionner' || action === 'demarrer' ? 'default' : 'outline';
+          const libelle = t(`or:transitions.${cle}`);
+
+          // `facturer` navigue vers `EcranFacturerOrdreReparation` (choix par groupe payeur) au
+          // lieu d'ouvrir le dialogue de confirmation générique — voir le commentaire d'en-tête.
+          if (action === 'facturer') {
+            return (
+              <Button key={action} asChild variant={variant}>
+                <Link to={`/ordres-reparation/${or.id}/facturer`}>{libelle}</Link>
+              </Button>
+            );
+          }
+
           return (
-            <Button
-              key={action}
-              type="button"
-              variant={action === 'annuler' ? 'destructive' : action === 'receptionner' || action === 'demarrer' ? 'default' : 'outline'}
-              onClick={() => ouvrir(action)}
-            >
-              {t(`or:transitions.${cle}`)}
+            <Button key={action} type="button" variant={variant} onClick={() => ouvrir(action)}>
+              {libelle}
             </Button>
           );
         })}

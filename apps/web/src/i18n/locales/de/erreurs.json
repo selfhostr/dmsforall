@@ -98,16 +98,32 @@
     "DOCUMENT_PDF_INDISPONIBLE": "Die PDF-Datei ist noch nicht bereit. Bitte warten Sie einige Augenblicke.",
     "FACTURATION_LIGNES_INDECISES": "Einige Positionen warten auf eine Kundengenehmigung vor der Abrechnung.",
     "QR_CREANCIER_INCOMPLET": "Die Rechnungsinformationen (QR-Glaubiger-Block) sind nicht vollständig. Kontaktieren Sie den Support.",
+    "IBAN_INVALIDE": "Dieser IBAN scheint falsch zu sein (Form oder Prüfziffer). Überprüfen Sie die Eingabe Ziffer für Ziffer.",
+    "IBAN_EST_UN_QR_IBAN": "Dies ist ein QR-IBAN: Erfassen Sie ihn im Feld «QR-IBAN», nicht im Feld «IBAN».",
+    "QR_IBAN_SANS_IID_RESERVE": "Dies ist ein gewöhnlicher IBAN, kein QR-IBAN: Erfassen Sie ihn im Feld «IBAN», nicht im Feld «QR-IBAN».",
     "AVOIR_MONTANT_EXCEDENTAIRE": "Der Gutschriftbetrag übersteigt die Gesamtrechnungssumme. Reduzieren Sie den Korrekturbeamtrag.",
-    "AVOIR_PLAFOND_DEPASSE": "Sie haben Ihr Gutschriftlimit ueberschritten. Kontaktieren Sie den Werkstattleiter oder Buchalter.",
-    "REMISE_PLAFOND_DEPASSE": "Sie haben Ihr Rabattlimit ueberschritten. Kontaktieren Sie den Werkstattleiter oder Buchalter.",
+    "AVOIR_PLAFOND_DEPASSE": "Sie haben Ihr Gutschriftlimit überschritten. Kontaktieren Sie den Werkstattleiter oder Buchalter.",
+    "REMISE_PLAFOND_DEPASSE": "Sie haben Ihr Rabattlimit überschritten. Kontaktieren Sie den Werkstattleiter oder Buchalter.",
     "IMPUTATION_MONTANT_EXCEDENTAIRE": "Der verrechnete Betrag übersteigt den Restbetrag. Reduzieren Sie den Verrechnungsbetrag.",
     "ACOMPTE_DEJA_DEDUIT": "Dieser Vorauszahlung wurde bereits verwendet. Sie können ihn nur einmal abziehen.",
     "EXPORT_TROU_NUMEROTATION": "Numerierungslücke vor dem Versand an den Revisor erkannt. Kontaktieren Sie den Support.",
-    "EXPORT_ECRITURES_DESEQUILIBREES": "Die Buchhaltungseintraege sind nicht ausgeglichen. Kontaktieren Sie Ihren Revisor.",
-    "EXPORT_MAPPING_INCOMPLET": "Die Buchungsmapping ist fuer dieses Ziel nicht vollständig. Kontaktieren Sie Ihren Revisor.",
-    "EXPORT_DEJA_TRANSMIS": "Dieses Dokument wurde bereits an den Revisor gesendet. Kontaktieren Sie Ihren Revisor fuer Anpassungen.",
-    "BASCULE_FIDUCIAIRE_HORS_FRONTIERE": "Wechsel des Revisors waehrend eines Monats nicht möglich. Warten Sie bis zum Ende der Periode."
+    "EXPORT_ECRITURES_DESEQUILIBREES": "Die Buchhaltungseinträge sind nicht ausgeglichen. Kontaktieren Sie Ihren Revisor.",
+    "EXPORT_MAPPING_INCOMPLET": "Die Buchungsmapping ist für dieses Ziel nicht vollständig. Kontaktieren Sie Ihren Revisor.",
+    "EXPORT_DEJA_TRANSMIS": "Dieses Dokument wurde bereits an den Revisor gesendet. Kontaktieren Sie Ihren Revisor für Anpassungen.",
+    "BASCULE_FIDUCIAIRE_HORS_FRONTIERE": "Wechsel des Revisors während eines Monats nicht möglich. Warten Sie bis zum Ende der Periode.",
+    "ARTICLE_REFERENCE_COLLISION": "Diese Referenz wird bereits von einem anderen Artikel verwendet.",
+    "ARTICLE_REMPLACANT_REQUIS": "Geben Sie den Artikel an, der diesen ersetzt.",
+    "ARTICLE_DESACTIVATION_IMPOSSIBLE": "Dieser Artikel kann nicht deaktiviert werden, da er reserviert ist. Geben Sie die Reservierungen zuerst frei.",
+    "STOCK_INSUFFISANT": "Lagerbestand nicht ausreichend. Überprüfen Sie, ob Exemplare für andere Reparaturaufträge reserviert sind.",
+    "MOUVEMENT_MOTIF_REQUIS": "Geben Sie den Grund für diese Lagerbewegung an.",
+    "RESERVATION_TRANSITION_INTERDITE": "Diese Reservierung ist nicht mehr in einem Zustand, der diese Aktion erlaubt.",
+    "RESERVATION_SITE_INCOHERENT": "Das Teil muss am Standort des Reparaturauftrags erfüllt werden.",
+    "COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE": "Diese Lieferantenbestellung ist nicht mehr in einem Zustand, der diese Aktion erlaubt.",
+    "COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE": "Dieser Restbetrag wurde bereits geliefert oder storniert. Sie können ihn nicht ändern.",
+    "RECEPTION_REFERENCE_NON_EQUIVALENTE": "Diese Referenz wird nicht als Äquivalent zu der bestellten erkannt.",
+    "CONSIGNE_TRANSITION_INTERDITE": "Dieses Pfand ist nicht mehr in einem Zustand, der diese Aktion erlaubt.",
+    "POINTAGE_PIN_INVALIDE": "PIN nicht erkannt. Überprüfen Sie den Code und versuchen Sie es erneut.",
+    "POINTAGE_PIN_VERROUILLE": "PIN ist vorübergehend gesperrt. Wenden Sie sich an den Werkstattleiter, um fortzufahren."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Nachtragsofferte erstellen",
@@ -135,6 +151,8 @@
     "travail_reporte": "{count, plural, one {# aufgeschobene Arbeit} other {# aufgeschobene Arbeiten}}",
     "ressource_planning": "{count, plural, one {# Ressource nicht verfügbar} other {# Ressourcen nicht verfügbar}}",
     "ordre_reparation": "{count, plural, one {# blockierter RA} other {# blockierte RA}}",
-    "champ": "Erforderliches Feld"
+    "champ": "Erforderliches Feld",
+    "document_vente": "{count, plural, one {# Beleg gesperrt} other {# Belege gesperrt}}",
+    "ligne_document": "{count, plural, one {# Belegposition gesperrt} other {# Belegpositionen gesperrt}}"
   }
 }

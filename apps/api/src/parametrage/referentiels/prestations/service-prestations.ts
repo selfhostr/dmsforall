@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import type { EntreeCreationPrestation, PageCurseur, ReponsePrestation } from '@dfa/shared';
 // Import de VALEUR : voir la même remarque que `service-taux-horaires.ts` — `packages/shared`
 // n'exporte aucun type `EntreeModificationPrestation`, dérivé ici via `z.infer`.
@@ -31,13 +31,19 @@ export class ServicePrestations {
 
     return this.acces.enTenant(ctx, async (tx) => {
       const lignes = await tx
-        .select()
+        .select({
+          ...getTableColumns(schema.prestation),
+          // Texte natif Postgres du timestamptz — jamais le `Date` de `getTableColumns()` (mode
+          // 'date', microseconde déjà perdue). Voir pagination-defaut.ts et
+          // common/pagination/valeur-temporelle.ts.
+          creeLeTexte: sql<string>`${schema.prestation.creeLe}::text`,
+        })
         .from(schema.prestation)
         .where(
           and(
             eq(schema.prestation.tenantId, ctx.tenantId),
             curseurDecode
-              ? sql`(${schema.prestation.creeLe}, ${schema.prestation.id}) < (${curseurDecode.creeLe}, ${curseurDecode.id})`
+              ? sql`(${schema.prestation.creeLe}, ${schema.prestation.id}) < (${curseurDecode.creeLeTexte}::timestamptz, ${curseurDecode.id})`
               : undefined,
           ),
         )

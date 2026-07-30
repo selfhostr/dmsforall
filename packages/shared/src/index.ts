@@ -5,3 +5,5 @@ export * from './contrats/socle';
 export * from './contrats/auth';
 export * from './contrats/atelier';
 export * from './contrats/facturation';
+export * from './contrats/pieces';
+export * from './contrats/pointage';

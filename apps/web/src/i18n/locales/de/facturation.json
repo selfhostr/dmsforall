@@ -1,0 +1,306 @@
+{
+  "titre": "Fakturierung",
+  "document": {
+    "type": {
+      "devis": "Kostenvoranschlag",
+      "bonCommande": "Bestellung",
+      "facture": "Rechnung",
+      "factureAcompte": "Akontorechnung",
+      "avoir": "Gutschrift",
+      "bulletinPaiement": "Einzahlungsschein"
+    },
+    "etat": {
+      "brouillon": "Entwurf",
+      "emis": "Ausgestellt",
+      "annuleParAvoir": "Storniert durch Gutschrift"
+    }
+  },
+  "reglement": {
+    "statut": {
+      "nonRegle": "Nicht bezahlt",
+      "partiel": "Teilweise bezahlt",
+      "regle": "Bezahlt",
+      "tropPercu": "Überzahlung",
+      "irrecouvrable": "Uneinbringlich"
+    }
+  },
+  "retard": {
+    "premierNiveau": "überfällig",
+    "relanceAvancee": "überfällig — {niveau}. Mahnung",
+    "relanceLe": "Mahnung versendet am {date}"
+  },
+  "recapTva": {
+    "titre": "MWST-Zusammenfassung",
+    "colonnes": {
+      "taux": "Satz",
+      "base": "Basis netto",
+      "tva": "MWST"
+    },
+    "totalGeneral": "Total inkl. MWST"
+  },
+  "ligneDepuisOrGenerique": "vom Reparaturauftrag",
+  "verrouille": {
+    "message": "Diese Rechnung ist ausgestellt und kann nicht mehr geändert werden.",
+    "corriger": "Mit Gutschrift korrigieren →"
+  },
+  "paiementVerrouille": {
+    "message": "Diese Zahlung ist erfasst und kann nicht mehr geändert werden.",
+    "corriger": "Korrekturzahlung erfassen →"
+  },
+  "avanceClient": {
+    "message": "Dieser Zahlungseingang übersteigt den Saldo von {montant} — der Überschuss wird als Kundenguthaben erfasst und später zugewiesen.",
+    "aucuneFactureOuverte": "Dieser Zahlungseingang wird als Kundenguthaben erfasst."
+  },
+  "motifsAvoir": {
+    "erreurAdresse": "Adressfehler",
+    "erreurMontant": "Betragsfehler",
+    "erreurDestinataire": "Fehler beim Empfänger",
+    "erreurTaux": "Satzfehler",
+    "prestationAnnulee": "Leistung storniert",
+    "gesteCommercial": "Kulanz",
+    "autre": "Andere",
+    "autrePlaceholder": "Grund präzisieren",
+    "champ": "Grund",
+    "champObligatoire": "Der Grund ist obligatorisch",
+    "autreTexteObligatoire": "Der Grund «Andere» erfordert einen freien Text"
+  },
+  "moyensPaiement": {
+    "especes": "Bar",
+    "carte": "Karte",
+    "virement": "Überweisung",
+    "qr": "QR-Rechnung",
+    "twint": "TWINT",
+    "compensation": "Verrechnung",
+    "leasing": "Leasing"
+  },
+  "champs": {
+    "destinataire": "Empfänger",
+    "rue": "Strasse",
+    "numero": "Nr.",
+    "npa": "PLZ",
+    "localite": "Ort",
+    "pays": "Land",
+    "adresseIncompleteEmission": "Adresse unvollständig — der Einzahlungsschein wird ohne vorausgefüllten Empfänger ausgestellt.",
+    "adresseIncompleteEmis": "Adresse unvollständig — der Einzahlungsschein wurde ohne vorausgefüllten Empfänger ausgestellt.",
+    "completerFiche": "Kundenkarte vervollständigen →",
+    "remiseGlobale": {
+      "titre": "Gesamtrabatt",
+      "libelle": "Bezeichnung",
+      "libellePlaceholder": "Z. B. Treuerabatt",
+      "montant": "Betrag",
+      "pourcentage": "Prozentsatz",
+      "resultat": "{libelle} {taux} : −{montant}"
+    }
+  },
+  "facturerOr": {
+    "titre": "Reparaturauftrag fakturieren",
+    "retour": "Zurück zum Auftrag",
+    "refusBloquant": {
+      "titre": "{count, plural, one {# Position verhindert die Fakturierung} other {# Positionen verhindern die Fakturierung}}",
+      "resoudre": "Beheben →"
+    },
+    "demontage": {
+      "message": "Für einen abgelehnten Kostenvoranschlag wurde eine Demontage durchgeführt — fakturierbar: {montant} inkl. MWST",
+      "ajouter": "Diese Position zur Kundenrechnung hinzufügen"
+    },
+    "groupe": {
+      "titre": "Zahlergruppe «{payeur}»",
+      "facturerMaintenant": "Jetzt fakturieren",
+      "sousTotal": "Zwischensumme",
+      "motifReport": "Grund der Verschiebung (fakultativ)",
+      "motifReportPlaceholder": "Z. B. Schadenfall wartet auf Zusage"
+    },
+    "ligneOfferte": "gratis ({raison})",
+    "lignesRefusees": {
+      "message": "{count, plural, one {# vom Kunden abgelehnte Position wird nicht fakturiert} other {# vom Kunden abgelehnte Positionen werden nicht fakturiert}} — in der Fahrzeugübersicht verschoben.",
+      "voir": "Verschobene Arbeiten anzeigen →"
+    },
+    "consigne": {
+      "message": "Ein Pfand von {montant} inkl. MWST wird jetzt fakturiert. Bei Rückgabe des alten Teils wird es per Teilgutschrift zurückerstattet — nicht erst bei der Rückgabe abgewartet."
+    },
+    "action": {
+      "unSingulier": "1 Rechnung erstellen ({payeur}) — {montant} inkl. MWST",
+      "plusieurs": "{count} Rechnungen erstellen — {montant} inkl. MWST insgesamt",
+      "enCours": "Wird erstellt…"
+    },
+    "vide": {
+      "titre": "Keine fakturierbare Position auf diesem Auftrag",
+      "description": "Alle Positionen dieses Auftrags wurden abgelehnt oder storniert."
+    },
+    "erreur": {
+      "titre": "Die Rechnungen konnten nicht erstellt werden"
+    },
+    "chargement": "Wird geladen…"
+  },
+  "fiche": {
+    "issueDeOr": "aus einem Reparaturauftrag →",
+    "emiseLe": "ausgestellt am {date}",
+    "destinataire": {
+      "titre": "Empfänger"
+    },
+    "lignes": {
+      "titre": "Positionen",
+      "colonnes": {
+        "designation": "Bezeichnung",
+        "quantite": "Menge",
+        "prixUnitaire": "EP inkl. MWST",
+        "montant": "Betrag inkl. MWST",
+        "tva": "MWST"
+      },
+      "ajouterDemontage": "Vorgeschlagene Demontage-Position hinzufügen",
+      "retirer": "Entfernen",
+      "vide": "Keine Position auf diesem Dokument."
+    },
+    "documentsLies": {
+      "titre": "Verknüpfte Dokumente",
+      "or": "Verknüpfter Reparaturauftrag →",
+      "facture": "Ursprüngliche Rechnung →",
+      "avoir": "Verknüpfte Gutschrift →",
+      "vide": "Kein verknüpftes Dokument."
+    },
+    "journal": {
+      "titre": "Protokoll"
+    },
+    "totalTtc": "Total inkl. MWST",
+    "bulletin": {
+      "payableA": "Zahlbar an",
+      "payablePar": "Zahlbar durch",
+      "iban": "IBAN",
+      "reference": "Referenz",
+      "sansReference": "Ohne Referenz"
+    },
+    "actions": {
+      "emettre": "Ausstellen",
+      "encaisser": "Inkassieren",
+      "autresActions": "Weitere Aktionen",
+      "menu": {
+        "imprimer": "PDF drucken / herunterladen",
+        "envoyer": "Per E-Mail senden",
+        "dupliquer": "Duplizieren (Neudruck)",
+        "corriger": "Diese Rechnung korrigieren",
+        "creerAvoir": "Gutschrift erstellen",
+        "journal": "Protokoll anzeigen"
+      }
+    },
+    "dialogueEmission": {
+      "titre": "Rechnung ausstellen?",
+      "titreAvoir": "Gutschrift ausstellen?",
+      "resume": "Rechnung für {destinataire} — {montant} inkl. MWST",
+      "resumeAvoir": "Gutschrift auf Rechnung {numero} — {montant} inkl. MWST",
+      "avertissement": "Einmal ausgestellt, kann diese Rechnung nicht mehr geändert werden — nur eine Korrektur per Gutschrift bleibt danach möglich.",
+      "avertissementAvoir": "Sie mindert die Rechnung {numero} und kann nach dem Ausstellen nicht mehr storniert werden.",
+      "confirmer": "Ausstellen",
+      "enCours": "Wird ausgestellt…"
+    },
+    "refusEmission": {
+      "blocCreancierIncomplet": "Ausstellen nicht möglich — die Bankverbindung der Werkstatt ist unvollständig.",
+      "completerParametres": "In den Einstellungen vervollständigen →"
+    },
+    "annuleeParAvoir": {
+      "message": "Diese Rechnung wurde durch eine Gutschrift storniert. Siehe verknüpftes Dokument nebenan."
+    },
+    "correction": {
+      "titre": "Rechnung {numero} korrigieren",
+      "explication": "Eine ausgestellte Rechnung ist unveränderlich: eine direkte Änderung ist nicht möglich. DFA erstellt eine Gutschrift, die diese Rechnung storniert, und anschliessend eine neue Rechnung mit der Korrektur. Beide behalten ihre Nummer in der Reihe — nichts verschwindet, nichts wird neu nummeriert.",
+      "motif": "Grund der Korrektur",
+      "adresse": {
+        "rue": "Strasse und Nr.",
+        "npa": "PLZ",
+        "localite": "Ort"
+      },
+      "motifMontantTaux": "Betrags- oder Satzkorrekturen erfolgen über die Gutschrift-Ansicht: sie werden hier nicht unterstützt.",
+      "corrigerFiche": "Auch die Kundenkarte mit dieser Adresse korrigieren",
+      "confirmer": "Rechnung korrigieren",
+      "enCours": "Wird korrigiert…",
+      "plafondDepasse": "Zur Genehmigung einreichen",
+      "succes": "Rechnung {ancien} korrigiert → neue Rechnung {nouveau}",
+      "voirAvoir": "Gutschrift anzeigen →"
+    },
+    "erreur": {
+      "titre": "Diese Rechnung konnte nicht geladen werden"
+    },
+    "montantIndisponible": "Nicht mitgeteilt"
+  },
+  "encaissement": {
+    "titre": "Inkassieren · {destinataire}",
+    "titreGenerique": "Neuer Zahlungseingang",
+    "facturesOuvertes": {
+      "titre": "Offene Rechnungen",
+      "resteDu": "Restbetrag {montant}",
+      "emiseLe": "ausgestellt am {date}",
+      "totalSelectionne": "Ausgewähltes Total",
+      "vide": "Keine offene Rechnung"
+    },
+    "lignes": {
+      "titre": "Zahlungseingänge",
+      "moyen": "Zahlungsart",
+      "montant": "Betrag",
+      "ajouter": "Zahlungsart hinzufügen",
+      "retirer": "Diese Zahlungsart entfernen",
+      "arrondi": "gerundet {ecart}"
+    },
+    "lignesInvalides": "Jede Zahlungsart muss einen Betrag über null aufweisen.",
+    "resteAEncaisser": "Noch zu inkassieren",
+    "confirmer": "Zahlungseingang erfassen",
+    "enCours": "Wird erfasst…",
+    "erreur": {
+      "titre": "Der Zahlungseingang konnte nicht erfasst werden"
+    },
+    "chargement": "Offene Rechnungen werden geladen…"
+  },
+  "avoir": {
+    "titre": "Gutschrift auf Rechnung {numero} — {destinataire}",
+    "motif": "Grund",
+    "lignesOrigine": {
+      "titre": "Positionen der ursprünglichen Rechnung",
+      "dejaCreditee": "bereits gutgeschrieben",
+      "toutSelectionner": "Alles auswählen (vollständige Gutschrift)"
+    },
+    "totalAvoir": "Total der Gutschrift",
+    "motifObligatoire": "Grund obligatorisch, beim Ausstellen erforderlich",
+    "action": {
+      "emettre": "Gutschrift ausstellen",
+      "enCours": "Wird erstellt…"
+    },
+    "erreur": {
+      "titre": "Die Gutschrift konnte nicht erstellt werden"
+    }
+  },
+  "liste": {
+    "titre": "Fakturierung",
+    "onglets": {
+      "toutes": "Alle",
+      "nonReglees": "Nicht bezahlt",
+      "enRetard": "Überfällig",
+      "aRelancer": "Zu mahnen"
+    },
+    "colonnes": {
+      "numero": "Nr.",
+      "client": "Kunde",
+      "emiseLe": "Ausgestellt am",
+      "montant": "Betrag inkl. MWST",
+      "statut": "Status",
+      "retard": "Verzug"
+    },
+    "actionEncaisser": "Inkassieren",
+    "erreur": {
+      "titre": "Die Rechnungen konnten nicht geladen werden"
+    },
+    "vide": {
+      "premierUsage": "Noch keine Rechnung ausgestellt. Rechnungen entstehen aus einem abgeschlossenen Reparaturauftrag.",
+      "voirOr": "Reparaturaufträge anzeigen →",
+      "nonReglees": "Keine unbezahlte Rechnung — alles ist aktuell.",
+      "enRetard": "Keine überfällige Rechnung — alles ist aktuell.",
+      "aRelancer": "Derzeit keine Rechnung zu mahnen.",
+      "recherche": "Keine Rechnung entspricht dieser Suche."
+    }
+  },
+  "actions": {
+    "emettre": "Ausstellen",
+    "creer": "Erstellen",
+    "enregistrer": "Speichern",
+    "encaisser": "Inkassieren",
+    "corriger": "Korrigieren",
+    "modifier": "Ändern"
+  }
+}

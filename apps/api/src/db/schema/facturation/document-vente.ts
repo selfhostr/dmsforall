@@ -10,6 +10,7 @@
  *     dérive, pas de source de vérité (voir schema/index.ts).
  */
 
+import type { DeviseFacturation } from '@dfa/shared';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -110,7 +111,11 @@ export const documentVente = pgTable(
     montantRegleCentimes: bigint('montant_regle_centimes', { mode: 'bigint' }).notNull().default(0n),
     soldeCentimes: bigint('solde_centimes', { mode: 'bigint' }).notNull().default(0n),
 
-    devise: char('devise', { length: 3 }).notNull().default('CHF'),
+    /** `document_vente_devise_chk` (migration 0015) : borné à CHF/EUR — même ensemble que
+     * `paiement_devise_chk` et `document_vente_qr_devise_chk`, d'où le type littéral dérivé ici.
+     * Avant 0015, cette colonne n'était contrainte qu'en FORME (`^[A-Z]{3}$`) : voir 0015 pour
+     * l'historique de l'incohérence corrigée. */
+    devise: char('devise', { length: 3 }).notNull().default('CHF').$type<DeviseFacturation>(),
 
     qrIban: text('qr_iban'),
     // qr_iban_est_qr_iban : colonne générée, non modélisée (voir en-tête).
@@ -123,7 +128,9 @@ export const documentVente = pgTable(
     typeReferenceQr: typeReferenceQrEnum('type_reference_qr'),
     qrReference: text('qr_reference'),
     qrMontantCentimes: bigint('qr_montant_centimes', { mode: 'bigint' }),
-    qrDevise: char('qr_devise', { length: 3 }),
+    /** `document_vente_qr_devise_chk` (migration 0010) : nul ou strictement CHF/EUR — même
+     * ensemble que `DEVISES_FACTURATION`, d'où le type littéral dérivé ici. */
+    qrDevise: char('qr_devise', { length: 3 }).$type<DeviseFacturation>(),
     qrLangue: langueEnum('qr_langue'),
     qrDebiteurPresent: boolean('qr_debiteur_present').notNull().default(false),
     qrPayload: text('qr_payload'),

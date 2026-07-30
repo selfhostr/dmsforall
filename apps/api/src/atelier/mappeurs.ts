@@ -41,6 +41,8 @@ export function mapperLigneOr(ligne: LigneLigneOr, role: RoleUtilisateur): Repon
     origine: ligne.origine,
     statut: ligne.statut,
     payeur: ligne.payeur,
+    // `payeurClientId` (AC-08, MD-62) : colonne `ligne_or.payeur_client_id` (migration 0017).
+    payeurClientId: ligne.payeurClientId,
     blocage: ligne.blocage,
     designation: ligne.designation ?? '',
     referenceTexte: ligne.referenceTexte,

@@ -40,7 +40,7 @@ import { ServiceEvenementsImpl } from '../../common/evenements';
 import { Horloge } from '../../common/horloge/horloge';
 import { ServiceIdempotenceImpl } from '../../common/idempotence';
 import { ServiceCompteursImpl } from '../../parametrage/compteurs/service-compteurs';
-import { LecturePointageVide } from '../../atelier/atelier.jetons';
+import { LecturePointageVide, type CreationTravailReporte } from '../../atelier/atelier.jetons';
 import { CalculLigneSimple } from '../../atelier/calcul-ligne';
 import { ServiceLigneOr } from '../../atelier/service-ligne-or';
 import { ServiceOr } from '../../atelier/service-or';
@@ -144,7 +144,31 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
     const pointage = new LecturePointageVide();
     const serviceTransitions = new ServiceTransitions(acces, evenements, pointage, horloge, serviceOr);
     const calcul = new CalculLigneSimple();
-    const serviceLigneOr = new ServiceLigneOr(acces, idempotence, evenements, calcul, serviceOr);
+    // RM-73 : port CreationTravailReporte, sixième argument de ServiceLigneOr depuis son câblage
+    // au travail reporté (vehicules/service-vehicule-travail-reporte.ts, ServiceVehiculeTravailReporte
+    // en implémentation réelle côté API). Ce script de seed NE FAIT JAMAIS refuser une ligne
+    // (aucune des OR de démo ci-dessous n'appelle `refuser-lignes` / EntreeRefusLignes) — vérifié
+    // par grep sur ce fichier avant d'écrire ce commentaire, à revérifier si une nouvelle scène de
+    // démo l'exerce un jour. Le chemin `creerDepuisRefus` n'est donc JAMAIS exécuté ici : plutôt
+    // que de câbler la vraie implémentation (qui vit dans `vehicules/`, hors du périmètre
+    // d'assemblage manuel déjà consenti par ce fichier, et sans bénéfice tant qu'aucune scène ne
+    // l'exerce), on passe un objet conforme au port qui ne fait rien — explicite, pour ne pas
+    // laisser croire que ce seed exerce RM-73.
+    const travailReporteInerte: CreationTravailReporte = {
+      creerDepuisRefus: () => {
+        throw new Error(
+          'seed-atelier-demo : creerDepuisRefus ne devrait jamais être appelé — aucune ligne de démo n\'est refusée.',
+        );
+      },
+    };
+    const serviceLigneOr = new ServiceLigneOr(
+      acces,
+      idempotence,
+      evenements,
+      calcul,
+      travailReporteInerte,
+      serviceOr,
+    );
 
     const ctx: ContexteTenant = { tenantId: options.tenantId, utilisateurId: idChefAtelier, requeteId: null };
     const chefAtelier: PrincipalAuthentifie = {

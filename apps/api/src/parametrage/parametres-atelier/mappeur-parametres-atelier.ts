@@ -1,7 +1,7 @@
-import type { EntreeModificationParametresAtelier } from '@dfa/shared';
 // Import de VALEUR (pas `import type`) : `typeof schema.parametreAtelier.$inferInsert` a besoin
 // que `schema` résolve un espace de noms réel, pas seulement des types réexportés.
 import { schema } from '../../db';
+import type { EntreeModificationParametresAtelierEtendue } from './schema-modification-parametres-atelier-etendu';
 
 /**
  * Projection publique de `parametre_atelier` (contrats-api-etape-1.md §8.2). Structure IDENTIQUE
@@ -16,6 +16,11 @@ import { schema } from '../../db';
  * DTO expose donc `number | null` ; `ReponseParametresAtelier` (`packages/shared`) doit être
  * élargi au même type — signalé dans la réponse de tâche L1-07, à corriger par expert-api/
  * lead-backend, PAS par ce module (le shared est gelé, hors de mon périmètre d'écriture).
+ *
+ * DEUXIÈME ÉCART, MÊME NATURE — `reception.plafondAvoirReceptionnaireCentimes` (`RF-117`, 0018) :
+ * champ ABSENT de `ReponseParametresAtelier`/`schemaModificationParametresAtelier` gelés, exposé
+ * ici localement (lecture ET écriture, voir `schema-modification-parametres-atelier-etendu.ts`
+ * pour le schéma zod étendu côté entrée). Signalé dans la réponse de tâche RF-117.
  */
 export interface DtoParametresAtelier {
   readonly or: {
@@ -32,6 +37,14 @@ export interface DtoParametresAtelier {
     readonly kmSortieObligatoire: boolean;
     readonly signature: schema.LigneParametreAtelier['signatureReception'];
     readonly plafondDefautCentimes: number | null;
+    /**
+     * `RF-117` (0018) : plafond d'émission d'avoir par un `receptionnaire` seul, MÊME sémantique
+     * que `plafondDefautCentimes` juste au-dessus (`null` = aucun plafond convenu, dégradé
+     * documenté préservé — `0` = toute émission doit escalader, n>0 = plafond nominal). Champ
+     * ABSENT du contrat gelé `ReponseParametresAtelier` (`packages/shared`) — voir l'écart signalé
+     * en tête de ce fichier et dans `schema-modification-parametres-atelier-etendu.ts`.
+     */
+    readonly plafondAvoirReceptionnaireCentimes: number | null;
   };
   readonly travaux: {
     readonly uniteTemps: schema.LigneParametreAtelier['uniteTemps'];
@@ -114,6 +127,7 @@ export function versDtoParametresAtelier(ligne: schema.LigneParametreAtelier): D
       kmSortieObligatoire: ligne.kmSortieObligatoire,
       signature: ligne.signatureReception,
       plafondDefautCentimes: ligne.plafondDefautCentimes,
+      plafondAvoirReceptionnaireCentimes: ligne.plafondAvoirReceptionnaireCentimes,
     },
     travaux: {
       uniteTemps: ligne.uniteTemps,
@@ -162,7 +176,7 @@ export function versDtoParametresAtelier(ligne: schema.LigneParametreAtelier): D
  * atteint jamais en pratique, mais ne prétend pas non plus savoir où les écrire.
  */
 export function versColonnesMiseAJour(
-  entree: EntreeModificationParametresAtelier,
+  entree: EntreeModificationParametresAtelierEtendue,
 ): Partial<typeof schema.parametreAtelier.$inferInsert> {
   const colonnes: Partial<typeof schema.parametreAtelier.$inferInsert> = {};
 
@@ -181,6 +195,13 @@ export function versColonnesMiseAJour(
     if (entree.reception.signature !== undefined) colonnes.signatureReception = entree.reception.signature;
     if (entree.reception.plafondDefautCentimes !== undefined) {
       colonnes.plafondDefautCentimes = entree.reception.plafondDefautCentimes;
+    }
+    // `!== undefined` (pas de vérité négative sur `null`) : `null` est la valeur qui remet le
+    // plafond à « aucun plafond convenu » (RF-117, même sémantique que `plafondDefautCentimes`
+    // juste au-dessus) — l'omettre du corps laisse la colonne inchangée, l'envoyer explicitement
+    // à `null` doit pouvoir l'effacer.
+    if (entree.reception.plafondAvoirReceptionnaireCentimes !== undefined) {
+      colonnes.plafondAvoirReceptionnaireCentimes = entree.reception.plafondAvoirReceptionnaireCentimes;
     }
   }
   if (entree.travaux) {

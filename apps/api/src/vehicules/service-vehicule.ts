@@ -15,7 +15,7 @@ import { vehicule, type LigneVehicule } from '../db/schema';
 import { CollecteurAvertissements } from '../common/avertissements';
 import { ErreurMetier } from '../common/erreurs';
 import { Horloge } from '../common/horloge';
-import { decoderCurseurTrie, encoderCurseurTrie } from '../common/pagination';
+import { decoderCurseurTrie, encoderCurseurTrie, valeurCurseurTimestamptz } from '../common/pagination';
 import { interpreterContrainteVehicule } from './erreurs-contraintes';
 import { versVehiculeResume } from './vehicule.mappers';
 import { chargerLigneVehicule, construireReponseVehicule, listerOrOuverts } from './vehicule-requetes';
@@ -330,7 +330,18 @@ type LigneListeVehiculeBrute = {
   readonly vin: string | null;
   readonly date_1re_circulation: string | null;
   readonly identification_incomplete: boolean;
-  readonly cree_le: Date;
+  // `string`, jamais `Date` : le `SELECT` d'`executerListeVehicules` ci-dessous cast explicitement
+  // cette colonne en `v.cree_le::text` — PAS parce que le pilote `pg` rendrait par défaut un
+  // `timestamptz` en chaîne (mesuré : il rend un `Date`, comme le fait le query builder Drizzle
+  // typé), mais pour l'EMPÊCHER de le faire. `Date` n'a qu'une résolution MILLISECONDE quand
+  // PostgreSQL stocke `timestamptz` à la MICROSECONDE ; cette colonne alimente la valeur de curseur
+  // de pagination (`valeurDeTri()` ci-dessous, via `valeurCurseurTimestamptz()`), et un aller-retour
+  // par `Date` y tronquerait silencieusement la microseconde — c'est précisément ce qui faisait
+  // sauter des lignes entières de `GET /vehicules?tri=creeLe:desc` dès que plusieurs véhicules
+  // partageaient la même milliseconde de création (typiquement une reprise de données ou un import
+  // en lot). Voir `common/pagination/valeur-temporelle.ts` pour le détail du mécanisme, et le même
+  // motif dans `clients/service-client.ts` / `clients/pagination-triee.ts`.
+  readonly cree_le: string;
   readonly plaque_valeur: string | null;
   readonly plaque_canton: string | null;
   readonly prochaine_expertise_le: string | null;
@@ -344,7 +355,9 @@ interface LigneListeVehicule {
   readonly vin: string | null;
   readonly date1reCirculation: string | null;
   readonly identificationIncomplete: boolean;
-  readonly creeLe: Date;
+  // `string` : simple relais de `LigneListeVehiculeBrute.cree_le`, non converti à ce stade — voir
+  // le commentaire sur `cree_le` ci-dessus et `valeurCurseurTimestamptz()` dans `valeurDeTri()`.
+  readonly creeLe: string;
   readonly plaqueValeur: string | null;
   readonly plaqueCanton: string | null;
   readonly prochaineExpertiseLe: string | null;
@@ -369,7 +382,11 @@ function versLigneListe(brute: LigneListeVehiculeBrute): LigneListeVehicule {
 function valeurDeTri(ligne: LigneListeVehicule, tri: string): string | number | null {
   if (tri === 'plaque:asc' || tri === 'plaque:desc') return ligne.plaqueValeur;
   if (tri === 'prochaineExpertiseLe:asc') return ligne.prochaineExpertiseLe;
-  return ligne.creeLe.toISOString();
+  // `creeLe:desc` (défaut) : `ligne.creeLe` est le texte natif PostgreSQL (`v.cree_le::text`, voir
+  // le `SELECT` d'`executerListeVehicules`) — jamais un `Date`, pour ne pas tronquer la
+  // microseconde avant d'encoder le curseur (voir la doc de `LigneListeVehiculeBrute.cree_le`
+  // ci-dessus).
+  return valeurCurseurTimestamptz(ligne.creeLe);
 }
 
 async function executerListeVehicules(
@@ -420,7 +437,8 @@ async function executerListeVehicules(
   conditions.push(seuil);
 
   const requete = sql`
-    select v.id, v.marque, v.modele, v.version, v.vin, v.date_1re_circulation, v.identification_incomplete, v.cree_le,
+    select v.id, v.marque, v.modele, v.version, v.vin, v.date_1re_circulation, v.identification_incomplete,
+           v.cree_le::text as cree_le,
            pc.valeur as plaque_valeur, pc.canton as plaque_canton,
            ne.prochaine_echeance as prochaine_expertise_le
       from public.vehicule v

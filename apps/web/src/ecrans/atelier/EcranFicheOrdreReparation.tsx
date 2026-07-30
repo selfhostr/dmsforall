@@ -85,8 +85,15 @@ export function EcranFicheOrdreReparation() {
           <CardContent>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-2 texte-corps sm:grid-cols-3">
               {or.totauxParPayeur.map((totaux) => (
-                <div key={totaux.payeur} className="contents">
-                  <dt className="text-muted-foreground">{t(`or:lignes.payeurs.${totaux.payeur}`)}</dt>
+                // Clé = `(payeur, payeurClientId)` (MD-62), jamais `payeur` seul : deux assurances
+                // distinctes sur le même OR partagent `payeur = 'assurance'` mais sont deux groupes
+                // — une clé par seul `payeur` les ferait entrer en collision React (dernier gagne,
+                // l'autre disparaît silencieusement de l'écran).
+                <div key={`${totaux.payeur}:${totaux.payeurClientId ?? ''}`} className="contents">
+                  <dt className="text-muted-foreground">
+                    {t(`or:lignes.payeurs.${totaux.payeur}`)}
+                    {totaux.payeur !== 'client' && totaux.destinataire ? ` — ${totaux.destinataire.nomAffiche}` : ''}
+                  </dt>
                   <dd className="col-span-2 font-medium text-foreground sm:col-span-1">{formaterMontant(totaux.montantTtcCentimes)}</dd>
                 </div>
               ))}

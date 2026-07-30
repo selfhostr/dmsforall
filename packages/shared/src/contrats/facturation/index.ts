@@ -20,3 +20,5 @@ export * from './ligne';
 export * from './document';
 export * from './paiement';
 export * from './export';
+export * from './facturer-or';
+export * from './creancier';

@@ -5,7 +5,7 @@ import { calculerTotauxParPayeur } from './totaux-payeur';
 function ligne(surcharge: Partial<LigneLigneOr>): LigneLigneOr {
   return {
     id: 'l', tenantId: 't', ordreReparationId: 'or', numeroOrdre: 1,
-    type: 'piece', origine: 'commandee', statut: 'validee', payeur: 'client', blocage: 'aucun',
+    type: 'piece', origine: 'commandee', statut: 'validee', payeur: 'client', payeurClientId: null, blocage: 'aucun',
     designation: 'x', referenceTexte: null, articleId: null, quantiteMillieme: 1000,
     tempsBaremeCentiemes: null, tempsBaremeConstructeurCentiemes: null,
     tauxHoraireCentimes: null, prixUnitaireCentimes: 10000, rabaisPourmille: 0, tauxTvaPourmille: 81,
@@ -59,5 +59,66 @@ describe('calculerTotauxParPayeur', () => {
 
   it('rend un tableau vide quand toutes les lignes sont exclues', () => {
     expect(calculerTotauxParPayeur([ligne({ statut: 'annulee' })])).toEqual([]);
+  });
+
+  /**
+   * `MD-62` : le regroupement porte sur la paire `(payeur, payeurClientId)`, jamais `payeur` seul.
+   * Deux lignes `payeur: 'assurance'` avec deux `payeurClientId` différents (deux assureurs
+   * distincts sur le même OR, cas réel carrosserie à deux sinistres croisés) doivent produire DEUX
+   * groupes — jamais fusionnés sous prétexte qu'ils partagent `payeur = 'assurance'`, sans quoi la
+   * facture du second assureur partirait sur le premier. Colonne `ligne_or.payeur_client_id`
+   * disponible depuis la migration `0017` (le champ était `it.todo` avant, faute de colonne — voir
+   * l'historique de ce fichier).
+   */
+  it("groupe par (payeur, payeurClientId) — deux assurances distinctes ne fusionnent jamais (MD-62)", () => {
+    const lignes = [
+      ligne({ id: 'l1', payeur: 'assurance', payeurClientId: 'assureur-zurich', montantHtCentimes: 10000, montantTvaCentimes: 810, montantTtcCentimes: 10810 }),
+      ligne({ id: 'l2', payeur: 'assurance', payeurClientId: 'assureur-axa', montantHtCentimes: 5000, montantTvaCentimes: 405, montantTtcCentimes: 5405 }),
+    ];
+
+    const totaux = calculerTotauxParPayeur(lignes, undefined, (payeurClientId) =>
+      payeurClientId === 'assureur-zurich'
+        ? { clientId: 'assureur-zurich', nomAffiche: 'Zurich Assurances' }
+        : payeurClientId === 'assureur-axa'
+          ? { clientId: 'assureur-axa', nomAffiche: 'AXA Assurances' }
+          : undefined,
+    );
+
+    expect(totaux).toHaveLength(2);
+
+    const zurich = totaux.find((t) => t.payeurClientId === 'assureur-zurich');
+    expect(zurich).toBeDefined();
+    expect(zurich!.payeur).toBe('assurance');
+    expect(zurich!.montantTtcCentimes).toBe(10810);
+    expect(zurich!.destinataire).toEqual({ clientId: 'assureur-zurich', nomAffiche: 'Zurich Assurances' });
+
+    const axa = totaux.find((t) => t.payeurClientId === 'assureur-axa');
+    expect(axa).toBeDefined();
+    expect(axa!.payeur).toBe('assurance');
+    expect(axa!.montantTtcCentimes).toBe(5405);
+    expect(axa!.destinataire).toEqual({ clientId: 'assureur-axa', nomAffiche: 'AXA Assurances' });
+
+    // La somme des deux groupes égale exactement le total des deux lignes, au centime.
+    const totalTtc = totaux.reduce((s, t) => s + t.montantTtcCentimes, 0);
+    expect(totalTtc).toBe(10810 + 5405);
+  });
+
+  /** `RM-70`/`RF-92` : une ligne `payeur = 'garage'` (diagnostic offert, valorisé à 0 côté client)
+   *  ne forme jamais son propre groupe — elle rejoint `'client'`, sans en changer le total (déjà à
+   *  0 par construction), et `'garage'` ne doit JAMAIS apparaître dans `totauxParPayeur`. */
+  it("une ligne payeur = 'garage' rejoint le groupe 'client' — jamais de groupe 'garage' séparé (RM-70, RF-92)", () => {
+    const lignes = [
+      ligne({ id: 'l1', payeur: 'client', montantHtCentimes: 9250, montantTvaCentimes: 750, montantTtcCentimes: 10000 }),
+      ligne({ id: 'l2', payeur: 'garage', montantHtCentimes: 0, montantTvaCentimes: 0, montantTtcCentimes: 0 }),
+    ];
+
+    const totaux = calculerTotauxParPayeur(lignes, { clientId: 'client-1', nomAffiche: 'Jean Dupont' });
+
+    expect(totaux).toHaveLength(1);
+    expect(totaux[0]!.payeur).toBe('client');
+    expect(totaux[0]!.payeurClientId).toBeNull();
+    expect(totaux[0]!.destinataire).toEqual({ clientId: 'client-1', nomAffiche: 'Jean Dupont' });
+    expect(totaux[0]!.montantTtcCentimes).toBe(10000);
+    expect(totaux.some((t) => (t.payeur as string) === 'garage')).toBe(false);
   });
 });

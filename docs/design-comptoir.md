@@ -314,7 +314,7 @@ qui a des OR liés, ou de fusion de deux fiches client.
 - [x] Aucune couleur Tailwind nue (`bg|text|border-{red,amber,green,blue,slate,gray,orange}-N`)
   dans `apps/web/src/composants/**` — dossier inexistant à ce jour (F1-U0 ne crée aucun écran),
   vérification à revalider par la commande du plan (`grep -rE ...`) dès que F1-U1 y écrit.
-- [ ] Relecture par `lead-frontend` avant que F1-U1 ne démarre.
+- [ ] Relecture par la session principale avant que F1-U1 ne démarre.
 - [x] Les trois densités sont lisibles à 60 cm sur tablette — vérifié par capture à 1024 px
   (paysage, densité `aeree`, texte 16 px de base + cible 48 px) et à 768 px (portrait, `aeree`,
   texte 18 px + cible 56 px) : marges et tailles conformes au tableau §8.2/§8.3 du document

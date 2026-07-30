@@ -15,6 +15,7 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 
 import { ChoixPlaqueInterchangeable } from './ChoixPlaqueInterchangeable';
 import { ResultatClient } from './ResultatClient';
+import { ResultatDocumentVente } from './ResultatDocumentVente';
 import { ResultatOr } from './ResultatOr';
 import { ResultatVehicule } from './ResultatVehicule';
 
@@ -61,6 +62,7 @@ export function PanneauResultatsRecherche({
   const vehicules = reponse?.resultats.filter((resultat) => resultat.type === 'vehicule') ?? [];
   const clients = reponse?.resultats.filter((resultat) => resultat.type === 'client') ?? [];
   const ordres = reponse?.resultats.filter((resultat) => resultat.type === 'ordre_reparation') ?? [];
+  const documents = reponse?.resultats.filter((resultat) => resultat.type === 'document_vente') ?? [];
   const plaqueInterchangeable = reponse?.plaqueInterchangeable === true;
   const aucunResultat = reponse !== null && reponse.resultats.length === 0;
 
@@ -112,6 +114,15 @@ export function PanneauResultatsRecherche({
               resultats={ordres}
               onSelectionner={onSelectionner}
               rendreContenu={(resultat) => <ResultatOr resultat={resultat} />}
+            />
+          ) : null}
+
+          {!enChargement && documents.length > 0 ? (
+            <GroupeResultats
+              heading={t('resultatsGroupes.documents', { count: documents.length })}
+              resultats={documents}
+              onSelectionner={onSelectionner}
+              rendreContenu={(resultat) => <ResultatDocumentVente resultat={resultat} />}
             />
           ) : null}
         </CommandList>

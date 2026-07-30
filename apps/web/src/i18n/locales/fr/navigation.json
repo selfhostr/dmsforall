@@ -6,16 +6,13 @@
     "accueil": "Accueil",
     "clients": "Clients",
     "vehicules": "Véhicules",
-    "recherche": "Recherche"
+    "recherche": "Recherche",
+    "factures": "Facturation"
   },
   "menu": {
-    "ouvrir": "Ouvrir le menu",
-    "fermer": "Fermer le menu"
+    "ouvrir": "Ouvrir le menu"
   },
   "entete": {
-    "garage": "Garage",
-    "site": "Site",
-    "tousLesSites": "Tous les sites",
-    "compte": "Mon compte"
+    "tousLesSites": "Tous les sites"
   }
 }

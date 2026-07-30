@@ -5,7 +5,7 @@
 > `docs/plan-etape-1-backend.md` (§4 endpoints, §4.3 codes, §4.5 idempotence),
 > `docs/plan-etape-1-frontend.md` (§10 dépendances D-01→D-12), et le socle livré
 > (`packages/shared/src/contrats/`, `apps/api/src/common/`, `packages/shared/openapi/dfa-openapi.json`).
-> Public : lead-backend, expert-nestjs, expert-database, expert-react, expert-tests, expert-i18n.
+> Public : expert-nestjs, expert-database, expert-react, expert-tests, expert-i18n.
 >
 > **Ce document est le contrat. Il précède l'implémentation et prime sur les listes d'endpoints
 > esquissées dans les deux plans** — les divergences assumées avec ces plans sont listées en §14, avec

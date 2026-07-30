@@ -179,6 +179,8 @@ describe('EcranFicheOrdreReparation', () => {
         totauxParPayeur: [
           {
             payeur: 'client',
+            payeurClientId: null,
+            destinataire: { clientId: CLIENT.id, nomAffiche: CLIENT.nomAffiche },
             montantHtCentimes: 20000,
             montantTvaCentimes: 1620,
             montantTtcCentimes: 21620,
@@ -250,6 +252,60 @@ describe('EcranFicheOrdreReparation', () => {
       // silencieuse qui laisserait croire que l'action a réussi.
       expect(await within(dialogue).findByText("Cette transition n'est pas autorisée pour ce statut.")).toBeInTheDocument();
       expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+  });
+
+  describe("action « Facturer » — mène à l'écran de facturation, ne facture jamais depuis ce panneau", () => {
+    // Rendu dédié : contrairement à `rendre()`, on a besoin d'une seconde route pour observer la
+    // navigation réelle déclenchée par le clic (`/ordres-reparation/:orId/facturer`). L'écran cible
+    // est remplacé par une sentinelle : ce test prouve que le panneau MÈNE au bon endroit, pas ce
+    // que fait `EcranFacturerOrdreReparation` une fois arrivé (couvert par son propre spec).
+    function rendreAvecRouteFacturation() {
+      const queryClient = creerQueryClientTest();
+      return render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={['/ordres-reparation/or-1']}>
+            <Routes>
+              <Route path="/ordres-reparation/:orId" element={<EcranFicheOrdreReparation />} />
+              <Route path="/ordres-reparation/:orId/facturer" element={<p>Écran de facturation de l’OR</p>} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+    }
+
+    it('propose « Facturer » quand le serveur le liste dans `actionsDisponibles` (OR terminé, droit présent)', async () => {
+      installerHandler(construireOr({ statut: 'termine', actionsDisponibles: ['facturer', 'restituer'] }));
+      rendre();
+
+      // `Button asChild` + `Link` rend un `<a>` (role `link`), pas un `<button>` — même convention
+      // que les autres actions de navigation du dépôt (`EcranNouvelOrdreReparation.spec.tsx`,
+      // `EcranParametresFacturation.spec.tsx`) : « Facturer » ouvre un écran, ce n'est jamais une
+      // mutation directe depuis ce panneau.
+      expect(await screen.findByRole('link', { name: 'Facturer' })).toBeInTheDocument();
+    });
+
+    it("ne propose PAS « Facturer » quand le serveur ne le liste pas (ex. droit `facturation.document.creer` absent pour un technicien), même sur un OR terminé", async () => {
+      // Même OR `termine` que le test précédent — seule `actionsDisponibles` change, exactement
+      // comme le ferait le serveur pour un rôle sans le droit `facturation.document.creer`.
+      installerHandler(construireOr({ statut: 'termine', actionsDisponibles: ['restituer'] }));
+      rendre();
+
+      await screen.findByRole('button', { name: 'Restituer le véhicule' });
+      expect(screen.queryByRole('link', { name: 'Facturer' })).not.toBeInTheDocument();
+    });
+
+    it('un clic sur « Facturer » navigue vers /ordres-reparation/:orId/facturer, sans déclencher de facturation depuis ce panneau', async () => {
+      installerHandler(construireOr({ statut: 'termine', actionsDisponibles: ['facturer'] }));
+      const utilisateur = userEvent.setup();
+      rendreAvecRouteFacturation();
+
+      await utilisateur.click(await screen.findByRole('link', { name: 'Facturer' }));
+
+      expect(await screen.findByText('Écran de facturation de l’OR')).toBeInTheDocument();
+      // Aucun dialogue de confirmation générique ne s'est ouvert : ce n'est pas une transition
+      // mutée depuis ce panneau, c'est une navigation vers l'écran dédié au choix par groupe payeur.
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
   });
 

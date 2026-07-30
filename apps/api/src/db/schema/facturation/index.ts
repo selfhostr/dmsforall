@@ -10,3 +10,4 @@ export * from './periode-comptable';
 export * from './document-vente';
 export * from './paiement';
 export * from './export';
+export * from './tenant-bloc-creancier';

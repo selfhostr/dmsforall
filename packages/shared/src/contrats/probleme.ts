@@ -176,6 +176,49 @@ export const CODES_ERREUR = [
   // RF-112, RF-113 : changement de cible, de granularité ou de mapping refusé hors d'une
   // frontière de période comptable — jamais en cours de mois.
   'BASCULE_FIDUCIAIRE_HORS_FRONTIERE',
+  // --- Étape 3 : pièces — référentiel article (docs/specification-etape-3-pieces.md, RP-xx) ---
+  // RP-02, RP-03 : une référence (principale ou alternative) déjà portée par un AUTRE article —
+  // jamais un doublon d'article créé par référence.
+  'ARTICLE_REFERENCE_COLLISION',
+  // RP-04 : marquage obsolète sans `referenceRemplacementId` alors qu'une référence
+  // `remplace_par` est déjà connue pour cet article — contrôle d'état, pas de format (400, même
+  // famille que POINTAGE_MOTIF_REQUIS/PRET_CONDUCTEUR_REQUIS).
+  'ARTICLE_REMPLACANT_REQUIS',
+  // RP-07, §6.1 : désactivation refusée tant qu'une réservation `active` porte sur l'article.
+  'ARTICLE_DESACTIVATION_IMPOSSIBLE',
+  // --- Étape 3 : pièces — stock et mouvements ---
+  // RP-15 : une sortie (casse, perte, transfert, ajustement à la baisse) dépasserait le stock
+  // disponible ; le forçage explicite reste un point de droit non tranché (voir le rapport
+  // d'accompagnement de l'agent expert-api sur `PP-02`).
+  'STOCK_INSUFFISANT',
+  // RP-17 : motif obligatoire pour `casse`/`perte`/`ajustement_inventaire` — conditionnel au
+  // type de mouvement, donc un code dédié plutôt qu'une contrainte `min()` uniforme sur `motif`.
+  'MOUVEMENT_MOTIF_REQUIS',
+  // --- Étape 3 : pièces — réservation (RP-19 → RP-25, le cœur du sujet) ---
+  // Transition hors machine (`satisfaire`/`liberer` sur une réservation qui n'est plus `active`)
+  // — même patron que LIGNE_TRANSITION_INTERDITE/DOCUMENT_TRANSITION_INTERDITE.
+  'RESERVATION_TRANSITION_INTERDITE',
+  // RP-22 : une réservation ne se satisfait que sur le site de l'OR, ou après transfert tracé.
+  'RESERVATION_SITE_INCOHERENT',
+  // --- Étape 3 : pièces — commande fournisseur (RP-26 → RP-31, §6.2) ---
+  'COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE',
+  // RP-28 : annulation d'un reliquat déjà soldé (livré en totalité OU déjà annulé).
+  'COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE',
+  // §7.4 : réception déclarant une référence différente de celle commandée sans que ce soit une
+  // référence `equivalente` connue de l'article commandé — refuse de forcer une correspondance
+  // fausse plutôt que d'accepter silencieusement.
+  'RECEPTION_REFERENCE_NON_EQUIVALENTE',
+  // --- Étape 3 : pièces — consigne d'échange standard (RP-37 → RP-42, §6.4) ---
+  'CONSIGNE_TRANSITION_INTERDITE',
+  // --- Étape 1 (lot 2) : pointage — identification par code PIN, RM-113 → RM-115 ---
+  // `docs/specification-pointage.md` : le PIN attribue un pointage à un technicien, il n'ouvre
+  // aucune session et ne protège aucun droit — voir `contrats/pointage/identification.ts` pour la
+  // justification complète, y compris pourquoi ce n'est délibérément PAS un code `AUTH_*` malgré
+  // un statut HTTP partagé (401 / 423).
+  'POINTAGE_PIN_INVALIDE',
+  // RM-114 : ralentissement anti-brute-force sur un espace de PIN volontairement petit. Nombre
+  // d'essais et durée de blocage restent des paramètres de sécurité, non fixés par ce code.
+  'POINTAGE_PIN_VERROUILLE',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -272,6 +315,19 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   EXPORT_MAPPING_INCOMPLET: 409,
   EXPORT_DEJA_TRANSMIS: 409,
   BASCULE_FIDUCIAIRE_HORS_FRONTIERE: 409,
+  ARTICLE_REFERENCE_COLLISION: 409,
+  ARTICLE_REMPLACANT_REQUIS: 400,
+  ARTICLE_DESACTIVATION_IMPOSSIBLE: 409,
+  STOCK_INSUFFISANT: 409,
+  MOUVEMENT_MOTIF_REQUIS: 400,
+  RESERVATION_TRANSITION_INTERDITE: 409,
+  RESERVATION_SITE_INCOHERENT: 409,
+  COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE: 409,
+  COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE: 409,
+  RECEPTION_REFERENCE_NON_EQUIVALENTE: 409,
+  CONSIGNE_TRANSITION_INTERDITE: 409,
+  POINTAGE_PIN_INVALIDE: 401,
+  POINTAGE_PIN_VERROUILLE: 423,
 };
 
 /**
@@ -354,6 +410,19 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   EXPORT_MAPPING_INCOMPLET: 'Mapping comptable incomplet',
   EXPORT_DEJA_TRANSMIS: 'Document déjà transmis à la fiduciaire',
   BASCULE_FIDUCIAIRE_HORS_FRONTIERE: 'Bascule de fiduciaire hors frontière de période',
+  ARTICLE_REFERENCE_COLLISION: 'Référence déjà portée par un autre article',
+  ARTICLE_REMPLACANT_REQUIS: 'Référence de remplacement requise',
+  ARTICLE_DESACTIVATION_IMPOSSIBLE: "Désactivation d'article impossible",
+  STOCK_INSUFFISANT: 'Stock disponible insuffisant',
+  MOUVEMENT_MOTIF_REQUIS: 'Motif de mouvement requis',
+  RESERVATION_TRANSITION_INTERDITE: 'Transition interdite pour cette réservation',
+  RESERVATION_SITE_INCOHERENT: 'Réservation incohérente avec le site',
+  COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE: 'Transition interdite pour cette commande fournisseur',
+  COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE: 'Reliquat déjà soldé',
+  RECEPTION_REFERENCE_NON_EQUIVALENTE: 'Référence reçue non reconnue comme équivalente',
+  CONSIGNE_TRANSITION_INTERDITE: 'Transition interdite pour cette consigne',
+  POINTAGE_PIN_INVALIDE: 'Code PIN non reconnu',
+  POINTAGE_PIN_VERROUILLE: 'Sélecteur de code PIN temporairement verrouillé',
 };
 
 /**
@@ -375,6 +444,13 @@ export const TYPES_ELEMENT_BLOQUANT = [
   'ressource_planning',
   'ordre_reparation',
   'champ',
+  // Étape 2 (facturation) : blocages émis par `facturation/documents/` (émission/avoir sur un
+  // document verrouillé, ligne déjà facturée...). Miroir i18n requis : clés
+  // `erreurs:blocages.document_vente` / `erreurs:blocages.ligne_document` dans
+  // `apps/web/src/i18n/locales/<langue>/erreurs.json` (FR/DE/IT) — hors périmètre de ce fichier,
+  // à vérifier séparément.
+  'document_vente',
+  'ligne_document',
 ] as const;
 export type TypeElementBloquant = (typeof TYPES_ELEMENT_BLOQUANT)[number];
 
@@ -449,6 +525,25 @@ export const CODES_AVERTISSEMENT = [
   'POINTAGE_CLOTURE_AUTOMATIQUE',
   'PRET_CASCADE_RESTITUTION',
   'OR_MULTI_PAYEURS_DESACTIVE',
+  // Étape 3 (pièces, docs/specification-etape-3-pieces.md) :
+  // RP-24, CP-02 — une ligne d'OR pièce ne peut PAS obtenir de réservation faute de disponibilité
+  // (dernier exemplaire déjà réservé par un autre OR). SUCCÈS avec réserve : la ligne se crée
+  // quand même, `blocage = 'pieces'` (RP-24) — ce n'est délibérément PAS un CodeErreur, exactement
+  // pour la même raison que POINTAGE_CLOTURE_AUTOMATIQUE ci-dessus. `donnees` porte la forme
+  // `DonneesAvertissementReservationIndisponible` (`contrats/pieces/stock.ts`) : de quoi dire au
+  // réceptionnaire « cette pièce est déjà réservée pour l'OR de M. Dupont ».
+  'PIECE_RESERVATION_INDISPONIBLE',
+  // §7.4 — réception d'une quantité supérieure au reliquat restant (erreur de préparation
+  // fournisseur, ou substitution acceptée par lot). Jamais bloquant (RP-27 ne fixe aucune limite
+  // haute) : le mouvement d'entrée porte la quantité réellement livrée.
+  'RECEPTION_EXCEDENT_RELIQUAT',
+  // RP-23, troisième cas — le magasinier libère une réservation dont l'OR n'est ni `annule` ni
+  // refusé : un geste volontaire, pas une anomalie, mais qui mérite d'être vu.
+  'RESERVATION_LIBEREE_OR_ACTIF',
+  // §7.6, PP-05 — ajustement d'inventaire dont l'écart de valeur dépasse le seuil paramétré :
+  // remonte à la direction sans jamais bloquer la saisie du magasinier (§7.6 : « pas absorbée
+  // silencieusement par l'ajustement »).
+  'INVENTAIRE_ECART_SIGNIFICATIF',
 ] as const;
 export type CodeAvertissement = (typeof CODES_AVERTISSEMENT)[number];
 

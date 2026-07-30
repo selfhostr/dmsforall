@@ -1,12 +1,12 @@
 # Design — Étape 1 : l'écran d'ordre de réparation et le système visuel de l'atelier
 
 > Auteur : expert-ui. Base : `docs/specification-etape-1-atelier-clients.md` (métier, RM/CT/T/I) et
-> `docs/plan-etape-1-frontend.md` (carte des écrans, arbitrages déjà pris par lead-frontend — §2 à §11).
+> `docs/plan-etape-1-frontend.md` (carte des écrans, arbitrages déjà pris — §2 à §11).
 > **Ce document ne refait pas la carte des écrans.** Il la complète là où l'implémentation a besoin d'un
 > niveau de précision supérieur : la structure exacte de l'écran d'OR, l'anatomie du bandeau, la mécanique
 > clavier de la saisie de lignes, les tokens de statut, l'écran de pointage et l'écran de signature.
 > Quand une décision est déjà arbitrée dans le plan, ce document y renvoie plutôt que de la répéter.
-> Public : expert-react (T-R-06a/b/c, T-R-07, T-R-08), expert-ui (T-UI-01 → T-UI-08), lead-frontend (revue).
+> Public : expert-react (T-R-06a/b/c, T-R-07, T-R-08), expert-ui (T-UI-01 → T-UI-08).
 > Composants cités : ceux déjà nommés dans le plan (§6.3) — ce document ne renomme rien, il précise leur
 > contenu et leur comportement.
 
@@ -162,7 +162,7 @@ un OR sur tablette posée au comptoir.
 
 ### 3.1 Les cinq questions → les cinq réponses
 
-| # | Question (spéc, annexe lead-frontend) | Élément du bandeau | Si l'information manque |
+| # | Question (spéc) | Élément du bandeau | Si l'information manque |
 |---|---|---|---|
 | 1 | Où est le véhicule ? | `Localisation` — menu déroulant directement actionnable, ligne 2 | Jamais vide silencieusement : valeur par défaut `Parc` à l'ouverture de l'OR, affichée en `AvertissementConfirmable` ambre si aucune mise à jour depuis > 4 h alors que l'OR est `en_cours` |
 | 2 | Qui travaille dessus ? | `PastilleTechnicienEnCours` (une par pointage ouvert), ligne 2 droite | Si aucun pointage ouvert et statut `en_cours` : zone remplacée par le texte neutre « Personne ne pointe actuellement » (jamais un vide muet) |
@@ -615,7 +615,7 @@ variables CSS `--densite-*` côté expert-ui — au choix de l'implémentation, 
 
 | Section de ce document | Règles/cas couverts |
 |---|---|
-| §2 Maquette structurelle | RM-55, RM-56, RM-53, RM-64/65/66, RM-73, RM-71, annexe lead-frontend « cinq questions » |
+| §2 Maquette structurelle | RM-55, RM-56, RM-53, RM-64/65/66, RM-73, RM-71 |
 | §3 Bandeau d'état | RM-53, RM-54, RM-55, RM-56, RM-59, I-01→I-15, §3.3/§9.8 du plan |
 | §4 Saisie de lignes | RM-54, RM-63→65, §3.5 et §5.6 (idempotence) du plan, §9.2 du plan (interruption comptoir) |
 | §5 Statuts visuels | §5.1 (machine à états OR), §5.2 (ligne), RM-64, RM-66, RM-77/78, §6.12 (marqueur sécurité) |

@@ -53,12 +53,36 @@ const REPONSE_CLIENT: ReponseRecherche = {
   ],
 };
 
+// Contrat de `chercherDocuments` (apps/api/src/recherche/service-recherche.ts, branche en cours
+// d'écriture par l'agent propriétaire de ce module) : `resume` = numero/typeDocument/statut/
+// clientNom/dateDocument, JAMAIS de clé monétaire (RF-116). On conçoit contre ce contrat, pas
+// contre une implémentation figée.
+const REPONSE_DOCUMENT_VENTE: ReponseRecherche = {
+  plaqueInterchangeable: false,
+  resultats: [
+    {
+      type: 'document_vente',
+      id: 'd1',
+      score: 1,
+      correspondance: { champ: 'numero', valeur: 'FA-2026-000123', historique: false },
+      resume: {
+        numero: 'FA-2026-000123',
+        typeDocument: 'facture',
+        statut: 'emis',
+        clientNom: 'Meier Hans',
+        dateDocument: '15.03.2026',
+      },
+    },
+  ],
+};
+
 function rendre(routeInitiale = '/recherche') {
   return renduAvecRoutes(
     [
       { path: '/recherche', element: <EcranRecherche /> },
       { path: '/clients/:id', element: <div>PAGE_CLIENT</div> },
       { path: '/vehicules/:id', element: <div>PAGE_VEHICULE</div> },
+      { path: '/factures/:id', element: <div>PAGE_FACTURE</div> },
     ],
     { routeInitiale },
   );
@@ -110,6 +134,25 @@ describe('EcranRecherche', () => {
     await userEvent.setup().click(screen.getByText('Meier Hans'));
 
     expect(await screen.findByText('PAGE_CLIENT')).toBeInTheDocument();
+  });
+
+  // ATTENDU ROUGE tant que `PanneauResultatsRecherche` (composants/recherche/, hors périmètre de
+  // cet agent) ne rend pas de groupe pour `document_vente` — voir le rapport de fin de tâche.
+  // Une fois le panneau câblé (composant `ResultatDocumentVente` + groupe dans le panneau, clé
+  // i18n `recherche:resultatsGroupes.documents` posée), ce test doit passer sans modification.
+  it('affiche un résultat document_vente avec sa nature et navigue vers la fiche facture', async () => {
+    server.use(http.get('/api/v1/recherche', () => HttpResponse.json(REPONSE_DOCUMENT_VENTE)));
+    rendre();
+
+    await userEvent.setup().type(screen.getByRole('combobox'), 'FA-2026-000123');
+
+    expect(await screen.findByText('FA-2026-000123')).toBeInTheDocument();
+    // Nature du document — même badge que la fiche facture (BadgeTypeDocument), aucun montant.
+    expect(screen.getByText('Facture')).toBeInTheDocument();
+
+    await userEvent.setup().click(screen.getByText('FA-2026-000123'));
+
+    expect(await screen.findByText('PAGE_FACTURE')).toBeInTheDocument();
   });
 
   it('erreur serveur : message actionnable avec retry, jamais un écran blanc', async () => {

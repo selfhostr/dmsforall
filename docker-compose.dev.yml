@@ -1,0 +1,138 @@
+# Dev ENTIÈREMENT conteneurisé — pour un poste SANS Node/pnpm installés (voir README.md
+# section « Dev sans Node sur l'hôte »). Le flux Node local (docker-compose.yml + `pnpm dev`
+# sur l'hôte) reste le flux normal et n'est pas concerné par ce fichier.
+#
+# Ce fichier est un OVERRIDE de docker-compose.yml, jamais un fichier autonome :
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml <commande>
+#
+# Choix : override plutôt que fichier autonome avec réseau externe déclaré en dur. Un fichier
+# `-f` supplémentaire du MÊME projet Compose (le nom de projet par défaut est le nom du
+# dossier, ici « dmsforall ») rejoint AUTOMATIQUEMENT le réseau par défaut du projet
+# (`dmsforall_default`) — les services `api`/`web` ci-dessous joignent donc `postgres`/`redis`
+# par leur nom de service sans une seule ligne de config réseau. Un fichier autonome aurait dû
+# référencer ce réseau par son nom généré (`networks: { dmsforall_default: { external: true } }`)
+# — un couplage fragile au nom du dossier de clone ou à un `-p`/`COMPOSE_PROJECT_NAME`
+# personnalisé, pour un bénéfice nul ici (les deux fichiers sont TOUJOURS utilisés ensemble).
+# Exactement le genre de complexité que la philosophie du projet (« la simplicité qui marche »,
+# CONTRIBUTING.md) demande de ne pas ajouter sans contrainte réelle.
+#
+# Contrepartie de ce choix, à connaître : `docker compose -f docker-compose.dev.yml up` SEUL
+# échouerait (`postgres`/`redis` n'existent pas dans ce fichier) — les deux `-f` sont
+# obligatoires dans TOUTES les commandes, voir README.md pour la liste complète.
+#
+# Pas de Dockerfile dédié : l'image officielle `node:22-alpine` suffit telle quelle, invoquée
+# directement dans `command:`. Elle tourne NATIVEMENT en arm64 sur un Mac Apple Silicon avec
+# Docker Desktop en arm64 (vérifié : `docker info` rapporte `Architecture: aarch64` sur ce
+# poste) — donc les binaires natifs récupérés par `pnpm install` DANS le conteneur (ex.
+# `@node-rs/argon2`, voir apps/api/package.json) sont ceux de l'architecture qui exécute
+# réellement le code, pas ceux de l'hôte. Un Dockerfile de dev n'apporterait rien de plus :
+# aucune dépendance système supplémentaire n'est nécessaire (contrairement à
+# apps/api/Dockerfile et apps/web/Dockerfile de prod, hors périmètre et non modifiés), et
+# reconstruire une image à chaque changement de dépendance serait plus lent qu'un `pnpm
+# install` dans un conteneur éphémère qui réutilise le cache pnpm via volume nommé (voir
+# `dfa_dev_pnpm_store` plus bas). Le conteneur tourne en root (image officielle non modifiée) —
+# acceptable en dev, où l'isolation utilisateur n'a pas la portée d'un serveur de prod ; le
+# non-root réel reste porté par apps/api/Dockerfile et apps/web/Dockerfile en production.
+#
+# node_modules : PIÈGE VÉRIFIÉ (voir README.md). Le dépôt entier est bind-monté dans le
+# conteneur (`.:/workspace`) pour le hot-reload — mais un `node_modules` installé pour
+# arm64/musl (ce conteneur) ne doit JAMAIS être écrasé par un `node_modules` de l'hôte (qui
+# n'existe pas aujourd'hui, mais le montage doit rester robuste si quelqu'un en crée un par
+# erreur, ex. en lançant `pnpm install` par mégarde avec un Node installé plus tard). pnpm
+# utilise un `node_modules` à la racine ET dans CHAQUE workspace (`apps/api`, `apps/web`,
+# `packages/shared` — voir pnpm-workspace.yaml). La solution standard : un volume NOMMÉ monté
+# APRÈS le bind-mount du dépôt, à chacun de ces chemins exacts — Docker monte les volumes dans
+# l'ordre de la liste, donc chaque volume nommé « masque » le sous-dossier correspondant du
+# bind-mount et vit uniquement dans le conteneur, jamais sur l'hôte. Les volumes sont NOMMÉS
+# (pas anonymes) et PARTAGÉS entre `api` et `web` : un seul `pnpm install` (commande `run`
+# documentée dans README.md) peuple tous les workspaces, visibles ensuite des deux services de
+# dev — c'est un `pnpm install` unique à la racine qui installe tout (pnpm workspace), jamais un
+# par service.
+#
+# `dfa_dev_pnpm_store` : cache du magasin de contenu pnpm (téléchargements npm), partagé lui
+# aussi. Sans lui, chaque `pnpm install` reparti de zéro retélécharge tout le registre —
+# purement une accélération, aucune conséquence fonctionnelle si le volume est supprimé.
+#
+# `corepack enable && ` en tête de CHAQUE commande (voir `command:` ci-dessous, et README.md
+# pour les commandes `run` documentées) : vérifié en pratique, PAS une précaution superflue.
+# L'activation par corepack du shim `pnpm` (résolution de la version épinglée dans
+# `packageManager`, `package.json` racine) modifie `/usr/local/bin` DANS le système de fichiers
+# du conteneur — une couche de l'image, jamais persistée. Chaque `docker compose run` (une
+# commande one-off comme `pnpm install`) part d'un conteneur ÉPHÉMÈRE neuf à partir de l'image
+# `node:22-alpine` ; sans `corepack enable` à chaque fois, `pnpm` n'existe simplement pas
+# encore. `dfa_dev_corepack_cache` évite de retélécharger le tarball de pnpm à chaque
+# activation (accélération uniquement, comme `dfa_dev_pnpm_store`).
+
+x-service-node-dev: &service-node-dev
+  image: node:22-alpine
+  working_dir: /workspace
+  # `env_file` d'abord (toutes les variables du .env racine — secrets de session, paramètres
+  # Argon2, WEB_URL_PUBLIQUE pour l'allowlist CORS vue par le NAVIGATEUR donc correcte telle
+  # quelle en http://localhost:5173, etc.), PUIS `environment:` qui gagne sur `env_file` (même
+  # pattern que docker-compose.yml, voir son commentaire de tête) pour les trois seules
+  # variables fausses depuis un conteneur : `.env` contient des `localhost` corrects pour un
+  # process Node sur l'HÔTE (ports publiés par docker-compose.yml), mais qui désigneraient le
+  # conteneur lui-même depuis l'intérieur du réseau Compose. `postgres`/`redis` sont les noms de
+  # service du docker-compose.yml existant (réseau par défaut du projet, voir plus haut).
+  env_file:
+    - .env
+  environment:
+    DATABASE_URL: postgresql://dfa_app:dfa_app_dev@postgres:5432/dfa_dev
+    DATABASE_URL_MIGRATION: postgresql://dfa_migrator:dfa_migrator_dev@postgres:5432/dfa_dev
+    REDIS_URL: redis://redis:6379
+    # Cible du proxy Vite `/api` vue par le conteneur `web` — voir apps/web/vite.config.ts et
+    # son commentaire. Ignorée par le service `api` (inoffensif). Absente en dev Node local :
+    # `vite.config.ts` retombe alors sur son défaut `http://localhost:3000`, inchangé.
+    DFA_DEV_PROXY_API_CIBLE: http://api:3000
+  volumes:
+    - .:/workspace
+    - dfa_dev_node_modules_racine:/workspace/node_modules
+    - dfa_dev_node_modules_api:/workspace/apps/api/node_modules
+    - dfa_dev_node_modules_web:/workspace/apps/web/node_modules
+    - dfa_dev_node_modules_shared:/workspace/packages/shared/node_modules
+    - dfa_dev_pnpm_store:/root/.local/share/pnpm/store
+    - dfa_dev_corepack_cache:/root/.cache/node/corepack
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  api:
+    <<: *service-node-dev
+    container_name: dfa-api-dev
+    # `nest start --watch` (script `dev` de apps/api/package.json) : recompile et redémarre le
+    # process à chaque changement de fichier sous apps/api/src (bind-mount, donc visible
+    # immédiatement dans le conteneur). AUCUN `pnpm install` ici : voir README.md, c'est une
+    # étape séparée et explicite (`docker compose … run --rm api pnpm install …`), pour ne pas
+    # le refaire à chaque `docker compose … up` (le volume `dfa_dev_pnpm_store` le rendrait
+    # rapide, mais un `up` doit démarrer le serveur de dev, pas décider silencieusement de
+    # réinstaller des dépendances).
+    command: ['sh', '-c', 'corepack enable && pnpm --filter @dfa/api dev']
+    ports:
+      # Publié sur l'hôte : c'est ce que curl/le navigateur sur le Mac joignent en localhost:3000
+      # — le fait que le process tourne dans un conteneur est invisible du point de vue client.
+      - '3000:3000'
+
+  web:
+    <<: *service-node-dev
+    container_name: dfa-web-dev
+    # `vite` (script `dev` de apps/web/package.json) avec `--host` : sans lui, Vite n'écoute que
+    # sur loopback (défaut Vite), injoignable depuis le Mac via le port publié du conteneur —
+    # voir aussi `host: true` ajouté à apps/web/vite.config.ts (server.host), qui a le même
+    # effet et couvre aussi un `pnpm dev` lancé directement sans ce flag. Les deux sont
+    # redondants par construction, volontairement : `--host` documente l'intention ici, sans
+    # dépendre de qui appelle `vite` avec quels arguments.
+    command: ['sh', '-c', 'corepack enable && pnpm --filter @dfa/web dev -- --host']
+    ports:
+      - '5173:5173'
+
+volumes:
+  dfa_dev_node_modules_racine:
+  dfa_dev_node_modules_api:
+  dfa_dev_node_modules_web:
+  dfa_dev_node_modules_shared:
+  dfa_dev_pnpm_store:
+  dfa_dev_corepack_cache:

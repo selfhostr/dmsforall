@@ -35,3 +35,9 @@ describe('chemins.vehicules', () => {
     expect(chemins.vehicules.detail('veh-1')).toBe('/vehicules/veh-1');
   });
 });
+
+describe('chemins.parametrage', () => {
+  it('construit le chemin du bloc créancier, singleton par tenant — jamais de `?site=`', () => {
+    expect(chemins.parametrage.facturation()).toBe('/parametrage/facturation');
+  });
+});

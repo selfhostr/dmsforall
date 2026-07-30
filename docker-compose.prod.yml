@@ -239,6 +239,76 @@ services:
           cpus: '0.1'
           memory: 128M
 
+  # --- Initialisation des permissions du volume PDF (job ponctuel, idempotent) ---------------
+  # `api` génère et met en cache les PDF de facture sur disque (`StockagePdfDisqueLocal`,
+  # apps/api/src/facturation/impression/stockage-pdf.ts) sous `<cwd>/uploads/documents-pdf`, soit
+  # `/repo/apps/api/uploads/documents-pdf` dans l'image (apps/api/Dockerfile fixe `WORKDIR
+  # /repo/apps/api` juste avant `CMD`).
+  #
+  # CORRECTIF D'AUDIT (rien de tout ceci n'existait avant) : ce répertoire n'était monté sur AUCUN
+  # volume — chaque recréation du conteneur `api` (chaque déploiement applicatif, §6
+  # docs/deploiement-production.md) effaçait silencieusement tous les PDF déjà générés. Grave :
+  # `ServiceImpressionFacture.obtenirPdf` (service-impression-facture.ts) NE régénère PAS un PDF
+  # manquant quand `document.pdfCle` est déjà posé en base — `stockage.lire(cle)` lève une erreur
+  # de fichier absent non rattrapée, ce n'est pas un cache-miss qui retombe silencieusement sur le
+  # payload figé. Sans ce volume, retélécharger une facture déjà émise après un simple
+  # redéploiement rendait donc une 500. Signalé séparément pour correction côté
+  # `apps/api/src/facturation/impression/` (hors périmètre infrastructure de ce fichier) : cette
+  # absence de repli reste un défaut applicatif même une fois ce volume en place — ce correctif-ci
+  # protège seulement contre la perte du fichier au niveau infrastructure, pas contre une future
+  # cause de fichier manquant côté code.
+  #
+  # Volume nommé `dfa_api_uploads` (ordinaire, voir `volumes:` en bas de ce fichier) — SUFFISANT et
+  # volontairement PAS un stockage objet (S3) à ce stade (philosophie §0 : ne pas complexifier
+  # avant besoin réel) : une seule instance `api` sur un seul hôte, et la donnée de RÉFÉRENCE reste
+  # le payload QR figé en base (`document_vente`, voir docs/design-impression-facture-qr.md) — le
+  # PDF sur ce volume n'est qu'un CACHE de ce payload. Conséquences assumées de ce choix :
+  #   - Sauvegarde : ce volume n'entre PAS dans la procédure §7 (qui ne sauvegarde que Postgres).
+  #     Ce n'est pas un oubli : tant que le correctif applicatif ci-dessus n'est pas fait, une
+  #     perte de ce volume reste une INDISPONIBILITÉ temporaire de téléchargement (pas une perte de
+  #     donnée métier), à traiter en régénérant manuellement via une requête applicative une fois
+  #     le correctif posé. Si ce correctif tarde durablement, réévaluer : inclure ce volume dans la
+  #     sauvegarde chiffrée devient alors la mitigation la plus simple en attendant.
+  #   - Montée en charge horizontale : si DFA passe un jour à PLUSIEURS instances `api`, ce volume
+  #     local cesse d'être suffisant (chaque instance verrait un cache différent, un client
+  #     pourrait générer sur une instance et lire sur une autre qui ne l'a jamais vu) — bascule vers
+  #     un stockage objet S3-compatible (Infomaniak/Exoscale) à CE moment-là, pas avant.
+  #
+  # Pourquoi un service séparé plutôt qu'un `chown` posé une fois dans apps/api/Dockerfile : `api`
+  # tourne déjà non-root, sans capacité Linux (`cap_drop: [ALL]` plus bas), et un volume Docker
+  # NOMMÉ fraîchement créé est root:root par défaut — l'utilisateur `dfa` de l'image (uid 100, gid
+  # 101, VÉRIFIÉ empiriquement contre `node:22-alpine` : `addgroup -S dfa && adduser -S dfa -G dfa`
+  # dans apps/api/Dockerfile attribue ces valeurs sur l'image actuelle, `docker run --rm <image> id
+  # dfa`) ne peut alors pas y écrire (`mkdir: Permission denied`, reproduit puis corrigé par ce
+  # service avant d'écrire ce correctif — voir la preuve dans le rapport d'audit). Un `chown` posé
+  # une seule fois au build de l'image ne protège que si Docker recopie fidèlement les permissions
+  # de l'image dans le volume à sa toute première initialisation — comportement réel mais fragile à
+  # supposer sans le revérifier à chaque changement d'image de base ou de driver de stockage. Ce
+  # service `chown` donc EXPLICITEMENT le volume à chaque démarrage (idempotent, coût de quelques
+  # millisecondes) plutôt que de dépendre de ce mécanisme implicite.
+  #
+  # FRAGILITÉ CONNUE, à surveiller : l'uid/gid (100/101) en dur ci-dessous est celui attribué par
+  # Alpine à la PREMIÈRE paire utilisateur/groupe système créée dans l'image `node:22-alpine`
+  # actuelle (aucun autre `adduser`/`addgroup` avant `dfa` dans apps/api/Dockerfile aujourd'hui) —
+  # si ce Dockerfile change un jour l'ordre de création des utilisateurs système, ou change de base
+  # image, cette valeur doit être revérifiée (`docker run --rm <image> id dfa`) et mise à jour ici.
+  # Fixer un uid/gid EXPLICITE au `adduser` (`-u 10001 -g 10001`) supprimerait cette fragilité
+  # définitivement — changement dans `apps/api/Dockerfile`, hors périmètre d'écriture de cette
+  # tâche (docker/ et ce fichier uniquement), signalé pour correction ultérieure.
+  init-uploads-pdf:
+    container_name: dfa-init-uploads-pdf
+    image: busybox:1.36
+    command: ['sh', '-c', 'chown -R 100:101 /uploads && chmod -R u+rwX /uploads']
+    volumes:
+      - dfa_api_uploads:/uploads
+    # Pas de `networks:` : ce job ne parle à aucun autre conteneur, uniquement au volume monté.
+    restart: 'no'
+    # PAS de `cap_drop: [ALL]` ici, même exception documentée que `postgres`/`redis` plus haut :
+    # `chown` a besoin de CAP_CHOWN/CAP_FOWNER, présentes dans le jeu de capacités par défaut d'un
+    # conteneur root ordinaire, retirées par un `cap_drop: [ALL]`.
+    security_opt: *securite-defaut
+    logging: *logging-defaut
+
   # --- API (NestJS) --------------------------------------------------------------------------
   api:
     container_name: dfa-api
@@ -263,6 +333,12 @@ services:
       #     routage du reverse proxy sans erreur visible (juste des 502).
       - NODE_ENV=production
       - PORT=3000
+    # PDF de facture mis en cache — voir le commentaire détaillé sur `init-uploads-pdf` ci-dessus
+    # (pourquoi ce volume, ce qu'il couvre, ce qu'il ne couvre pas). Chemin exact attendu par
+    # `StockagePdfDisqueLocal` (apps/api/src/facturation/impression/stockage-pdf.ts) sous
+    # `process.cwd()` = `/repo/apps/api` (WORKDIR fixé par apps/api/Dockerfile juste avant `CMD`).
+    volumes:
+      - dfa_api_uploads:/repo/apps/api/uploads/documents-pdf
     # Aucun `ports:` : l'API n'est joignable que par les autres conteneurs de ce réseau (le
     # reverse proxy). Le seul point d'entrée public de toute la stack est le service
     # `reverse-proxy` ci-dessous.
@@ -284,6 +360,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      # Garantit que le volume `dfa_api_uploads` est déjà accessible en écriture par l'utilisateur
+      # `dfa` (uid 100) avant que `api` ne démarre — voir le commentaire détaillé sur
+      # `init-uploads-pdf` ci-dessus. `service_completed_successfully` : `api` attend que ce job
+      # ponctuel se soit terminé avec un code de sortie 0, pas qu'il tourne en continu (il ne
+      # tourne jamais en continu, `restart: 'no'`).
+      init-uploads-pdf:
+        condition: service_completed_successfully
     stop_grace_period: 30s
     security_opt: *securite-defaut
     # L'image tourne déjà en utilisateur non-root dédié (USER dfa, apps/api/Dockerfile) et n'a
@@ -504,3 +587,7 @@ volumes:
   dfa_redis_data:
   caddy_data:
   caddy_config:
+  # PDF de facture mis en cache par `api` — voir le commentaire détaillé sur le service
+  # `init-uploads-pdf` (ci-dessus, section `services:`) pour ce que ce volume couvre, ce qu'il n'a
+  # PAS besoin de couvrir (sauvegarde) et sa limite connue (une seule instance `api`).
+  dfa_api_uploads:

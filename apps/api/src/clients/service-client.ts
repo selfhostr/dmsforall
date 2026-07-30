@@ -15,7 +15,7 @@ import type {
 import { schemaModificationClient } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
-import { JETON_DB } from '../db';
+import { enDate, JETON_DB } from '../db';
 import { client, clientAdresse, clientCondition, clientNote, ordreReparation, vehiculeDetention } from '../db/schema';
 import type { LigneClient, NouveauClient } from '../db/schema';
 import { CollecteurAvertissements } from '../common/avertissements';
@@ -34,6 +34,8 @@ import {
   construireOrderBy,
   decoderCurseurPourTri,
   encoderCurseurTrie,
+  expressionTriValeur,
+  valeurCurseurDepuisTri,
   type DefinitionTri,
 } from './pagination-triee';
 import type { ParametresListeClients } from './schemas';
@@ -60,10 +62,6 @@ function choisirTelephonePrincipal(
   return telephones.find((t) => t.principal)?.valeur ?? telephones[0]!.valeur;
 }
 
-function normaliserValeurCurseur(valeur: string | number | Date | null): string | number | null {
-  return valeur instanceof Date ? valeur.toISOString() : valeur;
-}
-
 /** Statuts terminaux d'un OR au sens de RM-12 : un OR dans un autre statut est « ouvert ». */
 const STATUTS_OR_TERMINAUX = ['cloture', 'annule'] as const;
 
@@ -80,7 +78,7 @@ const DEFINITIONS_TRI_CLIENTS: Readonly<Record<ParametresListeClients['tri'], De
   },
   'numeroClient:asc': { expression: sql`c.numero`, sens: 'asc', nullable: false },
   'numeroClient:desc': { expression: sql`c.numero`, sens: 'desc', nullable: false },
-  'creeLe:desc': { expression: sql`c.cree_le`, sens: 'desc', nullable: false },
+  'creeLe:desc': { expression: sql`c.cree_le`, sens: 'desc', nullable: false, temporel: true },
   /**
    * Pas de colonne `dernier_passage_le` sur `client` (GAP DE CONTRAT signalé en réponse de
    * tâche) : dérivé d'une sous-requête sur `ordre_reparation.ouvert_le`, non indexée pour ce
@@ -90,6 +88,7 @@ const DEFINITIONS_TRI_CLIENTS: Readonly<Record<ParametresListeClients['tri'], De
     expression: sql`(select max(o.ouvert_le) from public.ordre_reparation o where o.tenant_id = c.tenant_id and o.client_id = c.id)`,
     sens: 'desc',
     nullable: true,
+    temporel: true,
   },
 };
 
@@ -163,7 +162,7 @@ export class ServiceClient {
       // qui rendent systématiquement une ligne (0 / null), même sur zéro correspondance ; seule la
       // sous-requête `a` (adresse) peut légitimement ne rien renvoyer, d'où le LEFT JOIN LATERAL.
       const requete = sql`
-        select ${COLONNES_CLIENT_ALIASEES}, ${definition.expression} as "triValeur",
+        select ${COLONNES_CLIENT_ALIASEES}, ${expressionTriValeur(definition)} as "triValeur",
                a.localite as "localite",
                coalesce(v.nombre, 0) as "nombreVehicules",
                dp.dernier as "dernierPassageLe"
@@ -192,10 +191,20 @@ export class ServiceClient {
 
       const resultat = await tx.execute<
         LigneClient & {
-          triValeur: string | number | Date | null;
+          // `string | number | null`, jamais `Date` : pour `creeLe:desc`/`dernierPassageLe:desc`
+          // (colonnes `temporel: true`), `expressionTriValeur()` cast explicitement en `::text` dans
+          // le `SELECT` ci-dessus — précisément pour empêcher le pilote de la rendre en `Date` et
+          // d'en tronquer la microseconde avant que la valeur de curseur ne soit construite (voir
+          // `pagination-triee.ts`, `valeurCurseurDepuisTri()` plus bas).
+          triValeur: string | number | null;
           localite: string | null;
           nombreVehicules: number;
-          dernierPassageLe: Date | null;
+          // `Date | string` : SQL brut (`tx.execute`), même piège que `dernierPassage()` ci-dessous —
+          // voir `enDate()`. Purement un champ d'AFFICHAGE (`ClientResume.dernierPassageLe`), jamais
+          // une valeur de curseur — sans rapport avec `triValeur` ci-dessus même quand le tri actif
+          // est `dernierPassageLe:desc` (deux expressions SQL distinctes, l'une pour l'affichage via
+          // LATERAL, l'autre pour le tri).
+          dernierPassageLe: Date | string | null;
         }
       >(requete);
       const lignes = resultat.rows;
@@ -213,7 +222,7 @@ export class ServiceClient {
         ),
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseurTrie({ tri: params.tri, valeur: normaliserValeurCurseur(derniere.triValeur), id: derniere.id })
+            ? encoderCurseurTrie({ tri: params.tri, valeur: valeurCurseurDepuisTri(definition, derniere.triValeur), id: derniere.id })
             : null,
         limite: params.limite,
       };
@@ -481,8 +490,17 @@ export class ServiceClient {
     return ligne;
   }
 
-  private async dernierPassage(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<Date | null> {
-    const resultat = await tx.execute<{ dernier: Date | null }>(sql`
+  /**
+   * `Date | string` en retour : SQL brut (`tx.execute`) — mesuré, le pilote `pg` y rend en fait
+   * `timestamptz` en `Date` (pas en chaîne) par défaut ; `enDate()` reste défensif au cas où un
+   * chemin d'exécution différent (fonction SECURITY DEFINER, cast explicite ailleurs) rendrait un
+   * jour une chaîne à la place. Purement un champ d'AFFICHAGE : la conversion (`enDate()`) est
+   * appliquée par l'appelant, au moment de construire la réponse (`mappers.ts`), pas ici — voir la
+   * doc de `enDate()`. Sans rapport avec la valeur de CURSEUR de `lister()` ci-dessus (voir
+   * `pagination-triee.ts`) : cette méthode n'est jamais appelée en contexte de pagination.
+   */
+  private async dernierPassage(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<Date | string | null> {
+    const resultat = await tx.execute<{ dernier: Date | string | null }>(sql`
       select max(o.ouvert_le) as dernier
         from public.ordre_reparation o
        where o.tenant_id = ${ctx.tenantId} and o.client_id = ${clientId}
@@ -508,7 +526,8 @@ export class ServiceClient {
     const resultat = await tx.execute<{
       id: string;
       texte: string;
-      creeLe: Date;
+      // `Date | string` : SQL brut (`tx.execute`) — voir `enDate()`.
+      creeLe: Date | string;
       auteurId: string | null;
       auteurPrenom: string | null;
       auteurNom: string | null;
@@ -529,7 +548,7 @@ export class ServiceClient {
         ligne.auteurId && ligne.auteurPrenom && ligne.auteurNom
           ? { utilisateurId: ligne.auteurId, nomAffiche: `${ligne.auteurPrenom} ${ligne.auteurNom}` }
           : null,
-      creeLe: ligne.creeLe.toISOString(),
+      creeLe: enDate(ligne.creeLe).toISOString(),
     }));
   }
 }

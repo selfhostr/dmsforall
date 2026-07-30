@@ -6,6 +6,8 @@ import {
   construireOrderBy,
   decoderCurseurPourTri,
   encoderCurseurTrie,
+  expressionTriValeur,
+  valeurCurseurDepuisTri,
   type DefinitionTri,
 } from './pagination-triee';
 
@@ -72,6 +74,55 @@ describe('construireConditionKeyset — colonne nullable (NULLS LAST)', () => {
     expect(params).toEqual(['id-5']);
   });
 });
+
+describe(
+  'expressionTriValeur / valeurCurseurDepuisTri — une expression temporelle (`temporel: true`) ne doit ' +
+    'JAMAIS perdre de précision sur la valeur de curseur (résolution microseconde PostgreSQL vs ' +
+    'milliseconde de `Date` JavaScript, voir `common/pagination/valeur-temporelle.ts`)',
+  () => {
+    const DEF_CREE_LE: DefinitionTri = { expression: sql`c.cree_le`, sens: 'desc', nullable: false, temporel: true };
+
+    it('expressionTriValeur cast en ::text une expression marquée temporelle, pour empêcher le pilote de la rendre en Date', () => {
+      const { sql: texte } = rendu(expressionTriValeur(DEF_CREE_LE));
+      expect(texte).toBe('(c.cree_le)::text');
+    });
+
+    it("expressionTriValeur laisse une expression non temporelle inchangée (pas de cast superflu sur du texte déjà)", () => {
+      const { sql: texte } = rendu(expressionTriValeur(DEF_NUMERO_ASC));
+      expect(texte).toBe('c.numero');
+    });
+
+    it(
+      'valeurCurseurDepuisTri canonicalise une valeur temporelle SANS jamais passer par Date : la ' +
+        'microseconde du texte natif PostgreSQL survit intacte jusqu’au curseur encodé',
+      () => {
+        const valeur = valeurCurseurDepuisTri(DEF_CREE_LE, '2026-07-29 13:37:35.171181+00');
+        expect(valeur).toBe('2026-07-29T13:37:35.171181+00:00');
+      },
+    );
+
+    it(
+      'régression directe du bug corrigé : une valeur temporelle qui transiterait par `new Date(...).toISOString()` ' +
+        'tronquerait `.171181` en `.171` — `valeurCurseurDepuisTri` ne le fait jamais',
+      () => {
+        const valeur = valeurCurseurDepuisTri(DEF_CREE_LE, '2026-07-29 13:37:35.171181+00');
+        expect(valeur).not.toBe(new Date('2026-07-29 13:37:35.171181+00').toISOString());
+      },
+    );
+
+    it('valeurCurseurDepuisTri rejette un Date reçu pour une expression temporelle — révélateur d’un ::text manquant dans le SELECT', () => {
+      expect(() => valeurCurseurDepuisTri(DEF_CREE_LE, new Date('2026-07-29T13:37:35.171Z') as unknown as string)).toThrow();
+    });
+
+    it('valeurCurseurDepuisTri laisse passer null (colonne NULLS LAST) sans tenter de le canonicaliser', () => {
+      expect(valeurCurseurDepuisTri(DEF_CREE_LE, null)).toBeNull();
+    });
+
+    it('valeurCurseurDepuisTri laisse une valeur non temporelle (nombre, ex. numeroClient) totalement inchangée', () => {
+      expect(valeurCurseurDepuisTri(DEF_NUMERO_ASC, 42)).toBe(42);
+    });
+  },
+);
 
 describe('decoderCurseurPourTri', () => {
   it('aucun curseur fourni : rend null (première page)', () => {

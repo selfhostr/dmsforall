@@ -33,4 +33,9 @@ export const chemins = {
     nouveau: (site?: string) => construireChemin('/vehicules/nouveau', { site }),
     detail: (id: string, site?: string) => construireChemin(`/vehicules/${id}`, { site }),
   },
+  /** Paramétrage — singletons par TENANT, jamais par site (contrairement à `clients`/
+   *  `vehicules` ci-dessus) : pas de `?site=` à conserver ici. */
+  parametrage: {
+    facturation: () => '/parametrage/facturation',
+  },
 } as const;

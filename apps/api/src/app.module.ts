@@ -16,6 +16,8 @@ import { CommonModule, MiddlewareContexteRequete } from './common';
 import type { Config } from './config';
 import { ConfigModule } from './config';
 import { DbModule } from './db/db.module';
+import { FacturationModule } from './facturation/facturation.module';
+import { ImpressionModule } from './facturation/impression/impression.module';
 import { ParametrageModule } from './parametrage/parametrage.module';
 import { RechercheModule } from './recherche/recherche.module';
 import { SanteModule } from './sante';
@@ -44,6 +46,15 @@ export class AppModule implements NestModule {
         VehiculesModule,
         RechercheModule,
         AtelierModule,
+        FacturationModule,
+        // `ImpressionModule` (GET /documents-vente/{id}/pdf) importe `FacturationModule` lui-même
+        // (pour `ServiceDocumentsVente`, exporté) plutôt que l'inverse — `FacturationModule` important
+        // `ImpressionModule` créerait un cycle de modules (même raison que `PaiementsModule`/
+        // `ExportModule` sont importés PAR `FacturationModule`, jamais l'inverse). D'où le câblage
+        // ici, en toute fin, plutôt que dans `facturation.module.ts` : sans cette ligne, le module
+        // compile et ses tests passent, mais AUCUNE route `/documents-vente/{id}/pdf` n'existe — le
+        // piège du dépôt vérifié explicitement pour ce lot (module complet, jamais enregistré).
+        ImpressionModule,
       ],
     };
   }

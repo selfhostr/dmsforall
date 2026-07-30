@@ -1,4 +1,6 @@
-import type { TransactionDfa } from '../db';
+import type { UrgenceTravail } from '@dfa/shared';
+
+import type { ContexteTenant, TransactionDfa } from '../db';
 
 /**
  * Jetons d'injection propres au module `atelier` (contrat gelé lot 1, plan-lot1-execution.md §6.2).
@@ -95,4 +97,56 @@ export interface CalculLigne {
   /** Pure, sans I/O. Ordre gelé : brut -> rabais -> arrondi centime -> TVA -> arrondi -> agrégation. */
   calculer(e: EntreeCalculLigne): MontantsLigne;
   totaliser(l: readonly MontantsLigne[]): MontantsLigne;
+}
+
+/* ------------------------------------------------------------------ */
+/* JETON_CREATION_TRAVAIL_REPORTE — port RM-73, fourni par VehiculesModule                        */
+/* (`ServiceVehiculeTravailReporte`, `useExisting`)                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Quand un client refuse une ligne de devis (« je ne fais pas les plaquettes maintenant »),
+ * l'information doit survivre au-delà de l'OR courant pour être reproposée au passage suivant du
+ * véhicule — c'est le rôle du travail reporté (RM-73), matérialisé côté `vehicules`.
+ *
+ * Entrée du port, signature ALIGNÉE sur celle documentée par
+ * `vehicules/service-vehicule-travail-reporte.ts` (agent propriétaire du port côté fournisseur) —
+ * déclarée ICI, jamais importée depuis `vehicules`, doctrine de ce fichier : « le port est déclaré
+ * par le CONSOMMATEUR, jamais par le fournisseur ».
+ *
+ * `motifRefus` : `ligne_or` ne porte toujours aucune colonne pour ce champ. `vehicule_travail_reporte`,
+ * en revanche, porte désormais `motif_refus` (`db/schema/atelier/vehicule.ts`, livré en parallèle
+ * de ce câblage) — mais au moment d'écrire ce fichier, `ServiceVehiculeTravailReporte.creerDepuisRefus`
+ * (hors périmètre de `atelier/`) ne le persiste pas encore (`void entree.motifRefus`). `atelier`
+ * transmet `entree.motif ?? null` sans plus attendre : la persistance réelle est un suivi côté
+ * `vehicules/`, à vérifier au moment de lire ceci plutôt qu'à tenir pour acquis.
+ */
+export const JETON_CREATION_TRAVAIL_REPORTE = Symbol.for('DFA_CREATION_TRAVAIL_REPORTE');
+
+export interface EntreeCreationTravailReporteDepuisRefus {
+  readonly vehiculeId: string;
+  readonly ordreReparationId: string;
+  readonly ligneOrId: string;
+  readonly designation: string;
+  readonly urgence: UrgenceTravail | null;
+  readonly montantEstimeCentimes: number | null;
+  readonly securite: boolean;
+  readonly motifRefus: string | null;
+}
+
+/**
+ * Port déclaré par `atelier`, fourni par `AtelierModule` via `useExisting` sur
+ * `ServiceVehiculeTravailReporte` (`VehiculesModule` importé à cette seule fin). `tx` en premier
+ * paramètre, même doctrine que `LecturePointage` : la création du travail reporté doit vivre DANS
+ * LA MÊME TRANSACTION que le passage de la ligne d'origine à `refusee` — sinon un refus pourrait
+ * s'écrire sans que le travail reporté associé ne s'écrive (ou l'inverse), exactement le défaut
+ * que ce câblage corrige.
+ */
+export interface CreationTravailReporte {
+  creerDepuisRefus(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    entree: EntreeCreationTravailReporteDepuisRefus,
+    maintenant: Date,
+  ): Promise<void>;
 }

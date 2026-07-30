@@ -15,6 +15,7 @@ import type {
   LigneClientContact,
   LigneClientNote,
 } from '../db/schema';
+import { enDate } from '../db';
 import { calculerNomAffiche } from '../common/identite-client';
 
 /**
@@ -26,7 +27,13 @@ import { calculerNomAffiche } from '../common/identite-client';
  */
 export function versClientResponse(
   ligne: LigneClient,
-  dernierPassageLe: Date | null,
+  // `Date | string` et non `Date` : `dernierPassageLe` vient toujours d'une requête SQL brute
+  // (`ServiceClient.dernierPassage`, `tx.execute`) — mesuré, le pilote `pg` y rend en fait
+  // `timestamptz` en `Date` (pas en chaîne) par défaut ; `enDate()` reste défensif au cas où un
+  // chemin d'exécution différent rendrait un jour une chaîne à la place (voir `enDate()`,
+  // `db/acces-amorcage.service.ts`). Champ d'AFFICHAGE uniquement, jamais une valeur de curseur —
+  // la précision milliseconde de `Date`/`toISOString()` y est appropriée.
+  dernierPassageLe: Date | string | null,
   notesAlerte: readonly ReponseClientNote[],
 ): ReponseClient {
   return {
@@ -48,7 +55,7 @@ export function versClientResponse(
     groupeId: ligne.groupeClientId,
     fusionneVersClientId: ligne.fusionneVersClientId,
     referenceExterne: ligne.referenceExterne,
-    dernierPassageLe: dernierPassageLe ? dernierPassageLe.toISOString() : null,
+    dernierPassageLe: dernierPassageLe ? enDate(dernierPassageLe).toISOString() : null,
     notesAlerte,
     creeLe: ligne.creeLe.toISOString(),
     modifieLe: ligne.modifieLe.toISOString(),
@@ -66,7 +73,13 @@ export function versClientResponse(
 export interface ExtraClientResume {
   readonly localite: string | null;
   readonly nombreVehicules: number;
-  readonly dernierPassageLe: Date | null;
+  // `Date | string` : provient d'une sous-requête SQL brute (`LEFT JOIN LATERAL` sur
+  // `ordre_reparation`, via `tx.execute`) — mesuré, le pilote `pg` y rend en fait `timestamptz` en
+  // `Date` (pas en chaîne) par défaut ; `enDate()` reste défensif au cas où un chemin d'exécution
+  // différent rendrait un jour une chaîne à la place. Voir `enDate()`, réutilisé ci-dessous dans
+  // `versClientResume`. Champ d'AFFICHAGE uniquement (`ClientResume.dernierPassageLe`), jamais une
+  // valeur de curseur.
+  readonly dernierPassageLe: Date | string | null;
 }
 
 export function versClientResume(ligne: LigneClient, extra: ExtraClientResume): ClientResume {
@@ -81,7 +94,7 @@ export function versClientResume(ligne: LigneClient, extra: ExtraClientResume): 
     telephone: ligne.telephone,
     localite: extra.localite,
     nombreVehicules: extra.nombreVehicules,
-    dernierPassageLe: extra.dernierPassageLe ? extra.dernierPassageLe.toISOString() : null,
+    dernierPassageLe: extra.dernierPassageLe ? enDate(extra.dernierPassageLe).toISOString() : null,
   };
 }
 

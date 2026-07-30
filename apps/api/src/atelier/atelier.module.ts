@@ -1,12 +1,17 @@
 import { Module } from '@nestjs/common';
 
-import { JETON_CALCUL_LIGNE, JETON_LECTURE_POINTAGE, LecturePointageVide } from './atelier.jetons';
+import { FacturationModule } from '../facturation/facturation.module';
+import { ServiceVehiculeTravailReporte } from '../vehicules/service-vehicule-travail-reporte';
+import { VehiculesModule } from '../vehicules/vehicules.module';
+
+import { JETON_CALCUL_LIGNE, JETON_CREATION_TRAVAIL_REPORTE, JETON_LECTURE_POINTAGE, LecturePointageVide } from './atelier.jetons';
 import { CalculLigneSimple } from './calcul-ligne';
 import { DevisComplementaireController } from './devis-complementaire.controller';
 import { LigneOrController } from './ligne-or.controller';
 import { OrdreReparationController } from './ordre-reparation.controller';
 import { OrdreReparationTransitionsController } from './ordre-reparation-transitions.controller';
 import { ServiceDevis } from './service-devis';
+import { ServiceFacturationOr } from './service-facturation-or';
 import { ServiceLigneOr } from './service-ligne-or';
 import { ServiceOr } from './service-or';
 import { ServiceSnapshotOr } from './service-snapshot-or';
@@ -33,8 +38,25 @@ import { ServiceTransitions } from './service-transitions';
  * `JETON_COMPTEURS` (numérotation d'OR) n'est pas fourni ici : `CompteursModule`
  * (`@Global`, importé depuis `ParametrageModule`) le rend disponible partout sans import
  * explicite — voir `parametrage/compteurs/compteurs.module.ts`.
+ *
+ * `FacturationModule` importé pour `ServiceFacturationOr` (`RF-81`,
+ * `POST /ordres-reparation/{orId}/facturer`) : ce service crée des brouillons de facture, il a
+ * donc besoin de `ServiceDocumentsVente` (exporté par `FacturationModule`) pour assembler la
+ * représentation `ReponseDocumentVente` de chaque document créé — MÊME REPRÉSENTATION que
+ * `GET /documents-vente/{id}`, jamais une projection ad hoc. Sens de dépendance à SENS UNIQUE :
+ * `FacturationModule` n'importe jamais `AtelierModule` (vérifié : `grep -rn AtelierModule
+ * apps/api/src/facturation/` ne trouve qu'un commentaire) — aucun cycle.
+ *
+ * `VehiculesModule` importé pour `JETON_CREATION_TRAVAIL_REPORTE` (RM-73) : `refuserLignes`
+ * (`ServiceLigneOr`) doit alimenter les travaux reportés du véhicule quand une ligne est refusée
+ * — `ServiceVehiculeTravailReporte`, désormais EXPORTÉ par `VehiculesModule` précisément pour cet
+ * usage, implémente le port `CreationTravailReporte` déclaré côté `atelier`
+ * (`atelier.jetons.ts`). Même sens de dépendance à SENS UNIQUE que `FacturationModule` :
+ * `VehiculesModule` n'importe jamais `AtelierModule` (vérifié : seuls des commentaires y
+ * référencent ce nom) — aucun cycle.
  */
 @Module({
+  imports: [FacturationModule, VehiculesModule],
   controllers: [OrdreReparationController, OrdreReparationTransitionsController, LigneOrController, DevisComplementaireController],
   providers: [
     ServiceOr,
@@ -42,9 +64,11 @@ import { ServiceTransitions } from './service-transitions';
     ServiceTransitions,
     ServiceLigneOr,
     ServiceDevis,
+    ServiceFacturationOr,
     { provide: JETON_LECTURE_POINTAGE, useClass: LecturePointageVide },
     { provide: JETON_CALCUL_LIGNE, useClass: CalculLigneSimple },
+    { provide: JETON_CREATION_TRAVAIL_REPORTE, useExisting: ServiceVehiculeTravailReporte },
   ],
-  exports: [ServiceOr, ServiceSnapshotOr, ServiceTransitions, ServiceLigneOr, ServiceDevis],
+  exports: [ServiceOr, ServiceSnapshotOr, ServiceTransitions, ServiceLigneOr, ServiceDevis, ServiceFacturationOr],
 })
 export class AtelierModule {}

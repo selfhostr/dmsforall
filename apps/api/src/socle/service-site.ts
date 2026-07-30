@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, lt, or } from 'drizzle-orm';
-import type { PageCurseur, SiteResume } from '@dfa/shared';
+import { and, desc, eq, getTableColumns, sql } from 'drizzle-orm';
+import { TRI_DEFAUT_CREATION, type PageCurseur, type SiteResume } from '@dfa/shared';
 import type { AccesBase, ContexteTenant } from '../db/db.types';
 import { JETON_DB } from '../db/db.jetons';
 import { site, type LigneSite } from '../db/schema';
-import { decoderCurseur, encoderCurseur } from '../common/pagination';
+import { decoderCurseurTrie, encoderCurseurTrie, valeurCurseurTimestamptz } from '../common/pagination';
 import { ErreurMetier } from '../common/erreurs';
 
 export interface ParametresListeSites {
@@ -17,6 +17,26 @@ function versSiteResume(ligne: LigneSite): SiteResume {
 }
 
 /**
+ * Curseur par défaut (`creeLe:desc`) décodé — `creeLeTexte` reste le texte natif PostgreSQL du
+ * `timestamptz`, jamais un `Date`, de bout en bout jusqu'à sa réinjection en SQL (`::timestamptz`).
+ * `Date` ne représente que la milliseconde depuis l'epoch (limite structurelle du type) alors que
+ * PostgreSQL conserve la microseconde ; y transiter tronquerait silencieusement le seuil de
+ * pagination et ferait sauter des lignes qui partagent la même milliseconde de création — voir
+ * `common/pagination/valeur-temporelle.ts` pour la mesure complète du défaut. Décode aussi bien un
+ * curseur v1 historique (socle étape 0, `decoderCurseurTrie` le traite comme équivalent à
+ * `TRI_DEFAUT_CREATION`) qu'un curseur v2 émis par `lister()` ci-dessous.
+ */
+function decoderCurseurSite(curseur: string): { readonly creeLeTexte: string; readonly id: string } {
+  const donnees = decoderCurseurTrie(curseur, TRI_DEFAUT_CREATION);
+  if (typeof donnees.valeur !== 'string') {
+    throw new ErreurMetier('VALIDATION_ECHOUEE', 'Curseur de pagination invalide.', {
+      erreurs: [{ champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' }],
+    });
+  }
+  return { creeLeTexte: donnees.valeur, id: donnees.id };
+}
+
+/**
  * Lecture des sites du tenant courant. Comme `ServiceTenant`, aucune méthode ne reçoit de
  * `tenantId` en paramètre client : uniquement le `ContexteTenant` construit depuis la session.
  */
@@ -26,23 +46,29 @@ export class ServiceSite {
 
   async lister(ctx: ContexteTenant, params: ParametresListeSites): Promise<PageCurseur<SiteResume>> {
     const { limite } = params;
-    const curseurDecode = params.curseur ? decoderCurseur(params.curseur) : null;
+    const curseurDecode = params.curseur ? decoderCurseurSite(params.curseur) : null;
 
     return this.acces.enTenant(ctx, async (tx) => {
       // Rescope explicite sur tenant_id, même si le RLS filtre déjà via le GUC posé par
       // enTenant() : le RLS est le filet, jamais le mécanisme — un `where` manquant est un
       // défaut de revue même s'il est rattrapé côté base.
       const conditionTenant = eq(site.tenantId, ctx.tenantId);
+      // Seuil keyset construit en SQL brut plutôt qu'avec `lt`/`or` du query builder : le
+      // membre droit doit être un texte casté explicitement `::timestamptz`, jamais un `Date`
+      // JS passé en paramètre (le pilote `pg` le sérialiserait à la milliseconde, perdant la
+      // microseconde que `site.creeLe` conserve réellement en base — voir `decoderCurseurSite`).
       const conditionCurseur = curseurDecode
-        ? or(
-            lt(site.creeLe, curseurDecode.creeLe),
-            and(eq(site.creeLe, curseurDecode.creeLe), lt(site.id, curseurDecode.id)),
-          )
+        ? sql`(${site.creeLe}, ${site.id}) < (${curseurDecode.creeLeTexte}::timestamptz, ${curseurDecode.id})`
         : undefined;
       const conditionFinale = conditionCurseur ? and(conditionTenant, conditionCurseur) : conditionTenant;
 
       const lignes = await tx
-        .select()
+        .select({
+          ...getTableColumns(site),
+          // Texte natif Postgres du timestamptz — jamais le `Date` de `getTableColumns()` (mode
+          // 'date', microseconde déjà perdue). Voir common/pagination/valeur-temporelle.ts.
+          creeLeTexte: sql<string>`${site.creeLe}::text`,
+        })
         .from(site)
         .where(conditionFinale)
         .orderBy(desc(site.creeLe), desc(site.id))
@@ -55,7 +81,13 @@ export class ServiceSite {
       return {
         donnees: pageLignes.map(versSiteResume),
         curseurSuivant:
-          aUnePageSuivante && derniere ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id }) : null,
+          aUnePageSuivante && derniere
+            ? encoderCurseurTrie({
+                tri: TRI_DEFAUT_CREATION,
+                valeur: valeurCurseurTimestamptz(derniere.creeLeTexte),
+                id: derniere.id,
+              })
+            : null,
         limite,
       };
     });

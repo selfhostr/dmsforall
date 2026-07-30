@@ -279,6 +279,11 @@ export const vehiculeTravailReporte = pgTable(
     securite: boolean('securite').notNull().default(false),
     statut: statutTravailReporteEnum('statut').notNull().default('ouvert'),
     ordreReparationRepriseId: uuid('ordre_reparation_reprise_id'),
+    /** Raison du refus saisie au comptoir (0021, RM-73) — nullable, sans borne de longueur
+     * (voir la migration : aucun champ de texte libre de ce dépôt n'en a). Consultée au passage
+     * suivant, PAS encore tracée par l'audit générique : `vehicule_travail_reporte` n'est pas
+     * dans `entite_auditee`, seule la valeur courante est durablement lisible. */
+    motifRefus: text('motif_refus'),
     ...colonnesHorodatage(),
   },
   (t) => [
@@ -289,6 +294,7 @@ export const vehiculeTravailReporte = pgTable(
       foreignColumns: [vehicule.tenantId, vehicule.id],
     }).onDelete('restrict'),
     check('vehicule_travail_reporte_designation_non_vide_chk', sql`length(btrim(${t.designation})) > 0`),
+    check('vehicule_travail_reporte_motif_refus_non_vide_chk', sql`${t.motifRefus} is null or length(btrim(${t.motifRefus})) > 0`),
     index('vehicule_travail_reporte_ouvert_idx').on(t.tenantId, t.vehiculeId),
   ],
 );

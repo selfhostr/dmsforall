@@ -8,12 +8,7 @@
 import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Controller, Get, Header, Headers, Patch, Res } from '@nestjs/common';
 import type { Response } from 'express';
-import {
-  MODES_PRODUITS_ATELIER,
-  schemaModificationParametresAtelier,
-  type EntreeModificationParametresAtelier,
-  type ModeProduitsAtelier,
-} from '@dfa/shared';
+import { MODES_PRODUITS_ATELIER, type ModeProduitsAtelier } from '@dfa/shared';
 
 import { ApiReponseProbleme } from '../../common/erreurs';
 import { ServiceContexteRequete } from '../../common/contexte';
@@ -22,6 +17,10 @@ import { ExigerDroit } from '../../common/droits';
 import { calculerEtag, ifNoneMatchSatisfait } from '../etag';
 import { ReponseParametresAtelierDto } from '../dto/reponse-parametres-atelier.dto';
 import { ServiceParametresAtelier } from './service-parametres-atelier';
+import {
+  schemaModificationParametresAtelierEtendu,
+  type EntreeModificationParametresAtelierEtendue,
+} from './schema-modification-parametres-atelier-etendu';
 
 @ApiTags('Paramétrage')
 @ApiCookieAuth()
@@ -59,6 +58,20 @@ export class ParametresAtelierController {
     res.status(200).json(dto);
   }
 
+  /**
+   * `RF-117` : `reception.plafondAvoirReceptionnaireCentimes` est gouverné par CE MÊME droit
+   * générique (`parametrage.atelier.modifier`, `chef_atelier`/`direction`/`admin` via
+   * `INFERE_PARAMETRAGE_GOUVERNANCE`, `auth/matrice-droits.ts` — hors périmètre de ce module).
+   * MESURÉ, PAS SUPPOSÉ : ce droit donne l'écriture à `admin`, alors que `RF-115` est littéral
+   * (« admin est un rôle technique et n'a aucun droit financier ») — le bloc créancier QR-facture
+   * a précisément affronté ce même problème pour un autre champ de gouvernance financière et en
+   * est sorti avec DEUX actions dédiées (`facturation.parametrage.creancier.*`,
+   * direction+comptable seuls, `admin: []`) plutôt que de rester sur le droit générique. Ce champ
+   * partage l'endpoint et le droit de `plafondDefautCentimes` (déjà générique) sur consigne
+   * explicite de tâche — SIGNALÉ, à arbitrer par @laupernoe : soit ce plafond mérite le même traitement
+   * que le bloc créancier (action dédiée, nouvel endpoint ou vérification de service), soit le
+   * dégradé (`admin` peut aujourd'hui le relever) est accepté tel quel.
+   */
   @ExigerDroit('parametrage.atelier.modifier')
   @Patch()
   @Header('Cache-Control', 'private, must-revalidate')
@@ -75,10 +88,10 @@ export class ParametresAtelierController {
   @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — aucune ligne de paramétrage pour ce tenant.')
   @ApiReponseProbleme(501, 'FONCTION_NON_DISPONIBLE — le champ modifié dépend d\'une fonctionnalité non livrée au lot 1.')
   async modifier(
-    @CorpsZod(schemaModificationParametresAtelier, {
+    @CorpsZod(schemaModificationParametresAtelierEtendu, {
       exemple: { or: { prefixe: 'OR', resetAnnuel: true, sansRdvAutorise: false } },
     })
-    corps: EntreeModificationParametresAtelier,
+    corps: EntreeModificationParametresAtelierEtendue,
   ): Promise<ReponseParametresAtelierDto> {
     const dto = await this.service.modifier(this.contexte.contexteTenant(), corps);
     return {

@@ -143,6 +143,25 @@ export interface CumulsPointageOr {
  *  mais les CALCULER plus tard obligerait à revalider l'arithmétique sur des OR existants. */
 export interface TotauxPayeurOr extends MontantsLigneOr {
   readonly payeur: PayeurLigneOr;
+  /**
+   * Clé de regroupement, DEUXIÈME MOITIÉ (`MD-62` : le regroupement est `(payeur, payeurClientId)`,
+   * jamais `payeur` seul). `null` pour `payeur = 'client'` (destinataire = l'OR lui-même, jamais
+   * ambigu) et pour `payeur = 'garage'` (`RF-92`, fusionné dans le groupe `'client'` — ce groupe
+   * `'garage'` séparé n'apparaît donc JAMAIS dans ce tableau). Deux éléments `payeur = 'assurance'`
+   * avec des `payeurClientId` différents sont deux groupes DISTINCTS : deux assureurs sur un même
+   * OR ne fusionnent jamais sous prétexte qu'ils partagent le même `payeur`.
+   *
+   * INFÉRENCE liée à `ReponseLigneOr.payeurClientId` — même avertissement : la colonne source
+   * n'existe pas encore en base (`AC-08`).
+   */
+  readonly payeurClientId: string | null;
+  /** Projection minimale du destinataire réel de ce groupe (`RF-87`) — évite à l'écran de
+   *  facturation (`design-etape-2-facturation.md` §3.2, « Groupe payeur « Assurance — Zurich
+   *  Assurances » ») de recharger la fiche client seulement pour afficher son nom. `null`
+   *  UNIQUEMENT quand `payeur = 'garage'` (personne, `RF-92`) — pour `'client'`, c'est le client de
+   *  l'OR ; pour les autres payeurs, c'est la fiche désignée par `payeurClientId`, toujours résolue
+   *  (un groupe sans destinataire résolu n'apparaît pas dans ce tableau). */
+  readonly destinataire: { readonly clientId: string; readonly nomAffiche: string } | null;
   readonly tva: readonly {
     readonly tauxPourmille: number;
     readonly baseHtCentimes: number;
@@ -212,6 +231,21 @@ export interface ReponseOrdreReparation {
   readonly cumulsPointage: CumulsPointageOr;
   /** Absents pour un rôle sans droit aux montants. */
   readonly totauxParPayeur?: readonly TotauxPayeurOr[];
+  /**
+   * Démontage/remontage facturable pour un devis complémentaire refusé (`RF-90`, `RF-91`, `P-24`),
+   * calculé par le serveur À LA LECTURE et JAMAIS matérialisé en `ligne_or` tant que
+   * `POST /ordres-reparation/{orId}/facturer` n'a pas reçu `inclureDemontageRefuse: true`
+   * (`facturer-or.ts`) — RF-91 : « la ligne de démontage est proposée, jamais créée en silence ».
+   * `null` si aucun démontage facturable n'a été détecté, si l'OR n'est pas `termine`, ou si `P-24`
+   * (`docs/design-etape-2-facturation.md` §3.3) vaut `offrir`. Absent pour un rôle sans droit aux
+   * montants.
+   *
+   * INFÉRENCE : requis pour que l'écran de facturation (§3.2 du design, encart « Un démontage a
+   * été réalisé… ») sache QUOI afficher avant même d'appeler `/facturer` — sans ce champ, rien dans
+   * l'OR ne porte cette information (elle n'existe délibérément pas en tant que ligne), et le front
+   * n'a aucun moyen de la lire.
+   */
+  readonly demontageFacturablePropose?: { readonly montantTtcCentimes: number } | null;
   readonly attentes: AttentesOr;
   /**
    * Le plus bloquant des trois drapeaux (`accord > pieces > externe`), sinon le statut. Calculé

@@ -60,9 +60,24 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
+      // `true` : écoute sur 0.0.0.0 en plus de localhost. Nécessaire pour joindre le serveur
+      // depuis l'extérieur d'un conteneur (voir docker-compose.dev.yml, dev entièrement
+      // conteneurisé) — sans ça, Vite n'écoute que sur loopback et le port publié du conteneur
+      // ne mène nulle part. Non cassant pour `pnpm dev` en local : reste joignable via
+      // localhost, ajoute seulement d'autres interfaces.
+      host: true,
       proxy: {
         '/api': {
-          target: 'http://localhost:3000',
+          // Cible du proxy `/api` vers l'API NestJS. `http://localhost:3000` par défaut : c'est
+          // l'API en Node local (`pnpm dev`), sur le même hôte que ce process Vite. Surchargée
+          // UNIQUEMENT par docker-compose.dev.yml (`DFA_DEV_PROXY_API_CIBLE=http://api:3000`) :
+          // dans ce cas, ce process Vite tourne lui-même dans un conteneur, où « localhost »
+          // désignerait le conteneur web, pas l'API. Lue directement sur `process.env` (le
+          // process Node qui exécute ce fichier de config), volontairement PAS via
+          // `loadEnv`/`envDir` : ce n'est pas une variable `VITE_*`, elle ne doit jamais être
+          // exposée au bundle client (import.meta.env) — c'est un détail de plomberie du
+          // serveur de dev, pas une config applicative.
+          target: process.env.DFA_DEV_PROXY_API_CIBLE ?? 'http://localhost:3000',
           changeOrigin: true,
         },
       },

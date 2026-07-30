@@ -101,6 +101,24 @@ export function designationVehicule(vehicule: IdentiteVehicule): string {
 }
 
 /**
+ * Formate une colonne Postgres `date` (pas `timestamptz` — aucun piège de microseconde ici, voir
+ * `common/pagination/valeur-temporelle.ts` pour celui-là) en `'YYYY-MM-DD'`. Défensif sur le type
+ * reçu : le driver `pg` peut rendre une colonne `date` en `Date` ou en chaîne selon la
+ * configuration de parseurs de types — aucune des deux n'est supposée, les deux sont acceptées.
+ * Partagée par `date_1re_circulation` (véhicule) et `date_document` (document de vente).
+ */
+export function formaterDateJour(valeur: string | Date): string {
+  if (valeur instanceof Date) {
+    // ISO jour seul (pas d'heure) — cohérent avec le format d'entrée d'une colonne `date`.
+    const annee = String(valeur.getFullYear()).padStart(4, '0');
+    const mois = String(valeur.getMonth() + 1).padStart(2, '0');
+    const jour = String(valeur.getDate()).padStart(2, '0');
+    return `${annee}-${mois}-${jour}`;
+  }
+  return valeur.slice(0, 10);
+}
+
+/**
  * Année de 1re circulation depuis une colonne `date` lue en SQL brut. Défensif sur le type reçu :
  * le driver `pg` peut rendre une colonne `date` en `Date` ou en chaîne `'YYYY-MM-DD'` selon la
  * configuration de parseurs de types — aucune des deux n'est supposée ici, les deux sont acceptées.

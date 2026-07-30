@@ -1,6 +1,35 @@
 {
   "components": {
     "schemas": {
+      "AdresseStructureeQrDto": {
+        "properties": {
+          "localite": {
+            "type": "string"
+          },
+          "npa": {
+            "type": "string"
+          },
+          "numero": {
+            "nullable": true,
+            "type": "string"
+          },
+          "pays": {
+            "example": "CH",
+            "type": "string"
+          },
+          "rue": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rue",
+          "numero",
+          "npa",
+          "localite",
+          "pays"
+        ],
+        "type": "object"
+      },
       "AlerteClientContexteDto": {
         "properties": {
           "id": {
@@ -62,6 +91,37 @@
         ],
         "type": "object"
       },
+      "AvertissementDocumentDto": {
+        "properties": {
+          "code": {
+            "enum": [
+              "CLIENT_DOUBLON_PROBABLE",
+              "VEHICULE_VIN_COURT",
+              "VEHICULE_IDENTIFICATION_INCOMPLETE",
+              "VEHICULE_KILOMETRAGE_ABERRANT",
+              "VEHICULE_EXPERTISE_ECHUE",
+              "PLANNING_CAPACITE_DEPASSEE",
+              "POINTAGE_CLOTURE_AUTOMATIQUE",
+              "PRET_CASCADE_RESTITUTION",
+              "OR_MULTI_PAYEURS_DESACTIVE"
+            ],
+            "type": "string"
+          },
+          "donnees": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "message": {
+            "description": "Libellé FR stable — jamais affiché tel quel par le front.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
       "AvertissementDto": {
         "properties": {
           "code": {
@@ -78,6 +138,37 @@
               "OR_MULTI_PAYEURS_DESACTIVE"
             ],
             "example": "CLIENT_DOUBLON_PROBABLE",
+            "type": "string"
+          },
+          "donnees": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "message": {
+            "description": "Libellé FR stable (support, logs). Jamais affiché par le front.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "AvertissementExportDto": {
+        "properties": {
+          "code": {
+            "enum": [
+              "CLIENT_DOUBLON_PROBABLE",
+              "VEHICULE_VIN_COURT",
+              "VEHICULE_IDENTIFICATION_INCOMPLETE",
+              "VEHICULE_KILOMETRAGE_ABERRANT",
+              "VEHICULE_EXPERTISE_ECHUE",
+              "PLANNING_CAPACITE_DEPASSEE",
+              "POINTAGE_CLOTURE_AUTOMATIQUE",
+              "PRET_CASCADE_RESTITUTION",
+              "OR_MULTI_PAYEURS_DESACTIVE"
+            ],
             "type": "string"
           },
           "donnees": {
@@ -117,6 +208,37 @@
           },
           "message": {
             "description": "Libellé FR stable — jamais affiché tel quel par le front.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "AvertissementPaiementDto": {
+        "properties": {
+          "code": {
+            "enum": [
+              "CLIENT_DOUBLON_PROBABLE",
+              "VEHICULE_VIN_COURT",
+              "VEHICULE_IDENTIFICATION_INCOMPLETE",
+              "VEHICULE_KILOMETRAGE_ABERRANT",
+              "VEHICULE_EXPERTISE_ECHUE",
+              "PLANNING_CAPACITE_DEPASSEE",
+              "POINTAGE_CLOTURE_AUTOMATIQUE",
+              "PRET_CASCADE_RESTITUTION",
+              "OR_MULTI_PAYEURS_DESACTIVE"
+            ],
+            "type": "string"
+          },
+          "donnees": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "message": {
+            "description": "Libellé FR stable (support, logs). Jamais affiché par le front.",
             "type": "string"
           }
         },
@@ -1108,6 +1230,31 @@
         ],
         "type": "object"
       },
+      "DocumentExporteDto": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "numero": {
+            "description": "Numéro affiché du document (RF-108).",
+            "type": "string"
+          },
+          "typeDocument": {
+            "enum": [
+              "facture",
+              "avoir"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "numero",
+          "typeDocument"
+        ],
+        "type": "object"
+      },
       "DocumentsParametresAtelierDto": {
         "properties": {
           "langue": {
@@ -1131,6 +1278,39 @@
         ],
         "type": "object"
       },
+      "DocumentVenteTvaDto": {
+        "properties": {
+          "baseCentimes": {
+            "type": "number"
+          },
+          "regimeTva": {
+            "enum": [
+              "normal",
+              "reduit",
+              "hebergement",
+              "exonere",
+              "exclu",
+              "marge",
+              "acquisition"
+            ],
+            "type": "string"
+          },
+          "tauxTvaPourmille": {
+            "example": 81,
+            "type": "number"
+          },
+          "tvaCentimes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "regimeTva",
+          "tauxTvaPourmille",
+          "baseCentimes",
+          "tvaCentimes"
+        ],
+        "type": "object"
+      },
       "EnveloppeDevisComplementaireDto": {
         "properties": {
           "avertissements": {
@@ -1141,6 +1321,24 @@
           },
           "donnees": {
             "$ref": "#/components/schemas/ReponseDevisComplementaireDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "EnveloppeDocumentVenteDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementDocumentDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ReponseDocumentVenteDto"
           }
         },
         "required": [
@@ -1356,6 +1554,24 @@
         ],
         "type": "object"
       },
+      "ExportComptableAvecAvertissementsDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementExportDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ReponseExportComptableDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
       "FacturationParametresAtelierDto": {
         "properties": {
           "multiPayeursAutorise": {
@@ -1497,6 +1713,101 @@
           "estImporte",
           "paysOrigine",
           "importeLe"
+        ],
+        "type": "object"
+      },
+      "LotExportProduitDto": {
+        "properties": {
+          "avertissements": {
+            "description": "Avertissements de sérialisation WinBIZ (troncatures de champs) — libellés FR, pas un CodeAvertissement du contrat gelé.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "cible": {
+            "enum": [
+              "bexio",
+              "winbiz",
+              "abacus",
+              "banana",
+              "csv"
+            ],
+            "type": "string"
+          },
+          "contenuBase64": {
+            "description": "Contenu du fichier encodé base64 — aucun stockage serveur dans ce lot, à l'appelant de le persister.",
+            "type": "string"
+          },
+          "empreinteSha256": {
+            "description": "SHA-256 hexadécimal du contenu du fichier (MD-91, RF-111).",
+            "type": "string"
+          },
+          "exportId": {
+            "description": "Identifiant de la ligne `export_comptable` — figée à vie (MD-91).",
+            "format": "uuid",
+            "type": "string"
+          },
+          "nbEcritures": {
+            "description": "Nombre d'écritures comptables (une par document, mode détaillé).",
+            "type": "number"
+          },
+          "nbLignesCsv": {
+            "description": "Nombre de lignes du fichier CSV produit (en-tête comprise).",
+            "type": "number"
+          },
+          "nomFichier": {
+            "description": "Nom de fichier proposé (pas de stockage serveur — voir `contenuBase64`).",
+            "type": "string"
+          },
+          "totalCreditCentimes": {
+            "description": "Total crédit en centimes — chaîne (bigint), égal à `totalDebitCentimes`.",
+            "type": "string"
+          },
+          "totalDebitCentimes": {
+            "description": "Total débit en centimes — chaîne (bigint, MD-85 : Σdébit = Σcrédit).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "exportId",
+          "cible",
+          "nomFichier",
+          "nbEcritures",
+          "nbLignesCsv",
+          "totalDebitCentimes",
+          "totalCreditCentimes",
+          "empreinteSha256",
+          "contenuBase64",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "MontantsLigneDocumentDto": {
+        "properties": {
+          "montantFacturableCentimes": {
+            "description": "MD-66 : 0 sur les trois axes pour une ligne à charge du garage. Toujours = montantTtcCentimes ici (aucune ligne « payeur garage » ne provient de ce module).",
+            "type": "number"
+          },
+          "montantHtCentimes": {
+            "type": "number"
+          },
+          "montantTtcCentimes": {
+            "type": "number"
+          },
+          "montantTvaCentimes": {
+            "type": "number"
+          },
+          "montantValoriseCentimes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "montantHtCentimes",
+          "montantTvaCentimes",
+          "montantTtcCentimes",
+          "montantFacturableCentimes",
+          "montantValoriseCentimes"
         ],
         "type": "object"
       },
@@ -1863,6 +2174,31 @@
         ],
         "type": "object"
       },
+      "PageDocumentVenteDto": {
+        "properties": {
+          "curseurSuivant": {
+            "description": "Opaque base64url ; null = fin de liste.",
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ReponseDocumentVenteDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
       "PageEntreeJournalDto": {
         "properties": {
           "curseurSuivant": {
@@ -1985,6 +2321,31 @@
         ],
         "type": "object"
       },
+      "PageReponsePaiementDto": {
+        "properties": {
+          "curseurSuivant": {
+            "description": "Opaque base64url ; null = fin de liste.",
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ReponsePaiementDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
       "PageSiteResumeDto": {
         "properties": {
           "curseurSuivant": {
@@ -2054,6 +2415,24 @@
         "required": [
           "donnees",
           "limite"
+        ],
+        "type": "object"
+      },
+      "PaiementAvecAvertissementsDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementPaiementDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ReponsePaiementDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
         ],
         "type": "object"
       },
@@ -2160,7 +2539,24 @@
               "IDEMPOTENCE_CONFLIT",
               "FONCTION_NON_DISPONIBLE",
               "RECHERCHE_TROP_DE_REQUETES",
-              "METHODE_NON_AUTORISEE"
+              "METHODE_NON_AUTORISEE",
+              "DOCUMENT_VERROUILLE",
+              "DOCUMENT_TRANSITION_INTERDITE",
+              "DOCUMENT_SOURCE_DEJA_TRANSFORME",
+              "DOCUMENT_PERIODE_CLOSE",
+              "DOCUMENT_PDF_INDISPONIBLE",
+              "FACTURATION_LIGNES_INDECISES",
+              "QR_CREANCIER_INCOMPLET",
+              "AVOIR_MONTANT_EXCEDENTAIRE",
+              "AVOIR_PLAFOND_DEPASSE",
+              "REMISE_PLAFOND_DEPASSE",
+              "IMPUTATION_MONTANT_EXCEDENTAIRE",
+              "ACOMPTE_DEJA_DEDUIT",
+              "EXPORT_TROU_NUMEROTATION",
+              "EXPORT_ECRITURES_DESEQUILIBREES",
+              "EXPORT_MAPPING_INCOMPLET",
+              "EXPORT_DEJA_TRANSMIS",
+              "BASCULE_FIDUCIAIRE_HORS_FRONTIERE"
             ],
             "type": "string"
           },
@@ -2259,7 +2655,24 @@
               "IDEMPOTENCE_CONFLIT",
               "FONCTION_NON_DISPONIBLE",
               "RECHERCHE_TROP_DE_REQUETES",
-              "METHODE_NON_AUTORISEE"
+              "METHODE_NON_AUTORISEE",
+              "DOCUMENT_VERROUILLE",
+              "DOCUMENT_TRANSITION_INTERDITE",
+              "DOCUMENT_SOURCE_DEJA_TRANSFORME",
+              "DOCUMENT_PERIODE_CLOSE",
+              "DOCUMENT_PDF_INDISPONIBLE",
+              "FACTURATION_LIGNES_INDECISES",
+              "QR_CREANCIER_INCOMPLET",
+              "AVOIR_MONTANT_EXCEDENTAIRE",
+              "AVOIR_PLAFOND_DEPASSE",
+              "REMISE_PLAFOND_DEPASSE",
+              "IMPUTATION_MONTANT_EXCEDENTAIRE",
+              "ACOMPTE_DEJA_DEDUIT",
+              "EXPORT_TROU_NUMEROTATION",
+              "EXPORT_ECRITURES_DESEQUILIBREES",
+              "EXPORT_MAPPING_INCOMPLET",
+              "EXPORT_DEJA_TRANSMIS",
+              "BASCULE_FIDUCIAIRE_HORS_FRONTIERE"
             ],
             "type": "string"
           },
@@ -2369,6 +2782,69 @@
           "kmSortieObligatoire",
           "signature",
           "plafondDefautCentimes"
+        ],
+        "type": "object"
+      },
+      "ReponseBlocCreancierDto": {
+        "properties": {
+          "iban": {
+            "description": "Compte ORDINAIRE (jamais un QR-IBAN — colonne distincte de `qrIban`), forme compacte sans espaces.",
+            "example": "CH9300762011623852957",
+            "nullable": true,
+            "type": "string"
+          },
+          "localite": {
+            "example": "Lausanne",
+            "nullable": true,
+            "type": "string"
+          },
+          "nom": {
+            "example": "Garage Martin SA",
+            "nullable": true,
+            "type": "string"
+          },
+          "npa": {
+            "example": "1000",
+            "nullable": true,
+            "type": "string"
+          },
+          "numero": {
+            "description": "Absent pour une case postale, un lieu-dit ou un hameau — délibérément optionnel, jamais forcé.",
+            "example": "12",
+            "nullable": true,
+            "type": "string"
+          },
+          "pays": {
+            "description": "Code ISO 3166-1 alpha-2. `CH` ou `LI` uniquement pour un compte de QR-facture suisse.",
+            "example": "CH",
+            "type": "string"
+          },
+          "qrIban": {
+            "description": "QR-IBAN (IID 30000–31999, jamais un IBAN ordinaire), forme compacte sans espaces.",
+            "example": "CH4431999123000889012",
+            "nullable": true,
+            "type": "string"
+          },
+          "rue": {
+            "example": "Rue de la Gare",
+            "nullable": true,
+            "type": "string"
+          },
+          "version": {
+            "description": "Sert l'ETag (`W/\"<version>\"`). Dérivé de `modifie_le` ; `0` si aucun bloc créancier n'a encore été enregistré pour ce tenant.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "nom",
+          "rue",
+          "numero",
+          "npa",
+          "localite",
+          "pays",
+          "iban",
+          "qrIban",
+          "version"
         ],
         "type": "object"
       },
@@ -2586,6 +3062,353 @@
         ],
         "type": "object"
       },
+      "ReponseDocumentVenteDto": {
+        "properties": {
+          "annuleParAvoirId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "clientId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "contentieux": {
+            "type": "boolean"
+          },
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dateDocument": {
+            "format": "date",
+            "type": "string"
+          },
+          "devise": {
+            "enum": [
+              "CHF",
+              "EUR"
+            ],
+            "type": "string"
+          },
+          "documentSourceId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "dossierVenteId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "ecartRepriseCentimes": {
+            "description": "Absent pour un rôle sans droit aux montants.",
+            "type": "number"
+          },
+          "emisLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "emisPar": {
+            "nullable": true,
+            "properties": {
+              "nomAffiche": {
+                "type": "string"
+              },
+              "utilisateurId": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "exercice": {
+            "nullable": true,
+            "type": "number"
+          },
+          "exporteLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "exportId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "factureAnnuleeId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "figees": {
+            "$ref": "#/components/schemas/ValeursFigeesDocumentDto"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lignes": {
+            "items": {
+              "$ref": "#/components/schemas/ReponseLigneDocumentVenteDto"
+            },
+            "type": "array"
+          },
+          "lignesTronquees": {
+            "description": "Au-delà de 200 lignes, `lignes` est tronqué : paginer `GET .../lignes`.",
+            "type": "boolean"
+          },
+          "mentionTvaInterdite": {
+            "type": "boolean"
+          },
+          "modifieLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "modifiePar": {
+            "nullable": true,
+            "properties": {
+              "nomAffiche": {
+                "type": "string"
+              },
+              "utilisateurId": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "montantRegleCentimes": {
+            "description": "Absent pour un rôle sans droit aux montants.",
+            "type": "number"
+          },
+          "motifAvoir": {
+            "enum": [
+              "erreur_adresse",
+              "erreur_montant",
+              "erreur_destinataire",
+              "erreur_taux",
+              "prestation_annulee",
+              "geste_commercial",
+              "autre"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "motifAvoirAutre": {
+            "nullable": true,
+            "type": "string"
+          },
+          "natureFacture": {
+            "enum": [
+              "ordinaire",
+              "acompte"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "nombreLignes": {
+            "type": "number"
+          },
+          "numero": {
+            "example": "2026-00318",
+            "nullable": true,
+            "type": "string"
+          },
+          "numeroOrigine": {
+            "nullable": true,
+            "type": "string"
+          },
+          "numeroSequence": {
+            "nullable": true,
+            "type": "number"
+          },
+          "ordreReparationId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "origine": {
+            "enum": [
+              "dfa",
+              "reprise"
+            ],
+            "type": "string"
+          },
+          "pdfCle": {
+            "nullable": true,
+            "type": "string"
+          },
+          "pdfSha256": {
+            "nullable": true,
+            "type": "string"
+          },
+          "porteeAvoir": {
+            "enum": [
+              "total",
+              "partiel"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "qr": {
+            "additionalProperties": true,
+            "description": "Figé à l'émission — propriété du sous-module `qr/`, toujours `null` ici.",
+            "nullable": true,
+            "type": "object"
+          },
+          "relanceLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "relanceNiveau": {
+            "type": "number"
+          },
+          "remiseGlobalePourmille": {
+            "nullable": true,
+            "type": "number"
+          },
+          "remiseGlobaleSaisieCentimes": {
+            "nullable": true,
+            "type": "number"
+          },
+          "remplaceId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "siteId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "soldeCentimes": {
+            "description": "Absent pour un rôle sans droit aux montants.",
+            "type": "number"
+          },
+          "statut": {
+            "enum": [
+              "brouillon",
+              "emis",
+              "accepte",
+              "refuse",
+              "expire",
+              "remplace",
+              "transforme",
+              "annule",
+              "annule_par_avoir",
+              "abandonne"
+            ],
+            "type": "string"
+          },
+          "statutReglement": {
+            "description": "Absent pour un rôle sans droit aux montants.",
+            "enum": [
+              "non_regle",
+              "partiel",
+              "regle",
+              "trop_percu",
+              "irrecouvrable"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "tauxTvaPourmilleDocument": {
+            "nullable": true,
+            "type": "number"
+          },
+          "totalHtCentimes": {
+            "description": "Absent pour un rôle sans droit aux montants.",
+            "type": "number"
+          },
+          "totalTtcCentimes": {
+            "description": "Absent pour un rôle sans droit aux montants.",
+            "type": "number"
+          },
+          "totalTvaCentimes": {
+            "description": "Absent pour un rôle sans droit aux montants.",
+            "type": "number"
+          },
+          "tvaNonVentilee": {
+            "type": "boolean"
+          },
+          "typeDocument": {
+            "enum": [
+              "devis",
+              "bon_commande",
+              "facture",
+              "avoir"
+            ],
+            "type": "string"
+          },
+          "vehiculeId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "ventilationTva": {
+            "description": "Absent pour un rôle sans droit aux montants.",
+            "items": {
+              "$ref": "#/components/schemas/DocumentVenteTvaDto"
+            },
+            "type": "array"
+          },
+          "version": {
+            "description": "Rendu aussi en en-tête `ETag: W/\"<version>\"`.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "typeDocument",
+          "natureFacture",
+          "origine",
+          "numero",
+          "numeroSequence",
+          "numeroOrigine",
+          "exercice",
+          "statut",
+          "siteId",
+          "clientId",
+          "vehiculeId",
+          "ordreReparationId",
+          "dossierVenteId",
+          "documentSourceId",
+          "factureAnnuleeId",
+          "annuleParAvoirId",
+          "remplaceId",
+          "figees",
+          "dateDocument",
+          "devise",
+          "tvaNonVentilee",
+          "tauxTvaPourmilleDocument",
+          "mentionTvaInterdite",
+          "remiseGlobaleSaisieCentimes",
+          "remiseGlobalePourmille",
+          "relanceNiveau",
+          "relanceLe",
+          "motifAvoir",
+          "motifAvoirAutre",
+          "porteeAvoir",
+          "qr",
+          "pdfCle",
+          "pdfSha256",
+          "exporteLe",
+          "exportId",
+          "contentieux",
+          "lignes",
+          "nombreLignes",
+          "lignesTronquees",
+          "version",
+          "emisLe",
+          "emisPar",
+          "creeLe",
+          "modifieLe",
+          "modifiePar"
+        ],
+        "type": "object"
+      },
       "ReponseDoublonsClientsDto": {
         "properties": {
           "candidats": {
@@ -2653,7 +3476,14 @@
               "vehicule_kilometrage",
               "client",
               "rendez_vous",
-              "pret_courtoisie"
+              "pret_courtoisie",
+              "document_vente",
+              "paiement",
+              "imputation_paiement",
+              "periode_comptable",
+              "export_comptable",
+              "mapping_compte",
+              "tenant_bloc_creancier"
             ],
             "type": "string"
           },
@@ -2685,6 +3515,229 @@
           "apres",
           "motif",
           "confirmations"
+        ],
+        "type": "object"
+      },
+      "ReponseExportComptableDto": {
+        "properties": {
+          "documentsExportes": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentExporteDto"
+            },
+            "type": "array"
+          },
+          "lots": {
+            "description": "Un seul lot dans ce lot logiciel (MD-91 : un `export_comptable` par lot transmis) — un tableau vide si aucun document candidat sur la période.",
+            "items": {
+              "$ref": "#/components/schemas/LotExportProduitDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "lots",
+          "documentsExportes"
+        ],
+        "type": "object"
+      },
+      "ReponseImputationPaiementDto": {
+        "properties": {
+          "documentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "imputeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "imputePar": {
+            "nullable": true,
+            "properties": {
+              "nomAffiche": {
+                "type": "string"
+              },
+              "utilisateurId": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "montantCentimes": {
+            "description": "Toujours positif sur ce lettrage (le signe vit sur le paiement, MD-50).",
+            "type": "number"
+          },
+          "nature": {
+            "enum": [
+              "reglement",
+              "escompte",
+              "arrondi",
+              "perte",
+              "compensation"
+            ],
+            "type": "string"
+          },
+          "paiementId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "paiementId",
+          "documentId",
+          "montantCentimes",
+          "nature",
+          "imputeLe",
+          "imputePar"
+        ],
+        "type": "object"
+      },
+      "ReponseLigneDocumentVenteDto": {
+        "properties": {
+          "articleId": {
+            "description": "Accroche étape 3 (stock pièces).",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "datePrestation": {
+            "format": "date",
+            "type": "string"
+          },
+          "designation": {
+            "type": "string"
+          },
+          "documentAcompteId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "documentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ligneOrId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "modeCalculTva": {
+            "description": "Lecture seule — toujours `ttc` pour toute ligne saisie via ce module (Δ-RF40).",
+            "enum": [
+              "ht",
+              "ttc"
+            ],
+            "type": "string"
+          },
+          "modifieLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "montants": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MontantsLigneDocumentDto"
+              }
+            ],
+            "description": "Absent pour un rôle sans droit aux montants."
+          },
+          "numeroOrdre": {
+            "type": "number"
+          },
+          "prixUnitaireTtcCentimes": {
+            "description": "TTC en centimes — null uniquement pour une ligne 'texte'.",
+            "nullable": true,
+            "type": "number"
+          },
+          "quantiteMillieme": {
+            "description": "Millièmes — 1000 = quantité 1.",
+            "example": 1000,
+            "type": "number"
+          },
+          "referenceTexte": {
+            "nullable": true,
+            "type": "string"
+          },
+          "regimeTva": {
+            "enum": [
+              "normal",
+              "reduit",
+              "hebergement",
+              "exonere",
+              "exclu",
+              "marge",
+              "acquisition"
+            ],
+            "type": "string"
+          },
+          "remiseGlobaleRepartieCentimes": {
+            "type": "number"
+          },
+          "remiseMontantCentimes": {
+            "nullable": true,
+            "type": "number"
+          },
+          "remisePourmille": {
+            "nullable": true,
+            "type": "number"
+          },
+          "tauxTvaPourmille": {
+            "example": 81,
+            "type": "number"
+          },
+          "type": {
+            "enum": [
+              "main_oeuvre_bareme",
+              "main_oeuvre_temps_reel",
+              "forfait",
+              "piece",
+              "fourniture",
+              "sous_traitance",
+              "produit_atelier",
+              "taxe",
+              "texte",
+              "acompte_deduit",
+              "ecart_reprise",
+              "repartition",
+              "consigne"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "documentId",
+          "numeroOrdre",
+          "type",
+          "ligneOrId",
+          "documentAcompteId",
+          "designation",
+          "referenceTexte",
+          "articleId",
+          "quantiteMillieme",
+          "prixUnitaireTtcCentimes",
+          "modeCalculTva",
+          "regimeTva",
+          "tauxTvaPourmille",
+          "datePrestation",
+          "remisePourmille",
+          "remiseMontantCentimes",
+          "remiseGlobaleRepartieCentimes",
+          "creeLe",
+          "modifieLe"
         ],
         "type": "object"
       },
@@ -2798,6 +3851,12 @@
             ],
             "type": "string"
           },
+          "payeurClientId": {
+            "description": "Désigne QUI, quand `payeur !== 'client'` (AC-08, MD-62, MD-67) : `null` pour `payeur = 'client'` ou `'garage'`. Toujours `null` au lot 1 — la colonne `ligne_or.payeur_client_id` n'existe pas encore en base (voir `mappeurs.ts::mapperLigneOr`) ; migration à suivre hors périmètre de ce module.",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "prixUnitaireCentimes": {
             "description": "Figé à la création (RM-65). Absent pour un rôle sans montants.",
             "nullable": true,
@@ -2897,6 +3956,7 @@
           "origine",
           "statut",
           "payeur",
+          "payeurClientId",
           "blocage",
           "designation",
           "referenceTexte",
@@ -2985,7 +4045,8 @@
                 "valider-lignes",
                 "refuser-lignes",
                 "annuler-lignes",
-                "soumettre-lignes-a-devis"
+                "soumettre-lignes-a-devis",
+                "facturer"
               ],
               "type": "string"
             },
@@ -3315,6 +4376,135 @@
           "creeLe",
           "modifieLe",
           "modifiePar"
+        ],
+        "type": "object"
+      },
+      "ReponsePaiementDto": {
+        "properties": {
+          "contrePasseId": {
+            "description": "Paiement de sens opposé lié (MD-52, MD-57).",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "creePar": {
+            "nullable": true,
+            "properties": {
+              "nomAffiche": {
+                "type": "string"
+              },
+              "utilisateurId": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "dateValeur": {
+            "example": "2026-07-29",
+            "format": "date",
+            "type": "string"
+          },
+          "devise": {
+            "enum": [
+              "CHF",
+              "EUR"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "identifiantTransactionBanque": {
+            "nullable": true,
+            "type": "string"
+          },
+          "imputations": {
+            "items": {
+              "$ref": "#/components/schemas/ReponseImputationPaiementDto"
+            },
+            "type": "array"
+          },
+          "issuesDisponibles": {
+            "items": {
+              "enum": [
+                "remboursement",
+                "imputation_future",
+                "abandon"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "montantCentimes": {
+            "description": "Signé : négatif = remboursement ou contre-passation (MD-50).",
+            "type": "number"
+          },
+          "montantNonImputeCentimes": {
+            "description": "montant − Σ imputations 'reglement' (MD-51.b) — une avance client non imputée si > 0 (RF-79).",
+            "type": "number"
+          },
+          "moyen": {
+            "enum": [
+              "especes",
+              "carte",
+              "virement",
+              "qr",
+              "twint",
+              "compensation",
+              "leasing"
+            ],
+            "type": "string"
+          },
+          "payeurClientId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "payeurLibelle": {
+            "description": "Figé — l'assurance, le leaser, le client (MD-50).",
+            "type": "string"
+          },
+          "referenceQr": {
+            "nullable": true,
+            "type": "string"
+          },
+          "siteId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "manuel",
+              "camt054",
+              "terminal"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "siteId",
+          "dateValeur",
+          "moyen",
+          "montantCentimes",
+          "devise",
+          "payeurClientId",
+          "payeurLibelle",
+          "referenceQr",
+          "identifiantTransactionBanque",
+          "source",
+          "contrePasseId",
+          "imputations",
+          "montantNonImputeCentimes",
+          "issuesDisponibles",
+          "creeLe",
+          "creePar"
         ],
         "type": "object"
       },
@@ -4246,6 +5436,20 @@
       },
       "TotauxPayeurOrDto": {
         "properties": {
+          "destinataire": {
+            "description": "Projection minimale du destinataire réel de ce groupe (RF-87). `null` uniquement pour `payeur = 'garage'` (personne, RF-92) ; sinon toujours `null` au lot 1 tant que `payeurClientId` n'est pas résolu (colonne absente en base).",
+            "nullable": true,
+            "properties": {
+              "clientId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "nomAffiche": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
           "montantHtCentimes": {
             "type": "number"
           },
@@ -4265,6 +5469,12 @@
             ],
             "type": "string"
           },
+          "payeurClientId": {
+            "description": "Clé de regroupement, DEUXIÈME MOITIÉ (MD-62 : regroupement par `(payeur, payeurClientId)`, jamais `payeur` seul — deux assureurs sur le même OR sont deux groupes distincts). `null` pour `payeur = 'client'` (destinataire = l'OR lui-même) et pour `'garage'` (RF-92, fusionné dans le groupe `'client'`). Toujours `null` au lot 1 — la colonne `ligne_or.payeur_client_id` n'existe pas encore en base.",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "tva": {
             "items": {
               "$ref": "#/components/schemas/VentilationTvaDto"
@@ -4274,6 +5484,8 @@
         },
         "required": [
           "payeur",
+          "payeurClientId",
+          "destinataire",
           "montantHtCentimes",
           "montantTvaCentimes",
           "montantTtcCentimes",
@@ -4401,6 +5613,47 @@
           "nom",
           "role",
           "langue"
+        ],
+        "type": "object"
+      },
+      "ValeursFigeesDocumentDto": {
+        "properties": {
+          "adresseFacturation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AdresseStructureeQrDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          },
+          "clientDesignation": {
+            "type": "string"
+          },
+          "clientIde": {
+            "nullable": true,
+            "type": "string"
+          },
+          "clientLangue": {
+            "type": "string"
+          },
+          "conditionsPaiement": {
+            "additionalProperties": true,
+            "description": "Absent pour un rôle sans droit aux montants.",
+            "nullable": true,
+            "type": "object"
+          },
+          "plaque": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientDesignation",
+          "clientIde",
+          "clientLangue",
+          "adresseFacturation",
+          "plaque"
         ],
         "type": "object"
       },
@@ -7245,6 +8498,1727 @@
         ]
       }
     },
+    "/documents-vente": {
+      "get": {
+        "description": "SOUS-ENSEMBLE des filtres du contrat (`siteId`, `typeDocument`, `statut`, `clientId`, `vehiculeId`) — voir `ServiceDocumentsVente.lister`.",
+        "operationId": "DocumentVenteController_lister",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageDocumentVenteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Liste des documents de vente du tenant courant.",
+        "tags": [
+          "Documents de vente"
+        ]
+      },
+      "post": {
+        "description": "`Idempotency-Key` obligatoire (uuid v4) — un brouillon ne consomme aucun numéro (RF-9), mais un double-clic comptoir ne doit pas produire deux brouillons. `documentSourceId` transforme un devis accepté ou un bon de commande émis (RF-8) — jamais une facture recopiée depuis un OR (POST /ordres-reparation/{id}/facturer, hors périmètre de ce lot).",
+        "operationId": "DocumentVenteController_creer",
+        "parameters": [
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "clientId": "4b8e1f3c-0d5f-4a9c-1e4d-3c7f80a11234",
+                    "devise": "CHF",
+                    "lignes": [
+                      {
+                        "datePrestation": "2026-07-29",
+                        "designation": "Forfait diagnostic",
+                        "prixUnitaireTtcCentimes": 7000,
+                        "quantiteMillieme": 1000,
+                        "tauxTvaPourmille": 81,
+                        "type": "forfait"
+                      }
+                    ],
+                    "siteId": "2f6c9e1a-8b3d-4e7a-9c2b-1a5d6e8f9012",
+                    "typeDocument": "facture"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "clientId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "dateDocument": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  },
+                  "devise": {
+                    "default": "CHF",
+                    "enum": [
+                      "CHF",
+                      "EUR"
+                    ],
+                    "type": "string"
+                  },
+                  "documentSourceId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "lignes": {
+                    "default": [],
+                    "items": {
+                      "properties": {
+                        "datePrestation": {
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                          "type": "string"
+                        },
+                        "designation": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "documentAcompteId": {
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "prixUnitaireTtcCentimes": {
+                          "anyOf": [
+                            {
+                              "maximum": 9007199254740991,
+                              "minimum": -9007199254740991,
+                              "type": "integer"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "quantiteMillieme": {
+                          "default": 1000,
+                          "maximum": 9007199254740991,
+                          "minimum": 1,
+                          "type": "integer"
+                        },
+                        "referenceTexte": {
+                          "anyOf": [
+                            {
+                              "maxLength": 80,
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "regimeTva": {
+                          "default": "normal",
+                          "enum": [
+                            "normal",
+                            "reduit",
+                            "hebergement",
+                            "exonere",
+                            "exclu",
+                            "marge",
+                            "acquisition"
+                          ],
+                          "type": "string"
+                        },
+                        "remiseMontantCentimes": {
+                          "maximum": 9007199254740991,
+                          "minimum": -9007199254740991,
+                          "type": "integer"
+                        },
+                        "remisePourmille": {
+                          "maximum": 1000,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "tauxTvaPourmille": {
+                          "maximum": 1000,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "type": {
+                          "enum": [
+                            "main_oeuvre_bareme",
+                            "main_oeuvre_temps_reel",
+                            "forfait",
+                            "piece",
+                            "fourniture",
+                            "sous_traitance",
+                            "produit_atelier",
+                            "taxe",
+                            "texte",
+                            "acompte_deduit",
+                            "ecart_reprise",
+                            "repartition",
+                            "consigne"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "designation",
+                        "tauxTvaPourmille",
+                        "datePrestation"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 200,
+                    "type": "array"
+                  },
+                  "natureFacture": {
+                    "enum": [
+                      "ordinaire",
+                      "acompte"
+                    ],
+                    "type": "string"
+                  },
+                  "remiseGlobalePourmille": {
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "remiseGlobaleSaisieCentimes": {
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "siteId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "typeDocument": {
+                    "enum": [
+                      "devis",
+                      "bon_commande",
+                      "facture"
+                    ],
+                    "type": "string"
+                  },
+                  "vehiculeId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "typeDocument",
+                  "siteId",
+                  "clientId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeDocumentVenteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client, véhicule ou document source introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DOCUMENT_SOURCE_DEJA_TRANSFORME, DOCUMENT_TRANSITION_INTERDITE ou IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Création d'un brouillon (devis, bon de commande ou facture créée directement).",
+        "tags": [
+          "Documents de vente"
+        ]
+      }
+    },
+    "/documents-vente/{factureId}/avoirs": {
+      "post": {
+        "description": "`Idempotency-Key` obligatoire — c'est une création de document sensible. L'avoir naît en BROUILLON : il est émis séparément via `POST /documents-vente/{id}/emettre`, qui est aussi le moment où un avoir `portee = 'total'` fait basculer la facture créditée à `annule_par_avoir` (RF-32).",
+        "operationId": "DocumentVenteTransitionsController_creerAvoir",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "factureId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motif": "erreur_adresse",
+                    "portee": "total"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "lignes": {
+                    "default": [],
+                    "items": {
+                      "properties": {
+                        "ligneDocumentId": {
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "type": "string"
+                        },
+                        "montantTtcCentimes": {
+                          "maximum": 9007199254740991,
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "ligneDocumentId",
+                        "montantTtcCentimes"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 200,
+                    "type": "array"
+                  },
+                  "motif": {
+                    "enum": [
+                      "erreur_adresse",
+                      "erreur_montant",
+                      "erreur_destinataire",
+                      "erreur_taux",
+                      "prestation_annulee",
+                      "geste_commercial",
+                      "autre"
+                    ],
+                    "type": "string"
+                  },
+                  "motifAutre": {
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "portee": {
+                    "enum": [
+                      "total",
+                      "partiel"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "portee",
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeDocumentVenteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Facture ou ligne référencée introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DOCUMENT_TRANSITION_INTERDITE (facture non émise), AVOIR_MONTANT_EXCEDENTAIRE (MD-23) ou IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Création d'un avoir (brouillon) créditant une facture émise (RF-11 → RF-18).",
+        "tags": [
+          "Documents de vente — transitions"
+        ]
+      }
+    },
+    "/documents-vente/{id}": {
+      "get": {
+        "operationId": "DocumentVenteController_parId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseDocumentVenteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Identifiant mal formé."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Document introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Fiche complète d'un document de vente.",
+        "tags": [
+          "Documents de vente"
+        ]
+      },
+      "patch": {
+        "description": "`If-Match: W/\"<version>\"` OBLIGATOIRE. `statut` reste en lecture seule.",
+        "operationId": "DocumentVenteController_modifier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "W/\"<version>\" lu sur la dernière lecture (ETag).",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "remiseGlobalePourmille": 50
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "clientId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "dateDocument": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  },
+                  "remiseGlobalePourmille": {
+                    "anyOf": [
+                      {
+                        "maximum": 1000,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "remiseGlobaleSaisieCentimes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "vehiculeId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeDocumentVenteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou If-Match manquant/mal formé."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Document introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "CONFLIT (version périmée) ou DOCUMENT_VERROUILLE (document émis)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modification de l'en-tête d'un brouillon (MD-19).",
+        "tags": [
+          "Documents de vente"
+        ]
+      }
+    },
+    "/documents-vente/{id}/accepter": {
+      "post": {
+        "operationId": "DocumentVenteTransitionsController_accepter",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeDocumentVenteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Type de document invalide (seul un devis peut être accepté)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Document introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DOCUMENT_TRANSITION_INTERDITE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Acceptation — devis uniquement (devis.emis → accepte, terminal).",
+        "tags": [
+          "Documents de vente — transitions"
+        ]
+      }
+    },
+    "/documents-vente/{id}/annuler": {
+      "post": {
+        "operationId": "DocumentVenteTransitionsController_annuler",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motif": "Commande annulée par le client avant livraison."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeDocumentVenteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide (motif manquant) ou type de document invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Document introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DOCUMENT_TRANSITION_INTERDITE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Annulation — bon de commande uniquement, motif obligatoire.",
+        "tags": [
+          "Documents de vente — transitions"
+        ]
+      }
+    },
+    "/documents-vente/{id}/emettre": {
+      "post": {
+        "description": "`Idempotency-Key` obligatoire (RF-25) : rejouer la même requête avec la même clé rend le MÊME document, avec le MÊME numéro. Applicable aux quatre types de document (devis, bon de commande, facture, avoir).",
+        "operationId": "DocumentVenteTransitionsController_emettre",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeDocumentVenteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Document introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DOCUMENT_VERROUILLE (déjà émis/abandonné) ou DOCUMENT_PERIODE_CLOSE (MD-34)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Émission — le point de non-retour (RF-10, MD-18).",
+        "tags": [
+          "Documents de vente — transitions"
+        ]
+      }
+    },
+    "/documents-vente/{id}/lignes": {
+      "post": {
+        "operationId": "DocumentVenteController_ajouterLigne",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "datePrestation": "2026-07-29",
+                    "designation": "Plaquettes de frein avant",
+                    "prixUnitaireTtcCentimes": 8900,
+                    "quantiteMillieme": 1000,
+                    "tauxTvaPourmille": 81,
+                    "type": "piece"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "datePrestation": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  },
+                  "designation": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "documentAcompteId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "prixUnitaireTtcCentimes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "quantiteMillieme": {
+                    "default": 1000,
+                    "maximum": 9007199254740991,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "referenceTexte": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "regimeTva": {
+                    "default": "normal",
+                    "enum": [
+                      "normal",
+                      "reduit",
+                      "hebergement",
+                      "exonere",
+                      "exclu",
+                      "marge",
+                      "acquisition"
+                    ],
+                    "type": "string"
+                  },
+                  "remiseMontantCentimes": {
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "remisePourmille": {
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "tauxTvaPourmille": {
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "type": {
+                    "enum": [
+                      "main_oeuvre_bareme",
+                      "main_oeuvre_temps_reel",
+                      "forfait",
+                      "piece",
+                      "fourniture",
+                      "sous_traitance",
+                      "produit_atelier",
+                      "taxe",
+                      "texte",
+                      "acompte_deduit",
+                      "ecart_reprise",
+                      "repartition",
+                      "consigne"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "designation",
+                  "tauxTvaPourmille",
+                  "datePrestation"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeDocumentVenteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Document introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DOCUMENT_VERROUILLE (document émis)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Ajout d'une ligne sur un brouillon (MD-21).",
+        "tags": [
+          "Documents de vente"
+        ]
+      }
+    },
+    "/documents-vente/{id}/lignes/{ligneId}": {
+      "delete": {
+        "operationId": "DocumentVenteController_supprimerLigne",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ligneId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeDocumentVenteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Document ou ligne introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DOCUMENT_VERROUILLE (document émis)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Suppression d'une ligne sur un brouillon (MD-21, MD-19).",
+        "tags": [
+          "Documents de vente"
+        ]
+      },
+      "patch": {
+        "operationId": "DocumentVenteController_modifierLigne",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ligneId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "prixUnitaireTtcCentimes": 9500
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "datePrestation": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  },
+                  "designation": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "documentAcompteId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "prixUnitaireTtcCentimes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": -9007199254740991,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "quantiteMillieme": {
+                    "default": 1000,
+                    "maximum": 9007199254740991,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "referenceTexte": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "regimeTva": {
+                    "default": "normal",
+                    "enum": [
+                      "normal",
+                      "reduit",
+                      "hebergement",
+                      "exonere",
+                      "exclu",
+                      "marge",
+                      "acquisition"
+                    ],
+                    "type": "string"
+                  },
+                  "remiseMontantCentimes": {
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "remisePourmille": {
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "tauxTvaPourmille": {
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "type": {
+                    "enum": [
+                      "main_oeuvre_bareme",
+                      "main_oeuvre_temps_reel",
+                      "forfait",
+                      "piece",
+                      "fourniture",
+                      "sous_traitance",
+                      "produit_atelier",
+                      "taxe",
+                      "texte",
+                      "acompte_deduit",
+                      "ecart_reprise",
+                      "repartition",
+                      "consigne"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeDocumentVenteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Document ou ligne introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DOCUMENT_VERROUILLE (document émis)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modification d'une ligne sur un brouillon (MD-21).",
+        "tags": [
+          "Documents de vente"
+        ]
+      }
+    },
+    "/documents-vente/{id}/refuser": {
+      "post": {
+        "operationId": "DocumentVenteTransitionsController_refuser",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motif": "Le client a renoncé au devis."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeDocumentVenteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Type de document invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Document introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DOCUMENT_TRANSITION_INTERDITE."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Refus — devis ou bon de commande.",
+        "tags": [
+          "Documents de vente — transitions"
+        ]
+      }
+    },
     "/doublons-clients": {
       "get": {
         "operationId": "DoublonsClientsController_lister",
@@ -7299,6 +10273,163 @@
         "summary": "Candidats doublons pour un nom, un NPA, un email, un téléphone ou un IDE (RM-05).",
         "tags": [
           "Clients"
+        ]
+      }
+    },
+    "/exports-fiduciaires": {
+      "post": {
+        "description": "Cible unique câblée dans ce lot : `winbiz` — les autres valeurs de `cible` (`bexio`/`abacus`/`banana`/`csv`) répondent `501 FONCTION_NON_DISPONIBLE`, jamais un fichier vide ou approximatif. Seul `granularite: 'detaille'` (une écriture par document, MD-88) est implémenté ; `agrege` répond le même 501. La continuité de numérotation de la série (facture/avoir, par exercice) est vérifiée de façon BLOQUANTE avant toute écriture (RF-28/RF-105, `409 EXPORT_TROU_NUMEROTATION`) : un trou ne part jamais chez la fiduciaire. Le mapping comptable du tenant (`mapping_compte`/`mapping_code_tva`) doit être COMPLET pour l'ensemble du lot, faute de quoi l'export est refusé EN BLOC, jamais partiellement (`409 EXPORT_MAPPING_INCOMPLET`, qui nomme précisément ce qui manque). `Idempotency-Key` OBLIGATOIRE (uuid v4) : un rejeu réseau ne doit jamais produire un second lot ni marquer deux fois les mêmes documents (MD-92 : un document déjà exporté ne repart dans un autre lot que par un geste explicite et tracé — un REJEU n'en est justement pas un). Réponse `200` (au lieu de `201`) si aucun document n'était candidat sur la période (`donnees.lots: []`, `donnees.documentsExportes: []`) — un résultat vide honnête, pas une erreur.",
+        "operationId": "ExportComptableController_lancer",
+        "parameters": [
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "cible": "winbiz",
+                    "granularite": "detaille",
+                    "periodeAu": "2026-07-31",
+                    "periodeDu": "2026-07-01"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "cible": {
+                    "enum": [
+                      "bexio",
+                      "winbiz",
+                      "abacus",
+                      "banana",
+                      "csv"
+                    ],
+                    "type": "string"
+                  },
+                  "granularite": {
+                    "enum": [
+                      "detaille",
+                      "agrege"
+                    ],
+                    "type": "string"
+                  },
+                  "periodeAu": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  },
+                  "periodeDu": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  },
+                  "siteId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "cible",
+                  "periodeDu",
+                  "periodeAu"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportComptableAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": "Aucun document candidat sur la période."
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportComptableAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": "Au moins un document exporté."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans facturation.export.creer — admin, notamment, RF-115)."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "EXPORT_TROU_NUMEROTATION, EXPORT_MAPPING_INCOMPLET, ou IDEMPOTENCE_CONFLIT."
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "FONCTION_NON_DISPONIBLE — cible autre que winbiz, granularité agrege, ou lot dépassant la taille maximale WinBIZ."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Sélectionne les documents de vente émis et non encore exportés d'une période, produit le fichier comptable, et les marque exportés.",
+        "tags": [
+          "Facturation — export fiduciaire"
         ]
       }
     },
@@ -9327,6 +12458,18 @@
                     ],
                     "type": "string"
                   },
+                  "payeurClientId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "pieceARestituer": {
                     "default": false,
                     "type": "boolean"
@@ -9618,6 +12761,18 @@
                       "garage"
                     ],
                     "type": "string"
+                  },
+                  "payeurClientId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "pieceARestituer": {
                     "default": false,
@@ -11338,6 +14493,785 @@
         ]
       }
     },
+    "/paiements": {
+      "get": {
+        "description": "`nonImputeUniquement=true` sert l'écran « encaissements à affecter » (RF-72), qui doit être vide en fin de journée.",
+        "operationId": "PaiementController_lister",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageReponsePaiementDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans facturation.paiement.lire)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Liste paginée des paiements du tenant courant.",
+        "tags": [
+          "Facturation — paiements"
+        ]
+      },
+      "post": {
+        "description": "`Idempotency-Key` obligatoire (uuid v4) : un rejeu réseau au comptoir ne doit jamais faire encaisser deux fois le même geste. `imputations[]` est optionnel — un paiement sans imputation reste valide (acompte avant tout document, RF-65) et apparaît dans `GET /paiements?nonImputeUniquement=true` jusqu'à affectation explicite. Le lettrage est TOUJOURS explicite : aucune règle n'impute automatiquement une facture à la place de l'appelant. Arrondi espèces (RF-49 → RF-52) : soumis comme une imputation `nature: 'arrondi'` explicite dans `imputations[]`, revalidée intégralement côté serveur (moyen 'especes' uniquement, ±2 centimes, et seulement si elle solde exactement le document).",
+        "operationId": "PaiementController_creer",
+        "parameters": [
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "dateValeur": "2026-07-29",
+                    "devise": "CHF",
+                    "imputations": [
+                      {
+                        "documentId": "00000000-0000-0000-0000-000000000000",
+                        "montantCentimes": 20430,
+                        "nature": "reglement"
+                      },
+                      {
+                        "documentId": "00000000-0000-0000-0000-000000000000",
+                        "montantCentimes": 1,
+                        "nature": "arrondi"
+                      }
+                    ],
+                    "montantCentimes": 20430,
+                    "moyen": "especes",
+                    "payeurLibelle": "Client comptoir",
+                    "siteId": "00000000-0000-0000-0000-000000000000"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "dateValeur": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  },
+                  "devise": {
+                    "default": "CHF",
+                    "enum": [
+                      "CHF",
+                      "EUR"
+                    ],
+                    "type": "string"
+                  },
+                  "identifiantTransactionBanque": {
+                    "anyOf": [
+                      {
+                        "maxLength": 140,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "imputations": {
+                    "default": [],
+                    "items": {
+                      "properties": {
+                        "documentId": {
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "type": "string"
+                        },
+                        "montantCentimes": {
+                          "maximum": 9007199254740991,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "nature": {
+                          "default": "reglement",
+                          "enum": [
+                            "reglement",
+                            "escompte",
+                            "arrondi",
+                            "perte",
+                            "compensation"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "documentId",
+                        "montantCentimes"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  },
+                  "montantCentimes": {
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer"
+                  },
+                  "moyen": {
+                    "enum": [
+                      "especes",
+                      "carte",
+                      "virement",
+                      "qr",
+                      "twint",
+                      "compensation",
+                      "leasing"
+                    ],
+                    "type": "string"
+                  },
+                  "payeurClientId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "payeurLibelle": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "siteId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "siteId",
+                  "dateValeur",
+                  "moyen",
+                  "montantCentimes",
+                  "payeurLibelle"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaiementAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans facturation.paiement.creer)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client payeur ou document ciblé par une imputation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "IDEMPOTENCE_CONFLIT, IMPUTATION_MONTANT_EXCEDENTAIRE (MD-51), ou CONFLIT (transaction bancaire déjà enregistrée)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Enregistrement d'un encaissement, avec lettrage optionnel dans le même geste.",
+        "tags": [
+          "Facturation — paiements"
+        ]
+      }
+    },
+    "/paiements/{paiementId}": {
+      "get": {
+        "operationId": "PaiementController_parId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paiementId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponsePaiementDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Identifiant mal formé."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Paiement introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Détail d'un paiement, avec ses imputations.",
+        "tags": [
+          "Facturation — paiements"
+        ]
+      }
+    },
+    "/paiements/{paiementId}/abandonner": {
+      "post": {
+        "description": "`Idempotency-Key` obligatoire (uuid v4) — décision de sécurité de cet agent (voir le rapport de livraison) : un geste qui renonce à rendre de l'argent au client ne doit jamais s'exécuter deux fois sur un retry. Crée une imputation de nature `compensation` sur le document de régularisation désigné, rattachée au paiement d'avance.",
+        "operationId": "PaiementController_abandonner",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paiementId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "documentRegularisationId": "00000000-0000-0000-0000-000000000000",
+                    "montantCentimes": 200,
+                    "motif": "Trop-perçu résiduel de 2 ct, abandonné en accord avec le client au comptoir"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "documentRegularisationId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "montantCentimes": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "motif": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "documentRegularisationId",
+                  "montantCentimes",
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaiementAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans facturation.paiement.abandonner)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Paiement ou document de régularisation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "IDEMPOTENCE_CONFLIT ou IMPUTATION_MONTANT_EXCEDENTAIRE (MD-51)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Abandonne une avance client non imputée en faveur du garage (RF-79, issue 3/3).",
+        "tags": [
+          "Facturation — paiements"
+        ]
+      }
+    },
+    "/paiements/{paiementId}/imputations": {
+      "post": {
+        "description": "`Idempotency-Key` obligatoire (uuid v4) — décision de sécurité de cet agent (voir le rapport de livraison) : une imputation rejouée deux fois lettrerait deux fois le même encaissement. Natures acceptées ici : `reglement`, `arrondi` uniquement — `escompte`/`perte`/`compensation` passent par leurs actions dédiées.",
+        "operationId": "PaiementController_ajouterImputation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paiementId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "documentId": "00000000-0000-0000-0000-000000000000",
+                    "montantCentimes": 15000,
+                    "nature": "reglement"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "documentId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "montantCentimes": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "nature": {
+                    "default": "reglement",
+                    "enum": [
+                      "reglement",
+                      "escompte",
+                      "arrondi",
+                      "perte",
+                      "compensation"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "documentId",
+                  "montantCentimes"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaiementAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide, Idempotency-Key manquante/mal formée, ou nature d'imputation non autorisée sur cet endpoint."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans facturation.paiement.imputer)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Paiement ou document introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "IDEMPOTENCE_CONFLIT ou IMPUTATION_MONTANT_EXCEDENTAIRE (MD-51)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Affecte un paiement déjà enregistré à un document (lettrage a posteriori).",
+        "tags": [
+          "Facturation — paiements"
+        ]
+      }
+    },
+    "/paiements/{paiementId}/rembourser": {
+      "post": {
+        "description": "`Idempotency-Key` obligatoire (uuid v4) : crée un NOUVEAU paiement de montant négatif, moyen `virement`, lié par `contrePasseId` — jamais une correction en place (MD-52, MD-57).",
+        "operationId": "PaiementController_rembourser",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paiementId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "montantCentimes": 1900,
+                    "referenceVirement": "Remboursement trop-perçu CF-11"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "montantCentimes": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "referenceVirement": {
+                    "anyOf": [
+                      {
+                        "maxLength": 140,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "montantCentimes"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaiementAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": "Le paiement de remboursement créé (montant négatif)."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans facturation.paiement.rembourser)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Paiement introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "IDEMPOTENCE_CONFLIT ou IMPUTATION_MONTANT_EXCEDENTAIRE (montant demandé supérieur à l'avance disponible)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Rembourse tout ou partie d'une avance client non imputée (RF-79, issue 1/3).",
+        "tags": [
+          "Facturation — paiements"
+        ]
+      }
+    },
     "/parametres-atelier": {
       "get": {
         "description": "Singleton, regroupé par domaine (§8.2) — jamais de liste plate de `P-xx`. `fonctionnalites` est calculé, pas stocké : c'est le drapeau d'étape qui remplace un endpoint qui répondrait `501`. `ETag` stable (dérivé de `modifie_le`) ; `304 Not Modified` si `If-None-Match` le couvre.",
@@ -11703,6 +15637,207 @@
           }
         ],
         "summary": "Modifie les paramètres atelier, par domaine, partiellement.",
+        "tags": [
+          "Paramétrage"
+        ]
+      }
+    },
+    "/parametres-facturation/creancier": {
+      "get": {
+        "description": "Singleton par tenant. Ligne absente (aucun bloc créancier encore saisi) → paramétrage VIDE (tous les champs `null`, `pays` = `\"CH\"`, `version` = `0`), jamais un `404` : ce n'est pas une erreur, c'est l'état initial de tout tenant après la migration 0014. `ETag` stable (dérivé de `modifie_le`) ; `304 Not Modified` si `If-None-Match` le couvre. Réservé à `direction`/`comptable` (donnée financière sensible, `RF-115` — voir `auth/matrice-droits.ts`).",
+        "operationId": "BlocCreancierController_obtenir",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseBlocCreancierDto"
+                }
+              }
+            },
+            "description": "Bloc créancier (éventuellement vide)."
+          },
+          "304": {
+            "description": "Non modifié depuis `If-None-Match`."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DROIT_INSUFFISANT — réservé à direction/comptable."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Bloc créancier du QR-facture (adresse du garage + comptes IBAN/QR-IBAN).",
+        "tags": [
+          "Paramétrage"
+        ]
+      },
+      "patch": {
+        "description": "Un champ absent du corps n'est pas touché ; un champ présent à `null` efface la valeur existante (utile pour un changement de banque : l'ancien IBAN peut disparaître sans qu'on lui substitue une valeur bidon). `iban`/`qrIban` sont validés en forme, pays (CH/LI), longueur ET clé de contrôle modulo 97 (ISO 7064) — une clé fausse est refusée bruyamment, jamais tronquée ou corrigée silencieusement. `iban` doit être un compte ORDINAIRE (IID hors 30000–31999) et `qrIban` un QR-IBAN (IID dans cette plage) : un IBAN posé dans le mauvais champ est refusé, les deux colonnes ne se mélangent jamais. Réservé à `direction`/`comptable`.",
+        "operationId": "BlocCreancierController_modifier",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "iban": "CH93 0076 2011 6238 5295 7",
+                    "localite": "Lausanne",
+                    "nom": "Garage Martin SA",
+                    "npa": "1000",
+                    "numero": "12",
+                    "pays": "CH",
+                    "qrIban": "CH44 3199 9123 0008 89012",
+                    "rue": "Rue de la Gare"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "iban": {
+                    "anyOf": [
+                      {
+                        "maxLength": 34,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "localite": {
+                    "anyOf": [
+                      {
+                        "maxLength": 35,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "nom": {
+                    "anyOf": [
+                      {
+                        "maxLength": 70,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "npa": {
+                    "anyOf": [
+                      {
+                        "maxLength": 16,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "numero": {
+                    "anyOf": [
+                      {
+                        "maxLength": 16,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "pays": {
+                    "pattern": "^[A-Z]{2}$",
+                    "type": "string"
+                  },
+                  "qrIban": {
+                    "anyOf": [
+                      {
+                        "maxLength": 34,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "rue": {
+                    "anyOf": [
+                      {
+                        "maxLength": 70,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseBlocCreancierDto"
+                }
+              }
+            },
+            "description": "Bloc créancier mis à jour."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE — IBAN mal formé, pays hors CH/LI, clé de contrôle modulo 97 fausse, ou IBAN/QR-IBAN posé dans le mauvais champ."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DROIT_INSUFFISANT — réservé à direction/comptable."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modifie partiellement le bloc créancier (upsert — aucune ligne préexistante requise).",
         "tags": [
           "Paramétrage"
         ]

@@ -11,6 +11,7 @@ import type {
   EntreeValidationLignes,
   FiltresLignesOr,
   PageCurseur,
+  PayeurLigneOr,
   ReponseAvecAvertissements,
   ReponseLigneOr,
   ReponseOrdreReparation,
@@ -23,7 +24,7 @@ import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { JETON_EVENEMENTS, type ServiceEvenements } from '../common/evenements';
 import { JETON_IDEMPOTENCE, type ReponseMemorisable, type ResultatIdempotent, type ServiceIdempotence } from '../common/idempotence';
 
-import { JETON_CALCUL_LIGNE, type CalculLigne } from './atelier.jetons';
+import { JETON_CALCUL_LIGNE, JETON_CREATION_TRAVAIL_REPORTE, type CalculLigne, type CreationTravailReporte } from './atelier.jetons';
 import { roleVoitLesMontants, mapperLigneOr } from './mappeurs';
 import {
   chargerLigneOrPourEcriture,
@@ -32,8 +33,15 @@ import {
   chargerOrPourEcriture,
   listerLignesOr,
 } from './or-requetes';
+import { chargerClientLigne } from './references';
 import { decoderCurseurOffset, encoderCurseurOffset, estOrVerrouille, ServiceOr } from './service-or';
 import { traduireErreurTransition } from './traducteur-transition';
+
+/** `AC-08`/`MD-62`/`MD-67` : `payeurClientId` obligatoire et UNIQUEMENT pour ces trois payeurs —
+ *  règle SERVEUR (pas zod, voir le commentaire de `ReponseLigneOr.payeurClientId` dans le
+ *  contrat) : `schemaCreationLigneOr` doit rester un `ZodObject` nu pour que
+ *  `schemaModificationLigneOr` continue à l'`.omit()`/`.partial()`. */
+const PAYEURS_AVEC_TIERS: ReadonlySet<PayeurLigneOr> = new Set(['constructeur', 'assurance', 'tiers']);
 
 /**
  * Lignes d'ordre de réparation (contrats-api-etape-1.md §7.8) : création, modification libre,
@@ -58,6 +66,7 @@ export class ServiceLigneOr {
     @Inject(JETON_IDEMPOTENCE) private readonly idempotence: ServiceIdempotence,
     @Inject(JETON_EVENEMENTS) private readonly evenements: ServiceEvenements,
     @Inject(JETON_CALCUL_LIGNE) private readonly calcul: CalculLigne,
+    @Inject(JETON_CREATION_TRAVAIL_REPORTE) private readonly travailReporte: CreationTravailReporte,
     private readonly serviceOr: ServiceOr,
   ) {}
 
@@ -141,6 +150,25 @@ export class ServiceLigneOr {
                 tauxTvaPourmille: 81, // taux légal suisse par défaut ; figé de la même façon que le taux horaire (RM-65)
               });
 
+        // `AC-08`/`MD-62`/`MD-67` : `payeurClientId` obligatoire pour un payeur tiers réel, refusé
+        // sinon — règle SERVEUR (voir `PAYEURS_AVEC_TIERS` en tête de fichier). Vérifie aussi
+        // l'existence du client désigné, tenant-scopée (`chargerClientLigne` lève
+        // `RESSOURCE_INTROUVABLE` sinon) : la FK composite (migration 0017) le garantirait de
+        // toute façon en base, mais un rejet lisible AVANT l'écriture vaut mieux qu'une violation
+        // de contrainte traduite après coup.
+        const payeurAttendTiers = PAYEURS_AVEC_TIERS.has(entree.payeur);
+        if (payeurAttendTiers && !entree.payeurClientId) {
+          throw new ErreurMetier('VALIDATION_ECHOUEE', `payeurClientId est obligatoire pour payeur = « ${entree.payeur} » (AC-08, MD-62).`, {
+            erreurs: [{ champ: 'payeurClientId', code: 'requis', message: 'Le tiers payeur doit être désigné.' }],
+          });
+        }
+        if (!payeurAttendTiers && entree.payeurClientId) {
+          throw new ErreurMetier('VALIDATION_ECHOUEE', `payeurClientId doit être absent pour payeur = « ${entree.payeur} » (AC-08, MD-62).`, {
+            erreurs: [{ champ: 'payeurClientId', code: 'interdit', message: "Seuls 'constructeur', 'assurance' et 'tiers' portent un tiers payeur." }],
+          });
+        }
+        if (entree.payeurClientId) await chargerClientLigne(tx, ctx, entree.payeurClientId);
+
         const statutInitial = this.determinerStatutInitial(entree.origine, entree.payeur, or, montants.montantTtcCentimes);
         const blocage = entree.blocage !== 'aucun' ? entree.blocage : statutInitial === 'a_valider' ? 'accord' : 'aucun';
 
@@ -154,6 +182,7 @@ export class ServiceLigneOr {
             origine: entree.origine,
             statut: statutInitial,
             payeur: entree.payeur,
+            payeurClientId: entree.payeurClientId ?? null,
             blocage,
             designation: entree.designation,
             referenceTexte: entree.referenceTexte ?? null,
@@ -244,6 +273,24 @@ export class ServiceLigneOr {
               tauxTvaPourmille: ligne.tauxTvaPourmille,
             });
 
+      // Même règle SERVEUR qu'à la création (AC-08/MD-62/MD-67), évaluée sur le payeur EFFECTIF
+      // (après fusion avec l'existant) — un `PATCH { payeur: 'assurance' }` sans `payeurClientId`
+      // (ni sur la ligne existante ni dans ce corps) doit être refusé, pas silencieusement accepté
+      // avec un tiers `null`.
+      const payeurClientIdEffectif = entree.payeurClientId !== undefined ? entree.payeurClientId : ligne.payeurClientId;
+      const payeurEffectifAttendTiers = PAYEURS_AVEC_TIERS.has(payeurEffectif);
+      if (payeurEffectifAttendTiers && !payeurClientIdEffectif) {
+        throw new ErreurMetier('VALIDATION_ECHOUEE', `payeurClientId est obligatoire pour payeur = « ${payeurEffectif} » (AC-08, MD-62).`, {
+          erreurs: [{ champ: 'payeurClientId', code: 'requis', message: 'Le tiers payeur doit être désigné.' }],
+        });
+      }
+      if (!payeurEffectifAttendTiers && payeurClientIdEffectif) {
+        throw new ErreurMetier('VALIDATION_ECHOUEE', `payeurClientId doit être absent pour payeur = « ${payeurEffectif} » (AC-08, MD-62).`, {
+          erreurs: [{ champ: 'payeurClientId', code: 'interdit', message: "Seuls 'constructeur', 'assurance' et 'tiers' portent un tiers payeur." }],
+        });
+      }
+      if (entree.payeurClientId) await chargerClientLigne(tx, ctx, entree.payeurClientId);
+
       const STATUTS_COMPTES_DANS_PLAFOND: ReadonlySet<LigneLigneOr['statut']> = new Set(['validee', 'en_cours', 'realisee', 'facturee']);
       if (or.plafondCentimes !== null && STATUTS_COMPTES_DANS_PLAFOND.has(ligne.statut)) {
         const nouveauTotal = or.totalValideCentimes - ligne.montantTtcCentimes + montants.montantTtcCentimes;
@@ -266,6 +313,7 @@ export class ServiceLigneOr {
           ...(entree.prixUnitaireCentimes !== undefined ? { prixUnitaireCentimes: entree.prixUnitaireCentimes ?? null } : {}),
           ...(entree.rabaisPourmille !== undefined ? { rabaisPourmille: entree.rabaisPourmille } : {}),
           ...(entree.payeur !== undefined ? { payeur: entree.payeur } : {}),
+          ...(entree.payeurClientId !== undefined || (entree.payeur !== undefined && !payeurEffectifAttendTiers) ? { payeurClientId: payeurEffectifAttendTiers ? payeurClientIdEffectif : null } : {}),
           ...(entree.technicienId !== undefined ? { technicienId: entree.technicienId ?? null } : {}),
           ...(entree.urgence !== undefined ? { urgence: entree.urgence ?? null } : {}),
           ...(entree.securite !== undefined ? { securite: entree.securite } : {}),
@@ -342,18 +390,47 @@ export class ServiceLigneOr {
     });
   }
 
-  /** `POST /ordres-reparation/{orId}/refuser-lignes` — `a_valider -> refusee` (CT-33).
-   *  SIMPLIFICATION SIGNALÉE : n'alimente pas encore les travaux reportés du véhicule (RM-73,
-   *  propriété du module `vehicules/`, hors périmètre de ce fichier) — voir réponse de tâche. */
+  /**
+   * `POST /ordres-reparation/{orId}/refuser-lignes` — `a_valider -> refusee` (CT-33). Un refus
+   * fait naître un travail reporté sur le véhicule pour CHAQUE ligne refusée (RM-73), via le port
+   * `CreationTravailReporte` (`atelier.jetons.ts`, fourni par `VehiculesModule`) — appelé DANS LA
+   * MÊME TRANSACTION `tx` que le passage de la ligne à `refusee` : un refus qui réussit et un
+   * travail reporté qui échoue laisseraient l'information perdue en silence.
+   *
+   * `designation: ligne.designation ?? ''` : `ligne_or.designation` est nullable en base, mais le
+   * contrat d'entrée (`schemaCreationLigneOr`) l'exige non vide à la création — même coalescence
+   * défensive que `mappeurs.ts::mapperLigneOr`, jamais censée se déclencher en pratique.
+   *
+   * `motifRefus: entree.motif ?? null` : voir `atelier.jetons.ts` (commentaire de
+   * `EntreeCreationTravailReporteDepuisRefus`) — persistance réelle côté `vehicules/`, pas encore
+   * confirmée au moment d'écrire ce fichier malgré la colonne `vehicule_travail_reporte.motif_refus`
+   * désormais présente en base.
+   */
   async refuserLignes(
     ctx: ContexteTenant,
     principal: PrincipalAuthentifie,
     orId: string,
     entree: EntreeRefusLignes,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executerActionGroupee(ctx, principal, orId, entree.ligneIds, async (tx, _or, cibles) => {
+    return this.executerActionGroupee(ctx, principal, orId, entree.ligneIds, async (tx, or, cibles) => {
+      const maintenant = new Date();
       for (const ligne of cibles) {
         await this.transitionnerLigne(tx, ctx, ligne, 'refusee', {});
+        await this.travailReporte.creerDepuisRefus(
+          tx,
+          ctx,
+          {
+            vehiculeId: or.vehiculeId,
+            ordreReparationId: orId,
+            ligneOrId: ligne.id,
+            designation: ligne.designation ?? '',
+            urgence: ligne.urgence,
+            montantEstimeCentimes: ligne.montantTtcCentimes,
+            securite: ligne.securite,
+            motifRefus: entree.motif ?? null,
+          },
+          maintenant,
+        );
       }
     });
   }

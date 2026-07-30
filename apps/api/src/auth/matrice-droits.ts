@@ -57,70 +57,75 @@
 import type { CodeConfirmation, RoleUtilisateur } from '@dfa/shared';
 
 /**
- * Action métier protégée. Convention : `domaine.ressource.verbe`.
+ * Toutes les actions métier protégées, énumérées EN DONNÉES (pas seulement en type) — voir le
+ * commentaire du type `Action` juste en dessous pour la raison : c'est la source de vérité UNIQUE,
+ * lue à la fois par le compilateur (dérivation du type) et par `vitest run` (test structurel
+ * `common/droits/toutes-les-actions-couvertes.spec.ts`, qui importe `TOUTES_ACTIONS` directement).
+ *
+ * Convention de nommage : `domaine.ressource.verbe`.
  */
-export type Action =
+export const TOUTES_ACTIONS = [
   // ---- Socle (étape 0), inchangé --------------------------------------------------------------
-  | 'socle.tenant.lire'
-  | 'socle.site.lire'
+  'socle.tenant.lire',
+  'socle.site.lire',
   // ---- Paramétrage atelier et référentiels (plan-lot1-execution.md §6.4) ----------------------
-  | 'parametrage.atelier.lire'
-  | 'parametrage.atelier.modifier'
-  | 'parametrage.referentiel.lire'
-  | 'parametrage.referentiel.modifier'
+  'parametrage.atelier.lire',
+  'parametrage.atelier.modifier',
+  'parametrage.referentiel.lire',
+  'parametrage.referentiel.modifier',
   // ---- Clients (§6.4 ; RM-01 → RM-14, spec lignes 233-248) -------------------------------------
-  | 'client.lire'
-  | 'client.creer'
-  | 'client.modifier'
-  | 'client.desactiver'
-  | 'client.condition.modifier'
-  | 'client.consentement.enregistrer'
-  | 'client.note.ecrire'
+  'client.lire',
+  'client.creer',
+  'client.modifier',
+  'client.desactiver',
+  'client.condition.modifier',
+  'client.consentement.enregistrer',
+  'client.note.ecrire',
   // ---- Véhicules (§6.4 ; RM-15 → RM-33, spec lignes 250-270) -----------------------------------
-  | 'vehicule.lire'
-  | 'vehicule.creer'
-  | 'vehicule.modifier'
-  | 'vehicule.archiver'
-  | 'vehicule.plaque.gerer'
-  | 'vehicule.detention.changer'
-  | 'vehicule.detention.corriger'
-  | 'vehicule.kilometrage.saisir'
-  | 'vehicule.kilometrage.corriger_regression'
-  | 'vehicule.expertise.saisir'
-  | 'vehicule.campagne.gerer'
-  | 'vehicule.travail_reporte.gerer'
+  'vehicule.lire',
+  'vehicule.creer',
+  'vehicule.modifier',
+  'vehicule.archiver',
+  'vehicule.plaque.gerer',
+  'vehicule.detention.changer',
+  'vehicule.detention.corriger',
+  'vehicule.kilometrage.saisir',
+  'vehicule.kilometrage.corriger_regression',
+  'vehicule.expertise.saisir',
+  'vehicule.campagne.gerer',
+  'vehicule.travail_reporte.gerer',
   // ---- Recherche comptoir (RM-112, spec ligne 370) ---------------------------------------------
-  | 'recherche.executer'
+  'recherche.executer',
   // ---- Ordre de réparation (§6.4 ; §5.1, spec lignes 376-475) ----------------------------------
-  | 'atelier.or.lire'
-  | 'atelier.or.creer'
-  | 'atelier.or.modifier'
-  | 'atelier.or.plafond_modifier'
-  | 'atelier.or.receptionner'
-  | 'atelier.or.demarrer'
-  | 'atelier.or.passer_en_controle'
-  | 'atelier.or.controler'
-  | 'atelier.or.terminer'
-  | 'atelier.or.rouvrir'
-  | 'atelier.or.restituer'
-  | 'atelier.or.cloturer'
-  | 'atelier.or.annuler'
+  'atelier.or.lire',
+  'atelier.or.creer',
+  'atelier.or.modifier',
+  'atelier.or.plafond_modifier',
+  'atelier.or.receptionner',
+  'atelier.or.demarrer',
+  'atelier.or.passer_en_controle',
+  'atelier.or.controler',
+  'atelier.or.terminer',
+  'atelier.or.rouvrir',
+  'atelier.or.restituer',
+  'atelier.or.cloturer',
+  'atelier.or.annuler',
   // ---- Lignes d'OR (§6.4 ; §5.2, spec lignes 477-496) -------------------------------------------
-  | 'atelier.ligne.creer'
-  | 'atelier.ligne.modifier'
-  | 'atelier.ligne.valider'
-  | 'atelier.ligne.refuser'
-  | 'atelier.ligne.annuler'
-  | 'atelier.ligne.marquer_realisee'
+  'atelier.ligne.creer',
+  'atelier.ligne.modifier',
+  'atelier.ligne.valider',
+  'atelier.ligne.refuser',
+  'atelier.ligne.annuler',
+  'atelier.ligne.marquer_realisee',
   // ---- Devis complémentaire (§6.4 ; RM-79 → RM-86, spec lignes 326-335) -------------------------
-  | 'atelier.devis.creer'
-  | 'atelier.devis.repondre'
+  'atelier.devis.creer',
+  'atelier.devis.repondre',
   // ---- Journal d'audit de l'OR (RM-59, RM-111) ---------------------------------------------------
-  | 'atelier.journal.lire'
+  'atelier.journal.lire',
   // ---- Confirmations (contrats-api-etape-1.md §4.4, lignes 522-529) -----------------------------
-  | 'atelier.confirmation.client_bloque'
-  | 'atelier.confirmation.deux_or_ouverts'
-  | 'atelier.confirmation.or_sans_rdv'
+  'atelier.confirmation.client_bloque',
+  'atelier.confirmation.deux_or_ouverts',
+  'atelier.confirmation.or_sans_rdv',
   // ---- Confirmations hors périmètre opérationnel du lot 1 (RDV, prêt de véhicule) ---------------
   // `CodeConfirmation` (packages/shared/src/contrats/probleme.ts) porte 6 valeurs ; seules 3 ont
   // une action opérationnelle au lot 1 (les tables rendez_vous*/*_courtoisie ne sont pas créées,
@@ -141,9 +146,141 @@ export type Action =
   // §10 de la spec étape 1, lignes 963-964, suggère déjà `chef_atelier`/`direction` pour le
   // chevauchement de ressource — à vérifier contre la spec du module RDV le moment venu, pas à
   // supposer déjà tranché.
-  | 'rendez_vous.confirmation.ressource_chevauchement'
-  | 'rendez_vous.confirmation.hors_ouverture'
-  | 'pret_vehicule.confirmation.indisponible';
+  'rendez_vous.confirmation.ressource_chevauchement',
+  'rendez_vous.confirmation.hors_ouverture',
+  'pret_vehicule.confirmation.indisponible',
+  // ---- Facturation — paiements (étape 2, RF-65 → RF-80, RF-114 → RF-116) -----------------------
+  // Ajouté par l'agent `paiements` (`apps/api/src/facturation/paiements/`), périmètre disjoint de
+  // ce fichier (`apps/api/src/auth/`) — voir le rapport de livraison pour le détail de l'arbitrage.
+  // Calé littéralement sur le tableau RF-114 (« Encaisser / imputer », « Rembourser un
+  // trop-perçu ») de `docs/specification-etape-2-facturation.md` §9. `facturation.paiement.
+  // abandonner` (RF-79 issue 3, « abandon en faveur du garage ») N'A PAS DE LIGNE LITTÉRALE dans
+  // le tableau RF-114 — INFÉRÉ au même périmètre que « Rembourser un trop-perçu » (direction,
+  // comptable) : c'est une décision de disposition financière de l'avance client, structurellement
+  // plus engageante qu'un remboursement (elle renonce à rendre l'argent), jamais moins.
+  'facturation.paiement.lire',
+  'facturation.paiement.creer',
+  'facturation.paiement.imputer',
+  'facturation.paiement.rembourser',
+  'facturation.paiement.abandonner',
+  // ---- Facturation — chaîne documentaire (étape 2, RF-1 → RF-32, RF-114 → RF-120) --------------
+  // Ajouté par l'agent `documents` (`apps/api/src/facturation/documents/`), périmètre disjoint de
+  // ce fichier — MÊME PATRON que le bloc « Facturation — paiements » ci-dessus (bloc additif pur,
+  // fusionné dans `MATRICE_DROITS` sans toucher aux consts `DROITS_*` existantes), pour la MÊME
+  // raison déjà posée par cet agent : `RF-114` (tableau §9 de la spec étape 2) casse la hiérarchie
+  // stricte chef_atelier ⊇ receptionnaire / direction-admin ⊇ chef_atelier que ce fichier suit
+  // depuis l'étape 1 — « Émettre une facture » est ✅ pour receptionnaire, ❌ pour chef_atelier ;
+  // « Créer / modifier un brouillon » est ❌ pour admin (RF-115, séparation des pouvoirs), alors que
+  // `DROITS_ADMIN` hérite normalement de `DROITS_DIRECTION`.
+  //
+  // TROIS actions d'ÉMISSION distinctes (pas une seule `facturation.document.emettre`) parce que
+  // `RF-114` donne des lignes DIFFÉRENTES pour « Émettre un devis / bon de commande », « Émettre
+  // une facture » et « Émettre un avoir » — alors que le contrat expose UN SEUL endpoint `POST
+  // /documents-vente/{id}/emettre` pour les quatre types (`schemaEmissionDocumentVente` ne
+  // distingue pas). `@ExigerDroit` est posé PAR ROUTE, statiquement, et ne peut donc pas choisir
+  // entre les trois selon le `typeDocument` du document chargé (connu seulement APRÈS lecture en
+  // base) — `facturation.document.emettre` reste posé sur la route comme portillon générique
+  // (accordé à qui a AU MOINS un des trois droits d'émission ci-dessous), et
+  // `ServiceEmissionDocument.emettre()` (`facturation/documents/service-emission.ts`, méthode
+  // privée `verifierDroitEmission()`, appelée ligne 66 de `emettre()`, avant tout effet de bord)
+  // vérifie le droit PRÉCIS pour le `typeDocument` réel via `MATRICE_DROITS[role]` — même patron
+  // que `ServiceOr.modifier` (vérification dynamique post-chargement pour
+  // `atelier.or.plafond_modifier`, `atelier/service-or.ts`). Couvertes par une entrée
+  // `verification-conditionnelle-service` dans `common/droits/allowlist-actions-non-decorees.ts`,
+  // PAS par un `@ExigerDroit` — impossible à poser statiquement sur une route à quatre types.
+  //
+  // RF-117 IMPLÉMENTÉ ET PROUVÉ. « Émettre un avoir » est plafonné en montant pour `receptionnaire`,
+  // contrôlé dynamiquement dans `ServiceEmissionDocument.emettre()` (ligne 66 avant tout effet de
+  // bord). Plafond paramétrable par tenant (`parametre_atelier.plafond_avoir_receptionnaire_centimes`,
+  // migration 0018, centimes entiers, nullable) : NULL signifie aucun plafond convenu (garage non
+  // configuré n'est pas plafonné). Comparaison CUMULATIVE (ce montant + tous avoirs déjà émis sur la
+  // même facture) pour empêcher le contournement par fractionnement **À CONFIRMER AVEC @laupernoe**. Au-delà
+  // du plafond, `receptionnaire` reçoit `409 AVOIR_PLAFOND_DEPASSE` ; état persiste avec `statut=
+  // 'brouillon'` et `numero=NULL` (aucun numéro légal consommé). `direction`/`comptable` sans plafond.
+  'facturation.document.lire',
+  'facturation.document.creer',
+  'facturation.document.modifier',
+  'facturation.document.transitionner',
+  'facturation.document.emettre',
+  'facturation.document.emettre_devis_bc',
+  'facturation.document.emettre_facture',
+  'facturation.document.emettre_avoir',
+  'facturation.avoir.creer',
+  // ---- Bloc créancier QR-facture (étape 2) — palier de gouvernance le plus élevé de la matrice ---
+  // `GET|PATCH /parametres-facturation/creancier` (`apps/api/src/parametrage/bloc-creancier/`, PAS
+  // le périmètre de ce fichier) porte l'IBAN sur lequel les clients du garage paient. Arbitrage du
+  // coordinateur : un agent a livré ces routes SANS action de droit dédiée, faute d'accès à ce
+  // fichier — constat juste, qu'il a signalé plutôt que d'inventer une entrée ici. Deux actions
+  // dédiées, PAS `parametrage.atelier.modifier`/`parametrage.referentiel.modifier` : ces deux-là
+  // donnent l'écriture à `admin` via `INFERE_PARAMETRAGE_GOUVERNANCE`, ce qui violerait `RF-115`
+  // (« admin est un rôle technique et n'a aucun droit financier ») — changer l'IBAN d'encaissement
+  // EST un geste financier, au moins aussi engageant que « Rembourser un trop-perçu »
+  // (`DISPOSITION_AVANCE_PAIEMENT`, direction+comptable seuls) dont ce bloc reprend exactement le
+  // périmètre. `admin` N'A NI L'UNE NI L'AUTRE — voir `DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE`
+  // ci-dessous, et le test dédié dans `matrice-droits.spec.ts` qui échoue si `admin` est un jour
+  // rempli par copie de `direction`, exactement le geste que RF-115 interdit.
+  'facturation.parametrage.creancier.lire',
+  'facturation.parametrage.creancier.modifier',
+  // ---- Export fiduciaire (étape 2) — même palier de gouvernance que le bloc créancier ------------
+  // `POST /exports-fiduciaires` (`apps/api/src/facturation/export/service-export-comptable.ts`, PAS
+  // le périmètre de ce fichier) orchestre l'export comptable : sélection des factures/avoirs émis
+  // non encore exportés sur une période, vérification de continuité de numérotation, construction
+  // des écritures équilibrées, génération du fichier WinBIZ, marquage `exporte_le`/`export_id`, le
+  // tout sous idempotence. Arbitrage du coordinateur, même motif que le bloc créancier : un agent a
+  // livré le service complet et refusé de câbler la route faute de l'action de droit, plutôt que de
+  // forcer par un cast (un `as Action` naïf sur un littéral hors union ne compile pas — pas de porte
+  // de sortie silencieuse). Transmettre les écritures à la fiduciaire est un geste comptable
+  // engageant et IRRÉVERSIBLE côté destinataire (`EXPORT_DEJA_TRANSMIS` existe précisément pour ce
+  // cas) — au moins aussi sensible qu'un remboursement. Mêmes rôles EXACTEMENT que
+  // `DISPOSITION_AVANCE_PAIEMENT` et le bloc créancier : direction + comptable seuls, `admin: []`
+  // (RF-115) — voir `DROITS_EXPORT_COMPTABLE_PAR_ROLE` ci-dessous.
+  'facturation.export.creer',
+  // ---- Impression PDF facture QR (étape 2, docs/design-impression-facture-qr.md §11.5) ----------
+  // `GET /documents-vente/{id}/pdf` (`apps/api/src/facturation/impression/`, PAS le périmètre de ce
+  // fichier) génère le PDF de facture avec bulletin de versement QR — livré et prouvé contre la vraie
+  // base, mais son contrôleur a dû être RETIRÉ (jamais monté) faute de cette action : voir le
+  // commentaire de tête de `facturation/impression/impression.module.ts`.
+  //
+  // Le PDF expose les montants EN CLAIR, et sa charge QR aussi (elle encode le montant à payer) — RF-116
+  // (la visibilité des montants dépend du rôle) s'applique donc à l'impression exactement comme à
+  // l'écran. Ce droit est accordé EXACTEMENT aux rôles pour lesquels `roleVoitLesMontants()`
+  // (`facturation/documents/mappeurs.ts`) est vrai, NI PLUS NI MOINS — voir `DROITS_IMPRESSION_PAR_ROLE`
+  // ci-dessous pour le détail, et le test dédié dans `matrice-droits.spec.ts` qui lie explicitement
+  // cette liste à `roleVoitLesMontants()` : un futur élargissement de l'un sans l'autre doit faire
+  // rougir ce test. Un rôle qui ne voit pas les montants à l'écran ne doit pas pouvoir les télécharger
+  // en PDF — exactement ce qui s'était produit avec la charge QR, masquée en bloc parce qu'elle contient
+  // le montant.
+  //
+  // DÉLIBÉRÉMENT PAS calé sur `EMISSION_FACTURE` (qui exclut chef_atelier et magasinier) : ces deux
+  // rôles n'ont pas le droit d'ÉMETTRE une facture, mais voient les montants — ils peuvent donc
+  // IMPRIMER. Ce n'est pas une incohérence, c'est la distinction entre CONSULTER et ENGAGER.
+  //
+  // Ce test structurel `toutes-les-actions-couvertes.spec.ts` restera ROUGE pour cette action tant que
+  // le contrôleur de `facturation/impression/` n'est pas réintégré — DÉLIBÉRÉ, même patron que le bloc
+  // créancier et l'export fiduciaire avant que leurs routes n'existent. AUCUNE entrée n'est ajoutée
+  // dans `allowlist-actions-non-decorees.ts` : la route sera statique, un `@ExigerDroit` normal la
+  // couvrira dès que le contrôleur sera réintégré, ce n'est ni une vérification conditionnelle en
+  // service ni une action inerte anticipée sans route prévue.
+  'facturation.document.imprimer',
+] as const;
+
+/**
+ * Action métier protégée. Convention : `domaine.ressource.verbe`.
+ *
+ * DÉRIVÉ de `TOUTES_ACTIONS` ci-dessus, jamais l'inverse — refactor délibéré (voir aussi
+ * `common/droits/toutes-les-actions-couvertes.spec.ts`) : avant, ce type était un littéral écrit à
+ * la main, et le test structurel qui doit prouver que CHAQUE action a un contrôle réel recopiait
+ * cette liste à la main dans un second fichier (`Record<Action, true>` codé en dur). Les deux
+ * pouvaient diverger sans qu'aucun test ne rougisse : `vitest run` tourne sous SWC en
+ * transpile-only (voir `vitest.config.ts`), qui efface les types avant exécution — une divergence
+ * entre `Action` et l'énumération recopiée n'était détectée QUE par `pnpm typecheck` (`tsc`
+ * complet), jamais par le test qui prétendait pourtant garantir la couverture. C'est exactement ce
+ * qui s'est produit : 14 actions de facturation ajoutées au type sont restées invisibles au test
+ * structurel pendant tout un cycle d'agents, découvertes seulement par un `tsc --noEmit` isolé.
+ * Dériver le type de la constante élimine la possibilité même de cette divergence — il n'existe
+ * plus deux listes à synchroniser, une seule, lue à la fois par le compilateur ET par `vitest run`.
+ */
+export type Action = (typeof TOUTES_ACTIONS)[number];
 
 // =================================================================================================
 // Groupes de droits — chaque groupe cite sa provenance (§10 littéral ou inférence documentée)
@@ -533,15 +670,257 @@ const DROITS_DIRECTION: readonly Action[] = [...DROITS_CHEF_ATELIER, ...INFERE_C
  */
 const DROITS_ADMIN: readonly Action[] = [...DROITS_DIRECTION];
 
+// =================================================================================================
+// Facturation — paiements (étape 2) : bloc ADDITIF PUR, ne modifie aucune des consts ci-dessus
+// =================================================================================================
+//
+// Ajouté par l'agent `paiements` (apps/api/src/facturation/paiements/), périmètre disjoint de ce
+// fichier. Décision délibérée de NE PAS insérer ces droits DANS les listes composées ci-dessus
+// (`DROITS_RECEPTIONNAIRE`, `DROITS_CHEF_ATELIER`, `DROITS_DIRECTION`, `DROITS_ADMIN`) : RF-114
+// (`docs/specification-etape-2-facturation.md` §9) casse ICI, pour la première fois, l'hypothèse de
+// hiérarchie stricte que ce fichier a suivie jusqu'alors (chef_atelier ⊇ receptionnaire, direction/
+// admin ⊇ chef_atelier) — « Encaisser / imputer » est ✅ pour receptionnaire mais ❌ pour
+// chef_atelier, qui est pourtant construit comme un SUR-ensemble de receptionnaire. Restructurer la
+// chaîne de composition existante pour faire rentrer cette exception aurait un rayon d'effet bien
+// plus large que ce seul module : les droits `document_vente` qu'un futur agent `documents` ajoutera
+// cassent la MÊME hiérarchie de la MÊME façon (« Émettre une facture » est ✅ pour receptionnaire, ❌
+// pour chef_atelier). Un lookup additif par rôle, fusionné une seule fois dans `MATRICE_DROITS`
+// ci-dessous, est la façon la moins invasive de poser une matrice financière qui ne suit PAS la
+// hiérarchie atelier — et ce futur module peut faire exactement pareil, EN PARALLÈLE, sans jamais
+// toucher aux mêmes lignes que ce bloc.
+//
+// RF-115, LITTÉRAL ET NON NÉGOCIABLE : « admin est un rôle technique et n'a aucun droit financier »
+// — séparation des pouvoirs explicite dès l'étape 2 (qui crée des comptes ne doit pas pouvoir
+// émettre/encaisser), À LA DIFFÉRENCE de la doctrine de l'étape 1 rappelée en tête de fichier
+// (`admin` = superset de `direction`). Son entrée ci-dessous est donc `[]`, VOLONTAIREMENT, et ne
+// doit JAMAIS être remplie par copier-coller de celle de `direction`.
+
+/** RF-114, ligne « Voir les montants » côté paiements. */
+const LECTURE_PAIEMENT: readonly Action[] = ['facturation.paiement.lire'];
+/** RF-114, ligne « Encaisser / imputer » : direction, comptable, vendeur, réceptionnaire, magasinier
+ *  — PAS chef d'atelier (❌ littéral), PAS technicien, PAS admin (RF-115). */
+const ENCAISSEMENT_PAIEMENT: readonly Action[] = ['facturation.paiement.creer', 'facturation.paiement.imputer'];
+/**
+ * RF-114, ligne « Rembourser un trop-perçu » : direction, comptable SEULS. `facturation.paiement.
+ * abandonner` (RF-79 issue 3) N'A PAS de ligne littérale dans le tableau RF-114 — INFÉRÉ au même
+ * périmètre : c'est une décision de disposition financière de l'avance client, structurellement
+ * plus engageante qu'un remboursement (elle renonce à rendre l'argent au client), jamais moins.
+ */
+const DISPOSITION_AVANCE_PAIEMENT: readonly Action[] = ['facturation.paiement.rembourser', 'facturation.paiement.abandonner'];
+
+const DROITS_PAIEMENT_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  direction: [...LECTURE_PAIEMENT, ...ENCAISSEMENT_PAIEMENT, ...DISPOSITION_AVANCE_PAIEMENT],
+  comptable: [...LECTURE_PAIEMENT, ...ENCAISSEMENT_PAIEMENT, ...DISPOSITION_AVANCE_PAIEMENT],
+  vendeur: [...LECTURE_PAIEMENT, ...ENCAISSEMENT_PAIEMENT],
+  receptionnaire: [...LECTURE_PAIEMENT, ...ENCAISSEMENT_PAIEMENT],
+  magasinier: [...LECTURE_PAIEMENT, ...ENCAISSEMENT_PAIEMENT],
+  chef_atelier: [...LECTURE_PAIEMENT],
+  technicien: [],
+  // RF-115 : jamais de droit financier pour admin — voir le commentaire de tête de section.
+  admin: [],
+};
+
+// =================================================================================================
+// Facturation — documents (étape 2) : bloc ADDITIF PUR, calé LITTÉRALEMENT sur le tableau `RF-114`
+// (docs/specification-etape-2-facturation.md §9) — aucune ligne n'est une inférence de cet agent.
+// =================================================================================================
+
+/** `RF-114` ligne « (lecture) » — pas de ligne littérale dédiée, mais la lecture d'un document
+ *  n'est refusée à AUCUN rôle (seule la VISIBILITÉ DES MONTANTS l'est, RF-116, gérée séparément par
+ *  `ROLES_SANS_MONTANT_FACTURATION` dans `facturation/documents/mappeurs.ts`, pas ici). */
+const LECTURE_DOCUMENT: readonly Action[] = ['facturation.document.lire'];
+
+/** `RF-114` ligne « Créer / modifier un brouillon » : direction, comptable, vendeur, réceptionnaire,
+ *  chef d'atelier, magasinier — PAS technicien, PAS admin (RF-115). */
+const ECRITURE_BROUILLON: readonly Action[] = ['facturation.document.creer', 'facturation.document.modifier', 'facturation.document.transitionner', 'facturation.avoir.creer'];
+
+/** `RF-114` ligne « Émettre un devis / bon de commande » : direction, comptable, vendeur,
+ *  réceptionnaire, chef d'atelier — PAS magasinier, PAS technicien, PAS admin. */
+const EMISSION_DEVIS_BC: readonly Action[] = ['facturation.document.emettre', 'facturation.document.emettre_devis_bc'];
+
+/** `RF-114` ligne « Émettre une facture » : direction, comptable, vendeur, réceptionnaire — PAS
+ *  chef d'atelier (rompt la hiérarchie habituelle chef_atelier ⊇ receptionnaire, voir la note de
+ *  tête de section), PAS magasinier, PAS technicien, PAS admin. */
+const EMISSION_FACTURE: readonly Action[] = ['facturation.document.emettre', 'facturation.document.emettre_facture'];
+
+/** `RF-114` ligne « Émettre un avoir » : direction, comptable, réceptionnaire (⚠️ plafonné, RF-117
+ *  non implémenté — voir la note sur le type `Action`) — PAS vendeur, PAS chef d'atelier, PAS
+ *  magasinier, PAS technicien, PAS admin. */
+const EMISSION_AVOIR: readonly Action[] = ['facturation.document.emettre', 'facturation.document.emettre_avoir'];
+
+const DROITS_DOCUMENT_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  direction: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON, ...EMISSION_DEVIS_BC, ...EMISSION_FACTURE, ...EMISSION_AVOIR],
+  comptable: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON, ...EMISSION_DEVIS_BC, ...EMISSION_FACTURE, ...EMISSION_AVOIR],
+  vendeur: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON, ...EMISSION_DEVIS_BC, ...EMISSION_FACTURE],
+  receptionnaire: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON, ...EMISSION_DEVIS_BC, ...EMISSION_FACTURE, ...EMISSION_AVOIR],
+  chef_atelier: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON, ...EMISSION_DEVIS_BC],
+  magasinier: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON],
+  technicien: [...LECTURE_DOCUMENT],
+  // RF-115 : aucun droit financier pour admin, y compris la simple création d'un brouillon —
+  // séparation des pouvoirs explicite, à ne JAMAIS combler par copier-coller de `direction`.
+  admin: [...LECTURE_DOCUMENT],
+};
+
+// =================================================================================================
+// Bloc créancier QR-facture (étape 2) : bloc ADDITIF PUR, même patron que les deux blocs ci-dessus.
+// =================================================================================================
+//
+// Arbitrage du coordinateur, suite au constat d'un agent qui a livré `GET|PATCH
+// /parametres-facturation/creancier` (`apps/api/src/parametrage/bloc-creancier/`, porte l'IBAN
+// d'encaissement du garage) SANS action de droit dédiée, faute d'accès à ce fichier — plutôt que
+// d'inventer une entrée hors de son périmètre, il a signalé le trou et posé un palliatif
+// (`@AucunDroitRequis()` + test de rôle en service) que ce bloc rend inutile.
+//
+// PAS `parametrage.atelier.modifier`/`parametrage.referentiel.modifier` (`INFERE_PARAMETRAGE_
+// GOUVERNANCE`, chef_atelier/direction/admin) : ces deux-là donnent l'écriture à `admin`, ce qui
+// violerait `RF-115` (« admin est un rôle technique et n'a aucun droit financier ») — changer
+// l'IBAN d'encaissement EST un geste financier. Périmètre repris À L'IDENTIQUE de
+// `DISPOSITION_AVANCE_PAIEMENT` (« Rembourser un trop-perçu »), le palier de gouvernance le plus
+// élevé déjà présent dans la matrice : direction + comptable SEULS, `admin: []` VOLONTAIREMENT —
+// à ne JAMAIS combler par copier-coller de `direction`, exactement le geste que RF-115 interdit et
+// qui parait anodin pour une action de paramétrage (les autres actions `parametrage.*` donnent
+// toutes l'écriture à admin, ce qui rend l'erreur de recopie particulièrement facile ici).
+const LECTURE_CREANCIER: readonly Action[] = ['facturation.parametrage.creancier.lire'];
+const ECRITURE_CREANCIER: readonly Action[] = ['facturation.parametrage.creancier.modifier'];
+
+const DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  direction: [...LECTURE_CREANCIER, ...ECRITURE_CREANCIER],
+  comptable: [...LECTURE_CREANCIER, ...ECRITURE_CREANCIER],
+  vendeur: [],
+  receptionnaire: [],
+  chef_atelier: [],
+  technicien: [],
+  magasinier: [],
+  // RF-115 : jamais de droit financier pour admin — voir le commentaire de tête de section. Changer
+  // l'IBAN d'encaissement du garage est au moins aussi engageant que rembourser un trop-perçu.
+  admin: [],
+};
+
+// =================================================================================================
+// Export fiduciaire (étape 2) : bloc ADDITIF PUR, même patron et MÊME PALIER que le bloc créancier.
+// =================================================================================================
+//
+// Arbitrage du coordinateur, même motif que le bloc créancier : un agent a livré l'orchestration
+// complète de l'export comptable (`apps/api/src/facturation/export/service-export-comptable.ts` —
+// sélection des factures/avoirs émis non exportés, continuité de numérotation, écritures
+// équilibrées, fichier WinBIZ, marquage `exporte_le`/`export_id`, idempotence) et refusé de câbler
+// `POST /exports-fiduciaires` faute de l'action de droit, plutôt que de forcer par un cast (`as
+// Action` sur un littéral hors union ne compile pas — pas de porte de sortie silencieuse). Il a bien
+// fait, exactement comme pour le bloc créancier.
+//
+// Transmettre les écritures à la fiduciaire est IRRÉVERSIBLE côté destinataire (le code d'erreur
+// `EXPORT_DEJA_TRANSMIS` existe précisément pour ce cas) — au moins aussi engageant qu'un
+// remboursement. Mêmes rôles EXACTEMENT que `DISPOSITION_AVANCE_PAIEMENT` et le bloc créancier :
+// direction + comptable SEULS, `admin: []` VOLONTAIREMENT — à ne JAMAIS combler par copier-coller
+// de `direction` (RF-115).
+const DROITS_EXPORT_COMPTABLE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  direction: ['facturation.export.creer'],
+  comptable: ['facturation.export.creer'],
+  vendeur: [],
+  receptionnaire: [],
+  chef_atelier: [],
+  technicien: [],
+  magasinier: [],
+  // RF-115 : jamais de droit financier pour admin — voir le commentaire de tête de section. Transmettre
+  // les écritures à la fiduciaire est irréversible côté destinataire, au moins aussi engageant que
+  // rembourser un trop-perçu ou modifier l'IBAN créancier.
+  admin: [],
+};
+
+// =================================================================================================
+// Impression PDF facture QR (étape 2) : bloc ADDITIF PUR, même patron que les blocs ci-dessus.
+// =================================================================================================
+//
+// Accordé EXACTEMENT aux rôles pour lesquels `roleVoitLesMontants()` (`facturation/documents/
+// mappeurs.ts`) est vrai — soit tous les rôles SAUF `technicien` (`ROLES_SANS_MONTANT`, const
+// partagé) ET `admin` (RF-115/RF-116, ajouté LOCALEMENT par ce module au périmètre facturation, voir
+// `ROLES_SANS_MONTANT_FACTURATION` dans `facturation/documents/mappeurs.ts`).
+//
+// DÉLIBÉRÉMENT PAS calé sur `EMISSION_FACTURE` (direction, comptable, vendeur, receptionnaire
+// SEULEMENT) : `chef_atelier` et `magasinier` n'ont pas le droit d'ÉMETTRE une facture (RF-114), mais
+// ILS VOIENT LES MONTANTS — donc ils peuvent l'IMPRIMER. Distinction consulter / engager, pas une
+// incohérence à aplatir. Voir le commentaire sur l'entrée `TOUTES_ACTIONS` correspondante pour le
+// détail de l'arbitrage RF-116, et `matrice-droits.spec.ts` pour le test qui lie ce bloc à
+// `roleVoitLesMontants()` de façon vérifiable à l'exécution.
+const DROITS_IMPRESSION_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  direction: ['facturation.document.imprimer'],
+  comptable: ['facturation.document.imprimer'],
+  vendeur: ['facturation.document.imprimer'],
+  receptionnaire: ['facturation.document.imprimer'],
+  chef_atelier: ['facturation.document.imprimer'],
+  magasinier: ['facturation.document.imprimer'],
+  technicien: [],
+  // RF-115/RF-116 : admin ne voit pas les montants en facturation (ROLES_SANS_MONTANT_FACTURATION =
+  // ROLES_SANS_MONTANT + admin) — il ne doit donc pas pouvoir les imprimer non plus. `[]`
+  // VOLONTAIREMENT, jamais à combler par copier-coller de `direction`.
+  admin: [],
+};
+
 export const MATRICE_DROITS = {
-  admin: DROITS_ADMIN,
-  direction: DROITS_DIRECTION,
-  vendeur: DROITS_VENDEUR,
-  receptionnaire: DROITS_RECEPTIONNAIRE,
-  chef_atelier: DROITS_CHEF_ATELIER,
-  technicien: DROITS_TECHNICIEN,
-  magasinier: DROITS_MAGASINIER,
-  comptable: DROITS_COMPTABLE,
+  admin: [
+    ...DROITS_ADMIN,
+    ...DROITS_PAIEMENT_PAR_ROLE.admin,
+    ...DROITS_DOCUMENT_PAR_ROLE.admin,
+    ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.admin,
+    ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.admin,
+    ...DROITS_IMPRESSION_PAR_ROLE.admin,
+  ],
+  direction: [
+    ...DROITS_DIRECTION,
+    ...DROITS_PAIEMENT_PAR_ROLE.direction,
+    ...DROITS_DOCUMENT_PAR_ROLE.direction,
+    ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.direction,
+    ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.direction,
+    ...DROITS_IMPRESSION_PAR_ROLE.direction,
+  ],
+  vendeur: [
+    ...DROITS_VENDEUR,
+    ...DROITS_PAIEMENT_PAR_ROLE.vendeur,
+    ...DROITS_DOCUMENT_PAR_ROLE.vendeur,
+    ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.vendeur,
+    ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.vendeur,
+    ...DROITS_IMPRESSION_PAR_ROLE.vendeur,
+  ],
+  receptionnaire: [
+    ...DROITS_RECEPTIONNAIRE,
+    ...DROITS_PAIEMENT_PAR_ROLE.receptionnaire,
+    ...DROITS_DOCUMENT_PAR_ROLE.receptionnaire,
+    ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.receptionnaire,
+    ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.receptionnaire,
+    ...DROITS_IMPRESSION_PAR_ROLE.receptionnaire,
+  ],
+  chef_atelier: [
+    ...DROITS_CHEF_ATELIER,
+    ...DROITS_PAIEMENT_PAR_ROLE.chef_atelier,
+    ...DROITS_DOCUMENT_PAR_ROLE.chef_atelier,
+    ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.chef_atelier,
+    ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.chef_atelier,
+    ...DROITS_IMPRESSION_PAR_ROLE.chef_atelier,
+  ],
+  technicien: [
+    ...DROITS_TECHNICIEN,
+    ...DROITS_PAIEMENT_PAR_ROLE.technicien,
+    ...DROITS_DOCUMENT_PAR_ROLE.technicien,
+    ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.technicien,
+    ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.technicien,
+    ...DROITS_IMPRESSION_PAR_ROLE.technicien,
+  ],
+  magasinier: [
+    ...DROITS_MAGASINIER,
+    ...DROITS_PAIEMENT_PAR_ROLE.magasinier,
+    ...DROITS_DOCUMENT_PAR_ROLE.magasinier,
+    ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.magasinier,
+    ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.magasinier,
+    ...DROITS_IMPRESSION_PAR_ROLE.magasinier,
+  ],
+  comptable: [
+    ...DROITS_COMPTABLE,
+    ...DROITS_PAIEMENT_PAR_ROLE.comptable,
+    ...DROITS_DOCUMENT_PAR_ROLE.comptable,
+    ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.comptable,
+    ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.comptable,
+    ...DROITS_IMPRESSION_PAR_ROLE.comptable,
+  ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 
 /**

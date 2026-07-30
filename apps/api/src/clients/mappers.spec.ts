@@ -77,6 +77,17 @@ describe('versClientResponse', () => {
     expect(dto.dernierPassageLe).toBe('2026-05-10T08:00:00.000Z');
   });
 
+  it(
+    'dernierPassageLe fourni EN CHAÎNE (forme défensive gérée par `enDate()` en plus du `Date` ' +
+      'que rend en pratique le pilote pg sur ce SQL brut de `ServiceClient.dernierPassage` — voir ' +
+      'la doc de `enDate()` pour ce que ce cas couvre réellement) ' +
+      'est aussi projeté en ISO, sans planter',
+    () => {
+      const dto = versClientResponse(ligneClient(), '2026-05-10T08:00:00.000Z', []);
+      expect(dto.dernierPassageLe).toBe('2026-05-10T08:00:00.000Z');
+    },
+  );
+
   it('fusionneVersClientId est propagé tel quel', () => {
     const dto = versClientResponse(ligneClient({ fusionneVersClientId: 'c-absorbant' }), null, []);
     expect(dto.fusionneVersClientId).toBe('c-absorbant');
@@ -127,6 +138,24 @@ describe('versClientResume', () => {
     expect(resume.nombreVehicules).toBe(3);
     expect(resume.dernierPassageLe).toBe('2026-05-10T08:00:00.000Z');
   });
+
+  it(
+    'dernierPassageLe EN CHAÎNE (forme défensive gérée par `enDate()` : cette valeur vient du SQL ' +
+      'brut de `ServiceClient.lister`, un LEFT JOIN LATERAL sur `ordre_reparation` exécuté via ' +
+      '`tx.execute()` — le pilote pg y rend en fait un `Date`, mais `enDate()` accepte aussi une ' +
+      "chaîne si un chemin différent en rendait une un jour) est projetée en ISO sans planter. " +
+      "Régression couverte : c'était exactement ce cas — un client réel avec au moins un OR — qui faisait " +
+      'planter `GET /clients` en 500 (`extra.dernierPassageLe.toISOString is not a function`) alors que ' +
+      "710 tests passaient, parce qu'ils simulaient tous un `Date` déjà construit.",
+    () => {
+      const resume = versClientResume(ligneClient(), {
+        localite: 'Lausanne',
+        nombreVehicules: 1,
+        dernierPassageLe: '2026-05-10T08:00:00.000Z',
+      });
+      expect(resume.dernierPassageLe).toBe('2026-05-10T08:00:00.000Z');
+    },
+  );
 });
 
 describe('versAdresseResponse', () => {

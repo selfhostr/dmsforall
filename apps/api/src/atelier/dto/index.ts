@@ -6,3 +6,4 @@ export * from './ligne-or.dto';
 export * from './devis.dto';
 export * from './journal.dto';
 export * from './ordre-reparation.dto';
+export * from './facturation-or.dto';

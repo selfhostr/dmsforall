@@ -1,0 +1,48 @@
+{
+  "titre": "Paramètres de facturation",
+  "creancier": {
+    "titre": "Coordonnées bancaires du garage",
+    "description": "Ces coordonnées apparaissent sur le bulletin QR de chaque facture émise. Tant qu'elles ne sont pas complètes, aucune facture ne peut porter de QR-facture payable.",
+    "nonConfigure": "Ces coordonnées n'ont encore jamais été saisies.",
+    "identite": {
+      "titre": "Identité",
+      "nom": "Nom du garage"
+    },
+    "adresse": {
+      "titre": "Adresse",
+      "rue": "Rue",
+      "numero": "Numéro",
+      "numeroAide": "Laissez ce champ vide si vous n'avez pas de numéro (case postale, lieu-dit). Attention : l'émission d'une facture avec bulletin QR l'exige — sans lui, l'émission restera bloquée tant qu'il ne sera pas complété.",
+      "npa": "NPA",
+      "localite": "Localité",
+      "pays": "Pays"
+    },
+    "comptes": {
+      "titre": "Comptes bancaires",
+      "explication": "Un QR-IBAN (compte auprès d'un institut réservé aux QR-factures) exige une référence QR sur chaque facture. Un IBAN ordinaire n'accepte qu'une référence SCOR ou aucune référence. Ce sont deux comptes distincts : ne saisissez jamais l'un dans le champ de l'autre, sous peine de bulletins refusés par la banque.",
+      "iban": "IBAN (compte ordinaire)",
+      "ibanAide": "Le compte courant habituel du garage — pas un QR-IBAN.",
+      "qrIban": "QR-IBAN",
+      "qrIbanAide": "Compte réservé aux QR-factures (identifiant d'institut financier entre 30000 et 31999)."
+    },
+    "completude": {
+      "titre": "Pour pouvoir émettre une facture avec bulletin QR",
+      "complet": "Toutes les informations nécessaires sont renseignées.",
+      "nom": "Le nom du garage",
+      "adresse": "Une adresse complète (rue, numéro, NPA, localité)",
+      "compte": "Un compte bancaire, IBAN ou QR-IBAN"
+    },
+    "actions": {
+      "enregistrer": "Enregistrer"
+    },
+    "enregistrementReussi": "Coordonnées enregistrées.",
+    "erreur": {
+      "titre": "Impossible de charger les coordonnées bancaires"
+    },
+    "refus": {
+      "titre": "Accès réservé à la direction et à la comptabilité",
+      "description": "Cet écran gère les coordonnées bancaires du garage, une donnée financière sensible. Il n'est accessible qu'aux rôles Direction et Comptable — jamais au rôle Admin, qui gère les comptes utilisateurs mais ne détient aucun droit financier. Reconnectez-vous avec un compte Direction ou Comptable pour continuer.",
+      "retourAccueil": "Retour à l'accueil"
+    }
+  }
+}

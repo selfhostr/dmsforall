@@ -45,6 +45,16 @@ export class ReponseLigneOrDto implements ReponseLigneOr {
   @ApiProperty({ enum: PAYEURS_LIGNE_OR, description: 'Les lignes `garage` sont valorisées à 0.00 (RM-70).' })
   readonly payeur!: ReponseLigneOr['payeur'];
 
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description:
+      "Désigne QUI, quand `payeur !== 'client'` (AC-08, MD-62, MD-67) : `null` pour `payeur = 'client'` ou " +
+      "`'garage'`. Colonne `ligne_or.payeur_client_id` (migration 0017).",
+  })
+  readonly payeurClientId!: ReponseLigneOr['payeurClientId'];
+
   @ApiProperty({ enum: BLOCAGES_LIGNE_OR })
   readonly blocage!: ReponseLigneOr['blocage'];
 

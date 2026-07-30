@@ -5,6 +5,7 @@ import type { EntreeCreationClient, EntreeDesactivationClient } from '@dfa/share
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import { Horloge } from '../common/horloge';
+import { decoderCurseurTrie } from '../common/pagination';
 import type { ReponseMemorisable, RequeteIdempotente, ResultatIdempotent, ServiceIdempotence } from '../common/idempotence';
 import type { ServiceCompteurs } from '../parametrage/compteurs/compteurs.types';
 import type { LigneClient } from '../db/schema';
@@ -297,6 +298,59 @@ describe('ServiceClient — isolation tenant : le tenant du contexte est explici
 });
 
 describe(
+  "ServiceClient.lister — tri 'creeLe:desc' : le curseur doit préserver la MICROSECONDE de " +
+    "PostgreSQL, jamais la tronquer à la milliseconde d'un `Date` JavaScript (régression : " +
+    'plusieurs clients créés en lot, donc partageant la même milliseconde, faisaient sauter des ' +
+    'lignes entières de pagination — voir `pagination-triee.ts` et ' +
+    '`common/pagination/valeur-temporelle.ts`)',
+  () => {
+    it('la colonne `triValeur` est sélectionnée avec un cast ::text explicite, jamais laissée au parseur par défaut du pilote', async () => {
+      const { tx } = txFactice({ executes: [{ rows: [] }] });
+      const acces = accesFactice(tx);
+      const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+
+      await service.lister(CTX, { tri: 'creeLe:desc', limite: 20 });
+
+      const appel = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as SQL;
+      const { sql: texte } = dialect.sqlToQuery(appel);
+      expect(texte).toContain('(c.cree_le)::text as "triValeur"');
+    });
+
+    it(
+      'deux clients partageant EXACTEMENT la même microseconde de création sortent tous les deux, sur deux ' +
+        'pages successives, plutôt que de faire sauter la seconde page (le défaut historique)',
+      async () => {
+        const MEME_INSTANT = '2026-07-29 13:37:35.171181+00';
+        const ID_1 = '11111111-1111-4111-8111-111111111111';
+        const ID_2 = '22222222-2222-4222-8222-222222222222';
+        const { tx } = txFactice({
+          executes: [
+            {
+              rows: [
+                { ...ligneClient({ id: ID_1 }), triValeur: MEME_INSTANT, localite: null, nombreVehicules: 0, dernierPassageLe: null },
+                { ...ligneClient({ id: ID_2 }), triValeur: MEME_INSTANT, localite: null, nombreVehicules: 0, dernierPassageLe: null },
+              ],
+            },
+          ],
+        });
+        const acces = accesFactice(tx);
+        const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+
+        const page = await service.lister(CTX, { tri: 'creeLe:desc', limite: 1 });
+
+        expect(page.donnees).toHaveLength(1);
+        expect(page.curseurSuivant).not.toBeNull();
+        // La régression : `new Date(MEME_INSTANT).toISOString()` tronque `.171181` en `.171`, et la
+        // comparaison keyset SQL exclut alors TOUTE ligne à `.171181` (curseur < valeur réelle) —
+        // la page 2 revenait vide. Le curseur encodé doit porter la microseconde intacte.
+        const decode = decoderCurseurTrie(page.curseurSuivant as string, 'creeLe:desc');
+        expect(decode.valeur).toBe('2026-07-29T13:37:35.171181+00:00');
+      },
+    );
+  },
+);
+
+describe(
   'ServiceClient.lister — désambiguïsation comptoir (telephone/localite/nombreVehicules/dernierPassageLe) : ' +
     'UNE seule requête, LEFT JOIN, jamais de N+1 ni de client exclu faute d’adresse ou de véhicule',
   () => {
@@ -386,6 +440,36 @@ describe(
         dernierPassageLe: '2026-06-15T00:00:00.000Z',
       });
     });
+
+    it(
+      'dernierPassageLe rendu EN CHAÎNE (forme défensive gérée par `enDate()`, en plus du `Date` que rend ' +
+        'en pratique le pilote pg sur ce SQL brut — voir la doc de `enDate()`) est projeté en ISO sans ' +
+        "planter. Régression couverte : c'est exactement cette forme qui faisait planter GET /clients en " +
+        '500 (`extra.dernierPassageLe.toISOString is not a function`) sur un client réel avec un OR.',
+      async () => {
+        const { tx } = txFactice({
+          executes: [
+            {
+              rows: [
+                {
+                  ...ligneClient({ telephone: '021 123 45 67' }),
+                  triValeur: 'Dupont Jean',
+                  localite: 'Lausanne',
+                  nombreVehicules: 1,
+                  dernierPassageLe: '2026-06-15T00:00:00.000Z',
+                },
+              ],
+            },
+          ],
+        });
+        const acces = accesFactice(tx);
+        const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+
+        const page = await service.lister(CTX, { tri: 'nom:asc', limite: 20 });
+
+        expect(page.donnees[0]?.dernierPassageLe).toBe('2026-06-15T00:00:00.000Z');
+      },
+    );
   },
 );
 
@@ -424,6 +508,40 @@ describe("ServiceClient.parId — notesAlerte (RM-13) : uniquement les notes de 
       },
     ]);
   });
+
+  it(
+    'dernierPassageLe et creeLe (note) rendus EN CHAÎNE (forme défensive gérée par `enDate()`, en plus du ' +
+      '`Date` que rendent en pratique les deux requêtes SQL brutes de `parId` — `dernierPassage()` et ' +
+      '`chargerNotesAlerte()` — voir la doc de `enDate()`) ' +
+      "sont projetés en ISO sans planter, tout comme quand ils sont rendus en `Date`",
+    async () => {
+      const { tx } = txFactice({
+        selects: [[ligneClient()]],
+        executes: [
+          { rows: [{ dernier: '2026-06-20T07:30:00.000Z' }] },
+          {
+            rows: [
+              {
+                id: 'n1',
+                texte: 'Rappeler avant tout supplément',
+                creeLe: '2026-07-01T00:00:00.000Z',
+                auteurId: 'u1',
+                auteurPrenom: 'Marie',
+                auteurNom: 'Rey',
+              },
+            ],
+          },
+        ],
+      });
+      const acces = accesFactice(tx);
+      const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+
+      const dto = await service.parId(CTX, 'c1');
+
+      expect(dto.dernierPassageLe).toBe('2026-06-20T07:30:00.000Z');
+      expect(dto.notesAlerte[0]?.creeLe).toBe('2026-07-01T00:00:00.000Z');
+    },
+  );
 
   it(
     "la requête de notes exécutée filtre explicitement sur nature = 'alerte' (et le tenant) — " +

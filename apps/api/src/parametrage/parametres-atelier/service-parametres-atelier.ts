@@ -1,11 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
-import { POLITIQUES_CONTROLE_QUALITE, type EntreeModificationParametresAtelier } from '@dfa/shared';
+import { POLITIQUES_CONTROLE_QUALITE } from '@dfa/shared';
 
 import { JETON_DB, schema, type AccesBase, type ContexteTenant, type TransactionDfa } from '../../db';
 import { ErreurMetier } from '../../common/erreurs';
 import { verifierChampsActifsParametresAtelier } from './gouvernance-fonctionnalites';
 import { versColonnesMiseAJour, versDtoParametresAtelier, type DtoParametresAtelier } from './mappeur-parametres-atelier';
+import type { EntreeModificationParametresAtelierEtendue } from './schema-modification-parametres-atelier-etendu';
 
 /**
  * Δ3 (`db/migrations/0005_parametrage.sql`) : le type PG `politique_controle_qualite` reste
@@ -28,7 +29,7 @@ export class ServiceParametresAtelier {
     });
   }
 
-  async modifier(ctx: ContexteTenant, entree: EntreeModificationParametresAtelier): Promise<DtoParametresAtelier> {
+  async modifier(ctx: ContexteTenant, entree: EntreeModificationParametresAtelierEtendue): Promise<DtoParametresAtelier> {
     verifierChampsActifsParametresAtelier(entree);
     this.verifierControleQualiteLot1(entree);
 
@@ -69,7 +70,7 @@ export class ServiceParametresAtelier {
     return ligne;
   }
 
-  private verifierControleQualiteLot1(entree: EntreeModificationParametresAtelier): void {
+  private verifierControleQualiteLot1(entree: EntreeModificationParametresAtelierEtendue): void {
     const valeur = entree.travaux?.controleQualite;
     if (valeur === undefined) return;
     if (!CONTROLE_QUALITE_VALEURS_LOT1.has(valeur)) {

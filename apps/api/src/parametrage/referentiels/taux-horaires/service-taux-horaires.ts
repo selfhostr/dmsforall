@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, sql } from 'drizzle-orm';
 import type { PageCurseur, ReponseTauxHoraire } from '@dfa/shared';
 // Import de VALEUR : `packages/shared` exporte `EntreeCreationTauxHoraire` (type) mais AUCUN type
 // `EntreeModificationTauxHoraire` — écart signalé (asymétrie création/modification, contrairement
@@ -29,13 +29,19 @@ export class ServiceTauxHoraires {
 
     return this.acces.enTenant(ctx, async (tx) => {
       const lignes = await tx
-        .select()
+        .select({
+          ...getTableColumns(schema.tauxHoraire),
+          // Texte natif Postgres du timestamptz — jamais le `Date` de `getTableColumns()` (mode
+          // 'date', microseconde déjà perdue). Voir pagination-defaut.ts et
+          // common/pagination/valeur-temporelle.ts.
+          creeLeTexte: sql<string>`${schema.tauxHoraire.creeLe}::text`,
+        })
         .from(schema.tauxHoraire)
         .where(
           and(
             eq(schema.tauxHoraire.tenantId, ctx.tenantId),
             curseurDecode
-              ? sql`(${schema.tauxHoraire.creeLe}, ${schema.tauxHoraire.id}) < (${curseurDecode.creeLe}, ${curseurDecode.id})`
+              ? sql`(${schema.tauxHoraire.creeLe}, ${schema.tauxHoraire.id}) < (${curseurDecode.creeLeTexte}::timestamptz, ${curseurDecode.id})`
               : undefined,
           ),
         )

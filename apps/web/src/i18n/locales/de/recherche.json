@@ -5,7 +5,8 @@
   "resultatsGroupes": {
     "vehicules": "{count, plural, one {# Fahrzeug} other {# Fahrzeuge}}",
     "clients": "{count, plural, one {# Kunde} other {# Kunden}}",
-    "ordres": "{count, plural, one {# RA} other {# RA}}"
+    "ordres": "{count, plural, one {# RA} other {# RA}}",
+    "documents": "{count, plural, one {# Beleg} other {# Belege}}"
   },
   "details": {
     "plaqueHistorique": "Früheres Kennzeichen von {client} bis {date}",

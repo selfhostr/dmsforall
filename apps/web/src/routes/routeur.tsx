@@ -8,6 +8,11 @@ import { EcranListeOrdresReparation } from '@/ecrans/atelier/EcranListeOrdresRep
 import { EcranNouvelOrdreReparation } from '@/ecrans/atelier/EcranNouvelOrdreReparation';
 import { EcranFicheClient } from '@/ecrans/clients/EcranFicheClient';
 import { EcranListeClients } from '@/ecrans/clients/EcranListeClients';
+import { EcranAvoir } from '@/ecrans/facturation/EcranAvoir';
+import { EcranFacturerOrdreReparation } from '@/ecrans/facturation/EcranFacturerOrdreReparation';
+import { EcranFicheFacture } from '@/ecrans/facturation/EcranFicheFacture';
+import { EcranListeFactures } from '@/ecrans/facturation/EcranListeFactures';
+import { EcranParametresFacturation } from '@/ecrans/parametrage/EcranParametresFacturation';
 import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
 import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
 import { EcranFicheVehicule } from '@/ecrans/vehicules/EcranFicheVehicule';
@@ -63,6 +68,27 @@ export const routesConfig: RouteObject[] = [
       // chemin ici) — voir EcranNouvelOrdreReparation.tsx pour le détail des deux repos honnêtes
       // affichés quand l'un des deux manque.
       { path: 'atelier/ordres-reparation/nouveau', element: <EcranNouvelOrdreReparation /> },
+      // Même paramètre `orId` que la fiche d'OR ci-dessus (`EcranFacturerOrdreReparation` lit
+      // `useParams<{ orId: string }>()`) et même préfixe `ordres-reparation/` que le reste de la
+      // ressource — le commentaire en tête d'`EcranFacturerOrdreReparation.tsx` documente
+      // `/or/:orId/facturer` (calque du design), mais rien dans le dépôt ne navigue déjà vers cette
+      // URL : `/or/` n'existe nulle part ailleurs dans le routeur, alors que `ordres-reparation/`
+      // est le préfixe déjà en place pour cette même ressource (liste, fiche). Choisi pour
+      // cohérence avec les routes existantes plutôt que pour coller littéralement au commentaire.
+      { path: 'ordres-reparation/:orId/facturer', element: <EcranFacturerOrdreReparation /> },
+      { path: 'factures', element: <EcranListeFactures /> },
+      // `:id` (pas `:orId` ni `:factureId`) — `EcranFicheFacture` lit `useParams<{ id: string }>()`.
+      { path: 'factures/:id', element: <EcranFicheFacture /> },
+      // Même remarque : `EcranAvoir` lit aussi `useParams<{ id: string }>()` — `id` y désigne la
+      // facture d'origine à partir de laquelle l'avoir est émis, pas l'avoir lui-même (qui n'existe
+      // pas encore au moment où cet écran s'ouvre). Chemin construit par les écrans appelants via
+      // `` `/factures/${document.id}/avoir` `` (EcranFicheFacture, DialogueCorrectionFacture) — pas
+      // de constructeur dans `chemins.ts` pour cette route, les écrans de facturation naviguent en
+      // gabarit littéral plutôt que via `chemins.*`.
+      { path: 'factures/:id/avoir', element: <EcranAvoir /> },
+      // Singleton par tenant (bloc créancier du QR-facture) — jamais de paramètre de chemin,
+      // voir `chemins.parametrage.facturation` et le commentaire de tête d'`EcranParametresFacturation`.
+      { path: 'parametrage/facturation', element: <EcranParametresFacturation /> },
     ],
   },
   { path: '*', element: <EcranPageIntrouvable /> },

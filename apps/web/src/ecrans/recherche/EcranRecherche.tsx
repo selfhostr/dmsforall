@@ -18,12 +18,20 @@ function cheminOr(id: string, site: string | undefined): string {
   return site ? `/ordres-reparation/${id}?site=${encodeURIComponent(site)}` : `/ordres-reparation/${id}`;
 }
 
+/** Même raison que `cheminOr` ci-dessus : `chemins.ts` n'a pas encore d'entrée Facturation
+ *  (module hors périmètre ici). Route confirmée par `routes/routeur.tsx` : `factures/:id`
+ *  (`EcranFicheFacture` lit `useParams<{ id: string }>()`, pas `:factureId`). */
+function cheminFacture(id: string, site: string | undefined): string {
+  return site ? `/factures/${id}?site=${encodeURIComponent(site)}` : `/factures/${id}`;
+}
+
 /**
  * Destination d'un résultat sélectionné, par nature. `Record` exhaustif sur `TypeResultatRecherche`
  * (§ enums.ts) : l'ajout d'une nature de résultat future casserait la compilation ici plutôt que
  * de silencieusement ne rien faire au clic. Les OR n'ont pas encore de chemin dans
  * `routes/chemins.ts` (module Atelier en cours de câblage ailleurs) — slug local aligné sur celui
- * déjà utilisé par l'API (`/ordres-reparation/{id}`, voir `client.ts`).
+ * déjà utilisé par l'API (`/ordres-reparation/{id}`, voir `client.ts`). Même chose pour
+ * `document_vente` : `/factures/{id}` (voir `cheminFacture` ci-dessus, `routes/routeur.tsx`).
  *
  * Le site sélectionné (`?site=` de l'URL courante) est propagé vers CHAQUE destination — perdre le
  * site en sortant de la recherche romprait le même contrat que perdre `?site=` en sortant de la
@@ -33,6 +41,7 @@ const CONSTRUCTEURS_CHEMIN: Record<TypeResultatRecherche, (id: string, site: str
   vehicule: (id, site) => chemins.vehicules.detail(id, site),
   client: (id, site) => chemins.clients.detail(id, site),
   ordre_reparation: (id, site) => cheminOr(id, site),
+  document_vente: (id, site) => cheminFacture(id, site),
 };
 
 /**

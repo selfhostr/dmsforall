@@ -21,6 +21,8 @@ import dePlanning from './locales/de/planning.json';
 import deReception from './locales/de/reception.json';
 import dePointage from './locales/de/pointage.json';
 import deOr from './locales/de/or.json';
+import deFacturation from './locales/de/facturation.json';
+import deParametrage from './locales/de/parametrage.json';
 import frAccueil from './locales/fr/accueil.json';
 import frAuth from './locales/fr/auth.json';
 import frCommun from './locales/fr/commun.json';
@@ -34,6 +36,8 @@ import frPlanning from './locales/fr/planning.json';
 import frReception from './locales/fr/reception.json';
 import frPointage from './locales/fr/pointage.json';
 import frOr from './locales/fr/or.json';
+import frFacturation from './locales/fr/facturation.json';
+import frParametrage from './locales/fr/parametrage.json';
 import itAccueil from './locales/it/accueil.json';
 import itAuth from './locales/it/auth.json';
 import itCommun from './locales/it/commun.json';
@@ -47,13 +51,17 @@ import itPlanning from './locales/it/planning.json';
 import itReception from './locales/it/reception.json';
 import itPointage from './locales/it/pointage.json';
 import itOr from './locales/it/or.json';
+import itFacturation from './locales/it/facturation.json';
+import itParametrage from './locales/it/parametrage.json';
 
-/** 13 namespaces par domaine (propriété expert-i18n) : jamais modifiés ici, seulement importés.
+/** 15 namespaces par domaine (propriété expert-i18n) : jamais modifiés ici, seulement importés.
  *  Les 6 premiers sont le socle (étape 0) ; les 7 suivants (`recherche` à `or`) sont le lot 1 —
- *  voir docs/plan-lot1-frontend-execution.md §2.3 (verrou V3). `scripts/verifier-i18n.mjs`
- *  échoue désormais si un namespace présent sur disque (`src/i18n/locales/fr/*.json`) n'apparaît
- *  pas ici : ne jamais ajouter un fichier de traduction sans l'enregistrer à la fois dans ce
- *  tableau et dans `ressources` ci-dessous, pour les trois langues. */
+ *  voir docs/plan-lot1-frontend-execution.md §2.3 (verrou V3). `facturation` et `parametrage`
+ *  sont l'étape 2. `scripts/verifier-i18n.mjs` échoue désormais si un namespace présent sur
+ *  disque (`src/i18n/locales/fr/*.json`) n'apparaît pas ici : ne jamais ajouter un fichier de
+ *  traduction sans l'enregistrer à la fois dans ce tableau et dans `ressources` ci-dessous, pour
+ *  les trois langues — un oubli ici rend un namespace parfaitement traduit totalement
+ *  inutilisable à l'exécution, sans qu'aucun test ni lint ne le voie. */
 export const NAMESPACES = [
   'commun',
   'auth',
@@ -68,6 +76,8 @@ export const NAMESPACES = [
   'reception',
   'pointage',
   'or',
+  'facturation',
+  'parametrage',
 ] as const;
 
 const ressources = {
@@ -85,6 +95,8 @@ const ressources = {
     reception: frReception,
     pointage: frPointage,
     or: frOr,
+    facturation: frFacturation,
+    parametrage: frParametrage,
   },
   de: {
     commun: deCommun,
@@ -100,6 +112,8 @@ const ressources = {
     reception: deReception,
     pointage: dePointage,
     or: deOr,
+    facturation: deFacturation,
+    parametrage: deParametrage,
   },
   it: {
     commun: itCommun,
@@ -115,6 +129,8 @@ const ressources = {
     reception: itReception,
     pointage: itPointage,
     or: itOr,
+    facturation: itFacturation,
+    parametrage: itParametrage,
   },
 } as const;
 

@@ -58,7 +58,10 @@ const ACTIONS_DEPUIS_STATUT: Readonly<Record<StatutOrdreReparation, readonly Act
   ouvert: ['demarrer', 'passer-en-controle', 'terminer', 'annuler', 'reprendre-travaux'],
   en_cours: ['passer-en-controle', 'terminer', 'reprendre-travaux'],
   controle: ['refuser-controle', 'valider-controle'],
-  termine: ['rouvrir', 'restituer'],
+  // `facturer` (RF-81) : rejouable tant que l'OR reste `termine` (RF-83/RF-84, facturation
+  // partielle assumée) — la garde réelle (au moins un groupe payeur encore facturable) reste
+  // côté service (`OR_FACTURATION_AUCUNE_LIGNE`), même doctrine que le reste de cette table.
+  termine: ['rouvrir', 'restituer', 'facturer'],
   facture: ['restituer'],
   restitue: ['cloturer'],
   cloture: [],
@@ -95,11 +98,20 @@ export function calculerActionsDisponibles(statut: StatutOrdreReparation): reado
  * de droit dédié dans `auth/matrice-droits.ts` (Action) : rattaché à `atelier.or.modifier`, le
  * plus proche par nature (lever un blocage de ligne est une modification de l'OR, pas une
  * transition de statut) — signalé comme une interprétation, faute d'entrée `§10` dédiée.
+ *
+ * `facturer` (`RF-81`, `POST /ordres-reparation/{orId}/facturer`) est rattaché à
+ * `facturation.document.creer` — PAS `facturation.document.emettre_facture`. `RF-115` réserve
+ * l'ÉMISSION à direction/comptable/vendeur/réceptionniste ; cette action ne fait que créer des
+ * BROUILLONS, donc suit la règle de la création (même droit que toute création de document,
+ * `ECRITURE_BROUILLON`), qui inclut déjà `chef_atelier` sans lui donner `EMISSION_FACTURE` —
+ * exactement la distinction que `RF-81` demande. Décision figée par le contrat
+ * `packages/shared/src/contrats/facturation/facturer-or.ts`, reprise ici telle quelle.
  */
 const DROIT_PAR_ACTION: Readonly<Record<ActionOrdreReparation, Action>> = {
   receptionner: 'atelier.or.receptionner',
   demarrer: 'atelier.or.demarrer',
   'reprendre-travaux': 'atelier.or.modifier',
+  facturer: 'facturation.document.creer',
   'passer-en-controle': 'atelier.or.passer_en_controle',
   'refuser-controle': 'atelier.or.controler',
   'valider-controle': 'atelier.or.controler',

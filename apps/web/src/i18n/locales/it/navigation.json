@@ -6,16 +6,13 @@
     "accueil": "Home",
     "clients": "Clienti",
     "vehicules": "Veicoli",
-    "recherche": "Ricerca"
+    "recherche": "Ricerca",
+    "factures": "Fatturazione"
   },
   "menu": {
-    "ouvrir": "Apri menu",
-    "fermer": "Chiudi menu"
+    "ouvrir": "Apri menu"
   },
   "entete": {
-    "garage": "Officina",
-    "site": "Sito",
-    "tousLesSites": "Tutte le officine",
-    "compte": "Il mio account"
+    "tousLesSites": "Tutte le officine"
   }
 }

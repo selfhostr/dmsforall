@@ -77,6 +77,23 @@ export async function listerLignesOr(
     .orderBy(asc(ligneOr.numeroOrdre));
 }
 
+/** Même requête que `listerLignesOr`, VERROUILLÉE (`for update`) — point d'entrée de
+ *  `ServiceFacturationOr.facturer` (RF-81) : deux appels concurrents sur le même OR (deux groupes
+ *  payeur facturés en parallèle) ne doivent jamais évaluer leurs gardes (I-08-like, plafond de
+ *  groupe) contre le même instantané de lignes, même patron que `chargerOrPourEcriture`. */
+export async function listerLignesOrPourEcriture(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  orId: string,
+): Promise<readonly LigneLigneOr[]> {
+  return tx
+    .select()
+    .from(ligneOr)
+    .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.ordreReparationId, orId)))
+    .orderBy(asc(ligneOr.numeroOrdre))
+    .for('update');
+}
+
 /** Verrouille les lignes ciblées par une action GROUPÉE (§7.7) — tout ou rien, dans la
  *  transaction de l'action. Ne lève PAS si une ligne demandée est absente : l'appelant décide
  *  (l'absence peut être un id périmé, distinct d'un statut incompatible). */

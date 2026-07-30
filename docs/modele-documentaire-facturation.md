@@ -3,7 +3,7 @@
 > Périmètre : la chaîne devis → bon de commande → facture → avoir, la numérotation légale, le
 > calcul des montants et de la TVA, les paiements, la QR-facture, l'export fiduciaire, et les
 > points d'accroche que l'**étape 1 doit poser dès maintenant**.
-> Public : @laupernoe, expert-database, lead-backend, expert-nestjs, expert-migration-donnees, la
+> Public : @laupernoe, expert-database, expert-nestjs, expert-migration-donnees, la
 > fiduciaire du premier garage.
 > Statut : **conception de référence pour l'étape 2**, à valider point par point sur les items
 > `QF-xx` avant implémentation.
@@ -175,7 +175,25 @@ documents repris à TVA non ventilée : c'est le taux d'époque déduit de la da
 Le trigger d'immuabilité (§1.4) ne fait aucune distinction d'origine. Correction d'un document
 repris = avoir, émis par DFA, qui référence le document repris par sa clé.
 
-### 0.4 Coût comparé — pourquoi maintenant et pas après
+### 0.4 Les six arbitrages métier irréversibles — à ne pas rouvrir
+
+En plus des trois exigences de reprise ci-dessus, six décisions de gestion ont été tranchées et figées. Elles structurent le reste du modèle et ne peuvent pas être modifiées après mise en production du pilote sans des migrations rédhibitoires.
+
+**1. Bloc créancier au niveau **tenant**, pas site.** Une entreprise multi-site (garage Alpine à Genève et Montreux) a une seule entité juridique (donc un seul bloc créancier, une seule série de numérotation légale). Si un site devait avoir son propre IBAN et ses propres coordonnées, il faudrait revoir les clés d'unicité de la numérotation, l'export fiduciaire (un grand livre par site ?), et le bloc créancier recopié sur chaque facture — décisions de fond, pas cosmétiques. La portée de numérotation (`P-01`) est déjà tenant ; la cohérence l'exige.
+
+**2. Deux colonnes `iban` et `qr_iban` toujours distinctes, jamais fusionnées.** Une facture avec IBAN ordinaire + référence SCOR n'a pas de QR; un QR-IBAN oblige une référence QRR. Ces trois régimes (ordinaire-SCOR, ordinaire-NON, QR-IBAN-QRR) ont des durées de vie différentes — un changement de banque affecte l'un sans affecter l'autre. Fusuonner les deux impose à chaque changement d'IBAN de décider d'un régime pour tout. Les tenir séparés permet un changement graduel où des factures coexistent en deux régimes.
+
+**3. Charge QR **recopiée** à l'émission, jamais recomposée à la lecture.** Le payload (le QR lui-même) est calculé une fois, figé en base, imprimé en PDF. S'il était recalculé à chaque accès, un changement d'IBAN du garage réécrirait rétroactivement le QR d'une facture de 2024 — le client qui sort son téléphone pour scanne le bulletin et paye la vérrait soudain **inexact** par rapport à ce qu'il a reçu il y a deux ans. Pire : s'il avait transcrit la référence en lettres à la main (cas limite mais légal), le paiement irait ailleurs. Le payload figé (`MD-77`) est la seule manière de tenir cette promesse : le PDF reste l'arbitre.
+
+**4. `client_adresse.numero` est **nullable** — cases postales, lieux-dits, hameaux existent.** La conséquence visible : le bloc débiteur du QR peut être vide (` 7 lignes vides`) sur une facture émise (`RF-61`) — c'est le cas de la facture de démonstration. Interdire un adresse incomplète forcerait un faux numéro de rue, ce qui échouerait à la scan au guichet postal. Mieux vaut un QR incomplet, imprimable.
+
+**5. `document_vente.devise` **resserrée à CHF/EUR uniquement** (migration `0015`).** Elle n'était contrainte qu'en forme (un texte), alors que `paiement.devise` était bornée (liste fermée). Un document dans une autre devise était structurellement impayable (aucun paiement possible, aucun QR possible). Vider la liberté de l'une vers un enum contrôlé protège une invariant : tout document peut être encaissé et exporté. Cette migration a été exécutée avec vérification que le jeu de démo contient uniquement CHF.
+
+**6. Audit de l'IBAN tracé sur chaque changement** (migration `0016`).** La table du bloc créancier (les coordonnées du garage) n'avait pas de trigger d'audit. Qui a changé l'IBAN, quand, et la valeur précédente **doivent** être auditées — c'est de l'argent que vous n'accrocherez plus. Cette migration a ajouté le trigger ; elle a été appliquée avant le premier garage de production.
+
+Les trois premières décisions ( tenant, deux colonnes IBAN, payload figé) changeront le schéma et l'import structurant si elles sont reconsidérées. Les trois dernières (numero nullable, devise, audit) affectent la logique applicative et l'export. **Aucune ne peut être contournée par un paramétrage ultérieur** — ce sont des structures, pas des options.
+
+### 0.5 Coût comparé — pourquoi maintenant et pas après
 
 | Ajout | Coût aujourd'hui (table vide) | Coût après la mise en production du pilote |
 |---|---|---|
@@ -972,7 +990,7 @@ SPC                          QRType, fixe
 CH________________           IBAN / QR-IBAN du créancier, sans espaces
 S                            Adresse structurée (K interdit depuis le 21.11.2025)
 <nom> <rue> <n°> <npa> <localité> <pays>       créancier, 6 lignes
-(6 lignes vides)             Ultimate Creditor — réservé, toujours vide
+(7 lignes vides)             Ultimate Creditor — réservé, toujours vide
 <montant>                    optionnel ; 2 décimales, point décimal, sans séparateur de milliers
 CHF                          CHF ou EUR uniquement
 S|<nom> <rue> <n°> <npa> <localité> <pays>     débiteur final, ou 7 lignes vides

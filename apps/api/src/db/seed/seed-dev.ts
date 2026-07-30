@@ -31,6 +31,7 @@ import {
   site,
   tauxHoraire,
   tenant,
+  tenantBlocCreancier,
   utilisateur,
   vehicule,
   vehiculeDetention,
@@ -144,7 +145,53 @@ const SITES_DEMO = [
 ] as const;
 
 /**
- * Un compte par rôle réellement démonstratif du lot 1 — pas la totalité de `MATRICE_DROITS`
+ * Bloc créancier de démonstration (`tenant_bloc_creancier`, migration 0014) — sans lui, l'encodeur
+ * QR-facture (`facturation/qr/`) n'a rien à encoder et aucune facture de démo n'est réellement
+ * payable. Adresse structurée = celle du site SION (le garage n'a qu'une seule entité juridique,
+ * `RF-54`/PF-03 : le bloc créancier est porté par le TENANT, jamais par site).
+ *
+ * DEUX IBAN DE TEST DOCUMENTÉS PUBLIQUEMENT, PAS INVENTÉS — la clé de contrôle modulo 97 (ISO
+ * 7064) de chacun est vérifiée ci-dessous par `verifierModulo97IbanDemo` avant toute écriture,
+ * pour ne jamais dépendre d'une valeur recopiée sans preuve :
+ *   - `IBAN_DEMO` : IBAN suisse ordinaire, IID `00762` (hors plage QR-IBAN) — exemple utilisé dans
+ *     la documentation ISO 20022/QR-bill suisse.
+ *   - `QR_IBAN_DEMO` : QR-IBAN, IID `31999` — dans la plage réservée 30000-31999
+ *     (`IID_QR_IBAN_MIN`/`MAX`, `facturation/qr/iban.ts`) ; c'est l'exemple créancier utilisé dans
+ *     le guide de style QR-facture de SIX Group, repris tel quel dans d'innombrables intégrations
+ *     suisses de référence.
+ */
+const IBAN_DEMO = 'CH9300762011623852957';
+const QR_IBAN_DEMO = 'CH4431999123000889012';
+
+/** Modulo 97-10 (ISO 7064) d'un IBAN — même algorithme que
+ *  `facturation/qr/modulo97.ts::resteModulo97`, réimplémenté ICI en quelques lignes plutôt
+ *  qu'importé : `db/seed/` n'a pas à dépendre de `facturation/qr/` pour une simple assertion de
+ *  cohérence de données de démonstration (le service applicatif, lui, revalidera de toute façon
+ *  cet IBAN au moment de l'émission d'une facture — cette fonction n'est qu'un garde-fou LOCAL,
+ *  pour ne jamais écrire un IBAN de démo dont la clé de contrôle serait fausse). Rend `true` si la
+ *  clé de contrôle est correcte (reste == 1, ISO 13616).
+ */
+function ibanValideModulo97(iban: string): boolean {
+  const compact = iban.replace(/\s/g, '').toUpperCase();
+  const rearrange = `${compact.slice(4)}${compact.slice(0, 4)}`;
+  let reste = 0;
+  for (const car of rearrange) {
+    const valeur = car >= '0' && car <= '9' ? car : String(car.charCodeAt(0) - 55);
+    for (const chiffre of valeur) {
+      reste = (reste * 10 + Number(chiffre)) % 97;
+    }
+  }
+  return reste === 1;
+}
+
+for (const iban of [IBAN_DEMO, QR_IBAN_DEMO]) {
+  if (!ibanValideModulo97(iban)) {
+    throw new Error(`seed-dev : IBAN de démonstration « ${iban} » a une clé de contrôle modulo 97 fausse — à corriger avant tout db:seed.`);
+  }
+}
+
+/**
+ * Un compte par rôle réellement démonstratif — pas la totalité de `MATRICE_DROITS`
  * (`src/auth/matrice-droits.ts`), seulement les rôles dont l'absence rendait une protection
  * INVISIBLE à l'écran alors qu'elle est déjà couverte par des tests :
  *   - `technicien` : seul rôle de `ROLES_SANS_MONTANT` (matrice-droits.ts) — sans ce compte,
@@ -154,6 +201,27 @@ const SITES_DEMO = [
  *     acteur central de la réception) et, avec `technicien`, l'un des deux rôles à qui
  *     `vehicule.kilometrage.corriger_regression` est explicitement refusé (§10 L962) — sans lui,
  *     le refus 403 d'une correction de kilométrage régressive n'était démontrable qu'en théorie.
+ *
+ * DEUX COMPTES AJOUTÉS POUR L'ÉTAPE 2 (facturation), `direction` et `comptable` — constat mesuré
+ * en exécution (403 `DROIT_INSUFFISANT` partout) : avec le seul `admin` du lot 1, PERSONNE ne peut
+ * exercer la facturation. `RF-115` tranche, littéralement et sans exception, qu'`admin` est un
+ * rôle technique SANS AUCUN droit financier (`DROITS_PAIEMENT_PAR_ROLE.admin = []`,
+ * `DROITS_DOCUMENT_PAR_ROLE.admin` limité à la lecture — `auth/matrice-droits.ts`) : ni émettre,
+ * ni encaisser, ni paramétrer l'IBAN du garage. Sans un compte `direction`/`comptable`, la chaîne
+ * documentaire de `seed-facturation-demo.ts` n'aurait elle-même pas pu être posée par un rôle
+ * légitime.
+ *   - `direction` : voit et fait tout côté facturation, y compris le paramétrage du bloc
+ *     créancier (`parametrage/bloc-creancier/`, actions dédiées `facturation.parametrage.
+ *     creancier.{lire,modifier}` de la matrice de droits, accordées à `direction`/`comptable`
+ *     seuls — `admin: []`, RF-115).
+ *   - `comptable` : le palier financier (encaissement, remboursement, export) — même périmètre
+ *     que `direction` sur `DROITS_PAIEMENT_PAR_ROLE`/`DROITS_DOCUMENT_PAR_ROLE`.
+ *   - `chef_atelier` (déjà présent) casse précisément la hiérarchie habituelle en facturation
+ *     (`RF-114`) : il émet un devis/bon de commande mais NI facture NI avoir, et n'encaisse pas —
+ *     c'est le compte qui permet de VOIR que la matrice de droits fait son travail, pas de le
+ *     lire dans le code.
+ *   - `receptionnaire` (déjà présent) est le rôle du comptoir : émet devis ET factures, encaisse
+ *     — mais pas de remboursement d'avance (réservé `direction`/`comptable`).
  */
 const UTILISATEURS_DEMO = [
   {
@@ -161,6 +229,20 @@ const UTILISATEURS_DEMO = [
     prenom: 'Pierre',
     nom: 'Martin',
     role: 'admin',
+    langue: 'fr',
+  },
+  {
+    email: 'direction@garage-martin.ch',
+    prenom: 'Isabelle',
+    nom: 'Bonvin',
+    role: 'direction',
+    langue: 'fr',
+  },
+  {
+    email: 'comptable@garage-martin.ch',
+    prenom: 'Marc',
+    nom: 'Praz',
+    role: 'comptable',
     langue: 'fr',
   },
   {
@@ -500,6 +582,42 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
         .onConflictDoNothing({ target: parametreSite.siteId });
     }
 
+    // --- Bloc créancier (QR-facture, migration 0014) -----------------------------------------
+    // Upsert sur `tenant_id` (contrainte `tenant_bloc_creancier_tenant_id_uk`), à l'identique du
+    // patron `parametreAtelier` ci-dessus — rejouable, jamais dupliqué. Si un autre chemin
+    // applicatif (écran de paramétrage, `ServiceBlocCreancier`) a déjà écrit cette ligne pour ce
+    // tenant, cet upsert la RÉALIGNE sur les valeurs de démonstration au lieu d'entrer en
+    // conflit : la table reste à une ligne par tenant dans tous les cas, seule la valeur diffère.
+    const siteSion = SITES_DEMO.find((s) => s.code === 'SION');
+    if (!siteSion) throw new Error('seed-dev : site SION introuvable dans SITES_DEMO pour le bloc créancier.');
+    await base
+      .insert(tenantBlocCreancier)
+      .values({
+        tenantId,
+        nom: 'Garage Martin SA',
+        rue: siteSion.rue.replace(/\s+\d+$/, ''),
+        numero: siteSion.rue.match(/(\d+)$/)?.[1] ?? null,
+        npa: siteSion.npa,
+        localite: siteSion.localite,
+        pays: 'CH',
+        iban: IBAN_DEMO,
+        qrIban: QR_IBAN_DEMO,
+      })
+      .onConflictDoUpdate({
+        target: tenantBlocCreancier.tenantId,
+        set: {
+          nom: 'Garage Martin SA',
+          rue: siteSion.rue.replace(/\s+\d+$/, ''),
+          numero: siteSion.rue.match(/(\d+)$/)?.[1] ?? null,
+          npa: siteSion.npa,
+          localite: siteSion.localite,
+          pays: 'CH',
+          iban: IBAN_DEMO,
+          qrIban: QR_IBAN_DEMO,
+        },
+      });
+    journaliser(`  bloc créancier (IBAN ${IBAN_DEMO}, QR-IBAN ${QR_IBAN_DEMO})`);
+
     // --- Taux horaires (2, datés — pas de contrainte UNIQUE simple, EXCLUDE seulement : on
     // s'assure de la présence par lecture avant écriture, idempotent au sens applicatif) --------
     for (const th of TAUX_HORAIRE_DEMO) {
@@ -812,6 +930,19 @@ async function principal(): Promise<void> {
   // `seed-atelier-demo.ts` sur pourquoi ce fichier n'utilise jamais `NestFactory`.
   const { semerAtelierDemo } = await import('./seed-atelier-demo');
   await semerAtelierDemo({
+    config,
+    tenantId: resultat.tenantId,
+    idsSitesParCode: resultat.idsSitesParCode,
+    idsClientsParNumero: resultat.idsClientsParNumero,
+    idsVehiculesParCle: resultat.idsVehiculesParCle,
+    idsUtilisateursParRole: resultat.idsUtilisateursParRole,
+  });
+
+  // Étape 3 du seed : chaîne documentaire de facturation (devis, brouillon de facture, facture
+  // émise + paiement partiel) — même doctrine que `seed-atelier-demo.ts` (VRAIS services de
+  // `facturation/`, jamais `NestFactory`), voir la tête de `seed-facturation-demo.ts`.
+  const { semerFacturationDemo } = await import('./seed-facturation-demo');
+  await semerFacturationDemo({
     config,
     tenantId: resultat.tenantId,
     idsSitesParCode: resultat.idsSitesParCode,

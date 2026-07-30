@@ -52,6 +52,16 @@ export const parametreAtelier = pgTable('parametre_atelier', {
   /** Δ1/Q-02 : NULL = aucun plafond convenu, 0 = accord requis pour tout, n>0 = plafond nominal. */
   plafondDefautCentimes: integer('plafond_defaut_centimes'),
 
+  /**
+   * `RF-117` (0018) : plafond d'émission d'avoir par un `receptionnaire` seul — au-delà,
+   * direction/comptable prennent le relais (matrice-droits.ts, EMISSION_AVOIR). Même sémantique
+   * que `plafondDefautCentimes` : NULL = aucun plafond convenu (défaut, comportement actuel
+   * préservé — dégradé documenté), 0 = toute émission doit escalader, n>0 = plafond nominal.
+   * Colonne seule : ne plafonne rien tant que le service d'émission d'avoir
+   * (`facturation/documents/`) ne la consulte pas.
+   */
+  plafondAvoirReceptionnaireCentimes: integer('plafond_avoir_receptionnaire_centimes'),
+
   chevauchementPointageAutorise: boolean('chevauchement_pointage_autorise').notNull().default(false),
   pointageObligatoirePourTerminer: boolean('pointage_obligatoire_pour_terminer').notNull().default(false),
   /** Δ3 : type PG complet (4 valeurs), CHECK restreint à jamais|toujours au lot 1. */

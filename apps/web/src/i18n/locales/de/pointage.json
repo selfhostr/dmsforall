@@ -57,7 +57,8 @@
       "chevauchement": "Überlappung",
       "periodeVerrouillee": "Periode gesperrt",
       "orFacture": "RA fakturiert",
-      "ligneNonPointable": "Arbeit nicht erfassbar"
+      "ligneNonPointable": "Arbeit nicht erfassbar",
+      "deriveHorloge": "Uhr abweichend"
     },
     "corbeille": "Papierkorb anzeigen",
     "corriger": "Zu korrigieren"

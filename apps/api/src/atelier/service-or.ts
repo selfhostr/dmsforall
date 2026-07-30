@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import type {
   AttentesOr,
+  ClientResume,
   EntreeCreationOrdreReparation,
   EntreeDemandeOrdreReparation,
   EntreeModificationOrdreReparation,
@@ -11,12 +12,14 @@ import type {
   ReponseEntreeJournal,
   ReponseOrdreReparation,
   ReponseOrdreReparationDemande,
+  TotauxPayeurOr,
 } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
-import { ordreReparation, ordreReparationDemande, type LigneOrdreReparation } from '../db/schema';
+import { client, ordreReparation, ordreReparationDemande, type LigneLigneOr, type LigneOrdreReparation } from '../db/schema';
 import { MATRICE_DROITS } from '../auth/matrice-droits';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
+import { calculerNomAffiche } from '../common/identite-client';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { Horloge } from '../common/horloge/horloge';
 import { JETON_AUDIT, type ServiceAudit } from '../common/audit';
@@ -481,6 +484,13 @@ export class ServiceOr {
     const modifiePar = await chargerResumeUtilisateur(tx, ctx, dernierEvenement?.utilisateurId ?? null);
     const voitMontants = roleVoitLesMontants(role);
 
+    // `totauxParPayeur` (MD-62) : résout le destinataire de chaque groupe payeur tiers en UN SEUL
+    // aller-retour batché sur `client` (jamais une requête par ligne) — voir
+    // `totaux-payeur.ts::ResolveurDestinataireTiers`. Calculé uniquement pour un rôle qui voit les
+    // montants (même garde que le reste de ce bloc), le fetch supplémentaire n'a pas de coût pour
+    // `technicien`.
+    const totauxParPayeur = voitMontants ? await this.calculerTotauxAvecDestinataires(tx, ctx, lignesToutes, clientResume) : undefined;
+
     return {
       id: or.id,
       numero: or.numero,
@@ -545,7 +555,7 @@ export class ServiceOr {
       signatures: [],
       pret: null,
       cumulsPointage: { totalCentiemes: 0, parTechnicien: [], pointagesOuverts: 0 },
-      ...(voitMontants ? { totauxParPayeur: calculerTotauxParPayeur(lignesToutes) } : {}),
+      ...(voitMontants ? { totauxParPayeur } : {}),
       attentes,
       etatAffiche: calculerEtatAffiche(or.statut, attentes),
       actionsDisponibles: calculerActionsDisponiblesPourRole(or.statut, role),
@@ -554,6 +564,36 @@ export class ServiceOr {
       modifieLe: or.modifieLe.toISOString(),
       modifiePar,
     };
+  }
+
+  /**
+   * `totauxParPayeur` (MD-62) : batch-résout, en UN SEUL `select ... in (...)`, le destinataire de
+   * chaque `payeurClientId` distinct présent sur l'OR — jamais une requête par groupe. `RM-01` :
+   * `calculerNomAffiche` (`common/identite-client/`) fait autorité sur le `type` du client, jamais
+   * sur la présence de `raisonSociale` — même règle que `clients/`/`vehicules/`, appliquée ici pour
+   * ne pas réimplémenter une troisième copie divergente (voir l'historique de `nom-affiche.ts`).
+   */
+  private async calculerTotauxAvecDestinataires(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    lignesToutes: readonly LigneLigneOr[],
+    clientResume: ClientResume,
+  ): Promise<readonly TotauxPayeurOr[]> {
+    const payeurClientIds = [...new Set(lignesToutes.map((l) => l.payeurClientId).filter((id): id is string => id !== null))];
+
+    const destinatairesTiers =
+      payeurClientIds.length > 0
+        ? await tx
+            .select({ id: client.id, type: client.type, nom: client.nom, prenom: client.prenom, raisonSociale: client.raisonSociale })
+            .from(client)
+            .where(and(eq(client.tenantId, ctx.tenantId), inArray(client.id, payeurClientIds)))
+        : [];
+
+    const resolveur = new Map(destinatairesTiers.map((c) => [c.id, { clientId: c.id, nomAffiche: calculerNomAffiche(c) }]));
+
+    return calculerTotauxParPayeur(lignesToutes, { clientId: clientResume.id, nomAffiche: clientResume.nomAffiche }, (payeurClientId) =>
+      resolveur.get(payeurClientId),
+    );
   }
 
   private async genererNumero(

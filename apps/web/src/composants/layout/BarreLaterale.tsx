@@ -1,4 +1,4 @@
-import { Car, Home, Search, Users } from 'lucide-react';
+import { Car, Home, Receipt, Search, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, useSearchParams } from 'react-router';
 
@@ -30,9 +30,11 @@ function classeLien({ isActive }: { readonly isActive: boolean }): string {
  * absent des liens : ce n'est pas une valeur manquante à combler, c'est l'affichage « tous
  * sites », un choix explicite de l'utilisateur qu'on ne remplace pas par un défaut inventé.
  *
- * NOTE I18N : `navigation:liens.recherche` n'existe pas encore dans les fichiers de traduction
- * (seuls `accueil`, `clients` et `vehicules` y sont, ajoutés en vague 0/récemment) — signalé
- * plutôt qu'inventé, voir le rapport de l'agent qui a écrit ce fichier.
+ * Le lien « Facturation » (`/factures`) ne passe volontairement pas par `chemins.*` (qui
+ * n'expose pas de constructeur pour la facturation, et appartient à un autre périmètre) : comme
+ * le lien « Accueil » ci-dessous, c'est une chaîne brute. `EcranListeFactures` ne consomme de
+ * toute façon pas `siteId` aujourd'hui (voir son propre commentaire), donc il n'y a rien de
+ * `?site=` à préserver ici.
  */
 export function BarreLaterale({ className }: Props) {
   const { t } = useTranslation('navigation');
@@ -56,6 +58,10 @@ export function BarreLaterale({ className }: Props) {
       <NavLink to={chemins.vehicules.liste(site)} className={classeLien}>
         <Car className="h-4 w-4" aria-hidden="true" />
         {t('navigation:liens.vehicules')}
+      </NavLink>
+      <NavLink to="/factures" className={classeLien}>
+        <Receipt className="h-4 w-4" aria-hidden="true" />
+        {t('navigation:liens.factures')}
       </NavLink>
     </nav>
   );

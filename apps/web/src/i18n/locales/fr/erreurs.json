@@ -98,6 +98,9 @@
     "DOCUMENT_PDF_INDISPONIBLE": "Le PDF n'est pas encore prêt. Patientez quelques instants.",
     "FACTURATION_LIGNES_INDECISES": "Certaines lignes attendent un accord client avant la facturation.",
     "QR_CREANCIER_INCOMPLET": "Les informations de facturation (bloc créancier QR) sont incomplètes. Contactez le support.",
+    "IBAN_INVALIDE": "Cet IBAN semble incorrect (forme ou clé de contrôle). Vérifiez la saisie, chiffre par chiffre.",
+    "IBAN_EST_UN_QR_IBAN": "Ceci est un QR-IBAN : saisissez-le dans le champ « QR-IBAN », pas dans le champ « IBAN ».",
+    "QR_IBAN_SANS_IID_RESERVE": "Ceci est un IBAN ordinaire, pas un QR-IBAN : saisissez-le dans le champ « IBAN », pas dans le champ « QR-IBAN ».",
     "AVOIR_MONTANT_EXCEDENTAIRE": "Le montant d'avoir dépasse le total de la facture. Réduisez le montant de correction.",
     "AVOIR_PLAFOND_DEPASSE": "Vous avez dépassé votre limite d'avoir. Contactez le chef d'atelier ou le comptable.",
     "REMISE_PLAFOND_DEPASSE": "Vous avez dépassé votre limite de remise. Contactez le chef d'atelier ou le comptable.",
@@ -107,7 +110,20 @@
     "EXPORT_ECRITURES_DESEQUILIBREES": "Les écritures comptables ne sont pas équilibrées. Contactez votre fiduciaire.",
     "EXPORT_MAPPING_INCOMPLET": "Le mapping comptable n'est pas complet pour cette cible. Contactez votre fiduciaire.",
     "EXPORT_DEJA_TRANSMIS": "Ce document a déjà été transmis à la fiduciaire. Contactez votre fiduciaire pour des ajustements.",
-    "BASCULE_FIDUCIAIRE_HORS_FRONTIERE": "Changement de fiduciaire impossible en cours de mois. Attendez la fin de la période."
+    "BASCULE_FIDUCIAIRE_HORS_FRONTIERE": "Changement de fiduciaire impossible en cours de mois. Attendez la fin de la période.",
+    "ARTICLE_REFERENCE_COLLISION": "Cette référence est déjà utilisée par un autre article.",
+    "ARTICLE_REMPLACANT_REQUIS": "Indiquez l'article qui remplace celui-ci.",
+    "ARTICLE_DESACTIVATION_IMPOSSIBLE": "Cet article ne peut pas être désactivé car il est réservé. Libérez les réservations d'abord.",
+    "STOCK_INSUFFISANT": "Stock insuffisant. Vérifiez si des exemplaires sont réservés pour d'autres ordres de réparation.",
+    "MOUVEMENT_MOTIF_REQUIS": "Indiquez le motif de ce mouvement de stock.",
+    "RESERVATION_TRANSITION_INTERDITE": "Cette réservation n'est plus dans un état permettant cette action.",
+    "RESERVATION_SITE_INCOHERENT": "La pièce doit être satisfaite sur le site de l'ordre de réparation.",
+    "COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE": "Cette commande fournisseur n'est plus dans un état permettant cette action.",
+    "COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE": "Ce reliquat a déjà été livré ou annulé. Vous ne pouvez pas le modifier.",
+    "RECEPTION_REFERENCE_NON_EQUIVALENTE": "Cette référence n'est pas reconnue comme équivalente à celle commandée.",
+    "CONSIGNE_TRANSITION_INTERDITE": "Cette consigne n'est plus dans un état permettant cette action.",
+    "POINTAGE_PIN_INVALIDE": "Code PIN non reconnu. Vérifiez le code et réessayez.",
+    "POINTAGE_PIN_VERROUILLE": "Code PIN temporairement verrouillé. Adressez-vous au chef d'atelier pour continuer."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Créer un devis complémentaire",
@@ -135,6 +151,8 @@
     "travail_reporte": "{count, plural, one {# travail reporté} other {# travaux reportés}}",
     "ressource_planning": "{count, plural, one {# ressource indisponible} other {# ressources indisponibles}}",
     "ordre_reparation": "{count, plural, one {# OR bloqué} other {# OR bloqués}}",
-    "champ": "Champ requis"
+    "champ": "Champ requis",
+    "document_vente": "{count, plural, one {# document verrouillé} other {# documents verrouillés}}",
+    "ligne_document": "{count, plural, one {# ligne verrouillée} other {# lignes verrouillées}}"
   }
 }

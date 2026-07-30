@@ -1,0 +1,9 @@
+-- =============================================================================================
+-- 0023_pieces_entite_auditee_commande_fournisseur.down.sql — inverse de
+-- 0023_pieces_entite_auditee_commande_fournisseur.sql.
+--
+-- INTENTIONNELLEMENT VIDE : la montante n'a fait qu'une seule chose, `ALTER TYPE ... ADD VALUE`,
+-- que PostgreSQL n'offre aucun moyen de défaire (pas de DROP VALUE). Rien d'autre n'a été créé
+-- dans cette migration — aucune table, aucun trigger, aucun privilège — donc rien d'autre à
+-- annuler ici. Voir l'en-tête de la montante pour la preuve détaillée.
+-- =============================================================================================

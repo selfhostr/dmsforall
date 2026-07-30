@@ -5,7 +5,9 @@ import {
   Clock3,
   FileStack,
   FileText,
+  Lock,
   PenLine,
+  Receipt,
   TriangleAlert,
   User,
   Wrench,
@@ -31,6 +33,10 @@ const ICONE_PAR_TYPE: Readonly<Record<TypeElementBloquant, LucideIcon>> = {
   ressource_planning: CalendarClock,
   ordre_reparation: FileStack,
   champ: AlertCircle,
+  // Étape 2 (facturation) : blocages émis par `facturation/documents/` — document ou ligne
+  // verrouillés par l'émission (§`erreurs:blocages.document_vente`/`.ligne_document`).
+  document_vente: Receipt,
+  ligne_document: Lock,
 } as const;
 
 function estOrigineLigneOrConnue(valeur: unknown): valeur is OrigineLigneOr {
@@ -41,8 +47,8 @@ function estOrigineLigneOrConnue(valeur: unknown): valeur is OrigineLigneOr {
  * Détail complémentaire tiré de `donnees` (jamais de `libelle`, banni à l'affichage — voir
  * `RefusBloquant`). Mapping exhaustif sur `TypeElementBloquant` : les types dont la forme de
  * `donnees` n'est pas encore normée par le contrat (`point_controle`, `signature`,
- * `travail_reporte`, `ressource_planning`) se dégradent sur le libellé de base seul, sans jamais
- * inventer un texte non traduit.
+ * `travail_reporte`, `ressource_planning`, `document_vente`, `ligne_document`) se dégradent sur le
+ * libellé de base seul, sans jamais inventer un texte non traduit.
  */
 function detailElement(element: ElementBloquant, t: TFunction): string | undefined {
   const donnees = element.donnees ?? {};
@@ -80,6 +86,8 @@ function detailElement(element: ElementBloquant, t: TFunction): string | undefin
     case 'signature':
     case 'travail_reporte':
     case 'ressource_planning':
+    case 'document_vente':
+    case 'ligne_document':
       return undefined;
     default: {
       const exhaustif: never = element.type;

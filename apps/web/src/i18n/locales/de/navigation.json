@@ -6,16 +6,13 @@
     "accueil": "Startseite",
     "clients": "Kunden",
     "vehicules": "Fahrzeuge",
-    "recherche": "Suche"
+    "recherche": "Suche",
+    "factures": "Abrechnung"
   },
   "menu": {
-    "ouvrir": "Menü öffnen",
-    "fermer": "Menü schliessen"
+    "ouvrir": "Menü öffnen"
   },
   "entete": {
-    "garage": "Werkstatt",
-    "site": "Website",
-    "tousLesSites": "Alle Werkstätten",
-    "compte": "Mein Konto"
+    "tousLesSites": "Alle Werkstätten"
   }
 }

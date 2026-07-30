@@ -1,5 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm';
-import { decoderCurseurTrie, encoderCurseurTrie } from '../common/pagination';
+import { decoderCurseurTrie, encoderCurseurTrie, valeurCurseurTimestamptz } from '../common/pagination';
 
 /**
  * Support générique du curseur v2 triable (contrats-api-etape-1.md §6.1) pour les listes qui ne
@@ -18,6 +18,52 @@ export interface DefinitionTri {
    * colonne nullable trie avec NULLS LAST documenté »), quel que soit `sens`.
    */
   readonly nullable: boolean;
+  /**
+   * `true` si `expression` désigne (ou dérive d') une colonne `timestamptz` — `creeLe`,
+   * `dernierPassageLe`, `ouvertLe`. La valeur de curseur correspondante DOIT alors transiter par
+   * du texte natif PostgreSQL (`::text` en sortie de `SELECT`, via `expressionTriValeur()`
+   * ci-dessous) et par `valeurCurseurTimestamptz()` à l'encodage (via `valeurCurseurDepuisTri()`),
+   * jamais par un objet `Date` JavaScript : le pilote `pg` rend bien un `timestamptz` en `Date`
+   * (mesuré, pas déduit), mais `Date` n'a qu'une résolution MILLISECONDE quand PostgreSQL stocke à
+   * la MICROSECONDE — un aller-retour par `Date` tronque silencieusement la valeur de curseur et
+   * fait sauter des lignes entières de pagination dès que plusieurs lignes partagent la même
+   * milliseconde (voir `common/pagination/valeur-temporelle.ts`). Par défaut `false` : `expression`
+   * rend alors une chaîne ou un nombre déjà sans perte possible (nom, numéro…).
+   */
+  readonly temporel?: boolean;
+}
+
+/**
+ * Expression de la colonne `triValeur` en sortie de `SELECT` : castée en texte natif PostgreSQL
+ * pour une expression temporelle (`::text`, AVANT que le pilote n'ait la moindre chance de la
+ * convertir en `Date` et d'en tronquer la microseconde), inchangée sinon.
+ */
+export function expressionTriValeur(def: DefinitionTri): SQL {
+  return def.temporel ? sql`(${def.expression})::text` : def.expression;
+}
+
+/**
+ * Valeur de curseur à encoder à partir de la `triValeur` brute rendue par la requête. Pour une
+ * expression temporelle, la ligne DOIT avoir été sélectionnée via `expressionTriValeur()`
+ * ci-dessus (donc être une chaîne texte native PostgreSQL) : `valeurCurseurTimestamptz()` lève
+ * délibérément si ce n'est pas le cas, plutôt que de laisser passer un `Date` qui aurait déjà
+ * perdu sa microseconde.
+ */
+export function valeurCurseurDepuisTri(
+  def: DefinitionTri,
+  triValeur: string | number | null,
+): string | number | null {
+  if (triValeur === null) return null;
+  if (def.temporel) {
+    if (typeof triValeur !== 'string') {
+      throw new Error(
+        `valeurCurseurDepuisTri : expression temporelle attendue en texte (SELECT via expressionTriValeur()), ` +
+          `reçu ${typeof triValeur}.`,
+      );
+    }
+    return valeurCurseurTimestamptz(triValeur);
+  }
+  return triValeur;
 }
 
 /** `ORDER BY <expr> <sens> [NULLS LAST], <idExpr> <sens>` — tri total, départagé par id. */
