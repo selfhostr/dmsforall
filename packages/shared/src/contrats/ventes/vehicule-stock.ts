@@ -8,9 +8,8 @@ import {
   schemaTexteLong,
 } from '../atelier/primitives';
 import { schemaConfirmations } from '../atelier/avertissement';
+import { schemaParametresPage } from '../pagination';
 import {
-  ACTIONS_VEHICULE_STOCK,
-  PROVENANCES_VEHICULE_STOCK,
   STATUTS_COMMERCIAUX_VEHICULE,
   TYPES_VEHICULE_VENTE,
   type ActionVehiculeStock,
@@ -101,6 +100,18 @@ export interface VehiculeStockResume {
 /* Filtres, tris                                                       */
 /* ------------------------------------------------------------------ */
 
+/**
+ * `GET /vehicules-stock` — la collection paginée (recherche/liste, priorité 4 de ce module).
+ * Distincte de `GET /vehicules/{vehiculeId}/stock` (fiche singulière, 0 ou 1) documentée plus haut
+ * — même distinction collection/ressource que partout ailleurs dans l'API (`/ordres-reparation` vs
+ * `/ordres-reparation/{id}`).
+ *
+ * CORRECTIF DE PÉRIMÈTRE (constaté à la reprise de ce fichier, jamais publié) :
+ * `schemaFiltresVehiculesStock` n'étendait PAS `schemaParametresPage` — aucun `curseur`/`limite`
+ * n'était donc accepté, en contradiction avec la règle non négociable « pagination par curseur sur
+ * toutes les collections » (CONTRIBUTING.md, brief de ce module). Corrigé ici avant toute publication ;
+ * aucun client externe n'existait encore sur cette forme, ce n'est donc pas une rupture.
+ */
 export const TRIS_VEHICULES_STOCK = [
   'dateEntreeStock:desc',
   'dateEntreeStock:asc',
@@ -110,11 +121,14 @@ export const TRIS_VEHICULES_STOCK = [
 ] as const;
 export const TRI_DEFAUT_VEHICULES_STOCK = 'dateEntreeStock:desc';
 
-export const schemaFiltresVehiculesStock = z.object({
+export const schemaFiltresVehiculesStock = schemaParametresPage.extend({
   siteId: schemaIdentifiant.optional(),
   provenance: z.array(z.string()).optional(),
   statutCommercial: z.array(z.enum(STATUTS_COMMERCIAUX_VEHICULE)).optional(),
   typeVehicule: z.enum(TYPES_VEHICULE_VENTE).optional(),
+  /** Porte sur la plaque, le VIN et la désignation du véhicule (même principe que `q` de
+   *  `atelier/ordre-reparation.ts`) — pas sur `recherche/` transverse, qui n'inclut pas encore ce
+   *  domaine (voir NOTE DE PÉRIMÈTRE de `index.ts`). */
   q: z.string().trim().min(1).max(120).optional(),
   tri: z.enum(TRIS_VEHICULES_STOCK).default(TRI_DEFAUT_VEHICULES_STOCK),
 });
@@ -144,10 +158,15 @@ export const schemaMiseEnStock = z.object({
 });
 export type EntreeMiseEnStock = z.infer<typeof schemaMiseEnStock>;
 
-/** `PATCH /vehicules/{vehiculeId}/stock` — `prixAchatCentimes` reste modifiable jusqu'à
- *  `statutCommercial = 'vendu'` inclus exclu (contrôlé serveur, pas ici) : une correction après
- *  vente fausserait la marge d'une affaire déjà conclue — elle passe alors par une note interne,
- *  pas par ce endpoint. */
+/** `PATCH /vehicules/{vehiculeId}/stock` — `If-Match` OBLIGATOIRE (même règle que
+ *  `atelier/ordre-reparation.ts::schemaModificationOrdreReparation`) : `prixAchatCentimes` et
+ *  `prixVenteAfficheCentimes` sont exactement le genre de champ contesté par deux postes de vente
+ *  qui corrigent une fiche de coût en parallèle — CORRECTIF DE PÉRIMÈTRE, absent de la version
+ *  trouvée à la reprise de ce fichier, jamais publié.
+ *
+ *  `prixAchatCentimes` reste modifiable jusqu'à `statutCommercial = 'vendu'` exclu (contrôlé
+ *  serveur, pas ici) : une correction après vente fausserait la marge d'une affaire déjà conclue —
+ *  elle passe alors par une note interne, pas par ce endpoint. */
 export const schemaModificationVehiculeStock = z.object({
   dateEntreeStock: schemaDateJour.optional(),
   prixAchatCentimes: schemaCentimesPositif.optional(),

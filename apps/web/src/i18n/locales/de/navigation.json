@@ -7,7 +7,15 @@
     "clients": "Kunden",
     "vehicules": "Fahrzeuge",
     "recherche": "Suche",
-    "factures": "Abrechnung"
+    "factures": "Abrechnung",
+    "doublonsClients": "Kundendubletten",
+    "parametrageReferentiels": "Tarife & Leistungen",
+    "parametrageAtelier": "Werkstatteinstellungen",
+    "parametrageSites": "Standorte",
+    "parametrageFacturation": "Bankverbindung"
+  },
+  "groupes": {
+    "parametrage": "Einstellungen"
   },
   "menu": {
     "ouvrir": "Menü öffnen"

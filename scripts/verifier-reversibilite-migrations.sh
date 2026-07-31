@@ -95,6 +95,25 @@
 
 set -euo pipefail
 
+# --- Garde de portabilité : ce script doit tourner sous bash 3.2 (défaut sur macOS, la machine de
+# développement de @laupernoe) SANS invocation particulière. Toute la suite du script est écrite pour
+# rester compatible bash 3.2 (aucun tableau associatif, aucun `mapfile`, aucun index négatif de
+# tableau — ces trois constructions n'existent qu'à partir de bash 4). Cette garde ne sert donc
+# QUE de filet pour un interpréteur encore plus ancien/différent (ex. lancé par erreur via `sh` :
+# `BASH_VERSION` y est alors absent) : un refus explicite qui dit quoi faire vaut mieux qu'un
+# échec obscur au milieu du script (`declare: not found`, `[: -eq: unary operator expected`, etc.
+# — c'est exactement ce qui s'est produit avant ce correctif).
+if [[ -z "${BASH_VERSION:-}" ]]; then
+  echo "ÉCHEC : ce script doit être exécuté par bash, pas par sh/dash. Lancez-le en" >&2
+  echo "        './scripts/verifier-reversibilite-migrations.sh' ou 'bash scripts/verifier-reversibilite-migrations.sh'." >&2
+  exit 1
+fi
+if [[ "${BASH_VERSINFO[0]}" -lt 3 ]]; then
+  echo "ÉCHEC : bash ${BASH_VERSION} détecté, ce script requiert au moins bash 3.2." >&2
+  echo "        macOS : bash système (/bin/bash) convient déjà. Sinon : brew install bash." >&2
+  exit 1
+fi
+
 RACINE_DEPOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPERTOIRE_MIGRATIONS="$RACINE_DEPOT/apps/api/src/db/migrations"
 REPERTOIRE_DOWN="$REPERTOIRE_MIGRATIONS/down"
@@ -233,14 +252,34 @@ appliquer_migrations_montantes() {
 # expert-database) : down sans erreur SQL, remontée après down identique à la première montante,
 # et le SEUL diff résiduel avant/après down est exactement la ligne de la valeur enum ajoutée —
 # rien d'autre ne fuit.
-declare -A EXCEPTIONS_DOWN_PARTIEL=(
-  ["0010_facturation.sql"]="ALTER TYPE ... ADD VALUE sur entite_auditee, 6 valeurs — PostgreSQL n'a pas de DROP VALUE ; voir l'en-tête de down/0010_facturation.down.sql."
-  ["0016_audit_tenant_bloc_creancier.sql"]="ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (tenant_bloc_creancier) — même limite que 0010 ; voir l'en-tête de down/0016_audit_tenant_bloc_creancier.down.sql."
-  ["0022_pieces_referentiel.sql"]="ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (article) — même limite que 0010 ; voir l'en-tête de down/0022_pieces_referentiel.down.sql."
-  ["0023_pieces_entite_auditee_commande_fournisseur.sql"]="ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (commande_fournisseur) — même limite que 0010 ; voir l'en-tête de down/0023_pieces_entite_auditee_commande_fournisseur.down.sql (down intentionnellement vide, rien d'autre à défaire)."
-  ["0025_pieces_stock_mouvements.sql"]="ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (mouvement_stock) — même limite que 0010 ; voir l'en-tête de down/0025_pieces_stock_mouvements.down.sql."
-  ["0027_pieces_consigne.sql"]="ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (consigne_echange_standard) — même limite que 0010 ; voir l'en-tête de down/0027_pieces_consigne.down.sql."
-)
+# Portabilité bash 3.2 (voir la garde en tête de script) : pas de tableau associatif (`declare -A`
+# n'existe qu'à partir de bash 4). `obtenir_exception_down_partiel <fichier_montant>` imprime le
+# message sur stdout et rend 0 s'il existe une exception documentée pour ce fichier, rend 1 sans
+# rien imprimer sinon — mêmes entrées, même contenu que le tableau associatif remplacé.
+obtenir_exception_down_partiel() {
+  case "$1" in
+    "0010_facturation.sql")
+      printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 6 valeurs — PostgreSQL n'a pas de DROP VALUE ; voir l'en-tête de down/0010_facturation.down.sql." ;;
+    "0016_audit_tenant_bloc_creancier.sql")
+      printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (tenant_bloc_creancier) — même limite que 0010 ; voir l'en-tête de down/0016_audit_tenant_bloc_creancier.down.sql." ;;
+    "0022_pieces_referentiel.sql")
+      printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (article) — même limite que 0010 ; voir l'en-tête de down/0022_pieces_referentiel.down.sql." ;;
+    "0023_pieces_entite_auditee_commande_fournisseur.sql")
+      printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (commande_fournisseur) — même limite que 0010 ; voir l'en-tête de down/0023_pieces_entite_auditee_commande_fournisseur.down.sql (down intentionnellement vide, rien d'autre à défaire)." ;;
+    "0025_pieces_stock_mouvements.sql")
+      printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (mouvement_stock) — même limite que 0010 ; voir l'en-tête de down/0025_pieces_stock_mouvements.down.sql." ;;
+    "0027_pieces_consigne.sql")
+      printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (consigne_echange_standard) — même limite que 0010 ; voir l'en-tête de down/0027_pieces_consigne.down.sql." ;;
+    "0030_pointage.sql")
+      printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (periode_pointage) — même limite que 0010 ; voir l'en-tête de down/0030_pointage.down.sql." ;;
+    "0031_ventes_entite_auditee.sql")
+      printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 4 valeurs (vehicule_stock, dossier_vente, reprise, financement_vente) — même limite que 0010 ; voir l'en-tête de down/0031_ventes_entite_auditee.down.sql (down intentionnellement vide, rien d'autre à défaire)." ;;
+    "0033_vehicule_travail_reporte_motif_modification.sql")
+      printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (vehicule_travail_reporte) — même limite que 0010 ; voir l'en-tête de down/0033_vehicule_travail_reporte_motif_modification.down.sql." ;;
+    *)
+      return 1 ;;
+  esac
+}
 
 # --- Installation une seule fois (pas par migration) ---------------------------------------------
 journaliser "Installation des dépendances (une seule fois pour toute la vérification)…"
@@ -252,12 +291,20 @@ journaliser "Installation des dépendances (une seule fois pour toute la vérifi
 # --- Liste des migrations, dans l'ordre où migrer.ts les applique réellement ---------------------
 # `ls` plutôt que `find -printf` : BusyBox (Alpine, utilisé par le conteneur node:22-alpine côté
 # CI/exécution conteneurisée) n'a pas `-printf`, seul GNU find l'a — `ls` reste portable partout.
-mapfile -t FICHIERS_MONTANTS < <(cd "$REPERTOIRE_MIGRATIONS" && ls -1 -- *.sql 2>/dev/null | sort)
+# Boucle `while read` plutôt que `mapfile` (portabilité bash 3.2, voir la garde en tête de script :
+# `mapfile`/`readarray` n'existent qu'à partir de bash 4).
+FICHIERS_MONTANTS=()
+while IFS= read -r fichier; do
+  [[ -n "$fichier" ]] && FICHIERS_MONTANTS+=("$fichier")
+done < <(cd "$REPERTOIRE_MIGRATIONS" && ls -1 -- *.sql 2>/dev/null | sort)
 if [[ ${#FICHIERS_MONTANTS[@]} -eq 0 ]]; then
   journaliser "Aucune migration trouvée dans ${REPERTOIRE_MIGRATIONS} — rien à vérifier."
   exit 0
 fi
-journaliser "${#FICHIERS_MONTANTS[@]} migration(s) à vérifier : ${FICHIERS_MONTANTS[0]} … ${FICHIERS_MONTANTS[-1]}"
+# `${array[-1]}` (index négatif) n'existe qu'à partir de bash 4.2 — portabilité bash 3.2, voir la
+# garde en tête de script.
+INDICE_DERNIER=$(( ${#FICHIERS_MONTANTS[@]} - 1 ))
+journaliser "${#FICHIERS_MONTANTS[@]} migration(s) à vérifier : ${FICHIERS_MONTANTS[0]} … ${FICHIERS_MONTANTS[$INDICE_DERNIER]}"
 
 # Répertoire de travail qui grandit d'un fichier par itération — jamais apps/api/src/db/migrations/
 # directement (voir appliquer_migrations_montantes ci-dessus). Vide au départ : à l'itération de
@@ -319,11 +366,11 @@ for fichier_montant in "${FICHIERS_MONTANTS[@]}"; do
   # 3) Le schéma après le down doit être IDENTIQUE au schéma d'avant la migration — pas seulement
   #    « plausible », EXACTEMENT le même (c'est ce qui avait révélé le commentaire mal restauré de
   #    0012 : un down qui « a l'air » de défaire mais laisse une trace derrière lui). Exception
-  #    listée dans EXCEPTIONS_DOWN_PARTIEL ci-dessus : diff toléré, mais affiché quand même, et les
-  #    DEUX autres vérifications de cette migration restent pleinement exigées.
+  #    listée dans obtenir_exception_down_partiel ci-dessus : diff toléré, mais affiché quand même,
+  #    et les DEUX autres vérifications de cette migration restent pleinement exigées.
   if ! diff -u "$DUMP_AVANT" "$dump_apres_down" >"$REPERTOIRE_TRAVAIL/${nom_base}.diff-down.txt"; then
-    if [[ -n "${EXCEPTIONS_DOWN_PARTIEL[$fichier_montant]:-}" ]]; then
-      journaliser "  … down partiel ACCEPTÉ (exception documentée) : ${EXCEPTIONS_DOWN_PARTIEL[$fichier_montant]}"
+    if message_exception="$(obtenir_exception_down_partiel "$fichier_montant")"; then
+      journaliser "  … down partiel ACCEPTÉ (exception documentée) : ${message_exception}"
       journaliser "  Diff résiduel (attendu, informationnel) :"
       sed 's/^/    /' "$REPERTOIRE_TRAVAIL/${nom_base}.diff-down.txt" >&2
     else

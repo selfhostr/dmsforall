@@ -1,0 +1,336 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { and, eq, sql } from 'drizzle-orm';
+import type {
+  EntreeCreationAjustementInventaire,
+  EntreeCreationMouvementCasse,
+  EntreeCreationMouvementPerte,
+  EntreeCreationMouvementTransfert,
+  EntreeCreationRetourFournisseur,
+  FiltresMouvementsStock,
+  PageCurseur,
+  ReponseAvecAvertissements,
+  ReponseMouvementStock,
+} from '@dfa/shared';
+
+import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
+import { JETON_DB } from '../db';
+import { article, mouvementStock, parametrePieces, site } from '../db/schema';
+import type { LigneMouvementStock, NouveauMouvementStock } from '../db/schema';
+import { CollecteurAvertissements } from '../common/avertissements';
+import { ErreurMetier } from '../common/erreurs';
+import { JETON_IDEMPOTENCE } from '../common/idempotence';
+import type { ReponseMemorisable, ResultatIdempotent, ServiceIdempotence } from '../common/idempotence';
+
+import { versMouvementResponse } from './mappers';
+import { construireConditionKeyset, construireOrderBy, decoderCurseurPourTri, encoderCurseurTrie, expressionTriValeur, valeurCurseurDepuisTri, type DefinitionTri } from './pagination-triee';
+import { ServiceStock } from './service-stock';
+
+const DEFINITIONS_TRI_MOUVEMENTS: Readonly<Record<FiltresMouvementsStock['tri'], DefinitionTri>> = {
+  'creeLe:desc': { expression: sql`m.cree_le`, sens: 'desc', nullable: false, temporel: true },
+  'creeLe:asc': { expression: sql`m.cree_le`, sens: 'asc', nullable: false, temporel: true },
+};
+
+const COLONNES_MOUVEMENT_ALIASEES = sql`
+  m.id as "id", m.article_id as "articleId", m.type as "type", m.quantite_millieme as "quantiteMillieme",
+  m.site_id as "siteId", m.site_source_id as "siteSourceId", m.site_destination_id as "siteDestinationId",
+  m.prix_achat_reel_centimes as "prixAchatReelCentimes", m.auteur_id as "auteurId", m.motif as "motif",
+  m.ligne_or_id as "ligneOrId", m.document_vente_ligne_id as "documentVenteLigneId",
+  m.commande_fournisseur_ligne_id as "commandeFournisseurLigneId",
+  m.inventaire_reference_id as "inventaireReferenceId", m.reservation_id as "reservationId",
+  m.cree_le as "creeLe"
+`;
+
+export interface ResultatCreationMouvement {
+  readonly statutHttp: number;
+  readonly corps: ReponseMouvementStock;
+}
+
+export interface ResultatAjustementInventaire {
+  readonly statutHttp: number;
+  readonly corps: ReponseAvecAvertissements<ReponseMouvementStock | null>;
+}
+
+/**
+ * Service mouvements de stock (RP-16 → RP-18) : historique et les CINQ actions à déclenchement
+ * direct (`casse`, `perte`, `transfert`, `ajustement-inventaire`, `retour-fournisseur` —
+ * `mouvement.ts`, note d'intégration en fin de fichier : `sortie_comptoir`/`retour_client` sont
+ * des effets de bord facturation, hors périmètre). `mouvement_stock` est IMMUABLE (0025) : ce
+ * service n'insère jamais qu'une ligne, ne met jamais à jour ni ne supprime.
+ *
+ * GAP DE CONTRAT signalé (voir rapport de livraison) : aucune des cinq actions ne déclare de type
+ * de réponse explicite. Inféré : le mouvement créé (`ReponseMouvementStock`), SAUF
+ * `ajustement-inventaire` quand le compte correspond déjà au stock physique — la base interdit un
+ * mouvement de quantité nulle (`mouvement_stock_quantite_non_nulle_chk`, 0025) ; dans ce cas précis
+ * `donnees: null` est renvoyé, aucune ligne n'est créée.
+ */
+@Injectable()
+export class ServiceMouvement {
+  constructor(
+    @Inject(JETON_DB) private readonly acces: AccesBase,
+    @Inject(JETON_IDEMPOTENCE) private readonly idempotence: ServiceIdempotence,
+  ) {}
+
+  async lister(ctx: ContexteTenant, articleId: string, params: FiltresMouvementsStock): Promise<PageCurseur<ReponseMouvementStock>> {
+    const definition = DEFINITIONS_TRI_MOUVEMENTS[params.tri];
+    const idExpr = sql`m.id`;
+    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+
+    return this.acces.enTenant(ctx, async (tx) => {
+      await this.chargerArticleOu404(tx, ctx, articleId);
+
+      const conditions = [sql`m.tenant_id = ${ctx.tenantId}`, sql`m.article_id = ${articleId}`];
+      if (params.type && params.type.length > 0) {
+        conditions.push(sql`m.type::text in (${sql.join(params.type.map((t) => sql`${t}`), sql`, `)})`);
+      }
+      if (params.siteId) {
+        conditions.push(sql`(m.site_id = ${params.siteId} or m.site_source_id = ${params.siteId} or m.site_destination_id = ${params.siteId})`);
+      }
+      if (params.dateDe) conditions.push(sql`m.cree_le >= ${params.dateDe}::date`);
+      if (params.dateA) conditions.push(sql`m.cree_le < (${params.dateA}::date + interval '1 day')`);
+      if (curseurDecode) {
+        conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
+      }
+
+      const resultat = await tx.execute<LigneMouvementStock & { triValeur: string | number | null }>(sql`
+        select ${COLONNES_MOUVEMENT_ALIASEES}, ${expressionTriValeur(definition)} as "triValeur"
+          from public.mouvement_stock m
+         where ${sql.join(conditions, sql` and `)}
+         order by ${construireOrderBy(definition, idExpr)}
+         limit ${params.limite + 1}
+      `);
+
+      const lignes = resultat.rows;
+      const aUnePageSuivante = lignes.length > params.limite;
+      const pageLignes = aUnePageSuivante ? lignes.slice(0, params.limite) : lignes;
+      const derniere = pageLignes[pageLignes.length - 1];
+
+      return {
+        donnees: pageLignes.map((l) => versMouvementResponse(l)),
+        curseurSuivant:
+          aUnePageSuivante && derniere
+            ? encoderCurseurTrie({ tri: params.tri, valeur: valeurCurseurDepuisTri(definition, derniere.triValeur), id: derniere.id })
+            : null,
+        limite: params.limite,
+      };
+    });
+  }
+
+  async casse(
+    ctx: ContexteTenant,
+    articleId: string,
+    entree: EntreeCreationMouvementCasse,
+    cleIdempotence: string,
+  ): Promise<ResultatIdempotent<ResultatCreationMouvement & ReponseMemorisable>> {
+    return this.creerMouvementSortie(ctx, 'casse', articleId, entree.siteId, entree.quantiteMillieme, entree.forcer, {
+      motif: entree.motif,
+      ligneOrId: entree.ligneOrId ?? null,
+      chemin: '/articles/{id}/mouvements/casse',
+      cleIdempotence,
+      entree,
+    });
+  }
+
+  async perte(
+    ctx: ContexteTenant,
+    articleId: string,
+    entree: EntreeCreationMouvementPerte,
+    cleIdempotence: string,
+  ): Promise<ResultatIdempotent<ResultatCreationMouvement & ReponseMemorisable>> {
+    return this.creerMouvementSortie(ctx, 'perte', articleId, entree.siteId, entree.quantiteMillieme, entree.forcer, {
+      motif: entree.motif,
+      ligneOrId: entree.ligneOrId ?? null,
+      chemin: '/articles/{id}/mouvements/perte',
+      cleIdempotence,
+      entree,
+    });
+  }
+
+  async retourFournisseur(
+    ctx: ContexteTenant,
+    articleId: string,
+    entree: EntreeCreationRetourFournisseur,
+    cleIdempotence: string,
+  ): Promise<ResultatIdempotent<ResultatCreationMouvement & ReponseMemorisable>> {
+    return this.creerMouvementSortie(ctx, 'retour_fournisseur', articleId, entree.siteId, entree.quantiteMillieme, false, {
+      motif: entree.motif,
+      commandeFournisseurLigneId: entree.commandeFournisseurLigneId ?? null,
+      chemin: '/articles/{id}/mouvements/retour-fournisseur',
+      cleIdempotence,
+      entree,
+    });
+  }
+
+  async transfert(
+    ctx: ContexteTenant,
+    articleId: string,
+    entree: EntreeCreationMouvementTransfert,
+    cleIdempotence: string,
+  ): Promise<ResultatIdempotent<ResultatCreationMouvement & ReponseMemorisable>> {
+    return this.idempotence.executer(
+      ctx,
+      { methode: 'POST', chemin: '/articles/{id}/mouvements/transfert', cle: cleIdempotence, corps: { articleId, ...entree } },
+      async (tx) => {
+        await this.chargerArticleOu404(tx, ctx, articleId);
+        await this.chargerSiteOu404(tx, ctx, entree.siteSourceId);
+        await this.chargerSiteOu404(tx, ctx, entree.siteDestinationId);
+        await this.verifierDisponible(tx, ctx, articleId, entree.siteSourceId, entree.quantiteMillieme, false);
+
+        const valeurs: NouveauMouvementStock = {
+          tenantId: ctx.tenantId,
+          articleId,
+          type: 'transfert',
+          quantiteMillieme: entree.quantiteMillieme,
+          siteId: null,
+          siteSourceId: entree.siteSourceId,
+          siteDestinationId: entree.siteDestinationId,
+          motif: entree.motif ?? null,
+          auteurId: ctx.utilisateurId,
+        };
+        const [ligne] = await tx.insert(mouvementStock).values(valeurs).returning();
+        if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du mouvement de transfert.');
+        return { statutHttp: 201, corps: versMouvementResponse(ligne) };
+      },
+    );
+  }
+
+  async ajustementInventaire(
+    ctx: ContexteTenant,
+    articleId: string,
+    entree: EntreeCreationAjustementInventaire,
+    cleIdempotence: string,
+  ): Promise<ResultatIdempotent<ResultatAjustementInventaire & ReponseMemorisable>> {
+    return this.idempotence.executer(
+      ctx,
+      { methode: 'POST', chemin: '/articles/{id}/mouvements/ajustement-inventaire', cle: cleIdempotence, corps: { articleId, ...entree } },
+      async (tx) => {
+        const ligneArticle = await this.chargerArticleOu404(tx, ctx, articleId);
+        await this.chargerSiteOu404(tx, ctx, entree.siteId);
+
+        const { physique } = await ServiceStock.chargerPourVerrou(tx, ctx, articleId, entree.siteId);
+        const delta = entree.quantiteCompteeMillieme - physique;
+
+        if (delta === 0) {
+          return { statutHttp: 200, corps: new CollecteurAvertissements().envelopper(null) };
+        }
+
+        const valeurs: NouveauMouvementStock = {
+          tenantId: ctx.tenantId,
+          articleId,
+          type: 'ajustement_inventaire',
+          quantiteMillieme: delta,
+          siteId: entree.siteId,
+          motif: entree.motif,
+          auteurId: ctx.utilisateurId,
+        };
+        const [ligne] = await tx.insert(mouvementStock).values(valeurs).returning();
+        if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', "Échec de création du mouvement d'ajustement.");
+
+        const collecteur = new CollecteurAvertissements();
+        const seuil = await this.chargerSeuilAjustement(tx, ctx);
+        if (seuil !== null && ligneArticle.prixAchatCentimes !== null) {
+          const valeurEcart = Math.abs(delta / 1000) * ligneArticle.prixAchatCentimes;
+          if (valeurEcart > seuil) {
+            collecteur.ajouter(
+              'INVENTAIRE_ECART_SIGNIFICATIF',
+              `Écart d'inventaire significatif : ${String(Math.abs(delta))} millièmes (valeur estimée ${String(Math.round(valeurEcart))} centimes).`,
+              { articleId, siteId: entree.siteId, deltaMillieme: delta, valeurEcartCentimes: Math.round(valeurEcart) },
+            );
+          }
+        }
+
+        return { statutHttp: 201, corps: collecteur.envelopper(versMouvementResponse(ligne)) };
+      },
+    );
+  }
+
+  private async creerMouvementSortie(
+    ctx: ContexteTenant,
+    type: 'casse' | 'perte' | 'retour_fournisseur',
+    articleId: string,
+    siteId: string,
+    quantiteMillieme: number,
+    forcer: boolean,
+    options: {
+      readonly motif: string;
+      readonly ligneOrId?: string | null;
+      readonly commandeFournisseurLigneId?: string | null;
+      readonly chemin: string;
+      readonly cleIdempotence: string;
+      readonly entree: unknown;
+    },
+  ): Promise<ResultatIdempotent<ResultatCreationMouvement & ReponseMemorisable>> {
+    return this.idempotence.executer(
+      ctx,
+      { methode: 'POST', chemin: options.chemin, cle: options.cleIdempotence, corps: { articleId, ...(options.entree as object) } },
+      async (tx) => {
+        await this.chargerArticleOu404(tx, ctx, articleId);
+        await this.chargerSiteOu404(tx, ctx, siteId);
+        await this.verifierDisponible(tx, ctx, articleId, siteId, quantiteMillieme, forcer);
+
+        const valeurs: NouveauMouvementStock = {
+          tenantId: ctx.tenantId,
+          articleId,
+          type,
+          quantiteMillieme: -quantiteMillieme,
+          siteId,
+          motif: options.motif,
+          ligneOrId: options.ligneOrId ?? null,
+          commandeFournisseurLigneId: options.commandeFournisseurLigneId ?? null,
+          auteurId: ctx.utilisateurId,
+        };
+        const [ligne] = await tx.insert(mouvementStock).values(valeurs).returning();
+        if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du mouvement de stock.');
+        return { statutHttp: 201, corps: versMouvementResponse(ligne) };
+      },
+    );
+  }
+
+  /**
+   * RP-15/PP-02 : refuse (`409 STOCK_INSUFFISANT`) si `quantiteDemandee` dépasse le disponible,
+   * sauf `forcer: true` — l'AUTORISATION de forcer reste à arbitrer côté droits (non tranchée par
+   * ce lot, voir le rapport de livraison) : tout appelant qui a `pieces.mouvement.creer` peut
+   * forcer aujourd'hui. Verrouille la ligne `stock_article` (`ServiceStock.chargerPourVerrou`,
+   * `select … for update`) — même garantie de concurrence que `reservation_piece_verrouiller_stock`
+   * (0026), appliquée ici côté application puisqu'aucune contrainte de base n'interdit un
+   * physique négatif (RP-15 l'autorise explicitement sous forçage, voir 0025 §tête).
+   */
+  private async verifierDisponible(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    articleId: string,
+    siteId: string,
+    quantiteDemandee: number,
+    forcer: boolean,
+  ): Promise<void> {
+    const { physique, reservee } = await ServiceStock.chargerPourVerrou(tx, ctx, articleId, siteId);
+    const disponible = physique - reservee;
+    if (quantiteDemandee > disponible && !forcer) {
+      throw new ErreurMetier(
+        'STOCK_INSUFFISANT',
+        `Stock disponible insuffisant : disponible ${String(disponible)}, demandé ${String(quantiteDemandee)}.`,
+        { detail: `tenant=${ctx.tenantId};article=${articleId};site=${siteId};disponible=${String(disponible)};demande=${String(quantiteDemandee)}` },
+      );
+    }
+  }
+
+  private async chargerSeuilAjustement(tx: TransactionDfa, ctx: ContexteTenant): Promise<number | null> {
+    const lignes = await tx
+      .select({ seuil: parametrePieces.seuilValeurAjustementSignificatifCentimes })
+      .from(parametrePieces)
+      .where(eq(parametrePieces.tenantId, ctx.tenantId))
+      .limit(1);
+    return lignes[0]?.seuil ?? null;
+  }
+
+  private async chargerArticleOu404(tx: TransactionDfa, ctx: ContexteTenant, articleId: string) {
+    const lignes = await tx.select().from(article).where(and(eq(article.tenantId, ctx.tenantId), eq(article.id, articleId))).limit(1);
+    const ligne = lignes[0];
+    if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Article introuvable.');
+    return ligne;
+  }
+
+  private async chargerSiteOu404(tx: TransactionDfa, ctx: ContexteTenant, siteId: string): Promise<void> {
+    const lignes = await tx.select({ id: site.id }).from(site).where(and(eq(site.tenantId, ctx.tenantId), eq(site.id, siteId))).limit(1);
+    if (!lignes[0]) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Site introuvable.');
+  }
+}

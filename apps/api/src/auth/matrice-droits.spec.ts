@@ -446,10 +446,22 @@ describe('MATRICE_DROITS — lecture large (LECTURE_SOCLE et LECTURE_ETENDUE)', 
   });
 });
 
-describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers étape 2, RF-115)', () => {
-  it('admin détient le même périmètre que direction pour tout ce qui n’est pas financier (rôle technique/propriétaire, non décrit comme acteur métier de l’étape 1)', () => {
-    const sansFacturation = (actions: readonly Action[]) => actions.filter((a) => !a.startsWith('facturation.'));
-    expect([...sansFacturation(MATRICE_DROITS.admin)].sort()).toEqual([...sansFacturation(MATRICE_DROITS.direction)].sort());
+describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers étape 2, RF-115, et le domaine pièces étape 3)', () => {
+  it('admin détient le même périmètre que direction pour tout ce qui n’est pas financier ni pièces (rôle technique/propriétaire, non décrit comme acteur métier de l’étape 1)', () => {
+    // `pieces.` exclu ici pour la MÊME raison que `facturation.` : la matrice §11 de
+    // docs/specification-etape-3-pieces.md écrit littéralement « non (RF-115, aucun droit métier) »
+    // pour admin sur TOUT le domaine pièces (y compris la simple lecture) — voir
+    // `DROITS_PIECES_PAR_ROLE` dans matrice-droits.ts et le test dédié plus bas.
+    const sansFacturationNiPieces = (actions: readonly Action[]) =>
+      actions.filter((a) => !a.startsWith('facturation.') && !a.startsWith('pieces.'));
+    expect([...sansFacturationNiPieces(MATRICE_DROITS.admin)].sort()).toEqual(
+      [...sansFacturationNiPieces(MATRICE_DROITS.direction)].sort(),
+    );
+  });
+
+  it('RF-115 appliqué au domaine pièces (étape 3) — admin n’a AUCUNE action pieces.*, pas même la lecture, contrairement à direction qui en a plusieurs', () => {
+    expect(MATRICE_DROITS.admin.filter((a) => a.startsWith('pieces.'))).toEqual([]);
+    expect(MATRICE_DROITS.direction.some((a) => a.startsWith('pieces.'))).toBe(true);
   });
 
   it('RF-115 — admin n’a AUCUN droit financier D’ÉCRITURE NI D’ENCAISSEMENT (aucune action facturation.paiement.*, aucune écriture/émission facturation.document.*), contrairement à direction : séparation des pouvoirs explicite dès l’étape 2. SEULE exception, volontaire et distincte : facturation.document.lire (RF-116, visibilité des MONTANTS, est filtré ailleurs — facturation/documents/mappeurs.ts — jamais en cachant la ligne de document elle-même à admin) — documenté ici pour que ce ne soit jamais lu comme un oubli.', () => {
@@ -479,8 +491,8 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
   });
 });
 
-describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste close du lot 1 + facturation/paiements + facturation/documents + bloc créancier + export fiduciaire + impression PDF étape 2)', () => {
-  it('l’union de toutes les actions accordées ne contient QUE les actions du socle + les actions closes du lot 1 + les 5 actions facturation.paiement.* (agent paiements) + les 9 actions facturation.document.*/facturation.avoir.creer (agent documents) + les 2 actions facturation.parametrage.creancier.* + facturation.export.creer + facturation.document.imprimer (arbitrages coordinateur)', () => {
+describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste close du lot 1 + facturation/paiements + facturation/documents + bloc créancier + export fiduciaire + impression PDF étape 2 + pièces étape 3)', () => {
+  it('l’union de toutes les actions accordées ne contient QUE les actions du socle + les actions closes du lot 1 + les 5 actions facturation.paiement.* (agent paiements) + les 9 actions facturation.document.*/facturation.avoir.creer (agent documents) + les 2 actions facturation.parametrage.creancier.* + facturation.export.creer + facturation.document.imprimer (arbitrages coordinateur) + les 9 actions pieces.* (étape 3)', () => {
     const actionsAttendues: Action[] = [
       'socle.tenant.lire',
       'socle.site.lire',
@@ -559,6 +571,16 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'facturation.export.creer',
       // --- Étape 2 : impression PDF facture QR (accordée exactement à roleVoitLesMontants()) ---
       'facturation.document.imprimer',
+      // --- Étape 3 : pièces (RP-01 → RP-25, matrice §11 de docs/specification-etape-3-pieces.md) ---
+      'pieces.article.lire',
+      'pieces.article.creer',
+      'pieces.article.modifier',
+      'pieces.stock.lire',
+      'pieces.stock.modifier',
+      'pieces.mouvement.creer',
+      'pieces.reservation.lire',
+      'pieces.reservation.satisfaire',
+      'pieces.reservation.liberer',
     ];
 
     const actionsAccordees = new Set(Object.values(MATRICE_DROITS).flat());

@@ -176,6 +176,114 @@ describe('routeur — protection par défaut', () => {
 });
 
 /**
+ * RÉORIENTÉ par le coordinateur (lot 2) : la consigne initiale (« bloquer `technicien` sur
+ * `/parametrage/referentiels` ») était mal calibrée — elle cassait l'usage du réceptionniste
+ * (le rôle qui consulte LE PLUS les tarifs, au comptoir et au téléphone) sans ajouter de
+ * protection réelle (`parametrage.referentiel.lire`/`parametrage.atelier.lire` sont ouverts à
+ * tous côté API). La route ne pose donc plus `rolesAutorises` — voir `droits-routes.ts` pour
+ * l'arbitrage complet. Ce test verrouille la décision dans le sens INVERSE de l'ancien : il
+ * rougit si quelqu'un réintroduit une restriction de rôle sur ces routes en croyant « corriger un
+ * oubli de sécurité ».
+ */
+describe('routeur — /parametrage/referentiels, /parametrage/atelier, /parametrage/sites : lecture ouverte à tout rôle authentifié (décision arbitrée)', () => {
+  const TOUS_LES_ROLES = ['technicien', 'receptionnaire', 'magasinier', 'comptable', 'vendeur', 'chef_atelier', 'direction', 'admin'] as const;
+
+  it.each(TOUS_LES_ROLES)('%s atteint le contenu réel de /parametrage/referentiels (deux onglets), jamais l’accès refusé', async (role) => {
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role } }),
+      ),
+    );
+    renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/referentiels' });
+
+    expect(await screen.findAllByRole('tab')).toHaveLength(2);
+    expect(screen.queryByText("Vous n'avez pas les droits pour cette action.")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * RÉORIENTÉ (lot 2), deuxième volet demandé par le coordinateur : preuve qu'une route EFFECTIVEMENT
+ * restreinte refuse bien — `/parametrage/facturation` (bloc créancier, RF-115), qui restreint la
+ * LECTURE côté API à `direction`/`comptable` (contrairement aux trois routes ci-dessus). Rend la
+ * VRAIE `routesConfig`, avec la vraie réaction au `403` de l'API (pas de `rolesAutorises` ici — voir
+ * `routeur.tsx` — la protection est entièrement côté API + écran dédié).
+ */
+describe('routeur — /parametrage/facturation refuse réellement (protection par l’API, RF-115)', () => {
+  it('admin : reçoit l’écran de refus dédié sur 403 DROIT_INSUFFISANT, jamais le formulaire réel', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' } }),
+      ),
+      http.get('/api/v1/parametres-facturation/creancier', () =>
+        HttpResponse.json(
+          { type: 't', title: 't', status: 403, code: 'DROIT_INSUFFISANT', instance: 'r' },
+          { status: 403, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      ),
+    );
+    renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/facturation' });
+
+    expect(await screen.findByText('Accès réservé à la direction et à la comptabilité')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Nom du garage')).not.toBeInTheDocument();
+  });
+
+  it('direction : atteint le formulaire réel, jamais l’écran de refus', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/parametres-facturation/creancier', () =>
+        HttpResponse.json({
+          nom: null,
+          rue: null,
+          numero: null,
+          npa: null,
+          localite: null,
+          pays: 'CH',
+          iban: null,
+          qrIban: null,
+          version: 0,
+        }),
+      ),
+    );
+    renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/facturation' });
+
+    expect(await screen.findByLabelText('Nom du garage')).toBeInTheDocument();
+    expect(screen.queryByText('Accès réservé à la direction et à la comptabilité')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * RÉORIENTÉ (lot 2), troisième volet : la distinction « qui peut atteindre » / « à qui on propose »
+ * (`droits-routes.ts`) se prouve ici en assemblage complet — le menu masque « Paramétrage atelier »/
+ * « Sites » à un rôle sans gouvernance, alors que la route elle-même (test ci-dessus) reste ouverte
+ * en lecture à ce même rôle. Ergonomie, pas sécurité : jumeau de la couverture déjà posée dans
+ * `BarreLaterale.spec.tsx`, ici rendue via le VRAI `routesConfig` (AppShell + BarreLaterale
+ * assemblés, pas le composant isolé).
+ */
+describe('routeur — le menu masque Paramétrage atelier / Sites à un rôle sans gouvernance (ergonomie, pas sécurité)', () => {
+  it('technicien : le menu ne propose ni Paramétrage atelier ni Sites, mais propose Référentiels', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' } }),
+      ),
+    );
+    renduAvecRoutes(routesConfig, { routeInitiale: '/' });
+
+    expect(await screen.findByRole('link', { name: /tarifs/i })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /paramètres atelier/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^sites$/i })).not.toBeInTheDocument();
+  });
+
+  it('chef d’atelier : le menu propose Référentiels, Paramétrage atelier et Sites', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    renduAvecRoutes(routesConfig, { routeInitiale: '/' });
+
+    expect(await screen.findByRole('link', { name: /paramètres atelier/i })).toHaveAttribute('href', '/parametrage/atelier');
+    expect(screen.getByRole('link', { name: /^sites$/i })).toHaveAttribute('href', '/parametrage/sites');
+    expect(screen.getByRole('link', { name: /tarifs/i })).toHaveAttribute('href', '/parametrage/referentiels');
+  });
+});
+
+/**
  * Le défaut que ce test existe pour attraper : un écran fini, testé, mais câblé nulle part — le
  * routeur n'expose alors qu'une fraction des écrans réellement livrés sans que rien ne le signale
  * (voir consigne de la tâche). Le scan est volontairement fait sur le DISQUE, jamais sur une

@@ -12,7 +12,6 @@ import { BlocEcheances } from '@/composants/vehicule/BlocEcheances';
 import { EncartAlertesVehicule } from '@/composants/vehicule/EncartAlertesVehicule';
 import { FriseDetentions } from '@/composants/vehicule/FriseDetentions';
 import { FriseKilometrage } from '@/composants/vehicule/FriseKilometrage';
-import { ListeTravauxReportes } from '@/composants/vehicule/ListeTravauxReportes';
 import { useContexteAtelier } from '@/hooks/vehicules/useContexteAtelier';
 import { useDetentionsVehicule } from '@/hooks/vehicules/useDetentionsVehicule';
 import { useKilometragesVehicule } from '@/hooks/vehicules/useKilometragesVehicule';
@@ -20,6 +19,7 @@ import { useVehicule } from '@/hooks/vehicules/useVehicule';
 
 import { EnTeteFicheVehicule } from './EnTeteFicheVehicule';
 import { FormulaireKilometrage } from './FormulaireKilometrage';
+import { PanneauTravauxReportes } from './PanneauTravauxReportes';
 
 /**
  * Fiche véhicule — ce que le comptoir doit voir en ouvrant un dossier : identité, alertes SANS
@@ -94,7 +94,11 @@ export function EcranFicheVehicule() {
         <BlocDonneesAtelier donnees={vehicule} />
       </div>
 
-      <ListeTravauxReportes travaux={contexte.travauxReportes.elements} />
+      {/* Panneau de GESTION (RM-73) — remplace l'ancienne liste en lecture seule alimentée par la
+       *  projection bornée de `contexte-atelier` : `EncartAlertesVehicule` ci-dessus couvre déjà le
+       *  « sans cliquer » pour les travaux OUVERTS, ce panneau ajoute la correction/clôture/abandon
+       *  et l'historique complet (non bornés), depuis la ressource dédiée. */}
+      {vehiculeId ? <PanneauTravauxReportes vehiculeId={vehiculeId} /> : null}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">

@@ -123,7 +123,19 @@
     "RECEPTION_REFERENCE_NON_EQUIVALENTE": "Cette référence n'est pas reconnue comme équivalente à celle commandée.",
     "CONSIGNE_TRANSITION_INTERDITE": "Cette consigne n'est plus dans un état permettant cette action.",
     "POINTAGE_PIN_INVALIDE": "Code PIN non reconnu. Vérifiez le code et réessayez.",
-    "POINTAGE_PIN_VERROUILLE": "Code PIN temporairement verrouillé. Adressez-vous au chef d'atelier pour continuer."
+    "POINTAGE_PIN_VERROUILLE": "Code PIN temporairement verrouillé. Adressez-vous au chef d'atelier pour continuer.",
+    "VENTE_VEHICULE_STOCK_DEJA_EXISTANT": "Ce véhicule est déjà en stock. Vérifiez les informations du véhicule.",
+    "VENTE_DOSSIER_TRANSITION_INTERDITE": "Ce dossier de vente ne peut pas changer de statut dans cet état.",
+    "VENTE_REPRISE_TRANSITION_INTERDITE": "Cette reprise ne peut pas changer de statut dans cet état.",
+    "VENTE_FINANCEMENT_TRANSITION_INTERDITE": "Ce financement ne peut pas changer de statut dans cet état.",
+    "VENTE_VEHICULE_INDISPONIBLE": "Ce véhicule n'est pas disponible actuellement.",
+    "VENTE_VEHICULE_MANQUANT": "Ce véhicule est introuvable. Vérifiez le numéro de châssis ou la plaque.",
+    "VENTE_FINANCEMENT_NON_CONFIRME": "Le financement n'a pas été confirmé par l'organisme prêteur.",
+    "VENTE_LIVRAISON_EXPERTISE_REQUISE": "Le véhicule doit être passé en expertise (MFK) avant la livraison.",
+    "VENTE_LIVRAISON_INCOMPLETE": "Tous les documents de livraison doivent être complétés.",
+    "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE": "Ce dossier de vente ne peut pas être annulé dans cet état.",
+    "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE": "La valeur négociée de la reprise doit être indiquée.",
+    "VENTE_REPRISE_DEJA_EXISTANTE": "Une reprise existe déjà pour ce dossier de vente."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Créer un devis complémentaire",

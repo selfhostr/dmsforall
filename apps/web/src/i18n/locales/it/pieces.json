@@ -1,0 +1,229 @@
+{
+  "titre": "Ricambi",
+  "articles": {
+    "titre": "Articoli",
+    "numero": "Articolo {numero}",
+    "designation": "Descrizione",
+    "marque": "Marchio",
+    "reference": "Riferimento",
+    "codeBarres": "Codice a barre",
+    "prix": {
+      "achat": "Prezzo di acquisto",
+      "vente": "Prezzo di vendita",
+      "montantTtc": "Importo IVA inclusa",
+      "ttc": "IVA inclusa"
+    },
+    "tva": "IVA",
+    "categorie": "Categoria",
+    "categories": {
+      "piece_mecanique": "Ricambio motore",
+      "piece_carrosserie": "Ricambio carrozzeria",
+      "pneu": "Pneumatico",
+      "lubrifiant": "Lubrificante",
+      "produit_atelier": "Prodotto officina",
+      "fourniture": "Materiale di consumo"
+    },
+    "statut": "Stato",
+    "statuts": {
+      "actif": "Attivo",
+      "obsolete": "Obsoleto",
+      "desactive": "Disattivato"
+    },
+    "echangeStandard": "Cambio standard",
+    "consigne": "Cauzione",
+    "montantConsigne": "Importo della cauzione",
+    "references": {
+      "titre": "Riferimenti",
+      "principale": "Riferimento principale",
+      "alternatives": "Riferimenti alternativi",
+      "type": "Tipo",
+      "types": {
+        "equivalente": "Equivalente",
+        "remplace_par": "Sostituito da",
+        "fournisseur": "Fornitore"
+      },
+      "fournisseur": "Fornitore",
+      "ajouter": "Aggiungi riferimento",
+      "collision": "Questo riferimento e gia utilizzato da un altro articolo."
+    },
+    "remplacant": "Articolo sostitutivo",
+    "actions": {
+      "ajouter": "Crea articolo",
+      "modifier": "Modifica",
+      "marquerObsolete": "Contrassegna come obsoleto",
+      "desactiver": "Disattiva",
+      "reactiver": "Riattiva"
+    },
+    "vide": "Nessun articolo."
+  },
+  "stock": {
+    "titre": "Magazzino",
+    "site": "Ubicazione",
+    "quantites": {
+      "physique": "Quantita fisica",
+      "reservee": "Quantita riservata",
+      "disponible": "Quantita disponibile",
+      "commandee": "Quantita ordinata",
+      "minimum": "Scorta minima",
+      "commande": "Quantita d'ordine standard",
+      "emplacement": "Luogo di stoccaggio"
+    },
+    "mouvements": {
+      "titre": "Storico dei movimenti",
+      "type": "Tipo",
+      "types": {
+        "entree_livraison": "Ingresso - Consegna",
+        "sortie_or": "Uscita - OR",
+        "sortie_comptoir": "Uscita - Bancone",
+        "retour_fournisseur": "Reso fornitore",
+        "retour_client": "Reso cliente",
+        "transfert": "Trasferimento",
+        "ajustement_inventaire": "Rettifica inventario",
+        "casse": "Rottura",
+        "perte": "Smarrimento",
+        "retour_consigne": "Reso cauzione"
+      },
+      "quantite": "Quantita",
+      "auteur": "Autore",
+      "repriseDonnees": "Migrazione dati",
+      "motif": "Motivo",
+      "date": "Data",
+      "prixAchat": "Prezzo di acquisto effettivo",
+      "actions": {
+        "creerCasse": "Segnala rottura",
+        "creerPerte": "Segnala smarrimento",
+        "creerTransfert": "Crea trasferimento",
+        "creerAjustement": "Crea rettifica"
+      },
+      "siteSource": "Ubicazione di origine",
+      "siteDestination": "Ubicazione di destinazione",
+      "vide": "Nessun movimento."
+    },
+    "reapprovisionnement": {
+      "titre": "Riordino",
+      "ecart": "Differenza",
+      "actions": {
+        "commander": "Ordina"
+      },
+      "vide": "Nessun riordino necessario."
+    }
+  },
+  "reservations": {
+    "titre": "Prenotazioni",
+    "statut": "Stato",
+    "statuts": {
+      "active": "Attivo",
+      "satisfaite": "Soddisfatto",
+      "liberee": "Liberato"
+    },
+    "article": "Articolo",
+    "quantite": "Quantita",
+    "ordreReparation": "Ordine di riparazione",
+    "ligne": "Riga",
+    "client": "Cliente",
+    "creeLe": "Creato il",
+    "satisfaiteLe": "Soddisfatto il",
+    "libereeLe": "Liberato il",
+    "motifLiberation": "Motivo della liberazione",
+    "motifsLiberation": {
+      "annulation_ligne": "Annullamento riga",
+      "refus_devis": "Preventivo rifiutato",
+      "liberation_manuelle": "Liberazione manuale"
+    },
+    "actions": {
+      "satisfaire": "Soddisfa",
+      "liberer": "Libera"
+    },
+    "disponibilite": {
+      "titre": "Disponibilita",
+      "quantitePhysique": "Quantita fisica",
+      "quantiteDisponible": "Quantita disponibile",
+      "reservationsActives": "Prenotazioni attive"
+    },
+    "vide": "Nessuna prenotazione."
+  },
+  "commandes": {
+    "titre": "Ordini fornitore",
+    "numero": "Ordine {numero}",
+    "statut": "Stato",
+    "statuts": {
+      "brouillon": "Bozza",
+      "envoyee": "Inviato",
+      "partiellement_recue": "Parzialmente ricevuto",
+      "recue": "Ricevuto",
+      "cloturee": "Chiuso",
+      "annulee": "Annullato"
+    },
+    "origine": "Origine",
+    "origines": {
+      "manuelle": "Manuale",
+      "reservation_rupture": "Rottura di stock",
+      "reapprovisionnement": "Riordino"
+    },
+    "fournisseur": "Fornitore",
+    "site": "Ubicazione",
+    "dateCommande": "Data ordine",
+    "envoyeeLe": "Inviato il",
+    "reference": "Riferimento fornitore",
+    "lignes": {
+      "titre": "Righe",
+      "article": "Articolo",
+      "quantiteCommandee": "Quantita ordinata",
+      "quantiteRecue": "Quantita ricevuta",
+      "quantiteReliquat": "Importo in sospeso",
+      "prixAchatAttendu": "Prezzo di acquisto previsto",
+      "prixAchatReel": "Prezzo di acquisto effettivo",
+      "motif": "Motivo"
+    },
+    "actions": {
+      "creer": "Crea ordine",
+      "envoyer": "Invia",
+      "receptionner": "Registra ricezione",
+      "annulerReliquat": "Annulla importo in sospeso",
+      "annuler": "Annulla ordine"
+    },
+    "reception": {
+      "titre": "Ricezione",
+      "referenceLibellee": "Riferimento consegnato",
+      "ecart": "Differenza rilevata — riferimento diverso"
+    },
+    "vide": "Nessun ordine."
+  },
+  "consignes": {
+    "titre": "Cauzioni di scambio",
+    "statut": "Stato",
+    "statuts": {
+      "deposee_par_client": "Depositato dal cliente",
+      "en_attente_retour_fournisseur": "In attesa di restituzione",
+      "retournee_fournisseur": "Restituito al fornitore"
+    },
+    "article": "Articolo",
+    "montant": "Importo",
+    "montantConsigne": "Importo della cauzione",
+    "ordreReparation": "Ordine di riparazione",
+    "ligne": "Riga",
+    "creeLe": "Creato il",
+    "retourneeLe": "Restituito il",
+    "actions": {
+      "marquerRetour": "Contrassegna come restituito"
+    },
+    "anciennes": {
+      "titre": "Cauzioni non restituite",
+      "anciennete": "Eta minima (giorni)",
+      "description": "Cauzioni create almeno {jours} {jours, plural, one {giorno} other {giorni}} fa"
+    },
+    "vide": "Nessuna cauzione."
+  },
+  "fournisseurs": {
+    "titre": "Fornitori",
+    "statut": "Stato",
+    "statuts": {
+      "actif": "Attivo",
+      "inactif": "Inattivo"
+    },
+    "nom": "Nome",
+    "contact": "Contatto",
+    "coordonnees": "Coordinate",
+    "vide": "Nessun fornitore."
+  }
+}

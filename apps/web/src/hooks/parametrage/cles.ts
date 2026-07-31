@@ -1,10 +1,27 @@
 /**
  * Clés TanStack Query du domaine paramétrage — même convention que `clesFacturation`
  * (`hooks/facturation/cles.ts`) : tuple plat, tenue ICI plutôt que fusionnée dans `api/cles.ts`
- * (hors périmètre de cet agent). Un seul singleton à ce jour (bloc créancier) ; d'autres écrans
- * de paramétrage viendront s'ajouter à côté.
+ * (gelé, `plan-etape-1-frontend.md` §5.1, hors périmètre de cet agent).
+ *
+ * `tauxHoraires`/`prestations` : listes du catalogue de référentiels (`GET /referentiels/*`,
+ * écran `EcranReferentiels`). Volontairement DISTINCTES de `clesQuery.referentiels.prestations(q)`
+ * (`api/cles.ts`) — cette dernière sert un usage différent (autocomplete d'une ligne d'OR, gelé
+ * dès la vague 0) ; réutiliser la même clé ferait cohabiter deux formes de cache pour deux
+ * consommateurs qui n'invalident pas au même rythme (le catalogue admin après une création/
+ * modification de tarif, l'autocomplete au fil de la frappe).
  */
 export const clesParametrage = {
   /** Singleton par tenant, aucun paramètre — voir `hooks/parametrage/bloc-creancier.api.ts`. */
   creancier: () => ['parametrage', 'creancier'] as const,
+
+  tauxHoraires: {
+    /** Liste paginée par curseur (`useInfiniteQuery`) — un seul cache par tenant, pas de filtre
+     *  aujourd'hui (le catalogue de taux horaires d'un garage compte rarement plus de quelques
+     *  dizaines d'entrées, jamais assez pour justifier une recherche serveur). */
+    liste: () => ['parametrage', 'tauxHoraires', 'liste'] as const,
+  },
+
+  prestations: {
+    liste: () => ['parametrage', 'prestations', 'liste'] as const,
+  },
 } as const;

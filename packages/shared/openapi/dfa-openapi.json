@@ -53,6 +53,185 @@
         ],
         "type": "object"
       },
+      "ArticleAvecAvertissementsDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ArticleDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "ArticleDto": {
+        "properties": {
+          "categorie": {
+            "enum": [
+              "piece_mecanique",
+              "piece_carrosserie",
+              "pneu",
+              "lubrifiant",
+              "produit_atelier",
+              "fourniture"
+            ],
+            "type": "string"
+          },
+          "codeBarres": {
+            "nullable": true,
+            "type": "string"
+          },
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "designation": {
+            "type": "string"
+          },
+          "estEchangeStandard": {
+            "description": "Article d’échange standard (alternateur, démarreur…) — active la saisie d’une consigne à la pose (RP-37).",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "marque": {
+            "nullable": true,
+            "type": "string"
+          },
+          "modifieLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "montantConsigneTtcCentimes": {
+            "description": "Obligatoire et UNIQUEMENT si estEchangeStandard = true. TTC (RP-38).",
+            "nullable": true,
+            "type": "number"
+          },
+          "numeroArticle": {
+            "description": "Généré par le serveur, unique par tenant (RP-08). Jamais fourni en entrée.",
+            "example": "PA-000123",
+            "type": "string"
+          },
+          "prixAchatCentimes": {
+            "description": "Dernier prix d’achat connu, en CENTIMES. `null` tant qu’aucune réception n’a eu lieu, OU si le rôle appelant ne voit pas le prix d’achat (§11 de la spec pièces — RF-115/RF-116 appliqué au domaine pièces).",
+            "nullable": true,
+            "type": "number"
+          },
+          "prixVenteTtcCentimes": {
+            "description": "TVA comprise, jamais HT + TVA ajoutée à l’écran.",
+            "type": "number"
+          },
+          "referencePrincipale": {
+            "type": "string"
+          },
+          "referenceRemplacementId": {
+            "description": "Renseigné UNIQUEMENT si statut = obsolete et qu’un remplaçant est connu (RP-04).",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "references": {
+            "items": {
+              "$ref": "#/components/schemas/ArticleReferenceDto"
+            },
+            "type": "array"
+          },
+          "referencesTronquees": {
+            "type": "boolean"
+          },
+          "statut": {
+            "enum": [
+              "actif",
+              "obsolete",
+              "desactive"
+            ],
+            "type": "string"
+          },
+          "stocksResume": {
+            "items": {
+              "$ref": "#/components/schemas/StockResumeArticleDto"
+            },
+            "type": "array"
+          },
+          "tauxTvaPourmille": {
+            "description": "Taux courant appliqué par défaut à une nouvelle ligne référençant cet article (RP-36).",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "numeroArticle",
+          "designation",
+          "marque",
+          "categorie",
+          "statut",
+          "referencePrincipale",
+          "codeBarres",
+          "prixAchatCentimes",
+          "prixVenteTtcCentimes",
+          "tauxTvaPourmille",
+          "estEchangeStandard",
+          "montantConsigneTtcCentimes",
+          "referenceRemplacementId",
+          "references",
+          "referencesTronquees",
+          "stocksResume",
+          "creeLe",
+          "modifieLe"
+        ],
+        "type": "object"
+      },
+      "ArticleReferenceDto": {
+        "properties": {
+          "articleId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fournisseurId": {
+            "description": "Obligatoire et UNIQUEMENT pour `type = 'fournisseur'` (RP-02).",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "equivalente",
+              "remplace_par",
+              "fournisseur"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "articleId",
+          "type",
+          "reference",
+          "fournisseurId",
+          "creeLe"
+        ],
+        "type": "object"
+      },
       "AttentesOrDto": {
         "properties": {
           "accord": {
@@ -103,7 +282,11 @@
               "PLANNING_CAPACITE_DEPASSEE",
               "POINTAGE_CLOTURE_AUTOMATIQUE",
               "PRET_CASCADE_RESTITUTION",
-              "OR_MULTI_PAYEURS_DESACTIVE"
+              "OR_MULTI_PAYEURS_DESACTIVE",
+              "PIECE_RESERVATION_INDISPONIBLE",
+              "RECEPTION_EXCEDENT_RELIQUAT",
+              "RESERVATION_LIBEREE_OR_ACTIF",
+              "INVENTAIRE_ECART_SIGNIFICATIF"
             ],
             "type": "string"
           },
@@ -135,7 +318,11 @@
               "PLANNING_CAPACITE_DEPASSEE",
               "POINTAGE_CLOTURE_AUTOMATIQUE",
               "PRET_CASCADE_RESTITUTION",
-              "OR_MULTI_PAYEURS_DESACTIVE"
+              "OR_MULTI_PAYEURS_DESACTIVE",
+              "PIECE_RESERVATION_INDISPONIBLE",
+              "RECEPTION_EXCEDENT_RELIQUAT",
+              "RESERVATION_LIBEREE_OR_ACTIF",
+              "INVENTAIRE_ECART_SIGNIFICATIF"
             ],
             "example": "CLIENT_DOUBLON_PROBABLE",
             "type": "string"
@@ -167,7 +354,11 @@
               "PLANNING_CAPACITE_DEPASSEE",
               "POINTAGE_CLOTURE_AUTOMATIQUE",
               "PRET_CASCADE_RESTITUTION",
-              "OR_MULTI_PAYEURS_DESACTIVE"
+              "OR_MULTI_PAYEURS_DESACTIVE",
+              "PIECE_RESERVATION_INDISPONIBLE",
+              "RECEPTION_EXCEDENT_RELIQUAT",
+              "RESERVATION_LIBEREE_OR_ACTIF",
+              "INVENTAIRE_ECART_SIGNIFICATIF"
             ],
             "type": "string"
           },
@@ -198,7 +389,11 @@
               "PLANNING_CAPACITE_DEPASSEE",
               "POINTAGE_CLOTURE_AUTOMATIQUE",
               "PRET_CASCADE_RESTITUTION",
-              "OR_MULTI_PAYEURS_DESACTIVE"
+              "OR_MULTI_PAYEURS_DESACTIVE",
+              "PIECE_RESERVATION_INDISPONIBLE",
+              "RECEPTION_EXCEDENT_RELIQUAT",
+              "RESERVATION_LIBEREE_OR_ACTIF",
+              "INVENTAIRE_ECART_SIGNIFICATIF"
             ],
             "type": "string"
           },
@@ -229,7 +424,11 @@
               "PLANNING_CAPACITE_DEPASSEE",
               "POINTAGE_CLOTURE_AUTOMATIQUE",
               "PRET_CASCADE_RESTITUTION",
-              "OR_MULTI_PAYEURS_DESACTIVE"
+              "OR_MULTI_PAYEURS_DESACTIVE",
+              "PIECE_RESERVATION_INDISPONIBLE",
+              "RECEPTION_EXCEDENT_RELIQUAT",
+              "RESERVATION_LIBEREE_OR_ACTIF",
+              "INVENTAIRE_ECART_SIGNIFICATIF"
             ],
             "type": "string"
           },
@@ -260,7 +459,11 @@
               "PLANNING_CAPACITE_DEPASSEE",
               "POINTAGE_CLOTURE_AUTOMATIQUE",
               "PRET_CASCADE_RESTITUTION",
-              "OR_MULTI_PAYEURS_DESACTIVE"
+              "OR_MULTI_PAYEURS_DESACTIVE",
+              "PIECE_RESERVATION_INDISPONIBLE",
+              "RECEPTION_EXCEDENT_RELIQUAT",
+              "RESERVATION_LIBEREE_OR_ACTIF",
+              "INVENTAIRE_ECART_SIGNIFICATIF"
             ],
             "type": "string"
           },
@@ -1230,6 +1433,46 @@
         ],
         "type": "object"
       },
+      "DisponibiliteArticleDto": {
+        "properties": {
+          "articleId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "quantiteDisponibleMillieme": {
+            "type": "number"
+          },
+          "quantitePhysiqueMillieme": {
+            "type": "number"
+          },
+          "quantiteReserveeMillieme": {
+            "type": "number"
+          },
+          "reservationsActives": {
+            "items": {
+              "$ref": "#/components/schemas/ReservationActiveResumeDto"
+            },
+            "type": "array"
+          },
+          "reservationsActivesTronquees": {
+            "type": "boolean"
+          },
+          "siteId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "articleId",
+          "siteId",
+          "quantitePhysiqueMillieme",
+          "quantiteReserveeMillieme",
+          "quantiteDisponibleMillieme",
+          "reservationsActives",
+          "reservationsActivesTronquees"
+        ],
+        "type": "object"
+      },
       "DocumentExporteDto": {
         "properties": {
           "id": {
@@ -1339,6 +1582,24 @@
           },
           "donnees": {
             "$ref": "#/components/schemas/ReponseDocumentVenteDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "EnveloppeFacturationOrDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementOrDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ReponseFacturationOrdreReparationDto"
           }
         },
         "required": [
@@ -1716,6 +1977,72 @@
         ],
         "type": "object"
       },
+      "ImputationExporteeDto": {
+        "properties": {
+          "documentId": {
+            "description": "Le document soldé par cette imputation.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "paiementId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "paiementId",
+          "documentId"
+        ],
+        "type": "object"
+      },
+      "LigneReapprovisionnementDto": {
+        "properties": {
+          "articleId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "designation": {
+            "type": "string"
+          },
+          "ecartMillieme": {
+            "description": "stockMinimumMillieme - quantiteDisponibleMillieme, toujours > 0 dans cette liste.",
+            "type": "number"
+          },
+          "numeroArticle": {
+            "type": "string"
+          },
+          "quantiteCommandeStandardMillieme": {
+            "nullable": true,
+            "type": "number"
+          },
+          "quantiteDisponibleMillieme": {
+            "type": "number"
+          },
+          "siteId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "stockMinimumMillieme": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "articleId",
+          "numeroArticle",
+          "designation",
+          "siteId",
+          "quantiteDisponibleMillieme",
+          "stockMinimumMillieme",
+          "ecartMillieme",
+          "quantiteCommandeStandardMillieme"
+        ],
+        "type": "object"
+      },
       "LotExportProduitDto": {
         "properties": {
           "avertissements": {
@@ -1828,6 +2155,139 @@
           "montantHtCentimes",
           "montantTvaCentimes",
           "montantTtcCentimes"
+        ],
+        "type": "object"
+      },
+      "MouvementAvecAvertissementsDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MouvementStockDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "MouvementStockDto": {
+        "properties": {
+          "articleId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "auteurId": {
+            "description": "null : mouvement issu d’une reprise de données ou d’un import.",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "commandeFournisseurLigneId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "documentVenteLigneId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "inventaireReferenceId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "ligneOrId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "motif": {
+            "nullable": true,
+            "type": "string"
+          },
+          "prixAchatReelCentimes": {
+            "description": "Uniquement pour entree_livraison (RP-29).",
+            "nullable": true,
+            "type": "number"
+          },
+          "quantiteMillieme": {
+            "description": "Signée (RP-17) : positive à l’entrée, négative à la sortie ; toujours positive pour `transfert`.",
+            "type": "number"
+          },
+          "reservationId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "siteDestinationId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "siteId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "siteSourceId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "entree_livraison",
+              "sortie_or",
+              "sortie_comptoir",
+              "retour_fournisseur",
+              "retour_client",
+              "transfert",
+              "ajustement_inventaire",
+              "casse",
+              "perte",
+              "retour_consigne"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "articleId",
+          "type",
+          "quantiteMillieme",
+          "siteId",
+          "siteSourceId",
+          "siteDestinationId",
+          "prixAchatReelCentimes",
+          "auteurId",
+          "motif",
+          "ligneOrId",
+          "documentVenteLigneId",
+          "commandeFournisseurLigneId",
+          "inventaireReferenceId",
+          "reservationId",
+          "creeLe"
         ],
         "type": "object"
       },
@@ -2001,6 +2461,31 @@
           "sansRdvAutorise",
           "rdvRetroactifAuto",
           "deuxOrMemeVehicule"
+        ],
+        "type": "object"
+      },
+      "PageArticleDto": {
+        "properties": {
+          "curseurSuivant": {
+            "description": "Opaque base64url ; null = fin de liste.",
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ArticleDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
         ],
         "type": "object"
       },
@@ -2249,6 +2734,30 @@
         ],
         "type": "object"
       },
+      "PageMouvementStockDto": {
+        "properties": {
+          "curseurSuivant": {
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/MouvementStockDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
       "PageOrdreReparationDto": {
         "properties": {
           "curseurSuivant": {
@@ -2321,6 +2830,30 @@
         ],
         "type": "object"
       },
+      "PageReapprovisionnementDto": {
+        "properties": {
+          "curseurSuivant": {
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/LigneReapprovisionnementDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
       "PageReponsePaiementDto": {
         "properties": {
           "curseurSuivant": {
@@ -2331,6 +2864,30 @@
           "donnees": {
             "items": {
               "$ref": "#/components/schemas/ReponsePaiementDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
+      "PageReservationPieceDto": {
+        "properties": {
+          "curseurSuivant": {
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ReservationPieceDto"
             },
             "type": "array"
           },
@@ -2433,6 +2990,32 @@
         "required": [
           "donnees",
           "avertissements"
+        ],
+        "type": "object"
+      },
+      "PaiementExporteDto": {
+        "properties": {
+          "id": {
+            "description": "Identifiant du paiement — pas de numéro affiché (MD-90), c'est la référence de l'écriture.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "moyen": {
+            "enum": [
+              "especes",
+              "carte",
+              "virement",
+              "qr",
+              "twint",
+              "compensation",
+              "leasing"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "moyen"
         ],
         "type": "object"
       },
@@ -2556,7 +3139,32 @@
               "EXPORT_ECRITURES_DESEQUILIBREES",
               "EXPORT_MAPPING_INCOMPLET",
               "EXPORT_DEJA_TRANSMIS",
-              "BASCULE_FIDUCIAIRE_HORS_FRONTIERE"
+              "BASCULE_FIDUCIAIRE_HORS_FRONTIERE",
+              "ARTICLE_REFERENCE_COLLISION",
+              "ARTICLE_REMPLACANT_REQUIS",
+              "ARTICLE_DESACTIVATION_IMPOSSIBLE",
+              "STOCK_INSUFFISANT",
+              "MOUVEMENT_MOTIF_REQUIS",
+              "RESERVATION_TRANSITION_INTERDITE",
+              "RESERVATION_SITE_INCOHERENT",
+              "COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE",
+              "COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE",
+              "RECEPTION_REFERENCE_NON_EQUIVALENTE",
+              "CONSIGNE_TRANSITION_INTERDITE",
+              "POINTAGE_PIN_INVALIDE",
+              "POINTAGE_PIN_VERROUILLE",
+              "VENTE_VEHICULE_STOCK_DEJA_EXISTANT",
+              "VENTE_DOSSIER_TRANSITION_INTERDITE",
+              "VENTE_REPRISE_TRANSITION_INTERDITE",
+              "VENTE_FINANCEMENT_TRANSITION_INTERDITE",
+              "VENTE_VEHICULE_INDISPONIBLE",
+              "VENTE_VEHICULE_MANQUANT",
+              "VENTE_FINANCEMENT_NON_CONFIRME",
+              "VENTE_LIVRAISON_EXPERTISE_REQUISE",
+              "VENTE_LIVRAISON_INCOMPLETE",
+              "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE",
+              "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE",
+              "VENTE_REPRISE_DEJA_EXISTANTE"
             ],
             "type": "string"
           },
@@ -2672,7 +3280,32 @@
               "EXPORT_ECRITURES_DESEQUILIBREES",
               "EXPORT_MAPPING_INCOMPLET",
               "EXPORT_DEJA_TRANSMIS",
-              "BASCULE_FIDUCIAIRE_HORS_FRONTIERE"
+              "BASCULE_FIDUCIAIRE_HORS_FRONTIERE",
+              "ARTICLE_REFERENCE_COLLISION",
+              "ARTICLE_REMPLACANT_REQUIS",
+              "ARTICLE_DESACTIVATION_IMPOSSIBLE",
+              "STOCK_INSUFFISANT",
+              "MOUVEMENT_MOTIF_REQUIS",
+              "RESERVATION_TRANSITION_INTERDITE",
+              "RESERVATION_SITE_INCOHERENT",
+              "COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE",
+              "COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE",
+              "RECEPTION_REFERENCE_NON_EQUIVALENTE",
+              "CONSIGNE_TRANSITION_INTERDITE",
+              "POINTAGE_PIN_INVALIDE",
+              "POINTAGE_PIN_VERROUILLE",
+              "VENTE_VEHICULE_STOCK_DEJA_EXISTANT",
+              "VENTE_DOSSIER_TRANSITION_INTERDITE",
+              "VENTE_REPRISE_TRANSITION_INTERDITE",
+              "VENTE_FINANCEMENT_TRANSITION_INTERDITE",
+              "VENTE_VEHICULE_INDISPONIBLE",
+              "VENTE_VEHICULE_MANQUANT",
+              "VENTE_FINANCEMENT_NON_CONFIRME",
+              "VENTE_LIVRAISON_EXPERTISE_REQUISE",
+              "VENTE_LIVRAISON_INCOMPLETE",
+              "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE",
+              "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE",
+              "VENTE_REPRISE_DEJA_EXISTANTE"
             ],
             "type": "string"
           },
@@ -2762,6 +3395,12 @@
           "kmSortieObligatoire": {
             "type": "boolean"
           },
+          "plafondAvoirReceptionnaireCentimes": {
+            "description": "RF-117 (0018) : plafond d'émission d'AVOIR par un `receptionnaire` seul — au-delà, `direction`/`comptable` prennent le relais. MÊME sémantique que `plafondDefautCentimes` ci-dessus : `null` = aucun plafond convenu (défaut — le réceptionnaire émet sans limite, dégradé documenté préservé) ; `0` = toute émission par un réceptionnaire doit escalader ; n>0 = plafond nominal en centimes. Absent du contrat TS gelé `ReponseParametresAtelier` (`packages/shared`) — signalé, même écart que `plafondDefautCentimes`.",
+            "example": 500000,
+            "nullable": true,
+            "type": "number"
+          },
           "plafondDefautCentimes": {
             "description": "Q-02 : `null` = aucun plafond convenu (la garde RM-54 ne s'exécute jamais) ; `0` = accord requis pour toute validation payante ; n>0 = plafond nominal. ÉCART avec le contrat TS gelé `ReponseParametresAtelier` (`number` non nullable) — signalé, `null` est une valeur métier réelle qu'un `0` de repli confondrait avec « accord systématique requis ».",
             "example": 30000,
@@ -2781,7 +3420,8 @@
           "kmEntreeObligatoire",
           "kmSortieObligatoire",
           "signature",
-          "plafondDefautCentimes"
+          "plafondDefautCentimes",
+          "plafondAvoirReceptionnaireCentimes"
         ],
         "type": "object"
       },
@@ -3483,7 +4123,8 @@
               "periode_comptable",
               "export_comptable",
               "mapping_compte",
-              "tenant_bloc_creancier"
+              "tenant_bloc_creancier",
+              "periode_pointage"
             ],
             "type": "string"
           },
@@ -3526,17 +4167,57 @@
             },
             "type": "array"
           },
+          "imputationsExportees": {
+            "description": "Imputations dont l'effet sur leur document (créance soldée, et le cas échéant escompte/perte/arrondi) a été transmis dans ce lot — la granularité réelle du suivi (migration 0019, `imputation_paiement.exporteLe`).",
+            "items": {
+              "$ref": "#/components/schemas/ImputationExporteeDto"
+            },
+            "type": "array"
+          },
           "lots": {
-            "description": "Un seul lot dans ce lot logiciel (MD-91 : un `export_comptable` par lot transmis) — un tableau vide si aucun document candidat sur la période.",
+            "description": "Un seul lot dans ce lot logiciel (MD-91 : un `export_comptable` par lot transmis) — un tableau vide si aucun document ni paiement candidat sur la période.",
             "items": {
               "$ref": "#/components/schemas/LotExportProduitDto"
+            },
+            "type": "array"
+          },
+          "paiementsExportes": {
+            "description": "Paiements dont le CASH (compte financier) a été transmis dans ce lot — SEULEMENT la toute première fois qu'un paiement est exporté (migration 0019). Une imputation tardive sur un paiement déjà encaissé n'y apparaît pas : voir `imputationsExportees`.",
+            "items": {
+              "$ref": "#/components/schemas/PaiementExporteDto"
             },
             "type": "array"
           }
         },
         "required": [
           "lots",
-          "documentsExportes"
+          "documentsExportes",
+          "paiementsExportes",
+          "imputationsExportees"
+        ],
+        "type": "object"
+      },
+      "ReponseFacturationOrdreReparationDto": {
+        "properties": {
+          "facturesCreees": {
+            "description": "Un brouillon par groupe payeur traité par CET appel, dans l’ordre de `groupes` en entrée.",
+            "items": {
+              "$ref": "#/components/schemas/ReponseDocumentVenteDto"
+            },
+            "type": "array"
+          },
+          "ordreReparation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReponseOrdreReparationDto"
+              }
+            ],
+            "description": "L'OR à jour — même patron que les actions de §7.7."
+          }
+        },
+        "required": [
+          "facturesCreees",
+          "ordreReparation"
         ],
         "type": "object"
       },
@@ -3852,7 +4533,7 @@
             "type": "string"
           },
           "payeurClientId": {
-            "description": "Désigne QUI, quand `payeur !== 'client'` (AC-08, MD-62, MD-67) : `null` pour `payeur = 'client'` ou `'garage'`. Toujours `null` au lot 1 — la colonne `ligne_or.payeur_client_id` n'existe pas encore en base (voir `mappeurs.ts::mapperLigneOr`) ; migration à suivre hors périmètre de ce module.",
+            "description": "Désigne QUI, quand `payeur !== 'client'` (AC-08, MD-62, MD-67) : `null` pour `payeur = 'client'` ou `'garage'`. Colonne `ligne_or.payeur_client_id` (migration 0017).",
             "format": "uuid",
             "nullable": true,
             "type": "string"
@@ -5238,6 +5919,199 @@
         ],
         "type": "object"
       },
+      "ReservationActiveResumeDto": {
+        "properties": {
+          "clientNomAffichage": {
+            "type": "string"
+          },
+          "ligneOrId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "numeroOrdreReparation": {
+            "example": "OR-1042",
+            "type": "string"
+          },
+          "ordreReparationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "quantiteMillieme": {
+            "type": "number"
+          },
+          "reservationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reserveeLe": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reservationId",
+          "ligneOrId",
+          "ordreReparationId",
+          "numeroOrdreReparation",
+          "clientNomAffichage",
+          "quantiteMillieme",
+          "reserveeLe"
+        ],
+        "type": "object"
+      },
+      "ReservationPieceAvecAvertissementsDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ReservationPieceDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "ReservationPieceDto": {
+        "properties": {
+          "articleId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "libereeLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "libereeParUtilisateurId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "ligneOrId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "motifLiberation": {
+            "enum": [
+              "annulation_ligne",
+              "refus_devis",
+              "liberation_manuelle"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "motifLiberationTexte": {
+            "nullable": true,
+            "type": "string"
+          },
+          "mouvementSortieId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "ordreReparationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "quantiteMillieme": {
+            "type": "number"
+          },
+          "satisfaiteLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "siteId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "statut": {
+            "enum": [
+              "active",
+              "satisfaite",
+              "liberee"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "articleId",
+          "siteId",
+          "ligneOrId",
+          "ordreReparationId",
+          "quantiteMillieme",
+          "statut",
+          "creeLe",
+          "satisfaiteLe",
+          "mouvementSortieId",
+          "libereeLe",
+          "motifLiberation",
+          "motifLiberationTexte",
+          "libereeParUtilisateurId"
+        ],
+        "type": "object"
+      },
+      "ResultatRechercheComptoirArticleDto": {
+        "properties": {
+          "articleId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "designation": {
+            "type": "string"
+          },
+          "emplacement": {
+            "nullable": true,
+            "type": "string"
+          },
+          "estEchangeStandard": {
+            "type": "boolean"
+          },
+          "montantConsigneTtcCentimes": {
+            "nullable": true,
+            "type": "number"
+          },
+          "numeroArticle": {
+            "type": "string"
+          },
+          "prixVenteTtcCentimes": {
+            "type": "number"
+          },
+          "quantiteDisponibleMillieme": {
+            "type": "number"
+          },
+          "referencePrincipale": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "articleId",
+          "numeroArticle",
+          "designation",
+          "referencePrincipale",
+          "prixVenteTtcCentimes",
+          "quantiteDisponibleMillieme",
+          "emplacement",
+          "estEchangeStandard",
+          "montantConsigneTtcCentimes"
+        ],
+        "type": "object"
+      },
       "ResultatRechercheDto": {
         "properties": {
           "correspondance": {
@@ -5403,6 +6277,78 @@
         ],
         "type": "object"
       },
+      "StockArticleDto": {
+        "properties": {
+          "articleId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "emplacement": {
+            "nullable": true,
+            "type": "string"
+          },
+          "modifieLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "quantiteCommandeStandardMillieme": {
+            "description": "RP-12 : le fournisseur vend par lot, pas à l’unité.",
+            "nullable": true,
+            "type": "number"
+          },
+          "quantiteDisponibleMillieme": {
+            "description": "quantitePhysiqueMillieme - quantiteReserveeMillieme (RP-14), dérivé.",
+            "type": "number"
+          },
+          "quantitePhysiqueMillieme": {
+            "type": "number"
+          },
+          "quantiteReserveeMillieme": {
+            "type": "number"
+          },
+          "siteId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "stockMinimumMillieme": {
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "required": [
+          "articleId",
+          "siteId",
+          "quantitePhysiqueMillieme",
+          "quantiteReserveeMillieme",
+          "quantiteDisponibleMillieme",
+          "emplacement",
+          "stockMinimumMillieme",
+          "quantiteCommandeStandardMillieme",
+          "modifieLe"
+        ],
+        "type": "object"
+      },
+      "StockResumeArticleDto": {
+        "properties": {
+          "quantiteDisponibleMillieme": {
+            "description": "quantitePhysiqueMillieme - quantiteReserveeMillieme (RP-14), dérivé.",
+            "type": "number"
+          },
+          "quantitePhysiqueMillieme": {
+            "type": "number"
+          },
+          "siteId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "siteId",
+          "quantitePhysiqueMillieme",
+          "quantiteDisponibleMillieme"
+        ],
+        "type": "object"
+      },
       "TenantCourantDto": {
         "properties": {
           "id": {
@@ -5437,7 +6383,7 @@
       "TotauxPayeurOrDto": {
         "properties": {
           "destinataire": {
-            "description": "Projection minimale du destinataire réel de ce groupe (RF-87). `null` uniquement pour `payeur = 'garage'` (personne, RF-92) ; sinon toujours `null` au lot 1 tant que `payeurClientId` n'est pas résolu (colonne absente en base).",
+            "description": "Projection minimale du destinataire réel de ce groupe (RF-87), résolu via `common/identite-client/` (RM-01 : le `type` du client fait autorité pour le nom affiché). `null` uniquement pour `payeur = 'garage'` (personne, RF-92) — n'apparaît jamais ici, fusionné dans `'client'`.",
             "nullable": true,
             "properties": {
               "clientId": {
@@ -5470,7 +6416,7 @@
             "type": "string"
           },
           "payeurClientId": {
-            "description": "Clé de regroupement, DEUXIÈME MOITIÉ (MD-62 : regroupement par `(payeur, payeurClientId)`, jamais `payeur` seul — deux assureurs sur le même OR sont deux groupes distincts). `null` pour `payeur = 'client'` (destinataire = l'OR lui-même) et pour `'garage'` (RF-92, fusionné dans le groupe `'client'`). Toujours `null` au lot 1 — la colonne `ligne_or.payeur_client_id` n'existe pas encore en base.",
+            "description": "Clé de regroupement, DEUXIÈME MOITIÉ (MD-62 : regroupement par `(payeur, payeurClientId)`, jamais `payeur` seul — deux assureurs sur le même OR sont deux groupes distincts). `null` pour `payeur = 'client'` (destinataire = l'OR lui-même) et pour `'garage'` (RF-92, fusionné dans le groupe `'client'`, n'apparaît donc jamais ici). Colonne `ligne_or.payeur_client_id` (migration 0017).",
             "format": "uuid",
             "nullable": true,
             "type": "string"
@@ -5564,7 +6510,8 @@
         "enum": [
           "vehicule",
           "client",
-          "ordre_reparation"
+          "ordre_reparation",
+          "document_vente"
         ],
         "type": "string"
       },
@@ -5887,6 +6834,1915 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/articles": {
+      "get": {
+        "operationId": "ArticleController_lister",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageArticleDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans pieces.article.lire)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Liste paginée des articles du tenant courant (RP-03).",
+        "tags": [
+          "Pièces — Articles"
+        ]
+      },
+      "post": {
+        "description": "`Idempotency-Key` obligatoire (uuid v4) : un rejeu ne doit pas brûler un second numéro d’article (RP-08).",
+        "operationId": "ArticleController_creer",
+        "parameters": [
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "categorie": "piece_mecanique",
+                    "designation": "Plaquettes de frein avant",
+                    "estEchangeStandard": false,
+                    "prixVenteTtcCentimes": 8900,
+                    "referencePrincipale": "1K0698151",
+                    "tauxTvaPourmille": 81
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "categorie": {
+                    "enum": [
+                      "piece_mecanique",
+                      "piece_carrosserie",
+                      "pneu",
+                      "lubrifiant",
+                      "produit_atelier",
+                      "fourniture"
+                    ],
+                    "type": "string"
+                  },
+                  "codeBarres": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "designation": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "estEchangeStandard": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "marque": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "montantConsigneTtcCentimes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "prixVenteTtcCentimes": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "referencePrincipale": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "tauxTvaPourmille": {
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "designation",
+                  "categorie",
+                  "referencePrincipale",
+                  "prixVenteTtcCentimes",
+                  "tauxTvaPourmille"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (rôle sans pieces.article.creer)."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "IDEMPOTENCE_CONFLIT — même clé, corps différent ou exécution encore en cours."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Création d'un article.",
+        "tags": [
+          "Pièces — Articles"
+        ]
+      }
+    },
+    "/articles/{articleId}": {
+      "get": {
+        "operationId": "ArticleController_parId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Identifiant mal formé."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Fiche d'un article (références + résumé de stock par site).",
+        "tags": [
+          "Pièces — Articles"
+        ]
+      },
+      "patch": {
+        "operationId": "ArticleController_modifier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "categorie": {
+                    "enum": [
+                      "piece_mecanique",
+                      "piece_carrosserie",
+                      "pneu",
+                      "lubrifiant",
+                      "produit_atelier",
+                      "fourniture"
+                    ],
+                    "type": "string"
+                  },
+                  "codeBarres": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "designation": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "estEchangeStandard": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "marque": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "montantConsigneTtcCentimes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "prixVenteTtcCentimes": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "referencePrincipale": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "tauxTvaPourmille": {
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modification partielle d'un article.",
+        "tags": [
+          "Pièces — Articles"
+        ]
+      }
+    },
+    "/articles/{articleId}/desactiver": {
+      "post": {
+        "operationId": "ArticleController_desactiver",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "ARTICLE_DESACTIVATION_IMPOSSIBLE — réservation active en cours."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Désactive un article (§6.1) — refusé si une réservation active porte sur lui.",
+        "tags": [
+          "Pièces — Articles"
+        ]
+      }
+    },
+    "/articles/{articleId}/disponibilite": {
+      "get": {
+        "operationId": "StockArticleController_disponibilite",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "siteId",
+            "required": true,
+            "schema": {
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisponibiliteArticleDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "siteId manquant ou mal formé."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Disponibilité d’un article sur un site (RP-14/RP-19) — rend RP-19 vérifiable : qui bloque quoi, nommément.",
+        "tags": [
+          "Pièces — Stock"
+        ]
+      }
+    },
+    "/articles/{articleId}/marquer-obsolete": {
+      "post": {
+        "operationId": "ArticleController_marquerObsolete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "referenceRemplacementId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "`referenceRemplacementId` requis (ARTICLE_REMPLACANT_REQUIS)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Marque un article obsolète (RP-04).",
+        "tags": [
+          "Pièces — Articles"
+        ]
+      }
+    },
+    "/articles/{articleId}/mouvements": {
+      "get": {
+        "operationId": "MouvementController_lister",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageMouvementStockDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Historique des mouvements de stock d’un article.",
+        "tags": [
+          "Pièces — Mouvements de stock"
+        ]
+      }
+    },
+    "/articles/{articleId}/mouvements/ajustement-inventaire": {
+      "post": {
+        "operationId": "MouvementController_ajustementInventaire",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  },
+                  "quantiteCompteeMillieme": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "siteId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "siteId",
+                  "quantiteCompteeMillieme",
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MouvementAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article ou site introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Ajuste le stock physique à la quantité COMPTÉE (§7.6). `Idempotency-Key` obligatoire. Aucun mouvement créé si le compte correspond déjà au stock physique — `donnees: null`.",
+        "tags": [
+          "Pièces — Mouvements de stock"
+        ]
+      }
+    },
+    "/articles/{articleId}/mouvements/casse": {
+      "post": {
+        "operationId": "MouvementController_casse",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "forcer": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "ligneOrId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  },
+                  "quantiteMillieme": {
+                    "maximum": 9007199254740991,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "siteId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "siteId",
+                  "quantiteMillieme",
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MouvementStockDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article ou site introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "STOCK_INSUFFISANT (sans `forcer: true`), ou IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Enregistre une casse (RP-17). `Idempotency-Key` obligatoire.",
+        "tags": [
+          "Pièces — Mouvements de stock"
+        ]
+      }
+    },
+    "/articles/{articleId}/mouvements/perte": {
+      "post": {
+        "operationId": "MouvementController_perte",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "forcer": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "ligneOrId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  },
+                  "quantiteMillieme": {
+                    "maximum": 9007199254740991,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "siteId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "siteId",
+                  "quantiteMillieme",
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MouvementStockDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article ou site introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "STOCK_INSUFFISANT (sans `forcer: true`), ou IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Enregistre une perte (RP-17). `Idempotency-Key` obligatoire.",
+        "tags": [
+          "Pièces — Mouvements de stock"
+        ]
+      }
+    },
+    "/articles/{articleId}/mouvements/retour-fournisseur": {
+      "post": {
+        "operationId": "MouvementController_retourFournisseur",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "commandeFournisseurLigneId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  },
+                  "quantiteMillieme": {
+                    "maximum": 9007199254740991,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "siteId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "siteId",
+                  "quantiteMillieme",
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MouvementStockDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article ou site introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "STOCK_INSUFFISANT, ou IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Enregistre un retour au fournisseur (RP-30). `Idempotency-Key` obligatoire.",
+        "tags": [
+          "Pièces — Mouvements de stock"
+        ]
+      }
+    },
+    "/articles/{articleId}/mouvements/transfert": {
+      "post": {
+        "operationId": "MouvementController_transfert",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  },
+                  "quantiteMillieme": {
+                    "maximum": 9007199254740991,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "siteDestinationId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "siteSourceId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "siteSourceId",
+                  "siteDestinationId",
+                  "quantiteMillieme"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MouvementStockDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article ou site introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "STOCK_INSUFFISANT au site source, ou IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Transfère une quantité entre deux sites — un mouvement unique (RP-13). `Idempotency-Key` obligatoire.",
+        "tags": [
+          "Pièces — Mouvements de stock"
+        ]
+      }
+    },
+    "/articles/{articleId}/reactiver": {
+      "post": {
+        "operationId": "ArticleController_reactiver",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Réactive un article (retour à `actif` depuis `obsolete` ou `desactive`, §6.1).",
+        "tags": [
+          "Pièces — Articles"
+        ]
+      }
+    },
+    "/articles/{articleId}/references": {
+      "post": {
+        "operationId": "ArticleController_ajouterReference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "fournisseurId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "reference": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "equivalente",
+                      "remplace_par",
+                      "fournisseur"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "reference"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArticleAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "ARTICLE_REFERENCE_COLLISION — référence déjà portée par un autre article."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Ajoute ou met à jour une référence alternative (upsert sur (tenant, reference) — RP-02/RP-03).",
+        "tags": [
+          "Pièces — Articles"
+        ]
+      }
+    },
+    "/articles/{articleId}/stock/{siteId}": {
+      "patch": {
+        "operationId": "StockArticleController_modifierSite",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "siteId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "emplacement": {
+                    "anyOf": [
+                      {
+                        "maxLength": 60,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "quantiteCommandeStandardMillieme": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "stockMinimumMillieme": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockArticleDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Article ou site introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Réglages de stock d’un site (emplacement, seuils) — JAMAIS la quantité physique (RP-16→RP-18).",
+        "tags": [
+          "Pièces — Stock"
+        ]
+      }
+    },
+    "/articles/recherche-comptoir": {
+      "get": {
+        "operationId": "ArticleController_rechercheComptoir",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limite",
+            "required": false,
+            "schema": {}
+          },
+          {
+            "in": "query",
+            "name": "siteId",
+            "required": true,
+            "schema": {
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ResultatRechercheComptoirArticleDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Paramètres invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Recherche compacte pour la saisie assistée (comptoir, ligne d’OR pièce) — un seul appel donne prix, référence et disponibilité au site.",
+        "tags": [
+          "Pièces — Articles"
+        ]
+      }
+    },
     "/auth/connexion": {
       "post": {
         "description": "Email inconnu et mot de passe incorrect renvoient EXACTEMENT la même erreur 401 AUTH_IDENTIFIANTS_INVALIDES, avec un temps de réponse égalisé — ceci est un choix de sécurité délibéré (anti-énumération de comptes), pas une omission.",
@@ -10108,6 +12964,74 @@
         ]
       }
     },
+    "/documents-vente/{id}/pdf": {
+      "get": {
+        "description": "Génération paresseuse au premier appel, mise en cache (`document_vente.pdfCle`/`pdfSha256`), JAMAIS régénérée ensuite — une facture émise est immuable, son PDF aussi (DI-3). `RF-116` : la charge QR contient le montant en clair — droit dédié, distinct de `facturation.document.lire`.",
+        "operationId": "ImpressionFactureController_telechargerPdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Document introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DOCUMENT_PDF_INDISPONIBLE — le document n'est pas une facture émise."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Bulletin QR-facture au format PDF (facture émise uniquement).",
+        "tags": [
+          "Documents de vente"
+        ]
+      }
+    },
     "/documents-vente/{id}/refuser": {
       "post": {
         "operationId": "DocumentVenteTransitionsController_refuser",
@@ -10278,7 +13202,7 @@
     },
     "/exports-fiduciaires": {
       "post": {
-        "description": "Cible unique câblée dans ce lot : `winbiz` — les autres valeurs de `cible` (`bexio`/`abacus`/`banana`/`csv`) répondent `501 FONCTION_NON_DISPONIBLE`, jamais un fichier vide ou approximatif. Seul `granularite: 'detaille'` (une écriture par document, MD-88) est implémenté ; `agrege` répond le même 501. La continuité de numérotation de la série (facture/avoir, par exercice) est vérifiée de façon BLOQUANTE avant toute écriture (RF-28/RF-105, `409 EXPORT_TROU_NUMEROTATION`) : un trou ne part jamais chez la fiduciaire. Le mapping comptable du tenant (`mapping_compte`/`mapping_code_tva`) doit être COMPLET pour l'ensemble du lot, faute de quoi l'export est refusé EN BLOC, jamais partiellement (`409 EXPORT_MAPPING_INCOMPLET`, qui nomme précisément ce qui manque). `Idempotency-Key` OBLIGATOIRE (uuid v4) : un rejeu réseau ne doit jamais produire un second lot ni marquer deux fois les mêmes documents (MD-92 : un document déjà exporté ne repart dans un autre lot que par un geste explicite et tracé — un REJEU n'en est justement pas un). Réponse `200` (au lieu de `201`) si aucun document n'était candidat sur la période (`donnees.lots: []`, `donnees.documentsExportes: []`) — un résultat vide honnête, pas une erreur.",
+        "description": "Cible unique câblée dans ce lot : `winbiz` — les autres valeurs de `cible` (`bexio`/`abacus`/`banana`/`csv`) répondent `501 FONCTION_NON_DISPONIBLE`, jamais un fichier vide ou approximatif. Seul `granularite: 'detaille'` (une écriture par document PUIS une par paiement, MD-88) est implémenté ; `agrege` répond le même 501. La continuité de numérotation de la série (facture/avoir, par exercice) est vérifiée de façon BLOQUANTE avant toute écriture (RF-28/RF-105, `409 EXPORT_TROU_NUMEROTATION`) : un trou ne part jamais chez la fiduciaire — elle ne s'applique qu'aux documents, un paiement n'a pas de série. Le mapping comptable du tenant (`mapping_compte`/`mapping_code_tva`) doit être COMPLET pour l'ensemble du lot (documents ET paiements — comptes financiers par moyen de paiement, arrondi, escompte, perte), faute de quoi l'export est refusé EN BLOC, jamais partiellement (`409 EXPORT_MAPPING_INCOMPLET`, qui nomme précisément ce qui manque). Une imputation `compensation`, ou un escompte/une perte sur un document à plusieurs taux de TVA, ne sont pas construits par ce lot (`501 FONCTION_NON_DISPONIBLE` — non documentés par MD-84 §6.2, jamais devinés). `Idempotency-Key` OBLIGATOIRE (uuid v4) : un rejeu réseau ne doit jamais produire un second lot ni marquer deux fois les mêmes documents ou paiements (MD-92 : un document ou un paiement déjà exporté ne repart dans un autre lot que par un geste explicite et tracé — un REJEU n'en est justement pas un). Réponse `200` (au lieu de `201`) si rien n'était candidat sur la période (`donnees.lots: []`, `donnees.documentsExportes: []`, `donnees.paiementsExportes: []`) — un résultat vide honnête, pas une erreur.",
         "operationId": "ExportComptableController_lancer",
         "parameters": [
           {
@@ -10359,7 +13283,7 @@
                 }
               }
             },
-            "description": "Aucun document candidat sur la période."
+            "description": "Aucun document ni paiement candidat sur la période."
           },
           "201": {
             "content": {
@@ -10369,7 +13293,7 @@
                 }
               }
             },
-            "description": "Au moins un document exporté."
+            "description": "Au moins un document ou un paiement exporté."
           },
           "400": {
             "content": {
@@ -10419,7 +13343,7 @@
                 }
               }
             },
-            "description": "FONCTION_NON_DISPONIBLE — cible autre que winbiz, granularité agrege, ou lot dépassant la taille maximale WinBIZ."
+            "description": "FONCTION_NON_DISPONIBLE — cible autre que winbiz, granularité agrege, lot dépassant la taille maximale WinBIZ, ou écriture de paiement non prise en charge (imputation compensation, ou escompte/perte sur un document à plusieurs taux de TVA)."
           }
         },
         "security": [
@@ -10427,7 +13351,7 @@
             "cookie": []
           }
         ],
-        "summary": "Sélectionne les documents de vente émis et non encore exportés d'une période, produit le fichier comptable, et les marque exportés.",
+        "summary": "Sélectionne les documents de vente et les paiements émis/enregistrés et non encore exportés d'une période, produit le fichier comptable, et les marque exportés.",
         "tags": [
           "Facturation — export fiduciaire"
         ]
@@ -12176,6 +15100,232 @@
         "summary": "Enregistrement de la réponse du client (RM-81, CT-33).",
         "tags": [
           "Ordres de réparation — devis complémentaires"
+        ]
+      }
+    },
+    "/ordres-reparation/{orId}/facturer": {
+      "post": {
+        "description": "Sélection par GROUPE PAYEUR `(payeur, payeurClientId)` (RF-87, MD-62), jamais ligne par ligne. Rejouable tant que l'OR reste `termine` et qu'il reste un groupe facturable (RF-83/RF-84, facturation partielle assumée) : `ordreReparation.statut` ne passe à `facture` que lorsque cet appel traite le DERNIER groupe encore facturable. Ne crée que des BROUILLONS — l'émission reste `POST /documents-vente/{id}/emettre`.",
+        "operationId": "OrdreReparationTransitionsController_facturer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "uuid v4 — porte sur CET appel (ce sous-ensemble de groupes, ce corps exact), pas sur l’historique de facturation de l’OR.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "groupes": [
+                      {
+                        "payeur": "client"
+                      }
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "groupes": {
+                    "items": {
+                      "properties": {
+                        "payeur": {
+                          "enum": [
+                            "client",
+                            "constructeur",
+                            "assurance",
+                            "tiers"
+                          ],
+                          "type": "string"
+                        },
+                        "payeurClientId": {
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "payeur"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 20,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "inclureDemontageRefuse": {
+                    "type": "boolean"
+                  },
+                  "motifsReport": {
+                    "default": [],
+                    "items": {
+                      "allOf": [
+                        {
+                          "properties": {
+                            "payeur": {
+                              "enum": [
+                                "client",
+                                "constructeur",
+                                "assurance",
+                                "tiers"
+                              ],
+                              "type": "string"
+                            },
+                            "payeurClientId": {
+                              "anyOf": [
+                                {
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "payeur"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "properties": {
+                            "motif": {
+                              "maxLength": 500,
+                              "minLength": 3,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "motif"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "maxItems": 20,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "groupes"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeFacturationOrDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide (groupe dupliqué, payeurClientId incohérent, Idempotency-Key manquante/mal formée)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ordre de réparation, client destinataire ou tiers payeur introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "OR_TRANSITION_INTERDITE, FACTURATION_LIGNES_INDECISES, OR_FACTURATION_AUCUNE_LIGNE, CONFIRMATION_REQUISE ou IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "RF-81 : transforme les lignes `realisee` d'un OR `termine` en brouillon(s) de facture, un par groupe payeur choisi.",
+        "tags": [
+          "Ordres de réparation — transitions"
         ]
       }
     },
@@ -15508,6 +18658,18 @@
                       "kmSortieObligatoire": {
                         "type": "boolean"
                       },
+                      "plafondAvoirReceptionnaireCentimes": {
+                        "anyOf": [
+                          {
+                            "maximum": 100000000,
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
                       "plafondDefautCentimes": {
                         "maximum": 9007199254740991,
                         "minimum": 0,
@@ -15766,7 +18928,8 @@
                     ]
                   },
                   "pays": {
-                    "pattern": "^[A-Z]{2}$",
+                    "maxLength": 2,
+                    "minLength": 2,
                     "type": "string"
                   },
                   "qrIban": {
@@ -15869,7 +19032,8 @@
                 "enum": [
                   "vehicule",
                   "client",
-                  "ordre_reparation"
+                  "ordre_reparation",
+                  "document_vente"
                 ],
                 "type": "string"
               },
@@ -16589,6 +19753,247 @@
         ]
       }
     },
+    "/reservations": {
+      "get": {
+        "operationId": "ReservationController_lister",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageReservationPieceDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Vue transverse : qu’est-ce qui est réservé, pour qui, depuis quand.",
+        "tags": [
+          "Pièces — Réservations"
+        ]
+      }
+    },
+    "/reservations/{id}/liberer": {
+      "post": {
+        "operationId": "ReservationController_liberer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationPieceAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Motif manquant ou trop court."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Réservation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "RESERVATION_TRANSITION_INTERDITE — la réservation n’est plus active."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Geste explicite du magasinier ou du chef d’atelier (RP-23, 3e cas) : libère la réservation sans mouvement.",
+        "tags": [
+          "Pièces — Réservations"
+        ]
+      }
+    },
+    "/reservations/{id}/satisfaire": {
+      "post": {
+        "operationId": "ReservationController_satisfaire",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReservationPieceDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Réservation introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "RESERVATION_TRANSITION_INTERDITE — la réservation n’est plus active."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Le magasinier remet physiquement la pièce (RP-21) — génère le mouvement sortie_or.",
+        "tags": [
+          "Pièces — Réservations"
+        ]
+      }
+    },
     "/sante": {
       "get": {
         "description": "Ne vérifie aucune dépendance externe : répond tant que le process Node tourne.",
@@ -16978,6 +20383,63 @@
         "summary": "Modifie partiellement les paramètres du site.",
         "tags": [
           "Paramétrage"
+        ]
+      }
+    },
+    "/stock/reapprovisionnement": {
+      "get": {
+        "operationId": "ReapprovisionnementController_lister",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageReapprovisionnementDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "siteId manquant, filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Articles sous leur stock minimum, par site (RP-12).",
+        "tags": [
+          "Pièces — Stock"
         ]
       }
     },
@@ -19568,6 +23030,231 @@
           }
         ],
         "summary": "Clôture (fin de validité) de la plaque (RM-17).",
+        "tags": [
+          "Véhicules"
+        ]
+      }
+    },
+    "/vehicules/{vehiculeId}/travaux-reportes": {
+      "get": {
+        "description": "`montantEstimeCentimes` absent pour un rôle sans droit aux montants (ROLES_SANS_MONTANT, aujourd'hui `technicien`) — filtrage SERVEUR, même règle que `GET .../contexte-atelier`.",
+        "operationId": "VehiculeTravailReporteController_lister",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vehiculeId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReponseTravailReporteDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres ou tri invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Véhicule introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Travaux reportés du véhicule (RM-73).",
+        "tags": [
+          "Véhicules"
+        ]
+      }
+    },
+    "/vehicules/{vehiculeId}/travaux-reportes/{travailId}": {
+      "patch": {
+        "description": "UN SEUL endpoint pour l'édition libre (désignation, urgence, montant estimé) ET la transition de statut : `statut: 'repris'` clôt le travail (fait, repris au passage), `statut: 'abandonne'` l'écarte définitivement (le client a dit non). Aucun `DELETE` — RM-73 : « un travail reporté s'écarte ou se corrige, il ne se supprime pas ».",
+        "operationId": "VehiculeTravailReporteController_modifier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vehiculeId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "travailId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "statut": "abandonne"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "designation": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "montantEstimeCentimes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  },
+                  "statut": {
+                    "enum": [
+                      "ouvert",
+                      "repris",
+                      "abandonne"
+                    ],
+                    "type": "string"
+                  },
+                  "urgence": {
+                    "enum": [
+                      "urgent",
+                      "a_faire",
+                      "a_surveiller"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseTravailReporteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Travail reporté introuvable pour ce véhicule/tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Correction, clôture ou abandon d'un travail reporté (RM-73).",
         "tags": [
           "Véhicules"
         ]

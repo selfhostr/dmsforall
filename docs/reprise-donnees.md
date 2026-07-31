@@ -11,6 +11,23 @@
 > garagiste / à l'éditeur · `R-xx` = risque juridique ou contractuel.
 > Les prefixes sont distincts de ceux de la spécification étape 1 (`RM`, `CT`, `P`, `Q`) : aucune
 > collision de référence.
+>
+> ⚠️ **Vocabulaire — le mot « reprise » désigne deux choses distinctes dans ce dépôt.** Ici :
+> **reprise de données**, le sujet de ce document — faire entrer dans DFA les clients, véhicules
+> et documents d'un ancien DMS. Ailleurs (`apps/api/src/db/schema/ventes/reprise.ts`, table SQL
+> `reprise`, RV-19→RV-28) : **reprise de véhicule**, le fait qu'un garage reprenne la voiture d'un
+> client en déduction du prix d'une vente — un sous-module du dossier de vente (étape 4), sans
+> aucun rapport avec ce document. Les deux ne partagent ni table, ni colonne, ni code : la
+> confusion est seulement lexicale, mais elle s'est déjà produite une fois dans une spécification
+> de ce dépôt. Dans ce qui suit, « reprise » signifie toujours reprise de données ; toute
+> exception le précise explicitly (« reprise de véhicule »).
+>
+> **Point d'entrée du sujet** : [specification-reprise-donnees.md](specification-reprise-donnees.md)
+> — le document court, décisionnel, à jour du schéma réel (migrations `0006`→`0033`). Ce
+> document-ci reste la référence **détaillée** : méthode d'investigation complète, mapping
+> champ à champ, pièges de correspondance du terrain suisse (§11), runbook horaire du jour J
+> (§13) et zones aveugles (§14). La spécification y renvoie section par section plutôt que de
+> dupliquer son contenu.
 
 ---
 
@@ -61,13 +78,31 @@ d'investigation, le modèle cible et ses pertes structurelles, les règles de qu
 dépendent des données, pas du logiciel), l'architecture d'import (elle dépend de DFA) et le plan
 de bascule.
 
-**État du dépôt — mise à jour du 29.07.2026.** La destination n'est plus un plan : elle est en
-base. `client` et ses satellites (`0006_clients.sql`), `vehicule` et les siens
-(`0007_vehicules.sql`), `ordre_reparation` et `ligne_or` (`0008`), `document_vente`,
+**État du dépôt — mise à jour du 29.07.2026, complétée le 31.07.2026.** La destination n'est plus
+un plan : elle est en base. `client` et ses satellites (`0006_clients.sql`), `vehicule` et les
+siens (`0007_vehicules.sql`), `ordre_reparation` et `ligne_or` (`0008`), `document_vente`,
 `ligne_document`, `document_vente_tva`, `paiement` (`0010_facturation.sql`) existent, avec leurs
 contraintes, leurs triggers et leur RLS.
 
-Trois conséquences, qui changent la nature de ce document :
+**Depuis, le schéma a continué d'avancer (migrations `0011` → `0033`)** — trois faits changent
+des passages précis de ce document, signalés à leur endroit plutôt que réécrits en bloc :
+
+- **`Z-17` est résolu.** `migrations/0011_ordre_reparation_origine_reprise.sql` a ajouté
+  `origine public.origine_document not null default 'dfa'` et `numero_origine text` à
+  `ordre_reparation`, avec `ordre_reparation_origine_numero_origine_chk` et un index unique
+  partiel — **exactement** le même patron que `document_vente`. La §10.5 ci-dessous, qui décrivait
+  ce « trou », est corrigée en conséquence : l'option 1 qu'elle recommandait a été retenue.
+- **Les étapes 3 (Pièces, `0022`→`0029`), Pointage (`0030`) et 4 (Ventes VN/VO, `0031`/`0032`)
+  sont en base.** `article`/`stock_article` existent réellement pour la §2.3 (le catalogue,
+  toujours pas les quantités — `D-02`/`D-14` tiennent) ; `dossier_vente`, `vehicule_stock` et la
+  table `reprise` (reprise de **véhicule**, voir l'avertissement de vocabulaire ci-dessus)
+  existent pour l'étape 4, hors périmètre de ce document.
+- **`packages/shared/src/contrats/facturation/` existe désormais** (constantes `ORIGINES_DOCUMENT`,
+  `TYPES_DOCUMENT_VENTE`, etc.) — le commentaire « écart assumé » en tête de
+  `apps/api/src/db/schema/facturation/enums.ts` (contrat pas encore construit) ne décrit donc plus
+  l'état réel ; à faire constater par `expert-database`/`expert-facturation` s'il subsiste.
+
+Le reste — trois conséquences originales, ci-dessous — demeure valable :
 
 1. **Le mapping de la §2 n'est plus une intention, il est vérifiable.** Certaines cibles qu'il
    nommait n'existent pas sous ce nom (`numero_ide` → `ide`), d'autres sont plus contraintes que

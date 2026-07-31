@@ -12,7 +12,11 @@ import { EcranAvoir } from '@/ecrans/facturation/EcranAvoir';
 import { EcranFacturerOrdreReparation } from '@/ecrans/facturation/EcranFacturerOrdreReparation';
 import { EcranFicheFacture } from '@/ecrans/facturation/EcranFicheFacture';
 import { EcranListeFactures } from '@/ecrans/facturation/EcranListeFactures';
+import { EcranDoublonsClients } from '@/ecrans/clients/EcranDoublonsClients';
+import { EcranParametrageAtelier } from '@/ecrans/parametrage/EcranParametrageAtelier';
 import { EcranParametresFacturation } from '@/ecrans/parametrage/EcranParametresFacturation';
+import { EcranReferentiels } from '@/ecrans/parametrage/EcranReferentiels';
+import { EcranSites } from '@/ecrans/parametrage/EcranSites';
 import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
 import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
 import { EcranFicheVehicule } from '@/ecrans/vehicules/EcranFicheVehicule';
@@ -88,7 +92,49 @@ export const routesConfig: RouteObject[] = [
       { path: 'factures/:id/avoir', element: <EcranAvoir /> },
       // Singleton par tenant (bloc créancier du QR-facture) — jamais de paramètre de chemin,
       // voir `chemins.parametrage.facturation` et le commentaire de tête d'`EcranParametresFacturation`.
+      //
+      // PAS de `rolesAutorises` ici, À LA DIFFÉRENCE d'aucune route de ce fichier (voir plus bas) —
+      // décision délibérée, pas un oubli : `GET /parametres-facturation/creancier` restreint DÉJÀ
+      // la LECTURE (pas seulement l'écriture) à `direction`/`comptable`
+      // (`DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE`, `admin` explicitement exclu par RF-115).
+      // `EcranParametresFacturation.tsx` documente en tête un état dédié, volontairement conçu pour
+      // le `403` qu'`admin` y rencontre (« le 403 DROIT_INSUFFISANT qu'un admin rencontre en se
+      // connectant ici est ATTENDU et CORRECT — il reçoit donc un état dédié qui l'explique en ces
+      // termes ... que @laupernoe rencontrera en premier s'il se connecte avec le compte admin »). Ajouter
+      // `rolesAutorises` ici court-circuiterait cet écran dédié au profit du refus générique de
+      // `EcranAccesRefuse` — une régression UX pour un cas explicitement soigné par un autre agent,
+      // sans gain de sécurité (le `403` serveur protège déjà la donnée réelle). Le masquage du lien
+      // dans `BarreLaterale` (`ROLES_MENU_FINANCIER`) reste néanmoins posé, par confort.
       { path: 'parametrage/facturation', element: <EcranParametresFacturation /> },
+      // Les trois routes ci-dessous (référentiels, atelier, sites) N'ONT PAS de `rolesAutorises` —
+      // arbitrage du coordinateur (lot 2), qui a corrigé sa propre consigne initiale après lecture
+      // de ce fichier : `parametrage.referentiel.lire`/`parametrage.atelier.lire` sont accordés à
+      // TOUS les rôles authentifiés côté API (`auth/matrice-droits.ts`, `LECTURE_ETENDUE`). Une
+      // garde de route qui interdirait ce que l'API autorise ne protégerait rien — n'importe quel
+      // rôle atteint la même donnée en appelant l'API directement — et casserait un usage métier
+      // réel : le RÉCEPTIONNISTE est le rôle qui consulte LE PLUS ce référentiel (« combien coûte
+      // ce service ? » au comptoir et au téléphone), et il n'appartient pourtant à aucun groupe de
+      // gouvernance. Seule l'ÉCRITURE reste gouvernée — grisée dans chaque écran (voir
+      // `peutModifierParametrage`, `ecrans/parametrage/droits.ts`) ET refusée par le serveur, la
+      // seule barrière qui compte. Voir `droits-routes.ts` pour le détail de cet arbitrage et pour
+      // la distinction « qui peut atteindre la route » (rien ici) / « à qui on propose le lien dans
+      // le menu » (`ROLES_MENU_PARAMETRAGE_ATELIER`, ergonomie pure, dans `BarreLaterale.tsx`).
+      // `routeur.spec.tsx` verrouille cette décision : un test rougit si quelqu'un réintroduit
+      // `rolesAutorises` ici en croyant « rétablir la sécurité ».
+      { path: 'parametrage/referentiels', element: <EcranReferentiels /> },
+      { path: 'parametrage/atelier', element: <EcranParametrageAtelier /> },
+      // `EcranSites` lit `?site=` pour choisir le site à paramétrer (voir `chemins.parametrage.sites`) —
+      // même mécanisme que `clients`/`vehicules`, à la différence des deux routes précédentes (singletons
+      // par tenant). L'écran gère lui-même l'absence de `?site=` (repli honnête), pas un paramètre de
+      // chemin ici : cohérent avec `EcranNouvelOrdreReparation` plus haut.
+      { path: 'parametrage/sites', element: <EcranSites /> },
+      // `GET /doublons-clients` (RM-05) n'exige que `client.lire`, ouvert à tous les rôles
+      // authentifiés (`LECTURE_ETENDUE` dans `auth/matrice-droits.ts`) — AUCUNE restriction de rôle
+      // ici, à la différence des trois routes `parametrage/*` ci-dessus. Placé après `clients/:id`
+      // dans ce tableau par lisibilité seulement : React Router (v6) classe toujours un segment
+      // statique (`doublons`) avant un segment dynamique (`:id`), l'ordre de déclaration ne change
+      // rien à la résolution.
+      { path: 'clients/doublons', element: <EcranDoublonsClients /> },
     ],
   },
   { path: '*', element: <EcranPageIntrouvable /> },

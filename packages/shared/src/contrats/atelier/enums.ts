@@ -465,11 +465,21 @@ export type StatutPretCourtoisie = (typeof STATUTS_PRET_COURTOISIE)[number];
  *
  * Miroir exact de l'enum Postgres `entite_auditee`, dans l'ordre de sa création : les neuf
  * premières valeurs posées par `db/migrations/0003_prealables_etape1.sql` §3 (lot 1 — atelier),
- * puis les six ajoutées par `alter type ... add value` dans `db/migrations/0010_facturation.sql`
- * §2 (étape 2 — facturation, AC-25). Cette déclaration est la SEULE source de vérité côté
- * TypeScript : `apps/api/src/common/audit/audit.types.ts` la réexporte plutôt que de la
- * redéclarer, précisément pour rendre impossible la divergence qui existait avant (deux miroirs
- * de ce même enum, l'un à 9 valeurs et l'autre à 15).
+ * les six ajoutées par `alter type ... add value` dans `db/migrations/0010_facturation.sql` §2
+ * (étape 2 — facturation, AC-25), et `periode_pointage` ajoutée par
+ * `db/migrations/0030_pointage.sql` (lot 2 — pointage). Cette déclaration est la SEULE source de
+ * vérité côté TypeScript : `apps/api/src/common/audit/audit.types.ts` la réexporte plutôt que de
+ * la redéclarer, précisément pour rendre impossible la divergence qui existait avant (deux
+ * miroirs de ce même enum, l'un à 9 valeurs et l'autre à 15).
+ *
+ * `periode_pointage` — PAS `pointage` : `pointage` (déjà présent depuis 0003) audite chaque
+ * pointage individuel (démarrage, arrêt, correction, verrouillage EN LOT via le passage de statut
+ * à `verrouille`, ce dernier déjà couvert puisque c'est une transition ordinaire de la ligne).
+ * `periode_pointage` audite un objet DIFFÉRENT : l'état de verrouillage PAR SITE lui-même
+ * (`pointage_verrouillage_site`, `db/schema/pointage/verrouillage-site.ts`) — qui a avancé ou
+ * reculé le seuil, quand, avec quel motif. Sans cette valeur séparée, l'action de verrouillage/
+ * déverrouillage EN TANT QUE TELLE (RM-95, motif de la contre-passation compris) n'aurait aucune
+ * ligne d'audit propre — seul l'EFFET sur chaque pointage serait visible, pas le GESTE.
  */
 export const ENTITES_AUDITEES = [
   'ordre_reparation',
@@ -488,6 +498,11 @@ export const ENTITES_AUDITEES = [
   'export_comptable',
   'mapping_compte',
   'tenant_bloc_creancier',
+  'periode_pointage',
+  'vehicule_stock',
+  'dossier_vente',
+  'reprise',
+  'financement_vente',
 ] as const;
 export type EntiteAuditee = (typeof ENTITES_AUDITEES)[number];
 

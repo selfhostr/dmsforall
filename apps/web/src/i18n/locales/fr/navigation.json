@@ -7,7 +7,15 @@
     "clients": "Clients",
     "vehicules": "Véhicules",
     "recherche": "Recherche",
-    "factures": "Facturation"
+    "factures": "Facturation",
+    "doublonsClients": "Doublons clients",
+    "parametrageReferentiels": "Tarifs & prestations",
+    "parametrageAtelier": "Paramètres atelier",
+    "parametrageSites": "Sites",
+    "parametrageFacturation": "Coordonnées bancaires"
+  },
+  "groupes": {
+    "parametrage": "Paramétrage"
   },
   "menu": {
     "ouvrir": "Ouvrir le menu"

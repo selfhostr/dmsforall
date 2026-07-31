@@ -123,6 +123,27 @@
     },
     "score": "Score de similitude"
   },
+  "doublonsEcran": {
+    "titre": "Doublons clients",
+    "description": "Recherchez un client par nom, NPA, e-mail, téléphone ou IDE avant d'en créer un nouveau, ou pour vérifier si deux fiches désignent la même personne.",
+    "champs": {
+      "nom": "Nom ou raison sociale",
+      "npa": "NPA",
+      "email": "E-mail",
+      "telephone": "Téléphone",
+      "ide": "IDE"
+    },
+    "vide": {
+      "premier": "Saisissez au moins un critère de recherche",
+      "premierDescription": "Nom, NPA, e-mail, téléphone ou IDE — un seul critère suffit.",
+      "aucunDoublon": "Aucun doublon détecté",
+      "aucunDoublonDescription": "Aucun client existant ne correspond à ces critères."
+    },
+    "erreur": {
+      "titre": "Impossible de rechercher les doublons"
+    },
+    "resultats": "{count, plural, one {# candidat trouvé} other {# candidats trouvés}}"
+  },
   "consentements": {
     "titre": "Consentements",
     "ajouter": "Ajouter un consentement",

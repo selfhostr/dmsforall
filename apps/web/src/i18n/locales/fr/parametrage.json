@@ -44,5 +44,186 @@
       "description": "Cet écran gère les coordonnées bancaires du garage, une donnée financière sensible. Il n'est accessible qu'aux rôles Direction et Comptable — jamais au rôle Admin, qui gère les comptes utilisateurs mais ne détient aucun droit financier. Reconnectez-vous avec un compte Direction ou Comptable pour continuer.",
       "retourAccueil": "Retour à l'accueil"
     }
+  },
+  "referentiels": {
+    "titre": "Tarifs de l'atelier",
+    "introduction": "Les taux horaires et le catalogue de prestations servent à chiffrer chaque ligne d'un ordre de réparation. Sans un taux horaire ou une prestation valide, une ligne ne peut pas porter de prix.",
+    "enCours": "en cours",
+    "tauxHoraires": {
+      "onglet": "Taux horaires",
+      "explication": "Un taux horaire est une période datée : le montant appliqué à une ligne d'OR est celui valide au jour du chiffrage. Deux périodes du même code ne peuvent jamais se chevaucher.",
+      "nouveau": "Nouveau taux horaire",
+      "modifier": "Modifier le taux horaire",
+      "codeVerrouille": "Le code ne peut pas être modifié après création — il est repris sur les lignes d'OR déjà chiffrées.",
+      "valideAuLeAide": "Laissez vide si ce taux reste valide jusqu'à nouvel ordre.",
+      "erreurChevauchement": "Cette période chevauche une période déjà valide pour ce même code. Modifiez les dates ou clôturez d'abord l'ancienne période.",
+      "champs": {
+        "code": "Code",
+        "libelle": "Libellé",
+        "montant": "Montant / heure",
+        "valideDuLe": "Valide du",
+        "valideAuLe": "Valide au"
+      },
+      "vide": {
+        "titre": "Aucun taux horaire",
+        "description": "Créez au moins un taux horaire pour pouvoir chiffrer une main d'œuvre au temps réel."
+      }
+    },
+    "prestations": {
+      "onglet": "Catalogue de prestations",
+      "explication": "Les prestations sont les forfaits, pièces et lignes standard proposés au comptoir. Un changement de prix ouvre une nouvelle période — les OR déjà chiffrés gardent leur prix d'origine.",
+      "nouvelle": "Nouvelle prestation",
+      "modifier": "Modifier la prestation",
+      "codeVerrouille": "Le code ne peut pas être modifié après création.",
+      "prixTvaComprise": "Le prix saisi est TVA comprise — c'est ce qui est annoncé au comptoir.",
+      "aucunTauxHoraire": "Aucun (prix fixe)",
+      "erreurCodeExistant": "Ce code est déjà utilisé par une autre prestation de ce garage.",
+      "statutActif": "Active",
+      "statutInactif": "Inactive",
+      "champs": {
+        "code": "Code",
+        "designation": "Désignation",
+        "typeLigne": "Type de ligne",
+        "tempsBareme": "Temps barémé",
+        "prix": "Prix",
+        "tauxHoraireCode": "Taux horaire associé",
+        "tauxTva": "Taux de TVA",
+        "actif": "Prestation active"
+      },
+      "typesLigne": {
+        "main_oeuvre_bareme": "M.O. barémée",
+        "main_oeuvre_temps_reel": "M.O. temps réel",
+        "forfait": "Forfait",
+        "piece": "Pièce",
+        "fourniture": "Fourniture",
+        "sous_traitance": "Sous-traitance",
+        "produit_atelier": "Produit d'atelier",
+        "taxe": "Taxe / Élimination",
+        "remise": "Remise",
+        "texte": "Information"
+      },
+      "tauxTvaLibelles": {
+        "81": "8.1 % (taux normal)",
+        "26": "2.6 % (taux réduit)",
+        "38": "3.8 % (hébergement)",
+        "0": "0 % (exonéré)"
+      },
+      "vide": {
+        "titre": "Aucune prestation",
+        "description": "Créez votre première prestation pour l'utiliser sur les lignes d'un ordre de réparation."
+      }
+    }
+  },
+  "atelier": {
+    "titre": "Paramètres de l'atelier",
+    "lectureSeule": "Ces réglages sont réservés au chef d'atelier et à la direction. Vous pouvez les consulter mais pas les modifier.",
+    "enregistrementReussi": "Paramètres enregistrés.",
+    "or": {
+      "titre": "Ordres de réparation",
+      "prefixe": "Préfixe des numéros d'OR",
+      "porteeNumerotation": "Numérotation",
+      "porteeNumerotationValeurs": {
+        "tenant": "Une série pour tout le garage",
+        "site": "Une série par site"
+      },
+      "deuxOrMemeVehicule": "Deux OR ouverts sur le même véhicule",
+      "deuxOrMemeVehiculeValeurs": {
+        "bloquer": "Bloquer l'ouverture d'un second OR",
+        "avertir": "Avertir mais autoriser",
+        "autoriser": "Autoriser sans avertissement"
+      },
+      "resetAnnuel": "Recommencer la numérotation à 1 chaque année",
+      "etatPlanifieActif": "Utiliser l'état « Planifié » pour les OR",
+      "sansRdvAutorise": "Autoriser un OR sans rendez-vous",
+      "rdvRetroactifAuto": "Rattacher automatiquement un rendez-vous passé à l'OR"
+    },
+    "reception": {
+      "titre": "Réception",
+      "kmEntreeObligatoire": "Kilométrage d'entrée obligatoire",
+      "kmSortieObligatoire": "Kilométrage de sortie obligatoire",
+      "plafondDefautCentimes": "Plafond d'accord client par défaut",
+      "plafondDefautAide": "Au-delà de ce montant, un accord explicite du client est exigé avant toute validation payante. Laissez vide pour n'imposer aucun plafond.",
+      "signature": "Signature du client à la réception"
+    },
+    "travaux": {
+      "titre": "Travaux",
+      "uniteTemps": "Unité de temps affichée",
+      "uniteTempsValeurs": {
+        "heures_decimales": "Heures décimales (1.25 h)",
+        "unites_constructeur": "Unités constructeur (UT)"
+      },
+      "controleQualite": "Contrôle qualité avant restitution",
+      "controleQualiteValeurs": {
+        "jamais": "Jamais requis",
+        "toujours": "Toujours requis"
+      },
+      "pointage": "Réglages du pointage (arrondi, chevauchement, durée maximale)"
+    },
+    "documents": {
+      "titre": "Documents",
+      "langue": "Langue des documents remis au client",
+      "langueValeurs": {
+        "client": "Langue de correspondance du client",
+        "site": "Langue par défaut du site"
+      },
+      "mentionSecurite": "Mention de sécurité sur les documents",
+      "mentionSecuriteValeurs": {
+        "obligatoire": "Obligatoire",
+        "desactivee": "Désactivée"
+      }
+    },
+    "vehicule": {
+      "titre": "Véhicules",
+      "expertiseAlerteMois": "Alerte d'expertise (mois avant échéance)",
+      "visibiliteHistorique": "Historique visible pour un nouveau détenteur",
+      "visibiliteHistoriqueValeurs": {
+        "tout": "Tout l'historique",
+        "technique": "Historique technique uniquement",
+        "rien": "Rien"
+      }
+    },
+    "aVenir": {
+      "titre": "Fonctionnalités à venir",
+      "description": "Ces réglages existent dans le contrat de l'API mais ne sont rattachés à aucune fonctionnalité livrée pour l'instant — ils n'apparaissent donc pas comme des cases à cocher qui n'auraient aucun effet.",
+      "pasEncoreDisponible": "pas encore disponible",
+      "fonctionnalites": {
+        "facturation": "Facturation d'atelier",
+        "stockPieces": "Stock de pièces",
+        "depotPneus": "Dépôt de pneus",
+        "prets": "Véhicules de prêt"
+      }
+    },
+    "inerte": {
+      "signature": "disponible avec la capture de signature électronique, non livrée à ce jour",
+      "pointage": "disponible avec le module de pointage, non livré à ce jour"
+    }
+  },
+  "sites": {
+    "titre": "Paramètres par site",
+    "inactif": "Inactif",
+    "vide": {
+      "titre": "Aucun site",
+      "description": "Aucun site n'est encore rattaché à ce garage."
+    },
+    "horaires": {
+      "titre": "Horaires",
+      "ouverture": "Ouverture",
+      "fermeture": "Fermeture",
+      "cloturePointage": "Clôture automatique du pointage",
+      "cloturePointageAide": "Un pointage encore ouvert à cette heure est clôturé automatiquement — évite un pointage oublié qui court toute la nuit."
+    },
+    "capacite": {
+      "titre": "Capacité",
+      "champ": "Capacité horaire par jour",
+      "aide": "Somme des heures productives disponibles sur ce site en une journée, tous techniciens confondus — sert à afficher la charge du planning. Laissez vide si elle n'est pas encore connue."
+    },
+    "fermeture": {
+      "titre": "Jours de fermeture",
+      "explication": "Ces jours n'apparaissent pas comme disponibles à la planification (jours fériés, fermeture annuelle).",
+      "aucun": "Aucun jour de fermeture programmé.",
+      "retirer": "Retirer le {date}",
+      "ajouter": "Ajouter"
+    },
+    "enregistrementReussi": "Paramètres du site enregistrés."
   }
 }

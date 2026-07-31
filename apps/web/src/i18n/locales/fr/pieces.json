@@ -1,0 +1,229 @@
+{
+  "titre": "Pièces",
+  "articles": {
+    "titre": "Articles",
+    "numero": "Article {numero}",
+    "designation": "Désignation",
+    "marque": "Marque",
+    "reference": "Référence",
+    "codeBarres": "Code-barres",
+    "prix": {
+      "achat": "Prix d'achat",
+      "vente": "Prix de vente",
+      "montantTtc": "Montant TTC",
+      "ttc": "TTC"
+    },
+    "tva": "TVA",
+    "categorie": "Catégorie",
+    "categories": {
+      "piece_mecanique": "Pièce mécanique",
+      "piece_carrosserie": "Pièce carrosserie",
+      "pneu": "Pneu",
+      "lubrifiant": "Lubrifiant",
+      "produit_atelier": "Produit d'atelier",
+      "fourniture": "Fourniture"
+    },
+    "statut": "Statut",
+    "statuts": {
+      "actif": "Actif",
+      "obsolete": "Obsolète",
+      "desactive": "Désactivé"
+    },
+    "echangeStandard": "Échange standard",
+    "consigne": "Consigne",
+    "montantConsigne": "Montant de la consigne",
+    "references": {
+      "titre": "Références",
+      "principale": "Référence principale",
+      "alternatives": "Références alternatives",
+      "type": "Type",
+      "types": {
+        "equivalente": "Équivalente",
+        "remplace_par": "Remplace",
+        "fournisseur": "Fournisseur"
+      },
+      "fournisseur": "Fournisseur",
+      "ajouter": "Ajouter une référence",
+      "collision": "Cette référence est déjà utilisée par un autre article."
+    },
+    "remplacant": "Article remplaçant",
+    "actions": {
+      "ajouter": "Créer un article",
+      "modifier": "Modifier",
+      "marquerObsolete": "Marquer obsolète",
+      "desactiver": "Désactiver",
+      "reactiver": "Réactiver"
+    },
+    "vide": "Aucun article."
+  },
+  "stock": {
+    "titre": "Stock",
+    "site": "Site",
+    "quantites": {
+      "physique": "Quantité physique",
+      "reservee": "Quantité réservée",
+      "disponible": "Quantité disponible",
+      "commandee": "Quantité commandée",
+      "minimum": "Stock minimum",
+      "commande": "Quantité de commande standard",
+      "emplacement": "Emplacement"
+    },
+    "mouvements": {
+      "titre": "Historique des mouvements",
+      "type": "Type",
+      "types": {
+        "entree_livraison": "Entrée - Livraison",
+        "sortie_or": "Sortie - OR",
+        "sortie_comptoir": "Sortie - Comptoir",
+        "retour_fournisseur": "Retour fournisseur",
+        "retour_client": "Retour client",
+        "transfert": "Transfert",
+        "ajustement_inventaire": "Ajustement inventaire",
+        "casse": "Casse",
+        "perte": "Perte",
+        "retour_consigne": "Retour consigne"
+      },
+      "quantite": "Quantité",
+      "auteur": "Auteur",
+      "repriseDonnees": "Reprise de données",
+      "motif": "Motif",
+      "date": "Date",
+      "prixAchat": "Prix d'achat réel",
+      "actions": {
+        "creerCasse": "Signaler une casse",
+        "creerPerte": "Signaler une perte",
+        "creerTransfert": "Créer un transfert",
+        "creerAjustement": "Créer un ajustement"
+      },
+      "siteSource": "Site source",
+      "siteDestination": "Site destination",
+      "vide": "Aucun mouvement."
+    },
+    "reapprovisionnement": {
+      "titre": "Réapprovisionnement",
+      "ecart": "Écart",
+      "actions": {
+        "commander": "Commander"
+      },
+      "vide": "Aucun article à réapprovisionner."
+    }
+  },
+  "reservations": {
+    "titre": "Réservations",
+    "statut": "Statut",
+    "statuts": {
+      "active": "Active",
+      "satisfaite": "Satisfaite",
+      "liberee": "Libérée"
+    },
+    "article": "Article",
+    "quantite": "Quantité",
+    "ordreReparation": "Ordre de réparation",
+    "ligne": "Ligne",
+    "client": "Client",
+    "creeLe": "Créée le",
+    "satisfaiteLe": "Satisfaite le",
+    "libereeLe": "Libérée le",
+    "motifLiberation": "Motif de libération",
+    "motifsLiberation": {
+      "annulation_ligne": "Annulation de ligne",
+      "refus_devis": "Refus devis",
+      "liberation_manuelle": "Libération manuelle"
+    },
+    "actions": {
+      "satisfaire": "Satisfaire",
+      "liberer": "Libérer"
+    },
+    "disponibilite": {
+      "titre": "Disponibilité",
+      "quantitePhysique": "Quantité physique",
+      "quantiteDisponible": "Quantité disponible",
+      "reservationsActives": "Réservations actives"
+    },
+    "vide": "Aucune réservation."
+  },
+  "commandes": {
+    "titre": "Commandes fournisseur",
+    "numero": "Commande {numero}",
+    "statut": "Statut",
+    "statuts": {
+      "brouillon": "Brouillon",
+      "envoyee": "Envoyée",
+      "partiellement_recue": "Partiellement reçue",
+      "recue": "Reçue",
+      "cloturee": "Clôturée",
+      "annulee": "Annulée"
+    },
+    "origine": "Origine",
+    "origines": {
+      "manuelle": "Manuelle",
+      "reservation_rupture": "Rupture de réservation",
+      "reapprovisionnement": "Réapprovisionnement"
+    },
+    "fournisseur": "Fournisseur",
+    "site": "Site",
+    "dateCommande": "Date de commande",
+    "envoyeeLe": "Envoyée le",
+    "reference": "Référence fournisseur",
+    "lignes": {
+      "titre": "Lignes",
+      "article": "Article",
+      "quantiteCommandee": "Quantité commandée",
+      "quantiteRecue": "Quantité reçue",
+      "quantiteReliquat": "Reliquat",
+      "prixAchatAttendu": "Prix d'achat attendu",
+      "prixAchatReel": "Prix d'achat réel",
+      "motif": "Motif"
+    },
+    "actions": {
+      "creer": "Créer une commande",
+      "envoyer": "Envoyer",
+      "receptionner": "Enregistrer une réception",
+      "annulerReliquat": "Annuler le reliquat",
+      "annuler": "Annuler la commande"
+    },
+    "reception": {
+      "titre": "Réception",
+      "referenceLibellee": "Référence livrée",
+      "ecart": "Écart détecté — référence différente"
+    },
+    "vide": "Aucune commande."
+  },
+  "consignes": {
+    "titre": "Consignes d'échange standard",
+    "statut": "Statut",
+    "statuts": {
+      "deposee_par_client": "Déposée par le client",
+      "en_attente_retour_fournisseur": "En attente de retour",
+      "retournee_fournisseur": "Retournée au fournisseur"
+    },
+    "article": "Article",
+    "montant": "Montant",
+    "montantConsigne": "Montant de la consigne",
+    "ordreReparation": "Ordre de réparation",
+    "ligne": "Ligne",
+    "creeLe": "Créée le",
+    "retourneeLe": "Retournée le",
+    "actions": {
+      "marquerRetour": "Marquer comme retournée"
+    },
+    "anciennes": {
+      "titre": "Consignes non soldées",
+      "anciennete": "Ancienneté minimale (jours)",
+      "description": "Consignes créées depuis au moins {jours} {jours, plural, one {jour} other {jours}}"
+    },
+    "vide": "Aucune consigne."
+  },
+  "fournisseurs": {
+    "titre": "Fournisseurs",
+    "statut": "Statut",
+    "statuts": {
+      "actif": "Actif",
+      "inactif": "Inactif"
+    },
+    "nom": "Nom",
+    "contact": "Contact",
+    "coordonnees": "Coordonnées",
+    "vide": "Aucun fournisseur."
+  }
+}

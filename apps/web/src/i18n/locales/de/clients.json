@@ -123,6 +123,27 @@
     },
     "score": "Ähnlichkeitswert"
   },
+  "doublonsEcran": {
+    "titre": "Kundendubletten",
+    "description": "Suchen Sie einen Kunden nach Name, PLZ, E-Mail, Telefon oder UID, bevor Sie einen neuen erstellen, oder prüfen Sie, ob zwei Karten dieselbe Person betreffen.",
+    "champs": {
+      "nom": "Name oder Firmenname",
+      "npa": "PLZ",
+      "email": "E-Mail",
+      "telephone": "Telefon",
+      "ide": "UID"
+    },
+    "vide": {
+      "premier": "Geben Sie mindestens ein Suchkriterium ein",
+      "premierDescription": "Name, PLZ, E-Mail, Telefon oder UID — ein Kriterium genügt.",
+      "aucunDoublon": "Keine Dublette erkannt",
+      "aucunDoublonDescription": "Kein bestehender Kunde entspricht diesen Kriterien."
+    },
+    "erreur": {
+      "titre": "Dubletten konnten nicht gesucht werden"
+    },
+    "resultats": "{count, plural, one {# Treffer} other {# Treffer}}"
+  },
   "consentements": {
     "titre": "Genehmigungen",
     "ajouter": "Genehmigung hinzufügen",

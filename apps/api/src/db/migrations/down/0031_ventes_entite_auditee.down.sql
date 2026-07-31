@@ -1,0 +1,8 @@
+-- =============================================================================================
+-- 0031_ventes_entite_auditee.down.sql — inverse de 0031_ventes_entite_auditee.sql.
+--
+-- INTENTIONNELLEMENT VIDE : la montante n'a fait qu'une chose, quatre fois, `ALTER TYPE ... ADD
+-- VALUE`, que PostgreSQL n'offre aucun moyen de défaire (pas de DROP VALUE). Rien d'autre n'a été
+-- créé dans cette migration — aucune table, aucun trigger, aucun privilège — donc rien d'autre à
+-- annuler ici. Voir l'en-tête de la montante pour la preuve détaillée.
+-- =============================================================================================

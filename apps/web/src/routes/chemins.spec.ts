@@ -22,6 +22,10 @@ describe('chemins.clients', () => {
   it('construit le chemin de fusion', () => {
     expect(chemins.clients.fusion('abc-123', 'site-1')).toBe('/clients/abc-123/fusion?site=site-1');
   });
+
+  it('construit le chemin des doublons, sans aucun paramètre (RM-05 n’est pas scopé par site)', () => {
+    expect(chemins.clients.doublons()).toBe('/clients/doublons');
+  });
 });
 
 describe('chemins.vehicules', () => {
@@ -39,5 +43,18 @@ describe('chemins.vehicules', () => {
 describe('chemins.parametrage', () => {
   it('construit le chemin du bloc créancier, singleton par tenant — jamais de `?site=`', () => {
     expect(chemins.parametrage.facturation()).toBe('/parametrage/facturation');
+  });
+
+  it('construit le chemin des référentiels (taux horaires, prestations), singleton par tenant', () => {
+    expect(chemins.parametrage.referentiels()).toBe('/parametrage/referentiels');
+  });
+
+  it('construit le chemin du paramétrage atelier, singleton par tenant', () => {
+    expect(chemins.parametrage.atelier()).toBe('/parametrage/atelier');
+  });
+
+  it('construit le chemin des sites en conservant le site sélectionné (scopé, à la différence des autres entrées de paramétrage)', () => {
+    expect(chemins.parametrage.sites()).toBe('/parametrage/sites');
+    expect(chemins.parametrage.sites('site-1')).toBe('/parametrage/sites?site=site-1');
   });
 });

@@ -1,0 +1,229 @@
+{
+  "titre": "Teile",
+  "articles": {
+    "titre": "Artikel",
+    "numero": "Artikel {numero}",
+    "designation": "Bezeichnung",
+    "marque": "Marke",
+    "reference": "Referenz",
+    "codeBarres": "Strichcode",
+    "prix": {
+      "achat": "Einkaufspreis",
+      "vente": "Verkaufspreis",
+      "montantTtc": "Betrag inkl. Mwst.",
+      "ttc": "inkl. Mwst."
+    },
+    "tva": "Mwst.",
+    "categorie": "Kategorie",
+    "categories": {
+      "piece_mecanique": "Motorenteil",
+      "piece_carrosserie": "Karosserieteil",
+      "pneu": "Reifen",
+      "lubrifiant": "Schmierstoff",
+      "produit_atelier": "Werkstattprodukt",
+      "fourniture": "Betriebsmaterial"
+    },
+    "statut": "Status",
+    "statuts": {
+      "actif": "Aktiv",
+      "obsolete": "Veraltet",
+      "desactive": "Deaktiviert"
+    },
+    "echangeStandard": "Austauschteil",
+    "consigne": "Pfand",
+    "montantConsigne": "Pfandbetrag",
+    "references": {
+      "titre": "Referenzen",
+      "principale": "Hauptreferenz",
+      "alternatives": "Alternativreferenzen",
+      "type": "Typ",
+      "types": {
+        "equivalente": "Gleichwertig",
+        "remplace_par": "Ersetzt durch",
+        "fournisseur": "Lieferant"
+      },
+      "fournisseur": "Lieferant",
+      "ajouter": "Referenz hinzufügen",
+      "collision": "Diese Referenz wird bereits von einem anderen Artikel verwendet."
+    },
+    "remplacant": "Ersatzartikel",
+    "actions": {
+      "ajouter": "Artikel erstellen",
+      "modifier": "Ändern",
+      "marquerObsolete": "Als veraltet markieren",
+      "desactiver": "Deaktivieren",
+      "reactiver": "Reaktivieren"
+    },
+    "vide": "Keine Artikel."
+  },
+  "stock": {
+    "titre": "Lagerbestand",
+    "site": "Ort",
+    "quantites": {
+      "physique": "Physischer Bestand",
+      "reservee": "Reservierte Menge",
+      "disponible": "Verfügbare Menge",
+      "commandee": "Bestellte Menge",
+      "minimum": "Mindestbestand",
+      "commande": "Standardbestellmenge",
+      "emplacement": "Lagerplatz"
+    },
+    "mouvements": {
+      "titre": "Bewegungsverlauf",
+      "type": "Typ",
+      "types": {
+        "entree_livraison": "Eingang - Lieferung",
+        "sortie_or": "Ausgang - RA",
+        "sortie_comptoir": "Ausgang - Theke",
+        "retour_fournisseur": "Rückgabe Lieferant",
+        "retour_client": "Rückgabe Kunde",
+        "transfert": "Umlagerung",
+        "ajustement_inventaire": "Inventurabgleich",
+        "casse": "Bruch",
+        "perte": "Verlust",
+        "retour_consigne": "Pfand-Rückgabe"
+      },
+      "quantite": "Menge",
+      "auteur": "Autor",
+      "repriseDonnees": "Datenübertragung",
+      "motif": "Grund",
+      "date": "Datum",
+      "prixAchat": "Tatsächlicher Einkaufspreis",
+      "actions": {
+        "creerCasse": "Bruch erfassen",
+        "creerPerte": "Verlust erfassen",
+        "creerTransfert": "Umlagerung erstellen",
+        "creerAjustement": "Abgleich erstellen"
+      },
+      "siteSource": "Herkunftsort",
+      "siteDestination": "Zielort",
+      "vide": "Keine Bewegungen."
+    },
+    "reapprovisionnement": {
+      "titre": "Nachbestellung",
+      "ecart": "Differenz",
+      "actions": {
+        "commander": "Bestellen"
+      },
+      "vide": "Keine Nachbestellungen erforderlich."
+    }
+  },
+  "reservations": {
+    "titre": "Reservierungen",
+    "statut": "Status",
+    "statuts": {
+      "active": "Aktiv",
+      "satisfaite": "Erfüllt",
+      "liberee": "Freigegeben"
+    },
+    "article": "Artikel",
+    "quantite": "Menge",
+    "ordreReparation": "Reparaturauftrag",
+    "ligne": "Position",
+    "client": "Kunde",
+    "creeLe": "Erstellt am",
+    "satisfaiteLe": "Erfüllt am",
+    "libereeLe": "Freigegeben am",
+    "motifLiberation": "Freigabegrund",
+    "motifsLiberation": {
+      "annulation_ligne": "Positionsannullierung",
+      "refus_devis": "Kostenvoranschlag abgelehnt",
+      "liberation_manuelle": "Manuelle Freigabe"
+    },
+    "actions": {
+      "satisfaire": "Erfüllen",
+      "liberer": "Freigeben"
+    },
+    "disponibilite": {
+      "titre": "Verfügbarkeit",
+      "quantitePhysique": "Physischer Bestand",
+      "quantiteDisponible": "Verfügbare Menge",
+      "reservationsActives": "Aktive Reservierungen"
+    },
+    "vide": "Keine Reservierungen."
+  },
+  "commandes": {
+    "titre": "Lieferantenbestellungen",
+    "numero": "Bestellung {numero}",
+    "statut": "Status",
+    "statuts": {
+      "brouillon": "Entwurf",
+      "envoyee": "Gesendet",
+      "partiellement_recue": "Teilweise erhalten",
+      "recue": "Erhalten",
+      "cloturee": "Geschlossen",
+      "annulee": "Storniert"
+    },
+    "origine": "Herkunft",
+    "origines": {
+      "manuelle": "Manuell",
+      "reservation_rupture": "Bestandslücke",
+      "reapprovisionnement": "Nachbestellung"
+    },
+    "fournisseur": "Lieferant",
+    "site": "Ort",
+    "dateCommande": "Bestelldatum",
+    "envoyeeLe": "Gesendet am",
+    "reference": "Lieferantenreferenz",
+    "lignes": {
+      "titre": "Positionen",
+      "article": "Artikel",
+      "quantiteCommandee": "Bestellte Menge",
+      "quantiteRecue": "Erhaltene Menge",
+      "quantiteReliquat": "Offene Menge",
+      "prixAchatAttendu": "Erwarteter Einkaufspreis",
+      "prixAchatReel": "Tatsächlicher Einkaufspreis",
+      "motif": "Grund"
+    },
+    "actions": {
+      "creer": "Bestellung erstellen",
+      "envoyer": "Senden",
+      "receptionner": "Empfang erfassen",
+      "annulerReliquat": "Offene Menge stornieren",
+      "annuler": "Bestellung stornieren"
+    },
+    "reception": {
+      "titre": "Empfang",
+      "referenceLibellee": "Gelieferte Referenz",
+      "ecart": "Abweichung erkannt — andere Referenz"
+    },
+    "vide": "Keine Bestellungen."
+  },
+  "consignes": {
+    "titre": "Austausch-Pfänder",
+    "statut": "Status",
+    "statuts": {
+      "deposee_par_client": "Vom Kunden hinterlegt",
+      "en_attente_retour_fournisseur": "Rückgabe erwartet",
+      "retournee_fournisseur": "An Lieferant zurückgesendet"
+    },
+    "article": "Artikel",
+    "montant": "Betrag",
+    "montantConsigne": "Pfandbetrag",
+    "ordreReparation": "Reparaturauftrag",
+    "ligne": "Position",
+    "creeLe": "Erstellt am",
+    "retourneeLe": "Zurückgesendet am",
+    "actions": {
+      "marquerRetour": "Als zurückgesendet markieren"
+    },
+    "anciennes": {
+      "titre": "Unbezahlte Pfänder",
+      "anciennete": "Mindestalter (Tage)",
+      "description": "Pfänder, die seit mindestens {jours} {jours, plural, one {Tag} other {Tagen}} besteht"
+    },
+    "vide": "Keine Pfänder."
+  },
+  "fournisseurs": {
+    "titre": "Lieferanten",
+    "statut": "Status",
+    "statuts": {
+      "actif": "Aktiv",
+      "inactif": "Inaktiv"
+    },
+    "nom": "Name",
+    "contact": "Kontakt",
+    "coordonnees": "Koordinaten",
+    "vide": "Keine Lieferanten."
+  }
+}

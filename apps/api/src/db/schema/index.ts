@@ -20,3 +20,5 @@ export * from './journal-securite';
 export * from './atelier';
 export * from './facturation';
 export * from './pieces';
+export * from './pointage';
+export * from './ventes';

@@ -19,6 +19,7 @@ import { DbModule } from './db/db.module';
 import { FacturationModule } from './facturation/facturation.module';
 import { ImpressionModule } from './facturation/impression/impression.module';
 import { ParametrageModule } from './parametrage/parametrage.module';
+import { PiecesModule } from './pieces/pieces.module';
 import { RechercheModule } from './recherche/recherche.module';
 import { SanteModule } from './sante';
 import { SocleModule } from './socle';
@@ -46,6 +47,7 @@ export class AppModule implements NestModule {
         VehiculesModule,
         RechercheModule,
         AtelierModule,
+        PiecesModule,
         FacturationModule,
         // `ImpressionModule` (GET /documents-vente/{id}/pdf) importe `FacturationModule` lui-même
         // (pour `ServiceDocumentsVente`, exporté) plutôt que l'inverse — `FacturationModule` important

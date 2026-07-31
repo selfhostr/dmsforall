@@ -7,7 +7,15 @@
     "clients": "Clienti",
     "vehicules": "Veicoli",
     "recherche": "Ricerca",
-    "factures": "Fatturazione"
+    "factures": "Fatturazione",
+    "doublonsClients": "Clienti duplicati",
+    "parametrageReferentiels": "Tariffe e prestazioni",
+    "parametrageAtelier": "Impostazioni officina",
+    "parametrageSites": "Sedi",
+    "parametrageFacturation": "Coordinate bancarie"
+  },
+  "groupes": {
+    "parametrage": "Impostazioni"
   },
   "menu": {
     "ouvrir": "Apri menu"

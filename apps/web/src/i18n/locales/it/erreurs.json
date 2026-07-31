@@ -123,7 +123,19 @@
     "RECEPTION_REFERENCE_NON_EQUIVALENTE": "Questo riferimento non è riconosciuto come equivalente a quello ordinato.",
     "CONSIGNE_TRANSITION_INTERDITE": "Questa cauzione non è più in uno stato che consente questa azione.",
     "POINTAGE_PIN_INVALIDE": "Codice PIN non riconosciuto. Verificare il codice e riprovare.",
-    "POINTAGE_PIN_VERROUILLE": "Codice PIN temporaneamente bloccato. Contatta il responsabile dell'officina per continuare."
+    "POINTAGE_PIN_VERROUILLE": "Codice PIN temporaneamente bloccato. Contatta il responsabile dell'officina per continuare.",
+    "VENTE_VEHICULE_STOCK_DEJA_EXISTANT": "Questo veicolo è già in giacenza. Controlla le informazioni del veicolo.",
+    "VENTE_DOSSIER_TRANSITION_INTERDITE": "Questo fascicolo di vendita non può cambiare stato in questo stato.",
+    "VENTE_REPRISE_TRANSITION_INTERDITE": "Questa permuta non può cambiare stato in questo stato.",
+    "VENTE_FINANCEMENT_TRANSITION_INTERDITE": "Questo finanziamento non può cambiare stato in questo stato.",
+    "VENTE_VEHICULE_INDISPONIBLE": "Questo veicolo non è attualmente disponibile.",
+    "VENTE_VEHICULE_MANQUANT": "Questo veicolo non è stato trovato. Verifica il numero di telaio o la targa.",
+    "VENTE_FINANCEMENT_NON_CONFIRME": "Il finanziamento non è stato confermato dall'istituto di credito.",
+    "VENTE_LIVRAISON_EXPERTISE_REQUISE": "Il veicolo deve essere sottoposto a collaudo (MFK) prima della consegna.",
+    "VENTE_LIVRAISON_INCOMPLETE": "Tutti i documenti di consegna devono essere completati.",
+    "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE": "Questo fascicolo di vendita non può essere annullato in questo stato.",
+    "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE": "Il valore negoziato della permuta deve essere indicato.",
+    "VENTE_REPRISE_DEJA_EXISTANTE": "Una permuta esiste già per questo fascicolo di vendita."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Crea preventivo supplementare",

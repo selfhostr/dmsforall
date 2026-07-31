@@ -27,15 +27,33 @@ export const chemins = {
     nouveau: (site?: string) => construireChemin('/clients/nouveau', { site }),
     detail: (id: string, site?: string) => construireChemin(`/clients/${id}`, { site }),
     fusion: (id: string, site?: string) => construireChemin(`/clients/${id}/fusion`, { site }),
+    /** `GET /doublons-clients` (RM-05) n'accepte aucun paramètre `site` — c'est une recherche par
+     *  critères (nom, NPA, email, téléphone, IDE) saisis dans l'écran, pas un listing scopé par
+     *  site comme `liste` ci-dessus (voir `schemaParametresDoublonsClients`,
+     *  `packages/shared/src/contrats/atelier/client.ts`). Chemin littéral `/clients/doublons`, PAS
+     *  à la racine comme l'API (`/doublons-clients`) : côté web, React Router (v6) classe toujours
+     *  un segment statique (`doublons`) avant un segment dynamique (`:id`) quelle que soit l'ordre
+     *  de déclaration des routes — la contrainte qui a placé l'endpoint API à la racine ne
+     *  s'applique pas ici, et `/clients/doublons` reste l'URL la plus lisible pour un outil
+     *  contextuel à la gestion des clients.
+     */
+    doublons: () => '/clients/doublons',
   },
   vehicules: {
     liste: (site?: string) => construireChemin('/vehicules', { site }),
     nouveau: (site?: string) => construireChemin('/vehicules/nouveau', { site }),
     detail: (id: string, site?: string) => construireChemin(`/vehicules/${id}`, { site }),
   },
-  /** Paramétrage — singletons par TENANT, jamais par site (contrairement à `clients`/
-   *  `vehicules` ci-dessus) : pas de `?site=` à conserver ici. */
+  /** Paramétrage — singletons par TENANT (facturation, référentiels, atelier), jamais par site :
+   *  pas de `?site=` à conserver pour ceux-là (contrairement à `clients`/`vehicules` ci-dessus).
+   *  `sites` est la seule exception du groupe : `GET|PATCH /sites/{siteId}/parametres-atelier`
+   *  (capacité, heures d'ouverture, clôture du pointage) est réellement scopé par site — l'écran
+   *  y sélectionne le site à paramétrer via `?site=`, même mécanisme que `clients`/`vehicules`.
+   */
   parametrage: {
     facturation: () => '/parametrage/facturation',
+    referentiels: () => '/parametrage/referentiels',
+    atelier: () => '/parametrage/atelier',
+    sites: (site?: string) => construireChemin('/parametrage/sites', { site }),
   },
 } as const;

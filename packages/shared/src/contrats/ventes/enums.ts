@@ -31,10 +31,14 @@ export const PROVENANCES_VEHICULE_STOCK = [
 export type ProvenanceVehiculeStock = (typeof PROVENANCES_VEHICULE_STOCK)[number];
 
 /**
- * `statut_commercial_vehicule` — **GELÉ** (même patron que `statut_ordre_reparation`,
- * `RV-09`) : machine à états à cinq positions, diagramme §6.1 de la spécification. **Les
- * transitions vivent dans une table côté serveur, pas dans ce type** — un client lit
- * `actionsDisponibles` sur `ReponseVehiculeStock`, il ne déduit rien de cet enum seul.
+ * Type PG **`statut_vehicule_stock`** (CORRIGÉ — la table qui porte ce statut est
+ * `vehicule_stock`, et le dispositif générique de machine à états exige `statut_<table>` ;
+ * `statut_commercial_vehicule`, écrit ici dans une version antérieure, ne correspond à aucune
+ * table réelle et cassait `apps/api/src/db/schema/ventes/enums.ts`, signalé par l'agent schéma
+ * binôme lors de l'écriture de `migrations/0032_ventes.sql`) — **GELÉ** (même patron que
+ * `statut_ordre_reparation`, `RV-09`) : machine à états à cinq positions, diagramme §6.1 de la
+ * spécification. **Les transitions vivent dans une table côté serveur, pas dans ce type** — un
+ * client lit `actionsDisponibles` sur `ReponseVehiculeStock`, il ne déduit rien de cet enum seul.
  *
  * Distinct de `statut_vehicule` (`actif`/`archive`, étape 1) : ce statut est propre à la vente,
  * il ne le remplace pas (`RV-09`, dernière phrase).
@@ -126,7 +130,9 @@ export const TYPES_FINANCEMENT_VENTE = ['comptant', 'credit', 'leasing'] as cons
 export type TypeFinancementVente = (typeof TYPES_FINANCEMENT_VENTE)[number];
 
 /**
- * `statut_confirmation_financement` — **GELÉ** (`CV-03`). `comptant` est créé directement
+ * Type PG **`statut_financement_vente`** (CORRIGÉ — la table est `financement_vente`, même
+ * raison qu'au-dessus pour `STATUTS_COMMERCIAUX_VEHICULE` ; `statut_confirmation_financement` ne
+ * correspond à aucune table réelle) — **GELÉ** (`CV-03`). `comptant` est créé directement
  * `confirme` (aucune confirmation tierce n'a de sens, `RV-44`) ; `credit`/`leasing` démarrent
  * `en_attente`.
  */

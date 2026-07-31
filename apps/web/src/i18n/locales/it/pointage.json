@@ -57,7 +57,8 @@
       "chevauchement": "Sovrapposizione",
       "periodeVerrouillee": "Periodo bloccato",
       "orFacture": "Ordine fatturato",
-      "ligneNonPointable": "Lavoro non timbrabile"
+      "ligneNonPointable": "Lavoro non timbrabile",
+      "deriveHorloge": "Orologio disallineato"
     },
     "corbeille": "Mostra cestino",
     "corriger": "Da correggere"

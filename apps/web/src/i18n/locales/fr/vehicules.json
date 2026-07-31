@@ -136,7 +136,40 @@
     },
     "montant": "Montant estimé",
     "date": "Date",
-    "km": "Km du jour"
+    "km": "Km du jour",
+    "onglets": {
+      "ouverts": "Ouverts",
+      "repris": "Repris",
+      "abandonnes": "Abandonnés",
+      "tous": "Tous"
+    },
+    "statuts": {
+      "ouvert": "Ouvert",
+      "repris": "Repris",
+      "abandonne": "Abandonné"
+    },
+    "actions": {
+      "corriger": "Corriger",
+      "reprendre": "Marquer comme repris",
+      "abandonner": "Abandonner",
+      "enregistrer": "Enregistrer"
+    },
+    "dialogue": {
+      "corrigerTitre": "Corriger le travail reporté",
+      "designation": "Désignation",
+      "reprendreTitre": "Marquer ce travail comme repris ?",
+      "reprendreDescription": "Le client a accepté ce travail : il n'apparaîtra plus dans les travaux à proposer.",
+      "abandonnerTitre": "Abandonner ce travail reporté ?",
+      "abandonnerDescription": "Le client a refusé ce travail. Il n'apparaîtra plus dans les travaux à proposer, mais reste consultable dans l'historique.",
+      "erreurValidation": "Vérifiez la désignation et l'urgence saisies."
+    },
+    "vide": {
+      "aucun": "Aucun travail reporté pour ce véhicule.",
+      "onglet": "Aucun élément dans cet onglet."
+    },
+    "erreur": {
+      "titre": "Impossible de charger les travaux reportés"
+    }
   },
   "donnees": {
     "titre": "Données d'atelier",

@@ -136,7 +136,40 @@
     },
     "montant": "Importo stimato",
     "date": "Data",
-    "km": "Km del giorno"
+    "km": "Km del giorno",
+    "onglets": {
+      "ouverts": "Aperti",
+      "repris": "Ripresi",
+      "abandonnes": "Abbandonati",
+      "tous": "Tutti"
+    },
+    "statuts": {
+      "ouvert": "Aperto",
+      "repris": "Ripreso",
+      "abandonne": "Abbandonato"
+    },
+    "actions": {
+      "corriger": "Correggi",
+      "reprendre": "Segna come ripreso",
+      "abandonner": "Abbandona",
+      "enregistrer": "Salva"
+    },
+    "dialogue": {
+      "corrigerTitre": "Correggi il lavoro rinviato",
+      "designation": "Descrizione",
+      "reprendreTitre": "Segnare questo lavoro come ripreso?",
+      "reprendreDescription": "Il cliente ha accettato questo lavoro: non comparirà più tra i lavori da riproporre.",
+      "abandonnerTitre": "Abbandonare questo lavoro rinviato?",
+      "abandonnerDescription": "Il cliente ha rifiutato questo lavoro. Non comparirà più tra i lavori da riproporre, ma resta consultabile nello storico.",
+      "erreurValidation": "Verifica la descrizione e la priorità inserite."
+    },
+    "vide": {
+      "aucun": "Nessun lavoro rinviato per questo veicolo.",
+      "onglet": "Nessun elemento in questa scheda."
+    },
+    "erreur": {
+      "titre": "Impossibile caricare i lavori rinviati"
+    }
   },
   "donnees": {
     "titre": "Dati officina",

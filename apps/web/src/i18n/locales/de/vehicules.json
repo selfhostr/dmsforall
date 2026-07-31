@@ -136,7 +136,40 @@
     },
     "montant": "Geschätzter Betrag",
     "date": "Datum",
-    "km": "Km damals"
+    "km": "Km damals",
+    "onglets": {
+      "ouverts": "Offen",
+      "repris": "Übernommen",
+      "abandonnes": "Verworfen",
+      "tous": "Alle"
+    },
+    "statuts": {
+      "ouvert": "Offen",
+      "repris": "Übernommen",
+      "abandonne": "Verworfen"
+    },
+    "actions": {
+      "corriger": "Korrigieren",
+      "reprendre": "Als übernommen markieren",
+      "abandonner": "Verwerfen",
+      "enregistrer": "Speichern"
+    },
+    "dialogue": {
+      "corrigerTitre": "Zurückgestellte Arbeit korrigieren",
+      "designation": "Bezeichnung",
+      "reprendreTitre": "Diese Arbeit als übernommen markieren?",
+      "reprendreDescription": "Der Kunde hat dieser Arbeit zugestimmt: Sie erscheint nicht mehr unter den vorzuschlagenden Arbeiten.",
+      "abandonnerTitre": "Diese zurückgestellte Arbeit verwerfen?",
+      "abandonnerDescription": "Der Kunde hat diese Arbeit abgelehnt. Sie erscheint nicht mehr unter den vorzuschlagenden Arbeiten, bleibt aber im Verlauf einsehbar.",
+      "erreurValidation": "Bezeichnung und Priorität prüfen."
+    },
+    "vide": {
+      "aucun": "Keine zurückgestellte Arbeit für dieses Fahrzeug.",
+      "onglet": "Kein Eintrag in diesem Tab."
+    },
+    "erreur": {
+      "titre": "Zurückgestellte Arbeiten konnten nicht geladen werden"
+    }
   },
   "donnees": {
     "titre": "Werkstattdaten",

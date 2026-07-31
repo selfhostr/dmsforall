@@ -44,5 +44,186 @@
       "description": "Questa schermata gestisce le coordinate bancarie dell'officina, un dato finanziario sensibile. È accessibile solo ai ruoli Direzione e Contabilità — mai al ruolo Admin, che gestisce gli account utente ma non dispone di alcun diritto finanziario. Accedi nuovamente con un account Direzione o Contabilità per continuare.",
       "retourAccueil": "Torna alla home"
     }
+  },
+  "referentiels": {
+    "titre": "Tariffe dell'officina",
+    "introduction": "Le tariffe orarie e il catalogo prestazioni servono a valorizzare ogni riga di un ordine di riparazione. Senza una tariffa oraria o una prestazione valida, una riga non può avere un prezzo.",
+    "enCours": "in corso",
+    "tauxHoraires": {
+      "onglet": "Tariffe orarie",
+      "explication": "Una tariffa oraria è un periodo datato: l'importo applicato a una riga dell'ordine è quello valido il giorno della valorizzazione. Due periodi dello stesso codice non possono mai sovrapporsi.",
+      "nouveau": "Nuova tariffa oraria",
+      "modifier": "Modifica tariffa oraria",
+      "codeVerrouille": "Il codice non può essere modificato dopo la creazione — viene ripreso sulle righe d'ordine già valorizzate.",
+      "valideAuLeAide": "Lasciare vuoto se questa tariffa resta valida fino a nuovo ordine.",
+      "erreurChevauchement": "Questo periodo si sovrappone a un periodo già valido per lo stesso codice. Modificare le date o chiudere prima il periodo esistente.",
+      "champs": {
+        "code": "Codice",
+        "libelle": "Descrizione",
+        "montant": "Importo / ora",
+        "valideDuLe": "Valido dal",
+        "valideAuLe": "Valido al"
+      },
+      "vide": {
+        "titre": "Nessuna tariffa oraria",
+        "description": "Crea almeno una tariffa oraria per poter valorizzare una manodopera a tempo effettivo."
+      }
+    },
+    "prestations": {
+      "onglet": "Catalogo prestazioni",
+      "explication": "Le prestazioni sono i forfait, i pezzi e le righe standard proposti al banco. Una modifica di prezzo apre un nuovo periodo — gli ordini già valorizzati mantengono il prezzo originario.",
+      "nouvelle": "Nuova prestazione",
+      "modifier": "Modifica prestazione",
+      "codeVerrouille": "Il codice non può essere modificato dopo la creazione.",
+      "prixTvaComprise": "Il prezzo inserito è IVA inclusa — è quello annunciato al banco.",
+      "aucunTauxHoraire": "Nessuna (prezzo fisso)",
+      "erreurCodeExistant": "Questo codice è già utilizzato da un'altra prestazione di questa officina.",
+      "statutActif": "Attiva",
+      "statutInactif": "Inattiva",
+      "champs": {
+        "code": "Codice",
+        "designation": "Descrizione",
+        "typeLigne": "Tipo di riga",
+        "tempsBareme": "Tempo a barème",
+        "prix": "Prezzo",
+        "tauxHoraireCode": "Tariffa oraria associata",
+        "tauxTva": "Aliquota IVA",
+        "actif": "Prestazione attiva"
+      },
+      "typesLigne": {
+        "main_oeuvre_bareme": "Manodopera a barème",
+        "main_oeuvre_temps_reel": "Manodopera a tempo effettivo",
+        "forfait": "Forfait",
+        "piece": "Pezzo",
+        "fourniture": "Materiale di consumo",
+        "sous_traitance": "Subfornitura",
+        "produit_atelier": "Prodotto d'officina",
+        "taxe": "Tassa / Smaltimento",
+        "remise": "Sconto",
+        "texte": "Informazione"
+      },
+      "tauxTvaLibelles": {
+        "81": "8.1 % (aliquota normale)",
+        "26": "2.6 % (aliquota ridotta)",
+        "38": "3.8 % (settore alberghiero)",
+        "0": "0 % (esente)"
+      },
+      "vide": {
+        "titre": "Nessuna prestazione",
+        "description": "Crea la tua prima prestazione per utilizzarla su una riga di un ordine di riparazione."
+      }
+    }
+  },
+  "atelier": {
+    "titre": "Impostazioni dell'officina",
+    "lectureSeule": "Queste impostazioni sono riservate al capo officina e alla direzione. Puoi consultarle ma non modificarle.",
+    "enregistrementReussi": "Impostazioni salvate.",
+    "or": {
+      "titre": "Ordini di riparazione",
+      "prefixe": "Prefisso dei numeri d'ordine",
+      "porteeNumerotation": "Numerazione",
+      "porteeNumerotationValeurs": {
+        "tenant": "Una serie per tutta l'officina",
+        "site": "Una serie per sede"
+      },
+      "deuxOrMemeVehicule": "Due ordini aperti sullo stesso veicolo",
+      "deuxOrMemeVehiculeValeurs": {
+        "bloquer": "Bloccare l'apertura di un secondo ordine",
+        "avertir": "Avvisare ma consentire",
+        "autoriser": "Consentire senza avviso"
+      },
+      "resetAnnuel": "Ricominciare la numerazione da 1 ogni anno",
+      "etatPlanifieActif": "Usare lo stato «Programmato» per gli ordini",
+      "sansRdvAutorise": "Consentire un ordine senza appuntamento",
+      "rdvRetroactifAuto": "Collegare automaticamente un appuntamento passato all'ordine"
+    },
+    "reception": {
+      "titre": "Accettazione",
+      "kmEntreeObligatoire": "Chilometraggio in entrata obbligatorio",
+      "kmSortieObligatoire": "Chilometraggio in uscita obbligatorio",
+      "plafondDefautCentimes": "Tetto di approvazione cliente predefinito",
+      "plafondDefautAide": "Oltre questo importo è richiesta l'approvazione esplicita del cliente prima di ogni convalida a pagamento. Lasciare vuoto per non imporre alcun tetto.",
+      "signature": "Firma del cliente all'accettazione"
+    },
+    "travaux": {
+      "titre": "Lavori",
+      "uniteTemps": "Unità di tempo visualizzata",
+      "uniteTempsValeurs": {
+        "heures_decimales": "Ore decimali (1.25 h)",
+        "unites_constructeur": "Unità costruttore (UT)"
+      },
+      "controleQualite": "Controllo qualità prima della restituzione",
+      "controleQualiteValeurs": {
+        "jamais": "Mai richiesto",
+        "toujours": "Sempre richiesto"
+      },
+      "pointage": "Impostazioni della timbratura (arrotondamento, sovrapposizione, durata massima)"
+    },
+    "documents": {
+      "titre": "Documenti",
+      "langue": "Lingua dei documenti consegnati al cliente",
+      "langueValeurs": {
+        "client": "Lingua di corrispondenza del cliente",
+        "site": "Lingua predefinita della sede"
+      },
+      "mentionSecurite": "Dicitura di sicurezza sui documenti",
+      "mentionSecuriteValeurs": {
+        "obligatoire": "Obbligatoria",
+        "desactivee": "Disattivata"
+      }
+    },
+    "vehicule": {
+      "titre": "Veicoli",
+      "expertiseAlerteMois": "Avviso di perizia (mesi prima della scadenza)",
+      "visibiliteHistorique": "Storico visibile per un nuovo detentore",
+      "visibiliteHistoriqueValeurs": {
+        "tout": "Tutto lo storico",
+        "technique": "Solo storico tecnico",
+        "rien": "Nessuno"
+      }
+    },
+    "aVenir": {
+      "titre": "Funzionalità future",
+      "description": "Queste impostazioni esistono già nel contratto dell'API ma non sono ancora collegate ad alcuna funzionalità rilasciata — non compaiono quindi come caselle modificabili senza alcun effetto.",
+      "pasEncoreDisponible": "non ancora disponibile",
+      "fonctionnalites": {
+        "facturation": "Fatturazione d'officina",
+        "stockPieces": "Magazzino ricambi",
+        "depotPneus": "Deposito pneumatici",
+        "prets": "Veicoli sostitutivi"
+      }
+    },
+    "inerte": {
+      "signature": "disponibile con la cattura della firma elettronica, non ancora rilasciata",
+      "pointage": "disponibile con il modulo di timbratura, non ancora rilasciato"
+    }
+  },
+  "sites": {
+    "titre": "Impostazioni per sede",
+    "inactif": "Inattiva",
+    "vide": {
+      "titre": "Nessuna sede",
+      "description": "Nessuna sede è ancora collegata a questa officina."
+    },
+    "horaires": {
+      "titre": "Orari",
+      "ouverture": "Apertura",
+      "fermeture": "Chiusura",
+      "cloturePointage": "Chiusura automatica della timbratura",
+      "cloturePointageAide": "Una timbratura ancora aperta a quest'ora viene chiusa automaticamente — evita una timbratura dimenticata che prosegue tutta la notte."
+    },
+    "capacite": {
+      "titre": "Capacità",
+      "champ": "Capacità oraria giornaliera",
+      "aide": "Somma delle ore produttive disponibili in questa sede in una giornata, di tutti i tecnici — serve a visualizzare il carico di pianificazione. Lasciare vuoto se non ancora nota."
+    },
+    "fermeture": {
+      "titre": "Giorni di chiusura",
+      "explication": "Questi giorni non compaiono come disponibili nella pianificazione (giorni festivi, chiusura annuale).",
+      "aucun": "Nessun giorno di chiusura programmato.",
+      "retirer": "Rimuovi il {date}",
+      "ajouter": "Aggiungi"
+    },
+    "enregistrementReussi": "Impostazioni della sede salvate."
   }
 }

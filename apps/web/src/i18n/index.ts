@@ -23,6 +23,7 @@ import dePointage from './locales/de/pointage.json';
 import deOr from './locales/de/or.json';
 import deFacturation from './locales/de/facturation.json';
 import deParametrage from './locales/de/parametrage.json';
+import dePieces from './locales/de/pieces.json';
 import frAccueil from './locales/fr/accueil.json';
 import frAuth from './locales/fr/auth.json';
 import frCommun from './locales/fr/commun.json';
@@ -38,6 +39,7 @@ import frPointage from './locales/fr/pointage.json';
 import frOr from './locales/fr/or.json';
 import frFacturation from './locales/fr/facturation.json';
 import frParametrage from './locales/fr/parametrage.json';
+import frPieces from './locales/fr/pieces.json';
 import itAccueil from './locales/it/accueil.json';
 import itAuth from './locales/it/auth.json';
 import itCommun from './locales/it/commun.json';
@@ -53,6 +55,7 @@ import itPointage from './locales/it/pointage.json';
 import itOr from './locales/it/or.json';
 import itFacturation from './locales/it/facturation.json';
 import itParametrage from './locales/it/parametrage.json';
+import itPieces from './locales/it/pieces.json';
 
 /** 15 namespaces par domaine (propriété expert-i18n) : jamais modifiés ici, seulement importés.
  *  Les 6 premiers sont le socle (étape 0) ; les 7 suivants (`recherche` à `or`) sont le lot 1 —
@@ -78,6 +81,7 @@ export const NAMESPACES = [
   'or',
   'facturation',
   'parametrage',
+  'pieces',
 ] as const;
 
 const ressources = {
@@ -97,6 +101,7 @@ const ressources = {
     or: frOr,
     facturation: frFacturation,
     parametrage: frParametrage,
+    pieces: frPieces,
   },
   de: {
     commun: deCommun,
@@ -114,6 +119,7 @@ const ressources = {
     or: deOr,
     facturation: deFacturation,
     parametrage: deParametrage,
+    pieces: dePieces,
   },
   it: {
     commun: itCommun,
@@ -131,6 +137,7 @@ const ressources = {
     or: itOr,
     facturation: itFacturation,
     parametrage: itParametrage,
+    pieces: itPieces,
   },
 } as const;
 

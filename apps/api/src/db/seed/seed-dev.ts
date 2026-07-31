@@ -266,6 +266,17 @@ const UTILISATEURS_DEMO = [
     role: 'receptionnaire',
     langue: 'fr',
   },
+  {
+    // Étape 3 (pièces) — sans ce compte, la matrice de droits `pieces.*` (auth/matrice-droits.ts,
+    // `DROITS_PIECES_PAR_ROLE`) ne peut être exercée par AUCUN compte de démo : `magasinier` est le
+    // seul rôle qui reçoit `pieces.mouvement.creer`/`pieces.reservation.satisfaire` (sortie
+    // physique de pièce, réception fournisseur — RP-16→RP-25), aucun autre rôle seedé ne les a.
+    email: 'magasinier@garage-martin.ch',
+    prenom: 'David',
+    nom: 'Fournier',
+    role: 'magasinier',
+    langue: 'fr',
+  },
 ] as const;
 
 // --- Atelier + clients (lot 1) -------------------------------------------------------------

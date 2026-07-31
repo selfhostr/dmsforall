@@ -281,9 +281,20 @@ export const vehiculeTravailReporte = pgTable(
     ordreReparationRepriseId: uuid('ordre_reparation_reprise_id'),
     /** Raison du refus saisie au comptoir (0021, RM-73) — nullable, sans borne de longueur
      * (voir la migration : aucun champ de texte libre de ce dépôt n'en a). Consultée au passage
-     * suivant, PAS encore tracée par l'audit générique : `vehicule_travail_reporte` n'est pas
-     * dans `entite_auditee`, seule la valeur courante est durablement lisible. */
+     * suivant. DEPUIS 0033 : `vehicule_travail_reporte` est auditée (trigger
+     * `vehicule_travail_reporte_audit`) — `motif_refus` reste donc la valeur COURANTE, mais son
+     * historique de modification (qui/quand/avant/après) est désormais dans `audit_atelier`. */
     motifRefus: text('motif_refus'),
+    /** Raison d'une correction ou d'un abandon ULTÉRIEUR (0033, RM-73) — distincte de
+     * `motifRefus` (autre moment : au refus initial du devis / à une modification plus tard ;
+     * autre acteur potentiellement). Voir l'arbitrage complet en tête de la migration 0033 :
+     * NE JAMAIS fusionner avec `motifRefus`, ce serait perdre la traçabilité du refus initial que
+     * 0021 avait posée pour préserver. Même forme exacte que `motifRefus` : nullable, sans borne
+     * de longueur, gardée par une contrainte CHECK de non-vacuité quand renseignée. Alimentée par
+     * `ServiceVehiculeTravailReporte.modifier` (`entree.motif`, `schemaModificationTravailReporte`
+     * — normalisation défensive `.trim() || null` avant écriture, même doctrine que
+     * `creerDepuisRefus`/`motifRefus`). */
+    motifModification: text('motif_modification'),
     ...colonnesHorodatage(),
   },
   (t) => [
@@ -295,6 +306,10 @@ export const vehiculeTravailReporte = pgTable(
     }).onDelete('restrict'),
     check('vehicule_travail_reporte_designation_non_vide_chk', sql`length(btrim(${t.designation})) > 0`),
     check('vehicule_travail_reporte_motif_refus_non_vide_chk', sql`${t.motifRefus} is null or length(btrim(${t.motifRefus})) > 0`),
+    check(
+      'vehicule_travail_reporte_motif_modification_non_vide_chk',
+      sql`${t.motifModification} is null or length(btrim(${t.motifModification})) > 0`,
+    ),
     index('vehicule_travail_reporte_ouvert_idx').on(t.tenantId, t.vehiculeId),
   ],
 );

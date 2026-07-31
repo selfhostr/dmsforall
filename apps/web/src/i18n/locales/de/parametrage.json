@@ -44,5 +44,186 @@
       "description": "Dieser Bildschirm verwaltet die Bankverbindung der Garage — eine sensible finanzielle Angabe. Er ist nur den Rollen Geschäftsleitung und Buchhaltung zugänglich — nie der Rolle Admin, die zwar Benutzerkonten verwaltet, aber über keinerlei finanzielle Rechte verfügt. Melden Sie sich mit einem Konto der Geschäftsleitung oder der Buchhaltung erneut an, um fortzufahren.",
       "retourAccueil": "Zurück zur Startseite"
     }
+  },
+  "referentiels": {
+    "titre": "Werkstatttarife",
+    "introduction": "Die Stundensätze und der Leistungskatalog dienen zur Verrechnung jeder Position eines Reparaturauftrags. Ohne gültigen Stundensatz oder gültige Leistung kann eine Position keinen Preis tragen.",
+    "enCours": "laufend",
+    "tauxHoraires": {
+      "onglet": "Stundensätze",
+      "explication": "Ein Stundensatz ist eine datierte Periode: Der auf eine RA-Position angewendete Betrag ist derjenige, der am Tag der Verrechnung gültig ist. Zwei Perioden desselben Codes dürfen sich nie überschneiden.",
+      "nouveau": "Neuer Stundensatz",
+      "modifier": "Stundensatz bearbeiten",
+      "codeVerrouille": "Der Code kann nach der Erstellung nicht mehr geändert werden — er wird auf bereits verrechneten RA-Positionen übernommen.",
+      "valideAuLeAide": "Leer lassen, wenn dieser Satz bis auf Weiteres gültig bleibt.",
+      "erreurChevauchement": "Diese Periode überschneidet sich mit einer bereits gültigen Periode desselben Codes. Ändern Sie die Daten oder schliessen Sie zuerst die bestehende Periode.",
+      "champs": {
+        "code": "Code",
+        "libelle": "Bezeichnung",
+        "montant": "Betrag / Stunde",
+        "valideDuLe": "Gültig ab",
+        "valideAuLe": "Gültig bis"
+      },
+      "vide": {
+        "titre": "Kein Stundensatz vorhanden",
+        "description": "Erfassen Sie mindestens einen Stundensatz, um Arbeitszeit nach effektivem Zeitaufwand verrechnen zu können."
+      }
+    },
+    "prestations": {
+      "onglet": "Leistungskatalog",
+      "explication": "Leistungen sind die am Schalter angebotenen Pauschalen, Teile und Standardpositionen. Eine Preisänderung eröffnet eine neue Periode — bereits verrechnete RA behalten ihren ursprünglichen Preis.",
+      "nouvelle": "Neue Leistung",
+      "modifier": "Leistung bearbeiten",
+      "codeVerrouille": "Der Code kann nach der Erstellung nicht mehr geändert werden.",
+      "prixTvaComprise": "Der erfasste Preis versteht sich inklusive MWST — das ist der am Schalter angezeigte Preis.",
+      "aucunTauxHoraire": "Keiner (fester Preis)",
+      "erreurCodeExistant": "Dieser Code wird bereits von einer anderen Leistung dieser Garage verwendet.",
+      "statutActif": "Aktiv",
+      "statutInactif": "Inaktiv",
+      "champs": {
+        "code": "Code",
+        "designation": "Bezeichnung",
+        "typeLigne": "Positionstyp",
+        "tempsBareme": "Vorgabezeit",
+        "prix": "Preis",
+        "tauxHoraireCode": "Zugehöriger Stundensatz",
+        "tauxTva": "MWST-Satz",
+        "actif": "Leistung aktiv"
+      },
+      "typesLigne": {
+        "main_oeuvre_bareme": "Arbeit nach Vorgabezeit",
+        "main_oeuvre_temps_reel": "Arbeit nach effektiver Zeit",
+        "forfait": "Pauschale",
+        "piece": "Teil",
+        "fourniture": "Verbrauchsmaterial",
+        "sous_traitance": "Fremdfertigung",
+        "produit_atelier": "Werkstattprodukt",
+        "taxe": "Gebühr / Entsorgung",
+        "remise": "Rabatt",
+        "texte": "Information"
+      },
+      "tauxTvaLibelles": {
+        "81": "8.1 % (Normalsatz)",
+        "26": "2.6 % (reduzierter Satz)",
+        "38": "3.8 % (Beherbergung)",
+        "0": "0 % (befreit)"
+      },
+      "vide": {
+        "titre": "Keine Leistung vorhanden",
+        "description": "Erfassen Sie Ihre erste Leistung, um sie auf einer Position eines Reparaturauftrags zu verwenden."
+      }
+    }
+  },
+  "atelier": {
+    "titre": "Werkstatteinstellungen",
+    "lectureSeule": "Diese Einstellungen sind der Werkstattleitung und der Geschäftsleitung vorbehalten. Sie können sie einsehen, aber nicht ändern.",
+    "enregistrementReussi": "Einstellungen gespeichert.",
+    "or": {
+      "titre": "Reparaturaufträge",
+      "prefixe": "Präfix der RA-Nummern",
+      "porteeNumerotation": "Nummerierung",
+      "porteeNumerotationValeurs": {
+        "tenant": "Eine Serie für die ganze Garage",
+        "site": "Eine Serie pro Standort"
+      },
+      "deuxOrMemeVehicule": "Zwei offene RA am selben Fahrzeug",
+      "deuxOrMemeVehiculeValeurs": {
+        "bloquer": "Eröffnung eines zweiten RA blockieren",
+        "avertir": "Warnen, aber erlauben",
+        "autoriser": "Ohne Warnung erlauben"
+      },
+      "resetAnnuel": "Nummerierung jedes Jahr wieder bei 1 beginnen",
+      "etatPlanifieActif": "Status «Geplant» für RA verwenden",
+      "sansRdvAutorise": "RA ohne Termin erlauben",
+      "rdvRetroactifAuto": "Vergangenen Termin automatisch dem RA zuordnen"
+    },
+    "reception": {
+      "titre": "Annahme",
+      "kmEntreeObligatoire": "Kilometerstand bei Annahme obligatorisch",
+      "kmSortieObligatoire": "Kilometerstand bei Abgabe obligatorisch",
+      "plafondDefautCentimes": "Standard-Kostengrenze für Kundenfreigabe",
+      "plafondDefautAide": "Über diesem Betrag ist vor jeder kostenpflichtigen Freigabe eine ausdrückliche Zustimmung des Kunden erforderlich. Leer lassen, um keine Grenze festzulegen.",
+      "signature": "Kundenunterschrift bei der Annahme"
+    },
+    "travaux": {
+      "titre": "Arbeiten",
+      "uniteTemps": "Angezeigte Zeiteinheit",
+      "uniteTempsValeurs": {
+        "heures_decimales": "Dezimalstunden (1.25 h)",
+        "unites_constructeur": "Herstellereinheiten (AW)"
+      },
+      "controleQualite": "Qualitätskontrolle vor Rückgabe",
+      "controleQualiteValeurs": {
+        "jamais": "Nie erforderlich",
+        "toujours": "Immer erforderlich"
+      },
+      "pointage": "Zeiterfassungseinstellungen (Rundung, Überschneidung, Höchstdauer)"
+    },
+    "documents": {
+      "titre": "Dokumente",
+      "langue": "Sprache der Kundendokumente",
+      "langueValeurs": {
+        "client": "Korrespondenzsprache des Kunden",
+        "site": "Standardsprache des Standorts"
+      },
+      "mentionSecurite": "Sicherheitshinweis auf Dokumenten",
+      "mentionSecuriteValeurs": {
+        "obligatoire": "Obligatorisch",
+        "desactivee": "Deaktiviert"
+      }
+    },
+    "vehicule": {
+      "titre": "Fahrzeuge",
+      "expertiseAlerteMois": "Prüftermin-Warnung (Monate im Voraus)",
+      "visibiliteHistorique": "Sichtbare Historie für einen neuen Halter",
+      "visibiliteHistoriqueValeurs": {
+        "tout": "Gesamte Historie",
+        "technique": "Nur technische Historie",
+        "rien": "Keine"
+      }
+    },
+    "aVenir": {
+      "titre": "Künftige Funktionen",
+      "description": "Diese Einstellungen bestehen bereits im API-Vertrag, sind aber noch an keine ausgelieferte Funktion angebunden — sie erscheinen deshalb nicht als Kontrollkästchen ohne Wirkung.",
+      "pasEncoreDisponible": "noch nicht verfügbar",
+      "fonctionnalites": {
+        "facturation": "Werkstattfakturierung",
+        "stockPieces": "Teilelager",
+        "depotPneus": "Reifeneinlagerung",
+        "prets": "Leihfahrzeuge"
+      }
+    },
+    "inerte": {
+      "signature": "verfügbar mit der elektronischen Unterschriftserfassung, bisher nicht ausgeliefert",
+      "pointage": "verfügbar mit dem Zeiterfassungsmodul, bisher nicht ausgeliefert"
+    }
+  },
+  "sites": {
+    "titre": "Standorteinstellungen",
+    "inactif": "Inaktiv",
+    "vide": {
+      "titre": "Kein Standort vorhanden",
+      "description": "Dieser Garage ist noch kein Standort zugeordnet."
+    },
+    "horaires": {
+      "titre": "Öffnungszeiten",
+      "ouverture": "Öffnung",
+      "fermeture": "Schliessung",
+      "cloturePointage": "Automatischer Zeiterfassungsschluss",
+      "cloturePointageAide": "Eine zu diesem Zeitpunkt noch offene Zeiterfassung wird automatisch geschlossen — verhindert eine vergessene Erfassung, die die ganze Nacht weiterläuft."
+    },
+    "capacite": {
+      "titre": "Kapazität",
+      "champ": "Stundenkapazität pro Tag",
+      "aide": "Summe der an diesem Standort an einem Tag verfügbaren produktiven Stunden, über alle Mitarbeitenden — dient zur Anzeige der Planungsauslastung. Leer lassen, wenn noch nicht bekannt."
+    },
+    "fermeture": {
+      "titre": "Schliesstage",
+      "explication": "Diese Tage erscheinen in der Terminplanung nicht als verfügbar (Feiertage, Betriebsferien).",
+      "aucun": "Kein Schliesstag geplant.",
+      "retirer": "{date} entfernen",
+      "ajouter": "Hinzufügen"
+    },
+    "enregistrementReussi": "Standorteinstellungen gespeichert."
   }
 }

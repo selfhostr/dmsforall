@@ -123,7 +123,19 @@
     "RECEPTION_REFERENCE_NON_EQUIVALENTE": "Diese Referenz wird nicht als Äquivalent zu der bestellten erkannt.",
     "CONSIGNE_TRANSITION_INTERDITE": "Dieses Pfand ist nicht mehr in einem Zustand, der diese Aktion erlaubt.",
     "POINTAGE_PIN_INVALIDE": "PIN nicht erkannt. Überprüfen Sie den Code und versuchen Sie es erneut.",
-    "POINTAGE_PIN_VERROUILLE": "PIN ist vorübergehend gesperrt. Wenden Sie sich an den Werkstattleiter, um fortzufahren."
+    "POINTAGE_PIN_VERROUILLE": "PIN ist vorübergehend gesperrt. Wenden Sie sich an den Werkstattleiter, um fortzufahren.",
+    "VENTE_VEHICULE_STOCK_DEJA_EXISTANT": "Dieses Fahrzeug ist bereits im Bestand. Überprüfen Sie die Fahrzeuginformationen.",
+    "VENTE_DOSSIER_TRANSITION_INTERDITE": "Dieses Verkaufsdossier kann in diesem Status nicht den Zustand ändern.",
+    "VENTE_REPRISE_TRANSITION_INTERDITE": "Diese Inzahlungnahme kann in diesem Status nicht den Zustand ändern.",
+    "VENTE_FINANCEMENT_TRANSITION_INTERDITE": "Diese Finanzierung kann in diesem Status nicht den Zustand ändern.",
+    "VENTE_VEHICULE_INDISPONIBLE": "Dieses Fahrzeug ist derzeit nicht verfügbar.",
+    "VENTE_VEHICULE_MANQUANT": "Dieses Fahrzeug wurde nicht gefunden. Überprüfen Sie die Fahrgestellnummer oder das Kontrollschild.",
+    "VENTE_FINANCEMENT_NON_CONFIRME": "Die Finanzierung wurde vom Kreditgeber nicht bestätigt.",
+    "VENTE_LIVRAISON_EXPERTISE_REQUISE": "Das Fahrzeug muss vor der Auslieferung einer MFK (Motorfahrzeugkontrolle) unterzogen werden.",
+    "VENTE_LIVRAISON_INCOMPLETE": "Alle Auslieferungsdokumente müssen vollständig sein.",
+    "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE": "Dieses Verkaufsdossier kann in diesem Status nicht storniert werden.",
+    "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE": "Der vereinbarte Wert der Inzahlungnahme muss angegeben werden.",
+    "VENTE_REPRISE_DEJA_EXISTANTE": "Für dieses Verkaufsdossier existiert bereits eine Inzahlungnahme."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Nachtragsofferte erstellen",

@@ -7,6 +7,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type {
   ReponseContexteAtelier,
+  ReponseTravailReporte,
   ReponseVehicule,
   ReponseVehiculeDetention,
   ReponseVehiculeKilometrage,
@@ -140,6 +141,38 @@ const CONTEXTE: ReponseContexteAtelier = {
   avertissements: [],
 };
 
+// `PanneauTravauxReportes` consomme la ressource DÉDIÉE (`GET .../travaux-reportes`), pas la
+// projection bornée de `contexte-atelier` — mêmes deux éléments que `CONTEXTE.travauxReportes`
+// ci-dessus (même scénario de démo, RM-73) pour que les deux surfaces restent cohérentes en test.
+const TRAVAUX_REPORTES: readonly ReponseTravailReporte[] = [
+  {
+    id: 't1',
+    designation: 'Plaquettes de frein avant',
+    urgence: 'urgent',
+    montantEstimeCentimes: 24000,
+    kilometrageAlors: 85000,
+    constateLe: '2026-01-15',
+    securite: true,
+    statut: 'ouvert',
+    ordreReparationOrigineId: null,
+    ligneOrOrigineId: null,
+    ordreReparationRepriseId: null,
+  },
+  {
+    id: 't2',
+    designation: 'Amortisseur arrière gauche',
+    urgence: 'a_surveiller',
+    montantEstimeCentimes: 45000,
+    kilometrageAlors: 80000,
+    constateLe: '2025-11-02',
+    securite: false,
+    statut: 'ouvert',
+    ordreReparationOrigineId: null,
+    ligneOrOrigineId: null,
+    ordreReparationRepriseId: null,
+  },
+];
+
 const KILOMETRAGES: readonly ReponseVehiculeKilometrage[] = [
   {
     id: 'k1',
@@ -169,6 +202,7 @@ function installerHandlersOk() {
     http.get('/api/v1/vehicules/v1/contexte-atelier', () => HttpResponse.json(CONTEXTE)),
     http.get('/api/v1/vehicules/v1/kilometrages', () => HttpResponse.json(KILOMETRAGES)),
     http.get('/api/v1/vehicules/v1/detentions', () => HttpResponse.json(DETENTIONS)),
+    http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json(TRAVAUX_REPORTES)),
   );
 }
 

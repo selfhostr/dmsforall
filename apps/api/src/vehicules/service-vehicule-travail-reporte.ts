@@ -53,10 +53,14 @@ export function versReponseTravailReporte(ligne: LigneVehiculeTravailReporte, ro
  * désormais `motifRefus`, normalisé pour ne jamais heurter la contrainte `CHECK` (voir le corps de
  * la méthode) — `service-ligne-or.ts::refuserLignes` transmet `entree.motif ?? null`.
  *
- * DETTE SÉPARÉE, SIGNALÉE, PAS DE MON RESSORT : `vehicule_travail_reporte` n'est auditée par rien
- * (aucun trigger, absente de l'enum `entite_auditee`) alors que le rôle applicatif peut la
- * modifier — le motif sera lisible, mais une modification ultérieure ne laissera aucune trace.
- * Nécessite une migration, hors périmètre de ce fichier.
+ * DETTE COMBLÉE (migrations/0033) : `vehicule_travail_reporte` est désormais auditée
+ * (`vehicule_travail_reporte_audit`, `entite_auditee` gagne la valeur du même nom) — toute
+ * création/modification/transition/suppression est tracée dans `audit_atelier`, qui/quand/
+ * avant/après. `ServiceVehiculeTravailReporte.modifier` écrit en outre désormais `entree.motif`
+ * dans une colonne dédiée, `motif_modification` (0033) — DISTINCTE de `motif_refus` ci-dessus :
+ * l'un porte la raison du refus INITIAL au devis, l'autre celle d'une correction ou d'un abandon
+ * ULTÉRIEUR. Ce défaut (`entree.motif` accepté, validé, jamais écrit) était mesuré en exécution ;
+ * voir le corps de `modifier` pour la normalisation défensive appliquée avant écriture.
  */
 export interface EntreeCreationTravailReporteDepuisRefus {
   readonly vehiculeId: string;
@@ -158,6 +162,29 @@ export class ServiceVehiculeTravailReporte implements CreationTravailReporte {
           urgence: entree.urgence,
           montantEstimeCentimes: entree.montantEstimeCentimes,
           statut: entree.statut,
+          // CORRECTIF (migrations/0033) : `entree.motif` (schemaModificationTravailReporte,
+          // schemaMotif) était accepté et validé mais jamais écrit — perte silencieuse d'une raison
+          // de correction/abandon saisie par le réceptionnaire. Écrit ici dans `motif_modification`
+          // (0033), colonne DISTINCTE de `motif_refus` (0021, motif du refus INITIAL au devis, un
+          // autre moment, potentiellement un autre acteur — voir le commentaire de tête de 0033,
+          // arbitrage à ne pas rouvrir).
+          //
+          // `entree.motif` reste `undefined` quand aucun motif n'est fourni dans ce PATCH (champ
+          // optionnel, même sémantique de mise à jour PARTIELLE que `designation`/`urgence`/
+          // `montantEstimeCentimes`/`statut` ci-dessus) : dans ce cas la clé garde la valeur
+          // `undefined`, que `mapUpdateSet` (drizzle-orm/utils.ts) FILTRE avant de construire le
+          // `SET` — la colonne n'est PAS touchée, le motif déjà enregistré reste intact. Une
+          // écriture inconditionnelle en `null` ici effacerait silencieusement un motif précédent à
+          // chaque correction ultérieure qui n'en fournit pas un nouveau (ex. l'action groupée
+          // "reprendre" du panneau front, qui n'envoie que `{ statut: 'repris' }`).
+          //
+          // NORMALISATION DÉFENSIVE quand `entree.motif` EST fourni — même doctrine que
+          // `creerDepuisRefus` pour `motifRefus` (`entree.motifRefus?.trim() || null`) : `schemaMotif`
+          // trim déjà et impose `min(3)`, donc `.trim() || null` ne devrait jamais emprunter la
+          // branche `null` en pratique — mais cette écriture ne fait pas confiance à l'appelant sur
+          // un simple "ne devrait jamais" : la garde est reposée ICI, à la frontière réelle avec
+          // `vehicule_travail_reporte_motif_modification_non_vide_chk` (0033).
+          motifModification: entree.motif === undefined ? undefined : entree.motif.trim() || null,
         })
         .where(and(eq(vehiculeTravailReporte.tenantId, ctx.tenantId), eq(vehiculeTravailReporte.id, travailId)))
         .returning();

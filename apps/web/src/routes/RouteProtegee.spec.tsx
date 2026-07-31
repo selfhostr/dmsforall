@@ -4,6 +4,8 @@ import { delay, http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
+import type { SessionCourante } from '@dfa/shared';
+
 import '@/i18n';
 
 import { server } from '@/test/msw/server';
@@ -12,7 +14,7 @@ import { creerQueryClientTest } from '@/test/utils';
 import { RouteProtegee } from './RouteProtegee';
 import { SESSION_TEST } from '@/test/msw/handlers';
 
-function rendre() {
+function rendre(rolesAutorises?: readonly SessionCourante['utilisateur']['role'][]) {
   const queryClient = creerQueryClientTest();
   render(
     <QueryClientProvider client={queryClient}>
@@ -22,7 +24,7 @@ function rendre() {
           <Route
             path="/"
             element={
-              <RouteProtegee>
+              <RouteProtegee rolesAutorises={rolesAutorises}>
                 <div>CONTENU_PROTEGE</div>
               </RouteProtegee>
             }
@@ -69,6 +71,33 @@ describe('RouteProtegee — 4 branches (anti-flash)', () => {
   it('data présent : affiche le contenu protégé', async () => {
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
     rendre();
+    expect(await screen.findByText('CONTENU_PROTEGE')).toBeInTheDocument();
+  });
+});
+
+/**
+ * `rolesAutorises` — ajout du lot 2 : la route elle-même doit refuser un rôle non autorisé, pas
+ * seulement le masquer du menu (`BarreLaterale`). `SESSION_TEST` porte le rôle `chef_atelier`
+ * (voir `test/msw/handlers.ts`).
+ */
+describe('RouteProtegee — rolesAutorises', () => {
+  it('rôle absent de `rolesAutorises` : affiche l’écran d’accès refusé, jamais le contenu ni une redirection vers /login', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    rendre(['direction', 'admin']);
+    expect(await screen.findByText("Vous n'avez pas les droits pour cette action.")).toBeInTheDocument();
+    expect(screen.queryByText('CONTENU_PROTEGE')).not.toBeInTheDocument();
+    expect(screen.queryByText('PAGE_LOGIN')).not.toBeInTheDocument();
+  });
+
+  it('rôle présent dans `rolesAutorises` : affiche le contenu protégé', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    rendre(['chef_atelier', 'direction', 'admin']);
+    expect(await screen.findByText('CONTENU_PROTEGE')).toBeInTheDocument();
+  });
+
+  it('`rolesAutorises` omis : tout utilisateur authentifié passe (comportement historique inchangé)', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    rendre(undefined);
     expect(await screen.findByText('CONTENU_PROTEGE')).toBeInTheDocument();
   });
 });

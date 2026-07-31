@@ -123,6 +123,27 @@
     },
     "score": "Punteggio di similitudine"
   },
+  "doublonsEcran": {
+    "titre": "Duplicati clienti",
+    "description": "Cerca un cliente per nome, CAP, e-mail, telefono o numero IDE prima di crearne uno nuovo, oppure per verificare se due schede si riferiscono alla stessa persona.",
+    "champs": {
+      "nom": "Nome o ragione sociale",
+      "npa": "CAP",
+      "email": "E-mail",
+      "telephone": "Telefono",
+      "ide": "IDE"
+    },
+    "vide": {
+      "premier": "Inserisci almeno un criterio di ricerca",
+      "premierDescription": "Nome, CAP, e-mail, telefono o IDE — un solo criterio è sufficiente.",
+      "aucunDoublon": "Nessun duplicato rilevato",
+      "aucunDoublonDescription": "Nessun cliente esistente corrisponde a questi criteri."
+    },
+    "erreur": {
+      "titre": "Impossibile cercare i duplicati"
+    },
+    "resultats": "{count, plural, one {# candidato trovato} other {# candidati trovati}}"
+  },
   "consentements": {
     "titre": "Consensi",
     "ajouter": "Aggiungi consenso",

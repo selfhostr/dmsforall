@@ -262,6 +262,20 @@ export const TOUTES_ACTIONS = [
   // couvrira dès que le contrôleur sera réintégré, ce n'est ni une vérification conditionnelle en
   // service ni une action inerte anticipée sans route prévue.
   'facturation.document.imprimer',
+  // ---- Pièces (étape 3, RP-01→RP-25) — bloc ADDITIF PUR, calé sur la matrice §11 de
+  // docs/specification-etape-3-pieces.md ; voir `DROITS_PIECES_PAR_ROLE` ci-dessous pour le détail
+  // rôle par rôle et les écarts documentés vis-à-vis des colonnes marquées « (P) » (paramétrable
+  // en théorie, non implémenté ce lot — traité comme sa valeur par défaut littérale, jamais
+  // réglable via `parametre_pieces` qui ne porte aucune colonne pour ces droits).
+  'pieces.article.lire',
+  'pieces.article.creer',
+  'pieces.article.modifier',
+  'pieces.stock.lire',
+  'pieces.stock.modifier',
+  'pieces.mouvement.creer',
+  'pieces.reservation.lire',
+  'pieces.reservation.satisfaire',
+  'pieces.reservation.liberer',
 ] as const;
 
 /**
@@ -856,6 +870,85 @@ const DROITS_IMPRESSION_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Acti
   admin: [],
 };
 
+// =================================================================================================
+// Pièces (étape 3) : bloc ADDITIF PUR, calé sur la matrice §11 de
+// docs/specification-etape-3-pieces.md — même patron que les blocs facturation ci-dessus (rôles
+// listés explicitement, jamais composés depuis `DROITS_RECEPTIONNAIRE`/`DROITS_CHEF_ATELIER` : la
+// hiérarchie habituelle chef_atelier ⊇ receptionnaire NE TIENT PAS ici — `magasinier` a l'écriture
+// stock complète, `chef_atelier` n'a que la lecture pour `pieces.mouvement.creer`).
+//
+// LITTÉRAL : `admin` reçoit `[]` sur TOUT le domaine pièces, y compris la simple LECTURE — la
+// matrice §11 écrit « non (RF-115, aucun droit métier) » jusque sur la ligne « Consulter
+// article/stock », ce qui est plus strict que la doctrine habituelle de ce fichier (`admin` =
+// superset de `direction` pour le lot 1 atelier/clients) : ici `admin` n'a AUCUN droit métier
+// pièces, ni écriture ni lecture, jamais à combler par copier-coller de `direction`.
+//
+// COLONNES « (P) » DE LA MATRICE §11 — paramétrables en théorie, NON implémentées ce lot (aucun
+// paramètre `parametre_pieces` ne porte ces réglages, voir `contrats/pieces/parametrage.ts`,
+// `PP-01`→`PP-08`) : traitées comme leur valeur par défaut LITTÉRALE de la matrice, jamais comme un
+// « oui » optimiste :
+//  - « Voir prix d'achat / marge » (vendeur/receptionnaire « non (P) », chef_atelier « oui (P) ») :
+//    filtrage de CHAMP, pas une action de droit — voir `pieces/mappers.ts::ROLES_SANS_PRIX_ACHAT_PIECES`.
+//  - « Enregistrer une entrée/sortie », « Réceptionner une commande » (direction/chef_atelier
+//    « non (P) ») : traité `non` ferme pour `pieces.mouvement.creer` — seul `magasinier` l'a.
+//
+// PÉRIMÈTRE DE CE LOT (voir `pieces/pieces.module.ts`, tête de fichier) : commande fournisseur,
+// consigne et vente comptoir (dernières lignes de la matrice §11) N'ONT AUCUNE route dans ce lot —
+// aucune action de droit correspondante n'est créée (ni ici ni dans `TOUTES_ACTIONS`), pour ne pas
+// inventer une action inerte sans justification dans `allowlist-actions-non-decorees.ts`.
+
+/** §11 ligne « Consulter article/stock » — tous les rôles opérationnels, PAS `admin` (RF-115). */
+const LECTURE_PIECES: readonly Action[] = ['pieces.article.lire', 'pieces.stock.lire', 'pieces.reservation.lire'];
+
+/** §11 ligne « Créer/modifier un article » : direction, chef_atelier `[À VALIDER]`, magasinier. */
+const ECRITURE_ARTICLE_PIECES: readonly Action[] = ['pieces.article.creer', 'pieces.article.modifier'];
+
+/**
+ * Inféré — réglages de stock par site (`PATCH /articles/{id}/stock/{siteId}`, emplacement/seuils,
+ * `PP-08`) : aucune ligne §11 littérale, aligné sur le même périmètre que « Créer/modifier un
+ * article » (direction, chef_atelier, magasinier) — c'est une donnée de référentiel au même titre.
+ */
+const ECRITURE_STOCK_SITE_PIECES: readonly Action[] = ['pieces.stock.modifier'];
+
+/**
+ * §11 lignes « Enregistrer une entrée/sortie », « Réceptionner une commande », « Faire
+ * l'inventaire » : `magasinier` SEUL de façon ferme (direction/chef_atelier marqués « non (P) »,
+ * traité `non` faute de paramètre — voir la note de tête de section).
+ */
+const ECRITURE_MOUVEMENT_PIECES: readonly Action[] = ['pieces.mouvement.creer'];
+
+/**
+ * §11 ligne « Créer une réservation (ligne d'OR pièce) » : DÉJÀ couverte par
+ * `atelier.ligne.creer` (`L966_LIGNE_CREATION`, voir la note littérale de la matrice §11 elle-même)
+ * — aucune action `pieces.reservation.creer` n'existe, la création n'a pas de route dans ce
+ * contrat (`reservation.ts`, GELÉ : « AUCUN `POST /reservations` »). `satisfaire` = §11 ligne
+ * « Enregistrer une sortie » (même périmètre que `ECRITURE_MOUVEMENT_PIECES`, magasinier seul).
+ */
+const SATISFACTION_RESERVATION_PIECES: readonly Action[] = ['pieces.reservation.satisfaire'];
+
+/** §11 ligne « Libérer une réservation active » : direction, chef_atelier, magasinier. */
+const LIBERATION_RESERVATION_PIECES: readonly Action[] = ['pieces.reservation.liberer'];
+
+const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  direction: [...LECTURE_PIECES, ...ECRITURE_ARTICLE_PIECES, ...ECRITURE_STOCK_SITE_PIECES, ...LIBERATION_RESERVATION_PIECES],
+  comptable: [...LECTURE_PIECES],
+  vendeur: [...LECTURE_PIECES],
+  receptionnaire: [...LECTURE_PIECES],
+  chef_atelier: [...LECTURE_PIECES, ...ECRITURE_ARTICLE_PIECES, ...ECRITURE_STOCK_SITE_PIECES, ...LIBERATION_RESERVATION_PIECES],
+  magasinier: [
+    ...LECTURE_PIECES,
+    ...ECRITURE_ARTICLE_PIECES,
+    ...ECRITURE_STOCK_SITE_PIECES,
+    ...ECRITURE_MOUVEMENT_PIECES,
+    ...SATISFACTION_RESERVATION_PIECES,
+    ...LIBERATION_RESERVATION_PIECES,
+  ],
+  technicien: [...LECTURE_PIECES],
+  // RF-115, littéral sur TOUTE la matrice §11 (y compris la lecture) — voir la note de tête de
+  // section. `[]` VOLONTAIREMENT, jamais à combler par copier-coller de `direction`.
+  admin: [],
+};
+
 export const MATRICE_DROITS = {
   admin: [
     ...DROITS_ADMIN,
@@ -864,6 +957,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.admin,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.admin,
     ...DROITS_IMPRESSION_PAR_ROLE.admin,
+    ...DROITS_PIECES_PAR_ROLE.admin,
   ],
   direction: [
     ...DROITS_DIRECTION,
@@ -872,6 +966,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.direction,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.direction,
     ...DROITS_IMPRESSION_PAR_ROLE.direction,
+    ...DROITS_PIECES_PAR_ROLE.direction,
   ],
   vendeur: [
     ...DROITS_VENDEUR,
@@ -880,6 +975,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.vendeur,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.vendeur,
     ...DROITS_IMPRESSION_PAR_ROLE.vendeur,
+    ...DROITS_PIECES_PAR_ROLE.vendeur,
   ],
   receptionnaire: [
     ...DROITS_RECEPTIONNAIRE,
@@ -888,6 +984,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.receptionnaire,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.receptionnaire,
     ...DROITS_IMPRESSION_PAR_ROLE.receptionnaire,
+    ...DROITS_PIECES_PAR_ROLE.receptionnaire,
   ],
   chef_atelier: [
     ...DROITS_CHEF_ATELIER,
@@ -896,6 +993,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.chef_atelier,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.chef_atelier,
     ...DROITS_IMPRESSION_PAR_ROLE.chef_atelier,
+    ...DROITS_PIECES_PAR_ROLE.chef_atelier,
   ],
   technicien: [
     ...DROITS_TECHNICIEN,
@@ -904,6 +1002,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.technicien,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.technicien,
     ...DROITS_IMPRESSION_PAR_ROLE.technicien,
+    ...DROITS_PIECES_PAR_ROLE.technicien,
   ],
   magasinier: [
     ...DROITS_MAGASINIER,
@@ -912,6 +1011,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.magasinier,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.magasinier,
     ...DROITS_IMPRESSION_PAR_ROLE.magasinier,
+    ...DROITS_PIECES_PAR_ROLE.magasinier,
   ],
   comptable: [
     ...DROITS_COMPTABLE,
@@ -920,6 +1020,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.comptable,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.comptable,
     ...DROITS_IMPRESSION_PAR_ROLE.comptable,
+    ...DROITS_PIECES_PAR_ROLE.comptable,
   ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 
