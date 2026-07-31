@@ -144,13 +144,45 @@ jobs:
           OPENAPI_EXPOSER_DOCS: 'true'
           VERSION_APP: 0.1.0-ci
 
+  # Réversibilité des migrations : identique au job du même nom dans ci.yml (dont ce bloc est la
+  # copie — même raisonnement de duplication volontaire que `verifier`/`tests-integration`
+  # ci-dessus : un push de tag ne déclenche jamais ci.yml, ce workflow doit donc pouvoir juger par
+  # lui-même). Avant ce correctif, `construire-publier` ne dépendait que de `verifier` et
+  # `tests-integration` : une image pouvait donc partir sur ghcr.io — et de là être déployée via
+  # docker-compose.yml — sans qu'aucune vérification n'ait jamais prouvé qu'on peut revenir
+  # en arrière sur les migrations qu'elle embarque. Coût mesuré ~45-90s (scripts/verifier-
+  # reversibilite-migrations.sh, voir son en-tête) : négligeable devant le risque qu'il couvre.
+  verifier-reversibilite-migrations:
+    name: Réversibilité des migrations (up → down → up, une par une)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      # Pas de `pnpm install` séparé : le script l'exécute lui-même, UNE seule fois pour toute la
+      # vérification (jamais par migration) — voir son en-tête.
+      - name: Vérifier la réversibilité de chaque migration
+        run: scripts/verifier-reversibilite-migrations.sh
+
   # --- Construction et publication -----------------------------------------------------------
   # Une image publiée est une image potentiellement déployée (docker-compose.yml n'a aucun
   # garde-fou qui distingue une image « bonne » d'une image « mauvaise » au moment du
-  # déploiement) : ce job ne démarre donc que si les deux jobs de qualité ci-dessus réussissent.
+  # déploiement) : ce job ne démarre donc que si les trois jobs de qualité ci-dessus réussissent —
+  # y compris la réversibilité des migrations (voir son job ci-dessus).
   construire-publier:
     name: Construire et publier dfa-${{ matrix.image }} (ghcr.io)
-    needs: [verifier, tests-integration]
+    needs: [verifier, tests-integration, verifier-reversibilite-migrations]
     runs-on: ubuntu-latest
     # Permissions minimales pour CE job seulement : `packages: write` pour pousser sur ghcr.io,
     # `id-token`/`attestations: write` pour la signature Sigstore de la provenance (voir plus bas).

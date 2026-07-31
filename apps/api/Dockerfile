@@ -81,7 +81,23 @@ WORKDIR /repo
 
 # Utilisateur applicatif dédié plutôt que `node` (uid 1000 partagé avec l'hôte sur certaines
 # distros) : groupe et utilisateur système, sans shell de login, home réduit au strict besoin.
-RUN addgroup -S dfa && adduser -S dfa -G dfa -h /repo -s /sbin/nologin
+#
+# uid/gid ÉPINGLÉS explicitement (-u 100 / -g 101), plutôt que laissés à l'attribution implicite
+# de `adduser -S`/`addgroup -S` (le premier uid/gid système libre dans l'image de base) :
+# docker-compose.yml (service `init-uploads-pdf`, hors périmètre de ce fichier) fait un
+# `chown -R 100:101 /uploads` en DUR sur le volume des PDF de facture, sur la foi de ces mêmes
+# valeurs vérifiées empiriquement contre l'image `node:22-alpine` actuelle (`docker run --rm
+# <image> id dfa`). Sans cet épinglage, un changement de numérotation dans une future version de
+# l'image de base (ex. un paquet ajouté avant `dfa` dans la chaîne de construction, ou un
+# changement de distribution) romprait silencieusement cette hypothèse : l'API perdrait l'accès
+# en écriture à son propre volume de PDF, avec un `EACCES`/`Permission denied` au démarrage — un
+# symptôme qui ne pointe pas vers sa vraie cause. Avec l'épinglage, l'uid/gid de `dfa` restent
+# 100/101 quelle que soit l'évolution de l'image de base, aussi longtemps que ces valeurs ne
+# collisionnent pas avec un compte système déjà présent (vérifié à ce jour : aucun uid/gid 100 ou
+# 101 n'existe dans `node:22-alpine` avant la création de `dfa`, voir /etc/passwd et /etc/group de
+# l'image). Si ces valeurs devaient un jour changer ici, `docker-compose.yml` doit être
+# ajusté en conséquence dans le MÊME changement.
+RUN addgroup -g 101 -S dfa && adduser -S -u 100 -G dfa -h /repo -s /sbin/nologin dfa
 
 # node_modules pruned (prod uniquement), en préservant la même arborescence relative que la
 # construction (racine + apps/api + packages/shared) : c'est ce qui permet aux liens
