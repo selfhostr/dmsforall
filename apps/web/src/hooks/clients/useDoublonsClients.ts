@@ -17,7 +17,9 @@ export interface CriteresDoublonsClients {
 }
 
 function auMoinsUnCritere(criteres: CriteresDoublonsClients): boolean {
-  return Boolean(criteres.nom ?? criteres.npa ?? criteres.email ?? criteres.telephoneMobile ?? criteres.ide);
+  return Boolean(
+    criteres.nom ?? criteres.npa ?? criteres.email ?? criteres.telephoneMobile ?? criteres.ide,
+  );
 }
 
 /** `GET /doublons-clients` (RM-05) — projection non paginée, consommée à la frappe dans le
@@ -25,7 +27,9 @@ function auMoinsUnCritere(criteres: CriteresDoublonsClients): boolean {
  *  `schemaParametresDoublonsClients.refine`, `@dfa/shared`) : appeler l'endpoint sans critère
  *  produirait un `400` systématique, pas une liste vide. C'est un AVERTISSEMENT (CT-01), jamais
  *  un blocage : deux frères à la même adresse restent deux clients légitimes. */
-export function useDoublonsClients(criteres: CriteresDoublonsClients): UseQueryResult<ReponseDoublonsClients> {
+export function useDoublonsClients(
+  criteres: CriteresDoublonsClients,
+): UseQueryResult<ReponseDoublonsClients> {
   const actif = auMoinsUnCritere(criteres);
   return useQuery({
     queryKey: clesQuery.clients.doublons(JSON.stringify(criteres)),
@@ -38,9 +42,12 @@ export function useDoublonsClients(criteres: CriteresDoublonsClients): UseQueryR
         ide: criteres.ide,
         exclureClientId: criteres.exclureClientId,
       });
-      const reponse = await requeteApi<ReponseDoublonsClients>(`/doublons-clients?${params.toString()}`, {
-        method: 'GET',
-      });
+      const reponse = await requeteApi<ReponseDoublonsClients>(
+        `/doublons-clients?${params.toString()}`,
+        {
+          method: 'GET',
+        },
+      );
       return exigerCorps(reponse, 'GET /doublons-clients');
     },
     enabled: actif,

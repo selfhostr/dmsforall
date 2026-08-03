@@ -3,14 +3,24 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
-import { schemaCreationCommandeFournisseur, TRI_DEFAUT_FOURNISSEURS, type EntreeCreationCommandeFournisseur } from '@dfa/shared';
+import {
+  schemaCreationCommandeFournisseur,
+  TRI_DEFAUT_FOURNISSEURS,
+  type EntreeCreationCommandeFournisseur,
+} from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { useCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { useCreerCommandeFournisseur } from '@/hooks/pieces/useCreerCommandeFournisseur';
 import { useListeFournisseurs } from '@/hooks/pieces/useListeFournisseurs';
@@ -42,7 +52,11 @@ export function EcranNouvelleCommandeFournisseur() {
   const { data: session } = useSession();
   const sites = (session?.sites ?? []).filter((site) => site.actif);
 
-  const { fournisseurs } = useListeFournisseurs({ statut: ['actif'], tri: TRI_DEFAUT_FOURNISSEURS, limite: 200 });
+  const { fournisseurs } = useListeFournisseurs({
+    statut: ['actif'],
+    tri: TRI_DEFAUT_FOURNISSEURS,
+    limite: 200,
+  });
   const idempotence = useCleIdempotence();
   const creer = useCreerCommandeFournisseur();
 
@@ -57,11 +71,22 @@ export function EcranNouvelleCommandeFournisseur() {
 
   const idsDejaAjoutes = useMemo(() => new Set(lignes.map((ligne) => ligne.articleId)), [lignes]);
 
-  function ajouterLigne(articleId: string, numeroArticle: string, designation: string, prixVenteTtcCentimes: number) {
+  function ajouterLigne(
+    articleId: string,
+    numeroArticle: string,
+    designation: string,
+    prixVenteTtcCentimes: number,
+  ) {
     if (idsDejaAjoutes.has(articleId)) return;
     setLignes((valeur) => [
       ...valeur,
-      { articleId, numeroArticle, designation, quantiteSaisie: '1', prixAttenduCentimes: prixVenteTtcCentimes },
+      {
+        articleId,
+        numeroArticle,
+        designation,
+        quantiteSaisie: '1',
+        prixAttenduCentimes: prixVenteTtcCentimes,
+      },
     ]);
     recherche.onSaisieChange('');
   }
@@ -71,7 +96,9 @@ export function EcranNouvelleCommandeFournisseur() {
   }
 
   function majLigne(articleId: string, patch: Partial<LigneEnCours>) {
-    setLignes((valeur) => valeur.map((ligne) => (ligne.articleId === articleId ? { ...ligne, ...patch } : ligne)));
+    setLignes((valeur) =>
+      valeur.map((ligne) => (ligne.articleId === articleId ? { ...ligne, ...patch } : ligne)),
+    );
   }
 
   function construireEntree(): EntreeCreationCommandeFournisseur | null {
@@ -133,7 +160,9 @@ export function EcranNouvelleCommandeFournisseur() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:commandes.actions.creer')}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">
+        {t('pieces:commandes.actions.creer')}
+      </h1>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
@@ -171,19 +200,34 @@ export function EcranNouvelleCommandeFournisseur() {
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="cmd-date">{t('pieces:commandes.dateCommande')}</Label>
-          <Input id="cmd-date" type="date" disabled={enCours} value={dateCommande} onChange={(evenement) => setDateCommande(evenement.target.value)} />
+          <Input
+            id="cmd-date"
+            type="date"
+            disabled={enCours}
+            value={dateCommande}
+            onChange={(evenement) => setDateCommande(evenement.target.value)}
+          />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="cmd-reference">{t('pieces:commandes.reference')}</Label>
-          <Input id="cmd-reference" disabled={enCours} value={reference} onChange={(evenement) => setReference(evenement.target.value)} />
+          <Input
+            id="cmd-reference"
+            disabled={enCours}
+            value={reference}
+            onChange={(evenement) => setReference(evenement.target.value)}
+          />
         </div>
       </div>
 
       <fieldset className="flex flex-col gap-3 rounded-md border p-3">
-        <legend className="px-1 texte-libelle font-medium text-foreground">{t('pieces:commandes.lignes.titre')}</legend>
+        <legend className="px-1 texte-libelle font-medium text-foreground">
+          {t('pieces:commandes.lignes.titre')}
+        </legend>
 
         {!siteId ? (
-          <p className="texte-libelle text-muted-foreground">{t('pieces:commandes.nouvelle.choisirSiteDabord')}</p>
+          <p className="texte-libelle text-muted-foreground">
+            {t('pieces:commandes.nouvelle.choisirSiteDabord')}
+          </p>
         ) : (
           <>
             <Input
@@ -199,14 +243,25 @@ export function EcranNouvelleCommandeFournisseur() {
                     <button
                       type="button"
                       disabled={idsDejaAjoutes.has(resultat.articleId) || enCours}
-                      onClick={() => ajouterLigne(resultat.articleId, resultat.numeroArticle, resultat.designation, resultat.prixVenteTtcCentimes)}
+                      onClick={() =>
+                        ajouterLigne(
+                          resultat.articleId,
+                          resultat.numeroArticle,
+                          resultat.designation,
+                          resultat.prixVenteTtcCentimes,
+                        )
+                      }
                       className="flex w-full items-center justify-between gap-2 rounded-md border p-2 texte-corps hover:bg-muted disabled:opacity-50"
                     >
                       <span className="flex flex-col items-start">
                         <span className="font-medium">{resultat.designation}</span>
-                        <span className="font-mono texte-libelle text-muted-foreground">{resultat.referencePrincipale}</span>
+                        <span className="font-mono texte-libelle text-muted-foreground">
+                          {resultat.referencePrincipale}
+                        </span>
                       </span>
-                      <span className="tabular-nums">{formaterMontant(resultat.prixVenteTtcCentimes)}</span>
+                      <span className="tabular-nums">
+                        {formaterMontant(resultat.prixVenteTtcCentimes)}
+                      </span>
                     </button>
                   </li>
                 ))}
@@ -233,14 +288,18 @@ export function EcranNouvelleCommandeFournisseur() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`cmd-qte-${ligne.articleId}`}>{t('pieces:commandes.lignes.quantiteCommandee')}</Label>
+                    <Label htmlFor={`cmd-qte-${ligne.articleId}`}>
+                      {t('pieces:commandes.lignes.quantiteCommandee')}
+                    </Label>
                     <Input
                       id={`cmd-qte-${ligne.articleId}`}
                       type="text"
                       inputMode="decimal"
                       disabled={enCours}
                       value={ligne.quantiteSaisie}
-                      onChange={(evenement) => majLigne(ligne.articleId, { quantiteSaisie: evenement.target.value })}
+                      onChange={(evenement) =>
+                        majLigne(ligne.articleId, { quantiteSaisie: evenement.target.value })
+                      }
                     />
                   </div>
                   <ChampMontant
@@ -248,14 +307,18 @@ export function EcranNouvelleCommandeFournisseur() {
                     label={t('pieces:commandes.lignes.prixAchatAttendu')}
                     disabled={enCours}
                     valeurCentimes={ligne.prixAttenduCentimes}
-                    onChangeCentimes={(centimes) => majLigne(ligne.articleId, { prixAttenduCentimes: centimes })}
+                    onChangeCentimes={(centimes) =>
+                      majLigne(ligne.articleId, { prixAttenduCentimes: centimes })
+                    }
                   />
                 </div>
                 {saisieVersQuantiteMillieme(ligne.quantiteSaisie) === null ? (
                   <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
                 ) : (
                   <p className="texte-libelle text-muted-foreground">
-                    {formaterQuantiteMillieme(saisieVersQuantiteMillieme(ligne.quantiteSaisie) ?? 0)}
+                    {formaterQuantiteMillieme(
+                      saisieVersQuantiteMillieme(ligne.quantiteSaisie) ?? 0,
+                    )}
                   </p>
                 )}
               </li>
@@ -264,7 +327,9 @@ export function EcranNouvelleCommandeFournisseur() {
         ) : null}
       </fieldset>
 
-      {erreurValidation ? <p className="texte-libelle text-destructive">{erreurValidation}</p> : null}
+      {erreurValidation ? (
+        <p className="texte-libelle text-destructive">{erreurValidation}</p>
+      ) : null}
       {creer.error ? (
         <p className="texte-libelle text-destructive" role="alert">
           {messageErreur(creer.error, t)}

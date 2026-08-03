@@ -9,11 +9,21 @@ import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
-import { TableComptoir, type ColonneComptoir, type EtatTriComptoir } from '@/composants/comptoir/TableComptoir';
+import {
+  TableComptoir,
+  type ColonneComptoir,
+  type EtatTriComptoir,
+} from '@/composants/comptoir/TableComptoir';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { BadgeTypeClient } from '@/composants/identite/BadgeTypeClient';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
@@ -71,7 +81,10 @@ export function EcranListeClients() {
     tri,
   });
 
-  const lignes = useMemo(() => requete.data?.pages.flatMap((page) => page.donnees) ?? [], [requete.data]);
+  const lignes = useMemo(
+    () => requete.data?.pages.flatMap((page) => page.donnees) ?? [],
+    [requete.data],
+  );
 
   const filtresActifs = qSaisi.trim() !== '' || type !== undefined || inclureInactifs;
 
@@ -110,12 +123,16 @@ export function EcranListeClients() {
     {
       id: 'localite',
       libelle: t('clients:liste.colonnes.localite'),
-      rendu: (client) => <span className="text-muted-foreground">{texteOuVide(client.localite)}</span>,
+      rendu: (client) => (
+        <span className="text-muted-foreground">{texteOuVide(client.localite)}</span>
+      ),
     },
     {
       id: 'telephone',
       libelle: t('clients:liste.colonnes.telephone'),
-      rendu: (client) => <span className="tabular-nums text-muted-foreground">{texteOuVide(client.telephone)}</span>,
+      rendu: (client) => (
+        <span className="tabular-nums text-muted-foreground">{texteOuVide(client.telephone)}</span>
+      ),
     },
     {
       id: 'vehicules',
@@ -136,7 +153,10 @@ export function EcranListeClients() {
   ];
 
   const contenuVide = qEffectif ? (
-    <EtatVideRecherche titre={t('clients:vide.recherche')} description={t('clients:vide.rechercheDescription')} />
+    <EtatVideRecherche
+      titre={t('clients:vide.recherche')}
+      description={t('clients:vide.rechercheDescription')}
+    />
   ) : type !== undefined || inclureInactifs ? (
     <EtatVideFiltre
       titre={t('clients:vide.filtre')}
@@ -176,7 +196,9 @@ export function EcranListeClients() {
       >
         <Select
           value={type ?? 'tous'}
-          onValueChange={(valeur) => setType(valeur === 'tous' ? undefined : (valeur as TypeClient))}
+          onValueChange={(valeur) =>
+            setType(valeur === 'tous' ? undefined : (valeur as TypeClient))
+          }
         >
           <SelectTrigger className="w-[200px]" aria-label={t('clients:liste.filtres.type')}>
             <SelectValue />
@@ -193,7 +215,9 @@ export function EcranListeClients() {
             checked={inclureInactifs}
             onCheckedChange={(valeur) => setInclureInactifs(valeur === true)}
           />
-          <Label htmlFor="clients-inclure-inactifs">{t('clients:liste.filtres.inclureInactifs')}</Label>
+          <Label htmlFor="clients-inclure-inactifs">
+            {t('clients:liste.filtres.inclureInactifs')}
+          </Label>
         </div>
       </BarreFiltres>
 

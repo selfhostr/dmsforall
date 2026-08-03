@@ -67,7 +67,9 @@ const MOTIF_HINT_LISTE = /transitions autorisées\s*:\s*(.+?)\.?$/;
  * cartographiée, `detail` d'une forme inattendue) — l'appelant retombe alors sur son traitement
  * générique (`ERREUR_INTERNE`), jamais sur une supposition.
  */
-export function interpreterErreurTransitionInterdite(erreur: unknown): InterpretationTransitionInterdite | null {
+export function interpreterErreurTransitionInterdite(
+  erreur: unknown,
+): InterpretationTransitionInterdite | null {
   if (typeof erreur !== 'object' || erreur === null) {
     return null;
   }

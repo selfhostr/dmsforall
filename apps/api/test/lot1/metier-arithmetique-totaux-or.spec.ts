@@ -21,8 +21,18 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { demarrerBaseEphemere, type BaseEphemere } from '../setup/postgres-ephemere';
-import { creerAppTest, demarrerRedisEphemere, type AppTest, type RedisEphemere } from '../setup/app-test';
-import { creerOrPourTest, semerGarageDemoLot1, type GarageDemoLot1Fixture, type OrDeTest } from './fixtures/garage-demo-lot1';
+import {
+  creerAppTest,
+  demarrerRedisEphemere,
+  type AppTest,
+  type RedisEphemere,
+} from '../setup/app-test';
+import {
+  creerOrPourTest,
+  semerGarageDemoLot1,
+  type GarageDemoLot1Fixture,
+  type OrDeTest,
+} from './fixtures/garage-demo-lot1';
 import { cookieDeSessionPour } from './isolation-http-aide';
 
 let bdd: BaseEphemere;
@@ -60,7 +70,11 @@ interface CorpsOrComplet {
     readonly montantHtCentimes: number;
     readonly montantTvaCentimes: number;
     readonly montantTtcCentimes: number;
-    readonly tva: ReadonlyArray<{ readonly tauxPourmille: number; readonly baseHtCentimes: number; readonly montantCentimes: number }>;
+    readonly tva: ReadonlyArray<{
+      readonly tauxPourmille: number;
+      readonly baseHtCentimes: number;
+      readonly montantCentimes: number;
+    }>;
   }>;
 }
 
@@ -69,24 +83,32 @@ async function nouvelOr(): Promise<OrDeTest> {
   return creerOrPourTest(bdd, t.tenant, t.tenant.sites[0]!.id, t.clients[0]!, t.vehicules[0]!);
 }
 
-async function creerLigne(
-  orId: string,
-  entree: Record<string, unknown>,
-): Promise<MontantsLigneOr> {
+async function creerLigne(orId: string, entree: Record<string, unknown>): Promise<MontantsLigneOr> {
   const reponse = await ctx.requete
     .post(`/api/v1/ordres-reparation/${orId}/lignes`)
     .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
     .set('Cookie', cookieReceptionnaire)
     .set('Idempotency-Key', randomUUID())
-    .send({ type: 'piece', origine: 'commandee', designation: 'Ligne de test arithmétique', payeur: 'client', ...entree });
+    .send({
+      type: 'piece',
+      origine: 'commandee',
+      designation: 'Ligne de test arithmétique',
+      payeur: 'client',
+      ...entree,
+    });
   expect(reponse.status, `création de ligne refusée : ${JSON.stringify(reponse.body)}`).toBe(201);
   const montants = (reponse.body as CorpsLigneOr).donnees?.montants;
-  if (!montants) throw new Error(`Aucun montant dans la réponse de création de ligne : ${JSON.stringify(reponse.body)}`);
+  if (!montants)
+    throw new Error(
+      `Aucun montant dans la réponse de création de ligne : ${JSON.stringify(reponse.body)}`,
+    );
   return montants;
 }
 
 async function lireOrComplet(orId: string): Promise<CorpsOrComplet> {
-  const reponse = await ctx.requete.get(`/api/v1/ordres-reparation/${orId}`).set('Cookie', cookieReceptionnaire);
+  const reponse = await ctx.requete
+    .get(`/api/v1/ordres-reparation/${orId}`)
+    .set('Cookie', cookieReceptionnaire);
   expect(reponse.status, JSON.stringify(reponse.body)).toBe(200);
   return reponse.body as CorpsOrComplet;
 }
@@ -98,17 +120,26 @@ async function lireOrComplet(orId: string): Promise<CorpsOrComplet> {
 describe('calcul de ligne — valeurs EXACTES en centimes (taux légal suisse 8.1%, RM-65)', () => {
   it('prixUnitaireCentimes=1000, quantité=1, sans rabais : HT=1000, TVA=81 (1000*81/1000), TTC=1081', async () => {
     const or = await nouvelOr();
-    const montants = await creerLigne(or.id, { prixUnitaireCentimes: 1000, quantiteMillieme: 1000 });
+    const montants = await creerLigne(or.id, {
+      prixUnitaireCentimes: 1000,
+      quantiteMillieme: 1000,
+    });
     expect(montants.montantHtCentimes).toBe(1000);
     expect(montants.montantTvaCentimes).toBe(81);
     expect(montants.montantTtcCentimes).toBe(1081);
     // Invariant de base (contrainte CHECK ligne_or_montant_coherent_chk) — revérifié côté service.
-    expect(montants.montantTtcCentimes).toBe(montants.montantHtCentimes + montants.montantTvaCentimes);
+    expect(montants.montantTtcCentimes).toBe(
+      montants.montantHtCentimes + montants.montantTvaCentimes,
+    );
   });
 
   it("rabais 12.5% (125‰) : HT = round(1000 * 875/1000) = 875, TVA = round(875*81/1000) = 71, TTC = 946 — l'ordre RABAIS PUIS TVA est celui gelé par le contrat", async () => {
     const or = await nouvelOr();
-    const montants = await creerLigne(or.id, { prixUnitaireCentimes: 1000, quantiteMillieme: 1000, rabaisPourmille: 125 });
+    const montants = await creerLigne(or.id, {
+      prixUnitaireCentimes: 1000,
+      quantiteMillieme: 1000,
+      rabaisPourmille: 125,
+    });
     expect(montants.montantHtCentimes).toBe(875);
     expect(montants.montantTvaCentimes).toBe(71);
     expect(montants.montantTtcCentimes).toBe(946);
@@ -122,9 +153,13 @@ describe('calcul de ligne — valeurs EXACTES en centimes (taux légal suisse 8.
     expect(montants.montantTtcCentimes).toBe(900);
   });
 
-  it("ligne de type remise (montant négatif) : HT=-500, TVA=round(-500*81/1000)=round(-40.5)=-40 (Math.round arrondit les .5 vers +Infini, y compris négatifs — PAS vers zéro), TTC=-540", async () => {
+  it('ligne de type remise (montant négatif) : HT=-500, TVA=round(-500*81/1000)=round(-40.5)=-40 (Math.round arrondit les .5 vers +Infini, y compris négatifs — PAS vers zéro), TTC=-540', async () => {
     const or = await nouvelOr();
-    const montants = await creerLigne(or.id, { type: 'remise', prixUnitaireCentimes: -500, quantiteMillieme: 1000 });
+    const montants = await creerLigne(or.id, {
+      type: 'remise',
+      prixUnitaireCentimes: -500,
+      quantiteMillieme: 1000,
+    });
     expect(montants.montantHtCentimes).toBe(-500);
     // -500 * 81 / 1000 = -40.5 ; Math.round(-40.5) = -40 en JavaScript (arrondi vers +Infini, pas
     // vers zéro) — valeur EXACTE attendue, jamais approximative.
@@ -161,25 +196,45 @@ describe('agrégation des totaux — TVA par ligne, JAMAIS sur le total agrégé
     // round(0.81) = 1. La somme des TVA déjà arrondies par ligne donne 0 + 0 = 0.
     expect(totalClient!.montantTvaCentimes).toBe(0);
     expect(totalClient!.montantTtcCentimes).toBe(10);
-    expect(totalClient!.tva).toEqual([{ tauxPourmille: 81, baseHtCentimes: 10, montantCentimes: 0 }]);
+    expect(totalClient!.tva).toEqual([
+      { tauxPourmille: 81, baseHtCentimes: 10, montantCentimes: 0 },
+    ]);
   });
 
   it('trois lignes de montants hétérogènes : le total HT/TVA/TTC est la somme EXACTE des montants de ligne, terme à terme', async () => {
     const or = await nouvelOr();
     const m1 = await creerLigne(or.id, { prixUnitaireCentimes: 1234, quantiteMillieme: 1000 }); // HT 1234, TVA round(99.954)=100, TTC 1334
-    const m2 = await creerLigne(or.id, { prixUnitaireCentimes: 567, quantiteMillieme: 1000, rabaisPourmille: 100 }); // HT round(567*900/1000)=510, TVA round(41.31)=41, TTC 551
-    const m3 = await creerLigne(or.id, { type: 'remise', prixUnitaireCentimes: -200, quantiteMillieme: 1000 }); // HT -200, TVA round(-16.2)=-16, TTC -216
+    const m2 = await creerLigne(or.id, {
+      prixUnitaireCentimes: 567,
+      quantiteMillieme: 1000,
+      rabaisPourmille: 100,
+    }); // HT round(567*900/1000)=510, TVA round(41.31)=41, TTC 551
+    const m3 = await creerLigne(or.id, {
+      type: 'remise',
+      prixUnitaireCentimes: -200,
+      quantiteMillieme: 1000,
+    }); // HT -200, TVA round(-16.2)=-16, TTC -216
 
-    expect(m1).toEqual({ montantHtCentimes: 1234, montantTvaCentimes: 100, montantTtcCentimes: 1334 });
+    expect(m1).toEqual({
+      montantHtCentimes: 1234,
+      montantTvaCentimes: 100,
+      montantTtcCentimes: 1334,
+    });
     expect(m2).toEqual({ montantHtCentimes: 510, montantTvaCentimes: 41, montantTtcCentimes: 551 });
-    expect(m3).toEqual({ montantHtCentimes: -200, montantTvaCentimes: -16, montantTtcCentimes: -216 });
+    expect(m3).toEqual({
+      montantHtCentimes: -200,
+      montantTvaCentimes: -16,
+      montantTtcCentimes: -216,
+    });
 
     const document = await lireOrComplet(or.id);
     const totalClient = document.totauxParPayeur?.find((t) => t.payeur === 'client');
     expect(totalClient!.montantHtCentimes).toBe(1234 + 510 - 200); // 1544
     expect(totalClient!.montantTvaCentimes).toBe(100 + 41 - 16); // 125
     expect(totalClient!.montantTtcCentimes).toBe(1334 + 551 - 216); // 1669
-    expect(totalClient!.montantTtcCentimes).toBe(totalClient!.montantHtCentimes + totalClient!.montantTvaCentimes);
+    expect(totalClient!.montantTtcCentimes).toBe(
+      totalClient!.montantHtCentimes + totalClient!.montantTvaCentimes,
+    );
   });
 });
 
@@ -192,8 +247,16 @@ describe('agrégation des totaux — TVA par ligne, JAMAIS sur le total agrégé
 describe('regroupement par payeur — un geste commercial (payeur=garage) ne pollue pas le total client', () => {
   it('une ligne payeur=client à 1000 centimes HT et une ligne payeur=garage à prix nominal 1000 : deux totaux DISTINCTS, celui de "garage" à zéro', async () => {
     const or = await nouvelOr();
-    await creerLigne(or.id, { prixUnitaireCentimes: 1000, quantiteMillieme: 1000, payeur: 'client' });
-    const geste = await creerLigne(or.id, { prixUnitaireCentimes: 1000, quantiteMillieme: 1000, payeur: 'garage' });
+    await creerLigne(or.id, {
+      prixUnitaireCentimes: 1000,
+      quantiteMillieme: 1000,
+      payeur: 'client',
+    });
+    const geste = await creerLigne(or.id, {
+      prixUnitaireCentimes: 1000,
+      quantiteMillieme: 1000,
+      payeur: 'garage',
+    });
 
     // RM-70, appliqué dans service-ligne-or.ts : payeur=garage force montants à zéro, sans même
     // appeler le calculateur.

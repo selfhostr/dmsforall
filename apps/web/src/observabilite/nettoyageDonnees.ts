@@ -109,7 +109,10 @@ function nettoyerChampObjet(cle: string, valeur: unknown, profondeurParente: num
  *  (e-mail, VIN, plaque suisse) — utile pour les messages d'erreur ou les URL qui embarquent
  *  ces valeurs sans que la clé porteuse ne soit elle-même signalée comme sensible. */
 export function rediger(texte: string): string {
-  return texte.replace(RE_EMAIL, MARQUEUR_RETIRE).replace(RE_VIN, MARQUEUR_RETIRE).replace(RE_PLAQUE_CH, MARQUEUR_RETIRE);
+  return texte
+    .replace(RE_EMAIL, MARQUEUR_RETIRE)
+    .replace(RE_VIN, MARQUEUR_RETIRE)
+    .replace(RE_PLAQUE_CH, MARQUEUR_RETIRE);
 }
 
 /** Retire la chaîne de requête d'une URL (souvent des filtres de recherche : nom de client,
@@ -127,7 +130,8 @@ const PROFONDEUR_MAX = 6;
 function nettoyerValeur(valeur: unknown, profondeur = 0): unknown {
   if (profondeur > PROFONDEUR_MAX) return MARQUEUR_RETIRE;
   if (typeof valeur === 'string') return rediger(valeur);
-  if (Array.isArray(valeur)) return valeur.map((element) => nettoyerValeur(element, profondeur + 1));
+  if (Array.isArray(valeur))
+    return valeur.map((element) => nettoyerValeur(element, profondeur + 1));
   if (valeur !== null && typeof valeur === 'object') {
     const resultat: Record<string, unknown> = {};
     for (const [cle, sousValeur] of Object.entries(valeur)) {
@@ -144,7 +148,9 @@ function nettoyerValeur(valeur: unknown, profondeur = 0): unknown {
  *  `CLES_BLOCAGE_TOTAL`, avec quelques alias propres au format des breadcrumbs réseau). */
 const CLES_CORPS_HTTP = ['body', 'requestbody', 'responsebody', 'response', 'data', 'input'];
 
-function nettoyerDonneesBreadcrumb(donnees: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+function nettoyerDonneesBreadcrumb(
+  donnees: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
   if (!donnees) return donnees;
   const resultat: Record<string, unknown> = {};
   for (const [cle, valeur] of Object.entries(donnees)) {

@@ -56,14 +56,19 @@ type ClasseModule = Type<unknown>;
  * résoudre : rencontré, il fait échouer bruyamment plutôt que de silencieusement ignorer une
  * branche entière du graphe de routes.
  */
-type EntreeImport = ClasseModule | DynamicModule | ForwardReference | Promise<DynamicModule> | undefined;
+type EntreeImport =
+  ClasseModule | DynamicModule | ForwardReference | Promise<DynamicModule> | undefined;
 
 function estDescripteurDynamique(valeur: EntreeImport): valeur is DynamicModule {
   return typeof valeur === 'object' && valeur !== null && 'module' in valeur;
 }
 
 function estReferenceDifferee(valeur: EntreeImport): valeur is ForwardReference {
-  return typeof valeur === 'object' && valeur !== null && typeof (valeur as ForwardReference).forwardRef === 'function';
+  return (
+    typeof valeur === 'object' &&
+    valeur !== null &&
+    typeof (valeur as ForwardReference).forwardRef === 'function'
+  );
 }
 
 function collecterControleurs(entree: EntreeImport, dejaVus: Set<ClasseModule>): ClasseModule[] {
@@ -75,7 +80,8 @@ function collecterControleurs(entree: EntreeImport, dejaVus: Set<ClasseModule>):
         'doit être mis à jour plutôt que de laisser cette branche de routes invérifiée en silence.',
     );
   }
-  if (estReferenceDifferee(entree)) return collecterControleurs(entree.forwardRef() as EntreeImport, dejaVus);
+  if (estReferenceDifferee(entree))
+    return collecterControleurs(entree.forwardRef() as EntreeImport, dejaVus);
 
   const classeModule = (estDescripteurDynamique(entree) ? entree.module : entree) as ClasseModule;
   if (dejaVus.has(classeModule)) return []; // module déjà visité (ex. réimporté par plusieurs branches)
@@ -84,12 +90,16 @@ function collecterControleurs(entree: EntreeImport, dejaVus: Set<ClasseModule>):
   const controleursDynamiques: readonly ClasseModule[] = estDescripteurDynamique(entree)
     ? ((entree.controllers ?? []) as ClasseModule[])
     : [];
-  const importsDynamiques: readonly EntreeImport[] = estDescripteurDynamique(entree) ? (entree.imports ?? []) : [];
+  const importsDynamiques: readonly EntreeImport[] = estDescripteurDynamique(entree)
+    ? (entree.imports ?? [])
+    : [];
 
   const controleursDecores: readonly ClasseModule[] =
-    (Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, classeModule) as ClasseModule[] | undefined) ?? [];
+    (Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, classeModule) as
+      ClasseModule[] | undefined) ?? [];
   const importsDecores: readonly EntreeImport[] =
-    (Reflect.getMetadata(MODULE_METADATA.IMPORTS, classeModule) as EntreeImport[] | undefined) ?? [];
+    (Reflect.getMetadata(MODULE_METADATA.IMPORTS, classeModule) as EntreeImport[] | undefined) ??
+    [];
 
   const controleurs = [...controleursDynamiques, ...controleursDecores];
   for (const sousImport of [...importsDynamiques, ...importsDecores]) {
@@ -118,7 +128,8 @@ function metaEffective<T>(cle: string, handler: object, classe: ClasseModule): T
 function listerRoutes(controleurs: readonly ClasseModule[]): RouteHandler[] {
   const routes: RouteHandler[] = [];
   for (const classe of controleurs) {
-    const cheminControleur = (Reflect.getMetadata(PATH_METADATA, classe) as string | undefined) ?? '';
+    const cheminControleur =
+      (Reflect.getMetadata(PATH_METADATA, classe) as string | undefined) ?? '';
     const prototype = classe.prototype as Record<string, unknown>;
     for (const nomMethode of Object.getOwnPropertyNames(prototype)) {
       if (nomMethode === 'constructor') continue;
@@ -145,7 +156,9 @@ function nomRoute(route: RouteHandler): string {
   return `${route.controleur}.${route.methode}() [${route.cheminControleur}/${route.cheminMethode}]`;
 }
 
-const TOUTES_LES_ROUTES = listerRoutes(collecterControleurs(AppModule.pourConfig(CONFIG_MINIMALE), new Set()));
+const TOUTES_LES_ROUTES = listerRoutes(
+  collecterControleurs(AppModule.pourConfig(CONFIG_MINIMALE), new Set()),
+);
 
 describe('GardeDroit — refus par défaut : toutes les routes réellement montées sont décorées', () => {
   it('a trouvé au moins une route à vérifier (garde-fou : ce test ne doit jamais tourner à vide)', () => {

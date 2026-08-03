@@ -47,7 +47,9 @@ export function IndicateurRetard({ relanceNiveau, relanceLe, className }: Props)
         avancee ? 'text-statut-danger' : 'text-statut-attention',
         className,
       )}
-      title={relanceLe ? t('facturation:retard.relanceLe', { date: formaterDate(relanceLe) }) : undefined}
+      title={
+        relanceLe ? t('facturation:retard.relanceLe', { date: formaterDate(relanceLe) }) : undefined
+      }
     >
       <Icone aria-hidden className="h-3.5 w-3.5 shrink-0" />
       {`· ${texte}`}

@@ -55,7 +55,9 @@ export const ROLES_SANS_PRIX_ACHAT_PIECES: readonly RoleUtilisateur[] = [
   'admin',
 ];
 
-export function versArticleReferenceResponse(ligne: LigneArticleReference): ReponseArticleReference {
+export function versArticleReferenceResponse(
+  ligne: LigneArticleReference,
+): ReponseArticleReference {
   return {
     id: ligne.id,
     articleId: ligne.articleId,
@@ -163,7 +165,9 @@ export type DonneesReservationActive = {
   readonly reserveeLe: Date | string;
 };
 
-export function versReservationActiveResume(donnees: DonneesReservationActive): ReservationActiveResume {
+export function versReservationActiveResume(
+  donnees: DonneesReservationActive,
+): ReservationActiveResume {
   return {
     reservationId: donnees.reservationId,
     ligneOrId: donnees.ligneOrId,
@@ -193,7 +197,10 @@ export function versAvertissementReservationIndisponible(
  * de 0025), mais devenu exploitable dès que `ServiceCommandeFournisseur.reception` (ce lot) se met à
  * en créer. Un seul mécanisme de masquage dans tout le domaine pièces, jamais deux.
  */
-export function versMouvementResponse(ligne: LigneMouvementStock, role: RoleUtilisateur): ReponseMouvementStock {
+export function versMouvementResponse(
+  ligne: LigneMouvementStock,
+  role: RoleUtilisateur,
+): ReponseMouvementStock {
   const masquerPrixAchat = ROLES_SANS_PRIX_ACHAT_PIECES.includes(role);
   return {
     id: ligne.id,
@@ -247,7 +254,9 @@ export interface DonneesRechercheComptoir {
   readonly montantConsigneTtcCentimes: number | null;
 }
 
-export function versRechercheComptoirResultat(donnees: DonneesRechercheComptoir): ResultatRechercheComptoirArticle {
+export function versRechercheComptoirResultat(
+  donnees: DonneesRechercheComptoir,
+): ResultatRechercheComptoirArticle {
   return { ...donnees };
 }
 
@@ -295,13 +304,18 @@ export function versFournisseurResponse(ligne: LigneFournisseur): ReponseFournis
  * formule, jamais dupliquée entre le mapper et le service.
  */
 export function calculerReliquatMillieme(
-  ligne: Pick<LigneCommandeFournisseurLigne, 'quantiteCommandeeMillieme' | 'quantiteRecueCumuleeMillieme' | 'reliquatAnnuleLe'>,
+  ligne: Pick<
+    LigneCommandeFournisseurLigne,
+    'quantiteCommandeeMillieme' | 'quantiteRecueCumuleeMillieme' | 'reliquatAnnuleLe'
+  >,
 ): number {
   if (ligne.reliquatAnnuleLe !== null) return 0;
   return Math.max(0, ligne.quantiteCommandeeMillieme - ligne.quantiteRecueCumuleeMillieme);
 }
 
-export function versLigneCommandeFournisseurResponse(ligne: LigneCommandeFournisseurLigne): ReponseLigneCommandeFournisseur {
+export function versLigneCommandeFournisseurResponse(
+  ligne: LigneCommandeFournisseurLigne,
+): ReponseLigneCommandeFournisseur {
   return {
     id: ligne.id,
     commandeFournisseurId: ligne.commandeFournisseurId,
@@ -322,14 +336,19 @@ export function versCommandeFournisseurResponse(
   lignesToutes: readonly LigneCommandeFournisseurLigne[],
 ): ReponseCommandeFournisseur {
   const lignesTronquees = lignesToutes.length > SEUIL_LIGNES_EMBARQUEES_COMMANDE_FOURNISSEUR;
-  const lignes = lignesToutes.slice(0, SEUIL_LIGNES_EMBARQUEES_COMMANDE_FOURNISSEUR).map(versLigneCommandeFournisseurResponse);
+  const lignes = lignesToutes
+    .slice(0, SEUIL_LIGNES_EMBARQUEES_COMMANDE_FOURNISSEUR)
+    .map(versLigneCommandeFournisseurResponse);
   return {
     id: commande.id,
     fournisseurId: commande.fournisseurId,
     siteId: commande.siteId,
     statut: commande.statut,
     origine: commande.origine,
-    dateCommande: typeof commande.dateCommande === 'string' ? commande.dateCommande : enDate(commande.dateCommande).toISOString().slice(0, 10),
+    dateCommande:
+      typeof commande.dateCommande === 'string'
+        ? commande.dateCommande
+        : enDate(commande.dateCommande).toISOString().slice(0, 10),
     envoyeeLe: commande.envoyeeLe ? enDate(commande.envoyeeLe).toISOString() : null,
     reference: commande.reference,
     motifAnnulation: commande.motifAnnulation,
@@ -344,7 +363,9 @@ export function versCommandeFournisseurResponse(
 /* Consigne d'échange standard (RP-37 → RP-42, §6.4)                   */
 /* ------------------------------------------------------------------ */
 
-export function versConsigneResponse(ligne: LigneConsigneEchangeStandard): ReponseConsigneEchangeStandard {
+export function versConsigneResponse(
+  ligne: LigneConsigneEchangeStandard,
+): ReponseConsigneEchangeStandard {
   return {
     id: ligne.id,
     ligneOrId: ligne.ligneOrId,
@@ -355,7 +376,9 @@ export function versConsigneResponse(ligne: LigneConsigneEchangeStandard): Repon
     montantConsigneTtcCentimes: ligne.montantConsigneTtcCentimes,
     documentVenteLigneConsigneId: ligne.documentVenteLigneConsigneId,
     mouvementEntreeId: ligne.mouvementEntreeId,
-    retourneeFournisseurLe: ligne.retourneeFournisseurLe ? enDate(ligne.retourneeFournisseurLe).toISOString() : null,
+    retourneeFournisseurLe: ligne.retourneeFournisseurLe
+      ? enDate(ligne.retourneeFournisseurLe).toISOString()
+      : null,
     mouvementRetourId: ligne.mouvementRetourId,
     avoirDocumentId: ligne.avoirDocumentId,
     creeLe: enDate(ligne.creeLe).toISOString(),

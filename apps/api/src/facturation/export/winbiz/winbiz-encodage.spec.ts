@@ -5,9 +5,7 @@ import { encoderWindows1252 } from './winbiz-encodage';
 describe('encoderWindows1252', () => {
   it('encode l’ASCII octet pour octet', () => {
     const { octets, caracteresNonEncodables } = encoderWindows1252('ABC123 -_.');
-    expect([...octets]).toEqual([
-      0x41, 0x42, 0x43, 0x31, 0x32, 0x33, 0x20, 0x2d, 0x5f, 0x2e,
-    ]);
+    expect([...octets]).toEqual([0x41, 0x42, 0x43, 0x31, 0x32, 0x33, 0x20, 0x2d, 0x5f, 0x2e]);
     expect(caracteresNonEncodables).toEqual([]);
   });
 
@@ -40,9 +38,7 @@ describe('encoderWindows1252', () => {
   it('encode un nom de client accentué complet — cas concret « le défaut qui se découvre chez le comptable »', () => {
     // G, e, n, è, v, e, espace, S, A
     const { octets } = encoderWindows1252('Genève SA');
-    expect([...octets]).toEqual([
-      0x47, 0x65, 0x6e, 0xe8, 0x76, 0x65, 0x20, 0x53, 0x41,
-    ]);
+    expect([...octets]).toEqual([0x47, 0x65, 0x6e, 0xe8, 0x76, 0x65, 0x20, 0x53, 0x41]);
   });
 
   it('encode « Müller & Cie » — ü en 0xFC, pas en deux octets UTF-8', () => {
@@ -87,9 +83,7 @@ describe('encoderWindows1252', () => {
   it('remplace un caractère non représentable par « ? » et le signale', () => {
     const { octets, caracteresNonEncodables } = encoderWindows1252('Garage 日本');
     // "Garage " passe tel quel, puis deux caractères non encodables → deux « ? ».
-    expect([...octets]).toEqual([
-      0x47, 0x61, 0x72, 0x61, 0x67, 0x65, 0x20, 0x3f, 0x3f,
-    ]);
+    expect([...octets]).toEqual([0x47, 0x61, 0x72, 0x61, 0x67, 0x65, 0x20, 0x3f, 0x3f]);
     expect(caracteresNonEncodables).toEqual(['日', '本']);
   });
 

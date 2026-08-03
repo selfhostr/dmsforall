@@ -30,6 +30,8 @@ export const ApiCorpsZod = (schema: ZodType, options: OptionsApiCorpsZod = {}): 
     ApiBody({
       description: options.description,
       schema: schemaZodVersOpenApi(schema),
-      ...(options.exemple !== undefined ? { examples: { defaut: { value: options.exemple } } } : {}),
+      ...(options.exemple !== undefined
+        ? { examples: { defaut: { value: options.exemple } } }
+        : {}),
     }),
   );

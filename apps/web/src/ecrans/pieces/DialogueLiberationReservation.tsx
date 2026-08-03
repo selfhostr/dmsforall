@@ -3,7 +3,14 @@ import { useTranslation } from 'react-i18next';
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLibererReservation } from '@/hooks/pieces/useTransitionsReservation';
@@ -48,7 +55,9 @@ export function DialogueLiberationReservation({ reservationId, onFerme }: Props)
             onChange={(evenement) => setMotif(evenement.target.value)}
             aria-invalid={motif.length > 0 && !motifValide ? true : undefined}
           />
-          {motif.length > 0 && !motifValide ? <p className="texte-libelle text-destructive">{t('validation:requis')}</p> : null}
+          {motif.length > 0 && !motifValide ? (
+            <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+          ) : null}
         </div>
 
         {liberer.error ? (
@@ -62,7 +71,9 @@ export function DialogueLiberationReservation({ reservationId, onFerme }: Props)
             {t('commun:actions.annuler')}
           </Button>
           <Button type="button" disabled={liberer.isPending || !motifValide} onClick={soumettre}>
-            {liberer.isPending ? t('commun:chargement.enCours') : t('pieces:reservations.actions.liberer')}
+            {liberer.isPending
+              ? t('commun:chargement.enCours')
+              : t('pieces:reservations.actions.liberer')}
           </Button>
         </DialogFooter>
       </DialogContent>

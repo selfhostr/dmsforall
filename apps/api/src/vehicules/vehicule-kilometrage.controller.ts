@@ -1,6 +1,27 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { schemaFiltresKilometrages, schemaIdentifiant, schemaKilometrageVehicule, type EntreeKilometrageVehicule } from '@dfa/shared';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCookieAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import {
+  schemaFiltresKilometrages,
+  schemaIdentifiant,
+  schemaKilometrageVehicule,
+  type EntreeKilometrageVehicule,
+} from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
 import { CorpsZod } from '../common/documentation';
@@ -55,17 +76,30 @@ export class VehiculeKilometrageController {
     "Droit insuffisant — ou, sur une saisie RÉGRESSIVE avec motif, rôle sans vehicule.kilometrage.corriger_regression (§10 L962, chef d'atelier/direction uniquement).",
   )
   @ApiReponseProbleme(404, 'Véhicule introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, 'VEHICULE_KILOMETRAGE_REGRESSIF (CT-07) — motifsAcceptes dans actionsProposees.')
+  @ApiReponseProbleme(
+    409,
+    'VEHICULE_KILOMETRAGE_REGRESSIF (CT-07) — motifsAcceptes dans actionsProposees.',
+  )
   async creer(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
     @CorpsZod(schemaKilometrageVehicule, {
-      exemple: { valeur: 84200, unite: 'km', releveLe: '2026-07-15T08:30:00.000Z', source: 'reception' },
+      exemple: {
+        valeur: 84200,
+        unite: 'km',
+        releveLe: '2026-07-15T08:30:00.000Z',
+        source: 'reception',
+      },
     })
     entree: EntreeKilometrageVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    const { donnees, avertissements } = await this.service.creer(ctx, vehiculeId, entree, principal.role);
+    const { donnees, avertissements } = await this.service.creer(
+      ctx,
+      vehiculeId,
+      entree,
+      principal.role,
+    );
     return avertissements.envelopper(donnees);
   }
 }

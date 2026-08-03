@@ -125,7 +125,9 @@ describe('EcranPointageTechnicien', () => {
 
     rendre();
 
-    expect(await screen.findByText("Aucun OR à pointer pour vous aujourd'hui.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Aucun OR à pointer pour vous aujourd'hui."),
+    ).toBeInTheDocument();
   });
 
   it('affiche le chrono et le bouton Arrêter quand un pointage est en cours', async () => {
@@ -144,7 +146,7 @@ describe('EcranPointageTechnicien', () => {
     expect(screen.queryByRole('button', { name: 'Reprendre' })).not.toBeInTheDocument();
   });
 
-  it("affiche une erreur actionnable si le serveur échoue à lire le pointage en cours", async () => {
+  it('affiche une erreur actionnable si le serveur échoue à lire le pointage en cours', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
       http.get('/api/v1/pointages', () =>
@@ -164,6 +166,8 @@ describe('EcranPointageTechnicien', () => {
 
     rendre();
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument(),
+    );
   });
 });

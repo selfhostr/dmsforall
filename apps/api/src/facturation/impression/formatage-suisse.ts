@@ -36,7 +36,9 @@ export function formaterDateSuisse(dateIso: string): string {
   const mois = m?.[2];
   const jour = m?.[3];
   if (!annee || !mois || !jour) {
-    throw new RangeError(`formaterDateSuisse attend une date ISO ("YYYY-MM-DD..."), reçu "${dateIso}".`);
+    throw new RangeError(
+      `formaterDateSuisse attend une date ISO ("YYYY-MM-DD..."), reçu "${dateIso}".`,
+    );
   }
   return `${jour}.${mois}.${annee}`;
 }

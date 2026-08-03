@@ -7,7 +7,10 @@ import { AvertissementDocumentDto } from './avertissement.dto';
 /** Fabrique de DTO d'enveloppe `{ donnees, avertissements }` — copie locale de
  *  `atelier/dto/enveloppe.dto.ts` (même justification : NestJS/Swagger lit les métadonnées sur la
  *  classe concrète, pas sur un générique TypeScript effacé à la compilation). */
-export function EnveloppeDocumentDto<T>(classeDonnees: Type<T>, nom: string): Type<ReponseAvecAvertissements<T>> {
+export function EnveloppeDocumentDto<T>(
+  classeDonnees: Type<T>,
+  nom: string,
+): Type<ReponseAvecAvertissements<T>> {
   class EnveloppeGeneree implements ReponseAvecAvertissements<T> {
     @ApiProperty({ type: () => classeDonnees })
     readonly donnees!: T;
@@ -25,7 +28,11 @@ export function PageDocumentDto<T>(classeDonnees: Type<T>, nom: string): Type<Pa
     @ApiProperty({ type: () => [classeDonnees] })
     readonly donnees!: readonly T[];
 
-    @ApiProperty({ type: String, nullable: true, description: 'Opaque base64url ; null = fin de liste.' })
+    @ApiProperty({
+      type: String,
+      nullable: true,
+      description: 'Opaque base64url ; null = fin de liste.',
+    })
     readonly curseurSuivant!: string | null;
 
     @ApiProperty({ example: 50 })

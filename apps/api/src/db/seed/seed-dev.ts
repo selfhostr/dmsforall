@@ -186,7 +186,9 @@ function ibanValideModulo97(iban: string): boolean {
 
 for (const iban of [IBAN_DEMO, QR_IBAN_DEMO]) {
   if (!ibanValideModulo97(iban)) {
-    throw new Error(`seed-dev : IBAN de démonstration « ${iban} » a une clé de contrôle modulo 97 fausse — à corriger avant tout db:seed.`);
+    throw new Error(
+      `seed-dev : IBAN de démonstration « ${iban} » a une clé de contrôle modulo 97 fausse — à corriger avant tout db:seed.`,
+    );
   }
 }
 
@@ -285,16 +287,53 @@ const UTILISATEURS_DEMO = [
 // depuis 42 jours et deux travaux reportés dont un marqué sécurité.
 
 const TAUX_HORAIRE_DEMO = [
-  { code: 'ATELIER', libelle: 'Taux horaire atelier', montantCentimes: 13500, valideDu: '2020-01-01', valideAu: '2025-12-31' },
-  { code: 'ATELIER', libelle: 'Taux horaire atelier', montantCentimes: 14500, valideDu: '2026-01-01', valideAu: null },
+  {
+    code: 'ATELIER',
+    libelle: 'Taux horaire atelier',
+    montantCentimes: 13500,
+    valideDu: '2020-01-01',
+    valideAu: '2025-12-31',
+  },
+  {
+    code: 'ATELIER',
+    libelle: 'Taux horaire atelier',
+    montantCentimes: 14500,
+    valideDu: '2026-01-01',
+    valideAu: null,
+  },
 ] as const;
 
 const PRESTATIONS_DEMO = [
-  { code: 'VID-ESS', designationFr: 'Vidange huile + filtre (essence)', tempsBaremeCentiemes: 80, prixCentimes: 9000 },
-  { code: 'FREIN-AV', designationFr: 'Remplacement plaquettes de frein avant', tempsBaremeCentiemes: 100, prixCentimes: 45000 },
-  { code: 'PNEUS-CHG', designationFr: 'Changement de pneus (4 roues)', tempsBaremeCentiemes: 50, prixCentimes: 32000 },
-  { code: 'DIAG-OBD', designationFr: 'Diagnostic électronique OBD', tempsBaremeCentiemes: 60, prixCentimes: 12000 },
-  { code: 'EXPERTISE-PREP', designationFr: "Préparation à l'expertise MFK", tempsBaremeCentiemes: 120, prixCentimes: 15000 },
+  {
+    code: 'VID-ESS',
+    designationFr: 'Vidange huile + filtre (essence)',
+    tempsBaremeCentiemes: 80,
+    prixCentimes: 9000,
+  },
+  {
+    code: 'FREIN-AV',
+    designationFr: 'Remplacement plaquettes de frein avant',
+    tempsBaremeCentiemes: 100,
+    prixCentimes: 45000,
+  },
+  {
+    code: 'PNEUS-CHG',
+    designationFr: 'Changement de pneus (4 roues)',
+    tempsBaremeCentiemes: 50,
+    prixCentimes: 32000,
+  },
+  {
+    code: 'DIAG-OBD',
+    designationFr: 'Diagnostic électronique OBD',
+    tempsBaremeCentiemes: 60,
+    prixCentimes: 12000,
+  },
+  {
+    code: 'EXPERTISE-PREP',
+    designationFr: "Préparation à l'expertise MFK",
+    tempsBaremeCentiemes: 120,
+    prixCentimes: 15000,
+  },
 ] as const;
 
 const CLIENTS_DEMO = [
@@ -381,7 +420,9 @@ const VEHICULES_DEMO = [
     couleur: 'bleu',
     clientNumero: 'CL-0002',
     plaque: 'VS 55512',
-    kilometrages: [{ valeur: 41_500, releveLe: '2026-04-02T08:15:00Z', source: 'reception' as const }],
+    kilometrages: [
+      { valeur: 41_500, releveLe: '2026-04-02T08:15:00Z', source: 'reception' as const },
+    ],
   },
   {
     vin: null,
@@ -392,7 +433,9 @@ const VEHICULES_DEMO = [
     couleur: 'blanc',
     clientNumero: 'CL-0003',
     plaque: 'VS 90001',
-    kilometrages: [{ valeur: 128_300, releveLe: '2026-06-20T07:00:00Z', source: 'reception' as const }],
+    kilometrages: [
+      { valeur: 128_300, releveLe: '2026-06-20T07:00:00Z', source: 'reception' as const },
+    ],
   },
   {
     vin: 'WBA8E9106K5E12348',
@@ -403,7 +446,9 @@ const VEHICULES_DEMO = [
     couleur: 'noir',
     clientNumero: 'CL-0001',
     plaque: 'GE 445566',
-    kilometrages: [{ valeur: 63_200, releveLe: '2026-03-11T11:45:00Z', source: 'reception' as const }],
+    kilometrages: [
+      { valeur: 63_200, releveLe: '2026-03-11T11:45:00Z', source: 'reception' as const },
+    ],
   },
 ] as const;
 
@@ -413,7 +458,9 @@ const VEHICULES_DEMO = [
  * la clause `where` utilisée pour l'upsert ci-dessous (`critereVehicule`), afin qu'un appelant
  * (ex. `seed-atelier-demo.ts`) retrouve le même véhicule qu'il ait ou non un VIN.
  */
-function cleVehiculeDemo(v: Pick<(typeof VEHICULES_DEMO)[number], 'vin' | 'marque' | 'modele' | 'version'>): string {
+function cleVehiculeDemo(
+  v: Pick<(typeof VEHICULES_DEMO)[number], 'vin' | 'marque' | 'modele' | 'version'>,
+): string {
   return v.vin ?? `${v.marque}::${v.modele}::${v.version}`;
 }
 
@@ -504,7 +551,14 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
           set: { nom: s.nom, rue: s.rue, npa: s.npa, localite: s.localite, actif: true },
         })
         .returning({ id: site.id });
-      const idSite = ligneSite?.id ?? (await base.select({ id: site.id }).from(site).where(and(eq(site.tenantId, tenantId), eq(site.code, s.code))))[0]?.id;
+      const idSite =
+        ligneSite?.id ??
+        (
+          await base
+            .select({ id: site.id })
+            .from(site)
+            .where(and(eq(site.tenantId, tenantId), eq(site.code, s.code)))
+        )[0]?.id;
       if (idSite === undefined) {
         throw new Error(`Site « ${s.code} » introuvable après upsert.`);
       }
@@ -600,7 +654,8 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
     // tenant, cet upsert la RÉALIGNE sur les valeurs de démonstration au lieu d'entrer en
     // conflit : la table reste à une ligne par tenant dans tous les cas, seule la valeur diffère.
     const siteSion = SITES_DEMO.find((s) => s.code === 'SION');
-    if (!siteSion) throw new Error('seed-dev : site SION introuvable dans SITES_DEMO pour le bloc créancier.');
+    if (!siteSion)
+      throw new Error('seed-dev : site SION introuvable dans SITES_DEMO pour le bloc créancier.');
     await base
       .insert(tenantBlocCreancier)
       .values({
@@ -757,7 +812,12 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
     for (const v of VEHICULES_DEMO) {
       const critereVehicule = v.vin
         ? and(eq(vehicule.tenantId, tenantId), eq(vehicule.vin, v.vin))
-        : and(eq(vehicule.tenantId, tenantId), eq(vehicule.marque, v.marque), eq(vehicule.modele, v.modele), eq(vehicule.version, v.version));
+        : and(
+            eq(vehicule.tenantId, tenantId),
+            eq(vehicule.marque, v.marque),
+            eq(vehicule.modele, v.modele),
+            eq(vehicule.version, v.version),
+          );
 
       const existant = await base.select({ id: vehicule.id }).from(vehicule).where(critereVehicule);
       let idVehicule = existant[0]?.id;
@@ -785,13 +845,21 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
 
       const idClient = idsClientsParNumero.get(v.clientNumero);
       if (idClient === undefined) {
-        throw new Error(`Client « ${v.clientNumero} » introuvable pour le véhicule ${v.marque} ${v.modele}.`);
+        throw new Error(
+          `Client « ${v.clientNumero} » introuvable pour le véhicule ${v.marque} ${v.modele}.`,
+        );
       }
 
       const plaqueExistante = await base
         .select({ id: vehiculePlaque.id })
         .from(vehiculePlaque)
-        .where(and(eq(vehiculePlaque.tenantId, tenantId), eq(vehiculePlaque.vehiculeId, idVehicule), eq(vehiculePlaque.valeur, v.plaque)));
+        .where(
+          and(
+            eq(vehiculePlaque.tenantId, tenantId),
+            eq(vehiculePlaque.vehiculeId, idVehicule),
+            eq(vehiculePlaque.valeur, v.plaque),
+          ),
+        );
       if (plaqueExistante.length === 0) {
         await base.insert(vehiculePlaque).values({
           tenantId,
@@ -905,7 +973,13 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
     journaliser('');
     journaliser(`Connexion : ${UTILISATEURS_DEMO[0].email} / ${MOT_DE_PASSE_DEMO}`);
 
-    return { tenantId, idsSitesParCode, idsClientsParNumero, idsVehiculesParCle, idsUtilisateursParRole };
+    return {
+      tenantId,
+      idsSitesParCode,
+      idsClientsParNumero,
+      idsVehiculesParCle,
+      idsUtilisateursParRole,
+    };
   } catch (erreur) {
     await client.query('rollback');
     throw erreur;

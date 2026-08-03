@@ -45,7 +45,11 @@ export async function chargerVehiculeStockOuNull(
   return ligne ?? null;
 }
 
-export async function chargerVehiculeStock(tx: TransactionDfa, ctx: ContexteTenant, vehiculeId: string): Promise<LigneVehiculeStock> {
+export async function chargerVehiculeStock(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  vehiculeId: string,
+): Promise<LigneVehiculeStock> {
   const ligne = await chargerVehiculeStockOuNull(tx, ctx, vehiculeId, false);
   if (!ligne) {
     throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Ce véhicule n'a jamais été mis en stock.`);
@@ -75,17 +79,27 @@ export async function chargerDossierVenteOuNull(
   dossierVenteId: string,
   pourEcriture = false,
 ): Promise<LigneDossierVente | null> {
-  const condition = and(eq(dossierVente.tenantId, ctx.tenantId), eq(dossierVente.id, dossierVenteId));
+  const condition = and(
+    eq(dossierVente.tenantId, ctx.tenantId),
+    eq(dossierVente.id, dossierVenteId),
+  );
   const [ligne] = pourEcriture
     ? await tx.select().from(dossierVente).where(condition).limit(1).for('update')
     : await tx.select().from(dossierVente).where(condition).limit(1);
   return ligne ?? null;
 }
 
-export async function chargerDossierVente(tx: TransactionDfa, ctx: ContexteTenant, dossierVenteId: string): Promise<LigneDossierVente> {
+export async function chargerDossierVente(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  dossierVenteId: string,
+): Promise<LigneDossierVente> {
   const ligne = await chargerDossierVenteOuNull(tx, ctx, dossierVenteId, false);
   if (!ligne) {
-    throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Dossier de vente ${dossierVenteId} introuvable.`);
+    throw new ErreurMetier(
+      'RESSOURCE_INTROUVABLE',
+      `Dossier de vente ${dossierVenteId} introuvable.`,
+    );
   }
   return ligne;
 }
@@ -97,7 +111,10 @@ export async function chargerDossierVentePourEcriture(
 ): Promise<LigneDossierVente> {
   const ligne = await chargerDossierVenteOuNull(tx, ctx, dossierVenteId, true);
   if (!ligne) {
-    throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Dossier de vente ${dossierVenteId} introuvable.`);
+    throw new ErreurMetier(
+      'RESSOURCE_INTROUVABLE',
+      `Dossier de vente ${dossierVenteId} introuvable.`,
+    );
   }
   return ligne;
 }
@@ -112,7 +129,10 @@ export async function chargerRepriseParDossierOuNull(
   dossierVenteId: string,
   pourEcriture = false,
 ): Promise<LigneReprise | null> {
-  const condition = and(eq(reprise.tenantId, ctx.tenantId), eq(reprise.dossierVenteId, dossierVenteId));
+  const condition = and(
+    eq(reprise.tenantId, ctx.tenantId),
+    eq(reprise.dossierVenteId, dossierVenteId),
+  );
   const [ligne] = pourEcriture
     ? await tx.select().from(reprise).where(condition).limit(1).for('update')
     : await tx.select().from(reprise).where(condition).limit(1);
@@ -126,7 +146,10 @@ export async function chargerRepriseParDossier(
 ): Promise<LigneReprise> {
   const ligne = await chargerRepriseParDossierOuNull(tx, ctx, dossierVenteId, false);
   if (!ligne) {
-    throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Aucune reprise pour le dossier de vente ${dossierVenteId}.`);
+    throw new ErreurMetier(
+      'RESSOURCE_INTROUVABLE',
+      `Aucune reprise pour le dossier de vente ${dossierVenteId}.`,
+    );
   }
   return ligne;
 }
@@ -138,7 +161,10 @@ export async function chargerRepriseParDossierPourEcriture(
 ): Promise<LigneReprise> {
   const ligne = await chargerRepriseParDossierOuNull(tx, ctx, dossierVenteId, true);
   if (!ligne) {
-    throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Aucune reprise pour le dossier de vente ${dossierVenteId}.`);
+    throw new ErreurMetier(
+      'RESSOURCE_INTROUVABLE',
+      `Aucune reprise pour le dossier de vente ${dossierVenteId}.`,
+    );
   }
   return ligne;
 }
@@ -158,7 +184,12 @@ export async function listerFinancementsDossier(
   return tx
     .select()
     .from(financementVente)
-    .where(and(eq(financementVente.tenantId, ctx.tenantId), eq(financementVente.dossierVenteId, dossierVenteId)))
+    .where(
+      and(
+        eq(financementVente.tenantId, ctx.tenantId),
+        eq(financementVente.dossierVenteId, dossierVenteId),
+      ),
+    )
     .orderBy(desc(financementVente.creeLe));
 }
 
@@ -188,7 +219,10 @@ export async function chargerFinancementPourEcriture(
 ): Promise<LigneFinancementVente> {
   const ligne = await chargerFinancementOuNull(tx, ctx, dossierVenteId, financementId, true);
   if (!ligne) {
-    throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Financement ${financementId} introuvable pour ce dossier de vente.`);
+    throw new ErreurMetier(
+      'RESSOURCE_INTROUVABLE',
+      `Financement ${financementId} introuvable pour ce dossier de vente.`,
+    );
   }
   return ligne;
 }
@@ -205,7 +239,12 @@ export async function listerDocumentsRequis(
   return tx
     .select()
     .from(dossierVenteDocumentRequis)
-    .where(and(eq(dossierVenteDocumentRequis.tenantId, ctx.tenantId), eq(dossierVenteDocumentRequis.dossierVenteId, dossierVenteId)))
+    .where(
+      and(
+        eq(dossierVenteDocumentRequis.tenantId, ctx.tenantId),
+        eq(dossierVenteDocumentRequis.dossierVenteId, dossierVenteId),
+      ),
+    )
     .orderBy(dossierVenteDocumentRequis.creeLe);
 }
 
@@ -227,7 +266,12 @@ export async function listerDocumentsDossierBrut(
   return tx
     .select()
     .from(documentVente)
-    .where(and(eq(documentVente.tenantId, ctx.tenantId), eq(documentVente.dossierVenteId, dossierVenteId)))
+    .where(
+      and(
+        eq(documentVente.tenantId, ctx.tenantId),
+        eq(documentVente.dossierVenteId, dossierVenteId),
+      ),
+    )
     .orderBy(desc(documentVente.dateDocument))
     .limit(SEUIL_DOCUMENTS_DOSSIER + 1);
 }

@@ -15,7 +15,13 @@ import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { useEnregistrerKilometrage } from '@/hooks/vehicules/useEnregistrerKilometrage';
@@ -45,7 +51,11 @@ export interface ProprietesFormulaireKilometrage {
  *     motif (compteur remplacé, erreur de saisie, changement d'unité, correction) puis se
  *     confirme explicitement via `AvertissementConfirmable`, jamais une resoumission silencieuse.
  */
-export function FormulaireKilometrage({ vehiculeId, ouvert, onOuvertChange }: ProprietesFormulaireKilometrage) {
+export function FormulaireKilometrage({
+  vehiculeId,
+  ouvert,
+  onOuvertChange,
+}: ProprietesFormulaireKilometrage) {
   const { t } = useTranslation(['vehicules', 'commun']);
   const mutation = useEnregistrerKilometrage(vehiculeId);
 
@@ -56,7 +66,8 @@ export function FormulaireKilometrage({ vehiculeId, ouvert, onOuvertChange }: Pr
   const [confirmationOuverte, setConfirmationOuverte] = useState(false);
 
   const erreurRegression =
-    mutation.error instanceof ErreurApi && mutation.error.probleme.code === 'VEHICULE_KILOMETRAGE_REGRESSIF'
+    mutation.error instanceof ErreurApi &&
+    mutation.error.probleme.code === 'VEHICULE_KILOMETRAGE_REGRESSIF'
       ? mutation.error
       : null;
 
@@ -118,7 +129,10 @@ export function FormulaireKilometrage({ vehiculeId, ouvert, onOuvertChange }: Pr
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="kilometrage-unite">{t('vehicules:kilometrage.unite')}</Label>
-              <Select value={unite} onValueChange={(valeurChoisie) => setUnite(valeurChoisie as UniteDistance)}>
+              <Select
+                value={unite}
+                onValueChange={(valeurChoisie) => setUnite(valeurChoisie as UniteDistance)}
+              >
                 <SelectTrigger id="kilometrage-unite" aria-label={t('vehicules:kilometrage.unite')}>
                   <SelectValue />
                 </SelectTrigger>
@@ -134,8 +148,14 @@ export function FormulaireKilometrage({ vehiculeId, ouvert, onOuvertChange }: Pr
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="kilometrage-source">{t('vehicules:kilometrage.source')}</Label>
-              <Select value={source} onValueChange={(valeurSource) => setSource(valeurSource as SourceKilometrage)}>
-                <SelectTrigger id="kilometrage-source" aria-label={t('vehicules:kilometrage.source')}>
+              <Select
+                value={source}
+                onValueChange={(valeurSource) => setSource(valeurSource as SourceKilometrage)}
+              >
+                <SelectTrigger
+                  id="kilometrage-source"
+                  aria-label={t('vehicules:kilometrage.source')}
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -149,12 +169,25 @@ export function FormulaireKilometrage({ vehiculeId, ouvert, onOuvertChange }: Pr
             </div>
 
             {erreurRegression ? (
-              <div role="alert" className="flex flex-col gap-3 rounded-md border border-statut-attention/40 bg-statut-attention/10 p-3">
-                <p className="texte-corps text-statut-attention">{messageErreur(erreurRegression, t)}</p>
+              <div
+                role="alert"
+                className="flex flex-col gap-3 rounded-md border border-statut-attention/40 bg-statut-attention/10 p-3"
+              >
+                <p className="texte-corps text-statut-attention">
+                  {messageErreur(erreurRegression, t)}
+                </p>
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="kilometrage-motif">{t('vehicules:kilometrage.motif')}</Label>
-                  <Select value={motif} onValueChange={(valeurMotif) => setMotif(valeurMotif as MotifKilometrageRegressif)}>
-                    <SelectTrigger id="kilometrage-motif" aria-label={t('vehicules:kilometrage.motif')}>
+                  <Select
+                    value={motif}
+                    onValueChange={(valeurMotif) =>
+                      setMotif(valeurMotif as MotifKilometrageRegressif)
+                    }
+                  >
+                    <SelectTrigger
+                      id="kilometrage-motif"
+                      aria-label={t('vehicules:kilometrage.motif')}
+                    >
                       <SelectValue placeholder={t('vehicules:kilometrage.motif')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -171,9 +204,15 @@ export function FormulaireKilometrage({ vehiculeId, ouvert, onOuvertChange }: Pr
 
             <Button
               type="submit"
-              disabled={valeur === null || mutation.isPending || (erreurRegression !== null && !pretAConfirmer)}
+              disabled={
+                valeur === null ||
+                mutation.isPending ||
+                (erreurRegression !== null && !pretAConfirmer)
+              }
             >
-              {erreurRegression ? t('commun:actions.continuerQuandMeme') : t('vehicules:kilometrage.relever')}
+              {erreurRegression
+                ? t('commun:actions.continuerQuandMeme')
+                : t('vehicules:kilometrage.relever')}
             </Button>
           </form>
         </DialogContent>

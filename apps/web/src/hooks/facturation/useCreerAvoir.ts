@@ -1,6 +1,10 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 
-import type { EntreeCreationAvoir, ReponseAvecAvertissements, ReponseDocumentVente } from '@dfa/shared';
+import type {
+  EntreeCreationAvoir,
+  ReponseAvecAvertissements,
+  ReponseDocumentVente,
+} from '@dfa/shared';
 
 import { clesFacturation } from './cles';
 import { creerAvoir } from './documents-vente.api';
@@ -22,9 +26,13 @@ export function useCreerAvoir(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ factureId, entree, idempotencyKey }: VariablesCreationAvoir) => creerAvoir(factureId, entree, idempotencyKey),
+    mutationFn: ({ factureId, entree, idempotencyKey }: VariablesCreationAvoir) =>
+      creerAvoir(factureId, entree, idempotencyKey),
     onSuccess: (reponse) => {
-      queryClient.setQueryData(clesFacturation.documents.detail(reponse.donnees.id), reponse.donnees);
+      queryClient.setQueryData(
+        clesFacturation.documents.detail(reponse.donnees.id),
+        reponse.donnees,
+      );
     },
   });
 }

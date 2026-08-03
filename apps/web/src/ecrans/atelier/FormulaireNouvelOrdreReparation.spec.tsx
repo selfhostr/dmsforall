@@ -3,7 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { ReponseClient, ReponseOrdreReparation, ReponseParametresAtelier, VehiculeResume } from '@dfa/shared';
+import type {
+  ReponseClient,
+  ReponseOrdreReparation,
+  ReponseParametresAtelier,
+  VehiculeResume,
+} from '@dfa/shared';
 
 import { server } from '@/test/msw/server';
 import { renduAvecQueryClient } from '@/test/utils';
@@ -73,7 +78,12 @@ const PARAMETRES_ATELIER: ReponseParametresAtelier = {
     rdvRetroactifAuto: false,
     deuxOrMemeVehicule: 'avertir',
   },
-  reception: { kmEntreeObligatoire: false, kmSortieObligatoire: false, signature: 'recommandee', plafondDefautCentimes: 0 },
+  reception: {
+    kmEntreeObligatoire: false,
+    kmSortieObligatoire: false,
+    signature: 'recommandee',
+    plafondDefautCentimes: 0,
+  },
   travaux: {
     uniteTemps: 'heures_decimales',
     arrondiPointage: 'dixieme',
@@ -92,7 +102,11 @@ const PARAMETRES_ATELIER: ReponseParametresAtelier = {
   },
   documents: { langue: 'client', mentionSecurite: 'obligatoire' },
   vehicule: { expertiseAlerteMois: 2, visibiliteHistoriqueNouveauDetenteur: 'tout' },
-  planning: { noShowSeuilAlerte: 2, tamponPretMinutes: 15, rappel: { canal: 'sms', joursAvant: 1 } },
+  planning: {
+    noShowSeuilAlerte: 2,
+    tamponPretMinutes: 15,
+    rappel: { canal: 'sms', joursAvant: 1 },
+  },
   fonctionnalites: { facturation: false, stockPieces: false, depotPneus: false, prets: false },
   version: 1,
 };
@@ -118,7 +132,12 @@ function construireOr(overrides: Partial<ReponseOrdreReparation> = {}): ReponseO
       dernierPassageLe: CLIENT.dernierPassageLe,
     },
     vehicule: VEHICULE,
-    figees: { clientDesignation: 'Jean Dupont', adresseFacturation: null, plaque: '123456', detenteurClientId: CLIENT_ID },
+    figees: {
+      clientDesignation: 'Jean Dupont',
+      adresseFacturation: null,
+      plaque: '123456',
+      detenteurClientId: CLIENT_ID,
+    },
     conducteurPresentNom: null,
     kilometrageEntree: null,
     kilometrageSortie: null,
@@ -166,7 +185,13 @@ function rendre(onCree = vi.fn(), onChangerVehicule = vi.fn()) {
     onCree,
     onChangerVehicule,
     ...renduAvecQueryClient(
-      <FormulaireNouvelOrdreReparation site={SITE_ID} client={CLIENT} vehicule={VEHICULE} onChangerVehicule={onChangerVehicule} onCree={onCree} />,
+      <FormulaireNouvelOrdreReparation
+        site={SITE_ID}
+        client={CLIENT}
+        vehicule={VEHICULE}
+        onChangerVehicule={onChangerVehicule}
+        onCree={onCree}
+      />,
     ),
   };
 }
@@ -186,14 +211,21 @@ describe('FormulaireNouvelOrdreReparation', () => {
     await utilisateur.click(await screen.findByRole('button', { name: "Ouvrir l'OR" }));
 
     await waitFor(() => expect(onCree).toHaveBeenCalledWith(construireOr()));
-    expect(corpsRecu).toMatchObject({ siteId: SITE_ID, clientId: CLIENT_ID, vehiculeId: VEHICULE_ID, type: 'reparation' });
+    expect(corpsRecu).toMatchObject({
+      siteId: SITE_ID,
+      clientId: CLIENT_ID,
+      vehiculeId: VEHICULE_ID,
+      type: 'reparation',
+    });
   });
 
   it('une demande verbatim ajoutée est envoyée TELLE QUELLE (jamais reformulée) dans `demandes[]`', async () => {
     let corpsRecu: { readonly demandes?: readonly { readonly verbatim: string }[] } | null = null;
     server.use(
       http.post('/api/v1/ordres-reparation', async ({ request }) => {
-        corpsRecu = (await request.json()) as { readonly demandes?: readonly { readonly verbatim: string }[] };
+        corpsRecu = (await request.json()) as {
+          readonly demandes?: readonly { readonly verbatim: string }[];
+        };
         return HttpResponse.json({ donnees: construireOr(), avertissements: [] }, { status: 201 });
       }),
     );
@@ -208,7 +240,9 @@ describe('FormulaireNouvelOrdreReparation', () => {
 
     await utilisateur.click(screen.getByRole('button', { name: "Ouvrir l'OR" }));
 
-    await waitFor(() => expect(corpsRecu?.demandes).toEqual([{ verbatim: 'Bruit bizarre au freinage' }]));
+    await waitFor(() =>
+      expect(corpsRecu?.demandes).toEqual([{ verbatim: 'Bruit bizarre au freinage' }]),
+    );
   });
 
   describe('CONFIRMATION_REQUISE (§4.4) — la création reste possible, un accord explicite suffit', () => {
@@ -232,7 +266,10 @@ describe('FormulaireNouvelOrdreReparation', () => {
               { status: 409, headers: { 'content-type': 'application/problem+json' } },
             );
           }
-          return HttpResponse.json({ donnees: construireOr(), avertissements: [] }, { status: 201 });
+          return HttpResponse.json(
+            { donnees: construireOr(), avertissements: [] },
+            { status: 201 },
+          );
         }),
       );
 
@@ -245,8 +282,12 @@ describe('FormulaireNouvelOrdreReparation', () => {
       await utilisateur.click(boutonContinuer);
 
       const dialogue = await screen.findByRole('dialog');
-      expect(within(dialogue).getByText('Une confirmation est requise pour poursuivre.')).toBeInTheDocument();
-      await utilisateur.click(within(dialogue).getByRole('button', { name: 'Continuer quand même' }));
+      expect(
+        within(dialogue).getByText('Une confirmation est requise pour poursuivre.'),
+      ).toBeInTheDocument();
+      await utilisateur.click(
+        within(dialogue).getByRole('button', { name: 'Continuer quand même' }),
+      );
 
       await waitFor(() => expect(onCree).toHaveBeenCalledTimes(1));
       expect(appel).toBe(2);

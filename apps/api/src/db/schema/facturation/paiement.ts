@@ -28,12 +28,22 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { colonneCreeLe, colonnesHorodatage, colonneId, colonneTenantId } from '../colonnes-communes';
+import {
+  colonneCreeLe,
+  colonnesHorodatage,
+  colonneId,
+  colonneTenantId,
+} from '../colonnes-communes';
 import { client } from '../atelier/client';
 import { site } from '../site';
 import { utilisateur } from '../utilisateur';
 import { documentVente } from './document-vente';
-import { moyenPaiementEnum, motifBulletinPaiementEnum, natureImputationEnum, paiementSourceEnum } from './enums';
+import {
+  moyenPaiementEnum,
+  motifBulletinPaiementEnum,
+  natureImputationEnum,
+  paiementSourceEnum,
+} from './enums';
 
 /** Encaissement réel (MD-50). Immuable (MD-52) — voir paiement_verrouiller côté SQL. */
 export const paiement = pgTable(

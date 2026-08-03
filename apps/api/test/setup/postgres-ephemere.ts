@@ -40,7 +40,10 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testconta
 /** Réutilise TEL QUEL le script qui sert aussi en dev (docker-compose.yml) et en prod
  *  (rejoué à la main sur l'instance managée) — c'est le même dispositif de rôles partout,
  *  jamais une redéfinition en dur dans les tests qui pourrait diverger silencieusement. */
-const CHEMIN_SCRIPT_ROLES = path.resolve(__dirname, '../../../../docker/postgres/init/01-roles.sql');
+const CHEMIN_SCRIPT_ROLES = path.resolve(
+  __dirname,
+  '../../../../docker/postgres/init/01-roles.sql',
+);
 
 const DOSSIER_MIGRATIONS = path.resolve(__dirname, '../../src/db/migrations');
 const DOSSIER_MIGRATIONS_DOWN = path.join(DOSSIER_MIGRATIONS, 'down');
@@ -96,7 +99,9 @@ export interface OptionsBaseEphemere {
   readonly appliquerMigrations?: boolean;
 }
 
-export async function demarrerBaseEphemere(options: OptionsBaseEphemere = {}): Promise<BaseEphemere> {
+export async function demarrerBaseEphemere(
+  options: OptionsBaseEphemere = {},
+): Promise<BaseEphemere> {
   const appliquerMigrations = options.appliquerMigrations ?? true;
 
   const conteneur = await new PostgreSqlContainer('postgres:16-alpine')
@@ -232,16 +237,33 @@ export async function appliquerMigrationsDown(client: Client): Promise<void> {
 // n'ont `pg_dump` d'installé, alors que le conteneur l'a garanti.
 // -------------------------------------------------------------------------------------------
 
-export async function dumperSchema(conteneur: StartedPostgreSqlContainer, roleMigrateur: IdentifiantsRole): Promise<string> {
+export async function dumperSchema(
+  conteneur: StartedPostgreSqlContainer,
+  roleMigrateur: IdentifiantsRole,
+): Promise<string> {
   const resultat = await conteneur.exec(
-    ['pg_dump', '--schema-only', '--no-owner', '--no-privileges', '-U', roleMigrateur.utilisateur, '-d', NOM_BASE],
+    [
+      'pg_dump',
+      '--schema-only',
+      '--no-owner',
+      '--no-privileges',
+      '-U',
+      roleMigrateur.utilisateur,
+      '-d',
+      NOM_BASE,
+    ],
     { env: { PGPASSWORD: roleMigrateur.motDePasse } },
   );
   const codeSortie = (resultat as { exitCode?: number }).exitCode;
   const sortieErreur = (resultat as { stderr?: string }).stderr ?? '';
-  const sortieStandard = (resultat as { stdout?: string; output?: string }).stdout ?? (resultat as { output?: string }).output ?? '';
+  const sortieStandard =
+    (resultat as { stdout?: string; output?: string }).stdout ??
+    (resultat as { output?: string }).output ??
+    '';
   if (codeSortie !== undefined && codeSortie !== 0) {
-    throw new Error(`pg_dump a échoué dans le conteneur (code ${codeSortie}) : ${sortieErreur || sortieStandard}`);
+    throw new Error(
+      `pg_dump a échoué dans le conteneur (code ${codeSortie}) : ${sortieErreur || sortieStandard}`,
+    );
   }
   return normaliserDumpSchema(sortieStandard);
 }
@@ -273,12 +295,9 @@ export function normaliserDumpSchema(dumpBrut: string): string {
 // cas "aucun contexte posé" (fail-closed).
 // -------------------------------------------------------------------------------------------
 
-export async function requeteSousTenant<T extends Record<string, unknown> = Record<string, unknown>>(
-  pool: Pool,
-  tenantId: string | null,
-  texteSql: string,
-  parametres: unknown[] = [],
-): Promise<T[]> {
+export async function requeteSousTenant<
+  T extends Record<string, unknown> = Record<string, unknown>,
+>(pool: Pool, tenantId: string | null, texteSql: string, parametres: unknown[] = []): Promise<T[]> {
   const client = await pool.connect();
   try {
     await client.query('begin');

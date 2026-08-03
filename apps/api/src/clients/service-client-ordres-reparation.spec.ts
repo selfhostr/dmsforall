@@ -85,7 +85,10 @@ function ligneOrBrute(champs: Partial<Record<string, unknown>> = {}): Record<str
  * `ServiceClientOrdresReparation.lister`), (2) la liste des OR elle-même. `executeRowsQueue`
  * fournit donc, DANS CET ORDRE, les lignes que chaque appel `execute()` doit rendre.
  */
-function txFactice(clientRows: readonly unknown[], executeRowsQueue: ReadonlyArray<readonly unknown[]>) {
+function txFactice(
+  clientRows: readonly unknown[],
+  executeRowsQueue: ReadonlyArray<readonly unknown[]>,
+) {
   const queue = [...executeRowsQueue];
   const whereArgs: unknown[] = [];
   const executeMock = vi.fn((_requete: unknown) => Promise.resolve({ rows: queue.shift() ?? [] }));
@@ -112,7 +115,14 @@ describe('ServiceClientOrdresReparation.lister — priorité de blocage accord >
   it('un OR actif en attente accord ET pièces affiche "attente_accord" (l’accord prime)', async () => {
     const { tx } = txFacticeSimple(
       [ligneClient()],
-      [ligneOrBrute({ statut: 'en_cours', aAttenteAccord: true, aAttentePieces: true, aAttenteExterne: true })],
+      [
+        ligneOrBrute({
+          statut: 'en_cours',
+          aAttenteAccord: true,
+          aAttentePieces: true,
+          aAttenteExterne: true,
+        }),
+      ],
     );
     const service = new ServiceClientOrdresReparation(accesFactice(tx));
 
@@ -124,7 +134,14 @@ describe('ServiceClientOrdresReparation.lister — priorité de blocage accord >
   it('sans attente accord, un OR actif en attente pièces ET externe affiche "attente_pieces"', async () => {
     const { tx } = txFacticeSimple(
       [ligneClient()],
-      [ligneOrBrute({ statut: 'ouvert', aAttenteAccord: false, aAttentePieces: true, aAttenteExterne: true })],
+      [
+        ligneOrBrute({
+          statut: 'ouvert',
+          aAttenteAccord: false,
+          aAttentePieces: true,
+          aAttenteExterne: true,
+        }),
+      ],
     );
     const service = new ServiceClientOrdresReparation(accesFactice(tx));
 
@@ -134,7 +151,10 @@ describe('ServiceClientOrdresReparation.lister — priorité de blocage accord >
   });
 
   it("un OR déjà clôturé n'affiche jamais un état d'attente, même si les lignes en gardent la trace (l'attente ne concerne que le travail actif)", async () => {
-    const { tx } = txFacticeSimple([ligneClient()], [ligneOrBrute({ statut: 'cloture', aAttenteAccord: true })]);
+    const { tx } = txFacticeSimple(
+      [ligneClient()],
+      [ligneOrBrute({ statut: 'cloture', aAttenteAccord: true })],
+    );
     const service = new ServiceClientOrdresReparation(accesFactice(tx));
 
     const page = await service.lister(CTX, 'c1', PARAMS_DEFAUT, true);
@@ -180,7 +200,16 @@ describe('ServiceClientOrdresReparation.lister — client embarqué (désambigu�
   it('le complément de désambiguïsation (localite/nombreVehicules/dernierPassageLe) est propagé sur le client embarqué de chaque OR', async () => {
     const { tx } = txFactice(
       [ligneClient()],
-      [[{ localite: 'Lausanne', nombreVehicules: 2, dernierPassageLe: '2026-06-01T00:00:00.000Z' }], [ligneOrBrute()]],
+      [
+        [
+          {
+            localite: 'Lausanne',
+            nombreVehicules: 2,
+            dernierPassageLe: '2026-06-01T00:00:00.000Z',
+          },
+        ],
+        [ligneOrBrute()],
+      ],
     );
     const service = new ServiceClientOrdresReparation(accesFactice(tx));
 
@@ -202,7 +231,12 @@ describe('ServiceClientOrdresReparation.lister — projection ouvertLe/restituti
     async () => {
       const { tx } = txFacticeSimple(
         [ligneClient()],
-        [ligneOrBrute({ ouvertLe: '2026-07-01T08:00:00.000Z', restitutionPromiseLe: '2026-07-03T16:00:00.000Z' })],
+        [
+          ligneOrBrute({
+            ouvertLe: '2026-07-01T08:00:00.000Z',
+            restitutionPromiseLe: '2026-07-03T16:00:00.000Z',
+          }),
+        ],
       );
       const service = new ServiceClientOrdresReparation(accesFactice(tx));
 
@@ -232,7 +266,10 @@ describe(
     const PARAMS_OUVERT_LE_DESC: ParametresListeOrDuClient = { limite: 1, tri: 'ouvertLe:desc' };
 
     it('la colonne triValeur est sélectionnée avec un cast ::text explicite, jamais laissée au parseur par défaut du pilote', async () => {
-      const { tx, executeMock } = txFacticeSimple([ligneClient()], [ligneOrBrute(), ligneOrBrute({ id: 'or2' })]);
+      const { tx, executeMock } = txFacticeSimple(
+        [ligneClient()],
+        [ligneOrBrute(), ligneOrBrute({ id: 'or2' })],
+      );
       const service = new ServiceClientOrdresReparation(accesFactice(tx));
 
       await service.lister(CTX, 'c1', PARAMS_OUVERT_LE_DESC, false);
@@ -276,10 +313,12 @@ describe('ServiceClientOrdresReparation.lister — isolation tenant', () => {
     const { tx } = txFactice([], []);
     const service = new ServiceClientOrdresReparation(accesFactice(tx));
 
-    await expect(service.lister(CTX, 'c-autre-tenant', PARAMS_DEFAUT, false)).rejects.toMatchObject({
-      code: 'RESSOURCE_INTROUVABLE',
-      status: 404,
-    });
+    await expect(service.lister(CTX, 'c-autre-tenant', PARAMS_DEFAUT, false)).rejects.toMatchObject(
+      {
+        code: 'RESSOURCE_INTROUVABLE',
+        status: 404,
+      },
+    );
   });
 
   it('la vérification du client, le complément client et la requête des OR filtrent tous sur le tenantId du contexte', async () => {

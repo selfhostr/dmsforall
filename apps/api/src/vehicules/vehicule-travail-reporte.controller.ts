@@ -39,7 +39,7 @@ export class VehiculeTravailReporteController {
   @ApiOperation({
     summary: 'Travaux reportés du véhicule (RM-73).',
     description:
-      "`montantEstimeCentimes` absent pour un rôle sans droit aux montants (ROLES_SANS_MONTANT, " +
+      '`montantEstimeCentimes` absent pour un rôle sans droit aux montants (ROLES_SANS_MONTANT, ' +
       "aujourd'hui `technicien`) — filtrage SERVEUR, même règle que `GET .../contexte-atelier`.",
   })
   @ApiParam({ name: 'vehiculeId', format: 'uuid' })

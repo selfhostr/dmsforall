@@ -61,8 +61,10 @@ export function PanneauResultatsRecherche({
 
   const vehicules = reponse?.resultats.filter((resultat) => resultat.type === 'vehicule') ?? [];
   const clients = reponse?.resultats.filter((resultat) => resultat.type === 'client') ?? [];
-  const ordres = reponse?.resultats.filter((resultat) => resultat.type === 'ordre_reparation') ?? [];
-  const documents = reponse?.resultats.filter((resultat) => resultat.type === 'document_vente') ?? [];
+  const ordres =
+    reponse?.resultats.filter((resultat) => resultat.type === 'ordre_reparation') ?? [];
+  const documents =
+    reponse?.resultats.filter((resultat) => resultat.type === 'document_vente') ?? [];
   const plaqueInterchangeable = reponse?.plaqueInterchangeable === true;
   const aucunResultat = reponse !== null && reponse.resultats.length === 0;
 
@@ -138,7 +140,12 @@ interface ProprietesGroupeResultats {
   readonly rendreContenu: (resultat: ResultatRecherche) => ReactNode;
 }
 
-function GroupeResultats({ heading, resultats, onSelectionner, rendreContenu }: ProprietesGroupeResultats) {
+function GroupeResultats({
+  heading,
+  resultats,
+  onSelectionner,
+  rendreContenu,
+}: ProprietesGroupeResultats) {
   return (
     <CommandGroup heading={heading}>
       {resultats.map((resultat) => (

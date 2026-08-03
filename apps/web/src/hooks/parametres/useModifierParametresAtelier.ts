@@ -9,9 +9,13 @@ import { requeteApi } from '@/api/client';
 /** `EntreeModificationParametresAtelier` est déjà exporté par `@dfa/shared`, mais réaffirmé ici
  *  via `z.infer` du même schéma pour que ce fichier reste la seule source de la forme d'entrée
  *  côté mutation (cohérence avec `hooks/parametrage/taux-horaires.api.ts`). */
-export type EntreeModificationParametresAtelier = z.infer<typeof schemaModificationParametresAtelier>;
+export type EntreeModificationParametresAtelier = z.infer<
+  typeof schemaModificationParametresAtelier
+>;
 
-async function modifierParametresAtelier(entree: EntreeModificationParametresAtelier): Promise<ReponseParametresAtelier> {
+async function modifierParametresAtelier(
+  entree: EntreeModificationParametresAtelier,
+): Promise<ReponseParametresAtelier> {
   const corps = schemaModificationParametresAtelier.parse(entree);
   const reponse = await requeteApi<ReponseParametresAtelier>('/parametres-atelier', {
     method: 'PATCH',

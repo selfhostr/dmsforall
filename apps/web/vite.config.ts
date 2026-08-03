@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
       "Configuration frontend introuvable : VITE_API_URL n'a pas pu être lue depuis " +
         `${racineMonorepo} (envDir de apps/web/vite.config.ts). ` +
         "Vérifier qu'un fichier .env existe à la racine du dépôt (cp .env.example .env) et " +
-        'qu\'il définit VITE_API_URL — voir README.md « Démarrage » et apps/web/src/config/env.ts.',
+        "qu'il définit VITE_API_URL — voir README.md « Démarrage » et apps/web/src/config/env.ts.",
     );
   }
 
@@ -55,7 +55,9 @@ export default defineConfig(({ mode }) => {
         // efficace, et le front comme l'API partagent une seule et même définition. Le
         // typecheck continue de passer par les déclarations de `dist/`, donc le contrat reste
         // vérifié.
-        '@dfa/shared': fileURLToPath(new URL('../../packages/shared/src/index.ts', import.meta.url)),
+        '@dfa/shared': fileURLToPath(
+          new URL('../../packages/shared/src/index.ts', import.meta.url),
+        ),
       },
     },
     server: {

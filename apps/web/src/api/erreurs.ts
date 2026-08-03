@@ -167,7 +167,9 @@ export function messageErreur(erreur: unknown, t: TFunction): string {
     return t('erreurs:reseau.description');
   }
   if (erreur instanceof ErreurApi) {
-    const minutes = erreur.retryApresSecondes ? Math.max(1, Math.ceil(erreur.retryApresSecondes / 60)) : 1;
+    const minutes = erreur.retryApresSecondes
+      ? Math.max(1, Math.ceil(erreur.retryApresSecondes / 60))
+      : 1;
     return t(`erreurs:codes.${erreur.probleme.code}`, { minutes });
   }
   return t('erreurs:inattendue.description');

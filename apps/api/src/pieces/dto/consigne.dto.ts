@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { STATUTS_CONSIGNE_ECHANGE_STANDARD, type PageCurseur, type ReponseConsigneEchangeStandard } from '@dfa/shared';
+import {
+  STATUTS_CONSIGNE_ECHANGE_STANDARD,
+  type PageCurseur,
+  type ReponseConsigneEchangeStandard,
+} from '@dfa/shared';
 
 export class ConsigneEchangeStandardDto implements ReponseConsigneEchangeStandard {
   @ApiProperty({ format: 'uuid' })
@@ -23,7 +27,12 @@ export class ConsigneEchangeStandardDto implements ReponseConsigneEchangeStandar
   @ApiProperty({ description: 'TTC, figé à la pose (RP-38/RP-42).' })
   readonly montantConsigneTtcCentimes!: number;
 
-  @ApiProperty({ type: String, format: 'uuid', nullable: true, description: 'Alimenté par la facturation (RF-100), hors périmètre de ce module.' })
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description: 'Alimenté par la facturation (RF-100), hors périmètre de ce module.',
+  })
   readonly documentVenteLigneConsigneId!: string | null;
 
   @ApiProperty({ format: 'uuid' })
@@ -35,7 +44,12 @@ export class ConsigneEchangeStandardDto implements ReponseConsigneEchangeStandar
   @ApiProperty({ type: String, format: 'uuid', nullable: true })
   readonly mouvementRetourId!: string | null;
 
-  @ApiProperty({ type: String, format: 'uuid', nullable: true, description: 'Alimenté par la facturation (RF-100), hors périmètre de ce module.' })
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description: 'Alimenté par la facturation (RF-100), hors périmètre de ce module.',
+  })
   readonly avoirDocumentId!: string | null;
 
   @ApiProperty({ format: 'date-time' })

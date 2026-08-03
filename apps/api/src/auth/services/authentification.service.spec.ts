@@ -224,9 +224,7 @@ describe('ServiceAuthentificationImpl.connecter', () => {
   });
 
   it('rejette avec 429 quand la limitation de débit par IP est dépassée, sans requêter la base', async () => {
-    limiteur.consommer = vi
-      .fn()
-      .mockResolvedValueOnce({ autorise: false, retryApresSecondes: 42 });
+    limiteur.consommer = vi.fn().mockResolvedValueOnce({ autorise: false, retryApresSecondes: 42 });
 
     await expect(
       service().connecter({ email: 'garage@example.ch', motDePasse: 'x' }, '203.0.113.1', null),
@@ -256,14 +254,14 @@ describe('ServiceAuthentificationImpl.connecter', () => {
   // ni consulter ni consommer le budget par email — seul le budget par IP, inconditionnel, est
   // sollicité.
   it('B2 — une connexion réussie ne consulte ni ne consomme jamais le budget de débit par email', async () => {
-    await service().connecter({ email: 'garage@example.ch', motDePasse: 'bon' }, '203.0.113.1', 'ua-test');
+    await service().connecter(
+      { email: 'garage@example.ch', motDePasse: 'bon' },
+      '203.0.113.1',
+      'ua-test',
+    );
 
     expect(limiteur.consommer).toHaveBeenCalledTimes(1);
-    expect(limiteur.consommer).toHaveBeenCalledWith(
-      'auth:connexion:ip:203.0.113.1',
-      20,
-      900,
-    );
+    expect(limiteur.consommer).toHaveBeenCalledWith('auth:connexion:ip:203.0.113.1', 20, 900);
   });
 
   // Bloquant B1 (rapport QA étape 0) : avant correction, `verifierLimitationDebit()` consommait
@@ -306,8 +304,9 @@ describe('ServiceAuthentificationImpl.connecter', () => {
       ),
     ).rejects.toBeInstanceOf(ErreurIdentifiantsInvalides);
 
-    const [, verrouilleJusquA] = (accesAmorcage.enregistrerEchecConnexion as ReturnType<typeof vi.fn>)
-      .mock.calls[0] as [string, Date | null];
+    const [, verrouilleJusquA] = (
+      accesAmorcage.enregistrerEchecConnexion as ReturnType<typeof vi.fn>
+    ).mock.calls[0] as [string, Date | null];
     // 3e échec avec un seuil réglé à 3 : le compte doit déjà être verrouillé (contre un seuil
     // par défaut de 5, où ce 3e échec ne verrouillerait pas encore).
     expect(verrouilleJusquA).not.toBeNull();
@@ -319,11 +318,13 @@ describe('ServiceAuthentificationImpl.connecter', () => {
   // non typé par Drizzle. Sans coercition défensive, `.getTime()` lève un `TypeError` NON typé,
   // capturé comme `500 ERREUR_INTERNE` au lieu du `423 AUTH_COMPTE_VERROUILLE` attendu — sur le
   // chemin de sécurité qui vérifie le verrouillage. `versDateOuNull()` neutralise ce cas.
-  it("verrouilleJusquA reçu comme chaîne ISO brute (pilote SQL non garanti) rend 423, pas 500", async () => {
+  it('verrouilleJusquA reçu comme chaîne ISO brute (pilote SQL non garanti) rend 423, pas 500', async () => {
     const dateFuture = new Date(Date.now() + 60_000);
-    accesAmorcage.utilisateurParEmail = vi.fn().mockResolvedValue(
-      utilisateurTest({ verrouilleJusquA: dateFuture.toISOString() as unknown as Date }),
-    );
+    accesAmorcage.utilisateurParEmail = vi
+      .fn()
+      .mockResolvedValue(
+        utilisateurTest({ verrouilleJusquA: dateFuture.toISOString() as unknown as Date }),
+      );
     servicePwd.verifier = vi.fn().mockResolvedValue(true);
 
     await expect(
@@ -345,8 +346,9 @@ describe('ServiceAuthentificationImpl.connecter', () => {
       'utilisateur-id',
       expect.any(Date),
     );
-    const [, verrouilleJusquA] = (accesAmorcage.enregistrerEchecConnexion as ReturnType<typeof vi.fn>)
-      .mock.calls[0] as [string, Date];
+    const [, verrouilleJusquA] = (
+      accesAmorcage.enregistrerEchecConnexion as ReturnType<typeof vi.fn>
+    ).mock.calls[0] as [string, Date];
     expect(verrouilleJusquA.getTime()).toBeGreaterThan(Date.now());
   });
 
@@ -410,18 +412,15 @@ describe('ServiceAuthentificationImpl.connecter', () => {
     expect(resultat.corps.sites).toHaveLength(1);
     expect(resultat.corps.expireLe).toBe('2026-07-28T12:00:00.000Z');
 
-    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock.calls;
+    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock
+      .calls;
     expect(appelsJournal.some(([e]) => (e as { type: string }).type === 'connexion_reussie')).toBe(
       true,
     );
   });
 
   it('normalise l’email (trim + lowercase) avant de chercher l’utilisateur', async () => {
-    await service().connecter(
-      { email: '  GARAGE@Example.CH  ', motDePasse: 'bon' },
-      null,
-      null,
-    );
+    await service().connecter({ email: '  GARAGE@Example.CH  ', motDePasse: 'bon' }, null, null);
 
     expect(accesAmorcage.utilisateurParEmail).toHaveBeenCalledWith('garage@example.ch');
   });
@@ -444,7 +443,8 @@ describe('ServiceAuthentificationImpl.connecter', () => {
       'ua-test',
     );
 
-    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock.calls;
+    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock
+      .calls;
     expect(appelsJournal.length).toBeGreaterThan(0);
     for (const [evenement] of appelsJournal) {
       expect((evenement as { ip: string | null }).ip).toBeNull();
@@ -458,7 +458,8 @@ describe('ServiceAuthentificationImpl.connecter', () => {
       'ua-test',
     );
 
-    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock.calls;
+    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock
+      .calls;
     const evenementReussi = appelsJournal.find(
       ([e]) => (e as { type: string }).type === 'connexion_reussie',
     )?.[0] as { ip: string | null } | undefined;
@@ -643,7 +644,8 @@ describe('ServiceAuthentificationImpl.deconnecter', () => {
       }),
     ).rejects.toBe(erreurFermeture);
 
-    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock.calls;
+    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock
+      .calls;
     expect(appelsJournal).toHaveLength(1);
     const [evenement] = appelsJournal[0] as [{ type: string; details: unknown }];
     expect(evenement.type).toBe('deconnexion');

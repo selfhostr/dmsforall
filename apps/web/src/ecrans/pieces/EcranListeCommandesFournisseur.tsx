@@ -15,7 +15,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
@@ -28,7 +34,10 @@ import { formaterDate } from '@/lib/formats';
 
 import { peutEcrireCommandeFournisseur } from './droits';
 
-const VARIANTE_BADGE_STATUT: Record<StatutCommandeFournisseur, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+const VARIANTE_BADGE_STATUT: Record<
+  StatutCommandeFournisseur,
+  'default' | 'secondary' | 'outline' | 'destructive'
+> = {
   brouillon: 'outline',
   envoyee: 'default',
   partiellement_recue: 'secondary',
@@ -65,8 +74,16 @@ export function EcranListeCommandesFournisseur() {
     [statut, avecReliquat],
   );
 
-  const { commandes, isPending, isError, error, refetch, hasNextPage, isFetchingNextPage, fetchNextPage } =
-    useListeCommandesFournisseur(filtres);
+  const {
+    commandes,
+    isPending,
+    isError,
+    error,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useListeCommandesFournisseur(filtres);
 
   const nomSite = (siteId: string) => sites.find((site) => site.id === siteId)?.nom ?? siteId;
 
@@ -83,7 +100,9 @@ export function EcranListeCommandesFournisseur() {
       rendu: (commande) => (
         <div className="flex flex-col">
           <span className="font-medium">{formaterDate(commande.dateCommande)}</span>
-          {commande.reference ? <span className="texte-libelle text-muted-foreground">{commande.reference}</span> : null}
+          {commande.reference ? (
+            <span className="texte-libelle text-muted-foreground">{commande.reference}</span>
+          ) : null}
         </div>
       ),
     },
@@ -113,7 +132,11 @@ export function EcranListeCommandesFournisseur() {
     {
       id: 'statut',
       libelle: t('pieces:commandes.statut'),
-      rendu: (commande) => <Badge variant={VARIANTE_BADGE_STATUT[commande.statut]}>{t(`pieces:commandes.statuts.${commande.statut}`)}</Badge>,
+      rendu: (commande) => (
+        <Badge variant={VARIANTE_BADGE_STATUT[commande.statut]}>
+          {t(`pieces:commandes.statuts.${commande.statut}`)}
+        </Badge>
+      ),
     },
   ];
 
@@ -130,7 +153,11 @@ export function EcranListeCommandesFournisseur() {
     return (
       <div className="flex flex-col gap-6">
         <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:commandes.titre')}</h1>
-        <EtatErreur titre={t('pieces:commandes.erreur.titre')} description={messageErreur(error, t)} onReessayer={() => void refetch()} />
+        <EtatErreur
+          titre={t('pieces:commandes.erreur.titre')}
+          description={messageErreur(error, t)}
+          onReessayer={() => void refetch()}
+        />
       </div>
     );
   }
@@ -140,14 +167,21 @@ export function EcranListeCommandesFournisseur() {
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:commandes.titre')}</h1>
         {peutEcrireCommandeFournisseur(role) ? (
-          <Button onClick={() => navigate('/pieces/commandes-fournisseur/nouvelle')}>{t('pieces:commandes.actions.creer')}</Button>
+          <Button onClick={() => navigate('/pieces/commandes-fournisseur/nouvelle')}>
+            {t('pieces:commandes.actions.creer')}
+          </Button>
         ) : null}
       </div>
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5 max-w-xs">
           <Label htmlFor="filtre-statut-commande">{t('pieces:commandes.statut')}</Label>
-          <Select value={statut ?? 'tous'} onValueChange={(valeur) => setStatut(valeur === 'tous' ? undefined : (valeur as StatutCommandeFournisseur))}>
+          <Select
+            value={statut ?? 'tous'}
+            onValueChange={(valeur) =>
+              setStatut(valeur === 'tous' ? undefined : (valeur as StatutCommandeFournisseur))
+            }
+          >
             <SelectTrigger id="filtre-statut-commande" aria-label={t('pieces:commandes.statut')}>
               <SelectValue />
             </SelectTrigger>
@@ -163,7 +197,10 @@ export function EcranListeCommandesFournisseur() {
         </div>
 
         <label className="flex items-center gap-2 texte-corps pb-2">
-          <Checkbox checked={avecReliquat} onCheckedChange={(coche) => setAvecReliquat(coche === true)} />
+          <Checkbox
+            checked={avecReliquat}
+            onCheckedChange={(coche) => setAvecReliquat(coche === true)}
+          />
           {t('pieces:commandes.filtres.avecReliquat')}
         </label>
       </div>
@@ -175,14 +212,20 @@ export function EcranListeCommandesFournisseur() {
         onOuvrirLigne={(commande) => navigate(`/pieces/commandes-fournisseur/${commande.id}`)}
         contenuVide={
           filtresActifs ? (
-            <EtatVideFiltre titre={t('pieces:commandes.titre')} description={t('pieces:commandes.vide')} onEffacerFiltres={effacerFiltres} />
+            <EtatVideFiltre
+              titre={t('pieces:commandes.titre')}
+              description={t('pieces:commandes.vide')}
+              onEffacerFiltres={effacerFiltres}
+            />
           ) : (
             <EtatVidePremierUsage
               titre={t('pieces:commandes.titre')}
               description={t('pieces:commandes.vide')}
               action={
                 peutEcrireCommandeFournisseur(role) ? (
-                  <Button onClick={() => navigate('/pieces/commandes-fournisseur/nouvelle')}>{t('pieces:commandes.actions.creer')}</Button>
+                  <Button onClick={() => navigate('/pieces/commandes-fournisseur/nouvelle')}>
+                    {t('pieces:commandes.actions.creer')}
+                  </Button>
                 ) : undefined
               }
             />
@@ -190,7 +233,11 @@ export function EcranListeCommandesFournisseur() {
         }
       />
 
-      <BoutonChargerPlus aChargerPlus={Boolean(hasNextPage)} enChargement={isFetchingNextPage} onChargerPlus={() => void fetchNextPage()} />
+      <BoutonChargerPlus
+        aChargerPlus={Boolean(hasNextPage)}
+        enChargement={isFetchingNextPage}
+        onChargerPlus={() => void fetchNextPage()}
+      />
     </div>
   );
 }

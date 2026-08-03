@@ -7,7 +7,12 @@ import {
   type UseMutationResult,
 } from '@tanstack/react-query';
 
-import type { EntreeContactClient, PageCurseur, ReponseAvecAvertissements, ReponseClientContact } from '@dfa/shared';
+import type {
+  EntreeContactClient,
+  PageCurseur,
+  ReponseAvecAvertissements,
+  ReponseClientContact,
+} from '@dfa/shared';
 
 import { requeteApi } from '@/api/client';
 import { clesQuery } from '@/api/cles';
@@ -25,7 +30,10 @@ export function useContactsClient(
   return useInfiniteQuery({
     queryKey: clesQuery.clients.contacts(clientId ?? ''),
     queryFn: async ({ pageParam }) => {
-      const params = construireRequete({ limite: LIMITE_PAR_PAGE, curseur: pageParam ?? undefined });
+      const params = construireRequete({
+        limite: LIMITE_PAR_PAGE,
+        curseur: pageParam ?? undefined,
+      });
       const page = await requeteApi<PageCurseur<ReponseClientContact>>(
         `/clients/${clientId}/contacts?${params.toString()}`,
         { method: 'GET' },

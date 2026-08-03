@@ -11,7 +11,11 @@ export function SelecteurLangue() {
   const { langue, languesDisponibles, changerLangue } = useLangue();
 
   return (
-    <div role="group" aria-label={t('commun:langue.choisir')} className="inline-flex overflow-hidden rounded-md border">
+    <div
+      role="group"
+      aria-label={t('commun:langue.choisir')}
+      className="inline-flex overflow-hidden rounded-md border"
+    >
       {languesDisponibles.map((code) => (
         <button
           key={code}

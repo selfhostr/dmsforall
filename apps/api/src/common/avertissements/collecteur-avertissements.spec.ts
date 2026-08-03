@@ -18,15 +18,21 @@ describe('CollecteurAvertissements', () => {
   it('ajouter() sans donnees produit un avertissement sans la clé donnees', () => {
     const collecteur = new CollecteurAvertissements();
     collecteur.ajouter('CLIENT_DOUBLON_PROBABLE', 'Un client très similaire existe déjà.');
-    expect(collecteur.liste()).toEqual([{ code: 'CLIENT_DOUBLON_PROBABLE', message: 'Un client très similaire existe déjà.' }]);
+    expect(collecteur.liste()).toEqual([
+      { code: 'CLIENT_DOUBLON_PROBABLE', message: 'Un client très similaire existe déjà.' },
+    ]);
   });
 
   it('ajouter() avec donnees les porte telles quelles', () => {
     const collecteur = new CollecteurAvertissements();
-    collecteur.ajouter('VEHICULE_KILOMETRAGE_ABERRANT', 'Kilométrage très supérieur à la moyenne du modèle.', {
-      kilometrageReleve: 999000,
-      kilometrageAttenduMax: 300000,
-    });
+    collecteur.ajouter(
+      'VEHICULE_KILOMETRAGE_ABERRANT',
+      'Kilométrage très supérieur à la moyenne du modèle.',
+      {
+        kilometrageReleve: 999000,
+        kilometrageAttenduMax: 300000,
+      },
+    );
     expect(collecteur.liste()).toEqual([
       {
         code: 'VEHICULE_KILOMETRAGE_ABERRANT',
@@ -36,7 +42,7 @@ describe('CollecteurAvertissements', () => {
     ]);
   });
 
-  it('conserve l\'ordre d\'ajout', () => {
+  it("conserve l'ordre d'ajout", () => {
     const collecteur = new CollecteurAvertissements();
     collecteur.ajouter('CLIENT_DOUBLON_PROBABLE', 'premier');
     collecteur.ajouter('VEHICULE_VIN_COURT', 'second');

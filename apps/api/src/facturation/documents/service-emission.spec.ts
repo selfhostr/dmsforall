@@ -38,7 +38,13 @@ const AVOIR_ID = 'avoir-1';
 const CLE_IDEMPOTENCE = '11111111-1111-4111-8111-111111111111';
 
 function principal(role: PrincipalAuthentifie['role']): PrincipalAuthentifie {
-  return { sessionId: 'session-1', tenantId: 'tenant-a', utilisateurId: 'user-1', role, langue: 'fr' };
+  return {
+    sessionId: 'session-1',
+    tenantId: 'tenant-a',
+    utilisateurId: 'user-1',
+    role,
+    langue: 'fr',
+  };
 }
 
 function avoirFixture(overrides: Partial<LigneDocumentVente> = {}): LigneDocumentVente {
@@ -98,7 +104,14 @@ function txFactice() {
   const update = vi.fn((_table: unknown) => ({ set: setUpdate }));
   const valuesInsert = vi.fn(async () => undefined);
   const insert = vi.fn((_table: unknown) => ({ values: valuesInsert }));
-  return { tx: { update, insert } as unknown as TransactionDfa, update, setUpdate, whereUpdate, insert, valuesInsert };
+  return {
+    tx: { update, insert } as unknown as TransactionDfa,
+    update,
+    setUpdate,
+    whereUpdate,
+    insert,
+    valuesInsert,
+  };
 }
 
 function serviceFactice(tx: TransactionDfa) {
@@ -106,10 +119,16 @@ function serviceFactice(tx: TransactionDfa) {
   // implémentation reproduit cette forme pour que le type déclaré de `emettre()` (`ResultatIdempotent<T>`)
   // reste vrai dans les tests, `rejoue: false` (aucun test ici n'exerce le rejeu).
   const idempotence = {
-    executer: vi.fn(async (_ctx: ContexteTenant, _requete: unknown, travail: (tx: TransactionDfa) => Promise<unknown>) => ({
-      reponse: await travail(tx),
-      rejoue: false,
-    })),
+    executer: vi.fn(
+      async (
+        _ctx: ContexteTenant,
+        _requete: unknown,
+        travail: (tx: TransactionDfa) => Promise<unknown>,
+      ) => ({
+        reponse: await travail(tx),
+        rejoue: false,
+      }),
+    ),
   };
   const evenements = { publier: vi.fn(async () => undefined) };
   const compteurs = { prochainNumero: vi.fn(async () => 7) };
@@ -134,16 +153,26 @@ beforeEach(() => {
 describe("ServiceEmissionDocument.emettre — plafond RF-117 sur l'avoir de receptionnaire", () => {
   it('receptionnaire refusé au-delà du plafond — AVOIR_PLAFOND_DEPASSE, aucun numéro alloué, document_vente jamais écrit', async () => {
     vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(avoirFixture());
-    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([ligneAvoirFixture(-600_000)]); // avoir de CHF 6'000.-
+    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([
+      ligneAvoirFixture(-600_000),
+    ]); // avoir de CHF 6'000.-
     vi.mocked(documentRequetes.chargerPlafondAvoirReceptionnaire).mockResolvedValue(500_000); // plafond CHF 5'000.-
 
     const { tx, update } = txFactice();
     const { service, compteurs, documents, evenements } = serviceFactice(tx);
 
-    await expect(service.emettre(CTX, principal('receptionnaire'), AVOIR_ID, CLE_IDEMPOTENCE)).rejects.toMatchObject({
+    await expect(
+      service.emettre(CTX, principal('receptionnaire'), AVOIR_ID, CLE_IDEMPOTENCE),
+    ).rejects.toMatchObject({
       code: 'AVOIR_PLAFOND_DEPASSE',
       status: 409,
-      blocages: [{ type: 'document_vente', id: AVOIR_ID, donnees: { plafondCentimes: 500_000, cumulCentimes: 600_000 } }],
+      blocages: [
+        {
+          type: 'document_vente',
+          id: AVOIR_ID,
+          donnees: { plafondCentimes: 500_000, cumulCentimes: 600_000 },
+        },
+      ],
       actionsProposees: [{ code: 'DEMANDER_HABILITATION' }],
     });
 
@@ -155,47 +184,65 @@ describe("ServiceEmissionDocument.emettre — plafond RF-117 sur l'avoir de rece
     expect(evenements.publier).not.toHaveBeenCalled();
   });
 
-  it.each(['direction', 'comptable'] as const)('%s n\'est JAMAIS plafonné — le même montant qui bloque un receptionnaire passe, sans même lire le plafond', async (role) => {
-    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(avoirFixture());
-    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([ligneAvoirFixture(-600_000)]);
+  it.each(['direction', 'comptable'] as const)(
+    "%s n'est JAMAIS plafonné — le même montant qui bloque un receptionnaire passe, sans même lire le plafond",
+    async (role) => {
+      vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(avoirFixture());
+      vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([
+        ligneAvoirFixture(-600_000),
+      ]);
 
-    const { tx } = txFactice();
-    const { service, compteurs, documents } = serviceFactice(tx);
+      const { tx } = txFactice();
+      const { service, compteurs, documents } = serviceFactice(tx);
 
-    const resultat = await service.emettre(CTX, principal(role), AVOIR_ID, CLE_IDEMPOTENCE);
+      const resultat = await service.emettre(CTX, principal(role), AVOIR_ID, CLE_IDEMPOTENCE);
 
-    expect(resultat.reponse.statutHttp).toBe(200);
-    expect(compteurs.prochainNumero).toHaveBeenCalledTimes(1);
-    expect(documents.assemblerDocument).toHaveBeenCalledTimes(1);
-    // Le plafond n'est même pas LU pour un rôle non concerné (colonne nommée `..._receptionnaire`,
-    // §RF-117) — ni la colonne, ni les avoirs déjà émis sur la facture.
-    expect(documentRequetes.chargerPlafondAvoirReceptionnaire).not.toHaveBeenCalled();
-  });
+      expect(resultat.reponse.statutHttp).toBe(200);
+      expect(compteurs.prochainNumero).toHaveBeenCalledTimes(1);
+      expect(documents.assemblerDocument).toHaveBeenCalledTimes(1);
+      // Le plafond n'est même pas LU pour un rôle non concerné (colonne nommée `..._receptionnaire`,
+      // §RF-117) — ni la colonne, ni les avoirs déjà émis sur la facture.
+      expect(documentRequetes.chargerPlafondAvoirReceptionnaire).not.toHaveBeenCalled();
+    },
+  );
 
   it('plafond NULL (aucun paramétrage) — receptionnaire émet SANS LIMITE, comportement actuel préservé (non-régression, migration 0018 §3)', async () => {
     vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(avoirFixture());
-    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([ligneAvoirFixture(-6_000_000)]); // CHF 60'000.-, énorme
+    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([
+      ligneAvoirFixture(-6_000_000),
+    ]); // CHF 60'000.-, énorme
     vi.mocked(documentRequetes.chargerPlafondAvoirReceptionnaire).mockResolvedValue(null);
 
     const { tx } = txFactice();
     const { service, compteurs } = serviceFactice(tx);
 
-    const resultat = await service.emettre(CTX, principal('receptionnaire'), AVOIR_ID, CLE_IDEMPOTENCE);
+    const resultat = await service.emettre(
+      CTX,
+      principal('receptionnaire'),
+      AVOIR_ID,
+      CLE_IDEMPOTENCE,
+    );
 
     expect(resultat.reponse.statutHttp).toBe(200);
     expect(compteurs.prochainNumero).toHaveBeenCalledTimes(1);
   });
 
-  it("lecture CUMULATIVE (la plus prudente) : un avoir partiel sous le plafond pris isolément est refusé si le cumul avec les avoirs déjà ÉMIS sur la même facture dépasse", async () => {
-    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(avoirFixture({ factureAnnuleeId: 'facture-1' }));
-    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([ligneAvoirFixture(-100_000)]); // CET avoir : CHF 1'000.-, seul, sous le plafond
+  it('lecture CUMULATIVE (la plus prudente) : un avoir partiel sous le plafond pris isolément est refusé si le cumul avec les avoirs déjà ÉMIS sur la même facture dépasse', async () => {
+    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(
+      avoirFixture({ factureAnnuleeId: 'facture-1' }),
+    );
+    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([
+      ligneAvoirFixture(-100_000),
+    ]); // CET avoir : CHF 1'000.-, seul, sous le plafond
     vi.mocked(documentRequetes.chargerPlafondAvoirReceptionnaire).mockResolvedValue(500_000); // plafond CHF 5'000.-
     vi.mocked(documentRequetes.sommerAvoirsEmisPourFacture).mockResolvedValue(450_000); // déjà CHF 4'500.- rendus sur cette facture
 
     const { tx } = txFactice();
     const { service, compteurs } = serviceFactice(tx);
 
-    await expect(service.emettre(CTX, principal('receptionnaire'), AVOIR_ID, CLE_IDEMPOTENCE)).rejects.toMatchObject({
+    await expect(
+      service.emettre(CTX, principal('receptionnaire'), AVOIR_ID, CLE_IDEMPOTENCE),
+    ).rejects.toMatchObject({
       code: 'AVOIR_PLAFOND_DEPASSE',
       blocages: [{ donnees: { plafondCentimes: 500_000, cumulCentimes: 550_000 } }],
     });
@@ -204,31 +251,48 @@ describe("ServiceEmissionDocument.emettre — plafond RF-117 sur l'avoir de rece
   });
 
   it('cumul EXACTEMENT égal au plafond est autorisé — la comparaison est stricte (> et non >=)', async () => {
-    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(avoirFixture({ factureAnnuleeId: 'facture-1' }));
-    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([ligneAvoirFixture(-100_000)]);
+    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(
+      avoirFixture({ factureAnnuleeId: 'facture-1' }),
+    );
+    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([
+      ligneAvoirFixture(-100_000),
+    ]);
     vi.mocked(documentRequetes.chargerPlafondAvoirReceptionnaire).mockResolvedValue(500_000);
     vi.mocked(documentRequetes.sommerAvoirsEmisPourFacture).mockResolvedValue(400_000); // 400'000 + 100'000 = 500'000 pile
 
     const { tx } = txFactice();
     const { service, compteurs } = serviceFactice(tx);
 
-    const resultat = await service.emettre(CTX, principal('receptionnaire'), AVOIR_ID, CLE_IDEMPOTENCE);
+    const resultat = await service.emettre(
+      CTX,
+      principal('receptionnaire'),
+      AVOIR_ID,
+      CLE_IDEMPOTENCE,
+    );
     expect(resultat.reponse.statutHttp).toBe(200);
     expect(compteurs.prochainNumero).toHaveBeenCalledTimes(1);
   });
 
   it("avoir libre (sans facture d'origine) : aucun cumul à calculer, `sommerAvoirsEmisPourFacture` jamais appelée", async () => {
-    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(avoirFixture({ factureAnnuleeId: null }));
-    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([ligneAvoirFixture(-100_000)]);
+    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(
+      avoirFixture({ factureAnnuleeId: null }),
+    );
+    vi.mocked(documentRequetes.listerLignesDocumentPourEcriture).mockResolvedValue([
+      ligneAvoirFixture(-100_000),
+    ]);
     vi.mocked(documentRequetes.chargerPlafondAvoirReceptionnaire).mockResolvedValue(500_000);
 
     const { tx } = txFactice();
     const { service, compteurs } = serviceFactice(tx);
 
-    const resultat = await service.emettre(CTX, principal('receptionnaire'), AVOIR_ID, CLE_IDEMPOTENCE);
+    const resultat = await service.emettre(
+      CTX,
+      principal('receptionnaire'),
+      AVOIR_ID,
+      CLE_IDEMPOTENCE,
+    );
     expect(resultat.reponse.statutHttp).toBe(200);
     expect(compteurs.prochainNumero).toHaveBeenCalledTimes(1);
     expect(documentRequetes.sommerAvoirsEmisPourFacture).not.toHaveBeenCalled();
   });
-
 });

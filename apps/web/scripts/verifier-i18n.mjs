@@ -44,7 +44,9 @@ for (const langue of LANGUES.filter((l) => l !== 'fr')) {
     .map((f) => f.replace(/\.json$/, ''))
     .filter((n) => !NAMESPACES.includes(n));
   if (orphelins.length > 0) {
-    console.error(`i18n:check — namespace(s) présent(s) en ${langue} mais absent(s) en fr : ${orphelins.join(', ')}`);
+    console.error(
+      `i18n:check — namespace(s) présent(s) en ${langue} mais absent(s) en fr : ${orphelins.join(', ')}`,
+    );
     process.exit(1);
   }
 }
@@ -113,11 +115,15 @@ function verifierClesUtiliseesExistentEnFr(clesUtilisees, ressources) {
   const problemes = [];
   for (const [idComplet, { ns, cle, fichiers }] of clesUtilisees) {
     if (!NAMESPACES.includes(ns)) {
-      problemes.push(`Namespace inconnu « ${ns} » (clé ${idComplet}) — utilisé dans ${[...fichiers].join(', ')}`);
+      problemes.push(
+        `Namespace inconnu « ${ns} » (clé ${idComplet}) — utilisé dans ${[...fichiers].join(', ')}`,
+      );
       continue;
     }
     if (!ressources.fr[ns][cle]) {
-      problemes.push(`Clé FR manquante « ${idComplet} » — utilisée dans ${[...fichiers].join(', ')}`);
+      problemes.push(
+        `Clé FR manquante « ${idComplet} » — utilisée dans ${[...fichiers].join(', ')}`,
+      );
     }
   }
   return problemes;
@@ -149,7 +155,9 @@ function extraireBlocEquilibre(contenu, indexAccoladeOuverte) {
 }
 
 function extraireNamespacesDuTableau(contenuIndex) {
-  const correspondance = contenuIndex.match(/export const NAMESPACES\s*=\s*\[([\s\S]*?)\]\s*as const/);
+  const correspondance = contenuIndex.match(
+    /export const NAMESPACES\s*=\s*\[([\s\S]*?)\]\s*as const/,
+  );
   if (!correspondance) return null;
   return [...correspondance[1].matchAll(/['"`]([a-zA-Z0-9_]+)['"`]/g)].map((m) => m[1]);
 }
@@ -157,7 +165,10 @@ function extraireNamespacesDuTableau(contenuIndex) {
 function extraireNamespacesParLangueDeRessources(contenuIndex) {
   const debutObjet = contenuIndex.indexOf('const ressources = {');
   if (debutObjet === -1) return null;
-  const blocRessources = extraireBlocEquilibre(contenuIndex, debutObjet + 'const ressources = '.length);
+  const blocRessources = extraireBlocEquilibre(
+    contenuIndex,
+    debutObjet + 'const ressources = '.length,
+  );
   if (!blocRessources) return null;
 
   const resultat = {};
@@ -170,7 +181,9 @@ function extraireNamespacesParLangueDeRessources(contenuIndex) {
     if (!blocLangue) return null;
     // Clés d'objet en tête de ligne : `nom: identifiant,` — pas de valeurs imbriquées ici,
     // seulement des références vers les imports JSON.
-    resultat[langue] = [...blocLangue.matchAll(/(?:^|[{,])\s*([a-zA-Z0-9_]+)\s*:/g)].map((m) => m[1]);
+    resultat[langue] = [...blocLangue.matchAll(/(?:^|[{,])\s*([a-zA-Z0-9_]+)\s*:/g)].map(
+      (m) => m[1],
+    );
   }
   return resultat;
 }

@@ -7,7 +7,10 @@ import type { schema } from '../../../db';
  * §1.3). Repli sur le FR plutôt qu'une chaîne vide : un onglet DE affichant le libellé français
  * reste lisible et actionnable pour le garagiste, une chaîne vide ne l'est pas.
  */
-export function versDtoPrestation(prestation: schema.LignePrestation, prixCentimesActuel: number | null): ReponsePrestation {
+export function versDtoPrestation(
+  prestation: schema.LignePrestation,
+  prixCentimesActuel: number | null,
+): ReponsePrestation {
   return {
     id: prestation.id,
     code: prestation.code,

@@ -7,7 +7,16 @@
  * Détail : migrations/0032_ventes.sql.
  */
 
-import { boolean, check, foreignKey, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  check,
+  foreignKey,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 import { colonneId, colonnesHorodatage } from '../colonnes-communes';

@@ -13,9 +13,12 @@ import { listerDetentionsVehicule } from './vehicules.api';
  * modifier un fichier hors périmètre — aucune invalidation croisée n'en dépend ailleurs au lot 1
  * (cet écran ne modifie pas les détentions, `changer-detenteur` n'a pas d'écran ici).
  */
-const cleDetentionsVehicule = (vehiculeId: string) => ['vehicules', 'detentions', vehiculeId] as const;
+const cleDetentionsVehicule = (vehiculeId: string) =>
+  ['vehicules', 'detentions', vehiculeId] as const;
 
-export function useDetentionsVehicule(vehiculeId: string | undefined): UseQueryResult<readonly ReponseVehiculeDetention[]> {
+export function useDetentionsVehicule(
+  vehiculeId: string | undefined,
+): UseQueryResult<readonly ReponseVehiculeDetention[]> {
   return useQuery({
     queryKey: cleDetentionsVehicule(vehiculeId ?? ''),
     queryFn: () => listerDetentionsVehicule(vehiculeId as string),

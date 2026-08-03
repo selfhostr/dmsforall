@@ -1,5 +1,21 @@
-import { Controller, Headers, HttpCode, HttpStatus, Param, Post, Res, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiHeader, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCookieAuth,
+  ApiHeader,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import {
   EN_TETE_IDEMPOTENCE,
@@ -45,19 +61,26 @@ export class DocumentVenteTransitionsController {
   @HttpCode(HttpStatus.OK)
   @ExigerDroit('facturation.document.emettre')
   @ApiOperation({
-    summary: "Émission — le point de non-retour (RF-10, MD-18).",
+    summary: 'Émission — le point de non-retour (RF-10, MD-18).',
     description:
-      "`Idempotency-Key` obligatoire (RF-25) : rejouer la même requête avec la même clé rend le MÊME document, avec le MÊME numéro. " +
+      '`Idempotency-Key` obligatoire (RF-25) : rejouer la même requête avec la même clé rend le MÊME document, avec le MÊME numéro. ' +
       'Applicable aux quatre types de document (devis, bon de commande, facture, avoir).',
   })
   @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiHeader({ name: EN_TETE_IDEMPOTENCE, required: true, description: 'uuid v4, identité de la requête.' })
+  @ApiHeader({
+    name: EN_TETE_IDEMPOTENCE,
+    required: true,
+    description: 'uuid v4, identité de la requête.',
+  })
   @ApiResponse({ status: 200, type: EnveloppeDocumentVenteDto })
   @ApiReponseProbleme(400, 'Idempotency-Key manquante/mal formée.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Document introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, 'DOCUMENT_VERROUILLE (déjà émis/abandonné) ou DOCUMENT_PERIODE_CLOSE (MD-34).')
+  @ApiReponseProbleme(
+    409,
+    'DOCUMENT_VERROUILLE (déjà émis/abandonné) ou DOCUMENT_PERIODE_CLOSE (MD-34).',
+  )
   async emettre(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,
     @Headers(EN_TETE_IDEMPOTENCE.toLowerCase()) cleIdempotence: string | undefined,
@@ -78,7 +101,7 @@ export class DocumentVenteTransitionsController {
   @ApiOperation({ summary: 'Acceptation — devis uniquement (devis.emis → accepte, terminal).' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiResponse({ status: 200, type: EnveloppeDocumentVenteDto })
-  @ApiReponseProbleme(400, "Type de document invalide (seul un devis peut être accepté).")
+  @ApiReponseProbleme(400, 'Type de document invalide (seul un devis peut être accepté).')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Document introuvable pour ce tenant.')
@@ -101,7 +124,8 @@ export class DocumentVenteTransitionsController {
   @ApiReponseProbleme(409, 'DOCUMENT_TRANSITION_INTERDITE.')
   async refuser(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,
-    @CorpsZod(schemaRefuserDocument, { exemple: { motif: 'Le client a renoncé au devis.' } }) entree: EntreeRefuserDocument,
+    @CorpsZod(schemaRefuserDocument, { exemple: { motif: 'Le client a renoncé au devis.' } })
+    entree: EntreeRefuserDocument,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
@@ -120,7 +144,10 @@ export class DocumentVenteTransitionsController {
   @ApiReponseProbleme(409, 'DOCUMENT_TRANSITION_INTERDITE.')
   async annuler(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,
-    @CorpsZod(schemaAnnulerDocument, { exemple: { motif: 'Commande annulée par le client avant livraison.' } }) entree: EntreeAnnulerDocument,
+    @CorpsZod(schemaAnnulerDocument, {
+      exemple: { motif: 'Commande annulée par le client avant livraison.' },
+    })
+    entree: EntreeAnnulerDocument,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
@@ -137,22 +164,36 @@ export class DocumentVenteTransitionsController {
       "qui est aussi le moment où un avoir `portee = 'total'` fait basculer la facture créditée à `annule_par_avoir` (RF-32).",
   })
   @ApiParam({ name: 'factureId', format: 'uuid' })
-  @ApiHeader({ name: EN_TETE_IDEMPOTENCE, required: true, description: 'uuid v4, identité de la requête.' })
+  @ApiHeader({
+    name: EN_TETE_IDEMPOTENCE,
+    required: true,
+    description: 'uuid v4, identité de la requête.',
+  })
   @ApiResponse({ status: 201, type: EnveloppeDocumentVenteDto })
   @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Facture ou ligne référencée introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, 'DOCUMENT_TRANSITION_INTERDITE (facture non émise), AVOIR_MONTANT_EXCEDENTAIRE (MD-23) ou IDEMPOTENCE_CONFLIT.')
+  @ApiReponseProbleme(
+    409,
+    'DOCUMENT_TRANSITION_INTERDITE (facture non émise), AVOIR_MONTANT_EXCEDENTAIRE (MD-23) ou IDEMPOTENCE_CONFLIT.',
+  )
   async creerAvoir(
     @Param('factureId', new PipeZod(schemaIdentifiant)) factureId: string,
-    @CorpsZod(schemaCreationAvoir, { exemple: { portee: 'total', motif: 'erreur_adresse' } }) entree: EntreeCreationAvoir,
+    @CorpsZod(schemaCreationAvoir, { exemple: { portee: 'total', motif: 'erreur_adresse' } })
+    entree: EntreeCreationAvoir,
     @Headers(EN_TETE_IDEMPOTENCE.toLowerCase()) cleIdempotence: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    const resultat = await this.avoirs.creer(ctx, principal, factureId, entree, cleIdempotence ?? '');
+    const resultat = await this.avoirs.creer(
+      ctx,
+      principal,
+      factureId,
+      entree,
+      cleIdempotence ?? '',
+    );
 
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');

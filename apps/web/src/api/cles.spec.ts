@@ -9,7 +9,12 @@ describe('clesQuery', () => {
 
   it('produit des tuples, jamais de concaténation de chaîne', () => {
     expect(clesQuery.clients.detail('abc')).toEqual(['clients', 'detail', 'abc']);
-    expect(clesQuery.or.vue('attenteAccord', 'site-1')).toEqual(['or', 'vue', 'attenteAccord', 'site-1']);
+    expect(clesQuery.or.vue('attenteAccord', 'site-1')).toEqual([
+      'or',
+      'vue',
+      'attenteAccord',
+      'site-1',
+    ]);
     expect(clesQuery.pointages.technicienJour('tech-1', '2026-07-27')).toEqual([
       'pointages',
       'technicienJour',

@@ -19,21 +19,31 @@ describe('deciderIdempotence', () => {
     expect(deciderIdempotence(true, null, EMPREINTE_A)).toEqual({ type: 'nouvelle_execution' });
   });
 
-  it('conflit à l\'insertion + même empreinte + statut termine -> rejeu avec le corps mémorisé', () => {
-    const decision = deciderIdempotence(false, ligne({ statut: 'termine', statutHttp: 201, reponse: { id: 'C-2026-001' } }), EMPREINTE_A);
+  it("conflit à l'insertion + même empreinte + statut termine -> rejeu avec le corps mémorisé", () => {
+    const decision = deciderIdempotence(
+      false,
+      ligne({ statut: 'termine', statutHttp: 201, reponse: { id: 'C-2026-001' } }),
+      EMPREINTE_A,
+    );
     expect(decision).toEqual({ type: 'rejeu', statutHttp: 201, corps: { id: 'C-2026-001' } });
   });
 
-  it('conflit à l\'insertion + empreinte DIFFÉRENTE -> conflit_empreinte, quel que soit le statut', () => {
-    expect(deciderIdempotence(false, ligne({ statut: 'termine' }), EMPREINTE_B)).toEqual({ type: 'conflit_empreinte' });
-    expect(deciderIdempotence(false, ligne({ statut: 'en_cours' }), EMPREINTE_B)).toEqual({ type: 'conflit_empreinte' });
+  it("conflit à l'insertion + empreinte DIFFÉRENTE -> conflit_empreinte, quel que soit le statut", () => {
+    expect(deciderIdempotence(false, ligne({ statut: 'termine' }), EMPREINTE_B)).toEqual({
+      type: 'conflit_empreinte',
+    });
+    expect(deciderIdempotence(false, ligne({ statut: 'en_cours' }), EMPREINTE_B)).toEqual({
+      type: 'conflit_empreinte',
+    });
   });
 
-  it('conflit à l\'insertion + même empreinte + statut en_cours -> requete_en_cours (requête concurrente)', () => {
-    expect(deciderIdempotence(false, ligne({ statut: 'en_cours' }), EMPREINTE_A)).toEqual({ type: 'requete_en_cours' });
+  it("conflit à l'insertion + même empreinte + statut en_cours -> requete_en_cours (requête concurrente)", () => {
+    expect(deciderIdempotence(false, ligne({ statut: 'en_cours' }), EMPREINTE_A)).toEqual({
+      type: 'requete_en_cours',
+    });
   });
 
-  it('conflit à l\'insertion + ligne introuvable à la relecture -> anomalie, jamais un retraitement silencieux', () => {
+  it("conflit à l'insertion + ligne introuvable à la relecture -> anomalie, jamais un retraitement silencieux", () => {
     expect(deciderIdempotence(false, null, EMPREINTE_A)).toEqual({ type: 'anomalie' });
   });
 
@@ -42,7 +52,7 @@ describe('deciderIdempotence', () => {
     expect(decision).toMatchObject({ type: 'rejeu', statutHttp: 500 });
   });
 
-  it('l\'empreinte est comparée par contenu, pas par référence', () => {
+  it("l'empreinte est comparée par contenu, pas par référence", () => {
     const copie = Buffer.from(EMPREINTE_A);
     expect(deciderIdempotence(false, ligne({ empreinteRequete: EMPREINTE_A }), copie)).toEqual({
       type: 'rejeu',

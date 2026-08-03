@@ -10,11 +10,24 @@ import type {
 } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
-import { documentVente, ligneDocument, ligneOr, ordreReparation, type LigneClient, type LigneLigneOr, type LigneOrdreReparation } from '../db/schema';
+import {
+  documentVente,
+  ligneDocument,
+  ligneOr,
+  ordreReparation,
+  type LigneClient,
+  type LigneLigneOr,
+  type LigneOrdreReparation,
+} from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { Horloge } from '../common/horloge/horloge';
-import { JETON_IDEMPOTENCE, type ReponseMemorisable, type ResultatIdempotent, type ServiceIdempotence } from '../common/idempotence';
+import {
+  JETON_IDEMPOTENCE,
+  type ReponseMemorisable,
+  type ResultatIdempotent,
+  type ServiceIdempotence,
+} from '../common/idempotence';
 
 import { calculerLigneDocument } from '../facturation/documents/calcul-document';
 import { chargerAdresseFacturationStructuree } from '../facturation/documents/references';
@@ -45,14 +58,22 @@ import { traduireErreurTransition } from './traducteur-transition';
  * `payeurClientId` incohérent, groupe à la fois facturé et reporté) est ENTIÈREMENT couverte par
  * `schemaFacturationOrdreReparation` (zod, `.refine()`) — ce service ne la répète pas.
  */
-const STATUTS_LIGNE_INDECIS: ReadonlySet<LigneLigneOr['statut']> = new Set(['proposee', 'a_valider', 'validee', 'en_cours']);
+const STATUTS_LIGNE_INDECIS: ReadonlySet<LigneLigneOr['statut']> = new Set([
+  'proposee',
+  'a_valider',
+  'validee',
+  'en_cours',
+]);
 
 /** RF-92/RM-70/MD-66 : une ligne `payeur = 'garage'` n'est JAMAIS un groupe sélectionnable à part
  *  (`PAYEURS_FACTURATION_SELECTIONNABLES` l'exclut) — elle voyage automatiquement avec le groupe
  *  `'client'` du même OR, valorisée à 0 côté facturable. Pour tout autre groupe, correspondance
  *  stricte sur la paire (`MD-62`). Exportée pour test unitaire pur (`service-facturation-or.spec.ts`).
  */
-export function ligneAppartientAuGroupe(ligne: LigneLigneOr, groupe: SelecteurGroupePayeurOr): boolean {
+export function ligneAppartientAuGroupe(
+  ligne: LigneLigneOr,
+  groupe: SelecteurGroupePayeurOr,
+): boolean {
   if (groupe.payeur === 'client') return ligne.payeur === 'client' || ligne.payeur === 'garage';
   return ligne.payeur === groupe.payeur && ligne.payeurClientId === (groupe.payeurClientId ?? null);
 }
@@ -89,17 +110,37 @@ export class ServiceFacturationOr {
     orId: string,
     entree: EntreeFacturationOrdreReparation,
     cleIdempotence: string,
-  ): Promise<ResultatIdempotent<ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseFacturationOrdreReparation> }>> {
+  ): Promise<
+    ResultatIdempotent<
+      ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseFacturationOrdreReparation> }
+    >
+  > {
     return this.idempotence.executer(
       ctx,
-      { methode: 'POST', chemin: '/ordres-reparation/:orId/facturer', cle: cleIdempotence, corps: { orId, ...entree } },
+      {
+        methode: 'POST',
+        chemin: '/ordres-reparation/:orId/facturer',
+        cle: cleIdempotence,
+        corps: { orId, ...entree },
+      },
       async (tx) => {
         const or = await chargerOrPourEcriture(tx, ctx, orId);
         if (or.statut !== 'termine') {
-          throw new ErreurMetier('OR_TRANSITION_INTERDITE', `Seul un OR « termine » peut être facturé (statut actuel : ${or.statut}).`, {
-            blocages: [{ type: 'ordre_reparation', id: orId, libelle: or.numero, donnees: { statutActuel: or.statut } }],
-            actionsProposees: [{ code: 'RAFRAICHIR' }],
-          });
+          throw new ErreurMetier(
+            'OR_TRANSITION_INTERDITE',
+            `Seul un OR « termine » peut être facturé (statut actuel : ${or.statut}).`,
+            {
+              blocages: [
+                {
+                  type: 'ordre_reparation',
+                  id: orId,
+                  libelle: or.numero,
+                  donnees: { statutActuel: or.statut },
+                },
+              ],
+              actionsProposees: [{ code: 'RAFRAICHIR' }],
+            },
+          );
         }
 
         const toutesLignes = await listerLignesOrPourEcriture(tx, ctx, orId);
@@ -108,21 +149,27 @@ export class ServiceFacturationOr {
         // seulement ceux demandés par cet appel — attend encore une décision.
         const indecises = toutesLignes.filter((l) => STATUTS_LIGNE_INDECIS.has(l.statut));
         if (indecises.length > 0) {
-          throw new ErreurMetier('FACTURATION_LIGNES_INDECISES', 'Des lignes attendent encore une décision avant facturation (RF-85/RF-86).', {
-            blocages: indecises.slice(0, 50).map((l) => ({
-              type: 'ligne_or' as const,
-              id: l.id,
-              libelle: l.designation ?? '',
-              donnees: { numeroLigne: l.numeroOrdre, statutActuel: l.statut },
-            })),
-            actionsProposees: [{ code: 'VALIDER_LIGNES' }],
-          });
+          throw new ErreurMetier(
+            'FACTURATION_LIGNES_INDECISES',
+            'Des lignes attendent encore une décision avant facturation (RF-85/RF-86).',
+            {
+              blocages: indecises.slice(0, 50).map((l) => ({
+                type: 'ligne_or' as const,
+                id: l.id,
+                libelle: l.designation ?? '',
+                donnees: { numeroLigne: l.numeroOrdre, statutActuel: l.statut },
+              })),
+              actionsProposees: [{ code: 'VALIDER_LIGNES' }],
+            },
+          );
         }
 
         const clientOrLigne = await chargerClientLigne(tx, ctx, or.clientId);
         const maintenant = this.horloge.maintenant();
         const dateDocument = maintenant.toISOString().slice(0, 10);
-        const datePrestation = or.termineLe ? or.termineLe.toISOString().slice(0, 10) : dateDocument;
+        const datePrestation = or.termineLe
+          ? or.termineLe.toISOString().slice(0, 10)
+          : dateDocument;
 
         const idsTraites = new Set<string>();
         const facturesCreees: ReponseDocumentVente[] = [];
@@ -136,29 +183,41 @@ export class ServiceFacturationOr {
           const lignesRealisees = lignesDuGroupe.filter((l) => l.statut === 'realisee');
 
           if (lignesRealisees.length === 0) {
-            throw new ErreurMetier('OR_FACTURATION_AUCUNE_LIGNE', `Aucune ligne « realisee » à facturer pour le groupe payeur « ${groupe.payeur} ».`, {
-              blocages: [
-                {
-                  type: 'ordre_reparation',
-                  id: orId,
-                  libelle: or.numero,
-                  donnees: { payeur: groupe.payeur, payeurClientId: groupe.payeurClientId ?? null },
-                },
-              ],
-              actionsProposees: [{ code: 'RAFRAICHIR' }],
-            });
+            throw new ErreurMetier(
+              'OR_FACTURATION_AUCUNE_LIGNE',
+              `Aucune ligne « realisee » à facturer pour le groupe payeur « ${groupe.payeur} ».`,
+              {
+                blocages: [
+                  {
+                    type: 'ordre_reparation',
+                    id: orId,
+                    libelle: or.numero,
+                    donnees: {
+                      payeur: groupe.payeur,
+                      payeurClientId: groupe.payeurClientId ?? null,
+                    },
+                  },
+                ],
+                actionsProposees: [{ code: 'RAFRAICHIR' }],
+              },
+            );
           }
 
-          const destinataireId = groupe.payeur === 'client' ? or.clientId : (groupe.payeurClientId as string);
+          const destinataireId =
+            groupe.payeur === 'client' ? or.clientId : (groupe.payeurClientId as string);
           const destinataireLigne =
-            clientsResolus.get(destinataireId) ?? (destinataireId === or.clientId ? clientOrLigne : await chargerClientLigne(tx, ctx, destinataireId));
+            clientsResolus.get(destinataireId) ??
+            (destinataireId === or.clientId
+              ? clientOrLigne
+              : await chargerClientLigne(tx, ctx, destinataireId));
           clientsResolus.set(destinataireId, destinataireLigne);
 
           if (destinataireLigne.statut === 'bloque') {
             verifierConfirmation('CLIENT_BLOQUE', principal.role, entree.confirmations);
           }
 
-          const adresseFacturationFigee = (await chargerAdresseFacturationStructuree(tx, ctx, destinataireId)) ?? {};
+          const adresseFacturationFigee =
+            (await chargerAdresseFacturationStructuree(tx, ctx, destinataireId)) ?? {};
 
           const [doc] = await tx
             .insert(documentVente)
@@ -180,11 +239,22 @@ export class ServiceFacturationOr {
               devise: 'CHF',
             })
             .returning();
-          if (!doc) throw new ErreurMetier('ERREUR_INTERNE', "L'insertion du document de vente n'a rendu aucune ligne.");
+          if (!doc)
+            throw new ErreurMetier(
+              'ERREUR_INTERNE',
+              "L'insertion du document de vente n'a rendu aucune ligne.",
+            );
 
           let numeroOrdre = 1;
           for (const ligneOrCourante of lignesRealisees) {
-            await this.inserterLigneDepuisOr(tx, ctx, doc.id, numeroOrdre++, ligneOrCourante, datePrestation);
+            await this.inserterLigneDepuisOr(
+              tx,
+              ctx,
+              doc.id,
+              numeroOrdre++,
+              ligneOrCourante,
+              datePrestation,
+            );
 
             try {
               await tx
@@ -192,14 +262,20 @@ export class ServiceFacturationOr {
                 .set({ statut: 'facturee', factureId: doc.id })
                 .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.id, ligneOrCourante.id)));
             } catch (erreur) {
-              const traduite = traduireErreurTransition(erreur, ligneOrCourante.id, ligneOrCourante.designation ?? '');
+              const traduite = traduireErreurTransition(
+                erreur,
+                ligneOrCourante.id,
+                ligneOrCourante.designation ?? '',
+              );
               if (traduite) throw traduite;
               throw erreur;
             }
             idsTraites.add(ligneOrCourante.id);
           }
 
-          facturesCreees.push(await this.documents.assemblerDocument(tx, ctx, principal.role, doc.id));
+          facturesCreees.push(
+            await this.documents.assemblerDocument(tx, ctx, principal.role, doc.id),
+          );
         }
 
         // `inclureDemontageRefuse`/`motifsReport` : voir l'en-tête du contrat (`facturer-or.ts`) —
@@ -215,18 +291,36 @@ export class ServiceFacturationOr {
         // RF-84 : l'OR ne passe à `facture` QUE si cet appel traite le DERNIER groupe encore
         // facturable — une ligne `realisee` qui n'appartenait à AUCUN groupe demandé reste en
         // attente, l'OR reste `termine`.
-        const resteAFacturer = toutesLignes.some((l) => l.statut === 'realisee' && !idsTraites.has(l.id));
+        const resteAFacturer = toutesLignes.some(
+          (l) => l.statut === 'realisee' && !idsTraites.has(l.id),
+        );
         if (!resteAFacturer) {
           await this.transitionnerVersFacture(tx, ctx, or, maintenant);
         }
 
-        const ordreReparationAJour = await this.serviceOr.assemblerDocument(tx, ctx, principal.role, orId);
-        return { statutHttp: 201, corps: { donnees: { facturesCreees, ordreReparation: ordreReparationAJour }, avertissements: [] } };
+        const ordreReparationAJour = await this.serviceOr.assemblerDocument(
+          tx,
+          ctx,
+          principal.role,
+          orId,
+        );
+        return {
+          statutHttp: 201,
+          corps: {
+            donnees: { facturesCreees, ordreReparation: ordreReparationAJour },
+            avertissements: [],
+          },
+        };
       },
     );
   }
 
-  private async transitionnerVersFacture(tx: TransactionDfa, ctx: ContexteTenant, or: LigneOrdreReparation, maintenant: Date): Promise<void> {
+  private async transitionnerVersFacture(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    or: LigneOrdreReparation,
+    maintenant: Date,
+  ): Promise<void> {
     try {
       await tx
         .update(ordreReparation)

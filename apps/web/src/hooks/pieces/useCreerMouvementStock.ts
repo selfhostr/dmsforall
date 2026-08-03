@@ -1,4 +1,9 @@
-import { useMutation, useQueryClient, type QueryClient, type UseMutationResult } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueryClient,
+  type QueryClient,
+  type UseMutationResult,
+} from '@tanstack/react-query';
 
 import type {
   EntreeCreationAjustementInventaire,
@@ -42,10 +47,15 @@ interface VariablesMouvement<TEntree> {
 /** `POST /articles/{id}/mouvements/casse`. */
 export function useCreerMouvementCasse(
   articleId: string,
-): UseMutationResult<ReponseMouvementStock, unknown, VariablesMouvement<EntreeCreationMouvementCasse>> {
+): UseMutationResult<
+  ReponseMouvementStock,
+  unknown,
+  VariablesMouvement<EntreeCreationMouvementCasse>
+> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ entree, idempotencyKey }) => creerMouvementCasse(articleId, entree, idempotencyKey),
+    mutationFn: ({ entree, idempotencyKey }) =>
+      creerMouvementCasse(articleId, entree, idempotencyKey),
     onSuccess: () => invaliderApresMouvement(queryClient, articleId),
   });
 }
@@ -53,10 +63,15 @@ export function useCreerMouvementCasse(
 /** `POST /articles/{id}/mouvements/perte`. */
 export function useCreerMouvementPerte(
   articleId: string,
-): UseMutationResult<ReponseMouvementStock, unknown, VariablesMouvement<EntreeCreationMouvementPerte>> {
+): UseMutationResult<
+  ReponseMouvementStock,
+  unknown,
+  VariablesMouvement<EntreeCreationMouvementPerte>
+> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ entree, idempotencyKey }) => creerMouvementPerte(articleId, entree, idempotencyKey),
+    mutationFn: ({ entree, idempotencyKey }) =>
+      creerMouvementPerte(articleId, entree, idempotencyKey),
     onSuccess: () => invaliderApresMouvement(queryClient, articleId),
   });
 }
@@ -64,10 +79,15 @@ export function useCreerMouvementPerte(
 /** `POST /articles/{id}/mouvements/transfert` — un mouvement unique entre deux sites (RP-13). */
 export function useCreerMouvementTransfert(
   articleId: string,
-): UseMutationResult<ReponseMouvementStock, unknown, VariablesMouvement<EntreeCreationMouvementTransfert>> {
+): UseMutationResult<
+  ReponseMouvementStock,
+  unknown,
+  VariablesMouvement<EntreeCreationMouvementTransfert>
+> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ entree, idempotencyKey }) => creerMouvementTransfert(articleId, entree, idempotencyKey),
+    mutationFn: ({ entree, idempotencyKey }) =>
+      creerMouvementTransfert(articleId, entree, idempotencyKey),
     onSuccess: () => invaliderApresMouvement(queryClient, articleId),
   });
 }
@@ -77,10 +97,15 @@ export function useCreerMouvementTransfert(
  *  mais la fiche reste invalidée par prudence : le serveur seul sait). */
 export function useCreerAjustementInventaire(
   articleId: string,
-): UseMutationResult<ReponseAvecAvertissements<ReponseMouvementStock | null>, unknown, VariablesMouvement<EntreeCreationAjustementInventaire>> {
+): UseMutationResult<
+  ReponseAvecAvertissements<ReponseMouvementStock | null>,
+  unknown,
+  VariablesMouvement<EntreeCreationAjustementInventaire>
+> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ entree, idempotencyKey }) => creerAjustementInventaire(articleId, entree, idempotencyKey),
+    mutationFn: ({ entree, idempotencyKey }) =>
+      creerAjustementInventaire(articleId, entree, idempotencyKey),
     onSuccess: () => invaliderApresMouvement(queryClient, articleId),
   });
 }
@@ -88,10 +113,15 @@ export function useCreerAjustementInventaire(
 /** `POST /articles/{id}/mouvements/retour-fournisseur` (RP-30). */
 export function useCreerRetourFournisseur(
   articleId: string,
-): UseMutationResult<ReponseMouvementStock, unknown, VariablesMouvement<EntreeCreationRetourFournisseur>> {
+): UseMutationResult<
+  ReponseMouvementStock,
+  unknown,
+  VariablesMouvement<EntreeCreationRetourFournisseur>
+> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ entree, idempotencyKey }) => creerRetourFournisseur(articleId, entree, idempotencyKey),
+    mutationFn: ({ entree, idempotencyKey }) =>
+      creerRetourFournisseur(articleId, entree, idempotencyKey),
     onSuccess: () => invaliderApresMouvement(queryClient, articleId),
   });
 }

@@ -1,6 +1,9 @@
 import type { ActionProposee, ElementBloquant } from '@dfa/shared';
 
-import { interpreterErreurTransitionInterdite, type InterpretationTransitionInterdite } from '../common/avertissements';
+import {
+  interpreterErreurTransitionInterdite,
+  type InterpretationTransitionInterdite,
+} from '../common/avertissements';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 
 /**
@@ -26,7 +29,10 @@ export function traduireErreurTransition(
       type: interpretation.entite === 'ligne_or' ? 'ligne_or' : 'ordre_reparation',
       id: entiteId,
       libelle,
-      donnees: { statutActuel: interpretation.statutDepuis, statutDemande: interpretation.statutVers },
+      donnees: {
+        statutActuel: interpretation.statutDepuis,
+        statutDemande: interpretation.statutVers,
+      },
     },
   ];
 
@@ -66,7 +72,13 @@ function construireActionsProposees(
     interpretation.statutDepuis === 'facture' &&
     interpretation.statutVers === 'en_cours'
   ) {
-    return [{ code: 'CREER_OR_RETOUCHE', methode: 'POST', parametres: { ordreReparationParentId: entiteId } }];
+    return [
+      {
+        code: 'CREER_OR_RETOUCHE',
+        methode: 'POST',
+        parametres: { ordreReparationParentId: entiteId },
+      },
+    ];
   }
 
   if (interpretation.entite === 'ordre_reparation' && interpretation.statutDepuis === 'restitue') {

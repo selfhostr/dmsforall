@@ -37,7 +37,12 @@ import type { Config } from '../../config/config.types';
  *  hors du préfixe/versioning Nest — voir le commentaire de tête de `main.ts`. */
 const PREFIXE_DOCUMENTATION_SWAGGER = '/api/docs';
 
-const CSP_API = ["default-src 'none'", "frame-ancestors 'none'", "base-uri 'none'", "object-src 'none'"].join('; ');
+const CSP_API = [
+  "default-src 'none'",
+  "frame-ancestors 'none'",
+  "base-uri 'none'",
+  "object-src 'none'",
+].join('; ');
 
 const CSP_DOCUMENTATION = [
   "default-src 'self'",

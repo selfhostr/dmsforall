@@ -39,12 +39,15 @@ export class SanteController {
   @Get('pret')
   @ApiOperation({
     summary: 'Sonde de disponibilité',
-    description: 'Vérifie Postgres et Redis. 503 si l\'une des deux dépendances est indisponible.',
+    description: "Vérifie Postgres et Redis. 503 si l'une des deux dépendances est indisponible.",
   })
   @ApiOkResponse({ type: SantePreteDto })
   @ApiReponseProbleme(503, 'Une dépendance (base ou cache) est indisponible.')
   async pret(): Promise<SantePreteDto> {
-    const [base, redis] = await Promise.allSettled([this.acces.verifierConnexion(), this.redis.ping()]);
+    const [base, redis] = await Promise.allSettled([
+      this.acces.verifierConnexion(),
+      this.redis.ping(),
+    ]);
 
     const baseOk = base.status === 'fulfilled';
     const redisOk = redis.status === 'fulfilled';

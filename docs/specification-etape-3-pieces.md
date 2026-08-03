@@ -42,6 +42,7 @@ stock et leur traçabilité, la réservation d'une pièce pour un OR précis, la
 d'échange standard, la vente de pièce au comptoir sans OR.
 
 **Hors périmètre étape 3** (à ne pas reconstruire ici, juste ne pas s'y fermer) :
+
 - La **gestion des fournisseurs** en tant que fiche complète (conditions cadre, contrats de
   référencement, portails EDI constructeur) — cette spécification suppose un fournisseur minimal
   (nom, coordonnées, délai habituel) et laisse le connecteur EDI/portail marque à la feuille de
@@ -609,16 +610,16 @@ et relations attendues :
 
 ## 10. Ce qui doit être paramétrable
 
-| # | Paramètre | Portée usuelle | Exemple de valeur par défaut |
-|---|---|---|---|
-| `PP-01` | Stock d'un site visible en lecture depuis les autres sites (`RP-10`) | tenant | oui, lecture seule |
-| `PP-02` | Blocage strict du stock négatif, ou forçage possible (`RP-15`) | tenant | blocage, forçage journalisé réservé à un rôle habilité |
-| `PP-03` | Prix d'achat retenu : dernier prix connu ou moyenne pondérée (`RP-33`) | tenant | **à trancher avec @laupernoe, `QP-04`** |
-| `PP-04` | Conditionnement = article distinct, ou unité de vente/stock séparées (`RP-05`) | tenant | article distinct |
-| `PP-05` | Délai avant qu'un ajustement d'inventaire significatif déclenche un avertissement (`§7.6`) | tenant | **à définir, aucune valeur avancée sans donnée réelle** |
-| `PP-06` | Délai avant qu'une consigne non retournée puisse être proposée comme acquise (`RP-41`) | tenant | **aucune valeur avancée — dépend de `QP-07`** |
-| `PP-07` | Taux de TVA appliqué à la consigne (`RP-42`) | tenant | 8.1 % — hérite de l'hypothèse `RF-100`, à confirmer fiscalement |
-| `PP-08` | Seuil de stock minimum et quantité de commande standard (`RP-12`) | par (article, site) | saisi pièce par pièce, pas de valeur globale |
+| #       | Paramètre                                                                                  | Portée usuelle      | Exemple de valeur par défaut                                    |
+| ------- | ------------------------------------------------------------------------------------------ | ------------------- | --------------------------------------------------------------- |
+| `PP-01` | Stock d'un site visible en lecture depuis les autres sites (`RP-10`)                       | tenant              | oui, lecture seule                                              |
+| `PP-02` | Blocage strict du stock négatif, ou forçage possible (`RP-15`)                             | tenant              | blocage, forçage journalisé réservé à un rôle habilité          |
+| `PP-03` | Prix d'achat retenu : dernier prix connu ou moyenne pondérée (`RP-33`)                     | tenant              | **à trancher avec @laupernoe, `QP-04`**                                |
+| `PP-04` | Conditionnement = article distinct, ou unité de vente/stock séparées (`RP-05`)             | tenant              | article distinct                                                |
+| `PP-05` | Délai avant qu'un ajustement d'inventaire significatif déclenche un avertissement (`§7.6`) | tenant              | **à définir, aucune valeur avancée sans donnée réelle**         |
+| `PP-06` | Délai avant qu'une consigne non retournée puisse être proposée comme acquise (`RP-41`)     | tenant              | **aucune valeur avancée — dépend de `QP-07`**                   |
+| `PP-07` | Taux de TVA appliqué à la consigne (`RP-42`)                                               | tenant              | 8.1 % — hérite de l'hypothèse `RF-100`, à confirmer fiscalement |
+| `PP-08` | Seuil de stock minimum et quantité de commande standard (`RP-12`)                          | par (article, site) | saisi pièce par pièce, pas de valeur globale                    |
 
 ---
 
@@ -628,23 +629,23 @@ Cohérence stricte avec `apps/api/src/auth/matrice-droits.ts` — ce tableau **d
 attendues sur le nouveau périmètre pièces, il ne prétend pas fixer la syntaxe des `Action` qui sera
 choisie à l'implémentation (rôle d'expert-auth/expert-api).
 
-| Action | direction | comptable | vendeur | réceptionnaire | chef d'atelier | magasinier | technicien | admin |
-|---|---|---|---|---|---|---|---|---|
-| Consulter article/stock | oui | oui | oui | oui | oui | oui | oui (sans prix d'achat/marge, cf. `RF-116` pour le principe) | non (RF-115, aucun droit métier) |
-| Voir prix d'achat / marge | oui | oui | non **(P)** | non **(P)** | oui **(P)** | oui | non | non |
-| Créer/modifier un article | oui | non | non | non | oui **[À VALIDER]** | oui | non | non |
-| Créer une réservation (ligne d'OR pièce) | oui | non | non | oui | oui | oui | oui (`L966_LIGNE_CREATION` déjà accordé, RM existant) | non |
-| Libérer une réservation active (`RP-23`, 3ᵉ cas) | oui | non | non | non | oui | oui | non | non |
-| Enregistrer une entrée (réception livraison) | non **(P)** | non | non | non | non **(P)** | oui | non | non |
-| Enregistrer une sortie (`sortie_or`, `sortie_comptoir`) | non **(P)** | non | non | non | non **(P)** | oui | non | non |
-| Créer / envoyer une commande fournisseur | oui | non | non | non | oui | oui | non | non |
-| Réceptionner une commande (partielle ou complète) | non **(P)** | non | non | non | non **(P)** | oui | non | non |
-| Faire l'inventaire / saisir un ajustement | oui | non | non | non | oui | oui | non | non |
-| Valider un ajustement significatif (§7.6) | oui | non | non | non | oui **(P)** | non | non | non |
-| Vente comptoir — brouillon | oui | oui | oui | oui | oui | oui | non | non |
-| Vente comptoir — encaisser | oui | oui | oui | oui | non (`RF-114`, chef d'atelier exclu de l'encaissement) | oui | non | non |
-| Vente comptoir — émettre | oui | oui | oui | oui | non | **non — voir `RP-47`/`QP-09`** | non | non |
-| Avoir sur retour comptoir | oui | oui | non | oui | non | non | non | non |
+| Action                                                  | direction   | comptable | vendeur     | réceptionnaire | chef d'atelier                                         | magasinier                     | technicien                                                   | admin                            |
+| ------------------------------------------------------- | ----------- | --------- | ----------- | -------------- | ------------------------------------------------------ | ------------------------------ | ------------------------------------------------------------ | -------------------------------- |
+| Consulter article/stock                                 | oui         | oui       | oui         | oui            | oui                                                    | oui                            | oui (sans prix d'achat/marge, cf. `RF-116` pour le principe) | non (RF-115, aucun droit métier) |
+| Voir prix d'achat / marge                               | oui         | oui       | non **(P)** | non **(P)**    | oui **(P)**                                            | oui                            | non                                                          | non                              |
+| Créer/modifier un article                               | oui         | non       | non         | non            | oui **[À VALIDER]**                                    | oui                            | non                                                          | non                              |
+| Créer une réservation (ligne d'OR pièce)                | oui         | non       | non         | oui            | oui                                                    | oui                            | oui (`L966_LIGNE_CREATION` déjà accordé, RM existant)        | non                              |
+| Libérer une réservation active (`RP-23`, 3ᵉ cas)        | oui         | non       | non         | non            | oui                                                    | oui                            | non                                                          | non                              |
+| Enregistrer une entrée (réception livraison)            | non **(P)** | non       | non         | non            | non **(P)**                                            | oui                            | non                                                          | non                              |
+| Enregistrer une sortie (`sortie_or`, `sortie_comptoir`) | non **(P)** | non       | non         | non            | non **(P)**                                            | oui                            | non                                                          | non                              |
+| Créer / envoyer une commande fournisseur                | oui         | non       | non         | non            | oui                                                    | oui                            | non                                                          | non                              |
+| Réceptionner une commande (partielle ou complète)       | non **(P)** | non       | non         | non            | non **(P)**                                            | oui                            | non                                                          | non                              |
+| Faire l'inventaire / saisir un ajustement               | oui         | non       | non         | non            | oui                                                    | oui                            | non                                                          | non                              |
+| Valider un ajustement significatif (§7.6)               | oui         | non       | non         | non            | oui **(P)**                                            | non                            | non                                                          | non                              |
+| Vente comptoir — brouillon                              | oui         | oui       | oui         | oui            | oui                                                    | oui                            | non                                                          | non                              |
+| Vente comptoir — encaisser                              | oui         | oui       | oui         | oui            | non (`RF-114`, chef d'atelier exclu de l'encaissement) | oui                            | non                                                          | non                              |
+| Vente comptoir — émettre                                | oui         | oui       | oui         | oui            | non                                                    | **non — voir `RP-47`/`QP-09`** | non                                                          | non                              |
+| Avoir sur retour comptoir                               | oui         | oui       | non         | oui            | non                                                    | non                            | non                                                          | non                              |
 
 ---
 
@@ -712,61 +713,61 @@ développeur.
   l'autre site depuis son propre poste (Auto-i/Nextlane) ? S'il en a besoin, comment fait-il
   aujourd'hui — coup de fil, tableau partagé, rien du tout ? Ça détermine si `RP-10` (visibilité en
   lecture par défaut) correspond à une vraie pratique ou si c'est une fausse bonne idée qui n'existe
-  nulle part sur le terrain. *(À observer chez un garage multi-sites du parc, ou à demander
-  directement à un magasinier qui travaille sur plusieurs sites.)*
+  nulle part sur le terrain. _(À observer chez un garage multi-sites du parc, ou à demander
+  directement à un magasinier qui travaille sur plusieurs sites.)_
 - **`QP-02`** — À partir de quel signal un magasinier considère-t-il qu'un article ne bouge plus et
   peut être désactivé — plus aucune vente depuis N mois ? Une décision manuelle uniquement ? Ce
   point conditionne si une liste « articles dormants » a de la valeur dès l'étape 3 ou peut
-  attendre. *(À demander à un magasinier — regarder s'il existe déjà un rapport de ce type dans
-  Auto-i/Nextlane que le garage consulte ou ignore.)*
+  attendre. _(À demander à un magasinier — regarder s'il existe déjà un rapport de ce type dans
+  Auto-i/Nextlane que le garage consulte ou ignore.)_
 - **`QP-03`** — Quand un fournisseur change le conditionnement d'une pièce (l'unité devient
   vendue par lot de 2, ou l'inverse), comment le garage gère-t-il ça aujourd'hui dans son DMS actuel
   — un nouvel article, ou une modification de l'article existant qui casse l'historique de prix ?
-  Détermine si `RP-05` (conditionnement = article distinct) est la bonne hypothèse. *(À vérifier
+  Détermine si `RP-05` (conditionnement = article distinct) est la bonne hypothèse. _(À vérifier
   dans Auto-i/Nextlane : chercher un article qui a visiblement changé de conditionnement dans
-  l'historique et voir comment c'est tracé, ou son absence.)*
+  l'historique et voir comment c'est tracé, ou son absence.)_
 - **`QP-04`** — Le prix d'achat retenu pour calculer une marge est-il le **dernier prix payé**, ou
   une **moyenne pondérée** sur plusieurs livraisons à des prix différents ? C'est une question
-  comptable autant que métier — la réponse peut varier selon la fiduciaire. *(À demander à la
+  comptable autant que métier — la réponse peut varier selon la fiduciaire. _(À demander à la
   fiduciaire du premier garage autant qu'au magasinier — voir si Auto-i/Nextlane affiche une seule
-  valeur de "prix d'achat" par article ou une historique de prix.)*
+  valeur de "prix d'achat" par article ou une historique de prix.)_
 - **`QP-05`** — Les garages du parc pratiquent-ils réellement l'échange standard avec consigne
   (alternateurs, démarreurs, injecteurs, turbos, boîtes) ? Si oui, sur quel volume — occasionnel ou
-  plusieurs fois par semaine ? *(Question déjà ouverte côté facturation `RF-100` — la réponse
+  plusieurs fois par semaine ? _(Question déjà ouverte côté facturation `RF-100` — la réponse
   conditionne si tout `§5.7` de ce document mérite d'être construit dès l'étape 3 ou peut être
   différé. À demander directement en atelier : « vous posez des pièces en échange standard, et vous
-  facturez une consigne ? »)*
+  facturez une consigne ? »)_
 - **`QP-06`** — La consigne d'un échange standard est-elle soumise à TVA au taux normal (8.1 %),
-  comme une livraison ordinaire ? *(Question fiscale, déjà ouverte en `RF-100` — à croiser avec une
-  fiduciaire plutôt qu'avec un magasinier.)*
+  comme une livraison ordinaire ? _(Question fiscale, déjà ouverte en `RF-100` — à croiser avec une
+  fiduciaire plutôt qu'avec un magasinier.)_
 - **`QP-07`** — Que se passe-t-il concrètement quand un client ne rend jamais la vieille pièce et ne
   la réclame pas non plus — le garage encaisse la consigne définitivement au bout de combien de
-  temps, et qui en décide ? *(Déjà ouverte en `RF-100` — à demander à un magasinier ou au chef
+  temps, et qui en décide ? _(Déjà ouverte en `RF-100` — à demander à un magasinier ou au chef
   d'atelier : « ça arrive qu'un client ne ramène jamais le vieux moteur/turbo, vous faites quoi de
-  la consigne ? »)*
+  la consigne ? »)_
 - **`QP-08`** — Un client qui achète une pièce au comptoir pour quelques francs (ampoule, balai
   d'essuie-glace) obtient-il systématiquement une fiche client, ou un ticket anonyme suffit-il ? Y
   a-t-il un seuil de montant à partir duquel une fiche devient obligatoire (garantie, TVA, note de
-  frais professionnelle) ? *(À observer directement au comptoir d'un garage du parc, ou à demander
-  au magasinier : « le client qui prend une ampoule et repart, il est dans le système ou pas ? »)*
+  frais professionnelle) ? _(À observer directement au comptoir d'un garage du parc, ou à demander
+  au magasinier : « le client qui prend une ampoule et repart, il est dans le système ou pas ? »)_
 - **`QP-09`** — Sur un comptoir tenu seul (pas de réceptionnaire ni de vendeur à proximité), le
   magasinier a-t-il aujourd'hui la main pour émettre lui-même une facture comptoir de faible
   montant, ou fait-il systématiquement valider par quelqu'un d'autre ? Ça détermine si `RP-47` doit
   rester une tension à trancher en aval, ou si la matrice de droits doit évoluer dès l'étape 3.
-  *(À observer un jour de comptoir seul dans un garage du parc, ou à demander directement au
-  magasinier.)*
+  _(À observer un jour de comptoir seul dans un garage du parc, ou à demander directement au
+  magasinier.)_
 - **`QP-10`** — Une fois qu'une commande fournisseur est entièrement reçue, y a-t-il un geste de
   rapprochement distinct (vérifier la facture fournisseur reçue contre le bon de commande) avant de
   considérer la commande vraiment terminée, ou la réception complète suffit-elle en pratique ?
-  Détermine si `recue` et `cloturee` (§6.2) doivent rester deux états distincts. *(À demander au
+  Détermine si `recue` et `cloturee` (§6.2) doivent rester deux états distincts. _(À demander au
   magasinier : « une fois que tout est arrivé, il se passe encore quelque chose avant que ce soit
-  vraiment fini pour vous ? »)*
+  vraiment fini pour vous ? »)_
 - **`QP-11`** — À quelle fréquence l'inventaire est-il réellement pratiqué — inventaire complet
   annuel, comptage tournant sur les références à forte valeur, jamais formellement fait ? Sur quelle
   profondeur (toutes les pièces, ou seulement celles au-dessus d'un certain prix) ? C'est la question
   qui détermine si `§7.6` et le paramètre `PP-05` doivent être pensés pour un usage fréquent ou
-  rarissime. *(Question clé du brief — à demander directement à un magasinier ou au chef d'atelier :
-  « vous faites l'inventaire comment, et quand pour la dernière fois ? »)*
+  rarissime. _(Question clé du brief — à demander directement à un magasinier ou au chef d'atelier :
+  « vous faites l'inventaire comment, et quand pour la dernière fois ? »)_
 - **`QP-12`** — Existe-t-il un cas où une pièce automobile serait facturée à un taux de TVA autre que
-  le taux normal ? *(À croiser avec une fiduciaire — question fiscale plutôt que terrain, comme
-  `QF-18` de la spec étape 2 pour les taxes de recyclage.)*
+  le taux normal ? _(À croiser avec une fiduciaire — question fiscale plutôt que terrain, comme
+  `QF-18` de la spec étape 2 pour les taxes de recyclage.)_

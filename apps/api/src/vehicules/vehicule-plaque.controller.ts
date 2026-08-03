@@ -1,6 +1,18 @@
 import { Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { schemaCloturePlaque, schemaIdentifiant, schemaPlaqueVehicule, type EntreePlaqueVehicule } from '@dfa/shared';
+import {
+  ApiCookieAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import {
+  schemaCloturePlaque,
+  schemaIdentifiant,
+  schemaPlaqueVehicule,
+  type EntreePlaqueVehicule,
+} from '@dfa/shared';
 import type { EntreeCloturePlaqueVehicule } from './schemas-locales';
 
 import { ServiceContexteRequete } from '../common/contexte';
@@ -48,7 +60,14 @@ export class VehiculePlaqueController {
   async creer(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
     @CorpsZod(schemaPlaqueVehicule, {
-      exemple: { valeur: 'VD 123456', canton: 'VD', pays: 'CH', debutLe: '2026-07-15', interchangeable: false, professionnelle: false },
+      exemple: {
+        valeur: 'VD 123456',
+        canton: 'VD',
+        pays: 'CH',
+        debutLe: '2026-07-15',
+        interchangeable: false,
+        professionnelle: false,
+      },
     })
     entree: EntreePlaqueVehicule,
   ) {
@@ -70,7 +89,8 @@ export class VehiculePlaqueController {
   async cloturer(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
     @Param('plaqueId', new PipeZod(schemaIdentifiant)) plaqueId: string,
-    @CorpsZod(schemaCloturePlaque, { exemple: { finLe: '2026-07-15' } }) entree: EntreeCloturePlaqueVehicule,
+    @CorpsZod(schemaCloturePlaque, { exemple: { finLe: '2026-07-15' } })
+    entree: EntreeCloturePlaqueVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
     return this.service.cloturer(ctx, vehiculeId, plaqueId, entree.finLe);

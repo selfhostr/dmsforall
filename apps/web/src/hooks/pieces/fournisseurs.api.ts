@@ -30,16 +30,24 @@ function construireParametresListe(filtres: FiltresFournisseurs, page: PageFourn
 }
 
 /** `GET /fournisseurs` — pagination par curseur. */
-export async function listerFournisseurs(filtres: FiltresFournisseurs, page: PageFournisseurs): Promise<PageCurseur<ReponseFournisseur>> {
-  const reponse = await requeteApi<PageCurseur<ReponseFournisseur>>(`/fournisseurs?${construireParametresListe(filtres, page)}`, {
-    method: 'GET',
-  });
+export async function listerFournisseurs(
+  filtres: FiltresFournisseurs,
+  page: PageFournisseurs,
+): Promise<PageCurseur<ReponseFournisseur>> {
+  const reponse = await requeteApi<PageCurseur<ReponseFournisseur>>(
+    `/fournisseurs?${construireParametresListe(filtres, page)}`,
+    {
+      method: 'GET',
+    },
+  );
   return reponse ?? { donnees: [], curseurSuivant: null, limite: page.limite };
 }
 
 /** `GET /fournisseurs/{id}` — fiche fournisseur. */
 export async function recupererFournisseur(id: string): Promise<ReponseFournisseur> {
-  const fournisseur = await requeteApi<ReponseFournisseur>(`/fournisseurs/${id}`, { method: 'GET' });
+  const fournisseur = await requeteApi<ReponseFournisseur>(`/fournisseurs/${id}`, {
+    method: 'GET',
+  });
   if (!fournisseur) {
     throw new Error('Réponse fournisseur inattendue : corps vide.');
   }
@@ -48,7 +56,9 @@ export async function recupererFournisseur(id: string): Promise<ReponseFournisse
 
 /** `POST /fournisseurs` — pas d'`Idempotency-Key` (aucune numérotation serveur, un doublon de nom
  *  n'est pas une collision technique). */
-export async function creerFournisseur(entree: EntreeCreationFournisseur): Promise<ReponseAvecAvertissements<ReponseFournisseur>> {
+export async function creerFournisseur(
+  entree: EntreeCreationFournisseur,
+): Promise<ReponseAvecAvertissements<ReponseFournisseur>> {
   const reponse = await requeteApi<ReponseAvecAvertissements<ReponseFournisseur>>('/fournisseurs', {
     method: 'POST',
     body: JSON.stringify(entree),
@@ -64,10 +74,13 @@ export async function modifierFournisseur(
   id: string,
   entree: EntreeModificationFournisseur,
 ): Promise<ReponseAvecAvertissements<ReponseFournisseur>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseFournisseur>>(`/fournisseurs/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(entree),
-  });
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseFournisseur>>(
+    `/fournisseurs/${id}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(entree),
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : PATCH /fournisseurs.');
   }
@@ -75,10 +88,15 @@ export async function modifierFournisseur(
 }
 
 /** `POST /fournisseurs/{id}/desactiver` — pas de suppression (RP-07/RM-12/RM-31). */
-export async function desactiverFournisseur(id: string): Promise<ReponseAvecAvertissements<ReponseFournisseur>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseFournisseur>>(`/fournisseurs/${id}/desactiver`, {
-    method: 'POST',
-  });
+export async function desactiverFournisseur(
+  id: string,
+): Promise<ReponseAvecAvertissements<ReponseFournisseur>> {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseFournisseur>>(
+    `/fournisseurs/${id}/desactiver`,
+    {
+      method: 'POST',
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /fournisseurs/desactiver.');
   }
@@ -86,10 +104,15 @@ export async function desactiverFournisseur(id: string): Promise<ReponseAvecAver
 }
 
 /** `POST /fournisseurs/{id}/reactiver` — retour à `actif`. */
-export async function reactiverFournisseur(id: string): Promise<ReponseAvecAvertissements<ReponseFournisseur>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseFournisseur>>(`/fournisseurs/${id}/reactiver`, {
-    method: 'POST',
-  });
+export async function reactiverFournisseur(
+  id: string,
+): Promise<ReponseAvecAvertissements<ReponseFournisseur>> {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseFournisseur>>(
+    `/fournisseurs/${id}/reactiver`,
+    {
+      method: 'POST',
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /fournisseurs/reactiver.');
   }

@@ -19,7 +19,9 @@ const APOSTROPHE_TYPOGRAPHIQUE = /’/g;
 /** Millièmes d'unité (integer) -> quantité affichable (ex. `2500` -> `"2.5"`, `1000` -> `"1"`). */
 export function formaterQuantiteMillieme(millieme: number): string {
   if (!Number.isInteger(millieme)) {
-    throw new TypeError(`formaterQuantiteMillieme attend un entier (millièmes), reçu : ${millieme}`);
+    throw new TypeError(
+      `formaterQuantiteMillieme attend un entier (millièmes), reçu : ${millieme}`,
+    );
   }
   return FORMATEUR_QUANTITE.format(millieme / 1000).replace(APOSTROPHE_TYPOGRAPHIQUE, "'");
 }
@@ -47,7 +49,9 @@ export function texteOuVide(valeur: string | number | null | undefined): string 
  *  quantité reçue d'une ligne de réception avec son reliquat (`DialogueReceptionCommande`). */
 export function quantiteMilliemeVersSaisie(millieme: number): string {
   if (!Number.isInteger(millieme)) {
-    throw new TypeError(`quantiteMilliemeVersSaisie attend un entier (millièmes), reçu : ${millieme}`);
+    throw new TypeError(
+      `quantiteMilliemeVersSaisie attend un entier (millièmes), reçu : ${millieme}`,
+    );
   }
   return String(millieme / 1000);
 }

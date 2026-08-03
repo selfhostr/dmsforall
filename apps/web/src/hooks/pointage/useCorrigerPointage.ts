@@ -1,6 +1,10 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 
-import type { EntreeCorrectionPointage, ReponseAvecAvertissements, ReponsePointage } from '@dfa/shared';
+import type {
+  EntreeCorrectionPointage,
+  ReponseAvecAvertissements,
+  ReponsePointage,
+} from '@dfa/shared';
 
 import { clesPointage } from './cles';
 import { corrigerPointage } from './pointage.api';
@@ -28,14 +32,19 @@ export function useCorrigerPointage(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, entree, idempotencyKey }: VariablesCorrectionPointage) => corrigerPointage(id, entree, idempotencyKey),
+    mutationFn: ({ id, entree, idempotencyKey }: VariablesCorrectionPointage) =>
+      corrigerPointage(id, entree, idempotencyKey),
     onSuccess: (reponse) => {
       queryClient.setQueryData(clesPointage.detail(reponse.donnees.id), reponse.donnees);
-      queryClient.setQueryData(clesPointage.ouvertTechnicien(reponse.donnees.technicienId), (actuel: ReponsePointage | null | undefined) =>
-        actuel?.id === reponse.donnees.id ? reponse.donnees : actuel,
+      queryClient.setQueryData(
+        clesPointage.ouvertTechnicien(reponse.donnees.technicienId),
+        (actuel: ReponsePointage | null | undefined) =>
+          actuel?.id === reponse.donnees.id ? reponse.donnees : actuel,
       );
       void queryClient.invalidateQueries({ queryKey: ['pointages', 'liste'] });
-      void queryClient.invalidateQueries({ queryKey: ['pointages', 'technicienJour', reponse.donnees.technicienId] });
+      void queryClient.invalidateQueries({
+        queryKey: ['pointages', 'technicienJour', reponse.donnees.technicienId],
+      });
     },
   });
 }

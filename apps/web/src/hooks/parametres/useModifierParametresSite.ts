@@ -22,7 +22,8 @@ async function modifierParametresSite(
     method: 'PATCH',
     body: JSON.stringify(corps),
   });
-  if (!reponse) throw new Error(`Réponse vide inattendue : PATCH /sites/${siteId}/parametres-atelier.`);
+  if (!reponse)
+    throw new Error(`Réponse vide inattendue : PATCH /sites/${siteId}/parametres-atelier.`);
   return reponse;
 }
 
@@ -37,7 +38,8 @@ export function useModifierParametresSite(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ siteId, entree }: VariablesModificationParametresSite) => modifierParametresSite(siteId, entree),
+    mutationFn: ({ siteId, entree }: VariablesModificationParametresSite) =>
+      modifierParametresSite(siteId, entree),
     onSuccess: (reponse, variables) => {
       queryClient.setQueryData(clesQuery.parametres.site(variables.siteId), reponse);
     },

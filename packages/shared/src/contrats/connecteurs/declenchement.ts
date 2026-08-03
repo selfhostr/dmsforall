@@ -51,7 +51,9 @@ export const schemaCreationDeclencheurConnecteur = z.discriminatedUnion('type', 
   schemaCreationDeclencheurPlanifie,
   schemaCreationDeclencheurEvenement,
 ]);
-export type EntreeCreationDeclencheurConnecteur = z.infer<typeof schemaCreationDeclencheurConnecteur>;
+export type EntreeCreationDeclencheurConnecteur = z.infer<
+  typeof schemaCreationDeclencheurConnecteur
+>;
 
 export interface ReponseDeclencheurConnecteur {
   readonly id: string;

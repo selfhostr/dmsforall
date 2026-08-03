@@ -1,20 +1,46 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
-import type { EntreeAnnulerDocument, EntreeRefuserDocument, ReponseAvecAvertissements, ReponseDocumentVente } from '@dfa/shared';
+import type {
+  EntreeAnnulerDocument,
+  EntreeRefuserDocument,
+  ReponseAvecAvertissements,
+  ReponseDocumentVente,
+} from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../../db';
-import { documentVente, documentVenteTva, ligneDocument, type LigneDocumentVente } from '../../db/schema';
+import {
+  documentVente,
+  documentVenteTva,
+  ligneDocument,
+  type LigneDocumentVente,
+} from '../../db/schema';
 import { MATRICE_DROITS, type Action } from '../../auth/matrice-droits';
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 import { Horloge } from '../../common/horloge/horloge';
 import { JETON_EVENEMENTS, type ServiceEvenements } from '../../common/evenements';
-import { JETON_IDEMPOTENCE, type ReponseMemorisable, type ResultatIdempotent, type ServiceIdempotence } from '../../common/idempotence';
+import {
+  JETON_IDEMPOTENCE,
+  type ReponseMemorisable,
+  type ResultatIdempotent,
+  type ServiceIdempotence,
+} from '../../common/idempotence';
 import { JETON_COMPTEURS } from '../../parametrage/compteurs/compteurs.jetons';
 import type { ServiceCompteurs } from '../../parametrage/compteurs/compteurs.types';
 
-import { agregerTvaParTauxRegime, calculerLigneDocument, calculerTotauxDocument, resoudreRemiseGlobaleCentimes, ventilerRemiseGlobale } from './calcul-document';
-import { chargerDocumentPourEcriture, chargerPlafondAvoirReceptionnaire, listerLignesDocumentPourEcriture, sommerAvoirsEmisPourFacture } from './document-requetes';
+import {
+  agregerTvaParTauxRegime,
+  calculerLigneDocument,
+  calculerTotauxDocument,
+  resoudreRemiseGlobaleCentimes,
+  ventilerRemiseGlobale,
+} from './calcul-document';
+import {
+  chargerDocumentPourEcriture,
+  chargerPlafondAvoirReceptionnaire,
+  listerLignesDocumentPourEcriture,
+  sommerAvoirsEmisPourFacture,
+} from './document-requetes';
 import { traduireErreurDocument } from './erreurs-sql-document';
 import { genererNumeroDocument } from './numerotation';
 import { construireBlocQrPourEmission, resoudreBlocCreancierPourEmission } from './qr-emission';
@@ -54,207 +80,286 @@ export class ServiceEmissionDocument {
     principal: PrincipalAuthentifie,
     documentId: string,
     cleIdempotence: string,
-  ): Promise<ResultatIdempotent<ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseDocumentVente> }>> {
-    return this.idempotence.executer(ctx, { methode: 'POST', chemin: '/documents-vente/:id/emettre', cle: cleIdempotence, corps: { documentId } }, async (tx) => {
-      const doc = await chargerDocumentPourEcriture(tx, ctx, documentId);
-      if (doc.statut !== 'brouillon') {
-        throw new ErreurMetier('DOCUMENT_VERROUILLE', `Seul un brouillon peut être émis (statut actuel : ${doc.statut}).`, {
-          blocages: [{ type: 'document_vente', id: documentId, libelle: doc.numero ?? documentId, donnees: { statutActuel: doc.statut } }],
-          actionsProposees: [{ code: 'RAFRAICHIR' }],
+  ): Promise<
+    ResultatIdempotent<
+      ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseDocumentVente> }
+    >
+  > {
+    return this.idempotence.executer(
+      ctx,
+      {
+        methode: 'POST',
+        chemin: '/documents-vente/:id/emettre',
+        cle: cleIdempotence,
+        corps: { documentId },
+      },
+      async (tx) => {
+        const doc = await chargerDocumentPourEcriture(tx, ctx, documentId);
+        if (doc.statut !== 'brouillon') {
+          throw new ErreurMetier(
+            'DOCUMENT_VERROUILLE',
+            `Seul un brouillon peut être émis (statut actuel : ${doc.statut}).`,
+            {
+              blocages: [
+                {
+                  type: 'document_vente',
+                  id: documentId,
+                  libelle: doc.numero ?? documentId,
+                  donnees: { statutActuel: doc.statut },
+                },
+              ],
+              actionsProposees: [{ code: 'RAFRAICHIR' }],
+            },
+          );
+        }
+
+        this.verifierDroitEmission(doc.typeDocument, principal);
+
+        const lignes = await listerLignesDocumentPourEcriture(tx, ctx, documentId);
+
+        // 1. MD-59/60 : résout et ventile la remise globale de pied de document sur les lignes,
+        // MAINTENANT — jamais avant (le brouillon peut tout contenir, MD-61).
+        const sommeBase = lignes.reduce((s, l) => s + l.baseCentimes, 0);
+        const remiseGlobaleCentimes = resoudreRemiseGlobaleCentimes(
+          doc.remiseGlobaleSaisieCentimes != null ? Number(doc.remiseGlobaleSaisieCentimes) : null,
+          doc.remiseGlobalePourmille,
+          sommeBase,
+        );
+        const parts = ventilerRemiseGlobale(
+          lignes.map((l) => ({
+            id: l.id,
+            numeroOrdre: l.numeroOrdre,
+            baseCentimes: l.baseCentimes,
+          })),
+          remiseGlobaleCentimes,
+        );
+
+        // 2. Recalcule chaque ligne avec sa part de remise globale, écrit le résultat figé.
+        const lignesRecalculees = lignes.map((ligne) => {
+          const remiseGlobaleRepartieCentimes = parts.get(ligne.id) ?? 0;
+          const montants = calculerLigneDocument({
+            prixUnitaireTtcCentimes: ligne.prixUnitaireCentimes,
+            quantiteMillieme: ligne.quantiteMillieme,
+            remisePourmille: ligne.remisePourmille,
+            remiseMontantCentimes: ligne.remiseMontantCentimes,
+            remiseGlobaleRepartieCentimes,
+            tauxTvaPourmille: ligne.tauxTvaPourmille,
+          });
+          return { ...ligne, remiseGlobaleRepartieCentimes, ...montants };
         });
-      }
 
-      this.verifierDroitEmission(doc.typeDocument, principal);
+        for (const ligne of lignesRecalculees) {
+          await tx
+            .update(ligneDocument)
+            .set({
+              remiseGlobaleRepartieCentimes: ligne.remiseGlobaleRepartieCentimes,
+              baseCentimes: ligne.baseCentimes,
+              htCentimes: ligne.htCentimes,
+              tvaCentimes: ligne.tvaCentimes,
+              ttcCentimes: ligne.ttcCentimes,
+            })
+            .where(and(eq(ligneDocument.tenantId, ctx.tenantId), eq(ligneDocument.id, ligne.id)));
+        }
 
-      const lignes = await listerLignesDocumentPourEcriture(tx, ctx, documentId);
+        // 2.5. RF-54/PF-03/MD-73 : bloc créancier — uniquement une FACTURE doit être payée (devis et
+        // bon de commande n'exigent jamais de coordonnées bancaires ; un avoir crédite le client, il
+        // ne se paie pas par QR-facture, donc n'en porte jamais). Vérifié ICI, avant l'allocation du
+        // numéro (RF-26) : une facture ne doit jamais consommer un numéro pour finir sans QR faute de
+        // coordonnées bancaires du garage — voir `qr-emission.ts`.
+        const blocCreancier =
+          doc.typeDocument === 'facture' ? await resoudreBlocCreancierPourEmission(tx, ctx) : null;
 
-      // 1. MD-59/60 : résout et ventile la remise globale de pied de document sur les lignes,
-      // MAINTENANT — jamais avant (le brouillon peut tout contenir, MD-61).
-      const sommeBase = lignes.reduce((s, l) => s + l.baseCentimes, 0);
-      const remiseGlobaleCentimes = resoudreRemiseGlobaleCentimes(
-        doc.remiseGlobaleSaisieCentimes != null ? Number(doc.remiseGlobaleSaisieCentimes) : null,
-        doc.remiseGlobalePourmille,
-        sommeBase,
-      );
-      const parts = ventilerRemiseGlobale(
-        lignes.map((l) => ({ id: l.id, numeroOrdre: l.numeroOrdre, baseCentimes: l.baseCentimes })),
-        remiseGlobaleCentimes,
-      );
+        // 3. MD-44/45 : agrège la TVA par (régime, taux) depuis les lignes — jamais sur le total.
+        const ventilation = agregerTvaParTauxRegime(
+          lignesRecalculees.map((l) => ({
+            regimeTva: l.regimeTva,
+            tauxTvaPourmille: l.tauxTvaPourmille,
+            htCentimes: l.htCentimes,
+            tvaCentimes: l.tvaCentimes,
+          })),
+        );
+        const totaux = calculerTotauxDocument(lignesRecalculees);
 
-      // 2. Recalcule chaque ligne avec sa part de remise globale, écrit le résultat figé.
-      const lignesRecalculees = lignes.map((ligne) => {
-        const remiseGlobaleRepartieCentimes = parts.get(ligne.id) ?? 0;
-        const montants = calculerLigneDocument({
-          prixUnitaireTtcCentimes: ligne.prixUnitaireCentimes,
-          quantiteMillieme: ligne.quantiteMillieme,
-          remisePourmille: ligne.remisePourmille,
-          remiseMontantCentimes: ligne.remiseMontantCentimes,
-          remiseGlobaleRepartieCentimes,
-          tauxTvaPourmille: ligne.tauxTvaPourmille,
-        });
-        return { ...ligne, remiseGlobaleRepartieCentimes, ...montants };
-      });
+        // 3.5. RF-117 : plafond d'émission d'avoir pour `receptionnaire` seul (direction/comptable
+        // ne sont jamais bornés). Ne peut être vérifié qu'ICI — le TTC réel n'existe qu'après
+        // ventilation de la remise globale et recalcul des lignes (étapes 1-3 ci-dessus) — jamais
+        // avant, et jamais après l'allocation du numéro (étape 4) : un refus ici, comme tout ce qui
+        // précède, fait échouer la transaction ENTIÈRE (aucune ligne recalculée ni aucun numéro
+        // n'est committé, RF-23/24) — même garantie que `verifierDroitEmission` plus haut, seulement
+        // décalée dans le temps parce que la donnée qu'elle contrôle n'existe pas encore à ce
+        // moment-là. Même patron que `atelier.or.plafond_modifier` (`atelier/service-or.ts`) :
+        // vérification conditionnelle, posée dans le service après chargement de la valeur réelle,
+        // pas un `@ExigerDroit` statique qui ne pourrait pas connaître le montant.
+        if (doc.typeDocument === 'avoir') {
+          await this.verifierPlafondAvoirReceptionnaire(
+            tx,
+            ctx,
+            principal,
+            doc,
+            totaux.totalTtcCentimes,
+          );
+        }
 
-      for (const ligne of lignesRecalculees) {
-        await tx
-          .update(ligneDocument)
-          .set({
-            remiseGlobaleRepartieCentimes: ligne.remiseGlobaleRepartieCentimes,
-            baseCentimes: ligne.baseCentimes,
-            htCentimes: ligne.htCentimes,
-            tvaCentimes: ligne.tvaCentimes,
-            ttcCentimes: ligne.ttcCentimes,
-          })
-          .where(and(eq(ligneDocument.tenantId, ctx.tenantId), eq(ligneDocument.id, ligne.id)));
-      }
+        // 4. RF-22/RF-23 : le numéro n'est alloué qu'ICI, tout le reste a déjà pu échouer avant.
+        const maintenant = this.horloge.maintenant();
+        const dateDocumentReference = doc.dateDocument
+          ? new Date(`${doc.dateDocument}T00:00:00.000Z`)
+          : maintenant;
+        const { numero, numeroSequence, exercice } = await genererNumeroDocument(
+          tx,
+          ctx,
+          this.compteurs,
+          doc.typeDocument,
+          dateDocumentReference,
+        );
 
-      // 2.5. RF-54/PF-03/MD-73 : bloc créancier — uniquement une FACTURE doit être payée (devis et
-      // bon de commande n'exigent jamais de coordonnées bancaires ; un avoir crédite le client, il
-      // ne se paie pas par QR-facture, donc n'en porte jamais). Vérifié ICI, avant l'allocation du
-      // numéro (RF-26) : une facture ne doit jamais consommer un numéro pour finir sans QR faute de
-      // coordonnées bancaires du garage — voir `qr-emission.ts`.
-      const blocCreancier = doc.typeDocument === 'facture' ? await resoudreBlocCreancierPourEmission(tx, ctx) : null;
+        // 4.5. Charge utile QR (MD-73→MD-81) — APRÈS le numéro : le message non structuré et, pour
+        // un IBAN ordinaire, la référence SCOR en dérivent. Le bloc débiteur vient de l'adresse DÉJÀ
+        // figée à la création du document (`adresse_facturation_figee`, MD-24) — jamais recalculée
+        // depuis la fiche client courante.
+        const adresseDebiteurFigee = adresseDepuisJsonb(doc.adresseFacturationFigee);
+        const debiteurQr = adresseDebiteurFigee
+          ? { nom: doc.clientDesignationFigee, ...adresseDebiteurFigee }
+          : null;
+        const blocQr = blocCreancier
+          ? await construireBlocQrPourEmission(tx, ctx, this.compteurs, {
+              creancier: blocCreancier,
+              numero,
+              exercice,
+              totalTtcCentimes: totaux.totalTtcCentimes,
+              devise: doc.devise,
+              debiteur: debiteurQr,
+            })
+          : null;
 
-      // 3. MD-44/45 : agrège la TVA par (régime, taux) depuis les lignes — jamais sur le total.
-      const ventilation = agregerTvaParTauxRegime(lignesRecalculees.map((l) => ({ regimeTva: l.regimeTva, tauxTvaPourmille: l.tauxTvaPourmille, htCentimes: l.htCentimes, tvaCentimes: l.tvaCentimes })));
-      const totaux = calculerTotauxDocument(lignesRecalculees);
-
-      // 3.5. RF-117 : plafond d'émission d'avoir pour `receptionnaire` seul (direction/comptable
-      // ne sont jamais bornés). Ne peut être vérifié qu'ICI — le TTC réel n'existe qu'après
-      // ventilation de la remise globale et recalcul des lignes (étapes 1-3 ci-dessus) — jamais
-      // avant, et jamais après l'allocation du numéro (étape 4) : un refus ici, comme tout ce qui
-      // précède, fait échouer la transaction ENTIÈRE (aucune ligne recalculée ni aucun numéro
-      // n'est committé, RF-23/24) — même garantie que `verifierDroitEmission` plus haut, seulement
-      // décalée dans le temps parce que la donnée qu'elle contrôle n'existe pas encore à ce
-      // moment-là. Même patron que `atelier.or.plafond_modifier` (`atelier/service-or.ts`) :
-      // vérification conditionnelle, posée dans le service après chargement de la valeur réelle,
-      // pas un `@ExigerDroit` statique qui ne pourrait pas connaître le montant.
-      if (doc.typeDocument === 'avoir') {
-        await this.verifierPlafondAvoirReceptionnaire(tx, ctx, principal, doc, totaux.totalTtcCentimes);
-      }
-
-      // 4. RF-22/RF-23 : le numéro n'est alloué qu'ICI, tout le reste a déjà pu échouer avant.
-      const maintenant = this.horloge.maintenant();
-      const dateDocumentReference = doc.dateDocument ? new Date(`${doc.dateDocument}T00:00:00.000Z`) : maintenant;
-      const { numero, numeroSequence, exercice } = await genererNumeroDocument(tx, ctx, this.compteurs, doc.typeDocument, dateDocumentReference);
-
-      // 4.5. Charge utile QR (MD-73→MD-81) — APRÈS le numéro : le message non structuré et, pour
-      // un IBAN ordinaire, la référence SCOR en dérivent. Le bloc débiteur vient de l'adresse DÉJÀ
-      // figée à la création du document (`adresse_facturation_figee`, MD-24) — jamais recalculée
-      // depuis la fiche client courante.
-      const adresseDebiteurFigee = adresseDepuisJsonb(doc.adresseFacturationFigee);
-      const debiteurQr = adresseDebiteurFigee ? { nom: doc.clientDesignationFigee, ...adresseDebiteurFigee } : null;
-      const blocQr = blocCreancier
-        ? await construireBlocQrPourEmission(tx, ctx, this.compteurs, {
-            creancier: blocCreancier,
-            numero,
-            exercice,
-            totalTtcCentimes: totaux.totalTtcCentimes,
-            devise: doc.devise,
-            debiteur: debiteurQr,
-          })
-        : null;
-
-      try {
-        await tx
-          .update(documentVente)
-          .set({
-            statut: 'emis',
-            numero,
-            numeroSequence,
-            exercice,
-            emisLe: maintenant,
-            totalHtCentimes: BigInt(totaux.totalHtCentimes),
-            totalTvaCentimes: BigInt(totaux.totalTvaCentimes),
-            totalTtcCentimes: BigInt(totaux.totalTtcCentimes),
-            ...(blocQr
-              ? {
-                  qrIban: blocQr.qrIban,
-                  creancierNom: blocQr.creancierNom,
-                  creancierRue: blocQr.creancierRue,
-                  creancierNumero: blocQr.creancierNumero,
-                  creancierNpa: blocQr.creancierNpa,
-                  creancierLocalite: blocQr.creancierLocalite,
-                  creancierPays: blocQr.creancierPays,
-                  typeReferenceQr: blocQr.typeReferenceQr,
-                  qrReference: blocQr.qrReference,
-                  qrMontantCentimes: BigInt(blocQr.qrMontantCentimes),
-                  qrDevise: blocQr.qrDevise,
-                  qrLangue: doc.langueFigee,
-                  qrDebiteurPresent: blocQr.qrDebiteurPresent,
-                  qrPayload: blocQr.qrPayload,
-                  qrPayloadSha256: blocQr.qrPayloadSha256,
-                }
-              : {}),
-          })
-          .where(and(eq(documentVente.tenantId, ctx.tenantId), eq(documentVente.id, documentId)));
-      } catch (erreur) {
-        const traduite = traduireErreurDocument(erreur, documentId, doc.numero);
-        if (traduite) throw traduite;
-        throw erreur;
-      }
-
-      // 5. MD-45 : le récapitulatif TVA est figé, append-only, écrit UNE SEULE FOIS ici.
-      for (const v of ventilation) {
-        await tx.insert(documentVenteTva).values({
-          tenantId: ctx.tenantId,
-          documentId,
-          regimeTva: v.regimeTva as (typeof documentVenteTva.$inferInsert)['regimeTva'],
-          tauxTvaPourmille: v.tauxTvaPourmille,
-          baseCentimes: v.baseCentimes,
-          tvaCentimes: v.tvaCentimes,
-        });
-      }
-
-      // 6. RF-32 : un avoir 'total' clôt la facture créditée — colonnes de la liste blanche
-      // post-émission (`annule_par_avoir_id`, MD-20), écrites ICI plutôt que dans `service-avoir.ts`
-      // pour ne mettre à jour la facture qu'au moment où l'avoir devient réellement opposable
-      // (émis), jamais sur un avoir encore en brouillon qui pourrait être abandonné.
-      if (doc.typeDocument === 'avoir' && doc.porteeAvoir === 'total' && doc.factureAnnuleeId) {
         try {
           await tx
             .update(documentVente)
-            .set({ statut: 'annule_par_avoir', annuleParAvoirId: documentId })
-            .where(and(eq(documentVente.tenantId, ctx.tenantId), eq(documentVente.id, doc.factureAnnuleeId)));
+            .set({
+              statut: 'emis',
+              numero,
+              numeroSequence,
+              exercice,
+              emisLe: maintenant,
+              totalHtCentimes: BigInt(totaux.totalHtCentimes),
+              totalTvaCentimes: BigInt(totaux.totalTvaCentimes),
+              totalTtcCentimes: BigInt(totaux.totalTtcCentimes),
+              ...(blocQr
+                ? {
+                    qrIban: blocQr.qrIban,
+                    creancierNom: blocQr.creancierNom,
+                    creancierRue: blocQr.creancierRue,
+                    creancierNumero: blocQr.creancierNumero,
+                    creancierNpa: blocQr.creancierNpa,
+                    creancierLocalite: blocQr.creancierLocalite,
+                    creancierPays: blocQr.creancierPays,
+                    typeReferenceQr: blocQr.typeReferenceQr,
+                    qrReference: blocQr.qrReference,
+                    qrMontantCentimes: BigInt(blocQr.qrMontantCentimes),
+                    qrDevise: blocQr.qrDevise,
+                    qrLangue: doc.langueFigee,
+                    qrDebiteurPresent: blocQr.qrDebiteurPresent,
+                    qrPayload: blocQr.qrPayload,
+                    qrPayloadSha256: blocQr.qrPayloadSha256,
+                  }
+                : {}),
+            })
+            .where(and(eq(documentVente.tenantId, ctx.tenantId), eq(documentVente.id, documentId)));
         } catch (erreur) {
-          const traduite = traduireErreurDocument(erreur, doc.factureAnnuleeId, null);
+          const traduite = traduireErreurDocument(erreur, documentId, doc.numero);
           if (traduite) throw traduite;
           throw erreur;
         }
-      }
 
-      // 7. Événement — catalogue GELÉ (`@dfa/shared`) : seuls `facture.emise`/`avoir.emis` existent,
-      // rien pour `devis`/`bon_commande` (réservés étape 2, jamais émis avant). Aucun événement
-      // n'est inventé pour les deux autres types.
-      if (doc.typeDocument === 'facture') {
-        await this.evenements.publier(tx, ctx, {
-          type: 'facture.emise',
-          versionSchema: 1,
-          siteId: doc.siteId,
-          ressource: { type: 'document_vente', id: documentId, numero },
-          donnees: { natureFacture: doc.natureFacture, totalTtcCentimes: totaux.totalTtcCentimes },
-        });
-      } else if (doc.typeDocument === 'avoir') {
-        await this.evenements.publier(tx, ctx, {
-          type: 'avoir.emis',
-          versionSchema: 1,
-          siteId: doc.siteId,
-          ressource: { type: 'document_vente', id: documentId, numero },
-          donnees: { factureAnnuleeId: doc.factureAnnuleeId, portee: doc.porteeAvoir, totalTtcCentimes: totaux.totalTtcCentimes },
-        });
-      }
+        // 5. MD-45 : le récapitulatif TVA est figé, append-only, écrit UNE SEULE FOIS ici.
+        for (const v of ventilation) {
+          await tx.insert(documentVenteTva).values({
+            tenantId: ctx.tenantId,
+            documentId,
+            regimeTva: v.regimeTva as (typeof documentVenteTva.$inferInsert)['regimeTva'],
+            tauxTvaPourmille: v.tauxTvaPourmille,
+            baseCentimes: v.baseCentimes,
+            tvaCentimes: v.tvaCentimes,
+          });
+        }
 
-      const document = await this.documents.assemblerDocument(tx, ctx, principal.role, documentId);
-      return { statutHttp: 200, corps: { donnees: document, avertissements: [] } };
-    });
+        // 6. RF-32 : un avoir 'total' clôt la facture créditée — colonnes de la liste blanche
+        // post-émission (`annule_par_avoir_id`, MD-20), écrites ICI plutôt que dans `service-avoir.ts`
+        // pour ne mettre à jour la facture qu'au moment où l'avoir devient réellement opposable
+        // (émis), jamais sur un avoir encore en brouillon qui pourrait être abandonné.
+        if (doc.typeDocument === 'avoir' && doc.porteeAvoir === 'total' && doc.factureAnnuleeId) {
+          try {
+            await tx
+              .update(documentVente)
+              .set({ statut: 'annule_par_avoir', annuleParAvoirId: documentId })
+              .where(
+                and(
+                  eq(documentVente.tenantId, ctx.tenantId),
+                  eq(documentVente.id, doc.factureAnnuleeId),
+                ),
+              );
+          } catch (erreur) {
+            const traduite = traduireErreurDocument(erreur, doc.factureAnnuleeId, null);
+            if (traduite) throw traduite;
+            throw erreur;
+          }
+        }
+
+        // 7. Événement — catalogue GELÉ (`@dfa/shared`) : seuls `facture.emise`/`avoir.emis` existent,
+        // rien pour `devis`/`bon_commande` (réservés étape 2, jamais émis avant). Aucun événement
+        // n'est inventé pour les deux autres types.
+        if (doc.typeDocument === 'facture') {
+          await this.evenements.publier(tx, ctx, {
+            type: 'facture.emise',
+            versionSchema: 1,
+            siteId: doc.siteId,
+            ressource: { type: 'document_vente', id: documentId, numero },
+            donnees: {
+              natureFacture: doc.natureFacture,
+              totalTtcCentimes: totaux.totalTtcCentimes,
+            },
+          });
+        } else if (doc.typeDocument === 'avoir') {
+          await this.evenements.publier(tx, ctx, {
+            type: 'avoir.emis',
+            versionSchema: 1,
+            siteId: doc.siteId,
+            ressource: { type: 'document_vente', id: documentId, numero },
+            donnees: {
+              factureAnnuleeId: doc.factureAnnuleeId,
+              portee: doc.porteeAvoir,
+              totalTtcCentimes: totaux.totalTtcCentimes,
+            },
+          });
+        }
+
+        const document = await this.documents.assemblerDocument(
+          tx,
+          ctx,
+          principal.role,
+          documentId,
+        );
+        return { statutHttp: 200, corps: { donnees: document, avertissements: [] } };
+      },
+    );
   }
 
   /** `POST /documents-vente/{id}/accepter` — devis uniquement (`devis.emis → accepte`, terminal). */
-  async accepter(ctx: ContexteTenant, principal: PrincipalAuthentifie, documentId: string): Promise<ReponseAvecAvertissements<ReponseDocumentVente>> {
+  async accepter(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    documentId: string,
+  ): Promise<ReponseAvecAvertissements<ReponseDocumentVente>> {
     return this.transitionnerSimple(ctx, principal, documentId, 'accepte', (doc) => {
       if (doc.typeDocument !== 'devis') {
         throw new ErreurMetier('VALIDATION_ECHOUEE', 'Seul un devis peut être accepté.', {
-          erreurs: [{ champ: 'typeDocument', code: 'type_invalide', message: `« ${doc.typeDocument} » ne peut pas être accepté.` }],
+          erreurs: [
+            {
+              champ: 'typeDocument',
+              code: 'type_invalide',
+              message: `« ${doc.typeDocument} » ne peut pas être accepté.`,
+            },
+          ],
         });
       }
     });
@@ -265,13 +370,28 @@ export class ServiceEmissionDocument {
    *  sur `document_vente` (contrairement à `motif_avoir`/`motif_avoir_libre` pour l'avoir, ou
    *  `ordre_reparation.motif_annulation` pour l'OR). Le motif est validé par le schéma d'entrée
    *  mais n'a nulle part où se poser dans ce lot — à signaler à expert-database. */
-  async refuser(ctx: ContexteTenant, principal: PrincipalAuthentifie, documentId: string, entree: EntreeRefuserDocument): Promise<ReponseAvecAvertissements<ReponseDocumentVente>> {
+  async refuser(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    documentId: string,
+    entree: EntreeRefuserDocument,
+  ): Promise<ReponseAvecAvertissements<ReponseDocumentVente>> {
     void entree;
     return this.transitionnerSimple(ctx, principal, documentId, 'refuse', (doc) => {
       if (doc.typeDocument !== 'devis' && doc.typeDocument !== 'bon_commande') {
-        throw new ErreurMetier('VALIDATION_ECHOUEE', 'Seuls un devis ou un bon de commande peuvent être refusés.', {
-          erreurs: [{ champ: 'typeDocument', code: 'type_invalide', message: `« ${doc.typeDocument} » ne peut pas être refusé.` }],
-        });
+        throw new ErreurMetier(
+          'VALIDATION_ECHOUEE',
+          'Seuls un devis ou un bon de commande peuvent être refusés.',
+          {
+            erreurs: [
+              {
+                champ: 'typeDocument',
+                code: 'type_invalide',
+                message: `« ${doc.typeDocument} » ne peut pas être refusé.`,
+              },
+            ],
+          },
+        );
       }
     });
   }
@@ -279,12 +399,23 @@ export class ServiceEmissionDocument {
   /** `POST /documents-vente/{id}/annuler` — bon de commande uniquement, motif obligatoire
    *  (`schemaAnnulerDocument`). Même limitation signalée que `refuser` : pas de colonne de
    *  persistance pour le motif sur `document_vente`. */
-  async annuler(ctx: ContexteTenant, principal: PrincipalAuthentifie, documentId: string, entree: EntreeAnnulerDocument): Promise<ReponseAvecAvertissements<ReponseDocumentVente>> {
+  async annuler(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    documentId: string,
+    entree: EntreeAnnulerDocument,
+  ): Promise<ReponseAvecAvertissements<ReponseDocumentVente>> {
     void entree;
     return this.transitionnerSimple(ctx, principal, documentId, 'annule', (doc) => {
       if (doc.typeDocument !== 'bon_commande') {
         throw new ErreurMetier('VALIDATION_ECHOUEE', 'Seul un bon de commande peut être annulé.', {
-          erreurs: [{ champ: 'typeDocument', code: 'type_invalide', message: `« ${doc.typeDocument} » ne peut pas être annulé.` }],
+          erreurs: [
+            {
+              champ: 'typeDocument',
+              code: 'type_invalide',
+              message: `« ${doc.typeDocument} » ne peut pas être annulé.`,
+            },
+          ],
         });
       }
     });
@@ -297,12 +428,22 @@ export class ServiceEmissionDocument {
    * PRÉCISE ici, après chargement du document réel — même patron que
    * `ServiceOr.modifier` pour `atelier.or.plafond_modifier` (`atelier/service-or.ts`).
    */
-  private verifierDroitEmission(typeDocument: LigneDocumentVente['typeDocument'], principal: PrincipalAuthentifie): void {
+  private verifierDroitEmission(
+    typeDocument: LigneDocumentVente['typeDocument'],
+    principal: PrincipalAuthentifie,
+  ): void {
     const action: Action =
-      typeDocument === 'facture' ? 'facturation.document.emettre_facture' : typeDocument === 'avoir' ? 'facturation.document.emettre_avoir' : 'facturation.document.emettre_devis_bc';
+      typeDocument === 'facture'
+        ? 'facturation.document.emettre_facture'
+        : typeDocument === 'avoir'
+          ? 'facturation.document.emettre_avoir'
+          : 'facturation.document.emettre_devis_bc';
     const droitsDuRole = MATRICE_DROITS[principal.role] ?? [];
     if (!droitsDuRole.includes(action)) {
-      throw new ErreurMetier('DROIT_INSUFFISANT', `Le rôle "${principal.role}" n'a pas le droit d'émettre un document de type "${typeDocument}" (RF-114).`);
+      throw new ErreurMetier(
+        'DROIT_INSUFFISANT',
+        `Le rôle "${principal.role}" n'a pas le droit d'émettre un document de type "${typeDocument}" (RF-114).`,
+      );
     }
   }
 
@@ -350,7 +491,9 @@ export class ServiceEmissionDocument {
     const plafondCentimes = await chargerPlafondAvoirReceptionnaire(tx, ctx);
     if (plafondCentimes === null) return; // NULL = aucun plafond convenu (0018 §3) — inchangé.
 
-    const cumulDejaEmisCentimes = doc.factureAnnuleeId ? await sommerAvoirsEmisPourFacture(tx, ctx, doc.factureAnnuleeId) : 0;
+    const cumulDejaEmisCentimes = doc.factureAnnuleeId
+      ? await sommerAvoirsEmisPourFacture(tx, ctx, doc.factureAnnuleeId)
+      : 0;
     const cumulCentimes = Math.abs(totalAvoirTtcCentimes) + cumulDejaEmisCentimes;
 
     if (cumulCentimes > plafondCentimes) {
@@ -358,7 +501,14 @@ export class ServiceEmissionDocument {
         'AVOIR_PLAFOND_DEPASSE',
         `Le montant de l'avoir (${String(cumulCentimes)} centimes, cumulé sur la facture d'origine) dépasse le plafond de ${String(plafondCentimes)} centimes autorisé au rôle "receptionnaire" seul (RF-117) — direction ou comptable doit émettre cet avoir.`,
         {
-          blocages: [{ type: 'document_vente', id: doc.id, libelle: doc.numero ?? doc.id, donnees: { plafondCentimes, cumulCentimes } }],
+          blocages: [
+            {
+              type: 'document_vente',
+              id: doc.id,
+              libelle: doc.numero ?? doc.id,
+              donnees: { plafondCentimes, cumulCentimes },
+            },
+          ],
           actionsProposees: [{ code: 'DEMANDER_HABILITATION' }],
         },
       );
@@ -376,7 +526,10 @@ export class ServiceEmissionDocument {
       const doc = await chargerDocumentPourEcriture(tx, ctx, documentId);
       validerType(doc);
       try {
-        await tx.update(documentVente).set({ statut: versStatut }).where(and(eq(documentVente.tenantId, ctx.tenantId), eq(documentVente.id, documentId)));
+        await tx
+          .update(documentVente)
+          .set({ statut: versStatut })
+          .where(and(eq(documentVente.tenantId, ctx.tenantId), eq(documentVente.id, documentId)));
       } catch (erreur) {
         const traduite = traduireErreurDocument(erreur, documentId, doc.numero);
         if (traduite) throw traduite;

@@ -37,7 +37,9 @@ export function ResultatDocumentVente({ resultat }: ProprietesResultatDocumentVe
       <span className="texte-corps font-medium text-foreground">{numero}</span>
       {estTypeDocumentVente(type) ? <BadgeTypeDocument type={type} /> : null}
       {clientNom ? <span className="texte-libelle text-muted-foreground">{clientNom}</span> : null}
-      {dateDocument ? <span className="texte-libelle text-muted-foreground">{dateDocument}</span> : null}
+      {dateDocument ? (
+        <span className="texte-libelle text-muted-foreground">{dateDocument}</span>
+      ) : null}
     </div>
   );
 }

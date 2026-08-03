@@ -38,12 +38,18 @@ const CONSIGNE: ReponseConsigneEchangeStandard = {
   creeLe: '2026-01-10T08:00:00.000Z',
 };
 
-function pageDe(donnees: readonly ReponseConsigneEchangeStandard[]): PageCurseur<ReponseConsigneEchangeStandard> {
+function pageDe(
+  donnees: readonly ReponseConsigneEchangeStandard[],
+): PageCurseur<ReponseConsigneEchangeStandard> {
   return { donnees, curseurSuivant: null, limite: 50 };
 }
 
 function rendre(role: (typeof SESSION_TEST)['utilisateur']['role'] = 'magasinier') {
-  server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role } })));
+  server.use(
+    http.get('/api/v1/auth/moi', () =>
+      HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role } }),
+    ),
+  );
   const queryClient = creerQueryClientTest();
   render(
     <QueryClientProvider client={queryClient}>
@@ -72,7 +78,11 @@ describe('EcranConsignesPieces', () => {
     server.use(
       http.post('/api/v1/consignes/:id/marquer-retour-fournisseur', () => {
         appelRetour = true;
-        return HttpResponse.json({ ...CONSIGNE, statut: 'retournee_fournisseur', retourneeFournisseurLe: '2026-02-01T10:00:00.000Z' });
+        return HttpResponse.json({
+          ...CONSIGNE,
+          statut: 'retournee_fournisseur',
+          retourneeFournisseurLe: '2026-02-01T10:00:00.000Z',
+        });
       }),
     );
 
@@ -81,7 +91,9 @@ describe('EcranConsignesPieces', () => {
 
     await utilisateur.click(await screen.findByRole('button', { name: 'Marquer comme retournée' }));
     const dialogue = await screen.findByRole('dialog');
-    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Marquer comme retournée' }));
+    await utilisateur.click(
+      within(dialogue).getByRole('button', { name: 'Marquer comme retournée' }),
+    );
 
     await waitFor(() => expect(appelRetour).toBe(true));
   });
@@ -92,7 +104,9 @@ describe('EcranConsignesPieces', () => {
     rendre('vendeur');
 
     expect(await screen.findByText('150.00')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Marquer comme retournée' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Marquer comme retournée' }),
+    ).not.toBeInTheDocument();
   });
 
   it('état vide : aucune consigne', async () => {

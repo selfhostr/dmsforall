@@ -6,7 +6,12 @@ import type {
 } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
-import type { ReponseMemorisable, RequeteIdempotente, ResultatIdempotent, ServiceIdempotence } from '../common/idempotence';
+import type {
+  ReponseMemorisable,
+  RequeteIdempotente,
+  ResultatIdempotent,
+  ServiceIdempotence,
+} from '../common/idempotence';
 import type { LigneCommandeFournisseur, LigneCommandeFournisseurLigne } from '../db/schema';
 import { ServiceCommandeFournisseur } from './service-commande-fournisseur';
 
@@ -75,7 +80,8 @@ function txFactice(
     return {
       limit: () => valeur,
       orderBy: () => valeur,
-      then: (resolve: (v: unknown) => void, reject?: (e: unknown) => void) => valeur.then(resolve, reject),
+      then: (resolve: (v: unknown) => void, reject?: (e: unknown) => void) =>
+        valeur.then(resolve, reject),
     };
   }
 
@@ -87,7 +93,8 @@ function txFactice(
         const promesse = Promise.resolve(insertsReturning.shift() ?? []);
         return {
           returning: () => promesse,
-          then: (resolve: (v: unknown) => void, reject?: (e: unknown) => void) => promesse.then(resolve, reject),
+          then: (resolve: (v: unknown) => void, reject?: (e: unknown) => void) =>
+            promesse.then(resolve, reject),
         };
       },
     }),
@@ -101,7 +108,11 @@ function txFactice(
 }
 
 function accesFactice(tx: TransactionDfa): AccesBase {
-  return { enTenant: vi.fn((_ctx, travail) => travail(tx)), verifierConnexion: vi.fn(), verifierPostureRls: vi.fn() };
+  return {
+    enTenant: vi.fn((_ctx, travail) => travail(tx)),
+    verifierConnexion: vi.fn(),
+    verifierPostureRls: vi.fn(),
+  };
 }
 
 function idempotenceFactice(tx: TransactionDfa): ServiceIdempotence {
@@ -119,7 +130,9 @@ function idempotenceFactice(tx: TransactionDfa): ServiceIdempotence {
 
 describe('ServiceCommandeFournisseur.envoyer — §6.2 : brouillon → envoyee', () => {
   it('refuse (409 COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE) une commande qui n’est pas en brouillon, sans écrire', async () => {
-    const { tx, executeAppels } = txFactice({ executes: [{ rows: [commande({ statut: 'envoyee' })] }] });
+    const { tx, executeAppels } = txFactice({
+      executes: [{ rows: [commande({ statut: 'envoyee' })] }],
+    });
     const service = new ServiceCommandeFournisseur(accesFactice(tx), idempotenceFactice(tx));
 
     await expect(service.envoyer(CTX, 'cmd-1')).rejects.toMatchObject({
@@ -162,7 +175,9 @@ describe('ServiceCommandeFournisseur.reception — RP-27/RP-29, le point de jonc
         { rows: [] }, // UPDATE commande_fournisseur_ligne (cumul)
         { rows: [] }, // ecrireStatutCommande → partiellement_recue
       ],
-      insertsReturning: [[{ id: 'mvt-1', articleId: 'art-1', type: 'entree_livraison', quantiteMillieme: 6000 }]],
+      insertsReturning: [
+        [{ id: 'mvt-1', articleId: 'art-1', type: 'entree_livraison', quantiteMillieme: 6000 }],
+      ],
       selects: [
         [commande({ statut: 'partiellement_recue' })], // chargerCommandeAvecLignes → chargerCommandeOu404
         [ligne({ quantiteRecueCumuleeMillieme: 6000 })], // chargerLignesParCommande
@@ -182,8 +197,16 @@ describe('ServiceCommandeFournisseur.reception — RP-27/RP-29, le point de jonc
     // commandée (10000) ni le reliquat avant réception (10000) — casser cette ligne dans
     // `service-commande-fournisseur.ts::reception` (ex. remplacer `ligneEntree.quantiteRecueMillieme`
     // par `reliquatAvant`) fait rougir cette assertion à `10000 !== 6000`.
-    const mouvementInsere = insertValuesArgs.find((v) => (v as { type?: string }).type === 'entree_livraison') as
-      | { quantiteMillieme: number; articleId: string; commandeFournisseurLigneId: string; siteId: string; prixAchatReelCentimes: number | null }
+    const mouvementInsere = insertValuesArgs.find(
+      (v) => (v as { type?: string }).type === 'entree_livraison',
+    ) as
+      | {
+          quantiteMillieme: number;
+          articleId: string;
+          commandeFournisseurLigneId: string;
+          siteId: string;
+          prixAchatReelCentimes: number | null;
+        }
       | undefined;
     expect(mouvementInsere?.quantiteMillieme).toBe(6000);
     expect(mouvementInsere?.articleId).toBe('art-1');
@@ -237,7 +260,9 @@ describe('ServiceCommandeFournisseur.reception — RP-27/RP-29, le point de jonc
   });
 
   it('refuse (409) la réception d’une commande brouillon (jamais envoyée)', async () => {
-    const { tx, executeAppels } = txFactice({ executes: [{ rows: [commande({ statut: 'brouillon' })] }] });
+    const { tx, executeAppels } = txFactice({
+      executes: [{ rows: [commande({ statut: 'brouillon' })] }],
+    });
     const service = new ServiceCommandeFournisseur(accesFactice(tx), idempotenceFactice(tx));
 
     await expect(service.reception(CTX, 'cmd-1', ENTREE, 'idem-4')).rejects.toMatchObject({
@@ -248,7 +273,10 @@ describe('ServiceCommandeFournisseur.reception — RP-27/RP-29, le point de jonc
 
   it('refuse (404) une ligneId qui n’appartient pas à cette commande', async () => {
     const { tx } = txFactice({
-      executes: [{ rows: [commande({ statut: 'envoyee' })] }, { rows: [ligne({ id: 'autre-ligne' })] }],
+      executes: [
+        { rows: [commande({ statut: 'envoyee' })] },
+        { rows: [ligne({ id: 'autre-ligne' })] },
+      ],
     });
     const service = new ServiceCommandeFournisseur(accesFactice(tx), idempotenceFactice(tx));
 
@@ -301,7 +329,9 @@ describe('ServiceCommandeFournisseur.annuler — §6.2 : uniquement avant toute 
   const ENTREE: EntreeAnnulationCommandeFournisseur = { motif: 'Erreur de saisie' };
 
   it('refuse (409) une commande déjà partiellement reçue — seul le reliquat par ligne s’annule après réception', async () => {
-    const { tx, executeAppels } = txFactice({ executes: [{ rows: [commande({ statut: 'partiellement_recue' })] }] });
+    const { tx, executeAppels } = txFactice({
+      executes: [{ rows: [commande({ statut: 'partiellement_recue' })] }],
+    });
     const service = new ServiceCommandeFournisseur(accesFactice(tx), idempotenceFactice(tx));
 
     await expect(service.annuler(CTX, 'cmd-1', ENTREE)).rejects.toMatchObject({

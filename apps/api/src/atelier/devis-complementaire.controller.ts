@@ -1,5 +1,24 @@
-import { Controller, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCookieAuth,
+  ApiHeader,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { z } from 'zod';
 import {
@@ -20,7 +39,10 @@ import { PipeZod } from '../common/validation';
 import { EnveloppeOrDto, PageOrDto, ReponseDevisComplementaireDto } from './dto';
 import { ServiceDevis } from './service-devis';
 
-const EnveloppeDevisComplementaireDto = EnveloppeOrDto(ReponseDevisComplementaireDto, 'DevisComplementaire');
+const EnveloppeDevisComplementaireDto = EnveloppeOrDto(
+  ReponseDevisComplementaireDto,
+  'DevisComplementaire',
+);
 const PageDevisComplementaireDto = PageOrDto(ReponseDevisComplementaireDto, 'DevisComplementaire');
 
 const schemaListeDevis = schemaFiltresDevis.extend({
@@ -51,8 +73,11 @@ export class DevisComplementaireController {
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
-  async lister(@Param('orId', new PipeZod(schemaIdentifiant)) orId: string, @Query(new PipeZod(schemaListeDevis)) query: EntreeListeDevis) {
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
+  async lister(
+    @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
+    @Query(new PipeZod(schemaListeDevis)) query: EntreeListeDevis,
+  ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
     const { limite, curseur, ...filtres } = query;
@@ -69,7 +94,11 @@ export class DevisComplementaireController {
       'depuis les lignes référencées, déjà figées (RM-65) — jamais fourni par le client.',
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
-  @ApiHeader({ name: 'Idempotency-Key', required: true, description: 'uuid v4, identité de la requête.' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description: 'uuid v4, identité de la requête.',
+  })
   @ApiResponse({ status: 201, type: EnveloppeDevisComplementaireDto })
   @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
@@ -92,7 +121,13 @@ export class DevisComplementaireController {
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    const resultat = await this.serviceDevis.creer(ctx, principal, orId, entree, cleIdempotence ?? '');
+    const resultat = await this.serviceDevis.creer(
+      ctx,
+      principal,
+      orId,
+      entree,
+      cleIdempotence ?? '',
+    );
 
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
@@ -109,7 +144,11 @@ export class DevisComplementaireController {
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiParam({ name: 'devisId', format: 'uuid' })
-  @ApiHeader({ name: 'Idempotency-Key', required: true, description: 'uuid v4, identité de la requête.' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description: 'uuid v4, identité de la requête.',
+  })
   @ApiOkResponse({ type: EnveloppeDevisComplementaireDto })
   @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
@@ -125,7 +164,8 @@ export class DevisComplementaireController {
         canal: 'telephone',
         interlocuteurNom: 'Mme Perret',
         repondueLe: '2026-08-04T16:12:00.000Z',
-        retranscription: 'Le client accepte le devis complémentaire pour le remplacement des disques.',
+        retranscription:
+          'Le client accepte le devis complémentaire pour le remplacement des disques.',
       },
     })
     entree: EntreeReponseDevisComplementaire,
@@ -134,7 +174,14 @@ export class DevisComplementaireController {
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    const resultat = await this.serviceDevis.repondre(ctx, principal, orId, devisId, entree, cleIdempotence ?? '');
+    const resultat = await this.serviceDevis.repondre(
+      ctx,
+      principal,
+      orId,
+      devisId,
+      entree,
+      cleIdempotence ?? '',
+    );
 
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');

@@ -83,7 +83,9 @@ const FONCTIONNALITE_PAR_CHAMP: Readonly<Record<string, FonctionnaliteLot1>> = {
  * d'une fonctionnalité inerte au lot 1 — jamais une application partielle silencieuse du reste du
  * corps : un `PATCH` qui « oublierait » discrètement un champ serait plus trompeur qu'un refus net.
  */
-export function verifierChampsActifsParametresAtelier(entree: EntreeModificationParametresAtelier): void {
+export function verifierChampsActifsParametresAtelier(
+  entree: EntreeModificationParametresAtelier,
+): void {
   for (const [domaine, valeurDomaine] of Object.entries(entree)) {
     if (valeurDomaine === undefined) continue;
     for (const champ of Object.keys(valeurDomaine as Record<string, unknown>)) {

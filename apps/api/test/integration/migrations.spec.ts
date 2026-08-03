@@ -34,8 +34,13 @@ describe('réversibilité des migrations', () => {
   it('chaque migration "up" a un fichier ".down.sql" correspondant : aucune migration sans annulation', () => {
     const montantes = listerFichiersMigrationsUp();
     const descendantes = listerFichiersMigrationsDown();
-    expect(montantes.length, 'au moins une migration est attendue pour le socle étape 0').toBeGreaterThan(0);
-    expect(descendantes.length, 'chaque migration up doit avoir son pendant down').toBe(montantes.length);
+    expect(
+      montantes.length,
+      'au moins une migration est attendue pour le socle étape 0',
+    ).toBeGreaterThan(0);
+    expect(descendantes.length, 'chaque migration up doit avoir son pendant down').toBe(
+      montantes.length,
+    );
   });
 
   it('appliquer toutes les migrations, les annuler intégralement, puis les réappliquer produit un schéma identique', async () => {
@@ -52,7 +57,10 @@ describe('réversibilité des migrations', () => {
       const tablesRestantes = await client.query(
         "select relname from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r'",
       );
-      expect(tablesRestantes.rows.map((r) => r.relname), 'aucune table applicative ne doit survivre au down').toEqual([]);
+      expect(
+        tablesRestantes.rows.map((r) => r.relname),
+        'aucune table applicative ne doit survivre au down',
+      ).toEqual([]);
 
       await appliquerMigrationsUp(client);
       const schemaApresSecondeMontee = await dumperSchema(bdd.conteneur, bdd.migrateur);

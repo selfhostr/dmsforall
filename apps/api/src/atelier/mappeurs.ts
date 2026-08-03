@@ -55,7 +55,10 @@ export function mapperLigneOr(ligne: LigneLigneOr, role: RoleUtilisateur): Repon
     // pointage. Champ du contrat exposé à `null`, jamais omis (additif, pas de rupture).
     tempsReelCentiemes: null,
     ...(voitMontants
-      ? { tauxHoraireCentimes: ligne.tauxHoraireCentimes, prixUnitaireCentimes: ligne.prixUnitaireCentimes }
+      ? {
+          tauxHoraireCentimes: ligne.tauxHoraireCentimes,
+          prixUnitaireCentimes: ligne.prixUnitaireCentimes,
+        }
       : {}),
     rabaisPourmille: ligne.rabaisPourmille ?? 0,
     tauxTvaPourmille: ligne.tauxTvaPourmille,
@@ -127,7 +130,10 @@ export function mapperDevis(
     numeroOrdre: devis.numeroOrdre,
     lignes: lignes.map(mapperDevisLigne),
     ...(voitMontants
-      ? { montantTtcCentimes: devis.montantTtcCentimes, nouveauPlafondCentimes: devis.nouveauPlafondCentimes ?? undefined }
+      ? {
+          montantTtcCentimes: devis.montantTtcCentimes,
+          nouveauPlafondCentimes: devis.nouveauPlafondCentimes ?? undefined,
+        }
       : {}),
     impactRestitutionLe: devis.impactRestitutionLe ? devis.impactRestitutionLe.toISOString() : null,
     // `canal`/`envoyeLe` ne sont jamais null en pratique une fois le devis créé (posés à la

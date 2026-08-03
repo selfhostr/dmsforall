@@ -7,7 +7,12 @@ import { ErreurMetier } from '../erreurs/erreur-metier';
 import { Horloge } from '../horloge/horloge';
 import { calculerEmpreinte } from './empreinte';
 import { deciderIdempotence, type LigneCleIdempotenceExistante } from './decision-idempotence';
-import type { ReponseMemorisable, RequeteIdempotente, ResultatIdempotent, ServiceIdempotence } from './idempotence.types';
+import type {
+  ReponseMemorisable,
+  RequeteIdempotente,
+  ResultatIdempotent,
+  ServiceIdempotence,
+} from './idempotence.types';
 
 const MILLISECONDES_PAR_JOUR = 24 * 60 * 60 * 1000;
 
@@ -50,7 +55,11 @@ export class ServiceIdempotenceImpl implements ServiceIdempotence {
     if (!validation.success) {
       throw new ErreurMetier('VALIDATION_ECHOUEE', "Clé d'idempotence invalide.", {
         erreurs: [
-          { champ: 'Idempotency-Key', code: 'cle_invalide', message: "La clé d'idempotence doit être un uuid v4." },
+          {
+            champ: 'Idempotency-Key',
+            code: 'cle_invalide',
+            message: "La clé d'idempotence doit être un uuid v4.",
+          },
         ],
       });
     }
@@ -59,7 +68,9 @@ export class ServiceIdempotenceImpl implements ServiceIdempotence {
 
     return this.acces.enTenant(ctx, async (tx) => {
       const maintenant = this.horloge.maintenant();
-      const expireLe = new Date(maintenant.getTime() + RETENTION_IDEMPOTENCE_JOURS * MILLISECONDES_PAR_JOUR);
+      const expireLe = new Date(
+        maintenant.getTime() + RETENTION_IDEMPOTENCE_JOURS * MILLISECONDES_PAR_JOUR,
+      );
 
       // Tentative d'insertion atomique : sous "read committed", un INSERT qui entre en conflit
       // avec une ligne pas encore committée BLOQUE jusqu'à la fin de cette transaction concurrente
@@ -110,7 +121,10 @@ export class ServiceIdempotenceImpl implements ServiceIdempotence {
           // Reconstruction du type T annoncé par l'appelant à partir de la mémorisation JSON :
           // ServiceIdempotence ne connaît pas T, seule la forme ReponseMemorisable qu'il a
           // lui-même écrite. C'est la frontière assumée de ce mécanisme de rejeu générique.
-          return { reponse: { statutHttp: decision.statutHttp, corps: decision.corps } as T, rejoue: true };
+          return {
+            reponse: { statutHttp: decision.statutHttp, corps: decision.corps } as T,
+            rejoue: true,
+          };
         case 'conflit_empreinte':
           throw new ErreurMetier(
             'IDEMPOTENCE_CONFLIT',

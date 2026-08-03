@@ -30,21 +30,21 @@
 
 ### Dans le périmètre de l'étape 1
 
-| Domaine | Contenu |
-|---|---|
-| Clients | Particuliers et entreprises, contacts multiples, adresses multiples, conditions commerciales, consentements, détection et fusion de doublons |
-| Véhicules | Identité (VIN, type CH), plaques historisées, détention historisée, kilométrage historisé, expertise, données techniques d'atelier |
-| Rendez-vous | Planning atelier par site, capacité en heures, ressources (technicien, poste, véhicule de remplacement), rappels |
-| OR | Document central : demandes client, lignes de travaux et de pièces, devis complémentaire, multi-payeurs, contrôle qualité, restitution |
-| Pointage | Temps réel par technicien, activités productives et indirectes, corrections, indicateurs |
-| Véhicule de remplacement | Parc de courtoisie, contrat de prêt, disponibilité comme ressource de planning |
+| Domaine                  | Contenu                                                                                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Clients                  | Particuliers et entreprises, contacts multiples, adresses multiples, conditions commerciales, consentements, détection et fusion de doublons |
+| Véhicules                | Identité (VIN, type CH), plaques historisées, détention historisée, kilométrage historisé, expertise, données techniques d'atelier           |
+| Rendez-vous              | Planning atelier par site, capacité en heures, ressources (technicien, poste, véhicule de remplacement), rappels                             |
+| OR                       | Document central : demandes client, lignes de travaux et de pièces, devis complémentaire, multi-payeurs, contrôle qualité, restitution       |
+| Pointage                 | Temps réel par technicien, activités productives et indirectes, corrections, indicateurs                                                     |
+| Véhicule de remplacement | Parc de courtoisie, contrat de prêt, disponibilité comme ressource de planning                                                               |
 
 ### Hors périmètre, mais dont l'étape 1 doit préparer les points d'accroche
 
-- **Facturation (étape 2)** : l'OR produit une *proposition de facturation* (lignes ventilées par payeur, TVA calculée, totaux). L'émission du document, la numérotation légale, la QR-facture et le verrouillage sont de l'étape 2. L'étape 1 doit donc modéliser `payeur` sur la ligne, les montants en centimes et l'état `facturé` de l'OR, mais **ne pas** implémenter le document facture.
+- **Facturation (étape 2)** : l'OR produit une _proposition de facturation_ (lignes ventilées par payeur, TVA calculée, totaux). L'émission du document, la numérotation légale, la QR-facture et le verrouillage sont de l'étape 2. L'étape 1 doit donc modéliser `payeur` sur la ligne, les montants en centimes et l'état `facturé` de l'OR, mais **ne pas** implémenter le document facture.
 - **Stock pièces (étape 3)** : en étape 1, une ligne de pièce est une ligne libre (référence texte + désignation + prix saisi). Pas de réservation, pas de mouvement de stock. Le modèle doit prévoir dès maintenant le champ « article » nullable pour un rattachement ultérieur sans migration destructive.
 - **Ventes / stock véhicules (étape 4)** : un véhicule d'atelier et un véhicule en stock sont deux vues d'une même identité physique. L'étape 1 pose l'entité `Véhicule` avec son historique de détention ; l'étape 4 y greffe `VéhiculeStock`.
-- **Dossier de garantie constructeur (étape 5)** : l'OR sait *marquer* une ligne « garantie constructeur » avec code opération et code défaut, et produire un dossier imprimable. La transmission électronique au constructeur est un connecteur.
+- **Dossier de garantie constructeur (étape 5)** : l'OR sait _marquer_ une ligne « garantie constructeur » avec code opération et code défaut, et produire un dossier imprimable. La transmission électronique au constructeur est un connecteur.
 - **Dépôt de pneus (hôtel à pneus)** : très demandé en Suisse, touche véhicule + RDV + facturation récurrente. Recommandation : **le tenir hors étape 1** mais réserver la relation `Véhicule 1—n DépôtPneus` pour ne pas se bloquer (§12, Q-19).
 
 ---
@@ -53,39 +53,39 @@
 
 ### 2.1 Acteurs
 
-| Acteur | Ce qu'il fait dans l'étape 1 |
-|---|---|
+| Acteur                                  | Ce qu'il fait dans l'étape 1                                                                                                    |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | **Réceptionnaire** (conseiller service) | Prend les RDV, réceptionne les véhicules, ouvre l'OR, gère les devis complémentaires, contrôle l'OR avant facturation, restitue |
-| **Chef d'atelier** | Répartit la charge, affecte les techniciens, valide le contrôle qualité, corrige les pointages, arbitre les gestes commerciaux |
-| **Technicien** | Pointe, exécute, remonte des constats (travaux constatés), demande des pièces |
-| **Magasinier** | Sort les pièces sur l'OR (étape 3 ; en étape 1 il saisit les lignes de pièces) |
-| **Comptable** | Consulte, ne modifie pas l'atelier |
-| **Direction** | Voit les indicateurs (charge, rendement, productivité, taux de retouche) |
-| **Client** | Signe le mandat, accepte ou refuse un devis complémentaire, retire son véhicule |
+| **Chef d'atelier**                      | Répartit la charge, affecte les techniciens, valide le contrôle qualité, corrige les pointages, arbitre les gestes commerciaux  |
+| **Technicien**                          | Pointe, exécute, remonte des constats (travaux constatés), demande des pièces                                                   |
+| **Magasinier**                          | Sort les pièces sur l'OR (étape 3 ; en étape 1 il saisit les lignes de pièces)                                                  |
+| **Comptable**                           | Consulte, ne modifie pas l'atelier                                                                                              |
+| **Direction**                           | Voit les indicateurs (charge, rendement, productivité, taux de retouche)                                                        |
+| **Client**                              | Signe le mandat, accepte ou refuse un devis complémentaire, retire son véhicule                                                 |
 
-> **Impact socle** : `ARCHITECTURE.md §3` liste les rôles *direction, vendeur, chef d'atelier, technicien,
-> magasinier, comptable, admin*. Le rôle **réceptionnaire** manque et il est l'acteur central de l'étape 1.
+> **Impact socle** : `ARCHITECTURE.md §3` liste les rôles _direction, vendeur, chef d'atelier, technicien,
+> magasinier, comptable, admin_. Le rôle **réceptionnaire** manque et il est l'acteur central de l'étape 1.
 > Dans les petits garages, une même personne cumule réceptionnaire + chef d'atelier + direction : les rôles
 > doivent être **cumulables** sur un utilisateur, jamais exclusifs (voir §10).
 
 ### 2.2 Vocabulaire imposé (FR source ; DE/IT pour l'i18n)
 
-| FR | DE | IT | Sens |
-|---|---|---|---|
-| Ordre de réparation (OR) | Reparaturauftrag (RA) | Ordine di riparazione | Document central atelier |
-| Réception | Annahme | Accettazione | Prise en charge du véhicule |
-| Expertise | MFK (Motorfahrzeugkontrolle) | Collaudo | Contrôle technique cantonal |
-| Pré-expertise | MFK-Vorkontrolle | Pre-collaudo | Contrôle préalable au garage |
-| Pointage | Zeiterfassung | Timbratura | Saisie du temps technicien |
-| Devis complémentaire | Nachtragsofferte / Kostenvoranschlag | Preventivo supplementare | Accord client sur travaux constatés |
-| Montant plafond | Kostendach | Tetto di spesa | Limite d'engagement autorisée par le client |
-| Véhicule de remplacement | Ersatzfahrzeug | Veicolo sostitutivo | Voiture de courtoisie |
-| Travaux reportés | Zurückgestellte Arbeiten | Lavori rinviati | Constatés, non exécutés, à représenter |
-| Retouche | Nacharbeit | Rilavorazione | Reprise à la charge du garage |
-| Temps barémé | Richtzeit / AW | Tempario | Temps de référence facturé |
-| Plaque | Kontrollschild | Targa | Immatriculation cantonale |
-| Permis de circulation | Fahrzeugausweis | Licenza di circolazione | Carte grise CH |
-| Détenteur | Halter | Detentore | Celui au nom de qui le véhicule est immatriculé |
+| FR                       | DE                                   | IT                       | Sens                                            |
+| ------------------------ | ------------------------------------ | ------------------------ | ----------------------------------------------- |
+| Ordre de réparation (OR) | Reparaturauftrag (RA)                | Ordine di riparazione    | Document central atelier                        |
+| Réception                | Annahme                              | Accettazione             | Prise en charge du véhicule                     |
+| Expertise                | MFK (Motorfahrzeugkontrolle)         | Collaudo                 | Contrôle technique cantonal                     |
+| Pré-expertise            | MFK-Vorkontrolle                     | Pre-collaudo             | Contrôle préalable au garage                    |
+| Pointage                 | Zeiterfassung                        | Timbratura               | Saisie du temps technicien                      |
+| Devis complémentaire     | Nachtragsofferte / Kostenvoranschlag | Preventivo supplementare | Accord client sur travaux constatés             |
+| Montant plafond          | Kostendach                           | Tetto di spesa           | Limite d'engagement autorisée par le client     |
+| Véhicule de remplacement | Ersatzfahrzeug                       | Veicolo sostitutivo      | Voiture de courtoisie                           |
+| Travaux reportés         | Zurückgestellte Arbeiten             | Lavori rinviati          | Constatés, non exécutés, à représenter          |
+| Retouche                 | Nacharbeit                           | Rilavorazione            | Reprise à la charge du garage                   |
+| Temps barémé             | Richtzeit / AW                       | Tempario                 | Temps de référence facturé                      |
+| Plaque                   | Kontrollschild                       | Targa                    | Immatriculation cantonale                       |
+| Permis de circulation    | Fahrzeugausweis                      | Licenza di circolazione  | Carte grise CH                                  |
+| Détenteur                | Halter                               | Detentore                | Celui au nom de qui le véhicule est immatriculé |
 
 **Interdit dans l'UI** : « ticket », « workflow », « entité », « statut technique », « instance », « job ».
 
@@ -100,6 +100,7 @@
 doit être possible **dans n'importe quel ordre** et rester incomplète sans bloquer.
 
 **Ce qui est saisi** :
+
 1. Recherche du véhicule **par plaque** (usage n°1), à défaut par nom de client, par VIN, par téléphone.
 2. Client (existant ou création rapide : nom + téléphone suffisent).
 3. Motif(s) : service, expertise / pré-expertise, pneus, diagnostic (symptôme), carrosserie, rappel constructeur, retouche, devis.
@@ -110,6 +111,7 @@ doit être possible **dans n'importe quel ordre** et rester incomplète sans blo
 8. Ressource pressentie : technicien et/ou poste de travail (selon organisation).
 
 **Ce qui peut mal tourner** :
+
 - Le véhicule est trouvé mais rattaché à un **autre client** (revendu). → §6.2.
 - La plaque correspond à **deux véhicules** (plaques interchangeables). → §6.9.
 - Le client est un **doublon** (« Dupont Jean » et « Dupont J. »). → RM-05, RM-06.
@@ -122,6 +124,7 @@ doit être possible **dans n'importe quel ordre** et rester incomplète sans blo
 **Qui** : réceptionnaire. **Quand** : entre 7h00 et 8h30, en rush, 6 clients à la file.
 
 **Ce qui est saisi** :
+
 1. **Kilométrage** relevé (jamais déclaratif si le véhicule est là).
 2. Tour du véhicule : dégâts préexistants (schéma carrosserie + photos), présence de la roue de secours / kit, effets personnels, niveau de carburant.
 3. Confirmation / reformulation des demandes ; ajout de ce que le client dit sur le pas de la porte (« et tant qu'à faire, regardez l'essuie-glace »).
@@ -132,6 +135,7 @@ doit être possible **dans n'importe quel ordre** et rester incomplète sans blo
 8. Remise du véhicule de remplacement : contrat de prêt, permis de conduire, km et carburant de départ, franchise.
 
 **Ce qui peut mal tourner** :
+
 - Pas de RDV (dépannage, urgence) → OR ouvert directement. RM-42.
 - Le client vient avec **un autre véhicule** que celui du RDV. → §6.3.
 - Dépôt la veille dans la boîte à clés : **pas de signature possible** à la réception, km relevé par le technicien. → §6.6.
@@ -144,6 +148,7 @@ doit être possible **dans n'importe quel ordre** et rester incomplète sans blo
 **Qui** : technicien. Il prend l'OR (papier ou écran atelier), **pointe dessus**, constate.
 
 **Sortie** : chaque constat devient une **ligne d'OR** avec une origine explicite :
+
 - **Commandée** — demandée par le client à la réception ;
 - **Constatée** — découverte par le technicien, nécessite un accord si elle dépasse le plafond ;
 - **Campagne** — rappel constructeur, payée par le constructeur ;
@@ -154,6 +159,7 @@ Le technicien qualifie chaque constat : **urgent / à faire / à surveiller**. L
 **travaux reportés** même sans passer par le client.
 
 **Ce qui peut mal tourner** :
+
 - Le symptôme n'est pas reproductible → ligne « recherche de panne » facturée au temps réel, avec l'accord du client. Le client conteste souvent une facture de diagnostic sans réparation : la trace de l'accord est vitale.
 - Le diagnostic révèle que le véhicule est **dangereux** (freins, direction, pneus lisses) et le client refuse la réparation → §6.12.
 - Le véhicule est déjà démonté quand le devis part.
@@ -165,6 +171,7 @@ Le technicien qualifie chaque constat : **urgent / à faire / à surveiller**. L
 constatée existe quel que soit le montant si le plafond est à 0.
 
 **Ce qui est saisi** (et qui sauve en cas de litige) :
+
 - Les lignes soumises, le montant TTC total et le nouveau plafond demandé ;
 - Le canal (téléphone / SMS / e-mail / lien de signature) ;
 - **Le nom de la personne qui a répondu** (« Mme Dupont, l'épouse »), la date et l'heure ;
@@ -172,6 +179,7 @@ constatée existe quel que soit le montant si le plafond est à 0.
 - Le report éventuel de la restitution promise.
 
 **Ce qui peut mal tourner** :
+
 - Le client est injoignable : les travaux s'arrêtent, le pont est bloqué, le véhicule de remplacement tourne. → RM-58, RM-60.
 - Refus après démontage → §6.1 (le cas le plus important de cette spécification).
 - Accord verbal non tracé → litige perdu.
@@ -183,6 +191,7 @@ Pointage démarré, pièces sorties, exécution. Interruptions fréquentes : att
 sous-traitance (carrosserie, géométrie, boîte automatique, injection, tapisserie), essai routier.
 
 **Ce qui peut mal tourner** :
+
 - La pièce commandée n'est pas la bonne / arrive cassée → attente pièces prolongée.
 - Le technicien **casse** une pièce non prévue → ligne à charge du garage (payeur = garage), traçable.
 - Le véhicule part chez un sous-traitant → il n'est plus dans le garage, la localisation doit le dire.
@@ -192,6 +201,7 @@ sous-traitance (carrosserie, géométrie, boîte automatique, injection, tapisse
 ### Étape F — Contrôle qualité et essai
 
 **Qui** : chef d'atelier (ou un technicien autre que l'exécutant).
+
 - Check-list selon le type d'intervention (freins → essai de freinage obligatoire ; roues → couple de serrage et **contrôle à 50 km** ; vidange → niveau et absence de fuite après essai).
 - Remise à zéro de l'indicateur d'entretien, autocollant prochain service, mise à jour du carnet (papier ou digital).
 - Nettoyage / passage au lavage selon la politique du garage.
@@ -203,6 +213,7 @@ sous-traitance (carrosserie, géométrie, boîte automatique, injection, tapisse
 ### Étape G — Préparation de la facturation
 
 **Qui** : réceptionnaire, puis validation chef d'atelier selon montant.
+
 - Comparaison **temps pointé / temps barémé** ligne par ligne, arbitrage.
 - Ventilation par payeur : client, constructeur (garantie/campagne), assurance (sinistre, avec franchise à charge du client), tiers (leaser, gestionnaire de flotte, contrat de service), garage (geste commercial, retouche).
 - Application des conditions du client (rabais main-d'œuvre / pièces / pneus).
@@ -426,29 +437,29 @@ il revient 3 jours plus tard avec le même symptôme (§6.11, retouche).
 
 #### Transitions AUTORISÉES
 
-| # | De | Vers | Condition | Acteur |
-|---|---|---|---|---|
-| T-01 | (création) | `planifie` | depuis un RDV, véhicule absent | réceptionnaire |
-| T-02 | (création) | `ouvert` | véhicule présent, km relevé | réceptionnaire |
-| T-03 | `planifie` | `ouvert` | réception effective : km relevé (RM-51), demandes confirmées | réceptionnaire |
-| T-04 | `ouvert` | `en_cours` | au moins un pointage démarré, ou déclenchement manuel | technicien / chef d'atelier |
-| T-05 | `en_cours` | `attente_accord` | au moins une ligne `à valider` et un devis complémentaire envoyé | réceptionnaire |
-| T-06 | `attente_accord` | `en_cours` | réponse enregistrée (accepté / refusé / partiel) | réceptionnaire |
-| T-07 | `en_cours` | `attente_pieces` | au moins une ligne bloquée en attente de pièce | technicien / magasinier |
-| T-08 | `attente_pieces` | `en_cours` | pièce disponible | magasinier |
-| T-09 | `en_cours` | `attente_externe` | véhicule ou pièce parti chez un sous-traitant | chef d'atelier |
-| T-10 | `attente_externe` | `en_cours` | retour du sous-traitant | chef d'atelier |
-| T-11 | `en_cours` | `controle` | aucune ligne `à valider`, aucune ligne `validée` non `réalisée`, aucun pointage ouvert | technicien |
-| T-12 | `controle` | `en_cours` | contrôle non conforme, motif obligatoire | chef d'atelier |
-| T-13 | `controle` | `termine` | check-list complète si exigée (P-08) | chef d'atelier |
-| T-14 | `en_cours` | `termine` | uniquement si le contrôle qualité n'est pas obligatoire (P-08) | chef d'atelier |
-| T-15 | `termine` | `en_cours` | réouverture avant facturation, motif obligatoire, journalisée | chef d'atelier |
-| T-16 | `termine` | `facture` | émission d'au moins une facture couvrant les lignes du payeur (étape 2) | réceptionnaire |
-| T-17 | `facture` | `restitue` | clés remises ; paiement préalable exigé ou non selon P-11 | réceptionnaire |
-| T-18 | `termine` | `restitue` | restitution sans facturation (garantie pure, retouche, payeur externe uniquement) | réceptionnaire |
-| T-19 | `restitue` | `cloture` | plus rien en suspens (facture soldée ou transmise, prêt clôturé, pièces rendues) | automatique ou réceptionnaire |
-| T-20 | `planifie` \| `ouvert` | `annule` | aucun pointage, aucune pièce sortie, aucune facture (RM-62) | réceptionnaire |
-| T-21 | `attente_accord` \| `attente_pieces` \| `attente_externe` | `attente_*` (autre) | cumul d'attentes : l'état affiché est le plus bloquant, les motifs coexistent | système |
+| #    | De                                                        | Vers                | Condition                                                                              | Acteur                        |
+| ---- | --------------------------------------------------------- | ------------------- | -------------------------------------------------------------------------------------- | ----------------------------- |
+| T-01 | (création)                                                | `planifie`          | depuis un RDV, véhicule absent                                                         | réceptionnaire                |
+| T-02 | (création)                                                | `ouvert`            | véhicule présent, km relevé                                                            | réceptionnaire                |
+| T-03 | `planifie`                                                | `ouvert`            | réception effective : km relevé (RM-51), demandes confirmées                           | réceptionnaire                |
+| T-04 | `ouvert`                                                  | `en_cours`          | au moins un pointage démarré, ou déclenchement manuel                                  | technicien / chef d'atelier   |
+| T-05 | `en_cours`                                                | `attente_accord`    | au moins une ligne `à valider` et un devis complémentaire envoyé                       | réceptionnaire                |
+| T-06 | `attente_accord`                                          | `en_cours`          | réponse enregistrée (accepté / refusé / partiel)                                       | réceptionnaire                |
+| T-07 | `en_cours`                                                | `attente_pieces`    | au moins une ligne bloquée en attente de pièce                                         | technicien / magasinier       |
+| T-08 | `attente_pieces`                                          | `en_cours`          | pièce disponible                                                                       | magasinier                    |
+| T-09 | `en_cours`                                                | `attente_externe`   | véhicule ou pièce parti chez un sous-traitant                                          | chef d'atelier                |
+| T-10 | `attente_externe`                                         | `en_cours`          | retour du sous-traitant                                                                | chef d'atelier                |
+| T-11 | `en_cours`                                                | `controle`          | aucune ligne `à valider`, aucune ligne `validée` non `réalisée`, aucun pointage ouvert | technicien                    |
+| T-12 | `controle`                                                | `en_cours`          | contrôle non conforme, motif obligatoire                                               | chef d'atelier                |
+| T-13 | `controle`                                                | `termine`           | check-list complète si exigée (P-08)                                                   | chef d'atelier                |
+| T-14 | `en_cours`                                                | `termine`           | uniquement si le contrôle qualité n'est pas obligatoire (P-08)                         | chef d'atelier                |
+| T-15 | `termine`                                                 | `en_cours`          | réouverture avant facturation, motif obligatoire, journalisée                          | chef d'atelier                |
+| T-16 | `termine`                                                 | `facture`           | émission d'au moins une facture couvrant les lignes du payeur (étape 2)                | réceptionnaire                |
+| T-17 | `facture`                                                 | `restitue`          | clés remises ; paiement préalable exigé ou non selon P-11                              | réceptionnaire                |
+| T-18 | `termine`                                                 | `restitue`          | restitution sans facturation (garantie pure, retouche, payeur externe uniquement)      | réceptionnaire                |
+| T-19 | `restitue`                                                | `cloture`           | plus rien en suspens (facture soldée ou transmise, prêt clôturé, pièces rendues)       | automatique ou réceptionnaire |
+| T-20 | `planifie` \| `ouvert`                                    | `annule`            | aucun pointage, aucune pièce sortie, aucune facture (RM-62)                            | réceptionnaire                |
+| T-21 | `attente_accord` \| `attente_pieces` \| `attente_externe` | `attente_*` (autre) | cumul d'attentes : l'état affiché est le plus bloquant, les motifs coexistent          | système                       |
 
 > **Note sur T-21** : en pratique un OR peut attendre une pièce **et** un accord. Recommandation d'implémentation :
 > les motifs d'attente sont des **drapeaux cumulables** portés par les lignes, l'état de l'OR étant dérivé.
@@ -456,23 +467,23 @@ il revient 3 jours plus tard avec le même symptôme (§6.11, retouche).
 
 #### Transitions INTERDITES (les tests à écrire en priorité)
 
-| # | Tentative | Pourquoi c'est interdit | Comportement attendu |
-|---|---|---|---|
-| I-01 | `ouvert` → `facture` | On ne facture pas des travaux jamais déclarés terminés | Erreur métier `or.transition.interdite` |
-| I-02 | `facture` → `en_cours` | Un OR facturé est figé ; toute reprise passe par un **OR de retouche** lié (RM-57) | Erreur + proposition de créer l'OR de retouche |
-| I-03 | `facture` → `annule` | Correction par avoir uniquement (règle facturation) | Erreur `or.annulation.facture` |
-| I-04 | `restitue` → `en_cours` / `termine` | Le véhicule est parti ; nouvelle intervention = nouvel OR | Erreur + proposition de nouvel OR |
-| I-05 | `annule` → tout autre état | État terminal | Erreur |
-| I-06 | `cloture` → tout autre état | État terminal | Erreur |
-| I-07 | `planifie` → `en_cours` | On ne travaille pas sur un véhicule non réceptionné (km, dégâts, signature) | Erreur `or.reception.requise` |
-| I-08 | `en_cours` → `termine` avec une ligne `à valider` | Chaque ligne doit être tranchée (RM-60) | Erreur listant les lignes concernées |
-| I-09 | `en_cours` → `termine` avec un pointage ouvert | Le temps serait faux | Erreur listant les techniciens concernés |
-| I-10 | `en_cours` → `controle` avec une ligne `validée` non `réalisée` | Travaux payés non faits | Erreur listant les lignes |
-| I-11 | `attente_accord` → `termine` | Un accord en attente doit être tranché | Erreur |
-| I-12 | `ouvert` → `restitue` sans passer par `termine` | Restitution sans clôture technique = perte de traçabilité | Autorisé **seulement** via l'annulation d'OR (T-20) ou la sortie provisoire (§6.7), jamais par transition directe |
-| I-13 | Toute transition sur un OR d'un autre tenant | Isolation | 404, jamais 403 (ne pas divulguer l'existence) |
-| I-14 | `termine` → `facture` sans ligne facturable pour le payeur | Facture vide | Erreur `or.facturation.aucune_ligne` |
-| I-15 | Modification d'une ligne d'un OR `facture`/`restitue`/`cloture` | Immuabilité | Erreur `or.ligne.verrouillee` |
+| #    | Tentative                                                       | Pourquoi c'est interdit                                                            | Comportement attendu                                                                                              |
+| ---- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| I-01 | `ouvert` → `facture`                                            | On ne facture pas des travaux jamais déclarés terminés                             | Erreur métier `or.transition.interdite`                                                                           |
+| I-02 | `facture` → `en_cours`                                          | Un OR facturé est figé ; toute reprise passe par un **OR de retouche** lié (RM-57) | Erreur + proposition de créer l'OR de retouche                                                                    |
+| I-03 | `facture` → `annule`                                            | Correction par avoir uniquement (règle facturation)                                | Erreur `or.annulation.facture`                                                                                    |
+| I-04 | `restitue` → `en_cours` / `termine`                             | Le véhicule est parti ; nouvelle intervention = nouvel OR                          | Erreur + proposition de nouvel OR                                                                                 |
+| I-05 | `annule` → tout autre état                                      | État terminal                                                                      | Erreur                                                                                                            |
+| I-06 | `cloture` → tout autre état                                     | État terminal                                                                      | Erreur                                                                                                            |
+| I-07 | `planifie` → `en_cours`                                         | On ne travaille pas sur un véhicule non réceptionné (km, dégâts, signature)        | Erreur `or.reception.requise`                                                                                     |
+| I-08 | `en_cours` → `termine` avec une ligne `à valider`               | Chaque ligne doit être tranchée (RM-60)                                            | Erreur listant les lignes concernées                                                                              |
+| I-09 | `en_cours` → `termine` avec un pointage ouvert                  | Le temps serait faux                                                               | Erreur listant les techniciens concernés                                                                          |
+| I-10 | `en_cours` → `controle` avec une ligne `validée` non `réalisée` | Travaux payés non faits                                                            | Erreur listant les lignes                                                                                         |
+| I-11 | `attente_accord` → `termine`                                    | Un accord en attente doit être tranché                                             | Erreur                                                                                                            |
+| I-12 | `ouvert` → `restitue` sans passer par `termine`                 | Restitution sans clôture technique = perte de traçabilité                          | Autorisé **seulement** via l'annulation d'OR (T-20) ou la sortie provisoire (§6.7), jamais par transition directe |
+| I-13 | Toute transition sur un OR d'un autre tenant                    | Isolation                                                                          | 404, jamais 403 (ne pas divulguer l'existence)                                                                    |
+| I-14 | `termine` → `facture` sans ligne facturable pour le payeur      | Facture vide                                                                       | Erreur `or.facturation.aucune_ligne`                                                                              |
+| I-15 | Modification d'une ligne d'un OR `facture`/`restitue`/`cloture` | Immuabilité                                                                        | Erreur `or.ligne.verrouillee`                                                                                     |
 
 ### 5.2 Ligne d'OR
 
@@ -546,6 +557,7 @@ supprimer un prêt (annulation avec motif uniquement).
 complémentaire à CHF 940. Le véhicule est sur le pont, roues déposées, étriers démontés. Le client refuse.
 
 **Traitement attendu** :
+
 1. Les lignes du devis passent `refusée`, l'OR **reste vivant** (RM-84) et repasse `en_cours`.
 2. Les lignes refusées alimentent les **travaux reportés** du véhicule avec la date, le km, le montant estimé et le degré d'urgence (RM-73).
 3. Le temps de démontage déjà pointé existe : il doit trouver une destination. Trois politiques (**P-24**) :
@@ -565,6 +577,7 @@ complémentaire à CHF 940. Le véhicule est sur le pont, roues déposées, étr
 a acheté le véhicule. Elle a la clé et la plaque, mais elle est inconnue du garage.
 
 **Traitement attendu** :
+
 1. La recherche par plaque retrouve le véhicule et affiche **le détenteur enregistré** avec la date de début de détention.
 2. Le réceptionnaire déclare un **changement de détenteur** : fin de la détention Meier (motif « vente »), création de la fiche Rossi, début de la nouvelle détention à la date déclarée (RM-20).
 3. Les OR passés **restent rattachés à M. Meier** (RM-21). L'historique **technique** (interventions, km, travaux reportés) reste attaché au véhicule et donc visible ; l'affichage des montants et documents de l'ancien détenteur suit P-25.
@@ -587,6 +600,7 @@ est signalée comme potentiellement obsolète (un service sur une Golf n'est pas
 Fribourg, accord préalable du gestionnaire de flotte au-delà de CHF 300, numéro de commande interne obligatoire.
 
 **Traitement attendu** :
+
 1. Client `entreprise` avec adresse principale (siège) **et** adresse de facturation (fiduciaire) (RM-03).
 2. Contacts multiples avec rôles : conducteurs (RM-04), gestionnaire de flotte marqué `signataire`, comptabilité marquée destinataire des documents.
 3. À la réception, le **conducteur présent est enregistré** sur l'OR (champ distinct du client), mais **ne peut pas** autoriser un dépassement de plafond s'il n'a pas le rôle `signataire` : le devis complémentaire part au gestionnaire de flotte, pas au conducteur (RM-53 + §10).
@@ -602,6 +616,7 @@ Fribourg, accord préalable du gestionnaire de flotte au-delà de CHF 300, numé
 plus. Il occupe une place, l'assurance du garage le couvre, et la facture n'est pas payée.
 
 **Traitement attendu** :
+
 1. L'OR reste `facture` avec une localisation `prêt au retrait` et un **compteur de jours d'attente** depuis le passage en `termine`.
 2. Liste d'exceptions « véhicules en attente de retrait » avec des **paliers de relance paramétrables** (P-15) : J+3 SMS/appel, J+10 e-mail, J+20 courrier recommandé de mise en demeure.
 3. À partir de J+N **(P)**, des **frais de garde/parcage** peuvent être ajoutés (CHF/jour) — uniquement s'ils sont annoncés dans les CGV du garage ; le système ne les ajoute jamais automatiquement à la facture, il les **propose** avec un rappel de cette condition.
@@ -621,10 +636,11 @@ OR `ouvert` **sans signature** si le paramètre le permet (P-09) et le signaler 
 
 **Scénario** : pièce en rupture usine, 3 semaines. Le client a besoin de sa voiture.
 **Deux pratiques observées, à paramétrer (P-27)** :
+
 - **A** : l'OR reste ouvert en `attente_pieces`, le véhicule est marqué `sorti provisoirement` (localisation), le client repart avec sa voiture. Avantage : un seul OR, pas de perte du contexte. Inconvénient : les indicateurs de durée d'immobilisation deviennent faux.
 - **B** : l'OR en cours est **clôturé et facturé** pour ce qui est fait ; la pièce en attente devient un **travail reporté** avec un statut « pièce commandée » ; un nouvel OR sera ouvert à l'arrivée de la pièce, lié au précédent (RM-57).
-Le système doit supporter les deux et le choix doit être explicite au moment de la décision, pas figé par un
-paramètre global — **recommandation : paramètre pour le comportement par défaut, choix possible au cas par cas.**
+  Le système doit supporter les deux et le choix doit être explicite au moment de la décision, pas figé par un
+  paramètre global — **recommandation : paramètre pour le comportement par défaut, choix possible au cas par cas.**
 
 ### 6.8 Le technicien qui pointe sur deux OR en même temps
 
@@ -633,6 +649,7 @@ le technicien démarre un diagnostic pendant qu'une purge se termine.
 **Cas illégitime** : oubli de clôture du pointage précédent (le plus fréquent, de loin).
 
 **Traitement attendu** :
+
 - Défaut (P-06 = interdit) : le démarrage du second pointage clôture le premier automatiquement et **le dit** au technicien à l'écran, avec la possibilité de corriger l'heure de fin dans la foulée (RM-89).
 - Si autorisé : les deux pointages coexistent, la plage commune est **répartie au prorata** pour la productivité, la valeur brute reste consultable, et l'OR affiche « temps partagé » sur la ligne (RM-90).
 - Dans les deux cas, une **anomalie** est levée si le chevauchement dépasse N minutes (P) — ça révèle soit une mauvaise pratique, soit un besoin réel à paramétrer.
@@ -706,23 +723,23 @@ carrosserie et un OR mécanique en parallèle sur le même véhicule, pratique c
 
 ### 7.1 Client
 
-| Attribut | Remarques |
-|---|---|
-| numéro client | unique par tenant, jamais réutilisé (RM-11) |
-| type | particulier / entreprise, immuable (RM-01) |
-| civilité, nom, prénom / raison sociale | |
-| n° IDE (CHE-xxx.xxx.xxx) | entreprise ; base de la détection de doublon |
-| langue de correspondance | fr/de/it/en (RM-02) |
-| adresses (0..n typées) | principale / facturation / livraison (RM-03) |
-| contacts (0..n) | rôles cumulables : conducteur, gestionnaire de flotte, signataire, comptabilité (RM-04) |
-| téléphones, e-mail, canal préféré | mobile normalisé E.164 |
-| conditions commerciales | **historisées** : rabais MO / pièces / pneus, taux horaire spécifique, délai et mode de paiement, plafond d'engagement (RM-07) |
-| consentements | **historisés** : type, date, canal, preuve (RM-09) |
-| statut | actif / inactif / bloqué (RM-08) |
-| PO obligatoire | booléen (RM-14) |
-| groupe | maison mère / filiale (RM-10) |
-| notes | interne / alerte (RM-13) |
-| référence externe | pour l'export fiduciaire (étape 2) |
+| Attribut                               | Remarques                                                                                                                      |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| numéro client                          | unique par tenant, jamais réutilisé (RM-11)                                                                                    |
+| type                                   | particulier / entreprise, immuable (RM-01)                                                                                     |
+| civilité, nom, prénom / raison sociale |                                                                                                                                |
+| n° IDE (CHE-xxx.xxx.xxx)               | entreprise ; base de la détection de doublon                                                                                   |
+| langue de correspondance               | fr/de/it/en (RM-02)                                                                                                            |
+| adresses (0..n typées)                 | principale / facturation / livraison (RM-03)                                                                                   |
+| contacts (0..n)                        | rôles cumulables : conducteur, gestionnaire de flotte, signataire, comptabilité (RM-04)                                        |
+| téléphones, e-mail, canal préféré      | mobile normalisé E.164                                                                                                         |
+| conditions commerciales                | **historisées** : rabais MO / pièces / pneus, taux horaire spécifique, délai et mode de paiement, plafond d'engagement (RM-07) |
+| consentements                          | **historisés** : type, date, canal, preuve (RM-09)                                                                             |
+| statut                                 | actif / inactif / bloqué (RM-08)                                                                                               |
+| PO obligatoire                         | booléen (RM-14)                                                                                                                |
+| groupe                                 | maison mère / filiale (RM-10)                                                                                                  |
+| notes                                  | interne / alerte (RM-13)                                                                                                       |
+| référence externe                      | pour l'export fiduciaire (étape 2)                                                                                             |
 
 **Historisé et pourquoi** : les **conditions commerciales** (justifier a posteriori le rabais appliqué sur un OR
 de 2025), les **consentements** (preuve nLPD), l'**adresse de facturation** (une facture émise garde l'adresse du
@@ -730,30 +747,30 @@ moment — snapshot sur le document, pas de lien vivant).
 
 ### 7.2 Véhicule
 
-| Attribut | Remarques |
-|---|---|
-| VIN | identité, unique par tenant (RM-15), nullable en saisie d'urgence (RM-16) |
-| plaques | **historisées** : valeur, canton, du/au, interchangeable, professionnelle (RM-17, RM-18) |
-| marque, modèle, version, finition | référentiel marque global |
-| **code type CH** | numéro d'homologation du permis de circulation — identifie la version exacte, très demandé au comptoir pour les pièces |
-| 1re mise en circulation | base des calculs de garantie et d'expertise |
-| motorisation | carburant, cylindrée, kW/CV, boîte, transmission, norme d'émission |
-| couleur / code couleur | |
-| poids à vide / total, places | figurent sur le permis |
-| pneus | dimensions et indices été / hiver, pression |
-| huile | type, viscosité, quantité |
-| batterie, code radio, code clé | données de service |
-| plan d'entretien | intervalle km et mois, prochain service calculé |
-| importé | oui/non, pays, date d'importation (RM-27) |
-| détentions | **historisées** : client, du/au, motif de fin (RM-20) |
-| propriétaire économique | leaser éventuel (RM-22) |
-| kilométrages | **historisés** : date, valeur, unité, source (RM-23) |
-| expertises | **historisées** : date, résultat (accepté / défauts / refusé), défauts, délai de contre-visite, prochaine échéance + source (RM-28) |
-| garanties | constructeur (début, durée, plafond km), extension, garantie garage (RM-33) |
-| campagnes | code, description, ouverte/close (RM-30) |
-| travaux reportés | date, km, désignation, urgence, montant estimé, OR d'origine (RM-73) |
-| conducteur habituel | texte ou contact (flottes) |
-| statut | actif / archivé + motif (RM-31) |
+| Attribut                          | Remarques                                                                                                                           |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| VIN                               | identité, unique par tenant (RM-15), nullable en saisie d'urgence (RM-16)                                                           |
+| plaques                           | **historisées** : valeur, canton, du/au, interchangeable, professionnelle (RM-17, RM-18)                                            |
+| marque, modèle, version, finition | référentiel marque global                                                                                                           |
+| **code type CH**                  | numéro d'homologation du permis de circulation — identifie la version exacte, très demandé au comptoir pour les pièces              |
+| 1re mise en circulation           | base des calculs de garantie et d'expertise                                                                                         |
+| motorisation                      | carburant, cylindrée, kW/CV, boîte, transmission, norme d'émission                                                                  |
+| couleur / code couleur            |                                                                                                                                     |
+| poids à vide / total, places      | figurent sur le permis                                                                                                              |
+| pneus                             | dimensions et indices été / hiver, pression                                                                                         |
+| huile                             | type, viscosité, quantité                                                                                                           |
+| batterie, code radio, code clé    | données de service                                                                                                                  |
+| plan d'entretien                  | intervalle km et mois, prochain service calculé                                                                                     |
+| importé                           | oui/non, pays, date d'importation (RM-27)                                                                                           |
+| détentions                        | **historisées** : client, du/au, motif de fin (RM-20)                                                                               |
+| propriétaire économique           | leaser éventuel (RM-22)                                                                                                             |
+| kilométrages                      | **historisés** : date, valeur, unité, source (RM-23)                                                                                |
+| expertises                        | **historisées** : date, résultat (accepté / défauts / refusé), défauts, délai de contre-visite, prochaine échéance + source (RM-28) |
+| garanties                         | constructeur (début, durée, plafond km), extension, garantie garage (RM-33)                                                         |
+| campagnes                         | code, description, ouverte/close (RM-30)                                                                                            |
+| travaux reportés                  | date, km, désignation, urgence, montant estimé, OR d'origine (RM-73)                                                                |
+| conducteur habituel               | texte ou contact (flottes)                                                                                                          |
+| statut                            | actif / archivé + motif (RM-31)                                                                                                     |
 
 **Historisé et pourquoi** : la **détention** (savoir qui a commandé quoi, et ne pas exposer les données d'un
 ancien propriétaire), la **plaque** (elle change de canton et de véhicule ; l'historique sert à retrouver un
@@ -769,32 +786,32 @@ RDV précédent (chaîne de report, RM-45), notes.
 
 ### 7.4 Ordre de réparation
 
-| Attribut | Remarques |
-|---|---|
-| numéro | unique par tenant, préfixe + année (RM-49) |
-| site, date d'ouverture, réceptionnaire | |
-| type | service / réparation / diagnostic / expertise / pneus / carrosserie / retouche / interne |
-| client payeur principal | **figé** avec adresse et conditions (RM-50) |
-| véhicule + plaque figée + détenteur figé | (RM-50) |
-| conducteur présent | distinct du client (flottes, §6.4) |
-| km entrée / km sortie | (RM-51) |
-| demandes client (verbatim, 0..n) | jamais écrasées (RM-52) |
-| montant plafond + autorisé par | (RM-53) |
-| restitution promise + reports | (RM-56) |
-| localisation du véhicule | (RM-55) |
-| lignes | voir 7.5 |
-| devis complémentaires | voir 7.6 |
-| pointages | voir 7.7 |
-| prêt de véhicule | 0 ou 1 |
-| contrôle qualité | check-list, contrôleur, date, résultat |
-| pièces à restituer au client | oui/non + effectif |
-| signatures | réception, restitution (RM-109) |
-| photos / documents joints | tour du véhicule, dégâts, rapports |
-| OR parent + motif de lien | retouche / suite (RM-57) |
-| RDV d'origine | 0 ou 1 |
-| n° de commande interne (PO) | flottes (RM-14) |
-| statut | §5.1 |
-| indicateurs de litige / rétention | §6.5 |
+| Attribut                                 | Remarques                                                                                |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------- |
+| numéro                                   | unique par tenant, préfixe + année (RM-49)                                               |
+| site, date d'ouverture, réceptionnaire   |                                                                                          |
+| type                                     | service / réparation / diagnostic / expertise / pneus / carrosserie / retouche / interne |
+| client payeur principal                  | **figé** avec adresse et conditions (RM-50)                                              |
+| véhicule + plaque figée + détenteur figé | (RM-50)                                                                                  |
+| conducteur présent                       | distinct du client (flottes, §6.4)                                                       |
+| km entrée / km sortie                    | (RM-51)                                                                                  |
+| demandes client (verbatim, 0..n)         | jamais écrasées (RM-52)                                                                  |
+| montant plafond + autorisé par           | (RM-53)                                                                                  |
+| restitution promise + reports            | (RM-56)                                                                                  |
+| localisation du véhicule                 | (RM-55)                                                                                  |
+| lignes                                   | voir 7.5                                                                                 |
+| devis complémentaires                    | voir 7.6                                                                                 |
+| pointages                                | voir 7.7                                                                                 |
+| prêt de véhicule                         | 0 ou 1                                                                                   |
+| contrôle qualité                         | check-list, contrôleur, date, résultat                                                   |
+| pièces à restituer au client             | oui/non + effectif                                                                       |
+| signatures                               | réception, restitution (RM-109)                                                          |
+| photos / documents joints                | tour du véhicule, dégâts, rapports                                                       |
+| OR parent + motif de lien                | retouche / suite (RM-57)                                                                 |
+| RDV d'origine                            | 0 ou 1                                                                                   |
+| n° de commande interne (PO)              | flottes (RM-14)                                                                          |
+| statut                                   | §5.1                                                                                     |
+| indicateurs de litige / rétention        | §6.5                                                                                     |
 
 ### 7.5 Ligne d'OR
 
@@ -832,17 +849,17 @@ km départ/retour, carburant départ/retour, franchise, tarif, contrat signé, d
 
 ### 7.10 Ce qui doit être historisé — récapitulatif et justification
 
-| Donnée | Pourquoi c'est daté |
-|---|---|
-| Kilométrage | rollback de compteur, échéance d'entretien, valeur de reprise, litige garantie (« au-delà du plafond km ») |
-| Détention du véhicule | rattacher chaque OR au bon client, protéger les données de l'ancien propriétaire, retrouver l'historique en cas de revente |
-| Plaque | change de canton, est réattribuée à un autre véhicule, sert de clé de recherche sur l'ancien |
-| Prix et taux horaires | justifier a posteriori le montant d'un OR ancien, rejouer un document |
-| Conditions commerciales client | prouver le rabais consenti à l'époque |
-| Expertise | obligation légale, relance, historique de défauts |
-| Consentements | preuve nLPD |
-| Statut d'OR et de ligne | piste d'audit, litige, indicateur de délai |
-| Pointages corrigés | intégrité de la paie et des indicateurs |
+| Donnée                         | Pourquoi c'est daté                                                                                                        |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Kilométrage                    | rollback de compteur, échéance d'entretien, valeur de reprise, litige garantie (« au-delà du plafond km »)                 |
+| Détention du véhicule          | rattacher chaque OR au bon client, protéger les données de l'ancien propriétaire, retrouver l'historique en cas de revente |
+| Plaque                         | change de canton, est réattribuée à un autre véhicule, sert de clé de recherche sur l'ancien                               |
+| Prix et taux horaires          | justifier a posteriori le montant d'un OR ancien, rejouer un document                                                      |
+| Conditions commerciales client | prouver le rabais consenti à l'époque                                                                                      |
+| Expertise                      | obligation légale, relance, historique de défauts                                                                          |
+| Consentements                  | preuve nLPD                                                                                                                |
+| Statut d'OR et de ligne        | piste d'audit, litige, indicateur de délai                                                                                 |
+| Pointages corrigés             | intégrité de la paie et des indicateurs                                                                                    |
 
 ---
 
@@ -881,14 +898,14 @@ Tarification variable : gratuit, forfait par jour, gratuit au-delà d'un montant
 
 ### 8.5 Garantie constructeur vs garantie garage
 
-| | Garantie constructeur | Garantie garage (interne) | Garantie pièce fournisseur |
-|---|---|---|---|
-| Payeur | constructeur | garage | fournisseur (pièce) + souvent garage (main-d'œuvre) |
-| Déclencheur | défaut couvert, dans la durée et le km | reprise d'un travail du garage | pièce défaillante posée par le garage |
-| Barème | temps constructeur, souvent inférieur | temps réel | temps réel |
-| Exigences | code défaut, code opération, n° de dossier, **conservation de la pièce déposée** pour audit | traçabilité vers l'OR d'origine | retour de la pièce au fournisseur |
-| Étape 1 | marquage de ligne + dossier imprimable | OR de retouche lié (RM-57) | ventilation de payeurs hybride (§6.11) |
-| Étape 5 | transmission électronique au constructeur | — | — |
+|             | Garantie constructeur                                                                       | Garantie garage (interne)       | Garantie pièce fournisseur                          |
+| ----------- | ------------------------------------------------------------------------------------------- | ------------------------------- | --------------------------------------------------- |
+| Payeur      | constructeur                                                                                | garage                          | fournisseur (pièce) + souvent garage (main-d'œuvre) |
+| Déclencheur | défaut couvert, dans la durée et le km                                                      | reprise d'un travail du garage  | pièce défaillante posée par le garage               |
+| Barème      | temps constructeur, souvent inférieur                                                       | temps réel                      | temps réel                                          |
+| Exigences   | code défaut, code opération, n° de dossier, **conservation de la pièce déposée** pour audit | traçabilité vers l'OR d'origine | retour de la pièce au fournisseur                   |
+| Étape 1     | marquage de ligne + dossier imprimable                                                      | OR de retouche lié (RM-57)      | ventilation de payeurs hybride (§6.11)              |
+| Étape 5     | transmission électronique au constructeur                                                   | —                               | —                                                   |
 
 À prévoir également : **extensions de garantie et contrats de service** (payeur `tiers`, plafonds, franchise),
 et le **geste commercial** (payeur `garage`, plafonné par rôle, §10).
@@ -914,71 +931,71 @@ ce sont des données personnelles. Durées de conservation à définir, droit d'
 > Ces points varient réellement d'un garage à l'autre parmi les 10+ garages accessibles pour validation.
 > Aucun ne doit être codé en dur. Chacun a un défaut proposé, à confirmer sur le terrain.
 
-| # | Paramètre | Niveau | Défaut proposé |
-|---|---|---|---|
-| P-01 | Numérotation des OR : préfixe, portée (tenant ou site), remise à zéro annuelle | tenant | préfixe + année + séquence par tenant |
-| P-02 | Taux horaires : un seul, ou par type de travail / marque / catégorie de véhicule / technicien | tenant | plusieurs taux par type de travail |
-| P-03 | Unité de temps : heures décimales (0.1 h) ou unités de temps constructeur | tenant | heures décimales |
-| P-04 | Produits d'atelier : % de la main-d'œuvre plafonné / forfait / lignes réelles / désactivé | tenant | % plafonné |
-| P-05 | Montant plafond par défaut à la réception | tenant, surchargé par client | CHF 300 **[À VALIDER]** |
-| P-06 | Chevauchement de pointage autorisé | tenant | interdit, clôture automatique du précédent |
-| P-07 | Pointage obligatoire pour passer un OR à `terminé` | tenant | non obligatoire (avertissement) |
-| P-08 | Contrôle qualité obligatoire : jamais / toujours / selon le type d'intervention / au-delà d'un montant | tenant | selon le type d'intervention |
-| P-09 | Signature client à la réception : obligatoire / recommandée / désactivée | tenant | recommandée |
-| P-10 | Km d'entrée obligatoire / km de sortie obligatoire | tenant | entrée obligatoire, sortie facultative |
-| P-11 | Restitution possible avant paiement | tenant, surchargé par client | oui pour les entreprises, non pour les particuliers |
-| P-12 | Multi-payeurs sur un OR autorisé | tenant | oui |
-| P-13 | Rabais maximum par rôle (montant et %) | tenant × rôle | à définir |
-| P-14 | Périodicités d'expertise par type de véhicule (et par canton si nécessaire) | tenant / global | 5 / 3 / 2 ans voiture de tourisme **[À VALIDER]** |
-| P-15 | Véhicules non retirés : délai avant relance, paliers, frais de garde CHF/jour | tenant | J+3 / J+10 / J+20, frais désactivés |
-| P-16 | Rappels de RDV : canal (SMS / e-mail / aucun), J-N | tenant | SMS J-1 |
-| P-17 | Pièces apportées par le client : interdit / autorisé avec décharge | tenant | autorisé avec décharge |
-| P-18 | Véhicule de remplacement : gratuit / forfait jour / gratuit au-delà d'un montant d'OR | tenant | forfait jour |
-| P-19 | Arrondi du temps pointé : minute / 1/10 h / 1/4 h | tenant | 1/10 h |
-| P-20 | Capacité atelier : heures productives par jour et par compétence, calendrier | site | à saisir |
-| P-21 | OR sans RDV autorisé, et création automatique d'un RDV rétroactif | tenant | autorisé, RDV rétroactif créé |
-| P-22 | Utilisation de l'état `planifie` (OR préparé avant l'arrivée du véhicule) | tenant | activé |
-| P-23 | Langue des documents : langue du client / langue du site | tenant | langue du client |
-| P-24 | Refus de devis après démontage : facturer le démontage / offrir / facturer au-delà d'un seuil | tenant | facturer au-delà d'un seuil |
-| P-25 | Visibilité de l'historique du véhicule pour un nouveau détenteur : tout / technique seulement / rien | tenant | technique seulement |
-| P-26 | Montants visibles sur le document remis au conducteur d'une flotte | client | masqués |
-| P-27 | Attente de pièces longue : garder l'OR ouvert (A) ou clôturer et rouvrir (B) | tenant, choix possible au cas par cas | A |
-| P-28 | Mention de restitution sous réserve pour un défaut de sécurité refusé | tenant | obligatoire |
-| P-29 | Deux OR ouverts sur le même véhicule : bloquer / avertir / autoriser | tenant | avertir |
-| P-30 | Clients et véhicules partagés entre les sites d'un tenant, ou cloisonnés | tenant | partagés |
-| P-31 | Heure de clôture automatique des pointages ouverts | site | heure de fermeture atelier |
-| P-32 | Délai tampon entre deux prêts d'un même véhicule de remplacement | tenant | 2 h |
+| #    | Paramètre                                                                                              | Niveau                                | Défaut proposé                                      |
+| ---- | ------------------------------------------------------------------------------------------------------ | ------------------------------------- | --------------------------------------------------- |
+| P-01 | Numérotation des OR : préfixe, portée (tenant ou site), remise à zéro annuelle                         | tenant                                | préfixe + année + séquence par tenant               |
+| P-02 | Taux horaires : un seul, ou par type de travail / marque / catégorie de véhicule / technicien          | tenant                                | plusieurs taux par type de travail                  |
+| P-03 | Unité de temps : heures décimales (0.1 h) ou unités de temps constructeur                              | tenant                                | heures décimales                                    |
+| P-04 | Produits d'atelier : % de la main-d'œuvre plafonné / forfait / lignes réelles / désactivé              | tenant                                | % plafonné                                          |
+| P-05 | Montant plafond par défaut à la réception                                                              | tenant, surchargé par client          | CHF 300 **[À VALIDER]**                             |
+| P-06 | Chevauchement de pointage autorisé                                                                     | tenant                                | interdit, clôture automatique du précédent          |
+| P-07 | Pointage obligatoire pour passer un OR à `terminé`                                                     | tenant                                | non obligatoire (avertissement)                     |
+| P-08 | Contrôle qualité obligatoire : jamais / toujours / selon le type d'intervention / au-delà d'un montant | tenant                                | selon le type d'intervention                        |
+| P-09 | Signature client à la réception : obligatoire / recommandée / désactivée                               | tenant                                | recommandée                                         |
+| P-10 | Km d'entrée obligatoire / km de sortie obligatoire                                                     | tenant                                | entrée obligatoire, sortie facultative              |
+| P-11 | Restitution possible avant paiement                                                                    | tenant, surchargé par client          | oui pour les entreprises, non pour les particuliers |
+| P-12 | Multi-payeurs sur un OR autorisé                                                                       | tenant                                | oui                                                 |
+| P-13 | Rabais maximum par rôle (montant et %)                                                                 | tenant × rôle                         | à définir                                           |
+| P-14 | Périodicités d'expertise par type de véhicule (et par canton si nécessaire)                            | tenant / global                       | 5 / 3 / 2 ans voiture de tourisme **[À VALIDER]**   |
+| P-15 | Véhicules non retirés : délai avant relance, paliers, frais de garde CHF/jour                          | tenant                                | J+3 / J+10 / J+20, frais désactivés                 |
+| P-16 | Rappels de RDV : canal (SMS / e-mail / aucun), J-N                                                     | tenant                                | SMS J-1                                             |
+| P-17 | Pièces apportées par le client : interdit / autorisé avec décharge                                     | tenant                                | autorisé avec décharge                              |
+| P-18 | Véhicule de remplacement : gratuit / forfait jour / gratuit au-delà d'un montant d'OR                  | tenant                                | forfait jour                                        |
+| P-19 | Arrondi du temps pointé : minute / 1/10 h / 1/4 h                                                      | tenant                                | 1/10 h                                              |
+| P-20 | Capacité atelier : heures productives par jour et par compétence, calendrier                           | site                                  | à saisir                                            |
+| P-21 | OR sans RDV autorisé, et création automatique d'un RDV rétroactif                                      | tenant                                | autorisé, RDV rétroactif créé                       |
+| P-22 | Utilisation de l'état `planifie` (OR préparé avant l'arrivée du véhicule)                              | tenant                                | activé                                              |
+| P-23 | Langue des documents : langue du client / langue du site                                               | tenant                                | langue du client                                    |
+| P-24 | Refus de devis après démontage : facturer le démontage / offrir / facturer au-delà d'un seuil          | tenant                                | facturer au-delà d'un seuil                         |
+| P-25 | Visibilité de l'historique du véhicule pour un nouveau détenteur : tout / technique seulement / rien   | tenant                                | technique seulement                                 |
+| P-26 | Montants visibles sur le document remis au conducteur d'une flotte                                     | client                                | masqués                                             |
+| P-27 | Attente de pièces longue : garder l'OR ouvert (A) ou clôturer et rouvrir (B)                           | tenant, choix possible au cas par cas | A                                                   |
+| P-28 | Mention de restitution sous réserve pour un défaut de sécurité refusé                                  | tenant                                | obligatoire                                         |
+| P-29 | Deux OR ouverts sur le même véhicule : bloquer / avertir / autoriser                                   | tenant                                | avertir                                             |
+| P-30 | Clients et véhicules partagés entre les sites d'un tenant, ou cloisonnés                               | tenant                                | partagés                                            |
+| P-31 | Heure de clôture automatique des pointages ouverts                                                     | site                                  | heure de fermeture atelier                          |
+| P-32 | Délai tampon entre deux prêts d'un même véhicule de remplacement                                       | tenant                                | 2 h                                                 |
 
 ---
 
 ## 10. Matrice rôle × action
 
-| Action | Réceptionnaire | Chef d'atelier | Technicien | Magasinier | Comptable | Direction |
-|---|---|---|---|---|---|---|
-| Créer / modifier un client | oui | oui | non | oui | lecture | oui |
-| Fusionner deux clients | non | non | non | non | non | oui |
-| Créer / modifier un véhicule | oui | oui | km seulement | oui | lecture | oui |
-| Changer le détenteur d'un véhicule | oui | oui | non | non | non | oui |
-| Corriger un kilométrage à la baisse | non | oui | non | non | non | oui |
-| Créer / déplacer un RDV | oui | oui | non | non | non | oui |
-| Forcer une double réservation de ressource | non | oui | non | non | non | oui |
-| Ouvrir un OR | oui | oui | non | non | non | oui |
-| Ajouter une ligne constatée | oui | oui | oui | oui (pièces) | non | oui |
-| Valider une ligne dans le plafond | oui | oui | non | non | non | oui |
-| Enregistrer une réponse de devis complémentaire | oui | oui | non | non | non | oui |
-| Modifier le montant plafond | oui | oui | non | non | non | oui |
-| Appliquer un rabais | jusqu'à P-13 | jusqu'à P-13 | non | non | non | sans limite |
-| Passer une ligne en payeur `garage` (geste) | jusqu'à P-13 | jusqu'à P-13 | non | non | non | sans limite |
-| Démarrer / arrêter son propre pointage | — | oui | oui | oui | non | oui |
-| Corriger le pointage d'un autre | non | oui | non | non | non | oui |
-| Verrouiller une période de pointage | non | non | non | non | oui | oui |
-| Valider le contrôle qualité | non | oui | oui (autre que l'exécutant) | non | non | oui |
-| Passer l'OR à `terminé` | oui | oui | non | non | non | oui |
-| Facturer (étape 2) | oui | non | non | non | oui | oui |
-| Restituer le véhicule | oui | oui | non | non | non | oui |
-| Annuler un OR | oui | oui | non | non | non | oui |
-| Lever une rétention | non | non | non | non | non | oui |
-| Voir les indicateurs de productivité par technicien | non | oui | ses propres chiffres | non | non | oui |
+| Action                                              | Réceptionnaire | Chef d'atelier | Technicien                  | Magasinier   | Comptable | Direction   |
+| --------------------------------------------------- | -------------- | -------------- | --------------------------- | ------------ | --------- | ----------- |
+| Créer / modifier un client                          | oui            | oui            | non                         | oui          | lecture   | oui         |
+| Fusionner deux clients                              | non            | non            | non                         | non          | non       | oui         |
+| Créer / modifier un véhicule                        | oui            | oui            | km seulement                | oui          | lecture   | oui         |
+| Changer le détenteur d'un véhicule                  | oui            | oui            | non                         | non          | non       | oui         |
+| Corriger un kilométrage à la baisse                 | non            | oui            | non                         | non          | non       | oui         |
+| Créer / déplacer un RDV                             | oui            | oui            | non                         | non          | non       | oui         |
+| Forcer une double réservation de ressource          | non            | oui            | non                         | non          | non       | oui         |
+| Ouvrir un OR                                        | oui            | oui            | non                         | non          | non       | oui         |
+| Ajouter une ligne constatée                         | oui            | oui            | oui                         | oui (pièces) | non       | oui         |
+| Valider une ligne dans le plafond                   | oui            | oui            | non                         | non          | non       | oui         |
+| Enregistrer une réponse de devis complémentaire     | oui            | oui            | non                         | non          | non       | oui         |
+| Modifier le montant plafond                         | oui            | oui            | non                         | non          | non       | oui         |
+| Appliquer un rabais                                 | jusqu'à P-13   | jusqu'à P-13   | non                         | non          | non       | sans limite |
+| Passer une ligne en payeur `garage` (geste)         | jusqu'à P-13   | jusqu'à P-13   | non                         | non          | non       | sans limite |
+| Démarrer / arrêter son propre pointage              | —              | oui            | oui                         | oui          | non       | oui         |
+| Corriger le pointage d'un autre                     | non            | oui            | non                         | non          | non       | oui         |
+| Verrouiller une période de pointage                 | non            | non            | non                         | non          | oui       | oui         |
+| Valider le contrôle qualité                         | non            | oui            | oui (autre que l'exécutant) | non          | non       | oui         |
+| Passer l'OR à `terminé`                             | oui            | oui            | non                         | non          | non       | oui         |
+| Facturer (étape 2)                                  | oui            | non            | non                         | non          | oui       | oui         |
+| Restituer le véhicule                               | oui            | oui            | non                         | non          | non       | oui         |
+| Annuler un OR                                       | oui            | oui            | non                         | non          | non       | oui         |
+| Lever une rétention                                 | non            | non            | non                         | non          | non       | oui         |
+| Voir les indicateurs de productivité par technicien | non            | oui            | ses propres chiffres        | non          | non       | oui         |
 
 > Les rôles sont **cumulables** : dans un garage de 4 personnes, le patron porte réceptionnaire + chef d'atelier +
 > direction. La matrice décrit des permissions, pas des personnes.
@@ -1095,15 +1112,15 @@ ce sont des données personnelles. Durées de conservation à définir, droit d'
 
 **Juridique et sécurité**
 
-- **Q-14** — Une acceptation de devis par SMS ou par clic sur un lien vous semble-t-elle suffisante en cas de litige ? Qu'exigez-vous aujourd'hui ? *(À croiser avec un avis juridique.)*
+- **Q-14** — Une acceptation de devis par SMS ou par clic sur un lien vous semble-t-elle suffisante en cas de litige ? Qu'exigez-vous aujourd'hui ? _(À croiser avec un avis juridique.)_
 - **Q-15** — Avez-vous déjà gardé un véhicule non payé ? Quelle procédure avez-vous suivie ? Facturez-vous des frais de garde, et à partir de quand ?
 - **Q-16** — Quand un client refuse une réparation de sécurité, lui faites-vous signer une décharge ? Avez-vous un texte type (UPSA / assurance RC) ?
 
 **Suisse**
 
 - **Q-17** — Comment gérez-vous les échéances d'expertise ? Le client arrive-t-il avec sa convocation ? Faites-vous des pré-expertises ? Présentez-vous les véhicules vous-même ? Les périodicités que vous constatez correspondent-elles à 5 / 3 / 2 ans ?
-- **Q-18** — Comment traitez-vous les taxes de recyclage (pneus, batteries, huiles) sur la facture, et sont-elles soumises à TVA ? *(À croiser avec la fiduciaire.)*
-- **Q-19** — Faites-vous du dépôt de pneus ? Combien de jeux stockés ? Comment retrouvez-vous l'emplacement d'un jeu ? Est-ce facturé annuellement ? *(Détermine si le module doit remonter dans la feuille de route.)*
+- **Q-18** — Comment traitez-vous les taxes de recyclage (pneus, batteries, huiles) sur la facture, et sont-elles soumises à TVA ? _(À croiser avec la fiduciaire.)_
+- **Q-19** — Faites-vous du dépôt de pneus ? Combien de jeux stockés ? Comment retrouvez-vous l'emplacement d'un jeu ? Est-ce facturé annuellement ? _(Détermine si le module doit remonter dans la feuille de route.)_
 - **Q-20** — Combien de véhicules importés dans votre clientèle ? Avez-vous des problèmes de garantie ou de campagnes de rappel avec eux ?
 
 **Organisation**
@@ -1119,6 +1136,7 @@ ce sont des données personnelles. Durées de conservation à définir, droit d'
 ## Annexe — Points d'attention architecturale
 
 **Backend et schéma**
+
 - L'état `attente_*` de l'OR est **dérivé** des drapeaux portés par les lignes, pas saisi (§5.1, T-21). Décider tôt : colonne calculée ou état matérialisé recalculé à chaque transition.
 - Les valeurs **figées** (taux horaire, prix, conditions, adresse, plaque, détenteur) sont copiées sur l'OR et ses lignes à la création. C'est de la dénormalisation volontaire et non négociable (RM-50, RM-65).
 - Le pointage a besoin d'un **verrou par technicien** pour garantir RM-88 sous concurrence (deux terminaux atelier).
@@ -1126,6 +1144,7 @@ ce sont des données personnelles. Durées de conservation à définir, droit d'
 - Prévoir dès l'étape 1 les champs `article_id` (étape 3) et `facture_id` (étape 2) nullables, pour éviter une migration destructive.
 
 **Frontend et ergonomie**
+
 - Trois écrans portent 90 % de l'usage : le **planning du jour**, la **fiche OR**, l'**écran atelier du technicien** (grand tactile, gants, pointage en un geste).
 - La recherche par plaque est le point d'entrée n°1 : elle doit être présente sur tous les écrans, tolérante et instantanée.
 - La réception du matin est un rush : la saisie doit être possible dans le désordre, sans champ obligatoire bloquant hors km et véhicule.
@@ -1133,6 +1152,7 @@ ce sont des données personnelles. Durées de conservation à définir, droit d'
 - Les listes d'exceptions (attente d'accord, attente de pièces, véhicules non retirés, pointages anormaux) sont le tableau de bord réel du chef d'atelier.
 
 **Pour expert-tests**
+
 - Priorité absolue aux transitions **interdites** (§5, tableaux I-xx) et aux règles de figement de valeurs.
 - Chaque paramètre du §9 exige un test dans les deux configurations.
 - Aucun `toBeCloseTo` sur les montants ; tous les calculs en centimes entiers.

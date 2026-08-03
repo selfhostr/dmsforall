@@ -1,6 +1,12 @@
 import { useId } from 'react';
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
@@ -24,7 +30,14 @@ export interface ProprietesSelecteurTri {
 /** Sélecteur de tri compact — alternative aux en-têtes triables de `TableComptoir` (utile en
  *  tablette où la table dense n'est pas le gabarit par défaut). `valeur` suit la forme du
  *  paramètre `tri` de l'API, pas de mapping supplémentaire côté appelant. */
-export function SelecteurTri({ id, options, valeur, onChangeValeur, label, className }: ProprietesSelecteurTri) {
+export function SelecteurTri({
+  id,
+  options,
+  valeur,
+  onChangeValeur,
+  label,
+  className,
+}: ProprietesSelecteurTri) {
   const idGenere = useId();
   const idChamp = id ?? idGenere;
 

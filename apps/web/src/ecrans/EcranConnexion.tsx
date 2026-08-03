@@ -68,7 +68,9 @@ export function EcranConnexion() {
                   ) : (
                     <AlertCircle className="h-4 w-4" aria-hidden="true" />
                   )}
-                  <AlertTitle>{estErreurReseau ? t('erreurs:reseau.titre') : t('erreurs:inattendue.titre')}</AlertTitle>
+                  <AlertTitle>
+                    {estErreurReseau ? t('erreurs:reseau.titre') : t('erreurs:inattendue.titre')}
+                  </AlertTitle>
                   <AlertDescription>{messageErreur(erreur, t)}</AlertDescription>
                 </Alert>
               ) : null}
@@ -124,10 +126,14 @@ export function EcranConnexion() {
               </div>
 
               <Button type="submit" className="w-full" disabled={enCours}>
-                {enCours ? t('auth:connexion.actions.enCours') : t('auth:connexion.actions.seConnecter')}
+                {enCours
+                  ? t('auth:connexion.actions.enCours')
+                  : t('auth:connexion.actions.seConnecter')}
               </Button>
 
-              <p className="text-center text-sm text-muted-foreground">{t('auth:connexion.aide.motDePasseOublie')}</p>
+              <p className="text-center text-sm text-muted-foreground">
+                {t('auth:connexion.aide.motDePasseOublie')}
+              </p>
             </form>
           </CardContent>
         </Card>

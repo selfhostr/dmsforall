@@ -73,7 +73,11 @@ describe('EcranListeFournisseurs', () => {
     rendre();
 
     expect(await screen.findByText('Aucun fournisseur.')).toBeInTheDocument();
-    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Créer un fournisseur' }).length).toBeGreaterThan(0));
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole('button', { name: 'Créer un fournisseur' }).length,
+      ).toBeGreaterThan(0),
+    );
   });
 
   it('état erreur : message actionnable avec retry', async () => {

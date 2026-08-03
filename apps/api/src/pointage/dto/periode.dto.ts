@@ -1,5 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { ReponseDeverrouillagePeriodePointage, ReponseVerrouillagePeriodePointage } from '@dfa/shared';
+import type {
+  ReponseDeverrouillagePeriodePointage,
+  ReponseVerrouillagePeriodePointage,
+} from '@dfa/shared';
 
 /** DTO Swagger du rapport d'exécution de `POST /pointages/verrouiller-periode` (RM-95). */
 export class ReponseVerrouillagePeriodePointageDto implements ReponseVerrouillagePeriodePointage {

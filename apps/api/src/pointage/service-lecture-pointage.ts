@@ -26,7 +26,10 @@ import type { LecturePointage, PointageOuvert } from '../atelier/atelier.jetons'
 export class ServiceLecturePointage implements LecturePointage {
   /** I-09 (`atelier`) : pointages `en_cours` sur cet OR — couvre `productif_ligne` ET
    *  `productif_or`, les deux portent `ordre_reparation_id` (`pointage_cible_coherente_chk`). */
-  async pointagesOuvertsPourOr(tx: TransactionDfa, orId: string): Promise<readonly PointageOuvert[]> {
+  async pointagesOuvertsPourOr(
+    tx: TransactionDfa,
+    orId: string,
+  ): Promise<readonly PointageOuvert[]> {
     // JOIN direct sur `utilisateur` pour le nom affiché : `ElementBloquant.libelle`, côté atelier
     // (`ServiceTransitions.verifierPointageOuvert`), l'affiche TEL QUEL à un humain — un id brut y
     // serait un défaut d'ergonomie, pas un simple détail. Coût borné : au plus quelques pointages
@@ -41,7 +44,10 @@ export class ServiceLecturePointage implements LecturePointage {
         nom: utilisateur.nom,
       })
       .from(pointage)
-      .innerJoin(utilisateur, and(eq(utilisateur.tenantId, pointage.tenantId), eq(utilisateur.id, pointage.technicienId)))
+      .innerJoin(
+        utilisateur,
+        and(eq(utilisateur.tenantId, pointage.tenantId), eq(utilisateur.id, pointage.technicienId)),
+      )
       .where(and(eq(pointage.ordreReparationId, orId), eq(pointage.statut, 'en_cours')));
 
     return lignes.map((l) => ({
@@ -54,7 +60,10 @@ export class ServiceLecturePointage implements LecturePointage {
   }
 
   /** Lignes d'OR qui portent AU MOINS un pointage (tout statut confondu) parmi `ligneIds`. */
-  async lignesAvecTempsPointe(tx: TransactionDfa, ligneIds: readonly string[]): Promise<ReadonlySet<string>> {
+  async lignesAvecTempsPointe(
+    tx: TransactionDfa,
+    ligneIds: readonly string[],
+  ): Promise<ReadonlySet<string>> {
     if (ligneIds.length === 0) return new Set();
     const lignes = await tx
       .selectDistinct({ ligneOrId: pointage.ligneOrId })

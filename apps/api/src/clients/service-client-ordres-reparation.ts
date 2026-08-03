@@ -1,6 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
-import type { ClientResume, EtatAfficheOrdreReparation, OrdreReparationResume, PageCurseur, VehiculeResume } from '@dfa/shared';
+import type {
+  ClientResume,
+  EtatAfficheOrdreReparation,
+  OrdreReparationResume,
+  PageCurseur,
+  VehiculeResume,
+} from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant } from '../db';
 import { enDate, JETON_DB } from '../db';
@@ -71,7 +77,7 @@ type LigneOrDuClientBrute = {
   // la microseconde avant que la valeur de curseur ne soit construite (voir `pagination-triee.ts`,
   // `valeurCurseurDepuisTri()`, et `common/pagination/valeur-temporelle.ts`).
   readonly triValeur: string | number | null;
-}
+};
 
 /** Priorité `accord > pieces > externe` (RM-58), et UNIQUEMENT sur un OR encore actif. */
 function calculerEtatAffiche(ligne: LigneOrDuClientBrute): EtatAfficheOrdreReparation {
@@ -107,7 +113,9 @@ function versOrdreReparationResume(
     type: ligne.type,
     localisation: ligne.localisation,
     ouvertLe: ligne.ouvertLe ? enDate(ligne.ouvertLe).toISOString() : null,
-    restitutionPromiseLe: ligne.restitutionPromiseLe ? enDate(ligne.restitutionPromiseLe).toISOString() : null,
+    restitutionPromiseLe: ligne.restitutionPromiseLe
+      ? enDate(ligne.restitutionPromiseLe).toISOString()
+      : null,
     vehicule: versVehiculeResume(ligne),
     client: clientResume,
     nombreLignes: ligne.nombreLignes,
@@ -130,7 +138,11 @@ export class ServiceClientOrdresReparation {
     const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
 
     return this.acces.enTenant(ctx, async (tx) => {
-      const lignesClient = await tx.select().from(client).where(and(eq(client.tenantId, ctx.tenantId), eq(client.id, clientId))).limit(1);
+      const lignesClient = await tx
+        .select()
+        .from(client)
+        .where(and(eq(client.tenantId, ctx.tenantId), eq(client.id, clientId)))
+        .limit(1);
       const ligneClient = lignesClient[0];
       if (!ligneClient) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Client introuvable.');
       // Une seule requête supplémentaire, exécutée UNE FOIS pour ce client (pas par ligne d'OR) :
@@ -155,15 +167,26 @@ export class ServiceClientOrdresReparation {
              from public.ordre_reparation o
             where o.tenant_id = ${ctx.tenantId} and o.client_id = ${clientId}) as "dernierPassageLe"
       `);
-      const extraClient = extraResultat.rows[0] ?? { localite: null, nombreVehicules: 0, dernierPassageLe: null };
+      const extraClient = extraResultat.rows[0] ?? {
+        localite: null,
+        nombreVehicules: 0,
+        dernierPassageLe: null,
+      };
       const clientResume = versClientResume(ligneClient, extraClient);
 
       const conditions = [sql`o.tenant_id = ${ctx.tenantId}`, sql`o.client_id = ${clientId}`];
       if (params.statut && params.statut.length > 0) {
-        conditions.push(sql`o.statut::text in (${sql.join(params.statut.map((s) => sql`${s}`), sql`, `)})`);
+        conditions.push(
+          sql`o.statut::text in (${sql.join(
+            params.statut.map((s) => sql`${s}`),
+            sql`, `,
+          )})`,
+        );
       }
       if (curseurDecode) {
-        conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
+        conditions.push(
+          construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id),
+        );
       }
 
       const requete = sql`
@@ -175,10 +198,22 @@ export class ServiceClientOrdresReparation {
           v.vin as "vehiculeVin", v.date_1re_circulation as "vehiculePremiereMiseEnCirculationLe",
           v.identification_incomplete as "vehiculeIdentificationIncomplete",
           (select count(*) from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.statut <> 'annulee') as "nombreLignes",
-          (select coalesce(sum(l.montant_ttc_centimes), 0) from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.statut::text not in (${sql.join(STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`), sql`, `)})) as "totalTtcCentimes",
-          exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'accord' and l.statut::text not in (${sql.join(STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`), sql`, `)})) as "aAttenteAccord",
-          exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'pieces' and l.statut::text not in (${sql.join(STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`), sql`, `)})) as "aAttentePieces",
-          exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'externe' and l.statut::text not in (${sql.join(STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`), sql`, `)})) as "aAttenteExterne",
+          (select coalesce(sum(l.montant_ttc_centimes), 0) from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.statut::text not in (${sql.join(
+            STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`),
+            sql`, `,
+          )})) as "totalTtcCentimes",
+          exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'accord' and l.statut::text not in (${sql.join(
+            STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`),
+            sql`, `,
+          )})) as "aAttenteAccord",
+          exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'pieces' and l.statut::text not in (${sql.join(
+            STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`),
+            sql`, `,
+          )})) as "aAttentePieces",
+          exists (select 1 from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.blocage = 'externe' and l.statut::text not in (${sql.join(
+            STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`),
+            sql`, `,
+          )})) as "aAttenteExterne",
           ${expressionTriValeur(definition)} as "triValeur"
         from public.ordre_reparation o
         join public.vehicule v on v.tenant_id = o.tenant_id and v.id = o.vehicule_id
@@ -195,7 +230,9 @@ export class ServiceClientOrdresReparation {
       const derniere = pageLignes[pageLignes.length - 1];
 
       return {
-        donnees: pageLignes.map((ligne) => versOrdreReparationResume(ligne, clientResume, avecMontants)),
+        donnees: pageLignes.map((ligne) =>
+          versOrdreReparationResume(ligne, clientResume, avecMontants),
+        ),
         curseurSuivant:
           aUnePageSuivante && derniere
             ? encoderCurseurTrie({

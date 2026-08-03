@@ -65,7 +65,9 @@ const FOURNISSEUR: ReponseFournisseur = {
 
 function rendre(role: (typeof SESSION_TEST)['utilisateur']['role'] = 'magasinier') {
   server.use(
-    http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role } })),
+    http.get('/api/v1/auth/moi', () =>
+      HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role } }),
+    ),
     http.get('/api/v1/commandes-fournisseur/cmd-1', () => HttpResponse.json(COMMANDE)),
     http.get('/api/v1/fournisseurs/fourn-1', () => HttpResponse.json(FOURNISSEUR)),
   );
@@ -74,7 +76,10 @@ function rendre(role: (typeof SESSION_TEST)['utilisateur']['role'] = 'magasinier
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/pieces/commandes-fournisseur/cmd-1']}>
         <Routes>
-          <Route path="/pieces/commandes-fournisseur/:id" element={<EcranFicheCommandeFournisseur />} />
+          <Route
+            path="/pieces/commandes-fournisseur/:id"
+            element={<EcranFicheCommandeFournisseur />}
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -99,7 +104,17 @@ describe('EcranFicheCommandeFournisseur', () => {
           {
             donnees: {
               mouvementsCrees: ['mvt-1'],
-              commandeFournisseur: { ...COMMANDE, statut: 'recue', lignes: [{ ...COMMANDE.lignes[0], quantiteRecueCumuleeMillieme: 5000, quantiteReliquatMillieme: 0 }] },
+              commandeFournisseur: {
+                ...COMMANDE,
+                statut: 'recue',
+                lignes: [
+                  {
+                    ...COMMANDE.lignes[0],
+                    quantiteRecueCumuleeMillieme: 5000,
+                    quantiteReliquatMillieme: 0,
+                  },
+                ],
+              },
             },
             avertissements: [],
           },
@@ -112,13 +127,28 @@ describe('EcranFicheCommandeFournisseur', () => {
     const utilisateur = userEvent.setup();
 
     await utilisateur.click(await screen.findByRole('button', { name: 'Modifier' }));
-    await utilisateur.click(await screen.findByRole('menuitem', { name: 'Enregistrer une réception' }));
+    await utilisateur.click(
+      await screen.findByRole('menuitem', { name: 'Enregistrer une réception' }),
+    );
 
     const dialogue = await screen.findByRole('dialog');
     await utilisateur.click(within(dialogue).getByRole('checkbox'));
-    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Enregistrer une réception' }));
+    await utilisateur.click(
+      within(dialogue).getByRole('button', { name: 'Enregistrer une réception' }),
+    );
 
-    await waitFor(() => expect(corpsRecu).toEqual({ lignes: [{ ligneId: 'ligne-1', quantiteRecueMillieme: 5000, prixAchatReelCentimes: 2000, motif: undefined }] }));
+    await waitFor(() =>
+      expect(corpsRecu).toEqual({
+        lignes: [
+          {
+            ligneId: 'ligne-1',
+            quantiteRecueMillieme: 5000,
+            prixAchatReelCentimes: 2000,
+            motif: undefined,
+          },
+        ],
+      }),
+    );
   });
 
   it('état erreur : message actionnable avec retry', async () => {
@@ -143,7 +173,10 @@ describe('EcranFicheCommandeFournisseur', () => {
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/pieces/commandes-fournisseur/cmd-1']}>
           <Routes>
-            <Route path="/pieces/commandes-fournisseur/:id" element={<EcranFicheCommandeFournisseur />} />
+            <Route
+              path="/pieces/commandes-fournisseur/:id"
+              element={<EcranFicheCommandeFournisseur />}
+            />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,

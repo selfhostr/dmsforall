@@ -11,7 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { dateJourLocale } from '@/hooks/pointage/temps-pointage';
-import { useDeverrouillerPeriodePointage, useVerrouillerPeriodePointage } from '@/hooks/pointage/useVerrouillagePeriode';
+import {
+  useDeverrouillerPeriodePointage,
+  useVerrouillerPeriodePointage,
+} from '@/hooks/pointage/useVerrouillagePeriode';
 import { useSession } from '@/hooks/useSession';
 
 import { SelecteurSitePointage } from './SelecteurSitePointage';
@@ -46,10 +49,16 @@ export function EcranCloturePeriodePointage() {
   const deverrouiller = useDeverrouillerPeriodePointage();
 
   const [resultatVerrouillage, setResultatVerrouillage] = useState<number | undefined>(undefined);
-  const [resultatDeverrouillage, setResultatDeverrouillage] = useState<number | undefined>(undefined);
+  const [resultatDeverrouillage, setResultatDeverrouillage] = useState<number | undefined>(
+    undefined,
+  );
 
-  const formVerrouiller = useForm<ValeursVerrouillage>({ defaultValues: { jusquauLe: dateJourLocale(), motif: '' } });
-  const formDeverrouiller = useForm<ValeursVerrouillage>({ defaultValues: { jusquauLe: dateJourLocale(), motif: '' } });
+  const formVerrouiller = useForm<ValeursVerrouillage>({
+    defaultValues: { jusquauLe: dateJourLocale(), motif: '' },
+  });
+  const formDeverrouiller = useForm<ValeursVerrouillage>({
+    defaultValues: { jusquauLe: dateJourLocale(), motif: '' },
+  });
 
   if (!siteId) {
     return (
@@ -69,7 +78,11 @@ export function EcranCloturePeriodePointage() {
   const soumettreVerrouillage = formVerrouiller.handleSubmit((valeurs) => {
     setResultatVerrouillage(undefined);
     verrouiller.mutate(
-      { siteId, jusquauLe: valeurs.jusquauLe, motif: valeurs.motif.trim() === '' ? undefined : valeurs.motif.trim() },
+      {
+        siteId,
+        jusquauLe: valeurs.jusquauLe,
+        motif: valeurs.motif.trim() === '' ? undefined : valeurs.motif.trim(),
+      },
       { onSuccess: (reponse) => setResultatVerrouillage(reponse.pointagesVerrouilles) },
     );
   });
@@ -89,15 +102,25 @@ export function EcranCloturePeriodePointage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="texte-titre-section">{t('pointage:periode.verrouiller.titre')}</CardTitle>
+            <CardTitle className="texte-titre-section">
+              {t('pointage:periode.verrouiller.titre')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={soumettreVerrouillage} noValidate className="flex flex-col gap-4">
-              <p className="texte-corps text-muted-foreground">{t('pointage:periode.verrouiller.description')}</p>
+              <p className="texte-corps text-muted-foreground">
+                {t('pointage:periode.verrouiller.description')}
+              </p>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="verrouiller-jusquau">{t('pointage:periode.verrouiller.jusquau')}</Label>
-                <Input id="verrouiller-jusquau" type="date" {...formVerrouiller.register('jusquauLe', { required: true })} />
+                <Label htmlFor="verrouiller-jusquau">
+                  {t('pointage:periode.verrouiller.jusquau')}
+                </Label>
+                <Input
+                  id="verrouiller-jusquau"
+                  type="date"
+                  {...formVerrouiller.register('jusquauLe', { required: true })}
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -113,7 +136,9 @@ export function EcranCloturePeriodePointage() {
 
               {resultatVerrouillage !== undefined ? (
                 <Alert>
-                  <AlertDescription>{t('pointage:periode.verrouiller.resultat', { count: resultatVerrouillage })}</AlertDescription>
+                  <AlertDescription>
+                    {t('pointage:periode.verrouiller.resultat', { count: resultatVerrouillage })}
+                  </AlertDescription>
                 </Alert>
               ) : null}
 
@@ -126,26 +151,43 @@ export function EcranCloturePeriodePointage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="texte-titre-section">{t('pointage:periode.deverrouiller.titre')}</CardTitle>
+            <CardTitle className="texte-titre-section">
+              {t('pointage:periode.deverrouiller.titre')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={soumettreDeverrouillage} noValidate className="flex flex-col gap-4">
-              <p className="texte-corps text-muted-foreground">{t('pointage:periode.deverrouiller.description')}</p>
+              <p className="texte-corps text-muted-foreground">
+                {t('pointage:periode.deverrouiller.description')}
+              </p>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="deverrouiller-jusquau">{t('pointage:periode.deverrouiller.jusquau')}</Label>
-                <Input id="deverrouiller-jusquau" type="date" {...formDeverrouiller.register('jusquauLe', { required: true })} />
+                <Label htmlFor="deverrouiller-jusquau">
+                  {t('pointage:periode.deverrouiller.jusquau')}
+                </Label>
+                <Input
+                  id="deverrouiller-jusquau"
+                  type="date"
+                  {...formDeverrouiller.register('jusquauLe', { required: true })}
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="deverrouiller-motif">{t('pointage:periode.deverrouiller.motif')}</Label>
+                <Label htmlFor="deverrouiller-motif">
+                  {t('pointage:periode.deverrouiller.motif')}
+                </Label>
                 <Textarea
                   id="deverrouiller-motif"
                   aria-invalid={formDeverrouiller.formState.errors.motif ? true : undefined}
-                  {...formDeverrouiller.register('motif', { required: true, validate: (valeur) => valeur.trim().length > 0 })}
+                  {...formDeverrouiller.register('motif', {
+                    required: true,
+                    validate: (valeur) => valeur.trim().length > 0,
+                  })}
                 />
                 {formDeverrouiller.formState.errors.motif ? (
-                  <p className="texte-libelle text-destructive">{t('pointage:periode.deverrouiller.motifRequis')}</p>
+                  <p className="texte-libelle text-destructive">
+                    {t('pointage:periode.deverrouiller.motifRequis')}
+                  </p>
                 ) : null}
               </div>
 
@@ -157,7 +199,11 @@ export function EcranCloturePeriodePointage() {
 
               {resultatDeverrouillage !== undefined ? (
                 <Alert>
-                  <AlertDescription>{t('pointage:periode.deverrouiller.resultat', { count: resultatDeverrouillage })}</AlertDescription>
+                  <AlertDescription>
+                    {t('pointage:periode.deverrouiller.resultat', {
+                      count: resultatDeverrouillage,
+                    })}
+                  </AlertDescription>
                 </Alert>
               ) : null}
 

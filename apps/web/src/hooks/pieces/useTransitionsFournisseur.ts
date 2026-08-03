@@ -1,9 +1,17 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 
-import type { EntreeModificationFournisseur, ReponseAvecAvertissements, ReponseFournisseur } from '@dfa/shared';
+import type {
+  EntreeModificationFournisseur,
+  ReponseAvecAvertissements,
+  ReponseFournisseur,
+} from '@dfa/shared';
 
 import { clesPieces } from './cles';
-import { desactiverFournisseur, modifierFournisseur, reactiverFournisseur } from './fournisseurs.api';
+import {
+  desactiverFournisseur,
+  modifierFournisseur,
+  reactiverFournisseur,
+} from './fournisseurs.api';
 
 /**
  * Une mutation par action nommée sur un fournisseur — même patron que `useTransitionsArticle` :
@@ -31,7 +39,9 @@ export function useModifierFournisseur(id: string) {
 }
 
 /** `POST /fournisseurs/{id}/desactiver` — aucun corps. */
-export function useDesactiverFournisseur(id: string): UseMutationResult<ReponseAvecAvertissements<ReponseFournisseur>, unknown, void> {
+export function useDesactiverFournisseur(
+  id: string,
+): UseMutationResult<ReponseAvecAvertissements<ReponseFournisseur>, unknown, void> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -44,7 +54,9 @@ export function useDesactiverFournisseur(id: string): UseMutationResult<ReponseA
 }
 
 /** `POST /fournisseurs/{id}/reactiver` — aucun corps. */
-export function useReactiverFournisseur(id: string): UseMutationResult<ReponseAvecAvertissements<ReponseFournisseur>, unknown, void> {
+export function useReactiverFournisseur(
+  id: string,
+): UseMutationResult<ReponseAvecAvertissements<ReponseFournisseur>, unknown, void> {
   const queryClient = useQueryClient();
 
   return useMutation({

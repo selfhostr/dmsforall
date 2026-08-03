@@ -46,11 +46,19 @@ export async function chargerResumesUtilisateurs(
   const lignes = await tx
     .select({ id: utilisateur.id, prenom: utilisateur.prenom, nom: utilisateur.nom })
     .from(utilisateur)
-    .where(and(eq(utilisateur.tenantId, ctx.tenantId), inArray(utilisateur.id, [...utilisateurIds])));
-  return new Map(lignes.map((l) => [l.id, { utilisateurId: l.id, nomAffiche: `${l.prenom} ${l.nom}` }]));
+    .where(
+      and(eq(utilisateur.tenantId, ctx.tenantId), inArray(utilisateur.id, [...utilisateurIds])),
+    );
+  return new Map(
+    lignes.map((l) => [l.id, { utilisateurId: l.id, nomAffiche: `${l.prenom} ${l.nom}` }]),
+  );
 }
 
-export async function verifierClientExiste(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<void> {
+export async function verifierClientExiste(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  clientId: string,
+): Promise<void> {
   const [ligne] = await tx
     .select({ id: client.id })
     .from(client)
@@ -100,7 +108,11 @@ async function chargerPaiementOuNull(
   return ligne ?? null;
 }
 
-export async function chargerPaiement(tx: TransactionDfa, ctx: ContexteTenant, paiementId: string): Promise<LignePaiement> {
+export async function chargerPaiement(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  paiementId: string,
+): Promise<LignePaiement> {
   const ligne = await chargerPaiementOuNull(tx, ctx, paiementId, false);
   if (!ligne) {
     throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Paiement ${paiementId} introuvable.`);
@@ -112,7 +124,11 @@ export async function chargerPaiement(tx: TransactionDfa, ctx: ContexteTenant, p
  *  (imputation, remboursement, abandon) : `montantNonImputeCentimes` doit être calculé sur un état
  *  stable pour toute la transaction, sous peine d'imputer/rembourser deux fois le même reliquat en
  *  cas de double-clic concurrent. */
-export async function chargerPaiementPourEcriture(tx: TransactionDfa, ctx: ContexteTenant, paiementId: string): Promise<LignePaiement> {
+export async function chargerPaiementPourEcriture(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  paiementId: string,
+): Promise<LignePaiement> {
   const ligne = await chargerPaiementOuNull(tx, ctx, paiementId, true);
   if (!ligne) {
     throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Paiement ${paiementId} introuvable.`);
@@ -128,7 +144,10 @@ export async function chargerPaiementPourEcriture(tx: TransactionDfa, ctx: Conte
  * §gaps). Défaut `true` si aucune ligne de paramètres n'existe encore pour ce tenant, exactement
  * comme le `DEFAULT true` de la colonne en base.
  */
-export async function chargerArrondiEspecesActif(tx: TransactionDfa, ctx: ContexteTenant): Promise<boolean> {
+export async function chargerArrondiEspecesActif(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+): Promise<boolean> {
   const resultat = await tx.execute<{ arrondi_especes_actif: boolean }>(sql`
     select arrondi_especes_actif
       from public.parametre_atelier

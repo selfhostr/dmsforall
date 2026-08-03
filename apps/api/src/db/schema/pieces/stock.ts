@@ -5,7 +5,17 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, integer, pgTable, primaryKey, text, unique, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  primaryKey,
+  text,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 import { colonneCreeLe, colonnesHorodatage } from '../colonnes-communes';
 import { site } from '../site';

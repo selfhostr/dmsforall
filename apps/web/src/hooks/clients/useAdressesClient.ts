@@ -7,7 +7,12 @@ import {
   type UseMutationResult,
 } from '@tanstack/react-query';
 
-import type { EntreeAdresseClient, PageCurseur, ReponseAvecAvertissements, ReponseClientAdresse } from '@dfa/shared';
+import type {
+  EntreeAdresseClient,
+  PageCurseur,
+  ReponseAvecAvertissements,
+  ReponseClientAdresse,
+} from '@dfa/shared';
 
 import { requeteApi } from '@/api/client';
 import { clesQuery } from '@/api/cles';
@@ -25,7 +30,10 @@ export function useAdressesClient(
   return useInfiniteQuery({
     queryKey: clesQuery.clients.adresses(clientId ?? ''),
     queryFn: async ({ pageParam }) => {
-      const params = construireRequete({ limite: LIMITE_PAR_PAGE, curseur: pageParam ?? undefined });
+      const params = construireRequete({
+        limite: LIMITE_PAR_PAGE,
+        curseur: pageParam ?? undefined,
+      });
       const page = await requeteApi<PageCurseur<ReponseClientAdresse>>(
         `/clients/${clientId}/adresses?${params.toString()}`,
         { method: 'GET' },

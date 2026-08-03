@@ -1,5 +1,26 @@
-import { Controller, Get, Headers, HttpCode, HttpStatus, Inject, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCookieAuth,
+  ApiHeader,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { z } from 'zod';
 import {
@@ -23,7 +44,12 @@ import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { JETON_IDEMPOTENCE, type ServiceIdempotence } from '../common/idempotence';
 import { PipeZod } from '../common/validation';
-import { EnveloppeDto, PageVehiculeResumeDto, ReponseContexteAtelierDto, ReponseVehiculeDto } from './dto';
+import {
+  EnveloppeDto,
+  PageVehiculeResumeDto,
+  ReponseContexteAtelierDto,
+  ReponseVehiculeDto,
+} from './dto';
 import { ServiceVehicule } from './service-vehicule';
 import { ServiceVehiculeContexteAtelier } from './service-vehicule-contexte-atelier';
 
@@ -59,7 +85,9 @@ export class VehiculeController {
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans vehicule.lire).')
-  async lister(@Query(new PipeZod(schemaListeVehicules)) query: EntreeListeVehicules): Promise<PageVehiculeResumeDto> {
+  async lister(
+    @Query(new PipeZod(schemaListeVehicules)) query: EntreeListeVehicules,
+  ): Promise<PageVehiculeResumeDto> {
     const ctx = this.contexte.contexteTenant();
     const { limite, curseur, ...filtres } = query;
     return this.serviceVehicule.lister(ctx, filtres, { limite, curseur });
@@ -71,15 +99,22 @@ export class VehiculeController {
   @ApiOperation({
     summary: "Création d'un véhicule.",
     description:
-      "`Idempotency-Key` obligatoire (uuid v4) : un doublon de véhicule pollue durablement la " +
+      '`Idempotency-Key` obligatoire (uuid v4) : un doublon de véhicule pollue durablement la ' +
       'recherche par plaque, le point d’entrée n°1 du comptoir.',
   })
-  @ApiHeader({ name: 'Idempotency-Key', required: true, description: 'uuid v4, identité de la requête.' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description: 'uuid v4, identité de la requête.',
+  })
   @ApiResponse({ status: 201, type: EnveloppeVehiculeDto })
   @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans vehicule.creer).')
-  @ApiReponseProbleme(409, 'VEHICULE_VIN_EXISTANT, VEHICULE_PLAQUE_COLLISION ou IDEMPOTENCE_CONFLIT.')
+  @ApiReponseProbleme(
+    409,
+    'VEHICULE_VIN_EXISTANT, VEHICULE_PLAQUE_COLLISION ou IDEMPOTENCE_CONFLIT.',
+  )
   async creer(
     @CorpsZod(schemaCreationVehicule, {
       exemple: {
@@ -104,7 +139,11 @@ export class VehiculeController {
       ctx,
       { methode: 'POST', chemin: '/vehicules', cle: cleIdempotence ?? '', corps: entree },
       async (tx) => {
-        const { donnees, avertissements } = await this.serviceVehicule.creerDansTransaction(tx, ctx, entree);
+        const { donnees, avertissements } = await this.serviceVehicule.creerDansTransaction(
+          tx,
+          ctx,
+          entree,
+        );
         return { statutHttp: HttpStatus.CREATED, corps: avertissements.envelopper(donnees) };
       },
     );
@@ -125,7 +164,9 @@ export class VehiculeController {
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Véhicule introuvable pour ce tenant.')
-  async parId(@Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string): Promise<ReponseVehicule> {
+  async parId(
+    @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
+  ): Promise<ReponseVehicule> {
     const ctx = this.contexte.contexteTenant();
     return this.serviceVehicule.parId(ctx, vehiculeId);
   }
@@ -135,9 +176,9 @@ export class VehiculeController {
   @ApiOperation({
     summary: 'Contexte atelier complet du véhicule (RM-36, D-01, CT-13, §8.1).',
     description:
-      "Agrégat consommé au même instant à la prise de RDV ET à la réception du matin : travaux " +
+      'Agrégat consommé au même instant à la prise de RDV ET à la réception du matin : travaux ' +
       "reportés, campagnes ouvertes, échéance d'expertise (MFK), garantie, alertes client et OR " +
-      "déjà ouverts. Chaque section projette la MÊME donnée que sa ressource dédiée — aucun champ " +
+      'déjà ouverts. Chaque section projette la MÊME donnée que sa ressource dédiée — aucun champ ' +
       "n'existe uniquement ici.",
   })
   @ApiParam({ name: 'vehiculeId', format: 'uuid' })
@@ -167,12 +208,20 @@ export class VehiculeController {
   async modifier(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
     @CorpsZod(schemaModificationVehicule, {
-      exemple: { pneusHiver: 'Continental 205/55 R16', intervalleEntretienKm: 15000, garantieMois: 24 },
+      exemple: {
+        pneusHiver: 'Continental 205/55 R16',
+        intervalleEntretienKm: 15000,
+        garantieMois: 24,
+      },
     })
     entree: EntreeModificationVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
-    const { donnees, avertissements } = await this.serviceVehicule.modifier(ctx, vehiculeId, entree);
+    const { donnees, avertissements } = await this.serviceVehicule.modifier(
+      ctx,
+      vehiculeId,
+      entree,
+    );
     return avertissements.envelopper(donnees);
   }
 
@@ -188,11 +237,17 @@ export class VehiculeController {
   @ApiReponseProbleme(409, 'VEHICULE_ARCHIVAGE_IMPOSSIBLE — blocages = les OR ouverts.')
   async archiver(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
-    @CorpsZod(schemaArchivageVehicule, { exemple: { motifArchivage: 'detruit', motif: 'Épave suite sinistre, non réparable' } })
+    @CorpsZod(schemaArchivageVehicule, {
+      exemple: { motifArchivage: 'detruit', motif: 'Épave suite sinistre, non réparable' },
+    })
     entree: EntreeArchivageVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
-    const { donnees, avertissements } = await this.serviceVehicule.archiver(ctx, vehiculeId, entree);
+    const { donnees, avertissements } = await this.serviceVehicule.archiver(
+      ctx,
+      vehiculeId,
+      entree,
+    );
     return avertissements.envelopper(donnees);
   }
 
@@ -213,13 +268,21 @@ export class VehiculeController {
   async fusionner(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
     @CorpsZod(schemaFusionVehicule, {
-      exemple: { vehiculeSourceId: '7c3e1b2a-9f4d-4e6a-8b1c-2d5f6a7b8c9d', confirmationVin: 'WVWZZZ1KZAW123456' },
+      exemple: {
+        vehiculeSourceId: '7c3e1b2a-9f4d-4e6a-8b1c-2d5f6a7b8c9d',
+        confirmationVin: 'WVWZZZ1KZAW123456',
+      },
     })
     entree: EntreeFusionVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    const { donnees, avertissements } = await this.serviceVehicule.fusionner(ctx, principal.role, vehiculeId, entree);
+    const { donnees, avertissements } = await this.serviceVehicule.fusionner(
+      ctx,
+      principal.role,
+      vehiculeId,
+      entree,
+    );
     return avertissements.envelopper(donnees);
   }
 }

@@ -1,9 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 
-import { JETON_DB, schema, type AccesBase, type ContexteTenant, type TransactionDfa } from '../../db';
+import {
+  JETON_DB,
+  schema,
+  type AccesBase,
+  type ContexteTenant,
+  type TransactionDfa,
+} from '../../db';
 import { ErreurMetier } from '../../common/erreurs';
-import { versColonnesEcriture, versDtoBlocCreancier, type DtoBlocCreancier } from './mappeur-bloc-creancier';
+import {
+  versColonnesEcriture,
+  versDtoBlocCreancier,
+  type DtoBlocCreancier,
+} from './mappeur-bloc-creancier';
 import type { EntreeModificationBlocCreancier } from './schema-bloc-creancier';
 
 /**
@@ -39,7 +49,10 @@ export class ServiceBlocCreancier {
    * premier INSERT, les colonnes absentes prennent leurs défauts de table (`pays = 'CH'`,
    * le reste `null`), jamais une valeur inventée par ce service.
    */
-  async modifier(ctx: ContexteTenant, entree: EntreeModificationBlocCreancier): Promise<DtoBlocCreancier> {
+  async modifier(
+    ctx: ContexteTenant,
+    entree: EntreeModificationBlocCreancier,
+  ): Promise<DtoBlocCreancier> {
     const colonnes = versColonnesEcriture(entree);
 
     return this.acces.enTenant(ctx, async (tx) => {
@@ -60,13 +73,19 @@ export class ServiceBlocCreancier {
        * ligne sur un upsert réussi (insert ou update), il n'existe pas de chemin où `ligne` est
        * `undefined` sans qu'une exception SQL n'ait déjà été levée avant d'atteindre cette ligne. */
       if (!ligne) {
-        throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Écriture du bloc créancier : aucune ligne renvoyée par l’upsert.');
+        throw new ErreurMetier(
+          'RESSOURCE_INTROUVABLE',
+          'Écriture du bloc créancier : aucune ligne renvoyée par l’upsert.',
+        );
       }
       return versDtoBlocCreancier(ligne);
     });
   }
 
-  private async chargerLigne(tx: TransactionDfa, tenantId: string): Promise<schema.LigneTenantBlocCreancier | undefined> {
+  private async chargerLigne(
+    tx: TransactionDfa,
+    tenantId: string,
+  ): Promise<schema.LigneTenantBlocCreancier | undefined> {
     const [ligne] = await tx
       .select()
       .from(schema.tenantBlocCreancier)

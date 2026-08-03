@@ -33,7 +33,16 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { check, date, foreignKey, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  date,
+  foreignKey,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 import { colonneId, colonnesHorodatage } from '../colonnes-communes';
 import { site } from '../site';

@@ -38,7 +38,11 @@ const ROLES_LECTURE_POINTAGE: ReadonlySet<RoleUtilisateur> = new Set([
 const ROLES_ECRITURE_POINTAGE = ROLES_LECTURE_POINTAGE;
 
 /** `corriger_autrui`, `verrouiller_periode`, `deverrouiller_periode` — encadrement seul. */
-const ROLES_GOUVERNANCE_POINTAGE: ReadonlySet<RoleUtilisateur> = new Set(['chef_atelier', 'direction', 'admin']);
+const ROLES_GOUVERNANCE_POINTAGE: ReadonlySet<RoleUtilisateur> = new Set([
+  'chef_atelier',
+  'direction',
+  'admin',
+]);
 
 export function peutLirePointage(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_LECTURE_POINTAGE.has(role);
@@ -73,7 +77,17 @@ export function peutDeverrouillerPeriode(role: RoleUtilisateur | undefined): boo
  *  ce module, table transmise au coordinateur pour le câblage). Reflète une restriction RÉELLE de
  *  l'API (`atelier.pointage.lire` fermé à `comptable`/`receptionnaire`/`vendeur`), même patron que
  *  `ROLES_PIECES`. */
-export const ROLES_POINTAGE: readonly RoleUtilisateur[] = ['chef_atelier', 'direction', 'admin', 'technicien', 'magasinier'];
+export const ROLES_POINTAGE: readonly RoleUtilisateur[] = [
+  'chef_atelier',
+  'direction',
+  'admin',
+  'technicien',
+  'magasinier',
+];
 
 /** Pour les routes réservées à l'encadrement (équipe, corrections, clôture de période). */
-export const ROLES_POINTAGE_ENCADREMENT: readonly RoleUtilisateur[] = ['chef_atelier', 'direction', 'admin'];
+export const ROLES_POINTAGE_ENCADREMENT: readonly RoleUtilisateur[] = [
+  'chef_atelier',
+  'direction',
+  'admin',
+];

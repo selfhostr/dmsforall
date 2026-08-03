@@ -1,4 +1,9 @@
-import { EN_TETE_ETAG, EN_TETE_IDEMPOTENCE, EN_TETE_IDEMPOTENCE_REJEU, EN_TETE_IF_MATCH } from '@dfa/shared';
+import {
+  EN_TETE_ETAG,
+  EN_TETE_IDEMPOTENCE,
+  EN_TETE_IDEMPOTENCE_REJEU,
+  EN_TETE_IF_MATCH,
+} from '@dfa/shared';
 
 import i18n from '@/i18n';
 import { obtenirEnv } from '@/config/env';
@@ -28,7 +33,10 @@ export type OptionsRequeteApi = Omit<RequestInit, 'credentials'> & {
 /** Client fetch unique de l'app. `credentials:'include'` systématique (cookie httpOnly de
  *  session), `Accept-Language` = langue i18next courante, timeout 15s, et 204/corps vide ->
  *  `undefined` (ne JAMAIS appeler `.json()` sur une réponse vide). */
-export async function requeteApi<T>(chemin: string, options: OptionsRequeteApi = {}): Promise<T | undefined> {
+export async function requeteApi<T>(
+  chemin: string,
+  options: OptionsRequeteApi = {},
+): Promise<T | undefined> {
   const url = `${obtenirEnv().VITE_API_URL}${chemin}`;
 
   const entetes = new Headers(options.headers);

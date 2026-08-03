@@ -1,5 +1,9 @@
 import { TRI_DEFAUT_CREATION } from '@dfa/shared';
-import { decoderCurseurTrie, encoderCurseurTrie, valeurCurseurTimestamptz } from '../../common/pagination';
+import {
+  decoderCurseurTrie,
+  encoderCurseurTrie,
+  valeurCurseurTimestamptz,
+} from '../../common/pagination';
 import { ErreurMetier } from '../../common/erreurs';
 
 /**
@@ -40,7 +44,9 @@ export function decoderCurseurDefaut(curseur: string | undefined): CurseurDefaut
     // Un curseur v2 valide pour `TRI_DEFAUT_CREATION` mais dont `v` n'est pas une chaîne ne peut
     // pas être un texte `timestamptz` — donnée cliente malformée, jamais une erreur serveur.
     throw new ErreurMetier('VALIDATION_ECHOUEE', 'Curseur de pagination invalide.', {
-      erreurs: [{ champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' }],
+      erreurs: [
+        { champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' },
+      ],
     });
   }
   return { creeLeTexte: donnees.valeur, id: donnees.id };

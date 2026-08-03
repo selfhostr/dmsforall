@@ -7,7 +7,7 @@ function erreurPg(champs: { table: string; detail: string; hint?: string | null 
 }
 
 describe('traduireErreurTransition', () => {
-  it('rend null pour une erreur qui n\'est pas un ZDFA1 exploitable', () => {
+  it("rend null pour une erreur qui n'est pas un ZDFA1 exploitable", () => {
     expect(traduireErreurTransition(new Error('autre chose'), 'or-1', 'OR 123')).toBeNull();
     expect(traduireErreurTransition({ code: '23505' }, 'or-1', 'OR 123')).toBeNull();
   });
@@ -56,7 +56,7 @@ describe('traduireErreurTransition', () => {
       erreurPg({
         table: 'ordre_reparation',
         detail: 'entite=ordre_reparation;depuis=cloture;vers=ouvert',
-        hint: '« cloture » est un état terminal : aucune transition n\'en part.',
+        hint: "« cloture » est un état terminal : aucune transition n'en part.",
       }),
       'or-1',
       'OR-2026-0001',
@@ -75,7 +75,11 @@ describe('traduireErreurTransition', () => {
       'OR-2026-0042',
     );
     expect(erreur?.actionsProposees).toEqual([
-      { code: 'CREER_OR_RETOUCHE', methode: 'POST', parametres: { ordreReparationParentId: 'or-42' } },
+      {
+        code: 'CREER_OR_RETOUCHE',
+        methode: 'POST',
+        parametres: { ordreReparationParentId: 'or-42' },
+      },
     ]);
   });
 

@@ -7,7 +7,14 @@ import { messageErreur } from '@/api/erreurs';
 import { useCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
@@ -73,10 +80,15 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
     // `DialogueMouvementStock` (`siteParDefaut` seul en dépendance, pas les `sites`).
   }, [ouvert]);
 
-  const lignesReceptionnables = commande.lignes.filter((ligne) => ligne.quantiteReliquatMillieme > 0 && ligne.reliquatAnnuleLe === null);
+  const lignesReceptionnables = commande.lignes.filter(
+    (ligne) => ligne.quantiteReliquatMillieme > 0 && ligne.reliquatAnnuleLe === null,
+  );
 
   function majLigne(ligneId: string, patch: Partial<LigneSaisie>) {
-    setLignes((valeur) => ({ ...valeur, [ligneId]: { ...valeur[ligneId], ...patch } as LigneSaisie }));
+    setLignes((valeur) => ({
+      ...valeur,
+      [ligneId]: { ...valeur[ligneId], ...patch } as LigneSaisie,
+    }));
   }
 
   function soumettre() {
@@ -130,26 +142,33 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
                 <label className="flex items-center gap-2 texte-corps font-medium">
                   <Checkbox
                     checked={saisie.selectionnee}
-                    onCheckedChange={(coche) => majLigne(ligne.id, { selectionnee: coche === true })}
+                    onCheckedChange={(coche) =>
+                      majLigne(ligne.id, { selectionnee: coche === true })
+                    }
                     disabled={receptionner.isPending}
                   />
                   {t('pieces:commandes.reception.ligneNumero', { numero: ligne.numeroOrdre })}
                   <span className="texte-libelle text-muted-foreground font-normal">
-                    {t('pieces:commandes.lignes.quantiteReliquat')} : {quantiteMilliemeVersSaisie(ligne.quantiteReliquatMillieme)}
+                    {t('pieces:commandes.lignes.quantiteReliquat')} :{' '}
+                    {quantiteMilliemeVersSaisie(ligne.quantiteReliquatMillieme)}
                   </span>
                 </label>
 
                 {saisie.selectionnee ? (
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor={`recep-qte-${ligne.id}`}>{t('pieces:commandes.lignes.quantiteRecue')}</Label>
+                      <Label htmlFor={`recep-qte-${ligne.id}`}>
+                        {t('pieces:commandes.lignes.quantiteRecue')}
+                      </Label>
                       <Input
                         id={`recep-qte-${ligne.id}`}
                         type="text"
                         inputMode="decimal"
                         readOnly={receptionner.isPending}
                         value={saisie.quantiteSaisie}
-                        onChange={(evenement) => majLigne(ligne.id, { quantiteSaisie: evenement.target.value })}
+                        onChange={(evenement) =>
+                          majLigne(ligne.id, { quantiteSaisie: evenement.target.value })
+                        }
                       />
                     </div>
                     <ChampMontant
@@ -157,15 +176,21 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
                       label={t('pieces:commandes.lignes.prixAchatReel')}
                       disabled={receptionner.isPending}
                       valeurCentimes={saisie.prixReelCentimes}
-                      onChangeCentimes={(centimes) => majLigne(ligne.id, { prixReelCentimes: centimes })}
+                      onChangeCentimes={(centimes) =>
+                        majLigne(ligne.id, { prixReelCentimes: centimes })
+                      }
                     />
                     <div className="col-span-2 flex flex-col gap-1.5">
-                      <Label htmlFor={`recep-motif-${ligne.id}`}>{t('pieces:commandes.lignes.motif')}</Label>
+                      <Label htmlFor={`recep-motif-${ligne.id}`}>
+                        {t('pieces:commandes.lignes.motif')}
+                      </Label>
                       <Input
                         id={`recep-motif-${ligne.id}`}
                         readOnly={receptionner.isPending}
                         value={saisie.motif}
-                        onChange={(evenement) => majLigne(ligne.id, { motif: evenement.target.value })}
+                        onChange={(evenement) =>
+                          majLigne(ligne.id, { motif: evenement.target.value })
+                        }
                       />
                     </div>
                   </div>
@@ -187,11 +212,18 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOuvertChange(false)} disabled={receptionner.isPending}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOuvertChange(false)}
+            disabled={receptionner.isPending}
+          >
             {t('commun:actions.annuler')}
           </Button>
           <Button type="button" disabled={receptionner.isPending} onClick={soumettre}>
-            {receptionner.isPending ? t('commun:chargement.enCours') : t('pieces:commandes.actions.receptionner')}
+            {receptionner.isPending
+              ? t('commun:chargement.enCours')
+              : t('pieces:commandes.actions.receptionner')}
           </Button>
         </DialogFooter>
       </DialogContent>

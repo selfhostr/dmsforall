@@ -18,19 +18,11 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 
-import type {
-  AccountingExporter,
-  CapacitesExport,
-  CibleExport,
-  EcritureExport,
-} from '@dfa/shared';
+import type { AccountingExporter, CapacitesExport, CibleExport, EcritureExport } from '@dfa/shared';
 
 import { TAILLE_MAX_LOT_OCTETS_WINBIZ } from './winbiz.constantes';
 import { ErreurExportWinbiz } from './winbiz.erreurs';
-import {
-  serialiserEcrituresWinbiz,
-  type AvertissementExportWinbiz,
-} from './winbiz-serialiseur';
+import { serialiserEcrituresWinbiz, type AvertissementExportWinbiz } from './winbiz-serialiseur';
 
 export interface LotExportWinbiz {
   readonly contenu: Buffer;

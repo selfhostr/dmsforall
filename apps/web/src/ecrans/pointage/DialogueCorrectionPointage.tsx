@@ -8,7 +8,13 @@ import { messageErreur } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -65,7 +71,9 @@ export function DialogueCorrectionPointage({ ouvert, onOuvertChange, pointage, o
   const { t } = useTranslation(['pointage', 'commun']);
   const corriger = useCorrigerPointage();
 
-  const form = useForm<ValeursFormulaireCorrection>({ defaultValues: versValeursFormulaire(pointage) });
+  const form = useForm<ValeursFormulaireCorrection>({
+    defaultValues: versValeursFormulaire(pointage),
+  });
 
   useEffect(() => {
     if (ouvert) form.reset(versValeursFormulaire(pointage));
@@ -103,7 +111,11 @@ export function DialogueCorrectionPointage({ ouvert, onOuvertChange, pointage, o
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="correction-debut">{t('pointage:correction.debut')}</Label>
-              <Input id="correction-debut" type="datetime-local" {...form.register('debutLe', { required: true })} />
+              <Input
+                id="correction-debut"
+                type="datetime-local"
+                {...form.register('debutLe', { required: true })}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="correction-fin">{t('pointage:correction.fin')}</Label>
@@ -117,10 +129,15 @@ export function DialogueCorrectionPointage({ ouvert, onOuvertChange, pointage, o
               id="correction-motif"
               placeholder={t('pointage:correction.motifPlaceholder')}
               aria-invalid={form.formState.errors.motif ? true : undefined}
-              {...form.register('motif', { required: true, validate: (valeur) => valeur.trim().length > 0 })}
+              {...form.register('motif', {
+                required: true,
+                validate: (valeur) => valeur.trim().length > 0,
+              })}
             />
             {form.formState.errors.motif ? (
-              <p className="texte-libelle text-destructive">{t('pointage:correction.motifRequis')}</p>
+              <p className="texte-libelle text-destructive">
+                {t('pointage:correction.motifRequis')}
+              </p>
             ) : null}
           </div>
 

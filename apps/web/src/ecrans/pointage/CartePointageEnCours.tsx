@@ -47,7 +47,9 @@ export function CartePointageEnCours({
   return (
     <Card className="border-2 border-primary/40">
       <CardHeader>
-        <CardTitle className="texte-titre-section">{t('pointage:technicien.pointageEnCours.titre')}</CardTitle>
+        <CardTitle className="texte-titre-section">
+          {t('pointage:technicien.pointageEnCours.titre')}
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <div className="flex flex-col items-center gap-2 py-4">
@@ -56,7 +58,9 @@ export function CartePointageEnCours({
           </span>
           <span className="texte-corps text-muted-foreground">{libelleCible}</span>
           <span className="texte-libelle text-muted-foreground">
-            {t('pointage:technicien.pointageEnCours.depuis', { heure: formaterHeure(pointage.debutLe) })}
+            {t('pointage:technicien.pointageEnCours.depuis', {
+              heure: formaterHeure(pointage.debutLe),
+            })}
           </span>
         </div>
 
@@ -68,16 +72,33 @@ export function CartePointageEnCours({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {onReprendre ? (
-            <Button size="lg" className="h-16 text-lg" disabled={enTraitement} onClick={onReprendre}>
+            <Button
+              size="lg"
+              className="h-16 text-lg"
+              disabled={enTraitement}
+              onClick={onReprendre}
+            >
               {t('pointage:technicien.boutons.reprendre')}
             </Button>
           ) : null}
           {onPause ? (
-            <Button size="lg" variant="secondary" className="h-16 text-lg" disabled={enTraitement} onClick={onPause}>
+            <Button
+              size="lg"
+              variant="secondary"
+              className="h-16 text-lg"
+              disabled={enTraitement}
+              onClick={onPause}
+            >
               {t('pointage:technicien.boutons.pause')}
             </Button>
           ) : null}
-          <Button size="lg" variant="destructive" className="h-16 text-lg" disabled={enTraitement} onClick={onArreter}>
+          <Button
+            size="lg"
+            variant="destructive"
+            className="h-16 text-lg"
+            disabled={enTraitement}
+            onClick={onArreter}
+          >
             {t('pointage:technicien.boutons.arreter')}
           </Button>
         </div>

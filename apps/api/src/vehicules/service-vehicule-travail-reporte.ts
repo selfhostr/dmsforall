@@ -1,12 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
-import type { EntreeModificationTravailReporte, ReponseTravailReporte, RoleUtilisateur, UrgenceTravail } from '@dfa/shared';
+import type {
+  EntreeModificationTravailReporte,
+  ReponseTravailReporte,
+  RoleUtilisateur,
+  UrgenceTravail,
+} from '@dfa/shared';
 import { ROLES_SANS_MONTANT } from '../auth/matrice-droits';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import { vehiculeTravailReporte, type LigneVehiculeTravailReporte } from '../db/schema';
 import { ErreurMetier } from '../common/erreurs';
 import type { FiltresTravauxReportes } from './schemas-locales';
-import { chargerLigneVehicule, lireDernierKilometrage, listerTravauxReportes } from './vehicule-requetes';
+import {
+  chargerLigneVehicule,
+  lireDernierKilometrage,
+  listerTravauxReportes,
+} from './vehicule-requetes';
 
 /**
  * `montantEstimeCentimes` retiré pour les rôles de `ROLES_SANS_MONTANT` (invariant front n°10) —
@@ -24,7 +33,10 @@ import { chargerLigneVehicule, lireDernierKilometrage, listerTravauxReportes } f
  * matrice de droits existante serait une décision non tranchée par le contrat — signalée en
  * réponse de tâche plutôt qu'inventée en silence.
  */
-export function versReponseTravailReporte(ligne: LigneVehiculeTravailReporte, role: RoleUtilisateur): ReponseTravailReporte {
+export function versReponseTravailReporte(
+  ligne: LigneVehiculeTravailReporte,
+  role: RoleUtilisateur,
+): ReponseTravailReporte {
   const base: ReponseTravailReporte = {
     id: ligne.id,
     designation: ligne.designation,
@@ -199,11 +211,19 @@ export class ServiceVehiculeTravailReporte implements CreationTravailReporte {
           // `vehicule_travail_reporte_motif_modification_non_vide_chk` (0033).
           motifModification: entree.motif === undefined ? undefined : entree.motif.trim() || null,
         })
-        .where(and(eq(vehiculeTravailReporte.tenantId, ctx.tenantId), eq(vehiculeTravailReporte.id, travailId)))
+        .where(
+          and(
+            eq(vehiculeTravailReporte.tenantId, ctx.tenantId),
+            eq(vehiculeTravailReporte.id, travailId),
+          ),
+        )
         .returning();
       const mise = misesAJour[0];
       if (!mise) {
-        throw new ErreurMetier('ERREUR_INTERNE', 'La modification du travail reporté n’a rendu aucune ligne.');
+        throw new ErreurMetier(
+          'ERREUR_INTERNE',
+          'La modification du travail reporté n’a rendu aucune ligne.',
+        );
       }
       return versReponseTravailReporte(mise, role);
     });

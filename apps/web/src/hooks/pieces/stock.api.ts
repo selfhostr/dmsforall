@@ -13,11 +13,17 @@ import { requeteApi } from '@/api/client';
 
 /** `GET /articles/{id}/disponibilite?siteId=` — RP-14/RP-19, LE terrain de CP-02 : nomme les
  *  réservations actives une par une. */
-export async function recupererDisponibiliteArticle(articleId: string, siteId: string): Promise<ReponseDisponibiliteArticle> {
+export async function recupererDisponibiliteArticle(
+  articleId: string,
+  siteId: string,
+): Promise<ReponseDisponibiliteArticle> {
   const parametres = new URLSearchParams({ siteId });
-  const reponse = await requeteApi<ReponseDisponibiliteArticle>(`/articles/${articleId}/disponibilite?${parametres.toString()}`, {
-    method: 'GET',
-  });
+  const reponse = await requeteApi<ReponseDisponibiliteArticle>(
+    `/articles/${articleId}/disponibilite?${parametres.toString()}`,
+    {
+      method: 'GET',
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse disponibilité inattendue : corps vide.');
   }
@@ -58,10 +64,17 @@ export async function listerReapprovisionnement(
   filtres: FiltresReapprovisionnementListe,
   page: PageReapprovisionnement,
 ): Promise<PageCurseur<LigneReapprovisionnement>> {
-  const parametres = new URLSearchParams({ siteId: filtres.siteId, tri: filtres.tri, limite: String(page.limite) });
-  if (page.curseur) parametres.set('curseur', page.curseur);
-  const reponse = await requeteApi<PageCurseur<LigneReapprovisionnement>>(`/stock/reapprovisionnement?${parametres.toString()}`, {
-    method: 'GET',
+  const parametres = new URLSearchParams({
+    siteId: filtres.siteId,
+    tri: filtres.tri,
+    limite: String(page.limite),
   });
+  if (page.curseur) parametres.set('curseur', page.curseur);
+  const reponse = await requeteApi<PageCurseur<LigneReapprovisionnement>>(
+    `/stock/reapprovisionnement?${parametres.toString()}`,
+    {
+      method: 'GET',
+    },
+  );
   return reponse ?? { donnees: [], curseurSuivant: null, limite: page.limite };
 }

@@ -1,6 +1,10 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 
-import type { EntreeCreationCommandeFournisseur, ReponseAvecAvertissements, ReponseCommandeFournisseur } from '@dfa/shared';
+import type {
+  EntreeCreationCommandeFournisseur,
+  ReponseAvecAvertissements,
+  ReponseCommandeFournisseur,
+} from '@dfa/shared';
 
 import { creerCommandeFournisseur } from './commandes-fournisseur.api';
 
@@ -20,7 +24,8 @@ export function useCreerCommandeFournisseur(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ entree, idempotencyKey }: VariablesCreationCommandeFournisseur) => creerCommandeFournisseur(entree, idempotencyKey),
+    mutationFn: ({ entree, idempotencyKey }: VariablesCreationCommandeFournisseur) =>
+      creerCommandeFournisseur(entree, idempotencyKey),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['pieces', 'commandesFournisseur', 'liste'] });
     },

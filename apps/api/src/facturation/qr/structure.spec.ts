@@ -131,9 +131,9 @@ describe('décompte des éléments de la charge utile (CF-21)', () => {
   });
 
   it('les deux procédures alternatives closent la structure', () => {
-    expect(
-      NOMBRE_ELEMENTS_AVEC_INFO_FACTURATION + NOMBRE_MAX_PROCEDURES_ALTERNATIVES,
-    ).toBe(NOMBRE_ELEMENTS_AVEC_PROCEDURES_ALTERNATIVES);
+    expect(NOMBRE_ELEMENTS_AVEC_INFO_FACTURATION + NOMBRE_MAX_PROCEDURES_ALTERNATIVES).toBe(
+      NOMBRE_ELEMENTS_AVEC_PROCEDURES_ALTERNATIVES,
+    );
     expect(TRAILER_EPD).toBe('EPD');
   });
 });

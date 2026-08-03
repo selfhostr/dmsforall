@@ -18,7 +18,12 @@ import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
 import { useListeOrdresReparation } from '@/hooks/atelier/useListeOrdresReparation';
-import { centiemesHeureEnSecondes, dateJourLocale, bornesJourneeLocale, formaterDureeLisible } from '@/hooks/pointage/temps-pointage';
+import {
+  centiemesHeureEnSecondes,
+  dateJourLocale,
+  bornesJourneeLocale,
+  formaterDureeLisible,
+} from '@/hooks/pointage/temps-pointage';
 import { useListePointages } from '@/hooks/pointage/useListePointages';
 import { useSession } from '@/hooks/useSession';
 import { formaterHeure } from '@/lib/formats';
@@ -49,7 +54,10 @@ function CarteParOr({ orId }: { readonly orId: string }) {
 
   const or = requete.data;
   const tempsReelCentiemes = or.cumulsPointage.totalCentiemes;
-  const tempsFactureCentiemes = or.lignes.reduce((total, ligne) => total + (ligne.tempsBaremeCentiemes ?? 0), 0);
+  const tempsFactureCentiemes = or.lignes.reduce(
+    (total, ligne) => total + (ligne.tempsBaremeCentiemes ?? 0),
+    0,
+  );
   const ecartCentiemes = tempsReelCentiemes - tempsFactureCentiemes;
 
   if (or.cumulsPointage.parTechnicien.length === 0 && tempsReelCentiemes === 0) {
@@ -60,16 +68,26 @@ function CarteParOr({ orId }: { readonly orId: string }) {
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-lg border p-4">
-          <p className="texte-libelle text-muted-foreground">{t('pointage:equipe.parOr.tempsReel')}</p>
-          <p className="text-xl font-semibold tabular-nums">{formaterDureeLisible(centiemesHeureEnSecondes(tempsReelCentiemes))}</p>
+          <p className="texte-libelle text-muted-foreground">
+            {t('pointage:equipe.parOr.tempsReel')}
+          </p>
+          <p className="text-xl font-semibold tabular-nums">
+            {formaterDureeLisible(centiemesHeureEnSecondes(tempsReelCentiemes))}
+          </p>
         </div>
         <div className="rounded-lg border p-4">
-          <p className="texte-libelle text-muted-foreground">{t('pointage:equipe.parOr.tempsFacture')}</p>
-          <p className="text-xl font-semibold tabular-nums">{formaterDureeLisible(centiemesHeureEnSecondes(tempsFactureCentiemes))}</p>
+          <p className="texte-libelle text-muted-foreground">
+            {t('pointage:equipe.parOr.tempsFacture')}
+          </p>
+          <p className="text-xl font-semibold tabular-nums">
+            {formaterDureeLisible(centiemesHeureEnSecondes(tempsFactureCentiemes))}
+          </p>
         </div>
         <div className="rounded-lg border p-4">
           <p className="texte-libelle text-muted-foreground">{t('pointage:equipe.parOr.ecart')}</p>
-          <p className={`text-xl font-semibold tabular-nums ${ecartCentiemes > 0 ? 'text-destructive' : ''}`}>
+          <p
+            className={`text-xl font-semibold tabular-nums ${ecartCentiemes > 0 ? 'text-destructive' : ''}`}
+          >
             {ecartCentiemes >= 0 ? '+' : ''}
             {formaterDureeLisible(centiemesHeureEnSecondes(Math.abs(ecartCentiemes)))}
           </p>
@@ -81,9 +99,14 @@ function CarteParOr({ orId }: { readonly orId: string }) {
           <h3 className="mb-2 texte-titre-section">{t('pointage:equipe.parOr.parTechnicien')}</h3>
           <div className="flex flex-col gap-2">
             {or.cumulsPointage.parTechnicien.map((ligne) => (
-              <div key={ligne.technicienId} className="flex items-center justify-between rounded-md border p-3">
+              <div
+                key={ligne.technicienId}
+                className="flex items-center justify-between rounded-md border p-3"
+              >
                 <span>{ligne.nomAffiche}</span>
-                <span className="tabular-nums">{formaterDureeLisible(centiemesHeureEnSecondes(ligne.centiemes))}</span>
+                <span className="tabular-nums">
+                  {formaterDureeLisible(centiemesHeureEnSecondes(ligne.centiemes))}
+                </span>
               </div>
             ))}
           </div>
@@ -109,7 +132,9 @@ export function EcranEquipePointage() {
   const siteId = siteParam ?? (sitesActifs.length === 1 ? sitesActifs[0]?.id : undefined);
 
   const [onglet, setOnglet] = useState<Onglet>('liste');
-  const [pointageACorriger, setPointageACorriger] = useState<ReponsePointage | undefined>(undefined);
+  const [pointageACorriger, setPointageACorriger] = useState<ReponsePointage | undefined>(
+    undefined,
+  );
 
   const [qSaisie, setQSaisie] = useState('');
   const [q, setQ] = useState('');
@@ -122,10 +147,17 @@ export function EcranEquipePointage() {
 
   const bornes = useMemo(() => bornesJourneeLocale(dateJourLocale()), []);
   const filtresListe = useMemo(
-    () => ({ siteId, debutDu: bornes.debutDu, debutAu: bornes.debutAu, tri: 'debutLe:desc' as const }),
+    () => ({
+      siteId,
+      debutDu: bornes.debutDu,
+      debutAu: bornes.debutAu,
+      tri: 'debutLe:desc' as const,
+    }),
     [siteId, bornes],
   );
-  const requeteListe = useListePointages(filtresListe, { enabled: Boolean(siteId) && onglet === 'liste' });
+  const requeteListe = useListePointages(filtresListe, {
+    enabled: Boolean(siteId) && onglet === 'liste',
+  });
 
   const requeteOrdres = useListeOrdresReparation({ q, siteId, tri: 'ouvertLe:desc' });
 
@@ -170,7 +202,10 @@ export function EcranEquipePointage() {
 
           {!requeteListe.isPending && !requeteListe.isError ? (
             requeteListe.pointages.length === 0 ? (
-              <EtatVide titre={t('pointage:equipe.vide.titre')} description={t('pointage:equipe.vide.description')} />
+              <EtatVide
+                titre={t('pointage:equipe.vide.titre')}
+                description={t('pointage:equipe.vide.description')}
+              />
             ) : (
               <div className="overflow-x-auto rounded-lg border">
                 <table className="w-full text-left">
@@ -188,12 +223,20 @@ export function EcranEquipePointage() {
                   <tbody>
                     {requeteListe.pointages.map((pointage) => (
                       <tr key={pointage.id} className="border-t">
-                        <td className="p-3">{t('pointage:equipe.nomIndisponible', { id: pointage.technicienId.slice(0, 8) })}</td>
+                        <td className="p-3">
+                          {t('pointage:equipe.nomIndisponible', {
+                            id: pointage.technicienId.slice(0, 8),
+                          })}
+                        </td>
                         <td className="p-3">{libelleCiblePointageGenerique(pointage, t)}</td>
                         <td className="p-3 tabular-nums">{formaterHeure(pointage.debutLe)}</td>
-                        <td className="p-3 tabular-nums">{pointage.finLe ? formaterHeure(pointage.finLe) : ''}</td>
+                        <td className="p-3 tabular-nums">
+                          {pointage.finLe ? formaterHeure(pointage.finLe) : ''}
+                        </td>
                         <td className="p-3 text-right tabular-nums">
-                          {pointage.dureeBruteSecondes !== null ? formaterDureeLisible(pointage.dureeBruteSecondes) : ''}
+                          {pointage.dureeBruteSecondes !== null
+                            ? formaterDureeLisible(pointage.dureeBruteSecondes)
+                            : ''}
                         </td>
                         <td className="p-3">
                           <Badge variant={pointage.statut === 'en_cours' ? 'secondary' : 'outline'}>
@@ -207,7 +250,11 @@ export function EcranEquipePointage() {
                         </td>
                         <td className="p-3">
                           {peutCorrigerPointage(role) ? (
-                            <Button size="sm" variant="outline" onClick={() => setPointageACorriger(pointage)}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setPointageACorriger(pointage)}
+                            >
                               {t('pointage:equipe.corriger')}
                             </Button>
                           ) : null}
@@ -229,11 +276,15 @@ export function EcranEquipePointage() {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle className="texte-titre-section">{t('pointage:equipe.onglets.parOr')}</CardTitle>
+            <CardTitle className="texte-titre-section">
+              {t('pointage:equipe.onglets.parOr')}
+            </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="equipe-recherche-or">{t('pointage:equipe.parOr.rechercherOrLabel')}</Label>
+              <Label htmlFor="equipe-recherche-or">
+                {t('pointage:equipe.parOr.rechercherOrLabel')}
+              </Label>
               <Input
                 id="equipe-recherche-or"
                 value={qSaisie}

@@ -2,11 +2,21 @@ import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
-import { schemaCreationTauxHoraire, schemaModificationTauxHoraire, type ReponseTauxHoraire } from '@dfa/shared';
+import {
+  schemaCreationTauxHoraire,
+  schemaModificationTauxHoraire,
+  type ReponseTauxHoraire,
+} from '@dfa/shared';
 
 import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
@@ -42,7 +52,9 @@ const VALEURS_VIDES: ValeursFormulaireTauxHoraire = {
   valideAuLe: null,
 };
 
-function versValeursFormulaire(tauxHoraire: ReponseTauxHoraire | undefined): ValeursFormulaireTauxHoraire {
+function versValeursFormulaire(
+  tauxHoraire: ReponseTauxHoraire | undefined,
+): ValeursFormulaireTauxHoraire {
   if (!tauxHoraire) return VALEURS_VIDES;
   return {
     code: tauxHoraire.code,
@@ -71,7 +83,9 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
   const modifier = useModifierTauxHoraire();
   const enCours = creer.isPending || modifier.isPending;
 
-  const form = useForm<ValeursFormulaireTauxHoraire>({ defaultValues: versValeursFormulaire(tauxHoraire) });
+  const form = useForm<ValeursFormulaireTauxHoraire>({
+    defaultValues: versValeursFormulaire(tauxHoraire),
+  });
 
   useEffect(() => {
     if (ouvert) form.reset(versValeursFormulaire(tauxHoraire));
@@ -91,7 +105,10 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
         rapporterErreursZod(resultat.error, form);
         return;
       }
-      modifier.mutate({ id: tauxHoraire.id, entree: resultat.data }, { onSuccess: () => onOuvertChange(false) });
+      modifier.mutate(
+        { id: tauxHoraire.id, entree: resultat.data },
+        { onSuccess: () => onOuvertChange(false) },
+      );
       return;
     }
 
@@ -111,34 +128,46 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {estModification ? t('parametrage:referentiels.tauxHoraires.modifier') : t('parametrage:referentiels.tauxHoraires.nouveau')}
+            {estModification
+              ? t('parametrage:referentiels.tauxHoraires.modifier')
+              : t('parametrage:referentiels.tauxHoraires.nouveau')}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={soumettre} noValidate className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="th-code">{t('parametrage:referentiels.tauxHoraires.champs.code')}</Label>
+              <Label htmlFor="th-code">
+                {t('parametrage:referentiels.tauxHoraires.champs.code')}
+              </Label>
               <Input
                 id="th-code"
                 readOnly={estModification || enCours}
                 aria-invalid={form.formState.errors.code ? true : undefined}
                 {...form.register('code')}
               />
-              {form.formState.errors.code ? <p className="texte-libelle text-destructive">{t('validation:requis')}</p> : null}
+              {form.formState.errors.code ? (
+                <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+              ) : null}
               {estModification ? (
-                <p className="texte-libelle text-muted-foreground">{t('parametrage:referentiels.tauxHoraires.codeVerrouille')}</p>
+                <p className="texte-libelle text-muted-foreground">
+                  {t('parametrage:referentiels.tauxHoraires.codeVerrouille')}
+                </p>
               ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="th-libelle">{t('parametrage:referentiels.tauxHoraires.champs.libelle')}</Label>
+              <Label htmlFor="th-libelle">
+                {t('parametrage:referentiels.tauxHoraires.champs.libelle')}
+              </Label>
               <Input
                 id="th-libelle"
                 readOnly={enCours}
                 aria-invalid={form.formState.errors.libelle ? true : undefined}
                 {...form.register('libelle')}
               />
-              {form.formState.errors.libelle ? <p className="texte-libelle text-destructive">{t('validation:requis')}</p> : null}
+              {form.formState.errors.libelle ? (
+                <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+              ) : null}
             </div>
           </div>
 
@@ -160,7 +189,9 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="th-valide-du">{t('parametrage:referentiels.tauxHoraires.champs.valideDuLe')}</Label>
+              <Label htmlFor="th-valide-du">
+                {t('parametrage:referentiels.tauxHoraires.champs.valideDuLe')}
+              </Label>
               <Input
                 id="th-valide-du"
                 type="date"
@@ -168,28 +199,43 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
                 aria-invalid={form.formState.errors.valideDuLe ? true : undefined}
                 {...form.register('valideDuLe')}
               />
-              {form.formState.errors.valideDuLe ? <p className="texte-libelle text-destructive">{t('validation:requis')}</p> : null}
+              {form.formState.errors.valideDuLe ? (
+                <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+              ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="th-valide-au">{t('parametrage:referentiels.tauxHoraires.champs.valideAuLe')}</Label>
+              <Label htmlFor="th-valide-au">
+                {t('parametrage:referentiels.tauxHoraires.champs.valideAuLe')}
+              </Label>
               <Input
                 id="th-valide-au"
                 type="date"
                 readOnly={enCours}
-                {...form.register('valideAuLe', { setValueAs: (valeur: string) => (valeur === '' ? null : valeur) })}
+                {...form.register('valideAuLe', {
+                  setValueAs: (valeur: string) => (valeur === '' ? null : valeur),
+                })}
               />
-              <p className="texte-libelle text-muted-foreground">{t('parametrage:referentiels.tauxHoraires.valideAuLeAide')}</p>
+              <p className="texte-libelle text-muted-foreground">
+                {t('parametrage:referentiels.tauxHoraires.valideAuLeAide')}
+              </p>
             </div>
           </div>
 
           {erreur ? (
             <p className="texte-libelle text-destructive" role="alert">
-              {estConflit ? t('parametrage:referentiels.tauxHoraires.erreurChevauchement') : messageErreur(erreur, t)}
+              {estConflit
+                ? t('parametrage:referentiels.tauxHoraires.erreurChevauchement')
+                : messageErreur(erreur, t)}
             </p>
           ) : null}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOuvertChange(false)} disabled={enCours}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOuvertChange(false)}
+              disabled={enCours}
+            >
               {t('commun:actions.annuler')}
             </Button>
             <Button type="submit" disabled={enCours}>
@@ -206,7 +252,10 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
  *  générique pour une faute de saisie localisable) — le MESSAGE affiché reste `validation:requis`
  *  (générique, traduit) quel que soit le message zod par défaut (non traduit, jamais montré à
  *  l'écran, même discipline que `messageErreur` pour les erreurs serveur). */
-function rapporterErreursZod(erreur: { readonly issues: ReadonlyArray<{ readonly path: ReadonlyArray<PropertyKey> }> }, form: ReturnType<typeof useForm<ValeursFormulaireTauxHoraire>>): void {
+function rapporterErreursZod(
+  erreur: { readonly issues: ReadonlyArray<{ readonly path: ReadonlyArray<PropertyKey> }> },
+  form: ReturnType<typeof useForm<ValeursFormulaireTauxHoraire>>,
+): void {
   for (const issue of erreur.issues) {
     const chemin = issue.path[0];
     if (typeof chemin === 'string') {

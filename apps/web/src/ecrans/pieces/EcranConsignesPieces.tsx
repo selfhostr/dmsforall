@@ -15,7 +15,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
@@ -30,7 +36,10 @@ import { formaterDate, formaterMontant } from '@/lib/formats';
 
 import { peutRetournerConsigne } from './droits';
 
-const VARIANTE_BADGE_STATUT: Record<StatutConsigneEchangeStandard, 'default' | 'secondary' | 'outline'> = {
+const VARIANTE_BADGE_STATUT: Record<
+  StatutConsigneEchangeStandard,
+  'default' | 'secondary' | 'outline'
+> = {
   deposee_par_client: 'outline',
   en_attente_retour_fournisseur: 'default',
   retournee_fournisseur: 'secondary',
@@ -48,24 +57,39 @@ export function EcranConsignesPieces() {
   const { data: session } = useSession();
   const role = session?.utilisateur.role;
 
-  const [statut, setStatut] = useState<StatutConsigneEchangeStandard | undefined>('en_attente_retour_fournisseur');
+  const [statut, setStatut] = useState<StatutConsigneEchangeStandard | undefined>(
+    'en_attente_retour_fournisseur',
+  );
   const [ancienneteSaisie, setAncienneteSaisie] = useState('');
   const [consigneAConfirmer, setConsigneAConfirmer] = useState<string | null>(null);
 
   const marquerRetour = useMarquerRetourConsigne();
 
-  const ancienneteJoursMin = ancienneteSaisie.trim() === '' ? undefined : Number.parseInt(ancienneteSaisie, 10);
+  const ancienneteJoursMin =
+    ancienneteSaisie.trim() === '' ? undefined : Number.parseInt(ancienneteSaisie, 10);
   const filtres: FiltresConsignes = useMemo(
     () => ({
       statut: statut ? [statut] : undefined,
-      ancienneteJoursMin: ancienneteJoursMin !== undefined && !Number.isNaN(ancienneteJoursMin) ? ancienneteJoursMin : undefined,
+      ancienneteJoursMin:
+        ancienneteJoursMin !== undefined && !Number.isNaN(ancienneteJoursMin)
+          ? ancienneteJoursMin
+          : undefined,
       tri: TRI_DEFAUT_CONSIGNES,
       limite: 50,
     }),
     [statut, ancienneteJoursMin],
   );
 
-  const { consignes, isPending, isError, error, refetch, hasNextPage, isFetchingNextPage, fetchNextPage } = useConsignes(filtres);
+  const {
+    consignes,
+    isPending,
+    isError,
+    error,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useConsignes(filtres);
 
   const filtresActifs = statut !== undefined || ancienneteSaisie.trim() !== '';
   function effacerFiltres() {
@@ -104,12 +128,18 @@ export function EcranConsignesPieces() {
       id: 'montant',
       libelle: t('pieces:consignes.montant'),
       alignement: 'droite',
-      rendu: (consigne) => <span className="tabular-nums">{formaterMontant(consigne.montantConsigneTtcCentimes)}</span>,
+      rendu: (consigne) => (
+        <span className="tabular-nums">{formaterMontant(consigne.montantConsigneTtcCentimes)}</span>
+      ),
     },
     {
       id: 'statut',
       libelle: t('pieces:consignes.statut'),
-      rendu: (consigne) => <Badge variant={VARIANTE_BADGE_STATUT[consigne.statut]}>{t(`pieces:consignes.statuts.${consigne.statut}`)}</Badge>,
+      rendu: (consigne) => (
+        <Badge variant={VARIANTE_BADGE_STATUT[consigne.statut]}>
+          {t(`pieces:consignes.statuts.${consigne.statut}`)}
+        </Badge>
+      ),
     },
     {
       id: 'creeLe',
@@ -122,10 +152,16 @@ export function EcranConsignesPieces() {
       libelle: '',
       actions: true,
       rendu: (consigne) => {
-        if (consigne.statut !== 'en_attente_retour_fournisseur' || !peutRetournerConsigne(role)) return null;
+        if (consigne.statut !== 'en_attente_retour_fournisseur' || !peutRetournerConsigne(role))
+          return null;
         return (
           <div className="flex justify-end">
-            <Button type="button" size="sm" variant="outline" onClick={() => setConsigneAConfirmer(consigne.id)}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setConsigneAConfirmer(consigne.id)}
+            >
               {t('pieces:consignes.actions.marquerRetour')}
             </Button>
           </div>
@@ -147,7 +183,11 @@ export function EcranConsignesPieces() {
     return (
       <div className="flex flex-col gap-6">
         <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:consignes.titre')}</h1>
-        <EtatErreur titre={t('pieces:consignes.erreur.titre')} description={messageErreur(error, t)} onReessayer={() => void refetch()} />
+        <EtatErreur
+          titre={t('pieces:consignes.erreur.titre')}
+          description={messageErreur(error, t)}
+          onReessayer={() => void refetch()}
+        />
       </div>
     );
   }
@@ -161,13 +201,17 @@ export function EcranConsignesPieces() {
           <Label htmlFor="filtre-statut-consigne">{t('pieces:consignes.statut')}</Label>
           <Select
             value={statut ?? 'toutes'}
-            onValueChange={(valeur) => setStatut(valeur === 'toutes' ? undefined : (valeur as StatutConsigneEchangeStandard))}
+            onValueChange={(valeur) =>
+              setStatut(valeur === 'toutes' ? undefined : (valeur as StatutConsigneEchangeStandard))
+            }
           >
             <SelectTrigger id="filtre-statut-consigne" aria-label={t('pieces:consignes.statut')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="toutes">{t('pieces:reservations.filtres.statutToutes')}</SelectItem>
+              <SelectItem value="toutes">
+                {t('pieces:reservations.filtres.statutToutes')}
+              </SelectItem>
               {STATUTS_CONSIGNE_ECHANGE_STANDARD.map((valeur) => (
                 <SelectItem key={valeur} value={valeur}>
                   {t(`pieces:consignes.statuts.${valeur}`)}
@@ -178,7 +222,9 @@ export function EcranConsignesPieces() {
         </div>
 
         <div className="flex flex-col gap-1.5 max-w-[220px]">
-          <Label htmlFor="filtre-anciennete-consigne">{t('pieces:consignes.anciennes.anciennete')}</Label>
+          <Label htmlFor="filtre-anciennete-consigne">
+            {t('pieces:consignes.anciennes.anciennete')}
+          </Label>
           <Input
             id="filtre-anciennete-consigne"
             type="number"
@@ -196,14 +242,25 @@ export function EcranConsignesPieces() {
         cleLigne={(consigne) => consigne.id}
         contenuVide={
           filtresActifs ? (
-            <EtatVideFiltre titre={t('pieces:consignes.titre')} description={t('pieces:consignes.vide')} onEffacerFiltres={effacerFiltres} />
+            <EtatVideFiltre
+              titre={t('pieces:consignes.titre')}
+              description={t('pieces:consignes.vide')}
+              onEffacerFiltres={effacerFiltres}
+            />
           ) : (
-            <EtatVidePremierUsage titre={t('pieces:consignes.titre')} description={t('pieces:consignes.vide')} />
+            <EtatVidePremierUsage
+              titre={t('pieces:consignes.titre')}
+              description={t('pieces:consignes.vide')}
+            />
           )
         }
       />
 
-      <BoutonChargerPlus aChargerPlus={Boolean(hasNextPage)} enChargement={isFetchingNextPage} onChargerPlus={() => void fetchNextPage()} />
+      <BoutonChargerPlus
+        aChargerPlus={Boolean(hasNextPage)}
+        enChargement={isFetchingNextPage}
+        onChargerPlus={() => void fetchNextPage()}
+      />
 
       <AvertissementConfirmable
         ouvert={consigneAConfirmer !== null}
@@ -216,7 +273,9 @@ export function EcranConsignesPieces() {
         enCours={marquerRetour.isPending}
         onConfirmer={() => {
           if (!consigneAConfirmer) return;
-          marquerRetour.mutate(consigneAConfirmer, { onSuccess: () => setConsigneAConfirmer(null) });
+          marquerRetour.mutate(consigneAConfirmer, {
+            onSuccess: () => setConsigneAConfirmer(null),
+          });
         }}
       />
     </div>

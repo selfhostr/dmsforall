@@ -95,7 +95,11 @@ describe('EcranRecherche', () => {
 
   it('au chargement, sans saisie : invite à taper, jamais "aucun résultat"', () => {
     rendre();
-    expect(screen.getByText('Saisissez une plaque (VD 123456), un VIN, le nom du client ou un numéro de téléphone')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Saisissez une plaque (VD 123456), un VIN, le nom du client ou un numéro de téléphone',
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Aucun résultat')).not.toBeInTheDocument();
   });
 
@@ -109,13 +113,17 @@ describe('EcranRecherche', () => {
     expect(await screen.findByText(/VW Touran 2\.0 TDI/)).toBeInTheDocument();
     // L'invite a disparu dès qu'il y a une saisie, résultats ou pas.
     expect(
-      screen.queryByText('Saisissez une plaque (VD 123456), un VIN, le nom du client ou un numéro de téléphone'),
+      screen.queryByText(
+        'Saisissez une plaque (VD 123456), un VIN, le nom du client ou un numéro de téléphone',
+      ),
     ).not.toBeInTheDocument();
   });
 
   it('aucun résultat pour la saisie : le message dédié du panneau, distinct de l’invite', async () => {
     server.use(
-      http.get('/api/v1/recherche', () => HttpResponse.json({ plaqueInterchangeable: false, resultats: [] })),
+      http.get('/api/v1/recherche', () =>
+        HttpResponse.json({ plaqueInterchangeable: false, resultats: [] }),
+      ),
     );
     rendre();
 
@@ -174,7 +182,9 @@ describe('EcranRecherche', () => {
 
     await userEvent.setup().type(screen.getByRole('combobox'), 'VD 123456');
 
-    expect(await screen.findByText("Une erreur interne s'est produite. Réessayez.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Une erreur interne s'est produite. Réessayez."),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
   });
 
@@ -182,7 +192,12 @@ describe('EcranRecherche', () => {
     await i18n.changeLanguage('de');
     rendre();
     expect(screen.getByRole('heading', { name: 'Suchen' })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole('combobox')).toHaveAttribute('placeholder', 'Kennzeichen, VIN, Kunde, Tel… (Ctrl+K)'));
+    await waitFor(() =>
+      expect(screen.getByRole('combobox')).toHaveAttribute(
+        'placeholder',
+        'Kennzeichen, VIN, Kunde, Tel… (Ctrl+K)',
+      ),
+    );
   });
 
   describe('propagation du site (?site=) au résultat sélectionné', () => {

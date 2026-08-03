@@ -49,7 +49,10 @@ export interface PointageOuvert {
  */
 export interface LecturePointage {
   pointagesOuvertsPourOr(tx: TransactionDfa, orId: string): Promise<readonly PointageOuvert[]>;
-  lignesAvecTempsPointe(tx: TransactionDfa, ligneIds: readonly string[]): Promise<ReadonlySet<string>>;
+  lignesAvecTempsPointe(
+    tx: TransactionDfa,
+    ligneIds: readonly string[],
+  ): Promise<ReadonlySet<string>>;
 }
 
 /** Implémentation vide (lot 1) : jamais de pointage ouvert, jamais de temps pointé sur une ligne. */

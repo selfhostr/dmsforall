@@ -44,7 +44,12 @@ export class ReponseFinancementDto implements ReponseFinancement {
   @ApiProperty({ enum: TYPES_FINANCEMENT_VENTE })
   readonly type!: ReponseFinancement['type'];
 
-  @ApiProperty({ type: () => ClientResumeDto, nullable: true, description: 'null UNIQUEMENT pour type = comptant (RV-44). Organisme de financement (client tiers si crédit/leasing).' })
+  @ApiProperty({
+    type: () => ClientResumeDto,
+    nullable: true,
+    description:
+      'null UNIQUEMENT pour type = comptant (RV-44). Organisme de financement (client tiers si crédit/leasing).',
+  })
   readonly organisme!: ClientResumeDto | null;
 
   @ApiProperty({ type: String, nullable: true })

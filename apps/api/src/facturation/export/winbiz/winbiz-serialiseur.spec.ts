@@ -2,15 +2,24 @@ import { describe, expect, it } from 'vitest';
 
 import type { EcritureExport, LigneEcritureExport } from '@dfa/shared';
 
-import { ENTETE_COLONNES_WINBIZ, SEPARATEUR_CHAMP_WINBIZ, FIN_DE_LIGNE_WINBIZ } from './winbiz.constantes';
+import {
+  ENTETE_COLONNES_WINBIZ,
+  SEPARATEUR_CHAMP_WINBIZ,
+  FIN_DE_LIGNE_WINBIZ,
+} from './winbiz.constantes';
 import { serialiserEcrituresWinbiz } from './winbiz-serialiseur';
 import { ErreurExportWinbiz } from './winbiz.erreurs';
 
-function ligne(partiel: Partial<LigneEcritureExport> & Pick<LigneEcritureExport, 'compte' | 'sens' | 'montantCentimes'>): LigneEcritureExport {
+function ligne(
+  partiel: Partial<LigneEcritureExport> &
+    Pick<LigneEcritureExport, 'compte' | 'sens' | 'montantCentimes'>,
+): LigneEcritureExport {
   return { codeTva: null, tauxPourmille: null, baseTvaCentimes: null, libelle: '', ...partiel };
 }
 
-function ecriture(partiel: Partial<EcritureExport> & Pick<EcritureExport, 'lignes'>): EcritureExport {
+function ecriture(
+  partiel: Partial<EcritureExport> & Pick<EcritureExport, 'lignes'>,
+): EcritureExport {
   return {
     reference: 'FA-2026-00123',
     date: '2026-07-29',
@@ -68,7 +77,11 @@ describe('serialiserEcrituresWinbiz — équilibre et comptage', () => {
   });
 
   it('refuse deux écritures qui partagent le même documentId (export en double)', () => {
-    const doublon = ecriture({ reference: 'FA-DOUBLON', documentId: 'doc-facture-123', lignes: PAIEMENT_SIMPLE.lignes });
+    const doublon = ecriture({
+      reference: 'FA-DOUBLON',
+      documentId: 'doc-facture-123',
+      lignes: PAIEMENT_SIMPLE.lignes,
+    });
     expect(() => serialiserEcrituresWinbiz([FACTURE_TVA, doublon])).toThrow(ErreurExportWinbiz);
   });
 });
@@ -99,7 +112,10 @@ describe('serialiserEcrituresWinbiz — forme du fichier', () => {
   it('ligne d’une facture avec TVA : bloc TVA rempli conformément à EF-13/EF-15, la ligne produit reste vide', () => {
     const resultat = serialiserEcrituresWinbiz([FACTURE_TVA]);
     const texte = resultat.contenu.toString('latin1');
-    const lignesDonnees = texte.split(FIN_DE_LIGNE_WINBIZ).slice(1).filter((l) => l.length > 0);
+    const lignesDonnees = texte
+      .split(FIN_DE_LIGNE_WINBIZ)
+      .slice(1)
+      .filter((l) => l.length > 0);
     expect(lignesDonnees).toHaveLength(2);
 
     const parCompteCredit = new Map(

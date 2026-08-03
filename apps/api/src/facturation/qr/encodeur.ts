@@ -148,7 +148,10 @@ export function encoderChargeUtileQr(donnees: DonneesQrFacture): ChargeUtileQr {
   elements.push(devise);
 
   /* 21-27 — Débiteur (7 éléments, remplis ou tous vides — jamais partiels). */
-  const completudeDebiteur = evaluerCompletudeAdresse(donnees.debiteur, CHAMPS_REQUIS_BLOC_DEBITEUR);
+  const completudeDebiteur = evaluerCompletudeAdresse(
+    donnees.debiteur,
+    CHAMPS_REQUIS_BLOC_DEBITEUR,
+  );
   const blocDebiteurEmis = completudeDebiteur.complete;
 
   if (blocDebiteurEmis && donnees.debiteur) {
@@ -189,7 +192,10 @@ export function encoderChargeUtileQr(donnees: DonneesQrFacture): ChargeUtileQr {
     LONGUEURS_MAX.informationFacturation,
   );
 
-  if (message.length + informationFacturation.length > LONGUEURS_MAX.messageEtInformationFacturation) {
+  if (
+    message.length + informationFacturation.length >
+    LONGUEURS_MAX.messageEtInformationFacturation
+  ) {
     throw new ErreurQrFacture(
       'CHAMP_TROP_LONG',
       'Le message non structuré et l’information de facturation totalisent plus de ' +

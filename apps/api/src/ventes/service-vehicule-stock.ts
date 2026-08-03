@@ -15,24 +15,52 @@ import type {
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import { vehiculeStock, type LigneVehiculeStock } from '../db/schema';
-import { chargerPlaqueCourante, chargerResumeUtilisateur, chargerVehiculeLigne, construireVehiculeResume } from '../atelier/references';
+import {
+  chargerPlaqueCourante,
+  chargerResumeUtilisateur,
+  chargerVehiculeLigne,
+  construireVehiculeResume,
+} from '../atelier/references';
 import { CollecteurAvertissements } from '../common/avertissements';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { JETON_AUDIT, type ServiceAudit } from '../common/audit';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { Horloge } from '../common/horloge/horloge';
-import { JETON_IDEMPOTENCE, type ReponseMemorisable, type ResultatIdempotent, type ServiceIdempotence } from '../common/idempotence';
+import {
+  JETON_IDEMPOTENCE,
+  type ReponseMemorisable,
+  type ResultatIdempotent,
+  type ServiceIdempotence,
+} from '../common/idempotence';
 
-import { calculerTypeVehicule, versVehiculeStockResponse, versVehiculeStockResume } from './mappers';
-import { construireConditionKeyset, construireOrderBy, decoderCurseurPourTri, encoderCurseurTrie, expressionTriValeur, valeurCurseurDepuisTri, type DefinitionTri } from './pagination-triee';
-import { chargerVehiculeStock, chargerVehiculeStockOuNull, chargerVehiculeStockPourEcriture } from './references';
+import {
+  calculerTypeVehicule,
+  versVehiculeStockResponse,
+  versVehiculeStockResume,
+} from './mappers';
+import {
+  construireConditionKeyset,
+  construireOrderBy,
+  decoderCurseurPourTri,
+  encoderCurseurTrie,
+  expressionTriValeur,
+  valeurCurseurDepuisTri,
+  type DefinitionTri,
+} from './pagination-triee';
+import {
+  chargerVehiculeStock,
+  chargerVehiculeStockOuNull,
+  chargerVehiculeStockPourEcriture,
+} from './references';
 
 export interface ResultatCreationVehiculeStock {
   readonly statutHttp: number;
   readonly corps: ReponseAvecAvertissements<ReponseVehiculeStock>;
 }
 
-const DEFINITIONS_TRI_VEHICULES_STOCK: Readonly<Record<FiltresVehiculesStock['tri'], DefinitionTri>> = {
+const DEFINITIONS_TRI_VEHICULES_STOCK: Readonly<
+  Record<FiltresVehiculesStock['tri'], DefinitionTri>
+> = {
   // `date_entree_stock` est une colonne `date` (pas `timestamptz`) : pas de perte de microseconde
   // possible, `temporel: true` n'est pas nécessaire ici (voir `common/pagination/valeur-temporelle.ts`).
   'dateEntreeStock:desc': { expression: sql`vs.date_entree_stock`, sens: 'desc', nullable: false },
@@ -43,8 +71,16 @@ const DEFINITIONS_TRI_VEHICULES_STOCK: Readonly<Record<FiltresVehiculesStock['tr
     sens: 'desc',
     nullable: false,
   },
-  'prixVenteAfficheCentimes:asc': { expression: sql`vs.prix_vente_affiche_centimes`, sens: 'asc', nullable: true },
-  'prixVenteAfficheCentimes:desc': { expression: sql`vs.prix_vente_affiche_centimes`, sens: 'desc', nullable: true },
+  'prixVenteAfficheCentimes:asc': {
+    expression: sql`vs.prix_vente_affiche_centimes`,
+    sens: 'asc',
+    nullable: true,
+  },
+  'prixVenteAfficheCentimes:desc': {
+    expression: sql`vs.prix_vente_affiche_centimes`,
+    sens: 'desc',
+    nullable: true,
+  },
 };
 
 const COLONNES_VEHICULE_STOCK_LISTE = sql`
@@ -88,18 +124,29 @@ export class ServiceVehiculeStock {
   ): Promise<ResultatIdempotent<ReponseMemorisable & ResultatCreationVehiculeStock>> {
     return this.idempotence.executer(
       ctx,
-      { methode: 'POST', chemin: '/vehicules/{vehiculeId}/stock', cle: cleIdempotence, corps: entree },
+      {
+        methode: 'POST',
+        chemin: '/vehicules/{vehiculeId}/stock',
+        cle: cleIdempotence,
+        corps: entree,
+      },
       async (tx) => {
         const vehiculeLigne = await chargerVehiculeLigne(tx, ctx, vehiculeId);
 
         const existant = await chargerVehiculeStockOuNull(tx, ctx, vehiculeId, true);
         if (existant) {
-          throw new ErreurMetier('VENTE_VEHICULE_STOCK_DEJA_EXISTANT', 'Ce véhicule est déjà (ou a déjà été) mis en stock.');
+          throw new ErreurMetier(
+            'VENTE_VEHICULE_STOCK_DEJA_EXISTANT',
+            'Ce véhicule est déjà (ou a déjà été) mis en stock.',
+          );
         }
 
         // Statut initial DÉRIVÉ (contrat, littéral) : `en_commande` si `provenance = 'neuf_constructeur'`
         // et que le véhicule n'a pas encore de VIN connu, `disponible` sinon.
-        const statutInitial = entree.provenance === 'neuf_constructeur' && !vehiculeLigne.vin ? 'en_commande' : 'disponible';
+        const statutInitial =
+          entree.provenance === 'neuf_constructeur' && !vehiculeLigne.vin
+            ? 'en_commande'
+            : 'disponible';
         const maintenant = this.horloge.maintenant();
 
         let ligne: LigneVehiculeStock;
@@ -120,11 +167,15 @@ export class ServiceVehiculeStock {
             })
             .returning();
           const inseree = inserees[0];
-          if (!inseree) throw new ErreurMetier('ERREUR_INTERNE', "La mise en stock n'a rendu aucune ligne.");
+          if (!inseree)
+            throw new ErreurMetier('ERREUR_INTERNE', "La mise en stock n'a rendu aucune ligne.");
           ligne = inseree;
         } catch (erreur) {
           if (estViolationCleUnique(erreur)) {
-            throw new ErreurMetier('VENTE_VEHICULE_STOCK_DEJA_EXISTANT', 'Ce véhicule est déjà (ou a déjà été) mis en stock.');
+            throw new ErreurMetier(
+              'VENTE_VEHICULE_STOCK_DEJA_EXISTANT',
+              'Ce véhicule est déjà (ou a déjà été) mis en stock.',
+            );
           }
           throw erreur;
         }
@@ -135,7 +186,11 @@ export class ServiceVehiculeStock {
     );
   }
 
-  async obtenir(ctx: ContexteTenant, role: RoleUtilisateur, vehiculeId: string): Promise<ReponseVehiculeStock> {
+  async obtenir(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    vehiculeId: string,
+  ): Promise<ReponseVehiculeStock> {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await chargerVehiculeStock(tx, ctx, vehiculeId);
       return this.assembler(tx, ctx, role, ligne);
@@ -157,10 +212,14 @@ export class ServiceVehiculeStock {
       const ligne = await chargerVehiculeStockPourEcriture(tx, ctx, vehiculeId);
 
       if (versionAttendue !== ligne.version) {
-        throw new ErreurMetier('CONFLIT', 'La version de la fiche stock a changé depuis la dernière lecture.', {
-          detail: `version_attendue=${String(versionAttendue)};version_actuelle=${String(ligne.version)}`,
-          actionsProposees: [{ code: 'RAFRAICHIR' }],
-        });
+        throw new ErreurMetier(
+          'CONFLIT',
+          'La version de la fiche stock a changé depuis la dernière lecture.',
+          {
+            detail: `version_attendue=${String(versionAttendue)};version_actuelle=${String(ligne.version)}`,
+            actionsProposees: [{ code: 'RAFRAICHIR' }],
+          },
+        );
       }
 
       if (
@@ -168,21 +227,35 @@ export class ServiceVehiculeStock {
         entree.prixAchatCentimes !== ligne.prixAchatCentimes &&
         (ligne.statutCommercial === 'vendu' || ligne.statutCommercial === 'livre')
       ) {
-        throw new ErreurMetier('CONFLIT', 'Le prix d’achat est verrouillé après la vente — une correction passe par une note interne.', {
-          detail: `statutActuel=${ligne.statutCommercial}`,
-          actionsProposees: [],
-        });
+        throw new ErreurMetier(
+          'CONFLIT',
+          'Le prix d’achat est verrouillé après la vente — une correction passe par une note interne.',
+          {
+            detail: `statutActuel=${ligne.statutCommercial}`,
+            actionsProposees: [],
+          },
+        );
       }
 
       await tx
         .update(vehiculeStock)
         .set({
-          ...(entree.dateEntreeStock !== undefined ? { dateEntreeStock: entree.dateEntreeStock } : {}),
-          ...(entree.prixAchatCentimes !== undefined ? { prixAchatCentimes: entree.prixAchatCentimes } : {}),
-          ...(entree.prixVenteAfficheCentimes !== undefined ? { prixVenteAfficheCentimes: entree.prixVenteAfficheCentimes ?? null } : {}),
-          ...(entree.vendeurPrecedentAssujetti !== undefined ? { vendeurPrecedentAssujetti: entree.vendeurPrecedentAssujetti ?? null } : {}),
+          ...(entree.dateEntreeStock !== undefined
+            ? { dateEntreeStock: entree.dateEntreeStock }
+            : {}),
+          ...(entree.prixAchatCentimes !== undefined
+            ? { prixAchatCentimes: entree.prixAchatCentimes }
+            : {}),
+          ...(entree.prixVenteAfficheCentimes !== undefined
+            ? { prixVenteAfficheCentimes: entree.prixVenteAfficheCentimes ?? null }
+            : {}),
+          ...(entree.vendeurPrecedentAssujetti !== undefined
+            ? { vendeurPrecedentAssujetti: entree.vendeurPrecedentAssujetti ?? null }
+            : {}),
         })
-        .where(sql`${vehiculeStock.tenantId} = ${ctx.tenantId} and ${vehiculeStock.id} = ${vehiculeId}`);
+        .where(
+          sql`${vehiculeStock.tenantId} = ${ctx.tenantId} and ${vehiculeStock.id} = ${vehiculeId}`,
+        );
 
       const misAJour = await chargerVehiculeStock(tx, ctx, vehiculeId);
       const reponse = await this.assembler(tx, ctx, role, misAJour);
@@ -210,7 +283,9 @@ export class ServiceVehiculeStock {
       await tx
         .update(vehiculeStock)
         .set({ statutCommercial: 'disponible', receptionneLe: maintenant })
-        .where(sql`${vehiculeStock.tenantId} = ${ctx.tenantId} and ${vehiculeStock.id} = ${vehiculeId}`);
+        .where(
+          sql`${vehiculeStock.tenantId} = ${ctx.tenantId} and ${vehiculeStock.id} = ${vehiculeId}`,
+        );
 
       const misAJour = await chargerVehiculeStock(tx, ctx, vehiculeId);
       const reponse = await this.assembler(tx, ctx, role, misAJour);
@@ -239,7 +314,9 @@ export class ServiceVehiculeStock {
       await tx
         .update(vehiculeStock)
         .set({ statutCommercial: 'disponible', dernierMotifTransition: entree.motif })
-        .where(sql`${vehiculeStock.tenantId} = ${ctx.tenantId} and ${vehiculeStock.id} = ${vehiculeId}`);
+        .where(
+          sql`${vehiculeStock.tenantId} = ${ctx.tenantId} and ${vehiculeStock.id} = ${vehiculeId}`,
+        );
 
       const misAJour = await chargerVehiculeStock(tx, ctx, vehiculeId);
       const reponse = await this.assembler(tx, ctx, role, misAJour);
@@ -252,7 +329,10 @@ export class ServiceVehiculeStock {
    * Rend `VehiculeStockResume` (projection légère), contrat littéral : « embarquée dans
    * dossier-vente.ts ET les listes de véhicules en stock ».
    */
-  async lister(ctx: ContexteTenant, filtres: FiltresVehiculesStock): Promise<PageCurseur<VehiculeStockResume>> {
+  async lister(
+    ctx: ContexteTenant,
+    filtres: FiltresVehiculesStock,
+  ): Promise<PageCurseur<VehiculeStockResume>> {
     const definition = DEFINITIONS_TRI_VEHICULES_STOCK[filtres.tri];
     const idExpr = sql`vs.id`;
     const curseurDecode = decoderCurseurPourTri(filtres.curseur, filtres.tri);
@@ -261,10 +341,20 @@ export class ServiceVehiculeStock {
       const conditions = [sql`vs.tenant_id = ${ctx.tenantId}`];
       if (filtres.siteId) conditions.push(sql`vs.site_id = ${filtres.siteId}`);
       if (filtres.provenance && filtres.provenance.length > 0) {
-        conditions.push(sql`vs.provenance in (${sql.join(filtres.provenance.map((p) => sql`${p}`), sql`, `)})`);
+        conditions.push(
+          sql`vs.provenance in (${sql.join(
+            filtres.provenance.map((p) => sql`${p}`),
+            sql`, `,
+          )})`,
+        );
       }
       if (filtres.statutCommercial && filtres.statutCommercial.length > 0) {
-        conditions.push(sql`vs.statut::text in (${sql.join(filtres.statutCommercial.map((s) => sql`${s}`), sql`, `)})`);
+        conditions.push(
+          sql`vs.statut::text in (${sql.join(
+            filtres.statutCommercial.map((s) => sql`${s}`),
+            sql`, `,
+          )})`,
+        );
       }
       if (filtres.typeVehicule) {
         conditions.push(
@@ -281,7 +371,9 @@ export class ServiceVehiculeStock {
         )`);
       }
       if (curseurDecode) {
-        conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
+        conditions.push(
+          construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id),
+        );
       }
 
       const requete = sql`
@@ -347,7 +439,9 @@ export class ServiceVehiculeStock {
             id: l.id,
             plaque: l.pValeur,
             canton: l.pCanton,
-            designation: [l.vMarque, l.vModele, l.vVersion].filter((v): v is string => Boolean(v)).join(' '),
+            designation: [l.vMarque, l.vModele, l.vVersion]
+              .filter((v): v is string => Boolean(v))
+              .join(' '),
             vin: l.vVin,
             premiereMiseEnCirculationLe: l.vDate1reCirculation,
             identificationIncomplete: l.vIdentificationIncomplete,
@@ -361,14 +455,23 @@ export class ServiceVehiculeStock {
         donnees,
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseurTrie({ tri: filtres.tri, valeur: valeurCurseurDepuisTri(definition, derniere.triValeur), id: derniere.id })
+            ? encoderCurseurTrie({
+                tri: filtres.tri,
+                valeur: valeurCurseurDepuisTri(definition, derniere.triValeur),
+                id: derniere.id,
+              })
             : null,
         limite: filtres.limite,
       };
     });
   }
 
-  private async assembler(tx: TransactionDfa, ctx: ContexteTenant, role: RoleUtilisateur, ligne: LigneVehiculeStock): Promise<ReponseVehiculeStock> {
+  private async assembler(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    ligne: LigneVehiculeStock,
+  ): Promise<ReponseVehiculeStock> {
     const vehiculeLigne = await chargerVehiculeLigne(tx, ctx, ligne.id);
     const plaque = await chargerPlaqueCourante(tx, ctx, ligne.id);
     const vehiculeResume = construireVehiculeResume(vehiculeLigne, plaque);
@@ -393,16 +496,24 @@ export class ServiceVehiculeStock {
 function extraireVersionETag(ifMatch: string | undefined): number {
   const correspondance = ifMatch ? /^W\/"(\d+)"$/.exec(ifMatch.trim()) : null;
   if (!correspondance?.[1]) {
-    throw new ErreurMetier('VALIDATION_ECHOUEE', 'En-tête If-Match requis et doit porter la forme W/"<version>".', {
-      erreurs: [{ champ: 'If-Match', code: 'requis', message: 'En-tête If-Match manquant ou invalide.' }],
-    });
+    throw new ErreurMetier(
+      'VALIDATION_ECHOUEE',
+      'En-tête If-Match requis et doit porter la forme W/"<version>".',
+      {
+        erreurs: [
+          { champ: 'If-Match', code: 'requis', message: 'En-tête If-Match manquant ou invalide.' },
+        ],
+      },
+    );
   }
   return Number(correspondance[1]);
 }
 
 /** `23505` = `unique_violation` PostgreSQL — deux mises en stock concurrentes du même véhicule. */
 function estViolationCleUnique(erreur: unknown): boolean {
-  return typeof erreur === 'object' && erreur !== null && (erreur as { code?: unknown }).code === '23505';
+  return (
+    typeof erreur === 'object' && erreur !== null && (erreur as { code?: unknown }).code === '23505'
+  );
 }
 
 export { extraireVersionETag };

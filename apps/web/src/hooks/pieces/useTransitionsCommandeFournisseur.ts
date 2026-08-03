@@ -24,7 +24,10 @@ import {
  */
 function useActionCommandeFournisseur<TEntree>(
   id: string,
-  action: (id: string, entree: TEntree) => Promise<ReponseAvecAvertissements<ReponseCommandeFournisseur>>,
+  action: (
+    id: string,
+    entree: TEntree,
+  ) => Promise<ReponseAvecAvertissements<ReponseCommandeFournisseur>>,
 ): UseMutationResult<ReponseAvecAvertissements<ReponseCommandeFournisseur>, unknown, TEntree> {
   const queryClient = useQueryClient();
 
@@ -38,7 +41,9 @@ function useActionCommandeFournisseur<TEntree>(
 }
 
 /** `POST /commandes-fournisseur/{id}/envoyer` — aucun corps (§6.2). */
-export function useEnvoyerCommandeFournisseur(id: string): UseMutationResult<ReponseAvecAvertissements<ReponseCommandeFournisseur>, unknown, void> {
+export function useEnvoyerCommandeFournisseur(
+  id: string,
+): UseMutationResult<ReponseAvecAvertissements<ReponseCommandeFournisseur>, unknown, void> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -52,7 +57,10 @@ export function useEnvoyerCommandeFournisseur(id: string): UseMutationResult<Rep
 
 /** `POST /commandes-fournisseur/{id}/annuler` — motif obligatoire, uniquement avant réception. */
 export function useAnnulerCommandeFournisseur(id: string) {
-  return useActionCommandeFournisseur<EntreeAnnulationCommandeFournisseur>(id, annulerCommandeFournisseur);
+  return useActionCommandeFournisseur<EntreeAnnulationCommandeFournisseur>(
+    id,
+    annulerCommandeFournisseur,
+  );
 }
 
 interface VariablesAnnulationReliquat {
@@ -64,11 +72,16 @@ interface VariablesAnnulationReliquat {
  *  livraison (RP-28), motif obligatoire. */
 export function useAnnulerReliquatLigneCommande(
   id: string,
-): UseMutationResult<ReponseAvecAvertissements<ReponseCommandeFournisseur>, unknown, VariablesAnnulationReliquat> {
+): UseMutationResult<
+  ReponseAvecAvertissements<ReponseCommandeFournisseur>,
+  unknown,
+  VariablesAnnulationReliquat
+> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ ligneId, entree }: VariablesAnnulationReliquat) => annulerReliquatLigneCommande(id, ligneId, entree),
+    mutationFn: ({ ligneId, entree }: VariablesAnnulationReliquat) =>
+      annulerReliquatLigneCommande(id, ligneId, entree),
     onSuccess: (reponse) => {
       queryClient.setQueryData(clesPieces.commandesFournisseur.detail(id), reponse.donnees);
       void queryClient.invalidateQueries({ queryKey: ['pieces', 'commandesFournisseur', 'liste'] });
@@ -88,13 +101,21 @@ interface VariablesReceptionCommandeFournisseur {
  *  `articleId` impactés à l'avance). */
 export function useReceptionnerCommandeFournisseur(
   id: string,
-): UseMutationResult<ReponseAvecAvertissements<ReponseReceptionCommandeFournisseur>, unknown, VariablesReceptionCommandeFournisseur> {
+): UseMutationResult<
+  ReponseAvecAvertissements<ReponseReceptionCommandeFournisseur>,
+  unknown,
+  VariablesReceptionCommandeFournisseur
+> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ entree, idempotencyKey }: VariablesReceptionCommandeFournisseur) => receptionnerCommandeFournisseur(id, entree, idempotencyKey),
+    mutationFn: ({ entree, idempotencyKey }: VariablesReceptionCommandeFournisseur) =>
+      receptionnerCommandeFournisseur(id, entree, idempotencyKey),
     onSuccess: (reponse) => {
-      queryClient.setQueryData(clesPieces.commandesFournisseur.detail(id), reponse.donnees.commandeFournisseur);
+      queryClient.setQueryData(
+        clesPieces.commandesFournisseur.detail(id),
+        reponse.donnees.commandeFournisseur,
+      );
       void queryClient.invalidateQueries({ queryKey: ['pieces', 'commandesFournisseur', 'liste'] });
       void queryClient.invalidateQueries({ queryKey: ['pieces', 'articles', 'detail'] });
       void queryClient.invalidateQueries({ queryKey: ['pieces', 'articles', 'mouvements'] });

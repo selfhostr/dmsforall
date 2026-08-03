@@ -378,7 +378,10 @@ export const schemaCreationOrdreReparation = z
     kilometrageEntree: schemaKilometrage.nullish(),
     uniteKilometrage: z.enum(UNITES_DISTANCE).default('km'),
     /** Verbatims du client (RM-52), dans l'ordre de saisie. */
-    demandes: z.array(z.object({ verbatim: schemaTexteLong })).max(50).default([]),
+    demandes: z
+      .array(z.object({ verbatim: schemaTexteLong }))
+      .max(50)
+      .default([]),
     plafondCentimes: schemaCentimesPositif.optional(),
     plafondAutorisePar: schemaTexteCourt.nullish(),
     restitutionPromiseLe: schemaHorodatage.nullish(),

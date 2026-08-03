@@ -20,7 +20,7 @@ describe('STATUT_HTTP_PAR_CODE_ERREUR — exhaustivité sur les 53 codes du cont
     expect(codesMappes).toEqual(codesAttendus);
   });
 
-  it('chaque statut est un code HTTP d\'erreur plausible (400-599), jamais un 2xx', () => {
+  it("chaque statut est un code HTTP d'erreur plausible (400-599), jamais un 2xx", () => {
     for (const code of CODES_ERREUR) {
       const statut = STATUT_HTTP_PAR_CODE_ERREUR[code];
       expect(statut, `statut de ${code}`).toBeGreaterThanOrEqual(400);

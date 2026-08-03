@@ -12,7 +12,9 @@ describe('BadgeIdentificationIncomplete', () => {
   });
 
   it('ne rend rien quand le véhicule est correctement identifié', () => {
-    const { container } = render(<BadgeIdentificationIncomplete identificationIncomplete={false} />);
+    const { container } = render(
+      <BadgeIdentificationIncomplete identificationIncomplete={false} />,
+    );
     expect(container).toBeEmptyDOMElement();
   });
 });

@@ -60,7 +60,9 @@ describe('useCreerClient', () => {
         cleRecue = request.headers.get('Idempotency-Key');
         return HttpResponse.json({
           donnees: CLIENT_CREE,
-          avertissements: [{ code: 'CLIENT_DOUBLON_PROBABLE', message: 'Un client similaire existe.' }],
+          avertissements: [
+            { code: 'CLIENT_DOUBLON_PROBABLE', message: 'Un client similaire existe.' },
+          ],
         });
       }),
     );
@@ -82,7 +84,11 @@ describe('useCreerClient', () => {
   });
 
   it('invalide toutes les variantes de `clients.liste` après une création réussie', async () => {
-    server.use(http.post('/api/v1/clients', () => HttpResponse.json({ donnees: CLIENT_CREE, avertissements: [] })));
+    server.use(
+      http.post('/api/v1/clients', () =>
+        HttpResponse.json({ donnees: CLIENT_CREE, avertissements: [] }),
+      ),
+    );
 
     const queryClient = creerQueryClientTest();
     queryClient.setQueryData(clesQuery.clients.liste({ q: 'x' }), 'donnee-perimee');
@@ -91,9 +97,14 @@ describe('useCreerClient', () => {
     const { result } = renderHook(() => useCreerClient(), { wrapper: enveloppe(queryClient) });
 
     await act(async () => {
-      await result.current.mutateAsync({ entree: ENTREE_TEST, idempotencyKey: '22222222-2222-4222-8222-222222222222' });
+      await result.current.mutateAsync({
+        entree: ENTREE_TEST,
+        idempotencyKey: '22222222-2222-4222-8222-222222222222',
+      });
     });
 
-    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['clients', 'liste'] }));
+    await waitFor(() =>
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['clients', 'liste'] }),
+    );
   });
 });

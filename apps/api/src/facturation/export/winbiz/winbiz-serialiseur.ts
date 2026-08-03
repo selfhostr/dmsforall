@@ -98,11 +98,23 @@ export function construireLigneCsvWinbiz(
   const date = formaterDateWinbiz(ecriture.date);
 
   const piece = formaterPieceWinbiz(ecriture.reference);
-  poussetAvertissementTexte(ecriture.reference, piece, 'PIECE_TRONQUEE', 'la pièce', avertissements);
+  poussetAvertissementTexte(
+    ecriture.reference,
+    piece,
+    'PIECE_TRONQUEE',
+    'la pièce',
+    avertissements,
+  );
 
   const libelleSource = ligne.ligneSource.libelle || ecriture.libelle;
   const libelle = formaterLibelleWinbiz(libelleSource);
-  poussetAvertissementTexte(ecriture.reference, libelle, 'LIBELLE_TRONQUE', 'le libellé', avertissements);
+  poussetAvertissementTexte(
+    ecriture.reference,
+    libelle,
+    'LIBELLE_TRONQUE',
+    'le libellé',
+    avertissements,
+  );
 
   const compteDebit = verifierLongueurCompteWinbiz(ligne.compteDebit);
   const compteCredit = verifierLongueurCompteWinbiz(ligne.compteCredit);

@@ -32,7 +32,9 @@ export class VehiculesStockController {
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  async lister(@Query(new PipeZod(schemaFiltresVehiculesStock)) filtres: FiltresVehiculesStock): Promise<PageVehiculeStockResumeDto> {
+  async lister(
+    @Query(new PipeZod(schemaFiltresVehiculesStock)) filtres: FiltresVehiculesStock,
+  ): Promise<PageVehiculeStockResumeDto> {
     const ctx = this.contexte.contexteTenant();
     return this.service.lister(ctx, filtres);
   }

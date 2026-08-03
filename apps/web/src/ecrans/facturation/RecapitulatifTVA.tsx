@@ -27,7 +27,9 @@ export function RecapitulatifTVA({ ventilationTva, totalTtcCentimes, className }
 
   return (
     <div className={cn('flex flex-col gap-2 rounded-md border p-3', className)}>
-      <h2 className="texte-libelle font-medium text-foreground">{t('facturation:recapTva.titre')}</h2>
+      <h2 className="texte-libelle font-medium text-foreground">
+        {t('facturation:recapTva.titre')}
+      </h2>
       {ventilationTva.length > 0 ? (
         <table className="w-full texte-libelle">
           <thead>
@@ -55,8 +57,12 @@ export function RecapitulatifTVA({ ventilationTva, totalTtcCentimes, className }
         </table>
       ) : null}
       <div className="flex items-center justify-between border-t pt-2">
-        <span className="texte-corps font-semibold text-foreground">{t('facturation:recapTva.totalGeneral')}</span>
-        <span className="tabular-nums texte-corps font-semibold text-foreground">{formaterMontant(totalTtcCentimes)}</span>
+        <span className="texte-corps font-semibold text-foreground">
+          {t('facturation:recapTva.totalGeneral')}
+        </span>
+        <span className="tabular-nums texte-corps font-semibold text-foreground">
+          {formaterMontant(totalTtcCentimes)}
+        </span>
       </div>
     </div>
   );

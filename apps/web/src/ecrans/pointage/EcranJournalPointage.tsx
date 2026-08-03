@@ -8,8 +8,16 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
-import { calculerCumulsParTechnicien, calculerCumulTotal } from '@/hooks/pointage/agregats-pointage';
-import { bornesJourneeLocale, bornesSemaineLocale, dateJourLocale, formaterDureeLisible } from '@/hooks/pointage/temps-pointage';
+import {
+  calculerCumulsParTechnicien,
+  calculerCumulTotal,
+} from '@/hooks/pointage/agregats-pointage';
+import {
+  bornesJourneeLocale,
+  bornesSemaineLocale,
+  dateJourLocale,
+  formaterDureeLisible,
+} from '@/hooks/pointage/temps-pointage';
 import { useListePointages } from '@/hooks/pointage/useListePointages';
 import { useSession } from '@/hooks/useSession';
 
@@ -123,7 +131,10 @@ export function EcranJournalPointage() {
       </div>
 
       {cumuls.length === 0 ? (
-        <EtatVide titre={t('pointage:jour.vide.titre')} description={t('pointage:jour.vide.description')} />
+        <EtatVide
+          titre={t('pointage:jour.vide.titre')}
+          description={t('pointage:jour.vide.description')}
+        />
       ) : (
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full text-left">
@@ -140,27 +151,47 @@ export function EcranJournalPointage() {
               {cumuls.map((cumul) => (
                 <tr key={cumul.technicienId} className="border-t">
                   <td className="p-3">
-                    <span className="font-medium">{t('pointage:equipe.nomIndisponible', { id: cumul.technicienId.slice(0, 8) })}</span>
+                    <span className="font-medium">
+                      {t('pointage:equipe.nomIndisponible', { id: cumul.technicienId.slice(0, 8) })}
+                    </span>
                     {cumul.enCours ? (
                       <Badge variant="secondary" className="ml-2">
                         {t('pointage:jour.enCoursBadge')}
                       </Badge>
                     ) : null}
                   </td>
-                  <td className="p-3 text-right tabular-nums">{formaterDureeLisible(cumul.productifSecondes)}</td>
-                  <td className="p-3 text-right tabular-nums">{formaterDureeLisible(cumul.indirectSecondes)}</td>
-                  <td className="p-3 text-right font-medium tabular-nums">{formaterDureeLisible(cumul.presenceSecondes)}</td>
+                  <td className="p-3 text-right tabular-nums">
+                    {formaterDureeLisible(cumul.productifSecondes)}
+                  </td>
+                  <td className="p-3 text-right tabular-nums">
+                    {formaterDureeLisible(cumul.indirectSecondes)}
+                  </td>
+                  <td className="p-3 text-right font-medium tabular-nums">
+                    {formaterDureeLisible(cumul.presenceSecondes)}
+                  </td>
                   <td className="p-3 text-right">
-                    {cumul.nombreAnomalies > 0 ? <Badge variant="destructive">{cumul.nombreAnomalies}</Badge> : null}
+                    {cumul.nombreAnomalies > 0 ? (
+                      <Badge variant="destructive">{cumul.nombreAnomalies}</Badge>
+                    ) : null}
                   </td>
                 </tr>
               ))}
               <tr className="border-t bg-muted/30 font-semibold">
                 <td className="p-3">{t('pointage:jour.total')}</td>
-                <td className="p-3 text-right tabular-nums">{formaterDureeLisible(total.productifSecondes)}</td>
-                <td className="p-3 text-right tabular-nums">{formaterDureeLisible(total.indirectSecondes)}</td>
-                <td className="p-3 text-right tabular-nums">{formaterDureeLisible(total.presenceSecondes)}</td>
-                <td className="p-3 text-right">{total.nombreAnomalies > 0 ? <Badge variant="destructive">{total.nombreAnomalies}</Badge> : null}</td>
+                <td className="p-3 text-right tabular-nums">
+                  {formaterDureeLisible(total.productifSecondes)}
+                </td>
+                <td className="p-3 text-right tabular-nums">
+                  {formaterDureeLisible(total.indirectSecondes)}
+                </td>
+                <td className="p-3 text-right tabular-nums">
+                  {formaterDureeLisible(total.presenceSecondes)}
+                </td>
+                <td className="p-3 text-right">
+                  {total.nombreAnomalies > 0 ? (
+                    <Badge variant="destructive">{total.nombreAnomalies}</Badge>
+                  ) : null}
+                </td>
               </tr>
             </tbody>
           </table>

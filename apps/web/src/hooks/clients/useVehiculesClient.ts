@@ -1,4 +1,8 @@
-import { useInfiniteQuery, type InfiniteData, type UseInfiniteQueryResult } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  type InfiniteData,
+  type UseInfiniteQueryResult,
+} from '@tanstack/react-query';
 
 import type { PageCurseur, VehiculeResume } from '@dfa/shared';
 
@@ -29,9 +33,12 @@ export function useVehiculesClient(
         limite: LIMITE_PAR_PAGE,
         curseur: pageParam ?? undefined,
       });
-      const page = await requeteApi<PageCurseur<VehiculeResume>>(`/clients/${clientId}/vehicules?${params.toString()}`, {
-        method: 'GET',
-      });
+      const page = await requeteApi<PageCurseur<VehiculeResume>>(
+        `/clients/${clientId}/vehicules?${params.toString()}`,
+        {
+          method: 'GET',
+        },
+      );
       return exigerCorps(page, `GET /clients/${clientId ?? ''}/vehicules`);
     },
     initialPageParam: null as string | null,

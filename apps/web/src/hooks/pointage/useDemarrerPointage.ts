@@ -1,6 +1,10 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 
-import type { EntreeDemarragePointage, ReponseAvecAvertissements, ReponsePointage } from '@dfa/shared';
+import type {
+  EntreeDemarragePointage,
+  ReponseAvecAvertissements,
+  ReponsePointage,
+} from '@dfa/shared';
 
 import { clesPointage } from './cles';
 import { demarrerPointage } from './pointage.api';
@@ -39,7 +43,8 @@ export function useDemarrerPointage(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ entree, idempotencyKey }: VariablesDemarragePointage) => demarrerPointage(entree, idempotencyKey),
+    mutationFn: ({ entree, idempotencyKey }: VariablesDemarragePointage) =>
+      demarrerPointage(entree, idempotencyKey),
 
     onMutate: async ({ entree }) => {
       const cle = clesPointage.ouvertTechnicien(entree.technicienId);
@@ -73,7 +78,10 @@ export function useDemarrerPointage(): UseMutationResult<
     },
 
     onError: (_erreur, { entree }, contexte) => {
-      queryClient.setQueryData(clesPointage.ouvertTechnicien(entree.technicienId), contexte?.precedent ?? null);
+      queryClient.setQueryData(
+        clesPointage.ouvertTechnicien(entree.technicienId),
+        contexte?.precedent ?? null,
+      );
     },
 
     onSuccess: (reponse, { entree }) => {
@@ -89,7 +97,9 @@ export function useDemarrerPointage(): UseMutationResult<
       // Préfixe à 3 éléments (sans la date) : balaie TOUTES les journées déjà mises en cache pour
       // ce technicien, pas seulement celle d'aujourd'hui — `clesQuery.pointages.technicienJour`
       // pose la date en 4ᵉ position de la clé, l'omettre ici la rend englobante.
-      void queryClient.invalidateQueries({ queryKey: ['pointages', 'technicienJour', entree.technicienId] });
+      void queryClient.invalidateQueries({
+        queryKey: ['pointages', 'technicienJour', entree.technicienId],
+      });
       void queryClient.invalidateQueries({ queryKey: clesPointage.ouvertsSite(entree.siteId) });
     },
   });

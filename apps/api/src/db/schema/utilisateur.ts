@@ -83,10 +83,7 @@ export const utilisateur = pgTable(
     check('utilisateur_prenom_non_vide_chk', sql`length(btrim(${t.prenom})) > 0`),
     check('utilisateur_nom_non_vide_chk', sql`length(btrim(${t.nom})) > 0`),
     check('utilisateur_echecs_connexion_chk', sql`${t.echecsConnexion} >= 0`),
-    check(
-      'utilisateur_mot_de_passe_hash_non_vide_chk',
-      sql`length(${t.motDePasseHash}) > 0`,
-    ),
+    check('utilisateur_mot_de_passe_hash_non_vide_chk', sql`length(${t.motDePasseHash}) > 0`),
   ],
 );
 

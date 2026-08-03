@@ -40,7 +40,12 @@ export class ValeursFigeesOrDto implements ValeursFigeesOr {
   @ApiProperty({ type: 'object', nullable: true, additionalProperties: true })
   readonly adresseFacturation!: Readonly<Record<string, unknown>> | null;
 
-  @ApiPropertyOptional({ type: 'object', nullable: true, additionalProperties: true, description: 'Absentes pour un rôle sans montants.' })
+  @ApiPropertyOptional({
+    type: 'object',
+    nullable: true,
+    additionalProperties: true,
+    description: 'Absentes pour un rôle sans montants.',
+  })
   readonly conditions?: Readonly<Record<string, unknown>> | null;
 
   @ApiProperty({ type: String, nullable: true })
@@ -57,7 +62,9 @@ export class AttentesOrDto implements AttentesOr {
   @ApiProperty({ description: 'Une ligne bloquée « pièces » attend un approvisionnement.' })
   readonly pieces!: boolean;
 
-  @ApiProperty({ description: 'Une ligne bloquée « externe » attend un tiers (sous-traitant, expertise…).' })
+  @ApiProperty({
+    description: 'Une ligne bloquée « externe » attend un tiers (sous-traitant, expertise…).',
+  })
   readonly externe!: boolean;
 }
 
@@ -85,8 +92,15 @@ export class ControleQualiteOrDto implements ReponseControleQualiteOr {
   @ApiProperty({ type: String, nullable: true })
   readonly motifNonConformite!: string | null;
 
-  @ApiProperty({ type: () => [PointControleDto], description: 'Check-lists outillées = lot 2 (P-08 `selon_type`) ; toujours vide au lot 1.' })
-  readonly pointsControles!: readonly { readonly code: string; readonly libelle: string; readonly conforme: boolean | null }[];
+  @ApiProperty({
+    type: () => [PointControleDto],
+    description: 'Check-lists outillées = lot 2 (P-08 `selon_type`) ; toujours vide au lot 1.',
+  })
+  readonly pointsControles!: readonly {
+    readonly code: string;
+    readonly libelle: string;
+    readonly conforme: boolean | null;
+  }[];
 }
 
 export class SignatureOrDto implements ReponseSignatureOr {
@@ -122,7 +136,11 @@ export class CumulsPointageOrDto implements CumulsPointageOr {
   readonly totalCentiemes!: number;
 
   @ApiProperty({ type: () => [CumulTechnicienDto] })
-  readonly parTechnicien!: readonly { readonly technicienId: string; readonly nomAffiche: string; readonly centiemes: number }[];
+  readonly parTechnicien!: readonly {
+    readonly technicienId: string;
+    readonly nomAffiche: string;
+    readonly centiemes: number;
+  }[];
 
   @ApiProperty()
   readonly pointagesOuverts!: number;
@@ -139,7 +157,10 @@ export class VentilationTvaDto {
   readonly montantCentimes!: number;
 }
 
-const DESTINATAIRE_PAYEUR_PROPERTIES = { clientId: { type: 'string' as const, format: 'uuid' }, nomAffiche: { type: 'string' as const } };
+const DESTINATAIRE_PAYEUR_PROPERTIES = {
+  clientId: { type: 'string' as const, format: 'uuid' },
+  nomAffiche: { type: 'string' as const },
+};
 
 export class TotauxPayeurOrDto implements TotauxPayeurOr {
   @ApiProperty({ enum: PAYEURS_LIGNE_OR })
@@ -150,8 +171,8 @@ export class TotauxPayeurOrDto implements TotauxPayeurOr {
     format: 'uuid',
     nullable: true,
     description:
-      "Clé de regroupement, DEUXIÈME MOITIÉ (MD-62 : regroupement par `(payeur, payeurClientId)`, jamais " +
-      "`payeur` seul — deux assureurs sur le même OR sont deux groupes distincts). `null` pour `payeur = " +
+      'Clé de regroupement, DEUXIÈME MOITIÉ (MD-62 : regroupement par `(payeur, payeurClientId)`, jamais ' +
+      '`payeur` seul — deux assureurs sur le même OR sont deux groupes distincts). `null` pour `payeur = ' +
       "'client'` (destinataire = l'OR lui-même) et pour `'garage'` (RF-92, fusionné dans le groupe `'client'`, " +
       "n'apparaît donc jamais ici). Colonne `ligne_or.payeur_client_id` (migration 0017).",
   })
@@ -162,8 +183,8 @@ export class TotauxPayeurOrDto implements TotauxPayeurOr {
     nullable: true,
     properties: DESTINATAIRE_PAYEUR_PROPERTIES,
     description:
-      "Projection minimale du destinataire réel de ce groupe (RF-87), résolu via `common/identite-client/` " +
-      "(RM-01 : le `type` du client fait autorité pour le nom affiché). `null` uniquement pour `payeur = " +
+      'Projection minimale du destinataire réel de ce groupe (RF-87), résolu via `common/identite-client/` ' +
+      '(RM-01 : le `type` du client fait autorité pour le nom affiché). `null` uniquement pour `payeur = ' +
       "'garage'` (personne, RF-92) — n'apparaît jamais ici, fusionné dans `'client'`.",
   })
   readonly destinataire!: TotauxPayeurOr['destinataire'];
@@ -178,16 +199,26 @@ export class TotauxPayeurOrDto implements TotauxPayeurOr {
   readonly montantTtcCentimes!: number;
 
   @ApiProperty({ type: () => [VentilationTvaDto] })
-  readonly tva!: readonly { readonly tauxPourmille: number; readonly baseHtCentimes: number; readonly montantCentimes: number }[];
+  readonly tva!: readonly {
+    readonly tauxPourmille: number;
+    readonly baseHtCentimes: number;
+    readonly montantCentimes: number;
+  }[];
 }
 
-const NOM_AFFICHE_PROPERTIES = { utilisateurId: { type: 'string' as const, format: 'uuid' }, nomAffiche: { type: 'string' as const } };
+const NOM_AFFICHE_PROPERTIES = {
+  utilisateurId: { type: 'string' as const, format: 'uuid' },
+  nomAffiche: { type: 'string' as const },
+};
 
 export class ReponseOrdreReparationDto implements ReponseOrdreReparation {
   @ApiProperty({ format: 'uuid' })
   readonly id!: string;
 
-  @ApiProperty({ example: 'OR-2026-1042', description: 'Numéro continu (RM-49), brûlé dans la transaction métier.' })
+  @ApiProperty({
+    example: 'OR-2026-1042',
+    description: 'Numéro continu (RM-49), brûlé dans la transaction métier.',
+  })
   readonly numero!: string;
 
   @ApiProperty({ format: 'uuid' })
@@ -220,16 +251,29 @@ export class ReponseOrdreReparationDto implements ReponseOrdreReparation {
   @ApiPropertyOptional({ description: 'Absent pour un rôle sans droit aux montants.' })
   readonly plafondCentimes?: number;
 
-  @ApiPropertyOptional({ type: String, nullable: true, description: 'Absent pour un rôle sans droit aux montants.' })
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'Absent pour un rôle sans droit aux montants.',
+  })
   readonly plafondAutorisePar?: string | null;
 
-  @ApiPropertyOptional({ description: 'Dérivé, maintenu par trigger (RM-54). Absent pour un rôle sans droit aux montants.' })
+  @ApiPropertyOptional({
+    description:
+      'Dérivé, maintenu par trigger (RM-54). Absent pour un rôle sans droit aux montants.',
+  })
   readonly totalValideCentimes?: number;
 
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
   readonly restitutionPromiseLe!: string | null;
 
-  @ApiProperty({ type: String, format: 'date-time', nullable: true, description: 'RM-56 : la promesse INITIALE, conservée pour que le report soit visible et motivé.' })
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    description:
+      'RM-56 : la promesse INITIALE, conservée pour que le report soit visible et motivé.',
+  })
   readonly restitutionInitialeLe!: string | null;
 
   @ApiProperty({ enum: LOCALISATIONS_VEHICULE })
@@ -244,10 +288,19 @@ export class ReponseOrdreReparationDto implements ReponseOrdreReparation {
   @ApiProperty({ enum: MOTIFS_LIEN_OR, nullable: true })
   readonly motifLien!: ReponseOrdreReparation['motifLien'];
 
-  @ApiProperty({ type: String, format: 'uuid', nullable: true, description: 'Accroche lot 3 (planning).' })
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description: 'Accroche lot 3 (planning).',
+  })
   readonly rendezVousId!: string | null;
 
-  @ApiProperty({ type: String, nullable: true, description: "RM-14 : la « PO » du client entreprise. Son absence bloque `OR_PO_MANQUANT`." })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'RM-14 : la « PO » du client entreprise. Son absence bloque `OR_PO_MANQUANT`.',
+  })
   readonly numeroCommandeInterne!: string | null;
 
   @ApiProperty({ type: String, format: 'uuid', nullable: true })
@@ -289,7 +342,10 @@ export class ReponseOrdreReparationDto implements ReponseOrdreReparation {
   @ApiProperty()
   readonly nombreLignes!: number;
 
-  @ApiProperty({ description: 'Au-delà de 200 lignes (`SEUIL_LIGNES_EMBARQUEES`), `lignes` est tronqué : paginer `GET .../lignes`.' })
+  @ApiProperty({
+    description:
+      'Au-delà de 200 lignes (`SEUIL_LIGNES_EMBARQUEES`), `lignes` est tronqué : paginer `GET .../lignes`.',
+  })
   readonly lignesTronquees!: boolean;
 
   @ApiProperty({ type: () => [ReponseDevisComplementaireDto] })
@@ -301,22 +357,38 @@ export class ReponseOrdreReparationDto implements ReponseOrdreReparation {
   @ApiProperty({ type: () => [SignatureOrDto] })
   readonly signatures!: readonly ReponseSignatureOr[];
 
-  @ApiProperty({ type: 'object', nullable: true, additionalProperties: true, description: 'Prêt de véhicule de courtoisie lié. Toujours `null` au lot 1 (module lot 5).' })
+  @ApiProperty({
+    type: 'object',
+    nullable: true,
+    additionalProperties: true,
+    description: 'Prêt de véhicule de courtoisie lié. Toujours `null` au lot 1 (module lot 5).',
+  })
   readonly pret!: Readonly<Record<string, unknown>> | null;
 
   @ApiProperty({ type: () => CumulsPointageOrDto })
   readonly cumulsPointage!: CumulsPointageOr;
 
-  @ApiPropertyOptional({ type: () => [TotauxPayeurOrDto], description: 'Absent pour un rôle sans droit aux montants.' })
+  @ApiPropertyOptional({
+    type: () => [TotauxPayeurOrDto],
+    description: 'Absent pour un rôle sans droit aux montants.',
+  })
   readonly totauxParPayeur?: readonly TotauxPayeurOr[];
 
   @ApiProperty({ type: () => AttentesOrDto })
   readonly attentes!: AttentesOr;
 
-  @ApiProperty({ enum: ETATS_AFFICHES_ORDRE_REPARATION, description: 'Le plus bloquant des attentes, sinon le statut. Calculé UNE FOIS côté serveur.' })
+  @ApiProperty({
+    enum: ETATS_AFFICHES_ORDRE_REPARATION,
+    description: 'Le plus bloquant des attentes, sinon le statut. Calculé UNE FOIS côté serveur.',
+  })
   readonly etatAffiche!: ReponseOrdreReparation['etatAffiche'];
 
-  @ApiProperty({ enum: ACTIONS_ORDRE_REPARATION, isArray: true, description: 'Actions possibles pour l’appelant courant (statut + droits + paramètres). N’exempte pas de la vérification serveur.' })
+  @ApiProperty({
+    enum: ACTIONS_ORDRE_REPARATION,
+    isArray: true,
+    description:
+      'Actions possibles pour l’appelant courant (statut + droits + paramètres). N’exempte pas de la vérification serveur.',
+  })
   readonly actionsDisponibles!: readonly ActionOrdreReparation[];
 
   @ApiProperty({ description: 'Entier monotone, aussi rendu en en-tête `ETag: W/"<version>"`.' })

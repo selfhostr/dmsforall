@@ -345,7 +345,12 @@ export const schemaCreationClient = z
     langueCorrespondance: z.enum(LANGUES),
     adressePrincipale: schemaAdresseClient.omit({ type: true }),
     telephones: z
-      .array(z.object({ valeur: z.string().trim().min(4).max(30), principal: z.boolean().default(false) }))
+      .array(
+        z.object({
+          valeur: z.string().trim().min(4).max(30),
+          principal: z.boolean().default(false),
+        }),
+      )
       .max(5)
       .default([]),
     email: schemaEmail.nullish(),
@@ -355,10 +360,10 @@ export const schemaCreationClient = z
     referenceExterne: z.string().trim().max(80).nullish(),
   })
   .extend(schemaConfirmations.shape)
-  .refine(
-    (v) => (v.type === 'particulier' ? Boolean(v.nom) : Boolean(v.raisonSociale)),
-    { message: 'Un particulier exige `nom`, une entreprise exige `raisonSociale`.', path: ['nom'] },
-  );
+  .refine((v) => (v.type === 'particulier' ? Boolean(v.nom) : Boolean(v.raisonSociale)), {
+    message: 'Un particulier exige `nom`, une entreprise exige `raisonSociale`.',
+    path: ['nom'],
+  });
 
 /**
  * `PATCH /clients/{clientId}`. **`type` n'est PAS modifiable** (RM-01) : l'envoyer produit
@@ -412,4 +417,3 @@ export type EntreeConsentementClient = z.infer<typeof schemaConsentementClient>;
 export type EntreeNoteClient = z.infer<typeof schemaNoteClient>;
 export type FiltresClients = z.infer<typeof schemaFiltresClients>;
 export type ParametresDoublonsClients = z.infer<typeof schemaParametresDoublonsClients>;
-

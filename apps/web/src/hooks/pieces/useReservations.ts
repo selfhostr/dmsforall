@@ -7,7 +7,10 @@ import { listerReservations } from './reservations.api';
 
 const LIMITE_PAGE = 50;
 
-export type ResultatReservations = UseInfiniteQueryResult<{ readonly pages: readonly PageCurseur<ReponseReservationPiece>[] }, unknown> & {
+export type ResultatReservations = UseInfiniteQueryResult<
+  { readonly pages: readonly PageCurseur<ReponseReservationPiece>[] },
+  unknown
+> & {
   readonly reservations: readonly ReponseReservationPiece[];
 };
 

@@ -1,6 +1,10 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 
-import type { EntreeFacturationOrdreReparation, ReponseAvecAvertissements, ReponseFacturationOrdreReparation } from '@dfa/shared';
+import type {
+  EntreeFacturationOrdreReparation,
+  ReponseAvecAvertissements,
+  ReponseFacturationOrdreReparation,
+} from '@dfa/shared';
 
 import { clesQuery } from '@/api/cles';
 
@@ -33,12 +37,16 @@ export function useFacturerOrdreReparation(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ orId, entree, idempotencyKey }: VariablesFacturationOr) => facturerOrdreReparation(orId, entree, idempotencyKey),
+    mutationFn: ({ orId, entree, idempotencyKey }: VariablesFacturationOr) =>
+      facturerOrdreReparation(orId, entree, idempotencyKey),
     onSuccess: (reponse) => {
       for (const facture of reponse.donnees.facturesCreees) {
         queryClient.setQueryData(clesFacturation.documents.detail(facture.id), facture);
       }
-      queryClient.setQueryData(clesQuery.or.detail(reponse.donnees.ordreReparation.id), reponse.donnees.ordreReparation);
+      queryClient.setQueryData(
+        clesQuery.or.detail(reponse.donnees.ordreReparation.id),
+        reponse.donnees.ordreReparation,
+      );
       void queryClient.invalidateQueries({ queryKey: ['facturation', 'documents', 'liste'] });
     },
   });

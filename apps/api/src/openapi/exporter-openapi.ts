@@ -19,7 +19,9 @@ function trierClesProfondement(valeur: unknown): unknown {
     return valeur.map(trierClesProfondement);
   }
   if (valeur !== null && typeof valeur === 'object') {
-    const entrees = Object.entries(valeur as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b));
+    const entrees = Object.entries(valeur as Record<string, unknown>).sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
     const resultat: Record<string, unknown> = {};
     for (const [cle, sousValeur] of entrees) {
       resultat[cle] = trierClesProfondement(sousValeur);
@@ -53,7 +55,10 @@ async function main(): Promise<void> {
   });
   const documentTrie = trierClesProfondement(document);
 
-  const cheminSortie = path.resolve(__dirname, '../../../../packages/shared/openapi/dfa-openapi.json');
+  const cheminSortie = path.resolve(
+    __dirname,
+    '../../../../packages/shared/openapi/dfa-openapi.json',
+  );
   mkdirSync(path.dirname(cheminSortie), { recursive: true });
   writeFileSync(cheminSortie, `${JSON.stringify(documentTrie, null, 2)}\n`, 'utf8');
 

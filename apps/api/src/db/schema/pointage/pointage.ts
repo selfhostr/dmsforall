@@ -54,7 +54,17 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { boolean, check, foreignKey, index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  check,
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 import { colonnesHorodatage } from '../colonnes-communes';
 import { site } from '../site';
@@ -195,8 +205,12 @@ export const pointage = pgTable(
     // même limite que `article_reference_remplacement_idx`. Voir l'en-tête pour la portée exacte
     // (un seul technicien à la fois, PAS une seule personne par ligne — question 2 non tranchée).
 
-    index('pointage_or_idx').on(t.tenantId, t.ordreReparationId).where(sql`${t.ordreReparationId} is not null`),
-    index('pointage_ligne_or_idx').on(t.tenantId, t.ligneOrId).where(sql`${t.ligneOrId} is not null`),
+    index('pointage_or_idx')
+      .on(t.tenantId, t.ordreReparationId)
+      .where(sql`${t.ordreReparationId} is not null`),
+    index('pointage_ligne_or_idx')
+      .on(t.tenantId, t.ligneOrId)
+      .where(sql`${t.ligneOrId} is not null`),
     index('pointage_site_statut_idx').on(t.tenantId, t.siteId, t.statut),
     index('pointage_technicien_idx').on(t.tenantId, t.technicienId, t.debutLe.desc()),
     // GET /pointages, tri debutLe:asc|desc (schema/pointage.ts `TRIS_POINTAGES`).

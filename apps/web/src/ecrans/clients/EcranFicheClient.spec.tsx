@@ -182,8 +182,12 @@ describe('EcranFicheClient', () => {
     function repondreAvecVehiculeEtOr() {
       server.use(
         http.get('/api/v1/clients/cl-1', () => HttpResponse.json(CLIENT_TEST)),
-        http.get('/api/v1/clients/cl-1/vehicules', () => HttpResponse.json({ ...PAGE_VIDE, donnees: [VEHICULE_TEST] })),
-        http.get('/api/v1/clients/cl-1/ordres-reparation', () => HttpResponse.json({ ...PAGE_VIDE, donnees: [OR_TEST] })),
+        http.get('/api/v1/clients/cl-1/vehicules', () =>
+          HttpResponse.json({ ...PAGE_VIDE, donnees: [VEHICULE_TEST] }),
+        ),
+        http.get('/api/v1/clients/cl-1/ordres-reparation', () =>
+          HttpResponse.json({ ...PAGE_VIDE, donnees: [OR_TEST] }),
+        ),
         http.get('/api/v1/clients/cl-1/conditions', () => HttpResponse.json(PAGE_VIDE)),
         http.get('/api/v1/clients/cl-1/contacts', () => HttpResponse.json(PAGE_VIDE)),
       );

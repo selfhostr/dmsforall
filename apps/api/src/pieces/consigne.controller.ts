@@ -28,26 +28,39 @@ export class ConsigneController {
 
   @Get()
   @ExigerDroit('pieces.consigne.lire')
-  @ApiOperation({ summary: 'Vue transverse des consignes — §7.7 : une consigne jamais rendue est de l’argent qui dort.' })
+  @ApiOperation({
+    summary:
+      'Vue transverse des consignes — §7.7 : une consigne jamais rendue est de l’argent qui dort.',
+  })
   @ApiOkResponse({ type: PageConsigneEchangeStandardDto })
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  async lister(@Query(new PipeZod(schemaFiltresConsignes)) query: FiltresConsignes): Promise<PageConsigneEchangeStandardDto> {
+  async lister(
+    @Query(new PipeZod(schemaFiltresConsignes)) query: FiltresConsignes,
+  ): Promise<PageConsigneEchangeStandardDto> {
     const ctx = this.contexte.contexteTenant();
     return this.service.lister(ctx, query);
   }
 
   @Post(':id/marquer-retour-fournisseur')
   @ExigerDroit('pieces.consigne.retourner')
-  @ApiOperation({ summary: 'Le client ramène la vieille pièce (RP-40) — génère le mouvement retour_consigne, statut terminal.' })
+  @ApiOperation({
+    summary:
+      'Le client ramène la vieille pièce (RP-40) — génère le mouvement retour_consigne, statut terminal.',
+  })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: ConsigneEchangeStandardDto })
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Consigne introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, 'CONSIGNE_TRANSITION_INTERDITE — la consigne n’est plus en attente de retour.')
-  async marquerRetourFournisseur(@Param('id', new PipeZod(schemaUuid)) id: string): Promise<ConsigneEchangeStandardDto> {
+  @ApiReponseProbleme(
+    409,
+    'CONSIGNE_TRANSITION_INTERDITE — la consigne n’est plus en attente de retour.',
+  )
+  async marquerRetourFournisseur(
+    @Param('id', new PipeZod(schemaUuid)) id: string,
+  ): Promise<ConsigneEchangeStandardDto> {
     const ctx = this.contexte.contexteTenant();
     return this.service.marquerRetourFournisseur(ctx, id);
   }

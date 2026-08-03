@@ -19,7 +19,10 @@ import type { LigneLigneOr } from '../db/schema';
  * `'garage'`, pour que `TotauxPayeurOr.payeur` ne rende jamais `'garage'` (contrat, voir
  * `packages/shared/.../ordre-reparation.ts::TotauxPayeurOr.payeur`).
  */
-const STATUTS_EXCLUS_DES_TOTAUX: ReadonlySet<LigneLigneOr['statut']> = new Set(['annulee', 'refusee']);
+const STATUTS_EXCLUS_DES_TOTAUX: ReadonlySet<LigneLigneOr['statut']> = new Set([
+  'annulee',
+  'refusee',
+]);
 
 /** Destinataire d'un groupe payeur — même forme que `TotauxPayeurOr['destinataire']` sans le
  *  `null`, pour que l'appelant n'ait pas à re-null-check ce qu'il vient de résoudre lui-même. */
@@ -34,7 +37,9 @@ export interface DestinataireGroupePayeur {
  * charge de l'appelant (`service-or.ts::assemblerDocument`) — cette fonction reste pure et
  * testable sans base, même doctrine que `etat-affiche.ts`.
  */
-export type ResolveurDestinataireTiers = (payeurClientId: string) => DestinataireGroupePayeur | undefined;
+export type ResolveurDestinataireTiers = (
+  payeurClientId: string,
+) => DestinataireGroupePayeur | undefined;
 
 interface CleGroupe {
   readonly payeur: PayeurLigneOr;
@@ -83,14 +88,21 @@ export function calculerTotauxParPayeur(
       totalTva += ligne.montantTvaCentimes;
       totalTtc += ligne.montantTtcCentimes;
 
-      const cumulTaux = parTaux.get(ligne.tauxTvaPourmille) ?? { baseHtCentimes: 0, montantCentimes: 0 };
+      const cumulTaux = parTaux.get(ligne.tauxTvaPourmille) ?? {
+        baseHtCentimes: 0,
+        montantCentimes: 0,
+      };
       cumulTaux.baseHtCentimes += ligne.montantHtCentimes;
       cumulTaux.montantCentimes += ligne.montantTvaCentimes;
       parTaux.set(ligne.tauxTvaPourmille, cumulTaux);
     }
 
     const destinataire: DestinataireGroupePayeur | null =
-      cle.payeur === 'client' ? (destinataireClientOr ?? null) : cle.payeurClientId ? (resoudreDestinataireTiers(cle.payeurClientId) ?? null) : null;
+      cle.payeur === 'client'
+        ? (destinataireClientOr ?? null)
+        : cle.payeurClientId
+          ? (resoudreDestinataireTiers(cle.payeurClientId) ?? null)
+          : null;
 
     resultat.push({
       payeur: cle.payeur,

@@ -32,9 +32,21 @@ export interface DtoBlocCreancier {
  * (`timestamptz`, epoch ms toujours strictement positif en pratique sur ce produit), donc un
  * sentinel sûr pour l'ETag : la première écriture produit toujours une version supérieure.
  */
-export function versDtoBlocCreancier(ligne: schema.LigneTenantBlocCreancier | undefined): DtoBlocCreancier {
+export function versDtoBlocCreancier(
+  ligne: schema.LigneTenantBlocCreancier | undefined,
+): DtoBlocCreancier {
   if (!ligne) {
-    return { nom: null, rue: null, numero: null, npa: null, localite: null, pays: 'CH', iban: null, qrIban: null, version: 0 };
+    return {
+      nom: null,
+      rue: null,
+      numero: null,
+      npa: null,
+      localite: null,
+      pays: 'CH',
+      iban: null,
+      qrIban: null,
+      version: 0,
+    };
   }
   return {
     nom: ligne.nom,
@@ -88,7 +100,8 @@ function validerChampIbanOrdinaire(valeur: string): string {
           {
             champ: 'iban',
             code: 'IBAN_EST_UN_QR_IBAN',
-            message: 'IID dans la plage réservée aux QR-IBAN (30000–31999) : utilisez le champ "qrIban".',
+            message:
+              'IID dans la plage réservée aux QR-IBAN (30000–31999) : utilisez le champ "qrIban".',
           },
         ],
       },
@@ -112,14 +125,15 @@ function validerChampQrIban(valeur: string): string {
   if (!estQrIban(compact)) {
     throw new ErreurMetier(
       'VALIDATION_ECHOUEE',
-      'Cet IBAN n\'est PAS un QR-IBAN (IID hors de la plage réservée 30000–31999) : il doit être ' +
+      "Cet IBAN n'est PAS un QR-IBAN (IID hors de la plage réservée 30000–31999) : il doit être " +
         'saisi dans le champ "iban", jamais dans "qrIban".',
       {
         erreurs: [
           {
             champ: 'qrIban',
             code: 'QR_IBAN_SANS_IID_RESERVE',
-            message: 'IID hors de la plage réservée aux QR-IBAN (30000–31999) : utilisez le champ "iban".',
+            message:
+              'IID hors de la plage réservée aux QR-IBAN (30000–31999) : utilisez le champ "iban".',
           },
         ],
       },
@@ -134,7 +148,9 @@ function validerChampQrIban(valeur: string): string {
  * SQL du terme, jamais un `null` implicite qui écraserait une valeur existante) — exactement le
  * même principe que `versColonnesMiseAJour`/`versColonnesMiseAJourSite` du reste de `parametrage/`.
  */
-export function versColonnesEcriture(entree: EntreeModificationBlocCreancier): Partial<schema.NouveauTenantBlocCreancier> {
+export function versColonnesEcriture(
+  entree: EntreeModificationBlocCreancier,
+): Partial<schema.NouveauTenantBlocCreancier> {
   const colonnes: Partial<schema.NouveauTenantBlocCreancier> = {};
 
   if (entree.nom !== undefined) colonnes.nom = entree.nom;
@@ -143,8 +159,10 @@ export function versColonnesEcriture(entree: EntreeModificationBlocCreancier): P
   if (entree.npa !== undefined) colonnes.npa = entree.npa;
   if (entree.localite !== undefined) colonnes.localite = entree.localite;
   if (entree.pays !== undefined) colonnes.pays = entree.pays;
-  if (entree.iban !== undefined) colonnes.iban = entree.iban === null ? null : validerChampIbanOrdinaire(entree.iban);
-  if (entree.qrIban !== undefined) colonnes.qrIban = entree.qrIban === null ? null : validerChampQrIban(entree.qrIban);
+  if (entree.iban !== undefined)
+    colonnes.iban = entree.iban === null ? null : validerChampIbanOrdinaire(entree.iban);
+  if (entree.qrIban !== undefined)
+    colonnes.qrIban = entree.qrIban === null ? null : validerChampQrIban(entree.qrIban);
 
   return colonnes;
 }

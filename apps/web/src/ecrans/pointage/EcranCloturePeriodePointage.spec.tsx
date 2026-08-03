@@ -50,7 +50,7 @@ describe('EcranCloturePeriodePointage', () => {
     expect(await screen.findByText('12 pointages verrouillés.')).toBeInTheDocument();
   });
 
-  it("affiche une erreur actionnable si le verrouillage échoue (pointage encore en cours)", async () => {
+  it('affiche une erreur actionnable si le verrouillage échoue (pointage encore en cours)', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
       http.post('/api/v1/pointages/verrouiller-periode', () =>
@@ -72,7 +72,9 @@ describe('EcranCloturePeriodePointage', () => {
     const utilisateur = userEvent.setup();
     await utilisateur.click(await screen.findByRole('button', { name: 'Verrouiller' }));
 
-    expect(await screen.findByText('Cet élément a été modifié entre-temps. Rechargez la page.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Cet élément a été modifié entre-temps. Rechargez la page.'),
+    ).toBeInTheDocument();
   });
 
   it('exige un motif pour déverrouiller une période', async () => {
@@ -83,7 +85,9 @@ describe('EcranCloturePeriodePointage', () => {
     const utilisateur = userEvent.setup();
     await utilisateur.click(await screen.findByRole('button', { name: 'Déverrouiller' }));
 
-    expect(await screen.findByText('Le motif est obligatoire pour déverrouiller une période.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Le motif est obligatoire pour déverrouiller une période.'),
+    ).toBeInTheDocument();
   });
 
   it('site requis : invite à choisir un site quand plusieurs sont actifs', async () => {

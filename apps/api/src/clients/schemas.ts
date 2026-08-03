@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { schemaFiltresClients, schemaFiltresVehiculesDuClient, schemaParametresPage } from '@dfa/shared';
+import {
+  schemaFiltresClients,
+  schemaFiltresVehiculesDuClient,
+  schemaParametresPage,
+} from '@dfa/shared';
 import { STATUTS_ORDRE_REPARATION } from '@dfa/shared';
 
 /**
@@ -9,7 +13,9 @@ import { STATUTS_ORDRE_REPARATION } from '@dfa/shared';
  * collection, `schemaParametresPage`). Composer les deux ici est la seule façon d'obtenir un
  * schéma de requête complet sans dupliquer `tri` avec deux formes différentes.
  */
-export const schemaListeClients = schemaParametresPage.omit({ tri: true }).extend(schemaFiltresClients.shape);
+export const schemaListeClients = schemaParametresPage
+  .omit({ tri: true })
+  .extend(schemaFiltresClients.shape);
 export type ParametresListeClients = z.infer<typeof schemaListeClients>;
 
 export const schemaListeVehiculesDuClient = schemaParametresPage

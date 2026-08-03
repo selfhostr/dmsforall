@@ -51,12 +51,21 @@ export function SelecteurVehiculeOrdre({ clientId, valeur, onChangeValeur }: Pro
   const vehicules = requete.data.pages.flatMap((page) => page.donnees);
 
   if (vehicules.length === 0) {
-    return <EtatVide titre={t('or:nouveau.vehicule.titre')} description={t('or:nouveau.vehicule.aucun')} />;
+    return (
+      <EtatVide
+        titre={t('or:nouveau.vehicule.titre')}
+        description={t('or:nouveau.vehicule.aucun')}
+      />
+    );
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div role="radiogroup" aria-label={t('or:nouveau.vehicule.titre')} className="flex flex-col gap-2">
+      <div
+        role="radiogroup"
+        aria-label={t('or:nouveau.vehicule.titre')}
+        className="flex flex-col gap-2"
+      >
         {vehicules.map((vehicule) => {
           const selectionne = vehicule.id === valeur;
           return (

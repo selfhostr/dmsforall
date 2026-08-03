@@ -1,13 +1,22 @@
 import { useInfiniteQuery, type UseInfiniteQueryResult } from '@tanstack/react-query';
 
-import { TRI_DEFAUT_MOUVEMENTS_STOCK, type FiltresMouvementsStock, type PageCurseur, type ReponseMouvementStock, type TypeMouvementStock } from '@dfa/shared';
+import {
+  TRI_DEFAUT_MOUVEMENTS_STOCK,
+  type FiltresMouvementsStock,
+  type PageCurseur,
+  type ReponseMouvementStock,
+  type TypeMouvementStock,
+} from '@dfa/shared';
 
 import { clesPieces } from './cles';
 import { listerMouvementsArticle } from './mouvements.api';
 
 const LIMITE_PAGE = 30;
 
-export type ResultatMouvementsArticle = UseInfiniteQueryResult<{ readonly pages: readonly PageCurseur<ReponseMouvementStock>[] }, unknown> & {
+export type ResultatMouvementsArticle = UseInfiniteQueryResult<
+  { readonly pages: readonly PageCurseur<ReponseMouvementStock>[] },
+  unknown
+> & {
   readonly mouvements: readonly ReponseMouvementStock[];
 };
 
@@ -26,13 +35,23 @@ interface FiltresMouvementsArticleEcran {
 
 /** `GET /articles/{id}/mouvements` — historique complet, pagination par curseur. `enabled: false`
  *  tant que l'article n'est pas résolu (fiche article encore en chargement). */
-export function useMouvementsArticle(articleId: string | undefined, filtres: FiltresMouvementsArticleEcran = {}): ResultatMouvementsArticle {
-  const filtresComplets: FiltresMouvementsStock = { ...filtres, tri: TRI_DEFAUT_MOUVEMENTS_STOCK, limite: LIMITE_PAGE };
+export function useMouvementsArticle(
+  articleId: string | undefined,
+  filtres: FiltresMouvementsArticleEcran = {},
+): ResultatMouvementsArticle {
+  const filtresComplets: FiltresMouvementsStock = {
+    ...filtres,
+    tri: TRI_DEFAUT_MOUVEMENTS_STOCK,
+    limite: LIMITE_PAGE,
+  };
 
   const resultat = useInfiniteQuery({
     queryKey: clesPieces.articles.mouvements(articleId ?? '', filtresComplets),
     queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
-      listerMouvementsArticle(articleId as string, filtresComplets, { limite: LIMITE_PAGE, curseur: pageParam }),
+      listerMouvementsArticle(articleId as string, filtresComplets, {
+        limite: LIMITE_PAGE,
+        curseur: pageParam,
+      }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (dernierePage) => dernierePage.curseurSuivant ?? undefined,
     enabled: articleId !== undefined,

@@ -1,6 +1,9 @@
 import { Controller, Get, Patch, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { schemaModificationParametresPieces, type EntreeModificationParametresPieces } from '@dfa/shared';
+import {
+  schemaModificationParametresPieces,
+  type EntreeModificationParametresPieces,
+} from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
 import { CorpsZod } from '../common/documentation';
@@ -39,7 +42,9 @@ export class ParametragePiecesController {
   @ApiReponseProbleme(400, 'Corps invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  async modifier(@CorpsZod(schemaModificationParametresPieces) entree: EntreeModificationParametresPieces): Promise<ParametresPiecesDto> {
+  async modifier(
+    @CorpsZod(schemaModificationParametresPieces) entree: EntreeModificationParametresPieces,
+  ): Promise<ParametresPiecesDto> {
     const ctx = this.contexte.contexteTenant();
     return this.service.modifier(ctx, entree);
   }

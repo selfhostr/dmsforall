@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ErreurQrFacture } from './erreurs-qr';
-import {
-  determinerTypeReference,
-  estQrIban,
-  extraireIid,
-  validerIbanCreancier,
-} from './iban';
+import { determinerTypeReference, estQrIban, extraireIid, validerIbanCreancier } from './iban';
 import { validerReferenceQrr } from './reference-qrr';
 import { validerReferenceScor } from './reference-scor';
 

@@ -2,7 +2,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 
-import { ACTIVITES_INDIRECTES, type ActiviteIndirecte, type EntreeDemarragePointage, type ReponseLigneOr, type ReponseOrdreReparation } from '@dfa/shared';
+import {
+  ACTIVITES_INDIRECTES,
+  type ActiviteIndirecte,
+  type EntreeDemarragePointage,
+  type ReponseLigneOr,
+  type ReponseOrdreReparation,
+} from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
@@ -33,15 +39,39 @@ import { SelecteurSitePointage } from './SelecteurSitePointage';
  *  proposé et le technicien repasse par « Mes OR du jour », dégradation honnête plutôt qu'un état
  *  reconstruit à tort. */
 type CibleMemorisee =
-  | { readonly type: 'ligne'; readonly ordreReparationId: string; readonly ligneOrId: string; readonly siteId: string; readonly libelle: string }
-  | { readonly type: 'or'; readonly ordreReparationId: string; readonly siteId: string; readonly libelle: string };
+  | {
+      readonly type: 'ligne';
+      readonly ordreReparationId: string;
+      readonly ligneOrId: string;
+      readonly siteId: string;
+      readonly libelle: string;
+    }
+  | {
+      readonly type: 'or';
+      readonly ordreReparationId: string;
+      readonly siteId: string;
+      readonly libelle: string;
+    };
 
 function construireEntreeDemarrage(
   base: { readonly technicienId: string; readonly debutLe: string },
   cible:
-    | { readonly nature: 'productif_ligne'; readonly ordreReparationId: string; readonly ligneOrId: string; readonly siteId: string }
-    | { readonly nature: 'productif_or'; readonly ordreReparationId: string; readonly siteId: string }
-    | { readonly nature: 'indirect'; readonly activiteIndirecte: ActiviteIndirecte; readonly siteId: string },
+    | {
+        readonly nature: 'productif_ligne';
+        readonly ordreReparationId: string;
+        readonly ligneOrId: string;
+        readonly siteId: string;
+      }
+    | {
+        readonly nature: 'productif_or';
+        readonly ordreReparationId: string;
+        readonly siteId: string;
+      }
+    | {
+        readonly nature: 'indirect';
+        readonly activiteIndirecte: ActiviteIndirecte;
+        readonly siteId: string;
+      },
 ): EntreeDemarragePointage {
   const id = crypto.randomUUID();
   if (cible.nature === 'productif_ligne') {
@@ -129,9 +159,24 @@ export function EcranPointageTechnicien() {
 
   async function demarrerEtMemoriser(
     cible:
-      | { readonly nature: 'productif_ligne'; readonly ordreReparationId: string; readonly ligneOrId: string; readonly siteId: string; readonly libelle: string }
-      | { readonly nature: 'productif_or'; readonly ordreReparationId: string; readonly siteId: string; readonly libelle: string }
-      | { readonly nature: 'indirect'; readonly activiteIndirecte: ActiviteIndirecte; readonly siteId: string },
+      | {
+          readonly nature: 'productif_ligne';
+          readonly ordreReparationId: string;
+          readonly ligneOrId: string;
+          readonly siteId: string;
+          readonly libelle: string;
+        }
+      | {
+          readonly nature: 'productif_or';
+          readonly ordreReparationId: string;
+          readonly siteId: string;
+          readonly libelle: string;
+        }
+      | {
+          readonly nature: 'indirect';
+          readonly activiteIndirecte: ActiviteIndirecte;
+          readonly siteId: string;
+        },
   ) {
     setErreurAction(undefined);
     const entree = construireEntreeDemarrage(
@@ -141,9 +186,20 @@ export function EcranPointageTechnicien() {
     try {
       await demarrer.mutateAsync({ entree, idempotencyKey: genererCleIdempotence() });
       if (cible.nature === 'productif_ligne') {
-        setDernierCible({ type: 'ligne', ordreReparationId: cible.ordreReparationId, ligneOrId: cible.ligneOrId, siteId: cible.siteId, libelle: cible.libelle });
+        setDernierCible({
+          type: 'ligne',
+          ordreReparationId: cible.ordreReparationId,
+          ligneOrId: cible.ligneOrId,
+          siteId: cible.siteId,
+          libelle: cible.libelle,
+        });
       } else if (cible.nature === 'productif_or') {
-        setDernierCible({ type: 'or', ordreReparationId: cible.ordreReparationId, siteId: cible.siteId, libelle: cible.libelle });
+        setDernierCible({
+          type: 'or',
+          ordreReparationId: cible.ordreReparationId,
+          siteId: cible.siteId,
+          libelle: cible.libelle,
+        });
       }
       // Une activité indirecte (y compris la pause) ne remplace JAMAIS `dernierCible` : c'est
       // exactement la mémoire qui permet à « Reprendre » de retrouver la cible productive
@@ -161,7 +217,10 @@ export function EcranPointageTechnicien() {
       ordreReparationId: or.id,
       ligneOrId: ligne.id,
       siteId: or.siteId,
-      libelle: t('pointage:technicien.cible.ligne', { numero: or.numero, designation: ligne.designation }),
+      libelle: t('pointage:technicien.cible.ligne', {
+        numero: or.numero,
+        designation: ligne.designation,
+      }),
     });
   }
 
@@ -211,7 +270,11 @@ export function EcranPointageTechnicien() {
         entree: { finLe: new Date().toISOString() },
         idempotencyKey: genererCleIdempotence(),
       });
-      await demarrerEtMemoriser({ nature: 'indirect', activiteIndirecte: 'pause', siteId: p.siteId });
+      await demarrerEtMemoriser({
+        nature: 'indirect',
+        activiteIndirecte: 'pause',
+        siteId: p.siteId,
+      });
     } catch (erreur) {
       setErreurAction(messageErreur(erreur, t));
     } finally {
@@ -260,7 +323,9 @@ export function EcranPointageTechnicien() {
   if (pointageOuvert.isPending || mesOrdres.isPending) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pointage:technicien.titreEcran')}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t('pointage:technicien.titreEcran')}
+        </h1>
         <EtatChargement lignes={5} />
       </div>
     );
@@ -269,7 +334,9 @@ export function EcranPointageTechnicien() {
   if (pointageOuvert.isError) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pointage:technicien.titreEcran')}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t('pointage:technicien.titreEcran')}
+        </h1>
         <EtatErreur
           titre={t('pointage:technicien.erreur.titre')}
           description={messageErreur(pointageOuvert.error, t)}
@@ -299,7 +366,9 @@ export function EcranPointageTechnicien() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('pointage:technicien.titreEcran')}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">
+        {t('pointage:technicien.titreEcran')}
+      </h1>
 
       {pointageActuel ? (
         <CartePointageEnCours
@@ -312,7 +381,9 @@ export function EcranPointageTechnicien() {
               : undefined
           }
           onReprendre={
-            pointageActuel.nature === 'indirect' && pointageActuel.activiteIndirecte === 'pause' && dernierCible
+            pointageActuel.nature === 'indirect' &&
+            pointageActuel.activiteIndirecte === 'pause' &&
+            dernierCible
               ? () => void handleReprendre()
               : undefined
           }
@@ -327,7 +398,9 @@ export function EcranPointageTechnicien() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="texte-titre-section">{t('pointage:technicien.mesOrs.titre')}</CardTitle>
+              <CardTitle className="texte-titre-section">
+                {t('pointage:technicien.mesOrs.titre')}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {mesOrdres.isError ? (
@@ -354,7 +427,9 @@ export function EcranPointageTechnicien() {
                         <IdentiteClient client={or.client} />
                       </div>
                       <span className="texte-libelle text-muted-foreground">
-                        {t('pointage:technicien.mesOrs.lignesAssignees', { count: or.nombreLignes })}
+                        {t('pointage:technicien.mesOrs.lignesAssignees', {
+                          count: or.nombreLignes,
+                        })}
                       </span>
                     </button>
                   ))}

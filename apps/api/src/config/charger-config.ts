@@ -126,7 +126,8 @@ export const schemaConfig = z
       ctx.addIssue({
         code: 'custom',
         path: ['COOKIE_SECURE'],
-        message: 'COOKIE_SECURE doit être true en production (sinon le cookie de session ne part jamais en HTTPS).',
+        message:
+          'COOKIE_SECURE doit être true en production (sinon le cookie de session ne part jamais en HTTPS).',
       });
     }
     if (c.DATABASE_URL === c.DATABASE_URL_MIGRATION) {

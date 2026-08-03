@@ -1,6 +1,10 @@
 import { useInfiniteQuery, type UseInfiniteQueryResult } from '@tanstack/react-query';
 
-import type { FiltresCommandesFournisseur, PageCurseur, ReponseCommandeFournisseur } from '@dfa/shared';
+import type {
+  FiltresCommandesFournisseur,
+  PageCurseur,
+  ReponseCommandeFournisseur,
+} from '@dfa/shared';
 
 import { clesPieces } from './cles';
 import { listerCommandesFournisseur } from './commandes-fournisseur.api';
@@ -16,7 +20,9 @@ export type ResultatListeCommandesFournisseur = UseInfiniteQueryResult<
 
 /** `GET /commandes-fournisseur` (RP-26 → RP-31), pagination par curseur — même architecture que
  *  `useListeArticles`. */
-export function useListeCommandesFournisseur(filtres: FiltresCommandesFournisseur): ResultatListeCommandesFournisseur {
+export function useListeCommandesFournisseur(
+  filtres: FiltresCommandesFournisseur,
+): ResultatListeCommandesFournisseur {
   const resultat = useInfiniteQuery({
     queryKey: clesPieces.commandesFournisseur.liste(filtres),
     queryFn: ({ pageParam }: { pageParam: string | undefined }) =>

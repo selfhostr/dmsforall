@@ -1,5 +1,9 @@
 import { sql, type SQL } from 'drizzle-orm';
-import { decoderCurseurTrie, encoderCurseurTrie, valeurCurseurTimestamptz } from '../common/pagination';
+import {
+  decoderCurseurTrie,
+  encoderCurseurTrie,
+  valeurCurseurTimestamptz,
+} from '../common/pagination';
 
 /**
  * Support générique du curseur v2 triable (contrats-api-etape-1.md §6.1) pour les listes qui ne

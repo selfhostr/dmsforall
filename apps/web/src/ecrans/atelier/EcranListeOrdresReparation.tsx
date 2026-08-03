@@ -12,7 +12,13 @@ import {
 
 import { messageErreur } from '@/api/erreurs';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
@@ -60,7 +66,9 @@ const CLES_STATUT: Record<StatutOrdreReparation, string> = {
  *  chemin que celui déjà utilisé par `EcranFicheClient.tsx` (`/ordres-reparation/${id}`) ; à
  *  ajuster ici si le nom réel diffère une fois le routage posé. */
 function cheminDetailOr(id: string, site: string | undefined): string {
-  return site ? `/ordres-reparation/${id}?site=${encodeURIComponent(site)}` : `/ordres-reparation/${id}`;
+  return site
+    ? `/ordres-reparation/${id}?site=${encodeURIComponent(site)}`
+    : `/ordres-reparation/${id}`;
 }
 
 /**
@@ -96,8 +104,16 @@ export function EcranListeOrdresReparation() {
     [q, statut, site, tri],
   );
 
-  const { ordres, isPending, isError, error, refetch, hasNextPage, isFetchingNextPage, fetchNextPage } =
-    useListeOrdresReparation(filtres);
+  const {
+    ordres,
+    isPending,
+    isError,
+    error,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useListeOrdresReparation(filtres);
 
   const filtresStructuresActifs = statut !== undefined;
   const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
@@ -145,20 +161,33 @@ export function EcranListeOrdresReparation() {
       // Absent (pas 0) pour un rôle sans droit aux montants (`ROLES_SANS_MONTANT`) — ne jamais
       // afficher « 0.00 », qui serait un mensonge (le total existe, seul le droit de le voir manque).
       rendu: (or) => (
-        <span className="tabular-nums">{or.totalTtcCentimes !== undefined ? formaterMontant(or.totalTtcCentimes) : ''}</span>
+        <span className="tabular-nums">
+          {or.totalTtcCentimes !== undefined ? formaterMontant(or.totalTtcCentimes) : ''}
+        </span>
       ),
     },
   ];
 
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
-    contenuVide = <EtatVideRecherche titre={t('or:liste.titre')} description={t('or:liste.vide.recherche')} />;
+    contenuVide = (
+      <EtatVideRecherche titre={t('or:liste.titre')} description={t('or:liste.vide.recherche')} />
+    );
   } else if (filtresStructuresActifs) {
     contenuVide = (
-      <EtatVideFiltre titre={t('or:liste.titre')} description={t('or:liste.vide.filtre')} onEffacerFiltres={effacerFiltres} />
+      <EtatVideFiltre
+        titre={t('or:liste.titre')}
+        description={t('or:liste.vide.filtre')}
+        onEffacerFiltres={effacerFiltres}
+      />
     );
   } else {
-    contenuVide = <EtatVidePremierUsage titre={t('or:liste.titre')} description={t('or:liste.vide.premierUsage')} />;
+    contenuVide = (
+      <EtatVidePremierUsage
+        titre={t('or:liste.titre')}
+        description={t('or:liste.vide.premierUsage')}
+      />
+    );
   }
 
   if (isPending) {
@@ -187,14 +216,25 @@ export function EcranListeOrdresReparation() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold tracking-tight">{t('or:liste.titre')}</h1>
 
-      <BarreFiltres q={qSaisie} onChangeQ={setQSaisie} filtresActifs={filtresActifs} onEffacerFiltres={effacerFiltres}>
+      <BarreFiltres
+        q={qSaisie}
+        onChangeQ={setQSaisie}
+        filtresActifs={filtresActifs}
+        onEffacerFiltres={effacerFiltres}
+      >
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="filtre-statut-or">{t('or:liste.filtres.statut')}</Label>
           <Select
             value={statut ?? 'tous'}
-            onValueChange={(valeur) => setStatut(valeur === 'tous' ? undefined : (valeur as StatutOrdreReparation))}
+            onValueChange={(valeur) =>
+              setStatut(valeur === 'tous' ? undefined : (valeur as StatutOrdreReparation))
+            }
           >
-            <SelectTrigger id="filtre-statut-or" className="w-[200px]" aria-label={t('or:liste.filtres.statut')}>
+            <SelectTrigger
+              id="filtre-statut-or"
+              className="w-[200px]"
+              aria-label={t('or:liste.filtres.statut')}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

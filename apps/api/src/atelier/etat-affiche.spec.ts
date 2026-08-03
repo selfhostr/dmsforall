@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { AttentesOr } from '@dfa/shared';
-import { calculerActionsDisponibles, calculerActionsDisponiblesPourRole, calculerEtatAffiche } from './etat-affiche';
+import {
+  calculerActionsDisponibles,
+  calculerActionsDisponiblesPourRole,
+  calculerEtatAffiche,
+} from './etat-affiche';
 
 const AUCUNE_ATTENTE: AttentesOr = { accord: false, pieces: false, externe: false };
 
 describe('calculerEtatAffiche', () => {
-  it('rend le statut tel quel quand aucune attente n\'est active', () => {
+  it("rend le statut tel quel quand aucune attente n'est active", () => {
     expect(calculerEtatAffiche('en_cours', AUCUNE_ATTENTE)).toBe('en_cours');
   });
 

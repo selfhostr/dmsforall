@@ -43,7 +43,11 @@ import type { RoleUtilisateur } from '@dfa/shared';
  * défaire un arbitrage métier déjà tranché. Voir `routeur.spec.tsx`, le test qui prouve que tous
  * les rôles atteignent `/parametrage/referentiels` : il rougit si cette route se referme.
  */
-export const ROLES_MENU_PARAMETRAGE_ATELIER: readonly RoleUtilisateur[] = ['chef_atelier', 'direction', 'admin'];
+export const ROLES_MENU_PARAMETRAGE_ATELIER: readonly RoleUtilisateur[] = [
+  'chef_atelier',
+  'direction',
+  'admin',
+];
 
 /** RF-115 : `admin` volontairement absent — voir le point 2 ci-dessus. */
 export const ROLES_MENU_FINANCIER: readonly RoleUtilisateur[] = ['direction', 'comptable'];

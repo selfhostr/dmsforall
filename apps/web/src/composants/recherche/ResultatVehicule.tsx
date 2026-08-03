@@ -41,7 +41,9 @@ export function ResultatVehicule({ resultat }: ProprietesResultatVehicule) {
         {designation}
         {annee !== null ? ` (${annee})` : ''}
       </span>
-      {detenteurNom ? <span className="texte-libelle text-muted-foreground">{detenteurNom}</span> : null}
+      {detenteurNom ? (
+        <span className="texte-libelle text-muted-foreground">{detenteurNom}</span>
+      ) : null}
       {professionnelle ? <MentionPlaqueProfessionnelle /> : null}
       {orOuvert ? (
         <Badge variant="secondary" className="gap-1">

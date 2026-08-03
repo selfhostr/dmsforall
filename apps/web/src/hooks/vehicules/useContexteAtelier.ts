@@ -8,7 +8,9 @@ import { recupererContexteAtelier } from './vehicules.api';
 
 /** `GET /vehicules/{id}/contexte-atelier` — ce qu'un garagiste doit voir SANS CLIQUER quand une
  *  voiture se présente (expertise échue, campagnes, travaux reportés, alertes client). */
-export function useContexteAtelier(vehiculeId: string | undefined): UseQueryResult<ReponseContexteAtelier> {
+export function useContexteAtelier(
+  vehiculeId: string | undefined,
+): UseQueryResult<ReponseContexteAtelier> {
   return useQuery({
     queryKey: clesQuery.vehicules.contexteAtelier(vehiculeId ?? ''),
     queryFn: () => recupererContexteAtelier(vehiculeId as string),

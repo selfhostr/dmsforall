@@ -114,7 +114,10 @@ export function doitIgnorerErreur(erreur: unknown): boolean {
  *  nettoyé par `nettoyerEvenement` avant envoi, comme tout le reste de l'événement.
  *  Retourne l'identifiant d'événement Sentry (utile pour un futur support), `undefined` sinon —
  *  jamais rejetée : une supervision qui plante ne doit jamais devenir une erreur applicative. */
-export async function signalerErreur(erreur: unknown, contexte?: Record<string, unknown>): Promise<string | undefined> {
+export async function signalerErreur(
+  erreur: unknown,
+  contexte?: Record<string, unknown>,
+): Promise<string | undefined> {
   if (doitIgnorerErreur(erreur)) return undefined;
 
   try {

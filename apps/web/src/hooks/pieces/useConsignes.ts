@@ -7,7 +7,10 @@ import { listerConsignes } from './consignes.api';
 
 const LIMITE_PAGE = 50;
 
-export type ResultatConsignes = UseInfiniteQueryResult<{ readonly pages: readonly PageCurseur<ReponseConsigneEchangeStandard>[] }, unknown> & {
+export type ResultatConsignes = UseInfiniteQueryResult<
+  { readonly pages: readonly PageCurseur<ReponseConsigneEchangeStandard>[] },
+  unknown
+> & {
   readonly consignes: readonly ReponseConsigneEchangeStandard[];
 };
 

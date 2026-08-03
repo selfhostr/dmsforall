@@ -4,7 +4,16 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, integer, pgTable, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 import { colonnesHorodatage } from '../colonnes-communes';
 import { site } from '../site';
@@ -23,11 +32,16 @@ export const consigneEchangeStandard = pgTable(
     ordreReparationId: uuid('ordre_reparation_id').notNull(),
     articleId: uuid('article_id').notNull(),
     siteId: uuid('site_id').notNull(),
-    statut: statutConsigneEchangeStandardEnum('statut').notNull().default('en_attente_retour_fournisseur'),
+    statut: statutConsigneEchangeStandardEnum('statut')
+      .notNull()
+      .default('en_attente_retour_fournisseur'),
     montantConsigneTtcCentimes: integer('montant_consigne_ttc_centimes').notNull(),
     documentVenteLigneConsigneId: uuid('document_vente_ligne_consigne_id'),
     mouvementEntreeId: uuid('mouvement_entree_id').notNull(),
-    retourneeFournisseurLe: timestamp('retournee_fournisseur_le', { withTimezone: true, mode: 'date' }),
+    retourneeFournisseurLe: timestamp('retournee_fournisseur_le', {
+      withTimezone: true,
+      mode: 'date',
+    }),
     mouvementRetourId: uuid('mouvement_retour_id'),
     avoirDocumentId: uuid('avoir_document_id'),
     ...colonnesHorodatage(),

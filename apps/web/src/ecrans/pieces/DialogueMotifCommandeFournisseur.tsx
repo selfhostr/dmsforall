@@ -3,7 +3,14 @@ import { useTranslation } from 'react-i18next';
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -25,7 +32,16 @@ interface Props {
  * `DialogueLiberationReservation` (réservations). Un seul composant, paramétré par le texte,
  * plutôt que deux quasi-doublons.
  */
-export function DialogueMotifCommandeFournisseur({ ouvert, titre, description, libelleAction, enCours, erreur, onFermer, onConfirmer }: Props) {
+export function DialogueMotifCommandeFournisseur({
+  ouvert,
+  titre,
+  description,
+  libelleAction,
+  enCours,
+  erreur,
+  onFermer,
+  onConfirmer,
+}: Props) {
   const { t } = useTranslation(['pieces', 'commun', 'validation']);
   const [motif, setMotif] = useState('');
 
@@ -52,7 +68,9 @@ export function DialogueMotifCommandeFournisseur({ ouvert, titre, description, l
             onChange={(evenement) => setMotif(evenement.target.value)}
             aria-invalid={motif.length > 0 && !motifValide ? true : undefined}
           />
-          {motif.length > 0 && !motifValide ? <p className="texte-libelle text-destructive">{t('validation:requis')}</p> : null}
+          {motif.length > 0 && !motifValide ? (
+            <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+          ) : null}
         </div>
 
         {erreur ? (
@@ -65,7 +83,11 @@ export function DialogueMotifCommandeFournisseur({ ouvert, titre, description, l
           <Button type="button" variant="outline" onClick={onFermer} disabled={enCours}>
             {t('commun:actions.annuler')}
           </Button>
-          <Button type="button" disabled={enCours || !motifValide} onClick={() => onConfirmer(motif.trim())}>
+          <Button
+            type="button"
+            disabled={enCours || !motifValide}
+            onClick={() => onConfirmer(motif.trim())}
+          >
             {enCours ? t('commun:chargement.enCours') : libelleAction}
           </Button>
         </DialogFooter>

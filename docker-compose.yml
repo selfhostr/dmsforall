@@ -30,7 +30,7 @@ services:
       POSTGRES_DB: dfa_dev
       # Encodage/locale explicites : montants, dates et tri doivent être stables et
       # reproductibles entre le poste de dev (Windows) et les serveurs de prod (Linux).
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C.UTF-8'
     ports:
       # Publié sur l'hôte car l'app (Node local) et les outils (psql, Drizzle Studio, GUI)
       # s'y connectent directement depuis l'extérieur du réseau Docker.

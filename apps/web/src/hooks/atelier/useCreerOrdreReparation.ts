@@ -1,6 +1,10 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 
-import type { EntreeCreationOrdreReparation, ReponseAvecAvertissements, ReponseOrdreReparation } from '@dfa/shared';
+import type {
+  EntreeCreationOrdreReparation,
+  ReponseAvecAvertissements,
+  ReponseOrdreReparation,
+} from '@dfa/shared';
 
 import { clesQuery } from '@/api/cles';
 
@@ -41,7 +45,9 @@ export function useCreerOrdreReparation(): UseMutationResult<
     onSuccess: (reponse) => {
       queryClient.setQueryData(clesQuery.or.detail(reponse.donnees.id), reponse.donnees);
       void queryClient.invalidateQueries({ queryKey: ['or', 'liste'] });
-      void queryClient.invalidateQueries({ queryKey: clesQuery.clients.ordres(reponse.donnees.client.id) });
+      void queryClient.invalidateQueries({
+        queryKey: clesQuery.clients.ordres(reponse.donnees.client.id),
+      });
     },
   });
 }

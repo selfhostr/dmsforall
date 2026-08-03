@@ -16,14 +16,14 @@ Voir [ARCHITECTURE.md](ARCHITECTURE.md) pour la vision complète et la feuille d
 
 ## Stack
 
-| Couche | Technologie | Notes |
-|---|---|---|
-| Backend | TypeScript + NestJS | OpenAPI généré automatiquement |
-| Base de données | PostgreSQL 16 + Drizzle ORM | RLS pour isolation multi-tenant |
-| Frontend | React + Vite (SPA) + shadcn/ui | Types générés depuis l'OpenAPI |
-| Jobs/asynchrone | Redis + BullMQ | Catalogues, PDF, e-mails, synchros |
-| PDF | Typst ou Playwright | QR-facture suisse intégrée |
-| Auth | Sessions + rôles par tenant | TOTP optionnel, 7 rôles métier |
+| Couche          | Technologie                    | Notes                              |
+| --------------- | ------------------------------ | ---------------------------------- |
+| Backend         | TypeScript + NestJS            | OpenAPI généré automatiquement     |
+| Base de données | PostgreSQL 16 + Drizzle ORM    | RLS pour isolation multi-tenant    |
+| Frontend        | React + Vite (SPA) + shadcn/ui | Types générés depuis l'OpenAPI     |
+| Jobs/asynchrone | Redis + BullMQ                 | Catalogues, PDF, e-mails, synchros |
+| PDF             | Typst ou Playwright            | QR-facture suisse intégrée         |
+| Auth            | Sessions + rôles par tenant    | TOTP optionnel, 7 rôles métier     |
 
 ## Prérequis
 
@@ -36,11 +36,13 @@ Voir [ARCHITECTURE.md](ARCHITECTURE.md) pour la vision complète et la feuille d
 Si vous êtes sous **Windows 11/10** : WSL2 doit être **activé** pour que Docker Desktop fonctionne. C'est un piège qui bloque immédiatement.
 
 Vérifier l'activation :
+
 ```powershell
 wsl --list --verbose
 ```
 
 Si WSL2 n'apparaît pas ou n'est pas en mode 2, l'activer :
+
 ```powershell
 Panneau de config → Programmes → Activer/désactiver les fonctionnalités Windows → [✓] Sous-système Windows pour Linux
 ```
@@ -75,17 +77,18 @@ Après `pnpm db:seed`, se connecter sur `http://localhost:5173` avec **l'un des 
 
 **⚠️ Important** : le compte `admin@` est un **rôle technique** sans aucun droit financier (RF-115). Tout refus d'action financière avec ce compte est **correct, pas un bug**. Utiliser `direction@` pour parcourir la facturation.
 
-| Compte | Rôle | Périmètre |
-|---|---|---|
-| `admin@garage-martin.ch` | admin | Gestion des comptes utilisateurs. **Aucun droit émission de devis/facture ni encaissement.** |
-| `direction@garage-martin.ch` | direction | Tous les droits : facturation, encaissement, remboursement, paramétrage (coordonnées bancaires). |
-| `comptable@garage-martin.ch` | comptable | Encaissement, remboursement, export fiduciaire. Même droits que `direction` sur l'argent. |
-| `receptionniste@garage-martin.ch` | réceptionnaire | Comptoir : émet devis et factures, encaisse les paiements. Pas de remboursement d'avance. |
-| `chef.atelier@garage-martin.ch` | chef d'atelier | Émet des devis/bons de commande. **Ni facture ni avoir, ni encaissement.** (Démontre l'asymétrie des droits.) |
-| `technicien@garage-martin.ch` | technicien | Lecture seule côté montants — le serveur retire les montants de toute réponse pour ce rôle. |
-| `magasinier@garage-martin.ch` | magasinier | Gestion pièces : articles, stock, mouvements, réservations, commandes fournisseur. |
+| Compte                            | Rôle           | Périmètre                                                                                                     |
+| --------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------- |
+| `admin@garage-martin.ch`          | admin          | Gestion des comptes utilisateurs. **Aucun droit émission de devis/facture ni encaissement.**                  |
+| `direction@garage-martin.ch`      | direction      | Tous les droits : facturation, encaissement, remboursement, paramétrage (coordonnées bancaires).              |
+| `comptable@garage-martin.ch`      | comptable      | Encaissement, remboursement, export fiduciaire. Même droits que `direction` sur l'argent.                     |
+| `receptionniste@garage-martin.ch` | réceptionnaire | Comptoir : émet devis et factures, encaisse les paiements. Pas de remboursement d'avance.                     |
+| `chef.atelier@garage-martin.ch`   | chef d'atelier | Émet des devis/bons de commande. **Ni facture ni avoir, ni encaissement.** (Démontre l'asymétrie des droits.) |
+| `technicien@garage-martin.ch`     | technicien     | Lecture seule côté montants — le serveur retire les montants de toute réponse pour ce rôle.                   |
+| `magasinier@garage-martin.ch`     | magasinier     | Gestion pièces : articles, stock, mouvements, réservations, commandes fournisseur.                            |
 
 **Ce que le jeu de démo contient** (pour savoir quoi parcourir une fois connecté) :
+
 - **4 ordres de réparation** à des états variés (neuf, en cours, en contrôle, terminé) sur des véhicules différents.
 - **1 devis émis** (Golf, client Meier) reprenant les deux travaux reportés constatés en atelier.
 - **1 facture brouillon** (Octavia, client Dupont) non finalisée.
@@ -102,6 +105,7 @@ curl http://localhost:3000/docs   # Documentation OpenAPI interactive
 **`curl http://localhost:5173` ne suffit PAS** pour vérifier le front : la commande renvoie un code 200 même quand la configuration `VITE_*` est absente ou invalide — elle ne fait que récupérer la coquille HTML, avant que React ne s'exécute et ne valide la config dans le navigateur. Ouvrir `http://localhost:5173` dans un navigateur et confirmer que l'écran de connexion s'affiche (pas « Configuration frontend invalide »). Si le doute persiste, `pnpm --filter @dfa/web build` échoue bruyamment (code de sortie non nul) si `VITE_API_URL` n'est pas résolue — voir piège n°4 ci-dessous.
 
 Pour tout réinitialiser (volumes Postgres + Redis) :
+
 ```bash
 pnpm docker:reset    # équivalent à : docker compose down -v && docker compose up -d
 ```
@@ -248,17 +252,17 @@ Les 6 comptes de démo (section « Identifiants de démonstration » ci-dessus) 
 
 ### Commandes courantes en conteneur
 
-| Besoin | Commande |
-|---|---|
-| Logs en direct | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f api web` |
-| Typecheck (tout le monorepo) | `… run --rm api sh -c "corepack enable && pnpm typecheck"` |
-| Lint | `… run --rm api sh -c "corepack enable && pnpm lint"` |
-| Tests (API + web) | `… run --rm api sh -c "corepack enable && pnpm test"` |
-| Un seul fichier de test (API) | `… run --rm api sh -c "corepack enable && pnpm --filter @dfa/api exec vitest run --project unitaire src/auth/cookie.spec.ts"` |
-| Un seul fichier de test (web) | `… run --rm api sh -c "corepack enable && pnpm --filter @dfa/web exec vitest run src/api/client.spec.ts"` |
-| Réinstaller après changement de `pnpm-lock.yaml` | `… run --rm api sh -c "corepack enable && pnpm install"` |
-| Arrêter | `docker compose -f docker-compose.yml -f docker-compose.dev.yml down` |
-| Repartir de zéro (efface aussi node_modules/cache conteneur) | `docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v` |
+| Besoin                                                       | Commande                                                                                                                      |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| Logs en direct                                               | `docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f api web`                                              |
+| Typecheck (tout le monorepo)                                 | `… run --rm api sh -c "corepack enable && pnpm typecheck"`                                                                    |
+| Lint                                                         | `… run --rm api sh -c "corepack enable && pnpm lint"`                                                                         |
+| Tests (API + web)                                            | `… run --rm api sh -c "corepack enable && pnpm test"`                                                                         |
+| Un seul fichier de test (API)                                | `… run --rm api sh -c "corepack enable && pnpm --filter @dfa/api exec vitest run --project unitaire src/auth/cookie.spec.ts"` |
+| Un seul fichier de test (web)                                | `… run --rm api sh -c "corepack enable && pnpm --filter @dfa/web exec vitest run src/api/client.spec.ts"`                     |
+| Réinstaller après changement de `pnpm-lock.yaml`             | `… run --rm api sh -c "corepack enable && pnpm install"`                                                                      |
+| Arrêter                                                      | `docker compose -f docker-compose.yml -f docker-compose.dev.yml down`                                                         |
+| Repartir de zéro (efface aussi node_modules/cache conteneur) | `docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v`                                                      |
 
 `pnpm api:openapi` (compile puis exporte, voir piège n°2 ci-dessus) fonctionne à l'identique via
 `… run --rm api sh -c "corepack enable && pnpm api:openapi"` — jamais `tsx` directement dessus,
@@ -325,27 +329,27 @@ Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour audit trail, isolation tenant en te
 
 Depuis la racine du dépôt :
 
-| Commande | Effet |
-|----------|--------|
-| **`pnpm dev`** | API + front en hot-reload simultanés |
-| `pnpm dev:api` | API seule (http://localhost:3000) |
-| `pnpm dev:web` | Front seul (http://localhost:5173) |
-| `pnpm build` | Build production (tous les apps) |
-| **`pnpm typecheck`** | Validation TypeScript strict sur tout le monorepo |
-| **`pnpm lint`** | ESLint sur tout le monorepo |
-| `pnpm lint:fix` | ESLint + corrections automatiques |
-| **`pnpm test`** | Tests unitaires (API + web) |
-| `pnpm test:integration` | Tests d'intégration sur Postgres (API uniquement) |
-| **`pnpm --filter @dfa/api exec vitest run --project unitaire src/auth/cookie.spec.ts`** | Lancer un seul fichier de test |
-| **`pnpm --filter @dfa/api exec vitest run --project unitaire src/auth/cookie.spec.ts -t "connexion valide"`** | Lancer un seul test par son nom |
-| `pnpm db:generate` | Générer types Drizzle depuis le schéma Postgres |
-| **`pnpm db:migrate`** | Appliquer les migrations Drizzle (idempotent) |
-| **`pnpm db:seed`** | Charger données de démo (garage + 6 comptes utilisateurs) |
-| `pnpm api:openapi` | Exporter le schéma OpenAPI en JSON |
-| `pnpm web:types` | Générer types TypeScript frontend depuis OpenAPI |
-| **`pnpm --filter @dfa/web i18n:check`** | Vérifier la couverture i18n (FR→DE/IT) |
-| `pnpm docker:up` | Démarrer Postgres + Redis (arrière-plan) |
-| `pnpm docker:down` | Arrêter services (garder volumes) |
-| **`pnpm docker:reset`** | Arrêter + supprimer volumes + redémarrer (repartir de zéro) |
+| Commande                                                                                                      | Effet                                                       |
+| ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **`pnpm dev`**                                                                                                | API + front en hot-reload simultanés                        |
+| `pnpm dev:api`                                                                                                | API seule (http://localhost:3000)                           |
+| `pnpm dev:web`                                                                                                | Front seul (http://localhost:5173)                          |
+| `pnpm build`                                                                                                  | Build production (tous les apps)                            |
+| **`pnpm typecheck`**                                                                                          | Validation TypeScript strict sur tout le monorepo           |
+| **`pnpm lint`**                                                                                               | ESLint sur tout le monorepo                                 |
+| `pnpm lint:fix`                                                                                               | ESLint + corrections automatiques                           |
+| **`pnpm test`**                                                                                               | Tests unitaires (API + web)                                 |
+| `pnpm test:integration`                                                                                       | Tests d'intégration sur Postgres (API uniquement)           |
+| **`pnpm --filter @dfa/api exec vitest run --project unitaire src/auth/cookie.spec.ts`**                       | Lancer un seul fichier de test                              |
+| **`pnpm --filter @dfa/api exec vitest run --project unitaire src/auth/cookie.spec.ts -t "connexion valide"`** | Lancer un seul test par son nom                             |
+| `pnpm db:generate`                                                                                            | Générer types Drizzle depuis le schéma Postgres             |
+| **`pnpm db:migrate`**                                                                                         | Appliquer les migrations Drizzle (idempotent)               |
+| **`pnpm db:seed`**                                                                                            | Charger données de démo (garage + 6 comptes utilisateurs)   |
+| `pnpm api:openapi`                                                                                            | Exporter le schéma OpenAPI en JSON                          |
+| `pnpm web:types`                                                                                              | Générer types TypeScript frontend depuis OpenAPI            |
+| **`pnpm --filter @dfa/web i18n:check`**                                                                       | Vérifier la couverture i18n (FR→DE/IT)                      |
+| `pnpm docker:up`                                                                                              | Démarrer Postgres + Redis (arrière-plan)                    |
+| `pnpm docker:down`                                                                                            | Arrêter services (garder volumes)                           |
+| **`pnpm docker:reset`**                                                                                       | Arrêter + supprimer volumes + redémarrer (repartir de zéro) |
 
 Les commandes en **gras** sont celles utilisées au quotidien.

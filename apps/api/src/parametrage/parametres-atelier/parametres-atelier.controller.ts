@@ -37,10 +37,14 @@ export class ParametresAtelierController {
     summary: 'Paramètres atelier du tenant courant.',
     description:
       'Singleton, regroupé par domaine (§8.2) — jamais de liste plate de `P-xx`. `fonctionnalites` ' +
-      'est calculé, pas stocké : c\'est le drapeau d\'étape qui remplace un endpoint qui répondrait ' +
+      "est calculé, pas stocké : c'est le drapeau d'étape qui remplace un endpoint qui répondrait " +
       '`501`. `ETag` stable (dérivé de `modifie_le`) ; `304 Not Modified` si `If-None-Match` le couvre.',
   })
-  @ApiResponse({ status: 200, description: 'Paramètres atelier.', type: ReponseParametresAtelierDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Paramètres atelier.',
+    type: ReponseParametresAtelierDto,
+  })
   @ApiResponse({ status: 304, description: 'Non modifié depuis `If-None-Match`.' })
   @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — aucune ligne de paramétrage pour ce tenant.')
   async obtenir(
@@ -83,10 +87,20 @@ export class ParametresAtelierController {
       'silencieusement acceptée mais sans effet. `version` et `fonctionnalites` ne sont jamais ' +
       'entrants (calculés côté serveur).',
   })
-  @ApiResponse({ status: 200, description: 'Paramètres atelier mis à jour.', type: ReponseParametresAtelierDto })
-  @ApiReponseProbleme(400, 'VALIDATION_ECHOUEE — corps invalide, ou valeur hors périmètre lot 1 (ex. `travaux.controleQualite`).')
+  @ApiResponse({
+    status: 200,
+    description: 'Paramètres atelier mis à jour.',
+    type: ReponseParametresAtelierDto,
+  })
+  @ApiReponseProbleme(
+    400,
+    'VALIDATION_ECHOUEE — corps invalide, ou valeur hors périmètre lot 1 (ex. `travaux.controleQualite`).',
+  )
   @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — aucune ligne de paramétrage pour ce tenant.')
-  @ApiReponseProbleme(501, 'FONCTION_NON_DISPONIBLE — le champ modifié dépend d\'une fonctionnalité non livrée au lot 1.')
+  @ApiReponseProbleme(
+    501,
+    "FONCTION_NON_DISPONIBLE — le champ modifié dépend d'une fonctionnalité non livrée au lot 1.",
+  )
   async modifier(
     @CorpsZod(schemaModificationParametresAtelierEtendu, {
       exemple: { or: { prefixe: 'OR', resetAnnuel: true, sansRdvAutorise: false } },

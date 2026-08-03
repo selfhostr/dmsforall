@@ -7,7 +7,12 @@ import {
   type UseMutationResult,
 } from '@tanstack/react-query';
 
-import type { EntreeNoteClient, PageCurseur, ReponseAvecAvertissements, ReponseClientNote } from '@dfa/shared';
+import type {
+  EntreeNoteClient,
+  PageCurseur,
+  ReponseAvecAvertissements,
+  ReponseClientNote,
+} from '@dfa/shared';
 
 import { requeteApi } from '@/api/client';
 import { clesQuery } from '@/api/cles';
@@ -27,10 +32,16 @@ export function useNotesClient(
   return useInfiniteQuery({
     queryKey: clesQuery.clients.notes(clientId ?? ''),
     queryFn: async ({ pageParam }) => {
-      const params = construireRequete({ limite: LIMITE_PAR_PAGE, curseur: pageParam ?? undefined });
-      const page = await requeteApi<PageCurseur<ReponseClientNote>>(`/clients/${clientId}/notes?${params.toString()}`, {
-        method: 'GET',
+      const params = construireRequete({
+        limite: LIMITE_PAR_PAGE,
+        curseur: pageParam ?? undefined,
       });
+      const page = await requeteApi<PageCurseur<ReponseClientNote>>(
+        `/clients/${clientId}/notes?${params.toString()}`,
+        {
+          method: 'GET',
+        },
+      );
       return exigerCorps(page, `GET /clients/${clientId ?? ''}/notes`);
     },
     initialPageParam: null as string | null,
@@ -46,14 +57,19 @@ export function useNotesClient(
  * seconde invalidation, une alerte ajoutée resterait invisible jusqu'au prochain montage complet
  * de l'écran.
  */
-export function useCreerNoteClient(clientId: string): UseMutationResult<ReponseClientNote, unknown, EntreeNoteClient> {
+export function useCreerNoteClient(
+  clientId: string,
+): UseMutationResult<ReponseClientNote, unknown, EntreeNoteClient> {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (entree: EntreeNoteClient) => {
-      const reponse = await requeteApi<ReponseAvecAvertissements<ReponseClientNote>>(`/clients/${clientId}/notes`, {
-        method: 'POST',
-        body: JSON.stringify(entree),
-      });
+      const reponse = await requeteApi<ReponseAvecAvertissements<ReponseClientNote>>(
+        `/clients/${clientId}/notes`,
+        {
+          method: 'POST',
+          body: JSON.stringify(entree),
+        },
+      );
       return donneesEcriture(exigerCorps(reponse, `POST /clients/${clientId}/notes`));
     },
     onSuccess: () => {

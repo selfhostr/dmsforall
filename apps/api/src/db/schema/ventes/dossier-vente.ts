@@ -21,7 +21,19 @@
  *     rattachées par `dossier_vente_id`, jamais embarquées en colonnes ici.
  */
 
-import { check, date, foreignKey, index, integer, pgTable, text, timestamp, unique, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  date,
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 import { colonneId, colonnesHorodatage } from '../colonnes-communes';
@@ -42,7 +54,9 @@ export const dossierVente = pgTable(
   'dossier_vente',
   {
     id: colonneId(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenant.id, { onDelete: 'restrict' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenant.id, { onDelete: 'restrict' }),
     siteId: uuid('site_id').notNull(),
     /** Colonne SQL nommée `statut` (dispositif générique `verifier_transition()`, voir le
      *  commentaire équivalent sur `vehicule_stock.statutCommercial`). */
@@ -133,7 +147,9 @@ export const dossierVente = pgTable(
     // tard (§7.6, CV-06) — un index unique permanent bloquerait ce cas réel.
     uniqueIndex('dossier_vente_vehicule_engage_uk')
       .on(t.tenantId, t.vehiculeId)
-      .where(sql`${t.vehiculeId} is not null and ${t.statut} in ('engage', 'en_preparation', 'pret_a_livrer')`),
+      .where(
+        sql`${t.vehiculeId} is not null and ${t.statut} in ('engage', 'en_preparation', 'pret_a_livrer')`,
+      ),
     index('dossier_vente_pagination_idx').on(t.tenantId, t.creeLe.desc(), t.id.desc()),
     index('dossier_vente_client_acheteur_idx').on(t.tenantId, t.clientAcheteurId),
     index('dossier_vente_statut_idx').on(t.tenantId, t.statut),

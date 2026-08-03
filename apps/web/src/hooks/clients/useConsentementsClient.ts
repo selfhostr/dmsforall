@@ -30,7 +30,10 @@ export function useConsentementsClient(
   return useInfiniteQuery({
     queryKey: clesQuery.clients.consentements(clientId ?? ''),
     queryFn: async ({ pageParam }) => {
-      const params = construireRequete({ limite: LIMITE_PAR_PAGE, curseur: pageParam ?? undefined });
+      const params = construireRequete({
+        limite: LIMITE_PAR_PAGE,
+        curseur: pageParam ?? undefined,
+      });
       const page = await requeteApi<PageCurseur<ReponseClientConsentement>>(
         `/clients/${clientId}/consentements?${params.toString()}`,
         { method: 'GET' },

@@ -43,7 +43,9 @@ function prestationBrute(
 }
 
 interface OptionsAcces {
-  readonly lignesPrestation?: readonly (schema.LignePrestation & { readonly creeLeTexte?: string })[];
+  readonly lignesPrestation?: readonly (schema.LignePrestation & {
+    readonly creeLeTexte?: string;
+  })[];
   readonly lignesPrix?: readonly { prestationId: string; prixCentimes: number }[];
   readonly lignePrestationInseree?: schema.LignePrestation;
   readonly erreurInsertPrestation?: unknown;
@@ -59,9 +61,13 @@ function accesFactice(options: OptionsAcces, journal: string[] = []): AccesBase 
         where: () => {
           if (table === schema.prestation) {
             if (options.lignesPrestation) {
-              return { orderBy: () => ({ limit: () => Promise.resolve(options.lignesPrestation) }) };
+              return {
+                orderBy: () => ({ limit: () => Promise.resolve(options.lignesPrestation) }),
+              };
             }
-            return Promise.resolve(options.ligneSelectUnitaire ? [options.ligneSelectUnitaire] : []);
+            return Promise.resolve(
+              options.ligneSelectUnitaire ? [options.ligneSelectUnitaire] : [],
+            );
           }
           if (table === schema.prestationPrix) {
             return Promise.resolve(options.lignesPrix ?? []);
@@ -78,12 +84,16 @@ function accesFactice(options: OptionsAcces, journal: string[] = []): AccesBase 
             returning: () =>
               options.erreurInsertPrestation
                 ? Promise.reject(options.erreurInsertPrestation)
-                : Promise.resolve(options.lignePrestationInseree ? [options.lignePrestationInseree] : []),
+                : Promise.resolve(
+                    options.lignePrestationInseree ? [options.lignePrestationInseree] : [],
+                  ),
           };
         }
         if (table === schema.prestationPrix) {
           journal.push('insert:prestation_prix');
-          return options.erreurInsertPrix ? Promise.reject(options.erreurInsertPrix) : Promise.resolve(undefined);
+          return options.erreurInsertPrix
+            ? Promise.reject(options.erreurInsertPrix)
+            : Promise.resolve(undefined);
         }
         throw new Error('Table inattendue.');
       },
@@ -92,7 +102,10 @@ function accesFactice(options: OptionsAcces, journal: string[] = []): AccesBase 
       set: () => ({
         where: () => {
           if (table === schema.prestation) {
-            return { returning: () => Promise.resolve(options.lignePrestationMaj ? [options.lignePrestationMaj] : []) };
+            return {
+              returning: () =>
+                Promise.resolve(options.lignePrestationMaj ? [options.lignePrestationMaj] : []),
+            };
           }
           if (table === schema.prestationPrix) {
             journal.push('update:prestation_prix (cloture)');
@@ -113,7 +126,10 @@ function accesFactice(options: OptionsAcces, journal: string[] = []): AccesBase 
 describe('ServicePrestations.lister', () => {
   it('fusionne le prix courant par prestation', async () => {
     const service = new ServicePrestations(
-      accesFactice({ lignesPrestation: [prestationBrute()], lignesPrix: [{ prestationId: ID_PR_1, prixCentimes: 19500 }] }),
+      accesFactice({
+        lignesPrestation: [prestationBrute()],
+        lignesPrix: [{ prestationId: ID_PR_1, prixCentimes: 19500 }],
+      }),
       horlogeFigee(),
     );
     const page = await service.lister(CTX, 50, undefined);
@@ -130,9 +146,16 @@ describe('ServicePrestations.lister', () => {
   });
 
   it('designation.de/it replient sur le FR quand non traduites', async () => {
-    const service = new ServicePrestations(accesFactice({ lignesPrestation: [prestationBrute()], lignesPrix: [] }), horlogeFigee());
+    const service = new ServicePrestations(
+      accesFactice({ lignesPrestation: [prestationBrute()], lignesPrix: [] }),
+      horlogeFigee(),
+    );
     const page = await service.lister(CTX, 50, undefined);
-    expect(page.donnees[0]?.designation).toEqual({ fr: 'Service A', de: 'Service A', it: 'Service A' });
+    expect(page.donnees[0]?.designation).toEqual({
+      fr: 'Service A',
+      de: 'Service A',
+      it: 'Service A',
+    });
   });
 
   it('curseur suivant : conserve la microseconde exacte de la dernière ligne (pas de passage par Date)', async () => {
@@ -140,8 +163,14 @@ describe('ServicePrestations.lister', () => {
     // constat mesuré sur `GET /vehicules` (4 lignes de même milliseconde de création). Si le
     // curseur était construit depuis `getTableColumns().creeLe` (un `Date`, résolution
     // milliseconde) plutôt que depuis `creeLeTexte`, `.171200` serait tronqué en `.171000`.
-    const recente = prestationBrute({ id: ID_PR_RECENTE, code: 'SRV-B' }, '2026-07-29 13:37:35.171200+00');
-    const ancienne = prestationBrute({ id: ID_PR_ANCIENNE, code: 'SRV-C' }, '2026-07-29 13:37:35.171100+00');
+    const recente = prestationBrute(
+      { id: ID_PR_RECENTE, code: 'SRV-B' },
+      '2026-07-29 13:37:35.171200+00',
+    );
+    const ancienne = prestationBrute(
+      { id: ID_PR_ANCIENNE, code: 'SRV-C' },
+      '2026-07-29 13:37:35.171100+00',
+    );
 
     const service = new ServicePrestations(
       accesFactice({ lignesPrestation: [recente, ancienne], lignesPrix: [] }),
@@ -187,7 +216,7 @@ describe('ServicePrestations.creer', () => {
     expect(journal).toEqual(['insert:prestation']);
   });
 
-  it('avec prixCentimes : crée la prestation PUIS ouvre un prix daté à aujourd\'hui', async () => {
+  it("avec prixCentimes : crée la prestation PUIS ouvre un prix daté à aujourd'hui", async () => {
     const journal: string[] = [];
     const service = new ServicePrestations(
       accesFactice({ lignePrestationInseree: prestationBrute() }, journal),
@@ -210,7 +239,12 @@ describe('ServicePrestations.creer', () => {
       horlogeFigee(),
     );
     await expect(
-      service.creer(CTX, { code: 'SRV-A', designationFr: 'X', typeLigne: 'forfait', tauxTvaPourmille: 81 }),
+      service.creer(CTX, {
+        code: 'SRV-A',
+        designationFr: 'X',
+        typeLigne: 'forfait',
+        tauxTvaPourmille: 81,
+      }),
     ).rejects.toMatchObject({ code: 'CONFLIT' });
   });
 });
@@ -220,7 +254,10 @@ describe('ServicePrestations.modifier', () => {
     const journal: string[] = [];
     const service = new ServicePrestations(
       accesFactice(
-        { lignePrestationMaj: prestationBrute(), lignesPrix: [{ prestationId: 'pr-1', prixCentimes: 15000 }] },
+        {
+          lignePrestationMaj: prestationBrute(),
+          lignesPrix: [{ prestationId: 'pr-1', prixCentimes: 15000 }],
+        },
         journal,
       ),
       horlogeFigee(),
@@ -234,7 +271,10 @@ describe('ServicePrestations.modifier', () => {
     const journal: string[] = [];
     const service = new ServicePrestations(
       accesFactice(
-        { lignePrestationMaj: prestationBrute(), lignesPrix: [{ prestationId: 'pr-1', prixCentimes: 19500 }] },
+        {
+          lignePrestationMaj: prestationBrute(),
+          lignesPrix: [{ prestationId: 'pr-1', prixCentimes: 19500 }],
+        },
         journal,
       ),
       horlogeFigee(),
@@ -251,7 +291,10 @@ describe('ServicePrestations.modifier', () => {
     // le fait réellement (cf. `service-prestations.ts` : `Object.keys(colonnes).length === 0`).
     const service = new ServicePrestations(
       accesFactice(
-        { ligneSelectUnitaire: prestationBrute(), lignesPrix: [{ prestationId: 'pr-1', prixCentimes: 19500 }] },
+        {
+          ligneSelectUnitaire: prestationBrute(),
+          lignesPrix: [{ prestationId: 'pr-1', prixCentimes: 19500 }],
+        },
         journal,
       ),
       horlogeFigee(),
@@ -263,7 +306,10 @@ describe('ServicePrestations.modifier', () => {
 
   it('corps sans prixCentimes : le prix courant est préservé tel quel', async () => {
     const service = new ServicePrestations(
-      accesFactice({ lignePrestationMaj: prestationBrute(), lignesPrix: [{ prestationId: 'pr-1', prixCentimes: 19500 }] }),
+      accesFactice({
+        lignePrestationMaj: prestationBrute(),
+        lignesPrix: [{ prestationId: 'pr-1', prixCentimes: 19500 }],
+      }),
       horlogeFigee(),
     );
     const dto = await service.modifier(CTX, 'pr-1', { actif: false });
@@ -271,7 +317,10 @@ describe('ServicePrestations.modifier', () => {
   });
 
   it('id introuvable : RESSOURCE_INTROUVABLE', async () => {
-    const service = new ServicePrestations(accesFactice({ lignePrestationMaj: undefined }), horlogeFigee());
+    const service = new ServicePrestations(
+      accesFactice({ lignePrestationMaj: undefined }),
+      horlogeFigee(),
+    );
     await expect(service.modifier(CTX, 'absent', { actif: false })).rejects.toMatchObject({
       code: 'RESSOURCE_INTROUVABLE',
     });

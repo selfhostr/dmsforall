@@ -23,7 +23,8 @@ export const CLE_META_ACTION = 'dfa:action';
 export const CLE_META_AUCUN_DROIT = 'dfa:aucun-droit';
 
 /** Déclare l'action requise sur un handler de contrôleur : `@ExigerDroit('socle.tenant.lire')`. */
-export const ExigerDroit = (action: Action): MethodDecorator & ClassDecorator => SetMetadata(CLE_META_ACTION, action);
+export const ExigerDroit = (action: Action): MethodDecorator & ClassDecorator =>
+  SetMetadata(CLE_META_ACTION, action);
 
 /**
  * Déclare EXPLICITEMENT qu'une route authentifiée ne requiert aucun droit particulier — tout
@@ -36,7 +37,8 @@ export const ExigerDroit = (action: Action): MethodDecorator & ClassDecorator =>
  * pas une route ouverte : ce décorateur est la seule façon correcte d'obtenir « authentifié
  * suffit ».
  */
-export const AucunDroitRequis = (): MethodDecorator & ClassDecorator => SetMetadata(CLE_META_AUCUN_DROIT, true);
+export const AucunDroitRequis = (): MethodDecorator & ClassDecorator =>
+  SetMetadata(CLE_META_AUCUN_DROIT, true);
 
 /**
  * Guard d'autorisation par action, à poser en complément de `GardeSession` via
@@ -75,7 +77,10 @@ export class GardeDroit implements CanActivate {
   canActivate(contexteExecution: ExecutionContext): boolean {
     const cibles = [contexteExecution.getHandler(), contexteExecution.getClass()];
 
-    const estPublic = this.reflector.getAllAndOverride<boolean | undefined>(CLE_META_PUBLIC, cibles);
+    const estPublic = this.reflector.getAllAndOverride<boolean | undefined>(
+      CLE_META_PUBLIC,
+      cibles,
+    );
     if (estPublic) return true;
 
     const action = this.reflector.getAllAndOverride<Action | undefined>(CLE_META_ACTION, cibles);
@@ -83,12 +88,18 @@ export class GardeDroit implements CanActivate {
       const principal = this.contexte.exigerPrincipal();
       const droitsDuRole: readonly Action[] = MATRICE_DROITS[principal.role] ?? [];
       if (!droitsDuRole.includes(action)) {
-        throw new ErreurMetier('DROIT_INSUFFISANT', `Le rôle "${principal.role}" n'a pas le droit "${action}".`);
+        throw new ErreurMetier(
+          'DROIT_INSUFFISANT',
+          `Le rôle "${principal.role}" n'a pas le droit "${action}".`,
+        );
       }
       return true;
     }
 
-    const aucunDroitRequis = this.reflector.getAllAndOverride<boolean | undefined>(CLE_META_AUCUN_DROIT, cibles);
+    const aucunDroitRequis = this.reflector.getAllAndOverride<boolean | undefined>(
+      CLE_META_AUCUN_DROIT,
+      cibles,
+    );
     if (aucunDroitRequis) {
       // Authentifié suffit : on exige quand même un principal résolu (cohérence avec le reste du
       // guard, et défense en profondeur si jamais posé sur une route qui n'est pas derrière

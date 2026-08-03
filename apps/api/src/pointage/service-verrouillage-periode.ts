@@ -51,13 +51,29 @@ export class ServiceVerrouillagePeriode {
       const ouverts = await tx
         .select({ id: pointage.id, technicienId: pointage.technicienId })
         .from(pointage)
-        .where(and(eq(pointage.tenantId, ctx.tenantId), eq(pointage.siteId, entree.siteId), eq(pointage.statut, 'en_cours'), lte(pointage.debutLe, seuil)));
+        .where(
+          and(
+            eq(pointage.tenantId, ctx.tenantId),
+            eq(pointage.siteId, entree.siteId),
+            eq(pointage.statut, 'en_cours'),
+            lte(pointage.debutLe, seuil),
+          ),
+        );
 
       if (ouverts.length > 0) {
-        throw new ErreurMetier('CONFLIT', `${String(ouverts.length)} pointage(s) encore en cours empêchent le verrouillage de cette période (RM-95).`, {
-          blocages: ouverts.map((p) => ({ type: 'pointage' as const, id: p.id, libelle: p.id, donnees: { technicienId: p.technicienId } })),
-          actionsProposees: [{ code: 'ARRETER_POINTAGES' }],
-        });
+        throw new ErreurMetier(
+          'CONFLIT',
+          `${String(ouverts.length)} pointage(s) encore en cours empêchent le verrouillage de cette période (RM-95).`,
+          {
+            blocages: ouverts.map((p) => ({
+              type: 'pointage' as const,
+              id: p.id,
+              libelle: p.id,
+              donnees: { technicienId: p.technicienId },
+            })),
+            actionsProposees: [{ code: 'ARRETER_POINTAGES' }],
+          },
+        );
       }
 
       const verrouilles = await tx
@@ -73,9 +89,20 @@ export class ServiceVerrouillagePeriode {
         )
         .returning({ id: pointage.id });
 
-      await this.ecrireSeuil(tx, ctx, principal, entree.siteId, entree.jusquauLe, entree.motif ?? null);
+      await this.ecrireSeuil(
+        tx,
+        ctx,
+        principal,
+        entree.siteId,
+        entree.jusquauLe,
+        entree.motif ?? null,
+      );
 
-      return { siteId: entree.siteId, jusquauLe: entree.jusquauLe, pointagesVerrouilles: verrouilles.length };
+      return {
+        siteId: entree.siteId,
+        jusquauLe: entree.jusquauLe,
+        pointagesVerrouilles: verrouilles.length,
+      };
     });
   }
 
@@ -90,12 +117,23 @@ export class ServiceVerrouillagePeriode {
       const deverrouilles = await tx
         .update(pointage)
         .set({ statut: 'valide' })
-        .where(and(eq(pointage.tenantId, ctx.tenantId), eq(pointage.siteId, entree.siteId), eq(pointage.statut, 'verrouille'), gt(pointage.debutLe, seuil)))
+        .where(
+          and(
+            eq(pointage.tenantId, ctx.tenantId),
+            eq(pointage.siteId, entree.siteId),
+            eq(pointage.statut, 'verrouille'),
+            gt(pointage.debutLe, seuil),
+          ),
+        )
         .returning({ id: pointage.id });
 
       await this.ecrireSeuil(tx, ctx, principal, entree.siteId, entree.jusquauLe, entree.motif);
 
-      return { siteId: entree.siteId, jusquauLe: entree.jusquauLe, pointagesDeverrouilles: deverrouilles.length };
+      return {
+        siteId: entree.siteId,
+        jusquauLe: entree.jusquauLe,
+        pointagesDeverrouilles: deverrouilles.length,
+      };
     });
   }
 
@@ -120,7 +158,12 @@ export class ServiceVerrouillagePeriode {
       })
       .onConflictDoUpdate({
         target: [pointageVerrouillageSite.tenantId, pointageVerrouillageSite.siteId],
-        set: { verrouilleJusquauLe: jusquauLe, dernierMotif: motif, derniereActionLe: maintenant, dernierUtilisateurId: principal.utilisateurId },
+        set: {
+          verrouilleJusquauLe: jusquauLe,
+          dernierMotif: motif,
+          derniereActionLe: maintenant,
+          dernierUtilisateurId: principal.utilisateurId,
+        },
       });
   }
 }

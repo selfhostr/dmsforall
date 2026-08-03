@@ -32,6 +32,12 @@ import { ServiceTauxHoraires } from './referentiels/taux-horaires/service-taux-h
     TauxHorairesController,
     BlocCreancierController,
   ],
-  providers: [ServiceParametresAtelier, ServiceParametresSite, ServicePrestations, ServiceTauxHoraires, ServiceBlocCreancier],
+  providers: [
+    ServiceParametresAtelier,
+    ServiceParametresSite,
+    ServicePrestations,
+    ServiceTauxHoraires,
+    ServiceBlocCreancier,
+  ],
 })
 export class ParametrageModule {}

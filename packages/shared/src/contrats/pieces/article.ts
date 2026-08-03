@@ -182,7 +182,7 @@ export const schemaCreationArticle = schemaArticleObjet.refine(
   (v) => v.estEchangeStandard === (v.montantConsigneTtcCentimes != null),
   {
     message:
-      "`montantConsigneTtcCentimes` est obligatoire quand `estEchangeStandard = true`, et doit être absent sinon (RP-37).",
+      '`montantConsigneTtcCentimes` est obligatoire quand `estEchangeStandard = true`, et doit être absent sinon (RP-37).',
     path: ['montantConsigneTtcCentimes'],
   },
 );

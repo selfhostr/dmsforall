@@ -9,7 +9,7 @@ export class ReponseRechercheDto implements ReponseRecherche {
   @ApiProperty({
     description:
       'RM-18/§6.9 : `true` quand la plaque cherchée est interchangeable — les DEUX véhicules sont ' +
-      'alors présents dans `resultats`. Le serveur ne choisit jamais à la place de l\'utilisateur.',
+      "alors présents dans `resultats`. Le serveur ne choisit jamais à la place de l'utilisateur.",
   })
   readonly plaqueInterchangeable!: boolean;
 }

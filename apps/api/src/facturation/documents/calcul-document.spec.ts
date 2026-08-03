@@ -119,19 +119,22 @@ describe('calculerLigneDocument — pipeline TTC-ancré (migration 0010 §8, §0
     expect(r.htCentimes + r.tvaCentimes).toBe(r.ttcCentimes);
   });
 
-  it.each([0, 26, 38, 81, 100, 770])('invariant ttc = ht + tva tient pour le taux %i ‰, tous montants', (taux) => {
-    for (const prix of [1, 99, 100, 4_050, 7_000, 145_00, 999_999_99]) {
-      const r = calculerLigneDocument({
-        prixUnitaireTtcCentimes: prix,
-        quantiteMillieme: 1000,
-        remisePourmille: null,
-        remiseMontantCentimes: null,
-        remiseGlobaleRepartieCentimes: 0,
-        tauxTvaPourmille: taux,
-      });
-      expect(r.htCentimes + r.tvaCentimes).toBe(r.ttcCentimes);
-    }
-  });
+  it.each([0, 26, 38, 81, 100, 770])(
+    'invariant ttc = ht + tva tient pour le taux %i ‰, tous montants',
+    (taux) => {
+      for (const prix of [1, 99, 100, 4_050, 7_000, 145_00, 999_999_99]) {
+        const r = calculerLigneDocument({
+          prixUnitaireTtcCentimes: prix,
+          quantiteMillieme: 1000,
+          remisePourmille: null,
+          remiseMontantCentimes: null,
+          remiseGlobaleRepartieCentimes: 0,
+          tauxTvaPourmille: taux,
+        });
+        expect(r.htCentimes + r.tvaCentimes).toBe(r.ttcCentimes);
+      }
+    },
+  );
 });
 
 describe('resoudreRemiseGlobaleCentimes', () => {
@@ -197,9 +200,19 @@ describe('agregerTvaParTauxRegime (MD-44)', () => {
     const ventilation = agregerTvaParTauxRegime(lignes);
     expect(ventilation).toHaveLength(2);
     const normal = ventilation.find((v) => v.regimeTva === 'normal');
-    expect(normal).toEqual({ regimeTva: 'normal', tauxTvaPourmille: 81, baseCentimes: 3000, tvaCentimes: 243 });
+    expect(normal).toEqual({
+      regimeTva: 'normal',
+      tauxTvaPourmille: 81,
+      baseCentimes: 3000,
+      tvaCentimes: 243,
+    });
     const reduit = ventilation.find((v) => v.regimeTva === 'reduit');
-    expect(reduit).toEqual({ regimeTva: 'reduit', tauxTvaPourmille: 26, baseCentimes: 500, tvaCentimes: 13 });
+    expect(reduit).toEqual({
+      regimeTva: 'reduit',
+      tauxTvaPourmille: 26,
+      baseCentimes: 500,
+      tvaCentimes: 13,
+    });
   });
 });
 

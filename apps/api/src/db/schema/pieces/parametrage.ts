@@ -23,7 +23,9 @@ export const parametrePieces = pgTable(
     /** PP-03 : NULL tant que @laupernoe ne tranche pas (QP-04) — aucune valeur inventée. */
     methodePrixAchat: methodePrixAchatEnum('methode_prix_achat'),
     /** PP-05 : NULL tant que @laupernoe ne tranche pas (QP-11) — aucune valeur inventée. */
-    seuilValeurAjustementSignificatifCentimes: integer('seuil_valeur_ajustement_significatif_centimes'),
+    seuilValeurAjustementSignificatifCentimes: integer(
+      'seuil_valeur_ajustement_significatif_centimes',
+    ),
     /** PP-06 : NULL tant que @laupernoe ne tranche pas (QP-07) — aucune valeur inventée. */
     delaiConsigneAcquisitionJours: smallint('delai_consigne_acquisition_jours'),
     tauxTvaConsignePourmille: smallint('taux_tva_consigne_pourmille').notNull().default(81),
@@ -39,7 +41,10 @@ export const parametrePieces = pgTable(
       'parametre_pieces_delai_consigne_chk',
       sql`${t.delaiConsigneAcquisitionJours} is null or ${t.delaiConsigneAcquisitionJours} between 0 and 3650`,
     ),
-    check('parametre_pieces_taux_tva_consigne_chk', sql`${t.tauxTvaConsignePourmille} between 0 and 1000`),
+    check(
+      'parametre_pieces_taux_tva_consigne_chk',
+      sql`${t.tauxTvaConsignePourmille} between 0 and 1000`,
+    ),
   ],
 );
 

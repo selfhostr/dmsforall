@@ -15,7 +15,10 @@ import type { Config } from '../../config/config.types';
 import type { ServiceContexteRequete } from '../contexte/contexte-requete.service';
 import type { PrincipalAuthentifie } from '../contexte/contexte-requete.types';
 import { ErreurMetier } from '../erreurs/erreur-metier';
-import type { ResultatLimitationDebit, ServiceLimitationDebit } from '../limitation/limitation-debit.types';
+import type {
+  ResultatLimitationDebit,
+  ServiceLimitationDebit,
+} from '../limitation/limitation-debit.types';
 import { GardeLimitationRecherche } from './garde-limitation-recherche';
 
 const PRINCIPAL: PrincipalAuthentifie = {
@@ -46,13 +49,16 @@ function contexteExecutionTest(): ExecutionContext {
 function contexteRequeteTest(principal: PrincipalAuthentifie | null): ServiceContexteRequete {
   return {
     exigerPrincipal: vi.fn(() => {
-      if (!principal) throw new Error('Aucun principal authentifié dans le contexte de la requête courante.');
+      if (!principal)
+        throw new Error('Aucun principal authentifié dans le contexte de la requête courante.');
       return principal;
     }),
   } as unknown as ServiceContexteRequete;
 }
 
-function limiteurTest(resultat: ResultatLimitationDebit): ServiceLimitationDebit & { consommer: ReturnType<typeof vi.fn> } {
+function limiteurTest(
+  resultat: ResultatLimitationDebit,
+): ServiceLimitationDebit & { consommer: ReturnType<typeof vi.fn> } {
   return {
     consommer: vi.fn().mockResolvedValue(resultat),
   } as unknown as ServiceLimitationDebit & { consommer: ReturnType<typeof vi.fn> };
@@ -61,7 +67,11 @@ function limiteurTest(resultat: ResultatLimitationDebit): ServiceLimitationDebit
 describe('GardeLimitationRecherche — autorisé', () => {
   it('laisse passer et consomme le budget de la clé PAR UTILISATEUR (jamais par IP), avec les seuils de la config injectée', async () => {
     const limiteur = limiteurTest({ autorise: true, resteSecondes: 0 });
-    const guard = new GardeLimitationRecherche(limiteur, configTest(), contexteRequeteTest(PRINCIPAL));
+    const guard = new GardeLimitationRecherche(
+      limiteur,
+      configTest(),
+      contexteRequeteTest(PRINCIPAL),
+    );
 
     await expect(guard.canActivate(contexteExecutionTest())).resolves.toBe(true);
 
@@ -79,14 +89,21 @@ describe('GardeLimitationRecherche — autorisé', () => {
 
   it('deux utilisateurs distincts consomment deux budgets Redis distincts', async () => {
     const limiteur = limiteurTest({ autorise: true, resteSecondes: 0 });
-    const autrePrincipal: PrincipalAuthentifie = { ...PRINCIPAL, utilisateurId: 'utilisateur-autre' };
+    const autrePrincipal: PrincipalAuthentifie = {
+      ...PRINCIPAL,
+      utilisateurId: 'utilisateur-autre',
+    };
 
-    await new GardeLimitationRecherche(limiteur, configTest(), contexteRequeteTest(PRINCIPAL)).canActivate(
-      contexteExecutionTest(),
-    );
-    await new GardeLimitationRecherche(limiteur, configTest(), contexteRequeteTest(autrePrincipal)).canActivate(
-      contexteExecutionTest(),
-    );
+    await new GardeLimitationRecherche(
+      limiteur,
+      configTest(),
+      contexteRequeteTest(PRINCIPAL),
+    ).canActivate(contexteExecutionTest());
+    await new GardeLimitationRecherche(
+      limiteur,
+      configTest(),
+      contexteRequeteTest(autrePrincipal),
+    ).canActivate(contexteExecutionTest());
 
     const cles = limiteur.consommer.mock.calls.map((appel) => appel[0] as string);
     expect(new Set(cles).size).toBe(2);
@@ -94,19 +111,30 @@ describe('GardeLimitationRecherche — autorisé', () => {
 
   it('utilise les seuils de la config injectée même quand ils diffèrent des valeurs par défaut du dépôt (40/30)', async () => {
     const limiteur = limiteurTest({ autorise: true, resteSecondes: 0 });
-    const config = configTest({ LIMITE_RECHERCHE_UTILISATEUR: 5, LIMITE_RECHERCHE_FENETRE_SECONDES: 10 });
+    const config = configTest({
+      LIMITE_RECHERCHE_UTILISATEUR: 5,
+      LIMITE_RECHERCHE_FENETRE_SECONDES: 10,
+    });
     const guard = new GardeLimitationRecherche(limiteur, config, contexteRequeteTest(PRINCIPAL));
 
     await guard.canActivate(contexteExecutionTest());
 
-    expect(limiteur.consommer).toHaveBeenCalledWith(`recherche:utilisateur:${PRINCIPAL.utilisateurId}`, 5, 10);
+    expect(limiteur.consommer).toHaveBeenCalledWith(
+      `recherche:utilisateur:${PRINCIPAL.utilisateurId}`,
+      5,
+      10,
+    );
   });
 });
 
 describe('GardeLimitationRecherche — refusé (429)', () => {
   it('lève ErreurMetier RECHERCHE_TROP_DE_REQUETES (code dédié, PAS AUTH_TROP_DE_TENTATIVES) en 429 avec Retry-After quand le budget est épuisé', async () => {
     const limiteur = limiteurTest({ autorise: false, resteSecondes: 17 });
-    const guard = new GardeLimitationRecherche(limiteur, configTest(), contexteRequeteTest(PRINCIPAL));
+    const guard = new GardeLimitationRecherche(
+      limiteur,
+      configTest(),
+      contexteRequeteTest(PRINCIPAL),
+    );
 
     expect.assertions(5);
     try {

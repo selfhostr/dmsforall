@@ -74,7 +74,9 @@ export async function listerDocumentsVente(
 
 /** `GET /documents-vente/{id}` — le document complet (lignes, ventilation TVA, bloc QR figé). */
 export async function recupererDocumentVente(id: string): Promise<ReponseDocumentVente> {
-  const document = await requeteApi<ReponseDocumentVente>(`/documents-vente/${id}`, { method: 'GET' });
+  const document = await requeteApi<ReponseDocumentVente>(`/documents-vente/${id}`, {
+    method: 'GET',
+  });
   if (!document) {
     throw new Error('Réponse document de vente inattendue : corps vide.');
   }
@@ -122,10 +124,16 @@ export async function ajouterLigneDocument(
 /** `DELETE /documents-vente/{id}/lignes/{ligneId}` — voir l'ÉCART SIGNALÉ en tête de fichier :
  *  verbe supposé, jamais confirmé par le contrat partagé. Uniquement pour une ligne ajoutée en
  *  facturation sur un brouillon, jamais une ligne recopiée d'un OR (§4.3 du design). */
-export async function supprimerLigneDocument(id: string, ligneId: string): Promise<ReponseDocumentVente> {
-  const document = await requeteApi<ReponseDocumentVente>(`/documents-vente/${id}/lignes/${ligneId}`, {
-    method: 'DELETE',
-  });
+export async function supprimerLigneDocument(
+  id: string,
+  ligneId: string,
+): Promise<ReponseDocumentVente> {
+  const document = await requeteApi<ReponseDocumentVente>(
+    `/documents-vente/${id}/lignes/${ligneId}`,
+    {
+      method: 'DELETE',
+    },
+  );
   if (!document) {
     throw new Error('Réponse vide inattendue : DELETE /documents-vente/lignes.');
   }
@@ -140,11 +148,14 @@ export async function emettreDocumentVente(
   entree: EntreeEmissionDocumentVente,
   idempotencyKey: string,
 ): Promise<ReponseAvecAvertissements<ReponseDocumentVente>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDocumentVente>>(`/documents-vente/${id}/emettre`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-    idempotencyKey,
-  });
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDocumentVente>>(
+    `/documents-vente/${id}/emettre`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+      idempotencyKey,
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /documents-vente/emettre.');
   }
@@ -158,11 +169,14 @@ export async function creerAvoir(
   entree: EntreeCreationAvoir,
   idempotencyKey: string,
 ): Promise<ReponseAvecAvertissements<ReponseDocumentVente>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDocumentVente>>(`/documents-vente/${factureId}/avoirs`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-    idempotencyKey,
-  });
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDocumentVente>>(
+    `/documents-vente/${factureId}/avoirs`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+      idempotencyKey,
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /documents-vente/avoirs.');
   }
@@ -176,11 +190,14 @@ export async function corrigerFacture(
   entree: EntreeCorrectionFacture,
   idempotencyKey: string,
 ): Promise<ReponseAvecAvertissements<ReponseCorrectionFacture>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseCorrectionFacture>>(`/documents-vente/${factureId}/corriger`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-    idempotencyKey,
-  });
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseCorrectionFacture>>(
+    `/documents-vente/${factureId}/corriger`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+      idempotencyKey,
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /documents-vente/corriger.');
   }

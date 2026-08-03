@@ -84,16 +84,24 @@ export interface MontantsLigneDocumentCalcules {
  * `ttc = ht + tva` tient donc TOUJOURS exactement, par construction — c'est l'invariant que
  * `ligne_document_montant_coherent_chk` vérifie en base et que les tests de ce module reprouvent.
  */
-export function calculerLigneDocument(entree: EntreeCalculLigneDocument): MontantsLigneDocumentCalcules {
+export function calculerLigneDocument(
+  entree: EntreeCalculLigneDocument,
+): MontantsLigneDocumentCalcules {
   const prix = entree.prixUnitaireTtcCentimes ?? 0;
   const baseCentimes = foisArrondiCommercial(prix, entree.quantiteMillieme, 1000);
 
   const remiseCentimes =
     entree.remiseMontantCentimes ??
-    (entree.remisePourmille ? foisArrondiCommercial(baseCentimes, entree.remisePourmille, 1000) : 0);
+    (entree.remisePourmille
+      ? foisArrondiCommercial(baseCentimes, entree.remisePourmille, 1000)
+      : 0);
 
   const ttcCentimes = baseCentimes - remiseCentimes - entree.remiseGlobaleRepartieCentimes;
-  const tvaCentimes = foisArrondiCommercial(ttcCentimes, entree.tauxTvaPourmille, 1000 + entree.tauxTvaPourmille);
+  const tvaCentimes = foisArrondiCommercial(
+    ttcCentimes,
+    entree.tauxTvaPourmille,
+    1000 + entree.tauxTvaPourmille,
+  );
   const htCentimes = ttcCentimes - tvaCentimes;
 
   return { baseCentimes, htCentimes, tvaCentimes, ttcCentimes };
@@ -120,7 +128,8 @@ export function resoudreRemiseGlobaleCentimes(
   sommeBaseCentimes: number,
 ): number {
   if (remiseGlobaleSaisieCentimes != null) return remiseGlobaleSaisieCentimes;
-  if (remiseGlobalePourmille != null) return foisArrondiCommercial(sommeBaseCentimes, remiseGlobalePourmille, 1000);
+  if (remiseGlobalePourmille != null)
+    return foisArrondiCommercial(sommeBaseCentimes, remiseGlobalePourmille, 1000);
   return 0;
 }
 
@@ -164,7 +173,8 @@ export function ventilerRemiseGlobale(
     for (const ligne of lignes) {
       if (!cible) break;
       const plusGrande = ligne.baseCentimes > cible.baseCentimes;
-      const exAequoPlusPetitOrdre = ligne.baseCentimes === cible.baseCentimes && ligne.numeroOrdre < cible.numeroOrdre;
+      const exAequoPlusPetitOrdre =
+        ligne.baseCentimes === cible.baseCentimes && ligne.numeroOrdre < cible.numeroOrdre;
       if (plusGrande || exAequoPlusPetitOrdre) cible = ligne;
     }
     if (cible) resultat.set(cible.id, (resultat.get(cible.id) ?? 0) + residu);
@@ -193,8 +203,13 @@ export interface VentilationTvaCalculee {
 
 /** Une entrée par couple `(regimeTva, tauxTvaPourmille)` présent — `MD-44` : la TVA du document est
  *  la somme des TVA de LIGNE, jamais recalculée sur une base agrégée. */
-export function agregerTvaParTauxRegime(lignes: readonly LigneAAgregerTva[]): readonly VentilationTvaCalculee[] {
-  const parClef = new Map<string, { regimeTva: string; tauxTvaPourmille: number; baseCentimes: number; tvaCentimes: number }>();
+export function agregerTvaParTauxRegime(
+  lignes: readonly LigneAAgregerTva[],
+): readonly VentilationTvaCalculee[] {
+  const parClef = new Map<
+    string,
+    { regimeTva: string; tauxTvaPourmille: number; baseCentimes: number; tvaCentimes: number }
+  >();
   for (const ligne of lignes) {
     const clef = `${ligne.regimeTva}|${String(ligne.tauxTvaPourmille)}`;
     const existant = parClef.get(clef);
@@ -220,7 +235,9 @@ export interface TotauxDocument {
 }
 
 /** `total_ttc = total_ht + total_tva` tient par construction : chaque ligne le vérifie déjà. */
-export function calculerTotauxDocument(lignes: readonly { htCentimes: number; tvaCentimes: number; ttcCentimes: number }[]): TotauxDocument {
+export function calculerTotauxDocument(
+  lignes: readonly { htCentimes: number; tvaCentimes: number; ttcCentimes: number }[],
+): TotauxDocument {
   return lignes.reduce<TotauxDocument>(
     (acc, l) => ({
       totalHtCentimes: acc.totalHtCentimes + l.htCentimes,

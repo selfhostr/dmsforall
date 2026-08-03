@@ -64,28 +64,54 @@ export class ReponseDossierVenteDto implements ReponseDossierVente {
   @ApiProperty({ enum: STATUTS_DOSSIER_VENTE })
   readonly statut!: ReponseDossierVente['statut'];
 
-  @ApiProperty({ enum: TYPES_VEHICULE_VENTE, nullable: true, description: 'Dérivé, jamais saisi (§8.2).' })
+  @ApiProperty({
+    enum: TYPES_VEHICULE_VENTE,
+    nullable: true,
+    description: 'Dérivé, jamais saisi (§8.2).',
+  })
   readonly typeVehicule!: ReponseDossierVente['typeVehicule'];
 
-  @ApiProperty({ type: () => VehiculeStockResumeDto, nullable: true, description: 'null tant que non associé (RV-30).' })
+  @ApiProperty({
+    type: () => VehiculeStockResumeDto,
+    nullable: true,
+    description: 'null tant que non associé (RV-30).',
+  })
   readonly vehicule!: VehiculeStockResumeDto | null;
 
   @ApiProperty({ type: () => ClientResumeDto })
   readonly clientAcheteur!: ClientResumeDto;
 
-  @ApiProperty({ type: () => ClientResumeDto, description: 'RV-40 : destinataire réel de la facture.' })
+  @ApiProperty({
+    type: () => ClientResumeDto,
+    description: 'RV-40 : destinataire réel de la facture.',
+  })
   readonly clientFacture!: ClientResumeDto;
 
-  @ApiProperty({ type: () => ClientResumeDto, nullable: true, description: 'null = le conducteur est l’acheteur (cas normal).' })
+  @ApiProperty({
+    type: () => ClientResumeDto,
+    nullable: true,
+    description: 'null = le conducteur est l’acheteur (cas normal).',
+  })
   readonly clientConducteur!: ClientResumeDto | null;
 
-  @ApiProperty({ type: () => RepriseResumeDto, nullable: true, description: 'null = pas de reprise sur ce dossier (RV-25).' })
+  @ApiProperty({
+    type: () => RepriseResumeDto,
+    nullable: true,
+    description: 'null = pas de reprise sur ce dossier (RV-25).',
+  })
   readonly reprise!: RepriseResumeDto | null;
 
-  @ApiProperty({ type: () => FinancementResumeDto, nullable: true, description: 'Le financement COURANT — null uniquement en prospection.' })
+  @ApiProperty({
+    type: () => FinancementResumeDto,
+    nullable: true,
+    description: 'Le financement COURANT — null uniquement en prospection.',
+  })
   readonly financement!: FinancementResumeDto | null;
 
-  @ApiProperty({ type: () => [FinancementResumeDto], description: 'Historique COMPLET des tentatives de financement (CV-03).' })
+  @ApiProperty({
+    type: () => [FinancementResumeDto],
+    description: 'Historique COMPLET des tentatives de financement (CV-03).',
+  })
   readonly financements!: readonly FinancementResumeDto[];
 
   @ApiProperty()
@@ -100,7 +126,11 @@ export class ReponseDossierVenteDto implements ReponseDossierVente {
   @ApiProperty({ type: () => [DocumentRequisDossierVenteDto] })
   readonly documentsRequis!: readonly DocumentRequisDossierVenteDto[];
 
-  @ApiProperty({ type: String, nullable: true, description: 'RV-34 : type de pièce présentée à la signature du bon de commande.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'RV-34 : type de pièce présentée à la signature du bon de commande.',
+  })
   readonly identitePieceType!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
@@ -112,7 +142,11 @@ export class ReponseDossierVenteDto implements ReponseDossierVente {
   @ApiProperty({ type: String, format: 'date', nullable: true })
   readonly dateLivraisonEffective!: string | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'RV-55 : 0 pour un VN, kilométrage réel constaté pour une VO.' })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'RV-55 : 0 pour un VN, kilométrage réel constaté pour une VO.',
+  })
   readonly kilometrageDepart!: number | null;
 
   @ApiProperty({ format: 'date-time' })
@@ -162,7 +196,11 @@ export class PageDossierVenteDto implements PageCurseur<ReponseDossierVenteDto> 
   @ApiProperty({ type: () => [ReponseDossierVenteDto] })
   readonly donnees!: readonly ReponseDossierVenteDto[];
 
-  @ApiProperty({ type: String, nullable: true, description: 'Opaque base64url ; null = fin de liste.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Opaque base64url ; null = fin de liste.',
+  })
   readonly curseurSuivant!: string | null;
 
   @ApiProperty({ example: 50 })

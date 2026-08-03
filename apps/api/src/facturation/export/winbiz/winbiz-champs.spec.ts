@@ -64,7 +64,9 @@ describe('formaterTauxWinbiz — les trois taux TVA 2026', () => {
 
 describe('nettoyerTexteWinbiz', () => {
   it('remplace « ; » (le séparateur de champ) et CR/LF par une espace', () => {
-    expect(nettoyerTexteWinbiz('Pare-choc; avant\r\nPeint', 200).valeur).toBe('Pare-choc avant Peint');
+    expect(nettoyerTexteWinbiz('Pare-choc; avant\r\nPeint', 200).valeur).toBe(
+      'Pare-choc avant Peint',
+    );
   });
 
   it('réduit les espaces multiples et rogne les bords', () => {

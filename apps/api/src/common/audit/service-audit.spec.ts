@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../../db';
 import { ServiceAuditImpl } from './service-audit';
 
-const CTX: ContexteTenant = { tenantId: '3fa85f64-5717-4562-b3fc-2c963f66afa6', utilisateurId: null, requeteId: null };
+const CTX: ContexteTenant = {
+  tenantId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+  utilisateurId: null,
+  requeteId: null,
+};
 
 function accesFactice(tx: { execute: ReturnType<typeof vi.fn> }): AccesBase {
   return {

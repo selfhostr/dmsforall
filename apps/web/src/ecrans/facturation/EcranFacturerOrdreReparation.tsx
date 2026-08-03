@@ -27,7 +27,12 @@ import { formaterMontant } from '@/lib/formats';
 
 /** Statuts de ligne « indécis » qui bloquent la facturation (`RF-86`) : ni réalisées (facturables),
  *  ni refusées/annulées (définitivement écartées). */
-const STATUTS_INDECIS: ReadonlySet<ReponseLigneOr['statut']> = new Set(['proposee', 'a_valider', 'validee', 'en_cours']);
+const STATUTS_INDECIS: ReadonlySet<ReponseLigneOr['statut']> = new Set([
+  'proposee',
+  'a_valider',
+  'validee',
+  'en_cours',
+]);
 
 /** `garage` n'a pas de groupe séparé (`RF-92`) : ses lignes, valorisées à `0.00` (RM-70), rejoignent
  *  le groupe `'client'` — `PAYEURS_FACTURATION_SELECTIONNABLES` (contrat gelé) exclut `'garage'` par
@@ -57,7 +62,10 @@ interface GroupePayeur {
 /** Libellé affiché du groupe — « Assurance — Zurich Assurances » pour désambiguïser deux groupes
  *  du même `payeur` (design §3.2), jamais juste « Assurance » qui redeviendrait ambigu à deux
  *  assureurs sur le même OR. */
-function libelleGroupe(t: (cle: string, options?: Record<string, unknown>) => string, groupe: GroupePayeur): string {
+function libelleGroupe(
+  t: (cle: string, options?: Record<string, unknown>) => string,
+  groupe: GroupePayeur,
+): string {
   const libellePayeur = t(`or:lignes.payeurs.${groupe.payeur}`);
   if (groupe.payeur === 'client' || !groupe.destinataire) return libellePayeur;
   return `${libellePayeur} — ${groupe.destinataire.nomAffiche}`;
@@ -91,15 +99,26 @@ export function EcranFacturerOrdreReparation() {
   const facturation = useFacturationOrdreReparation();
 
   const [groupesDecoches, setGroupesDecoches] = useState<ReadonlySet<string>>(new Set());
-  const [motifsReportSaisis, setMotifsReportSaisis] = useState<Readonly<Record<string, string>>>({});
+  const [motifsReportSaisis, setMotifsReportSaisis] = useState<Readonly<Record<string, string>>>(
+    {},
+  );
   const [inclureDemontageRefuse, setInclureDemontageRefuse] = useState(false);
   const [confirmationOuverte, setConfirmationOuverte] = useState(false);
 
   const groupes = useMemo<readonly GroupePayeur[]>(() => {
     if (!requete.data) return [];
     const or = requete.data;
-    const lignesFacturables = or.lignes.filter((ligne) => ligne.statut === 'realisee' && ligne.factureId === null);
-    const parGroupe = new Map<string, { payeur: PayeurFacturationSelectionnable; payeurClientId: string | null; lignes: ReponseLigneOr[] }>();
+    const lignesFacturables = or.lignes.filter(
+      (ligne) => ligne.statut === 'realisee' && ligne.factureId === null,
+    );
+    const parGroupe = new Map<
+      string,
+      {
+        payeur: PayeurFacturationSelectionnable;
+        payeurClientId: string | null;
+        lignes: ReponseLigneOr[];
+      }
+    >();
     for (const ligne of lignesFacturables) {
       const payeur = payeurFacturable(ligne.payeur);
       const payeurClientId = payeur === 'client' ? null : ligne.payeurClientId;
@@ -110,14 +129,26 @@ export function EcranFacturerOrdreReparation() {
     }
     return [...parGroupe.values()]
       .sort((a, b) => {
-        const rang = PAYEURS_FACTURATION_SELECTIONNABLES.indexOf(a.payeur) - PAYEURS_FACTURATION_SELECTIONNABLES.indexOf(b.payeur);
+        const rang =
+          PAYEURS_FACTURATION_SELECTIONNABLES.indexOf(a.payeur) -
+          PAYEURS_FACTURATION_SELECTIONNABLES.indexOf(b.payeur);
         return rang !== 0 ? rang : (a.payeurClientId ?? '').localeCompare(b.payeurClientId ?? '');
       })
       .map((g) => {
-        const totaux = or.totauxParPayeur?.find((t_) => t_.payeur === g.payeur && (t_.payeurClientId ?? null) === g.payeurClientId);
+        const totaux = or.totauxParPayeur?.find(
+          (t_) => t_.payeur === g.payeur && (t_.payeurClientId ?? null) === g.payeurClientId,
+        );
         const destinataire =
-          g.payeur === 'client' ? (totaux?.destinataire ?? { clientId: or.client.id, nomAffiche: or.client.nomAffiche }) : (totaux?.destinataire ?? null);
-        return { payeur: g.payeur, payeurClientId: g.payeurClientId, destinataire, lignes: g.lignes, totalTtcCentimes: totaux?.montantTtcCentimes };
+          g.payeur === 'client'
+            ? (totaux?.destinataire ?? { clientId: or.client.id, nomAffiche: or.client.nomAffiche })
+            : (totaux?.destinataire ?? null);
+        return {
+          payeur: g.payeur,
+          payeurClientId: g.payeurClientId,
+          destinataire,
+          lignes: g.lignes,
+          totalTtcCentimes: totaux?.montantTtcCentimes,
+        };
       });
   }, [requete.data]);
 
@@ -125,7 +156,9 @@ export function EcranFacturerOrdreReparation() {
     return (
       <div className="flex flex-col gap-6">
         <h1 className="sr-only">{t('facturation:facturerOr.titre')}</h1>
-        <p className="texte-corps text-muted-foreground">{t('facturation:facturerOr.chargement')}</p>
+        <p className="texte-corps text-muted-foreground">
+          {t('facturation:facturerOr.chargement')}
+        </p>
         <EtatChargement lignes={6} />
       </div>
     );
@@ -148,8 +181,13 @@ export function EcranFacturerOrdreReparation() {
   const lignesIndecises = or.lignes.filter((ligne) => STATUTS_INDECIS.has(ligne.statut));
   const lignesRefusees = or.lignes.filter((ligne) => ligne.statut === 'refusee');
   const bloque = lignesIndecises.length > 0;
-  const groupesCoches = groupes.filter((groupe) => !groupesDecoches.has(cleGroupe(groupe.payeur, groupe.payeurClientId)));
-  const montantTotalCentimes = groupesCoches.reduce((somme, groupe) => somme + (groupe.totalTtcCentimes ?? 0), 0);
+  const groupesCoches = groupes.filter(
+    (groupe) => !groupesDecoches.has(cleGroupe(groupe.payeur, groupe.payeurClientId)),
+  );
+  const montantTotalCentimes = groupesCoches.reduce(
+    (somme, groupe) => somme + (groupe.totalTtcCentimes ?? 0),
+    0,
+  );
   const clientGroupeCoche = groupesCoches.some((groupe) => groupe.payeur === 'client');
 
   function basculerGroupe(cle: string) {
@@ -161,7 +199,9 @@ export function EcranFacturerOrdreReparation() {
     });
   }
 
-  function reponseVersFacture(reponse: { readonly facturesCreees: readonly { readonly id: string }[] }) {
+  function reponseVersFacture(reponse: {
+    readonly facturesCreees: readonly { readonly id: string }[];
+  }) {
     const premiere = reponse.facturesCreees[0];
     if (premiere) navigate(`/factures/${premiere.id}`);
   }
@@ -201,8 +241,13 @@ export function EcranFacturerOrdreReparation() {
   if (groupes.length === 0 && !bloque) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="texte-titre-section font-semibold text-foreground">{t('facturation:facturerOr.titre')}</h1>
-        <EtatVide titre={t('facturation:facturerOr.vide.titre')} description={t('facturation:facturerOr.vide.description')} />
+        <h1 className="texte-titre-section font-semibold text-foreground">
+          {t('facturation:facturerOr.titre')}
+        </h1>
+        <EtatVide
+          titre={t('facturation:facturerOr.vide.titre')}
+          description={t('facturation:facturerOr.vide.description')}
+        />
       </div>
     );
   }
@@ -215,13 +260,20 @@ export function EcranFacturerOrdreReparation() {
           <IdentiteVehicule vehicule={or.vehicule} taillePlaque="sm" />
           <IdentiteClient client={or.client} />
         </div>
-        <Button type="button" variant="outline" onClick={() => navigate(`/ordres-reparation/${or.id}`)}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => navigate(`/ordres-reparation/${or.id}`)}
+        >
           {t('facturation:facturerOr.retour')}
         </Button>
       </div>
 
       {bloque ? (
-        <div role="alert" className="flex flex-col gap-3 rounded-md border border-statut-danger/40 bg-statut-danger/12 p-4">
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-md border border-statut-danger/40 bg-statut-danger/12 p-4"
+        >
           <div className="flex items-start gap-3">
             <Ban aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-statut-danger" />
             <p className="flex-1 texte-corps font-medium text-foreground">
@@ -232,7 +284,10 @@ export function EcranFacturerOrdreReparation() {
             {lignesIndecises.map((ligne) => (
               <li key={ligne.id} className="flex items-center justify-between gap-2 texte-corps">
                 <span>
-                  {ligne.designation} — {t(`or:lignes.statuts.${ligne.statut === 'a_valider' ? 'aValider' : ligne.statut === 'en_cours' ? 'enCours' : ligne.statut}`)}
+                  {ligne.designation} —{' '}
+                  {t(
+                    `or:lignes.statuts.${ligne.statut === 'a_valider' ? 'aValider' : ligne.statut === 'en_cours' ? 'enCours' : ligne.statut}`,
+                  )}
                 </span>
                 <button
                   type="button"
@@ -266,7 +321,11 @@ export function EcranFacturerOrdreReparation() {
                 <li key={ligne.id} className="flex items-center justify-between texte-corps">
                   <span>
                     {ligne.designation}
-                    {ligne.payeur === 'garage' ? <span className="ml-1 texte-libelle text-muted-foreground">({t('or:lignes.payeurs.garage')})</span> : null}
+                    {ligne.payeur === 'garage' ? (
+                      <span className="ml-1 texte-libelle text-muted-foreground">
+                        ({t('or:lignes.payeurs.garage')})
+                      </span>
+                    ) : null}
                   </span>
                   <span className="tabular-nums">
                     {ligne.montants ? formaterMontant(ligne.montants.montantTtcCentimes) : ''}
@@ -276,15 +335,24 @@ export function EcranFacturerOrdreReparation() {
             </ul>
             <div className="flex items-center justify-between border-t pt-2 texte-corps font-medium">
               <span>{t('facturation:facturerOr.groupe.sousTotal')}</span>
-              <span className="tabular-nums">{groupe.totalTtcCentimes !== undefined ? formaterMontant(groupe.totalTtcCentimes) : ''}</span>
+              <span className="tabular-nums">
+                {groupe.totalTtcCentimes !== undefined
+                  ? formaterMontant(groupe.totalTtcCentimes)
+                  : ''}
+              </span>
             </div>
             {groupe.payeur === 'client' && !decoche && or.demontageFacturablePropose ? (
               <div className="flex flex-col gap-1.5 rounded-md bg-muted px-3 py-2">
                 <p className="texte-corps text-foreground">
-                  {t('facturation:facturerOr.demontage.message', { montant: formaterMontant(or.demontageFacturablePropose.montantTtcCentimes) })}
+                  {t('facturation:facturerOr.demontage.message', {
+                    montant: formaterMontant(or.demontageFacturablePropose.montantTtcCentimes),
+                  })}
                 </p>
                 <label className="flex items-center gap-2 texte-corps">
-                  <Checkbox checked={inclureDemontageRefuse} onCheckedChange={(coche) => setInclureDemontageRefuse(coche === true)} />
+                  <Checkbox
+                    checked={inclureDemontageRefuse}
+                    onCheckedChange={(coche) => setInclureDemontageRefuse(coche === true)}
+                  />
                   {t('facturation:facturerOr.demontage.ajouter')}
                 </label>
               </div>
@@ -295,7 +363,12 @@ export function EcranFacturerOrdreReparation() {
                   aria-label={t('facturation:facturerOr.groupe.motifReport')}
                   placeholder={t('facturation:facturerOr.groupe.motifReportPlaceholder')}
                   value={motifsReportSaisis[cle] ?? ''}
-                  onChange={(evenement) => setMotifsReportSaisis((valeur) => ({ ...valeur, [cle]: evenement.target.value }))}
+                  onChange={(evenement) =>
+                    setMotifsReportSaisis((valeur) => ({
+                      ...valeur,
+                      [cle]: evenement.target.value,
+                    }))
+                  }
                 />
               </div>
             ) : null}
@@ -305,7 +378,9 @@ export function EcranFacturerOrdreReparation() {
 
       {lignesRefusees.length > 0 ? (
         <div className="rounded-md border bg-muted px-4 py-3 texte-corps text-foreground">
-          <p>{t('facturation:facturerOr.lignesRefusees.message', { count: lignesRefusees.length })}</p>
+          <p>
+            {t('facturation:facturerOr.lignesRefusees.message', { count: lignesRefusees.length })}
+          </p>
           <button
             type="button"
             className="font-medium text-primary underline-offset-2 hover:underline"
@@ -316,19 +391,35 @@ export function EcranFacturerOrdreReparation() {
         </div>
       ) : null}
 
-      {facturation.erreur ? <p className="texte-libelle text-destructive">{messageErreur(facturation.erreur, t)}</p> : null}
+      {facturation.erreur ? (
+        <p className="texte-libelle text-destructive">{messageErreur(facturation.erreur, t)}</p>
+      ) : null}
 
       {facturation.confirmationsRequises.length > 0 ? (
-        <div role="alert" className="flex flex-col gap-2 rounded-md border border-statut-attention/40 bg-statut-attention/10 p-3">
-          <p className="texte-corps text-statut-attention">{facturation.erreurActive ? messageErreur(facturation.erreurActive, t) : ''}</p>
-          <Button type="button" variant="outline" className="w-fit" onClick={() => setConfirmationOuverte(true)}>
+        <div
+          role="alert"
+          className="flex flex-col gap-2 rounded-md border border-statut-attention/40 bg-statut-attention/10 p-3"
+        >
+          <p className="texte-corps text-statut-attention">
+            {facturation.erreurActive ? messageErreur(facturation.erreurActive, t) : ''}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-fit"
+            onClick={() => setConfirmationOuverte(true)}
+          >
             {t('commun:actions.continuerQuandMeme')}
           </Button>
         </div>
       ) : null}
 
       <div className="flex justify-end">
-        <Button type="button" disabled={bloque || groupesCoches.length === 0 || facturation.enCours} onClick={soumettre}>
+        <Button
+          type="button"
+          disabled={bloque || groupesCoches.length === 0 || facturation.enCours}
+          onClick={soumettre}
+        >
           {facturation.enCours
             ? t('facturation:facturerOr.action.enCours')
             : groupesCoches.length <= 1
@@ -336,7 +427,10 @@ export function EcranFacturerOrdreReparation() {
                   payeur: groupesCoches[0] ? libelleGroupe(t, groupesCoches[0]) : '',
                   montant: formaterMontant(montantTotalCentimes),
                 })
-              : t('facturation:facturerOr.action.plusieurs', { count: groupesCoches.length, montant: formaterMontant(montantTotalCentimes) })}
+              : t('facturation:facturerOr.action.plusieurs', {
+                  count: groupesCoches.length,
+                  montant: formaterMontant(montantTotalCentimes),
+                })}
         </Button>
       </div>
 

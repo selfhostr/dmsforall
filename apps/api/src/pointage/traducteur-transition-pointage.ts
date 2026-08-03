@@ -12,7 +12,10 @@ import { ErreurMetier } from '../common/erreurs/erreur-metier';
  * Rend `null` si `erreur` n'est pas un `ZDFA1` exploitable sur l'entité `pointage` : l'appelant
  * retombe alors sur son traitement générique.
  */
-export function traduireErreurTransitionPointage(erreur: unknown, pointageId: string): ErreurMetier | null {
+export function traduireErreurTransitionPointage(
+  erreur: unknown,
+  pointageId: string,
+): ErreurMetier | null {
   const interpretation = interpreterErreurTransitionInterdite(erreur);
   if (!interpretation || interpretation.entite !== 'pointage') return null;
 
@@ -21,11 +24,16 @@ export function traduireErreurTransitionPointage(erreur: unknown, pointageId: st
       type: 'pointage',
       id: pointageId,
       libelle: pointageId,
-      donnees: { statutActuel: interpretation.statutDepuis, statutDemande: interpretation.statutVers },
+      donnees: {
+        statutActuel: interpretation.statutDepuis,
+        statutDemande: interpretation.statutVers,
+      },
     },
   ];
 
-  const actionsProposees: readonly ActionProposee[] = interpretation.estEtatTerminal ? [] : [{ code: 'RAFRAICHIR' }];
+  const actionsProposees: readonly ActionProposee[] = interpretation.estEtatTerminal
+    ? []
+    : [{ code: 'RAFRAICHIR' }];
 
   return new ErreurMetier(
     'POINTAGE_TRANSITION_INTERDITE',

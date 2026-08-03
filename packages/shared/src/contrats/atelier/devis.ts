@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
-import {
-  CANAUX_DEVIS,
-  DECISIONS_DEVIS,
-  type CanalDevis,
-  type DecisionDevis,
-} from './enums';
+import { CANAUX_DEVIS, DECISIONS_DEVIS, type CanalDevis, type DecisionDevis } from './enums';
 import {
   schemaCentimesPositif,
   schemaHorodatage,
@@ -105,10 +100,10 @@ export const schemaReponseDevisComplementaire = z
       .max(200)
       .optional(),
   })
-  .refine(
-    (v) => v.decision !== 'partiel' || (v.lignes !== undefined && v.lignes.length > 0),
-    { message: 'Une réponse `partiel` exige la décision de chaque ligne.', path: ['lignes'] },
-  );
+  .refine((v) => v.decision !== 'partiel' || (v.lignes !== undefined && v.lignes.length > 0), {
+    message: 'Une réponse `partiel` exige la décision de chaque ligne.',
+    path: ['lignes'],
+  });
 
 export type EntreeCreationDevisComplementaire = z.infer<typeof schemaCreationDevisComplementaire>;
 export type EntreeReponseDevisComplementaire = z.infer<typeof schemaReponseDevisComplementaire>;

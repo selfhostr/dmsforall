@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { ROLES_UTILISATEUR, type RoleUtilisateur } from '@dfa/shared';
 
-import { type Action, DROIT_PAR_CONFIRMATION, MATRICE_DROITS, ROLES_SANS_MONTANT } from './matrice-droits';
+import {
+  type Action,
+  DROIT_PAR_CONFIRMATION,
+  MATRICE_DROITS,
+  ROLES_SANS_MONTANT,
+} from './matrice-droits';
 // Import de lecture depuis le périmètre `facturation/documents/` (pas d'écriture) : le test ci-dessous
 // doit lier `facturation.document.imprimer` à la fonction RÉELLE, pas à une copie de sa liste de rôles
 // recopiée à la main — exactement le risque que ce test existe pour éliminer.
@@ -86,7 +91,9 @@ describe('MATRICE_DROITS — §10 de la spec métier, ligne par ligne', () => {
   });
 
   it('L965 — Ouvrir un OR : réceptionnaire, chef d’atelier, direction, admin (creer et receptionner)', () => {
-    expect(rolesAyant('atelier.or.creer')).toEqual(['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort());
+    expect(rolesAyant('atelier.or.creer')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort(),
+    );
     expect(rolesAyant('atelier.or.receptionner')).toEqual(
       ['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort(),
     );
@@ -123,7 +130,9 @@ describe('MATRICE_DROITS — §10 de la spec métier, ligne par ligne', () => {
   });
 
   it('L975 — Valider le contrôle qualité : chef d’atelier, technicien, direction, admin (pas réceptionnaire)', () => {
-    expect(rolesAyant('atelier.or.controler')).toEqual(['admin', 'chef_atelier', 'direction', 'technicien'].sort());
+    expect(rolesAyant('atelier.or.controler')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'technicien'].sort(),
+    );
   });
 
   it('L976 — Passer l’OR à terminé : réceptionnaire, chef d’atelier, direction, admin', () => {
@@ -139,7 +148,9 @@ describe('MATRICE_DROITS — §10 de la spec métier, ligne par ligne', () => {
   });
 
   it('L979 — Annuler un OR : réceptionnaire, chef d’atelier, direction, admin', () => {
-    expect(rolesAyant('atelier.or.annuler')).toEqual(['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort());
+    expect(rolesAyant('atelier.or.annuler')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort(),
+    );
   });
 
   it('L959, L963, L964, L972-974, L977, L980-981 — hors périmètre du lot 1 (Δ4 : fusion client, RDV, pointage, facturation étape 2, rétention, indicateurs) : aucune action de ces domaines n’existe', () => {
@@ -161,12 +172,18 @@ describe('MATRICE_DROITS — actions inférées (aucune ligne §10 littérale)',
   });
 
   it('parametrage.atelier.modifier / parametrage.referentiel.modifier — chef d’atelier, direction, admin uniquement', () => {
-    expect(rolesAyant('parametrage.atelier.modifier')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
-    expect(rolesAyant('parametrage.referentiel.modifier')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+    expect(rolesAyant('parametrage.atelier.modifier')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
+    expect(rolesAyant('parametrage.referentiel.modifier')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
   });
 
   it('atelier.or.demarrer / atelier.or.passer_en_controle — chef d’atelier, technicien, direction, admin (T-04/T-11) : pas réceptionnaire', () => {
-    expect(rolesAyant('atelier.or.demarrer')).toEqual(['admin', 'chef_atelier', 'direction', 'technicien'].sort());
+    expect(rolesAyant('atelier.or.demarrer')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'technicien'].sort(),
+    );
     expect(rolesAyant('atelier.or.passer_en_controle')).toEqual(
       ['admin', 'chef_atelier', 'direction', 'technicien'].sort(),
     );
@@ -184,15 +201,21 @@ describe('MATRICE_DROITS — actions inférées (aucune ligne §10 littérale)',
   });
 
   it('atelier.or.cloturer — réceptionnaire, chef d’atelier, direction, admin, symétrique de restituer/terminer/annuler (T-19)', () => {
-    expect(rolesAyant('atelier.or.cloturer')).toEqual(['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort());
+    expect(rolesAyant('atelier.or.cloturer')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort(),
+    );
   });
 
   it('vehicule.detention.corriger — chef d’atelier, direction, admin (correction sensible, symétrique du kilométrage à la baisse)', () => {
-    expect(rolesAyant('vehicule.detention.corriger')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+    expect(rolesAyant('vehicule.detention.corriger')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
   });
 
   it('atelier.journal.lire — réceptionnaire, chef d’atelier, direction, admin uniquement (pas technicien/magasinier/comptable)', () => {
-    expect(rolesAyant('atelier.journal.lire')).toEqual(['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort());
+    expect(rolesAyant('atelier.journal.lire')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort(),
+    );
   });
 });
 
@@ -218,8 +241,12 @@ describe('MATRICE_DROITS — RF-114, facturation/paiements (étape 2)', () => {
   });
 
   it('« Rembourser un trop-perçu » et l’abandon d’avance inféré (RF-79 issue 3) : direction, comptable SEULS', () => {
-    expect(rolesAyant('facturation.paiement.rembourser')).toEqual(['comptable', 'direction'].sort());
-    expect(rolesAyant('facturation.paiement.abandonner')).toEqual(['comptable', 'direction'].sort());
+    expect(rolesAyant('facturation.paiement.rembourser')).toEqual(
+      ['comptable', 'direction'].sort(),
+    );
+    expect(rolesAyant('facturation.paiement.abandonner')).toEqual(
+      ['comptable', 'direction'].sort(),
+    );
   });
 });
 
@@ -244,7 +271,14 @@ describe('MATRICE_DROITS — RF-114, facturation/documents (étape 2)', () => {
   });
 
   it('« Créer / modifier un brouillon » (creer, modifier, transitionner, avoir.creer) : direction, comptable, vendeur, réceptionnaire, chef d’atelier, magasinier — PAS technicien, PAS admin (RF-115)', () => {
-    const attendus = ['chef_atelier', 'comptable', 'direction', 'magasinier', 'receptionnaire', 'vendeur'].sort();
+    const attendus = [
+      'chef_atelier',
+      'comptable',
+      'direction',
+      'magasinier',
+      'receptionnaire',
+      'vendeur',
+    ].sort();
     const actionsBrouillon: Action[] = [
       'facturation.document.creer',
       'facturation.document.modifier',
@@ -274,7 +308,9 @@ describe('MATRICE_DROITS — RF-114, facturation/documents (étape 2)', () => {
   });
 
   it('« Émettre un avoir » : direction, comptable, réceptionnaire — PAS vendeur, PAS chef d’atelier, PAS magasinier, PAS technicien, PAS admin', () => {
-    expect(rolesAyant('facturation.document.emettre_avoir')).toEqual(['comptable', 'direction', 'receptionnaire'].sort());
+    expect(rolesAyant('facturation.document.emettre_avoir')).toEqual(
+      ['comptable', 'direction', 'receptionnaire'].sort(),
+    );
     expect(MATRICE_DROITS.vendeur).not.toContain('facturation.document.emettre_avoir');
     expect(MATRICE_DROITS.chef_atelier).not.toContain('facturation.document.emettre_avoir');
   });
@@ -291,8 +327,13 @@ describe('MATRICE_DROITS — RF-114, facturation/documents (étape 2)', () => {
       'facturation.paiement.imputer',
     ];
     for (const action of financiersReceptionnaireSansChefAtelier) {
-      expect(MATRICE_DROITS.receptionnaire, `receptionnaire devrait détenir '${action}'`).toContain(action);
-      expect(MATRICE_DROITS.chef_atelier, `chef_atelier NE DEVRAIT PAS détenir '${action}'`).not.toContain(action);
+      expect(MATRICE_DROITS.receptionnaire, `receptionnaire devrait détenir '${action}'`).toContain(
+        action,
+      );
+      expect(
+        MATRICE_DROITS.chef_atelier,
+        `chef_atelier NE DEVRAIT PAS détenir '${action}'`,
+      ).not.toContain(action);
     }
   });
 });
@@ -311,8 +352,12 @@ describe('MATRICE_DROITS — RF-114, facturation/documents (étape 2)', () => {
  */
 describe('MATRICE_DROITS — bloc créancier QR-facture (facturation/parametrage/bloc-creancier, palier de gouvernance le plus élevé)', () => {
   it('« Voir » / « Modifier » l’IBAN créancier : direction, comptable SEULS — comme facturation.paiement.rembourser/abandonner, le palier le plus haut de la matrice', () => {
-    expect(rolesAyant('facturation.parametrage.creancier.lire')).toEqual(['comptable', 'direction'].sort());
-    expect(rolesAyant('facturation.parametrage.creancier.modifier')).toEqual(['comptable', 'direction'].sort());
+    expect(rolesAyant('facturation.parametrage.creancier.lire')).toEqual(
+      ['comptable', 'direction'].sort(),
+    );
+    expect(rolesAyant('facturation.parametrage.creancier.modifier')).toEqual(
+      ['comptable', 'direction'].sort(),
+    );
   });
 
   it('RF-115 — admin N’A NI la lecture NI l’écriture de l’IBAN créancier, à la différence de parametrage.atelier.modifier/parametrage.referentiel.modifier qui, eux, donnent l’écriture à admin : un test doit échouer si l’entrée admin de ce bloc est un jour remplie par copier-coller de direction, en la prenant pour un oubli de recopie plutôt qu’une décision RF-115 délibérée', () => {
@@ -325,14 +370,22 @@ describe('MATRICE_DROITS — bloc créancier QR-facture (facturation/parametrage
   });
 
   it('aucun autre rôle que direction/comptable ne détient l’une ou l’autre action (vendeur, réceptionnaire, chef_atelier, technicien, magasinier exclus, alignés sur DISPOSITION_AVANCE_PAIEMENT)', () => {
-    const rolesExclus: RoleUtilisateur[] = ['vendeur', 'receptionnaire', 'chef_atelier', 'technicien', 'magasinier'];
+    const rolesExclus: RoleUtilisateur[] = [
+      'vendeur',
+      'receptionnaire',
+      'chef_atelier',
+      'technicien',
+      'magasinier',
+    ];
     for (const role of rolesExclus) {
-      expect(MATRICE_DROITS[role], `${role} ne devrait détenir aucune action creancier`).not.toContain(
-        'facturation.parametrage.creancier.lire',
-      );
-      expect(MATRICE_DROITS[role], `${role} ne devrait détenir aucune action creancier`).not.toContain(
-        'facturation.parametrage.creancier.modifier',
-      );
+      expect(
+        MATRICE_DROITS[role],
+        `${role} ne devrait détenir aucune action creancier`,
+      ).not.toContain('facturation.parametrage.creancier.lire');
+      expect(
+        MATRICE_DROITS[role],
+        `${role} ne devrait détenir aucune action creancier`,
+      ).not.toContain('facturation.parametrage.creancier.modifier');
     }
   });
 });
@@ -357,9 +410,18 @@ describe('MATRICE_DROITS — export fiduciaire (facturation/export, même palier
   });
 
   it('aucun autre rôle que direction/comptable ne détient cette action (vendeur, réceptionnaire, chef_atelier, technicien, magasinier exclus, alignés sur DISPOSITION_AVANCE_PAIEMENT et le bloc créancier)', () => {
-    const rolesExclus: RoleUtilisateur[] = ['vendeur', 'receptionnaire', 'chef_atelier', 'technicien', 'magasinier'];
+    const rolesExclus: RoleUtilisateur[] = [
+      'vendeur',
+      'receptionnaire',
+      'chef_atelier',
+      'technicien',
+      'magasinier',
+    ];
     for (const role of rolesExclus) {
-      expect(MATRICE_DROITS[role], `${role} ne devrait détenir aucun droit d'export fiduciaire`).not.toContain('facturation.export.creer');
+      expect(
+        MATRICE_DROITS[role],
+        `${role} ne devrait détenir aucun droit d'export fiduciaire`,
+      ).not.toContain('facturation.export.creer');
     }
   });
 });
@@ -418,7 +480,15 @@ describe('MATRICE_DROITS — lecture large (LECTURE_SOCLE et LECTURE_ETENDUE)', 
 
   it('atelier.or.lire — accordé à tous les rôles SAUF vendeur (absent des flux étape 1, §2.1)', () => {
     expect(rolesAyant('atelier.or.lire')).toEqual(
-      ['admin', 'chef_atelier', 'comptable', 'direction', 'magasinier', 'receptionnaire', 'technicien'].sort(),
+      [
+        'admin',
+        'chef_atelier',
+        'comptable',
+        'direction',
+        'magasinier',
+        'receptionnaire',
+        'technicien',
+      ].sort(),
     );
     expect(MATRICE_DROITS.vendeur).not.toContain('atelier.or.lire');
   });
@@ -463,7 +533,10 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
     // pour la même raison, décision de l'agent ventes (voir `DROITS_VENTES_PAR_ROLE`) : admin n'a
     // aucun droit sur le domaine ventes, y compris la lecture.
     const sansFacturationNiPiecesNiVentes = (actions: readonly Action[]) =>
-      actions.filter((a) => !a.startsWith('facturation.') && !a.startsWith('pieces.') && !a.startsWith('ventes.'));
+      actions.filter(
+        (a) =>
+          !a.startsWith('facturation.') && !a.startsWith('pieces.') && !a.startsWith('ventes.'),
+      );
     expect([...sansFacturationNiPiecesNiVentes(MATRICE_DROITS.admin)].sort()).toEqual(
       [...sansFacturationNiPiecesNiVentes(MATRICE_DROITS.direction)].sort(),
     );
@@ -475,7 +548,9 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
   });
 
   it('RF-115 — admin n’a AUCUN droit financier D’ÉCRITURE NI D’ENCAISSEMENT (aucune action facturation.paiement.*, aucune écriture/émission facturation.document.*), contrairement à direction : séparation des pouvoirs explicite dès l’étape 2. SEULE exception, volontaire et distincte : facturation.document.lire (RF-116, visibilité des MONTANTS, est filtré ailleurs — facturation/documents/mappeurs.ts — jamais en cachant la ligne de document elle-même à admin) — documenté ici pour que ce ne soit jamais lu comme un oubli.', () => {
-    expect(MATRICE_DROITS.admin.filter((a) => a.startsWith('facturation.'))).toEqual(['facturation.document.lire']);
+    expect(MATRICE_DROITS.admin.filter((a) => a.startsWith('facturation.'))).toEqual([
+      'facturation.document.lire',
+    ]);
     expect(MATRICE_DROITS.admin.some((a) => a.startsWith('facturation.paiement.'))).toBe(false);
     expect(MATRICE_DROITS.direction.some((a) => a.startsWith('facturation.'))).toBe(true);
   });
@@ -519,7 +594,9 @@ describe('MATRICE_DROITS — ventes VN/VO (étape 4, matrice §11)', () => {
   });
 
   it('§11 ligne 4 [À VALIDER, QV-15] — visibilité de la marge/du prix d’achat : lecture accordée à direction, comptable ET vendeur (le contrat gelé `ReponseVehiculeStock.prixAchatCentimes` est `number` non-nullable — masquer le CHAMP par rôle exigerait de rouvrir un contrat gelé, hors périmètre de cet agent) ; SEULE L’ÉCRITURE reste conservatrice (voir le test suivant)', () => {
-    expect(rolesAyant('ventes.vehicule_stock.lire')).toEqual(['chef_atelier', 'comptable', 'direction', 'receptionnaire', 'vendeur'].sort());
+    expect(rolesAyant('ventes.vehicule_stock.lire')).toEqual(
+      ['chef_atelier', 'comptable', 'direction', 'receptionnaire', 'vendeur'].sort(),
+    );
   });
 
   it('§11 ligne 9 [À VALIDER, QV-15] — modifier le prix d’achat/frais de remise en état d’un véhicule en stock : direction SEULE ; vendeur EXCLU en position conservatrice tant que QV-15 n’est pas tranché', () => {
@@ -530,7 +607,9 @@ describe('MATRICE_DROITS — ventes VN/VO (étape 4, matrice §11)', () => {
   });
 
   it('§11 ligne 7 — confirmer un financement/leasing : vendeur, direction, comptable', () => {
-    expect(rolesAyant('ventes.financement.confirmer')).toEqual(['comptable', 'direction', 'vendeur'].sort());
+    expect(rolesAyant('ventes.financement.confirmer')).toEqual(
+      ['comptable', 'direction', 'vendeur'].sort(),
+    );
   });
 
   it('§11 ligne 8 [À VALIDER, QV-16] — enregistrer la livraison : vendeur, direction SEULS ; receptionnaire EXCLU en position conservatrice (« possible selon organisation » non tranché)', () => {
@@ -584,16 +663,22 @@ describe('MATRICE_DROITS — pointage (lot 2)', () => {
   });
 
   it('corriger_autrui : chef_atelier, direction, admin SEULS', () => {
-    expect(rolesAyant('atelier.pointage.corriger_autrui')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+    expect(rolesAyant('atelier.pointage.corriger_autrui')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
   });
 
   it('verrouiller_periode : chef_atelier, direction, admin SEULS — PAS comptable (arbitrage @laupernoe 2026-08-03 : verrouiller une période fige des heures de travail avant la paie, geste de droit du travail réservé à l’atelier/la direction, pas un geste comptable)', () => {
-    expect(rolesAyant('atelier.pointage.verrouiller_periode')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+    expect(rolesAyant('atelier.pointage.verrouiller_periode')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
     expect(MATRICE_DROITS.comptable).not.toContain('atelier.pointage.verrouiller_periode');
   });
 
   it('deverrouiller_periode : chef_atelier, direction, admin SEULS — PAS comptable (rouvrir une période figée est plus engageant que la clôturer, même précédent que atelier.or.rouvrir réservé à chef_atelier/direction alors que la fermeture symétrique est plus largement accordée)', () => {
-    expect(rolesAyant('atelier.pointage.deverrouiller_periode')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+    expect(rolesAyant('atelier.pointage.deverrouiller_periode')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
     expect(MATRICE_DROITS.comptable).not.toContain('atelier.pointage.deverrouiller_periode');
     expect(MATRICE_DROITS.comptable).not.toContain('atelier.pointage.verrouiller_periode');
   });
@@ -617,7 +702,9 @@ describe('MATRICE_DROITS — pointage (lot 2)', () => {
   });
 
   it('receptionnaire et vendeur — aucune action de pointage (pas leur outil)', () => {
-    expect(MATRICE_DROITS.receptionnaire.filter((a) => a.startsWith('atelier.pointage.'))).toEqual([]);
+    expect(MATRICE_DROITS.receptionnaire.filter((a) => a.startsWith('atelier.pointage.'))).toEqual(
+      [],
+    );
     expect(MATRICE_DROITS.vendeur.filter((a) => a.startsWith('atelier.pointage.'))).toEqual([]);
   });
 });
@@ -795,7 +882,9 @@ describe('ROLES_SANS_MONTANT', () => {
 describe('DROIT_PAR_CONFIRMATION', () => {
   it('mappe les 3 confirmations opérationnelles du lot 1 vers les actions atelier.confirmation.*, avec un droit détenu par chef_atelier et direction (contrats-api-etape-1.md L524-529)', () => {
     expect(DROIT_PAR_CONFIRMATION.CLIENT_BLOQUE).toBe('atelier.confirmation.client_bloque');
-    expect(DROIT_PAR_CONFIRMATION.VEHICULE_DEUX_OR_OUVERTS).toBe('atelier.confirmation.deux_or_ouverts');
+    expect(DROIT_PAR_CONFIRMATION.VEHICULE_DEUX_OR_OUVERTS).toBe(
+      'atelier.confirmation.deux_or_ouverts',
+    );
     expect(DROIT_PAR_CONFIRMATION.OR_SANS_RDV).toBe('atelier.confirmation.or_sans_rdv');
 
     for (const code of ['CLIENT_BLOQUE', 'VEHICULE_DEUX_OR_OUVERTS', 'OR_SANS_RDV'] as const) {
@@ -804,14 +893,20 @@ describe('DROIT_PAR_CONFIRMATION', () => {
       expect(MATRICE_DROITS.direction).toContain(action);
     }
     // VEHICULE_DEUX_OR_OUVERTS est « receptionnaire+ » (contrats-api-etape-1.md L525).
-    expect(MATRICE_DROITS.receptionnaire).toContain(DROIT_PAR_CONFIRMATION.VEHICULE_DEUX_OR_OUVERTS);
+    expect(MATRICE_DROITS.receptionnaire).toContain(
+      DROIT_PAR_CONFIRMATION.VEHICULE_DEUX_OR_OUVERTS,
+    );
     // CLIENT_BLOQUE et OR_SANS_RDV sont réservés à chef d'atelier/direction (L524, L529).
     expect(MATRICE_DROITS.receptionnaire).not.toContain(DROIT_PAR_CONFIRMATION.CLIENT_BLOQUE);
     expect(MATRICE_DROITS.receptionnaire).not.toContain(DROIT_PAR_CONFIRMATION.OR_SANS_RDV);
   });
 
   it('mappe les 3 confirmations hors périmètre (RDV, prêt) vers des actions dédiées, elles aussi détenues par chef_atelier et direction', () => {
-    for (const code of ['RDV_RESSOURCE_CHEVAUCHEMENT', 'RDV_HORS_OUVERTURE', 'PRET_VEHICULE_INDISPONIBLE'] as const) {
+    for (const code of [
+      'RDV_RESSOURCE_CHEVAUCHEMENT',
+      'RDV_HORS_OUVERTURE',
+      'PRET_VEHICULE_INDISPONIBLE',
+    ] as const) {
       const action = DROIT_PAR_CONFIRMATION[code];
       expect(MATRICE_DROITS.chef_atelier).toContain(action);
       expect(MATRICE_DROITS.direction).toContain(action);

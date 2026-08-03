@@ -52,7 +52,8 @@ function construireParametresListe(filtres: FiltresListeArticles, page: PageArti
   if (filtres.q && filtres.q.trim() !== '') parametres.set('q', filtres.q.trim());
   if (filtres.categorie) parametres.append('categorie', filtres.categorie);
   if (filtres.statut) parametres.append('statut', filtres.statut);
-  if (filtres.estEchangeStandard !== undefined) parametres.set('estEchangeStandard', String(filtres.estEchangeStandard));
+  if (filtres.estEchangeStandard !== undefined)
+    parametres.set('estEchangeStandard', String(filtres.estEchangeStandard));
   parametres.set('tri', filtres.tri);
   parametres.set('limite', String(page.limite));
   if (page.curseur) parametres.set('curseur', page.curseur);
@@ -60,21 +61,36 @@ function construireParametresListe(filtres: FiltresListeArticles, page: PageArti
 }
 
 /** `GET /articles` (RP-03), pagination par curseur. */
-export async function listerArticles(filtres: FiltresListeArticles, page: PageArticles): Promise<PageCurseur<ReponseArticle>> {
-  const reponse = await requeteApi<PageCurseur<ReponseArticle>>(`/articles?${construireParametresListe(filtres, page)}`, {
-    method: 'GET',
-  });
+export async function listerArticles(
+  filtres: FiltresListeArticles,
+  page: PageArticles,
+): Promise<PageCurseur<ReponseArticle>> {
+  const reponse = await requeteApi<PageCurseur<ReponseArticle>>(
+    `/articles?${construireParametresListe(filtres, page)}`,
+    {
+      method: 'GET',
+    },
+  );
   return reponse ?? { donnees: [], curseurSuivant: null, limite: page.limite };
 }
 
 /** `GET /articles/recherche-comptoir?q=&siteId=&limite=` — LE geste n°1 du magasinier (F1-R2 du
  *  domaine pièces) : un seul appel donne prix, référence et disponibilité au site. Résultat
  *  borné, non paginé (voir `schemaRechercheComptoir`, @dfa/shared). */
-export async function rechercheComptoirArticles(entree: EntreeRechercheComptoir): Promise<readonly ResultatRechercheComptoirArticle[]> {
-  const parametres = new URLSearchParams({ q: entree.q, siteId: entree.siteId, limite: String(entree.limite) });
-  const reponse = await requeteApi<readonly ResultatRechercheComptoirArticle[]>(`/articles/recherche-comptoir?${parametres.toString()}`, {
-    method: 'GET',
+export async function rechercheComptoirArticles(
+  entree: EntreeRechercheComptoir,
+): Promise<readonly ResultatRechercheComptoirArticle[]> {
+  const parametres = new URLSearchParams({
+    q: entree.q,
+    siteId: entree.siteId,
+    limite: String(entree.limite),
   });
+  const reponse = await requeteApi<readonly ResultatRechercheComptoirArticle[]>(
+    `/articles/recherche-comptoir?${parametres.toString()}`,
+    {
+      method: 'GET',
+    },
+  );
   return reponse ?? [];
 }
 
@@ -109,10 +125,13 @@ export async function modifierArticle(
   articleId: string,
   entree: EntreeModificationArticle,
 ): Promise<ReponseAvecAvertissements<ReponseArticle>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseArticle>>(`/articles/${articleId}`, {
-    method: 'PATCH',
-    body: JSON.stringify(entree),
-  });
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseArticle>>(
+    `/articles/${articleId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(entree),
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : PATCH /articles.');
   }
@@ -125,10 +144,13 @@ export async function ajouterReferenceArticle(
   articleId: string,
   entree: EntreeCreationReferenceArticle,
 ): Promise<ReponseAvecAvertissements<ReponseArticle>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseArticle>>(`/articles/${articleId}/references`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-  });
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseArticle>>(
+    `/articles/${articleId}/references`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /articles/references.');
   }
@@ -140,10 +162,13 @@ export async function marquerObsoleteArticle(
   articleId: string,
   entree: EntreeMarquageObsolete,
 ): Promise<ReponseAvecAvertissements<ReponseArticle>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseArticle>>(`/articles/${articleId}/marquer-obsolete`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-  });
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseArticle>>(
+    `/articles/${articleId}/marquer-obsolete`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /articles/marquer-obsolete.');
   }
@@ -156,10 +181,13 @@ export async function desactiverArticle(
   articleId: string,
   entree: EntreeDesactivationArticle,
 ): Promise<ReponseAvecAvertissements<ReponseArticle>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseArticle>>(`/articles/${articleId}/desactiver`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-  });
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseArticle>>(
+    `/articles/${articleId}/desactiver`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /articles/desactiver.');
   }
@@ -167,10 +195,15 @@ export async function desactiverArticle(
 }
 
 /** `POST /articles/{id}/reactiver` — retour à `actif`, aucun corps requis (§6.1). */
-export async function reactiverArticle(articleId: string): Promise<ReponseAvecAvertissements<ReponseArticle>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseArticle>>(`/articles/${articleId}/reactiver`, {
-    method: 'POST',
-  });
+export async function reactiverArticle(
+  articleId: string,
+): Promise<ReponseAvecAvertissements<ReponseArticle>> {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseArticle>>(
+    `/articles/${articleId}/reactiver`,
+    {
+      method: 'POST',
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /articles/reactiver.');
   }

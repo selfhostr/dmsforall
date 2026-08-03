@@ -65,7 +65,9 @@ describe('EcranEquipePointage', () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
       http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([POINTAGE]))),
-      http.get('/api/v1/ordres-reparation', () => HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 })),
+      http.get('/api/v1/ordres-reparation', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+      ),
     );
 
     rendre();
@@ -79,15 +81,19 @@ describe('EcranEquipePointage', () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
       http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
-      http.get('/api/v1/ordres-reparation', () => HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 })),
+      http.get('/api/v1/ordres-reparation', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+      ),
     );
 
     rendre();
 
-    expect(await screen.findByText('Aucun pointage pour ce site sur cette période.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Aucun pointage pour ce site sur cette période.'),
+    ).toBeInTheDocument();
   });
 
-  it("affiche une erreur actionnable si le serveur échoue", async () => {
+  it('affiche une erreur actionnable si le serveur échoue', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
       http.get('/api/v1/pointages', () =>
@@ -102,7 +108,9 @@ describe('EcranEquipePointage', () => {
           { status: 500, headers: { 'content-type': 'application/problem+json' } },
         ),
       ),
-      http.get('/api/v1/ordres-reparation', () => HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 })),
+      http.get('/api/v1/ordres-reparation', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+      ),
     );
 
     rendre();

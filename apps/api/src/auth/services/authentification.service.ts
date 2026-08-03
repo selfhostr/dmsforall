@@ -23,7 +23,12 @@ import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requet
 import { JETON_SERVICE_LIMITATION_DEBIT } from '../../common/limitation/limitation-debit.jetons';
 import type { ServiceLimitationDebit } from '../../common/limitation/limitation-debit.types';
 import { JETON_SERVICE_MOT_DE_PASSE, JETON_SERVICE_SESSION } from '../jetons';
-import type { ServiceAuthentification, ServiceMotDePasse, ServiceSession, SessionOuverte } from '../auth.types';
+import type {
+  ServiceAuthentification,
+  ServiceMotDePasse,
+  ServiceSession,
+  SessionOuverte,
+} from '../auth.types';
 import {
   ErreurCompteSuspendu,
   ErreurCompteVerrouille,
@@ -202,10 +207,18 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
         `Échec de révocation de session à la déconnexion (sessionId=${principal.sessionId}, ` +
           `utilisateurId=${principal.utilisateurId}) : ${String(erreur)}`,
       );
-      await this.journaliser('deconnexion', principal.tenantId, principal.utilisateurId, null, ctx?.ip ?? null, ctx?.userAgent ?? null, {
-        resultat: 'echec_revocation',
-        erreur: String(erreur),
-      });
+      await this.journaliser(
+        'deconnexion',
+        principal.tenantId,
+        principal.utilisateurId,
+        null,
+        ctx?.ip ?? null,
+        ctx?.userAgent ?? null,
+        {
+          resultat: 'echec_revocation',
+          erreur: String(erreur),
+        },
+      );
       throw erreur;
     }
 
@@ -242,7 +255,10 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             // Le RLS est le filet, pas le mécanisme : cette requête reste scopée tenant
             // explicitement, même si `enTenant()` positionne déjà le contexte RLS ci-dessus
             // (finding sécurité #9 — voir `ServiceSession.fermer()` pour la même forme).
-            and(eq(utilisateur.id, principal.utilisateurId), eq(utilisateur.tenantId, principal.tenantId)),
+            and(
+              eq(utilisateur.id, principal.utilisateurId),
+              eq(utilisateur.tenantId, principal.tenantId),
+            ),
           );
 
         const [ligneTenant] = await tx
@@ -356,7 +372,11 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
     return valeur instanceof Date ? valeur : new Date(valeur);
   }
 
-  private rehacherEnArrierePlan(utilisateurId: string, tenantId: string, motDePasseClair: string): void {
+  private rehacherEnArrierePlan(
+    utilisateurId: string,
+    tenantId: string,
+    motDePasseClair: string,
+  ): void {
     this.servicePwd
       .hacher(motDePasseClair)
       .then((nouveauHash) =>
@@ -373,7 +393,9 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
       .catch((erreur: unknown) => {
         // Best-effort : un échec de rehachage ne doit jamais faire échouer le login qui vient de
         // réussir. Le prochain login réussi retentera.
-        this.logger.warn(`Échec non bloquant de rehachage Argon2 (utilisateurId=${utilisateurId}) : ${String(erreur)}`);
+        this.logger.warn(
+          `Échec non bloquant de rehachage Argon2 (utilisateurId=${utilisateurId}) : ${String(erreur)}`,
+        );
       });
   }
 

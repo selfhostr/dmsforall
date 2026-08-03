@@ -1,5 +1,22 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCookieAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import {
   schemaCreationFournisseur,
   schemaModificationFournisseur,
@@ -39,7 +56,9 @@ export class FournisseurController {
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  async lister(@Query(new PipeZod(schemaFiltresFournisseurs)) query: FiltresFournisseurs): Promise<PageFournisseurDto> {
+  async lister(
+    @Query(new PipeZod(schemaFiltresFournisseurs)) query: FiltresFournisseurs,
+  ): Promise<PageFournisseurDto> {
     const ctx = this.contexte.contexteTenant();
     return this.service.lister(ctx, query);
   }
@@ -47,12 +66,16 @@ export class FournisseurController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ExigerDroit('pieces.fournisseur.creer')
-  @ApiOperation({ summary: "Création d'un fournisseur. Pas d'Idempotency-Key (aucune numérotation serveur)." })
+  @ApiOperation({
+    summary: "Création d'un fournisseur. Pas d'Idempotency-Key (aucune numérotation serveur).",
+  })
   @ApiResponse({ status: 201, type: FournisseurAvecAvertissementsDto })
   @ApiReponseProbleme(400, 'Corps invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  async creer(@CorpsZod(schemaCreationFournisseur) entree: EntreeCreationFournisseur): Promise<FournisseurAvecAvertissementsDto> {
+  async creer(
+    @CorpsZod(schemaCreationFournisseur) entree: EntreeCreationFournisseur,
+  ): Promise<FournisseurAvecAvertissementsDto> {
     const ctx = this.contexte.contexteTenant();
     return this.service.creer(ctx, entree);
   }
@@ -96,7 +119,9 @@ export class FournisseurController {
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Fournisseur introuvable pour ce tenant.')
-  async desactiver(@Param('id', new PipeZod(schemaUuid)) id: string): Promise<FournisseurAvecAvertissementsDto> {
+  async desactiver(
+    @Param('id', new PipeZod(schemaUuid)) id: string,
+  ): Promise<FournisseurAvecAvertissementsDto> {
     const ctx = this.contexte.contexteTenant();
     return this.service.desactiver(ctx, id);
   }
@@ -109,7 +134,9 @@ export class FournisseurController {
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Fournisseur introuvable pour ce tenant.')
-  async reactiver(@Param('id', new PipeZod(schemaUuid)) id: string): Promise<FournisseurAvecAvertissementsDto> {
+  async reactiver(
+    @Param('id', new PipeZod(schemaUuid)) id: string,
+  ): Promise<FournisseurAvecAvertissementsDto> {
     const ctx = this.contexte.contexteTenant();
     return this.service.reactiver(ctx, id);
   }

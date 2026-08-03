@@ -24,7 +24,9 @@ describe('AvertissementConfirmable', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Fusionner ces deux fiches client ?' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Fusionner ces deux fiches client ?' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText('Les véhicules et OR de Jean Dupont seront rattachés à Jean-Pierre Dupont.'),
     ).toBeInTheDocument();
@@ -52,7 +54,7 @@ describe('AvertissementConfirmable', () => {
     expect(onConfirmer).toHaveBeenCalledTimes(1);
   });
 
-  it("ne rend rien quand `ouvert` est faux", () => {
+  it('ne rend rien quand `ouvert` est faux', () => {
     render(
       <AvertissementConfirmable
         ouvert={false}
@@ -77,7 +79,14 @@ describe('AvertissementConfirmable', () => {
         onConfirmer={() => {}}
       />,
     );
-    render(<RefusBloquant code="OR_ANNULATION_IMPOSSIBLE" blocages={[]} actionsProposees={[]} estTerminal />);
+    render(
+      <RefusBloquant
+        code="OR_ANNULATION_IMPOSSIBLE"
+        blocages={[]}
+        actionsProposees={[]}
+        estTerminal
+      />,
+    );
 
     // AvertissementConfirmable : accent ambre (--statut-attention), modal (role="dialog").
     expect(document.querySelector('.text-statut-attention')).not.toBeNull();

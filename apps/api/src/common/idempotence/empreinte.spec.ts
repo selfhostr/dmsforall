@@ -20,13 +20,13 @@ describe('calculerEmpreinte', () => {
     expect(a.equals(b)).toBe(false);
   });
 
-  it('préserve l\'ordre des tableaux : deux ordres différents produisent des empreintes différentes', () => {
+  it("préserve l'ordre des tableaux : deux ordres différents produisent des empreintes différentes", () => {
     const a = calculerEmpreinte({ lignes: ['x', 'y'] });
     const b = calculerEmpreinte({ lignes: ['y', 'x'] });
     expect(a.equals(b)).toBe(false);
   });
 
-  it('un tableau d\'objets trie chaque objet mais garde l\'ordre du tableau', () => {
+  it("un tableau d'objets trie chaque objet mais garde l'ordre du tableau", () => {
     const a = calculerEmpreinte({ lignes: [{ b: 1, a: 2 }] });
     const b = calculerEmpreinte({ lignes: [{ a: 2, b: 1 }] });
     expect(a.equals(b)).toBe(true);

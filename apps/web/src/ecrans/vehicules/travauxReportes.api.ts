@@ -15,10 +15,15 @@ import { requeteApi } from '@/api/client';
  * véhicule), et `clesQuery.vehicules.travauxReportes` ne porte pas de filtres dans sa clé — une clé
  * par filtre romprait l'invalidation croisée déjà câblée ailleurs sur cette même clé.
  */
-export async function listerTravauxReportesVehicule(vehiculeId: string): Promise<readonly ReponseTravailReporte[]> {
-  const travaux = await requeteApi<readonly ReponseTravailReporte[]>(`/vehicules/${vehiculeId}/travaux-reportes`, {
-    method: 'GET',
-  });
+export async function listerTravauxReportesVehicule(
+  vehiculeId: string,
+): Promise<readonly ReponseTravailReporte[]> {
+  const travaux = await requeteApi<readonly ReponseTravailReporte[]>(
+    `/vehicules/${vehiculeId}/travaux-reportes`,
+    {
+      method: 'GET',
+    },
+  );
   return travaux ?? [];
 }
 

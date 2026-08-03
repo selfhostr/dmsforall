@@ -7,7 +7,10 @@ import { listerPointages, type FiltresListePointages } from './pointage.api';
 
 const LIMITE_PAGE = 50;
 
-export type ResultatListePointages = UseInfiniteQueryResult<{ readonly pages: readonly PageCurseur<ReponsePointage>[] }, unknown> & {
+export type ResultatListePointages = UseInfiniteQueryResult<
+  { readonly pages: readonly PageCurseur<ReponsePointage>[] },
+  unknown
+> & {
   /** Toutes les pages chargées, aplaties — même contrat que `useListeOrdresReparation`/
    *  `useListeArticles` : l'écran ne manipule jamais `data.pages` directement. */
   readonly pointages: readonly ReponsePointage[];
@@ -18,7 +21,10 @@ export type ResultatListePointages = UseInfiniteQueryResult<{ readonly pages: re
  *  vue équipe (`atelier.pointage.lire_equipe`, droit serveur non exposé) ne voit QUE ses propres
  *  pointages quel que soit `technicienId` demandé — restriction imposée côté service, jamais
  *  reproduite ici (voir l'en-tête de `pointage.api.ts`). */
-export function useListePointages(filtres: FiltresListePointages, options?: { readonly enabled?: boolean }): ResultatListePointages {
+export function useListePointages(
+  filtres: FiltresListePointages,
+  options?: { readonly enabled?: boolean },
+): ResultatListePointages {
   const resultat = useInfiniteQuery({
     queryKey: clesPointage.liste(filtres),
     queryFn: ({ pageParam }: { pageParam: string | undefined }) =>

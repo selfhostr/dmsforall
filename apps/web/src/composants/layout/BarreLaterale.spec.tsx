@@ -106,7 +106,14 @@ describe('BarreLaterale — groupe Paramétrage (masquage par rôle, ergonomie)'
   });
 
   it('technicien : ne voit ni Paramétrage atelier/Sites ni Coordonnées bancaires, mais voit Référentiels (outil de comptoir, pas de gouvernance)', async () => {
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' } })));
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' },
+        }),
+      ),
+    );
     rendre('/');
 
     expect(await screen.findByRole('link', { name: /tarifs/i })).toBeInTheDocument();
@@ -117,10 +124,20 @@ describe('BarreLaterale — groupe Paramétrage (masquage par rôle, ergonomie)'
   });
 
   it('réceptionniste : voit Référentiels (son outil de comptoir), mais PAS Paramétrage atelier/Sites ni Coordonnées bancaires', async () => {
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'receptionnaire' } })));
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'receptionnaire' },
+        }),
+      ),
+    );
     rendre('/');
 
-    expect(await screen.findByRole('link', { name: /tarifs/i })).toHaveAttribute('href', '/parametrage/referentiels');
+    expect(await screen.findByRole('link', { name: /tarifs/i })).toHaveAttribute(
+      'href',
+      '/parametrage/referentiels',
+    );
     expect(screen.queryByRole('link', { name: /paramètres atelier/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /coordonnées bancaires/i })).not.toBeInTheDocument();
   });
@@ -133,14 +150,30 @@ describe('BarreLaterale — groupe Paramétrage (masquage par rôle, ergonomie)'
     // désormais inconditionnel (présent dès le tout premier rendu, avant même que la session ait
     // répondu) — l'attendre ne prouverait pas que la session est chargée, et les assertions
     // synchrones suivantes s'exécuteraient parfois AVANT résolution (flake observé en pratique).
-    expect(await screen.findByRole('link', { name: /paramètres atelier/i })).toHaveAttribute('href', '/parametrage/atelier');
-    expect(screen.getByRole('link', { name: /tarifs/i })).toHaveAttribute('href', '/parametrage/referentiels');
-    expect(screen.getByRole('link', { name: /^sites$/i })).toHaveAttribute('href', '/parametrage/sites');
+    expect(await screen.findByRole('link', { name: /paramètres atelier/i })).toHaveAttribute(
+      'href',
+      '/parametrage/atelier',
+    );
+    expect(screen.getByRole('link', { name: /tarifs/i })).toHaveAttribute(
+      'href',
+      '/parametrage/referentiels',
+    );
+    expect(screen.getByRole('link', { name: /^sites$/i })).toHaveAttribute(
+      'href',
+      '/parametrage/sites',
+    );
     expect(screen.queryByRole('link', { name: /coordonnées bancaires/i })).not.toBeInTheDocument();
   });
 
   it('admin : voit Référentiels, Paramétrage atelier et Sites, mais PAS les coordonnées bancaires (RF-115 : aucun droit financier)', async () => {
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' } })));
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' },
+        }),
+      ),
+    );
     rendre('/');
 
     expect(await screen.findByRole('link', { name: /paramètres atelier/i })).toBeInTheDocument();
@@ -149,10 +182,20 @@ describe('BarreLaterale — groupe Paramétrage (masquage par rôle, ergonomie)'
   });
 
   it('comptable : voit Référentiels (ouvert à tous) et Coordonnées bancaires, PAS Paramétrage atelier/Sites (gouvernance atelier réservée chef d’atelier/direction/admin)', async () => {
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'comptable' } })));
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'comptable' },
+        }),
+      ),
+    );
     rendre('/');
 
-    expect(await screen.findByRole('link', { name: /coordonnées bancaires/i })).toHaveAttribute('href', '/parametrage/facturation');
+    expect(await screen.findByRole('link', { name: /coordonnées bancaires/i })).toHaveAttribute(
+      'href',
+      '/parametrage/facturation',
+    );
     expect(screen.getByRole('link', { name: /tarifs/i })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /paramètres atelier/i })).not.toBeInTheDocument();
   });
@@ -173,12 +216,25 @@ describe('BarreLaterale — groupe Pièces (trois entrées ajoutées : commandes
       'href',
       '/pieces/commandes-fournisseur',
     );
-    expect(screen.getByRole('link', { name: /^fournisseurs$/i })).toHaveAttribute('href', '/pieces/fournisseurs');
-    expect(screen.getByRole('link', { name: /consignes/i })).toHaveAttribute('href', '/pieces/consignes');
+    expect(screen.getByRole('link', { name: /^fournisseurs$/i })).toHaveAttribute(
+      'href',
+      '/pieces/fournisseurs',
+    );
+    expect(screen.getByRole('link', { name: /consignes/i })).toHaveAttribute(
+      'href',
+      '/pieces/consignes',
+    );
   });
 
   it('admin : ne voit AUCUNE entrée du groupe Pièces (RF-115, `DROITS_PIECES_PAR_ROLE.admin = []`)', async () => {
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' } })));
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' },
+        }),
+      ),
+    );
     rendre('/');
 
     // On attend d'abord un lien inconditionnel (session chargée) avant les assertions négatives,
@@ -203,32 +259,74 @@ describe('BarreLaterale — groupe Pointage (masquage par rôle, restriction RÉ
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
     rendre('/');
 
-    expect(await screen.findByRole('link', { name: /^pointage$/i })).toHaveAttribute('href', '/pointage');
-    expect(screen.getByRole('link', { name: /journal de pointage/i })).toHaveAttribute('href', '/pointage/jour');
-    expect(screen.getByRole('link', { name: /^équipe$/i })).toHaveAttribute('href', '/pointage/equipe');
-    expect(screen.getByRole('link', { name: /clôture de période/i })).toHaveAttribute('href', '/pointage/cloture');
+    expect(await screen.findByRole('link', { name: /^pointage$/i })).toHaveAttribute(
+      'href',
+      '/pointage',
+    );
+    expect(screen.getByRole('link', { name: /journal de pointage/i })).toHaveAttribute(
+      'href',
+      '/pointage/jour',
+    );
+    expect(screen.getByRole('link', { name: /^équipe$/i })).toHaveAttribute(
+      'href',
+      '/pointage/equipe',
+    );
+    expect(screen.getByRole('link', { name: /clôture de période/i })).toHaveAttribute(
+      'href',
+      '/pointage/cloture',
+    );
   });
 
   it('technicien : voit Pointage et Journal, mais PAS Équipe ni Clôture de période (encadrement seul)', async () => {
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' } })));
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' },
+        }),
+      ),
+    );
     rendre('/');
 
-    expect(await screen.findByRole('link', { name: /^pointage$/i })).toHaveAttribute('href', '/pointage');
+    expect(await screen.findByRole('link', { name: /^pointage$/i })).toHaveAttribute(
+      'href',
+      '/pointage',
+    );
     expect(screen.getByRole('link', { name: /journal de pointage/i })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /^équipe$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /clôture de période/i })).not.toBeInTheDocument();
   });
 
   it('admin (encadrement) : voit les quatre entrées, y compris Équipe et Clôture de période', async () => {
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' } })));
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' },
+        }),
+      ),
+    );
     rendre('/');
 
-    expect(await screen.findByRole('link', { name: /^équipe$/i })).toHaveAttribute('href', '/pointage/equipe');
-    expect(screen.getByRole('link', { name: /clôture de période/i })).toHaveAttribute('href', '/pointage/cloture');
+    expect(await screen.findByRole('link', { name: /^équipe$/i })).toHaveAttribute(
+      'href',
+      '/pointage/equipe',
+    );
+    expect(screen.getByRole('link', { name: /clôture de période/i })).toHaveAttribute(
+      'href',
+      '/pointage/cloture',
+    );
   });
 
   it('comptable : ne voit AUCUNE entrée du groupe Pointage (atelier.pointage.lire fermé)', async () => {
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'comptable' } })));
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'comptable' },
+        }),
+      ),
+    );
     rendre('/');
 
     await screen.findByRole('link', { name: /coordonnées bancaires/i });
@@ -239,7 +337,14 @@ describe('BarreLaterale — groupe Pointage (masquage par rôle, restriction RÉ
   });
 
   it('réceptionniste : ne voit AUCUNE entrée du groupe Pointage (atelier.pointage.lire fermé)', async () => {
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'receptionnaire' } })));
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'receptionnaire' },
+        }),
+      ),
+    );
     rendre('/');
 
     await screen.findByRole('link', { name: /tarifs/i });

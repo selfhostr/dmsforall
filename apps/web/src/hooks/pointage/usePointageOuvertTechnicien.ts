@@ -16,7 +16,9 @@ import { listerPointages } from './pointage.api';
  *
  * `data === null` (jamais `undefined` une fois la requête résolue) -> aucun pointage en cours.
  */
-export function usePointageOuvertTechnicien(technicienId: string | undefined): UseQueryResult<ReponsePointage | null> {
+export function usePointageOuvertTechnicien(
+  technicienId: string | undefined,
+): UseQueryResult<ReponsePointage | null> {
   return useQuery({
     queryKey: clesPointage.ouvertTechnicien(technicienId ?? ''),
     queryFn: async () => {

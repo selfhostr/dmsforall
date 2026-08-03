@@ -48,7 +48,10 @@ const COLONNES_FOURNISSEUR_ALIASEES = sql`
 export class ServiceFournisseur {
   constructor(@Inject(JETON_DB) private readonly acces: AccesBase) {}
 
-  async lister(ctx: ContexteTenant, params: FiltresFournisseurs): Promise<PageCurseur<ReponseFournisseur>> {
+  async lister(
+    ctx: ContexteTenant,
+    params: FiltresFournisseurs,
+  ): Promise<PageCurseur<ReponseFournisseur>> {
     const definition = DEFINITIONS_TRI_FOURNISSEURS[params.tri];
     const idExpr = sql`f.id`;
     const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
@@ -56,13 +59,22 @@ export class ServiceFournisseur {
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`f.tenant_id = ${ctx.tenantId}`];
       if (params.statut && params.statut.length > 0) {
-        conditions.push(sql`f.statut::text in (${sql.join(params.statut.map((s) => sql`${s}`), sql`, `)})`);
+        conditions.push(
+          sql`f.statut::text in (${sql.join(
+            params.statut.map((s) => sql`${s}`),
+            sql`, `,
+          )})`,
+        );
       }
       if (curseurDecode) {
-        conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
+        conditions.push(
+          construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id),
+        );
       }
 
-      const resultat = await tx.execute<LigneFournisseur & { triValeur: string | number | null }>(sql`
+      const resultat = await tx.execute<
+        LigneFournisseur & { triValeur: string | number | null }
+      >(sql`
         select ${COLONNES_FOURNISSEUR_ALIASEES}, ${expressionTriValeur(definition)} as "triValeur"
           from public.fournisseur f
          where ${sql.join(conditions, sql` and `)}
@@ -79,7 +91,11 @@ export class ServiceFournisseur {
         donnees: pageLignes.map((l) => versFournisseurResponse(l)),
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseurTrie({ tri: params.tri, valeur: valeurCurseurDepuisTri(definition, derniere.triValeur), id: derniere.id })
+            ? encoderCurseurTrie({
+                tri: params.tri,
+                valeur: valeurCurseurDepuisTri(definition, derniere.triValeur),
+                id: derniere.id,
+              })
             : null,
         limite: params.limite,
       };
@@ -87,14 +103,19 @@ export class ServiceFournisseur {
   }
 
   async parId(ctx: ContexteTenant, id: string): Promise<ReponseFournisseur> {
-    return this.acces.enTenant(ctx, async (tx) => versFournisseurResponse(await this.chargerOu404(tx, ctx, id)));
+    return this.acces.enTenant(ctx, async (tx) =>
+      versFournisseurResponse(await this.chargerOu404(tx, ctx, id)),
+    );
   }
 
   /**
    * `POST /fournisseurs` — PAS d'`Idempotency-Key` : aucune ressource rare générée par le serveur
    * (pas de numérotation, contrairement à `article`/`client`), voir le contrat `fournisseur.ts`.
    */
-  async creer(ctx: ContexteTenant, entree: EntreeCreationFournisseur): Promise<ReponseAvecAvertissements<ReponseFournisseur>> {
+  async creer(
+    ctx: ContexteTenant,
+    entree: EntreeCreationFournisseur,
+  ): Promise<ReponseAvecAvertissements<ReponseFournisseur>> {
     return this.acces.enTenant(ctx, async (tx) => {
       const valeurs: NouveauFournisseur = {
         tenantId: ctx.tenantId,
@@ -121,10 +142,14 @@ export class ServiceFournisseur {
       if ('nom' in entree && entree.nom !== undefined) valeurs.nom = entree.nom;
       if ('email' in entree) valeurs.email = entree.email ?? null;
       if ('telephone' in entree) valeurs.telephone = entree.telephone ?? null;
-      if ('delaiHabituelJours' in entree) valeurs.delaiHabituelJours = entree.delaiHabituelJours ?? null;
+      if ('delaiHabituelJours' in entree)
+        valeurs.delaiHabituelJours = entree.delaiHabituelJours ?? null;
 
       if (Object.keys(valeurs).length > 0) {
-        await tx.update(fournisseur).set(valeurs).where(and(eq(fournisseur.tenantId, ctx.tenantId), eq(fournisseur.id, id)));
+        await tx
+          .update(fournisseur)
+          .set(valeurs)
+          .where(and(eq(fournisseur.tenantId, ctx.tenantId), eq(fournisseur.id, id)));
       }
 
       const ligneMaj = await this.chargerOu404(tx, ctx, id);
@@ -133,27 +158,47 @@ export class ServiceFournisseur {
   }
 
   /** `POST /fournisseurs/{id}/desactiver` — pas de suppression (RP-07/RM-12/RM-31). */
-  async desactiver(ctx: ContexteTenant, id: string): Promise<ReponseAvecAvertissements<ReponseFournisseur>> {
+  async desactiver(
+    ctx: ContexteTenant,
+    id: string,
+  ): Promise<ReponseAvecAvertissements<ReponseFournisseur>> {
     return this.acces.enTenant(ctx, async (tx) => {
       await this.chargerOu404(tx, ctx, id);
-      await tx.update(fournisseur).set({ statut: 'inactif' }).where(and(eq(fournisseur.tenantId, ctx.tenantId), eq(fournisseur.id, id)));
+      await tx
+        .update(fournisseur)
+        .set({ statut: 'inactif' })
+        .where(and(eq(fournisseur.tenantId, ctx.tenantId), eq(fournisseur.id, id)));
       const ligneMaj = await this.chargerOu404(tx, ctx, id);
       return new CollecteurAvertissements().envelopper(versFournisseurResponse(ligneMaj));
     });
   }
 
   /** `POST /fournisseurs/{id}/reactiver` — retour à `actif`. */
-  async reactiver(ctx: ContexteTenant, id: string): Promise<ReponseAvecAvertissements<ReponseFournisseur>> {
+  async reactiver(
+    ctx: ContexteTenant,
+    id: string,
+  ): Promise<ReponseAvecAvertissements<ReponseFournisseur>> {
     return this.acces.enTenant(ctx, async (tx) => {
       await this.chargerOu404(tx, ctx, id);
-      await tx.update(fournisseur).set({ statut: 'actif' }).where(and(eq(fournisseur.tenantId, ctx.tenantId), eq(fournisseur.id, id)));
+      await tx
+        .update(fournisseur)
+        .set({ statut: 'actif' })
+        .where(and(eq(fournisseur.tenantId, ctx.tenantId), eq(fournisseur.id, id)));
       const ligneMaj = await this.chargerOu404(tx, ctx, id);
       return new CollecteurAvertissements().envelopper(versFournisseurResponse(ligneMaj));
     });
   }
 
-  private async chargerOu404(tx: TransactionDfa, ctx: ContexteTenant, id: string): Promise<LigneFournisseur> {
-    const lignes = await tx.select().from(fournisseur).where(and(eq(fournisseur.tenantId, ctx.tenantId), eq(fournisseur.id, id))).limit(1);
+  private async chargerOu404(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    id: string,
+  ): Promise<LigneFournisseur> {
+    const lignes = await tx
+      .select()
+      .from(fournisseur)
+      .where(and(eq(fournisseur.tenantId, ctx.tenantId), eq(fournisseur.id, id)))
+      .limit(1);
     const ligne = lignes[0];
     if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Fournisseur introuvable.');
     return ligne;

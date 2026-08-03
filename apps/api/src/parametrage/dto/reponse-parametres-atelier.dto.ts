@@ -23,26 +23,31 @@ import {
  */
 export class OrParametresAtelierDto {
   @ApiProperty({ example: 'OR' }) readonly prefixe!: string;
-  @ApiProperty({ enum: PORTEES_NUMEROTATION }) readonly porteeNumerotation!: (typeof PORTEES_NUMEROTATION)[number];
+  @ApiProperty({ enum: PORTEES_NUMEROTATION })
+  readonly porteeNumerotation!: (typeof PORTEES_NUMEROTATION)[number];
   @ApiProperty() readonly resetAnnuel!: boolean;
-  @ApiProperty({ description: 'P-22 : l\'état `planifie` est-il utilisé par ce garage ?' }) readonly etatPlanifieActif!: boolean;
-  @ApiProperty({ description: 'P-21 : un OR sans RDV est-il autorisé ?' }) readonly sansRdvAutorise!: boolean;
+  @ApiProperty({ description: "P-22 : l'état `planifie` est-il utilisé par ce garage ?" })
+  readonly etatPlanifieActif!: boolean;
+  @ApiProperty({ description: 'P-21 : un OR sans RDV est-il autorisé ?' })
+  readonly sansRdvAutorise!: boolean;
   @ApiProperty() readonly rdvRetroactifAuto!: boolean;
-  @ApiProperty({ enum: POLITIQUES_DEUX_OR_MEME_VEHICULE }) readonly deuxOrMemeVehicule!: (typeof POLITIQUES_DEUX_OR_MEME_VEHICULE)[number];
+  @ApiProperty({ enum: POLITIQUES_DEUX_OR_MEME_VEHICULE })
+  readonly deuxOrMemeVehicule!: (typeof POLITIQUES_DEUX_OR_MEME_VEHICULE)[number];
 }
 
 export class ReceptionParametresAtelierDto {
   @ApiProperty() readonly kmEntreeObligatoire!: boolean;
   @ApiProperty() readonly kmSortieObligatoire!: boolean;
-  @ApiProperty({ enum: POLITIQUES_SIGNATURE_RECEPTION }) readonly signature!: (typeof POLITIQUES_SIGNATURE_RECEPTION)[number];
+  @ApiProperty({ enum: POLITIQUES_SIGNATURE_RECEPTION })
+  readonly signature!: (typeof POLITIQUES_SIGNATURE_RECEPTION)[number];
   @ApiProperty({
     type: Number,
     nullable: true,
     description:
-      'Q-02 : `null` = aucun plafond convenu (la garde RM-54 ne s\'exécute jamais) ; `0` = accord ' +
+      "Q-02 : `null` = aucun plafond convenu (la garde RM-54 ne s'exécute jamais) ; `0` = accord " +
       'requis pour toute validation payante ; n>0 = plafond nominal. ÉCART avec le contrat TS gelé ' +
       '`ReponseParametresAtelier` (`number` non nullable) — signalé, `null` est une valeur métier ' +
-      'réelle qu\'un `0` de repli confondrait avec « accord systématique requis ».',
+      "réelle qu'un `0` de repli confondrait avec « accord systématique requis ».",
     example: 30000,
   })
   readonly plafondDefautCentimes!: number | null;
@@ -50,7 +55,7 @@ export class ReceptionParametresAtelierDto {
     type: Number,
     nullable: true,
     description:
-      'RF-117 (0018) : plafond d\'émission d\'AVOIR par un `receptionnaire` seul — au-delà, ' +
+      "RF-117 (0018) : plafond d'émission d'AVOIR par un `receptionnaire` seul — au-delà, " +
       '`direction`/`comptable` prennent le relais. MÊME sémantique que `plafondDefautCentimes` ' +
       'ci-dessus : `null` = aucun plafond convenu (défaut — le réceptionnaire émet sans limite, ' +
       'dégradé documenté préservé) ; `0` = toute émission par un réceptionnaire doit escalader ; ' +
@@ -63,19 +68,22 @@ export class ReceptionParametresAtelierDto {
 
 export class TravauxParametresAtelierDto {
   @ApiProperty({ enum: UNITES_TEMPS }) readonly uniteTemps!: (typeof UNITES_TEMPS)[number];
-  @ApiProperty({ enum: ARRONDIS_POINTAGE }) readonly arrondiPointage!: (typeof ARRONDIS_POINTAGE)[number];
+  @ApiProperty({ enum: ARRONDIS_POINTAGE })
+  readonly arrondiPointage!: (typeof ARRONDIS_POINTAGE)[number];
   @ApiProperty() readonly chevauchementPointageAutorise!: boolean;
   @ApiProperty() readonly pointageObligatoirePourTerminer!: boolean;
   @ApiProperty({
     enum: POLITIQUES_CONTROLE_QUALITE,
-    description: 'Restreint à `jamais`/`toujours` au lot 1 (Δ3) — le type complet à 4 valeurs est réservé au lot 2.',
+    description:
+      'Restreint à `jamais`/`toujours` au lot 1 (Δ3) — le type complet à 4 valeurs est réservé au lot 2.',
   })
   readonly controleQualite!: (typeof POLITIQUES_CONTROLE_QUALITE)[number];
   @ApiProperty() readonly dureeMaxPointageHeures!: number;
 }
 
 export class ProduitsAtelierDto {
-  @ApiProperty({ enum: MODES_PRODUITS_ATELIER }) readonly mode!: (typeof MODES_PRODUITS_ATELIER)[number];
+  @ApiProperty({ enum: MODES_PRODUITS_ATELIER })
+  readonly mode!: (typeof MODES_PRODUITS_ATELIER)[number];
   @ApiProperty({ type: Number, nullable: true }) readonly pourmille!: number | null;
   @ApiProperty({ type: Number, nullable: true }) readonly plafondCentimes!: number | null;
 }
@@ -86,23 +94,31 @@ export class FacturationParametresAtelierDto {
   @ApiProperty({
     description:
       'Aucune colonne dédiée en base au lot 1 (domaine inerte, `fonctionnalites.facturation=false`) ' +
-      '— valeur par défaut posée en attendant le schéma de l\'étape 2.',
+      "— valeur par défaut posée en attendant le schéma de l'étape 2.",
   })
   readonly piecesClientAutorisees!: boolean;
-  @ApiProperty({ enum: POLITIQUES_DEMONTAGE_REFUSE }) readonly politiqueDemontageRefuse!: (typeof POLITIQUES_DEMONTAGE_REFUSE)[number];
-  @ApiProperty({ type: Number, nullable: true, description: 'Idem : aucune colonne dédiée en base au lot 1.' })
+  @ApiProperty({ enum: POLITIQUES_DEMONTAGE_REFUSE })
+  readonly politiqueDemontageRefuse!: (typeof POLITIQUES_DEMONTAGE_REFUSE)[number];
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Idem : aucune colonne dédiée en base au lot 1.',
+  })
   readonly seuilDemontageCentimes!: number | null;
   @ApiProperty({ type: () => ProduitsAtelierDto }) readonly produitsAtelier!: ProduitsAtelierDto;
 }
 
 export class DocumentsParametresAtelierDto {
-  @ApiProperty({ enum: POLITIQUES_LANGUE_DOCUMENT }) readonly langue!: (typeof POLITIQUES_LANGUE_DOCUMENT)[number];
-  @ApiProperty({ enum: POLITIQUES_MENTION_SECURITE }) readonly mentionSecurite!: (typeof POLITIQUES_MENTION_SECURITE)[number];
+  @ApiProperty({ enum: POLITIQUES_LANGUE_DOCUMENT })
+  readonly langue!: (typeof POLITIQUES_LANGUE_DOCUMENT)[number];
+  @ApiProperty({ enum: POLITIQUES_MENTION_SECURITE })
+  readonly mentionSecurite!: (typeof POLITIQUES_MENTION_SECURITE)[number];
 }
 
 export class VehiculeParametresAtelierDto {
   @ApiProperty() readonly expertiseAlerteMois!: number;
-  @ApiProperty({ enum: VISIBILITES_HISTORIQUE_VEHICULE }) readonly visibiliteHistoriqueNouveauDetenteur!: (typeof VISIBILITES_HISTORIQUE_VEHICULE)[number];
+  @ApiProperty({ enum: VISIBILITES_HISTORIQUE_VEHICULE })
+  readonly visibiliteHistoriqueNouveauDetenteur!: (typeof VISIBILITES_HISTORIQUE_VEHICULE)[number];
 }
 
 export class RappelPlanningDto {
@@ -115,7 +131,8 @@ export class PlanningParametresAtelierDto {
   @ApiProperty() readonly tamponPretMinutes!: number;
   @ApiProperty({
     type: () => RappelPlanningDto,
-    description: 'Aucune colonne en base au lot 1 (domaine `planning` inerte) — valeur par défaut de contrats-api-etape-1.md §8.2.',
+    description:
+      'Aucune colonne en base au lot 1 (domaine `planning` inerte) — valeur par défaut de contrats-api-etape-1.md §8.2.',
   })
   readonly rappel!: RappelPlanningDto;
 }
@@ -133,13 +150,20 @@ export class FonctionnalitesAtelierDto {
 
 export class ReponseParametresAtelierDto {
   @ApiProperty({ type: () => OrParametresAtelierDto }) readonly or!: OrParametresAtelierDto;
-  @ApiProperty({ type: () => ReceptionParametresAtelierDto }) readonly reception!: ReceptionParametresAtelierDto;
-  @ApiProperty({ type: () => TravauxParametresAtelierDto }) readonly travaux!: TravauxParametresAtelierDto;
-  @ApiProperty({ type: () => FacturationParametresAtelierDto }) readonly facturation!: FacturationParametresAtelierDto;
-  @ApiProperty({ type: () => DocumentsParametresAtelierDto }) readonly documents!: DocumentsParametresAtelierDto;
-  @ApiProperty({ type: () => VehiculeParametresAtelierDto }) readonly vehicule!: VehiculeParametresAtelierDto;
-  @ApiProperty({ type: () => PlanningParametresAtelierDto }) readonly planning!: PlanningParametresAtelierDto;
-  @ApiProperty({ type: () => FonctionnalitesAtelierDto }) readonly fonctionnalites!: FonctionnalitesAtelierDto;
+  @ApiProperty({ type: () => ReceptionParametresAtelierDto })
+  readonly reception!: ReceptionParametresAtelierDto;
+  @ApiProperty({ type: () => TravauxParametresAtelierDto })
+  readonly travaux!: TravauxParametresAtelierDto;
+  @ApiProperty({ type: () => FacturationParametresAtelierDto })
+  readonly facturation!: FacturationParametresAtelierDto;
+  @ApiProperty({ type: () => DocumentsParametresAtelierDto })
+  readonly documents!: DocumentsParametresAtelierDto;
+  @ApiProperty({ type: () => VehiculeParametresAtelierDto })
+  readonly vehicule!: VehiculeParametresAtelierDto;
+  @ApiProperty({ type: () => PlanningParametresAtelierDto })
+  readonly planning!: PlanningParametresAtelierDto;
+  @ApiProperty({ type: () => FonctionnalitesAtelierDto })
+  readonly fonctionnalites!: FonctionnalitesAtelierDto;
   @ApiProperty({
     description:
       'Sert l\'ETag (`W/"<version>"`) et la revalidation conditionnelle (`If-None-Match`). ' +

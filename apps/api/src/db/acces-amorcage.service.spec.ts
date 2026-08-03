@@ -24,11 +24,11 @@ describe('estAdresseIpValide', () => {
     expect(estAdresseIpValide('2001:db8::1')).toBe(true);
   });
 
-  it("accepte une adresse IPv4-mappée en IPv6 (forme que produit Express derrière certains sockets, ex. ::ffff:127.0.0.1)", () => {
+  it('accepte une adresse IPv4-mappée en IPv6 (forme que produit Express derrière certains sockets, ex. ::ffff:127.0.0.1)', () => {
     expect(estAdresseIpValide('::ffff:127.0.0.1')).toBe(true);
   });
 
-  it('refuse une chaîne alphabétique arbitraire (régression : l\'ancien motif regex la laissait passer)', () => {
+  it("refuse une chaîne alphabétique arbitraire (régression : l'ancien motif regex la laissait passer)", () => {
     expect(estAdresseIpValide('zzzzzz')).toBe(false);
   });
 
@@ -40,7 +40,7 @@ describe('estAdresseIpValide', () => {
     expect(estAdresseIpValide('999.999.999.999')).toBe(false);
   });
 
-  it("refuse un en-tête X-Forwarded-For multi-valeurs non séparé (valeur brute forgeable par le client)", () => {
+  it('refuse un en-tête X-Forwarded-For multi-valeurs non séparé (valeur brute forgeable par le client)', () => {
     expect(estAdresseIpValide('203.0.113.42, 10.0.0.1')).toBe(false);
   });
 
@@ -78,7 +78,7 @@ describe('enDate', () => {
     );
   });
 
-  it('préserve le décalage horaire suisse d\'une chaîne avec offset explicite', () => {
+  it("préserve le décalage horaire suisse d'une chaîne avec offset explicite", () => {
     // Postgres rend un timestamptz avec offset (« 2026-07-28 10:00:00+02 ») selon le chemin.
     expect(enDate('2026-07-28T10:00:00+02:00').toISOString()).toBe('2026-07-28T08:00:00.000Z');
   });

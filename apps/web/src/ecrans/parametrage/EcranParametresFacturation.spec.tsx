@@ -75,11 +75,15 @@ describe('EcranParametresFacturation — état vide (jamais configuré)', () => 
     // Le `h1` est rendu immédiatement (hors du branchement chargement/erreur/données) — l'attente
     // réelle porte sur la fin du chargement, ici via le bandeau qui ne s'affiche qu'une fois les
     // données arrivées.
-    expect(await screen.findByText(i18n.t('parametrage:creancier.nonConfigure'))).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n.t('parametrage:creancier.nonConfigure')),
+    ).toBeInTheDocument();
     // Champ vide, jamais bloqué à la saisie (numero pas requis) — formulaire directement éditable.
     expect(screen.getByLabelText(i18n.t('parametrage:creancier.identite.nom'))).toHaveValue('');
     // Checklist : rien n'est encore complet.
-    expect(screen.queryByText(i18n.t('parametrage:creancier.completude.complet'))).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n.t('parametrage:creancier.completude.complet')),
+    ).not.toBeInTheDocument();
     expect(screen.getByText(i18n.t('parametrage:creancier.completude.nom'))).toBeInTheDocument();
   });
 });
@@ -89,11 +93,21 @@ describe('EcranParametresFacturation — données réelles déjà saisies', () =
     server.use(http.get(CHEMIN, () => HttpResponse.json(BLOC_COMPLET)));
     rendre();
 
-    expect(await screen.findByLabelText(i18n.t('parametrage:creancier.identite.nom'))).toHaveValue('Garage Martin SA');
-    expect(screen.getByLabelText(i18n.t('parametrage:creancier.comptes.iban'))).toHaveValue(BLOC_COMPLET.iban);
-    expect(screen.getByLabelText(i18n.t('parametrage:creancier.comptes.qrIban'))).toHaveValue(BLOC_COMPLET.qrIban);
-    expect(screen.getByText(i18n.t('parametrage:creancier.completude.complet'))).toBeInTheDocument();
-    expect(screen.queryByText(i18n.t('parametrage:creancier.nonConfigure'))).not.toBeInTheDocument();
+    expect(await screen.findByLabelText(i18n.t('parametrage:creancier.identite.nom'))).toHaveValue(
+      'Garage Martin SA',
+    );
+    expect(screen.getByLabelText(i18n.t('parametrage:creancier.comptes.iban'))).toHaveValue(
+      BLOC_COMPLET.iban,
+    );
+    expect(screen.getByLabelText(i18n.t('parametrage:creancier.comptes.qrIban'))).toHaveValue(
+      BLOC_COMPLET.qrIban,
+    );
+    expect(
+      screen.getByText(i18n.t('parametrage:creancier.completude.complet')),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n.t('parametrage:creancier.nonConfigure')),
+    ).not.toBeInTheDocument();
   });
 
   it('enregistre une modification et affiche la confirmation', async () => {
@@ -102,7 +116,11 @@ describe('EcranParametresFacturation — données réelles déjà saisies', () =
       http.get(CHEMIN, () => HttpResponse.json(BLOC_COMPLET)),
       http.patch(CHEMIN, async ({ request }) => {
         corpsRecu = await request.json();
-        return HttpResponse.json({ ...BLOC_COMPLET, nom: 'Garage Martin & Fils SA', version: BLOC_COMPLET.version + 1 });
+        return HttpResponse.json({
+          ...BLOC_COMPLET,
+          nom: 'Garage Martin & Fils SA',
+          version: BLOC_COMPLET.version + 1,
+        });
       }),
     );
     rendre();
@@ -111,10 +129,18 @@ describe('EcranParametresFacturation — données réelles déjà saisies', () =
     const utilisateur = userEvent.setup();
     await utilisateur.clear(champNom);
     await utilisateur.type(champNom, 'Garage Martin & Fils SA');
-    await utilisateur.click(screen.getByRole('button', { name: i18n.t('parametrage:creancier.actions.enregistrer') }));
+    await utilisateur.click(
+      screen.getByRole('button', { name: i18n.t('parametrage:creancier.actions.enregistrer') }),
+    );
 
-    expect(await screen.findByText(i18n.t('parametrage:creancier.enregistrementReussi'))).toBeInTheDocument();
-    expect(corpsRecu).toMatchObject({ nom: 'Garage Martin & Fils SA', iban: BLOC_COMPLET.iban, qrIban: BLOC_COMPLET.qrIban });
+    expect(
+      await screen.findByText(i18n.t('parametrage:creancier.enregistrementReussi')),
+    ).toBeInTheDocument();
+    expect(corpsRecu).toMatchObject({
+      nom: 'Garage Martin & Fils SA',
+      iban: BLOC_COMPLET.iban,
+      qrIban: BLOC_COMPLET.qrIban,
+    });
   });
 
   it('affiche une clé de contrôle IBAN refusée SOUS LE CHAMP IBAN, jamais dans un bandeau global', async () => {
@@ -132,7 +158,8 @@ describe('EcranParametresFacturation — données réelles déjà saisies', () =
               {
                 champ: 'iban',
                 code: 'IBAN_INVALIDE',
-                message: "Clé de contrôle IBAN (ISO 7064 mod 97-10) fausse — l'IBAN a été mal saisi.",
+                message:
+                  "Clé de contrôle IBAN (ISO 7064 mod 97-10) fausse — l'IBAN a été mal saisi.",
               },
             ],
           },
@@ -144,7 +171,9 @@ describe('EcranParametresFacturation — données réelles déjà saisies', () =
 
     await screen.findByLabelText(i18n.t('parametrage:creancier.identite.nom'));
     const utilisateur = userEvent.setup();
-    await utilisateur.click(screen.getByRole('button', { name: i18n.t('parametrage:creancier.actions.enregistrer') }));
+    await utilisateur.click(
+      screen.getByRole('button', { name: i18n.t('parametrage:creancier.actions.enregistrer') }),
+    );
 
     expect(await screen.findByText(i18n.t('erreurs:codes.IBAN_INVALIDE'))).toBeInTheDocument();
     // Jamais le message brut du serveur (règle du dépôt : le `code` pilote seul le message).
@@ -172,8 +201,12 @@ describe('EcranParametresFacturation — erreurs de chargement', () => {
     );
     rendre();
 
-    expect(await screen.findByText(i18n.t('parametrage:creancier.erreur.titre'))).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: i18n.t('commun:actions.reessayer') })).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n.t('parametrage:creancier.erreur.titre')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: i18n.t('commun:actions.reessayer') }),
+    ).toBeInTheDocument();
   });
 
   it('affiche un état de refus compréhensible — sans bouton réessayer — pour un rôle sans droit (admin, RF-115)', async () => {
@@ -193,13 +226,19 @@ describe('EcranParametresFacturation — erreurs de chargement', () => {
     );
     rendre();
 
-    expect(await screen.findByText(i18n.t('parametrage:creancier.refus.titre'))).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n.t('parametrage:creancier.refus.titre')),
+    ).toBeInTheDocument();
     expect(screen.getByText(i18n.t('parametrage:creancier.refus.description'))).toBeInTheDocument();
     // Pas le message technique générique, pas de bouton « réessayer » (retenter ne change rien
     // au rôle de l'appelant).
     expect(screen.queryByText(i18n.t('erreurs:codes.DROIT_INSUFFISANT'))).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: i18n.t('commun:actions.reessayer') })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: i18n.t('parametrage:creancier.refus.retourAccueil') })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: i18n.t('commun:actions.reessayer') }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: i18n.t('parametrage:creancier.refus.retourAccueil') }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -214,6 +253,10 @@ describe('EcranParametresFacturation — chargement', () => {
     rendre();
 
     expect(screen.getByText(i18n.t('commun:chargement.enCours'))).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByLabelText(i18n.t('parametrage:creancier.identite.nom'))).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText(i18n.t('parametrage:creancier.identite.nom')),
+      ).toBeInTheDocument(),
+    );
   });
 });

@@ -21,7 +21,8 @@ export class ReponseBlocCreancierDto implements ReponseBlocCreancier {
     type: String,
     nullable: true,
     example: '12',
-    description: 'Absent pour une case postale, un lieu-dit ou un hameau — délibérément optionnel, jamais forcé.',
+    description:
+      'Absent pour une case postale, un lieu-dit ou un hameau — délibérément optionnel, jamais forcé.',
   })
   readonly numero!: string | null;
 
@@ -33,7 +34,8 @@ export class ReponseBlocCreancierDto implements ReponseBlocCreancier {
 
   @ApiProperty({
     example: 'CH',
-    description: 'Code ISO 3166-1 alpha-2. `CH` ou `LI` uniquement pour un compte de QR-facture suisse.',
+    description:
+      'Code ISO 3166-1 alpha-2. `CH` ou `LI` uniquement pour un compte de QR-facture suisse.',
   })
   readonly pays!: string;
 
@@ -50,7 +52,8 @@ export class ReponseBlocCreancierDto implements ReponseBlocCreancier {
     type: String,
     nullable: true,
     example: 'CH4431999123000889012',
-    description: 'QR-IBAN (IID 30000–31999, jamais un IBAN ordinaire), forme compacte sans espaces.',
+    description:
+      'QR-IBAN (IID 30000–31999, jamais un IBAN ordinaire), forme compacte sans espaces.',
   })
   readonly qrIban!: string | null;
 

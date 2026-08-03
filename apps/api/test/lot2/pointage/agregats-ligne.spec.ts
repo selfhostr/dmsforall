@@ -27,9 +27,24 @@
 import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { demarrerBaseEphemere, ecrireSousTenant, requeteSousTenant, type BaseEphemere } from '../../setup/postgres-ephemere';
-import { creerAppTest, demarrerRedisEphemere, type AppTest, type RedisEphemere } from '../../setup/app-test';
-import { creerOrPourTest, semerGarageDemoLot1, type GarageDemoLot1Fixture, type OrDeTest } from '../../lot1/fixtures/garage-demo-lot1';
+import {
+  demarrerBaseEphemere,
+  ecrireSousTenant,
+  requeteSousTenant,
+  type BaseEphemere,
+} from '../../setup/postgres-ephemere';
+import {
+  creerAppTest,
+  demarrerRedisEphemere,
+  type AppTest,
+  type RedisEphemere,
+} from '../../setup/app-test';
+import {
+  creerOrPourTest,
+  semerGarageDemoLot1,
+  type GarageDemoLot1Fixture,
+  type OrDeTest,
+} from '../../lot1/fixtures/garage-demo-lot1';
 import { cookieDeSessionPour } from '../../lot1/isolation-http-aide';
 import type { TenantFixture } from '../../fixtures/garage-demo';
 
@@ -55,7 +70,14 @@ async function creerLigneOrAvecBaremePourTest(
          (id, tenant_id, ordre_reparation_id, numero_ordre, type, origine, statut,
           designation, temps_bareme_centiemes, montant_ht_centimes, montant_tva_centimes, montant_ttc_centimes)
        values ($1, $2, $3, $4, 'forfait', 'commandee', 'proposee', $5, $6, 10000, 810, 10810)`,
-      [id, tenant.id, ordreReparationId, numeroOrdre, `Ligne agrégat #${String(numeroOrdre)}`, tempsBaremeCentiemes],
+      [
+        id,
+        tenant.id,
+        ordreReparationId,
+        numeroOrdre,
+        `Ligne agrégat #${String(numeroOrdre)}`,
+        tempsBaremeCentiemes,
+      ],
     );
   });
   return { id };
@@ -158,7 +180,12 @@ async function semerScenario(t: GarageDemoLot1Fixture['tenantA']): Promise<Scena
 
   const ligneBareeeSansPointage = await creerLigneOrAvecBaremePourTest(t.tenant, or.id, 4, 100);
 
-  const ligneSansBaremeAvecPointage = await creerLigneOrAvecBaremePourTest(t.tenant, or.id, 5, null);
+  const ligneSansBaremeAvecPointage = await creerLigneOrAvecBaremePourTest(
+    t.tenant,
+    or.id,
+    5,
+    null,
+  );
   await creerPointageLignePourTest(t.tenant, {
     siteId,
     technicienId,
@@ -168,7 +195,14 @@ async function semerScenario(t: GarageDemoLot1Fixture['tenantA']): Promise<Scena
     dureeArrondieCentiemes: 75,
   });
 
-  return { or, ligneSommeeDeuxPointages, ligneEnCoursIgnoree, ligneOmise, ligneBareeeSansPointage, ligneSansBaremeAvecPointage };
+  return {
+    or,
+    ligneSommeeDeuxPointages,
+    ligneEnCoursIgnoree,
+    ligneOmise,
+    ligneBareeeSansPointage,
+    ligneSansBaremeAvecPointage,
+  };
 }
 
 interface AgregatLigneReponse {
@@ -192,7 +226,13 @@ beforeAll(async () => {
   // OR de tenant B, avec au moins une ligne barémée + un pointage — sert aux tests d'isolation
   // (jamais consulté depuis tenant A sans que ce soit précisément ce qu'on veut prouver refusé).
   const siteIdB = garage.tenantB.tenant.sites[0]!.id;
-  orTenantB = await creerOrPourTest(bdd, garage.tenantB.tenant, siteIdB, garage.tenantB.clients[0]!, garage.tenantB.vehicules[0]!);
+  orTenantB = await creerOrPourTest(
+    bdd,
+    garage.tenantB.tenant,
+    siteIdB,
+    garage.tenantB.clients[0]!,
+    garage.tenantB.vehicules[0]!,
+  );
   const ligneB = await creerLigneOrAvecBaremePourTest(garage.tenantB.tenant, orTenantB.id, 1, 300);
   await creerPointageLignePourTest(garage.tenantB.tenant, {
     siteId: siteIdB,
@@ -215,18 +255,29 @@ afterAll(async () => {
 
 /** `technicien` porte `atelier.pointage.lire` (matrice-droits.ts) — suffisant pour cette route,
  *  qui n'a explicitement AUCUNE restriction de vue équipe (voir l'en-tête du contrat). */
-async function cookieLecteurPointage(t: GarageDemoLot1Fixture['tenantA'] | GarageDemoLot1Fixture['tenantB']): Promise<string> {
+async function cookieLecteurPointage(
+  t: GarageDemoLot1Fixture['tenantA'] | GarageDemoLot1Fixture['tenantB'],
+): Promise<string> {
   const u = t.utilisateursParRole.technicien;
   return cookieDeSessionPour(ctx, u.email, u.motDePasseClair);
 }
 
 async function appelerAgregat(cookie: string, ordreReparationId: string) {
-  return ctx.requete.get('/api/v1/pointages/agregats-ligne').query({ ordreReparationId }).set('Cookie', cookie);
+  return ctx.requete
+    .get('/api/v1/pointages/agregats-ligne')
+    .query({ ordreReparationId })
+    .set('Cookie', cookie);
 }
 
-function trouverLigne(lignes: readonly AgregatLigneReponse[], ligneOrId: string): AgregatLigneReponse {
+function trouverLigne(
+  lignes: readonly AgregatLigneReponse[],
+  ligneOrId: string,
+): AgregatLigneReponse {
   const trouvee = lignes.find((l) => l.ligneOrId === ligneOrId);
-  if (!trouvee) throw new Error(`Ligne ${ligneOrId} absente de la réponse — voir la liste complète : ${JSON.stringify(lignes)}`);
+  if (!trouvee)
+    throw new Error(
+      `Ligne ${ligneOrId} absente de la réponse — voir la liste complète : ${JSON.stringify(lignes)}`,
+    );
   return trouvee;
 }
 
@@ -240,7 +291,10 @@ describe('RM-97 — un pointage en_cours est signalé mais jamais agrégé dans 
     const reponse = await appelerAgregat(cookie, scenarioA.or.id);
 
     expect(reponse.status).toBe(200);
-    const corps = reponse.body as { ordreReparationId: string; lignes: readonly AgregatLigneReponse[] };
+    const corps = reponse.body as {
+      ordreReparationId: string;
+      lignes: readonly AgregatLigneReponse[];
+    };
     expect(corps.ordreReparationId).toBe(scenarioA.or.id);
 
     const ligne = trouverLigne(corps.lignes, scenarioA.ligneEnCoursIgnoree.id);
@@ -421,7 +475,9 @@ describe('isolation tenant stricte sur GET /pointages/agregats-ligne', () => {
     const corps = reponse.body as { lignes: readonly AgregatLigneReponse[] };
     // Aucune ligne de la réponse ne porte le total de tenant B (120) sur une ligne de barème 300 —
     // preuve indirecte qu'aucune ligne de tenant B n'a été mélangée dans l'agrégat de tenant A.
-    expect(corps.lignes.some((l) => l.tempsBaremeCentiemes === 300 && l.dureePointeeCentiemes === 120)).toBe(false);
+    expect(
+      corps.lignes.some((l) => l.tempsBaremeCentiemes === 300 && l.dureePointeeCentiemes === 120),
+    ).toBe(false);
   });
 
   it('SQL brut : les pointages de tenant B sur son propre OR sont invisibles sous le contexte tenant A (RLS, derrière la route)', async () => {

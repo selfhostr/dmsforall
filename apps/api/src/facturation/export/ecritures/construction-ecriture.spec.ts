@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import type { LigneDocumentVente, LigneDocumentVenteTva, LigneLigneDocument } from '../../../db/schema';
+import type {
+  LigneDocumentVente,
+  LigneDocumentVenteTva,
+  LigneLigneDocument,
+} from '../../../db/schema';
 import { ComptesResolusADate, indexerCodesTva, indexerComptes } from './comptes-resolus';
 import { construireEcritureDocument } from './construction-ecriture';
 
@@ -142,16 +146,35 @@ function comptesDeTest(): ComptesResolusADate {
     { usage: 'acomptes_recus', categorie: 'defaut', compte: '2030' },
     { usage: 'ecart_reprise', categorie: 'defaut', compte: '1090' },
   ]);
-  const codesTva = indexerCodesTva([{ regimeTva: 'normal', tauxPourmille: 81, codeExterne: 'TVA81' }]);
+  const codesTva = indexerCodesTva([
+    { regimeTva: 'normal', tauxPourmille: 81, codeExterne: 'TVA81' },
+  ]);
   return new ComptesResolusADate(comptes, codesTva);
 }
 
 describe('construireEcritureDocument', () => {
   it('facture ordinaire, deux catégories de produit, un taux : débit créances = crédit (produits + TVA)', () => {
-    const doc = document({ totalHtCentimes: 15000n, totalTvaCentimes: 1215n, totalTtcCentimes: 16215n });
+    const doc = document({
+      totalHtCentimes: 15000n,
+      totalTvaCentimes: 1215n,
+      totalTtcCentimes: 16215n,
+    });
     const lignes = [
-      ligne({ id: 'l1', typeLigne: 'main_oeuvre_bareme', htCentimes: 10000, tvaCentimes: 810, ttcCentimes: 10810 }),
-      ligne({ id: 'l2', numeroOrdre: 2, typeLigne: 'piece', htCentimes: 5000, tvaCentimes: 405, ttcCentimes: 5405 }),
+      ligne({
+        id: 'l1',
+        typeLigne: 'main_oeuvre_bareme',
+        htCentimes: 10000,
+        tvaCentimes: 810,
+        ttcCentimes: 10810,
+      }),
+      ligne({
+        id: 'l2',
+        numeroOrdre: 2,
+        typeLigne: 'piece',
+        htCentimes: 5000,
+        tvaCentimes: 405,
+        ttcCentimes: 5405,
+      }),
     ];
     const tva = [ventilation({ baseCentimes: 15000, tvaCentimes: 1215 })];
 
@@ -163,10 +186,42 @@ describe('construireEcritureDocument', () => {
     expect(resultat.totalCreditCentimes).toBe(16215n);
     expect(resultat.ecriture.reference).toBe('2026-00318');
     expect(resultat.ecriture.lignes).toEqual([
-      { compte: '1100', sens: 'debit', montantCentimes: 16215, codeTva: null, tauxPourmille: null, baseTvaCentimes: null, libelle: 'Créances — Garage Client SA' },
-      { compte: '3400', sens: 'credit', montantCentimes: 10000, codeTva: null, tauxPourmille: null, baseTvaCentimes: null, libelle: 'main_oeuvre_bareme — 2026-00318' },
-      { compte: '3200', sens: 'credit', montantCentimes: 5000, codeTva: null, tauxPourmille: null, baseTvaCentimes: null, libelle: 'piece — 2026-00318' },
-      { compte: '2200', sens: 'credit', montantCentimes: 1215, codeTva: 'TVA81', tauxPourmille: 81, baseTvaCentimes: 15000, libelle: 'TVA due 8.1% — 2026-00318' },
+      {
+        compte: '1100',
+        sens: 'debit',
+        montantCentimes: 16215,
+        codeTva: null,
+        tauxPourmille: null,
+        baseTvaCentimes: null,
+        libelle: 'Créances — Garage Client SA',
+      },
+      {
+        compte: '3400',
+        sens: 'credit',
+        montantCentimes: 10000,
+        codeTva: null,
+        tauxPourmille: null,
+        baseTvaCentimes: null,
+        libelle: 'main_oeuvre_bareme — 2026-00318',
+      },
+      {
+        compte: '3200',
+        sens: 'credit',
+        montantCentimes: 5000,
+        codeTva: null,
+        tauxPourmille: null,
+        baseTvaCentimes: null,
+        libelle: 'piece — 2026-00318',
+      },
+      {
+        compte: '2200',
+        sens: 'credit',
+        montantCentimes: 1215,
+        codeTva: 'TVA81',
+        tauxPourmille: 81,
+        baseTvaCentimes: 15000,
+        libelle: 'TVA due 8.1% — 2026-00318',
+      },
     ]);
   });
 
@@ -182,8 +237,23 @@ describe('construireEcritureDocument', () => {
       factureAnnuleeId: 'doc-1',
     });
     const lignes = [
-      ligne({ id: 'l1', documentId: 'doc-2', typeLigne: 'main_oeuvre_bareme', htCentimes: -10000, tvaCentimes: -810, ttcCentimes: -10810 }),
-      ligne({ id: 'l2', documentId: 'doc-2', numeroOrdre: 2, typeLigne: 'piece', htCentimes: -5000, tvaCentimes: -405, ttcCentimes: -5405 }),
+      ligne({
+        id: 'l1',
+        documentId: 'doc-2',
+        typeLigne: 'main_oeuvre_bareme',
+        htCentimes: -10000,
+        tvaCentimes: -810,
+        ttcCentimes: -10810,
+      }),
+      ligne({
+        id: 'l2',
+        documentId: 'doc-2',
+        numeroOrdre: 2,
+        typeLigne: 'piece',
+        htCentimes: -5000,
+        tvaCentimes: -405,
+        ttcCentimes: -5405,
+      }),
     ];
     const tva = [ventilation({ documentId: 'doc-2', baseCentimes: -15000, tvaCentimes: -1215 })];
 
@@ -200,10 +270,20 @@ describe('construireEcritureDocument', () => {
     expect(parCompte.get('2200')).toMatchObject({ sens: 'debit', montantCentimes: 1215 });
   });
 
-  it("facture finale avec acompte (MD-55) : la ligne acompte_deduit bascule seule au débit (acomptes reçus), sans code dédié", () => {
-    const doc = document({ totalHtCentimes: 15000n, totalTvaCentimes: 1215n, totalTtcCentimes: 16215n });
+  it('facture finale avec acompte (MD-55) : la ligne acompte_deduit bascule seule au débit (acomptes reçus), sans code dédié', () => {
+    const doc = document({
+      totalHtCentimes: 15000n,
+      totalTvaCentimes: 1215n,
+      totalTtcCentimes: 16215n,
+    });
     const lignes = [
-      ligne({ id: 'l1', typeLigne: 'main_oeuvre_bareme', htCentimes: 20000, tvaCentimes: 1620, ttcCentimes: 21620 }),
+      ligne({
+        id: 'l1',
+        typeLigne: 'main_oeuvre_bareme',
+        htCentimes: 20000,
+        tvaCentimes: 1620,
+        ttcCentimes: 21620,
+      }),
       ligne({
         id: 'l2',
         numeroOrdre: 2,
@@ -232,10 +312,30 @@ describe('construireEcritureDocument', () => {
   it('un regroupement dont la somme nette est nulle ne produit aucune ligne et ne réclame aucun compte', () => {
     const doc = document({ totalHtCentimes: 0n, totalTvaCentimes: 0n, totalTtcCentimes: 0n });
     const lignes = [
-      ligne({ id: 'l1', typeLigne: 'piece', htCentimes: 1000, tvaCentimes: 0, ttcCentimes: 1000, tauxTvaPourmille: 0, regimeTva: 'exonere' }),
-      ligne({ id: 'l2', numeroOrdre: 2, typeLigne: 'piece', htCentimes: -1000, tvaCentimes: 0, ttcCentimes: -1000, tauxTvaPourmille: 0, regimeTva: 'exonere' }),
+      ligne({
+        id: 'l1',
+        typeLigne: 'piece',
+        htCentimes: 1000,
+        tvaCentimes: 0,
+        ttcCentimes: 1000,
+        tauxTvaPourmille: 0,
+        regimeTva: 'exonere',
+      }),
+      ligne({
+        id: 'l2',
+        numeroOrdre: 2,
+        typeLigne: 'piece',
+        htCentimes: -1000,
+        tvaCentimes: 0,
+        ttcCentimes: -1000,
+        tauxTvaPourmille: 0,
+        regimeTva: 'exonere',
+      }),
     ];
-    const comptesSansPiece = new ComptesResolusADate(indexerComptes([{ usage: 'creances_clients', categorie: 'defaut', compte: '1100' }]), indexerCodesTva([]));
+    const comptesSansPiece = new ComptesResolusADate(
+      indexerComptes([{ usage: 'creances_clients', categorie: 'defaut', compte: '1100' }]),
+      indexerCodesTva([]),
+    );
 
     const resultat = construireEcritureDocument(doc, lignes, [], comptesSansPiece, null);
 
@@ -247,8 +347,20 @@ describe('construireEcritureDocument', () => {
   });
 
   it('mapping_compte manquant : refuse et nomme précisément ce qui manque (RF-112), ne construit rien', () => {
-    const doc = document({ totalHtCentimes: 5000n, totalTvaCentimes: 405n, totalTtcCentimes: 5405n });
-    const lignes = [ligne({ id: 'l1', typeLigne: 'piece', htCentimes: 5000, tvaCentimes: 405, ttcCentimes: 5405 })];
+    const doc = document({
+      totalHtCentimes: 5000n,
+      totalTvaCentimes: 405n,
+      totalTtcCentimes: 5405n,
+    });
+    const lignes = [
+      ligne({
+        id: 'l1',
+        typeLigne: 'piece',
+        htCentimes: 5000,
+        tvaCentimes: 405,
+        ttcCentimes: 5405,
+      }),
+    ];
     const tva = [ventilation({ baseCentimes: 5000, tvaCentimes: 405 })];
     const comptesIncomplets = new ComptesResolusADate(
       indexerComptes([{ usage: 'creances_clients', categorie: 'defaut', compte: '1100' }]),
@@ -269,8 +381,21 @@ describe('construireEcritureDocument', () => {
   });
 
   it('categorieComptable (AC-09) prime sur typeLigne pour résoudre le compte produit', () => {
-    const doc = document({ totalHtCentimes: 5000n, totalTvaCentimes: 405n, totalTtcCentimes: 5405n });
-    const lignes = [ligne({ id: 'l1', typeLigne: 'piece', categorieComptable: 'recyclage', htCentimes: 5000, tvaCentimes: 405, ttcCentimes: 5405 })];
+    const doc = document({
+      totalHtCentimes: 5000n,
+      totalTvaCentimes: 405n,
+      totalTtcCentimes: 5405n,
+    });
+    const lignes = [
+      ligne({
+        id: 'l1',
+        typeLigne: 'piece',
+        categorieComptable: 'recyclage',
+        htCentimes: 5000,
+        tvaCentimes: 405,
+        ttcCentimes: 5405,
+      }),
+    ];
     const tva = [ventilation({ baseCentimes: 5000, tvaCentimes: 405 })];
     const comptes = new ComptesResolusADate(
       indexerComptes([

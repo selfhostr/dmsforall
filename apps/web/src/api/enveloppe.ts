@@ -25,7 +25,9 @@ export type { Avertissement, PageCurseur, ReponseAvecAvertissements } from '@dfa
  * traverse `requeteApi` comme n'importe quel succès (voir client.ts), `avertissementsDe` ne fait
  * que la lire une fois arrivée.
  */
-export function avertissementsDe<T>(reponse: ReponseAvecAvertissements<T>): readonly Avertissement[] {
+export function avertissementsDe<T>(
+  reponse: ReponseAvecAvertissements<T>,
+): readonly Avertissement[] {
   return reponse.avertissements;
 }
 

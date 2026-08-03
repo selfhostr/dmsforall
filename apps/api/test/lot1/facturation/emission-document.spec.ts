@@ -57,10 +57,23 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { EN_TETE_IDEMPOTENCE, type RoleUtilisateur } from '@dfa/shared';
 
-import { demarrerBaseEphemere, requeteSousTenant, type BaseEphemere } from '../../setup/postgres-ephemere';
-import { creerAppTest, demarrerRedisEphemere, type AppTest, type RedisEphemere } from '../../setup/app-test';
+import {
+  demarrerBaseEphemere,
+  requeteSousTenant,
+  type BaseEphemere,
+} from '../../setup/postgres-ephemere';
+import {
+  creerAppTest,
+  demarrerRedisEphemere,
+  type AppTest,
+  type RedisEphemere,
+} from '../../setup/app-test';
 import { cookieDeSessionPour } from '../isolation-http-aide';
-import { semerGarageDemoLot1, type DonneesLot1Tenant, type GarageDemoLot1Fixture } from '../fixtures/garage-demo-lot1';
+import {
+  semerGarageDemoLot1,
+  type DonneesLot1Tenant,
+  type GarageDemoLot1Fixture,
+} from '../fixtures/garage-demo-lot1';
 
 let bdd: BaseEphemere;
 let garage: GarageDemoLot1Fixture;
@@ -105,7 +118,14 @@ interface LigneCreationTest {
  *  (tva=525, ht=6475) : pas une coïncidence, reprendre un cas déjà prouvé exact en unitaire évite
  *  d'introduire une seconde vérité arithmétique dans la suite de tests. */
 const LIGNE_UNIQUE: readonly LigneCreationTest[] = [
-  { type: 'forfait', designation: 'Forfait diagnostic (test émission)', quantiteMillieme: 1000, prixUnitaireTtcCentimes: 7000, tauxTvaPourmille: 81, datePrestation: '2026-07-29' },
+  {
+    type: 'forfait',
+    designation: 'Forfait diagnostic (test émission)',
+    quantiteMillieme: 1000,
+    prixUnitaireTtcCentimes: 7000,
+    tauxTvaPourmille: 81,
+    datePrestation: '2026-07-29',
+  },
 ];
 
 interface DocumentDeTest {
@@ -135,7 +155,9 @@ async function creerBrouillon(
       ...extra,
     });
   if (reponse.status !== 201) {
-    throw new Error(`création brouillon ${typeDocument} (${role}) a échoué (${String(reponse.status)}) : ${JSON.stringify(reponse.body)}`);
+    throw new Error(
+      `création brouillon ${typeDocument} (${role}) a échoué (${String(reponse.status)}) : ${JSON.stringify(reponse.body)}`,
+    );
   }
   return reponse.body.donnees as DocumentDeTest;
 }
@@ -144,16 +166,26 @@ async function creerBrouillon(
  *  HTTP pour distinguer un refus (403) d'un succès (200), pas seulement du contenu. */
 async function emettre(tenant: DonneesLot1Tenant, role: RoleUtilisateur, documentId: string) {
   const cookie = await cookiePour(tenant, role);
-  return ctx.requete.post(`/api/v1/documents-vente/${documentId}/emettre`).set('Cookie', cookie).set(EN_TETE_IDEMPOTENCE, randomUUID());
+  return ctx.requete
+    .post(`/api/v1/documents-vente/${documentId}/emettre`)
+    .set('Cookie', cookie)
+    .set(EN_TETE_IDEMPOTENCE, randomUUID());
 }
 
 async function lire(tenant: DonneesLot1Tenant, role: RoleUtilisateur, documentId: string) {
   const cookie = await cookiePour(tenant, role);
-  const reponse = await ctx.requete.get(`/api/v1/documents-vente/${documentId}`).set('Cookie', cookie);
+  const reponse = await ctx.requete
+    .get(`/api/v1/documents-vente/${documentId}`)
+    .set('Cookie', cookie);
   if (reponse.status !== 200) {
-    throw new Error(`lecture document ${documentId} a échoué (${String(reponse.status)}) : ${JSON.stringify(reponse.body)}`);
+    throw new Error(
+      `lecture document ${documentId} a échoué (${String(reponse.status)}) : ${JSON.stringify(reponse.body)}`,
+    );
   }
-  return reponse.body as DocumentDeTest & { numeroSequence: number | null; lignes: readonly { id: string }[] };
+  return reponse.body as DocumentDeTest & {
+    numeroSequence: number | null;
+    lignes: readonly { id: string }[];
+  };
 }
 
 // =================================================================================================
@@ -166,7 +198,7 @@ async function lire(tenant: DonneesLot1Tenant, role: RoleUtilisateur, documentId
 // protection (consigne explicite de la tâche).
 
 describe('émission — contrôle de droit dynamique par typeDocument (RF-114, verifierDroitEmission)', () => {
-  it("chef_atelier peut émettre un devis (droit emettre_devis_bc) mais PAS une facture — RF-114 casse ici la hiérarchie habituelle chef_atelier ⊇ receptionnaire", async () => {
+  it('chef_atelier peut émettre un devis (droit emettre_devis_bc) mais PAS une facture — RF-114 casse ici la hiérarchie habituelle chef_atelier ⊇ receptionnaire', async () => {
     const devis = await creerBrouillon(garage.tenantA, 'chef_atelier', 'devis');
     const reponseDevis = await emettre(garage.tenantA, 'chef_atelier', devis.id);
     expect(reponseDevis.status).toBe(200);
@@ -257,7 +289,7 @@ describe('émission — contrôle de droit dynamique par typeDocument (RF-114, v
 // est donc auto-nettoyant, y compris la tentative d'écriture de la colonne de la liste blanche.
 
 describe('verrouillage post-émission — trigger document_vente_verrouiller_apres_emission (migration 0010 §7.2)', () => {
-  it("un champ hors liste blanche (client_designation_figee) est refusé (ZDFA2) sur une facture ÉMISE", async () => {
+  it('un champ hors liste blanche (client_designation_figee) est refusé (ZDFA2) sur une facture ÉMISE', async () => {
     const facture = await creerBrouillon(garage.tenantA, 'receptionnaire', 'facture');
     const emise = await emettre(garage.tenantA, 'receptionnaire', facture.id);
     expect(emise.status).toBe(200);
@@ -272,7 +304,7 @@ describe('verrouillage post-émission — trigger document_vente_verrouiller_apr
     ).rejects.toMatchObject({ code: 'ZDFA2', table: 'document_vente' });
   });
 
-  it('à l\'inverse, le MÊME champ reste librement modifiable tant que le document est en BROUILLON (contrôle positif — sans lui, le refus ci-dessus pourrait aussi bien signifier une table cassée)', async () => {
+  it("à l'inverse, le MÊME champ reste librement modifiable tant que le document est en BROUILLON (contrôle positif — sans lui, le refus ci-dessus pourrait aussi bien signifier une table cassée)", async () => {
     const devis = await creerBrouillon(garage.tenantA, 'chef_atelier', 'devis');
     const lignes = await requeteSousTenant<{ id: string }>(
       bdd.poolApp,
@@ -302,7 +334,8 @@ describe('verrouillage post-émission — trigger document_vente_verrouiller_apr
     const facture = await creerBrouillon(garage.tenantA, 'receptionnaire', 'facture');
     const emise = await emettre(garage.tenantA, 'receptionnaire', facture.id);
     expect(emise.status).toBe(200);
-    const ligneId = (emise.body as { donnees: { lignes: readonly { id: string }[] } }).donnees.lignes[0]!.id;
+    const ligneId = (emise.body as { donnees: { lignes: readonly { id: string }[] } }).donnees
+      .lignes[0]!.id;
 
     await expect(
       requeteSousTenant(
@@ -329,25 +362,30 @@ describe('numérotation continue, sans trou (RF-20/RF-23/RF-24) — tenant B, ty
     const docA = await creerBrouillon(garage.tenantB, 'chef_atelier', 'devis');
     const emisA = await emettre(garage.tenantB, 'chef_atelier', docA.id);
     expect(emisA.status).toBe(200);
-    const donneesA = (emisA.body as { donnees: DocumentDeTest & { numeroSequence: number } }).donnees;
+    const donneesA = (emisA.body as { donnees: DocumentDeTest & { numeroSequence: number } })
+      .donnees;
     const sequenceA = donneesA.numeroSequence;
     expect(Number.isInteger(sequenceA)).toBe(true);
 
     const docB = await creerBrouillon(garage.tenantB, 'chef_atelier', 'devis');
     const emisB = await emettre(garage.tenantB, 'chef_atelier', docB.id);
     expect(emisB.status).toBe(200);
-    const donneesB = (emisB.body as { donnees: DocumentDeTest & { numeroSequence: number } }).donnees;
+    const donneesB = (emisB.body as { donnees: DocumentDeTest & { numeroSequence: number } })
+      .donnees;
     expect(donneesB.numeroSequence).toBe(sequenceA + 1);
 
     const anneeCourante = new Date().getUTCFullYear();
-    expect(donneesB.numero).toBe(`${String(anneeCourante)}-${String(sequenceA + 1).padStart(5, '0')}`);
+    expect(donneesB.numero).toBe(
+      `${String(anneeCourante)}-${String(sequenceA + 1).padStart(5, '0')}`,
+    );
   });
 
-  it("une émission REFUSÉE (droit insuffisant) NE consomme AUCUN numéro : la séquence reste consécutive malgré la tentative avortée entre les deux", async () => {
+  it('une émission REFUSÉE (droit insuffisant) NE consomme AUCUN numéro : la séquence reste consécutive malgré la tentative avortée entre les deux', async () => {
     const docC = await creerBrouillon(garage.tenantB, 'chef_atelier', 'devis');
     const emisC = await emettre(garage.tenantB, 'chef_atelier', docC.id);
     expect(emisC.status).toBe(200);
-    const sequenceC = (emisC.body as { donnees: { numeroSequence: number } }).donnees.numeroSequence;
+    const sequenceC = (emisC.body as { donnees: { numeroSequence: number } }).donnees
+      .numeroSequence;
 
     const docD = await creerBrouillon(garage.tenantB, 'chef_atelier', 'devis');
     // admin n'a AUCUN droit d'émission (RF-115) : la tentative doit échouer AVANT `genererNumeroDocument`.
@@ -356,7 +394,8 @@ describe('numérotation continue, sans trou (RF-20/RF-23/RF-24) — tenant B, ty
 
     const emisD = await emettre(garage.tenantB, 'chef_atelier', docD.id);
     expect(emisD.status).toBe(200);
-    const sequenceD = (emisD.body as { donnees: { numeroSequence: number } }).donnees.numeroSequence;
+    const sequenceD = (emisD.body as { donnees: { numeroSequence: number } }).donnees
+      .numeroSequence;
     expect(sequenceD).toBe(sequenceC + 1); // PAS +2 : le refus n'a rien brûlé.
   });
 });
@@ -374,14 +413,34 @@ describe('numérotation continue, sans trou (RF-20/RF-23/RF-24) — tenant B, ty
 describe("arithmétique à l'émission — centimes exacts, TTC fait foi (§0.2)", () => {
   it('deux lignes + remise globale en pour-mille : ΣHT + ΣTVA = ΣTTC exactement, remise globale ventilée sans reste', async () => {
     const lignes: readonly LigneCreationTest[] = [
-      { type: 'forfait', designation: 'Forfait diagnostic', quantiteMillieme: 1000, prixUnitaireTtcCentimes: 7000, tauxTvaPourmille: 81, datePrestation: '2026-07-29' },
-      { type: 'piece', designation: 'Pièce détachée', quantiteMillieme: 1000, prixUnitaireTtcCentimes: 24_500_00, tauxTvaPourmille: 81, datePrestation: '2026-07-29' },
+      {
+        type: 'forfait',
+        designation: 'Forfait diagnostic',
+        quantiteMillieme: 1000,
+        prixUnitaireTtcCentimes: 7000,
+        tauxTvaPourmille: 81,
+        datePrestation: '2026-07-29',
+      },
+      {
+        type: 'piece',
+        designation: 'Pièce détachée',
+        quantiteMillieme: 1000,
+        prixUnitaireTtcCentimes: 24_500_00,
+        tauxTvaPourmille: 81,
+        datePrestation: '2026-07-29',
+      },
     ];
-    const doc = await creerBrouillon(garage.tenantA, 'receptionnaire', 'facture', lignes, { remiseGlobalePourmille: 100 });
+    const doc = await creerBrouillon(garage.tenantA, 'receptionnaire', 'facture', lignes, {
+      remiseGlobalePourmille: 100,
+    });
     const emis = await emettre(garage.tenantA, 'receptionnaire', doc.id);
     expect(emis.status).toBe(200);
 
-    const d = (emis.body as { donnees: { totalHtCentimes: number; totalTvaCentimes: number; totalTtcCentimes: number } }).donnees;
+    const d = (
+      emis.body as {
+        donnees: { totalHtCentimes: number; totalTvaCentimes: number; totalTtcCentimes: number };
+      }
+    ).donnees;
     expect(Number.isInteger(d.totalHtCentimes)).toBe(true);
     expect(Number.isInteger(d.totalTvaCentimes)).toBe(true);
     expect(Number.isInteger(d.totalTtcCentimes)).toBe(true);

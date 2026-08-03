@@ -48,7 +48,12 @@ export class ValeursFigeesDocumentDto implements ValeursFigeesDocument {
   @ApiProperty({ type: () => AdresseStructureeQrDto, nullable: true })
   readonly adresseFacturation!: AdresseStructureeQr | null;
 
-  @ApiPropertyOptional({ type: 'object', nullable: true, additionalProperties: true, description: 'Absent pour un rôle sans droit aux montants.' })
+  @ApiPropertyOptional({
+    type: 'object',
+    nullable: true,
+    additionalProperties: true,
+    description: 'Absent pour un rôle sans droit aux montants.',
+  })
   readonly conditionsPaiement?: Readonly<Record<string, unknown>> | null;
 
   @ApiProperty({ type: String, nullable: true })
@@ -69,7 +74,10 @@ export class DocumentVenteTvaDto implements DocumentVenteTva {
   readonly tvaCentimes!: number;
 }
 
-const NOM_AFFICHE_PROPERTIES = { utilisateurId: { type: 'string' as const, format: 'uuid' }, nomAffiche: { type: 'string' as const } };
+const NOM_AFFICHE_PROPERTIES = {
+  utilisateurId: { type: 'string' as const, format: 'uuid' },
+  nomAffiche: { type: 'string' as const },
+};
 
 export class ReponseDocumentVenteDto implements ReponseDocumentVente {
   @ApiProperty({ format: 'uuid' })
@@ -99,7 +107,11 @@ export class ReponseDocumentVenteDto implements ReponseDocumentVente {
   @ApiProperty({ enum: STATUTS_DOCUMENT_VENTE })
   readonly statut!: ReponseDocumentVente['statut'];
 
-  @ApiPropertyOptional({ enum: STATUTS_REGLEMENT_DOCUMENT, nullable: true, description: 'Absent pour un rôle sans droit aux montants.' })
+  @ApiPropertyOptional({
+    enum: STATUTS_REGLEMENT_DOCUMENT,
+    nullable: true,
+    description: 'Absent pour un rôle sans droit aux montants.',
+  })
   readonly statutReglement?: ReponseDocumentVente['statutReglement'];
 
   @ApiProperty({ format: 'uuid' })
@@ -159,7 +171,10 @@ export class ReponseDocumentVenteDto implements ReponseDocumentVente {
   @ApiPropertyOptional({ description: 'Absent pour un rôle sans droit aux montants.' })
   readonly totalTtcCentimes?: number;
 
-  @ApiPropertyOptional({ type: () => [DocumentVenteTvaDto], description: 'Absent pour un rôle sans droit aux montants.' })
+  @ApiPropertyOptional({
+    type: () => [DocumentVenteTvaDto],
+    description: 'Absent pour un rôle sans droit aux montants.',
+  })
   readonly ventilationTva?: readonly DocumentVenteTva[];
 
   @ApiProperty({ type: Number, nullable: true })
@@ -189,7 +204,12 @@ export class ReponseDocumentVenteDto implements ReponseDocumentVente {
   @ApiProperty({ enum: PORTEES_AVOIR, nullable: true })
   readonly porteeAvoir!: ReponseDocumentVente['porteeAvoir'];
 
-  @ApiProperty({ type: 'object', nullable: true, additionalProperties: true, description: 'Figé à l\'émission — propriété du sous-module `qr/`, toujours `null` ici.' })
+  @ApiProperty({
+    type: 'object',
+    nullable: true,
+    additionalProperties: true,
+    description: "Figé à l'émission — propriété du sous-module `qr/`, toujours `null` ici.",
+  })
   readonly qr!: ReponseDocumentVente['qr'];
 
   @ApiProperty({ type: String, nullable: true })
@@ -213,7 +233,9 @@ export class ReponseDocumentVenteDto implements ReponseDocumentVente {
   @ApiProperty()
   readonly nombreLignes!: number;
 
-  @ApiProperty({ description: 'Au-delà de 200 lignes, `lignes` est tronqué : paginer `GET .../lignes`.' })
+  @ApiProperty({
+    description: 'Au-delà de 200 lignes, `lignes` est tronqué : paginer `GET .../lignes`.',
+  })
   readonly lignesTronquees!: boolean;
 
   @ApiProperty({ description: 'Rendu aussi en en-tête `ETag: W/"<version>"`.' })

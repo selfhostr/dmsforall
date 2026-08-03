@@ -48,11 +48,21 @@ function porteAnomalieNonTraitee(pointage: ReponsePointage): boolean {
  *  `GET /pointages?debutDu=&debutAu=`) par technicien. Tri de sortie : le plus présent d'abord
  *  (`presenceSecondes` décroissant) — lecture naturelle pour un chef d'atelier qui balaie sa
  *  journée du haut vers le bas. */
-export function calculerCumulsParTechnicien(pointages: readonly ReponsePointage[]): readonly CumulTechnicienPeriode[] {
-  const parTechnicien = new Map<string, { productif: number; indirect: number; enCours: boolean; anomalies: number }>();
+export function calculerCumulsParTechnicien(
+  pointages: readonly ReponsePointage[],
+): readonly CumulTechnicienPeriode[] {
+  const parTechnicien = new Map<
+    string,
+    { productif: number; indirect: number; enCours: boolean; anomalies: number }
+  >();
 
   for (const pointage of pointages) {
-    const entree = parTechnicien.get(pointage.technicienId) ?? { productif: 0, indirect: 0, enCours: false, anomalies: 0 };
+    const entree = parTechnicien.get(pointage.technicienId) ?? {
+      productif: 0,
+      indirect: 0,
+      enCours: false,
+      anomalies: 0,
+    };
     const secondes = dureeComptabilisable(pointage);
     if (estProductif(pointage)) {
       entree.productif += secondes;
@@ -78,7 +88,9 @@ export function calculerCumulsParTechnicien(pointages: readonly ReponsePointage[
 
 /** Cumul total (tous techniciens confondus) d'un lot de pointages — ligne « Total » d'un tableau
  *  jour/semaine. */
-export function calculerCumulTotal(pointages: readonly ReponsePointage[]): Omit<CumulTechnicienPeriode, 'technicienId'> {
+export function calculerCumulTotal(
+  pointages: readonly ReponsePointage[],
+): Omit<CumulTechnicienPeriode, 'technicienId'> {
   const cumuls = calculerCumulsParTechnicien(pointages);
   let productifSecondes = 0;
   let indirectSecondes = 0;

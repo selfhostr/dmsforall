@@ -4,7 +4,17 @@
  * Détail des règles, triggers et machine à états : migrations/0032_ventes.sql.
  */
 
-import { check, foreignKey, index, integer, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 import { colonneId, colonnesHorodatage } from '../colonnes-communes';

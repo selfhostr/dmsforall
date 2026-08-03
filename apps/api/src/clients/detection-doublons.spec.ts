@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import type { TransactionDfa } from '../db';
 import { detecterDoublons } from './detection-doublons';
 
-type LigneBrute = { readonly client_id: string; readonly numero: string; readonly nom: string; readonly npa: string | null };
+type LigneBrute = {
+  readonly client_id: string;
+  readonly numero: string;
+  readonly nom: string;
+  readonly npa: string | null;
+};
 
 /**
  * Fausse transaction dont `execute()` rend, dans l'ORDRE D'APPEL, les jeux de lignes fournis.
@@ -33,10 +38,19 @@ describe('detecterDoublons — critère "nom" jamais utilisé seul (RM-05, conse
   });
 
   it('nomComplet ET npa ensemble déclenchent la recherche "nom_npa", score 0.6', async () => {
-    const tx = txFactice([[{ client_id: 'c1', numero: 'CL-000001', nom: 'Dupont Jean', npa: '1000' }]]);
+    const tx = txFactice([
+      [{ client_id: 'c1', numero: 'CL-000001', nom: 'Dupont Jean', npa: '1000' }],
+    ]);
     const candidats = await detecterDoublons(tx, 'tid', { nomComplet: 'Dupont Jean', npa: '1000' });
     expect(candidats).toEqual([
-      { clientId: 'c1', numeroClient: 'CL-000001', nom: 'Dupont Jean', npa: '1000', critere: 'nom_npa', score: 0.6 },
+      {
+        clientId: 'c1',
+        numeroClient: 'CL-000001',
+        nom: 'Dupont Jean',
+        npa: '1000',
+        critere: 'nom_npa',
+        score: 0.6,
+      },
     ]);
   });
 });
@@ -46,7 +60,10 @@ describe('detecterDoublons — un même client retrouvé par plusieurs critères
     const memeClient = { client_id: 'c1', numero: 'CL-000001', nom: 'Garage Martin SA', npa: null };
     // Ordre d'exécution du code : email avant ide (pas de nomComplet/npa, pas de téléphone ici).
     const tx = txFactice([[memeClient], [memeClient]]);
-    const candidats = await detecterDoublons(tx, 'tid', { email: 'contact@martin.ch', ide: 'CHE-123.456.789' });
+    const candidats = await detecterDoublons(tx, 'tid', {
+      email: 'contact@martin.ch',
+      ide: 'CHE-123.456.789',
+    });
     expect(candidats).toHaveLength(1);
     expect(candidats[0]).toMatchObject({ clientId: 'c1', critere: 'ide', score: 1 });
   });
@@ -55,14 +72,19 @@ describe('detecterDoublons — un même client retrouvé par plusieurs critères
     const memeClient = { client_id: 'c1', numero: 'CL-000001', nom: 'Garage Martin SA', npa: null };
     // Ordre d'exécution du code : email est exécuté AVANT ide, quel que soit l'ordre de saisie des critères.
     const tx = txFactice([[memeClient], [memeClient]]);
-    const candidats = await detecterDoublons(tx, 'tid', { ide: 'CHE-123.456.789', email: 'contact@martin.ch' });
+    const candidats = await detecterDoublons(tx, 'tid', {
+      ide: 'CHE-123.456.789',
+      email: 'contact@martin.ch',
+    });
     expect(candidats[0]).toMatchObject({ critere: 'ide', score: 1 });
   });
 });
 
 describe('detecterDoublons — tri par score décroissant, du plus fiable au moins fiable', () => {
   it('un candidat trouvé par email (0.9) précède un candidat trouvé par nom+npa (0.6)', async () => {
-    const parNomNpa = [{ client_id: 'c-nom', numero: 'CL-000001', nom: 'Dupont Jean', npa: '1000' }];
+    const parNomNpa = [
+      { client_id: 'c-nom', numero: 'CL-000001', nom: 'Dupont Jean', npa: '1000' },
+    ];
     const parEmail = [{ client_id: 'c-email', numero: 'CL-000002', nom: 'Muster Hans', npa: null }];
     // Ordre d'exécution du code : nom_npa avant email.
     const tx = txFactice([parNomNpa, parEmail]);
@@ -77,10 +99,19 @@ describe('detecterDoublons — tri par score décroissant, du plus fiable au moi
 
 describe('detecterDoublons — critère téléphone (E.164)', () => {
   it('un candidat retrouvé par téléphone porte le score 0.8', async () => {
-    const tx = txFactice([[{ client_id: 'c1', numero: 'CL-000003', nom: 'Dupont Jean', npa: null }]]);
+    const tx = txFactice([
+      [{ client_id: 'c1', numero: 'CL-000003', nom: 'Dupont Jean', npa: null }],
+    ]);
     const candidats = await detecterDoublons(tx, 'tid', { telephoneE164: '+41791234567' });
     expect(candidats).toEqual([
-      { clientId: 'c1', numeroClient: 'CL-000003', nom: 'Dupont Jean', npa: null, critere: 'telephone', score: 0.8 },
+      {
+        clientId: 'c1',
+        numeroClient: 'CL-000003',
+        nom: 'Dupont Jean',
+        npa: null,
+        critere: 'telephone',
+        score: 0.8,
+      },
     ]);
   });
 });

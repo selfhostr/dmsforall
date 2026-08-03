@@ -1,11 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { schemaCreationFournisseur, schemaModificationFournisseur, type ReponseFournisseur } from '@dfa/shared';
+import {
+  schemaCreationFournisseur,
+  schemaModificationFournisseur,
+  type ReponseFournisseur,
+} from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ChampTelephone } from '@/composants/comptoir/ChampTelephone';
@@ -27,15 +37,23 @@ interface ValeursFormulaireFournisseur {
   readonly delaiHabituelJours: string;
 }
 
-const VALEURS_VIDES: ValeursFormulaireFournisseur = { nom: '', email: '', telephone: '', delaiHabituelJours: '' };
+const VALEURS_VIDES: ValeursFormulaireFournisseur = {
+  nom: '',
+  email: '',
+  telephone: '',
+  delaiHabituelJours: '',
+};
 
-function versValeursFormulaire(fournisseur: ReponseFournisseur | undefined): ValeursFormulaireFournisseur {
+function versValeursFormulaire(
+  fournisseur: ReponseFournisseur | undefined,
+): ValeursFormulaireFournisseur {
   if (!fournisseur) return VALEURS_VIDES;
   return {
     nom: fournisseur.nom,
     email: fournisseur.email ?? '',
     telephone: fournisseur.telephone ?? '',
-    delaiHabituelJours: fournisseur.delaiHabituelJours === null ? '' : String(fournisseur.delaiHabituelJours),
+    delaiHabituelJours:
+      fournisseur.delaiHabituelJours === null ? '' : String(fournisseur.delaiHabituelJours),
   };
 }
 
@@ -69,7 +87,10 @@ export function FormulaireFournisseur({ ouvert, onOuvertChange, fournisseur, onC
 
     const delaiSaisi = valeurs.delaiHabituelJours.trim();
     const delaiHabituelJours = delaiSaisi === '' ? null : Number.parseInt(delaiSaisi, 10);
-    if (delaiSaisi !== '' && (delaiHabituelJours === null || Number.isNaN(delaiHabituelJours) || delaiHabituelJours < 0)) {
+    if (
+      delaiSaisi !== '' &&
+      (delaiHabituelJours === null || Number.isNaN(delaiHabituelJours) || delaiHabituelJours < 0)
+    ) {
       setErreurDelai(true);
       return;
     }
@@ -84,7 +105,8 @@ export function FormulaireFournisseur({ ouvert, onOuvertChange, fournisseur, onC
     if (estModification && fournisseur) {
       const resultat = schemaModificationFournisseur.safeParse(objetNu);
       if (!resultat.success) {
-        if (resultat.error.issues.some((probleme) => probleme.path[0] === 'nom')) setErreurNom(true);
+        if (resultat.error.issues.some((probleme) => probleme.path[0] === 'nom'))
+          setErreurNom(true);
         return;
       }
       modifier.mutate(resultat.data, { onSuccess: () => onOuvertChange(false) });
@@ -111,7 +133,9 @@ export function FormulaireFournisseur({ ouvert, onOuvertChange, fournisseur, onC
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {estModification ? t('pieces:fournisseurs.actions.modifier') : t('pieces:fournisseurs.actions.ajouter')}
+            {estModification
+              ? t('pieces:fournisseurs.actions.modifier')
+              : t('pieces:fournisseurs.actions.ajouter')}
           </DialogTitle>
         </DialogHeader>
 
@@ -132,7 +156,9 @@ export function FormulaireFournisseur({ ouvert, onOuvertChange, fournisseur, onC
               value={valeurs.nom}
               onChange={(evenement) => setValeurs((v) => ({ ...v, nom: evenement.target.value }))}
             />
-            {erreurNom ? <p className="texte-libelle text-destructive">{t('validation:requis')}</p> : null}
+            {erreurNom ? (
+              <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -164,9 +190,13 @@ export function FormulaireFournisseur({ ouvert, onOuvertChange, fournisseur, onC
               readOnly={enCours}
               aria-invalid={erreurDelai ? true : undefined}
               value={valeurs.delaiHabituelJours}
-              onChange={(evenement) => setValeurs((v) => ({ ...v, delaiHabituelJours: evenement.target.value }))}
+              onChange={(evenement) =>
+                setValeurs((v) => ({ ...v, delaiHabituelJours: evenement.target.value }))
+              }
             />
-            {erreurDelai ? <p className="texte-libelle text-destructive">{t('validation:requis')}</p> : null}
+            {erreurDelai ? (
+              <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+            ) : null}
           </div>
 
           {erreur ? (
@@ -176,7 +206,12 @@ export function FormulaireFournisseur({ ouvert, onOuvertChange, fournisseur, onC
           ) : null}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOuvertChange(false)} disabled={enCours}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOuvertChange(false)}
+              disabled={enCours}
+            >
               {t('commun:actions.annuler')}
             </Button>
             <Button type="submit" disabled={enCours}>

@@ -158,7 +158,9 @@ export const schemaModificationConnecteurActivation = z.object({
   parametres: z.record(z.string(), z.unknown()).optional(),
   politiqueNouvellesTentatives: schemaPolitiqueNouvellesTentativesConnecteur.nullish(),
 });
-export type EntreeModificationConnecteurActivation = z.infer<typeof schemaModificationConnecteurActivation>;
+export type EntreeModificationConnecteurActivation = z.infer<
+  typeof schemaModificationConnecteurActivation
+>;
 
 /**
  * `POST /connecteurs/activations/{id}/activer` — `inactif → actif`. Refuse `409
@@ -185,4 +187,6 @@ export type EntreeModificationConnecteurActivation = z.infer<typeof schemaModifi
 export const schemaConfigurationSecretConnecteur = z.object({
   secretReferenceId: schemaIdentifiant,
 });
-export type EntreeConfigurationSecretConnecteur = z.infer<typeof schemaConfigurationSecretConnecteur>;
+export type EntreeConfigurationSecretConnecteur = z.infer<
+  typeof schemaConfigurationSecretConnecteur
+>;

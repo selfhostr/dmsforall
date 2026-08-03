@@ -30,7 +30,7 @@ describe('Miroir TYPES_ELEMENT_BLOQUANT -> erreurs:blocages.<type>', () => {
 
       expect(
         manquantes,
-        `il manque blocages.${type} en ${manquantes.join(', ') || 'aucune langue (ne devrait pas s\'afficher)'}`,
+        `il manque blocages.${type} en ${manquantes.join(', ') || "aucune langue (ne devrait pas s'afficher)"}`,
       ).toHaveLength(0);
     },
   );

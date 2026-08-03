@@ -41,7 +41,12 @@ interface ChampsCorpsFacultatifs {
  * `ProblemeDetail`) : un `JSON.stringify` d'une clé `undefined` la fait disparaître, mais
  * autant ne jamais la poser sur l'objet plutôt que de compter sur ce comportement.
  */
-function construireCorps(code: CodeErreur, status: number, instance: string, champs: ChampsCorpsFacultatifs = {}): ProblemeDetail {
+function construireCorps(
+  code: CodeErreur,
+  status: number,
+  instance: string,
+  champs: ChampsCorpsFacultatifs = {},
+): ProblemeDetail {
   const { detail, erreurs, blocages, confirmationsRequises, actionsProposees } = champs;
   return {
     type: `${TYPE_BASE}/${code}`,
@@ -145,7 +150,9 @@ export class FiltreProbleme implements ExceptionFilter {
           reponse.setHeader('Retry-After', String(corpsSource.retryApresSecondes));
         }
 
-        const corps = construireCorps(corpsSource.code, status, instance, { erreurs: corpsSource.erreurs });
+        const corps = construireCorps(corpsSource.code, status, instance, {
+          erreurs: corpsSource.erreurs,
+        });
         reponse.status(status).contentType('application/problem+json').json(corps);
         return;
       }
@@ -189,7 +196,10 @@ export class FiltreProbleme implements ExceptionFilter {
 
       // Statut D'ORIGINE déjà serveur (>= 500) : comportement inchangé — ERREUR_INTERNE/500,
       // journalisé en erreur et envoyé à Sentry (incident réel, jamais du trafic routinier).
-      this.journal.error('HttpException Nest non mappée', exception, { requeteId: instance, status });
+      this.journal.error('HttpException Nest non mappée', exception, {
+        requeteId: instance,
+        status,
+      });
       capturerErreurInattendue(exception, contexteSentry);
       const corps = construireCorps('ERREUR_INTERNE', 500, instance);
       reponse.status(500).contentType('application/problem+json').json(corps);
@@ -198,7 +208,9 @@ export class FiltreProbleme implements ExceptionFilter {
 
     // Tout le reste (erreur de programmation, exception non typée…) : jamais exposé tel
     // quel. On journalise la vraie erreur, on renvoie un ERREUR_INTERNE générique.
-    this.journal.error('Exception non typée capturée par FiltreProbleme', exception, { requeteId: instance });
+    this.journal.error('Exception non typée capturée par FiltreProbleme', exception, {
+      requeteId: instance,
+    });
     capturerErreurInattendue(exception, contexteSentry);
     const corps = construireCorps('ERREUR_INTERNE', 500, instance);
     reponse.status(500).contentType('application/problem+json').json(corps);

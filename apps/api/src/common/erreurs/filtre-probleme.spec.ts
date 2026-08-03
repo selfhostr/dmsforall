@@ -29,7 +29,9 @@ const PRINCIPAL_TEST: PrincipalAuthentifie = {
   langue: 'fr',
 };
 
-function serviceContexteTest(principal: PrincipalAuthentifie | null = null): ServiceContexteRequete {
+function serviceContexteTest(
+  principal: PrincipalAuthentifie | null = null,
+): ServiceContexteRequete {
   return {
     actuelOuNull: vi.fn().mockReturnValue({
       requeteId: 'requete-id-1',
@@ -43,7 +45,12 @@ function serviceContexteTest(principal: PrincipalAuthentifie | null = null): Ser
 }
 
 function serviceJournalTest(): ServiceJournal {
-  return { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as ServiceJournal;
+  return {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  } as unknown as ServiceJournal;
 }
 
 /** Requête HTTP simulée — `route.path` est le PATRON (ex. `/clients/:id`), jamais l'URL résolue. */
@@ -94,7 +101,7 @@ describe('FiltreProbleme — envoi Sentry réservé aux erreurs INATTENDUES', ()
     });
   });
 
-  it('ne capture PAS une ErreurMetier normale (401 identifiants invalides) — ce n\'est pas un incident', () => {
+  it("ne capture PAS une ErreurMetier normale (401 identifiants invalides) — ce n'est pas un incident", () => {
     const filtre = new FiltreProbleme(serviceContexteTest(), serviceJournalTest());
     const exception = new ErreurMetier('AUTH_IDENTIFIANTS_INVALIDES', 'identifiants invalides');
 
@@ -103,7 +110,7 @@ describe('FiltreProbleme — envoi Sentry réservé aux erreurs INATTENDUES', ()
     expect(capturerErreurInattendue).not.toHaveBeenCalled();
   });
 
-  it('ne capture PAS une HttpException déjà porteuse d\'un code métier (ex. ErreurIdentifiantsInvalides du module auth)', () => {
+  it("ne capture PAS une HttpException déjà porteuse d'un code métier (ex. ErreurIdentifiantsInvalides du module auth)", () => {
     const filtre = new FiltreProbleme(serviceContexteTest(), serviceJournalTest());
     const exception = new ErreurIdentifiantsInvalides();
 
@@ -150,7 +157,7 @@ describe('FiltreProbleme — envoi Sentry réservé aux erreurs INATTENDUES', ()
     expect(capturerErreurInattendue).not.toHaveBeenCalled();
   });
 
-  it('capture une HttpException générique dont le statut D\'ORIGINE est déjà serveur (>= 500) — comportement 5xx inchangé, normalisé en 500', () => {
+  it("capture une HttpException générique dont le statut D'ORIGINE est déjà serveur (>= 500) — comportement 5xx inchangé, normalisé en 500", () => {
     const filtre = new FiltreProbleme(serviceContexteTest(), serviceJournalTest());
     const reponse = reponseTest();
     const exception = new HttpException('service externe indisponible', HttpStatus.BAD_GATEWAY);
@@ -177,9 +184,14 @@ describe('FiltreProbleme — envoi Sentry réservé aux erreurs INATTENDUES', ()
   it('une exception non typée (erreur de programmation) reste toujours un 500, sans détail interne exposé', () => {
     const filtre = new FiltreProbleme(serviceContexteTest(PRINCIPAL_TEST), serviceJournalTest());
     const reponse = reponseTest();
-    const exceptionNonTypee = new TypeError('undefined is not a function — détail interne sensible');
+    const exceptionNonTypee = new TypeError(
+      'undefined is not a function — détail interne sensible',
+    );
 
-    filtre.catch(exceptionNonTypee, hostTest(requeteTest({ routePath: '/api/v1/atelier/or/:id' }), reponse));
+    filtre.catch(
+      exceptionNonTypee,
+      hostTest(requeteTest({ routePath: '/api/v1/atelier/or/:id' }), reponse),
+    );
 
     expect(reponse.status).toHaveBeenCalledWith(500);
     const corpsEnvoye = (reponse.json as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
@@ -191,18 +203,24 @@ describe('FiltreProbleme — envoi Sentry réservé aux erreurs INATTENDUES', ()
     const filtre = new FiltreProbleme(serviceContexteTest(PRINCIPAL_TEST), serviceJournalTest());
     const exception = new TypeError('undefined is not a function');
 
-    filtre.catch(exception, hostTest(requeteTest({ routePath: '/api/v1/atelier/or/:id' }), reponseTest()));
+    filtre.catch(
+      exception,
+      hostTest(requeteTest({ routePath: '/api/v1/atelier/or/:id' }), reponseTest()),
+    );
 
     expect(capturerErreurInattendue).toHaveBeenCalledTimes(1);
     const contexteEnvoye = capturerErreurInattendue.mock.calls[0]?.[1];
     expect(contexteEnvoye.endpoint).toBe('/api/v1/atelier/or/:id');
   });
 
-  it('n\'a jamais l\'URL résolue (avec ses valeurs de paramètre) comme endpoint — seulement le patron de route', () => {
+  it("n'a jamais l'URL résolue (avec ses valeurs de paramètre) comme endpoint — seulement le patron de route", () => {
     const filtre = new FiltreProbleme(serviceContexteTest(), serviceJournalTest());
     // route.path absent (peut arriver avant résolution complète du routeur) : endpoint doit
     // rester undefined plutôt que de retomber sur `requete.url`, qui porterait un VIN/plaque/id.
-    const requete = requeteTest({ routePath: undefined, url: '/api/v1/vehicules/WVWZZZ1KZAW123456' });
+    const requete = requeteTest({
+      routePath: undefined,
+      url: '/api/v1/vehicules/WVWZZZ1KZAW123456',
+    });
 
     filtre.catch(new Error('boum'), hostTest(requete, reponseTest()));
 
@@ -210,7 +228,7 @@ describe('FiltreProbleme — envoi Sentry réservé aux erreurs INATTENDUES', ()
     expect(contexteEnvoye.endpoint).toBeUndefined();
   });
 
-  it('n\'envoie jamais tenantId/role si aucun principal n\'est attaché au contexte (route publique)', () => {
+  it("n'envoie jamais tenantId/role si aucun principal n'est attaché au contexte (route publique)", () => {
     const filtre = new FiltreProbleme(serviceContexteTest(null), serviceJournalTest());
 
     filtre.catch(new Error('boum'), hostTest(requeteTest(), reponseTest()));
@@ -226,7 +244,7 @@ describe('FiltreProbleme — blocages, confirmationsRequises et actionsProposees
     vi.clearAllMocks();
   });
 
-  it('émet blocages ET actionsProposees dans le corps problem+json d\'un refus complet (409 OR_LIGNES_A_VALIDER)', () => {
+  it("émet blocages ET actionsProposees dans le corps problem+json d'un refus complet (409 OR_LIGNES_A_VALIDER)", () => {
     const filtre = new FiltreProbleme(serviceContexteTest(PRINCIPAL_TEST), serviceJournalTest());
     const reponse = reponseTest();
     const blocages: readonly ElementBloquant[] = [
@@ -256,7 +274,7 @@ describe('FiltreProbleme — blocages, confirmationsRequises et actionsProposees
     expect(corpsEnvoye).not.toHaveProperty('confirmationsRequises');
   });
 
-  it('émet confirmationsRequises dans le corps problem+json d\'un 409 CONFIRMATION_REQUISE', () => {
+  it("émet confirmationsRequises dans le corps problem+json d'un 409 CONFIRMATION_REQUISE", () => {
     const filtre = new FiltreProbleme(serviceContexteTest(PRINCIPAL_TEST), serviceJournalTest());
     const reponse = reponseTest();
     const exception = new ErreurMetier('CONFIRMATION_REQUISE', 'confirmation requise', {
@@ -299,7 +317,9 @@ describe('FiltreProbleme — blocages, confirmationsRequises et actionsProposees
     const blocages: readonly ElementBloquant[] = [
       { type: 'technicien', id: 'technicien-1', libelle: 'Pointage ouvert — Jean Dupont' },
     ];
-    const exception = new ErreurMetier('ERREUR_INTERNE', 'panne interne pendant la clôture', { blocages });
+    const exception = new ErreurMetier('ERREUR_INTERNE', 'panne interne pendant la clôture', {
+      blocages,
+    });
 
     filtre.catch(exception, hostTest(requete, reponse));
 

@@ -26,7 +26,12 @@ export class ArticleReferenceDto implements ReponseArticleReference {
   @ApiProperty()
   readonly reference!: string;
 
-  @ApiProperty({ type: String, format: 'uuid', nullable: true, description: "Obligatoire et UNIQUEMENT pour `type = 'fournisseur'` (RP-02)." })
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description: "Obligatoire et UNIQUEMENT pour `type = 'fournisseur'` (RP-02).",
+  })
   readonly fournisseurId!: string | null;
 
   @ApiProperty({ format: 'date-time' })
@@ -40,7 +45,9 @@ export class StockResumeArticleDto implements StockResumeArticle {
   @ApiProperty()
   readonly quantitePhysiqueMillieme!: number;
 
-  @ApiProperty({ description: 'quantitePhysiqueMillieme - quantiteReserveeMillieme (RP-14), dérivé.' })
+  @ApiProperty({
+    description: 'quantitePhysiqueMillieme - quantiteReserveeMillieme (RP-14), dérivé.',
+  })
   readonly quantiteDisponibleMillieme!: number;
 }
 
@@ -48,7 +55,10 @@ export class ArticleDto implements ReponseArticle {
   @ApiProperty({ format: 'uuid' })
   readonly id!: string;
 
-  @ApiProperty({ example: 'P-000123', description: 'Généré par le serveur, unique par tenant (RP-08). Jamais fourni en entrée.' })
+  @ApiProperty({
+    example: 'P-000123',
+    description: 'Généré par le serveur, unique par tenant (RP-08). Jamais fourni en entrée.',
+  })
   readonly numeroArticle!: string;
 
   @ApiProperty()
@@ -81,16 +91,31 @@ export class ArticleDto implements ReponseArticle {
   @ApiProperty({ description: 'TVA comprise, jamais HT + TVA ajoutée à l’écran.' })
   readonly prixVenteTtcCentimes!: number;
 
-  @ApiProperty({ description: 'Taux courant appliqué par défaut à une nouvelle ligne référençant cet article (RP-36).' })
+  @ApiProperty({
+    description:
+      'Taux courant appliqué par défaut à une nouvelle ligne référençant cet article (RP-36).',
+  })
   readonly tauxTvaPourmille!: number;
 
-  @ApiProperty({ description: 'Article d’échange standard (alternateur, démarreur…) — active la saisie d’une consigne à la pose (RP-37).' })
+  @ApiProperty({
+    description:
+      'Article d’échange standard (alternateur, démarreur…) — active la saisie d’une consigne à la pose (RP-37).',
+  })
   readonly estEchangeStandard!: boolean;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Obligatoire et UNIQUEMENT si estEchangeStandard = true. TTC (RP-38).' })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Obligatoire et UNIQUEMENT si estEchangeStandard = true. TTC (RP-38).',
+  })
   readonly montantConsigneTtcCentimes!: number | null;
 
-  @ApiProperty({ type: String, format: 'uuid', nullable: true, description: 'Renseigné UNIQUEMENT si statut = obsolete et qu’un remplaçant est connu (RP-04).' })
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description: 'Renseigné UNIQUEMENT si statut = obsolete et qu’un remplaçant est connu (RP-04).',
+  })
   readonly referenceRemplacementId!: string | null;
 
   @ApiProperty({ type: () => [ArticleReferenceDto] })
@@ -113,7 +138,11 @@ export class PageArticleDto implements PageCurseur<ArticleDto> {
   @ApiProperty({ type: () => [ArticleDto] })
   readonly donnees!: readonly ArticleDto[];
 
-  @ApiProperty({ type: String, nullable: true, description: 'Opaque base64url ; null = fin de liste.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Opaque base64url ; null = fin de liste.',
+  })
   readonly curseurSuivant!: string | null;
 
   @ApiProperty({ example: 50 })

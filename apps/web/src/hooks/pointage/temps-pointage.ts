@@ -121,7 +121,10 @@ export function formaterDureeLisible(secondes: number): string {
  * Purement AFFICHAGE : la durée de VÉRITÉ (`dureeArrondieCentiemes`, arrondi P-19) n'existe
  * qu'une fois le pointage arrêté et reste calculée par le serveur — ce hook ne l'anticipe jamais.
  */
-export function useChronoPointage(debutLe: string | null | undefined): { readonly secondes: number; readonly libelle: string } {
+export function useChronoPointage(debutLe: string | null | undefined): {
+  readonly secondes: number;
+  readonly libelle: string;
+} {
   const [maintenant, setMaintenant] = useState(() => Date.now());
 
   useEffect(() => {

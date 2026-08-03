@@ -140,7 +140,13 @@ export const statutExportComptableEnum = pgEnum('statut_export_comptable', [
 ]);
 export const modeAgregationExportEnum = pgEnum('mode_agregation_export', ['detaille', 'agrege']);
 /** ⚠️ RF (spec §0.3) : Abacus hors périmètre de l'étape 2, valeur posée quand même (coût nul). */
-export const cibleExportEnum = pgEnum('cible_export', ['bexio', 'winbiz', 'abacus', 'banana', 'csv']);
+export const cibleExportEnum = pgEnum('cible_export', [
+  'bexio',
+  'winbiz',
+  'abacus',
+  'banana',
+  'csv',
+]);
 export const usageMappingCompteEnum = pgEnum('usage_mapping_compte', [
   'creances_clients',
   'produit',

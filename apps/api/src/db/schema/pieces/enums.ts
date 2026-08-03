@@ -46,7 +46,10 @@ export const origineCommandeFournisseurEnum = pgEnum(
 export const typeMouvementStockEnum = pgEnum('type_mouvement_stock', TYPES_MOUVEMENT_STOCK);
 
 // --- 0026 (réservation) ---------------------------------------------------------------------
-export const statutReservationPieceEnum = pgEnum('statut_reservation_piece', STATUTS_RESERVATION_PIECE);
+export const statutReservationPieceEnum = pgEnum(
+  'statut_reservation_piece',
+  STATUTS_RESERVATION_PIECE,
+);
 export const motifLiberationReservationEnum = pgEnum(
   'motif_liberation_reservation',
   MOTIFS_LIBERATION_RESERVATION,

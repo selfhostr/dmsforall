@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { BlocPaiementQrFige } from '@dfa/shared';
 
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
-import { construireDonneesSwissQrBill, langueSwissQrBill, validerLangueFigee } from './donnees-swissqrbill';
+import {
+  construireDonneesSwissQrBill,
+  langueSwissQrBill,
+  validerLangueFigee,
+} from './donnees-swissqrbill';
 
 const CREANCIER_BASE: BlocPaiementQrFige['creancier'] = {
   iban: 'CH4431999123000889012',
@@ -50,7 +54,14 @@ describe('construireDonneesSwissQrBill', () => {
   it('mappe le débiteur quand il est présent', () => {
     const data = construireDonneesSwissQrBill(
       blocQr({
-        debiteur: { nom: 'Jean Dupont', rue: 'Chemin des Fleurs', numero: '3', npa: '1000', localite: 'Lausanne', pays: 'CH' },
+        debiteur: {
+          nom: 'Jean Dupont',
+          rue: 'Chemin des Fleurs',
+          numero: '3',
+          npa: '1000',
+          localite: 'Lausanne',
+          pays: 'CH',
+        },
       }),
       '2026-00010',
     );
@@ -66,7 +77,9 @@ describe('construireDonneesSwissQrBill', () => {
 
   it('numéro de rue absent (null) devient undefined, jamais une chaîne vide', () => {
     const data = construireDonneesSwissQrBill(
-      blocQr({ creancier: { ...CREANCIER_BASE, adresse: { ...CREANCIER_BASE.adresse, numero: null } } }),
+      blocQr({
+        creancier: { ...CREANCIER_BASE, adresse: { ...CREANCIER_BASE.adresse, numero: null } },
+      }),
       '2026-00002',
     );
     expect(data.creditor.buildingNumber).toBeUndefined();
@@ -81,7 +94,10 @@ describe('construireDonneesSwissQrBill', () => {
   });
 
   it("sans référence (typeReferenceQr = 'non') : champ reference absent, pas une chaîne vide", () => {
-    const data = construireDonneesSwissQrBill(blocQr({ typeReferenceQr: 'non', qrReference: null }), '2026-00004');
+    const data = construireDonneesSwissQrBill(
+      blocQr({ typeReferenceQr: 'non', qrReference: null }),
+      '2026-00004',
+    );
     expect(data.reference).toBeUndefined();
   });
 
@@ -91,7 +107,9 @@ describe('construireDonneesSwissQrBill', () => {
   });
 
   it('montant en centimes converti en unité monétaire pleine, sans perte', () => {
-    expect(construireDonneesSwissQrBill(blocQr({ qrMontantCentimes: 123456 }), 'X').amount).toBe(1234.56);
+    expect(construireDonneesSwissQrBill(blocQr({ qrMontantCentimes: 123456 }), 'X').amount).toBe(
+      1234.56,
+    );
     expect(construireDonneesSwissQrBill(blocQr({ qrMontantCentimes: 5 }), 'X').amount).toBe(0.05);
   });
 });

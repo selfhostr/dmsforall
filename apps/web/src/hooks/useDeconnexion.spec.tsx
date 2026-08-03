@@ -52,7 +52,9 @@ describe('useDeconnexion', () => {
   });
 
   it('purge le cache et redirige en cas de succès serveur', async () => {
-    server.use(http.post('/api/v1/auth/deconnexion', () => new HttpResponse(null, { status: 204 })));
+    server.use(
+      http.post('/api/v1/auth/deconnexion', () => new HttpResponse(null, { status: 204 })),
+    );
 
     const { queryClient } = rendre();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Se déconnecter' }));

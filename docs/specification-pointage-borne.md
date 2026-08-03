@@ -6,6 +6,7 @@ Complète `docs/specification-pointage.md` (RM-87 → RM-123) et le contrat déj
 une identification, jamais une authentification, jamais un droit, jamais une session serveur.
 
 Décision de @laupernoe (03.08.2026) : les deux modes coexistent, **paramétrables par SITE** :
+
 - **session personnelle** (comportement actuel, inchangé) — chaque technicien connecté sous son
   propre compte, aucun PIN.
 - **borne partagée** — un poste tactile mural, plusieurs techniciens, mains sales/gantées, sans
@@ -32,7 +33,7 @@ n'étaient pas visibles tant que le mode borne n'était pas spécifié :
 2. **« La session de la borne (compte de service scopé au site, rôle "poste atelier") »** décrite
    dans le contrat `identification.ts` est une PHRASE, pas un mécanisme : aucun rôle `poste_atelier`
    n'existe dans `ROLES_UTILISATEUR` (`admin, direction, vendeur, receptionnaire, chef_atelier,
-   technicien, magasinier, comptable`). Une tablette murale a besoin d'une identité durable,
+technicien, magasinier, comptable`). Une tablette murale a besoin d'une identité durable,
    non personnelle, qui ne dépend pas du mot de passe d'un technicien précis et qui ne se déconnecte
    pas au milieu d'un service. §3 et §4 s'appuient sur cette identité ; **sa modélisation exacte
    (nouveau rôle ? compte technique dédié ?) est une décision à trancher avec `expert-auth`**, posée
@@ -80,6 +81,7 @@ de compte). Il vit sur une **nouvelle table de rattachement** `pin_pointage` :
 modifie_par_utilisateur_id)`, une ligne par (site, technicien) — pas par technicien seul.
 
 Deux raisons, pas une seule :
+
 1. Le contrat `identification.ts` dit déjà littéralement « aucun technicien **actif du site** ne
    porte ce PIN » (ligne 65) — la recherche est scopée par site depuis le premier jour du contrat,
    ce document n'invente rien, il donne juste la table qui rend cette phrase vraie.
@@ -119,6 +121,7 @@ secret serveur séparé. Arbitrage assumé, avec son coût :
 ### 2.3 Unicité
 
 **RM-127** :
+
 - **Même site, deux techniciens, même PIN → REFUSÉ.** Vérifié à l'écriture (attribution ou
   réinitialisation), pas par contrainte `UNIQUE` en base (impossible avec un hash Argon2id salé —
   deux hachages du même PIN ne sont jamais égaux) : le service qui attribue un PIN itère les lignes
@@ -139,6 +142,7 @@ secret serveur séparé. Arbitrage assumé, avec son coût :
 **RM-128** — Nouveau droit dédié, **`atelier.pointage.gerer_pin`**, PAS le même que
 `parametrage.atelier.modifier` (§1). Deux gouvernances différentes pour deux fréquences
 différentes :
+
 - Le mode du site (§1) change rarement, c'est une décision d'organisation → `direction`/`admin`.
 - Attribuer ou réinitialiser un PIN est une action QUOTIDIENNE d'atelier (nouvel embauché,
   technicien qui soupçonne un collègue de connaître son code, oubli) → doit rester disponible au
@@ -176,16 +180,16 @@ signale déjà pour ce point précis) — **délibérément plus courts que le v
 un verrou de plusieurs heures sur une borne partagée bloque TOUTE l'équipe de pointer, pas une seule
 personne — un mauvais compromis business bien pire que le risque résiduel de devinette qu'il évite.
 
-| Paramètre | Valeur proposée | Raison |
-|---|---|---|
-| Seuil avant premier verrou | 5 échecs consécutifs (identique au seuil compte, cohérence de doctrine) | 5 fautes de frappe d'affilée, mains gantées, plusieurs personnes qui se trompent à la suite, restent plausibles sans être une attaque |
-| Paliers d'escalade | 30 s → 2 min → 10 min → 30 min (plafond) | Assez dissuasif contre un balayage systématique (10'000 combinaisons à 30s de blocage tous les 5 essais = des heures), assez court pour qu'une équipe ne reste jamais bloquée toute une pause |
-| Remise à zéro | tout succès d'identification remet le compteur à 0 | même logique que le compte utilisateur |
-| Fenêtre glissante | échecs comptés sur une fenêtre de 15 minutes, au-delà le compteur retombe naturellement | évite qu'un échec isolé le matin s'additionne à un échec isolé le soir |
+| Paramètre                  | Valeur proposée                                                                         | Raison                                                                                                                                                                                        |
+| -------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Seuil avant premier verrou | 5 échecs consécutifs (identique au seuil compte, cohérence de doctrine)                 | 5 fautes de frappe d'affilée, mains gantées, plusieurs personnes qui se trompent à la suite, restent plausibles sans être une attaque                                                         |
+| Paliers d'escalade         | 30 s → 2 min → 10 min → 30 min (plafond)                                                | Assez dissuasif contre un balayage systématique (10'000 combinaisons à 30s de blocage tous les 5 essais = des heures), assez court pour qu'une équipe ne reste jamais bloquée toute une pause |
+| Remise à zéro              | tout succès d'identification remet le compteur à 0                                      | même logique que le compte utilisateur                                                                                                                                                        |
+| Fenêtre glissante          | échecs comptés sur une fenêtre de 15 minutes, au-delà le compteur retombe naturellement | évite qu'un échec isolé le matin s'additionne à un échec isolé le soir                                                                                                                        |
 
 **Ce que voit l'utilisateur** : le pavé PIN affiche un message pleine largeur, vocabulaire garage
-(jamais « verrouillé », qui évoque un compte) — proposer *« Trop d'essais, réessayez dans
-{{compteAReboursSecondes}} »* avec compte à rebours visuel, **aucun champ de saisie actif** pendant
+(jamais « verrouillé », qui évoque un compte) — proposer _« Trop d'essais, réessayez dans
+{{compteAReboursSecondes}} »_ avec compte à rebours visuel, **aucun champ de saisie actif** pendant
 le blocage (pas juste désactivé visuellement — le formulaire ne doit pas pouvoir soumettre). Le
 code d'erreur reste `423 POINTAGE_PIN_VERROUILLE` avec `Retry-After` (déjà posé dans le contrat).
 
@@ -213,13 +217,13 @@ implémentation, exactement comme le fichier de contrat le prévoit déjà lui-m
 4. Le technicien fait SON geste (démarrer/arrêter une ligne, un OR entier, une activité indirecte)
    — exactement l'écran déjà livré, sans modification de ses actions internes.
 5. **Retour au pavé PIN** : deux déclencheurs, pas un seul —
-   - **explicite** : un bouton toujours visible en mode borne, *« Terminé, suivant »* — le
+   - **explicite** : un bouton toujours visible en mode borne, _« Terminé, suivant »_ — le
      technicien signale lui-même qu'il rend la main ;
    - **implicite** : délai d'inactivité, proposé à **20 secondes** sans interaction après une
      action terminée (assez court pour qu'un technicien qui s'éloigne sans taper « suivant » ne
      laisse pas la session du précédent ouverte à l'écran, assez long pour qu'il ne se fasse pas
      couper en enchaînant deux gestes, ex. démarrer une ligne puis consulter son solde du jour).
-   Dans les deux cas, retour à l'étape 1 — jamais un écran intermédiaire, jamais de confirmation.
+     Dans les deux cas, retour à l'étape 1 — jamais un écran intermédiaire, jamais de confirmation.
 6. Entre deux techniciens, **aucune trace de qui vient de partir** ne reste affichée : le pavé
    PIN revient vierge, pas de « Bonjour Marco, à bientôt » persistant qui renseignerait le suivant
    sur l'identité précédente (hygiène d'un poste partagé, terrain garage habituel).
@@ -267,30 +271,30 @@ un problème déjà résolu identiquement dans les deux modes.
 
 ## 6. Cas tordus — triage
 
-| Cas | Statut | Traitement |
-|---|---|---|
-| **Oubli de pointer la sortie** | **Déjà couvert, rien à faire.** | `DialogueCorrectionPointage.tsx` + droit `atelier.pointage.corriger_autrui` existent déjà et sont indépendants du mode d'identification — la correction se fait depuis `EcranEquipePointage` (bureau), jamais depuis la borne. À confirmer seulement que la borne n'a PAS besoin d'un accès à ce dialogue (elle n'en a pas, §5). |
-| **Deux techniciens sur la même ligne d'OR** | **Déjà autorisé structurellement, rien à faire.** | RM-121 (existant) : plusieurs lignes `en_cours` simultanées, plusieurs techniciens sur la même ligne — le mode borne ne fait qu'ajouter un aller-retour au pavé PIN entre les deux démarrages, la règle métier ne change pas. |
+| Cas                                                           | Statut                                                                   | Traitement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Oubli de pointer la sortie**                                | **Déjà couvert, rien à faire.**                                          | `DialogueCorrectionPointage.tsx` + droit `atelier.pointage.corriger_autrui` existent déjà et sont indépendants du mode d'identification — la correction se fait depuis `EcranEquipePointage` (bureau), jamais depuis la borne. À confirmer seulement que la borne n'a PAS besoin d'un accès à ce dialogue (elle n'en a pas, §5).                                                                                                                                                                                                                                                                                                      |
+| **Deux techniciens sur la même ligne d'OR**                   | **Déjà autorisé structurellement, rien à faire.**                        | RM-121 (existant) : plusieurs lignes `en_cours` simultanées, plusieurs techniciens sur la même ligne — le mode borne ne fait qu'ajouter un aller-retour au pavé PIN entre les deux démarrages, la règle métier ne change pas.                                                                                                                                                                                                                                                                                                                                                                                                         |
 | **Technicien pointe depuis la borne ET depuis son téléphone** | **Déjà gouverné, rien à faire de nouveau — mais périmètre à clarifier.** | `parametre_atelier.chevaucherPointageAutorise` (paramètre de TENANT, existant) tranche déjà si un technicien peut avoir deux pointages ouverts en même temps, quel que soit le moyen d'identification. Le mode borne (paramètre de SITE) ne bloque PAS un technicien d'utiliser en parallèle sa session personnelle sur son propre téléphone pour le même site — les deux mécanismes sont orthogonaux et c'est voulu (§0.2 : le mode borne gouverne la tablette murale, pas les comptes personnels). Si `chevauchementPointageAutorise = false` (défaut), la seconde tentative échoue avec l'erreur déjà existante, pas une nouvelle. |
-| **Borne éteinte / hors ligne** | **Reporté — pas spécifique au PIN.** | Aucun écran atelier n'a aujourd'hui de stratégie hors-ligne construite (la liste des gestes interdits hors ligne existe déjà comme RÉFÉRENCE, `plan-etape-1-frontend.md:511-514`, mais pas de mode dégradé implémenté). Une borne éteinte est indisponible exactement comme un poste de travail éteint aujourd'hui — ce n'est pas un problème que le mode PIN crée, et le résoudre ici reviendrait à ouvrir un chantier de résilience réseau qui dépasse cette tâche. Recommandation : ne pas traiter maintenant, à reprendre le jour où un vrai mode hors-ligne est spécifié pour l'atelier en général. |
-| **Auto-service (technicien change lui-même son PIN)** | **Reporté.** | Au lot 1, seule l'encadrement (RM-128) attribue/réinitialise. Un self-service ajouterait une question d'authentification (comment un technicien prouve « c'est bien moi » pour changer SON PROPRE PIN sans mot de passe ?) qui n'a pas de réponse évidente et n'est pas demandée par @laupernoe. |
-| **Compte de la borne lui-même (§0.2)** | **Prérequis, PAS reporté — à trancher avant tout, avec `expert-auth`.** | Sans une identité durable pour la tablette (nouveau rôle ? compte technique dédié provisionné par site ?), rien de ce document n'est implémentable : le PIN identifie un technicien PARMI ceux déjà authentifiés par la session de la borne — si cette session n'existe pas encore comme mécanisme concret, c'est le premier bloquant, avant même la table `pin_pointage`. |
+| **Borne éteinte / hors ligne**                                | **Reporté — pas spécifique au PIN.**                                     | Aucun écran atelier n'a aujourd'hui de stratégie hors-ligne construite (la liste des gestes interdits hors ligne existe déjà comme RÉFÉRENCE, `plan-etape-1-frontend.md:511-514`, mais pas de mode dégradé implémenté). Une borne éteinte est indisponible exactement comme un poste de travail éteint aujourd'hui — ce n'est pas un problème que le mode PIN crée, et le résoudre ici reviendrait à ouvrir un chantier de résilience réseau qui dépasse cette tâche. Recommandation : ne pas traiter maintenant, à reprendre le jour où un vrai mode hors-ligne est spécifié pour l'atelier en général.                              |
+| **Auto-service (technicien change lui-même son PIN)**         | **Reporté.**                                                             | Au lot 1, seule l'encadrement (RM-128) attribue/réinitialise. Un self-service ajouterait une question d'authentification (comment un technicien prouve « c'est bien moi » pour changer SON PROPRE PIN sans mot de passe ?) qui n'a pas de réponse évidente et n'est pas demandée par @laupernoe.                                                                                                                                                                                                                                                                                                                                             |
+| **Compte de la borne lui-même (§0.2)**                        | **Prérequis, PAS reporté — à trancher avant tout, avec `expert-auth`.**  | Sans une identité durable pour la tablette (nouveau rôle ? compte technique dédié provisionné par site ?), rien de ce document n'est implémentable : le PIN identifie un technicien PARMI ceux déjà authentifiés par la session de la borne — si cette session n'existe pas encore comme mécanisme concret, c'est le premier bloquant, avant même la table `pin_pointage`.                                                                                                                                                                                                                                                            |
 
 ---
 
 ## Récapitulatif RM
 
-| RM | Sujet |
-|---|---|
-| RM-124 | Paramètre de site `modeIdentificationPointage`, enum, défaut `session_personnelle`, droit `parametrage.atelier.modifier` |
-| RM-125 | PIN rattaché à une table `pin_pointage` (tenant, site, utilisateur) — pas une colonne sur `utilisateur` |
+| RM     | Sujet                                                                                                                                                 |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RM-124 | Paramètre de site `modeIdentificationPointage`, enum, défaut `session_personnelle`, droit `parametrage.atelier.modifier`                              |
+| RM-125 | PIN rattaché à une table `pin_pointage` (tenant, site, utilisateur) — pas une colonne sur `utilisateur`                                               |
 | RM-126 | Stockage Argon2id (même primitif que le mot de passe), pas de HMAC/pepper séparé — vérification par itération bornée au nombre de techniciens du site |
-| RM-127 | Unicité du PIN par site (vérifiée à l'écriture, pas par contrainte DB) ; libre entre sites différents |
-| RM-128 | Droit dédié `atelier.pointage.gerer_pin`, périmètre `chef_atelier`/`direction`/`admin`, jamais d'auto-service au lot 1 |
-| RM-129 | Verrouillage anti-balayage scopé sur la session authentifiée de la borne (jamais `idAppareil`), paliers courts proposés |
-| RM-130 | Parcours pavé PIN → écran de pointage → retour automatique (bouton explicite ou 20s d'inactivité) |
-| RM-131 | Rappel : gestes sensibles interdits en mode borne, déjà imposés par RM-115 et côté serveur |
-| RM-132 | Un seul écran adaptatif (`EcranPointageTechnicien`), les 3 autres écrans inchangés |
+| RM-127 | Unicité du PIN par site (vérifiée à l'écriture, pas par contrainte DB) ; libre entre sites différents                                                 |
+| RM-128 | Droit dédié `atelier.pointage.gerer_pin`, périmètre `chef_atelier`/`direction`/`admin`, jamais d'auto-service au lot 1                                |
+| RM-129 | Verrouillage anti-balayage scopé sur la session authentifiée de la borne (jamais `idAppareil`), paliers courts proposés                               |
+| RM-130 | Parcours pavé PIN → écran de pointage → retour automatique (bouton explicite ou 20s d'inactivité)                                                     |
+| RM-131 | Rappel : gestes sensibles interdits en mode borne, déjà imposés par RM-115 et côté serveur                                                            |
+| RM-132 | Un seul écran adaptatif (`EcranPointageTechnicien`), les 3 autres écrans inchangés                                                                    |
 
 ## Questions ouvertes, par destinataire
 

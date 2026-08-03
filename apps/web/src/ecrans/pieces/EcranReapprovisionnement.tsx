@@ -26,7 +26,16 @@ export function EcranReapprovisionnement() {
   const [searchParams, setSearchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
 
-  const { lignes, isPending, isError, error, refetch, hasNextPage, isFetchingNextPage, fetchNextPage } = useReapprovisionnement(site);
+  const {
+    lignes,
+    isPending,
+    isError,
+    error,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useReapprovisionnement(site);
 
   const colonnes: ColonneComptoir<LigneReapprovisionnement>[] = [
     {
@@ -35,7 +44,9 @@ export function EcranReapprovisionnement() {
       rendu: (ligne) => (
         <div className="flex flex-col">
           <span className="font-medium">{ligne.designation}</span>
-          <span className="texte-libelle text-muted-foreground">{t('pieces:articles.numero', { numero: ligne.numeroArticle })}</span>
+          <span className="texte-libelle text-muted-foreground">
+            {t('pieces:articles.numero', { numero: ligne.numeroArticle })}
+          </span>
         </div>
       ),
     },
@@ -43,19 +54,29 @@ export function EcranReapprovisionnement() {
       id: 'disponible',
       libelle: t('pieces:stock.reapprovisionnement.colonnes.disponible'),
       alignement: 'droite',
-      rendu: (ligne) => <span className="tabular-nums">{formaterQuantiteMillieme(ligne.quantiteDisponibleMillieme)}</span>,
+      rendu: (ligne) => (
+        <span className="tabular-nums">
+          {formaterQuantiteMillieme(ligne.quantiteDisponibleMillieme)}
+        </span>
+      ),
     },
     {
       id: 'minimum',
       libelle: t('pieces:stock.reapprovisionnement.colonnes.minimum'),
       alignement: 'droite',
-      rendu: (ligne) => <span className="tabular-nums">{formaterQuantiteMillieme(ligne.stockMinimumMillieme)}</span>,
+      rendu: (ligne) => (
+        <span className="tabular-nums">{formaterQuantiteMillieme(ligne.stockMinimumMillieme)}</span>
+      ),
     },
     {
       id: 'ecart',
       libelle: t('pieces:stock.reapprovisionnement.ecart'),
       alignement: 'droite',
-      rendu: (ligne) => <span className="tabular-nums text-destructive">{formaterQuantiteMillieme(ligne.ecartMillieme)}</span>,
+      rendu: (ligne) => (
+        <span className="tabular-nums text-destructive">
+          {formaterQuantiteMillieme(ligne.ecartMillieme)}
+        </span>
+      ),
     },
   ];
 
@@ -71,7 +92,9 @@ export function EcranReapprovisionnement() {
   if (isError) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:stock.reapprovisionnement.titre')}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t('pieces:stock.reapprovisionnement.titre')}
+        </h1>
         <EtatErreur
           titre={t('pieces:stock.reapprovisionnement.erreur.titre')}
           description={messageErreur(error, t)}
@@ -83,7 +106,9 @@ export function EcranReapprovisionnement() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:stock.reapprovisionnement.titre')}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">
+        {t('pieces:stock.reapprovisionnement.titre')}
+      </h1>
 
       <TableComptoir
         colonnes={colonnes}
@@ -99,7 +124,11 @@ export function EcranReapprovisionnement() {
         }
       />
 
-      <BoutonChargerPlus aChargerPlus={Boolean(hasNextPage)} enChargement={isFetchingNextPage} onChargerPlus={() => void fetchNextPage()} />
+      <BoutonChargerPlus
+        aChargerPlus={Boolean(hasNextPage)}
+        enChargement={isFetchingNextPage}
+        onChargerPlus={() => void fetchNextPage()}
+      />
     </div>
   );
 }

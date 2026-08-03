@@ -117,7 +117,9 @@ describe('routeur — protection par défaut', () => {
   it('/ amène à l’accueil', async () => {
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
     renduAvecRoutes(routesConfig, { routeInitiale: '/' });
-    expect(await screen.findByText('Retrouvez un client, un véhicule ou un ordre')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Retrouvez un client, un véhicule ou un ordre'),
+    ).toBeInTheDocument();
   });
 
   it('la route de création d’OR rend l’écran réel, pas le placeholder « fonction à venir »', async () => {
@@ -129,7 +131,9 @@ describe('routeur — protection par défaut', () => {
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
     renduAvecRoutes(routesConfig, { routeInitiale: '/atelier/ordres-reparation/nouveau' });
     expect(await screen.findByText('Site non sélectionné')).toBeInTheDocument();
-    expect(screen.queryByText("Cette fonctionnalité n'est pas encore disponible.")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Cette fonctionnalité n'est pas encore disponible."),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Cette page n'existe pas")).not.toBeInTheDocument();
   });
 
@@ -138,7 +142,9 @@ describe('routeur — protection par défaut', () => {
     // son second repli honnête (« client non sélectionné ») plutôt que de deviner un client — preuve
     // que le câblage passe bien par la query string, pas par un paramètre de route.
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
-    renduAvecRoutes(routesConfig, { routeInitiale: '/atelier/ordres-reparation/nouveau?site=site-1' });
+    renduAvecRoutes(routesConfig, {
+      routeInitiale: '/atelier/ordres-reparation/nouveau?site=site-1',
+    });
     expect(await screen.findByText('Client non sélectionné')).toBeInTheDocument();
   });
 
@@ -168,10 +174,14 @@ describe('routeur — protection par défaut', () => {
   it('la liste des ordres de réparation est accessible à `/ordres-reparation`', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
-      http.get('/api/v1/ordres-reparation', () => HttpResponse.json({ donnees: [], curseurSuivant: null })),
+      http.get('/api/v1/ordres-reparation', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null }),
+      ),
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/ordres-reparation' });
-    expect(await screen.findByRole('heading', { name: 'Ordres de réparation' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Ordres de réparation' }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -186,19 +196,36 @@ describe('routeur — protection par défaut', () => {
  * oubli de sécurité ».
  */
 describe('routeur — /parametrage/referentiels, /parametrage/atelier, /parametrage/sites : lecture ouverte à tout rôle authentifié (décision arbitrée)', () => {
-  const TOUS_LES_ROLES = ['technicien', 'receptionnaire', 'magasinier', 'comptable', 'vendeur', 'chef_atelier', 'direction', 'admin'] as const;
+  const TOUS_LES_ROLES = [
+    'technicien',
+    'receptionnaire',
+    'magasinier',
+    'comptable',
+    'vendeur',
+    'chef_atelier',
+    'direction',
+    'admin',
+  ] as const;
 
-  it.each(TOUS_LES_ROLES)('%s atteint le contenu réel de /parametrage/referentiels (deux onglets), jamais l’accès refusé', async (role) => {
-    server.use(
-      http.get('/api/v1/auth/moi', () =>
-        HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role } }),
-      ),
-    );
-    renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/referentiels' });
+  it.each(TOUS_LES_ROLES)(
+    '%s atteint le contenu réel de /parametrage/referentiels (deux onglets), jamais l’accès refusé',
+    async (role) => {
+      server.use(
+        http.get('/api/v1/auth/moi', () =>
+          HttpResponse.json({
+            ...SESSION_TEST,
+            utilisateur: { ...SESSION_TEST.utilisateur, role },
+          }),
+        ),
+      );
+      renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/referentiels' });
 
-    expect(await screen.findAllByRole('tab')).toHaveLength(2);
-    expect(screen.queryByText("Vous n'avez pas les droits pour cette action.")).not.toBeInTheDocument();
-  });
+      expect(await screen.findAllByRole('tab')).toHaveLength(2);
+      expect(
+        screen.queryByText("Vous n'avez pas les droits pour cette action."),
+      ).not.toBeInTheDocument();
+    },
+  );
 });
 
 /**
@@ -212,7 +239,10 @@ describe('routeur — /parametrage/facturation refuse réellement (protection pa
   it('admin : reçoit l’écran de refus dédié sur 403 DROIT_INSUFFISANT, jamais le formulaire réel', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () =>
-        HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' } }),
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' },
+        }),
       ),
       http.get('/api/v1/parametres-facturation/creancier', () =>
         HttpResponse.json(
@@ -223,7 +253,9 @@ describe('routeur — /parametrage/facturation refuse réellement (protection pa
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/facturation' });
 
-    expect(await screen.findByText('Accès réservé à la direction et à la comptabilité')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Accès réservé à la direction et à la comptabilité'),
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText('Nom du garage')).not.toBeInTheDocument();
   });
 
@@ -247,7 +279,9 @@ describe('routeur — /parametrage/facturation refuse réellement (protection pa
     renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/facturation' });
 
     expect(await screen.findByLabelText('Nom du garage')).toBeInTheDocument();
-    expect(screen.queryByText('Accès réservé à la direction et à la comptabilité')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Accès réservé à la direction et à la comptabilité'),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -263,7 +297,10 @@ describe('routeur — le menu masque Paramétrage atelier / Sites à un rôle sa
   it('technicien : le menu ne propose ni Paramétrage atelier ni Sites, mais propose Référentiels', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () =>
-        HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' } }),
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' },
+        }),
       ),
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/' });
@@ -277,9 +314,18 @@ describe('routeur — le menu masque Paramétrage atelier / Sites à un rôle sa
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
     renduAvecRoutes(routesConfig, { routeInitiale: '/' });
 
-    expect(await screen.findByRole('link', { name: /paramètres atelier/i })).toHaveAttribute('href', '/parametrage/atelier');
-    expect(screen.getByRole('link', { name: /^sites$/i })).toHaveAttribute('href', '/parametrage/sites');
-    expect(screen.getByRole('link', { name: /tarifs/i })).toHaveAttribute('href', '/parametrage/referentiels');
+    expect(await screen.findByRole('link', { name: /paramètres atelier/i })).toHaveAttribute(
+      'href',
+      '/parametrage/atelier',
+    );
+    expect(screen.getByRole('link', { name: /^sites$/i })).toHaveAttribute(
+      'href',
+      '/parametrage/sites',
+    );
+    expect(screen.getByRole('link', { name: /tarifs/i })).toHaveAttribute(
+      'href',
+      '/parametrage/referentiels',
+    );
   });
 });
 
@@ -295,24 +341,33 @@ describe('routeur — /pieces/* refuse admin (protection RÉELLE, RF-115), ouvre
   it('admin : reçoit l’écran de refus dédié, jamais le contenu réel (aucun appel API nécessaire)', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () =>
-        HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' } }),
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' },
+        }),
       ),
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/pieces/reservations' });
 
-    expect(await screen.findByText("Vous n'avez pas les droits pour cette action.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Vous n'avez pas les droits pour cette action."),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Réservations' })).not.toBeInTheDocument();
   });
 
   it('un rôle opérationnel (chef_atelier) atteint le contenu réel de /pieces/reservations', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
-      http.get('/api/v1/reservations', () => HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 })),
+      http.get('/api/v1/reservations', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+      ),
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/pieces/reservations' });
 
     expect(await screen.findByRole('heading', { name: 'Réservations' })).toBeInTheDocument();
-    expect(screen.queryByText("Vous n'avez pas les droits pour cette action.")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Vous n'avez pas les droits pour cette action."),
+    ).not.toBeInTheDocument();
   });
 
   it('la recherche comptoir pièces est accessible à /pieces/recherche-comptoir', async () => {
@@ -321,7 +376,9 @@ describe('routeur — /pieces/* refuse admin (protection RÉELLE, RF-115), ouvre
 
     // `level: 1` : l'écran vide (aucune saisie encore) affiche AUSSI « Recherche comptoir » en
     // `<h2>` via `EtatVide` (invite à taper) — même texte, deux niveaux différents.
-    expect(await screen.findByRole('heading', { name: 'Recherche comptoir', level: 1 })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Recherche comptoir', level: 1 }),
+    ).toBeInTheDocument();
   });
 
   it('la fiche article reçoit son identifiant depuis l’URL (`:id`) et déclenche son chargement', async () => {
@@ -350,7 +407,9 @@ describe('routeur — /pieces/* refuse admin (protection RÉELLE, RF-115), ouvre
           modifieLe: '2026-07-01T08:00:00.000Z',
         }),
       ),
-      http.get('/api/v1/articles/:id/mouvements', () => HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 30 })),
+      http.get('/api/v1/articles/:id/mouvements', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 30 }),
+      ),
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/pieces/articles/art-1' });
 
@@ -385,7 +444,11 @@ describe('couverture des écrans métier', () => {
         resultats.push(...listerEcransMetier(cheminComplet));
         continue;
       }
-      if (entree.name.startsWith('Ecran') && entree.name.endsWith('.tsx') && !entree.name.endsWith('.spec.tsx')) {
+      if (
+        entree.name.startsWith('Ecran') &&
+        entree.name.endsWith('.tsx') &&
+        !entree.name.endsWith('.spec.tsx')
+      ) {
         resultats.push(entree.name.replace(/\.tsx$/, ''));
       }
     }

@@ -13,7 +13,12 @@ import type {
 } from '@dfa/shared';
 
 import { enDate, JETON_DB, type AccesBase, type ContexteTenant } from '../../db';
-import { imputationPaiement, paiement, type LigneImputationPaiement, type LignePaiement } from '../../db/schema';
+import {
+  imputationPaiement,
+  paiement,
+  type LigneImputationPaiement,
+  type LignePaiement,
+} from '../../db/schema';
 import { ErreurMetier } from '../../common/erreurs';
 import { Horloge } from '../../common/horloge/horloge';
 import {
@@ -24,7 +29,12 @@ import {
 } from '../../common/idempotence';
 
 import { appliquerCompensationAvance, appliquerImputationsLettrage } from './imputations';
-import { calculerMontantNonImputeCentimes, deviseFacturationDepuisBase, versImputation, versPaiement } from './mappeurs';
+import {
+  calculerMontantNonImputeCentimes,
+  deviseFacturationDepuisBase,
+  versImputation,
+  versPaiement,
+} from './mappeurs';
 import {
   chargerPaiement,
   chargerPaiementPourEcriture,
@@ -103,7 +113,9 @@ function ligneDepuisBrute(brute: LignePaiementBrute): LignePaiement {
 
 /** `code` PostgreSQL d'une violation de contrainte `unique` (23505) — pilote `pg`. */
 function estViolationUnicite(erreur: unknown): boolean {
-  return typeof erreur === 'object' && erreur !== null && (erreur as { code?: unknown }).code === '23505';
+  return (
+    typeof erreur === 'object' && erreur !== null && (erreur as { code?: unknown }).code === '23505'
+  );
 }
 
 @Injectable()
@@ -124,52 +136,72 @@ export class ServicePaiement {
     entree: EntreeCreationPaiement,
     cleIdempotence: string,
   ): Promise<ResultatIdempotent<ReponseMemorisable & { corps: ReponsePaiementEnveloppe }>> {
-    return this.idempotence.executer(ctx, { methode: 'POST', chemin: '/paiements', cle: cleIdempotence, corps: entree }, async (tx) => {
-      if (entree.montantCentimes === 0) {
-        throw new ErreurMetier('VALIDATION_ECHOUEE', "Le montant d'un paiement ne peut pas être nul.", {
-          erreurs: [{ champ: 'montantCentimes', code: 'montant_nul', message: 'Montant non nul requis.' }],
-        });
-      }
-      if (entree.payeurClientId) {
-        await verifierClientExiste(tx, ctx, entree.payeurClientId);
-      }
-
-      let ligne: LignePaiement | undefined;
-      try {
-        [ligne] = await tx
-          .insert(paiement)
-          .values({
-            tenantId: ctx.tenantId,
-            siteId: entree.siteId,
-            dateValeur: entree.dateValeur,
-            moyen: entree.moyen,
-            montantCentimes: BigInt(entree.montantCentimes),
-            devise: entree.devise,
-            payeurClientId: entree.payeurClientId ?? null,
-            payeurLibelle: entree.payeurLibelle,
-            identifiantTransactionBanque: entree.identifiantTransactionBanque ?? null,
-            source: 'manuel',
-            creeParId: ctx.utilisateurId,
-          })
-          .returning();
-      } catch (erreur) {
-        if (estViolationUnicite(erreur)) {
+    return this.idempotence.executer(
+      ctx,
+      { methode: 'POST', chemin: '/paiements', cle: cleIdempotence, corps: entree },
+      async (tx) => {
+        if (entree.montantCentimes === 0) {
           throw new ErreurMetier(
-            'CONFLIT',
-            `Une transaction bancaire ${entree.identifiantTransactionBanque ?? ''} a déjà été enregistrée pour ce tenant.`,
+            'VALIDATION_ECHOUEE',
+            "Le montant d'un paiement ne peut pas être nul.",
+            {
+              erreurs: [
+                {
+                  champ: 'montantCentimes',
+                  code: 'montant_nul',
+                  message: 'Montant non nul requis.',
+                },
+              ],
+            },
           );
         }
-        throw erreur;
-      }
-      if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de la création du paiement.');
+        if (entree.payeurClientId) {
+          await verifierClientExiste(tx, ctx, entree.payeurClientId);
+        }
 
-      const imputations =
-        entree.imputations.length > 0 ? await appliquerImputationsLettrage(tx, ctx, ligne, entree.imputations) : [];
+        let ligne: LignePaiement | undefined;
+        try {
+          [ligne] = await tx
+            .insert(paiement)
+            .values({
+              tenantId: ctx.tenantId,
+              siteId: entree.siteId,
+              dateValeur: entree.dateValeur,
+              moyen: entree.moyen,
+              montantCentimes: BigInt(entree.montantCentimes),
+              devise: entree.devise,
+              payeurClientId: entree.payeurClientId ?? null,
+              payeurLibelle: entree.payeurLibelle,
+              identifiantTransactionBanque: entree.identifiantTransactionBanque ?? null,
+              source: 'manuel',
+              creeParId: ctx.utilisateurId,
+            })
+            .returning();
+        } catch (erreur) {
+          if (estViolationUnicite(erreur)) {
+            throw new ErreurMetier(
+              'CONFLIT',
+              `Une transaction bancaire ${entree.identifiantTransactionBanque ?? ''} a déjà été enregistrée pour ce tenant.`,
+            );
+          }
+          throw erreur;
+        }
+        if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de la création du paiement.');
 
-      const resumes = await chargerResumesUtilisateurs(tx, ctx, idsUtilisateurs(ligne, imputations));
-      const reponse = versPaiement(ligne, imputations, resumes);
-      return { statutHttp: 201, corps: { donnees: reponse, avertissements: [] } };
-    });
+        const imputations =
+          entree.imputations.length > 0
+            ? await appliquerImputationsLettrage(tx, ctx, ligne, entree.imputations)
+            : [];
+
+        const resumes = await chargerResumesUtilisateurs(
+          tx,
+          ctx,
+          idsUtilisateurs(ligne, imputations),
+        );
+        const reponse = versPaiement(ligne, imputations, resumes);
+        return { statutHttp: 201, corps: { donnees: reponse, avertissements: [] } };
+      },
+    );
   }
 
   async parId(ctx: ContexteTenant, paiementId: string): Promise<ReponsePaiement> {
@@ -178,9 +210,18 @@ export class ServicePaiement {
       const imputations = await tx
         .select()
         .from(imputationPaiement)
-        .where(and(eq(imputationPaiement.tenantId, ctx.tenantId), eq(imputationPaiement.paiementId, paiementId)))
+        .where(
+          and(
+            eq(imputationPaiement.tenantId, ctx.tenantId),
+            eq(imputationPaiement.paiementId, paiementId),
+          ),
+        )
         .orderBy(imputationPaiement.imputeLe);
-      const resumes = await chargerResumesUtilisateurs(tx, ctx, idsUtilisateurs(ligne, imputations));
+      const resumes = await chargerResumesUtilisateurs(
+        tx,
+        ctx,
+        idsUtilisateurs(ligne, imputations),
+      );
       return versPaiement(ligne, imputations, resumes);
     });
   }
@@ -192,7 +233,10 @@ export class ServicePaiement {
    * (`montantNonImputeCentimes`) et le sous-total `somme_reglement` en une seule passe — même
    * patron que `ServiceClient.lister` (`clients/service-client.ts`).
    */
-  async lister(ctx: ContexteTenant, params: ParametresListePaiements): Promise<PageCurseur<ReponsePaiement>> {
+  async lister(
+    ctx: ContexteTenant,
+    params: ParametresListePaiements,
+  ): Promise<PageCurseur<ReponsePaiement>> {
     const definition = definitionTriPaiement(params.tri);
     const curseurDecode = decoderCurseurPourTriPaiement(params.curseur, params.tri);
 
@@ -201,9 +245,15 @@ export class ServicePaiement {
 
       if (params.siteId) conditions.push(sql`p.site_id = ${params.siteId}`);
       if (params.moyen && params.moyen.length > 0) {
-        conditions.push(sql`p.moyen::text in (${sql.join(params.moyen.map((m) => sql`${m}`), sql`, `)})`);
+        conditions.push(
+          sql`p.moyen::text in (${sql.join(
+            params.moyen.map((m) => sql`${m}`),
+            sql`, `,
+          )})`,
+        );
       }
-      if (params.payeurClientId) conditions.push(sql`p.payeur_client_id = ${params.payeurClientId}`);
+      if (params.payeurClientId)
+        conditions.push(sql`p.payeur_client_id = ${params.payeurClientId}`);
       if (params.documentId) {
         conditions.push(sql`
           exists (
@@ -218,7 +268,9 @@ export class ServicePaiement {
         conditions.push(sql`(abs(p.montant_centimes) - coalesce(ri.somme_reglement, 0)) > 0`);
       }
       if (curseurDecode) {
-        conditions.push(construireConditionKeysetPaiement(definition, curseurDecode.valeur, curseurDecode.id));
+        conditions.push(
+          construireConditionKeysetPaiement(definition, curseurDecode.valeur, curseurDecode.id),
+        );
       }
 
       const requete = sql`
@@ -237,7 +289,9 @@ export class ServicePaiement {
       const resultat = await tx.execute<LignePaiementBrute>(requete);
       const lignesBrutes = resultat.rows;
       const aUnePageSuivante = lignesBrutes.length > params.limite;
-      const pageLignesBrutes = aUnePageSuivante ? lignesBrutes.slice(0, params.limite) : lignesBrutes;
+      const pageLignesBrutes = aUnePageSuivante
+        ? lignesBrutes.slice(0, params.limite)
+        : lignesBrutes;
       const pageLignes = pageLignesBrutes.map(ligneDepuisBrute);
 
       const paiementIds = pageLignes.map((l) => l.id);
@@ -246,7 +300,12 @@ export class ServicePaiement {
           ? await tx
               .select()
               .from(imputationPaiement)
-              .where(and(eq(imputationPaiement.tenantId, ctx.tenantId), inArray(imputationPaiement.paiementId, paiementIds)))
+              .where(
+                and(
+                  eq(imputationPaiement.tenantId, ctx.tenantId),
+                  inArray(imputationPaiement.paiementId, paiementIds),
+                ),
+              )
               .orderBy(imputationPaiement.imputeLe)
           : [];
       const imputationsParPaiement = new Map<string, LigneImputationPaiement[]>();
@@ -266,10 +325,16 @@ export class ServicePaiement {
       const derniereBrute = pageLignesBrutes[pageLignesBrutes.length - 1];
 
       return {
-        donnees: pageLignes.map((l) => versPaiement(l, imputationsParPaiement.get(l.id) ?? [], resumes)),
+        donnees: pageLignes.map((l) =>
+          versPaiement(l, imputationsParPaiement.get(l.id) ?? [], resumes),
+        ),
         curseurSuivant:
           aUnePageSuivante && derniereBrute
-            ? encoderCurseurTrie({ tri: params.tri, valeur: valeurCurseurBrute(derniereBrute, params.tri), id: derniereBrute.id })
+            ? encoderCurseurTrie({
+                tri: params.tri,
+                valeur: valeurCurseurBrute(derniereBrute, params.tri),
+                id: derniereBrute.id,
+              })
             : null,
         limite: params.limite,
       };
@@ -292,7 +357,12 @@ export class ServicePaiement {
   ): Promise<ResultatIdempotent<ReponseMemorisable & { corps: ReponsePaiementEnveloppe }>> {
     return this.idempotence.executer(
       ctx,
-      { methode: 'POST', chemin: '/paiements/{id}/imputations', cle: cleIdempotence, corps: { paiementId, entree } },
+      {
+        methode: 'POST',
+        chemin: '/paiements/{id}/imputations',
+        cle: cleIdempotence,
+        corps: { paiementId, entree },
+      },
       async (tx) => {
         const paiementLigne = await chargerPaiementPourEcriture(tx, ctx, paiementId);
         const nouvelles = await appliquerImputationsLettrage(tx, ctx, paiementLigne, [entree]);
@@ -300,11 +370,23 @@ export class ServicePaiement {
         const imputations = await tx
           .select()
           .from(imputationPaiement)
-          .where(and(eq(imputationPaiement.tenantId, ctx.tenantId), eq(imputationPaiement.paiementId, paiementId)))
+          .where(
+            and(
+              eq(imputationPaiement.tenantId, ctx.tenantId),
+              eq(imputationPaiement.paiementId, paiementId),
+            ),
+          )
           .orderBy(imputationPaiement.imputeLe);
-        const resumes = await chargerResumesUtilisateurs(tx, ctx, idsUtilisateurs(paiementLigne, imputations));
+        const resumes = await chargerResumesUtilisateurs(
+          tx,
+          ctx,
+          idsUtilisateurs(paiementLigne, imputations),
+        );
         const reponse = versPaiement(paiementLigne, imputations, resumes);
-        return { statutHttp: nouvelles.length > 0 ? 201 : 200, corps: { donnees: reponse, avertissements: [] } };
+        return {
+          statutHttp: nouvelles.length > 0 ? 201 : 200,
+          corps: { donnees: reponse, avertissements: [] },
+        };
       },
     );
   }
@@ -322,14 +404,27 @@ export class ServicePaiement {
   ): Promise<ResultatIdempotent<ReponseMemorisable & { corps: ReponsePaiementEnveloppe }>> {
     return this.idempotence.executer(
       ctx,
-      { methode: 'POST', chemin: '/paiements/{id}/rembourser', cle: cleIdempotence, corps: { paiementId, entree } },
+      {
+        methode: 'POST',
+        chemin: '/paiements/{id}/rembourser',
+        cle: cleIdempotence,
+        corps: { paiementId, entree },
+      },
       async (tx) => {
         const original = await chargerPaiementPourEcriture(tx, ctx, paiementId);
         const imputationsOriginal = await tx
           .select()
           .from(imputationPaiement)
-          .where(and(eq(imputationPaiement.tenantId, ctx.tenantId), eq(imputationPaiement.paiementId, paiementId)));
-        const nonImpute = calculerMontantNonImputeCentimes(original.montantCentimes, imputationsOriginal);
+          .where(
+            and(
+              eq(imputationPaiement.tenantId, ctx.tenantId),
+              eq(imputationPaiement.paiementId, paiementId),
+            ),
+          );
+        const nonImpute = calculerMontantNonImputeCentimes(
+          original.montantCentimes,
+          imputationsOriginal,
+        );
 
         if (BigInt(entree.montantCentimes) > nonImpute) {
           throw new ErreurMetier(
@@ -356,7 +451,8 @@ export class ServicePaiement {
             creeParId: ctx.utilisateurId,
           })
           .returning();
-        if (!contrePasse) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de la création du remboursement.');
+        if (!contrePasse)
+          throw new ErreurMetier('ERREUR_INTERNE', 'Échec de la création du remboursement.');
 
         const resumes = await chargerResumesUtilisateurs(tx, ctx, idsUtilisateurs(contrePasse, []));
         const reponse = versPaiement(contrePasse, [], resumes);
@@ -380,17 +476,37 @@ export class ServicePaiement {
   ): Promise<ResultatIdempotent<ReponseMemorisable & { corps: ReponsePaiementEnveloppe }>> {
     return this.idempotence.executer(
       ctx,
-      { methode: 'POST', chemin: '/paiements/{id}/abandonner', cle: cleIdempotence, corps: { paiementId, entree } },
+      {
+        methode: 'POST',
+        chemin: '/paiements/{id}/abandonner',
+        cle: cleIdempotence,
+        corps: { paiementId, entree },
+      },
       async (tx) => {
         const paiementAvance = await chargerPaiementPourEcriture(tx, ctx, paiementId);
-        await appliquerCompensationAvance(tx, ctx, paiementAvance, entree.documentRegularisationId, entree.montantCentimes);
+        await appliquerCompensationAvance(
+          tx,
+          ctx,
+          paiementAvance,
+          entree.documentRegularisationId,
+          entree.montantCentimes,
+        );
 
         const imputations = await tx
           .select()
           .from(imputationPaiement)
-          .where(and(eq(imputationPaiement.tenantId, ctx.tenantId), eq(imputationPaiement.paiementId, paiementId)))
+          .where(
+            and(
+              eq(imputationPaiement.tenantId, ctx.tenantId),
+              eq(imputationPaiement.paiementId, paiementId),
+            ),
+          )
           .orderBy(imputationPaiement.imputeLe);
-        const resumes = await chargerResumesUtilisateurs(tx, ctx, idsUtilisateurs(paiementAvance, imputations));
+        const resumes = await chargerResumesUtilisateurs(
+          tx,
+          ctx,
+          idsUtilisateurs(paiementAvance, imputations),
+        );
         const reponse = versPaiement(paiementAvance, imputations, resumes);
         return { statutHttp: 200, corps: { donnees: reponse, avertissements: [] } };
       },
@@ -398,7 +514,10 @@ export class ServicePaiement {
   }
 }
 
-function idsUtilisateurs(ligne: LignePaiement, imputations: readonly LigneImputationPaiement[]): ReadonlySet<string> {
+function idsUtilisateurs(
+  ligne: LignePaiement,
+  imputations: readonly LigneImputationPaiement[],
+): ReadonlySet<string> {
   const ids = new Set<string>();
   if (ligne.creeParId) ids.add(ligne.creeParId);
   for (const i of imputations) {
@@ -407,9 +526,15 @@ function idsUtilisateurs(ligne: LignePaiement, imputations: readonly LigneImputa
   return ids;
 }
 
-function valeurCurseurBrute(ligne: LignePaiementBrute, tri: FiltresPaiements['tri']): string | number {
+function valeurCurseurBrute(
+  ligne: LignePaiementBrute,
+  tri: FiltresPaiements['tri'],
+): string | number {
   if (tri === 'montantNonImputeCentimes:desc') {
-    const montantAbs = BigInt(ligne.montant_centimes) < 0n ? -BigInt(ligne.montant_centimes) : BigInt(ligne.montant_centimes);
+    const montantAbs =
+      BigInt(ligne.montant_centimes) < 0n
+        ? -BigInt(ligne.montant_centimes)
+        : BigInt(ligne.montant_centimes);
     return Number(montantAbs - BigInt(ligne.somme_reglement));
   }
   return ligne.date_valeur;

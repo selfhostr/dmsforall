@@ -54,7 +54,10 @@ import { AppModule } from '../../app.module';
 import { chargerConfig } from '../../config';
 import { CLE_META_ACTION } from './garde-droit';
 import { DROIT_PAR_CONFIRMATION, TOUTES_ACTIONS, type Action } from '../../auth/matrice-droits';
-import { ALLOWLIST_ACTIONS_SANS_DECORATEUR, type EntreeAllowlistAction } from './allowlist-actions-non-decorees';
+import {
+  ALLOWLIST_ACTIONS_SANS_DECORATEUR,
+  type EntreeAllowlistAction,
+} from './allowlist-actions-non-decorees';
 
 // -----------------------------------------------------------------------------------------------
 // Config bidon, identique en substance à celle du sibling : juste assez pour que `chargerConfig`
@@ -72,14 +75,19 @@ const CONFIG_MINIMALE = chargerConfig({
 /** Une classe de contrôleur ou de module — on ne s'intéresse jamais à ses paramètres de ctor. */
 type ClasseModule = Type<unknown>;
 
-type EntreeImport = ClasseModule | DynamicModule | ForwardReference | Promise<DynamicModule> | undefined;
+type EntreeImport =
+  ClasseModule | DynamicModule | ForwardReference | Promise<DynamicModule> | undefined;
 
 function estDescripteurDynamique(valeur: EntreeImport): valeur is DynamicModule {
   return typeof valeur === 'object' && valeur !== null && 'module' in valeur;
 }
 
 function estReferenceDifferee(valeur: EntreeImport): valeur is ForwardReference {
-  return typeof valeur === 'object' && valeur !== null && typeof (valeur as ForwardReference).forwardRef === 'function';
+  return (
+    typeof valeur === 'object' &&
+    valeur !== null &&
+    typeof (valeur as ForwardReference).forwardRef === 'function'
+  );
 }
 
 /** Reprend à l'identique la marche dans le graphe du sibling — voir le commentaire d'en-tête. */
@@ -93,7 +101,8 @@ function collecterControleurs(entree: EntreeImport, dejaVus: Set<ClasseModule>):
         'de routes invérifiée en silence.',
     );
   }
-  if (estReferenceDifferee(entree)) return collecterControleurs(entree.forwardRef() as EntreeImport, dejaVus);
+  if (estReferenceDifferee(entree))
+    return collecterControleurs(entree.forwardRef() as EntreeImport, dejaVus);
 
   const classeModule = (estDescripteurDynamique(entree) ? entree.module : entree) as ClasseModule;
   if (dejaVus.has(classeModule)) return [];
@@ -102,12 +111,16 @@ function collecterControleurs(entree: EntreeImport, dejaVus: Set<ClasseModule>):
   const controleursDynamiques: readonly ClasseModule[] = estDescripteurDynamique(entree)
     ? ((entree.controllers ?? []) as ClasseModule[])
     : [];
-  const importsDynamiques: readonly EntreeImport[] = estDescripteurDynamique(entree) ? (entree.imports ?? []) : [];
+  const importsDynamiques: readonly EntreeImport[] = estDescripteurDynamique(entree)
+    ? (entree.imports ?? [])
+    : [];
 
   const controleursDecores: readonly ClasseModule[] =
-    (Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, classeModule) as ClasseModule[] | undefined) ?? [];
+    (Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, classeModule) as
+      ClasseModule[] | undefined) ?? [];
   const importsDecores: readonly EntreeImport[] =
-    (Reflect.getMetadata(MODULE_METADATA.IMPORTS, classeModule) as EntreeImport[] | undefined) ?? [];
+    (Reflect.getMetadata(MODULE_METADATA.IMPORTS, classeModule) as EntreeImport[] | undefined) ??
+    [];
 
   const controleurs = [...controleursDynamiques, ...controleursDecores];
   for (const sousImport of [...importsDynamiques, ...importsDecores]) {
@@ -173,7 +186,11 @@ const ACTIONS_ALLOWLIST = new Set<Action>(ALLOWLIST_ACTIONS_SANS_DECORATEUR.map(
 const UNIVERS_ACTIONS: readonly Action[] = TOUTES_ACTIONS;
 
 function estCouverte(action: Action): boolean {
-  return ACTIONS_EXIGEES_PAR_DECORATEUR.has(action) || ACTIONS_PAR_CONFIRMATION.has(action) || ACTIONS_ALLOWLIST.has(action);
+  return (
+    ACTIONS_EXIGEES_PAR_DECORATEUR.has(action) ||
+    ACTIONS_PAR_CONFIRMATION.has(action) ||
+    ACTIONS_ALLOWLIST.has(action)
+  );
 }
 
 describe('Couverture des actions — chaque Action de la matrice a une preuve de contrôle réelle', () => {
@@ -215,7 +232,7 @@ describe('Couverture des actions — chaque Action de la matrice a une preuve de
   });
 });
 
-describe("allowlist-actions-non-decorees.ts — hygiène de la liste (elle ne doit jamais devenir un cimetière)", () => {
+describe('allowlist-actions-non-decorees.ts — hygiène de la liste (elle ne doit jamais devenir un cimetière)', () => {
   it('ne contient aucune action en double', () => {
     const vues = new Set<Action>();
     const doublons: Action[] = [];
@@ -230,7 +247,9 @@ describe("allowlist-actions-non-decorees.ts — hygiène de la liste (elle ne do
   });
 
   it("chaque entrée référence une action qui existe RÉELLEMENT dans l'union Action (aucune entrée fantôme, aucune action renommée/supprimée laissée derrière)", () => {
-    const fantomes = ALLOWLIST_ACTIONS_SANS_DECORATEUR.filter((entree) => !UNIVERS_ACTIONS.includes(entree.action));
+    const fantomes = ALLOWLIST_ACTIONS_SANS_DECORATEUR.filter(
+      (entree) => !UNIVERS_ACTIONS.includes(entree.action),
+    );
     if (fantomes.length > 0) {
       const liste = fantomes.map((e) => `'${e.action}'`).join('\n  - ');
       throw new Error(
@@ -259,17 +278,23 @@ describe("allowlist-actions-non-decorees.ts — hygiène de la liste (elle ne do
   });
 
   it('chaque entrée a une catégorie parmi les deux valeurs autorisées', () => {
-    const categoriesValides = new Set(['verification-conditionnelle-service', 'action-inerte-anticipee']);
+    const categoriesValides = new Set([
+      'verification-conditionnelle-service',
+      'action-inerte-anticipee',
+    ]);
     for (const entree of ALLOWLIST_ACTIONS_SANS_DECORATEUR as readonly EntreeAllowlistAction[]) {
-      expect(categoriesValides.has(entree.categorie), `Catégorie invalide pour '${entree.action}' : '${entree.categorie}'`).toBe(
-        true,
-      );
+      expect(
+        categoriesValides.has(entree.categorie),
+        `Catégorie invalide pour '${entree.action}' : '${entree.categorie}'`,
+      ).toBe(true);
     }
   });
 
   it("une entrée 'action-inerte-anticipee' qui apparaîtrait maintenant sous un @ExigerDroit réel est devenue périmée (le module a été câblé : retirez l'entrée, elle a rempli son rôle)", () => {
     const perimees = ALLOWLIST_ACTIONS_SANS_DECORATEUR.filter(
-      (entree) => entree.categorie === 'action-inerte-anticipee' && ACTIONS_EXIGEES_PAR_DECORATEUR.has(entree.action),
+      (entree) =>
+        entree.categorie === 'action-inerte-anticipee' &&
+        ACTIONS_EXIGEES_PAR_DECORATEUR.has(entree.action),
     );
     if (perimees.length > 0) {
       const liste = perimees.map((e) => `'${e.action}'`).join('\n  - ');

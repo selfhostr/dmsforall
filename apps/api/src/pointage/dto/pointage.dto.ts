@@ -43,7 +43,11 @@ export class DerniereCorrectionPointageDto implements DerniereCorrectionPointage
 
 /** DTO Swagger de la ressource `pointage` (RM-87 → RM-99, RM-113 → RM-123). */
 export class ReponsePointageDto implements ReponsePointage {
-  @ApiProperty({ format: 'uuid', description: 'Fourni par le client à la création (idempotence hors ligne) — jamais généré par le serveur.' })
+  @ApiProperty({
+    format: 'uuid',
+    description:
+      'Fourni par le client à la création (idempotence hors ligne) — jamais généré par le serveur.',
+  })
   readonly id!: string;
 
   @ApiProperty({ format: 'uuid' })
@@ -55,7 +59,10 @@ export class ReponsePointageDto implements ReponsePointage {
   @ApiProperty({ enum: STATUTS_POINTAGE })
   readonly statut!: ReponsePointage['statut'];
 
-  @ApiProperty({ enum: NATURES_ACTIVITE_POINTAGE, description: 'Discriminant des trois cibles RM-87.' })
+  @ApiProperty({
+    enum: NATURES_ACTIVITE_POINTAGE,
+    description: 'Discriminant des trois cibles RM-87.',
+  })
   readonly nature!: ReponsePointage['nature'];
 
   @ApiProperty({ type: String, format: 'uuid', nullable: true })
@@ -79,13 +86,23 @@ export class ReponsePointageDto implements ReponsePointage {
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
   readonly finLe!: string | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'RM-97 : brut, jamais recalculé — `null` tant que le pointage est ouvert.' })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'RM-97 : brut, jamais recalculé — `null` tant que le pointage est ouvert.',
+  })
   readonly dureeBruteSecondes!: number | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Arrondi selon P-19 — `null` tant que le pointage est ouvert.' })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Arrondi selon P-19 — `null` tant que le pointage est ouvert.',
+  })
   readonly dureeArrondieCentiemes!: number | null;
 
-  @ApiProperty({ description: 'RM-89 (chevauchement) ou RM-91/RM-119 (clôture de fin de journée).' })
+  @ApiProperty({
+    description: 'RM-89 (chevauchement) ou RM-91/RM-119 (clôture de fin de journée).',
+  })
   readonly clotureAutomatique!: boolean;
 
   @ApiProperty({ type: () => AnomaliePointageDto, nullable: true })

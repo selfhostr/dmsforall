@@ -55,5 +55,9 @@ export function deciderIdempotence(
     return { type: 'requete_en_cours' };
   }
 
-  return { type: 'rejeu', statutHttp: ligneExistante.statutHttp ?? 500, corps: ligneExistante.reponse };
+  return {
+    type: 'rejeu',
+    statutHttp: ligneExistante.statutHttp ?? 500,
+    corps: ligneExistante.reponse,
+  };
 }

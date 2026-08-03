@@ -36,7 +36,11 @@ export function BoutonCopier({ valeur, className }: ProprietesBoutonCopier) {
         className,
       )}
     >
-      {copie ? <Check aria-hidden className="h-4 w-4 text-statut-succes" /> : <Copy aria-hidden className="h-4 w-4" />}
+      {copie ? (
+        <Check aria-hidden className="h-4 w-4 text-statut-succes" />
+      ) : (
+        <Copy aria-hidden className="h-4 w-4" />
+      )}
     </button>
   );
 }

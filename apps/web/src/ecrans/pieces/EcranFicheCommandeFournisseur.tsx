@@ -7,12 +7,21 @@ import { messageErreur } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { useCommandeFournisseur } from '@/hooks/pieces/useCommandeFournisseur';
 import { useFournisseur } from '@/hooks/pieces/useFournisseur';
-import { useAnnulerCommandeFournisseur, useAnnulerReliquatLigneCommande, useEnvoyerCommandeFournisseur } from '@/hooks/pieces/useTransitionsCommandeFournisseur';
+import {
+  useAnnulerCommandeFournisseur,
+  useAnnulerReliquatLigneCommande,
+  useEnvoyerCommandeFournisseur,
+} from '@/hooks/pieces/useTransitionsCommandeFournisseur';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterDateHeure, formaterMontant } from '@/lib/formats';
 
@@ -21,7 +30,10 @@ import { DialogueReceptionCommande } from './DialogueReceptionCommande';
 import { peutEcrireCommandeFournisseur, peutReceptionnerCommandeFournisseur } from './droits';
 import { formaterQuantiteMillieme, texteOuVide } from './utils';
 
-type Confirmation = { readonly type: 'annuler' } | { readonly type: 'annulerReliquat'; readonly ligneId: string } | null;
+type Confirmation =
+  | { readonly type: 'annuler' }
+  | { readonly type: 'annulerReliquat'; readonly ligneId: string }
+  | null;
 
 const VARIANTE_BADGE_STATUT: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   brouillon: 'outline',
@@ -85,14 +97,19 @@ export function EcranFicheCommandeFournisseur() {
   const peutEcrire = peutEcrireCommandeFournisseur(role);
   const peutReceptionner = peutReceptionnerCommandeFournisseur(role);
   const peutEnvoyer = peutEcrire && commande.statut === 'brouillon';
-  const peutAnnulerCommande = peutEcrire && (commande.statut === 'brouillon' || commande.statut === 'envoyee');
-  const peutOuvrirReception = peutReceptionner && (commande.statut === 'envoyee' || commande.statut === 'partiellement_recue');
+  const peutAnnulerCommande =
+    peutEcrire && (commande.statut === 'brouillon' || commande.statut === 'envoyee');
+  const peutOuvrirReception =
+    peutReceptionner &&
+    (commande.statut === 'envoyee' || commande.statut === 'partiellement_recue');
 
   const erreurTransition = envoyer.error ?? annuler.error ?? annulerReliquat.error;
 
   const totalAttenduCentimes = commande.lignes.reduce<number | null>((total, ligne) => {
     if (ligne.prixAchatAttenduCentimes === null) return total;
-    const montantLigne = Math.round((ligne.prixAchatAttenduCentimes * ligne.quantiteCommandeeMillieme) / 1000);
+    const montantLigne = Math.round(
+      (ligne.prixAchatAttenduCentimes * ligne.quantiteCommandeeMillieme) / 1000,
+    );
     return (total ?? 0) + montantLigne;
   }, null);
   const totalIncomplet = commande.lignes.some((ligne) => ligne.prixAchatAttenduCentimes === null);
@@ -104,15 +121,24 @@ export function EcranFicheCommandeFournisseur() {
       <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-2xl font-semibold tracking-tight">{formaterDate(commande.dateCommande)}</h2>
-            <Badge variant={VARIANTE_BADGE_STATUT[commande.statut]}>{t(`pieces:commandes.statuts.${commande.statut}`)}</Badge>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {formaterDate(commande.dateCommande)}
+            </h2>
+            <Badge variant={VARIANTE_BADGE_STATUT[commande.statut]}>
+              {t(`pieces:commandes.statuts.${commande.statut}`)}
+            </Badge>
           </div>
           <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 texte-corps sm:grid-cols-3">
             <div>
-              <dt className="texte-libelle text-muted-foreground">{t('pieces:commandes.fournisseur')}</dt>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('pieces:commandes.fournisseur')}
+              </dt>
               <dd>
                 {nomFournisseur ? (
-                  <Link to={`/pieces/fournisseurs/${commande.fournisseurId}`} className="text-primary underline">
+                  <Link
+                    to={`/pieces/fournisseurs/${commande.fournisseurId}`}
+                    className="text-primary underline"
+                  >
                     {nomFournisseur}
                   </Link>
                 ) : (
@@ -125,25 +151,37 @@ export function EcranFicheCommandeFournisseur() {
               <dd>{nomSite}</dd>
             </div>
             <div>
-              <dt className="texte-libelle text-muted-foreground">{t('pieces:commandes.origine')}</dt>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('pieces:commandes.origine')}
+              </dt>
               <dd>{t(`pieces:commandes.origines.${commande.origine}`)}</dd>
             </div>
             <div>
-              <dt className="texte-libelle text-muted-foreground">{t('pieces:commandes.reference')}</dt>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('pieces:commandes.reference')}
+              </dt>
               <dd>{texteOuVide(commande.reference)}</dd>
             </div>
             {commande.envoyeeLe ? (
               <div>
-                <dt className="texte-libelle text-muted-foreground">{t('pieces:commandes.envoyeeLe')}</dt>
+                <dt className="texte-libelle text-muted-foreground">
+                  {t('pieces:commandes.envoyeeLe')}
+                </dt>
                 <dd>{formaterDateHeure(commande.envoyeeLe)}</dd>
               </div>
             ) : null}
             {totalAttenduCentimes !== null ? (
               <div>
-                <dt className="texte-libelle text-muted-foreground">{t('pieces:commandes.montantAttendu')}</dt>
+                <dt className="texte-libelle text-muted-foreground">
+                  {t('pieces:commandes.montantAttendu')}
+                </dt>
                 <dd className="tabular-nums font-medium">
                   {formaterMontant(totalAttenduCentimes)}
-                  {totalIncomplet ? <span className="ml-1 texte-libelle text-muted-foreground">{t('pieces:commandes.montantPartiel')}</span> : null}
+                  {totalIncomplet ? (
+                    <span className="ml-1 texte-libelle text-muted-foreground">
+                      {t('pieces:commandes.montantPartiel')}
+                    </span>
+                  ) : null}
                 </dd>
               </div>
             ) : null}
@@ -165,13 +203,19 @@ export function EcranFicheCommandeFournisseur() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {peutEnvoyer ? (
-                <DropdownMenuItem onSelect={() => envoyer.mutate(undefined)}>{t('pieces:commandes.actions.envoyer')}</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => envoyer.mutate(undefined)}>
+                  {t('pieces:commandes.actions.envoyer')}
+                </DropdownMenuItem>
               ) : null}
               {peutOuvrirReception ? (
-                <DropdownMenuItem onSelect={() => setReceptionOuverte(true)}>{t('pieces:commandes.actions.receptionner')}</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setReceptionOuverte(true)}>
+                  {t('pieces:commandes.actions.receptionner')}
+                </DropdownMenuItem>
               ) : null}
               {peutAnnulerCommande ? (
-                <DropdownMenuItem onSelect={() => setConfirmation({ type: 'annuler' })}>{t('pieces:commandes.actions.annuler')}</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setConfirmation({ type: 'annuler' })}>
+                  {t('pieces:commandes.actions.annuler')}
+                </DropdownMenuItem>
               ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -186,16 +230,23 @@ export function EcranFicheCommandeFournisseur() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="texte-titre-section">{t('pieces:commandes.lignes.titre')}</CardTitle>
+          <CardTitle className="texte-titre-section">
+            {t('pieces:commandes.lignes.titre')}
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {commande.lignes.map((ligne) => (
             <div key={ligne.id} className="flex flex-col gap-2 rounded-md border p-3 texte-corps">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <Link to={`/pieces/articles/${ligne.articleId}`} className="font-medium text-primary underline">
+                <Link
+                  to={`/pieces/articles/${ligne.articleId}`}
+                  className="font-medium text-primary underline"
+                >
                   {t('pieces:commandes.lignes.article')} {ligne.numeroOrdre}
                 </Link>
-                {ligne.quantiteReliquatMillieme > 0 && ligne.reliquatAnnuleLe === null && peutReceptionner ? (
+                {ligne.quantiteReliquatMillieme > 0 &&
+                ligne.reliquatAnnuleLe === null &&
+                peutReceptionner ? (
                   <Button
                     type="button"
                     size="sm"
@@ -208,25 +259,43 @@ export function EcranFicheCommandeFournisseur() {
               </div>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-4">
                 <div>
-                  <span className="texte-libelle text-muted-foreground">{t('pieces:commandes.lignes.quantiteCommandee')}</span>
-                  <p className="tabular-nums">{formaterQuantiteMillieme(ligne.quantiteCommandeeMillieme)}</p>
+                  <span className="texte-libelle text-muted-foreground">
+                    {t('pieces:commandes.lignes.quantiteCommandee')}
+                  </span>
+                  <p className="tabular-nums">
+                    {formaterQuantiteMillieme(ligne.quantiteCommandeeMillieme)}
+                  </p>
                 </div>
                 <div>
-                  <span className="texte-libelle text-muted-foreground">{t('pieces:commandes.lignes.quantiteRecue')}</span>
-                  <p className="tabular-nums">{formaterQuantiteMillieme(ligne.quantiteRecueCumuleeMillieme)}</p>
+                  <span className="texte-libelle text-muted-foreground">
+                    {t('pieces:commandes.lignes.quantiteRecue')}
+                  </span>
+                  <p className="tabular-nums">
+                    {formaterQuantiteMillieme(ligne.quantiteRecueCumuleeMillieme)}
+                  </p>
                 </div>
                 <div>
-                  <span className="texte-libelle text-muted-foreground">{t('pieces:commandes.lignes.quantiteReliquat')}</span>
+                  <span className="texte-libelle text-muted-foreground">
+                    {t('pieces:commandes.lignes.quantiteReliquat')}
+                  </span>
                   <p className="tabular-nums">
                     {formaterQuantiteMillieme(ligne.quantiteReliquatMillieme)}
                     {ligne.reliquatAnnuleLe !== null ? (
-                      <span className="ml-1 texte-libelle text-muted-foreground">({t('pieces:commandes.lignes.reliquatAnnule')})</span>
+                      <span className="ml-1 texte-libelle text-muted-foreground">
+                        ({t('pieces:commandes.lignes.reliquatAnnule')})
+                      </span>
                     ) : null}
                   </p>
                 </div>
                 <div>
-                  <span className="texte-libelle text-muted-foreground">{t('pieces:commandes.lignes.prixAchatAttendu')}</span>
-                  <p className="tabular-nums">{ligne.prixAchatAttenduCentimes === null ? '—' : formaterMontant(ligne.prixAchatAttenduCentimes)}</p>
+                  <span className="texte-libelle text-muted-foreground">
+                    {t('pieces:commandes.lignes.prixAchatAttendu')}
+                  </span>
+                  <p className="tabular-nums">
+                    {ligne.prixAchatAttenduCentimes === null
+                      ? '—'
+                      : formaterMontant(ligne.prixAchatAttenduCentimes)}
+                  </p>
                 </div>
               </div>
               {ligne.reliquatMotifAnnulation ? (
@@ -239,7 +308,11 @@ export function EcranFicheCommandeFournisseur() {
         </CardContent>
       </Card>
 
-      <DialogueReceptionCommande ouvert={receptionOuverte} onOuvertChange={setReceptionOuverte} commande={commande} />
+      <DialogueReceptionCommande
+        ouvert={receptionOuverte}
+        onOuvertChange={setReceptionOuverte}
+        commande={commande}
+      />
 
       <DialogueMotifCommandeFournisseur
         ouvert={confirmation?.type === 'annuler'}
@@ -249,7 +322,9 @@ export function EcranFicheCommandeFournisseur() {
         enCours={annuler.isPending}
         erreur={annuler.error}
         onFermer={() => setConfirmation(null)}
-        onConfirmer={(motif) => annuler.mutate({ motif }, { onSuccess: () => setConfirmation(null) })}
+        onConfirmer={(motif) =>
+          annuler.mutate({ motif }, { onSuccess: () => setConfirmation(null) })
+        }
       />
 
       <DialogueMotifCommandeFournisseur
@@ -262,7 +337,10 @@ export function EcranFicheCommandeFournisseur() {
         onFermer={() => setConfirmation(null)}
         onConfirmer={(motif) => {
           if (confirmation?.type !== 'annulerReliquat') return;
-          annulerReliquat.mutate({ ligneId: confirmation.ligneId, entree: { motif } }, { onSuccess: () => setConfirmation(null) });
+          annulerReliquat.mutate(
+            { ligneId: confirmation.ligneId, entree: { motif } },
+            { onSuccess: () => setConfirmation(null) },
+          );
         }}
       />
     </div>

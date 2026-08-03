@@ -52,7 +52,11 @@ function versEntreeAudit(ligne: LigneAuditBrute): EntreeAudit {
 export class ServiceAuditImpl implements ServiceAudit {
   constructor(@Inject(JETON_DB) private readonly acces: AccesBase) {}
 
-  async pourEntite(ctx: ContexteTenant, entite: EntiteAuditee, entiteId: string): Promise<readonly EntreeAudit[]> {
+  async pourEntite(
+    ctx: ContexteTenant,
+    entite: EntiteAuditee,
+    entiteId: string,
+  ): Promise<readonly EntreeAudit[]> {
     return this.acces.enTenant(ctx, async (tx) => {
       // Rescope explicite sur tenant_id, même si le RLS filtre déjà via le GUC posé par
       // enTenant() : le RLS est le filet, jamais le mécanisme (doctrine du projet).

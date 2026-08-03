@@ -80,10 +80,12 @@ describe('EcranJournalPointage', () => {
 
     rendre();
 
-    expect(await screen.findByText('Aucun pointage enregistré sur cette période.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Aucun pointage enregistré sur cette période.'),
+    ).toBeInTheDocument();
   });
 
-  it("affiche une erreur actionnable si le serveur échoue", async () => {
+  it('affiche une erreur actionnable si le serveur échoue', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
       http.get('/api/v1/pointages', () =>

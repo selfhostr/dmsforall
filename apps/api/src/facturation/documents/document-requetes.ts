@@ -1,7 +1,15 @@
 import { and, asc, eq } from 'drizzle-orm';
 
 import type { ContexteTenant, TransactionDfa } from '../../db';
-import { documentVente, documentVenteTva, ligneDocument, parametreAtelier, type LigneDocumentVente, type LigneDocumentVenteTva, type LigneLigneDocument } from '../../db/schema';
+import {
+  documentVente,
+  documentVenteTva,
+  ligneDocument,
+  parametreAtelier,
+  type LigneDocumentVente,
+  type LigneDocumentVenteTva,
+  type LigneLigneDocument,
+} from '../../db/schema';
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 
 /**
@@ -23,21 +31,35 @@ export async function chargerDocumentOuNull(
   return ligne ?? null;
 }
 
-export async function chargerDocument(tx: TransactionDfa, ctx: ContexteTenant, documentId: string): Promise<LigneDocumentVente> {
+export async function chargerDocument(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  documentId: string,
+): Promise<LigneDocumentVente> {
   const ligne = await chargerDocumentOuNull(tx, ctx, documentId, false);
-  if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Document de vente ${documentId} introuvable.`);
+  if (!ligne)
+    throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Document de vente ${documentId} introuvable.`);
   return ligne;
 }
 
 /** Verrouille et rend le document, ou lève `RESSOURCE_INTROUVABLE` — point d'entrée de TOUTE
  *  écriture (création de ligne, émission, transition). */
-export async function chargerDocumentPourEcriture(tx: TransactionDfa, ctx: ContexteTenant, documentId: string): Promise<LigneDocumentVente> {
+export async function chargerDocumentPourEcriture(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  documentId: string,
+): Promise<LigneDocumentVente> {
   const ligne = await chargerDocumentOuNull(tx, ctx, documentId, true);
-  if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Document de vente ${documentId} introuvable.`);
+  if (!ligne)
+    throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Document de vente ${documentId} introuvable.`);
   return ligne;
 }
 
-export async function listerLignesDocument(tx: TransactionDfa, ctx: ContexteTenant, documentId: string): Promise<readonly LigneLigneDocument[]> {
+export async function listerLignesDocument(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  documentId: string,
+): Promise<readonly LigneLigneDocument[]> {
   return tx
     .select()
     .from(ligneDocument)
@@ -47,7 +69,11 @@ export async function listerLignesDocument(tx: TransactionDfa, ctx: ContexteTena
 
 /** Verrouille toutes les lignes du document (utilisé à l'émission : la ventilation de la remise
  *  globale et l'agrégation TVA doivent voir un état stable). */
-export async function listerLignesDocumentPourEcriture(tx: TransactionDfa, ctx: ContexteTenant, documentId: string): Promise<readonly LigneLigneDocument[]> {
+export async function listerLignesDocumentPourEcriture(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  documentId: string,
+): Promise<readonly LigneLigneDocument[]> {
   return tx
     .select()
     .from(ligneDocument)
@@ -56,33 +82,71 @@ export async function listerLignesDocumentPourEcriture(tx: TransactionDfa, ctx: 
     .for('update');
 }
 
-export async function chargerLigneOuNull(tx: TransactionDfa, ctx: ContexteTenant, documentId: string, ligneId: string): Promise<LigneLigneDocument | null> {
+export async function chargerLigneOuNull(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  documentId: string,
+  ligneId: string,
+): Promise<LigneLigneDocument | null> {
   const [ligne] = await tx
     .select()
     .from(ligneDocument)
-    .where(and(eq(ligneDocument.tenantId, ctx.tenantId), eq(ligneDocument.documentId, documentId), eq(ligneDocument.id, ligneId)));
+    .where(
+      and(
+        eq(ligneDocument.tenantId, ctx.tenantId),
+        eq(ligneDocument.documentId, documentId),
+        eq(ligneDocument.id, ligneId),
+      ),
+    );
   return ligne ?? null;
 }
 
-export async function chargerLignePourEcriture(tx: TransactionDfa, ctx: ContexteTenant, documentId: string, ligneId: string): Promise<LigneLigneDocument> {
+export async function chargerLignePourEcriture(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  documentId: string,
+  ligneId: string,
+): Promise<LigneLigneDocument> {
   const [ligne] = await tx
     .select()
     .from(ligneDocument)
-    .where(and(eq(ligneDocument.tenantId, ctx.tenantId), eq(ligneDocument.documentId, documentId), eq(ligneDocument.id, ligneId)))
+    .where(
+      and(
+        eq(ligneDocument.tenantId, ctx.tenantId),
+        eq(ligneDocument.documentId, documentId),
+        eq(ligneDocument.id, ligneId),
+      ),
+    )
     .for('update');
-  if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Ligne ${ligneId} introuvable sur le document ${documentId}.`);
+  if (!ligne)
+    throw new ErreurMetier(
+      'RESSOURCE_INTROUVABLE',
+      `Ligne ${ligneId} introuvable sur le document ${documentId}.`,
+    );
   return ligne;
 }
 
-export async function listerVentilationTva(tx: TransactionDfa, ctx: ContexteTenant, documentId: string): Promise<readonly LigneDocumentVenteTva[]> {
-  return tx.select().from(documentVenteTva).where(and(eq(documentVenteTva.tenantId, ctx.tenantId), eq(documentVenteTva.documentId, documentId)));
+export async function listerVentilationTva(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  documentId: string,
+): Promise<readonly LigneDocumentVenteTva[]> {
+  return tx
+    .select()
+    .from(documentVenteTva)
+    .where(
+      and(eq(documentVenteTva.tenantId, ctx.tenantId), eq(documentVenteTva.documentId, documentId)),
+    );
 }
 
 /** `RF-117` (migration 0018) : plafond d'émission d'avoir pour `receptionnaire` seul, en centimes.
  *  `NULL` = aucun plafond convenu pour ce tenant — sémantique posée par la migration, jamais
  *  réinterprétée ici. Une ligne par tenant (`parametre_atelier`, PK = `tenant_id`) : absence de
  *  ligne (tenant jamais paramétré) traitée comme `NULL`, même comportement. */
-export async function chargerPlafondAvoirReceptionnaire(tx: TransactionDfa, ctx: ContexteTenant): Promise<number | null> {
+export async function chargerPlafondAvoirReceptionnaire(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+): Promise<number | null> {
   const [ligne] = await tx
     .select({ plafondCentimes: parametreAtelier.plafondAvoirReceptionnaireCentimes })
     .from(parametreAtelier)
@@ -96,7 +160,11 @@ export async function chargerPlafondAvoirReceptionnaire(tx: TransactionDfa, ctx:
  *  être abandonné) et n'entre pas dans la somme. Un avoir porte un `total_ttc_centimes <= 0` par
  *  construction (migration 0010 §9) ; `abs()` rend le montant réellement crédité au client, même
  *  convention que le trigger `imputation_paiement_verifier_invariants` (MD-51). */
-export async function sommerAvoirsEmisPourFacture(tx: TransactionDfa, ctx: ContexteTenant, factureAnnuleeId: string): Promise<number> {
+export async function sommerAvoirsEmisPourFacture(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  factureAnnuleeId: string,
+): Promise<number> {
   const lignes = await tx
     .select({ totalTtcCentimes: documentVente.totalTtcCentimes })
     .from(documentVente)

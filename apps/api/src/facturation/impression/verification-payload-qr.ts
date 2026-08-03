@@ -168,14 +168,18 @@ export function normaliserPayloadPourComparaison(payload: string): string {
  *         d'alerte (dérive de version de `swissqrbill`, régression de mapping), pas une erreur
  *         utilisateur à corriger.
  */
-export function verifierEquivalencePayload(data: Data, payloadFige: string, documentId: string): void {
+export function verifierEquivalencePayload(
+  data: Data,
+  payloadFige: string,
+  documentId: string,
+): void {
   const payloadReel = payloadReelementEncode(data);
 
   if (payloadReel == null) {
     throw new ErreurMetier(
       'ERREUR_INTERNE',
       `Bulletin QR du document ${documentId} : impossible de décoder le symbole reconstruit pour ` +
-        'vérification (jsQR n\'a détecté aucun code) — génération du PDF refusée par sécurité (DI-3).',
+        "vérification (jsQR n'a détecté aucun code) — génération du PDF refusée par sécurité (DI-3).",
     );
   }
 
@@ -186,7 +190,7 @@ export function verifierEquivalencePayload(data: Data, payloadFige: string, docu
     throw new ErreurMetier(
       'ERREUR_INTERNE',
       `Bulletin QR du document ${documentId} : le payload que swissqrbill encoderait diverge du ` +
-        'qr_payload figé à l\'émission après normalisation autorisée (CRLF→LF, ligne finale vide) — ' +
+        "qr_payload figé à l'émission après normalisation autorisée (CRLF→LF, ligne finale vide) — " +
         'génération du PDF refusée plutôt que de produire un bulletin dont le QR dirait autre chose ' +
         'que ce qui a été émis (DI-3/MD-77).',
       { detail: `attendu=${JSON.stringify(attendu)};obtenu=${JSON.stringify(obtenu)}` },

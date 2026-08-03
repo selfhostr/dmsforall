@@ -11,7 +11,10 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { useFournisseur } from '@/hooks/pieces/useFournisseur';
-import { useDesactiverFournisseur, useReactiverFournisseur } from '@/hooks/pieces/useTransitionsFournisseur';
+import {
+  useDesactiverFournisseur,
+  useReactiverFournisseur,
+} from '@/hooks/pieces/useTransitionsFournisseur';
 import { useSession } from '@/hooks/useSession';
 
 import { peutEcrireFournisseur } from './droits';
@@ -86,19 +89,27 @@ export function EcranFicheFournisseur() {
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-2xl font-semibold tracking-tight">{fournisseur.nom}</h2>
-            <Badge variant={VARIANTE_BADGE_STATUT[fournisseur.statut]}>{t(`pieces:fournisseurs.statuts.${fournisseur.statut}`)}</Badge>
+            <Badge variant={VARIANTE_BADGE_STATUT[fournisseur.statut]}>
+              {t(`pieces:fournisseurs.statuts.${fournisseur.statut}`)}
+            </Badge>
           </div>
           <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1.5 texte-corps sm:grid-cols-3">
             <div>
-              <dt className="texte-libelle text-muted-foreground">{t('pieces:fournisseurs.email')}</dt>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('pieces:fournisseurs.email')}
+              </dt>
               <dd>{texteOuVide(fournisseur.email)}</dd>
             </div>
             <div>
-              <dt className="texte-libelle text-muted-foreground">{t('pieces:fournisseurs.telephone')}</dt>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('pieces:fournisseurs.telephone')}
+              </dt>
               <dd>{texteOuVide(fournisseur.telephone)}</dd>
             </div>
             <div>
-              <dt className="texte-libelle text-muted-foreground">{t('pieces:fournisseurs.delaiHabituelJours')}</dt>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('pieces:fournisseurs.delaiHabituelJours')}
+              </dt>
               <dd className="tabular-nums">{texteOuVide(fournisseur.delaiHabituelJours)}</dd>
             </div>
           </dl>
@@ -128,7 +139,13 @@ export function EcranFicheFournisseur() {
         </p>
       ) : null}
 
-      {peutEcrire ? <FormulaireFournisseur ouvert={formulaireOuvert} onOuvertChange={setFormulaireOuvert} fournisseur={fournisseur} /> : null}
+      {peutEcrire ? (
+        <FormulaireFournisseur
+          ouvert={formulaireOuvert}
+          onOuvertChange={setFormulaireOuvert}
+          fournisseur={fournisseur}
+        />
+      ) : null}
 
       <AvertissementConfirmable
         ouvert={confirmation !== null}
@@ -136,7 +153,9 @@ export function EcranFicheFournisseur() {
           if (!ouvert) setConfirmation(null);
         }}
         titre={confirmation ? t(`pieces:fournisseurs.confirmations.${confirmation}Titre`) : ''}
-        description={confirmation ? t(`pieces:fournisseurs.confirmations.${confirmation}Description`) : ''}
+        description={
+          confirmation ? t(`pieces:fournisseurs.confirmations.${confirmation}Description`) : ''
+        }
         libelleConfirmation={confirmation ? t(`pieces:fournisseurs.actions.${confirmation}`) : ''}
         onConfirmer={confirmer}
         enCours={enCoursTransition}

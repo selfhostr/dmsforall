@@ -75,7 +75,7 @@ describe('mapperLigneOr — filtrage des montants par rôle', () => {
     expect(reponse.tauxHoraireCentimes).toBe(12000);
   });
 
-  it('ne renvoie jamais un montant à zéro à la place d\'une omission', () => {
+  it("ne renvoie jamais un montant à zéro à la place d'une omission", () => {
     const reponse = mapperLigneOr(ligneOrDeBase(), 'technicien');
     // La règle du contrat est d'OMETTRE le champ, jamais d'envoyer 0 — un technicien qui recevrait
     // `montants: { montantTtcCentimes: 0 }` croirait à une ligne gratuite plutôt qu'à une donnée

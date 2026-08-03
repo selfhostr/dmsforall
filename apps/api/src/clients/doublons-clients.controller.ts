@@ -29,7 +29,9 @@ export class DoublonsClientsController {
 
   @Get()
   @ExigerDroit('client.lire')
-  @ApiOperation({ summary: 'Candidats doublons pour un nom, un NPA, un email, un téléphone ou un IDE (RM-05).' })
+  @ApiOperation({
+    summary: 'Candidats doublons pour un nom, un NPA, un email, un téléphone ou un IDE (RM-05).',
+  })
   @ApiOkResponse({ type: ReponseDoublonsClientsDto })
   @ApiReponseProbleme(400, 'Aucun critère de recherche fourni.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')

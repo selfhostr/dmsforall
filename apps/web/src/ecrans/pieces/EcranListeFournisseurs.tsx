@@ -2,13 +2,25 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
-import { STATUTS_FOURNISSEUR, TRI_DEFAUT_FOURNISSEURS, type FiltresFournisseurs, type ReponseFournisseur, type StatutFournisseur } from '@dfa/shared';
+import {
+  STATUTS_FOURNISSEUR,
+  TRI_DEFAUT_FOURNISSEURS,
+  type FiltresFournisseurs,
+  type ReponseFournisseur,
+  type StatutFournisseur,
+} from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
@@ -41,8 +53,21 @@ export function EcranListeFournisseurs() {
   const [statut, setStatut] = useState<StatutFournisseur | undefined>('actif');
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
 
-  const filtres: FiltresFournisseurs = { statut: statut ? [statut] : undefined, tri: TRI_DEFAUT_FOURNISSEURS, limite: 50 };
-  const { fournisseurs, isPending, isError, error, refetch, hasNextPage, isFetchingNextPage, fetchNextPage } = useListeFournisseurs(filtres);
+  const filtres: FiltresFournisseurs = {
+    statut: statut ? [statut] : undefined,
+    tri: TRI_DEFAUT_FOURNISSEURS,
+    limite: 50,
+  };
+  const {
+    fournisseurs,
+    isPending,
+    isError,
+    error,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useListeFournisseurs(filtres);
 
   const colonnes: ColonneComptoir<ReponseFournisseur>[] = [
     {
@@ -64,12 +89,18 @@ export function EcranListeFournisseurs() {
       id: 'delai',
       libelle: t('pieces:fournisseurs.delaiHabituelJours'),
       alignement: 'droite',
-      rendu: (fournisseur) => <span className="tabular-nums">{texteOuVide(fournisseur.delaiHabituelJours)}</span>,
+      rendu: (fournisseur) => (
+        <span className="tabular-nums">{texteOuVide(fournisseur.delaiHabituelJours)}</span>
+      ),
     },
     {
       id: 'statut',
       libelle: t('pieces:fournisseurs.statut'),
-      rendu: (fournisseur) => <Badge variant={VARIANTE_BADGE_STATUT[fournisseur.statut]}>{t(`pieces:fournisseurs.statuts.${fournisseur.statut}`)}</Badge>,
+      rendu: (fournisseur) => (
+        <Badge variant={VARIANTE_BADGE_STATUT[fournisseur.statut]}>
+          {t(`pieces:fournisseurs.statuts.${fournisseur.statut}`)}
+        </Badge>
+      ),
     },
   ];
 
@@ -86,7 +117,11 @@ export function EcranListeFournisseurs() {
     return (
       <div className="flex flex-col gap-6">
         <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:fournisseurs.titre')}</h1>
-        <EtatErreur titre={t('pieces:fournisseurs.erreur.titre')} description={messageErreur(error, t)} onReessayer={() => void refetch()} />
+        <EtatErreur
+          titre={t('pieces:fournisseurs.erreur.titre')}
+          description={messageErreur(error, t)}
+          onReessayer={() => void refetch()}
+        />
       </div>
     );
   }
@@ -96,14 +131,24 @@ export function EcranListeFournisseurs() {
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:fournisseurs.titre')}</h1>
         {peutEcrireFournisseur(role) ? (
-          <Button onClick={() => setFormulaireOuvert(true)}>{t('pieces:fournisseurs.actions.ajouter')}</Button>
+          <Button onClick={() => setFormulaireOuvert(true)}>
+            {t('pieces:fournisseurs.actions.ajouter')}
+          </Button>
         ) : null}
       </div>
 
       <div className="flex flex-col gap-1.5 max-w-xs">
         <Label htmlFor="filtre-statut-fournisseur">{t('pieces:fournisseurs.statut')}</Label>
-        <Select value={statut ?? 'tous'} onValueChange={(valeur) => setStatut(valeur === 'tous' ? undefined : (valeur as StatutFournisseur))}>
-          <SelectTrigger id="filtre-statut-fournisseur" aria-label={t('pieces:fournisseurs.statut')}>
+        <Select
+          value={statut ?? 'tous'}
+          onValueChange={(valeur) =>
+            setStatut(valeur === 'tous' ? undefined : (valeur as StatutFournisseur))
+          }
+        >
+          <SelectTrigger
+            id="filtre-statut-fournisseur"
+            aria-label={t('pieces:fournisseurs.statut')}
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -135,7 +180,9 @@ export function EcranListeFournisseurs() {
               description={t('pieces:fournisseurs.vide')}
               action={
                 peutEcrireFournisseur(role) ? (
-                  <Button onClick={() => setFormulaireOuvert(true)}>{t('pieces:fournisseurs.actions.ajouter')}</Button>
+                  <Button onClick={() => setFormulaireOuvert(true)}>
+                    {t('pieces:fournisseurs.actions.ajouter')}
+                  </Button>
                 ) : undefined
               }
             />
@@ -143,7 +190,11 @@ export function EcranListeFournisseurs() {
         }
       />
 
-      <BoutonChargerPlus aChargerPlus={Boolean(hasNextPage)} enChargement={isFetchingNextPage} onChargerPlus={() => void fetchNextPage()} />
+      <BoutonChargerPlus
+        aChargerPlus={Boolean(hasNextPage)}
+        enChargement={isFetchingNextPage}
+        onChargerPlus={() => void fetchNextPage()}
+      />
 
       <FormulaireFournisseur
         ouvert={formulaireOuvert}

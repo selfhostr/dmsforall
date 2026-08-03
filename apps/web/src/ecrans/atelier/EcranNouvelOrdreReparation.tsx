@@ -23,7 +23,9 @@ import { SelecteurVehiculeOrdre } from './SelecteurVehiculeOrdre';
  *  périmètre. La fiche d'OR lit `:orId` (pas `:id`, voir `routeur.tsx`) — sans effet sur cette
  *  construction en chaîne. */
 function cheminOr(id: string, site: string | undefined): string {
-  return site ? `/ordres-reparation/${id}?site=${encodeURIComponent(site)}` : `/ordres-reparation/${id}`;
+  return site
+    ? `/ordres-reparation/${id}?site=${encodeURIComponent(site)}`
+    : `/ordres-reparation/${id}`;
 }
 
 /** `GET /clients/{id}` renvoie `ReponseClient` (fiche complète), qui n'a pas `localite`/

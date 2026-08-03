@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { ErrorEvent, EventHint } from '@sentry/nestjs';
 
-import { assainirAttributsSpan, assainirEvenement, nettoyerEvenementSentry } from './nettoyer-evenement';
+import {
+  assainirAttributsSpan,
+  assainirEvenement,
+  nettoyerEvenementSentry,
+} from './nettoyer-evenement';
 
 const HINT_VIDE: EventHint = {};
 
@@ -16,21 +20,28 @@ function evenement(surcharges: Partial<ErrorEvent> = {}): ErrorEvent {
  * type pas explicitement contre le `TransactionEvent` du SDK ici : voir le commentaire de
  * `assainirEvenement` sur pourquoi ce fichier évite de nommer ce type.
  */
-function transaction(surcharges: Partial<Omit<ErrorEvent, 'type'>> = {}): Omit<ErrorEvent, 'type'> & { type: 'transaction' } {
+function transaction(
+  surcharges: Partial<Omit<ErrorEvent, 'type'>> = {},
+): Omit<ErrorEvent, 'type'> & { type: 'transaction' } {
   return { type: 'transaction', ...surcharges };
 }
 
 describe('nettoyerEvenementSentry — nettoyage des données personnelles avant envoi', () => {
   it('retire les cookies bruts de la requête', () => {
     const resultat = nettoyerEvenementSentry(
-      evenement({ request: { url: 'https://api.dmsforall.example/api/v1/atelier/or', cookies: { dfa_session: 'abc123' } } }),
+      evenement({
+        request: {
+          url: 'https://api.dmsforall.example/api/v1/atelier/or',
+          cookies: { dfa_session: 'abc123' },
+        },
+      }),
       HINT_VIDE,
     );
 
     expect(resultat.request?.cookies).toBeUndefined();
   });
 
-  it('retire l\'en-tête Authorization', () => {
+  it("retire l'en-tête Authorization", () => {
     const resultat = nettoyerEvenementSentry(
       evenement({
         request: {
@@ -45,16 +56,18 @@ describe('nettoyerEvenementSentry — nettoyage des données personnelles avant 
     expect(resultat.request?.headers?.['content-type']).toBe('application/json');
   });
 
-  it('retire l\'en-tête Cookie (variante insensible à la casse)', () => {
+  it("retire l'en-tête Cookie (variante insensible à la casse)", () => {
     const resultat = nettoyerEvenementSentry(
-      evenement({ request: { url: 'https://api.dmsforall.example/x', headers: { Cookie: 'dfa_session=abc' } } }),
+      evenement({
+        request: { url: 'https://api.dmsforall.example/x', headers: { Cookie: 'dfa_session=abc' } },
+      }),
       HINT_VIDE,
     );
 
     expect(resultat.request?.headers?.Cookie).toBe('[retiré]');
   });
 
-  it('retire intégralement le corps de requête des endpoints d\'authentification', () => {
+  it("retire intégralement le corps de requête des endpoints d'authentification", () => {
     const resultat = nettoyerEvenementSentry(
       evenement({
         request: {
@@ -68,7 +81,7 @@ describe('nettoyerEvenementSentry — nettoyage des données personnelles avant 
     expect(resultat.request?.data).toBeUndefined();
   });
 
-  it('masque un mot de passe présent dans le corps d\'une requête hors authentification', () => {
+  it("masque un mot de passe présent dans le corps d'une requête hors authentification", () => {
     const resultat = nettoyerEvenementSentry(
       evenement({
         request: {
@@ -84,9 +97,15 @@ describe('nettoyerEvenementSentry — nettoyage des données personnelles avant 
     expect(donnees.role).toBe('admin');
   });
 
-  it('retire l\'identité utilisateur (email, username) et ne garde qu\'un id technique éventuel', () => {
+  it("retire l'identité utilisateur (email, username) et ne garde qu'un id technique éventuel", () => {
     const resultat = nettoyerEvenementSentry(
-      evenement({ user: { id: 'utilisateur-uuid-1', email: 'jean.dupont@garage-martin.ch', username: 'Jean Dupont' } }),
+      evenement({
+        user: {
+          id: 'utilisateur-uuid-1',
+          email: 'jean.dupont@garage-martin.ch',
+          username: 'Jean Dupont',
+        },
+      }),
       HINT_VIDE,
     );
 
@@ -108,11 +127,13 @@ describe('nettoyerEvenementSentry — nettoyage des données personnelles avant 
     expect(client).toBe('[retiré]');
   });
 
-  it('masque une adresse e-mail apparaissant dans un message d\'exception en texte libre', () => {
+  it("masque une adresse e-mail apparaissant dans un message d'exception en texte libre", () => {
     const resultat = nettoyerEvenementSentry(
       evenement({
         exception: {
-          values: [{ type: 'Error', value: 'Échec de notification pour jean.dupont@garage-martin.ch' }],
+          values: [
+            { type: 'Error', value: 'Échec de notification pour jean.dupont@garage-martin.ch' },
+          ],
         },
       }),
       HINT_VIDE,
@@ -130,8 +151,11 @@ describe('nettoyerEvenementSentry — nettoyage des données personnelles avant 
     expect(resultat.message).toBe('Véhicule introuvable pour VIN [retiré]');
   });
 
-  it('masque une plaque d\'immatriculation suisse dans un texte libre', () => {
-    const resultat = nettoyerEvenementSentry(evenement({ message: 'Plaque VD 123456 déjà enregistrée' }), HINT_VIDE);
+  it("masque une plaque d'immatriculation suisse dans un texte libre", () => {
+    const resultat = nettoyerEvenementSentry(
+      evenement({ message: 'Plaque VD 123456 déjà enregistrée' }),
+      HINT_VIDE,
+    );
 
     expect(resultat.message).toBe('Plaque [retiré] déjà enregistrée');
   });
@@ -174,7 +198,12 @@ describe('nettoyerEvenementSentry — nettoyage des données personnelles avant 
         extra: { requeteId: 'r-1' },
         request: {
           url: 'https://api.dmsforall.example/api/v1/clients/42',
-          data: { telephone: '079 123 45 67', iban: 'CH93 0076 2011 6238 5295 7', avs: '756.1234.5678.97', role: 'admin' },
+          data: {
+            telephone: '079 123 45 67',
+            iban: 'CH93 0076 2011 6238 5295 7',
+            avs: '756.1234.5678.97',
+            role: 'admin',
+          },
         },
       }),
       HINT_VIDE,
@@ -201,7 +230,9 @@ describe('nettoyerEvenementSentry — nettoyage des données personnelles avant 
     );
 
     expect(resultat.breadcrumbs?.[0]?.message).toBe('Connexion tentée pour [retiré]');
-    expect((resultat.breadcrumbs?.[0]?.data as Record<string, unknown>).motDePasse).toBe('[retiré]');
+    expect((resultat.breadcrumbs?.[0]?.data as Record<string, unknown>).motDePasse).toBe(
+      '[retiré]',
+    );
   });
 
   it('coupe entièrement la query string plutôt que de la rédiger par motif (finding H1)', () => {
@@ -219,7 +250,7 @@ describe('nettoyerEvenementSentry — nettoyage des données personnelles avant 
     expect(resultat.request?.query_string).toBeUndefined();
   });
 
-  it('reproduit le scénario réaliste de l\'audit — recherche « Dupont Jean » avec téléphone, IBAN et AVS : neutralise ce qui a une forme reconnaissable, documente ce qui ne l\'a pas', () => {
+  it("reproduit le scénario réaliste de l'audit — recherche « Dupont Jean » avec téléphone, IBAN et AVS : neutralise ce qui a une forme reconnaissable, documente ce qui ne l'a pas", () => {
     const evenementReel = evenement({
       request: {
         url: 'https://api.dmsforall.example/api/v1/clients?recherche=Dupont%20Jean&telephone=0791234567',
@@ -303,7 +334,7 @@ describe('nettoyerEvenementSentry — nettoyage des données personnelles avant 
     expect(resultat.contexts).toEqual({ runtime: { name: 'node', version: '22.0.0' } });
   });
 
-  it('masque une clé sensible même à l\'intérieur d\'un namespace `contexts` autorisé (défense en profondeur)', () => {
+  it("masque une clé sensible même à l'intérieur d'un namespace `contexts` autorisé (défense en profondeur)", () => {
     const resultat = nettoyerEvenementSentry(
       evenement({ contexts: { runtime: { name: 'node', email: 'jean.dupont@garage-martin.ch' } } }),
       HINT_VIDE,
@@ -329,7 +360,11 @@ describe('nettoyerEvenementSentry — nettoyage des données personnelles avant 
       HINT_VIDE,
     );
 
-    expect(resultat.extra).toEqual({ requeteId: 'r-1', tenantId: 'a1b2c3d4-...', endpoint: '/api/v1/atelier/or/:id' });
+    expect(resultat.extra).toEqual({
+      requeteId: 'r-1',
+      tenantId: 'a1b2c3d4-...',
+      endpoint: '/api/v1/atelier/or/:id',
+    });
   });
 
   it('ne lève jamais, même sur un événement vide', () => {
@@ -343,7 +378,7 @@ describe('assainirEvenement — même nettoyage que les erreurs, appliqué aux t
   // ce fichier pour pourquoi la lambda n'est pas exportée nommée ici). La tester directement sur
   // une forme de transaction couvre exactement le même chemin de code que celui réellement
   // exécuté par le SDK sur 100% des transactions.
-  it('coupe la query string et applique l\'allow-list `extra` d\'une transaction, exactement comme pour une erreur', () => {
+  it("coupe la query string et applique l'allow-list `extra` d'une transaction, exactement comme pour une erreur", () => {
     const resultat = assainirEvenement(
       transaction({
         request: {
@@ -366,7 +401,7 @@ describe('assainirEvenement — même nettoyage que les erreurs, appliqué aux t
 });
 
 describe('assainirAttributsSpan — beforeSendSpan (finding H2)', () => {
-  it('coupe la query string d\'un attribut http.url', () => {
+  it("coupe la query string d'un attribut http.url", () => {
     const resultat = assainirAttributsSpan({
       'http.url': 'https://api.dmsforall.example/api/v1/clients?recherche=Dupont%20Jean',
     });
@@ -374,7 +409,7 @@ describe('assainirAttributsSpan — beforeSendSpan (finding H2)', () => {
     expect(resultat['http.url']).toBe('https://api.dmsforall.example/api/v1/clients');
   });
 
-  it('coupe la query string d\'un attribut url.full', () => {
+  it("coupe la query string d'un attribut url.full", () => {
     const resultat = assainirAttributsSpan({
       'url.full': 'https://api.dmsforall.example/api/v1/clients?telephone=0791234567',
     });
@@ -383,7 +418,9 @@ describe('assainirAttributsSpan — beforeSendSpan (finding H2)', () => {
   });
 
   it('masque intégralement un attribut db.statement (paramètres SQL potentiellement littéraux)', () => {
-    const resultat = assainirAttributsSpan({ 'db.statement': "select * from clients where nom = 'Dupont'" });
+    const resultat = assainirAttributsSpan({
+      'db.statement': "select * from clients where nom = 'Dupont'",
+    });
 
     expect(resultat['db.statement']).toBe('[retiré]');
   });
@@ -395,7 +432,9 @@ describe('assainirAttributsSpan — beforeSendSpan (finding H2)', () => {
   });
 
   it('masque un attribut dont le nom correspond à une clé sensible connue (ex. en-tête Authorization)', () => {
-    const resultat = assainirAttributsSpan({ 'http.request.header.authorization': 'Bearer secret' });
+    const resultat = assainirAttributsSpan({
+      'http.request.header.authorization': 'Bearer secret',
+    });
 
     expect(resultat['http.request.header.authorization']).toBe('[retiré]');
   });
@@ -407,7 +446,7 @@ describe('assainirAttributsSpan — beforeSendSpan (finding H2)', () => {
     expect(resultat['http.status_code']).toBe(200);
   });
 
-  it('ne lève jamais, même sur un objet d\'attributs vide', () => {
+  it("ne lève jamais, même sur un objet d'attributs vide", () => {
     expect(() => assainirAttributsSpan({})).not.toThrow();
   });
 });

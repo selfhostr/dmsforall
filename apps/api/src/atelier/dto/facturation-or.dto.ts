@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { ReponseDocumentVente, ReponseFacturationOrdreReparation, ReponseOrdreReparation } from '@dfa/shared';
+import type {
+  ReponseDocumentVente,
+  ReponseFacturationOrdreReparation,
+  ReponseOrdreReparation,
+} from '@dfa/shared';
 
 import { ReponseDocumentVenteDto } from '../../facturation/documents/dto';
 
@@ -15,10 +19,14 @@ import { ReponseOrdreReparationDto } from './ordre-reparation.dto';
 export class ReponseFacturationOrdreReparationDto implements ReponseFacturationOrdreReparation {
   @ApiProperty({
     type: () => [ReponseDocumentVenteDto],
-    description: 'Un brouillon par groupe payeur traité par CET appel, dans l’ordre de `groupes` en entrée.',
+    description:
+      'Un brouillon par groupe payeur traité par CET appel, dans l’ordre de `groupes` en entrée.',
   })
   readonly facturesCreees!: readonly ReponseDocumentVente[];
 
-  @ApiProperty({ type: () => ReponseOrdreReparationDto, description: "L'OR à jour — même patron que les actions de §7.7." })
+  @ApiProperty({
+    type: () => ReponseOrdreReparationDto,
+    description: "L'OR à jour — même patron que les actions de §7.7.",
+  })
   readonly ordreReparation!: ReponseOrdreReparation;
 }

@@ -131,4 +131,6 @@ export type EntreeRejouerExecutionConnecteur = z.infer<typeof schemaRejouerExecu
 export const schemaAnnulationExecutionConnecteur = z.object({
   motif: schemaMotif,
 });
-export type EntreeAnnulationExecutionConnecteur = z.infer<typeof schemaAnnulationExecutionConnecteur>;
+export type EntreeAnnulationExecutionConnecteur = z.infer<
+  typeof schemaAnnulationExecutionConnecteur
+>;

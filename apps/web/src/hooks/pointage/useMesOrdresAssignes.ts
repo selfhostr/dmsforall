@@ -10,7 +10,9 @@ const LIMITE = 50;
  *  assignée (ou peut pointer sans ligne précise, RM-87 `productif_or`). Pas de pagination par
  *  curseur ici : un technicien a rarement plus d'une poignée d'OR ouverts en parallèle, `LIMITE`
  *  sert de plafond de sécurité, pas une troncature attendue en usage normal. */
-export function useMesOrdresAssignes(technicienId: string | undefined): UseQueryResult<readonly OrdreReparationResume[]> {
+export function useMesOrdresAssignes(
+  technicienId: string | undefined,
+): UseQueryResult<readonly OrdreReparationResume[]> {
   return useQuery({
     queryKey: ['pointages', 'mesOrdresAssignes', technicienId ?? ''] as const,
     queryFn: async () => {
@@ -19,7 +21,10 @@ export function useMesOrdresAssignes(technicienId: string | undefined): UseQuery
         statut: ['ouvert', 'en_cours'],
         tri: 'ouvertLe:desc',
       };
-      const page: PageCurseur<OrdreReparationResume> = await listerMesOrdresAssignes(filtres, LIMITE);
+      const page: PageCurseur<OrdreReparationResume> = await listerMesOrdresAssignes(
+        filtres,
+        LIMITE,
+      );
       return page.donnees;
     },
     enabled: Boolean(technicienId),

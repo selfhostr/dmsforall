@@ -37,7 +37,9 @@ const COMMANDE: ReponseCommandeFournisseur = {
   modifieLe: '2026-02-01T09:00:00.000Z',
 };
 
-function pageDe(donnees: readonly ReponseCommandeFournisseur[]): PageCurseur<ReponseCommandeFournisseur> {
+function pageDe(
+  donnees: readonly ReponseCommandeFournisseur[],
+): PageCurseur<ReponseCommandeFournisseur> {
   return { donnees, curseurSuivant: null, limite: 50 };
 }
 
@@ -47,7 +49,10 @@ function rendre() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/pieces/commandes-fournisseur']}>
         <Routes>
-          <Route path="/pieces/commandes-fournisseur" element={<EcranListeCommandesFournisseur />} />
+          <Route
+            path="/pieces/commandes-fournisseur"
+            element={<EcranListeCommandesFournisseur />}
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

@@ -13,13 +13,19 @@ import { AvertissementDto } from './avertissement.dto';
 import { ModifieParDto, VehiculeResumeDto } from './communs.dto';
 
 export class VehiculeStockResumeDto implements VehiculeStockResume {
-  @ApiProperty({ format: 'uuid', description: 'EST vehicule.id — pas de second identifiant (RV-01).' })
+  @ApiProperty({
+    format: 'uuid',
+    description: 'EST vehicule.id — pas de second identifiant (RV-01).',
+  })
   readonly id!: string;
 
   @ApiProperty({ type: () => VehiculeResumeDto })
   readonly vehicule!: VehiculeResumeDto;
 
-  @ApiProperty({ description: 'Liste EXTENSIBLE par tenant (RV-02) — texte libre côté contrat, pas un enum PG fermé.' })
+  @ApiProperty({
+    description:
+      'Liste EXTENSIBLE par tenant (RV-02) — texte libre côté contrat, pas un enum PG fermé.',
+  })
   readonly provenance!: VehiculeStockResume['provenance'];
 
   @ApiProperty({ enum: TYPES_VEHICULE_VENTE, description: 'Dérivé, jamais saisi (§8.2).' })
@@ -31,7 +37,9 @@ export class VehiculeStockResumeDto implements VehiculeStockResume {
   @ApiProperty({ type: Number, nullable: true })
   readonly prixVenteAfficheCentimes!: number | null;
 
-  @ApiProperty({ description: 'Jours écoulés depuis dateEntreeStock (RV-07), calculé à la lecture.' })
+  @ApiProperty({
+    description: 'Jours écoulés depuis dateEntreeStock (RV-07), calculé à la lecture.',
+  })
   readonly joursStock!: number;
 }
 
@@ -70,7 +78,11 @@ export class ReponseVehiculeStockDto implements ReponseVehiculeStock {
   @ApiProperty({ enum: TYPES_VEHICULE_VENTE, description: 'Dérivé, jamais saisi (§8.2).' })
   readonly typeVehicule!: ReponseVehiculeStock['typeVehicule'];
 
-  @ApiProperty({ type: Boolean, nullable: true, description: 'RV-60 : null sauf provenance ∈ {reprise, achat_particulier}.' })
+  @ApiProperty({
+    type: Boolean,
+    nullable: true,
+    description: 'RV-60 : null sauf provenance ∈ {reprise, achat_particulier}.',
+  })
   readonly vendeurPrecedentAssujetti!: boolean | null;
 
   @ApiProperty({ type: String, format: 'uuid', nullable: true })
@@ -111,7 +123,11 @@ export class PageVehiculeStockResumeDto implements PageCurseur<VehiculeStockResu
   @ApiProperty({ type: () => [VehiculeStockResumeDto] })
   readonly donnees!: readonly VehiculeStockResumeDto[];
 
-  @ApiProperty({ type: String, nullable: true, description: 'Opaque base64url ; null = fin de liste.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Opaque base64url ; null = fin de liste.',
+  })
   readonly curseurSuivant!: string | null;
 
   @ApiProperty({ example: 50 })
@@ -122,7 +138,11 @@ export class PageVehiculeStockDto implements PageCurseur<ReponseVehiculeStockDto
   @ApiProperty({ type: () => [ReponseVehiculeStockDto] })
   readonly donnees!: readonly ReponseVehiculeStockDto[];
 
-  @ApiProperty({ type: String, nullable: true, description: 'Opaque base64url ; null = fin de liste.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Opaque base64url ; null = fin de liste.',
+  })
   readonly curseurSuivant!: string | null;
 
   @ApiProperty({ example: 50 })

@@ -1,6 +1,17 @@
 import { Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { schemaIdentifiant, schemaModificationStockSite, type EntreeModificationStockSite } from '@dfa/shared';
+import {
+  ApiCookieAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import {
+  schemaIdentifiant,
+  schemaModificationStockSite,
+  type EntreeModificationStockSite,
+} from '@dfa/shared';
 import { z } from 'zod';
 
 import { ServiceContexteRequete } from '../common/contexte';
@@ -33,7 +44,8 @@ export class StockArticleController {
   @Get(':articleId/disponibilite')
   @ExigerDroit('pieces.stock.lire')
   @ApiOperation({
-    summary: 'Disponibilité d’un article sur un site (RP-14/RP-19) — rend RP-19 vérifiable : qui bloque quoi, nommément.',
+    summary:
+      'Disponibilité d’un article sur un site (RP-14/RP-19) — rend RP-19 vérifiable : qui bloque quoi, nommément.',
   })
   @ApiParam({ name: 'articleId', format: 'uuid' })
   @ApiQuery({ name: 'siteId', required: true, format: 'uuid' })
@@ -53,7 +65,8 @@ export class StockArticleController {
   @Patch(':articleId/stock/:siteId')
   @ExigerDroit('pieces.stock.modifier')
   @ApiOperation({
-    summary: 'Réglages de stock d’un site (emplacement, seuils) — JAMAIS la quantité physique (RP-16→RP-18).',
+    summary:
+      'Réglages de stock d’un site (emplacement, seuils) — JAMAIS la quantité physique (RP-16→RP-18).',
   })
   @ApiParam({ name: 'articleId', format: 'uuid' })
   @ApiParam({ name: 'siteId', format: 'uuid' })

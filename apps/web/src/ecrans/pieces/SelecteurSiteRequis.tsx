@@ -1,6 +1,12 @@
 import { useTranslation } from 'react-i18next';
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { useSession } from '@/hooks/useSession';
 

@@ -1,4 +1,9 @@
-import { ACTIONS_AUDITEES, ENTITES_AUDITEES, type ActionAuditee, type EntiteAuditee } from '@dfa/shared';
+import {
+  ACTIONS_AUDITEES,
+  ENTITES_AUDITEES,
+  type ActionAuditee,
+  type EntiteAuditee,
+} from '@dfa/shared';
 
 import type { ContexteTenant } from '../../db';
 
@@ -38,5 +43,9 @@ export interface EntreeAudit {
  */
 export interface ServiceAudit {
   /** Historique complet d'une entité, tri chronologique CROISSANT (ordre du récit). */
-  pourEntite(ctx: ContexteTenant, entite: EntiteAuditee, entiteId: string): Promise<readonly EntreeAudit[]>;
+  pourEntite(
+    ctx: ContexteTenant,
+    entite: EntiteAuditee,
+    entiteId: string,
+  ): Promise<readonly EntreeAudit[]>;
 }

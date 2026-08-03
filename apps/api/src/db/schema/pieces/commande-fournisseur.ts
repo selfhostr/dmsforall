@@ -32,7 +32,9 @@ export const commandeFournisseur = pgTable(
   'commande_fournisseur',
   {
     id: colonneId(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenant.id, { onDelete: 'restrict' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenant.id, { onDelete: 'restrict' }),
     fournisseurId: uuid('fournisseur_id').notNull(),
     siteId: uuid('site_id').notNull(),
     statut: statutCommandeFournisseurEnum('statut').notNull().default('brouillon'),
@@ -58,8 +60,14 @@ export const commandeFournisseur = pgTable(
       columns: [t.tenantId, t.siteId],
       foreignColumns: [site.tenantId, site.id],
     }).onDelete('restrict'),
-    check('commande_fournisseur_envoyee_coherente_chk', sql`${t.statut} <> 'brouillon' or ${t.envoyeeLe} is null`),
-    check('commande_fournisseur_annulation_coherente_chk', sql`${t.statut} <> 'annulee' or ${t.motifAnnulation} is not null`),
+    check(
+      'commande_fournisseur_envoyee_coherente_chk',
+      sql`${t.statut} <> 'brouillon' or ${t.envoyeeLe} is null`,
+    ),
+    check(
+      'commande_fournisseur_annulation_coherente_chk',
+      sql`${t.statut} <> 'annulee' or ${t.motifAnnulation} is not null`,
+    ),
     index('commande_fournisseur_pagination_idx').on(t.tenantId, t.creeLe.desc(), t.id.desc()),
     index('commande_fournisseur_fournisseur_idx').on(t.tenantId, t.fournisseurId),
     index('commande_fournisseur_site_statut_idx').on(t.tenantId, t.siteId, t.statut),
@@ -90,7 +98,11 @@ export const commandeFournisseurLigne = pgTable(
   },
   (t) => [
     unique('commande_fournisseur_ligne_tenant_id_uk').on(t.tenantId, t.id),
-    unique('commande_fournisseur_ligne_tenant_cmd_ordre_uk').on(t.tenantId, t.commandeFournisseurId, t.numeroOrdre),
+    unique('commande_fournisseur_ligne_tenant_cmd_ordre_uk').on(
+      t.tenantId,
+      t.commandeFournisseurId,
+      t.numeroOrdre,
+    ),
     foreignKey({
       name: 'commande_fournisseur_ligne_fk_commande',
       columns: [t.tenantId, t.commandeFournisseurId],
@@ -106,8 +118,14 @@ export const commandeFournisseurLigne = pgTable(
       columns: [t.tenantId, t.ligneOrOrigineId],
       foreignColumns: [ligneOr.tenantId, ligneOr.id],
     }).onDelete('restrict'),
-    check('commande_fournisseur_ligne_quantite_commandee_chk', sql`${t.quantiteCommandeeMillieme} > 0`),
-    check('commande_fournisseur_ligne_quantite_recue_chk', sql`${t.quantiteRecueCumuleeMillieme} >= 0`),
+    check(
+      'commande_fournisseur_ligne_quantite_commandee_chk',
+      sql`${t.quantiteCommandeeMillieme} > 0`,
+    ),
+    check(
+      'commande_fournisseur_ligne_quantite_recue_chk',
+      sql`${t.quantiteRecueCumuleeMillieme} >= 0`,
+    ),
     check(
       'commande_fournisseur_ligne_prix_attendu_chk',
       sql`${t.prixAchatAttenduCentimes} is null or ${t.prixAchatAttenduCentimes} >= 0`,
@@ -116,7 +134,11 @@ export const commandeFournisseurLigne = pgTable(
       'commande_fournisseur_ligne_reliquat_motif_chk',
       sql`(${t.reliquatAnnuleLe} is null) = (${t.reliquatMotifAnnulation} is null)`,
     ),
-    index('commande_fournisseur_ligne_commande_idx').on(t.tenantId, t.commandeFournisseurId, t.numeroOrdre),
+    index('commande_fournisseur_ligne_commande_idx').on(
+      t.tenantId,
+      t.commandeFournisseurId,
+      t.numeroOrdre,
+    ),
     index('commande_fournisseur_ligne_article_idx').on(t.tenantId, t.articleId),
     index('commande_fournisseur_ligne_or_origine_idx')
       .on(t.tenantId, t.ligneOrOrigineId)

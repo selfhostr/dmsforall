@@ -53,7 +53,10 @@ function paiementFactice(champs: Partial<LignePaiement> = {}): LignePaiement {
  * `chargerArrondiEspecesActif` ; `insert().values().returning()` fabrique une `LigneImputationPaiement`
  * à partir des valeurs écrites ; `update().set().where()` capture le recalcul du document.
  */
-function txFactice(params: { documents: readonly LigneDocumentVente[]; arrondiEspecesActif?: boolean }) {
+function txFactice(params: {
+  documents: readonly LigneDocumentVente[];
+  arrondiEspecesActif?: boolean;
+}) {
   const documentsQueue = [...params.documents];
   const updates: Array<Record<string, unknown>> = [];
   const inserts: Array<Record<string, unknown>> = [];
@@ -95,7 +98,8 @@ function txFactice(params: { documents: readonly LigneDocumentVente[]; arrondiEs
         return { where: () => Promise.resolve(undefined) };
       },
     }),
-    execute: () => Promise.resolve({ rows: [{ arrondi_especes_actif: params.arrondiEspecesActif ?? true }] }),
+    execute: () =>
+      Promise.resolve({ rows: [{ arrondi_especes_actif: params.arrondiEspecesActif ?? true }] }),
   };
 
   return { tx: tx as unknown as TransactionDfa, updates, inserts };
@@ -134,7 +138,9 @@ describe('appliquerImputationsLettrage — arrondi espèces (RF-49 → RF-52)', 
       { documentId: 'doc-1', montantCentimes: 1, nature: 'arrondi' },
     ];
 
-    await expect(appliquerImputationsLettrage(tx, CTX, paiement, imputations)).rejects.toMatchObject({
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, imputations),
+    ).rejects.toMatchObject({
       code: 'VALIDATION_ECHOUEE',
     });
   });
@@ -149,7 +155,9 @@ describe('appliquerImputationsLettrage — arrondi espèces (RF-49 → RF-52)', 
       { documentId: 'doc-1', montantCentimes: 1, nature: 'arrondi' },
     ];
 
-    await expect(appliquerImputationsLettrage(tx, CTX, paiement, imputations)).rejects.toMatchObject({ code: 'CONFLIT' });
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, imputations),
+    ).rejects.toMatchObject({ code: 'CONFLIT' });
   });
 
   it("rejette l'arrondi qui ne solde pas exactement le document (reliquat ouvert)", async () => {
@@ -163,7 +171,9 @@ describe('appliquerImputationsLettrage — arrondi espèces (RF-49 → RF-52)', 
       { documentId: 'doc-1', montantCentimes: 1, nature: 'arrondi' },
     ];
 
-    await expect(appliquerImputationsLettrage(tx, CTX, paiement, imputations)).rejects.toMatchObject({
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, imputations),
+    ).rejects.toMatchObject({
       code: 'VALIDATION_ECHOUEE',
     });
   });
@@ -178,7 +188,9 @@ describe('appliquerImputationsLettrage — arrondi espèces (RF-49 → RF-52)', 
       { documentId: 'doc-1', montantCentimes: 5, nature: 'arrondi' },
     ];
 
-    await expect(appliquerImputationsLettrage(tx, CTX, paiement, imputations)).rejects.toMatchObject({
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, imputations),
+    ).rejects.toMatchObject({
       code: 'VALIDATION_ECHOUEE',
     });
   });
@@ -190,7 +202,9 @@ describe('appliquerImputationsLettrage — paiement partiel et trop-perçu (MD-5
     const { tx, updates } = txFactice({ documents: [document] });
     const paiement = paiementFactice({ moyen: 'virement', montantCentimes: 20000n });
 
-    await appliquerImputationsLettrage(tx, CTX, paiement, [{ documentId: 'doc-1', montantCentimes: 20000, nature: 'reglement' }]);
+    await appliquerImputationsLettrage(tx, CTX, paiement, [
+      { documentId: 'doc-1', montantCentimes: 20000, nature: 'reglement' },
+    ]);
 
     expect(updates[0]?.montantRegleCentimes).toBe(20000n);
     expect(updates[0]?.soldeCentimes).toBe(30000n);
@@ -203,7 +217,9 @@ describe('appliquerImputationsLettrage — paiement partiel et trop-perçu (MD-5
     const { tx, updates } = txFactice({ documents: [document] });
     const paiement = paiementFactice({ moyen: 'virement', montantCentimes: 20000n });
 
-    await appliquerImputationsLettrage(tx, CTX, paiement, [{ documentId: 'doc-1', montantCentimes: 20000, nature: 'reglement' }]);
+    await appliquerImputationsLettrage(tx, CTX, paiement, [
+      { documentId: 'doc-1', montantCentimes: 20000, nature: 'reglement' },
+    ]);
 
     expect(updates[0]?.montantRegleCentimes).toBe(50000n);
     expect(updates[0]?.soldeCentimes).toBe(0n);
@@ -216,7 +232,9 @@ describe('appliquerImputationsLettrage — paiement partiel et trop-perçu (MD-5
     const paiement = paiementFactice({ moyen: 'virement', montantCentimes: 10000n });
 
     await expect(
-      appliquerImputationsLettrage(tx, CTX, paiement, [{ documentId: 'doc-1', montantCentimes: 10000, nature: 'reglement' }]),
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-1', montantCentimes: 10000, nature: 'reglement' },
+      ]),
     ).rejects.toMatchObject({ code: 'IMPUTATION_MONTANT_EXCEDENTAIRE' });
   });
 
@@ -226,25 +244,37 @@ describe('appliquerImputationsLettrage — paiement partiel et trop-perçu (MD-5
     const paiement = paiementFactice();
 
     await expect(
-      appliquerImputationsLettrage(tx, CTX, paiement, [{ documentId: 'doc-1', montantCentimes: 0, nature: 'reglement' }]),
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-1', montantCentimes: 0, nature: 'reglement' },
+      ]),
     ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE' });
   });
 
-  it("rejette les natures reservées aux actions dédiées (escompte, perte, compensation) sur le lettrage générique", async () => {
+  it('rejette les natures reservées aux actions dédiées (escompte, perte, compensation) sur le lettrage générique', async () => {
     const document = documentFactice();
     const { tx } = txFactice({ documents: [document] });
     const paiement = paiementFactice();
 
     await expect(
-      appliquerImputationsLettrage(tx, CTX, paiement, [{ documentId: 'doc-1', montantCentimes: 100, nature: 'escompte' }]),
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-1', montantCentimes: 100, nature: 'escompte' },
+      ]),
     ).rejects.toBeInstanceOf(ErreurMetier);
   });
 });
 
 describe('appliquerImputationsLettrage — un paiement réparti sur plusieurs factures (RF-71)', () => {
   it('un seul paiement impute deux documents distincts, chacun recalculé indépendamment', async () => {
-    const documentA = documentFactice({ id: 'doc-A', totalTtcCentimes: 10000n, montantRegleCentimes: 0n });
-    const documentB = documentFactice({ id: 'doc-B', totalTtcCentimes: 25000n, montantRegleCentimes: 5000n });
+    const documentA = documentFactice({
+      id: 'doc-A',
+      totalTtcCentimes: 10000n,
+      montantRegleCentimes: 0n,
+    });
+    const documentB = documentFactice({
+      id: 'doc-B',
+      totalTtcCentimes: 25000n,
+      montantRegleCentimes: 5000n,
+    });
     const { tx, updates, inserts } = txFactice({ documents: [documentA, documentB] });
     const paiement = paiementFactice({ moyen: 'virement', montantCentimes: 30000n });
 
@@ -271,7 +301,11 @@ describe('appliquerImputationsLettrage — un paiement réparti sur plusieurs fa
 
 describe('appliquerCompensationAvance — abandon d’avance (RF-79 issue 3)', () => {
   it("impute l'avance sur le document de régularisation, nature compensation, rattachée au paiement d'avance", async () => {
-    const document = documentFactice({ id: 'doc-regul', totalTtcCentimes: 1000n, montantRegleCentimes: 800n });
+    const document = documentFactice({
+      id: 'doc-regul',
+      totalTtcCentimes: 1000n,
+      montantRegleCentimes: 800n,
+    });
     const { tx, inserts, updates } = txFactice({ documents: [document] });
     const paiementAvance = paiementFactice({ id: 'pmt-avance', montantCentimes: 5000n });
 
@@ -286,11 +320,17 @@ describe('appliquerCompensationAvance — abandon d’avance (RF-79 issue 3)', (
   });
 
   it('rejette une compensation qui dépasse le solde restant du document de régularisation', async () => {
-    const document = documentFactice({ id: 'doc-regul', totalTtcCentimes: 1000n, montantRegleCentimes: 950n });
+    const document = documentFactice({
+      id: 'doc-regul',
+      totalTtcCentimes: 1000n,
+      montantRegleCentimes: 950n,
+    });
     const { tx } = txFactice({ documents: [document] });
     const paiementAvance = paiementFactice({ id: 'pmt-avance', montantCentimes: 5000n });
 
-    await expect(appliquerCompensationAvance(tx, CTX, paiementAvance, 'doc-regul', 200)).rejects.toMatchObject({
+    await expect(
+      appliquerCompensationAvance(tx, CTX, paiementAvance, 'doc-regul', 200),
+    ).rejects.toMatchObject({
       code: 'IMPUTATION_MONTANT_EXCEDENTAIRE',
     });
   });

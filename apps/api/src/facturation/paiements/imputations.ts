@@ -1,9 +1,19 @@
 import { and, eq } from 'drizzle-orm';
-import type { EntreeCreationImputation, NatureImputation, StatutReglementDocument } from '@dfa/shared';
+import type {
+  EntreeCreationImputation,
+  NatureImputation,
+  StatutReglementDocument,
+} from '@dfa/shared';
 
 import type { ContexteTenant, TransactionDfa } from '../../db';
 import { ErreurMetier } from '../../common/erreurs';
-import { documentVente, imputationPaiement, type LigneDocumentVente, type LigneImputationPaiement, type LignePaiement } from '../../db/schema';
+import {
+  documentVente,
+  imputationPaiement,
+  type LigneDocumentVente,
+  type LigneImputationPaiement,
+  type LignePaiement,
+} from '../../db/schema';
 
 import { verifierArrondiEspeces } from './arrondi-especes';
 import { chargerArrondiEspecesActif, chargerDocumentPourEcriture } from './paiement-requetes';
@@ -29,7 +39,10 @@ const NATURES_LETTRAGE_GENERIQUE: ReadonlySet<NatureImputation> = new Set(['regl
  *  sont jamais produits par ce module : le premier est structurellement inatteignable tant que
  *  MD-51.a (Σ imputations ≤ total) est respecté ; le second appartient à l'action dédiée
  *  `marquer-irrecouvrable`, hors périmètre. */
-function calculerStatutReglement(montantRegleCentimes: bigint, totalDocumentCentimes: bigint): StatutReglementDocument {
+function calculerStatutReglement(
+  montantRegleCentimes: bigint,
+  totalDocumentCentimes: bigint,
+): StatutReglementDocument {
   if (montantRegleCentimes <= 0n) return 'non_regle';
   if (montantRegleCentimes >= totalDocumentCentimes) return 'regle';
   return 'partiel';
@@ -48,7 +61,8 @@ export async function recalculerDocumentApresImputation(
   document: LigneDocumentVente,
   deltaCentimes: bigint,
 ): Promise<void> {
-  const totalDocument = document.totalTtcCentimes < 0n ? -document.totalTtcCentimes : document.totalTtcCentimes;
+  const totalDocument =
+    document.totalTtcCentimes < 0n ? -document.totalTtcCentimes : document.totalTtcCentimes;
   const nouveauMontantRegle = document.montantRegleCentimes + deltaCentimes;
   const nouveauSolde = totalDocument - nouveauMontantRegle;
 
@@ -67,7 +81,9 @@ interface ErreurPgZDFA4 {
 }
 
 function estErreurInvariantImputation(erreur: unknown): boolean {
-  return typeof erreur === 'object' && erreur !== null && (erreur as ErreurPgZDFA4).code === 'ZDFA4';
+  return (
+    typeof erreur === 'object' && erreur !== null && (erreur as ErreurPgZDFA4).code === 'ZDFA4'
+  );
 }
 
 /**
@@ -92,13 +108,27 @@ export async function appliquerImputationsLettrage(
       throw new ErreurMetier(
         'VALIDATION_ECHOUEE',
         `Nature d'imputation "${imp.nature}" non autorisée sur ce lettrage générique — réservée à une action dédiée (escompte, irrécouvrable, abandon d'avance).`,
-        { erreurs: [{ champ: 'nature', code: 'nature_non_autorisee', message: 'reglement ou arrondi uniquement.' }] },
+        {
+          erreurs: [
+            {
+              champ: 'nature',
+              code: 'nature_non_autorisee',
+              message: 'reglement ou arrondi uniquement.',
+            },
+          ],
+        },
       );
     }
     if (imp.montantCentimes === 0) {
-      throw new ErreurMetier('VALIDATION_ECHOUEE', "Le montant d'une imputation ne peut pas être nul.", {
-        erreurs: [{ champ: 'montantCentimes', code: 'montant_nul', message: 'Montant non nul requis.' }],
-      });
+      throw new ErreurMetier(
+        'VALIDATION_ECHOUEE',
+        "Le montant d'une imputation ne peut pas être nul.",
+        {
+          erreurs: [
+            { champ: 'montantCentimes', code: 'montant_nul', message: 'Montant non nul requis.' },
+          ],
+        },
+      );
     }
   }
 
@@ -114,7 +144,8 @@ export async function appliquerImputationsLettrage(
 
   for (const [documentId, groupe] of parDocument) {
     const document = await chargerDocumentPourEcriture(tx, ctx, documentId);
-    const totalDocument = document.totalTtcCentimes < 0n ? -document.totalTtcCentimes : document.totalTtcCentimes;
+    const totalDocument =
+      document.totalTtcCentimes < 0n ? -document.totalTtcCentimes : document.totalTtcCentimes;
     const restantAvant = totalDocument - document.montantRegleCentimes;
 
     const reglements = groupe.filter((i) => i.nature === 'reglement');
@@ -132,7 +163,9 @@ export async function appliquerImputationsLettrage(
       throw new ErreurMetier(
         'IMPUTATION_MONTANT_EXCEDENTAIRE',
         `La somme des imputations dépasse le solde restant du document ${documentId} (MD-51.a).`,
-        { detail: `document_id=${documentId};restant=${restantAvant.toString()};demande=${sommeReglement.toString()}` },
+        {
+          detail: `document_id=${documentId};restant=${restantAvant.toString()};demande=${sommeReglement.toString()}`,
+        },
       );
     }
 
@@ -162,7 +195,8 @@ export async function appliquerImputationsLettrage(
             imputeParId: ctx.utilisateurId,
           })
           .returning();
-        if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', "Échec de l'écriture d'une imputation.");
+        if (!ligne)
+          throw new ErreurMetier('ERREUR_INTERNE', "Échec de l'écriture d'une imputation.");
         resultat.push(ligne);
       }
     } catch (erreur) {
@@ -171,9 +205,13 @@ export async function appliquerImputationsLettrage(
       // `imputation_paiement_verifier_invariants` (0010_facturation.sql §11) reste l'AUTORITÉ finale
       // — un ZDFA4 qui passerait malgré tout ne doit jamais fuiter en 500 brut.
       if (estErreurInvariantImputation(erreur)) {
-        throw new ErreurMetier('IMPUTATION_MONTANT_EXCEDENTAIRE', 'Invariant de lettrage violé (MD-51).', {
-          detail: erreur instanceof Error ? erreur.message : undefined,
-        });
+        throw new ErreurMetier(
+          'IMPUTATION_MONTANT_EXCEDENTAIRE',
+          'Invariant de lettrage violé (MD-51).',
+          {
+            detail: erreur instanceof Error ? erreur.message : undefined,
+          },
+        );
       }
       throw erreur;
     }
@@ -200,14 +238,17 @@ export async function appliquerCompensationAvance(
   montantCentimes: number,
 ): Promise<LigneImputationPaiement> {
   const document = await chargerDocumentPourEcriture(tx, ctx, documentRegularisationId);
-  const totalDocument = document.totalTtcCentimes < 0n ? -document.totalTtcCentimes : document.totalTtcCentimes;
+  const totalDocument =
+    document.totalTtcCentimes < 0n ? -document.totalTtcCentimes : document.totalTtcCentimes;
   const restantAvant = totalDocument - document.montantRegleCentimes;
 
   if (BigInt(montantCentimes) > restantAvant) {
     throw new ErreurMetier(
       'IMPUTATION_MONTANT_EXCEDENTAIRE',
       `La compensation demandée dépasse le solde restant du document de régularisation ${documentRegularisationId} (MD-51.a).`,
-      { detail: `document_id=${documentRegularisationId};restant=${restantAvant.toString()};demande=${montantCentimes}` },
+      {
+        detail: `document_id=${documentRegularisationId};restant=${restantAvant.toString()};demande=${montantCentimes}`,
+      },
     );
   }
 
@@ -226,9 +267,13 @@ export async function appliquerCompensationAvance(
       .returning();
   } catch (erreur) {
     if (estErreurInvariantImputation(erreur)) {
-      throw new ErreurMetier('IMPUTATION_MONTANT_EXCEDENTAIRE', 'Invariant de lettrage violé (MD-51).', {
-        detail: erreur instanceof Error ? erreur.message : undefined,
-      });
+      throw new ErreurMetier(
+        'IMPUTATION_MONTANT_EXCEDENTAIRE',
+        'Invariant de lettrage violé (MD-51).',
+        {
+          detail: erreur instanceof Error ? erreur.message : undefined,
+        },
+      );
     }
     throw erreur;
   }

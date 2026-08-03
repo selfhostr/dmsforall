@@ -19,7 +19,9 @@ export type ResultatListeOrdresReparation = UseInfiniteQueryResult<
 
 /** `GET /ordres-reparation`, pagination par curseur (`BoutonChargerPlus`, jamais de numéro de
  *  page — voir contrat `PageCurseur`). */
-export function useListeOrdresReparation(filtres: FiltresListeOrdresReparation): ResultatListeOrdresReparation {
+export function useListeOrdresReparation(
+  filtres: FiltresListeOrdresReparation,
+): ResultatListeOrdresReparation {
   const resultat = useInfiniteQuery({
     queryKey: clesQuery.or.liste(filtres),
     queryFn: ({ pageParam }: { pageParam: string | undefined }) =>

@@ -57,7 +57,12 @@ function construireOr(overrides: Partial<ReponseOrdreReparation> = {}): ReponseO
     statut: 'en_cours',
     client: CLIENT,
     vehicule: VEHICULE,
-    figees: { clientDesignation: 'Jean Dupont', adresseFacturation: null, plaque: '123456', detenteurClientId: 'cl-1' },
+    figees: {
+      clientDesignation: 'Jean Dupont',
+      adresseFacturation: null,
+      plaque: '123456',
+      detenteurClientId: 'cl-1',
+    },
     conducteurPresentNom: null,
     kilometrageEntree: 90000,
     kilometrageSortie: null,
@@ -144,7 +149,9 @@ describe('EcranFicheOrdreReparation', () => {
     );
     rendre();
 
-    expect(await screen.findByText("Impossible de charger l'ordre de réparation")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Impossible de charger l'ordre de réparation"),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
   });
 
@@ -161,9 +168,13 @@ describe('EcranFicheOrdreReparation', () => {
     });
   });
 
-  describe("montants absents pour un rôle sans droit — jamais « 0.00 »", () => {
+  describe('montants absents pour un rôle sans droit — jamais « 0.00 »', () => {
     it("n'affiche ni le plafond ni les totaux quand le serveur les a retirés de la charge utile (droit manquant)", async () => {
-      const or = construireOr({ plafondCentimes: undefined, totauxParPayeur: undefined, totalValideCentimes: undefined });
+      const or = construireOr({
+        plafondCentimes: undefined,
+        totauxParPayeur: undefined,
+        totalValideCentimes: undefined,
+      });
       installerHandler(or);
       rendre();
 
@@ -198,7 +209,7 @@ describe('EcranFicheOrdreReparation', () => {
     });
   });
 
-  describe("actions proposées — viennent du serveur (`actionsDisponibles`), jamais devinées du statut", () => {
+  describe('actions proposées — viennent du serveur (`actionsDisponibles`), jamais devinées du statut', () => {
     it("n'affiche AUCUN bouton d'action quand `actionsDisponibles` est vide, même pour un statut qui suggérerait normalement une transition", async () => {
       // `statut: 'en_cours'` suggérerait naturellement « Passer en contrôle » / « Terminer » à
       // quiconque déduirait les actions du statut — mais le serveur n'en propose explicitement
@@ -213,12 +224,16 @@ describe('EcranFicheOrdreReparation', () => {
     });
 
     it("n'affiche QUE les actions listées par le serveur, sans en ajouter d'autres plausibles pour ce statut", async () => {
-      installerHandler(construireOr({ statut: 'en_cours', actionsDisponibles: ['passer-en-controle'] }));
+      installerHandler(
+        construireOr({ statut: 'en_cours', actionsDisponibles: ['passer-en-controle'] }),
+      );
       rendre();
 
       expect(await screen.findByRole('button', { name: 'Passer en contrôle' })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Terminer' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Restituer le véhicule' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Restituer le véhicule' }),
+      ).not.toBeInTheDocument();
     });
 
     it('une action affichée mais REFUSÉE par le serveur à l’appel montre le refus inline, jamais un succès silencieux', async () => {
@@ -250,7 +265,9 @@ describe('EcranFicheOrdreReparation', () => {
 
       // Le refus s'affiche EN PLACE, dans le dialogue toujours ouvert — pas de fermeture
       // silencieuse qui laisserait croire que l'action a réussi.
-      expect(await within(dialogue).findByText("Cette transition n'est pas autorisée pour ce statut.")).toBeInTheDocument();
+      expect(
+        await within(dialogue).findByText("Cette transition n'est pas autorisée pour ce statut."),
+      ).toBeInTheDocument();
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
   });
@@ -267,7 +284,10 @@ describe('EcranFicheOrdreReparation', () => {
           <MemoryRouter initialEntries={['/ordres-reparation/or-1']}>
             <Routes>
               <Route path="/ordres-reparation/:orId" element={<EcranFicheOrdreReparation />} />
-              <Route path="/ordres-reparation/:orId/facturer" element={<p>Écran de facturation de l’OR</p>} />
+              <Route
+                path="/ordres-reparation/:orId/facturer"
+                element={<p>Écran de facturation de l’OR</p>}
+              />
             </Routes>
           </MemoryRouter>
         </QueryClientProvider>,
@@ -275,7 +295,9 @@ describe('EcranFicheOrdreReparation', () => {
     }
 
     it('propose « Facturer » quand le serveur le liste dans `actionsDisponibles` (OR terminé, droit présent)', async () => {
-      installerHandler(construireOr({ statut: 'termine', actionsDisponibles: ['facturer', 'restituer'] }));
+      installerHandler(
+        construireOr({ statut: 'termine', actionsDisponibles: ['facturer', 'restituer'] }),
+      );
       rendre();
 
       // `Button asChild` + `Link` rend un `<a>` (role `link`), pas un `<button>` — même convention
@@ -285,7 +307,7 @@ describe('EcranFicheOrdreReparation', () => {
       expect(await screen.findByRole('link', { name: 'Facturer' })).toBeInTheDocument();
     });
 
-    it("ne propose PAS « Facturer » quand le serveur ne le liste pas (ex. droit `facturation.document.creer` absent pour un technicien), même sur un OR terminé", async () => {
+    it('ne propose PAS « Facturer » quand le serveur ne le liste pas (ex. droit `facturation.document.creer` absent pour un technicien), même sur un OR terminé', async () => {
       // Même OR `termine` que le test précédent — seule `actionsDisponibles` change, exactement
       // comme le ferait le serveur pour un rôle sans le droit `facturation.document.creer`.
       installerHandler(construireOr({ statut: 'termine', actionsDisponibles: ['restituer'] }));

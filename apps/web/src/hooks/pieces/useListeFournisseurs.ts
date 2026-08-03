@@ -7,7 +7,10 @@ import { listerFournisseurs } from './fournisseurs.api';
 
 const LIMITE_PAGE = 50;
 
-export type ResultatListeFournisseurs = UseInfiniteQueryResult<{ readonly pages: readonly PageCurseur<ReponseFournisseur>[] }, unknown> & {
+export type ResultatListeFournisseurs = UseInfiniteQueryResult<
+  { readonly pages: readonly PageCurseur<ReponseFournisseur>[] },
+  unknown
+> & {
   readonly fournisseurs: readonly ReponseFournisseur[];
 };
 

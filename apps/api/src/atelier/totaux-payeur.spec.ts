@@ -4,16 +4,43 @@ import { calculerTotauxParPayeur } from './totaux-payeur';
 
 function ligne(surcharge: Partial<LigneLigneOr>): LigneLigneOr {
   return {
-    id: 'l', tenantId: 't', ordreReparationId: 'or', numeroOrdre: 1,
-    type: 'piece', origine: 'commandee', statut: 'validee', payeur: 'client', payeurClientId: null, blocage: 'aucun',
-    designation: 'x', referenceTexte: null, articleId: null, quantiteMillieme: 1000,
-    tempsBaremeCentiemes: null, tempsBaremeConstructeurCentiemes: null,
-    tauxHoraireCentimes: null, prixUnitaireCentimes: 10000, rabaisPourmille: 0, tauxTvaPourmille: 81,
-    montantHtCentimes: 10000, montantTvaCentimes: 810, montantTtcCentimes: 10810,
-    technicienId: null, codeOperation: null, codeDefaut: null, numeroSinistre: null, numeroAccord: null,
-    urgence: null, securite: false, fourniParClient: false, aRestituer: false, restituee: false,
-    motifAnnulation: null, factureId: null,
-    creeLe: new Date(), modifieLe: new Date(),
+    id: 'l',
+    tenantId: 't',
+    ordreReparationId: 'or',
+    numeroOrdre: 1,
+    type: 'piece',
+    origine: 'commandee',
+    statut: 'validee',
+    payeur: 'client',
+    payeurClientId: null,
+    blocage: 'aucun',
+    designation: 'x',
+    referenceTexte: null,
+    articleId: null,
+    quantiteMillieme: 1000,
+    tempsBaremeCentiemes: null,
+    tempsBaremeConstructeurCentiemes: null,
+    tauxHoraireCentimes: null,
+    prixUnitaireCentimes: 10000,
+    rabaisPourmille: 0,
+    tauxTvaPourmille: 81,
+    montantHtCentimes: 10000,
+    montantTvaCentimes: 810,
+    montantTtcCentimes: 10810,
+    technicienId: null,
+    codeOperation: null,
+    codeDefaut: null,
+    numeroSinistre: null,
+    numeroAccord: null,
+    urgence: null,
+    securite: false,
+    fourniParClient: false,
+    aRestituer: false,
+    restituee: false,
+    motifAnnulation: null,
+    factureId: null,
+    creeLe: new Date(),
+    modifieLe: new Date(),
     ...surcharge,
   } as LigneLigneOr;
 }
@@ -21,9 +48,24 @@ function ligne(surcharge: Partial<LigneLigneOr>): LigneLigneOr {
 describe('calculerTotauxParPayeur', () => {
   it('agrège HT/TVA/TTC par payeur', () => {
     const lignes = [
-      ligne({ payeur: 'client', montantHtCentimes: 10000, montantTvaCentimes: 810, montantTtcCentimes: 10810 }),
-      ligne({ payeur: 'client', montantHtCentimes: 5000, montantTvaCentimes: 405, montantTtcCentimes: 5405 }),
-      ligne({ payeur: 'assurance', montantHtCentimes: 2000, montantTvaCentimes: 162, montantTtcCentimes: 2162 }),
+      ligne({
+        payeur: 'client',
+        montantHtCentimes: 10000,
+        montantTvaCentimes: 810,
+        montantTtcCentimes: 10810,
+      }),
+      ligne({
+        payeur: 'client',
+        montantHtCentimes: 5000,
+        montantTvaCentimes: 405,
+        montantTtcCentimes: 5405,
+      }),
+      ligne({
+        payeur: 'assurance',
+        montantHtCentimes: 2000,
+        montantTvaCentimes: 162,
+        montantTtcCentimes: 2162,
+      }),
     ];
     const totaux = calculerTotauxParPayeur(lignes);
     const client = totaux.find((t) => t.payeur === 'client')!;
@@ -38,7 +80,13 @@ describe('calculerTotauxParPayeur', () => {
     const lignes = [
       ligne({ payeur: 'client', statut: 'annulee', montantTtcCentimes: 99999 }),
       ligne({ payeur: 'client', statut: 'refusee', montantTtcCentimes: 88888 }),
-      ligne({ payeur: 'client', statut: 'validee', montantHtCentimes: 100, montantTvaCentimes: 8, montantTtcCentimes: 108 }),
+      ligne({
+        payeur: 'client',
+        statut: 'validee',
+        montantHtCentimes: 100,
+        montantTvaCentimes: 8,
+        montantTtcCentimes: 108,
+      }),
     ];
     const totaux = calculerTotauxParPayeur(lignes);
     expect(totaux).toHaveLength(1);
@@ -47,8 +95,20 @@ describe('calculerTotauxParPayeur', () => {
 
   it('ventile la TVA par taux distinct', () => {
     const lignes = [
-      ligne({ payeur: 'client', tauxTvaPourmille: 81, montantHtCentimes: 100, montantTvaCentimes: 8, montantTtcCentimes: 108 }),
-      ligne({ payeur: 'client', tauxTvaPourmille: 26, montantHtCentimes: 200, montantTvaCentimes: 5, montantTtcCentimes: 205 }),
+      ligne({
+        payeur: 'client',
+        tauxTvaPourmille: 81,
+        montantHtCentimes: 100,
+        montantTvaCentimes: 8,
+        montantTtcCentimes: 108,
+      }),
+      ligne({
+        payeur: 'client',
+        tauxTvaPourmille: 26,
+        montantHtCentimes: 200,
+        montantTvaCentimes: 5,
+        montantTtcCentimes: 205,
+      }),
     ];
     const [totaux] = calculerTotauxParPayeur(lignes);
     expect(totaux!.tva).toEqual([
@@ -70,10 +130,24 @@ describe('calculerTotauxParPayeur', () => {
    * disponible depuis la migration `0017` (le champ était `it.todo` avant, faute de colonne — voir
    * l'historique de ce fichier).
    */
-  it("groupe par (payeur, payeurClientId) — deux assurances distinctes ne fusionnent jamais (MD-62)", () => {
+  it('groupe par (payeur, payeurClientId) — deux assurances distinctes ne fusionnent jamais (MD-62)', () => {
     const lignes = [
-      ligne({ id: 'l1', payeur: 'assurance', payeurClientId: 'assureur-zurich', montantHtCentimes: 10000, montantTvaCentimes: 810, montantTtcCentimes: 10810 }),
-      ligne({ id: 'l2', payeur: 'assurance', payeurClientId: 'assureur-axa', montantHtCentimes: 5000, montantTvaCentimes: 405, montantTtcCentimes: 5405 }),
+      ligne({
+        id: 'l1',
+        payeur: 'assurance',
+        payeurClientId: 'assureur-zurich',
+        montantHtCentimes: 10000,
+        montantTvaCentimes: 810,
+        montantTtcCentimes: 10810,
+      }),
+      ligne({
+        id: 'l2',
+        payeur: 'assurance',
+        payeurClientId: 'assureur-axa',
+        montantHtCentimes: 5000,
+        montantTvaCentimes: 405,
+        montantTtcCentimes: 5405,
+      }),
     ];
 
     const totaux = calculerTotauxParPayeur(lignes, undefined, (payeurClientId) =>
@@ -90,7 +164,10 @@ describe('calculerTotauxParPayeur', () => {
     expect(zurich).toBeDefined();
     expect(zurich!.payeur).toBe('assurance');
     expect(zurich!.montantTtcCentimes).toBe(10810);
-    expect(zurich!.destinataire).toEqual({ clientId: 'assureur-zurich', nomAffiche: 'Zurich Assurances' });
+    expect(zurich!.destinataire).toEqual({
+      clientId: 'assureur-zurich',
+      nomAffiche: 'Zurich Assurances',
+    });
 
     const axa = totaux.find((t) => t.payeurClientId === 'assureur-axa');
     expect(axa).toBeDefined();
@@ -108,11 +185,26 @@ describe('calculerTotauxParPayeur', () => {
    *  0 par construction), et `'garage'` ne doit JAMAIS apparaître dans `totauxParPayeur`. */
   it("une ligne payeur = 'garage' rejoint le groupe 'client' — jamais de groupe 'garage' séparé (RM-70, RF-92)", () => {
     const lignes = [
-      ligne({ id: 'l1', payeur: 'client', montantHtCentimes: 9250, montantTvaCentimes: 750, montantTtcCentimes: 10000 }),
-      ligne({ id: 'l2', payeur: 'garage', montantHtCentimes: 0, montantTvaCentimes: 0, montantTtcCentimes: 0 }),
+      ligne({
+        id: 'l1',
+        payeur: 'client',
+        montantHtCentimes: 9250,
+        montantTvaCentimes: 750,
+        montantTtcCentimes: 10000,
+      }),
+      ligne({
+        id: 'l2',
+        payeur: 'garage',
+        montantHtCentimes: 0,
+        montantTvaCentimes: 0,
+        montantTtcCentimes: 0,
+      }),
     ];
 
-    const totaux = calculerTotauxParPayeur(lignes, { clientId: 'client-1', nomAffiche: 'Jean Dupont' });
+    const totaux = calculerTotauxParPayeur(lignes, {
+      clientId: 'client-1',
+      nomAffiche: 'Jean Dupont',
+    });
 
     expect(totaux).toHaveLength(1);
     expect(totaux[0]!.payeur).toBe('client');

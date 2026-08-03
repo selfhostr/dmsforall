@@ -15,11 +15,17 @@ interface ProprietesMentionPlaqueHistorique {
  * annexe/explicatif, jamais confondu avec le résultat principal par un lecteur d'écran) en plus
  * du style atténué, jamais la couleur seule.
  */
-export function MentionPlaqueHistorique({ nomClient, porteeJusquLe }: ProprietesMentionPlaqueHistorique) {
+export function MentionPlaqueHistorique({
+  nomClient,
+  porteeJusquLe,
+}: ProprietesMentionPlaqueHistorique) {
   const { t } = useTranslation('recherche');
 
   return (
-    <span role="note" className="flex items-center gap-1.5 texte-libelle italic text-muted-foreground">
+    <span
+      role="note"
+      className="flex items-center gap-1.5 texte-libelle italic text-muted-foreground"
+    >
       <History aria-hidden className="h-3.5 w-3.5 shrink-0" />
       {t('details.plaqueHistorique', { client: nomClient, date: formaterDate(porteeJusquLe) })}
     </span>

@@ -111,7 +111,9 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
     });
 
     this.pool.on('error', (erreur) => {
-      this.journal.error(`Erreur sur une connexion inactive du pool d'amorçage : ${erreur.message}`);
+      this.journal.error(
+        `Erreur sur une connexion inactive du pool d'amorçage : ${erreur.message}`,
+      );
     });
 
     // Sans schéma : ce service n'a délibérément accès à aucune table typée. Le typage ne peut

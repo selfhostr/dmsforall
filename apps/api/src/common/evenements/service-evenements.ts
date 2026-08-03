@@ -19,7 +19,11 @@ import type { EvenementAPublier, ServiceEvenements } from './evenements.types';
 export class ServiceEvenementsImpl implements ServiceEvenements {
   constructor(private readonly horloge: Horloge) {}
 
-  async publier(tx: TransactionDfa, ctx: ContexteTenant, evenement: EvenementAPublier): Promise<void> {
+  async publier(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    evenement: EvenementAPublier,
+  ): Promise<void> {
     const survenuLe = this.horloge.maintenant();
 
     await tx.execute(sql`

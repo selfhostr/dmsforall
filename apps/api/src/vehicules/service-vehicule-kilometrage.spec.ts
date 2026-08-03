@@ -58,14 +58,24 @@ function txFactice(ligneInseree: LigneVehiculeKilometrage) {
 }
 
 function accesBaseFactice(tx: TransactionDfa) {
-  return { enTenant: vi.fn(async (_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<unknown>) => travail(tx)) };
+  return {
+    enTenant: vi.fn(
+      async (_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<unknown>) =>
+        travail(tx),
+    ),
+  };
 }
 
 function evenementsFactices(): ServiceEvenements {
   return { publier: vi.fn(async () => undefined) };
 }
 
-const LIGNE_INSEREE = { ...DERNIER_RELEVE_CONNU, id: 'km-nouveau', valeur: 112_000, valeurKm: 112_000 } as LigneVehiculeKilometrage;
+const LIGNE_INSEREE = {
+  ...DERNIER_RELEVE_CONNU,
+  id: 'km-nouveau',
+  valeur: 112_000,
+  valeurKm: 112_000,
+} as LigneVehiculeKilometrage;
 
 beforeEach(() => {
   vi.mocked(vehiculeRequetes.chargerLigneVehicule).mockResolvedValue({} as LigneVehicule);
@@ -83,7 +93,13 @@ describe('ServiceVehiculeKilometrage.creer — correction régressive (É-01)', 
       service.creer(
         CTX,
         VEHICULE_ID,
-        { valeur: 112_000, unite: 'km', releveLe: MAINTENANT.toISOString(), source: 'declaratif', motifRegression: 'erreur_saisie' },
+        {
+          valeur: 112_000,
+          unite: 'km',
+          releveLe: MAINTENANT.toISOString(),
+          source: 'declaratif',
+          motifRegression: 'erreur_saisie',
+        },
         'technicien',
       ),
     ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT' });
@@ -103,12 +119,20 @@ describe('ServiceVehiculeKilometrage.creer — correction régressive (É-01)', 
     const resultat = await service.creer(
       CTX,
       VEHICULE_ID,
-      { valeur: 112_000, unite: 'km', releveLe: MAINTENANT.toISOString(), source: 'declaratif', motifRegression: 'erreur_saisie' },
+      {
+        valeur: 112_000,
+        unite: 'km',
+        releveLe: MAINTENANT.toISOString(),
+        source: 'declaratif',
+        motifRegression: 'erreur_saisie',
+      },
       'chef_atelier',
     );
 
     expect(insert).toHaveBeenCalledTimes(1);
-    expect(values).toHaveBeenCalledWith(expect.objectContaining({ valeur: 112_000, motifRegression: 'erreur_saisie' }));
+    expect(values).toHaveBeenCalledWith(
+      expect.objectContaining({ valeur: 112_000, motifRegression: 'erreur_saisie' }),
+    );
     expect(resultat.donnees.valeurKm).toBe(112_000);
   });
 
@@ -136,7 +160,12 @@ describe('ServiceVehiculeKilometrage.creer — correction régressive (É-01)', 
     const service = new ServiceVehiculeKilometrage(acces as never, evenements, horlogeFixe());
 
     await expect(
-      service.creer(CTX, VEHICULE_ID, { valeur: 112_000, unite: 'km', releveLe: MAINTENANT.toISOString(), source: 'declaratif' }, 'technicien'),
+      service.creer(
+        CTX,
+        VEHICULE_ID,
+        { valeur: 112_000, unite: 'km', releveLe: MAINTENANT.toISOString(), source: 'declaratif' },
+        'technicien',
+      ),
     ).rejects.toMatchObject({ code: 'VEHICULE_KILOMETRAGE_REGRESSIF' });
     expect(insert).not.toHaveBeenCalled();
   });

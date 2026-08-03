@@ -16,11 +16,19 @@ import type { RoleUtilisateur } from '@dfa/shared';
  */
 
 /** §11 « Créer/modifier un article » : direction, chef_atelier, magasinier. */
-const ROLES_ECRITURE_ARTICLE: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'chef_atelier', 'magasinier']);
+const ROLES_ECRITURE_ARTICLE: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'chef_atelier',
+  'magasinier',
+]);
 
 /** Inféré — réglages de stock par site (emplacement/seuils, PP-08) : même périmètre que
  *  l'écriture article (donnée de référentiel). */
-const ROLES_ECRITURE_STOCK_SITE: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'chef_atelier', 'magasinier']);
+const ROLES_ECRITURE_STOCK_SITE: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'chef_atelier',
+  'magasinier',
+]);
 
 /** §11 « Enregistrer une entrée/sortie », « Réceptionner », « Faire l'inventaire » : `magasinier`
  *  SEUL, de façon ferme. */
@@ -31,7 +39,11 @@ const ROLES_ECRITURE_MOUVEMENT: ReadonlySet<RoleUtilisateur> = new Set(['magasin
 const ROLES_SATISFACTION_RESERVATION: ReadonlySet<RoleUtilisateur> = new Set(['magasinier']);
 
 /** §11 « Libérer une réservation active » : direction, chef_atelier, magasinier. */
-const ROLES_LIBERATION_RESERVATION: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'chef_atelier', 'magasinier']);
+const ROLES_LIBERATION_RESERVATION: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'chef_atelier',
+  'magasinier',
+]);
 
 /**
  * Second relais (étape 3, sous-fonctions commande fournisseur/fournisseur/consigne) — dupliqué
@@ -42,15 +54,27 @@ const ROLES_LIBERATION_RESERVATION: ReadonlySet<RoleUtilisateur> = new Set(['dir
  * receptionnaire, technicien (lecture générale `pieces.*` seulement), ni comptable, ni admin
  * (RF-115, `[]` littéral).
  */
-const ROLES_LECTURE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'chef_atelier', 'magasinier']);
+const ROLES_LECTURE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'chef_atelier',
+  'magasinier',
+]);
 
 /** Écriture fournisseur (`creer` + `modifier`, TOUJOURS accordés ensemble côté matrice) : mêmes
  *  trois rôles que la lecture — couvre création, modification, désactivation, réactivation. */
-const ROLES_ECRITURE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'chef_atelier', 'magasinier']);
+const ROLES_ECRITURE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'chef_atelier',
+  'magasinier',
+]);
 
 /** Écriture commande fournisseur (`creer` — couvre aussi `envoyer` et `annuler` la commande
  *  entière, gardés par le MÊME droit côté contrôleur) : direction, chef_atelier, magasinier. */
-const ROLES_ECRITURE_COMMANDE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'chef_atelier', 'magasinier']);
+const ROLES_ECRITURE_COMMANDE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'chef_atelier',
+  'magasinier',
+]);
 
 /** Réception (`pieces.commande_fournisseur.reception` — couvre aussi `annuler-reliquat`, gardé
  *  par le MÊME droit côté contrôleur) : `magasinier` SEUL, comme les mouvements de stock. */
@@ -58,7 +82,12 @@ const ROLES_RECEPTION_COMMANDE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new S
 
 /** Lecture consigne : direction, chef_atelier, magasinier, ET comptable (donnée financière —
  *  « une consigne jamais rendue est une créance qui dort », INFÉRÉ côté matrice API). */
-const ROLES_LECTURE_CONSIGNE: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'chef_atelier', 'magasinier', 'comptable']);
+const ROLES_LECTURE_CONSIGNE: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'chef_atelier',
+  'magasinier',
+  'comptable',
+]);
 
 /** Retour fournisseur d'une consigne (`pieces.consigne.retourner`) : `magasinier` SEUL — le geste
  *  de comptoir qui constate physiquement le retour. */

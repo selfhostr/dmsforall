@@ -203,5 +203,10 @@ export type StatutAbonnementWebhook = (typeof STATUTS_ABONNEMENT_WEBHOOK)[number
  * `abandonnee` : la dernière tentative a épuisé le nombre max sans succès, l'abonnement bascule en
  * `quarantaine`.
  */
-export const STATUTS_LIVRAISON_WEBHOOK = ['en_attente', 'reussie', 'echouee', 'abandonnee'] as const;
+export const STATUTS_LIVRAISON_WEBHOOK = [
+  'en_attente',
+  'reussie',
+  'echouee',
+  'abandonnee',
+] as const;
 export type StatutLivraisonWebhook = (typeof STATUTS_LIVRAISON_WEBHOOK)[number];

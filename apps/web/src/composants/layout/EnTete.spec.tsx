@@ -25,8 +25,20 @@ vi.mock('@/hooks/useDeconnexion', () => ({
 }));
 
 const session: SessionCourante = {
-  utilisateur: { id: 'u-1', email: 'a@garage-martin.ch', prenom: 'Anna', nom: 'Dupont', role: 'admin', langue: 'fr' },
-  tenant: { id: 't-1', slug: 'garage-martin', raisonSociale: 'Garage Martin SA', langueDefaut: 'fr' },
+  utilisateur: {
+    id: 'u-1',
+    email: 'a@garage-martin.ch',
+    prenom: 'Anna',
+    nom: 'Dupont',
+    role: 'admin',
+    langue: 'fr',
+  },
+  tenant: {
+    id: 't-1',
+    slug: 'garage-martin',
+    raisonSociale: 'Garage Martin SA',
+    langueDefaut: 'fr',
+  },
   sites: [
     { id: 'site-martigny', code: 'MTG', nom: 'Martigny', actif: true },
     { id: 'site-sion', code: 'SIO', nom: 'Sion', actif: true },

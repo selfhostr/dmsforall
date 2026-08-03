@@ -1,4 +1,8 @@
-import { useInfiniteQuery, type InfiniteData, type UseInfiniteQueryResult } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  type InfiniteData,
+  type UseInfiniteQueryResult,
+} from '@tanstack/react-query';
 
 import type { PageCurseur, ReponseClientCondition } from '@dfa/shared';
 
@@ -19,7 +23,10 @@ export function useConditionsClient(
   return useInfiniteQuery({
     queryKey: clesQuery.clients.conditions(clientId ?? ''),
     queryFn: async ({ pageParam }) => {
-      const params = construireRequete({ limite: LIMITE_PAR_PAGE, curseur: pageParam ?? undefined });
+      const params = construireRequete({
+        limite: LIMITE_PAR_PAGE,
+        curseur: pageParam ?? undefined,
+      });
       const page = await requeteApi<PageCurseur<ReponseClientCondition>>(
         `/clients/${clientId}/conditions?${params.toString()}`,
         { method: 'GET' },

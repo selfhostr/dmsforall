@@ -16,7 +16,10 @@ import type { CalculLigne, EntreeCalculLigne, MontantsLigne } from './atelier.je
  * fournira le VRAI `CalculLigne` sous le même jeton — aucun autre fichier n'aura à changer, c'est
  * précisément ce que le port protège.
  */
-const TYPES_MAIN_OEUVRE: ReadonlySet<string> = new Set(['main_oeuvre_bareme', 'main_oeuvre_temps_reel']);
+const TYPES_MAIN_OEUVRE: ReadonlySet<string> = new Set([
+  'main_oeuvre_bareme',
+  'main_oeuvre_temps_reel',
+]);
 
 @Injectable()
 export class CalculLigneSimple implements CalculLigne {

@@ -80,7 +80,10 @@ export const ordreReparation = pgTable(
     plafondAutorisePar: text('plafond_autorise_par'),
 
     restitutionPromiseLe: timestamp('restitution_promise_le', { withTimezone: true, mode: 'date' }),
-    restitutionInitialeLe: timestamp('restitution_initiale_le', { withTimezone: true, mode: 'date' }),
+    restitutionInitialeLe: timestamp('restitution_initiale_le', {
+      withTimezone: true,
+      mode: 'date',
+    }),
 
     localisation: localisationVehiculeEnum('localisation').notNull().default('parc'),
     sousTraitantNom: text('sous_traitant_nom'),
@@ -198,7 +201,11 @@ export const ordreReparationDemande = pgTable(
       columns: [t.tenantId, t.saisiParId],
       foreignColumns: [utilisateur.tenantId, utilisateur.id],
     }).onDelete('restrict'),
-    unique('ordre_reparation_demande_tenant_or_ordre_uk').on(t.tenantId, t.ordreReparationId, t.ordre),
+    unique('ordre_reparation_demande_tenant_or_ordre_uk').on(
+      t.tenantId,
+      t.ordreReparationId,
+      t.ordre,
+    ),
     check('ordre_reparation_demande_verbatim_non_vide_chk', sql`length(btrim(${t.verbatim})) > 0`),
   ],
 );
@@ -343,7 +350,11 @@ export const devisComplementaire = pgTable(
   },
   (t) => [
     unique('devis_complementaire_tenant_id_uk').on(t.tenantId, t.id),
-    unique('devis_complementaire_tenant_or_ordre_uk').on(t.tenantId, t.ordreReparationId, t.numeroOrdre),
+    unique('devis_complementaire_tenant_or_ordre_uk').on(
+      t.tenantId,
+      t.ordreReparationId,
+      t.numeroOrdre,
+    ),
     foreignKey({
       name: 'devis_complementaire_fk_or',
       columns: [t.tenantId, t.ordreReparationId],
@@ -373,7 +384,11 @@ export const devisComplementaireLigne = pgTable(
   },
   (t) => [
     unique('devis_complementaire_ligne_tenant_id_uk').on(t.tenantId, t.id),
-    unique('devis_complementaire_ligne_tenant_uk').on(t.tenantId, t.devisComplementaireId, t.ligneOrId),
+    unique('devis_complementaire_ligne_tenant_uk').on(
+      t.tenantId,
+      t.devisComplementaireId,
+      t.ligneOrId,
+    ),
     foreignKey({
       name: 'devis_complementaire_ligne_fk_devis',
       columns: [t.tenantId, t.devisComplementaireId],
@@ -394,7 +409,9 @@ export const orControleQualite = pgTable(
     tenantId: uuid('tenant_id').notNull(),
     ordreReparationId: uuid('ordre_reparation_id').notNull(),
     controleurId: uuid('controleur_id'),
-    controleLe: timestamp('controle_le', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+    controleLe: timestamp('controle_le', { withTimezone: true, mode: 'date' })
+      .notNull()
+      .defaultNow(),
     conforme: boolean('conforme').notNull(),
     motifNonConformite: text('motif_non_conformite'),
     ...colonnesHorodatage(),

@@ -35,28 +35,54 @@ function nomSite(sites: readonly SiteResume[], siteId: string | null): string {
  * d'ajout d'un nouveau mouvement (`DialogueMouvementStock`), gardé par `peutCreerMouvement`
  * (magasinier seul, §11).
  */
-export function PanneauMouvementsArticle({ articleId, sites, peutCreerMouvement, siteParDefaut }: Props) {
+export function PanneauMouvementsArticle({
+  articleId,
+  sites,
+  peutCreerMouvement,
+  siteParDefaut,
+}: Props) {
   const { t } = useTranslation(['pieces', 'commun']);
   const [dialogueOuvert, setDialogueOuvert] = useState(false);
-  const { mouvements, isPending, isError, error, refetch, hasNextPage, isFetchingNextPage, fetchNextPage } =
-    useMouvementsArticle(articleId);
+  const {
+    mouvements,
+    isPending,
+    isError,
+    error,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useMouvementsArticle(articleId);
 
   const colonnes: ColonneComptoir<ReponseMouvementStock>[] = [
-    { id: 'type', libelle: t('pieces:stock.mouvements.type'), rendu: (m) => t(`pieces:stock.mouvements.types.${m.type}`) },
+    {
+      id: 'type',
+      libelle: t('pieces:stock.mouvements.type'),
+      rendu: (m) => t(`pieces:stock.mouvements.types.${m.type}`),
+    },
     {
       id: 'quantite',
       libelle: t('pieces:stock.mouvements.quantite'),
       alignement: 'droite',
-      rendu: (m) => <span className="tabular-nums">{formaterQuantiteMillieme(m.quantiteMillieme)}</span>,
+      rendu: (m) => (
+        <span className="tabular-nums">{formaterQuantiteMillieme(m.quantiteMillieme)}</span>
+      ),
     },
     {
       id: 'site',
       libelle: t('pieces:stock.site'),
       rendu: (m) =>
-        m.type === 'transfert' ? `${nomSite(sites, m.siteSourceId)} → ${nomSite(sites, m.siteDestinationId)}` : nomSite(sites, m.siteId),
+        m.type === 'transfert'
+          ? `${nomSite(sites, m.siteSourceId)} → ${nomSite(sites, m.siteDestinationId)}`
+          : nomSite(sites, m.siteId),
     },
     { id: 'motif', libelle: t('pieces:stock.mouvements.motif'), rendu: (m) => m.motif ?? '—' },
-    { id: 'date', libelle: t('pieces:stock.mouvements.date'), alignement: 'droite', rendu: (m) => formaterDateHeure(m.creeLe) },
+    {
+      id: 'date',
+      libelle: t('pieces:stock.mouvements.date'),
+      alignement: 'droite',
+      rendu: (m) => formaterDateHeure(m.creeLe),
+    },
   ];
 
   return (
@@ -84,9 +110,18 @@ export function PanneauMouvementsArticle({ articleId, sites, peutCreerMouvement,
               colonnes={colonnes}
               lignes={mouvements}
               cleLigne={(m) => m.id}
-              contenuVide={<EtatVidePremierUsage titre={t('pieces:stock.mouvements.titre')} description={t('pieces:stock.mouvements.vide')} />}
+              contenuVide={
+                <EtatVidePremierUsage
+                  titre={t('pieces:stock.mouvements.titre')}
+                  description={t('pieces:stock.mouvements.vide')}
+                />
+              }
             />
-            <BoutonChargerPlus aChargerPlus={Boolean(hasNextPage)} enChargement={isFetchingNextPage} onChargerPlus={() => void fetchNextPage()} />
+            <BoutonChargerPlus
+              aChargerPlus={Boolean(hasNextPage)}
+              enChargement={isFetchingNextPage}
+              onChargerPlus={() => void fetchNextPage()}
+            />
           </>
         )}
       </CardContent>

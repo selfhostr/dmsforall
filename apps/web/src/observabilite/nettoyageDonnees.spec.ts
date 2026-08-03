@@ -34,7 +34,9 @@ describe('nettoyerEvenement', () => {
   it('rédige une plaque suisse trouvée dans le message d’une exception', () => {
     const evenement = nettoyerEvenement({
       ...evenementVide(),
-      exception: { values: [{ type: 'Error', value: 'Véhicule GE 123456 introuvable en atelier' }] },
+      exception: {
+        values: [{ type: 'Error', value: 'Véhicule GE 123456 introuvable en atelier' }],
+      },
     });
     expect(evenement.exception?.values?.[0]?.value).not.toContain('GE 123456');
     expect(evenement.exception?.values?.[0]?.value).toContain('[retiré]');
@@ -43,7 +45,9 @@ describe('nettoyerEvenement', () => {
   it('rédige un VIN (17 caractères ISO 3779) trouvé dans le message d’une exception', () => {
     const evenement = nettoyerEvenement({
       ...evenementVide(),
-      exception: { values: [{ type: 'Error', value: 'Impossible de sauver le véhicule WVWZZZ1JZXW000001' }] },
+      exception: {
+        values: [{ type: 'Error', value: 'Impossible de sauver le véhicule WVWZZZ1JZXW000001' }],
+      },
     });
     expect(evenement.exception?.values?.[0]?.value).not.toContain('WVWZZZ1JZXW000001');
     expect(evenement.exception?.values?.[0]?.value).toContain('[retiré]');
@@ -57,7 +61,9 @@ describe('nettoyerEvenement', () => {
           {
             type: 'Error',
             value: 'échec',
-            stacktrace: { frames: [{ filename: 'connexion.ts', vars: { motDePasse: 'Demo1234!Garage' } }] },
+            stacktrace: {
+              frames: [{ filename: 'connexion.ts', vars: { motDePasse: 'Demo1234!Garage' } }],
+            },
           },
         ],
       },
@@ -94,7 +100,10 @@ describe('nettoyerEvenement', () => {
   });
 
   it('retire systématiquement le champ user, même si un appelant l’a renseigné', () => {
-    const evenement = nettoyerEvenement({ ...evenementVide(), user: { email: 'admin@garage-martin.ch' } });
+    const evenement = nettoyerEvenement({
+      ...evenementVide(),
+      user: { email: 'admin@garage-martin.ch' },
+    });
     expect(evenement.user).toBeUndefined();
   });
 
@@ -127,7 +136,11 @@ describe('nettoyerMigette', () => {
   it('retire sans condition un corps de requête ou de réponse porté par un breadcrumb', () => {
     const migette: Breadcrumb = {
       category: 'fetch',
-      data: { url: '/api/v1/or/42', body: { client: 'Dupont' }, response: { vin: 'WVWZZZ1JZXW000001' } },
+      data: {
+        url: '/api/v1/or/42',
+        body: { client: 'Dupont' },
+        response: { vin: 'WVWZZZ1JZXW000001' },
+      },
     };
     const nettoyee = nettoyerMigette(migette);
     expect(nettoyee.data?.body).toBe('[retiré]');
@@ -135,7 +148,10 @@ describe('nettoyerMigette', () => {
   });
 
   it('rédige un message de breadcrumb console contenant un e-mail', () => {
-    const migette: Breadcrumb = { category: 'console', message: 'Connexion échouée pour admin@garage-martin.ch' };
+    const migette: Breadcrumb = {
+      category: 'console',
+      message: 'Connexion échouée pour admin@garage-martin.ch',
+    };
     const nettoyee = nettoyerMigette(migette);
     expect(nettoyee.message).not.toContain('admin@garage-martin.ch');
   });
@@ -147,27 +163,31 @@ describe('nettoyerMigette', () => {
 });
 
 describe('nettoyerEvenement — une catégorie de donnée sensible par cas', () => {
-  const casParCategorie: ReadonlyArray<readonly [categorie: string, cle: string, valeur: string]> = [
-    ['identifiants de connexion', 'motDePasse', 'Demo1234!Garage'],
-    ['identifiants de connexion', 'mdp', 'Demo1234!Garage'],
-    ['identifiants de connexion', 'email', 'admin@garage-martin.ch'],
-    ['identité client', 'nom', 'Dupont'],
-    ['identité client', 'raisonSociale', 'Rossi Garage SA'],
-    ['coordonnées client', 'telephone', '+41 79 123 45 67'],
-    ['coordonnées client', 'adresse', 'Rue du Lac 1'],
-    ['coordonnées client', 'npa', '1000'],
-    ['identifiants véhicule', 'plaque', 'VD 123456'],
-    ['identifiants véhicule', 'vin', 'WVWZZZ1JZXW000001'],
-    ['identifiants véhicule', 'numeroChassis', 'WVWZZZ1JZXW000001'],
-    ['données financières', 'iban', 'CH93 0076 2011 6238 5295 7'],
-    ['données financières', 'ahv', '756.1234.5678.97'],
-  ];
+  const casParCategorie: ReadonlyArray<readonly [categorie: string, cle: string, valeur: string]> =
+    [
+      ['identifiants de connexion', 'motDePasse', 'Demo1234!Garage'],
+      ['identifiants de connexion', 'mdp', 'Demo1234!Garage'],
+      ['identifiants de connexion', 'email', 'admin@garage-martin.ch'],
+      ['identité client', 'nom', 'Dupont'],
+      ['identité client', 'raisonSociale', 'Rossi Garage SA'],
+      ['coordonnées client', 'telephone', '+41 79 123 45 67'],
+      ['coordonnées client', 'adresse', 'Rue du Lac 1'],
+      ['coordonnées client', 'npa', '1000'],
+      ['identifiants véhicule', 'plaque', 'VD 123456'],
+      ['identifiants véhicule', 'vin', 'WVWZZZ1JZXW000001'],
+      ['identifiants véhicule', 'numeroChassis', 'WVWZZZ1JZXW000001'],
+      ['données financières', 'iban', 'CH93 0076 2011 6238 5295 7'],
+      ['données financières', 'ahv', '756.1234.5678.97'],
+    ];
 
-  it.each(casParCategorie)('retire « %s » (clé %s) quand elle est portée en extra', (_categorie, cle, valeur) => {
-    const evenement = nettoyerEvenement({ ...evenementVide(), extra: { [cle]: valeur } });
-    expect(evenement.extra?.[cle]).toBe('[retiré]');
-    expect(JSON.stringify(evenement)).not.toContain(valeur);
-  });
+  it.each(casParCategorie)(
+    'retire « %s » (clé %s) quand elle est portée en extra',
+    (_categorie, cle, valeur) => {
+      const evenement = nettoyerEvenement({ ...evenementVide(), extra: { [cle]: valeur } });
+      expect(evenement.extra?.[cle]).toBe('[retiré]');
+      expect(JSON.stringify(evenement)).not.toContain(valeur);
+    },
+  );
 
   it('retire un corps de réponse API en bloc, quelle que soit la clé exacte utilisée pour le porter', () => {
     const evenement = nettoyerEvenement({
@@ -180,10 +200,14 @@ describe('nettoyerEvenement — une catégorie de donnée sensible par cas', () 
 
 describe('rediger', () => {
   it('rédige un e-mail au milieu d’une phrase', () => {
-    expect(rediger('Contact : jean.dupont@garage-martin.ch pour suite')).toBe('Contact : [retiré] pour suite');
+    expect(rediger('Contact : jean.dupont@garage-martin.ch pour suite')).toBe(
+      'Contact : [retiré] pour suite',
+    );
   });
 
   it('laisse une chaîne sans donnée personnelle inchangée', () => {
-    expect(rediger('Délai de connexion dépassé après 15s')).toBe('Délai de connexion dépassé après 15s');
+    expect(rediger('Délai de connexion dépassé après 15s')).toBe(
+      'Délai de connexion dépassé après 15s',
+    );
   });
 });

@@ -26,7 +26,10 @@ import {
  */
 function useActionArticle<TEntree>(
   articleId: string,
-  action: (articleId: string, entree: TEntree) => Promise<ReponseAvecAvertissements<ReponseArticle>>,
+  action: (
+    articleId: string,
+    entree: TEntree,
+  ) => Promise<ReponseAvecAvertissements<ReponseArticle>>,
 ): UseMutationResult<ReponseAvecAvertissements<ReponseArticle>, unknown, TEntree> {
   const queryClient = useQueryClient();
 
@@ -63,7 +66,9 @@ export function useDesactiverArticle(articleId: string) {
 }
 
 /** `POST /articles/{id}/reactiver` — aucun corps (§6.1). */
-export function useReactiverArticle(articleId: string): UseMutationResult<ReponseAvecAvertissements<ReponseArticle>, unknown, void> {
+export function useReactiverArticle(
+  articleId: string,
+): UseMutationResult<ReponseAvecAvertissements<ReponseArticle>, unknown, void> {
   const queryClient = useQueryClient();
 
   return useMutation({

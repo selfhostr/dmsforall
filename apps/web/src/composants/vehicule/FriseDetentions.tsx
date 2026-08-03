@@ -45,7 +45,10 @@ export function FriseDetentions({ detentions, className }: ProprietesFriseDetent
               ) : null}
             </div>
             {courante ? (
-              <Badge variant="outline" className="ml-auto border-statut-succes/40 text-statut-succes">
+              <Badge
+                variant="outline"
+                className="ml-auto border-statut-succes/40 text-statut-succes"
+              >
                 {t('detentions.detenteur')}
               </Badge>
             ) : null}

@@ -45,7 +45,10 @@ describe('encoderCurseur / decoderCurseur — round-trip', () => {
   });
 
   it('le curseur encodé est une chaîne base64url opaque (pas de JSON ni de "=" de padding lisible tel quel)', () => {
-    const curseur = encoderCurseur({ creeLe: new Date('2026-01-01T00:00:00.000Z'), id: '3fa85f64-5717-4562-b3fc-2c963f66afa6' });
+    const curseur = encoderCurseur({
+      creeLe: new Date('2026-01-01T00:00:00.000Z'),
+      id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+    });
     expect(curseur).not.toMatch(/[{}":]/);
   });
 });
@@ -81,7 +84,7 @@ describe('decoderCurseur — toute entrée cliente invalide produit VALIDATION_E
     attendErreurCurseurInvalide(() => decoderCurseur('pas-du-tout-un-curseur-valide-!!!'));
   });
 
-  it('un JSON valide mais qui n\'est pas un objet (ex. un tableau) lève VALIDATION_ECHOUEE', () => {
+  it("un JSON valide mais qui n'est pas un objet (ex. un tableau) lève VALIDATION_ECHOUEE", () => {
     attendErreurCurseurInvalide(() => decoderCurseur(encoderObjetBrut(['c', 'i'])));
   });
 
@@ -90,16 +93,22 @@ describe('decoderCurseur — toute entrée cliente invalide produit VALIDATION_E
   });
 
   it('un objet JSON valide sans le champ "c" lève VALIDATION_ECHOUEE', () => {
-    attendErreurCurseurInvalide(() => decoderCurseur(encoderObjetBrut({ i: 'a1b2c3d4-e5f6-4789-a012-3456789abcde' })));
+    attendErreurCurseurInvalide(() =>
+      decoderCurseur(encoderObjetBrut({ i: 'a1b2c3d4-e5f6-4789-a012-3456789abcde' })),
+    );
   });
 
   it('un objet JSON valide sans le champ "i" lève VALIDATION_ECHOUEE', () => {
-    attendErreurCurseurInvalide(() => decoderCurseur(encoderObjetBrut({ c: '2025-12-25T10:00:00.000Z' })));
+    attendErreurCurseurInvalide(() =>
+      decoderCurseur(encoderObjetBrut({ c: '2025-12-25T10:00:00.000Z' })),
+    );
   });
 
   it('un champ "c" qui n\'est pas une chaîne (nombre) lève VALIDATION_ECHOUEE', () => {
     attendErreurCurseurInvalide(() =>
-      decoderCurseur(encoderObjetBrut({ c: 1735120800000, i: 'a1b2c3d4-e5f6-4789-a012-3456789abcde' })),
+      decoderCurseur(
+        encoderObjetBrut({ c: 1735120800000, i: 'a1b2c3d4-e5f6-4789-a012-3456789abcde' }),
+      ),
     );
   });
 
@@ -111,7 +120,9 @@ describe('decoderCurseur — toute entrée cliente invalide produit VALIDATION_E
 
   it('une date "c" invalide (chaîne non parseable) lève VALIDATION_ECHOUEE', () => {
     attendErreurCurseurInvalide(() =>
-      decoderCurseur(encoderObjetBrut({ c: 'pas-une-date', i: 'a1b2c3d4-e5f6-4789-a012-3456789abcde' })),
+      decoderCurseur(
+        encoderObjetBrut({ c: 'pas-une-date', i: 'a1b2c3d4-e5f6-4789-a012-3456789abcde' }),
+      ),
     );
   });
 
@@ -123,7 +134,12 @@ describe('decoderCurseur — toute entrée cliente invalide produit VALIDATION_E
 
   it('un uuid "i" de bonne forme mais avec un caractère hors [0-9a-f] lève VALIDATION_ECHOUEE', () => {
     attendErreurCurseurInvalide(() =>
-      decoderCurseur(encoderObjetBrut({ c: '2025-12-25T10:00:00.000Z', i: 'zzzzzzzz-5717-4562-b3fc-2c963f66afa6' })),
+      decoderCurseur(
+        encoderObjetBrut({
+          c: '2025-12-25T10:00:00.000Z',
+          i: 'zzzzzzzz-5717-4562-b3fc-2c963f66afa6',
+        }),
+      ),
     );
   });
 });

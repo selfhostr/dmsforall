@@ -15,7 +15,13 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
  * d'ERGONOMIE — le serveur reste l'arbitre final si l'état a changé entre le chargement de l'OR et
  * le clic (l'écran affiche alors l'erreur serveur normalement, via `messageErreur`).
  */
-const STATUTS_LIGNE_POINTABLE = new Set(['proposee', 'a_valider', 'validee', 'en_cours', 'realisee']);
+const STATUTS_LIGNE_POINTABLE = new Set([
+  'proposee',
+  'a_valider',
+  'validee',
+  'en_cours',
+  'realisee',
+]);
 
 function ligneEstPointable(ligne: ReponseLigneOr): boolean {
   return STATUTS_LIGNE_POINTABLE.has(ligne.statut);
@@ -71,7 +77,9 @@ export function DialogueChoixCiblePointage({
 
         {requeteOr.data ? (
           <div className="flex flex-col gap-4">
-            <p className="texte-corps text-muted-foreground">{t('pointage:technicien.choisirCible.description')}</p>
+            <p className="texte-corps text-muted-foreground">
+              {t('pointage:technicien.choisirCible.description')}
+            </p>
 
             <Button
               size="lg"
@@ -84,9 +92,13 @@ export function DialogueChoixCiblePointage({
             </Button>
 
             <div className="flex flex-col gap-2">
-              <h3 className="texte-titre-section">{t('pointage:technicien.choisirCible.lignesTitre')}</h3>
+              <h3 className="texte-titre-section">
+                {t('pointage:technicien.choisirCible.lignesTitre')}
+              </h3>
               {lignesAssignees.length === 0 ? (
-                <p className="texte-libelle text-muted-foreground">{t('pointage:technicien.choisirCible.aucuneLigne')}</p>
+                <p className="texte-libelle text-muted-foreground">
+                  {t('pointage:technicien.choisirCible.aucuneLigne')}
+                </p>
               ) : (
                 <div className="flex flex-col gap-2">
                   {lignesAssignees.map((ligne) => (

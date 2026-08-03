@@ -13,7 +13,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { useCreerClient } from '@/hooks/clients/useCreerClient';
 import { useDoublonsClients } from '@/hooks/clients/useDoublonsClients';
@@ -137,8 +143,14 @@ export function FormulaireNouveauClient({ onCree }: Props) {
     <form onSubmit={soumettre} noValidate className="mt-6 space-y-5">
       {erreur ? (
         <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'}>
-          {estErreurReseau ? <WifiOff className="h-4 w-4" aria-hidden="true" /> : <AlertCircle className="h-4 w-4" aria-hidden="true" />}
-          <AlertTitle>{t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}</AlertTitle>
+          {estErreurReseau ? (
+            <WifiOff className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <AlertCircle className="h-4 w-4" aria-hidden="true" />
+          )}
+          <AlertTitle>
+            {t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
+          </AlertTitle>
           <AlertDescription>{messageErreur(erreur, t)}</AlertDescription>
         </Alert>
       ) : null}
@@ -146,20 +158,24 @@ export function FormulaireNouveauClient({ onCree }: Props) {
       <div className="space-y-2">
         <Label>{t('clients:liste.filtres.type')}</Label>
         <div role="group" className="inline-flex overflow-hidden rounded-md border">
-          {(['particulier', 'entreprise'] as const satisfies readonly TypeClient[]).map((valeur) => (
-            <button
-              key={valeur}
-              type="button"
-              aria-pressed={type === valeur}
-              onClick={() => form.setValue('type', valeur, { shouldValidate: true })}
-              className={cn(
-                'h-11 px-4 texte-corps font-medium transition-colors',
-                type === valeur ? 'bg-primary text-primary-foreground' : 'bg-background text-foreground hover:bg-muted',
-              )}
-            >
-              {t(`clients:liste.types.${valeur}`)}
-            </button>
-          ))}
+          {(['particulier', 'entreprise'] as const satisfies readonly TypeClient[]).map(
+            (valeur) => (
+              <button
+                key={valeur}
+                type="button"
+                aria-pressed={type === valeur}
+                onClick={() => form.setValue('type', valeur, { shouldValidate: true })}
+                className={cn(
+                  'h-11 px-4 texte-corps font-medium transition-colors',
+                  type === valeur
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-foreground hover:bg-muted',
+                )}
+              >
+                {t(`clients:liste.types.${valeur}`)}
+              </button>
+            ),
+          )}
         </div>
       </div>
 
@@ -173,11 +189,17 @@ export function FormulaireNouveauClient({ onCree }: Props) {
               aria-invalid={form.formState.errors.nom ? true : undefined}
               {...form.register('nom', { setValueAs: videVersIndefini })}
             />
-            {form.formState.errors.nom ? <p className="text-sm text-destructive">{t('validation:requis')}</p> : null}
+            {form.formState.errors.nom ? (
+              <p className="text-sm text-destructive">{t('validation:requis')}</p>
+            ) : null}
           </div>
           <div className="space-y-2">
             <Label htmlFor="nc-prenom">{t('clients:identite.prenom')}</Label>
-            <Input id="nc-prenom" readOnly={enCours} {...form.register('prenom', { setValueAs: videVersIndefini })} />
+            <Input
+              id="nc-prenom"
+              readOnly={enCours}
+              {...form.register('prenom', { setValueAs: videVersIndefini })}
+            />
           </div>
         </div>
       ) : (
@@ -196,7 +218,12 @@ export function FormulaireNouveauClient({ onCree }: Props) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="nc-ide">{t('clients:identite.ide')}</Label>
-            <Input id="nc-ide" readOnly={enCours} placeholder="CHE-123.456.789" {...form.register('ide', { setValueAs: videVersIndefini })} />
+            <Input
+              id="nc-ide"
+              readOnly={enCours}
+              placeholder="CHE-123.456.789"
+              {...form.register('ide', { setValueAs: videVersIndefini })}
+            />
           </div>
         </div>
       )}
@@ -205,7 +232,12 @@ export function FormulaireNouveauClient({ onCree }: Props) {
         <Label htmlFor="nc-langue">{t('clients:identite.langue')}</Label>
         <Select
           value={form.watch('langueCorrespondance')}
-          onValueChange={(valeur) => form.setValue('langueCorrespondance', valeur as EntreeCreationClient['langueCorrespondance'])}
+          onValueChange={(valeur) =>
+            form.setValue(
+              'langueCorrespondance',
+              valeur as EntreeCreationClient['langueCorrespondance'],
+            )
+          }
         >
           <SelectTrigger id="nc-langue" aria-label={t('clients:identite.langue')}>
             <SelectValue />
@@ -240,12 +272,16 @@ export function FormulaireNouveauClient({ onCree }: Props) {
             aria-invalid={form.formState.errors.email ? true : undefined}
             {...form.register('email', { setValueAs: videVersIndefini })}
           />
-          {form.formState.errors.email ? <p className="text-sm text-destructive">{t('validation:email.invalide')}</p> : null}
+          {form.formState.errors.email ? (
+            <p className="text-sm text-destructive">{t('validation:email.invalide')}</p>
+          ) : null}
         </div>
       </div>
 
       <fieldset className="space-y-3 rounded-md border p-3">
-        <legend className="px-1 texte-libelle font-medium text-foreground">{t('clients:adresses.types.principale')}</legend>
+        <legend className="px-1 texte-libelle font-medium text-foreground">
+          {t('clients:adresses.types.principale')}
+        </legend>
         <div className="space-y-2">
           <Label htmlFor="nc-rue">{t('clients:adresses.champs.rue')}</Label>
           <Input
@@ -288,15 +324,23 @@ export function FormulaireNouveauClient({ onCree }: Props) {
 
       {candidats.length > 0 ? (
         <div className="space-y-2 rounded-md border border-statut-attention/40 bg-statut-attention/12 p-3">
-          <p className="texte-libelle font-semibold text-foreground">{t('clients:doublons.titre')}</p>
+          <p className="texte-libelle font-semibold text-foreground">
+            {t('clients:doublons.titre')}
+          </p>
           <ul className="space-y-2">
             {candidats.map((candidat) => (
-              <li key={candidat.clientId} className="flex items-center justify-between gap-3 texte-corps">
+              <li
+                key={candidat.clientId}
+                className="flex items-center justify-between gap-3 texte-corps"
+              >
                 <span className="min-w-0 truncate">
                   {candidat.nom} · {t(`clients:doublons.criteres.${candidat.critere}`)} ·{' '}
                   {t('clients:doublons.score')} {Math.round(candidat.score * 100)} %
                 </span>
-                <Link to={chemins.clients.detail(candidat.clientId, site)} className="shrink-0 texte-libelle font-medium text-primary underline">
+                <Link
+                  to={chemins.clients.detail(candidat.clientId, site)}
+                  className="shrink-0 texte-libelle font-medium text-primary underline"
+                >
                   {t('clients:doublons.voir')}
                 </Link>
               </li>

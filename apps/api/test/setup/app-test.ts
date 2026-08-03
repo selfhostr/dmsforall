@@ -55,15 +55,24 @@ export class Horloge {
   constructor(private readonly poolMigrateur: Pool) {}
 
   async fixerExpirationSession(sessionId: string, expireLe: Date): Promise<void> {
-    await this.poolMigrateur.query('update session set expire_le = $2 where id = $1', [sessionId, expireLe]);
+    await this.poolMigrateur.query('update session set expire_le = $2 where id = $1', [
+      sessionId,
+      expireLe,
+    ]);
   }
 
   async fixerDerniereActiviteSession(sessionId: string, vuLe: Date): Promise<void> {
-    await this.poolMigrateur.query('update session set vu_le = $2 where id = $1', [sessionId, vuLe]);
+    await this.poolMigrateur.query('update session set vu_le = $2 where id = $1', [
+      sessionId,
+      vuLe,
+    ]);
   }
 
   async verrouillerUtilisateurJusquA(utilisateurId: string, jusquA: Date | null): Promise<void> {
-    await this.poolMigrateur.query('update utilisateur set verrouille_jusqu_a = $2 where id = $1', [utilisateurId, jusquA]);
+    await this.poolMigrateur.query('update utilisateur set verrouille_jusqu_a = $2 where id = $1', [
+      utilisateurId,
+      jusquA,
+    ]);
   }
 }
 
@@ -95,7 +104,11 @@ export async function demarrerRedisEphemere(): Promise<RedisEphemere> {
 // Construction de la config de test
 // -----------------------------------------------------------------------------------------
 
-export function envTest(bdd: BaseEphemere, redisUrl: string, surcharges: Partial<NodeJS.ProcessEnv> = {}): NodeJS.ProcessEnv {
+export function envTest(
+  bdd: BaseEphemere,
+  redisUrl: string,
+  surcharges: Partial<NodeJS.ProcessEnv> = {},
+): NodeJS.ProcessEnv {
   return {
     NODE_ENV: 'test',
     // Jamais réellement écouté (supertest pilote app.getHttpServer() directement, sans
@@ -243,7 +256,9 @@ export function obtenirEnteteCookie(reponse: ReponseHttp, nomCookie: string): st
   const liste: string[] = Array.isArray(brut) ? brut : brut ? [brut] : [];
   const trouve = liste.find((entree) => entree.startsWith(`${nomCookie}=`));
   if (!trouve) {
-    throw new Error(`Cookie "${nomCookie}" absent de la réponse (Set-Cookie: ${JSON.stringify(liste)})`);
+    throw new Error(
+      `Cookie "${nomCookie}" absent de la réponse (Set-Cookie: ${JSON.stringify(liste)})`,
+    );
   }
   return trouve;
 }

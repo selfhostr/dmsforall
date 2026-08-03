@@ -1,5 +1,22 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCookieAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import {
   schemaAdresseClient,
   schemaConditionClient,
@@ -87,7 +104,13 @@ export class ClientAdresseController {
   async creer(
     @Param('clientId', new PipeZod(schemaUuid)) clientId: string,
     @CorpsZod(schemaAdresseClient, {
-      exemple: { type: 'facturation', rue: 'Avenue de la Gare 5', npa: '1950', localite: 'Sion', pays: 'CH' },
+      exemple: {
+        type: 'facturation',
+        rue: 'Avenue de la Gare 5',
+        npa: '1950',
+        localite: 'Sion',
+        pays: 'CH',
+      },
     })
     entree: EntreeAdresseClient,
   ): Promise<ClientAdresseAvecAvertissementsDto> {
@@ -108,7 +131,9 @@ export class ClientAdresseController {
   async modifier(
     @Param('clientId', new PipeZod(schemaUuid)) clientId: string,
     @Param('adresseId', new PipeZod(schemaUuid)) adresseId: string,
-    @CorpsZod(schemaModificationAdresseClient, { exemple: { complement: 'Bâtiment B, 2e étage', actif: true } })
+    @CorpsZod(schemaModificationAdresseClient, {
+      exemple: { complement: 'Bâtiment B, 2e étage', actif: true },
+    })
     entree: EntreeModificationAdresse,
   ): Promise<ClientAdresseAvecAvertissementsDto> {
     const ctx = this.contexte.contexteTenant();
@@ -184,7 +209,9 @@ export class ClientContactController {
   async modifier(
     @Param('clientId', new PipeZod(schemaUuid)) clientId: string,
     @Param('contactId', new PipeZod(schemaUuid)) contactId: string,
-    @CorpsZod(schemaModificationContactClient, { exemple: { telephone: '+41 78 234 56 79', actif: true } })
+    @CorpsZod(schemaModificationContactClient, {
+      exemple: { telephone: '+41 78 234 56 79', actif: true },
+    })
     entree: EntreeModificationContact,
   ): Promise<ClientContactAvecAvertissementsDto> {
     const ctx = this.contexte.contexteTenant();
@@ -224,7 +251,7 @@ export class ClientConditionController {
   @ApiOperation({
     summary: 'Ouverture d’une nouvelle période de conditions commerciales (RM-07, CT-03).',
     description:
-      "Aucun `PATCH` : une correction ouvre une NOUVELLE période. Un chevauchement de dates " +
+      'Aucun `PATCH` : une correction ouvre une NOUVELLE période. Un chevauchement de dates ' +
       "produit `400 VALIDATION_ECHOUEE`, jamais un `409` — c'est une erreur de saisie, pas un " +
       'conflit de ressource. Figées sur l’OR à sa création (RM-50).',
   })
@@ -288,7 +315,7 @@ export class ClientConsentementController {
   @ApiOperation({
     summary: 'Enregistrement (ou révocation) d’un consentement (RM-09, nLPD).',
     description:
-      "Aucun `PATCH` ni `DELETE` : une révocation est une NOUVELLE ligne `accorde: false`, " +
+      'Aucun `PATCH` ni `DELETE` : une révocation est une NOUVELLE ligne `accorde: false`, ' +
       "jamais une mise à jour — c'est ce qui donne sa valeur de preuve.",
   })
   @ApiParam({ name: 'clientId', format: 'uuid' })
@@ -300,7 +327,12 @@ export class ClientConsentementController {
   async creer(
     @Param('clientId', new PipeZod(schemaUuid)) clientId: string,
     @CorpsZod(schemaConsentementClient, {
-      exemple: { type: 'marketing_email', accorde: true, recueilliLe: '2026-07-28T09:15:00Z', canal: 'formulaire_reception' },
+      exemple: {
+        type: 'marketing_email',
+        accorde: true,
+        recueilliLe: '2026-07-28T09:15:00Z',
+        canal: 'formulaire_reception',
+      },
     })
     entree: EntreeConsentementClient,
   ): Promise<ClientConsentementAvecAvertissementsDto> {
@@ -321,7 +353,9 @@ export class ClientNoteController {
 
   @Get()
   @ExigerDroit('client.lire')
-  @ApiOperation({ summary: 'Notes du client (RM-13) — `alerte` remonte au contexte-atelier (RM-36).' })
+  @ApiOperation({
+    summary: 'Notes du client (RM-13) — `alerte` remonte au contexte-atelier (RM-36).',
+  })
   @ApiParam({ name: 'clientId', format: 'uuid' })
   @ApiOkResponse({ type: PageClientNoteDto })
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
@@ -348,7 +382,10 @@ export class ClientNoteController {
   async creer(
     @Param('clientId', new PipeZod(schemaUuid)) clientId: string,
     @CorpsZod(schemaNoteClient, {
-      exemple: { nature: 'alerte', texte: 'Client difficile — exiger un acompte de 50% avant toute intervention.' },
+      exemple: {
+        nature: 'alerte',
+        texte: 'Client difficile — exiger un acompte de 50% avant toute intervention.',
+      },
     })
     entree: EntreeNoteClient,
   ): Promise<ClientNoteAvecAvertissementsDto> {

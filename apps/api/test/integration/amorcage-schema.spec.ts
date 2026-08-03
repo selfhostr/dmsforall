@@ -73,7 +73,7 @@ async function listerFonctionsAmorcage(): Promise<LigneFonctionAmorcage[]> {
   }
 }
 
-describe("schéma amorcage — frontière hors-RLS bornée en base (B5, rapport QA étape 0)", () => {
+describe('schéma amorcage — frontière hors-RLS bornée en base (B5, rapport QA étape 0)', () => {
   it('contient EXACTEMENT les 6 fonctions attendues, ni plus ni moins — une 7e fonction fait rougir ce test', async () => {
     const fonctions = await listerFonctionsAmorcage();
     const noms = fonctions.map((f) => f.proname).sort((a, b) => a.localeCompare(b, 'en'));
@@ -87,8 +87,15 @@ describe("schéma amorcage — frontière hors-RLS bornée en base (B5, rapport 
     for (const fonction of fonctions) {
       expect.soft(fonction.prosecdef, `${fonction.proname} doit être SECURITY DEFINER`).toBe(true);
 
-      const entreeSearchPath = (fonction.proconfig ?? []).find((entree) => entree.startsWith('search_path='));
-      expect.soft(entreeSearchPath, `${fonction.proname} doit fixer search_path (proconfig: ${JSON.stringify(fonction.proconfig)})`).toBeDefined();
+      const entreeSearchPath = (fonction.proconfig ?? []).find((entree) =>
+        entree.startsWith('search_path='),
+      );
+      expect
+        .soft(
+          entreeSearchPath,
+          `${fonction.proname} doit fixer search_path (proconfig: ${JSON.stringify(fonction.proconfig)})`,
+        )
+        .toBeDefined();
       // Tolérant à l'espace après la virgule (format normalisé par Postgres, pas garanti stable
       // au caractère près selon la version) — mais jamais un search_path qui laisse entrer un
       // schéma contrôlé par l'appelant.
@@ -106,11 +113,13 @@ describe("schéma amorcage — frontière hors-RLS bornée en base (B5, rapport 
     expect(fonctions.length).toBeGreaterThan(0);
 
     for (const fonction of fonctions) {
-      expect.soft(fonction.proprietaire, `${fonction.proname} doit appartenir à dfa_migrator`).toBe('dfa_migrator');
+      expect
+        .soft(fonction.proprietaire, `${fonction.proname} doit appartenir à dfa_migrator`)
+        .toBe('dfa_migrator');
     }
   });
 
-  it('dfa_app a EXECUTE sur les 6 fonctions attendues et sur RIEN d\'autre dans le schéma amorcage', async () => {
+  it("dfa_app a EXECUTE sur les 6 fonctions attendues et sur RIEN d'autre dans le schéma amorcage", async () => {
     const client = await bdd.poolSuperutilisateur.connect();
     try {
       const { rows } = await client.query<{ proname: string; dfa_app_execute: boolean }>(`
@@ -126,10 +135,14 @@ describe("schéma amorcage — frontière hors-RLS bornée en base (B5, rapport 
       // EXECUTE sur chacune des lignes retournées ICI, et qu'il n'y a que 6 lignes, alors
       // dfa_app n'a EXECUTE sur rien d'autre dans ce schéma par construction — pas besoin
       // d'énumérer tous les rôles absents de la base pour le prouver.
-      expect(rows.map((r) => r.proname).sort((a, b) => a.localeCompare(b, 'en'))).toEqual(FONCTIONS_AMORCAGE_ATTENDUES);
+      expect(rows.map((r) => r.proname).sort((a, b) => a.localeCompare(b, 'en'))).toEqual(
+        FONCTIONS_AMORCAGE_ATTENDUES,
+      );
 
       for (const ligne of rows) {
-        expect.soft(ligne.dfa_app_execute, `dfa_app doit pouvoir exécuter amorcage.${ligne.proname}`).toBe(true);
+        expect
+          .soft(ligne.dfa_app_execute, `dfa_app doit pouvoir exécuter amorcage.${ligne.proname}`)
+          .toBe(true);
       }
     } finally {
       client.release();
@@ -150,7 +163,12 @@ describe("schéma amorcage — frontière hors-RLS bornée en base (B5, rapport 
       expect(rows.length).toBeGreaterThan(0);
 
       for (const ligne of rows) {
-        expect.soft(ligne.public_execute, `PUBLIC ne doit PAS pouvoir exécuter amorcage.${ligne.proname}`).toBe(false);
+        expect
+          .soft(
+            ligne.public_execute,
+            `PUBLIC ne doit PAS pouvoir exécuter amorcage.${ligne.proname}`,
+          )
+          .toBe(false);
       }
     } finally {
       client.release();

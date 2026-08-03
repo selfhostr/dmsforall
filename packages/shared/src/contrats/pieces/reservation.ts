@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-import { STATUTS_RESERVATION_PIECE, type MotifLiberationReservation, type StatutReservationPiece } from './enums';
+import {
+  STATUTS_RESERVATION_PIECE,
+  type MotifLiberationReservation,
+  type StatutReservationPiece,
+} from './enums';
 import { schemaIdentifiant, schemaMotif } from '../atelier/primitives';
 import { schemaParametresPage } from '../pagination';
 

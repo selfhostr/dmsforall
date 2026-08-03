@@ -7,7 +7,12 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createHash } from 'node:crypto';
 import { demarrerBaseEphemere, type BaseEphemere } from '../setup/postgres-ephemere';
-import { semerGarageDemo, ajouterUtilisateurFixture, type GarageDemoFixture, type UtilisateurFixture } from '../fixtures/garage-demo';
+import {
+  semerGarageDemo,
+  ajouterUtilisateurFixture,
+  type GarageDemoFixture,
+  type UtilisateurFixture,
+} from '../fixtures/garage-demo';
 import {
   creerAppTest,
   demarrerRedisEphemere,
@@ -28,7 +33,10 @@ let demo: GarageDemoFixture;
 let utilisateurA: UtilisateurFixture;
 
 async function connecter(email: string, motDePasse: string) {
-  return ctx.requete.post(CHEMIN_CONNEXION).set('Origin', ctx.config.WEB_URL_PUBLIQUE).send({ email, motDePasse });
+  return ctx.requete
+    .post(CHEMIN_CONNEXION)
+    .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
+    .send({ email, motDePasse });
 }
 
 /** Connecte réellement via HTTP puis retrouve l'id de la session en base (empreinte = sha256
@@ -37,13 +45,16 @@ async function connecter(email: string, motDePasse: string) {
 async function connecterEtRecupererSession(utilisateur: UtilisateurFixture) {
   const reponse = await connecter(utilisateur.email, utilisateur.motDePasseClair);
   if (reponse.status !== 200) {
-    throw new Error(`connexion de test échouée (${reponse.status}) : ${JSON.stringify(reponse.body)}`);
+    throw new Error(
+      `connexion de test échouée (${reponse.status}) : ${JSON.stringify(reponse.body)}`,
+    );
   }
   const tokenClair = extraireValeurCookie(reponse, ctx.config.SESSION_COOKIE_NOM);
   const empreinte = createHash('sha256').update(tokenClair).digest();
-  const { rows } = await ctx.poolMigrateur.query<{ id: string }>('select id from session where empreinte_token = $1', [
-    empreinte,
-  ]);
+  const { rows } = await ctx.poolMigrateur.query<{ id: string }>(
+    'select id from session where empreinte_token = $1',
+    [empreinte],
+  );
   if (rows.length !== 1) {
     throw new Error('session introuvable en base juste après une connexion réussie');
   }
@@ -138,7 +149,10 @@ describe('connexion réussie', () => {
     expect(journaux.includes(tokenClair)).toBe(false);
 
     const empreinteAttendue = createHash('sha256').update(tokenClair).digest();
-    const { rows } = await ctx.poolMigrateur.query('select * from session where empreinte_token = $1', [empreinteAttendue]);
+    const { rows } = await ctx.poolMigrateur.query(
+      'select * from session where empreinte_token = $1',
+      [empreinteAttendue],
+    );
     expect(rows).toHaveLength(1);
     const ligneSerialisee = JSON.stringify(rows[0], (_cle, valeur) =>
       Buffer.isBuffer(valeur) ? valeur.toString('hex') : valeur,
@@ -148,8 +162,11 @@ describe('connexion réussie', () => {
 });
 
 describe('connexion refusée', () => {
-  it('un email inconnu et un mot de passe faux rendent EXACTEMENT le même code — pas d\'énumération de comptes', async () => {
-    const reponseEmailInconnu = await connecter('personne-nexiste-pas@garage-martin.test', 'peu importe le mot de passe');
+  it("un email inconnu et un mot de passe faux rendent EXACTEMENT le même code — pas d'énumération de comptes", async () => {
+    const reponseEmailInconnu = await connecter(
+      'personne-nexiste-pas@garage-martin.test',
+      'peu importe le mot de passe',
+    );
     const reponseMotDePasseFaux = await connecter(utilisateurA.email, 'mauvais-mot-de-passe');
 
     expect(reponseEmailInconnu.status).toBe(401);
@@ -198,7 +215,10 @@ describe('connexion refusée', () => {
       expect(reponse.status).toBe(401);
     }
 
-    const reponseApresVerrouillage = await connecter(utilisateurVerrouillage.email, utilisateurVerrouillage.motDePasseClair);
+    const reponseApresVerrouillage = await connecter(
+      utilisateurVerrouillage.email,
+      utilisateurVerrouillage.motDePasseClair,
+    );
     expect(reponseApresVerrouillage.status).toBe(423);
     expect(reponseApresVerrouillage.body.code).toBe('AUTH_COMPTE_VERROUILLE');
   });
@@ -214,9 +234,10 @@ describe('validité de session', () => {
     // `cree_le` est lui-même quasiment "maintenant". On la fixe juste après `cree_le` (encore
     // valide au regard de la contrainte) — le temps que la requête HTTP suivante parte suffit à
     // ce qu'elle soit déjà dans le passé au moment où l'application la relit.
-    const { rows } = await ctx.poolMigrateur.query<{ cree_le: Date }>('select cree_le from session where id = $1', [
-      sessionId,
-    ]);
+    const { rows } = await ctx.poolMigrateur.query<{ cree_le: Date }>(
+      'select cree_le from session where id = $1',
+      [sessionId],
+    );
     const creeLe = rows[0]!.cree_le;
     await ctx.horloge.fixerExpirationSession(sessionId, new Date(creeLe.getTime() + 1));
 
@@ -240,12 +261,16 @@ describe('validité de session', () => {
   it('un utilisateur passé "suspendu" voit sa session invalidée dès la requête suivante', async () => {
     const utilisateur = await nouvelUtilisateurDeTest();
     const { tokenClair } = await connecterEtRecupererSession(utilisateur);
-    await bdd.poolMigrateur.query("update utilisateur set statut = 'suspendu' where id = $1", [utilisateur.id]);
+    await bdd.poolMigrateur.query("update utilisateur set statut = 'suspendu' where id = $1", [
+      utilisateur.id,
+    ]);
     try {
       const reponse = await ctx.requete.get(CHEMIN_MOI).set('Cookie', cookieDe(tokenClair));
       expect(reponse.status).toBe(401);
     } finally {
-      await bdd.poolMigrateur.query("update utilisateur set statut = 'actif' where id = $1", [utilisateur.id]);
+      await bdd.poolMigrateur.query("update utilisateur set statut = 'actif' where id = $1", [
+        utilisateur.id,
+      ]);
     }
   });
 
@@ -254,22 +279,30 @@ describe('validité de session', () => {
     const { tokenClair } = await connecterEtRecupererSession(utilisateur);
     // `tenant` est sous FORCE ROW LEVEL SECURITY : seul le superutilisateur peut le modifier
     // sans contexte tenant déjà posé (voir garage-demo.ts pour la même remarque sur le seed).
-    await bdd.poolSuperutilisateur.query("update tenant set statut = 'suspendu' where id = $1", [demo.tenantA.id]);
+    await bdd.poolSuperutilisateur.query("update tenant set statut = 'suspendu' where id = $1", [
+      demo.tenantA.id,
+    ]);
     try {
       const reponse = await ctx.requete.get(CHEMIN_MOI).set('Cookie', cookieDe(tokenClair));
       expect(reponse.status).toBe(401);
     } finally {
-      await bdd.poolSuperutilisateur.query("update tenant set statut = 'actif' where id = $1", [demo.tenantA.id]);
+      await bdd.poolSuperutilisateur.query("update tenant set statut = 'actif' where id = $1", [
+        demo.tenantA.id,
+      ]);
     }
   });
 });
 
 describe('déconnexion', () => {
   it('POST /auth/deconnexion est idempotent : 204 même sans session active, et efface le cookie', async () => {
-    const premiereReponse = await ctx.requete.post(CHEMIN_DECONNEXION).set('Origin', ctx.config.WEB_URL_PUBLIQUE);
+    const premiereReponse = await ctx.requete
+      .post(CHEMIN_DECONNEXION)
+      .set('Origin', ctx.config.WEB_URL_PUBLIQUE);
     expect(premiereReponse.status).toBe(204);
 
-    const secondeReponse = await ctx.requete.post(CHEMIN_DECONNEXION).set('Origin', ctx.config.WEB_URL_PUBLIQUE);
+    const secondeReponse = await ctx.requete
+      .post(CHEMIN_DECONNEXION)
+      .set('Origin', ctx.config.WEB_URL_PUBLIQUE);
     expect(secondeReponse.status).toBe(204);
   });
 

@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, isNull } from 'drizzle-orm';
-import type { EntreeChangementDetenteur, EntreeDetentionVehicule, ReponseVehiculeDetention } from '@dfa/shared';
+import type {
+  EntreeChangementDetenteur,
+  EntreeDetentionVehicule,
+  ReponseVehiculeDetention,
+} from '@dfa/shared';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import { client, vehiculeDetention, vehiculePlaque, type LigneClient } from '../db/schema';
 import { CollecteurAvertissements } from '../common/avertissements';
@@ -46,7 +50,10 @@ export class ServiceVehiculeDetention {
     private readonly horloge: Horloge,
   ) {}
 
-  async lister(ctx: ContexteTenant, vehiculeId: string): Promise<readonly ReponseVehiculeDetention[]> {
+  async lister(
+    ctx: ContexteTenant,
+    vehiculeId: string,
+  ): Promise<readonly ReponseVehiculeDetention[]> {
     return this.acces.enTenant(ctx, async (tx) => {
       await chargerLigneVehicule(tx, ctx, vehiculeId);
       const lignes = await listerDetentions(tx, ctx, vehiculeId);
@@ -55,18 +62,30 @@ export class ServiceVehiculeDetention {
   }
 
   /** `POST /vehicules/{id}/detentions` — correction d'historique et import UNIQUEMENT (§7.4). */
-  async creer(ctx: ContexteTenant, vehiculeId: string, entree: EntreeDetentionVehicule): Promise<ReponseVehiculeDetention> {
+  async creer(
+    ctx: ContexteTenant,
+    vehiculeId: string,
+    entree: EntreeDetentionVehicule,
+  ): Promise<ReponseVehiculeDetention> {
     return this.acces.enTenant(ctx, async (tx) => {
       await chargerLigneVehicule(tx, ctx, vehiculeId);
 
       try {
         const lignes = await tx
           .insert(vehiculeDetention)
-          .values({ tenantId: ctx.tenantId, vehiculeId, clientId: entree.clientId, du: entree.debutLe })
+          .values({
+            tenantId: ctx.tenantId,
+            vehiculeId,
+            clientId: entree.clientId,
+            du: entree.debutLe,
+          })
           .returning();
         const inseree = lignes[0];
         if (!inseree) {
-          throw new ErreurMetier('ERREUR_INTERNE', "L'insertion de la détention n'a rendu aucune ligne.");
+          throw new ErreurMetier(
+            'ERREUR_INTERNE',
+            "L'insertion de la détention n'a rendu aucune ligne.",
+          );
         }
         const client = await this.chargerClient(tx, ctx, inseree.clientId);
         return versReponse({ detention: inseree, client });
@@ -105,7 +124,9 @@ export class ServiceVehiculeDetention {
       const misesAJour = await tx
         .update(vehiculeDetention)
         .set({ au: entree.finLe, motifFin: entree.motifFin })
-        .where(and(eq(vehiculeDetention.tenantId, ctx.tenantId), eq(vehiculeDetention.id, detentionId)))
+        .where(
+          and(eq(vehiculeDetention.tenantId, ctx.tenantId), eq(vehiculeDetention.id, detentionId)),
+        )
         .returning();
       const mise = misesAJour[0];
       if (!mise) {
@@ -139,7 +160,10 @@ export class ServiceVehiculeDetention {
             .update(vehiculeDetention)
             .set({ au: entree.changementLe, motifFin: entree.motifFin })
             .where(
-              and(eq(vehiculeDetention.tenantId, ctx.tenantId), eq(vehiculeDetention.id, detentionActuelle.detention.id)),
+              and(
+                eq(vehiculeDetention.tenantId, ctx.tenantId),
+                eq(vehiculeDetention.id, detentionActuelle.detention.id),
+              ),
             );
         }
 
@@ -159,7 +183,11 @@ export class ServiceVehiculeDetention {
             .update(vehiculePlaque)
             .set({ au: entree.changementLe })
             .where(
-              and(eq(vehiculePlaque.tenantId, ctx.tenantId), eq(vehiculePlaque.vehiculeId, vehiculeId), isNull(vehiculePlaque.au)),
+              and(
+                eq(vehiculePlaque.tenantId, ctx.tenantId),
+                eq(vehiculePlaque.vehiculeId, vehiculeId),
+                isNull(vehiculePlaque.au),
+              ),
             );
           await tx.insert(vehiculePlaque).values({
             tenantId: ctx.tenantId,
@@ -174,7 +202,10 @@ export class ServiceVehiculeDetention {
         } catch (erreur) {
           const interpretation = interpreterContrainteVehicule(erreur);
           if (interpretation) {
-            throw new ErreurMetier(interpretation.code, 'La nouvelle plaque est déjà portée par un autre véhicule (RM-18).');
+            throw new ErreurMetier(
+              interpretation.code,
+              'La nouvelle plaque est déjà portée par un autre véhicule (RM-18).',
+            );
           }
           throw erreur;
         }
@@ -193,12 +224,21 @@ export class ServiceVehiculeDetention {
         },
       });
 
-      const reponse = await construireReponseVehicule(tx, ctx, vehiculeId, this.horloge.maintenant());
+      const reponse = await construireReponseVehicule(
+        tx,
+        ctx,
+        vehiculeId,
+        this.horloge.maintenant(),
+      );
       return { donnees: reponse, avertissements };
     });
   }
 
-  private async chargerClient(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<LigneClient> {
+  private async chargerClient(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    clientId: string,
+  ): Promise<LigneClient> {
     const lignes = await tx
       .select()
       .from(client)
@@ -214,9 +254,19 @@ export class ServiceVehiculeDetention {
   private relancerConflitDetention(erreur: unknown): never {
     const interpretation = interpreterContrainteVehicule(erreur);
     if (interpretation) {
-      throw new ErreurMetier(interpretation.code, 'Ce véhicule a déjà un détenteur courant sur cette période (RM-20, CT-47).', {
-        erreurs: [{ champ: 'changementLe', code: 'detenteur_deja_courant', message: 'Deux détenteurs courants simultanés sont impossibles.' }],
-      });
+      throw new ErreurMetier(
+        interpretation.code,
+        'Ce véhicule a déjà un détenteur courant sur cette période (RM-20, CT-47).',
+        {
+          erreurs: [
+            {
+              champ: 'changementLe',
+              code: 'detenteur_deja_courant',
+              message: 'Deux détenteurs courants simultanés sont impossibles.',
+            },
+          ],
+        },
+      );
     }
     throw erreur;
   }

@@ -35,13 +35,20 @@ function reservationActive(rang: number) {
   };
 }
 
-function txFactice(plan: { selects?: readonly unknown[][]; executes?: ReadonlyArray<{ rows: readonly unknown[] }> } = {}) {
+function txFactice(
+  plan: {
+    selects?: readonly unknown[][];
+    executes?: ReadonlyArray<{ rows: readonly unknown[] }>;
+  } = {},
+) {
   const selects = [...(plan.selects ?? [])];
   const executes = [...(plan.executes ?? [])];
   const onConflictArgs: unknown[] = [];
 
   const tx = {
-    select: () => ({ from: () => ({ where: () => ({ limit: () => Promise.resolve(selects.shift() ?? []) }) }) }),
+    select: () => ({
+      from: () => ({ where: () => ({ limit: () => Promise.resolve(selects.shift() ?? []) }) }),
+    }),
     insert: (_table: unknown) => ({
       values: (_vals: unknown) => ({
         onConflictDoUpdate: (args: unknown) => {
@@ -57,7 +64,11 @@ function txFactice(plan: { selects?: readonly unknown[][]; executes?: ReadonlyAr
 }
 
 function accesFactice(tx: TransactionDfa): AccesBase {
-  return { enTenant: vi.fn((_ctx, travail) => travail(tx)), verifierConnexion: vi.fn(), verifierPostureRls: vi.fn() };
+  return {
+    enTenant: vi.fn((_ctx, travail) => travail(tx)),
+    verifierConnexion: vi.fn(),
+    verifierPostureRls: vi.fn(),
+  };
 }
 
 describe('ServiceStock.disponibilite — RP-14 : quantiteDisponible est TOUJOURS dérivé, jamais stocké', () => {
@@ -88,7 +99,9 @@ describe('ServiceStock.disponibilite — RP-14 : quantiteDisponible est TOUJOURS
   });
 
   it(`tronque à ${String(SEUIL_RESERVATIONS_DISPONIBILITE)} réservations actives et signale reservationsActivesTronquees: true`, async () => {
-    const lignesEnTrop = Array.from({ length: SEUIL_RESERVATIONS_DISPONIBILITE + 1 }, (_, i) => reservationActive(i));
+    const lignesEnTrop = Array.from({ length: SEUIL_RESERVATIONS_DISPONIBILITE + 1 }, (_, i) =>
+      reservationActive(i),
+    );
     const { tx } = txFactice({
       selects: [[{ id: 'a1' }], [ligneStock()]],
       executes: [{ rows: lignesEnTrop }],
@@ -105,7 +118,17 @@ describe('ServiceStock.disponibilite — RP-14 : quantiteDisponible est TOUJOURS
 describe('ServiceStock.modifierSite — réglages de site, jamais la quantité physique', () => {
   it('upsert sur (tenant, article, site) : crée la ligne si absente (physique reste au défaut 0)', async () => {
     const { tx, onConflictArgs } = txFactice({
-      selects: [[{ id: 'a1' }], [{ id: 's1' }], [ligneStock({ emplacement: 'C4', quantitePhysiqueMillieme: 0, quantiteReserveeMillieme: 0 })]],
+      selects: [
+        [{ id: 'a1' }],
+        [{ id: 's1' }],
+        [
+          ligneStock({
+            emplacement: 'C4',
+            quantitePhysiqueMillieme: 0,
+            quantiteReserveeMillieme: 0,
+          }),
+        ],
+      ],
     });
     const service = new ServiceStock(accesFactice(tx));
 

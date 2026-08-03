@@ -29,7 +29,11 @@ describe('BlocEcheances', () => {
 
   it("affiche toujours la source de l'échéance d'expertise (RM-28)", () => {
     render(
-      <BlocEcheances expertise={EXPERTISE_CONVOCATION} garantieConstructeur={null} garantieGarage={null} />,
+      <BlocEcheances
+        expertise={EXPERTISE_CONVOCATION}
+        garantieConstructeur={null}
+        garantieGarage={null}
+      />,
     );
     expect(screen.getByText(/Convocation/)).toBeInTheDocument();
   });
@@ -50,7 +54,11 @@ describe('BlocEcheances', () => {
 
   it('affiche la date de fin ET le plafond kilométrique de la garantie ensemble (RM-33)', () => {
     render(
-      <BlocEcheances expertise={null} garantieConstructeur={GARANTIE_ACTIVE} garantieGarage={null} />,
+      <BlocEcheances
+        expertise={null}
+        garantieConstructeur={GARANTIE_ACTIVE}
+        garantieGarage={null}
+      />,
     );
     expect(screen.getByText(/01\.01\.2027/)).toBeInTheDocument();
     expect(screen.getByText(/100'000 km/)).toBeInTheDocument();
@@ -59,7 +67,11 @@ describe('BlocEcheances', () => {
   it('traduit le libellé de source en allemand', async () => {
     await i18n.changeLanguage('de');
     render(
-      <BlocEcheances expertise={EXPERTISE_CONVOCATION} garantieConstructeur={null} garantieGarage={null} />,
+      <BlocEcheances
+        expertise={EXPERTISE_CONVOCATION}
+        garantieConstructeur={null}
+        garantieGarage={null}
+      />,
     );
     expect(screen.getByText(/Vorladung/)).toBeInTheDocument();
   });

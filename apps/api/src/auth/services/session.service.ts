@@ -23,7 +23,12 @@ import { and, eq } from 'drizzle-orm';
 import { JETON_CONFIG } from '../../config/config.jetons';
 import type { Config } from '../../config/config.types';
 import { JETON_DB, JETON_DB_AMORCAGE } from '../../db/db.jetons';
-import type { AccesAmorcage, AccesBase, ContexteTenant, UtilisateurAmorcage } from '../../db/db.types';
+import type {
+  AccesAmorcage,
+  AccesBase,
+  ContexteTenant,
+  UtilisateurAmorcage,
+} from '../../db/db.types';
 import { session } from '../../db/schema';
 import { ServiceContexteRequete } from '../../common/contexte/contexte-requete.service';
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
@@ -57,27 +62,30 @@ export class ServiceSessionImpl implements ServiceSession {
       maintenant.getTime() + this.config.SESSION_DUREE_MINUTES * MILLISECONDES_PAR_MINUTE,
     );
 
-    const sessionId = await this.accesBase.enTenant(this.contexteTenantPour(u.tenantId, u.id), async (tx) => {
-      const [ligne] = await tx
-        .insert(session)
-        .values({
-          tenantId: u.tenantId,
-          utilisateurId: u.id,
-          empreinteToken: empreinte,
-          expireLe,
-          vuLe: maintenant,
-          ip,
-          userAgent: ua,
-        })
-        .returning({ id: session.id });
+    const sessionId = await this.accesBase.enTenant(
+      this.contexteTenantPour(u.tenantId, u.id),
+      async (tx) => {
+        const [ligne] = await tx
+          .insert(session)
+          .values({
+            tenantId: u.tenantId,
+            utilisateurId: u.id,
+            empreinteToken: empreinte,
+            expireLe,
+            vuLe: maintenant,
+            ip,
+            userAgent: ua,
+          })
+          .returning({ id: session.id });
 
-      if (!ligne) {
-        // Ne devrait jamais arriver (un INSERT sans conflit renvoie toujours sa ligne) — mais un
-        // throw explicite vaut mieux qu'un `sessionId: undefined` qui se propagerait en silence.
-        throw new Error('Échec de création de session : aucune ligne retournée par le INSERT.');
-      }
-      return ligne.id;
-    });
+        if (!ligne) {
+          // Ne devrait jamais arriver (un INSERT sans conflit renvoie toujours sa ligne) — mais un
+          // throw explicite vaut mieux qu'un `sessionId: undefined` qui se propagerait en silence.
+          throw new Error('Échec de création de session : aucune ligne retournée par le INSERT.');
+        }
+        return ligne.id;
+      },
+    );
 
     return { tokenClair, sessionId, expireLe };
   }

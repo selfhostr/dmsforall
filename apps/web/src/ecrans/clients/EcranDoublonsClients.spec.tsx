@@ -24,7 +24,16 @@ function rendreEcran(routeInitiale = '/') {
 }
 
 const REPONSE_UN_CANDIDAT: ReponseDoublonsClients = {
-  candidats: [{ clientId: 'cl-1', numeroClient: 'CL-000001', nom: 'Isabelle Rossi', npa: '1000', critere: 'nom_npa', score: 0.92 }],
+  candidats: [
+    {
+      clientId: 'cl-1',
+      numeroClient: 'CL-000001',
+      nom: 'Isabelle Rossi',
+      npa: '1000',
+      critere: 'nom_npa',
+      score: 0.92,
+    },
+  ],
 };
 
 describe('EcranDoublonsClients', () => {
@@ -48,7 +57,11 @@ describe('EcranDoublonsClients', () => {
   });
 
   it('ne déclenche pas de recherche pour un nom trop court (min. 2 caractères, RM-05)', async () => {
-    server.use(http.get('/api/v1/doublons-clients', () => HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients)));
+    server.use(
+      http.get('/api/v1/doublons-clients', () =>
+        HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients),
+      ),
+    );
     const utilisateur = userEvent.setup();
     rendreEcran();
 
@@ -81,7 +94,11 @@ describe('EcranDoublonsClients', () => {
   });
 
   it('affiche un état vide POSITIF (« aucun doublon détecté ») quand la recherche ne remonte rien — cas nominal', async () => {
-    server.use(http.get('/api/v1/doublons-clients', () => HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients)));
+    server.use(
+      http.get('/api/v1/doublons-clients', () =>
+        HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients),
+      ),
+    );
     const utilisateur = userEvent.setup();
     rendreEcran();
 
@@ -89,8 +106,12 @@ describe('EcranDoublonsClients', () => {
 
     // `findByText`, pas `findByRole('status')` : `EtatChargement` (squelette transitoire) porte
     // aussi `role="status"`, une requête par rôle serait ambiguë le temps du chargement.
-    expect(await screen.findByText('Aucun doublon détecté', {}, { timeout: 3000 })).toBeInTheDocument();
-    expect(screen.getByText('Aucun client existant ne correspond à ces critères.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Aucun doublon détecté', {}, { timeout: 3000 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Aucun client existant ne correspond à ces critères.'),
+    ).toBeInTheDocument();
   });
 
   it('affiche une erreur actionnable avec bouton réessayer si la recherche échoue', async () => {
@@ -118,7 +139,9 @@ describe('EcranDoublonsClients', () => {
 
     await utilisateur.type(screen.getByLabelText('Nom ou raison sociale'), 'Rossi');
 
-    await utilisateur.click(await screen.findByRole('button', { name: 'Réessayer' }, { timeout: 3000 }));
+    await utilisateur.click(
+      await screen.findByRole('button', { name: 'Réessayer' }, { timeout: 3000 }),
+    );
 
     await waitFor(() => expect(screen.getByText(/Isabelle Rossi/)).toBeInTheDocument());
   });

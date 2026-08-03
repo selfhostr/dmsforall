@@ -23,7 +23,9 @@ export function OngletConditions({ clientId }: Props) {
 
   return (
     <div className="space-y-3">
-      <h3 className="texte-titre-section font-medium text-foreground">{t('clients:conditions.titre')}</h3>
+      <h3 className="texte-titre-section font-medium text-foreground">
+        {t('clients:conditions.titre')}
+      </h3>
       <EtatSousCollection
         enChargement={requete.isLoading}
         erreur={requete.error}
@@ -33,20 +35,33 @@ export function OngletConditions({ clientId }: Props) {
       >
         <ul className="space-y-2">
           {lignes.map((condition) => (
-            <li key={condition.id} className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border p-3 texte-corps">
+            <li
+              key={condition.id}
+              className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border p-3 texte-corps"
+            >
               <span className="text-muted-foreground">{t('clients:conditions.rabaisMo')}</span>
-              <span className="text-right tabular-nums">{formaterPourmille(condition.rabaisMoPourmille)}</span>
+              <span className="text-right tabular-nums">
+                {formaterPourmille(condition.rabaisMoPourmille)}
+              </span>
               <span className="text-muted-foreground">{t('clients:conditions.rabaisPieces')}</span>
-              <span className="text-right tabular-nums">{formaterPourmille(condition.rabaisPiecesPourmille)}</span>
+              <span className="text-right tabular-nums">
+                {formaterPourmille(condition.rabaisPiecesPourmille)}
+              </span>
               <span className="text-muted-foreground">{t('clients:conditions.rabaisPneus')}</span>
-              <span className="text-right tabular-nums">{formaterPourmille(condition.rabaisPneusPourmille)}</span>
+              <span className="text-right tabular-nums">
+                {formaterPourmille(condition.rabaisPneusPourmille)}
+              </span>
               <span className="text-muted-foreground">{t('clients:conditions.tauxHoraire')}</span>
               <span className="text-right">{texteOuVide(condition.tauxHoraireCode)}</span>
               <span className="text-muted-foreground">{t('clients:conditions.delaiPaiement')}</span>
-              <span className="text-right tabular-nums">{texteOuVide(condition.delaiPaiementJours)}</span>
+              <span className="text-right tabular-nums">
+                {texteOuVide(condition.delaiPaiementJours)}
+              </span>
               <span className="text-muted-foreground">{t('clients:conditions.plafond')}</span>
               <span className="text-right tabular-nums">
-                {condition.plafondCentimes === null ? texteOuVide(null) : formaterMontant(condition.plafondCentimes)}
+                {condition.plafondCentimes === null
+                  ? texteOuVide(null)
+                  : formaterMontant(condition.plafondCentimes)}
               </span>
               <span className="text-muted-foreground">{t('clients:conditions.dateEffet')}</span>
               <span className="text-right tabular-nums">

@@ -40,7 +40,8 @@ export function versColonnesMiseAJourSite(
 
   if (entree.heureOuverture !== undefined) colonnes.heureOuverture = entree.heureOuverture;
   if (entree.heureFermeture !== undefined) colonnes.heureFermeture = entree.heureFermeture;
-  if (entree.heureCloturePointage !== undefined) colonnes.heureCloturePointage = entree.heureCloturePointage;
+  if (entree.heureCloturePointage !== undefined)
+    colonnes.heureCloturePointage = entree.heureCloturePointage;
   if (entree.capaciteHeuresJourCentiemes !== undefined) {
     colonnes.capaciteHeuresJourCentiemes = entree.capaciteHeuresJourCentiemes;
   }

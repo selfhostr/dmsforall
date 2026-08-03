@@ -43,7 +43,9 @@ describe('ChoixPlaqueInterchangeable', () => {
   it('transmet le véhicule choisi au clic, jamais un choix implicite', async () => {
     const onChoisir = vi.fn();
     const utilisateur = userEvent.setup();
-    render(<ChoixPlaqueInterchangeable vehicules={[VEHICULE_A, VEHICULE_B]} onChoisir={onChoisir} />);
+    render(
+      <ChoixPlaqueInterchangeable vehicules={[VEHICULE_A, VEHICULE_B]} onChoisir={onChoisir} />,
+    );
     await utilisateur.click(screen.getByText(/Skoda Octavia/));
     expect(onChoisir).toHaveBeenCalledTimes(1);
     expect(onChoisir).toHaveBeenCalledWith(VEHICULE_B);

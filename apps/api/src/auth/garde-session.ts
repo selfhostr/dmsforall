@@ -105,7 +105,10 @@ export class GardeSession implements CanActivate {
       const origineAttendue = new URL(this.config.WEB_URL_PUBLIQUE).origin;
       const origineRecue = new URL(origine).origin;
       if (origineRecue === origineAttendue) return;
-      if (this.config.NODE_ENV !== 'production' && this.originesLoopbackEquivalentes(origineRecue, origineAttendue)) {
+      if (
+        this.config.NODE_ENV !== 'production' &&
+        this.originesLoopbackEquivalentes(origineRecue, origineAttendue)
+      ) {
         return;
       }
       throw new ErreurOrigineRefusee();

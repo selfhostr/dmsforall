@@ -11,7 +11,11 @@ interface VariablesModificationPrestation {
 }
 
 /** `PATCH /referentiels/prestations/{id}` — invalide le catalogue entier. */
-export function useModifierPrestation(): UseMutationResult<ReponsePrestation, unknown, VariablesModificationPrestation> {
+export function useModifierPrestation(): UseMutationResult<
+  ReponsePrestation,
+  unknown,
+  VariablesModificationPrestation
+> {
   const queryClient = useQueryClient();
 
   return useMutation({

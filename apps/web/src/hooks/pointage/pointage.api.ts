@@ -63,10 +63,16 @@ function construireParametres(filtres: FiltresListePointages, page: PagePointage
 /** `GET /pointages` — `atelier.pointage.lire` ; un rôle sans `lire_equipe` (constante SERVEUR
  *  `ROLES_AVEC_VUE_EQUIPE_POINTAGE`, pas un droit exposé) ne voit que ses propres pointages quel
  *  que soit `technicienId` demandé — restriction appliquée côté service, jamais côté front. */
-export async function listerPointages(filtres: FiltresListePointages, page: PagePointages): Promise<PageCurseur<ReponsePointage>> {
-  const reponse = await requeteApi<PageCurseur<ReponsePointage>>(`/pointages?${construireParametres(filtres, page)}`, {
-    method: 'GET',
-  });
+export async function listerPointages(
+  filtres: FiltresListePointages,
+  page: PagePointages,
+): Promise<PageCurseur<ReponsePointage>> {
+  const reponse = await requeteApi<PageCurseur<ReponsePointage>>(
+    `/pointages?${construireParametres(filtres, page)}`,
+    {
+      method: 'GET',
+    },
+  );
   return reponse ?? { donnees: [], curseurSuivant: null, limite: page.limite };
 }
 
@@ -107,11 +113,14 @@ export async function arreterPointage(
   entree: EntreeArretPointage,
   idempotencyKey: string,
 ): Promise<ReponseAvecAvertissements<ReponsePointage>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponsePointage>>(`/pointages/${id}/arreter`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-    idempotencyKey,
-  });
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponsePointage>>(
+    `/pointages/${id}/arreter`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+      idempotencyKey,
+    },
+  );
   if (!reponse) {
     throw new Error(`Réponse vide inattendue : POST /pointages/${id}/arreter.`);
   }
@@ -128,11 +137,14 @@ export async function corrigerPointage(
   entree: EntreeCorrectionPointage,
   idempotencyKey: string,
 ): Promise<ReponseAvecAvertissements<ReponsePointage>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponsePointage>>(`/pointages/${id}/corriger`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-    idempotencyKey,
-  });
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponsePointage>>(
+    `/pointages/${id}/corriger`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+      idempotencyKey,
+    },
+  );
   if (!reponse) {
     throw new Error(`Réponse vide inattendue : POST /pointages/${id}/corriger.`);
   }
@@ -144,10 +156,13 @@ export async function corrigerPointage(
 export async function verrouillerPeriodePointage(
   entree: EntreeVerrouillagePeriodePointage,
 ): Promise<ReponseVerrouillagePeriodePointage> {
-  const reponse = await requeteApi<ReponseVerrouillagePeriodePointage>('/pointages/verrouiller-periode', {
-    method: 'POST',
-    body: JSON.stringify(entree),
-  });
+  const reponse = await requeteApi<ReponseVerrouillagePeriodePointage>(
+    '/pointages/verrouiller-periode',
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /pointages/verrouiller-periode.');
   }
@@ -160,10 +175,13 @@ export async function verrouillerPeriodePointage(
 export async function deverrouillerPeriodePointage(
   entree: EntreeDeverrouillagePeriodePointage,
 ): Promise<ReponseDeverrouillagePeriodePointage> {
-  const reponse = await requeteApi<ReponseDeverrouillagePeriodePointage>('/pointages/deverrouiller-periode', {
-    method: 'POST',
-    body: JSON.stringify(entree),
-  });
+  const reponse = await requeteApi<ReponseDeverrouillagePeriodePointage>(
+    '/pointages/deverrouiller-periode',
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /pointages/deverrouiller-periode.');
   }

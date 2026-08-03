@@ -21,7 +21,9 @@ export interface DefinitionTriPaiement {
   readonly sens: 'asc' | 'desc';
 }
 
-const DEFINITIONS_TRI_PAIEMENTS: Readonly<Record<(typeof TRIS_PAIEMENTS)[number], DefinitionTriPaiement>> = {
+const DEFINITIONS_TRI_PAIEMENTS: Readonly<
+  Record<(typeof TRIS_PAIEMENTS)[number], DefinitionTriPaiement>
+> = {
   'dateValeur:desc': { expression: sql`p.date_valeur`, sens: 'desc' },
   'dateValeur:asc': { expression: sql`p.date_valeur`, sens: 'asc' },
   'montantNonImputeCentimes:desc': {
@@ -45,7 +47,11 @@ export function construireOrderByPaiement(def: DefinitionTriPaiement): SQL {
   return sql`${def.expression} ${direction}, p.id ${direction}`;
 }
 
-export function construireConditionKeysetPaiement(def: DefinitionTriPaiement, valeur: string | number | null, id: string): SQL {
+export function construireConditionKeysetPaiement(
+  def: DefinitionTriPaiement,
+  valeur: string | number | null,
+  id: string,
+): SQL {
   const operateur = def.sens === 'asc' ? sql`>` : sql`<`;
   return sql`((${def.expression} ${operateur} ${valeur}) or (${def.expression} = ${valeur} and p.id ${operateur} ${id}))`;
 }

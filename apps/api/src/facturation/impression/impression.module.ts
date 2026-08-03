@@ -50,7 +50,10 @@ import { StockagePdfDisqueLocal } from './stockage-pdf';
 @Module({
   imports: [FacturationModule],
   controllers: [ImpressionFactureController],
-  providers: [ServiceImpressionFacture, { provide: JETON_STOCKAGE_PDF, useClass: StockagePdfDisqueLocal }],
+  providers: [
+    ServiceImpressionFacture,
+    { provide: JETON_STOCKAGE_PDF, useClass: StockagePdfDisqueLocal },
+  ],
   exports: [ServiceImpressionFacture],
 })
 export class ImpressionModule {}

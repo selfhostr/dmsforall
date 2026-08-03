@@ -13,7 +13,10 @@ const ID_S2 = '22222222-2222-4222-8222-222222222222';
 const ID_RECENT = '33333333-3333-4333-8333-333333333333';
 const ID_ANCIEN = '44444444-4444-4444-8444-444444444444';
 
-function ligneSite(champs: Partial<LigneSite> = {}, creeLeTexte: string): LigneSite & { readonly creeLeTexte: string } {
+function ligneSite(
+  champs: Partial<LigneSite> = {},
+  creeLeTexte: string,
+): LigneSite & { readonly creeLeTexte: string } {
   return {
     id: champs.id ?? ID_S1,
     tenantId: 'tid-1',
@@ -60,7 +63,10 @@ function accesFactice(pages: readonly (readonly unknown[])[]): AccesBase {
   } as unknown as TransactionDfa;
 
   return {
-    enTenant: async <T>(_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<T>): Promise<T> => travail(tx),
+    enTenant: async <T>(
+      _ctx: ContexteTenant,
+      travail: (tx: TransactionDfa) => Promise<T>,
+    ): Promise<T> => travail(tx),
   } as AccesBase;
 }
 
@@ -80,7 +86,9 @@ describe('ServiceSite.lister — pagination keyset sur creeLe, précision micros
     expect(resultat.donnees.map((s) => s.id)).toEqual([ID_S2]);
     expect(resultat.curseurSuivant).not.toBeNull();
 
-    const charge = JSON.parse(Buffer.from(resultat.curseurSuivant!, 'base64url').toString('utf8')) as {
+    const charge = JSON.parse(
+      Buffer.from(resultat.curseurSuivant!, 'base64url').toString('utf8'),
+    ) as {
       t: string;
       v: string;
       i: string;

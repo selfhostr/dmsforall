@@ -63,7 +63,11 @@ export class ServiceLimitationDebitRedis implements ServiceLimitationDebit {
     private readonly horloge: Horloge,
   ) {}
 
-  async consommer(cle: string, limite: number, fenetreSecondes: number): Promise<ResultatLimitationDebit> {
+  async consommer(
+    cle: string,
+    limite: number,
+    fenetreSecondes: number,
+  ): Promise<ResultatLimitationDebit> {
     const cleRedis = `limitation:${cle}`;
     const maintenantMs = this.horloge.maintenant().getTime();
     const fenetreMs = fenetreSecondes * 1000;

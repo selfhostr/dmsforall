@@ -10,12 +10,23 @@ import type {
 } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
-import { devisComplementaire, devisComplementaireLigne, ligneOr, type LigneLigneOr, type LigneOrdreReparation } from '../db/schema';
+import {
+  devisComplementaire,
+  devisComplementaireLigne,
+  ligneOr,
+  type LigneLigneOr,
+  type LigneOrdreReparation,
+} from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { Horloge } from '../common/horloge/horloge';
 import { JETON_EVENEMENTS, type ServiceEvenements } from '../common/evenements';
-import { JETON_IDEMPOTENCE, type ReponseMemorisable, type ResultatIdempotent, type ServiceIdempotence } from '../common/idempotence';
+import {
+  JETON_IDEMPOTENCE,
+  type ReponseMemorisable,
+  type ResultatIdempotent,
+  type ServiceIdempotence,
+} from '../common/idempotence';
 
 import { mapperDevis } from './mappeurs';
 import {
@@ -73,12 +84,15 @@ export class ServiceDevis {
     return this.acces.enTenant(ctx, async (tx) => {
       await chargerOr(tx, ctx, orId);
       const toutes = await listerDevisOr(tx, ctx, orId);
-      const filtrees = filtres.decision ? toutes.filter((d) => d.decision === filtres.decision) : [...toutes];
+      const filtrees = filtres.decision
+        ? toutes.filter((d) => d.decision === filtres.decision)
+        : [...toutes];
       if (filtres.tri === 'numeroOrdre:desc') filtrees.reverse();
 
       const decalage = decoderCurseurOffset(curseur);
       const page = filtrees.slice(decalage, decalage + limite);
-      const curseurSuivant = decalage + limite < filtrees.length ? encoderCurseurOffset(decalage + limite) : null;
+      const curseurSuivant =
+        decalage + limite < filtrees.length ? encoderCurseurOffset(decalage + limite) : null;
 
       const donnees = await Promise.all(
         page.map(async (d) => {
@@ -102,10 +116,19 @@ export class ServiceDevis {
     orId: string,
     entree: EntreeCreationDevisComplementaire,
     cleIdempotence: string,
-  ): Promise<ResultatIdempotent<ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseDevisComplementaire> }>> {
+  ): Promise<
+    ResultatIdempotent<
+      ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseDevisComplementaire> }
+    >
+  > {
     return this.idempotence.executer(
       ctx,
-      { methode: 'POST', chemin: '/ordres-reparation/:orId/devis-complementaires', cle: cleIdempotence, corps: { orId, ...entree } },
+      {
+        methode: 'POST',
+        chemin: '/ordres-reparation/:orId/devis-complementaires',
+        cle: cleIdempotence,
+        corps: { orId, ...entree },
+      },
       async (tx) => {
         const or = await chargerOrPourEcriture(tx, ctx, orId);
         this.garantirNonVerrouille(or.statut, orId, or.numero);
@@ -125,19 +148,30 @@ export class ServiceDevis {
             numeroOrdre,
             montantTtcCentimes,
             nouveauPlafondCentimes: entree.nouveauPlafondCentimes,
-            impactRestitutionLe: entree.impactRestitutionLe ? new Date(entree.impactRestitutionLe) : null,
+            impactRestitutionLe: entree.impactRestitutionLe
+              ? new Date(entree.impactRestitutionLe)
+              : null,
             envoyeLe: maintenant,
             canal: entree.canal,
             emetteurId: principal.utilisateurId,
-            preuve: entree.destinataireContactId ? { destinataireContactId: entree.destinataireContactId } : null,
+            preuve: entree.destinataireContactId
+              ? { destinataireContactId: entree.destinataireContactId }
+              : null,
           })
           .returning();
         if (!devis) {
-          throw new ErreurMetier('ERREUR_INTERNE', "L'insertion du devis complémentaire n'a rendu aucune ligne.");
+          throw new ErreurMetier(
+            'ERREUR_INTERNE',
+            "L'insertion du devis complémentaire n'a rendu aucune ligne.",
+          );
         }
 
         for (const ligne of lignesCiblees) {
-          await tx.insert(devisComplementaireLigne).values({ tenantId: ctx.tenantId, devisComplementaireId: devis.id, ligneOrId: ligne.id });
+          await tx.insert(devisComplementaireLigne).values({
+            tenantId: ctx.tenantId,
+            devisComplementaireId: devis.id,
+            ligneOrId: ligne.id,
+          });
         }
 
         await this.evenements.publier(tx, ctx, {
@@ -150,7 +184,13 @@ export class ServiceDevis {
 
         const lignesDevis = await listerLignesDevis(tx, ctx, devis.id);
         const emetteur = await chargerResumeUtilisateur(tx, ctx, devis.emetteurId);
-        return { statutHttp: 201, corps: { donnees: mapperDevis(devis, lignesDevis, emetteur, principal.role), avertissements: [] } };
+        return {
+          statutHttp: 201,
+          corps: {
+            donnees: mapperDevis(devis, lignesDevis, emetteur, principal.role),
+            avertissements: [],
+          },
+        };
       },
     );
   }
@@ -168,20 +208,39 @@ export class ServiceDevis {
     devisId: string,
     entree: EntreeReponseDevisComplementaire,
     cleIdempotence: string,
-  ): Promise<ResultatIdempotent<ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseDevisComplementaire> }>> {
+  ): Promise<
+    ResultatIdempotent<
+      ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseDevisComplementaire> }
+    >
+  > {
     return this.idempotence.executer(
       ctx,
-      { methode: 'POST', chemin: '/ordres-reparation/:orId/devis-complementaires/:devisId/repondre', cle: cleIdempotence, corps: { orId, devisId, ...entree } },
+      {
+        methode: 'POST',
+        chemin: '/ordres-reparation/:orId/devis-complementaires/:devisId/repondre',
+        cle: cleIdempotence,
+        corps: { orId, devisId, ...entree },
+      },
       async (tx) => {
         const or = await chargerOrPourEcriture(tx, ctx, orId);
         this.garantirNonVerrouille(or.statut, orId, or.numero);
 
         const devis = await chargerDevisPourEcriture(tx, ctx, orId, devisId);
         if (devis.reponduLe !== null) {
-          throw new ErreurMetier('DEVIS_IMMUABLE', 'Ce devis complémentaire a déjà reçu une réponse (RM-79, CT-35).', {
-            blocages: [{ type: 'devis_complementaire', id: devisId, libelle: `Devis n°${String(devis.numeroOrdre)}` }],
-            actionsProposees: [{ code: 'RAFRAICHIR' }],
-          });
+          throw new ErreurMetier(
+            'DEVIS_IMMUABLE',
+            'Ce devis complémentaire a déjà reçu une réponse (RM-79, CT-35).',
+            {
+              blocages: [
+                {
+                  type: 'devis_complementaire',
+                  id: devisId,
+                  libelle: `Devis n°${String(devis.numeroOrdre)}`,
+                },
+              ],
+              actionsProposees: [{ code: 'RAFRAICHIR' }],
+            },
+          );
         }
 
         const lignesDevisRows = await listerLignesDevis(tx, ctx, devisId);
@@ -222,10 +281,18 @@ export class ServiceDevis {
             retranscription: entree.retranscription ?? null,
             canal: entree.canal,
           })
-          .where(and(eq(devisComplementaire.tenantId, ctx.tenantId), eq(devisComplementaire.id, devisId)))
+          .where(
+            and(
+              eq(devisComplementaire.tenantId, ctx.tenantId),
+              eq(devisComplementaire.id, devisId),
+            ),
+          )
           .returning();
         if (!misAJour) {
-          throw new ErreurMetier('ERREUR_INTERNE', "La mise à jour du devis complémentaire n'a rendu aucune ligne.");
+          throw new ErreurMetier(
+            'ERREUR_INTERNE',
+            "La mise à jour du devis complémentaire n'a rendu aucune ligne.",
+          );
         }
 
         await this.evenements.publier(tx, ctx, {
@@ -238,17 +305,38 @@ export class ServiceDevis {
 
         const lignesDevis = await listerLignesDevis(tx, ctx, devisId);
         const emetteur = await chargerResumeUtilisateur(tx, ctx, misAJour.emetteurId);
-        return { statutHttp: 200, corps: { donnees: mapperDevis(misAJour, lignesDevis, emetteur, principal.role), avertissements: [] } };
+        return {
+          statutHttp: 200,
+          corps: {
+            donnees: mapperDevis(misAJour, lignesDevis, emetteur, principal.role),
+            avertissements: [],
+          },
+        };
       },
     );
   }
 
-  private garantirNonVerrouille(statut: LigneOrdreReparation['statut'], orId: string, numero: string): void {
+  private garantirNonVerrouille(
+    statut: LigneOrdreReparation['statut'],
+    orId: string,
+    numero: string,
+  ): void {
     if (estOrVerrouille(statut)) {
-      throw new ErreurMetier('OR_LIGNE_VERROUILLEE', `Ordre de réparation verrouillé (statut ${statut}).`, {
-        blocages: [{ type: 'ordre_reparation', id: orId, libelle: numero, donnees: { statutActuel: statut } }],
-        actionsProposees: [{ code: 'RAFRAICHIR' }],
-      });
+      throw new ErreurMetier(
+        'OR_LIGNE_VERROUILLEE',
+        `Ordre de réparation verrouillé (statut ${statut}).`,
+        {
+          blocages: [
+            {
+              type: 'ordre_reparation',
+              id: orId,
+              libelle: numero,
+              donnees: { statutActuel: statut },
+            },
+          ],
+          actionsProposees: [{ code: 'RAFRAICHIR' }],
+        },
+      );
     }
   }
 

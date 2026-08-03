@@ -1,7 +1,12 @@
 import { z } from 'zod';
 
 import { TYPES_MOUVEMENT_STOCK, type TypeMouvementStock } from './enums';
-import { schemaDateJour, schemaIdentifiant, schemaMotif, schemaQuantiteMillieme } from '../atelier/primitives';
+import {
+  schemaDateJour,
+  schemaIdentifiant,
+  schemaMotif,
+  schemaQuantiteMillieme,
+} from '../atelier/primitives';
 import { schemaParametresPage } from '../pagination';
 
 /**

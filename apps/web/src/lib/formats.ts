@@ -83,7 +83,9 @@ export function formaterKilometrage(valeur: number, unite: UniteDistance): strin
 /** Pour mille (integer, 0-1000, ex. taux TVA/rabais stockés en pourmille) -> "8.1 %". */
 export function formaterPourmille(valeurPourmille: number): string {
   if (!Number.isInteger(valeurPourmille)) {
-    throw new TypeError(`formaterPourmille attend un entier (pour mille), reçu : ${valeurPourmille}`);
+    throw new TypeError(
+      `formaterPourmille attend un entier (pour mille), reçu : ${valeurPourmille}`,
+    );
   }
   const pourcentage = valeurPourmille / 10;
   return `${corrigerApostropheMilliers(FORMATEUR_POURCENTAGE.format(pourcentage))} %`;

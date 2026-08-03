@@ -12,8 +12,16 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { demarrerBaseEphemere, requeteSousTenant, type BaseEphemere } from '../../setup/postgres-ephemere';
-import { semerGarageDemoLot1, type GarageDemoLot1Fixture, type DonneesLot1Tenant } from '../../lot1/fixtures/garage-demo-lot1';
+import {
+  demarrerBaseEphemere,
+  requeteSousTenant,
+  type BaseEphemere,
+} from '../../setup/postgres-ephemere';
+import {
+  semerGarageDemoLot1,
+  type GarageDemoLot1Fixture,
+  type DonneesLot1Tenant,
+} from '../../lot1/fixtures/garage-demo-lot1';
 import { creerPointagePourTest } from '../fixtures/garage-demo-lot2';
 
 let bdd: BaseEphemere;
@@ -63,7 +71,10 @@ let jeuB: JeuPointage;
 beforeAll(async () => {
   bdd = await demarrerBaseEphemere();
   garage = await semerGarageDemoLot1(bdd);
-  [jeuA, jeuB] = await Promise.all([semerJeuPointage(garage.tenantA), semerJeuPointage(garage.tenantB)]);
+  [jeuA, jeuB] = await Promise.all([
+    semerJeuPointage(garage.tenantA),
+    semerJeuPointage(garage.tenantB),
+  ]);
 }, 180_000);
 
 afterAll(async () => {
@@ -72,9 +83,19 @@ afterAll(async () => {
 
 describe('lecture — le pointage du tenant B est invisible sous le contexte du tenant A', () => {
   it('pointage : select explicite par id rend zéro ligne sous le mauvais tenant, une ligne sous le bon', async () => {
-    const sousA = await requeteSousTenant(bdd.poolApp, garage.tenantA.tenant.id, 'select * from pointage where id = $1', [jeuB.pointageId]);
+    const sousA = await requeteSousTenant(
+      bdd.poolApp,
+      garage.tenantA.tenant.id,
+      'select * from pointage where id = $1',
+      [jeuB.pointageId],
+    );
     expect(sousA).toHaveLength(0);
-    const sousB = await requeteSousTenant(bdd.poolApp, garage.tenantB.tenant.id, 'select * from pointage where id = $1', [jeuB.pointageId]);
+    const sousB = await requeteSousTenant(
+      bdd.poolApp,
+      garage.tenantB.tenant.id,
+      'select * from pointage where id = $1',
+      [jeuB.pointageId],
+    );
     expect(sousB).toHaveLength(1);
   });
 
@@ -105,7 +126,7 @@ describe('lecture — le pointage du tenant B est invisible sous le contexte du 
   });
 });
 
-describe("écriture — impersonation du tenant B refusée sous le contexte A", () => {
+describe('écriture — impersonation du tenant B refusée sous le contexte A', () => {
   it('pointage : insert visant le site ET le technicien RÉELS de B, tenant_id=B, sous le contexte A — refusé', async () => {
     // statut 'termine' (pas 'en_cours') : le technicien de B a déjà un pointage 'en_cours' réel
     // (jeuB.pointageId, posé par semerJeuPointage) — utiliser 'en_cours' ici ferait planer une
@@ -122,7 +143,7 @@ describe("écriture — impersonation du tenant B refusée sous le contexte A", 
     ).rejects.toThrow(/policy|permission/i);
   });
 
-  it("pointage_verrouillage_site : insert visant le site RÉEL de B, tenant_id=B, sous le contexte A — refusé", async () => {
+  it('pointage_verrouillage_site : insert visant le site RÉEL de B, tenant_id=B, sous le contexte A — refusé', async () => {
     // Site de A (première fois qu'un verrouillage y est tenté dans ce fichier) pour éviter le
     // conflit de clé primaire avec la ligne déjà amorcée par semerJeuPointage.
     const siteVierge = garage.tenantB.tenant.sites[1]!.id;
@@ -136,7 +157,7 @@ describe("écriture — impersonation du tenant B refusée sous le contexte A", 
     ).rejects.toThrow(/policy|permission/i);
   });
 
-  it("pointage : un UPDATE qui ferait passer le pointage de A vers tenant_id = B est refusé, la ligne ne bouge pas", async () => {
+  it('pointage : un UPDATE qui ferait passer le pointage de A vers tenant_id = B est refusé, la ligne ne bouge pas', async () => {
     await expect(
       requeteSousTenant(
         bdd.poolApp,

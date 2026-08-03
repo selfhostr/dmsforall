@@ -29,7 +29,7 @@ export class ServiceContexteRequete {
     const contexte = this.stockage.getStore();
     if (!contexte) {
       throw new Error(
-        'ServiceContexteRequete.actuel() appelé hors d\'une requête HTTP : MiddlewareContexteRequete n\'a pas tourné.',
+        "ServiceContexteRequete.actuel() appelé hors d'une requête HTTP : MiddlewareContexteRequete n'a pas tourné.",
       );
     }
     return contexte;
@@ -44,7 +44,7 @@ export class ServiceContexteRequete {
     const contexte = this.stockage.getStore();
     if (!contexte) {
       throw new Error(
-        'ServiceContexteRequete.attacherPrincipal() appelé hors d\'une requête HTTP : MiddlewareContexteRequete n\'a pas tourné.',
+        "ServiceContexteRequete.attacherPrincipal() appelé hors d'une requête HTTP : MiddlewareContexteRequete n'a pas tourné.",
       );
     }
     if (contexte.principal !== null) {

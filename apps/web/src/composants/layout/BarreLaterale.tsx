@@ -27,7 +27,11 @@ import { NavLink, useSearchParams } from 'react-router';
 import { ROLES_POINTAGE, ROLES_POINTAGE_ENCADREMENT } from '@/ecrans/pointage/droits';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
-import { ROLES_MENU_FINANCIER, ROLES_MENU_PARAMETRAGE_ATELIER, ROLES_PIECES } from '@/routes/droits-routes';
+import {
+  ROLES_MENU_FINANCIER,
+  ROLES_MENU_PARAMETRAGE_ATELIER,
+  ROLES_PIECES,
+} from '@/routes/droits-routes';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -38,7 +42,10 @@ const CLASSE_LIEN =
   'flex h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors';
 
 function classeLien({ isActive }: { readonly isActive: boolean }): string {
-  return cn(CLASSE_LIEN, isActive ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-muted');
+  return cn(
+    CLASSE_LIEN,
+    isActive ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-muted',
+  );
 }
 
 /**
@@ -93,7 +100,8 @@ export function BarreLaterale({ className }: Props) {
   const { data: session } = useSession();
   const role = session?.utilisateur.role;
 
-  const peutGererParametrageAtelier = role !== undefined && ROLES_MENU_PARAMETRAGE_ATELIER.includes(role);
+  const peutGererParametrageAtelier =
+    role !== undefined && ROLES_MENU_PARAMETRAGE_ATELIER.includes(role);
   const peutGererCreancier = role !== undefined && ROLES_MENU_FINANCIER.includes(role);
   const afficheGroupeParametrage = peutGererParametrageAtelier || peutGererCreancier;
   // Module pièces (étape 3) — masquage qui reflète une restriction RÉELLE côté API
@@ -107,10 +115,14 @@ export function BarreLaterale({ className }: Props) {
   // menu. `ROLES_POINTAGE_ENCADREMENT` restreint en plus « Équipe » et « Clôture de période » aux
   // rôles de gouvernance (chef d'atelier/direction/admin) — même distinction que côté routeur.
   const peutAccederPointage = role !== undefined && ROLES_POINTAGE.includes(role);
-  const peutGererPointageEncadrement = role !== undefined && ROLES_POINTAGE_ENCADREMENT.includes(role);
+  const peutGererPointageEncadrement =
+    role !== undefined && ROLES_POINTAGE_ENCADREMENT.includes(role);
 
   return (
-    <nav aria-label={t('navigation:principale.aria')} className={cn('flex flex-col gap-1 p-3', className)}>
+    <nav
+      aria-label={t('navigation:principale.aria')}
+      className={cn('flex flex-col gap-1 p-3', className)}
+    >
       <NavLink to="/" end className={classeLien}>
         <Home className="h-4 w-4" aria-hidden="true" />
         {t('navigation:liens.accueil')}

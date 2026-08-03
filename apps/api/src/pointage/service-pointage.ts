@@ -1,5 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, getTableColumns, gte, inArray, isNotNull, isNull, lte, type SQL } from 'drizzle-orm';
+import {
+  and,
+  eq,
+  getTableColumns,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  type SQL,
+} from 'drizzle-orm';
 import type {
   EntreeArretPointage,
   EntreeCorrectionPointage,
@@ -14,13 +24,26 @@ import type {
 } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
-import { ligneOr, ordreReparation, pointage, type LigneLigneOr, type LigneOrdreReparation, type LignePointage, type NouveauPointage } from '../db/schema';
+import {
+  ligneOr,
+  ordreReparation,
+  pointage,
+  type LigneLigneOr,
+  type LigneOrdreReparation,
+  type LignePointage,
+  type NouveauPointage,
+} from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { interpreterErreurTransitionInterdite } from '../common/avertissements';
 import { CollecteurAvertissements } from '../common/avertissements/collecteur-avertissements';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { Horloge } from '../common/horloge/horloge';
-import { JETON_IDEMPOTENCE, type ReponseMemorisable, type ResultatIdempotent, type ServiceIdempotence } from '../common/idempotence';
+import {
+  JETON_IDEMPOTENCE,
+  type ReponseMemorisable,
+  type ResultatIdempotent,
+  type ServiceIdempotence,
+} from '../common/idempotence';
 
 import {
   conditionKeysetPointage,
@@ -70,7 +93,9 @@ function estCollisionIdPointage(erreur: unknown): boolean {
   return brute.code === '23505' && brute.constraint === 'pointage_pk';
 }
 
-type ResultatEcriture = ResultatIdempotent<ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponsePointage> }>;
+type ResultatEcriture = ResultatIdempotent<
+  ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponsePointage> }
+>;
 
 /**
  * Rôles qui voient au-delà de leur propre pointage (`atelier.pointage.lire_equipe`, §9 de la spec
@@ -83,7 +108,11 @@ type ResultatEcriture = ResultatIdempotent<ReponseMemorisable & { corps: Reponse
  * possible en l'état. `admin` inclus par la même doctrine que le reste de la matrice lot 1 (« rôle
  * technique, superset de `direction` »).
  */
-const ROLES_AVEC_VUE_EQUIPE_POINTAGE: ReadonlySet<RoleUtilisateur> = new Set(['chef_atelier', 'direction', 'admin']);
+const ROLES_AVEC_VUE_EQUIPE_POINTAGE: ReadonlySet<RoleUtilisateur> = new Set([
+  'chef_atelier',
+  'direction',
+  'admin',
+]);
 
 /**
  * Cœur du domaine Pointage (RM-87 → RM-99, RM-113 → RM-123) : démarrer/arrêter/corriger, la
@@ -120,154 +149,248 @@ export class ServicePointage {
    *     `catch` sur l'insertion elle-même, qui abandonne alors la transaction (comportement correct
    *     pour un cas qui ne devrait statistiquement jamais se produire).
    */
-  async demarrer(ctx: ContexteTenant, entree: EntreeDemarragePointage, cleIdempotence: string): Promise<ResultatEcriture> {
-    return this.idempotence.executer(ctx, { methode: 'POST', chemin: '/pointages', cle: cleIdempotence, corps: entree }, async (tx) => {
-      const existant = await chargerPointageOuNull(tx, ctx, entree.id);
-      if (existant) {
-        if (!pointageCorrespondEntree(existant, entree)) {
-          throw new ErreurMetier('CONFLIT', `L'identifiant de pointage ${entree.id} est déjà utilisé par un autre événement.`);
+  async demarrer(
+    ctx: ContexteTenant,
+    entree: EntreeDemarragePointage,
+    cleIdempotence: string,
+  ): Promise<ResultatEcriture> {
+    return this.idempotence.executer(
+      ctx,
+      { methode: 'POST', chemin: '/pointages', cle: cleIdempotence, corps: entree },
+      async (tx) => {
+        const existant = await chargerPointageOuNull(tx, ctx, entree.id);
+        if (existant) {
+          if (!pointageCorrespondEntree(existant, entree)) {
+            throw new ErreurMetier(
+              'CONFLIT',
+              `L'identifiant de pointage ${entree.id} est déjà utilisé par un autre événement.`,
+            );
+          }
+          const duree = dureeBruteDepuisPeriode(existant.debutLe, existant.finLe);
+          return {
+            statutHttp: 200,
+            corps: { donnees: mapperPointage(existant, duree), avertissements: [] },
+          };
         }
-        const duree = dureeBruteDepuisPeriode(existant.debutLe, existant.finLe);
-        return { statutHttp: 200, corps: { donnees: mapperPointage(existant, duree), avertissements: [] } };
-      }
 
-      const debutLe = new Date(entree.debutLe);
-      const ordreReparationId = 'ordreReparationId' in entree ? entree.ordreReparationId : null;
-      const ligneOrId = 'ligneOrId' in entree ? entree.ligneOrId : null;
+        const debutLe = new Date(entree.debutLe);
+        const ordreReparationId = 'ordreReparationId' in entree ? entree.ordreReparationId : null;
+        const ligneOrId = 'ligneOrId' in entree ? entree.ligneOrId : null;
 
-      let or: LigneOrdreReparation | null = null;
-      let ligne: LigneLigneOr | null = null;
+        let or: LigneOrdreReparation | null = null;
+        let ligne: LigneLigneOr | null = null;
 
-      if (ordreReparationId) {
-        or = await chargerOrPourPointage(tx, ctx, ordreReparationId);
-        if (or.siteId !== entree.siteId) {
-          throw new ErreurMetier('VALIDATION_ECHOUEE', "Le site indiqué ne correspond pas au site de l'ordre de réparation ciblé.", {
-            erreurs: [{ champ: 'siteId', code: 'incoherent', message: "Ne correspond pas à l'ordre de réparation." }],
+        if (ordreReparationId) {
+          or = await chargerOrPourPointage(tx, ctx, ordreReparationId);
+          if (or.siteId !== entree.siteId) {
+            throw new ErreurMetier(
+              'VALIDATION_ECHOUEE',
+              "Le site indiqué ne correspond pas au site de l'ordre de réparation ciblé.",
+              {
+                erreurs: [
+                  {
+                    champ: 'siteId',
+                    code: 'incoherent',
+                    message: "Ne correspond pas à l'ordre de réparation.",
+                  },
+                ],
+              },
+            );
+          }
+          if (!estOrPointable(or.statut)) {
+            throw new ErreurMetier(
+              'POINTAGE_OR_NON_MODIFIABLE',
+              `L'ordre de réparation ${or.numero} n'est plus pointable (statut ${or.statut}, RM-92).`,
+              {
+                blocages: [
+                  {
+                    type: 'ordre_reparation',
+                    id: or.id,
+                    libelle: or.numero,
+                    donnees: { statutActuel: or.statut },
+                  },
+                ],
+              },
+            );
+          }
+        }
+        if (ligneOrId && ordreReparationId) {
+          ligne = await chargerLignePourPointage(tx, ctx, ordreReparationId, ligneOrId);
+          if (!estLignePointable(ligne.statut)) {
+            throw new ErreurMetier(
+              'POINTAGE_LIGNE_NON_POINTABLE',
+              `Cette ligne n'est plus pointable (statut ${ligne.statut}, RM-93).`,
+              {
+                blocages: [
+                  {
+                    type: 'ligne_or',
+                    id: ligne.id,
+                    libelle: ligne.designation ?? '',
+                    donnees: { statutActuel: ligne.statut },
+                  },
+                ],
+                actionsProposees: [{ code: 'RAFRAICHIR' }],
+              },
+            );
+          }
+        }
+
+        const collecteur = new CollecteurAvertissements();
+        const parametres = await chargerParametresPointage(tx, ctx);
+
+        // RM-89/90 : clôture automatique de l'éventuel pointage encore ouvert du même technicien —
+        // contrainte de base (`pointage_technicien_un_seul_en_cours_uk`), voir regles-pointage.ts.
+        const ouvert = await chargerPointageOuvertTechnicien(tx, ctx, entree.technicienId);
+        if (ouvert) {
+          const cloture = calculerClotureChevauchement(ouvert.debutLe, debutLe);
+          const dureeBrute = dureeBruteDepuisPeriode(ouvert.debutLe, cloture.finLe) ?? 0;
+          const dureeArrondie = calculerDureeArrondieCentiemes(
+            dureeBrute,
+            parametres.arrondiPointage,
+          );
+          const doitAnomalie = chevauchementDoitProduireAnomalie(
+            cloture.ordreInverse,
+            parametres.chevauchementPointageAutorise,
+          );
+
+          await this.ecrireFermeture(tx, ctx, ouvert, {
+            finLe: cloture.finLe,
+            dureeArrondieCentiemes: dureeArrondie,
+            clotureAutomatique: true,
+            anomalieMotif: doitAnomalie ? 'chevauchement' : ouvert.anomalieMotif,
+            anomalieDetecteeLe: doitAnomalie
+              ? this.horloge.maintenant()
+              : ouvert.anomalieDetecteeLe,
           });
+          collecteur.ajouter(
+            'POINTAGE_CLOTURE_AUTOMATIQUE',
+            `Le pointage précédent de ce technicien (${ouvert.id}) a été clôturé automatiquement (RM-89).`,
+            {
+              pointageId: ouvert.id,
+              finLe: cloture.finLe.toISOString(),
+              ordreInverse: cloture.ordreInverse,
+            },
+          );
         }
-        if (!estOrPointable(or.statut)) {
-          throw new ErreurMetier('POINTAGE_OR_NON_MODIFIABLE', `L'ordre de réparation ${or.numero} n'est plus pointable (statut ${or.statut}, RM-92).`, {
-            blocages: [{ type: 'ordre_reparation', id: or.id, libelle: or.numero, donnees: { statutActuel: or.statut } }],
-          });
+
+        const decalageAnormal = deriveHorlogeAnormale(entree.decalageHorlogeMs);
+        const maintenant = this.horloge.maintenant();
+
+        const valeurs: NouveauPointage = {
+          id: entree.id,
+          tenantId: ctx.tenantId,
+          siteId: entree.siteId,
+          technicienId: entree.technicienId,
+          statut: 'en_cours',
+          nature: entree.nature,
+          ordreReparationId,
+          ligneOrId,
+          activiteIndirecte: 'activiteIndirecte' in entree ? entree.activiteIndirecte : null,
+          source: entree.source,
+          appareilId: entree.appareilId ?? null,
+          debutLe,
+          finLe: null,
+          dureeArrondieCentiemes: null,
+          decalageHorlogeMsDebut: entree.decalageHorlogeMs ?? null,
+          decalageHorlogeMsFin: null,
+          clotureAutomatique: false,
+          anomalieMotif: decalageAnormal ? 'derive_horloge' : null,
+          anomalieDetecteeLe: decalageAnormal ? maintenant : null,
+          anomalieTraiteeLe: null,
+          derniereCorrectionMotif: null,
+          derniereCorrectionParUtilisateurId: null,
+          derniereCorrectionLe: null,
+          debutLeOrigine: null,
+          finLeOrigine: null,
+        };
+
+        let cree: LignePointage | undefined;
+        try {
+          [cree] = await tx.insert(pointage).values(valeurs).returning();
+        } catch (erreur) {
+          if (estCollisionIdPointage(erreur)) {
+            throw new ErreurMetier(
+              'CONFLIT',
+              `L'identifiant de pointage ${entree.id} est déjà utilisé (collision concurrente).`,
+            );
+          }
+          throw erreur;
         }
-      }
-      if (ligneOrId && ordreReparationId) {
-        ligne = await chargerLignePourPointage(tx, ctx, ordreReparationId, ligneOrId);
-        if (!estLignePointable(ligne.statut)) {
-          throw new ErreurMetier('POINTAGE_LIGNE_NON_POINTABLE', `Cette ligne n'est plus pointable (statut ${ligne.statut}, RM-93).`, {
-            blocages: [{ type: 'ligne_or', id: ligne.id, libelle: ligne.designation ?? '', donnees: { statutActuel: ligne.statut } }],
-            actionsProposees: [{ code: 'RAFRAICHIR' }],
-          });
+        if (!cree)
+          throw new ErreurMetier(
+            'ERREUR_INTERNE',
+            "L'insertion du pointage n'a rendu aucune ligne.",
+          );
+
+        // RM-117 : un seul geste peut produire jusqu'à deux transitions en cascade.
+        if (ligne && ligneDoitPasserEnCours(ligne.statut)) {
+          await this.transitionnerLigneEnCours(tx, ctx, ligne);
         }
-      }
-
-      const collecteur = new CollecteurAvertissements();
-      const parametres = await chargerParametresPointage(tx, ctx);
-
-      // RM-89/90 : clôture automatique de l'éventuel pointage encore ouvert du même technicien —
-      // contrainte de base (`pointage_technicien_un_seul_en_cours_uk`), voir regles-pointage.ts.
-      const ouvert = await chargerPointageOuvertTechnicien(tx, ctx, entree.technicienId);
-      if (ouvert) {
-        const cloture = calculerClotureChevauchement(ouvert.debutLe, debutLe);
-        const dureeBrute = dureeBruteDepuisPeriode(ouvert.debutLe, cloture.finLe) ?? 0;
-        const dureeArrondie = calculerDureeArrondieCentiemes(dureeBrute, parametres.arrondiPointage);
-        const doitAnomalie = chevauchementDoitProduireAnomalie(cloture.ordreInverse, parametres.chevauchementPointageAutorise);
-
-        await this.ecrireFermeture(tx, ctx, ouvert, {
-          finLe: cloture.finLe,
-          dureeArrondieCentiemes: dureeArrondie,
-          clotureAutomatique: true,
-          anomalieMotif: doitAnomalie ? 'chevauchement' : ouvert.anomalieMotif,
-          anomalieDetecteeLe: doitAnomalie ? this.horloge.maintenant() : ouvert.anomalieDetecteeLe,
-        });
-        collecteur.ajouter('POINTAGE_CLOTURE_AUTOMATIQUE', `Le pointage précédent de ce technicien (${ouvert.id}) a été clôturé automatiquement (RM-89).`, {
-          pointageId: ouvert.id,
-          finLe: cloture.finLe.toISOString(),
-          ordreInverse: cloture.ordreInverse,
-        });
-      }
-
-      const decalageAnormal = deriveHorlogeAnormale(entree.decalageHorlogeMs);
-      const maintenant = this.horloge.maintenant();
-
-      const valeurs: NouveauPointage = {
-        id: entree.id,
-        tenantId: ctx.tenantId,
-        siteId: entree.siteId,
-        technicienId: entree.technicienId,
-        statut: 'en_cours',
-        nature: entree.nature,
-        ordreReparationId,
-        ligneOrId,
-        activiteIndirecte: 'activiteIndirecte' in entree ? entree.activiteIndirecte : null,
-        source: entree.source,
-        appareilId: entree.appareilId ?? null,
-        debutLe,
-        finLe: null,
-        dureeArrondieCentiemes: null,
-        decalageHorlogeMsDebut: entree.decalageHorlogeMs ?? null,
-        decalageHorlogeMsFin: null,
-        clotureAutomatique: false,
-        anomalieMotif: decalageAnormal ? 'derive_horloge' : null,
-        anomalieDetecteeLe: decalageAnormal ? maintenant : null,
-        anomalieTraiteeLe: null,
-        derniereCorrectionMotif: null,
-        derniereCorrectionParUtilisateurId: null,
-        derniereCorrectionLe: null,
-        debutLeOrigine: null,
-        finLeOrigine: null,
-      };
-
-      let cree: LignePointage | undefined;
-      try {
-        [cree] = await tx.insert(pointage).values(valeurs).returning();
-      } catch (erreur) {
-        if (estCollisionIdPointage(erreur)) {
-          throw new ErreurMetier('CONFLIT', `L'identifiant de pointage ${entree.id} est déjà utilisé (collision concurrente).`);
+        if (or && orDoitPasserEnCours(or.statut)) {
+          await this.transitionnerOrEnCours(tx, ctx, or);
         }
-        throw erreur;
-      }
-      if (!cree) throw new ErreurMetier('ERREUR_INTERNE', "L'insertion du pointage n'a rendu aucune ligne.");
 
-      // RM-117 : un seul geste peut produire jusqu'à deux transitions en cascade.
-      if (ligne && ligneDoitPasserEnCours(ligne.statut)) {
-        await this.transitionnerLigneEnCours(tx, ctx, ligne);
-      }
-      if (or && orDoitPasserEnCours(or.statut)) {
-        await this.transitionnerOrEnCours(tx, ctx, or);
-      }
-
-      return { statutHttp: 201, corps: collecteur.envelopper(mapperPointage(cree, null)) };
-    });
+        return { statutHttp: 201, corps: collecteur.envelopper(mapperPointage(cree, null)) };
+      },
+    );
   }
 
   /**
    * `POST /pointages/{id}/arreter` — `en_cours -> termine` (RM-116 : c'est aussi le mécanisme d'une
    * pause). RM-118 : ne déclenche RIEN sur `ligne_or` (`marquer_realisee` reste une action séparée).
    */
-  async arreter(ctx: ContexteTenant, id: string, entree: EntreeArretPointage, cleIdempotence: string): Promise<ResultatEcriture> {
+  async arreter(
+    ctx: ContexteTenant,
+    id: string,
+    entree: EntreeArretPointage,
+    cleIdempotence: string,
+  ): Promise<ResultatEcriture> {
     return this.idempotence.executer(
       ctx,
-      { methode: 'POST', chemin: '/pointages/:id/arreter', cle: cleIdempotence, corps: { id, ...entree } },
+      {
+        methode: 'POST',
+        chemin: '/pointages/:id/arreter',
+        cle: cleIdempotence,
+        corps: { id, ...entree },
+      },
       async (tx) => {
         const actuel = await chargerPointagePourEcriture(tx, ctx, id);
         if (actuel.statut !== 'en_cours') {
-          throw new ErreurMetier('POINTAGE_TRANSITION_INTERDITE', `Le pointage ${id} n'est pas en cours (statut actuel : ${actuel.statut}).`, {
-            blocages: [{ type: 'pointage', id, libelle: id, donnees: { statutActuel: actuel.statut } }],
-            actionsProposees: actuel.statut === 'verrouille' ? [] : [{ code: 'RAFRAICHIR' }],
-          });
+          throw new ErreurMetier(
+            'POINTAGE_TRANSITION_INTERDITE',
+            `Le pointage ${id} n'est pas en cours (statut actuel : ${actuel.statut}).`,
+            {
+              blocages: [
+                { type: 'pointage', id, libelle: id, donnees: { statutActuel: actuel.statut } },
+              ],
+              actionsProposees: actuel.statut === 'verrouille' ? [] : [{ code: 'RAFRAICHIR' }],
+            },
+          );
         }
 
         const finLe = new Date(entree.finLe);
         if (finLe.getTime() < actuel.debutLe.getTime()) {
-          throw new ErreurMetier('POINTAGE_HORODATAGE_INVALIDE', 'La fin déclarée précède le début du pointage.', {
-            erreurs: [{ champ: 'finLe', code: 'anterieur_au_debut', message: 'finLe doit être postérieur ou égal à debutLe.' }],
-          });
+          throw new ErreurMetier(
+            'POINTAGE_HORODATAGE_INVALIDE',
+            'La fin déclarée précède le début du pointage.',
+            {
+              erreurs: [
+                {
+                  champ: 'finLe',
+                  code: 'anterieur_au_debut',
+                  message: 'finLe doit être postérieur ou égal à debutLe.',
+                },
+              ],
+            },
+          );
         }
 
         const parametres = await chargerParametresPointage(tx, ctx);
         const dureeBrute = dureeBruteDepuisPeriode(actuel.debutLe, finLe) ?? 0;
-        const dureeArrondie = calculerDureeArrondieCentiemes(dureeBrute, parametres.arrondiPointage);
+        const dureeArrondie = calculerDureeArrondieCentiemes(
+          dureeBrute,
+          parametres.arrondiPointage,
+        );
 
         const maintenant = this.horloge.maintenant();
         let anomalieMotif = actuel.anomalieMotif;
@@ -280,7 +403,10 @@ export class ServicePointage {
           if (anomalieMotif) anomalieDetecteeLe = maintenant;
         }
         // RM-96 : durée anormalement longue.
-        if (anomalieMotif === null && dureeDepasseLeSeuil(dureeBrute, parametres.pointageDureeMaxHeures)) {
+        if (
+          anomalieMotif === null &&
+          dureeDepasseLeSeuil(dureeBrute, parametres.pointageDureeMaxHeures)
+        ) {
           anomalieMotif = 'duree_trop';
           anomalieDetecteeLe = maintenant;
         }
@@ -299,7 +425,10 @@ export class ServicePointage {
           anomalieDetecteeLe,
         });
 
-        return { statutHttp: 200, corps: { donnees: mapperPointage(misAJour, dureeBrute), avertissements: [] } };
+        return {
+          statutHttp: 200,
+          corps: { donnees: mapperPointage(misAJour, dureeBrute), avertissements: [] },
+        };
       },
     );
   }
@@ -319,35 +448,61 @@ export class ServicePointage {
   ): Promise<ResultatEcriture> {
     return this.idempotence.executer(
       ctx,
-      { methode: 'POST', chemin: '/pointages/:id/corriger', cle: cleIdempotence, corps: { id, ...entree } },
+      {
+        methode: 'POST',
+        chemin: '/pointages/:id/corriger',
+        cle: cleIdempotence,
+        corps: { id, ...entree },
+      },
       async (tx) => {
         const actuel = await chargerPointagePourEcriture(tx, ctx, id);
 
         if (actuel.statut === 'verrouille') {
-          throw new ErreurMetier('POINTAGE_PERIODE_VERROUILLEE', `Le pointage ${id} appartient à une période verrouillée (RM-95) : contre-passation requise avant toute correction.`, {
-            blocages: [{ type: 'pointage', id, libelle: id }],
-            actionsProposees: [{ code: 'RAFRAICHIR' }],
-          });
+          throw new ErreurMetier(
+            'POINTAGE_PERIODE_VERROUILLEE',
+            `Le pointage ${id} appartient à une période verrouillée (RM-95) : contre-passation requise avant toute correction.`,
+            {
+              blocages: [{ type: 'pointage', id, libelle: id }],
+              actionsProposees: [{ code: 'RAFRAICHIR' }],
+            },
+          );
         }
 
         const debutLe = entree.debutLe !== undefined ? new Date(entree.debutLe) : actuel.debutLe;
         const finLe = entree.finLe !== undefined ? new Date(entree.finLe) : actuel.finLe;
         const nature = entree.nature ?? actuel.nature;
-        const ordreReparationId = entree.ordreReparationId !== undefined ? entree.ordreReparationId : actuel.ordreReparationId;
+        const ordreReparationId =
+          entree.ordreReparationId !== undefined
+            ? entree.ordreReparationId
+            : actuel.ordreReparationId;
         const ligneOrId = entree.ligneOrId !== undefined ? entree.ligneOrId : actuel.ligneOrId;
-        const activiteIndirecte = entree.activiteIndirecte !== undefined ? entree.activiteIndirecte : actuel.activiteIndirecte;
+        const activiteIndirecte =
+          entree.activiteIndirecte !== undefined
+            ? entree.activiteIndirecte
+            : actuel.activiteIndirecte;
 
         this.validerCoherenceCible(nature, ordreReparationId, ligneOrId, activiteIndirecte);
 
         if (finLe !== null && finLe.getTime() < debutLe.getTime()) {
-          throw new ErreurMetier('POINTAGE_HORODATAGE_INVALIDE', 'La fin déclarée précède le début du pointage.', {
-            erreurs: [{ champ: 'finLe', code: 'anterieur_au_debut', message: 'finLe doit être postérieur ou égal à debutLe.' }],
-          });
+          throw new ErreurMetier(
+            'POINTAGE_HORODATAGE_INVALIDE',
+            'La fin déclarée précède le début du pointage.',
+            {
+              erreurs: [
+                {
+                  champ: 'finLe',
+                  code: 'anterieur_au_debut',
+                  message: 'finLe doit être postérieur ou égal à debutLe.',
+                },
+              ],
+            },
+          );
         }
         // `en_cours -> termine` seulement (jamais l'inverse — RM-94 corrige des valeurs, ne rouvre
         // pas un pointage déjà fermé ; effacer `finLe` est structurellement impossible ici, le
         // schéma d'entrée ne permet pas de le mettre à `null`, seulement de le fournir).
-        const statutCible = actuel.statut === 'en_cours' && finLe !== null ? 'termine' : actuel.statut;
+        const statutCible =
+          actuel.statut === 'en_cours' && finLe !== null ? 'termine' : actuel.statut;
 
         const rienNeChange =
           debutLe.getTime() === actuel.debutLe.getTime() &&
@@ -358,19 +513,35 @@ export class ServicePointage {
           activiteIndirecte === actuel.activiteIndirecte;
 
         if (!rienNeChange && !entree.motif) {
-          throw new ErreurMetier('POINTAGE_MOTIF_REQUIS', 'Un motif est requis dès qu’un champ du pointage change (RM-94).', {
-            erreurs: [{ champ: 'motif', code: 'requis', message: 'Motif obligatoire pour cette correction.' }],
-          });
+          throw new ErreurMetier(
+            'POINTAGE_MOTIF_REQUIS',
+            'Un motif est requis dès qu’un champ du pointage change (RM-94).',
+            {
+              erreurs: [
+                {
+                  champ: 'motif',
+                  code: 'requis',
+                  message: 'Motif obligatoire pour cette correction.',
+                },
+              ],
+            },
+          );
         }
 
         if (rienNeChange) {
           const duree = dureeBruteDepuisPeriode(actuel.debutLe, actuel.finLe);
-          return { statutHttp: 200, corps: { donnees: mapperPointage(actuel, duree), avertissements: [] } };
+          return {
+            statutHttp: 200,
+            corps: { donnees: mapperPointage(actuel, duree), avertissements: [] },
+          };
         }
 
         const parametres = await chargerParametresPointage(tx, ctx);
         const dureeBrute = dureeBruteDepuisPeriode(debutLe, finLe);
-        const dureeArrondie = dureeBrute !== null ? calculerDureeArrondieCentiemes(dureeBrute, parametres.arrondiPointage) : null;
+        const dureeArrondie =
+          dureeBrute !== null
+            ? calculerDureeArrondieCentiemes(dureeBrute, parametres.arrondiPointage)
+            : null;
 
         let misAJour: LignePointage | undefined;
         try {
@@ -391,7 +562,10 @@ export class ServicePointage {
               debutLeOrigine: actuel.debutLeOrigine ?? actuel.debutLe,
               finLeOrigine: actuel.finLeOrigine ?? actuel.finLe,
               // RM-123 : une correction qui réussit TRAITE l'anomalie en cours, quelle qu'elle soit.
-              anomalieTraiteeLe: actuel.anomalieMotif !== null ? this.horloge.maintenant() : actuel.anomalieTraiteeLe,
+              anomalieTraiteeLe:
+                actuel.anomalieMotif !== null
+                  ? this.horloge.maintenant()
+                  : actuel.anomalieTraiteeLe,
             })
             .where(and(eq(pointage.tenantId, ctx.tenantId), eq(pointage.id, id)))
             .returning();
@@ -400,9 +574,16 @@ export class ServicePointage {
           if (traduite) throw traduite;
           throw erreur;
         }
-        if (!misAJour) throw new ErreurMetier('ERREUR_INTERNE', "La correction du pointage n'a rendu aucune ligne.");
+        if (!misAJour)
+          throw new ErreurMetier(
+            'ERREUR_INTERNE',
+            "La correction du pointage n'a rendu aucune ligne.",
+          );
 
-        return { statutHttp: 200, corps: { donnees: mapperPointage(misAJour, dureeBrute), avertissements: [] } };
+        return {
+          statutHttp: 200,
+          corps: { donnees: mapperPointage(misAJour, dureeBrute), avertissements: [] },
+        };
       },
     );
   }
@@ -428,11 +609,18 @@ export class ServicePointage {
    * pointage. `RESSOURCE_INTROUVABLE` plutôt que `DROIT_INSUFFISANT` sur le pointage d'autrui : ne
    * pas révéler l'existence d'un pointage qu'on n'a pas le droit de voir.
    */
-  async obtenir(ctx: ContexteTenant, principal: PrincipalAuthentifie, id: string): Promise<ReponsePointage> {
+  async obtenir(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    id: string,
+  ): Promise<ReponsePointage> {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await chargerPointageOuNull(tx, ctx, id);
       if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Pointage ${id} introuvable.`);
-      if (ligne.technicienId !== principal.utilisateurId && !ROLES_AVEC_VUE_EQUIPE_POINTAGE.has(principal.role)) {
+      if (
+        ligne.technicienId !== principal.utilisateurId &&
+        !ROLES_AVEC_VUE_EQUIPE_POINTAGE.has(principal.role)
+      ) {
         throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Pointage ${id} introuvable.`);
       }
       return mapperPointage(ligne, dureeBruteDepuisPeriode(ligne.debutLe, ligne.finLe));
@@ -450,7 +638,13 @@ export class ServicePointage {
    * ailleurs légitime (l'écran atelier d'un technicien n'a probablement même pas connaissance du
    * filtre `technicienId`).
    */
-  async lister(ctx: ContexteTenant, principal: PrincipalAuthentifie, filtres: FiltresPointages, limite: number, curseur: string | undefined): Promise<PageCurseur<ReponsePointage>> {
+  async lister(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    filtres: FiltresPointages,
+    limite: number,
+    curseur: string | undefined,
+  ): Promise<PageCurseur<ReponsePointage>> {
     const sens = filtres.tri === 'debutLe:asc' ? 'asc' : 'desc';
     const curseurDecode = decoderCurseurPointages(curseur, filtres.tri);
     const vueEquipe = ROLES_AVEC_VUE_EQUIPE_POINTAGE.has(principal.role);
@@ -460,17 +654,23 @@ export class ServicePointage {
       const clauses: SQL[] = [eq(pointage.tenantId, ctx.tenantId)];
       if (filtres.siteId) clauses.push(eq(pointage.siteId, filtres.siteId));
       if (technicienIdEffectif) clauses.push(eq(pointage.technicienId, technicienIdEffectif));
-      if (filtres.ordreReparationId) clauses.push(eq(pointage.ordreReparationId, filtres.ordreReparationId));
+      if (filtres.ordreReparationId)
+        clauses.push(eq(pointage.ordreReparationId, filtres.ordreReparationId));
       if (filtres.ligneOrId) clauses.push(eq(pointage.ligneOrId, filtres.ligneOrId));
       if (filtres.source) clauses.push(eq(pointage.source, filtres.source));
-      if (filtres.statut && filtres.statut.length > 0) clauses.push(inArray(pointage.statut, filtres.statut));
-      if (filtres.nature && filtres.nature.length > 0) clauses.push(inArray(pointage.nature, filtres.nature));
+      if (filtres.statut && filtres.statut.length > 0)
+        clauses.push(inArray(pointage.statut, filtres.statut));
+      if (filtres.nature && filtres.nature.length > 0)
+        clauses.push(inArray(pointage.nature, filtres.nature));
       if (filtres.anomalie !== undefined) {
-        clauses.push(filtres.anomalie ? isNotNull(pointage.anomalieMotif) : isNull(pointage.anomalieMotif));
+        clauses.push(
+          filtres.anomalie ? isNotNull(pointage.anomalieMotif) : isNull(pointage.anomalieMotif),
+        );
       }
       if (filtres.debutDu) clauses.push(gte(pointage.debutLe, new Date(filtres.debutDu)));
       if (filtres.debutAu) clauses.push(lte(pointage.debutLe, new Date(filtres.debutAu)));
-      if (curseurDecode) clauses.push(conditionKeysetPointage(sens, curseurDecode.valeur, curseurDecode.id));
+      if (curseurDecode)
+        clauses.push(conditionKeysetPointage(sens, curseurDecode.valeur, curseurDecode.id));
 
       const colonnes = getTableColumns(pointage);
       const lignes = await tx
@@ -485,10 +685,16 @@ export class ServicePointage {
       const derniere = pageLignes.at(-1);
 
       return {
-        donnees: pageLignes.map((l) => mapperPointage(l, dureeBruteDepuisPeriode(l.debutLe, l.finLe))),
+        donnees: pageLignes.map((l) =>
+          mapperPointage(l, dureeBruteDepuisPeriode(l.debutLe, l.finLe)),
+        ),
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseurTrie({ tri: filtres.tri, valeur: valeurCurseurDepuisTriPointage(derniere.triValeur), id: derniere.id })
+            ? encoderCurseurTrie({
+                tri: filtres.tri,
+                valeur: valeurCurseurDepuisTriPointage(derniere.triValeur),
+                id: derniere.id,
+              })
             : null,
         limite,
       };
@@ -505,10 +711,17 @@ export class ServicePointage {
    * ne nomme aucun technicien, seulement des totaux par ligne — voir l'en-tête de
    * `contrats/pointage/agregat-ligne.ts` pour le raisonnement complet.
    */
-  async obtenirAgregatsLigne(ctx: ContexteTenant, ordreReparationId: string): Promise<ReponseAgregatTempsLigne> {
+  async obtenirAgregatsLigne(
+    ctx: ContexteTenant,
+    ordreReparationId: string,
+  ): Promise<ReponseAgregatTempsLigne> {
     return this.acces.enTenant(ctx, async (tx) => {
       const or = await chargerOrOuNull(tx, ctx, ordreReparationId);
-      if (!or) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Ordre de réparation ${ordreReparationId} introuvable.`);
+      if (!or)
+        throw new ErreurMetier(
+          'RESSOURCE_INTROUVABLE',
+          `Ordre de réparation ${ordreReparationId} introuvable.`,
+        );
 
       const [lignes, pointages] = await Promise.all([
         chargerLignesOrPourAgregat(tx, ctx, ordreReparationId),
@@ -545,13 +758,19 @@ export class ServicePointage {
           finLe: champs.finLe,
           dureeArrondieCentiemes: champs.dureeArrondieCentiemes,
           clotureAutomatique: champs.clotureAutomatique,
-          ...(champs.decalageHorlogeMsFin !== undefined ? { decalageHorlogeMsFin: champs.decalageHorlogeMsFin } : {}),
+          ...(champs.decalageHorlogeMsFin !== undefined
+            ? { decalageHorlogeMsFin: champs.decalageHorlogeMsFin }
+            : {}),
           anomalieMotif: champs.anomalieMotif,
           anomalieDetecteeLe: champs.anomalieDetecteeLe,
         })
         .where(and(eq(pointage.tenantId, ctx.tenantId), eq(pointage.id, actuel.id)))
         .returning();
-      if (!misAJour) throw new ErreurMetier('ERREUR_INTERNE', "La fermeture du pointage n'a rendu aucune ligne.");
+      if (!misAJour)
+        throw new ErreurMetier(
+          'ERREUR_INTERNE',
+          "La fermeture du pointage n'a rendu aucune ligne.",
+        );
       return misAJour;
     } catch (erreur) {
       if (erreur instanceof ErreurMetier) throw erreur;
@@ -564,37 +783,77 @@ export class ServicePointage {
   /** RM-117 : `ligne_or.validee -> en_cours`. Écriture directe et locale (pas de port vers
    *  `atelier` — voir l'en-tête de `references.ts`) ; transition déjà légale en base depuis la
    *  migration 0003, ce service est celui qui l'emprunte enfin. */
-  private async transitionnerLigneEnCours(tx: TransactionDfa, ctx: ContexteTenant, ligne: LigneLigneOr): Promise<void> {
+  private async transitionnerLigneEnCours(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    ligne: LigneLigneOr,
+  ): Promise<void> {
     try {
-      await tx.update(ligneOr).set({ statut: 'en_cours' }).where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.id, ligne.id)));
+      await tx
+        .update(ligneOr)
+        .set({ statut: 'en_cours' })
+        .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.id, ligne.id)));
     } catch (erreur) {
       const interpretation = interpreterErreurTransitionInterdite(erreur);
       if (interpretation) {
-        throw new ErreurMetier(interpretation.code, `Transition ${interpretation.statutDepuis} → ${interpretation.statutVers} interdite sur la ligne d'OR (RM-117).`, {
-          blocages: [{ type: 'ligne_or', id: ligne.id, libelle: ligne.designation ?? '', donnees: { statutActuel: interpretation.statutDepuis } }],
-        });
+        throw new ErreurMetier(
+          interpretation.code,
+          `Transition ${interpretation.statutDepuis} → ${interpretation.statutVers} interdite sur la ligne d'OR (RM-117).`,
+          {
+            blocages: [
+              {
+                type: 'ligne_or',
+                id: ligne.id,
+                libelle: ligne.designation ?? '',
+                donnees: { statutActuel: interpretation.statutDepuis },
+              },
+            ],
+          },
+        );
       }
       throw erreur;
     }
   }
 
   /** RM-117 / T-04 : `ordre_reparation.ouvert -> en_cours`. */
-  private async transitionnerOrEnCours(tx: TransactionDfa, ctx: ContexteTenant, or: { readonly id: string; readonly numero: string }): Promise<void> {
+  private async transitionnerOrEnCours(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    or: { readonly id: string; readonly numero: string },
+  ): Promise<void> {
     try {
-      await tx.update(ordreReparation).set({ statut: 'en_cours' }).where(and(eq(ordreReparation.tenantId, ctx.tenantId), eq(ordreReparation.id, or.id)));
+      await tx
+        .update(ordreReparation)
+        .set({ statut: 'en_cours' })
+        .where(and(eq(ordreReparation.tenantId, ctx.tenantId), eq(ordreReparation.id, or.id)));
     } catch (erreur) {
       const interpretation = interpreterErreurTransitionInterdite(erreur);
       if (interpretation) {
-        throw new ErreurMetier(interpretation.code, `Transition ${interpretation.statutDepuis} → ${interpretation.statutVers} interdite sur l'ordre de réparation (RM-117/T-04).`, {
-          blocages: [{ type: 'ordre_reparation', id: or.id, libelle: or.numero, donnees: { statutActuel: interpretation.statutDepuis } }],
-        });
+        throw new ErreurMetier(
+          interpretation.code,
+          `Transition ${interpretation.statutDepuis} → ${interpretation.statutVers} interdite sur l'ordre de réparation (RM-117/T-04).`,
+          {
+            blocages: [
+              {
+                type: 'ordre_reparation',
+                id: or.id,
+                libelle: or.numero,
+                donnees: { statutActuel: interpretation.statutDepuis },
+              },
+            ],
+          },
+        );
       }
       throw erreur;
     }
   }
 
   /** RM-123 : anomalie DIFFÉRÉE — la cible a pu changer d'état pendant que le pointage tournait. */
-  private async detecterAnomalieDifferee(tx: TransactionDfa, ctx: ContexteTenant, actuel: LignePointage): Promise<MotifAnomaliePointage | null> {
+  private async detecterAnomalieDifferee(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    actuel: LignePointage,
+  ): Promise<MotifAnomaliePointage | null> {
     if (actuel.ligneOrId) {
       const ligne = await chargerLigneOuNull(tx, ctx, actuel.ligneOrId);
       if (ligne && ligneDevenueNonPointable(ligne.statut)) return 'ligne_non_pointable';
@@ -615,13 +874,33 @@ export class ServicePointage {
     activiteIndirecte: string | null,
   ): void {
     const coherent =
-      (nature === 'productif_ligne' && ordreReparationId !== null && ligneOrId !== null && activiteIndirecte === null) ||
-      (nature === 'productif_or' && ordreReparationId !== null && ligneOrId === null && activiteIndirecte === null) ||
-      (nature === 'indirect' && ordreReparationId === null && ligneOrId === null && activiteIndirecte !== null);
+      (nature === 'productif_ligne' &&
+        ordreReparationId !== null &&
+        ligneOrId !== null &&
+        activiteIndirecte === null) ||
+      (nature === 'productif_or' &&
+        ordreReparationId !== null &&
+        ligneOrId === null &&
+        activiteIndirecte === null) ||
+      (nature === 'indirect' &&
+        ordreReparationId === null &&
+        ligneOrId === null &&
+        activiteIndirecte !== null);
     if (!coherent) {
-      throw new ErreurMetier('VALIDATION_ECHOUEE', 'La cible du pointage est incohérente avec sa nature (RM-87).', {
-        erreurs: [{ champ: 'nature', code: 'cible_incoherente', message: 'Exactement une cible (ligne, OR, ou activité indirecte) doit être renseignée selon la nature.' }],
-      });
+      throw new ErreurMetier(
+        'VALIDATION_ECHOUEE',
+        'La cible du pointage est incohérente avec sa nature (RM-87).',
+        {
+          erreurs: [
+            {
+              champ: 'nature',
+              code: 'cible_incoherente',
+              message:
+                'Exactement une cible (ligne, OR, ou activité indirecte) doit être renseignée selon la nature.',
+            },
+          ],
+        },
+      );
     }
   }
 }

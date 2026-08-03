@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TYPES_RESULTAT_RECHERCHE, type ResultatRecherche, type TypeResultatRecherche } from '@dfa/shared';
+import {
+  TYPES_RESULTAT_RECHERCHE,
+  type ResultatRecherche,
+  type TypeResultatRecherche,
+} from '@dfa/shared';
 import { CorrespondanceRechercheDto } from './correspondance-recherche.dto';
 
 export class ResultatRechercheDto implements ResultatRecherche {

@@ -19,7 +19,11 @@ import { SwissQRBill } from 'swissqrbill/pdf';
 import type { ReponseDocumentVente, ReponseLigneDocumentVente } from '@dfa/shared';
 
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
-import { construireDonneesSwissQrBill, langueSwissQrBill, validerLangueFigee } from './donnees-swissqrbill';
+import {
+  construireDonneesSwissQrBill,
+  langueSwissQrBill,
+  validerLangueFigee,
+} from './donnees-swissqrbill';
 import { formaterDateSuisse, formaterMontantCentimes } from './formatage-suisse';
 import { libellesImpression, type LibellesFacture } from './libelles-impression';
 import { verifierEquivalencePayload } from './verification-payload-qr';
@@ -30,7 +34,12 @@ function exigerMontantsVisibles(document: ReponseDocumentVente): {
   readonly totalHtCentimes: number;
   readonly totalTvaCentimes: number;
   readonly totalTtcCentimes: number;
-  readonly ventilationTva: readonly { readonly regimeTva: string; readonly tauxTvaPourmille: number; readonly baseCentimes: number; readonly tvaCentimes: number }[];
+  readonly ventilationTva: readonly {
+    readonly regimeTva: string;
+    readonly tauxTvaPourmille: number;
+    readonly baseCentimes: number;
+    readonly tvaCentimes: number;
+  }[];
 } {
   if (
     document.totalHtCentimes === undefined ||
@@ -44,7 +53,7 @@ function exigerMontantsVisibles(document: ReponseDocumentVente): {
     throw new ErreurMetier(
       'ERREUR_INTERNE',
       `Document ${document.id} : montants absents de la réponse au moment de générer le PDF — ` +
-        'le principal utilisé pour résoudre le document n\'a probablement pas les droits attendus.',
+        "le principal utilisé pour résoudre le document n'a probablement pas les droits attendus.",
     );
   }
   return {
@@ -55,15 +64,24 @@ function exigerMontantsVisibles(document: ReponseDocumentVente): {
   };
 }
 
-function dessinerEnTete(doc: PDFKit.PDFDocument, document: ReponseDocumentVente, l: LibellesFacture): void {
+function dessinerEnTete(
+  doc: PDFKit.PDFDocument,
+  document: ReponseDocumentVente,
+  l: LibellesFacture,
+): void {
   const creancier = document.qr!.creancier;
 
   doc.fontSize(9).fillColor('#333333');
   doc.text(creancier.nom, MARGE_PT, MARGE_PT);
-  doc.text(`${creancier.adresse.rue}${creancier.adresse.numero ? ' ' + creancier.adresse.numero : ''}`);
+  doc.text(
+    `${creancier.adresse.rue}${creancier.adresse.numero ? ' ' + creancier.adresse.numero : ''}`,
+  );
   doc.text(`${creancier.adresse.npa} ${creancier.adresse.localite}`);
 
-  doc.fillColor('#000000').fontSize(18).text(l.factureNumero(document.numero ?? ''), MARGE_PT, MARGE_PT + 70);
+  doc
+    .fillColor('#000000')
+    .fontSize(18)
+    .text(l.factureNumero(document.numero ?? ''), MARGE_PT, MARGE_PT + 70);
   doc.fontSize(10).text(`${l.dateDocument} : ${formaterDateSuisse(document.dateDocument)}`);
   doc.moveDown(1.5);
 
@@ -77,7 +95,11 @@ function dessinerEnTete(doc: PDFKit.PDFDocument, document: ReponseDocumentVente,
   doc.moveDown(1);
 }
 
-function dessinerLignes(doc: PDFKit.PDFDocument, lignes: readonly ReponseLigneDocumentVente[], l: LibellesFacture): void {
+function dessinerLignes(
+  doc: PDFKit.PDFDocument,
+  lignes: readonly ReponseLigneDocumentVente[],
+  l: LibellesFacture,
+): void {
   const colX = { designation: MARGE_PT, quantite: 300, prixUnitaire: 350, tva: 430, total: 470 };
 
   doc.fontSize(9).fillColor('#000000');
@@ -96,11 +118,24 @@ function dessinerLignes(doc: PDFKit.PDFDocument, lignes: readonly ReponseLigneDo
     const quantite = ligne.quantiteMillieme / 1000;
     doc.text(ligne.designation, colX.designation, y, { width: colX.quantite - colX.designation });
     doc.text(String(quantite), colX.quantite, y, { width: colX.prixUnitaire - colX.quantite });
-    doc.text(ligne.prixUnitaireTtcCentimes != null ? formaterMontantCentimes(ligne.prixUnitaireTtcCentimes) : '', colX.prixUnitaire, y, {
-      width: colX.tva - colX.prixUnitaire,
+    doc.text(
+      ligne.prixUnitaireTtcCentimes != null
+        ? formaterMontantCentimes(ligne.prixUnitaireTtcCentimes)
+        : '',
+      colX.prixUnitaire,
+      y,
+      {
+        width: colX.tva - colX.prixUnitaire,
+      },
+    );
+    doc.text(`${(ligne.tauxTvaPourmille / 10).toFixed(1)}%`, colX.tva, y, {
+      width: colX.total - colX.tva,
     });
-    doc.text(`${(ligne.tauxTvaPourmille / 10).toFixed(1)}%`, colX.tva, y, { width: colX.total - colX.tva });
-    doc.text(ligne.montants ? formaterMontantCentimes(ligne.montants.montantTtcCentimes) : '', colX.total, y);
+    doc.text(
+      ligne.montants ? formaterMontantCentimes(ligne.montants.montantTtcCentimes) : '',
+      colX.total,
+      y,
+    );
     doc.moveDown(0.4);
   }
 }
@@ -118,16 +153,26 @@ function dessinerRecapitulatifTva(
   doc.fontSize(9);
   for (const v of totaux.ventilationTva) {
     const y = doc.y;
-    doc.text(`${l.tauxTvaLabel} ${(v.tauxTvaPourmille / 10).toFixed(1)}%`, colX.taux, y, { width: colX.base - colX.taux });
-    doc.text(`${l.baseHt} ${formaterMontantCentimes(v.baseCentimes)}`, colX.base, y, { width: colX.tva - colX.base });
+    doc.text(`${l.tauxTvaLabel} ${(v.tauxTvaPourmille / 10).toFixed(1)}%`, colX.taux, y, {
+      width: colX.base - colX.taux,
+    });
+    doc.text(`${l.baseHt} ${formaterMontantCentimes(v.baseCentimes)}`, colX.base, y, {
+      width: colX.tva - colX.base,
+    });
     doc.text(`${l.montantTva} ${formaterMontantCentimes(v.tvaCentimes)}`, colX.tva, y);
     doc.moveDown(0.35);
   }
 
   doc.moveDown(0.5);
-  doc.fontSize(9).text(`${l.totalHt} : ${formaterMontantCentimes(totaux.totalHtCentimes)}`, { align: 'right' });
-  doc.text(`${l.totalTva} : ${formaterMontantCentimes(totaux.totalTvaCentimes)}`, { align: 'right' });
-  doc.fontSize(11).text(`${l.totalTtc} : ${formaterMontantCentimes(totaux.totalTtcCentimes)}`, { align: 'right' });
+  doc
+    .fontSize(9)
+    .text(`${l.totalHt} : ${formaterMontantCentimes(totaux.totalHtCentimes)}`, { align: 'right' });
+  doc.text(`${l.totalTva} : ${formaterMontantCentimes(totaux.totalTvaCentimes)}`, {
+    align: 'right',
+  });
+  doc.fontSize(11).text(`${l.totalTtc} : ${formaterMontantCentimes(totaux.totalTtcCentimes)}`, {
+    align: 'right',
+  });
   doc.fontSize(8).fillColor('#666666').text(l.mentionTvaComprise, { align: 'right' });
   doc.fillColor('#000000');
 }
@@ -179,7 +224,9 @@ export async function genererPdfFacture(document: ReponseDocumentVente): Promise
     dessinerLignes(pdf, document.lignes, libelles);
     dessinerRecapitulatifTva(pdf, totaux, libelles);
 
-    const qrBill = new SwissQRBill(donneesSwissQrBill, { language: langueSwissQrBill(qr.qrLangue) });
+    const qrBill = new SwissQRBill(donneesSwissQrBill, {
+      language: langueSwissQrBill(qr.qrLangue),
+    });
     qrBill.attachTo(pdf);
 
     // `pdfkit` est un flux Node standard : les événements `data` sont émis de façon ASYNCHRONE

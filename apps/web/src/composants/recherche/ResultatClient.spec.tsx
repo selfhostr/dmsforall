@@ -11,7 +11,12 @@ const RESULTAT_CLIENT: ResultatRecherche = {
   id: 'c1',
   score: 0.88,
   correspondance: { champ: 'nom', valeur: 'Meier', historique: false },
-  resume: { numeroClient: 'CL-042', nom: 'Meier Hans', telephone: '079 123 45 67', localite: 'Lausanne' },
+  resume: {
+    numeroClient: 'CL-042',
+    nom: 'Meier Hans',
+    telephone: '079 123 45 67',
+    localite: 'Lausanne',
+  },
 };
 
 describe('ResultatClient', () => {

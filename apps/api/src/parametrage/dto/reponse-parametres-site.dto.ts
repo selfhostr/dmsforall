@@ -10,12 +10,17 @@ export class ReponseParametresSiteDto {
   readonly heureOuverture!: string | null;
   @ApiProperty({ type: String, nullable: true, example: '18:00', description: 'Format `HH:MM`.' })
   readonly heureFermeture!: string | null;
-  @ApiProperty({ type: String, nullable: true, description: 'P-31 : heure de clôture automatique des pointages ouverts.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'P-31 : heure de clôture automatique des pointages ouverts.',
+  })
   readonly heureCloturePointage!: string | null;
   @ApiProperty({
     type: Number,
     nullable: true,
-    description: 'P-20. `null` = non saisie — jamais `0` (une barre de charge à zéro serait un mensonge).',
+    description:
+      'P-20. `null` = non saisie — jamais `0` (une barre de charge à zéro serait un mensonge).',
   })
   readonly capaciteHeuresJourCentiemes!: number | null;
   @ApiProperty({ type: [String], example: ['2026-12-25', '2027-01-01'] })

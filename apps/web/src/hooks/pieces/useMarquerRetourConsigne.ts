@@ -7,7 +7,11 @@ import { marquerRetourFournisseurConsigne } from './consignes.api';
 /** `POST /consignes/{id}/marquer-retour-fournisseur` (RP-40) — génère le mouvement
  *  `retour_consigne` : invalide la liste des consignes ET le référentiel article (mouvements),
  *  même doctrine que `useSatisfaireReservation`. */
-export function useMarquerRetourConsigne(): UseMutationResult<ReponseConsigneEchangeStandard, unknown, string> {
+export function useMarquerRetourConsigne(): UseMutationResult<
+  ReponseConsigneEchangeStandard,
+  unknown,
+  string
+> {
   const queryClient = useQueryClient();
 
   return useMutation({

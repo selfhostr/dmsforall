@@ -1,4 +1,10 @@
-import { DEVISES_FACTURATION, type DeviseFacturation, type IssueAvanceClient, type ReponseImputationPaiement, type ReponsePaiement } from '@dfa/shared';
+import {
+  DEVISES_FACTURATION,
+  type DeviseFacturation,
+  type IssueAvanceClient,
+  type ReponseImputationPaiement,
+  type ReponsePaiement,
+} from '@dfa/shared';
 
 import { enDate } from '../../db';
 import type { LigneImputationPaiement, LignePaiement } from '../../db/schema';
@@ -67,7 +73,9 @@ export function calculerMontantNonImputeCentimes(
 }
 
 /** RF-79 : trois issues, jamais automatiques — vide dès que le paiement est intégralement imputé. */
-export function calculerIssuesDisponibles(montantNonImputeCentimes: bigint): readonly IssueAvanceClient[] {
+export function calculerIssuesDisponibles(
+  montantNonImputeCentimes: bigint,
+): readonly IssueAvanceClient[] {
   return montantNonImputeCentimes > 0n ? ['remboursement', 'imputation_future', 'abandon'] : [];
 }
 
@@ -108,7 +116,9 @@ export function versPaiement(
     identifiantTransactionBanque: ligne.identifiantTransactionBanque,
     source: ligne.source,
     contrePasseId: ligne.contrePasseId,
-    imputations: imputations.map((i) => versImputation(i, i.imputeParId ? (resumes.get(i.imputeParId) ?? null) : null)),
+    imputations: imputations.map((i) =>
+      versImputation(i, i.imputeParId ? (resumes.get(i.imputeParId) ?? null) : null),
+    ),
     montantNonImputeCentimes: Number(montantNonImpute),
     issuesDisponibles: calculerIssuesDisponibles(montantNonImpute),
     creeLe: enDate(ligne.creeLe).toISOString(),

@@ -38,18 +38,29 @@ export async function verifierContinuiteNumerotation(
 ): Promise<void> {
   const idsCandidats = new Set(candidats.map((c) => c.id));
 
-  const series = new Map<string, { typeDocument: 'facture' | 'avoir'; exercice: number; maxSeq: number }>();
+  const series = new Map<
+    string,
+    { typeDocument: 'facture' | 'avoir'; exercice: number; maxSeq: number }
+  >();
   for (const c of candidats) {
     const cle = `${c.typeDocument}::${String(c.exercice)}`;
     const existante = series.get(cle);
     if (!existante || c.numeroSequence > existante.maxSeq) {
-      series.set(cle, { typeDocument: c.typeDocument, exercice: c.exercice, maxSeq: c.numeroSequence });
+      series.set(cle, {
+        typeDocument: c.typeDocument,
+        exercice: c.exercice,
+        maxSeq: c.numeroSequence,
+      });
     }
   }
 
   for (const { typeDocument, exercice, maxSeq } of series.values()) {
     const emisNonExportes = await tx
-      .select({ id: documentVente.id, numero: documentVente.numero, numeroSequence: documentVente.numeroSequence })
+      .select({
+        id: documentVente.id,
+        numero: documentVente.numero,
+        numeroSequence: documentVente.numeroSequence,
+      })
       .from(documentVente)
       .where(
         and(
@@ -68,7 +79,9 @@ export async function verifierContinuiteNumerotation(
         'EXPORT_TROU_NUMEROTATION',
         `Trou de numérotation détecté sur la série ${typeDocument}/${String(exercice)} avant export : ` +
           `${numeros.join(', ')} — émis, non exportés, et absents de ce lot (hors période ou déjà traités séparément).`,
-        { detail: `type_document=${typeDocument};exercice=${String(exercice)};numeros=${numeros.join(',')}` },
+        {
+          detail: `type_document=${typeDocument};exercice=${String(exercice)};numeros=${numeros.join(',')}`,
+        },
       );
     }
   }

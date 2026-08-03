@@ -55,14 +55,24 @@ export class ServiceStock {
   constructor(@Inject(JETON_DB) private readonly acces: AccesBase) {}
 
   /** `GET /articles/{id}/disponibilite?siteId=` — RP-14/RP-19, LE terrain de `CP-02`. */
-  async disponibilite(ctx: ContexteTenant, articleId: string, siteId: string): Promise<ReponseDisponibiliteArticle> {
+  async disponibilite(
+    ctx: ContexteTenant,
+    articleId: string,
+    siteId: string,
+  ): Promise<ReponseDisponibiliteArticle> {
     return this.acces.enTenant(ctx, async (tx) => {
       await this.chargerArticleOu404(tx, ctx, articleId);
 
       const stocks = await tx
         .select()
         .from(stockArticle)
-        .where(and(eq(stockArticle.tenantId, ctx.tenantId), eq(stockArticle.articleId, articleId), eq(stockArticle.siteId, siteId)))
+        .where(
+          and(
+            eq(stockArticle.tenantId, ctx.tenantId),
+            eq(stockArticle.articleId, articleId),
+            eq(stockArticle.siteId, siteId),
+          ),
+        )
         .limit(1);
       const ligneStock = stocks[0] ?? null;
 
@@ -87,12 +97,21 @@ export class ServiceStock {
         .slice(0, SEUIL_RESERVATIONS_DISPONIBILITE)
         .map((l) => versReservationActiveResume(l));
 
-      return versDisponibiliteResponse(articleId, siteId, ligneStock, reservationsActives, tronquees);
+      return versDisponibiliteResponse(
+        articleId,
+        siteId,
+        ligneStock,
+        reservationsActives,
+        tronquees,
+      );
     });
   }
 
   /** `GET /stock/reapprovisionnement?siteId=` — RP-12, ne commande jamais automatiquement. */
-  async reapprovisionnement(ctx: ContexteTenant, params: FiltresReapprovisionnement): Promise<PageCurseur<LigneReapprovisionnement>> {
+  async reapprovisionnement(
+    ctx: ContexteTenant,
+    params: FiltresReapprovisionnement,
+  ): Promise<PageCurseur<LigneReapprovisionnement>> {
     const definition = DEFINITION_TRI_ECART[params.tri];
     const idExpr = sql`a.id`;
     const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
@@ -105,7 +124,9 @@ export class ServiceStock {
         sql`(s.quantite_physique_millieme - s.quantite_reservee_millieme) < s.stock_minimum_millieme`,
       ];
       if (curseurDecode) {
-        conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
+        conditions.push(
+          construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id),
+        );
       }
 
       const resultat = await tx.execute<{
@@ -140,7 +161,11 @@ export class ServiceStock {
         donnees: pageLignes.map((l) => versLigneReapprovisionnement(l)),
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseurTrie({ tri: params.tri, valeur: derniere.triValeur, id: derniere.articleId })
+            ? encoderCurseurTrie({
+                tri: params.tri,
+                valeur: derniere.triValeur,
+                id: derniere.articleId,
+              })
             : null,
         limite: params.limite,
       };
@@ -162,9 +187,14 @@ export class ServiceStock {
       await this.chargerArticleOu404(tx, ctx, articleId);
       await this.chargerSiteOu404(tx, ctx, siteId);
 
-      const valeurs: { emplacement?: string | null; stockMinimumMillieme?: number | null; quantiteCommandeStandardMillieme?: number | null } = {};
+      const valeurs: {
+        emplacement?: string | null;
+        stockMinimumMillieme?: number | null;
+        quantiteCommandeStandardMillieme?: number | null;
+      } = {};
       if ('emplacement' in entree) valeurs.emplacement = entree.emplacement ?? null;
-      if ('stockMinimumMillieme' in entree) valeurs.stockMinimumMillieme = entree.stockMinimumMillieme ?? null;
+      if ('stockMinimumMillieme' in entree)
+        valeurs.stockMinimumMillieme = entree.stockMinimumMillieme ?? null;
       if ('quantiteCommandeStandardMillieme' in entree) {
         valeurs.quantiteCommandeStandardMillieme = entree.quantiteCommandeStandardMillieme ?? null;
       }
@@ -180,7 +210,13 @@ export class ServiceStock {
       const lignes = await tx
         .select()
         .from(stockArticle)
-        .where(and(eq(stockArticle.tenantId, ctx.tenantId), eq(stockArticle.articleId, articleId), eq(stockArticle.siteId, siteId)))
+        .where(
+          and(
+            eq(stockArticle.tenantId, ctx.tenantId),
+            eq(stockArticle.articleId, articleId),
+            eq(stockArticle.siteId, siteId),
+          ),
+        )
         .limit(1);
       const ligne = lignes[0];
       if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de mise à jour du stock.');
@@ -202,18 +238,36 @@ export class ServiceStock {
        for update
     `);
     const ligne = resultat.rows[0];
-    return ligne ? { physique: ligne.physique, reservee: ligne.reservee } : { physique: 0, reservee: 0 };
+    return ligne
+      ? { physique: ligne.physique, reservee: ligne.reservee }
+      : { physique: 0, reservee: 0 };
   }
 
-  private async chargerArticleOu404(tx: TransactionDfa, ctx: ContexteTenant, articleId: string): Promise<LigneArticle> {
-    const lignes = await tx.select().from(article).where(and(eq(article.tenantId, ctx.tenantId), eq(article.id, articleId))).limit(1);
+  private async chargerArticleOu404(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    articleId: string,
+  ): Promise<LigneArticle> {
+    const lignes = await tx
+      .select()
+      .from(article)
+      .where(and(eq(article.tenantId, ctx.tenantId), eq(article.id, articleId)))
+      .limit(1);
     const ligne = lignes[0];
     if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Article introuvable.');
     return ligne;
   }
 
-  private async chargerSiteOu404(tx: TransactionDfa, ctx: ContexteTenant, siteId: string): Promise<void> {
-    const lignes = await tx.select({ id: site.id }).from(site).where(and(eq(site.tenantId, ctx.tenantId), eq(site.id, siteId))).limit(1);
+  private async chargerSiteOu404(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    siteId: string,
+  ): Promise<void> {
+    const lignes = await tx
+      .select({ id: site.id })
+      .from(site)
+      .where(and(eq(site.tenantId, ctx.tenantId), eq(site.id, siteId)))
+      .limit(1);
     if (!lignes[0]) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Site introuvable.');
   }
 }

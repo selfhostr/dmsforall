@@ -98,7 +98,14 @@ export function TableComptoir<T>({
         <TableRow>
           {colonnes.map((colonne) => {
             const estTriee = tri?.colonneId === colonne.id;
-            const ariaSort = !colonne.triable || !onTrier ? undefined : estTriee ? (tri.sens === 'asc' ? 'ascending' : 'descending') : 'none';
+            const ariaSort =
+              !colonne.triable || !onTrier
+                ? undefined
+                : estTriee
+                  ? tri.sens === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none';
             return (
               <TableHead
                 key={colonne.id}
@@ -150,14 +157,18 @@ export function TableComptoir<T>({
               tabIndex={onOuvrirLigne ? 0 : undefined}
               className={onOuvrirLigne ? 'cursor-pointer' : undefined}
               onClick={onOuvrirLigne ? () => gererClicLigne(ligne) : undefined}
-              onKeyDown={onOuvrirLigne ? (evenement) => gererClavierLigne(evenement, ligne) : undefined}
+              onKeyDown={
+                onOuvrirLigne ? (evenement) => gererClavierLigne(evenement, ligne) : undefined
+              }
             >
               {colonnes.map((colonne) => (
                 <TableCell
                   key={colonne.id}
                   className={cn(classeAlignement(colonne.alignement), colonne.className)}
                   onClick={colonne.actions ? (evenement) => evenement.stopPropagation() : undefined}
-                  onKeyDown={colonne.actions ? (evenement) => evenement.stopPropagation() : undefined}
+                  onKeyDown={
+                    colonne.actions ? (evenement) => evenement.stopPropagation() : undefined
+                  }
                 >
                   {colonne.rendu(ligne)}
                 </TableCell>

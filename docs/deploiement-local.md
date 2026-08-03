@@ -82,7 +82,7 @@ des cas.
 ### Pièges Windows
 
 - **WSL2 requis** : Docker Desktop sans le backend WSL2 ne fonctionne pas correctement pour
-  ce projet. À vérifier dans Docker Desktop → Settings → General → *Use the WSL 2 based engine*.
+  ce projet. À vérifier dans Docker Desktop → Settings → General → _Use the WSL 2 based engine_.
 - **Ports 5432 / 6379 déjà occupés** : une installation locale de PostgreSQL ou Redis (hors
   Docker) qui tourne en service Windows entre en conflit avec les ports publiés par
   `docker-compose.yml`. Arrêter le service local (`services.msc`) ou changer temporairement

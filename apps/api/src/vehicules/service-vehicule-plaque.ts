@@ -38,7 +38,11 @@ export class ServiceVehiculePlaque {
     });
   }
 
-  async creer(ctx: ContexteTenant, vehiculeId: string, entree: EntreePlaqueVehicule): Promise<ReponseVehiculePlaque> {
+  async creer(
+    ctx: ContexteTenant,
+    vehiculeId: string,
+    entree: EntreePlaqueVehicule,
+  ): Promise<ReponseVehiculePlaque> {
     return this.acces.enTenant(ctx, async (tx) => {
       await exigerVehiculeExiste(tx, ctx, vehiculeId);
 
@@ -58,7 +62,10 @@ export class ServiceVehiculePlaque {
           .returning();
         const inseree = lignes[0];
         if (!inseree) {
-          throw new ErreurMetier('ERREUR_INTERNE', "L'insertion de la plaque n'a rendu aucune ligne.");
+          throw new ErreurMetier(
+            'ERREUR_INTERNE',
+            "L'insertion de la plaque n'a rendu aucune ligne.",
+          );
         }
         return versReponse(inseree);
       } catch (erreur) {
@@ -74,7 +81,12 @@ export class ServiceVehiculePlaque {
     });
   }
 
-  async cloturer(ctx: ContexteTenant, vehiculeId: string, plaqueId: string, finLe: string): Promise<ReponseVehiculePlaque> {
+  async cloturer(
+    ctx: ContexteTenant,
+    vehiculeId: string,
+    plaqueId: string,
+    finLe: string,
+  ): Promise<ReponseVehiculePlaque> {
     return this.acces.enTenant(ctx, async (tx) => {
       const lignes = await tx
         .select()

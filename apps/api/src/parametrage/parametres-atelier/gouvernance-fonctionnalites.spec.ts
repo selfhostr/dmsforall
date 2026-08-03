@@ -20,7 +20,14 @@ describe('verifierChampsActifsParametresAtelier', () => {
 
   it.each([
     [{ facturation: { multiPayeursAutorise: true } }, 'facturation.multiPayeursAutorise'],
-    [{ facturation: { produitsAtelier: { mode: 'desactive', pourmille: null, plafondCentimes: null } } }, 'facturation.produitsAtelier'],
+    [
+      {
+        facturation: {
+          produitsAtelier: { mode: 'desactive', pourmille: null, plafondCentimes: null },
+        },
+      },
+      'facturation.produitsAtelier',
+    ],
     [{ planning: { noShowSeuilAlerte: 5 } }, 'planning.noShowSeuilAlerte'],
     [{ planning: { tamponPretMinutes: 15 } }, 'planning.tamponPretMinutes'],
     [{ reception: { signature: 'obligatoire' } }, 'reception.signature'],
@@ -33,10 +40,13 @@ describe('verifierChampsActifsParametresAtelier', () => {
     } catch (erreur) {
       erreurCapturee = erreur;
     }
-    expect(erreurCapturee).toMatchObject({ code: 'FONCTION_NON_DISPONIBLE', detail: cheminAttendu });
+    expect(erreurCapturee).toMatchObject({
+      code: 'FONCTION_NON_DISPONIBLE',
+      detail: cheminAttendu,
+    });
   });
 
-  it('refuse tout le corps dès qu\'un seul champ est inerte, même mélangé à des champs actifs', () => {
+  it("refuse tout le corps dès qu'un seul champ est inerte, même mélangé à des champs actifs", () => {
     const entree: EntreeModificationParametresAtelier = {
       or: { prefixe: 'OR' },
       reception: { kmEntreeObligatoire: true, signature: 'desactivee' },

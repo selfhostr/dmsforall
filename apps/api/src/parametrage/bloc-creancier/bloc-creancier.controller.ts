@@ -20,7 +20,10 @@ import { CorpsZod } from '../../common/documentation';
 import { ExigerDroit } from '../../common/droits';
 import { calculerEtag, ifNoneMatchSatisfait } from '../etag';
 import { ReponseBlocCreancierDto } from '../dto/reponse-bloc-creancier.dto';
-import { schemaModificationBlocCreancier, type EntreeModificationBlocCreancier } from './schema-bloc-creancier';
+import {
+  schemaModificationBlocCreancier,
+  type EntreeModificationBlocCreancier,
+} from './schema-bloc-creancier';
 import { ServiceBlocCreancier } from './service-bloc-creancier';
 
 @ApiTags('Paramétrage')
@@ -39,11 +42,15 @@ export class BlocCreancierController {
     description:
       'Singleton par tenant. Ligne absente (aucun bloc créancier encore saisi) → paramétrage VIDE ' +
       '(tous les champs `null`, `pays` = `"CH"`, `version` = `0`), jamais un `404` : ce n\'est pas ' +
-      'une erreur, c\'est l\'état initial de tout tenant après la migration 0014. `ETag` stable ' +
+      "une erreur, c'est l'état initial de tout tenant après la migration 0014. `ETag` stable " +
       '(dérivé de `modifie_le`) ; `304 Not Modified` si `If-None-Match` le couvre. Réservé à ' +
       '`direction`/`comptable` (donnée financière sensible, `RF-115` — voir `auth/matrice-droits.ts`).',
   })
-  @ApiResponse({ status: 200, description: 'Bloc créancier (éventuellement vide).', type: ReponseBlocCreancierDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Bloc créancier (éventuellement vide).',
+    type: ReponseBlocCreancierDto,
+  })
   @ApiResponse({ status: 304, description: 'Non modifié depuis `If-None-Match`.' })
   @ApiReponseProbleme(403, 'DROIT_INSUFFISANT — réservé à direction/comptable.')
   async obtenir(
@@ -64,17 +71,22 @@ export class BlocCreancierController {
   @ExigerDroit('facturation.parametrage.creancier.modifier')
   @Patch()
   @ApiOperation({
-    summary: 'Modifie partiellement le bloc créancier (upsert — aucune ligne préexistante requise).',
+    summary:
+      'Modifie partiellement le bloc créancier (upsert — aucune ligne préexistante requise).',
     description:
-      'Un champ absent du corps n\'est pas touché ; un champ présent à `null` efface la valeur ' +
-      'existante (utile pour un changement de banque : l\'ancien IBAN peut disparaître sans qu\'on ' +
+      "Un champ absent du corps n'est pas touché ; un champ présent à `null` efface la valeur " +
+      "existante (utile pour un changement de banque : l'ancien IBAN peut disparaître sans qu'on " +
       'lui substitue une valeur bidon). `iban`/`qrIban` sont validés en forme, pays (CH/LI), ' +
       'longueur ET clé de contrôle modulo 97 (ISO 7064) — une clé fausse est refusée bruyamment, ' +
       'jamais tronquée ou corrigée silencieusement. `iban` doit être un compte ORDINAIRE (IID hors ' +
       '30000–31999) et `qrIban` un QR-IBAN (IID dans cette plage) : un IBAN posé dans le mauvais ' +
       'champ est refusé, les deux colonnes ne se mélangent jamais. Réservé à `direction`/`comptable`.',
   })
-  @ApiResponse({ status: 200, description: 'Bloc créancier mis à jour.', type: ReponseBlocCreancierDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Bloc créancier mis à jour.',
+    type: ReponseBlocCreancierDto,
+  })
   @ApiReponseProbleme(
     400,
     'VALIDATION_ECHOUEE — IBAN mal formé, pays hors CH/LI, clé de contrôle modulo 97 fausse, ou IBAN/QR-IBAN posé dans le mauvais champ.',

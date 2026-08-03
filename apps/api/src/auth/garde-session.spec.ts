@@ -51,7 +51,9 @@ function contexteExecutionTest(options: {
   return { context, req };
 }
 
-function serviceSessionTest(resoudre: (token: string) => Promise<PrincipalAuthentifie | null>): ServiceSession {
+function serviceSessionTest(
+  resoudre: (token: string) => Promise<PrincipalAuthentifie | null>,
+): ServiceSession {
   return { ouvrir: vi.fn(), resoudre: vi.fn(resoudre), fermer: vi.fn() };
 }
 
@@ -75,7 +77,10 @@ describe('GardeSession — vérification Origin (toute méthode ≠ GET/HEAD)', 
 
   it('rejette un POST sans en-tête Origin, même sur une route @Public', async () => {
     const { context } = contexteExecutionTest({ method: 'POST' });
-    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
     const guard = new GardeSession(
       reflectorTest(true), // @Public
       configTest(),
@@ -87,8 +92,14 @@ describe('GardeSession — vérification Origin (toute méthode ≠ GET/HEAD)', 
   });
 
   it("rejette un POST dont l'Origin ne correspond pas à WEB_URL_PUBLIQUE", async () => {
-    const { context } = contexteExecutionTest({ method: 'POST', origin: 'https://malveillant.example' });
-    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const { context } = contexteExecutionTest({
+      method: 'POST',
+      origin: 'https://malveillant.example',
+    });
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
     const guard = new GardeSession(
       reflectorTest(false),
       configTest(),
@@ -105,7 +116,10 @@ describe('GardeSession — vérification Origin (toute méthode ≠ GET/HEAD)', 
       origin: 'https://app.dmsforall.example',
       cookies: { dfa_session: 'jeton' },
     });
-    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
     const guard = new GardeSession(
       reflectorTest(false),
       configTest(),
@@ -116,9 +130,12 @@ describe('GardeSession — vérification Origin (toute méthode ≠ GET/HEAD)', 
     await expect(guard.canActivate(context)).resolves.toBe(true);
   });
 
-  it("un Origin malformé (pas une URL valide) est refusé, jamais une 500", async () => {
+  it('un Origin malformé (pas une URL valide) est refusé, jamais une 500', async () => {
     const { context } = contexteExecutionTest({ method: 'POST', origin: 'pas-une-url' });
-    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
     const guard = new GardeSession(
       reflectorTest(false),
       configTest(),
@@ -141,7 +158,10 @@ describe('GardeSession — tolérance loopback localhost/127.0.0.1 (dev uniqueme
       origin: 'http://127.0.0.1:5173',
       cookies: { dfa_session: 'jeton' },
     });
-    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
     const guard = new GardeSession(
       reflectorTest(false),
       configLoopback('development'),
@@ -152,13 +172,16 @@ describe('GardeSession — tolérance loopback localhost/127.0.0.1 (dev uniqueme
     await expect(guard.canActivate(context)).resolves.toBe(true);
   });
 
-  it("refuse la même équivalence 127.0.0.1/localhost en production (NODE_ENV=production)", async () => {
+  it('refuse la même équivalence 127.0.0.1/localhost en production (NODE_ENV=production)', async () => {
     const { context } = contexteExecutionTest({
       method: 'POST',
       origin: 'http://127.0.0.1:5173',
       cookies: { dfa_session: 'jeton' },
     });
-    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
     const guard = new GardeSession(
       reflectorTest(false),
       configLoopback('production'),
@@ -169,13 +192,16 @@ describe('GardeSession — tolérance loopback localhost/127.0.0.1 (dev uniqueme
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ErreurOrigineRefusee);
   });
 
-  it("refuse un port différent même sur un hôte loopback en dev (127.0.0.1:9999 ≠ localhost:5173)", async () => {
+  it('refuse un port différent même sur un hôte loopback en dev (127.0.0.1:9999 ≠ localhost:5173)', async () => {
     const { context } = contexteExecutionTest({
       method: 'POST',
       origin: 'http://127.0.0.1:9999',
       cookies: { dfa_session: 'jeton' },
     });
-    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
     const guard = new GardeSession(
       reflectorTest(false),
       configLoopback('development'),
@@ -192,7 +218,10 @@ describe('GardeSession — tolérance loopback localhost/127.0.0.1 (dev uniqueme
       origin: 'http://192.168.1.42:5173',
       cookies: { dfa_session: 'jeton' },
     });
-    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
     const guard = new GardeSession(
       reflectorTest(false),
       configLoopback('development'),
@@ -209,7 +238,10 @@ describe('GardeSession — @Public', () => {
     const { context } = contexteExecutionTest({ method: 'GET' });
     const resoudre = vi.fn(async () => PRINCIPAL_TEST);
     const attacherPrincipal = vi.fn();
-    const contexteRequete = { attacherPrincipal, actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const contexteRequete = {
+      attacherPrincipal,
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
     const guard = new GardeSession(
       reflectorTest(true),
       configTest(),
@@ -226,7 +258,10 @@ describe('GardeSession — @Public', () => {
 describe('GardeSession — session requise', () => {
   it('lève AUTH_SESSION_ABSENTE quand aucun cookie de session n’est présent', async () => {
     const { context } = contexteExecutionTest({ method: 'GET', cookies: {} });
-    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
     const guard = new GardeSession(
       reflectorTest(false),
       configTest(),
@@ -238,8 +273,14 @@ describe('GardeSession — session requise', () => {
   });
 
   it('propage AUTH_SESSION_ABSENTE/EXPIREE levée par serviceSession.resoudre() (cas réel)', async () => {
-    const { context } = contexteExecutionTest({ method: 'GET', cookies: { dfa_session: 'jeton-invalide' } });
-    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const { context } = contexteExecutionTest({
+      method: 'GET',
+      cookies: { dfa_session: 'jeton-invalide' },
+    });
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
     const guard = new GardeSession(
       reflectorTest(false),
       configTest(),
@@ -253,8 +294,14 @@ describe('GardeSession — session requise', () => {
   });
 
   it('garde-fou défensif : lève AUTH_SESSION_EXPIREE si resoudre() rend null au lieu de lever (contrat `| null` légal mais non attendu en pratique)', async () => {
-    const { context } = contexteExecutionTest({ method: 'GET', cookies: { dfa_session: 'jeton-invalide' } });
-    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const { context } = contexteExecutionTest({
+      method: 'GET',
+      cookies: { dfa_session: 'jeton-invalide' },
+    });
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
     const guard = new GardeSession(
       reflectorTest(false),
       configTest(),
@@ -271,7 +318,10 @@ describe('GardeSession — session requise', () => {
       cookies: { dfa_session: 'jeton-valide' },
     });
     const attacherPrincipal = vi.fn();
-    const contexteRequete = { attacherPrincipal, actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const contexteRequete = {
+      attacherPrincipal,
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
     const guard = new GardeSession(
       reflectorTest(false),
       configTest(),
@@ -299,7 +349,10 @@ describe('GardeSession — attacherPrincipal() appelé une seule fois par requê
       }
       dejaAttache = true;
     });
-    const contexteRequete = { attacherPrincipal, actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const contexteRequete = {
+      attacherPrincipal,
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
     const { context } = contexteExecutionTest({
       method: 'GET',
       cookies: { dfa_session: 'jeton-valide' },

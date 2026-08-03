@@ -47,7 +47,11 @@ export function poserCookieSession(
   expireLe: Date,
 ): void {
   const dureeSecondes = Math.max(0, Math.round((expireLe.getTime() - Date.now()) / 1_000));
-  res.cookie(config.SESSION_COOKIE_NOM, tokenClair, construireAttributsCookie(config, dureeSecondes));
+  res.cookie(
+    config.SESSION_COOKIE_NOM,
+    tokenClair,
+    construireAttributsCookie(config, dureeSecondes),
+  );
 }
 
 /**

@@ -41,7 +41,9 @@ export function EnTeteOrdreReparation({ or }: Props) {
       : t(`or:localisations.${CLES_LOCALISATION[or.localisation]}`);
 
   const restitutionReportee =
-    or.restitutionInitialeLe !== null && or.restitutionPromiseLe !== null && or.restitutionInitialeLe !== or.restitutionPromiseLe;
+    or.restitutionInitialeLe !== null &&
+    or.restitutionPromiseLe !== null &&
+    or.restitutionInitialeLe !== or.restitutionPromiseLe;
 
   return (
     <Card>
@@ -65,10 +67,14 @@ export function EnTeteOrdreReparation({ or }: Props) {
 
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md border p-3 texte-corps sm:grid-cols-3">
           <dt className="text-muted-foreground">{t('or:bandeau.kmEntree')}</dt>
-          <dd className="col-span-2 sm:col-span-1">{or.kilometrageEntree !== null ? `${or.kilometrageEntree} km` : ''}</dd>
+          <dd className="col-span-2 sm:col-span-1">
+            {or.kilometrageEntree !== null ? `${or.kilometrageEntree} km` : ''}
+          </dd>
 
           <dt className="text-muted-foreground">{t('or:bandeau.kmSortie')}</dt>
-          <dd className="col-span-2 sm:col-span-1">{or.kilometrageSortie !== null ? `${or.kilometrageSortie} km` : ''}</dd>
+          <dd className="col-span-2 sm:col-span-1">
+            {or.kilometrageSortie !== null ? `${or.kilometrageSortie} km` : ''}
+          </dd>
 
           <dt className="text-muted-foreground">{t('or:bandeau.localisation')}</dt>
           <dd className="col-span-2 sm:col-span-1">{localisationTexte}</dd>
@@ -77,7 +83,9 @@ export function EnTeteOrdreReparation({ or }: Props) {
           <dd className="col-span-2 sm:col-span-1">
             {or.restitutionPromiseLe ? formaterDateHeure(or.restitutionPromiseLe) : ''}
             {restitutionReportee ? (
-              <span className="ml-1 texte-libelle text-statut-attention">({t('or:bandeau.restitutionReportee')})</span>
+              <span className="ml-1 texte-libelle text-statut-attention">
+                ({t('or:bandeau.restitutionReportee')})
+              </span>
             ) : null}
           </dd>
 
@@ -86,7 +94,11 @@ export function EnTeteOrdreReparation({ or }: Props) {
               <dt className="text-muted-foreground">{t('or:bandeau.plafond')}</dt>
               <dd className="col-span-2 sm:col-span-1">
                 {formaterMontant(or.plafondCentimes)}
-                {or.plafondAutorisePar ? <span className="ml-1 texte-libelle text-muted-foreground">({or.plafondAutorisePar})</span> : null}
+                {or.plafondAutorisePar ? (
+                  <span className="ml-1 texte-libelle text-muted-foreground">
+                    ({or.plafondAutorisePar})
+                  </span>
+                ) : null}
               </dd>
             </>
           ) : null}

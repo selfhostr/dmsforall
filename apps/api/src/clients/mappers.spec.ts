@@ -94,7 +94,13 @@ describe('versClientResponse', () => {
   });
 
   it('notesAlerte est propagé tel quel (le filtrage nature=alerte est la responsabilité de ServiceClient, pas du mapper)', () => {
-    const note = { id: 'n1', nature: 'alerte' as const, texte: 'Rappeler avant tout supplément', auteur: null, creeLe: '2026-07-01T00:00:00.000Z' };
+    const note = {
+      id: 'n1',
+      nature: 'alerte' as const,
+      texte: 'Rappeler avant tout supplément',
+      auteur: null,
+      creeLe: '2026-07-01T00:00:00.000Z',
+    };
     const dto = versClientResponse(ligneClient(), null, [note]);
     expect(dto.notesAlerte).toEqual([note]);
   });
@@ -102,11 +108,19 @@ describe('versClientResponse', () => {
 
 describe('versClientResume', () => {
   it('ne projette que les champs de synthèse, avec nomAffiche calculé, et le téléphone de la fiche', () => {
-    const resume = versClientResume(ligneClient({ raisonSociale: null, nom: 'Muster', prenom: 'Hans', telephone: '021 123 45 67' }), {
-      localite: null,
-      nombreVehicules: 0,
-      dernierPassageLe: null,
-    });
+    const resume = versClientResume(
+      ligneClient({
+        raisonSociale: null,
+        nom: 'Muster',
+        prenom: 'Hans',
+        telephone: '021 123 45 67',
+      }),
+      {
+        localite: null,
+        nombreVehicules: 0,
+        dernierPassageLe: null,
+      },
+    );
     expect(resume).toEqual({
       id: 'c1',
       numeroClient: 'CL-000001',
@@ -123,7 +137,11 @@ describe('versClientResume', () => {
   });
 
   it("un client sans adresse ni véhicule ressort avec localite: null et nombreVehicules: 0 — jamais exclu (pas d'INNER JOIN malencontreux)", () => {
-    const resume = versClientResume(ligneClient(), { localite: null, nombreVehicules: 0, dernierPassageLe: null });
+    const resume = versClientResume(ligneClient(), {
+      localite: null,
+      nombreVehicules: 0,
+      dernierPassageLe: null,
+    });
     expect(resume.localite).toBeNull();
     expect(resume.nombreVehicules).toBe(0);
   });
@@ -143,7 +161,7 @@ describe('versClientResume', () => {
     'dernierPassageLe EN CHAÎNE (forme défensive gérée par `enDate()` : cette valeur vient du SQL ' +
       'brut de `ServiceClient.lister`, un LEFT JOIN LATERAL sur `ordre_reparation` exécuté via ' +
       '`tx.execute()` — le pilote pg y rend en fait un `Date`, mais `enDate()` accepte aussi une ' +
-      "chaîne si un chemin différent en rendait une un jour) est projetée en ISO sans planter. " +
+      'chaîne si un chemin différent en rendait une un jour) est projetée en ISO sans planter. ' +
       "Régression couverte : c'était exactement ce cas — un client réel avec au moins un OR — qui faisait " +
       'planter `GET /clients` en 500 (`extra.dernierPassageLe.toISOString is not a function`) alors que ' +
       "710 tests passaient, parce qu'ils simulaient tous un `Date` déjà construit.",
@@ -257,14 +275,18 @@ describe('versConditionResponse — RM-07 conditions datées', () => {
   });
 
   it('une période close conserve sa borne de fin exacte', () => {
-    const dto = versConditionResponse(ligneCondition({ valideDu: '2025-01-01', valideAu: '2025-12-31' }));
+    const dto = versConditionResponse(
+      ligneCondition({ valideDu: '2025-01-01', valideAu: '2025-12-31' }),
+    );
     expect(dto.valideDuLe).toBe('2025-01-01');
     expect(dto.valideAuLe).toBe('2025-12-31');
   });
 });
 
 describe('versConsentementResponse — RM-09 append-only', () => {
-  function ligneConsentement(champs: Partial<LigneClientConsentement> = {}): LigneClientConsentement {
+  function ligneConsentement(
+    champs: Partial<LigneClientConsentement> = {},
+  ): LigneClientConsentement {
     return {
       id: 'cs1',
       tenantId: 'tid',

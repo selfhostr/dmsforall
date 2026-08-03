@@ -17,13 +17,13 @@
 
 ## 1. Synthèse
 
-| Gravité | Nombre |
-|---|---|
-| Critique | **0** |
-| Élevée | **1** |
-| Moyenne | **3** |
-| Faible | **4** |
-| **Total** | **8** |
+| Gravité   | Nombre |
+| --------- | ------ |
+| Critique  | **0**  |
+| Élevée    | **1**  |
+| Moyenne   | **3**  |
+| Faible    | **4**  |
+| **Total** | **8**  |
 
 ### Verdict sur la seule question qui compte : un tenant peut-il lire ou écrire les données d'un autre ?
 
@@ -78,7 +78,7 @@ Ce qui **n'est pas** couvert par ce verdict et reste à traiter avant la mise en
   - `apps/api/src/auth/matrice-droits.ts:244-248` (`L962_KM_CORRECTION`), `:482-491` (`DROITS_TECHNICIEN`), `:462-473` (`DROITS_CHEF_ATELIER`)
 
 **Le problème.** La matrice §10 (ligne L962) réserve explicitement la correction d'un kilométrage à la
-baisse au chef d'atelier et à la direction — « réceptionnaire et technicien explicitement *non* ». Cette
+baisse au chef d'atelier et à la direction — « réceptionnaire et technicien explicitement _non_ ». Cette
 règle est bien codée sous forme d'action dédiée :
 
 ```ts
@@ -161,7 +161,7 @@ recopie sans nettoyage vers le client.
 **Scénario d'exploitation** — deux variantes, toutes deux atteignables par tout compte disposant de
 `client.modifier` (réceptionnaire, chef d'atelier, magasinier, direction, admin).
 
-*Variante A — provoquer une erreur du query-builder.*
+_Variante A — provoquer une erreur du query-builder._
 
 1. Un utilisateur au rôle `magasinier` envoie un `PATCH` au corps vide :
 
@@ -177,11 +177,11 @@ recopie sans nettoyage vers le client.
 4. `traduireViolationAdresse` ne reconnaît pas cette erreur et retombe sur la ligne 148 : réponse `500`
    dont le champ `detail` vaut `Error: No values to set`.
 
-*Variante B — extraire le nom d'une contrainte.* Même endpoint, avec un corps qui viole une contrainte
+_Variante B — extraire le nom d'une contrainte._ Même endpoint, avec un corps qui viole une contrainte
 `CHECK` ou une clé étrangère non traduite (par exemple un `pays` hors format ISO-2, ou un `type` d'adresse
 dont l'unicité partielle ne figure pas dans la liste des deux contraintes reconnues aux lignes 141-142).
-Le champ `detail` porte alors le texte PostgreSQL brut, du type : *new row for relation client_adresse
-violates check constraint client_adresse_npa_format_chk*.
+Le champ `detail` porte alors le texte PostgreSQL brut, du type : _new row for relation client_adresse
+violates check constraint client_adresse_npa_format_chk_.
 
 **Ce qu'il obtient.** Le nom réel des tables et des contraintes, énumérables une par une, et une
 cartographie du schéma que le contrat d'API ne devait pas exposer. Ce n'est pas une donnée personnelle
@@ -235,6 +235,7 @@ par tous les tenants.
 
    `q=a` passe le garde-fou de `service-recherche.ts:535` (il contient bien une lettre) et produit le
    motif `%a%` : correspondance quasi universelle, plus un scan séquentiel complet de `ordre_reparation`.
+
 3. Chaque requête occupe une connexion du pool jusqu'à `DATABASE_TIMEOUT_REQUETE_MS` (10 s par défaut).
    Avec `DATABASE_POOL_MAX = 10`, dix requêtes concurrentes suffisent à saturer le pool.
 
@@ -268,13 +269,13 @@ pnpm audit --audit-level=high
 # 16 vulnérabilités : 2 low | 6 moderate | 8 high
 ```
 
-| Paquet | Gravité | Avis | Chemin | Portée |
-|---|---|---|---|---|
-| `drizzle-orm` | high | GHSA-gpj5-g38j-94v9 — SQL injection via improperly escaped SQL identifiers (CWE-89), corrigé en `>=0.45.2` | `apps__api>drizzle-orm` | **production, API** |
-| `js-yaml` | high | GHSA-52cp-r559-cp3m, GHSA-pm4m-ph32-ghv5 — DoS de parsing | `apps__api>@nestjs/swagger>js-yaml` | production (Swagger) |
-| `undici` (x5) | high / moderate | plusieurs | `@testcontainers/postgresql>…` | **dev et test uniquement** |
-| `esbuild`, `uuid`, `brace-expansion` | moderate / high | plusieurs | `drizzle-kit`, `dockerode`, `eslint` | **dev uniquement** |
-| `react-router` | high | GHSA-qwww-vcr4-c8h2 — contournement CSRF en mode RSC | `apps__web>react-router` | hors périmètre (front) |
+| Paquet                               | Gravité         | Avis                                                                                                       | Chemin                               | Portée                     |
+| ------------------------------------ | --------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------ | -------------------------- |
+| `drizzle-orm`                        | high            | GHSA-gpj5-g38j-94v9 — SQL injection via improperly escaped SQL identifiers (CWE-89), corrigé en `>=0.45.2` | `apps__api>drizzle-orm`              | **production, API**        |
+| `js-yaml`                            | high            | GHSA-52cp-r559-cp3m, GHSA-pm4m-ph32-ghv5 — DoS de parsing                                                  | `apps__api>@nestjs/swagger>js-yaml`  | production (Swagger)       |
+| `undici` (x5)                        | high / moderate | plusieurs                                                                                                  | `@testcontainers/postgresql>…`       | **dev et test uniquement** |
+| `esbuild`, `uuid`, `brace-expansion` | moderate / high | plusieurs                                                                                                  | `drizzle-kit`, `dockerode`, `eslint` | **dev uniquement**         |
+| `react-router`                       | high            | GHSA-qwww-vcr4-c8h2 — contournement CSRF en mode RSC                                                       | `apps__web>react-router`             | hors périmètre (front)     |
 
 **Honnêteté sur l'exploitabilité.** L'avis `drizzle-orm` porte sur l'échappement des **identifiants** SQL
 (noms de table et de colonne). J'ai cherché activement un chemin où un identifiant proviendrait de
@@ -309,7 +310,7 @@ update public.compteur_document
 
 **Le problème.** C'est la seule requête d'écriture du lot 1 qui ne porte pas `tenant_id = ...` dans son
 `WHERE`. La doctrine du projet est explicite : « les requêtes applicatives scopent aussi explicitement (le
-RLS est le filet, pas le mécanisme) ». Ici le mécanisme *est* le RLS.
+RLS est le filet, pas le mécanisme) ». Ici le mécanisme _est_ le RLS.
 
 **Pourquoi ce n'est pas exploitable aujourd'hui** — et je le dis plutôt que de gonfler le finding : le
 `ligne.id` utilisé provient du `select … for update` immédiatement au-dessus (lignes 22-30), qui est, lui,
@@ -328,7 +329,7 @@ d'une seule couche.
 
 ### F-02 — Swagger est monté hors du graphe de guards Nest
 
-- **Gravité : faible** (résiduel — le défaut de configuration est déjà *fail-closed*)
+- **Gravité : faible** (résiduel — le défaut de configuration est déjà _fail-closed_)
 - **Statut : lu dans le code, comportement déjà documenté et traité**
 - **Fichiers** : `apps/api/src/main.ts:128-134`, `apps/api/src/config/charger-config.ts:70-79`
 
@@ -453,13 +454,13 @@ select 'autre_tenant', count(*) from public.client;
 rollback;"
 ```
 
-| Cas | `client` | `vehicule` | `ordre_reparation` |
-|---|---|---|---|
-| aucun contexte tenant posé | **0** | — | — |
-| tenant réel du seed | **3** | — | — |
-| autre tenant | **0** | **0** | **0** |
+| Cas                        | `client` | `vehicule` | `ordre_reparation` |
+| -------------------------- | -------- | ---------- | ------------------ |
+| aucun contexte tenant posé | **0**    | —          | —                  |
+| tenant réel du seed        | **3**    | —          | —                  |
+| autre tenant               | **0**    | **0**      | **0**              |
 
-Le comportement *fail-closed* sans GUC est confirmé : une requête qui perdrait son contexte ne rend rien,
+Le comportement _fail-closed_ sans GUC est confirmé : une requête qui perdrait son contexte ne rend rien,
 jamais tout.
 
 **Isolation en écriture (`WITH CHECK`) — prouvée :**
@@ -655,16 +656,16 @@ Ces points concernent du code en cours d'écriture pendant l'audit. Ils ne sont 
 
 ## 6. Récapitulatif des findings
 
-| Réf | Gravité | Titre | Fichier principal |
-|---|---|---|---|
-| **É-01** | **élevée** | Correction de kilométrage à la baisse ouverte à tout rôle pouvant saisir | `apps/api/src/vehicules/vehicule-kilometrage.controller.ts:43` |
-| **F-01** | moyenne | Internes de la base exposés dans `detail`, et `500` sur un `PATCH` au corps vide | `apps/api/src/clients/service-client-sous-collections.ts:148` et `:301` |
-| **D-01** | moyenne | Aucune limitation de débit hors authentification ; `/recherche` provoque un scan complet | `apps/api/src/main.ts` et `apps/api/src/recherche/service-recherche.ts:467` |
-| **DEP-01** | moyenne | `drizzle-orm@0.44.7` — GHSA-gpj5-g38j-94v9 (exploitabilité non démontrée ici) | `apps/api/package.json` |
-| **N-01** | faible | `compteur_document` : `UPDATE` sans rescope tenant explicite | `apps/api/src/parametrage/compteurs/service-compteurs.ts:36` |
-| **F-02** | faible | Swagger hors du graphe de guards (défaut déjà fail-closed) | `apps/api/src/main.ts:128` |
-| **H-01** | faible | Ni HSTS, ni CSP, ni `X-Frame-Options` | `apps/api/src/main.ts:114` |
-| **R-01** | faible | Violations de clé étrangère inter-tenant rendues en `500` | `apps/api/src/vehicules/service-vehicule-detention.ts:214` |
+| Réf        | Gravité    | Titre                                                                                    | Fichier principal                                                           |
+| ---------- | ---------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **É-01**   | **élevée** | Correction de kilométrage à la baisse ouverte à tout rôle pouvant saisir                 | `apps/api/src/vehicules/vehicule-kilometrage.controller.ts:43`              |
+| **F-01**   | moyenne    | Internes de la base exposés dans `detail`, et `500` sur un `PATCH` au corps vide         | `apps/api/src/clients/service-client-sous-collections.ts:148` et `:301`     |
+| **D-01**   | moyenne    | Aucune limitation de débit hors authentification ; `/recherche` provoque un scan complet | `apps/api/src/main.ts` et `apps/api/src/recherche/service-recherche.ts:467` |
+| **DEP-01** | moyenne    | `drizzle-orm@0.44.7` — GHSA-gpj5-g38j-94v9 (exploitabilité non démontrée ici)            | `apps/api/package.json`                                                     |
+| **N-01**   | faible     | `compteur_document` : `UPDATE` sans rescope tenant explicite                             | `apps/api/src/parametrage/compteurs/service-compteurs.ts:36`                |
+| **F-02**   | faible     | Swagger hors du graphe de guards (défaut déjà fail-closed)                               | `apps/api/src/main.ts:128`                                                  |
+| **H-01**   | faible     | Ni HSTS, ni CSP, ni `X-Frame-Options`                                                    | `apps/api/src/main.ts:114`                                                  |
+| **R-01**   | faible     | Violations de clé étrangère inter-tenant rendues en `500`                                | `apps/api/src/vehicules/service-vehicule-detention.ts:214`                  |
 
 ### Verdict de mise en production
 

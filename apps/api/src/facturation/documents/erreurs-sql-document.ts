@@ -45,29 +45,41 @@ function transitionsPossibles(hint: string | null): readonly string[] {
  * interdite POUR CE `type_document`. Rend `null` si `erreur` n'est pas ce cas précis : l'appelant
  * retombe sur son traitement générique.
  */
-export function traduireErreurTransitionDocument(erreur: unknown, documentId: string, numero: string | null): ErreurMetier | null {
-  if (!estErreurPg(erreur) || erreur.code !== 'ZDFA1' || erreur.table !== 'document_vente') return null;
+export function traduireErreurTransitionDocument(
+  erreur: unknown,
+  documentId: string,
+  numero: string | null,
+): ErreurMetier | null {
+  if (!estErreurPg(erreur) || erreur.code !== 'ZDFA1' || erreur.table !== 'document_vente')
+    return null;
   if (typeof erreur.detail !== 'string') return null;
 
-  const correspondance = /^entite=document_vente;entite_id=([^;]+);type_document=([^;]+);depuis=([^;]+);vers=([^;]+)$/.exec(erreur.detail);
+  const correspondance =
+    /^entite=document_vente;entite_id=([^;]+);type_document=([^;]+);depuis=([^;]+);vers=([^;]+)$/.exec(
+      erreur.detail,
+    );
   if (!correspondance) return null;
   const [, , typeDocument, depuis, vers] = correspondance;
 
   const hint = typeof erreur.hint === 'string' ? erreur.hint : null;
   const estTerminal = hint !== null && MOTIF_HINT_TERMINAL.test(hint);
 
-  return new ErreurMetier('DOCUMENT_TRANSITION_INTERDITE', `Transition ${String(depuis)} → ${String(vers)} interdite pour un document « ${String(typeDocument)} ».`, {
-    detail: `type_document=${String(typeDocument)};depuis=${String(depuis)};vers=${String(vers)}`,
-    blocages: [
-      {
-        type: 'document_vente',
-        id: documentId,
-        libelle: numero ?? documentId,
-        donnees: { statutActuel: depuis, statutDemande: vers, typeDocument },
-      },
-    ],
-    actionsProposees: estTerminal ? [] : [{ code: 'RAFRAICHIR' }],
-  });
+  return new ErreurMetier(
+    'DOCUMENT_TRANSITION_INTERDITE',
+    `Transition ${String(depuis)} → ${String(vers)} interdite pour un document « ${String(typeDocument)} ».`,
+    {
+      detail: `type_document=${String(typeDocument)};depuis=${String(depuis)};vers=${String(vers)}`,
+      blocages: [
+        {
+          type: 'document_vente',
+          id: documentId,
+          libelle: numero ?? documentId,
+          donnees: { statutActuel: depuis, statutDemande: vers, typeDocument },
+        },
+      ],
+      actionsProposees: estTerminal ? [] : [{ code: 'RAFRAICHIR' }],
+    },
+  );
 }
 
 /**
@@ -75,33 +87,55 @@ export function traduireErreurTransitionDocument(erreur: unknown, documentId: st
  * `DOCUMENT_VERROUILLE`. Rendre l'erreur COMPRÉHENSIBLE, jamais contourner le verrou lui-même
  * (consigne explicite de la tâche : le trigger fait foi).
  */
-export function traduireErreurVerrouillage(erreur: unknown, documentId: string, numero: string | null): ErreurMetier | null {
+export function traduireErreurVerrouillage(
+  erreur: unknown,
+  documentId: string,
+  numero: string | null,
+): ErreurMetier | null {
   if (!estErreurPg(erreur) || erreur.code !== 'ZDFA2') return null;
   if (erreur.table !== 'document_vente' && erreur.table !== 'ligne_document') return null;
-  if (typeof erreur.detail !== 'string' || !erreur.detail.includes('code=document_verrouille')) return null;
+  if (typeof erreur.detail !== 'string' || !erreur.detail.includes('code=document_verrouille'))
+    return null;
 
-  return new ErreurMetier('DOCUMENT_VERROUILLE', 'Ce document est émis : il est verrouillé et ne peut plus être modifié (MD-20). Seul un avoir permet une correction.', {
-    detail: erreur.detail,
-    blocages: [{ type: 'document_vente', id: documentId, libelle: numero ?? documentId }],
-    actionsProposees: [{ code: 'RAFRAICHIR' }],
-  });
+  return new ErreurMetier(
+    'DOCUMENT_VERROUILLE',
+    'Ce document est émis : il est verrouillé et ne peut plus être modifié (MD-20). Seul un avoir permet une correction.',
+    {
+      detail: erreur.detail,
+      blocages: [{ type: 'document_vente', id: documentId, libelle: numero ?? documentId }],
+      actionsProposees: [{ code: 'RAFRAICHIR' }],
+    },
+  );
 }
 
 /** `ZDFA5` (`document_vente_verifier_periode`, 0010 §7.3) — émission refusée, période comptable
  *  close pour `date_document` (`MD-34`). */
-export function traduireErreurPeriodeClose(erreur: unknown, documentId: string, numero: string | null): ErreurMetier | null {
-  if (!estErreurPg(erreur) || erreur.code !== 'ZDFA5' || erreur.table !== 'document_vente') return null;
+export function traduireErreurPeriodeClose(
+  erreur: unknown,
+  documentId: string,
+  numero: string | null,
+): ErreurMetier | null {
+  if (!estErreurPg(erreur) || erreur.code !== 'ZDFA5' || erreur.table !== 'document_vente')
+    return null;
 
-  return new ErreurMetier('DOCUMENT_PERIODE_CLOSE', 'La période comptable de la date du document est close (MD-34) : émission refusée.', {
-    detail: typeof erreur.detail === 'string' ? erreur.detail : undefined,
-    blocages: [{ type: 'document_vente', id: documentId, libelle: numero ?? documentId }],
-    actionsProposees: [{ code: 'RAFRAICHIR' }],
-  });
+  return new ErreurMetier(
+    'DOCUMENT_PERIODE_CLOSE',
+    'La période comptable de la date du document est close (MD-34) : émission refusée.',
+    {
+      detail: typeof erreur.detail === 'string' ? erreur.detail : undefined,
+      blocages: [{ type: 'document_vente', id: documentId, libelle: numero ?? documentId }],
+      actionsProposees: [{ code: 'RAFRAICHIR' }],
+    },
+  );
 }
 
 /** Essaie les trois traducteurs dans l'ordre ; rend `null` si aucun ne reconnaît l'erreur (relancer
  *  telle quelle est alors la bonne réponse). */
-export function traduireErreurDocument(erreur: unknown, documentId: string, numero: string | null): ErreurMetier | null {
+export function traduireErreurDocument(
+  erreur: unknown,
+  documentId: string,
+  numero: string | null,
+): ErreurMetier | null {
   return (
     traduireErreurTransitionDocument(erreur, documentId, numero) ??
     traduireErreurVerrouillage(erreur, documentId, numero) ??

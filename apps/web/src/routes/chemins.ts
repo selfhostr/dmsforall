@@ -5,7 +5,10 @@
  * conserve donc le site courant plutôt que de le perdre à la navigation.
  */
 
-function construireChemin(base: string, parametres: Record<string, string | undefined> = {}): string {
+function construireChemin(
+  base: string,
+  parametres: Record<string, string | undefined> = {},
+): string {
   const recherche = new URLSearchParams();
   for (const [cle, valeur] of Object.entries(parametres)) {
     if (valeur !== undefined && valeur !== '') {
@@ -63,9 +66,11 @@ export const chemins = {
   pieces: {
     rechercheComptoir: (site?: string) => construireChemin('/pieces/recherche-comptoir', { site }),
     articles: (site?: string) => construireChemin('/pieces/articles', { site }),
-    articleDetail: (id: string, site?: string) => construireChemin(`/pieces/articles/${id}`, { site }),
+    articleDetail: (id: string, site?: string) =>
+      construireChemin(`/pieces/articles/${id}`, { site }),
     reservations: (site?: string) => construireChemin('/pieces/reservations', { site }),
-    reapprovisionnement: (site?: string) => construireChemin('/pieces/reapprovisionnement', { site }),
+    reapprovisionnement: (site?: string) =>
+      construireChemin('/pieces/reapprovisionnement', { site }),
     /** Commandes fournisseur — ressources par TENANT (pas de `?site=` : ni la liste ni la fiche
      *  d'une commande fournisseur ne se filtrent par site dans les écrans livrés). */
     commandesFournisseur: {

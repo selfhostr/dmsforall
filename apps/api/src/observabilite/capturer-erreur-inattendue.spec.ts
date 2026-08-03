@@ -10,7 +10,9 @@ describe('capturerErreurInattendue', () => {
     const setTag = vi.fn();
     const captureException = vi.fn();
     const scope = { setTag };
-    const withScope = vi.fn((callback: (scope: { setTag: typeof setTag }) => void) => callback(scope));
+    const withScope = vi.fn((callback: (scope: { setTag: typeof setTag }) => void) =>
+      callback(scope),
+    );
 
     vi.doMock('@sentry/nestjs', () => ({ withScope, captureException }));
 
@@ -34,10 +36,12 @@ describe('capturerErreurInattendue', () => {
     expect(captureException).toHaveBeenCalledWith(exception);
   });
 
-  it('n\'envoie que requeteId quand le reste du contexte est absent (pas de tag pour un champ manquant)', async () => {
+  it("n'envoie que requeteId quand le reste du contexte est absent (pas de tag pour un champ manquant)", async () => {
     const setTag = vi.fn();
     const captureException = vi.fn();
-    const withScope = vi.fn((callback: (scope: { setTag: typeof setTag }) => void) => callback({ setTag }));
+    const withScope = vi.fn((callback: (scope: { setTag: typeof setTag }) => void) =>
+      callback({ setTag }),
+    );
 
     vi.doMock('@sentry/nestjs', () => ({ withScope, captureException }));
 
@@ -63,7 +67,9 @@ describe('capturerErreurInattendue', () => {
 
   it('ne lève jamais si Sentry.captureException lève', async () => {
     const setTag = vi.fn();
-    const withScope = vi.fn((callback: (scope: { setTag: typeof setTag }) => void) => callback({ setTag }));
+    const withScope = vi.fn((callback: (scope: { setTag: typeof setTag }) => void) =>
+      callback({ setTag }),
+    );
     const captureException = vi.fn(() => {
       throw new Error('échec interne du SDK');
     });

@@ -424,11 +424,11 @@ export const schemaCreationAvoir = z
     path: ['motifAutre'],
   })
   .refine((v) => v.portee !== 'partiel' || v.lignes.length > 0, {
-    message: "Un avoir partiel exige au moins une ligne (RF-18).",
+    message: 'Un avoir partiel exige au moins une ligne (RF-18).',
     path: ['lignes'],
   })
   .refine((v) => v.portee !== 'total' || v.lignes.length === 0, {
-    message: "Un avoir total ne prend aucune ligne en entrée — il reprend tout (MD-23).",
+    message: 'Un avoir total ne prend aucune ligne en entrée — il reprend tout (MD-23).',
     path: ['lignes'],
   });
 

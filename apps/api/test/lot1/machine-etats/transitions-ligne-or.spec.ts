@@ -155,11 +155,13 @@ describe('ligne_or — transitions INTERDITES', () => {
       // Tri alphabétique (order by statut_vers) : a_valider < annulee < validee sous locale C.
       // « annulee » a rejoint la liste avec 0009 — ce hint est donc le témoin direct que le
       // référentiel a bien changé, pas seulement que la transition testée reste interdite.
-      expect(e.hint).toBe('Depuis « proposee », transitions autorisées : a_valider, annulee, validee.');
+      expect(e.hint).toBe(
+        'Depuis « proposee », transitions autorisées : a_valider, annulee, validee.',
+      );
     }
   });
 
-  it("refusee → annulee reste refusée (0009 ne touche pas refusee : un refus client se rouvre via a_valider, jamais en annulation directe)", async () => {
+  it('refusee → annulee reste refusée (0009 ne touche pas refusee : un refus client se rouvre via a_valider, jamais en annulation directe)', async () => {
     const ligne = await nouvelleLigne(12);
     await transitionnerLigne(garage.tenantA.tenant.id, ligne.id, 'a_valider');
     await transitionnerLigne(garage.tenantA.tenant.id, ligne.id, 'refusee');

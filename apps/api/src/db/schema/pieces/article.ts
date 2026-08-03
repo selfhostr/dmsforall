@@ -18,7 +18,12 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { colonneCreeLe, colonnesHorodatage, colonneId, colonneTenantId } from '../colonnes-communes';
+import {
+  colonneCreeLe,
+  colonnesHorodatage,
+  colonneId,
+  colonneTenantId,
+} from '../colonnes-communes';
 import { tenant } from '../tenant';
 import { categorieArticleEnum, statutArticleEnum, typeReferenceArticleEnum } from './enums';
 import { fournisseur } from './fournisseur';
@@ -70,9 +75,15 @@ export const article = pgTable(
     // article_fk_reference_remplacement (FK vers article_reference, 0022 §5) : non modélisée ici,
     // voir le commentaire de reference_remplacement_id ci-dessus (cycle de dépendance réel).
     check('article_designation_non_vide_chk', sql`length(btrim(${t.designation})) > 0`),
-    check('article_reference_principale_non_vide_chk', sql`length(btrim(${t.referencePrincipale})) > 0`),
+    check(
+      'article_reference_principale_non_vide_chk',
+      sql`length(btrim(${t.referencePrincipale})) > 0`,
+    ),
     check('article_prix_vente_chk', sql`${t.prixVenteTtcCentimes} >= 0`),
-    check('article_prix_achat_chk', sql`${t.prixAchatCentimes} is null or ${t.prixAchatCentimes} >= 0`),
+    check(
+      'article_prix_achat_chk',
+      sql`${t.prixAchatCentimes} is null or ${t.prixAchatCentimes} >= 0`,
+    ),
     check('article_taux_tva_chk', sql`${t.tauxTvaPourmille} between 0 and 1000`),
     check(
       'article_consigne_coherente_chk',

@@ -16,7 +16,13 @@ import { messageErreur } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
@@ -75,7 +81,16 @@ export function EcranListeArticles() {
     [q, categorie, statut, tri],
   );
 
-  const { articles, isPending, isError, error, refetch, hasNextPage, isFetchingNextPage, fetchNextPage } = useListeArticles(filtres);
+  const {
+    articles,
+    isPending,
+    isError,
+    error,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useListeArticles(filtres);
 
   const filtresStructuresActifs = categorie !== undefined || statut !== undefined;
   const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
@@ -94,14 +109,20 @@ export function EcranListeArticles() {
       rendu: (article) => (
         <div className="flex flex-col">
           <span className="font-medium">{article.designation}</span>
-          <span className="texte-libelle text-muted-foreground">{t('pieces:articles.numero', { numero: article.numeroArticle })}</span>
+          <span className="texte-libelle text-muted-foreground">
+            {t('pieces:articles.numero', { numero: article.numeroArticle })}
+          </span>
         </div>
       ),
     },
     {
       id: 'reference',
       libelle: t('pieces:articles.liste.colonnes.reference'),
-      rendu: (article) => <span className="font-mono texte-libelle text-muted-foreground">{article.referencePrincipale}</span>,
+      rendu: (article) => (
+        <span className="font-mono texte-libelle text-muted-foreground">
+          {article.referencePrincipale}
+        </span>
+      ),
     },
     {
       id: 'categorie',
@@ -111,22 +132,37 @@ export function EcranListeArticles() {
     {
       id: 'statut',
       libelle: t('pieces:articles.liste.colonnes.statut'),
-      rendu: (article) => <Badge variant={VARIANTE_BADGE_STATUT[article.statut]}>{t(`pieces:articles.statuts.${article.statut}`)}</Badge>,
+      rendu: (article) => (
+        <Badge variant={VARIANTE_BADGE_STATUT[article.statut]}>
+          {t(`pieces:articles.statuts.${article.statut}`)}
+        </Badge>
+      ),
     },
     {
       id: 'prix',
       libelle: t('pieces:articles.liste.colonnes.prix'),
       alignement: 'droite',
-      rendu: (article) => <span className="tabular-nums">{formaterMontant(article.prixVenteTtcCentimes)}</span>,
+      rendu: (article) => (
+        <span className="tabular-nums">{formaterMontant(article.prixVenteTtcCentimes)}</span>
+      ),
     },
   ];
 
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
-    contenuVide = <EtatVideRecherche titre={t('pieces:articles.liste.titre')} description={t('pieces:articles.vide')} />;
+    contenuVide = (
+      <EtatVideRecherche
+        titre={t('pieces:articles.liste.titre')}
+        description={t('pieces:articles.vide')}
+      />
+    );
   } else if (filtresStructuresActifs) {
     contenuVide = (
-      <EtatVideFiltre titre={t('pieces:articles.liste.titre')} description={t('pieces:articles.vide')} onEffacerFiltres={effacerFiltres} />
+      <EtatVideFiltre
+        titre={t('pieces:articles.liste.titre')}
+        description={t('pieces:articles.vide')}
+        onEffacerFiltres={effacerFiltres}
+      />
     );
   } else {
     contenuVide = (
@@ -135,7 +171,9 @@ export function EcranListeArticles() {
         description={t('pieces:articles.vide')}
         action={
           peutEcrireArticle(role) ? (
-            <Button onClick={() => setFormulaireOuvert(true)}>{t('pieces:articles.actions.ajouter')}</Button>
+            <Button onClick={() => setFormulaireOuvert(true)}>
+              {t('pieces:articles.actions.ajouter')}
+            </Button>
           ) : undefined
         }
       />
@@ -145,7 +183,9 @@ export function EcranListeArticles() {
   if (isPending) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:articles.liste.titre')}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t('pieces:articles.liste.titre')}
+        </h1>
         <EtatChargement lignes={6} />
       </div>
     );
@@ -154,7 +194,9 @@ export function EcranListeArticles() {
   if (isError) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:articles.liste.titre')}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t('pieces:articles.liste.titre')}
+        </h1>
         <EtatErreur
           titre={t('pieces:articles.liste.erreur.titre')}
           description={messageErreur(error, t)}
@@ -167,18 +209,35 @@ export function EcranListeArticles() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:articles.liste.titre')}</h1>
-        {peutEcrireArticle(role) ? <Button onClick={() => setFormulaireOuvert(true)}>{t('pieces:articles.actions.ajouter')}</Button> : null}
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t('pieces:articles.liste.titre')}
+        </h1>
+        {peutEcrireArticle(role) ? (
+          <Button onClick={() => setFormulaireOuvert(true)}>
+            {t('pieces:articles.actions.ajouter')}
+          </Button>
+        ) : null}
       </div>
 
-      <BarreFiltres q={qSaisie} onChangeQ={setQSaisie} filtresActifs={filtresActifs} onEffacerFiltres={effacerFiltres}>
+      <BarreFiltres
+        q={qSaisie}
+        onChangeQ={setQSaisie}
+        filtresActifs={filtresActifs}
+        onEffacerFiltres={effacerFiltres}
+      >
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="filtre-categorie">{t('pieces:articles.categorie')}</Label>
           <Select
             value={categorie ?? 'toutes'}
-            onValueChange={(valeur) => setCategorie(valeur === 'toutes' ? undefined : (valeur as CategorieArticle))}
+            onValueChange={(valeur) =>
+              setCategorie(valeur === 'toutes' ? undefined : (valeur as CategorieArticle))
+            }
           >
-            <SelectTrigger id="filtre-categorie" className="w-[200px]" aria-label={t('pieces:articles.categorie')}>
+            <SelectTrigger
+              id="filtre-categorie"
+              className="w-[200px]"
+              aria-label={t('pieces:articles.categorie')}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -193,8 +252,17 @@ export function EcranListeArticles() {
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="filtre-statut">{t('pieces:articles.statut')}</Label>
-          <Select value={statut ?? 'tous'} onValueChange={(valeur) => setStatut(valeur === 'tous' ? undefined : (valeur as StatutArticle))}>
-            <SelectTrigger id="filtre-statut" className="w-[180px]" aria-label={t('pieces:articles.statut')}>
+          <Select
+            value={statut ?? 'tous'}
+            onValueChange={(valeur) =>
+              setStatut(valeur === 'tous' ? undefined : (valeur as StatutArticle))
+            }
+          >
+            <SelectTrigger
+              id="filtre-statut"
+              className="w-[180px]"
+              aria-label={t('pieces:articles.statut')}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -225,7 +293,11 @@ export function EcranListeArticles() {
         contenuVide={contenuVide}
       />
 
-      <BoutonChargerPlus aChargerPlus={Boolean(hasNextPage)} enChargement={isFetchingNextPage} onChargerPlus={() => void fetchNextPage()} />
+      <BoutonChargerPlus
+        aChargerPlus={Boolean(hasNextPage)}
+        enChargement={isFetchingNextPage}
+        onChargerPlus={() => void fetchNextPage()}
+      />
 
       <FormulaireArticle
         ouvert={formulaireOuvert}

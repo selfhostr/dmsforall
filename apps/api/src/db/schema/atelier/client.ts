@@ -20,11 +20,23 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { colonnesHorodatage, colonneCreeLe, colonneId, colonneTenantId } from '../colonnes-communes';
+import {
+  colonnesHorodatage,
+  colonneCreeLe,
+  colonneId,
+  colonneTenantId,
+} from '../colonnes-communes';
 import { langueEnum } from '../enums';
 import { tenant } from '../tenant';
 import { utilisateur } from '../utilisateur';
-import { natureNoteEnum, roleContactEnum, statutClientEnum, typeAdresseEnum, typeClientEnum, typeConsentementEnum } from './enums';
+import {
+  natureNoteEnum,
+  roleContactEnum,
+  statutClientEnum,
+  typeAdresseEnum,
+  typeClientEnum,
+  typeConsentementEnum,
+} from './enums';
 
 export const client = pgTable(
   'client',
@@ -72,7 +84,10 @@ export const client = pgTable(
       'client_telephone_e164_chk',
       sql`${t.telephoneE164} is null or ${t.telephoneE164} ~ '^\+[1-9][0-9]{6,14}$'`,
     ),
-    check('client_ide_chk', sql`${t.ide} is null or ${t.ide} ~ '^CHE-[0-9]{3}\.[0-9]{3}\.[0-9]{3}$'`),
+    check(
+      'client_ide_chk',
+      sql`${t.ide} is null or ${t.ide} ~ '^CHE-[0-9]{3}\.[0-9]{3}\.[0-9]{3}$'`,
+    ),
     check(
       'client_fusionne_inactif_chk',
       sql`${t.fusionneVersClientId} is null or ${t.statut} = 'inactif'`,
@@ -176,7 +191,9 @@ export const clientConsentement = pgTable(
     clientId: uuid('client_id').notNull(),
     type: typeConsentementEnum('type').notNull(),
     accorde: boolean('accorde').notNull(),
-    recueilliLe: timestamp('recueilli_le', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+    recueilliLe: timestamp('recueilli_le', { withTimezone: true, mode: 'date' })
+      .notNull()
+      .defaultNow(),
     canal: text('canal'),
     preuve: jsonb('preuve'),
     creeLe: colonneCreeLe(),

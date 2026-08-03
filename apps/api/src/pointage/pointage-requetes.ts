@@ -27,7 +27,11 @@ export async function chargerPointagePourEcriture(
   return ligne;
 }
 
-export async function chargerPointageOuNull(tx: TransactionDfa, ctx: ContexteTenant, id: string): Promise<LignePointage | null> {
+export async function chargerPointageOuNull(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  id: string,
+): Promise<LignePointage | null> {
   const [ligne] = await tx
     .select()
     .from(pointage)
@@ -50,7 +54,13 @@ export async function chargerPointageOuvertTechnicien(
   const [ligne] = await tx
     .select()
     .from(pointage)
-    .where(and(eq(pointage.tenantId, ctx.tenantId), eq(pointage.technicienId, technicienId), eq(pointage.statut, 'en_cours')))
+    .where(
+      and(
+        eq(pointage.tenantId, ctx.tenantId),
+        eq(pointage.technicienId, technicienId),
+        eq(pointage.statut, 'en_cours'),
+      ),
+    )
     .limit(1)
     .for('update');
   return ligne ?? null;
@@ -74,5 +84,11 @@ export async function chargerPointagesPourAgregatLigne(
       dureeArrondieCentiemes: pointage.dureeArrondieCentiemes,
     })
     .from(pointage)
-    .where(and(eq(pointage.tenantId, ctx.tenantId), eq(pointage.ordreReparationId, ordreReparationId), isNotNull(pointage.ligneOrId)));
+    .where(
+      and(
+        eq(pointage.tenantId, ctx.tenantId),
+        eq(pointage.ordreReparationId, ordreReparationId),
+        isNotNull(pointage.ligneOrId),
+      ),
+    );
 }

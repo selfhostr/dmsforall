@@ -29,6 +29,9 @@ export type SchemaObjectOpenApi = Extract<ApiBodyOptions, { schema: unknown }>['
  * du résultat.
  */
 export function schemaZodVersOpenApi(schema: ZodType): SchemaObjectOpenApi {
-  const { $schema: _$schema, ...corps } = z.toJSONSchema(schema, { io: 'input', reused: 'inline' }) as Record<string, unknown>;
+  const { $schema: _$schema, ...corps } = z.toJSONSchema(schema, {
+    io: 'input',
+    reused: 'inline',
+  }) as Record<string, unknown>;
   return corps as SchemaObjectOpenApi;
 }

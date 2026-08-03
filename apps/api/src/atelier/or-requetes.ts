@@ -57,7 +57,11 @@ export async function chargerOrPourEcriture(
   return ligne;
 }
 
-export async function chargerOr(tx: TransactionDfa, ctx: ContexteTenant, orId: string): Promise<LigneOrdreReparation> {
+export async function chargerOr(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  orId: string,
+): Promise<LigneOrdreReparation> {
   const ligne = await chargerOrOuNull(tx, ctx, orId, false);
   if (!ligne) {
     throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Ordre de réparation ${orId} introuvable.`);
@@ -107,7 +111,13 @@ export async function chargerLignesPourEcriture(
   return tx
     .select()
     .from(ligneOr)
-    .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.ordreReparationId, orId), inArray(ligneOr.id, ligneIds)))
+    .where(
+      and(
+        eq(ligneOr.tenantId, ctx.tenantId),
+        eq(ligneOr.ordreReparationId, orId),
+        inArray(ligneOr.id, ligneIds),
+      ),
+    )
     .for('update');
 }
 
@@ -120,10 +130,19 @@ export async function chargerLigneOrPourEcriture(
   const [ligne] = await tx
     .select()
     .from(ligneOr)
-    .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.ordreReparationId, orId), eq(ligneOr.id, ligneId)))
+    .where(
+      and(
+        eq(ligneOr.tenantId, ctx.tenantId),
+        eq(ligneOr.ordreReparationId, orId),
+        eq(ligneOr.id, ligneId),
+      ),
+    )
     .for('update');
   if (!ligne) {
-    throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Ligne ${ligneId} introuvable sur l'OR ${orId}.`);
+    throw new ErreurMetier(
+      'RESSOURCE_INTROUVABLE',
+      `Ligne ${ligneId} introuvable sur l'OR ${orId}.`,
+    );
   }
   return ligne;
 }
@@ -136,7 +155,12 @@ export async function listerDemandesOr(
   return tx
     .select()
     .from(ordreReparationDemande)
-    .where(and(eq(ordreReparationDemande.tenantId, ctx.tenantId), eq(ordreReparationDemande.ordreReparationId, orId)))
+    .where(
+      and(
+        eq(ordreReparationDemande.tenantId, ctx.tenantId),
+        eq(ordreReparationDemande.ordreReparationId, orId),
+      ),
+    )
     .orderBy(asc(ordreReparationDemande.ordre));
 }
 
@@ -148,7 +172,12 @@ export async function listerDevisOr(
   return tx
     .select()
     .from(devisComplementaire)
-    .where(and(eq(devisComplementaire.tenantId, ctx.tenantId), eq(devisComplementaire.ordreReparationId, orId)))
+    .where(
+      and(
+        eq(devisComplementaire.tenantId, ctx.tenantId),
+        eq(devisComplementaire.ordreReparationId, orId),
+      ),
+    )
     .orderBy(asc(devisComplementaire.numeroOrdre));
 }
 
@@ -160,7 +189,12 @@ export async function listerLignesDevis(
   return tx
     .select()
     .from(devisComplementaireLigne)
-    .where(and(eq(devisComplementaireLigne.tenantId, ctx.tenantId), eq(devisComplementaireLigne.devisComplementaireId, devisId)));
+    .where(
+      and(
+        eq(devisComplementaireLigne.tenantId, ctx.tenantId),
+        eq(devisComplementaireLigne.devisComplementaireId, devisId),
+      ),
+    );
 }
 
 /** Verrouille et rend un devis complémentaire, ou lève `RESSOURCE_INTROUVABLE` — point d'entrée
@@ -184,7 +218,10 @@ export async function chargerDevisPourEcriture(
     )
     .for('update');
   if (!ligne) {
-    throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Devis complémentaire ${devisId} introuvable sur l'OR ${orId}.`);
+    throw new ErreurMetier(
+      'RESSOURCE_INTROUVABLE',
+      `Devis complémentaire ${devisId} introuvable sur l'OR ${orId}.`,
+    );
   }
   return ligne;
 }
@@ -197,6 +234,11 @@ export async function chargerControleQualite(
   const lignes = await tx
     .select()
     .from(orControleQualite)
-    .where(and(eq(orControleQualite.tenantId, ctx.tenantId), eq(orControleQualite.ordreReparationId, orId)));
+    .where(
+      and(
+        eq(orControleQualite.tenantId, ctx.tenantId),
+        eq(orControleQualite.ordreReparationId, orId),
+      ),
+    );
   return lignes.at(-1) ?? null;
 }

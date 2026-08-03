@@ -6,7 +6,11 @@ export class PageSiteResumeDto implements PageCurseur<SiteResumeDto> {
   @ApiProperty({ type: () => [SiteResumeDto] })
   readonly donnees!: readonly SiteResumeDto[];
 
-  @ApiProperty({ type: String, nullable: true, description: 'Opaque base64url ; null = fin de liste.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Opaque base64url ; null = fin de liste.',
+  })
   readonly curseurSuivant!: string | null;
 
   @ApiProperty({ example: 50 })

@@ -65,7 +65,11 @@ export function AvertissementConfirmable({
           <DialogClose asChild>
             <Button variant="outline">{t('commun:actions.annuler')}</Button>
           </DialogClose>
-          <Button variant={destructif ? 'destructive' : 'default'} disabled={enCours} onClick={onConfirmer}>
+          <Button
+            variant={destructif ? 'destructive' : 'default'}
+            disabled={enCours}
+            onClick={onConfirmer}
+          >
             {libelleConfirmation}
           </Button>
         </DialogFooter>

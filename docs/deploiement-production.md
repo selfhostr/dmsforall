@@ -85,6 +85,7 @@ Points structurants, tous déjà actés dans le code livré et repris tels quels
   côté schéma zod de l'API, et adresse de site utilisée telle quelle dans le Caddyfile généré par
   `docker-compose.yml` — une valeur incohérente (`/` final, port explicite superflu) casse
   les deux à la fois. Voir §3.6.
+
 - **Postgres et Redis sont désormais des conteneurs de ce même fichier `docker-compose.yml`,
   sur le même hôte que l'API** — pas des services externes. C'est le changement structurant par
   rapport à une hypothèse d'hébergement managé : tout le cycle de vie (versions, tuning, volumes,
@@ -293,6 +294,7 @@ Postgres tourne dans le conteneur `postgres` de `docker-compose.yml`, sur le mê
    `POSTGRES_PASSWORD` du conteneur, jamais utilisé par l'API mais capable de tout (voir la note
    dans `docker-compose.yml`). `dfa` n'est jamais concerné par le filet `VALID UNTIL`
    (réservé à `dfa_migrator`/`dfa_app`, voir `01-roles.sql`), donc rien à lever pour ce rôle.
+
 3. Les tables, politiques RLS et fonctions `SECURITY DEFINER` du schéma `amorcage` sont posées
    par les migrations (§6), pas par `01-roles.sql` — ce script se limite au provisionnement des
    rôles.
@@ -355,7 +357,7 @@ déjà couvert par `.env.*` dans `.gitignore`) avec :
 
 - **Toutes** les variables de `.env.example` (le schéma zod de `apps/api/src/config` les valide
   au démarrage — une valeur manquante fait échouer le conteneur `api` immédiatement, `docker
-  compose logs api` en donne le détail précis, variable par variable), avec ces valeurs
+compose logs api` en donne le détail précis, variable par variable), avec ces valeurs
   spécifiques à la production :
   - `NODE_ENV=production` (redondant avec `docker-compose.yml`, qui le fixe aussi en
     défense en profondeur — voir le fichier)
@@ -363,7 +365,7 @@ déjà couvert par `.env.*` dans `.gitignore`) avec :
     `NODE_ENV=production` et `COOKIE_SECURE=false`)
   - `OPENAPI_EXPOSER_DOCS=false` (défaut déjà `false` — ne pas l'activer en production sans
     raison précise et temporaire : Swagger est monté hors du graphe Nest, donc hors de l'`APP_
-    GUARD` d'authentification, voir le commentaire de la variable dans `.env.example`)
+GUARD` d'authentification, voir le commentaire de la variable dans `.env.example`)
   - `TRUST_PROXY_HOPS=1` — Caddy (`reverse-proxy`) est l'unique reverse proxy entre Internet et
     le conteneur `api`. Une valeur incorrecte casse soit la limitation de débit par IP (réglée
     trop bas, tous les tenants partagent une seule clé), soit la protection anti-usurpation
@@ -428,7 +430,7 @@ plus délicat à opérer correctement en conteneur). Procédure minimale sûre p
    les identifiants publiés dans le dépôt. Réutiliser les mêmes valeurs fortes déjà présentes dans
    `.env.production` (pas besoin d'en générer de nouvelles, ni de modifier `.env.production`) : la
    procédure du §3.2 les reporte via `\password`, puis lève l'expiration (`valid until
-   'infinity'`).
+'infinity'`).
 4. `pg_restore` la sauvegarde dedans, faire tourner les vérifications applicatives de base (§7.2)
    — impossible avant l'étape précédente : sans rotation, les identifiants de `.env.production`
    ne correspondent à aucun rôle valide sur ce conteneur tout juste initialisé.
@@ -440,7 +442,7 @@ plus délicat à opérer correctement en conteneur). Procédure minimale sûre p
 ## 4. Première mise en production, pas à pas
 
 Une fois §2 et §3 complétés (serveur choisi et préparé, images publiées, DNS résolu,
-`.env.production` rempli avec des mots de passe *provisoires* de dev pour Postgres/Redis à ce
+`.env.production` rempli avec des mots de passe _provisoires_ de dev pour Postgres/Redis à ce
 stade — ils seront changés à l'étape 2 ci-dessous) :
 
 ```bash
@@ -546,12 +548,13 @@ Workflow normal une fois la première mise en production faite :
    secondes) le temps que le nouveau conteneur `api`/`web` démarre et passe `healthy` — accepté
    sciemment pour une stack Compose à instance unique (philosophie : pas de bascule bleu/vert
    tant qu'aucune contrainte réelle ne l'impose).
+
 5. Vérifier `GET /api/v1/sante` et `/pret`, surveiller Sentry et les logs quelques minutes (§9).
 
 **Migrations : qui, quand, et un échec à mi-parcours.**
 
 Toujours via le service `migrate`, jamais automatiquement au démarrage de `api`. C'est
-volontaire : si les migrations échouent, on veut que le déploiement s'arrête *avant* de toucher
+volontaire : si les migrations échouent, on veut que le déploiement s'arrête _avant_ de toucher
 aux conteneurs `api` en production — les anciens conteneurs continuent de tourner et de servir du
 trafic, intacts, puisque l'étape 4 n'a simplement jamais lieu. Une migration ratée bloque un
 déploiement, elle ne cause jamais de coupure de service par elle-même.
@@ -707,7 +710,7 @@ accès) :
   `postgres` local plutôt qu'une instance managée. Rotation sans coupure prolongée :
   1. Comme au §3.2 : **jamais** `psql -c "alter role ... password '<...>'"` (le secret
      transiterait en clair par l'argument de la commande — historique shell, `ps aux`, `docker
-     inspect`, journal d'audit Docker). Ouvrir une session interactive et utiliser `\password` :
+inspect`, journal d'audit Docker). Ouvrir une session interactive et utiliser `\password` :
      ```bash
      docker compose -f docker-compose.yml --env-file .env.production \
        exec postgres psql -U dfa -d dfa_prod
@@ -732,6 +735,7 @@ accès) :
   vérifier avec `echo $HISTCONTROL`, sinon `export HISTCONTROL=ignorespace` en tête de session)
   n'enregistrent alors pas la ligne dans l'historique — dernier filet, pas un substitut à éviter
   le secret en argument en premier lieu.
+
 - **`REDIS_PASSWORD`** : même procédure — `docker compose ... up -d redis api` avec la nouvelle
   valeur dans `.env.production` et dans `REDIS_URL`.
 - **Clé de chiffrement des sauvegardes** (`age`/GPG) : en cas de rotation, re-chiffrer au moins la
@@ -756,7 +760,7 @@ sa place — espace disque, santé du disque, charge du serveur.
   `LOG_NIVEAU`) et côté front (nginx, `access_log`/`error_log` vers stdout/stderr — voir
   `apps/web/nginx.conf`). `docker-compose.yml` route tout vers le driver `json-file` avec
   rotation (`max-size: 10m`, `max-file: 5`) : `docker compose -f docker-compose.yml logs -f
-  api` (ou `web`, `postgres`, `redis`, `reverse-proxy`) reste la première commande à taper en cas
+api` (ou `web`, `postgres`, `redis`, `reverse-proxy`) reste la première commande à taper en cas
   d'incident. Postgres journalise en plus toute requête de plus d'1 seconde
   (`log_min_duration_statement=1000`, voir `docker-compose.yml`) — tout le monitoring de
   requêtes lentes dont ce projet a besoin au stade actuel, sans outil supplémentaire.
@@ -801,7 +805,7 @@ docker compose -f docker-compose.yml --env-file .env.production \
 ```
 
 **Et les migrations déjà appliquées ?** Elles ne sont **pas** annulées automatiquement, et c'est
-volontaire : le projet impose que toute migration soit écrite en *expand/contract*, jamais
+volontaire : le projet impose que toute migration soit écrite en _expand/contract_, jamais
 destructive (règle non négociable, voir `CONTRIBUTING.md`). Concrètement, une migration déjà passée en
 production est censée être **compatible avec l'ancienne version du code** qu'on est en train de
 redéployer — une colonne ajoutée reste nullable ou avec une valeur par défaut tant que le code qui
@@ -843,7 +847,7 @@ s'arrête et qu'on réfléchisse, pas une commande qu'on tape par réflexe à 2h
   initialisé** — comportement standard de `docker-entrypoint-initdb.d/`, identique en dev
   (`docs/deploiement-local.md`) et en prod maintenant que Postgres est conteneurisé ici aussi. Sur
   un volume `dfa_postgres_data` déjà initialisé, il faut soit l'exécuter à la main (`docker
-  compose exec postgres psql -U dfa -d dfa_prod -f -` en lui passant le contenu du fichier), soit
+compose exec postgres psql -U dfa -d dfa_prod -f -` en lui passant le contenu du fichier), soit
   repartir d'un volume vide (`docker compose down -v` — **destructif**, jamais sur une base qui
   contient déjà des données réelles sans sauvegarde vérifiée au préalable, voir §7).
 - **Tout volume Postgres neuf rejoue `01-roles.sql` et recrée `dfa_migrator`/`dfa_app` avec les
@@ -858,7 +862,7 @@ s'arrête et qu'on réfléchisse, pas une commande qu'on tape par réflexe à 2h
 - **Session psql manuelle depuis le serveur** : pas besoin d'exposer le port 5432 sur l'hôte pour
   ça (le fichier n'en publie volontairement aucun, voir §1) —
   `docker compose -f docker-compose.yml --env-file .env.production exec postgres psql -U
-  dfa -d dfa_prod`.
+dfa -d dfa_prod`.
 - **Un volume Docker nommé n'est pas chiffré par lui-même** (§2.4) — vérifier le chiffrement de
   la partition hôte avant le premier déploiement, pas après.
 - **CGNAT / IP dynamique / port 80 bloqué** peuvent silencieusement empêcher tout renouvellement

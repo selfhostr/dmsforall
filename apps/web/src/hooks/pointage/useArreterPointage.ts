@@ -38,7 +38,8 @@ export function useArreterPointage(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, entree, idempotencyKey }: VariablesArretPointage) => arreterPointage(id, entree, idempotencyKey),
+    mutationFn: ({ id, entree, idempotencyKey }: VariablesArretPointage) =>
+      arreterPointage(id, entree, idempotencyKey),
 
     onMutate: async ({ technicienId }) => {
       const cle = clesPointage.ouvertTechnicien(technicienId);
@@ -49,7 +50,10 @@ export function useArreterPointage(): UseMutationResult<
     },
 
     onError: (_erreur, { technicienId }, contexte) => {
-      queryClient.setQueryData(clesPointage.ouvertTechnicien(technicienId), contexte?.precedent ?? null);
+      queryClient.setQueryData(
+        clesPointage.ouvertTechnicien(technicienId),
+        contexte?.precedent ?? null,
+      );
     },
 
     onSuccess: (reponse) => {
@@ -58,7 +62,9 @@ export function useArreterPointage(): UseMutationResult<
 
     onSettled: (_reponse, _erreur, { technicienId, siteId }) => {
       void queryClient.invalidateQueries({ queryKey: ['pointages', 'liste'] });
-      void queryClient.invalidateQueries({ queryKey: ['pointages', 'technicienJour', technicienId] });
+      void queryClient.invalidateQueries({
+        queryKey: ['pointages', 'technicienJour', technicienId],
+      });
       void queryClient.invalidateQueries({ queryKey: clesPointage.ouvertsSite(siteId) });
     },
   });

@@ -13,7 +13,11 @@ interface VariablesAjoutLigne {
 
 /** `POST /documents-vente/{id}/lignes` — écran 2 §4.3 (rattrapage de la ligne de démontage
  *  proposée si elle n'a pas été ajoutée à l'écran 1). */
-export function useAjouterLigneDocument(): UseMutationResult<ReponseDocumentVente, unknown, VariablesAjoutLigne> {
+export function useAjouterLigneDocument(): UseMutationResult<
+  ReponseDocumentVente,
+  unknown,
+  VariablesAjoutLigne
+> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -32,11 +36,16 @@ interface VariablesSuppressionLigne {
 
 /** Retrait d'une ligne ajoutée par erreur en facturation (§4.3) — jamais une ligne recopiée d'un
  *  OR. Voir l'ÉCART SIGNALÉ dans `documents-vente.api.ts` (verbe HTTP supposé, non confirmé). */
-export function useSupprimerLigneDocument(): UseMutationResult<ReponseDocumentVente, unknown, VariablesSuppressionLigne> {
+export function useSupprimerLigneDocument(): UseMutationResult<
+  ReponseDocumentVente,
+  unknown,
+  VariablesSuppressionLigne
+> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ documentId, ligneId }: VariablesSuppressionLigne) => supprimerLigneDocument(documentId, ligneId),
+    mutationFn: ({ documentId, ligneId }: VariablesSuppressionLigne) =>
+      supprimerLigneDocument(documentId, ligneId),
     onSuccess: (document) => {
       queryClient.setQueryData(clesFacturation.documents.detail(document.id), document);
     },

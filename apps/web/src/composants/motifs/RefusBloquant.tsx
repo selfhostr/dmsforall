@@ -49,10 +49,13 @@ export function RefusBloquant({
 
   useEffect(() => {
     if (!aucuneSortie) return;
-    void signalerErreur(new Error(`RefusBloquant sans actionsProposees hors contexte terminal (${code})`), {
-      code,
-      nombreBlocages: blocages.length,
-    });
+    void signalerErreur(
+      new Error(`RefusBloquant sans actionsProposees hors contexte terminal (${code})`),
+      {
+        code,
+        nombreBlocages: blocages.length,
+      },
+    );
     // Signalé une seule fois par occurrence de refus (code+nombre de blocages) : un re-rendu du
     // même refus ne doit pas ré-émettre l'événement à chaque frappe.
   }, [aucuneSortie, code, blocages.length]);
@@ -60,11 +63,16 @@ export function RefusBloquant({
   return (
     <div
       role="alert"
-      className={cn('flex flex-col gap-3 rounded-md border border-statut-danger/40 bg-statut-danger/12 p-4', className)}
+      className={cn(
+        'flex flex-col gap-3 rounded-md border border-statut-danger/40 bg-statut-danger/12 p-4',
+        className,
+      )}
     >
       <div className="flex items-start gap-3">
         <Ban aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-statut-danger" />
-        <p className="flex-1 texte-corps font-medium text-foreground">{t(`erreurs:codes.${code}`)}</p>
+        <p className="flex-1 texte-corps font-medium text-foreground">
+          {t(`erreurs:codes.${code}`)}
+        </p>
       </div>
 
       {blocages.length > 0 ? (

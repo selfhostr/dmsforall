@@ -16,13 +16,24 @@ import { schemaModificationClient } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import { enDate, JETON_DB } from '../db';
-import { client, clientAdresse, clientCondition, clientNote, ordreReparation, vehiculeDetention } from '../db/schema';
+import {
+  client,
+  clientAdresse,
+  clientCondition,
+  clientNote,
+  ordreReparation,
+  vehiculeDetention,
+} from '../db/schema';
 import type { LigneClient, NouveauClient } from '../db/schema';
 import { CollecteurAvertissements } from '../common/avertissements';
 import { ErreurMetier } from '../common/erreurs';
 import { Horloge } from '../common/horloge';
 import { JETON_IDEMPOTENCE } from '../common/idempotence';
-import type { ReponseMemorisable, ResultatIdempotent, ServiceIdempotence } from '../common/idempotence';
+import type {
+  ReponseMemorisable,
+  ResultatIdempotent,
+  ServiceIdempotence,
+} from '../common/idempotence';
 import { PipeZod } from '../common/validation';
 import { JETON_COMPTEURS } from '../parametrage/compteurs/compteurs.jetons';
 import type { ServiceCompteurs } from '../parametrage/compteurs/compteurs.types';
@@ -123,19 +134,30 @@ export class ServiceClient {
     private readonly horloge: Horloge,
   ) {}
 
-  async lister(ctx: ContexteTenant, params: ParametresListeClients): Promise<PageCurseur<ClientResume>> {
+  async lister(
+    ctx: ContexteTenant,
+    params: ParametresListeClients,
+  ): Promise<PageCurseur<ClientResume>> {
     const definition = DEFINITIONS_TRI_CLIENTS[params.tri];
     const idExpr = sql`c.id`;
     const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
     // RM-... / §6.2 : défaut `actif`+`bloque` — un client bloqué reste visible au comptoir.
-    const statuts = params.statut && params.statut.length > 0 ? params.statut : (['actif', 'bloque'] as const);
+    const statuts =
+      params.statut && params.statut.length > 0 ? params.statut : (['actif', 'bloque'] as const);
 
     return this.acces.enTenant(ctx, async (tx) => {
-      const conditions = [sql`c.tenant_id = ${ctx.tenantId}`, sql`c.statut::text in (${sql.join(statuts.map((s) => sql`${s}`), sql`, `)})`];
+      const conditions = [
+        sql`c.tenant_id = ${ctx.tenantId}`,
+        sql`c.statut::text in (${sql.join(
+          statuts.map((s) => sql`${s}`),
+          sql`, `,
+        )})`,
+      ];
 
       if (params.type) conditions.push(sql`c.type = ${params.type}`);
       if (params.groupeId) conditions.push(sql`c.groupe_client_id = ${params.groupeId}`);
-      if (params.poObligatoire !== undefined) conditions.push(sql`c.po_obligatoire = ${params.poObligatoire}`);
+      if (params.poObligatoire !== undefined)
+        conditions.push(sql`c.po_obligatoire = ${params.poObligatoire}`);
       // `siteId` (P-30) : `client` ne porte aucune colonne de site — filtre ignoré au lot 1 (voir
       // le commentaire de `schemaFiltresClients.siteId`, `@dfa/shared` : « ignoré sinon »).
       if (params.q) {
@@ -150,7 +172,9 @@ export class ServiceClient {
         )`);
       }
       if (curseurDecode) {
-        conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
+        conditions.push(
+          construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id),
+        );
       }
 
       // Désambiguïsation comptoir (§ arbitrage L1-16bis) : `localite`, `nombreVehicules` et
@@ -222,7 +246,11 @@ export class ServiceClient {
         ),
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseurTrie({ tri: params.tri, valeur: valeurCurseurDepuisTri(definition, derniere.triValeur), id: derniere.id })
+            ? encoderCurseurTrie({
+                tri: params.tri,
+                valeur: valeurCurseurDepuisTri(definition, derniere.triValeur),
+                id: derniere.id,
+              })
             : null,
         limite: params.limite,
       };
@@ -322,7 +350,10 @@ export class ServiceClient {
         }
 
         // Fiche fraîchement créée : aucune note d'alerte ne peut encore exister pour elle.
-        return { statutHttp: 201, corps: collecteur.envelopper(versClientResponse(ligne, null, [])) };
+        return {
+          statutHttp: 201,
+          corps: collecteur.envelopper(versClientResponse(ligne, null, [])),
+        };
       },
     );
   }
@@ -347,7 +378,10 @@ export class ServiceClient {
     corpsBrut: Record<string, unknown>,
   ): Promise<ReponseAvecAvertissements<ReponseClient>> {
     if ('type' in corpsBrut) {
-      throw new ErreurMetier('CLIENT_TYPE_IMMUABLE', "Le type d'un client est figé après sa création (RM-01).");
+      throw new ErreurMetier(
+        'CLIENT_TYPE_IMMUABLE',
+        "Le type d'un client est figé après sa création (RM-01).",
+      );
     }
     const entree = new PipeZod(schemaModificationClient).transform(corpsBrut);
 
@@ -360,24 +394,31 @@ export class ServiceClient {
       if ('prenom' in entree) valeurs.prenom = entree.prenom ?? null;
       if ('raisonSociale' in entree) valeurs.raisonSociale = entree.raisonSociale ?? null;
       if ('ide' in entree) valeurs.ide = entree.ide ?? null;
-      if ('langueCorrespondance' in entree && entree.langueCorrespondance) valeurs.langue = entree.langueCorrespondance;
+      if ('langueCorrespondance' in entree && entree.langueCorrespondance)
+        valeurs.langue = entree.langueCorrespondance;
       if ('email' in entree) valeurs.email = entree.email ?? null;
       if ('telephone' in entree) {
         valeurs.telephone = entree.telephone ?? null;
         valeurs.telephoneE164 = normaliserTelephoneCh(entree.telephone ?? null);
       }
-      if ('poObligatoire' in entree && entree.poObligatoire !== undefined) valeurs.poObligatoire = entree.poObligatoire;
+      if ('poObligatoire' in entree && entree.poObligatoire !== undefined)
+        valeurs.poObligatoire = entree.poObligatoire;
       if ('groupeId' in entree) valeurs.groupeClientId = entree.groupeId ?? null;
       if ('referenceExterne' in entree) valeurs.referenceExterne = entree.referenceExterne ?? null;
 
       if (Object.keys(valeurs).length > 0) {
-        await tx.update(client).set(valeurs).where(and(eq(client.tenantId, ctx.tenantId), eq(client.id, clientId)));
+        await tx
+          .update(client)
+          .set(valeurs)
+          .where(and(eq(client.tenantId, ctx.tenantId), eq(client.id, clientId)));
       }
 
       const ligneMaj = await this.chargerOu404(tx, ctx, clientId);
       const dernierPassageLe = await this.dernierPassage(tx, ctx, clientId);
       const notesAlerte = await this.chargerNotesAlerte(tx, ctx, clientId);
-      return new CollecteurAvertissements().envelopper(versClientResponse(ligneMaj, dernierPassageLe, notesAlerte));
+      return new CollecteurAvertissements().envelopper(
+        versClientResponse(ligneMaj, dernierPassageLe, notesAlerte),
+      );
     });
   }
 
@@ -444,7 +485,10 @@ export class ServiceClient {
         );
       }
 
-      await tx.update(client).set({ statut: 'inactif' }).where(and(eq(client.tenantId, ctx.tenantId), eq(client.id, clientId)));
+      await tx
+        .update(client)
+        .set({ statut: 'inactif' })
+        .where(and(eq(client.tenantId, ctx.tenantId), eq(client.id, clientId)));
 
       // `client` ne porte aucune colonne « motif de désactivation » (GAP DE CONTRAT signalé en
       // réponse de tâche) : le motif est conservé sous forme de note interne plutôt que perdu.
@@ -459,13 +503,20 @@ export class ServiceClient {
       const ligneMaj = await this.chargerOu404(tx, ctx, clientId);
       const dernierPassageLe = await this.dernierPassage(tx, ctx, clientId);
       const notesAlerte = await this.chargerNotesAlerte(tx, ctx, clientId);
-      return new CollecteurAvertissements().envelopper(versClientResponse(ligneMaj, dernierPassageLe, notesAlerte));
+      return new CollecteurAvertissements().envelopper(
+        versClientResponse(ligneMaj, dernierPassageLe, notesAlerte),
+      );
     });
   }
 
-  async doublons(ctx: ContexteTenant, params: ParametresDoublonsClients): Promise<ReponseDoublonsClients> {
+  async doublons(
+    ctx: ContexteTenant,
+    params: ParametresDoublonsClients,
+  ): Promise<ReponseDoublonsClients> {
     return this.acces.enTenant(ctx, async (tx) => {
-      const telephoneE164 = params.telephoneMobile ? (normaliserTelephoneCh(params.telephoneMobile) ?? undefined) : undefined;
+      const telephoneE164 = params.telephoneMobile
+        ? (normaliserTelephoneCh(params.telephoneMobile) ?? undefined)
+        : undefined;
       const candidats = await detecterDoublons(tx, ctx.tenantId, {
         nomComplet: params.nom,
         npa: params.npa,
@@ -478,7 +529,11 @@ export class ServiceClient {
     });
   }
 
-  private async chargerOu404(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<LigneClient> {
+  private async chargerOu404(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    clientId: string,
+  ): Promise<LigneClient> {
     const lignes = await tx
       .select()
       .from(client)
@@ -499,7 +554,11 @@ export class ServiceClient {
    * doc de `enDate()`. Sans rapport avec la valeur de CURSEUR de `lister()` ci-dessus (voir
    * `pagination-triee.ts`) : cette méthode n'est jamais appelée en contexte de pagination.
    */
-  private async dernierPassage(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<Date | string | null> {
+  private async dernierPassage(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    clientId: string,
+  ): Promise<Date | string | null> {
     const resultat = await tx.execute<{ dernier: Date | string | null }>(sql`
       select max(o.ouvert_le) as dernier
         from public.ordre_reparation o
@@ -522,7 +581,11 @@ export class ServiceClient {
    * SQL brut (`tx.execute`), comme `dernierPassage` ci-dessus — même raison : une projection en
    * lecture composée (jointure auteur) n'a pas besoin de passer par le query builder Drizzle ici.
    */
-  private async chargerNotesAlerte(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<ReponseClientNote[]> {
+  private async chargerNotesAlerte(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    clientId: string,
+  ): Promise<ReponseClientNote[]> {
     const resultat = await tx.execute<{
       id: string;
       texte: string;
@@ -546,7 +609,10 @@ export class ServiceClient {
       texte: ligne.texte,
       auteur:
         ligne.auteurId && ligne.auteurPrenom && ligne.auteurNom
-          ? { utilisateurId: ligne.auteurId, nomAffiche: `${ligne.auteurPrenom} ${ligne.auteurNom}` }
+          ? {
+              utilisateurId: ligne.auteurId,
+              nomAffiche: `${ligne.auteurPrenom} ${ligne.auteurNom}`,
+            }
           : null,
       creeLe: enDate(ligne.creeLe).toISOString(),
     }));

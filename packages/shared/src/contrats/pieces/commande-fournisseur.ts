@@ -1,8 +1,18 @@
 import { z } from 'zod';
 
-import { ORIGINES_COMMANDE_FOURNISSEUR, STATUTS_COMMANDE_FOURNISSEUR, type OrigineCommandeFournisseur, type StatutCommandeFournisseur } from './enums';
+import {
+  ORIGINES_COMMANDE_FOURNISSEUR,
+  STATUTS_COMMANDE_FOURNISSEUR,
+  type OrigineCommandeFournisseur,
+  type StatutCommandeFournisseur,
+} from './enums';
 import { schemaCentimesPositif } from './primitives';
-import { schemaDateJour, schemaIdentifiant, schemaMotif, schemaQuantiteMillieme } from '../atelier/primitives';
+import {
+  schemaDateJour,
+  schemaIdentifiant,
+  schemaMotif,
+  schemaQuantiteMillieme,
+} from '../atelier/primitives';
 import { schemaParametresPage } from '../pagination';
 
 /**
@@ -62,7 +72,11 @@ export const SEUIL_LIGNES_EMBARQUEES_COMMANDE_FOURNISSEUR = 100;
 /* Lecture — collection                                                */
 /* ------------------------------------------------------------------ */
 
-export const TRIS_COMMANDES_FOURNISSEUR = ['creeLe:desc', 'creeLe:asc', 'dateCommande:desc'] as const;
+export const TRIS_COMMANDES_FOURNISSEUR = [
+  'creeLe:desc',
+  'creeLe:asc',
+  'dateCommande:desc',
+] as const;
 export const TRI_DEFAUT_COMMANDES_FOURNISSEUR = 'creeLe:desc';
 
 export const schemaFiltresCommandesFournisseur = schemaParametresPage.extend({
@@ -162,4 +176,6 @@ export type EntreeAnnulationReliquat = z.infer<typeof schemaAnnulationReliquat>;
 export const schemaAnnulationCommandeFournisseur = z.object({
   motif: schemaMotif,
 });
-export type EntreeAnnulationCommandeFournisseur = z.infer<typeof schemaAnnulationCommandeFournisseur>;
+export type EntreeAnnulationCommandeFournisseur = z.infer<
+  typeof schemaAnnulationCommandeFournisseur
+>;

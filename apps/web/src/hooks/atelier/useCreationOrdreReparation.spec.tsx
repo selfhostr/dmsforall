@@ -4,7 +4,12 @@ import { delay, http, HttpResponse } from 'msw';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ClientResume, EntreeCreationOrdreReparation, ReponseOrdreReparation, VehiculeResume } from '@dfa/shared';
+import type {
+  ClientResume,
+  EntreeCreationOrdreReparation,
+  ReponseOrdreReparation,
+  VehiculeResume,
+} from '@dfa/shared';
 
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
@@ -76,7 +81,12 @@ const OR_CREE: ReponseOrdreReparation = {
   statut: 'ouvert',
   client: CLIENT,
   vehicule: VEHICULE,
-  figees: { clientDesignation: 'Jean Dupont', adresseFacturation: null, plaque: '123456', detenteurClientId: 'cl-1' },
+  figees: {
+    clientDesignation: 'Jean Dupont',
+    adresseFacturation: null,
+    plaque: '123456',
+    detenteurClientId: 'cl-1',
+  },
   conducteurPresentNom: null,
   kilometrageEntree: null,
   kilometrageSortie: null,
@@ -148,8 +158,11 @@ describe('useCreationOrdreReparation', () => {
     expect(clesRecues[0]).toBe(clesRecues[1]);
   });
 
-  it("un rejeu après confirmation (confirmerEtResoumettre) régénère la clé et porte les confirmations acceptées", async () => {
-    const requetes: { readonly cle: string | null; readonly corps: { readonly confirmations?: readonly string[] } }[] = [];
+  it('un rejeu après confirmation (confirmerEtResoumettre) régénère la clé et porte les confirmations acceptées', async () => {
+    const requetes: {
+      readonly cle: string | null;
+      readonly corps: { readonly confirmations?: readonly string[] };
+    }[] = [];
     let appel = 0;
     server.use(
       http.post('/api/v1/ordres-reparation', async ({ request }) => {
@@ -192,7 +205,7 @@ describe('useCreationOrdreReparation', () => {
     expect(onSuccess).toHaveBeenCalledWith(OR_CREE);
   });
 
-  it("après un succès, la soumission suivante porte une clé différente de la précédente (jamais réutilisée)", async () => {
+  it('après un succès, la soumission suivante porte une clé différente de la précédente (jamais réutilisée)', async () => {
     const cles: (string | null)[] = [];
     server.use(
       http.post('/api/v1/ordres-reparation', async ({ request }) => {

@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../../config/config.types';
-import type { AccesAmorcage, AccesBase, SessionAmorcage, UtilisateurAmorcage } from '../../db/db.types';
+import type {
+  AccesAmorcage,
+  AccesBase,
+  SessionAmorcage,
+  UtilisateurAmorcage,
+} from '../../db/db.types';
 import type { ServiceContexteRequete } from '../../common/contexte/contexte-requete.service';
 import { ErreurSessionAbsente, ErreurSessionExpiree } from '../erreurs-auth';
 import { ServiceSessionImpl } from './session.service';
@@ -227,7 +232,7 @@ describe('ServiceSessionImpl.resoudre — expiration absolue vs glissante', () =
     expect(accesAmorcage.sessionParEmpreinte).not.toHaveBeenCalled();
   });
 
-  it("ne touche PAS `vu_le` quand la dernière activité connue a moins de 60s", async () => {
+  it('ne touche PAS `vu_le` quand la dernière activité connue a moins de 60s', async () => {
     const accesAmorcage: AccesAmorcage = {
       sessionParEmpreinte: vi
         .fn()
@@ -250,7 +255,7 @@ describe('ServiceSessionImpl.resoudre — expiration absolue vs glissante', () =
     expect(accesAmorcage.toucherSession).not.toHaveBeenCalled();
   });
 
-  it("touche `vu_le` quand la dernière activité connue a plus de 60s", async () => {
+  it('touche `vu_le` quand la dernière activité connue a plus de 60s', async () => {
     const accesAmorcage: AccesAmorcage = {
       sessionParEmpreinte: vi
         .fn()

@@ -2,10 +2,20 @@ import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { POLITIQUES_CONTROLE_QUALITE } from '@dfa/shared';
 
-import { JETON_DB, schema, type AccesBase, type ContexteTenant, type TransactionDfa } from '../../db';
+import {
+  JETON_DB,
+  schema,
+  type AccesBase,
+  type ContexteTenant,
+  type TransactionDfa,
+} from '../../db';
 import { ErreurMetier } from '../../common/erreurs';
 import { verifierChampsActifsParametresAtelier } from './gouvernance-fonctionnalites';
-import { versColonnesMiseAJour, versDtoParametresAtelier, type DtoParametresAtelier } from './mappeur-parametres-atelier';
+import {
+  versColonnesMiseAJour,
+  versDtoParametresAtelier,
+  type DtoParametresAtelier,
+} from './mappeur-parametres-atelier';
 import type { EntreeModificationParametresAtelierEtendue } from './schema-modification-parametres-atelier-etendu';
 
 /**
@@ -29,7 +39,10 @@ export class ServiceParametresAtelier {
     });
   }
 
-  async modifier(ctx: ContexteTenant, entree: EntreeModificationParametresAtelierEtendue): Promise<DtoParametresAtelier> {
+  async modifier(
+    ctx: ContexteTenant,
+    entree: EntreeModificationParametresAtelierEtendue,
+  ): Promise<DtoParametresAtelier> {
     verifierChampsActifsParametresAtelier(entree);
     this.verifierControleQualiteLot1(entree);
 
@@ -59,8 +72,14 @@ export class ServiceParametresAtelier {
     });
   }
 
-  private async chargerLigne(tx: TransactionDfa, tenantId: string): Promise<schema.LigneParametreAtelier> {
-    const [ligne] = await tx.select().from(schema.parametreAtelier).where(eq(schema.parametreAtelier.tenantId, tenantId));
+  private async chargerLigne(
+    tx: TransactionDfa,
+    tenantId: string,
+  ): Promise<schema.LigneParametreAtelier> {
+    const [ligne] = await tx
+      .select()
+      .from(schema.parametreAtelier)
+      .where(eq(schema.parametreAtelier.tenantId, tenantId));
     if (!ligne) {
       throw new ErreurMetier(
         'RESSOURCE_INTROUVABLE',

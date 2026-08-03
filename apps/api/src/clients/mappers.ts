@@ -141,7 +141,9 @@ export function versConditionResponse(ligne: LigneClientCondition): ReponseClien
   };
 }
 
-export function versConsentementResponse(ligne: LigneClientConsentement): ReponseClientConsentement {
+export function versConsentementResponse(
+  ligne: LigneClientConsentement,
+): ReponseClientConsentement {
   return {
     id: ligne.id,
     type: ligne.type,
@@ -156,7 +158,10 @@ export interface AuteurNote {
   readonly nomAffiche: string;
 }
 
-export function versNoteResponse(ligne: LigneClientNote, auteur: AuteurNote | null): ReponseClientNote {
+export function versNoteResponse(
+  ligne: LigneClientNote,
+  auteur: AuteurNote | null,
+): ReponseClientNote {
   return {
     id: ligne.id,
     nature: ligne.nature,

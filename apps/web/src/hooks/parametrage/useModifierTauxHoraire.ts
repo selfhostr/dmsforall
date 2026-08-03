@@ -13,11 +13,16 @@ interface VariablesModificationTauxHoraire {
 /** `PATCH /referentiels/taux-horaires/{id}` — invalide la liste (une modification de montant ou
  *  de bornes de validité peut changer l'ordre affiché, jamais assez fréquent pour justifier un
  *  `setQueryData` ligne par ligne dans une page potentiellement absente du cache courant). */
-export function useModifierTauxHoraire(): UseMutationResult<ReponseTauxHoraire, unknown, VariablesModificationTauxHoraire> {
+export function useModifierTauxHoraire(): UseMutationResult<
+  ReponseTauxHoraire,
+  unknown,
+  VariablesModificationTauxHoraire
+> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, entree }: VariablesModificationTauxHoraire) => modifierTauxHoraire(id, entree),
+    mutationFn: ({ id, entree }: VariablesModificationTauxHoraire) =>
+      modifierTauxHoraire(id, entree),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: clesParametrage.tauxHoraires.liste() });
     },

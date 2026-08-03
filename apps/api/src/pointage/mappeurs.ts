@@ -7,10 +7,17 @@ import type { LignePointage } from '../db/schema';
  * explicitement (`select … duree_brute_secondes` en SQL brut, ou calculée en mémoire depuis
  * `debutLe`/`finLe`) la fournit ici ; sinon `null`, cohérent avec `finLe === null`.
  */
-export function mapperPointage(ligne: LignePointage, dureeBruteSecondes: number | null): ReponsePointage {
+export function mapperPointage(
+  ligne: LignePointage,
+  dureeBruteSecondes: number | null,
+): ReponsePointage {
   const anomalie: AnomaliePointage | null =
     ligne.anomalieMotif !== null && ligne.anomalieDetecteeLe !== null
-      ? { motif: ligne.anomalieMotif, detecteeLe: ligne.anomalieDetecteeLe.toISOString(), traiteeLe: ligne.anomalieTraiteeLe?.toISOString() ?? null }
+      ? {
+          motif: ligne.anomalieMotif,
+          detecteeLe: ligne.anomalieDetecteeLe.toISOString(),
+          traiteeLe: ligne.anomalieTraiteeLe?.toISOString() ?? null,
+        }
       : null;
 
   const derniereCorrection: DerniereCorrectionPointage | null =

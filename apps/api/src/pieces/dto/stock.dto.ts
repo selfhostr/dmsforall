@@ -43,7 +43,9 @@ export class StockArticleDto implements ReponseStockArticle {
   @ApiProperty()
   readonly quantiteReserveeMillieme!: number;
 
-  @ApiProperty({ description: 'quantitePhysiqueMillieme - quantiteReserveeMillieme (RP-14), dérivé.' })
+  @ApiProperty({
+    description: 'quantitePhysiqueMillieme - quantiteReserveeMillieme (RP-14), dérivé.',
+  })
   readonly quantiteDisponibleMillieme!: number;
 
   @ApiProperty({ type: String, nullable: true })
@@ -52,7 +54,11 @@ export class StockArticleDto implements ReponseStockArticle {
   @ApiProperty({ type: Number, nullable: true })
   readonly stockMinimumMillieme!: number | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'RP-12 : le fournisseur vend par lot, pas à l’unité.' })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'RP-12 : le fournisseur vend par lot, pas à l’unité.',
+  })
   readonly quantiteCommandeStandardMillieme!: number | null;
 
   @ApiProperty({ format: 'date-time' })
@@ -101,7 +107,10 @@ export class LigneReapprovisionnementDto implements LigneReapprovisionnement {
   @ApiProperty()
   readonly stockMinimumMillieme!: number;
 
-  @ApiProperty({ description: 'stockMinimumMillieme - quantiteDisponibleMillieme, toujours > 0 dans cette liste.' })
+  @ApiProperty({
+    description:
+      'stockMinimumMillieme - quantiteDisponibleMillieme, toujours > 0 dans cette liste.',
+  })
   readonly ecartMillieme!: number;
 
   @ApiProperty({ type: Number, nullable: true })

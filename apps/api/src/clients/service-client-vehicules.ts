@@ -25,7 +25,9 @@ import type { ParametresListeVehiculesDuClient } from './schemas';
  * (`marque modele version`) est une hypothèse locale, à confronter à celle du module véhicules
  * si elle diverge (source de vérité concurrente sinon — voir la réponse de tâche).
  */
-const DEFINITIONS_TRI_VEHICULES: Readonly<Record<ParametresListeVehiculesDuClient['tri'], DefinitionTri>> = {
+const DEFINITIONS_TRI_VEHICULES: Readonly<
+  Record<ParametresListeVehiculesDuClient['tri'], DefinitionTri>
+> = {
   'plaque:asc': { expression: sql`p.valeur`, sens: 'asc', nullable: true },
   'plaque:desc': { expression: sql`p.valeur`, sens: 'desc', nullable: true },
 };
@@ -70,15 +72,21 @@ export class ServiceClientVehicules {
       const clientExiste = await tx.execute<{ id: string }>(
         sql`select id from public.client where tenant_id = ${ctx.tenantId} and id = ${clientId} limit 1`,
       );
-      if (clientExiste.rows.length === 0) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Client introuvable.');
+      if (clientExiste.rows.length === 0)
+        throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Client introuvable.');
 
       const conditionDetention = params.inclureAnciennesDetentions
         ? sql`d.tenant_id = v.tenant_id and d.vehicule_id = v.id and d.client_id = ${clientId}`
         : sql`d.tenant_id = v.tenant_id and d.vehicule_id = v.id and d.client_id = ${clientId} and d.au is null`;
 
-      const conditions = [sql`v.tenant_id = ${ctx.tenantId}`, sql`exists (select 1 from public.vehicule_detention d where ${conditionDetention})`];
+      const conditions = [
+        sql`v.tenant_id = ${ctx.tenantId}`,
+        sql`exists (select 1 from public.vehicule_detention d where ${conditionDetention})`,
+      ];
       if (curseurDecode) {
-        conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
+        conditions.push(
+          construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id),
+        );
       }
 
       const requete = sql`

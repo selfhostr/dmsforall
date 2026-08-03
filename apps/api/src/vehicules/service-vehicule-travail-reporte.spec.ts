@@ -17,13 +17,21 @@ vi.mock('./vehicule-requetes', () => ({
   listerTravauxReportes: vi.fn(),
 }));
 
-import { ServiceVehiculeTravailReporte, versReponseTravailReporte, type EntreeCreationTravailReporteDepuisRefus } from './service-vehicule-travail-reporte';
+import {
+  ServiceVehiculeTravailReporte,
+  versReponseTravailReporte,
+  type EntreeCreationTravailReporteDepuisRefus,
+} from './service-vehicule-travail-reporte';
 import * as vehiculeRequetes from './vehicule-requetes';
 import type { LigneVehiculeTravailReporte } from '../db/schema';
 import type { EntreeModificationTravailReporte } from '@dfa/shared';
 
 const CTX: ContexteTenant = { tenantId: 'tenant-a', utilisateurId: 'user-1', requeteId: 'req-1' };
-const AUTRE_TENANT: ContexteTenant = { tenantId: 'tenant-b', utilisateurId: 'user-2', requeteId: 'req-2' };
+const AUTRE_TENANT: ContexteTenant = {
+  tenantId: 'tenant-b',
+  utilisateurId: 'user-2',
+  requeteId: 'req-2',
+};
 const VEHICULE_ID = 'vehicule-1';
 const TRAVAIL_ID = 'travail-1';
 const MAINTENANT = new Date('2026-07-30T09:15:00.000Z');
@@ -43,7 +51,9 @@ const DERNIER_RELEVE: LigneVehiculeKilometrage = {
   creeLe: new Date('2026-07-01T08:00:00.000Z'),
 };
 
-function entreeRefus(partiel: Partial<EntreeCreationTravailReporteDepuisRefus> = {}): EntreeCreationTravailReporteDepuisRefus {
+function entreeRefus(
+  partiel: Partial<EntreeCreationTravailReporteDepuisRefus> = {},
+): EntreeCreationTravailReporteDepuisRefus {
   return {
     vehiculeId: VEHICULE_ID,
     ordreReparationId: 'or-1',
@@ -70,7 +80,12 @@ function txFactice(existantOuvert: readonly { id: string }[]) {
 }
 
 function accesBaseFactice(tx: TransactionDfa) {
-  return { enTenant: vi.fn(async (_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<unknown>) => travail(tx)) };
+  return {
+    enTenant: vi.fn(
+      async (_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<unknown>) =>
+        travail(tx),
+    ),
+  };
 }
 
 const TRAVAIL_EXISTANT: LigneVehiculeTravailReporte = {
@@ -101,7 +116,10 @@ const TRAVAIL_EXISTANT: LigneVehiculeTravailReporte = {
  * `.set(...)`, jamais de rejouer un vrai moteur SQL : `ligneRetournee` est fournie explicitement
  * par chaque test qui en a besoin.
  */
-function txFactiqueModifier(travailExistant: LigneVehiculeTravailReporte | null, ligneRetournee: LigneVehiculeTravailReporte) {
+function txFactiqueModifier(
+  travailExistant: LigneVehiculeTravailReporte | null,
+  ligneRetournee: LigneVehiculeTravailReporte,
+) {
   const limitSelect = vi.fn(async () => (travailExistant ? [travailExistant] : []));
   const whereSelect = vi.fn(() => ({ limit: limitSelect }));
   const fromSelect = vi.fn(() => ({ where: whereSelect }));
@@ -115,10 +133,19 @@ function txFactiqueModifier(travailExistant: LigneVehiculeTravailReporte | null,
   const set = vi.fn((_valeurs: Record<string, unknown>) => ({ where: whereUpdate }));
   const update = vi.fn(() => ({ set }));
 
-  return { tx: { select, update } as unknown as TransactionDfa, select, update, set, whereUpdate, returning };
+  return {
+    tx: { select, update } as unknown as TransactionDfa,
+    select,
+    update,
+    set,
+    whereUpdate,
+    returning,
+  };
 }
 
-function entreeModification(partiel: Partial<EntreeModificationTravailReporte> = {}): EntreeModificationTravailReporte {
+function entreeModification(
+  partiel: Partial<EntreeModificationTravailReporte> = {},
+): EntreeModificationTravailReporte {
   return { ...partiel };
 }
 
@@ -134,14 +161,20 @@ beforeEach(() => {
  */
 describe('versReponseTravailReporte — exposition de `motifModification`', () => {
   it('expose `motifModification` pour un rôle qui voit les montants (ex. receptionnaire)', () => {
-    const ligne: LigneVehiculeTravailReporte = { ...TRAVAIL_EXISTANT, motifModification: 'Parti à la concurrence.' };
+    const ligne: LigneVehiculeTravailReporte = {
+      ...TRAVAIL_EXISTANT,
+      motifModification: 'Parti à la concurrence.',
+    };
     const reponse = versReponseTravailReporte(ligne, 'receptionnaire');
     expect(reponse.motifModification).toBe('Parti à la concurrence.');
     expect(reponse.montantEstimeCentimes).toBe(24_000);
   });
 
   it('expose ENCORE `motifModification` pour `technicien` (`ROLES_SANS_MONTANT`) alors que `montantEstimeCentimes` disparaît — les deux filtrages sont INDÉPENDANTS', () => {
-    const ligne: LigneVehiculeTravailReporte = { ...TRAVAIL_EXISTANT, motifModification: 'Parti à la concurrence.' };
+    const ligne: LigneVehiculeTravailReporte = {
+      ...TRAVAIL_EXISTANT,
+      motifModification: 'Parti à la concurrence.',
+    };
     const reponse = versReponseTravailReporte(ligne, 'technicien');
     expect(reponse.motifModification).toBe('Parti à la concurrence.');
     expect(reponse).not.toHaveProperty('montantEstimeCentimes');
@@ -278,31 +311,56 @@ describe('ServiceVehiculeTravailReporte.creerDepuisRefus (RM-73)', () => {
 describe('ServiceVehiculeTravailReporte.modifier (RM-73, correctif migrations/0033)', () => {
   it('écrit `entree.motif` dans `motif_modification` — plus de perte silencieuse (falsifié, voir en-tête du describe)', async () => {
     const motif = 'Le client a vendu le véhicule avant le prochain passage.';
-    const ligneRetournee: LigneVehiculeTravailReporte = { ...TRAVAIL_EXISTANT, statut: 'abandonne', motifModification: motif };
+    const ligneRetournee: LigneVehiculeTravailReporte = {
+      ...TRAVAIL_EXISTANT,
+      statut: 'abandonne',
+      motifModification: motif,
+    };
     const { tx, set } = txFactiqueModifier(TRAVAIL_EXISTANT, ligneRetournee);
     const acces = accesBaseFactice(tx);
     const service = new ServiceVehiculeTravailReporte(acces as never);
 
-    await service.modifier(CTX, VEHICULE_ID, TRAVAIL_ID, entreeModification({ statut: 'abandonne', motif }), 'receptionnaire');
+    await service.modifier(
+      CTX,
+      VEHICULE_ID,
+      TRAVAIL_ID,
+      entreeModification({ statut: 'abandonne', motif }),
+      'receptionnaire',
+    );
 
     expect(set).toHaveBeenCalledTimes(1);
-    expect(set).toHaveBeenCalledWith(expect.objectContaining({ statut: 'abandonne', motifModification: motif }));
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({ statut: 'abandonne', motifModification: motif }),
+    );
   });
 
   it('renvoie `motifModification` dans la RÉPONSE, pas seulement écrit en base — trou n°2 (donnée morte) comblé', async () => {
     const motif = 'Parti à la concurrence.';
-    const ligneRetournee: LigneVehiculeTravailReporte = { ...TRAVAIL_EXISTANT, statut: 'abandonne', motifModification: motif };
+    const ligneRetournee: LigneVehiculeTravailReporte = {
+      ...TRAVAIL_EXISTANT,
+      statut: 'abandonne',
+      motifModification: motif,
+    };
     const { tx } = txFactiqueModifier(TRAVAIL_EXISTANT, ligneRetournee);
     const acces = accesBaseFactice(tx);
     const service = new ServiceVehiculeTravailReporte(acces as never);
 
-    const reponse = await service.modifier(CTX, VEHICULE_ID, TRAVAIL_ID, entreeModification({ statut: 'abandonne', motif }), 'receptionnaire');
+    const reponse = await service.modifier(
+      CTX,
+      VEHICULE_ID,
+      TRAVAIL_ID,
+      entreeModification({ statut: 'abandonne', motif }),
+      'receptionnaire',
+    );
 
     expect(reponse.motifModification).toBe(motif);
   });
 
   it('normalise `entree.motif` en `null` quand il est vide/blanc — défense en profondeur, même doctrine que `creerDepuisRefus`/`motifRefus` (0021)', async () => {
-    const ligneRetournee: LigneVehiculeTravailReporte = { ...TRAVAIL_EXISTANT, motifModification: null };
+    const ligneRetournee: LigneVehiculeTravailReporte = {
+      ...TRAVAIL_EXISTANT,
+      motifModification: null,
+    };
     const { tx, set } = txFactiqueModifier(TRAVAIL_EXISTANT, ligneRetournee);
     const acces = accesBaseFactice(tx);
     const service = new ServiceVehiculeTravailReporte(acces as never);
@@ -310,7 +368,13 @@ describe('ServiceVehiculeTravailReporte.modifier (RM-73, correctif migrations/00
     // Contourne volontairement `schemaMotif` (qui refuserait ce cas en amont, à la frontière HTTP)
     // pour prouver que le SERVICE lui-même ne fait pas confiance à l'appelant — même raisonnement
     // que le commentaire de `creerDepuisRefus` sur `motifRefus`.
-    await service.modifier(CTX, VEHICULE_ID, TRAVAIL_ID, entreeModification({ motif: '   ' as never }), 'receptionnaire');
+    await service.modifier(
+      CTX,
+      VEHICULE_ID,
+      TRAVAIL_ID,
+      entreeModification({ motif: '   ' as never }),
+      'receptionnaire',
+    );
 
     expect(set).toHaveBeenCalledWith(expect.objectContaining({ motifModification: null }));
   });
@@ -321,7 +385,13 @@ describe('ServiceVehiculeTravailReporte.modifier (RM-73, correctif migrations/00
     const acces = accesBaseFactice(tx);
     const service = new ServiceVehiculeTravailReporte(acces as never);
 
-    await service.modifier(CTX, VEHICULE_ID, TRAVAIL_ID, entreeModification({ statut: 'repris' }), 'receptionnaire');
+    await service.modifier(
+      CTX,
+      VEHICULE_ID,
+      TRAVAIL_ID,
+      entreeModification({ statut: 'repris' }),
+      'receptionnaire',
+    );
 
     expect(set).toHaveBeenCalledTimes(1);
     const [argumentSet] = set.mock.calls[0]!;
@@ -334,12 +404,21 @@ describe('ServiceVehiculeTravailReporte.modifier (RM-73, correctif migrations/00
   });
 
   it('scope la modification sur le tenant de SON appelant — la clause WHERE porte tenantId ET travailId', async () => {
-    const ligneRetournee: LigneVehiculeTravailReporte = { ...TRAVAIL_EXISTANT, designation: 'Corrigé' };
+    const ligneRetournee: LigneVehiculeTravailReporte = {
+      ...TRAVAIL_EXISTANT,
+      designation: 'Corrigé',
+    };
     const { tx, whereUpdate } = txFactiqueModifier(TRAVAIL_EXISTANT, ligneRetournee);
     const acces = accesBaseFactice(tx);
     const service = new ServiceVehiculeTravailReporte(acces as never);
 
-    await service.modifier(CTX, VEHICULE_ID, TRAVAIL_ID, entreeModification({ designation: 'Corrigé' }), 'receptionnaire');
+    await service.modifier(
+      CTX,
+      VEHICULE_ID,
+      TRAVAIL_ID,
+      entreeModification({ designation: 'Corrigé' }),
+      'receptionnaire',
+    );
 
     expect(whereUpdate).toHaveBeenCalledTimes(1);
   });
@@ -350,7 +429,13 @@ describe('ServiceVehiculeTravailReporte.modifier (RM-73, correctif migrations/00
     const service = new ServiceVehiculeTravailReporte(acces as never);
 
     await expect(
-      service.modifier(CTX, VEHICULE_ID, TRAVAIL_ID, entreeModification({ statut: 'abandonne', motif: 'peu importe' }), 'receptionnaire'),
+      service.modifier(
+        CTX,
+        VEHICULE_ID,
+        TRAVAIL_ID,
+        entreeModification({ statut: 'abandonne', motif: 'peu importe' }),
+        'receptionnaire',
+      ),
     ).rejects.toMatchObject({ code: 'RESSOURCE_INTROUVABLE' });
 
     expect(update).not.toHaveBeenCalled();

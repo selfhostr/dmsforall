@@ -46,7 +46,13 @@ import {
   type BaseEphemere,
 } from '../setup/postgres-ephemere';
 import { semerGarageDemoLot1, type GarageDemoLot1Fixture } from './fixtures/garage-demo-lot1';
-import { creerAccesBaseTest, creerAppTest, demarrerRedisEphemere, type AppTest, type RedisEphemere } from '../setup/app-test';
+import {
+  creerAccesBaseTest,
+  creerAppTest,
+  demarrerRedisEphemere,
+  type AppTest,
+  type RedisEphemere,
+} from '../setup/app-test';
 import { cookieDeSessionPour } from './isolation-http-aide';
 
 let bdd: BaseEphemere;
@@ -70,7 +76,10 @@ interface LignesComplementaires {
   readonly travailReporteId: string;
 }
 
-async function semerLignesComplementaires(vehiculeId: string, tenantId: string): Promise<LignesComplementaires> {
+async function semerLignesComplementaires(
+  vehiculeId: string,
+  tenantId: string,
+): Promise<LignesComplementaires> {
   const expertiseId = randomUUID();
   const campagneId = randomUUID();
   const travailReporteId = randomUUID();
@@ -114,12 +123,18 @@ beforeAll(async () => {
   ]);
 
   const [plaqueA, plaqueB, detentionA, detentionB] = await Promise.all([
-    requeteSousTenant<{ id: string }>(bdd.poolApp, garage.tenantA.tenant.id, 'select id from vehicule_plaque where vehicule_id = $1', [
-      vehiculeA.id,
-    ]),
-    requeteSousTenant<{ id: string }>(bdd.poolApp, garage.tenantB.tenant.id, 'select id from vehicule_plaque where vehicule_id = $1', [
-      vehiculeB.id,
-    ]),
+    requeteSousTenant<{ id: string }>(
+      bdd.poolApp,
+      garage.tenantA.tenant.id,
+      'select id from vehicule_plaque where vehicule_id = $1',
+      [vehiculeA.id],
+    ),
+    requeteSousTenant<{ id: string }>(
+      bdd.poolApp,
+      garage.tenantB.tenant.id,
+      'select id from vehicule_plaque where vehicule_id = $1',
+      [vehiculeB.id],
+    ),
     requeteSousTenant<{ id: string }>(
       bdd.poolApp,
       garage.tenantA.tenant.id,
@@ -155,21 +170,43 @@ afterAll(async () => {
 /** Contrôle positif (la ligne EST visible sous son propre tenant) + assertion d'isolation (elle
  *  est INVISIBLE sous l'autre) dans le même test : un test qui ne vérifierait que la seconde moitié
  *  passerait aussi si la requête ne trouvait jamais rien, ce qui ne prouverait rien du tout. */
-async function verifierIsolationLecture(table: string, colonne: string, idPropreA: string, idDeB: string): Promise<void> {
-  const propre = await requeteSousTenant(bdd.poolApp, garage.tenantA.tenant.id, `select * from ${table} where ${colonne} = $1`, [
-    idPropreA,
-  ]);
-  expect(propre.length, `contrôle positif : ${table} de garage-a doit être visible sous son propre contexte`).toBeGreaterThan(0);
+async function verifierIsolationLecture(
+  table: string,
+  colonne: string,
+  idPropreA: string,
+  idDeB: string,
+): Promise<void> {
+  const propre = await requeteSousTenant(
+    bdd.poolApp,
+    garage.tenantA.tenant.id,
+    `select * from ${table} where ${colonne} = $1`,
+    [idPropreA],
+  );
+  expect(
+    propre.length,
+    `contrôle positif : ${table} de garage-a doit être visible sous son propre contexte`,
+  ).toBeGreaterThan(0);
 
-  const croise = await requeteSousTenant(bdd.poolApp, garage.tenantA.tenant.id, `select * from ${table} where ${colonne} = $1`, [
-    idDeB,
-  ]);
-  expect(croise, `${table} de garage-b doit être invisible sous le contexte de garage-a`).toHaveLength(0);
+  const croise = await requeteSousTenant(
+    bdd.poolApp,
+    garage.tenantA.tenant.id,
+    `select * from ${table} where ${colonne} = $1`,
+    [idDeB],
+  );
+  expect(
+    croise,
+    `${table} de garage-b doit être invisible sous le contexte de garage-a`,
+  ).toHaveLength(0);
 }
 
 describe('lecture croisée — table par table, module véhicules', () => {
   it('vehicule : un véhicule de garage-b est invisible sous le contexte de garage-a', async () => {
-    await verifierIsolationLecture('vehicule', 'id', garage.tenantA.vehicules[0]!.id, garage.tenantB.vehicules[0]!.id);
+    await verifierIsolationLecture(
+      'vehicule',
+      'id',
+      garage.tenantA.vehicules[0]!.id,
+      garage.tenantB.vehicules[0]!.id,
+    );
   });
 
   it('vehicule_plaque : la plaque (courante ou historique) de garage-b est invisible sous garage-a', async () => {
@@ -180,7 +217,7 @@ describe('lecture croisée — table par table, module véhicules', () => {
     await verifierIsolationLecture('vehicule_detention', 'id', detentionIdA, detentionIdB);
   });
 
-  it('vehicule_kilometrage (append-only) : l\'historique kilométrique de garage-b est invisible sous garage-a', async () => {
+  it("vehicule_kilometrage (append-only) : l'historique kilométrique de garage-b est invisible sous garage-a", async () => {
     await verifierIsolationLecture(
       'vehicule_kilometrage',
       'vehicule_id',
@@ -190,7 +227,12 @@ describe('lecture croisée — table par table, module véhicules', () => {
   });
 
   it('vehicule_expertise : une expertise de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('vehicule_expertise', 'id', complA.expertiseId, complB.expertiseId);
+    await verifierIsolationLecture(
+      'vehicule_expertise',
+      'id',
+      complA.expertiseId,
+      complB.expertiseId,
+    );
   });
 
   it('vehicule_campagne : une campagne constructeur de garage-b est invisible sous garage-a', async () => {
@@ -198,7 +240,12 @@ describe('lecture croisée — table par table, module véhicules', () => {
   });
 
   it('vehicule_travail_reporte : un travail reporté de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('vehicule_travail_reporte', 'id', complA.travailReporteId, complB.travailReporteId);
+    await verifierIsolationLecture(
+      'vehicule_travail_reporte',
+      'id',
+      complA.travailReporteId,
+      complB.travailReporteId,
+    );
   });
 
   it("recherche comptoir par fragment de VIN (normaliser_recherche, RM-112) : le VIN d'un véhicule de garage-b ne se trouve pas sous garage-a", async () => {
@@ -228,18 +275,32 @@ describe('fail-closed — sans app.tenant_id, aucune lecture ne rend jamais une 
     'vehicule_travail_reporte',
   ] as const;
 
-  it.each(TABLES_MODULE_VEHICULES)('%s : select sans contexte tenant rend zéro ligne, pas une erreur', async (table) => {
-    // Précondition du test : au moins UNE ligne existe réellement dans cette table (sur les deux
-    // tenants confondus) — sinon "zéro ligne rendue" serait vrai pour une raison sans intérêt
-    // (table vide) plutôt que pour la propriété fail-closed qu'on veut prouver.
-    const total = await requeteSousTenant<{ n: string }>(bdd.poolApp, garage.tenantA.tenant.id, `select count(*) as n from ${table}`);
-    const totalAutre = await requeteSousTenant<{ n: string }>(bdd.poolApp, garage.tenantB.tenant.id, `select count(*) as n from ${table}`);
-    const totalCombine = Number(total[0]?.n ?? 0) + Number(totalAutre[0]?.n ?? 0);
-    expect(totalCombine, `précondition : ${table} doit contenir au moins une ligne, tous tenants confondus`).toBeGreaterThan(0);
+  it.each(TABLES_MODULE_VEHICULES)(
+    '%s : select sans contexte tenant rend zéro ligne, pas une erreur',
+    async (table) => {
+      // Précondition du test : au moins UNE ligne existe réellement dans cette table (sur les deux
+      // tenants confondus) — sinon "zéro ligne rendue" serait vrai pour une raison sans intérêt
+      // (table vide) plutôt que pour la propriété fail-closed qu'on veut prouver.
+      const total = await requeteSousTenant<{ n: string }>(
+        bdd.poolApp,
+        garage.tenantA.tenant.id,
+        `select count(*) as n from ${table}`,
+      );
+      const totalAutre = await requeteSousTenant<{ n: string }>(
+        bdd.poolApp,
+        garage.tenantB.tenant.id,
+        `select count(*) as n from ${table}`,
+      );
+      const totalCombine = Number(total[0]?.n ?? 0) + Number(totalAutre[0]?.n ?? 0);
+      expect(
+        totalCombine,
+        `précondition : ${table} doit contenir au moins une ligne, tous tenants confondus`,
+      ).toBeGreaterThan(0);
 
-    const lignes = await requeteSousTenant(bdd.poolApp, null, `select * from ${table}`);
-    expect(lignes, table).toHaveLength(0);
-  });
+      const lignes = await requeteSousTenant(bdd.poolApp, null, `select * from ${table}`);
+      expect(lignes, table).toHaveLength(0);
+    },
+  );
 });
 
 // -------------------------------------------------------------------------------------------
@@ -250,19 +311,30 @@ describe('fail-closed — sans app.tenant_id, aucune lecture ne rend jamais une 
 /** `returning id` fait porter l'assertion sur le nombre de lignes RÉELLEMENT affectées (pas
  *  seulement "aucune exception") — c'est la seule façon de distinguer un UPDATE qui a
  *  légitimement touché zéro ligne (RLS intact) d'un UPDATE qui aurait réussi silencieusement. */
-async function verifierUpdateCroiseSansEffet(table: string, assignation: string, idDeB: string): Promise<void> {
+async function verifierUpdateCroiseSansEffet(
+  table: string,
+  assignation: string,
+  idDeB: string,
+): Promise<void> {
   const lignes = await requeteSousTenant(
     bdd.poolApp,
     garage.tenantA.tenant.id,
     `update ${table} set ${assignation} where id = $1 returning id`,
     [idDeB],
   );
-  expect(lignes, `UPDATE sur ${table} ciblant une ligne de garage-b ne doit affecter AUCUNE ligne sous garage-a`).toHaveLength(0);
+  expect(
+    lignes,
+    `UPDATE sur ${table} ciblant une ligne de garage-b ne doit affecter AUCUNE ligne sous garage-a`,
+  ).toHaveLength(0);
 }
 
 describe('écriture croisée — UPDATE ciblant une ligne de garage-b, sous le contexte de garage-a', () => {
   it("vehicule : renommer la marque d'un véhicule de garage-b n'affecte aucune ligne (RLS USING, pas d'erreur)", async () => {
-    await verifierUpdateCroiseSansEffet('vehicule', "marque = 'INTRUS'", garage.tenantB.vehicules[0]!.id);
+    await verifierUpdateCroiseSansEffet(
+      'vehicule',
+      "marque = 'INTRUS'",
+      garage.tenantB.vehicules[0]!.id,
+    );
 
     // Contrôle positif : le véhicule de garage-b n'a RÉELLEMENT pas changé (relu sous SON tenant).
     const releve = await requeteSousTenant<{ marque: string }>(
@@ -282,11 +354,19 @@ describe('écriture croisée — UPDATE ciblant une ligne de garage-b, sous le c
     // La valeur assignée n'a pas besoin d'être valide (FK/contrainte) : ZÉRO ligne ne correspond
     // au WHERE (filtré par la politique USING avant même l'évaluation du SET), donc aucune
     // contrainte n'est jamais évaluée — précisément la propriété qu'on vérifie.
-    await verifierUpdateCroiseSansEffet('vehicule_detention', `client_id = '${garage.tenantA.clients[0]!.id}'`, detentionIdB);
+    await verifierUpdateCroiseSansEffet(
+      'vehicule_detention',
+      `client_id = '${garage.tenantA.clients[0]!.id}'`,
+      detentionIdB,
+    );
   });
 
   it("vehicule_expertise : modifier le résultat d'une expertise de garage-b n'affecte aucune ligne", async () => {
-    await verifierUpdateCroiseSansEffet('vehicule_expertise', "resultat = 'refuse'", complB.expertiseId);
+    await verifierUpdateCroiseSansEffet(
+      'vehicule_expertise',
+      "resultat = 'refuse'",
+      complB.expertiseId,
+    );
   });
 
   it("vehicule_campagne : clore une campagne de garage-b n'affecte aucune ligne", async () => {
@@ -294,11 +374,15 @@ describe('écriture croisée — UPDATE ciblant une ligne de garage-b, sous le c
   });
 
   it("vehicule_travail_reporte : abandonner un travail reporté de garage-b n'affecte aucune ligne", async () => {
-    await verifierUpdateCroiseSansEffet('vehicule_travail_reporte', "designation = 'Intrus'", complB.travailReporteId);
+    await verifierUpdateCroiseSansEffet(
+      'vehicule_travail_reporte',
+      "designation = 'Intrus'",
+      complB.travailReporteId,
+    );
   });
 });
 
-describe("écriture croisée — impersonation (WITH CHECK) et suppression, module véhicules", () => {
+describe('écriture croisée — impersonation (WITH CHECK) et suppression, module véhicules', () => {
   it('vehicule : un insert portant tenant_id = garage-b, exécuté sous le contexte de garage-a, viole la politique RLS', async () => {
     await expect(
       requeteSousTenant(
@@ -310,7 +394,7 @@ describe("écriture croisée — impersonation (WITH CHECK) et suppression, modu
     ).rejects.toThrow(/policy|permission/i);
   });
 
-  it("vehicule_kilometrage (append-only, INSERT seul accordé) : impersonation refusée, même conclusion que dans isolation-donnees-lot1.spec.ts mais reformulée ici pour garantir que ce fichier reste autonome", async () => {
+  it('vehicule_kilometrage (append-only, INSERT seul accordé) : impersonation refusée, même conclusion que dans isolation-donnees-lot1.spec.ts mais reformulée ici pour garantir que ce fichier reste autonome', async () => {
     await expect(
       requeteSousTenant(
         bdd.poolApp,
@@ -324,22 +408,28 @@ describe("écriture croisée — impersonation (WITH CHECK) et suppression, modu
 
   it(
     'vehicule : DELETE refusé au niveau PRIVILÈGE (revoke delete, RM-31/Δ6), même sur sa PROPRE ligne — ' +
-      'preuve que la suppression d\'une ligne de garage-b est doublement impossible : ni le privilège ' +
+      "preuve que la suppression d'une ligne de garage-b est doublement impossible : ni le privilège " +
       'ni (si le privilège existait) le RLS ne le permettraient',
     async () => {
       await expect(
-        requeteSousTenant(bdd.poolApp, garage.tenantA.tenant.id, 'delete from vehicule where id = $1', [
-          garage.tenantA.vehicules[0]!.id,
-        ]),
+        requeteSousTenant(
+          bdd.poolApp,
+          garage.tenantA.tenant.id,
+          'delete from vehicule where id = $1',
+          [garage.tenantA.vehicules[0]!.id],
+        ),
       ).rejects.toThrow(/permission denied/i);
     },
   );
 
   it('vehicule_kilometrage : UPDATE refusé au niveau PRIVILÈGE (append-only, RM-23) — le mécanisme est plus strict que le RLS seul', async () => {
     await expect(
-      requeteSousTenant(bdd.poolApp, garage.tenantA.tenant.id, "update vehicule_kilometrage set source = 'import' where vehicule_id = $1", [
-        garage.tenantA.vehicules[0]!.id,
-      ]),
+      requeteSousTenant(
+        bdd.poolApp,
+        garage.tenantA.tenant.id,
+        "update vehicule_kilometrage set source = 'import' where vehicule_id = $1",
+        [garage.tenantA.vehicules[0]!.id],
+      ),
     ).rejects.toThrow(/permission denied/i);
   });
 });
@@ -353,7 +443,9 @@ describe('IDOR via HTTP — GET /api/v1/vehicules/{id}', () => {
     const utilisateurA = garage.tenantA.utilisateursParRole.admin;
     const cookie = await cookieDeSessionPour(ctx, utilisateurA.email, utilisateurA.motDePasseClair);
 
-    const reponse = await ctx.requete.get(`/api/v1/vehicules/${garage.tenantB.vehicules[0]!.id}`).set('Cookie', cookie);
+    const reponse = await ctx.requete
+      .get(`/api/v1/vehicules/${garage.tenantB.vehicules[0]!.id}`)
+      .set('Cookie', cookie);
 
     expect(reponse.status).toBe(404);
     expect((reponse.body as { code?: string }).code).toBe('RESSOURCE_INTROUVABLE');
@@ -363,7 +455,9 @@ describe('IDOR via HTTP — GET /api/v1/vehicules/{id}', () => {
     const utilisateurA = garage.tenantA.utilisateursParRole.admin;
     const cookie = await cookieDeSessionPour(ctx, utilisateurA.email, utilisateurA.motDePasseClair);
 
-    const reponse = await ctx.requete.get(`/api/v1/vehicules/${garage.tenantA.vehicules[0]!.id}`).set('Cookie', cookie);
+    const reponse = await ctx.requete
+      .get(`/api/v1/vehicules/${garage.tenantA.vehicules[0]!.id}`)
+      .set('Cookie', cookie);
 
     expect(reponse.status).toBe(200);
     expect((reponse.body as { id?: string }).id).toBe(garage.tenantA.vehicules[0]!.id);
@@ -373,7 +467,9 @@ describe('IDOR via HTTP — GET /api/v1/vehicules/{id}', () => {
     const utilisateurA = garage.tenantA.utilisateursParRole.admin;
     const cookie = await cookieDeSessionPour(ctx, utilisateurA.email, utilisateurA.motDePasseClair);
 
-    const reponse = await ctx.requete.get(`/api/v1/vehicules/${randomUUID()}`).set('Cookie', cookie);
+    const reponse = await ctx.requete
+      .get(`/api/v1/vehicules/${randomUUID()}`)
+      .set('Cookie', cookie);
 
     expect(reponse.status).toBe(404);
     expect((reponse.body as { code?: string }).code).toBe('RESSOURCE_INTROUVABLE');
@@ -389,21 +485,27 @@ describe('IDOR via HTTP — GET /api/v1/vehicules/{id}', () => {
 // -------------------------------------------------------------------------------------------
 
 describe('portée transactionnelle du GUC, module véhicules — le pooling ne fait jamais fuiter un tenant vers le suivant', () => {
-  it("cinq allers-retours garage-a / garage-b consécutifs sur `vehicule`, via AccesBase.enTenant, ne mélangent jamais les comptages", async () => {
-    const { accesBase, fermer } = await creerAccesBaseTest(bdd, redis.url, { DATABASE_POOL_MAX: '1' });
+  it('cinq allers-retours garage-a / garage-b consécutifs sur `vehicule`, via AccesBase.enTenant, ne mélangent jamais les comptages', async () => {
+    const { accesBase, fermer } = await creerAccesBaseTest(bdd, redis.url, {
+      DATABASE_POOL_MAX: '1',
+    });
     try {
       for (let iteration = 0; iteration < 5; iteration += 1) {
         const resultatA = await accesBase.enTenant(
           { tenantId: garage.tenantA.tenant.id, utilisateurId: null, requeteId: null },
           async (tx) => tx.execute(sql`select count(*)::int as n from vehicule`),
         );
-        expect((resultatA as unknown as { rows: Array<{ n: number }> }).rows[0]?.n).toBe(garage.tenantA.vehicules.length);
+        expect((resultatA as unknown as { rows: Array<{ n: number }> }).rows[0]?.n).toBe(
+          garage.tenantA.vehicules.length,
+        );
 
         const resultatB = await accesBase.enTenant(
           { tenantId: garage.tenantB.tenant.id, utilisateurId: null, requeteId: null },
           async (tx) => tx.execute(sql`select count(*)::int as n from vehicule`),
         );
-        expect((resultatB as unknown as { rows: Array<{ n: number }> }).rows[0]?.n).toBe(garage.tenantB.vehicules.length);
+        expect((resultatB as unknown as { rows: Array<{ n: number }> }).rows[0]?.n).toBe(
+          garage.tenantB.vehicules.length,
+        );
       }
     } finally {
       await fermer();
@@ -429,10 +531,13 @@ describe('posture du rôle applicatif dfa_app — module véhicules', () => {
     'vehicule_travail_reporte',
   ] as const;
 
-  it('dfa_app n\'est ni superutilisateur ni BYPASSRLS, et ne possède aucune des 7 tables du module', async () => {
+  it("dfa_app n'est ni superutilisateur ni BYPASSRLS, et ne possède aucune des 7 tables du module", async () => {
     const client = await bdd.poolSuperutilisateur.connect();
     try {
-      const role = await client.query('select rolsuper, rolbypassrls from pg_roles where rolname = $1', ['dfa_app']);
+      const role = await client.query(
+        'select rolsuper, rolbypassrls from pg_roles where rolname = $1',
+        ['dfa_app'],
+      );
       expect(role.rows).toHaveLength(1);
       expect(role.rows[0]).toEqual({ rolsuper: false, rolbypassrls: false });
 
@@ -440,7 +545,10 @@ describe('posture du rôle applicatif dfa_app — module véhicules', () => {
         `select tablename from pg_tables where schemaname = 'public' and tableowner = 'dfa_app' and tablename = any($1)`,
         [TABLES_MODULE_VEHICULES],
       );
-      expect(rows, 'dfa_app ne doit être propriétaire d\'aucune table du module véhicules').toHaveLength(0);
+      expect(
+        rows,
+        "dfa_app ne doit être propriétaire d'aucune table du module véhicules",
+      ).toHaveLength(0);
     } finally {
       client.release();
     }
@@ -472,14 +580,24 @@ describe('posture du rôle applicatif dfa_app — module véhicules', () => {
         [TABLES_MODULE_VEHICULES],
       );
 
-      expect(rows, 'les 7 tables du module véhicules doivent exister').toHaveLength(TABLES_MODULE_VEHICULES.length);
+      expect(rows, 'les 7 tables du module véhicules doivent exister').toHaveLength(
+        TABLES_MODULE_VEHICULES.length,
+      );
       for (const ligne of rows) {
-        expect.soft(ligne.rls_actif, `${ligne.table_nom} : relrowsecurity doit être true`).toBe(true);
-        expect.soft(ligne.rls_force, `${ligne.table_nom} : relforcerowsecurity doit être true (même le propriétaire est filtré)`).toBe(
-          true,
-        );
         expect
-          .soft(Number(ligne.nb_politiques_conformes), `${ligne.table_nom} : au moins une politique USING+WITH CHECK sur tenant_courant()`)
+          .soft(ligne.rls_actif, `${ligne.table_nom} : relrowsecurity doit être true`)
+          .toBe(true);
+        expect
+          .soft(
+            ligne.rls_force,
+            `${ligne.table_nom} : relforcerowsecurity doit être true (même le propriétaire est filtré)`,
+          )
+          .toBe(true);
+        expect
+          .soft(
+            Number(ligne.nb_politiques_conformes),
+            `${ligne.table_nom} : au moins une politique USING+WITH CHECK sur tenant_courant()`,
+          )
           .toBeGreaterThan(0);
       }
     } finally {

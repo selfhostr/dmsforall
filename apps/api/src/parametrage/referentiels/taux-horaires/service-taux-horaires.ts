@@ -24,7 +24,11 @@ const SQLSTATE_EXCLUSION_VIOLATION = '23P01';
 export class ServiceTauxHoraires {
   constructor(@Inject(JETON_DB) private readonly acces: AccesBase) {}
 
-  async lister(ctx: ContexteTenant, limite: number, curseur: string | undefined): Promise<PageCurseur<ReponseTauxHoraire>> {
+  async lister(
+    ctx: ContexteTenant,
+    limite: number,
+    curseur: string | undefined,
+  ): Promise<PageCurseur<ReponseTauxHoraire>> {
     const curseurDecode = decoderCurseurDefaut(curseur);
 
     return this.acces.enTenant(ctx, async (tx) => {
@@ -68,7 +72,10 @@ export class ServiceTauxHoraires {
           })
           .returning();
         if (!ligne) {
-          throw new ErreurMetier('ERREUR_INTERNE', "L'insertion du taux horaire n'a rendu aucune ligne.");
+          throw new ErreurMetier(
+            'ERREUR_INTERNE',
+            "L'insertion du taux horaire n'a rendu aucune ligne.",
+          );
         }
         return versDtoTauxHoraire(ligne);
       } catch (erreur) {
@@ -77,7 +84,11 @@ export class ServiceTauxHoraires {
     });
   }
 
-  async modifier(ctx: ContexteTenant, id: string, entree: EntreeModificationTauxHoraire): Promise<ReponseTauxHoraire> {
+  async modifier(
+    ctx: ContexteTenant,
+    id: string,
+    entree: EntreeModificationTauxHoraire,
+  ): Promise<ReponseTauxHoraire> {
     const colonnes: Partial<typeof schema.tauxHoraire.$inferInsert> = {};
     if (entree.libelle !== undefined) colonnes.libelle = entree.libelle;
     if (entree.montantCentimes !== undefined) colonnes.montantCentimes = entree.montantCentimes;
@@ -90,7 +101,11 @@ export class ServiceTauxHoraires {
           .select()
           .from(schema.tauxHoraire)
           .where(and(eq(schema.tauxHoraire.tenantId, ctx.tenantId), eq(schema.tauxHoraire.id, id)));
-        if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Taux horaire "${id}" introuvable pour ce tenant.`);
+        if (!ligne)
+          throw new ErreurMetier(
+            'RESSOURCE_INTROUVABLE',
+            `Taux horaire "${id}" introuvable pour ce tenant.`,
+          );
         return versDtoTauxHoraire(ligne);
       }
 
@@ -100,7 +115,11 @@ export class ServiceTauxHoraires {
           .set(colonnes)
           .where(and(eq(schema.tauxHoraire.tenantId, ctx.tenantId), eq(schema.tauxHoraire.id, id)))
           .returning();
-        if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Taux horaire "${id}" introuvable pour ce tenant.`);
+        if (!ligne)
+          throw new ErreurMetier(
+            'RESSOURCE_INTROUVABLE',
+            `Taux horaire "${id}" introuvable pour ce tenant.`,
+          );
         return versDtoTauxHoraire(ligne);
       } catch (erreur) {
         if (erreur instanceof ErreurMetier) throw erreur;
@@ -124,6 +143,11 @@ export class ServiceTauxHoraires {
         `Une période valide de ce taux horaire (${identifiant}) chevauche déjà une période existante.`,
       );
     }
-    return erreur instanceof Error ? erreur : new ErreurMetier('ERREUR_INTERNE', 'Erreur inattendue sur le référentiel des taux horaires.');
+    return erreur instanceof Error
+      ? erreur
+      : new ErreurMetier(
+          'ERREUR_INTERNE',
+          'Erreur inattendue sur le référentiel des taux horaires.',
+        );
   }
 }

@@ -43,7 +43,13 @@ const OR_ID = 'or-1';
 const IF_MATCH = 'W/"3"';
 
 function principal(role: PrincipalAuthentifie['role']): PrincipalAuthentifie {
-  return { sessionId: 'session-1', tenantId: 'tenant-a', utilisateurId: 'user-1', role, langue: 'fr' };
+  return {
+    sessionId: 'session-1',
+    tenantId: 'tenant-a',
+    utilisateurId: 'user-1',
+    role,
+    langue: 'fr',
+  };
 }
 
 function orFixture(plafondCentimes: number | null): LigneOrdreReparation {
@@ -103,14 +109,27 @@ function txFactice() {
 }
 
 function accesBaseFactice(tx: TransactionDfa) {
-  return { enTenant: vi.fn(async (_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<unknown>) => travail(tx)) };
+  return {
+    enTenant: vi.fn(
+      async (_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<unknown>) =>
+        travail(tx),
+    ),
+  };
 }
 
 /** Seul `acces` (transaction) est exercé par `modifier()` — les 6 autres dépendances du
  *  constructeur (idempotence, événements, audit, compteurs, snapshot, horloge) n'interviennent
  *  QUE dans `creer()`/`assemblerDocument()`, jamais dans `modifier()` lui-même. */
 function serviceFactice(acces: ReturnType<typeof accesBaseFactice>): ServiceOr {
-  return new ServiceOr(acces as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
+  return new ServiceOr(
+    acces as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
 }
 
 beforeEach(() => {
@@ -127,7 +146,9 @@ describe('ServiceOr.modifier — droit dédié au plafond (audit sécurité, poi
 
     const entree: EntreeModificationOrdreReparation = { plafondCentimes: 150_000 };
 
-    await expect(service.modifier(CTX, principal('technicien'), OR_ID, IF_MATCH, entree)).rejects.toMatchObject({
+    await expect(
+      service.modifier(CTX, principal('technicien'), OR_ID, IF_MATCH, entree),
+    ).rejects.toMatchObject({
       code: 'DROIT_INSUFFISANT',
     });
 
@@ -145,7 +166,13 @@ describe('ServiceOr.modifier — droit dédié au plafond (audit sécurité, poi
     vi.spyOn(service, 'assemblerDocument').mockResolvedValue({} as never);
 
     const entree: EntreeModificationOrdreReparation = { plafondCentimes: 150_000 };
-    const resultat = await service.modifier(CTX, principal('receptionnaire'), OR_ID, IF_MATCH, entree);
+    const resultat = await service.modifier(
+      CTX,
+      principal('receptionnaire'),
+      OR_ID,
+      IF_MATCH,
+      entree,
+    );
 
     expect(update).toHaveBeenCalledTimes(1);
     expect(set).toHaveBeenCalledWith(expect.objectContaining({ plafondCentimes: 150_000 }));
@@ -180,7 +207,7 @@ describe('ServiceOr.modifier — droit dédié au plafond (audit sécurité, poi
     expect(set).toHaveBeenCalledWith(expect.objectContaining({ plafondCentimes: 80_000 }));
   });
 
-  it("un rôle SANS atelier.or.plafond_modifier qui tente de BAISSER le plafond est refusé aussi — toute modification effective compte, pas seulement une hausse", async () => {
+  it('un rôle SANS atelier.or.plafond_modifier qui tente de BAISSER le plafond est refusé aussi — toute modification effective compte, pas seulement une hausse', async () => {
     vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(orFixture(80_000));
     const { tx, update } = txFactice();
     const acces = accesBaseFactice(tx);
@@ -188,7 +215,9 @@ describe('ServiceOr.modifier — droit dédié au plafond (audit sécurité, poi
 
     const entree: EntreeModificationOrdreReparation = { plafondCentimes: 20_000 };
 
-    await expect(service.modifier(CTX, principal('technicien'), OR_ID, IF_MATCH, entree)).rejects.toMatchObject({
+    await expect(
+      service.modifier(CTX, principal('technicien'), OR_ID, IF_MATCH, entree),
+    ).rejects.toMatchObject({
       code: 'DROIT_INSUFFISANT',
     });
     expect(update).not.toHaveBeenCalled();

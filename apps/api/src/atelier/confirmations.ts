@@ -33,10 +33,14 @@ export function verifierConfirmation(
   const aLeDroit = (MATRICE_DROITS[role] ?? []).includes(droitRequis);
 
   if (aLeDroit) {
-    throw new ErreurMetier('CONFIRMATION_REQUISE', `Confirmation "${code}" requise avant de poursuivre.`, {
-      confirmationsRequises: [code],
-      actionsProposees: [{ code: 'REJOUER_AVEC_CONFIRMATION' }],
-    });
+    throw new ErreurMetier(
+      'CONFIRMATION_REQUISE',
+      `Confirmation "${code}" requise avant de poursuivre.`,
+      {
+        confirmationsRequises: [code],
+        actionsProposees: [{ code: 'REJOUER_AVEC_CONFIRMATION' }],
+      },
+    );
   }
 
   throw new ErreurMetier(

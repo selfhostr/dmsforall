@@ -140,9 +140,23 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
     const audit = new ServiceAuditImpl(acces);
     const compteurs = new ServiceCompteursImpl();
     const snapshot = new ServiceSnapshotOr(horloge);
-    const serviceOr = new ServiceOr(acces, idempotence, evenements, audit, compteurs, snapshot, horloge);
+    const serviceOr = new ServiceOr(
+      acces,
+      idempotence,
+      evenements,
+      audit,
+      compteurs,
+      snapshot,
+      horloge,
+    );
     const pointage = new LecturePointageVide();
-    const serviceTransitions = new ServiceTransitions(acces, evenements, pointage, horloge, serviceOr);
+    const serviceTransitions = new ServiceTransitions(
+      acces,
+      evenements,
+      pointage,
+      horloge,
+      serviceOr,
+    );
     const calcul = new CalculLigneSimple();
     // RM-73 : port CreationTravailReporte, sixième argument de ServiceLigneOr depuis son câblage
     // au travail reporté (vehicules/service-vehicule-travail-reporte.ts, ServiceVehiculeTravailReporte
@@ -157,7 +171,7 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
     const travailReporteInerte: CreationTravailReporte = {
       creerDepuisRefus: () => {
         throw new Error(
-          'seed-atelier-demo : creerDepuisRefus ne devrait jamais être appelé — aucune ligne de démo n\'est refusée.',
+          "seed-atelier-demo : creerDepuisRefus ne devrait jamais être appelé — aucune ligne de démo n'est refusée.",
         );
       },
     };
@@ -170,7 +184,11 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
       serviceOr,
     );
 
-    const ctx: ContexteTenant = { tenantId: options.tenantId, utilisateurId: idChefAtelier, requeteId: null };
+    const ctx: ContexteTenant = {
+      tenantId: options.tenantId,
+      utilisateurId: idChefAtelier,
+      requeteId: null,
+    };
     const chefAtelier: PrincipalAuthentifie = {
       sessionId: 'seed-atelier-demo',
       tenantId: options.tenantId,
@@ -184,7 +202,11 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
       return resultat.reponse.corps.donnees.id;
     };
 
-    const creerLigne = async (orId: string, entree: EntreeCreationLigneOr, cle: string): Promise<void> => {
+    const creerLigne = async (
+      orId: string,
+      entree: EntreeCreationLigneOr,
+      cle: string,
+    ): Promise<void> => {
       await serviceLigneOr.creer(ctx, chefAtelier, orId, entree, cle);
     };
 
@@ -209,10 +231,18 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
       },
       CLE_OR_GOLF,
     );
-    await creerLigne(orGolfId, ligneForfait('Vidange huile + filtre (essence)', 80, 9_000), CLE_LIGNE_GOLF_VIDANGE);
     await creerLigne(
       orGolfId,
-      ligneConstatTechnicien('Constat technicien : plaquettes de frein avant fortement usées', 45_000, idTechnicien),
+      ligneForfait('Vidange huile + filtre (essence)', 80, 9_000),
+      CLE_LIGNE_GOLF_VIDANGE,
+    );
+    await creerLigne(
+      orGolfId,
+      ligneConstatTechnicien(
+        'Constat technicien : plaquettes de frein avant fortement usées',
+        45_000,
+        idTechnicien,
+      ),
       CLE_LIGNE_GOLF_FREIN,
     );
     journaliser(`  OR Golf/Meier — ouvert, 2 lignes`);
@@ -231,8 +261,16 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
       },
       CLE_OR_OCTAVIA,
     );
-    await creerLigne(orOctaviaId, ligneForfait('Diagnostic électronique OBD', 60, 12_000), CLE_LIGNE_OCTAVIA_DIAG);
-    await creerLigne(orOctaviaId, ligneForfait('Changement de pneus (4 roues)', 50, 32_000), CLE_LIGNE_OCTAVIA_PNEUS);
+    await creerLigne(
+      orOctaviaId,
+      ligneForfait('Diagnostic électronique OBD', 60, 12_000),
+      CLE_LIGNE_OCTAVIA_DIAG,
+    );
+    await creerLigne(
+      orOctaviaId,
+      ligneForfait('Changement de pneus (4 roues)', 50, 32_000),
+      CLE_LIGNE_OCTAVIA_PNEUS,
+    );
     if ((await statutCourant(orOctaviaId)) === 'ouvert') {
       await serviceTransitions.demarrer(ctx, chefAtelier, orOctaviaId);
     }
@@ -264,7 +302,10 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
       await serviceTransitions.demarrer(ctx, chefAtelier, orMasterId);
     }
     if ((await statutCourant(orMasterId)) === 'en_cours') {
-      await serviceTransitions.terminer(ctx, chefAtelier, orMasterId, { kilometrageSortie: 128_500, unite: 'km' });
+      await serviceTransitions.terminer(ctx, chefAtelier, orMasterId, {
+        kilometrageSortie: 128_500,
+        unite: 'km',
+      });
     }
     journaliser(`  OR Master/Transports Rhône — terminé, sans ligne`);
 
@@ -323,7 +364,11 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
   }
 }
 
-function ligneForfait(designation: string, tempsBaremeCentiemes: number, prixUnitaireCentimes: number): EntreeCreationLigneOr {
+function ligneForfait(
+  designation: string,
+  tempsBaremeCentiemes: number,
+  prixUnitaireCentimes: number,
+): EntreeCreationLigneOr {
   return {
     type: 'forfait',
     origine: 'commandee',
@@ -347,7 +392,11 @@ function ligneForfait(designation: string, tempsBaremeCentiemes: number, prixUni
   };
 }
 
-function ligneConstatTechnicien(designation: string, prixUnitaireCentimes: number, technicienId: string): EntreeCreationLigneOr {
+function ligneConstatTechnicien(
+  designation: string,
+  prixUnitaireCentimes: number,
+  technicienId: string,
+): EntreeCreationLigneOr {
   return {
     type: 'piece',
     origine: 'constatee',

@@ -17,7 +17,10 @@ export interface PageReservations {
   readonly curseur?: string;
 }
 
-function construireParametresReservations(filtres: FiltresReservations, page: PageReservations): string {
+function construireParametresReservations(
+  filtres: FiltresReservations,
+  page: PageReservations,
+): string {
   const parametres = new URLSearchParams();
   if (filtres.articleId) parametres.set('articleId', filtres.articleId);
   if (filtres.siteId) parametres.set('siteId', filtres.siteId);
@@ -45,7 +48,9 @@ export async function listerReservations(
  *  Pas d'`Idempotency-Key` : transition gardée par l'état de départ (`active`), pas une
  *  création. */
 export async function satisfaireReservation(id: string): Promise<ReponseReservationPiece> {
-  const reponse = await requeteApi<ReponseReservationPiece>(`/reservations/${id}/satisfaire`, { method: 'POST' });
+  const reponse = await requeteApi<ReponseReservationPiece>(`/reservations/${id}/satisfaire`, {
+    method: 'POST',
+  });
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /reservations/satisfaire.');
   }
@@ -58,10 +63,13 @@ export async function libererReservation(
   id: string,
   entree: EntreeLiberationReservation,
 ): Promise<ReponseAvecAvertissements<ReponseReservationPiece>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseReservationPiece>>(`/reservations/${id}/liberer`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-  });
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseReservationPiece>>(
+    `/reservations/${id}/liberer`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /reservations/liberer.');
   }

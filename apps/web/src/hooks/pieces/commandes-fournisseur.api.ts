@@ -27,12 +27,16 @@ export interface PageCommandesFournisseur {
   readonly curseur?: string;
 }
 
-function construireParametresListe(filtres: FiltresCommandesFournisseur, page: PageCommandesFournisseur): string {
+function construireParametresListe(
+  filtres: FiltresCommandesFournisseur,
+  page: PageCommandesFournisseur,
+): string {
   const parametres = new URLSearchParams();
   for (const valeur of filtres.statut ?? []) parametres.append('statut', valeur);
   if (filtres.fournisseurId) parametres.set('fournisseurId', filtres.fournisseurId);
   if (filtres.siteId) parametres.set('siteId', filtres.siteId);
-  if (filtres.avecReliquat !== undefined) parametres.set('avecReliquat', String(filtres.avecReliquat));
+  if (filtres.avecReliquat !== undefined)
+    parametres.set('avecReliquat', String(filtres.avecReliquat));
   parametres.set('tri', filtres.tri);
   parametres.set('limite', String(page.limite));
   if (page.curseur) parametres.set('curseur', page.curseur);
@@ -52,8 +56,12 @@ export async function listerCommandesFournisseur(
 }
 
 /** `GET /commandes-fournisseur/{id}` — fiche complète, lignes comprises. */
-export async function recupererCommandeFournisseur(id: string): Promise<ReponseCommandeFournisseur> {
-  const commande = await requeteApi<ReponseCommandeFournisseur>(`/commandes-fournisseur/${id}`, { method: 'GET' });
+export async function recupererCommandeFournisseur(
+  id: string,
+): Promise<ReponseCommandeFournisseur> {
+  const commande = await requeteApi<ReponseCommandeFournisseur>(`/commandes-fournisseur/${id}`, {
+    method: 'GET',
+  });
   if (!commande) {
     throw new Error('Réponse commande fournisseur inattendue : corps vide.');
   }
@@ -66,11 +74,14 @@ export async function creerCommandeFournisseur(
   entree: EntreeCreationCommandeFournisseur,
   idempotencyKey: string,
 ): Promise<ReponseAvecAvertissements<ReponseCommandeFournisseur>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseCommandeFournisseur>>('/commandes-fournisseur', {
-    method: 'POST',
-    body: JSON.stringify(entree),
-    idempotencyKey,
-  });
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseCommandeFournisseur>>(
+    '/commandes-fournisseur',
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+      idempotencyKey,
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /commandes-fournisseur.');
   }
@@ -79,10 +90,15 @@ export async function creerCommandeFournisseur(
 
 /** `POST /commandes-fournisseur/{id}/envoyer` — `brouillon → envoyee` (§6.2). Aucun corps, pas
  *  d'`Idempotency-Key` (transition gardée par l'état de départ). */
-export async function envoyerCommandeFournisseur(id: string): Promise<ReponseAvecAvertissements<ReponseCommandeFournisseur>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseCommandeFournisseur>>(`/commandes-fournisseur/${id}/envoyer`, {
-    method: 'POST',
-  });
+export async function envoyerCommandeFournisseur(
+  id: string,
+): Promise<ReponseAvecAvertissements<ReponseCommandeFournisseur>> {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseCommandeFournisseur>>(
+    `/commandes-fournisseur/${id}/envoyer`,
+    {
+      method: 'POST',
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /commandes-fournisseur/envoyer.');
   }
@@ -130,10 +146,13 @@ export async function annulerCommandeFournisseur(
   id: string,
   entree: EntreeAnnulationCommandeFournisseur,
 ): Promise<ReponseAvecAvertissements<ReponseCommandeFournisseur>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseCommandeFournisseur>>(`/commandes-fournisseur/${id}/annuler`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-  });
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseCommandeFournisseur>>(
+    `/commandes-fournisseur/${id}/annuler`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /commandes-fournisseur/annuler.');
   }

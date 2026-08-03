@@ -7,7 +7,9 @@ import { recupererCommandeFournisseur } from './commandes-fournisseur.api';
 
 /** `GET /commandes-fournisseur/{id}` — même convention que `useArticle` : `enabled: false` tant
  *  que l'identifiant de route n'est pas résolu. */
-export function useCommandeFournisseur(id: string | undefined): UseQueryResult<ReponseCommandeFournisseur> {
+export function useCommandeFournisseur(
+  id: string | undefined,
+): UseQueryResult<ReponseCommandeFournisseur> {
   return useQuery({
     queryKey: clesPieces.commandesFournisseur.detail(id ?? ''),
     queryFn: () => recupererCommandeFournisseur(id as string),

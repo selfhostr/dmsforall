@@ -24,14 +24,17 @@ export const clesPieces = {
   articles: {
     liste: (filtres: FiltresListeArticles) => ['pieces', 'articles', 'liste', filtres] as const,
     detail: (id: string) => ['pieces', 'articles', 'detail', id] as const,
-    rechercheComptoir: (q: string, siteId: string) => ['pieces', 'articles', 'rechercheComptoir', q, siteId] as const,
-    disponibilite: (articleId: string, siteId: string) => ['pieces', 'articles', 'disponibilite', articleId, siteId] as const,
+    rechercheComptoir: (q: string, siteId: string) =>
+      ['pieces', 'articles', 'rechercheComptoir', q, siteId] as const,
+    disponibilite: (articleId: string, siteId: string) =>
+      ['pieces', 'articles', 'disponibilite', articleId, siteId] as const,
     mouvements: (articleId: string, filtres: FiltresMouvementsStock) =>
       ['pieces', 'articles', 'mouvements', articleId, filtres] as const,
   },
 
   stock: {
-    reapprovisionnement: (filtres: FiltresReapprovisionnement) => ['pieces', 'stock', 'reapprovisionnement', filtres] as const,
+    reapprovisionnement: (filtres: FiltresReapprovisionnement) =>
+      ['pieces', 'stock', 'reapprovisionnement', filtres] as const,
   },
 
   reservations: {
@@ -42,7 +45,8 @@ export const clesPieces = {
   // conventions que les blocs ci-dessus (tuple plat, filtres complets), ajoutées par l'agent qui a
   // complété le module (périmètre `hooks/pieces/**`, disjoint des blocs déjà livrés).
   commandesFournisseur: {
-    liste: (filtres: FiltresCommandesFournisseur) => ['pieces', 'commandesFournisseur', 'liste', filtres] as const,
+    liste: (filtres: FiltresCommandesFournisseur) =>
+      ['pieces', 'commandesFournisseur', 'liste', filtres] as const,
     detail: (id: string) => ['pieces', 'commandesFournisseur', 'detail', id] as const,
   },
 

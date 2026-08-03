@@ -24,7 +24,8 @@ export const clesPointage = {
   /** Le pointage `en_cours` d'UN technicien précis (l'écran de pointage du technicien lui-même) —
    *  distinct de `clesQuery.pointages.ouverts(site)`, qui couvre TOUS les techniciens d'un site
    *  (vue chef d'atelier « qui est pointé maintenant »). */
-  ouvertTechnicien: (technicienId: string) => ['pointages', 'ouvertTechnicien', technicienId] as const,
+  ouvertTechnicien: (technicienId: string) =>
+    ['pointages', 'ouvertTechnicien', technicienId] as const,
   /** Réexport direct — un seul endroit à connaître pour les écrans de ce domaine. */
   ouvertsSite: clesQuery.pointages.ouverts,
   technicienJour: clesQuery.pointages.technicienJour,

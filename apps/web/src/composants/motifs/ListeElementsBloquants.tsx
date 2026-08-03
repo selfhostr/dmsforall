@@ -16,7 +16,12 @@ import {
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
-import { ORIGINES_LIGNE_OR, type ElementBloquant, type OrigineLigneOr, type TypeElementBloquant } from '@dfa/shared';
+import {
+  ORIGINES_LIGNE_OR,
+  type ElementBloquant,
+  type OrigineLigneOr,
+  type TypeElementBloquant,
+} from '@dfa/shared';
 
 import { formaterHeure, formaterMontant } from '@/lib/formats';
 import { cn } from '@/lib/utils';
@@ -57,8 +62,10 @@ function detailElement(element: ElementBloquant, t: TFunction): string | undefin
     case 'ligne_or': {
       const parties: string[] = [];
       if (typeof donnees.numeroLigne === 'number') parties.push(`#${donnees.numeroLigne}`);
-      if (estOrigineLigneOrConnue(donnees.origine)) parties.push(t(`or:lignes.origines.${donnees.origine}`));
-      if (typeof donnees.totalTtcCentimes === 'number') parties.push(formaterMontant(donnees.totalTtcCentimes));
+      if (estOrigineLigneOrConnue(donnees.origine))
+        parties.push(t(`or:lignes.origines.${donnees.origine}`));
+      if (typeof donnees.totalTtcCentimes === 'number')
+        parties.push(formaterMontant(donnees.totalTtcCentimes));
       return parties.length > 0 ? parties.join(' · ') : undefined;
     }
     case 'pointage': {
@@ -77,7 +84,9 @@ function detailElement(element: ElementBloquant, t: TFunction): string | undefin
         ? t('or:devisComplementaire.numero', { numero: donnees.numero })
         : undefined;
     case 'ordre_reparation':
-      return typeof donnees.numero === 'string' ? t('or:numero', { numero: donnees.numero }) : undefined;
+      return typeof donnees.numero === 'string'
+        ? t('or:numero', { numero: donnees.numero })
+        : undefined;
     case 'champ':
       // `id` = nom du champ pour ce type (contrat `ElementBloquant`) : seul cas où `id` est
       // lui-même la donnée d'affichage.
@@ -116,7 +125,12 @@ export function ListeElementsBloquants({ blocages, onElementClic, className }: P
   }
 
   return (
-    <ul className={cn('flex flex-col divide-y divide-border overflow-hidden rounded-md border', className)}>
+    <ul
+      className={cn(
+        'flex flex-col divide-y divide-border overflow-hidden rounded-md border',
+        className,
+      )}
+    >
       {blocages.map((element) => {
         const Icone = ICONE_PAR_TYPE[element.type];
         const libelleBase = t(`erreurs:blocages.${element.type}`, { count: 1 });

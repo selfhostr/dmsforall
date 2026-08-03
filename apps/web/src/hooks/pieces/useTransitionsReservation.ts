@@ -1,6 +1,10 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 
-import type { EntreeLiberationReservation, ReponseAvecAvertissements, ReponseReservationPiece } from '@dfa/shared';
+import type {
+  EntreeLiberationReservation,
+  ReponseAvecAvertissements,
+  ReponseReservationPiece,
+} from '@dfa/shared';
 
 import { libererReservation, satisfaireReservation } from './reservations.api';
 
@@ -8,7 +12,11 @@ import { libererReservation, satisfaireReservation } from './reservations.api';
  *  liste des réservations ET les mouvements/la fiche de l'article concerné (le magasinier ne
  *  connaît pas forcément l'id article ici, invalidation par préfixe large plutôt qu'un id précis
  *  qu'il faudrait faire remonter). */
-export function useSatisfaireReservation(): UseMutationResult<ReponseReservationPiece, unknown, string> {
+export function useSatisfaireReservation(): UseMutationResult<
+  ReponseReservationPiece,
+  unknown,
+  string
+> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -28,7 +36,11 @@ interface VariablesLiberation {
 }
 
 /** `POST /reservations/{id}/liberer` (RP-23, 3e cas — geste explicite du magasinier). */
-export function useLibererReservation(): UseMutationResult<ReponseAvecAvertissements<ReponseReservationPiece>, unknown, VariablesLiberation> {
+export function useLibererReservation(): UseMutationResult<
+  ReponseAvecAvertissements<ReponseReservationPiece>,
+  unknown,
+  VariablesLiberation
+> {
   const queryClient = useQueryClient();
 
   return useMutation({

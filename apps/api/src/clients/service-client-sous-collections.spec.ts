@@ -1,7 +1,11 @@
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
-import type { EntreeAdresseClient, EntreeConditionClient, EntreeConsentementClient } from '@dfa/shared';
+import type {
+  EntreeAdresseClient,
+  EntreeConditionClient,
+  EntreeConsentementClient,
+} from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import type { ServiceJournal } from '../common/journal';
@@ -95,7 +99,12 @@ function accesFactice(tx: TransactionDfa): AccesBase {
  * VRAIE erreur y arrive bien (elle ne doit simplement plus fuiter dans la réponse HTTP).
  */
 function journalFactice(): ServiceJournal {
-  return { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as ServiceJournal;
+  return {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  } as unknown as ServiceJournal;
 }
 
 describe('ServiceClientSousCollections.creerCondition — conditions commerciales DATÉES (RM-07)', () => {
@@ -150,7 +159,9 @@ describe('ServiceClientSousCollections.creerCondition — conditions commerciale
 
     const erreur = await service.creerCondition(CTX, 'c1', entree).catch((e: unknown) => e);
     expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
-    expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe('periode_chevauchement');
+    expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe(
+      'periode_chevauchement',
+    );
   });
 
   it(
@@ -158,7 +169,9 @@ describe('ServiceClientSousCollections.creerCondition — conditions commerciale
       'texte du pilote de base en detail, et la vraie erreur est journalisée côté serveur',
     async () => {
       const fabrique = txFactice({ selects: [[{ id: 'c1' }]] });
-      const erreurBrute = new Error('connection terminated unexpectedly, host=db-primary.internal port=5432');
+      const erreurBrute = new Error(
+        'connection terminated unexpectedly, host=db-primary.internal port=5432',
+      );
       fabrique.poserErreurInsert(erreurBrute);
       const journal = journalFactice();
       const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journal);
@@ -180,13 +193,17 @@ describe('ServiceClientSousCollections.creerCondition — conditions commerciale
       expect(erreur).toMatchObject({ code: 'ERREUR_INTERNE', status: 500 });
       expect(erreur.detail).toBeUndefined();
       expect(JSON.stringify(erreur)).not.toContain('db-primary.internal');
-      expect(journal.error).toHaveBeenCalledWith(expect.any(String), erreurBrute, expect.any(Object));
+      expect(journal.error).toHaveBeenCalledWith(
+        expect.any(String),
+        erreurBrute,
+        expect.any(Object),
+      );
     },
   );
 });
 
 describe('ServiceClientSousCollections.creerAdresse — une seule adresse active par type (RM-03)', () => {
-  it("une deuxième adresse principale active en même temps est refusée en 400, nommant le type en cause", async () => {
+  it('une deuxième adresse principale active en même temps est refusée en 400, nommant le type en cause', async () => {
     const fabrique = txFactice({ selects: [[{ id: 'c1' }]] });
     fabrique.poserErreurInsert({ code: '23505', constraint: 'client_adresse_principale_uk' });
     const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
@@ -201,7 +218,9 @@ describe('ServiceClientSousCollections.creerAdresse — une seule adresse active
 
     const erreur = await service.creerAdresse(CTX, 'c1', entree).catch((e: unknown) => e);
     expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
-    expect((erreur as { erreurs: Array<{ message: string }> }).erreurs[0]?.message).toContain('principale');
+    expect((erreur as { erreurs: Array<{ message: string }> }).erreurs[0]?.message).toContain(
+      'principale',
+    );
   });
 
   it("l'adresse créée est scopée au tenant du contexte et au client demandé", async () => {
@@ -241,11 +260,20 @@ describe('ServiceClientSousCollections.creerAdresse — une seule adresse active
       '(même garde que creerCondition)',
     async () => {
       const fabrique = txFactice({ selects: [[{ id: 'c1' }]] });
-      fabrique.poserErreurInsert(new Error('duplicate key value violates unique constraint "client_adresse_pkey"'));
+      fabrique.poserErreurInsert(
+        new Error('duplicate key value violates unique constraint "client_adresse_pkey"'),
+      );
       const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
 
       const erreur = (await service
-        .creerAdresse(CTX, 'c1', { type: 'principale', rue: 'Rue Neuve 2', complement: null, npa: '1200', localite: 'Genève', pays: 'CH' })
+        .creerAdresse(CTX, 'c1', {
+          type: 'principale',
+          rue: 'Rue Neuve 2',
+          complement: null,
+          npa: '1200',
+          localite: 'Genève',
+          pays: 'CH',
+        })
         .catch((e: unknown) => e)) as { code: string; detail?: string };
 
       expect(erreur.code).toBe('ERREUR_INTERNE');
@@ -254,7 +282,7 @@ describe('ServiceClientSousCollections.creerAdresse — une seule adresse active
   );
 });
 
-describe("ServiceClientSousCollections.modifierAdresse/modifierContact — corps vide (F-01, sécurité + RM)", () => {
+describe('ServiceClientSousCollections.modifierAdresse/modifierContact — corps vide (F-01, sécurité + RM)', () => {
   it("modifierAdresse : un corps vide ({}) est refusé en 400 VALIDATION_ECHOUEE, AVANT toute écriture ni vérification d'existence du client", async () => {
     const fabrique = txFactice();
     const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
@@ -280,7 +308,27 @@ describe("ServiceClientSousCollections.modifierAdresse/modifierContact — corps
   });
 
   it('modifierAdresse : un corps portant au moins un champ passe la garde et atteint bien la mise à jour', async () => {
-    const fabrique = txFactice({ selects: [[{ id: 'c1' }], [{ id: 'a1', tenantId: 'tid-1', clientId: 'c1', type: 'principale', rue: 'Rue Neuve 2', complement: null, npa: '1200', localite: 'Genève', pays: 'CH', actif: true, creeLe: new Date('2026-01-01T00:00:00.000Z'), modifieLe: new Date('2026-01-01T00:00:00.000Z') }]] });
+    const fabrique = txFactice({
+      selects: [
+        [{ id: 'c1' }],
+        [
+          {
+            id: 'a1',
+            tenantId: 'tid-1',
+            clientId: 'c1',
+            type: 'principale',
+            rue: 'Rue Neuve 2',
+            complement: null,
+            npa: '1200',
+            localite: 'Genève',
+            pays: 'CH',
+            actif: true,
+            creeLe: new Date('2026-01-01T00:00:00.000Z'),
+            modifieLe: new Date('2026-01-01T00:00:00.000Z'),
+          },
+        ],
+      ],
+    });
     const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
 
     await service.modifierAdresse(CTX, 'c1', 'a1', { localite: 'Genève' });
@@ -293,12 +341,18 @@ describe("ServiceClientSousCollections.modifierAdresse/modifierContact — corps
       'fuite de detail, et la vraie erreur est journalisée',
     async () => {
       const fabrique = txFactice({ selects: [[{ id: 'c1' }]] });
-      const erreurBrute = { code: '23503', constraint: 'client_adresse_fk', detail: 'Key (client_id)=(c-fantome) is not present in table "client".' };
+      const erreurBrute = {
+        code: '23503',
+        constraint: 'client_adresse_fk',
+        detail: 'Key (client_id)=(c-fantome) is not present in table "client".',
+      };
       fabrique.poserErreurUpdate(erreurBrute);
       const journal = journalFactice();
       const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journal);
 
-      const erreur = (await service.modifierAdresse(CTX, 'c1', 'a1', { localite: 'Genève' }).catch((e: unknown) => e)) as {
+      const erreur = (await service
+        .modifierAdresse(CTX, 'c1', 'a1', { localite: 'Genève' })
+        .catch((e: unknown) => e)) as {
         code: string;
         status: number;
         detail?: string;
@@ -308,7 +362,11 @@ describe("ServiceClientSousCollections.modifierAdresse/modifierContact — corps
       expect(erreur.detail).toBeUndefined();
       expect(JSON.stringify(erreur)).not.toContain('client_adresse_fk');
       expect(JSON.stringify(erreur)).not.toContain('c-fantome');
-      expect(journal.error).toHaveBeenCalledWith(expect.any(String), erreurBrute, expect.any(Object));
+      expect(journal.error).toHaveBeenCalledWith(
+        expect.any(String),
+        erreurBrute,
+        expect.any(Object),
+      );
     },
   );
 });
@@ -355,7 +413,7 @@ describe('ServiceClientSousCollections — isolation tenant sur les sous-collect
     });
   });
 
-  it('la vérification d\'existence du client filtre sur le tenantId du CONTEXTE, en plus de son id', async () => {
+  it("la vérification d'existence du client filtre sur le tenantId du CONTEXTE, en plus de son id", async () => {
     const fabrique = txFactice({ selects: [[{ id: 'c1' }]] });
     const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
 

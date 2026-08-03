@@ -81,9 +81,13 @@ describe('EcranReferentiels — taux horaires', () => {
     );
     rendre();
 
-    expect(await screen.findByText(i18n.t('parametrage:referentiels.tauxHoraires.vide.titre'))).toBeInTheDocument();
     expect(
-      screen.getAllByRole('button', { name: i18n.t('parametrage:referentiels.tauxHoraires.nouveau') }).length,
+      await screen.findByText(i18n.t('parametrage:referentiels.tauxHoraires.vide.titre')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', {
+        name: i18n.t('parametrage:referentiels.tauxHoraires.nouveau'),
+      }).length,
     ).toBeGreaterThan(0);
   });
 
@@ -91,7 +95,11 @@ describe('EcranReferentiels — taux horaires', () => {
     connecterSession('chef_atelier');
     server.use(
       http.get(CHEMIN_TAUX_HORAIRES, () =>
-        HttpResponse.json({ donnees: [TAUX_HORAIRE], curseurSuivant: null, limite: 100 } satisfies PageCurseur<ReponseTauxHoraire>),
+        HttpResponse.json({
+          donnees: [TAUX_HORAIRE],
+          curseurSuivant: null,
+          limite: 100,
+        } satisfies PageCurseur<ReponseTauxHoraire>),
       ),
       http.get(CHEMIN_PRESTATIONS, () => HttpResponse.json(pageVide<ReponsePrestation>())),
     );
@@ -99,7 +107,7 @@ describe('EcranReferentiels — taux horaires', () => {
 
     expect(await screen.findByText('MEC')).toBeInTheDocument();
     expect(screen.getByText('Mécanique générale')).toBeInTheDocument();
-    expect(screen.getByText("145.00")).toBeInTheDocument();
+    expect(screen.getByText('145.00')).toBeInTheDocument();
   });
 
   it('crée un nouveau taux horaire et l’envoie au serveur avec le corps attendu', async () => {
@@ -117,42 +125,70 @@ describe('EcranReferentiels — taux horaires', () => {
 
     const utilisateur = userEvent.setup();
     // Deux boutons portent le même intitulé (en-tête + état vide) : le premier suffit ici.
-    const boutonsNouveau = await screen.findAllByRole('button', { name: i18n.t('parametrage:referentiels.tauxHoraires.nouveau') });
+    const boutonsNouveau = await screen.findAllByRole('button', {
+      name: i18n.t('parametrage:referentiels.tauxHoraires.nouveau'),
+    });
     await utilisateur.click(boutonsNouveau[0]!);
 
     const dialogue = await screen.findByRole('dialog');
-    await utilisateur.type(within(dialogue).getByLabelText(i18n.t('parametrage:referentiels.tauxHoraires.champs.code')), 'CARR');
     await utilisateur.type(
-      within(dialogue).getByLabelText(i18n.t('parametrage:referentiels.tauxHoraires.champs.libelle')),
+      within(dialogue).getByLabelText(i18n.t('parametrage:referentiels.tauxHoraires.champs.code')),
+      'CARR',
+    );
+    await utilisateur.type(
+      within(dialogue).getByLabelText(
+        i18n.t('parametrage:referentiels.tauxHoraires.champs.libelle'),
+      ),
       'Carrosserie',
     );
     // `ChampMontant` marque ce champ obligatoire d'un « * » ajouté au libellé — correspondance
     // partielle, pas le texte traduit exact. Le champ affiche déjà « 0.00 » (valeur par défaut de
     // création) : il faut le vider avant de taper, sinon la saisie s'ajoute au texte existant.
-    const champMontant = within(dialogue).getByLabelText(i18n.t('parametrage:referentiels.tauxHoraires.champs.montant'), {
-      exact: false,
-    });
+    const champMontant = within(dialogue).getByLabelText(
+      i18n.t('parametrage:referentiels.tauxHoraires.champs.montant'),
+      {
+        exact: false,
+      },
+    );
     await utilisateur.clear(champMontant);
     await utilisateur.type(champMontant, '150.00');
 
-    await utilisateur.click(within(dialogue).getByRole('button', { name: i18n.t('commun:actions.enregistrer') }));
+    await utilisateur.click(
+      within(dialogue).getByRole('button', { name: i18n.t('commun:actions.enregistrer') }),
+    );
 
-    await waitFor(() => expect(corpsRecu).toMatchObject({ code: 'CARR', libelle: 'Carrosserie', montantCentimes: 15000 }));
+    await waitFor(() =>
+      expect(corpsRecu).toMatchObject({
+        code: 'CARR',
+        libelle: 'Carrosserie',
+        montantCentimes: 15000,
+      }),
+    );
   });
 
   it('grise les actions d’écriture pour un rôle sans droit de gouvernance du paramétrage (technicien)', async () => {
     connecterSession('technicien');
     server.use(
       http.get(CHEMIN_TAUX_HORAIRES, () =>
-        HttpResponse.json({ donnees: [TAUX_HORAIRE], curseurSuivant: null, limite: 100 } satisfies PageCurseur<ReponseTauxHoraire>),
+        HttpResponse.json({
+          donnees: [TAUX_HORAIRE],
+          curseurSuivant: null,
+          limite: 100,
+        } satisfies PageCurseur<ReponseTauxHoraire>),
       ),
       http.get(CHEMIN_PRESTATIONS, () => HttpResponse.json(pageVide<ReponsePrestation>())),
     );
     rendre();
 
     await screen.findByText('MEC');
-    expect(screen.queryByRole('button', { name: i18n.t('parametrage:referentiels.tauxHoraires.nouveau') })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: i18n.t('commun:actions.modifier') })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: i18n.t('parametrage:referentiels.tauxHoraires.nouveau'),
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: i18n.t('commun:actions.modifier') }),
+    ).not.toBeInTheDocument();
   });
 
   it('affiche un état d’erreur avec bouton réessayer sur une panne serveur', async () => {
@@ -160,7 +196,13 @@ describe('EcranReferentiels — taux horaires', () => {
     server.use(
       http.get(CHEMIN_TAUX_HORAIRES, () =>
         HttpResponse.json(
-          { type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE', title: 'Erreur interne', status: 500, code: 'ERREUR_INTERNE', instance: 'req-1' },
+          {
+            type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
+            title: 'Erreur interne',
+            status: 500,
+            code: 'ERREUR_INTERNE',
+            instance: 'req-1',
+          },
           { status: 500, headers: { 'content-type': 'application/problem+json' } },
         ),
       ),
@@ -168,7 +210,9 @@ describe('EcranReferentiels — taux horaires', () => {
     );
     rendre();
 
-    expect(await screen.findByRole('button', { name: i18n.t('commun:actions.reessayer') })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: i18n.t('commun:actions.reessayer') }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -178,17 +222,27 @@ describe('EcranReferentiels — catalogue de prestations', () => {
     server.use(
       http.get(CHEMIN_TAUX_HORAIRES, () => HttpResponse.json(pageVide<ReponseTauxHoraire>())),
       http.get(CHEMIN_PRESTATIONS, () =>
-        HttpResponse.json({ donnees: [PRESTATION], curseurSuivant: null, limite: 100 } satisfies PageCurseur<ReponsePrestation>),
+        HttpResponse.json({
+          donnees: [PRESTATION],
+          curseurSuivant: null,
+          limite: 100,
+        } satisfies PageCurseur<ReponsePrestation>),
       ),
     );
     rendre();
 
     const utilisateur = userEvent.setup();
-    await utilisateur.click(await screen.findByRole('tab', { name: i18n.t('parametrage:referentiels.prestations.onglet') }));
+    await utilisateur.click(
+      await screen.findByRole('tab', {
+        name: i18n.t('parametrage:referentiels.prestations.onglet'),
+      }),
+    );
 
     expect(await screen.findByText('VIDANGE-STD')).toBeInTheDocument();
     expect(screen.getByText('Vidange standard')).toBeInTheDocument();
-    expect(screen.getByText(i18n.t('parametrage:referentiels.prestations.statutActif'))).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t('parametrage:referentiels.prestations.statutActif')),
+    ).toBeInTheDocument();
   });
 
   it('affiche l’état vide « première utilisation » du catalogue de prestations', async () => {
@@ -200,8 +254,14 @@ describe('EcranReferentiels — catalogue de prestations', () => {
     rendre();
 
     const utilisateur = userEvent.setup();
-    await utilisateur.click(await screen.findByRole('tab', { name: i18n.t('parametrage:referentiels.prestations.onglet') }));
+    await utilisateur.click(
+      await screen.findByRole('tab', {
+        name: i18n.t('parametrage:referentiels.prestations.onglet'),
+      }),
+    );
 
-    expect(await screen.findByText(i18n.t('parametrage:referentiels.prestations.vide.titre'))).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n.t('parametrage:referentiels.prestations.vide.titre')),
+    ).toBeInTheDocument();
   });
 });

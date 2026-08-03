@@ -25,18 +25,25 @@ export type EntreeModificationPrestation = z.infer<typeof schemaModificationPres
 const LIMITE_PAR_PAGE = 100;
 
 /** `GET /referentiels/prestations` — pagination par curseur. */
-export async function listerPrestations(curseur: string | null): Promise<PageCurseur<ReponsePrestation>> {
+export async function listerPrestations(
+  curseur: string | null,
+): Promise<PageCurseur<ReponsePrestation>> {
   const params = new URLSearchParams({ limite: String(LIMITE_PAR_PAGE) });
   if (curseur) params.set('curseur', curseur);
-  const page = await requeteApi<PageCurseur<ReponsePrestation>>(`/referentiels/prestations?${params.toString()}`, {
-    method: 'GET',
-  });
+  const page = await requeteApi<PageCurseur<ReponsePrestation>>(
+    `/referentiels/prestations?${params.toString()}`,
+    {
+      method: 'GET',
+    },
+  );
   if (!page) throw new Error('Réponse vide inattendue : GET /referentiels/prestations.');
   return page;
 }
 
 /** `POST /referentiels/prestations` — validé côté client par `schemaCreationPrestation`. */
-export async function creerPrestation(entree: EntreeCreationPrestation): Promise<ReponsePrestation> {
+export async function creerPrestation(
+  entree: EntreeCreationPrestation,
+): Promise<ReponsePrestation> {
   const corps = schemaCreationPrestation.parse(entree);
   const reponse = await requeteApi<ReponsePrestation>('/referentiels/prestations', {
     method: 'POST',
@@ -47,7 +54,10 @@ export async function creerPrestation(entree: EntreeCreationPrestation): Promise
 }
 
 /** `PATCH /referentiels/prestations/{id}` — jamais `code` (immuable). */
-export async function modifierPrestation(id: string, entree: EntreeModificationPrestation): Promise<ReponsePrestation> {
+export async function modifierPrestation(
+  id: string,
+  entree: EntreeModificationPrestation,
+): Promise<ReponsePrestation> {
   const corps = schemaModificationPrestation.parse(entree);
   const reponse = await requeteApi<ReponsePrestation>(`/referentiels/prestations/${id}`, {
     method: 'PATCH',
