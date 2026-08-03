@@ -33,9 +33,9 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { check, date, foreignKey, pgTable, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { check, date, foreignKey, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 
-import { colonnesHorodatage } from '../colonnes-communes';
+import { colonneId, colonnesHorodatage } from '../colonnes-communes';
 import { site } from '../site';
 import { tenant } from '../tenant';
 import { utilisateur } from '../utilisateur';
@@ -43,6 +43,15 @@ import { utilisateur } from '../utilisateur';
 export const pointageVerrouillageSite = pgTable(
   'pointage_verrouillage_site',
   {
+    /**
+     * Identité technique ajoutée par la migration 0035 — seul rôle : permettre à
+     * `auditer_atelier('periode_pointage')` de renseigner `audit_atelier.entite_id`
+     * (`NEW.id`/`OLD.id`, dispositif générique 0004 §4), exactement comme `tenant_bloc_creancier`
+     * (0014). L'identité MÉTIER de la ligne reste `(tenant_id, site_id)` — voir
+     * `pointage_verrouillage_site_tenant_site_uk` ci-dessous, qui porte désormais l'invariant
+     * « une ligne par site » précédemment assuré par la PK composite.
+     */
+    id: colonneId(),
     tenantId: uuid('tenant_id')
       .notNull()
       .references(() => tenant.id, { onDelete: 'restrict' }),
@@ -62,7 +71,10 @@ export const pointageVerrouillageSite = pgTable(
     ...colonnesHorodatage(),
   },
   (t) => [
-    primaryKey({ columns: [t.tenantId, t.siteId] }),
+    // Invariant « au plus une ligne par site » (RM-95) — porté par la PK jusqu'à la migration
+    // 0035, désormais par ce UNIQUE ; `ON CONFLICT (tenant_id, site_id)` côté service
+    // (service-verrouillage-periode.ts) se résout contre cet index sans changement.
+    unique('pointage_verrouillage_site_tenant_site_uk').on(t.tenantId, t.siteId),
 
     foreignKey({
       name: 'pointage_verrouillage_site_fk_site',
@@ -80,7 +92,8 @@ export const pointageVerrouillageSite = pgTable(
       sql`(${t.derniereActionLe} is null) = (${t.dernierUtilisateurId} is null)`,
     ),
 
-    // La PK (tenant_id, site_id) EST l'index d'accès : une ligne par site, jamais de pagination.
+    // Le UNIQUE (tenant_id, site_id) EST l'index d'accès : une ligne par site, jamais de
+    // pagination. `id` (PK depuis 0035) ne sert qu'à l'audit générique, jamais à une recherche.
   ],
 );
 
