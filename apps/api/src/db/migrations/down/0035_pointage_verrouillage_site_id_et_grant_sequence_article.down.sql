@@ -1,12 +1,15 @@
 -- =============================================================================================
 -- 0035_pointage_verrouillage_site_id_et_grant_sequence_article.down.sql — inverse de la montante,
--- INTÉGRALEMENT (aucune exception de réversibilité partielle ici : aucun `alter type ... add
--- value`). Restaure exactement l'état précédent, y compris le défaut 1 qu'il réintroduit
--- mécaniquement (une PK composite (tenant_id, site_id) sans colonne id) — c'est le sens même
--- d'un DOWN : revenir au schéma d'avant cette migration, pas une version « améliorée » de l'avant.
+-- INTÉGRALEMENT. Aucune exception de réversibilité partielle : `attribuer_numero_article()` repasse
+-- en `SECURITY INVOKER` (le défaut d'origine, 0022) — `prosecdef` est un attribut ordinaire de
+-- `pg_proc`, un aller-retour DEFINER -> INVOKER ne laisse aucun résidu de catalogue (vérifié
+-- empiriquement par comparaison `pg_dump --schema-only` avant/après un cycle complet sur une
+-- fonction de test, voir l'en-tête de la montante) — contrairement à la piste GRANT sur la
+-- séquence, essayée puis abandonnée précisément parce qu'elle, elle, laissait un résidu d'ACL
+-- irréductible.
 -- =============================================================================================
 
-revoke select, usage on sequence public.article_numero_seq from dfa_app, dfa_migrator;
+alter function public.attribuer_numero_article() security invoker;
 
 alter table public.pointage_verrouillage_site
   drop constraint pointage_verrouillage_site_tenant_site_uk;

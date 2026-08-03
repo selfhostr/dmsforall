@@ -15,8 +15,8 @@
 --
 --  2. `POST /articles` répondait HTTP 500. `attribuer_numero_article()` (0022 §3, SECURITY
 --     INVOKER — le défaut, explicite) appelle `nextval('public.article_numero_seq')` avec les
---     droits de l'appelant (`dfa_app`), qui n'a jamais reçu GRANT sur cette séquence (oubli à sa
---     création, 0022). Erreur observée :
+--     droits de l'appelant (`dfa_app`), qui n'a jamais reçu de privilège sur cette séquence (oubli
+--     à sa création, 0022). Erreur observée :
 --       ERROR:  permission denied for sequence article_numero_seq
 --       CONTEXT: PL/pgSQL function attribuer_numero_article() line 4 at assignment
 --
@@ -56,34 +56,72 @@
 --      »). Aucune FK ne référence cette table (vérifié : aucun
 --      `references public.pointage_verrouillage_site` dans tout le schéma) — le remplacement de PK
 --      est donc sans effet de bord ailleurs. Table à une ligne par site (jamais de pagination,
---      volumétrie négligeable même à 200 tenants) : le réécriture de table déclenchée par
+--      volumétrie négligeable même à 200 tenants) : la réécriture de table déclenchée par
 --      `ADD COLUMN ... DEFAULT gen_random_uuid()` (valeur volatile, pas d'optimisation du défaut
 --      rapide de PG11+) est sans coût mesurable.
+--      Réversible INTÉGRALEMENT (table ordinaire, aucune limite de catalogue) : voir down/*.sql.
 --
 -- ---------------------------------------------------------------------------------------------
--- ARBITRAGE DÉFAUT 2 : `GRANT USAGE, SELECT` sur la séquence à `dfa_app` (et `dfa_migrator`, par
--- symétrie avec le patron déjà suivi pour les fonctions — `grant execute ... to dfa_app,
--- dfa_migrator`, 0022 §3 — bien que `dfa_migrator` en ait déjà l'usage de fait comme propriétaire
--- du schéma `public`, 01-roles.sql). `USAGE` seul suffit à `nextval()`/`currval()` ; `SELECT`
--- ajoute la lecture directe de l'état de la séquence (diagnostic). `UPDATE` (donnant `setval()`)
--- délibérément PAS accordé : aucun endpoint applicatif ne doit pouvoir réinitialiser la
--- numérotation des articles.
+-- ARBITRAGE DÉFAUT 2 — DEUX pistes essayées, la première ABANDONNÉE EN COURS DE ROUTE après
+-- preuve empirique de son coût caché, remplacée par la seconde :
 --
--- CORRECTIF NE VA PAS DANS `docker/postgres/init/01-roles.sql` : ce fichier ne pose QUE les droits
--- par défaut sur le schéma (commentaire d'en-tête de 01-roles.sql, « Les GRANT fins par table sont
--- posés par les migrations ») et ne rejoue de toute façon que sur un volume Postgres VIDE
--- (`docker compose down -v` requis) — inutile ici, sans objet pour les bases déjà provisionnées.
--- Le correctif complet, pour les bases neuves ET existantes, est cette migration.
+--   PISTE ABANDONNÉE : `GRANT USAGE, SELECT ON SEQUENCE article_numero_seq TO dfa_app`. Fonctionne
+--   à l'exécution (vérifié : POST /articles repasse de 500 à 201) mais casse la réversibilité —
+--   constaté par `scripts/verifier-reversibilite-migrations.sh`, PAS supposé. Cause, vérifiée
+--   empiriquement sur une séquence de test (cycle `create → grant → revoke`, comparaison
+--   `pg_dump --schema-only` avant/après) : `pg_class.relacl` d'un objet jamais touché vaut NULL
+--   (« ACL par défaut », `pg_dump` n'imprime rien) ; DÈS le premier `GRANT ... TO <non-
+--   propriétaire>` sur un objet préexistant, PostgreSQL MATÉRIALISE cette ACL par défaut en
+--   tableau explicite, qui inclut alors, DE FAÇON PERMANENTE, les droits du propriétaire
+--   (`dfa_migrator=rwU`) — jamais redemandés par cette migration. AUCUN `REVOKE`, même
+--   `REVOKE ALL ... FROM dfa_migrator`, ne ramène `relacl` à NULL (vérifié : le résidu subsiste
+--   même après un revoke total). Seul un DROP + recreate le pourrait, option elle-même REJETÉE :
+--   `article_numero_seq` porte une numérotation déjà EN COURS D'USAGE (RP-08, unique par tenant) ;
+--   la recréer réinitialiserait son compteur à 1 et produirait des doublons de numero_article sur
+--   les articles déjà en base — bien plus grave qu'un résidu de réversibilité. Corriger le défaut
+--   réel (500 en production) en cassant la réversibilité vérifiée d'une autre migration n'est pas
+--   un compromis acceptable ici : la piste est abandonnée, pas contournée par une exception.
+--
+--   PISTE RETENUE : `attribuer_numero_article()` passe de `SECURITY INVOKER` (le défaut, explicite
+--   en 0022) à `SECURITY DEFINER`. La fonction s'exécute alors avec les droits de son PROPRIÉTAIRE
+--   (`dfa_migrator`, qui possède `article_numero_seq` depuis sa création en 0022 et en a l'usage
+--   IMPLICITE tant que personne n'y touche) — plus besoin d'accorder quoi que ce soit à `dfa_app`,
+--   et donc plus AUCUNE opération sur l'ACL de la séquence : le problème de matérialisation
+--   ci-dessus disparaît intégralement, pas seulement son symptôme.
+--   Sûr ici, PAS supposé :
+--     - `attribuer_numero_article()` fixe déjà `set search_path = pg_catalog, public` (0022) —
+--       la protection standard contre le détournement de search_path d'un SECURITY DEFINER
+--       s'applique déjà, sans rien changer.
+--     - Corps de fonction entièrement déterministe et sans paramètre : un seul `nextval()` sur un
+--       nom PLEINEMENT QUALIFIÉ (`public.article_numero_seq`, jamais résolu via search_path),
+--       aucune requête sur une table soumise au RLS — contrairement aux fonctions
+--       `amorcage.*` (0001_socle_rls.sql), déjà SECURITY DEFINER dans ce même dépôt pour un motif
+--       bien plus sensible (lecture cross-tenant avant authentification), cette fonction-ci
+--       n'élève AUCUN accès aux données : elle incrémente un compteur, point.
+--     - `dfa_app` n'obtient ainsi RIEN de plus que ce qu'il avait déjà le droit de faire
+--       indirectement (créer un `article` — table sur laquelle il a déjà INSERT, sous RLS) : le
+--       SECURITY DEFINER ne fait qu'autoriser l'étape interne au trigger, pas une nouvelle
+--       capacité côté appelant.
+--   RÉVERSIBILITÉ VÉRIFIÉE EMPIRIQUEMENT (pas déduite) : `ALTER FUNCTION ... SECURITY DEFINER`
+--   puis `... SECURITY INVOKER` sur une fonction de test, `pg_dump --schema-only` avant/après le
+--   cycle complet — AUCUN diff. `prosecdef` est un attribut ordinaire de `pg_proc`, pas une
+--   opération additive de catalogue comme `ALTER TYPE ... ADD VALUE` ou une ACL matérialisée :
+--   cette migration N'A DONC PLUS BESOIN d'aucune exception dans
+--   `scripts/verifier-reversibilite-migrations.sh` (hors périmètre de cet agent — resté INTACT).
 --
 -- RECHERCHE DEMANDÉE DES AUTRES SÉQUENCES PORTANT LE MÊME DÉFAUT : `article_numero_seq`
 -- (`grep -n "create sequence" migrations/*.sql`) est LA SEULE séquence Postgres de tout le schéma.
 -- La numérotation des documents de vente/OR (`compteur_document`, 0010 §3) passe par une TABLE
 -- compteur verrouillée en transaction (`select ... for update`), pas par un objet `SEQUENCE` —
--- aucune autre séquence n'existe donc pour reproduire cet oubli.
+-- aucune autre séquence n'existe donc pour reproduire cet oubli, et aucune autre fonction
+-- `attribuer_numero_*` n'existe qui appellerait `nextval()` sous `SECURITY INVOKER`.
 --
--- Réversible intégralement — aucun `alter type ... add value` dans cette migration (à la
--- différence de 0010/0016/0022/0023/0030, famille EXCEPTIONS_DOWN_PARTIEL) :
--- migrations/down/0035_pointage_verrouillage_site_id_et_grant_sequence_article.down.sql.
+-- CORRECTIF NE VA PAS DANS `docker/postgres/init/01-roles.sql` : ce fichier ne pose QUE les droits
+-- par défaut sur le schéma et ne rejoue de toute façon que sur un volume Postgres VIDE — sans objet
+-- ici, la piste retenue ne touche même plus aux privilèges.
+--
+-- Réversible INTÉGRALEMENT — aucun `alter type ... add value`, aucune ACL matérialisée (voir
+-- ci-dessus) : migrations/down/0035_pointage_verrouillage_site_id_et_grant_sequence_article.down.sql.
 -- =============================================================================================
 
 
@@ -114,10 +152,19 @@ alter table public.pointage_verrouillage_site
 
 
 -- ---------------------------------------------------------------------------------------------
--- 2. `article_numero_seq` — GRANT oublié à la création (0022 §3)
+-- 2. `attribuer_numero_article()` — SECURITY INVOKER -> SECURITY DEFINER (voir arbitrage ci-dessus)
 -- ---------------------------------------------------------------------------------------------
 
-grant usage, select on sequence public.article_numero_seq to dfa_app, dfa_migrator;
+alter function public.attribuer_numero_article() security definer;
+
+comment on function public.attribuer_numero_article() is
+  'Trigger BEFORE INSERT sur article : attribue numero_article depuis article_numero_seq si '
+  'absent (RP-08). Séquence GLOBALE (pas de reset annuel/par tenant, aucune règle métier ne '
+  'l''exige) : l''unicité PAR TENANT (contrainte réelle, article_tenant_numero_uk) en découle '
+  'trivialement. SECURITY DEFINER depuis 0035 (corrige permission denied for sequence '
+  'article_numero_seq sous dfa_app) : s''exécute avec les droits de dfa_migrator, propriétaire de '
+  'la séquence depuis sa création — voir 0035 pour le raisonnement complet et pourquoi un GRANT '
+  'a été essayé puis abandonné.';
 
 
 -- ---------------------------------------------------------------------------------------------
@@ -149,9 +196,14 @@ begin
     raise exception '0035 : pointage_verrouillage_site_tenant_site_uk absente après migration.';
   end if;
 
-  -- 3.3 dfa_app peut désormais tirer un numéro depuis article_numero_seq.
-  if not has_sequence_privilege('dfa_app', 'public.article_numero_seq', 'USAGE') then
-    raise exception '0035 : dfa_app n''a toujours pas USAGE sur article_numero_seq.';
+  -- 3.3 attribuer_numero_article() est bien SECURITY DEFINER après migration.
+  if not exists (
+    select 1
+      from pg_catalog.pg_proc
+     where oid = 'public.attribuer_numero_article()'::regprocedure
+       and prosecdef
+  ) then
+    raise exception '0035 : attribuer_numero_article() n''est pas SECURITY DEFINER après migration.';
   end if;
 end
 $$;
