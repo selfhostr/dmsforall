@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { STATUTS_FOURNISSEUR, type StatutFournisseur } from './enums';
 import { schemaDelaiJours } from './primitives';
 import { schemaEmail, schemaTelephoneE164, schemaTexteCourt } from '../atelier/primitives';
+import { schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 
 /**
@@ -28,7 +29,7 @@ export const TRIS_FOURNISSEURS = ['nom:asc', 'nom:desc', 'creeLe:desc'] as const
 export const TRI_DEFAUT_FOURNISSEURS = 'nom:asc';
 
 export const schemaFiltresFournisseurs = schemaParametresPage.extend({
-  statut: z.array(z.enum(STATUTS_FOURNISSEUR)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_FOURNISSEUR)).optional(),
   tri: z.enum(TRIS_FOURNISSEURS).default(TRI_DEFAUT_FOURNISSEURS),
 });
 export type FiltresFournisseurs = z.infer<typeof schemaFiltresFournisseurs>;

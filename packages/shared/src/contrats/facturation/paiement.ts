@@ -11,6 +11,7 @@ import {
 } from './enums';
 import { schemaCentimesTtc, schemaCentimesTtcPositif, schemaDeviseFacturation } from './primitives';
 import { schemaDateJour, schemaIdentifiant, schemaTexteCourt } from '../atelier/primitives';
+import { schemaListeQuery } from '../filtres';
 
 /**
  * Paiements et imputations (§4.1 → §4.3, §6.5 du modèle documentaire ; `RF-65` → `RF-80`).
@@ -82,7 +83,7 @@ export const TRI_DEFAUT_PAIEMENTS = 'dateValeur:desc';
 
 export const schemaFiltresPaiements = z.object({
   siteId: schemaIdentifiant.optional(),
-  moyen: z.array(z.enum(MOYENS_PAIEMENT)).optional(),
+  moyen: schemaListeQuery(z.enum(MOYENS_PAIEMENT)).optional(),
   payeurClientId: schemaIdentifiant.optional(),
   documentId: schemaIdentifiant.optional(),
   /** Ne montre que les paiements avec un reliquat non imputé — l'écran « encaissements à

@@ -38,6 +38,7 @@ import {
   schemaTexteCourt,
   schemaTexteLong,
 } from './primitives';
+import { schemaListeQuery } from '../filtres';
 
 /**
  * Ordres de réparation (contrats-api-etape-1.md §7.6, §7.7, §8.3).
@@ -330,13 +331,13 @@ export const TRI_DEFAUT_JOURNAL = 'survenuLe:desc';
  */
 export const schemaFiltresOrdresReparation = z.object({
   siteId: schemaIdentifiant.optional(),
-  statut: z.array(z.enum(STATUTS_ORDRE_REPARATION)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_ORDRE_REPARATION)).optional(),
   vue: z.enum(VUES_ORDRE_REPARATION).optional(),
   clientId: schemaIdentifiant.optional(),
   vehiculeId: schemaIdentifiant.optional(),
   technicienId: schemaIdentifiant.optional(),
-  localisation: z.array(z.enum(LOCALISATIONS_VEHICULE)).optional(),
-  attente: z.array(z.enum(ATTENTES_ORDRE_REPARATION)).optional(),
+  localisation: schemaListeQuery(z.enum(LOCALISATIONS_VEHICULE)).optional(),
+  attente: schemaListeQuery(z.enum(ATTENTES_ORDRE_REPARATION)).optional(),
   /** Bornes INCLUSES, convention `xDu` / `xAu` de toute l'API. */
   restitutionPromiseDu: schemaDateJour.optional(),
   restitutionPromiseAu: schemaDateJour.optional(),

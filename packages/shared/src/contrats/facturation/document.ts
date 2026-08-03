@@ -28,6 +28,7 @@ import {
   schemaTexteCourt,
   schemaTexteLong,
 } from '../atelier/primitives';
+import { schemaListeQuery } from '../filtres';
 
 /**
  * Documents de vente (`document_vente`) — chaîne devis → bon de commande → facture → avoir
@@ -277,10 +278,10 @@ export const TRI_DEFAUT_DOCUMENTS_VENTE = 'dateDocument:desc';
 
 export const schemaFiltresDocumentsVente = z.object({
   siteId: schemaIdentifiant.optional(),
-  typeDocument: z.array(z.enum(TYPES_DOCUMENT_VENTE)).optional(),
+  typeDocument: schemaListeQuery(z.enum(TYPES_DOCUMENT_VENTE)).optional(),
   natureFacture: z.enum(NATURES_FACTURE).optional(),
-  statut: z.array(z.enum(STATUTS_DOCUMENT_VENTE)).optional(),
-  statutReglement: z.array(z.enum(STATUTS_REGLEMENT_DOCUMENT)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_DOCUMENT_VENTE)).optional(),
+  statutReglement: schemaListeQuery(z.enum(STATUTS_REGLEMENT_DOCUMENT)).optional(),
   clientId: schemaIdentifiant.optional(),
   vehiculeId: schemaIdentifiant.optional(),
   ordreReparationId: schemaIdentifiant.optional(),

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ORIGINES_COMMANDE_FOURNISSEUR, STATUTS_COMMANDE_FOURNISSEUR, type OrigineCommandeFournisseur, type StatutCommandeFournisseur } from './enums';
 import { schemaCentimesPositif } from './primitives';
 import { schemaDateJour, schemaIdentifiant, schemaMotif, schemaQuantiteMillieme } from '../atelier/primitives';
+import { schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 
 /**
@@ -66,7 +67,7 @@ export const TRIS_COMMANDES_FOURNISSEUR = ['creeLe:desc', 'creeLe:asc', 'dateCom
 export const TRI_DEFAUT_COMMANDES_FOURNISSEUR = 'creeLe:desc';
 
 export const schemaFiltresCommandesFournisseur = schemaParametresPage.extend({
-  statut: z.array(z.enum(STATUTS_COMMANDE_FOURNISSEUR)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_COMMANDE_FOURNISSEUR)).optional(),
   fournisseurId: schemaIdentifiant.optional(),
   siteId: schemaIdentifiant.optional(),
   /** `true` : commandes avec au moins un reliquat non soldé (`RP-27`) — sucre équivalent à

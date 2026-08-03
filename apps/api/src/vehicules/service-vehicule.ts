@@ -399,7 +399,11 @@ async function executerListeVehicules(
 ): Promise<readonly LigneListeVehicule[]> {
   const conditions: SQL[] = [sql`v.tenant_id = ${tenantId}`];
   if (filtres.statut && filtres.statut.length > 0) {
-    conditions.push(sql`v.statut = any(${filtres.statut})`);
+    // `sql.param(...)::public.statut_vehicule[]` — jamais l'interpolation directe d'un tableau JS
+    // dans `sql\`\``, qui produit un constructeur d'enregistrement (`any(($2, $3))`) au lieu d'un
+    // tableau SQL et fait échouer la requête à l'exécution. Même motif qu'en recherche (voir
+    // `recherche/service-recherche.ts`, `v.id = any(${sql.param(vehiculeIds)}::uuid[])`).
+    conditions.push(sql`v.statut = any(${sql.param(filtres.statut)}::public.statut_vehicule[])`);
   }
   if (filtres.marque) {
     conditions.push(sql`v.marque ilike ${`%${filtres.marque}%`}`);

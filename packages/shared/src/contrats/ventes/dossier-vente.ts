@@ -11,6 +11,7 @@ import {
 } from '../atelier/primitives';
 import { schemaConfirmations } from '../atelier/avertissement';
 import type { DocumentVenteResume } from '../facturation/document';
+import { schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 import {
   STATUTS_DOSSIER_VENTE,
@@ -179,7 +180,7 @@ export const TRI_DEFAUT_DOSSIERS_VENTE = 'prospectionLe:desc';
 
 export const schemaFiltresDossiersVente = schemaParametresPage.extend({
   siteId: schemaIdentifiant.optional(),
-  statut: z.array(z.enum(STATUTS_DOSSIER_VENTE)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_DOSSIER_VENTE)).optional(),
   clientAcheteurId: schemaIdentifiant.optional(),
   vehiculeId: schemaIdentifiant.optional(),
   /** Porte sur le nom du client acheteur et la plaque/désignation du véhicule associé. */
