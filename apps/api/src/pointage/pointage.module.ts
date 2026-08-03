@@ -15,12 +15,10 @@ import { ServiceVerrouillagePeriode } from './service-verrouillage-periode';
  * `JETON_CREATION_TRAVAIL_REPORTE` (`ServiceVehiculeTravailReporte`, exporté par `VehiculesModule`,
  * câblé par `AtelierModule` via `useExisting`). CE MODULE NE POSE PAS LE PROVIDER LUI-MÊME :
  * `atelier.module.ts` n'est pas dans le périmètre d'écriture de cet agent (voir la consigne de la
- * tâche). Câblage à poser par le coordinateur dans `apps/api/src/atelier/atelier.module.ts` :
- *
- *   1. `imports: [..., PointageModule]`
- *   2. remplacer `{ provide: JETON_LECTURE_POINTAGE, useClass: LecturePointageVide }`
- *      par `{ provide: JETON_LECTURE_POINTAGE, useExisting: ServiceLecturePointage }`
- *   3. retirer l'import de `LecturePointageVide` s'il devient inutilisé.
+ * tâche). CÂBLAGE DÉJÀ POSÉ (vérifié au 2026-08-03, CORRECTIF d'une note antérieure qui le décrivait
+ * comme restant à faire) — `apps/api/src/atelier/atelier.module.ts` importe bien `PointageModule` et
+ * fournit `{ provide: JETON_LECTURE_POINTAGE, useExisting: ServiceLecturePointage }` ; `LecturePointageVide`
+ * n'y est plus utilisé comme provider actif.
  *
  * Aucun import d'`AtelierModule` ici, dans AUCUN sens : ce module lit `ordre_reparation`/`ligne_or`
  * directement via le schéma Drizzle partagé (`references.ts`, `pointage-requetes.ts`), jamais via

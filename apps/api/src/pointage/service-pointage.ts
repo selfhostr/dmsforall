@@ -7,6 +7,7 @@ import type {
   FiltresPointages,
   MotifAnomaliePointage,
   PageCurseur,
+  ReponseAgregatTempsLigne,
   ReponseAvecAvertissements,
   ReponsePointage,
   RoleUtilisateur,
@@ -29,10 +30,23 @@ import {
   ordreParDebutLe,
   valeurCurseurDepuisTriPointage,
 } from './pagination-pointages';
-import { chargerPointageOuNull, chargerPointageOuvertTechnicien, chargerPointagePourEcriture } from './pointage-requetes';
-import { dureeBruteDepuisPeriode, mapperPointage } from './mappeurs';
-import { chargerLigneOuNull, chargerOrOuNull, chargerLignePourPointage, chargerOrPourPointage, chargerParametresPointage } from './references';
 import {
+  chargerPointageOuNull,
+  chargerPointageOuvertTechnicien,
+  chargerPointagePourEcriture,
+  chargerPointagesPourAgregatLigne,
+} from './pointage-requetes';
+import { dureeBruteDepuisPeriode, mapperPointage } from './mappeurs';
+import {
+  chargerLigneOuNull,
+  chargerLignesOrPourAgregat,
+  chargerOrOuNull,
+  chargerLignePourPointage,
+  chargerOrPourPointage,
+  chargerParametresPointage,
+} from './references';
+import {
+  calculerAgregatsTempsLigne,
   calculerClotureChevauchement,
   calculerDureeArrondieCentiemes,
   chevauchementDoitProduireAnomalie,
@@ -60,11 +74,14 @@ type ResultatEcriture = ResultatIdempotent<ReponseMemorisable & { corps: Reponse
 
 /**
  * Rôles qui voient au-delà de leur propre pointage (`atelier.pointage.lire_equipe`, §9 de la spec
- * pointage : « chef d'atelier, direction »). LISTE LOCALE, PROVISOIRE — voir le commentaire de
- * `ServicePointage.obtenir` pour pourquoi une liste codée en dur ici plutôt qu'une lecture de
- * `MATRICE_DROITS` (le bloc pointage n'y existe pas encore). `admin` inclus par la même doctrine que
- * le reste de la matrice lot 1 (« rôle technique, superset de `direction` ») — à réviser si le bloc
- * posé par le coordinateur en décide autrement.
+ * pointage : « chef d'atelier, direction »). LISTE LOCALE, TOUJOURS NÉCESSAIRE — CORRECTIF d'un
+ * commentaire antérieur : le bloc `DROITS_POINTAGE_PAR_ROLE` EXISTE désormais dans
+ * `matrice-droits.ts` (vérifié au 2026-08-03, six actions `atelier.pointage.*` posées et câblées par
+ * rôle), mais l'action `atelier.pointage.lire_equipe` elle-même en est TOUJOURS délibérément absente
+ * (commentaire de tête du bloc : « aucune route livrée ne les consomme encore ») — cette liste
+ * locale reste donc la seule source de cette restriction, PAS une lecture de `MATRICE_DROITS`
+ * possible en l'état. `admin` inclus par la même doctrine que le reste de la matrice lot 1 (« rôle
+ * technique, superset de `direction` »).
  */
 const ROLES_AVEC_VUE_EQUIPE_POINTAGE: ReadonlySet<RoleUtilisateur> = new Set(['chef_atelier', 'direction', 'admin']);
 
@@ -397,18 +414,19 @@ export class ServicePointage {
   /**
    * `GET /pointages/{id}` — le sien ou celui d'un technicien encadré (RM-99, §9 de la spec pointage).
    *
-   * DROIT — INTERPRÉTATION PROVISOIRE, signalée : `matrice-droits.ts` ne porte aujourd'hui AUCUNE
-   * action `atelier.pointage.*` (voir le rapport de livraison) — cette route est donc, comme toutes
-   * celles de ce module, MORTE tant que le bloc additif n'y est pas posé. La spec propose DEUX
-   * droits distincts pour cette seule ressource (`atelier.pointage.lire` = le sien,
-   * `atelier.pointage.lire_equipe` = tous) alors que `GardeDroit` n'accepte qu'UN SEUL
-   * `@ExigerDroit` statique par route et que le contrat (`contrats/pointage/pointage.ts`, GELÉ)
-   * n'expose qu'UNE SEULE route `GET /pointages/{id}` — pas de variante par droit. Ce service
+   * DROIT — `atelier.pointage.lire` est posé et câblé par rôle dans `matrice-droits.ts` (bloc
+   * `DROITS_POINTAGE_PAR_ROLE`, vérifié au 2026-08-03 — CORRECTIF d'un commentaire antérieur qui
+   * décrivait cette route comme morte, exact au moment où ce fichier a été écrit, plus vrai
+   * depuis). La spec propose DEUX droits distincts pour cette seule ressource (`atelier.pointage.
+   * lire` = le sien, `atelier.pointage.lire_equipe` = tous) alors que `GardeDroit` n'accepte qu'UN
+   * SEUL `@ExigerDroit` statique par route et que le contrat (`contrats/pointage/pointage.ts`,
+   * GELÉ) n'expose qu'UNE SEULE route `GET /pointages/{id}` — pas de variante par droit. Ce service
    * applique donc la restriction FINE ici, en app, après le contrôle statique minimal
    * (`atelier.pointage.lire`, posé sur la route) : `ROLES_AVEC_VUE_EQUIPE_POINTAGE` (liste LOCALE,
-   * PAS lue depuis `MATRICE_DROITS` — cette constante n'existe pas encore côté pointage) borne qui
-   * voit au-delà de son propre pointage. `RESSOURCE_INTROUVABLE` plutôt que `DROIT_INSUFFISANT` sur
-   * le pointage d'autrui : ne pas révéler l'existence d'un pointage qu'on n'a pas le droit de voir.
+   * PAS lue depuis `MATRICE_DROITS` — `atelier.pointage.lire_equipe` reste délibérément absente de
+   * cette matrice, voir le commentaire de tête du bloc) borne qui voit au-delà de son propre
+   * pointage. `RESSOURCE_INTROUVABLE` plutôt que `DROIT_INSUFFISANT` sur le pointage d'autrui : ne
+   * pas révéler l'existence d'un pointage qu'on n'a pas le droit de voir.
    */
   async obtenir(ctx: ContexteTenant, principal: PrincipalAuthentifie, id: string): Promise<ReponsePointage> {
     return this.acces.enTenant(ctx, async (tx) => {
@@ -474,6 +492,30 @@ export class ServicePointage {
             : null,
         limite,
       };
+    });
+  }
+
+  /**
+   * `GET /pointages/agregats-ligne` — temps réellement passé (pointé) vs temps facturé (barémé)
+   * pour chaque ligne pointable de l'OR. Lecture NON verrouillée (rapport de consultation, aucune
+   * écriture) ; `RESSOURCE_INTROUVABLE` si l'OR n'existe pas pour ce tenant, même code que le reste
+   * des lectures pointage sur une cible absente.
+   *
+   * PAS de restriction `ROLES_AVEC_VUE_EQUIPE_POINTAGE` ici (voir `obtenir`/`lister`) : cet agrégat
+   * ne nomme aucun technicien, seulement des totaux par ligne — voir l'en-tête de
+   * `contrats/pointage/agregat-ligne.ts` pour le raisonnement complet.
+   */
+  async obtenirAgregatsLigne(ctx: ContexteTenant, ordreReparationId: string): Promise<ReponseAgregatTempsLigne> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const or = await chargerOrOuNull(tx, ctx, ordreReparationId);
+      if (!or) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Ordre de réparation ${ordreReparationId} introuvable.`);
+
+      const [lignes, pointages] = await Promise.all([
+        chargerLignesOrPourAgregat(tx, ctx, ordreReparationId),
+        chargerPointagesPourAgregatLigne(tx, ctx, ordreReparationId),
+      ]);
+
+      return { ordreReparationId, lignes: calculerAgregatsTempsLigne(lignes, pointages) };
     });
   }
 

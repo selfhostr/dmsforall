@@ -9,9 +9,11 @@ import {
   schemaDemarragePointage,
   schemaFiltresPointages,
   schemaIdentifiant,
+  schemaParametresAgregatTempsLigne,
   type EntreeArretPointage,
   type EntreeCorrectionPointage,
   type EntreeDemarragePointage,
+  type ParametresAgregatTempsLigne,
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
@@ -20,7 +22,7 @@ import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 
-import { EnveloppePointageDto, PagePointageDto, ReponsePointageDto } from './dto';
+import { EnveloppePointageDto, PagePointageDto, ReponseAgregatTempsLigneDto, ReponsePointageDto } from './dto';
 import { ServicePointage } from './service-pointage';
 
 const EnveloppePointageResponseDto = EnveloppePointageDto(ReponsePointageDto, 'Pointage');
@@ -37,13 +39,12 @@ type EntreeListePointages = z.infer<typeof schemaListePointages>;
  * corriger, lire — racine `/pointages`, PAS nichée sous `/ordres-reparation/{orId}` (RM-87 admet une
  * cible `indirect` sans OR, voir l'en-tête de `contrats/pointage/pointage.ts`).
  *
- * DROITS — toutes les routes ci-dessous portent `@ExigerDroit('atelier.pointage.*')`, des actions
- * qui N'EXISTENT PAS ENCORE dans `apps/api/src/auth/matrice-droits.ts` au moment d'écrire ce fichier
- * (vérifié : aucune action `pointage.*`/`atelier.pointage.*` n'y figure). Ces routes sont donc
- * MORTES (`403 DROIT_INSUFFISANT` pour tout rôle, `GardeDroit` refuse par défaut) tant que le bloc
- * additif proposé dans le rapport de livraison n'y est pas posé par le coordinateur — DÉLIBÉRÉ,
- * même patron que les blocs facturation/pièces avant que leurs actions n'existent (voir
- * `TOUTES_ACTIONS` dans `matrice-droits.ts`, section « inertes tant que… »).
+ * DROITS — les six actions `atelier.pointage.*` que ce contrôleur consomme (`demarrer`, `arreter`,
+ * `lire`, `corriger_autrui`, `verrouiller_periode`, `deverrouiller_periode`) sont posées et câblées
+ * par rôle dans `apps/api/src/auth/matrice-droits.ts` (bloc `DROITS_POINTAGE_PAR_ROLE`, vérifié au
+ * 2026-08-03) — CORRECTIF d'un commentaire antérieur de ce fichier qui les décrivait comme absentes
+ * (elles l'étaient au moment où ce contrôleur a été écrit ; le bloc additif a été posé depuis par le
+ * coordinateur). Ces routes sont donc VIVANTES, pas mortes.
  */
 @ApiTags('Pointage')
 @ApiCookieAuth()
@@ -72,6 +73,25 @@ export class PointageController {
     const principal = this.contexte.exigerPrincipal();
     const { limite, curseur, ...filtres } = query;
     return this.service.lister(ctx, principal, filtres, limite, curseur);
+  }
+
+  @Get('agregats-ligne')
+  @ExigerDroit('atelier.pointage.lire')
+  @ApiOperation({
+    summary: "Par ligne de l'OR : temps réellement pointé vs temps facturé (barème) — RM-99, « c'est précisément l'écart qui a de la valeur ».",
+    description:
+      'Déclarée AVANT `GET /pointages/{id}` dans ce contrôleur : `agregats-ligne` ne doit jamais être capturé par `:id` (ordre de ' +
+      "déclaration des routes NestJS). Aucune restriction de vue équipe : cet agrégat ne nomme aucun technicien, seulement des totaux " +
+      "par ligne. Une ligne sans temps barémé ET sans aucun pointage n'apparaît pas dans la réponse.",
+  })
+  @ApiOkResponse({ type: ReponseAgregatTempsLigneDto })
+  @ApiReponseProbleme(400, 'ordreReparationId manquant ou mal formé.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
+  async agregatsLigne(@Query(new PipeZod(schemaParametresAgregatTempsLigne)) query: ParametresAgregatTempsLigne) {
+    const ctx = this.contexte.contexteTenant();
+    return this.service.obtenirAgregatsLigne(ctx, query.ordreReparationId);
   }
 
   @Get(':id')

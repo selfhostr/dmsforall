@@ -1,8 +1,9 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNotNull } from 'drizzle-orm';
 
 import type { ContexteTenant, TransactionDfa } from '../db';
 import { pointage, type LignePointage } from '../db/schema';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
+import type { PointagePourAgregat } from './regles-pointage';
 
 /**
  * Lectures/verrous PARTAGÉS sur la table `pointage` elle-même. Rescoping explicite sur `tenant_id`
@@ -53,4 +54,25 @@ export async function chargerPointageOuvertTechnicien(
     .limit(1)
     .for('update');
   return ligne ?? null;
+}
+
+/**
+ * `GET /pointages/agregats-ligne` — tous les pointages `nature = 'productif_ligne'` de l'OR
+ * (`ligne_or_id is not null` suffit à les isoler : c'est la seule nature qui porte ce champ,
+ * `pointage_cible_coherente_chk`). Borné par OR (au plus quelques dizaines de pointages), lecture
+ * NON verrouillée — même patron que `ServiceLecturePointage.pointagesOuvertsPourOr`.
+ */
+export async function chargerPointagesPourAgregatLigne(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  ordreReparationId: string,
+): Promise<readonly PointagePourAgregat[]> {
+  return tx
+    .select({
+      ligneOrId: pointage.ligneOrId,
+      statut: pointage.statut,
+      dureeArrondieCentiemes: pointage.dureeArrondieCentiemes,
+    })
+    .from(pointage)
+    .where(and(eq(pointage.tenantId, ctx.tenantId), eq(pointage.ordreReparationId, ordreReparationId), isNotNull(pointage.ligneOrId)));
 }
