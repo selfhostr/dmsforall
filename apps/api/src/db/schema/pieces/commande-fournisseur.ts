@@ -40,6 +40,10 @@ export const commandeFournisseur = pgTable(
     dateCommande: date('date_commande').notNull().defaultNow(),
     envoyeeLe: timestamp('envoyee_le', { withTimezone: true, mode: 'date' }),
     reference: text('reference'),
+    // 0034 : raison saisie à l'annulation (brouillon/envoyee -> annulee), exigée par la CHECK
+    // ci-dessous — rend réellement opposable exige_motif=true de transition_autorisee (0024 §4),
+    // que verifier_transition() (0003 §6) ne lit lui-même jamais.
+    motifAnnulation: text('motif_annulation'),
     ...colonnesHorodatage(),
   },
   (t) => [
@@ -55,6 +59,7 @@ export const commandeFournisseur = pgTable(
       foreignColumns: [site.tenantId, site.id],
     }).onDelete('restrict'),
     check('commande_fournisseur_envoyee_coherente_chk', sql`${t.statut} <> 'brouillon' or ${t.envoyeeLe} is null`),
+    check('commande_fournisseur_annulation_coherente_chk', sql`${t.statut} <> 'annulee' or ${t.motifAnnulation} is not null`),
     index('commande_fournisseur_pagination_idx').on(t.tenantId, t.creeLe.desc(), t.id.desc()),
     index('commande_fournisseur_fournisseur_idx').on(t.tenantId, t.fournisseurId),
     index('commande_fournisseur_site_statut_idx').on(t.tenantId, t.siteId, t.statut),

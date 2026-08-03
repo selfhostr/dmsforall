@@ -47,6 +47,9 @@ export interface ReponseCommandeFournisseur {
   readonly envoyeeLe: string | null;
   /** Référence externe libre (numéro de commande porté par le fournisseur, si communiqué). */
   readonly reference: string | null;
+  /** Renseigné uniquement pour `statut = 'annulee'` (§6.2, `POST /{id}/annuler`) — raison saisie
+   *  par l'appelant, exigée en base par `commande_fournisseur_annulation_coherente_chk` (0034). */
+  readonly motifAnnulation: string | null;
   readonly lignes: readonly ReponseLigneCommandeFournisseur[];
   readonly lignesTronquees: boolean;
   readonly creeLe: string;

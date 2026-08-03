@@ -23,6 +23,7 @@ function commande(champs: Partial<LigneCommandeFournisseur> = {}): LigneCommande
     dateCommande: '2026-07-01',
     envoyeeLe: new Date('2026-07-01T08:00:00.000Z'),
     reference: null,
+    motifAnnulation: null,
     creeLe: new Date('2026-07-01T08:00:00.000Z'),
     modifieLe: new Date('2026-07-01T08:00:00.000Z'),
     ...champs,
@@ -312,12 +313,34 @@ describe('ServiceCommandeFournisseur.annuler — §6.2 : uniquement avant toute 
   it('brouillon : passe annulee', async () => {
     const { tx } = txFactice({
       executes: [{ rows: [commande({ statut: 'brouillon' })] }, { rows: [] }],
-      selects: [[commande({ statut: 'annulee' })], [ligne()]],
+      selects: [[commande({ statut: 'annulee', motifAnnulation: ENTREE.motif })], [ligne()]],
     });
     const service = new ServiceCommandeFournisseur(accesFactice(tx), idempotenceFactice(tx));
 
     const resultat = await service.annuler(CTX, 'cmd-1', ENTREE);
 
     expect(resultat.donnees.statut).toBe('annulee');
+    expect(resultat.donnees.motifAnnulation).toBe('Erreur de saisie');
+  });
+
+  /**
+   * PREUVE PAR FALSIFICATION (0034) : `entree.motif` doit être écrit dans le MÊME `UPDATE` que le
+   * changement de statut — `commande_fournisseur_annulation_coherente_chk` (0034) refuserait sinon
+   * la transition en base (motif absent alors que statut = annulee). Casser
+   * `service-commande-fournisseur.ts::annuler` (ex. omettre `motif_annulation = ${entree.motif}`
+   * du deuxième `UPDATE`) fait rougir cette assertion : le motif ne serait plus retrouvable dans
+   * les chunks de la requête SQL brute passée à `tx.execute`.
+   */
+  it('écrit motif_annulation dans le même UPDATE que le changement de statut (0034)', async () => {
+    const { tx, executeAppels } = txFactice({
+      executes: [{ rows: [commande({ statut: 'brouillon' })] }, { rows: [] }],
+      selects: [[commande({ statut: 'annulee', motifAnnulation: ENTREE.motif })], [ligne()]],
+    });
+    const service = new ServiceCommandeFournisseur(accesFactice(tx), idempotenceFactice(tx));
+
+    await service.annuler(CTX, 'cmd-1', ENTREE);
+
+    const requeteUpdate = executeAppels[1] as { queryChunks: readonly unknown[] };
+    expect(requeteUpdate.queryChunks).toContain(ENTREE.motif);
   });
 });

@@ -53,7 +53,7 @@ const DEFINITIONS_TRI_COMMANDES: Readonly<Record<FiltresCommandesFournisseur['tr
 const COLONNES_COMMANDE_ALIASEES = sql`
   cf.id as "id", cf.tenant_id as "tenantId", cf.fournisseur_id as "fournisseurId", cf.site_id as "siteId",
   cf.statut as "statut", cf.origine as "origine", cf.date_commande as "dateCommande",
-  cf.envoyee_le as "envoyeeLe", cf.reference as "reference",
+  cf.envoyee_le as "envoyeeLe", cf.reference as "reference", cf.motif_annulation as "motifAnnulation",
   cf.cree_le as "creeLe", cf.modifie_le as "modifieLe"
 `;
 
@@ -394,12 +394,18 @@ export class ServiceCommandeFournisseur {
 
   /**
    * `POST /commandes-fournisseur/{id}/annuler` — UNIQUEMENT depuis `brouillon` ou `envoyee`, AVANT
-   * toute réception (§6.2).
+   * toute réception (§6.2). Persiste `entree.motif` dans `commande_fournisseur.motif_annulation`
+   * (migration 0034, qui a comblé le gap de schéma constaté à l'audit de ce lot — cette colonne
+   * n'existait pas : `_entree.motif` était validé par `schemaMotif` puis jeté silencieusement,
+   * alors que `transition_autorisee.exige_motif = true` pour {brouillon,envoyee} -> annulee
+   * (0024 §4)). La CHECK `commande_fournisseur_annulation_coherente_chk` (0034) refuserait
+   * désormais toute annulation qui omettrait ce motif — cohérent avec `schemaMotif` déjà non vide
+   * côté contrat, jamais redondant en pratique.
    */
   async annuler(
     ctx: ContexteTenant,
     commandeId: string,
-    _entree: EntreeAnnulationCommandeFournisseur,
+    entree: EntreeAnnulationCommandeFournisseur,
   ): Promise<ReponseAvecAvertissements<ReponseCommandeFournisseur>> {
     return this.acces.enTenant(ctx, async (tx) => {
       const commande = await this.chargerCommandeOu404PourVerrou(tx, ctx, commandeId);
@@ -409,17 +415,8 @@ export class ServiceCommandeFournisseur {
           `Annulation impossible : la commande est "${commande.statut}" — après réception, seul le reliquat s'annule ligne par ligne (§6.2).`,
         );
       }
-      // GAP DE SCHÉMA signalé au rapport de livraison : `commande_fournisseur` ne porte AUCUNE
-      // colonne `motif_annulation`, contrairement à `ordre_reparation` (`motifAnnulation`, schema
-      // atelier) — alors que `transition_autorisee.exige_motif = true` pour {brouillon,envoyee} ->
-      // annulee (0024 §4, « le service exige un motif non vide… et l'audit l'enregistre »).
-      // `_entree.motif` EST validé (schemaMotif, non vide) mais n'a nulle part où être persisté :
-      // ni colonne dédiée, ni capture par `auditer_atelier()` (qui ne journalise QUE les colonnes
-      // réelles de la ligne, `to_jsonb(old)`/`to_jsonb(new)`). Correction possible uniquement par
-      // une migration (colonne + CHECK, même patron que `ordre_reparation`), hors périmètre de ce
-      // lot (`apps/api/src/pieces/**`, pas `apps/api/src/db/**`).
       await tx.execute(sql`
-        update public.commande_fournisseur set statut = 'annulee'
+        update public.commande_fournisseur set statut = 'annulee', motif_annulation = ${entree.motif}
          where tenant_id = ${ctx.tenantId} and id = ${commandeId}
       `);
       const commandeMaj = await this.chargerCommandeAvecLignes(tx, ctx, commandeId);

@@ -332,6 +332,7 @@ export function versCommandeFournisseurResponse(
     dateCommande: typeof commande.dateCommande === 'string' ? commande.dateCommande : enDate(commande.dateCommande).toISOString().slice(0, 10),
     envoyeeLe: commande.envoyeeLe ? enDate(commande.envoyeeLe).toISOString() : null,
     reference: commande.reference,
+    motifAnnulation: commande.motifAnnulation,
     lignes,
     lignesTronquees,
     creeLe: enDate(commande.creeLe).toISOString(),

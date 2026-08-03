@@ -71,6 +71,9 @@ export class CommandeFournisseurDto implements ReponseCommandeFournisseur {
   @ApiProperty({ type: String, nullable: true })
   readonly reference!: string | null;
 
+  @ApiProperty({ type: String, nullable: true, description: "Renseigné uniquement pour statut = 'annulee' (§6.2)." })
+  readonly motifAnnulation!: string | null;
+
   @ApiProperty({ type: () => [LigneCommandeFournisseurDto] })
   readonly lignes!: readonly LigneCommandeFournisseurDto[];
 
