@@ -144,6 +144,7 @@ async function creerBrouillon(
   const cookie = await cookiePour(tenant, role);
   const reponse = await ctx.requete
     .post('/api/v1/documents-vente')
+    .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
     .set('Cookie', cookie)
     .set(EN_TETE_IDEMPOTENCE, randomUUID())
     .send({
@@ -168,6 +169,7 @@ async function emettre(tenant: DonneesLot1Tenant, role: RoleUtilisateur, documen
   const cookie = await cookiePour(tenant, role);
   return ctx.requete
     .post(`/api/v1/documents-vente/${documentId}/emettre`)
+    .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
     .set('Cookie', cookie)
     .set(EN_TETE_IDEMPOTENCE, randomUUID());
 }
@@ -257,6 +259,7 @@ describe('émission — contrôle de droit dynamique par typeDocument (RF-114, v
     const cookieReceptionnaire = await cookiePour(garage.tenantA, 'receptionnaire');
     const creationAvoir = await ctx.requete
       .post(`/api/v1/documents-vente/${facture.id}/avoirs`)
+      .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
       .set('Cookie', cookieReceptionnaire)
       .set(EN_TETE_IDEMPOTENCE, randomUUID())
       .send({ portee: 'total', motif: 'erreur_montant' });

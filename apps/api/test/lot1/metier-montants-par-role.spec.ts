@@ -62,6 +62,7 @@ beforeAll(async () => {
   // prouverait rien sur le filtrage lui-même.
   const creation = await ctx.requete
     .post(`/api/v1/ordres-reparation/${or.id}/lignes`)
+    .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
     .set('Cookie', cookieReceptionnaire)
     .set('Idempotency-Key', randomUUID())
     .send({
@@ -80,6 +81,7 @@ beforeAll(async () => {
   // deux à la fois).
   const modification = await ctx.requete
     .patch(`/api/v1/ordres-reparation/${or.id}`)
+    .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
     .set('Cookie', cookieReceptionnaire)
     .set('If-Match', 'W/"1"')
     .send({ plafondCentimes: 50000, plafondAutorisePar: 'Test' });
