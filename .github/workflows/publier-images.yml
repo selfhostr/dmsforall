@@ -38,8 +38,6 @@ permissions:
 
 env:
   NODE_VERSION: '22'
-  # Doit rester aligné avec `packageManager` dans package.json (voir aussi ci.yml).
-  PNPM_VERSION: '11'
   REGISTRY: ghcr.io
 
 jobs:
@@ -59,10 +57,11 @@ jobs:
       - name: Récupérer le code
         uses: actions/checkout@v4
 
+      # Pas de `version:` ici : pnpm/action-setup@v4 la lit dans `packageManager` de
+      # package.json, seule source de vérité. La spécifier aussi ici ferait échouer
+      # l'action (conflit de version détecté entre les deux sources).
       - name: Installer pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
         uses: actions/setup-node@v4
@@ -95,10 +94,11 @@ jobs:
       - name: Récupérer le code
         uses: actions/checkout@v4
 
+      # Pas de `version:` ici : pnpm/action-setup@v4 la lit dans `packageManager` de
+      # package.json, seule source de vérité. La spécifier aussi ici ferait échouer
+      # l'action (conflit de version détecté entre les deux sources).
       - name: Installer pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
         uses: actions/setup-node@v4
@@ -159,10 +159,11 @@ jobs:
       - name: Récupérer le code
         uses: actions/checkout@v4
 
+      # Pas de `version:` ici : pnpm/action-setup@v4 la lit dans `packageManager` de
+      # package.json, seule source de vérité. La spécifier aussi ici ferait échouer
+      # l'action (conflit de version détecté entre les deux sources).
       - name: Installer pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
 
       - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
         uses: actions/setup-node@v4
