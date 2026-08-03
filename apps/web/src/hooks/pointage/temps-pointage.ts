@@ -31,9 +31,21 @@ export interface BornesJournee {
  *  (`YYYY-MM-DD`) — minuit local inclus à 23:59:59.999 local inclus. Sert à borner
  *  `GET /pointages` sur « aujourd'hui » sans dépendre d'un fuseau serveur. */
 export function bornesJourneeLocale(dateJour: string): BornesJournee {
-  const [annee, mois, jour] = dateJour.split('-').map(Number);
-  const debut = new Date(annee, (mois ?? 1) - 1, jour, 0, 0, 0, 0);
-  const fin = new Date(annee, (mois ?? 1) - 1, jour, 23, 59, 59, 999);
+  const parties = dateJour.split('-');
+  if (parties.length !== 3) {
+    throw new Error(`Format de date invalide, attendu YYYY-MM-DD: ${dateJour}`);
+  }
+
+  const annee = Number(parties[0]);
+  const mois = Number(parties[1]);
+  const jour = Number(parties[2]);
+
+  if (!Number.isFinite(annee) || !Number.isFinite(mois) || !Number.isFinite(jour)) {
+    throw new Error(`Conversion en nombre échouée pour la date: ${dateJour}`);
+  }
+
+  const debut = new Date(annee, mois - 1, jour, 0, 0, 0, 0);
+  const fin = new Date(annee, mois - 1, jour, 23, 59, 59, 999);
   return { debutDu: debut.toISOString(), debutAu: fin.toISOString() };
 }
 

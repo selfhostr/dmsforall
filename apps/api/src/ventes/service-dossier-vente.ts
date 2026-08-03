@@ -610,8 +610,8 @@ export class ServiceDossierVente {
   private async assemblerRepriseResume(tx: TransactionDfa, ctx: ContexteTenant, dossierVenteId: string): Promise<RepriseResume | null> {
     const repriseLigne = await chargerRepriseParDossierOuNull(tx, ctx, dossierVenteId, false);
     if (!repriseLigne) return null;
-    const vehiculeRepriseLigne = await chargerVehiculeLigne(tx, ctx, repriseLigne.vehiculeReprisId);
-    const plaqueReprise = await chargerPlaqueCourante(tx, ctx, repriseLigne.vehiculeReprisId);
+    const vehiculeRepriseLigne = await chargerVehiculeLigne(tx, ctx, repriseLigne.vehiculeRepriseId);
+    const plaqueReprise = await chargerPlaqueCourante(tx, ctx, repriseLigne.vehiculeRepriseId);
     const vehiculeRepriseResume = construireVehiculeResume(vehiculeRepriseLigne, plaqueReprise);
     return versRepriseResume(repriseLigne, vehiculeRepriseResume);
   }

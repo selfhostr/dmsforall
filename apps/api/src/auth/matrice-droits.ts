@@ -1216,10 +1216,13 @@ const DROITS_VENTES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
 
 // =================================================================================================
 // Pointage (lot 2) : bloc ADDITIF PUR transmis par l'orchestrateur pour le compte de l'agent
-// `pointage/` — même patron que les blocs précédents. Table proposée : `chef_atelier`/`direction`/
-// `admin` reçoivent les 6 actions ; `technicien`/`magasinier` reçoivent `demarrer`/`arreter`/`lire`
-// (ce sont eux qui pointent) ; `comptable` reçoit la gouvernance de période ; `receptionnaire`/
-// `vendeur` aucune (le pointage n'est pas leur outil).
+// `pointage/` — même patron que les blocs précédents. Table proposée à l'origine : `chef_atelier`/
+// `direction`/`admin` reçoivent les 6 actions ; `technicien`/`magasinier` reçoivent `demarrer`/
+// `arreter`/`lire` (ce sont eux qui pointent) ; `comptable` recevrait la gouvernance de période ;
+// `receptionnaire`/`vendeur` aucune (le pointage n'est pas leur outil). CORRIGÉ depuis : `comptable`
+// ne reçoit NI `verrouiller_periode` NI `deverrouiller_periode` — voir l'arbitrage détaillé au-dessus
+// de `DROITS_POINTAGE_PAR_ROLE` ci-dessous (invariant « comptable = lecture-seule hors facturation/
+// ventes », `matrice-droits.spec.ts`).
 //
 // `admin` REÇOIT LES 6 — décision reprise TELLE QUELLE, vérifiée COHÉRENTE avec la doctrine de ce
 // fichier : `RF-115` (« admin n'a AUCUN droit financier ») ne s'applique qu'aux blocs qui
@@ -1230,19 +1233,30 @@ const DROITS_VENTES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
 // `parametrage.referentiel.modifier`, qui donnent eux aussi l'écriture à `admin` sans réserve
 // RF-115. Aucune raison de traiter le pointage plus durement que le paramétrage atelier.
 //
-// `deverrouiller_periode` — DÉVIATION DÉLIBÉRÉE de la table transmise (qui l'accordait à
-// `comptable`, par symétrie avec `verrouiller`) : CE FICHIER PORTE DÉJÀ UN PRÉCÉDENT EXPLICITE pour
-// ce genre d'asymétrie « fermer / rouvrir » — `INFERE_OR_ROUVRIR` (`atelier.or.rouvrir`, T-15) est
-// réservé à `chef_atelier`/`direction` SEULS, alors que la fermeture symétrique (`atelier.or.
-// terminer`) est accordée à `receptionnaire` en plus. Justification alors posée, littéralement :
-// « rouvrir un OR terminé défait un travail technique déjà clos, décision d'atelier, pas de
-// comptoir ». Déverrouiller une période de pointage rouvre des heures de travail déjà figées pour
-// correction — structurellement la MÊME asymétrie (défaire une clôture est plus engageant que la
-// poser), donc suit le MÊME précédent : `verrouiller_periode` reste accordé à `comptable` (geste de
-// clôture, symétrique de `atelier.or.terminer`/`atelier.or.cloturer` accordés largement) ;
-// `deverrouiller_periode` est réservé à `direction`/`admin` SEULS, PAS `comptable` — à confirmer
-// avec @laupernoe si la spécification tranche un jour ce point autrement (signalé, voir rapport de
-// livraison), mais le précédent du fichier va dans ce sens sans ambiguïté.
+// `verrouiller_periode` / `deverrouiller_periode` — NI L'UNE NI L'AUTRE pour `comptable` : arbitrage
+// de @laupernoe (2026-08-03), qui corrige une décision antérieure de ce fichier. Un premier passage avait
+// accordé `verrouiller_periode` à `comptable` par symétrie avec `atelier.or.terminer`/`atelier.or.
+// cloturer` (clôture largement accordée), tout en réservant `deverrouiller_periode` à `chef_atelier`/
+// `direction`/`admin` seuls — précédent invoqué : `INFERE_OR_ROUVRIR` (`atelier.or.rouvrir`, T-15)
+// réservé de la même façon, alors que la fermeture symétrique (`atelier.or.terminer`) est accordée à
+// `receptionnaire` en plus. Cette demi-mesure heurtait un invariant DÉJÀ écrit dans ce fichier et
+// vérifié par `matrice-droits.spec.ts` (« comptable — consulte, ne modifie rien dans l'atelier… ») :
+// hors des domaines `facturation.`/`ventes.`, `comptable` ne détient QUE des actions `.lire` ou
+// `recherche.executer` — jamais d'écriture. `verrouiller_periode` n'est ni l'un ni l'autre.
+//
+// Sur le fond, PAS seulement un problème de forme : verrouiller une période de pointage fige des
+// heures de travail avant la paie ; déverrouiller rouvre des heures déjà figées. Les deux gestes
+// sont la même famille de décision — CLORE l'enregistrement du temps de travail d'une équipe pour
+// une période — au même titre que `atelier.or.terminer`/`atelier.or.cloturer` sont une décision
+// d'atelier, pas un geste comptable : c'est du droit du travail (qui peut figer/rouvrir des heures
+// déclarées), pas de la comptabilité (qui les REÇOIT, déjà closes, pour préparer la paie/la
+// facturation). `comptable` reste donc strictement lecture-seule sur le domaine pointage, exactement
+// comme sur `atelier.or.*` (`DROITS_COMPTABLE`, tête de fichier) — les deux actions de verrouillage
+// appartiennent à `chef_atelier`/`direction`/`admin` SEULS.
+//
+// NOTE : `comptable` ne détient PAS non plus `atelier.pointage.lire` dans ce bloc (héritage de la
+// table transmise par l'agent `pointage/`, jamais réexaminé ici) — hors périmètre de cette
+// correction, qui porte UNIQUEMENT sur les deux actions de verrouillage signalées par le test.
 const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
   chef_atelier: [
     'atelier.pointage.demarrer',
@@ -1270,8 +1284,9 @@ const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
   ],
   technicien: ['atelier.pointage.demarrer', 'atelier.pointage.arreter', 'atelier.pointage.lire'],
   magasinier: ['atelier.pointage.demarrer', 'atelier.pointage.arreter', 'atelier.pointage.lire'],
-  // DÉVIATION documentée ci-dessus : verrouiller (clôture) seulement, pas déverrouiller (réouverture).
-  comptable: ['atelier.pointage.verrouiller_periode'],
+  // Arbitrage @laupernoe (2026-08-03, documenté ci-dessus) : NI verrouiller NI déverrouiller — comptable
+  // reste lecture-seule hors facturation/ventes, cet invariant prime sur la table transmise.
+  comptable: [],
   receptionnaire: [],
   vendeur: [],
 };

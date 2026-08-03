@@ -213,8 +213,8 @@ export class ServiceReprise {
   }
 
   private async assembler(tx: TransactionDfa, ctx: ContexteTenant, role: RoleUtilisateur, ligne: LigneReprise): Promise<ReponseReprise> {
-    const vehiculeRepriseLigne = await chargerVehiculeLigne(tx, ctx, ligne.vehiculeReprisId);
-    const plaque = await chargerPlaqueCourante(tx, ctx, ligne.vehiculeReprisId);
+    const vehiculeRepriseLigne = await chargerVehiculeLigne(tx, ctx, ligne.vehiculeRepriseId);
+    const plaque = await chargerPlaqueCourante(tx, ctx, ligne.vehiculeRepriseId);
     const vehiculeReprisResume = construireVehiculeResume(vehiculeRepriseLigne, plaque);
 
     const organisme = ligne.detteFinancementOrganismeId

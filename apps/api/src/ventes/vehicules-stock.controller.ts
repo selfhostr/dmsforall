@@ -7,7 +7,7 @@ import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 
-import { PageVehiculeStockDto } from './dto';
+import { PageVehiculeStockResumeDto } from './dto';
 import { ServiceVehiculeStock } from './service-vehicule-stock';
 
 /**
@@ -28,11 +28,11 @@ export class VehiculesStockController {
   @Get()
   @ExigerDroit('ventes.vehicule_stock.lire')
   @ApiOperation({ summary: 'Liste paginée des véhicules en stock du tenant courant.' })
-  @ApiOkResponse({ type: PageVehiculeStockDto })
+  @ApiOkResponse({ type: PageVehiculeStockResumeDto })
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  async lister(@Query(new PipeZod(schemaFiltresVehiculesStock)) filtres: FiltresVehiculesStock): Promise<PageVehiculeStockDto> {
+  async lister(@Query(new PipeZod(schemaFiltresVehiculesStock)) filtres: FiltresVehiculesStock): Promise<PageVehiculeStockResumeDto> {
     const ctx = this.contexte.contexteTenant();
     return this.service.lister(ctx, filtres);
   }

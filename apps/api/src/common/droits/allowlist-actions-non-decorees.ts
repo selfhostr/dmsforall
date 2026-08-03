@@ -208,4 +208,41 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
       "existent, prêts pour un futur contrôleur d'écriture ; la lecture (campagnes ouvertes) passe par GET " +
       '.../contexte-atelier sous le droit vehicule.lire, pas sous cette action.',
   },
+  {
+    // `apps/api/src/ventes/financement.controller.ts` (tête de fichier) est explicite : le
+    // financement est une sous-ressource COLLECTION APPEND-ONLY d'un dossier de vente, et le
+    // contrat GELÉ `packages/shared/src/contrats/ventes/financement.ts` (tête de fichier, §« Pas de
+    // collection paginée par curseur ici ») NE PRÉVOIT AUCUN `GET` dédié — ni fiche par id, ni
+    // liste — « aucune route à inventer au-delà de celles du contrat gelé ». `financement.
+    // controller.ts` n'expose que trois routes (`POST` créer/confirmer/refuser), toutes les trois
+    // décorées de leur propre `@ExigerDroit` (`ventes.financement.creer/.confirmer/.refuser`).
+    // Ce n'est PAS un oubli d'implémentation : c'est une doctrine PERMANENTE, pas une anticipation
+    // d'un futur contrôleur — un `GET /dossiers-vente/{id}/financements` n'est pas prévu et ne le
+    // sera pas sans rouvrir le contrat gelé.
+    //
+    // OÙ LE CONTRÔLE VIT RÉELLEMENT : la SEULE lecture possible du financement passe par `GET
+    // /dossiers-vente/{dossierVenteId}` (`DossierVenteController.parId`, `apps/api/src/ventes/
+    // dossier-vente.controller.ts`), qui embarque `financement`/`financements` dans
+    // `ReponseDossierVente` (`ServiceDossierVente.obtenirComplet`, `apps/api/src/ventes/
+    // service-dossier-vente.ts`) — cette route est gardée par `ventes.dossier.lire`, PAS par
+    // `ventes.financement.lire` : le service n'applique aucun filtre supplémentaire par rôle sur les
+    // champs `financement`/`financements` une fois `ventes.dossier.lire` accordé. `ventes.financement.
+    // lire` a donc été déclarée dans la matrice par symétrie mécanique avec `ventes.reprise.lire`
+    // (qui, elle, protège une VRAIE route `GET .../reprise`, voir reprise.controller.ts) mais
+    // n'exerce, et n'exercera, aucun contrôle propre : grep sur le dépôt confirme qu'elle n'apparaît
+    // nulle part hors de auth/matrice-droits.ts et de son spec. Si une route de lecture dédiée du
+    // financement voit un jour le jour (le contrat devrait d'abord être rouvert), câbler
+    // `@ExigerDroit('ventes.financement.lire')` dessus et retirer cette entrée.
+    action: 'ventes.financement.lire',
+    categorie: 'action-inerte-anticipee',
+    justification:
+      "Aucune route HTTP n'expose ni n'exposera de lecture DÉDIÉE du financement : le contrat gelé " +
+      'packages/shared/src/contrats/ventes/financement.ts (tête de fichier) exclut explicitement toute collection ' +
+      "paginée/fiche dédiée — le financement s'embarque intégralement dans ReponseDossierVente, sous le droit " +
+      "ventes.dossier.lire (DossierVenteController.parId → ServiceDossierVente.obtenirComplet), qui n'applique " +
+      "aucun filtre supplémentaire propre à ventes.financement.lire. financement.controller.ts n'a que 3 routes " +
+      "(créer/confirmer/refuser), toutes décorées de leur propre action — aucune n'est ventes.financement.lire. " +
+      "Vérifié par recherche texte : cette action n'apparaît dans aucun fichier du dépôt hors auth/matrice-" +
+      'droits.ts et son spec.',
+  },
 ];

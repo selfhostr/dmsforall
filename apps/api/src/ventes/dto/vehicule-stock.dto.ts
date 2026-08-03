@@ -107,6 +107,17 @@ export class ReponseVehiculeStockDto implements ReponseVehiculeStock {
   readonly modifiePar!: ModifieParDto | null;
 }
 
+export class PageVehiculeStockResumeDto implements PageCurseur<VehiculeStockResumeDto> {
+  @ApiProperty({ type: () => [VehiculeStockResumeDto] })
+  readonly donnees!: readonly VehiculeStockResumeDto[];
+
+  @ApiProperty({ type: String, nullable: true, description: 'Opaque base64url ; null = fin de liste.' })
+  readonly curseurSuivant!: string | null;
+
+  @ApiProperty({ example: 50 })
+  readonly limite!: number;
+}
+
 export class PageVehiculeStockDto implements PageCurseur<ReponseVehiculeStockDto> {
   @ApiProperty({ type: () => [ReponseVehiculeStockDto] })
   readonly donnees!: readonly ReponseVehiculeStockDto[];

@@ -570,7 +570,10 @@ describe('MATRICE_DROITS — ventes VN/VO (étape 4, matrice §11)', () => {
 /**
  * Pointage (lot 2, RM-87→RM-99, RM-113→RM-123) : bloc transmis par l'orchestrateur pour le compte
  * de l'agent `pointage/`, périmètre disjoint de ce fichier. Voir `DROITS_POINTAGE_PAR_ROLE`
- * (`matrice-droits.ts`) pour la déviation documentée sur `deverrouiller_periode`.
+ * (`matrice-droits.ts`) pour l'arbitrage documenté (@laupernoe, 2026-08-03) : `comptable` ne détient NI
+ * `verrouiller_periode` NI `deverrouiller_periode`, corrigé depuis une première version qui lui
+ * accordait `verrouiller_periode` seul et heurtait l'invariant « comptable = lecture-seule hors
+ * facturation/ventes ».
  */
 describe('MATRICE_DROITS — pointage (lot 2)', () => {
   it('demarrer/arreter/lire : chef_atelier, direction, admin, technicien, magasinier — PAS receptionnaire, PAS vendeur, PAS comptable', () => {
@@ -584,14 +587,19 @@ describe('MATRICE_DROITS — pointage (lot 2)', () => {
     expect(rolesAyant('atelier.pointage.corriger_autrui')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
   });
 
-  it('verrouiller_periode : chef_atelier, direction, admin, comptable', () => {
-    expect(rolesAyant('atelier.pointage.verrouiller_periode')).toEqual(['admin', 'chef_atelier', 'comptable', 'direction'].sort());
+  it('verrouiller_periode : chef_atelier, direction, admin SEULS — PAS comptable (arbitrage @laupernoe 2026-08-03 : verrouiller une période fige des heures de travail avant la paie, geste de droit du travail réservé à l’atelier/la direction, pas un geste comptable)', () => {
+    expect(rolesAyant('atelier.pointage.verrouiller_periode')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+    expect(MATRICE_DROITS.comptable).not.toContain('atelier.pointage.verrouiller_periode');
   });
 
-  it('deverrouiller_periode : chef_atelier, direction, admin — PAS comptable (déviation documentée : rouvrir une période figée est plus engageant que la clôturer, même précédent que atelier.or.rouvrir réservé à chef_atelier/direction alors que la fermeture symétrique est plus largement accordée)', () => {
+  it('deverrouiller_periode : chef_atelier, direction, admin SEULS — PAS comptable (rouvrir une période figée est plus engageant que la clôturer, même précédent que atelier.or.rouvrir réservé à chef_atelier/direction alors que la fermeture symétrique est plus largement accordée)', () => {
     expect(rolesAyant('atelier.pointage.deverrouiller_periode')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
     expect(MATRICE_DROITS.comptable).not.toContain('atelier.pointage.deverrouiller_periode');
-    expect(MATRICE_DROITS.comptable).toContain('atelier.pointage.verrouiller_periode');
+    expect(MATRICE_DROITS.comptable).not.toContain('atelier.pointage.verrouiller_periode');
+  });
+
+  it('comptable — aucune action d’écriture de pointage (ni verrouiller, ni déverrouiller) : cohérent avec l’invariant « comptable = lecture-seule hors facturation/ventes » vérifié plus haut dans ce fichier', () => {
+    expect(MATRICE_DROITS.comptable.filter((a) => a.startsWith('atelier.pointage.'))).toEqual([]);
   });
 
   it('admin détient les 6 actions de pointage, comme direction — PAS une violation de RF-115 (le pointage n’est pas un droit financier)', () => {

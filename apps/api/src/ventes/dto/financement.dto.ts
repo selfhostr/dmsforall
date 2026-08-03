@@ -9,7 +9,9 @@ import {
 } from '@dfa/shared';
 
 import { AvertissementDto } from './avertissement.dto';
+import { ClientResumeDto } from './communs.dto';
 
+/** Projection légère de client pour les résumés financement (id + nomAffiche seulement). */
 export class FinancementOrganismeResumeDto {
   @ApiProperty({ format: 'uuid' })
   readonly id!: string;
@@ -42,8 +44,8 @@ export class ReponseFinancementDto implements ReponseFinancement {
   @ApiProperty({ enum: TYPES_FINANCEMENT_VENTE })
   readonly type!: ReponseFinancement['type'];
 
-  @ApiProperty({ type: () => FinancementOrganismeResumeDto, nullable: true, description: 'null UNIQUEMENT pour type = comptant (RV-44).' })
-  readonly organisme!: FinancementOrganismeResumeDto | null;
+  @ApiProperty({ type: () => ClientResumeDto, nullable: true, description: 'null UNIQUEMENT pour type = comptant (RV-44). Organisme de financement (client tiers si crédit/leasing).' })
+  readonly organisme!: ClientResumeDto | null;
 
   @ApiProperty({ type: String, nullable: true })
   readonly referenceContrat!: string | null;

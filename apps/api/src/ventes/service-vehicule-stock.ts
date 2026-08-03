@@ -298,25 +298,35 @@ export class ServiceVehiculeStock {
          limit ${filtres.limite + 1}
       `;
 
-      interface LigneBrute {
-        readonly id: string;
-        readonly provenance: string;
-        readonly dateEntreeStock: string;
-        readonly prixVenteAfficheCentimes: number | null;
-        readonly statutCommercial: VehiculeStockResume['statutCommercial'];
-        readonly venduLe: Date | null;
-        readonly vMarque: string;
-        readonly vModele: string;
-        readonly vVersion: string | null;
-        readonly vVin: string | null;
-        readonly vDate1reCirculation: string | null;
-        readonly vIdentificationIncomplete: boolean;
-        readonly pValeur: string | null;
-        readonly pCanton: string | null;
-        readonly triValeur: string | number | null;
-      }
-
-      const resultat = await tx.execute<LigneBrute>(requete);
+      const resultat = await tx.execute<{
+        id: string;
+        tenantId: string;
+        siteId: string;
+        provenance: string;
+        dateEntreeStock: string;
+        prixAchatCentimes: number;
+        prixVenteAfficheCentimes: number | null;
+        statutCommercial: VehiculeStockResume['statutCommercial'];
+        vendeurPrecedentAssujetti: boolean | null;
+        origineRepriseDossierVenteId: string | null;
+        dernierMotifTransition: string | null;
+        receptionneLe: Date | null;
+        reserveLe: Date | null;
+        venduLe: Date | null;
+        livreLe: Date | null;
+        version: number;
+        creeLe: Date;
+        modifieLe: Date;
+        vMarque: string;
+        vModele: string;
+        vVersion: string | null;
+        vVin: string | null;
+        vDate1reCirculation: string | null;
+        vIdentificationIncomplete: boolean;
+        pValeur: string | null;
+        pCanton: string | null;
+        triValeur: string | number | null;
+      }>(requete);
       const lignes = resultat.rows;
       const aUnePageSuivante = lignes.length > filtres.limite;
       const pageLignes = aUnePageSuivante ? lignes.slice(0, filtres.limite) : lignes;
