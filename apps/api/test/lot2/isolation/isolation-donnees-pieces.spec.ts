@@ -18,7 +18,6 @@ import {
   type BaseEphemere,
 } from '../../setup/postgres-ephemere';
 import {
-  creerLignePourTest,
   creerOrPourTest,
   semerGarageDemoLot1,
   type GarageDemoLot1Fixture,

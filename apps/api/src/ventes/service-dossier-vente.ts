@@ -61,7 +61,6 @@ import {
   versDocumentVenteResume,
   versDossierVenteResponse,
   versFinancementResume,
-  versRepriseResponse,
   versRepriseResume,
 } from './mappers';
 import {
@@ -77,7 +76,6 @@ import {
   chargerDossierVente,
   chargerDossierVentePourEcriture,
   chargerRepriseParDossierOuNull,
-  chargerRepriseParDossierPourEcriture,
   chargerVehiculeStock,
   chargerVehiculeStockOuNull,
   chargerVehiculeStockPourEcriture,
@@ -684,7 +682,6 @@ export class ServiceDossierVente {
     const financements: FinancementResume[] = [];
     let financementCourant: FinancementResume | null = null;
     for (const f of financementsLignes) {
-      // eslint-disable-next-line no-await-in-loop -- petit lot borné (SEUIL_FINANCEMENTS_EMBARQUES = 20)
       const organisme = f.organismeId
         ? await versClientResume(tx, ctx, await chargerClientLigne(tx, ctx, f.organismeId))
         : null;

@@ -63,7 +63,7 @@ async function main(): Promise<void> {
   writeFileSync(cheminSortie, `${JSON.stringify(documentTrie, null, 2)}\n`, 'utf8');
 
   await app.close();
-  console.log(`OpenAPI exporté vers ${cheminSortie}`);
+  console.warn(`OpenAPI exporté vers ${cheminSortie}`);
 }
 
 main().catch((erreur: unknown) => {

@@ -33,11 +33,7 @@ import {
   type ServiceIdempotence,
 } from '../common/idempotence';
 
-import {
-  calculerTypeVehicule,
-  versVehiculeStockResponse,
-  versVehiculeStockResume,
-} from './mappers';
+import { versVehiculeStockResponse, versVehiculeStockResume } from './mappers';
 import {
   construireConditionKeyset,
   construireOrderBy,

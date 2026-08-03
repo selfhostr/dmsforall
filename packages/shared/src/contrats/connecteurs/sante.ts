@@ -1,4 +1,4 @@
-import { STATUTS_SANTE_CONNECTEUR, type StatutSanteConnecteur } from './enums';
+import { type StatutSanteConnecteur } from './enums';
 
 /**
  * État de santé d'une activation de connecteur — `RC-03` : « un utilisateur du garage (souvent le

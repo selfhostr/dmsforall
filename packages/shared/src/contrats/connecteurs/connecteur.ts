@@ -1,9 +1,7 @@
 import { z } from 'zod';
 
 import {
-  CAPACITES_CONNECTEUR,
   FAMILLES_CONNECTEUR,
-  NOMS_INTERFACE_CONNECTEUR,
   STATUTS_ACTIVATION_CONNECTEUR,
   type CapaciteConnecteur,
   type FamilleConnecteur,
