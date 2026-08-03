@@ -66,5 +66,26 @@ export const chemins = {
     articleDetail: (id: string, site?: string) => construireChemin(`/pieces/articles/${id}`, { site }),
     reservations: (site?: string) => construireChemin('/pieces/reservations', { site }),
     reapprovisionnement: (site?: string) => construireChemin('/pieces/reapprovisionnement', { site }),
+    /** Commandes fournisseur — ressources par TENANT (pas de `?site=` : ni la liste ni la fiche
+     *  d'une commande fournisseur ne se filtrent par site dans les écrans livrés). */
+    commandesFournisseur: {
+      liste: () => '/pieces/commandes-fournisseur',
+      nouvelle: () => '/pieces/commandes-fournisseur/nouvelle',
+      detail: (id: string) => `/pieces/commandes-fournisseur/${id}`,
+    },
+    fournisseurs: {
+      liste: () => '/pieces/fournisseurs',
+      detail: (id: string) => `/pieces/fournisseurs/${id}`,
+    },
+    consignes: () => '/pieces/consignes',
+  },
+  /** Module pointage (lot 2). Ressources par TENANT, jamais de `?site=` dans les écrans livrés —
+   *  contrairement à `pieces`/`clients`/`vehicules`, le pointage se filtre par technicien et par
+   *  période, pas par site. */
+  pointage: {
+    saisie: () => '/pointage',
+    jour: () => '/pointage/jour',
+    equipe: () => '/pointage/equipe',
+    cloture: () => '/pointage/cloture',
   },
 } as const;

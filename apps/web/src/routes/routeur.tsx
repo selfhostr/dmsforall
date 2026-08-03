@@ -17,11 +17,22 @@ import { EcranParametrageAtelier } from '@/ecrans/parametrage/EcranParametrageAt
 import { EcranParametresFacturation } from '@/ecrans/parametrage/EcranParametresFacturation';
 import { EcranReferentiels } from '@/ecrans/parametrage/EcranReferentiels';
 import { EcranSites } from '@/ecrans/parametrage/EcranSites';
+import { EcranConsignesPieces } from '@/ecrans/pieces/EcranConsignesPieces';
 import { EcranFicheArticle } from '@/ecrans/pieces/EcranFicheArticle';
+import { EcranFicheCommandeFournisseur } from '@/ecrans/pieces/EcranFicheCommandeFournisseur';
+import { EcranFicheFournisseur } from '@/ecrans/pieces/EcranFicheFournisseur';
 import { EcranListeArticles } from '@/ecrans/pieces/EcranListeArticles';
+import { EcranListeCommandesFournisseur } from '@/ecrans/pieces/EcranListeCommandesFournisseur';
+import { EcranListeFournisseurs } from '@/ecrans/pieces/EcranListeFournisseurs';
+import { EcranNouvelleCommandeFournisseur } from '@/ecrans/pieces/EcranNouvelleCommandeFournisseur';
 import { EcranReapprovisionnement } from '@/ecrans/pieces/EcranReapprovisionnement';
 import { EcranRechercheComptoirPieces } from '@/ecrans/pieces/EcranRechercheComptoirPieces';
 import { EcranReservationsPieces } from '@/ecrans/pieces/EcranReservationsPieces';
+import { EcranCloturePeriodePointage } from '@/ecrans/pointage/EcranCloturePeriodePointage';
+import { EcranEquipePointage } from '@/ecrans/pointage/EcranEquipePointage';
+import { EcranJournalPointage } from '@/ecrans/pointage/EcranJournalPointage';
+import { EcranPointageTechnicien } from '@/ecrans/pointage/EcranPointageTechnicien';
+import { ROLES_POINTAGE, ROLES_POINTAGE_ENCADREMENT } from '@/ecrans/pointage/droits';
 import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
 import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
 import { EcranFicheVehicule } from '@/ecrans/vehicules/EcranFicheVehicule';
@@ -188,6 +199,98 @@ export const routesConfig: RouteObject[] = [
         element: (
           <RouteProtegee rolesAutorises={ROLES_PIECES}>
             <EcranReapprovisionnement />
+          </RouteProtegee>
+        ),
+      },
+      // Commandes fournisseur + fournisseurs + consignes (étape 3, complément) — même garde
+      // `ROLES_PIECES` que le reste du module (restriction RÉELLE, `admin` exclu, voir plus haut).
+      {
+        path: 'pieces/commandes-fournisseur',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranListeCommandesFournisseur />
+          </RouteProtegee>
+        ),
+      },
+      // Segment statique `nouvelle` déclaré AVANT `:id` : même logique que `pieces/articles/:id`
+      // ci-dessus (React Router v6 résout sans ambiguïté quel que soit l'ordre, mais la lisibilité
+      // du fichier suit la convention déjà en place ici).
+      {
+        path: 'pieces/commandes-fournisseur/nouvelle',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranNouvelleCommandeFournisseur />
+          </RouteProtegee>
+        ),
+      },
+      // `EcranFicheCommandeFournisseur` lit `useParams<{ id: string }>()`.
+      {
+        path: 'pieces/commandes-fournisseur/:id',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranFicheCommandeFournisseur />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pieces/fournisseurs',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranListeFournisseurs />
+          </RouteProtegee>
+        ),
+      },
+      // `EcranFicheFournisseur` lit `useParams<{ id: string }>()`.
+      {
+        path: 'pieces/fournisseurs/:id',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranFicheFournisseur />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pieces/consignes',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranConsignesPieces />
+          </RouteProtegee>
+        ),
+      },
+      // Module pointage (lot 2) — DEUX gardes distinctes selon le rôle requis, reflétant la même
+      // restriction RÉELLE que celle documentée dans `ecrans/pointage/droits.ts`
+      // (`DROITS_POINTAGE_PAR_ROLE` côté API) : `ROLES_POINTAGE` pour les écrans ouverts à tout
+      // rôle qui pointe (y compris `technicien`/`magasinier`), `ROLES_POINTAGE_ENCADREMENT` pour
+      // les écrans réservés à l'encadrement (vue équipe, corrections, clôture de période).
+      {
+        path: 'pointage',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_POINTAGE}>
+            <EcranPointageTechnicien />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pointage/jour',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_POINTAGE}>
+            <EcranJournalPointage />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pointage/equipe',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_POINTAGE_ENCADREMENT}>
+            <EcranEquipePointage />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pointage/cloture',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_POINTAGE_ENCADREMENT}>
+            <EcranCloturePeriodePointage />
           </RouteProtegee>
         ),
       },
