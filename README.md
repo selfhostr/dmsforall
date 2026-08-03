@@ -4,9 +4,15 @@
 
 ## État du projet
 
-**Étape 0 (socle technique) livrée et vérifiée** : authentification par session Argon2id, multi-tenant avec isolation RLS, gestion des sites et rôles, i18n FR/DE/IT, API OpenAPI, squelette UI, tests d'intégration sur base Postgres réelle. Aucun module métier (atelier, clients, facturation) — ceux-ci sont en cours d'assemblage pour l'étape 1.
+**Étape 0 (socle technique) livrée et vérifiée** : authentification par session Argon2id, multi-tenant avec isolation RLS, gestion des sites et rôles, i18n FR/DE/IT, API OpenAPI, squelette UI, tests d'intégration sur base Postgres réelle.
 
-Voir [ARCHITECTURE.md](ARCHITECTURE.md) pour la vision complète et la feuille de route (étapes 1-5).
+**Étapes 1 et 2 livrées** : atelier complet (OR, planning, pointage), clients et véhicules, facturation (devis/facture/avoir, QR-facture suisse native, export fiduciaire, encaissement). Écrans et API fonctionnels.
+
+**Étape 3 (Pièces) — API livrée, écrans livrés** : articles, stock, mouvements, réservations. Commandes fournisseur et consignes en cours.
+
+**Étapes 4-5 en cours** : schémas ventes VN/VO et connecteurs posés ; implémentation API et écrans en parallèle.
+
+Voir [ARCHITECTURE.md](ARCHITECTURE.md) pour la vision complète et la feuille de route détaillée.
 
 ## Stack
 
@@ -65,7 +71,7 @@ pnpm dev               # API :3000 + front :5173
 
 ### Identifiants de démonstration
 
-Après `pnpm db:seed`, se connecter sur `http://localhost:5173` avec **l'un des 6 comptes** ci-dessous (Garage Martin SA). Tous utilisent le mot de passe `Demo1234!Garage`.
+Après `pnpm db:seed`, se connecter sur `http://localhost:5173` avec **l'un des 7 comptes** ci-dessous (Garage Martin SA). Tous utilisent le mot de passe `Demo1234!Garage`.
 
 **⚠️ Important** : le compte `admin@` est un **rôle technique** sans aucun droit financier (RF-115). Tout refus d'action financière avec ce compte est **correct, pas un bug**. Utiliser `direction@` pour parcourir la facturation.
 
@@ -77,6 +83,7 @@ Après `pnpm db:seed`, se connecter sur `http://localhost:5173` avec **l'un des 
 | `receptionniste@garage-martin.ch` | réceptionnaire | Comptoir : émet devis et factures, encaisse les paiements. Pas de remboursement d'avance. |
 | `chef.atelier@garage-martin.ch` | chef d'atelier | Émet des devis/bons de commande. **Ni facture ni avoir, ni encaissement.** (Démontre l'asymétrie des droits.) |
 | `technicien@garage-martin.ch` | technicien | Lecture seule côté montants — le serveur retire les montants de toute réponse pour ce rôle. |
+| `magasinier@garage-martin.ch` | magasinier | Gestion pièces : articles, stock, mouvements, réservations, commandes fournisseur. |
 
 **Ce que le jeu de démo contient** (pour savoir quoi parcourir une fois connecté) :
 - **4 ordres de réparation** à des états variés (neuf, en cours, en contrôle, terminé) sur des véhicules différents.
@@ -136,16 +143,18 @@ pnpm db:migrate           # réappliquer les migrations
 
 Sans `down -v`, les scripts d'initialisation ne rejouent jamais — la nouvelle config reste inaccessible.
 
-### 2. `pnpm api:openapi` compile la partie build, échoue via `tsx`
+### 2. `pnpm api:openapi` est un point de synchronisation global
 
-Ne pas lancer `tsx dist/main.js` directement pour exporter l'OpenAPI. La commande doit compiler d'abord :
+La commande **compile l'intégralité de l'API** avant d'exporter le schéma OpenAPI. Elle ne peut être lancée que si le build complet `nest build` réussit :
 
 ```bash
-pnpm api:openapi     # Correct : compile + exporte
+pnpm api:openapi     # Correct : compile tout + exporte
 # Ne pas faire : pnpm --filter @dfa/api exec tsx dist/src/openapi/export.ts
 ```
 
-esbuild ne décorte pas les métadonnées TypeScript avec `tsx`, et NestJS ne peut plus résoudre ses dépendances d'injection.
+Conséquence : tant qu'**un seul module API** est en chantier (erreur de compilation, import manquant, décorateur cassé), `pnpm api:openapi` échoue. Ce n'est pas une erreur de l'outil de génération, c'est qu'il attendait un build complet. Ne pas relancer tant qu'une correction n'a pas levé l'erreur de compilation à la base. Cela bloque aussi la génération des types côté frontend (`pnpm web:types` dépend de l'OpenAPI), et potentiellement CI/CD selon votre configuration.
+
+**Cause technique** : esbuild ne décorte pas les métadonnées TypeScript avec `tsx`, et NestJS ne peut plus résoudre ses dépendances d'injection à l'exécution.
 
 ### 3. Ne jamais convertir un import de classe injectée en `import type` dans `apps/api`
 

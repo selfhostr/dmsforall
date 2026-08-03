@@ -16,16 +16,24 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
-import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterKilometrage, formaterMontant } from '@/lib/formats';
 import { cn } from '@/lib/utils';
@@ -86,6 +94,10 @@ interface EtatEdition {
 interface EtatTransition {
   readonly travail: ReponseTravailReporte;
   readonly statutCible: 'repris' | 'abandonne';
+  /** Saisie contrôlée du motif de clôture/abandon — facultative (`schemaMotif.optional()` côté
+   *  contrat), state en `string` (jamais `null`) pour rester un composant contrôlé standard ; la
+   *  chaîne vide est normalisée en `undefined` avant validation, voir `confirmerTransition`. */
+  motif: string;
 }
 
 /** Schéma d'édition — sous-ensemble PICKÉ du contrat gelé (`@dfa/shared`), jamais redéfini à la
@@ -94,6 +106,14 @@ const schemaEdition = schemaModificationTravailReporte.pick({
   designation: true,
   urgence: true,
   montantEstimeCentimes: true,
+});
+
+/** Même doctrine que `schemaEdition` : sous-ensemble pické du contrat, jamais une validation
+ *  réécrite à la main. `motif` est optionnel (`schemaMotif.optional()`, min 3 caractères s'il est
+ *  fourni) — reprendre/abandonner un travail SANS motif reste un cas normal, non forcé. */
+const schemaTransition = schemaModificationTravailReporte.pick({
+  statut: true,
+  motif: true,
 });
 
 /**
@@ -109,12 +129,16 @@ const schemaEdition = schemaModificationTravailReporte.pick({
  *  - `ServiceLigneOr.refuserLignes` n'alimente pas encore la création d'un travail reporté depuis
  *    un refus de ligne d'OR — un refus client d'aujourd'hui n'apparaîtra donc pas ici tant que ce
  *    câblage n'existe pas côté `atelier`.
- *  - `vehicule_travail_reporte` n'est auditée par rien. Le champ `motif` de
- *    `EntreeModificationTravailReporte` (schéma partagé) en est un symptôme direct, vérifié en
- *    lisant `ServiceVehiculeTravailReporte.modifier` (`apps/api/src/vehicules/`) : la méthode
- *    accepte `entree.motif` (validé par le schéma) mais ne l'écrit dans AUCUNE colonne — un motif
- *    saisi au clôturage/à l'abandon serait silencieusement perdu. Ce panneau n'expose donc
- *    délibérément AUCUN champ « motif » : l'afficher promettrait une traçabilité qui n'existe pas.
+ *
+ * MOTIF DE CLÔTURE/ABANDON (`motif_modification`, migrations/0033) — REBRANCHÉ ICI : la colonne
+ * existe, `ServiceVehiculeTravailReporte.modifier` l'écrit, `vehicule_travail_reporte` est
+ * désormais auditée (trigger `vehicule_travail_reporte_audit`), et `ReponseTravailReporte` porte
+ * `motifModification` en lecture (non filtré par rôle, à la différence de
+ * `montantEstimeCentimes` — voir le commentaire de `versReponseTravailReporte`,
+ * `apps/api/src/vehicules/service-vehicule-travail-reporte.ts`, pour l'argument complet). Ce
+ * panneau saisit le motif au moment de reprendre/abandonner (dialogue de transition, facultatif)
+ * et l'affiche sur tout travail déjà `repris`/`abandonne` qui en porte un — jamais sur un travail
+ * `ouvert`, qui n'a par construction encore aucun motif de clôture.
  */
 export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
   const { t } = useTranslation(['vehicules', 'commun', 'erreurs']);
@@ -126,6 +150,7 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
   const [edition, setEdition] = useState<EtatEdition | null>(null);
   const [erreurEdition, setErreurEdition] = useState<string | null>(null);
   const [transition, setTransition] = useState<EtatTransition | null>(null);
+  const [erreurTransition, setErreurTransition] = useState<string | null>(null);
 
   const role = session.data?.utilisateur.role;
   const peutGerer = role !== undefined && ROLES_GESTION_TRAVAIL_REPORTE.has(role);
@@ -156,7 +181,13 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
 
   function ouvrirTransition(travail: ReponseTravailReporte, statutCible: 'repris' | 'abandonne') {
     modifier.reset();
-    setTransition({ travail, statutCible });
+    setErreurTransition(null);
+    setTransition({ travail, statutCible, motif: '' });
+  }
+
+  function fermerTransition() {
+    setTransition(null);
+    setErreurTransition(null);
   }
 
   function soumettreEdition() {
@@ -180,14 +211,26 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
 
   function confirmerTransition() {
     if (!transition) return;
-    // `onSettled`, PAS `onSuccess` seul : `AvertissementConfirmable` (composants/motifs/, hors
-    // périmètre de cet agent) n'expose aucun emplacement pour une erreur inline — un échec laissé
-    // avec le dialogue ouvert rendrait l'alerte du panneau INVISIBLE (Radix marque le reste de la
-    // page `aria-hidden` tant qu'un `Dialog` est ouvert). Fermer systématiquement laisse l'alerte
-    // `erreurMutation` du panneau (accessible, elle) porter le message d'échec.
+    const motifTrim = transition.motif.trim();
+    const resultat = schemaTransition.safeParse({
+      statut: transition.statutCible,
+      motif: motifTrim.length > 0 ? motifTrim : undefined,
+    });
+    if (!resultat.success) {
+      // Validation CLIENT du motif (min 3 caractères s'il est renseigné, `schemaMotif`) : erreur
+      // inline, dialogue laissé OUVERT — à la différence de l'échec serveur ci-dessous, rien n'a
+      // encore été envoyé, fermer perdrait la saisie sans raison.
+      setErreurTransition(t('vehicules:travauxReportes.dialogue.erreurValidationMotif'));
+      return;
+    }
+    setErreurTransition(null);
+    // `onSettled`, PAS `onSuccess` seul : un échec SERVEUR laissé avec le dialogue ouvert
+    // rendrait l'alerte du panneau INVISIBLE (Radix marque le reste de la page `aria-hidden` tant
+    // qu'un `Dialog` est ouvert). Fermer systématiquement laisse l'alerte `erreurMutation` du
+    // panneau (accessible, elle) porter le message d'échec.
     modifier.mutate(
-      { travailId: transition.travail.id, entree: { statut: transition.statutCible } },
-      { onSettled: () => setTransition(null) },
+      { travailId: transition.travail.id, entree: resultat.data },
+      { onSettled: fermerTransition },
     );
   }
 
@@ -288,6 +331,17 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
                           {travail.montantEstimeCentimes != null ? (
                             <p className="texte-donnee-proeminente font-semibold">
                               {formaterMontant(travail.montantEstimeCentimes)}
+                            </p>
+                          ) : null}
+                          {/* `motifModification` : jamais sur un travail `ouvert` (pas encore de
+                           *  motif de clôture par construction), affiché en pleine largeur
+                           *  (`basis-full`) pour ne pas se mêler aux badges/actions de la ligne. */}
+                          {travail.statut !== 'ouvert' && travail.motifModification ? (
+                            <p className="basis-full texte-libelle text-muted-foreground">
+                              <span className="font-medium text-foreground">
+                                {t('vehicules:travauxReportes.motifModification.libelle')}
+                              </span>{' '}
+                              {travail.motifModification}
                             </p>
                           ) : null}
                           {onglet === 'tous' ? (
@@ -397,30 +451,61 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
         </DialogContent>
       </Dialog>
 
-      <AvertissementConfirmable
-        ouvert={transition !== null}
-        onOuvertChange={(ouvert) => {
-          if (!ouvert) setTransition(null);
-        }}
-        titre={
-          transition?.statutCible === 'repris'
-            ? t('vehicules:travauxReportes.dialogue.reprendreTitre')
-            : t('vehicules:travauxReportes.dialogue.abandonnerTitre')
-        }
-        description={
-          transition?.statutCible === 'repris'
-            ? t('vehicules:travauxReportes.dialogue.reprendreDescription')
-            : t('vehicules:travauxReportes.dialogue.abandonnerDescription')
-        }
-        libelleConfirmation={
-          transition?.statutCible === 'repris'
-            ? t('vehicules:travauxReportes.actions.reprendre')
-            : t('vehicules:travauxReportes.actions.abandonner')
-        }
-        destructif={transition?.statutCible === 'abandonne'}
-        onConfirmer={confirmerTransition}
-        enCours={modifier.isPending}
-      />
+      {/*
+       * Dialogue de transition — Dialog CONSTRUIT ICI plutôt que `composants/motifs/
+       * AvertissementConfirmable.tsx` (hors périmètre de cet agent) : ce composant générique
+       * n'expose aucun emplacement pour une saisie, et la migration 0033 exige justement d'en
+       * accueillir une (le motif de clôture/abandon, facultatif). Même doctrine `onOpenChange`/
+       * `onSettled` que le dialogue d'édition ci-dessus.
+       */}
+      <Dialog open={transition !== null} onOpenChange={(ouvert) => (ouvert ? undefined : fermerTransition())}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {transition?.statutCible === 'repris'
+                ? t('vehicules:travauxReportes.dialogue.reprendreTitre')
+                : t('vehicules:travauxReportes.dialogue.abandonnerTitre')}
+            </DialogTitle>
+            <DialogDescription>
+              {transition?.statutCible === 'repris'
+                ? t('vehicules:travauxReportes.dialogue.reprendreDescription')
+                : t('vehicules:travauxReportes.dialogue.abandonnerDescription')}
+            </DialogDescription>
+          </DialogHeader>
+          {transition ? (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="tr-motif-transition">{t('vehicules:travauxReportes.dialogue.motifLabel')}</Label>
+                <Textarea
+                  id="tr-motif-transition"
+                  value={transition.motif}
+                  placeholder={t('vehicules:travauxReportes.dialogue.motifPlaceholder')}
+                  onChange={(evenement) => setTransition({ ...transition, motif: evenement.target.value })}
+                />
+              </div>
+              {/* Erreur INLINE de validation CLIENT du motif uniquement : un échec SERVEUR ferme
+               *  systématiquement ce dialogue (`onSettled`, voir `confirmerTransition`), cette
+               *  branche ne serait donc jamais visible avant que le dialogue ne se ferme — l'alerte
+               *  `erreurMutation` du panneau porte alors ce cas, comme pour toute autre mutation. */}
+              {erreurTransition ? <p className="texte-libelle text-destructive">{erreurTransition}</p> : null}
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">{t('commun:actions.annuler')}</Button>
+                </DialogClose>
+                <Button
+                  variant={transition.statutCible === 'abandonne' ? 'destructive' : 'default'}
+                  disabled={modifier.isPending}
+                  onClick={confirmerTransition}
+                >
+                  {transition.statutCible === 'repris'
+                    ? t('vehicules:travauxReportes.actions.reprendre')
+                    : t('vehicules:travauxReportes.actions.abandonner')}
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

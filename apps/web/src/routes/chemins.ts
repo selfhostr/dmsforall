@@ -56,4 +56,15 @@ export const chemins = {
     atelier: () => '/parametrage/atelier',
     sites: (site?: string) => construireChemin('/parametrage/sites', { site }),
   },
+  /** Module pièces (étape 3). Même mécanique `?site=` que `clients`/`vehicules` : la recherche
+   *  comptoir et le réapprovisionnement sont scopés par site (RP-03/RP-12), la fiche et la liste
+   *  d'articles comme les réservations restent des ressources par TENANT (le site n'y est qu'un
+   *  filtre optionnel). */
+  pieces: {
+    rechercheComptoir: (site?: string) => construireChemin('/pieces/recherche-comptoir', { site }),
+    articles: (site?: string) => construireChemin('/pieces/articles', { site }),
+    articleDetail: (id: string, site?: string) => construireChemin(`/pieces/articles/${id}`, { site }),
+    reservations: (site?: string) => construireChemin('/pieces/reservations', { site }),
+    reapprovisionnement: (site?: string) => construireChemin('/pieces/reapprovisionnement', { site }),
+  },
 } as const;

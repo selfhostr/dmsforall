@@ -1,5 +1,26 @@
 {
   "titre": "Teile",
+  "siteRequis": {
+    "titre": "Standort wählen",
+    "description": "Diese Seite zeigt standortbezogene Daten — wählen Sie einen Standort, um fortzufahren.",
+    "label": "Standort"
+  },
+  "rechercheComptoir": {
+    "titre": "Thekensuche",
+    "aide": "Referenz, Bezeichnung oder Strichcode eingeben.",
+    "champRecherche": "Referenz, Bezeichnung, Strichcode…",
+    "vide": {
+      "recherche": "Kein Artikel entspricht dieser Suche an diesem Standort."
+    },
+    "resultat": {
+      "disponible": "{n} auf Lager",
+      "rupture": "Nicht auf Lager",
+      "emplacement": "Lagerplatz {emplacement}"
+    },
+    "erreur": {
+      "titre": "Die Suche ist fehlgeschlagen"
+    }
+  },
   "articles": {
     "titre": "Artikel",
     "numero": "Artikel {numero}",
@@ -11,9 +32,16 @@
       "achat": "Einkaufspreis",
       "vente": "Verkaufspreis",
       "montantTtc": "Betrag inkl. Mwst.",
-      "ttc": "inkl. Mwst."
+      "ttc": "inkl. Mwst.",
+      "aideTvaComprise": "Inkl. Mwst. — das ist der an der Theke genannte Betrag."
     },
     "tva": "Mwst.",
+    "tauxTvaLibelles": {
+      "81": "8.1 % (Normalsatz)",
+      "26": "2.6 % (reduzierter Satz)",
+      "38": "3.8 % (Beherbergung)",
+      "0": "0 % (befreit)"
+    },
     "categorie": "Kategorie",
     "categories": {
       "piece_mecanique": "Motorenteil",
@@ -54,7 +82,50 @@
       "desactiver": "Deaktivieren",
       "reactiver": "Reaktivieren"
     },
-    "vide": "Keine Artikel."
+    "vide": "Keine Artikel.",
+    "filtres": {
+      "statutTous": "Alle Status",
+      "categorieToutes": "Alle Kategorien"
+    },
+    "tri": {
+      "label": "Sortieren nach",
+      "creeLeDesc": "Neueste zuerst",
+      "creeLeAsc": "Älteste zuerst",
+      "designationAsc": "Bezeichnung (A → Z)",
+      "designationDesc": "Bezeichnung (Z → A)",
+      "numeroArticleAsc": "Artikelnummer"
+    },
+    "liste": {
+      "titre": "Artikel",
+      "colonnes": {
+        "article": "Artikel",
+        "reference": "Referenz",
+        "categorie": "Kategorie",
+        "statut": "Status",
+        "prix": "Preis"
+      },
+      "erreur": {
+        "titre": "Die Artikel konnten nicht angezeigt werden"
+      }
+    },
+    "fiche": {
+      "creeLe": "Erstellt am",
+      "modifieLe": "Geändert am",
+      "erreur": {
+        "titre": "Dieser Artikel konnte nicht angezeigt werden"
+      },
+      "erreurSection": {
+        "titre": "Dieser Bereich konnte nicht geladen werden"
+      }
+    },
+    "confirmations": {
+      "marquerObsoleteTitre": "Diesen Artikel als veraltet markieren?",
+      "marquerObsoleteDescription": "Der Artikel bleibt sichtbar, kann aber keiner neuen Position mehr hinzugefügt werden. Reversibel.",
+      "desactiverTitre": "Diesen Artikel deaktivieren?",
+      "desactiverDescription": "Der Artikel wird nicht mehr zum Verkauf oder an der Theke angeboten. Reversibel.",
+      "reactiverTitre": "Diesen Artikel reaktivieren?",
+      "reactiverDescription": "Der Artikel wird wieder normal aktiv und verfügbar."
+    }
   },
   "stock": {
     "titre": "Lagerbestand",
@@ -93,11 +164,24 @@
         "creerCasse": "Bruch erfassen",
         "creerPerte": "Verlust erfassen",
         "creerTransfert": "Umlagerung erstellen",
-        "creerAjustement": "Abgleich erstellen"
+        "creerAjustement": "Abgleich erstellen",
+        "creerRetourFournisseur": "Lieferantenrückgabe erstellen",
+        "nouveauMouvement": "Bewegung erfassen"
       },
       "siteSource": "Herkunftsort",
       "siteDestination": "Zielort",
-      "vide": "Keine Bewegungen."
+      "vide": "Keine Bewegungen.",
+      "erreur": {
+        "titre": "Der Bewegungsverlauf konnte nicht angezeigt werden"
+      },
+      "nouveauMouvement": {
+        "titre": "Bewegung erfassen",
+        "champType": "Bewegungstyp",
+        "champQuantiteComptee": "Gezählte Menge",
+        "champForcer": "Trotz unzureichendem Bestand erzwingen",
+        "avertissementEcart": "Deutliche Differenz zum geschätzten Bestand festgestellt — Zählung prüfen.",
+        "aucunEcart": "Die Zählung entspricht dem aktuellen Bestand: keine Bewegung wurde erstellt."
+      }
     },
     "reapprovisionnement": {
       "titre": "Nachbestellung",
@@ -105,7 +189,15 @@
       "actions": {
         "commander": "Bestellen"
       },
-      "vide": "Keine Nachbestellungen erforderlich."
+      "vide": "Keine Nachbestellungen erforderlich.",
+      "colonnes": {
+        "article": "Artikel",
+        "disponible": "Verfügbar",
+        "minimum": "Minimum"
+      },
+      "erreur": {
+        "titre": "Die Nachbestellung konnte nicht angezeigt werden"
+      }
     }
   },
   "reservations": {
@@ -140,7 +232,20 @@
       "quantiteDisponible": "Verfügbare Menge",
       "reservationsActives": "Aktive Reservierungen"
     },
-    "vide": "Keine Reservierungen."
+    "vide": "Keine Reservierungen.",
+    "filtres": {
+      "statutToutes": "Alle Status"
+    },
+    "voirArticle": "Artikel ansehen",
+    "voirOr": "Reparaturauftrag ansehen",
+    "erreur": {
+      "titre": "Die Reservierungen konnten nicht angezeigt werden"
+    },
+    "liberation": {
+      "titre": "Diese Reservierung freigeben?",
+      "description": "Das Teil wird wieder für einen anderen Reparaturauftrag verfügbar. Grund angeben.",
+      "champMotif": "Grund"
+    }
   },
   "commandes": {
     "titre": "Lieferantenbestellungen",

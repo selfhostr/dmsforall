@@ -19,6 +19,7 @@ const TRAVAIL: ReponseTravailReporte = {
   ordreReparationOrigineId: 'or1',
   ligneOrOrigineId: 'l1',
   ordreReparationRepriseId: null,
+  motifModification: null,
 };
 
 describe('ListeTravauxReportes', () => {

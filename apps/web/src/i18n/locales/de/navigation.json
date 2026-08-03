@@ -12,10 +12,15 @@
     "parametrageReferentiels": "Tarife & Leistungen",
     "parametrageAtelier": "Werkstatteinstellungen",
     "parametrageSites": "Standorte",
-    "parametrageFacturation": "Bankverbindung"
+    "parametrageFacturation": "Bankverbindung",
+    "piecesRechercheComptoir": "Thekensuche",
+    "piecesArticles": "Artikel",
+    "piecesReservations": "Reservierungen",
+    "piecesReapprovisionnement": "Nachbestellung"
   },
   "groupes": {
-    "parametrage": "Einstellungen"
+    "parametrage": "Einstellungen",
+    "pieces": "Teile"
   },
   "menu": {
     "ouvrir": "Menü öffnen"

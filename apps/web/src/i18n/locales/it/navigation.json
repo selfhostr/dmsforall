@@ -12,10 +12,15 @@
     "parametrageReferentiels": "Tariffe e prestazioni",
     "parametrageAtelier": "Impostazioni officina",
     "parametrageSites": "Sedi",
-    "parametrageFacturation": "Coordinate bancarie"
+    "parametrageFacturation": "Coordinate bancarie",
+    "piecesRechercheComptoir": "Ricerca al banco",
+    "piecesArticles": "Articoli",
+    "piecesReservations": "Prenotazioni",
+    "piecesReapprovisionnement": "Riordino"
   },
   "groupes": {
-    "parametrage": "Impostazioni"
+    "parametrage": "Impostazioni",
+    "pieces": "Ricambi"
   },
   "menu": {
     "ouvrir": "Apri menu"

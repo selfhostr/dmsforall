@@ -284,6 +284,81 @@ describe('routeur — le menu masque Paramétrage atelier / Sites à un rôle sa
 });
 
 /**
+ * Module pièces (étape 3) — `rolesAutorises={ROLES_PIECES}` (`droits-routes.ts`) reflète une
+ * restriction RÉELLE de l'API (`DROITS_PIECES_PAR_ROLE.admin = []`, RF-115) : contrairement à
+ * `/parametrage/referentiels` (lecture ouverte à tous, testé plus haut), `admin` doit recevoir
+ * l'écran de refus DÉDIÉ (`EcranAccesRefuse`), jamais l'écran réel qui échouerait de toute façon
+ * sur chaque appel API. Un rôle opérationnel (magasinier — `SESSION_TEST` par défaut est
+ * `chef_atelier`, déjà dans `ROLES_PIECES`) doit au contraire atteindre le contenu réel.
+ */
+describe('routeur — /pieces/* refuse admin (protection RÉELLE, RF-115), ouvre les rôles opérationnels', () => {
+  it('admin : reçoit l’écran de refus dédié, jamais le contenu réel (aucun appel API nécessaire)', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' } }),
+      ),
+    );
+    renduAvecRoutes(routesConfig, { routeInitiale: '/pieces/reservations' });
+
+    expect(await screen.findByText("Vous n'avez pas les droits pour cette action.")).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Réservations' })).not.toBeInTheDocument();
+  });
+
+  it('un rôle opérationnel (chef_atelier) atteint le contenu réel de /pieces/reservations', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/reservations', () => HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 })),
+    );
+    renduAvecRoutes(routesConfig, { routeInitiale: '/pieces/reservations' });
+
+    expect(await screen.findByRole('heading', { name: 'Réservations' })).toBeInTheDocument();
+    expect(screen.queryByText("Vous n'avez pas les droits pour cette action.")).not.toBeInTheDocument();
+  });
+
+  it('la recherche comptoir pièces est accessible à /pieces/recherche-comptoir', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    renduAvecRoutes(routesConfig, { routeInitiale: '/pieces/recherche-comptoir?site=site-1' });
+
+    // `level: 1` : l'écran vide (aucune saisie encore) affiche AUSSI « Recherche comptoir » en
+    // `<h2>` via `EtatVide` (invite à taper) — même texte, deux niveaux différents.
+    expect(await screen.findByRole('heading', { name: 'Recherche comptoir', level: 1 })).toBeInTheDocument();
+  });
+
+  it('la fiche article reçoit son identifiant depuis l’URL (`:id`) et déclenche son chargement', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/articles/:id', ({ params }) =>
+        HttpResponse.json({
+          id: params.id,
+          numeroArticle: 'P-000123',
+          designation: 'Plaquettes de frein avant',
+          marque: null,
+          categorie: 'piece_mecanique',
+          statut: 'actif',
+          referencePrincipale: '1K0698151',
+          codeBarres: null,
+          prixAchatCentimes: null,
+          prixVenteTtcCentimes: 8900,
+          tauxTvaPourmille: 81,
+          estEchangeStandard: false,
+          montantConsigneTtcCentimes: null,
+          referenceRemplacementId: null,
+          references: [],
+          referencesTronquees: false,
+          stocksResume: [],
+          creeLe: '2026-07-01T08:00:00.000Z',
+          modifieLe: '2026-07-01T08:00:00.000Z',
+        }),
+      ),
+      http.get('/api/v1/articles/:id/mouvements', () => HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 30 })),
+    );
+    renduAvecRoutes(routesConfig, { routeInitiale: '/pieces/articles/art-1' });
+
+    expect(await screen.findByText('Plaquettes de frein avant')).toBeInTheDocument();
+  });
+});
+
+/**
  * Le défaut que ce test existe pour attraper : un écran fini, testé, mais câblé nulle part — le
  * routeur n'expose alors qu'une fraction des écrans réellement livrés sans que rien ne le signale
  * (voir consigne de la tâche). Le scan est volontairement fait sur le DISQUE, jamais sur une

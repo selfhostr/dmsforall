@@ -50,6 +50,7 @@ const CONTEXTE: ReponseContexteAtelier = {
         ordreReparationOrigineId: null,
         ligneOrOrigineId: null,
         ordreReparationRepriseId: null,
+        motifModification: null,
       },
     ],
   },

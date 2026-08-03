@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import {
   schemaFiltresArticles,
+  schemaFiltresCommandesFournisseur,
+  schemaFiltresConsignes,
+  schemaFiltresFournisseurs,
   schemaFiltresMouvementsStock,
   schemaFiltresReapprovisionnement,
   schemaFiltresReservations,
@@ -22,8 +25,22 @@ import {
 export const schemaListeArticles = schemaParametresPage.omit({ tri: true }).extend(schemaFiltresArticles.shape);
 export type ParametresListeArticles = z.infer<typeof schemaListeArticles>;
 
-export { schemaFiltresMouvementsStock, schemaFiltresReapprovisionnement, schemaFiltresReservations };
-export type { FiltresMouvementsStock, FiltresReapprovisionnement, FiltresReservations } from '@dfa/shared';
+export {
+  schemaFiltresCommandesFournisseur,
+  schemaFiltresConsignes,
+  schemaFiltresFournisseurs,
+  schemaFiltresMouvementsStock,
+  schemaFiltresReapprovisionnement,
+  schemaFiltresReservations,
+};
+export type {
+  FiltresCommandesFournisseur,
+  FiltresConsignes,
+  FiltresFournisseurs,
+  FiltresMouvementsStock,
+  FiltresReapprovisionnement,
+  FiltresReservations,
+} from '@dfa/shared';
 
 /** Identifiant de chemin, réutilisé sur chaque contrôleur (`:articleId`, `:siteId`, `:id`…). */
 export const schemaUuid = z.string().uuid();

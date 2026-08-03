@@ -118,7 +118,7 @@
           },
           "numeroArticle": {
             "description": "Généré par le serveur, unique par tenant (RP-08). Jamais fourni en entrée.",
-            "example": "PA-000123",
+            "example": "P-000123",
             "type": "string"
           },
           "prixAchatCentimes": {
@@ -3164,7 +3164,12 @@
               "VENTE_LIVRAISON_INCOMPLETE",
               "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE",
               "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE",
-              "VENTE_REPRISE_DEJA_EXISTANTE"
+              "VENTE_REPRISE_DEJA_EXISTANTE",
+              "CONNECTEUR_TYPE_INDISPONIBLE",
+              "CONNECTEUR_IDENTIFIANTS_MANQUANTS",
+              "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE",
+              "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE",
+              "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE"
             ],
             "type": "string"
           },
@@ -3305,7 +3310,12 @@
               "VENTE_LIVRAISON_INCOMPLETE",
               "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE",
               "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE",
-              "VENTE_REPRISE_DEJA_EXISTANTE"
+              "VENTE_REPRISE_DEJA_EXISTANTE",
+              "CONNECTEUR_TYPE_INDISPONIBLE",
+              "CONNECTEUR_IDENTIFIANTS_MANQUANTS",
+              "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE",
+              "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE",
+              "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE"
             ],
             "type": "string"
           },
@@ -4124,7 +4134,16 @@
               "export_comptable",
               "mapping_compte",
               "tenant_bloc_creancier",
-              "periode_pointage"
+              "article",
+              "commande_fournisseur",
+              "mouvement_stock",
+              "consigne_echange_standard",
+              "periode_pointage",
+              "vehicule_stock",
+              "dossier_vente",
+              "reprise",
+              "financement_vente",
+              "vehicule_travail_reporte"
             ],
             "type": "string"
           },
@@ -5440,6 +5459,11 @@
             "nullable": true,
             "type": "number"
           },
+          "motifModification": {
+            "description": "Raison d'une correction ou d'un abandon ultérieur (distincte du motif de refus initial au devis). Non filtrée par rôle.",
+            "nullable": true,
+            "type": "string"
+          },
           "ordreReparationOrigineId": {
             "format": "uuid",
             "nullable": true,
@@ -5480,7 +5504,8 @@
           "statut",
           "ordreReparationOrigineId",
           "ligneOrOrigineId",
-          "ordreReparationRepriseId"
+          "ordreReparationRepriseId",
+          "motifModification"
         ],
         "type": "object"
       },

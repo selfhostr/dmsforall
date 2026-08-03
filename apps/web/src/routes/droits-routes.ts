@@ -47,3 +47,27 @@ export const ROLES_MENU_PARAMETRAGE_ATELIER: readonly RoleUtilisateur[] = ['chef
 
 /** RF-115 : `admin` volontairement absent — voir le point 2 ci-dessus. */
 export const ROLES_MENU_FINANCIER: readonly RoleUtilisateur[] = ['direction', 'comptable'];
+
+/**
+ * Module pièces (étape 3) — CAS DE FIGURE 1 CI-DESSUS (protection RÉELLE de route), pas
+ * seulement une ergonomie de menu : `DROITS_PIECES_PAR_ROLE.admin` vaut `[]` littéralement
+ * (`apps/api/src/auth/matrice-droits.ts`, RF-115) — la LECTURE elle-même (`pieces.article.lire`,
+ * `pieces.stock.lire`, `pieces.reservation.lire`) est fermée à `admin`, contrairement à
+ * `parametrage.referentiel.lire` (ouvert à tous, d'où l'absence de `rolesAutorises` sur ces
+ * routes-là). Poser `rolesAutorises: ROLES_PIECES` sur chaque route du module reflète donc une
+ * restriction que l'API applique déjà, ça ne l'invente pas : un `admin` qui l'atteindrait quand
+ * même se heurterait à un `403` sur CHAQUE appel (liste, fiche, recherche comptoir…), un écran
+ * cassé de bout en bout plutôt qu'un refus explicite — voir `EcranAccesRefuse.tsx`.
+ *
+ * Les SEPT rôles opérationnels (tous sauf `admin`) — dérivé de `DROITS_PIECES_PAR_ROLE`, pas
+ * une liste choisie séparément : chacun y porte au moins `LECTURE_PIECES`.
+ */
+export const ROLES_PIECES: readonly RoleUtilisateur[] = [
+  'direction',
+  'comptable',
+  'vendeur',
+  'receptionnaire',
+  'chef_atelier',
+  'magasinier',
+  'technicien',
+];

@@ -58,7 +58,7 @@
     "historique": "Storico delle targhe"
   },
   "detentions": {
-    "titre": "Proprieta",
+    "titre": "Proprietà",
     "detenteur": "Proprietario attuale",
     "historique": "Storico dei proprietari",
     "changer": "Cambia proprietario",
@@ -89,7 +89,7 @@
     "motifsRegression": {
       "compteur_remplace": "Contachilometri sostituito",
       "erreur_saisie": "Errore di immissione",
-      "changement_unite": "Cambio unita",
+      "changement_unite": "Cambio unità",
       "correction": "Correzione"
     },
     "unites": {
@@ -128,7 +128,7 @@
   },
   "travauxReportes": {
     "titre": "Lavori rinviati",
-    "urgence": "Priorita",
+    "urgence": "Priorità",
     "urgences": {
       "urgent": "Urgente",
       "aFaire": "Da fare",
@@ -161,7 +161,13 @@
       "reprendreDescription": "Il cliente ha accettato questo lavoro: non comparirà più tra i lavori da riproporre.",
       "abandonnerTitre": "Abbandonare questo lavoro rinviato?",
       "abandonnerDescription": "Il cliente ha rifiutato questo lavoro. Non comparirà più tra i lavori da riproporre, ma resta consultabile nello storico.",
-      "erreurValidation": "Verifica la descrizione e la priorità inserite."
+      "erreurValidation": "Verifica la descrizione e la priorità inserite.",
+      "motifLabel": "Motivo (facoltativo)",
+      "motifPlaceholder": "Es.: il cliente ha rinviato questo lavoro al prossimo controllo.",
+      "erreurValidationMotif": "Il motivo deve contenere almeno 3 caratteri, se inserito."
+    },
+    "motifModification": {
+      "libelle": "Motivo:"
     },
     "vide": {
       "aucun": "Nessun lavoro rinviato per questo veicolo.",
@@ -180,7 +186,7 @@
     "pression": "Pressione (bar)",
     "huile": "Olio",
     "type": "Tipo",
-    "quantite": "Quantita (l)",
+    "quantite": "Quantità (l)",
     "batterie": "Batteria",
     "codeRadio": "Codice radio",
     "codeCle": "Codice chiave",
@@ -194,7 +200,7 @@
     "date": "Data importazione"
   },
   "alertes": {
-    "titre": "Avvisi & opportunita",
+    "titre": "Avvisi & opportunità",
     "travauxReportes": "Lavori rinviati",
     "campagnes": "Richiami aperti",
     "expertise": "Collaudo prossimo",

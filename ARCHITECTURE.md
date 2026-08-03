@@ -90,28 +90,34 @@ Alternatives considérées : Go (backend plus performant mais deux langages à m
 - **Phase 2 (Suisse VO)** : Eurotax/auto-i-dat pour les cotes et données véhicules, AutoScout24 pour la publication d'annonces (acteur dominant en Suisse).
 - **Phase 3 (OEM)** : adaptateurs constructeur, marque par marque, au rythme des agréments obtenus. L'architecture est prête dès la phase 1 ; seul le calendrier commercial décide.
 
-## 6. Feuille de route
+## 6. État actuel et feuille de route
 
-| Étape | Contenu | Objectif |
+| Étape | Contenu | État |
 |---|---|---|
-| **0. Socle** | Auth, tenants, sites, rôles, i18n, API OpenAPI, squelette UI, CI/CD, hébergement | Fondations sur lesquelles tout repose |
-| **1. Atelier + Clients** | Clients, véhicules, RDV, OR, pointage | Le quotidien du garage — première démo à un pilote |
-| **2. Facturation** | Devis/facture/avoir, QR-facture, export fiduciaire | Le garage peut facturer depuis l'outil → utilisable en production |
-| **3. Pièces** | Articles, stock, alertes, commandes fournisseur | Compléter le flux atelier de bout en bout |
-| **4. Véhicules & ventes** | Stock VN/VO, dossiers de vente, remarketing, annonces | Couvrir le périmètre concession |
-| **5. Connecteurs** | TecDoc, AutoScout24, exports comptables supplémentaires, OEM | Élargir marque par marque |
+| **0. Socle** | Auth, tenants, sites, rôles, i18n, API OpenAPI, squelette UI, CI/CD, hébergement | ✅ Livré, vérifié |
+| **1. Atelier + Clients** | Clients, véhicules, RDV, OR, planning, pointage sur OR | ✅ Livré (API + écrans) |
+| **2. Facturation** | Devis/facture/avoir, QR-facture, export fiduciaire WinBIZ, encaissement | ✅ Livré (API + écrans + jeu démo) |
+| **Lot 2. Pointage** | Pointage par technicien/OR (temps réel, tracé historisé, statut OR=en_cours) | 🟨 API livrée, écrans en cours |
+| **3. Pièces** | Articles, stock par site, mouvements (casse/transfert/retour), réservations | 🟨 API + écrans livrés, commandes fournisseur EN COURS |
+| **4. Ventes VN/VO** | Stock garage, dossiers de vente, reprises, financement | 🟨 Schéma + contrats livrés (migrations 0031-0032), API EN COURS, écrans EN COURS |
+| **5. Connecteurs** | Interfaces pour TecDoc, AutoScout24, exports comptables, OEM | 🟨 Contrats définis, implémentation EN COURS |
 
-Jalon clé : **fin d'étape 2 = premier premier garage en production réelle.** Tout est ordonné pour atteindre ce point au plus vite.
+Jalon clé : **fin d'étape 2 (31.07.2026) = premier garage prêt pour une utilisation réelle.** Étapes 3-5 élargissent le périmètre ; aucune n'est bloquante pour le pilote.
 
 ## 7. Décisions et questions ouvertes
 
-Décidé (27.07.2026) :
+Décidé (27.07.2026 et confirmé 31.07.2026) :
 - [x] **Nom : dmsforall (DFA).**
 - [x] **Stack validée** (§3) : TypeScript + NestJS + PostgreSQL/Drizzle + React/Vite.
 
 - [x] **Dev hybride** : Postgres + Redis dans Docker (installé), backend/front en Node local en dev, tout conteneurisé en prod.
+- [x] **Étapes 1-2 livrées** : atelier (OR, planning, pointage), clients, véhicules, facturation (QR-facture, export WinBIZ, encaissement).
+- [x] **Décision ventes VN/VO** (§4) : un véhicule en stock n'est pas un second objet ; c'est le même enregistrement `vehicule` étendu (colonnes `prix_*`, `statut_stock`, photos, etc.).
 
 Encore ouvert :
-- [ ] Premier garage : un candidat pressenti (petit garage), à confirmer avant la fin de l'étape 1.
-- [ ] Licence TecDoc : coûts à étudier plus tard, avant l'étape 3 (pièces).
-- [ ] Migration des données depuis Auto-i/Nextlane : modalités d'export inconnues — à investiguer garage par garage (leurs données leur appartiennent ; @laupernoe a accès aux systèmes en tant que prestataire IT).
+- [ ] Premier garage : à confirmer avant démarrage etape 2 production.
+- [ ] Licence TecDoc : coûts à évaluer avant étape 3 (pièces).
+- [ ] Migration données Auto-i/Nextlane : modalités par premier garage — voir `docs/specification-reprise-donnees.md`.
+- [ ] Étape 3 : commandes fournisseur et consignes pièces (socle posé, implémentation EN COURS).
+- [ ] Étape 4 : endpoints ventes VN/VO (schéma confirmé 31.07, implémentation EN COURS).
+- [ ] Étape 5 : adaptateurs connecteurs (TecDoc, AutoScout24 prioritaires ; OEM au rythme agréments commerciaux).

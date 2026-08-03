@@ -161,7 +161,13 @@
       "reprendreDescription": "Le client a accepté ce travail : il n'apparaîtra plus dans les travaux à proposer.",
       "abandonnerTitre": "Abandonner ce travail reporté ?",
       "abandonnerDescription": "Le client a refusé ce travail. Il n'apparaîtra plus dans les travaux à proposer, mais reste consultable dans l'historique.",
-      "erreurValidation": "Vérifiez la désignation et l'urgence saisies."
+      "erreurValidation": "Vérifiez la désignation et l'urgence saisies.",
+      "motifLabel": "Motif (facultatif)",
+      "motifPlaceholder": "Ex. : le client a reporté ce travail au prochain contrôle.",
+      "erreurValidationMotif": "Le motif doit compter au moins 3 caractères s'il est renseigné."
+    },
+    "motifModification": {
+      "libelle": "Motif :"
     },
     "vide": {
       "aucun": "Aucun travail reporté pour ce véhicule.",

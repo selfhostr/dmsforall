@@ -1178,7 +1178,7 @@ silence de 30 jours, est un élément utile — commercialement et, le cas éch�
 | 7 | **Numéro de client d'origine** : dans `client.numero` ou dans `reference_externe` ? (`D-26`, §10.2) | Option A — `numero` = numéro source verbatim, compteur calé au maximum observé |
 | 8 | **Véhicule sans marque ou sans modèle** — `NOT NULL` en base (`D-27`, §10.3) | Déduction depuis le libellé, puis sentinelle lisible `MODÈLE INCONNU` + `identification_incomplete` |
 | 9 | **Date d'expertise sans résultat** (`D-28`, §10.3) | Note véhicule, **pas** de ligne `vehicule_expertise` — on n'invente pas un résultat de MFK |
-| 10 | **`ordre_reparation` doit-il recevoir `origine` + `numero_origine` ?** (§10.5, `Z-17`) | Oui — coût nul aujourd'hui, élevé après la première bascule. À arbitrer avec `expert-database` |
+| 10 | ~~`ordre_reparation` doit-il recevoir `origine` + `numero_origine` ?~~ (§10.5, `Z-17`) | ✅ **Fait** — `migrations/0011_ordre_reparation_origine_reprise.sql` |
 | 11 | **Marche arrière** : l'ancien système accepte-t-il de forcer un numéro de facture ? (§13.4, `QE-08`) | À tester en S-1. Défaut si non : annulation par avoir dans DFA |
 
 ### 8.2 À transmettre aux autres experts
@@ -1186,7 +1186,7 @@ silence de 30 jours, est un élément utile — commercialement et, le cas éch�
 | Destinataire | Contrainte issue de ce document |
 |---|---|
 | ~~**expert-facturation** (étape 2)~~ | ✅ **HONORÉ** dans `0010_facturation.sql` : `origine enum('dfa','reprise')`, `numero_origine`, `tva_non_ventilee`, `taux_tva_pourmille` au niveau document, `ecart_reprise_centimes`, type de ligne `ecart_reprise`, régime TVA `marge` pour l'avant-2018, index `document_vente_numero_origine_uk`, motif de bulletin `creance_reprise`. **La contrainte a été prise en compte avant qu'elle ne coûte cher** — c'est le seul point du document qui soit déjà réglé. Détail et protocole d'écriture : §10.4 |
-| **expert-database** (étape 1) | Colonne `origine_lot_id uuid null` + index partiel sur les tables recevant un import ; tables de reprise sous RLS `FORCE` avec `USING` **et** `WITH CHECK` ; FK composites `(tenant_id, lot_id)` sur le modèle de `site_tenant_id_uk` (§5.2, §5.4). **Rien de tout ceci n'est en base** (`Z-20`). ⚠️ **Nouveau, et urgent** : `ordre_reparation` doit recevoir `origine` + `numero_origine` comme `document_vente` (§10.5, `Z-17`) — coût nul tant qu'aucun garage n'est en production |
+| **expert-database** (étape 1) | Colonne `origine_lot_id uuid null` + index partiel sur les tables recevant un import ; tables de reprise sous RLS `FORCE` avec `USING` **et** `WITH CHECK` ; FK composites `(tenant_id, lot_id)` sur le modèle de `site_tenant_id_uk` (§5.2, §5.4). **Rien de tout ceci n'est en base** (`Z-20`). ~~`ordre_reparation` doit recevoir `origine` + `numero_origine`~~ ✅ fait (`0011`, §10.5, `Z-17`) |
 | **expert-metier** | Les champs sans équivalent source (origine de ligne, payeur, consentements, conditions datées) doivent tolérer un état « inconnu / repris » sans casser une règle métier. Une règle qui exige une valeur qu'aucun système source ne fournit rend la reprise impossible (§2.5) |
 | **expert-tests** | Le test d'isolation d'import (§5.4) et le test d'idempotence (« deux passes du même fichier ⇒ mêmes UUID, aucun doublon ») sont des tests de la règle n°1 du projet, pas des tests de confort |
 | **expert-devops** | Le staging peut peser plusieurs Go ; prévoir l'espace, la sauvegarde avant/après import, et la procédure de restauration testée exigée au GO (§6.3, critère 6) |
@@ -1441,35 +1441,37 @@ procède ainsi, par document :
 | Avoir repris | `document_vente_avoir_facture_annulee_chk` (facture obligatoire), `document_vente_avoir_motif_emis_chk` (motif obligatoire à l'émission), `document_vente_signe_avoir_chk` (**tous les totaux ≤ 0**). Un source qui stocke les avoirs en positif doit être **inversé**, et le motif absent devient `motif_avoir = 'autre'` + `motif_avoir_libre` explicite |
 | `bulletin_paiement.motif` contient `'creance_reprise'` | Les créances ouvertes reprises peuvent recevoir un bulletin de versement QR sans être confondues avec une relance ordinaire |
 
-### 10.5 Ordre de réparation repris — le trou identifié
+### 10.5 Ordre de réparation repris — le trou est comblé (`Z-17` résolu)
 
-`ordre_reparation` (`0008_atelier.sql`) porte `numero text NOT NULL` avec
-`ordre_reparation_tenant_numero_uk unique (tenant_id, numero)`, mais **ni colonne `origine`, ni
-colonne `numero_origine`**, à la différence de `document_vente`.
+✅ **Résolu par `migrations/0011_ordre_reparation_origine_reprise.sql`.** Ce que cette section
+décrivait comme un trou à l'époque de la rédaction (`ordre_reparation` sans colonne `origine` ni
+`numero_origine`) a été comblé — c'est l'**option 1** ci-dessous, alors seulement recommandée, qui
+a été retenue :
 
-Conséquence : un OR repris n'a pas d'endroit où déposer son numéro d'origine sans occuper
-`numero`, c'est-à-dire sans entrer dans la même série que les OR que DFA va émettre — ce que
-`D-23` interdit pour les documents et qui pose le même problème ici (les OR ne sont pas des
-pièces comptables, mais le garagiste les cite au téléphone et les retrouve sur ses fiches).
+```
+origine        public.origine_document not null default 'dfa'   -- même enum que document_vente
+numero_origine text null                                        -- numéro source verbatim
+ordre_reparation_origine_numero_origine_chk :
+  (origine = 'dfa') = (numero_origine is null)
+index unique partiel sur numero_origine, où renseigné (ordre_reparation_numero_origine_uk)
+```
 
-Trois issues, par ordre de préférence :
+Le patron est **exactement** celui de `document_vente` (§10.4) : un OR repris conserve son numéro
+d'origine verbatim, sans consommer la séquence `ordre_reparation.numero` que DFA attribue à ses
+propres OR. Le chargeur d'OR repris peut donc s'écrire sans détour de numérotation.
 
-1. **Aligner `ordre_reparation` sur `document_vente`** : migration *expand* ajoutant
-   `origine public.origine_document NOT NULL DEFAULT 'dfa'` et `numero_origine text NULL`, avec
-   l'index unique correspondant. Le coût est **nul aujourd'hui** (aucune donnée en production) et
-   élevé après la première bascule. ⚠️ **À VALIDER AVEC @laupernoe** — c'est une demande à adresser à
-   `expert-database`, hors périmètre de ce document.
-2. **Préfixer** les numéros d'OR repris (`R-2019-0042`) dans `numero`. Fonctionne, ne casse rien,
-   mais brouille la lecture et rend le tri chronologique faux.
-3. **Ne pas reprendre les OR** et se contenter des factures (§3, `D-08`). Défendable si le garage
-   consulte peu son historique atelier — c'est précisément ce que mesure `QG-04`.
+**Contraintes d'un OR repris, telles qu'elles sont en base** : `site_id`, `client_id`,
+`vehicule_id`, `client_designation_figee`, `adresse_facturation_figee`, `conditions_figees` sont
+**tous `NOT NULL`** ; `statut` prend directement `'cloture'` (aucun trigger `BEFORE INSERT` ne
+l'interdit, à la différence de `document_vente` qui force le passage par `'brouillon'`) ; le
+trigger `ordre_reparation_verrouiller_figes` interdit de réécrire les valeurs figées ensuite ;
+`ligne_or.origine` prend `'commandee'` faute de mieux (§2.5) et `payeur` prend `'client'`.
 
-Autres contraintes d'un OR repris, s'il est repris : `site_id`, `client_id`, `vehicule_id`,
-`client_designation_figee`, `adresse_facturation_figee`, `conditions_figees` sont **tous
-`NOT NULL`** ; `statut` prend directement `'cloture'` (aucun trigger `BEFORE INSERT` ne l'interdit,
-à la différence de `document_vente`) ; le trigger `ordre_reparation_verrouiller_figes` interdit de
-réécrire les valeurs figées ensuite ; `ligne_or.origine` prend `'commandee'` faute de mieux
-(§2.5) et `payeur` prend `'client'`.
+*(Texte original conservé pour la trace du raisonnement — l'analyse qui a mené au choix de
+l'option 1 reste utile pour comprendre pourquoi le patron `document_vente` a été repris à
+l'identique plutôt que préfixé ou laissé de côté : la numérotation d'un OR, bien que sans valeur
+comptable, est citée au téléphone et cherchée par le garagiste au même titre qu'un numéro de
+facture — `D-23` s'applique par analogie.)*
 
 ### 10.6 `annuler-lot` — correction de la §5.5
 
@@ -1990,7 +1992,7 @@ la copie restaurée pendant la répétition générale.
 
 | # | Question | Destinataire |
 |---|---|---|
-| **Z-17** | `ordre_reparation` doit-il recevoir `origine` + `numero_origine` comme `document_vente` ? (§10.5) | `expert-database` — **coût nul aujourd'hui, élevé après la première bascule** |
+| ~~**Z-17**~~ | ~~`ordre_reparation` doit-il recevoir `origine` + `numero_origine` comme `document_vente` ?~~ (§10.5) | ✅ **Résolu** — `migrations/0011_ordre_reparation_origine_reprise.sql` |
 | **Z-18** | Le numéro de client d'origine va-t-il dans `client.numero` ou dans `reference_externe` ? (`D-26`) | `expert-api` (la recherche doit couvrir le choix retenu) + @laupernoe |
 | **Z-19** | Une date d'expertise sans résultat : note, ou expertise inventée ? (`D-28`) | @laupernoe |
 | **Z-20** | Les tables de reprise (`lot_reprise`, `reprise_ligne_source`, `correspondance_reprise`, `reprise_anomalie`) et la colonne `origine_lot_id` ne sont **pas** en base. §5.2 et §5.3 restent des plans | `expert-database`, quand la première migration réelle sera engagée |
@@ -2003,7 +2005,5 @@ la copie restaurée pendant la répétition générale.
 2. **Z-01 + Z-06** — une visite, une fiche d'inventaire remplie, un échantillon de 20 lignes par
    entité. Une demi-journée qui transforme la moitié de ce document en travail exécutable.
 3. **Z-12** — lire un contrat. Une heure, et ça peut décaler une bascule de six mois.
-4. **Z-17** — trancher la question de `ordre_reparation.numero_origine` tant qu'aucune donnée n'est
-   en production.
 
 Le reste attend, et c'est normal : **le code est la partie facile et la dernière**.

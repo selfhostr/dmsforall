@@ -1,5 +1,26 @@
 {
   "titre": "Pièces",
+  "siteRequis": {
+    "titre": "Choisissez un site",
+    "description": "Cette page affiche des données propres à un site — sélectionnez-en un pour continuer.",
+    "label": "Site"
+  },
+  "rechercheComptoir": {
+    "titre": "Recherche comptoir",
+    "aide": "Tapez une référence, une désignation ou un code-barres.",
+    "champRecherche": "Référence, désignation, code-barres…",
+    "vide": {
+      "recherche": "Aucun article ne correspond à cette recherche sur ce site."
+    },
+    "resultat": {
+      "disponible": "{n} en stock",
+      "rupture": "Rupture de stock",
+      "emplacement": "Emplacement {emplacement}"
+    },
+    "erreur": {
+      "titre": "La recherche a échoué"
+    }
+  },
   "articles": {
     "titre": "Articles",
     "numero": "Article {numero}",
@@ -11,9 +32,16 @@
       "achat": "Prix d'achat",
       "vente": "Prix de vente",
       "montantTtc": "Montant TTC",
-      "ttc": "TTC"
+      "ttc": "TTC",
+      "aideTvaComprise": "TVA comprise — c'est le montant annoncé au comptoir."
     },
     "tva": "TVA",
+    "tauxTvaLibelles": {
+      "81": "8.1 % (taux normal)",
+      "26": "2.6 % (taux réduit)",
+      "38": "3.8 % (hébergement)",
+      "0": "0 % (exonéré)"
+    },
     "categorie": "Catégorie",
     "categories": {
       "piece_mecanique": "Pièce mécanique",
@@ -54,7 +82,50 @@
       "desactiver": "Désactiver",
       "reactiver": "Réactiver"
     },
-    "vide": "Aucun article."
+    "vide": "Aucun article.",
+    "filtres": {
+      "statutTous": "Tous les statuts",
+      "categorieToutes": "Toutes les catégories"
+    },
+    "tri": {
+      "label": "Trier par",
+      "creeLeDesc": "Plus récents",
+      "creeLeAsc": "Plus anciens",
+      "designationAsc": "Désignation (A → Z)",
+      "designationDesc": "Désignation (Z → A)",
+      "numeroArticleAsc": "N° d'article"
+    },
+    "liste": {
+      "titre": "Articles",
+      "colonnes": {
+        "article": "Article",
+        "reference": "Référence",
+        "categorie": "Catégorie",
+        "statut": "Statut",
+        "prix": "Prix"
+      },
+      "erreur": {
+        "titre": "Impossible d'afficher les articles"
+      }
+    },
+    "fiche": {
+      "creeLe": "Créé le",
+      "modifieLe": "Modifié le",
+      "erreur": {
+        "titre": "Impossible d'afficher cet article"
+      },
+      "erreurSection": {
+        "titre": "Impossible de charger cette section"
+      }
+    },
+    "confirmations": {
+      "marquerObsoleteTitre": "Marquer cet article obsolète ?",
+      "marquerObsoleteDescription": "L'article reste visible mais ne pourra plus être ajouté à une nouvelle ligne. Action réversible.",
+      "desactiverTitre": "Désactiver cet article ?",
+      "desactiverDescription": "L'article ne sera plus proposé à la vente ni au comptoir. Action réversible.",
+      "reactiverTitre": "Réactiver cet article ?",
+      "reactiverDescription": "L'article redevient actif et proposable normalement."
+    }
   },
   "stock": {
     "titre": "Stock",
@@ -93,11 +164,24 @@
         "creerCasse": "Signaler une casse",
         "creerPerte": "Signaler une perte",
         "creerTransfert": "Créer un transfert",
-        "creerAjustement": "Créer un ajustement"
+        "creerAjustement": "Créer un ajustement",
+        "creerRetourFournisseur": "Créer un retour fournisseur",
+        "nouveauMouvement": "Enregistrer un mouvement"
       },
       "siteSource": "Site source",
       "siteDestination": "Site destination",
-      "vide": "Aucun mouvement."
+      "vide": "Aucun mouvement.",
+      "erreur": {
+        "titre": "Impossible d'afficher l'historique"
+      },
+      "nouveauMouvement": {
+        "titre": "Enregistrer un mouvement",
+        "champType": "Type de mouvement",
+        "champQuantiteComptee": "Quantité comptée",
+        "champForcer": "Forcer malgré le stock insuffisant",
+        "avertissementEcart": "Écart notable détecté par rapport au stock estimé — vérifiez le comptage.",
+        "aucunEcart": "Le comptage correspond au stock actuel : aucun mouvement n'a été créé."
+      }
     },
     "reapprovisionnement": {
       "titre": "Réapprovisionnement",
@@ -105,7 +189,15 @@
       "actions": {
         "commander": "Commander"
       },
-      "vide": "Aucun article à réapprovisionner."
+      "vide": "Aucun article à réapprovisionner.",
+      "colonnes": {
+        "article": "Article",
+        "disponible": "Disponible",
+        "minimum": "Minimum"
+      },
+      "erreur": {
+        "titre": "Impossible d'afficher le réapprovisionnement"
+      }
     }
   },
   "reservations": {
@@ -140,7 +232,20 @@
       "quantiteDisponible": "Quantité disponible",
       "reservationsActives": "Réservations actives"
     },
-    "vide": "Aucune réservation."
+    "vide": "Aucune réservation.",
+    "filtres": {
+      "statutToutes": "Tous les statuts"
+    },
+    "voirArticle": "Voir l'article",
+    "voirOr": "Voir l'ordre de réparation",
+    "erreur": {
+      "titre": "Impossible d'afficher les réservations"
+    },
+    "liberation": {
+      "titre": "Libérer cette réservation ?",
+      "description": "La pièce redevient disponible pour un autre ordre de réparation. Indiquez le motif.",
+      "champMotif": "Motif"
+    }
   },
   "commandes": {
     "titre": "Commandes fournisseur",

@@ -1,5 +1,26 @@
 {
   "titre": "Ricambi",
+  "siteRequis": {
+    "titre": "Scegliere un'ubicazione",
+    "description": "Questa pagina mostra dati specifici di un'ubicazione — selezionarne una per continuare.",
+    "label": "Ubicazione"
+  },
+  "rechercheComptoir": {
+    "titre": "Ricerca al banco",
+    "aide": "Digitare un riferimento, una descrizione o un codice a barre.",
+    "champRecherche": "Riferimento, descrizione, codice a barre…",
+    "vide": {
+      "recherche": "Nessun articolo corrisponde a questa ricerca in questa ubicazione."
+    },
+    "resultat": {
+      "disponible": "{n} disponibili",
+      "rupture": "Esaurito",
+      "emplacement": "Ubicazione {emplacement}"
+    },
+    "erreur": {
+      "titre": "La ricerca non è riuscita"
+    }
+  },
   "articles": {
     "titre": "Articoli",
     "numero": "Articolo {numero}",
@@ -11,9 +32,16 @@
       "achat": "Prezzo di acquisto",
       "vente": "Prezzo di vendita",
       "montantTtc": "Importo IVA inclusa",
-      "ttc": "IVA inclusa"
+      "ttc": "IVA inclusa",
+      "aideTvaComprise": "IVA inclusa — è l'importo annunciato al banco."
     },
     "tva": "IVA",
+    "tauxTvaLibelles": {
+      "81": "8.1 % (aliquota normale)",
+      "26": "2.6 % (aliquota ridotta)",
+      "38": "3.8 % (settore alberghiero)",
+      "0": "0 % (esente)"
+    },
     "categorie": "Categoria",
     "categories": {
       "piece_mecanique": "Ricambio motore",
@@ -54,7 +82,50 @@
       "desactiver": "Disattiva",
       "reactiver": "Riattiva"
     },
-    "vide": "Nessun articolo."
+    "vide": "Nessun articolo.",
+    "filtres": {
+      "statutTous": "Tutti gli stati",
+      "categorieToutes": "Tutte le categorie"
+    },
+    "tri": {
+      "label": "Ordina per",
+      "creeLeDesc": "Più recenti",
+      "creeLeAsc": "Più vecchi",
+      "designationAsc": "Descrizione (A → Z)",
+      "designationDesc": "Descrizione (Z → A)",
+      "numeroArticleAsc": "N. articolo"
+    },
+    "liste": {
+      "titre": "Articoli",
+      "colonnes": {
+        "article": "Articolo",
+        "reference": "Riferimento",
+        "categorie": "Categoria",
+        "statut": "Stato",
+        "prix": "Prezzo"
+      },
+      "erreur": {
+        "titre": "Impossibile visualizzare gli articoli"
+      }
+    },
+    "fiche": {
+      "creeLe": "Creato il",
+      "modifieLe": "Modificato il",
+      "erreur": {
+        "titre": "Impossibile visualizzare questo articolo"
+      },
+      "erreurSection": {
+        "titre": "Impossibile caricare questa sezione"
+      }
+    },
+    "confirmations": {
+      "marquerObsoleteTitre": "Contrassegnare questo articolo come obsoleto?",
+      "marquerObsoleteDescription": "L'articolo resta visibile ma non potrà più essere aggiunto a una nuova riga. Azione reversibile.",
+      "desactiverTitre": "Disattivare questo articolo?",
+      "desactiverDescription": "L'articolo non sarà più proposto in vendita né al banco. Azione reversibile.",
+      "reactiverTitre": "Riattivare questo articolo?",
+      "reactiverDescription": "L'articolo torna attivo e proponibile normalmente."
+    }
   },
   "stock": {
     "titre": "Magazzino",
@@ -93,11 +164,24 @@
         "creerCasse": "Segnala rottura",
         "creerPerte": "Segnala smarrimento",
         "creerTransfert": "Crea trasferimento",
-        "creerAjustement": "Crea rettifica"
+        "creerAjustement": "Crea rettifica",
+        "creerRetourFournisseur": "Crea reso fornitore",
+        "nouveauMouvement": "Registra un movimento"
       },
       "siteSource": "Ubicazione di origine",
       "siteDestination": "Ubicazione di destinazione",
-      "vide": "Nessun movimento."
+      "vide": "Nessun movimento.",
+      "erreur": {
+        "titre": "Impossibile visualizzare lo storico"
+      },
+      "nouveauMouvement": {
+        "titre": "Registra un movimento",
+        "champType": "Tipo di movimento",
+        "champQuantiteComptee": "Quantità contata",
+        "champForcer": "Forza nonostante la scorta insufficiente",
+        "avertissementEcart": "Rilevata una differenza significativa rispetto alla scorta stimata — verificare il conteggio.",
+        "aucunEcart": "Il conteggio corrisponde alla scorta attuale: nessun movimento è stato creato."
+      }
     },
     "reapprovisionnement": {
       "titre": "Riordino",
@@ -105,7 +189,15 @@
       "actions": {
         "commander": "Ordina"
       },
-      "vide": "Nessun riordino necessario."
+      "vide": "Nessun riordino necessario.",
+      "colonnes": {
+        "article": "Articolo",
+        "disponible": "Disponibile",
+        "minimum": "Minimo"
+      },
+      "erreur": {
+        "titre": "Impossibile visualizzare il riordino"
+      }
     }
   },
   "reservations": {
@@ -140,7 +232,20 @@
       "quantiteDisponible": "Quantita disponibile",
       "reservationsActives": "Prenotazioni attive"
     },
-    "vide": "Nessuna prenotazione."
+    "vide": "Nessuna prenotazione.",
+    "filtres": {
+      "statutToutes": "Tutti gli stati"
+    },
+    "voirArticle": "Vedi articolo",
+    "voirOr": "Vedi ordine di riparazione",
+    "erreur": {
+      "titre": "Impossibile visualizzare le prenotazioni"
+    },
+    "liberation": {
+      "titre": "Liberare questa prenotazione?",
+      "description": "Il pezzo torna disponibile per un altro ordine di riparazione. Indicare il motivo.",
+      "champMotif": "Motivo"
+    }
   },
   "commandes": {
     "titre": "Ordini fornitore",

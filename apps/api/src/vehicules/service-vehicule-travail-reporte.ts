@@ -11,6 +11,18 @@ import { chargerLigneVehicule, lireDernierKilometrage, listerTravauxReportes } f
 /**
  * `montantEstimeCentimes` retiré pour les rôles de `ROLES_SANS_MONTANT` (invariant front n°10) —
  * filtrage SERVEUR, appliqué ici et dans `contexte-atelier` (L1-10), jamais laissé au client.
+ *
+ * `motifModification` — DÉCISION : jamais filtré par rôle, contrairement à `montantEstimeCentimes`.
+ * `ROLES_SANS_MONTANT` (matrice-droits.ts) ne porte que sur les MONTANTS (invariant front n°10) ;
+ * rien dans la matrice de droits n'établit de filtrage sur un champ texte de ce module, et
+ * `motif_refus` (0021, sur la même table) n'a jamais été soumis à un tel filtrage non plus. Un
+ * motif d'abandon peut porter une information commerciale sensible (ex. « parti à la
+ * concurrence ») — mais c'est exactement l'information que le réceptionnaire doit relire au
+ * retour du véhicule pour ne pas répéter une proposition déjà refusée, et un technicien qui voit
+ * déjà la désignation, l'urgence et le statut du travail reporté n'a pas moins besoin de savoir
+ * POURQUOI il a été clôturé ou abandonné. Inventer un `ROLES_SANS_MOTIF` sans base dans la
+ * matrice de droits existante serait une décision non tranchée par le contrat — signalée en
+ * réponse de tâche plutôt qu'inventée en silence.
  */
 export function versReponseTravailReporte(ligne: LigneVehiculeTravailReporte, role: RoleUtilisateur): ReponseTravailReporte {
   const base: ReponseTravailReporte = {
@@ -24,6 +36,7 @@ export function versReponseTravailReporte(ligne: LigneVehiculeTravailReporte, ro
     ordreReparationOrigineId: ligne.ordreReparationOrigineId,
     ligneOrOrigineId: ligne.ligneOrOrigineId,
     ordreReparationRepriseId: ligne.ordreReparationRepriseId,
+    motifModification: ligne.motifModification,
   };
   if (ROLES_SANS_MONTANT.includes(role)) {
     return base;

@@ -34,4 +34,12 @@ export class ReponseTravailReporteDto implements ReponseTravailReporte {
 
   @ApiProperty({ type: String, format: 'uuid', nullable: true })
   readonly ordreReparationRepriseId!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      "Raison d'une correction ou d'un abandon ultérieur (distincte du motif de refus initial au devis). Non filtrée par rôle.",
+  })
+  readonly motifModification!: string | null;
 }

@@ -10,6 +10,7 @@ import type {
   PageCurseur,
   ReponseAvecAvertissements,
   ReponseMouvementStock,
+  RoleUtilisateur,
 } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
@@ -70,7 +71,12 @@ export class ServiceMouvement {
     @Inject(JETON_IDEMPOTENCE) private readonly idempotence: ServiceIdempotence,
   ) {}
 
-  async lister(ctx: ContexteTenant, articleId: string, params: FiltresMouvementsStock): Promise<PageCurseur<ReponseMouvementStock>> {
+  async lister(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    articleId: string,
+    params: FiltresMouvementsStock,
+  ): Promise<PageCurseur<ReponseMouvementStock>> {
     const definition = DEFINITIONS_TRI_MOUVEMENTS[params.tri];
     const idExpr = sql`m.id`;
     const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
@@ -105,7 +111,7 @@ export class ServiceMouvement {
       const derniere = pageLignes[pageLignes.length - 1];
 
       return {
-        donnees: pageLignes.map((l) => versMouvementResponse(l)),
+        donnees: pageLignes.map((l) => versMouvementResponse(l, role)),
         curseurSuivant:
           aUnePageSuivante && derniere
             ? encoderCurseurTrie({ tri: params.tri, valeur: valeurCurseurDepuisTri(definition, derniere.triValeur), id: derniere.id })
@@ -117,11 +123,12 @@ export class ServiceMouvement {
 
   async casse(
     ctx: ContexteTenant,
+    role: RoleUtilisateur,
     articleId: string,
     entree: EntreeCreationMouvementCasse,
     cleIdempotence: string,
   ): Promise<ResultatIdempotent<ResultatCreationMouvement & ReponseMemorisable>> {
-    return this.creerMouvementSortie(ctx, 'casse', articleId, entree.siteId, entree.quantiteMillieme, entree.forcer, {
+    return this.creerMouvementSortie(ctx, role, 'casse', articleId, entree.siteId, entree.quantiteMillieme, entree.forcer, {
       motif: entree.motif,
       ligneOrId: entree.ligneOrId ?? null,
       chemin: '/articles/{id}/mouvements/casse',
@@ -132,11 +139,12 @@ export class ServiceMouvement {
 
   async perte(
     ctx: ContexteTenant,
+    role: RoleUtilisateur,
     articleId: string,
     entree: EntreeCreationMouvementPerte,
     cleIdempotence: string,
   ): Promise<ResultatIdempotent<ResultatCreationMouvement & ReponseMemorisable>> {
-    return this.creerMouvementSortie(ctx, 'perte', articleId, entree.siteId, entree.quantiteMillieme, entree.forcer, {
+    return this.creerMouvementSortie(ctx, role, 'perte', articleId, entree.siteId, entree.quantiteMillieme, entree.forcer, {
       motif: entree.motif,
       ligneOrId: entree.ligneOrId ?? null,
       chemin: '/articles/{id}/mouvements/perte',
@@ -147,11 +155,12 @@ export class ServiceMouvement {
 
   async retourFournisseur(
     ctx: ContexteTenant,
+    role: RoleUtilisateur,
     articleId: string,
     entree: EntreeCreationRetourFournisseur,
     cleIdempotence: string,
   ): Promise<ResultatIdempotent<ResultatCreationMouvement & ReponseMemorisable>> {
-    return this.creerMouvementSortie(ctx, 'retour_fournisseur', articleId, entree.siteId, entree.quantiteMillieme, false, {
+    return this.creerMouvementSortie(ctx, role, 'retour_fournisseur', articleId, entree.siteId, entree.quantiteMillieme, false, {
       motif: entree.motif,
       commandeFournisseurLigneId: entree.commandeFournisseurLigneId ?? null,
       chemin: '/articles/{id}/mouvements/retour-fournisseur',
@@ -162,6 +171,7 @@ export class ServiceMouvement {
 
   async transfert(
     ctx: ContexteTenant,
+    role: RoleUtilisateur,
     articleId: string,
     entree: EntreeCreationMouvementTransfert,
     cleIdempotence: string,
@@ -188,13 +198,14 @@ export class ServiceMouvement {
         };
         const [ligne] = await tx.insert(mouvementStock).values(valeurs).returning();
         if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du mouvement de transfert.');
-        return { statutHttp: 201, corps: versMouvementResponse(ligne) };
+        return { statutHttp: 201, corps: versMouvementResponse(ligne, role) };
       },
     );
   }
 
   async ajustementInventaire(
     ctx: ContexteTenant,
+    role: RoleUtilisateur,
     articleId: string,
     entree: EntreeCreationAjustementInventaire,
     cleIdempotence: string,
@@ -238,13 +249,14 @@ export class ServiceMouvement {
           }
         }
 
-        return { statutHttp: 201, corps: collecteur.envelopper(versMouvementResponse(ligne)) };
+        return { statutHttp: 201, corps: collecteur.envelopper(versMouvementResponse(ligne, role)) };
       },
     );
   }
 
   private async creerMouvementSortie(
     ctx: ContexteTenant,
+    role: RoleUtilisateur,
     type: 'casse' | 'perte' | 'retour_fournisseur',
     articleId: string,
     siteId: string,
@@ -280,7 +292,7 @@ export class ServiceMouvement {
         };
         const [ligne] = await tx.insert(mouvementStock).values(valeurs).returning();
         if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du mouvement de stock.');
-        return { statutHttp: 201, corps: versMouvementResponse(ligne) };
+        return { statutHttp: 201, corps: versMouvementResponse(ligne, role) };
       },
     );
   }

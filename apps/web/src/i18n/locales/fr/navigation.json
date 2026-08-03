@@ -12,10 +12,15 @@
     "parametrageReferentiels": "Tarifs & prestations",
     "parametrageAtelier": "Paramètres atelier",
     "parametrageSites": "Sites",
-    "parametrageFacturation": "Coordonnées bancaires"
+    "parametrageFacturation": "Coordonnées bancaires",
+    "piecesRechercheComptoir": "Recherche comptoir",
+    "piecesArticles": "Articles",
+    "piecesReservations": "Réservations",
+    "piecesReapprovisionnement": "Réapprovisionnement"
   },
   "groupes": {
-    "parametrage": "Paramétrage"
+    "parametrage": "Paramétrage",
+    "pieces": "Pièces"
   },
   "menu": {
     "ouvrir": "Ouvrir le menu"

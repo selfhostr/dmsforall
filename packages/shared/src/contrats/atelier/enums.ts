@@ -466,11 +466,28 @@ export type StatutPretCourtoisie = (typeof STATUTS_PRET_COURTOISIE)[number];
  * Miroir exact de l'enum Postgres `entite_auditee`, dans l'ordre de sa création : les neuf
  * premières valeurs posées par `db/migrations/0003_prealables_etape1.sql` §3 (lot 1 — atelier),
  * les six ajoutées par `alter type ... add value` dans `db/migrations/0010_facturation.sql` §2
- * (étape 2 — facturation, AC-25), et `periode_pointage` ajoutée par
- * `db/migrations/0030_pointage.sql` (lot 2 — pointage). Cette déclaration est la SEULE source de
- * vérité côté TypeScript : `apps/api/src/common/audit/audit.types.ts` la réexporte plutôt que de
- * la redéclarer, précisément pour rendre impossible la divergence qui existait avant (deux
- * miroirs de ce même enum, l'un à 9 valeurs et l'autre à 15).
+ * (étape 2 — facturation, AC-25), `tenant_bloc_creancier` par `0016_audit_tenant_bloc_creancier.sql`,
+ * les quatre du module pièces — `article` (`0022_pieces_referentiel.sql`), `commande_fournisseur`
+ * (`0023_pieces_entite_auditee_commande_fournisseur.sql`), `mouvement_stock`
+ * (`0025_pieces_stock_mouvements.sql`), `consigne_echange_standard` (`0027_pieces_consigne.sql`)
+ * — étape 3, `periode_pointage` ajoutée par `db/migrations/0030_pointage.sql` (lot 2 — pointage),
+ * les quatre du module ventes — `vehicule_stock`, `dossier_vente`, `reprise`, `financement_vente`
+ * (`0031_ventes_entite_auditee.sql`) — et `vehicule_travail_reporte` ajoutée par
+ * `db/migrations/0033_vehicule_travail_reporte_motif_modification.sql`. Cette déclaration est la
+ * SEULE source de vérité côté TypeScript : `apps/api/src/common/audit/audit.types.ts` la
+ * réexporte plutôt que de la redéclarer, précisément pour rendre impossible la divergence qui
+ * existait avant (deux miroirs de ce même enum, l'un à 9 valeurs et l'autre à 15).
+ *
+ * ATTENTION, DIVERGENCE MESURÉE ET CORRIGÉE ICI (pas seulement `vehicule_travail_reporte`, la
+ * seule annoncée) : `article`, `commande_fournisseur`, `mouvement_stock` et
+ * `consigne_echange_standard` — les quatre valeurs posées par le module pièces (étape 3) —
+ * n'avaient JAMAIS été reportées ici. Vérifié par comparaison exhaustive avec
+ * `grep -rl "alter type public.entite_auditee add value" db/migrations` : cette liste et le
+ * résultat de cette commande coïncident maintenant terme à terme, dans les deux sens.
+ * `reservation_piece` (`0026_pieces_reservation.sql`) N'EST PAS une omission : ce module a
+ * explicitement choisi de ne PAS ajouter de valeur `entite_auditee` (sa propre machine à états
+ * `reservation_piece_transition()` porte son propre code d'erreur, voir 0026 §"PAS D'AUDIT") —
+ * ne l'ajoute pas ici sous prétexte de complétude.
  *
  * `periode_pointage` — PAS `pointage` : `pointage` (déjà présent depuis 0003) audite chaque
  * pointage individuel (démarrage, arrêt, correction, verrouillage EN LOT via le passage de statut
@@ -498,11 +515,16 @@ export const ENTITES_AUDITEES = [
   'export_comptable',
   'mapping_compte',
   'tenant_bloc_creancier',
+  'article',
+  'commande_fournisseur',
+  'mouvement_stock',
+  'consigne_echange_standard',
   'periode_pointage',
   'vehicule_stock',
   'dossier_vente',
   'reprise',
   'financement_vente',
+  'vehicule_travail_reporte',
 ] as const;
 export type EntiteAuditee = (typeof ENTITES_AUDITEES)[number];
 

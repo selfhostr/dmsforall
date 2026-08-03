@@ -20,10 +20,12 @@ import { FacturationModule } from './facturation/facturation.module';
 import { ImpressionModule } from './facturation/impression/impression.module';
 import { ParametrageModule } from './parametrage/parametrage.module';
 import { PiecesModule } from './pieces/pieces.module';
+import { PointageModule } from './pointage/pointage.module';
 import { RechercheModule } from './recherche/recherche.module';
 import { SanteModule } from './sante';
 import { SocleModule } from './socle';
 import { VehiculesModule } from './vehicules/vehicules.module';
+import { VentesModule } from './ventes/ventes.module';
 
 @Module({})
 export class AppModule implements NestModule {
@@ -48,6 +50,14 @@ export class AppModule implements NestModule {
         RechercheModule,
         AtelierModule,
         PiecesModule,
+        // `PointageModule` livré, non enregistré jusqu'ici (lot 2) — enregistré par l'orchestrateur
+        // au nom de l'agent `pointage/`, qui n'a pas accès à ce fichier. Après `AtelierModule` :
+        // `PointageModule` ne dépend pas d'`AtelierModule` (voir sa tête de fichier, aucune
+        // dépendance de compilation entre modules d'experts parallèles), mais le câblage du port
+        // `JETON_LECTURE_POINTAGE` (`atelier.module.ts`, `useExisting: ServiceLecturePointage`)
+        // reste à poser par un correctif distinct — voir la consigne transmise avec ce module.
+        PointageModule,
+        VentesModule,
         FacturationModule,
         // `ImpressionModule` (GET /documents-vente/{id}/pdf) importe `FacturationModule` lui-même
         // (pour `ServiceDocumentsVente`, exporté) plutôt que l'inverse — `FacturationModule` important

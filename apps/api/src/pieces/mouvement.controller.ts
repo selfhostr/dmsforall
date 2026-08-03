@@ -53,7 +53,8 @@ export class MouvementController {
     @Query(new PipeZod(schemaFiltresMouvementsStock)) query: FiltresMouvementsStock,
   ): Promise<PageMouvementStockDto> {
     const ctx = this.contexte.contexteTenant();
-    return this.service.lister(ctx, articleId, query);
+    const { role } = this.contexte.exigerPrincipal();
+    return this.service.lister(ctx, role, articleId, query);
   }
 
   @Post(':articleId/mouvements/casse')
@@ -75,7 +76,8 @@ export class MouvementController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
-    const resultat = await this.service.casse(ctx, articleId, entree, cleIdempotence ?? '');
+    const { role } = this.contexte.exigerPrincipal();
+    const resultat = await this.service.casse(ctx, role, articleId, entree, cleIdempotence ?? '');
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
     return resultat.reponse.corps;
@@ -100,7 +102,8 @@ export class MouvementController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
-    const resultat = await this.service.perte(ctx, articleId, entree, cleIdempotence ?? '');
+    const { role } = this.contexte.exigerPrincipal();
+    const resultat = await this.service.perte(ctx, role, articleId, entree, cleIdempotence ?? '');
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
     return resultat.reponse.corps;
@@ -125,7 +128,8 @@ export class MouvementController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
-    const resultat = await this.service.transfert(ctx, articleId, entree, cleIdempotence ?? '');
+    const { role } = this.contexte.exigerPrincipal();
+    const resultat = await this.service.transfert(ctx, role, articleId, entree, cleIdempotence ?? '');
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
     return resultat.reponse.corps;
@@ -153,7 +157,8 @@ export class MouvementController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
-    const resultat = await this.service.ajustementInventaire(ctx, articleId, entree, cleIdempotence ?? '');
+    const { role } = this.contexte.exigerPrincipal();
+    const resultat = await this.service.ajustementInventaire(ctx, role, articleId, entree, cleIdempotence ?? '');
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
     return resultat.reponse.corps;
@@ -178,7 +183,8 @@ export class MouvementController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
-    const resultat = await this.service.retourFournisseur(ctx, articleId, entree, cleIdempotence ?? '');
+    const { role } = this.contexte.exigerPrincipal();
+    const resultat = await this.service.retourFournisseur(ctx, role, articleId, entree, cleIdempotence ?? '');
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
     return resultat.reponse.corps;

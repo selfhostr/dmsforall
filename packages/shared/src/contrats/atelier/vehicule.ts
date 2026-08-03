@@ -222,6 +222,16 @@ export interface ReponseTravailReporte {
   readonly ordreReparationOrigineId: string | null;
   readonly ligneOrOrigineId: string | null;
   readonly ordreReparationRepriseId: string | null;
+  /**
+   * Raison d'une correction ou d'un abandon ULTÉRIEUR du travail (colonne `motif_modification`,
+   * migration 0033) — DISTINCTE de `motif_refus` (raison du refus initial au devis, non exposée
+   * par cette interface). Toujours présent (jamais filtré par rôle, à la différence de
+   * `montantEstimeCentimes`) : ce n'est pas un montant, et c'est l'information que le
+   * réceptionnaire vient relire au retour du véhicule — la masquer à un rôle qui voit déjà le
+   * reste du travail reporté (désignation, statut, urgence) n'aurait aucun fondement dans la
+   * matrice de droits existante (`ROLES_SANS_MONTANT` ne porte que sur les montants).
+   */
+  readonly motifModification: string | null;
 }
 
 /* ------------------------------------------------------------------ */

@@ -135,7 +135,12 @@
     "VENTE_LIVRAISON_INCOMPLETE": "Alle Auslieferungsdokumente müssen vollständig sein.",
     "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE": "Dieses Verkaufsdossier kann in diesem Status nicht storniert werden.",
     "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE": "Der vereinbarte Wert der Inzahlungnahme muss angegeben werden.",
-    "VENTE_REPRISE_DEJA_EXISTANTE": "Für dieses Verkaufsdossier existiert bereits eine Inzahlungnahme."
+    "VENTE_REPRISE_DEJA_EXISTANTE": "Für dieses Verkaufsdossier existiert bereits eine Inzahlungnahme.",
+    "CONNECTEUR_TYPE_INDISPONIBLE": "Schnittstellen-Typ nicht verfügbar.",
+    "CONNECTEUR_IDENTIFIANTS_MANQUANTS": "Anmeldedaten der Schnittstelle fehlen.",
+    "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE": "Aktivierung der Schnittstelle nicht möglich.",
+    "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE": "Verwendung der Schnittstelle nicht möglich.",
+    "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE": "Webhook-Abonnement in nicht kompatiblem Zustand."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Nachtragsofferte erstellen",

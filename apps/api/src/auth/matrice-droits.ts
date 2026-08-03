@@ -276,6 +276,63 @@ export const TOUTES_ACTIONS = [
   'pieces.reservation.lire',
   'pieces.reservation.satisfaire',
   'pieces.reservation.liberer',
+  // ---- Pièces, second relais (étape 3, fournisseurs/commandes/consignes/paramétrage) — transmis
+  // par l'orchestrateur au nom de l'agent qui a complété le module Pièces (périmètre disjoint, sans
+  // accès à ce fichier). Voir `DROITS_PIECES_PAR_ROLE` ci-dessous pour le détail rôle par rôle.
+  'pieces.fournisseur.lire',
+  'pieces.fournisseur.creer',
+  'pieces.fournisseur.modifier',
+  'pieces.commande_fournisseur.lire',
+  'pieces.commande_fournisseur.creer',
+  'pieces.commande_fournisseur.reception',
+  'pieces.consigne.lire',
+  'pieces.consigne.retourner',
+  'pieces.parametrage.lire',
+  'pieces.parametrage.modifier',
+  // ---- Ventes VN/VO (étape 4, RV-01→RV-62) — bloc ADDITIF PUR, calé sur la matrice §11 de
+  // docs/specification-etape-4-ventes.md (4 colonnes SEULEMENT : vendeur, direction, comptable,
+  // receptionnaire — chef_atelier/technicien/magasinier/admin n'y apparaissent dans AUCUNE
+  // colonne). Voir `DROITS_VENTES_PAR_ROLE` ci-dessous pour le détail rôle par rôle, les 9 lignes
+  // littérales de §11, et les écarts INFÉRÉS documentés (dont deux `[À VALIDER, QV-15/QV-16]`
+  // explicites côté spécification, traités en position CONSERVATRICE — refusés plutôt qu'accordés
+  // par optimisme).
+  'ventes.vehicule_stock.lire',
+  'ventes.vehicule_stock.creer',
+  'ventes.vehicule_stock.modifier',
+  'ventes.vehicule_stock.corriger',
+  'ventes.dossier.lire',
+  'ventes.dossier.creer',
+  'ventes.dossier.modifier',
+  'ventes.dossier.engager',
+  'ventes.dossier.preparer',
+  'ventes.dossier.marquer_pret_a_livrer',
+  'ventes.dossier.livrer',
+  'ventes.dossier.cloturer',
+  'ventes.dossier.annuler',
+  'ventes.dossier.abandonner',
+  'ventes.reprise.lire',
+  'ventes.reprise.creer',
+  'ventes.reprise.modifier',
+  'ventes.reprise.negocier',
+  'ventes.reprise.confirmer',
+  'ventes.reprise.refuser',
+  'ventes.financement.lire',
+  'ventes.financement.creer',
+  'ventes.financement.confirmer',
+  'ventes.financement.refuser',
+  // ---- Pointage (lot 2, RM-87→RM-99, RM-113→RM-123) — bloc ADDITIF PUR, transmis par
+  // l'orchestrateur au nom de l'agent `pointage/` (périmètre disjoint, sans accès à ce fichier).
+  // Voir `DROITS_POINTAGE_PAR_ROLE` ci-dessous. Trois actions citées par la spécification
+  // (`lire_equipe`, `lire_indicateurs`, `corriger_soi_meme`) sont VOLONTAIREMENT absentes : aucune
+  // route livrée ne les consomme encore — les ajouter maintenant créerait des actions inertes que
+  // le test structurel de couverture (`toutes-les-actions-couvertes.spec.ts`) obligerait à faire
+  // vivre artificiellement. Elles viendront avec leur implémentation.
+  'atelier.pointage.demarrer',
+  'atelier.pointage.arreter',
+  'atelier.pointage.lire',
+  'atelier.pointage.corriger_autrui',
+  'atelier.pointage.verrouiller_periode',
+  'atelier.pointage.deverrouiller_periode',
 ] as const;
 
 /**
@@ -929,12 +986,61 @@ const SATISFACTION_RESERVATION_PIECES: readonly Action[] = ['pieces.reservation.
 /** §11 ligne « Libérer une réservation active » : direction, chef_atelier, magasinier. */
 const LIBERATION_RESERVATION_PIECES: readonly Action[] = ['pieces.reservation.liberer'];
 
+// ---- Pièces, second relais (fournisseurs, commandes fournisseur, consignes, paramétrage) --------
+// Transmis par l'orchestrateur pour le compte de l'agent qui a complété le module Pièces, même
+// patron additif que le reste de ce fichier. `admin: []` reconduit SANS EXCEPTION (RF-115, déjà
+// littéral sur TOUTE la matrice §11 pièces — voir la note de tête de section ci-dessus) : le stock
+// (fournisseurs, commandes, consignes) porte une valeur financière (COGS, valorisation
+// d'inventaire) au même titre que les articles déjà tranchés `admin: []`. Ce traitement DIFFÈRE
+// délibérément de `atelier.pointage.*` (bloc suivant, `admin` y reçoit les 6 actions) : le pointage
+// enregistre du TEMPS de travail, pas une valeur monétaire — pas une incohérence, une distinction
+// cohérente avec la lecture stricte de RF-115 (« aucun droit FINANCIER ») déjà appliquée ailleurs
+// dans ce fichier (le bloc créancier et l'export fiduciaire, par exemple, sont eux aussi `admin: []`
+// alors que `parametrage.atelier.modifier`/`parametrage.referentiel.modifier` ne le sont pas — la
+// même nature de geste peut recevoir un traitement différent selon qu'il touche ou non à l'argent).
+const LECTURE_FOURNISSEUR_PIECES: readonly Action[] = ['pieces.fournisseur.lire'];
+const ECRITURE_FOURNISSEUR_PIECES: readonly Action[] = ['pieces.fournisseur.creer', 'pieces.fournisseur.modifier'];
+const LECTURE_COMMANDE_FOURNISSEUR_PIECES: readonly Action[] = ['pieces.commande_fournisseur.lire'];
+const ECRITURE_COMMANDE_FOURNISSEUR_PIECES: readonly Action[] = ['pieces.commande_fournisseur.creer'];
+/** Couvre aussi l'annulation de reliquat (note de l'agent, pas une seconde action distincte). */
+const RECEPTION_COMMANDE_FOURNISSEUR_PIECES: readonly Action[] = ['pieces.commande_fournisseur.reception'];
+const LECTURE_CONSIGNE_PIECES: readonly Action[] = ['pieces.consigne.lire'];
+const RETOUR_CONSIGNE_PIECES: readonly Action[] = ['pieces.consigne.retourner'];
+const LECTURE_PARAMETRAGE_PIECES: readonly Action[] = ['pieces.parametrage.lire'];
+const ECRITURE_PARAMETRAGE_PIECES: readonly Action[] = ['pieces.parametrage.modifier'];
+
 const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
-  direction: [...LECTURE_PIECES, ...ECRITURE_ARTICLE_PIECES, ...ECRITURE_STOCK_SITE_PIECES, ...LIBERATION_RESERVATION_PIECES],
-  comptable: [...LECTURE_PIECES],
+  direction: [
+    ...LECTURE_PIECES,
+    ...ECRITURE_ARTICLE_PIECES,
+    ...ECRITURE_STOCK_SITE_PIECES,
+    ...LIBERATION_RESERVATION_PIECES,
+    ...LECTURE_FOURNISSEUR_PIECES,
+    ...ECRITURE_FOURNISSEUR_PIECES,
+    ...LECTURE_COMMANDE_FOURNISSEUR_PIECES,
+    ...ECRITURE_COMMANDE_FOURNISSEUR_PIECES,
+    ...LECTURE_CONSIGNE_PIECES,
+    ...LECTURE_PARAMETRAGE_PIECES,
+    ...ECRITURE_PARAMETRAGE_PIECES,
+  ],
+  // Consigne : une consigne d'échange standard jamais rendue est une créance qui dort — donnée
+  // financière, INFÉRÉ par l'agent qui a livré ce bloc (pas une ligne littérale de la matrice §11).
+  comptable: [...LECTURE_PIECES, ...LECTURE_CONSIGNE_PIECES],
   vendeur: [...LECTURE_PIECES],
   receptionnaire: [...LECTURE_PIECES],
-  chef_atelier: [...LECTURE_PIECES, ...ECRITURE_ARTICLE_PIECES, ...ECRITURE_STOCK_SITE_PIECES, ...LIBERATION_RESERVATION_PIECES],
+  chef_atelier: [
+    ...LECTURE_PIECES,
+    ...ECRITURE_ARTICLE_PIECES,
+    ...ECRITURE_STOCK_SITE_PIECES,
+    ...LIBERATION_RESERVATION_PIECES,
+    ...LECTURE_FOURNISSEUR_PIECES,
+    ...ECRITURE_FOURNISSEUR_PIECES,
+    ...LECTURE_COMMANDE_FOURNISSEUR_PIECES,
+    ...ECRITURE_COMMANDE_FOURNISSEUR_PIECES,
+    ...LECTURE_CONSIGNE_PIECES,
+    ...LECTURE_PARAMETRAGE_PIECES,
+    ...ECRITURE_PARAMETRAGE_PIECES,
+  ],
   magasinier: [
     ...LECTURE_PIECES,
     ...ECRITURE_ARTICLE_PIECES,
@@ -942,11 +1048,232 @@ const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
     ...ECRITURE_MOUVEMENT_PIECES,
     ...SATISFACTION_RESERVATION_PIECES,
     ...LIBERATION_RESERVATION_PIECES,
+    ...LECTURE_FOURNISSEUR_PIECES,
+    ...ECRITURE_FOURNISSEUR_PIECES,
+    ...LECTURE_COMMANDE_FOURNISSEUR_PIECES,
+    ...ECRITURE_COMMANDE_FOURNISSEUR_PIECES,
+    ...RECEPTION_COMMANDE_FOURNISSEUR_PIECES,
+    ...LECTURE_CONSIGNE_PIECES,
+    ...RETOUR_CONSIGNE_PIECES,
+    // Exécute la politique de stock, ne la fixe pas : lecture seule du paramétrage.
+    ...LECTURE_PARAMETRAGE_PIECES,
   ],
   technicien: [...LECTURE_PIECES],
   // RF-115, littéral sur TOUTE la matrice §11 (y compris la lecture) — voir la note de tête de
   // section. `[]` VOLONTAIREMENT, jamais à combler par copier-coller de `direction`.
   admin: [],
+};
+
+// =================================================================================================
+// Ventes VN/VO (étape 4) : bloc ADDITIF PUR, calé sur la matrice §11 de
+// docs/specification-etape-4-ventes.md — même patron que les blocs facturation/pièces ci-dessus
+// (rôles listés EXPLICITEMENT par domaine, jamais composés depuis `DROITS_RECEPTIONNAIRE`/
+// `DROITS_CHEF_ATELIER`/`DROITS_DIRECTION` : §11 ne couvre QUE 4 des 8 rôles — vendeur, direction,
+// comptable, receptionnaire — et ne suit ni la hiérarchie chef_atelier ⊇ receptionnaire ni la
+// doctrine « admin = superset de direction » de l'étape 1).
+//
+// §11 EST LITTÉRAL SUR 9 LIGNES SEULEMENT (`docs/specification-etape-4-ventes.md`, lignes 720-730) :
+//   1. Créer/modifier un dossier de vente en `prospection`         → vendeur, direction
+//   2. Faire signer un bon de commande                              → vendeur, direction
+//   3. Saisir une estimation/valeur de reprise négociée              → vendeur, direction
+//   4. Voir la marge d'un véhicule en stock (RV-06)         [À VALIDER, QV-15 pour vendeur] → direction, comptable
+//   5. Émettre la facture de vente               → vendeur, direction, comptable (DÉJÀ couvert par
+//      `EMISSION_FACTURE` du bloc RF-114 ci-dessus — cette ligne confirme, n'ajoute aucune action)
+//   6. Émettre un avoir sur une facture de vente  → direction, comptable, PAS vendeur (idem, déjà
+//      couvert par `EMISSION_AVOIR` — confirme l'absence de `vendeur` dans ce bloc, pas ajouté ici)
+//   7. Confirmer un financement/leasing                     → vendeur, direction, comptable
+//   8. Enregistrer la livraison (changement de détention)   → vendeur, direction ; receptionnaire
+//      « possible selon organisation » [À VALIDER, QV-16]
+//   9. Modifier le prix d'achat/frais de remise en état     [À VALIDER, QV-15 pour vendeur] → direction
+//
+// DEUX LIGNES « [À VALIDER] » CÔTÉ SPEC (QV-15 : marge/prix d'achat visibles/modifiables par
+// `vendeur` ? ; QV-16 : `receptionnaire` peut-il enregistrer une livraison ?) — traitées ici en
+// position CONSERVATRICE, REFUSÉES plutôt qu'accordées par optimisme : `vendeur` ne reçoit AUCUNE
+// action d'ÉCRITURE sur `vehicule_stock` (seulement `ventes.vehicule_stock.lire` — le champ
+// `prixAchatCentimes` du contrat gelé `contrats/ventes/vehicule-stock.ts::ReponseVehiculeStock`
+// est de toute façon `number` non-nullable, PAS `number | null` comme `pieces/article.ts` — le
+// contrat gelé ne permet même pas de MASQUER ce champ par rôle, seulement de refuser l'ÉCRITURE ;
+// masquer la lecture demanderait de rouvrir ce contrat, hors périmètre de cet agent) ;
+// `receptionnaire` ne reçoit PAS `ventes.dossier.livrer`. **À CONFIRMER AVEC @laupernoe** — voir le
+// rapport de livraison.
+//
+// ACTIONS ABSENTES DE §11, INFÉRÉES (le cycle de vie complet du dossier — `preparer`,
+// `marquer_pret_a_livrer`, `cloturer`, `annuler`, `abandonner` ; la création/le refus de
+// financement ; la lecture de chaque sous-domaine ; la correction exceptionnelle
+// `remettre-disponible` de `vehicule_stock`) : §11 ne prétend documenter que 9 gestes emblématiques,
+// pas l'intégralité de la machine à états gelée (`enums.ts::ACTIONS_DOSSIER_VENTE` compte 10
+// verbes, `ACTIONS_REPRISE` 4, `ACTIONS_FINANCEMENT` 2). Chaque inférence suit le même principe que
+// le reste de ce fichier : le rôle qui « signe le bon de commande » (`vendeur`, ligne 2) est celui
+// qui pilote le dossier de bout en bout — il reçoit donc le cycle de vie complet du dossier —, et
+// la correction exceptionnelle de `vehicule_stock` (`remettre-disponible`, motif obligatoire, même
+// doctrine que `vehicule.detention.corriger`) reste réservée à `direction` seule.
+//
+// RF-115 REPRIS ICI, décision de CE bloc (pas une ligne littérale de §11, qui ne mentionne même
+// pas `admin`) : `admin` reçoit `[]` sur TOUT le domaine ventes, y compris la simple lecture — même
+// palier que le domaine pièces (étape 3) et le domaine financier de la facturation (étape 2). Un
+// dossier de vente porte un prix de véhicule, une valeur de reprise négociée, un financement — au
+// moins aussi engageant financièrement que les domaines déjà tranchés `admin: []`. **DÉCISION DE
+// CET AGENT, pas une ligne §11** : à confirmer avec @laupernoe au même titre que QV-15/QV-16 — voir le
+// rapport de livraison. Ne JAMAIS combler par copier-coller de `direction`.
+//
+// `chef_atelier` reçoit une lecture MINIMALE (`vehicule_stock.lire`, `dossier.lire`) — INFÉRÉE,
+// coordination opérationnelle de la préparation d'une VO (remise en état, § « chef d'atelier
+// arbitre les gestes commerciaux », doctrine déjà posée à l'étape 1) — PAS `reprise.lire` ni
+// `financement.lire` (détail financier sans besoin opérationnel identifié). `technicien` et
+// `magasinier` ne sont acteurs d'AUCUNE ligne de §11 : `[]`.
+
+/** §11 ligne 4 (comptable/direction), + `vehicule_stock.lire` étendu à tous les acteurs du domaine
+ *  pour ne pas bloquer la lecture de la fiche à laquelle un dossier de vente s'accroche. */
+const LECTURE_VEHICULE_STOCK: readonly Action[] = ['ventes.vehicule_stock.lire'];
+
+/** Écriture `vehicule_stock` (mise en stock, PATCH, réception) : §11 ligne 9 ne donne l'écriture
+ *  qu'à `direction` (`vendeur` `[À VALIDER, QV-15]`, traité `non` en attendant). */
+const ECRITURE_VEHICULE_STOCK: readonly Action[] = ['ventes.vehicule_stock.creer', 'ventes.vehicule_stock.modifier'];
+
+/** Correction exceptionnelle (`remettre-disponible`, motif obligatoire) — INFÉRÉE, réservée à
+ *  `direction` seule, même doctrine que `vehicule.detention.corriger` (étape 1). */
+const CORRECTION_VEHICULE_STOCK: readonly Action[] = ['ventes.vehicule_stock.corriger'];
+
+const LECTURE_DOSSIER_VENTE: readonly Action[] = ['ventes.dossier.lire'];
+
+/** §11 lignes 1/2 : créer/modifier un dossier en `prospection`, faire signer le bon de commande
+ *  (`engager`) — `vendeur`, `direction`. Étendu (INFÉRÉ) au reste du cycle de vie du dossier :
+ *  `preparer`, `marquer_pret_a_livrer`, `cloturer`, `annuler`, `abandonner` — voir la note de tête
+ *  de section. `livrer` séparé ci-dessous (§11 ligne 8, receptionnaire `[À VALIDER, QV-16]`). */
+const ECRITURE_DOSSIER_VENTE_HORS_LIVRAISON: readonly Action[] = [
+  'ventes.dossier.creer',
+  'ventes.dossier.modifier',
+  'ventes.dossier.engager',
+  'ventes.dossier.preparer',
+  'ventes.dossier.marquer_pret_a_livrer',
+  'ventes.dossier.cloturer',
+  'ventes.dossier.annuler',
+  'ventes.dossier.abandonner',
+];
+
+/** §11 ligne 8 : `vendeur`, `direction`. `receptionnaire` « possible selon organisation »
+ *  `[À VALIDER, QV-16]` — EXCLU ici, position conservatrice (voir note de tête de section). */
+const LIVRAISON_DOSSIER_VENTE: readonly Action[] = ['ventes.dossier.livrer'];
+
+const LECTURE_REPRISE: readonly Action[] = ['ventes.reprise.lire'];
+
+/** §11 ligne 3 : `vendeur`, `direction` — création de l'estimation, modification, négociation. */
+const ECRITURE_REPRISE_NEGOCIATION: readonly Action[] = ['ventes.reprise.creer', 'ventes.reprise.modifier', 'ventes.reprise.negocier'];
+
+/** INFÉRÉ — le refus (le client garde son véhicule) suit le même périmètre que la négociation :
+ *  c'est une décision commerciale courante, pas une correction exceptionnelle. */
+const REFUS_REPRISE: readonly Action[] = ['ventes.reprise.refuser'];
+
+/** INFÉRÉ — `confirmer` est NORMALEMENT un effet de bord de `dossier.engager` (RV-19/RV-27) ;
+ *  l'appel DIRECT n'existe que pour la correction exceptionnelle (dossier orphelin,
+ *  resynchronisation, motif obligatoire) — réservé à `direction` seule, même doctrine que
+ *  `ventes.vehicule_stock.corriger`. */
+const CONFIRMATION_REPRISE: readonly Action[] = ['ventes.reprise.confirmer'];
+
+const LECTURE_FINANCEMENT: readonly Action[] = ['ventes.financement.lire'];
+
+/** §11 ligne 7 : `vendeur`, `direction`, `comptable` — confirmer un financement/leasing. Étendu
+ *  (INFÉRÉ) à la création de la proposition de financement et à son refus direct (flip-side de la
+ *  confirmation, §7.3 : un refus fait revenir le dossier « en attente d'un nouveau mode de
+ *  financement », c'est un événement courant du parcours de vente, pas une correction). */
+const ECRITURE_FINANCEMENT: readonly Action[] = ['ventes.financement.creer', 'ventes.financement.confirmer', 'ventes.financement.refuser'];
+
+const DROITS_VENTES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  direction: [
+    ...LECTURE_VEHICULE_STOCK,
+    ...ECRITURE_VEHICULE_STOCK,
+    ...CORRECTION_VEHICULE_STOCK,
+    ...LECTURE_DOSSIER_VENTE,
+    ...ECRITURE_DOSSIER_VENTE_HORS_LIVRAISON,
+    ...LIVRAISON_DOSSIER_VENTE,
+    ...LECTURE_REPRISE,
+    ...ECRITURE_REPRISE_NEGOCIATION,
+    ...REFUS_REPRISE,
+    ...CONFIRMATION_REPRISE,
+    ...LECTURE_FINANCEMENT,
+    ...ECRITURE_FINANCEMENT,
+  ],
+  comptable: [...LECTURE_VEHICULE_STOCK, ...LECTURE_DOSSIER_VENTE, ...LECTURE_REPRISE, ...LECTURE_FINANCEMENT, 'ventes.financement.confirmer', 'ventes.financement.refuser'],
+  vendeur: [
+    ...LECTURE_VEHICULE_STOCK,
+    ...LECTURE_DOSSIER_VENTE,
+    ...ECRITURE_DOSSIER_VENTE_HORS_LIVRAISON,
+    ...LIVRAISON_DOSSIER_VENTE,
+    ...LECTURE_REPRISE,
+    ...ECRITURE_REPRISE_NEGOCIATION,
+    ...REFUS_REPRISE,
+    ...LECTURE_FINANCEMENT,
+    ...ECRITURE_FINANCEMENT,
+  ],
+  receptionnaire: [...LECTURE_VEHICULE_STOCK, ...LECTURE_DOSSIER_VENTE, ...LECTURE_REPRISE, ...LECTURE_FINANCEMENT],
+  chef_atelier: [...LECTURE_VEHICULE_STOCK, ...LECTURE_DOSSIER_VENTE],
+  technicien: [],
+  magasinier: [],
+  // RF-115, appliqué ICI par décision de cet agent (§11 ne mentionne pas admin) — voir la note de
+  // tête de section : `[]` VOLONTAIREMENT, jamais à combler par copier-coller de `direction`.
+  admin: [],
+};
+
+// =================================================================================================
+// Pointage (lot 2) : bloc ADDITIF PUR transmis par l'orchestrateur pour le compte de l'agent
+// `pointage/` — même patron que les blocs précédents. Table proposée : `chef_atelier`/`direction`/
+// `admin` reçoivent les 6 actions ; `technicien`/`magasinier` reçoivent `demarrer`/`arreter`/`lire`
+// (ce sont eux qui pointent) ; `comptable` reçoit la gouvernance de période ; `receptionnaire`/
+// `vendeur` aucune (le pointage n'est pas leur outil).
+//
+// `admin` REÇOIT LES 6 — décision reprise TELLE QUELLE, vérifiée COHÉRENTE avec la doctrine de ce
+// fichier : `RF-115` (« admin n'a AUCUN droit financier ») ne s'applique qu'aux blocs qui
+// manipulent de l'argent (paiements, documents de vente, créancier QR, export fiduciaire, PLUS,
+// décision de CET agent, le domaine ventes ci-dessus) — le pointage enregistre du TEMPS de travail,
+// pas un montant. `admin` reste ici le rôle technique/propriétaire du tenant, superset de
+// `direction`, doctrine de tête de fichier (lot 1) : cohérent avec `parametrage.atelier.modifier`/
+// `parametrage.referentiel.modifier`, qui donnent eux aussi l'écriture à `admin` sans réserve
+// RF-115. Aucune raison de traiter le pointage plus durement que le paramétrage atelier.
+//
+// `deverrouiller_periode` — DÉVIATION DÉLIBÉRÉE de la table transmise (qui l'accordait à
+// `comptable`, par symétrie avec `verrouiller`) : CE FICHIER PORTE DÉJÀ UN PRÉCÉDENT EXPLICITE pour
+// ce genre d'asymétrie « fermer / rouvrir » — `INFERE_OR_ROUVRIR` (`atelier.or.rouvrir`, T-15) est
+// réservé à `chef_atelier`/`direction` SEULS, alors que la fermeture symétrique (`atelier.or.
+// terminer`) est accordée à `receptionnaire` en plus. Justification alors posée, littéralement :
+// « rouvrir un OR terminé défait un travail technique déjà clos, décision d'atelier, pas de
+// comptoir ». Déverrouiller une période de pointage rouvre des heures de travail déjà figées pour
+// correction — structurellement la MÊME asymétrie (défaire une clôture est plus engageant que la
+// poser), donc suit le MÊME précédent : `verrouiller_periode` reste accordé à `comptable` (geste de
+// clôture, symétrique de `atelier.or.terminer`/`atelier.or.cloturer` accordés largement) ;
+// `deverrouiller_periode` est réservé à `direction`/`admin` SEULS, PAS `comptable` — à confirmer
+// avec @laupernoe si la spécification tranche un jour ce point autrement (signalé, voir rapport de
+// livraison), mais le précédent du fichier va dans ce sens sans ambiguïté.
+const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  chef_atelier: [
+    'atelier.pointage.demarrer',
+    'atelier.pointage.arreter',
+    'atelier.pointage.lire',
+    'atelier.pointage.corriger_autrui',
+    'atelier.pointage.verrouiller_periode',
+    'atelier.pointage.deverrouiller_periode',
+  ],
+  direction: [
+    'atelier.pointage.demarrer',
+    'atelier.pointage.arreter',
+    'atelier.pointage.lire',
+    'atelier.pointage.corriger_autrui',
+    'atelier.pointage.verrouiller_periode',
+    'atelier.pointage.deverrouiller_periode',
+  ],
+  admin: [
+    'atelier.pointage.demarrer',
+    'atelier.pointage.arreter',
+    'atelier.pointage.lire',
+    'atelier.pointage.corriger_autrui',
+    'atelier.pointage.verrouiller_periode',
+    'atelier.pointage.deverrouiller_periode',
+  ],
+  technicien: ['atelier.pointage.demarrer', 'atelier.pointage.arreter', 'atelier.pointage.lire'],
+  magasinier: ['atelier.pointage.demarrer', 'atelier.pointage.arreter', 'atelier.pointage.lire'],
+  // DÉVIATION documentée ci-dessus : verrouiller (clôture) seulement, pas déverrouiller (réouverture).
+  comptable: ['atelier.pointage.verrouiller_periode'],
+  receptionnaire: [],
+  vendeur: [],
 };
 
 export const MATRICE_DROITS = {
@@ -958,6 +1285,8 @@ export const MATRICE_DROITS = {
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.admin,
     ...DROITS_IMPRESSION_PAR_ROLE.admin,
     ...DROITS_PIECES_PAR_ROLE.admin,
+    ...DROITS_VENTES_PAR_ROLE.admin,
+    ...DROITS_POINTAGE_PAR_ROLE.admin,
   ],
   direction: [
     ...DROITS_DIRECTION,
@@ -967,6 +1296,8 @@ export const MATRICE_DROITS = {
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.direction,
     ...DROITS_IMPRESSION_PAR_ROLE.direction,
     ...DROITS_PIECES_PAR_ROLE.direction,
+    ...DROITS_VENTES_PAR_ROLE.direction,
+    ...DROITS_POINTAGE_PAR_ROLE.direction,
   ],
   vendeur: [
     ...DROITS_VENDEUR,
@@ -976,6 +1307,8 @@ export const MATRICE_DROITS = {
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.vendeur,
     ...DROITS_IMPRESSION_PAR_ROLE.vendeur,
     ...DROITS_PIECES_PAR_ROLE.vendeur,
+    ...DROITS_VENTES_PAR_ROLE.vendeur,
+    ...DROITS_POINTAGE_PAR_ROLE.vendeur,
   ],
   receptionnaire: [
     ...DROITS_RECEPTIONNAIRE,
@@ -985,6 +1318,8 @@ export const MATRICE_DROITS = {
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.receptionnaire,
     ...DROITS_IMPRESSION_PAR_ROLE.receptionnaire,
     ...DROITS_PIECES_PAR_ROLE.receptionnaire,
+    ...DROITS_VENTES_PAR_ROLE.receptionnaire,
+    ...DROITS_POINTAGE_PAR_ROLE.receptionnaire,
   ],
   chef_atelier: [
     ...DROITS_CHEF_ATELIER,
@@ -994,6 +1329,8 @@ export const MATRICE_DROITS = {
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.chef_atelier,
     ...DROITS_IMPRESSION_PAR_ROLE.chef_atelier,
     ...DROITS_PIECES_PAR_ROLE.chef_atelier,
+    ...DROITS_VENTES_PAR_ROLE.chef_atelier,
+    ...DROITS_POINTAGE_PAR_ROLE.chef_atelier,
   ],
   technicien: [
     ...DROITS_TECHNICIEN,
@@ -1003,6 +1340,8 @@ export const MATRICE_DROITS = {
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.technicien,
     ...DROITS_IMPRESSION_PAR_ROLE.technicien,
     ...DROITS_PIECES_PAR_ROLE.technicien,
+    ...DROITS_VENTES_PAR_ROLE.technicien,
+    ...DROITS_POINTAGE_PAR_ROLE.technicien,
   ],
   magasinier: [
     ...DROITS_MAGASINIER,
@@ -1012,6 +1351,8 @@ export const MATRICE_DROITS = {
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.magasinier,
     ...DROITS_IMPRESSION_PAR_ROLE.magasinier,
     ...DROITS_PIECES_PAR_ROLE.magasinier,
+    ...DROITS_VENTES_PAR_ROLE.magasinier,
+    ...DROITS_POINTAGE_PAR_ROLE.magasinier,
   ],
   comptable: [
     ...DROITS_COMPTABLE,
@@ -1021,6 +1362,8 @@ export const MATRICE_DROITS = {
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.comptable,
     ...DROITS_IMPRESSION_PAR_ROLE.comptable,
     ...DROITS_PIECES_PAR_ROLE.comptable,
+    ...DROITS_VENTES_PAR_ROLE.comptable,
+    ...DROITS_POINTAGE_PAR_ROLE.comptable,
   ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 

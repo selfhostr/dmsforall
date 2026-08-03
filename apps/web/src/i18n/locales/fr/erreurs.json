@@ -135,7 +135,12 @@
     "VENTE_LIVRAISON_INCOMPLETE": "Tous les documents de livraison doivent être complétés.",
     "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE": "Ce dossier de vente ne peut pas être annulé dans cet état.",
     "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE": "La valeur négociée de la reprise doit être indiquée.",
-    "VENTE_REPRISE_DEJA_EXISTANTE": "Une reprise existe déjà pour ce dossier de vente."
+    "VENTE_REPRISE_DEJA_EXISTANTE": "Une reprise existe déjà pour ce dossier de vente.",
+    "CONNECTEUR_TYPE_INDISPONIBLE": "Type de connecteur indisponible.",
+    "CONNECTEUR_IDENTIFIANTS_MANQUANTS": "Identifiants du connecteur manquants.",
+    "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE": "Activation du connecteur impossible.",
+    "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE": "Utilisation du connecteur impossible.",
+    "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE": "Abonnement webhook dans un état incompatible."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Créer un devis complémentaire",

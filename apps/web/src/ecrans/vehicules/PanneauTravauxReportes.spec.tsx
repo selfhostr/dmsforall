@@ -36,6 +36,8 @@ const TRAVAIL_OUVERT: ReponseTravailReporte = {
   ordreReparationOrigineId: null,
   ligneOrOrigineId: null,
   ordreReparationRepriseId: null,
+  // Jamais de motif de clôture sur un travail encore OUVERT (pas encore clos/abandonné).
+  motifModification: null,
 };
 
 const TRAVAIL_REPRIS: ReponseTravailReporte = {
@@ -50,6 +52,7 @@ const TRAVAIL_REPRIS: ReponseTravailReporte = {
   ordreReparationOrigineId: null,
   ligneOrOrigineId: null,
   ordreReparationRepriseId: 'or-9',
+  motifModification: 'Le client a accepté le devis au comptoir.',
 };
 
 function installerSession(role: (typeof SESSION_TEST)['utilisateur']['role'] = 'chef_atelier') {
@@ -147,6 +150,23 @@ describe('PanneauTravauxReportes', () => {
     expect(screen.getByText('Plaquettes de frein avant')).toBeInTheDocument();
   });
 
+  it('affiche `motifModification` sur un travail déjà REPRIS, jamais sur un travail OUVERT (trou n°3 comblé)', async () => {
+    installerSession();
+    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT, TRAVAIL_REPRIS])));
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    await screen.findByText('Plaquettes de frein avant');
+    await utilisateur.click(screen.getByRole('tab', { name: /Tous/ }));
+    await screen.findByText('Amortisseur arrière gauche');
+
+    // Le travail REPRIS porte un motif : affiché.
+    expect(screen.getByText('Le client a accepté le devis au comptoir.')).toBeInTheDocument();
+    // `TRAVAIL_OUVERT.motifModification` est `null` : le libellé « Motif : » n'apparaît nulle
+    // part associé à sa ligne — un seul motif au total sur la page (celui du travail REPRIS).
+    expect(screen.getAllByText('Motif :')).toHaveLength(1);
+  });
+
   it('corrige la désignation, l’urgence et le montant d’un travail reporté', async () => {
     installerSession();
     server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])));
@@ -224,6 +244,50 @@ describe('PanneauTravauxReportes', () => {
     await utilisateur.click(within(dialogue).getByRole('button', { name: 'Abandonner' }));
 
     await waitFor(() => expect(corpsRecu).toEqual({ statut: 'abandonne' }));
+  });
+
+  it('envoie le motif saisi au moment d’abandonner un travail (facultatif, transmis quand renseigné)', async () => {
+    installerSession();
+    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])));
+    let corpsRecu: unknown;
+    server.use(
+      http.patch('/api/v1/vehicules/v1/travaux-reportes/t1', async ({ request }) => {
+        corpsRecu = await request.json();
+        return HttpResponse.json({ ...TRAVAIL_OUVERT, statut: 'abandonne', motifModification: 'Parti à la concurrence.' });
+      }),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    await utilisateur.click(await screen.findByRole('button', { name: 'Abandonner' }));
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.type(within(dialogue).getByLabelText('Motif (facultatif)'), 'Parti à la concurrence.');
+    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Abandonner' }));
+
+    await waitFor(() => expect(corpsRecu).toEqual({ statut: 'abandonne', motif: 'Parti à la concurrence.' }));
+  });
+
+  it('refuse un motif trop court (moins de 3 caractères) SANS envoyer la requête, dialogue laissé ouvert', async () => {
+    installerSession();
+    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])));
+    let appele = false;
+    server.use(
+      http.patch('/api/v1/vehicules/v1/travaux-reportes/t1', () => {
+        appele = true;
+        return HttpResponse.json({ ...TRAVAIL_OUVERT, statut: 'abandonne' });
+      }),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    await utilisateur.click(await screen.findByRole('button', { name: 'Abandonner' }));
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.type(within(dialogue).getByLabelText('Motif (facultatif)'), 'x');
+    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Abandonner' }));
+
+    expect(await within(dialogue).findByText('Le motif doit compter au moins 3 caractères s\'il est renseigné.')).toBeInTheDocument();
+    expect(appele).toBe(false);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('affiche une erreur actionnable si la modification échoue (ex. droit retiré entre-temps)', async () => {

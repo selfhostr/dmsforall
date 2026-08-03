@@ -1,10 +1,10 @@
-import { Building2, Car, Copy, Home, Landmark, Receipt, Search, Tag, Users, Wrench } from 'lucide-react';
+import { Bookmark, Boxes, Building2, Car, Copy, Home, Landmark, PackageSearch, Receipt, RefreshCw, Search, Tag, Users, Wrench } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, useSearchParams } from 'react-router';
 
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
-import { ROLES_MENU_FINANCIER, ROLES_MENU_PARAMETRAGE_ATELIER } from '@/routes/droits-routes';
+import { ROLES_MENU_FINANCIER, ROLES_MENU_PARAMETRAGE_ATELIER, ROLES_PIECES } from '@/routes/droits-routes';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -64,6 +64,11 @@ export function BarreLaterale({ className }: Props) {
   const peutGererParametrageAtelier = role !== undefined && ROLES_MENU_PARAMETRAGE_ATELIER.includes(role);
   const peutGererCreancier = role !== undefined && ROLES_MENU_FINANCIER.includes(role);
   const afficheGroupeParametrage = peutGererParametrageAtelier || peutGererCreancier;
+  // Module pièces (étape 3) — masquage qui reflète une restriction RÉELLE côté API
+  // (`DROITS_PIECES_PAR_ROLE.admin = []`, RF-115), contrairement au groupe « Paramétrage »
+  // ci-dessus : `ROLES_PIECES` est la même liste que celle qui protège les routes
+  // (`routeur.tsx`), pas une liste séparée inventée pour le menu.
+  const peutAccederPieces = role !== undefined && ROLES_PIECES.includes(role);
 
   return (
     <nav aria-label={t('navigation:principale.aria')} className={cn('flex flex-col gap-1 p-3', className)}>
@@ -95,6 +100,30 @@ export function BarreLaterale({ className }: Props) {
         <Tag className="h-4 w-4" aria-hidden="true" />
         {t('navigation:liens.parametrageReferentiels')}
       </NavLink>
+
+      {peutAccederPieces ? (
+        <>
+          <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {t('navigation:groupes.pieces')}
+          </p>
+          <NavLink to={chemins.pieces.rechercheComptoir(site)} className={classeLien}>
+            <PackageSearch className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.piecesRechercheComptoir')}
+          </NavLink>
+          <NavLink to={chemins.pieces.articles(site)} className={classeLien}>
+            <Boxes className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.piecesArticles')}
+          </NavLink>
+          <NavLink to={chemins.pieces.reservations(site)} className={classeLien}>
+            <Bookmark className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.piecesReservations')}
+          </NavLink>
+          <NavLink to={chemins.pieces.reapprovisionnement(site)} className={classeLien}>
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.piecesReapprovisionnement')}
+          </NavLink>
+        </>
+      ) : null}
 
       {afficheGroupeParametrage ? (
         <>

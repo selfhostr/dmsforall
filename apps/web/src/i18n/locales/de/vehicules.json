@@ -161,7 +161,13 @@
       "reprendreDescription": "Der Kunde hat dieser Arbeit zugestimmt: Sie erscheint nicht mehr unter den vorzuschlagenden Arbeiten.",
       "abandonnerTitre": "Diese zurückgestellte Arbeit verwerfen?",
       "abandonnerDescription": "Der Kunde hat diese Arbeit abgelehnt. Sie erscheint nicht mehr unter den vorzuschlagenden Arbeiten, bleibt aber im Verlauf einsehbar.",
-      "erreurValidation": "Bezeichnung und Priorität prüfen."
+      "erreurValidation": "Bezeichnung und Priorität prüfen.",
+      "motifLabel": "Grund (fakultativ)",
+      "motifPlaceholder": "Z. B.: Der Kunde hat diese Arbeit auf die nächste Kontrolle verschoben.",
+      "erreurValidationMotif": "Der Grund muss, falls angegeben, mindestens 3 Zeichen umfassen."
+    },
+    "motifModification": {
+      "libelle": "Grund:"
     },
     "vide": {
       "aucun": "Keine zurückgestellte Arbeit für dieses Fahrzeug.",

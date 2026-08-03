@@ -3,21 +3,32 @@ import type {
   LigneReapprovisionnement,
   ReponseArticle,
   ReponseArticleReference,
+  ReponseCommandeFournisseur,
+  ReponseConsigneEchangeStandard,
   ReponseDisponibiliteArticle,
+  ReponseFournisseur,
+  ReponseLigneCommandeFournisseur,
   ReponseMouvementStock,
+  ReponseParametresPieces,
   ReponseReservationPiece,
   ReponseStockArticle,
   ReservationActiveResume,
   ResultatRechercheComptoirArticle,
   StockResumeArticle,
 } from '@dfa/shared';
+import { SEUIL_LIGNES_EMBARQUEES_COMMANDE_FOURNISSEUR } from '@dfa/shared';
 import type { RoleUtilisateur } from '@dfa/shared';
 
 import { enDate } from '../db';
 import type {
   LigneArticle,
   LigneArticleReference,
+  LigneCommandeFournisseur,
+  LigneCommandeFournisseurLigne,
+  LigneConsigneEchangeStandard,
+  LigneFournisseur,
   LigneMouvementStock,
+  LigneParametrePieces,
   LigneReservationPiece,
   LigneStockArticle,
 } from '../db/schema';
@@ -172,7 +183,18 @@ export function versAvertissementReservationIndisponible(
   return { articleId, siteId, reservationsActives };
 }
 
-export function versMouvementResponse(ligne: LigneMouvementStock): ReponseMouvementStock {
+/**
+ * `role` masque `prixAchatReelCentimes` selon `ROLES_SANS_PRIX_ACHAT_PIECES` — MÊME mécanisme,
+ * MÊME table de rôles que `versArticleResponse` (RF-116, §11 de la spec). Corrigé suite à l'audit
+ * sécurité de livraison : avant ce correctif, `GET /articles/{id}/mouvements` (droit
+ * `pieces.stock.lire`, accordé à TOUS les rôles opérationnels) exposait le prix d'achat réel d'un
+ * mouvement `entree_livraison` sans aucun filtrage — inoffensif tant qu'aucune action ne créait ce
+ * type de mouvement (le seul champ jamais renseigné en pratique, `mouvement_stock_prix_reel_type_chk`
+ * de 0025), mais devenu exploitable dès que `ServiceCommandeFournisseur.reception` (ce lot) se met à
+ * en créer. Un seul mécanisme de masquage dans tout le domaine pièces, jamais deux.
+ */
+export function versMouvementResponse(ligne: LigneMouvementStock, role: RoleUtilisateur): ReponseMouvementStock {
+  const masquerPrixAchat = ROLES_SANS_PRIX_ACHAT_PIECES.includes(role);
   return {
     id: ligne.id,
     articleId: ligne.articleId,
@@ -181,7 +203,7 @@ export function versMouvementResponse(ligne: LigneMouvementStock): ReponseMouvem
     siteId: ligne.siteId,
     siteSourceId: ligne.siteSourceId,
     siteDestinationId: ligne.siteDestinationId,
-    prixAchatReelCentimes: ligne.prixAchatReelCentimes,
+    prixAchatReelCentimes: masquerPrixAchat ? null : ligne.prixAchatReelCentimes,
     auteurId: ligne.auteurId,
     motif: ligne.motif,
     ligneOrId: ligne.ligneOrId,
@@ -241,5 +263,116 @@ export function versLigneReapprovisionnement(donnees: {
   return {
     ...donnees,
     ecartMillieme: donnees.stockMinimumMillieme - donnees.quantiteDisponibleMillieme,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Fournisseur (RP-26, §1)                                             */
+/* ------------------------------------------------------------------ */
+
+export function versFournisseurResponse(ligne: LigneFournisseur): ReponseFournisseur {
+  return {
+    id: ligne.id,
+    nom: ligne.nom,
+    email: ligne.email,
+    telephone: ligne.telephone,
+    delaiHabituelJours: ligne.delaiHabituelJours,
+    statut: ligne.statut,
+    creeLe: enDate(ligne.creeLe).toISOString(),
+    modifieLe: enDate(ligne.modifieLe).toISOString(),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Commande fournisseur (RP-26 → RP-31, §6.2)                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * `quantiteReliquatMillieme` est une colonne GÉNÉRÉE côté base (migration 0024, non modélisée par
+ * Drizzle — voir `db/schema/pieces/commande-fournisseur.ts`, en-tête) : recalculée ICI à
+ * l'identique de la formule SQL pour ne jamais dépendre d'une seconde lecture. Réutilisée par
+ * `ServiceCommandeFournisseur` pour ses propres décisions de machine à états (§6.2) — UNE SEULE
+ * formule, jamais dupliquée entre le mapper et le service.
+ */
+export function calculerReliquatMillieme(
+  ligne: Pick<LigneCommandeFournisseurLigne, 'quantiteCommandeeMillieme' | 'quantiteRecueCumuleeMillieme' | 'reliquatAnnuleLe'>,
+): number {
+  if (ligne.reliquatAnnuleLe !== null) return 0;
+  return Math.max(0, ligne.quantiteCommandeeMillieme - ligne.quantiteRecueCumuleeMillieme);
+}
+
+export function versLigneCommandeFournisseurResponse(ligne: LigneCommandeFournisseurLigne): ReponseLigneCommandeFournisseur {
+  return {
+    id: ligne.id,
+    commandeFournisseurId: ligne.commandeFournisseurId,
+    numeroOrdre: ligne.numeroOrdre,
+    articleId: ligne.articleId,
+    quantiteCommandeeMillieme: ligne.quantiteCommandeeMillieme,
+    quantiteRecueCumuleeMillieme: ligne.quantiteRecueCumuleeMillieme,
+    quantiteReliquatMillieme: calculerReliquatMillieme(ligne),
+    reliquatAnnuleLe: ligne.reliquatAnnuleLe ? enDate(ligne.reliquatAnnuleLe).toISOString() : null,
+    reliquatMotifAnnulation: ligne.reliquatMotifAnnulation,
+    prixAchatAttenduCentimes: ligne.prixAchatAttenduCentimes,
+    ligneOrOrigineId: ligne.ligneOrOrigineId,
+  };
+}
+
+export function versCommandeFournisseurResponse(
+  commande: LigneCommandeFournisseur,
+  lignesToutes: readonly LigneCommandeFournisseurLigne[],
+): ReponseCommandeFournisseur {
+  const lignesTronquees = lignesToutes.length > SEUIL_LIGNES_EMBARQUEES_COMMANDE_FOURNISSEUR;
+  const lignes = lignesToutes.slice(0, SEUIL_LIGNES_EMBARQUEES_COMMANDE_FOURNISSEUR).map(versLigneCommandeFournisseurResponse);
+  return {
+    id: commande.id,
+    fournisseurId: commande.fournisseurId,
+    siteId: commande.siteId,
+    statut: commande.statut,
+    origine: commande.origine,
+    dateCommande: typeof commande.dateCommande === 'string' ? commande.dateCommande : enDate(commande.dateCommande).toISOString().slice(0, 10),
+    envoyeeLe: commande.envoyeeLe ? enDate(commande.envoyeeLe).toISOString() : null,
+    reference: commande.reference,
+    lignes,
+    lignesTronquees,
+    creeLe: enDate(commande.creeLe).toISOString(),
+    modifieLe: enDate(commande.modifieLe).toISOString(),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Consigne d'échange standard (RP-37 → RP-42, §6.4)                   */
+/* ------------------------------------------------------------------ */
+
+export function versConsigneResponse(ligne: LigneConsigneEchangeStandard): ReponseConsigneEchangeStandard {
+  return {
+    id: ligne.id,
+    ligneOrId: ligne.ligneOrId,
+    ordreReparationId: ligne.ordreReparationId,
+    articleId: ligne.articleId,
+    siteId: ligne.siteId,
+    statut: ligne.statut,
+    montantConsigneTtcCentimes: ligne.montantConsigneTtcCentimes,
+    documentVenteLigneConsigneId: ligne.documentVenteLigneConsigneId,
+    mouvementEntreeId: ligne.mouvementEntreeId,
+    retourneeFournisseurLe: ligne.retourneeFournisseurLe ? enDate(ligne.retourneeFournisseurLe).toISOString() : null,
+    mouvementRetourId: ligne.mouvementRetourId,
+    avoirDocumentId: ligne.avoirDocumentId,
+    creeLe: enDate(ligne.creeLe).toISOString(),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Paramétrage pièces (§10, PP-01 → PP-08)                             */
+/* ------------------------------------------------------------------ */
+
+export function versParametresPiecesResponse(ligne: LigneParametrePieces): ReponseParametresPieces {
+  return {
+    stockAutresSitesVisible: ligne.stockAutresSitesVisible,
+    stockNegatifForcageAutorise: ligne.stockNegatifForcageAutorise,
+    methodePrixAchat: ligne.methodePrixAchat,
+    conditionnementArticleDistinct: true,
+    seuilValeurAjustementSignificatifCentimes: ligne.seuilValeurAjustementSignificatifCentimes,
+    delaiConsigneAcquisitionJours: ligne.delaiConsigneAcquisitionJours,
+    tauxTvaConsignePourmille: ligne.tauxTvaConsignePourmille,
   };
 }

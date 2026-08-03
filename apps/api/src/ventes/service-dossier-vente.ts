@@ -1,0 +1,660 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { and, eq, isNull, sql } from 'drizzle-orm';
+import type {
+  EntreeActionAbandonnerDossierVente,
+  EntreeActionAnnulerDossierVente,
+  EntreeActionCloturerDossierVente,
+  EntreeActionEngager,
+  EntreeActionLivrer,
+  EntreeActionMarquerPretALivrer,
+  EntreeActionPreparer,
+  EntreeCreationDossierVente,
+  EntreeMarquerDocumentRequis,
+  EntreeModificationDossierVente,
+  FiltresDossiersVente,
+  FinancementResume,
+  PageCurseur,
+  ProvenanceVehiculeStock,
+  ReponseAvecAvertissements,
+  ReponseDossierVente,
+  RepriseResume,
+  RoleUtilisateur,
+  VehiculeStockResume,
+} from '@dfa/shared';
+
+import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
+import { documentVente, dossierVente, dossierVenteDocumentRequis, reprise, vehiculeDetention, vehiculeStock, type LigneDossierVente, type LigneReprise, type LigneVehiculeStock } from '../db/schema';
+import {
+  chargerClientLigne,
+  chargerPlaqueCourante,
+  chargerResumeUtilisateur,
+  chargerVehiculeLigne,
+  construireVehiculeResume,
+  versClientResume,
+} from '../atelier/references';
+import { CollecteurAvertissements } from '../common/avertissements';
+import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
+import { JETON_AUDIT, type ServiceAudit } from '../common/audit';
+import { ErreurMetier } from '../common/erreurs/erreur-metier';
+import { Horloge } from '../common/horloge/horloge';
+import { JETON_IDEMPOTENCE, type ReponseMemorisable, type ResultatIdempotent, type ServiceIdempotence } from '../common/idempotence';
+
+import {
+  calculerTypeVehicule,
+  selectionnerFinancementCourant,
+  versDocumentRequisResponse,
+  versDocumentVenteResume,
+  versDossierVenteResponse,
+  versFinancementResume,
+  versRepriseResponse,
+  versRepriseResume,
+} from './mappers';
+import {
+  construireConditionKeyset,
+  construireOrderBy,
+  decoderCurseurPourTri,
+  encoderCurseurTrie,
+  expressionTriValeur,
+  valeurCurseurDepuisTri,
+  type DefinitionTri,
+} from './pagination-triee';
+import {
+  chargerDossierVente,
+  chargerDossierVentePourEcriture,
+  chargerRepriseParDossierOuNull,
+  chargerRepriseParDossierPourEcriture,
+  chargerVehiculeStock,
+  chargerVehiculeStockOuNull,
+  chargerVehiculeStockPourEcriture,
+  listerDocumentsDossierBrut,
+  listerDocumentsRequis,
+  listerFinancementsDossier,
+  SEUIL_DOCUMENTS_DOSSIER,
+} from './references';
+import { extraireVersionETag } from './service-vehicule-stock';
+import { traduireErreurTransitionVente } from './traducteur-transition-ventes';
+
+const DEFINITIONS_TRI_DOSSIERS_VENTE: Readonly<Record<FiltresDossiersVente['tri'], DefinitionTri>> = {
+  'prospectionLe:desc': { expression: sql`dv.cree_le`, sens: 'desc', nullable: false, temporel: true },
+  'prospectionLe:asc': { expression: sql`dv.cree_le`, sens: 'asc', nullable: false, temporel: true },
+  // `date_livraison_estimee` est une colonne `date` (pas `timestamptz`) : pas de perte de
+  // microseconde possible, `temporel` n'est pas nécessaire.
+  'dateLivraisonEstimee:asc': { expression: sql`dv.date_livraison_estimee`, sens: 'asc', nullable: true },
+  'dateLivraisonEstimee:desc': { expression: sql`dv.date_livraison_estimee`, sens: 'desc', nullable: true },
+};
+
+/**
+ * Le dossier de vente (RV-29→RV-38, RV-52→RV-58, §6.2) — objet CENTRAL du module. Priorité 2.
+ *
+ * SIMPLIFICATIONS SIGNALÉES (pas silencieuses) :
+ *  - `marquer-pret-a-livrer` ne vérifie PAS l'expertise MFK (RV-56/CV-07, `vehicule_expertise` de
+ *    l'atelier) ni la check-list `documentsRequis` autrement qu'en lecture — aucun paramètre tenant
+ *    (`PV-03`) n'existe encore pour piloter ces gardes, `contrats/ventes/index.ts` le signale déjà
+ *    comme un gap connu de CE lot ;
+ *  - `livrer` NE POSE PAS le début de garantie constructeur (RV-54, aucune colonne identifiée sur
+ *    `vehicule` pour ce lot) ni la mise en stock automatique du véhicule repris (RV-24, détenteur
+ *    cible `[À VALIDER, QV-01]`) ni l'enregistrement du kilométrage de départ dans
+ *    `vehicule_kilometrage` (aucune valeur d'enum `source` connue pour « vente ») — trois effets
+ *    de bord documentés par le contrat, hors de portée sûre de cet agent tant que ces questions ne
+ *    sont pas tranchées ;
+ *  - `documents-requis/marquer` est UPDATE-ONLY : `schemaMarquerDocumentRequis` ne porte pas de
+ *    `libelle`, impossible de CRÉER un item sans texte d'affichage tant que `PV-03` n'existe pas.
+ */
+@Injectable()
+export class ServiceDossierVente {
+  constructor(
+    @Inject(JETON_DB) private readonly acces: AccesBase,
+    @Inject(JETON_IDEMPOTENCE) private readonly idempotence: ServiceIdempotence,
+    @Inject(JETON_AUDIT) private readonly audit: ServiceAudit,
+    private readonly horloge: Horloge,
+  ) {}
+
+  /** `POST /dossiers-vente` — `Idempotency-Key` obligatoire. `statut` initial toujours `prospection`. */
+  async creer(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    entree: EntreeCreationDossierVente,
+    cleIdempotence: string,
+  ): Promise<ResultatIdempotent<ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseDossierVente> }>> {
+    return this.idempotence.executer(
+      ctx,
+      { methode: 'POST', chemin: '/dossiers-vente', cle: cleIdempotence, corps: entree },
+      async (tx) => {
+        await chargerClientLigne(tx, ctx, entree.clientAcheteurId);
+        if (entree.clientFactureId) await chargerClientLigne(tx, ctx, entree.clientFactureId);
+        if (entree.clientConducteurId) await chargerClientLigne(tx, ctx, entree.clientConducteurId);
+        if (entree.vehiculeId) await chargerVehiculeStock(tx, ctx, entree.vehiculeId);
+
+        const [ligne] = await tx
+          .insert(dossierVente)
+          .values({
+            tenantId: ctx.tenantId,
+            siteId: entree.siteId,
+            statut: 'prospection',
+            vehiculeId: entree.vehiculeId ?? null,
+            clientAcheteurId: entree.clientAcheteurId,
+            clientFactureId: entree.clientFactureId ?? null,
+            clientConducteurId: entree.clientConducteurId ?? null,
+            dateLivraisonEstimee: entree.dateLivraisonEstimee ?? null,
+          })
+          .returning();
+        if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', "La création du dossier de vente n'a rendu aucune ligne.");
+
+        const document = await this.assembler(tx, ctx, principal.role, ligne);
+        return { statutHttp: 201, corps: new CollecteurAvertissements().envelopper(document) };
+      },
+    );
+  }
+
+  async obtenirComplet(ctx: ContexteTenant, role: RoleUtilisateur, dossierVenteId: string): Promise<ReponseDossierVente> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const ligne = await chargerDossierVente(tx, ctx, dossierVenteId);
+      return this.assembler(tx, ctx, role, ligne);
+    });
+  }
+
+  /** `PATCH /dossiers-vente/{id}` — `If-Match` obligatoire. Réassignation du véhicule refusée
+   *  (`409 VENTE_DOSSIER_TRANSITION_INTERDITE`) au-delà de `prospection` (RV-30). */
+  async modifier(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    dossierVenteId: string,
+    ifMatch: string | undefined,
+    entree: EntreeModificationDossierVente,
+  ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
+    const versionAttendue = extraireVersionETag(ifMatch);
+
+    return this.acces.enTenant(ctx, async (tx) => {
+      const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
+
+      if (versionAttendue !== ligne.version) {
+        throw new ErreurMetier('CONFLIT', 'La version du dossier de vente a changé depuis la dernière lecture.', {
+          detail: `version_attendue=${String(versionAttendue)};version_actuelle=${String(ligne.version)}`,
+          actionsProposees: [{ code: 'RAFRAICHIR' }],
+        });
+      }
+
+      const reassigneVehicule = entree.vehiculeId !== undefined && entree.vehiculeId !== ligne.vehiculeId;
+      if (reassigneVehicule && ligne.statut !== 'prospection') {
+        throw new ErreurMetier(
+          'VENTE_DOSSIER_TRANSITION_INTERDITE',
+          "Le véhicule associé ne peut plus être réassigné au-delà de l'état « prospection » (RV-30/RV-32).",
+        );
+      }
+      if (reassigneVehicule && entree.vehiculeId) {
+        await chargerVehiculeStock(tx, ctx, entree.vehiculeId);
+      }
+      if (entree.clientFactureId) await chargerClientLigne(tx, ctx, entree.clientFactureId);
+      if (entree.clientConducteurId) await chargerClientLigne(tx, ctx, entree.clientConducteurId);
+
+      await tx
+        .update(dossierVente)
+        .set({
+          ...(entree.clientFactureId !== undefined ? { clientFactureId: entree.clientFactureId ?? null } : {}),
+          ...(entree.clientConducteurId !== undefined ? { clientConducteurId: entree.clientConducteurId ?? null } : {}),
+          ...(reassigneVehicule ? { vehiculeId: entree.vehiculeId ?? null } : {}),
+          ...(entree.dateLivraisonEstimee !== undefined ? { dateLivraisonEstimee: entree.dateLivraisonEstimee ?? null } : {}),
+        })
+        .where(and(eq(dossierVente.tenantId, ctx.tenantId), eq(dossierVente.id, dossierVenteId)));
+
+      const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
+      const reponse = await this.assembler(tx, ctx, role, misAJour);
+      return new CollecteurAvertissements().envelopper(reponse);
+    });
+  }
+
+  /** `POST /dossiers-vente/{id}/documents-requis/marquer` — UPDATE-ONLY (voir tête de fichier). */
+  async marquerDocumentRequis(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    dossierVenteId: string,
+    entree: EntreeMarquerDocumentRequis,
+  ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      await chargerDossierVente(tx, ctx, dossierVenteId);
+      const maintenant = this.horloge.maintenant();
+
+      const misesAJour = await tx
+        .update(dossierVenteDocumentRequis)
+        .set({ fourni: entree.fourni, fourniLe: entree.fourni ? maintenant : null })
+        .where(
+          and(
+            eq(dossierVenteDocumentRequis.tenantId, ctx.tenantId),
+            eq(dossierVenteDocumentRequis.dossierVenteId, dossierVenteId),
+            eq(dossierVenteDocumentRequis.code, entree.code),
+          ),
+        )
+        .returning();
+      if (misesAJour.length === 0) {
+        throw new ErreurMetier(
+          'RESSOURCE_INTROUVABLE',
+          `Aucun document requis de code "${entree.code}" sur ce dossier (check-list non paramétrée, PV-03).`,
+        );
+      }
+
+      const ligne = await chargerDossierVente(tx, ctx, dossierVenteId);
+      const reponse = await this.assembler(tx, ctx, role, ligne);
+      return new CollecteurAvertissements().envelopper(reponse);
+    });
+  }
+
+  /** `GET /dossiers-vente` — collection paginée par curseur. */
+  async lister(ctx: ContexteTenant, role: RoleUtilisateur, filtres: FiltresDossiersVente): Promise<PageCurseur<ReponseDossierVente>> {
+    const definition = DEFINITIONS_TRI_DOSSIERS_VENTE[filtres.tri];
+    const idExpr = sql`dv.id`;
+    const curseurDecode = decoderCurseurPourTri(filtres.curseur, filtres.tri);
+
+    return this.acces.enTenant(ctx, async (tx) => {
+      const conditions = [sql`dv.tenant_id = ${ctx.tenantId}`];
+      if (filtres.siteId) conditions.push(sql`dv.site_id = ${filtres.siteId}`);
+      if (filtres.statut && filtres.statut.length > 0) {
+        conditions.push(sql`dv.statut::text in (${sql.join(filtres.statut.map((s) => sql`${s}`), sql`, `)})`);
+      }
+      if (filtres.clientAcheteurId) conditions.push(sql`dv.client_acheteur_id = ${filtres.clientAcheteurId}`);
+      if (filtres.vehiculeId) conditions.push(sql`dv.vehicule_id = ${filtres.vehiculeId}`);
+      if (curseurDecode) {
+        conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
+      }
+
+      const requete = sql`
+        select dv.id as "id", ${expressionTriValeur(definition)} as "triValeur"
+          from public.dossier_vente dv
+         where ${sql.join(conditions, sql` and `)}
+         order by ${construireOrderBy(definition, idExpr)}
+         limit ${filtres.limite + 1}
+      `;
+      const resultat = await tx.execute<{ id: string; triValeur: string | number | null }>(requete);
+      const lignes = resultat.rows;
+      const aUnePageSuivante = lignes.length > filtres.limite;
+      const pageLignes = aUnePageSuivante ? lignes.slice(0, filtres.limite) : lignes;
+      const derniere = pageLignes[pageLignes.length - 1];
+
+      const donnees = await Promise.all(
+        pageLignes.map(async (l) => {
+          const ligne = await chargerDossierVente(tx, ctx, l.id);
+          return this.assembler(tx, ctx, role, ligne);
+        }),
+      );
+
+      return {
+        donnees,
+        curseurSuivant:
+          aUnePageSuivante && derniere
+            ? encoderCurseurTrie({ tri: filtres.tri, valeur: valeurCurseurDepuisTri(definition, derniere.triValeur), id: derniere.id })
+            : null,
+        limite: filtres.limite,
+      };
+    });
+  }
+
+  // -----------------------------------------------------------------------------------------
+  // Transitions (§6.2)
+  // -----------------------------------------------------------------------------------------
+
+  /** `POST /dossiers-vente/{id}/engager` — `prospection -> engage` (RV-32). */
+  async engager(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    dossierVenteId: string,
+    entree: EntreeActionEngager,
+  ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
+
+      if (!ligne.vehiculeId) {
+        throw new ErreurMetier('VENTE_VEHICULE_MANQUANT', "Aucun véhicule associé à ce dossier — impossible d'engager (RV-30/RV-32).");
+      }
+      const vehiculeStockLigne = await chargerVehiculeStockPourEcriture(tx, ctx, ligne.vehiculeId);
+      if (vehiculeStockLigne.statutCommercial !== 'disponible' && vehiculeStockLigne.statutCommercial !== 'en_commande') {
+        throw new ErreurMetier(
+          'VENTE_VEHICULE_INDISPONIBLE',
+          `Le véhicule associé n'est plus disponible (statut actuel : ${vehiculeStockLigne.statutCommercial}) — un autre dossier l'a réservé entre-temps (CV-01).`,
+        );
+      }
+
+      const documentsExistants = await tx
+        .select({ id: documentVente.id })
+        .from(documentVente)
+        .where(and(eq(documentVente.tenantId, ctx.tenantId), eq(documentVente.id, entree.bonCommandeDocumentId)))
+        .limit(1);
+      if (documentsExistants.length === 0) {
+        throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Document ${entree.bonCommandeDocumentId} introuvable pour ce tenant.`);
+      }
+
+      const repriseLigne = await this.chargerRepriseOuNullPourEcriture(tx, ctx, dossierVenteId);
+      if (repriseLigne) {
+        if (repriseLigne.statut === 'estimee') {
+          throw new ErreurMetier(
+            'VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE',
+            'La reprise de ce dossier est encore au stade « estimée » — une valeur négociée est requise avant de signer (RV-27).',
+          );
+        }
+        if (repriseLigne.statut === 'negociee') {
+          await this.transitionnerReprise(tx, repriseLigne, { statut: 'confirmee', confirmeeLe: this.horloge.maintenant() });
+        }
+      }
+
+      const maintenant = this.horloge.maintenant();
+      await this.transitionnerVehiculeStock(tx, vehiculeStockLigne, { statutCommercial: 'reserve', reserveLe: maintenant });
+      await this.transitionnerDossier(tx, ligne, {
+        statut: 'engage',
+        engageLe: maintenant,
+        identitePieceType: entree.identitePieceType,
+        identiteVerifieeLe: maintenant,
+      });
+
+      const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
+      const reponse = await this.assembler(tx, ctx, role, misAJour);
+      return new CollecteurAvertissements().envelopper(reponse);
+    });
+  }
+
+  /** `POST /dossiers-vente/{id}/preparer` — `engage -> en_preparation`. */
+  async preparer(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    dossierVenteId: string,
+    _entree: EntreeActionPreparer,
+  ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
+      await this.transitionnerDossier(tx, ligne, { statut: 'en_preparation', enPreparationLe: this.horloge.maintenant() });
+      const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
+      const reponse = await this.assembler(tx, ctx, role, misAJour);
+      return new CollecteurAvertissements().envelopper(reponse);
+    });
+  }
+
+  /** `POST /dossiers-vente/{id}/marquer-pret-a-livrer` — `en_preparation -> pret_a_livrer`. */
+  async marquerPretALivrer(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    dossierVenteId: string,
+    _entree: EntreeActionMarquerPretALivrer,
+  ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
+
+      const financements = await listerFinancementsDossier(tx, ctx, dossierVenteId);
+      const courant = selectionnerFinancementCourant(financements);
+      if (!courant || courant.statut !== 'confirme') {
+        throw new ErreurMetier('VENTE_FINANCEMENT_NON_CONFIRME', "Le financement de ce dossier n'est pas confirmé (RV-37).");
+      }
+
+      await this.transitionnerDossier(tx, ligne, { statut: 'pret_a_livrer', pretALivrerLe: this.horloge.maintenant() });
+      const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
+      const reponse = await this.assembler(tx, ctx, role, misAJour);
+      return new CollecteurAvertissements().envelopper(reponse);
+    });
+  }
+
+  /** `POST /dossiers-vente/{id}/livrer` — `pret_a_livrer -> livre` (RV-52/RV-53). */
+  async livrer(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    dossierVenteId: string,
+    entree: EntreeActionLivrer,
+  ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
+      if (!ligne.vehiculeId) {
+        throw new ErreurMetier('VENTE_VEHICULE_MANQUANT', 'Aucun véhicule associé à ce dossier.');
+      }
+
+      // `vehicule_stock` passe `reserve -> vendu` à l'émission de la facture (facturation, hors
+      // périmètre de ce fichier) — ici, on exige que ce soit déjà fait avant de livrer.
+      const vehiculeStockLigne = await chargerVehiculeStockPourEcriture(tx, ctx, ligne.vehiculeId);
+      if (vehiculeStockLigne.statutCommercial !== 'vendu') {
+        throw new ErreurMetier(
+          'VENTE_VEHICULE_INDISPONIBLE',
+          `Livraison impossible : le véhicule n'est pas encore facturé (statut actuel : ${vehiculeStockLigne.statutCommercial}) — la facture doit être émise avant la livraison (RV-37).`,
+        );
+      }
+
+      const maintenant = this.horloge.maintenant();
+      await this.transitionnerVehiculeStock(tx, vehiculeStockLigne, { statutCommercial: 'livre', livreLe: maintenant });
+      await this.transitionnerDossier(tx, ligne, {
+        statut: 'livre',
+        livreLe: maintenant,
+        dateLivraisonEffective: entree.dateLivraisonEffective,
+      });
+
+      // RV-53/RV-57 : clôture de la détention côté garage/ancien propriétaire (motif `vente`),
+      // ouverture au nom du client conducteur — PAS de l'organisme de financement même en leasing
+      // (CV-08, RV-40 dernier paragraphe).
+      const nouveauDetenteurId = ligne.clientConducteurId ?? ligne.clientAcheteurId;
+      const [detentionOuverte] = await tx
+        .select({ id: vehiculeDetention.id })
+        .from(vehiculeDetention)
+        .where(and(eq(vehiculeDetention.tenantId, ctx.tenantId), eq(vehiculeDetention.vehiculeId, ligne.vehiculeId), isNull(vehiculeDetention.au)))
+        .limit(1);
+      if (detentionOuverte) {
+        await tx
+          .update(vehiculeDetention)
+          .set({ au: entree.dateLivraisonEffective, motifFin: 'vente' })
+          .where(and(eq(vehiculeDetention.tenantId, ctx.tenantId), eq(vehiculeDetention.id, detentionOuverte.id)));
+      }
+      await tx.insert(vehiculeDetention).values({
+        tenantId: ctx.tenantId,
+        vehiculeId: ligne.vehiculeId,
+        clientId: nouveauDetenteurId,
+        du: entree.dateLivraisonEffective,
+      });
+
+      const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
+      const reponse = await this.assembler(tx, ctx, role, misAJour);
+      return new CollecteurAvertissements().envelopper(reponse);
+    });
+  }
+
+  /** `POST /dossiers-vente/{id}/cloturer` — `livre -> clos`. */
+  async cloturer(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    dossierVenteId: string,
+    _entree: EntreeActionCloturerDossierVente,
+  ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
+      await this.transitionnerDossier(tx, ligne, { statut: 'clos', closLe: this.horloge.maintenant() });
+      const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
+      const reponse = await this.assembler(tx, ctx, role, misAJour);
+      return new CollecteurAvertissements().envelopper(reponse);
+    });
+  }
+
+  /** `POST /dossiers-vente/{id}/annuler` — depuis `prospection`/`engage`/`en_preparation` UNIQUEMENT
+   *  (RV-38, §6.2), motif obligatoire. */
+  async annuler(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    dossierVenteId: string,
+    entree: EntreeActionAnnulerDossierVente,
+  ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
+    return this.terminerSansLivraison(ctx, role, dossierVenteId, 'annule', entree.motif);
+  }
+
+  /** `POST /dossiers-vente/{id}/abandonner` — même garde que `annuler`, sémantique distincte
+   *  (rupture volontaire vs client qui ne répond plus). */
+  async abandonner(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    dossierVenteId: string,
+    entree: EntreeActionAbandonnerDossierVente,
+  ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
+    return this.terminerSansLivraison(ctx, role, dossierVenteId, 'abandonne', entree.motif);
+  }
+
+  private async terminerSansLivraison(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    dossierVenteId: string,
+    versStatut: 'annule' | 'abandonne',
+    motif: string,
+  ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
+
+      if (ligne.statut !== 'prospection' && ligne.statut !== 'engage' && ligne.statut !== 'en_preparation') {
+        throw new ErreurMetier(
+          'VENTE_DOSSIER_ANNULATION_IMPOSSIBLE',
+          `Ce dossier ne peut plus être annulé/abandonné depuis son état actuel (${ligne.statut}) — RV-38 verrouille toute correction dès la préparation dépassée.`,
+        );
+      }
+
+      const maintenant = this.horloge.maintenant();
+      await this.transitionnerDossier(tx, ligne, {
+        statut: versStatut,
+        ...(versStatut === 'annule' ? { annuleLe: maintenant } : { abandonneLe: maintenant }),
+        motifCloture: motif,
+      });
+
+      // CV-01 : un véhicule réservé le redevient disponible, jamais bloqué indéfiniment.
+      if (ligne.vehiculeId) {
+        const vehiculeStockLigne = await chargerVehiculeStockOuNull(tx, ctx, ligne.vehiculeId, true);
+        if (vehiculeStockLigne?.statutCommercial === 'reserve') {
+          await this.transitionnerVehiculeStock(tx, vehiculeStockLigne, { statutCommercial: 'disponible', dernierMotifTransition: motif });
+        }
+      }
+
+      const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
+      const reponse = await this.assembler(tx, ctx, role, misAJour);
+      return new CollecteurAvertissements().envelopper(reponse);
+    });
+  }
+
+  // -----------------------------------------------------------------------------------------
+  // Assemblage + primitives internes
+  // -----------------------------------------------------------------------------------------
+
+  private async assembler(tx: TransactionDfa, ctx: ContexteTenant, role: RoleUtilisateur, ligne: LigneDossierVente): Promise<ReponseDossierVente> {
+    const clientAcheteurLigne = await chargerClientLigne(tx, ctx, ligne.clientAcheteurId);
+    const clientAcheteur = await versClientResume(tx, ctx, clientAcheteurLigne);
+    const clientFactureLigne = ligne.clientFactureId ? await chargerClientLigne(tx, ctx, ligne.clientFactureId) : clientAcheteurLigne;
+    const clientFacture = ligne.clientFactureId ? await versClientResume(tx, ctx, clientFactureLigne) : clientAcheteur;
+    const clientConducteur = ligne.clientConducteurId
+      ? await versClientResume(tx, ctx, await chargerClientLigne(tx, ctx, ligne.clientConducteurId))
+      : null;
+
+    const { vehicule, typeVehicule } = await this.assemblerVehicule(tx, ctx, ligne.vehiculeId);
+    const repriseResume = await this.assemblerRepriseResume(tx, ctx, ligne.id);
+
+    const financementsLignes = await listerFinancementsDossier(tx, ctx, ligne.id);
+    const financementCourantLigne = selectionnerFinancementCourant(financementsLignes);
+    const financements: FinancementResume[] = [];
+    let financementCourant: FinancementResume | null = null;
+    for (const f of financementsLignes) {
+      // eslint-disable-next-line no-await-in-loop -- petit lot borné (SEUIL_FINANCEMENTS_EMBARQUES = 20)
+      const organisme = f.organismeId ? await versClientResume(tx, ctx, await chargerClientLigne(tx, ctx, f.organismeId)) : null;
+      const resume = versFinancementResume(f, organisme);
+      financements.push(resume);
+      if (financementCourantLigne && f.id === financementCourantLigne.id) financementCourant = resume;
+    }
+
+    const documentsBrut = await listerDocumentsDossierBrut(tx, ctx, ligne.id);
+    const documentsTronques = documentsBrut.length > SEUIL_DOCUMENTS_DOSSIER;
+    const documents = (documentsTronques ? documentsBrut.slice(0, SEUIL_DOCUMENTS_DOSSIER) : documentsBrut).map((d) => versDocumentVenteResume(d, role));
+
+    const documentsRequisLignes = await listerDocumentsRequis(tx, ctx, ligne.id);
+    const documentsRequis = documentsRequisLignes.map(versDocumentRequisResponse);
+
+    const journal = await this.audit.pourEntite(ctx, 'dossier_vente', ligne.id);
+    const modifiePar = await chargerResumeUtilisateur(tx, ctx, journal.at(-1)?.utilisateurId ?? null);
+
+    return versDossierVenteResponse({
+      ligne,
+      vehicule,
+      typeVehicule,
+      clientAcheteur,
+      clientFacture,
+      clientConducteur,
+      reprise: repriseResume,
+      financement: financementCourant,
+      financements,
+      // Contrat : « borné par SEUIL_FINANCEMENTS_EMBARQUES comme filet plutôt que par nécessité
+      // réelle » (un garage ne réessaie pas dix organismes) — jamais tronqué en pratique.
+      financementsTronques: false,
+      documents,
+      documentsTronques,
+      documentsRequis,
+      role,
+      modifiePar,
+    });
+  }
+
+  private async assemblerVehicule(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    vehiculeId: string | null,
+  ): Promise<{ vehicule: VehiculeStockResume | null; typeVehicule: ReponseDossierVente['typeVehicule'] }> {
+    if (!vehiculeId) return { vehicule: null, typeVehicule: null };
+
+    const vehiculeStockLigne = await chargerVehiculeStock(tx, ctx, vehiculeId);
+    const vehiculeLigne = await chargerVehiculeLigne(tx, ctx, vehiculeId);
+    const plaque = await chargerPlaqueCourante(tx, ctx, vehiculeId);
+    const resumeVehicule = construireVehiculeResume(vehiculeLigne, plaque);
+    const typeVehicule = calculerTypeVehicule(vehiculeStockLigne.provenance, vehiculeLigne.date1reCirculation);
+
+    const vehicule: VehiculeStockResume = {
+      id: vehiculeStockLigne.id,
+      vehicule: resumeVehicule,
+      provenance: vehiculeStockLigne.provenance as ProvenanceVehiculeStock,
+      typeVehicule,
+      statutCommercial: vehiculeStockLigne.statutCommercial,
+      prixVenteAfficheCentimes: vehiculeStockLigne.prixVenteAfficheCentimes,
+      joursStock: 0,
+    };
+    return { vehicule, typeVehicule };
+  }
+
+  private async assemblerRepriseResume(tx: TransactionDfa, ctx: ContexteTenant, dossierVenteId: string): Promise<RepriseResume | null> {
+    const repriseLigne = await chargerRepriseParDossierOuNull(tx, ctx, dossierVenteId, false);
+    if (!repriseLigne) return null;
+    const vehiculeRepriseLigne = await chargerVehiculeLigne(tx, ctx, repriseLigne.vehiculeReprisId);
+    const plaqueReprise = await chargerPlaqueCourante(tx, ctx, repriseLigne.vehiculeReprisId);
+    const vehiculeRepriseResume = construireVehiculeResume(vehiculeRepriseLigne, plaqueReprise);
+    return versRepriseResume(repriseLigne, vehiculeRepriseResume);
+  }
+
+  /** Utilisée par `engager()` — `null` si aucune reprise n'existe pour ce dossier, jamais une
+   *  exception (la reprise reste une composante OPTIONNELLE, RV-25). */
+  private async chargerRepriseOuNullPourEcriture(tx: TransactionDfa, ctx: ContexteTenant, dossierVenteId: string): Promise<LigneReprise | null> {
+    return chargerRepriseParDossierOuNull(tx, ctx, dossierVenteId, true);
+  }
+
+  private async transitionnerDossier(
+    tx: TransactionDfa,
+    ligne: LigneDossierVente,
+    champs: Partial<Omit<LigneDossierVente, 'id' | 'tenantId'>> & { readonly statut: LigneDossierVente['statut'] },
+  ): Promise<void> {
+    try {
+      await tx.update(dossierVente).set(champs).where(and(eq(dossierVente.tenantId, ligne.tenantId), eq(dossierVente.id, ligne.id)));
+    } catch (erreur) {
+      const traduite = traduireErreurTransitionVente(erreur, ligne.id, ligne.id);
+      if (traduite) throw traduite;
+      throw erreur;
+    }
+  }
+
+  private async transitionnerVehiculeStock(
+    tx: TransactionDfa,
+    ligne: LigneVehiculeStock,
+    champs: Partial<Omit<LigneVehiculeStock, 'id' | 'tenantId'>> & { readonly statutCommercial: LigneVehiculeStock['statutCommercial'] },
+  ): Promise<void> {
+    await tx.update(vehiculeStock).set(champs).where(and(eq(vehiculeStock.tenantId, ligne.tenantId), eq(vehiculeStock.id, ligne.id)));
+  }
+
+  private async transitionnerReprise(
+    tx: TransactionDfa,
+    ligne: LigneReprise,
+    champs: Partial<Omit<LigneReprise, 'id' | 'tenantId'>> & { readonly statut: LigneReprise['statut'] },
+  ): Promise<void> {
+    try {
+      await tx.update(reprise).set(champs).where(and(eq(reprise.tenantId, ligne.tenantId), eq(reprise.id, ligne.id)));
+    } catch (erreur) {
+      const traduite = traduireErreurTransitionVente(erreur, ligne.id, ligne.id);
+      if (traduite) throw traduite;
+      throw erreur;
+    }
+  }
+}

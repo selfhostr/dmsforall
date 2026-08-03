@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { EntreeCreationMouvementCasse } from '@dfa/shared';
+import type { EntreeCreationMouvementCasse, FiltresMouvementsStock } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import type { ReponseMemorisable, RequeteIdempotente, ResultatIdempotent, ServiceIdempotence } from '../common/idempotence';
@@ -89,6 +89,8 @@ const ENTREE_CASSE: EntreeCreationMouvementCasse = {
   forcer: false,
 };
 
+const FILTRES_DEFAUT: FiltresMouvementsStock = { limite: 50, tri: 'creeLe:desc' };
+
 describe('ServiceMouvement.casse — RP-15/PP-02 : le disponible protège contre une sortie non couverte', () => {
   it('refuse (409 STOCK_INSUFFISANT) sans écrire de mouvement quand la quantité demandée dépasse le disponible', async () => {
     const { tx, insertValuesArgs } = txFactice({
@@ -98,7 +100,7 @@ describe('ServiceMouvement.casse — RP-15/PP-02 : le disponible protège contre
     });
     const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
 
-    await expect(service.casse(CTX, 'a1', ENTREE_CASSE, 'idem-1')).rejects.toMatchObject({
+    await expect(service.casse(CTX, 'magasinier', 'a1', ENTREE_CASSE, 'idem-1')).rejects.toMatchObject({
       code: 'STOCK_INSUFFISANT',
       status: 409,
     });
@@ -113,7 +115,7 @@ describe('ServiceMouvement.casse — RP-15/PP-02 : le disponible protège contre
     poserRetourInsert([ligneMouvement()]);
     const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
 
-    const resultat = await service.casse(CTX, 'a1', ENTREE_CASSE, 'idem-2');
+    const resultat = await service.casse(CTX, 'magasinier', 'a1', ENTREE_CASSE, 'idem-2');
 
     expect(resultat.reponse.statutHttp).toBe(201);
     expect(insertValuesArgs).toHaveLength(1);
@@ -128,7 +130,7 @@ describe('ServiceMouvement.casse — RP-15/PP-02 : le disponible protège contre
     poserRetourInsert([ligneMouvement()]);
     const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
 
-    const resultat = await service.casse(CTX, 'a1', { ...ENTREE_CASSE, forcer: true }, 'idem-3');
+    const resultat = await service.casse(CTX, 'magasinier', 'a1', { ...ENTREE_CASSE, forcer: true }, 'idem-3');
 
     expect(resultat.reponse.statutHttp).toBe(201);
     expect(insertValuesArgs).toHaveLength(1);
@@ -144,7 +146,7 @@ describe('ServiceMouvement.ajustementInventaire — §7.6 : un compte qui corres
     });
     const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
 
-    const resultat = await service.ajustementInventaire(CTX, 'a1', { siteId: 's1', quantiteCompteeMillieme: 3000, motif: 'Inventaire annuel' }, 'idem-4');
+    const resultat = await service.ajustementInventaire(CTX, 'magasinier', 'a1', { siteId: 's1', quantiteCompteeMillieme: 3000, motif: 'Inventaire annuel' }, 'idem-4');
 
     expect(resultat.reponse.statutHttp).toBe(200);
     expect(resultat.reponse.corps.donnees).toBeNull();
@@ -159,10 +161,73 @@ describe('ServiceMouvement.ajustementInventaire — §7.6 : un compte qui corres
     poserRetourInsert([ligneMouvement({ type: 'ajustement_inventaire', quantiteMillieme: -500 })]);
     const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
 
-    const resultat = await service.ajustementInventaire(CTX, 'a1', { siteId: 's1', quantiteCompteeMillieme: 2500, motif: 'Inventaire annuel' }, 'idem-5');
+    const resultat = await service.ajustementInventaire(CTX, 'magasinier', 'a1', { siteId: 's1', quantiteCompteeMillieme: 2500, motif: 'Inventaire annuel' }, 'idem-5');
 
     expect(resultat.reponse.statutHttp).toBe(201);
     expect(insertValuesArgs[0]).toMatchObject({ type: 'ajustement_inventaire', quantiteMillieme: -500 });
     expect(resultat.reponse.corps.donnees).not.toBeNull();
+  });
+});
+
+describe('ServiceMouvement.lister — masquage de prixAchatReelCentimes par rôle (audit sécurité, RF-116/§11)', () => {
+  /**
+   * `lister` passe par `tx.execute()` (SQL brut), pas `select().from()` — voir l'en-tête du
+   * fichier. `chargerArticleOu404` (appelé en tête de `lister`) utilise LUI le query-builder
+   * (`selects`), donc les deux files coexistent dans le même plan.
+   */
+  function txListeFactice(lignes: readonly Partial<LigneMouvementStock>[]) {
+    const executes: Array<{ rows: readonly unknown[] }> = [{ rows: lignes.map((l) => ligneMouvement(l)) }];
+    const tx = {
+      select: () => ({ from: () => ({ where: () => ({ limit: () => Promise.resolve([{ id: 'a1' }]) }) }) }),
+      execute: vi.fn(() => Promise.resolve(executes.shift() ?? { rows: [] })),
+    };
+    return tx as unknown as TransactionDfa;
+  }
+
+  const MOUVEMENT_ENTREE_LIVRAISON: Partial<LigneMouvementStock> = {
+    type: 'entree_livraison',
+    quantiteMillieme: 1000,
+    prixAchatReelCentimes: 4200,
+  };
+
+  it('magasinier (rôle habilité, hors ROLES_SANS_PRIX_ACHAT_PIECES) : prixAchatReelCentimes est visible', async () => {
+    const tx = txListeFactice([MOUVEMENT_ENTREE_LIVRAISON]);
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+
+    const page = await service.lister(CTX, 'magasinier', 'a1', FILTRES_DEFAUT);
+
+    expect(page.donnees[0]?.prixAchatReelCentimes).toBe(4200);
+  });
+
+  it('PREUVE PAR FALSIFICATION — technicien (ROLES_SANS_PRIX_ACHAT_PIECES) : prixAchatReelCentimes est masqué (null), jamais la valeur brute', async () => {
+    const tx = txListeFactice([MOUVEMENT_ENTREE_LIVRAISON]);
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+
+    const page = await service.lister(CTX, 'technicien', 'a1', FILTRES_DEFAUT);
+
+    // Falsifiable : si `versMouvementResponse` cesse de masquer selon le rôle (régression du
+    // correctif d'audit), cette assertion échoue — `donnees[0].prixAchatReelCentimes` redevient
+    // 4200 au lieu de `null`. Vérifié manuellement en retirant temporairement le masquage de
+    // `mappers.ts::versMouvementResponse` : ce test rougit, `4200 !== null` — voir le rapport de
+    // livraison pour la preuve d'exécution.
+    expect(page.donnees[0]?.prixAchatReelCentimes).toBeNull();
+  });
+
+  it('vendeur, receptionnaire, admin : même masquage (ROLES_SANS_PRIX_ACHAT_PIECES complet)', async () => {
+    for (const role of ['vendeur', 'receptionnaire', 'admin'] as const) {
+      const tx = txListeFactice([MOUVEMENT_ENTREE_LIVRAISON]);
+      const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+      const page = await service.lister(CTX, role, 'a1', FILTRES_DEFAUT);
+      expect(page.donnees[0]?.prixAchatReelCentimes).toBeNull();
+    }
+  });
+
+  it('un mouvement sans prix (casse, perte…) reste `null` quel que soit le rôle — le masquage ne fabrique jamais une distinction inverse', async () => {
+    const tx = txListeFactice([{ type: 'casse', prixAchatReelCentimes: null }]);
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+
+    const page = await service.lister(CTX, 'magasinier', 'a1', FILTRES_DEFAUT);
+
+    expect(page.donnees[0]?.prixAchatReelCentimes).toBeNull();
   });
 });

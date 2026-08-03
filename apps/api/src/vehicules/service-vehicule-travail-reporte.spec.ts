@@ -17,7 +17,7 @@ vi.mock('./vehicule-requetes', () => ({
   listerTravauxReportes: vi.fn(),
 }));
 
-import { ServiceVehiculeTravailReporte, type EntreeCreationTravailReporteDepuisRefus } from './service-vehicule-travail-reporte';
+import { ServiceVehiculeTravailReporte, versReponseTravailReporte, type EntreeCreationTravailReporteDepuisRefus } from './service-vehicule-travail-reporte';
 import * as vehiculeRequetes from './vehicule-requetes';
 import type { LigneVehiculeTravailReporte } from '../db/schema';
 import type { EntreeModificationTravailReporte } from '@dfa/shared';
@@ -124,6 +124,33 @@ function entreeModification(partiel: Partial<EntreeModificationTravailReporte> =
 
 beforeEach(() => {
   vi.mocked(vehiculeRequetes.lireDernierKilometrage).mockResolvedValue(DERNIER_RELEVE);
+});
+
+/**
+ * `versReponseTravailReporte` — TROU N°2 comblé (motif d'abandon lisible, pas seulement écrit).
+ * DÉCISION VÉRIFIÉE ICI, PAS SUPPOSÉE : `motifModification` reste présent quel que soit le rôle,
+ * CONTRAIREMENT à `montantEstimeCentimes` (`ROLES_SANS_MONTANT`, invariant front n°10). Voir
+ * l'argumentation complète dans le commentaire de tête de `versReponseTravailReporte`.
+ */
+describe('versReponseTravailReporte — exposition de `motifModification`', () => {
+  it('expose `motifModification` pour un rôle qui voit les montants (ex. receptionnaire)', () => {
+    const ligne: LigneVehiculeTravailReporte = { ...TRAVAIL_EXISTANT, motifModification: 'Parti à la concurrence.' };
+    const reponse = versReponseTravailReporte(ligne, 'receptionnaire');
+    expect(reponse.motifModification).toBe('Parti à la concurrence.');
+    expect(reponse.montantEstimeCentimes).toBe(24_000);
+  });
+
+  it('expose ENCORE `motifModification` pour `technicien` (`ROLES_SANS_MONTANT`) alors que `montantEstimeCentimes` disparaît — les deux filtrages sont INDÉPENDANTS', () => {
+    const ligne: LigneVehiculeTravailReporte = { ...TRAVAIL_EXISTANT, motifModification: 'Parti à la concurrence.' };
+    const reponse = versReponseTravailReporte(ligne, 'technicien');
+    expect(reponse.motifModification).toBe('Parti à la concurrence.');
+    expect(reponse).not.toHaveProperty('montantEstimeCentimes');
+  });
+
+  it('retourne `null` (jamais `undefined`) quand aucun motif n’a été enregistré', () => {
+    const reponse = versReponseTravailReporte(TRAVAIL_EXISTANT, 'receptionnaire');
+    expect(reponse.motifModification).toBeNull();
+  });
 });
 
 describe('ServiceVehiculeTravailReporte.creerDepuisRefus (RM-73)', () => {
@@ -260,6 +287,18 @@ describe('ServiceVehiculeTravailReporte.modifier (RM-73, correctif migrations/00
 
     expect(set).toHaveBeenCalledTimes(1);
     expect(set).toHaveBeenCalledWith(expect.objectContaining({ statut: 'abandonne', motifModification: motif }));
+  });
+
+  it('renvoie `motifModification` dans la RÉPONSE, pas seulement écrit en base — trou n°2 (donnée morte) comblé', async () => {
+    const motif = 'Parti à la concurrence.';
+    const ligneRetournee: LigneVehiculeTravailReporte = { ...TRAVAIL_EXISTANT, statut: 'abandonne', motifModification: motif };
+    const { tx } = txFactiqueModifier(TRAVAIL_EXISTANT, ligneRetournee);
+    const acces = accesBaseFactice(tx);
+    const service = new ServiceVehiculeTravailReporte(acces as never);
+
+    const reponse = await service.modifier(CTX, VEHICULE_ID, TRAVAIL_ID, entreeModification({ statut: 'abandonne', motif }), 'receptionnaire');
+
+    expect(reponse.motifModification).toBe(motif);
   });
 
   it('normalise `entree.motif` en `null` quand il est vide/blanc — défense en profondeur, même doctrine que `creerDepuisRefus`/`motifRefus` (0021)', async () => {

@@ -17,6 +17,11 @@ import { EcranParametrageAtelier } from '@/ecrans/parametrage/EcranParametrageAt
 import { EcranParametresFacturation } from '@/ecrans/parametrage/EcranParametresFacturation';
 import { EcranReferentiels } from '@/ecrans/parametrage/EcranReferentiels';
 import { EcranSites } from '@/ecrans/parametrage/EcranSites';
+import { EcranFicheArticle } from '@/ecrans/pieces/EcranFicheArticle';
+import { EcranListeArticles } from '@/ecrans/pieces/EcranListeArticles';
+import { EcranReapprovisionnement } from '@/ecrans/pieces/EcranReapprovisionnement';
+import { EcranRechercheComptoirPieces } from '@/ecrans/pieces/EcranRechercheComptoirPieces';
+import { EcranReservationsPieces } from '@/ecrans/pieces/EcranReservationsPieces';
 import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
 import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
 import { EcranFicheVehicule } from '@/ecrans/vehicules/EcranFicheVehicule';
@@ -24,6 +29,7 @@ import { EcranListeVehicules } from '@/ecrans/vehicules/EcranListeVehicules';
 
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
+import { ROLES_PIECES } from './droits-routes';
 
 /**
  * Convention structurelle qui fait qu'une route oubliée tombe du côté SÛR (même principe que la
@@ -135,6 +141,56 @@ export const routesConfig: RouteObject[] = [
       // statique (`doublons`) avant un segment dynamique (`:id`), l'ordre de déclaration ne change
       // rien à la résolution.
       { path: 'clients/doublons', element: <EcranDoublonsClients /> },
+      // Module pièces (étape 3) — CINQ routes, TOUTES sous `rolesAutorises={ROLES_PIECES}`
+      // (`droits-routes.ts`) : `DROITS_PIECES_PAR_ROLE.admin` vaut `[]` littéralement côté API
+      // (RF-115), la lecture elle-même est fermée à `admin` — contrairement à
+      // `parametrage/referentiels` ci-dessus, cette garde reflète une restriction RÉELLE, elle ne
+      // l'invente pas. `RouteProtegee` imbriquée dans celle, déjà posée plus haut, qui protège
+      // `AppShell` : la session est déjà résolue à ce niveau (pas de second aller-retour réseau),
+      // seule la vérification de rôle s'ajoute.
+      {
+        path: 'pieces/recherche-comptoir',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranRechercheComptoirPieces />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pieces/articles',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranListeArticles />
+          </RouteProtegee>
+        ),
+      },
+      // `EcranFicheArticle` lit `useParams<{ id: string }>()` — segment statique `articles`
+      // avant le dynamique `:id`, React Router (v6) le résout sans ambiguïté quel que soit l'ordre
+      // de déclaration (même remarque que `clients/doublons` ci-dessus).
+      {
+        path: 'pieces/articles/:id',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranFicheArticle />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pieces/reservations',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranReservationsPieces />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pieces/reapprovisionnement',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranReapprovisionnement />
+          </RouteProtegee>
+        ),
+      },
     ],
   },
   { path: '*', element: <EcranPageIntrouvable /> },

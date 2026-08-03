@@ -423,39 +423,49 @@ describe('MATRICE_DROITS — lecture large (LECTURE_SOCLE et LECTURE_ETENDUE)', 
     expect(MATRICE_DROITS.vendeur).not.toContain('atelier.or.lire');
   });
 
-  it('comptable — consulte, ne modifie rien dans l’atelier/clients/véhicules (§2.1) : uniquement des actions *.lire ou recherche.executer HORS domaine facturation (RF-114, étape 2, lui donne délibérément des droits d’écriture ET d’encaissement financiers — comptable n’est plus lecture-seule sur ce domaine depuis l’étape 2)', () => {
+  it('comptable — consulte, ne modifie rien dans l’atelier/clients/véhicules (§2.1) : uniquement des actions *.lire ou recherche.executer HORS domaines facturation et ventes (RF-114 étape 2 ET §11 étape 4 lui donnent délibérément des droits d’écriture/de confirmation financiers — comptable n’est plus lecture-seule sur ces deux domaines)', () => {
     for (const action of MATRICE_DROITS.comptable) {
-      if (action.startsWith('facturation.')) continue;
+      if (action.startsWith('facturation.') || action.startsWith('ventes.')) continue;
       expect(action.endsWith('.lire') || action === 'recherche.executer').toBe(true);
     }
     // Le domaine financier, lui, doit bien contenir de l'écriture pour comptable (sinon RF-114 est cassé).
     expect(MATRICE_DROITS.comptable).toContain('facturation.paiement.creer');
     expect(MATRICE_DROITS.comptable).toContain('facturation.document.emettre_facture');
+    // §11 étape 4, ligne 7 : comptable confirme/refuse un financement.
+    expect(MATRICE_DROITS.comptable).toContain('ventes.financement.confirmer');
   });
 
-  it('vendeur — hors flux de l’étape 1 : aucune écriture atelier, pas même la lecture d’un OR, HORS domaine facturation (RF-114 lui donne l’encaissement et l’émission devis/BC/facture, mais PAS l’avoir)', () => {
+  it('vendeur — hors flux de l’étape 1 : aucune écriture atelier, pas même la lecture d’un OR, HORS domaines facturation et ventes (RF-114 lui donne l’encaissement et l’émission devis/BC/facture mais PAS l’avoir ; §11 étape 4 lui donne le pilotage du dossier de vente mais PAS l’écriture sur `vehicule_stock`, QV-15 non tranché)', () => {
     for (const action of MATRICE_DROITS.vendeur) {
-      if (action.startsWith('facturation.')) continue;
+      if (action.startsWith('facturation.') || action.startsWith('ventes.')) continue;
       expect(action.endsWith('.lire') || action === 'recherche.executer').toBe(true);
     }
     expect(MATRICE_DROITS.vendeur).not.toContain('atelier.or.lire');
-    expect(MATRICE_DROITS.vendeur.length).toBeLessThan(MATRICE_DROITS.receptionnaire.length);
+    // Comparaison de longueur globale retirée (fragile — brisée par la seule croissance normale du
+    // domaine ventes, sans rapport avec l'intention réelle du test) : les assertions ciblées
+    // ci-dessous couvrent l'intention (vendeur reste hors atelier, hors avoir, hors écriture stock).
     // Domaine financier : écriture accordée par RF-114, mais pas l'avoir (voir bloc RF-114 documents).
     expect(MATRICE_DROITS.vendeur).toContain('facturation.paiement.creer');
     expect(MATRICE_DROITS.vendeur).not.toContain('facturation.document.emettre_avoir');
+    // §11 étape 4 : vendeur pilote le dossier de bout en bout, mais pas l'écriture vehicule_stock (QV-15).
+    expect(MATRICE_DROITS.vendeur).toContain('ventes.dossier.engager');
+    expect(MATRICE_DROITS.vendeur).not.toContain('ventes.vehicule_stock.creer');
+    expect(MATRICE_DROITS.vendeur).not.toContain('ventes.vehicule_stock.modifier');
   });
 });
 
 describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers étape 2, RF-115, et le domaine pièces étape 3)', () => {
-  it('admin détient le même périmètre que direction pour tout ce qui n’est pas financier ni pièces (rôle technique/propriétaire, non décrit comme acteur métier de l’étape 1)', () => {
+  it('admin détient le même périmètre que direction pour tout ce qui n’est pas financier, pièces, ni ventes (rôle technique/propriétaire, non décrit comme acteur métier de l’étape 1) — le pointage (lot 2), lui, N’EST PAS exclu : admin y détient le même périmètre que direction (pointage = temps de travail, pas RF-115)', () => {
     // `pieces.` exclu ici pour la MÊME raison que `facturation.` : la matrice §11 de
     // docs/specification-etape-3-pieces.md écrit littéralement « non (RF-115, aucun droit métier) »
     // pour admin sur TOUT le domaine pièces (y compris la simple lecture) — voir
-    // `DROITS_PIECES_PAR_ROLE` dans matrice-droits.ts et le test dédié plus bas.
-    const sansFacturationNiPieces = (actions: readonly Action[]) =>
-      actions.filter((a) => !a.startsWith('facturation.') && !a.startsWith('pieces.'));
-    expect([...sansFacturationNiPieces(MATRICE_DROITS.admin)].sort()).toEqual(
-      [...sansFacturationNiPieces(MATRICE_DROITS.direction)].sort(),
+    // `DROITS_PIECES_PAR_ROLE` dans matrice-droits.ts et le test dédié plus bas. `ventes.` exclu
+    // pour la même raison, décision de l'agent ventes (voir `DROITS_VENTES_PAR_ROLE`) : admin n'a
+    // aucun droit sur le domaine ventes, y compris la lecture.
+    const sansFacturationNiPiecesNiVentes = (actions: readonly Action[]) =>
+      actions.filter((a) => !a.startsWith('facturation.') && !a.startsWith('pieces.') && !a.startsWith('ventes.'));
+    expect([...sansFacturationNiPiecesNiVentes(MATRICE_DROITS.admin)].sort()).toEqual(
+      [...sansFacturationNiPiecesNiVentes(MATRICE_DROITS.direction)].sort(),
     );
   });
 
@@ -483,15 +493,128 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
     expect(MATRICE_DROITS.chef_atelier).not.toContain('client.condition.modifier');
   });
 
-  it('chef_atelier détient tout ce que réceptionnaire détient (supervision), plus la correction et la gouvernance — HORS domaine facturation, où RF-114 casse délibérément cette hiérarchie (voir le test dédié dans le bloc « RF-114, facturation/documents »)', () => {
+  it('chef_atelier détient tout ce que réceptionnaire détient (supervision), plus la correction et la gouvernance — HORS domaines facturation et ventes, où RF-114 et §11 (étape 4) cassent délibérément cette hiérarchie (voir les tests dédiés dans les blocs « RF-114, facturation/documents » et « ventes »)', () => {
     for (const action of MATRICE_DROITS.receptionnaire) {
-      if (action.startsWith('facturation.')) continue;
+      if (action.startsWith('facturation.') || action.startsWith('ventes.')) continue;
       expect(MATRICE_DROITS.chef_atelier).toContain(action);
     }
   });
 });
 
-describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste close du lot 1 + facturation/paiements + facturation/documents + bloc créancier + export fiduciaire + impression PDF étape 2 + pièces étape 3)', () => {
+/**
+ * §11 de `docs/specification-etape-4-ventes.md` (lignes 720-730), littéral sur 9 lignes / 4
+ * colonnes (`vendeur`, `direction`, `comptable`, `receptionnaire`) — voir le commentaire de tête de
+ * `DROITS_VENTES_PAR_ROLE` (`matrice-droits.ts`) pour le détail des inférences et des deux points
+ * `[À VALIDER]` (QV-15, QV-16) traités en position conservatrice.
+ */
+describe('MATRICE_DROITS — ventes VN/VO (étape 4, matrice §11)', () => {
+  it('§11 lignes 1/2 — créer/modifier un dossier en prospection, faire signer le bon de commande (engager) : vendeur, direction SEULS', () => {
+    expect(rolesAyant('ventes.dossier.creer')).toEqual(['direction', 'vendeur'].sort());
+    expect(rolesAyant('ventes.dossier.engager')).toEqual(['direction', 'vendeur'].sort());
+  });
+
+  it('§11 ligne 3 — saisir une estimation/valeur de reprise négociée : vendeur, direction SEULS', () => {
+    expect(rolesAyant('ventes.reprise.creer')).toEqual(['direction', 'vendeur'].sort());
+    expect(rolesAyant('ventes.reprise.negocier')).toEqual(['direction', 'vendeur'].sort());
+  });
+
+  it('§11 ligne 4 [À VALIDER, QV-15] — visibilité de la marge/du prix d’achat : lecture accordée à direction, comptable ET vendeur (le contrat gelé `ReponseVehiculeStock.prixAchatCentimes` est `number` non-nullable — masquer le CHAMP par rôle exigerait de rouvrir un contrat gelé, hors périmètre de cet agent) ; SEULE L’ÉCRITURE reste conservatrice (voir le test suivant)', () => {
+    expect(rolesAyant('ventes.vehicule_stock.lire')).toEqual(['chef_atelier', 'comptable', 'direction', 'receptionnaire', 'vendeur'].sort());
+  });
+
+  it('§11 ligne 9 [À VALIDER, QV-15] — modifier le prix d’achat/frais de remise en état d’un véhicule en stock : direction SEULE ; vendeur EXCLU en position conservatrice tant que QV-15 n’est pas tranché', () => {
+    expect(rolesAyant('ventes.vehicule_stock.creer')).toEqual(['direction']);
+    expect(rolesAyant('ventes.vehicule_stock.modifier')).toEqual(['direction']);
+    expect(MATRICE_DROITS.vendeur).not.toContain('ventes.vehicule_stock.creer');
+    expect(MATRICE_DROITS.vendeur).not.toContain('ventes.vehicule_stock.modifier');
+  });
+
+  it('§11 ligne 7 — confirmer un financement/leasing : vendeur, direction, comptable', () => {
+    expect(rolesAyant('ventes.financement.confirmer')).toEqual(['comptable', 'direction', 'vendeur'].sort());
+  });
+
+  it('§11 ligne 8 [À VALIDER, QV-16] — enregistrer la livraison : vendeur, direction SEULS ; receptionnaire EXCLU en position conservatrice (« possible selon organisation » non tranché)', () => {
+    expect(rolesAyant('ventes.dossier.livrer')).toEqual(['direction', 'vendeur'].sort());
+    expect(MATRICE_DROITS.receptionnaire).not.toContain('ventes.dossier.livrer');
+  });
+
+  it('§11 lignes 5/6 (émission facture/avoir) — DÉJÀ couvertes par le bloc RF-114 (étape 2), aucune nouvelle action créée : ce bloc ne fait QUE confirmer la cohérence', () => {
+    expect(MATRICE_DROITS.vendeur).toContain('facturation.document.emettre_facture');
+    expect(MATRICE_DROITS.vendeur).not.toContain('facturation.document.emettre_avoir');
+    expect(MATRICE_DROITS.comptable).toContain('facturation.document.emettre_avoir');
+  });
+
+  it('correction exceptionnelle (remettre-disponible, confirmer une reprise hors du flux engager) — INFÉRÉE, direction SEULE, même doctrine que vehicule.detention.corriger', () => {
+    expect(rolesAyant('ventes.vehicule_stock.corriger')).toEqual(['direction']);
+    expect(rolesAyant('ventes.reprise.confirmer')).toEqual(['direction']);
+  });
+
+  it('RF-115 (décision de cet agent, §11 ne mentionne pas admin) — admin n’a AUCUNE action ventes.*, pas même la lecture, contrairement à direction qui en a plusieurs', () => {
+    expect(MATRICE_DROITS.admin.filter((a) => a.startsWith('ventes.'))).toEqual([]);
+    expect(MATRICE_DROITS.direction.some((a) => a.startsWith('ventes.'))).toBe(true);
+  });
+
+  it('chef_atelier — lecture minimale INFÉRÉE (coordination de la préparation VO), PAS reprise/financement (détail financier sans besoin opérationnel identifié)', () => {
+    expect(MATRICE_DROITS.chef_atelier).toContain('ventes.vehicule_stock.lire');
+    expect(MATRICE_DROITS.chef_atelier).toContain('ventes.dossier.lire');
+    expect(MATRICE_DROITS.chef_atelier).not.toContain('ventes.reprise.lire');
+    expect(MATRICE_DROITS.chef_atelier).not.toContain('ventes.financement.lire');
+  });
+
+  it('technicien et magasinier — acteurs d’AUCUNE ligne de §11 : aucune action ventes.*', () => {
+    expect(MATRICE_DROITS.technicien.filter((a) => a.startsWith('ventes.'))).toEqual([]);
+    expect(MATRICE_DROITS.magasinier.filter((a) => a.startsWith('ventes.'))).toEqual([]);
+  });
+});
+
+/**
+ * Pointage (lot 2, RM-87→RM-99, RM-113→RM-123) : bloc transmis par l'orchestrateur pour le compte
+ * de l'agent `pointage/`, périmètre disjoint de ce fichier. Voir `DROITS_POINTAGE_PAR_ROLE`
+ * (`matrice-droits.ts`) pour la déviation documentée sur `deverrouiller_periode`.
+ */
+describe('MATRICE_DROITS — pointage (lot 2)', () => {
+  it('demarrer/arreter/lire : chef_atelier, direction, admin, technicien, magasinier — PAS receptionnaire, PAS vendeur, PAS comptable', () => {
+    const attendus = ['admin', 'chef_atelier', 'direction', 'magasinier', 'technicien'].sort();
+    expect(rolesAyant('atelier.pointage.demarrer')).toEqual(attendus);
+    expect(rolesAyant('atelier.pointage.arreter')).toEqual(attendus);
+    expect(rolesAyant('atelier.pointage.lire')).toEqual(attendus);
+  });
+
+  it('corriger_autrui : chef_atelier, direction, admin SEULS', () => {
+    expect(rolesAyant('atelier.pointage.corriger_autrui')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+  });
+
+  it('verrouiller_periode : chef_atelier, direction, admin, comptable', () => {
+    expect(rolesAyant('atelier.pointage.verrouiller_periode')).toEqual(['admin', 'chef_atelier', 'comptable', 'direction'].sort());
+  });
+
+  it('deverrouiller_periode : chef_atelier, direction, admin — PAS comptable (déviation documentée : rouvrir une période figée est plus engageant que la clôturer, même précédent que atelier.or.rouvrir réservé à chef_atelier/direction alors que la fermeture symétrique est plus largement accordée)', () => {
+    expect(rolesAyant('atelier.pointage.deverrouiller_periode')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+    expect(MATRICE_DROITS.comptable).not.toContain('atelier.pointage.deverrouiller_periode');
+    expect(MATRICE_DROITS.comptable).toContain('atelier.pointage.verrouiller_periode');
+  });
+
+  it('admin détient les 6 actions de pointage, comme direction — PAS une violation de RF-115 (le pointage n’est pas un droit financier)', () => {
+    const actionsPointage: Action[] = [
+      'atelier.pointage.demarrer',
+      'atelier.pointage.arreter',
+      'atelier.pointage.lire',
+      'atelier.pointage.corriger_autrui',
+      'atelier.pointage.verrouiller_periode',
+      'atelier.pointage.deverrouiller_periode',
+    ];
+    for (const action of actionsPointage) {
+      expect(MATRICE_DROITS.admin).toContain(action);
+    }
+  });
+
+  it('receptionnaire et vendeur — aucune action de pointage (pas leur outil)', () => {
+    expect(MATRICE_DROITS.receptionnaire.filter((a) => a.startsWith('atelier.pointage.'))).toEqual([]);
+    expect(MATRICE_DROITS.vendeur.filter((a) => a.startsWith('atelier.pointage.'))).toEqual([]);
+  });
+});
+
+describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste close du lot 1 + facturation/paiements + facturation/documents + bloc créancier + export fiduciaire + impression PDF étape 2 + pièces étape 3 + ventes étape 4 + pointage lot 2)', () => {
   it('l’union de toutes les actions accordées ne contient QUE les actions du socle + les actions closes du lot 1 + les 5 actions facturation.paiement.* (agent paiements) + les 9 actions facturation.document.*/facturation.avoir.creer (agent documents) + les 2 actions facturation.parametrage.creancier.* + facturation.export.creer + facturation.document.imprimer (arbitrages coordinateur) + les 9 actions pieces.* (étape 3)', () => {
     const actionsAttendues: Action[] = [
       'socle.tenant.lire',
@@ -581,6 +704,49 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'pieces.reservation.lire',
       'pieces.reservation.satisfaire',
       'pieces.reservation.liberer',
+      // --- Étape 3, second relais : fournisseurs, commandes fournisseur, consignes, paramétrage ---
+      'pieces.fournisseur.lire',
+      'pieces.fournisseur.creer',
+      'pieces.fournisseur.modifier',
+      'pieces.commande_fournisseur.lire',
+      'pieces.commande_fournisseur.creer',
+      'pieces.commande_fournisseur.reception',
+      'pieces.consigne.lire',
+      'pieces.consigne.retourner',
+      'pieces.parametrage.lire',
+      'pieces.parametrage.modifier',
+      // --- Étape 4 : ventes VN/VO (RV-01→RV-62, matrice §11 de docs/specification-etape-4-ventes.md) ---
+      'ventes.vehicule_stock.lire',
+      'ventes.vehicule_stock.creer',
+      'ventes.vehicule_stock.modifier',
+      'ventes.vehicule_stock.corriger',
+      'ventes.dossier.lire',
+      'ventes.dossier.creer',
+      'ventes.dossier.modifier',
+      'ventes.dossier.engager',
+      'ventes.dossier.preparer',
+      'ventes.dossier.marquer_pret_a_livrer',
+      'ventes.dossier.livrer',
+      'ventes.dossier.cloturer',
+      'ventes.dossier.annuler',
+      'ventes.dossier.abandonner',
+      'ventes.reprise.lire',
+      'ventes.reprise.creer',
+      'ventes.reprise.modifier',
+      'ventes.reprise.negocier',
+      'ventes.reprise.confirmer',
+      'ventes.reprise.refuser',
+      'ventes.financement.lire',
+      'ventes.financement.creer',
+      'ventes.financement.confirmer',
+      'ventes.financement.refuser',
+      // --- Lot 2 : pointage (RM-87→RM-99, RM-113→RM-123), transmis par l'orchestrateur ---
+      'atelier.pointage.demarrer',
+      'atelier.pointage.arreter',
+      'atelier.pointage.lire',
+      'atelier.pointage.corriger_autrui',
+      'atelier.pointage.verrouiller_periode',
+      'atelier.pointage.deverrouiller_periode',
     ];
 
     const actionsAccordees = new Set(Object.values(MATRICE_DROITS).flat());

@@ -8,3 +8,4 @@ export * from './contrats/facturation';
 export * from './contrats/pieces';
 export * from './contrats/pointage';
 export * from './contrats/ventes';
+export * from './contrats/connecteurs';
