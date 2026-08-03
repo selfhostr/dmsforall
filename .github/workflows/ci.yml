@@ -90,6 +90,16 @@ jobs:
       - name: Installer les dépendances (lockfile figé)
         run: pnpm install --frozen-lockfile
 
+      # @dfa/shared est compilé en CommonJS pour NestJS (voir packages/shared/package.json :
+      # `exports` ne pointe que vers ./dist, aucun fallback vers les sources). Le job « Vérifier »
+      # construit shared en passant par `pnpm build` (= `pnpm -r build`), mais ce job repart d'un
+      # checkout propre et n'appelle jamais ce script — sans cette étape, vitest échoue à résoudre
+      # l'entrée du package (« Failed to resolve entry for package "@dfa/shared" »). Même besoin,
+      # déjà couvert dans scripts/verifier-reversibilite-migrations.sh (voir son étape
+      # "build-shared.log"), qui construit shared lui-même avant de jouer les migrations.
+      - name: Construire @dfa/shared
+        run: pnpm --filter @dfa/shared build
+
       - name: Tests d'intégration
         run: pnpm test:integration
         env:

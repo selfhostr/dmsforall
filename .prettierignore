@@ -6,3 +6,9 @@ pnpm-lock.yaml
 apps/web/src/api/schema.d.ts
 apps/api/openapi.json
 apps/api/drizzle/**/*.sql
+# Généré par `pnpm api:openapi` (apps/api/src/openapi/exporter-openapi.ts, cible réelle du script :
+# packages/shared/openapi/dfa-openapi.json — `apps/api/openapi.json` ci-dessus semble être
+# l'ancienne cible, le fichier n'existe plus à ce chemin). JSON entièrement re-sérialisé par
+# JSON.stringify(..., null, 2) à chaque export, jamais édité à la main : le formater avec Prettier
+# n'aurait aucun effet durable et fait échouer `format:check` à chaque régénération.
+packages/shared/openapi/dfa-openapi.json
