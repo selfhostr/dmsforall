@@ -266,16 +266,21 @@
       "reapprovisionnement": "Nachbestellung"
     },
     "fournisseur": "Lieferant",
+    "voirFournisseur": "Lieferant anzeigen",
     "site": "Ort",
     "dateCommande": "Bestelldatum",
     "envoyeeLe": "Gesendet am",
     "reference": "Lieferantenreferenz",
+    "montantAttendu": "Erwarteter Betrag",
+    "montantPartiel": "(unvollständig — Preis fehlt bei mindestens einer Position)",
+    "motifAnnulation": "Stornierungsgrund",
     "lignes": {
       "titre": "Positionen",
       "article": "Artikel",
       "quantiteCommandee": "Bestellte Menge",
       "quantiteRecue": "Erhaltene Menge",
       "quantiteReliquat": "Offene Menge",
+      "reliquatAnnule": "storniert",
       "prixAchatAttendu": "Erwarteter Einkaufspreis",
       "prixAchatReel": "Tatsächlicher Einkaufspreis",
       "motif": "Grund"
@@ -289,8 +294,33 @@
     },
     "reception": {
       "titre": "Empfang",
+      "description": "Geben Sie an, was tatsächlich geliefert wurde, Position für Position.",
+      "ligneNumero": "Position {numero}",
+      "aucuneLigne": "Wählen Sie mindestens eine erhaltene Position aus.",
       "referenceLibellee": "Gelieferte Referenz",
       "ecart": "Abweichung erkannt — andere Referenz"
+    },
+    "nouvelle": {
+      "aucuneLigne": "Fügen Sie der Bestellung mindestens eine Position hinzu.",
+      "choisirSiteDabord": "Wählen Sie zuerst einen Ort, um nach Artikeln zu suchen."
+    },
+    "filtres": {
+      "statutTous": "Alle Status",
+      "avecReliquat": "Nur mit offener Menge"
+    },
+    "confirmations": {
+      "annulerTitre": "Diese Bestellung stornieren?",
+      "annulerDescription": "Die Bestellung wird endgültig storniert. Geben Sie den Grund an.",
+      "annulerReliquatTitre": "Diese offene Menge stornieren?",
+      "annulerReliquatDescription": "Die restliche Menge wird bei diesem Lieferanten nicht mehr erwartet. Geben Sie den Grund an."
+    },
+    "erreur": {
+      "titre": "Bestellungen können nicht angezeigt werden"
+    },
+    "fiche": {
+      "erreur": {
+        "titre": "Diese Bestellung kann nicht angezeigt werden"
+      }
     },
     "vide": "Keine Bestellungen."
   },
@@ -317,6 +347,13 @@
       "anciennete": "Mindestalter (Tage)",
       "description": "Pfänder, die seit mindestens {jours} {jours, plural, one {Tag} other {Tagen}} besteht"
     },
+    "confirmations": {
+      "marquerRetourTitre": "Dieses Pfand als zurückgesendet markieren?",
+      "marquerRetourDescription": "Das alte Teil wird an den Lieferanten zurückgegeben. Diese Aktion ist endgültig."
+    },
+    "erreur": {
+      "titre": "Pfänder können nicht angezeigt werden"
+    },
     "vide": "Keine Pfänder."
   },
   "fournisseurs": {
@@ -329,6 +366,32 @@
     "nom": "Name",
     "contact": "Kontakt",
     "coordonnees": "Koordinaten",
+    "email": "E-Mail",
+    "telephone": "Telefon",
+    "delaiHabituelJours": "Übliche Frist (Tage)",
+    "actions": {
+      "ajouter": "Lieferant erstellen",
+      "modifier": "Bearbeiten",
+      "desactiver": "Deaktivieren",
+      "reactiver": "Reaktivieren"
+    },
+    "filtres": {
+      "statutTous": "Alle Status"
+    },
+    "confirmations": {
+      "desactiverTitre": "Diesen Lieferanten deaktivieren?",
+      "desactiverDescription": "Der Lieferant wird für neue Bestellungen nicht mehr vorgeschlagen. Umkehrbare Aktion.",
+      "reactiverTitre": "Diesen Lieferanten reaktivieren?",
+      "reactiverDescription": "Der Lieferant kann wieder normal vorgeschlagen werden."
+    },
+    "erreur": {
+      "titre": "Lieferanten können nicht angezeigt werden"
+    },
+    "fiche": {
+      "erreur": {
+        "titre": "Dieser Lieferant kann nicht angezeigt werden"
+      }
+    },
     "vide": "Keine Lieferanten."
   }
 }

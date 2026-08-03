@@ -266,16 +266,21 @@
       "reapprovisionnement": "Réapprovisionnement"
     },
     "fournisseur": "Fournisseur",
+    "voirFournisseur": "Voir le fournisseur",
     "site": "Site",
     "dateCommande": "Date de commande",
     "envoyeeLe": "Envoyée le",
     "reference": "Référence fournisseur",
+    "montantAttendu": "Montant attendu",
+    "montantPartiel": "(partiel — prix manquant sur une ou plusieurs lignes)",
+    "motifAnnulation": "Motif d'annulation",
     "lignes": {
       "titre": "Lignes",
       "article": "Article",
       "quantiteCommandee": "Quantité commandée",
       "quantiteRecue": "Quantité reçue",
       "quantiteReliquat": "Reliquat",
+      "reliquatAnnule": "annulé",
       "prixAchatAttendu": "Prix d'achat attendu",
       "prixAchatReel": "Prix d'achat réel",
       "motif": "Motif"
@@ -289,8 +294,33 @@
     },
     "reception": {
       "titre": "Réception",
+      "description": "Indiquez ce qui a été effectivement livré, ligne par ligne.",
+      "ligneNumero": "Ligne {numero}",
+      "aucuneLigne": "Sélectionnez au moins une ligne reçue.",
       "referenceLibellee": "Référence livrée",
       "ecart": "Écart détecté — référence différente"
+    },
+    "nouvelle": {
+      "aucuneLigne": "Ajoutez au moins une ligne à la commande.",
+      "choisirSiteDabord": "Choisissez un site pour rechercher des articles."
+    },
+    "filtres": {
+      "statutTous": "Tous les statuts",
+      "avecReliquat": "Avec reliquat uniquement"
+    },
+    "confirmations": {
+      "annulerTitre": "Annuler cette commande ?",
+      "annulerDescription": "La commande est annulée définitivement. Indiquez le motif.",
+      "annulerReliquatTitre": "Annuler ce reliquat ?",
+      "annulerReliquatDescription": "La quantité restante ne sera plus attendue de ce fournisseur. Indiquez le motif."
+    },
+    "erreur": {
+      "titre": "Impossible d'afficher les commandes"
+    },
+    "fiche": {
+      "erreur": {
+        "titre": "Impossible d'afficher cette commande"
+      }
     },
     "vide": "Aucune commande."
   },
@@ -317,6 +347,13 @@
       "anciennete": "Ancienneté minimale (jours)",
       "description": "Consignes créées depuis au moins {jours} {jours, plural, one {jour} other {jours}}"
     },
+    "confirmations": {
+      "marquerRetourTitre": "Marquer cette consigne comme retournée ?",
+      "marquerRetourDescription": "La vieille pièce est rendue au fournisseur. Cette action est définitive."
+    },
+    "erreur": {
+      "titre": "Impossible d'afficher les consignes"
+    },
     "vide": "Aucune consigne."
   },
   "fournisseurs": {
@@ -329,6 +366,32 @@
     "nom": "Nom",
     "contact": "Contact",
     "coordonnees": "Coordonnées",
+    "email": "E-mail",
+    "telephone": "Téléphone",
+    "delaiHabituelJours": "Délai habituel (jours)",
+    "actions": {
+      "ajouter": "Créer un fournisseur",
+      "modifier": "Modifier",
+      "desactiver": "Désactiver",
+      "reactiver": "Réactiver"
+    },
+    "filtres": {
+      "statutTous": "Tous les statuts"
+    },
+    "confirmations": {
+      "desactiverTitre": "Désactiver ce fournisseur ?",
+      "desactiverDescription": "Le fournisseur ne sera plus proposé pour une nouvelle commande. Action réversible.",
+      "reactiverTitre": "Réactiver ce fournisseur ?",
+      "reactiverDescription": "Le fournisseur redevient proposable normalement."
+    },
+    "erreur": {
+      "titre": "Impossible d'afficher les fournisseurs"
+    },
+    "fiche": {
+      "erreur": {
+        "titre": "Impossible d'afficher ce fournisseur"
+      }
+    },
     "vide": "Aucun fournisseur."
   }
 }

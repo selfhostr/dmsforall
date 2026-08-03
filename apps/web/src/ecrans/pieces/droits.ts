@@ -33,6 +33,37 @@ const ROLES_SATISFACTION_RESERVATION: ReadonlySet<RoleUtilisateur> = new Set(['m
 /** §11 « Libérer une réservation active » : direction, chef_atelier, magasinier. */
 const ROLES_LIBERATION_RESERVATION: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'chef_atelier', 'magasinier']);
 
+/**
+ * Second relais (étape 3, sous-fonctions commande fournisseur/fournisseur/consigne) — dupliqué
+ * depuis `DROITS_PIECES_PAR_ROLE` (`apps/api/src/auth/matrice-droits.ts`), même règle de gouvernance
+ * que le bloc ci-dessus (frontière tenant/serveur jamais franchie, défensif d'ergonomie seulement).
+ *
+ * Lecture fournisseur/commande fournisseur : direction, chef_atelier, magasinier — PAS vendeur,
+ * receptionnaire, technicien (lecture générale `pieces.*` seulement), ni comptable, ni admin
+ * (RF-115, `[]` littéral).
+ */
+const ROLES_LECTURE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'chef_atelier', 'magasinier']);
+
+/** Écriture fournisseur (`creer` + `modifier`, TOUJOURS accordés ensemble côté matrice) : mêmes
+ *  trois rôles que la lecture — couvre création, modification, désactivation, réactivation. */
+const ROLES_ECRITURE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'chef_atelier', 'magasinier']);
+
+/** Écriture commande fournisseur (`creer` — couvre aussi `envoyer` et `annuler` la commande
+ *  entière, gardés par le MÊME droit côté contrôleur) : direction, chef_atelier, magasinier. */
+const ROLES_ECRITURE_COMMANDE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'chef_atelier', 'magasinier']);
+
+/** Réception (`pieces.commande_fournisseur.reception` — couvre aussi `annuler-reliquat`, gardé
+ *  par le MÊME droit côté contrôleur) : `magasinier` SEUL, comme les mouvements de stock. */
+const ROLES_RECEPTION_COMMANDE_FOURNISSEUR: ReadonlySet<RoleUtilisateur> = new Set(['magasinier']);
+
+/** Lecture consigne : direction, chef_atelier, magasinier, ET comptable (donnée financière —
+ *  « une consigne jamais rendue est une créance qui dort », INFÉRÉ côté matrice API). */
+const ROLES_LECTURE_CONSIGNE: ReadonlySet<RoleUtilisateur> = new Set(['direction', 'chef_atelier', 'magasinier', 'comptable']);
+
+/** Retour fournisseur d'une consigne (`pieces.consigne.retourner`) : `magasinier` SEUL — le geste
+ *  de comptoir qui constate physiquement le retour. */
+const ROLES_RETOUR_CONSIGNE: ReadonlySet<RoleUtilisateur> = new Set(['magasinier']);
+
 export function peutEcrireArticle(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_ECRITURE_ARTICLE.has(role);
 }
@@ -51,4 +82,34 @@ export function peutSatisfaireReservation(role: RoleUtilisateur | undefined): bo
 
 export function peutLibererReservation(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_LIBERATION_RESERVATION.has(role);
+}
+
+export function peutLireFournisseur(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_LECTURE_FOURNISSEUR.has(role);
+}
+
+export function peutEcrireFournisseur(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_ECRITURE_FOURNISSEUR.has(role);
+}
+
+export function peutLireCommandeFournisseur(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_LECTURE_FOURNISSEUR.has(role);
+}
+
+/** Créer, envoyer, annuler (la commande entière) : même droit côté contrôleur. */
+export function peutEcrireCommandeFournisseur(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_ECRITURE_COMMANDE_FOURNISSEUR.has(role);
+}
+
+/** Réceptionner, annuler un reliquat de ligne : même droit côté contrôleur, `magasinier` seul. */
+export function peutReceptionnerCommandeFournisseur(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_RECEPTION_COMMANDE_FOURNISSEUR.has(role);
+}
+
+export function peutLireConsigne(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_LECTURE_CONSIGNE.has(role);
+}
+
+export function peutRetournerConsigne(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_RETOUR_CONSIGNE.has(role);
 }

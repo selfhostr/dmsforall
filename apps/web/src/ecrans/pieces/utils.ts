@@ -39,3 +39,15 @@ export function saisieVersQuantiteMillieme(saisie: string): number | null {
 export function texteOuVide(valeur: string | number | null | undefined): string {
   return valeur === null || valeur === undefined || valeur === '' ? '—' : String(valeur);
 }
+
+/** Millièmes -> valeur ÉDITABLE pré-remplie dans un champ de saisie (ex. `2500` -> `"2.5"`) —
+ *  distinct de `formaterQuantiteMillieme` (affichage suisse, apostrophe des milliers) : un champ
+ *  de saisie ne doit jamais recevoir de séparateur de milliers, seulement le point décimal que
+ *  `saisieVersQuantiteMillieme` sait reparser sans ambiguïté. Utilisé pour pré-remplir la
+ *  quantité reçue d'une ligne de réception avec son reliquat (`DialogueReceptionCommande`). */
+export function quantiteMilliemeVersSaisie(millieme: number): string {
+  if (!Number.isInteger(millieme)) {
+    throw new TypeError(`quantiteMilliemeVersSaisie attend un entier (millièmes), reçu : ${millieme}`);
+  }
+  return String(millieme / 1000);
+}

@@ -1,4 +1,11 @@
-import type { FiltresMouvementsStock, FiltresReapprovisionnement, FiltresReservations } from '@dfa/shared';
+import type {
+  FiltresCommandesFournisseur,
+  FiltresConsignes,
+  FiltresFournisseurs,
+  FiltresMouvementsStock,
+  FiltresReapprovisionnement,
+  FiltresReservations,
+} from '@dfa/shared';
 
 import type { FiltresListeArticles } from './articles.api';
 
@@ -29,5 +36,22 @@ export const clesPieces = {
 
   reservations: {
     liste: (filtres: FiltresReservations) => ['pieces', 'reservations', 'liste', filtres] as const,
+  },
+
+  // Second relais (étape 3, sous-fonctions commande fournisseur/fournisseur/consigne) — mêmes
+  // conventions que les blocs ci-dessus (tuple plat, filtres complets), ajoutées par l'agent qui a
+  // complété le module (périmètre `hooks/pieces/**`, disjoint des blocs déjà livrés).
+  commandesFournisseur: {
+    liste: (filtres: FiltresCommandesFournisseur) => ['pieces', 'commandesFournisseur', 'liste', filtres] as const,
+    detail: (id: string) => ['pieces', 'commandesFournisseur', 'detail', id] as const,
+  },
+
+  fournisseurs: {
+    liste: (filtres: FiltresFournisseurs) => ['pieces', 'fournisseurs', 'liste', filtres] as const,
+    detail: (id: string) => ['pieces', 'fournisseurs', 'detail', id] as const,
+  },
+
+  consignes: {
+    liste: (filtres: FiltresConsignes) => ['pieces', 'consignes', 'liste', filtres] as const,
   },
 } as const;
