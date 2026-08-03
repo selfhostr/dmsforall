@@ -18,10 +18,12 @@ const PRINCIPAL_TEST: PrincipalAuthentifie = {
   langue: 'fr',
 };
 
-function configTest(): Config {
+function configTest(overrides: Partial<Config> = {}): Config {
   return {
     SESSION_COOKIE_NOM: 'dfa_session',
     WEB_URL_PUBLIQUE: 'https://app.dmsforall.example',
+    NODE_ENV: 'production',
+    ...overrides,
   } as Config;
 }
 
@@ -120,6 +122,80 @@ describe('GardeSession — vérification Origin (toute méthode ≠ GET/HEAD)', 
     const guard = new GardeSession(
       reflectorTest(false),
       configTest(),
+      serviceSessionTest(async () => PRINCIPAL_TEST),
+      contexteRequete,
+    );
+
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ErreurOrigineRefusee);
+  });
+});
+
+describe('GardeSession — tolérance loopback localhost/127.0.0.1 (dev uniquement)', () => {
+  function configLoopback(nodeEnv: Config['NODE_ENV'] = 'development'): Config {
+    return configTest({ WEB_URL_PUBLIQUE: 'http://localhost:5173', NODE_ENV: nodeEnv });
+  }
+
+  it("accepte, en dev, un POST dont l'Origin est http://127.0.0.1:5173 alors que WEB_URL_PUBLIQUE vaut http://localhost:5173", async () => {
+    const { context } = contexteExecutionTest({
+      method: 'POST',
+      origin: 'http://127.0.0.1:5173',
+      cookies: { dfa_session: 'jeton' },
+    });
+    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const guard = new GardeSession(
+      reflectorTest(false),
+      configLoopback('development'),
+      serviceSessionTest(async () => PRINCIPAL_TEST),
+      contexteRequete,
+    );
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+  });
+
+  it("refuse la même équivalence 127.0.0.1/localhost en production (NODE_ENV=production)", async () => {
+    const { context } = contexteExecutionTest({
+      method: 'POST',
+      origin: 'http://127.0.0.1:5173',
+      cookies: { dfa_session: 'jeton' },
+    });
+    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const guard = new GardeSession(
+      reflectorTest(false),
+      configLoopback('production'),
+      serviceSessionTest(async () => PRINCIPAL_TEST),
+      contexteRequete,
+    );
+
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ErreurOrigineRefusee);
+  });
+
+  it("refuse un port différent même sur un hôte loopback en dev (127.0.0.1:9999 ≠ localhost:5173)", async () => {
+    const { context } = contexteExecutionTest({
+      method: 'POST',
+      origin: 'http://127.0.0.1:9999',
+      cookies: { dfa_session: 'jeton' },
+    });
+    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const guard = new GardeSession(
+      reflectorTest(false),
+      configLoopback('development'),
+      serviceSessionTest(async () => PRINCIPAL_TEST),
+      contexteRequete,
+    );
+
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ErreurOrigineRefusee);
+  });
+
+  it("refuse un hôte LAN/tiers en dev : la tolérance ne s'étend jamais au-delà de localhost/127.0.0.1", async () => {
+    const { context } = contexteExecutionTest({
+      method: 'POST',
+      origin: 'http://192.168.1.42:5173',
+      cookies: { dfa_session: 'jeton' },
+    });
+    const contexteRequete = { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete;
+    const guard = new GardeSession(
+      reflectorTest(false),
+      configLoopback('development'),
       serviceSessionTest(async () => PRINCIPAL_TEST),
       contexteRequete,
     );
