@@ -16,11 +16,19 @@
     "piecesRechercheComptoir": "Ricerca al banco",
     "piecesArticles": "Articoli",
     "piecesReservations": "Prenotazioni",
-    "piecesReapprovisionnement": "Riordino"
+    "piecesReapprovisionnement": "Riordino",
+    "piecesCommandesFournisseur": "Ordini fornitore",
+    "piecesFournisseurs": "Fornitori",
+    "piecesConsignes": "Cauzioni",
+    "pointageSaisie": "Timbratura",
+    "pointageJournal": "Registro timbrature",
+    "pointageEquipe": "Team",
+    "pointageCloture": "Chiusura periodo"
   },
   "groupes": {
     "parametrage": "Impostazioni",
-    "pieces": "Ricambi"
+    "pieces": "Ricambi",
+    "pointage": "Timbratura"
   },
   "menu": {
     "ouvrir": "Apri menu"

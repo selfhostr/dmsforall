@@ -16,11 +16,19 @@
     "piecesRechercheComptoir": "Thekensuche",
     "piecesArticles": "Artikel",
     "piecesReservations": "Reservierungen",
-    "piecesReapprovisionnement": "Nachbestellung"
+    "piecesReapprovisionnement": "Nachbestellung",
+    "piecesCommandesFournisseur": "Lieferantenbestellungen",
+    "piecesFournisseurs": "Lieferanten",
+    "piecesConsignes": "Pfand",
+    "pointageSaisie": "Zeiterfassung",
+    "pointageJournal": "Zeiterfassungsjournal",
+    "pointageEquipe": "Team",
+    "pointageCloture": "Periodenabschluss"
   },
   "groupes": {
     "parametrage": "Einstellungen",
-    "pieces": "Teile"
+    "pieces": "Teile",
+    "pointage": "Zeiterfassung"
   },
   "menu": {
     "ouvrir": "Menü öffnen"

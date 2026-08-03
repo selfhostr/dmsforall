@@ -157,3 +157,92 @@ describe('BarreLaterale — groupe Paramétrage (masquage par rôle, ergonomie)'
     expect(screen.queryByRole('link', { name: /paramètres atelier/i })).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Groupe « Pièces » (étape 3) : régression sur les TROIS entrées ajoutées avec le module pointage
+ * (commandes fournisseur, fournisseurs, consignes) — ces écrans existaient déjà côté routeur
+ * (`ROLES_PIECES`, même liste que `rechercheComptoir`/`articles`/`reservations`/
+ * `reapprovisionnement`) mais n'étaient reliés à aucun lien de menu avant cet ajout.
+ */
+describe('BarreLaterale — groupe Pièces (trois entrées ajoutées : commandes fournisseur, fournisseurs, consignes)', () => {
+  it('chef d’atelier : voit les trois nouvelles entrées, vers les bons chemins', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    rendre('/');
+
+    expect(await screen.findByRole('link', { name: /commandes fournisseur/i })).toHaveAttribute(
+      'href',
+      '/pieces/commandes-fournisseur',
+    );
+    expect(screen.getByRole('link', { name: /^fournisseurs$/i })).toHaveAttribute('href', '/pieces/fournisseurs');
+    expect(screen.getByRole('link', { name: /consignes/i })).toHaveAttribute('href', '/pieces/consignes');
+  });
+
+  it('admin : ne voit AUCUNE entrée du groupe Pièces (RF-115, `DROITS_PIECES_PAR_ROLE.admin = []`)', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' } })));
+    rendre('/');
+
+    // On attend d'abord un lien inconditionnel (session chargée) avant les assertions négatives,
+    // même précaution anti-flake que le groupe Paramétrage ci-dessus.
+    await screen.findByRole('link', { name: /tarifs/i });
+    expect(screen.queryByRole('link', { name: /commandes fournisseur/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^fournisseurs$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /consignes/i })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Groupe « Pointage » (lot 2) : les quatre écrans existaient déjà côté routeur
+ * (`ROLES_POINTAGE`/`ROLES_POINTAGE_ENCADREMENT`, `ecrans/pointage/droits.ts`) mais n'étaient
+ * reliés à aucun lien de menu avant cet ajout — exactement le même défaut que le groupe Pièces
+ * ci-dessus. Régression à verrouiller : masquage du groupe ENTIER pour les rôles sans
+ * `atelier.pointage.lire` (comptable/réceptionniste/vendeur), et masquage supplémentaire
+ * d'« Équipe »/« Clôture de période » pour qui n'est pas encadrement (technicien/magasinier).
+ */
+describe('BarreLaterale — groupe Pointage (masquage par rôle, restriction RÉELLE API)', () => {
+  it('chef d’atelier (encadrement) : voit les quatre entrées, vers les bons chemins', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    rendre('/');
+
+    expect(await screen.findByRole('link', { name: /^pointage$/i })).toHaveAttribute('href', '/pointage');
+    expect(screen.getByRole('link', { name: /journal de pointage/i })).toHaveAttribute('href', '/pointage/jour');
+    expect(screen.getByRole('link', { name: /^équipe$/i })).toHaveAttribute('href', '/pointage/equipe');
+    expect(screen.getByRole('link', { name: /clôture de période/i })).toHaveAttribute('href', '/pointage/cloture');
+  });
+
+  it('technicien : voit Pointage et Journal, mais PAS Équipe ni Clôture de période (encadrement seul)', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' } })));
+    rendre('/');
+
+    expect(await screen.findByRole('link', { name: /^pointage$/i })).toHaveAttribute('href', '/pointage');
+    expect(screen.getByRole('link', { name: /journal de pointage/i })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^équipe$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /clôture de période/i })).not.toBeInTheDocument();
+  });
+
+  it('admin (encadrement) : voit les quatre entrées, y compris Équipe et Clôture de période', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' } })));
+    rendre('/');
+
+    expect(await screen.findByRole('link', { name: /^équipe$/i })).toHaveAttribute('href', '/pointage/equipe');
+    expect(screen.getByRole('link', { name: /clôture de période/i })).toHaveAttribute('href', '/pointage/cloture');
+  });
+
+  it('comptable : ne voit AUCUNE entrée du groupe Pointage (atelier.pointage.lire fermé)', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'comptable' } })));
+    rendre('/');
+
+    await screen.findByRole('link', { name: /coordonnées bancaires/i });
+    expect(screen.queryByRole('link', { name: /^pointage$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /journal de pointage/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^équipe$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /clôture de période/i })).not.toBeInTheDocument();
+  });
+
+  it('réceptionniste : ne voit AUCUNE entrée du groupe Pointage (atelier.pointage.lire fermé)', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role: 'receptionnaire' } })));
+    rendre('/');
+
+    await screen.findByRole('link', { name: /tarifs/i });
+    expect(screen.queryByRole('link', { name: /^pointage$/i })).not.toBeInTheDocument();
+  });
+});

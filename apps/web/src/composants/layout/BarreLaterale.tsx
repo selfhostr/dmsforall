@@ -1,7 +1,30 @@
-import { Bookmark, Boxes, Building2, Car, Copy, Home, Landmark, PackageSearch, Receipt, RefreshCw, Search, Tag, Users, Wrench } from 'lucide-react';
+import {
+  Bookmark,
+  Boxes,
+  Building2,
+  CalendarClock,
+  Car,
+  Clock,
+  Copy,
+  Handshake,
+  Home,
+  Landmark,
+  Lock,
+  PackageSearch,
+  Receipt,
+  RefreshCw,
+  Search,
+  Tag,
+  Truck,
+  Undo2,
+  Users,
+  UsersRound,
+  Wrench,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, useSearchParams } from 'react-router';
 
+import { ROLES_POINTAGE, ROLES_POINTAGE_ENCADREMENT } from '@/ecrans/pointage/droits';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
 import { ROLES_MENU_FINANCIER, ROLES_MENU_PARAMETRAGE_ATELIER, ROLES_PIECES } from '@/routes/droits-routes';
@@ -53,6 +76,15 @@ function classeLien({ isActive }: { readonly isActive: boolean }): string {
  * reste gouvernée (grisée dans chaque écran ET refusée par le serveur). Un utilisateur qui
  * connaîtrait l'URL malgré un lien masqué ici atteint donc l'écran normalement, en lecture — ce
  * n'est pas un contournement, c'est le comportement voulu.
+ *
+ * Groupe « Pointage » (lot 2) : masquage qui reflète une restriction RÉELLE côté API, même patron
+ * que le groupe « Pièces » ci-dessus — `ROLES_POINTAGE`/`ROLES_POINTAGE_ENCADREMENT`
+ * (`ecrans/pointage/droits.ts`) sont les mêmes listes que celles qui protègent les routes
+ * (`routeur.tsx`), pas des listes séparées inventées pour le menu. Le groupe entier est absent pour
+ * `comptable`/`receptionnaire`/`vendeur` (`atelier.pointage.lire` leur est fermé) ; à l'intérieur du
+ * groupe, « Équipe » et « Clôture de période » restent en plus masqués à `technicien`/`magasinier`
+ * (gouvernance atelier seule — `chef_atelier`/`direction`/`admin`). Aucun `?site=` : le pointage se
+ * filtre par technicien et par période, pas par site (voir `routes/chemins.ts`).
  */
 export function BarreLaterale({ className }: Props) {
   const { t } = useTranslation('navigation');
@@ -69,6 +101,13 @@ export function BarreLaterale({ className }: Props) {
   // ci-dessus : `ROLES_PIECES` est la même liste que celle qui protège les routes
   // (`routeur.tsx`), pas une liste séparée inventée pour le menu.
   const peutAccederPieces = role !== undefined && ROLES_PIECES.includes(role);
+  // Module pointage (lot 2) — même patron que `peutAccederPieces` ci-dessus : `ROLES_POINTAGE`
+  // reflète la restriction RÉELLE de l'API (`atelier.pointage.lire` fermé à `comptable`/
+  // `receptionnaire`/`vendeur`, voir `ecrans/pointage/droits.ts`), pas une liste inventée pour le
+  // menu. `ROLES_POINTAGE_ENCADREMENT` restreint en plus « Équipe » et « Clôture de période » aux
+  // rôles de gouvernance (chef d'atelier/direction/admin) — même distinction que côté routeur.
+  const peutAccederPointage = role !== undefined && ROLES_POINTAGE.includes(role);
+  const peutGererPointageEncadrement = role !== undefined && ROLES_POINTAGE_ENCADREMENT.includes(role);
 
   return (
     <nav aria-label={t('navigation:principale.aria')} className={cn('flex flex-col gap-1 p-3', className)}>
@@ -122,6 +161,46 @@ export function BarreLaterale({ className }: Props) {
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             {t('navigation:liens.piecesReapprovisionnement')}
           </NavLink>
+          <NavLink to={chemins.pieces.commandesFournisseur.liste()} className={classeLien}>
+            <Truck className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.piecesCommandesFournisseur')}
+          </NavLink>
+          <NavLink to={chemins.pieces.fournisseurs.liste()} className={classeLien}>
+            <Handshake className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.piecesFournisseurs')}
+          </NavLink>
+          <NavLink to={chemins.pieces.consignes()} className={classeLien}>
+            <Undo2 className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.piecesConsignes')}
+          </NavLink>
+        </>
+      ) : null}
+
+      {peutAccederPointage ? (
+        <>
+          <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {t('navigation:groupes.pointage')}
+          </p>
+          <NavLink to={chemins.pointage.saisie()} className={classeLien}>
+            <Clock className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.pointageSaisie')}
+          </NavLink>
+          <NavLink to={chemins.pointage.jour()} className={classeLien}>
+            <CalendarClock className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.pointageJournal')}
+          </NavLink>
+          {peutGererPointageEncadrement ? (
+            <NavLink to={chemins.pointage.equipe()} className={classeLien}>
+              <UsersRound className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.pointageEquipe')}
+            </NavLink>
+          ) : null}
+          {peutGererPointageEncadrement ? (
+            <NavLink to={chemins.pointage.cloture()} className={classeLien}>
+              <Lock className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.pointageCloture')}
+            </NavLink>
+          ) : null}
         </>
       ) : null}
 
