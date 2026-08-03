@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-25 -5 250 110" role="img" aria-label="dmsforall">
+  <!-- Monogramme DFA : D orange plein, F et A noirs pleins, italique géométrique (skewX),
+       lettres serrées (léger chevauchement). Un contour clair fin est appliqué au F et au A
+       (jamais au D, déjà lisible en orange) pour rester visible sur un onglet de navigateur en
+       thème sombre, où le noir #111111 se fondrait sinon dans le fond — voir rapport d'intégration
+       pour le détail de cet arbitrage. -->
+  <g transform="skewX(-12)">
+    <g transform="translate(0,0)">
+      <path
+        fill-rule="evenodd"
+        fill="#F07E17"
+        d="M0,0 H28 C54,0 78,22 78,50 C78,78 54,100 28,100 H0 Z M28,28 C42,28 50,36 50,50 C50,64 42,72 28,72 Z"
+      />
+    </g>
+    <g transform="translate(75,0)">
+      <path
+        fill="#111111"
+        stroke="#F5F1EA"
+        stroke-width="4"
+        stroke-linejoin="round"
+        d="M0,0 H68 V28 H28 V38 H58 V66 H28 V100 H0 Z"
+      />
+    </g>
+    <g transform="translate(140,0)">
+      <path
+        fill-rule="evenodd"
+        fill="#111111"
+        stroke="#F5F1EA"
+        stroke-width="4"
+        stroke-linejoin="round"
+        d="M26,0 L54,0 L80,100 L0,100 Z M35.8,70 L44.2,70 L52,100 L28,100 Z"
+      />
+    </g>
+  </g>
+</svg>

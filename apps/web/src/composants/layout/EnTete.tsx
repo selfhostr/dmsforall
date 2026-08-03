@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router';
 import { useDeconnexion } from '@/hooks/useDeconnexion';
 import { useSession } from '@/hooks/useSession';
 import { Button } from '@/components/ui/button';
+import { LogoDfa } from '@/composants/identite/LogoDfa';
 
 import { MenuUtilisateur } from './MenuUtilisateur';
 import { SelecteurLangue } from './SelecteurLangue';
@@ -31,13 +32,16 @@ export function EnTete() {
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b bg-background px-4">
-      <div className="min-w-0">
-        <p className="truncate font-semibold" title={session.tenant.raisonSociale}>
-          {session.tenant.raisonSociale}
-        </p>
-        <p className="truncate text-sm text-muted-foreground" title={libelleSite}>
-          {libelleSite}
-        </p>
+      <div className="flex min-w-0 items-center gap-3">
+        <LogoDfa hauteur={24} className="hidden sm:block" />
+        <div className="min-w-0">
+          <p className="truncate font-semibold" title={session.tenant.raisonSociale}>
+            {session.tenant.raisonSociale}
+          </p>
+          <p className="truncate text-sm text-muted-foreground" title={libelleSite}>
+            {libelleSite}
+          </p>
+        </div>
       </div>
       <div className="flex items-center gap-3">
         <SelecteurLangue />
