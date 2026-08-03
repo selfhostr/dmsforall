@@ -11,6 +11,12 @@
 
 alter function public.attribuer_numero_article() security invoker;
 
+comment on function public.attribuer_numero_article() is
+  'Trigger BEFORE INSERT sur article : attribue numero_article depuis article_numero_seq si '
+  'absent (RP-08). Séquence GLOBALE (pas de reset annuel/par tenant, aucune règle métier ne '
+  'l''exige) : l''unicité PAR TENANT (contrainte réelle, article_tenant_numero_uk) en découle '
+  'trivialement.';
+
 alter table public.pointage_verrouillage_site
   drop constraint pointage_verrouillage_site_tenant_site_uk;
 
