@@ -69,7 +69,14 @@
     "lignes": "Ligne",
     "motif": "Motif de la correction",
     "motifRequis": "Le motif est obligatoire",
-    "enregistrer": "Enregistrer la correction"
+    "enregistrer": "Enregistrer la correction",
+    "debut": "Début",
+    "fin": "Fin",
+    "nature": "Nature",
+    "cible": "Cible",
+    "annuler": "Annuler",
+    "succes": "Correction enregistrée.",
+    "motifPlaceholder": "Ex. : oubli d'arrêt en fin de journée"
   },
   "donnees": {
     "titre": "État des données",
@@ -78,5 +85,147 @@
   },
   "vide": {
     "aucunOr": "Aucun OR à pointer pour vous aujourd'hui."
+  },
+  "statuts": {
+    "en_cours": "En cours",
+    "termine": "Terminé",
+    "valide": "Validé",
+    "verrouille": "Verrouillé"
+  },
+  "natures": {
+    "productif_ligne": "Ligne d'OR",
+    "productif_or": "OR (sans ligne précise)",
+    "indirect": "Activité indirecte"
+  },
+  "siteRequis": {
+    "titre": "Choisissez un site",
+    "description": "Le pointage se fait pour un site précis — sélectionnez celui où vous travaillez aujourd'hui.",
+    "label": "Site"
+  },
+  "technicien": {
+    "titreEcran": "Mon pointage",
+    "aucunPointage": {
+      "titre": "Aucun pointage en cours",
+      "description": "Choisissez un OR ci-dessous ou une activité indirecte pour démarrer."
+    },
+    "pointageEnCours": {
+      "titre": "Pointage en cours",
+      "depuis": "Depuis {heure}"
+    },
+    "cible": {
+      "ligne": "{numero} — {designation}",
+      "or": "{numero} — OR entier",
+      "indirect": "{activite}"
+    },
+    "boutons": {
+      "arreter": "Arrêter",
+      "pause": "Mettre en pause",
+      "reprendre": "Reprendre",
+      "demarrerOr": "Pointer sur cet OR",
+      "demarrerLigne": "Pointer sur cette ligne"
+    },
+    "mesOrs": {
+      "titre": "Mes OR du jour",
+      "lignesAssignees": "{count, plural, one {# ligne qui vous est assignée} other {# lignes qui vous sont assignées}}"
+    },
+    "choisirCible": {
+      "titre": "Que pointez-vous ?",
+      "description": "Choisissez une ligne qui vous est assignée, ou pointez sur l'OR entier.",
+      "orEntier": "OR entier (sans ligne précise)",
+      "lignesTitre": "Lignes qui vous sont assignées",
+      "aucuneLigne": "Aucune ligne ne vous est assignée sur cet OR — vous pouvez pointer sur l'OR entier."
+    },
+    "erreur": {
+      "titre": "Impossible de charger votre pointage"
+    }
+  },
+  "jour": {
+    "titre": "Pointages du jour",
+    "titreSemaine": "Pointages de la semaine",
+    "filtres": {
+      "periode": "Période",
+      "jour": "Jour",
+      "semaine": "Semaine"
+    },
+    "colonnes": {
+      "technicien": "Technicien",
+      "productif": "Productif",
+      "indirect": "Indirect",
+      "presence": "Présence",
+      "anomalies": "Anomalies"
+    },
+    "total": "Total",
+    "vide": {
+      "titre": "Aucun pointage",
+      "description": "Aucun pointage enregistré sur cette période."
+    },
+    "enCoursBadge": "En cours",
+    "erreur": {
+      "titre": "Impossible de charger les pointages"
+    }
+  },
+  "equipe": {
+    "titre": "Pointages de l'équipe",
+    "onglets": {
+      "liste": "Tous les pointages",
+      "parOr": "Par ordre de réparation"
+    },
+    "colonnes": {
+      "technicien": "Technicien",
+      "cible": "Cible",
+      "debut": "Début",
+      "fin": "Fin",
+      "duree": "Durée",
+      "statut": "Statut",
+      "actions": "Actions"
+    },
+    "nomIndisponible": "Technicien {id}",
+    "corriger": "Corriger",
+    "parOr": {
+      "rechercherOrLabel": "Numéro d'OR ou véhicule",
+      "rechercherOrPlaceholder": "Rechercher un OR…",
+      "tempsReel": "Temps réellement pointé",
+      "tempsFacture": "Temps facturé (barème)",
+      "ecart": "Écart",
+      "parTechnicien": "Détail par technicien",
+      "aucunPointage": "Aucun pointage enregistré sur cet OR.",
+      "choisirOr": "Choisissez un OR pour voir le détail de son pointage."
+    },
+    "vide": {
+      "titre": "Aucun pointage",
+      "description": "Aucun pointage pour ce site sur cette période."
+    },
+    "erreur": {
+      "titre": "Impossible de charger l'équipe"
+    }
+  },
+  "periode": {
+    "titre": "Clôture de période",
+    "site": "Site",
+    "vide": {
+      "titre": "Choisissez un site",
+      "description": "Sélectionnez un site pour verrouiller ou déverrouiller une période de pointage."
+    },
+    "verrouiller": {
+      "titre": "Verrouiller une période",
+      "description": "Tout pointage terminé ou validé, dont le début précède cette date, sera verrouillé. Un pointage encore en cours dans la plage bloque l'opération entière.",
+      "jusquau": "Jusqu'au (inclus)",
+      "motif": "Motif (optionnel)",
+      "action": "Verrouiller",
+      "resultat": "{count, plural, one {# pointage verrouillé.} other {# pointages verrouillés.}}",
+      "blocage": "Des pointages sont encore en cours dans cette plage — ils doivent être arrêtés avant de pouvoir verrouiller."
+    },
+    "deverrouiller": {
+      "titre": "Déverrouiller (contre-passation)",
+      "description": "Ne concerne que les pointages déjà verrouillés du site, qui redeviennent validés.",
+      "jusquau": "Jusqu'au (inclus)",
+      "motif": "Motif de la contre-passation",
+      "motifRequis": "Le motif est obligatoire pour déverrouiller une période.",
+      "action": "Déverrouiller",
+      "resultat": "{count, plural, one {# pointage déverrouillé.} other {# pointages déverrouillés.}}"
+    },
+    "erreur": {
+      "titre": "Action impossible"
+    }
   }
 }

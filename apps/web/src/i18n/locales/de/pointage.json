@@ -69,7 +69,14 @@
     "lignes": "Arbeit",
     "motif": "Grund der Änderung",
     "motifRequis": "Der Grund ist erforderlich",
-    "enregistrer": "Korrektur speichern"
+    "enregistrer": "Korrektur speichern",
+    "debut": "Beginn",
+    "fin": "Ende",
+    "nature": "Art",
+    "cible": "Ziel",
+    "annuler": "Abbrechen",
+    "succes": "Korrektur gespeichert.",
+    "motifPlaceholder": "Z. B.: Ende der Zeiterfassung vergessen"
   },
   "donnees": {
     "titre": "Daten-Status",
@@ -78,5 +85,147 @@
   },
   "vide": {
     "aucunOr": "Für Sie heute keine Arbeiten zu erfassen."
+  },
+  "statuts": {
+    "en_cours": "Läuft",
+    "termine": "Beendet",
+    "valide": "Bestätigt",
+    "verrouille": "Gesperrt"
+  },
+  "natures": {
+    "productif_ligne": "RA-Arbeit",
+    "productif_or": "RA (ohne genaue Arbeit)",
+    "indirect": "Indirekte Tätigkeit"
+  },
+  "siteRequis": {
+    "titre": "Standort wählen",
+    "description": "Die Zeiterfassung erfolgt für einen bestimmten Standort — wählen Sie den Standort, an dem Sie heute arbeiten.",
+    "label": "Standort"
+  },
+  "technicien": {
+    "titreEcran": "Meine Zeiterfassung",
+    "aucunPointage": {
+      "titre": "Keine laufende Zeiterfassung",
+      "description": "Wählen Sie unten einen RA oder eine indirekte Tätigkeit, um zu starten."
+    },
+    "pointageEnCours": {
+      "titre": "Laufende Zeiterfassung",
+      "depuis": "Seit {heure}"
+    },
+    "cible": {
+      "ligne": "{numero} — {designation}",
+      "or": "{numero} — Ganzer RA",
+      "indirect": "{activite}"
+    },
+    "boutons": {
+      "arreter": "Beenden",
+      "pause": "Pausieren",
+      "reprendre": "Fortsetzen",
+      "demarrerOr": "Auf diesem RA erfassen",
+      "demarrerLigne": "Auf dieser Arbeit erfassen"
+    },
+    "mesOrs": {
+      "titre": "Meine RA heute",
+      "lignesAssignees": "{count, plural, one {# Ihnen zugewiesene Arbeit} other {# Ihnen zugewiesene Arbeiten}}"
+    },
+    "choisirCible": {
+      "titre": "Was erfassen Sie?",
+      "description": "Wählen Sie eine Ihnen zugewiesene Arbeit, oder erfassen Sie auf dem ganzen RA.",
+      "orEntier": "Ganzer RA (ohne genaue Arbeit)",
+      "lignesTitre": "Ihnen zugewiesene Arbeiten",
+      "aucuneLigne": "Ihnen ist keine Arbeit auf diesem RA zugewiesen — Sie können auf dem ganzen RA erfassen."
+    },
+    "erreur": {
+      "titre": "Ihre Zeiterfassung konnte nicht geladen werden"
+    }
+  },
+  "jour": {
+    "titre": "Zeiterfassungen des Tages",
+    "titreSemaine": "Zeiterfassungen der Woche",
+    "filtres": {
+      "periode": "Zeitraum",
+      "jour": "Tag",
+      "semaine": "Woche"
+    },
+    "colonnes": {
+      "technicien": "Techniker",
+      "productif": "Produktiv",
+      "indirect": "Indirekt",
+      "presence": "Anwesenheit",
+      "anomalies": "Auffälligkeiten"
+    },
+    "total": "Total",
+    "vide": {
+      "titre": "Keine Zeiterfassung",
+      "description": "Für diesen Zeitraum ist keine Zeiterfassung erfasst."
+    },
+    "enCoursBadge": "Läuft",
+    "erreur": {
+      "titre": "Zeiterfassungen konnten nicht geladen werden"
+    }
+  },
+  "equipe": {
+    "titre": "Zeiterfassungen des Teams",
+    "onglets": {
+      "liste": "Alle Zeiterfassungen",
+      "parOr": "Nach Reparaturauftrag"
+    },
+    "colonnes": {
+      "technicien": "Techniker",
+      "cible": "Ziel",
+      "debut": "Beginn",
+      "fin": "Ende",
+      "duree": "Dauer",
+      "statut": "Status",
+      "actions": "Aktionen"
+    },
+    "nomIndisponible": "Techniker {id}",
+    "corriger": "Korrigieren",
+    "parOr": {
+      "rechercherOrLabel": "RA-Nummer oder Fahrzeug",
+      "rechercherOrPlaceholder": "RA suchen…",
+      "tempsReel": "Effektiv erfasste Zeit",
+      "tempsFacture": "Fakturierte Zeit (Vorgabe)",
+      "ecart": "Abweichung",
+      "parTechnicien": "Detail nach Techniker",
+      "aucunPointage": "Für diesen RA ist keine Zeiterfassung erfasst.",
+      "choisirOr": "Wählen Sie einen RA, um dessen Zeiterfassung im Detail zu sehen."
+    },
+    "vide": {
+      "titre": "Keine Zeiterfassung",
+      "description": "Für diesen Standort ist in diesem Zeitraum keine Zeiterfassung erfasst."
+    },
+    "erreur": {
+      "titre": "Team konnte nicht geladen werden"
+    }
+  },
+  "periode": {
+    "titre": "Periodenabschluss",
+    "site": "Standort",
+    "vide": {
+      "titre": "Standort wählen",
+      "description": "Wählen Sie einen Standort, um eine Zeiterfassungsperiode zu sperren oder zu entsperren."
+    },
+    "verrouiller": {
+      "titre": "Periode sperren",
+      "description": "Jede beendete oder bestätigte Zeiterfassung mit Beginn vor diesem Datum wird gesperrt. Eine noch laufende Zeiterfassung im Zeitraum blockiert den gesamten Vorgang.",
+      "jusquau": "Bis (einschliesslich)",
+      "motif": "Grund (optional)",
+      "action": "Sperren",
+      "resultat": "{count, plural, one {# Zeiterfassung gesperrt.} other {# Zeiterfassungen gesperrt.}}",
+      "blocage": "Es laufen noch Zeiterfassungen in diesem Zeitraum — sie müssen zuerst beendet werden, bevor gesperrt werden kann."
+    },
+    "deverrouiller": {
+      "titre": "Entsperren (Gegenbuchung)",
+      "description": "Betrifft nur bereits gesperrte Zeiterfassungen des Standorts, die wieder als bestätigt gelten.",
+      "jusquau": "Bis (einschliesslich)",
+      "motif": "Grund der Gegenbuchung",
+      "motifRequis": "Der Grund ist erforderlich, um eine Periode zu entsperren.",
+      "action": "Entsperren",
+      "resultat": "{count, plural, one {# Zeiterfassung entsperrt.} other {# Zeiterfassungen entsperrt.}}"
+    },
+    "erreur": {
+      "titre": "Aktion nicht möglich"
+    }
   }
 }
