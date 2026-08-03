@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogoDfa } from '@/composants/identite/LogoDfa';
 import { SelecteurLangue } from '@/composants/layout/SelecteurLangue';
 import { useConnexion } from '@/hooks/useConnexion';
 
@@ -51,8 +50,7 @@ export function EcranConnexion() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-[420px] space-y-4">
-        <div className="flex items-center justify-between">
-          <LogoDfa hauteur={32} />
+        <div className="flex justify-end">
           <SelecteurLangue />
         </div>
 
