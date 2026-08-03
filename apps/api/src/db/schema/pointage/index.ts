@@ -5,5 +5,6 @@
  */
 
 export * from './enums';
+export * from './pin';
 export * from './pointage';
 export * from './verrouillage-site';

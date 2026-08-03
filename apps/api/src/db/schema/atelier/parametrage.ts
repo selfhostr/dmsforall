@@ -26,6 +26,7 @@ import { site } from '../site';
 import { tenant } from '../tenant';
 import {
   arrondiPointageEnum,
+  modeIdentificationPointageEnum,
   politiqueControleQualiteEnum,
   politiqueDemontageRefuseEnum,
   politiqueDeuxOrMemeVehiculeEnum,
@@ -113,6 +114,16 @@ export const parametreSite = pgTable(
     heureCloturePointage: time('heure_cloture_pointage'),
     capaciteHeuresJourCentiemes: integer('capacite_heures_jour_centiemes'),
     joursFermeture: jsonb('jours_fermeture').notNull().default([]),
+    /**
+     * RM-124 (0036, `docs/specification-pointage-borne.md`) : mode d'identification du pointage
+     * pour ce site. Défaut `'session_personnelle'` impératif — tous les sites existants
+     * continuent de fonctionner à l'identique sans intervention. Même droit que les autres
+     * colonnes de cet enregistrement (`parametrage.atelier.modifier`), via le même endpoint
+     * `PATCH /sites/{siteId}/parametres-atelier` déjà en place.
+     */
+    modeIdentificationPointage: modeIdentificationPointageEnum('mode_identification_pointage')
+      .notNull()
+      .default('session_personnelle'),
     ...colonnesHorodatage(),
   },
   (t) => [

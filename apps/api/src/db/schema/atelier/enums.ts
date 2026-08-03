@@ -145,3 +145,23 @@ export const politiqueDeuxOrMemeVehiculeEnum = pgEnum(
   'politique_deux_or_meme_vehicule',
   POLITIQUES_DEUX_OR_MEME_VEHICULE,
 );
+
+// --- 0036 (pointage — mode borne PIN) ---------------------------------------------------------
+//
+// DÉVIATION ASSUMÉE de la doctrine « source unique @dfa/shared » de ce fichier (voir l'en-tête :
+// chaque `pgEnum(...)` ci-dessus est normalement un miroir d'une constante exportée par
+// `@dfa/shared`). Le périmètre EXCLUSIF de la tâche qui introduit cet enum est limité à
+// `apps/api/src/db/migrations/0036_*.sql` et `apps/api/src/db/schema/` — `packages/shared` en
+// est explicitement exclu. Le tableau de valeurs est donc posé EN DUR ici plutôt qu'importé.
+//
+// À RÉSORBER dès qu'un agent peut toucher `packages/shared` : ajouter
+// `MODES_IDENTIFICATION_POINTAGE = ['session_personnelle', 'borne_partagee'] as const` dans
+// `contrats/pointage/enums.ts` (même convention que `ACTIVITES_INDIRECTES`/
+// `MOTIFS_ANOMALIE_POINTAGE` du même fichier), l'exporter depuis `@dfa/shared`, puis remplacer le
+// tableau littéral ci-dessous par cet import — sans toucher au nom Postgres ni à la migration
+// 0036, déjà appliquée et immuable.
+/** RM-124 (`docs/specification-pointage-borne.md`) : mode d'identification du pointage, par site. */
+export const modeIdentificationPointageEnum = pgEnum('mode_identification_pointage', [
+  'session_personnelle',
+  'borne_partagee',
+] as const);
