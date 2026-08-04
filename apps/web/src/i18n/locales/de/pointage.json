@@ -2,7 +2,20 @@
   "titre": "Zeiterfassung",
   "identification": {
     "titre": "Wer sind Sie?",
-    "saisisseCode": "PIN eingeben"
+    "saisisseCode": "PIN eingeben",
+    "bonjour": "Hallo {prenom}",
+    "terminer": "Fertig",
+    "erreur": {
+      "titre": "Identifikation nicht möglich",
+      "session": "Die Sitzung dieses Terminals konnte nicht überprüft werden."
+    },
+    "pave": {
+      "chiffre": "Ziffer {chiffre}",
+      "chiffresSaisis": "{compte} von {total} Ziffern eingegeben",
+      "effacer": "Löschen",
+      "valider": "Bestätigen",
+      "reessayerDans": "Neuer Versuch möglich in {secondes} s."
+    }
   },
   "repos": {
     "titre": "Heute zu tun",

@@ -105,6 +105,11 @@ export const chemins = {
     jour: () => '/pointage/jour',
     equipe: () => '/pointage/equipe',
     cloture: () => '/pointage/cloture',
+    /** Borne d'atelier (mode « borne partagée », identification par PIN) — route distincte de
+     *  `saisie` ci-dessus, réservée au compte de service `poste_atelier`
+     *  (`RouteProtegee.rolesAutorises` dans `routeur.tsx`) : un technicien avec sa propre session
+     *  utilise `saisie`, la borne murale partagée utilise `borne`. */
+    borne: () => '/pointage/borne',
   },
   /** Module ventes VN/VO (étape 4). Repris À L'IDENTIQUE des chemins locaux posés par les agents
    *  qui ont livré les écrans — `ecrans/ventes/stock/_composants/chemins-locaux.ts`

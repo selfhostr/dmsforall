@@ -28,6 +28,7 @@ import { EcranNouvelleCommandeFournisseur } from '@/ecrans/pieces/EcranNouvelleC
 import { EcranReapprovisionnement } from '@/ecrans/pieces/EcranReapprovisionnement';
 import { EcranRechercheComptoirPieces } from '@/ecrans/pieces/EcranRechercheComptoirPieces';
 import { EcranReservationsPieces } from '@/ecrans/pieces/EcranReservationsPieces';
+import { EcranBornePointage } from '@/ecrans/pointage/EcranBornePointage';
 import { EcranCloturePeriodePointage } from '@/ecrans/pointage/EcranCloturePeriodePointage';
 import { EcranEquipePointage } from '@/ecrans/pointage/EcranEquipePointage';
 import { EcranJournalPointage } from '@/ecrans/pointage/EcranJournalPointage';
@@ -310,6 +311,25 @@ export const routesConfig: RouteObject[] = [
         element: (
           <RouteProtegee rolesAutorises={ROLES_POINTAGE_ENCADREMENT}>
             <EcranCloturePeriodePointage />
+          </RouteProtegee>
+        ),
+      },
+      // Borne d'atelier (mode « borne partagée », identification par PIN) — TROISIÈME garde du
+      // module pointage, distincte des deux précédentes : réservée au seul rôle `poste_atelier`
+      // (compte de service de la borne), le seul détenteur de `atelier.pointage.identifier`
+      // (`DROITS_POINTAGE_PAR_ROLE.poste_atelier`, `apps/api/src/auth/matrice-droits.ts`) —
+      // restriction RÉELLE de l'API, pas une ergonomie de menu (même raisonnement que
+      // `ROLES_PIECES`/`ROLES_VENTES` ci-dessus). Le paramètre DE SITE qui devrait piloter le choix
+      // entre `pointage` (session personnelle) et `pointage/borne` (borne partagée) n'existe pas
+      // encore côté API au moment d'écrire cette route (recherché dans `apps/api/src/parametrage/`
+      // et le schéma `site` — absent) : cette route reste donc atteinte par lien direct/favori sur
+      // la tablette murale, pas par une redirection automatique — voir le commentaire de tête
+      // d'`EcranBornePointage.tsx`.
+      {
+        path: 'pointage/borne',
+        element: (
+          <RouteProtegee rolesAutorises={['poste_atelier']}>
+            <EcranBornePointage />
           </RouteProtegee>
         ),
       },

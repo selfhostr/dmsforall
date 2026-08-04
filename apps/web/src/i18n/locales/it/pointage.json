@@ -2,7 +2,20 @@
   "titre": "Timbratura",
   "identification": {
     "titre": "Chi sei?",
-    "saisisseCode": "Inserisci codice PIN"
+    "saisisseCode": "Inserisci codice PIN",
+    "bonjour": "Ciao {prenom}",
+    "terminer": "Fatto",
+    "erreur": {
+      "titre": "Identificazione non riuscita",
+      "session": "Impossibile verificare la sessione di questo terminale."
+    },
+    "pave": {
+      "chiffre": "Cifra {chiffre}",
+      "chiffresSaisis": "{compte} cifre su {total} inserite",
+      "effacer": "Cancella",
+      "valider": "Conferma",
+      "reessayerDans": "Nuovo tentativo possibile tra {secondes} s."
+    }
   },
   "repos": {
     "titre": "Lavoro del giorno",

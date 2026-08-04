@@ -2,7 +2,20 @@
   "titre": "Pointage",
   "identification": {
     "titre": "Qui êtes-vous ?",
-    "saisisseCode": "Saisissez le code PIN"
+    "saisisseCode": "Saisissez le code PIN",
+    "bonjour": "Bonjour {prenom}",
+    "terminer": "Terminé",
+    "erreur": {
+      "titre": "Identification impossible",
+      "session": "Impossible de vérifier la session de cette borne."
+    },
+    "pave": {
+      "chiffre": "Chiffre {chiffre}",
+      "chiffresSaisis": "{compte} sur {total} chiffres saisis",
+      "effacer": "Effacer",
+      "valider": "Valider",
+      "reessayerDans": "Nouvel essai possible dans {secondes} s."
+    }
   },
   "repos": {
     "titre": "Travail du jour",
