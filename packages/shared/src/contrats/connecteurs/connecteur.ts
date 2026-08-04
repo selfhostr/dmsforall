@@ -12,6 +12,7 @@ import { schemaCodeConnecteur } from './primitives';
 import type { SanteConnecteurActivation } from './sante';
 import type { NatureExportConnecteur, NatureImportConnecteur } from './enums';
 import { schemaIdentifiant } from '../atelier/primitives';
+import { schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 
 /* ------------------------------------------------------------------ */
@@ -54,7 +55,7 @@ export const TRIS_TYPES_CONNECTEUR = ['nom:asc', 'famille:asc'] as const;
 export const TRI_DEFAUT_TYPES_CONNECTEUR = 'nom:asc';
 
 export const schemaFiltresTypesConnecteur = schemaParametresPage.extend({
-  famille: z.array(z.enum(FAMILLES_CONNECTEUR)).optional(),
+  famille: schemaListeQuery(z.enum(FAMILLES_CONNECTEUR)).optional(),
   disponible: z.coerce.boolean().optional(),
   tri: z.enum(TRIS_TYPES_CONNECTEUR).default(TRI_DEFAUT_TYPES_CONNECTEUR),
 });
@@ -125,8 +126,8 @@ export const TRIS_CONNECTEUR_ACTIVATIONS = ['creeLe:desc', 'creeLe:asc'] as cons
 export const TRI_DEFAUT_CONNECTEUR_ACTIVATIONS = 'creeLe:desc';
 
 export const schemaFiltresConnecteurActivations = schemaParametresPage.extend({
-  famille: z.array(z.enum(FAMILLES_CONNECTEUR)).optional(),
-  statut: z.array(z.enum(STATUTS_ACTIVATION_CONNECTEUR)).optional(),
+  famille: schemaListeQuery(z.enum(FAMILLES_CONNECTEUR)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_ACTIVATION_CONNECTEUR)).optional(),
   siteId: schemaIdentifiant.optional(),
   tri: z.enum(TRIS_CONNECTEUR_ACTIVATIONS).default(TRI_DEFAUT_CONNECTEUR_ACTIVATIONS),
 });

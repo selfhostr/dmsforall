@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { STATUTS_CONSIGNE_ECHANGE_STANDARD, type StatutConsigneEchangeStandard } from './enums';
 import { schemaDelaiJours } from './primitives';
 import { schemaIdentifiant } from '../atelier/primitives';
+import { schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 
 /**
@@ -60,7 +61,7 @@ export const TRI_DEFAUT_CONSIGNES = 'creeLe:desc';
  * non tranchée, voir `QP-07` dans le rapport d'accompagnement).
  */
 export const schemaFiltresConsignes = schemaParametresPage.extend({
-  statut: z.array(z.enum(STATUTS_CONSIGNE_ECHANGE_STANDARD)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_CONSIGNE_ECHANGE_STANDARD)).optional(),
   siteId: schemaIdentifiant.optional(),
   ancienneteJoursMin: schemaDelaiJours.optional(),
   tri: z.enum(TRIS_CONSIGNES).default(TRI_DEFAUT_CONSIGNES),

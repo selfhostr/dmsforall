@@ -36,6 +36,7 @@ import {
   schemaTexteCourt,
   schemaTexteLong,
 } from './primitives';
+import { schemaListeQuery } from '../filtres';
 
 /**
  * Véhicules (contrats-api-etape-1.md §7.4, §8.1).
@@ -344,7 +345,7 @@ export const TRI_DEFAUT_TRAVAUX_REPORTES = 'constateLe:desc';
 export const schemaFiltresVehicules = z.object({
   q: z.string().trim().min(1).max(120).optional(),
   detenteurId: schemaIdentifiant.optional(),
-  statut: z.array(z.enum(STATUTS_VEHICULE)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_VEHICULE)).optional(),
   marque: z.string().trim().max(60).optional(),
   importe: z.coerce.boolean().optional(),
   /** Sert la liste de relance d'expertise (RM-29) : « échéance au plus tard le … ». */
@@ -360,8 +361,8 @@ export const schemaFiltresKilometrages = z.object({
 });
 
 export const schemaFiltresTravauxReportes = z.object({
-  statut: z.array(z.enum(STATUTS_TRAVAIL_REPORTE)).optional(),
-  urgence: z.array(z.enum(URGENCES_TRAVAIL)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_TRAVAIL_REPORTE)).optional(),
+  urgence: schemaListeQuery(z.enum(URGENCES_TRAVAIL)).optional(),
   tri: z.enum(TRIS_TRAVAUX_REPORTES).default(TRI_DEFAUT_TRAVAUX_REPORTES),
 });
 

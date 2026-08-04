@@ -24,6 +24,7 @@ import {
   schemaQuantiteMillieme,
   schemaTexteCourt,
 } from './primitives';
+import { schemaListeQuery } from '../filtres';
 
 /**
  * Lignes d'ordre de réparation (contrats-api-etape-1.md §7.8).
@@ -138,7 +139,7 @@ export const TRIS_LIGNES_OR = ['ordreAffichage:asc', 'ordreAffichage:desc'] as c
 export const TRI_DEFAUT_LIGNES_OR = 'ordreAffichage:asc';
 
 export const schemaFiltresLignesOr = z.object({
-  statut: z.array(z.enum(STATUTS_LIGNE_OR)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_LIGNE_OR)).optional(),
   origine: z.enum(ORIGINES_LIGNE_OR).optional(),
   payeur: z.enum(PAYEURS_LIGNE_OR).optional(),
   technicienId: schemaIdentifiant.optional(),

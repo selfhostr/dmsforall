@@ -8,6 +8,7 @@ import {
 } from './enums';
 import { schemaUrlWebhookHttps } from './primitives';
 import { schemaIdentifiant, schemaMotif } from '../atelier/primitives';
+import { schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 import { TYPES_EVENEMENT_METIER, type TypeEvenementMetier } from '../atelier/evenement';
 
@@ -94,7 +95,7 @@ export const TRIS_ABONNEMENTS_WEBHOOK = ['creeLe:desc', 'creeLe:asc'] as const;
 export const TRI_DEFAUT_ABONNEMENTS_WEBHOOK = 'creeLe:desc';
 
 export const schemaFiltresAbonnementsWebhook = schemaParametresPage.extend({
-  statut: z.array(z.enum(STATUTS_ABONNEMENT_WEBHOOK)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_ABONNEMENT_WEBHOOK)).optional(),
   tri: z.enum(TRIS_ABONNEMENTS_WEBHOOK).default(TRI_DEFAUT_ABONNEMENTS_WEBHOOK),
 });
 export type FiltresAbonnementsWebhook = z.infer<typeof schemaFiltresAbonnementsWebhook>;
@@ -141,7 +142,7 @@ export const TRIS_LIVRAISONS_WEBHOOK = ['creeLe:desc', 'creeLe:asc'] as const;
 export const TRI_DEFAUT_LIVRAISONS_WEBHOOK = 'creeLe:desc';
 
 export const schemaFiltresLivraisonsWebhook = schemaParametresPage.extend({
-  statut: z.array(z.enum(STATUTS_LIVRAISON_WEBHOOK)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_LIVRAISON_WEBHOOK)).optional(),
   tri: z.enum(TRIS_LIVRAISONS_WEBHOOK).default(TRI_DEFAUT_LIVRAISONS_WEBHOOK),
 });
 export type FiltresLivraisonsWebhook = z.infer<typeof schemaFiltresLivraisonsWebhook>;

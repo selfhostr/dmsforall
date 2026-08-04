@@ -16,6 +16,7 @@ import {
 } from '../atelier/primitives';
 import { ACTIVITES_INDIRECTES, type ActiviteIndirecte, type MotifAnomaliePointage } from './enums';
 import { schemaDecalageHorlogeMs, schemaIdAppareil } from './primitives';
+import { schemaListeQuery } from '../filtres';
 
 /**
  * Ressource `pointage` (RM-87 → RM-99, RM-113 → RM-123 de `docs/specification-pointage.md`).
@@ -143,8 +144,8 @@ export const schemaFiltresPointages = z.object({
   technicienId: schemaIdentifiant.optional(),
   ordreReparationId: schemaIdentifiant.optional(),
   ligneOrId: schemaIdentifiant.optional(),
-  statut: z.array(z.enum(STATUTS_POINTAGE)).optional(),
-  nature: z.array(z.enum(NATURES_ACTIVITE_POINTAGE)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_POINTAGE)).optional(),
+  nature: schemaListeQuery(z.enum(NATURES_ACTIVITE_POINTAGE)).optional(),
   source: z.enum(SOURCES_POINTAGE).optional(),
   /** `true` = corbeille d'anomalies (`anomalie !== null`) ; `false` = seulement les pointages
    *  sains ; absent = tous. */

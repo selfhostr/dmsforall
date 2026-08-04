@@ -7,6 +7,7 @@ import {
   schemaMotif,
   schemaQuantiteMillieme,
 } from '../atelier/primitives';
+import { schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 
 /**
@@ -85,7 +86,7 @@ export const TRIS_MOUVEMENTS_STOCK = ['creeLe:desc', 'creeLe:asc'] as const;
 export const TRI_DEFAUT_MOUVEMENTS_STOCK = 'creeLe:desc';
 
 export const schemaFiltresMouvementsStock = schemaParametresPage.extend({
-  type: z.array(z.enum(TYPES_MOUVEMENT_STOCK)).optional(),
+  type: schemaListeQuery(z.enum(TYPES_MOUVEMENT_STOCK)).optional(),
   siteId: schemaIdentifiant.optional(),
   dateDe: schemaDateJour.optional(),
   dateA: schemaDateJour.optional(),

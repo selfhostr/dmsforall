@@ -8,6 +8,7 @@ import {
   schemaTexteLong,
 } from '../atelier/primitives';
 import { schemaConfirmations } from '../atelier/avertissement';
+import { schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 import {
   STATUTS_COMMERCIAUX_VEHICULE,
@@ -123,8 +124,12 @@ export const TRI_DEFAUT_VEHICULES_STOCK = 'dateEntreeStock:desc';
 
 export const schemaFiltresVehiculesStock = schemaParametresPage.extend({
   siteId: schemaIdentifiant.optional(),
-  provenance: z.array(z.string()).optional(),
-  statutCommercial: z.array(z.enum(STATUTS_COMMERCIAUX_VEHICULE)).optional(),
+  // `z.array(z.string())` a le même piège qu'un `z.array(z.enum(...))` : la coercition n'est pas
+  // spécifique aux enums, elle porte sur le TRANSPORT (une occurrence -> chaîne, deux occurrences
+  // -> tableau chez Express), donc `provenance` en a besoin exactement comme `statutCommercial`
+  // juste en dessous, même si `z.array(z.enum` ne le fait pas ressortir au grep.
+  provenance: schemaListeQuery(z.string()).optional(),
+  statutCommercial: schemaListeQuery(z.enum(STATUTS_COMMERCIAUX_VEHICULE)).optional(),
   typeVehicule: z.enum(TYPES_VEHICULE_VENTE).optional(),
   /** Porte sur la plaque, le VIN et la désignation du véhicule (même principe que `q` de
    *  `atelier/ordre-reparation.ts`) — pas sur `recherche/` transverse, qui n'inclut pas encore ce

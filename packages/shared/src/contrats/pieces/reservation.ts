@@ -6,6 +6,7 @@ import {
   type StatutReservationPiece,
 } from './enums';
 import { schemaIdentifiant, schemaMotif } from '../atelier/primitives';
+import { schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 
 /**
@@ -62,7 +63,7 @@ export const schemaFiltresReservations = schemaParametresPage.extend({
   articleId: schemaIdentifiant.optional(),
   siteId: schemaIdentifiant.optional(),
   ordreReparationId: schemaIdentifiant.optional(),
-  statut: z.array(z.enum(STATUTS_RESERVATION_PIECE)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_RESERVATION_PIECE)).optional(),
   tri: z.enum(TRIS_RESERVATIONS).default(TRI_DEFAUT_RESERVATIONS),
 });
 export type FiltresReservations = z.infer<typeof schemaFiltresReservations>;

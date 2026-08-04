@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { LANGUES, type Langue } from '../enums';
+import { schemaListeQuery } from '../filtres';
 import { schemaConfirmations } from './avertissement';
 import {
   NATURES_NOTE,
@@ -240,7 +241,7 @@ export const TRI_DEFAUT_OR_DU_CLIENT = 'ouvertLe:desc';
 export const schemaFiltresClients = z.object({
   q: z.string().trim().min(1).max(120).optional(),
   type: z.enum(TYPES_CLIENT).optional(),
-  statut: z.array(z.enum(STATUTS_CLIENT)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_CLIENT)).optional(),
   groupeId: schemaIdentifiant.optional(),
   poObligatoire: z.coerce.boolean().optional(),
   /** Utile seulement si P-30 = cloisonné. Ignoré sinon. */
