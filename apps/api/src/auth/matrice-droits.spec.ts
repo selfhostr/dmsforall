@@ -1175,3 +1175,264 @@ describe('MATRICE_DROITS — poste_atelier, compte de service (mode borne du poi
     expect(perimetreModeSite).toEqual(perimetreGerationPin);
   });
 });
+
+/**
+ * INVARIANTE STRUCTURELLE — « qui peut écrire une entité doit pouvoir la lire ».
+ *
+ * Née d'un signalement (test navigateur réel, compte `admin`) : plusieurs écrans en 403 pour
+ * `admin` (`/pieces/articles`, `/ventes/stock`, `/ventes/dossiers`, `POST /paiements`). Vérification
+ * demandée : `admin` détiendrait `pieces.article.creer` SANS `pieces.article.lire` — un rôle qui
+ * peut créer/modifier une fiche sans pouvoir la consulter est un trou (on ne peut pas modifier ce
+ * qu'on ne voit pas).
+ *
+ * MESURÉ, PAS SUPPOSÉ : cette prémisse est FAUSSE. Lecture rigoureuse de `MATRICE_DROITS.admin` —
+ * `DROITS_PIECES_PAR_ROLE.admin` et `DROITS_VENTES_PAR_ROLE.admin` valent `[]` (tableau VIDE), pas
+ * « creer sans lire » : `admin` n'a NI l'un NI l'autre sur ces deux domaines, par construction
+ * (voir les commentaires de tête de ces deux consts, `matrice-droits.ts`). Les 403 observés sont
+ * `RF-115` appliquée littéralement (« admin est un rôle technique, aucun droit financier — il ne
+ * voit pas les montants, n'émet rien, n'encaisse rien », `docs/specification-etape-2-facturation.md`
+ * §9 L1327) : pièces et ventes portent une valeur financière (COGS, marge, prix de reprise), donc
+ * `admin` en est exclu EN BLOC, lecture comprise — déjà couvert par les tests dédiés plus haut
+ * (« RF-115 appliqué au domaine pièces », « RF-115 (décision de cet agent)… ventes »), et par
+ * `DROITS_PAIEMENT_PAR_ROLE.admin = []` pour `POST /paiements`. AUCUNE de ces absences n'est
+ * corrigée ici : ce sont des décisions métier délibérées et déjà testées, pas des oublis.
+ *
+ * Ce bloc ne se contente donc pas de re-vérifier le signalement : il généralise l'invariante à
+ * TOUS les rôles et TOUTES les entités de la matrice — le seul moyen de garantir qu'aucun AUTRE
+ * trou du même genre n'existe ailleurs, et d'empêcher qu'un futur bloc additif en introduise un
+ * sans qu'aucun test ne rougisse.
+ *
+ * Construction : `PAIRES_ECRITURE_LECTURE` fait correspondre chaque action d'ÉCRITURE à l'action de
+ * LECTURE qui devrait logiquement l'accompagner. Deux formes :
+ *   - la plupart des entités portent leur propre `<domaine>.<ressource>.lire` (ex.
+ *     `pieces.article.creer` → `pieces.article.lire`) ;
+ *   - certaines n'ont PAS de `.lire` dédié parce qu'elles sont des sous-ressources consultées à
+ *     travers l'entité parente (une ligne d'OR se lit via l'OR, un mouvement de stock via le
+ *     stock) : `atelier.ligne.creer` → `atelier.or.lire`, `pieces.mouvement.creer` →
+ *     `pieces.stock.lire`, etc. — documenté action par action ci-dessous plutôt que dérivé par
+ *     convention de nommage, le préfixe seul ne suffisant pas à distinguer les deux cas (voir
+ *     `client.condition.modifier`, 3 segments, entité RACINE `client`, pas `client.condition`).
+ *
+ * `EXCEPTIONS_DOCUMENTEES` — soupape explicite, PAS un simple filtre : chaque entrée cite la règle
+ * métier qui justifie l'écart (même patron que `DROITS_PAIEMENT_PAR_ROLE.admin = []`, RF-115).
+ * Vide aujourd'hui (aucune exception nécessaire, voir le résultat mesuré ci-dessous) — le jour où
+ * une décision de gouvernance légitime ouvre l'écriture sans la lecture (ce qui n'est arrivé nulle
+ * part dans cette matrice à ce jour), elle se déclare ICI, avec sa citation, plutôt que d'affaiblir
+ * la boucle de test en dessous.
+ */
+describe('MATRICE_DROITS — invariante structurelle : écrire une entité implique pouvoir la lire', () => {
+  const PAIRES_ECRITURE_LECTURE: ReadonlyArray<{
+    readonly lire: Action;
+    readonly ecriture: readonly Action[];
+  }> = [
+    { lire: 'parametrage.atelier.lire', ecriture: ['parametrage.atelier.modifier'] },
+    { lire: 'parametrage.referentiel.lire', ecriture: ['parametrage.referentiel.modifier'] },
+    {
+      lire: 'client.lire',
+      ecriture: [
+        'client.creer',
+        'client.modifier',
+        'client.desactiver',
+        'client.condition.modifier',
+        'client.consentement.enregistrer',
+        'client.note.ecrire',
+      ],
+    },
+    {
+      lire: 'vehicule.lire',
+      ecriture: [
+        'vehicule.creer',
+        'vehicule.modifier',
+        'vehicule.archiver',
+        'vehicule.plaque.gerer',
+        'vehicule.detention.changer',
+        'vehicule.detention.corriger',
+        'vehicule.kilometrage.saisir',
+        'vehicule.kilometrage.corriger_regression',
+        'vehicule.expertise.saisir',
+        'vehicule.campagne.gerer',
+        'vehicule.travail_reporte.gerer',
+      ],
+    },
+    {
+      lire: 'atelier.or.lire',
+      ecriture: [
+        'atelier.or.creer',
+        'atelier.or.modifier',
+        'atelier.or.plafond_modifier',
+        'atelier.or.receptionner',
+        'atelier.or.demarrer',
+        'atelier.or.passer_en_controle',
+        'atelier.or.controler',
+        'atelier.or.terminer',
+        'atelier.or.rouvrir',
+        'atelier.or.restituer',
+        'atelier.or.cloturer',
+        'atelier.or.annuler',
+        // Sous-ressources sans `.lire` dédié : lignes et devis complémentaires se consultent à
+        // travers l'OR qui les porte (aucune route « lire une ligne isolément »).
+        'atelier.ligne.creer',
+        'atelier.ligne.modifier',
+        'atelier.ligne.valider',
+        'atelier.ligne.refuser',
+        'atelier.ligne.annuler',
+        'atelier.ligne.marquer_realisee',
+        'atelier.devis.creer',
+        'atelier.devis.repondre',
+      ],
+    },
+    {
+      lire: 'facturation.paiement.lire',
+      ecriture: [
+        'facturation.paiement.creer',
+        'facturation.paiement.imputer',
+        'facturation.paiement.rembourser',
+        'facturation.paiement.abandonner',
+      ],
+    },
+    {
+      lire: 'facturation.document.lire',
+      ecriture: [
+        'facturation.document.creer',
+        'facturation.document.modifier',
+        'facturation.document.transitionner',
+        'facturation.document.emettre',
+        'facturation.document.emettre_devis_bc',
+        'facturation.document.emettre_facture',
+        'facturation.document.emettre_avoir',
+        'facturation.document.imprimer',
+        // Pas de `facturation.avoir.lire` dédié : un avoir est un type de document de vente,
+        // consulté via `facturation.document.lire` comme tout autre document.
+        'facturation.avoir.creer',
+      ],
+    },
+    {
+      lire: 'facturation.parametrage.creancier.lire',
+      ecriture: ['facturation.parametrage.creancier.modifier'],
+    },
+    {
+      lire: 'pieces.article.lire',
+      ecriture: ['pieces.article.creer', 'pieces.article.modifier'],
+    },
+    {
+      lire: 'pieces.stock.lire',
+      ecriture: [
+        'pieces.stock.modifier',
+        // Un mouvement de stock (casse, perte, transfert, ajustement, retour) n'a pas de `.lire`
+        // dédié : il se consulte via l'état du stock qu'il modifie.
+        'pieces.mouvement.creer',
+      ],
+    },
+    {
+      lire: 'pieces.reservation.lire',
+      ecriture: ['pieces.reservation.satisfaire', 'pieces.reservation.liberer'],
+    },
+    {
+      lire: 'pieces.fournisseur.lire',
+      ecriture: ['pieces.fournisseur.creer', 'pieces.fournisseur.modifier'],
+    },
+    {
+      lire: 'pieces.commande_fournisseur.lire',
+      ecriture: ['pieces.commande_fournisseur.creer', 'pieces.commande_fournisseur.reception'],
+    },
+    {
+      lire: 'pieces.consigne.lire',
+      ecriture: ['pieces.consigne.retourner'],
+    },
+    {
+      lire: 'pieces.parametrage.lire',
+      ecriture: ['pieces.parametrage.modifier'],
+    },
+    {
+      lire: 'ventes.vehicule_stock.lire',
+      ecriture: [
+        'ventes.vehicule_stock.creer',
+        'ventes.vehicule_stock.modifier',
+        'ventes.vehicule_stock.corriger',
+      ],
+    },
+    {
+      lire: 'ventes.dossier.lire',
+      ecriture: [
+        'ventes.dossier.creer',
+        'ventes.dossier.modifier',
+        'ventes.dossier.engager',
+        'ventes.dossier.preparer',
+        'ventes.dossier.marquer_pret_a_livrer',
+        'ventes.dossier.livrer',
+        'ventes.dossier.cloturer',
+        'ventes.dossier.annuler',
+        'ventes.dossier.abandonner',
+      ],
+    },
+    {
+      lire: 'ventes.reprise.lire',
+      ecriture: [
+        'ventes.reprise.creer',
+        'ventes.reprise.modifier',
+        'ventes.reprise.negocier',
+        'ventes.reprise.confirmer',
+        'ventes.reprise.refuser',
+      ],
+    },
+    {
+      lire: 'ventes.financement.lire',
+      ecriture: [
+        'ventes.financement.creer',
+        'ventes.financement.confirmer',
+        'ventes.financement.refuser',
+      ],
+    },
+    {
+      lire: 'atelier.pointage.lire',
+      ecriture: [
+        'atelier.pointage.demarrer',
+        'atelier.pointage.arreter',
+        'atelier.pointage.pointer_autrui',
+        'atelier.pointage.corriger_autrui',
+        'atelier.pointage.verrouiller_periode',
+        'atelier.pointage.deverrouiller_periode',
+        'atelier.pointage.gerer_pin',
+      ],
+    },
+  ];
+
+  /**
+   * Exceptions délibérées à l'invariante, chacune avec sa justification métier — VIDE aujourd'hui.
+   * Forme : `{ role, ecriture, motif }`. Une entrée ici retire UNIQUEMENT la paire (role, action)
+   * nommée du test généralisé ci-dessous ; elle n'affaiblit rien d'autre.
+   */
+  const EXCEPTIONS_DOCUMENTEES: ReadonlyArray<{
+    readonly role: RoleUtilisateur;
+    readonly ecriture: Action;
+    readonly motif: string;
+  }> = [];
+
+  it("mesure et fige le résultat : AUCUNE violation de l'invariante n'existe aujourd'hui dans MATRICE_DROITS — ni sur les 24 lignes §10 (lot 1), ni sur les blocs additifs facturation/pièces/ventes/pointage, admin RF-115 compris (il n'a NI l'écriture NI la lecture sur pièces/ventes/paiements, ce qui satisfait trivialement l'invariante : on ne viole pas « écrire implique lire » en n'ayant ni l'un ni l'autre)", () => {
+    const violations: string[] = [];
+
+    for (const role of ROLES_UTILISATEUR) {
+      const droits = MATRICE_DROITS[role];
+      for (const { lire, ecriture } of PAIRES_ECRITURE_LECTURE) {
+        for (const actionEcriture of ecriture) {
+          if (!droits.includes(actionEcriture)) continue; // le rôle n'a pas cette écriture : rien à vérifier
+          if (droits.includes(lire)) continue; // a l'écriture ET la lecture : conforme
+
+          const exception = EXCEPTIONS_DOCUMENTEES.find(
+            (e) => e.role === role && e.ecriture === actionEcriture,
+          );
+          if (exception) continue; // écart documenté et justifié, pas une violation
+
+          violations.push(`${role} : détient '${actionEcriture}' sans détenir '${lire}'`);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it('démonstration ciblée du signalement d’origine — admin sur pieces.article : NI creer NI lire (pas « creer sans lire »), donc conforme à l’invariante par construction', () => {
+    expect(MATRICE_DROITS.admin).not.toContain('pieces.article.creer');
+    expect(MATRICE_DROITS.admin).not.toContain('pieces.article.lire');
+  });
+});
