@@ -26,6 +26,7 @@ import {
   clientAdresse,
   parametreAtelier,
   parametreSite,
+  pinPointage,
   prestation,
   prestationPrix,
   site,
@@ -224,6 +225,16 @@ for (const iban of [IBAN_DEMO, QR_IBAN_DEMO]) {
  *     lire dans le code.
  *   - `receptionnaire` (déjà présent) est le rôle du comptoir : émet devis ET factures, encaisse
  *     — mais pas de remboursement d'avance (réservé `direction`/`comptable`).
+ *
+ * UN COMPTE DE SERVICE POUR LE LOT 2 (pointage, mode borne), `borne.atelier@garage-martin.ch` —
+ * constat mesuré en exécution : l'écran `/pointage/borne` exige `atelier.pointage.identifier`
+ * (`@ExigerDroit`, `pin.controller.ts`), droit qu'AUCUN rôle de personne ne détient
+ * (`DROITS_POINTAGE_PAR_ROLE`, `matrice-droits.ts`) — seul `poste_atelier` l'a. Sans ce compte,
+ * l'écran était intestable, quel que soit le compte utilisé pour se connecter. Ce n'est PAS une
+ * personne : c'est un compte de SERVICE (migration `0039_poste_atelier_compte_de_service`),
+ * rattaché à UN site (`utilisateur.site_id`, biconditionnelle en base) — ici SION, le même site
+ * que le bloc créancier de démonstration. Voir aussi le PIN de démonstration semé plus bas pour
+ * le technicien : sans lui, la borne n'a personne à identifier.
  */
 const UTILISATEURS_DEMO = [
   {
@@ -278,6 +289,18 @@ const UTILISATEURS_DEMO = [
     nom: 'Fournier',
     role: 'magasinier',
     langue: 'fr',
+  },
+  {
+    // Lot 2 (pointage, mode borne) — compte de SERVICE, pas une personne : la tablette murale de
+    // l'atelier SION. Voir la note de tête ci-dessus. `siteCode` (absent de tous les autres
+    // comptes, qui sont des personnes) est ce qui distingue ce cas dans la boucle d'upsert
+    // ci-dessous — `utilisateur.site_id` reste NULL pour tout compte sans cette propriété.
+    email: 'borne.atelier@garage-martin.ch',
+    prenom: 'Borne',
+    nom: 'Atelier Sion',
+    role: 'poste_atelier',
+    langue: 'fr',
+    siteCode: 'SION',
   },
 ] as const;
 
@@ -576,6 +599,20 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
       // sens qui compte — l'état final permet toujours de se connecter avec MOT_DE_PASSE_DEMO.
       const motDePasseHash = await hacher(MOT_DE_PASSE_DEMO);
 
+      // `siteCode` n'existe que sur le compte de service (`borne.atelier@...`, voir
+      // UTILISATEURS_DEMO) : NULL pour toute personne, exactement ce qu'exige la biconditionnelle
+      // `utilisateur_site_compte_de_service_chk` (migration 0039).
+      let siteIdCompte: string | null = null;
+      if ('siteCode' in u) {
+        const resolu = idsSitesParCode.get(u.siteCode);
+        if (resolu === undefined) {
+          throw new Error(
+            `Site « ${u.siteCode} » introuvable pour le compte de service « ${u.email} ».`,
+          );
+        }
+        siteIdCompte = resolu;
+      }
+
       const [ligneUtilisateur] = await base
         .insert(utilisateur)
         .values({
@@ -587,6 +624,7 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
           langue: u.langue,
           role: u.role,
           statut: 'actif',
+          siteId: siteIdCompte,
         })
         .onConflictDoUpdate({
           target: utilisateur.email,
@@ -601,6 +639,7 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
             statut: 'actif',
             echecsConnexion: 0,
             verrouilleJusquA: null,
+            siteId: siteIdCompte,
           },
         })
         .returning({ id: utilisateur.id });
@@ -625,6 +664,54 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
           `${String(UTILISATEURS_DEMO.length)} attendus. Un email est probablement déjà pris par un autre tenant.`,
       );
     }
+
+    // --- PIN de pointage (mode borne, migration 0036) ----------------------------------------
+    // Sans un PIN ACTIF, le compte de service `borne.atelier@garage-martin.ch` semé ci-dessus n'a
+    // personne à identifier : `POST /pointages/identification` cherche un PIN actif DU SITE de la
+    // borne (`ServiceIdentificationPin.identifier` → `chargerPinsActifsDuSite`) et échouerait
+    // systématiquement en 401 POINTAGE_PIN_INVALIDE sur un jeu de données qui n'en sème aucun.
+    // Un seul technicien de démo existe (UTILISATEURS_DEMO ci-dessus) : un seul PIN à semer, sur
+    // le site SION — celui de la borne.
+    //
+    // PIN EN CLAIR DANS CE FICHIER, DÉLIBÉRÉMENT — même doctrine que MOT_DE_PASSE_DEMO en tête de
+    // fichier : ceci est un jeu de DÉMONSTRATION, pas un secret de production, et ce script REFUSE
+    // de s'exécuter en production (garde-fou plus haut). Le PIN est haché en Argon2id avant toute
+    // écriture (RM-126) — seule cette constante existe en clair, pour que quiconque relance la
+    // borne en développement sache quoi taper à l'écran.
+    const PIN_DEMO_TECHNICIEN = '1234';
+
+    const idSiteSion = idsSitesParCode.get('SION');
+    const idTechnicienDemo = idsUtilisateursParRole.get('technicien');
+    const idAdminDemo = idsUtilisateursParRole.get('admin');
+    if (idSiteSion === undefined || idTechnicienDemo === undefined || idAdminDemo === undefined) {
+      throw new Error(
+        'seed-dev : site SION, compte technicien ou compte admin introuvable pour le PIN de démonstration.',
+      );
+    }
+
+    const pinHashTechnicien = await hacher(PIN_DEMO_TECHNICIEN);
+    await base
+      .insert(pinPointage)
+      .values({
+        tenantId,
+        siteId: idSiteSion,
+        utilisateurId: idTechnicienDemo,
+        pinHash: pinHashTechnicien,
+        actif: true,
+        creeParUtilisateurId: idAdminDemo,
+        modifieParUtilisateurId: idAdminDemo,
+      })
+      .onConflictDoUpdate({
+        target: [pinPointage.tenantId, pinPointage.siteId, pinPointage.utilisateurId],
+        set: {
+          pinHash: pinHashTechnicien,
+          actif: true,
+          modifieParUtilisateurId: idAdminDemo,
+        },
+      });
+    journaliser(
+      `  PIN de pointage (borne SION) : technicien@garage-martin.ch → PIN ${PIN_DEMO_TECHNICIEN}`,
+    );
 
     // --- Paramètres d'atelier --------------------------------------------------------------
     // plafond_defaut_centimes = 30000 (300.—) : le scénario §3.1 en a besoin (le plafond de l'OR
