@@ -76,9 +76,11 @@ const ACTIONS_DEPUIS_STATUT_VEHICULE_STOCK: Readonly<
 > = {
   en_commande: ['mettre_a_jour', 'receptionner'],
   disponible: ['mettre_a_jour'],
-  // `remettre_disponible` (RV-10) : correction exceptionnelle depuis `reserve`, l'action normale
-  // à ce stade étant `POST /dossiers-vente/{id}/annuler`/`/abandonner` (effet de bord).
-  reserve: ['mettre_a_jour', 'remettre_disponible'],
+  // `remettre_disponible` (RV-10) et `marquer_vendu` (trou comblé, voir enums.ts) : corrections
+  // exceptionnelles depuis `reserve`, l'action normale à ce stade étant respectivement
+  // `POST /dossiers-vente/{id}/annuler`/`/abandonner` et l'émission de la facture (`facturation/`,
+  // effets de bord programmatiques, pas des gestes comptoir).
+  reserve: ['mettre_a_jour', 'remettre_disponible', 'marquer_vendu'],
   // Verrouillé après vente (contrat, littéral : « prixAchatCentimes reste modifiable jusqu'à
   // statutCommercial = 'vendu' exclu »).
   vendu: [],
@@ -89,6 +91,7 @@ const DROIT_PAR_ACTION_VEHICULE_STOCK: Readonly<Record<ActionVehiculeStock, Acti
   mettre_a_jour: 'ventes.vehicule_stock.modifier',
   receptionner: 'ventes.vehicule_stock.modifier',
   remettre_disponible: 'ventes.vehicule_stock.corriger',
+  marquer_vendu: 'ventes.vehicule_stock.corriger',
 };
 
 export function calculerActionsDisponiblesVehiculeStock(

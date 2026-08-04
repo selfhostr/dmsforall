@@ -22,10 +22,12 @@ import {
 import type { Response } from 'express';
 import {
   schemaIdentifiant,
+  schemaMarquerVenduVehiculeStock,
   schemaMiseEnStock,
   schemaModificationVehiculeStock,
   schemaReceptionnerVehiculeStock,
   schemaRemettreDisponibleVehiculeStock,
+  type EntreeMarquerVenduVehiculeStock,
   type EntreeMiseEnStock,
   type EntreeModificationVehiculeStock,
   type EntreeReceptionnerVehiculeStock,
@@ -198,5 +200,34 @@ export class VehiculeStockController {
     const ctx = this.contexte.contexteTenant();
     const { role } = this.contexte.exigerPrincipal();
     return this.service.remettreDisponible(ctx, role, vehiculeId, entree);
+  }
+
+  @Post('marquer-vendu')
+  @ExigerDroit('ventes.vehicule_stock.corriger')
+  @ApiOperation({
+    summary: '`reserve -> vendu` — normalement un effet de bord de l’émission de facture (RV-37).',
+    description:
+      'USAGE NORMAL : appel PROGRAMMATIQUE par `facturation/` à l’émission de la facture — ' +
+      'aucun écran ne devrait appeler cet endpoint dans le parcours courant. Il existe pour la ' +
+      'correction exceptionnelle (resynchronisation, ou usage avant que le câblage facturation ' +
+      'n’existe), motif obligatoire, même patron que `remettre-disponible`.',
+  })
+  @ApiParam({ name: 'vehiculeId', format: 'uuid' })
+  @ApiOkResponse({ type: VehiculeStockAvecAvertissementsDto })
+  @ApiReponseProbleme(400, 'Motif manquant.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  @ApiReponseProbleme(404, 'Véhicule jamais mis en stock pour ce tenant.')
+  @ApiReponseProbleme(409, 'CONFLIT — le véhicule n’est pas réservé.')
+  async marquerVendu(
+    @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
+    @CorpsZod(schemaMarquerVenduVehiculeStock, {
+      exemple: { motif: 'Resynchronisation manuelle avant câblage facturation.' },
+    })
+    entree: EntreeMarquerVenduVehiculeStock,
+  ): Promise<VehiculeStockAvecAvertissementsDto> {
+    const ctx = this.contexte.contexteTenant();
+    const { role } = this.contexte.exigerPrincipal();
+    return this.service.marquerVendu(ctx, role, vehiculeId, entree);
   }
 }

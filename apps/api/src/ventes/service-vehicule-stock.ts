@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import type {
+  EntreeMarquerVenduVehiculeStock,
   EntreeMiseEnStock,
   EntreeModificationVehiculeStock,
   EntreeReceptionnerVehiculeStock,
@@ -310,6 +311,60 @@ export class ServiceVehiculeStock {
       await tx
         .update(vehiculeStock)
         .set({ statutCommercial: 'disponible', dernierMotifTransition: entree.motif })
+        .where(
+          sql`${vehiculeStock.tenantId} = ${ctx.tenantId} and ${vehiculeStock.id} = ${vehiculeId}`,
+        );
+
+      const misAJour = await chargerVehiculeStock(tx, ctx, vehiculeId);
+      const reponse = await this.assembler(tx, ctx, role, misAJour);
+      return new CollecteurAvertissements().envelopper(reponse);
+    });
+  }
+
+  /**
+   * `POST /vehicules/{vehiculeId}/stock/marquer-vendu` — `reserve -> vendu` (RV-09), pose `venduLe`.
+   *
+   * **TROU COMBLÉ** (constaté en reprenant ce fichier) : `transition_autorisee` autorise déjà
+   * `reserve -> vendu` en base (`migrations/0032_ventes.sql` §9, `exige_motif = false`), mais AUCUN
+   * code de ce dépôt ne l'invoquait avant cette méthode — `POST /dossiers-vente/{id}/livrer`
+   * (`service-dossier-vente.ts`) EXIGE ce statut sans qu'aucun chemin ne puisse jamais le produire,
+   * bloquant tout dossier réel à `pret_a_livrer`.
+   *
+   * USAGE NORMAL : effet de bord PROGRAMMATIQUE de `facturation/` à l'émission de la facture
+   * (RV-37) — `ServiceVehiculeStock` est exporté par `VentesModule` précisément pour cette
+   * injection croisée ; le câblage réel côté `facturation/` reste À FAIRE par le propriétaire de ce
+   * module (hors périmètre de cet agent), qui devra fournir un `motif` informatif (ex. « Facture
+   * <numero> émise ») — la transition elle-même n'exige rien (`exige_motif = false`), mais ce
+   * service garde un `motif` obligatoire pour un contrat UNIQUE entre l'usage normal et l'usage
+   * exceptionnel (voir ci-dessous), plutôt que deux méthodes quasi identiques.
+   *
+   * Cet appel direct existe AUSSI pour la correction exceptionnelle (dossier orphelin,
+   * resynchronisation, ou usage/test avant que le câblage facturation n'existe) — même patron que
+   * `remettreDisponible` : motif obligatoire, droit `ventes.vehicule_stock.corriger`.
+   */
+  async marquerVendu(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    vehiculeId: string,
+    entree: EntreeMarquerVenduVehiculeStock,
+  ): Promise<ReponseAvecAvertissements<ReponseVehiculeStock>> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const ligne = await chargerVehiculeStockPourEcriture(tx, ctx, vehiculeId);
+      if (ligne.statutCommercial !== 'reserve') {
+        throw new ErreurMetier(
+          'CONFLIT',
+          `Marquage vendu impossible : le véhicule n'est pas réservé (statut actuel : ${ligne.statutCommercial}).`,
+          { actionsProposees: [{ code: 'RAFRAICHIR' }] },
+        );
+      }
+      const maintenant = this.horloge.maintenant();
+      await tx
+        .update(vehiculeStock)
+        .set({
+          statutCommercial: 'vendu',
+          venduLe: maintenant,
+          dernierMotifTransition: entree.motif,
+        })
         .where(
           sql`${vehiculeStock.tenantId} = ${ctx.tenantId} and ${vehiculeStock.id} = ${vehiculeId}`,
         );

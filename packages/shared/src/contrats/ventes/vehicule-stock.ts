@@ -193,3 +193,21 @@ export const schemaRemettreDisponibleVehiculeStock = z.object({ motif: schemaTex
 export type EntreeRemettreDisponibleVehiculeStock = z.infer<
   typeof schemaRemettreDisponibleVehiculeStock
 >;
+
+/**
+ * `POST /vehicules/{vehiculeId}/stock/marquer-vendu` — `reserve -> vendu`, pose `venduLe`.
+ *
+ * USAGE NORMAL : effet de bord PROGRAMMATIQUE de l'émission de la facture (`facturation/`, hors
+ * périmètre de ce fichier) — `ServiceVehiculeStock` est exporté par `VentesModule` précisément
+ * pour cette injection croisée (voir le rappel de doctrine dans `service-vehicule-stock.ts`).
+ * `transition_autorisee` (`migrations/0032_ventes.sql` §9) porte `exige_motif = false` pour cette
+ * transition — la machine à états elle-même n'exige rien.
+ *
+ * Cet endpoint HTTP est l'EXCEPTION, **normalement un EFFET DE BORD** de l'émission de facture, pas
+ * un geste comptoir courant : correction manuelle / resynchronisation avant que ce câblage
+ * facturation n'existe, ou incohérence constatée — même doctrine que
+ * `schemaRemettreDisponibleVehiculeStock`, motif obligatoire pour la même raison (traçabilité d'une
+ * correction exceptionnelle, `dernier_motif_transition`).
+ */
+export const schemaMarquerVenduVehiculeStock = z.object({ motif: schemaTexteLong });
+export type EntreeMarquerVenduVehiculeStock = z.infer<typeof schemaMarquerVenduVehiculeStock>;

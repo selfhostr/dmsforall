@@ -123,12 +123,23 @@ const DEFINITIONS_TRI_DOSSIERS_VENTE: Readonly<Record<FiltresDossiersVente['tri'
  *    l'atelier) ni la check-list `documentsRequis` autrement qu'en lecture — aucun paramètre tenant
  *    (`PV-03`) n'existe encore pour piloter ces gardes, `contrats/ventes/index.ts` le signale déjà
  *    comme un gap connu de CE lot ;
- *  - `livrer` NE POSE PAS le début de garantie constructeur (RV-54, aucune colonne identifiée sur
- *    `vehicule` pour ce lot) ni la mise en stock automatique du véhicule repris (RV-24, détenteur
- *    cible `[À VALIDER, QV-01]`) ni l'enregistrement du kilométrage de départ dans
- *    `vehicule_kilometrage` (aucune valeur d'enum `source` connue pour « vente ») — trois effets
- *    de bord documentés par le contrat, hors de portée sûre de cet agent tant que ces questions ne
- *    sont pas tranchées ;
+ *  - `livrer` POSE désormais la mise en stock automatique du véhicule repris confirmé (RV-24, voir
+ *    le bloc dédié dans le corps de la méthode) et la clôture de sa détention (motif `reprise`,
+ *    SANS réouverture — détenteur cible `[À VALIDER, QV-01]`, non tranché) ;
+ *  - `livrer` NE POSE TOUJOURS PAS le début de garantie constructeur (RV-54,
+ *    `vehicule.garantieDebut`) ni l'enregistrement du kilométrage de départ dans
+ *    `vehicule_kilometrage` (source `vente`) — **CORRECTIF DE CONSTAT** (relu en reprenant ce
+ *    fichier) : le commentaire précédent affirmait qu'aucune colonne/valeur d'enum n'existait pour
+ *    ces deux effets — C'EST INEXACT. `vehicule.garantie_debut`/`garantie_mois`/`garantie_km`
+ *    existent depuis `migrations/0007_vehicules.sql` (étape 1, avant même ce module), et
+ *    `source_kilometrage` porte bien la valeur `'vente'` (`contrats/atelier/enums.ts::
+ *    SOURCES_KILOMETRAGE`). Ces deux effets restent NON implémentés ICI volontairement : la
+ *    consigne de cet agent est explicitement de ne pas toucher au domaine `vehicule` (étape 1,
+ *    propriété d'un autre périmètre) au-delà de l'usage déjà établi de `vehicule_detention`
+ *    ci-dessous — écrire dans `vehicule.garantie_debut`/`vehicule_kilometrage` sans arbitrage sur
+ *    la source de `garantieMois`/`garantieKm` (déjà posés à l'intake ? valeur par défaut ?) serait
+ *    inventer une règle métier. Remonté à l'orchestrateur avec le détail ci-dessus (rapport de
+ *    livraison) plutôt que corrigé silencieusement ou laissé sous un faux prétexte technique ;
  *  - `documents-requis/marquer` est UPDATE-ONLY : `schemaMarquerDocumentRequis` ne porte pas de
  *    `libelle`, impossible de CRÉER un item sans texte d'affichage tant que `PV-03` n'existe pas.
  */
@@ -501,8 +512,11 @@ export class ServiceDossierVente {
         throw new ErreurMetier('VENTE_VEHICULE_MANQUANT', 'Aucun véhicule associé à ce dossier.');
       }
 
-      // `vehicule_stock` passe `reserve -> vendu` à l'émission de la facture (facturation, hors
-      // périmètre de ce fichier) — ici, on exige que ce soit déjà fait avant de livrer.
+      // `vehicule_stock` passe `reserve -> vendu` à l'émission de la facture — effet de bord
+      // PROGRAMMATIQUE de `facturation/` (hors périmètre de ce fichier) via
+      // `ServiceVehiculeStock.marquerVendu` (exporté par `VentesModule` pour cette injection
+      // croisée, câblage réel côté facturation encore à faire par son propriétaire). Ici, on exige
+      // que ce soit déjà fait avant de livrer.
       const vehiculeStockLigne = await chargerVehiculeStockPourEcriture(tx, ctx, ligne.vehiculeId);
       if (vehiculeStockLigne.statutCommercial !== 'vendu') {
         throw new ErreurMetier(
@@ -554,6 +568,100 @@ export class ServiceDossierVente {
         clientId: nouveauDetenteurId,
         du: entree.dateLivraisonEffective,
       });
+
+      // RV-24 : une reprise CONFIRMÉE entre en stock à la livraison — TROU COMBLÉ (constaté en
+      // reprenant ce fichier : `origineRepriseDossierVenteId` n'était jamais ÉCRIT nulle part dans
+      // ce module, seulement lu). C'est la VALEUR NÉGOCIÉE, jamais l'estimée (RV-24, littéral,
+      // rappel explicite en pied de `contrats/ventes/reprise.ts`), qui devient le prix d'achat
+      // d'entrée en stock. `chargerRepriseOuNullPourEcriture` verrouille la ligne reprise pour la
+      // durée de CETTE transaction (même verrou que `engager()`), donc atomique avec le reste de
+      // `livrer()` : facture déjà émise, livraison ET entrée en stock de la reprise réussissent ou
+      // échouent ensemble.
+      const repriseLigne = await this.chargerRepriseOuNullPourEcriture(tx, ctx, dossierVenteId);
+      if (repriseLigne && repriseLigne.statut === 'confirmee') {
+        if (repriseLigne.valeurNegocieeCentimes === null) {
+          // Ne peut pas arriver en pratique : `reprise_valeur_negociee_requise_chk`
+          // (migrations/0032_ventes.sql) impose cette valeur dès que `statut <> 'estimee'`. Garde
+          // défensive pour le typage (colonne nullable côté Drizzle), pas un cas métier attendu.
+          throw new ErreurMetier(
+            'ERREUR_INTERNE',
+            'Reprise confirmée sans valeur négociée — incohérence de données (RV-27).',
+          );
+        }
+
+        // Garde applicative explicite (SELECT verrouillé avant INSERT), même style que
+        // `ServiceVehiculeStock.mettreEnStock` pour `VENTE_VEHICULE_STOCK_DEJA_EXISTANT` : plus
+        // lisible qu'une contrainte SQL brute, le `catch` ci-dessous reste le filet (course
+        // concurrente), pas le mécanisme.
+        const dejaEnStock = await chargerVehiculeStockOuNull(
+          tx,
+          ctx,
+          repriseLigne.vehiculeRepriseId,
+          true,
+        );
+        if (dejaEnStock) {
+          throw new ErreurMetier(
+            'VENTE_VEHICULE_STOCK_DEJA_EXISTANT',
+            'Le véhicule repris est déjà (ou a déjà été) mis en stock.',
+          );
+        }
+
+        try {
+          await tx.insert(vehiculeStock).values({
+            id: repriseLigne.vehiculeRepriseId,
+            tenantId: ctx.tenantId,
+            // RV-24 littéral ne précise pas le site — le dossier de vente porteur de la reprise est
+            // la seule référence de site disponible à ce stade (pas de second champ « site de
+            // reprise » dans le contrat `reprise.ts`).
+            siteId: ligne.siteId,
+            provenance: 'reprise',
+            dateEntreeStock: entree.dateLivraisonEffective,
+            prixAchatCentimes: repriseLigne.valeurNegocieeCentimes,
+            // Même dérivation que `mettreEnStock` : `provenance = 'reprise'` n'est jamais
+            // `neuf_constructeur`, donc jamais `en_commande` — toujours `disponible` d'emblée.
+            statutCommercial: 'disponible',
+            receptionneLe: maintenant,
+            origineRepriseDossierVenteId: dossierVenteId,
+          });
+        } catch (erreur) {
+          if (estViolationCleUniqueVehiculeStock(erreur)) {
+            throw new ErreurMetier(
+              'VENTE_VEHICULE_STOCK_DEJA_EXISTANT',
+              'Le véhicule repris est déjà (ou a déjà été) mis en stock.',
+            );
+          }
+          throw erreur;
+        }
+        // Audit : `vehicule_stock_audit` (trigger `after insert`, migrations/0032_ventes.sql)
+        // capture cette création automatiquement — aucun appel explicite à `ServiceAudit` requis,
+        // même mécanisme que la création via `POST /vehicules/{id}/stock`.
+
+        // Détention du véhicule REPRIS : clôture motif `reprise` (RV-23), SANS réouverture — le
+        // détenteur cible n'est PAS tranché (`QV-01`, rappel explicite en pied de
+        // `contrats/ventes/reprise.ts`) ; cette action ne l'invente pas.
+        const [detentionRepriseOuverte] = await tx
+          .select({ id: vehiculeDetention.id })
+          .from(vehiculeDetention)
+          .where(
+            and(
+              eq(vehiculeDetention.tenantId, ctx.tenantId),
+              eq(vehiculeDetention.vehiculeId, repriseLigne.vehiculeRepriseId),
+              isNull(vehiculeDetention.au),
+            ),
+          )
+          .limit(1);
+        if (detentionRepriseOuverte) {
+          await tx
+            .update(vehiculeDetention)
+            .set({ au: entree.dateLivraisonEffective, motifFin: 'reprise' })
+            .where(
+              and(
+                eq(vehiculeDetention.tenantId, ctx.tenantId),
+                eq(vehiculeDetention.id, detentionRepriseOuverte.id),
+              ),
+            );
+        }
+      }
 
       const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
       const reponse = await this.assembler(tx, ctx, role, misAJour);
@@ -836,4 +944,14 @@ export class ServiceDossierVente {
       throw erreur;
     }
   }
+}
+
+/** `23505` = `unique_violation` PostgreSQL — course concurrente sur `vehicule_stock.id` (PK, =
+ *  `vehicule.id`) au moment de la mise en stock automatique d'une reprise confirmée. COPIE LOCALE
+ *  VOLONTAIRE de `service-vehicule-stock.ts::estViolationCleUnique` (non exportée) — même doctrine
+ *  de duplication assumée que `service-reprise.ts` pour la même petite fonction. */
+function estViolationCleUniqueVehiculeStock(erreur: unknown): boolean {
+  return (
+    typeof erreur === 'object' && erreur !== null && (erreur as { code?: unknown }).code === '23505'
+  );
 }

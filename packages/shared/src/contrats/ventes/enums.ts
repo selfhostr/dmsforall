@@ -53,11 +53,24 @@ export const STATUTS_COMMERCIAUX_VEHICULE = [
 export type StatutCommercialVehicule = (typeof STATUTS_COMMERCIAUX_VEHICULE)[number];
 
 /** Action possible MAINTENANT sur `ReponseVehiculeStock.actionsDisponibles` — même principe que
- *  `ActionOrdreReparation` : approximation utile au client, jamais la seule garde. */
+ *  `ActionOrdreReparation` : approximation utile au client, jamais la seule garde.
+ *
+ * `marquer_vendu` AJOUTÉ après le premier gel de ce fichier — EXTENSION ADDITIVE, pas une rupture
+ * (même principe que `'modifier'` sur `ACTIONS_DOSSIER_VENTE` ci-dessous, déjà ajouté après coup
+ * pour la même raison ; `contrats/ventes/index.ts` rappelle qu'« un client de cette API doit
+ * ignorer les valeurs d'enum qu'il ne connaît pas »). `reserve -> vendu` était une transition déjà
+ * légale EN BASE (`transition_autorisee`, `migrations/0032_ventes.sql` §9) mais qu'AUCUN code de ce
+ * dépôt ne pouvait jamais déclencher — trou constaté et comblé
+ * (`service-vehicule-stock.ts::marquerVendu`). Usage NORMAL : effet de bord PROGRAMMATIQUE de
+ * `facturation/` à l'émission de la facture (RV-37) ; l'endpoint HTTP
+ * (`POST /vehicules/{id}/stock/marquer-vendu`) est réservé à la correction exceptionnelle, même
+ * doctrine que `remettre_disponible`. `STATUTS_COMMERCIAUX_VEHICULE` (au-dessus, **GELÉ**) n'est
+ * PAS touché : `vendu` y figure déjà, seule l'ACTION qui expose cette transition manquait. */
 export const ACTIONS_VEHICULE_STOCK = [
   'mettre_a_jour',
   'receptionner',
   'remettre_disponible',
+  'marquer_vendu',
 ] as const;
 export type ActionVehiculeStock = (typeof ACTIONS_VEHICULE_STOCK)[number];
 

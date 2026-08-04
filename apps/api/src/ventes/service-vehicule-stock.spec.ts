@@ -1,0 +1,150 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { EntreeMarquerVenduVehiculeStock } from '@dfa/shared';
+
+import type { ContexteTenant, TransactionDfa } from '../db';
+import { vehiculeStock } from '../db/schema';
+import type { LigneVehiculeStock } from '../db/schema';
+import type { Horloge } from '../common/horloge/horloge';
+
+import { ServiceVehiculeStock } from './service-vehicule-stock';
+
+/**
+ * Trou n°2 comblé (audit préalable, rapport de livraison) : `transition_autorisee` autorise déjà
+ * `vehicule_stock` `reserve -> vendu` en base (`migrations/0032_ventes.sql` §9) mais AUCUN code de
+ * ce dépôt ne pouvait jamais la déclencher — `service-dossier-vente.ts::livrer()` EXIGE ce statut
+ * sans qu'aucun chemin ne puisse jamais le produire (`grep` préalable : `venduLe`/`vendu_le` en
+ * lecture seule dans tout `ventes/`, `facturation/` ne référence jamais `vehiculeStock`). Ce
+ * fichier prouve `marquerVendu` (base MOQUÉE, même doctrine que `pieces/service-stock.spec.ts`) :
+ * la transition pose bien `venduLe` et le motif, et refuse proprement (409 CONFLIT) depuis tout
+ * autre statut que `reserve` plutôt que d'écraser silencieusement un statut incohérent.
+ */
+const CTX: ContexteTenant = { tenantId: 'tid-1', utilisateurId: 'user-1', requeteId: null };
+const VEHICULE_ID = 'veh-1';
+const MAINTENANT = new Date('2026-08-01T10:00:00.000Z');
+
+function horlogeFactice(): Horloge {
+  return { maintenant: () => MAINTENANT } as unknown as Horloge;
+}
+
+function ligneReserveeFixture(champs: Partial<LigneVehiculeStock> = {}): LigneVehiculeStock {
+  return {
+    id: VEHICULE_ID,
+    tenantId: 'tid-1',
+    siteId: 'site-1',
+    provenance: 'achat_particulier',
+    dateEntreeStock: '2026-07-01',
+    prixAchatCentimes: 1_200_000,
+    prixVenteAfficheCentimes: 1_500_000,
+    statutCommercial: 'reserve',
+    vendeurPrecedentAssujetti: null,
+    origineRepriseDossierVenteId: null,
+    dernierMotifTransition: null,
+    receptionneLe: new Date('2026-07-01T08:00:00.000Z'),
+    reserveLe: new Date('2026-07-20T08:00:00.000Z'),
+    venduLe: null,
+    livreLe: null,
+    version: 2,
+    creeLe: new Date('2026-07-01T08:00:00.000Z'),
+    modifieLe: new Date('2026-07-20T08:00:00.000Z'),
+    ...champs,
+  } as LigneVehiculeStock;
+}
+
+/** Fausse transaction couvrant `select().from().where().limit()` (chargement, éventuellement
+ *  `.for('update')`) et `update().set().where()` — même patron que `pieces/service-stock.spec.ts`.
+ *  `limit()` rend un objet « thenable » (à la fois `await`-able directement ET chaînable via
+ *  `.for('update')`) pour coller aux deux formes utilisées par `references.ts::chargerVehiculeStockOuNull`. */
+function txFactice(selects: readonly unknown[][] = []) {
+  const files = [...selects];
+  const updateCalls: Array<{ table: unknown; champs: unknown }> = [];
+
+  const resultatLimit = () => {
+    let consomme: Promise<unknown[]> | null = null;
+    const consommer = () => (consomme ??= Promise.resolve(files.shift() ?? []));
+    return {
+      for: () => consommer(),
+      then: (resolve: (v: unknown[]) => unknown, reject?: (e: unknown) => unknown) =>
+        consommer().then(resolve, reject),
+    };
+  };
+
+  const tx = {
+    select: () => ({
+      from: () => ({
+        where: () => ({ limit: () => resultatLimit() }),
+      }),
+    }),
+    update: (table: unknown) => ({
+      set: (champs: unknown) => {
+        updateCalls.push({ table, champs });
+        return { where: () => Promise.resolve(undefined) };
+      },
+    }),
+  };
+
+  return { tx: tx as unknown as TransactionDfa, updateCalls };
+}
+
+function accesFactice(tx: TransactionDfa) {
+  return {
+    enTenant: vi.fn(
+      async (_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<unknown>) =>
+        travail(tx),
+    ),
+  };
+}
+
+function serviceFactice(tx: TransactionDfa): ServiceVehiculeStock {
+  const svc = new ServiceVehiculeStock(
+    accesFactice(tx) as never,
+    {} as never,
+    {} as never,
+    horlogeFactice(),
+  );
+  // `assembler` est privé — seule façon de l'atteindre depuis ce fichier de test (cast `any`
+  // assumé). Ce fichier n'exerce que l'effet de bord ajouté (`marquerVendu`), pas le ré-assemblage
+  // complet de la fiche stock (clients, plaque, audit — déjà exercé ailleurs).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  vi.spyOn(svc as any, 'assembler').mockResolvedValue({} as never);
+  return svc;
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe('ServiceVehiculeStock.marquerVendu — `reserve -> vendu` (trou comblé)', () => {
+  it('depuis `reserve` : pose `venduLe`, `statutCommercial = vendu` et trace le motif', async () => {
+    // 1er select : chargerVehiculeStockPourEcriture (verrouillé) ; 2e : chargerVehiculeStock (relecture).
+    const { tx, updateCalls } = txFactice([
+      [ligneReserveeFixture()],
+      [ligneReserveeFixture({ statutCommercial: 'vendu', venduLe: MAINTENANT })],
+    ]);
+    const service = serviceFactice(tx);
+
+    const entree: EntreeMarquerVenduVehiculeStock = {
+      motif: 'Facture n°2026-042 émise — resynchronisation manuelle.',
+    };
+    await service.marquerVendu(CTX, 'direction', VEHICULE_ID, entree);
+
+    const misAJour = updateCalls.find((c) => c.table === vehiculeStock);
+    expect(misAJour?.champs).toMatchObject({
+      statutCommercial: 'vendu',
+      venduLe: MAINTENANT,
+      dernierMotifTransition: entree.motif,
+    });
+  });
+
+  it("refuse (409 CONFLIT) depuis un statut autre que `reserve` — n'écrase pas un état incohérent", async () => {
+    const { tx, updateCalls } = txFactice([
+      [ligneReserveeFixture({ statutCommercial: 'disponible' })],
+    ]);
+    const service = serviceFactice(tx);
+
+    const entree: EntreeMarquerVenduVehiculeStock = { motif: 'Tentative hors séquence.' };
+    await expect(service.marquerVendu(CTX, 'direction', VEHICULE_ID, entree)).rejects.toMatchObject(
+      { code: 'CONFLIT' },
+    );
+    expect(updateCalls).toHaveLength(0);
+  });
+});
