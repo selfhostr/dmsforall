@@ -204,16 +204,12 @@ export class ServiceExportComptable {
       { methode: 'POST', chemin: '/exports-fiduciaires', cle: cleIdempotence, corps: entree },
       async (tx) => {
         if (entree.cible !== 'winbiz') {
-          throw new ErreurMetier(
-            'FONCTION_NON_DISPONIBLE',
-            `Aucun adaptateur d'export n'est câblé pour la cible « ${entree.cible} » — seul winbiz est disponible dans ce lot.`,
-          );
+          const message = `Aucun adaptateur d'export n'est câblé pour la cible « ${entree.cible} » — seul winbiz est disponible dans ce lot.`;
+          throw new ErreurMetier('FONCTION_NON_DISPONIBLE', message, { detail: message });
         }
         if (entree.granularite !== undefined && entree.granularite !== 'detaille') {
-          throw new ErreurMetier(
-            'FONCTION_NON_DISPONIBLE',
-            `Le mode d'agrégation « ${entree.granularite} » n'est pas implémenté — seul detaille l'est dans ce lot.`,
-          );
+          const message = `Le mode d'agrégation « ${entree.granularite} » n'est pas implémenté — seul detaille l'est dans ce lot.`;
+          throw new ErreurMetier('FONCTION_NON_DISPONIBLE', message, { detail: message });
         }
 
         const [candidats, { imputations: imputationsCandidates, paiementsFinancierNouveau }] =
@@ -246,16 +242,12 @@ export class ServiceExportComptable {
         // filtré doit faire échouer LOUD ici, jamais produire une écriture avec un `numero` fantôme.
         const infosCandidats: readonly CandidatContinuite[] = candidats.map((c) => {
           if (c.numero === null || c.numeroSequence === null || c.exercice === null) {
-            throw new ErreurMetier(
-              'ERREUR_INTERNE',
-              `Document ${c.id} candidat à l'export sans numéro/séquence/exercice alors que son statut (${c.statut}) l'exige.`,
-            );
+            const message = `Document ${c.id} candidat à l'export sans numéro/séquence/exercice alors que son statut (${c.statut}) l'exige.`;
+            throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
           }
           if (!estTypeDocumentExportable(c.typeDocument)) {
-            throw new ErreurMetier(
-              'ERREUR_INTERNE',
-              `Document ${c.id} de type ${c.typeDocument} ne devrait jamais être candidat à l'export.`,
-            );
+            const message = `Document ${c.id} de type ${c.typeDocument} ne devrait jamais être candidat à l'export.`;
+            throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
           }
           return {
             id: c.id,
@@ -295,12 +287,11 @@ export class ServiceExportComptable {
         const manquants = [...manquantsDocuments, ...manquantsPaiements];
         if (manquants.length > 0) {
           const nommes = manquants.slice(0, 20).map(decrireBesoinManquant);
-          throw new ErreurMetier(
-            'EXPORT_MAPPING_INCOMPLET',
+          const message =
             `Mapping comptable incomplet pour ${String(manquants.length)} élément(s) — export refusé en bloc plutôt que partiel : ` +
-              nommes.join(' ; ') +
-              (manquants.length > 20 ? ` … et ${String(manquants.length - 20)} de plus.` : ''),
-          );
+            nommes.join(' ; ') +
+            (manquants.length > 20 ? ` … et ${String(manquants.length - 20)} de plus.` : '');
+          throw new ErreurMetier('EXPORT_MAPPING_INCOMPLET', message, { detail: message });
         }
         // Distinct de `manquants` (paramétrage rattrapable) : ce que ce lot logiciel ne sait PAS
         // construire du tout (compensation, escompte/perte multi-taux — voir l'en-tête de
@@ -308,14 +299,13 @@ export class ServiceExportComptable {
         // devinée et fausse.
         if (limitesPaiements.length > 0) {
           const nommees = limitesPaiements.slice(0, 20).map(decrireLimitePaiement);
-          throw new ErreurMetier(
-            'FONCTION_NON_DISPONIBLE',
+          const message =
             `Construction d'écriture de paiement non prise en charge pour ${String(limitesPaiements.length)} imputation(s) — export refusé en bloc : ` +
-              nommees.join(' ; ') +
-              (limitesPaiements.length > 20
-                ? ` … et ${String(limitesPaiements.length - 20)} de plus.`
-                : ''),
-          );
+            nommees.join(' ; ') +
+            (limitesPaiements.length > 20
+              ? ` … et ${String(limitesPaiements.length - 20)} de plus.`
+              : '');
+          throw new ErreurMetier('FONCTION_NON_DISPONIBLE', message, { detail: message });
         }
 
         const ecritures = [...ecrituresDocuments, ...ecrituresPaiements];
@@ -323,18 +313,16 @@ export class ServiceExportComptable {
         if (lots.length > 1) {
           // Voir l'en-tête de ce fichier, §« Multi-lot » : la corrélation document → lot au-delà
           // d'un seul lot n'est pas construite dans ce service — refuser plutôt que mécompter.
-          throw new ErreurMetier(
-            'FONCTION_NON_DISPONIBLE',
+          const message =
             `Le lot dépasse la taille maximale d'un fichier WinBIZ et devrait être scindé en ${String(lots.length)} fichiers — ` +
-              'non supporté par ce service (corrélation document/lot non construite) : réduire la période demandée.',
-          );
+            'non supporté par ce service (corrélation document/lot non construite) : réduire la période demandée.';
+          throw new ErreurMetier('FONCTION_NON_DISPONIBLE', message, { detail: message });
         }
         const lot = lots[0];
-        if (!lot)
-          throw new ErreurMetier(
-            'ERREUR_INTERNE',
-            'Aucun lot produit malgré des candidats non vides.',
-          );
+        if (!lot) {
+          const message = 'Aucun lot produit malgré des candidats non vides.';
+          throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
+        }
 
         const [ligneExport] = await tx
           .insert(exportComptable)
@@ -352,8 +340,10 @@ export class ServiceExportComptable {
             statut: 'genere',
           })
           .returning();
-        if (!ligneExport)
-          throw new ErreurMetier('ERREUR_INTERNE', "Échec de l'enregistrement du lot d'export.");
+        if (!ligneExport) {
+          const message = "Échec de l'enregistrement du lot d'export.";
+          throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
+        }
 
         // Marquage `exporte_le`/`export_id` — la SEULE écriture possible sur un document verrouillé
         // (MD-20), un paiement immuable (MD-52, `paiement_verrouiller`) ou une imputation immuable
@@ -531,10 +521,8 @@ export class ServiceExportComptable {
     for (const doc of candidats) {
       const comptes = doc.dateDocument !== null ? comptesParDate.get(doc.dateDocument) : undefined;
       if (!comptes) {
-        throw new ErreurMetier(
-          'ERREUR_INTERNE',
-          `Résolution du plan comptable manquante pour la date ${String(doc.dateDocument)}.`,
-        );
+        const message = `Résolution du plan comptable manquante pour la date ${String(doc.dateDocument)}.`;
+        throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
       }
       const resultat = construireEcritureDocument(
         doc,
@@ -673,10 +661,8 @@ export class ServiceExportComptable {
         )
         .limit(1);
       if (incoherence) {
-        throw new ErreurMetier(
-          'ERREUR_INTERNE',
-          `Paiement ${incoherence.paiementId} candidat au premier envoi financier mais porte déjà une imputation exportée — invariant rompu.`,
-        );
+        const message = `Paiement ${incoherence.paiementId} candidat au premier envoi financier mais porte déjà une imputation exportée — invariant rompu.`;
+        throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
       }
     }
 
@@ -705,11 +691,10 @@ export class ServiceExportComptable {
       const ligne = paiementParId.get(id);
       // `imputation_paiement_fk_paiement` garantit l'existence du paiement référencé — n'arrive
       // jamais en pratique ; garde LOUD plutôt qu'une écriture construite avec des champs fantômes.
-      if (!ligne)
-        throw new ErreurMetier(
-          'ERREUR_INTERNE',
-          `Paiement ${id} référencé par une imputation candidate introuvable.`,
-        );
+      if (!ligne) {
+        const message = `Paiement ${id} référencé par une imputation candidate introuvable.`;
+        throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
+      }
       return ligne;
     });
     paiementsAProcess.sort((a, b) =>
@@ -773,10 +758,8 @@ export class ServiceExportComptable {
       if (!documentsInfo.has(documentId)) {
         // `imputation_paiement_fk_document` garantit l'existence du document référencé — n'arrive
         // jamais en pratique ; garde LOUD plutôt qu'une écriture construite avec un numéro fantôme.
-        throw new ErreurMetier(
-          'ERREUR_INTERNE',
-          `Document ${documentId} référencé par une imputation de paiement introuvable.`,
-        );
+        const message = `Document ${documentId} référencé par une imputation de paiement introuvable.`;
+        throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
       }
     }
 
@@ -800,10 +783,8 @@ export class ServiceExportComptable {
     for (const p of paiementsAProcess) {
       const comptes = comptesParDate.get(p.dateValeur);
       if (!comptes) {
-        throw new ErreurMetier(
-          'ERREUR_INTERNE',
-          `Résolution du plan comptable manquante pour la date ${p.dateValeur}.`,
-        );
+        const message = `Résolution du plan comptable manquante pour la date ${p.dateValeur}.`;
+        throw new ErreurMetier('ERREUR_INTERNE', message, { detail: message });
       }
       const imps = (imputationsParPaiement.get(p.id) ?? []).map((i) => ({
         documentId: i.documentId,
