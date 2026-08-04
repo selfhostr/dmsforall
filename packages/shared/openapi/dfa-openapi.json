@@ -6840,12 +6840,18 @@
           "technicienId": {
             "format": "uuid",
             "type": "string"
+          },
+          "technicienNomAffiche": {
+            "description": "Prénom + nom du technicien, joints par le serveur (jamais à reconstruire côté client).",
+            "example": "Marco Rossi",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "siteId",
           "technicienId",
+          "technicienNomAffiche",
           "statut",
           "nature",
           "ordreReparationId",
