@@ -180,5 +180,8 @@ export interface ConfigBase {
   /** Rôle `dfa_app` — NOSUPERUSER, NOBYPASSRLS, non propriétaire. */
   readonly DATABASE_URL: string;
   readonly DATABASE_POOL_MAX: number;
+  readonly DATABASE_POOL_MIN: number;
   readonly DATABASE_TIMEOUT_REQUETE_MS: number;
+  readonly DATABASE_TIMEOUT_CONNEXION_MS: number;
+  readonly DATABASE_TIMEOUT_IDLE_MS: number;
 }

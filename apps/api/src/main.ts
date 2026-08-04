@@ -57,7 +57,7 @@ import { construireMiddlewareEnTetesSecurite } from './common/securite';
 import { JETON_DB } from './db/db.jetons';
 import type { AccesBase } from './db/db.types';
 import { construireDocument } from './openapi';
-import { initialiserSentry } from './observabilite';
+import { initialiserSentry, installerGestionnairesCrash } from './observabilite';
 
 /** Code de sortie standard (`sysexits.h`) pour une configuration invalide. */
 const CODE_SORTIE_CONFIG_INVALIDE = 78;
@@ -85,6 +85,11 @@ async function main(): Promise<void> {
   // 2. Initialisation Sentry — juste après la config validée, AVANT la création de l'app Nest.
   // No-op propre si SENTRY_DSN est absent, ne lève jamais (voir observabilite/initialiser-sentry).
   initialiserSentry(config);
+
+  // 2bis. Filet de dernier recours pour les crashs process (uncaughtException/unhandledRejection),
+  // hors du cycle requête/réponse — jamais couvert par FiltreProbleme. Câblé APRÈS Sentry : sans
+  // quoi la capture n'aurait rien à envoyer (voir observabilite/installer-gestionnaires-crash.ts).
+  installerGestionnairesCrash(config);
 
   // 3. Création de l'app Nest, config déjà validée injectée via ConfigModule.pourRacine.
   // Typé NestExpressApplication (et non INestApplication) uniquement pour exposer `app.set(…)`,

@@ -45,6 +45,7 @@ export function enDate(valeur: Date | string): Date {
   return valeur instanceof Date ? valeur : new Date(valeur);
 }
 
+import { estErreurEpuisementPool, traduireErreurPoolSature } from './erreur-pool-sature';
 import { JETON_CONFIG_BASE } from './db.jetons.interne';
 import type {
   AccesAmorcage,
@@ -102,12 +103,22 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
     //
     // Coût : 4 connexions supplémentaires au maximum. Négligeable au regard du dimensionnement
     // d'une instance qui sert 200 tenants.
+    const maxAmorcage = Math.min(TAILLE_POOL_AMORCAGE, config.DATABASE_POOL_MAX);
     this.pool = new Pool({
       connectionString: config.DATABASE_URL,
-      max: Math.min(TAILLE_POOL_AMORCAGE, config.DATABASE_POOL_MAX),
+      max: maxAmorcage,
+      // Même raisonnement que le pool applicatif (`acces-base.service.ts`) : garder une connexion
+      // chaude évite qu'une salve de connexions se présente à froid après une purge idle sur le
+      // chemin d'authentification — précisément le chemin qui doit rester réactif même quand le
+      // pool applicatif, lui, est saturé (voir la justification « cloisonnement de disponibilité »
+      // ci-dessus). Plafonné à `maxAmorcage`, jamais à `DATABASE_POOL_MIN` brut : un pool à 4
+      // connexions au plus ne peut pas en garder 2 chaudes si `DATABASE_POOL_MIN` était réglé
+      // au-delà.
+      min: Math.min(config.DATABASE_POOL_MIN, maxAmorcage),
       application_name: 'dfa-api-amorcage',
       statement_timeout: config.DATABASE_TIMEOUT_REQUETE_MS,
-      connectionTimeoutMillis: 5_000,
+      connectionTimeoutMillis: config.DATABASE_TIMEOUT_CONNEXION_MS,
+      idleTimeoutMillis: config.DATABASE_TIMEOUT_IDLE_MS,
     });
 
     this.pool.on('error', (erreur) => {
@@ -125,29 +136,54 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
     await this.pool.end();
   }
 
+  /**
+   * Enveloppe un appel à `this.base` pour traduire un épuisement du pool `pg` d'amorçage en
+   * `ErreurMetier` 503 (`erreur-pool-sature.ts`) — même doctrine que `AccesBase.enTenant`
+   * (`acces-base.service.ts`), appliquée ICI plutôt qu'une seule fois autour d'une transaction
+   * commune : chacune des six opérations de ce fichier acquiert sa PROPRE connexion
+   * indépendamment (`this.base.execute`, jamais `this.base.transaction`), donc chacune peut
+   * échouer sur `Pool.connect` indépendamment des cinq autres.
+   *
+   * Prend directement la PROMESSE (pas une fonction qui la produirait) : `this.base.execute(...)`
+   * a déjà démarré au moment de l'appel, exactement comme si `executer` n'existait pas — cette
+   * enveloppe ne fait que rattraper le rejet, jamais différer l'exécution.
+   */
+  private async executer<T>(promesse: Promise<T>): Promise<T> {
+    try {
+      return await promesse;
+    } catch (erreur) {
+      if (estErreurEpuisementPool(erreur)) {
+        throw traduireErreurPoolSature(erreur);
+      }
+      throw erreur;
+    }
+  }
+
   // -------------------------------------------------------------------------------------------
   // 1. Résolution du compte à la connexion
   // -------------------------------------------------------------------------------------------
 
   async utilisateurParEmail(email: string): Promise<UtilisateurAmorcage | null> {
-    const resultat = await this.base.execute<{
-      id: string;
-      tenant_id: string;
-      email: string;
-      mot_de_passe_hash: string;
-      statut: UtilisateurAmorcage['statut'];
-      statut_tenant: UtilisateurAmorcage['statutTenant'];
-      role: UtilisateurAmorcage['role'];
-      langue: UtilisateurAmorcage['langue'];
-      echecs_connexion: number;
-      // `Date | string` et non `Date` : voir enDate(). Déclarer `Date` ici serait un mensonge
-      // qui rendrait l'appel à enDate() ci-dessous inutile en apparence — et donc supprimable.
-      verrouille_jusqu_a: Date | string | null;
-    }>(sql`
+    const resultat = await this.executer(
+      this.base.execute<{
+        id: string;
+        tenant_id: string;
+        email: string;
+        mot_de_passe_hash: string;
+        statut: UtilisateurAmorcage['statut'];
+        statut_tenant: UtilisateurAmorcage['statutTenant'];
+        role: UtilisateurAmorcage['role'];
+        langue: UtilisateurAmorcage['langue'];
+        echecs_connexion: number;
+        // `Date | string` et non `Date` : voir enDate(). Déclarer `Date` ici serait un mensonge
+        // qui rendrait l'appel à enDate() ci-dessous inutile en apparence — et donc supprimable.
+        verrouille_jusqu_a: Date | string | null;
+      }>(sql`
       select id, tenant_id, email, mot_de_passe_hash, statut, statut_tenant,
              role, langue, echecs_connexion, verrouille_jusqu_a
         from amorcage.utilisateur_par_email(${email}::text)
-    `);
+    `),
+    );
 
     const l = resultat.rows[0];
     if (l === undefined) {
@@ -188,24 +224,26 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
     // `Date | string` sur toutes les colonnes timestamptz : c'est ce que le pilote peut
     // réellement rendre à travers une fonction SECURITY DEFINER (voir enDate()). Le typage honnête
     // est ce qui rend les conversions ci-dessous manifestement nécessaires.
-    const resultat = await this.base.execute<{
-      session_id: string;
-      tenant_id: string;
-      utilisateur_id: string;
-      cree_le: Date | string;
-      expire_le: Date | string;
-      vu_le: Date | string;
-      revoquee_le: Date | string | null;
-      role: SessionAmorcage['role'];
-      langue: SessionAmorcage['langue'];
-      statut_utilisateur: SessionAmorcage['statutUtilisateur'];
-      statut_tenant: SessionAmorcage['statutTenant'];
-      site_id: string | null;
-    }>(sql`
+    const resultat = await this.executer(
+      this.base.execute<{
+        session_id: string;
+        tenant_id: string;
+        utilisateur_id: string;
+        cree_le: Date | string;
+        expire_le: Date | string;
+        vu_le: Date | string;
+        revoquee_le: Date | string | null;
+        role: SessionAmorcage['role'];
+        langue: SessionAmorcage['langue'];
+        statut_utilisateur: SessionAmorcage['statutUtilisateur'];
+        statut_tenant: SessionAmorcage['statutTenant'];
+        site_id: string | null;
+      }>(sql`
       select session_id, tenant_id, utilisateur_id, cree_le, expire_le, vu_le,
              revoquee_le, role, langue, statut_utilisateur, statut_tenant, site_id
         from amorcage.session_par_empreinte(${empreinte}::bytea)
-    `);
+    `),
+    );
 
     const l = resultat.rows[0];
     if (l === undefined) {
@@ -242,9 +280,11 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
     // La fonction SQL ignore d'elle-même une session révoquée ou un horodatage qui recule :
     // l'appel est idempotent et sans effet de bord indésirable, y compris sur des requêtes
     // concurrentes arrivées dans le désordre.
-    await this.base.execute(sql`
+    await this.executer(
+      this.base.execute(sql`
       select amorcage.session_toucher(${sessionId}::uuid, ${vuLe}::timestamptz)
-    `);
+    `),
+    );
   }
 
   // -------------------------------------------------------------------------------------------
@@ -255,21 +295,25 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
     utilisateurId: string,
     verrouilleJusquA: Date | null,
   ): Promise<void> {
-    await this.base.execute(sql`
+    await this.executer(
+      this.base.execute(sql`
       select amorcage.echec_connexion(
         ${utilisateurId}::uuid,
         ${verrouilleJusquA}::timestamptz
       )
-    `);
+    `),
+    );
   }
 
   async reinitialiserEchecsConnexion(utilisateurId: string, connecteLe: Date): Promise<void> {
-    await this.base.execute(sql`
+    await this.executer(
+      this.base.execute(sql`
       select amorcage.reinitialiser_echecs(
         ${utilisateurId}::uuid,
         ${connecteLe}::timestamptz
       )
-    `);
+    `),
+    );
   }
 
   // -------------------------------------------------------------------------------------------
@@ -284,7 +328,8 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
     // Voir estAdresseIpValide : une IP malformée ne doit jamais empêcher l'écriture de la trace.
     const ip = evenement.ip !== null && estAdresseIpValide(evenement.ip) ? evenement.ip : null;
 
-    await this.base.execute(sql`
+    await this.executer(
+      this.base.execute(sql`
       select amorcage.journaliser_securite(
         ${evenement.type}::type_evenement_securite,
         ${evenement.tenantId}::uuid,
@@ -294,6 +339,7 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
         ${evenement.userAgent}::text,
         ${details}::jsonb
       )
-    `);
+    `),
+    );
   }
 }

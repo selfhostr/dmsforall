@@ -119,7 +119,10 @@ export async function semerFacturationDemo(options: OptionsSeedFacturation): Pro
     NODE_ENV: options.config.NODE_ENV,
     DATABASE_URL: options.config.DATABASE_URL,
     DATABASE_POOL_MAX: options.config.DATABASE_POOL_MAX,
+    DATABASE_POOL_MIN: options.config.DATABASE_POOL_MIN,
     DATABASE_TIMEOUT_REQUETE_MS: options.config.DATABASE_TIMEOUT_REQUETE_MS,
+    DATABASE_TIMEOUT_CONNEXION_MS: options.config.DATABASE_TIMEOUT_CONNEXION_MS,
+    DATABASE_TIMEOUT_IDLE_MS: options.config.DATABASE_TIMEOUT_IDLE_MS,
   });
 
   try {

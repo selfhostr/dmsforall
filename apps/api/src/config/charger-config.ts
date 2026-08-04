@@ -17,7 +17,41 @@ export const schemaConfig = z
     // rôle dfa_migrator — migrations uniquement, jamais utilisé par l'API en exécution.
     DATABASE_URL_MIGRATION: z.string().min(1).startsWith('postgres'),
     DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
+    // Connexions maintenues ouvertes en permanence, même hors trafic (0 = comportement
+    // historique : le pool se vide complètement dès que `DATABASE_TIMEOUT_IDLE_MS` s'écoule sans
+    // activité). Défaut 2, justifié par un défaut mesuré : `pg-pool` ferme toute connexion
+    // inactive après `idleTimeoutMillis` (10 s par défaut, jusqu'ici jamais réglé explicitement —
+    // voir DATABASE_TIMEOUT_IDLE_MS ci-dessous) tant que `min` (jusqu'ici jamais réglé non plus,
+    // défaut `pg-pool` = 0) ne l'en empêche pas. Un garage qui rouvre son poste après la pause de
+    // midi envoie une salve de requêtes de LISTE (OR, documents de vente) sur un pool à zéro
+    // connexion établie : chacune paie le coût plein d'un nouveau handshake TCP + authentification
+    // SCRAM avant de répondre, et une salve suffisamment large fait la queue derrière
+    // `DATABASE_POOL_MAX`. Garder 2 connexions chaudes absorbe ce cas courant sans immobiliser
+    // une part significative du budget `max` (défaut 10) ni du `max_connections` PostgreSQL
+    // partagé par les 200 tenants visés — un `min` réglé au niveau de `max` annulerait le
+    // bénéfice même d'un pool à taille variable et gèlerait des connexions à vide sur un tenant
+    // inactif la nuit.
+    DATABASE_POOL_MIN: z.coerce.number().int().min(0).max(50).default(2),
     DATABASE_TIMEOUT_REQUETE_MS: z.coerce.number().int().min(100).default(10_000),
+    // `connectionTimeoutMillis` du pool `pg` : délai maximal accordé à UNE tentative de connexion
+    // (nouvelle ou en file d'attente derrière `DATABASE_POOL_MAX`) avant `pg-pool` ne lève
+    // `timeout exceeded when trying to connect` — l'erreur mesurée sous charge (88 reproductions,
+    // `DocumentVenteController.lister`/`OrdreReparationController.lister`). Auparavant câblée en
+    // dur (`5_000`) dans `acces-base.service.ts`/`acces-amorcage.service.ts`, jamais validée ni
+    // ajustable par déploiement. Défaut inchangé (5 s) : ni trop court pour une poignée de main
+    // SCRAM sous charge légitime, ni assez long pour transformer une vraie saturation en attente
+    // silencieuse côté client (le corps HTTP ne part qu'à l'expiration).
+    DATABASE_TIMEOUT_CONNEXION_MS: z.coerce.number().int().min(100).default(5_000),
+    // `idleTimeoutMillis` du pool `pg` : délai d'inactivité avant qu'une connexion AU-DESSUS de
+    // `DATABASE_POOL_MIN` ne soit fermée. Auparavant jamais réglé — `pg-pool` retombe alors sur
+    // son propre défaut (10 s, `node_modules/pg-pool/index.js`), implicite et donc invisible à la
+    // relecture de ce fichier, qui est censé être la source unique de vérité sur ce que l'API
+    // accepte comme configuration. Défaut porté à 30 s : assez long pour qu'un poste d'atelier qui
+    // interroge la liste des OR toutes les 15-20 s (rafraîchissement d'écran typique) ne fasse
+    // jamais fermer puis rouvrir la même connexion en boucle, sans pour autant garder des
+    // connexions ouvertes des heures sur un tenant inactif la nuit (le pool retombe à
+    // DATABASE_POOL_MIN, pas à zéro).
+    DATABASE_TIMEOUT_IDLE_MS: z.coerce.number().int().min(1_000).default(30_000),
     REDIS_URL: z.string().min(1).startsWith('redis'),
     SESSION_COOKIE_NOM: z
       .string()
@@ -185,6 +219,16 @@ export const schemaConfig = z
         path: ['LIMITE_CONNEXION_COMPTE'],
         message:
           'LIMITE_CONNEXION_COMPTE doit être strictement supérieure à SEUIL_VERROUILLAGE_COMPTE, sinon le 423 AUTH_COMPTE_VERROUILLE devient inatteignable (voir bloquant B1, rapport QA étape 0).',
+      });
+    }
+    // Un `min` supérieur à `max` n'a aucun sens pour le pool `pg` (`Pool.options.min`/`.max`) et
+    // produirait un pool qui tente de maintenir plus de connexions chaudes qu'il n'a le droit
+    // d'en ouvrir — fail-fast plutôt que de laisser `pg-pool` arbitrer silencieusement.
+    if (c.DATABASE_POOL_MIN > c.DATABASE_POOL_MAX) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['DATABASE_POOL_MIN'],
+        message: 'DATABASE_POOL_MIN ne peut pas dépasser DATABASE_POOL_MAX.',
       });
     }
   });

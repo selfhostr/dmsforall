@@ -13,6 +13,7 @@ import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
+import { estErreurEpuisementPool, traduireErreurPoolSature } from './erreur-pool-sature';
 import { JETON_CONFIG_BASE } from './db.jetons.interne';
 import type { AccesBase, BaseDfa, ConfigBase, ContexteTenant, TransactionDfa } from './db.types';
 import * as schema from './schema';
@@ -184,6 +185,15 @@ export class ServiceAccesBase implements AccesBase, OnModuleInit, OnModuleDestro
       connectionString: config.DATABASE_URL,
       max: config.DATABASE_POOL_MAX,
 
+      // Connexions maintenues ouvertes même hors trafic — voir la justification complète sur
+      // `DATABASE_POOL_MIN` dans `config/charger-config.ts`. Sans ce réglage (`min` par défaut à
+      // 0 côté `pg-pool`), le pool se vide entièrement après `DATABASE_TIMEOUT_IDLE_MS`
+      // d'inactivité, et la salve de requêtes suivante paie le coût plein d'un nouveau handshake
+      // TCP + authentification SCRAM par connexion — c'est ce scénario, pas une fuite de
+      // connexions (vérifié, voir le rapport d'investigation), qui a produit l'essentiel des
+      // `timeout exceeded when trying to connect` mesurés sous charge.
+      min: config.DATABASE_POOL_MIN,
+
       // Visible dans pg_stat_activity : distinguer d'un coup d'œil le trafic applicatif du
       // trafic d'amorçage et des migrations quand on diagnostique un verrou en production.
       application_name: 'dfa-api',
@@ -198,7 +208,15 @@ export class ServiceAccesBase implements AccesBase, OnModuleInit, OnModuleDestro
       // statement_timeout : une transaction légitime enchaîne plusieurs requêtes.
       idle_in_transaction_session_timeout: config.DATABASE_TIMEOUT_REQUETE_MS * 3,
 
-      connectionTimeoutMillis: 5_000,
+      // Auparavant câblé en dur (`5_000`), jamais validé ni ajustable par déploiement — voir la
+      // justification du défaut (inchangé) sur `DATABASE_TIMEOUT_CONNEXION_MS`,
+      // `config/charger-config.ts`.
+      connectionTimeoutMillis: config.DATABASE_TIMEOUT_CONNEXION_MS,
+
+      // Auparavant implicite (défaut `pg-pool` = 10 000 ms, invisible à la relecture de ce
+      // fichier) — voir la justification du nouveau défaut (30 000 ms) sur
+      // `DATABASE_TIMEOUT_IDLE_MS`, `config/charger-config.ts`.
+      idleTimeoutMillis: config.DATABASE_TIMEOUT_IDLE_MS,
     });
 
     // Sans ce gestionnaire, une erreur sur une connexion INACTIVE du pool (coupure réseau,
@@ -246,23 +264,37 @@ export class ServiceAccesBase implements AccesBase, OnModuleInit, OnModuleDestro
       );
     }
 
-    return this.base.transaction(async (tx) => {
-      // 3e argument `true` = portée TRANSACTION. C'est le cœur du dispositif : PostgreSQL
-      // réinitialise ces paramètres au COMMIT comme au ROLLBACK, donc la connexion rendue au
-      // pool ne conserve aucun tenant. Avec une portée session, une connexion recyclée
-      // transporterait le tenant du client précédent — fuite non déterministe, invisible en
-      // test unitaire, impossible à reproduire.
-      //
-      // `?? ''` plutôt que NULL : le contrat de `tenant_courant()` est de traiter la chaîne
-      // vide comme « absent » (nullif). On lui donne exactement ce qu'il attend.
-      await tx.execute(sql`
-        select set_config('app.tenant_id',      ${ctx.tenantId},            true),
-               set_config('app.utilisateur_id', ${ctx.utilisateurId ?? ''}, true),
-               set_config('app.requete_id',     ${ctx.requeteId ?? ''},     true)
-      `);
+    try {
+      // `await` explicite (pas `return this.base.transaction(...)` nu) : c'est ce qui permet au
+      // `catch` ci-dessous d'intercepter un rejet de la promesse — un `return` direct la ferait
+      // remonter tel quel à l'appelant de `enTenant`, hors de portée de ce `try`.
+      return await this.base.transaction(async (tx) => {
+        // 3e argument `true` = portée TRANSACTION. C'est le cœur du dispositif : PostgreSQL
+        // réinitialise ces paramètres au COMMIT comme au ROLLBACK, donc la connexion rendue au
+        // pool ne conserve aucun tenant. Avec une portée session, une connexion recyclée
+        // transporterait le tenant du client précédent — fuite non déterministe, invisible en
+        // test unitaire, impossible à reproduire.
+        //
+        // `?? ''` plutôt que NULL : le contrat de `tenant_courant()` est de traiter la chaîne
+        // vide comme « absent » (nullif). On lui donne exactement ce qu'il attend.
+        await tx.execute(sql`
+          select set_config('app.tenant_id',      ${ctx.tenantId},            true),
+                 set_config('app.utilisateur_id', ${ctx.utilisateurId ?? ''}, true),
+                 set_config('app.requete_id',     ${ctx.requeteId ?? ''},     true)
+        `);
 
-      return travail(tx);
-    });
+        return travail(tx);
+      });
+    } catch (erreur) {
+      // Un pool saturé (voir `erreur-pool-sature.ts`) n'est PAS un défaut applicatif : c'est un
+      // 503 + `Retry-After`, jamais un `ERREUR_INTERNE`/500 anonyme qui laisse le client sans
+      // savoir s'il doit réessayer. Rethrow inchangé pour tout le reste — `catch` sert UNIQUEMENT
+      // à reconnaître ce cas précis, jamais à avaler une erreur.
+      if (estErreurEpuisementPool(erreur)) {
+        throw traduireErreurPoolSature(erreur);
+      }
+      throw erreur;
+    }
   }
 
   // -------------------------------------------------------------------------------------------
