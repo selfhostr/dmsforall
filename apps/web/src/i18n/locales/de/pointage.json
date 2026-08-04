@@ -195,7 +195,10 @@
       "statut": "Status",
       "actions": "Aktionen"
     },
-    "nomIndisponible": "Techniker {id}",
+    "cible": {
+      "orEntier": "Ganzer RA",
+      "ligneOr": "RA-Position"
+    },
     "corriger": "Korrigieren",
     "parOr": {
       "rechercherOrLabel": "RA-Nummer oder Fahrzeug",
@@ -229,7 +232,12 @@
       "motif": "Grund (optional)",
       "action": "Sperren",
       "resultat": "{count, plural, one {# Zeiterfassung gesperrt.} other {# Zeiterfassungen gesperrt.}}",
-      "blocage": "Es laufen noch Zeiterfassungen in diesem Zeitraum — sie müssen zuerst beendet werden, bevor gesperrt werden kann."
+      "blocage": "Es laufen noch Zeiterfassungen in diesem Zeitraum — sie müssen zuerst beendet werden, bevor gesperrt werden kann.",
+      "blocageAvecTechniciens": "Noch laufende Zeiterfassungen für: {liste} — sie müssen zuerst beendet werden, bevor gesperrt werden kann.",
+      "arreterPointages": "Laufende Zeiterfassungen beenden",
+      "arretEnCours": "Zeiterfassungen werden beendet…",
+      "arretEchec": "Einige Zeiterfassungen konnten nicht beendet werden. Versuchen Sie es erneut.",
+      "arretReussi": "Zeiterfassungen beendet — Sie können erneut sperren."
     },
     "deverrouiller": {
       "titre": "Entsperren (Gegenbuchung)",

@@ -260,6 +260,11 @@ describe('EcranPointageTechnicien', () => {
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
       http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([POINTAGE_EN_COURS]))),
       http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([]))),
+      // Défaut 2 : l'écran résout maintenant la cible EN COURS depuis le document OR
+      // (`useOrdreReparation(pointageOuvert.data.ordreReparationId)`), pas seulement depuis la
+      // mémoire locale — cet endpoint est donc appelé même sans avoir démarré le pointage
+      // depuis cet écran.
+      http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(construireOrDetail())),
     );
 
     rendre();
@@ -270,6 +275,55 @@ describe('EcranPointageTechnicien', () => {
     expect(screen.getByRole('button', { name: 'Mettre en pause' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reprendre' })).not.toBeInTheDocument();
   });
+
+  it(
+    'régression défaut 2 : après un rendu « à froid » (aucune mémoire locale, comme après un F5) ' +
+      "pendant un pointage productif_or en cours, affiche le NUMÉRO D'OR réel dérivé de la " +
+      'réponse API — jamais le texte générique « OR (sans ligne précise) »',
+    async () => {
+      const orAvecNumeroReel = construireOrDetail({ id: 'or-1', numero: 'OR-2026-12' });
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([POINTAGE_EN_COURS]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([]))),
+        http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(orAvecNumeroReel)),
+      );
+
+      rendre();
+
+      expect(await screen.findByText('OR-2026-12 — OR entier')).toBeInTheDocument();
+      expect(screen.queryByText('OR (sans ligne précise)')).not.toBeInTheDocument();
+    },
+  );
+
+  it(
+    'régression défaut 2 : même repli, pour un pointage productif_ligne — affiche le numéro d’OR ' +
+      "et la désignation de la ligne réelle, jamais « Ligne d'OR » générique",
+    async () => {
+      const ligneCiblee = construireLigne({ id: 'ligne-cible', designation: 'Vidange moteur' });
+      const pointageSurLigne: ReponsePointage = {
+        ...POINTAGE_EN_COURS,
+        nature: 'productif_ligne',
+        ligneOrId: 'ligne-cible',
+      };
+      const orAvecLigne = construireOrDetail({
+        id: 'or-1',
+        numero: 'OR-2026-13',
+        lignes: [ligneCiblee],
+      });
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([pointageSurLigne]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([]))),
+        http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(orAvecLigne)),
+      );
+
+      rendre();
+
+      expect(await screen.findByText('OR-2026-13 — Vidange moteur')).toBeInTheDocument();
+      expect(screen.queryByText("Ligne d'OR")).not.toBeInTheDocument();
+    },
+  );
 
   it('affiche une erreur actionnable si le serveur échoue à lire le pointage en cours', async () => {
     server.use(

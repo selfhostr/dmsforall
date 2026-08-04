@@ -195,7 +195,10 @@
       "statut": "Stato",
       "actions": "Azioni"
     },
-    "nomIndisponible": "Tecnico {id}",
+    "cible": {
+      "orEntier": "Ordine intero",
+      "ligneOr": "Riga d'ordine"
+    },
     "corriger": "Correggi",
     "parOr": {
       "rechercherOrLabel": "Numero ordine o veicolo",
@@ -229,7 +232,12 @@
       "motif": "Motivo (facoltativo)",
       "action": "Blocca",
       "resultat": "{count, plural, one {# timbratura bloccata.} other {# timbrature bloccate.}}",
-      "blocage": "Ci sono timbrature ancora in corso in questo periodo — devono essere fermate prima di poter bloccare."
+      "blocage": "Ci sono timbrature ancora in corso in questo periodo — devono essere fermate prima di poter bloccare.",
+      "blocageAvecTechniciens": "Timbrature ancora in corso per: {liste} — devono essere fermate prima di poter bloccare.",
+      "arreterPointages": "Ferma le timbrature in corso",
+      "arretEnCours": "Arresto delle timbrature in corso…",
+      "arretEchec": "Alcune timbrature non hanno potuto essere fermate. Riprova.",
+      "arretReussi": "Timbrature fermate — puoi bloccare di nuovo."
     },
     "deverrouiller": {
       "titre": "Sblocca (storno)",

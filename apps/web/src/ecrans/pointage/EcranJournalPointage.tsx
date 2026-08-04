@@ -151,9 +151,7 @@ export function EcranJournalPointage() {
               {cumuls.map((cumul) => (
                 <tr key={cumul.technicienId} className="border-t">
                   <td className="p-3">
-                    <span className="font-medium">
-                      {t('pointage:equipe.nomIndisponible', { id: cumul.technicienId.slice(0, 8) })}
-                    </span>
+                    <span className="font-medium">{cumul.technicienNomAffiche}</span>
                     {cumul.enCours ? (
                       <Badge variant="secondary" className="ml-2">
                         {t('pointage:jour.enCoursBadge')}

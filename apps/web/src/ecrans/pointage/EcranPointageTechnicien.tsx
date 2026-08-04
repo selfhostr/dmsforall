@@ -31,7 +31,7 @@ import { genererUuid } from '@/lib/uuid';
 import { CartePointageEnCours } from './CartePointageEnCours';
 import { DialogueChoixCiblePointage } from './DialogueChoixCiblePointage';
 import { peutDemarrerPointage } from './droits';
-import { libelleActiviteIndirecte, libelleCiblePointageGenerique } from './libelles';
+import { libelleActiviteIndirecte, libelleCiblePointageTechnicien } from './libelles';
 import { SelecteurSitePointage } from './SelecteurSitePointage';
 
 /** Cible productive mémorisée pour permettre une « reprise » directe après une pause (RM-116 : la
@@ -140,6 +140,13 @@ export function EcranPointageTechnicien() {
   const pointageOuvert = usePointageOuvertTechnicien(technicien?.id);
   const mesOrdres = useMesOrdresAssignes(technicien?.id);
   const requeteOrSelectionne = useOrdreReparation(orSelectionneId);
+  // Défaut 2 (repli après F5) : le document OR de la cible du pointage OUVERT, dérivé du
+  // `ordreReparationId` renvoyé par l'API elle-même (`pointageOuvert.data`), jamais de la mémoire
+  // locale `dernierCible` — voir `libelleCiblePointageTechnicien` (`./libelles.ts`) pour le détail.
+  // `undefined` désactive la requête (activité indirecte, ou pointage pas encore chargé).
+  const requeteOrPointageActuel = useOrdreReparation(
+    pointageOuvert.data?.ordreReparationId ?? undefined,
+  );
 
   const demarrer = useDemarrerPointage();
   const arreter = useArreterPointage();
@@ -356,10 +363,16 @@ export function EcranPointageTechnicien() {
   const pointageActuel = pointageOuvert.data;
 
   // Libellé de la cible EN COURS : la mémoire (`dernierCible`) si elle correspond exactement au
-  // pointage productif actuellement ouvert (le cas normal, démarré depuis CET écran) ; le repli
-  // générique sinon (rechargement de page, ou pointage démarré ailleurs — RM-87 n'exige pas que ce
-  // soit toujours cet écran qui démarre).
-  let libelleCibleActuelle = pointageActuel ? libelleCiblePointageGenerique(pointageActuel, t) : '';
+  // pointage productif actuellement ouvert (le cas normal, démarré depuis CET écran — évite
+  // d'attendre l'aller-retour réseau de `requeteOrPointageActuel` alors que l'écran connaît déjà
+  // le numéro d'OR et la désignation de ligne) ; sinon dérivé de la RÉPONSE API du document OR
+  // (`requeteOrPointageActuel`, voir sa déclaration plus haut) — jamais un état local qui ne
+  // survivrait pas à un F5 (défaut 2 : avant ce correctif, un rechargement pendant un pointage en
+  // cours perdait la cible et retombait sur le texte générique « OR (sans ligne précise) » alors
+  // que le serveur la connaît parfaitement).
+  let libelleCibleActuelle = pointageActuel
+    ? libelleCiblePointageTechnicien(pointageActuel, requeteOrPointageActuel.data, t)
+    : '';
   if (pointageActuel && dernierCible) {
     const memeCible =
       (dernierCible.type === 'ligne' &&

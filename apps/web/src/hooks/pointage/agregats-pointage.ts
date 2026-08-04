@@ -12,6 +12,10 @@ import type { ReponsePointage } from '@dfa/shared';
 
 export interface CumulTechnicienPeriode {
   readonly technicienId: string;
+  /** `ReponsePointage.technicienNomAffiche` du premier pointage rencontré pour ce technicien dans
+   *  le lot (défaut 1 : avant ce champ, l'écran repliait sur un UUID tronqué faute de nom —
+   *  toujours renseigné côté serveur, donc jamais de repli à faire ici). */
+  readonly technicienNomAffiche: string;
   /** Somme des pointages `productif_ligne` + `productif_or`, en secondes BRUTES (RM-97 : jamais
    *  arrondi ici — l'arrondi P-19 est une compétence serveur, absente du jeu de données dont ce
    *  fichier dispose). */
@@ -53,11 +57,18 @@ export function calculerCumulsParTechnicien(
 ): readonly CumulTechnicienPeriode[] {
   const parTechnicien = new Map<
     string,
-    { productif: number; indirect: number; enCours: boolean; anomalies: number }
+    {
+      nomAffiche: string;
+      productif: number;
+      indirect: number;
+      enCours: boolean;
+      anomalies: number;
+    }
   >();
 
   for (const pointage of pointages) {
     const entree = parTechnicien.get(pointage.technicienId) ?? {
+      nomAffiche: pointage.technicienNomAffiche,
       productif: 0,
       indirect: 0,
       enCours: false,
@@ -77,6 +88,7 @@ export function calculerCumulsParTechnicien(
   return Array.from(parTechnicien.entries())
     .map(([technicienId, valeurs]) => ({
       technicienId,
+      technicienNomAffiche: valeurs.nomAffiche,
       productifSecondes: valeurs.productif,
       indirectSecondes: valeurs.indirect,
       presenceSecondes: valeurs.productif + valeurs.indirect,
@@ -90,7 +102,7 @@ export function calculerCumulsParTechnicien(
  *  jour/semaine. */
 export function calculerCumulTotal(
   pointages: readonly ReponsePointage[],
-): Omit<CumulTechnicienPeriode, 'technicienId'> {
+): Omit<CumulTechnicienPeriode, 'technicienId' | 'technicienNomAffiche'> {
   const cumuls = calculerCumulsParTechnicien(pointages);
   let productifSecondes = 0;
   let indirectSecondes = 0;

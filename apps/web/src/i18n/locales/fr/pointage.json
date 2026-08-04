@@ -195,7 +195,10 @@
       "statut": "Statut",
       "actions": "Actions"
     },
-    "nomIndisponible": "Technicien {id}",
+    "cible": {
+      "orEntier": "OR entier",
+      "ligneOr": "Ligne d'OR"
+    },
     "corriger": "Corriger",
     "parOr": {
       "rechercherOrLabel": "Numéro d'OR ou véhicule",
@@ -229,7 +232,12 @@
       "motif": "Motif (optionnel)",
       "action": "Verrouiller",
       "resultat": "{count, plural, one {# pointage verrouillé.} other {# pointages verrouillés.}}",
-      "blocage": "Des pointages sont encore en cours dans cette plage — ils doivent être arrêtés avant de pouvoir verrouiller."
+      "blocage": "Des pointages sont encore en cours dans cette plage — ils doivent être arrêtés avant de pouvoir verrouiller.",
+      "blocageAvecTechniciens": "Pointages encore en cours pour : {liste} — ils doivent être arrêtés avant de pouvoir verrouiller.",
+      "arreterPointages": "Arrêter les pointages en cours",
+      "arretEnCours": "Arrêt des pointages en cours…",
+      "arretEchec": "Certains pointages n'ont pas pu être arrêtés. Réessayez.",
+      "arretReussi": "Pointages arrêtés — vous pouvez verrouiller à nouveau."
     },
     "deverrouiller": {
       "titre": "Déverrouiller (contre-passation)",

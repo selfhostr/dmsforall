@@ -77,6 +77,120 @@ describe('EcranCloturePeriodePointage', () => {
     ).toBeInTheDocument();
   });
 
+  it(
+    'régression défaut 4 : distingue le conflit « pointages en cours » du conflit optimiste ' +
+      'générique — affiche la vraie cause, le nom du technicien, et propose de les arrêter ' +
+      '(jamais un UUID brut, jamais « Rechargez la page »)',
+    async () => {
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.post('/api/v1/pointages/verrouiller-periode', () =>
+          HttpResponse.json(
+            {
+              type: 'https://docs.dmsforall.example/erreurs/CONFLIT',
+              title: 'Conflit',
+              status: 409,
+              code: 'CONFLIT',
+              instance: '',
+              blocages: [
+                {
+                  type: 'pointage',
+                  id: 'pointage-bloquant-1',
+                  libelle: 'pointage-bloquant-1',
+                  donnees: { technicienId: 'technicien-bloquant-1' },
+                },
+              ],
+              actionsProposees: [{ code: 'ARRETER_POINTAGES' }],
+            },
+            { status: 409, headers: { 'content-type': 'application/problem+json' } },
+          ),
+        ),
+        http.get('/api/v1/pointages/pointage-bloquant-1', () =>
+          HttpResponse.json({
+            id: 'pointage-bloquant-1',
+            siteId: 'site-1',
+            technicienId: 'technicien-bloquant-1',
+            technicienNomAffiche: 'Marc Dubosson',
+            statut: 'en_cours',
+            nature: 'productif_or',
+            ordreReparationId: 'or-1',
+            ligneOrId: null,
+            activiteIndirecte: null,
+            source: 'ecran_atelier',
+            appareilId: null,
+            debutLe: '2026-08-04T07:00:00.000Z',
+            finLe: null,
+            dureeBruteSecondes: null,
+            dureeArrondieCentiemes: null,
+            clotureAutomatique: false,
+            anomalie: null,
+            derniereCorrection: null,
+            creeLe: '2026-08-04T07:00:00.000Z',
+            modifieLe: '2026-08-04T07:00:00.000Z',
+          }),
+        ),
+        http.post('/api/v1/pointages/pointage-bloquant-1/arreter', () =>
+          HttpResponse.json({
+            donnees: {
+              id: 'pointage-bloquant-1',
+              siteId: 'site-1',
+              technicienId: 'technicien-bloquant-1',
+              technicienNomAffiche: 'Marc Dubosson',
+              statut: 'termine',
+              nature: 'productif_or',
+              ordreReparationId: 'or-1',
+              ligneOrId: null,
+              activiteIndirecte: null,
+              source: 'ecran_atelier',
+              appareilId: null,
+              debutLe: '2026-08-04T07:00:00.000Z',
+              finLe: '2026-08-04T09:00:00.000Z',
+              dureeBruteSecondes: 7200,
+              dureeArrondieCentiemes: 200,
+              clotureAutomatique: false,
+              anomalie: null,
+              derniereCorrection: null,
+              creeLe: '2026-08-04T07:00:00.000Z',
+              modifieLe: '2026-08-04T09:00:00.000Z',
+            },
+            avertissements: [],
+          }),
+        ),
+      );
+
+      rendre();
+
+      const utilisateur = userEvent.setup();
+      await utilisateur.click(await screen.findByRole('button', { name: 'Verrouiller' }));
+
+      // La vraie cause, avec le nom résolu — jamais le message de conflit optimiste générique.
+      expect(
+        await screen.findByText(
+          'Pointages encore en cours pour : Marc Dubosson — ils doivent être arrêtés avant de pouvoir verrouiller.',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Cet élément a été modifié entre-temps. Rechargez la page.'),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('technicien-bloquant-1')).not.toBeInTheDocument();
+      expect(screen.queryByText('pointage-bloquant-1')).not.toBeInTheDocument();
+
+      // L'action proposée explicitement par le serveur (`ARRETER_POINTAGES`) est actionnable.
+      await utilisateur.click(
+        await screen.findByRole('button', { name: 'Arrêter les pointages en cours' }),
+      );
+
+      expect(
+        await screen.findByText('Pointages arrêtés — vous pouvez verrouiller à nouveau.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          'Pointages encore en cours pour : Marc Dubosson — ils doivent être arrêtés avant de pouvoir verrouiller.',
+        ),
+      ).not.toBeInTheDocument();
+    },
+  );
+
   it('exige un motif pour déverrouiller une période', async () => {
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
 

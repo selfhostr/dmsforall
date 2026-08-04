@@ -71,6 +71,10 @@ describe('EcranJournalPointage', () => {
     // == présence des deux côtés) : on compte les occurrences plutôt que de chercher un texte unique.
     expect((await screen.findAllByText('2 h 00')).length).toBe(4);
     expect(screen.getByText('Total')).toBeInTheDocument();
+    // Régression défaut 1 : le nom du technicien vient de `technicienNomAffiche`, jamais d'un
+    // repli sur l'UUID tronqué (`technicienId.slice(0, 8)`).
+    expect(screen.getByText('Isabelle Bonvin')).toBeInTheDocument();
+    expect(screen.queryByText(/^Technicien [0-9a-f-]+$/)).not.toBeInTheDocument();
   });
 
   it('état vide : aucun pointage sur la période', async () => {
