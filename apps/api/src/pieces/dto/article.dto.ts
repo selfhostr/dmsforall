@@ -149,6 +149,22 @@ export class PageArticleDto implements PageCurseur<ArticleDto> {
   readonly limite!: number;
 }
 
+/** `GET /articles/{id}/references` — la suite de `ArticleDto.references` au-delà de `referencesTronquees`. */
+export class PageArticleReferenceDto implements PageCurseur<ArticleReferenceDto> {
+  @ApiProperty({ type: () => [ArticleReferenceDto] })
+  readonly donnees!: readonly ArticleReferenceDto[];
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Opaque base64url ; null = fin de liste.',
+  })
+  readonly curseurSuivant!: string | null;
+
+  @ApiProperty({ example: 50 })
+  readonly limite!: number;
+}
+
 export class ArticleAvecAvertissementsDto implements ReponseAvecAvertissements<ArticleDto> {
   @ApiProperty({ type: () => ArticleDto })
   readonly donnees!: ArticleDto;

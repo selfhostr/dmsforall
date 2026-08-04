@@ -69,6 +69,31 @@ export interface ReponseCommandeFournisseur {
 
 export const SEUIL_LIGNES_EMBARQUEES_COMMANDE_FOURNISSEUR = 100;
 
+/**
+ * `GET /commandes-fournisseur/{id}/lignes` — la suite annoncée par
+ * `ReponseCommandeFournisseur.lignesTronquees`.
+ *
+ * Décision de ce lot (rapport de livraison) : une commande née de `RP-12` (réapprovisionnement,
+ * seuil franchi) agrège en UNE commande tous les articles sous leur `stockMinimumMillieme` d'un
+ * site donné — un dépassement de `SEUIL_LIGNES_EMBARQUEES_COMMANDE_FOURNISSEUR` y est un
+ * enchaînement normal de l'opération (reconstitution de stock après inventaire, gros site
+ * multi-marques), pas une anomalie de saisie. Endpoint dédié plutôt qu'un simple indicateur, donc.
+ *
+ * Tri fixé à `numeroOrdre:asc` : `numeroOrdre` (`smallint`, unique par commande) EST l'ordre de
+ * saisie des lignes, pas de second tri sensé sur cette sous-collection — et un entier ordinal
+ * comme clé de curseur écarte d'emblée le piège `timestamptz` (`common/pagination/valeur-temporelle.ts`)
+ * qui ne concerne que les curseurs assis sur une colonne d'horodatage.
+ */
+export const TRIS_LIGNES_COMMANDE_FOURNISSEUR = ['numeroOrdre:asc'] as const;
+export const TRI_DEFAUT_LIGNES_COMMANDE_FOURNISSEUR = 'numeroOrdre:asc';
+
+export const schemaFiltresLignesCommandeFournisseur = schemaParametresPage.extend({
+  tri: z.enum(TRIS_LIGNES_COMMANDE_FOURNISSEUR).default(TRI_DEFAUT_LIGNES_COMMANDE_FOURNISSEUR),
+});
+export type FiltresLignesCommandeFournisseur = z.infer<
+  typeof schemaFiltresLignesCommandeFournisseur
+>;
+
 /* ------------------------------------------------------------------ */
 /* Lecture — collection                                                */
 /* ------------------------------------------------------------------ */

@@ -30,6 +30,7 @@ import {
   type EntreeCreationCommandeFournisseur,
   type EntreeReceptionCommandeFournisseur,
   type FiltresCommandesFournisseur,
+  type FiltresLignesCommandeFournisseur,
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
@@ -42,9 +43,14 @@ import {
   CommandeFournisseurAvecAvertissementsDto,
   CommandeFournisseurDto,
   PageCommandeFournisseurDto,
+  PageLigneCommandeFournisseurDto,
   ReceptionCommandeFournisseurAvecAvertissementsDto,
 } from './dto';
-import { schemaFiltresCommandesFournisseur, schemaUuid } from './schemas';
+import {
+  schemaFiltresCommandesFournisseur,
+  schemaFiltresLignesCommandeFournisseur,
+  schemaUuid,
+} from './schemas';
 import { ServiceCommandeFournisseur } from './service-commande-fournisseur';
 
 /**
@@ -117,6 +123,27 @@ export class CommandeFournisseurController {
   async parId(@Param('id', new PipeZod(schemaUuid)) id: string): Promise<CommandeFournisseurDto> {
     const ctx = this.contexte.contexteTenant();
     return this.service.parId(ctx, id);
+  }
+
+  @Get(':id/lignes')
+  @ExigerDroit('pieces.commande_fournisseur.lire')
+  @ApiOperation({
+    summary:
+      'Lignes d’une commande fournisseur, page complète (pagination par curseur) — le recours quand `CommandeFournisseurDto.lignesTronquees = true`.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: PageLigneCommandeFournisseurDto })
+  @ApiReponseProbleme(400, 'Identifiant, filtres, tri ou curseur invalides.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  @ApiReponseProbleme(404, 'Commande fournisseur introuvable pour ce tenant.')
+  async listerLignes(
+    @Param('id', new PipeZod(schemaUuid)) id: string,
+    @Query(new PipeZod(schemaFiltresLignesCommandeFournisseur))
+    query: FiltresLignesCommandeFournisseur,
+  ): Promise<PageLigneCommandeFournisseurDto> {
+    const ctx = this.contexte.contexteTenant();
+    return this.service.listerLignes(ctx, id, query);
   }
 
   @Post(':id/envoyer')

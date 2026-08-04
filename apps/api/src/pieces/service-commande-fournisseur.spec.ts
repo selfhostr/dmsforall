@@ -1,3 +1,5 @@
+import { PgDialect } from 'drizzle-orm/pg-core';
+import type { SQL } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 import type {
   EntreeAnnulationCommandeFournisseur,
@@ -16,6 +18,7 @@ import type { LigneCommandeFournisseur, LigneCommandeFournisseurLigne } from '..
 import { ServiceCommandeFournisseur } from './service-commande-fournisseur';
 
 const CTX: ContexteTenant = { tenantId: 'tid-1', utilisateurId: 'u1', requeteId: null };
+const dialect = new PgDialect();
 
 function commande(champs: Partial<LigneCommandeFournisseur> = {}): LigneCommandeFournisseur {
   return {
@@ -372,5 +375,103 @@ describe('ServiceCommandeFournisseur.annuler — §6.2 : uniquement avant toute 
 
     const requeteUpdate = executeAppels[1] as { queryChunks: readonly unknown[] };
     expect(requeteUpdate.queryChunks).toContain(ENTREE.motif);
+  });
+});
+
+/**
+ * `GET /commandes-fournisseur/{id}/lignes` — la suite paginée de `CommandeFournisseurDto.lignes`
+ * au-delà de `lignesTronquees` (constat de ce lot, même défaut que `ArticleDto.references` :
+ * l'indicateur de troncature existait déjà, mais aucun endpoint ne permettait d'en récupérer la
+ * suite). Curseur sur `numeroOrdre` (`smallint`, ordinal) — PAS `timestamptz`, donc pas de piège
+ * microseconde ici (voir `service-article.spec.ts::listerReferences` pour ce cas-là) ; le test qui
+ * compte est que le curseur reprenne réellement là où la page précédente s'est arrêtée.
+ */
+describe('ServiceCommandeFournisseur.listerLignes — GET /commandes-fournisseur/{id}/lignes, la suite de lignesTronquees', () => {
+  it('404 RESSOURCE_INTROUVABLE si la commande n’existe pas pour ce tenant, sans exécuter la requête paginée', async () => {
+    const { tx, executeAppels } = txFactice({ selects: [[]] });
+    const service = new ServiceCommandeFournisseur(accesFactice(tx), idempotenceFactice(tx));
+
+    await expect(
+      service.listerLignes(CTX, 'introuvable', { limite: 100, tri: 'numeroOrdre:asc' }),
+    ).rejects.toMatchObject({ code: 'RESSOURCE_INTROUVABLE' });
+    expect(executeAppels).toHaveLength(0);
+  });
+
+  it('sous le seuil de page : pas de curseur suivant, toutes les lignes rendues dans l’ordre numeroOrdre', async () => {
+    const { tx } = txFactice({
+      selects: [[commande()]],
+      executes: [
+        {
+          rows: [
+            { ...ligne({ id: 'ligne-1', numeroOrdre: 1 }), triValeur: 1 },
+            { ...ligne({ id: 'ligne-2', numeroOrdre: 2 }), triValeur: 2 },
+          ],
+        },
+      ],
+    });
+    const service = new ServiceCommandeFournisseur(accesFactice(tx), idempotenceFactice(tx));
+
+    const page = await service.listerLignes(CTX, 'cmd-1', { limite: 100, tri: 'numeroOrdre:asc' });
+
+    expect(page.donnees.map((l) => l.numeroOrdre)).toEqual([1, 2]);
+    expect(page.curseurSuivant).toBeNull();
+  });
+
+  it(
+    'au-delà du seuil de page : le curseur suivant permet réellement de récupérer la suite — la ' +
+      'preuve qui compte, pas seulement « un curseur non nul » (RM : le défaut qu’une pagination ' +
+      'silencieuse laisse passer)',
+    async () => {
+      // `decoderCurseurTrie` valide `id` contre un format UUID (`REGEX_UUID`,
+      // `common/pagination/curseur.ts`) — la page 2 décode le curseur rendu par la page 1, les
+      // identifiants de ligne doivent donc en avoir la forme (voir aussi `service-article.spec.ts`).
+      const IDS = [
+        '11111111-1111-4111-8111-111111111111',
+        '22222222-2222-4222-8222-222222222222',
+        '33333333-3333-4333-8333-333333333333',
+      ] as const;
+      const lignesTotales = Array.from({ length: 3 }, (_, i) => ({
+        ...ligne({ id: IDS[i], numeroOrdre: i + 1 }),
+        triValeur: i + 1,
+      }));
+      const { tx, executeAppels } = txFactice({
+        selects: [[commande()], [commande()]],
+        // La requête SQL de la page 1 demande `limit ${limite + 1}` = 3 : les 3 lignes existantes
+        // tiennent dedans, ce qui EST le signal « il y a une page suivante » (`lignes.length >
+        // limite`) — retourner seulement 2 lignes ici ferait mentir le mock (la page 1 n'aurait
+        // jamais de curseur suivant, faussant tout le test).
+        executes: [{ rows: lignesTotales }, { rows: [lignesTotales[2]] }],
+      });
+      const service = new ServiceCommandeFournisseur(accesFactice(tx), idempotenceFactice(tx));
+
+      const page1 = await service.listerLignes(CTX, 'cmd-1', {
+        limite: 2,
+        tri: 'numeroOrdre:asc',
+      });
+      expect(page1.donnees.map((l) => l.numeroOrdre)).toEqual([1, 2]);
+      expect(page1.curseurSuivant).not.toBeNull();
+
+      const page2 = await service.listerLignes(CTX, 'cmd-1', {
+        limite: 2,
+        tri: 'numeroOrdre:asc',
+        curseur: page1.curseurSuivant as string,
+      });
+
+      expect(executeAppels).toHaveLength(2);
+      expect(page2.donnees.map((l) => l.numeroOrdre)).toEqual([3]);
+      expect(page2.curseurSuivant).toBeNull();
+    },
+  );
+
+  it('la colonne `triValeur` relaie numero_ordre SANS cast temporel (pas de piège timestamptz sur cette clé)', async () => {
+    const { tx, executeAppels } = txFactice({ selects: [[commande()]], executes: [{ rows: [] }] });
+    const service = new ServiceCommandeFournisseur(accesFactice(tx), idempotenceFactice(tx));
+
+    await service.listerLignes(CTX, 'cmd-1', { limite: 100, tri: 'numeroOrdre:asc' });
+
+    const appel = executeAppels[0] as SQL;
+    const { sql: texte } = dialect.sqlToQuery(appel);
+    expect(texte).toContain('l.numero_ordre as "triValeur"');
+    expect(texte).not.toContain('numero_ordre::text');
   });
 });

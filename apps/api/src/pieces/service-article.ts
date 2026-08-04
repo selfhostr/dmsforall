@@ -6,12 +6,15 @@ import type {
   EntreeDesactivationArticle,
   EntreeMarquageObsolete,
   EntreeModificationArticle,
+  FiltresReferencesArticle,
   PageCurseur,
   ReponseArticle,
+  ReponseArticleReference,
   ReponseAvecAvertissements,
   ResultatRechercheComptoirArticle,
   RoleUtilisateur,
 } from '@dfa/shared';
+import { SEUIL_REFERENCES_EMBARQUEES_ARTICLE } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import { JETON_DB } from '../db';
@@ -48,8 +51,14 @@ import {
 } from './pagination-triee';
 import type { ParametresListeArticles } from './schemas';
 
-/** RP-01 → RP-08. Seuil de troncature des références/stocks embarqués (`SEUIL_REFERENCES_EMBARQUEES_ARTICLE`, `@dfa/shared`). */
-const SEUIL_REFERENCES_EMBARQUEES = 50;
+/**
+ * RP-01 → RP-08. Seuil de troncature des références/stocks embarqués — la CONSTANTE PARTAGÉE
+ * (`@dfa/shared`), jamais une seconde copie locale : une valeur dupliquée peut diverger de celle du
+ * contrat au fil des lots (constat réel, corrigé dans ce lot — la copie locale valait encore `50`,
+ * la même valeur que `SEUIL_REFERENCES_EMBARQUEES_ARTICLE` par coïncidence, mais rien ne garantissait
+ * que ça dure).
+ */
+const SEUIL_REFERENCES_EMBARQUEES = SEUIL_REFERENCES_EMBARQUEES_ARTICLE;
 
 const DEFINITIONS_TRI_ARTICLES: Readonly<Record<ParametresListeArticles['tri'], DefinitionTri>> = {
   'creeLe:desc': { expression: sql`a.cree_le`, sens: 'desc', nullable: false, temporel: true },
@@ -60,6 +69,21 @@ const DEFINITIONS_TRI_ARTICLES: Readonly<Record<ParametresListeArticles['tri'], 
   // renseigné en pratique par le trigger `attribuer_numero_article()` (0022) — NULLS LAST défensif.
   'numeroArticle:asc': { expression: sql`a.numero_article`, sens: 'asc', nullable: true },
 };
+
+/** `GET /articles/{id}/references` — pagination v2, tri fixé sur `cree_le` (`timestamptz`, piège
+ *  documenté `common/pagination/valeur-temporelle.ts` : la valeur de curseur DOIT transiter par
+ *  `expressionTriValeur()`/`valeurCurseurDepuisTri()`, jamais par le `Date` rendu par le pilote `pg`
+ *  sur la colonne affichée). */
+const DEFINITIONS_TRI_REFERENCES: Readonly<Record<FiltresReferencesArticle['tri'], DefinitionTri>> =
+  {
+    'creeLe:asc': { expression: sql`ar.cree_le`, sens: 'asc', nullable: false, temporel: true },
+    'creeLe:desc': { expression: sql`ar.cree_le`, sens: 'desc', nullable: false, temporel: true },
+  };
+
+const COLONNES_REFERENCE_ALIASEES = sql`
+  ar.id as "id", ar.tenant_id as "tenantId", ar.article_id as "articleId", ar.type as "type",
+  ar.reference as "reference", ar.fournisseur_id as "fournisseurId", ar.cree_le as "creeLe"
+`;
 
 const COLONNES_ARTICLE_ALIASEES = sql`
   a.id as "id", a.tenant_id as "tenantId", a.numero_article as "numeroArticle",
@@ -218,6 +242,61 @@ export class ServiceArticle {
          limit ${params.limite}
       `);
       return resultat.rows.map((ligne) => versRechercheComptoirResultat(ligne));
+    });
+  }
+
+  /**
+   * `GET /articles/{id}/references` — la suite de `ReponseArticle.references` au-delà de
+   * `SEUIL_REFERENCES_EMBARQUEES_ARTICLE` (`referencesTronquees`). Pagination v2 par curseur,
+   * même patron que `lister()` ci-dessus — 404 explicite si l'article n'existe pas pour ce tenant
+   * (cohérent avec toute autre sous-ressource de ce module, ex. `service-stock.ts::disponibilite`).
+   */
+  async listerReferences(
+    ctx: ContexteTenant,
+    articleId: string,
+    params: FiltresReferencesArticle,
+  ): Promise<PageCurseur<ReponseArticleReference>> {
+    const definition = DEFINITIONS_TRI_REFERENCES[params.tri];
+    const idExpr = sql`ar.id`;
+    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+
+    return this.acces.enTenant(ctx, async (tx) => {
+      await this.chargerOu404(tx, ctx, articleId);
+
+      const conditions = [sql`ar.tenant_id = ${ctx.tenantId}`, sql`ar.article_id = ${articleId}`];
+      if (curseurDecode) {
+        conditions.push(
+          construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id),
+        );
+      }
+
+      const resultat = await tx.execute<
+        LigneArticleReference & { triValeur: string | number | null }
+      >(sql`
+        select ${COLONNES_REFERENCE_ALIASEES}, ${expressionTriValeur(definition)} as "triValeur"
+          from public.article_reference ar
+         where ${sql.join(conditions, sql` and `)}
+         order by ${construireOrderBy(definition, idExpr)}
+         limit ${params.limite + 1}
+      `);
+
+      const lignes = resultat.rows;
+      const aUnePageSuivante = lignes.length > params.limite;
+      const pageLignes = aUnePageSuivante ? lignes.slice(0, params.limite) : lignes;
+      const derniere = pageLignes[pageLignes.length - 1];
+
+      return {
+        donnees: pageLignes.map((l) => versArticleReferenceResponse(l)),
+        curseurSuivant:
+          aUnePageSuivante && derniere
+            ? encoderCurseurTrie({
+                tri: params.tri,
+                valeur: valeurCurseurDepuisTri(definition, derniere.triValeur),
+                id: derniere.id,
+              })
+            : null,
+        limite: params.limite,
+      };
     });
   }
 

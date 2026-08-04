@@ -1,3 +1,5 @@
+import { PgDialect } from 'drizzle-orm/pg-core';
+import type { SQL } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
@@ -7,8 +9,11 @@ import type {
   ResultatIdempotent,
   ServiceIdempotence,
 } from '../common/idempotence';
-import type { LigneArticle } from '../db/schema';
+import { decoderCurseurTrie } from '../common/pagination';
+import type { LigneArticle, LigneArticleReference } from '../db/schema';
 import { ServiceArticle } from './service-article';
+
+const dialect = new PgDialect();
 
 const CTX: ContexteTenant = { tenantId: 'tid-1', utilisateurId: 'u1', requeteId: null };
 
@@ -42,8 +47,14 @@ function ligneArticle(champs: Partial<LigneArticle> = {}): LigneArticle {
  * de la MÊME file `selects`, dans l'ordre d'appel du service. `update()`/`insert()` capturent leurs
  * arguments pour vérifier le contenu écrit sans toucher réellement une base.
  */
-function txFactice(plan: { selects?: readonly unknown[][] } = {}) {
+function txFactice(
+  plan: {
+    selects?: readonly unknown[][];
+    executes?: ReadonlyArray<{ rows: readonly unknown[] }>;
+  } = {},
+) {
   const selects = [...(plan.selects ?? [])];
+  const executes = [...(plan.executes ?? [])];
   const setArgs: unknown[] = [];
   const insertValuesArgs: Array<Record<string, unknown>> = [];
 
@@ -71,9 +82,13 @@ function txFactice(plan: { selects?: readonly unknown[][] } = {}) {
         return Promise.resolve(undefined);
       },
     }),
+    // `listerReferences` (`GET /articles/{id}/references`) exécute du SQL brut via `tx.execute`,
+    // même patron que `ServiceVehicule.lister` (`vehicules/service-vehicule.spec.ts`) : la file
+    // `executes` sert les pages dans l'ordre d'appel, indépendamment de `selects`.
+    execute: vi.fn((_requete: unknown) => Promise.resolve(executes.shift() ?? { rows: [] })),
   };
 
-  return { tx: tx as unknown as TransactionDfa, setArgs, insertValuesArgs };
+  return { tx: tx as unknown as TransactionDfa, setArgs, insertValuesArgs, execute: tx.execute };
 }
 
 function accesFactice(tx: TransactionDfa): AccesBase {
@@ -255,4 +270,125 @@ describe('ServiceArticle — masquage du prix d’achat par rôle (§11, RF-115/
 
     expect(resultat.prixAchatCentimes).toBe(4000);
   });
+});
+
+function ligneReference(champs: Partial<LigneArticleReference> = {}): LigneArticleReference {
+  return {
+    id: 'ref-1',
+    tenantId: 'tid-1',
+    articleId: 'a1',
+    type: 'equivalente',
+    reference: '1K0698151X',
+    fournisseurId: null,
+    creeLe: new Date('2026-07-31T08:00:00.000Z'),
+    ...champs,
+  } as LigneArticleReference;
+}
+
+/**
+ * `GET /articles/{id}/references` — la suite paginée de `ArticleDto.references` au-delà de
+ * `referencesTronquees` (constat de ce lot : la troncature à `SEUIL_REFERENCES_EMBARQUEES_ARTICLE`
+ * était déjà signalée par un booléen explicite, mais AUCUN endpoint ne permettait d'en récupérer la
+ * suite — silence identique au défaut de pagination corrigé ailleurs le même jour). Même patron de
+ * test que `clients/service-client.spec.ts` (curseur v2 sur `cree_le`, `timestamptz`).
+ */
+describe('ServiceArticle.listerReferences — GET /articles/{id}/references, la suite de referencesTronquees', () => {
+  it('404 RESSOURCE_INTROUVABLE si l’article n’existe pas pour ce tenant, sans exécuter la requête paginée', async () => {
+    const { tx, execute } = txFactice({ selects: [[]] });
+    const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+
+    await expect(
+      service.listerReferences(CTX, 'introuvable', { limite: 50, tri: 'creeLe:asc' }),
+    ).rejects.toMatchObject({ code: 'RESSOURCE_INTROUVABLE' });
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('sous le seuil de page : pas de curseur suivant, toutes les références rendues', async () => {
+    const { tx } = txFactice({
+      selects: [[ligneArticle()]],
+      executes: [
+        {
+          rows: [
+            { ...ligneReference({ id: 'ref-1' }), triValeur: '2026-07-31 08:00:00.000000+00' },
+            { ...ligneReference({ id: 'ref-2' }), triValeur: '2026-07-31 08:00:01.000000+00' },
+          ],
+        },
+      ],
+    });
+    const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+
+    const page = await service.listerReferences(CTX, 'a1', { limite: 50, tri: 'creeLe:asc' });
+
+    expect(page.donnees).toHaveLength(2);
+    expect(page.donnees.map((r) => r.id)).toEqual(['ref-1', 'ref-2']);
+    expect(page.curseurSuivant).toBeNull();
+  });
+
+  it('au-delà du seuil de page : curseurSuivant non nul, la page ne rend que `limite` lignes', async () => {
+    const { tx } = txFactice({
+      selects: [[ligneArticle()]],
+      executes: [
+        {
+          rows: [
+            { ...ligneReference({ id: 'ref-1' }), triValeur: '2026-07-31 08:00:00.000000+00' },
+            { ...ligneReference({ id: 'ref-2' }), triValeur: '2026-07-31 08:00:01.000000+00' },
+          ],
+        },
+      ],
+    });
+    const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+
+    const page = await service.listerReferences(CTX, 'a1', { limite: 1, tri: 'creeLe:asc' });
+
+    expect(page.donnees).toHaveLength(1);
+    expect(page.donnees[0]?.id).toBe('ref-1');
+    expect(page.curseurSuivant).not.toBeNull();
+  });
+
+  it('la colonne `triValeur` est sélectionnée avec un cast ::text explicite, jamais laissée au parseur par défaut du pilote', async () => {
+    const { tx, execute } = txFactice({ selects: [[ligneArticle()]], executes: [{ rows: [] }] });
+    const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+
+    await service.listerReferences(CTX, 'a1', { limite: 50, tri: 'creeLe:asc' });
+
+    const appel = execute.mock.calls[0]?.[0] as SQL;
+    const { sql: texte } = dialect.sqlToQuery(appel);
+    expect(texte).toContain('(ar.cree_le)::text as "triValeur"');
+  });
+
+  it(
+    'deux références partageant EXACTEMENT la même microseconde de création sortent tous les deux, ' +
+      'sur deux pages successives, plutôt que de faire sauter la seconde page (le défaut historique ' +
+      'du pilote `pg`, qui rend un `Date` tronqué à la milliseconde — `common/pagination/valeur-temporelle.ts`)',
+    async () => {
+      const MEME_INSTANT = '2026-07-29 13:37:35.171181+00';
+      // `decoderCurseurTrie` valide `id` contre un format UUID (`REGEX_UUID`,
+      // `common/pagination/curseur.ts`) — mêmes identifiants que `vehicules/service-vehicule.spec.ts`.
+      const REF_1 = '11111111-1111-4111-8111-111111111111';
+      const REF_2 = '22222222-2222-4222-8222-222222222222';
+      const { tx } = txFactice({
+        selects: [[ligneArticle()]],
+        executes: [
+          {
+            rows: [
+              { ...ligneReference({ id: REF_1 }), triValeur: MEME_INSTANT },
+              { ...ligneReference({ id: REF_2 }), triValeur: MEME_INSTANT },
+            ],
+          },
+        ],
+      });
+      const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+
+      const page = await service.listerReferences(CTX, 'a1', { limite: 1, tri: 'creeLe:asc' });
+
+      expect(page.donnees).toHaveLength(1);
+      expect(page.curseurSuivant).not.toBeNull();
+      // La régression : `new Date(MEME_INSTANT).toISOString()` tronque `.171181` en `.171`, et la
+      // comparaison keyset SQL exclut alors TOUTE ligne à `.171181` (curseur < valeur réelle) — la
+      // page 2 revenait vide. Le curseur encodé doit porter la microseconde intacte.
+      const decode = decoderCurseurTrie(page.curseurSuivant as string, 'creeLe:asc');
+      expect(decode.valeur).toBe('2026-07-29T13:37:35.171181+00:00');
+      expect(decode.valeur).not.toBe(new Date(MEME_INSTANT).toISOString());
+    },
+  );
 });

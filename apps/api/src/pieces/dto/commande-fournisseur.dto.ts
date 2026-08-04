@@ -118,6 +118,18 @@ export class PageCommandeFournisseurDto implements PageCurseur<CommandeFournisse
   readonly limite!: number;
 }
 
+/** `GET /commandes-fournisseur/{id}/lignes` — la suite de `CommandeFournisseurDto.lignes` au-delà de `lignesTronquees`. */
+export class PageLigneCommandeFournisseurDto implements PageCurseur<LigneCommandeFournisseurDto> {
+  @ApiProperty({ type: () => [LigneCommandeFournisseurDto] })
+  readonly donnees!: readonly LigneCommandeFournisseurDto[];
+
+  @ApiProperty({ type: String, nullable: true })
+  readonly curseurSuivant!: string | null;
+
+  @ApiProperty({ example: 50 })
+  readonly limite!: number;
+}
+
 class ReceptionCommandeFournisseurDto implements ReponseReceptionCommandeFournisseur {
   @ApiProperty({
     type: () => [String],

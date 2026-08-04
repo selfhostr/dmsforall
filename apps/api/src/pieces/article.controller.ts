@@ -34,6 +34,7 @@ import {
   type EntreeDesactivationArticle,
   type EntreeMarquageObsolete,
   type EntreeModificationArticle,
+  type FiltresReferencesArticle,
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
@@ -46,9 +47,15 @@ import {
   ArticleAvecAvertissementsDto,
   ArticleDto,
   PageArticleDto,
+  PageArticleReferenceDto,
   ResultatRechercheComptoirArticleDto,
 } from './dto';
-import { schemaListeArticles, schemaUuid, type ParametresListeArticles } from './schemas';
+import {
+  schemaFiltresReferencesArticle,
+  schemaListeArticles,
+  schemaUuid,
+  type ParametresListeArticles,
+} from './schemas';
 import { ServiceArticle } from './service-article';
 
 /**
@@ -163,6 +170,26 @@ export class ArticleController {
     const ctx = this.contexte.contexteTenant();
     const { role } = this.contexte.exigerPrincipal();
     return this.service.parId(ctx, role, articleId);
+  }
+
+  @Get(':articleId/references')
+  @ExigerDroit('pieces.article.lire')
+  @ApiOperation({
+    summary:
+      'Références alternatives d’un article, page complète (pagination par curseur) — le recours quand `ArticleDto.referencesTronquees = true`.',
+  })
+  @ApiParam({ name: 'articleId', format: 'uuid' })
+  @ApiOkResponse({ type: PageArticleReferenceDto })
+  @ApiReponseProbleme(400, 'Identifiant, filtres, tri ou curseur invalides.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  @ApiReponseProbleme(404, 'Article introuvable pour ce tenant.')
+  async listerReferences(
+    @Param('articleId', new PipeZod(schemaUuid)) articleId: string,
+    @Query(new PipeZod(schemaFiltresReferencesArticle)) query: FiltresReferencesArticle,
+  ): Promise<PageArticleReferenceDto> {
+    const ctx = this.contexte.contexteTenant();
+    return this.service.listerReferences(ctx, articleId, query);
   }
 
   @Patch(':articleId')

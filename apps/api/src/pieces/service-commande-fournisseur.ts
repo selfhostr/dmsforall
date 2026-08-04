@@ -6,9 +6,11 @@ import type {
   EntreeCreationCommandeFournisseur,
   EntreeReceptionCommandeFournisseur,
   FiltresCommandesFournisseur,
+  FiltresLignesCommandeFournisseur,
   PageCurseur,
   ReponseAvecAvertissements,
   ReponseCommandeFournisseur,
+  ReponseLigneCommandeFournisseur,
   ReponseReceptionCommandeFournisseur,
   StatutCommandeFournisseur,
 } from '@dfa/shared';
@@ -41,7 +43,11 @@ import type {
   ServiceIdempotence,
 } from '../common/idempotence';
 
-import { calculerReliquatMillieme, versCommandeFournisseurResponse } from './mappers';
+import {
+  calculerReliquatMillieme,
+  versCommandeFournisseurResponse,
+  versLigneCommandeFournisseurResponse,
+} from './mappers';
 import {
   construireConditionKeyset,
   construireOrderBy,
@@ -62,6 +68,18 @@ const DEFINITIONS_TRI_COMMANDES: Readonly<
   // l'expression plutôt que via le mécanisme `temporel` (qui exige un format timestamptz complet,
   // `valeurCurseurTimestamptz()` rejetterait une date nue faute de composante horaire).
   'dateCommande:desc': { expression: sql`cf.date_commande::text`, sens: 'desc', nullable: false },
+};
+
+/**
+ * `GET /commandes-fournisseur/{id}/lignes` — pagination v2 sur `numero_ordre` (`smallint`, unique
+ * par commande) : un entier ordinal, PAS une colonne `timestamptz` — hors du périmètre du piège
+ * `common/pagination/valeur-temporelle.ts` (`temporel` reste `false` à dessein, aucun `::text`
+ * requis pour cette clé).
+ */
+const DEFINITIONS_TRI_LIGNES_COMMANDE: Readonly<
+  Record<FiltresLignesCommandeFournisseur['tri'], DefinitionTri>
+> = {
+  'numeroOrdre:asc': { expression: sql`l.numero_ordre`, sens: 'asc', nullable: false },
 };
 
 const COLONNES_COMMANDE_ALIASEES = sql`
@@ -207,6 +225,64 @@ export class ServiceCommandeFournisseur {
 
   async parId(ctx: ContexteTenant, id: string): Promise<ReponseCommandeFournisseur> {
     return this.acces.enTenant(ctx, async (tx) => this.chargerCommandeAvecLignes(tx, ctx, id));
+  }
+
+  /**
+   * `GET /commandes-fournisseur/{id}/lignes` — la suite de `ReponseCommandeFournisseur.lignes`
+   * au-delà de `SEUIL_LIGNES_EMBARQUEES_COMMANDE_FOURNISSEUR` (`lignesTronquees`). Pagination v2
+   * par curseur, même patron que `lister()` — 404 explicite si la commande n'existe pas pour ce
+   * tenant.
+   */
+  async listerLignes(
+    ctx: ContexteTenant,
+    commandeId: string,
+    params: FiltresLignesCommandeFournisseur,
+  ): Promise<PageCurseur<ReponseLigneCommandeFournisseur>> {
+    const definition = DEFINITIONS_TRI_LIGNES_COMMANDE[params.tri];
+    const idExpr = sql`l.id`;
+    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+
+    return this.acces.enTenant(ctx, async (tx) => {
+      await this.chargerCommandeOu404(tx, ctx, commandeId);
+
+      const conditions = [
+        sql`l.tenant_id = ${ctx.tenantId}`,
+        sql`l.commande_fournisseur_id = ${commandeId}`,
+      ];
+      if (curseurDecode) {
+        conditions.push(
+          construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id),
+        );
+      }
+
+      const resultat = await tx.execute<
+        LigneCommandeFournisseurLigne & { triValeur: string | number | null }
+      >(sql`
+        select ${COLONNES_LIGNE_ALIASEES}, ${expressionTriValeur(definition)} as "triValeur"
+          from public.commande_fournisseur_ligne l
+         where ${sql.join(conditions, sql` and `)}
+         order by ${construireOrderBy(definition, idExpr)}
+         limit ${params.limite + 1}
+      `);
+
+      const lignes = resultat.rows;
+      const aUnePageSuivante = lignes.length > params.limite;
+      const pageLignes = aUnePageSuivante ? lignes.slice(0, params.limite) : lignes;
+      const derniere = pageLignes[pageLignes.length - 1];
+
+      return {
+        donnees: pageLignes.map((l) => versLigneCommandeFournisseurResponse(l)),
+        curseurSuivant:
+          aUnePageSuivante && derniere
+            ? encoderCurseurTrie({
+                tri: params.tri,
+                valeur: valeurCurseurDepuisTri(definition, derniere.triValeur),
+                id: derniere.id,
+              })
+            : null,
+        limite: params.limite,
+      };
+    });
   }
 
   /**

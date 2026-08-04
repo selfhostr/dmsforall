@@ -16,6 +16,7 @@ import {
   schemaTexteCourt,
 } from '../atelier/primitives';
 import { schemaListeQuery } from '../filtres';
+import { schemaParametresPage } from '../pagination';
 
 /**
  * Le référentiel article (`article`, `article_reference`) — `RP-01` → `RP-08`.
@@ -91,6 +92,25 @@ export interface ReponseArticle {
 }
 
 export const SEUIL_REFERENCES_EMBARQUEES_ARTICLE = 50;
+
+/**
+ * `GET /articles/{id}/references` — la suite annoncée par `ReponseArticle.referencesTronquees`.
+ *
+ * Décision de ce lot (rapport de livraison) : les références alternatives d'un article
+ * (équivalences constructeur/aftermarket, `type = 'equivalente'` compris — `RP-02`) peuvent
+ * LÉGITIMEMENT dépasser `SEUIL_REFERENCES_EMBARQUEES_ARTICLE` pour une pièce universelle (filtre à
+ * huile, plaquettes standard…) recensée par de nombreux fournisseurs — ce n'est pas une anomalie de
+ * saisie, contrairement aux réservations actives (`stock.ts::ReponseDisponibiliteArticle`, dont le
+ * commentaire documente l'inverse). Endpoint dédié plutôt qu'un simple indicateur, donc — même
+ * doctrine de pagination par curseur que toute autre collection (`pagination.ts`).
+ */
+export const TRIS_REFERENCES_ARTICLE = ['creeLe:asc', 'creeLe:desc'] as const;
+export const TRI_DEFAUT_REFERENCES_ARTICLE = 'creeLe:asc';
+
+export const schemaFiltresReferencesArticle = schemaParametresPage.extend({
+  tri: z.enum(TRIS_REFERENCES_ARTICLE).default(TRI_DEFAUT_REFERENCES_ARTICLE),
+});
+export type FiltresReferencesArticle = z.infer<typeof schemaFiltresReferencesArticle>;
 
 /* ------------------------------------------------------------------ */
 /* Filtres, tri et recherche (RP-03)                                   */
