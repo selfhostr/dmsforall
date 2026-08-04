@@ -187,6 +187,16 @@ export interface ReponseDocumentVente {
   /** `devis` v1 ← `devis` v2 (`MD-14`). */
   readonly remplaceId: string | null;
   readonly figees: ValeursFigeesDocument;
+  /**
+   * Date MÉTIER/LÉGALE du document (`MD-27`/`MD-33`), jamais un horodatage serveur — à distinguer
+   * de `emisLe` ci-dessous. Éditable tant que le document est `brouillon` (défaut = date du jour
+   * côté serveur à la création, `schemaCreationDocumentVente.dateDocument`) ; contrôlée ≥ à la date
+   * du dernier document émis de la même série UNIQUEMENT à l'ÉMISSION (`MD-33`), jamais à la saisie
+   * du brouillon. C'est la date qui apparaît sur le document imprimé/PDF et qui sert de base à la
+   * numérotation par exercice (`exercice` ci-dessus). Peut donc précéder `emisLe` de plusieurs
+   * semaines (ex. une facture émise le 03.08 pour une prestation datée du 05.07) — les deux champs
+   * ne sont PAS interchangeables et ne doivent pas partager le même libellé côté écran.
+   */
   readonly dateDocument: string;
   readonly devise: DeviseFacturation;
   /** `MD-07` : `true` uniquement sur un document repris dont la source ne donnait qu'un montant de
@@ -238,6 +248,15 @@ export interface ReponseDocumentVente {
    *  en-tête `ETag: W/"<version>"` — un document émis ne change plus jamais de version au sens
    *  métier (seules les colonnes de la liste blanche `MD-20` bougent). */
   readonly version: number;
+  /**
+   * Horodatage SERVEUR (`timestamptz`, précision seconde après sérialisation ISO) du geste
+   * d'émission effectif — à distinguer de `dateDocument` ci-dessus, qui est la date métier/légale
+   * portée par le document. `null` tant que le document est `brouillon` : `emisLe` est écrit une
+   * seule fois, dans la même transaction que l'attribution du numéro (`service-emission.ts`), et ne
+   * change plus jamais ensuite (même règle d'immuabilité que `numero`). Ne PAS afficher sous le même
+   * libellé que `dateDocument` : les deux peuvent diverger de plusieurs semaines (voir le
+   * commentaire de `dateDocument`).
+   */
   readonly emisLe: string | null;
   readonly emisPar: { readonly utilisateurId: string; readonly nomAffiche: string } | null;
   readonly creeLe: string;
