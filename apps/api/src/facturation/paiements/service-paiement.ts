@@ -426,10 +426,31 @@ export class ServicePaiement {
           imputationsOriginal,
         );
 
-        if (BigInt(entree.montantCentimes) > nonImpute) {
+        // DÉFAUT AUDIT : `nonImpute` ne décroît JAMAIS quand on rembourse — un remboursement crée un
+        // paiement de sens opposé (`contrePasseId = original.id`), il n'écrit AUCUNE imputation sur
+        // l'original. Contrôler `montant > nonImpute` seul laissait donc passer autant de
+        // remboursements de N ct qu'on voulait (reproduit : 3 × 5000 ct pour 5000 ct dus). Le
+        // montant réellement remboursable est l'avance non imputée MINUS ce qui a déjà été remboursé,
+        // c.-à-d. la somme (en valeur absolue) des contre-passes déjà rattachées à ce paiement.
+        //
+        // Concurrence : `chargerPaiementPourEcriture` a verrouillé l'original `for update` — deux
+        // remboursements simultanés du même paiement se sérialisent sur ce verrou, le second ne lisant
+        // `dejaRembourse` qu'après le commit du premier. Aucun des deux ne peut donc dépasser le solde.
+        const [agregatRembourse] = await tx
+          .select({
+            total: sql<string>`coalesce(sum(abs(${paiement.montantCentimes})), 0)`,
+          })
+          .from(paiement)
+          .where(and(eq(paiement.tenantId, ctx.tenantId), eq(paiement.contrePasseId, paiementId)));
+        const dejaRembourse = BigInt(agregatRembourse?.total ?? '0');
+        const remboursable = nonImpute - dejaRembourse > 0n ? nonImpute - dejaRembourse : 0n;
+
+        if (BigInt(entree.montantCentimes) > remboursable) {
           throw new ErreurMetier(
             'IMPUTATION_MONTANT_EXCEDENTAIRE',
-            `Le remboursement demandé (${entree.montantCentimes} ct) dépasse l'avance disponible (${nonImpute.toString()} ct) sur le paiement ${paiementId}.`,
+            `Le remboursement demandé (${entree.montantCentimes} ct) dépasse le montant remboursable ` +
+              `(${remboursable.toString()} ct) sur le paiement ${paiementId} — avance non imputée ` +
+              `${nonImpute.toString()} ct, déjà remboursé ${dejaRembourse.toString()} ct.`,
           );
         }
 

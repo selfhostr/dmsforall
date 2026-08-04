@@ -97,15 +97,24 @@ export function mapperLigneDocument(
     referenceTexte: ligne.referenceTexte,
     articleId: null, // Accroche étape 3 (stock pièces) — toujours null tant que le module n'existe pas.
     quantiteMillieme: ligne.quantiteMillieme,
-    prixUnitaireTtcCentimes: ligne.prixUnitaireCentimes,
     modeCalculTva: ligne.modeCalculTva,
     regimeTva: ligne.regimeTva,
     tauxTvaPourmille: ligne.tauxTvaPourmille,
     datePrestation: ligne.datePrestation,
+    // `remisePourmille` est un TAUX (aucun montant en clair) — toujours exposé.
     remisePourmille: ligne.remisePourmille,
-    remiseMontantCentimes: ligne.remiseMontantCentimes,
-    remiseGlobaleRepartieCentimes: ligne.remiseGlobaleRepartieCentimes,
-    ...(voitMontants ? { montants } : {}),
+    // DÉFAUT AUDIT (RF-115/RF-116) : tous les champs MONÉTAIRES de ligne — prix unitaire, remise en
+    // montant, part de remise globale ventilée ET l'agrégat `montants` — reçoivent le MÊME traitement
+    // (absents, jamais mis à `null`) pour un rôle sans droit aux montants. Exposés, `prixUnitaire ×
+    // quantite` reconstituerait ligne à ligne le montant que `montants` masque déjà.
+    ...(voitMontants
+      ? {
+          prixUnitaireTtcCentimes: ligne.prixUnitaireCentimes,
+          remiseMontantCentimes: ligne.remiseMontantCentimes,
+          remiseGlobaleRepartieCentimes: ligne.remiseGlobaleRepartieCentimes,
+          montants,
+        }
+      : {}),
     creeLe: ligne.creeLe.toISOString(),
     modifieLe: ligne.modifieLe.toISOString(),
   };

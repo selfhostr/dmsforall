@@ -63,12 +63,13 @@ export class ReponseLigneDocumentVenteDto implements ReponseLigneDocumentVente {
   @ApiProperty({ example: 1000, description: 'Millièmes — 1000 = quantité 1.' })
   readonly quantiteMillieme!: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: Number,
     nullable: true,
-    description: "TTC en centimes — null uniquement pour une ligne 'texte'.",
+    description:
+      "TTC en centimes — null uniquement pour une ligne 'texte'. Absent pour un rôle sans droit aux montants (RF-115/RF-116).",
   })
-  readonly prixUnitaireTtcCentimes!: number | null;
+  readonly prixUnitaireTtcCentimes?: number | null;
 
   @ApiProperty({
     enum: MODES_CALCUL_TVA,
@@ -88,11 +89,18 @@ export class ReponseLigneDocumentVenteDto implements ReponseLigneDocumentVente {
   @ApiProperty({ type: Number, nullable: true })
   readonly remisePourmille!: number | null;
 
-  @ApiProperty({ type: Number, nullable: true })
-  readonly remiseMontantCentimes!: number | null;
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+    description: 'Montant en clair — absent pour un rôle sans droit aux montants (RF-115/RF-116).',
+  })
+  readonly remiseMontantCentimes?: number | null;
 
-  @ApiProperty()
-  readonly remiseGlobaleRepartieCentimes!: number;
+  @ApiPropertyOptional({
+    type: Number,
+    description: 'Montant en clair — absent pour un rôle sans droit aux montants (RF-115/RF-116).',
+  })
+  readonly remiseGlobaleRepartieCentimes?: number;
 
   @ApiPropertyOptional({
     type: () => MontantsLigneDocumentDto,

@@ -58,8 +58,10 @@ export interface ReponseLigneDocumentVente {
   /** Accroche étape 3 (stock pièces) : `null` tant que le module n'existe pas. */
   readonly articleId: string | null;
   readonly quantiteMillieme: number;
-  /** Figé (`MD-24`). `null` pour une ligne `texte` sans prix (note libre imprimée sur le document). */
-  readonly prixUnitaireTtcCentimes: number | null;
+  /** Figé (`MD-24`). `null` pour une ligne `texte` sans prix (note libre imprimée sur le document).
+   *  ABSENT pour un rôle sans droit aux montants (`RF-115`/`RF-116`) : exposé, ce prix multiplié par
+   *  `quantiteMillieme` reconstituerait le montant de ligne que `montants` masque déjà. */
+  readonly prixUnitaireTtcCentimes?: number | null;
   /**
    * LECTURE SEULE (`MD-43`) — voir la note de `ModeCalculTva` dans `enums.ts`. Aucune ligne créée
    * directement en facturation ne porte plus jamais `'ht'` : seules les lignes recopiées depuis
@@ -70,13 +72,18 @@ export interface ReponseLigneDocumentVente {
   readonly tauxTvaPourmille: number;
   /** `MD-39` : le taux applicable dépend de CETTE date, jamais de la date du document. */
   readonly datePrestation: string;
-  /** Exclusifs (`MD-41`) — au plus un des deux est non nul. */
+  /** Exclusifs (`MD-41`) — au plus un des deux est non nul. `remisePourmille` est un TAUX (aucun
+   *  montant), toujours visible ; `remiseMontantCentimes` est un montant en clair, donc ABSENT pour
+   *  un rôle sans droit aux montants (`RF-115`/`RF-116`). */
   readonly remisePourmille: number | null;
-  readonly remiseMontantCentimes: number | null;
-  /** Part de la remise globale de pied de document ventilée sur cette ligne (`MD-59`, `MD-60`). */
-  readonly remiseGlobaleRepartieCentimes: number;
-  /** Absents pour un rôle sans droit aux montants (`ROLES_SANS_MONTANT`, aujourd'hui `technicien`
-   *  et `admin` — `RF-114`, `RF-115`, `RF-116`). */
+  readonly remiseMontantCentimes?: number | null;
+  /** Part de la remise globale de pied de document ventilée sur cette ligne (`MD-59`, `MD-60`).
+   *  Montant en clair : ABSENT pour un rôle sans droit aux montants (`RF-115`/`RF-116`). */
+  readonly remiseGlobaleRepartieCentimes?: number;
+  /** Tous les champs monétaires de ligne (`prixUnitaireTtcCentimes`, `remiseMontantCentimes`,
+   *  `remiseGlobaleRepartieCentimes`, `montants`) sont ABSENTS — pas mis à `null` — pour un rôle sans
+   *  droit aux montants (`ROLES_SANS_MONTANT`, aujourd'hui `technicien` ; `admin` en plus côté
+   *  facturation — `RF-114`, `RF-115`, `RF-116`). Traitement identique et cohérent entre eux. */
   readonly montants?: MontantsLigneDocument;
   readonly creeLe: string;
   readonly modifieLe: string;
