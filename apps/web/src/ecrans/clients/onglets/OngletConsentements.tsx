@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { TYPES_CONSENTEMENT, type TypeConsentement } from '@dfa/shared';
 
+import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -40,7 +41,7 @@ interface Props {
  * juridique, aucune valeur hors contrat n'est proposée ici.
  */
 export function OngletConsentements({ clientId }: Props) {
-  const { t } = useTranslation(['clients', 'commun']);
+  const { t } = useTranslation(['clients', 'commun', 'erreurs']);
   const requete = useConsentementsClient(clientId);
   const creerConsentement = useCreerConsentementClient(clientId);
 
@@ -56,13 +57,20 @@ export function OngletConsentements({ clientId }: Props) {
     );
   };
 
+  const changerOuvert = (valeur: boolean) => {
+    setOuvert(valeur);
+    // Efface une erreur affichée lors d'une tentative précédente : sans ça, rouvrir le dialogue
+    // pour une NOUVELLE saisie afficherait encore l'échec de la fois d'avant.
+    if (valeur) creerConsentement.reset();
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <h3 className="texte-titre-section font-medium text-foreground">
           {t('clients:consentements.titre')}
         </h3>
-        <Dialog open={ouvert} onOpenChange={setOuvert}>
+        <Dialog open={ouvert} onOpenChange={changerOuvert}>
           <DialogTrigger asChild>
             <Button type="button" size="sm" variant="outline">
               {t('clients:consentements.ajouter')}
@@ -91,6 +99,11 @@ export function OngletConsentements({ clientId }: Props) {
                   </SelectContent>
                 </Select>
               </div>
+              {creerConsentement.isError ? (
+                <p className="texte-libelle text-destructive" role="alert">
+                  {messageErreur(creerConsentement.error, t)}
+                </p>
+              ) : null}
               <DialogFooter>
                 <Button type="button" onClick={accorder} disabled={creerConsentement.isPending}>
                   {t('commun:actions.ajouter')}

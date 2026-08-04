@@ -30,6 +30,7 @@ import {
   ligneOr,
   ordreReparation,
   pointage,
+  utilisateur,
   type LigneLigneOr,
   type LigneOrdreReparation,
   type LignePointage,
@@ -69,6 +70,7 @@ import {
   chargerLignePourPointage,
   chargerOrPourPointage,
   chargerParametresPointage,
+  chargerResumeTechnicien,
 } from './references';
 import {
   calculerAgregatsTempsLigne,
@@ -87,12 +89,45 @@ import {
 } from './regles-pointage';
 import { traduireErreurTransitionPointage } from './traducteur-transition-pointage';
 
-/** `code` + `constraint` PostgreSQL d'une violation de la PK `pointage_pk` (23505) — MÊME PATRON que
- *  `vehicules/erreurs-contraintes.ts` / `facturation/paiements/service-paiement.ts::estViolationUnicite`. */
-function estCollisionIdPointage(erreur: unknown): boolean {
-  if (typeof erreur !== 'object' || erreur === null) return false;
-  const brute = erreur as { code?: unknown; constraint?: unknown };
-  return brute.code === '23505' && brute.constraint === 'pointage_pk';
+/** Profondeur maximale de déballage de `.cause` — même borne, même raison que
+ *  `vehicules/erreurs-contraintes.ts::PROFONDEUR_MAX_CAUSE` : Drizzle n'enveloppe qu'une seule
+ *  fois en pratique, mais bornée pour ne jamais boucler à l'infini sur une chaîne `cause` cyclique
+ *  pathologique. */
+const PROFONDEUR_MAX_CAUSE_COLLISION_POINTAGE = 10;
+
+interface ErreurPgBruteCollisionPointage {
+  readonly code?: unknown;
+  readonly constraint?: unknown;
+  readonly cause?: unknown;
+}
+
+/**
+ * `code` + `constraint` PostgreSQL d'une violation de la PK `pointage_pk` (23505) — MÊME PATRON
+ * que `vehicules/erreurs-contraintes.ts::interpreterContrainteVehicule` (lu comme modèle ; le
+ * bloc `facturation/paiements/service-paiement.ts::estViolationUnicite` cité dans une version
+ * antérieure de ce commentaire porte le MÊME défaut, corrigé ailleurs, hors périmètre ici).
+ *
+ * DÉFAUT CORRIGÉ : cette fonction ne testait `code`/`constraint` qu'au PREMIER NIVEAU de l'erreur.
+ * Or Drizzle (`pg-core/session.js`, `catch (e) { throw new DrizzleQueryError(query, params, e) }`)
+ * enveloppe SYSTÉMATIQUEMENT l'erreur brute du pilote `pg` dans une `DrizzleQueryError` qui ne
+ * porte `code`/`constraint` que sous `.cause` — jamais en surface. Sans déballer la chaîne, un
+ * double-clic / double requête concurrente sur la même clé `id` (RM-87, idempotence par `id` du
+ * corps) ne reconnaissait JAMAIS la collision et remontait en `500 ERREUR_INTERNE` au lieu du
+ * `409 CONFLIT` déjà écrit juste en dessous. `remonterCause` déballe donc la chaîne, bornée.
+ */
+export function estCollisionIdPointage(erreur: unknown): boolean {
+  let courante: unknown = erreur;
+  for (
+    let profondeur = 0;
+    profondeur < PROFONDEUR_MAX_CAUSE_COLLISION_POINTAGE;
+    profondeur += 1
+  ) {
+    if (typeof courante !== 'object' || courante === null) return false;
+    const brute = courante as ErreurPgBruteCollisionPointage;
+    if (brute.code === '23505' && brute.constraint === 'pointage_pk') return true;
+    courante = brute.cause;
+  }
+  return false;
 }
 
 type ResultatEcriture = ResultatIdempotent<
@@ -204,6 +239,11 @@ export class ServicePointage {
       ctx,
       { methode: 'POST', chemin: '/pointages', cle: cleIdempotence, corps: entree },
       async (tx) => {
+        // Résolu UNE FOIS, avant les deux branches (rejeu idempotent ET création) : `entree.
+        // technicienId` est la cible dans les deux cas — `pointageCorrespondEntree` garantit que
+        // la branche de rejeu porte le MÊME technicien, voir plus bas.
+        const technicien = await chargerResumeTechnicien(tx, ctx, entree.technicienId);
+
         const existant = await chargerPointageOuNull(tx, ctx, entree.id);
         if (existant) {
           if (!pointageCorrespondEntree(existant, entree)) {
@@ -215,7 +255,10 @@ export class ServicePointage {
           const duree = dureeBruteDepuisPeriode(existant.debutLe, existant.finLe);
           return {
             statutHttp: 200,
-            corps: { donnees: mapperPointage(existant, duree), avertissements: [] },
+            corps: {
+              donnees: mapperPointage(existant, duree, technicien.nomAffiche),
+              avertissements: [],
+            },
           };
         }
 
@@ -376,7 +419,10 @@ export class ServicePointage {
           await this.transitionnerOrEnCours(tx, ctx, or);
         }
 
-        return { statutHttp: 201, corps: collecteur.envelopper(mapperPointage(cree, null)) };
+        return {
+          statutHttp: 201,
+          corps: collecteur.envelopper(mapperPointage(cree, null, technicien.nomAffiche)),
+        };
       },
     );
   }
@@ -436,7 +482,10 @@ export class ServicePointage {
           );
         }
 
-        const parametres = await chargerParametresPointage(tx, ctx);
+        const [parametres, technicien] = await Promise.all([
+          chargerParametresPointage(tx, ctx),
+          chargerResumeTechnicien(tx, ctx, actuel.technicienId),
+        ]);
         const dureeBrute = dureeBruteDepuisPeriode(actuel.debutLe, finLe) ?? 0;
         const dureeArrondie = calculerDureeArrondieCentiemes(
           dureeBrute,
@@ -478,7 +527,10 @@ export class ServicePointage {
 
         return {
           statutHttp: 200,
-          corps: { donnees: mapperPointage(misAJour, dureeBrute), avertissements: [] },
+          corps: {
+            donnees: mapperPointage(misAJour, dureeBrute, technicien.nomAffiche),
+            avertissements: [],
+          },
         };
       },
     );
@@ -526,6 +578,11 @@ export class ServicePointage {
             },
           );
         }
+
+        // Le technicien du pointage n'est jamais réaffecté par une correction (`EntreeCorrection-
+        // Pointage` ne porte pas de `technicienId`) — résolu une seule fois, AVANT la branche
+        // « rien ne change » plus bas, qui rend elle aussi une `ReponsePointage` complète.
+        const technicien = await chargerResumeTechnicien(tx, ctx, actuel.technicienId);
 
         const debutLe = entree.debutLe !== undefined ? new Date(entree.debutLe) : actuel.debutLe;
         const finLe = entree.finLe !== undefined ? new Date(entree.finLe) : actuel.finLe;
@@ -591,7 +648,7 @@ export class ServicePointage {
           const duree = dureeBruteDepuisPeriode(actuel.debutLe, actuel.finLe);
           return {
             statutHttp: 200,
-            corps: { donnees: mapperPointage(actuel, duree), avertissements: [] },
+            corps: { donnees: mapperPointage(actuel, duree, technicien.nomAffiche), avertissements: [] },
           };
         }
 
@@ -641,7 +698,10 @@ export class ServicePointage {
 
         return {
           statutHttp: 200,
-          corps: { donnees: mapperPointage(misAJour, dureeBrute), avertissements: [] },
+          corps: {
+            donnees: mapperPointage(misAJour, dureeBrute, technicien.nomAffiche),
+            avertissements: [],
+          },
         };
       },
     );
@@ -682,7 +742,12 @@ export class ServicePointage {
       ) {
         throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Pointage ${id} introuvable.`);
       }
-      return mapperPointage(ligne, dureeBruteDepuisPeriode(ligne.debutLe, ligne.finLe));
+      const technicien = await chargerResumeTechnicien(tx, ctx, ligne.technicienId);
+      return mapperPointage(
+        ligne,
+        dureeBruteDepuisPeriode(ligne.debutLe, ligne.finLe),
+        technicien.nomAffiche,
+      );
     });
   }
 
@@ -731,10 +796,23 @@ export class ServicePointage {
       if (curseurDecode)
         clauses.push(conditionKeysetPointage(sens, curseurDecode.valeur, curseurDecode.id));
 
+      // JOIN sur `utilisateur` pour le nom affiché — MÊME PATRON que `ServiceLecturePointage.
+      // pointagesOuvertsPourOr` (`service-lecture-pointage.ts`) : une page de résultats à N lignes
+      // ne doit jamais coûter N+1 requêtes. `innerJoin` : `technicien_id` est `NOT NULL` et
+      // référence toujours un `utilisateur` du même tenant (même hypothèse que ce voisin).
       const colonnes = getTableColumns(pointage);
       const lignes = await tx
-        .select({ ...colonnes, triValeur: expressionTriValeurPointage })
+        .select({
+          ...colonnes,
+          triValeur: expressionTriValeurPointage,
+          technicienPrenom: utilisateur.prenom,
+          technicienNom: utilisateur.nom,
+        })
         .from(pointage)
+        .innerJoin(
+          utilisateur,
+          and(eq(utilisateur.tenantId, pointage.tenantId), eq(utilisateur.id, pointage.technicienId)),
+        )
         .where(and(...clauses))
         .orderBy(...ordreParDebutLe(sens))
         .limit(limite + 1);
@@ -745,7 +823,11 @@ export class ServicePointage {
 
       return {
         donnees: pageLignes.map((l) =>
-          mapperPointage(l, dureeBruteDepuisPeriode(l.debutLe, l.finLe)),
+          mapperPointage(
+            l,
+            dureeBruteDepuisPeriode(l.debutLe, l.finLe),
+            `${l.technicienPrenom} ${l.technicienNom}`.trim(),
+          ),
         ),
         curseurSuivant:
           aUnePageSuivante && derniere

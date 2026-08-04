@@ -2390,9 +2390,29 @@
       },
       "FinancementResumeDto": {
         "properties": {
+          "acompteCentimes": {
+            "description": "Acompte/apport versé à la signature, en centimes. Omis si le rôle appelant ne voit pas les montants (RF-116).",
+            "nullable": true,
+            "type": "object"
+          },
+          "dureeMois": {
+            "description": "Durée du contrat en mois. Omis si le rôle appelant ne voit pas les montants (RF-116).",
+            "nullable": true,
+            "type": "object"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
+          },
+          "mensualiteCentimes": {
+            "description": "Mensualité (crédit) ou loyer (leasing), en centimes. Omis si le rôle appelant ne voit pas les montants (RF-116).",
+            "nullable": true,
+            "type": "object"
+          },
+          "montantFinanceCentimes": {
+            "description": "Montant financé (principal), en centimes. Saisie du vendeur, pas recalculé. Omis si le rôle appelant ne voit pas les montants (RF-116).",
+            "nullable": true,
+            "type": "object"
           },
           "organisme": {
             "allOf": [
@@ -2410,6 +2430,11 @@
               "refuse"
             ],
             "type": "string"
+          },
+          "tauxInteretPourmille": {
+            "description": "Taux d'intérêt/leasing, en pour-mille (81 = 8,1 %). Omis si le rôle appelant ne voit pas les montants (RF-116).",
+            "nullable": true,
+            "type": "object"
           },
           "type": {
             "enum": [
@@ -5471,6 +5496,11 @@
       },
       "ReponseFinancementDto": {
         "properties": {
+          "acompteCentimes": {
+            "description": "Acompte/apport versé à la signature, en centimes. Omis si le rôle appelant ne voit pas les montants (RF-116).",
+            "nullable": true,
+            "type": "object"
+          },
           "actionsDisponibles": {
             "items": {
               "enum": [
@@ -5494,13 +5524,28 @@
             "format": "uuid",
             "type": "string"
           },
+          "dureeMois": {
+            "description": "Durée du contrat en mois. Omis si le rôle appelant ne voit pas les montants (RF-116).",
+            "nullable": true,
+            "type": "object"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
           },
+          "mensualiteCentimes": {
+            "description": "Mensualité (crédit) ou loyer (leasing), en centimes. Omis si le rôle appelant ne voit pas les montants (RF-116).",
+            "nullable": true,
+            "type": "object"
+          },
           "modifieLe": {
             "format": "date-time",
             "type": "string"
+          },
+          "montantFinanceCentimes": {
+            "description": "Montant financé (principal), en centimes. Saisie du vendeur, pas recalculé — voir la tension avec RV-42 documentée dans le contrat (`@dfa/shared`). Omis si le rôle appelant ne voit pas les montants (RF-116).",
+            "nullable": true,
+            "type": "object"
           },
           "motifRefus": {
             "nullable": true,
@@ -5533,6 +5578,11 @@
             ],
             "type": "string"
           },
+          "tauxInteretPourmille": {
+            "description": "Taux d'intérêt/leasing, en pour-mille (81 = 8,1 %). Omis si le rôle appelant ne voit pas les montants (RF-116).",
+            "nullable": true,
+            "type": "object"
+          },
           "type": {
             "enum": [
               "comptant",
@@ -5559,6 +5609,29 @@
           "version",
           "creeLe",
           "modifieLe"
+        ],
+        "type": "object"
+      },
+      "ReponseIdentificationPinDto": {
+        "properties": {
+          "nom": {
+            "description": "Nom, pour un accueil nominatif à l’écran.",
+            "type": "string"
+          },
+          "prenom": {
+            "description": "Prénom, pour un accueil nominatif à l’écran.",
+            "type": "string"
+          },
+          "technicienId": {
+            "description": "Identifiant du technicien reconnu.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "technicienId",
+          "prenom",
+          "nom"
         ],
         "type": "object"
       },
@@ -5680,7 +5753,7 @@
             "type": "number"
           },
           "prixUnitaireTtcCentimes": {
-            "description": "TTC en centimes — null uniquement pour une ligne 'texte'.",
+            "description": "TTC en centimes — null uniquement pour une ligne 'texte'. Absent pour un rôle sans droit aux montants (RF-115/RF-116).",
             "nullable": true,
             "type": "number"
           },
@@ -5706,9 +5779,11 @@
             "type": "string"
           },
           "remiseGlobaleRepartieCentimes": {
+            "description": "Montant en clair — absent pour un rôle sans droit aux montants (RF-115/RF-116).",
             "type": "number"
           },
           "remiseMontantCentimes": {
+            "description": "Montant en clair — absent pour un rôle sans droit aux montants (RF-115/RF-116).",
             "nullable": true,
             "type": "number"
           },
@@ -5750,14 +5825,11 @@
           "referenceTexte",
           "articleId",
           "quantiteMillieme",
-          "prixUnitaireTtcCentimes",
           "modeCalculTva",
           "regimeTva",
           "tauxTvaPourmille",
           "datePrestation",
           "remisePourmille",
-          "remiseMontantCentimes",
-          "remiseGlobaleRepartieCentimes",
           "creeLe",
           "modifieLe"
         ],
@@ -6626,6 +6698,28 @@
           "capaciteHeuresJourCentiemes",
           "joursFermeture",
           "version"
+        ],
+        "type": "object"
+      },
+      "ReponsePinPointageDto": {
+        "properties": {
+          "actif": {
+            "description": "true après attribution/réinitialisation, false après révocation.",
+            "type": "boolean"
+          },
+          "siteId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "utilisateurId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "siteId",
+          "utilisateurId",
+          "actif"
         ],
         "type": "object"
       },
@@ -7543,7 +7637,8 @@
               "enum": [
                 "mettre_a_jour",
                 "receptionner",
-                "remettre_disponible"
+                "remettre_disponible",
+                "marquer_vendu"
               ],
               "type": "string"
             },
@@ -8036,6 +8131,11 @@
             "format": "date-time",
             "type": "string"
           },
+          "siteRattachementId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "sites": {
             "items": {
               "$ref": "#/components/schemas/SiteResumeDto"
@@ -8053,6 +8153,7 @@
           "utilisateur",
           "tenant",
           "sites",
+          "siteRattachementId",
           "expireLe"
         ],
         "type": "object"
@@ -8389,7 +8490,8 @@
               "chef_atelier",
               "technicien",
               "magasinier",
-              "comptable"
+              "comptable",
+              "poste_atelier"
             ],
             "type": "string"
           }
@@ -17065,6 +17167,54 @@
               },
               "schema": {
                 "properties": {
+                  "acompteCentimes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "dureeMois": {
+                    "anyOf": [
+                      {
+                        "maximum": 120,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "mensualiteCentimes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "montantFinanceCentimes": {
+                    "anyOf": [
+                      {
+                        "maximum": 9007199254740991,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "organismeId": {
                     "anyOf": [
                       {
@@ -17083,6 +17233,18 @@
                         "maxLength": 200,
                         "minLength": 1,
                         "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tauxInteretPourmille": {
+                    "anyOf": [
+                      {
+                        "maximum": 1000,
+                        "minimum": 0,
+                        "type": "integer"
                       },
                       {
                         "type": "null"
@@ -25980,6 +26142,320 @@
         ]
       }
     },
+    "/pointages/identification": {
+      "post": {
+        "description": "Réservé au compte de service de la borne (`poste_atelier`). Le site est résolu depuis la SESSION de la borne, jamais de la requête. Anti-balayage RM-129 : verrouillage progressif scopé sur l’identité de la borne.",
+        "operationId": "PinController_identifier",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "codePin": "4071"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "codePin": {
+                    "pattern": "^\\d{4}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "codePin"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseIdentificationPinDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Code PIN mal formé (attendu : 4 chiffres)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente/expirée, ou POINTAGE_PIN_INVALIDE (aucun technicien actif ne porte ce PIN)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (route réservée à la borne)."
+          },
+          "423": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "POINTAGE_PIN_VERROUILLE — trop de tentatives ; `Retry-After` porte la durée restante."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Reconnaît un technicien par son code PIN sur la borne — N’OUVRE AUCUNE SESSION (RM-113/RM-115).",
+        "tags": [
+          "Pointage"
+        ]
+      }
+    },
+    "/pointages/pins": {
+      "put": {
+        "description": "Upsert : crée le rattachement (site, technicien) s’il n’existe pas, sinon met à jour son PIN et le réactive. PIN haché en Argon2id (RM-126). Unicité du PIN par site vérifiée à l’écriture (RM-127).",
+        "operationId": "PinController_attribuer",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "codePin": "4071",
+                    "siteId": "5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10",
+                    "utilisateurId": "6c9e2d4b-7a10-4e2e-8f0a-1c9e2e2f0a4b"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "codePin": {
+                    "pattern": "^\\d{4}$",
+                    "type": "string"
+                  },
+                  "siteId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "utilisateurId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "siteId",
+                  "utilisateurId",
+                  "codePin"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponsePinPointageDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide (siteId/utilisateurId mal formés, codePin ≠ 4 chiffres, cible = compte de service)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant, ou site hors de la portée du principal."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Site ou utilisateur introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "CONFLIT — ce code PIN est déjà utilisé par un autre technicien du site (RM-127)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Attribue ou réinitialise le PIN d’un technicien sur un site (RM-128).",
+        "tags": [
+          "Pointage"
+        ]
+      }
+    },
+    "/pointages/pins/revocation": {
+      "post": {
+        "description": "La ligne inactive garde l’historique du rattachement (migration 0036 §E). 404 si aucun rattachement actif à révoquer.",
+        "operationId": "PinController_revoquer",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "siteId": "5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10",
+                    "utilisateurId": "6c9e2d4b-7a10-4e2e-8f0a-1c9e2e2f0a4b"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "siteId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "utilisateurId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "siteId",
+                  "utilisateurId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponsePinPointageDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide (siteId/utilisateurId mal formés)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant, ou site hors de la portée du principal."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Aucun rattachement PIN actif à révoquer pour ce technicien sur ce site."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Retire un technicien de la borne d’un site (`actif=false`, jamais un DELETE).",
+        "tags": [
+          "Pointage"
+        ]
+      }
+    },
     "/pointages/verrouiller-periode": {
       "post": {
         "description": "Refusée (`409 CONFLIT`) si un pointage `en_cours` tombe dans la plage — jamais fermé de force (RM-113 : falsifierait la donnée).",
@@ -30539,6 +31015,121 @@
           }
         ],
         "summary": "Met un véhicule EXISTANT en stock (RV-01).",
+        "tags": [
+          "Véhicules en stock"
+        ]
+      }
+    },
+    "/vehicules/{vehiculeId}/stock/marquer-vendu": {
+      "post": {
+        "description": "USAGE NORMAL : appel PROGRAMMATIQUE par `facturation/` à l’émission de la facture — aucun écran ne devrait appeler cet endpoint dans le parcours courant. Il existe pour la correction exceptionnelle (resynchronisation, ou usage avant que le câblage facturation n’existe), motif obligatoire, même patron que `remettre-disponible`.",
+        "operationId": "VehiculeStockController_marquerVendu",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vehiculeId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motif": "Resynchronisation manuelle avant câblage facturation."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehiculeStockAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Motif manquant."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Véhicule jamais mis en stock pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "CONFLIT — le véhicule n’est pas réservé."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "`reserve -> vendu` — normalement un effet de bord de l’émission de facture (RV-37).",
         "tags": [
           "Véhicules en stock"
         ]

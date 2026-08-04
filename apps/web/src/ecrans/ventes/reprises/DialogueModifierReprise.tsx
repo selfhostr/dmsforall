@@ -52,23 +52,28 @@ export function DialogueModifierReprise({
   const [erreurValidation, setErreurValidation] = useState<string | null>(null);
 
   useEffect(() => {
-    if (ouvert) {
-      setValeurEstimeeCentimes(reprise.valeurEstimeeCentimes);
-      setDette(
-        reprise.detteFinancementResiduelleCentimes === null
-          ? VALEURS_DETTE_VIDES
-          : {
-              montantCentimes: reprise.detteFinancementResiduelleCentimes,
-              organismeMode: reprise.detteFinancementOrganismeId ? 'client' : 'texteLibre',
-              organismeId: reprise.detteFinancementOrganismeId,
-              organismeNom: reprise.detteFinancementOrganismeNom ?? '',
-            },
-      );
-      setErreurValidation(null);
-      modifier.reset();
-    }
+    if (!ouvert) return;
+    setValeurEstimeeCentimes(reprise.valeurEstimeeCentimes);
+    setDette(
+      reprise.detteFinancementResiduelleCentimes === null
+        ? VALEURS_DETTE_VIDES
+        : {
+            montantCentimes: reprise.detteFinancementResiduelleCentimes,
+            organismeMode: reprise.detteFinancementOrganismeId ? 'client' : 'texteLibre',
+            organismeId: reprise.detteFinancementOrganismeId,
+            organismeNom: reprise.detteFinancementOrganismeNom ?? '',
+          },
+    );
+    setErreurValidation(null);
+    modifier.reset();
+    // Dépend UNIQUEMENT de `ouvert` (patron `DialogueModifierDossierVente`) : `reprise` vient
+    // d'un `useQuery` sans `staleTime`, donc `refetchOnWindowFocus` (défaut TanStack Query v5) lui
+    // donne une nouvelle référence à chaque retour de focus fenêtre — dépendre de `reprise` ici
+    // rejouerait l'effet et écraserait une saisie en cours à chaque changement de fenêtre pendant
+    // l'édition. Réinitialise à CHAQUE ouverture (pas seulement au montage) : la même instance de
+    // dialog est réutilisée sans être démontée entre deux ouvertures.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ouvert, reprise]);
+  }, [ouvert]);
 
   const erreurActive = modifier.error instanceof ErreurApi ? modifier.error : null;
 

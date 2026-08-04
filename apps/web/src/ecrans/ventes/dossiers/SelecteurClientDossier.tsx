@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next';
 
 import type { ClientResume } from '@dfa/shared';
 
+import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Input } from '@/components/ui/input';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
+import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { useListeClients } from '@/hooks/clients/useListeClients';
@@ -29,7 +31,7 @@ interface Props {
  * pas un `<select>` texte (le vendeur compare des numéros de client et des noms, pas des libellés).
  */
 export function SelecteurClientDossier({ valeur, onChangeValeur, libelle }: Props) {
-  const { t } = useTranslation(['ventes', 'commun']);
+  const { t } = useTranslation(['ventes', 'commun', 'erreurs']);
   const [qSaisie, setQSaisie] = useState('');
   const [q, setQ] = useState('');
 
@@ -53,6 +55,14 @@ export function SelecteurClientDossier({ valeur, onChangeValeur, libelle }: Prop
 
       {q.trim() === '' ? null : requete.isPending ? (
         <EtatChargement lignes={2} />
+      ) : requete.isError ? (
+        <EtatErreur
+          titre={t(
+            requete.error instanceof ErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre',
+          )}
+          description={messageErreur(requete.error, t)}
+          onReessayer={() => void requete.refetch()}
+        />
       ) : clients.length === 0 ? (
         <EtatVide
           titre={t('ventes:dossier.nouveau.client.titre')}

@@ -13,6 +13,16 @@ import { ErreurMetier } from '../../common/erreurs/erreur-metier';
  * qui ne matche pas `MOTIF_DETAIL` du traducteur commun. Réutiliser silencieusement aurait échoué à
  * chaque appel (retour `null`), pas à la compilation — plus sûr d'écrire un traducteur dédié que de
  * forcer un format qui n'est pas le sien.
+ *
+ * IMPORTANT : le pilote `pg` lève bien l'erreur brute avec `code`/`table`/`detail`/`hint`
+ * directement sur l'objet, mais Drizzle (`pg-core/session.js`) l'enveloppe systématiquement dans
+ * une `DrizzleQueryError` qui porte la brute sous `.cause` — jamais `code`/`table`/`detail`/`hint`
+ * en surface. Sans déballer `.cause`, aucun des trois traducteurs ci-dessous ne reconnaît jamais
+ * rien et tout retombe en `ERREUR_INTERNE`/500 (constaté : modifier une facture émise, ou émettre
+ * sur une période close, ressortaient en 500 avant ce correctif). `remonterCauseErreurPg` déballe
+ * donc la chaîne, bornée pour ne jamais boucler à l'infini sur un `cause` cyclique pathologique —
+ * même patron que `vehicules/erreurs-contraintes.ts::remonterCause` et
+ * `common/avertissements/traducteur-erreur-transition-sql.ts::trouverCauseZdfa1`.
  */
 
 interface ErreurPgBrute {
@@ -20,10 +30,32 @@ interface ErreurPgBrute {
   readonly table?: unknown;
   readonly detail?: unknown;
   readonly hint?: unknown;
+  readonly cause?: unknown;
 }
 
-function estErreurPg(erreur: unknown): erreur is ErreurPgBrute {
-  return typeof erreur === 'object' && erreur !== null;
+/** Profondeur maximale de déballage de `.cause` — Drizzle n'enveloppe qu'une seule fois en
+ *  pratique, mais bornée pour ne jamais risquer une boucle infinie sur une chaîne cyclique. */
+const PROFONDEUR_MAX_CAUSE = 10;
+
+/**
+ * Rend la première erreur de la chaîne `.cause` (elle-même incluse) qui porte un `code` (SQLSTATE)
+ * en chaîne de caractères, ou `null` si aucune n'en porte un — que la chaîne soit vide (erreur
+ * brute du pilote `pg`, jamais enveloppée, cas des tests unitaires qui construisent déjà le bon
+ * objet) ou qu'elle contienne une `DrizzleQueryError` (cas réel en production).
+ */
+function remonterCauseErreurPg(erreur: unknown): ErreurPgBrute | null {
+  let courante: unknown = erreur;
+  for (let profondeur = 0; profondeur < PROFONDEUR_MAX_CAUSE; profondeur += 1) {
+    if (typeof courante !== 'object' || courante === null) {
+      return null;
+    }
+    const brute = courante as ErreurPgBrute;
+    if (typeof brute.code === 'string') {
+      return brute;
+    }
+    courante = brute.cause;
+  }
+  return null;
 }
 
 const MOTIF_HINT_TERMINAL = /^«[^»]*»\s+est un état terminal/;
@@ -50,18 +82,18 @@ export function traduireErreurTransitionDocument(
   documentId: string,
   numero: string | null,
 ): ErreurMetier | null {
-  if (!estErreurPg(erreur) || erreur.code !== 'ZDFA1' || erreur.table !== 'document_vente')
-    return null;
-  if (typeof erreur.detail !== 'string') return null;
+  const brute = remonterCauseErreurPg(erreur);
+  if (!brute || brute.code !== 'ZDFA1' || brute.table !== 'document_vente') return null;
+  if (typeof brute.detail !== 'string') return null;
 
   const correspondance =
     /^entite=document_vente;entite_id=([^;]+);type_document=([^;]+);depuis=([^;]+);vers=([^;]+)$/.exec(
-      erreur.detail,
+      brute.detail,
     );
   if (!correspondance) return null;
   const [, , typeDocument, depuis, vers] = correspondance;
 
-  const hint = typeof erreur.hint === 'string' ? erreur.hint : null;
+  const hint = typeof brute.hint === 'string' ? brute.hint : null;
   const estTerminal = hint !== null && MOTIF_HINT_TERMINAL.test(hint);
 
   return new ErreurMetier(
@@ -92,16 +124,17 @@ export function traduireErreurVerrouillage(
   documentId: string,
   numero: string | null,
 ): ErreurMetier | null {
-  if (!estErreurPg(erreur) || erreur.code !== 'ZDFA2') return null;
-  if (erreur.table !== 'document_vente' && erreur.table !== 'ligne_document') return null;
-  if (typeof erreur.detail !== 'string' || !erreur.detail.includes('code=document_verrouille'))
+  const brute = remonterCauseErreurPg(erreur);
+  if (!brute || brute.code !== 'ZDFA2') return null;
+  if (brute.table !== 'document_vente' && brute.table !== 'ligne_document') return null;
+  if (typeof brute.detail !== 'string' || !brute.detail.includes('code=document_verrouille'))
     return null;
 
   return new ErreurMetier(
     'DOCUMENT_VERROUILLE',
     'Ce document est émis : il est verrouillé et ne peut plus être modifié (MD-20). Seul un avoir permet une correction.',
     {
-      detail: erreur.detail,
+      detail: brute.detail,
       blocages: [{ type: 'document_vente', id: documentId, libelle: numero ?? documentId }],
       actionsProposees: [{ code: 'RAFRAICHIR' }],
     },
@@ -115,14 +148,14 @@ export function traduireErreurPeriodeClose(
   documentId: string,
   numero: string | null,
 ): ErreurMetier | null {
-  if (!estErreurPg(erreur) || erreur.code !== 'ZDFA5' || erreur.table !== 'document_vente')
-    return null;
+  const brute = remonterCauseErreurPg(erreur);
+  if (!brute || brute.code !== 'ZDFA5' || brute.table !== 'document_vente') return null;
 
   return new ErreurMetier(
     'DOCUMENT_PERIODE_CLOSE',
     'La période comptable de la date du document est close (MD-34) : émission refusée.',
     {
-      detail: typeof erreur.detail === 'string' ? erreur.detail : undefined,
+      detail: typeof brute.detail === 'string' ? brute.detail : undefined,
       blocages: [{ type: 'document_vente', id: documentId, libelle: numero ?? documentId }],
       actionsProposees: [{ code: 'RAFRAICHIR' }],
     },

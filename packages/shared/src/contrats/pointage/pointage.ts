@@ -98,6 +98,15 @@ export interface ReponsePointage {
   readonly id: string;
   readonly siteId: string;
   readonly technicienId: string;
+  /**
+   * Prénom + nom du technicien ciblé (`"Prénom Nom"`, `utilisateur.prenom`/`utilisateur.nom`
+   * joints par le serveur — jamais construit côté client). Défaut corrigé : avant ce champ,
+   * `ReponsePointage` ne portait que `technicienId`, ce qui forçait l'écran « Pointage / Équipe »
+   * à afficher un UUID tronqué faute d'un nom à montrer. Toujours renseigné, MÊME PATRON que
+   * `PointageOuvert.technicienNomAffiche` (`atelier/atelier.jetons.ts`) et que
+   * `CumulsPointageOr.parTechnicien[].nomAffiche` (`atelier/ordre-reparation.ts`).
+   */
+  readonly technicienNomAffiche: string;
   readonly statut: StatutPointage;
   readonly nature: NatureActivitePointage;
   readonly ordreReparationId: string | null;

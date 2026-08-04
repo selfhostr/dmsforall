@@ -6,10 +6,18 @@ import type { LignePointage } from '../db/schema';
  * Drizzle — voir l'en-tête de `db/schema/pointage/pointage.ts`). Un appelant qui l'a sélectionnée
  * explicitement (`select … duree_brute_secondes` en SQL brut, ou calculée en mémoire depuis
  * `debutLe`/`finLe`) la fournit ici ; sinon `null`, cohérent avec `finLe === null`.
+ *
+ * `technicienNomAffiche` n'est pas davantage une colonne de `LignePointage` : le nom vit sur
+ * `utilisateur`, jamais dupliqué sur `pointage`. DÉFAUT CORRIGÉ (UX) — avant ce paramètre,
+ * `ReponsePointage` ne portait que `technicienId`, ce qui forçait l'écran « Pointage / Équipe » à
+ * afficher un UUID tronqué. L'appelant DOIT le résoudre en amont (jointure `utilisateur` pour une
+ * liste, `references.ts::chargerResumeTechnicien` pour une lecture unitaire) — ce mappeur reste
+ * pur et ne fait lui-même aucun accès base.
  */
 export function mapperPointage(
   ligne: LignePointage,
   dureeBruteSecondes: number | null,
+  technicienNomAffiche: string,
 ): ReponsePointage {
   const anomalie: AnomaliePointage | null =
     ligne.anomalieMotif !== null && ligne.anomalieDetecteeLe !== null
@@ -38,6 +46,7 @@ export function mapperPointage(
     id: ligne.id,
     siteId: ligne.siteId,
     technicienId: ligne.technicienId,
+    technicienNomAffiche,
     statut: ligne.statut,
     nature: ligne.nature,
     ordreReparationId: ligne.ordreReparationId,

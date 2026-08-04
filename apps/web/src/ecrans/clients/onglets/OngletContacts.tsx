@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ROLES_CONTACT, type RoleContact } from '@dfa/shared';
 
+import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -27,7 +28,7 @@ interface Props {
 
 /** Onglet « Contacts » (RM-04) — rôles CUMULABLES sur un même contact. */
 export function OngletContacts({ clientId }: Props) {
-  const { t } = useTranslation(['clients', 'commun']);
+  const { t } = useTranslation(['clients', 'commun', 'erreurs']);
   const requete = useContactsClient(clientId);
   const creerContact = useCreerContactClient(clientId);
 
@@ -72,13 +73,20 @@ export function OngletContacts({ clientId }: Props) {
     );
   };
 
+  const changerOuvert = (valeur: boolean) => {
+    setOuvert(valeur);
+    // Efface une erreur affichée lors d'une tentative précédente : sans ça, rouvrir le dialogue
+    // pour une NOUVELLE saisie afficherait encore l'échec de la fois d'avant.
+    if (valeur) creerContact.reset();
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <h3 className="texte-titre-section font-medium text-foreground">
           {t('clients:contacts.titre')}
         </h3>
-        <Dialog open={ouvert} onOpenChange={setOuvert}>
+        <Dialog open={ouvert} onOpenChange={changerOuvert}>
           <DialogTrigger asChild>
             <Button type="button" size="sm" variant="outline">
               {t('clients:contacts.ajouter')}
@@ -138,6 +146,11 @@ export function OngletContacts({ clientId }: Props) {
                   ))}
                 </div>
               </div>
+              {creerContact.isError ? (
+                <p className="texte-libelle text-destructive" role="alert">
+                  {messageErreur(creerContact.error, t)}
+                </p>
+              ) : null}
               <DialogFooter>
                 <Button
                   type="submit"

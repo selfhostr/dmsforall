@@ -56,6 +56,12 @@ export class ReponsePointageDto implements ReponsePointage {
   @ApiProperty({ format: 'uuid' })
   readonly technicienId!: string;
 
+  @ApiProperty({
+    description: 'Prénom + nom du technicien, joints par le serveur (jamais à reconstruire côté client).',
+    example: 'Marco Rossi',
+  })
+  readonly technicienNomAffiche!: string;
+
   @ApiProperty({ enum: STATUTS_POINTAGE })
   readonly statut!: ReponsePointage['statut'];
 

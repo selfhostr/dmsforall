@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next';
 
 import type { VehiculeStockResume } from '@dfa/shared';
 
+import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Input } from '@/components/ui/input';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
+import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { useVehiculesStockDisponibles } from '@/hooks/ventes/dossiers/useVehiculesStockDisponibles';
@@ -30,7 +32,7 @@ interface Props {
  * (`ecrans/ventes/stock/**`, hors périmètre de celui-ci).
  */
 export function SelecteurVehiculeStockDossier({ valeur, onChangeValeur, libelle }: Props) {
-  const { t } = useTranslation(['ventes', 'commun']);
+  const { t } = useTranslation(['ventes', 'commun', 'erreurs']);
   const [qSaisie, setQSaisie] = useState('');
   const [q, setQ] = useState('');
 
@@ -54,6 +56,14 @@ export function SelecteurVehiculeStockDossier({ valeur, onChangeValeur, libelle 
 
       {q.trim() === '' ? null : requete.isPending ? (
         <EtatChargement lignes={2} />
+      ) : requete.isError ? (
+        <EtatErreur
+          titre={t(
+            requete.error instanceof ErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre',
+          )}
+          description={messageErreur(requete.error, t)}
+          onReessayer={() => void requete.refetch()}
+        />
       ) : vehicules.length === 0 ? (
         <EtatVide
           titre={t('ventes:dossier.nouveau.vehicule.titre')}

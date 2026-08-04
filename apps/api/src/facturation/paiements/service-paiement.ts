@@ -111,11 +111,43 @@ function ligneDepuisBrute(brute: LignePaiementBrute): LignePaiement {
   };
 }
 
-/** `code` PostgreSQL d'une violation de contrainte `unique` (23505) — pilote `pg`. */
+/** SQLSTATE `23505` (unique_violation) — `identifiant_transaction_banque`. */
+const SQLSTATE_UNICITE = '23505';
+
+/** Profondeur maximale de déballage de `.cause` — même borne que
+ *  `vehicules/erreurs-contraintes.ts::remonterCause` et
+ *  `facturation/documents/erreurs-sql-document.ts::remonterCauseErreurPg`. */
+const PROFONDEUR_MAX_CAUSE = 10;
+
+interface ErreurPgBrute {
+  readonly code?: unknown;
+  readonly cause?: unknown;
+}
+
+/**
+ * `code` PostgreSQL d'une violation de contrainte `unique` (23505) — pilote `pg`.
+ *
+ * IMPORTANT : le pilote `pg` lève bien l'erreur brute avec `code` directement sur l'objet, mais
+ * Drizzle (`pg-core/session.js`) l'enveloppe systématiquement dans une `DrizzleQueryError` qui
+ * porte la brute sous `.cause` — jamais `code` en surface. Sans déballer `.cause`, cette fonction
+ * ne reconnaît jamais rien et un doublon d'`identifiant_transaction_banque` retombe en
+ * `ERREUR_INTERNE`/500 au lieu du `CONFLIT`/409 attendu. Déballage borné pour ne jamais boucler à
+ * l'infini sur un `cause` cyclique pathologique — même patron que
+ * `vehicules/erreurs-contraintes.ts::remonterCause`.
+ */
 function estViolationUnicite(erreur: unknown): boolean {
-  return (
-    typeof erreur === 'object' && erreur !== null && (erreur as { code?: unknown }).code === '23505'
-  );
+  let courante: unknown = erreur;
+  for (let profondeur = 0; profondeur < PROFONDEUR_MAX_CAUSE; profondeur += 1) {
+    if (typeof courante !== 'object' || courante === null) {
+      return false;
+    }
+    const brute = courante as ErreurPgBrute;
+    if (brute.code === SQLSTATE_UNICITE) {
+      return true;
+    }
+    courante = brute.cause;
+  }
+  return false;
 }
 
 @Injectable()
