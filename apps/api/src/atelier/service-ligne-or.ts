@@ -10,6 +10,7 @@ import type {
   EntreeSoumissionLignesADevis,
   EntreeValidationLignes,
   FiltresLignesOr,
+  MotifLiberationReservation,
   PageCurseur,
   PayeurLigneOr,
   ReponseAvecAvertissements,
@@ -19,13 +20,21 @@ import type {
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
+  consigneEchangeStandard,
   ligneOr,
+  mouvementStock,
+  reservationPiece,
   tauxHoraire,
   type LigneLigneOr,
   type LigneOrdreReparation,
+  type LigneReservationPiece,
   type LigneTauxHoraire,
+  type NouveauMouvementStock,
+  type NouvelleConsigneEchangeStandard,
+  type NouvelleReservationPiece,
 } from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
+import { remonterCausePg } from '../common/erreurs-pg/remonter-cause-pg';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { JETON_EVENEMENTS, type ServiceEvenements } from '../common/evenements';
 import {
@@ -49,7 +58,7 @@ import {
   chargerOrPourEcriture,
   listerLignesOr,
 } from './or-requetes';
-import { chargerClientLigne } from './references';
+import { chargerArticleLigne, chargerClientLigne } from './references';
 import {
   decoderCurseurOffset,
   encoderCurseurOffset,
@@ -232,6 +241,7 @@ export class ServiceLigneOr {
           );
         }
         if (entree.payeurClientId) await chargerClientLigne(tx, ctx, entree.payeurClientId);
+        if (entree.articleId) await this.garantirArticleUtilisable(tx, ctx, entree.articleId);
 
         const statutInitial = this.determinerStatutInitial(
           entree.origine,
@@ -260,6 +270,7 @@ export class ServiceLigneOr {
             blocage,
             designation: entree.designation,
             referenceTexte: entree.referenceTexte ?? null,
+            articleId: entree.articleId ?? null,
             quantiteMillieme: entree.quantiteMillieme,
             tempsBaremeCentiemes: entree.tempsBaremeCentiemes ?? null,
             tauxHoraireCentimes,
@@ -297,9 +308,11 @@ export class ServiceLigneOr {
           });
         }
 
+        const ligneFinale = await this.reserverPieceSiApplicable(tx, ctx, ligne, or);
+
         return {
           statutHttp: 201,
-          corps: { donnees: mapperLigneOr(ligne, principal.role), avertissements: [] },
+          corps: { donnees: mapperLigneOr(ligneFinale, principal.role), avertissements: [] },
         };
       },
     );
@@ -395,6 +408,12 @@ export class ServiceLigneOr {
         );
       }
       if (entree.payeurClientId) await chargerClientLigne(tx, ctx, entree.payeurClientId);
+      // `articleId` : mêmes garanties qu'à la création (tenant, désactivation) — mais AUCUN effet
+      // de bord sur `reservation_piece` ici. RP-19/RP-20 (`pieces/reservation.ts`, GELÉ) ne fait
+      // naître une réservation qu'à `POST …/lignes` ; un `PATCH` qui pose ou change `articleId`
+      // après coup laisse donc la ligne sans réservation correspondante — écart SIGNALÉ au rapport
+      // de livraison, pas tranché ici (aucune consigne du contrat pour ce cas).
+      if (entree.articleId) await this.garantirArticleUtilisable(tx, ctx, entree.articleId);
 
       const STATUTS_COMPTES_DANS_PLAFOND: ReadonlySet<LigneLigneOr['statut']> = new Set([
         'validee',
@@ -431,6 +450,7 @@ export class ServiceLigneOr {
           ...(entree.referenceTexte !== undefined
             ? { referenceTexte: entree.referenceTexte ?? null }
             : {}),
+          ...(entree.articleId !== undefined ? { articleId: entree.articleId ?? null } : {}),
           ...(entree.quantiteMillieme !== undefined
             ? { quantiteMillieme: entree.quantiteMillieme }
             : {}),
@@ -490,6 +510,11 @@ export class ServiceLigneOr {
    * `POST .../lignes/{ligneId}/marquer-realisee` (§7.9) — `en_cours -> realisee` uniquement ;
    * `refusee -> realisee` n'existe pas dans `transition_autorisee` (RM-72, CT-28) et lève
    * `LIGNE_TRANSITION_INTERDITE` via le même mécanisme ZDFA1 que les transitions d'OR.
+   *
+   * RP-21/RP-38 (`pieces/reservation.ts`, `pieces/consigne.ts`) : une ligne `piece` réservée sort
+   * PHYSIQUEMENT du stock (`sortie_or`) et, si l'article est d'échange standard, pose la consigne
+   * — DANS LA MÊME TRANSACTION que le passage à `realisee` (voir `satisfaireReservationSiApplicable`
+   * ci-dessous pour la raison de la duplication avec `pieces/service-reservation.ts`).
    */
   async marquerRealisee(
     ctx: ContexteTenant,
@@ -507,6 +532,8 @@ export class ServiceLigneOr {
       // `temps_reel_centiemes` n'a nulle part où se poser en base au lot 1 (Δ4, module pointage
       // absent) — voir `mappeurs.ts` : le champ du contrat reste exposé à `null`, jamais omis.
       void entree.tempsReelCentiemes;
+
+      await this.satisfaireReservationSiApplicable(tx, ctx, misAJour);
 
       return { donnees: mapperLigneOr(misAJour, principal.role), avertissements: [] };
     });
@@ -593,6 +620,11 @@ export class ServiceLigneOr {
         const maintenant = new Date();
         for (const ligne of cibles) {
           await this.transitionnerLigne(tx, ctx, ligne, 'refusee', {});
+          // RP-23 (`pieces/reservation.ts`), deuxième cas : une ligne refusée en décision de
+          // devis libère AUTOMATIQUEMENT sa réservation active — voir
+          // `libererReservationSiActive` pour la raison de la duplication avec
+          // `pieces/service-reservation.ts::liberer`.
+          await this.libererReservationSiActive(tx, ctx, ligne.id, 'refus_devis');
           await this.travailReporte.creerDepuisRefus(
             tx,
             ctx,
@@ -638,6 +670,9 @@ export class ServiceLigneOr {
           await this.transitionnerLigne(tx, ctx, ligne, 'annulee', {
             motifAnnulation: entree.motif,
           });
+          // RP-23 (`pieces/reservation.ts`), premier cas : une ligne annulée libère
+          // AUTOMATIQUEMENT sa réservation active — voir `libererReservationSiActive`.
+          await this.libererReservationSiActive(tx, ctx, ligne.id, 'annulation_ligne');
         }
       },
     );
@@ -764,6 +799,261 @@ export class ServiceLigneOr {
         },
       );
     }
+  }
+
+  /**
+   * `articleId` (création ET modification) : mêmes garanties que `payeurClientId` — existence
+   * tenant-scopée (`chargerArticleLigne` lève `RESSOURCE_INTROUVABLE` sinon) et refus explicite
+   * d'un article `desactive` (RP-07 : la désactivation empêche déjà toute NOUVELLE réservation
+   * active, cohérence symétrique côté saisie de ligne). `obsolete` reste accepté : un article
+   * obsolète peut encore être vendu jusqu'à épuisement de son reliquat, seule sa désactivation
+   * ferme définitivement la porte. Pas de code `ARTICLE_INACTIF` dédié dans `CODES_ERREUR`
+   * (`probleme.ts`, hors périmètre de ce module) — `VALIDATION_ECHOUEE` structuré, même patron
+   * que les gardes `payeurClientId` de ce fichier.
+   */
+  private async garantirArticleUtilisable(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    articleId: string,
+  ): Promise<void> {
+    const articleLigne = await chargerArticleLigne(tx, ctx, articleId);
+    if (articleLigne.statut === 'desactive') {
+      throw new ErreurMetier(
+        'VALIDATION_ECHOUEE',
+        `Article ${articleId} désactivé : impossible de l'utiliser sur une nouvelle ligne.`,
+        {
+          erreurs: [
+            {
+              champ: 'articleId',
+              code: 'article_desactive',
+              message: 'Cet article est désactivé.',
+            },
+          ],
+        },
+      );
+    }
+  }
+
+  /**
+   * RP-19/RP-20 (`pieces/reservation.ts`, GELÉ, en-tête) : une ligne `type = 'piece'` avec
+   * `articleId` renseigné et `fournieParClient = false` réserve la pièce DANS LA MÊME TRANSACTION
+   * que sa création — jamais un second appel HTTP. Le trigger `reservation_piece_verrouiller_stock`
+   * (migration 0026) porte la garantie de concurrence CP-02 (verrou de ligne sur `stock_article`)
+   * ET la vérification de capacité (SQLSTATE personnalisé `ZDFA4`) : cette méthode se contente
+   * d'un INSERT typé, toute la logique de verrouillage/refus vit en base.
+   *
+   * ZDFA4 N'EST PAS UNE ERREUR HTTP ICI, à la différence de `STOCK_INSUFFISANT` dans
+   * `pieces/service-mouvement.ts` : le `hint` du trigger 0026 est explicite — « la ligne d'OR doit
+   * basculer blocage='pieces' plutôt que de forcer cette réservation » (RP-24). La ligne reste
+   * donc créée SANS réservation, avec son `blocage` forcé à `'pieces'` (visible par le client dans
+   * la réponse 201, sans avertissement dédié — aucun code `CODES_AVERTISSEMENT` existant ne
+   * convient et `probleme.ts` est hors périmètre de ce module ; signalé au rapport de livraison).
+   *
+   * N'EST PAS APPELÉE PAR `modifier()` : le contrat (`reservation.ts`, en-tête) ne fait naître la
+   * réservation qu'à la création — voir la note sur `entree.articleId` dans `modifier()`.
+   */
+  private async reserverPieceSiApplicable(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    ligne: LigneLigneOr,
+    or: LigneOrdreReparation,
+  ): Promise<LigneLigneOr> {
+    if (ligne.type !== 'piece' || !ligne.articleId || ligne.fourniParClient) return ligne;
+
+    const valeurs: NouvelleReservationPiece = {
+      tenantId: ctx.tenantId,
+      articleId: ligne.articleId,
+      siteId: or.siteId,
+      ligneOrId: ligne.id,
+      ordreReparationId: ligne.ordreReparationId,
+      quantiteMillieme: ligne.quantiteMillieme ?? 1000,
+    };
+
+    try {
+      await tx.insert(reservationPiece).values(valeurs);
+      return ligne;
+    } catch (erreur) {
+      if (remonterCausePg(erreur)?.code !== 'ZDFA4') throw erreur;
+
+      const [misAJour] = await tx
+        .update(ligneOr)
+        .set({ blocage: 'pieces' })
+        .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.id, ligne.id)))
+        .returning();
+      if (!misAJour) {
+        throw new ErreurMetier(
+          'ERREUR_INTERNE',
+          "La mise à jour du blocage de la ligne n'a rendu aucune ligne.",
+        );
+      }
+      return misAJour;
+    }
+  }
+
+  /**
+   * RP-21 (`pieces/reservation.ts`) : la réalisation d'une ligne `piece` portant une réservation
+   * `active` remet PHYSIQUEMENT la pièce — même effet que `POST /reservations/{id}/satisfaire`
+   * (`pieces/service-reservation.ts::satisfaire`), RÉPLIQUÉ ICI plutôt qu'appelé par injection de
+   * `ServiceReservation` : cette méthode ouvre SA PROPRE transaction (`AccesBase.enTenant`), ce
+   * qui romprait l'atomicité exigée avec le changement de statut de la ligne — `ligne_or.statut`
+   * et le mouvement `sortie_or` doivent commiter ou échouer ENSEMBLE, dans le même `tx`. Signalé
+   * au rapport de livraison comme dette technique : `ServiceReservation`/`ServiceConsigne`
+   * gagneraient une variante acceptant un `tx` externe pour que ce doublon disparaisse — hors
+   * périmètre de ce module (`apps/api/src/pieces/**`, propriété d'un autre agent).
+   *
+   * Aucune réservation `active` trouvée (jamais créée, stock insuffisant à la pose,
+   * `blocage = 'pieces'`, RP-24 ; ou déjà `satisfaite`/`liberee`) → AUCUN mouvement généré : il
+   * n'y a rien à satisfaire. Forcer une sortie de stock sans réservation sortirait du périmètre
+   * documenté de cette tâche — signalé, pas tranché.
+   */
+  private async satisfaireReservationSiApplicable(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    ligne: LigneLigneOr,
+  ): Promise<void> {
+    if (ligne.type !== 'piece' || !ligne.articleId) return;
+
+    const [reservation] = await tx
+      .select()
+      .from(reservationPiece)
+      .where(
+        and(
+          eq(reservationPiece.tenantId, ctx.tenantId),
+          eq(reservationPiece.ligneOrId, ligne.id),
+          eq(reservationPiece.statut, 'active'),
+        ),
+      )
+      .limit(1);
+    if (!reservation) return;
+
+    const sortie: NouveauMouvementStock = {
+      tenantId: ctx.tenantId,
+      articleId: reservation.articleId,
+      type: 'sortie_or',
+      quantiteMillieme: -reservation.quantiteMillieme,
+      siteId: reservation.siteId,
+      ligneOrId: ligne.id,
+      reservationId: reservation.id,
+      auteurId: ctx.utilisateurId,
+    };
+    const [mouvementSortie] = await tx.insert(mouvementStock).values(sortie).returning();
+    if (!mouvementSortie) {
+      throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du mouvement de sortie (RP-21).');
+    }
+
+    await tx
+      .update(reservationPiece)
+      .set({
+        statut: 'satisfaite',
+        satisfaiteLe: new Date(),
+        mouvementSortieId: mouvementSortie.id,
+      })
+      .where(
+        and(eq(reservationPiece.tenantId, ctx.tenantId), eq(reservationPiece.id, reservation.id)),
+      );
+
+    await this.creerConsigneSiApplicable(tx, ctx, ligne, reservation);
+  }
+
+  /**
+   * RP-38 (`pieces/consigne.ts`, en-tête) : « la ligne d'OR facture pièce + consigne, ET la
+   * vieille pièce est réceptionnée en stock, dans le même geste ». Effet de bord serveur de
+   * `marquer-realisee`, déclenché uniquement quand l'article déposé est `estEchangeStandard`.
+   *
+   * TYPE DE MOUVEMENT SIGNALÉ, PAS TRANCHÉ : `TYPES_MOUVEMENT_STOCK` (`pieces/mouvement.ts`, GELÉ)
+   * n'a AUCUN type dédié à « réception d'un cœur d'échange standard » — les dix valeurs existantes
+   * couvrent livraison fournisseur, sorties OR/comptoir, retours (fournisseur/client/consigne),
+   * transfert, ajustement, casse, perte. Choix retenu ICI : `retour_consigne`, quantité POSITIVE —
+   * symétrique du retour au fournisseur déjà implémenté
+   * (`pieces/service-consigne.ts::marquerRetourFournisseur`, MÊME type, quantité NÉGATIVE) : les
+   * deux jambes du cycle de consigne partagent un type, distinguées par le signe (RP-17 : « signée,
+   * positive à l'entrée, négative à la sortie »). Alternative rejetée : `entree_livraison`, qui
+   * porte une sémantique de réception FOURNISSEUR (prix d'achat réel, `RP-29`) étrangère à ce cas.
+   * À confirmer par expert-api/expert-database — l'enum reste extensible (RP-16) si un type dédié
+   * est préféré.
+   */
+  private async creerConsigneSiApplicable(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    ligne: LigneLigneOr,
+    reservation: LigneReservationPiece,
+  ): Promise<void> {
+    const articleLigne = await chargerArticleLigne(tx, ctx, reservation.articleId);
+    if (!articleLigne.estEchangeStandard) return;
+    if (articleLigne.montantConsigneTtcCentimes === null) {
+      // Défensif : `article_consigne_coherente_chk` (migration 0022) garantit que
+      // `estEchangeStandard = true` implique `montantConsigneTtcCentimes` non nul en base.
+      throw new ErreurMetier(
+        'ERREUR_INTERNE',
+        `Article ${reservation.articleId} d'échange standard sans montant de consigne (RP-38).`,
+      );
+    }
+
+    const entreeConsigne: NouveauMouvementStock = {
+      tenantId: ctx.tenantId,
+      articleId: reservation.articleId,
+      type: 'retour_consigne',
+      quantiteMillieme: reservation.quantiteMillieme,
+      siteId: reservation.siteId,
+      ligneOrId: ligne.id,
+      auteurId: ctx.utilisateurId,
+    };
+    const [mouvementEntree] = await tx.insert(mouvementStock).values(entreeConsigne).returning();
+    if (!mouvementEntree) {
+      throw new ErreurMetier(
+        'ERREUR_INTERNE',
+        "Échec de création du mouvement d'entrée de consigne (RP-38).",
+      );
+    }
+
+    const consigne: NouvelleConsigneEchangeStandard = {
+      tenantId: ctx.tenantId,
+      ligneOrId: ligne.id,
+      ordreReparationId: ligne.ordreReparationId,
+      articleId: reservation.articleId,
+      siteId: reservation.siteId,
+      montantConsigneTtcCentimes: articleLigne.montantConsigneTtcCentimes,
+      mouvementEntreeId: mouvementEntree.id,
+    };
+    await tx.insert(consigneEchangeStandard).values(consigne);
+  }
+
+  /**
+   * RP-23 (`pieces/reservation.ts`), deux premiers cas : une ligne ANNULÉE ou REFUSÉE en décision
+   * de devis libère AUTOMATIQUEMENT sa réservation `active` — pas de second appel HTTP
+   * (`POST /reservations/{id}/liberer` reste réservé au geste MANUEL du magasinier,
+   * `motif_liberation = 'liberation_manuelle'`, troisième cas, hors périmètre de ce fichier).
+   * Même limite d'atomicité que `satisfaireReservationSiApplicable` ci-dessus : réplique l'UPDATE
+   * minimale de `ServiceReservation.liberer` plutôt que de l'appeler (transaction séparée).
+   *
+   * Silencieux si aucune réservation `active` n'existe (ligne sans pièce, ou réservation déjà
+   * `satisfaite`/`liberee`) — rien à libérer n'est pas une anomalie.
+   */
+  private async libererReservationSiActive(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    ligneId: string,
+    motif: MotifLiberationReservation,
+  ): Promise<void> {
+    const [reservation] = await tx
+      .select({ id: reservationPiece.id })
+      .from(reservationPiece)
+      .where(
+        and(
+          eq(reservationPiece.tenantId, ctx.tenantId),
+          eq(reservationPiece.ligneOrId, ligneId),
+          eq(reservationPiece.statut, 'active'),
+        ),
+      )
+      .limit(1);
+    if (!reservation) return;
+
+    await tx
+      .update(reservationPiece)
+      .set({ statut: 'liberee', libereeLe: new Date(), motifLiberation: motif })
+      .where(
+        and(eq(reservationPiece.tenantId, ctx.tenantId), eq(reservationPiece.id, reservation.id)),
+      );
   }
 
   private blocageLigne(ligne: LigneLigneOr, voitMontants: boolean): ElementBloquant {

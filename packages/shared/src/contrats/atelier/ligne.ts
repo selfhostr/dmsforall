@@ -87,7 +87,13 @@ export interface ReponseLigneOr {
   readonly blocage: BlocageLigneOr;
   readonly designation: string;
   readonly referenceTexte: string | null;
-  /** Accroche étape 3 (stock pièces) : `null` tant que le module n'existe pas. */
+  /**
+   * Étape 3 (stock pièces) : entrant à la création ET à la modification (`schemaCreationLigneOr`).
+   * Quand `type = 'piece'`, `articleId` renseigné et `fournieParClient = false`, une réservation
+   * (`reservation_piece`, RP-19/RP-20) naît comme effet de bord SERVEUR de `POST …/lignes` — voir
+   * `contrats/pieces/reservation.ts`, en-tête, GELÉ. `articleId` reste acceptable même hors de ce
+   * cas précis (CP-07 : traçabilité sans conséquence de stock, ex. `fournieParClient = true`).
+   */
   readonly articleId: string | null;
   readonly quantiteMillieme: number;
   readonly tempsBaremeCentiemes: number | null;
@@ -162,6 +168,9 @@ export const schemaCreationLigneOr = z.object({
   origine: z.enum(ORIGINES_LIGNE_OR),
   designation: schemaTexteCourt,
   referenceTexte: z.string().trim().max(80).nullish(),
+  /** RP-19/RP-20 (`pieces/reservation.ts`, GELÉ) : quand `type = 'piece'` et
+   *  `fournieParClient = false`, réserve la pièce en base — voir `ReponseLigneOr.articleId`. */
+  articleId: schemaIdentifiant.nullish(),
   quantiteMillieme: schemaQuantiteMillieme.default(1000),
   tempsBaremeCentiemes: schemaCentiemes.nullish(),
   /**

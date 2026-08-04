@@ -3,6 +3,7 @@ import type { ClientResume, VehiculeResume } from '@dfa/shared';
 
 import type { ContexteTenant, TransactionDfa } from '../db';
 import {
+  article,
   client,
   clientAdresse,
   clientCondition,
@@ -13,6 +14,7 @@ import {
   vehiculeDetention,
   vehiculeKilometrage,
   vehiculePlaque,
+  type LigneArticle,
   type LigneClient,
   type LigneClientAdresse,
   type LigneClientCondition,
@@ -58,6 +60,29 @@ export async function chargerClientLigne(
     .limit(1);
   if (!ligne) {
     throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Client ${clientId} introuvable.`);
+  }
+  return ligne;
+}
+
+/**
+ * `ligne_or.article_id` (RP-19, étape 3) — même doctrine que `chargerClientLigne` : la FK
+ * (`ligne_or_fk_article`, migration 0029) garantirait de toute façon l'appartenance au tenant,
+ * mais un rejet lisible AVANT l'écriture (`RESSOURCE_INTROUVABLE`) vaut mieux qu'une violation de
+ * contrainte traduite après coup. Le RLS est le filet, jamais le mécanisme — d'où le rescoping
+ * explicite sur `tenant_id` ici comme partout ailleurs dans ce fichier.
+ */
+export async function chargerArticleLigne(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  articleId: string,
+): Promise<LigneArticle> {
+  const [ligne] = await tx
+    .select()
+    .from(article)
+    .where(and(eq(article.tenantId, ctx.tenantId), eq(article.id, articleId)))
+    .limit(1);
+  if (!ligne) {
+    throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Article ${articleId} introuvable.`);
   }
   return ligne;
 }

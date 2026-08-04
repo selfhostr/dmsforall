@@ -74,7 +74,9 @@ export class ReponseLigneOrDto implements ReponseLigneOr {
     type: String,
     format: 'uuid',
     nullable: true,
-    description: 'Accroche étape 3 (stock pièces).',
+    description:
+      "Étape 3 (stock pièces). Entrant à la création/modification : quand `type = 'piece'` et " +
+      '`fournieParClient = false`, réserve la pièce (RP-19/RP-20, effet de bord serveur).',
   })
   readonly articleId!: string | null;
 
