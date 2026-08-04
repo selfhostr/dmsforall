@@ -347,10 +347,13 @@ export class ServiceDossierVente {
       const pageLignes = aUnePageSuivante ? lignes.slice(0, filtres.limite) : lignes;
       const derniere = pageLignes[pageLignes.length - 1];
 
+      // `pourListe = true` : voir la note sur `assembler` — évite d'ouvrir jusqu'à `limite`
+      // (max 200) transactions d'audit imbriquées en parallèle sur une seule page, ce qui épuisait
+      // le pool `pg` (`max 10` par défaut).
       const donnees = await Promise.all(
         pageLignes.map(async (l) => {
           const ligne = await chargerDossierVente(tx, ctx, l.id);
-          return this.assembler(tx, ctx, role, ligne);
+          return this.assembler(tx, ctx, role, ligne, true);
         }),
       );
 
@@ -764,11 +767,22 @@ export class ServiceDossierVente {
   // Assemblage + primitives internes
   // -----------------------------------------------------------------------------------------
 
+  // `pourListe` (déf. `false`) : quand `true` (uniquement depuis `lister()`), saute
+  // `this.audit.pourEntite` — lequel ouvre SA PROPRE transaction (`ServiceAuditImpl.pourEntite`,
+  // `common/audit/service-audit.ts`, hors périmètre de ce module). Appelé une fois par élément dans
+  // un `Promise.all` sur toute une page (`limite` max = 200), il réclamait jusqu'à ~200 connexions
+  // imbriquées d'un coup et épuisait le pool `pg`. Le seul champ qui en dépend est `modifiePar`
+  // (dernier événement du journal) — un champ de RÉPONSE, jamais consulté par le calcul de
+  // statut/droits ni affiché en LISTE (`DossierVenteResume` ne le porte pas). Le vider en liste
+  // (`null`, valeur déjà couverte par le type) est sans perte réelle et supprime intégralement le
+  // problème (zéro requête d'audit, pas seulement une sérialisation). Même correctif que
+  // `ServiceOr.assemblerDocument`.
   private async assembler(
     tx: TransactionDfa,
     ctx: ContexteTenant,
     role: RoleUtilisateur,
     ligne: LigneDossierVente,
+    pourListe = false,
   ): Promise<ReponseDossierVente> {
     const clientAcheteurLigne = await chargerClientLigne(tx, ctx, ligne.clientAcheteurId);
     const clientAcheteur = await versClientResume(tx, ctx, clientAcheteurLigne);
@@ -808,12 +822,14 @@ export class ServiceDossierVente {
     const documentsRequisLignes = await listerDocumentsRequis(tx, ctx, ligne.id);
     const documentsRequis = documentsRequisLignes.map(versDocumentRequisResponse);
 
-    const journal = await this.audit.pourEntite(ctx, 'dossier_vente', ligne.id);
-    const modifiePar = await chargerResumeUtilisateur(
-      tx,
-      ctx,
-      journal.at(-1)?.utilisateurId ?? null,
-    );
+    const modifiePar = pourListe
+      ? null
+      : await chargerResumeUtilisateur(
+          tx,
+          ctx,
+          (await this.audit.pourEntite(ctx, 'dossier_vente', ligne.id)).at(-1)?.utilisateurId ??
+            null,
+        );
 
     return versDossierVenteResponse({
       ligne,

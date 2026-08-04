@@ -24,6 +24,7 @@ import type {
   VehiculeStockResume,
 } from '@dfa/shared';
 
+import { enDate } from '../db';
 import { roleVoitLesMontants } from '../facturation/documents/mappeurs';
 import { MATRICE_DROITS, type Action } from '../auth/matrice-droits';
 import type {
@@ -47,11 +48,17 @@ const MILLISECONDES_PAR_JOUR = 24 * 60 * 60 * 1000;
  */
 export function calculerJoursStock(
   dateEntreeStock: string,
-  venduLe: Date | null,
+  // `Date | string | null` : le chemin `lister()` (`service-vehicule-stock.ts`) lit `venduLe` par
+  // SQL brut (`tx.execute`), où le pilote `pg` rend un `timestamptz` en CHAÎNE, pas en `Date`
+  // (piège documenté partout dans le dépôt — cf. `db/acces-amorcage.service.ts::enDate`). Sans
+  // cette normalisation, `venduLe.getTime()` levait un `TypeError` -> 500 dès qu'un véhicule était
+  // `vendu`/`livre`. Le chemin fiche (`versVehiculeStockResponse`) passe un vrai `Date` (Drizzle
+  // `.select()`) : `enDate` est transparent dans ce cas.
+  venduLe: Date | string | null,
   maintenant: Date,
 ): number {
   const debut = new Date(`${dateEntreeStock}T00:00:00.000Z`).getTime();
-  const fin = venduLe ? venduLe.getTime() : maintenant.getTime();
+  const fin = venduLe ? enDate(venduLe).getTime() : maintenant.getTime();
   return Math.max(0, Math.floor((fin - debut) / MILLISECONDES_PAR_JOUR));
 }
 
@@ -145,15 +152,13 @@ export function versVehiculeStockResponse(e: EntreeMapperVehiculeStock): Reponse
 }
 
 export function versVehiculeStockResume(
+  // `venduLe` élargi à `Date | string | null` : ce mapper est alimenté par le chemin `lister()`
+  // (SQL brut, `pg` rend le `timestamptz` en CHAÎNE) autant que par les chemins Drizzle (`Date`).
+  // La normalisation est faite par `calculerJoursStock` (via `enDate`).
   ligne: Pick<
     LigneVehiculeStock,
-    | 'id'
-    | 'provenance'
-    | 'statutCommercial'
-    | 'prixVenteAfficheCentimes'
-    | 'dateEntreeStock'
-    | 'venduLe'
-  >,
+    'id' | 'provenance' | 'statutCommercial' | 'prixVenteAfficheCentimes' | 'dateEntreeStock'
+  > & { readonly venduLe: Date | string | null },
   vehicule: VehiculeResume,
   date1reCirculation: string | null,
   maintenant: Date,

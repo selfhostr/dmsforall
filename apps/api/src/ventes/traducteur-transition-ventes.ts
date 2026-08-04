@@ -22,6 +22,8 @@ import { ErreurMetier } from '../common/erreurs/erreur-metier';
  */
 
 const SQLSTATE_TRANSITION_INTERDITE = 'ZDFA1';
+/** Borne défensive contre une chaîne `.cause` cyclique ou anormalement profonde. */
+const PROFONDEUR_MAX_CAUSE = 10;
 
 const TABLE_VERS_CODE_TRANSITION_VENTES: Readonly<Record<string, CodeErreur>> = {
   dossier_vente: 'VENTE_DOSSIER_TRANSITION_INTERDITE',
@@ -33,6 +35,34 @@ interface ErreurPgBrute {
   readonly code?: unknown;
   readonly table?: unknown;
   readonly detail?: unknown;
+  readonly cause?: unknown;
+}
+
+/**
+ * L'erreur `pg` SQLSTATE `ZDFA1` n'arrive quasiment jamais « à plat » : `drizzle-orm`
+ * (`pg-core/session.js`, `catch (e) { throw new DrizzleQueryError(query, params, e) }`) l'enveloppe
+ * dans un `DrizzleQueryError` dont les champs `code`/`table`/`detail` du driver `pg` se retrouvent
+ * sous `.cause`, pas au premier niveau (même bug déjà corrigé pour atelier et véhicules, cf.
+ * `common/avertissements/traducteur-erreur-transition-sql.ts` et `vehicules/erreurs-contraintes.ts`).
+ * Sans déballer `.cause`, ce traducteur ne reconnaissait jamais rien : refuser/confirmer/négocier
+ * une reprise / un financement / un dossier déjà dans un autre état ressortait en 500 au lieu du
+ * `VENTE_*_TRANSITION_INTERDITE` (409) attendu (le trigger SQL `verifier_transition()` est le seul
+ * garde — aucun contrôle applicatif en amont, donc le bug était systématique). Remonte la chaîne
+ * `.cause` (bornée) jusqu'au premier objet portant réellement `code === 'ZDFA1'`, ou `null`.
+ */
+function trouverCauseTransitionVente(erreur: unknown): ErreurPgBrute | null {
+  let courant: unknown = erreur;
+  for (let profondeur = 0; profondeur < PROFONDEUR_MAX_CAUSE; profondeur += 1) {
+    if (typeof courant !== 'object' || courant === null) {
+      return null;
+    }
+    const brute = courant as ErreurPgBrute;
+    if (brute.code === SQLSTATE_TRANSITION_INTERDITE) {
+      return brute;
+    }
+    courant = brute.cause;
+  }
+  return null;
 }
 
 const MOTIF_DETAIL = /^entite=([^;]+);depuis=([^;]+);vers=([^;]+)$/;
@@ -55,10 +85,9 @@ export function traduireErreurTransitionVente(
   _entiteId: string,
   _libelle: string,
 ): ErreurMetier | null {
-  if (typeof erreur !== 'object' || erreur === null) return null;
-  const brute = erreur as ErreurPgBrute;
+  const brute = trouverCauseTransitionVente(erreur);
+  if (!brute) return null;
 
-  if (brute.code !== SQLSTATE_TRANSITION_INTERDITE) return null;
   if (typeof brute.table !== 'string') return null;
   const code = TABLE_VERS_CODE_TRANSITION_VENTES[brute.table];
   if (!code) return null;

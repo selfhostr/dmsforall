@@ -453,13 +453,16 @@ export class ServiceVehiculeStock {
         vendeurPrecedentAssujetti: boolean | null;
         origineRepriseDossierVenteId: string | null;
         dernierMotifTransition: string | null;
-        receptionneLe: Date | null;
-        reserveLe: Date | null;
-        venduLe: Date | null;
-        livreLe: Date | null;
+        // `timestamptz` lus par SQL brut (`tx.execute`) : le pilote `pg` les rend en CHAÎNE, pas en
+        // `Date` (piège documenté dans le dépôt). Typer `Date` ici était le mensonge qui faisait
+        // planter `calculerJoursStock` (`venduLe.getTime()`) en 500 dès qu'un véhicule était vendu.
+        receptionneLe: string | null;
+        reserveLe: string | null;
+        venduLe: string | null;
+        livreLe: string | null;
         version: number;
-        creeLe: Date;
-        modifieLe: Date;
+        creeLe: string;
+        modifieLe: string;
         vMarque: string;
         vModele: string;
         vVersion: string | null;
