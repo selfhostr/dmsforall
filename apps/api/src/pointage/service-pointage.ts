@@ -22,7 +22,9 @@ import type {
   ReponsePointage,
   RoleUtilisateur,
 } from '@dfa/shared';
+import { estCompteDeService } from '@dfa/shared';
 
+import { MATRICE_DROITS } from '../auth/matrice-droits';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
   ligneOr,
@@ -137,6 +139,45 @@ export class ServicePointage {
   /* ---------------------------------------------------------------------------------------- */
 
   /**
+   * FAILLE CORRIGÉE (audit sécurité) — garde-fou « soi vs autrui » du pointage. Démarrer ou arrêter
+   * le pointage d'un AUTRE technicien que soi exige `atelier.pointage.pointer_autrui` (encadrement :
+   * chef d'atelier / direction / admin — correction a posteriori, oubli de pointer). Pointer POUR
+   * SOI reste ouvert à tout rôle qui détient déjà `demarrer`/`arreter` (technicien, magasinier…).
+   *
+   * Avant correction, ni `demarrer` ni `arreter` ne reliaient l'identité de la session à la cible :
+   * un technicien pouvait imputer des heures à n'importe quel collègue en fournissant son
+   * `technicienId`. C'est ce lien-là que cette garde rétablit.
+   *
+   * BORNE (`poste_atelier`, compte de service) EXEMPTÉE : `principal.utilisateurId` est le compte de
+   * la borne, jamais un technicien — le concept « soi/autrui » n'a pas d'objet pour elle. Elle pointe
+   * POUR le technicien identifié par PIN par conception ; cette capacité est portée par
+   * `demarrer`/`arreter` + le scoping de site, JAMAIS par ce droit (qu'elle ne détient pas, ce qui
+   * garde son périmètre minimal, RM-115/RM-131 — aucun geste sensible depuis un écran mural).
+   *
+   * `@ExigerDroit` ne peut pas porter ce contrôle (statique par route) : la même route sert le cas
+   * « pour soi » (à ouvrir) et « pour autrui » (à restreindre) — seul le service, une fois la cible
+   * connue, peut trancher. Même idiome que `ServiceOr.modifier` / `ServiceVehiculeKilometrage.creer`
+   * (`MATRICE_DROITS[role] ?? []`, `.includes(action)`), lu ici en LECTURE SEULE (`auth/` hors
+   * périmètre d'écriture de ce module).
+   */
+  private exigerDroitCiblerAutrui(
+    principal: PrincipalAuthentifie,
+    technicienCibleId: string,
+  ): void {
+    // Un compte de service (borne) n'est jamais « soi » : self-vs-autrui ne le concerne pas.
+    if (estCompteDeService(principal.role)) return;
+    if (technicienCibleId === principal.utilisateurId) return;
+    const droitsDuRole = MATRICE_DROITS[principal.role] ?? [];
+    if (!droitsDuRole.includes('atelier.pointage.pointer_autrui')) {
+      throw new ErreurMetier(
+        'DROIT_INSUFFISANT',
+        `Le rôle "${principal.role}" ne peut démarrer ou arrêter que son propre pointage ; ` +
+          "pointer au nom d'un autre technicien exige le droit d'encadrement (atelier.pointage.pointer_autrui).",
+      );
+    }
+  }
+
+  /**
    * `POST /pointages` — RM-87 (trois cibles), RM-89/90 (chevauchement), RM-117 (cascade
    * ligne_or/ordre_reparation). Idempotence à DEUX niveaux (voir le commentaire de
    * `schemaDemarragePointage`, `contrats/pointage/pointage.ts`) :
@@ -151,9 +192,14 @@ export class ServicePointage {
    */
   async demarrer(
     ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
     entree: EntreeDemarragePointage,
     cleIdempotence: string,
   ): Promise<ResultatEcriture> {
+    // FAILLE CORRIGÉE : refuser AVANT toute écriture — et avant même d'entrer dans l'idempotence,
+    // pour ne rien mémoriser d'une requête non autorisée — un démarrage au nom d'un autre technicien
+    // par un rôle non habilité.
+    this.exigerDroitCiblerAutrui(principal, entree.technicienId);
     return this.idempotence.executer(
       ctx,
       { methode: 'POST', chemin: '/pointages', cle: cleIdempotence, corps: entree },
@@ -341,6 +387,7 @@ export class ServicePointage {
    */
   async arreter(
     ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
     id: string,
     entree: EntreeArretPointage,
     cleIdempotence: string,
@@ -355,6 +402,10 @@ export class ServicePointage {
       },
       async (tx) => {
         const actuel = await chargerPointagePourEcriture(tx, ctx, id);
+        // FAILLE CORRIGÉE : arrêter le pointage d'un AUTRE technicien exige l'habilitation
+        // d'encadrement. Le corps ne porte que `id` + `finLe` ; la propriété se lit sur la ligne
+        // chargée sous verrou. Placé AVANT tout contrôle d'état et toute écriture.
+        this.exigerDroitCiblerAutrui(principal, actuel.technicienId);
         if (actuel.statut !== 'en_cours') {
           throw new ErreurMetier(
             'POINTAGE_TRANSITION_INTERDITE',
@@ -438,6 +489,14 @@ export class ServicePointage {
    * pas ici) + motif conditionnel + valeur d'origine conservée + journalisée (`audit_atelier` via
    * le trigger `pointage_audit`, migration 0030 — pas une écriture applicative supplémentaire).
    * RM-123 : réaffecter la cible ou classer en improductif TRAITE l'anomalie en cours.
+   *
+   * PROPRIÉTÉ — pas de garde `exigerDroitCiblerAutrui` ici, à la différence de `demarrer`/`arreter` :
+   * la route porte le `@ExigerDroit('atelier.pointage.corriger_autrui')` STATIQUE, détenu par le seul
+   * encadrement (chef d'atelier / direction / admin) — voir `DROITS_POINTAGE_PAR_ROLE`. Il n'existe
+   * AUCUN chemin « corriger son propre pointage » à distinguer (l'action `corriger_soi_meme` de la
+   * spec n'est pas livrée) : toute correction est, par construction, un geste d'encadrement sur le
+   * pointage d'un membre de l'équipe — un technicien reçoit `403` au garde, jamais ce service. La
+   * borne (`poste_atelier`) ne détient pas `corriger_autrui` : elle ne peut pas non plus l'atteindre.
    */
   async corriger(
     ctx: ContexteTenant,

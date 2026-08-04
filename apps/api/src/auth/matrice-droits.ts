@@ -331,6 +331,23 @@ export const TOUTES_ACTIONS = [
   'atelier.pointage.arreter',
   'atelier.pointage.lire',
   'atelier.pointage.corriger_autrui',
+  // `pointer_autrui` (FAILLE CORRIGÉE, audit sécurité) — DÉMARRER ou ARRÊTER le pointage d'un
+  // AUTRE que soi. `demarrer`/`arreter` ci-dessus ouvrent la route à tout rôle qui pointe ; ils ne
+  // disent RIEN sur la CIBLE. Avant correction, un technicien pouvait poster un pointage avec le
+  // `technicienId` d'un collègue (heures imputées à autrui) — la route ne portait aucun contrôle de
+  // propriété. Ce droit gouverne EXACTEMENT ce cas : `technicienId` (démarrage) ou
+  // `pointage.technicienId` (arrêt) ≠ utilisateur de la session. Vérifié DYNAMIQUEMENT en service
+  // (`ServicePointage.exigerDroitCiblerAutrui`), pas par `@ExigerDroit` : la route sert AUSSI le cas
+  // légitime « pour soi », qu'un garde statique interdirait au technicien. Même patron que
+  // `atelier.or.plafond_modifier` / `vehicule.kilometrage.corriger_regression` (voir
+  // `allowlist-actions-non-decorees.ts`, catégorie `verification-conditionnelle-service`).
+  // Encadrement SEUL (chef_atelier/direction/admin) — voir `DROITS_POINTAGE_PAR_ROLE`. La borne
+  // `poste_atelier` ne le détient PAS et n'en a pas besoin : un compte de service n'a pas d'identité
+  // personnelle (jamais « soi »), la vérification `soi/autrui` ne le concerne pas (elle l'exempte via
+  // `estCompteDeService`), et sa capacité à pointer pour le technicien identifié par PIN reste portée
+  // par `demarrer`/`arreter` + le scoping de site, jamais par ce droit — ce qui préserve son jeu de
+  // droits minimal (RM-115/RM-131, « aucun geste sensible depuis un écran mural »).
+  'atelier.pointage.pointer_autrui',
   'atelier.pointage.verrouiller_periode',
   'atelier.pointage.deverrouiller_periode',
   // ---- Mode « borne partagée » du pointage (docs/specification-pointage-borne.md) --------------
@@ -1362,8 +1379,11 @@ const DROITS_VENTES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
 // =================================================================================================
 // Pointage (lot 2) : bloc ADDITIF PUR transmis par l'orchestrateur pour le compte de l'agent
 // `pointage/` — même patron que les blocs précédents. Table proposée à l'origine : `chef_atelier`/
-// `direction`/`admin` reçoivent les 6 actions ; `technicien`/`magasinier` reçoivent `demarrer`/
-// `arreter`/`lire` (ce sont eux qui pointent) ; `comptable` recevrait la gouvernance de période ;
+// `direction`/`admin` reçoivent les actions d'encadrement (dont `pointer_autrui`, ajouté par la
+// correction de faille — voir sa définition dans `TOUTES_ACTIONS`) ; `technicien`/`magasinier`
+// reçoivent `demarrer`/`arreter`/`lire` (ce sont eux qui pointent, POUR EUX-MÊMES uniquement — ils
+// n'ont PAS `pointer_autrui`, donc pas d'imputation d'heures à un collègue) ; `comptable` recevrait
+// la gouvernance de période ;
 // `receptionnaire`/`vendeur` aucune (le pointage n'est pas leur outil). CORRIGÉ depuis : `comptable`
 // ne reçoit NI `verrouiller_periode` NI `deverrouiller_periode` — voir l'arbitrage détaillé au-dessus
 // de `DROITS_POINTAGE_PAR_ROLE` ci-dessous (invariant « comptable = lecture-seule hors facturation/
@@ -1415,6 +1435,7 @@ const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
     'atelier.pointage.demarrer',
     'atelier.pointage.arreter',
     'atelier.pointage.lire',
+    'atelier.pointage.pointer_autrui',
     'atelier.pointage.corriger_autrui',
     'atelier.pointage.verrouiller_periode',
     'atelier.pointage.deverrouiller_periode',
@@ -1424,6 +1445,7 @@ const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
     'atelier.pointage.demarrer',
     'atelier.pointage.arreter',
     'atelier.pointage.lire',
+    'atelier.pointage.pointer_autrui',
     'atelier.pointage.corriger_autrui',
     'atelier.pointage.verrouiller_periode',
     'atelier.pointage.deverrouiller_periode',
@@ -1433,6 +1455,7 @@ const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
     'atelier.pointage.demarrer',
     'atelier.pointage.arreter',
     'atelier.pointage.lire',
+    'atelier.pointage.pointer_autrui',
     'atelier.pointage.corriger_autrui',
     'atelier.pointage.verrouiller_periode',
     'atelier.pointage.deverrouiller_periode',

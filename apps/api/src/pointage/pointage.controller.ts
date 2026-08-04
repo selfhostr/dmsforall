@@ -63,12 +63,16 @@ type EntreeListePointages = z.infer<typeof schemaListePointages>;
  * corriger, lire — racine `/pointages`, PAS nichée sous `/ordres-reparation/{orId}` (RM-87 admet une
  * cible `indirect` sans OR, voir l'en-tête de `contrats/pointage/pointage.ts`).
  *
- * DROITS — les six actions `atelier.pointage.*` que ce contrôleur consomme (`demarrer`, `arreter`,
- * `lire`, `corriger_autrui`, `verrouiller_periode`, `deverrouiller_periode`) sont posées et câblées
- * par rôle dans `apps/api/src/auth/matrice-droits.ts` (bloc `DROITS_POINTAGE_PAR_ROLE`, vérifié au
- * 2026-08-03) — CORRECTIF d'un commentaire antérieur de ce fichier qui les décrivait comme absentes
- * (elles l'étaient au moment où ce contrôleur a été écrit ; le bloc additif a été posé depuis par le
- * coordinateur). Ces routes sont donc VIVANTES, pas mortes.
+ * DROITS — les actions `atelier.pointage.*` que ce contrôleur consomme (`demarrer`, `arreter`,
+ * `lire`, `corriger_autrui`) sont posées par `@ExigerDroit` et câblées par rôle dans
+ * `apps/api/src/auth/matrice-droits.ts` (bloc `DROITS_POINTAGE_PAR_ROLE`). Ces routes sont VIVANTES.
+ *
+ * DROIT SUPPLÉMENTAIRE VÉRIFIÉ EN SERVICE — `atelier.pointage.pointer_autrui` (FAILLE CORRIGÉE,
+ * audit sécurité) : `demarrer` et `arreter` ouvrent la route à tout rôle qui pointe, mais le SERVICE
+ * (`ServicePointage.exigerDroitCiblerAutrui`) exige en plus ce droit d'encadrement dès que la cible
+ * (`technicienId`) n'est pas l'utilisateur de la session — un `@ExigerDroit` statique ne peut pas
+ * distinguer « pointer pour soi » de « pointer pour autrui » sur la même route. Voir le service et
+ * `common/droits/allowlist-actions-non-decorees.ts` (catégorie `verification-conditionnelle-service`).
  */
 @ApiTags('Pointage')
 @ApiCookieAuth()
@@ -197,7 +201,8 @@ export class PointageController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
-    const resultat = await this.service.demarrer(ctx, entree, cleIdempotence ?? '');
+    const principal = this.contexte.exigerPrincipal();
+    const resultat = await this.service.demarrer(ctx, principal, entree, cleIdempotence ?? '');
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
     return resultat.reponse.corps;
@@ -230,7 +235,8 @@ export class PointageController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
-    const resultat = await this.service.arreter(ctx, id, entree, cleIdempotence ?? '');
+    const principal = this.contexte.exigerPrincipal();
+    const resultat = await this.service.arreter(ctx, principal, id, entree, cleIdempotence ?? '');
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
     return resultat.reponse.corps;

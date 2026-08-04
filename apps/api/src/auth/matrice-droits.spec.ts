@@ -784,11 +784,12 @@ describe('MATRICE_DROITS — pointage (lot 2)', () => {
     expect(MATRICE_DROITS.comptable.filter((a) => a.startsWith('atelier.pointage.'))).toEqual([]);
   });
 
-  it('admin détient les 6 actions de pointage, comme direction — PAS une violation de RF-115 (le pointage n’est pas un droit financier)', () => {
+  it('admin détient les 7 actions de pointage d’encadrement, comme direction — PAS une violation de RF-115 (le pointage n’est pas un droit financier)', () => {
     const actionsPointage: Action[] = [
       'atelier.pointage.demarrer',
       'atelier.pointage.arreter',
       'atelier.pointage.lire',
+      'atelier.pointage.pointer_autrui',
       'atelier.pointage.corriger_autrui',
       'atelier.pointage.verrouiller_periode',
       'atelier.pointage.deverrouiller_periode',
@@ -796,6 +797,19 @@ describe('MATRICE_DROITS — pointage (lot 2)', () => {
     for (const action of actionsPointage) {
       expect(MATRICE_DROITS.admin).toContain(action);
     }
+  });
+
+  it('pointer_autrui (FAILLE CORRIGÉE — démarrer/arrêter le pointage d’un AUTRE que soi) : chef_atelier, direction, admin SEULS — JAMAIS technicien ni magasinier (ils pointent pour EUX-MÊMES, pas pour un collègue), ni la borne poste_atelier (compte de service exempté du contrôle soi/autrui, il ne détient donc pas ce droit), ni receptionnaire/vendeur/comptable (aucune action de pointage)', () => {
+    expect(rolesAyant('atelier.pointage.pointer_autrui')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
+    // Le cœur de la faille : un technicien NE DOIT PAS pouvoir imputer des heures à un collègue.
+    expect(MATRICE_DROITS.technicien).not.toContain('atelier.pointage.pointer_autrui');
+    expect(MATRICE_DROITS.magasinier).not.toContain('atelier.pointage.pointer_autrui');
+    // La borne pointe pour autrui PAR CONCEPTION (technicien identifié par PIN), mais via
+    // demarrer/arreter + son statut de compte de service, jamais via ce droit — voir le describe
+    // poste_atelier plus bas qui fige sa liste exhaustive.
+    expect(MATRICE_DROITS.poste_atelier).not.toContain('atelier.pointage.pointer_autrui');
   });
 
   it('receptionnaire et vendeur — aucune action de pointage (pas leur outil)', () => {
@@ -936,6 +950,9 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'atelier.pointage.demarrer',
       'atelier.pointage.arreter',
       'atelier.pointage.lire',
+      // `pointer_autrui` : ajouté par la correction de faille (démarrer/arrêter le pointage d'un
+      // AUTRE que soi — encadrement seul, vérifié en service). Voir le describe « pointer_autrui ».
+      'atelier.pointage.pointer_autrui',
       'atelier.pointage.corriger_autrui',
       'atelier.pointage.verrouiller_periode',
       'atelier.pointage.deverrouiller_periode',

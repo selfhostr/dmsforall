@@ -104,6 +104,33 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
       'déclenche pas la garde, et une BAISSE du plafond est bloquée aussi (pas seulement une hausse).',
   },
 
+  {
+    // FAILLE CORRIGÉE (audit sécurité) : `POST /pointages`, `POST /pointages/{id}/arreter` — un
+    // technicien pouvait démarrer/arrêter un pointage au nom d'un AUTRE (heures imputées à un
+    // collègue), la route ne vérifiant jamais que la cible (`technicienId` du corps au démarrage,
+    // `pointage.technicienId` chargé à l'arrêt) correspond à l'utilisateur de la session. La route
+    // sert À LA FOIS le cas légitime « pour soi » (tout rôle qui pointe) ET le cas « au nom d'un
+    // autre » (encadrement : correction a posteriori, oubli de pointer) : `@ExigerDroit` est
+    // statique par route, il ne peut pas distinguer les deux AVANT de connaître la cible — poser
+    // `pointer_autrui` en garde statique interdirait au technicien de pointer POUR LUI-MÊME. Seul le
+    // service, une fois la cible connue, sait si CETTE requête vise autrui. Même famille que
+    // `vehicule.kilometrage.corriger_regression` et `atelier.or.plafond_modifier` ci-dessus.
+    action: 'atelier.pointage.pointer_autrui',
+    categorie: 'verification-conditionnelle-service',
+    justification:
+      'Contrôle réel : ServicePointage.exigerDroitCiblerAutrui() (apps/api/src/pointage/service-pointage.ts), ' +
+      'appelée par demarrer() AVANT toute écriture (comparaison entree.technicienId vs principal.utilisateurId) et ' +
+      'par arreter() juste après chargement du pointage sous verrou, AVANT ecrireFermeture() (comparaison ' +
+      "actuel.technicienId vs principal.utilisateurId). Quand la cible diffère de l'utilisateur de la session, " +
+      "vérifie MATRICE_DROITS[principal.role].includes('atelier.pointage.pointer_autrui') et lève DROIT_INSUFFISANT " +
+      "(403) sinon — jamais quand on pointe pour soi (technicien pointant pour lui-même n'est pas bloqué). Les " +
+      'comptes de service (borne poste_atelier, estCompteDeService) sont exemptés de ce contrôle : sans identité ' +
+      'personnelle, le concept soi/autrui ne les concerne pas — ils pointent pour le technicien identifié par PIN, ' +
+      "capacité portée par demarrer/arreter + le scoping de site, pas par pointer_autrui (qu'ils ne détiennent pas). " +
+      'Le rôle est lu depuis principal.role (jamais depuis le client). Couvert par les tests de ' +
+      'apps/api/src/pointage/service-pointage.spec.ts (refus 403 pour un technicien ciblant autrui, sans écriture).',
+  },
+
   // ---------------------------------------------------------------------------------------------
   // Actions inertes, créées par anticipation
   // ---------------------------------------------------------------------------------------------
