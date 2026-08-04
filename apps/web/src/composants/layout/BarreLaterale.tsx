@@ -28,6 +28,7 @@ import { NavLink, useSearchParams } from 'react-router';
 
 import { ROLES_POINTAGE, ROLES_POINTAGE_ENCADREMENT } from '@/ecrans/pointage/droits';
 import { useSession } from '@/hooks/useSession';
+import { useVersionApplication } from '@/hooks/useVersionApplication';
 import { chemins } from '@/routes/chemins';
 import {
   ROLES_MENU_FINANCIER,
@@ -109,6 +110,11 @@ export function BarreLaterale({ className }: Props) {
   const site = searchParams.get('site') ?? undefined;
   const { data: session } = useSession();
   const role = session?.utilisateur.role;
+  // Numéro de version (support téléphonique) — `data` reste `undefined` pendant le chargement
+  // ET en cas d'erreur, ce qui suffit à ne rien afficher dans les deux cas : voir le paragraphe
+  // en bas du JSX pour la justification de cette exception à la règle « chargement / vide /
+  // erreur » des écrans métier.
+  const { data: sante } = useVersionApplication();
 
   const peutGererParametrageAtelier =
     role !== undefined && ROLES_MENU_PARAMETRAGE_ATELIER.includes(role);
@@ -270,6 +276,30 @@ export function BarreLaterale({ className }: Props) {
             </NavLink>
           ) : null}
         </>
+      ) : null}
+
+      {/*
+       * Numéro de version — dernier élément du flux de `nav`, sans mise en forme dédiée
+       * (pas de `mt-auto`/`sticky` : cette barre n'a pas de défilement propre, voir
+       * `AppShell.tsx` — la page entière défile, et sur mobile le tiroir `Sheet` suit le même
+       * flux). Un simple élément de fin de liste se comporte donc EXACTEMENT comme n'importe
+       * quel lien ci-dessus vis-à-vis du défilement : jamais caché, jamais bloquant, y compris
+       * quand la liste de liens est longue (ex. `chef_atelier`/`admin` avec tous les groupes).
+       *
+       * Chargement et erreur : `sante` reste `undefined` dans les deux cas -> RIEN n'est
+       * affiché, aucun squelette ni placeholder. Exception ASSUMÉE à la règle « chaque écran
+       * gère chargement / vide / erreur » du CONTRIBUTING.md : c'est une information d'ambiance dans
+       * un chrome affiché huit heures par jour, pas un écran métier — quand elle manque,
+       * l'utilisateur n'a rien à en faire, et un placeholder permanent serait du bruit.
+       *
+       * `<p>` non interactif (pas de lien, pas de focus clavier) ; le texte visible
+       * (« Version 0.1.0-dev ») est déjà explicite pour un lecteur au téléphone au support,
+       * donc pas d'`aria-label` séparé.
+       */}
+      {sante ? (
+        <p className="mt-3 px-3 texte-libelle text-muted-foreground">
+          {t('navigation:pied.version', { numero: sante.version })}
+        </p>
       ) : null}
     </nav>
   );
