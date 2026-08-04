@@ -323,11 +323,19 @@ export class ServicePointage {
         const collecteur = new CollecteurAvertissements();
         const parametres = await chargerParametresPointage(tx, ctx);
 
+        // Résolue UNE FOIS ici, avant toute écriture de cette méthode — point d'ancrage unique pour
+        // TOUTE notion de « maintenant » dans cette transaction. BUG CORRIGÉ (voir le commentaire de
+        // `calculerClotureChevauchement`, regles-pointage.ts) : cette horloge sert désormais aussi
+        // de repli pour la clôture RM-89 quand l'horodatage déclaré par le second appareil est en
+        // désordre — auparavant, `maintenant` n'était résolue qu'APRÈS ce bloc, donc indisponible
+        // pour lui, ce qui forçait la clôture à retomber sur l'ancien départ (durée mise à zéro).
+        const maintenant = this.horloge.maintenant();
+
         // RM-89/90 : clôture automatique de l'éventuel pointage encore ouvert du même technicien —
         // contrainte de base (`pointage_technicien_un_seul_en_cours_uk`), voir regles-pointage.ts.
         const ouvert = await chargerPointageOuvertTechnicien(tx, ctx, entree.technicienId);
         if (ouvert) {
-          const cloture = calculerClotureChevauchement(ouvert.debutLe, debutLe);
+          const cloture = calculerClotureChevauchement(ouvert.debutLe, debutLe, maintenant);
           const dureeBrute = dureeBruteDepuisPeriode(ouvert.debutLe, cloture.finLe) ?? 0;
           const dureeArrondie = calculerDureeArrondieCentiemes(
             dureeBrute,
@@ -343,9 +351,7 @@ export class ServicePointage {
             dureeArrondieCentiemes: dureeArrondie,
             clotureAutomatique: true,
             anomalieMotif: doitAnomalie ? 'chevauchement' : ouvert.anomalieMotif,
-            anomalieDetecteeLe: doitAnomalie
-              ? this.horloge.maintenant()
-              : ouvert.anomalieDetecteeLe,
+            anomalieDetecteeLe: doitAnomalie ? maintenant : ouvert.anomalieDetecteeLe,
           });
           collecteur.ajouter(
             'POINTAGE_CLOTURE_AUTOMATIQUE',
@@ -359,7 +365,6 @@ export class ServicePointage {
         }
 
         const decalageAnormal = deriveHorlogeAnormale(entree.decalageHorlogeMs);
-        const maintenant = this.horloge.maintenant();
 
         const valeurs: NouveauPointage = {
           id: entree.id,

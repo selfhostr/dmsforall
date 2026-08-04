@@ -120,23 +120,41 @@ describe('calculerClotureChevauchement (RM-89/RM-90)', () => {
   it('enchaînement normal : ferme au début du nouveau pointage, aucune inversion', () => {
     const ancien = new Date('2026-07-31T08:00:00.000Z');
     const nouveau = new Date('2026-07-31T09:30:00.000Z');
-    const resultat = calculerClotureChevauchement(ancien, nouveau);
+    const maintenant = new Date('2026-07-31T09:30:05.000Z');
+    const resultat = calculerClotureChevauchement(ancien, nouveau, maintenant);
     expect(resultat.finLe).toEqual(nouveau);
     expect(resultat.ordreInverse).toBe(false);
   });
 
-  it('horloge en désordre (nouveau déclaré avant ancien) : ferme sur l’ancien début, signale l’inversion — jamais de durée négative', () => {
+  it(
+    'BUG CORRIGÉ — horloge en désordre (nouveau déclaré avant ancien) : ferme sur l’horloge ' +
+      'SERVEUR, pas sur l’ancien départ — avant ce correctif, `finLe := ancienDebutLe` mettait la ' +
+      'durée à zéro quelle que soit la durée réellement écoulée ; ce test verrouille la valeur ' +
+      'exacte désormais produite',
+    () => {
+      const ancien = new Date('2026-07-31T08:00:00.000Z');
+      const nouveau = new Date('2026-07-31T07:00:00.000Z'); // horloge du second appareil en retard
+      const maintenant = new Date('2026-07-31T18:45:00.000Z'); // 10h45 réellement écoulées
+      const resultat = calculerClotureChevauchement(ancien, nouveau, maintenant);
+      expect(resultat.ordreInverse).toBe(true);
+      expect(resultat.finLe).toEqual(maintenant);
+      expect(resultat.finLe.getTime()).not.toEqual(ancien.getTime());
+    },
+  );
+
+  it('horloge en désordre ET horloge serveur elle-même antérieure à l’ancien départ (cas résiduel, extrême) : repli sur l’ancien départ, jamais de durée négative', () => {
     const ancien = new Date('2026-07-31T09:00:00.000Z');
     const nouveau = new Date('2026-07-31T08:00:00.000Z');
-    const resultat = calculerClotureChevauchement(ancien, nouveau);
-    expect(resultat.finLe).toEqual(ancien);
+    const maintenant = new Date('2026-07-31T08:30:00.000Z'); // toujours avant `ancien`
+    const resultat = calculerClotureChevauchement(ancien, nouveau, maintenant);
     expect(resultat.ordreInverse).toBe(true);
+    expect(resultat.finLe).toEqual(ancien);
     expect(resultat.finLe.getTime()).toBeGreaterThanOrEqual(ancien.getTime());
   });
 
   it('égalité stricte (même instant) : pas une inversion, durée nulle acceptée', () => {
     const meme = new Date('2026-07-31T08:00:00.000Z');
-    const resultat = calculerClotureChevauchement(meme, meme);
+    const resultat = calculerClotureChevauchement(meme, meme, meme);
     expect(resultat.ordreInverse).toBe(false);
     expect(resultat.finLe).toEqual(meme);
   });
@@ -184,6 +202,47 @@ describe('calculerDureeArrondieCentiemes (RM-97, P-19)', () => {
   it('jamais de flottant en sortie (garde arithmétique financière/temporelle du dépôt)', () => {
     const resultat = calculerDureeArrondieCentiemes(3661, 'minute');
     expect(Number.isInteger(resultat)).toBe(true);
+  });
+
+  /**
+   * Valeurs limites explicitement demandées (défaut constaté : un pointage de 60 s rendait
+   * `dureeArrondieCentiemes: 0` pendant qu'un autre affichage lisait `dureeBruteSecondes` comme
+   * « 1 min » — DEUX lectures d'une même donnée, jamais réconciliées). Ces tests verrouillent, à la
+   * valeur EXACTE (jamais `toBeCloseTo` — RM-97 est de l'argent), le comportement des trois arrondis
+   * P-19 sur `[0, 1, 59, 60, 61, 89, 90]` secondes : les bornes autour d'1 minute (59/60/61) et
+   * autour d'1,5 minute (89/90 — le point de bascule d'un arrondi commercial au-dessus de 90 s
+   * exactement) pour `'minute'`, et la confirmation que `'dixieme'`/`'quart'` rendent TOUS 0 sur
+   * cette plage (rien dans ces 90 premières secondes n'atteint la moitié de leur unité — 180 s pour
+   * `'dixieme'`, 450 s pour `'quart'` — c'est le comportement voulu de P-19, pas un défaut).
+   */
+  describe('valeurs limites 0/1/59/60/61/89/90 s — les trois arrondis P-19', () => {
+    it.each([
+      [0, 0],
+      [1, 0],
+      [59, 2],
+      [60, 2],
+      [61, 2],
+      [89, 2],
+      [90, 3],
+    ])('minute : %i s -> %i centièmes', (secondes, attendu) => {
+      expect(calculerDureeArrondieCentiemes(secondes, 'minute')).toBe(attendu);
+    });
+
+    it.each([0, 1, 59, 60, 61, 89, 90])(
+      'dixieme : %i s -> 0 centième (bien en-deçà de la moitié de l’unité, 180 s)',
+      (secondes) => {
+        expect(calculerDureeArrondieCentiemes(secondes, 'dixieme')).toBe(0);
+      },
+    );
+
+    it.each([0, 1, 59, 60, 61, 89, 90])(
+      'quart : %i s -> 0 centième (bien en-deçà de la moitié de l’unité, 450 s) — ' +
+        'c’est CE cas, avec l’arrondi par défaut du tenant (`quart`), qui produit `0 min` pour un ' +
+        'pointage de 60 s : comportement voulu de P-19, pas un défaut',
+      (secondes) => {
+        expect(calculerDureeArrondieCentiemes(secondes, 'quart')).toBe(0);
+      },
+    );
   });
 });
 

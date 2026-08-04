@@ -79,15 +79,42 @@ export function orDoitPasserEnCours(statut: StatutOrdreReparation): boolean {
  * avec expert-metier (signalée dans le rapport de livraison) :
  *
  *  - Le pointage ouvert précédent du technicien est TOUJOURS clôturé automatiquement quand un
- *    nouveau démarre (RM-89) — c'est la seule façon de respecter la contrainte de base.
+ *    nouveau démarre (RM-89) — c'est la seule façon de respecter la contrainte de base. CE N'EST
+ *    PAS un point ouvert à revisiter par ce correctif : `contrats/pointage/pointage.ts`, commentaire
+ *    de tête de `schemaDemarragePointage`, tranche EXPLICITEMENT que RM-88/89/90 est « délibérément
+ *    un SUCCÈS avec avertissement, jamais un refus à confirmer » — un `409` qui bloquerait le
+ *    démarrage tant qu'un pointage tourne casserait l'optimisme hors ligne (R4). Refuser n'est donc
+ *    pas une option compatible avec le contrat déjà figé, quelle que soit la tentation face au bug
+ *    ci-dessous.
  *  - `finLe` de la clôture = le plus tardif entre l'ancien `debutLe` et le nouveau `debutLe` : un
- *    enchaînement normal (nouveau après ancien) ferme proprement, sans chevauchement de durée ; un
- *    enchaînement inversé (horloge en désordre — hors ligne, deux appareils) est absorbé sans
- *    jamais produire une durée négative (`pointage_periode_coherente_chk`).
- *  - P-06 (`chevauchementPointageAutorise`) ne change donc PAS le fait que l'ancien pointage se
- *    ferme (impossible de faire autrement), mais change si l'INVERSION d'horloge ci-dessus est
- *    traitée comme une anomalie (`false`, défaut — RM-89 strict) ou tolérée sans anomalie (`true` —
- *    RM-90, « chevauchement autorisé... brut consultable »).
+ *    enchaînement normal (nouveau après ancien) ferme proprement, sans chevauchement de durée.
+ *  - **BUG CORRIGÉ ICI** (constaté en exécution réelle, deux appareils/onglets, même technicien,
+ *    deux pointages sur deux cibles distinctes) : un enchaînement INVERSÉ (le nouveau `debutLe`
+ *    déclaré précède l'ancien — horloge en désordre entre deux appareils, ou second onglet resté
+ *    ouvert avec un horodatage périmé) fermait l'ancien pointage sur `finLe := ancienDebutLe`,
+ *    c'est-à-dire SA PROPRE valeur de départ : la durée retombait à EXACTEMENT ZÉRO, quelle qu'ait
+ *    été la durée RÉELLEMENT travaillée avant l'inversion (une heure, une journée — aucune
+ *    importance, le résultat était toujours 0). Vérifié par répétition en environnement réel
+ *    (`POST /pointages` × 2, mêmes conditions) : un pointage ouvert à 08:00, encore `en_cours`, se
+ *    voit fermé à `finLe = 08:00` dès qu'un second pointage déclare `debutLe = 07:00` (horloge en
+ *    retard) — `dureeBruteSecondes: 0`, sans qu'aucune des deux minutes... heures... réellement
+ *    passées ne soit récupérable ensuite (RM-94 permet de CORRIGER une valeur existante, pas d'en
+ *    reconstituer une qui n'a jamais été écrite).
+ *  - **CORRECTIF** : quand l'ordre est inversé, ancrer `finLe` sur l'horloge SERVEUR (`maintenant`,
+ *    résolue une seule fois par la transaction appelante, `ServicePointage.demarrer`) plutôt que sur
+ *    `ancienDebutLe` — le serveur sait, lui, qu'un certain temps s'est réellement écoulé entre
+ *    l'ouverture de l'ancien pointage et l'instant présent, même quand aucun des deux horodatages
+ *    déclarés par les clients n'est fiable. `Math.max(ancienDebutLe, maintenant)` reste la garde qui
+ *    empêche toute durée négative (`pointage_periode_coherente_chk`) dans le cas pathologique,
+ *    encore plus rare, où l'horloge serveur elle-même retomberait avant `ancienDebutLe` (ancien
+ *    horodatage lui-même dans le futur du serveur, dérive extrême d'un premier appareil) — SEUL ce
+ *    cas résiduel referme encore sur une durée nulle, et seulement lui.
+ *  - P-06 (`chevauchementPointageAutorise`) ne change pas ce mécanisme de fermeture, mais change si
+ *    l'inversion ci-dessus est traitée comme une anomalie (`false`, défaut — RM-89 strict) ou
+ *    tolérée sans anomalie (`true` — RM-90, « chevauchement autorisé... brut consultable »). Dans
+ *    les deux cas, la durée n'est plus jetée : l'anomalie (si posée) reste la voie normale pour
+ *    qu'un chef d'atelier revoie et corrige (RM-94/RM-123) une fermeture dont l'instant exact reste,
+ *    par construction, une estimation.
  */
 export interface ClotureChevauchement {
   readonly finLe: Date;
@@ -98,9 +125,14 @@ export interface ClotureChevauchement {
 export function calculerClotureChevauchement(
   ancienDebutLe: Date,
   nouveauDebutLe: Date,
+  maintenant: Date,
 ): ClotureChevauchement {
   const ordreInverse = ancienDebutLe.getTime() > nouveauDebutLe.getTime();
-  const finLe = ordreInverse ? ancienDebutLe : nouveauDebutLe;
+  const finLe = ordreInverse
+    ? maintenant.getTime() > ancienDebutLe.getTime()
+      ? maintenant
+      : ancienDebutLe
+    : nouveauDebutLe;
   return { finLe, ordreInverse };
 }
 
@@ -129,8 +161,34 @@ const UNITE_ARRONDI_SECONDES: Readonly<Record<ArrondiPointage, number>> = {
 
 /**
  * RM-97 : la seconde brute (`duree_brute_secondes`, colonne GENERATED) n'est JAMAIS modifiée ici —
- * cette fonction ne fait que DÉRIVER `dureeArrondieCentiemes` pour l'affichage/le calcul (arrondi au
- * plus proche multiple de l'unité P-19, arrondi commercial — `Math.round`).
+ * cette fonction ne fait que DÉRIVER `dureeArrondieCentiemes` pour l'affichage/le calcul, en DEUX
+ * étapes, chacune documentée ici pour que la règle soit UNIQUE (un seul endroit qui décide) plutôt
+ * qu'un effet de bord — ces durées servent à FACTURER de la main-d'œuvre, RM-97 est une règle
+ * d'argent :
+ *
+ *  1. **Arrondi métier (P-19)** : la seconde brute est arrondie au plus proche multiple de l'unité
+ *     choisie (`minute` = 60 s, `dixieme` = 360 s, `quart` = 900 s) — arrondi commercial, la moitié
+ *     s'arrondit vers le haut (`Math.round`, qui pour des valeurs positives arrondit toujours vers
+ *     `+Infinity`, donc à l'écart de zéro). C'est cette étape qui explique qu'une durée COURTE
+ *     (quelques dizaines de secondes) rende `0` avec l'arrondi par défaut du tenant (`quart`,
+ *     `parametre_atelier.arrondi_pointage`, migration 0005) : 60 secondes sont plus proches de 0
+ *     quart d'heure (0 s) que d'un quart d'heure entier (900 s) — **RÉSULTAT INTENTIONNEL de la
+ *     règle P-19**, pas un bug, et désormais verrouillé par des tests aux valeurs limites
+ *     ci-dessous plutôt que laissé à l'intuition d'un lecteur pressé.
+ *  2. **Conversion en centièmes d'heure (stockage)** : la durée arrondie à l'étape 1, exprimée en
+ *     secondes, est reconvertie en centièmes d'heure (`duree_arrondie_centiemes`, colonne entière —
+ *     RM-97 exige l'arithmétique financière exacte, jamais de flottant stocké). `dixieme` (360 s =
+ *     10 centièmes) et `quart` (900 s = 25 centièmes) tombent TOUJOURS sur un centième entier :
+ *     cette seconde conversion n'y arrondit jamais rien de plus, elle ne fait qu'exprimer une valeur
+ *     déjà exacte dans une autre unité. `minute` (60 s ≈ 1,667 centième) NE tombe PAS sur un entier
+ *     — une minute exacte n'a, par construction, aucune représentation exacte en centièmes d'heure.
+ *     Cette étape y applique donc, délibérément, un second `Math.round` (même règle commerciale
+ *     qu'à l'étape 1) : c'est un arrondi de CONVERSION D'UNITÉ (imposé par le type de la colonne),
+ *     pas un second choix métier — mais il reste réel, documenté ici, et testé aux valeurs limites
+ *     (`regles-pointage.spec.ts`) pour qu'aucune lecture ultérieure du code n'ait à le redécouvrir en
+ *     production. Conséquence visible : avec `arrondi = 'minute'`, une minute pleine (60 s) rend 2
+ *     centièmes (1,2 min affichée), jamais 1,667 — c'est la valeur la plus proche représentable, pas
+ *     une perte silencieuse.
  */
 export function calculerDureeArrondieCentiemes(
   dureeBruteSecondes: number,
