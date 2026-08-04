@@ -59,7 +59,9 @@ export function SelecteurVehiculeStockDossier({ valeur, onChangeValeur, libelle 
       ) : requete.isError ? (
         <EtatErreur
           titre={t(
-            requete.error instanceof ErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre',
+            requete.error instanceof ErreurReseau
+              ? 'erreurs:reseau.titre'
+              : 'erreurs:inattendue.titre',
           )}
           description={messageErreur(requete.error, t)}
           onReessayer={() => void requete.refetch()}
