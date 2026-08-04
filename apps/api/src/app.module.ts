@@ -24,6 +24,7 @@ import { PointageModule } from './pointage/pointage.module';
 import { RechercheModule } from './recherche/recherche.module';
 import { SanteModule } from './sante';
 import { SocleModule } from './socle';
+import { TableauBordModule } from './tableau-bord/tableau-bord.module';
 import { VehiculesModule } from './vehicules/vehicules.module';
 import { VentesModule } from './ventes/ventes.module';
 
@@ -67,6 +68,12 @@ export class AppModule implements NestModule {
         // compile et ses tests passent, mais AUCUNE route `/documents-vente/{id}/pdf` n'existe — le
         // piège du dépôt vérifié explicitement pour ce lot (module complet, jamais enregistré).
         ImpressionModule,
+        // `TableauBordModule` (`GET /tableau-bord/activite`, `GET /tableau-bord/financier`) lit en
+        // SQL brut les tables `ordre_reparation`/`ligne_or`/`stock_article`/`article` (atelier,
+        // pieces) et `document_vente`/`paiement` (facturation) — placé après ces quatre modules par
+        // lisibilité (aucune dépendance de compilation réelle : `apps/api/src/tableau-bord/**`
+        // n'importe aucun service d'un autre module, voir sa tête de fichier).
+        TableauBordModule,
       ],
     };
   }
