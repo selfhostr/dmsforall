@@ -7,6 +7,7 @@ import type {
 
 import type { ContexteTenant, TransactionDfa } from '../../db';
 import { ErreurMetier } from '../../common/erreurs';
+import { remonterCausePg } from '../../common/erreurs-pg/remonter-cause-pg';
 import {
   documentVente,
   imputationPaiement,
@@ -76,14 +77,16 @@ export async function recalculerDocumentApresImputation(
     .where(and(eq(documentVente.tenantId, ctx.tenantId), eq(documentVente.id, document.id)));
 }
 
-interface ErreurPgZDFA4 {
-  readonly code?: unknown;
-}
-
-function estErreurInvariantImputation(erreur: unknown): boolean {
-  return (
-    typeof erreur === 'object' && erreur !== null && (erreur as ErreurPgZDFA4).code === 'ZDFA4'
-  );
+/** `ZDFA4` = SQLSTATE personnalisé levé par le trigger `imputation_paiement_verifier_invariants`
+ *  (0010_facturation.sql §11, MD-51) quand une imputation ferait dépasser le total du document.
+ *  Drizzle enveloppe systématiquement l'erreur `pg` brute dans une `DrizzleQueryError` qui ne porte
+ *  `code` que sous `.cause` (jamais en surface) — `remonterCausePg` déballe cette chaîne avant
+ *  comparaison. Voir `common/erreurs-pg/remonter-cause-pg.ts` pour le détail du défaut corrigé :
+ *  sans ce déballage, ce garde-fou de dernier recours sur l'argent (MD-51) ne se déclenchait
+ *  JAMAIS et une sur-imputation fuyait en 500 `ERREUR_INTERNE` au lieu du 409
+ *  `IMPUTATION_MONTANT_EXCEDENTAIRE` écrit juste en dessous. */
+export function estErreurInvariantImputation(erreur: unknown): boolean {
+  return remonterCausePg(erreur)?.code === 'ZDFA4';
 }
 
 /**

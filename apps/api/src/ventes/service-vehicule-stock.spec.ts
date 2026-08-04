@@ -6,7 +6,7 @@ import { vehiculeStock } from '../db/schema';
 import type { LigneVehiculeStock } from '../db/schema';
 import type { Horloge } from '../common/horloge/horloge';
 
-import { ServiceVehiculeStock } from './service-vehicule-stock';
+import { ServiceVehiculeStock, estViolationCleUnique } from './service-vehicule-stock';
 
 /**
  * Trou n°2 comblé (audit préalable, rapport de livraison) : `transition_autorisee` autorise déjà
@@ -146,5 +146,32 @@ describe('ServiceVehiculeStock.marquerVendu — `reserve -> vendu` (trou comblé
       { code: 'CONFLIT' },
     );
     expect(updateCalls).toHaveLength(0);
+  });
+});
+
+/**
+ * Bug corrigé (audit 2026-08-04) : `estViolationCleUnique` testait `erreur.code` au premier
+ * niveau, mais Drizzle enveloppe SYSTÉMATIQUEMENT l'erreur `pg` brute dans une `DrizzleQueryError`
+ * (`code` sous `.cause`, jamais en surface) — deux mises en stock concurrentes du même véhicule
+ * (PK `vehicule_stock.id`) rendaient donc 500 `ERREUR_INTERNE` au lieu de 409
+ * `VENTE_VEHICULE_STOCK_DEJA_EXISTANT`. Voir `common/erreurs-pg/remonter-cause-pg.ts`.
+ */
+describe('estViolationCleUnique', () => {
+  it('reconnaît un 23505 enveloppé sous .cause (forme réelle Drizzle)', () => {
+    const brute = new Error('duplicate key') as Error & { code: string };
+    brute.code = '23505';
+    const enveloppee = new Error('Failed query') as Error & { cause: unknown };
+    enveloppee.cause = brute;
+
+    expect(estViolationCleUnique(enveloppee)).toBe(true);
+  });
+
+  it('ne reconnaît pas un autre SQLSTATE enveloppé (ex. 23503, contrainte non concernée)', () => {
+    const brute = new Error('foreign key violation') as Error & { code: string };
+    brute.code = '23503';
+    const enveloppee = new Error('Failed query') as Error & { cause: unknown };
+    enveloppee.cause = brute;
+
+    expect(estViolationCleUnique(enveloppee)).toBe(false);
   });
 });

@@ -5,7 +5,11 @@ import type { ContexteTenant, TransactionDfa } from '../../db';
 import type { LigneDocumentVente, LigneImputationPaiement, LignePaiement } from '../../db/schema';
 import { ErreurMetier } from '../../common/erreurs';
 
-import { appliquerCompensationAvance, appliquerImputationsLettrage } from './imputations';
+import {
+  appliquerCompensationAvance,
+  appliquerImputationsLettrage,
+  estErreurInvariantImputation,
+} from './imputations';
 
 const CTX: ContexteTenant = { tenantId: 'tid-1', utilisateurId: 'u1', requeteId: null };
 
@@ -56,6 +60,11 @@ function paiementFactice(champs: Partial<LignePaiement> = {}): LignePaiement {
 function txFactice(params: {
   documents: readonly LigneDocumentVente[];
   arrondiEspecesActif?: boolean;
+  /** Simule l'échec (déjà enveloppé, forme réelle Drizzle) du prochain `insert().values()` —
+   *  utile pour prouver que le filet de sécurité du trigger `imputation_paiement_verifier_invariants`
+   *  (ZDFA4) est bien traduit en `IMPUTATION_MONTANT_EXCEDENTAIRE`, pas seulement le pré-contrôle
+   *  applicatif. */
+  insertError?: unknown;
 }) {
   const documentsQueue = [...params.documents];
   const updates: Array<Record<string, unknown>> = [];
@@ -74,6 +83,9 @@ function txFactice(params: {
     }),
     insert: () => ({
       values: (vals: Record<string, unknown>) => {
+        if (params.insertError !== undefined) {
+          throw params.insertError;
+        }
         inserts.push(vals);
         compteurImputation += 1;
         const ligne: LigneImputationPaiement = {
@@ -104,6 +116,73 @@ function txFactice(params: {
 
   return { tx: tx as unknown as TransactionDfa, updates, inserts };
 }
+
+/**
+ * Bug corrigé (audit 2026-08-04) — DOMAINE ARGENT, traité avec le plus grand soin :
+ * `estErreurInvariantImputation` testait `erreur.code` au premier niveau, mais Drizzle enveloppe
+ * SYSTÉMATIQUEMENT l'erreur `pg` brute dans une `DrizzleQueryError` (`code` sous `.cause`, jamais
+ * en surface). Conséquence : le filet de sécurité de DERNIER RECOURS sur MD-51 — le trigger
+ * `imputation_paiement_verifier_invariants` (SQLSTATE personnalisé `ZDFA4`) — ne se déclenchait
+ * JAMAIS applicativement, et une sur-imputation qui échapperait au pré-contrôle applicatif (bug,
+ * course concurrente sur le verrou `for update`, …) fuyait en 500 `ERREUR_INTERNE` au lieu du 409
+ * `IMPUTATION_MONTANT_EXCEDENTAIRE` déjà écrit dans le `catch`. Voir
+ * `common/erreurs-pg/remonter-cause-pg.ts`.
+ */
+describe('estErreurInvariantImputation', () => {
+  it('reconnaît un ZDFA4 enveloppé sous .cause (forme réelle Drizzle)', () => {
+    const brute = new Error('invariant MD-51 violé') as Error & { code: string };
+    brute.code = 'ZDFA4';
+    const enveloppee = new Error('Failed query') as Error & { cause: unknown };
+    enveloppee.cause = brute;
+
+    expect(estErreurInvariantImputation(enveloppee)).toBe(true);
+  });
+
+  it('ne reconnaît pas un autre SQLSTATE enveloppé (ex. 23505, contrainte non concernée)', () => {
+    const brute = new Error('duplicate key') as Error & { code: string };
+    brute.code = '23505';
+    const enveloppee = new Error('Failed query') as Error & { cause: unknown };
+    enveloppee.cause = brute;
+
+    expect(estErreurInvariantImputation(enveloppee)).toBe(false);
+  });
+
+  it('appliquerImputationsLettrage — le trigger ZDFA4 (filet de dernier recours) rend 409 IMPUTATION_MONTANT_EXCEDENTAIRE, jamais 500', async () => {
+    // Pré-contrôle applicatif satisfait (500 <= restant 1000) : seule la voie du trigger (filet de
+    // sécurité `for update`, cf. commentaire du `catch` dans imputations.ts) est exercée ici.
+    const document = documentFactice({ totalTtcCentimes: 1000n, montantRegleCentimes: 0n });
+    const brute = new Error('invariant MD-51 violé') as Error & { code: string };
+    brute.code = 'ZDFA4';
+    const enveloppee = new Error('Failed query') as Error & { cause: unknown };
+    enveloppee.cause = brute;
+    const { tx } = txFactice({ documents: [document], insertError: enveloppee });
+    const paiement = paiementFactice({ montantCentimes: 500n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-1', montantCentimes: 500, nature: 'reglement' },
+      ]),
+    ).rejects.toMatchObject({ code: 'IMPUTATION_MONTANT_EXCEDENTAIRE' });
+  });
+
+  it('appliquerCompensationAvance — le trigger ZDFA4 (filet de dernier recours) rend 409 IMPUTATION_MONTANT_EXCEDENTAIRE, jamais 500', async () => {
+    const document = documentFactice({
+      id: 'doc-regul',
+      totalTtcCentimes: 1000n,
+      montantRegleCentimes: 0n,
+    });
+    const brute = new Error('invariant MD-51 violé') as Error & { code: string };
+    brute.code = 'ZDFA4';
+    const enveloppee = new Error('Failed query') as Error & { cause: unknown };
+    enveloppee.cause = brute;
+    const { tx } = txFactice({ documents: [document], insertError: enveloppee });
+    const paiementAvance = paiementFactice({ id: 'pmt-avance', montantCentimes: 5000n });
+
+    await expect(
+      appliquerCompensationAvance(tx, CTX, paiementAvance, 'doc-regul', 200),
+    ).rejects.toMatchObject({ code: 'IMPUTATION_MONTANT_EXCEDENTAIRE' });
+  });
+});
 
 describe('appliquerImputationsLettrage — arrondi espèces (RF-49 → RF-52)', () => {
   it('204.31 réglé 204.30 en espèces + arrondi +1 ct : solde le document exactement, statut passe à regle (CF-05)', async () => {

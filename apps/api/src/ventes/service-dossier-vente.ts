@@ -46,6 +46,7 @@ import { CollecteurAvertissements } from '../common/avertissements';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { JETON_AUDIT, type ServiceAudit } from '../common/audit';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
+import { remonterCausePg } from '../common/erreurs-pg/remonter-cause-pg';
 import { Horloge } from '../common/horloge/horloge';
 import {
   JETON_IDEMPOTENCE,
@@ -965,9 +966,9 @@ export class ServiceDossierVente {
 /** `23505` = `unique_violation` PostgreSQL — course concurrente sur `vehicule_stock.id` (PK, =
  *  `vehicule.id`) au moment de la mise en stock automatique d'une reprise confirmée. COPIE LOCALE
  *  VOLONTAIRE de `service-vehicule-stock.ts::estViolationCleUnique` (non exportée) — même doctrine
- *  de duplication assumée que `service-reprise.ts` pour la même petite fonction. */
-function estViolationCleUniqueVehiculeStock(erreur: unknown): boolean {
-  return (
-    typeof erreur === 'object' && erreur !== null && (erreur as { code?: unknown }).code === '23505'
-  );
+ *  de duplication assumée que `service-reprise.ts` pour la même petite fonction ; seul le
+ *  déballage de `.cause` est factorisé via `remonterCausePg` (voir
+ *  `common/erreurs-pg/remonter-cause-pg.ts`), pas la règle métier elle-même. */
+export function estViolationCleUniqueVehiculeStock(erreur: unknown): boolean {
+  return remonterCausePg(erreur)?.code === '23505';
 }

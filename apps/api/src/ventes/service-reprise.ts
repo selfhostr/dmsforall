@@ -25,6 +25,7 @@ import { CollecteurAvertissements } from '../common/avertissements';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { JETON_AUDIT, type ServiceAudit } from '../common/audit';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
+import { remonterCausePg } from '../common/erreurs-pg/remonter-cause-pg';
 import { Horloge } from '../common/horloge/horloge';
 import {
   JETON_IDEMPOTENCE,
@@ -334,8 +335,10 @@ export class ServiceReprise {
   }
 }
 
-function estViolationCleUnique(erreur: unknown): boolean {
-  return (
-    typeof erreur === 'object' && erreur !== null && (erreur as { code?: unknown }).code === '23505'
-  );
+/** `23505` = `unique_violation` PostgreSQL — unicité sur `reprise.dossier_vente_id`. Drizzle
+ *  enveloppe systématiquement l'erreur `pg` brute dans une `DrizzleQueryError` qui ne porte `code`
+ *  que sous `.cause` (jamais en surface) — `remonterCausePg` déballe cette chaîne avant
+ *  comparaison. Voir `common/erreurs-pg/remonter-cause-pg.ts` pour le détail du défaut corrigé. */
+export function estViolationCleUnique(erreur: unknown): boolean {
+  return remonterCausePg(erreur)?.code === '23505';
 }

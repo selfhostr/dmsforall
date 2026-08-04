@@ -26,6 +26,7 @@ import { CollecteurAvertissements } from '../common/avertissements';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { JETON_AUDIT, type ServiceAudit } from '../common/audit';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
+import { remonterCausePg } from '../common/erreurs-pg/remonter-cause-pg';
 import { Horloge } from '../common/horloge/horloge';
 import {
   JETON_IDEMPOTENCE,
@@ -563,11 +564,12 @@ function extraireVersionETag(ifMatch: string | undefined): number {
   return Number(correspondance[1]);
 }
 
-/** `23505` = `unique_violation` PostgreSQL — deux mises en stock concurrentes du même véhicule. */
+/** `23505` = `unique_violation` PostgreSQL — deux mises en stock concurrentes du même véhicule.
+ *  Drizzle enveloppe systématiquement l'erreur `pg` brute dans une `DrizzleQueryError` qui ne porte
+ *  `code` que sous `.cause` (jamais en surface) — `remonterCausePg` déballe cette chaîne avant
+ *  comparaison. Voir `common/erreurs-pg/remonter-cause-pg.ts` pour le détail du défaut corrigé. */
 function estViolationCleUnique(erreur: unknown): boolean {
-  return (
-    typeof erreur === 'object' && erreur !== null && (erreur as { code?: unknown }).code === '23505'
-  );
+  return remonterCausePg(erreur)?.code === '23505';
 }
 
-export { extraireVersionETag };
+export { extraireVersionETag, estViolationCleUnique };

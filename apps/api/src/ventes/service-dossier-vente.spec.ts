@@ -35,7 +35,7 @@ vi.mock('./references', async (importOriginal) => {
   };
 });
 
-import { ServiceDossierVente } from './service-dossier-vente';
+import { ServiceDossierVente, estViolationCleUniqueVehiculeStock } from './service-dossier-vente';
 import * as references from './references';
 
 const CTX: ContexteTenant = { tenantId: 'tid-1', utilisateurId: 'user-1', requeteId: null };
@@ -327,5 +327,33 @@ describe('ServiceDossierVente.livrer — RV-24 : mise en stock automatique de la
     await expect(svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE)).rejects.toMatchObject({
       code: 'VENTE_VEHICULE_INDISPONIBLE',
     });
+  });
+});
+
+/**
+ * Bug corrigé (audit 2026-08-04) : `estViolationCleUniqueVehiculeStock` testait `erreur.code` au
+ * premier niveau, mais Drizzle enveloppe SYSTÉMATIQUEMENT l'erreur `pg` brute dans une
+ * `DrizzleQueryError` (`code` sous `.cause`, jamais en surface) — une course concurrente sur
+ * `vehicule_stock.id` au moment de la mise en stock automatique d'une reprise confirmée rendait
+ * donc 500 `ERREUR_INTERNE` au lieu de 409 `VENTE_VEHICULE_STOCK_DEJA_EXISTANT`. Voir
+ * `common/erreurs-pg/remonter-cause-pg.ts`.
+ */
+describe('estViolationCleUniqueVehiculeStock', () => {
+  it('reconnaît un 23505 enveloppé sous .cause (forme réelle Drizzle)', () => {
+    const brute = new Error('duplicate key') as Error & { code: string };
+    brute.code = '23505';
+    const enveloppee = new Error('Failed query') as Error & { cause: unknown };
+    enveloppee.cause = brute;
+
+    expect(estViolationCleUniqueVehiculeStock(enveloppee)).toBe(true);
+  });
+
+  it('ne reconnaît pas un autre SQLSTATE enveloppé (ex. 23503, contrainte non concernée)', () => {
+    const brute = new Error('foreign key violation') as Error & { code: string };
+    brute.code = '23503';
+    const enveloppee = new Error('Failed query') as Error & { cause: unknown };
+    enveloppee.cause = brute;
+
+    expect(estViolationCleUniqueVehiculeStock(enveloppee)).toBe(false);
   });
 });
