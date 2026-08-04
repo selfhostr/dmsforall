@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
-import { formaterDateHeure, formaterMontant } from '@/lib/formats';
+import { formaterDateHeure, formaterMontant, formaterKilometrage } from '@/lib/formats';
 
 // `LocalisationVehicule` -> suffixe de `or:localisations` — mapping non trivial
 // (`sous_traitant` -> `sousTraitant` avec interpolation `{fournisseur}`), explicite comme partout
@@ -68,12 +68,12 @@ export function EnTeteOrdreReparation({ or }: Props) {
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md border p-3 texte-corps sm:grid-cols-3">
           <dt className="text-muted-foreground">{t('or:bandeau.kmEntree')}</dt>
           <dd className="col-span-2 sm:col-span-1">
-            {or.kilometrageEntree !== null ? `${or.kilometrageEntree} km` : ''}
+            {or.kilometrageEntree !== null ? formaterKilometrage(or.kilometrageEntree, 'km') : ''}
           </dd>
 
           <dt className="text-muted-foreground">{t('or:bandeau.kmSortie')}</dt>
           <dd className="col-span-2 sm:col-span-1">
-            {or.kilometrageSortie !== null ? `${or.kilometrageSortie} km` : ''}
+            {or.kilometrageSortie !== null ? formaterKilometrage(or.kilometrageSortie, 'km') : ''}
           </dd>
 
           <dt className="text-muted-foreground">{t('or:bandeau.localisation')}</dt>

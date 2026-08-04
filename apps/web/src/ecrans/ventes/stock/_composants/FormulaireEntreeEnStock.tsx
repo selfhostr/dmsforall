@@ -13,6 +13,7 @@ import {
 import { useCleIdempotence } from '@/api/idempotence';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
+import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -199,12 +200,18 @@ export function FormulaireEntreeEnStock({ vehicule, sites, onRetour, onMisEnStoc
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="entree-date">{t('ventes:stock.champs.dateEntreeStock')}</Label>
-          <Input
-            id="entree-date"
-            type="date"
-            readOnly={mettreEnStock.isPending}
-            aria-invalid={form.formState.errors.dateEntreeStock ? true : undefined}
-            {...form.register('dateEntreeStock', { required: true })}
+          <Controller
+            control={form.control}
+            name="dateEntreeStock"
+            render={({ field }) => (
+              <DateInput
+                id="entree-date"
+                disabled={mettreEnStock.isPending}
+                aria-invalid={form.formState.errors.dateEntreeStock ? true : undefined}
+                value={field.value}
+                onChange={(iso) => field.onChange(iso ?? '')}
+              />
+            )}
           />
         </div>
       </div>

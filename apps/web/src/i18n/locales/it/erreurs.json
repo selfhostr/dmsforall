@@ -140,6 +140,7 @@
     "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE": "Questo fascicolo di vendita non può essere annullato in questo stato.",
     "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE": "Il valore negoziato della permuta deve essere indicato.",
     "VENTE_REPRISE_DEJA_EXISTANTE": "Una permuta esiste già per questo fascicolo di vendita.",
+    "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE": "Questa pratica di vendita è chiusa, annullata o abbandonata. Nessun documento può essere associato.",
     "CONNECTEUR_TYPE_INDISPONIBLE": "Tipo di interfaccia non disponibile.",
     "CONNECTEUR_IDENTIFIANTS_MANQUANTS": "Credenziali dell'interfaccia mancanti.",
     "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE": "Attivazione dell'interfaccia non possibile.",

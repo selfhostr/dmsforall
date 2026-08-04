@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
@@ -171,11 +172,10 @@ export function DialogueModifierDossierVente({ dossier, ouvert, onOuvertChange }
             <Label htmlFor="dossier-vente-modifier-date-livraison">
               {t('ventes:dossier.nouveau.dateLivraisonEstimee')}
             </Label>
-            <Input
+            <DateInput
               id="dossier-vente-modifier-date-livraison"
-              type="date"
               value={dateLivraisonEstimee}
-              onChange={(evenement) => setDateLivraisonEstimee(evenement.target.value)}
+              onChange={(valeurISO: string | undefined) => setDateLivraisonEstimee(valeurISO ?? '')}
             />
           </div>
         </div>

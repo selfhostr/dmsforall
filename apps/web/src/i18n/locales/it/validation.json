@@ -3,5 +3,8 @@
   "email": {
     "invalide": "Questo indirizzo e-mail non è valido."
   },
-  "longueurMin": "Almeno {min, plural, one {# carattere} other {# caratteri}}."
+  "longueurMin": "Almeno {min, plural, one {# carattere} other {# caratteri}}.",
+  "longueurMax": "Al massimo {max, plural, one {# carattere} other {# caratteri}}.",
+  "formatInvalide": "Formato non valido.",
+  "dateInvalide": "Data non valida. Formato previsto: gg.mm.aaaa."
 }

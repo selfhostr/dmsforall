@@ -57,6 +57,7 @@
     "prenom": "Prénom",
     "raisonSociale": "Raison sociale",
     "ide": "IDE",
+    "ideFormatInvalide": "Format attendu : CHE-123.456.789.",
     "langue": "Langue de correspondance",
     "po": "N° de commande (PO)",
     "telephone": "Téléphone",

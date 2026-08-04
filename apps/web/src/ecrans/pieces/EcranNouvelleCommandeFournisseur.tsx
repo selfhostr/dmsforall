@@ -12,6 +12,7 @@ import {
 import { messageErreur } from '@/api/erreurs';
 import { useCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
+import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -213,12 +214,11 @@ export function EcranNouvelleCommandeFournisseur() {
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="cmd-date">{t('pieces:commandes.dateCommande')}</Label>
-          <Input
+          <DateInput
             id="cmd-date"
-            type="date"
             disabled={enCours}
             value={dateCommande}
-            onChange={(evenement) => setDateCommande(evenement.target.value)}
+            onChange={(valeurISO: string | undefined) => setDateCommande(valeurISO ?? '')}
           />
         </div>
         <div className="flex flex-col gap-1.5">

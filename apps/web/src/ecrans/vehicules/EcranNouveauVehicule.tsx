@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, WifiOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import { schemaCreationVehicule } from '@dfa/shared';
@@ -11,6 +11,7 @@ import { useCleIdempotence } from '@/api/idempotence';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCreerVehicule } from '@/hooks/vehicules/useCreerVehicule';
@@ -193,12 +194,18 @@ export function EcranNouveauVehicule() {
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="nv-mise-circulation">{t('vehicules:identite.mise1reCirc')}</Label>
-          <Input
-            id="nv-mise-circulation"
-            type="date"
-            readOnly={enCours}
-            className="max-w-[200px]"
-            {...form.register('premiereMiseEnCirculationLe', { setValueAs: videVersIndefini })}
+          <Controller
+            control={form.control}
+            name="premiereMiseEnCirculationLe"
+            render={({ field }) => (
+              <DateInput
+                id="nv-mise-circulation"
+                disabled={enCours}
+                className="max-w-[200px]"
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
           />
         </div>
 

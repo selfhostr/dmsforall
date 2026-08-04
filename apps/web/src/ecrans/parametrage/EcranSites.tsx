@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
@@ -346,11 +347,10 @@ function FormulaireSiteContenu({ siteId, donnees, peutEcrire }: PropsFormulaireS
             <div className="flex items-end gap-2">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="ps-nouveau-jour">{t('parametrage:sites.fermeture.ajouter')}</Label>
-                <Input
+                <DateInput
                   id="ps-nouveau-jour"
-                  type="date"
                   value={nouveauJour}
-                  onChange={(e) => setNouveauJour(e.target.value)}
+                  onChange={(valeurISO: string | undefined) => setNouveauJour(valeurISO ?? '')}
                 />
               </div>
               <Button

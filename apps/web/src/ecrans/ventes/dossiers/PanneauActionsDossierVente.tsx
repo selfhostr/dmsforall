@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -392,11 +393,12 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
                 <Label htmlFor="dossier-livrer-date">
                   {t('ventes:dossier.transitions.dateLivraisonEffective')}
                 </Label>
-                <Input
+                <DateInput
                   id="dossier-livrer-date"
-                  type="date"
                   value={dateLivraisonEffective}
-                  onChange={(evenement) => setDateLivraisonEffective(evenement.target.value)}
+                  onChange={(valeurISO: string | undefined) =>
+                    setDateLivraisonEffective(valeurISO ?? '')
+                  }
                 />
               </div>
               <ChampKilometrage

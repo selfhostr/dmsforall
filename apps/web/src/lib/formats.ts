@@ -90,3 +90,65 @@ export function formaterPourmille(valeurPourmille: number): string {
   const pourcentage = valeurPourmille / 10;
   return `${corrigerApostropheMilliers(FORMATEUR_POURCENTAGE.format(pourcentage))} %`;
 }
+
+/** Convertit une date ISO ou objet Date en chaîne au format suisse jj.mm.aaaa pour saisie/affichage.
+ *  Utilisé par les champs de saisie de date (DateInput) pour afficher le placeholder et la valeur. */
+export function dateVersFormatSuisse(date: Date | string | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return '';
+  const jour = String(d.getDate()).padStart(2, '0');
+  const mois = String(d.getMonth() + 1).padStart(2, '0');
+  const annee = d.getFullYear();
+  return `${jour}.${mois}.${annee}`;
+}
+
+/** Convertit une saisie au format suisse jj.mm.aaaa en chaîne ISO aaaa-mm-jj (pour react-hook-form).
+ *  Tolère les espaces superflus ; retourne undefined si le format est invalide.
+ *  Valide aussi que la date existe réellement (ex: rejet de 31.02.2026). */
+export function formatSuisseVersISO(valeur: string | undefined): string | undefined {
+  if (!valeur || !valeur.trim()) return undefined;
+
+  // Tolère les espacements, extrait jj, mm, aaaa
+  const trimmed = valeur.trim();
+  const match = trimmed.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (!match || !match[1] || !match[2] || !match[3]) return undefined;
+
+  const jour = parseInt(match[1], 10);
+  const mois = parseInt(match[2], 10);
+  const annee = parseInt(match[3], 10);
+
+  // Valide que la date existe réellement
+  const d = new Date(annee, mois - 1, jour);
+  if (d.getFullYear() !== annee || d.getMonth() !== mois - 1 || d.getDate() !== jour) {
+    return undefined; // ex: 31.02.2026 échoue
+  }
+
+  // Retourne au format ISO aaaa-mm-jj
+  const moisISO = String(mois).padStart(2, '0');
+  const jourISO = String(jour).padStart(2, '0');
+  return `${annee}-${moisISO}-${jourISO}`;
+}
+
+/** Valide qu'une saisie est déjà une date ISO (aaaa-mm-jj) structurellement correcte ET
+ *  réellement existante (même garde que `formatSuisseVersISO` : rejet de 2026-02-31). Utilisé par
+ *  `DateInput` (`components/ui/date-input.tsx`) pour accepter, dans le même champ texte affiché en
+ *  suisse, une valeur ISO collée ou déposée par le remplissage automatique du navigateur — sans
+ *  ce second chemin de parsing, coller "2026-08-04" dans un champ qui n'affiche que du suisse
+ *  serait rejeté comme invalide alors que la donnée est parfaitement exploitable. */
+export function isoDirectValide(valeur: string): string | undefined {
+  const trimmed = valeur.trim();
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match || !match[1] || !match[2] || !match[3]) return undefined;
+
+  const annee = parseInt(match[1], 10);
+  const mois = parseInt(match[2], 10);
+  const jour = parseInt(match[3], 10);
+
+  const d = new Date(annee, mois - 1, jour);
+  if (d.getFullYear() !== annee || d.getMonth() !== mois - 1 || d.getDate() !== jour) {
+    return undefined; // ex: 2026-02-31 échoue
+  }
+
+  return trimmed;
+}

@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -130,12 +131,18 @@ export function FormulaireVehiculeStock({ ouvert, onOuvertChange, stock }: Props
         <form onSubmit={soumettre} noValidate className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="stock-date-entree">{t('ventes:stock.champs.dateEntreeStock')}</Label>
-            <Input
-              id="stock-date-entree"
-              type="date"
-              readOnly={modifier.isPending}
-              aria-invalid={form.formState.errors.dateEntreeStock ? true : undefined}
-              {...form.register('dateEntreeStock', { required: true })}
+            <Controller
+              control={form.control}
+              name="dateEntreeStock"
+              render={({ field }) => (
+                <DateInput
+                  id="stock-date-entree"
+                  disabled={modifier.isPending}
+                  aria-invalid={form.formState.errors.dateEntreeStock ? true : undefined}
+                  value={field.value}
+                  onChange={(iso) => field.onChange(iso ?? '')}
+                />
+              )}
             />
             {form.formState.errors.dateEntreeStock ? (
               <p className="texte-libelle text-destructive">{t('validation:requis')}</p>

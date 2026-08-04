@@ -57,6 +57,7 @@
     "prenom": "Cognome",
     "raisonSociale": "Ragione sociale",
     "ide": "CHE",
+    "ideFormatInvalide": "Formato previsto: CHE-123.456.789.",
     "langue": "Lingua di corrispondenza",
     "po": "N° ordine (PO)",
     "telephone": "Telefono",

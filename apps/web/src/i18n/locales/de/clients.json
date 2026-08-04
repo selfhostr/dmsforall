@@ -57,6 +57,7 @@
     "prenom": "Vorname",
     "raisonSociale": "Firmenname",
     "ide": "UID",
+    "ideFormatInvalide": "Erwartetes Format: CHE-123.456.789.",
     "langue": "Korrespondenzsprache",
     "po": "Bestellnummer (PO)",
     "telephone": "Telefon",

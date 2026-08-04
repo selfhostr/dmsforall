@@ -8,6 +8,7 @@ import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
@@ -272,11 +273,10 @@ export function EcranNouveauDossierVente() {
             <Label htmlFor="dossier-vente-date-livraison">
               {t('ventes:dossier.nouveau.dateLivraisonEstimee')}
             </Label>
-            <Input
+            <DateInput
               id="dossier-vente-date-livraison"
-              type="date"
               value={dateLivraisonEstimee}
-              onChange={(evenement) => setDateLivraisonEstimee(evenement.target.value)}
+              onChange={(valeurISO: string | undefined) => setDateLivraisonEstimee(valeurISO ?? '')}
             />
           </div>
         </CardContent>

@@ -140,6 +140,7 @@
     "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE": "Ce dossier de vente ne peut pas être annulé dans cet état.",
     "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE": "La valeur négociée de la reprise doit être indiquée.",
     "VENTE_REPRISE_DEJA_EXISTANTE": "Une reprise existe déjà pour ce dossier de vente.",
+    "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE": "Ce dossier de vente est clos, annulé ou abandonné. Aucun document ne peut lui être rattaché.",
     "CONNECTEUR_TYPE_INDISPONIBLE": "Type de connecteur indisponible.",
     "CONNECTEUR_IDENTIFIANTS_MANQUANTS": "Identifiants du connecteur manquants.",
     "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE": "Activation du connecteur impossible.",

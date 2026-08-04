@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
@@ -192,12 +193,18 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
               <Label htmlFor="th-valide-du">
                 {t('parametrage:referentiels.tauxHoraires.champs.valideDuLe')}
               </Label>
-              <Input
-                id="th-valide-du"
-                type="date"
-                readOnly={enCours}
-                aria-invalid={form.formState.errors.valideDuLe ? true : undefined}
-                {...form.register('valideDuLe')}
+              <Controller
+                control={form.control}
+                name="valideDuLe"
+                render={({ field }) => (
+                  <DateInput
+                    id="th-valide-du"
+                    disabled={enCours}
+                    aria-invalid={form.formState.errors.valideDuLe ? true : undefined}
+                    value={field.value}
+                    onChange={(iso) => field.onChange(iso ?? '')}
+                  />
+                )}
               />
               {form.formState.errors.valideDuLe ? (
                 <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
@@ -207,13 +214,17 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
               <Label htmlFor="th-valide-au">
                 {t('parametrage:referentiels.tauxHoraires.champs.valideAuLe')}
               </Label>
-              <Input
-                id="th-valide-au"
-                type="date"
-                readOnly={enCours}
-                {...form.register('valideAuLe', {
-                  setValueAs: (valeur: string) => (valeur === '' ? null : valeur),
-                })}
+              <Controller
+                control={form.control}
+                name="valideAuLe"
+                render={({ field }) => (
+                  <DateInput
+                    id="th-valide-au"
+                    disabled={enCours}
+                    value={field.value}
+                    onChange={(iso) => field.onChange(iso ?? null)}
+                  />
+                )}
               />
               <p className="texte-libelle text-muted-foreground">
                 {t('parametrage:referentiels.tauxHoraires.valideAuLeAide')}

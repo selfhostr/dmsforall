@@ -3,5 +3,8 @@
   "email": {
     "invalide": "Diese E-Mail-Adresse ist nicht gültig."
   },
-  "longueurMin": "Mindestens {min, plural, one {# Zeichen} other {# Zeichen}}."
+  "longueurMin": "Mindestens {min, plural, one {# Zeichen} other {# Zeichen}}.",
+  "longueurMax": "Höchstens {max, plural, one {# Zeichen} other {# Zeichen}}.",
+  "formatInvalide": "Ungültiges Format.",
+  "dateInvalide": "Ungültiges Datum. Erwartetes Format: TT.MM.JJJJ."
 }

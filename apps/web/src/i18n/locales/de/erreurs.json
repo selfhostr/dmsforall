@@ -140,6 +140,7 @@
     "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE": "Dieses Verkaufsdossier kann in diesem Status nicht storniert werden.",
     "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE": "Der vereinbarte Wert der Inzahlungnahme muss angegeben werden.",
     "VENTE_REPRISE_DEJA_EXISTANTE": "Für dieses Verkaufsdossier existiert bereits eine Inzahlungnahme.",
+    "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE": "Dieses Verkaufsdossier ist abgeschlossen, storniert oder aufgegeben. Es können keine Dokumente damit verknüpft werden.",
     "CONNECTEUR_TYPE_INDISPONIBLE": "Schnittstellen-Typ nicht verfügbar.",
     "CONNECTEUR_IDENTIFIANTS_MANQUANTS": "Anmeldedaten der Schnittstelle fehlen.",
     "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE": "Aktivierung der Schnittstelle nicht möglich.",
