@@ -33,6 +33,7 @@ import { session } from '../../db/schema';
 import { ServiceContexteRequete } from '../../common/contexte/contexte-requete.service';
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
 import { ErreurSessionAbsente, ErreurSessionExpiree } from '../erreurs-auth';
+import { dureeSessionMinutes, inactiviteSessionMinutes } from '../comptes-de-service';
 import type { ServiceSession, SessionOuverte } from '../auth.types';
 
 const MILLISECONDES_PAR_MINUTE = 60_000;
@@ -58,8 +59,13 @@ export class ServiceSessionImpl implements ServiceSession {
     const tokenClair = randomBytes(32).toString('base64url');
     const empreinte = this.empreinteDe(tokenClair);
     const maintenant = new Date();
+    // La durée dépend de la NATURE du compte, pas de la configuration seule : un compte de service
+    // (borne d'atelier) reçoit une session longue, sans quoi il faudrait retaper son mot de passe
+    // devant l'atelier chaque matin — ce qui détruirait la prémisse même de l'anti-balayage du PIN
+    // (RM-129). Voir `auth/comptes-de-service.ts` pour le raisonnement et le risque assumé.
     const expireLe = new Date(
-      maintenant.getTime() + this.config.SESSION_DUREE_MINUTES * MILLISECONDES_PAR_MINUTE,
+      maintenant.getTime() +
+        dureeSessionMinutes(u.role, this.config.SESSION_DUREE_MINUTES) * MILLISECONDES_PAR_MINUTE,
     );
 
     const sessionId = await this.accesBase.enTenant(
@@ -113,7 +119,9 @@ export class ServiceSessionImpl implements ServiceSession {
     if (maintenant > s.expireLe.getTime()) throw new ErreurSessionExpiree(); // expiration absolue
 
     const limiteInactivite =
-      s.vuLe.getTime() + this.config.SESSION_INACTIVITE_MINUTES * MILLISECONDES_PAR_MINUTE;
+      s.vuLe.getTime() +
+      inactiviteSessionMinutes(s.role, this.config.SESSION_INACTIVITE_MINUTES) *
+        MILLISECONDES_PAR_MINUTE;
     if (maintenant > limiteInactivite) throw new ErreurSessionExpiree(); // expiration glissante
 
     if (s.statutUtilisateur !== 'actif') throw new ErreurSessionExpiree();
@@ -140,6 +148,11 @@ export class ServiceSessionImpl implements ServiceSession {
       utilisateurId: s.utilisateurId,
       role: s.role,
       langue: s.langue,
+      // Toujours renseigné (`string` pour un compte de service, `null` pour une personne) — c'est
+      // l'invariant sur lequel repose `siteImposeAuPrincipal()`. Résolu ICI, depuis le seul
+      // cookie, jamais depuis la requête : même doctrine que le tenant, et la raison directe pour
+      // laquelle une borne ne peut pas consulter les PIN d'un autre site.
+      siteId: s.siteId,
     };
   }
 

@@ -123,6 +123,15 @@ export interface SessionAmorcage {
   readonly langue: Langue;
   readonly statutUtilisateur: StatutUtilisateur;
   readonly statutTenant: StatutTenant;
+  /**
+   * `utilisateur.site_id` (migration 0037) : site de rattachement d'un COMPTE DE SERVICE
+   * (`ROLES_COMPTE_DE_SERVICE`, aujourd'hui la borne d'atelier), `null` pour tout compte de
+   * personne. Contrainte en base : `poste_atelier` ⇔ `site_id` renseigné.
+   *
+   * Remonté ICI, donc résolu à chaque requête depuis le seul cookie de session — c'est ce qui
+   * rend impossible qu'un client déclare le site de sa borne (même doctrine que le tenant).
+   */
+  readonly siteId: string | null;
 }
 
 /** Entrée du journal de sécurité. `tenantId` nullable : un échec sur email inconnu n'a pas de tenant. */

@@ -200,9 +200,10 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
       langue: SessionAmorcage['langue'];
       statut_utilisateur: SessionAmorcage['statutUtilisateur'];
       statut_tenant: SessionAmorcage['statutTenant'];
+      site_id: string | null;
     }>(sql`
       select session_id, tenant_id, utilisateur_id, cree_le, expire_le, vu_le,
-             revoquee_le, role, langue, statut_utilisateur, statut_tenant
+             revoquee_le, role, langue, statut_utilisateur, statut_tenant, site_id
         from amorcage.session_par_empreinte(${empreinte}::bytea)
     `);
 
@@ -223,6 +224,13 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
       langue: l.langue,
       statutUtilisateur: l.statut_utilisateur,
       statutTenant: l.statut_tenant,
+      // `?? null` et non `l.site_id` brut : une colonne absente de la projection (fonction SQL
+      // d'une version antérieure encore en place, migration 0037 non appliquée) rendrait
+      // `undefined`, qui traverserait le typage `string | null` sans que rien ne le signale.
+      // Normaliser ici garantit que `siteId` vaut TOUJOURS `string` ou `null` en aval — le
+      // contrôle fail-closed de `siteImposeAuPrincipal()` (auth/comptes-de-service.ts) repose
+      // dessus.
+      siteId: l.site_id ?? null,
     };
   }
 

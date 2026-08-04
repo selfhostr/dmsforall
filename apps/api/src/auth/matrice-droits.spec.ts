@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { ROLES_UTILISATEUR, type RoleUtilisateur } from '@dfa/shared';
+import {
+  ROLES_COMPTE_DE_SERVICE,
+  ROLES_PERSONNE,
+  ROLES_UTILISATEUR,
+  type RoleUtilisateur,
+} from '@dfa/shared';
 
 import {
   type Action,
@@ -266,8 +271,9 @@ describe('MATRICE_DROITS — RF-114, facturation/paiements (étape 2)', () => {
  *    base) : `receptionnaire` la détient SANS PLAFOND dans la matrice — signalé, pas caché.
  */
 describe('MATRICE_DROITS — RF-114, facturation/documents (étape 2)', () => {
-  it('« (lecture) » — accordée aux 8 rôles sans exception, y compris admin : RF-116 (montants) filtré ailleurs (facturation/documents/mappeurs.ts), pas ici', () => {
-    expect(rolesAyant('facturation.document.lire')).toEqual([...ROLES_UTILISATEUR].sort());
+  it('« (lecture) » — accordée aux 8 rôles de PERSONNE sans exception, y compris admin (RF-116, les montants sont filtrés ailleurs : facturation/documents/mappeurs.ts) — mais PAS au compte de service poste_atelier, dont le périmètre est construit par énumération et non par ouverture de la lecture par défaut', () => {
+    expect(rolesAyant('facturation.document.lire')).toEqual([...ROLES_PERSONNE].sort());
+    expect(MATRICE_DROITS.poste_atelier).not.toContain('facturation.document.lire');
   });
 
   it('« Créer / modifier un brouillon » (creer, modifier, transitionner, avoir.creer) : direction, comptable, vendeur, réceptionnaire, chef d’atelier, magasinier — PAS technicien, PAS admin (RF-115)', () => {
@@ -465,7 +471,7 @@ describe('MATRICE_DROITS — impression PDF facture QR (RF-116, facturation/impr
 });
 
 describe('MATRICE_DROITS — lecture large (LECTURE_SOCLE et LECTURE_ETENDUE)', () => {
-  it('recherche.executer, parametrage.*.lire, client.lire, vehicule.lire — accordés aux 8 rôles', () => {
+  it('recherche.executer, parametrage.*.lire, client.lire, vehicule.lire — accordés aux 8 rôles de PERSONNE, JAMAIS au compte de service poste_atelier : la borne est un écran mural allumé en permanence devant clients et visiteurs, LECTURE_ETENDUE y exposerait le fichier clients du garage à la vue de tous', () => {
     const lectures: Action[] = [
       'recherche.executer',
       'parametrage.atelier.lire',
@@ -474,11 +480,15 @@ describe('MATRICE_DROITS — lecture large (LECTURE_SOCLE et LECTURE_ETENDUE)', 
       'vehicule.lire',
     ];
     for (const action of lectures) {
-      expect(rolesAyant(action)).toEqual([...ROLES_UTILISATEUR].sort());
+      expect(rolesAyant(action)).toEqual([...ROLES_PERSONNE].sort());
+      expect(
+        MATRICE_DROITS.poste_atelier,
+        `poste_atelier ne doit pas détenir ${action}`,
+      ).not.toContain(action);
     }
   });
 
-  it('atelier.or.lire — accordé à tous les rôles SAUF vendeur (absent des flux étape 1, §2.1)', () => {
+  it('atelier.or.lire — accordé à tous les rôles SAUF vendeur (absent des flux étape 1, §2.1), y compris à poste_atelier : la borne doit afficher les OR en cours de son atelier pour que le technicien choisisse sur quoi pointer (sans montants, cf. ROLES_SANS_MONTANT)', () => {
     expect(rolesAyant('atelier.or.lire')).toEqual(
       [
         'admin',
@@ -486,6 +496,7 @@ describe('MATRICE_DROITS — lecture large (LECTURE_SOCLE et LECTURE_ETENDUE)', 
         'comptable',
         'direction',
         'magasinier',
+        'poste_atelier',
         'receptionnaire',
         'technicien',
       ].sort(),
@@ -557,7 +568,11 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
 
   it('RF-116 — ROLES_SANS_MONTANT (const PARTAGÉ avec l’atelier) n’est PAS étendu à admin dans ce fichier : le masquage des montants pour admin en facturation (RF-115) est appliqué LOCALEMENT dans facturation/documents/mappeurs.ts (ROLES_SANS_MONTANT_FACTURATION = ROLES_SANS_MONTANT + admin), précisément pour ne pas changer, par effet de bord, l’affichage des montants d’admin côté atelier — non demandé par aucune règle métier', () => {
     expect(ROLES_SANS_MONTANT).not.toContain('admin');
-    expect(ROLES_SANS_MONTANT).toEqual(['technicien']);
+    // Contenu exact : `technicien` (lot 1) et `poste_atelier` (mode borne — écran mural exposé
+    // aux clients). L'assertion reste EXHAUSTIVE, pas relâchée en `toContain` : ce qu'elle garde,
+    // c'est qu'aucun rôle n'entre ni ne sort de cette liste sans décision consciente — `admin` en
+    // particulier, qui est masqué en facturation SEULEMENT, par ROLES_SANS_MONTANT_FACTURATION.
+    expect(ROLES_SANS_MONTANT).toEqual(['technicien', 'poste_atelier']);
   });
 
   it('direction détient tout ce que chef_atelier détient, plus au moins client.condition.modifier', () => {
@@ -655,11 +670,93 @@ describe('MATRICE_DROITS — ventes VN/VO (étape 4, matrice §11)', () => {
  * facturation/ventes ».
  */
 describe('MATRICE_DROITS — pointage (lot 2)', () => {
-  it('demarrer/arreter/lire : chef_atelier, direction, admin, technicien, magasinier — PAS receptionnaire, PAS vendeur, PAS comptable', () => {
-    const attendus = ['admin', 'chef_atelier', 'direction', 'magasinier', 'technicien'].sort();
+  it('demarrer/arreter/lire : chef_atelier, direction, admin, technicien, magasinier + le compte de service poste_atelier — PAS receptionnaire, PAS vendeur, PAS comptable', () => {
+    // POURQUOI `poste_atelier` est ici (mode borne, docs/specification-pointage-borne.md) : la
+    // requête `POST /pointages` qui écrit la ligne est émise par la SESSION DE LA BORNE. Le PIN
+    // n'est qu'une donnée du corps qui NOMME le `technicienId` — il ne porte, par contrat gelé
+    // (`packages/shared/src/contrats/pointage/identification.ts`), AUCUNE autorité : « le DROIT
+    // d'écrire un pointage est déjà porté par la session de la borne, pas par le PIN ». Sans ces
+    // droits sur le compte de borne, `POST /pointages` répondrait 403 et le mode borne serait
+    // mort-né. `lire` est nécessaire pour que l'écran affiche le pointage qu'il vient d'ouvrir
+    // (« Marco, en cours depuis 14:12 »).
+    //
+    // Ce n'est PAS une porte dérobée : la borne ne gagne rien d'autre que ces trois gestes plus
+    // `identifier` et deux lectures (voir le bloc « poste_atelier, compte de service » en fin de
+    // fichier, qui fige sa liste EXHAUSTIVE et interdit nommément tout geste sensible). Le pire
+    // effet d'un PIN emprunté reste ce que la spécification déclare accepter : une heure imputée
+    // au mauvais nom, jamais une élévation de privilège.
+    const attendus = [
+      'admin',
+      'chef_atelier',
+      'direction',
+      'magasinier',
+      'poste_atelier',
+      'technicien',
+    ].sort();
     expect(rolesAyant('atelier.pointage.demarrer')).toEqual(attendus);
     expect(rolesAyant('atelier.pointage.arreter')).toEqual(attendus);
     expect(rolesAyant('atelier.pointage.lire')).toEqual(attendus);
+
+    // L'intention d'origine du test, préservée mot pour mot : ces trois rôles restent exclus.
+    for (const role of ['receptionnaire', 'vendeur', 'comptable'] as const) {
+      for (const action of [
+        'atelier.pointage.demarrer',
+        'atelier.pointage.arreter',
+        'atelier.pointage.lire',
+      ] as const) {
+        expect(MATRICE_DROITS[role], `${role} ne doit pas détenir ${action}`).not.toContain(action);
+      }
+    }
+  });
+
+  it('GARDE-FOU DU MODE BORNE — le compte de service n’obtient QUE les trois gestes de pointage ci-dessus (plus `identifier`) : il ne détient AUCUNE autre action `atelier.pointage.*`, et son périmètre TOTAL sur toute la matrice se limite à sept actions dont aucune n’écrit hors du pointage. Un écran mural non verrouillé, accessible à quiconque entre dans l’atelier, ne doit jamais devenir le chemin par lequel on contourne « le PIN n’autorise aucun geste sensible »', () => {
+    expect([...MATRICE_DROITS.poste_atelier].sort()).toEqual(
+      [
+        'socle.tenant.lire',
+        'socle.site.lire',
+        'atelier.or.lire',
+        'atelier.pointage.identifier',
+        'atelier.pointage.demarrer',
+        'atelier.pointage.arreter',
+        'atelier.pointage.lire',
+      ].sort(),
+    );
+
+    // Les trois actions de pointage QUI RESTENT interdites à la borne — celles qui réécrivent ou
+    // figent des heures déjà déclarées, donc les seules du domaine qui engagent la paie.
+    for (const action of [
+      'atelier.pointage.corriger_autrui',
+      'atelier.pointage.verrouiller_periode',
+      'atelier.pointage.deverrouiller_periode',
+      'atelier.pointage.gerer_pin',
+    ] as const) {
+      expect(MATRICE_DROITS.poste_atelier, `borne : ${action} doit rester interdit`).not.toContain(
+        action,
+      );
+    }
+
+    // Échantillon nommé des gestes sensibles exigés par RM-115/RM-131 : signature/réponse de
+    // devis, transitions d'OR, facturation, lecture du fichier clients, montants.
+    for (const action of [
+      'atelier.devis.repondre',
+      'atelier.or.receptionner',
+      'atelier.or.restituer',
+      'atelier.ligne.valider',
+      'facturation.document.lire',
+      'facturation.document.emettre_facture',
+      'facturation.paiement.creer',
+      'facturation.paiement.imputer',
+      'client.lire',
+      'vehicule.lire',
+      'recherche.executer',
+    ] as const) {
+      expect(MATRICE_DROITS.poste_atelier, `borne : ${action} doit rester interdit`).not.toContain(
+        action,
+      );
+    }
+
+    // Et aucun montant ne doit atteindre l'écran, quel que soit l'endpoint emprunté.
+    expect(ROLES_SANS_MONTANT).toContain('poste_atelier');
   });
 
   it('corriger_autrui : chef_atelier, direction, admin SEULS', () => {
@@ -842,6 +939,13 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'atelier.pointage.corriger_autrui',
       'atelier.pointage.verrouiller_periode',
       'atelier.pointage.deverrouiller_periode',
+      // --- Mode « borne partagée » du pointage (docs/specification-pointage-borne.md) ----------
+      // Livrées par expert-auth EN AMONT du module PIN, pour que l'agent qui construira
+      // `pin_pointage` reprenne des noms et un périmètre de rôles déjà arbitrés. Inertes tant
+      // qu'aucune route ne les exerce — déclarées comme telles dans
+      // `common/droits/allowlist-actions-non-decorees.ts`.
+      'atelier.pointage.identifier',
+      'atelier.pointage.gerer_pin',
     ];
 
     const actionsAccordees = new Set(Object.values(MATRICE_DROITS).flat());
@@ -857,8 +961,8 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
  * rabais/payeur de ligne, conditions commerciales).
  */
 describe('ROLES_SANS_MONTANT', () => {
-  it('contient exactement technicien', () => {
-    expect(ROLES_SANS_MONTANT).toEqual(['technicien']);
+  it('contient exactement technicien et poste_atelier — le second ajouté avec le mode borne : un écran mural allumé en permanence, à la vue des clients et des visiteurs, ne doit afficher aucun prix ni total (divulgation commerciale par simple présence physique dans l’atelier, un canal que l’auth ne peut gouverner qu’en retirant les montants à la source)', () => {
+    expect(ROLES_SANS_MONTANT).toEqual(['technicien', 'poste_atelier']);
   });
 
   it('un rôle sans montant ne détient aucune action monétaire de la matrice', () => {
@@ -923,5 +1027,134 @@ describe('DROIT_PAR_CONFIRMATION', () => {
       'OR_SANS_RDV',
     ].sort();
     expect(Object.keys(DROIT_PAR_CONFIRMATION).sort()).toEqual(clesAttendues);
+  });
+});
+
+/**
+ * `poste_atelier` — compte de SERVICE (la borne tactile de l'atelier), pas une personne.
+ *
+ * Ces tests ne vérifient pas une liste, ils verrouillent une DOCTRINE : ce rôle est le seul du
+ * fichier dont le périmètre est construit par ÉNUMÉRATION (tout ce qui n'y est pas est refusé),
+ * à rebours de la règle générale « la lecture est ouverte, seule l'écriture est gouvernée ». La
+ * raison est physique : l'écran est accroché à un mur, allumé en permanence, sans verrouillage,
+ * et n'importe qui entrant dans l'atelier est devant.
+ *
+ * Le risque que ces tests existent pour empêcher est précis : un futur agent qui, voyant la borne
+ * « manquer » d'un droit pour faire marcher un écran, lui ajoute `LECTURE_ETENDUE` par confort de
+ * copie — et publie du même geste le fichier clients du garage sur un mur d'atelier. Un test rouge
+ * est la seule chose qui transforme ce geste en décision consciente.
+ */
+describe('MATRICE_DROITS — poste_atelier, compte de service (mode borne du pointage)', () => {
+  it('est le seul rôle de ROLES_COMPTE_DE_SERVICE, et il est bien absent de ROLES_PERSONNE (les deux partitionnent ROLES_UTILISATEUR)', () => {
+    expect([...ROLES_COMPTE_DE_SERVICE]).toEqual(['poste_atelier']);
+    expect(ROLES_PERSONNE).not.toContain('poste_atelier');
+    expect([...ROLES_PERSONNE, ...ROLES_COMPTE_DE_SERVICE].sort()).toEqual(
+      [...ROLES_UTILISATEUR].sort(),
+    );
+  });
+
+  it('détient EXACTEMENT six actions, ni une de plus : lire son tenant, lire son site, lire les OR, identifier par PIN, démarrer et arrêter un pointage', () => {
+    expect([...MATRICE_DROITS.poste_atelier].sort()).toEqual(
+      [
+        'socle.tenant.lire',
+        'socle.site.lire',
+        'atelier.or.lire',
+        'atelier.pointage.identifier',
+        'atelier.pointage.demarrer',
+        'atelier.pointage.arreter',
+        'atelier.pointage.lire',
+      ].sort(),
+    );
+  });
+
+  it('ne détient AUCUNE action d’écriture hors du domaine pointage : tout ce qu’il porte est soit un `.lire`, soit une action `atelier.pointage.*` — un geste sensible depuis un écran mural non verrouillé (RM-115/RM-131) doit rester structurellement impossible', () => {
+    for (const action of MATRICE_DROITS.poste_atelier) {
+      expect(
+        action.endsWith('.lire') || action.startsWith('atelier.pointage.'),
+        `poste_atelier détient ${action}, qui n’est ni une lecture ni une action de pointage`,
+      ).toBe(true);
+    }
+  });
+
+  it('ne détient AUCUNE action des domaines facturation, ventes, pièces, client, véhicule, paramétrage ni recherche — y compris en LECTURE, à la différence de tous les autres rôles', () => {
+    const domainesInterdits = [
+      'facturation.',
+      'ventes.',
+      'pieces.',
+      'client.',
+      'vehicule.',
+      'parametrage.',
+      'recherche.',
+      'rendez_vous.',
+      'pret_vehicule.',
+    ];
+    for (const action of MATRICE_DROITS.poste_atelier) {
+      for (const prefixe of domainesInterdits) {
+        expect(
+          action.startsWith(prefixe),
+          `poste_atelier détient ${action}, du domaine interdit ${prefixe}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  it('ne détient AUCUNE transition d’OR ni action de ligne/devis : la borne pointe, elle ne pilote pas l’atelier (RM-131)', () => {
+    const interdits: Action[] = [
+      'atelier.or.creer',
+      'atelier.or.modifier',
+      'atelier.or.receptionner',
+      'atelier.or.demarrer',
+      'atelier.or.passer_en_controle',
+      'atelier.or.controler',
+      'atelier.or.terminer',
+      'atelier.or.rouvrir',
+      'atelier.or.restituer',
+      'atelier.or.cloturer',
+      'atelier.or.annuler',
+      'atelier.ligne.creer',
+      'atelier.ligne.valider',
+      'atelier.ligne.marquer_realisee',
+      'atelier.devis.repondre',
+      'atelier.journal.lire',
+    ];
+    for (const action of interdits) {
+      expect(
+        MATRICE_DROITS.poste_atelier,
+        `poste_atelier ne doit pas détenir ${action}`,
+      ).not.toContain(action);
+    }
+  });
+
+  it('ne détient NI corriger_autrui NI les verrouillages de période : une correction ou une clôture d’heures se décide depuis un compte nominatif, au bureau — jamais depuis un écran partagé où l’auteur réel n’est prouvé par rien', () => {
+    expect(MATRICE_DROITS.poste_atelier).not.toContain('atelier.pointage.corriger_autrui');
+    expect(MATRICE_DROITS.poste_atelier).not.toContain('atelier.pointage.verrouiller_periode');
+    expect(MATRICE_DROITS.poste_atelier).not.toContain('atelier.pointage.deverrouiller_periode');
+  });
+
+  it('ne détient PAS gerer_pin : la borne ne s’auto-administre pas ses propres codes — sinon quiconque devant l’écran pourrait s’attribuer un PIN et pointer au nom de n’importe qui', () => {
+    expect(MATRICE_DROITS.poste_atelier).not.toContain('atelier.pointage.gerer_pin');
+  });
+
+  it('figure dans ROLES_SANS_MONTANT : aucun montant ne doit atteindre un écran mural exposé aux clients et visiteurs', () => {
+    expect(ROLES_SANS_MONTANT).toContain('poste_atelier');
+    expect(roleVoitLesMontants('poste_atelier')).toBe(false);
+  });
+
+  it('atelier.pointage.identifier est détenu par poste_atelier SEUL : sur un compte de personne l’identification n’a pas d’objet (la session dit déjà qui agit), et l’ouvrir plus largement offrirait un oracle de PIN à tout compte du tenant', () => {
+    expect(rolesAyant('atelier.pointage.identifier')).toEqual(['poste_atelier']);
+  });
+
+  it('atelier.pointage.gerer_pin (RM-128) est détenu par chef_atelier, direction et admin — exactement le trio qui corrige déjà les pointages d’autrui et verrouille les périodes ; PAS le technicien (aucun auto-service de PIN), PAS le comptable, PAS la borne', () => {
+    expect(rolesAyant('atelier.pointage.gerer_pin')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
+    expect(MATRICE_DROITS.technicien).not.toContain('atelier.pointage.gerer_pin');
+  });
+
+  it('CONSTAT MESURÉ, contraire à la prémisse de RM-124 : gerer_pin et parametrage.atelier.modifier ont AUJOURD’HUI exactement le même périmètre de rôles — la spec borne présente le second comme « déjà porté par direction/admin », alors que la matrice du lot 1 l’accorde AUSSI au chef d’atelier. Les deux droits restent deux entrées distinctes de TOUTES_ACTIONS, donc séparables sans migration le jour où la gouvernance du MODE de site sera réellement resserrée ; ce test fige le constat plutôt qu’une intention', () => {
+    const perimetreGerationPin = rolesAyant('atelier.pointage.gerer_pin');
+    const perimetreModeSite = rolesAyant('parametrage.atelier.modifier');
+    expect(perimetreGerationPin).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+    expect(perimetreModeSite).toEqual(perimetreGerationPin);
   });
 });

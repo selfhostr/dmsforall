@@ -100,9 +100,27 @@ afterAll(async () => {
 // dynamique en service) sont TOUS LES DEUX dans le chemin réel qu'emprunte une requête HTTP.
 // -------------------------------------------------------------------------------------------
 
+// Cache PAR (tenant, rôle), mémorisé pour toute la durée du fichier — ce fichier appelle
+// `cookiePour` depuis `creerBrouillon`/`emettre`/`lire`, soit une fois PAR REQUÊTE HTTP (39 appels
+// au total). Sans ce cache, chacun de ces appels ferait un nouveau `POST /auth/connexion` : le
+// budget anti-brute-force PAR IP (`LIMITE_CONNEXION_IP`, défaut 20/900s, consommé sur succès
+// COMME échec — `auth/services/authentification.service.ts`) serait épuisé en cours de fichier,
+// et les tests suivants échoueraient en `429 AUTH_TROP_DE_TENTATIVES` — un défaut de CE fichier,
+// pas du rate-limiting, qui protège exactement ce qu'il est censé protéger. Même patron que
+// `metier-montants-par-role.spec.ts` (cookies mémorisés dans `beforeAll`), généralisé ici en cache
+// paresseux pour couvrir les huit couples (tenant, rôle) réellement utilisés sans les énumérer à
+// la main.
+const cacheCookiesParTenantEtRole = new Map<string, Promise<string>>();
+
 async function cookiePour(tenant: DonneesLot1Tenant, role: RoleUtilisateur): Promise<string> {
+  const cle = `${tenant.tenant.id}:${role}`;
+  const dejaMemorise = cacheCookiesParTenantEtRole.get(cle);
+  if (dejaMemorise) return dejaMemorise;
+
   const utilisateur = tenant.utilisateursParRole[role];
-  return cookieDeSessionPour(ctx, utilisateur.email, utilisateur.motDePasseClair);
+  const promesse = cookieDeSessionPour(ctx, utilisateur.email, utilisateur.motDePasseClair);
+  cacheCookiesParTenantEtRole.set(cle, promesse);
+  return promesse;
 }
 
 interface LigneCreationTest {

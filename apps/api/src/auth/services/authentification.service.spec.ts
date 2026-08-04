@@ -63,6 +63,9 @@ function accesBaseTest(): AccesBase {
       nom: 'Dupont',
       role: 'admin',
       langue: 'fr',
+      // Compte de personne : aucun rattachement de site (migration 0037) — `sessionCourante()`
+      // rend alors TOUS les sites du tenant, comportement inchangé depuis l'étape 0.
+      siteId: null,
     },
     tenant: {
       id: 'tenant-id',
@@ -479,6 +482,7 @@ describe('ServiceAuthentificationImpl.sessionCourante — scoping tenant (findin
           nom: 'Dupont',
           role: 'admin',
           langue: 'fr',
+          siteId: null,
         },
       ],
       tenant: [
@@ -650,5 +654,131 @@ describe('ServiceAuthentificationImpl.deconnecter', () => {
     const [evenement] = appelsJournal[0] as [{ type: string; details: unknown }];
     expect(evenement.type).toBe('deconnexion');
     expect(evenement.details).toMatchObject({ resultat: 'echec_revocation' });
+  });
+});
+
+/**
+ * `sessionCourante()` — portée de site d'un COMPTE DE SERVICE (borne d'atelier, migration 0037).
+ *
+ * L'enjeu : jusqu'ici, `GET /auth/moi` rendait TOUS les sites du tenant à n'importe quel compte.
+ * Pour une borne, ce serait à la fois inutile (elle n'a qu'un atelier) et trompeur (le front
+ * offrirait un sélecteur de site à un écran qui n'en a pas). Le filtrage se fait sur
+ * `utilisateur.site_id`, donc côté SERVEUR et depuis la session — pas sur un paramètre client.
+ */
+describe('ServiceAuthentificationImpl.sessionCourante — portée de site des comptes de service', () => {
+  function svcAvecUtilisateur(siteIdUtilisateur: string | null): {
+    svc: ServiceAuthentificationImpl;
+    clausesWhere: unknown[];
+  } {
+    const clausesWhere: unknown[] = [];
+    const donnees = {
+      utilisateur: [
+        {
+          id: 'utilisateur-id',
+          email: 'borne.sion@garage.test',
+          prenom: 'Borne',
+          nom: 'Atelier Sion',
+          role: siteIdUtilisateur === null ? 'admin' : 'poste_atelier',
+          langue: 'fr',
+          siteId: siteIdUtilisateur,
+        },
+      ],
+      tenant: [
+        {
+          id: 'tenant-id',
+          slug: 'garage-dupont',
+          raisonSociale: 'Garage Dupont Sàrl',
+          langueDefaut: 'fr',
+        },
+      ],
+      sites: [{ id: 'site-sion', code: 'SION', nom: 'Sion', actif: true }],
+      session: [{ expireLe: new Date('2026-07-28T12:00:00.000Z') }],
+    };
+
+    const tx = {
+      select: () => ({
+        from: (table: unknown) => ({
+          where: (clause: unknown) => {
+            clausesWhere.push(clause);
+            if (table === tableUtilisateur) return requeteMock(donnees.utilisateur);
+            if (table === tableTenant) return requeteMock(donnees.tenant);
+            if (table === tableSite) return requeteMock(donnees.sites);
+            if (table === tableSession) return requeteMock(donnees.session);
+            throw new Error('Table inattendue dans le mock de test.');
+          },
+        }),
+      }),
+    };
+
+    const svc = new ServiceAuthentificationImpl(
+      configTest(),
+      {
+        enTenant: vi.fn((_ctx, travail) => travail(tx as never)),
+        verifierConnexion: vi.fn(),
+        verifierPostureRls: vi.fn(),
+      },
+      {
+        utilisateurParEmail: vi.fn(),
+        sessionParEmpreinte: vi.fn(),
+        toucherSession: vi.fn(),
+        enregistrerEchecConnexion: vi.fn(),
+        reinitialiserEchecsConnexion: vi.fn(),
+        journaliserSecurite: vi.fn(),
+      },
+      { hacher: vi.fn(), verifier: vi.fn(), verifierLeurre: vi.fn(), doitEtreRehache: vi.fn() },
+      { ouvrir: vi.fn(), resoudre: vi.fn(), fermer: vi.fn() },
+      { consommer: vi.fn() },
+      contexteTest(),
+    );
+    return { svc, clausesWhere };
+  }
+
+  it('borne la requête `site` au SEUL site de rattachement quand le compte en porte un — deux paramètres bindés (tenant_id ET site_id), là où un compte de personne n’en binde qu’un', async () => {
+    const dialecte = new PgDialect();
+
+    const { svc: svcBorne, clausesWhere: clausesBorne } = svcAvecUtilisateur('site-sion');
+    const corpsBorne = await svcBorne.sessionCourante({
+      sessionId: 'session-id',
+      tenantId: 'tenant-id',
+      utilisateurId: 'utilisateur-id',
+      role: 'poste_atelier',
+      langue: 'fr',
+      siteId: 'site-sion',
+    });
+    // Ordre d'appel déterministe : utilisateur (0), tenant (1), sites (2), session (3).
+    expect(dialecte.sqlToQuery(clausesBorne[2] as SQL).params).toEqual(['tenant-id', 'site-sion']);
+    expect(corpsBorne.siteRattachementId).toBe('site-sion');
+
+    const { svc: svcPersonne, clausesWhere: clausesPersonne } = svcAvecUtilisateur(null);
+    const corpsPersonne = await svcPersonne.sessionCourante({
+      sessionId: 'session-id',
+      tenantId: 'tenant-id',
+      utilisateurId: 'utilisateur-id',
+      role: 'admin',
+      langue: 'fr',
+      siteId: null,
+    });
+    // Compte de personne : scoping tenant SEUL, exactement comme avant la migration 0037 — aucune
+    // régression sur le comportement des huit rôles existants.
+    expect(dialecte.sqlToQuery(clausesPersonne[2] as SQL).params).toEqual(['tenant-id']);
+    expect(corpsPersonne.siteRattachementId).toBeNull();
+  });
+
+  it('n’expose JAMAIS `siteId` à l’intérieur de l’objet `utilisateur` : le contrat UtilisateurCourant ne porte pas de site (c’est une propriété du COMPTE, publiée à part), et un champ non déclaré ferait diverger la réponse de l’OpenAPI généré', async () => {
+    const { svc } = svcAvecUtilisateur('site-sion');
+
+    const corps = await svc.sessionCourante({
+      sessionId: 'session-id',
+      tenantId: 'tenant-id',
+      utilisateurId: 'utilisateur-id',
+      role: 'poste_atelier',
+      langue: 'fr',
+      siteId: 'site-sion',
+    });
+
+    expect(corps.utilisateur).not.toHaveProperty('siteId');
+    expect(Object.keys(corps.utilisateur).sort()).toEqual(
+      ['id', 'email', 'prenom', 'nom', 'role', 'langue'].sort(),
+    );
   });
 });

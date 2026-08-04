@@ -32,7 +32,7 @@
 
 import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
-import { ROLES_UTILISATEUR, type RoleUtilisateur } from '@dfa/shared';
+import { ROLES_PERSONNE, type RolePersonne, type RoleUtilisateur } from '@dfa/shared';
 import { ecrireSousTenant, type BaseEphemere } from '../../setup/postgres-ephemere';
 import {
   ajouterUtilisateurFixture,
@@ -46,8 +46,13 @@ import {
 // 1. Complétion des 8 rôles sur un tenant qui n'en porte déjà que 2 (garage-demo.ts)
 // -------------------------------------------------------------------------------------------
 
+// `RolePersonne` et non `RoleUtilisateur` : depuis la migration 0037, `ROLES_UTILISATEUR` porte
+// aussi `poste_atelier`, un compte de SERVICE (borne d'atelier) qui n'a ni prénom ni nom, et que
+// la base refuserait d'insérer ici — la contrainte `utilisateur_site_compte_de_service_chk` exige
+// un `site_id`, que cette fixture ne fournit pas. Le compilateur impose donc exactement les huit
+// rôles de personne, et REFUSE une neuvième entrée qui serait remplie par mimétisme.
 type IdentitesParRole = Readonly<
-  Record<RoleUtilisateur, { readonly prenom: string; readonly nom: string }>
+  Record<RolePersonne, { readonly prenom: string; readonly nom: string }>
 >;
 
 /** Identités de complément, DISTINCTES entre les deux tenants : un même nom sur les deux tenants
@@ -85,7 +90,7 @@ async function completerLes8Roles(
   for (const utilisateur of tenant.utilisateurs) {
     parRole[utilisateur.role] = utilisateur;
   }
-  for (const role of ROLES_UTILISATEUR) {
+  for (const role of ROLES_PERSONNE) {
     if (parRole[role]) continue; // déjà fourni par garage-demo.ts
     const identite = identites[role];
     const email = `${identite.prenom}.${identite.nom}@${tenant.slug}.test`.toLowerCase();
@@ -374,6 +379,56 @@ async function semerVehicules(
 }
 
 // -------------------------------------------------------------------------------------------
+// 4.5. Bloc créancier (RF-54/PF-03, migration 0014) — SANS lui, `POST .../emettre` sur une
+//    FACTURE échoue systématiquement en `409 QR_CREANCIER_INCOMPLET`
+//    (`facturation/documents/qr-emission.ts`, `resoudreBlocCreancierPourEmission`) : devis, bon
+//    de commande et avoir n'en ont pas besoin (seule une facture porte un bloc créancier QR), ce
+//    trou est donc resté invisible tant qu'aucun test n'émettait réellement de facture par la
+//    vraie route HTTP. Mêmes valeurs IBAN/QR-IBAN que `db/seed/seed-dev.ts` (déjà vérifiées
+//    valides — forme, pays CH, IID en plage QR-IBAN 30000-31999, clé modulo 97 exacte) : les
+//    réutiliser évite de fabriquer un second IBAN dont il faudrait recalculer la clé de contrôle
+//    à la main. Aucune contrainte d'unicité sur la valeur de l'IBAN lui-même (seule
+//    `tenant_bloc_creancier_tenant_id_uk`, UNIQUE sur `tenant_id`, l'empêche) : les réutiliser
+//    identiques sur les deux tenants de ce fixture est donc sans risque.
+// -------------------------------------------------------------------------------------------
+
+const IBAN_DEMO_LOT1 = 'CH9300762011623852957';
+const QR_IBAN_DEMO_LOT1 = 'CH4431999123000889012';
+
+interface BlocCreancierAInserer {
+  readonly nom: string;
+  readonly rue: string;
+  readonly numero: string;
+  readonly npa: string;
+  readonly localite: string;
+}
+
+async function semerBlocCreancier(
+  bdd: BaseEphemere,
+  tenant: TenantFixture,
+  bloc: BlocCreancierAInserer,
+): Promise<void> {
+  await ecrireSousTenant(bdd.poolApp, tenant.id, async (client: PoolClient) => {
+    await client.query(
+      `insert into tenant_bloc_creancier
+         (id, tenant_id, nom, rue, numero, npa, localite, pays, iban, qr_iban)
+       values ($1, $2, $3, $4, $5, $6, $7, 'CH', $8, $9)`,
+      [
+        randomUUID(),
+        tenant.id,
+        bloc.nom,
+        bloc.rue,
+        bloc.numero,
+        bloc.npa,
+        bloc.localite,
+        IBAN_DEMO_LOT1,
+        QR_IBAN_DEMO_LOT1,
+      ],
+    );
+  });
+}
+
+// -------------------------------------------------------------------------------------------
 // 5. Aides « OR valide » / « ligne d'OR valide » — réutilisées par les tests de machine à états
 //    et d'isolation, pour ne pas disperser la connaissance des colonnes NOT NULL de 0008_atelier.sql
 //    dans chaque fichier de spec.
@@ -480,6 +535,23 @@ export async function semerGarageDemoLot1(bdd: BaseEphemere): Promise<GarageDemo
   const [vehiculesA, vehiculesB] = await Promise.all([
     semerVehicules(bdd, socle.tenantA, clientsA, definirVehiculesTenantA()),
     semerVehicules(bdd, socle.tenantB, clientsB, definirVehiculesTenantB()),
+  ]);
+
+  await Promise.all([
+    semerBlocCreancier(bdd, socle.tenantA, {
+      nom: 'Garage Martin SA',
+      rue: 'Route de Sion',
+      numero: '12',
+      npa: '1950',
+      localite: 'Sion',
+    }),
+    semerBlocCreancier(bdd, socle.tenantB, {
+      nom: 'Carrosserie Dupont Sàrl',
+      rue: 'Rue du Rhône',
+      numero: '45',
+      npa: '1204',
+      localite: 'Genève',
+    }),
   ]);
 
   return {

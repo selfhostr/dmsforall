@@ -333,6 +333,24 @@ export const TOUTES_ACTIONS = [
   'atelier.pointage.corriger_autrui',
   'atelier.pointage.verrouiller_periode',
   'atelier.pointage.deverrouiller_periode',
+  // ---- Mode « borne partagée » du pointage (docs/specification-pointage-borne.md) --------------
+  // Deux actions posées par expert-auth EN AMONT du module PIN, pour que l'agent qui construira
+  // `pin_pointage` / `POST /pointages/identification` s'appuie sur des noms déjà figés plutôt que
+  // d'en inventer. Aucune route ne les exerce aujourd'hui : elles sont déclarées
+  // `action-inerte-anticipee` dans `common/droits/allowlist-actions-non-decorees.ts`.
+  //
+  // `identifier` : reconnaître un technicien par son code PIN sur une borne. N'ouvre AUCUNE
+  // session (contrat `pointage/identification.ts`) — c'est pourquoi ce n'est pas une action
+  // d'auth mais une action de pointage. Réservée au seul rôle `poste_atelier` : sur un compte de
+  // personne, l'identification n'a pas d'objet (la session dit déjà qui agit), et l'ouvrir plus
+  // largement offrirait un oracle de PIN à n'importe quel compte du tenant.
+  //
+  // `gerer_pin` : attribuer ou réinitialiser le PIN d'un technicien sur un site (RM-128). Droit
+  // DISTINCT de `parametrage.atelier.modifier` (qui gouverne le MODE du site, décision
+  // d'organisation rare, direction/admin) : attribuer un PIN est un geste quotidien d'atelier qui
+  // ne doit pas attendre la direction.
+  'atelier.pointage.identifier',
+  'atelier.pointage.gerer_pin',
 ] as const;
 
 /**
@@ -734,6 +752,37 @@ const DROITS_COMPTABLE: readonly Action[] = [...LECTURE_SOCLE, ...LECTURE_ETENDU
 const DROITS_VENDEUR: readonly Action[] = [...LECTURE_SOCLE, ...LECTURE_ETENDUE];
 
 /**
+ * `poste_atelier` — LE SEUL RÔLE DE CE FICHIER QUI NE DÉSIGNE PAS UNE PERSONNE
+ * (`ROLES_COMPTE_DE_SERVICE`, `@dfa/shared`). C'est la tablette murale de l'atelier : un compte de
+ * service scopé à UN site (`utilisateur.site_id`, migration 0037), derrière lequel n'importe quel
+ * technicien de l'équipe se présente en tapant un code PIN.
+ *
+ * **La règle de construction n'est pas la même que pour les autres rôles.** Partout ailleurs dans
+ * ce fichier, la lecture est ouverte par défaut et seule l'écriture est gouvernée (voir
+ * `LECTURE_SOCLE` / `LECTURE_ETENDUE`, doctrine de tête de fichier). Ici c'est l'inverse : le
+ * périmètre est CONSTRUIT PAR ÉNUMÉRATION, et tout ce qui n'y figure pas est refusé. La raison est
+ * physique, pas philosophique — cet écran est accroché à un mur, allumé en permanence, sans
+ * verrouillage, et n'importe qui entrant dans l'atelier (client, livreur, visiteur) est devant.
+ * `LECTURE_ETENDUE` y exposerait le fichier clients complet du garage à la vue de tous ; c'est
+ * pourquoi ce rôle ne le reçoit PAS, à la différence des huit autres.
+ *
+ * Ce qu'il reçoit, et pourquoi chaque entrée :
+ *  - `LECTURE_SOCLE` : lire son tenant et son site. Nécessaire à l'en-tête de l'application, et
+ *    strictement borné — `session.sites` ne rend qu'un site à un compte de service, et
+ *    `verifierSiteAutorise()` (`auth/comptes-de-service.ts`) refuse tout autre site.
+ *  - `LECTURE_OR` : la borne affiche les OR en cours de SON atelier pour que le technicien
+ *    choisisse sur quoi pointer. Sans montants — `poste_atelier` figure dans `ROLES_SANS_MONTANT`.
+ *  - le bloc pointage (`DROITS_POINTAGE_PAR_ROLE.poste_atelier`) : identifier par PIN, démarrer,
+ *    arrêter, lire.
+ *
+ * Ce qu'il ne reçoit à AUCUN prix (RM-115/RM-131) : toute transition d'OR, toute réponse de devis,
+ * toute écriture client/véhicule, tout document, tout paiement, toute correction de pointage
+ * d'autrui, toute gestion de PIN. Un PIN emprunté doit rester une erreur d'imputation d'heures et
+ * ne jamais pouvoir devenir autre chose — cette liste est ce qui rend cette phrase vraie.
+ */
+const DROITS_POSTE_ATELIER: readonly Action[] = [...LECTURE_SOCLE, ...LECTURE_OR];
+
+/**
  * `direction` : voit les indicateurs, arbitre en dernier ressort (§2.1 ligne 63). « oui » ou
  * « sans limite » sur les 24 lignes de §10 sans exception : reçoit tout ce que `chef_atelier` a,
  * plus les actions réservées à direction seule (`client.condition.modifier`).
@@ -801,6 +850,8 @@ const DROITS_PAIEMENT_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
   technicien: [],
   // RF-115 : jamais de droit financier pour admin — voir le commentaire de tête de section.
   admin: [],
+  // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+  poste_atelier: [],
 };
 
 // =================================================================================================
@@ -874,6 +925,8 @@ const DROITS_DOCUMENT_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
   // RF-115 : aucun droit financier pour admin, y compris la simple création d'un brouillon —
   // séparation des pouvoirs explicite, à ne JAMAIS combler par copier-coller de `direction`.
   admin: [...LECTURE_DOCUMENT],
+  // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+  poste_atelier: [],
 };
 
 // =================================================================================================
@@ -910,6 +963,8 @@ const DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE: Readonly<Record<RoleUtilisateur, re
     // RF-115 : jamais de droit financier pour admin — voir le commentaire de tête de section. Changer
     // l'IBAN d'encaissement du garage est au moins aussi engageant que rembourser un trop-perçu.
     admin: [],
+    // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+    poste_atelier: [],
   };
 
 // =================================================================================================
@@ -941,6 +996,8 @@ const DROITS_EXPORT_COMPTABLE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonl
   // les écritures à la fiduciaire est irréversible côté destinataire, au moins aussi engageant que
   // rembourser un trop-perçu ou modifier l'IBAN créancier.
   admin: [],
+  // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+  poste_atelier: [],
 };
 
 // =================================================================================================
@@ -970,6 +1027,8 @@ const DROITS_IMPRESSION_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Acti
   // ROLES_SANS_MONTANT + admin) — il ne doit donc pas pouvoir les imprimer non plus. `[]`
   // VOLONTAIREMENT, jamais à combler par copier-coller de `direction`.
   admin: [],
+  // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+  poste_atelier: [],
 };
 
 // =================================================================================================
@@ -1121,6 +1180,8 @@ const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
   // RF-115, littéral sur TOUTE la matrice §11 (y compris la lecture) — voir la note de tête de
   // section. `[]` VOLONTAIREMENT, jamais à combler par copier-coller de `direction`.
   admin: [],
+  // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+  poste_atelier: [],
 };
 
 // =================================================================================================
@@ -1294,6 +1355,8 @@ const DROITS_VENTES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
   // RF-115, appliqué ICI par décision de cet agent (§11 ne mentionne pas admin) — voir la note de
   // tête de section : `[]` VOLONTAIREMENT, jamais à combler par copier-coller de `direction`.
   admin: [],
+  // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+  poste_atelier: [],
 };
 
 // =================================================================================================
@@ -1339,6 +1402,14 @@ const DROITS_VENTES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
 // NOTE : `comptable` ne détient PAS non plus `atelier.pointage.lire` dans ce bloc (héritage de la
 // table transmise par l'agent `pointage/`, jamais réexaminé ici) — hors périmètre de cette
 // correction, qui porte UNIQUEMENT sur les deux actions de verrouillage signalées par le test.
+//
+// `gerer_pin` (RM-128, mode borne) — `chef_atelier`/`direction`/`admin`, exactement le trio qui
+// détient déjà `corriger_autrui` et les deux verrouillages de période. Volontairement PLUS
+// permissif que `parametrage.atelier.modifier` (direction/admin), qui gouverne le MODE du site :
+// changer le mode d'un site est une décision d'organisation rare ; attribuer ou réinitialiser un
+// PIN est un geste quotidien d'atelier (embauche, oubli, code soupçonné connu d'un collègue) qui
+// ne doit pas attendre la direction. Le technicien NE PEUT PAS s'auto-attribuer un PIN : il n'est
+// dans aucune de ces trois listes, et l'auto-service est explicitement reporté.
 const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
   chef_atelier: [
     'atelier.pointage.demarrer',
@@ -1347,6 +1418,7 @@ const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
     'atelier.pointage.corriger_autrui',
     'atelier.pointage.verrouiller_periode',
     'atelier.pointage.deverrouiller_periode',
+    'atelier.pointage.gerer_pin',
   ],
   direction: [
     'atelier.pointage.demarrer',
@@ -1355,6 +1427,7 @@ const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
     'atelier.pointage.corriger_autrui',
     'atelier.pointage.verrouiller_periode',
     'atelier.pointage.deverrouiller_periode',
+    'atelier.pointage.gerer_pin',
   ],
   admin: [
     'atelier.pointage.demarrer',
@@ -1363,9 +1436,19 @@ const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
     'atelier.pointage.corriger_autrui',
     'atelier.pointage.verrouiller_periode',
     'atelier.pointage.deverrouiller_periode',
+    'atelier.pointage.gerer_pin',
   ],
   technicien: ['atelier.pointage.demarrer', 'atelier.pointage.arreter', 'atelier.pointage.lire'],
   magasinier: ['atelier.pointage.demarrer', 'atelier.pointage.arreter', 'atelier.pointage.lire'],
+  // La borne : elle pointe pour le compte du technicien que le PIN vient de désigner, et elle
+  // identifie. Rien d'autre du domaine pointage — surtout PAS `corriger_autrui` (une correction se
+  // fait au bureau, depuis un compte nominatif, RM-131) ni les verrouillages de période.
+  poste_atelier: [
+    'atelier.pointage.identifier',
+    'atelier.pointage.demarrer',
+    'atelier.pointage.arreter',
+    'atelier.pointage.lire',
+  ],
   // Arbitrage @laupernoe (2026-08-03, documenté ci-dessus) : NI verrouiller NI déverrouiller — comptable
   // reste lecture-seule hors facturation/ventes, cet invariant prime sur la table transmise.
   comptable: [],
@@ -1462,6 +1545,17 @@ export const MATRICE_DROITS = {
     ...DROITS_VENTES_PAR_ROLE.comptable,
     ...DROITS_POINTAGE_PAR_ROLE.comptable,
   ],
+  poste_atelier: [
+    ...DROITS_POSTE_ATELIER,
+    ...DROITS_PAIEMENT_PAR_ROLE.poste_atelier,
+    ...DROITS_DOCUMENT_PAR_ROLE.poste_atelier,
+    ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.poste_atelier,
+    ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.poste_atelier,
+    ...DROITS_IMPRESSION_PAR_ROLE.poste_atelier,
+    ...DROITS_PIECES_PAR_ROLE.poste_atelier,
+    ...DROITS_VENTES_PAR_ROLE.poste_atelier,
+    ...DROITS_POINTAGE_PAR_ROLE.poste_atelier,
+  ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 
 /**
@@ -1472,8 +1566,13 @@ export const MATRICE_DROITS = {
  *
  * `technicien` : n'a aucun droit `atelier.ligne.modifier` (rabais, payeur) ni `atelier.or.plafond_modifier`
  * ni `client.condition.modifier` dans la matrice ci-dessus — cohérent avec l'exclusion des montants.
+ *
+ * `poste_atelier` : la borne est un écran mural allumé en permanence, à la vue de tout le monde
+ * (clients, livreurs, visiteurs). Y afficher un prix de main-d'œuvre, un plafond ou un total d'OR
+ * serait une divulgation commerciale par simple présence physique dans l'atelier — un canal que
+ * l'auth ne peut pas gouverner autrement qu'en retirant les montants à la source.
  */
-export const ROLES_SANS_MONTANT: readonly RoleUtilisateur[] = ['technicien'];
+export const ROLES_SANS_MONTANT: readonly RoleUtilisateur[] = ['technicien', 'poste_atelier'];
 
 /**
  * Droit requis pour rejouer une requête avec une confirmation donnée (contrats-api-etape-1.md

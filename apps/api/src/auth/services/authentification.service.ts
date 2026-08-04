@@ -171,6 +171,14 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
       utilisateurId: u.id,
       role: u.role,
       langue: u.langue,
+      // `utilisateur_par_email` ne projette pas `site_id` (elle n'en a pas besoin : seul `role`
+      // détermine la durée de session). Le site est donc laissé à `undefined` ICI, sur le seul
+      // chemin de connexion, et `sessionCourante()` ci-dessous le lit directement en base pour
+      // construire la réponse. La valeur faisant foi sur toutes les requêtes SUIVANTES est celle
+      // que `ServiceSessionImpl.resoudre()` remonte depuis `amorcage.session_par_empreinte`.
+      // `siteImposeAuPrincipal()` est fail-closed sur ce champ absent : aucun geste de compte de
+      // service ne peut donc s'appuyer sur ce principal-là, et c'est voulu — la connexion n'est
+      // pas un geste métier.
     };
 
     // Montée de version des coûts Argon2 : rehachage best-effort, jamais bloquant pour le login.
@@ -249,6 +257,11 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             nom: utilisateur.nom,
             role: utilisateur.role,
             langue: utilisateur.langue,
+            // Hors de `UtilisateurCourant` (le contrat n'expose pas le site DANS l'utilisateur) :
+            // sert ici à borner `sites` et à remplir `siteRattachementId`. Lu depuis la base à
+            // chaque appel, jamais depuis le principal — `connecter()` construit un principal
+            // sans site (voir son commentaire), et cette méthode sert les deux chemins.
+            siteId: utilisateur.siteId,
           })
           .from(utilisateur)
           .where(
@@ -271,10 +284,27 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
           .from(tenant)
           .where(eq(tenant.id, principal.tenantId));
 
+        // `sites` = les sites sur lesquels CE COMPTE peut agir, jamais « tous les sites du
+        // tenant » par principe. Pour un compte de personne, les deux coïncident et le
+        // comportement est inchangé depuis l'étape 0 (aucune autorisation du produit n'est scopée
+        // par site : la matrice est rôle × action, l'étanchéité est tenant). Pour un compte de
+        // SERVICE, la liste se réduit à son unique site de rattachement — une borne ne doit pas
+        // même APPRENDRE que d'autres sites existent, et le front n'a alors aucun sélecteur de
+        // site à proposer.
+        //
+        // Filtre sur `utilisateur.site_id` lu ci-dessus, pas sur le rôle : si la biconditionnelle
+        // `utilisateur_site_compte_de_service_chk` venait à être relâchée un jour, ce code suivrait
+        // la donnée réelle plutôt qu'une hypothèse sur les rôles.
+        const siteRattachementId = ligneUtilisateur?.siteId ?? null;
+        const conditionSites =
+          siteRattachementId !== null
+            ? and(eq(site.tenantId, principal.tenantId), eq(site.id, siteRattachementId))
+            : eq(site.tenantId, principal.tenantId);
+
         const lignesSites = await tx
           .select({ id: site.id, code: site.code, nom: site.nom, actif: site.actif })
           .from(site)
-          .where(eq(site.tenantId, principal.tenantId))
+          .where(conditionSites)
           .orderBy(asc(site.code));
 
         const [ligneSession] = await tx
@@ -294,10 +324,21 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
           );
         }
 
+        // `siteId` est retiré de l'objet `utilisateur` : le contrat `UtilisateurCourant` ne porte
+        // pas de site (c'est une propriété du COMPTE, exposée à part en `siteRattachementId`), et
+        // renvoyer un champ non déclaré au contrat le ferait diverger de l'OpenAPI généré.
         return {
-          utilisateur: ligneUtilisateur,
+          utilisateur: {
+            id: ligneUtilisateur.id,
+            email: ligneUtilisateur.email,
+            prenom: ligneUtilisateur.prenom,
+            nom: ligneUtilisateur.nom,
+            role: ligneUtilisateur.role,
+            langue: ligneUtilisateur.langue,
+          },
           tenant: ligneTenant,
           sites: lignesSites,
+          siteRattachementId,
           expireLe: ligneSession.expireLe.toISOString(),
         } satisfies SessionCourante;
       },

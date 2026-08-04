@@ -10,10 +10,21 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { check, pgTable, smallint, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  foreignKey,
+  index,
+  pgTable,
+  smallint,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 import { colonneId, colonnesHorodatage } from './colonnes-communes';
 import { langueEnum, roleUtilisateurEnum, statutUtilisateurEnum } from './enums';
+import { site } from './site';
 import { tenant } from './tenant';
 
 export const utilisateur = pgTable(
@@ -39,6 +50,25 @@ export const utilisateur = pgTable(
 
     /** Rôle unique à l'étape 0. Les rôles par site arriveront avec une table de liaison dédiée. */
     role: roleUtilisateurEnum('role').notNull(),
+
+    /**
+     * Site de rattachement du COMPTE (migration 0037).
+     *
+     * Renseigné pour un compte de SERVICE (`role = 'poste_atelier'` — la borne tactile de
+     * l'atelier), obligatoirement NULL pour un compte de personne. La biconditionnelle est
+     * imposée en base (`utilisateur_site_compte_de_service_chk`), pas seulement en code.
+     *
+     * Ce n'est PAS une affectation utilisateur↔site généralisée : aucune autorisation du produit
+     * n'est scopée par site (la matrice est rôle × action, l'étanchéité est tenant), et aucun
+     * compte de personne n'en porte. Voir l'en-tête de la migration 0037 pour le raisonnement
+     * complet.
+     *
+     * C'est la SOURCE du site de la borne, résolu depuis la session
+     * (`PrincipalAuthentifie.siteId`) et jamais depuis un paramètre de requête — la même doctrine
+     * que le tenant, pour la même raison : c'est ce qui empêche une borne de lire les PIN d'un
+     * autre site.
+     */
+    siteId: uuid('site_id'),
 
     /** `invite` = créé mais mot de passe jamais posé → ne peut pas se connecter. */
     statut: statutUtilisateurEnum('statut').notNull().default('invite'),
@@ -84,6 +114,30 @@ export const utilisateur = pgTable(
     check('utilisateur_nom_non_vide_chk', sql`length(btrim(${t.nom})) > 0`),
     check('utilisateur_echecs_connexion_chk', sql`${t.echecsConnexion} >= 0`),
     check('utilisateur_mot_de_passe_hash_non_vide_chk', sql`length(${t.motDePasseHash}) > 0`),
+
+    // --- Rattachement de site des comptes de service (migration 0037) --------------------------
+    // FK COMPOSITE avec le tenant, comme toutes les FK du produit : rattacher une borne au site
+    // d'un AUTRE tenant devient structurellement impossible, pas seulement improbable.
+    foreignKey({
+      name: 'utilisateur_fk_site',
+      columns: [t.tenantId, t.siteId],
+      foreignColumns: [site.tenantId, site.id],
+    }).onDelete('restrict'),
+
+    // Biconditionnelle, PAS une simple implication : elle interdit aussi de rattacher un compte
+    // de personne à un site, ce qui donnerait l'illusion d'une affectation utilisateur↔site
+    // générale qui n'existe pas et que rien n'appliquerait (voir en-tête de la migration 0037).
+    check(
+      'utilisateur_site_compte_de_service_chk',
+      sql`(${t.role} = 'poste_atelier') = (${t.siteId} is not null)`,
+    ),
+
+    // Sert la vérification du `on delete restrict` de la FK ci-dessus, et la question « quelles
+    // bornes sont déclarées sur ce site ? ». Partiel : l'écrasante majorité des comptes sont des
+    // personnes, donc `site_id` NULL.
+    index('utilisateur_site_idx')
+      .on(t.tenantId, t.siteId)
+      .where(sql`${t.siteId} is not null`),
   ],
 );
 

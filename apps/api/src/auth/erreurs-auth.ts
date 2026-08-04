@@ -108,6 +108,26 @@ export class ErreurDroitInsuffisant extends ErreurAuth {
   }
 }
 
+/**
+ * 403 — un COMPTE DE SERVICE (borne d'atelier) tente d'agir sur un site autre que le sien
+ * (`utilisateur.site_id`, migration 0037). Levée par `verifierSiteAutorise()`
+ * (`auth/comptes-de-service.ts`).
+ *
+ * Réutilise `DROIT_INSUFFISANT` plutôt qu'un code neuf : le comportement attendu côté client est
+ * exactement celui d'un droit manquant (afficher, ne pas réessayer), et le contrat d'erreur ne
+ * gagne rien à distinguer une portée d'une permission. Ce n'est PAS un 404 : le site existe dans
+ * le tenant de l'appelant, il n'y a rien à dissimuler — seule l'action est refusée. Le `message`
+ * reste spécifique, c'est ce que lit un exploitant dans les logs.
+ */
+export class ErreurSiteHorsPortee extends ErreurAuth {
+  constructor() {
+    super(HttpStatus.FORBIDDEN, {
+      code: 'DROIT_INSUFFISANT',
+      message: 'Ce poste est rattaché à un autre site : action refusée.',
+    });
+  }
+}
+
 /** 423 — compte verrouillé (verrouillage progressif après échecs répétés). */
 export class ErreurCompteVerrouille extends ErreurAuth {
   constructor(retryApresSecondes: number) {
