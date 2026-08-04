@@ -251,9 +251,34 @@ export class ServiceVehiculeDetention {
     return ligne;
   }
 
+  /**
+   * Deux contraintes distinctes de `vehicule_detention` retombent ici, avec le même code
+   * `VALIDATION_ECHOUEE` (§7.4 — cohérence délibérée, voir `erreurs-contraintes.ts`) mais un
+   * message différent selon laquelle a été violée :
+   *  - `vehicule_detention_unicite_excl` (RM-20, CT-47) : deux détenteurs courants simultanés ;
+   *  - `vehicule_detention_periode_chk` (`au > du`) : la date de changement/clôture n'est pas
+   *    postérieure au début de la détention en cours — typiquement `changer-detenteur` appelé
+   *    avec `changementLe` égal au jour même du début de la détention à clôturer.
+   */
   private relancerConflitDetention(erreur: unknown): never {
     const interpretation = interpreterContrainteVehicule(erreur);
     if (interpretation) {
+      if (interpretation.contrainte === 'vehicule_detention_periode_chk') {
+        throw new ErreurMetier(
+          interpretation.code,
+          'La date de changement de détenteur doit être postérieure au début de la détention en cours.',
+          {
+            erreurs: [
+              {
+                champ: 'changementLe',
+                code: 'periode_detention_invalide',
+                message:
+                  'La date doit être strictement postérieure au début de la détention en cours.',
+              },
+            ],
+          },
+        );
+      }
       throw new ErreurMetier(
         interpretation.code,
         'Ce véhicule a déjà un détenteur courant sur cette période (RM-20, CT-47).',

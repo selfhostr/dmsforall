@@ -396,12 +396,22 @@ function jourIso(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+/**
+ * Messages spécifiques pour les contraintes dont le libellé générique (« Contrainte violée : xxx »)
+ * n'aiderait pas la réceptionniste à corriger sa saisie — sinon, repli sur le nom de la contrainte.
+ */
+const MESSAGES_CONTRAINTE: Readonly<Record<string, string>> = {
+  vehicule_vin_format_chk:
+    'VIN invalide : un VIN de 17 caractères ne peut pas contenir les lettres I, O ou Q (RM-15).',
+};
+
 function relancerErreurContrainte(erreur: unknown): never {
   const interpretation = interpreterContrainteVehicule(erreur);
   if (interpretation) {
     throw new ErreurMetier(
       interpretation.code,
-      `Contrainte violée : ${interpretation.contrainte}.`,
+      MESSAGES_CONTRAINTE[interpretation.contrainte] ??
+        `Contrainte violée : ${interpretation.contrainte}.`,
     );
   }
   throw erreur;
