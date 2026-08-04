@@ -5,7 +5,13 @@ import { CODES_ERREUR } from '@dfa/shared';
 import '@/i18n';
 import i18n from '@/i18n';
 
-import { construireErreurApi, ErreurApi, ErreurReseau, messageErreur } from './erreurs';
+import {
+  construireErreurApi,
+  ErreurApi,
+  ErreurReseau,
+  messageErreur,
+  messageErreurChamp,
+} from './erreurs';
 
 async function attendreI18nPret() {
   if (!i18n.isInitialized) {
@@ -294,5 +300,126 @@ describe('ErreurApi — transport des blocages et actionsProposees (invariant n�
     expect(erreur.blocages).toEqual([]);
     expect(erreur.confirmationsRequises).toEqual([]);
     expect(erreur.actionsProposees).toEqual([]);
+  });
+});
+
+describe('ErreurApi.erreursChamp / champErreur — erreurs de saisie par champ (§3.5 règle 5)', () => {
+  it('erreursChamp renvoie [] quand le contrat ne fournit pas `erreurs` (même contrat que blocages)', async () => {
+    const reponse = new Response(
+      JSON.stringify({
+        type: 'https://docs.dmsforall.example/erreurs/VALIDATION_ECHOUEE',
+        title: 'Validation échouée',
+        status: 400,
+        code: 'VALIDATION_ECHOUEE',
+        instance: 'req-5',
+      }),
+      { status: 400, headers: { 'content-type': 'application/problem+json' } },
+    );
+    const erreur = construireErreurApi(reponse, await reponse.clone().text());
+    expect(erreur.erreursChamp).toEqual([]);
+    expect(erreur.champErreur('email')).toBeUndefined();
+  });
+
+  it('ne perd pas `erreurs[]` — corps réel PipeZod (rue trop longue) ET corps ErreurMetier (adresse_active_unique)', async () => {
+    const corps = {
+      type: 'https://docs.dmsforall.example/erreurs/VALIDATION_ECHOUEE',
+      title: 'Validation échouée',
+      status: 400,
+      code: 'VALIDATION_ECHOUEE',
+      instance: 'req-6',
+      erreurs: [
+        {
+          champ: 'rue',
+          code: 'too_big',
+          message: 'Too big: expected string to have <=200 characters',
+        },
+        {
+          champ: 'type',
+          code: 'adresse_active_unique',
+          message: 'Une adresse « principale » active existe déjà.',
+        },
+      ],
+    };
+    const reponse = new Response(JSON.stringify(corps), {
+      status: 400,
+      headers: { 'content-type': 'application/problem+json' },
+    });
+    const erreur = construireErreurApi(reponse, await reponse.clone().text());
+
+    expect(erreur.erreursChamp).toEqual(corps.erreurs);
+    expect(erreur.champErreur('rue')).toEqual(corps.erreurs[0]);
+    expect(erreur.champErreur('type')).toEqual(corps.erreurs[1]);
+    expect(erreur.champErreur('npa')).toBeUndefined();
+  });
+});
+
+describe('messageErreurChamp — ne jamais afficher un message zod anglais brut à un garagiste', () => {
+  it('affiche TEL QUEL le message d’un code MÉTIER (ErreurMetier, non-zod)', async () => {
+    await attendreI18nPret();
+    const message = messageErreurChamp(
+      {
+        champ: 'type',
+        code: 'adresse_active_unique',
+        message: 'Une adresse « principale » active existe déjà.',
+      },
+      i18n.t,
+    );
+    expect(message).toBe('Une adresse « principale » active existe déjà.');
+  });
+
+  it('ne renvoie JAMAIS le message anglais brut de zod pour un code natif zod (repli générique)', async () => {
+    await attendreI18nPret();
+    const message = messageErreurChamp(
+      {
+        champ: 'rue',
+        code: 'too_big',
+        message: 'Too big: expected string to have <=200 characters',
+      },
+      i18n.t,
+    );
+    expect(message).not.toContain('Too big');
+    expect(message).not.toContain('expected string');
+    expect(message).toBe('Certaines informations sont incorrectes.');
+  });
+
+  it('reconnaît un e-mail invalide (code zod `invalid_format` sur un champ `email`) via la clé existante `validation:email.invalide`', async () => {
+    await attendreI18nPret();
+    const message = messageErreurChamp(
+      { champ: 'email', code: 'invalid_format', message: 'Invalid email address' },
+      i18n.t,
+    );
+    expect(message).toBe("Cette adresse e-mail n'est pas valide.");
+
+    // Même règle pour un champ imbriqué (`contacts.0.email`) : seul le dernier segment du chemin
+    // pointé compte pour reconnaître le nom du champ.
+    const messageImbrique = messageErreurChamp(
+      { champ: 'contacts.0.email', code: 'invalid_format', message: 'Invalid email address' },
+      i18n.t,
+    );
+    expect(messageImbrique).toBe("Cette adresse e-mail n'est pas valide.");
+  });
+
+  it('aucun code natif zod connu ne fait fuiter son message anglais, quel que soit le champ', async () => {
+    await attendreI18nPret();
+    const CODES_ISSUE_ZOD_TESTES = [
+      'invalid_type',
+      'invalid_value',
+      'too_big',
+      'too_small',
+      'invalid_format',
+      'not_multiple_of',
+      'unrecognized_keys',
+      'invalid_union',
+      'invalid_key',
+      'invalid_element',
+      'custom',
+    ] as const;
+    for (const code of CODES_ISSUE_ZOD_TESTES) {
+      const message = messageErreurChamp(
+        { champ: 'npa', code, message: `Message zod brut en anglais pour ${code}` },
+        i18n.t,
+      );
+      expect(message).not.toContain('Message zod brut');
+    }
   });
 });

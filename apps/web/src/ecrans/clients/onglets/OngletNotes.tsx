@@ -65,9 +65,16 @@ export function OngletNotes({ clientId }: Props) {
 
   const changerOuvert = (valeur: boolean) => {
     setOuvert(valeur);
-    // Efface une erreur affichée lors d'une tentative précédente : sans ça, rouvrir le dialogue
-    // pour une NOUVELLE saisie afficherait encore l'échec de la fois d'avant.
-    if (valeur) creerNote.reset();
+    // Efface l'erreur ET LES VALEURS d'une tentative précédente : sans ce second geste, rouvrir
+    // le dialogue pour une NOUVELLE saisie laisse l'ancien texte en place (le dialogue n'est pas
+    // garanti démonté entre deux ouvertures), et une nouvelle saisie s'insère dans l'ancienne au
+    // lieu de la remplacer. Même défaut, même correctif que `FormulaireNouveauClient` (défaut 1,
+    // corruption de saisie constatée en base).
+    if (valeur) {
+      creerNote.reset();
+      setNature('interne');
+      setTexte('');
+    }
   };
 
   return (

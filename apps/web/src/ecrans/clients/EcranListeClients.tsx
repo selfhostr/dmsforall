@@ -253,6 +253,7 @@ export function EcranListeClients() {
             <SheetTitle>{t('clients:nouveau')}</SheetTitle>
           </SheetHeader>
           <FormulaireNouveauClient
+            ouvert={sheetOuvert}
             onCree={(id) => {
               setSheetOuvert(false);
               navigate(chemins.clients.detail(id, site));

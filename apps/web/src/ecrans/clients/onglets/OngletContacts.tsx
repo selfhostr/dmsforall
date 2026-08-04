@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ROLES_CONTACT, type RoleContact } from '@dfa/shared';
 
-import { messageErreur } from '@/api/erreurs';
+import { ErreurApi, messageErreur, messageErreurChamp } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -75,10 +75,17 @@ export function OngletContacts({ clientId }: Props) {
 
   const changerOuvert = (valeur: boolean) => {
     setOuvert(valeur);
-    // Efface une erreur affichée lors d'une tentative précédente : sans ça, rouvrir le dialogue
-    // pour une NOUVELLE saisie afficherait encore l'échec de la fois d'avant.
-    if (valeur) creerContact.reset();
+    // Efface l'erreur ET LES VALEURS d'une tentative précédente : sans `reinitialiser()`, rouvrir
+    // le dialogue pour une NOUVELLE saisie laisse les anciennes valeurs en place (le dialogue
+    // n'est pas garanti démonté entre deux ouvertures). Même défaut, même correctif que
+    // `FormulaireNouveauClient` (défaut 1, corruption de saisie constatée en base).
+    if (valeur) {
+      creerContact.reset();
+      reinitialiser();
+    }
   };
+
+  const erreurServeur = creerContact.error instanceof ErreurApi ? creerContact.error : null;
 
   return (
     <div className="space-y-3">
@@ -103,8 +110,14 @@ export function OngletContacts({ clientId }: Props) {
                   id="contact-nom"
                   value={nom}
                   onChange={(e) => setNom(e.target.value)}
+                  aria-invalid={erreurServeur?.champErreur('nom') ? true : undefined}
                   required
                 />
+                {erreurServeur?.champErreur('nom') ? (
+                  <p className="text-sm text-destructive">
+                    {messageErreurChamp(erreurServeur.champErreur('nom')!, t)}
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contact-prenom">{t('clients:identite.prenom')}</Label>
@@ -121,7 +134,13 @@ export function OngletContacts({ clientId }: Props) {
                   type="tel"
                   value={telephone}
                   onChange={(e) => setTelephone(e.target.value)}
+                  aria-invalid={erreurServeur?.champErreur('telephone') ? true : undefined}
                 />
+                {erreurServeur?.champErreur('telephone') ? (
+                  <p className="text-sm text-destructive">
+                    {messageErreurChamp(erreurServeur.champErreur('telephone')!, t)}
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contact-email">{t('clients:identite.email')}</Label>
@@ -130,7 +149,18 @@ export function OngletContacts({ clientId }: Props) {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  aria-invalid={erreurServeur?.champErreur('email') ? true : undefined}
                 />
+                {/* Défaut 3 : un e-mail refusé par le serveur (`schemaContactClient.email`, non
+                    validé côté front dans cet onglet) mourait dans le seul bandeau générique
+                    ci-dessous. `messageErreurChamp` reconnaît ce cas (code natif zod sur un champ
+                    `email`) et retombe sur la clé i18n existante plutôt que le message anglais
+                    brut de zod. */}
+                {erreurServeur?.champErreur('email') ? (
+                  <p className="text-sm text-destructive">
+                    {messageErreurChamp(erreurServeur.champErreur('email')!, t)}
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label>{t('clients:contacts.champs.roles')}</Label>

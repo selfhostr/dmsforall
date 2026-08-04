@@ -56,6 +56,66 @@ describe('OngletAdresses — erreur de création (RM-03)', () => {
     expect(screen.getByLabelText('Rue et numéro')).toHaveValue('Rue du Lac 12');
   });
 
+  it("affiche le message serveur SUR le champ « type » pour un doublon d'adresse active (défaut 3), sans perdre le bandeau générique", async () => {
+    server.use(
+      http.post(`/api/v1/clients/${CLIENT_ID}/adresses`, () =>
+        HttpResponse.json(
+          {
+            type: 'https://docs.dmsforall.example/erreurs/VALIDATION_ECHOUEE',
+            title: 'Validation échouée',
+            status: 400,
+            code: 'VALIDATION_ECHOUEE',
+            instance: 'req-adresse-doublon',
+            erreurs: [
+              {
+                champ: 'type',
+                code: 'adresse_active_unique',
+                message: 'Une adresse « principale » active existe déjà.',
+              },
+            ],
+          },
+          { status: 400, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      ),
+    );
+    rendre();
+    const utilisateur = userEvent.setup();
+
+    await ouvrirEtRemplirFormulaire(utilisateur);
+    await utilisateur.click(screen.getByRole('button', { name: 'Ajouter' }));
+
+    // Avant le correctif : seul « Certaines informations sont incorrectes. » apparaissait, le
+    // message serveur précis (« Une adresse « principale » active existe déjà. ») était perdu.
+    expect(
+      await screen.findByText('Une adresse « principale » active existe déjà.'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Type d'adresse")).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it("réinitialise le dialogue à la réouverture — une adresse abandonnée ne s'insère pas dans la suivante (défaut 1, garde de non-régression)", async () => {
+    // Preuve la plus stricte de ce défaut (fermeture/réouverture SANS démontage, exactement le
+    // mécanisme réel constaté en navigateur) : voir `FormulaireNouveauClient.spec.tsx`, dont le
+    // harnais garde volontairement le formulaire monté entre les deux. Ici, `DialogContent`
+    // (Radix) démonte réellement au changement d'état dans ce moteur de test — cette assertion
+    // documente donc surtout que `changerOuvert(true)` appelle bien `reinitialiser()`, non
+    // seulement `creerAdresse.reset()`, et resterait verte si ce second appel disparaissait par
+    // erreur (`reinitialiser` retiré, ou appelé à la mauvaise condition).
+    rendre();
+    const utilisateur = userEvent.setup();
+
+    await ouvrirEtRemplirFormulaire(utilisateur);
+    expect(screen.getByLabelText('Rue et numéro')).toHaveValue('Rue du Lac 12');
+
+    // Fermeture (Échap, gérée par Radix) puis réouverture — sans jamais soumettre.
+    await utilisateur.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByLabelText('Rue et numéro')).not.toBeInTheDocument());
+    await utilisateur.click(screen.getByRole('button', { name: 'Ajouter une adresse' }));
+
+    expect(screen.getByLabelText('Rue et numéro')).toHaveValue('');
+    expect(screen.getByLabelText('NPA')).toHaveValue('');
+    expect(screen.getByLabelText('Localité')).toHaveValue('');
+  });
+
   it('crée normalement quand le serveur accepte (pas de régression)', async () => {
     server.use(
       http.post(`/api/v1/clients/${CLIENT_ID}/adresses`, () =>

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { TYPES_ADRESSE, type TypeAdresse } from '@dfa/shared';
 
-import { messageErreur } from '@/api/erreurs';
+import { ErreurApi, messageErreur, messageErreurChamp } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -69,10 +69,19 @@ export function OngletAdresses({ clientId }: Props) {
 
   const changerOuvert = (valeur: boolean) => {
     setOuvert(valeur);
-    // Efface une erreur affichée lors d'une tentative précédente : sans ça, rouvrir le dialogue
-    // pour une NOUVELLE saisie afficherait encore l'échec de la fois d'avant.
-    if (valeur) creerAdresse.reset();
+    // Efface l'erreur ET LES VALEURS d'une tentative précédente : sans `reinitialiser()`, rouvrir
+    // le dialogue pour une NOUVELLE saisie laisse les anciennes valeurs en place (le dialogue
+    // n'est pas garanti démonté entre deux ouvertures — `DialogContent` de Radix, comme
+    // `SheetContent`), et une saisie suivante s'insère dans l'ancienne au lieu de la remplacer.
+    // Même défaut, même correctif que `FormulaireNouveauClient` (défaut 1, corruption de saisie
+    // constatée en base sur le tiroir « Nouveau client »).
+    if (valeur) {
+      creerAdresse.reset();
+      reinitialiser();
+    }
   };
+
+  const erreurServeur = creerAdresse.error instanceof ErreurApi ? creerAdresse.error : null;
 
   return (
     <div className="space-y-3">
@@ -94,7 +103,11 @@ export function OngletAdresses({ clientId }: Props) {
               <div className="space-y-2">
                 <Label htmlFor="adresse-type">{t('clients:adresses.champs.type')}</Label>
                 <Select value={type} onValueChange={(v) => setType(v as TypeAdresse)}>
-                  <SelectTrigger id="adresse-type" aria-label={t('clients:adresses.champs.type')}>
+                  <SelectTrigger
+                    id="adresse-type"
+                    aria-label={t('clients:adresses.champs.type')}
+                    aria-invalid={erreurServeur?.champErreur('type') ? true : undefined}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -105,6 +118,15 @@ export function OngletAdresses({ clientId }: Props) {
                     ))}
                   </SelectContent>
                 </Select>
+                {/* Défaut 3 : un doublon d'adresse active (« Une adresse « principale » active
+                    existe déjà. ») renvoyait un 400 parfaitement clair, perdu derrière le seul
+                    bandeau générique ci-dessous. Affiché ici, sur le champ que le serveur désigne
+                    (`erreurs[].champ === 'type'`). */}
+                {erreurServeur?.champErreur('type') ? (
+                  <p className="text-sm text-destructive">
+                    {messageErreurChamp(erreurServeur.champErreur('type')!, t)}
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="adresse-rue">{t('clients:adresses.champs.rue')}</Label>
@@ -112,8 +134,14 @@ export function OngletAdresses({ clientId }: Props) {
                   id="adresse-rue"
                   value={rue}
                   onChange={(e) => setRue(e.target.value)}
+                  aria-invalid={erreurServeur?.champErreur('rue') ? true : undefined}
                   required
                 />
+                {erreurServeur?.champErreur('rue') ? (
+                  <p className="text-sm text-destructive">
+                    {messageErreurChamp(erreurServeur.champErreur('rue')!, t)}
+                  </p>
+                ) : null}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -122,8 +150,14 @@ export function OngletAdresses({ clientId }: Props) {
                     id="adresse-npa"
                     value={npa}
                     onChange={(e) => setNpa(e.target.value)}
+                    aria-invalid={erreurServeur?.champErreur('npa') ? true : undefined}
                     required
                   />
+                  {erreurServeur?.champErreur('npa') ? (
+                    <p className="text-sm text-destructive">
+                      {messageErreurChamp(erreurServeur.champErreur('npa')!, t)}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="adresse-localite">{t('clients:adresses.champs.localite')}</Label>
@@ -131,8 +165,14 @@ export function OngletAdresses({ clientId }: Props) {
                     id="adresse-localite"
                     value={localite}
                     onChange={(e) => setLocalite(e.target.value)}
+                    aria-invalid={erreurServeur?.champErreur('localite') ? true : undefined}
                     required
                   />
+                  {erreurServeur?.champErreur('localite') ? (
+                    <p className="text-sm text-destructive">
+                      {messageErreurChamp(erreurServeur.champErreur('localite')!, t)}
+                    </p>
+                  ) : null}
                 </div>
               </div>
               {creerAdresse.isError ? (

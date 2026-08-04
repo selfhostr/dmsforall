@@ -1,13 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, WifiOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type DefaultValues, type FieldPath } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
+import type { z } from 'zod';
 
 import { schemaCreationClient, type EntreeCreationClient, type TypeClient } from '@dfa/shared';
 
-import { ErreurReseau, messageErreur } from '@/api/erreurs';
+import { ErreurApi, ErreurReseau, messageErreur, messageErreurChamp } from '@/api/erreurs';
 import { useCleIdempotence } from '@/api/idempotence';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,15 @@ import { cn } from '@/lib/utils';
 import { chemins } from '@/routes/chemins';
 
 interface Props {
+  /** État d'ouverture du tiroir qui héberge ce formulaire (`EcranListeClients`). Piloté par le
+   *  PARENT (jamais interne) : sert de déclencheur à la réinitialisation ci-dessous, exactement
+   *  comme `DialogueModifierDossierVente` (`ecrans/ventes/dossiers/`) — même patron, copié plutôt
+   *  que réinventé. Sans lui, une tentative échouée laisse ses valeurs dans le formulaire : la
+   *  même instance de tiroir peut rester montée d'une ouverture à l'autre (fermeture puis
+   *  réouverture rapides, avant la fin de l'animation de sortie de `SheetContent`), et une
+   *  nouvelle saisie s'insère alors dans l'ancienne plutôt que de la remplacer — défaut réel
+   *  constaté en test navigateur, avec un client corrompu créé en base. */
+  readonly ouvert: boolean;
   readonly onCree: (clientId: string) => void;
 }
 
@@ -37,6 +47,38 @@ interface Props {
  *  produirait une erreur de validation plutôt que d'être simplement omis. */
 function videVersIndefini(valeur: string): string | undefined {
   return valeur === '' ? undefined : valeur;
+}
+
+/** Valeurs SAISIES (pré-validation zod) du formulaire, PAS `EntreeCreationClient` (le résultat
+ *  APRÈS transformation zod — `.default()`, `.superRefine()` appliqués). `zodResolver` (zod 4,
+ *  `@hookform/resolvers/zod`) type le formulaire sur `z.input<Schema>` pour les valeurs de champ
+ *  et sur `z.output<Schema>` (= `EntreeCreationClient`) uniquement pour le résultat transmis à
+ *  `handleSubmit` — les deux DIVERGENT dès qu'un champ porte `.default(...)` (ex. `poObligatoire`,
+ *  `telephones`) : optionnel en entrée, garanti présent en sortie. Utiliser `EntreeCreationClient`
+ *  ici (comme avant l'ajout de `.superRefine(validerNpaSelonPays)` sur `adressePrincipale`,
+ *  packages/shared/src/contrats/atelier/client.ts) fait diverger le type déduit de `useForm` de
+ *  celui produit par `zodResolver`, et `tsc` refuse la valeur de retour du resolver. */
+type ValeursSaisieFormulaire = z.input<typeof schemaCreationClient>;
+
+/** Valeurs par défaut du formulaire — fonction, pas un objet constant : `langueCorrespondance`
+ *  dépend de la langue courante au moment de l'appel, et cette fonction est réappelée à CHAQUE
+ *  ouverture du tiroir (voir l'effet de réinitialisation ci-dessous), pas seulement au montage.
+ *
+ *  Retour explicitement typé `DefaultValues<ValeursSaisieFormulaire>` : sans cette annotation, TS
+ *  infère le type de retour depuis le seul littéral (`type: 'particulier'` resterait figé, pas
+ *  élargi à `TypeClient`), et `useForm<T>` infère alors T depuis ce littéral trop étroit plutôt
+ *  que depuis `zodResolver(schemaCreationClient)` — tout le formulaire perd `nom`, `email`, `ide`,
+ *  etc. (absents des valeurs par défaut, donc absents du type déduit). */
+function valeursParDefaut(
+  langueCourante: EntreeCreationClient['langueCorrespondance'],
+): DefaultValues<ValeursSaisieFormulaire> {
+  return {
+    type: 'particulier',
+    langueCorrespondance: langueCourante,
+    adressePrincipale: { rue: '', npa: '', localite: '', pays: 'CH' },
+    telephones: [],
+    poObligatoire: false,
+  };
 }
 
 /**
@@ -50,7 +92,7 @@ function videVersIndefini(valeur: string): string | undefined {
  * subsistent (`AvertissementConfirmable`, jamais `RefusBloquant` — deux frères à la même adresse
  * restent deux clients légitimes).
  */
-export function FormulaireNouveauClient({ onCree }: Props) {
+export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
   const { t } = useTranslation(['clients', 'commun', 'validation', 'erreurs']);
   const { langue: langueCourante, languesDisponibles } = useLangue();
   const idempotence = useCleIdempotence();
@@ -62,25 +104,6 @@ export function FormulaireNouveauClient({ onCree }: Props) {
 
   const [telephoneSaisi, setTelephoneSaisi] = useState('');
   const [entreeEnAttente, setEntreeEnAttente] = useState<EntreeCreationClient | null>(null);
-
-  const form = useForm({
-    resolver: zodResolver(schemaCreationClient),
-    defaultValues: {
-      type: 'particulier',
-      langueCorrespondance: langueCourante,
-      adressePrincipale: { rue: '', npa: '', localite: '', pays: 'CH' },
-      telephones: [],
-      poObligatoire: false,
-    },
-  });
-
-  const type = form.watch('type');
-  const nom = form.watch('nom');
-  const raisonSociale = form.watch('raisonSociale');
-  const npa = form.watch('adressePrincipale.npa');
-  const email = form.watch('email');
-  const ide = form.watch('ide');
-
   const [criteres, setCriteres] = useState<{
     nom?: string;
     npa?: string;
@@ -88,6 +111,44 @@ export function FormulaireNouveauClient({ onCree }: Props) {
     telephoneMobile?: string;
     ide?: string;
   }>({});
+
+  // Générique explicite (`ValeursSaisieFormulaire`, puis `unknown` pour le contexte, puis
+  // `EntreeCreationClient` pour les valeurs TRANSFORMÉES reçues par `handleSubmit`) : voir le
+  // commentaire de `ValeursSaisieFormulaire` ci-dessus. Sans lui, `tsc` doit choisir entre le
+  // type déduit de `resolver` (entrée) et celui de `defaultValues` (qui pourrait, par erreur,
+  // redevenir la sortie) — les rendre explicites élimine toute ambiguïté d'inférence.
+  const form = useForm<ValeursSaisieFormulaire, unknown, EntreeCreationClient>({
+    resolver: zodResolver(schemaCreationClient),
+    defaultValues: valeursParDefaut(langueCourante),
+  });
+
+  useEffect(() => {
+    if (!ouvert) return;
+    form.reset(valeursParDefaut(langueCourante));
+    setTelephoneSaisi('');
+    setEntreeEnAttente(null);
+    setCriteres({});
+    creerClient.reset();
+    idempotence.regenerer();
+    // Réinitialise à CHAQUE ouverture (pas seulement au montage) : même patron que
+    // `DialogueModifierDossierVente` (ecrans/ventes/dossiers/) — la même instance de tiroir peut
+    // rester montée d'une fermeture à l'autre (ex. fermeture puis réouverture avant la fin de
+    // l'animation de sortie de `SheetContent`), et sans cet effet une tentative échouée laisse ses
+    // valeurs dans le formulaire : la saisie suivante s'insère dans l'ancienne au lieu de la
+    // remplacer (défaut réel constaté en test navigateur, client corrompu créé en base).
+    // `idempotence.regenerer()` fait partie de cette réinitialisation : une réouverture est un
+    // abandon explicite de la tentative précédente (api/idempotence.ts, en-tête du fichier), la
+    // clé ne doit donc pas survivre — sinon une nouvelle saisie, distincte, rejouerait l'ancienne
+    // clé et le serveur la refuserait comme `IDEMPOTENCE_CONFLIT`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ouvert]);
+
+  const type = form.watch('type');
+  const nom = form.watch('nom');
+  const raisonSociale = form.watch('raisonSociale');
+  const npa = form.watch('adressePrincipale.npa');
+  const email = form.watch('email');
+  const ide = form.watch('ide');
 
   useEffect(() => {
     const identifiant = setTimeout(() => {
@@ -113,6 +174,22 @@ export function FormulaireNouveauClient({ onCree }: Props) {
         onSuccess: (reponse) => {
           idempotence.regenerer();
           onCree(reponse.donnees.id);
+        },
+        onError: (erreurMutation) => {
+          // §3.5 règle 5 : une erreur de champ (`ProblemeDetail.erreurs[]`) est réinjectée dans
+          // react-hook-form pour s'afficher SOUS le champ fautif, exactement comme une erreur de
+          // validation locale — au lieu de mourir dans le bandeau générique ci-dessous. Défaut réel
+          // constaté en test navigateur : un IDE ou une adresse refusés par le serveur (doublon
+          // d'adresse active, format zod) ne montraient RIEN sur le champ concerné, seulement
+          // « Certaines informations sont incorrectes. » en haut de formulaire.
+          if (erreurMutation instanceof ErreurApi) {
+            for (const champErreur of erreurMutation.erreursChamp) {
+              form.setError(champErreur.champ as FieldPath<ValeursSaisieFormulaire>, {
+                type: 'server',
+                message: messageErreurChamp(champErreur, t),
+              });
+            }
+          }
         },
       },
     );
@@ -180,7 +257,15 @@ export function FormulaireNouveauClient({ onCree }: Props) {
       </div>
 
       {type === 'particulier' ? (
-        <div className="grid grid-cols-2 gap-3">
+        // `key` DISTINCT du bloc « entreprise » ci-dessous : sans lui, React voit deux `<Input>`
+        // non contrôlés à la MÊME position d'arbre lors du basculement de `type` (ex. après
+        // `form.reset()` à la réouverture, défaut 1) et réutilise le NŒUD DOM existant plutôt que
+        // d'en monter un nouveau — l'ancien texte tapé dans « Raison sociale » restait alors
+        // visible comme valeur brute de l'input « Nom » (React ne réinitialise jamais `.value`
+        // d'un champ non contrôlé lors d'une simple mise à jour de props). Constaté en écrivant le
+        // test de non-régression du défaut 1 : sans ce `key`, il échouait avec exactement ce
+        // symptôme, sur un champ pourtant déjà vidé par `form.reset()`.
+        <div key="identite-particulier" className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label htmlFor="nc-nom">{t('clients:identite.nom')}</Label>
             <Input
@@ -190,7 +275,11 @@ export function FormulaireNouveauClient({ onCree }: Props) {
               {...form.register('nom', { setValueAs: videVersIndefini })}
             />
             {form.formState.errors.nom ? (
-              <p className="text-sm text-destructive">{t('validation:requis')}</p>
+              <p className="text-sm text-destructive">
+                {form.formState.errors.nom.type === 'server'
+                  ? form.formState.errors.nom.message
+                  : t('validation:requis')}
+              </p>
             ) : null}
           </div>
           <div className="space-y-2">
@@ -203,7 +292,7 @@ export function FormulaireNouveauClient({ onCree }: Props) {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
+        <div key="identite-entreprise" className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label htmlFor="nc-raison-sociale">{t('clients:identite.raisonSociale')}</Label>
             <Input
@@ -213,7 +302,11 @@ export function FormulaireNouveauClient({ onCree }: Props) {
               {...form.register('raisonSociale', { setValueAs: videVersIndefini })}
             />
             {form.formState.errors.raisonSociale ? (
-              <p className="text-sm text-destructive">{t('validation:requis')}</p>
+              <p className="text-sm text-destructive">
+                {form.formState.errors.raisonSociale.type === 'server'
+                  ? form.formState.errors.raisonSociale.message
+                  : t('validation:requis')}
+              </p>
             ) : null}
           </div>
           <div className="space-y-2">
@@ -222,8 +315,21 @@ export function FormulaireNouveauClient({ onCree }: Props) {
               id="nc-ide"
               readOnly={enCours}
               placeholder="CHE-123.456.789"
+              aria-invalid={form.formState.errors.ide ? true : undefined}
               {...form.register('ide', { setValueAs: videVersIndefini })}
             />
+            {form.formState.errors.ide ? (
+              // Défaut 2 corrigé ici : un IDE mal formé (ex. « 12345 ») échouait `schemaIde`
+              // (regex zod) SANS jamais afficher son erreur — `handleSubmit` refuse silencieusement
+              // de soumettre (aucune requête réseau), et rien ne le montre au garagiste. Le message
+              // zod natif n'étant pas traduit (§ commentaire de `messageErreurChamp`), on retombe
+              // sur le générique existant plutôt que d'afficher un texte anglais brut.
+              <p className="text-sm text-destructive">
+                {form.formState.errors.ide.type === 'server'
+                  ? form.formState.errors.ide.message
+                  : t('erreurs:codes.VALIDATION_ECHOUEE')}
+              </p>
+            ) : null}
           </div>
         </div>
       )}
@@ -273,7 +379,11 @@ export function FormulaireNouveauClient({ onCree }: Props) {
             {...form.register('email', { setValueAs: videVersIndefini })}
           />
           {form.formState.errors.email ? (
-            <p className="text-sm text-destructive">{t('validation:email.invalide')}</p>
+            <p className="text-sm text-destructive">
+              {form.formState.errors.email.type === 'server'
+                ? form.formState.errors.email.message
+                : t('validation:email.invalide')}
+            </p>
           ) : null}
         </div>
       </div>
@@ -291,7 +401,11 @@ export function FormulaireNouveauClient({ onCree }: Props) {
             {...form.register('adressePrincipale.rue')}
           />
           {form.formState.errors.adressePrincipale?.rue ? (
-            <p className="text-sm text-destructive">{t('validation:requis')}</p>
+            <p className="text-sm text-destructive">
+              {form.formState.errors.adressePrincipale.rue.type === 'server'
+                ? form.formState.errors.adressePrincipale.rue.message
+                : t('validation:requis')}
+            </p>
           ) : null}
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -304,7 +418,11 @@ export function FormulaireNouveauClient({ onCree }: Props) {
               {...form.register('adressePrincipale.npa')}
             />
             {form.formState.errors.adressePrincipale?.npa ? (
-              <p className="text-sm text-destructive">{t('validation:requis')}</p>
+              <p className="text-sm text-destructive">
+                {form.formState.errors.adressePrincipale.npa.type === 'server'
+                  ? form.formState.errors.adressePrincipale.npa.message
+                  : t('validation:requis')}
+              </p>
             ) : null}
           </div>
           <div className="space-y-2">
@@ -316,7 +434,11 @@ export function FormulaireNouveauClient({ onCree }: Props) {
               {...form.register('adressePrincipale.localite')}
             />
             {form.formState.errors.adressePrincipale?.localite ? (
-              <p className="text-sm text-destructive">{t('validation:requis')}</p>
+              <p className="text-sm text-destructive">
+                {form.formState.errors.adressePrincipale.localite.type === 'server'
+                  ? form.formState.errors.adressePrincipale.localite.message
+                  : t('validation:requis')}
+              </p>
             ) : null}
           </div>
         </div>

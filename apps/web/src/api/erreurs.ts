@@ -6,6 +6,7 @@ import {
   type CodeConfirmation,
   type CodeErreur,
   type ElementBloquant,
+  type ErreurChamp,
   type ProblemeDetail,
 } from '@dfa/shared';
 
@@ -49,6 +50,22 @@ export class ErreurApi extends Error {
    *  corriger côté API, pas à compenser côté écran. */
   get actionsProposees(): readonly ActionProposee[] {
     return this.probleme.actionsProposees ?? [];
+  }
+
+  /** Erreurs de saisie par champ (`ProblemeDetail.erreurs`, §3.5 règle 5) — RÉSERVÉ à la
+   *  validation de saisie, jamais à un refus métier (qui va dans `blocages`). Même contrat que
+   *  `blocages`/`actionsProposees` ci-dessus : toujours un tableau, jamais `undefined`. Sert à
+   *  afficher un message SOUS le champ fautif plutôt que de le laisser mourir dans un bandeau
+   *  générique — voir `messageErreurChamp` plus bas. */
+  get erreursChamp(): readonly ErreurChamp[] {
+    return this.probleme.erreurs ?? [];
+  }
+
+  /** Raccourci pour trouver l'erreur portant sur un `champ` précis (chemin pointé, ex.
+   *  `adressePrincipale.rue`) — évite de répéter `erreur.erreursChamp.find(...)` dans chaque
+   *  écran de formulaire. */
+  champErreur(champ: string): ErreurChamp | undefined {
+    return this.erreursChamp.find((erreurChamp) => erreurChamp.champ === champ);
   }
 }
 
@@ -173,4 +190,65 @@ export function messageErreur(erreur: unknown, t: TFunction): string {
     return t(`erreurs:codes.${erreur.probleme.code}`, { minutes });
   }
   return t('erreurs:inattendue.description');
+}
+
+/**
+ * Codes natifs de `ZodIssue.code` (zod 4, `node_modules/zod/v4/core/errors.d.ts`) — liste
+ * FERMÉE, à ne pas confondre avec un code métier (`ErreurMetier`, snake_case français, ex.
+ * `adresse_active_unique`). `PipeZod` (apps/api/src/common/validation/pipe-zod.ts) recopie
+ * `issue.code` et `issue.message` TELS QUELS dans `ProblemeDetail.erreurs[]` — pour un code zod
+ * natif, `message` est donc le texte généré par zod, presque toujours en ANGLAIS (« Too big:
+ * expected string to have <=200 characters »), qui ne doit JAMAIS atteindre un garagiste tel
+ * quel. Un code absent de cette liste vient d'un `ErreurMetier` rédigé à la main côté backend, en
+ * français, pour ce cas précis — affichable directement (voir `messageErreurChamp`).
+ */
+const CODES_ISSUE_ZOD = [
+  'invalid_type',
+  'invalid_value',
+  'too_big',
+  'too_small',
+  'invalid_format',
+  'not_multiple_of',
+  'unrecognized_keys',
+  'invalid_union',
+  'invalid_key',
+  'invalid_element',
+  'custom',
+  // zod 3 (compatibilité défensive, au cas où une dépendance transitive encoderait encore
+  // l'ancien nom) : `invalid_string` est devenu `invalid_format` en zod 4.
+  'invalid_string',
+] as const;
+
+function estMessageMetierFrancais(erreurChamp: ErreurChamp): boolean {
+  return !(CODES_ISSUE_ZOD as readonly string[]).includes(erreurChamp.code);
+}
+
+/**
+ * Traduit une erreur de champ (`ProblemeDetail.erreurs[]`) pour affichage SOUS le champ fautif
+ * d'un formulaire — jamais dans le bandeau générique d'écran (`messageErreur`), qui reste utile
+ * en complément pour les erreurs qui ne visent aucun champ précis.
+ *
+ * - Code MÉTIER (`ErreurMetier`) : `message` est rédigé en français par le backend pour ce cas
+ *   précis (ex. « Une adresse « principale » active existe déjà. ») — affiché tel quel.
+ * - Code natif ZOD (`CODES_ISSUE_ZOD`) : `message` n'est JAMAIS affiché tel quel. Un repli connu
+ *   et déjà traduit est utilisé quand le nom du champ permet de lever l'ambiguïté sans risque
+ *   (ex. `email`), sinon repli générique existant (`erreurs:codes.VALIDATION_ECHOUEE`).
+ *
+ * MANQUE CONNU (i18n, hors périmètre d'écriture ici) : des clés `validation:formatInvalide` et
+ * `validation:longueurMax` généralistes rendraient ce repli plus précis que le message d'écran
+ * générique actuel pour `too_big`/`invalid_type`/etc. — voir le rapport de livraison du correctif
+ * qui a introduit cette fonction.
+ */
+export function messageErreurChamp(erreurChamp: ErreurChamp, t: TFunction): string {
+  if (estMessageMetierFrancais(erreurChamp)) {
+    return erreurChamp.message;
+  }
+  const nomChamp = erreurChamp.champ.split('.').pop();
+  if (
+    nomChamp === 'email' &&
+    (erreurChamp.code === 'invalid_format' || erreurChamp.code === 'invalid_string')
+  ) {
+    return t('validation:email.invalide');
+  }
+  return t('erreurs:codes.VALIDATION_ECHOUEE');
 }
