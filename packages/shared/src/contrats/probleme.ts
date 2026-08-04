@@ -232,6 +232,12 @@ export const CODES_ERREUR = [
   'VENTE_DOSSIER_ANNULATION_IMPOSSIBLE',
   'VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE',
   'VENTE_REPRISE_DEJA_EXISTANTE',
+  // --- Accroche facturation ↔ ventes (RV-37, MD-70) : émis par `facturation/documents/` à la
+  // création d'un document rattaché à un dossier de vente (`document_vente.dossier_vente_id`),
+  // jamais par `ventes/`. Distinct de `VENTE_DOSSIER_TRANSITION_INTERDITE` : on ne transitionne
+  // pas le dossier ici, on refuse d'y ATTACHER un nouveau document tant qu'il est dans un état
+  // fermé (`clos`/`annule`/`abandonne`).
+  'DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE',
   // --- Étape 5 : connecteurs (déclarés, émis après étape 4) ---
   'CONNECTEUR_TYPE_INDISPONIBLE',
   'CONNECTEUR_IDENTIFIANTS_MANQUANTS',
@@ -359,6 +365,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   VENTE_DOSSIER_ANNULATION_IMPOSSIBLE: 409,
   VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE: 409,
   VENTE_REPRISE_DEJA_EXISTANTE: 409,
+  DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE: 409,
   CONNECTEUR_TYPE_INDISPONIBLE: 409,
   CONNECTEUR_IDENTIFIANTS_MANQUANTS: 409,
   CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE: 409,
@@ -471,6 +478,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   VENTE_DOSSIER_ANNULATION_IMPOSSIBLE: 'Annulation impossible pour ce dossier de vente',
   VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE: 'Valeur de reprise requise',
   VENTE_REPRISE_DEJA_EXISTANTE: 'Reprise déjà existante',
+  DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE: 'Rattachement au dossier de vente refusé',
   CONNECTEUR_TYPE_INDISPONIBLE: 'Type de connecteur indisponible',
   CONNECTEUR_IDENTIFIANTS_MANQUANTS: 'Identifiants du connecteur manquants',
   CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE: 'Activation du connecteur impossible',
@@ -597,6 +605,13 @@ export const CODES_AVERTISSEMENT = [
   // remonte à la direction sans jamais bloquer la saisie du magasinier (§7.6 : « pas absorbée
   // silencieusement par l'ajustement »).
   'INVENTAIRE_ECART_SIGNIFICATIF',
+  // RV-37/MD-70 — l'émission d'une facture rattachée à un dossier de vente tente de marquer son
+  // véhicule `vendu` (`ServiceVehiculeStock.marquerVendu`, effet de bord APRÈS le commit de la
+  // facture, jamais avant : ne JAMAIS produire "véhicule vendu sans facture émise"). La facture,
+  // elle, est déjà émise et verrouillée quoi qu'il arrive à ce marquage — un échec ici n'est donc
+  // jamais bloquant, seulement signalé pour une correction manuelle
+  // (`POST /vehicules/{id}/stock/marquer-vendu`, `ventes.vehicule_stock.corriger`).
+  'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE',
 ] as const;
 export type CodeAvertissement = (typeof CODES_AVERTISSEMENT)[number];
 

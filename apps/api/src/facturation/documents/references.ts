@@ -1,10 +1,11 @@
 import { and, desc, eq, isNull, or } from 'drizzle-orm';
-import type { AdresseStructureeQr } from '@dfa/shared';
+import type { AdresseStructureeQr, StatutDossierVente } from '@dfa/shared';
 
 import type { ContexteTenant, TransactionDfa } from '../../db';
 import {
   client,
   clientAdresse,
+  dossierVente,
   utilisateur,
   vehicule,
   vehiculePlaque,
@@ -54,6 +55,57 @@ export async function verifierVehiculeExiste(
     .limit(1);
   if (!ligne)
     throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Véhicule ${vehiculeId} introuvable.`);
+}
+
+/** États `dossier_vente` FERMÉS (`STATUTS_DOSSIER_VENTE`, `@dfa/shared`) — un document de vente
+ *  (`bon_commande`/`facture`, RV-37) ne peut plus s'y rattacher une fois le dossier clos, annulé ou
+ *  abandonné. Les autres états (`prospection`, `engage`, `en_preparation`, `pret_a_livrer`,
+ *  `livre`) acceptent un rattachement — un bon de commande s'accroche typiquement avant
+ *  l'engagement, une facture (acompte ou solde, plusieurs par dossier possibles) à tout moment
+ *  avant la clôture. Choix documenté, pas tranché par la spécification au moment de cette tâche —
+ *  à confirmer par expert-metier si un état intermédiaire doit en réalité être exclu. */
+const ETATS_DOSSIER_VENTE_FERMES: ReadonlySet<StatutDossierVente> = new Set([
+  'clos',
+  'annule',
+  'abandonne',
+]);
+
+/**
+ * Charge un dossier de vente pour y rattacher un document (`document_vente.dossier_vente_id`,
+ * RV-37/MD-70) — copie locale du patron `chargerClientLigne` ci-dessus (lecture directe du schéma
+ * Drizzle partagé, anti-couplage inter-experts, doctrine de ce module) plutôt qu'un import de
+ * `ventes/references.ts` : ce module ne dépend d'AUCUN service ni fonction d'un autre module
+ * d'expert, seulement des tables qu'il partage.
+ *
+ * Tenant-scopé explicitement (`eq(dossierVente.tenantId, ctx.tenantId)`, le RLS est le filet, pas
+ * le mécanisme) — un `dossierVenteId` d'un autre tenant rend `RESSOURCE_INTROUVABLE`, exactement
+ * comme `chargerClientLigne`/`verifierVehiculeExiste` ci-dessus : la ligne existe en base mais la
+ * clause `where` ne la voit jamais, donc AUCUNE fuite d'information sur son existence réelle.
+ */
+export async function chargerDossierVentePourRattachement(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  dossierVenteId: string,
+): Promise<{ readonly id: string; readonly statut: StatutDossierVente }> {
+  const [ligne] = await tx
+    .select({ id: dossierVente.id, statut: dossierVente.statut })
+    .from(dossierVente)
+    .where(and(eq(dossierVente.tenantId, ctx.tenantId), eq(dossierVente.id, dossierVenteId)))
+    .limit(1);
+  if (!ligne) {
+    throw new ErreurMetier(
+      'RESSOURCE_INTROUVABLE',
+      `Dossier de vente ${dossierVenteId} introuvable.`,
+    );
+  }
+  if (ETATS_DOSSIER_VENTE_FERMES.has(ligne.statut)) {
+    throw new ErreurMetier(
+      'DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE',
+      `Le dossier de vente ${dossierVenteId} est "${ligne.statut}" : il n'accepte plus de nouveau document rattaché (RV-37).`,
+      { detail: `statutActuel=${ligne.statut}` },
+    );
+  }
+  return ligne;
 }
 
 /**

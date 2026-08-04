@@ -173,7 +173,9 @@ export interface ReponseDocumentVente {
   /** `AC-06`, `MD-65` : présent dès qu'une facture provient de l'action serveur de facturation
    *  d'un OR. `null` pour une vente comptoir sans OR. */
   readonly ordreReparationId: string | null;
-  /** `MD-70` : posée pour l'étape 4 (vente de véhicule), toujours `null` en étape 2. */
+  /** `MD-70`/RV-37 : accroche à un dossier de vente (étape 4, VN/VO), posée à la création d'un
+   *  `bon_commande` ou d'une `facture` (voir `dossierVenteId` de `schemaCreationDocumentVente`
+   *  ci-dessous). `null` pour un document sans lien à une vente de véhicule. */
   readonly dossierVenteId: string | null;
   /** `devis → bon_commande → facture` (`MD-14`). `null` pour un document créé directement. */
   readonly documentSourceId: string | null;
@@ -319,6 +321,15 @@ export const schemaCreationDocumentVente = z
     siteId: schemaIdentifiant,
     clientId: schemaIdentifiant,
     vehiculeId: schemaIdentifiant.nullish(),
+    /** `document_vente.dossier_vente_id` (migration `0032_ventes.sql` §8, MD-70) : accroche à un
+     *  dossier de vente VN/VO (étape 4, RV-37). Uniquement pour `bon_commande` (rattaché à
+     *  l'engagement du dossier, `POST /dossiers-vente/{id}/engager`) et `facture` (l'émission
+     *  marque le véhicule du dossier `vendu`, effet de bord programmatique côté serveur) — un
+     *  `devis` ou un `avoir` n'a jamais de raison de porter cette accroche. Le dossier doit
+     *  appartenir au même tenant et être dans un état qui accepte un rattachement (contrôlé
+     *  côté serveur, `DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE`) — non vérifiable ici, un
+     *  schéma zod n'a pas accès à la base. */
+    dossierVenteId: schemaIdentifiant.nullish(),
     /** `devis → bon_commande → facture` (`MD-14`, `RF-8`) : un document source ne peut être
      *  transformé qu'une fois — contrôlé côté serveur (`DOCUMENT_SOURCE_DEJA_TRANSFORME`). */
     documentSourceId: schemaIdentifiant.nullish(),
@@ -338,7 +349,15 @@ export const schemaCreationDocumentVente = z
   .refine((v) => v.typeDocument === 'facture' || v.natureFacture == null, {
     message: "`natureFacture` n'existe que pour `typeDocument = 'facture'` (MD-12).",
     path: ['natureFacture'],
-  });
+  })
+  .refine(
+    (v) =>
+      v.dossierVenteId == null || v.typeDocument === 'bon_commande' || v.typeDocument === 'facture',
+    {
+      message: "`dossierVenteId` n'est accepté que pour un bon de commande ou une facture (RV-37).",
+      path: ['dossierVenteId'],
+    },
+  );
 
 export type EntreeCreationDocumentVente = z.infer<typeof schemaCreationDocumentVente>;
 

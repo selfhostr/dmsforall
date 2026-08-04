@@ -134,6 +134,11 @@ function serviceFactice(tx: TransactionDfa) {
   const compteurs = { prochainNumero: vi.fn(async () => 7) };
   const horloge = { maintenant: () => new Date('2026-07-30T10:00:00.000Z') };
   const documents = { assemblerDocument: vi.fn(async () => ({ id: AVOIR_ID })) };
+  // RV-37 : jamais exercé par les tests de CE fichier (`avoirFixture` n'a pas de `dossierVenteId`,
+  // et `typeDocument` y est toujours `'avoir'` — `marquerVehiculeVenduSiApplicable` retourne `null`
+  // avant même de regarder `vehiculeStock`). Voir `service-emission-marquage-vendu.spec.ts` pour le
+  // comportement de `vehiculeStock.marquerVendu`, dédié.
+  const vehiculeStock = { marquerVendu: vi.fn() };
   const service = new ServiceEmissionDocument(
     {} as never, // `acces` (JETON_DB) : jamais exercé par `emettre()`, seul `idempotence.executer` l'est.
     idempotence as never,
@@ -141,8 +146,9 @@ function serviceFactice(tx: TransactionDfa) {
     compteurs as never,
     horloge as never,
     documents as never,
+    vehiculeStock as never,
   );
-  return { service, idempotence, evenements, compteurs, horloge, documents };
+  return { service, idempotence, evenements, compteurs, horloge, documents, vehiculeStock };
 }
 
 beforeEach(() => {

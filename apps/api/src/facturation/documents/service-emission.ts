@@ -1,6 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 import type {
+  Avertissement,
   EntreeAnnulerDocument,
   EntreeRefuserDocument,
   ReponseAvecAvertissements,
@@ -27,6 +28,10 @@ import {
 } from '../../common/idempotence';
 import { JETON_COMPTEURS } from '../../parametrage/compteurs/compteurs.jetons';
 import type { ServiceCompteurs } from '../../parametrage/compteurs/compteurs.types';
+// Import de CLASSE (jamais `import type`, règle du dépôt — l'injection casse à l'exécution, pas à
+// la compilation) : `ServiceVehiculeStock` est exporté par `VentesModule` précisément pour cette
+// injection croisée (voir sa docstring, `ventes/service-vehicule-stock.ts::marquerVendu`).
+import { ServiceVehiculeStock } from '../../ventes/service-vehicule-stock';
 
 import {
   agregerTvaParTauxRegime,
@@ -55,6 +60,8 @@ import { adresseDepuisJsonb, ServiceDocumentsVente } from './service-documents';
  */
 @Injectable()
 export class ServiceEmissionDocument {
+  private readonly journal = new Logger(ServiceEmissionDocument.name);
+
   constructor(
     @Inject(JETON_DB) private readonly acces: AccesBase,
     @Inject(JETON_IDEMPOTENCE) private readonly idempotence: ServiceIdempotence,
@@ -62,6 +69,7 @@ export class ServiceEmissionDocument {
     @Inject(JETON_COMPTEURS) private readonly compteurs: ServiceCompteurs,
     private readonly horloge: Horloge,
     private readonly documents: ServiceDocumentsVente,
+    private readonly vehiculeStock: ServiceVehiculeStock,
   ) {}
 
   /**
@@ -85,7 +93,7 @@ export class ServiceEmissionDocument {
       ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseDocumentVente> }
     >
   > {
-    return this.idempotence.executer(
+    const resultat = await this.idempotence.executer(
       ctx,
       {
         methode: 'POST',
@@ -342,6 +350,114 @@ export class ServiceEmissionDocument {
         return { statutHttp: 200, corps: { donnees: document, avertissements: [] } };
       },
     );
+
+    // RV-37/MD-70 : DÉLIBÉRÉMENT après la fin de la transaction ci-dessus, jamais dedans — voir la
+    // docstring de `marquerVehiculeVenduSiApplicable` pour le raisonnement complet. Sur un REJEU
+    // (`rejoue: true`), `travail` ne s'est pas ré-exécuté : rien de neuf à marquer, et retenter
+    // exposerait sans bénéfice le rôle "véhicule déjà vendu" (CONFLIT) au premier rejeu qui suit un
+    // marquage réussi — même doctrine que `evenements.publier`, jamais réémis au rejeu.
+    if (resultat.rejoue) return resultat;
+
+    const avertissementVente = await this.marquerVehiculeVenduSiApplicable(
+      ctx,
+      principal,
+      resultat.reponse.corps.donnees,
+    );
+    if (!avertissementVente) return resultat;
+
+    return {
+      ...resultat,
+      reponse: {
+        ...resultat.reponse,
+        corps: {
+          ...resultat.reponse.corps,
+          avertissements: [...resultat.reponse.corps.avertissements, avertissementVente],
+        },
+      },
+    };
+  }
+
+  /**
+   * RV-37/MD-70 : une FACTURE rattachée à un dossier de vente (`document_vente.dossier_vente_id`)
+   * marque son véhicule `vendu` (`reserve -> vendu`, `ServiceVehiculeStock.marquerVendu`) — un
+   * effet de bord PROGRAMMATIQUE explicitement anticipé par la docstring de cette méthode
+   * (« USAGE NORMAL : effet de bord... à l'émission de la facture »).
+   *
+   * PAS DANS LA MÊME TRANSACTION SQL QUE L'ÉMISSION CI-DESSUS — constat technique, pas un choix de
+   * confort. `ServiceVehiculeStock.marquerVendu` appelle `AccesBase.enTenant`, qui ouvre sa PROPRE
+   * transaction via `NodePgSession.transaction()` (`drizzle-orm/node-postgres/session.js`) :
+   * `isPool = this.client instanceof Pool`, TOUJOURS vrai pour `AccesBase` (bindée au `Pool`, jamais
+   * à une connexion unique) — donc `await this.client.connect()` PREND UNE CONNEXION NEUVE DU POOL,
+   * même appelée depuis l'intérieur du callback `travail(tx)` ci-dessus. Deux `BEGIN`/`COMMIT`
+   * indépendants, sur deux connexions différentes : aucun rollback de l'un n'annule l'autre. Seul
+   * `NodePgTransaction.transaction()` (appelé SUR un `tx` déjà ouvert, pas sur `AccesBase`) pose un
+   * vrai `SAVEPOINT` atomique — `ServiceVehiculeStock` n'expose aujourd'hui aucune méthode qui
+   * accepte un `tx` externe pour l'emprunter, et lui en ajouter une sort du périmètre d'écriture de
+   * cet agent (`ventes/service-vehicule-stock.ts`, explicitement interdit). SIGNALÉ à
+   * l'orchestrateur, pas tranché seul : la vraie atomicité "même transaction" demandée par la tâche
+   * exige une méthode `ventes/` supplémentaire prenant un `TransactionDfa` déjà ouvert.
+   *
+   * ORDRE choisi EN CONSÉQUENCE, pour ne jamais produire le pire des deux résultats possibles : la
+   * facture est déjà COMMISE DURABLEMENT (transaction ci-dessus déjà terminée) avant toute tentative
+   * de marquage — donc "véhicule vendu sans facture émise" ne peut PLUS arriver depuis ce chemin. Si
+   * le marquage échoue ENSUITE, l'inverse se produit ("facture émise, véhicule pas encore vendu") :
+   * état dégradé, mais recouvrable EXPRÈS PAR CONCEPTION (`POST /vehicules/{id}/stock/marquer-vendu`,
+   * `ventes.vehicule_stock.corriger`, dont la docstring anticipe littéralement ce cas). Jamais
+   * silencieux : journalisé en ERROR ET remonté en avertissement dans LA RÉPONSE DE CETTE REQUÊTE
+   * (pas dans le corps mémorisé pour le rejeu idempotent, déjà écrit avant que cette méthode ne
+   * s'exécute — un rejeu ultérieur ne reverra donc pas cet avertissement précis, limite acceptée).
+   *
+   * Rend `null` si rien à signaler (document pas concerné, ou marquage réussi).
+   */
+  private async marquerVehiculeVenduSiApplicable(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    doc: ReponseDocumentVente,
+  ): Promise<Avertissement | null> {
+    if (doc.typeDocument !== 'facture' || !doc.dossierVenteId) return null;
+
+    const libelle = doc.numero ?? doc.id;
+
+    if (!doc.vehiculeId) {
+      this.journal.error(
+        `RV-37 : facture ${libelle} rattachée au dossier de vente ${doc.dossierVenteId} sans ` +
+          `vehiculeId — marquage vendu impossible.`,
+      );
+      return {
+        code: 'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE',
+        message:
+          `La facture ${libelle} a été émise, mais aucun véhicule ne lui est associé : le ` +
+          `véhicule du dossier de vente ${doc.dossierVenteId} n'a pas pu être marqué vendu ` +
+          `(à corriger manuellement, POST /vehicules/{id}/stock/marquer-vendu).`,
+        donnees: { documentId: doc.id, dossierVenteId: doc.dossierVenteId },
+      };
+    }
+
+    try {
+      await this.vehiculeStock.marquerVendu(ctx, principal.role, doc.vehiculeId, {
+        motif: `Facture ${libelle} émise (RV-37).`,
+      });
+      return null;
+    } catch (erreur) {
+      const messageErreur = erreur instanceof Error ? erreur.message : String(erreur);
+      this.journal.error(
+        `RV-37 : marquage vendu du véhicule ${doc.vehiculeId} en échec après émission de la ` +
+          `facture ${libelle} (dossier ${doc.dossierVenteId}) : ${messageErreur}`,
+      );
+      return {
+        code: 'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE',
+        message:
+          `La facture ${libelle} a été émise, mais le véhicule ${doc.vehiculeId} n'a pas pu être ` +
+          `marqué vendu automatiquement (à corriger manuellement, ` +
+          `POST /vehicules/{id}/stock/marquer-vendu).`,
+        donnees: {
+          documentId: doc.id,
+          dossierVenteId: doc.dossierVenteId,
+          vehiculeId: doc.vehiculeId,
+          erreur: messageErreur,
+        },
+      };
+    }
   }
 
   /** `POST /documents-vente/{id}/accepter` — devis uniquement (`devis.emis → accepte`, terminal). */

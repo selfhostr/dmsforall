@@ -42,6 +42,7 @@ import { mapperDocument, mapperLigneDocument, type TotauxDocumentMappes } from '
 import {
   chargerAdresseFacturationStructuree,
   chargerClientLigne,
+  chargerDossierVentePourRattachement,
   chargerPlaqueVehiculeCourante,
   chargerResumeUtilisateur,
   nomAfficheClient,
@@ -97,6 +98,12 @@ export class ServiceDocumentsVente {
       async (tx) => {
         const clientLigne = await chargerClientLigne(tx, ctx, entree.clientId);
         if (entree.vehiculeId) await verifierVehiculeExiste(tx, ctx, entree.vehiculeId);
+        // RV-37/MD-70 : tenant + état vérifiés ICI, dans la transaction — un dossier étranger ou
+        // fermé (clos/annule/abandonne) fait échouer la création AVANT toute écriture, même patron
+        // que `verifierVehiculeExiste` juste au-dessus.
+        if (entree.dossierVenteId) {
+          await chargerDossierVentePourRattachement(tx, ctx, entree.dossierVenteId);
+        }
 
         if (entree.documentSourceId) {
           await this.transformerSource(tx, ctx, entree.documentSourceId, entree.typeDocument);
@@ -119,6 +126,7 @@ export class ServiceDocumentsVente {
                 : 'ordinaire',
             clientId: entree.clientId,
             vehiculeId: entree.vehiculeId ?? null,
+            dossierVenteId: entree.dossierVenteId ?? null,
             documentSourceId: entree.documentSourceId ?? null,
             clientDesignationFigee: nomAfficheClient(clientLigne),
             clientIdeFige: clientLigne.ide,

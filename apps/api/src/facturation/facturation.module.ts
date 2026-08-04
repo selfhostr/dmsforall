@@ -7,6 +7,7 @@ import { ServiceDocumentsVente } from './documents/service-documents';
 import { ServiceEmissionDocument } from './documents/service-emission';
 import { ExportModule } from './export/export.module';
 import { PaiementsModule } from './paiements/paiements.module';
+import { VentesModule } from '../ventes/ventes.module';
 
 /**
  * Façade HTTP de la facturation (étape 2) — chaîne devis → bon de commande → facture → avoir
@@ -37,6 +38,13 @@ import { PaiementsModule } from './paiements/paiements.module';
  *    cet agent eut délibérément laissé `ExportModule.controllers: []` plutôt que de contourner le
  *    typage strict d'`Action` par une assertion. `ExportModule` ne dépend que de jetons `@Global`
  *    déjà fournis par `AppModule` : rien à fournir ici non plus.
+ *  - `ventes/` : câblé (`imports: [VentesModule]`), AUCUN contrôleur importé (`VentesModule`
+ *    déclare les siens). Seul `ServiceVehiculeStock` (exporté par `VentesModule`) est injecté dans
+ *    `ServiceEmissionDocument`, pour marquer `vendu` le véhicule d'un dossier de vente à l'émission
+ *    d'une facture rattachée (RV-37/MD-70, voir la docstring de
+ *    `ServiceEmissionDocument.marquerVehiculeVenduSiApplicable` pour la limite d'atomicité connue
+ *    et documentée). Pas de dépendance inverse : `VentesModule` n'importe jamais
+ *    `FacturationModule` (vérifié dans `ventes/ventes.module.ts`), aucun cycle de modules.
  *  - `qr/` : `ReponseDocumentVente.qr` est rendu `null` par ce lot (voir `documents/mappeurs.ts`).
  *    Câbler `qr/encodeur.ts` dans `ServiceEmissionDocument.emettre()` (§4-5, entre le recalcul des
  *    lignes et l'écriture du numéro) exige au minimum : le bloc créancier (IBAN + adresse du
@@ -52,7 +60,7 @@ import { PaiementsModule } from './paiements/paiements.module';
  * `CommonModule`, tous deux `@Global`, importés une fois depuis `AppModule`.
  */
 @Module({
-  imports: [PaiementsModule, ExportModule],
+  imports: [PaiementsModule, ExportModule, VentesModule],
   controllers: [DocumentVenteController, DocumentVenteTransitionsController],
   providers: [ServiceDocumentsVente, ServiceEmissionDocument, ServiceAvoir],
   exports: [ServiceDocumentsVente, ServiceEmissionDocument, ServiceAvoir],
