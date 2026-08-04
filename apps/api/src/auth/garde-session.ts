@@ -107,7 +107,7 @@ export class GardeSession implements CanActivate {
       if (origineRecue === origineAttendue) return;
       if (
         this.config.NODE_ENV !== 'production' &&
-        this.originesLoopbackEquivalentes(origineRecue, origineAttendue)
+        this.originesReseauLocalEquivalentes(origineRecue, origineAttendue)
       ) {
         return;
       }
@@ -122,27 +122,66 @@ export class GardeSession implements CanActivate {
 
   /**
    * Tolérance de développement, EXCLUE en production (`NODE_ENV === 'production'` la
-   * court-circuite avant même d'appeler cette méthode) : `localhost` et `127.0.0.1` désignent la
-   * même machine loopback, donc la même frontière de confiance qu'un navigateur — un attaquant
-   * distant ne peut usurper ni l'un ni l'autre (l'en-tête `Origin` n'est pas falsifiable
-   * cross-site). Cause racine du bug reproduit : `vite.config.ts` écoute sur `0.0.0.0`
+   * court-circuite avant même d'appeler cette méthode) : deux hôtes qui désignent chacun soit la
+   * machine loopback, soit une adresse de réseau local privé (RFC 1918), sont traités comme la
+   * même frontière de confiance qu'un navigateur — un attaquant distant ne peut usurper ni l'un ni
+   * l'autre (l'en-tête `Origin` n'est pas falsifiable cross-site ; seul un poste déjà sur le réseau
+   * local ou la machine elle-même peut émettre cette origine).
+   *
+   * Cause racine du premier bug reproduit : `vite.config.ts` écoute sur `0.0.0.0`
    * (`server.host: true`, nécessaire pour l'accès depuis un conteneur Docker), ce qui rend le
    * front joignable aussi bien via `http://localhost:5173` que `http://127.0.0.1:5173` — mais
-   * `WEB_URL_PUBLIQUE` ne fixe qu'une seule valeur. Un navigateur ouvert sur la variante non
-   * configurée obtenait `403 AUTH_ORIGINE_REFUSEE` sur CHAQUE requête mutante, dont le login.
-   * Portée volontairement étroite : seuls `localhost`/`127.0.0.1` (jamais un autre hôte) avec le
-   * même schéma et le même port sont équivalents — ni un hôte LAN, ni un domaine tiers.
+   * `WEB_URL_PUBLIQUE` ne fixe qu'une seule valeur.
+   *
+   * Cause racine du second bug reproduit (celui-ci) : le même serveur de dev, joint depuis une
+   * AUTRE machine du réseau local (ex. un téléphone via `http://192.168.1.42:5173`), envoie un
+   * `Origin` qui n'est ni `localhost` ni `127.0.0.1` — la tolérance initiale, bornée aux deux seuls
+   * hôtes loopback, ne le couvrait pas. Un navigateur ouvert sur cette variante obtenait
+   * `403 AUTH_ORIGINE_REFUSEE` sur CHAQUE requête mutante, dont le login.
+   *
+   * Portée volontairement étroite :
+   *  - chaque hôte (reçu ET configuré) doit être loopback OU une IPv4 privée RFC 1918
+   *    (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`) — jamais un domaine public ni une IP
+   *    publique, même en dev ;
+   *  - même schéma et même port des deux côtés ;
+   *  - vérifier que l'hôte CONFIGURÉ (`WEB_URL_PUBLIQUE`) est lui aussi loopback/privé est ce qui
+   *    empêche cette tolérance de s'appliquer en production même si `NODE_ENV` était mal
+   *    positionné : une vraie URL publique de production est un nom de domaine, jamais une IP
+   *    privée ni `localhost`.
    */
-  private originesLoopbackEquivalentes(a: string, b: string): boolean {
-    const HOTES_LOOPBACK = new Set(['localhost', '127.0.0.1']);
+  private originesReseauLocalEquivalentes(a: string, b: string): boolean {
     const urlA = new URL(a);
     const urlB = new URL(b);
     return (
-      HOTES_LOOPBACK.has(urlA.hostname) &&
-      HOTES_LOOPBACK.has(urlB.hostname) &&
+      this.hoteEstLoopbackOuPrive(urlA.hostname) &&
+      this.hoteEstLoopbackOuPrive(urlB.hostname) &&
       urlA.protocol === urlB.protocol &&
       urlA.port === urlB.port
     );
+  }
+
+  private hoteEstLoopbackOuPrive(hostname: string): boolean {
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+    return this.estIpv4Privee(hostname);
+  }
+
+  /**
+   * IPv4 uniquement (l'IPv6 n'est pas dans le périmètre de ce bug — le serveur de dev n'y écoute
+   * pas). Plages RFC 1918 : `10.0.0.0/8`, `172.16.0.0/12` (2e octet 16 à 31 INCLUS, piège classique
+   * : `172.32.0.1` n'en fait PAS partie), `192.168.0.0/16`.
+   */
+  private estIpv4Privee(hostname: string): boolean {
+    const correspondance = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(hostname);
+    if (!correspondance) return false;
+
+    const octets = correspondance.slice(1).map(Number);
+    if (octets.some((octet) => octet < 0 || octet > 255)) return false;
+
+    const [premier, second] = octets as [number, number, number, number];
+    if (premier === 10) return true;
+    if (premier === 172 && second >= 16 && second <= 31) return true;
+    if (premier === 192 && second === 168) return true;
+    return false;
   }
 
   private lireCookieSession(req: Request): string | null {

@@ -212,7 +212,7 @@ describe('GardeSession — tolérance loopback localhost/127.0.0.1 (dev uniqueme
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ErreurOrigineRefusee);
   });
 
-  it("refuse un hôte LAN/tiers en dev : la tolérance ne s'étend jamais au-delà de localhost/127.0.0.1", async () => {
+  it("accepte, en dev, un POST dont l'Origin est une IP privée du réseau local (ex. téléphone accédant au serveur de dev via 192.168.1.42) alors que WEB_URL_PUBLIQUE vaut http://localhost:5173", async () => {
     const { context } = contexteExecutionTest({
       method: 'POST',
       origin: 'http://192.168.1.42:5173',
@@ -229,7 +229,109 @@ describe('GardeSession — tolérance loopback localhost/127.0.0.1 (dev uniqueme
       contexteRequete,
     );
 
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+  });
+
+  it('refuse la même IP privée du réseau local en production (NODE_ENV=production)', async () => {
+    const { context } = contexteExecutionTest({
+      method: 'POST',
+      origin: 'http://192.168.1.42:5173',
+      cookies: { dfa_session: 'jeton' },
+    });
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
+    const guard = new GardeSession(
+      reflectorTest(false),
+      configLoopback('production'),
+      serviceSessionTest(async () => PRINCIPAL_TEST),
+      contexteRequete,
+    );
+
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ErreurOrigineRefusee);
+  });
+
+  it('refuse un port différent même sur une IP privée en dev (192.168.1.42:9999 ≠ localhost:5173)', async () => {
+    const { context } = contexteExecutionTest({
+      method: 'POST',
+      origin: 'http://192.168.1.42:9999',
+      cookies: { dfa_session: 'jeton' },
+    });
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
+    const guard = new GardeSession(
+      reflectorTest(false),
+      configLoopback('development'),
+      serviceSessionTest(async () => PRINCIPAL_TEST),
+      contexteRequete,
+    );
+
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ErreurOrigineRefusee);
+  });
+
+  it("refuse une IP publique en dev : la tolérance ne s'étend jamais au-delà de loopback/RFC 1918", async () => {
+    const { context } = contexteExecutionTest({
+      method: 'POST',
+      origin: 'http://203.0.113.10:5173',
+      cookies: { dfa_session: 'jeton' },
+    });
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
+    const guard = new GardeSession(
+      reflectorTest(false),
+      configLoopback('development'),
+      serviceSessionTest(async () => PRINCIPAL_TEST),
+      contexteRequete,
+    );
+
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ErreurOrigineRefusee);
+  });
+
+  it('refuse 172.32.0.1 en dev : juste hors de la plage RFC 1918 172.16.0.0/12 (2e octet 16 à 31 seulement)', async () => {
+    const { context } = contexteExecutionTest({
+      method: 'POST',
+      origin: 'http://172.32.0.1:5173',
+      cookies: { dfa_session: 'jeton' },
+    });
+    const contexteRequete = {
+      attacherPrincipal: vi.fn(),
+      actuelOuNull: vi.fn(),
+    } as unknown as ServiceContexteRequete;
+    const guard = new GardeSession(
+      reflectorTest(false),
+      configLoopback('development'),
+      serviceSessionTest(async () => PRINCIPAL_TEST),
+      contexteRequete,
+    );
+
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ErreurOrigineRefusee);
+  });
+
+  it('accepte 172.16.0.1 et 172.31.255.255 en dev : bornes incluses de la plage 172.16.0.0/12', async () => {
+    for (const hote of ['172.16.0.1', '172.31.255.255']) {
+      const { context } = contexteExecutionTest({
+        method: 'POST',
+        origin: `http://${hote}:5173`,
+        cookies: { dfa_session: 'jeton' },
+      });
+      const contexteRequete = {
+        attacherPrincipal: vi.fn(),
+        actuelOuNull: vi.fn(),
+      } as unknown as ServiceContexteRequete;
+      const guard = new GardeSession(
+        reflectorTest(false),
+        configLoopback('development'),
+        serviceSessionTest(async () => PRINCIPAL_TEST),
+        contexteRequete,
+      );
+
+      await expect(guard.canActivate(context)).resolves.toBe(true);
+    }
   });
 });
 
