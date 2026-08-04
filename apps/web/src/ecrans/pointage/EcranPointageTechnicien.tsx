@@ -20,6 +20,7 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
+import { compterLignesAssigneesPointables } from '@/hooks/pointage/lignes-assignees';
 import { useArreterPointage } from '@/hooks/pointage/useArreterPointage';
 import { useDemarrerPointage } from '@/hooks/pointage/useDemarrerPointage';
 import { useMesOrdresAssignes } from '@/hooks/pointage/useMesOrdresAssignes';
@@ -434,7 +435,13 @@ export function EcranPointageTechnicien() {
                       </div>
                       <span className="texte-libelle text-muted-foreground">
                         {t('pointage:technicien.mesOrs.lignesAssignees', {
-                          count: or.nombreLignes,
+                          // `or.nombreLignes` compte TOUTES les lignes de l'OR côté serveur, sans
+                          // distinction de technicien (voir `mes-ordres-assignes.api.ts`) — jamais
+                          // ce qu'il faut afficher ici. `compterLignesAssigneesPointables` applique
+                          // le même critère que `DialogueChoixCiblePointage` (technicien courant +
+                          // ligne pointable), pour que la carte et le détail montrent toujours le
+                          // même nombre.
+                          count: compterLignesAssigneesPointables(or, technicienId),
                         })}
                       </span>
                     </button>

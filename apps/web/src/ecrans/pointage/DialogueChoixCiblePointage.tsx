@@ -8,24 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
-
-/**
- * Lignes qu'un technicien peut raisonnablement pointer : jamais `refusee`/`annulee` (RM-93 les
- * refuse au démarrage, `409 POINTAGE_LIGNE_NON_POINTABLE`) ni `facturee` (déjà figée). Un filtrage
- * d'ERGONOMIE — le serveur reste l'arbitre final si l'état a changé entre le chargement de l'OR et
- * le clic (l'écran affiche alors l'erreur serveur normalement, via `messageErreur`).
- */
-const STATUTS_LIGNE_POINTABLE = new Set([
-  'proposee',
-  'a_valider',
-  'validee',
-  'en_cours',
-  'realisee',
-]);
-
-function ligneEstPointable(ligne: ReponseLigneOr): boolean {
-  return STATUTS_LIGNE_POINTABLE.has(ligne.statut);
-}
+import { lignesAssigneesPointables } from '@/hooks/pointage/lignes-assignees';
 
 interface Props {
   readonly ouvert: boolean;
@@ -54,9 +37,9 @@ export function DialogueChoixCiblePointage({
 }: Props) {
   const { t } = useTranslation(['pointage', 'commun']);
 
-  const lignesAssignees = (requeteOr.data?.lignes ?? []).filter(
-    (ligne) => ligne.technicienId === technicienId && ligneEstPointable(ligne),
-  );
+  const lignesAssignees = requeteOr.data
+    ? lignesAssigneesPointables(requeteOr.data, technicienId)
+    : [];
 
   return (
     <Dialog open={ouvert} onOpenChange={(valeur) => !valeur && onFermer()}>

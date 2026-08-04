@@ -6,11 +6,12 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type {
-  OrdreReparationResume,
+  ClientResume,
   PageCurseur,
   ReponseLigneOr,
   ReponseOrdreReparation,
   ReponsePointage,
+  VehiculeResume,
 } from '@dfa/shared';
 
 import '@/i18n';
@@ -42,7 +43,9 @@ beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 
-function pageOrdres(donnees: readonly OrdreReparationResume[]): PageCurseur<OrdreReparationResume> {
+function pageOrdres(
+  donnees: readonly ReponseOrdreReparation[],
+): PageCurseur<ReponseOrdreReparation> {
   return { donnees, curseurSuivant: null, limite: 50 };
 }
 
@@ -50,38 +53,28 @@ function pagePointages(donnees: readonly ReponsePointage[]): PageCurseur<Reponse
   return { donnees, curseurSuivant: null, limite: 50 };
 }
 
-const OR_ASSIGNE: OrdreReparationResume = {
-  id: 'or-1',
-  numero: 'OR-000123',
-  statut: 'ouvert',
-  etatAffiche: 'ouvert',
-  type: 'reparation',
-  localisation: 'atelier',
-  ouvertLe: '2026-08-03T06:00:00.000Z',
-  restitutionPromiseLe: null,
-  vehicule: {
-    id: 'veh-1',
-    plaque: '123456',
-    canton: 'VD',
-    designation: 'VW Touran 2.0 TDI',
-    vin: null,
-    premiereMiseEnCirculationLe: null,
-    identificationIncomplete: false,
-  },
-  client: {
-    id: 'cl-1',
-    numeroClient: 'CL-000123',
-    nomAffiche: 'Jean Dupont',
-    type: 'particulier',
-    statut: 'actif',
-    langueCorrespondance: 'fr',
-    poObligatoire: false,
-    telephone: null,
-    localite: 'Lausanne',
-    nombreVehicules: 1,
-    dernierPassageLe: null,
-  },
-  nombreLignes: 2,
+const VEHICULE_TEST: VehiculeResume = {
+  id: 'veh-1',
+  plaque: '123456',
+  canton: 'VD',
+  designation: 'VW Touran 2.0 TDI',
+  vin: null,
+  premiereMiseEnCirculationLe: null,
+  identificationIncomplete: false,
+};
+
+const CLIENT_TEST: ClientResume = {
+  id: 'cl-1',
+  numeroClient: 'CL-000123',
+  nomAffiche: 'Jean Dupont',
+  type: 'particulier',
+  statut: 'actif',
+  langueCorrespondance: 'fr',
+  poObligatoire: false,
+  telephone: null,
+  localite: 'Lausanne',
+  nombreVehicules: 1,
+  dernierPassageLe: null,
 };
 
 const POINTAGE_EN_COURS: ReponsePointage = {
@@ -106,10 +99,15 @@ const POINTAGE_EN_COURS: ReponsePointage = {
   modifieLe: new Date().toISOString(),
 };
 
-/** Réponse complète (`GET /ordres-reparation/:id`) nécessaire à `DialogueChoixCiblePointage` —
- *  `OR_ASSIGNE` ci-dessus n'est que le `OrdreReparationResume` de la liste « Mes OR du jour ».
- *  Champs alignés sur `construireOr` d'`EcranFicheOrdreReparation.spec.tsx` pour rester cohérent
- *  avec la convention de fixture déjà en usage dans le dépôt. */
+/** Réponse complète, utilisée à la fois pour `GET /ordres-reparation` (« Mes OR du jour », voir
+ *  `OR_ASSIGNE` ci-dessous) et `GET /ordres-reparation/:id` (`DialogueChoixCiblePointage`) : les
+ *  deux endpoints renvoient RÉELLEMENT le même document complet côté serveur (`ServiceOr.lister`
+ *  délègue à `assemblerDocument`, voir le commentaire de `mes-ordres-assignes.api.ts`) — avant le
+ *  correctif du bug carte/détail (OR-2026-15), ce fichier typait à tort la liste en
+ *  `OrdreReparationResume` (projection sans `lignes`), ce qui masquait que le compteur de la carte
+ *  ne pouvait pas filtrer par technicien. Champs alignés sur `construireOr` d'
+ *  `EcranFicheOrdreReparation.spec.tsx` pour rester cohérent avec la convention de fixture déjà en
+ *  usage dans le dépôt. */
 function construireOrDetail(
   overrides: Partial<ReponseOrdreReparation> = {},
 ): ReponseOrdreReparation {
@@ -119,8 +117,8 @@ function construireOrDetail(
     siteId: 'site-1',
     type: 'reparation',
     statut: 'ouvert',
-    client: OR_ASSIGNE.client,
-    vehicule: OR_ASSIGNE.vehicule,
+    client: CLIENT_TEST,
+    vehicule: VEHICULE_TEST,
     figees: {
       clientDesignation: 'Jean Dupont',
       adresseFacturation: null,
@@ -164,6 +162,51 @@ function construireOrDetail(
     creeLe: '2026-08-03T06:00:00.000Z',
     modifieLe: '2026-08-03T06:00:00.000Z',
     modifiePar: null,
+    ...overrides,
+  };
+}
+
+/** `OR_ASSIGNE` = ce que renvoie `GET /ordres-reparation` pour « Mes OR du jour » : le document
+ *  complet (voir le commentaire de `construireOrDetail` ci-dessus), avec `nombreLignes: 2` mais
+ *  `lignes: []` par défaut — les tests qui n'ont pas besoin de vérifier le compteur de lignes
+ *  assignées passent leurs propres `lignes` via `construireOrDetail({ lignes: [...] })`. */
+const OR_ASSIGNE: ReponseOrdreReparation = construireOrDetail();
+
+function construireLigne(overrides: Partial<ReponseLigneOr> = {}): ReponseLigneOr {
+  return {
+    id: 'ligne-1',
+    ordreReparationId: 'or-1',
+    numeroOrdre: 1,
+    type: 'fourniture',
+    origine: 'constatee',
+    statut: 'en_cours',
+    payeur: 'client',
+    payeurClientId: null,
+    blocage: 'aucun',
+    designation: 'Plaquettes de frein avant',
+    referenceTexte: null,
+    articleId: null,
+    quantiteMillieme: 1000,
+    tempsBaremeCentiemes: null,
+    tempsBaremeConstructeurCentiemes: null,
+    tempsReelCentiemes: null,
+    rabaisPourmille: 0,
+    tauxTvaPourmille: 81,
+    figeLe: null,
+    technicienId: null,
+    codeOperation: null,
+    codeDefaut: null,
+    numeroSinistre: null,
+    numeroAccord: null,
+    urgence: null,
+    securite: false,
+    fournieParClient: false,
+    aRestituer: false,
+    restituee: false,
+    motifAnnulation: null,
+    factureId: null,
+    creeLe: '2026-08-03T06:00:00.000Z',
+    modifieLe: '2026-08-03T06:00:00.000Z',
     ...overrides,
   };
 }
@@ -253,41 +296,11 @@ describe('EcranPointageTechnicien', () => {
   });
 
   it('affiche correctement un bouton de ligne avec une désignation très longue', async () => {
-    const ligneLongue: ReponseLigneOr = {
+    const ligneLongue = construireLigne({
       id: 'ligne-longue',
-      ordreReparationId: 'or-1',
-      numeroOrdre: 1,
-      type: 'fourniture',
-      origine: 'constatee',
-      statut: 'en_cours',
-      payeur: 'client',
-      payeurClientId: null,
-      blocage: 'aucun',
       designation: 'Kit plaquettes + disques de frein arrière (sur commande fournisseur)',
-      referenceTexte: null,
-      articleId: null,
-      quantiteMillieme: 1000,
-      tempsBaremeCentiemes: null,
-      tempsBaremeConstructeurCentiemes: null,
-      tempsReelCentiemes: null,
-      rabaisPourmille: 0,
-      tauxTvaPourmille: 81,
-      figeLe: null,
       technicienId: SESSION_TEST.utilisateur.id,
-      codeOperation: null,
-      codeDefaut: null,
-      numeroSinistre: null,
-      numeroAccord: null,
-      urgence: null,
-      securite: false,
-      fournieParClient: false,
-      aRestituer: false,
-      restituee: false,
-      motifAnnulation: null,
-      factureId: null,
-      creeLe: '2026-08-03T06:00:00.000Z',
-      modifieLe: '2026-08-03T06:00:00.000Z',
-    };
+    });
 
     const orDetailAvecLignesLongues = construireOrDetail({ lignes: [ligneLongue] });
 
@@ -373,4 +386,85 @@ describe('EcranPointageTechnicien', () => {
       }
     },
   );
+
+  it(
+    'carte et détail affichent le même nombre — régression OR-2026-15 : lignes non assignées à ' +
+      'ce technicien (`technicienId: null`), la carte affichait « 2 lignes qui vous sont ' +
+      'assignées » quand le détail affichait « Aucune ligne assignée »',
+    async () => {
+      const ligneNonAssignee1 = construireLigne({ id: 'ligne-1', technicienId: null });
+      const ligneNonAssignee2 = construireLigne({ id: 'ligne-2', technicienId: null });
+      // `nombreLignes: 2` (le total serveur, non filtré) délibérément conservé égal au nombre de
+      // lignes : c'est exactement ce total que le bug utilisait à tort comme compteur affiché.
+      const orNonAssigne = construireOrDetail({
+        lignes: [ligneNonAssignee1, ligneNonAssignee2],
+        nombreLignes: 2,
+      });
+
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([orNonAssigne]))),
+        http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(orNonAssigne)),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      // La carte : aucune des deux lignes n'est assignée à CE technicien — le compteur doit
+      // afficher 0, jamais `nombreLignes` (2, le total serveur non filtré).
+      expect(await screen.findByText('0 ligne qui vous est assignée')).toBeInTheDocument();
+      expect(screen.queryByText(/lignes qui vous sont assignées/)).not.toBeInTheDocument();
+
+      // Le détail doit annoncer EXACTEMENT la même chose : aucune ligne assignée.
+      await utilisateur.click(screen.getByText('OR-000123'));
+      expect(
+        await screen.findByText(
+          "Aucune ligne ne vous est assignée sur cet OR — vous pouvez pointer sur l'OR entier.",
+        ),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it('carte : compte uniquement les lignes assignées au technicien courant, pas le total de l’OR', async () => {
+    const idTechnicien = SESSION_TEST.utilisateur.id;
+    const ligneAMoi1 = construireLigne({
+      id: 'ligne-a',
+      technicienId: idTechnicien,
+      designation: 'Vidange',
+    });
+    const ligneAMoi2 = construireLigne({
+      id: 'ligne-b',
+      technicienId: idTechnicien,
+      designation: 'Contrôle freins',
+    });
+    const ligneAutreTechnicien = construireLigne({
+      id: 'ligne-c',
+      technicienId: 'un-autre-technicien',
+      designation: 'Pneus',
+    });
+    // 2 lignes m'appartiennent, 1 appartient à un collègue : le compteur doit valoir 2, pas
+    // `nombreLignes` (3, le total de l'OR).
+    const or = construireOrDetail({
+      lignes: [ligneAMoi1, ligneAMoi2, ligneAutreTechnicien],
+      nombreLignes: 3,
+    });
+
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+      http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([or]))),
+      http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(or)),
+    );
+
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    expect(await screen.findByText('2 lignes qui vous sont assignées')).toBeInTheDocument();
+
+    await utilisateur.click(screen.getByText('OR-000123'));
+    expect(await screen.findByRole('button', { name: 'Vidange' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Contrôle freins' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pneus' })).not.toBeInTheDocument();
+  });
 });
