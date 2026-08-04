@@ -21,6 +21,7 @@ import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { useEncaissement } from '@/hooks/facturation/useEncaissement';
 import { useFacturesOuvertesClient } from '@/hooks/facturation/useFacturesOuvertesClient';
 import { formaterDate, formaterMontant } from '@/lib/formats';
+import { genererUuid } from '@/lib/uuid';
 
 import { EncartAvanceClient } from './EncartAvanceClient';
 
@@ -115,7 +116,7 @@ export function SheetEncaissement({
 
   function ajouterLigne() {
     const resteExact = totalSelectionneCentimes - sommeLignesCentimes;
-    const id = crypto.randomUUID();
+    const id = genererUuid();
     // Espèces par défaut (le geste comptoir le plus fréquent) : si ce reste zéro le solde,
     // arrondi commercial automatique et visible sans qu'on ait à le savoir (§5.3).
     if (resteExact > 0) {

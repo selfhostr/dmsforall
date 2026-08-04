@@ -25,6 +25,7 @@ import { useDemarrerPointage } from '@/hooks/pointage/useDemarrerPointage';
 import { useMesOrdresAssignes } from '@/hooks/pointage/useMesOrdresAssignes';
 import { usePointageOuvertTechnicien } from '@/hooks/pointage/usePointageOuvertTechnicien';
 import { useSession } from '@/hooks/useSession';
+import { genererUuid } from '@/lib/uuid';
 
 import { CartePointageEnCours } from './CartePointageEnCours';
 import { DialogueChoixCiblePointage } from './DialogueChoixCiblePointage';
@@ -73,7 +74,7 @@ function construireEntreeDemarrage(
         readonly siteId: string;
       },
 ): EntreeDemarragePointage {
-  const id = crypto.randomUUID();
+  const id = genererUuid();
   if (cible.nature === 'productif_ligne') {
     return {
       id,
@@ -179,11 +180,16 @@ export function EcranPointageTechnicien() {
         },
   ) {
     setErreurAction(undefined);
-    const entree = construireEntreeDemarrage(
-      { technicienId, debutLe: new Date().toISOString() },
-      cible,
-    );
     try {
+      // `construireEntreeDemarrage` DOIT rester à l'intérieur de ce `try` : c'est une fonction
+      // synchrone qui peut lever (ex. génération d'identifiant, voir `@/lib/uuid`), et rien ne
+      // distingue à l'appel une erreur de construction d'une erreur réseau/API — les deux doivent
+      // remonter à l'utilisateur via `setErreurAction`, jamais disparaître en promesse rejetée
+      // non observée (les appelants invoquent cette fonction via `void demarrerEtMemoriser(...)`).
+      const entree = construireEntreeDemarrage(
+        { technicienId, debutLe: new Date().toISOString() },
+        cible,
+      );
       await demarrer.mutateAsync({ entree, idempotencyKey: genererCleIdempotence() });
       if (cible.nature === 'productif_ligne') {
         setDernierCible({
