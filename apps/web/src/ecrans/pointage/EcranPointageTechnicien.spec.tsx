@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { OrdreReparationResume, PageCurseur, ReponseOrdreReparation, ReponsePointage } from '@dfa/shared';
+import type { OrdreReparationResume, PageCurseur, ReponseLigneOr, ReponseOrdreReparation, ReponsePointage } from '@dfa/shared';
 
 import '@/i18n';
 
@@ -233,6 +233,66 @@ describe('EcranPointageTechnicien', () => {
     rendre();
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument());
+  });
+
+  it('affiche correctement un bouton de ligne avec une désignation très longue', async () => {
+    const ligneLongue: ReponseLigneOr = {
+      id: 'ligne-longue',
+      ordreReparationId: 'or-1',
+      numeroOrdre: 1,
+      type: 'fourniture',
+      origine: 'constatee',
+      statut: 'en_cours',
+      payeur: 'client',
+      payeurClientId: null,
+      blocage: 'aucun',
+      designation: 'Kit plaquettes + disques de frein arrière (sur commande fournisseur)',
+      referenceTexte: null,
+      articleId: null,
+      quantiteMillieme: 1000,
+      tempsBaremeCentiemes: null,
+      tempsBaremeConstructeurCentiemes: null,
+      tempsReelCentiemes: null,
+      rabaisPourmille: 0,
+      tauxTvaPourmille: 81,
+      figeLe: null,
+      technicienId: SESSION_TEST.utilisateur.id,
+      codeOperation: null,
+      codeDefaut: null,
+      numeroSinistre: null,
+      numeroAccord: null,
+      urgence: null,
+      securite: false,
+      fournieParClient: false,
+      aRestituer: false,
+      restituee: false,
+      motifAnnulation: null,
+      factureId: null,
+      creeLe: '2026-08-03T06:00:00.000Z',
+      modifieLe: '2026-08-03T06:00:00.000Z',
+    };
+
+    const orDetailAvecLignesLongues = construireOrDetail({ lignes: [ligneLongue] });
+
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+      http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([OR_ASSIGNE]))),
+      http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(orDetailAvecLignesLongues)),
+    );
+
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    // Ouvre le dialogue en cliquant sur l'OR.
+    await utilisateur.click(await screen.findByText('OR-000123'));
+
+    // Vérifie que la ligne avec la désignation longue est affichée et cliquable.
+    const boutonLigneLongue = await screen.findByRole('button', {
+      name: 'Kit plaquettes + disques de frein arrière (sur commande fournisseur)',
+    });
+    expect(boutonLigneLongue).toBeInTheDocument();
+    expect(boutonLigneLongue).toBeEnabled();
   });
 
   it(
