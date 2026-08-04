@@ -17,7 +17,13 @@ export function AppShell() {
 
   return (
     <div className="min-h-dvh lg:flex">
-      <aside className="hidden w-60 shrink-0 border-r lg:block">
+      {/* `lg:sticky lg:top-0 lg:h-dvh` : l'aside a sa propre hauteur de viewport et reste ancré
+          pendant que la colonne de droite défile (page-level scroll inchangé pour `<main>`, voir
+          plus bas). `BarreLaterale` reçoit ainsi une hauteur définie (`h-full` s'y résout) et peut
+          faire défiler sa zone de liens indépendamment tout en gardant son pied (version) ancré en
+          bas — voir BarreLaterale.tsx. `lg:self-start` empêche `align-items: stretch` du flex
+          parent d'étirer l'aside à la hauteur (plus grande) de la colonne de droite. */}
+      <aside className="hidden w-60 shrink-0 self-start border-r lg:sticky lg:top-0 lg:block lg:h-dvh">
         <BarreLaterale />
       </aside>
 
@@ -36,6 +42,11 @@ export function AppShell() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-60 p-0">
+              {/* `SheetContent side="left"` pose déjà `fixed inset-y-0 ... h-full` (voir
+                  `components/ui/sheet.tsx`, `variantesSheet`) : le tiroir a donc une hauteur de
+                  viewport définie sans rien ajouter ici, et `BarreLaterale` (h-full) s'y ancre
+                  exactement comme dans l'aside desktop — même défilement interne des liens, même
+                  pied de version épinglé en bas du tiroir. */}
               <SheetTitle className="sr-only">{t('navigation:principale.aria')}</SheetTitle>
               <BarreLaterale className="pt-4" />
             </SheetContent>
