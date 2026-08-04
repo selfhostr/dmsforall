@@ -46,8 +46,14 @@ export function SelecteurVehiculeRepris({ valeur, onChangeValeur, erreur }: Prop
     return () => window.clearTimeout(identifiant);
   }, [saisie]);
 
-  const requete = useListeVehicules({ q: termeDebounce, tri: 'plaque:asc' });
   const rechercheActive = termeDebounce.length > 0;
+  // `enabled: rechercheActive` — pas de requête pour toute la première page au montage tant que la
+  // recherche est vide, alors que l'UI la masque de toute façon (indication seule, ci-dessous).
+  // Même garde que `useVehiculesStockDisponibles`.
+  const requete = useListeVehicules(
+    { q: termeDebounce, tri: 'plaque:asc' },
+    { enabled: rechercheActive },
+  );
 
   return (
     <div className="flex flex-col gap-1.5">

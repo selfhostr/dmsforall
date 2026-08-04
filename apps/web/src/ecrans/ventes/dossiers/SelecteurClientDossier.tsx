@@ -40,7 +40,14 @@ export function SelecteurClientDossier({ valeur, onChangeValeur, libelle }: Prop
     return () => window.clearTimeout(identifiant);
   }, [qSaisie]);
 
-  const requete = useListeClients({ q: q.trim() === '' ? undefined : q.trim() });
+  const rechercheActive = q.trim() !== '';
+  // `enabled: rechercheActive` — pas de requête pour toute la première page au montage tant que la
+  // recherche est vide, alors que l'UI la masque de toute façon (rendu `null` ci-dessous). Même
+  // garde que `useVehiculesStockDisponibles`/`SelecteurVehiculeRepris`.
+  const requete = useListeClients(
+    { q: rechercheActive ? q.trim() : undefined },
+    { enabled: rechercheActive },
+  );
   const clients = requete.data?.pages.flatMap((page) => page.donnees) ?? [];
 
   return (
@@ -53,7 +60,7 @@ export function SelecteurClientDossier({ valeur, onChangeValeur, libelle }: Prop
         onChange={(evenement) => setQSaisie(evenement.target.value)}
       />
 
-      {q.trim() === '' ? null : requete.isPending ? (
+      {!rechercheActive ? null : requete.isPending ? (
         <EtatChargement lignes={2} />
       ) : requete.isError ? (
         <EtatErreur

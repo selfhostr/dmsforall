@@ -2,7 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { MemoryRouter, Route, Routes } from 'react-router';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { BlocPaiementQrFige, ReponseDocumentVente } from '@dfa/shared';
@@ -144,15 +144,18 @@ function installerHandlerDocument(document_: ReponseDocumentVente) {
 
 function rendre(id = 'facture-1') {
   const queryClient = creerQueryClientTest();
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[`/factures/${id}`]}>
-        <Routes>
-          <Route path="/factures/:id" element={<EcranFicheFacture />} />
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
+  return {
+    queryClient,
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[`/factures/${id}`]}>
+          <Routes>
+            <Route path="/factures/:id" element={<EcranFicheFacture />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ),
+  };
 }
 
 describe('EcranFicheFacture — action Imprimer / télécharger le PDF', () => {
@@ -294,5 +297,127 @@ describe('EcranFicheFacture — bulletin de versement (qr)', () => {
     await waitFor(() =>
       expect(screen.queryByText('Bulletin de versement')).not.toBeInTheDocument(),
     );
+  });
+});
+
+describe('EcranFicheFacture — remise globale : ne perd pas la saisie en cours', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('fr');
+  });
+
+  it(
+    "un refetch de la facture pendant l'édition (ex. la fenêtre reprend le focus, " +
+      '`refetchOnWindowFocus` par défaut de TanStack Query v5) ne réinitialise PAS la remise ' +
+      'saisie et non encore enregistrée — seul un changement de facture (id) doit recharger le champ',
+    async () => {
+      installerHandlerDocument(
+        construireDocument({
+          statut: 'brouillon',
+          numero: null,
+          numeroSequence: null,
+          emisLe: null,
+          emisPar: null,
+          qr: null,
+          remiseGlobaleSaisieCentimes: 1000,
+        }),
+      );
+      const utilisateur = userEvent.setup();
+      const { queryClient } = rendre();
+
+      const champRemise = await screen.findByLabelText('Montant');
+      expect(champRemise).toHaveValue('10.00');
+
+      // L'utilisateur tape une nouvelle remise, PAS ENCORE enregistrée (« Enregistrer » n'a pas
+      // été cliqué).
+      await utilisateur.clear(champRemise);
+      await utilisateur.type(champRemise, '25.00');
+      expect(champRemise).toHaveValue('25.00');
+
+      // Un refetch arrive (le serveur renvoie EXACTEMENT le même document, y compris la remise
+      // d'origine 1000 centimes — la saisie de l'utilisateur n'a jamais été persistée). C'est le
+      // même mécanisme que `refetchOnWindowFocus` : la query reste active (même id), une nouvelle
+      // référence de `requete.data` arrive avec un contenu inchangé côté serveur.
+      await queryClient.refetchQueries();
+
+      // La saisie non enregistrée doit survivre au refetch — c'est le défaut corrigé : l'ancien
+      // `useEffect(() => setRemiseCentimes(...), [requete.data])` écrasait silencieusement la
+      // saisie ici.
+      await waitFor(() => expect(champRemise).toHaveValue('25.00'));
+    },
+  );
+
+  it("navigue vers une AUTRE facture (changement d'id, MÊME instance de composant) recharge bien la remise depuis le nouveau document", async () => {
+    installerHandlerDocument(
+      construireDocument({
+        statut: 'brouillon',
+        numero: null,
+        numeroSequence: null,
+        emisLe: null,
+        emisPar: null,
+        qr: null,
+        remiseGlobaleSaisieCentimes: 1000,
+      }),
+    );
+    installerHandlerDocument(
+      construireDocument({
+        id: 'facture-2',
+        statut: 'brouillon',
+        numero: null,
+        numeroSequence: null,
+        emisLe: null,
+        emisPar: null,
+        qr: null,
+        remiseGlobaleSaisieCentimes: 5000,
+        figees: {
+          clientDesignation: 'Marie Rossi',
+          clientIde: null,
+          clientLangue: 'fr',
+          adresseFacturation: null,
+          conditionsPaiement: null,
+          plaque: null,
+        },
+      }),
+    );
+    const utilisateur = userEvent.setup();
+    const queryClient = creerQueryClientTest();
+
+    function EnveloppeAvecNavigation() {
+      const navigate = useNavigate();
+      return (
+        <>
+          <button type="button" onClick={() => navigate('/factures/facture-2')}>
+            Aller à la facture 2
+          </button>
+          <Routes>
+            <Route path="/factures/:id" element={<EcranFicheFacture />} />
+          </Routes>
+        </>
+      );
+    }
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/factures/facture-1']}>
+          <EnveloppeAvecNavigation />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    // Facture 1 chargée, l'utilisateur tape une remise non enregistrée.
+    const champRemise = await screen.findByLabelText('Montant');
+    expect(champRemise).toHaveValue('10.00');
+    await utilisateur.clear(champRemise);
+    await utilisateur.type(champRemise, '25.00');
+    expect(champRemise).toHaveValue('25.00');
+
+    // Navigation vers une AUTRE facture, dans la MÊME instance du composant (le comportement à
+    // préserver, contrairement au cas « même id, refetch » ci-dessus) : l'id change, le champ DOIT
+    // se recharger depuis le nouveau document — 5000 centimes, pas la saisie non enregistrée ni
+    // l'ancienne remise de la facture 1.
+    await utilisateur.click(screen.getByRole('button', { name: 'Aller à la facture 2' }));
+
+    await screen.findByText('Marie Rossi');
+    const nouveauChampRemise = await screen.findByLabelText('Montant');
+    await waitFor(() => expect(nouveauChampRemise).toHaveValue('50.00'));
   });
 });

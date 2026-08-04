@@ -1,5 +1,5 @@
 import { Check, Copy } from 'lucide-react';
-import { useState, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
@@ -9,18 +9,44 @@ interface ProprietesBoutonCopier {
   readonly className?: string;
 }
 
+const DELAI_CONFIRMATION_MS = 1500;
+
 /** Icône de copie pour une donnée lue au comptoir/téléphone (code radio, VIN, code type…) —
  *  docs/design-comptoir.md : « le comptoir lit un code radio au téléphone ». Cible tactile 44px,
  *  confirmation visuelle brève sans dépendre de la couleur seule (icône qui change de forme). */
 export function BoutonCopier({ valeur, className }: ProprietesBoutonCopier) {
   const { t } = useTranslation('commun');
   const [copie, setCopie] = useState(false);
+  // Le timer de retour à l'icône par défaut doit être nettoyé au démontage (navigation pendant la
+  // fenêtre de confirmation) : sans ça, `setCopie` s'exécute sur un composant démonté.
+  const minuteurRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (minuteurRef.current !== null) {
+        window.clearTimeout(minuteurRef.current);
+      }
+    },
+    [],
+  );
 
   async function copier(evenement: MouseEvent<HTMLButtonElement>) {
     evenement.stopPropagation();
-    await navigator.clipboard.writeText(valeur);
+    try {
+      await navigator.clipboard.writeText(valeur);
+    } catch {
+      // Contexte non sécurisé (HTTP) ou permission refusée : la copie échoue sans confirmation
+      // visuelle, mais sans rejet de promesse non capturé ni exception qui casserait l'écran.
+      return;
+    }
     setCopie(true);
-    window.setTimeout(() => setCopie(false), 1500);
+    if (minuteurRef.current !== null) {
+      window.clearTimeout(minuteurRef.current);
+    }
+    minuteurRef.current = window.setTimeout(() => {
+      setCopie(false);
+      minuteurRef.current = null;
+    }, DELAI_CONFIRMATION_MS);
   }
 
   return (

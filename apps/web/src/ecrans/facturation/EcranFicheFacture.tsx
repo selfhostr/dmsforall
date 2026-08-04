@@ -110,11 +110,19 @@ export function EcranFicheFacture() {
     }
   }, [dialogueEmissionOuvert]);
 
+  // Ne resynchronise `remiseCentimes` QUE lors du chargement initial ou d'un changement de
+  // document (`document_.id` en dépendance, jamais `requete.data` en entier) — pas à chaque
+  // nouvelle référence d'objet renvoyée par un refetch (fenêtre refocus, `refetchOnWindowFocus:
+  // true` sur ce QueryClient). Le champ est éditable et n'est persisté qu'au clic « Enregistrer » ;
+  // un refetch qui écraserait la saisie non enregistrée dès que l'utilisateur revient sur l'onglet
+  // ferait perdre sa saisie sans qu'il s'en rende compte. Navigation vers une AUTRE facture
+  // (`id` change) doit en revanche bien recharger le champ, d'où la dépendance sur l'identifiant.
   useEffect(() => {
     if (requete.data) {
       setRemiseCentimes(requete.data.remiseGlobaleSaisieCentimes);
     }
-  }, [requete.data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requete.data?.id]);
 
   if (requete.isPending) {
     return (

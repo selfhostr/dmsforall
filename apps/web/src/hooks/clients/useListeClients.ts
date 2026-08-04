@@ -47,9 +47,15 @@ function cheminListeClients(filtres: FiltresListeClients, curseur: string | null
   return `/clients?${params.toString()}`;
 }
 
-/** `GET /clients` — pagination par curseur (`BoutonChargerPlus`, jamais de numéros de page). */
+/** `GET /clients` — pagination par curseur (`BoutonChargerPlus`, jamais de numéros de page).
+ *
+ *  `options.enabled` (facultatif, défaut `true` — comportement inchangé si omis) : à passer
+ *  `false` par l'appelant tant qu'une recherche est vide, même garde que
+ *  `useVehiculesStockDisponibles`/`useListeVehicules` — évite une requête pour toute la première
+ *  page au montage d'un sélecteur dont l'UI masque de toute façon le résultat avant saisie. */
 export function useListeClients(
   filtres: FiltresListeClients = {},
+  options?: { readonly enabled?: boolean },
 ): UseInfiniteQueryResult<InfiniteData<PageCurseur<ClientResume>>, unknown> {
   return useInfiniteQuery({
     queryKey: clesQuery.clients.liste({
@@ -69,5 +75,6 @@ export function useListeClients(
     },
     initialPageParam: null as string | null,
     getNextPageParam: (dernierePage) => dernierePage.curseurSuivant,
+    enabled: options?.enabled,
   });
 }

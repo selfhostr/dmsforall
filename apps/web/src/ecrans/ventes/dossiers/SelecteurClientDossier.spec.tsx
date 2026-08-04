@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import '@/i18n';
 
@@ -57,5 +57,20 @@ describe('SelecteurClientDossier', () => {
       await screen.findByText('Aucun client ne correspond à cette recherche.'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  // Défaut 3 corrigé : plus d'appel « toute la première page » au montage, alors que la recherche
+  // est vide et que l'UI ne rend rien tant qu'elle l'est (retour `null`, ligne 63).
+  it('ne déclenche aucun appel réseau au montage, tant que la recherche est vide', async () => {
+    const gestionnaire = vi.fn(() =>
+      HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+    );
+    server.use(http.get('/api/v1/clients', gestionnaire));
+
+    rendre();
+
+    expect(gestionnaire).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 });

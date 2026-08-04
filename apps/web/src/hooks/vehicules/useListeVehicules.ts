@@ -17,14 +17,23 @@ export type ResultatListeVehicules = UseInfiniteQueryResult<
 };
 
 /** Liste des véhicules du tenant, pagination par curseur (`BoutonChargerPlus`, jamais de numéro
- *  de page — voir contrat `PageCurseur`). */
-export function useListeVehicules(filtres: FiltresListeVehicules): ResultatListeVehicules {
+ *  de page — voir contrat `PageCurseur`).
+ *
+ *  `options.enabled` (facultatif, défaut `true` — comportement inchangé si omis) : à passer
+ *  `false` par l'appelant tant qu'une recherche est vide, même garde que
+ *  `useVehiculesStockDisponibles` — évite une requête pour toute la première page au montage d'un
+ *  sélecteur dont l'UI masque de toute façon le résultat avant saisie. */
+export function useListeVehicules(
+  filtres: FiltresListeVehicules,
+  options?: { readonly enabled?: boolean },
+): ResultatListeVehicules {
   const resultat = useInfiniteQuery({
     queryKey: clesQuery.vehicules.liste(filtres),
     queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
       listerVehicules(filtres, { limite: LIMITE_PAGE, curseur: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (dernierePage) => dernierePage.curseurSuivant ?? undefined,
+    enabled: options?.enabled,
   });
 
   return {

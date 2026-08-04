@@ -2,7 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import type { ReactNode } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { ClientResume } from '@dfa/shared';
 
@@ -89,5 +89,24 @@ describe('useListeClients', () => {
     await waitFor(() => expect(result.current.data?.pages.length).toBe(2));
     expect(curseursRecus).toEqual([null, 'page-2']);
     expect(result.current.hasNextPage).toBe(false);
+  });
+
+  // Défaut 3 corrigé (`SelecteurClientDossier.tsx`) : la recherche vide ne doit pas déclencher
+  // d'appel réseau pour toute la première page — `enabled: false` doit rester sans effet sur les
+  // appels existants (deux tests ci-dessus, aucune option passée).
+  it('enabled: false ne déclenche AUCUNE requête réseau', async () => {
+    const gestionnaire = vi.fn(() =>
+      HttpResponse.json({ donnees: [CLIENT_TEST], curseurSuivant: null, limite: 50 }),
+    );
+    server.use(http.get('/api/v1/clients', gestionnaire));
+
+    const { result } = renderHook(() => useListeClients({}, { enabled: false }), {
+      wrapper: enveloppe(),
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(gestionnaire).not.toHaveBeenCalled();
+    expect(result.current.isPending).toBe(true);
   });
 });

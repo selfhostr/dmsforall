@@ -21,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { EtatChargement } from '@/composants/commun/EtatChargement';
+import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { useCreerCommandeFournisseur } from '@/hooks/pieces/useCreerCommandeFournisseur';
 import { useListeFournisseurs } from '@/hooks/pieces/useListeFournisseurs';
@@ -52,11 +54,12 @@ export function EcranNouvelleCommandeFournisseur() {
   const { data: session } = useSession();
   const sites = (session?.sites ?? []).filter((site) => site.actif);
 
-  const { fournisseurs } = useListeFournisseurs({
+  const fournisseursRequete = useListeFournisseurs({
     statut: ['actif'],
     tri: TRI_DEFAUT_FOURNISSEURS,
     limite: 200,
   });
+  const { fournisseurs } = fournisseursRequete;
   const idempotence = useCleIdempotence();
   const creer = useCreerCommandeFournisseur();
 
@@ -167,18 +170,28 @@ export function EcranNouvelleCommandeFournisseur() {
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="cmd-fournisseur">{t('pieces:commandes.fournisseur')}</Label>
-          <Select value={fournisseurId} onValueChange={setFournisseurId} disabled={enCours}>
-            <SelectTrigger id="cmd-fournisseur" aria-label={t('pieces:commandes.fournisseur')}>
-              <SelectValue placeholder={t('pieces:fournisseurs.titre')} />
-            </SelectTrigger>
-            <SelectContent>
-              {fournisseurs.map((fournisseur) => (
-                <SelectItem key={fournisseur.id} value={fournisseur.id}>
-                  {fournisseur.nom}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {fournisseursRequete.isPending ? (
+            <EtatChargement lignes={1} />
+          ) : fournisseursRequete.isError ? (
+            <EtatErreur
+              titre={t('pieces:fournisseurs.erreur.titre')}
+              description={messageErreur(fournisseursRequete.error, t)}
+              onReessayer={() => void fournisseursRequete.refetch()}
+            />
+          ) : (
+            <Select value={fournisseurId} onValueChange={setFournisseurId} disabled={enCours}>
+              <SelectTrigger id="cmd-fournisseur" aria-label={t('pieces:commandes.fournisseur')}>
+                <SelectValue placeholder={t('pieces:fournisseurs.titre')} />
+              </SelectTrigger>
+              <SelectContent>
+                {fournisseurs.map((fournisseur) => (
+                  <SelectItem key={fournisseur.id} value={fournisseur.id}>
+                    {fournisseur.nom}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="cmd-site">{t('pieces:commandes.site')}</Label>
