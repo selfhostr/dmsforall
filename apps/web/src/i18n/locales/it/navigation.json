@@ -23,12 +23,15 @@
     "pointageSaisie": "Timbratura",
     "pointageJournal": "Registro timbrature",
     "pointageEquipe": "Team",
-    "pointageCloture": "Chiusura periodo"
+    "pointageCloture": "Chiusura periodo",
+    "ventesStock": "Veicoli in stock",
+    "ventesDossiers": "Pratiche di vendita"
   },
   "groupes": {
     "parametrage": "Impostazioni",
     "pieces": "Ricambi",
-    "pointage": "Timbratura"
+    "pointage": "Timbratura",
+    "ventes": "Vendite"
   },
   "menu": {
     "ouvrir": "Apri menu"

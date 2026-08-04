@@ -23,12 +23,15 @@
     "pointageSaisie": "Zeiterfassung",
     "pointageJournal": "Zeiterfassungsjournal",
     "pointageEquipe": "Team",
-    "pointageCloture": "Periodenabschluss"
+    "pointageCloture": "Periodenabschluss",
+    "ventesStock": "Fahrzeugbestand",
+    "ventesDossiers": "Verkaufsdossiers"
   },
   "groupes": {
     "parametrage": "Einstellungen",
     "pieces": "Teile",
-    "pointage": "Zeiterfassung"
+    "pointage": "Zeiterfassung",
+    "ventes": "Verkauf"
   },
   "menu": {
     "ouvrir": "Menü öffnen"

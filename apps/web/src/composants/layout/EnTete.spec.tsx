@@ -43,6 +43,10 @@ const session: SessionCourante = {
     { id: 'site-martigny', code: 'MTG', nom: 'Martigny', actif: true },
     { id: 'site-sion', code: 'SIO', nom: 'Sion', actif: true },
   ],
+  // Compte de personne (role: 'admin') : jamais rattaché à un site unique, voir la doc de
+  // `SessionCourante.siteRattachementId` dans `@dfa/shared` (renseigné exactement pour les rôles
+  // de `ROLES_COMPTE_DE_SERVICE`, ex. `poste_atelier`).
+  siteRattachementId: null,
   expireLe: new Date(Date.now() + 3_600_000).toISOString(),
 };
 

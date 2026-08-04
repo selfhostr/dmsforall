@@ -37,10 +37,16 @@ import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
 import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
 import { EcranFicheVehicule } from '@/ecrans/vehicules/EcranFicheVehicule';
 import { EcranListeVehicules } from '@/ecrans/vehicules/EcranListeVehicules';
+import { EcranFicheDossierVente } from '@/ecrans/ventes/dossiers/EcranFicheDossierVente';
+import { EcranListeDossiersVente } from '@/ecrans/ventes/dossiers/EcranListeDossiersVente';
+import { EcranNouveauDossierVente } from '@/ecrans/ventes/dossiers/EcranNouveauDossierVente';
+import { EcranEntreeEnStock } from '@/ecrans/ventes/stock/EcranEntreeEnStock';
+import { EcranFicheVehiculeStock } from '@/ecrans/ventes/stock/EcranFicheVehiculeStock';
+import { EcranListeVehiculesStock } from '@/ecrans/ventes/stock/EcranListeVehiculesStock';
 
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
-import { ROLES_PIECES } from './droits-routes';
+import { ROLES_PIECES, ROLES_VENTES } from './droits-routes';
 
 /**
  * Convention structurelle qui fait qu'une route oubliée tombe du côté SÛR (même principe que la
@@ -291,6 +297,67 @@ export const routesConfig: RouteObject[] = [
         element: (
           <RouteProtegee rolesAutorises={ROLES_POINTAGE_ENCADREMENT}>
             <EcranCloturePeriodePointage />
+          </RouteProtegee>
+        ),
+      },
+      // Module ventes VN/VO (étape 4) — SIX routes, TOUTES sous `rolesAutorises={ROLES_VENTES}`
+      // (`droits-routes.ts`) : `ventes.vehicule_stock.lire` et `ventes.dossier.lire` ferment tous
+      // deux la LECTURE elle-même à `admin`/`technicien`/`magasinier` (RF-115, voir
+      // `ecrans/ventes/stock/droits.ts` et `ecrans/ventes/dossiers/droits.ts`) — même raisonnement
+      // que `ROLES_PIECES` ci-dessus, cette garde reflète une restriction RÉELLE de l'API. Reprise
+      // et Financement N'ONT PAS de route dédiée : ce sont des cartes intégrées à la fiche dossier
+      // (design gelé §8-9), pas des écrans autonomes.
+      //
+      // Segment statique `nouveau` déclaré AVANT `:id` dans chacun des deux sous-groupes, même
+      // convention que `pieces/articles/:id` plus haut (React Router v6 résout sans ambiguïté quel
+      // que soit l'ordre, mais la lisibilité du fichier suit la convention déjà en place ici).
+      {
+        path: 'ventes/stock',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+            <EcranListeVehiculesStock />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'ventes/stock/nouveau',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+            <EcranEntreeEnStock />
+          </RouteProtegee>
+        ),
+      },
+      // `EcranFicheVehiculeStock` lit `useParams<{ id: string }>()`.
+      {
+        path: 'ventes/stock/:id',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+            <EcranFicheVehiculeStock />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'ventes/dossiers',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+            <EcranListeDossiersVente />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'ventes/dossiers/nouveau',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+            <EcranNouveauDossierVente />
+          </RouteProtegee>
+        ),
+      },
+      // `EcranFicheDossierVente` lit `useParams<{ id: string }>()`.
+      {
+        path: 'ventes/dossiers/:id',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+            <EcranFicheDossierVente />
           </RouteProtegee>
         ),
       },

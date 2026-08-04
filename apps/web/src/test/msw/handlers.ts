@@ -18,6 +18,9 @@ export const SESSION_TEST: SessionCourante = {
     langueDefaut: 'fr',
   },
   sites: [{ id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true }],
+  // Compte de personne (role: 'chef_atelier') : `siteRattachementId` n'est renseigné que pour les
+  // comptes de service (`ROLES_COMPTE_DE_SERVICE`, ex. `poste_atelier`), voir `@dfa/shared`.
+  siteRattachementId: null,
   expireLe: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
 };
 

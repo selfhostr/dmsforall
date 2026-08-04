@@ -94,11 +94,86 @@ function chargerRessources() {
 
 const REGEX_APPEL_T = /\bt\(\s*(['"`])([a-zA-Z0-9_]+):([a-zA-Z0-9_.]+)\1/g;
 
+/**
+ * Neutralise le contenu des commentaires (`// ...` et `/* ... *\/`) avant l'extraction des appels
+ * `t(...)`, en préservant la longueur du fichier (chaque caractère neutralisé devient un espace,
+ * les retours à la ligne sont conservés) pour ne pas décaler quoi que ce soit d'autre.
+ *
+ * Sans ça, un commentaire qui CITE une clé à titre d'exemple ou de regression (ex. « un
+ * `t('ns:cle')` direct fait planter React ») est indiscernable d'un vrai appel pour une regex, et
+ * ressort comme « clé FR manquante » alors qu'aucun code ne l'utilise. Cas réel rencontré :
+ * `CarteRepriseResume.tsx` documente en commentaire l'ancienne forme fautive
+ * `t('ventes:reprise.absente')` (avant restructuration en `{ titre }`) — ce commentaire est
+ * volontaire, il documente un piège d'exécution (`t()` sur un objet fait planter React), il ne
+ * doit pas être réécrit pour faire taire ce script.
+ *
+ * Respecte les chaînes ('...', "...", `...`) pour qu'un `//` ou `/*` à l'intérieur d'une chaîne ne
+ * soit pas pris pour le début d'un commentaire — cas déjà présent dans ce dépôt (URLs, regex en
+ * dur). Les expressions `${...}` imbriquées dans un template literal ne sont pas ré-analysées
+ * comme du code (limite acceptée, aucun cas de ce type dans les clés i18n de ce dépôt).
+ */
+function retirerCommentaires(contenu) {
+  let resultat = '';
+  let etat = 'normal'; // 'normal' | 'simple' | 'double' | 'gabarit' | 'ligne' | 'bloc'
+  for (let i = 0; i < contenu.length; i += 1) {
+    const c = contenu[i];
+    const suivant = contenu[i + 1];
+    if (etat === 'normal') {
+      if (c === '/' && suivant === '/') {
+        etat = 'ligne';
+        resultat += '  ';
+        i += 1;
+      } else if (c === '/' && suivant === '*') {
+        etat = 'bloc';
+        resultat += '  ';
+        i += 1;
+      } else if (c === "'" || c === '"' || c === '`') {
+        etat = { "'": 'simple', '"': 'double', '`': 'gabarit' }[c];
+        resultat += c;
+      } else {
+        resultat += c;
+      }
+      continue;
+    }
+    if (etat === 'ligne') {
+      if (c === '\n') {
+        etat = 'normal';
+        resultat += c;
+      } else {
+        resultat += ' ';
+      }
+      continue;
+    }
+    if (etat === 'bloc') {
+      if (c === '*' && suivant === '/') {
+        etat = 'normal';
+        resultat += '  ';
+        i += 1;
+      } else {
+        resultat += c === '\n' ? '\n' : ' ';
+      }
+      continue;
+    }
+    // Chaîne ('simple' | 'double' | 'gabarit') : on la recopie telle quelle (elle ne contient
+    // jamais de clé i18n valide pour ce script, seul le contenu des commentaires est neutralisé),
+    // en respectant l'échappement pour ne pas fermer la chaîne sur un guillemet échappé.
+    const guillemet = { simple: "'", double: '"', gabarit: '`' }[etat];
+    if (c === '\\' && suivant !== undefined) {
+      resultat += c + suivant;
+      i += 1;
+    } else {
+      resultat += c;
+      if (c === guillemet) etat = 'normal';
+    }
+  }
+  return resultat;
+}
+
 function extraireClesUtilisees(fichiers) {
   /** @type {Map<string, {ns:string, cle:string, fichiers:Set<string>}>} */
   const utilisees = new Map();
   for (const fichier of fichiers) {
-    const contenu = readFileSync(fichier, 'utf-8');
+    const contenu = retirerCommentaires(readFileSync(fichier, 'utf-8'));
     for (const correspondance of contenu.matchAll(REGEX_APPEL_T)) {
       const [, , ns, cle] = correspondance;
       const idComplet = `${ns}:${cle}`;

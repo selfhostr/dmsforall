@@ -4,8 +4,10 @@ import {
   Building2,
   CalendarClock,
   Car,
+  CarFront,
   Clock,
   Copy,
+  FileText,
   Handshake,
   Home,
   Landmark,
@@ -31,6 +33,7 @@ import {
   ROLES_MENU_FINANCIER,
   ROLES_MENU_PARAMETRAGE_ATELIER,
   ROLES_PIECES,
+  ROLES_VENTES,
 } from '@/routes/droits-routes';
 import { cn } from '@/lib/utils';
 
@@ -92,6 +95,13 @@ function classeLien({ isActive }: { readonly isActive: boolean }): string {
  * groupe, « Équipe » et « Clôture de période » restent en plus masqués à `technicien`/`magasinier`
  * (gouvernance atelier seule — `chef_atelier`/`direction`/`admin`). Aucun `?site=` : le pointage se
  * filtre par technicien et par période, pas par site (voir `routes/chemins.ts`).
+ *
+ * Groupe « Ventes » (étape 4) : DEUX entrées, « Véhicules en stock » et « Dossiers de vente »
+ * (`ROLES_VENTES`, `routes/droits-routes.ts`) — masquage qui reflète une restriction RÉELLE côté
+ * API, même patron que « Pièces »/« Pointage » ci-dessus : `admin`, `technicien` et `magasinier`
+ * n'ont aucun droit `ventes.*` (RF-115). Reprise et Financement n'ont pas d'entrée : ce sont des
+ * cartes intégrées à la fiche dossier (design gelé §8-9), pas des écrans autonomes vers lesquels
+ * naviguer depuis ce menu.
  */
 export function BarreLaterale({ className }: Props) {
   const { t } = useTranslation('navigation');
@@ -109,6 +119,10 @@ export function BarreLaterale({ className }: Props) {
   // ci-dessus : `ROLES_PIECES` est la même liste que celle qui protège les routes
   // (`routeur.tsx`), pas une liste séparée inventée pour le menu.
   const peutAccederPieces = role !== undefined && ROLES_PIECES.includes(role);
+  // Module ventes VN/VO (étape 4) — même patron que `peutAccederPieces` ci-dessus : `ROLES_VENTES`
+  // reflète la restriction RÉELLE de l'API (`ventes.*` fermé à `admin`/`technicien`/`magasinier`,
+  // RF-115, voir `routes/droits-routes.ts`), pas une liste inventée pour le menu.
+  const peutAccederVentes = role !== undefined && ROLES_VENTES.includes(role);
   // Module pointage (lot 2) — même patron que `peutAccederPieces` ci-dessus : `ROLES_POINTAGE`
   // reflète la restriction RÉELLE de l'API (`atelier.pointage.lire` fermé à `comptable`/
   // `receptionnaire`/`vendeur`, voir `ecrans/pointage/droits.ts`), pas une liste inventée pour le
@@ -213,6 +227,22 @@ export function BarreLaterale({ className }: Props) {
               {t('navigation:liens.pointageCloture')}
             </NavLink>
           ) : null}
+        </>
+      ) : null}
+
+      {peutAccederVentes ? (
+        <>
+          <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {t('navigation:groupes.ventes')}
+          </p>
+          <NavLink to={chemins.ventes.stock.liste(site)} className={classeLien}>
+            <CarFront className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.ventesStock')}
+          </NavLink>
+          <NavLink to={chemins.ventes.dossiers.liste(site)} className={classeLien}>
+            <FileText className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.ventesDossiers')}
+          </NavLink>
         </>
       ) : null}
 

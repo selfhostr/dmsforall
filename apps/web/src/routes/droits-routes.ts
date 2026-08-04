@@ -75,3 +75,29 @@ export const ROLES_PIECES: readonly RoleUtilisateur[] = [
   'magasinier',
   'technicien',
 ];
+
+/**
+ * Module ventes VN/VO (étape 4) — CAS DE FIGURE 1 CI-DESSUS (protection RÉELLE de route), même
+ * raisonnement que `ROLES_PIECES` : `admin`, `technicien` et `magasinier` reçoivent `[]`
+ * littéralement sur tout le domaine `ventes.*` côté API (RF-115, `DROITS_VENTES_PAR_ROLE`,
+ * `apps/api/src/auth/matrice-droits.ts`) — la LECTURE elle-même (`ventes.vehicule_stock.lire`,
+ * `ventes.dossier.lire`) leur est fermée. Poser `rolesAutorises: ROLES_VENTES` sur chaque route du
+ * module reflète donc une restriction que l'API applique déjà.
+ *
+ * Les CINQ rôles ci-dessous sont la LECTURE — `ROLES_LECTURE_VEHICULE_STOCK`
+ * (`ecrans/ventes/stock/droits.ts`) et `ROLES_LECTURE_DOSSIER_VENTE`
+ * (`ecrans/ventes/dossiers/droits.ts`) coïncident exactement (même liste dans les deux
+ * sous-domaines) : cette constante DUPLIQUE ces deux listes déjà dupliquées depuis l'API — même
+ * chaîne de duplication assumée que `ROLES_PIECES` ci-dessus (frontière tenant/serveur jamais
+ * franchie, et `routes/` ne dépend pas non plus d'`ecrans/*` — chaque périmètre porte sa propre
+ * copie). L'ÉCRITURE reste plus restrictive dans chaque sous-domaine (voir les deux fichiers
+ * `droits.ts` cités) : gérée dans les écrans, pas ici — cette constante ne garde que l'ATTEINTE de
+ * la route, pas les actions à l'intérieur.
+ */
+export const ROLES_VENTES: readonly RoleUtilisateur[] = [
+  'direction',
+  'comptable',
+  'vendeur',
+  'receptionnaire',
+  'chef_atelier',
+];
