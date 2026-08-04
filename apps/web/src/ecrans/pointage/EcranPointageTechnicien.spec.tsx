@@ -81,6 +81,7 @@ const POINTAGE_EN_COURS: ReponsePointage = {
   id: 'pointage-1',
   siteId: 'site-1',
   technicienId: SESSION_TEST.utilisateur.id,
+  technicienNomAffiche: `${SESSION_TEST.utilisateur.prenom} ${SESSION_TEST.utilisateur.nom}`,
   statut: 'en_cours',
   nature: 'productif_or',
   ordreReparationId: 'or-1',

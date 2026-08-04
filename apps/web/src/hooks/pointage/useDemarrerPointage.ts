@@ -4,7 +4,10 @@ import type {
   EntreeDemarragePointage,
   ReponseAvecAvertissements,
   ReponsePointage,
+  SessionCourante,
 } from '@dfa/shared';
+
+import { clesQuery } from '@/api/cles';
 
 import { clesPointage } from './cles';
 import { demarrerPointage } from './pointage.api';
@@ -33,6 +36,15 @@ interface ContexteOptimiste {
  * `dureeArrondieCentiemes` restent `null`, cohérent avec un pointage encore `en_cours`) — seul ce
  * qui est nécessaire à l'affichage immédiat du chrono (`debutLe`, la cible) est déjà connu côté
  * client au moment du geste.
+ *
+ * `technicienNomAffiche` (RM voir `pointage.ts` — « Prénom Nom », jamais construit côté client
+ * pour la réponse RÉELLE du serveur) : cette contrainte vise la ressource canonique, pas ce
+ * provisoire jetable. Le seul appelant actuel (`EcranPointageTechnicien`) pointe TOUJOURS pour
+ * l'utilisateur de la session courante (jamais un paramètre de route) : on relit donc la session
+ * déjà en cache TanStack Query (`clesQuery.session()`, sans y souscrire) et on ne l'utilise que si
+ * elle correspond au `technicienId` de cette entrée précise — sinon chaîne vide, remplacée dès
+ * `onSuccess` par la valeur réelle du serveur. Jamais de valeur trompeuse affichée, même une
+ * fraction de seconde.
  */
 export function useDemarrerPointage(): UseMutationResult<
   ReponseAvecAvertissements<ReponsePointage>,
@@ -51,10 +63,17 @@ export function useDemarrerPointage(): UseMutationResult<
       await queryClient.cancelQueries({ queryKey: cle });
       const precedent = queryClient.getQueryData<ReponsePointage | null>(cle);
 
+      const session = queryClient.getQueryData<SessionCourante | null>(clesQuery.session());
+      const technicienNomAffiche =
+        session?.utilisateur.id === entree.technicienId
+          ? `${session.utilisateur.prenom} ${session.utilisateur.nom}`
+          : '';
+
       const provisoire: ReponsePointage = {
         id: entree.id,
         siteId: entree.siteId,
         technicienId: entree.technicienId,
+        technicienNomAffiche,
         statut: 'en_cours',
         nature: entree.nature,
         ordreReparationId: 'ordreReparationId' in entree ? entree.ordreReparationId : null,

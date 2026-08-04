@@ -23,6 +23,7 @@ function construirePointage(overrides: Partial<ReponsePointage> = {}): ReponsePo
     id: 'pointage-1',
     siteId: 'site-1',
     technicienId: 'tech-1',
+    technicienNomAffiche: 'Isabelle Bonvin',
     statut: 'termine',
     nature: 'productif_ligne',
     ordreReparationId: 'or-1',

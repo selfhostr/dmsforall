@@ -29,6 +29,7 @@ const POINTAGE: ReponsePointage = {
   id: 'pointage-1',
   siteId: 'site-1',
   technicienId: 'technicien-abcdef01',
+  technicienNomAffiche: 'Isabelle Bonvin',
   statut: 'termine',
   nature: 'indirect',
   ordreReparationId: null,
