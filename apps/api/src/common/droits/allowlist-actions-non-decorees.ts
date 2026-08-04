@@ -273,39 +273,12 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
       "Vérifié par recherche texte : cette action n'apparaît dans aucun fichier du dépôt hors auth/matrice-" +
       'droits.ts et son spec.',
   },
-  {
-    // Mode « borne partagée » du pointage (docs/specification-pointage-borne.md) : expert-auth a
-    // livré l'INFRASTRUCTURE d'identité (rôle `poste_atelier`, rattachement `utilisateur.site_id`,
-    // résolution du site depuis la session) SANS le code PIN lui-même — table `pin_pointage`,
-    // `POST /pointages/identification` et verrouillage anti-balayage appartiennent à l'agent
-    // suivant, qui construira dessus. Les deux actions existent DÈS MAINTENANT dans la matrice
-    // pour que cet agent s'appuie sur des noms figés et un périmètre de rôles déjà arbitré, au
-    // lieu d'en inventer et de faire diverger la matrice de sa spec. Aucune route ne les exerce
-    // aujourd'hui : il n'y a rien à décorer, et le déclarer ici vaut mieux que de le laisser
-    // deviner.
-    //
-    // À RETIRER par l'agent PIN au moment où il pose `@ExigerDroit('atelier.pointage.identifier')`
-    // sur `POST /pointages/identification` et `@ExigerDroit('atelier.pointage.gerer_pin')` sur les
-    // routes d'attribution/réinitialisation.
-    action: 'atelier.pointage.identifier',
-    categorie: 'action-inerte-anticipee',
-    justification:
-      "Aucun endpoint POST /pointages/identification n'existe encore : expert-auth a livré l'identité de la borne " +
-      '(rôle poste_atelier, utilisateur.site_id, PrincipalAuthentifie.siteId, migration 0039) mais PAS le code PIN, ' +
-      "explicitement hors de son périmètre. L'action est posée en amont pour que l'agent qui construira " +
-      'pin_pointage reprenne un nom et un périmètre de rôles déjà arbitrés (poste_atelier SEUL) plutôt que de les ' +
-      'réinventer. À retirer de cette allowlist en même temps que la route sera décorée.',
-  },
-  {
-    // Même livraison, même raison que `atelier.pointage.identifier` ci-dessus : le droit de gestion
-    // des PIN (RM-128, chef_atelier/direction/admin) est arbitré maintenant, ses routes viendront
-    // avec le module PIN.
-    action: 'atelier.pointage.gerer_pin',
-    categorie: 'action-inerte-anticipee',
-    justification:
-      "Aucune route d'attribution/réinitialisation de PIN n'existe encore (table pin_pointage non créée, hors " +
-      "périmètre d'expert-auth). Droit arbitré en amont — RM-128 : chef_atelier/direction/admin, délibérément plus " +
-      'permissif que parametrage.atelier.modifier qui gouverne le MODE du site — pour que la matrice ne diverge ' +
-      "jamais de la spec pendant l'intervalle. À retirer quand les routes seront décorées.",
-  },
+  // NOTE (mode borne PIN) : `atelier.pointage.identifier` et `atelier.pointage.gerer_pin` figuraient
+  // ICI comme `action-inerte-anticipee` tant qu'aucune route ne les exerçait. Elles ont été RETIRÉES
+  // en même temps que le module PIN a livré `PinController` (`apps/api/src/pointage/pin.controller.ts`),
+  // qui pose `@ExigerDroit('atelier.pointage.identifier')` sur `POST /pointages/identification` et
+  // `@ExigerDroit('atelier.pointage.gerer_pin')` sur `PUT /pointages/pins` + `POST /pointages/pins/revocation`.
+  // Les deux actions sont donc désormais couvertes par le mécanisme automatique (scan d'un
+  // `@ExigerDroit` réel dans le graphe de modules monté) ; les laisser ici masquerait un vrai contrôle
+  // derrière une exception inutile — retrait correct.
 ];

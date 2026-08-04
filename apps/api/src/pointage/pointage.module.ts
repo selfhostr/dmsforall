@@ -1,10 +1,16 @@
 import { Module } from '@nestjs/common';
 
+import { JETON_SERVICE_MOT_DE_PASSE } from '../auth/jetons';
+import { ServiceMotDePasseArgon2id } from '../auth/services/mot-de-passe.service';
+
+import { PinController } from './pin.controller';
 import { PointagePeriodeController } from './pointage-periode.controller';
 import { PointageController } from './pointage.controller';
+import { ServiceIdentificationPin } from './service-identification-pin';
 import { ServiceLecturePointage } from './service-lecture-pointage';
 import { ServicePointage } from './service-pointage';
 import { ServiceVerrouillagePeriode } from './service-verrouillage-periode';
+import { ServiceVerrouillagePin } from './service-verrouillage-pin';
 
 /**
  * Module Pointage (lot 2, RM-87 → RM-99, RM-113 → RM-123). Deux contrôleurs (ressource/actions,
@@ -25,9 +31,27 @@ import { ServiceVerrouillagePeriode } from './service-verrouillage-periode';
  * les services internes d'`atelier/` — pas de dépendance de compilation entre modules d'experts
  * parallèles (même doctrine que `atelier/or-requetes.ts` vis-à-vis de `vehicules`/`clients`).
  */
+/**
+ * MODE BORNE PIN — provider de hachage local. `ServiceIdentificationPin` réutilise le MÊME primitif
+ * Argon2id que les mots de passe (RM-126), via l'interface `ServiceMotDePasse`
+ * (`JETON_SERVICE_MOT_DE_PASSE`). Ce jeton n'est PAS exporté par `AuthModule` (qui n'exporte que
+ * `JETON_SERVICE_SESSION`), et `pointage/` ne dépend d'aucun module de fonctionnalité par doctrine.
+ * On lie donc localement la classe concrète `ServiceMotDePasseArgon2id` (seule dépendance :
+ * `JETON_CONFIG`, global) au jeton d'interface — même patron que `AuthModule`. La coupure de
+ * couplage se limite à cette unique ligne du composeur de module ; les services n'injectent que
+ * l'interface. Le client Redis de l'anti-balayage (`ServiceVerrouillagePin`) vient de `JETON_REDIS`,
+ * fourni globalement par `LimitationModule` — rien à importer ici.
+ */
 @Module({
-  controllers: [PointageController, PointagePeriodeController],
-  providers: [ServicePointage, ServiceVerrouillagePeriode, ServiceLecturePointage],
+  controllers: [PointageController, PointagePeriodeController, PinController],
+  providers: [
+    ServicePointage,
+    ServiceVerrouillagePeriode,
+    ServiceLecturePointage,
+    ServiceIdentificationPin,
+    ServiceVerrouillagePin,
+    { provide: JETON_SERVICE_MOT_DE_PASSE, useClass: ServiceMotDePasseArgon2id },
+  ],
   exports: [ServicePointage, ServiceVerrouillagePeriode, ServiceLecturePointage],
 })
 export class PointageModule {}
