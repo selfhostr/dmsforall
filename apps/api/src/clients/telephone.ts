@@ -11,6 +11,12 @@
  * `^\+[1-9][0-9]{6,14}$`). Le champ `telephone` brut est conservé tel quel dans tous les cas —
  * seule la version E.164 (utile à la recherche et à la détection de doublon, RM-05) peut être
  * absente.
+ *
+ * Séparateurs ignorés : espaces, parenthèses, points, tirets, ET barres obliques (`/` — un
+ * format `079/123/45/67`, rare mais réel sur d'anciens documents, doit se normaliser comme les
+ * autres). Ajouté pour la recherche client (`service-client.ts::lister`, défaut constaté :
+ * recopier le numéro affiché échouait faute de cette équivalence) — la fonction reste par
+ * ailleurs celle utilisée à l'écriture (RM-05), aucune régression sur les formats déjà couverts.
  */
 
 const REGEX_E164 = /^\+[1-9][0-9]{6,14}$/;
@@ -18,7 +24,7 @@ const REGEX_E164 = /^\+[1-9][0-9]{6,14}$/;
 export function normaliserTelephoneCh(brut: string | null | undefined): string | null {
   if (!brut) return null;
 
-  const nettoye = brut.trim().replace(/[\s().-]/g, '');
+  const nettoye = brut.trim().replace(/[\s().\-/]/g, '');
   if (nettoye.length === 0) return null;
 
   let candidat: string;

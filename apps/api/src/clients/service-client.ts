@@ -168,13 +168,53 @@ export class ServiceClient {
         // nom pure, ex. `q=Rochat`).
         const chiffres = params.q.replace(/[^0-9+]/g, '');
         const clausesRecherche = [
-          sql`public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''))) % public.normaliser_recherche(${params.q})`,
+          // DÉFAUT CONSTATÉ (corrigé) : l'opérateur `%` (similarité trigram PLEINE CHAÎNE, seuil
+          // par défaut 0.3) exige que le terme tapé ressemble au nom ENTIER — un fragment court
+          // comme « Rhône » dans « Transports Rhône Sàrl » tombe sous le seuil et ne matchait
+          // jamais, alors que le moteur de recherche globale (`recherche/service-recherche.ts`,
+          // fonction `chercherClients`) trouve ce même client. Corrigé en alignant sur le MÊME
+          // mécanisme que ce moteur : `like` sur l'expression normalisée (accents/casse/séparateurs
+          // gommés par `normaliser_recherche()`), servi par le même index GIN trigram déjà posé
+          // (`client_recherche_idx`, migration 0006 — `gin_trgm_ops` supporte `~~`/`like`, pas
+          // seulement `%`, donc aucun index supplémentaire n'est nécessaire).
+          sql`public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''))) like public.normaliser_recherche(${motif})`,
           sql`c.numero ilike ${motif}`,
           sql`c.email ilike ${motif}`,
           sql`c.ide ilike ${motif}`,
         ];
         if (chiffres.length > 0) {
+          // Fragment brut (comportement déjà en place) : substring direct sur `telephone_e164`.
           clausesRecherche.push(sql`c.telephone_e164 like ${`%${chiffres}%`}`);
+
+          // DÉFAUT CONSTATÉ (corrigé) : recopier le numéro AFFICHÉ (« 079 123 45 67 ») ou tapé au
+          // format national sans espaces (« 0791234567 ») ne retrouvait rien — `telephone_e164`
+          // est stocké en E.164 (« +41791234567 »), et aucune équivalence 0/0041/+41 n'était
+          // appliquée au terme de recherche alors qu'elle l'est déjà à l'ÉCRITURE
+          // (`normaliserTelephoneCh`, RM-05). Deux volets, la même règle :
+          //
+          // (a) le terme ENTIER ressemble à un numéro complet dans un format suisse usuel
+          //     (espaces/points/tirets/barres obliques, 0 national, 0041 international) :
+          //     comparaison EXACTE sur `telephone_e164`, servie par l'index btree déjà posé
+          //     (`client_telephone_idx`, tenant_id, telephone_e164) — plus rapide que le `like`
+          //     fragment ci-dessus, et c'est le chemin qui répond au cas d'usage réel (« recopier
+          //     le numéro affiché »).
+          const telephoneComplet = normaliserTelephoneCh(params.q);
+          if (telephoneComplet) {
+            clausesRecherche.push(sql`c.telephone_e164 = ${telephoneComplet}`);
+          }
+
+          // (b) le terme est un FRAGMENT (recherche en cours de frappe, pas encore un numéro
+          //     complet reconnu par (a)) : même équivalence national/international appliquée à la
+          //     sous-chaîne de chiffres elle-même (0791… → 41791…, 0041791… → 41791…), pour que
+          //     « 079… » retrouve aussi « +41… » par sous-chaîne.
+          const chiffresSeuls = chiffres.replace(/\+/g, '');
+          let varianteNationale: string | null = null;
+          if (chiffresSeuls.startsWith('0041')) varianteNationale = `41${chiffresSeuls.slice(4)}`;
+          else if (chiffresSeuls.startsWith('00')) varianteNationale = chiffresSeuls.slice(2);
+          else if (chiffresSeuls.startsWith('0')) varianteNationale = `41${chiffresSeuls.slice(1)}`;
+          if (varianteNationale && varianteNationale.length > 0) {
+            clausesRecherche.push(sql`c.telephone_e164 like ${`%${varianteNationale}%`}`);
+          }
         }
         conditions.push(sql`(${sql.join(clausesRecherche, sql` or `)})`);
       }

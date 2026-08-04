@@ -274,7 +274,43 @@ export const schemaParametresDoublonsClients = z
 /* Entrées d'écriture                                                  */
 /* ------------------------------------------------------------------ */
 
-export const schemaAdresseClient = z.object({
+/**
+ * RÈGLE DE NPA RETENUE (défaut constaté : « ABCDE » et « 19201920 » acceptés sur une adresse
+ * `pays: 'CH'`) — seule la Suisse est validée STRICTEMENT ici, parce que c'est le seul format que
+ * dmsforall connaît avec certitude : la Poste suisse n'émet que des NPA à EXACTEMENT 4 chiffres
+ * (`^\d{4}$`). Pour tout autre `pays`, AUCUNE contrainte de forme supplémentaire n'est ajoutée —
+ * la borne `min(4).max(10)` déjà en place suffit à couvrir un NPA français ou allemand (5
+ * chiffres) sans les refuser à tort, et un futur NPA à lettres (Royaume-Uni, Pays-Bas, Canada…)
+ * resterait accepté. Une table de formats par pays serait plus complète mais dépasse le périmètre
+ * d'un correctif ciblé — signalé plutôt que deviné.
+ *
+ * Appliquée par `.superRefine(...)`, PAS par un simple `.regex()` sur le champ `npa` seul : la
+ * règle dépend de DEUX champs (`npa` ET `pays`), donc elle ne peut être exprimée qu'au niveau de
+ * l'objet entier.
+ */
+const NPA_SUISSE_REGEX = /^\d{4}$/;
+
+function validerNpaSelonPays(
+  valeurs: { readonly npa?: string; readonly pays?: string },
+  ctx: z.RefinementCtx,
+): void {
+  if (valeurs.pays === 'CH' && valeurs.npa !== undefined && !NPA_SUISSE_REGEX.test(valeurs.npa)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Le NPA suisse comporte exactement 4 chiffres (ex. 1950).',
+      path: ['npa'],
+    });
+  }
+}
+
+/**
+ * Base STRUCTURELLE (sans `.superRefine`) : conservée en `ZodObject` nu pour rester composable —
+ * `.omit(...)` (ci-dessous, `schemaCreationClient.adressePrincipale`) et `.partial()`
+ * (`schemaModificationAdresseClient`) n'existent que sur un `ZodObject`, pas sur le `ZodEffects`
+ * qu'un `.superRefine()` produirait. La validation NPA×pays est donc appliquée séparément à
+ * CHAQUE forme finale ci-dessous plutôt qu'une seule fois ici.
+ */
+const schemaAdresseClientBase = z.object({
   type: z.enum(TYPES_ADRESSE),
   rue: schemaTexteCourt,
   complement: schemaTexteCourt.nullish(),
@@ -283,9 +319,21 @@ export const schemaAdresseClient = z.object({
   pays: schemaCodePays.default('CH'),
 });
 
-export const schemaModificationAdresseClient = schemaAdresseClient
+export const schemaAdresseClient = schemaAdresseClientBase.superRefine(validerNpaSelonPays);
+
+/**
+ * `PATCH` (partiel) : LIMITE CONNUE, signalée plutôt que devinée — si le corps ne modifie QUE
+ * `npa` sans renvoyer `pays`, cette validation ne peut pas savoir si l'adresse existante est
+ * suisse (le schéma ne voit que le corps de la requête, jamais la ligne en base). La règle ne
+ * s'applique donc que lorsque LES DEUX champs sont présents dans le même corps — un NPA envoyé
+ * seul, sur une adresse CH existante, n'est pas rattrapé ici. Fermer ce trou exigerait une
+ * vérification côté service (charger l'adresse existante avant de valider), hors du périmètre
+ * « validation au niveau du schéma partagé » de ce correctif.
+ */
+export const schemaModificationAdresseClient = schemaAdresseClientBase
   .partial()
-  .extend({ actif: z.boolean().optional() });
+  .extend({ actif: z.boolean().optional() })
+  .superRefine(validerNpaSelonPays);
 
 export const schemaContactClient = z.object({
   nom: schemaTexteCourt,
@@ -344,7 +392,9 @@ export const schemaCreationClient = z
     raisonSociale: schemaTexteCourt.nullish(),
     ide: schemaIde.nullish(),
     langueCorrespondance: z.enum(LANGUES),
-    adressePrincipale: schemaAdresseClient.omit({ type: true }),
+    adressePrincipale: schemaAdresseClientBase
+      .omit({ type: true })
+      .superRefine(validerNpaSelonPays),
     telephones: z
       .array(
         z.object({
