@@ -20,7 +20,7 @@ import {
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 import { Horloge } from '../../common/horloge/horloge';
-import { JETON_AUDIT, type ServiceAudit } from '../../common/audit';
+import { JETON_AUDIT, type EntreeAudit, type ServiceAudit } from '../../common/audit';
 import {
   JETON_IDEMPOTENCE,
   type ReponseMemorisable,
@@ -250,8 +250,12 @@ export class ServiceDocumentsVente {
       const page = lignes.slice(0, limite);
       const suite = lignes.length > limite ? encoderCurseurOffset(decalage + limite) : null;
 
+      // `pourListe = true` : voir la note sur `assemblerDocument` — évite d'ouvrir jusqu'à
+      // `limite` (max 200) transactions d'audit imbriquées en parallèle sur une seule page
+      // (épuisement du pool `pg`, `max 10` par défaut). Même correctif que
+      // `atelier/service-or.ts::lister`.
       const donnees = await Promise.all(
-        page.map((l) => this.assemblerDocument(tx, ctx, principal.role, l.id)),
+        page.map((l) => this.assemblerDocument(tx, ctx, principal.role, l.id, true)),
       );
       return { donnees, curseurSuivant: suite };
     });
@@ -365,6 +369,19 @@ export class ServiceDocumentsVente {
   /* -------------------------------------------------------------------------------------------- */
   /* Assemblage — appelé par ce service ET par service-emission.ts / service-avoir.ts, qui doivent  */
   /* tous renvoyer la même représentation (même patron que ServiceOr.assemblerDocument).            */
+  /*                                                                                                */
+  /* `pourListe` (déf. `false`) : quand `true` (uniquement depuis `lister()`), saute                */
+  /* `this.audit.pourEntite` — lequel ouvre SA PROPRE transaction                                   */
+  /* (`ServiceAuditImpl.pourEntite`, `common/audit/service-audit.ts`, hors périmètre de ce           */
+  /* correctif). Appelé une fois par élément dans un `Promise.all` sur toute une page (`limite`      */
+  /* max = 200), il peut réclamer ~200 connexions imbriquées d'un coup et épuiser le pool. Les       */
+  /* seuls champs qui en dépendent sont `modifiePar` (dernier événement du journal) et `emisPar`     */
+  /* (première transition vers `statut = 'emis'`) — des champs de RÉPONSE, jamais consultés par le  */
+  /* calcul de statut/droits ni par un écran de LISTE (`EcranListeFactures.tsx` type ses lignes en   */
+  /* `DocumentVenteResume`, sans `modifiePar`/`emisPar` ; seule la fiche document, assemblage        */
+  /* unitaire avec `pourListe` par défaut `false`, les utilise). Les vider en liste (`null`, valeur  */
+  /* déjà couverte par le type `{ ... } | null`) est donc sans perte réelle pour cette route, et     */
+  /* supprime intégralement le problème (zéro requête d'audit) plutôt que de le déplacer.            */
   /* -------------------------------------------------------------------------------------------- */
 
   async assemblerDocument(
@@ -372,6 +389,7 @@ export class ServiceDocumentsVente {
     ctx: ContexteTenant,
     role: PrincipalAuthentifie['role'],
     documentId: string,
+    pourListe = false,
   ): Promise<ReponseDocumentVente> {
     const doc = await chargerDocument(tx, ctx, documentId);
     const lignesToutes = await listerLignesDocument(tx, ctx, documentId);
@@ -398,7 +416,9 @@ export class ServiceDocumentsVente {
     const figeesAdresse = adresseDepuisJsonb(doc.adresseFacturationFigee);
     const figeesPlaque = await chargerPlaqueVehiculeCourante(tx, ctx, doc.vehiculeId);
 
-    const journalDoc = await this.audit.pourEntite(ctx, 'document_vente', documentId);
+    const journalDoc = pourListe
+      ? ([] as readonly EntreeAudit[])
+      : await this.audit.pourEntite(ctx, 'document_vente', documentId);
     const dernier = journalDoc.at(-1) ?? null;
     const modifiePar = await chargerResumeUtilisateur(tx, ctx, dernier?.utilisateurId ?? null);
     const entreeEmission = journalDoc.find(

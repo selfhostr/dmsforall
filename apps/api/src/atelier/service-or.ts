@@ -604,8 +604,11 @@ export class ServiceOr {
       const page = lignes.slice(0, limite);
       const suite = lignes.length > limite ? encoderCurseurOffset(decalage + limite) : null;
 
+      // `pourListe = true` : voir la note sur `assemblerDocument` ci-dessous — évite d'ouvrir
+      // jusqu'à `limite` (max 200) transactions d'audit imbriquées en parallèle sur une seule
+      // page (épuisement du pool `pg`, `max 10` par défaut).
       const donnees = await Promise.all(
-        page.map((l) => this.assemblerDocument(tx, ctx, principal.role, l.id)),
+        page.map((l) => this.assemblerDocument(tx, ctx, principal.role, l.id, true)),
       );
       return { donnees, curseurSuivant: suite };
     });
@@ -614,13 +617,25 @@ export class ServiceOr {
   // -----------------------------------------------------------------------------------------
   // Assemblage du document complet (§8.3) — appelé par ce service ET par service-transitions /
   // service-ligne-or / service-devis, qui doivent tous renvoyer la même représentation.
-  // -----------------------------------------------------------------------------------------
-
+  //
+  // `pourListe` (déf. `false`) : quand `true` (uniquement depuis `lister()` ci-dessus), saute
+  // `this.audit.pourEntite` — lequel ouvre SA PROPRE transaction (`ServiceAuditImpl.pourEntite`,
+  // `common/audit/service-audit.ts`, hors périmètre de ce correctif). Appelé une fois par
+  // élément dans un `Promise.all` sur toute une page (`limite` max = 200), il peut réclamer
+  // ~200 connexions imbriquées d'un coup et épuiser le pool. Le seul champ qui en dépend est
+  // `modifiePar` (dernier événement du journal, `dernierEvenement = journalOr.at(-1)`) — un champ
+  // de RÉPONSE, jamais consulté ni par le calcul de statut/droits ni par un écran de LISTE
+  // (`EcranListeOrdresReparation.tsx` n'affiche pas `modifiePar`, seul l'écran fiche OR
+  // (assemblage unitaire, `pourListe` par défaut `false`) l'utilise). Le vider en liste (`null`,
+  // valeur déjà couverte par le type `{ ... } | null`) est donc sans perte réelle pour cette
+  // route, et supprime intégralement le problème (zéro requête d'audit, pas seulement une
+  // sérialisation) plutôt que de le déplacer.
   async assemblerDocument(
     tx: TransactionDfa,
     ctx: ContexteTenant,
     role: PrincipalAuthentifie['role'],
     orId: string,
+    pourListe = false,
   ): Promise<ReponseOrdreReparation> {
     const or = await chargerOr(tx, ctx, orId);
 
@@ -644,7 +659,9 @@ export class ServiceOr {
       listerLignesOr(tx, ctx, orId),
       listerDevisOr(tx, ctx, orId),
       chargerControleQualite(tx, ctx, orId),
-      this.audit.pourEntite(ctx, 'ordre_reparation', orId),
+      pourListe
+        ? Promise.resolve<readonly EntreeAudit[]>([])
+        : this.audit.pourEntite(ctx, 'ordre_reparation', orId),
       // I-09 : `LecturePointage.pointagesOuvertsPourOr` prend `tx` en premier paramètre et lit
       // DANS la transaction courante (doctrine du port, `atelier.jetons.ts`) — pas de transaction
       // imbriquée ici, à la différence de `ServiceAudit.pourEntite` juste au-dessus (hors
