@@ -41,6 +41,9 @@ blob-report/
 
 # Logs
 *.log
+# Journaux de `screen` : capturent tout ce qui passe dans le terminal, y compris des
+# jetons collés à la main. Ne doivent jamais partir sur le dépôt distant.
+screenlog.*
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
