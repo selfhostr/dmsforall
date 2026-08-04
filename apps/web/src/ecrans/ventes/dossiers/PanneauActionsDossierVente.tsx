@@ -38,6 +38,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
+import { useCreerBonCommandeDossier } from '@/hooks/ventes/dossiers/useCreerBonCommandeDossier';
 import {
   useAbandonnerDossierVente,
   useAnnulerDossierVente,
@@ -92,6 +93,7 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
   const [erreurValidation, setErreurValidation] = useState<string | null>(null);
 
   const engager = useEngagerDossierVente(dossier.id);
+  const creationBonCommande = useCreerBonCommandeDossier(dossier);
   const preparer = usePreparerDossierVente(dossier.id);
   const marquerPretALivrer = useMarquerDossierPretALivrer(dossier.id);
   const livrer = useLivrerDossierVente(dossier.id);
@@ -252,9 +254,30 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
                   {t('ventes:dossier.transitions.bonCommande')}
                 </Label>
                 {bonsCommande.length === 0 ? (
-                  <p className="texte-libelle text-muted-foreground">
-                    {t('ventes:dossier.transitions.aucunBonCommande')}
-                  </p>
+                  <div className="flex flex-col gap-2">
+                    <p className="texte-libelle text-muted-foreground">
+                      {t('ventes:dossier.transitions.aucunBonCommande')}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="self-start"
+                      disabled={creationBonCommande.enCours}
+                      onClick={() =>
+                        creationBonCommande.creer({
+                          onSuccess: (document) => setBonCommandeDocumentId(document.id),
+                        })
+                      }
+                    >
+                      {t('ventes:dossier.transitions.creerBonCommande')}
+                    </Button>
+                    {creationBonCommande.erreur ? (
+                      <p className="texte-libelle text-destructive" role="alert">
+                        {messageErreur(creationBonCommande.erreur, t)}
+                      </p>
+                    ) : null}
+                  </div>
                 ) : (
                   <Select value={bonCommandeDocumentId} onValueChange={setBonCommandeDocumentId}>
                     <SelectTrigger id="dossier-engager-bon-commande">

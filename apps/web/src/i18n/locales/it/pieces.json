@@ -192,6 +192,10 @@
       "actions": {
         "commander": "Ordina"
       },
+      "selection": {
+        "aria": "Seleziona {designation}",
+        "nombreSelectionnes": "{count} {count, plural, one {articolo selezionato} other {articoli selezionati}}"
+      },
       "vide": "Nessun riordino necessario.",
       "colonnes": {
         "article": "Articolo",

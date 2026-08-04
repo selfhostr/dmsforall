@@ -225,5 +225,42 @@
       "ajouter": "Ajouter"
     },
     "enregistrementReussi": "Paramètres du site enregistrés."
+  },
+  "pieces": {
+    "titre": "Paramètres pièces",
+    "enregistrementReussi": "Paramètres enregistrés.",
+    "erreur": {
+      "titre": "Impossible de charger les paramètres pièces"
+    },
+    "stock": {
+      "titre": "Stock",
+      "stockAutresSitesVisible": "Stock des autres sites visible en lecture",
+      "stockNegatifForcageAutorise": "Autoriser le forçage d'une sortie malgré un stock insuffisant"
+    },
+    "valorisation": {
+      "titre": "Valorisation du stock",
+      "methodePrixAchat": "Méthode de prix d'achat",
+      "methodePrixAchatAide": "Détermine comment le prix d'achat affiché sur un article est recalculé après chaque réception. Reste non réglée tant qu'aucune méthode n'a été arbitrée.",
+      "methodePrixAchatValeurs": {
+        "aucune": "Non réglée",
+        "dernier_prix": "Dernier prix connu",
+        "moyenne_ponderee": "Moyenne pondérée"
+      }
+    },
+    "inventaire": {
+      "titre": "Inventaire",
+      "seuilValeurAjustementSignificatif": "Seuil d'alerte pour un ajustement significatif",
+      "seuilValeurAjustementSignificatifAide": "Un ajustement d'inventaire dont la valeur dépasse ce montant déclenche un avertissement au moment de la saisie. Laissez vide tant qu'aucun seuil n'est arbitré."
+    },
+    "consigne": {
+      "titre": "Consigne d'échange standard",
+      "delaiAcquisitionJours": "Délai avant proposition d'acquisition (jours)",
+      "delaiAcquisitionJoursAide": "Laissez vide tant qu'aucun délai n'est arbitré : aucune consigne n'est proposée comme acquise automatiquement.",
+      "tauxTva": "Taux de TVA appliqué à la consigne"
+    },
+    "conditionnement": {
+      "articleDistinct": "Un conditionnement différent est un article distinct",
+      "inerte": "réglage fixe, pas encore paramétrable"
+    }
   }
 }

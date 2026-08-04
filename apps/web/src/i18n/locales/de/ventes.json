@@ -336,6 +336,7 @@
       "aucuneActionDisponible": "Derzeit keine Aktion verfügbar.",
       "bonCommande": "Bestellung",
       "aucunBonCommande": "Keine Bestellung für dieses Dossier vorhanden",
+      "creerBonCommande": "Bestellung erstellen",
       "identitePieceType": "Vorgelegter Ausweis",
       "identitePieceTypes": {
         "carte_identite": "Identitätskarte",

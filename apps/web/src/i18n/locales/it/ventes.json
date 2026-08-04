@@ -336,6 +336,7 @@
       "aucuneActionDisponible": "Nessuna azione disponibile al momento.",
       "bonCommande": "Ordine di acquisto",
       "aucunBonCommande": "Nessun ordine di acquisto per questa pratica",
+      "creerBonCommande": "Creare l'ordine di acquisto",
       "identitePieceType": "Documento d'identità presentato",
       "identitePieceTypes": {
         "carte_identite": "Carta d'identità",

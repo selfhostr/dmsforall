@@ -225,5 +225,42 @@
       "ajouter": "Aggiungi"
     },
     "enregistrementReussi": "Impostazioni della sede salvate."
+  },
+  "pieces": {
+    "titre": "Impostazioni ricambi",
+    "enregistrementReussi": "Impostazioni salvate.",
+    "erreur": {
+      "titre": "Impossibile caricare le impostazioni ricambi"
+    },
+    "stock": {
+      "titre": "Magazzino",
+      "stockAutresSitesVisible": "Stock delle altre sedi visibile in lettura",
+      "stockNegatifForcageAutorise": "Consentire di forzare un'uscita nonostante stock insufficiente"
+    },
+    "valorisation": {
+      "titre": "Valorizzazione del magazzino",
+      "methodePrixAchat": "Metodo del prezzo d'acquisto",
+      "methodePrixAchatAide": "Determina come viene ricalcolato il prezzo d'acquisto mostrato su un articolo dopo ogni ricezione. Resta non impostato finché nessun metodo è stato deciso.",
+      "methodePrixAchatValeurs": {
+        "aucune": "Non impostato",
+        "dernier_prix": "Ultimo prezzo noto",
+        "moyenne_ponderee": "Media ponderata"
+      }
+    },
+    "inventaire": {
+      "titre": "Inventario",
+      "seuilValeurAjustementSignificatif": "Soglia di avviso per una rettifica significativa",
+      "seuilValeurAjustementSignificatifAide": "Una rettifica di inventario il cui valore supera questo importo genera un avviso al momento della registrazione. Lasciare vuoto finché nessuna soglia è stata decisa."
+    },
+    "consigne": {
+      "titre": "Cauzione di scambio standard",
+      "delaiAcquisitionJours": "Termine prima della proposta di acquisizione (giorni)",
+      "delaiAcquisitionJoursAide": "Lasciare vuoto finché nessun termine è stato deciso: nessuna cauzione viene proposta come acquisita automaticamente.",
+      "tauxTva": "Aliquota IVA applicata alla cauzione"
+    },
+    "conditionnement": {
+      "articleDistinct": "Un confezionamento diverso è un articolo distinto",
+      "inerte": "impostazione fissa, non ancora configurabile"
+    }
   }
 }

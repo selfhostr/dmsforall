@@ -336,6 +336,7 @@
       "aucuneActionDisponible": "Aucune action disponible pour le moment.",
       "bonCommande": "Bon de commande",
       "aucunBonCommande": "Aucun bon de commande sur ce dossier",
+      "creerBonCommande": "Créer le bon de commande",
       "identitePieceType": "Pièce d'identité présentée",
       "identitePieceTypes": {
         "carte_identite": "Carte d'identité",

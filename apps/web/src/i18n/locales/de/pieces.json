@@ -192,6 +192,10 @@
       "actions": {
         "commander": "Bestellen"
       },
+      "selection": {
+        "aria": "{designation} auswählen",
+        "nombreSelectionnes": "{count} {count, plural, one {Artikel ausgewählt} other {Artikel ausgewählt}}"
+      },
       "vide": "Keine Nachbestellungen erforderlich.",
       "colonnes": {
         "article": "Artikel",

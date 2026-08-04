@@ -225,5 +225,42 @@
       "ajouter": "Hinzufügen"
     },
     "enregistrementReussi": "Standorteinstellungen gespeichert."
+  },
+  "pieces": {
+    "titre": "Teileeinstellungen",
+    "enregistrementReussi": "Einstellungen gespeichert.",
+    "erreur": {
+      "titre": "Teileeinstellungen konnten nicht geladen werden"
+    },
+    "stock": {
+      "titre": "Lager",
+      "stockAutresSitesVisible": "Lagerbestand anderer Standorte lesbar sichtbar",
+      "stockNegatifForcageAutorise": "Erzwingen eines Abgangs trotz unzureichendem Bestand erlauben"
+    },
+    "valorisation": {
+      "titre": "Lagerbewertung",
+      "methodePrixAchat": "Methode für den Einkaufspreis",
+      "methodePrixAchatAide": "Bestimmt, wie der auf einem Artikel angezeigte Einkaufspreis nach jedem Wareneingang neu berechnet wird. Bleibt unbestimmt, solange keine Methode festgelegt wurde.",
+      "methodePrixAchatValeurs": {
+        "aucune": "Nicht festgelegt",
+        "dernier_prix": "Letzter bekannter Preis",
+        "moyenne_ponderee": "Gewichteter Durchschnitt"
+      }
+    },
+    "inventaire": {
+      "titre": "Inventur",
+      "seuilValeurAjustementSignificatif": "Warnschwelle für eine bedeutende Korrektur",
+      "seuilValeurAjustementSignificatifAide": "Eine Bestandskorrektur, deren Wert diesen Betrag übersteigt, löst bei der Erfassung eine Warnung aus. Leer lassen, solange kein Schwellenwert festgelegt wurde."
+    },
+    "consigne": {
+      "titre": "Austauschpfand",
+      "delaiAcquisitionJours": "Frist vor Vorschlag zur Übernahme (Tage)",
+      "delaiAcquisitionJoursAide": "Leer lassen, solange keine Frist festgelegt wurde: kein Pfand wird automatisch als erworben vorgeschlagen.",
+      "tauxTva": "Auf das Pfand angewendeter MWST-Satz"
+    },
+    "conditionnement": {
+      "articleDistinct": "Eine andere Verpackungseinheit ist ein eigener Artikel",
+      "inerte": "feste Einstellung, noch nicht konfigurierbar"
+    }
   }
 }

@@ -39,7 +39,6 @@ import { useListeVehiculesStock } from '@/hooks/ventes/stock/useListeVehiculesSt
 import { formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
-import { cheminsStockVentes } from './_composants/chemins-locaux';
 import { peutEcrireVehiculeStock } from './droits';
 
 const DELAI_DEBOUNCE_MS = 300;
@@ -194,7 +193,7 @@ export function EcranListeVehiculesStock() {
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => navigate(cheminsStockVentes.detail(ligne.id, site))}
+          onClick={() => navigate(chemins.ventes.stock.detail(ligne.id, site))}
         >
           {t('ventes:stock.liste.actions.ficheCommerciale')}
         </Button>
@@ -225,7 +224,7 @@ export function EcranListeVehiculesStock() {
         description={t('ventes:stock.liste.vide')}
         action={
           peutEcrireVehiculeStock(role) ? (
-            <Button onClick={() => navigate(cheminsStockVentes.nouveau(site))}>
+            <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
               {t('ventes:stock.liste.actions.mettreEnStock')}
             </Button>
           ) : undefined
@@ -261,7 +260,7 @@ export function EcranListeVehiculesStock() {
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{t('ventes:stock.liste.titre')}</h1>
         {peutEcrireVehiculeStock(role) ? (
-          <Button onClick={() => navigate(cheminsStockVentes.nouveau(site))}>
+          <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
             {t('ventes:stock.liste.actions.mettreEnStock')}
           </Button>
         ) : null}

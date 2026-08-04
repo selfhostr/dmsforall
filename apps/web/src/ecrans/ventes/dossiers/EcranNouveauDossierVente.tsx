@@ -21,8 +21,8 @@ import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
 import { useClient } from '@/hooks/clients/useClient';
 import { useCreationDossierVente } from '@/hooks/ventes/dossiers/useCreationDossierVente';
 import { useVehiculeStockParId } from '@/hooks/ventes/dossiers/useVehiculeStockParId';
+import { chemins } from '@/routes/chemins';
 
-import { cheminDossierVente } from './chemins-dossiers';
 import { SelecteurClientDossier } from './SelecteurClientDossier';
 import { SelecteurVehiculeStockDossier } from './SelecteurVehiculeStockDossier';
 
@@ -134,7 +134,7 @@ export function EcranNouveauDossierVente() {
         vehiculeId: vehiculeEffectif?.id ?? null,
         dateLivraisonEstimee: dateLivraisonEstimee.trim() === '' ? null : dateLivraisonEstimee,
       },
-      { onSuccess: (dossier) => navigate(cheminDossierVente(dossier.id, site)) },
+      { onSuccess: (dossier) => navigate(chemins.ventes.dossiers.detail(dossier.id, site)) },
     );
   }
 
@@ -342,7 +342,7 @@ export function EcranNouveauDossierVente() {
         onConfirmer={() => {
           setConfirmationOuverte(false);
           creation.confirmerEtResoumettre({
-            onSuccess: (dossier) => navigate(cheminDossierVente(dossier.id, site)),
+            onSuccess: (dossier) => navigate(chemins.ventes.dossiers.detail(dossier.id, site)),
           });
         }}
         enCours={creation.enCours}

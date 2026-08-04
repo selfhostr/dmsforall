@@ -5,8 +5,8 @@ import { useNavigate, useSearchParams } from 'react-router';
 import type { VehiculeResume } from '@dfa/shared';
 
 import { useSession } from '@/hooks/useSession';
+import { chemins } from '@/routes/chemins';
 
-import { cheminsStockVentes } from './_composants/chemins-locaux';
 import { FormulaireEntreeEnStock } from './_composants/FormulaireEntreeEnStock';
 import { SelecteurVehiculeExistant } from './_composants/SelecteurVehiculeExistant';
 
@@ -41,7 +41,7 @@ export function EcranEntreeEnStock() {
           vehicule={vehiculeChoisi}
           sites={sites}
           onRetour={() => setVehiculeChoisi(null)}
-          onMisEnStock={(vehiculeId) => navigate(cheminsStockVentes.detail(vehiculeId, site))}
+          onMisEnStock={(vehiculeId) => navigate(chemins.ventes.stock.detail(vehiculeId, site))}
         />
       )}
     </div>

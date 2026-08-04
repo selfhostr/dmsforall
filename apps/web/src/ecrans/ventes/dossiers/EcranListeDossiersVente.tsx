@@ -35,9 +35,9 @@ import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { useListeDossiersVente } from '@/hooks/ventes/dossiers/useListeDossiersVente';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
+import { chemins } from '@/routes/chemins';
 
 import { BadgeStatutDossierVente } from './BadgeStatutDossierVente';
-import { cheminDossierVente, cheminNouveauDossierVente } from './chemins-dossiers';
 import { peutEcrireDossierVente } from './droits';
 
 const DELAI_DEBOUNCE_MS = 300;
@@ -154,7 +154,9 @@ export function EcranListeDossiersVente() {
 
   const boutonNouveauDossier = peutCreer ? (
     <Button asChild>
-      <Link to={cheminNouveauDossierVente(site)}>{t('ventes:commun.actions.nouveauDossier')}</Link>
+      <Link to={chemins.ventes.dossiers.nouveau(site)}>
+        {t('ventes:commun.actions.nouveauDossier')}
+      </Link>
     </Button>
   ) : undefined;
 
@@ -316,7 +318,7 @@ export function EcranListeDossiersVente() {
         colonnes={colonnes}
         lignes={dossiers}
         cleLigne={(dossier) => dossier.id}
-        onOuvrirLigne={(dossier) => navigate(cheminDossierVente(dossier.id, site))}
+        onOuvrirLigne={(dossier) => navigate(chemins.ventes.dossiers.detail(dossier.id, site))}
         contenuVide={contenuVide}
       />
 

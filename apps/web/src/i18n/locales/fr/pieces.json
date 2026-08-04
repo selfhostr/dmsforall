@@ -192,6 +192,10 @@
       "actions": {
         "commander": "Commander"
       },
+      "selection": {
+        "aria": "Sélectionner {designation}",
+        "nombreSelectionnes": "{count} {count, plural, one {article sélectionné} other {articles sélectionnés}}"
+      },
       "vide": "Aucun article à réapprovisionner.",
       "colonnes": {
         "article": "Article",
