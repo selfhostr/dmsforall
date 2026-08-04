@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import type { z } from 'zod';
 
 import {
   schemaCreationPrestation,
@@ -99,10 +100,12 @@ export function DialoguePrestation({
   const enCours = creer.isPending || modifier.isPending;
   const [actif, setActif] = useState(prestation?.actif ?? true);
 
-  const form = useForm<EntreeCreationPrestation>({
-    resolver: zodResolver(schemaCreationPrestation),
-    defaultValues: versValeursFormulaire(prestation),
-  });
+  const form = useForm<z.input<typeof schemaCreationPrestation>, unknown, EntreeCreationPrestation>(
+    {
+      resolver: zodResolver(schemaCreationPrestation),
+      defaultValues: versValeursFormulaire(prestation),
+    },
+  );
 
   useEffect(() => {
     if (!ouvert) return;

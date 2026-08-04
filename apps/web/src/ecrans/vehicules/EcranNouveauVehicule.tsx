@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
-import { schemaCreationVehicule, type EntreeCreationVehicule } from '@dfa/shared';
+import { schemaCreationVehicule } from '@dfa/shared';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { useCleIdempotence } from '@/api/idempotence';
@@ -52,7 +52,7 @@ export function EcranNouveauVehicule() {
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
 
-  const form = useForm<EntreeCreationVehicule>({
+  const form = useForm({
     resolver: zodResolver(schemaCreationVehicule),
     defaultValues: {
       marque: '',

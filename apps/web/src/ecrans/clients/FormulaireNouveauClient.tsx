@@ -63,7 +63,7 @@ export function FormulaireNouveauClient({ onCree }: Props) {
   const [telephoneSaisi, setTelephoneSaisi] = useState('');
   const [entreeEnAttente, setEntreeEnAttente] = useState<EntreeCreationClient | null>(null);
 
-  const form = useForm<EntreeCreationClient>({
+  const form = useForm({
     resolver: zodResolver(schemaCreationClient),
     defaultValues: {
       type: 'particulier',

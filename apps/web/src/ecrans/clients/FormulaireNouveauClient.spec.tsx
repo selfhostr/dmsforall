@@ -54,6 +54,46 @@ function rendreFormulaire(onCree = vi.fn(), routeInitiale = '/') {
 }
 
 describe('FormulaireNouveauClient', () => {
+  it('affiche les erreurs de validation par champ à la soumission de données invalides, sans perte de saisie ni rejet silencieux', async () => {
+    // Régression @hookform/resolvers + zod 4 : avec @hookform/resolvers@3.10.0, l'adaptateur zod
+    // teste `Array.isArray(err?.errors)` pour convertir un ZodError en erreurs de champ RHF — or
+    // zod 4 a supprimé l'alias `.errors` (seul `.issues` subsiste sur ZodError). Ce test étant
+    // toujours faux, l'ancien adaptateur relançait le ZodError au lieu de peupler
+    // `formState.errors`. Dans `handleSubmit` (react-hook-form), `const { errors, values } =
+    // await _runSchema()` n'est entouré d'aucun try/catch : la promesse retournée par `soumettre`
+    // (passée telle quelle à `onSubmit` du <form>) rejetait alors sans jamais être awaitée par
+    // React — un rejet de promesse non géré — et aucun message d'erreur n'apparaissait jamais
+    // dans le DOM. Avec l'ancien adaptateur, les `findByText` ci-dessous auraient expiré
+    // (timeout), pas échoué immédiatement : la validation ne renvoyait jamais d'erreur de champ.
+    server.use(
+      http.get('/api/v1/doublons-clients', () =>
+        HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients),
+      ),
+    );
+    const utilisateur = userEvent.setup();
+    const { onCree } = rendreFormulaire();
+
+    // Aucun champ requis rempli (nom, rue, npa, localité) : la validation zod doit échouer.
+    await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
+
+    // Les erreurs de champ apparaissent réellement dans le DOM (formState.errors peuplé), pas
+    // seulement l'absence de throw.
+    const erreursRequis = await screen.findAllByText('Ce champ est obligatoire.');
+    expect(erreursRequis.length).toBeGreaterThanOrEqual(3); // nom, rue, npa, localité
+
+    expect(screen.getByLabelText('Nom')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Rue et numéro')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('NPA')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Localité')).toHaveAttribute('aria-invalid', 'true');
+
+    // La soumission n'a pas abouti — ni requête réseau, ni navigation.
+    expect(onCree).not.toHaveBeenCalled();
+
+    // La saisie n'est pas perdue : un champ déjà rempli reste rempli après l'échec de validation.
+    await utilisateur.type(screen.getByLabelText('Nom'), 'Rossi');
+    expect(screen.getByLabelText('Nom')).toHaveValue('Rossi');
+  });
+
   it("crée directement quand l'aperçu de doublons ne remonte aucun candidat", async () => {
     server.use(
       http.get('/api/v1/doublons-clients', () =>
