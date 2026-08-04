@@ -395,6 +395,70 @@ describe('ServiceClient — isolation tenant : le tenant du contexte est explici
 });
 
 describe(
+  "ServiceClient.lister — filtre `q` : la clause téléphone ne doit jamais devenir un `like '%%'` " +
+    'qui matche tout client ayant un numéro (régression : `q=ZZZZZNEXISTEPAS` remontait tous les ' +
+    'clients avec téléphone renseigné, faute de garde sur un terme sans aucun chiffre)',
+  () => {
+    it("un terme sans aucun chiffre (recherche par nom pure) n'ajoute pas la clause `telephone_e164 like`, et ne génère jamais le paramètre littéral '%%'", async () => {
+      const { tx } = txFactice({ executes: [{ rows: [] }] });
+      const acces = accesFactice(tx);
+      const service = new ServiceClient(
+        acces,
+        idempotenceFactice(tx),
+        compteursFactice(1),
+        new Horloge(),
+      );
+
+      await service.lister(CTX, { tri: 'nom:asc', limite: 20, q: 'Rochat' });
+
+      const appel = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as SQL;
+      const { sql: texte, params } = dialect.sqlToQuery(appel);
+      // `telephone_e164` apparaît légitimement dans la liste `select` (colonne projetée) : c'est
+      // la clause `... like` du `where`, spécifiquement, qui ne doit jamais être générée ici.
+      expect(texte).not.toContain('telephone_e164 like');
+      expect(params).not.toContain('%%');
+      expect(texte).toContain('normaliser_recherche');
+    });
+
+    it('un terme purement numérique (fragment de téléphone) ajoute la clause `telephone_e164 like` avec le motif attendu', async () => {
+      const { tx } = txFactice({ executes: [{ rows: [] }] });
+      const acces = accesFactice(tx);
+      const service = new ServiceClient(
+        acces,
+        idempotenceFactice(tx),
+        compteursFactice(1),
+        new Horloge(),
+      );
+
+      await service.lister(CTX, { tri: 'nom:asc', limite: 20, q: '079' });
+
+      const appel = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as SQL;
+      const { sql: texte, params } = dialect.sqlToQuery(appel);
+      expect(texte).toContain('telephone_e164');
+      expect(params).toContain('%079%');
+    });
+
+    it('un terme mixte (lettres + chiffres) garde la clause téléphone active avec le seul fragment numérique', async () => {
+      const { tx } = txFactice({ executes: [{ rows: [] }] });
+      const acces = accesFactice(tx);
+      const service = new ServiceClient(
+        acces,
+        idempotenceFactice(tx),
+        compteursFactice(1),
+        new Horloge(),
+      );
+
+      await service.lister(CTX, { tri: 'nom:asc', limite: 20, q: 'Rochat 021' });
+
+      const appel = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as SQL;
+      const { sql: texte, params } = dialect.sqlToQuery(appel);
+      expect(texte).toContain('telephone_e164');
+      expect(params).toContain('%021%');
+    });
+  },
+);
+
+describe(
   "ServiceClient.lister — tri 'creeLe:desc' : le curseur doit préserver la MICROSECONDE de " +
     "PostgreSQL, jamais la tronquer à la milliseconde d'un `Date` JavaScript (régression : " +
     'plusieurs clients créés en lot, donc partageant la même milliseconde, faisaient sauter des ' +

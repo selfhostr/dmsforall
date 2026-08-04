@@ -162,14 +162,21 @@ export class ServiceClient {
       // le commentaire de `schemaFiltresClients.siteId`, `@dfa/shared` : « ignoré sinon »).
       if (params.q) {
         const motif = `%${params.q}%`;
-        const chiffres = `%${params.q.replace(/[^0-9+]/g, '')}%`;
-        conditions.push(sql`(
-          public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''))) % public.normaliser_recherche(${params.q})
-          or c.numero ilike ${motif}
-          or c.email ilike ${motif}
-          or c.ide ilike ${motif}
-          or c.telephone_e164 like ${chiffres}
-        )`);
+        // Fragment numérique du terme (chiffres + '+') : n'active la clause téléphone que s'il en
+        // existe un — sinon `chiffres` serait vide et `like '%%'` matcherait tout client ayant un
+        // numéro de téléphone, quel que soit le terme recherché (bruit total sur une recherche par
+        // nom pure, ex. `q=Rochat`).
+        const chiffres = params.q.replace(/[^0-9+]/g, '');
+        const clausesRecherche = [
+          sql`public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''))) % public.normaliser_recherche(${params.q})`,
+          sql`c.numero ilike ${motif}`,
+          sql`c.email ilike ${motif}`,
+          sql`c.ide ilike ${motif}`,
+        ];
+        if (chiffres.length > 0) {
+          clausesRecherche.push(sql`c.telephone_e164 like ${`%${chiffres}%`}`);
+        }
+        conditions.push(sql`(${sql.join(clausesRecherche, sql` or `)})`);
       }
       if (curseurDecode) {
         conditions.push(
