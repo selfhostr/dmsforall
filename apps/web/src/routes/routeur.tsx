@@ -37,6 +37,7 @@ import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
 import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
 import { EcranFicheVehicule } from '@/ecrans/vehicules/EcranFicheVehicule';
 import { EcranListeVehicules } from '@/ecrans/vehicules/EcranListeVehicules';
+import { EcranNouveauVehicule } from '@/ecrans/vehicules/EcranNouveauVehicule';
 import { EcranFicheDossierVente } from '@/ecrans/ventes/dossiers/EcranFicheDossierVente';
 import { EcranListeDossiersVente } from '@/ecrans/ventes/dossiers/EcranListeDossiersVente';
 import { EcranNouveauDossierVente } from '@/ecrans/ventes/dossiers/EcranNouveauDossierVente';
@@ -82,6 +83,18 @@ export const routesConfig: RouteObject[] = [
       { path: 'clients', element: <EcranListeClients /> },
       { path: 'clients/:id', element: <EcranFicheClient /> },
       { path: 'vehicules', element: <EcranListeVehicules /> },
+      // Segment statique `nouveau` déclaré AVANT `:vehiculeId` (même convention que
+      // `clients/doublons` et `pieces/articles/nouvelle` ci-dessous) : React Router (v6) résout
+      // sans ambiguïté quel que soit l'ordre, mais un ordre `nouveau` avant `:vehiculeId` évite le
+      // piège qui a produit le bug initial (`GET /vehicules/nouveau` traité comme un identifiant).
+      // Pas de `rolesAutorises` ici, à l'identique de `clients`/`clients/:id` juste au-dessus :
+      // `vehicule.lire` est ouvert à tout rôle authentifié (`LECTURE_ETENDUE`,
+      // `apps/api/src/auth/matrice-droits.ts`), la restriction réelle porte sur l'ÉCRITURE
+      // (`vehicule.creer`, fermée à `technicien`/`comptable`/`vendeur`) — gérée par le `403` de
+      // l'API et l'alerte générique de l'écran, jamais par une garde de route (voir
+      // `droits-routes.ts`, cas de figure 1 : une garde de route n'a de sens que si la LECTURE
+      // elle-même est restreinte, ce qui n'est pas le cas ici).
+      { path: 'vehicules/nouveau', element: <EcranNouveauVehicule /> },
       { path: 'vehicules/:vehiculeId', element: <EcranFicheVehicule /> },
       { path: 'ordres-reparation', element: <EcranListeOrdresReparation /> },
       // Le paramètre s'appelle `orId` (pas `id`) pour matcher exactement ce que

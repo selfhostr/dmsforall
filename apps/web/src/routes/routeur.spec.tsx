@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import type { ReponseOrdreReparation } from '@dfa/shared';
 
@@ -15,6 +15,23 @@ import { server } from '@/test/msw/server';
 import { renduAvecRoutes } from '@/test/utils';
 
 import { routesConfig } from './routeur';
+
+// jsdom (26.1, `src/test/environnementJsdomFetch.ts`) n'implémente PAS `ResizeObserver` — un vrai
+// navigateur si. `/vehicules/nouveau` (`EcranNouveauVehicule`) monte une case à cocher
+// `@radix-ui/react-checkbox` qui l'utilise inconditionnellement au montage
+// (`CheckboxBubbleInput`, `useSize(control)`). Stub scopé à ce fichier (hors périmètre de cet
+// agent : `src/test/setup.ts`, infrastructure de test partagée) — voir le même commentaire dans
+// `ecrans/vehicules/EcranNouveauVehicule.spec.tsx`.
+beforeAll(() => {
+  if (!('ResizeObserver' in globalThis)) {
+    class ResizeObserverStub {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+    globalThis.ResizeObserver = ResizeObserverStub;
+  }
+});
 
 /** OR minimal mais complet (tous les champs requis du contrat) pour la fiche — voir
  *  `packages/shared/src/contrats/atelier/ordre-reparation.ts`. `actionsDisponibles: []` pour
@@ -182,6 +199,58 @@ describe('routeur — protection par défaut', () => {
     expect(
       await screen.findByRole('heading', { name: 'Ordres de réparation' }),
     ).toBeInTheDocument();
+  });
+});
+
+/**
+ * Bug critique confirmé au navigateur : `/vehicules/nouveau` n'avait AUCUNE route dédiée —
+ * l'URL tombait sur `vehicules/:vehiculeId` avec `vehiculeId = "nouveau"`, `EcranFicheVehicule`
+ * tentait alors `GET /vehicules/nouveau` et échouait toujours (« Impossible de charger le
+ * véhicule »). Ce bloc verrouille le correctif : la route dédiée existe, monte le VRAI écran de
+ * création, et ne déclenche plus l'appel `GET /vehicules/nouveau`.
+ */
+describe('routeur — /vehicules/nouveau rend l’écran de création, jamais la fiche d’un véhicule inexistant', () => {
+  it('monte `EcranNouveauVehicule` (titre « Nouveau véhicule »), sans appeler `GET /vehicules/nouveau`', async () => {
+    let cheminAppele: string | null = null;
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/vehicules/:vehiculeId', ({ params }) => {
+        cheminAppele = params.vehiculeId as string;
+        return HttpResponse.json(
+          { type: 't', title: 't', status: 404, code: 'VEHICULE_INTROUVABLE', instance: 'r' },
+          { status: 404, headers: { 'content-type': 'application/problem+json' } },
+        );
+      }),
+    );
+    renduAvecRoutes(routesConfig, { routeInitiale: '/vehicules/nouveau' });
+
+    expect(
+      await screen.findByRole('heading', { name: 'Nouveau véhicule', level: 1 }),
+    ).toBeInTheDocument();
+    // Preuve négative : ni le message d'erreur de la fiche, ni un appel réseau vers
+    // `GET /vehicules/nouveau` (le défaut exact du bug initial).
+    expect(screen.queryByText('Impossible de charger le véhicule')).not.toBeInTheDocument();
+    expect(cheminAppele).toBeNull();
+  });
+
+  it('la fiche d’un véhicule réel reste accessible à `/vehicules/:vehiculeId` (non-régression)', async () => {
+    const problemeVehiculeIntrouvable = () =>
+      HttpResponse.json(
+        { type: 't', title: 't', status: 404, code: 'VEHICULE_INTROUVABLE', instance: 'r' },
+        { status: 404, headers: { 'content-type': 'application/problem+json' } },
+      );
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      // Les deux requêtes PRIMAIRES de `EcranFicheVehicule` (véhicule + contexte-atelier)
+      // doivent échouer explicitement ici — sinon `onUnhandledRequest: 'error'`
+      // (`test/setup.ts`) ferait échouer ce test sur la requête non mockée, pas sur l'assertion.
+      http.get('/api/v1/vehicules/:vehiculeId', problemeVehiculeIntrouvable),
+      http.get('/api/v1/vehicules/:vehiculeId/contexte-atelier', problemeVehiculeIntrouvable),
+    );
+    // `vehiculeId` réel qui n'est PAS `nouveau` : ne doit jamais matcher la route de création.
+    renduAvecRoutes(routesConfig, { routeInitiale: '/vehicules/vehicule-reel-1' });
+    expect(await screen.findByText('Impossible de charger le véhicule')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Nouveau véhicule' })).not.toBeInTheDocument();
   });
 });
 

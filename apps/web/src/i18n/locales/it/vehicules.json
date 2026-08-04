@@ -44,6 +44,7 @@
     "marque": "Marca",
     "modele": "Modello",
     "version": "Versione",
+    "finition": "Allestimento",
     "vin": "VIN",
     "codeType": "Codice CH",
     "plaque": "Targa",

@@ -1,6 +1,7 @@
+import { Plus } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import {
   TRI_DEFAUT_VEHICULES,
@@ -10,6 +11,7 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import {
@@ -138,6 +140,14 @@ export function EcranListeVehicules() {
       <EtatVidePremierUsage
         titre={t('vehicules:liste.titre')}
         description={t('vehicules:vide.nouveau')}
+        action={
+          <Button asChild>
+            <Link to={chemins.vehicules.nouveau(site)}>
+              <Plus aria-hidden className="h-4 w-4" />
+              {t('vehicules:nouveau')}
+            </Link>
+          </Button>
+        }
       />
     );
   }
@@ -166,7 +176,15 @@ export function EcranListeVehicules() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('vehicules:liste.titre')}</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight">{t('vehicules:liste.titre')}</h1>
+        <Button asChild>
+          <Link to={chemins.vehicules.nouveau(site)}>
+            <Plus aria-hidden className="h-4 w-4" />
+            {t('vehicules:nouveau')}
+          </Link>
+        </Button>
+      </div>
 
       <BarreFiltres
         q={qSaisie}

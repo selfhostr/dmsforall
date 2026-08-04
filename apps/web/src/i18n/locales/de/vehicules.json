@@ -44,6 +44,7 @@
     "marque": "Marke",
     "modele": "Modell",
     "version": "Version",
+    "finition": "Ausstattung",
     "vin": "VIN",
     "codeType": "CH-Code",
     "plaque": "Kennzeichen",
