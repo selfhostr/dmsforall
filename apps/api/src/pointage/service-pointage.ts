@@ -117,11 +117,7 @@ interface ErreurPgBruteCollisionPointage {
  */
 export function estCollisionIdPointage(erreur: unknown): boolean {
   let courante: unknown = erreur;
-  for (
-    let profondeur = 0;
-    profondeur < PROFONDEUR_MAX_CAUSE_COLLISION_POINTAGE;
-    profondeur += 1
-  ) {
+  for (let profondeur = 0; profondeur < PROFONDEUR_MAX_CAUSE_COLLISION_POINTAGE; profondeur += 1) {
     if (typeof courante !== 'object' || courante === null) return false;
     const brute = courante as ErreurPgBruteCollisionPointage;
     if (brute.code === '23505' && brute.constraint === 'pointage_pk') return true;
@@ -648,7 +644,10 @@ export class ServicePointage {
           const duree = dureeBruteDepuisPeriode(actuel.debutLe, actuel.finLe);
           return {
             statutHttp: 200,
-            corps: { donnees: mapperPointage(actuel, duree, technicien.nomAffiche), avertissements: [] },
+            corps: {
+              donnees: mapperPointage(actuel, duree, technicien.nomAffiche),
+              avertissements: [],
+            },
           };
         }
 
@@ -811,7 +810,10 @@ export class ServicePointage {
         .from(pointage)
         .innerJoin(
           utilisateur,
-          and(eq(utilisateur.tenantId, pointage.tenantId), eq(utilisateur.id, pointage.technicienId)),
+          and(
+            eq(utilisateur.tenantId, pointage.tenantId),
+            eq(utilisateur.id, pointage.technicienId),
+          ),
         )
         .where(and(...clauses))
         .orderBy(...ordreParDebutLe(sens))

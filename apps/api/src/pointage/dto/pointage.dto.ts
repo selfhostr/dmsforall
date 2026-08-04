@@ -57,7 +57,8 @@ export class ReponsePointageDto implements ReponsePointage {
   readonly technicienId!: string;
 
   @ApiProperty({
-    description: 'Prénom + nom du technicien, joints par le serveur (jamais à reconstruire côté client).',
+    description:
+      'Prénom + nom du technicien, joints par le serveur (jamais à reconstruire côté client).',
     example: 'Marco Rossi',
   })
   readonly technicienNomAffiche!: string;

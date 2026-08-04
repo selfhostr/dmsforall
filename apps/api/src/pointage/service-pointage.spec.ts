@@ -24,7 +24,7 @@ import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import type { ContexteTenant } from '../db';
 
-import { ServicePointage } from './service-pointage';
+import { estCollisionIdPointage, ServicePointage } from './service-pointage';
 
 // `chargerPointagePourEcriture` est une fonction de module : on la simule pour piloter le
 // `technicienId` (et le statut) du pointage chargé par `arreter`, sans base.
@@ -195,5 +195,75 @@ describe('ServicePointage.arreter — garde soi/autrui (faille corrigée)', () =
     await expect(
       service.arreter(CTX, principal('poste_atelier', BORNE), POINTAGE_ID, entreeArret, 'cle'),
     ).rejects.toMatchObject({ code: 'POINTAGE_TRANSITION_INTERDITE' });
+  });
+});
+
+/**
+ * Défaut HAUT confirmé (double-pointage concurrent en 500) : `estCollisionIdPointage` ne testait
+ * `code`/`constraint` qu'au PREMIER NIVEAU de l'erreur levée par `tx.insert(pointage)...` dans
+ * `demarrer`. Or Drizzle (`pg-core/session.js`) enveloppe SYSTÉMATIQUEMENT l'erreur brute du
+ * pilote `pg` dans une `DrizzleQueryError` qui ne porte `code`/`constraint` que sous `.cause` —
+ * jamais en surface. Un double-clic / une requête concurrente rejouant le MÊME `id` de pointage
+ * (RM-87, idempotence côté client) ne déclenchait donc jamais le `409 CONFLIT` déjà écrit dans
+ * `demarrer`, et remontait en `500 ERREUR_INTERNE`. MÊME PATRON DE PREUVE que
+ * `vehicules/erreurs-contraintes.spec.ts` : les deux formes réellement observées (brute ET
+ * enveloppée sous `.cause`), plus le repli sûr sur une chaîne non exploitable ou cyclique.
+ */
+describe('estCollisionIdPointage (faille corrigée : .cause non déballé)', () => {
+  /** Reproduit la forme réelle d'un `DatabaseError` du pilote `pg` pour une violation de contrainte. */
+  function erreurPgBrute(
+    code: string,
+    constraint: string,
+  ): Error & { code: string; constraint: string } {
+    const erreur = new Error(`erreur pg simulée : ${constraint}`) as Error & {
+      code: string;
+      constraint: string;
+    };
+    erreur.code = code;
+    erreur.constraint = constraint;
+    return erreur;
+  }
+
+  /** Reproduit la forme réelle d'une `DrizzleQueryError` (`drizzle-orm/pg-core/session.js`). */
+  function erreurDrizzleEnveloppee(code: string, constraint: string): Error & { cause: unknown } {
+    const enveloppe = new Error('Failed query') as Error & { cause: unknown };
+    enveloppe.cause = erreurPgBrute(code, constraint);
+    return enveloppe;
+  }
+
+  it('reconnaît la collision enveloppée sous .cause (la forme réelle en production)', () => {
+    expect(estCollisionIdPointage(erreurDrizzleEnveloppee('23505', 'pointage_pk'))).toBe(true);
+  });
+
+  it('reconnaît la collision sous forme brute (pilote pg directement, sans Drizzle)', () => {
+    expect(estCollisionIdPointage(erreurPgBrute('23505', 'pointage_pk'))).toBe(true);
+  });
+
+  it('rend false pour un 23505 sur une AUTRE contrainte que pointage_pk', () => {
+    expect(
+      estCollisionIdPointage(
+        erreurDrizzleEnveloppee('23505', 'pointage_technicien_un_seul_en_cours_uk'),
+      ),
+    ).toBe(false);
+  });
+
+  it('rend false pour un SQLSTATE non couvert (même enveloppé)', () => {
+    expect(estCollisionIdPointage(erreurDrizzleEnveloppee('23514', 'pointage_pk'))).toBe(false);
+  });
+
+  it('rend false pour une exception sans .cause ni code exploitable', () => {
+    expect(estCollisionIdPointage(new Error('boom'))).toBe(false);
+  });
+
+  it('rend false pour une valeur non-objet', () => {
+    expect(estCollisionIdPointage('boom')).toBe(false);
+    expect(estCollisionIdPointage(null)).toBe(false);
+    expect(estCollisionIdPointage(undefined)).toBe(false);
+  });
+
+  it('ne boucle jamais à l’infini sur une chaîne .cause cyclique', () => {
+    const cyclique = new Error('cyclique') as Error & { cause: unknown };
+    cyclique.cause = cyclique;
+    expect(estCollisionIdPointage(cyclique)).toBe(false);
   });
 });
