@@ -24,11 +24,15 @@ import {
   schemaCreationAjustementInventaire,
   schemaCreationMouvementCasse,
   schemaCreationMouvementPerte,
+  schemaCreationMouvementRetourClient,
+  schemaCreationMouvementSortieComptoir,
   schemaCreationMouvementTransfert,
   schemaCreationRetourFournisseur,
   type EntreeCreationAjustementInventaire,
   type EntreeCreationMouvementCasse,
   type EntreeCreationMouvementPerte,
+  type EntreeCreationMouvementRetourClient,
+  type EntreeCreationMouvementSortieComptoir,
   type EntreeCreationMouvementTransfert,
   type EntreeCreationRetourFournisseur,
   type FiltresMouvementsStock,
@@ -221,6 +225,78 @@ export class MouvementController {
     const ctx = this.contexte.contexteTenant();
     const { role } = this.contexte.exigerPrincipal();
     const resultat = await this.service.retourFournisseur(
+      ctx,
+      role,
+      articleId,
+      entree,
+      cleIdempotence ?? '',
+    );
+    res.status(resultat.reponse.statutHttp);
+    if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
+    return resultat.reponse.corps;
+  }
+
+  @Post(':articleId/mouvements/sortie-comptoir')
+  @HttpCode(HttpStatus.CREATED)
+  @ExigerDroit('pieces.mouvement.creer')
+  @ApiOperation({
+    summary:
+      'Vente directe au comptoir, sans OR ni document de vente. `Idempotency-Key` obligatoire. ' +
+      'Aucun lien vers une facture n’est posé par cette route (voir `mouvement.ts`, note d’intégration).',
+  })
+  @ApiParam({ name: 'articleId', format: 'uuid' })
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiResponse({ status: 201, type: MouvementStockDto })
+  @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  @ApiReponseProbleme(404, 'Article ou site introuvable pour ce tenant.')
+  @ApiReponseProbleme(409, 'STOCK_INSUFFISANT, ou IDEMPOTENCE_CONFLIT.')
+  async sortieComptoir(
+    @Param('articleId', new PipeZod(schemaUuid)) articleId: string,
+    @CorpsZod(schemaCreationMouvementSortieComptoir) entree: EntreeCreationMouvementSortieComptoir,
+    @Headers('idempotency-key') cleIdempotence: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<unknown> {
+    const ctx = this.contexte.contexteTenant();
+    const { role } = this.contexte.exigerPrincipal();
+    const resultat = await this.service.sortieComptoir(
+      ctx,
+      role,
+      articleId,
+      entree,
+      cleIdempotence ?? '',
+    );
+    res.status(resultat.reponse.statutHttp);
+    if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
+    return resultat.reponse.corps;
+  }
+
+  @Post(':articleId/mouvements/retour-client')
+  @HttpCode(HttpStatus.CREATED)
+  @ExigerDroit('pieces.mouvement.creer')
+  @ApiOperation({
+    summary:
+      'Le client rapporte une pièce : remet la quantité en stock physique du site. ' +
+      '`Idempotency-Key` obligatoire.',
+  })
+  @ApiParam({ name: 'articleId', format: 'uuid' })
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  @ApiResponse({ status: 201, type: MouvementStockDto })
+  @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  @ApiReponseProbleme(404, 'Article ou site introuvable pour ce tenant.')
+  @ApiReponseProbleme(409, 'IDEMPOTENCE_CONFLIT.')
+  async retourClient(
+    @Param('articleId', new PipeZod(schemaUuid)) articleId: string,
+    @CorpsZod(schemaCreationMouvementRetourClient) entree: EntreeCreationMouvementRetourClient,
+    @Headers('idempotency-key') cleIdempotence: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<unknown> {
+    const ctx = this.contexte.contexteTenant();
+    const { role } = this.contexte.exigerPrincipal();
+    const resultat = await this.service.retourClient(
       ctx,
       role,
       articleId,

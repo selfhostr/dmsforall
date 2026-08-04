@@ -17,13 +17,13 @@ import { schemaParametresPage } from '../pagination';
  * par un mouvement INVERSE, tracé — même doctrine que la chaîne documentaire de facturation
  * (devis→facture→avoir).
  *
- * La plupart des types de mouvement (`entree_livraison`, `sortie_or`, `sortie_comptoir`,
- * `retour_client`) sont des EFFETS DE BORD d'une autre action (réception de commande, sortie de
- * réservation, émission ou avoir d'un document de vente) — voir `commande-fournisseur.ts`,
- * `reservation.ts`, et la note d'intégration en fin de fichier pour `sortie_comptoir`/
- * `retour_client`. Seuls quatre types se créent par une action DIRECTE et publique de ce module :
- * `casse`, `perte`, `transfert`, `ajustement_inventaire` — ce sont les seules entrées d'écriture
- * ci-dessous.
+ * La plupart des types de mouvement (`entree_livraison`, `sortie_or`) sont des EFFETS DE BORD
+ * d'une autre action (réception de commande, sortie de réservation) — voir
+ * `commande-fournisseur.ts`, `reservation.ts`. Six types se créent par une action DIRECTE et
+ * publique de ce module : `casse`, `perte`, `transfert`, `ajustement_inventaire`,
+ * `retour_fournisseur`, et — depuis ce lot — `sortie_comptoir`/`retour_client` (vente directe au
+ * comptoir SANS document de vente ni OR ; voir la note d'intégration en fin de fichier pour ce que
+ * cela couvre et ne couvre PAS encore).
  */
 
 export interface ReponseMouvementStock {
@@ -173,14 +173,53 @@ export const schemaCreationRetourFournisseur = z.object({
 export type EntreeCreationRetourFournisseur = z.infer<typeof schemaCreationRetourFournisseur>;
 
 /**
- * NOTE D'INTÉGRATION, hors périmètre de ce fichier — deux types de mouvement supplémentaires n'ont
- * AUCUNE action publique dans ce contrat parce qu'ils sont des effets de bord SERVEUR d'une
- * création de document de vente (`facturation/document.ts`, propriété d'un autre domaine) :
- *  - `sortie_comptoir` : généré quand une ligne de type `piece` avec `articleId` est ajoutée à un
- *    document de vente SANS `ordreReparationId` (`RP-43`).
- *  - `retour_client` : généré par un avoir sur une telle ligne (`RP-46`).
- * Ces deux hooks impliquent une TRANSACTION UNIQUE traversant `facturation` et `pieces` — appel de
- * service à service, jamais deux requêtes HTTP indépendantes depuis le front (une facture émise
- * sans le mouvement de stock correspondant, ou l'inverse, sont deux anomalies réelles). Signalé à
- * l'orchestrateur pour arbitrage avec expert-nestjs/expert-facturation, pas figé ici.
+ * `POST /articles/{id}/mouvements/sortie-comptoir` — `Idempotency-Key` OBLIGATOIRE. Vente
+ * DIRECTE au comptoir, SANS ligne OR ni document de vente (`documentVenteLigneId` reste `null` sur
+ * le mouvement créé). Refusé (`409 STOCK_INSUFFISANT`) si `quantiteMillieme` dépasse le disponible
+ * du site — PAS de `forcer` ici, à la différence de `casse`/`perte` (RP-15/PP-02) : forcer une
+ * vente sous stock négatif rouvrirait exactement le trou qu'ouvrir ce mouvement doit fermer ;
+ * DÉCISION DE CONTRAT, à confirmer si un magasinier a un besoin réel de vendre en négatif assumé.
+ * `motif` FACULTATIF (`mouvement_stock_motif_requis_chk`, 0025, ne le rend obligatoire que pour
+ * `casse`/`perte`/`ajustement_inventaire`/`retour_fournisseur`/`retour_client` — une vente n'a pas
+ * de « motif » au sens de ces types-là).
+ */
+export const schemaCreationMouvementSortieComptoir = z.object({
+  siteId: schemaIdentifiant,
+  quantiteMillieme: schemaQuantiteMillieme,
+  motif: schemaMotif.optional(),
+});
+export type EntreeCreationMouvementSortieComptoir = z.infer<
+  typeof schemaCreationMouvementSortieComptoir
+>;
+
+/**
+ * `POST /articles/{id}/mouvements/retour-client` — `Idempotency-Key` OBLIGATOIRE. Le client
+ * rapporte une pièce : remet la quantité en stock PHYSIQUE du site (mouvement `+`). `motif`
+ * OBLIGATOIRE (`mouvement_stock_motif_requis_chk`). Aucune vérification de disponibilité — une
+ * entrée n'est jamais refusée pour stock insuffisant, seule une sortie l'est.
+ */
+export const schemaCreationMouvementRetourClient = z.object({
+  siteId: schemaIdentifiant,
+  quantiteMillieme: schemaQuantiteMillieme,
+  motif: schemaMotif,
+});
+export type EntreeCreationMouvementRetourClient = z.infer<
+  typeof schemaCreationMouvementRetourClient
+>;
+
+/**
+ * NOTE D'INTÉGRATION, périmètre RESTANT de ce fichier — `sortie_comptoir`/`retour_client` ont
+ * maintenant une action DIRECTE (ci-dessus), pour que la vente comptoir fonctionne aujourd'hui
+ * sans dépendre de la facturation. Ce que cette action DIRECTE ne couvre PAS : le lien vers un
+ * document de vente (`documentVenteLigneId` reste toujours `null` par ce chemin — aucun champ
+ * n'est exposé pour le renseigner, volontairement, pour ne pas fabriquer une référence orpheline
+ * vers une ligne qui n'existe pas). Quand `facturation` ajoutera une ligne de type `piece` SANS
+ * `ordreReparationId` à un document de vente (`RP-43`) ou un avoir sur une telle ligne (`RP-46`),
+ * le mouvement de stock correspondant devra naître dans la MÊME TRANSACTION que l'écriture
+ * facturation (appel de service à service, jamais un second `POST` HTTP indépendant depuis le
+ * front — une facture émise sans le mouvement de stock correspondant, ou l'inverse, sont deux
+ * anomalies réelles) et devra alors renseigner `documentVenteLigneId`. Ce futur chemin est
+ * DISTINCT des deux `POST` ci-dessus (qui resteront la voie manuelle : vente comptoir sans facture
+ * immédiate, retour physique sans avoir) — signalé à l'orchestrateur pour arbitrage avec
+ * expert-nestjs/expert-facturation, pas figé ici.
  */

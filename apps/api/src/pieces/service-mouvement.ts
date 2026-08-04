@@ -4,6 +4,8 @@ import type {
   EntreeCreationAjustementInventaire,
   EntreeCreationMouvementCasse,
   EntreeCreationMouvementPerte,
+  EntreeCreationMouvementRetourClient,
+  EntreeCreationMouvementSortieComptoir,
   EntreeCreationMouvementTransfert,
   EntreeCreationRetourFournisseur,
   FiltresMouvementsStock,
@@ -18,6 +20,7 @@ import { JETON_DB } from '../db';
 import { article, mouvementStock, parametrePieces, site } from '../db/schema';
 import type { LigneMouvementStock, NouveauMouvementStock } from '../db/schema';
 import { CollecteurAvertissements } from '../common/avertissements';
+import { remonterCausePg } from '../common/erreurs-pg/remonter-cause-pg';
 import { ErreurMetier } from '../common/erreurs';
 import { JETON_IDEMPOTENCE } from '../common/idempotence';
 import type {
@@ -64,10 +67,11 @@ export interface ResultatAjustementInventaire {
 }
 
 /**
- * Service mouvements de stock (RP-16 → RP-18) : historique et les CINQ actions à déclenchement
- * direct (`casse`, `perte`, `transfert`, `ajustement-inventaire`, `retour-fournisseur` —
- * `mouvement.ts`, note d'intégration en fin de fichier : `sortie_comptoir`/`retour_client` sont
- * des effets de bord facturation, hors périmètre). `mouvement_stock` est IMMUABLE (0025) : ce
+ * Service mouvements de stock (RP-16 → RP-18) : historique et les SEPT actions à déclenchement
+ * direct (`casse`, `perte`, `transfert`, `ajustement-inventaire`, `retour-fournisseur`,
+ * `sortie-comptoir`, `retour-client` — `mouvement.ts`, note d'intégration en fin de fichier
+ * partagé : le lien transactionnel vers un document de vente facturation reste hors périmètre,
+ * seule la voie manuelle directe est couverte ici). `mouvement_stock` est IMMUABLE (0025) : ce
  * service n'insère jamais qu'une ligne, ne met jamais à jour ni ne supprime.
  *
  * GAP DE CONTRAT signalé (voir rapport de livraison) : aucune des cinq actions ne déclare de type
@@ -224,6 +228,83 @@ export class ServiceMouvement {
     );
   }
 
+  /**
+   * `POST /articles/{id}/mouvements/sortie-comptoir` — vente DIRECTE au comptoir, SANS ligne OR ni
+   * document de vente (`documentVenteLigneId` reste `null`, voir la note d'intégration de
+   * `mouvement.ts`). Même garantie de disponibilité que `casse`/`perte` (`verifierDisponible`,
+   * verrou `for update`), mais PAS de `forcer` : une vente n'a pas la même légitimité qu'une casse
+   * à contourner le refus (décision de contrat documentée dans `mouvement.ts`).
+   */
+  async sortieComptoir(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    articleId: string,
+    entree: EntreeCreationMouvementSortieComptoir,
+    cleIdempotence: string,
+  ): Promise<ResultatIdempotent<ResultatCreationMouvement & ReponseMemorisable>> {
+    return this.creerMouvementSortie(
+      ctx,
+      role,
+      'sortie_comptoir',
+      articleId,
+      entree.siteId,
+      entree.quantiteMillieme,
+      false,
+      {
+        motif: entree.motif ?? null,
+        chemin: '/articles/{id}/mouvements/sortie-comptoir',
+        cleIdempotence,
+        entree,
+      },
+    );
+  }
+
+  /**
+   * `POST /articles/{id}/mouvements/retour-client` — le client rapporte une pièce : remet la
+   * quantité en stock PHYSIQUE du site (mouvement `+`). Aucune vérification de disponibilité (une
+   * ENTRÉE n'est jamais refusée pour stock insuffisant) — même famille d'écriture que `transfert`
+   * côté destination, pas `creerMouvementSortie`.
+   */
+  async retourClient(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    articleId: string,
+    entree: EntreeCreationMouvementRetourClient,
+    cleIdempotence: string,
+  ): Promise<ResultatIdempotent<ResultatCreationMouvement & ReponseMemorisable>> {
+    return this.idempotence.executer(
+      ctx,
+      {
+        methode: 'POST',
+        chemin: '/articles/{id}/mouvements/retour-client',
+        cle: cleIdempotence,
+        corps: { articleId, ...entree },
+      },
+      async (tx) => {
+        await this.chargerArticleOu404(tx, ctx, articleId);
+        await this.chargerSiteOu404(tx, ctx, entree.siteId);
+
+        const valeurs: NouveauMouvementStock = {
+          tenantId: ctx.tenantId,
+          articleId,
+          type: 'retour_client',
+          quantiteMillieme: entree.quantiteMillieme,
+          siteId: entree.siteId,
+          motif: entree.motif,
+          auteurId: ctx.utilisateurId,
+        };
+        const [ligne] = await tx.insert(mouvementStock).values(valeurs).returning();
+        if (!ligne) {
+          throw new ErreurMetier(
+            'ERREUR_INTERNE',
+            'Échec de création du mouvement de retour client.',
+          );
+        }
+        return { statutHttp: 201, corps: versMouvementResponse(ligne, role) };
+      },
+    );
+  }
+
   async transfert(
     ctx: ContexteTenant,
     role: RoleUtilisateur,
@@ -344,13 +425,13 @@ export class ServiceMouvement {
   private async creerMouvementSortie(
     ctx: ContexteTenant,
     role: RoleUtilisateur,
-    type: 'casse' | 'perte' | 'retour_fournisseur',
+    type: 'casse' | 'perte' | 'retour_fournisseur' | 'sortie_comptoir',
     articleId: string,
     siteId: string,
     quantiteMillieme: number,
     forcer: boolean,
     options: {
-      readonly motif: string;
+      readonly motif: string | null;
       readonly ligneOrId?: string | null;
       readonly commandeFournisseurLigneId?: string | null;
       readonly chemin: string;
@@ -382,10 +463,30 @@ export class ServiceMouvement {
           commandeFournisseurLigneId: options.commandeFournisseurLigneId ?? null,
           auteurId: ctx.utilisateurId,
         };
-        const [ligne] = await tx.insert(mouvementStock).values(valeurs).returning();
-        if (!ligne)
-          throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du mouvement de stock.');
-        return { statutHttp: 201, corps: versMouvementResponse(ligne, role) };
+        try {
+          const [ligne] = await tx.insert(mouvementStock).values(valeurs).returning();
+          if (!ligne)
+            throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du mouvement de stock.');
+          return { statutHttp: 201, corps: versMouvementResponse(ligne, role) };
+        } catch (erreur) {
+          // Filet de sécurité DERRIÈRE `verifierDisponible` (qui tranche le refus normal, non
+          // forcé, en amont sous verrou `for update`) : si malgré tout la ligne finale violait
+          // `stock_article_reservee_leq_physique_chk` (0025 — ex. `forcer: true` qui rendrait
+          // `physique < reservee`), ce refus ne doit JAMAIS fuiter en 500 `ERREUR_INTERNE`.
+          // Drizzle enveloppe l'erreur `pg` brute sous `.cause` (`DrizzleQueryError`) —
+          // `remonterCausePg` déballe cette chaîne avant comparaison, voir son en-tête.
+          if (erreur instanceof ErreurMetier) throw erreur;
+          if (estViolationStockInsuffisant(erreur)) {
+            throw new ErreurMetier(
+              'STOCK_INSUFFISANT',
+              'Stock disponible insuffisant (contrainte base — filet de sécurité).',
+              {
+                detail: `tenant=${ctx.tenantId};article=${articleId};site=${siteId};type=${type}`,
+              },
+            );
+          }
+          throw erreur;
+        }
       },
     );
   }
@@ -455,4 +556,19 @@ export class ServiceMouvement {
       .limit(1);
     if (!lignes[0]) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Site introuvable.');
   }
+}
+
+/**
+ * `23514` = SQLSTATE générique de violation CHECK ; `stock_article_reservee_leq_physique_chk`
+ * (0025) est la seule CHECK de `stock_article` qu'une SORTIE peut faire échouer. Drizzle enveloppe
+ * systématiquement l'erreur `pg` brute dans une `DrizzleQueryError` qui ne porte `code`/`constraint`
+ * que sous `.cause` (jamais en surface) — `remonterCausePg` déballe cette chaîne avant comparaison.
+ * Voir `common/erreurs-pg/remonter-cause-pg.ts` pour le détail du défaut corrigé ailleurs dans le
+ * dépôt (imputations, ventes) : sans ce déballage, ce filet de dernier recours ne se déclencherait
+ * JAMAIS et une violation résiduelle fuirait en 500 `ERREUR_INTERNE` au lieu du 409
+ * `STOCK_INSUFFISANT` écrit juste au-dessus.
+ */
+export function estViolationStockInsuffisant(erreur: unknown): boolean {
+  const brute = remonterCausePg(erreur);
+  return brute?.code === '23514' && brute.constraint === 'stock_article_reservee_leq_physique_chk';
 }
