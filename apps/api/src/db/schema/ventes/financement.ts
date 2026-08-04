@@ -10,6 +10,7 @@ import {
   index,
   integer,
   pgTable,
+  smallint,
   text,
   timestamp,
   unique,
@@ -48,9 +49,30 @@ export const financementVente = pgTable(
      *  spécification de contrat étant plus précise que la règle métier prise isolément).
      *  `null` UNIQUEMENT pour `comptant`. */
     organismeId: uuid('organisme_id'),
-    /** RV-42 : traçabilité seule (numéro, pas le détail financier — mensualité, durée, km
-     *  contractuel — qui reste dans le système de l'organisme). */
+    /** RV-42 : traçabilité (numéro de contrat). RV-42 dit littéralement que le détail financier
+     *  « reste dans le système de l'organisme » — TENSION SIGNALÉE (voir `montantFinanceCentimes`
+     *  et le commentaire de tête de `contrats/ventes/financement.ts`, migration 0042) : un audit a
+     *  constaté que ce module n'exposait nulle part combien le client paie, et les cinq colonnes
+     *  ci-dessous comblent cette lacune en tant que SAISIE du vendeur, sans devenir la source de
+     *  vérité du contrat (le kilométrage contractuel, par exemple, n'est délibérément pas repris). */
     referenceContrat: text('reference_contrat'),
+    /** Montant financé (principal), en centimes. Ajouté par la migration 0042 — voir le
+     *  commentaire ci-dessus sur `referenceContrat` et l'en-tête de `contrats/ventes/financement.ts`
+     *  pour la tension avec `RV-42`. `null` pour `comptant` (CHECK ci-dessous) et tant que le
+     *  vendeur ne l'a pas saisi pour `credit`/`leasing`. */
+    montantFinanceCentimes: integer('montant_finance_centimes'),
+    /** Acompte/apport versé à la signature, en centimes. Même doctrine que
+     *  `montantFinanceCentimes` (0042). */
+    acompteCentimes: integer('acompte_centimes'),
+    /** Mensualité (crédit) ou loyer (leasing), en centimes. Même doctrine que
+     *  `montantFinanceCentimes` (0042). */
+    mensualiteCentimes: integer('mensualite_centimes'),
+    /** Taux d'intérêt/leasing, en POUR MILLE (`81` = 8,1 %, même unité que
+     *  `atelier/parametrage.ts::tauxTvaPourmille`). Même doctrine que `montantFinanceCentimes`
+     *  (0042). */
+    tauxInteretPourmille: smallint('taux_interet_pourmille'),
+    /** Durée du contrat en mois. Même doctrine que `montantFinanceCentimes` (0042). */
+    dureeMois: smallint('duree_mois'),
     /** Colonne SQL nommée `statut` (dispositif générique `verifier_transition()`, voir le
      *  commentaire équivalent sur `vehicule_stock.statutCommercial` — type PG réellement posé :
      *  `statut_financement_vente`, voir `enums.ts` en-tête). CV-03 : `comptant` est créé
@@ -87,6 +109,40 @@ export const financementVente = pgTable(
     check(
       'financement_vente_motif_refus_chk',
       sql`${t.statut} <> 'refuse' or ${t.motifRefus} is not null`,
+    ),
+    // Colonnes monétaires (0042) — filet base, positif ou nul quand renseigné, même patron que
+    // reprise.ts (`reprise_valeur_estimee_chk` etc.).
+    check(
+      'financement_vente_montant_finance_chk',
+      sql`${t.montantFinanceCentimes} is null or ${t.montantFinanceCentimes} >= 0`,
+    ),
+    check(
+      'financement_vente_acompte_chk',
+      sql`${t.acompteCentimes} is null or ${t.acompteCentimes} >= 0`,
+    ),
+    check(
+      'financement_vente_mensualite_chk',
+      sql`${t.mensualiteCentimes} is null or ${t.mensualiteCentimes} >= 0`,
+    ),
+    check(
+      'financement_vente_taux_interet_chk',
+      sql`${t.tauxInteretPourmille} is null or ${t.tauxInteretPourmille} between 0 and 1000`,
+    ),
+    check(
+      'financement_vente_duree_chk',
+      sql`${t.dureeMois} is null or ${t.dureeMois} between 1 and 120`,
+    ),
+    // RV-44 : un `comptant` n'est PAS un financement — cohérence avec
+    // `financement_vente_organisme_requis_chk` ci-dessus, même raisonnement appliqué aux cinq
+    // colonnes monétaires plutôt qu'à `organisme_id` seul.
+    check(
+      'financement_vente_comptant_sans_detail_chk',
+      sql`${t.type} <> 'comptant'
+          or (${t.montantFinanceCentimes} is null
+              and ${t.acompteCentimes} is null
+              and ${t.mensualiteCentimes} is null
+              and ${t.tauxInteretPourmille} is null
+              and ${t.dureeMois} is null)`,
     ),
     // Le tri par (tenant_id, dossier_vente_id, cree_le desc) sert directement la dérivation en
     // lecture du « financement courant » (voir le commentaire de tête).

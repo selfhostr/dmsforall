@@ -1,7 +1,13 @@
 import { z } from 'zod';
 
 import type { ClientResume } from '../atelier/client';
-import { schemaIdentifiant, schemaMotif, schemaTexteCourt } from '../atelier/primitives';
+import {
+  schemaCentimesPositif,
+  schemaIdentifiant,
+  schemaMotif,
+  schemaPourmille,
+  schemaTexteCourt,
+} from '../atelier/primitives';
 import { schemaConfirmations } from '../atelier/avertissement';
 import {
   TYPES_FINANCEMENT_VENTE,
@@ -32,6 +38,32 @@ import {
  * reste minuscule en pratique (un garage ne réessaie pas dix organismes) — `financements` s'embarque
  * en entier dans `dossier-vente.ts::ReponseDossierVente`, borné par `SEUIL_FINANCEMENTS_EMBARQUES`
  * comme filet plutôt que par nécessité réelle.
+ *
+ * **Champs monétaires (`montantFinanceCentimes`, `acompteCentimes`, `mensualiteCentimes`,
+ * `tauxInteretPourmille`, `dureeMois`) — ajoutés après coup, TENSION SIGNALÉE avec `RV-42`.**
+ * `RV-42` (littéral, `specification-etape-4-ventes.md` §5.5) dit explicitement que le dossier
+ * conserve la référence du contrat « **sans en porter le détail financier** (mensualité, durée,
+ * kilométrage contractuel) qui reste dans le système de l'organisme ». Un audit ultérieur a
+ * constaté qu'aucun champ de ce fichier n'expose combien le client paie — lacune réelle pour la
+ * direction/le vendeur qui veut voir le montant financé d'un coup d'œil sans ouvrir le système de
+ * l'organisme. Ces cinq champs comblent cette lacune, mais restent la SAISIE du vendeur (ce que le
+ * garage a noté au moment de la proposition), PAS une source de vérité qui remplacerait le contrat
+ * signé chez l'organisme — `RV-42` garde donc sa raison d'être (le kilométrage contractuel, entre
+ * autres, n'est délibérément pas repris ici). Décision arbitrée hors de ce fichier ; si elle
+ * s'avère mal calibrée, `specification-etape-4-ventes.md` §5.5 doit être mis à jour en conséquence
+ * (hors périmètre de ce module).
+ *
+ * Tous NULLABLE : rien n'est connu à la création d'un `comptant` (pas de financement), et rien
+ * n'est forcément connu au moment de PROPOSER un crédit/leasing (l'organisme peut confirmer un
+ * montant différent de ce qui a été saisi). Aucun champ n'est recalculé côté serveur (mensualité
+ * dérivée d'un taux/montant/durée) : ce serait une formule d'amortissement, décision métier propre
+ * à chaque organisme, pas une évidence arithmétique.
+ *
+ * Visibilité : comme `DocumentVenteResume.totalTtcCentimes`/`.soldeCentimes` (RF-116,
+ * `contrats/facturation/document.ts`), ces cinq champs sont **omis** (pas `null` — absents de la
+ * charge utile) pour un rôle dont `roleVoitLesMontants(role)` est faux (`apps/api/…/mappeurs.ts`,
+ * doctrine partagée avec `versDocumentVenteResume` déjà utilisée par ce module). D'où le `?`
+ * optionnel EN PLUS du `| null` sur chaque champ ci-dessous — même patron exact.
  */
 
 export const SEUIL_FINANCEMENTS_EMBARQUES = 20;
@@ -52,6 +84,19 @@ export interface ReponseFinancement {
   readonly refuseLe: string | null;
   /** Obligatoire et renseigné UNIQUEMENT si `statutConfirmation = 'refuse'` (`CV-03`). */
   readonly motifRefus: string | null;
+  /** Montant financé (principal), en centimes. Saisie du vendeur, pas recalculé — voir le
+   *  commentaire de tête sur la tension avec `RV-42`. Omis si `!roleVoitLesMontants(role)`. */
+  readonly montantFinanceCentimes?: number | null;
+  /** Acompte/apport versé par le client à la signature, en centimes. Omis si
+   *  `!roleVoitLesMontants(role)`. */
+  readonly acompteCentimes?: number | null;
+  /** Mensualité (crédit) ou loyer (leasing), en centimes. Omis si `!roleVoitLesMontants(role)`. */
+  readonly mensualiteCentimes?: number | null;
+  /** Taux d'intérêt/leasing, en POUR MILLE (`81` = 8,1 %, même unité que `schemaPourmille`). Omis
+   *  si `!roleVoitLesMontants(role)`. */
+  readonly tauxInteretPourmille?: number | null;
+  /** Durée du contrat en mois. Omis si `!roleVoitLesMontants(role)`. */
+  readonly dureeMois?: number | null;
   readonly actionsDisponibles: readonly ActionFinancement[];
   readonly version: number;
   readonly creeLe: string;
@@ -67,6 +112,15 @@ export interface FinancementResume {
   readonly type: TypeFinancementVente;
   readonly organisme: Pick<ClientResume, 'id' | 'nomAffiche'> | null;
   readonly statutConfirmation: StatutConfirmationFinancement;
+  /** Voir `ReponseFinancement.montantFinanceCentimes` — même champ, même doctrine d'omission
+   *  (RF-116). Le résumé embarqué (`dossier-vente.ts::ReponseDossierVente.financement`) était
+   *  auparavant trop pauvre pour répondre à « combien le client paie » (constat d'audit) : ces
+   *  cinq champs comblent ce trou directement dans la projection embarquée. */
+  readonly montantFinanceCentimes?: number | null;
+  readonly acompteCentimes?: number | null;
+  readonly mensualiteCentimes?: number | null;
+  readonly tauxInteretPourmille?: number | null;
+  readonly dureeMois?: number | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -84,11 +138,31 @@ export interface FinancementResume {
  * `erreurs[0].champ = "organismeId"` sinon) — pas encodé comme `.refine()` ici pour rester
  * cohérent avec `schemaActionReceptionner` de l'atelier, qui laisse ce type de garde croisée au
  * serveur plutôt qu'à un schéma zod devenu illisible.
+ *
+ * Les cinq champs monétaires sont OPTIONNELS et NULLABLES (`.nullish()`) : rien n'est exigé à la
+ * proposition (voir le commentaire de tête du fichier, tension avec `RV-42`) — un vendeur qui
+ * propose un leasing sans connaître encore le taux exact de l'organisme doit pouvoir créer le
+ * financement quand même. Pas de garde croisée type/montants ici (contrairement à
+ * `organismeId`) : `comptant` avec un `montantFinanceCentimes` renseigné est rejeté par une CHECK
+ * base (`financement_vente_comptant_sans_detail_chk`, migration 0042), pas par ce schéma — même
+ * doctrine que `organismeId` qui laisse le croisement de type au serveur.
  */
 export const schemaCreationFinancement = z.object({
   type: z.enum(TYPES_FINANCEMENT_VENTE),
   organismeId: schemaIdentifiant.nullish(),
   referenceContrat: schemaTexteCourt.nullish(),
+  /** Montant financé (principal), en centimes entiers positifs ou nuls. */
+  montantFinanceCentimes: schemaCentimesPositif.nullish(),
+  /** Acompte/apport versé à la signature, en centimes entiers positifs ou nuls. */
+  acompteCentimes: schemaCentimesPositif.nullish(),
+  /** Mensualité (crédit) ou loyer (leasing), en centimes entiers positifs ou nuls. */
+  mensualiteCentimes: schemaCentimesPositif.nullish(),
+  /** Taux d'intérêt/leasing en POUR MILLE (`schemaPourmille`, `81` = 8,1 %). */
+  tauxInteretPourmille: schemaPourmille.nullish(),
+  /** Durée du contrat en mois. Bornée à 120 mois (10 ans) — garde-fou contre une saisie
+   *  aberrante, pas une règle métier tranchée ; `0` est explicitement rejeté (une durée nulle
+   *  n'est pas un financement). */
+  dureeMois: z.number().int().min(1).max(120).nullish(),
 });
 export type EntreeCreationFinancement = z.infer<typeof schemaCreationFinancement>;
 

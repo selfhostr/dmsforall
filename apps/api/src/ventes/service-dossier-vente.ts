@@ -793,7 +793,7 @@ export class ServiceDossierVente {
       const organisme = f.organismeId
         ? await versClientResume(tx, ctx, await chargerClientLigne(tx, ctx, f.organismeId))
         : null;
-      const resume = versFinancementResume(f, organisme);
+      const resume = versFinancementResume(f, organisme, role);
       financements.push(resume);
       if (financementCourantLigne && f.id === financementCourantLigne.id)
         financementCourant = resume;

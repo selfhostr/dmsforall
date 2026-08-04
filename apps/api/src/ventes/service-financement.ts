@@ -78,6 +78,33 @@ export class ServiceFinancement {
             },
           );
         }
+        // Détail monétaire (0042) : un `comptant` N'EST PAS un financement (RV-44) — même
+        // doctrine que la garde `organismeId` ci-dessus, symétrique de la CHECK base
+        // `financement_vente_comptant_sans_detail_chk`. Sans cette garde applicative, un corps
+        // incohérent remonterait comme une violation de contrainte non traduite (500) plutôt
+        // qu'un 400 propre — la CHECK reste le filet, pas le mécanisme (CONTRIBUTING.md).
+        if (
+          entree.type === 'comptant' &&
+          (entree.montantFinanceCentimes != null ||
+            entree.acompteCentimes != null ||
+            entree.mensualiteCentimes != null ||
+            entree.tauxInteretPourmille != null ||
+            entree.dureeMois != null)
+        ) {
+          throw new ErreurMetier(
+            'VALIDATION_ECHOUEE',
+            "Le détail monétaire (montant financé, acompte, mensualité, taux, durée) n'a pas de sens pour un paiement comptant — ce n'est pas un financement (RV-44).",
+            {
+              erreurs: [
+                {
+                  champ: 'montantFinanceCentimes',
+                  code: 'incoherent',
+                  message: 'Détail monétaire non applicable au type comptant.',
+                },
+              ],
+            },
+          );
+        }
         if (entree.organismeId) await chargerClientLigne(tx, ctx, entree.organismeId);
 
         const maintenant = this.horloge.maintenant();
@@ -91,6 +118,13 @@ export class ServiceFinancement {
             referenceContrat: entree.referenceContrat ?? null,
             statut: entree.type === 'comptant' ? 'confirme' : 'en_attente',
             confirmeLe: entree.type === 'comptant' ? maintenant : null,
+            // Détail monétaire (0042) : saisie du vendeur, jamais recalculé — voir la tension
+            // avec RV-42 documentée dans `contrats/ventes/financement.ts`.
+            montantFinanceCentimes: entree.montantFinanceCentimes ?? null,
+            acompteCentimes: entree.acompteCentimes ?? null,
+            mensualiteCentimes: entree.mensualiteCentimes ?? null,
+            tauxInteretPourmille: entree.tauxInteretPourmille ?? null,
+            dureeMois: entree.dureeMois ?? null,
           })
           .returning();
         if (!ligne)

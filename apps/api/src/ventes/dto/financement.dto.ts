@@ -32,6 +32,46 @@ export class FinancementResumeDto implements FinancementResume {
 
   @ApiProperty({ enum: STATUTS_CONFIRMATION_FINANCEMENT })
   readonly statutConfirmation!: FinancementResume['statutConfirmation'];
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description:
+      'Montant financé (principal), en centimes. Saisie du vendeur, pas recalculé. Omis si le rôle appelant ne voit pas les montants (RF-116).',
+  })
+  readonly montantFinanceCentimes?: FinancementResume['montantFinanceCentimes'];
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description:
+      'Acompte/apport versé à la signature, en centimes. Omis si le rôle appelant ne voit pas les montants (RF-116).',
+  })
+  readonly acompteCentimes?: FinancementResume['acompteCentimes'];
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description:
+      'Mensualité (crédit) ou loyer (leasing), en centimes. Omis si le rôle appelant ne voit pas les montants (RF-116).',
+  })
+  readonly mensualiteCentimes?: FinancementResume['mensualiteCentimes'];
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description:
+      "Taux d'intérêt/leasing, en pour-mille (81 = 8,1 %). Omis si le rôle appelant ne voit pas les montants (RF-116).",
+  })
+  readonly tauxInteretPourmille?: FinancementResume['tauxInteretPourmille'];
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description:
+      'Durée du contrat en mois. Omis si le rôle appelant ne voit pas les montants (RF-116).',
+  })
+  readonly dureeMois?: FinancementResume['dureeMois'];
 }
 
 export class ReponseFinancementDto implements ReponseFinancement {
@@ -66,6 +106,46 @@ export class ReponseFinancementDto implements ReponseFinancement {
 
   @ApiProperty({ type: String, nullable: true })
   readonly motifRefus!: string | null;
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description:
+      'Montant financé (principal), en centimes. Saisie du vendeur, pas recalculé — voir la tension avec RV-42 documentée dans le contrat (`@dfa/shared`). Omis si le rôle appelant ne voit pas les montants (RF-116).',
+  })
+  readonly montantFinanceCentimes?: ReponseFinancement['montantFinanceCentimes'];
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description:
+      'Acompte/apport versé à la signature, en centimes. Omis si le rôle appelant ne voit pas les montants (RF-116).',
+  })
+  readonly acompteCentimes?: ReponseFinancement['acompteCentimes'];
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description:
+      'Mensualité (crédit) ou loyer (leasing), en centimes. Omis si le rôle appelant ne voit pas les montants (RF-116).',
+  })
+  readonly mensualiteCentimes?: ReponseFinancement['mensualiteCentimes'];
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description:
+      "Taux d'intérêt/leasing, en pour-mille (81 = 8,1 %). Omis si le rôle appelant ne voit pas les montants (RF-116).",
+  })
+  readonly tauxInteretPourmille?: ReponseFinancement['tauxInteretPourmille'];
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description:
+      'Durée du contrat en mois. Omis si le rôle appelant ne voit pas les montants (RF-116).',
+  })
+  readonly dureeMois?: ReponseFinancement['dureeMois'];
 
   @ApiProperty({ enum: ACTIONS_FINANCEMENT, isArray: true })
   readonly actionsDisponibles!: ReponseFinancement['actionsDisponibles'];

@@ -454,6 +454,30 @@ export function calculerActionsDisponiblesFinancement(
   );
 }
 
+/** Détail monétaire (0042) — omis (pas `null`) si `!roleVoitLesMontants(role)`, même doctrine que
+ *  `versDocumentVenteResume` (RF-116, `facturation/documents/mappeurs.ts`). Factorisé pour ne pas
+ *  dupliquer le spread conditionnel entre `versFinancementResponse` et `versFinancementResume`. */
+function detailMonetaireFinancement(
+  ligne: LigneFinancementVente,
+  role: RoleUtilisateur,
+): Pick<
+  ReponseFinancement,
+  | 'montantFinanceCentimes'
+  | 'acompteCentimes'
+  | 'mensualiteCentimes'
+  | 'tauxInteretPourmille'
+  | 'dureeMois'
+> {
+  if (!roleVoitLesMontants(role)) return {};
+  return {
+    montantFinanceCentimes: ligne.montantFinanceCentimes,
+    acompteCentimes: ligne.acompteCentimes,
+    mensualiteCentimes: ligne.mensualiteCentimes,
+    tauxInteretPourmille: ligne.tauxInteretPourmille,
+    dureeMois: ligne.dureeMois,
+  };
+}
+
 export function versFinancementResponse(
   ligne: LigneFinancementVente,
   organisme: ClientResume | null,
@@ -469,6 +493,7 @@ export function versFinancementResponse(
     confirmeLe: ligne.confirmeLe ? ligne.confirmeLe.toISOString() : null,
     refuseLe: ligne.refuseLe ? ligne.refuseLe.toISOString() : null,
     motifRefus: ligne.motifRefus,
+    ...detailMonetaireFinancement(ligne, role),
     actionsDisponibles: calculerActionsDisponiblesFinancement(ligne.statut, role),
     version: ligne.version,
     creeLe: ligne.creeLe.toISOString(),
@@ -479,12 +504,14 @@ export function versFinancementResponse(
 export function versFinancementResume(
   ligne: LigneFinancementVente,
   organisme: ClientResume | null,
+  role: RoleUtilisateur,
 ): FinancementResume {
   return {
     id: ligne.id,
     type: ligne.type,
     organisme: organisme ? { id: organisme.id, nomAffiche: organisme.nomAffiche } : null,
     statutConfirmation: ligne.statut,
+    ...detailMonetaireFinancement(ligne, role),
   };
 }
 

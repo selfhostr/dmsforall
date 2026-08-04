@@ -233,6 +233,33 @@ describe('schema/ventes — financement_vente (RV-39→RV-45)', () => {
     const noms = cfg.indexes.map((i) => i.config.name);
     expect(noms).toContain('financement_vente_dossier_idx');
   });
+
+  it('les cinq colonnes monétaires (0042) sont NULLABLES — saisie du vendeur, jamais exigée', () => {
+    for (const nom of [
+      'montant_finance_centimes',
+      'acompte_centimes',
+      'mensualite_centimes',
+      'taux_interet_pourmille',
+      'duree_mois',
+    ]) {
+      const col = cfg.columns.find((c) => c.name === nom);
+      expect(col, `colonne ${nom} absente`).toBeDefined();
+      expect(col?.notNull, `colonne ${nom} ne devrait pas être NOT NULL`).toBe(false);
+    }
+  });
+
+  it('CHECK positif/borné posées sur les cinq colonnes monétaires (0042)', () => {
+    const noms = cfg.checks.map((c) => c.name);
+    expect(noms).toContain('financement_vente_montant_finance_chk');
+    expect(noms).toContain('financement_vente_acompte_chk');
+    expect(noms).toContain('financement_vente_mensualite_chk');
+    expect(noms).toContain('financement_vente_taux_interet_chk');
+    expect(noms).toContain('financement_vente_duree_chk');
+  });
+
+  it('un comptant ne porte aucun détail monétaire (RV-44) — CHECK posée (0042)', () => {
+    expect(cfg.checks.map((c) => c.name)).toContain('financement_vente_comptant_sans_detail_chk');
+  });
 });
 
 describe('schema/ventes — dossier_vente_document_requis (RV-35)', () => {
