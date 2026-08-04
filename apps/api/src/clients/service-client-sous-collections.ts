@@ -1,18 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, getTableColumns, lt, or } from 'drizzle-orm';
-import type {
-  EntreeAdresseClient,
-  EntreeConditionClient,
-  EntreeConsentementClient,
-  EntreeContactClient,
-  EntreeNoteClient,
-  PageCurseur,
-  ReponseAvecAvertissements,
-  ReponseClientAdresse,
-  ReponseClientCondition,
-  ReponseClientConsentement,
-  ReponseClientContact,
-  ReponseClientNote,
+import { and, desc, eq, getTableColumns, sql } from 'drizzle-orm';
+import {
+  TRI_DEFAUT_CREATION,
+  type EntreeAdresseClient,
+  type EntreeConditionClient,
+  type EntreeConsentementClient,
+  type EntreeContactClient,
+  type EntreeNoteClient,
+  type PageCurseur,
+  type ReponseAvecAvertissements,
+  type ReponseClientAdresse,
+  type ReponseClientCondition,
+  type ReponseClientConsentement,
+  type ReponseClientContact,
+  type ReponseClientNote,
 } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
@@ -29,7 +30,11 @@ import {
 import { CollecteurAvertissements } from '../common/avertissements';
 import { ErreurMetier } from '../common/erreurs';
 import { ServiceJournal } from '../common/journal';
-import { decoderCurseur, encoderCurseur } from '../common/pagination';
+import {
+  decoderCurseurTrie,
+  encoderCurseurTrie,
+  valeurCurseurTimestamptz,
+} from '../common/pagination';
 
 import type { AuteurNote } from './mappers';
 import {
@@ -42,20 +47,85 @@ import {
 import type { ParametresPageSousCollection } from './schemas';
 import { normaliserTelephoneCh } from './telephone';
 
-/** Reconnaît une erreur Postgres brute (`pg`) par SQLSTATE et, si besoin, par nom de contrainte. */
+/** Profondeur maximale de déballage de `.cause` — bornée pour ne jamais risquer une boucle
+ *  infinie sur une chaîne cyclique pathologique (Drizzle n'enveloppe qu'une seule fois en
+ *  pratique). Même borne que `vehicules/erreurs-contraintes.ts::PROFONDEUR_MAX_CAUSE`. */
+const PROFONDEUR_MAX_CAUSE = 10;
+
+/**
+ * Reconnaît une erreur Postgres brute (`pg`) par SQLSTATE et, si besoin, par nom de contrainte —
+ * en déballant la chaîne `.cause`, bornée à `PROFONDEUR_MAX_CAUSE`.
+ *
+ * Drizzle (`pg-core/session.js`, `catch (e) { throw new DrizzleQueryError(query, params, e) }`)
+ * enveloppe SYSTÉMATIQUEMENT l'erreur brute du pilote `pg` dans une `DrizzleQueryError` qui porte
+ * `code`/`constraint`/`detail` sous `.cause` — JAMAIS au premier niveau. Avant ce correctif,
+ * `estViolation` ne lisait que `erreur.code` en surface : elle ne reconnaissait donc jamais rien,
+ * et toute violation de contrainte (23505 sur les adresses RM-03, 23P01 sur les conditions
+ * RM-07/CT-03) retombait en `ERREUR_INTERNE`/500 au lieu du 400/409 métier attendu. Patron repris
+ * de `vehicules/erreurs-contraintes.ts::remonterCause` (même doctrine, appliqué localement ici
+ * plutôt que via un helper partagé, en cours d'extraction ailleurs).
+ *
+ * Le test à chaque profondeur (plutôt qu'un déballage suivi d'un test unique) évite qu'une
+ * `constraint` homonyme portée par un NIVEAU DIFFÉRENT de la chaîne ne soit prise pour la
+ * contrainte recherchée : seule une correspondance exacte SQLSTATE+contrainte sur le MÊME objet
+ * compte.
+ */
 function estViolation(erreur: unknown, sqlstate: string, contrainte?: string): boolean {
-  if (typeof erreur !== 'object' || erreur === null) return false;
-  const brute = erreur as { code?: unknown; constraint?: unknown };
-  if (brute.code !== sqlstate) return false;
-  return contrainte === undefined || brute.constraint === contrainte;
+  let courante: unknown = erreur;
+  for (let profondeur = 0; profondeur < PROFONDEUR_MAX_CAUSE; profondeur += 1) {
+    if (typeof courante !== 'object' || courante === null) return false;
+    const brute = courante as { code?: unknown; constraint?: unknown; cause?: unknown };
+    if (brute.code === sqlstate && (contrainte === undefined || brute.constraint === contrainte)) {
+      return true;
+    }
+    courante = brute.cause;
+  }
+  return false;
+}
+
+/**
+ * Curseur v2 (`creeLe:desc`, seul tri des cinq sous-collections — aucune n'expose de `tri`
+ * fermé au contrat, §6.2) décodé — `creeLeTexte` reste le texte natif PostgreSQL du `timestamptz`,
+ * jamais un `Date`, jusqu'à sa réinjection en SQL (`::timestamptz`).
+ *
+ * `Date` ne représente que la milliseconde depuis l'epoch (limite structurelle du type) alors que
+ * PostgreSQL conserve la microseconde ; l'ancien code faisait `encoderCurseur({ creeLe: Date, id })`
+ * → `.toISOString()` en interne, ce qui tronquait silencieusement le seuil de pagination et faisait
+ * sauter les lignes qui partagent la même milliseconde de création (insertion en lot, reprise de
+ * données) — voir `common/pagination/valeur-temporelle.ts` pour la mesure complète du défaut.
+ *
+ * `decoderCurseurTrie` décode aussi bien un curseur v1 historique (`{c,i}`, socle étape 0 — traité
+ * comme équivalent à `TRI_DEFAUT_CREATION`) qu'un curseur v2 émis par `encoderCurseurTrie` ci-dessous
+ * : un curseur v1 encore en circulation au moment de ce correctif continue donc à se décoder
+ * normalement (jamais un 500, jamais une page qui saute), avec la précision milliseconde qu'il
+ * portait déjà — seuls les curseurs ÉMIS APRÈS ce correctif gagnent la précision microseconde.
+ */
+function decoderCurseurSousCollection(curseur: string): {
+  readonly creeLeTexte: string;
+  readonly id: string;
+} {
+  const donnees = decoderCurseurTrie(curseur, TRI_DEFAUT_CREATION);
+  if (typeof donnees.valeur !== 'string') {
+    throw new ErreurMetier('VALIDATION_ECHOUEE', 'Curseur de pagination invalide.', {
+      erreurs: [
+        { champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' },
+      ],
+    });
+  }
+  return { creeLeTexte: donnees.valeur, id: donnees.id };
 }
 
 /**
  * Sous-collections de la fiche client : adresses (RM-03), contacts (RM-04), conditions
  * commerciales DATÉES (RM-07), consentements APPEND-ONLY (RM-09, nLPD), notes (RM-13).
  *
- * Pagination par curseur v1 (`creeLe desc, id desc`) : aucune de ces cinq collections ne
- * déclare de `tri` fermé au contrat (§6.2) — voir `schemas.ts#schemaPageSousCollection`.
+ * Pagination par curseur v2, tri fixe (`creeLe desc, id desc` — `TRI_DEFAUT_CREATION`) : aucune
+ * de ces cinq collections ne déclare de `tri` fermé au contrat (§6.2) — voir
+ * `schemas.ts#schemaPageSousCollection`. Le curseur transite par `decoderCurseurSousCollection()`/
+ * `encoderCurseurTrie()` (jamais l'ancien `decoderCurseur()`/`encoderCurseur()` v1, qui passait par
+ * un `Date` JS et tronquait la microseconde du `timestamptz` — voir la doc de
+ * `decoderCurseurSousCollection` ci-dessus) ; un curseur v1 émis avant ce correctif reste décodable
+ * indéfiniment (compatibilité ascendante du format, garantie par `decoderCurseurTrie`).
  */
 @Injectable()
 export class ServiceClientSousCollections {
@@ -75,22 +145,25 @@ export class ServiceClientSousCollections {
   ): Promise<PageCurseur<ReponseClientAdresse>> {
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);
-      const curseurDecode = params.curseur ? decoderCurseur(params.curseur) : null;
+      const curseurDecode = params.curseur ? decoderCurseurSousCollection(params.curseur) : null;
       const conditionTenant = and(
         eq(clientAdresse.tenantId, ctx.tenantId),
         eq(clientAdresse.clientId, clientId),
       );
+      // Seuil keyset construit en SQL brut plutôt qu'avec `lt`/`or` du query builder : le membre
+      // droit doit être un texte casté explicitement `::timestamptz`, jamais un `Date` JS passé en
+      // paramètre (le pilote `pg` le sérialiserait à la milliseconde, perdant la microseconde que
+      // `clientAdresse.creeLe` conserve réellement en base — voir `decoderCurseurSousCollection`).
       const conditionCurseur = curseurDecode
-        ? or(
-            lt(clientAdresse.creeLe, curseurDecode.creeLe),
-            and(
-              eq(clientAdresse.creeLe, curseurDecode.creeLe),
-              lt(clientAdresse.id, curseurDecode.id),
-            ),
-          )
+        ? sql`(${clientAdresse.creeLe}, ${clientAdresse.id}) < (${curseurDecode.creeLeTexte}::timestamptz, ${curseurDecode.id})`
         : undefined;
       const lignes = await tx
-        .select()
+        .select({
+          ...getTableColumns(clientAdresse),
+          // Texte natif Postgres du timestamptz — jamais le `Date` de `getTableColumns()` (mode
+          // 'date', microseconde déjà perdue). Voir common/pagination/valeur-temporelle.ts.
+          creeLeTexte: sql<string>`${clientAdresse.creeLe}::text`,
+        })
         .from(clientAdresse)
         .where(conditionCurseur ? and(conditionTenant, conditionCurseur) : conditionTenant)
         .orderBy(desc(clientAdresse.creeLe), desc(clientAdresse.id))
@@ -103,7 +176,11 @@ export class ServiceClientSousCollections {
         donnees: pageLignes.map(versAdresseResponse),
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id })
+            ? encoderCurseurTrie({
+                tri: TRI_DEFAUT_CREATION,
+                valeur: valeurCurseurTimestamptz(derniere.creeLeTexte),
+                id: derniere.id,
+              })
             : null,
         limite: params.limite,
       };
@@ -216,22 +293,19 @@ export class ServiceClientSousCollections {
   ): Promise<PageCurseur<ReponseClientContact>> {
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);
-      const curseurDecode = params.curseur ? decoderCurseur(params.curseur) : null;
+      const curseurDecode = params.curseur ? decoderCurseurSousCollection(params.curseur) : null;
       const conditionTenant = and(
         eq(clientContact.tenantId, ctx.tenantId),
         eq(clientContact.clientId, clientId),
       );
       const conditionCurseur = curseurDecode
-        ? or(
-            lt(clientContact.creeLe, curseurDecode.creeLe),
-            and(
-              eq(clientContact.creeLe, curseurDecode.creeLe),
-              lt(clientContact.id, curseurDecode.id),
-            ),
-          )
+        ? sql`(${clientContact.creeLe}, ${clientContact.id}) < (${curseurDecode.creeLeTexte}::timestamptz, ${curseurDecode.id})`
         : undefined;
       const lignes = await tx
-        .select()
+        .select({
+          ...getTableColumns(clientContact),
+          creeLeTexte: sql<string>`${clientContact.creeLe}::text`,
+        })
         .from(clientContact)
         .where(conditionCurseur ? and(conditionTenant, conditionCurseur) : conditionTenant)
         .orderBy(desc(clientContact.creeLe), desc(clientContact.id))
@@ -244,7 +318,11 @@ export class ServiceClientSousCollections {
         donnees: pageLignes.map(versContactResponse),
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id })
+            ? encoderCurseurTrie({
+                tri: TRI_DEFAUT_CREATION,
+                valeur: valeurCurseurTimestamptz(derniere.creeLeTexte),
+                id: derniere.id,
+              })
             : null,
         limite: params.limite,
       };
@@ -321,22 +399,19 @@ export class ServiceClientSousCollections {
   ): Promise<PageCurseur<ReponseClientCondition>> {
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);
-      const curseurDecode = params.curseur ? decoderCurseur(params.curseur) : null;
+      const curseurDecode = params.curseur ? decoderCurseurSousCollection(params.curseur) : null;
       const conditionTenant = and(
         eq(clientCondition.tenantId, ctx.tenantId),
         eq(clientCondition.clientId, clientId),
       );
       const conditionCurseur = curseurDecode
-        ? or(
-            lt(clientCondition.creeLe, curseurDecode.creeLe),
-            and(
-              eq(clientCondition.creeLe, curseurDecode.creeLe),
-              lt(clientCondition.id, curseurDecode.id),
-            ),
-          )
+        ? sql`(${clientCondition.creeLe}, ${clientCondition.id}) < (${curseurDecode.creeLeTexte}::timestamptz, ${curseurDecode.id})`
         : undefined;
       const lignes = await tx
-        .select()
+        .select({
+          ...getTableColumns(clientCondition),
+          creeLeTexte: sql<string>`${clientCondition.creeLe}::text`,
+        })
         .from(clientCondition)
         .where(conditionCurseur ? and(conditionTenant, conditionCurseur) : conditionTenant)
         .orderBy(desc(clientCondition.creeLe), desc(clientCondition.id))
@@ -349,7 +424,11 @@ export class ServiceClientSousCollections {
         donnees: pageLignes.map(versConditionResponse),
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id })
+            ? encoderCurseurTrie({
+                tri: TRI_DEFAUT_CREATION,
+                valeur: valeurCurseurTimestamptz(derniere.creeLeTexte),
+                id: derniere.id,
+              })
             : null,
         limite: params.limite,
       };
@@ -423,22 +502,19 @@ export class ServiceClientSousCollections {
   ): Promise<PageCurseur<ReponseClientConsentement>> {
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);
-      const curseurDecode = params.curseur ? decoderCurseur(params.curseur) : null;
+      const curseurDecode = params.curseur ? decoderCurseurSousCollection(params.curseur) : null;
       const conditionTenant = and(
         eq(clientConsentement.tenantId, ctx.tenantId),
         eq(clientConsentement.clientId, clientId),
       );
       const conditionCurseur = curseurDecode
-        ? or(
-            lt(clientConsentement.creeLe, curseurDecode.creeLe),
-            and(
-              eq(clientConsentement.creeLe, curseurDecode.creeLe),
-              lt(clientConsentement.id, curseurDecode.id),
-            ),
-          )
+        ? sql`(${clientConsentement.creeLe}, ${clientConsentement.id}) < (${curseurDecode.creeLeTexte}::timestamptz, ${curseurDecode.id})`
         : undefined;
       const lignes = await tx
-        .select()
+        .select({
+          ...getTableColumns(clientConsentement),
+          creeLeTexte: sql<string>`${clientConsentement.creeLe}::text`,
+        })
         .from(clientConsentement)
         .where(conditionCurseur ? and(conditionTenant, conditionCurseur) : conditionTenant)
         .orderBy(desc(clientConsentement.creeLe), desc(clientConsentement.id))
@@ -451,7 +527,11 @@ export class ServiceClientSousCollections {
         donnees: pageLignes.map(versConsentementResponse),
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id })
+            ? encoderCurseurTrie({
+                tri: TRI_DEFAUT_CREATION,
+                valeur: valeurCurseurTimestamptz(derniere.creeLeTexte),
+                id: derniere.id,
+              })
             : null,
         limite: params.limite,
       };
@@ -495,16 +575,13 @@ export class ServiceClientSousCollections {
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);
 
-      const curseurDecode = params.curseur ? decoderCurseur(params.curseur) : null;
+      const curseurDecode = params.curseur ? decoderCurseurSousCollection(params.curseur) : null;
       const conditionTenant = and(
         eq(clientNote.tenantId, ctx.tenantId),
         eq(clientNote.clientId, clientId),
       );
       const conditionCurseur = curseurDecode
-        ? or(
-            lt(clientNote.creeLe, curseurDecode.creeLe),
-            and(eq(clientNote.creeLe, curseurDecode.creeLe), lt(clientNote.id, curseurDecode.id)),
-          )
+        ? sql`(${clientNote.creeLe}, ${clientNote.id}) < (${curseurDecode.creeLeTexte}::timestamptz, ${curseurDecode.id})`
         : undefined;
 
       const lignes = await tx
@@ -512,6 +589,7 @@ export class ServiceClientSousCollections {
           ...getTableColumns(clientNote),
           auteurPrenom: utilisateur.prenom,
           auteurNom: utilisateur.nom,
+          creeLeTexte: sql<string>`${clientNote.creeLe}::text`,
         })
         .from(clientNote)
         .leftJoin(
@@ -533,7 +611,11 @@ export class ServiceClientSousCollections {
         donnees: pageLignes.map((ligne) => versNoteResponse(ligne, this.auteurDepuisLigne(ligne))),
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id })
+            ? encoderCurseurTrie({
+                tri: TRI_DEFAUT_CREATION,
+                valeur: valeurCurseurTimestamptz(derniere.creeLeTexte),
+                id: derniere.id,
+              })
             : null,
         limite: params.limite,
       };

@@ -402,6 +402,216 @@ describe('ServiceClientSousCollections.creerConsentement — append-only, jamais
   });
 });
 
+describe('ServiceClientSousCollections — estViolation déballe `.cause` (DÉFAUT 1, erreurs enveloppées par Drizzle)', () => {
+  it(
+    'creerAdresse : une violation 23505 enveloppée façon `DrizzleQueryError` (`code`/`constraint` ' +
+      'SOUS `.cause`, jamais au premier niveau — comportement réel de Drizzle) est reconnue et rend ' +
+      '400 VALIDATION_ECHOUEE (RM-03) — jamais 500',
+    async () => {
+      const fabrique = txFactice({ selects: [[{ id: 'c1' }]] });
+      // Reproduit l'enveloppe réelle de Drizzle (`pg-core/session.js` :
+      // `catch (e) { throw new DrizzleQueryError(query, params, e) }`) : `code`/`constraint`
+      // n'existent QUE sous `.cause`, jamais en surface de l'erreur attrapée par le service.
+      class FausseDrizzleQueryError extends Error {
+        constructor(override readonly cause: unknown) {
+          super('Failed query: insert into "client_adresse" ...');
+        }
+      }
+      fabrique.poserErreurInsert(
+        new FausseDrizzleQueryError({ code: '23505', constraint: 'client_adresse_principale_uk' }),
+      );
+      const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
+
+      const erreur = await service
+        .creerAdresse(CTX, 'c1', {
+          type: 'principale',
+          rue: 'Rue Neuve 2',
+          complement: null,
+          npa: '1200',
+          localite: 'Genève',
+          pays: 'CH',
+        })
+        .catch((e: unknown) => e);
+
+      expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+      expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe(
+        'adresse_active_unique',
+      );
+    },
+  );
+
+  it(
+    'creerCondition : une violation 23P01 enveloppée façon `DrizzleQueryError` est reconnue et rend ' +
+      '400 VALIDATION_ECHOUEE (RM-07/CT-03) — jamais 500',
+    async () => {
+      const fabrique = txFactice({ selects: [[{ id: 'c1' }]] });
+      fabrique.poserErreurInsert({
+        message: 'Failed query: insert into "client_condition" ...',
+        cause: { code: '23P01', constraint: 'client_condition_periode_excl' },
+      });
+      const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
+
+      const entree: EntreeConditionClient = {
+        rabaisMoPourmille: 0,
+        rabaisPiecesPourmille: 0,
+        rabaisPneusPourmille: 0,
+        valideDuLe: '2026-01-01',
+        valideAuLe: null,
+      };
+      const erreur = await service.creerCondition(CTX, 'c1', entree).catch((e: unknown) => e);
+
+      expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+      expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe(
+        'periode_chevauchement',
+      );
+    },
+  );
+
+  it(
+    'une contrainte HOMONYME (même SQLSTATE 23505) mais un nom DIFFÉRENT — même enveloppée dans ' +
+      "`.cause` — n'est PAS reconnue comme la violation RM-03 : elle retombe sur ERREUR_INTERNE, " +
+      'jamais faussement traduite, et la vraie erreur reste journalisée',
+    async () => {
+      const fabrique = txFactice({ selects: [[{ id: 'c1' }]] });
+      const erreurBrute = {
+        message: 'Failed query: insert into "client_adresse" ...',
+        // Même SQLSTATE que RM-03, mais une contrainte SANS rapport (clé primaire) : ne doit
+        // jamais être confondue avec `client_adresse_principale_uk`/`client_adresse_facturation_uk`.
+        cause: { code: '23505', constraint: 'client_adresse_pkey' },
+      };
+      fabrique.poserErreurInsert(erreurBrute);
+      const journal = journalFactice();
+      const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journal);
+
+      const erreur = await service
+        .creerAdresse(CTX, 'c1', {
+          type: 'principale',
+          rue: 'Rue Neuve 2',
+          complement: null,
+          npa: '1200',
+          localite: 'Genève',
+          pays: 'CH',
+        })
+        .catch((e: unknown) => e);
+
+      expect(erreur).toMatchObject({ code: 'ERREUR_INTERNE', status: 500 });
+      expect(journal.error).toHaveBeenCalledWith(
+        expect.any(String),
+        erreurBrute,
+        expect.any(Object),
+      );
+    },
+  );
+});
+
+describe('ServiceClientSousCollections — curseur de pagination v2 microseconde (DÉFAUT 2)', () => {
+  const ADRESSE_BASE = {
+    tenantId: 'tid-1',
+    clientId: 'c1',
+    type: 'principale' as const,
+    rue: 'Rue Neuve 2',
+    complement: null,
+    npa: '1200',
+    localite: 'Genève',
+    pays: 'CH',
+    actif: true,
+  };
+
+  it(
+    'deux adresses créées dans la MÊME MILLISECONDE (insertion en lot) produisent des curseurs ' +
+      "suivants DISTINCTS — l'ancien format v1 (`encoderCurseur`, `Date.toISOString()`) les aurait " +
+      'confondues et aurait fait sauter silencieusement la ligne suivante à la page suivante',
+    async () => {
+      // `creeLe` (Date) IDENTIQUE pour les trois lignes une fois tronqué à la milliseconde par
+      // `Date` — exactement le scénario qui déclenchait le défaut. `creeLeTexte` (texte natif
+      // PostgreSQL, `::text` sur la colonne) porte lui la microseconde RÉELLE, distincte pour
+      // chacune.
+      const creeLeCommun = new Date('2026-08-04T10:00:00.171Z');
+      const ligneA = {
+        ...ADRESSE_BASE,
+        id: 'a1',
+        creeLe: creeLeCommun,
+        creeLeTexte: '2026-08-04 10:00:00.171181+00',
+      };
+      const ligneB = {
+        ...ADRESSE_BASE,
+        id: 'a2',
+        creeLe: creeLeCommun,
+        creeLeTexte: '2026-08-04 10:00:00.171182+00',
+      };
+      const ligneC = {
+        ...ADRESSE_BASE,
+        id: 'a3',
+        creeLe: creeLeCommun,
+        creeLeTexte: '2026-08-04 10:00:00.171183+00',
+      };
+      expect(ligneA.creeLe.toISOString()).toBe(ligneB.creeLe.toISOString());
+      expect(ligneB.creeLe.toISOString()).toBe(ligneC.creeLe.toISOString());
+
+      const fabrique = txFactice({ selects: [[{ id: 'c1' }], [ligneA, ligneB, ligneC]] });
+      const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
+
+      const page = await service.listerAdresses(CTX, 'c1', { limite: 2 });
+
+      expect(page.donnees).toHaveLength(2);
+      expect(page.curseurSuivant).not.toBeNull();
+
+      const decoderV2 = (curseur: string): { t: string; v: string; i: string } =>
+        JSON.parse(Buffer.from(curseur, 'base64url').toString('utf8')) as {
+          t: string;
+          v: string;
+          i: string;
+        };
+      const decode = decoderV2(page.curseurSuivant!);
+
+      // Le curseur porte bien la ligne B (dernière de la page rendue), avec sa microseconde
+      // COMPLÈTE (6 chiffres, décalage explicite) — jamais tronquée à 3 chiffres par un aller-retour
+      // `Date`.
+      expect(decode.i).toBe('a2');
+      expect(decode.v).toBe('2026-08-04T10:00:00.171182+00:00');
+
+      // Preuve directe que B et C restent DISTINGUABLES par le nouveau curseur, alors que
+      // `creeLe.toISOString()` (ancien mécanisme) les aurait rendues indiscernables.
+      expect(decode.v).not.toBe('2026-08-04T10:00:00.171183+00:00');
+    },
+  );
+
+  it(
+    'un curseur v1 historique (format `{c,i}` émis par `encoderCurseur` avant ce correctif) reste ' +
+      'décodable indéfiniment — jamais un 500, aucune régression pour les curseurs déjà en circulation',
+    async () => {
+      // `i` doit être un UUID valide (`decoderCurseur`/`decoderCurseurTrie` le valident par regex,
+      // comme un vrai id de ligne le serait toujours en production).
+      const curseurV1 = Buffer.from(
+        JSON.stringify({
+          c: '2026-08-04T10:00:00.171Z',
+          i: '00000000-0000-0000-0000-000000000001',
+        }),
+        'utf8',
+      ).toString('base64url');
+
+      const fabrique = txFactice({ selects: [[{ id: 'c1' }], []] });
+      const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
+
+      await expect(
+        service.listerAdresses(CTX, 'c1', { limite: 2, curseur: curseurV1 }),
+      ).resolves.toMatchObject({ donnees: [], curseurSuivant: null });
+    },
+  );
+
+  it('un curseur illisible (JSON invalide une fois décodé) est un 400 VALIDATION_ECHOUEE, jamais un 500', async () => {
+    const curseurCasse = Buffer.from('ceci nest pas du json', 'utf8').toString('base64url');
+    const fabrique = txFactice({ selects: [[{ id: 'c1' }]] });
+    const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
+
+    const erreur = await service
+      .listerAdresses(CTX, 'c1', { limite: 2, curseur: curseurCasse })
+      .catch((e: unknown) => e);
+
+    expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+  });
+});
+
 describe('ServiceClientSousCollections — isolation tenant sur les sous-collections', () => {
   it("un clientId qui n'existe pas pour le tenant du contexte est 404 RESSOURCE_INTROUVABLE, sur toute sous-collection", async () => {
     const fabrique = txFactice({ selects: [[]] });
