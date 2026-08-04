@@ -100,7 +100,10 @@
   "siteRequis": {
     "titre": "Standort wählen",
     "description": "Die Zeiterfassung erfolgt für einen bestimmten Standort — wählen Sie den Standort, an dem Sie heute arbeiten.",
-    "label": "Standort"
+    "label": "Standort",
+    "erreur": {
+      "titre": "Ihre Standorte konnten nicht geladen werden"
+    }
   },
   "technicien": {
     "titreEcran": "Meine Zeiterfassung",

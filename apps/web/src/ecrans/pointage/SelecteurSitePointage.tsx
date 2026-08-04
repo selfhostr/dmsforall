@@ -7,6 +7,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { messageErreur } from '@/api/erreurs';
+import { EtatChargement } from '@/composants/commun/EtatChargement';
+import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { useSession } from '@/hooks/useSession';
 
@@ -17,10 +20,31 @@ interface Props {
 /** Repli honnête quand aucun site n'est résolu depuis `?site=` ni déductible (plusieurs sites
  *  actifs) — même doctrine que `ecrans/pieces/SelecteurSiteRequis.tsx` : un choix INLINE plutôt
  *  qu'un renvoi à l'accueil, le pointage se fait en boucle toute la journée. Ne liste que les
- *  sites ACTIFS de la session. */
+ *  sites ACTIFS de la session.
+ *
+ * CORRECTIF (race au premier chargement, même cause que `SelecteurSiteRequis`) : `useSession()`
+ * n'est pas garanti résolu au montage de CE composant précis (seule la toute première requête de
+ * session de l'arbre est bloquée par `RouteProtegee`) — sans le branchement explicite ci-dessous,
+ * `isPending` retombait sur `session?.sites ?? []`, donc un menu VIDE indiscernable d'un tenant
+ * sans site actif, plutôt qu'un état de chargement. */
 export function SelecteurSitePointage({ onChoisir }: Props) {
   const { t } = useTranslation(['pointage', 'commun']);
-  const { data: session } = useSession();
+  const { data: session, isPending, isError, error, refetch } = useSession();
+
+  if (isPending) {
+    return <EtatChargement lignes={1} />;
+  }
+
+  if (isError) {
+    return (
+      <EtatErreur
+        titre={t('pointage:siteRequis.erreur.titre')}
+        description={messageErreur(error, t)}
+        onReessayer={() => void refetch()}
+      />
+    );
+  }
+
   const sites = (session?.sites ?? []).filter((site) => site.actif);
 
   return (

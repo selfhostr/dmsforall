@@ -3,7 +3,10 @@
   "siteRequis": {
     "titre": "Choisissez un site",
     "description": "Cette page affiche des données propres à un site — sélectionnez-en un pour continuer.",
-    "label": "Site"
+    "label": "Site",
+    "erreur": {
+      "titre": "Impossible de charger vos sites"
+    }
   },
   "rechercheComptoir": {
     "titre": "Recherche comptoir",

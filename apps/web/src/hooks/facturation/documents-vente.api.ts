@@ -31,7 +31,51 @@ import { requeteApi } from '@/api/client';
  * (« la ligne se retire librement », contrairement à l'OR) — `supprimerLigneDocument` ci-dessous
  * suppose donc un `DELETE /documents-vente/{id}/lignes/{ligneId}` classique, à vérifier avant mise
  * en service réelle.
+ *
+ * ÉCART SIGNALÉ ET CONTOURNÉ (bug confirmé en exécution, `2026-08-04`) : `GET /documents-vente`
+ * NE renvoie PAS `DocumentVenteResume` malgré le commentaire ci-dessous et le type annoncé par
+ * `requeteApi<PageCurseur<DocumentVenteResume>>` — `ServiceDocumentsVente.lister`
+ * (`apps/api/.../service-documents.ts`, hors périmètre de cet agent) documente lui-même la
+ * SIMPLIFICATION : chaque ligne passe par `assemblerDocument`, qui rend le document COMPLET
+ * (`ReponseDocumentVente`). Vérifié en direct contre l'API du dépôt (`curl` authentifié,
+ * `comptable@garage-martin.ch`) : la désignation client vit sous `figees.clientDesignation`,
+ * jamais en `clientDesignation` de premier niveau — `DocumentVenteResume.clientDesignation` (le
+ * type annoncé) est donc undefined sur CHAQUE réponse réelle, pas seulement au premier rendu. Ce
+ * n'était pas visible sur `totalTtcCentimes`/`statutReglement` (déjà au premier niveau dans les
+ * deux formes) — d'où le symptôme observé « Client » vide en permanence, « Montant TTC »/« Statut »
+ * vides seulement pour un rôle sans droit aux montants (comportement voulu, RF-114 → RF-116, PAS
+ * un bug). `projeterResume` ci-dessous rend cette conversion honnête à la frontière transport,
+ * plutôt que de laisser `EcranListeFactures` lire un champ qui n'existe pas — la déclaration de
+ * type reste vraie pour le reste de l'app. À supprimer le jour où `ServiceDocumentsVente.lister`
+ * renvoie réellement une projection `DocumentVenteResume` (le end-to-end redeviendra un simple
+ * passe-plat).
  */
+
+/** Le corps RÉEL de `GET /documents-vente` (voir l'ÉCART SIGNALÉ ci-dessus) : un tableau de
+ *  `ReponseDocumentVente` complets, jamais la projection `DocumentVenteResume` promise par le nom
+ *  du contrat. Typé explicitement pour que la conversion ci-dessous reste honnête. */
+type PageDocumentVenteBrute = PageCurseur<ReponseDocumentVente>;
+
+/** Projette un `ReponseDocumentVente` (forme réelle renvoyée par la liste) vers
+ *  `DocumentVenteResume` (forme que l'écran consomme) — voir l'ÉCART SIGNALÉ en tête de fichier.
+ *  Chaque champ gardé ici est un sous-ensemble strict de `ReponseDocumentVente` : rien n'est
+ *  inventé, `clientDesignation` est simplement lu à son emplacement RÉEL (`figees.*`). */
+function projeterResume(document_: ReponseDocumentVente): DocumentVenteResume {
+  return {
+    id: document_.id,
+    typeDocument: document_.typeDocument,
+    natureFacture: document_.natureFacture,
+    numero: document_.numero,
+    statut: document_.statut,
+    statutReglement: document_.statutReglement,
+    clientId: document_.clientId,
+    clientDesignation: document_.figees.clientDesignation,
+    dateDocument: document_.dateDocument,
+    devise: document_.devise,
+    totalTtcCentimes: document_.totalTtcCentimes,
+    soldeCentimes: document_.soldeCentimes,
+  };
+}
 
 function construireParametres(filtres: FiltresDocumentsVente): string {
   const parametres = new URLSearchParams();
@@ -55,8 +99,10 @@ export interface PageDocumentsVente {
   readonly curseur?: string;
 }
 
-/** `GET /documents-vente` — projection de liste (`DocumentVenteResume`), jamais le document
- *  complet : l'écran 5 n'a besoin ni des lignes, ni de la ventilation TVA, ni du bloc QR. */
+/** `GET /documents-vente` — projection de liste (`DocumentVenteResume`) attendue par l'écran 5.
+ *  Le SERVEUR renvoie en réalité des `ReponseDocumentVente` complets (voir l'ÉCART SIGNALÉ en tête
+ *  de fichier) : `projeterResume` fait la conversion ici, à la frontière transport, pour que rien
+ *  en aval (l'écran, ses tests) n'ait à connaître cette simplification côté API. */
 export async function listerDocumentsVente(
   filtres: FiltresDocumentsVente,
   page: PageDocumentsVente,
@@ -65,11 +111,12 @@ export async function listerDocumentsVente(
   const suffixePage = new URLSearchParams();
   suffixePage.set('limite', String(page.limite));
   if (page.curseur) suffixePage.set('curseur', page.curseur);
-  const reponse = await requeteApi<PageCurseur<DocumentVenteResume>>(
+  const reponse = await requeteApi<PageDocumentVenteBrute>(
     `/documents-vente?${parametres}&${suffixePage.toString()}`,
     { method: 'GET' },
   );
-  return reponse ?? { donnees: [], curseurSuivant: null, limite: page.limite };
+  if (!reponse) return { donnees: [], curseurSuivant: null, limite: page.limite };
+  return { ...reponse, donnees: reponse.donnees.map(projeterResume) };
 }
 
 /** `GET /documents-vente/{id}` — le document complet (lignes, ventilation TVA, bloc QR figé). */

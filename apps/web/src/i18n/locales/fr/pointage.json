@@ -100,7 +100,10 @@
   "siteRequis": {
     "titre": "Choisissez un site",
     "description": "Le pointage se fait pour un site précis — sélectionnez celui où vous travaillez aujourd'hui.",
-    "label": "Site"
+    "label": "Site",
+    "erreur": {
+      "titre": "Impossible de charger vos sites"
+    }
   },
   "technicien": {
     "titreEcran": "Mon pointage",

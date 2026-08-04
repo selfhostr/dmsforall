@@ -3,7 +3,10 @@
   "siteRequis": {
     "titre": "Scegliere un'ubicazione",
     "description": "Questa pagina mostra dati specifici di un'ubicazione — selezionarne una per continuare.",
-    "label": "Ubicazione"
+    "label": "Ubicazione",
+    "erreur": {
+      "titre": "Impossibile caricare le tue ubicazioni"
+    }
   },
   "rechercheComptoir": {
     "titre": "Ricerca al banco",

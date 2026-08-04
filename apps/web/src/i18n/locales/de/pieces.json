@@ -3,7 +3,10 @@
   "siteRequis": {
     "titre": "Standort wählen",
     "description": "Diese Seite zeigt standortbezogene Daten — wählen Sie einen Standort, um fortzufahren.",
-    "label": "Standort"
+    "label": "Standort",
+    "erreur": {
+      "titre": "Ihre Standorte konnten nicht geladen werden"
+    }
   },
   "rechercheComptoir": {
     "titre": "Thekensuche",

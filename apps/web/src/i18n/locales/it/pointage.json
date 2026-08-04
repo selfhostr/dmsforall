@@ -100,7 +100,10 @@
   "siteRequis": {
     "titre": "Scegli una sede",
     "description": "La timbratura si fa per una sede precisa — seleziona la sede in cui lavori oggi.",
-    "label": "Sede"
+    "label": "Sede",
+    "erreur": {
+      "titre": "Impossibile caricare le tue sedi"
+    }
   },
   "technicien": {
     "titreEcran": "La mia timbratura",

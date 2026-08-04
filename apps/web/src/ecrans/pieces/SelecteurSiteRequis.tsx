@@ -7,6 +7,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { messageErreur } from '@/api/erreurs';
+import { EtatChargement } from '@/composants/commun/EtatChargement';
+import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { useSession } from '@/hooks/useSession';
 
@@ -21,10 +24,35 @@ interface Props {
  * l'accueil : ces écrans sont consultés en boucle par le magasinier, le forcer à ressortir puis
  * revenir juste pour choisir un site casserait le geste le plus fréquent du comptoir. Ne liste que
  * les sites ACTIFS de la session — un site désactivé n'a pas de stock consultable.
+ *
+ * CORRECTIF (race au premier chargement) : `useSession()` n'est PAS garanti résolu avant le
+ * montage de ce composant (`RouteProtegee` ne bloque que sur la toute première requête de session
+ * de l'arbre ; un remontage local — StrictMode, retour de veille, `refetchOnWindowFocus` en plein
+ * remontage — peut retrouver `isPending`). Lire `session?.sites ?? []` sans brancher sur
+ * `isPending` produisait un sélecteur silencieusement VIDE (`EtatVide` sans action, aucune option)
+ * plutôt qu'un état de chargement : indiscernable en apparence d'un tenant sans site actif. Les
+ * trois branches ci-dessous (chargement / erreur / prêt) sont désormais explicites, comme l'exige
+ * la doctrine du dépôt (`CONTRIBUTING.md` : « chaque écran gère explicitement chargement / vide /
+ * erreur »).
  */
 export function SelecteurSiteRequis({ onChoisir }: Props) {
   const { t } = useTranslation(['pieces', 'commun']);
-  const { data: session } = useSession();
+  const { data: session, isPending, isError, error, refetch } = useSession();
+
+  if (isPending) {
+    return <EtatChargement lignes={1} />;
+  }
+
+  if (isError) {
+    return (
+      <EtatErreur
+        titre={t('pieces:siteRequis.erreur.titre')}
+        description={messageErreur(error, t)}
+        onReessayer={() => void refetch()}
+      />
+    );
+  }
+
   const sites = (session?.sites ?? []).filter((site) => site.actif);
 
   return (

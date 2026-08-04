@@ -369,7 +369,8 @@ export function EcranFicheFacture() {
                             {(ligne.quantiteMillieme / 1000).toString()}
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
-                            {ligne.prixUnitaireTtcCentimes !== null
+                            {ligne.prixUnitaireTtcCentimes !== null &&
+                            ligne.prixUnitaireTtcCentimes !== undefined
                               ? formaterMontant(ligne.prixUnitaireTtcCentimes)
                               : ''}
                           </TableCell>
