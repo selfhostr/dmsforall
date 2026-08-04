@@ -31,7 +31,9 @@ import { texteOuVide } from './utils';
  *  `construireChemin` : le site n'est ajouté que s'il est déjà défini, jamais inventé — répété ici
  *  plutôt que d'éditer un fichier hors périmètre. */
 function cheminOr(id: string, site: string | undefined): string {
-  return site ? `/ordres-reparation/${id}?site=${encodeURIComponent(site)}` : `/ordres-reparation/${id}`;
+  return site
+    ? `/ordres-reparation/${id}?site=${encodeURIComponent(site)}`
+    : `/ordres-reparation/${id}`;
 }
 
 function cheminNouvelOr(clientId: string, site: string | undefined): string {
@@ -108,7 +110,11 @@ export function EcranFicheClient() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="texte-libelle text-muted-foreground">{t('clients:fiche.titre')}</p>
-          <IdentiteClient client={clientPourIdentite} alerte={client.notesAlerte.length > 0} className="mt-1" />
+          <IdentiteClient
+            client={clientPourIdentite}
+            alerte={client.notesAlerte.length > 0}
+            className="mt-1"
+          />
         </div>
         {/* Action primaire unique de la fiche (RM-21) — chemin assumé en l'absence de câblage
          *  du module atelier à ce jour, à ajuster par l'agent de routage si besoin. */}
@@ -143,7 +149,9 @@ export function EcranFicheClient() {
             <TabsList>
               <TabsTrigger value="contacts">{t('clients:fiche.onglets.contacts')}</TabsTrigger>
               <TabsTrigger value="adresses">{t('clients:fiche.onglets.adresses')}</TabsTrigger>
-              <TabsTrigger value="consentements">{t('clients:fiche.onglets.consentements')}</TabsTrigger>
+              <TabsTrigger value="consentements">
+                {t('clients:fiche.onglets.consentements')}
+              </TabsTrigger>
               <TabsTrigger value="notes">{t('clients:fiche.onglets.notes')}</TabsTrigger>
             </TabsList>
             <TabsContent value="contacts" className="pt-4">
@@ -163,11 +171,15 @@ export function EcranFicheClient() {
 
         <div className="min-w-0 space-y-6">
           <section className="space-y-2">
-            <h2 className="texte-titre-section font-medium text-foreground">{t('clients:fiche.vehicules')}</h2>
+            <h2 className="texte-titre-section font-medium text-foreground">
+              {t('clients:fiche.vehicules')}
+            </h2>
             {vehicules.isLoading ? (
               <EtatChargement lignes={2} />
             ) : lignesVehicules.length === 0 ? (
-              <p className="texte-corps text-muted-foreground">{t('clients:fiche.vehiculesVide')}</p>
+              <p className="texte-corps text-muted-foreground">
+                {t('clients:fiche.vehiculesVide')}
+              </p>
             ) : (
               <ul className="space-y-2">
                 {lignesVehicules.map((vehicule) => (
@@ -186,11 +198,15 @@ export function EcranFicheClient() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="texte-titre-section font-medium text-foreground">{t('clients:fiche.derniersOr')}</h2>
+            <h2 className="texte-titre-section font-medium text-foreground">
+              {t('clients:fiche.derniersOr')}
+            </h2>
             {ordres.isLoading ? (
               <EtatChargement lignes={2} />
             ) : lignesOrdres.length === 0 ? (
-              <p className="texte-corps text-muted-foreground">{t('clients:fiche.derniersOrVide')}</p>
+              <p className="texte-corps text-muted-foreground">
+                {t('clients:fiche.derniersOrVide')}
+              </p>
             ) : (
               <ul className="space-y-2">
                 {lignesOrdres.map((or) => (

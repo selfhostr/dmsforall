@@ -226,10 +226,7 @@ export class ServiceAccesBase implements AccesBase, OnModuleInit, OnModuleDestro
   // enTenant
   // -------------------------------------------------------------------------------------------
 
-  async enTenant<T>(
-    ctx: ContexteTenant,
-    travail: (tx: TransactionDfa) => Promise<T>,
-  ): Promise<T> {
+  async enTenant<T>(ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<T>): Promise<T> {
     // Validation AVANT tout SQL. Les valeurs partent en paramètres liés (aucune concaténation,
     // donc aucune injection possible), mais un tenantId mal formé produirait une erreur de cast
     // à l'intérieur de la transaction, c'est-à-dire un message obscur au lieu d'un refus net.
@@ -244,7 +241,9 @@ export class ServiceAccesBase implements AccesBase, OnModuleInit, OnModuleDestro
       throw new Error(`ContexteTenant.utilisateurId n'est ni null ni un UUID valide.`);
     }
     if (ctx.requeteId !== null && ctx.requeteId.length > LONGUEUR_MAX_REQUETE_ID) {
-      throw new Error(`ContexteTenant.requeteId dépasse ${String(LONGUEUR_MAX_REQUETE_ID)} caractères.`);
+      throw new Error(
+        `ContexteTenant.requeteId dépasse ${String(LONGUEUR_MAX_REQUETE_ID)} caractères.`,
+      );
     }
 
     return this.base.transaction(async (tx) => {
@@ -481,10 +480,7 @@ export class ServiceAccesBase implements AccesBase, OnModuleInit, OnModuleDestro
  *
  * @param nomRole rôle de connexion pour lequel les politiques ont été évaluées (dfa_app en prod).
  */
-export function analyserPostureTables(
-  tables: readonly PostureTable[],
-  nomRole: string,
-): string[] {
+export function analyserPostureTables(tables: readonly PostureTable[], nomRole: string): string[] {
   const problemes: string[] = [];
 
   if (tables.length === 0) {
@@ -584,115 +580,115 @@ function analyserTable(t: PostureTable, nomRole: string): string[] {
   const problemes: string[] = [];
   const declaration = lireDeclaration(t.commentaire);
 
-    // --- Hygiène de la déclaration elle-même ---------------------------------------------------
-    // Un marqueur mal orthographié est le pire des cas : l'auteur croit avoir déclaré, le contrôle
-    // ne voit rien, et le verdict dépend d'une coquille. On refuse tout `[dfa:…]` hors vocabulaire.
-    for (const inconnu of declaration.inconnus) {
+  // --- Hygiène de la déclaration elle-même ---------------------------------------------------
+  // Un marqueur mal orthographié est le pire des cas : l'auteur croit avoir déclaré, le contrôle
+  // ne voit rien, et le verdict dépend d'une coquille. On refuse tout `[dfa:…]` hors vocabulaire.
+  for (const inconnu of declaration.inconnus) {
+    problemes.push(
+      `table « ${t.table_name} » : marqueur de posture « [${inconnu}] » inconnu. Vocabulaire admis : ` +
+        `[${MARQUEUR_REFERENTIEL}], [${MARQUEUR_HORS_PORTEE}], [${MARQUEUR_SUPPRESSION}] ` +
+        `(voir 0002_posture_declaree.sql).`,
+    );
+  }
+
+  if (
+    declaration.marqueurs.size > 0 &&
+    declaration.justification.length < LONGUEUR_MIN_JUSTIFICATION
+  ) {
+    problemes.push(
+      `table « ${t.table_name} » : marqueur de posture posé sans justification. Le commentaire doit expliquer ` +
+        `POURQUOI cette table déroge, en clair et à côté du marqueur (au moins ${String(LONGUEUR_MIN_JUSTIFICATION)} ` +
+        `caractères). Une exception dont la raison n'est pas écrite se perd à la première relecture.`,
+    );
+  }
+
+  // --- TRUNCATE : refus inconditionnel, aucun marqueur ne l'ouvre -----------------------------
+  // TRUNCATE ne consulte AUCUNE politique RLS : un seul ordre viderait la table de tous les
+  // tenants à la fois, y compris depuis une injection SQL réussie dans une requête métier.
+  // Aucun besoin applicatif ne le justifie — la purge s'écrit en DELETE, sous RLS.
+  //
+  // Les partitions sont exemptées de CE contrôle-ci et du suivant, non par tolérance mais par
+  // sévérité : `analyserPartition` leur interdit TOUT privilège, TRUNCATE et DELETE compris.
+  // Les laisser passer ici produirait deux messages pour une seule faute, dont un qui
+  // proposerait le mauvais remède (« revoke delete » là où il faut « revoke all »).
+  if (t.peut_tronquer && !t.est_partition) {
+    problemes.push(
+      `table « ${t.table_name} » : le rôle « ${nomRole} » détient TRUNCATE. TRUNCATE contourne intégralement ` +
+        `le RLS et supprimerait les lignes de TOUS les tenants. Aucune déclaration ne l'autorise : ` +
+        `revoke truncate on public.${t.table_name} from ${nomRole}.`,
+    );
+  }
+
+  // --- DELETE : autorisé seulement s'il est déclaré -------------------------------------------
+  // Correctif du trou n°2 : `alter default privileges` accordait DELETE à toute nouvelle table,
+  // et la règle « rien n'est physiquement supprimé » ne tenait qu'à un `revoke delete` à ne pas
+  // oublier dans chaque migration. 0002 retire DELETE du défaut ; ce contrôle rattrape le cas
+  // restant — une migration qui écrit un `grant delete` ou un `grant all` explicite.
+  if (t.peut_supprimer && !t.est_partition && !declaration.marqueurs.has(MARQUEUR_SUPPRESSION)) {
+    problemes.push(
+      `table « ${t.table_name} » : le rôle « ${nomRole} » détient DELETE sans déclaration. La suppression est ` +
+        `LOGIQUE par défaut dans dmsforall (documents de vente, mouvements de stock, pointages : rien n'est ` +
+        `physiquement supprimé). Soit la migration ajoute « revoke delete on public.${t.table_name} from ` +
+        `${nomRole} », soit elle déclare l'exception : comment on table public.${t.table_name} is '… ` +
+        `[${MARQUEUR_SUPPRESSION}] <raison> '.`,
+    );
+  }
+
+  if (!t.rls_active) {
+    problemes.push(`table « ${t.table_name} » : ROW LEVEL SECURITY non activé`);
+    return problemes;
+  }
+
+  // La table `tenant` s'isole sur `id` et non sur `tenant_id` : elle est son propre tenant.
+  const doitEtreIsolee = t.porte_tenant_id || t.table_name === 'tenant';
+
+  if (!doitEtreIsolee) {
+    problemes.push(...analyserTableSansTenant(t, declaration, nomRole));
+    return problemes;
+  }
+
+  // Un marqueur de portée sur une table qui PORTE `tenant_id` est une contradiction : soit la
+  // table est un référentiel partagé et elle n'a rien à faire d'un tenant_id, soit elle est
+  // métier et le marqueur est un copier-coller. Dans les deux cas, quelqu'un s'est trompé.
+  for (const marqueur of [MARQUEUR_REFERENTIEL, MARQUEUR_HORS_PORTEE]) {
+    if (declaration.marqueurs.has(marqueur)) {
       problemes.push(
-        `table « ${t.table_name} » : marqueur de posture « [${inconnu}] » inconnu. Vocabulaire admis : ` +
-          `[${MARQUEUR_REFERENTIEL}], [${MARQUEUR_HORS_PORTEE}], [${MARQUEUR_SUPPRESSION}] ` +
-          `(voir 0002_posture_declaree.sql).`,
+        `table « ${t.table_name} » : marqueur « [${marqueur}] » posé sur une table qui porte tenant_id. ` +
+          `Ce marqueur ne concerne que les tables SANS tenant_id — une table métier doit suivre le motif ` +
+          `standard (politique isolante + FORCE), jamais s'en déclarer dispensée.`,
       );
     }
+  }
 
-    if (
-      declaration.marqueurs.size > 0 &&
-      declaration.justification.length < LONGUEUR_MIN_JUSTIFICATION
-    ) {
-      problemes.push(
-        `table « ${t.table_name} » : marqueur de posture posé sans justification. Le commentaire doit expliquer ` +
-          `POURQUOI cette table déroge, en clair et à côté du marqueur (au moins ${String(LONGUEUR_MIN_JUSTIFICATION)} ` +
-          `caractères). Une exception dont la raison n'est pas écrite se perd à la première relecture.`,
-      );
-    }
+  // Une politique permissive qui n'isole pas est PIRE qu'une politique manquante : elle rouvre
+  // la table même si une politique correcte existe juste à côté (les permissives sont OR-ées).
+  // On la signale donc indépendamment du nombre de politiques isolantes.
+  for (const politique of t.politiques_non_isolantes) {
+    problemes.push(
+      `table « ${t.table_name} » : politique permissive NON ISOLANTE applicable à « ${nomRole} » — ${politique}. ` +
+        `Une politique permissive s'ADDITIONNE aux autres (OR) : celle-ci donne accès à toutes les lignes de tous ` +
+        `les tenants, quelles que soient les politiques voisines. Toute expression doit filtrer via ` +
+        `tenant_courant() — modèle : using (tenant_id = public.tenant_courant()) ` +
+        `with check (tenant_id = public.tenant_courant()). Le motif « using (true) » n'est admis que sur les ` +
+        `politiques TO dfa_migrator (voir 0001_socle_rls.sql §4).`,
+    );
+  }
 
-    // --- TRUNCATE : refus inconditionnel, aucun marqueur ne l'ouvre -----------------------------
-    // TRUNCATE ne consulte AUCUNE politique RLS : un seul ordre viderait la table de tous les
-    // tenants à la fois, y compris depuis une injection SQL réussie dans une requête métier.
-    // Aucun besoin applicatif ne le justifie — la purge s'écrit en DELETE, sous RLS.
-    //
-    // Les partitions sont exemptées de CE contrôle-ci et du suivant, non par tolérance mais par
-    // sévérité : `analyserPartition` leur interdit TOUT privilège, TRUNCATE et DELETE compris.
-    // Les laisser passer ici produirait deux messages pour une seule faute, dont un qui
-    // proposerait le mauvais remède (« revoke delete » là où il faut « revoke all »).
-    if (t.peut_tronquer && !t.est_partition) {
-      problemes.push(
-        `table « ${t.table_name} » : le rôle « ${nomRole} » détient TRUNCATE. TRUNCATE contourne intégralement ` +
-          `le RLS et supprimerait les lignes de TOUS les tenants. Aucune déclaration ne l'autorise : ` +
-          `revoke truncate on public.${t.table_name} from ${nomRole}.`,
-      );
-    }
+  if (t.politiques_isolantes < 1) {
+    problemes.push(
+      `table « ${t.table_name} » : aucune politique isolante applicable à « ${nomRole} » — attendu une politique ` +
+        `permissive portant USING ET WITH CHECK, tous deux exprimés via tenant_courant() (modèle : ` +
+        `create policy ${t.table_name}_isolation_tenant on public.${t.table_name} to dfa_app ` +
+        `using (tenant_id = public.tenant_courant()) with check (tenant_id = public.tenant_courant())). ` +
+        `Politiques applicables vues : ${
+          t.inventaire_politiques.length > 0 ? t.inventaire_politiques.join(' | ') : 'aucune'
+        }`,
+    );
+  }
 
-    // --- DELETE : autorisé seulement s'il est déclaré -------------------------------------------
-    // Correctif du trou n°2 : `alter default privileges` accordait DELETE à toute nouvelle table,
-    // et la règle « rien n'est physiquement supprimé » ne tenait qu'à un `revoke delete` à ne pas
-    // oublier dans chaque migration. 0002 retire DELETE du défaut ; ce contrôle rattrape le cas
-    // restant — une migration qui écrit un `grant delete` ou un `grant all` explicite.
-    if (t.peut_supprimer && !t.est_partition && !declaration.marqueurs.has(MARQUEUR_SUPPRESSION)) {
-      problemes.push(
-        `table « ${t.table_name} » : le rôle « ${nomRole} » détient DELETE sans déclaration. La suppression est ` +
-          `LOGIQUE par défaut dans dmsforall (documents de vente, mouvements de stock, pointages : rien n'est ` +
-          `physiquement supprimé). Soit la migration ajoute « revoke delete on public.${t.table_name} from ` +
-          `${nomRole} », soit elle déclare l'exception : comment on table public.${t.table_name} is '… ` +
-          `[${MARQUEUR_SUPPRESSION}] <raison> '.`,
-      );
-    }
-
-    if (!t.rls_active) {
-      problemes.push(`table « ${t.table_name} » : ROW LEVEL SECURITY non activé`);
-      return problemes;
-    }
-
-    // La table `tenant` s'isole sur `id` et non sur `tenant_id` : elle est son propre tenant.
-    const doitEtreIsolee = t.porte_tenant_id || t.table_name === 'tenant';
-
-    if (!doitEtreIsolee) {
-      problemes.push(...analyserTableSansTenant(t, declaration, nomRole));
-      return problemes;
-    }
-
-    // Un marqueur de portée sur une table qui PORTE `tenant_id` est une contradiction : soit la
-    // table est un référentiel partagé et elle n'a rien à faire d'un tenant_id, soit elle est
-    // métier et le marqueur est un copier-coller. Dans les deux cas, quelqu'un s'est trompé.
-    for (const marqueur of [MARQUEUR_REFERENTIEL, MARQUEUR_HORS_PORTEE]) {
-      if (declaration.marqueurs.has(marqueur)) {
-        problemes.push(
-          `table « ${t.table_name} » : marqueur « [${marqueur}] » posé sur une table qui porte tenant_id. ` +
-            `Ce marqueur ne concerne que les tables SANS tenant_id — une table métier doit suivre le motif ` +
-            `standard (politique isolante + FORCE), jamais s'en déclarer dispensée.`,
-        );
-      }
-    }
-
-    // Une politique permissive qui n'isole pas est PIRE qu'une politique manquante : elle rouvre
-    // la table même si une politique correcte existe juste à côté (les permissives sont OR-ées).
-    // On la signale donc indépendamment du nombre de politiques isolantes.
-    for (const politique of t.politiques_non_isolantes) {
-      problemes.push(
-        `table « ${t.table_name} » : politique permissive NON ISOLANTE applicable à « ${nomRole} » — ${politique}. ` +
-          `Une politique permissive s'ADDITIONNE aux autres (OR) : celle-ci donne accès à toutes les lignes de tous ` +
-          `les tenants, quelles que soient les politiques voisines. Toute expression doit filtrer via ` +
-          `tenant_courant() — modèle : using (tenant_id = public.tenant_courant()) ` +
-          `with check (tenant_id = public.tenant_courant()). Le motif « using (true) » n'est admis que sur les ` +
-          `politiques TO dfa_migrator (voir 0001_socle_rls.sql §4).`,
-      );
-    }
-
-    if (t.politiques_isolantes < 1) {
-      problemes.push(
-        `table « ${t.table_name} » : aucune politique isolante applicable à « ${nomRole} » — attendu une politique ` +
-          `permissive portant USING ET WITH CHECK, tous deux exprimés via tenant_courant() (modèle : ` +
-          `create policy ${t.table_name}_isolation_tenant on public.${t.table_name} to dfa_app ` +
-          `using (tenant_id = public.tenant_courant()) with check (tenant_id = public.tenant_courant())). ` +
-          `Politiques applicables vues : ${
-            t.inventaire_politiques.length > 0 ? t.inventaire_politiques.join(' | ') : 'aucune'
-          }`,
-      );
-    }
-
-    if (!t.rls_force && !TABLES_SANS_FORCE_RLS.has(t.table_name)) {
-      problemes.push(
-        `table « ${t.table_name} » : FORCE ROW LEVEL SECURITY manquant (exception admise uniquement pour ${[...TABLES_SANS_FORCE_RLS].join(', ')})`,
+  if (!t.rls_force && !TABLES_SANS_FORCE_RLS.has(t.table_name)) {
+    problemes.push(
+      `table « ${t.table_name} » : FORCE ROW LEVEL SECURITY manquant (exception admise uniquement pour ${[...TABLES_SANS_FORCE_RLS].join(', ')})`,
     );
   }
 

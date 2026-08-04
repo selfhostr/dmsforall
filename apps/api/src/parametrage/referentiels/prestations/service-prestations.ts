@@ -6,7 +6,13 @@ import type { EntreeCreationPrestation, PageCurseur, ReponsePrestation } from '@
 import { schemaModificationPrestation } from '@dfa/shared';
 import type { z } from 'zod';
 
-import { JETON_DB, schema, type AccesBase, type ContexteTenant, type TransactionDfa } from '../../../db';
+import {
+  JETON_DB,
+  schema,
+  type AccesBase,
+  type ContexteTenant,
+  type TransactionDfa,
+} from '../../../db';
 import { ErreurMetier } from '../../../common/erreurs';
 import { Horloge } from '../../../common/horloge';
 import { decoderCurseurDefaut, pageDepuisLignes } from '../pagination-defaut';
@@ -26,7 +32,11 @@ export class ServicePrestations {
     private readonly horloge: Horloge,
   ) {}
 
-  async lister(ctx: ContexteTenant, limite: number, curseur: string | undefined): Promise<PageCurseur<ReponsePrestation>> {
+  async lister(
+    ctx: ContexteTenant,
+    limite: number,
+    curseur: string | undefined,
+  ): Promise<PageCurseur<ReponsePrestation>> {
     const curseurDecode = decoderCurseurDefaut(curseur);
 
     return this.acces.enTenant(ctx, async (tx) => {
@@ -51,7 +61,11 @@ export class ServicePrestations {
         .limit(limite + 1);
 
       const { page, curseurSuivant } = pageDepuisLignes(lignes, limite);
-      const prix = await this.chargerPrixActuels(tx, ctx.tenantId, page.map((p) => p.id));
+      const prix = await this.chargerPrixActuels(
+        tx,
+        ctx.tenantId,
+        page.map((p) => p.id),
+      );
 
       return {
         donnees: page.map((p) => versDtoPrestation(p, prix.get(p.id) ?? null)),
@@ -79,7 +93,11 @@ export class ServicePrestations {
             tauxTvaPourmille: entree.tauxTvaPourmille,
           })
           .returning();
-        if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', "L'insertion de la prestation n'a rendu aucune ligne.");
+        if (!ligne)
+          throw new ErreurMetier(
+            'ERREUR_INTERNE',
+            "L'insertion de la prestation n'a rendu aucune ligne.",
+          );
         prestation = ligne;
       } catch (erreur) {
         throw this.traduireErreurEcriture(erreur, entree.code);
@@ -95,13 +113,18 @@ export class ServicePrestations {
     });
   }
 
-  async modifier(ctx: ContexteTenant, id: string, entree: EntreeModificationPrestation): Promise<ReponsePrestation> {
+  async modifier(
+    ctx: ContexteTenant,
+    id: string,
+    entree: EntreeModificationPrestation,
+  ): Promise<ReponsePrestation> {
     const colonnes: Partial<typeof schema.prestation.$inferInsert> = {};
     if (entree.designationFr !== undefined) colonnes.designationFr = entree.designationFr;
     if (entree.designationDe !== undefined) colonnes.designationDe = entree.designationDe;
     if (entree.designationIt !== undefined) colonnes.designationIt = entree.designationIt;
     if (entree.typeLigne !== undefined) colonnes.typeLigne = entree.typeLigne;
-    if (entree.tempsBaremeCentiemes !== undefined) colonnes.tempsBaremeCentiemes = entree.tempsBaremeCentiemes;
+    if (entree.tempsBaremeCentiemes !== undefined)
+      colonnes.tempsBaremeCentiemes = entree.tempsBaremeCentiemes;
     if (entree.tauxHoraireCode !== undefined) colonnes.tauxHoraireCode = entree.tauxHoraireCode;
     if (entree.tauxTvaPourmille !== undefined) colonnes.tauxTvaPourmille = entree.tauxTvaPourmille;
     if (entree.actif !== undefined) colonnes.actif = entree.actif;
@@ -113,7 +136,11 @@ export class ServicePrestations {
           .select()
           .from(schema.prestation)
           .where(and(eq(schema.prestation.tenantId, ctx.tenantId), eq(schema.prestation.id, id)));
-        if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Prestation "${id}" introuvable pour ce tenant.`);
+        if (!ligne)
+          throw new ErreurMetier(
+            'RESSOURCE_INTROUVABLE',
+            `Prestation "${id}" introuvable pour ce tenant.`,
+          );
         prestation = ligne;
       } else {
         try {
@@ -122,7 +149,11 @@ export class ServicePrestations {
             .set(colonnes)
             .where(and(eq(schema.prestation.tenantId, ctx.tenantId), eq(schema.prestation.id, id)))
             .returning();
-          if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Prestation "${id}" introuvable pour ce tenant.`);
+          if (!ligne)
+            throw new ErreurMetier(
+              'RESSOURCE_INTROUVABLE',
+              `Prestation "${id}" introuvable pour ce tenant.`,
+            );
           prestation = ligne;
         } catch (erreur) {
           if (erreur instanceof ErreurMetier) throw erreur;
@@ -130,7 +161,8 @@ export class ServicePrestations {
         }
       }
 
-      let prixCentimesActuel = (await this.chargerPrixActuels(tx, ctx.tenantId, [id])).get(id) ?? null;
+      let prixCentimesActuel =
+        (await this.chargerPrixActuels(tx, ctx.tenantId, [id])).get(id) ?? null;
 
       if (entree.prixCentimes !== undefined && entree.prixCentimes !== prixCentimesActuel) {
         if (entree.prixCentimes === null) {
@@ -160,14 +192,20 @@ export class ServicePrestations {
 
     const aujourdhui = this.dateDuJour();
     const lignes = await tx
-      .select({ prestationId: schema.prestationPrix.prestationId, prixCentimes: schema.prestationPrix.prixCentimes })
+      .select({
+        prestationId: schema.prestationPrix.prestationId,
+        prixCentimes: schema.prestationPrix.prixCentimes,
+      })
       .from(schema.prestationPrix)
       .where(
         and(
           eq(schema.prestationPrix.tenantId, tenantId),
           inArray(schema.prestationPrix.prestationId, [...prestationIds]),
           lte(schema.prestationPrix.valideDu, aujourdhui),
-          or(isNull(schema.prestationPrix.valideAu), gt(schema.prestationPrix.valideAu, aujourdhui)),
+          or(
+            isNull(schema.prestationPrix.valideAu),
+            gt(schema.prestationPrix.valideAu, aujourdhui),
+          ),
         ),
       );
 
@@ -175,7 +213,11 @@ export class ServicePrestations {
   }
 
   /** Clôture le prix ouvert (`valide_au IS NULL`) d'une prestation, s'il en existe un. */
-  private async cloturerPrixCourant(tx: TransactionDfa, tenantId: string, prestationId: string): Promise<void> {
+  private async cloturerPrixCourant(
+    tx: TransactionDfa,
+    tenantId: string,
+    prestationId: string,
+  ): Promise<void> {
     await tx
       .update(schema.prestationPrix)
       .set({ valideAu: this.dateDuJour() })
@@ -215,12 +257,20 @@ export class ServicePrestations {
     const brute = erreur as { code?: unknown } | null;
     if (brute && typeof brute === 'object') {
       if (brute.code === SQLSTATE_EXCLUSION_VIOLATION) {
-        return new ErreurMetier('CONFLIT', `Un prix valide de la prestation "${identifiant}" chevauche déjà une période existante.`);
+        return new ErreurMetier(
+          'CONFLIT',
+          `Un prix valide de la prestation "${identifiant}" chevauche déjà une période existante.`,
+        );
       }
       if (brute.code === SQLSTATE_UNIQUE_VIOLATION) {
-        return new ErreurMetier('CONFLIT', `Le code de prestation "${identifiant}" existe déjà pour ce tenant.`);
+        return new ErreurMetier(
+          'CONFLIT',
+          `Le code de prestation "${identifiant}" existe déjà pour ce tenant.`,
+        );
       }
     }
-    return erreur instanceof Error ? erreur : new ErreurMetier('ERREUR_INTERNE', 'Erreur inattendue sur le référentiel des prestations.');
+    return erreur instanceof Error
+      ? erreur
+      : new ErreurMetier('ERREUR_INTERNE', 'Erreur inattendue sur le référentiel des prestations.');
   }
 }

@@ -50,13 +50,17 @@ function ligneBrute(champs: {
 
 function txFactice(executes: ReadonlyArray<{ rows: readonly unknown[] }>) {
   const queue = [...executes];
-  const tx = { execute: vi.fn((_requete: unknown) => Promise.resolve(queue.shift() ?? { rows: [] })) };
+  const tx = {
+    execute: vi.fn((_requete: unknown) => Promise.resolve(queue.shift() ?? { rows: [] })),
+  };
   return { tx: tx as unknown as TransactionDfa, execute: tx.execute };
 }
 
 function accesFactice(tx: TransactionDfa): AccesBase {
   return {
-    enTenant: vi.fn((_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<unknown>) => travail(tx)),
+    enTenant: vi.fn((_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<unknown>) =>
+      travail(tx),
+    ),
     verifierConnexion: vi.fn(),
     verifierPostureRls: vi.fn(),
   } as unknown as AccesBase;
@@ -93,7 +97,7 @@ describe('ServiceVehicule.lister — SQL brut (tx.execute), tri creeLe:desc', ()
     expect(decode.id).toBe(V2);
   });
 
-  it("suit réellement le curseur sur la page suivante — le chemin qui casse en production, absent de toute autre couverture", async () => {
+  it('suit réellement le curseur sur la page suivante — le chemin qui casse en production, absent de toute autre couverture', async () => {
     const { tx, execute } = txFactice([
       {
         rows: [
@@ -114,7 +118,10 @@ describe('ServiceVehicule.lister — SQL brut (tx.execute), tri creeLe:desc', ()
 
     // Reprend EXACTEMENT comme le ferait un client HTTP : le curseur rendu par la page 1 est
     // renvoyé tel quel comme paramètre `curseur` de l'appel suivant.
-    const page2 = await service.lister(CTX, FILTRES_TRI_CREE_LE, { limite: 2, curseur: page1.curseurSuivant as string });
+    const page2 = await service.lister(CTX, FILTRES_TRI_CREE_LE, {
+      limite: 2,
+      curseur: page1.curseurSuivant as string,
+    });
 
     expect(execute).toHaveBeenCalledTimes(2);
     expect(page2.donnees).toHaveLength(1);
@@ -123,7 +130,9 @@ describe('ServiceVehicule.lister — SQL brut (tx.execute), tri creeLe:desc', ()
   });
 
   it('une seule ligne (pas de page suivante) : le curseur est bien null, sans appel à toISOString() sur une chaîne', async () => {
-    const { tx } = txFactice([{ rows: [ligneBrute({ id: V1, creeLe: '2026-07-01T08:00:00.000Z' })] }]);
+    const { tx } = txFactice([
+      { rows: [ligneBrute({ id: V1, creeLe: '2026-07-01T08:00:00.000Z' })] },
+    ]);
     const service = new ServiceVehicule(accesFactice(tx), new Horloge());
 
     const page = await service.lister(CTX, FILTRES_TRI_CREE_LE, { limite: 2 });
@@ -144,11 +153,11 @@ describe('ServiceVehicule.lister — SQL brut (tx.execute), tri creeLe:desc', ()
   });
 
   it(
-    "régression directe (jeu de démo, 4 véhicules créés en lot partageant EXACTEMENT la même " +
-      "microseconde) : le curseur encodé préserve la microseconde intacte, jamais tronquée à la " +
+    'régression directe (jeu de démo, 4 véhicules créés en lot partageant EXACTEMENT la même ' +
+      'microseconde) : le curseur encodé préserve la microseconde intacte, jamais tronquée à la ' +
       "milliseconde d'un `Date` JavaScript — c'est cette troncature qui faisait sauter la page 2 " +
-      "entière (comparaison keyset `cree_le < curseur_tronqué` fausse pour toute ligne réelle à " +
-      "pleine précision)",
+      'entière (comparaison keyset `cree_le < curseur_tronqué` fausse pour toute ligne réelle à ' +
+      'pleine précision)',
     async () => {
       const MEME_INSTANT = '2026-07-29 13:37:35.171181+00';
       const { tx } = txFactice([

@@ -64,7 +64,9 @@ function rendreEcran(routeInitiale = '/ordres-reparation') {
 
 function repondreListe(donnees: readonly OrdreReparationResume[]) {
   server.use(
-    http.get('/api/v1/ordres-reparation', () => HttpResponse.json({ donnees, curseurSuivant: null, limite: 50 })),
+    http.get('/api/v1/ordres-reparation', () =>
+      HttpResponse.json({ donnees, curseurSuivant: null, limite: 50 }),
+    ),
   );
 }
 
@@ -85,7 +87,11 @@ describe('EcranListeOrdresReparation', () => {
     server.use(
       http.get('/api/v1/ordres-reparation', async () => {
         await delay(30);
-        return HttpResponse.json({ donnees: [construireResume()], curseurSuivant: null, limite: 50 });
+        return HttpResponse.json({
+          donnees: [construireResume()],
+          curseurSuivant: null,
+          limite: 50,
+        });
       }),
     );
     const { container } = rendreEcran();
@@ -134,7 +140,11 @@ describe('EcranListeOrdresReparation', () => {
     it('laisse la cellule vide quand `totalTtcCentimes` est absent du DTO (droit manquant), plutôt que de rendre un montant nul mensonger', async () => {
       repondreListe([
         construireResume({ id: 'or-avec-montant', numero: 'OR-000001', totalTtcCentimes: 24000 }),
-        construireResume({ id: 'or-sans-montant', numero: 'OR-000002', totalTtcCentimes: undefined }),
+        construireResume({
+          id: 'or-sans-montant',
+          numero: 'OR-000002',
+          totalTtcCentimes: undefined,
+        }),
       ]);
       rendreEcran();
 

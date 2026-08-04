@@ -7,7 +7,10 @@ import {
   ClientContactController,
   ClientNoteController,
 } from './client-sous-collections.controller';
-import { ClientOrdresReparationController, ClientVehiculesController } from './client-projections.controller';
+import {
+  ClientOrdresReparationController,
+  ClientVehiculesController,
+} from './client-projections.controller';
 import { ClientController } from './client.controller';
 import { DoublonsClientsController } from './doublons-clients.controller';
 import { ServiceClient } from './service-client';
@@ -42,7 +45,17 @@ import { ServiceClientVehicules } from './service-client-vehicules';
     ClientVehiculesController,
     ClientOrdresReparationController,
   ],
-  providers: [ServiceClient, ServiceClientOrdresReparation, ServiceClientSousCollections, ServiceClientVehicules],
-  exports: [ServiceClient, ServiceClientOrdresReparation, ServiceClientSousCollections, ServiceClientVehicules],
+  providers: [
+    ServiceClient,
+    ServiceClientOrdresReparation,
+    ServiceClientSousCollections,
+    ServiceClientVehicules,
+  ],
+  exports: [
+    ServiceClient,
+    ServiceClientOrdresReparation,
+    ServiceClientSousCollections,
+    ServiceClientVehicules,
+  ],
 })
 export class ClientsModule {}

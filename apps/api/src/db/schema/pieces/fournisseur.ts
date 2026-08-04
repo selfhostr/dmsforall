@@ -24,7 +24,10 @@ export const fournisseur = pgTable(
   (t) => [
     unique('fournisseur_tenant_id_uk').on(t.tenantId, t.id),
     check('fournisseur_nom_non_vide_chk', sql`length(btrim(${t.nom})) > 0`),
-    check('fournisseur_telephone_e164_chk', sql`${t.telephone} is null or ${t.telephone} ~ '^\+[1-9][0-9]{6,14}$'`),
+    check(
+      'fournisseur_telephone_e164_chk',
+      sql`${t.telephone} is null or ${t.telephone} ~ '^\+[1-9][0-9]{6,14}$'`,
+    ),
     check(
       'fournisseur_delai_habituel_chk',
       sql`${t.delaiHabituelJours} is null or ${t.delaiHabituelJours} between 0 and 3650`,

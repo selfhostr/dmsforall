@@ -36,7 +36,11 @@ describe('EtatVideFiltre', () => {
   it('traduit le bouton en allemand', async () => {
     await i18n.changeLanguage('de');
     render(
-      <EtatVideFiltre titre="Aucun résultat avec ces filtres." description="—" onEffacerFiltres={() => {}} />,
+      <EtatVideFiltre
+        titre="Aucun résultat avec ces filtres."
+        description="—"
+        onEffacerFiltres={() => {}}
+      />,
     );
     expect(screen.getByRole('button', { name: 'Filter löschen' })).toBeInTheDocument();
   });

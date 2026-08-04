@@ -15,7 +15,10 @@ import { AvertissementVehiculeDto } from './avertissement.dto';
  * `@nestjs/swagger` lit les métadonnées de décorateurs sur la classe concrète, pas sur un
  * générique TypeScript effacé à la compilation.
  */
-export function EnveloppeDto<T>(classeDonnees: Type<T>, nom: string): Type<ReponseAvecAvertissements<T>> {
+export function EnveloppeDto<T>(
+  classeDonnees: Type<T>,
+  nom: string,
+): Type<ReponseAvecAvertissements<T>> {
   class EnveloppeGeneree implements ReponseAvecAvertissements<T> {
     @ApiProperty({ type: () => classeDonnees })
     readonly donnees!: T;

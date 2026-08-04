@@ -22,7 +22,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { demarrerBaseEphemere, type BaseEphemere } from '../setup/postgres-ephemere';
 import { semerGarageDemo, type GarageDemoFixture } from '../fixtures/garage-demo';
-import { creerAppTest, demarrerRedisEphemere, extraireValeurCookie, type AppTest, type RedisEphemere } from '../setup/app-test';
+import {
+  creerAppTest,
+  demarrerRedisEphemere,
+  extraireValeurCookie,
+  type AppTest,
+  type RedisEphemere,
+} from '../setup/app-test';
 
 let bdd: BaseEphemere;
 let redis: RedisEphemere;
@@ -35,7 +41,9 @@ async function cookieDeSessionPour(email: string, motDePasse: string): Promise<s
     .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
     .send({ email, motDePasse });
   if (reponse.status !== 200) {
-    throw new Error(`connexion de test échouée (${reponse.status}) : ${JSON.stringify(reponse.body)}`);
+    throw new Error(
+      `connexion de test échouée (${reponse.status}) : ${JSON.stringify(reponse.body)}`,
+    );
   }
   const token = extraireValeurCookie(reponse, ctx.config.SESSION_COOKIE_NOM);
   return `${ctx.config.SESSION_COOKIE_NOM}=${token}`;
@@ -60,7 +68,9 @@ async function semerSitesMemeInstant(
     ids.push(id);
     const code = `EXQ${String(index).padStart(2, '0')}`;
     const base = parametres.length;
-    lignesValeurs.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, 'CH', true, $${base + 5}, $${base + 5})`);
+    lignesValeurs.push(
+      `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, 'CH', true, $${base + 5}, $${base + 5})`,
+    );
     parametres.push(id, tenantId, code, `Site ex-aequo ${String(index)}`, creeLe);
   }
   await bddCourante.poolSuperutilisateur.query(
@@ -86,13 +96,25 @@ afterAll(async () => {
 describe('GET /api/v1/sites — curseur illisible', () => {
   it.each([
     ['charabia qui ne décode même pas vers du JSON', 'ceci-n-est-pas-un-curseur-valide-!!!'],
-    ['JSON valide mais objet vide (champs c et i absents)', Buffer.from('{}', 'utf8').toString('base64url')],
-    ['JSON valide, uuid malformé', Buffer.from(JSON.stringify({ c: '2025-01-01T00:00:00.000Z', i: 'pas-un-uuid' }), 'utf8').toString('base64url')],
+    [
+      'JSON valide mais objet vide (champs c et i absents)',
+      Buffer.from('{}', 'utf8').toString('base64url'),
+    ],
+    [
+      'JSON valide, uuid malformé',
+      Buffer.from(
+        JSON.stringify({ c: '2025-01-01T00:00:00.000Z', i: 'pas-un-uuid' }),
+        'utf8',
+      ).toString('base64url'),
+    ],
   ])('%s → 400 VALIDATION_ECHOUEE, jamais 500', async (_description, curseurInvalide) => {
     const utilisateurA = demo.tenantA.utilisateurs[0]!;
     const cookie = await cookieDeSessionPour(utilisateurA.email, utilisateurA.motDePasseClair);
 
-    const reponse = await ctx.requete.get('/api/v1/sites').query({ curseur: curseurInvalide }).set('Cookie', cookie);
+    const reponse = await ctx.requete
+      .get('/api/v1/sites')
+      .query({ curseur: curseurInvalide })
+      .set('Cookie', cookie);
 
     expect(reponse.status).toBe(400);
     expect(reponse.body.code).toBe('VALIDATION_ECHOUEE');

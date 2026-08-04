@@ -29,7 +29,8 @@ export function EcranRechercheComptoirPieces() {
   const [searchParams, setSearchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
 
-  const { saisie, onSaisieChange, enChargement, resultats, enErreur, erreur, relancer } = useRechercheComptoirPieces(site);
+  const { saisie, onSaisieChange, enChargement, resultats, enErreur, erreur, relancer } =
+    useRechercheComptoirPieces(site);
 
   const colonnes: ColonneComptoir<ResultatRechercheComptoirArticle>[] = [
     {
@@ -38,7 +39,9 @@ export function EcranRechercheComptoirPieces() {
       rendu: (article) => (
         <div className="flex flex-col">
           <span className="font-medium">{article.designation}</span>
-          <span className="font-mono texte-libelle text-muted-foreground">{article.referencePrincipale}</span>
+          <span className="font-mono texte-libelle text-muted-foreground">
+            {article.referencePrincipale}
+          </span>
         </div>
       ),
     },
@@ -48,10 +51,13 @@ export function EcranRechercheComptoirPieces() {
       alignement: 'droite',
       rendu: (article) => (
         <div className="flex flex-col items-end">
-          <span className="tabular-nums font-medium">{formaterMontant(article.prixVenteTtcCentimes)}</span>
+          <span className="tabular-nums font-medium">
+            {formaterMontant(article.prixVenteTtcCentimes)}
+          </span>
           {article.estEchangeStandard && article.montantConsigneTtcCentimes !== null ? (
             <span className="texte-libelle text-muted-foreground">
-              + {formaterMontant(article.montantConsigneTtcCentimes)} {t('pieces:articles.consigne')}
+              + {formaterMontant(article.montantConsigneTtcCentimes)}{' '}
+              {t('pieces:articles.consigne')}
             </span>
           ) : null}
         </div>
@@ -65,16 +71,22 @@ export function EcranRechercheComptoirPieces() {
         article.quantiteDisponibleMillieme > 0 ? (
           <div className="flex flex-col items-end">
             <span className="tabular-nums text-statut-succes">
-              {t('pieces:rechercheComptoir.resultat.disponible', { n: formaterQuantiteMillieme(article.quantiteDisponibleMillieme) })}
+              {t('pieces:rechercheComptoir.resultat.disponible', {
+                n: formaterQuantiteMillieme(article.quantiteDisponibleMillieme),
+              })}
             </span>
             {article.emplacement ? (
               <span className="texte-libelle text-muted-foreground">
-                {t('pieces:rechercheComptoir.resultat.emplacement', { emplacement: article.emplacement })}
+                {t('pieces:rechercheComptoir.resultat.emplacement', {
+                  emplacement: article.emplacement,
+                })}
               </span>
             ) : null}
           </div>
         ) : (
-          <span className="texte-libelle text-destructive">{t('pieces:rechercheComptoir.resultat.rupture')}</span>
+          <span className="texte-libelle text-destructive">
+            {t('pieces:rechercheComptoir.resultat.rupture')}
+          </span>
         ),
     },
   ];
@@ -91,8 +103,14 @@ export function EcranRechercheComptoirPieces() {
   if (enErreur) {
     return (
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:rechercheComptoir.titre')}</h1>
-        <EtatErreur titre={t('pieces:rechercheComptoir.erreur.titre')} description={messageErreur(erreur, t)} onReessayer={relancer} />
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t('pieces:rechercheComptoir.titre')}
+        </h1>
+        <EtatErreur
+          titre={t('pieces:rechercheComptoir.erreur.titre')}
+          description={messageErreur(erreur, t)}
+          onReessayer={relancer}
+        />
       </div>
     );
   }
@@ -101,7 +119,9 @@ export function EcranRechercheComptoirPieces() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:rechercheComptoir.titre')}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">
+        {t('pieces:rechercheComptoir.titre')}
+      </h1>
 
       <BarreFiltres
         q={saisie}
@@ -112,16 +132,24 @@ export function EcranRechercheComptoirPieces() {
       />
 
       {!saisieNonVide ? (
-        <EtatVide titre={t('pieces:rechercheComptoir.titre')} description={t('pieces:rechercheComptoir.aide')} />
+        <EtatVide
+          titre={t('pieces:rechercheComptoir.titre')}
+          description={t('pieces:rechercheComptoir.aide')}
+        />
       ) : (
         <TableComptoir
           colonnes={colonnes}
           lignes={resultats ?? []}
           cleLigne={(article) => article.articleId}
           enChargement={enChargement}
-          onOuvrirLigne={(article) => navigate(chemins.pieces.articleDetail(article.articleId, site))}
+          onOuvrirLigne={(article) =>
+            navigate(chemins.pieces.articleDetail(article.articleId, site))
+          }
           contenuVide={
-            <EtatVideRecherche titre={t('pieces:rechercheComptoir.titre')} description={t('pieces:rechercheComptoir.vide.recherche')} />
+            <EtatVideRecherche
+              titre={t('pieces:rechercheComptoir.titre')}
+              description={t('pieces:rechercheComptoir.vide.recherche')}
+            />
           }
         />
       )}

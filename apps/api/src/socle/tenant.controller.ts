@@ -21,7 +21,8 @@ export class TenantController {
   @ExigerDroit('socle.tenant.lire')
   @ApiOperation({
     summary: 'Tenant courant',
-    description: "Renvoie le tenant (entreprise cliente) de l'utilisateur authentifié. Ne prend aucun paramètre : le tenant vient exclusivement de la session.",
+    description:
+      "Renvoie le tenant (entreprise cliente) de l'utilisateur authentifié. Ne prend aucun paramètre : le tenant vient exclusivement de la session.",
   })
   @ApiOkResponse({ type: TenantCourantDto })
   @ApiReponseProbleme(401, 'Session absente ou expirée.')

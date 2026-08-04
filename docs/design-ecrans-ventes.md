@@ -7,6 +7,7 @@ d'écrire ce document. Toute référence à un champ ci-dessous est un champ ré
 une supposition.
 
 Patrons repris tels quels de l'existant (lus avant conception) :
+
 - `apps/web/src/ecrans/vehicules/EcranFicheVehicule.tsx`, `EnTeteFicheVehicule.tsx`, `EcranListeVehicules.tsx`
 - `apps/web/src/ecrans/atelier/EcranFicheOrdreReparation.tsx`, `EnTeteOrdreReparation.tsx`, `PanneauActionsOr.tsx`
 - `apps/web/src/ecrans/parametrage/EcranReferentiels.tsx` (onglets)
@@ -33,7 +34,7 @@ Trois affirmations du brief que ce document traite comme des contraintes dures, 
    colorer en rouge. Les deux valeurs (estimée/négociée) sont toujours visibles ensemble, jamais
    fusionnées. Traitement complet en §11.
 3. **Un dossier peut être bloqué par autre chose que lui-même.** Chaque écran qui approche une
-   transition impossible doit dire *quoi* et *à qui* — pas seulement refuser au clic. Traitement
+   transition impossible doit dire _quoi_ et _à qui_ — pas seulement refuser au clic. Traitement
    transverse en §4 et §7.4.
 
 ---
@@ -52,7 +53,7 @@ séparée. Conséquences concrètes :
   atelier intact au même endroit.
 - La reprise pointe le même mécanisme : `ReponseReprise.vehiculeRepris` est un `VehiculeResume`
   ordinaire. Cliquer dessus dans la carte Reprise (§8) ouvre `/vehicules/{id}` — la fiche du véhicule
-  *avant* qu'il ne devienne, à la livraison, un véhicule en stock à part entière (effet de bord de
+  _avant_ qu'il ne devienne, à la livraison, un véhicule en stock à part entière (effet de bord de
   `livrer`, `RV-24`). Après livraison, cette même fiche affiche en plus `BlocVente`. Aucun nouvel
   écran n'est créé à cet instant — c'est la preuve à l'écran du principe n°1.
 
@@ -63,6 +64,7 @@ au même niveau de priorité que les alertes atelier, parce qu'un véhicule en s
 alerte au même titre qu'une expertise échue.
 
 Contenu (`Card`, doctrine `BlocEcheances`) :
+
 - `BadgeStatutVehiculeStock` (§3.1) + provenance traduite (`PROVENANCES_VEHICULE_STOCK`)
 - `IndicateurJoursStock` (§3.4) — bien en évidence, pas en petit caractère
 - Prix d'achat, frais de remise en état cumulés, prix de vente affiché — trois montants alignés en
@@ -90,37 +92,37 @@ la performance perçue d'un écran qui est aujourd'hui rapide.
 
 ## 2. Vocabulaire et pièges de traduction FR/DE/IT
 
-Vocabulaire imposé par le brief, rappelé pour mémoire : VN = *Neuwagen*, VO = *Occasion* (DE
-*Gebrauchtwagen*), expertise = **MFK**, jamais de jargon informatique.
+Vocabulaire imposé par le brief, rappelé pour mémoire : VN = _Neuwagen_, VO = _Occasion_ (DE
+_Gebrauchtwagen_), expertise = **MFK**, jamais de jargon informatique.
 
 Pièges identifiés en concevant ces écrans — à vérifier par `expert-i18n`, pas tranchés ici :
 
 - **« Reprise »** désigne dans ce module le véhicule repris au client, et ailleurs dans ce dépôt la
   reprise de données d'un ancien DMS (`docs/specification-reprise-donnees.md`). En DE/IT les deux sens
-  divergent naturellement (*Eintausch*/*Inzahlungnahme* vs *Datenübernahme* ; *permuta* vs *migrazione
-  dati*) — pas de collision de traduction. Le risque est uniquement côté clé i18n FR : namespacer
+  divergent naturellement (_Eintausch_/_Inzahlungnahme_ vs _Datenübernahme_ ; _permuta_ vs _migrazione
+  dati_) — pas de collision de traduction. Le risque est uniquement côté clé i18n FR : namespacer
   strictement (`ventes.reprise.*` vs `migration.reprise.*`) pour qu'aucun traducteur ne mélange les
   deux fichiers sources.
 - **IT — « ripresa »** est un faux ami dangereux pour « reprise véhicule » : en italien courant,
-  *ripresa* signifie surtout *reprise/rétablissement* (économique, d'une activité), pas *véhicule repris
-  en échange*. Le terme correct côté concessionnaires CH-IT est **permuta**. Ne pas laisser un
-  traducteur généraliste choisir *ripresa* par réflexe cognat.
+  _ripresa_ signifie surtout _reprise/rétablissement_ (économique, d'une activité), pas _véhicule repris
+  en échange_. Le terme correct côté concessionnaires CH-IT est **permuta**. Ne pas laisser un
+  traducteur généraliste choisir _ripresa_ par réflexe cognat.
 - **IT — « perizia »** (traduction littérale d'« expertise ») entrerait en collision avec MFK dans ce
   module précis, où l'écran de reprise parle aussi d'« évaluation technique » du véhicule repris. Le
   brief impose MFK invariable pour l'expertise réglementaire — s'assurer qu'aucune clé IT de ce module
-  n'utilise *perizia* pour MFK, et que l'évaluation de la reprise porte un terme distinct (ex.
-  *valutazione*) pour ne jamais laisser croire qu'il s'agit d'un contrôle MFK.
+  n'utilise _perizia_ pour MFK, et que l'évaluation de la reprise porte un terme distinct (ex.
+  _valutazione_) pour ne jamais laisser croire qu'il s'agit d'un contrôle MFK.
 - **« Engager »** (statut `engage`, action `engager` du dossier) est un faux ami en DE — traduit
-  littéralement (*engagieren*) le mot ne porte pas le sens d'engagement contractuel attendu ici
-  (signature du bon de commande). Le terme naturel côté concession DE-CH est plutôt *verbindlich
-  bestellt* / *Bestellung bestätigt*. À faire trancher par `expert-i18n`, pas par calque.
-- **« Livrer » / « livraison »** — en DE, *Lieferung* évoque une expédition/livraison de colis, alors
+  littéralement (_engagieren_) le mot ne porte pas le sens d'engagement contractuel attendu ici
+  (signature du bon de commande). Le terme naturel côté concession DE-CH est plutôt _verbindlich
+  bestellt_ / _Bestellung bestätigt_. À faire trancher par `expert-i18n`, pas par calque.
+- **« Livrer » / « livraison »** — en DE, _Lieferung_ évoque une expédition/livraison de colis, alors
   que l'événement métier ici est la **remise des clés au comptoir**. Le terme concession usuel est
-  *Fahrzeugübergabe* (remise du véhicule), pas *Lieferung*. Même risque, moindre, en IT
-  (*consegna* convient mieux que *spedizione* mais reste à vérifier dans l'usage concession CH-IT réel).
+  _Fahrzeugübergabe_ (remise du véhicule), pas _Lieferung_. Même risque, moindre, en IT
+  (_consegna_ convient mieux que _spedizione_ mais reste à vérifier dans l'usage concession CH-IT réel).
 - **VN/VO en badge court** — l'abréviation à deux lettres n'existe idiomatiquement qu'en usage
   FR/DE-CH oral. Il n'y a pas d'équivalent court établi en italien. Recommandation : garder le badge
-  FR/DE court (VN/VO, N/GW) mais utiliser un mot complet abrégé en IT (*Nuovo*/*Usato*) plutôt que de
+  FR/DE court (VN/VO, N/GW) mais utiliser un mot complet abrégé en IT (_Nuovo_/_Usato_) plutôt que de
   forcer une abréviation qui n'existe pas dans la langue.
 - **« Gonflée » (reprise gonflée)** est un terme interne, jamais affiché à l'écran (voir §11) — sa
   traduction ne concerne que les commentaires de code et ce document, pas une clé i18n.
@@ -138,13 +140,13 @@ docs/design-comptoir.md §5.5).
 Mapping exhaustif des 5 valeurs de `STATUTS_COMMERCIAUX_VEHICULE`, sur le modèle exact de
 `CONFIG_STATUT_OR` (`Record` complet, `tsc` casse si une valeur est ajoutée sans mapping) :
 
-| statut | token | forme | icône proposée |
-|---|---|---|---|
-| `en_commande` | neutre | contour | `Clock` |
-| `disponible` | succes | plein | `CircleCheck` |
-| `reserve` | attention | plein | `Bookmark` |
-| `vendu` | info | plein | `Handshake` |
-| `livre` | terminal | contour | `KeyRound` |
+| statut        | token     | forme   | icône proposée |
+| ------------- | --------- | ------- | -------------- |
+| `en_commande` | neutre    | contour | `Clock`        |
+| `disponible`  | succes    | plein   | `CircleCheck`  |
+| `reserve`     | attention | plein   | `Bookmark`     |
+| `vendu`       | info      | plein   | `Handshake`    |
+| `livre`       | terminal  | contour | `KeyRound`     |
 
 ### 3.2 `BadgeStatutDossierVente`
 
@@ -165,7 +167,7 @@ pret_a_livrer → livre → clos`), chaque étape franchie affichant sa date (`p
 `muted`.
 
 État `annule`/`abandonne` : **remplace** la ligne du stepper (ne s'ajoute pas en 7e position — les
-deux embranchements ne se produisent qu'*à la place* d'une suite normale). Rendu : la frise s'arrête
+deux embranchements ne se produisent qu'_à la place_ d'une suite normale). Rendu : la frise s'arrête
 à l'étape où la rupture a eu lieu, suivie d'un badge terminal rouge portant `motifCloture` en toujours
 visible (jamais au clic — même doctrine que `BlocEcheances` pour la source d'échéance : l'information
 qui explique un état anormal ne se cache pas derrière une interaction).
@@ -196,17 +198,18 @@ ne doit **pas** lire comme une erreur du produit, juste comme un fait (le mot po
 ## 4. Où va le message d'erreur (règle valable sur tout ce document)
 
 Défaut trouvé sur ce dépôt (rappelé dans le brief) : une confirmation modale masque le reste de
-l'écran, donc un refus serveur qui ne s'affiche pas *dans* la modale est invisible. Règle **non
+l'écran, donc un refus serveur qui ne s'affiche pas _dans_ la modale est invisible. Règle **non
 négociable, appliquée à chacune des transitions listées ci-dessous** — aucune exception :
 
 > Toute mutation déclenchée depuis un `Dialog` de confirmation reste **dans ce même dialog** en cas
 > d'échec. L'erreur s'affiche **à l'intérieur du `DialogContent` encore ouvert**, jamais en toast
 > seul, jamais après fermeture. Deux rendus possibles, strictement ceux déjà en usage sur
 > `PanneauActionsOr.tsx` :
+>
 > - **Refus bloquant** (409/422 sans confirmation possible) → `RefusBloquant` inline, dans le dialog,
 >   avec le code d'erreur, les `blocages` cliquables et les `actionsProposees`.
 > - **`CONFIRMATION_REQUISE`** (l'action reste possible après accord explicite) → bandeau ambre inline
->   + bouton « Continuer quand même », qui ouvre `AvertissementConfirmable` en second temps.
+>   - bouton « Continuer quand même », qui ouvre `AvertissementConfirmable` en second temps.
 
 Chaque section ci-dessous précise seulement les champs et le contenu propre à sa transition — le
 mécanisme d'erreur ne se redécrit pas à chaque fois, il est celui-ci, partout :
@@ -217,8 +220,8 @@ mécanisme d'erreur ne se redécrit pas à chaque fois, il est celui-ci, partout
 - Reprise : création, modification, `negocier`, `confirmer`, `refuser`.
 - Financement : création, `confirmer`, `refuser`.
 - Documents requis : `marquer` (coche/décoche) — voir note en §7.6 sur son cas particulier (pas de
-  dialog, donc pas de masquage possible, mais l'erreur doit quand même s'afficher *localement à la
-  ligne cochée*, pas seulement en toast global, pour la même raison qu'une modale : l'utilisateur a
+  dialog, donc pas de masquage possible, mais l'erreur doit quand même s'afficher _localement à la
+  ligne cochée_, pas seulement en toast global, pour la même raison qu'une modale : l'utilisateur a
   déjà quitté visuellement la zone si le retour n'est pas local).
 
 ---
@@ -304,6 +307,7 @@ active.
 ### 6.1 Création d'un dossier de vente
 
 Dialog (pas un écran séparé — la création ne porte que 5 champs) :
+
 - Client acheteur (recherche/autocomplete client existant, composant déjà utilisé côté atelier pour
   la sélection client — pas reconstruit ici).
 - Véhicule (optionnel dès la création, `RV-30`) — recherche parmi les véhicules en stock
@@ -327,6 +331,7 @@ bloque l'écran entier, doctrine identique à `GET /ordres-reparation/{id}` (D-1
 ### 7.1 En-tête (`EnTeteDossierVente`)
 
 Sur le modèle de `EnTeteOrdreReparation` (`Card` pleine largeur) :
+
 - `BadgeStatutDossierVente` + `FriseStatutDossierVente` (§3.3) juste en dessous.
 - `IdentiteClient(clientAcheteur)`. Si `clientFacture.id !== clientAcheteur.id` : ligne secondaire
   « Facturé à : {clientFacture.nomAffiche} » — visible sans clic, c'est une information qui change le
@@ -349,7 +354,7 @@ Sur le modèle de `EnTeteOrdreReparation` (`Card` pleine largeur) :
 
 Nouveau composant, sans précédent direct : l'OR se contente de boutons visibles seulement quand
 `actionsDisponibles` les liste (« une action affichée mais refusée est pire que pas d'action »). Le
-brief demande explicitement plus pour ce module : dire *ce qui bloque et à qui c'est*, pas seulement
+brief demande explicitement plus pour ce module : dire _ce qui bloque et à qui c'est_, pas seulement
 après un clic refusé. Les deux mécanismes coexistent, ils ne se contredisent pas : `PanneauActionsDossierVente`
 (§7.3) continue à ne montrer que les actions réellement disponibles ; `PanneauProchaineEtape`, affiché
 juste au-dessus, explique **proactivement** pourquoi la suite logique n'y figure pas encore.
@@ -359,14 +364,14 @@ checklist des conditions connues pour atteindre la prochaine étape linéaire, c
 partir des champs déjà présents sur `ReponseDossierVente`** (pas une nouvelle requête, pas une règle
 métier redevinée — uniquement la mise en forme lisible de faits déjà renvoyés par le serveur) :
 
-| Étape suivante | Condition affichée | Source | Rendu si non satisfait |
-|---|---|---|---|
-| `engager` | Véhicule assigné | `vehicule !== null` | « À : vous — assigner un véhicule » |
-| `engager` | Identité vérifiée | `identiteVerifieeLe !== null` | « À : vous — vérifier une pièce d'identité » |
-| `engager` | Reprise négociée (si reprise présente) | `reprise?.statut !== 'estimee'` | « À : vous — négocier la reprise avant de signer » |
-| `marquer_pret_a_livrer` | Financement confirmé | `financement?.statutConfirmation === 'confirme'` | « À : {organisme.nomAffiche ou "l'organisme"} — financement en attente » |
-| `marquer_pret_a_livrer` | Expertise MFK à jour (si applicable) | information vivant côté atelier, pas dupliquée ici | « À : l'atelier — expertise MFK à vérifier » (lien vers la fiche véhicule) |
-| `livrer` | Documents de livraison réunis | `documentsRequis.every(d => d.fourni)` | « À : {N} document(s) manquant(s) » + lien vers §7.6 |
+| Étape suivante          | Condition affichée                     | Source                                             | Rendu si non satisfait                                                     |
+| ----------------------- | -------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------- |
+| `engager`               | Véhicule assigné                       | `vehicule !== null`                                | « À : vous — assigner un véhicule »                                        |
+| `engager`               | Identité vérifiée                      | `identiteVerifieeLe !== null`                      | « À : vous — vérifier une pièce d'identité »                               |
+| `engager`               | Reprise négociée (si reprise présente) | `reprise?.statut !== 'estimee'`                    | « À : vous — négocier la reprise avant de signer »                         |
+| `marquer_pret_a_livrer` | Financement confirmé                   | `financement?.statutConfirmation === 'confirme'`   | « À : {organisme.nomAffiche ou "l'organisme"} — financement en attente »   |
+| `marquer_pret_a_livrer` | Expertise MFK à jour (si applicable)   | information vivant côté atelier, pas dupliquée ici | « À : l'atelier — expertise MFK à vérifier » (lien vers la fiche véhicule) |
+| `livrer`                | Documents de livraison réunis          | `documentsRequis.every(d => d.fourni)`             | « À : {N} document(s) manquant(s) » + lien vers §7.6                       |
 
 Chaque ligne satisfaite affiche une coche discrète (`CheckCircle2`, token `succes`), chaque ligne non
 satisfaite affiche le token `attention` et le texte « à : … » explicite — jamais un bouton grisé sans
@@ -387,7 +392,7 @@ Copie conforme de `PanneauActionsOr.tsx` : un bouton par valeur de `dossier.acti
 par clic, jamais d'exécution directe. Contenu par action :
 
 - **`engager`** — `bonCommandeDocumentId` (obligatoire) : sélecteur parmi `documents.filter(d =>
-  d.typeDocument === 'bon_commande')`. Si aucun bon de commande n'existe encore sur le dossier :
+d.typeDocument === 'bon_commande')`. Si aucun bon de commande n'existe encore sur le dossier :
   message explicite « Aucun bon de commande sur ce dossier » + bouton « Créer le bon de commande »
   (lien vers l'écran facturation, hors périmètre, mais le chemin de sortie doit exister — même
   doctrine que `RefusBloquant.actionsProposees`, jamais un cul-de-sac). `identitePieceType`
@@ -418,10 +423,11 @@ Voir §8, §9, §7.6 respectivement — sections composées dans la fiche, pas d
 solde, date — table simple (pas `TableComptoir`, pas de tri/filtre nécessaire pour une poignée de
 lignes), chaque ligne un lien vers l'écran facturation existant (hors périmètre). Si
 `documentsTronques` : mention « Liste limitée aux 50 premiers documents » (`SEUIL_DOCUMENTS_EMBARQUES_DOSSIER_VENTE`)
-+ lien vers une recherche facturation filtrée par `dossierVenteId` — **actuellement impossible**, ce
-filtre n'existe pas sur `GET /documents-vente` (gap déjà signalé dans le contrat lui-même). Tant qu'il
-n'existe pas, ce lien ne peut pas être posé — je le note comme demande en §14, pas comme un lien
-cassé livré silencieusement.
+
+- lien vers une recherche facturation filtrée par `dossierVenteId` — **actuellement impossible**, ce
+  filtre n'existe pas sur `GET /documents-vente` (gap déjà signalé dans le contrat lui-même). Tant qu'il
+  n'existe pas, ce lien ne peut pas être posé — je le note comme demande en §14, pas comme un lien
+  cassé livré silencieusement.
 
 ### 7.6 Documents requis (checklist de livraison)
 
@@ -446,13 +452,14 @@ secondaire par section).
 ### 8.1 Absence de reprise
 
 `dossier.reprise === null` et `statut` non terminal → carte compacte : « Pas de reprise sur ce dossier »
-+ bouton « Ajouter une reprise » (masqué si le rôle courant n'a pas le droit d'écriture — grisage
-géré comme `peutModifierParametrage`, doctrine `droits.ts`). Dialog de création : véhicule repris
-(recherche véhicule existant, ou création à la volée si le véhicule n'est pas encore connu de DFA —
-`§8.3` du contrat : « référence à un véhicule existant ou nouvellement créé », réutilise le formulaire
-de création véhicule existant plutôt que d'en écrire un second), valeur estimée (montant), dette de
-financement résiduelle (montant optionnel) + organisme (recherche client/tiers OU texte libre — les
-deux champs du contrat, l'un ou l'autre).
+
+- bouton « Ajouter une reprise » (masqué si le rôle courant n'a pas le droit d'écriture — grisage
+  géré comme `peutModifierParametrage`, doctrine `droits.ts`). Dialog de création : véhicule repris
+  (recherche véhicule existant, ou création à la volée si le véhicule n'est pas encore connu de DFA —
+  `§8.3` du contrat : « référence à un véhicule existant ou nouvellement créé », réutilise le formulaire
+  de création véhicule existant plutôt que d'en écrire un second), valeur estimée (montant), dette de
+  financement résiduelle (montant optionnel) + organisme (recherche client/tiers OU texte libre — les
+  deux champs du contrat, l'un ou l'autre).
 
 ### 8.2 Présence d'une reprise — l'affichage des deux valeurs
 
@@ -575,6 +582,7 @@ mais reste modifiable — un essai avant remise des clés n'est pas à exclure.
 conséquence concrète, en une phrase ») appliquée ici à une confirmation normale (pas un avertissement) —
 les effets de bord de cette transition sont invisibles autrement, l'écran doit les dire avant que
 l'utilisateur clique :
+
 - Toujours : « La détention du véhicule sera transférée à {clientConducteur ?? clientAcheteur}. »
 - Si `typeVehicule === 'vn'` : « La garantie constructeur démarre à cette date. »
 - Si `reprise?.statut === 'confirmee'` : « Le véhicule repris entrera au parc en stock à sa valeur

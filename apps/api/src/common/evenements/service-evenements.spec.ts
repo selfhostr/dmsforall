@@ -3,7 +3,11 @@ import type { ContexteTenant, TransactionDfa } from '../../db';
 import type { Horloge } from '../horloge/horloge';
 import { ServiceEvenementsImpl } from './service-evenements';
 
-const CTX: ContexteTenant = { tenantId: '3fa85f64-5717-4562-b3fc-2c963f66afa6', utilisateurId: 'u-1', requeteId: 'r-1' };
+const CTX: ContexteTenant = {
+  tenantId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+  utilisateurId: 'u-1',
+  requeteId: 'r-1',
+};
 
 function horlogeFigee(): Horloge {
   return { maintenant: () => new Date('2026-07-28T10:00:00.000Z') } as Horloge;
@@ -42,7 +46,7 @@ describe('ServiceEvenementsImpl.publier', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('propage l\'échec si l\'écriture SQL échoue (aucun avalage d\'erreur)', async () => {
+  it("propage l'échec si l'écriture SQL échoue (aucun avalage d'erreur)", async () => {
     const execute = vi.fn().mockRejectedValue(new Error('contrainte violée'));
     const tx = { execute } as unknown as TransactionDfa;
     const service = new ServiceEvenementsImpl(horlogeFigee());

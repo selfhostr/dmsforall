@@ -5,9 +5,22 @@ import { useTranslation } from 'react-i18next';
 import { NATURES_NOTE, type NatureNote } from '@dfa/shared';
 
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useCreerNoteClient, useNotesClient } from '@/hooks/clients/useNotesClient';
 import { formaterDateHeure } from '@/lib/formats';
@@ -52,7 +65,9 @@ export function OngletNotes({ clientId }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="texte-titre-section font-medium text-foreground">{t('clients:notes.titre')}</h3>
+        <h3 className="texte-titre-section font-medium text-foreground">
+          {t('clients:notes.titre')}
+        </h3>
         <Dialog open={ouvert} onOpenChange={setOuvert}>
           <DialogTrigger asChild>
             <Button type="button" size="sm" variant="outline">
@@ -81,7 +96,12 @@ export function OngletNotes({ clientId }: Props) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="note-texte">{t('clients:notes.champTexte')}</Label>
-                <Textarea id="note-texte" value={texte} onChange={(e) => setTexte(e.target.value)} required />
+                <Textarea
+                  id="note-texte"
+                  value={texte}
+                  onChange={(e) => setTexte(e.target.value)}
+                  required
+                />
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={creerNote.isPending || !texte.trim()}>

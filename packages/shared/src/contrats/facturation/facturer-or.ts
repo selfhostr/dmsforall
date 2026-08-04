@@ -107,7 +107,12 @@ import { schemaIdentifiant, schemaMotif } from '../atelier/primitives';
  * mécaniquement : un futur payeur ajouté à `PAYEURS_LIGNE_OR` peut avoir sa propre règle de
  * groupement, ce n'est pas automatique.
  */
-export const PAYEURS_FACTURATION_SELECTIONNABLES = ['client', 'constructeur', 'assurance', 'tiers'] as const;
+export const PAYEURS_FACTURATION_SELECTIONNABLES = [
+  'client',
+  'constructeur',
+  'assurance',
+  'tiers',
+] as const;
 export type PayeurFacturationSelectionnable = (typeof PAYEURS_FACTURATION_SELECTIONNABLES)[number];
 
 /**
@@ -131,7 +136,10 @@ export type SelecteurGroupePayeurOr = z.infer<typeof schemaSelecteurGroupePayeur
 /** Clé texte d'un groupe, usage INTERNE au schéma (unicité) — jamais exposée telle quelle dans un
  *  contrat public : un tiers reconstruit la même paire `(payeur, payeurClientId)`, pas une chaîne
  *  opaque. */
-function cleGroupe(g: { readonly payeur: string; readonly payeurClientId?: string | null }): string {
+function cleGroupe(g: {
+  readonly payeur: string;
+  readonly payeurClientId?: string | null;
+}): string {
   return `${g.payeur}:${g.payeurClientId ?? ''}`;
 }
 
@@ -169,11 +177,15 @@ export const schemaFacturationOrdreReparation = z
      * reste simplement en attente, sans texte associé — c'est la position par défaut, pas une
      * erreur.
      */
-    motifsReport: z.array(schemaSelecteurGroupePayeurOr.and(z.object({ motif: schemaMotif }))).max(20).default([]),
+    motifsReport: z
+      .array(schemaSelecteurGroupePayeurOr.and(z.object({ motif: schemaMotif })))
+      .max(20)
+      .default([]),
   })
   .extend(schemaConfirmations.shape)
   .refine((v) => new Set(v.groupes.map(cleGroupe)).size === v.groupes.length, {
-    message: 'Un même groupe payeur ne peut être sélectionné qu’une seule fois dans `groupes` (MD-62).',
+    message:
+      'Un même groupe payeur ne peut être sélectionné qu’une seule fois dans `groupes` (MD-62).',
     path: ['groupes'],
   })
   .refine(
@@ -183,7 +195,7 @@ export const schemaFacturationOrdreReparation = z
     },
     {
       message:
-        "Un groupe ne peut pas être à la fois facturé par cet appel (`groupes`) et reporté (`motifsReport`).",
+        'Un groupe ne peut pas être à la fois facturé par cet appel (`groupes`) et reporté (`motifsReport`).',
       path: ['motifsReport'],
     },
   );

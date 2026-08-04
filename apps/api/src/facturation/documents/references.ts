@@ -2,7 +2,14 @@ import { and, desc, eq, isNull, or } from 'drizzle-orm';
 import type { AdresseStructureeQr } from '@dfa/shared';
 
 import type { ContexteTenant, TransactionDfa } from '../../db';
-import { client, clientAdresse, utilisateur, vehicule, vehiculePlaque, type LigneClient } from '../../db/schema';
+import {
+  client,
+  clientAdresse,
+  utilisateur,
+  vehicule,
+  vehiculePlaque,
+  type LigneClient,
+} from '../../db/schema';
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 
 /**
@@ -14,12 +21,18 @@ import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 
 /** `nomAffiche` d'un client : raison sociale pour une entreprise, "nom prénom" sinon. Copie
  *  verbatim de `atelier/references.ts` (même règle, deux modules indépendants). */
-export function nomAfficheClient(row: Pick<LigneClient, 'type' | 'nom' | 'prenom' | 'raisonSociale'>): string {
+export function nomAfficheClient(
+  row: Pick<LigneClient, 'type' | 'nom' | 'prenom' | 'raisonSociale'>,
+): string {
   if (row.type === 'entreprise') return row.raisonSociale ?? '';
   return [row.nom, row.prenom].filter((v): v is string => Boolean(v)).join(' ');
 }
 
-export async function chargerClientLigne(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<LigneClient> {
+export async function chargerClientLigne(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  clientId: string,
+): Promise<LigneClient> {
   const [ligne] = await tx
     .select()
     .from(client)
@@ -29,13 +42,18 @@ export async function chargerClientLigne(tx: TransactionDfa, ctx: ContexteTenant
   return ligne;
 }
 
-export async function verifierVehiculeExiste(tx: TransactionDfa, ctx: ContexteTenant, vehiculeId: string): Promise<void> {
+export async function verifierVehiculeExiste(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  vehiculeId: string,
+): Promise<void> {
   const [ligne] = await tx
     .select({ id: vehicule.id })
     .from(vehicule)
     .where(and(eq(vehicule.tenantId, ctx.tenantId), eq(vehicule.id, vehiculeId)))
     .limit(1);
-  if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Véhicule ${vehiculeId} introuvable.`);
+  if (!ligne)
+    throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Véhicule ${vehiculeId} introuvable.`);
 }
 
 /**
@@ -53,7 +71,11 @@ export async function verifierVehiculeExiste(tx: TransactionDfa, ctx: ContexteTe
  * débiteur du QR. Les adresses migrées avant 0014 restent à `numero = null` tant qu'une ressaisie
  * ne les complète pas (aucune reprise automatique n'a été faite, choix déjà tranché par 0014).
  */
-export async function chargerAdresseFacturationStructuree(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<AdresseStructureeQr | null> {
+export async function chargerAdresseFacturationStructuree(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  clientId: string,
+): Promise<AdresseStructureeQr | null> {
   const lignes = await tx
     .select()
     .from(clientAdresse)
@@ -65,9 +87,18 @@ export async function chargerAdresseFacturationStructuree(tx: TransactionDfa, ct
         or(eq(clientAdresse.type, 'facturation'), eq(clientAdresse.type, 'principale')),
       ),
     );
-  const retenue = lignes.find((l) => l.type === 'facturation') ?? lignes.find((l) => l.type === 'principale') ?? null;
+  const retenue =
+    lignes.find((l) => l.type === 'facturation') ??
+    lignes.find((l) => l.type === 'principale') ??
+    null;
   if (!retenue || !retenue.rue || !retenue.npa || !retenue.localite) return null;
-  return { rue: retenue.rue, numero: retenue.numero ?? null, npa: retenue.npa, localite: retenue.localite, pays: retenue.pays };
+  return {
+    rue: retenue.rue,
+    numero: retenue.numero ?? null,
+    npa: retenue.npa,
+    localite: retenue.localite,
+    pays: retenue.pays,
+  };
 }
 
 /**
@@ -82,12 +113,22 @@ export async function chargerAdresseFacturationStructuree(tx: TransactionDfa, ct
  * en principe. À signaler à expert-database : la vraie correction est une migration additive
  * (`document_vente.plaque_figee text`), hors du périmètre d'écriture de cette tâche.
  */
-export async function chargerPlaqueVehiculeCourante(tx: TransactionDfa, ctx: ContexteTenant, vehiculeId: string | null): Promise<string | null> {
+export async function chargerPlaqueVehiculeCourante(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  vehiculeId: string | null,
+): Promise<string | null> {
   if (!vehiculeId) return null;
   const [ligne] = await tx
     .select({ valeur: vehiculePlaque.valeur })
     .from(vehiculePlaque)
-    .where(and(eq(vehiculePlaque.tenantId, ctx.tenantId), eq(vehiculePlaque.vehiculeId, vehiculeId), isNull(vehiculePlaque.au)))
+    .where(
+      and(
+        eq(vehiculePlaque.tenantId, ctx.tenantId),
+        eq(vehiculePlaque.vehiculeId, vehiculeId),
+        isNull(vehiculePlaque.au),
+      ),
+    )
     .orderBy(desc(vehiculePlaque.du))
     .limit(1);
   return ligne?.valeur ?? null;
@@ -98,7 +139,11 @@ export interface ResumeUtilisateur {
   readonly nomAffiche: string;
 }
 
-export async function chargerResumeUtilisateur(tx: TransactionDfa, ctx: ContexteTenant, utilisateurId: string | null): Promise<ResumeUtilisateur | null> {
+export async function chargerResumeUtilisateur(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  utilisateurId: string | null,
+): Promise<ResumeUtilisateur | null> {
   if (!utilisateurId) return null;
   const [ligne] = await tx
     .select({ id: utilisateur.id, prenom: utilisateur.prenom, nom: utilisateur.nom })

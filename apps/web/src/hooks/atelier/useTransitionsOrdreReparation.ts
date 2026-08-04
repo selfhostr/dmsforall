@@ -45,7 +45,10 @@ import {
  */
 function useActionOrdreReparation<TEntree extends object>(
   orId: string,
-  action: (orId: string, entree: TEntree) => Promise<ReponseAvecAvertissements<ReponseOrdreReparation>>,
+  action: (
+    orId: string,
+    entree: TEntree,
+  ) => Promise<ReponseAvecAvertissements<ReponseOrdreReparation>>,
 ): UseMutationResult<ReponseAvecAvertissements<ReponseOrdreReparation>, unknown, TEntree> {
   const queryClient = useQueryClient();
 
@@ -70,7 +73,10 @@ export function useDemarrerOr(orId: string) {
 
 /** T-06 / T-08 / T-10 — lève les blocages d'attente. */
 export function useReprendreTravauxOr(orId: string) {
-  return useActionOrdreReparation<EntreeActionReprendreTravaux>(orId, reprendreTravauxOrdreReparation);
+  return useActionOrdreReparation<EntreeActionReprendreTravaux>(
+    orId,
+    reprendreTravauxOrdreReparation,
+  );
 }
 
 /** T-11 `en_cours -> controle`. */
@@ -80,12 +86,18 @@ export function usePasserEnControleOr(orId: string) {
 
 /** T-12 `controle -> en_cours`, motif obligatoire. */
 export function useRefuserControleOr(orId: string) {
-  return useActionOrdreReparation<EntreeActionRefuserControle>(orId, refuserControleOrdreReparation);
+  return useActionOrdreReparation<EntreeActionRefuserControle>(
+    orId,
+    refuserControleOrdreReparation,
+  );
 }
 
 /** T-13 `controle -> termine`. */
 export function useValiderControleOr(orId: string) {
-  return useActionOrdreReparation<EntreeActionValiderControle>(orId, validerControleOrdreReparation);
+  return useActionOrdreReparation<EntreeActionValiderControle>(
+    orId,
+    validerControleOrdreReparation,
+  );
 }
 
 /** T-14 `en_cours -> termine` (interdite si contrôle qualité obligatoire, P-08). */

@@ -193,7 +193,11 @@ export class PageVehiculeResumeDto implements PageCurseur<VehiculeResumeDto> {
   @ApiProperty({ type: () => [VehiculeResumeDto] })
   readonly donnees!: readonly VehiculeResumeDto[];
 
-  @ApiPropertyOptional({ type: String, nullable: true, description: 'Opaque base64url ; null = fin de liste.' })
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'Opaque base64url ; null = fin de liste.',
+  })
   readonly curseurSuivant!: string | null;
 
   @ApiProperty({ example: 50 })

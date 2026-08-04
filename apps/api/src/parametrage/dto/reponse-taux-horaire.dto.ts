@@ -12,7 +12,8 @@ export class ReponseTauxHoraireDto {
 }
 
 export class PageTauxHoraireDto {
-  @ApiProperty({ type: () => [ReponseTauxHoraireDto] }) readonly donnees!: readonly ReponseTauxHoraireDto[];
+  @ApiProperty({ type: () => [ReponseTauxHoraireDto] })
+  readonly donnees!: readonly ReponseTauxHoraireDto[];
   @ApiProperty({ type: String, nullable: true }) readonly curseurSuivant!: string | null;
   @ApiProperty() readonly limite!: number;
 }

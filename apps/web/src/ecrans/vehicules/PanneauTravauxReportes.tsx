@@ -27,7 +27,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
@@ -56,7 +62,10 @@ const ROLES_GESTION_TRAVAIL_REPORTE: ReadonlySet<RoleUtilisateur> = new Set([
   'admin',
 ]);
 
-const CONFIG_URGENCE: Record<UrgenceTravail, { readonly icone: LucideIcon; readonly cle: string; readonly accentue: boolean }> = {
+const CONFIG_URGENCE: Record<
+  UrgenceTravail,
+  { readonly icone: LucideIcon; readonly cle: string; readonly accentue: boolean }
+> = {
   urgent: { icone: AlertTriangle, cle: 'urgent', accentue: true },
   a_faire: { icone: Clock3, cle: 'aFaire', accentue: false },
   a_surveiller: { icone: Eye, cle: 'aSurveiller', accentue: false },
@@ -156,7 +165,8 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
   const peutGerer = role !== undefined && ROLES_GESTION_TRAVAIL_REPORTE.has(role);
 
   const travaux = requete.data ?? [];
-  const compterParStatut = (statut: StatutTravailReporte) => travaux.filter((t2) => t2.statut === statut).length;
+  const compterParStatut = (statut: StatutTravailReporte) =>
+    travaux.filter((t2) => t2.statut === statut).length;
 
   const travauxOnglet = onglet === 'tous' ? travaux : travaux.filter((t2) => t2.statut === onglet);
 
@@ -238,7 +248,9 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle className="texte-titre-section">{t('vehicules:travauxReportes.titre')}</CardTitle>
+          <CardTitle className="texte-titre-section">
+            {t('vehicules:travauxReportes.titre')}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <EtatChargement lignes={3} />
@@ -252,11 +264,15 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle className="texte-titre-section">{t('vehicules:travauxReportes.titre')}</CardTitle>
+          <CardTitle className="texte-titre-section">
+            {t('vehicules:travauxReportes.titre')}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <EtatErreur
-            titre={t(estErreurReseau ? 'erreurs:reseau.titre' : 'vehicules:travauxReportes.erreur.titre')}
+            titre={t(
+              estErreurReseau ? 'erreurs:reseau.titre' : 'vehicules:travauxReportes.erreur.titre',
+            )}
             description={messageErreur(requete.error, t)}
             onReessayer={() => void requete.refetch()}
           />
@@ -270,7 +286,9 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle className="texte-titre-section">{t('vehicules:travauxReportes.titre')}</CardTitle>
+        <CardTitle className="texte-titre-section">
+          {t('vehicules:travauxReportes.titre')}
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {erreurMutation ? (
@@ -312,7 +330,9 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
                           <span
                             className={cn(
                               'inline-flex items-center gap-1 rounded-full border border-input bg-background px-2.5 py-0.5 texte-libelle font-medium',
-                              urgence.accentue ? 'font-semibold text-foreground' : 'text-muted-foreground',
+                              urgence.accentue
+                                ? 'font-semibold text-foreground'
+                                : 'text-muted-foreground',
                             )}
                           >
                             <IconeUrgence aria-hidden className="h-3.5 w-3.5 shrink-0" />
@@ -346,12 +366,19 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
                           ) : null}
                           {onglet === 'tous' ? (
                             <Badge variant="outline">
-                              {t(`vehicules:travauxReportes.statuts.${CLES_STATUT[travail.statut]}`)}
+                              {t(
+                                `vehicules:travauxReportes.statuts.${CLES_STATUT[travail.statut]}`,
+                              )}
                             </Badge>
                           ) : null}
                           {peutGerer ? (
                             <div className="flex shrink-0 flex-wrap gap-2">
-                              <Button type="button" variant="outline" size="sm" onClick={() => ouvrirEdition(travail)}>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => ouvrirEdition(travail)}
+                              >
                                 <Pencil aria-hidden className="h-3.5 w-3.5" />
                                 {t('vehicules:travauxReportes.actions.corriger')}
                               </Button>
@@ -388,7 +415,10 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
         )}
       </CardContent>
 
-      <Dialog open={edition !== null} onOpenChange={(ouvert) => (ouvert ? undefined : fermerEdition())}>
+      <Dialog
+        open={edition !== null}
+        onOpenChange={(ouvert) => (ouvert ? undefined : fermerEdition())}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('vehicules:travauxReportes.dialogue.corrigerTitre')}</DialogTitle>
@@ -396,20 +426,29 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
           {edition ? (
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="tr-designation">{t('vehicules:travauxReportes.dialogue.designation')}</Label>
+                <Label htmlFor="tr-designation">
+                  {t('vehicules:travauxReportes.dialogue.designation')}
+                </Label>
                 <Input
                   id="tr-designation"
                   value={edition.designation}
-                  onChange={(evenement) => setEdition({ ...edition, designation: evenement.target.value })}
+                  onChange={(evenement) =>
+                    setEdition({ ...edition, designation: evenement.target.value })
+                  }
                 />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="tr-urgence">{t('vehicules:travauxReportes.urgence')}</Label>
                 <Select
                   value={edition.urgence}
-                  onValueChange={(valeur) => setEdition({ ...edition, urgence: valeur as UrgenceTravail })}
+                  onValueChange={(valeur) =>
+                    setEdition({ ...edition, urgence: valeur as UrgenceTravail })
+                  }
                 >
-                  <SelectTrigger id="tr-urgence" aria-label={t('vehicules:travauxReportes.urgence')}>
+                  <SelectTrigger
+                    id="tr-urgence"
+                    aria-label={t('vehicules:travauxReportes.urgence')}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -425,7 +464,9 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
                 <ChampMontant
                   id="tr-montant"
                   valeurCentimes={edition.montantCentimes}
-                  onChangeCentimes={(centimes) => setEdition({ ...edition, montantCentimes: centimes })}
+                  onChangeCentimes={(centimes) =>
+                    setEdition({ ...edition, montantCentimes: centimes })
+                  }
                   label={t('vehicules:travauxReportes.montant')}
                 />
               ) : null}
@@ -458,7 +499,10 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
        * accueillir une (le motif de clôture/abandon, facultatif). Même doctrine `onOpenChange`/
        * `onSettled` que le dialogue d'édition ci-dessus.
        */}
-      <Dialog open={transition !== null} onOpenChange={(ouvert) => (ouvert ? undefined : fermerTransition())}>
+      <Dialog
+        open={transition !== null}
+        onOpenChange={(ouvert) => (ouvert ? undefined : fermerTransition())}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -475,19 +519,25 @@ export function PanneauTravauxReportes({ vehiculeId, className }: Props) {
           {transition ? (
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="tr-motif-transition">{t('vehicules:travauxReportes.dialogue.motifLabel')}</Label>
+                <Label htmlFor="tr-motif-transition">
+                  {t('vehicules:travauxReportes.dialogue.motifLabel')}
+                </Label>
                 <Textarea
                   id="tr-motif-transition"
                   value={transition.motif}
                   placeholder={t('vehicules:travauxReportes.dialogue.motifPlaceholder')}
-                  onChange={(evenement) => setTransition({ ...transition, motif: evenement.target.value })}
+                  onChange={(evenement) =>
+                    setTransition({ ...transition, motif: evenement.target.value })
+                  }
                 />
               </div>
               {/* Erreur INLINE de validation CLIENT du motif uniquement : un échec SERVEUR ferme
                *  systématiquement ce dialogue (`onSettled`, voir `confirmerTransition`), cette
                *  branche ne serait donc jamais visible avant que le dialogue ne se ferme — l'alerte
                *  `erreurMutation` du panneau porte alors ce cas, comme pour toute autre mutation. */}
-              {erreurTransition ? <p className="texte-libelle text-destructive">{erreurTransition}</p> : null}
+              {erreurTransition ? (
+                <p className="texte-libelle text-destructive">{erreurTransition}</p>
+              ) : null}
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">{t('commun:actions.annuler')}</Button>

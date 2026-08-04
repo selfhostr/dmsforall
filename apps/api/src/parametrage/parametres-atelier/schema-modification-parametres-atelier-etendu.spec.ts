@@ -40,7 +40,9 @@ describe('schemaModificationParametresAtelierEtendu — reception.plafondAvoirRe
   });
 
   it('champ omis : absent du résultat (ne force pas la colonne à undefined)', () => {
-    const resultat = schemaModificationParametresAtelierEtendu.safeParse({ reception: { kmEntreeObligatoire: true } });
+    const resultat = schemaModificationParametresAtelierEtendu.safeParse({
+      reception: { kmEntreeObligatoire: true },
+    });
     expect(resultat.success).toBe(true);
     if (resultat.success) {
       expect('plafondAvoirReceptionnaireCentimes' in (resultat.data.reception ?? {})).toBe(false);
@@ -54,14 +56,14 @@ describe('schemaModificationParametresAtelierEtendu — reception.plafondAvoirRe
     expect(resultat.success).toBe(false);
   });
 
-  it('refuse une valeur au-delà de la borne haute du CHECK SQL (100\'000\'000 centimes)', () => {
+  it("refuse une valeur au-delà de la borne haute du CHECK SQL (100'000'000 centimes)", () => {
     const resultat = schemaModificationParametresAtelierEtendu.safeParse({
       reception: { plafondAvoirReceptionnaireCentimes: 100_000_001 },
     });
     expect(resultat.success).toBe(false);
   });
 
-  it('accepte exactement la borne haute (100\'000\'000 centimes = CHF 1\'000\'000.-)', () => {
+  it("accepte exactement la borne haute (100'000'000 centimes = CHF 1'000'000.-)", () => {
     const resultat = schemaModificationParametresAtelierEtendu.safeParse({
       reception: { plafondAvoirReceptionnaireCentimes: 100_000_000 },
     });

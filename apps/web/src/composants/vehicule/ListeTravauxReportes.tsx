@@ -17,7 +17,10 @@ export interface ProprietesListeTravauxReportes {
 // métier, pas un statut d'OR/ligne (seule famille à qui ce budget couleur est réservé — voir
 // composants/identite/BadgeStatutClient.tsx et docs/design-comptoir.md §2). Seul `urgent`
 // s'accentue (texte gras), sur le modèle `accentue` de BadgeStatutClient.
-const CONFIG_URGENCE: Record<UrgenceTravail, { readonly icone: LucideIcon; readonly cle: string; readonly accentue: boolean }> = {
+const CONFIG_URGENCE: Record<
+  UrgenceTravail,
+  { readonly icone: LucideIcon; readonly cle: string; readonly accentue: boolean }
+> = {
   urgent: { icone: AlertTriangle, cle: 'urgent', accentue: true },
   a_faire: { icone: Clock3, cle: 'aFaire', accentue: false },
   a_surveiller: { icone: Eye, cle: 'aSurveiller', accentue: false },

@@ -8,7 +8,9 @@ import { ErreurApi, ErreurReseau } from './erreurs';
 
 describe('requeteApi', () => {
   it('renvoie undefined sur un 204 sans jamais tenter de parser le corps', async () => {
-    server.use(http.post('/api/v1/auth/deconnexion', () => new HttpResponse(null, { status: 204 })));
+    server.use(
+      http.post('/api/v1/auth/deconnexion', () => new HttpResponse(null, { status: 204 })),
+    );
     await expect(requeteApi('/auth/deconnexion', { method: 'POST' })).resolves.toBeUndefined();
   });
 
@@ -132,16 +134,21 @@ describe('requeteApi', () => {
         HttpResponse.json(
           {
             donnees: { id: 'client-1' },
-            avertissements: [{ code: 'CLIENT_DOUBLON_PROBABLE', message: 'Doublon probable', donnees: {} }],
+            avertissements: [
+              { code: 'CLIENT_DOUBLON_PROBABLE', message: 'Doublon probable', donnees: {} },
+            ],
           },
           { status: 201 },
         ),
       ),
     );
-    const resultat = await requeteApi<{ donnees: { id: string }; avertissements: unknown[] }>('/clients', {
-      method: 'POST',
-      body: JSON.stringify({}),
-    });
+    const resultat = await requeteApi<{ donnees: { id: string }; avertissements: unknown[] }>(
+      '/clients',
+      {
+        method: 'POST',
+        body: JSON.stringify({}),
+      },
+    );
     expect(resultat?.donnees.id).toBe('client-1');
     expect(resultat?.avertissements).toHaveLength(1);
   });

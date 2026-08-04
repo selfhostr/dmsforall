@@ -23,8 +23,18 @@
 import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { demarrerBaseEphemere, ecrireSousTenant, requeteSousTenant, type BaseEphemere } from '../setup/postgres-ephemere';
-import { creerAppTest, demarrerRedisEphemere, type AppTest, type RedisEphemere } from '../setup/app-test';
+import {
+  demarrerBaseEphemere,
+  ecrireSousTenant,
+  requeteSousTenant,
+  type BaseEphemere,
+} from '../setup/postgres-ephemere';
+import {
+  creerAppTest,
+  demarrerRedisEphemere,
+  type AppTest,
+  type RedisEphemere,
+} from '../setup/app-test';
 import {
   creerLignePourTest,
   creerOrPourTest,
@@ -54,7 +64,10 @@ interface SousTablesClient {
   readonly noteId: string;
 }
 
-async function semerSousTablesClient(tenantId: string, clientId: string): Promise<SousTablesClient> {
+async function semerSousTablesClient(
+  tenantId: string,
+  clientId: string,
+): Promise<SousTablesClient> {
   const adresseId = randomUUID();
   const contactId = randomUUID();
   const conditionId = randomUUID();
@@ -97,7 +110,11 @@ interface SousTablesAtelier {
   readonly controleId: string;
 }
 
-async function semerSousTablesAtelier(tenantId: string, orId: string, ligneId: string): Promise<SousTablesAtelier> {
+async function semerSousTablesAtelier(
+  tenantId: string,
+  orId: string,
+  ligneId: string,
+): Promise<SousTablesAtelier> {
   const demandeId = randomUUID();
   const devisId = randomUUID();
   const devisLigneId = randomUUID();
@@ -149,8 +166,20 @@ beforeAll(async () => {
 
   const tA = garage.tenantA;
   const tB = garage.tenantB;
-  orA = await creerOrPourTest(bdd, tA.tenant, tA.tenant.sites[0]!.id, tA.clients[0]!, tA.vehicules[0]!);
-  orB = await creerOrPourTest(bdd, tB.tenant, tB.tenant.sites[0]!.id, tB.clients[0]!, tB.vehicules[0]!);
+  orA = await creerOrPourTest(
+    bdd,
+    tA.tenant,
+    tA.tenant.sites[0]!.id,
+    tA.clients[0]!,
+    tA.vehicules[0]!,
+  );
+  orB = await creerOrPourTest(
+    bdd,
+    tB.tenant,
+    tB.tenant.sites[0]!.id,
+    tB.clients[0]!,
+    tB.vehicules[0]!,
+  );
   ligneA = await creerLignePourTest(bdd, tA.tenant, orA.id);
   ligneB = await creerLignePourTest(bdd, tB.tenant, orB.id);
 
@@ -177,12 +206,32 @@ afterAll(async () => {
 /** Contrôle positif (visible sous son propre tenant) + assertion d'isolation (invisible sous
  *  l'autre) dans le MÊME test — un test qui ne vérifierait que la moitié « invisible » passerait
  *  aussi bien si la requête ne trouvait jamais rien, ce qui ne prouverait rien. */
-async function verifierIsolationLecture(table: string, idPropreA: string, idDeB: string): Promise<void> {
-  const propre = await requeteSousTenant(bdd.poolApp, garage.tenantA.tenant.id, `select * from ${table} where id = $1`, [idPropreA]);
-  expect(propre.length, `contrôle positif : ${table} de garage-a doit être visible sous son propre contexte`).toBeGreaterThan(0);
+async function verifierIsolationLecture(
+  table: string,
+  idPropreA: string,
+  idDeB: string,
+): Promise<void> {
+  const propre = await requeteSousTenant(
+    bdd.poolApp,
+    garage.tenantA.tenant.id,
+    `select * from ${table} where id = $1`,
+    [idPropreA],
+  );
+  expect(
+    propre.length,
+    `contrôle positif : ${table} de garage-a doit être visible sous son propre contexte`,
+  ).toBeGreaterThan(0);
 
-  const croise = await requeteSousTenant(bdd.poolApp, garage.tenantA.tenant.id, `select * from ${table} where id = $1`, [idDeB]);
-  expect(croise, `${table} de garage-b doit être invisible sous le contexte de garage-a`).toHaveLength(0);
+  const croise = await requeteSousTenant(
+    bdd.poolApp,
+    garage.tenantA.tenant.id,
+    `select * from ${table} where id = $1`,
+    [idDeB],
+  );
+  expect(
+    croise,
+    `${table} de garage-b doit être invisible sous le contexte de garage-a`,
+  ).toHaveLength(0);
 }
 
 describe('lecture croisée — sous-tables du module CLIENTS (0006_clients.sql)', () => {
@@ -193,10 +242,18 @@ describe('lecture croisée — sous-tables du module CLIENTS (0006_clients.sql)'
     await verifierIsolationLecture('client_contact', sousClientA.contactId, sousClientB.contactId);
   });
   it('client_condition : des conditions commerciales de garage-b sont invisibles sous garage-a', async () => {
-    await verifierIsolationLecture('client_condition', sousClientA.conditionId, sousClientB.conditionId);
+    await verifierIsolationLecture(
+      'client_condition',
+      sousClientA.conditionId,
+      sousClientB.conditionId,
+    );
   });
   it('client_consentement (append-only, nLPD) : un consentement de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('client_consentement', sousClientA.consentementId, sousClientB.consentementId);
+    await verifierIsolationLecture(
+      'client_consentement',
+      sousClientA.consentementId,
+      sousClientB.consentementId,
+    );
   });
   it('client_note : une note de garage-b (potentiellement une alerte, RM-13) est invisible sous garage-a', async () => {
     await verifierIsolationLecture('client_note', sousClientA.noteId, sousClientB.noteId);
@@ -205,16 +262,32 @@ describe('lecture croisée — sous-tables du module CLIENTS (0006_clients.sql)'
 
 describe('lecture croisée — sous-tables du module ATELIER (0008_atelier.sql)', () => {
   it('ordre_reparation_demande (verbatim, append-only) : une demande de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('ordre_reparation_demande', sousAtelierA.demandeId, sousAtelierB.demandeId);
+    await verifierIsolationLecture(
+      'ordre_reparation_demande',
+      sousAtelierA.demandeId,
+      sousAtelierB.demandeId,
+    );
   });
   it('devis_complementaire : un devis (donc un MONTANT) de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('devis_complementaire', sousAtelierA.devisId, sousAtelierB.devisId);
+    await verifierIsolationLecture(
+      'devis_complementaire',
+      sousAtelierA.devisId,
+      sousAtelierB.devisId,
+    );
   });
   it('devis_complementaire_ligne : une ligne de devis de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('devis_complementaire_ligne', sousAtelierA.devisLigneId, sousAtelierB.devisLigneId);
+    await verifierIsolationLecture(
+      'devis_complementaire_ligne',
+      sousAtelierA.devisLigneId,
+      sousAtelierB.devisLigneId,
+    );
   });
   it('or_controle_qualite : un contrôle qualité de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('or_controle_qualite', sousAtelierA.controleId, sousAtelierB.controleId);
+    await verifierIsolationLecture(
+      'or_controle_qualite',
+      sousAtelierA.controleId,
+      sousAtelierB.controleId,
+    );
   });
 });
 
@@ -235,41 +308,70 @@ describe('fail-closed — sans app.tenant_id, aucune lecture ne rend jamais une 
     'or_controle_qualite',
   ] as const;
 
-  it.each(TABLES)('%s : select sans contexte tenant rend zéro ligne, pas une erreur', async (table) => {
-    // Précondition : au moins une ligne existe réellement (les deux tenants confondus) — sinon
-    // « zéro ligne rendue » serait vrai pour une raison sans intérêt (table vide).
-    const totalA = await requeteSousTenant<{ n: string }>(bdd.poolApp, garage.tenantA.tenant.id, `select count(*) as n from ${table}`);
-    const totalB = await requeteSousTenant<{ n: string }>(bdd.poolApp, garage.tenantB.tenant.id, `select count(*) as n from ${table}`);
-    expect(Number(totalA[0]?.n ?? 0) + Number(totalB[0]?.n ?? 0), `précondition : ${table} doit contenir au moins une ligne`).toBeGreaterThan(0);
+  it.each(TABLES)(
+    '%s : select sans contexte tenant rend zéro ligne, pas une erreur',
+    async (table) => {
+      // Précondition : au moins une ligne existe réellement (les deux tenants confondus) — sinon
+      // « zéro ligne rendue » serait vrai pour une raison sans intérêt (table vide).
+      const totalA = await requeteSousTenant<{ n: string }>(
+        bdd.poolApp,
+        garage.tenantA.tenant.id,
+        `select count(*) as n from ${table}`,
+      );
+      const totalB = await requeteSousTenant<{ n: string }>(
+        bdd.poolApp,
+        garage.tenantB.tenant.id,
+        `select count(*) as n from ${table}`,
+      );
+      expect(
+        Number(totalA[0]?.n ?? 0) + Number(totalB[0]?.n ?? 0),
+        `précondition : ${table} doit contenir au moins une ligne`,
+      ).toBeGreaterThan(0);
 
-    const lignes = await requeteSousTenant(bdd.poolApp, null, `select * from ${table}`);
-    expect(lignes, table).toHaveLength(0);
-  });
+      const lignes = await requeteSousTenant(bdd.poolApp, null, `select * from ${table}`);
+      expect(lignes, table).toHaveLength(0);
+    },
+  );
 });
 
 // -------------------------------------------------------------------------------------------
 // 3. Écriture croisée — UPDATE ciblant l'UUID d'une ligne de garage-b : zéro ligne affectée.
 // -------------------------------------------------------------------------------------------
 
-async function verifierUpdateCroiseSansEffet(table: string, assignation: string, idDeB: string): Promise<void> {
+async function verifierUpdateCroiseSansEffet(
+  table: string,
+  assignation: string,
+  idDeB: string,
+): Promise<void> {
   const lignes = await requeteSousTenant(
     bdd.poolApp,
     garage.tenantA.tenant.id,
     `update ${table} set ${assignation} where id = $1 returning id`,
     [idDeB],
   );
-  expect(lignes, `UPDATE sur ${table} ciblant une ligne de garage-b ne doit affecter AUCUNE ligne sous garage-a`).toHaveLength(0);
+  expect(
+    lignes,
+    `UPDATE sur ${table} ciblant une ligne de garage-b ne doit affecter AUCUNE ligne sous garage-a`,
+  ).toHaveLength(0);
 }
 
 describe('écriture croisée — UPDATE ciblant une ligne de garage-b, sous le contexte de garage-a', () => {
   it("client_adresse : modifier la localité d'une adresse de garage-b n'affecte aucune ligne", async () => {
-    await verifierUpdateCroiseSansEffet('client_adresse', "localite = 'INTRUS'", sousClientB.adresseId);
+    await verifierUpdateCroiseSansEffet(
+      'client_adresse',
+      "localite = 'INTRUS'",
+      sousClientB.adresseId,
+    );
   });
   it("client_note : modifier le texte d'une note de garage-b n'affecte aucune ligne", async () => {
     await verifierUpdateCroiseSansEffet('client_note', "texte = 'INTRUS'", sousClientB.noteId);
   });
   it("devis_complementaire : modifier le montant d'un devis de garage-b n'affecte aucune ligne (RLS avant tout calcul financier)", async () => {
-    await verifierUpdateCroiseSansEffet('devis_complementaire', 'montant_ttc_centimes = 999999', sousAtelierB.devisId);
+    await verifierUpdateCroiseSansEffet(
+      'devis_complementaire',
+      'montant_ttc_centimes = 999999',
+      sousAtelierB.devisId,
+    );
   });
   it("or_controle_qualite : requalifier un contrôle de garage-b en non conforme n'affecte aucune ligne", async () => {
     await verifierUpdateCroiseSansEffet(
@@ -280,7 +382,7 @@ describe('écriture croisée — UPDATE ciblant une ligne de garage-b, sous le c
   });
 });
 
-describe("écriture croisée — impersonation (WITH CHECK) refusée, sous-tables clients et atelier", () => {
+describe('écriture croisée — impersonation (WITH CHECK) refusée, sous-tables clients et atelier', () => {
   it('client_note : un insert portant tenant_id = garage-b, exécuté sous le contexte de garage-a, viole la politique RLS', async () => {
     await expect(
       requeteSousTenant(
@@ -322,11 +424,13 @@ describe("écriture croisée — impersonation (WITH CHECK) refusée, sous-table
 // -------------------------------------------------------------------------------------------
 
 describe('IDOR via HTTP — GET /api/v1/clients/{id}', () => {
-  it("un client de garage-b, demandé par son UUID réel sous une session garage-a, rend 404 RESSOURCE_INTROUVABLE — jamais 403", async () => {
+  it('un client de garage-b, demandé par son UUID réel sous une session garage-a, rend 404 RESSOURCE_INTROUVABLE — jamais 403', async () => {
     const u = garage.tenantA.utilisateursParRole.receptionnaire;
     const cookie = await cookieDeSessionPour(ctx, u.email, u.motDePasseClair);
 
-    const reponse = await ctx.requete.get(`/api/v1/clients/${garage.tenantB.clients[0]!.id}`).set('Cookie', cookie);
+    const reponse = await ctx.requete
+      .get(`/api/v1/clients/${garage.tenantB.clients[0]!.id}`)
+      .set('Cookie', cookie);
 
     expect(reponse.status).toBe(404);
     expect((reponse.body as { code?: string }).code).toBe('RESSOURCE_INTROUVABLE');
@@ -336,7 +440,9 @@ describe('IDOR via HTTP — GET /api/v1/clients/{id}', () => {
     const u = garage.tenantA.utilisateursParRole.receptionnaire;
     const cookie = await cookieDeSessionPour(ctx, u.email, u.motDePasseClair);
 
-    const reponse = await ctx.requete.get(`/api/v1/clients/${garage.tenantA.clients[0]!.id}`).set('Cookie', cookie);
+    const reponse = await ctx.requete
+      .get(`/api/v1/clients/${garage.tenantA.clients[0]!.id}`)
+      .set('Cookie', cookie);
 
     expect(reponse.status).toBe(200);
     expect((reponse.body as { id?: string }).id).toBe(garage.tenantA.clients[0]!.id);
@@ -354,11 +460,13 @@ describe('IDOR via HTTP — GET /api/v1/clients/{id}', () => {
 });
 
 describe('IDOR via HTTP — GET /api/v1/ordres-reparation/{id}', () => {
-  it("un OR de garage-b, demandé par son UUID réel sous une session garage-a, rend 404 RESSOURCE_INTROUVABLE — jamais 403", async () => {
+  it('un OR de garage-b, demandé par son UUID réel sous une session garage-a, rend 404 RESSOURCE_INTROUVABLE — jamais 403', async () => {
     const u = garage.tenantA.utilisateursParRole.receptionnaire;
     const cookie = await cookieDeSessionPour(ctx, u.email, u.motDePasseClair);
 
-    const reponse = await ctx.requete.get(`/api/v1/ordres-reparation/${orB.id}`).set('Cookie', cookie);
+    const reponse = await ctx.requete
+      .get(`/api/v1/ordres-reparation/${orB.id}`)
+      .set('Cookie', cookie);
 
     expect(reponse.status).toBe(404);
     expect((reponse.body as { code?: string }).code).toBe('RESSOURCE_INTROUVABLE');
@@ -368,7 +476,9 @@ describe('IDOR via HTTP — GET /api/v1/ordres-reparation/{id}', () => {
     const u = garage.tenantA.utilisateursParRole.receptionnaire;
     const cookie = await cookieDeSessionPour(ctx, u.email, u.motDePasseClair);
 
-    const reponse = await ctx.requete.get(`/api/v1/ordres-reparation/${orA.id}`).set('Cookie', cookie);
+    const reponse = await ctx.requete
+      .get(`/api/v1/ordres-reparation/${orA.id}`)
+      .set('Cookie', cookie);
 
     expect(reponse.status).toBe(200);
     expect((reponse.body as { id?: string }).id).toBe(orA.id);
@@ -378,7 +488,9 @@ describe('IDOR via HTTP — GET /api/v1/ordres-reparation/{id}', () => {
     const u = garage.tenantA.utilisateursParRole.receptionnaire;
     const cookie = await cookieDeSessionPour(ctx, u.email, u.motDePasseClair);
 
-    const reponse = await ctx.requete.get(`/api/v1/ordres-reparation/${randomUUID()}`).set('Cookie', cookie);
+    const reponse = await ctx.requete
+      .get(`/api/v1/ordres-reparation/${randomUUID()}`)
+      .set('Cookie', cookie);
 
     expect(reponse.status).toBe(404);
     expect((reponse.body as { code?: string }).code).toBe('RESSOURCE_INTROUVABLE');

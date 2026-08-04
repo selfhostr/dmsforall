@@ -1,6 +1,10 @@
 import * as Sentry from '@sentry/nestjs';
 import type { Config } from '../config';
-import { assainirAttributsSpan, assainirEvenement, nettoyerEvenementSentry } from './nettoyer-evenement';
+import {
+  assainirAttributsSpan,
+  assainirEvenement,
+  nettoyerEvenementSentry,
+} from './nettoyer-evenement';
 
 /**
  * Initialise le SDK Sentry, ou ne fait rien si `SENTRY_DSN` est absent.

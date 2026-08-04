@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
 
+import { genererUuid } from '@/lib/uuid';
+
 /**
  * Idempotence côté client (contrats-api-etape-1.md §5, arbitrage lead-frontend F1-01).
  *
@@ -28,7 +30,7 @@ import { useCallback, useState } from 'react';
  *  `useCleIdempotence` compose, et celui qu'une saisie en rafale (une clé par ligne, à l'Entrée)
  *  appelle directement sans hook dédié. */
 export function genererCleIdempotence(): string {
-  return crypto.randomUUID();
+  return genererUuid();
 }
 
 export interface CleIdempotence {

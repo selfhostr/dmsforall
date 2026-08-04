@@ -4,7 +4,17 @@
  * Détail des règles, triggers et machine à états : migrations/0032_ventes.sql.
  */
 
-import { check, foreignKey, index, integer, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 import { colonneId, colonnesHorodatage } from '../colonnes-communes';
@@ -74,7 +84,10 @@ export const financementVente = pgTable(
       'financement_vente_organisme_requis_chk',
       sql`${t.type} = 'comptant' or ${t.organismeId} is not null`,
     ),
-    check('financement_vente_motif_refus_chk', sql`${t.statut} <> 'refuse' or ${t.motifRefus} is not null`),
+    check(
+      'financement_vente_motif_refus_chk',
+      sql`${t.statut} <> 'refuse' or ${t.motifRefus} is not null`,
+    ),
     // Le tri par (tenant_id, dossier_vente_id, cree_le desc) sert directement la dérivation en
     // lecture du « financement courant » (voir le commentaire de tête).
     index('financement_vente_dossier_idx').on(t.tenantId, t.dossierVenteId, t.creeLe.desc()),

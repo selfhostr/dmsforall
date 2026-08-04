@@ -1,5 +1,24 @@
-import { Controller, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCookieAuth,
+  ApiHeader,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import {
   schemaAnnulationCommandeFournisseur,
@@ -19,7 +38,12 @@ import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 
-import { CommandeFournisseurAvecAvertissementsDto, CommandeFournisseurDto, PageCommandeFournisseurDto, ReceptionCommandeFournisseurAvecAvertissementsDto } from './dto';
+import {
+  CommandeFournisseurAvecAvertissementsDto,
+  CommandeFournisseurDto,
+  PageCommandeFournisseurDto,
+  ReceptionCommandeFournisseurAvecAvertissementsDto,
+} from './dto';
 import { schemaFiltresCommandesFournisseur, schemaUuid } from './schemas';
 import { ServiceCommandeFournisseur } from './service-commande-fournisseur';
 
@@ -45,7 +69,9 @@ export class CommandeFournisseurController {
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  async lister(@Query(new PipeZod(schemaFiltresCommandesFournisseur)) query: FiltresCommandesFournisseur): Promise<PageCommandeFournisseurDto> {
+  async lister(
+    @Query(new PipeZod(schemaFiltresCommandesFournisseur)) query: FiltresCommandesFournisseur,
+  ): Promise<PageCommandeFournisseurDto> {
     const ctx = this.contexte.contexteTenant();
     return this.service.lister(ctx, query);
   }
@@ -53,13 +79,19 @@ export class CommandeFournisseurController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ExigerDroit('pieces.commande_fournisseur.creer')
-  @ApiOperation({ summary: "Création d'une commande fournisseur (statut initial toujours `brouillon`). `Idempotency-Key` obligatoire." })
+  @ApiOperation({
+    summary:
+      "Création d'une commande fournisseur (statut initial toujours `brouillon`). `Idempotency-Key` obligatoire.",
+  })
   @ApiHeader({ name: 'Idempotency-Key', required: true })
   @ApiResponse({ status: 201, type: CommandeFournisseurAvecAvertissementsDto })
   @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, 'Fournisseur, site, article ou ligne d’OR d’origine introuvable pour ce tenant.')
+  @ApiReponseProbleme(
+    404,
+    'Fournisseur, site, article ou ligne d’OR d’origine introuvable pour ce tenant.',
+  )
   @ApiReponseProbleme(409, 'IDEMPOTENCE_CONFLIT.')
   async creer(
     @CorpsZod(schemaCreationCommandeFournisseur) entree: EntreeCreationCommandeFournisseur,
@@ -95,8 +127,13 @@ export class CommandeFournisseurController {
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Commande fournisseur introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, 'COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE — la commande n’est pas en brouillon.')
-  async envoyer(@Param('id', new PipeZod(schemaUuid)) id: string): Promise<CommandeFournisseurAvecAvertissementsDto> {
+  @ApiReponseProbleme(
+    409,
+    'COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE — la commande n’est pas en brouillon.',
+  )
+  async envoyer(
+    @Param('id', new PipeZod(schemaUuid)) id: string,
+  ): Promise<CommandeFournisseurAvecAvertissementsDto> {
     const ctx = this.contexte.contexteTenant();
     return this.service.envoyer(ctx, id);
   }
@@ -105,7 +142,8 @@ export class CommandeFournisseurController {
   @HttpCode(HttpStatus.CREATED)
   @ExigerDroit('pieces.commande_fournisseur.reception')
   @ApiOperation({
-    summary: 'Réceptionne tout ou partie de la commande (§7.4) — génère un mouvement `entree_livraison` par ligne. `Idempotency-Key` obligatoire.',
+    summary:
+      'Réceptionne tout ou partie de la commande (§7.4) — génère un mouvement `entree_livraison` par ligne. `Idempotency-Key` obligatoire.',
   })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiHeader({ name: 'Idempotency-Key', required: true })
@@ -113,8 +151,14 @@ export class CommandeFournisseurController {
   @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, 'Commande, ligne de commande ou article reçu introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, 'COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE, RECEPTION_REFERENCE_NON_EQUIVALENTE, ou IDEMPOTENCE_CONFLIT.')
+  @ApiReponseProbleme(
+    404,
+    'Commande, ligne de commande ou article reçu introuvable pour ce tenant.',
+  )
+  @ApiReponseProbleme(
+    409,
+    'COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE, RECEPTION_REFERENCE_NON_EQUIVALENTE, ou IDEMPOTENCE_CONFLIT.',
+  )
   async reception(
     @Param('id', new PipeZod(schemaUuid)) id: string,
     @CorpsZod(schemaReceptionCommandeFournisseur) entree: EntreeReceptionCommandeFournisseur,
@@ -138,7 +182,10 @@ export class CommandeFournisseurController {
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Commande ou ligne de commande introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, 'COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE, ou COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE.')
+  @ApiReponseProbleme(
+    409,
+    'COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE, ou COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE.',
+  )
   async annulerReliquat(
     @Param('id', new PipeZod(schemaUuid)) id: string,
     @Param('ligneId', new PipeZod(schemaUuid)) ligneId: string,
@@ -150,14 +197,19 @@ export class CommandeFournisseurController {
 
   @Post(':id/annuler')
   @ExigerDroit('pieces.commande_fournisseur.creer')
-  @ApiOperation({ summary: 'Annule la commande entière, avec motif — UNIQUEMENT avant toute réception (§6.2).' })
+  @ApiOperation({
+    summary: 'Annule la commande entière, avec motif — UNIQUEMENT avant toute réception (§6.2).',
+  })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: CommandeFournisseurAvecAvertissementsDto })
   @ApiReponseProbleme(400, 'Motif manquant ou trop court.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Commande fournisseur introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, 'COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE — une réception a déjà eu lieu.')
+  @ApiReponseProbleme(
+    409,
+    'COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE — une réception a déjà eu lieu.',
+  )
   async annuler(
     @Param('id', new PipeZod(schemaUuid)) id: string,
     @CorpsZod(schemaAnnulationCommandeFournisseur) entree: EntreeAnnulationCommandeFournisseur,

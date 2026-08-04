@@ -69,7 +69,14 @@
     "lignes": "Lavoro",
     "motif": "Motivo della correzione",
     "motifRequis": "Il motivo e obbligatorio",
-    "enregistrer": "Salva correzione"
+    "enregistrer": "Salva correzione",
+    "debut": "Inizio",
+    "fin": "Fine",
+    "nature": "Tipo",
+    "cible": "Destinazione",
+    "annuler": "Annulla",
+    "succes": "Correzione salvata.",
+    "motifPlaceholder": "Es.: dimenticato di fermare a fine giornata"
   },
   "donnees": {
     "titre": "Stato dati",
@@ -78,5 +85,147 @@
   },
   "vide": {
     "aucunOr": "Nessun lavoro da timbrare per te oggi."
+  },
+  "statuts": {
+    "en_cours": "In corso",
+    "termine": "Terminata",
+    "valide": "Convalidata",
+    "verrouille": "Bloccata"
+  },
+  "natures": {
+    "productif_ligne": "Lavoro dell'ordine",
+    "productif_or": "Ordine (senza lavoro preciso)",
+    "indirect": "Attivita indiretta"
+  },
+  "siteRequis": {
+    "titre": "Scegli una sede",
+    "description": "La timbratura si fa per una sede precisa — seleziona la sede in cui lavori oggi.",
+    "label": "Sede"
+  },
+  "technicien": {
+    "titreEcran": "La mia timbratura",
+    "aucunPointage": {
+      "titre": "Nessuna timbratura in corso",
+      "description": "Scegli un ordine qui sotto o un'attivita indiretta per iniziare."
+    },
+    "pointageEnCours": {
+      "titre": "Timbratura in corso",
+      "depuis": "Dalle {heure}"
+    },
+    "cible": {
+      "ligne": "{numero} — {designation}",
+      "or": "{numero} — Ordine intero",
+      "indirect": "{activite}"
+    },
+    "boutons": {
+      "arreter": "Ferma",
+      "pause": "Metti in pausa",
+      "reprendre": "Riprendi",
+      "demarrerOr": "Timbra su questo ordine",
+      "demarrerLigne": "Timbra su questo lavoro"
+    },
+    "mesOrs": {
+      "titre": "I miei ordini di oggi",
+      "lignesAssignees": "{count, plural, one {# lavoro a te assegnato} other {# lavori a te assegnati}}"
+    },
+    "choisirCible": {
+      "titre": "Cosa stai timbrando?",
+      "description": "Scegli un lavoro a te assegnato, oppure timbra sull'ordine intero.",
+      "orEntier": "Ordine intero (senza lavoro preciso)",
+      "lignesTitre": "Lavori a te assegnati",
+      "aucuneLigne": "Nessun lavoro ti e assegnato su questo ordine — puoi timbrare sull'ordine intero."
+    },
+    "erreur": {
+      "titre": "Impossibile caricare la tua timbratura"
+    }
+  },
+  "jour": {
+    "titre": "Timbrature del giorno",
+    "titreSemaine": "Timbrature della settimana",
+    "filtres": {
+      "periode": "Periodo",
+      "jour": "Giorno",
+      "semaine": "Settimana"
+    },
+    "colonnes": {
+      "technicien": "Tecnico",
+      "productif": "Produttivo",
+      "indirect": "Indiretto",
+      "presence": "Presenza",
+      "anomalies": "Anomalie"
+    },
+    "total": "Totale",
+    "vide": {
+      "titre": "Nessuna timbratura",
+      "description": "Nessuna timbratura registrata in questo periodo."
+    },
+    "enCoursBadge": "In corso",
+    "erreur": {
+      "titre": "Impossibile caricare le timbrature"
+    }
+  },
+  "equipe": {
+    "titre": "Timbrature del team",
+    "onglets": {
+      "liste": "Tutte le timbrature",
+      "parOr": "Per ordine di riparazione"
+    },
+    "colonnes": {
+      "technicien": "Tecnico",
+      "cible": "Destinazione",
+      "debut": "Inizio",
+      "fin": "Fine",
+      "duree": "Durata",
+      "statut": "Stato",
+      "actions": "Azioni"
+    },
+    "nomIndisponible": "Tecnico {id}",
+    "corriger": "Correggi",
+    "parOr": {
+      "rechercherOrLabel": "Numero ordine o veicolo",
+      "rechercherOrPlaceholder": "Cerca un ordine…",
+      "tempsReel": "Tempo effettivamente timbrato",
+      "tempsFacture": "Tempo fatturato (tempario)",
+      "ecart": "Scostamento",
+      "parTechnicien": "Dettaglio per tecnico",
+      "aucunPointage": "Nessuna timbratura registrata su questo ordine.",
+      "choisirOr": "Scegli un ordine per vedere il dettaglio della sua timbratura."
+    },
+    "vide": {
+      "titre": "Nessuna timbratura",
+      "description": "Nessuna timbratura per questa sede in questo periodo."
+    },
+    "erreur": {
+      "titre": "Impossibile caricare il team"
+    }
+  },
+  "periode": {
+    "titre": "Chiusura periodo",
+    "site": "Sede",
+    "vide": {
+      "titre": "Scegli una sede",
+      "description": "Seleziona una sede per bloccare o sbloccare un periodo di timbratura."
+    },
+    "verrouiller": {
+      "titre": "Blocca un periodo",
+      "description": "Ogni timbratura terminata o convalidata, il cui inizio precede questa data, sara bloccata. Una timbratura ancora in corso nel periodo blocca l'intera operazione.",
+      "jusquau": "Fino al (incluso)",
+      "motif": "Motivo (facoltativo)",
+      "action": "Blocca",
+      "resultat": "{count, plural, one {# timbratura bloccata.} other {# timbrature bloccate.}}",
+      "blocage": "Ci sono timbrature ancora in corso in questo periodo — devono essere fermate prima di poter bloccare."
+    },
+    "deverrouiller": {
+      "titre": "Sblocca (storno)",
+      "description": "Riguarda solo le timbrature gia bloccate della sede, che tornano convalidate.",
+      "jusquau": "Fino al (incluso)",
+      "motif": "Motivo dello storno",
+      "motifRequis": "Il motivo e obbligatorio per sbloccare un periodo.",
+      "action": "Sblocca",
+      "resultat": "{count, plural, one {# timbratura sbloccata.} other {# timbrature sbloccate.}}"
+    },
+    "erreur": {
+      "titre": "Azione non possibile"
+    }
   }
 }

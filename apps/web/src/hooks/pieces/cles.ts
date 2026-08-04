@@ -1,4 +1,11 @@
-import type { FiltresMouvementsStock, FiltresReapprovisionnement, FiltresReservations } from '@dfa/shared';
+import type {
+  FiltresCommandesFournisseur,
+  FiltresConsignes,
+  FiltresFournisseurs,
+  FiltresMouvementsStock,
+  FiltresReapprovisionnement,
+  FiltresReservations,
+} from '@dfa/shared';
 
 import type { FiltresListeArticles } from './articles.api';
 
@@ -17,17 +24,38 @@ export const clesPieces = {
   articles: {
     liste: (filtres: FiltresListeArticles) => ['pieces', 'articles', 'liste', filtres] as const,
     detail: (id: string) => ['pieces', 'articles', 'detail', id] as const,
-    rechercheComptoir: (q: string, siteId: string) => ['pieces', 'articles', 'rechercheComptoir', q, siteId] as const,
-    disponibilite: (articleId: string, siteId: string) => ['pieces', 'articles', 'disponibilite', articleId, siteId] as const,
+    rechercheComptoir: (q: string, siteId: string) =>
+      ['pieces', 'articles', 'rechercheComptoir', q, siteId] as const,
+    disponibilite: (articleId: string, siteId: string) =>
+      ['pieces', 'articles', 'disponibilite', articleId, siteId] as const,
     mouvements: (articleId: string, filtres: FiltresMouvementsStock) =>
       ['pieces', 'articles', 'mouvements', articleId, filtres] as const,
   },
 
   stock: {
-    reapprovisionnement: (filtres: FiltresReapprovisionnement) => ['pieces', 'stock', 'reapprovisionnement', filtres] as const,
+    reapprovisionnement: (filtres: FiltresReapprovisionnement) =>
+      ['pieces', 'stock', 'reapprovisionnement', filtres] as const,
   },
 
   reservations: {
     liste: (filtres: FiltresReservations) => ['pieces', 'reservations', 'liste', filtres] as const,
+  },
+
+  // Second relais (étape 3, sous-fonctions commande fournisseur/fournisseur/consigne) — mêmes
+  // conventions que les blocs ci-dessus (tuple plat, filtres complets), ajoutées par l'agent qui a
+  // complété le module (périmètre `hooks/pieces/**`, disjoint des blocs déjà livrés).
+  commandesFournisseur: {
+    liste: (filtres: FiltresCommandesFournisseur) =>
+      ['pieces', 'commandesFournisseur', 'liste', filtres] as const,
+    detail: (id: string) => ['pieces', 'commandesFournisseur', 'detail', id] as const,
+  },
+
+  fournisseurs: {
+    liste: (filtres: FiltresFournisseurs) => ['pieces', 'fournisseurs', 'liste', filtres] as const,
+    detail: (id: string) => ['pieces', 'fournisseurs', 'detail', id] as const,
+  },
+
+  consignes: {
+    liste: (filtres: FiltresConsignes) => ['pieces', 'consignes', 'liste', filtres] as const,
   },
 } as const;

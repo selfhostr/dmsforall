@@ -56,7 +56,11 @@ const TRAVAIL_REPRIS: ReponseTravailReporte = {
 };
 
 function installerSession(role: (typeof SESSION_TEST)['utilisateur']['role'] = 'chef_atelier') {
-  server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role } })));
+  server.use(
+    http.get('/api/v1/auth/moi', () =>
+      HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role } }),
+    ),
+  );
 }
 
 function rendre(vehiculeId = 'v1') {
@@ -76,7 +80,9 @@ describe('PanneauTravauxReportes', () => {
   it('traduit les onglets et les actions en allemand (namespace `vehicules`, clés ajoutées par ce panneau)', async () => {
     await i18n.changeLanguage('de');
     installerSession('chef_atelier');
-    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])));
+    server.use(
+      http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])),
+    );
     rendre();
 
     expect(await screen.findByRole('tab', { name: /Offen/ })).toBeInTheDocument();
@@ -99,20 +105,32 @@ describe('PanneauTravauxReportes', () => {
     server.use(
       http.get('/api/v1/vehicules/v1/travaux-reportes', () =>
         HttpResponse.json(
-          { type: 'https://docs.dmsforall.example/erreurs/RESSOURCE_INTROUVABLE', title: 'Introuvable', status: 404, code: 'RESSOURCE_INTROUVABLE', instance: 'req-1' },
+          {
+            type: 'https://docs.dmsforall.example/erreurs/RESSOURCE_INTROUVABLE',
+            title: 'Introuvable',
+            status: 404,
+            code: 'RESSOURCE_INTROUVABLE',
+            instance: 'req-1',
+          },
           { status: 404, headers: { 'content-type': 'application/problem+json' } },
         ),
       ),
     );
     rendre();
 
-    expect(await screen.findByText('Impossible de charger les travaux reportés')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Impossible de charger les travaux reportés'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
   });
 
   it('affiche par défaut les travaux OUVERTS avec le montant et le kilométrage de l’époque, et propose corriger/reprendre/abandonner à un rôle habilité', async () => {
     installerSession('chef_atelier');
-    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT, TRAVAIL_REPRIS])));
+    server.use(
+      http.get('/api/v1/vehicules/v1/travaux-reportes', () =>
+        HttpResponse.json([TRAVAIL_OUVERT, TRAVAIL_REPRIS]),
+      ),
+    );
     rendre();
 
     expect(await screen.findByText('Plaquettes de frein avant')).toBeInTheDocument();
@@ -128,7 +146,9 @@ describe('PanneauTravauxReportes', () => {
 
   it('ne propose AUCUNE action à un rôle sans le droit `vehicule.travail_reporte.gerer` (ex. technicien)', async () => {
     installerSession('technicien');
-    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])));
+    server.use(
+      http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])),
+    );
     rendre();
 
     expect(await screen.findByText('Plaquettes de frein avant')).toBeInTheDocument();
@@ -139,7 +159,11 @@ describe('PanneauTravauxReportes', () => {
 
   it('bascule sur l’onglet « Tous » et affiche le statut de chaque travail', async () => {
     installerSession();
-    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT, TRAVAIL_REPRIS])));
+    server.use(
+      http.get('/api/v1/vehicules/v1/travaux-reportes', () =>
+        HttpResponse.json([TRAVAIL_OUVERT, TRAVAIL_REPRIS]),
+      ),
+    );
     const utilisateur = userEvent.setup();
     rendre();
 
@@ -152,7 +176,11 @@ describe('PanneauTravauxReportes', () => {
 
   it('affiche `motifModification` sur un travail déjà REPRIS, jamais sur un travail OUVERT (trou n°3 comblé)', async () => {
     installerSession();
-    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT, TRAVAIL_REPRIS])));
+    server.use(
+      http.get('/api/v1/vehicules/v1/travaux-reportes', () =>
+        HttpResponse.json([TRAVAIL_OUVERT, TRAVAIL_REPRIS]),
+      ),
+    );
     const utilisateur = userEvent.setup();
     rendre();
 
@@ -169,7 +197,9 @@ describe('PanneauTravauxReportes', () => {
 
   it('corrige la désignation, l’urgence et le montant d’un travail reporté', async () => {
     installerSession();
-    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])));
+    server.use(
+      http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])),
+    );
     const utilisateur = userEvent.setup({ pointerEventsCheck: 0 });
     rendre();
 
@@ -182,7 +212,12 @@ describe('PanneauTravauxReportes', () => {
         expect(corps.designation).toBe('Plaquettes de frein avant et arrière');
         expect(corps.urgence).toBe('a_faire');
         expect(corps.montantEstimeCentimes).toBe(30000);
-        return HttpResponse.json({ ...TRAVAIL_OUVERT, designation: 'Plaquettes de frein avant et arrière', urgence: 'a_faire', montantEstimeCentimes: 30000 });
+        return HttpResponse.json({
+          ...TRAVAIL_OUVERT,
+          designation: 'Plaquettes de frein avant et arrière',
+          urgence: 'a_faire',
+          montantEstimeCentimes: 30000,
+        });
       }),
     );
 
@@ -204,7 +239,9 @@ describe('PanneauTravauxReportes', () => {
 
   it('demande une confirmation explicite puis marque un travail comme repris', async () => {
     installerSession();
-    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])));
+    server.use(
+      http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])),
+    );
     let corpsRecu: unknown;
     server.use(
       http.patch('/api/v1/vehicules/v1/travaux-reportes/t1', async ({ request }) => {
@@ -226,7 +263,9 @@ describe('PanneauTravauxReportes', () => {
 
   it('abandonne un travail reporté après confirmation (statut `abandonne`, jamais une suppression)', async () => {
     installerSession();
-    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])));
+    server.use(
+      http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])),
+    );
     let corpsRecu: unknown;
     server.use(
       http.patch('/api/v1/vehicules/v1/travaux-reportes/t1', async ({ request }) => {
@@ -248,12 +287,18 @@ describe('PanneauTravauxReportes', () => {
 
   it('envoie le motif saisi au moment d’abandonner un travail (facultatif, transmis quand renseigné)', async () => {
     installerSession();
-    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])));
+    server.use(
+      http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])),
+    );
     let corpsRecu: unknown;
     server.use(
       http.patch('/api/v1/vehicules/v1/travaux-reportes/t1', async ({ request }) => {
         corpsRecu = await request.json();
-        return HttpResponse.json({ ...TRAVAIL_OUVERT, statut: 'abandonne', motifModification: 'Parti à la concurrence.' });
+        return HttpResponse.json({
+          ...TRAVAIL_OUVERT,
+          statut: 'abandonne',
+          motifModification: 'Parti à la concurrence.',
+        });
       }),
     );
     const utilisateur = userEvent.setup();
@@ -261,15 +306,22 @@ describe('PanneauTravauxReportes', () => {
 
     await utilisateur.click(await screen.findByRole('button', { name: 'Abandonner' }));
     const dialogue = await screen.findByRole('dialog');
-    await utilisateur.type(within(dialogue).getByLabelText('Motif (facultatif)'), 'Parti à la concurrence.');
+    await utilisateur.type(
+      within(dialogue).getByLabelText('Motif (facultatif)'),
+      'Parti à la concurrence.',
+    );
     await utilisateur.click(within(dialogue).getByRole('button', { name: 'Abandonner' }));
 
-    await waitFor(() => expect(corpsRecu).toEqual({ statut: 'abandonne', motif: 'Parti à la concurrence.' }));
+    await waitFor(() =>
+      expect(corpsRecu).toEqual({ statut: 'abandonne', motif: 'Parti à la concurrence.' }),
+    );
   });
 
   it('refuse un motif trop court (moins de 3 caractères) SANS envoyer la requête, dialogue laissé ouvert', async () => {
     installerSession();
-    server.use(http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])));
+    server.use(
+      http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])),
+    );
     let appele = false;
     server.use(
       http.patch('/api/v1/vehicules/v1/travaux-reportes/t1', () => {
@@ -285,7 +337,11 @@ describe('PanneauTravauxReportes', () => {
     await utilisateur.type(within(dialogue).getByLabelText('Motif (facultatif)'), 'x');
     await utilisateur.click(within(dialogue).getByRole('button', { name: 'Abandonner' }));
 
-    expect(await within(dialogue).findByText('Le motif doit compter au moins 3 caractères s\'il est renseigné.')).toBeInTheDocument();
+    expect(
+      await within(dialogue).findByText(
+        "Le motif doit compter au moins 3 caractères s'il est renseigné.",
+      ),
+    ).toBeInTheDocument();
     expect(appele).toBe(false);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
@@ -296,7 +352,13 @@ describe('PanneauTravauxReportes', () => {
       http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json([TRAVAIL_OUVERT])),
       http.patch('/api/v1/vehicules/v1/travaux-reportes/t1', () =>
         HttpResponse.json(
-          { type: 'https://docs.dmsforall.example/erreurs/DROIT_INSUFFISANT', title: 'Droit insuffisant', status: 403, code: 'DROIT_INSUFFISANT', instance: 'req-1' },
+          {
+            type: 'https://docs.dmsforall.example/erreurs/DROIT_INSUFFISANT',
+            title: 'Droit insuffisant',
+            status: 403,
+            code: 'DROIT_INSUFFISANT',
+            instance: 'req-1',
+          },
           { status: 403, headers: { 'content-type': 'application/problem+json' } },
         ),
       ),

@@ -61,13 +61,19 @@ function deviseFacturationDepuisBase(valeur: string, contexte: string): DeviseFa
  * paiements », `DROITS_PAIEMENT_PAR_ROLE.admin = []`, RF-115 « À LA DIFFÉRENCE de la doctrine de
  * l'étape 1 »).
  */
-const ROLES_SANS_MONTANT_FACTURATION: ReadonlySet<RoleUtilisateur> = new Set([...ROLES_SANS_MONTANT, 'admin']);
+const ROLES_SANS_MONTANT_FACTURATION: ReadonlySet<RoleUtilisateur> = new Set([
+  ...ROLES_SANS_MONTANT,
+  'admin',
+]);
 
 export function roleVoitLesMontants(role: RoleUtilisateur): boolean {
   return !ROLES_SANS_MONTANT_FACTURATION.has(role);
 }
 
-export function mapperLigneDocument(ligne: LigneLigneDocument, role: RoleUtilisateur): ReponseLigneDocumentVente {
+export function mapperLigneDocument(
+  ligne: LigneLigneDocument,
+  role: RoleUtilisateur,
+): ReponseLigneDocumentVente {
   const voitMontants = roleVoitLesMontants(role);
   const montants: MontantsLigneDocument = {
     montantHtCentimes: ligne.htCentimes,
@@ -194,7 +200,10 @@ function construireCreancierQrFige(doc: LigneDocumentVente): BlocCreancierFige {
  * c'est afficher, sous une deuxième porte, une valeur déjà figée et déjà exposée par ailleurs dans
  * la même réponse (`figees.adresseFacturation`, `figees.clientDesignation`).
  */
-function construireDebiteurQrFige(doc: LigneDocumentVente, figeesAdresse: AdresseStructureeQr | null): (AdresseStructureeQr & { readonly nom: string }) | null {
+function construireDebiteurQrFige(
+  doc: LigneDocumentVente,
+  figeesAdresse: AdresseStructureeQr | null,
+): (AdresseStructureeQr & { readonly nom: string }) | null {
   if (!doc.qrDebiteurPresent) {
     return null;
   }
@@ -218,7 +227,10 @@ function construireDebiteurQrFige(doc: LigneDocumentVente, figeesAdresse: Adress
  * déménagement ou un changement d'IBAN postérieur à l'émission ne doit jamais changer le bulletin
  * d'une facture déjà émise/envoyée).
  */
-function construireBlocQrFige(doc: LigneDocumentVente, figeesAdresse: AdresseStructureeQr | null): BlocPaiementQrFige | null {
+function construireBlocQrFige(
+  doc: LigneDocumentVente,
+  figeesAdresse: AdresseStructureeQr | null,
+): BlocPaiementQrFige | null {
   if (doc.typeDocument !== 'facture' || doc.qrPayload == null) {
     return null;
   }
@@ -228,8 +240,13 @@ function construireBlocQrFige(doc: LigneDocumentVente, figeesAdresse: AdresseStr
     qrPayloadSha256: valeurQrRequise(doc.qrPayloadSha256, 'qr_payload_sha256', doc.id),
     typeReferenceQr: valeurQrRequise(doc.typeReferenceQr, 'type_reference_qr', doc.id),
     qrReference: doc.qrReference,
-    qrMontantCentimes: Number(valeurQrRequise(doc.qrMontantCentimes, 'qr_montant_centimes', doc.id)),
-    qrDevise: deviseFacturationDepuisBase(valeurQrRequise(doc.qrDevise, 'qr_devise', doc.id), `QR du document ${doc.id}`),
+    qrMontantCentimes: Number(
+      valeurQrRequise(doc.qrMontantCentimes, 'qr_montant_centimes', doc.id),
+    ),
+    qrDevise: deviseFacturationDepuisBase(
+      valeurQrRequise(doc.qrDevise, 'qr_devise', doc.id),
+      `QR du document ${doc.id}`,
+    ),
     qrLangue: valeurQrRequise(doc.qrLangue, 'qr_langue', doc.id),
     creancier: construireCreancierQrFige(doc),
     debiteur: construireDebiteurQrFige(doc, figeesAdresse),
@@ -245,12 +262,19 @@ export function mapperDocument(e: EntreeMapperDocument): ReponseDocumentVente {
     clientIde: doc.clientIdeFige,
     clientLangue: doc.langueFigee,
     adresseFacturation: e.figeesAdresse,
-    ...(voitMontants ? { conditionsPaiement: (doc.conditionsPaiementFigees as Record<string, unknown> | null) ?? null } : {}),
+    ...(voitMontants
+      ? {
+          conditionsPaiement:
+            (doc.conditionsPaiementFigees as Record<string, unknown> | null) ?? null,
+        }
+      : {}),
     plaque: e.figeesPlaque,
   };
 
   const lignesTronquees = e.lignesToutes.length > SEUIL_LIGNES_EMBARQUEES_DOCUMENT;
-  const lignesEmbarquees = lignesTronquees ? e.lignesToutes.slice(0, SEUIL_LIGNES_EMBARQUEES_DOCUMENT) : e.lignesToutes;
+  const lignesEmbarquees = lignesTronquees
+    ? e.lignesToutes.slice(0, SEUIL_LIGNES_EMBARQUEES_DOCUMENT)
+    : e.lignesToutes;
 
   const ventilationTva: readonly DocumentVenteTva[] = e.ventilationTva.map((v) => ({
     regimeTva: v.regimeTva as DocumentVenteTva['regimeTva'],
@@ -300,7 +324,8 @@ export function mapperDocument(e: EntreeMapperDocument): ReponseDocumentVente {
           soldeCentimes: Number(doc.soldeCentimes),
         }
       : {}),
-    remiseGlobaleSaisieCentimes: doc.remiseGlobaleSaisieCentimes != null ? Number(doc.remiseGlobaleSaisieCentimes) : null,
+    remiseGlobaleSaisieCentimes:
+      doc.remiseGlobaleSaisieCentimes != null ? Number(doc.remiseGlobaleSaisieCentimes) : null,
     remiseGlobalePourmille: doc.remiseGlobalePourmille,
     relanceNiveau: doc.relanceNiveau,
     relanceLe: doc.relanceLe ? doc.relanceLe.toISOString() : null,

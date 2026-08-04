@@ -25,7 +25,13 @@ import {
 import { colonnesHorodatage, colonneId, colonneTenantId } from '../colonnes-communes';
 import { tenant } from '../tenant';
 import { utilisateur } from '../utilisateur';
-import { cibleExportEnum, modeAgregationExportEnum, regimeTvaEnum, statutExportComptableEnum, usageMappingCompteEnum } from './enums';
+import {
+  cibleExportEnum,
+  modeAgregationExportEnum,
+  regimeTvaEnum,
+  statutExportComptableEnum,
+  usageMappingCompteEnum,
+} from './enums';
 
 /** Plan comptable du tenant (MD-86), versionné par dates. RF-112 : jamais réécrit, seulement clos. */
 export const mappingCompte = pgTable(
@@ -119,7 +125,10 @@ export const exportComptable = pgTable(
     }).onDelete('restrict'),
     index('export_comptable_periode_idx').on(t.tenantId, t.cible, t.periodeDebut),
     check('export_comptable_periode_chk', sql`${t.periodeFin} >= ${t.periodeDebut}`),
-    check('export_comptable_equilibre_chk', sql`${t.totalDebitCentimes} = ${t.totalCreditCentimes}`),
+    check(
+      'export_comptable_equilibre_chk',
+      sql`${t.totalDebitCentimes} = ${t.totalCreditCentimes}`,
+    ),
   ],
 );
 

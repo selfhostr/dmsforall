@@ -50,11 +50,7 @@ export interface SessionOuverte {
 }
 
 export interface ServiceSession {
-  ouvrir(
-    u: UtilisateurAmorcage,
-    ip: string | null,
-    ua: string | null,
-  ): Promise<SessionOuverte>;
+  ouvrir(u: UtilisateurAmorcage, ip: string | null, ua: string | null): Promise<SessionOuverte>;
 
   /**
    * Valide, dans l'ordre : empreinte connue, non révoquée, `now <= expireLe` (absolu) ET

@@ -1,8 +1,14 @@
 import { z } from 'zod';
 
-import { STATUTS_ABONNEMENT_WEBHOOK, STATUTS_LIVRAISON_WEBHOOK, type StatutAbonnementWebhook, type StatutLivraisonWebhook } from './enums';
+import {
+  STATUTS_ABONNEMENT_WEBHOOK,
+  STATUTS_LIVRAISON_WEBHOOK,
+  type StatutAbonnementWebhook,
+  type StatutLivraisonWebhook,
+} from './enums';
 import { schemaUrlWebhookHttps } from './primitives';
 import { schemaIdentifiant, schemaMotif } from '../atelier/primitives';
+import { schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 import { TYPES_EVENEMENT_METIER, type TypeEvenementMetier } from '../atelier/evenement';
 
@@ -69,7 +75,9 @@ export const schemaModificationAbonnementWebhook = z.object({
   url: schemaUrlWebhookHttps.optional(),
   evenements: z.array(z.enum(TYPES_EVENEMENT_METIER)).min(1).max(50).optional(),
 });
-export type EntreeModificationAbonnementWebhook = z.infer<typeof schemaModificationAbonnementWebhook>;
+export type EntreeModificationAbonnementWebhook = z.infer<
+  typeof schemaModificationAbonnementWebhook
+>;
 
 /**
  * `PUT /webhooks/{id}/secret` — bascule la référence courante en `secretReferenceIdPrecedent`
@@ -79,13 +87,15 @@ export type EntreeModificationAbonnementWebhook = z.infer<typeof schemaModificat
 export const schemaRotationSecretAbonnementWebhook = z.object({
   secretReferenceId: schemaIdentifiant,
 });
-export type EntreeRotationSecretAbonnementWebhook = z.infer<typeof schemaRotationSecretAbonnementWebhook>;
+export type EntreeRotationSecretAbonnementWebhook = z.infer<
+  typeof schemaRotationSecretAbonnementWebhook
+>;
 
 export const TRIS_ABONNEMENTS_WEBHOOK = ['creeLe:desc', 'creeLe:asc'] as const;
 export const TRI_DEFAUT_ABONNEMENTS_WEBHOOK = 'creeLe:desc';
 
 export const schemaFiltresAbonnementsWebhook = schemaParametresPage.extend({
-  statut: z.array(z.enum(STATUTS_ABONNEMENT_WEBHOOK)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_ABONNEMENT_WEBHOOK)).optional(),
   tri: z.enum(TRIS_ABONNEMENTS_WEBHOOK).default(TRI_DEFAUT_ABONNEMENTS_WEBHOOK),
 });
 export type FiltresAbonnementsWebhook = z.infer<typeof schemaFiltresAbonnementsWebhook>;
@@ -101,7 +111,9 @@ export type FiltresAbonnementsWebhook = z.infer<typeof schemaFiltresAbonnementsW
 export const schemaReactivationAbonnementWebhook = z.object({
   motif: schemaMotif,
 });
-export type EntreeReactivationAbonnementWebhook = z.infer<typeof schemaReactivationAbonnementWebhook>;
+export type EntreeReactivationAbonnementWebhook = z.infer<
+  typeof schemaReactivationAbonnementWebhook
+>;
 
 /* ------------------------------------------------------------------ */
 /* Journal de livraison                                                */
@@ -130,7 +142,7 @@ export const TRIS_LIVRAISONS_WEBHOOK = ['creeLe:desc', 'creeLe:asc'] as const;
 export const TRI_DEFAUT_LIVRAISONS_WEBHOOK = 'creeLe:desc';
 
 export const schemaFiltresLivraisonsWebhook = schemaParametresPage.extend({
-  statut: z.array(z.enum(STATUTS_LIVRAISON_WEBHOOK)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_LIVRAISON_WEBHOOK)).optional(),
   tri: z.enum(TRIS_LIVRAISONS_WEBHOOK).default(TRI_DEFAUT_LIVRAISONS_WEBHOOK),
 });
 export type FiltresLivraisonsWebhook = z.infer<typeof schemaFiltresLivraisonsWebhook>;

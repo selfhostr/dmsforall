@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Config } from '../../config/config.types';
-import type { AccesAmorcage, AccesBase, SessionAmorcage, UtilisateurAmorcage } from '../../db/db.types';
+import type {
+  AccesAmorcage,
+  AccesBase,
+  SessionAmorcage,
+  UtilisateurAmorcage,
+} from '../../db/db.types';
 import type { ServiceContexteRequete } from '../../common/contexte/contexte-requete.service';
 import { ErreurSessionAbsente, ErreurSessionExpiree } from '../erreurs-auth';
 import { ServiceSessionImpl } from './session.service';
@@ -32,6 +37,9 @@ function sessionAmorcageTest(overrides: Partial<SessionAmorcage> = {}): SessionA
     langue: 'fr',
     statutUtilisateur: 'actif',
     statutTenant: 'actif',
+    // Compte de PERSONNE : aucun rattachement de site (migration 0039). Les comptes de service
+    // sont couverts par leurs propres tests, plus bas et dans `comptes-de-service.spec.ts`.
+    siteId: null,
     ...overrides,
   };
 }
@@ -64,12 +72,16 @@ describe('ServiceSessionImpl.resoudre — expiration absolue vs glissante', () =
 
     const principal = await service.resoudre('un-token-quelconque');
 
+    // `toEqual` EXHAUSTIF, pas `toMatchObject` : le principal est la surface d'autorisation de
+    // toute l'application — un champ qui y apparaît sans décision (ou qui en disparaît) doit
+    // faire rougir ce test. `siteId: null` = compte de personne, aucune restriction de site.
     expect(principal).toEqual({
       sessionId: 'session-id',
       tenantId: 'tenant-id',
       utilisateurId: 'utilisateur-id',
       role: 'admin',
       langue: 'fr',
+      siteId: null,
     });
   });
 
@@ -227,7 +239,7 @@ describe('ServiceSessionImpl.resoudre — expiration absolue vs glissante', () =
     expect(accesAmorcage.sessionParEmpreinte).not.toHaveBeenCalled();
   });
 
-  it("ne touche PAS `vu_le` quand la dernière activité connue a moins de 60s", async () => {
+  it('ne touche PAS `vu_le` quand la dernière activité connue a moins de 60s', async () => {
     const accesAmorcage: AccesAmorcage = {
       sessionParEmpreinte: vi
         .fn()
@@ -250,7 +262,7 @@ describe('ServiceSessionImpl.resoudre — expiration absolue vs glissante', () =
     expect(accesAmorcage.toucherSession).not.toHaveBeenCalled();
   });
 
-  it("touche `vu_le` quand la dernière activité connue a plus de 60s", async () => {
+  it('touche `vu_le` quand la dernière activité connue a plus de 60s', async () => {
     const accesAmorcage: AccesAmorcage = {
       sessionParEmpreinte: vi
         .fn()
@@ -319,5 +331,150 @@ describe('ServiceSessionImpl.ouvrir', () => {
     expect(a.tokenClair).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(a.sessionId).toBe('nouvelle-session-id');
     expect(a.expireLe.getTime()).toBeGreaterThan(Date.now() + 479 * 60_000);
+  });
+});
+
+/**
+ * Compte de service (borne d'atelier, migration 0039) — ce que la session doit garantir.
+ *
+ * Deux propriétés, toutes deux nécessaires au mode « borne partagée » du pointage :
+ *
+ *  1. le SITE de la borne remonte dans le principal, résolu depuis le seul cookie. C'est ce qui
+ *     rend impossible qu'un client le déclare — et donc qu'une borne consulte les PIN d'un autre
+ *     garage du même prestataire ;
+ *  2. la session est LONGUE. RM-129 fonde tout l'anti-balayage du PIN sur « cette session ne peut
+ *     pas se rafraîchir sans le mot de passe de la borne, que les techniciens ne connaissent pas ».
+ *     Avec les 480 min / 120 min d'une personne, quelqu'un devrait retaper ce mot de passe devant
+ *     l'atelier chaque matin : la prémisse deviendrait fausse en une semaine.
+ */
+describe('ServiceSessionImpl — comptes de service (poste_atelier)', () => {
+  function serviceAvecSession(s: SessionAmorcage): {
+    service: ServiceSessionImpl;
+    toucherSession: ReturnType<typeof vi.fn>;
+  } {
+    const toucherSession = vi.fn().mockResolvedValue(undefined);
+    const accesAmorcage: AccesAmorcage = {
+      sessionParEmpreinte: vi.fn().mockResolvedValue(s),
+      toucherSession,
+      utilisateurParEmail: vi.fn(),
+      enregistrerEchecConnexion: vi.fn(),
+      reinitialiserEchecsConnexion: vi.fn(),
+      journaliserSecurite: vi.fn(),
+    };
+    return {
+      service: new ServiceSessionImpl(configTest(), accesBaseTest(), accesAmorcage, contexteTest()),
+      toucherSession,
+    };
+  }
+
+  it('remonte le site du compte dans le principal — un compte de service sans site résolu ne pourrait rien faire (fail-closed de siteImposeAuPrincipal)', async () => {
+    const { service } = serviceAvecSession(
+      sessionAmorcageTest({ role: 'poste_atelier', siteId: 'site-sion' }),
+    );
+
+    const principal = await service.resoudre('jeton-quelconque');
+
+    expect(principal?.siteId).toBe('site-sion');
+    expect(principal?.role).toBe('poste_atelier');
+  });
+
+  it('renseigne TOUJOURS siteId, y compris pour un compte de personne (null explicite, jamais undefined) : l’invariant sur lequel repose le seul accesseur sanctionné', async () => {
+    const { service } = serviceAvecSession(sessionAmorcageTest({ role: 'technicien' }));
+
+    const principal = await service.resoudre('jeton-quelconque');
+
+    expect(principal).toHaveProperty('siteId');
+    expect(principal?.siteId).toBeNull();
+  });
+
+  it('n’expire PAS une session de borne restée 3 jours sans activité, là où la même inactivité expirerait la session d’une personne — sinon la borne serait déconnectée chaque week-end', async () => {
+    const troisJours = 3 * 24 * 60 * 60_000;
+    const vuLe = new Date(Date.now() - troisJours);
+    const expireLe = new Date(Date.now() + 30 * 24 * 60 * 60_000);
+
+    const { service: serviceBorne } = serviceAvecSession(
+      sessionAmorcageTest({ role: 'poste_atelier', siteId: 'site-sion', vuLe, expireLe }),
+    );
+    await expect(serviceBorne.resoudre('jeton-quelconque')).resolves.toMatchObject({
+      role: 'poste_atelier',
+    });
+
+    // Même session, même inactivité, rôle de personne : expirée (SESSION_INACTIVITE_MINUTES=120).
+    const { service: servicePersonne } = serviceAvecSession(
+      sessionAmorcageTest({ role: 'technicien', vuLe, expireLe }),
+    );
+    await expect(servicePersonne.resoudre('jeton-quelconque')).rejects.toBeInstanceOf(
+      ErreurSessionExpiree,
+    );
+  });
+
+  it('respecte malgré tout l’expiration ABSOLUE d’une session de borne : une session de service reste bornée dans le temps, elle n’est pas un jeton permanent', async () => {
+    const { service } = serviceAvecSession(
+      sessionAmorcageTest({
+        role: 'poste_atelier',
+        siteId: 'site-sion',
+        vuLe: new Date(),
+        expireLe: new Date(Date.now() - 1_000),
+      }),
+    );
+
+    await expect(service.resoudre('jeton-quelconque')).rejects.toBeInstanceOf(ErreurSessionExpiree);
+  });
+
+  it('respecte la révocation immédiate d’une session de borne : c’est le moyen de couper une tablette volée sans attendre l’expiration longue', async () => {
+    const { service } = serviceAvecSession(
+      sessionAmorcageTest({
+        role: 'poste_atelier',
+        siteId: 'site-sion',
+        revoqueeLe: new Date(),
+      }),
+    );
+
+    await expect(service.resoudre('jeton-quelconque')).rejects.toBeInstanceOf(ErreurSessionExpiree);
+  });
+
+  it('ouvre une session BEAUCOUP plus longue que SESSION_DUREE_MINUTES pour un compte de service, et exactement SESSION_DUREE_MINUTES pour une personne', async () => {
+    const tx = {
+      insert: vi.fn().mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: 'nouvelle-session-id' }]),
+        }),
+      }),
+    };
+    const accesAmorcage: AccesAmorcage = {
+      sessionParEmpreinte: vi.fn(),
+      toucherSession: vi.fn(),
+      utilisateurParEmail: vi.fn(),
+      enregistrerEchecConnexion: vi.fn(),
+      reinitialiserEchecsConnexion: vi.fn(),
+      journaliserSecurite: vi.fn(),
+    };
+    const service = new ServiceSessionImpl(
+      configTest({ SESSION_DUREE_MINUTES: 480 }),
+      accesBaseTest(tx),
+      accesAmorcage,
+      contexteTest(),
+    );
+    const base: UtilisateurAmorcage = {
+      id: 'utilisateur-id',
+      tenantId: 'tenant-id',
+      email: 'borne.sion@garage.test',
+      motDePasseHash: '$argon2id$...',
+      statut: 'actif',
+      statutTenant: 'actif',
+      role: 'poste_atelier',
+      langue: 'fr',
+      echecsConnexion: 0,
+      verrouilleJusquA: null,
+    };
+
+    const borne = await service.ouvrir(base, null, null);
+    const personne = await service.ouvrir({ ...base, role: 'technicien' }, null, null);
+
+    // Une journée de travail complète, week-end compris, ne doit pas suffire à expirer la borne.
+    expect(borne.expireLe.getTime()).toBeGreaterThan(Date.now() + 7 * 24 * 60 * 60_000);
+    // La personne, elle, garde exactement la durée configurée (480 min).
+    expect(personne.expireLe.getTime()).toBeLessThan(Date.now() + 481 * 60_000);
+    expect(personne.expireLe.getTime()).toBeGreaterThan(Date.now() + 479 * 60_000);
   });
 });

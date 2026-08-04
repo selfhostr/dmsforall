@@ -26,9 +26,23 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { demarrerBaseEphemere, ecrireSousTenant, type BaseEphemere } from '../setup/postgres-ephemere';
-import { creerAppTest, demarrerRedisEphemere, type AppTest, type RedisEphemere } from '../setup/app-test';
-import { creerOrPourTest, semerGarageDemoLot1, type GarageDemoLot1Fixture, type OrDeTest } from './fixtures/garage-demo-lot1';
+import {
+  demarrerBaseEphemere,
+  ecrireSousTenant,
+  type BaseEphemere,
+} from '../setup/postgres-ephemere';
+import {
+  creerAppTest,
+  demarrerRedisEphemere,
+  type AppTest,
+  type RedisEphemere,
+} from '../setup/app-test';
+import {
+  creerOrPourTest,
+  semerGarageDemoLot1,
+  type GarageDemoLot1Fixture,
+  type OrDeTest,
+} from './fixtures/garage-demo-lot1';
 import { cookieDeSessionPour } from './isolation-http-aide';
 
 let bdd: BaseEphemere;
@@ -119,7 +133,9 @@ describe('ordre_reparation — chaîne de transitions AUTORISÉES, par les vrais
       .set('Cookie', cookieChef)
       .send({});
     expect(passeEnControle.status, JSON.stringify(passeEnControle.body)).toBeLessThan(300);
-    expect((passeEnControle.body as { donnees?: { statut?: string } }).donnees?.statut).toBe('controle');
+    expect((passeEnControle.body as { donnees?: { statut?: string } }).donnees?.statut).toBe(
+      'controle',
+    );
 
     // T-13 controle -> termine
     const chefUtilisateur = garage.tenantA.utilisateursParRole.chef_atelier;
@@ -177,10 +193,10 @@ describe('ordre_reparation — chaîne de transitions AUTORISÉES, par les vrais
 // normal et attendu de son métier.
 // -------------------------------------------------------------------------------------------
 
-describe("ordre_reparation — transitions INTERDITES, par le VRAI endpoint HTTP (RED PAR DÉFAUT RÉEL — voir le commentaire ci-dessus)", () => {
+describe('ordre_reparation — transitions INTERDITES, par le VRAI endpoint HTTP (RED PAR DÉFAUT RÉEL — voir le commentaire ci-dessus)', () => {
   it(
     "planifie → cloture (aucun endpoint applicatif ne s'interpose : /cloturer ne pré-vérifie rien) " +
-      'DEVRAIT être refusée par le trigger avec 409 OR_TRANSITION_INTERDITE — observé aujourd\'hui : 500 (défaut signalé, non corrigé ici)',
+      "DEVRAIT être refusée par le trigger avec 409 OR_TRANSITION_INTERDITE — observé aujourd'hui : 500 (défaut signalé, non corrigé ici)",
     async () => {
       const or = await nouvelOrPlanifie();
       const cookie = await cookieReceptionnaire();
@@ -202,14 +218,16 @@ describe("ordre_reparation — transitions INTERDITES, par le VRAI endpoint HTTP
 
       // Ce contrôle-ci N'EST PAS affecté par le défaut de traduction : la GARANTIE d'intégrité
       // (l'OR n'a pas bougé, quel que soit le code HTTP renvoyé à l'appelant) tient bel et bien.
-      const relu = await ctx.requete.get(`/api/v1/ordres-reparation/${or.id}`).set('Cookie', cookie);
+      const relu = await ctx.requete
+        .get(`/api/v1/ordres-reparation/${or.id}`)
+        .set('Cookie', cookie);
       expect(relu.body).toMatchObject({ statut: 'planifie' });
     },
   );
 
   it(
     'ouvert → cloture DEVRAIT être refusée avec un HINT DIFFÉRENT de « planifie → cloture » (les transitions ' +
-      'réellement possibles depuis « ouvert ») — observé aujourd\'hui : 500 (même défaut)',
+      "réellement possibles depuis « ouvert ») — observé aujourd'hui : 500 (même défaut)",
     async () => {
       const or = await nouvelOrPlanifie();
       const cookie = await cookieReceptionnaire();
@@ -291,7 +309,9 @@ describe("ordre_reparation — transitions INTERDITES, par le VRAI endpoint HTTP
     expect(corps.actionsProposees).toEqual([]);
 
     // Contrôle négatif — cette partie n'est PAS affectée par le défaut : l'OR est resté « cloture ».
-    const relu = await ctx.requete.get(`/api/v1/ordres-reparation/${or.id}`).set('Cookie', cookieReceptionn);
+    const relu = await ctx.requete
+      .get(`/api/v1/ordres-reparation/${or.id}`)
+      .set('Cookie', cookieReceptionn);
     expect(relu.body).toMatchObject({ statut: 'cloture' });
   });
 });
@@ -358,9 +378,14 @@ describe('transition_autorisee — le référentiel fait AUTORITÉ : une ligne e
       // de la table qui gouverne, pas une règle dupliquée quelque part en dur.
       try {
         await ecrireSousTenant(bdd.poolApp, garage.tenantA.tenant.id, (pgClient) =>
-          pgClient.query('update ordre_reparation set statut = $1 where id = $2', ['ouvert', or.id]),
+          pgClient.query('update ordre_reparation set statut = $1 where id = $2', [
+            'ouvert',
+            or.id,
+          ]),
         );
-        expect.fail("la transition aurait dû être refusée (ZDFA1) une fois la ligne du référentiel retirée");
+        expect.fail(
+          'la transition aurait dû être refusée (ZDFA1) une fois la ligne du référentiel retirée',
+        );
       } catch (erreur) {
         erreurCapturee = erreur as ErreurTransitionPg;
       }
@@ -387,7 +412,12 @@ describe('transition_autorisee — le référentiel fait AUTORITÉ : une ligne e
       .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
       .set('Cookie', cookie)
       .send({ kilometrageEntree: kilometrageCroissant(), unite: 'km' });
-    expect(reponseApresRestauration.status, JSON.stringify(reponseApresRestauration.body)).toBeLessThan(300);
-    expect((reponseApresRestauration.body as { donnees?: { statut?: string } }).donnees?.statut).toBe('ouvert');
+    expect(
+      reponseApresRestauration.status,
+      JSON.stringify(reponseApresRestauration.body),
+    ).toBeLessThan(300);
+    expect(
+      (reponseApresRestauration.body as { donnees?: { statut?: string } }).donnees?.statut,
+    ).toBe('ouvert');
   });
 });

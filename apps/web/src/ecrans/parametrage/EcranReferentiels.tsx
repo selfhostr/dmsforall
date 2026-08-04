@@ -32,13 +32,21 @@ export function EcranReferentiels() {
 
   return (
     <div className="flex flex-col gap-4 p-6">
-      <h1 className="texte-titre font-semibold text-foreground">{t('parametrage:referentiels.titre')}</h1>
-      <p className="texte-corps text-muted-foreground">{t('parametrage:referentiels.introduction')}</p>
+      <h1 className="texte-titre font-semibold text-foreground">
+        {t('parametrage:referentiels.titre')}
+      </h1>
+      <p className="texte-corps text-muted-foreground">
+        {t('parametrage:referentiels.introduction')}
+      </p>
 
       <Tabs value={onglet} onValueChange={(valeur) => setOnglet(valeur as Onglet)}>
         <TabsList>
-          <TabsTrigger value="tauxHoraires">{t('parametrage:referentiels.tauxHoraires.onglet')}</TabsTrigger>
-          <TabsTrigger value="prestations">{t('parametrage:referentiels.prestations.onglet')}</TabsTrigger>
+          <TabsTrigger value="tauxHoraires">
+            {t('parametrage:referentiels.tauxHoraires.onglet')}
+          </TabsTrigger>
+          <TabsTrigger value="prestations">
+            {t('parametrage:referentiels.prestations.onglet')}
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="tauxHoraires" className="pt-4">
           <OngletTauxHoraires role={session?.utilisateur.role} />

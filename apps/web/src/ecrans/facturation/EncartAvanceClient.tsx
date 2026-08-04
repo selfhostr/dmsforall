@@ -12,7 +12,12 @@ interface Props {
  *  trop-perçu n'est pas une anomalie, c'est une avance client à affecter plus tard. */
 export function EncartAvanceClient({ message, className }: Props) {
   return (
-    <div className={cn('flex items-start gap-3 rounded-md border bg-muted px-4 py-3 texte-corps text-foreground', className)}>
+    <div
+      className={cn(
+        'flex items-start gap-3 rounded-md border bg-muted px-4 py-3 texte-corps text-foreground',
+        className,
+      )}
+    >
       <Info aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
       <p>{message}</p>
     </div>

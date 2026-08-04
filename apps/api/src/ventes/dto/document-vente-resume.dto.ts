@@ -30,7 +30,12 @@ export class DocumentVenteResumeDto implements DocumentVenteResume {
   @ApiProperty({ enum: STATUTS_DOCUMENT_VENTE })
   readonly statut!: DocumentVenteResume['statut'];
 
-  @ApiProperty({ enum: STATUTS_REGLEMENT_DOCUMENT, required: false, nullable: true, description: 'Omis si le rôle appelant ne voit pas les montants (RF-116).' })
+  @ApiProperty({
+    enum: STATUTS_REGLEMENT_DOCUMENT,
+    required: false,
+    nullable: true,
+    description: 'Omis si le rôle appelant ne voit pas les montants (RF-116).',
+  })
   readonly statutReglement?: DocumentVenteResume['statutReglement'];
 
   @ApiProperty({ format: 'uuid' })
@@ -45,9 +50,15 @@ export class DocumentVenteResumeDto implements DocumentVenteResume {
   @ApiProperty({ enum: DEVISES_FACTURATION })
   readonly devise!: DocumentVenteResume['devise'];
 
-  @ApiProperty({ required: false, description: 'Omis si le rôle appelant ne voit pas les montants (RF-116).' })
+  @ApiProperty({
+    required: false,
+    description: 'Omis si le rôle appelant ne voit pas les montants (RF-116).',
+  })
   readonly totalTtcCentimes?: number;
 
-  @ApiProperty({ required: false, description: 'Omis si le rôle appelant ne voit pas les montants (RF-116).' })
+  @ApiProperty({
+    required: false,
+    description: 'Omis si le rôle appelant ne voit pas les montants (RF-116).',
+  })
   readonly soldeCentimes?: number;
 }

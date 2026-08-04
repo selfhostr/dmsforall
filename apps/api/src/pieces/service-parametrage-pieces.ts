@@ -41,11 +41,16 @@ export class ServiceParametragePieces {
   constructor(@Inject(JETON_DB) private readonly acces: AccesBase) {}
 
   async obtenir(ctx: ContexteTenant): Promise<ReponseParametresPieces> {
-    return this.acces.enTenant(ctx, async (tx) => versParametresPiecesResponse(await this.garantirLigne(tx, ctx)));
+    return this.acces.enTenant(ctx, async (tx) =>
+      versParametresPiecesResponse(await this.garantirLigne(tx, ctx)),
+    );
   }
 
   /** `PATCH /parametrage/pieces` — mise à jour partielle (`conditionnementArticleDistinct` ABSENT du schéma d'entrée, RP-05). */
-  async modifier(ctx: ContexteTenant, entree: EntreeModificationParametresPieces): Promise<ReponseParametresPieces> {
+  async modifier(
+    ctx: ContexteTenant,
+    entree: EntreeModificationParametresPieces,
+  ): Promise<ReponseParametresPieces> {
     return this.acces.enTenant(ctx, async (tx) => {
       await this.garantirLigne(tx, ctx);
 
@@ -53,12 +58,16 @@ export class ServiceParametragePieces {
       if ('stockAutresSitesVisible' in entree && entree.stockAutresSitesVisible !== undefined) {
         valeurs.stockAutresSitesVisible = entree.stockAutresSitesVisible;
       }
-      if ('stockNegatifForcageAutorise' in entree && entree.stockNegatifForcageAutorise !== undefined) {
+      if (
+        'stockNegatifForcageAutorise' in entree &&
+        entree.stockNegatifForcageAutorise !== undefined
+      ) {
         valeurs.stockNegatifForcageAutorise = entree.stockNegatifForcageAutorise;
       }
       if ('methodePrixAchat' in entree) valeurs.methodePrixAchat = entree.methodePrixAchat ?? null;
       if ('seuilValeurAjustementSignificatifCentimes' in entree) {
-        valeurs.seuilValeurAjustementSignificatifCentimes = entree.seuilValeurAjustementSignificatifCentimes ?? null;
+        valeurs.seuilValeurAjustementSignificatifCentimes =
+          entree.seuilValeurAjustementSignificatifCentimes ?? null;
       }
       if ('delaiConsigneAcquisitionJours' in entree) {
         valeurs.delaiConsigneAcquisitionJours = entree.delaiConsigneAcquisitionJours ?? null;
@@ -71,19 +80,37 @@ export class ServiceParametragePieces {
         return versParametresPiecesResponse(await this.chargerLigne(tx, ctx));
       }
 
-      const [ligne] = await tx.update(parametrePieces).set(valeurs).where(eq(parametrePieces.tenantId, ctx.tenantId)).returning();
-      if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de mise à jour des paramètres pièces.');
+      const [ligne] = await tx
+        .update(parametrePieces)
+        .set(valeurs)
+        .where(eq(parametrePieces.tenantId, ctx.tenantId))
+        .returning();
+      if (!ligne)
+        throw new ErreurMetier('ERREUR_INTERNE', 'Échec de mise à jour des paramètres pièces.');
       return versParametresPiecesResponse(ligne);
     });
   }
 
-  private async chargerLigne(tx: TransactionDfa, ctx: ContexteTenant): Promise<LigneParametrePieces> {
-    const [ligne] = await tx.select().from(parametrePieces).where(eq(parametrePieces.tenantId, ctx.tenantId));
-    if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Paramètres pièces introuvables après garantie de leur existence.');
+  private async chargerLigne(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+  ): Promise<LigneParametrePieces> {
+    const [ligne] = await tx
+      .select()
+      .from(parametrePieces)
+      .where(eq(parametrePieces.tenantId, ctx.tenantId));
+    if (!ligne)
+      throw new ErreurMetier(
+        'ERREUR_INTERNE',
+        'Paramètres pièces introuvables après garantie de leur existence.',
+      );
     return ligne;
   }
 
-  private async garantirLigne(tx: TransactionDfa, ctx: ContexteTenant): Promise<LigneParametrePieces> {
+  private async garantirLigne(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+  ): Promise<LigneParametrePieces> {
     await tx.insert(parametrePieces).values({ tenantId: ctx.tenantId }).onConflictDoNothing();
     return this.chargerLigne(tx, ctx);
   }

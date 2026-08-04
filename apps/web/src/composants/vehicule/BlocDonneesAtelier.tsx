@@ -47,17 +47,22 @@ export function BlocDonneesAtelier({ donnees, className }: ProprietesBlocDonnees
   const champs: DefinitionChamp[] = [];
   if (donnees.pneusEte) champs.push({ libelle: t('donnees.ete'), valeur: donnees.pneusEte });
   if (donnees.pneusHiver) champs.push({ libelle: t('donnees.hiver'), valeur: donnees.pneusHiver });
-  if (donnees.pressionPneus) champs.push({ libelle: t('donnees.pression'), valeur: donnees.pressionPneus });
+  if (donnees.pressionPneus)
+    champs.push({ libelle: t('donnees.pression'), valeur: donnees.pressionPneus });
   if (donnees.huileType) champs.push({ libelle: t('donnees.type'), valeur: donnees.huileType });
   if (donnees.huileQuantiteDl !== null) {
     champs.push({ libelle: t('donnees.quantite'), valeur: String(donnees.huileQuantiteDl) });
   }
   if (donnees.batterie) champs.push({ libelle: t('donnees.batterie'), valeur: donnees.batterie });
-  if (donnees.codeRadio) champs.push({ libelle: t('donnees.codeRadio'), valeur: donnees.codeRadio, copiable: true });
-  if (donnees.codeCle) champs.push({ libelle: t('donnees.codeCle'), valeur: donnees.codeCle, copiable: true });
+  if (donnees.codeRadio)
+    champs.push({ libelle: t('donnees.codeRadio'), valeur: donnees.codeRadio, copiable: true });
+  if (donnees.codeCle)
+    champs.push({ libelle: t('donnees.codeCle'), valeur: donnees.codeCle, copiable: true });
   if (donnees.intervalleEntretienKm !== null || donnees.intervalleEntretienMois !== null) {
     const parties = [
-      donnees.intervalleEntretienKm !== null ? formaterKilometrage(donnees.intervalleEntretienKm, 'km') : null,
+      donnees.intervalleEntretienKm !== null
+        ? formaterKilometrage(donnees.intervalleEntretienKm, 'km')
+        : null,
       donnees.intervalleEntretienMois !== null
         ? t('donnees.intervalleMois', { count: donnees.intervalleEntretienMois })
         : null,
@@ -76,11 +81,16 @@ export function BlocDonneesAtelier({ donnees, className }: ProprietesBlocDonnees
         ) : (
           <dl className="densite-dense grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
             {champs.map((champ) => (
-              <div key={champ.libelle} className="flex items-center justify-between gap-2 border-b py-1">
+              <div
+                key={champ.libelle}
+                className="flex items-center justify-between gap-2 border-b py-1"
+              >
                 <dt className="texte-libelle text-muted-foreground">{champ.libelle}</dt>
                 <dd className="flex items-center gap-1 texte-corps font-medium">
                   {champ.valeur}
-                  {champ.copiable ? <BoutonCopier valeur={champ.valeur} className="h-8 w-8" /> : null}
+                  {champ.copiable ? (
+                    <BoutonCopier valeur={champ.valeur} className="h-8 w-8" />
+                  ) : null}
                 </dd>
               </div>
             ))}

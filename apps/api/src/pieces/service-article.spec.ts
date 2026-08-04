@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
-import type { ReponseMemorisable, RequeteIdempotente, ResultatIdempotent, ServiceIdempotence } from '../common/idempotence';
+import type {
+  ReponseMemorisable,
+  RequeteIdempotente,
+  ResultatIdempotent,
+  ServiceIdempotence,
+} from '../common/idempotence';
 import type { LigneArticle } from '../db/schema';
 import { ServiceArticle } from './service-article';
 
@@ -47,7 +52,8 @@ function txFactice(plan: { selects?: readonly unknown[][] } = {}) {
     return {
       limit: () => valeur,
       orderBy: () => valeur,
-      then: (resolve: (v: unknown) => void, reject?: (e: unknown) => void) => valeur.then(resolve, reject),
+      then: (resolve: (v: unknown) => void, reject?: (e: unknown) => void) =>
+        valeur.then(resolve, reject),
     };
   }
 
@@ -71,7 +77,11 @@ function txFactice(plan: { selects?: readonly unknown[][] } = {}) {
 }
 
 function accesFactice(tx: TransactionDfa): AccesBase {
-  return { enTenant: vi.fn((_ctx, travail) => travail(tx)), verifierConnexion: vi.fn(), verifierPostureRls: vi.fn() };
+  return {
+    enTenant: vi.fn((_ctx, travail) => travail(tx)),
+    verifierConnexion: vi.fn(),
+    verifierPostureRls: vi.fn(),
+  };
 }
 
 function idempotenceFactice(tx: TransactionDfa): ServiceIdempotence {
@@ -92,13 +102,26 @@ describe('ServiceArticle.ajouterReference — RP-03 : une référence n’appart
     const { tx, setArgs, insertValuesArgs } = txFactice({
       selects: [
         [ligneArticle()], // chargerOu404
-        [{ id: 'ref-1', articleId: 'AUTRE-ARTICLE', tenantId: 'tid-1', type: 'equivalente', reference: '1K0698151X', fournisseurId: null, creeLe: new Date() }],
+        [
+          {
+            id: 'ref-1',
+            articleId: 'AUTRE-ARTICLE',
+            tenantId: 'tid-1',
+            type: 'equivalente',
+            reference: '1K0698151X',
+            fournisseurId: null,
+            creeLe: new Date(),
+          },
+        ],
       ],
     });
     const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
 
     await expect(
-      service.ajouterReference(CTX, 'direction', 'a1', { type: 'equivalente', reference: '1K0698151X' }),
+      service.ajouterReference(CTX, 'direction', 'a1', {
+        type: 'equivalente',
+        reference: '1K0698151X',
+      }),
     ).rejects.toMatchObject({ code: 'ARTICLE_REFERENCE_COLLISION', status: 409 });
 
     expect(setArgs).toHaveLength(0);
@@ -109,7 +132,17 @@ describe('ServiceArticle.ajouterReference — RP-03 : une référence n’appart
     const { tx, setArgs, insertValuesArgs } = txFactice({
       selects: [
         [ligneArticle()],
-        [{ id: 'ref-1', articleId: 'a1', tenantId: 'tid-1', type: 'equivalente', reference: '1K0698151X', fournisseurId: null, creeLe: new Date() }],
+        [
+          {
+            id: 'ref-1',
+            articleId: 'a1',
+            tenantId: 'tid-1',
+            type: 'equivalente',
+            reference: '1K0698151X',
+            fournisseurId: null,
+            creeLe: new Date(),
+          },
+        ],
         [ligneArticle()], // reload
         [], // références (chargerSousCollections)
         [], // stocks (chargerSousCollections)
@@ -117,7 +150,11 @@ describe('ServiceArticle.ajouterReference — RP-03 : une référence n’appart
     });
     const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
 
-    await service.ajouterReference(CTX, 'direction', 'a1', { type: 'fournisseur', reference: '1K0698151X', fournisseurId: 'f1' });
+    await service.ajouterReference(CTX, 'direction', 'a1', {
+      type: 'fournisseur',
+      reference: '1K0698151X',
+      fournisseurId: 'f1',
+    });
 
     expect(setArgs).toHaveLength(1);
     expect(insertValuesArgs).toHaveLength(0); // MAJ, pas insertion.

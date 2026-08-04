@@ -554,7 +554,12 @@ export const ENTITES_A_TRANSITIONS = [
 export type EntiteATransitions = (typeof ENTITES_A_TRANSITIONS)[number];
 
 /** Types de ressource renvoyés par `GET /recherche` (§7.5). Extensible. */
-export const TYPES_RESULTAT_RECHERCHE = ['vehicule', 'client', 'ordre_reparation', 'document_vente'] as const;
+export const TYPES_RESULTAT_RECHERCHE = [
+  'vehicule',
+  'client',
+  'ordre_reparation',
+  'document_vente',
+] as const;
 export type TypeResultatRecherche = (typeof TYPES_RESULTAT_RECHERCHE)[number];
 
 /* ------------------------------------------------------------------ */

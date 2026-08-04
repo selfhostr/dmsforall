@@ -26,7 +26,10 @@ export class AvertissementPaiementDto implements Avertissement {
   readonly donnees?: Readonly<Record<string, unknown>>;
 }
 
-const AUTEUR_PROPERTIES = { utilisateurId: { type: 'string' as const, format: 'uuid' }, nomAffiche: { type: 'string' as const } };
+const AUTEUR_PROPERTIES = {
+  utilisateurId: { type: 'string' as const, format: 'uuid' },
+  nomAffiche: { type: 'string' as const },
+};
 
 export class ReponseImputationPaiementDto implements ReponseImputationPaiement {
   @ApiProperty({ format: 'uuid' })
@@ -38,7 +41,9 @@ export class ReponseImputationPaiementDto implements ReponseImputationPaiement {
   @ApiProperty({ format: 'uuid' })
   readonly documentId!: string;
 
-  @ApiProperty({ description: 'Toujours positif sur ce lettrage (le signe vit sur le paiement, MD-50).' })
+  @ApiProperty({
+    description: 'Toujours positif sur ce lettrage (le signe vit sur le paiement, MD-50).',
+  })
   readonly montantCentimes!: number;
 
   @ApiProperty({ enum: NATURES_IMPUTATION })
@@ -85,13 +90,21 @@ export class ReponsePaiementDto implements ReponsePaiement {
   @ApiProperty({ enum: SOURCES_PAIEMENT })
   readonly source!: ReponsePaiement['source'];
 
-  @ApiProperty({ type: String, nullable: true, format: 'uuid', description: 'Paiement de sens opposé lié (MD-52, MD-57).' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    format: 'uuid',
+    description: 'Paiement de sens opposé lié (MD-52, MD-57).',
+  })
   readonly contrePasseId!: string | null;
 
   @ApiProperty({ type: () => [ReponseImputationPaiementDto] })
   readonly imputations!: readonly ReponseImputationPaiementDto[];
 
-  @ApiProperty({ description: "montant − Σ imputations 'reglement' (MD-51.b) — une avance client non imputée si > 0 (RF-79)." })
+  @ApiProperty({
+    description:
+      "montant − Σ imputations 'reglement' (MD-51.b) — une avance client non imputée si > 0 (RF-79).",
+  })
   readonly montantNonImputeCentimes!: number;
 
   @ApiProperty({ enum: ISSUES_AVANCE_CLIENT, isArray: true })
@@ -108,7 +121,11 @@ export class PageReponsePaiementDto implements PageCurseur<ReponsePaiementDto> {
   @ApiProperty({ type: () => [ReponsePaiementDto] })
   readonly donnees!: readonly ReponsePaiementDto[];
 
-  @ApiProperty({ type: String, nullable: true, description: 'Opaque base64url ; null = fin de liste.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Opaque base64url ; null = fin de liste.',
+  })
   readonly curseurSuivant!: string | null;
 
   @ApiProperty({ example: 50 })

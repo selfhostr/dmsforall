@@ -84,7 +84,9 @@ describe('RouteProtegee — rolesAutorises', () => {
   it('rôle absent de `rolesAutorises` : affiche l’écran d’accès refusé, jamais le contenu ni une redirection vers /login', async () => {
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
     rendre(['direction', 'admin']);
-    expect(await screen.findByText("Vous n'avez pas les droits pour cette action.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Vous n'avez pas les droits pour cette action."),
+    ).toBeInTheDocument();
     expect(screen.queryByText('CONTENU_PROTEGE')).not.toBeInTheDocument();
     expect(screen.queryByText('PAGE_LOGIN')).not.toBeInTheDocument();
   });

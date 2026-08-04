@@ -3,7 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { PageCurseur, ReponseClient, ReponseOrdreReparation, ReponseParametresAtelier, VehiculeResume } from '@dfa/shared';
+import type {
+  PageCurseur,
+  ReponseClient,
+  ReponseOrdreReparation,
+  ReponseParametresAtelier,
+  VehiculeResume,
+} from '@dfa/shared';
 
 import i18n from '@/i18n';
 import { server } from '@/test/msw/server';
@@ -73,7 +79,12 @@ const PARAMETRES_ATELIER: ReponseParametresAtelier = {
     rdvRetroactifAuto: false,
     deuxOrMemeVehicule: 'avertir',
   },
-  reception: { kmEntreeObligatoire: false, kmSortieObligatoire: false, signature: 'recommandee', plafondDefautCentimes: 0 },
+  reception: {
+    kmEntreeObligatoire: false,
+    kmSortieObligatoire: false,
+    signature: 'recommandee',
+    plafondDefautCentimes: 0,
+  },
   travaux: {
     uniteTemps: 'heures_decimales',
     arrondiPointage: 'dixieme',
@@ -92,7 +103,11 @@ const PARAMETRES_ATELIER: ReponseParametresAtelier = {
   },
   documents: { langue: 'client', mentionSecurite: 'obligatoire' },
   vehicule: { expertiseAlerteMois: 2, visibiliteHistoriqueNouveauDetenteur: 'tout' },
-  planning: { noShowSeuilAlerte: 2, tamponPretMinutes: 15, rappel: { canal: 'sms', joursAvant: 1 } },
+  planning: {
+    noShowSeuilAlerte: 2,
+    tamponPretMinutes: 15,
+    rappel: { canal: 'sms', joursAvant: 1 },
+  },
   fonctionnalites: { facturation: false, stockPieces: false, depotPneus: false, prets: false },
   version: 1,
 };
@@ -118,7 +133,12 @@ function construireOr(overrides: Partial<ReponseOrdreReparation> = {}): ReponseO
       dernierPassageLe: CLIENT.dernierPassageLe,
     },
     vehicule: VEHICULE,
-    figees: { clientDesignation: 'Jean Dupont', adresseFacturation: null, plaque: '123456', detenteurClientId: CLIENT_ID },
+    figees: {
+      clientDesignation: 'Jean Dupont',
+      adresseFacturation: null,
+      plaque: '123456',
+      detenteurClientId: CLIENT_ID,
+    },
     conducteurPresentNom: null,
     kilometrageEntree: null,
     kilometrageSortie: null,
@@ -186,7 +206,9 @@ describe('EcranNouvelOrdreReparation', () => {
 
       expect(await screen.findByText('Site non sélectionné')).toBeInTheDocument();
       expect(
-        screen.getByText("Choisissez un site avant d'ouvrir un ordre de réparation : la numérotation et le paramétrage de l'OR en dépendent."),
+        screen.getByText(
+          "Choisissez un site avant d'ouvrir un ordre de réparation : la numérotation et le paramétrage de l'OR en dépendent.",
+        ),
       ).toBeInTheDocument();
       expect(screen.getByRole('link', { name: "Retour à l'accueil" })).toBeInTheDocument();
       expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
@@ -209,14 +231,22 @@ describe('EcranNouvelOrdreReparation', () => {
       server.use(
         http.get(`/api/v1/clients/${CLIENT_ID}`, () => HttpResponse.json(CLIENT)),
         http.get(`/api/v1/clients/${CLIENT_ID}/vehicules`, () =>
-          HttpResponse.json({ donnees: [VEHICULE], curseurSuivant: null, limite: 50 } satisfies PageCurseur<VehiculeResume>),
+          HttpResponse.json({
+            donnees: [VEHICULE],
+            curseurSuivant: null,
+            limite: 50,
+          } satisfies PageCurseur<VehiculeResume>),
         ),
         http.get('/api/v1/parametres-atelier', () => HttpResponse.json(PARAMETRES_ATELIER)),
-        http.post('/api/v1/ordres-reparation', () => HttpResponse.json({ donnees: construireOr(), avertissements: [] }, { status: 201 })),
+        http.post('/api/v1/ordres-reparation', () =>
+          HttpResponse.json({ donnees: construireOr(), avertissements: [] }, { status: 201 }),
+        ),
       );
 
       const utilisateur = userEvent.setup();
-      const { routeur } = rendre(`/ordres-reparation/nouveau?site=${SITE_ID}&clientId=${CLIENT_ID}`);
+      const { routeur } = rendre(
+        `/ordres-reparation/nouveau?site=${SITE_ID}&clientId=${CLIENT_ID}`,
+      );
 
       expect(await screen.findByText('Jean Dupont')).toBeInTheDocument();
 

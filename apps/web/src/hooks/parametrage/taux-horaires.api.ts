@@ -27,19 +27,26 @@ const LIMITE_PAR_PAGE = 100;
  *  d'entrées typiquement) : `limite` haute pour limiter le nombre d'allers-retours au premier
  *  chargement, sans pour autant abandonner la pagination par curseur (contrat, jamais de page
  *  numérotée). */
-export async function listerTauxHoraires(curseur: string | null): Promise<PageCurseur<ReponseTauxHoraire>> {
+export async function listerTauxHoraires(
+  curseur: string | null,
+): Promise<PageCurseur<ReponseTauxHoraire>> {
   const params = new URLSearchParams({ limite: String(LIMITE_PAR_PAGE) });
   if (curseur) params.set('curseur', curseur);
-  const page = await requeteApi<PageCurseur<ReponseTauxHoraire>>(`/referentiels/taux-horaires?${params.toString()}`, {
-    method: 'GET',
-  });
+  const page = await requeteApi<PageCurseur<ReponseTauxHoraire>>(
+    `/referentiels/taux-horaires?${params.toString()}`,
+    {
+      method: 'GET',
+    },
+  );
   if (!page) throw new Error('Réponse vide inattendue : GET /referentiels/taux-horaires.');
   return page;
 }
 
 /** `POST /referentiels/taux-horaires` — validé côté client par le MÊME schéma zod que le serveur
  *  (`schemaCreationTauxHoraire`, `@dfa/shared`) avant envoi. */
-export async function creerTauxHoraire(entree: EntreeCreationTauxHoraire): Promise<ReponseTauxHoraire> {
+export async function creerTauxHoraire(
+  entree: EntreeCreationTauxHoraire,
+): Promise<ReponseTauxHoraire> {
   const corps = schemaCreationTauxHoraire.parse(entree);
   const reponse = await requeteApi<ReponseTauxHoraire>('/referentiels/taux-horaires', {
     method: 'POST',
@@ -50,12 +57,16 @@ export async function creerTauxHoraire(entree: EntreeCreationTauxHoraire): Promi
 }
 
 /** `PATCH /referentiels/taux-horaires/{id}` — jamais `code` (immuable, voir le contrôleur). */
-export async function modifierTauxHoraire(id: string, entree: EntreeModificationTauxHoraire): Promise<ReponseTauxHoraire> {
+export async function modifierTauxHoraire(
+  id: string,
+  entree: EntreeModificationTauxHoraire,
+): Promise<ReponseTauxHoraire> {
   const corps = schemaModificationTauxHoraire.parse(entree);
   const reponse = await requeteApi<ReponseTauxHoraire>(`/referentiels/taux-horaires/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(corps),
   });
-  if (!reponse) throw new Error(`Réponse vide inattendue : PATCH /referentiels/taux-horaires/${id}.`);
+  if (!reponse)
+    throw new Error(`Réponse vide inattendue : PATCH /referentiels/taux-horaires/${id}.`);
   return reponse;
 }

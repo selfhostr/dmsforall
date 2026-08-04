@@ -18,7 +18,7 @@ describe('initialiserSentry', () => {
     vi.restoreAllMocks();
   });
 
-  it('ne fait rien (n\'appelle pas Sentry.init) quand SENTRY_DSN est absent', async () => {
+  it("ne fait rien (n'appelle pas Sentry.init) quand SENTRY_DSN est absent", async () => {
     const init = vi.fn();
     vi.doMock('@sentry/nestjs', () => ({ init }));
 
@@ -28,7 +28,7 @@ describe('initialiserSentry', () => {
     expect(init).not.toHaveBeenCalled();
   });
 
-  it('appelle Sentry.init avec le DSN, l\'environnement, la release et le taux d\'échantillonnage quand SENTRY_DSN est présent', async () => {
+  it("appelle Sentry.init avec le DSN, l'environnement, la release et le taux d'échantillonnage quand SENTRY_DSN est présent", async () => {
     const init = vi.fn();
     vi.doMock('@sentry/nestjs', () => ({ init }));
 
@@ -54,12 +54,18 @@ describe('initialiserSentry', () => {
     expect(typeof options.beforeSend).toBe('function');
   });
 
-  it('retombe sur NODE_ENV quand SENTRY_ENVIRONMENT n\'est pas défini', async () => {
+  it("retombe sur NODE_ENV quand SENTRY_ENVIRONMENT n'est pas défini", async () => {
     const init = vi.fn();
     vi.doMock('@sentry/nestjs', () => ({ init }));
 
     const { initialiserSentry } = await import('./initialiser-sentry');
-    initialiserSentry(configTest({ SENTRY_DSN: 'https://cle@sentry.interne.dmsforall.example/1', NODE_ENV: 'test', SENTRY_ENVIRONMENT: undefined }));
+    initialiserSentry(
+      configTest({
+        SENTRY_DSN: 'https://cle@sentry.interne.dmsforall.example/1',
+        NODE_ENV: 'test',
+        SENTRY_ENVIRONMENT: undefined,
+      }),
+    );
 
     const options = init.mock.calls[0]?.[0];
     expect(options.environment).toBe('test');
@@ -73,6 +79,8 @@ describe('initialiserSentry', () => {
 
     const { initialiserSentry } = await import('./initialiser-sentry');
 
-    expect(() => initialiserSentry(configTest({ SENTRY_DSN: 'https://cle@sentry.interne.dmsforall.example/1' }))).not.toThrow();
+    expect(() =>
+      initialiserSentry(configTest({ SENTRY_DSN: 'https://cle@sentry.interne.dmsforall.example/1' })),
+    ).not.toThrow();
   });
 });

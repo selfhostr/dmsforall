@@ -50,7 +50,11 @@ const MOTIF_DETAIL = /^entite=([^;]+);depuis=([^;]+);vers=([^;]+)$/;
  * Idem, `entiteId`/`libelle` restent des paramètres de cette fonction pour le jour où le contrat
  * sera étendu — pas supprimés, juste inutilisés pour l'instant (voir le rapport de livraison).
  */
-export function traduireErreurTransitionVente(erreur: unknown, _entiteId: string, _libelle: string): ErreurMetier | null {
+export function traduireErreurTransitionVente(
+  erreur: unknown,
+  _entiteId: string,
+  _libelle: string,
+): ErreurMetier | null {
   if (typeof erreur !== 'object' || erreur === null) return null;
   const brute = erreur as ErreurPgBrute;
 

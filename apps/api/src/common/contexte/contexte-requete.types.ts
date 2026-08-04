@@ -11,6 +11,26 @@ export interface PrincipalAuthentifie {
   readonly utilisateurId: string;
   readonly role: RoleUtilisateur;
   readonly langue: Langue;
+  /**
+   * Site auquel le COMPTE est structurellement rattaché (`utilisateur.site_id`, migration 0039),
+   * résolu depuis la session à chaque requête — JAMAIS depuis un paramètre de requête, même
+   * doctrine que `tenantId` et pour la même raison.
+   *
+   * Vaut une valeur exactement pour les comptes de service (`ROLES_COMPTE_DE_SERVICE` : la borne
+   * d'atelier), `null` pour tout compte de personne, qui n'est restreint à aucun site.
+   *
+   * OPTIONNEL DANS LE TYPE, TOUJOURS RENSEIGNÉ PAR LE RÉSOLVEUR — arbitrage explicite. Le rendre
+   * obligatoire casserait la compilation de la trentaine de principaux construits à la main dans
+   * les suites de tests des modules atelier / facturation / pièces / ventes / pointage, tous hors
+   * du périmètre d'écriture de ce module. Le risque associé (un consommateur lit `undefined` et
+   * conclut « aucune restriction de site ») est neutralisé par le fait qu'AUCUN code ne doit lire
+   * ce champ directement : le seul accès sanctionné est `siteImposeAuPrincipal()`
+   * (`auth/comptes-de-service.ts`), qui REFUSE (`AUTH_SESSION_EXPIREE`) un compte de service dont
+   * le site est absent — fail-closed exactement là où c'est nécessaire.
+   * `ServiceSessionImpl.resoudre()` le renseigne systématiquement (test dédié dans
+   * `services/session.service.spec.ts`).
+   */
+  readonly siteId?: string | null;
 }
 
 export interface ContexteRequete {

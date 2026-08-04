@@ -16,7 +16,13 @@ import type {
 } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
-import { client, ordreReparation, ordreReparationDemande, type LigneLigneOr, type LigneOrdreReparation } from '../db/schema';
+import {
+  client,
+  ordreReparation,
+  ordreReparationDemande,
+  type LigneLigneOr,
+  type LigneOrdreReparation,
+} from '../db/schema';
 import { MATRICE_DROITS } from '../auth/matrice-droits';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { calculerNomAffiche } from '../common/identite-client';
@@ -24,7 +30,12 @@ import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { Horloge } from '../common/horloge/horloge';
 import { JETON_AUDIT, type ServiceAudit } from '../common/audit';
 import { JETON_EVENEMENTS, type ServiceEvenements } from '../common/evenements';
-import { JETON_IDEMPOTENCE, type ReponseMemorisable, type ResultatIdempotent, type ServiceIdempotence } from '../common/idempotence';
+import {
+  JETON_IDEMPOTENCE,
+  type ReponseMemorisable,
+  type ResultatIdempotent,
+  type ServiceIdempotence,
+} from '../common/idempotence';
 import { JETON_COMPTEURS } from '../parametrage/compteurs/compteurs.jetons';
 import type { ServiceCompteurs } from '../parametrage/compteurs/compteurs.types';
 
@@ -88,7 +99,11 @@ export class ServiceOr {
     principal: PrincipalAuthentifie,
     entree: EntreeCreationOrdreReparation,
     cleIdempotence: string,
-  ): Promise<ResultatIdempotent<ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseOrdreReparation> }>> {
+  ): Promise<
+    ResultatIdempotent<
+      ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseOrdreReparation> }
+    >
+  > {
     return this.idempotence.executer(
       ctx,
       { methode: 'POST', chemin: '/ordres-reparation', cle: cleIdempotence, corps: entree },
@@ -114,10 +129,18 @@ export class ServiceOr {
             );
           if (orsOuverts.length > 0) {
             if (parametres.deuxOrMemeVehicule === 'bloquer') {
-              throw new ErreurMetier('CONFLIT', 'Un ordre de réparation est déjà ouvert sur ce véhicule.', {
-                blocages: orsOuverts.map((o) => ({ type: 'ordre_reparation' as const, id: o.id, libelle: 'OR déjà ouvert' })),
-                actionsProposees: [{ code: 'RAFRAICHIR' }],
-              });
+              throw new ErreurMetier(
+                'CONFLIT',
+                'Un ordre de réparation est déjà ouvert sur ce véhicule.',
+                {
+                  blocages: orsOuverts.map((o) => ({
+                    type: 'ordre_reparation' as const,
+                    id: o.id,
+                    libelle: 'OR déjà ouvert',
+                  })),
+                  actionsProposees: [{ code: 'RAFRAICHIR' }],
+                },
+              );
             }
             verifierConfirmation('VEHICULE_DEUX_OR_OUVERTS', principal.role, entree.confirmations);
           }
@@ -128,20 +151,45 @@ export class ServiceOr {
         }
 
         if (entree.statutInitial === 'planifie' && !parametres.etatPlanifieActif) {
-          throw new ErreurMetier('VALIDATION_ECHOUEE', "L'état « planifié » n'est pas activé pour ce garage (P-22).", {
-            erreurs: [{ champ: 'statutInitial', code: 'etat_planifie_inactif', message: 'État planifié désactivé.' }],
-          });
+          throw new ErreurMetier(
+            'VALIDATION_ECHOUEE',
+            "L'état « planifié » n'est pas activé pour ce garage (P-22).",
+            {
+              erreurs: [
+                {
+                  champ: 'statutInitial',
+                  code: 'etat_planifie_inactif',
+                  message: 'État planifié désactivé.',
+                },
+              ],
+            },
+          );
         }
 
         const kilometrageEntreeKm =
-          entree.kilometrageEntree != null ? convertirEnKm(entree.kilometrageEntree, entree.uniteKilometrage) : null;
+          entree.kilometrageEntree != null
+            ? convertirEnKm(entree.kilometrageEntree, entree.uniteKilometrage)
+            : null;
 
-        if (entree.statutInitial === 'ouvert' && parametres.kmEntreeObligatoire && kilometrageEntreeKm === null) {
-          throw new ErreurMetier('OR_KM_ENTREE_REQUIS', "Le kilométrage d'entrée est obligatoire à la réception (RM-51).");
+        if (
+          entree.statutInitial === 'ouvert' &&
+          parametres.kmEntreeObligatoire &&
+          kilometrageEntreeKm === null
+        ) {
+          throw new ErreurMetier(
+            'OR_KM_ENTREE_REQUIS',
+            "Le kilométrage d'entrée est obligatoire à la réception (RM-51).",
+          );
         }
 
         const maintenant = this.horloge.maintenant();
-        const snapshot = await this.snapshot.capturer(tx, ctx, entree.clientId, entree.vehiculeId, maintenant);
+        const snapshot = await this.snapshot.capturer(
+          tx,
+          ctx,
+          entree.clientId,
+          entree.vehiculeId,
+          maintenant,
+        );
         const numero = await this.genererNumero(tx, ctx, entree.siteId, parametres, maintenant);
 
         const [ligne] = await tx
@@ -163,8 +211,12 @@ export class ServiceOr {
             kmEntree: kilometrageEntreeKm,
             plafondCentimes: entree.plafondCentimes ?? null,
             plafondAutorisePar: entree.plafondAutorisePar ?? null,
-            restitutionPromiseLe: entree.restitutionPromiseLe ? new Date(entree.restitutionPromiseLe) : null,
-            restitutionInitialeLe: entree.restitutionPromiseLe ? new Date(entree.restitutionPromiseLe) : null,
+            restitutionPromiseLe: entree.restitutionPromiseLe
+              ? new Date(entree.restitutionPromiseLe)
+              : null,
+            restitutionInitialeLe: entree.restitutionPromiseLe
+              ? new Date(entree.restitutionPromiseLe)
+              : null,
             ordreReparationParentId: entree.ordreReparationParentId ?? null,
             motifLien: entree.motifLien ?? null,
             rendezVousId: entree.rendezVousId ?? null,
@@ -174,7 +226,10 @@ export class ServiceOr {
           })
           .returning();
         if (!ligne) {
-          throw new ErreurMetier('ERREUR_INTERNE', "L'insertion de l'ordre de réparation n'a rendu aucune ligne.");
+          throw new ErreurMetier(
+            'ERREUR_INTERNE',
+            "L'insertion de l'ordre de réparation n'a rendu aucune ligne.",
+          );
         }
 
         let ordreDemande = 1;
@@ -205,7 +260,11 @@ export class ServiceOr {
     );
   }
 
-  async obtenirComplet(ctx: ContexteTenant, principal: PrincipalAuthentifie, orId: string): Promise<ReponseOrdreReparation> {
+  async obtenirComplet(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    orId: string,
+  ): Promise<ReponseOrdreReparation> {
     return this.acces.enTenant(ctx, (tx) => this.assemblerDocument(tx, ctx, principal.role, orId));
   }
 
@@ -226,26 +285,45 @@ export class ServiceOr {
       const ligne = await chargerOrPourEcriture(tx, ctx, orId);
 
       if (versionAttendue !== ligne.version) {
-        throw new ErreurMetier('CONFLIT', "La version de l'ordre de réparation a changé depuis la dernière lecture.", {
-          detail: `version_attendue=${String(versionAttendue)};version_actuelle=${String(ligne.version)}`,
-          actionsProposees: [{ code: 'RAFRAICHIR' }],
-        });
+        throw new ErreurMetier(
+          'CONFLIT',
+          "La version de l'ordre de réparation a changé depuis la dernière lecture.",
+          {
+            detail: `version_attendue=${String(versionAttendue)};version_actuelle=${String(ligne.version)}`,
+            actionsProposees: [{ code: 'RAFRAICHIR' }],
+          },
+        );
       }
 
       if (estOrVerrouille(ligne.statut)) {
-        throw new ErreurMetier('OR_LIGNE_VERROUILLEE', `Ordre de réparation verrouillé (statut ${ligne.statut}).`, {
-          blocages: [{ type: 'ordre_reparation', id: orId, libelle: ligne.numero, donnees: { statutActuel: ligne.statut } }],
-          actionsProposees: [{ code: 'RAFRAICHIR' }],
-        });
+        throw new ErreurMetier(
+          'OR_LIGNE_VERROUILLEE',
+          `Ordre de réparation verrouillé (statut ${ligne.statut}).`,
+          {
+            blocages: [
+              {
+                type: 'ordre_reparation',
+                id: orId,
+                libelle: ligne.numero,
+                donnees: { statutActuel: ligne.statut },
+              },
+            ],
+            actionsProposees: [{ code: 'RAFRAICHIR' }],
+          },
+        );
       }
 
       const reporteLaRestitution =
         entree.restitutionPromiseLe !== undefined &&
         entree.restitutionPromiseLe !== (ligne.restitutionPromiseLe?.toISOString() ?? null);
       if (reporteLaRestitution && !entree.motifReport) {
-        throw new ErreurMetier('VALIDATION_ECHOUEE', 'Un report de restitution exige un motif (RM-56).', {
-          erreurs: [{ champ: 'motifReport', code: 'requis', message: 'Motif de report requis.' }],
-        });
+        throw new ErreurMetier(
+          'VALIDATION_ECHOUEE',
+          'Un report de restitution exige un motif (RM-56).',
+          {
+            erreurs: [{ champ: 'motifReport', code: 'requis', message: 'Motif de report requis.' }],
+          },
+        );
       }
 
       // FINDING DE SÉCURITÉ CORRIGÉ — même famille que É-01 (ServiceVehiculeKilometrage.creer,
@@ -261,7 +339,9 @@ export class ServiceOr {
       // écriture, uniquement quand la valeur change effectivement (renvoyer la valeur déjà en
       // place n'est pas une modification) — même idiome que `GardeDroit.canActivate`
       // (`MATRICE_DROITS[role] ?? []`, `.includes(action)`).
-      const modifiePlafond = entree.plafondCentimes !== undefined && entree.plafondCentimes !== (ligne.plafondCentimes ?? undefined);
+      const modifiePlafond =
+        entree.plafondCentimes !== undefined &&
+        entree.plafondCentimes !== (ligne.plafondCentimes ?? undefined);
       if (modifiePlafond) {
         const droitsDuRole = MATRICE_DROITS[principal.role] ?? [];
         if (!droitsDuRole.includes('atelier.or.plafond_modifier')) {
@@ -276,14 +356,28 @@ export class ServiceOr {
         .update(ordreReparation)
         .set({
           ...(entree.localisation !== undefined ? { localisation: entree.localisation } : {}),
-          ...(entree.sousTraitantNom !== undefined ? { sousTraitantNom: entree.sousTraitantNom ?? null } : {}),
-          ...(entree.restitutionPromiseLe !== undefined
-            ? { restitutionPromiseLe: entree.restitutionPromiseLe ? new Date(entree.restitutionPromiseLe) : null }
+          ...(entree.sousTraitantNom !== undefined
+            ? { sousTraitantNom: entree.sousTraitantNom ?? null }
             : {}),
-          ...(entree.plafondCentimes !== undefined ? { plafondCentimes: entree.plafondCentimes } : {}),
-          ...(entree.plafondAutorisePar !== undefined ? { plafondAutorisePar: entree.plafondAutorisePar ?? null } : {}),
-          ...(entree.numeroCommandeInterne !== undefined ? { numeroCommandeInterne: entree.numeroCommandeInterne ?? null } : {}),
-          ...(entree.conducteurPresentNom !== undefined ? { conducteurPresentNom: entree.conducteurPresentNom ?? null } : {}),
+          ...(entree.restitutionPromiseLe !== undefined
+            ? {
+                restitutionPromiseLe: entree.restitutionPromiseLe
+                  ? new Date(entree.restitutionPromiseLe)
+                  : null,
+              }
+            : {}),
+          ...(entree.plafondCentimes !== undefined
+            ? { plafondCentimes: entree.plafondCentimes }
+            : {}),
+          ...(entree.plafondAutorisePar !== undefined
+            ? { plafondAutorisePar: entree.plafondAutorisePar ?? null }
+            : {}),
+          ...(entree.numeroCommandeInterne !== undefined
+            ? { numeroCommandeInterne: entree.numeroCommandeInterne ?? null }
+            : {}),
+          ...(entree.conducteurPresentNom !== undefined
+            ? { conducteurPresentNom: entree.conducteurPresentNom ?? null }
+            : {}),
         })
         .where(and(eq(ordreReparation.tenantId, ctx.tenantId), eq(ordreReparation.id, orId)));
 
@@ -292,11 +386,18 @@ export class ServiceOr {
     });
   }
 
-  async listerDemandes(ctx: ContexteTenant, orId: string): Promise<readonly ReponseOrdreReparationDemande[]> {
+  async listerDemandes(
+    ctx: ContexteTenant,
+    orId: string,
+  ): Promise<readonly ReponseOrdreReparationDemande[]> {
     return this.acces.enTenant(ctx, async (tx) => {
       await chargerOr(tx, ctx, orId);
       const lignes = await listerDemandesOr(tx, ctx, orId);
-      return Promise.all(lignes.map(async (l) => mapperDemande(l, await chargerResumeUtilisateur(tx, ctx, l.saisiParId))));
+      return Promise.all(
+        lignes.map(async (l) =>
+          mapperDemande(l, await chargerResumeUtilisateur(tx, ctx, l.saisiParId)),
+        ),
+      );
     });
   }
 
@@ -309,10 +410,21 @@ export class ServiceOr {
     return this.acces.enTenant(ctx, async (tx) => {
       const or = await chargerOrPourEcriture(tx, ctx, orId);
       if (estOrVerrouille(or.statut)) {
-        throw new ErreurMetier('OR_LIGNE_VERROUILLEE', `Ordre de réparation verrouillé (statut ${or.statut}).`, {
-          blocages: [{ type: 'ordre_reparation', id: orId, libelle: or.numero, donnees: { statutActuel: or.statut } }],
-          actionsProposees: [{ code: 'RAFRAICHIR' }],
-        });
+        throw new ErreurMetier(
+          'OR_LIGNE_VERROUILLEE',
+          `Ordre de réparation verrouillé (statut ${or.statut}).`,
+          {
+            blocages: [
+              {
+                type: 'ordre_reparation',
+                id: orId,
+                libelle: or.numero,
+                donnees: { statutActuel: or.statut },
+              },
+            ],
+            actionsProposees: [{ code: 'RAFRAICHIR' }],
+          },
+        );
       }
       const existantes = await listerDemandesOr(tx, ctx, orId);
       const prochainOrdre = (existantes.at(-1)?.ordre ?? 0) + 1;
@@ -327,7 +439,10 @@ export class ServiceOr {
         })
         .returning();
       if (!ligne) {
-        throw new ErreurMetier('ERREUR_INTERNE', "L'insertion de la demande n'a rendu aucune ligne.");
+        throw new ErreurMetier(
+          'ERREUR_INTERNE',
+          "L'insertion de la demande n'a rendu aucune ligne.",
+        );
       }
       return mapperDemande(ligne, await chargerResumeUtilisateur(tx, ctx, ligne.saisiParId));
     });
@@ -354,9 +469,15 @@ export class ServiceOr {
   ): Promise<{ donnees: readonly ReponseEntreeJournal[]; curseurSuivant: string | null }> {
     return this.acces.enTenant(ctx, async (tx) => {
       await chargerOr(tx, ctx, orId);
-      const [lignes, devisRows] = await Promise.all([listerLignesOr(tx, ctx, orId), listerDevisOr(tx, ctx, orId)]);
+      const [lignes, devisRows] = await Promise.all([
+        listerLignesOr(tx, ctx, orId),
+        listerDevisOr(tx, ctx, orId),
+      ]);
 
-      const entites: readonly { entite: 'ordre_reparation' | 'ligne_or' | 'devis_complementaire'; id: string }[] = [
+      const entites: readonly {
+        entite: 'ordre_reparation' | 'ligne_or' | 'devis_complementaire';
+        id: string;
+      }[] = [
         { entite: 'ordre_reparation', id: orId },
         ...lignes.map((l) => ({ entite: 'ligne_or' as const, id: l.id })),
         ...devisRows.map((d) => ({ entite: 'devis_complementaire' as const, id: d.id })),
@@ -375,11 +496,16 @@ export class ServiceOr {
       });
 
       const croissant = filtres.tri === 'survenuLe:asc';
-      filtrees.sort((a, b) => (croissant ? a.creeLe.getTime() - b.creeLe.getTime() : b.creeLe.getTime() - a.creeLe.getTime()));
+      filtrees.sort((a, b) =>
+        croissant
+          ? a.creeLe.getTime() - b.creeLe.getTime()
+          : b.creeLe.getTime() - a.creeLe.getTime(),
+      );
 
       const decalage = decoderCurseurOffset(curseur);
       const page = filtrees.slice(decalage, decalage + limite);
-      const suite = decalage + limite < filtrees.length ? encoderCurseurOffset(decalage + limite) : null;
+      const suite =
+        decalage + limite < filtrees.length ? encoderCurseurOffset(decalage + limite) : null;
 
       const donnees = await Promise.all(
         page.map(async (entree): Promise<ReponseEntreeJournal> => ({
@@ -420,7 +546,8 @@ export class ServiceOr {
       if (filtres.siteId) conditions.push(eq(ordreReparation.siteId, filtres.siteId));
       if (filtres.clientId) conditions.push(eq(ordreReparation.clientId, filtres.clientId));
       if (filtres.vehiculeId) conditions.push(eq(ordreReparation.vehiculeId, filtres.vehiculeId));
-      if (filtres.statut && filtres.statut.length > 0) conditions.push(inArray(ordreReparation.statut, filtres.statut));
+      if (filtres.statut && filtres.statut.length > 0)
+        conditions.push(inArray(ordreReparation.statut, filtres.statut));
 
       const decalage = decoderCurseurOffset(curseur);
       const lignes = await tx
@@ -434,7 +561,9 @@ export class ServiceOr {
       const page = lignes.slice(0, limite);
       const suite = lignes.length > limite ? encoderCurseurOffset(decalage + limite) : null;
 
-      const donnees = await Promise.all(page.map((l) => this.assemblerDocument(tx, ctx, principal.role, l.id)));
+      const donnees = await Promise.all(
+        page.map((l) => this.assemblerDocument(tx, ctx, principal.role, l.id)),
+      );
       return { donnees, curseurSuivant: suite };
     });
   }
@@ -454,7 +583,16 @@ export class ServiceOr {
 
     const clientLigne = await chargerClientLigne(tx, ctx, or.clientId);
 
-    const [clientResume, vehiculeLigne, plaque, demandesRows, lignesToutes, devisRows, controle, journalOr] = await Promise.all([
+    const [
+      clientResume,
+      vehiculeLigne,
+      plaque,
+      demandesRows,
+      lignesToutes,
+      devisRows,
+      controle,
+      journalOr,
+    ] = await Promise.all([
       versClientResume(tx, ctx, clientLigne),
       chargerVehiculeLigne(tx, ctx, or.vehiculeId),
       chargerPlaqueCourante(tx, ctx, or.vehiculeId),
@@ -466,7 +604,9 @@ export class ServiceOr {
     ]);
 
     const demandes = await Promise.all(
-      demandesRows.map(async (d) => mapperDemande(d, await chargerResumeUtilisateur(tx, ctx, d.saisiParId))),
+      demandesRows.map(async (d) =>
+        mapperDemande(d, await chargerResumeUtilisateur(tx, ctx, d.saisiParId)),
+      ),
     );
     const devis = await Promise.all(
       devisRows.map(async (d) => {
@@ -479,9 +619,17 @@ export class ServiceOr {
     const lignesTronquees = lignesToutes.length > 200;
     const lignesEmbarquees = lignesTronquees ? lignesToutes.slice(0, 200) : lignesToutes;
 
-    const attentes: AttentesOr = { accord: or.attenteAccord, pieces: or.attentePieces, externe: or.attenteExterne };
+    const attentes: AttentesOr = {
+      accord: or.attenteAccord,
+      pieces: or.attentePieces,
+      externe: or.attenteExterne,
+    };
     const dernierEvenement = journalOr.at(-1) ?? null;
-    const modifiePar = await chargerResumeUtilisateur(tx, ctx, dernierEvenement?.utilisateurId ?? null);
+    const modifiePar = await chargerResumeUtilisateur(
+      tx,
+      ctx,
+      dernierEvenement?.utilisateurId ?? null,
+    );
     const voitMontants = roleVoitLesMontants(role);
 
     // `totauxParPayeur` (MD-62) : résout le destinataire de chaque groupe payeur tiers en UN SEUL
@@ -489,7 +637,9 @@ export class ServiceOr {
     // `totaux-payeur.ts::ResolveurDestinataireTiers`. Calculé uniquement pour un rôle qui voit les
     // montants (même garde que le reste de ce bloc), le fetch supplémentaire n'a pas de coût pour
     // `technicien`.
-    const totauxParPayeur = voitMontants ? await this.calculerTotauxAvecDestinataires(tx, ctx, lignesToutes, clientResume) : undefined;
+    const totauxParPayeur = voitMontants
+      ? await this.calculerTotauxAvecDestinataires(tx, ctx, lignesToutes, clientResume)
+      : undefined;
 
     return {
       id: or.id,
@@ -502,7 +652,9 @@ export class ServiceOr {
       figees: {
         clientDesignation: or.clientDesignationFigee,
         adresseFacturation: (or.adresseFacturationFigee as Record<string, unknown> | null) ?? null,
-        ...(voitMontants ? { conditions: (or.conditionsFigees as Record<string, unknown> | null) ?? null } : {}),
+        ...(voitMontants
+          ? { conditions: (or.conditionsFigees as Record<string, unknown> | null) ?? null }
+          : {}),
         plaque: or.plaqueFigee,
         detenteurClientId: or.detenteurFigeClientId,
       },
@@ -517,7 +669,9 @@ export class ServiceOr {
           }
         : {}),
       restitutionPromiseLe: or.restitutionPromiseLe ? or.restitutionPromiseLe.toISOString() : null,
-      restitutionInitialeLe: or.restitutionInitialeLe ? or.restitutionInitialeLe.toISOString() : null,
+      restitutionInitialeLe: or.restitutionInitialeLe
+        ? or.restitutionInitialeLe.toISOString()
+        : null,
       localisation: or.localisation,
       sousTraitantNom: or.sousTraitantNom,
       ordreReparationParentId: or.ordreReparationParentId,
@@ -579,20 +733,34 @@ export class ServiceOr {
     lignesToutes: readonly LigneLigneOr[],
     clientResume: ClientResume,
   ): Promise<readonly TotauxPayeurOr[]> {
-    const payeurClientIds = [...new Set(lignesToutes.map((l) => l.payeurClientId).filter((id): id is string => id !== null))];
+    const payeurClientIds = [
+      ...new Set(
+        lignesToutes.map((l) => l.payeurClientId).filter((id): id is string => id !== null),
+      ),
+    ];
 
     const destinatairesTiers =
       payeurClientIds.length > 0
         ? await tx
-            .select({ id: client.id, type: client.type, nom: client.nom, prenom: client.prenom, raisonSociale: client.raisonSociale })
+            .select({
+              id: client.id,
+              type: client.type,
+              nom: client.nom,
+              prenom: client.prenom,
+              raisonSociale: client.raisonSociale,
+            })
             .from(client)
             .where(and(eq(client.tenantId, ctx.tenantId), inArray(client.id, payeurClientIds)))
         : [];
 
-    const resolveur = new Map(destinatairesTiers.map((c) => [c.id, { clientId: c.id, nomAffiche: calculerNomAffiche(c) }]));
+    const resolveur = new Map(
+      destinatairesTiers.map((c) => [c.id, { clientId: c.id, nomAffiche: calculerNomAffiche(c) }]),
+    );
 
-    return calculerTotauxParPayeur(lignesToutes, { clientId: clientResume.id, nomAffiche: clientResume.nomAffiche }, (payeurClientId) =>
-      resolveur.get(payeurClientId),
+    return calculerTotauxParPayeur(
+      lignesToutes,
+      { clientId: clientResume.id, nomAffiche: clientResume.nomAffiche },
+      (payeurClientId) => resolveur.get(payeurClientId),
     );
   }
 
@@ -612,7 +780,9 @@ export class ServiceOr {
       siteId: siteCompteur,
     });
     const prefixe = parametres.orPrefixe ?? 'OR';
-    return parametres.orResetAnnuel ? `${prefixe}-${String(le.getFullYear())}-${String(numero)}` : `${prefixe}-${String(numero)}`;
+    return parametres.orResetAnnuel
+      ? `${prefixe}-${String(le.getFullYear())}-${String(numero)}`
+      : `${prefixe}-${String(numero)}`;
   }
 }
 
@@ -620,9 +790,15 @@ export class ServiceOr {
 function extraireVersionETag(ifMatch: string | undefined): number {
   const correspondance = ifMatch ? /^W\/"(\d+)"$/.exec(ifMatch.trim()) : null;
   if (!correspondance?.[1]) {
-    throw new ErreurMetier('VALIDATION_ECHOUEE', 'En-tête If-Match requis et doit porter la forme W/"<version>".', {
-      erreurs: [{ champ: 'If-Match', code: 'requis', message: 'En-tête If-Match manquant ou invalide.' }],
-    });
+    throw new ErreurMetier(
+      'VALIDATION_ECHOUEE',
+      'En-tête If-Match requis et doit porter la forme W/"<version>".',
+      {
+        erreurs: [
+          { champ: 'If-Match', code: 'requis', message: 'En-tête If-Match manquant ou invalide.' },
+        ],
+      },
+    );
   }
   return Number(correspondance[1]);
 }
@@ -642,7 +818,9 @@ export function decoderCurseurOffset(curseur: string | undefined): number {
   const brut = Number(Buffer.from(curseur, 'base64url').toString('utf8'));
   if (!Number.isInteger(brut) || brut < 0) {
     throw new ErreurMetier('VALIDATION_ECHOUEE', 'Curseur de pagination invalide.', {
-      erreurs: [{ champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' }],
+      erreurs: [
+        { champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' },
+      ],
     });
   }
   return brut;

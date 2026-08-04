@@ -56,8 +56,12 @@ function rendreFormulaire(onCree = vi.fn(), routeInitiale = '/') {
 describe('FormulaireNouveauClient', () => {
   it("crée directement quand l'aperçu de doublons ne remonte aucun candidat", async () => {
     server.use(
-      http.get('/api/v1/doublons-clients', () => HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients)),
-      http.post('/api/v1/clients', () => HttpResponse.json({ donnees: CLIENT_CREE, avertissements: [] })),
+      http.get('/api/v1/doublons-clients', () =>
+        HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients),
+      ),
+      http.post('/api/v1/clients', () =>
+        HttpResponse.json({ donnees: CLIENT_CREE, avertissements: [] }),
+      ),
     );
     const utilisateur = userEvent.setup();
     const { onCree } = rendreFormulaire();
@@ -71,11 +75,22 @@ describe('FormulaireNouveauClient', () => {
 
   it('ouvre la confirmation en deux temps (AvertissementConfirmable, pas un refus) quand un doublon probable existe, puis crée quand même', async () => {
     const REPONSE_DOUBLONS: ReponseDoublonsClients = {
-      candidats: [{ clientId: 'cl-1', numeroClient: 'CL-000001', nom: 'Isabelle Rossi', npa: '1000', critere: 'nom_npa', score: 0.92 }],
+      candidats: [
+        {
+          clientId: 'cl-1',
+          numeroClient: 'CL-000001',
+          nom: 'Isabelle Rossi',
+          npa: '1000',
+          critere: 'nom_npa',
+          score: 0.92,
+        },
+      ],
     };
     server.use(
       http.get('/api/v1/doublons-clients', () => HttpResponse.json(REPONSE_DOUBLONS)),
-      http.post('/api/v1/clients', () => HttpResponse.json({ donnees: CLIENT_CREE, avertissements: [] })),
+      http.post('/api/v1/clients', () =>
+        HttpResponse.json({ donnees: CLIENT_CREE, avertissements: [] }),
+      ),
     );
     const utilisateur = userEvent.setup();
     const { onCree } = rendreFormulaire();
@@ -103,7 +118,16 @@ describe('FormulaireNouveauClient', () => {
 
   describe('propagation du site (?site=) au lien « Voir » d’un doublon', () => {
     const REPONSE_DOUBLONS: ReponseDoublonsClients = {
-      candidats: [{ clientId: 'cl-1', numeroClient: 'CL-000001', nom: 'Isabelle Rossi', npa: '1000', critere: 'nom_npa', score: 0.92 }],
+      candidats: [
+        {
+          clientId: 'cl-1',
+          numeroClient: 'CL-000001',
+          nom: 'Isabelle Rossi',
+          npa: '1000',
+          critere: 'nom_npa',
+          score: 0.92,
+        },
+      ],
     };
 
     it('conserve `?site=` en ouvrant la fiche du doublon', async () => {

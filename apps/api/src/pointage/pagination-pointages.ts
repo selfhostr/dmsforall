@@ -1,7 +1,11 @@
 import { asc, desc, sql, type SQL } from 'drizzle-orm';
 
 import { pointage } from '../db/schema';
-import { decoderCurseurTrie, encoderCurseurTrie, valeurCurseurTimestamptz } from '../common/pagination';
+import {
+  decoderCurseurTrie,
+  encoderCurseurTrie,
+  valeurCurseurTimestamptz,
+} from '../common/pagination';
 
 /**
  * Support du curseur v2 triable (§6.1) pour `GET /pointages` — copie locale volontaire, MÊME
@@ -27,7 +31,10 @@ export interface CurseurPointageDecode {
   readonly id: string;
 }
 
-export function decoderCurseurPointages(curseur: string | undefined, triDemande: string): CurseurPointageDecode | null {
+export function decoderCurseurPointages(
+  curseur: string | undefined,
+  triDemande: string,
+): CurseurPointageDecode | null {
   if (!curseur) return null;
   const { valeur, id } = decoderCurseurTrie(curseur, triDemande);
   if (typeof valeur !== 'string') {
@@ -35,7 +42,9 @@ export function decoderCurseurPointages(curseur: string | undefined, triDemande:
     // porte toujours une chaîne ici. Une valeur d'un autre type ne peut venir que d'un curseur forgé
     // à la main — `decoderCurseurTrie` a déjà validé la FORME (t/v/i), pas le TYPE attendu par CE
     // domaine ; ce garde-fou local referme ce trou sans dupliquer la validation générique.
-    throw new Error("Curseur de pagination pointage : valeur de tri d'un type inattendu pour une colonne NOT NULL.");
+    throw new Error(
+      "Curseur de pagination pointage : valeur de tri d'un type inattendu pour une colonne NOT NULL.",
+    );
   }
   return { valeur, id };
 }
@@ -44,7 +53,9 @@ export function decoderCurseurPointages(curseur: string | undefined, triDemande:
  *  Deux termes distincts (`asc`/`desc` de `drizzle-orm`), PAS un unique fragment `sql` composé à la
  *  main : `.orderBy(...)` accepte plusieurs arguments typés, plus sûr qu'un texte pré-joint. */
 export function ordreParDebutLe(sens: 'asc' | 'desc'): readonly SQL[] {
-  return sens === 'asc' ? [asc(pointage.debutLe), asc(pointage.id)] : [desc(pointage.debutLe), desc(pointage.id)];
+  return sens === 'asc'
+    ? [asc(pointage.debutLe), asc(pointage.id)]
+    : [desc(pointage.debutLe), desc(pointage.id)];
 }
 
 /** Condition de reprise keyset — `valeur` est le texte natif PostgreSQL rendu par `expressionTriValeurPointage`. */

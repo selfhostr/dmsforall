@@ -5,7 +5,10 @@ import type { EcritureExport, LigneEcritureExport } from '@dfa/shared';
 import { decomposerEcritureWinbiz } from './winbiz-decomposition';
 import { ErreurExportWinbiz } from './winbiz.erreurs';
 
-function ligne(partiel: Partial<LigneEcritureExport> & Pick<LigneEcritureExport, 'compte' | 'sens' | 'montantCentimes'>): LigneEcritureExport {
+function ligne(
+  partiel: Partial<LigneEcritureExport> &
+    Pick<LigneEcritureExport, 'compte' | 'sens' | 'montantCentimes'>,
+): LigneEcritureExport {
   return {
     codeTva: null,
     tauxPourmille: null,
@@ -15,7 +18,9 @@ function ligne(partiel: Partial<LigneEcritureExport> & Pick<LigneEcritureExport,
   };
 }
 
-function ecriture(partiel: Partial<EcritureExport> & Pick<EcritureExport, 'lignes'>): EcritureExport {
+function ecriture(
+  partiel: Partial<EcritureExport> & Pick<EcritureExport, 'lignes'>,
+): EcritureExport {
   return {
     reference: 'FA-2026-00123',
     date: '2026-07-29',
@@ -30,7 +35,12 @@ describe('decomposerEcritureWinbiz — cas 1×1 (paiement simple)', () => {
   it('produit une ligne WinBIZ directe, sans bloc TVA', () => {
     const e = ecriture({
       lignes: [
-        ligne({ compte: '1020', sens: 'debit', montantCentimes: 150000, libelle: 'Encaissement CB' }),
+        ligne({
+          compte: '1020',
+          sens: 'debit',
+          montantCentimes: 150000,
+          libelle: 'Encaissement CB',
+        }),
         ligne({ compte: '1100', sens: 'credit', montantCentimes: 150000, libelle: 'Débiteurs' }),
       ],
     });
@@ -65,8 +75,20 @@ describe('decomposerEcritureWinbiz — cas 1×1 (paiement simple)', () => {
   it('refuse deux codes TVA différents sur les deux lignes du cas 1×1', () => {
     const e = ecriture({
       lignes: [
-        ligne({ compte: '1170', sens: 'debit', montantCentimes: 500, codeTva: 'TVA_A', tauxPourmille: 81 }),
-        ligne({ compte: '1171', sens: 'credit', montantCentimes: 500, codeTva: 'TVA_B', tauxPourmille: 26 }),
+        ligne({
+          compte: '1170',
+          sens: 'debit',
+          montantCentimes: 500,
+          codeTva: 'TVA_A',
+          tauxPourmille: 81,
+        }),
+        ligne({
+          compte: '1171',
+          sens: 'credit',
+          montantCentimes: 500,
+          codeTva: 'TVA_B',
+          tauxPourmille: 26,
+        }),
       ],
     });
 
@@ -109,9 +131,18 @@ describe('decomposerEcritureWinbiz — cas 1×N (facture : débiteurs ▸ {produ
     const ligneProduit = resultat.find((l) => l.compteCredit === '3200');
     const ligneTva = resultat.find((l) => l.compteCredit === '1170');
 
-    expect(ligneProduit).toMatchObject({ compteDebit: '1100', compteCredit: '3200', montantCentimes: 10000, ligneTva: null });
+    expect(ligneProduit).toMatchObject({
+      compteDebit: '1100',
+      compteCredit: '3200',
+      montantCentimes: 10000,
+      ligneTva: null,
+    });
     expect(ligneTva).toBeDefined();
-    expect(ligneTva).toMatchObject({ compteDebit: '1100', compteCredit: '1170', montantCentimes: 810 });
+    expect(ligneTva).toMatchObject({
+      compteDebit: '1100',
+      compteCredit: '1170',
+      montantCentimes: 810,
+    });
     expect(ligneTva?.ligneTva?.codeTva).toBe('V81');
     expect(ligneTva?.ligneTva?.tauxPourmille).toBe(81);
 
@@ -125,7 +156,13 @@ describe('decomposerEcritureWinbiz — cas 1×N (facture : débiteurs ▸ {produ
       lignes: [
         ligne({ compte: '1100', sens: 'debit', montantCentimes: 10810 }),
         ligne({ compte: '3200', sens: 'credit', montantCentimes: 9999 }),
-        ligne({ compte: '1170', sens: 'credit', montantCentimes: 810, codeTva: 'V81', tauxPourmille: 81 }),
+        ligne({
+          compte: '1170',
+          sens: 'credit',
+          montantCentimes: 810,
+          codeTva: 'V81',
+          tauxPourmille: 81,
+        }),
       ],
     });
     expect(() => decomposerEcritureWinbiz(cassee)).toThrow(ErreurExportWinbiz);
@@ -134,7 +171,13 @@ describe('decomposerEcritureWinbiz — cas 1×N (facture : débiteurs ▸ {produ
   it('refuse si la ligne pivot porte elle-même un code TVA', () => {
     const pivotAvecTva = ecriture({
       lignes: [
-        ligne({ compte: '1100', sens: 'debit', montantCentimes: 10810, codeTva: 'X', tauxPourmille: 81 }),
+        ligne({
+          compte: '1100',
+          sens: 'debit',
+          montantCentimes: 10810,
+          codeTva: 'X',
+          tauxPourmille: 81,
+        }),
         ligne({ compte: '3200', sens: 'credit', montantCentimes: 10000 }),
         ligne({ compte: '1170', sens: 'credit', montantCentimes: 810 }),
       ],
@@ -154,7 +197,13 @@ describe('decomposerEcritureWinbiz — cas N×1 (avoir : {produit, TVA due} ▸ 
       reference: 'AV-2026-00004',
       lignes: [
         ligne({ compte: '3200', sens: 'debit', montantCentimes: 10000 }),
-        ligne({ compte: '1170', sens: 'debit', montantCentimes: 810, codeTva: 'V81', tauxPourmille: 81 }),
+        ligne({
+          compte: '1170',
+          sens: 'debit',
+          montantCentimes: 810,
+          codeTva: 'V81',
+          tauxPourmille: 81,
+        }),
         ligne({ compte: '1100', sens: 'credit', montantCentimes: 10810 }),
       ],
     });

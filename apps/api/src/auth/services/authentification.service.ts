@@ -23,7 +23,12 @@ import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requet
 import { JETON_SERVICE_LIMITATION_DEBIT } from '../../common/limitation/limitation-debit.jetons';
 import type { ServiceLimitationDebit } from '../../common/limitation/limitation-debit.types';
 import { JETON_SERVICE_MOT_DE_PASSE, JETON_SERVICE_SESSION } from '../jetons';
-import type { ServiceAuthentification, ServiceMotDePasse, ServiceSession, SessionOuverte } from '../auth.types';
+import type {
+  ServiceAuthentification,
+  ServiceMotDePasse,
+  ServiceSession,
+  SessionOuverte,
+} from '../auth.types';
 import {
   ErreurCompteSuspendu,
   ErreurCompteVerrouille,
@@ -166,6 +171,14 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
       utilisateurId: u.id,
       role: u.role,
       langue: u.langue,
+      // `utilisateur_par_email` ne projette pas `site_id` (elle n'en a pas besoin : seul `role`
+      // détermine la durée de session). Le site est donc laissé à `undefined` ICI, sur le seul
+      // chemin de connexion, et `sessionCourante()` ci-dessous le lit directement en base pour
+      // construire la réponse. La valeur faisant foi sur toutes les requêtes SUIVANTES est celle
+      // que `ServiceSessionImpl.resoudre()` remonte depuis `amorcage.session_par_empreinte`.
+      // `siteImposeAuPrincipal()` est fail-closed sur ce champ absent : aucun geste de compte de
+      // service ne peut donc s'appuyer sur ce principal-là, et c'est voulu — la connexion n'est
+      // pas un geste métier.
     };
 
     // Montée de version des coûts Argon2 : rehachage best-effort, jamais bloquant pour le login.
@@ -202,10 +215,18 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
         `Échec de révocation de session à la déconnexion (sessionId=${principal.sessionId}, ` +
           `utilisateurId=${principal.utilisateurId}) : ${String(erreur)}`,
       );
-      await this.journaliser('deconnexion', principal.tenantId, principal.utilisateurId, null, ctx?.ip ?? null, ctx?.userAgent ?? null, {
-        resultat: 'echec_revocation',
-        erreur: String(erreur),
-      });
+      await this.journaliser(
+        'deconnexion',
+        principal.tenantId,
+        principal.utilisateurId,
+        null,
+        ctx?.ip ?? null,
+        ctx?.userAgent ?? null,
+        {
+          resultat: 'echec_revocation',
+          erreur: String(erreur),
+        },
+      );
       throw erreur;
     }
 
@@ -236,13 +257,21 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             nom: utilisateur.nom,
             role: utilisateur.role,
             langue: utilisateur.langue,
+            // Hors de `UtilisateurCourant` (le contrat n'expose pas le site DANS l'utilisateur) :
+            // sert ici à borner `sites` et à remplir `siteRattachementId`. Lu depuis la base à
+            // chaque appel, jamais depuis le principal — `connecter()` construit un principal
+            // sans site (voir son commentaire), et cette méthode sert les deux chemins.
+            siteId: utilisateur.siteId,
           })
           .from(utilisateur)
           .where(
             // Le RLS est le filet, pas le mécanisme : cette requête reste scopée tenant
             // explicitement, même si `enTenant()` positionne déjà le contexte RLS ci-dessus
             // (finding sécurité #9 — voir `ServiceSession.fermer()` pour la même forme).
-            and(eq(utilisateur.id, principal.utilisateurId), eq(utilisateur.tenantId, principal.tenantId)),
+            and(
+              eq(utilisateur.id, principal.utilisateurId),
+              eq(utilisateur.tenantId, principal.tenantId),
+            ),
           );
 
         const [ligneTenant] = await tx
@@ -255,10 +284,27 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
           .from(tenant)
           .where(eq(tenant.id, principal.tenantId));
 
+        // `sites` = les sites sur lesquels CE COMPTE peut agir, jamais « tous les sites du
+        // tenant » par principe. Pour un compte de personne, les deux coïncident et le
+        // comportement est inchangé depuis l'étape 0 (aucune autorisation du produit n'est scopée
+        // par site : la matrice est rôle × action, l'étanchéité est tenant). Pour un compte de
+        // SERVICE, la liste se réduit à son unique site de rattachement — une borne ne doit pas
+        // même APPRENDRE que d'autres sites existent, et le front n'a alors aucun sélecteur de
+        // site à proposer.
+        //
+        // Filtre sur `utilisateur.site_id` lu ci-dessus, pas sur le rôle : si la biconditionnelle
+        // `utilisateur_site_compte_de_service_chk` venait à être relâchée un jour, ce code suivrait
+        // la donnée réelle plutôt qu'une hypothèse sur les rôles.
+        const siteRattachementId = ligneUtilisateur?.siteId ?? null;
+        const conditionSites =
+          siteRattachementId !== null
+            ? and(eq(site.tenantId, principal.tenantId), eq(site.id, siteRattachementId))
+            : eq(site.tenantId, principal.tenantId);
+
         const lignesSites = await tx
           .select({ id: site.id, code: site.code, nom: site.nom, actif: site.actif })
           .from(site)
-          .where(eq(site.tenantId, principal.tenantId))
+          .where(conditionSites)
           .orderBy(asc(site.code));
 
         const [ligneSession] = await tx
@@ -278,10 +324,21 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
           );
         }
 
+        // `siteId` est retiré de l'objet `utilisateur` : le contrat `UtilisateurCourant` ne porte
+        // pas de site (c'est une propriété du COMPTE, exposée à part en `siteRattachementId`), et
+        // renvoyer un champ non déclaré au contrat le ferait diverger de l'OpenAPI généré.
         return {
-          utilisateur: ligneUtilisateur,
+          utilisateur: {
+            id: ligneUtilisateur.id,
+            email: ligneUtilisateur.email,
+            prenom: ligneUtilisateur.prenom,
+            nom: ligneUtilisateur.nom,
+            role: ligneUtilisateur.role,
+            langue: ligneUtilisateur.langue,
+          },
           tenant: ligneTenant,
           sites: lignesSites,
+          siteRattachementId,
           expireLe: ligneSession.expireLe.toISOString(),
         } satisfies SessionCourante;
       },
@@ -356,7 +413,11 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
     return valeur instanceof Date ? valeur : new Date(valeur);
   }
 
-  private rehacherEnArrierePlan(utilisateurId: string, tenantId: string, motDePasseClair: string): void {
+  private rehacherEnArrierePlan(
+    utilisateurId: string,
+    tenantId: string,
+    motDePasseClair: string,
+  ): void {
     this.servicePwd
       .hacher(motDePasseClair)
       .then((nouveauHash) =>
@@ -373,7 +434,9 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
       .catch((erreur: unknown) => {
         // Best-effort : un échec de rehachage ne doit jamais faire échouer le login qui vient de
         // réussir. Le prochain login réussi retentera.
-        this.logger.warn(`Échec non bloquant de rehachage Argon2 (utilisateurId=${utilisateurId}) : ${String(erreur)}`);
+        this.logger.warn(
+          `Échec non bloquant de rehachage Argon2 (utilisateurId=${utilisateurId}) : ${String(erreur)}`,
+        );
       });
   }
 

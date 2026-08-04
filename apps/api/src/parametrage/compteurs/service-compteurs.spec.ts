@@ -77,6 +77,8 @@ describe('ServiceCompteursImpl.prochainNumero', () => {
     const execute = vi.fn().mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] });
     const service = new ServiceCompteursImpl();
 
-    await expect(service.prochainNumero(txFactice(execute), CLEF)).rejects.toThrow(/ServiceCompteurs/);
+    await expect(service.prochainNumero(txFactice(execute), CLEF)).rejects.toThrow(
+      /ServiceCompteurs/,
+    );
   });
 });

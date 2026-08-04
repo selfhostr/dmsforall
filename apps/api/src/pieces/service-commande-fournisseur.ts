@@ -15,7 +15,15 @@ import type {
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import { JETON_DB } from '../db';
-import { article, commandeFournisseur, commandeFournisseurLigne, fournisseur, ligneOr, mouvementStock, site } from '../db/schema';
+import {
+  article,
+  commandeFournisseur,
+  commandeFournisseurLigne,
+  fournisseur,
+  ligneOr,
+  mouvementStock,
+  site,
+} from '../db/schema';
 import type {
   LigneArticle,
   LigneCommandeFournisseur,
@@ -27,7 +35,11 @@ import type {
 import { CollecteurAvertissements } from '../common/avertissements';
 import { ErreurMetier } from '../common/erreurs';
 import { JETON_IDEMPOTENCE } from '../common/idempotence';
-import type { ReponseMemorisable, ResultatIdempotent, ServiceIdempotence } from '../common/idempotence';
+import type {
+  ReponseMemorisable,
+  ResultatIdempotent,
+  ServiceIdempotence,
+} from '../common/idempotence';
 
 import { calculerReliquatMillieme, versCommandeFournisseurResponse } from './mappers';
 import {
@@ -40,7 +52,9 @@ import {
   type DefinitionTri,
 } from './pagination-triee';
 
-const DEFINITIONS_TRI_COMMANDES: Readonly<Record<FiltresCommandesFournisseur['tri'], DefinitionTri>> = {
+const DEFINITIONS_TRI_COMMANDES: Readonly<
+  Record<FiltresCommandesFournisseur['tri'], DefinitionTri>
+> = {
   'creeLe:desc': { expression: sql`cf.cree_le`, sens: 'desc', nullable: false, temporel: true },
   'creeLe:asc': { expression: sql`cf.cree_le`, sens: 'asc', nullable: false, temporel: true },
   // `date_commande` est un `date` (granularité JOUR, pas `timestamptz`) : aucun risque de perte de
@@ -53,7 +67,7 @@ const DEFINITIONS_TRI_COMMANDES: Readonly<Record<FiltresCommandesFournisseur['tr
 const COLONNES_COMMANDE_ALIASEES = sql`
   cf.id as "id", cf.tenant_id as "tenantId", cf.fournisseur_id as "fournisseurId", cf.site_id as "siteId",
   cf.statut as "statut", cf.origine as "origine", cf.date_commande as "dateCommande",
-  cf.envoyee_le as "envoyeeLe", cf.reference as "reference",
+  cf.envoyee_le as "envoyeeLe", cf.reference as "reference", cf.motif_annulation as "motifAnnulation",
   cf.cree_le as "creeLe", cf.modifie_le as "modifieLe"
 `;
 
@@ -88,13 +102,17 @@ export interface ResultatReceptionCommandeFournisseur {
  * (dont la table `TABLE_VERS_CODE_TRANSITION` ne connaît pas `commande_fournisseur` — hors
  * périmètre d'écriture de cet agent, signalé au rapport de livraison plutôt que modifié en douce).
  */
-function calculerStatutCibleCommande(lignes: readonly LigneCommandeFournisseurLigne[]): StatutCommandeFournisseur {
+function calculerStatutCibleCommande(
+  lignes: readonly LigneCommandeFournisseurLigne[],
+): StatutCommandeFournisseur {
   const tousSoldes = lignes.every((l) => calculerReliquatMillieme(l) === 0);
   if (tousSoldes) {
     const auMoinsUneAnnulation = lignes.some((l) => l.reliquatAnnuleLe !== null);
     return auMoinsUneAnnulation ? 'cloturee' : 'recue';
   }
-  const auMoinsUneProgression = lignes.some((l) => l.quantiteRecueCumuleeMillieme > 0 || l.reliquatAnnuleLe !== null);
+  const auMoinsUneProgression = lignes.some(
+    (l) => l.quantiteRecueCumuleeMillieme > 0 || l.reliquatAnnuleLe !== null,
+  );
   return auMoinsUneProgression ? 'partiellement_recue' : 'envoyee';
 }
 
@@ -118,7 +136,10 @@ export class ServiceCommandeFournisseur {
     @Inject(JETON_IDEMPOTENCE) private readonly idempotence: ServiceIdempotence,
   ) {}
 
-  async lister(ctx: ContexteTenant, params: FiltresCommandesFournisseur): Promise<PageCurseur<ReponseCommandeFournisseur>> {
+  async lister(
+    ctx: ContexteTenant,
+    params: FiltresCommandesFournisseur,
+  ): Promise<PageCurseur<ReponseCommandeFournisseur>> {
     const definition = DEFINITIONS_TRI_COMMANDES[params.tri];
     const idExpr = sql`cf.id`;
     const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
@@ -126,7 +147,12 @@ export class ServiceCommandeFournisseur {
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`cf.tenant_id = ${ctx.tenantId}`];
       if (params.statut && params.statut.length > 0) {
-        conditions.push(sql`cf.statut::text in (${sql.join(params.statut.map((s) => sql`${s}`), sql`, `)})`);
+        conditions.push(
+          sql`cf.statut::text in (${sql.join(
+            params.statut.map((s) => sql`${s}`),
+            sql`, `,
+          )})`,
+        );
       }
       if (params.fournisseurId) conditions.push(sql`cf.fournisseur_id = ${params.fournisseurId}`);
       if (params.siteId) conditions.push(sql`cf.site_id = ${params.siteId}`);
@@ -136,10 +162,14 @@ export class ServiceCommandeFournisseur {
         conditions.push(sql`cf.statut::text in ('envoyee', 'partiellement_recue')`);
       }
       if (curseurDecode) {
-        conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
+        conditions.push(
+          construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id),
+        );
       }
 
-      const resultat = await tx.execute<LigneCommandeFournisseur & { triValeur: string | number | null }>(sql`
+      const resultat = await tx.execute<
+        LigneCommandeFournisseur & { triValeur: string | number | null }
+      >(sql`
         select ${COLONNES_COMMANDE_ALIASEES}, ${expressionTriValeur(definition)} as "triValeur"
           from public.commande_fournisseur cf
          where ${sql.join(conditions, sql` and `)}
@@ -159,10 +189,16 @@ export class ServiceCommandeFournisseur {
       );
 
       return {
-        donnees: pageLignes.map((l) => versCommandeFournisseurResponse(l, lignesParCommande.get(l.id) ?? [])),
+        donnees: pageLignes.map((l) =>
+          versCommandeFournisseurResponse(l, lignesParCommande.get(l.id) ?? []),
+        ),
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseurTrie({ tri: params.tri, valeur: valeurCurseurDepuisTri(definition, derniere.triValeur), id: derniere.id })
+            ? encoderCurseurTrie({
+                tri: params.tri,
+                valeur: valeurCurseurDepuisTri(definition, derniere.triValeur),
+                id: derniere.id,
+              })
             : null,
         limite: params.limite,
       };
@@ -206,27 +242,36 @@ export class ServiceCommandeFournisseur {
           ...(entree.dateCommande ? { dateCommande: entree.dateCommande } : {}),
         };
         const [commande] = await tx.insert(commandeFournisseur).values(valeursCommande).returning();
-        if (!commande) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création de la commande fournisseur.');
+        if (!commande)
+          throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création de la commande fournisseur.');
 
-        const valeursLignes: NouvelleCommandeFournisseurLigne[] = entree.lignes.map((ligne, index) => ({
-          tenantId: ctx.tenantId,
-          commandeFournisseurId: commande.id,
-          numeroOrdre: index + 1,
-          articleId: ligne.articleId,
-          quantiteCommandeeMillieme: ligne.quantiteCommandeeMillieme,
-          prixAchatAttenduCentimes: ligne.prixAchatAttenduCentimes ?? null,
-          ligneOrOrigineId: ligne.ligneOrOrigineId ?? null,
-        }));
+        const valeursLignes: NouvelleCommandeFournisseurLigne[] = entree.lignes.map(
+          (ligne, index) => ({
+            tenantId: ctx.tenantId,
+            commandeFournisseurId: commande.id,
+            numeroOrdre: index + 1,
+            articleId: ligne.articleId,
+            quantiteCommandeeMillieme: ligne.quantiteCommandeeMillieme,
+            prixAchatAttenduCentimes: ligne.prixAchatAttenduCentimes ?? null,
+            ligneOrOrigineId: ligne.ligneOrOrigineId ?? null,
+          }),
+        );
         await tx.insert(commandeFournisseurLigne).values(valeursLignes);
 
         const commandeComplete = await this.chargerCommandeAvecLignes(tx, ctx, commande.id);
-        return { statutHttp: 201, corps: new CollecteurAvertissements().envelopper(commandeComplete) };
+        return {
+          statutHttp: 201,
+          corps: new CollecteurAvertissements().envelopper(commandeComplete),
+        };
       },
     );
   }
 
   /** `POST /commandes-fournisseur/{id}/envoyer` — `brouillon → envoyee` (§6.2). */
-  async envoyer(ctx: ContexteTenant, id: string): Promise<ReponseAvecAvertissements<ReponseCommandeFournisseur>> {
+  async envoyer(
+    ctx: ContexteTenant,
+    id: string,
+  ): Promise<ReponseAvecAvertissements<ReponseCommandeFournisseur>> {
     return this.acces.enTenant(ctx, async (tx) => {
       const commande = await this.chargerCommandeOu404PourVerrou(tx, ctx, id);
       if (commande.statut !== 'brouillon') {
@@ -268,7 +313,12 @@ export class ServiceCommandeFournisseur {
   ): Promise<ResultatIdempotent<ResultatReceptionCommandeFournisseur & ReponseMemorisable>> {
     return this.idempotence.executer(
       ctx,
-      { methode: 'POST', chemin: '/commandes-fournisseur/{id}/reception', cle: cleIdempotence, corps: { id, ...entree } },
+      {
+        methode: 'POST',
+        chemin: '/commandes-fournisseur/{id}/reception',
+        cle: cleIdempotence,
+        corps: { id, ...entree },
+      },
       async (tx) => {
         const commande = await this.chargerCommandeOu404PourVerrou(tx, ctx, id);
         if (commande.statut !== 'envoyee' && commande.statut !== 'partiellement_recue') {
@@ -287,13 +337,21 @@ export class ServiceCommandeFournisseur {
         for (const ligneEntree of entree.lignes) {
           const ligne = lignesParId.get(ligneEntree.ligneId);
           if (!ligne) {
-            throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Ligne de commande introuvable : ${ligneEntree.ligneId}.`);
+            throw new ErreurMetier(
+              'RESSOURCE_INTROUVABLE',
+              `Ligne de commande introuvable : ${ligneEntree.ligneId}.`,
+            );
           }
 
           let articleMouvementId = ligne.articleId;
           if (ligneEntree.articleRecuId && ligneEntree.articleRecuId !== ligne.articleId) {
             const articleRecu = await this.chargerArticleOu404(tx, ctx, ligneEntree.articleRecuId);
-            const equivalente = await this.estReferenceEquivalente(tx, ctx, ligne.articleId, articleRecu.referencePrincipale);
+            const equivalente = await this.estReferenceEquivalente(
+              tx,
+              ctx,
+              ligne.articleId,
+              articleRecu.referencePrincipale,
+            );
             if (!equivalente) {
               throw new ErreurMetier(
                 'RECEPTION_REFERENCE_NON_EQUIVALENTE',
@@ -308,7 +366,11 @@ export class ServiceCommandeFournisseur {
             collecteur.ajouter(
               'RECEPTION_EXCEDENT_RELIQUAT',
               `Quantité reçue (${String(ligneEntree.quantiteRecueMillieme)}) supérieure au reliquat restant (${String(reliquatAvant)}).`,
-              { ligneId: ligne.id, reliquatMillieme: reliquatAvant, quantiteRecueMillieme: ligneEntree.quantiteRecueMillieme },
+              {
+                ligneId: ligne.id,
+                reliquatMillieme: reliquatAvant,
+                quantiteRecueMillieme: ligneEntree.quantiteRecueMillieme,
+              },
             );
           }
 
@@ -324,10 +386,12 @@ export class ServiceCommandeFournisseur {
             commandeFournisseurLigneId: ligne.id,
           };
           const [mouvement] = await tx.insert(mouvementStock).values(valeursMouvement).returning();
-          if (!mouvement) throw new ErreurMetier('ERREUR_INTERNE', "Échec de création du mouvement d'entrée.");
+          if (!mouvement)
+            throw new ErreurMetier('ERREUR_INTERNE', "Échec de création du mouvement d'entrée.");
           mouvementsCrees.push(mouvement.id);
 
-          const nouveauCumul = ligne.quantiteRecueCumuleeMillieme + ligneEntree.quantiteRecueMillieme;
+          const nouveauCumul =
+            ligne.quantiteRecueCumuleeMillieme + ligneEntree.quantiteRecueMillieme;
           await tx.execute(sql`
             update public.commande_fournisseur_ligne
                set quantite_recue_cumulee_millieme = ${nouveauCumul}
@@ -340,7 +404,10 @@ export class ServiceCommandeFournisseur {
         await this.avancerStatutCommande(tx, ctx, id, commande.statut, statutCible);
 
         const commandeMaj = await this.chargerCommandeAvecLignes(tx, ctx, id);
-        return { statutHttp: 201, corps: collecteur.envelopper({ mouvementsCrees, commandeFournisseur: commandeMaj }) };
+        return {
+          statutHttp: 201,
+          corps: collecteur.envelopper({ mouvementsCrees, commandeFournisseur: commandeMaj }),
+        };
       },
     );
   }
@@ -383,7 +450,9 @@ export class ServiceCommandeFournisseur {
          where tenant_id = ${ctx.tenantId} and id = ${ligneId}
       `);
 
-      const lignesMaj = lignes.map((l) => (l.id === ligneId ? { ...l, reliquatAnnuleLe: new Date() } : l));
+      const lignesMaj = lignes.map((l) =>
+        l.id === ligneId ? { ...l, reliquatAnnuleLe: new Date() } : l,
+      );
       const statutCible = calculerStatutCibleCommande(lignesMaj);
       await this.avancerStatutCommande(tx, ctx, commandeId, commande.statut, statutCible);
 
@@ -394,12 +463,18 @@ export class ServiceCommandeFournisseur {
 
   /**
    * `POST /commandes-fournisseur/{id}/annuler` — UNIQUEMENT depuis `brouillon` ou `envoyee`, AVANT
-   * toute réception (§6.2).
+   * toute réception (§6.2). Persiste `entree.motif` dans `commande_fournisseur.motif_annulation`
+   * (migration 0034, qui a comblé le gap de schéma constaté à l'audit de ce lot — cette colonne
+   * n'existait pas : `_entree.motif` était validé par `schemaMotif` puis jeté silencieusement,
+   * alors que `transition_autorisee.exige_motif = true` pour {brouillon,envoyee} -> annulee
+   * (0024 §4)). La CHECK `commande_fournisseur_annulation_coherente_chk` (0034) refuserait
+   * désormais toute annulation qui omettrait ce motif — cohérent avec `schemaMotif` déjà non vide
+   * côté contrat, jamais redondant en pratique.
    */
   async annuler(
     ctx: ContexteTenant,
     commandeId: string,
-    _entree: EntreeAnnulationCommandeFournisseur,
+    entree: EntreeAnnulationCommandeFournisseur,
   ): Promise<ReponseAvecAvertissements<ReponseCommandeFournisseur>> {
     return this.acces.enTenant(ctx, async (tx) => {
       const commande = await this.chargerCommandeOu404PourVerrou(tx, ctx, commandeId);
@@ -409,17 +484,8 @@ export class ServiceCommandeFournisseur {
           `Annulation impossible : la commande est "${commande.statut}" — après réception, seul le reliquat s'annule ligne par ligne (§6.2).`,
         );
       }
-      // GAP DE SCHÉMA signalé au rapport de livraison : `commande_fournisseur` ne porte AUCUNE
-      // colonne `motif_annulation`, contrairement à `ordre_reparation` (`motifAnnulation`, schema
-      // atelier) — alors que `transition_autorisee.exige_motif = true` pour {brouillon,envoyee} ->
-      // annulee (0024 §4, « le service exige un motif non vide… et l'audit l'enregistre »).
-      // `_entree.motif` EST validé (schemaMotif, non vide) mais n'a nulle part où être persisté :
-      // ni colonne dédiée, ni capture par `auditer_atelier()` (qui ne journalise QUE les colonnes
-      // réelles de la ligne, `to_jsonb(old)`/`to_jsonb(new)`). Correction possible uniquement par
-      // une migration (colonne + CHECK, même patron que `ordre_reparation`), hors périmètre de ce
-      // lot (`apps/api/src/pieces/**`, pas `apps/api/src/db/**`).
       await tx.execute(sql`
-        update public.commande_fournisseur set statut = 'annulee'
+        update public.commande_fournisseur set statut = 'annulee', motif_annulation = ${entree.motif}
          where tenant_id = ${ctx.tenantId} and id = ${commandeId}
       `);
       const commandeMaj = await this.chargerCommandeAvecLignes(tx, ctx, commandeId);
@@ -462,7 +528,11 @@ export class ServiceCommandeFournisseur {
     `);
   }
 
-  private async chargerCommandeAvecLignes(tx: TransactionDfa, ctx: ContexteTenant, id: string): Promise<ReponseCommandeFournisseur> {
+  private async chargerCommandeAvecLignes(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    id: string,
+  ): Promise<ReponseCommandeFournisseur> {
     const commande = await this.chargerCommandeOu404(tx, ctx, id);
     const lignesParCommande = await this.chargerLignesParCommande(tx, ctx, [id]);
     return versCommandeFournisseurResponse(commande, lignesParCommande.get(id) ?? []);
@@ -477,8 +547,16 @@ export class ServiceCommandeFournisseur {
     const lignes = await tx
       .select()
       .from(commandeFournisseurLigne)
-      .where(and(eq(commandeFournisseurLigne.tenantId, ctx.tenantId), inArray(commandeFournisseurLigne.commandeFournisseurId, [...commandeIds])))
-      .orderBy(commandeFournisseurLigne.commandeFournisseurId, commandeFournisseurLigne.numeroOrdre);
+      .where(
+        and(
+          eq(commandeFournisseurLigne.tenantId, ctx.tenantId),
+          inArray(commandeFournisseurLigne.commandeFournisseurId, [...commandeIds]),
+        ),
+      )
+      .orderBy(
+        commandeFournisseurLigne.commandeFournisseurId,
+        commandeFournisseurLigne.numeroOrdre,
+      );
 
     const parCommande = new Map<string, LigneCommandeFournisseurLigne[]>();
     for (const l of lignes) {
@@ -489,27 +567,45 @@ export class ServiceCommandeFournisseur {
     return parCommande;
   }
 
-  private async chargerCommandeOu404(tx: TransactionDfa, ctx: ContexteTenant, id: string): Promise<LigneCommandeFournisseur> {
-    const lignes = await tx.select().from(commandeFournisseur).where(and(eq(commandeFournisseur.tenantId, ctx.tenantId), eq(commandeFournisseur.id, id))).limit(1);
+  private async chargerCommandeOu404(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    id: string,
+  ): Promise<LigneCommandeFournisseur> {
+    const lignes = await tx
+      .select()
+      .from(commandeFournisseur)
+      .where(and(eq(commandeFournisseur.tenantId, ctx.tenantId), eq(commandeFournisseur.id, id)))
+      .limit(1);
     const ligne = lignes[0];
-    if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Commande fournisseur introuvable.');
+    if (!ligne)
+      throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Commande fournisseur introuvable.');
     return ligne;
   }
 
   /** `select … for update` : sérialise toute transition/réception concurrente sur la MÊME commande. */
-  private async chargerCommandeOu404PourVerrou(tx: TransactionDfa, ctx: ContexteTenant, id: string): Promise<LigneCommandeFournisseur> {
+  private async chargerCommandeOu404PourVerrou(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    id: string,
+  ): Promise<LigneCommandeFournisseur> {
     const resultat = await tx.execute<LigneCommandeFournisseur>(sql`
       select ${COLONNES_COMMANDE_ALIASEES} from public.commande_fournisseur cf
        where cf.tenant_id = ${ctx.tenantId} and cf.id = ${id}
        for update
     `);
     const ligne = resultat.rows[0];
-    if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Commande fournisseur introuvable.');
+    if (!ligne)
+      throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Commande fournisseur introuvable.');
     return ligne;
   }
 
   /** `select … for update` : verrouille TOUTES les lignes avant réception/annulation de reliquat (recalcul d'agrégat cohérent). */
-  private async chargerLignesPourVerrou(tx: TransactionDfa, ctx: ContexteTenant, commandeId: string): Promise<LigneCommandeFournisseurLigne[]> {
+  private async chargerLignesPourVerrou(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    commandeId: string,
+  ): Promise<LigneCommandeFournisseurLigne[]> {
     const resultat = await tx.execute<LigneCommandeFournisseurLigne>(sql`
       select ${COLONNES_LIGNE_ALIASEES} from public.commande_fournisseur_ligne l
        where l.tenant_id = ${ctx.tenantId} and l.commande_fournisseur_id = ${commandeId}
@@ -519,29 +615,67 @@ export class ServiceCommandeFournisseur {
     return resultat.rows;
   }
 
-  private async chargerFournisseurOu404(tx: TransactionDfa, ctx: ContexteTenant, id: string): Promise<void> {
-    const lignes = await tx.select({ id: fournisseur.id }).from(fournisseur).where(and(eq(fournisseur.tenantId, ctx.tenantId), eq(fournisseur.id, id))).limit(1);
+  private async chargerFournisseurOu404(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    id: string,
+  ): Promise<void> {
+    const lignes = await tx
+      .select({ id: fournisseur.id })
+      .from(fournisseur)
+      .where(and(eq(fournisseur.tenantId, ctx.tenantId), eq(fournisseur.id, id)))
+      .limit(1);
     if (!lignes[0]) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Fournisseur introuvable.');
   }
 
-  private async chargerSiteOu404(tx: TransactionDfa, ctx: ContexteTenant, siteId: string): Promise<void> {
-    const lignes = await tx.select({ id: site.id }).from(site).where(and(eq(site.tenantId, ctx.tenantId), eq(site.id, siteId))).limit(1);
+  private async chargerSiteOu404(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    siteId: string,
+  ): Promise<void> {
+    const lignes = await tx
+      .select({ id: site.id })
+      .from(site)
+      .where(and(eq(site.tenantId, ctx.tenantId), eq(site.id, siteId)))
+      .limit(1);
     if (!lignes[0]) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Site introuvable.');
   }
 
-  private async chargerArticleOu404(tx: TransactionDfa, ctx: ContexteTenant, articleId: string): Promise<LigneArticle> {
-    const lignes = await tx.select().from(article).where(and(eq(article.tenantId, ctx.tenantId), eq(article.id, articleId))).limit(1);
+  private async chargerArticleOu404(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    articleId: string,
+  ): Promise<LigneArticle> {
+    const lignes = await tx
+      .select()
+      .from(article)
+      .where(and(eq(article.tenantId, ctx.tenantId), eq(article.id, articleId)))
+      .limit(1);
     const ligne = lignes[0];
     if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Article introuvable.');
     return ligne;
   }
 
-  private async chargerLigneOrOu404(tx: TransactionDfa, ctx: ContexteTenant, ligneOrId: string): Promise<void> {
-    const lignes = await tx.select({ id: ligneOr.id }).from(ligneOr).where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.id, ligneOrId))).limit(1);
-    if (!lignes[0]) throw new ErreurMetier('RESSOURCE_INTROUVABLE', "Ligne d'OR d'origine introuvable.");
+  private async chargerLigneOrOu404(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    ligneOrId: string,
+  ): Promise<void> {
+    const lignes = await tx
+      .select({ id: ligneOr.id })
+      .from(ligneOr)
+      .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.id, ligneOrId)))
+      .limit(1);
+    if (!lignes[0])
+      throw new ErreurMetier('RESSOURCE_INTROUVABLE', "Ligne d'OR d'origine introuvable.");
   }
 
-  private async estReferenceEquivalente(tx: TransactionDfa, ctx: ContexteTenant, articleOriginalId: string, referenceRecue: string): Promise<boolean> {
+  private async estReferenceEquivalente(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    articleOriginalId: string,
+    referenceRecue: string,
+  ): Promise<boolean> {
     const resultat = await tx.execute<{ id: string }>(sql`
       select ar.id as "id" from public.article_reference ar
        where ar.tenant_id = ${ctx.tenantId} and ar.article_id = ${articleOriginalId}

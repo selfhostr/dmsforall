@@ -33,14 +33,14 @@ temporaire de supervision.
 
 ## 1. Deux options, une recommandation
 
-| | Sentry auto-hébergé (pile complète) | GlitchTip (recommandé) |
-|---|---|---|
-| Composants | Kafka, ClickHouse, Postgres dédié, Redis, Zookeeper, Symbolicator, Relay, Snuba, plusieurs workers (~15-20 conteneurs) | Django + Celery + Postgres + Redis (4-5 conteneurs) |
-| RAM réaliste | de l'ordre de 16 Go et plus (voir §2.1) | de l'ordre de 2-4 Go |
-| Compatible SDK `@sentry/*` déjà intégré | Oui (c'est le produit d'origine) | Oui — GlitchTip implémente le même protocole d'ingestion Sentry, DSN de même forme, aucun changement de code |
-| Fonctionnalités | Capture d'erreurs, tracing de performance, session replay, alerting avancé, etc. | Capture d'erreurs, tracing basique, alerting — pas de session replay, UI plus simple |
-| Cycle de mises à jour | Rapide, parfois cassant (§2.3) | Plus lent, projet plus petit, moins de composants qui peuvent diverger |
-| Adapté à | Une équipe qui utilise réellement le tracing/replay avancés | Un développeur seul qui veut voir ses erreurs, pas opérer une plateforme d'observabilité |
+|                                         | Sentry auto-hébergé (pile complète)                                                                                    | GlitchTip (recommandé)                                                                                       |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Composants                              | Kafka, ClickHouse, Postgres dédié, Redis, Zookeeper, Symbolicator, Relay, Snuba, plusieurs workers (~15-20 conteneurs) | Django + Celery + Postgres + Redis (4-5 conteneurs)                                                          |
+| RAM réaliste                            | de l'ordre de 16 Go et plus (voir §2.1)                                                                                | de l'ordre de 2-4 Go                                                                                         |
+| Compatible SDK `@sentry/*` déjà intégré | Oui (c'est le produit d'origine)                                                                                       | Oui — GlitchTip implémente le même protocole d'ingestion Sentry, DSN de même forme, aucun changement de code |
+| Fonctionnalités                         | Capture d'erreurs, tracing de performance, session replay, alerting avancé, etc.                                       | Capture d'erreurs, tracing basique, alerting — pas de session replay, UI plus simple                         |
+| Cycle de mises à jour                   | Rapide, parfois cassant (§2.3)                                                                                         | Plus lent, projet plus petit, moins de composants qui peuvent diverger                                       |
+| Adapté à                                | Une équipe qui utilise réellement le tracing/replay avancés                                                            | Un développeur seul qui veut voir ses erreurs, pas opérer une plateforme d'observabilité                     |
 
 **Recommandation : GlitchTip**, tant que le besoin réel est « voir les erreurs avant que le
 client les signale » (la formulation même de la philosophie de support de ce projet) et pas

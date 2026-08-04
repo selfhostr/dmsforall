@@ -39,7 +39,8 @@ import { valeurCurseurTimestamptz } from './valeur-temporelle';
 // pour la partie fractionnaire (seule la partie « seconde entière » passe par `Date.parse`, ce
 // qui est sans perte : aucune fraction n'est en jeu à cet instant du calcul).
 // -------------------------------------------------------------------------------------------
-const FORMAT_TEST = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?(Z|[+-]\d{2}(?::?\d{2})?)$/;
+const FORMAT_TEST =
+  /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?(Z|[+-]\d{2}(?::?\d{2})?)$/;
 
 /** `Date.parse` exige un décalage ISO complet ("+00:00" ou "Z") — "+00" seul n'est pas reconnu. */
 function decalageIsoComplet(brut: string): string {
@@ -132,7 +133,11 @@ const QUATRE_LIGNES_MEME_MILLISECONDE: readonly LigneTest[] = [
 
 describe('régression pagination — ancienne méthode (enDate().toISOString()) : caractérisation autonome du bug', () => {
   it('perd des lignes quand plusieurs partagent la même milliseconde (limite=2)', () => {
-    const rendues = paginerIntegralement(QUATRE_LIGNES_MEME_MILLISECONDE, 2, valeurCurseurAncienneMethode);
+    const rendues = paginerIntegralement(
+      QUATRE_LIGNES_MEME_MILLISECONDE,
+      2,
+      valeurCurseurAncienneMethode,
+    );
     // C'est EXACTEMENT le symptôme mesuré en conditions réelles : la pagination s'arrête avant
     // d'avoir tout rendu, silencieusement (aucune erreur, curseur simplement épuisé trop tôt).
     expect(rendues.length).toBeLessThan(QUATRE_LIGNES_MEME_MILLISECONDE.length);
@@ -160,31 +165,45 @@ describe('régression pagination — ancienne méthode (enDate().toISOString()) 
 
 describe('valeurCurseurTimestamptz — validation et canonicalisation', () => {
   it('conserve les 6 chiffres de microseconde tels quels', () => {
-    expect(valeurCurseurTimestamptz('2026-07-29 13:37:35.171181+00')).toBe('2026-07-29T13:37:35.171181+00:00');
+    expect(valeurCurseurTimestamptz('2026-07-29 13:37:35.171181+00')).toBe(
+      '2026-07-29T13:37:35.171181+00:00',
+    );
   });
 
-  it('complète à droite une fraction plus courte que 6 chiffres (troncature d\'affichage PostgreSQL des zéros de fin)', () => {
-    expect(valeurCurseurTimestamptz('2026-07-29 13:37:35.1+00')).toBe('2026-07-29T13:37:35.100000+00:00');
-    expect(valeurCurseurTimestamptz('2026-07-29 13:37:35.000001+00')).toBe('2026-07-29T13:37:35.000001+00:00');
+  it("complète à droite une fraction plus courte que 6 chiffres (troncature d'affichage PostgreSQL des zéros de fin)", () => {
+    expect(valeurCurseurTimestamptz('2026-07-29 13:37:35.1+00')).toBe(
+      '2026-07-29T13:37:35.100000+00:00',
+    );
+    expect(valeurCurseurTimestamptz('2026-07-29 13:37:35.000001+00')).toBe(
+      '2026-07-29T13:37:35.000001+00:00',
+    );
   });
 
   it('ajoute une fraction nulle quand PostgreSQL omet totalement la partie fractionnaire', () => {
-    expect(valeurCurseurTimestamptz('2026-07-29 13:37:35+00')).toBe('2026-07-29T13:37:35.000000+00:00');
+    expect(valeurCurseurTimestamptz('2026-07-29 13:37:35+00')).toBe(
+      '2026-07-29T13:37:35.000000+00:00',
+    );
   });
 
   it('normalise un décalage à deux chiffres ("+00") en forme complète ("+00:00")', () => {
-    expect(valeurCurseurTimestamptz('2026-01-01 00:00:00-05')).toBe('2026-01-01T00:00:00.000000-05:00');
+    expect(valeurCurseurTimestamptz('2026-01-01 00:00:00-05')).toBe(
+      '2026-01-01T00:00:00.000000-05:00',
+    );
   });
 
   it('accepte un décalage déjà complet ("+05:30")', () => {
-    expect(valeurCurseurTimestamptz('2026-01-01 00:00:00.5+05:30')).toBe('2026-01-01T00:00:00.500000+05:30');
+    expect(valeurCurseurTimestamptz('2026-01-01 00:00:00.5+05:30')).toBe(
+      '2026-01-01T00:00:00.500000+05:30',
+    );
   });
 
   it('accepte "Z" en équivalent de "+00:00"', () => {
-    expect(valeurCurseurTimestamptz('2026-01-01T00:00:00.171181Z')).toBe('2026-01-01T00:00:00.171181+00:00');
+    expect(valeurCurseurTimestamptz('2026-01-01T00:00:00.171181Z')).toBe(
+      '2026-01-01T00:00:00.171181+00:00',
+    );
   });
 
-  it('rejette une valeur qui n\'est pas une chaîne (ex. un Date déjà tronqué) avec un message explicite', () => {
+  it("rejette une valeur qui n'est pas une chaîne (ex. un Date déjà tronqué) avec un message explicite", () => {
     // @ts-expect-error -- le point même du test : un appelant qui passerait un Date par erreur.
     expect(() => valeurCurseurTimestamptz(new Date())).toThrow(/Date/);
   });
@@ -208,8 +227,12 @@ describe('valeurCurseurTimestamptz — validation et canonicalisation', () => {
 });
 
 describe('régression pagination — nouvelle méthode (valeurCurseurTimestamptz) : aucune ligne perdue', () => {
-  it('rend les 4 lignes qui partagent la même milliseconde, sans perte ni doublon, en suivant le curseur jusqu\'au bout (limite=2)', () => {
-    const rendues = paginerIntegralement(QUATRE_LIGNES_MEME_MILLISECONDE, 2, valeurCurseurTimestamptz);
+  it("rend les 4 lignes qui partagent la même milliseconde, sans perte ni doublon, en suivant le curseur jusqu'au bout (limite=2)", () => {
+    const rendues = paginerIntegralement(
+      QUATRE_LIGNES_MEME_MILLISECONDE,
+      2,
+      valeurCurseurTimestamptz,
+    );
     expect(rendues).toHaveLength(QUATRE_LIGNES_MEME_MILLISECONDE.length);
     expect(new Set(rendues.map((l) => l.id)).size).toBe(QUATRE_LIGNES_MEME_MILLISECONDE.length);
   });
@@ -226,8 +249,12 @@ describe('régression pagination — nouvelle méthode (valeurCurseurTimestamptz
     expect(new Set(rendues.map((l) => l.id)).size).toBe(4);
   });
 
-  it('fonctionne aussi avec une limite de 1 (le cas le plus exigeant pour un curseur qui avance d\'une ligne à la fois)', () => {
-    const rendues = paginerIntegralement(QUATRE_LIGNES_MEME_MILLISECONDE, 1, valeurCurseurTimestamptz);
+  it("fonctionne aussi avec une limite de 1 (le cas le plus exigeant pour un curseur qui avance d'une ligne à la fois)", () => {
+    const rendues = paginerIntegralement(
+      QUATRE_LIGNES_MEME_MILLISECONDE,
+      1,
+      valeurCurseurTimestamptz,
+    );
     expect(rendues).toHaveLength(QUATRE_LIGNES_MEME_MILLISECONDE.length);
   });
 

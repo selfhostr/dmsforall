@@ -63,7 +63,10 @@ function ligneUnique(lignes: readonly LigneEcritureExport[]): LigneEcritureExpor
   const [premiere] = lignes;
   /* c8 ignore next 3 -- appelé uniquement après un contrôle `.length === 1` par l'appelant. */
   if (premiere === undefined) {
-    throw new ErreurExportWinbiz('ECRITURE_DESEQUILIBREE', 'ligneUnique : tableau vide de façon inattendue.');
+    throw new ErreurExportWinbiz(
+      'ECRITURE_DESEQUILIBREE',
+      'ligneUnique : tableau vide de façon inattendue.',
+    );
   }
   return premiere;
 }
@@ -93,7 +96,9 @@ function resoudreLigneTvaPivotVsAutre(
  * @throws ErreurExportWinbiz `ECRITURE_VIDE`, `ECRITURE_DESEQUILIBREE`, `ECRITURE_NON_DECOMPOSABLE`,
  *         `LIGNE_PIVOT_PORTE_TVA`, `LIGNES_TVA_CONFLIT`.
  */
-export function decomposerEcritureWinbiz(ecriture: EcritureExport): readonly LigneWinbizDecomposee[] {
+export function decomposerEcritureWinbiz(
+  ecriture: EcritureExport,
+): readonly LigneWinbizDecomposee[] {
   verifierEcritureNonVide(ecriture);
 
   const debits = ecriture.lignes.filter((l) => l.sens === 'debit');

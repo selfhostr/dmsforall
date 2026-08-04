@@ -21,14 +21,28 @@ const OPTIONS = [
 
 describe('SelecteurTri', () => {
   it('affiche le libellé de la valeur sélectionnée', () => {
-    render(<SelecteurTri options={OPTIONS} valeur="nom:asc" onChangeValeur={vi.fn()} label="Trier par" />);
+    render(
+      <SelecteurTri
+        options={OPTIONS}
+        valeur="nom:asc"
+        onChangeValeur={vi.fn()}
+        label="Trier par"
+      />,
+    );
     expect(screen.getByText('Nom (A→Z)')).toBeInTheDocument();
   });
 
   it('émet la nouvelle valeur au format <champ>:<sens> à la sélection', async () => {
     const onChangeValeur = vi.fn();
     const utilisateur = userEvent.setup();
-    render(<SelecteurTri options={OPTIONS} valeur="nom:asc" onChangeValeur={onChangeValeur} label="Trier par" />);
+    render(
+      <SelecteurTri
+        options={OPTIONS}
+        valeur="nom:asc"
+        onChangeValeur={onChangeValeur}
+        label="Trier par"
+      />,
+    );
 
     await utilisateur.click(screen.getByRole('combobox'));
     await utilisateur.click(await screen.findByText('Plus récent'));

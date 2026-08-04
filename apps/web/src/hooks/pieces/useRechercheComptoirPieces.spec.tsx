@@ -33,7 +33,9 @@ function enveloppe() {
 
 describe('useRechercheComptoirPieces', () => {
   it('ne cherche rien sans site sélectionné, même si une saisie existe', () => {
-    const { result } = renderHook(() => useRechercheComptoirPieces(undefined), { wrapper: enveloppe() });
+    const { result } = renderHook(() => useRechercheComptoirPieces(undefined), {
+      wrapper: enveloppe(),
+    });
 
     act(() => result.current.onSaisieChange('1K0698151'));
 
@@ -50,7 +52,9 @@ describe('useRechercheComptoirPieces', () => {
       }),
     );
 
-    const { result } = renderHook(() => useRechercheComptoirPieces('site-1'), { wrapper: enveloppe() });
+    const { result } = renderHook(() => useRechercheComptoirPieces('site-1'), {
+      wrapper: enveloppe(),
+    });
 
     act(() => result.current.onSaisieChange('1K0698151'));
     expect(result.current.enChargement).toBe(true);
@@ -63,8 +67,12 @@ describe('useRechercheComptoirPieces', () => {
   });
 
   it('revient à `null` (jamais "aucun résultat") quand la saisie est effacée', async () => {
-    server.use(http.get('/api/v1/articles/recherche-comptoir', () => HttpResponse.json(RESULTATS_TEST)));
-    const { result } = renderHook(() => useRechercheComptoirPieces('site-1'), { wrapper: enveloppe() });
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () => HttpResponse.json(RESULTATS_TEST)),
+    );
+    const { result } = renderHook(() => useRechercheComptoirPieces('site-1'), {
+      wrapper: enveloppe(),
+    });
 
     act(() => result.current.onSaisieChange('1K0698151'));
     await waitFor(() => expect(result.current.resultats).toEqual(RESULTATS_TEST));
@@ -75,7 +83,9 @@ describe('useRechercheComptoirPieces', () => {
 
   it('aucun résultat pour une référence inexistante : réponse `[]`, jamais une erreur', async () => {
     server.use(http.get('/api/v1/articles/recherche-comptoir', () => HttpResponse.json([])));
-    const { result } = renderHook(() => useRechercheComptoirPieces('site-1'), { wrapper: enveloppe() });
+    const { result } = renderHook(() => useRechercheComptoirPieces('site-1'), {
+      wrapper: enveloppe(),
+    });
 
     act(() => result.current.onSaisieChange('REFERENCE-INTROUVABLE'));
     await waitFor(() => expect(result.current.enChargement).toBe(false), { timeout: 2000 });

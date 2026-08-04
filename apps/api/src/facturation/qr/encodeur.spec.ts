@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AdresseStructuree } from './adresse';
-import {
-  decouperChargeUtileQr,
-  encoderChargeUtileQr,
-  type DonneesQrFacture,
-} from './encodeur';
+import { decouperChargeUtileQr, encoderChargeUtileQr, type DonneesQrFacture } from './encodeur';
 import { ErreurQrFacture } from './erreurs-qr';
 import {
   LONGUEUR_MAX_PAYLOAD,

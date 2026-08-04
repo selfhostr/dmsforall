@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { EntreeDemarragePointage } from '@dfa/shared';
 import type { LignePointage } from '../db/schema';
 import {
+  calculerAgregatsTempsLigne,
   calculerClotureChevauchement,
   calculerDureeArrondieCentiemes,
   chevauchementDoitProduireAnomalie,
@@ -15,6 +16,8 @@ import {
   orDoitPasserEnCours,
   pointageCorrespondEntree,
   SEUIL_DERIVE_HORLOGE_MS,
+  type LigneOrPourAgregat,
+  type PointagePourAgregat,
 } from './regles-pointage';
 
 function pointageEnBase(surcharge: Partial<LignePointage> = {}): LignePointage {
@@ -50,7 +53,9 @@ function pointageEnBase(surcharge: Partial<LignePointage> = {}): LignePointage {
   } as LignePointage;
 }
 
-function entreeDemarrage(surcharge: Partial<EntreeDemarragePointage> = {}): EntreeDemarragePointage {
+function entreeDemarrage(
+  surcharge: Partial<EntreeDemarragePointage> = {},
+): EntreeDemarragePointage {
   return {
     id: 'p1',
     siteId: 's1',
@@ -65,13 +70,19 @@ function entreeDemarrage(surcharge: Partial<EntreeDemarragePointage> = {}): Entr
 }
 
 describe('estOrPointable (RM-92)', () => {
-  it.each(['planifie', 'ouvert', 'en_cours', 'controle'] as const)('%s reste pointable', (statut) => {
-    expect(estOrPointable(statut)).toBe(true);
-  });
+  it.each(['planifie', 'ouvert', 'en_cours', 'controle'] as const)(
+    '%s reste pointable',
+    (statut) => {
+      expect(estOrPointable(statut)).toBe(true);
+    },
+  );
 
-  it.each(['termine', 'facture', 'restitue', 'cloture', 'annule'] as const)('%s n’est plus pointable', (statut) => {
-    expect(estOrPointable(statut)).toBe(false);
-  });
+  it.each(['termine', 'facture', 'restitue', 'cloture', 'annule'] as const)(
+    '%s n’est plus pointable',
+    (statut) => {
+      expect(estOrPointable(statut)).toBe(false);
+    },
+  );
 });
 
 describe('estLignePointable (RM-93, élargi — voir regles-pointage.ts)', () => {
@@ -79,9 +90,12 @@ describe('estLignePointable (RM-93, élargi — voir regles-pointage.ts)', () =>
     expect(estLignePointable(statut)).toBe(true);
   });
 
-  it.each(['proposee', 'a_valider', 'refusee', 'annulee', 'realisee', 'facturee'] as const)('%s n’est pas pointable', (statut) => {
-    expect(estLignePointable(statut)).toBe(false);
-  });
+  it.each(['proposee', 'a_valider', 'refusee', 'annulee', 'realisee', 'facturee'] as const)(
+    '%s n’est pas pointable',
+    (statut) => {
+      expect(estLignePointable(statut)).toBe(false);
+    },
+  );
 });
 
 describe('cascade RM-117', () => {
@@ -213,9 +227,12 @@ describe('RM-123 : détection différée', () => {
     expect(ligneDevenueNonPointable(statut)).toBe(false);
   });
 
-  it.each(['facture', 'restitue', 'cloture', 'annule'] as const)('OR %s devient non pointable', (statut) => {
-    expect(orDevenuNonPointable(statut)).toBe(true);
-  });
+  it.each(['facture', 'restitue', 'cloture', 'annule'] as const)(
+    'OR %s devient non pointable',
+    (statut) => {
+      expect(orDevenuNonPointable(statut)).toBe(true);
+    },
+  );
 
   it.each(['ouvert', 'en_cours', 'controle'] as const)('OR %s reste correct', (statut) => {
     expect(orDevenuNonPointable(statut)).toBe(false);
@@ -233,19 +250,181 @@ describe('pointageCorrespondEntree (idempotence de second niveau, collision sur 
   });
 
   it('un technicien différent est une collision réelle', () => {
-    expect(pointageCorrespondEntree(pointageEnBase(), entreeDemarrage({ technicienId: 'tech2' }))).toBe(false);
+    expect(
+      pointageCorrespondEntree(pointageEnBase(), entreeDemarrage({ technicienId: 'tech2' })),
+    ).toBe(false);
   });
 
   it('une cible différente (autre ligne) est une collision réelle', () => {
-    expect(pointageCorrespondEntree(pointageEnBase(), entreeDemarrage({ ligneOrId: 'l2' }))).toBe(false);
+    expect(pointageCorrespondEntree(pointageEnBase(), entreeDemarrage({ ligneOrId: 'l2' }))).toBe(
+      false,
+    );
   });
 
   it('une nature différente est une collision réelle', () => {
-    const entree = { id: 'p1', siteId: 's1', technicienId: 'tech1', nature: 'productif_or', ordreReparationId: 'or1', debutLe: '2026-07-31T08:00:00.000Z', source: 'ecran_atelier' } as EntreeDemarragePointage;
+    const entree = {
+      id: 'p1',
+      siteId: 's1',
+      technicienId: 'tech1',
+      nature: 'productif_or',
+      ordreReparationId: 'or1',
+      debutLe: '2026-07-31T08:00:00.000Z',
+      source: 'ecran_atelier',
+    } as EntreeDemarragePointage;
     expect(pointageCorrespondEntree(pointageEnBase(), entree)).toBe(false);
   });
 
   it('un debutLe différent est une collision réelle', () => {
-    expect(pointageCorrespondEntree(pointageEnBase(), entreeDemarrage({ debutLe: '2026-07-31T09:00:00.000Z' }))).toBe(false);
+    expect(
+      pointageCorrespondEntree(
+        pointageEnBase(),
+        entreeDemarrage({ debutLe: '2026-07-31T09:00:00.000Z' }),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe('calculerAgregatsTempsLigne (GET /pointages/agregats-ligne)', () => {
+  function ligne(surcharge: Partial<LigneOrPourAgregat> = {}): LigneOrPourAgregat {
+    return {
+      id: 'l1',
+      ordreReparationId: 'or1',
+      numeroOrdre: 1,
+      tempsBaremeCentiemes: 100,
+      ...surcharge,
+    };
+  }
+
+  function pointagePourAgregat(surcharge: Partial<PointagePourAgregat> = {}): PointagePourAgregat {
+    return { ligneOrId: 'l1', statut: 'termine', dureeArrondieCentiemes: 50, ...surcharge };
+  }
+
+  it('une ligne barémée jamais pointée apparaît quand même, à zéro — « pas commencée » est une information', () => {
+    const resultat = calculerAgregatsTempsLigne([ligne()], []);
+    expect(resultat).toEqual([
+      {
+        ligneOrId: 'l1',
+        ordreReparationId: 'or1',
+        dureePointeeCentiemes: 0,
+        nombrePointages: 0,
+        pointageEnCours: false,
+        tempsBaremeCentiemes: 100,
+        ecartCentiemes: -100,
+      },
+    ]);
+  });
+
+  it('une ligne ni barémée ni pointée est omise (rien à raconter)', () => {
+    const resultat = calculerAgregatsTempsLigne([ligne({ tempsBaremeCentiemes: null })], []);
+    expect(resultat).toEqual([]);
+  });
+
+  it('une ligne pointée mais sans temps barémé apparaît, écart null (rien à comparer)', () => {
+    const resultat = calculerAgregatsTempsLigne(
+      [ligne({ tempsBaremeCentiemes: null })],
+      [pointagePourAgregat()],
+    );
+    expect(resultat).toEqual([
+      expect.objectContaining({
+        dureePointeeCentiemes: 50,
+        tempsBaremeCentiemes: null,
+        ecartCentiemes: null,
+      }),
+    ]);
+  });
+
+  it('plusieurs pointages fermés sur la même ligne : la durée pointée est la SOMME', () => {
+    const resultat = calculerAgregatsTempsLigne(
+      [ligne()],
+      [
+        pointagePourAgregat({ dureeArrondieCentiemes: 50 }),
+        pointagePourAgregat({ dureeArrondieCentiemes: 30, statut: 'valide' }),
+      ],
+    );
+    expect(resultat[0]?.dureePointeeCentiemes).toBe(80);
+    expect(resultat[0]?.nombrePointages).toBe(2);
+  });
+
+  it("un pointage 'en_cours' compte dans nombrePointages/pointageEnCours mais JAMAIS dans la durée (RM-97 : pas encore figée)", () => {
+    const resultat = calculerAgregatsTempsLigne(
+      [ligne()],
+      [pointagePourAgregat({ statut: 'en_cours', dureeArrondieCentiemes: null })],
+    );
+    expect(resultat[0]).toMatchObject({
+      dureePointeeCentiemes: 0,
+      nombrePointages: 1,
+      pointageEnCours: true,
+    });
+  });
+
+  it.each(['termine', 'valide', 'verrouille'] as const)(
+    "un pointage '%s' EST compté dans la durée acquise",
+    (statut) => {
+      const resultat = calculerAgregatsTempsLigne(
+        [ligne()],
+        [pointagePourAgregat({ statut, dureeArrondieCentiemes: 25 })],
+      );
+      expect(resultat[0]?.dureePointeeCentiemes).toBe(25);
+    },
+  );
+
+  it('ecartCentiemes = pointé − barémé, positif = dépassement du temps vendu', () => {
+    const resultat = calculerAgregatsTempsLigne(
+      [ligne({ tempsBaremeCentiemes: 60 })],
+      [pointagePourAgregat({ dureeArrondieCentiemes: 90 })],
+    );
+    expect(resultat[0]?.ecartCentiemes).toBe(30);
+  });
+
+  it('ecartCentiemes négatif = marge de temps restante (pointé sous le barème)', () => {
+    const resultat = calculerAgregatsTempsLigne(
+      [ligne({ tempsBaremeCentiemes: 100 })],
+      [pointagePourAgregat({ dureeArrondieCentiemes: 40 })],
+    );
+    expect(resultat[0]?.ecartCentiemes).toBe(-60);
+  });
+
+  it('un pointage sans ligneOrId (defensif — la requête SQL les exclut déjà) est ignoré sans planter', () => {
+    const resultat = calculerAgregatsTempsLigne(
+      [ligne()],
+      [pointagePourAgregat({ ligneOrId: null })],
+    );
+    expect(resultat[0]?.dureePointeeCentiemes).toBe(0);
+    expect(resultat[0]?.nombrePointages).toBe(0);
+  });
+
+  it('un pointage sur une ligne absente de la liste (autre OR) est ignoré — jamais une entrée fantôme', () => {
+    const resultat = calculerAgregatsTempsLigne(
+      [ligne({ id: 'l1' })],
+      [pointagePourAgregat({ ligneOrId: 'l-autre' })],
+    );
+    expect(resultat).toHaveLength(1);
+    expect(resultat[0]?.ligneOrId).toBe('l1');
+    expect(resultat[0]?.dureePointeeCentiemes).toBe(0);
+  });
+
+  it('résultat trié par numeroOrdre croissant, quel que soit l’ordre d’entrée', () => {
+    const resultat = calculerAgregatsTempsLigne(
+      [
+        ligne({ id: 'l3', numeroOrdre: 3 }),
+        ligne({ id: 'l1', numeroOrdre: 1 }),
+        ligne({ id: 'l2', numeroOrdre: 2 }),
+      ],
+      [],
+    );
+    expect(resultat.map((a) => a.ligneOrId)).toEqual(['l1', 'l2', 'l3']);
+  });
+
+  it('aucune ligne, aucun pointage : liste vide', () => {
+    expect(calculerAgregatsTempsLigne([], [])).toEqual([]);
+  });
+
+  it('jamais de flottant en sortie (garde arithmétique temporelle du dépôt)', () => {
+    const resultat = calculerAgregatsTempsLigne(
+      [ligne({ tempsBaremeCentiemes: 33 })],
+      [pointagePourAgregat({ dureeArrondieCentiemes: 17 })],
+    );
+    expect(Number.isInteger(resultat[0]?.dureePointeeCentiemes)).toBe(true);
+    expect(Number.isInteger(resultat[0]?.ecartCentiemes)).toBe(true);
   });
 });

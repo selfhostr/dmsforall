@@ -63,6 +63,9 @@ function accesBaseTest(): AccesBase {
       nom: 'Dupont',
       role: 'admin',
       langue: 'fr',
+      // Compte de personne : aucun rattachement de site (migration 0039) — `sessionCourante()`
+      // rend alors TOUS les sites du tenant, comportement inchangé depuis l'étape 0.
+      siteId: null,
     },
     tenant: {
       id: 'tenant-id',
@@ -224,9 +227,7 @@ describe('ServiceAuthentificationImpl.connecter', () => {
   });
 
   it('rejette avec 429 quand la limitation de débit par IP est dépassée, sans requêter la base', async () => {
-    limiteur.consommer = vi
-      .fn()
-      .mockResolvedValueOnce({ autorise: false, retryApresSecondes: 42 });
+    limiteur.consommer = vi.fn().mockResolvedValueOnce({ autorise: false, retryApresSecondes: 42 });
 
     await expect(
       service().connecter({ email: 'garage@example.ch', motDePasse: 'x' }, '203.0.113.1', null),
@@ -256,14 +257,14 @@ describe('ServiceAuthentificationImpl.connecter', () => {
   // ni consulter ni consommer le budget par email — seul le budget par IP, inconditionnel, est
   // sollicité.
   it('B2 — une connexion réussie ne consulte ni ne consomme jamais le budget de débit par email', async () => {
-    await service().connecter({ email: 'garage@example.ch', motDePasse: 'bon' }, '203.0.113.1', 'ua-test');
+    await service().connecter(
+      { email: 'garage@example.ch', motDePasse: 'bon' },
+      '203.0.113.1',
+      'ua-test',
+    );
 
     expect(limiteur.consommer).toHaveBeenCalledTimes(1);
-    expect(limiteur.consommer).toHaveBeenCalledWith(
-      'auth:connexion:ip:203.0.113.1',
-      20,
-      900,
-    );
+    expect(limiteur.consommer).toHaveBeenCalledWith('auth:connexion:ip:203.0.113.1', 20, 900);
   });
 
   // Bloquant B1 (rapport QA étape 0) : avant correction, `verifierLimitationDebit()` consommait
@@ -306,8 +307,9 @@ describe('ServiceAuthentificationImpl.connecter', () => {
       ),
     ).rejects.toBeInstanceOf(ErreurIdentifiantsInvalides);
 
-    const [, verrouilleJusquA] = (accesAmorcage.enregistrerEchecConnexion as ReturnType<typeof vi.fn>)
-      .mock.calls[0] as [string, Date | null];
+    const [, verrouilleJusquA] = (
+      accesAmorcage.enregistrerEchecConnexion as ReturnType<typeof vi.fn>
+    ).mock.calls[0] as [string, Date | null];
     // 3e échec avec un seuil réglé à 3 : le compte doit déjà être verrouillé (contre un seuil
     // par défaut de 5, où ce 3e échec ne verrouillerait pas encore).
     expect(verrouilleJusquA).not.toBeNull();
@@ -319,11 +321,13 @@ describe('ServiceAuthentificationImpl.connecter', () => {
   // non typé par Drizzle. Sans coercition défensive, `.getTime()` lève un `TypeError` NON typé,
   // capturé comme `500 ERREUR_INTERNE` au lieu du `423 AUTH_COMPTE_VERROUILLE` attendu — sur le
   // chemin de sécurité qui vérifie le verrouillage. `versDateOuNull()` neutralise ce cas.
-  it("verrouilleJusquA reçu comme chaîne ISO brute (pilote SQL non garanti) rend 423, pas 500", async () => {
+  it('verrouilleJusquA reçu comme chaîne ISO brute (pilote SQL non garanti) rend 423, pas 500', async () => {
     const dateFuture = new Date(Date.now() + 60_000);
-    accesAmorcage.utilisateurParEmail = vi.fn().mockResolvedValue(
-      utilisateurTest({ verrouilleJusquA: dateFuture.toISOString() as unknown as Date }),
-    );
+    accesAmorcage.utilisateurParEmail = vi
+      .fn()
+      .mockResolvedValue(
+        utilisateurTest({ verrouilleJusquA: dateFuture.toISOString() as unknown as Date }),
+      );
     servicePwd.verifier = vi.fn().mockResolvedValue(true);
 
     await expect(
@@ -345,8 +349,9 @@ describe('ServiceAuthentificationImpl.connecter', () => {
       'utilisateur-id',
       expect.any(Date),
     );
-    const [, verrouilleJusquA] = (accesAmorcage.enregistrerEchecConnexion as ReturnType<typeof vi.fn>)
-      .mock.calls[0] as [string, Date];
+    const [, verrouilleJusquA] = (
+      accesAmorcage.enregistrerEchecConnexion as ReturnType<typeof vi.fn>
+    ).mock.calls[0] as [string, Date];
     expect(verrouilleJusquA.getTime()).toBeGreaterThan(Date.now());
   });
 
@@ -410,18 +415,15 @@ describe('ServiceAuthentificationImpl.connecter', () => {
     expect(resultat.corps.sites).toHaveLength(1);
     expect(resultat.corps.expireLe).toBe('2026-07-28T12:00:00.000Z');
 
-    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock.calls;
+    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock
+      .calls;
     expect(appelsJournal.some(([e]) => (e as { type: string }).type === 'connexion_reussie')).toBe(
       true,
     );
   });
 
   it('normalise l’email (trim + lowercase) avant de chercher l’utilisateur', async () => {
-    await service().connecter(
-      { email: '  GARAGE@Example.CH  ', motDePasse: 'bon' },
-      null,
-      null,
-    );
+    await service().connecter({ email: '  GARAGE@Example.CH  ', motDePasse: 'bon' }, null, null);
 
     expect(accesAmorcage.utilisateurParEmail).toHaveBeenCalledWith('garage@example.ch');
   });
@@ -444,7 +446,8 @@ describe('ServiceAuthentificationImpl.connecter', () => {
       'ua-test',
     );
 
-    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock.calls;
+    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock
+      .calls;
     expect(appelsJournal.length).toBeGreaterThan(0);
     for (const [evenement] of appelsJournal) {
       expect((evenement as { ip: string | null }).ip).toBeNull();
@@ -458,7 +461,8 @@ describe('ServiceAuthentificationImpl.connecter', () => {
       'ua-test',
     );
 
-    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock.calls;
+    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock
+      .calls;
     const evenementReussi = appelsJournal.find(
       ([e]) => (e as { type: string }).type === 'connexion_reussie',
     )?.[0] as { ip: string | null } | undefined;
@@ -478,6 +482,7 @@ describe('ServiceAuthentificationImpl.sessionCourante — scoping tenant (findin
           nom: 'Dupont',
           role: 'admin',
           langue: 'fr',
+          siteId: null,
         },
       ],
       tenant: [
@@ -643,10 +648,137 @@ describe('ServiceAuthentificationImpl.deconnecter', () => {
       }),
     ).rejects.toBe(erreurFermeture);
 
-    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock.calls;
+    const appelsJournal = (accesAmorcage.journaliserSecurite as ReturnType<typeof vi.fn>).mock
+      .calls;
     expect(appelsJournal).toHaveLength(1);
     const [evenement] = appelsJournal[0] as [{ type: string; details: unknown }];
     expect(evenement.type).toBe('deconnexion');
     expect(evenement.details).toMatchObject({ resultat: 'echec_revocation' });
+  });
+});
+
+/**
+ * `sessionCourante()` — portée de site d'un COMPTE DE SERVICE (borne d'atelier, migration 0039).
+ *
+ * L'enjeu : jusqu'ici, `GET /auth/moi` rendait TOUS les sites du tenant à n'importe quel compte.
+ * Pour une borne, ce serait à la fois inutile (elle n'a qu'un atelier) et trompeur (le front
+ * offrirait un sélecteur de site à un écran qui n'en a pas). Le filtrage se fait sur
+ * `utilisateur.site_id`, donc côté SERVEUR et depuis la session — pas sur un paramètre client.
+ */
+describe('ServiceAuthentificationImpl.sessionCourante — portée de site des comptes de service', () => {
+  function svcAvecUtilisateur(siteIdUtilisateur: string | null): {
+    svc: ServiceAuthentificationImpl;
+    clausesWhere: unknown[];
+  } {
+    const clausesWhere: unknown[] = [];
+    const donnees = {
+      utilisateur: [
+        {
+          id: 'utilisateur-id',
+          email: 'borne.sion@garage.test',
+          prenom: 'Borne',
+          nom: 'Atelier Sion',
+          role: siteIdUtilisateur === null ? 'admin' : 'poste_atelier',
+          langue: 'fr',
+          siteId: siteIdUtilisateur,
+        },
+      ],
+      tenant: [
+        {
+          id: 'tenant-id',
+          slug: 'garage-dupont',
+          raisonSociale: 'Garage Dupont Sàrl',
+          langueDefaut: 'fr',
+        },
+      ],
+      sites: [{ id: 'site-sion', code: 'SION', nom: 'Sion', actif: true }],
+      session: [{ expireLe: new Date('2026-07-28T12:00:00.000Z') }],
+    };
+
+    const tx = {
+      select: () => ({
+        from: (table: unknown) => ({
+          where: (clause: unknown) => {
+            clausesWhere.push(clause);
+            if (table === tableUtilisateur) return requeteMock(donnees.utilisateur);
+            if (table === tableTenant) return requeteMock(donnees.tenant);
+            if (table === tableSite) return requeteMock(donnees.sites);
+            if (table === tableSession) return requeteMock(donnees.session);
+            throw new Error('Table inattendue dans le mock de test.');
+          },
+        }),
+      }),
+    };
+
+    const svc = new ServiceAuthentificationImpl(
+      configTest(),
+      {
+        enTenant: vi.fn((_ctx, travail) => travail(tx as never)),
+        verifierConnexion: vi.fn(),
+        verifierPostureRls: vi.fn(),
+      },
+      {
+        utilisateurParEmail: vi.fn(),
+        sessionParEmpreinte: vi.fn(),
+        toucherSession: vi.fn(),
+        enregistrerEchecConnexion: vi.fn(),
+        reinitialiserEchecsConnexion: vi.fn(),
+        journaliserSecurite: vi.fn(),
+      },
+      { hacher: vi.fn(), verifier: vi.fn(), verifierLeurre: vi.fn(), doitEtreRehache: vi.fn() },
+      { ouvrir: vi.fn(), resoudre: vi.fn(), fermer: vi.fn() },
+      { consommer: vi.fn() },
+      contexteTest(),
+    );
+    return { svc, clausesWhere };
+  }
+
+  it('borne la requête `site` au SEUL site de rattachement quand le compte en porte un — deux paramètres bindés (tenant_id ET site_id), là où un compte de personne n’en binde qu’un', async () => {
+    const dialecte = new PgDialect();
+
+    const { svc: svcBorne, clausesWhere: clausesBorne } = svcAvecUtilisateur('site-sion');
+    const corpsBorne = await svcBorne.sessionCourante({
+      sessionId: 'session-id',
+      tenantId: 'tenant-id',
+      utilisateurId: 'utilisateur-id',
+      role: 'poste_atelier',
+      langue: 'fr',
+      siteId: 'site-sion',
+    });
+    // Ordre d'appel déterministe : utilisateur (0), tenant (1), sites (2), session (3).
+    expect(dialecte.sqlToQuery(clausesBorne[2] as SQL).params).toEqual(['tenant-id', 'site-sion']);
+    expect(corpsBorne.siteRattachementId).toBe('site-sion');
+
+    const { svc: svcPersonne, clausesWhere: clausesPersonne } = svcAvecUtilisateur(null);
+    const corpsPersonne = await svcPersonne.sessionCourante({
+      sessionId: 'session-id',
+      tenantId: 'tenant-id',
+      utilisateurId: 'utilisateur-id',
+      role: 'admin',
+      langue: 'fr',
+      siteId: null,
+    });
+    // Compte de personne : scoping tenant SEUL, exactement comme avant la migration 0039 — aucune
+    // régression sur le comportement des huit rôles existants.
+    expect(dialecte.sqlToQuery(clausesPersonne[2] as SQL).params).toEqual(['tenant-id']);
+    expect(corpsPersonne.siteRattachementId).toBeNull();
+  });
+
+  it('n’expose JAMAIS `siteId` à l’intérieur de l’objet `utilisateur` : le contrat UtilisateurCourant ne porte pas de site (c’est une propriété du COMPTE, publiée à part), et un champ non déclaré ferait diverger la réponse de l’OpenAPI généré', async () => {
+    const { svc } = svcAvecUtilisateur('site-sion');
+
+    const corps = await svc.sessionCourante({
+      sessionId: 'session-id',
+      tenantId: 'tenant-id',
+      utilisateurId: 'utilisateur-id',
+      role: 'poste_atelier',
+      langue: 'fr',
+      siteId: 'site-sion',
+    });
+
+    expect(corps.utilisateur).not.toHaveProperty('siteId');
+    expect(Object.keys(corps.utilisateur).sort()).toEqual(
+      ['id', 'email', 'prenom', 'nom', 'role', 'langue'].sort(),
+    );
   });
 });

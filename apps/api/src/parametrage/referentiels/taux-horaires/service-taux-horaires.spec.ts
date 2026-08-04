@@ -136,7 +136,12 @@ describe('ServiceTauxHoraires.creer', () => {
       accesFactice({ erreurInsert: { code: '23P01', message: 'exclusion violation' } }),
     );
     await expect(
-      service.creer(CTX, { code: 'MEC', libelle: 'X', montantCentimes: 1000, valideDuLe: '2026-01-01' }),
+      service.creer(CTX, {
+        code: 'MEC',
+        libelle: 'X',
+        montantCentimes: 1000,
+        valideDuLe: '2026-01-01',
+      }),
     ).rejects.toMatchObject({ code: 'CONFLIT' });
   });
 
@@ -144,14 +149,21 @@ describe('ServiceTauxHoraires.creer', () => {
     const erreur = new Error('panne réseau');
     const service = new ServiceTauxHoraires(accesFactice({ erreurInsert: erreur }));
     await expect(
-      service.creer(CTX, { code: 'MEC', libelle: 'X', montantCentimes: 1000, valideDuLe: '2026-01-01' }),
+      service.creer(CTX, {
+        code: 'MEC',
+        libelle: 'X',
+        montantCentimes: 1000,
+        valideDuLe: '2026-01-01',
+      }),
     ).rejects.toThrow('panne réseau');
   });
 });
 
 describe('ServiceTauxHoraires.modifier', () => {
   it('met à jour et projette la ligne', async () => {
-    const service = new ServiceTauxHoraires(accesFactice({ ligneUpdate: ligne({ libelle: 'Renommé' }) }));
+    const service = new ServiceTauxHoraires(
+      accesFactice({ ligneUpdate: ligne({ libelle: 'Renommé' }) }),
+    );
     const dto = await service.modifier(CTX, 'th-1', { libelle: 'Renommé' });
     expect(dto.libelle).toBe('Renommé');
   });
@@ -173,6 +185,8 @@ describe('ServiceTauxHoraires.modifier', () => {
     const service = new ServiceTauxHoraires(
       accesFactice({ erreurUpdate: { code: '23P01', message: 'exclusion violation' } }),
     );
-    await expect(service.modifier(CTX, 'th-1', { valideAuLe: null })).rejects.toMatchObject({ code: 'CONFLIT' });
+    await expect(service.modifier(CTX, 'th-1', { valideAuLe: null })).rejects.toMatchObject({
+      code: 'CONFLIT',
+    });
   });
 });

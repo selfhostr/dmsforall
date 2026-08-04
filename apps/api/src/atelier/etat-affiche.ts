@@ -53,7 +53,9 @@ export function calculerEtatAffiche(
  * Table dérivée de `transition_autorisee` (0003_prealables_etape1.sql §5.1) : voir
  * `atelier/service-transitions.ts` pour le mapping inverse (action -> transitions DB).
  */
-const ACTIONS_DEPUIS_STATUT: Readonly<Record<StatutOrdreReparation, readonly ActionOrdreReparation[]>> = {
+const ACTIONS_DEPUIS_STATUT: Readonly<
+  Record<StatutOrdreReparation, readonly ActionOrdreReparation[]>
+> = {
   planifie: ['receptionner', 'annuler'],
   ouvert: ['demarrer', 'passer-en-controle', 'terminer', 'annuler', 'reprendre-travaux'],
   en_cours: ['passer-en-controle', 'terminer', 'reprendre-travaux'],
@@ -85,7 +87,9 @@ const ACTIONS_LIGNES_GROUPEES: readonly ActionOrdreReparation[] = [
   'soumettre-lignes-a-devis',
 ];
 
-export function calculerActionsDisponibles(statut: StatutOrdreReparation): readonly ActionOrdreReparation[] {
+export function calculerActionsDisponibles(
+  statut: StatutOrdreReparation,
+): readonly ActionOrdreReparation[] {
   const actionsOr = ACTIONS_DEPUIS_STATUT[statut];
   const actionsLignes = STATUTS_LIGNES_MODIFIABLES.has(statut) ? ACTIONS_LIGNES_GROUPEES : [];
   return [...actionsOr, ...actionsLignes];
@@ -133,5 +137,7 @@ export function calculerActionsDisponiblesPourRole(
   role: RoleUtilisateur,
 ): readonly ActionOrdreReparation[] {
   const droitsDuRole: readonly Action[] = MATRICE_DROITS[role] ?? [];
-  return calculerActionsDisponibles(statut).filter((action) => droitsDuRole.includes(DROIT_PAR_ACTION[action]));
+  return calculerActionsDisponibles(statut).filter((action) =>
+    droitsDuRole.includes(DROIT_PAR_ACTION[action]),
+  );
 }

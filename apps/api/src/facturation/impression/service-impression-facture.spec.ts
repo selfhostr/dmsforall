@@ -12,7 +12,13 @@ import type { StockagePdf } from './stockage-pdf';
 vi.mock('./generation-pdf-facture', () => ({ genererPdfFacture: vi.fn() }));
 
 const CTX: ContexteTenant = { tenantId: 't-1', utilisateurId: 'u-1', requeteId: 'req-1' };
-const PRINCIPAL: PrincipalAuthentifie = { sessionId: 's-1', tenantId: 't-1', utilisateurId: 'u-1', role: 'direction', langue: 'fr' };
+const PRINCIPAL: PrincipalAuthentifie = {
+  sessionId: 's-1',
+  tenantId: 't-1',
+  utilisateurId: 'u-1',
+  role: 'direction',
+  langue: 'fr',
+};
 
 function documentFacture(overrides: Partial<ReponseDocumentVente> = {}): ReponseDocumentVente {
   return {
@@ -35,7 +41,13 @@ function documentFacture(overrides: Partial<ReponseDocumentVente> = {}): Reponse
     factureAnnuleeId: null,
     annuleParAvoirId: null,
     remplaceId: null,
-    figees: { clientDesignation: 'Client Test', clientIde: null, clientLangue: 'fr', adresseFacturation: null, plaque: null },
+    figees: {
+      clientDesignation: 'Client Test',
+      clientIde: null,
+      clientLangue: 'fr',
+      adresseFacturation: null,
+      plaque: null,
+    },
     dateDocument: '2026-07-29',
     devise: 'CHF',
     tvaNonVentilee: false,
@@ -63,7 +75,18 @@ function documentFacture(overrides: Partial<ReponseDocumentVente> = {}): Reponse
       qrMontantCentimes: 7000,
       qrDevise: 'CHF',
       qrLangue: 'fr',
-      creancier: { iban: 'CH4431999123000889012', estQrIban: true, nom: 'Garage Martin SA', adresse: { rue: 'Route de Riddes', numero: '42', npa: '1950', localite: 'Sion', pays: 'CH' } },
+      creancier: {
+        iban: 'CH4431999123000889012',
+        estQrIban: true,
+        nom: 'Garage Martin SA',
+        adresse: {
+          rue: 'Route de Riddes',
+          numero: '42',
+          npa: '1950',
+          localite: 'Sion',
+          pays: 'CH',
+        },
+      },
       debiteur: null,
     },
     pdfCle: null,
@@ -122,30 +145,60 @@ describe('ServiceImpressionFacture', () => {
   });
 
   it('refuse un devis (jamais de bulletin QR) avec DOCUMENT_PDF_INDISPONIBLE', async () => {
-    const serviceDocuments = { obtenirComplet: vi.fn().mockResolvedValue(documentFacture({ typeDocument: 'devis', qr: null })) } as unknown as ServiceDocumentsVente;
-    const service = new ServiceImpressionFacture(accesBaseFake(), new StockagePdfMemoire(), serviceDocuments);
+    const serviceDocuments = {
+      obtenirComplet: vi
+        .fn()
+        .mockResolvedValue(documentFacture({ typeDocument: 'devis', qr: null })),
+    } as unknown as ServiceDocumentsVente;
+    const service = new ServiceImpressionFacture(
+      accesBaseFake(),
+      new StockagePdfMemoire(),
+      serviceDocuments,
+    );
 
-    await expect(service.obtenirPdf(CTX, PRINCIPAL, 'doc-1')).rejects.toMatchObject({ code: 'DOCUMENT_PDF_INDISPONIBLE' });
+    await expect(service.obtenirPdf(CTX, PRINCIPAL, 'doc-1')).rejects.toMatchObject({
+      code: 'DOCUMENT_PDF_INDISPONIBLE',
+    });
     expect(genererPdfFacture).not.toHaveBeenCalled();
   });
 
   it('refuse une facture sans bloc QR (brouillon, devise hors CHF/EUR, ou rôle sans droit aux montants)', async () => {
-    const serviceDocuments = { obtenirComplet: vi.fn().mockResolvedValue(documentFacture({ qr: null, statut: 'brouillon' })) } as unknown as ServiceDocumentsVente;
-    const service = new ServiceImpressionFacture(accesBaseFake(), new StockagePdfMemoire(), serviceDocuments);
+    const serviceDocuments = {
+      obtenirComplet: vi.fn().mockResolvedValue(documentFacture({ qr: null, statut: 'brouillon' })),
+    } as unknown as ServiceDocumentsVente;
+    const service = new ServiceImpressionFacture(
+      accesBaseFake(),
+      new StockagePdfMemoire(),
+      serviceDocuments,
+    );
 
-    await expect(service.obtenirPdf(CTX, PRINCIPAL, 'doc-1')).rejects.toMatchObject({ code: 'DOCUMENT_PDF_INDISPONIBLE' });
+    await expect(service.obtenirPdf(CTX, PRINCIPAL, 'doc-1')).rejects.toMatchObject({
+      code: 'DOCUMENT_PDF_INDISPONIBLE',
+    });
   });
 
   it('refuse un avoir (crédite le client, ne se paie pas)', async () => {
-    const serviceDocuments = { obtenirComplet: vi.fn().mockResolvedValue(documentFacture({ typeDocument: 'avoir', qr: null })) } as unknown as ServiceDocumentsVente;
-    const service = new ServiceImpressionFacture(accesBaseFake(), new StockagePdfMemoire(), serviceDocuments);
+    const serviceDocuments = {
+      obtenirComplet: vi
+        .fn()
+        .mockResolvedValue(documentFacture({ typeDocument: 'avoir', qr: null })),
+    } as unknown as ServiceDocumentsVente;
+    const service = new ServiceImpressionFacture(
+      accesBaseFake(),
+      new StockagePdfMemoire(),
+      serviceDocuments,
+    );
 
-    await expect(service.obtenirPdf(CTX, PRINCIPAL, 'doc-1')).rejects.toMatchObject({ code: 'DOCUMENT_PDF_INDISPONIBLE' });
+    await expect(service.obtenirPdf(CTX, PRINCIPAL, 'doc-1')).rejects.toMatchObject({
+      code: 'DOCUMENT_PDF_INDISPONIBLE',
+    });
   });
 
   it('première demande : génère, met en cache (stockage + pdfCle/pdfSha256), renvoie le buffer', async () => {
     vi.mocked(genererPdfFacture).mockResolvedValue(Buffer.from('%PDF-contenu-genere'));
-    const serviceDocuments = { obtenirComplet: vi.fn().mockResolvedValue(documentFacture()) } as unknown as ServiceDocumentsVente;
+    const serviceDocuments = {
+      obtenirComplet: vi.fn().mockResolvedValue(documentFacture()),
+    } as unknown as ServiceDocumentsVente;
     const stockage = new StockagePdfMemoire();
     const acces = accesBaseFake();
     const service = new ServiceImpressionFacture(acces, stockage, serviceDocuments);
@@ -165,7 +218,9 @@ describe('ServiceImpressionFacture', () => {
     await stockage.ecrire('t-1/doc-1.pdf', Buffer.from('%PDF-deja-en-cache'));
 
     const serviceDocuments = {
-      obtenirComplet: vi.fn().mockResolvedValue(documentFacture({ pdfCle: 't-1/doc-1.pdf', pdfSha256: null })),
+      obtenirComplet: vi
+        .fn()
+        .mockResolvedValue(documentFacture({ pdfCle: 't-1/doc-1.pdf', pdfSha256: null })),
     } as unknown as ServiceDocumentsVente;
     const service = new ServiceImpressionFacture(accesBaseFake(), stockage, serviceDocuments);
 
@@ -180,10 +235,17 @@ describe('ServiceImpressionFacture', () => {
     await stockage.ecrire('t-1/doc-1.pdf', Buffer.from('contenu-altere'));
 
     const serviceDocuments = {
-      obtenirComplet: vi.fn().mockResolvedValue(documentFacture({ pdfCle: 't-1/doc-1.pdf', pdfSha256: 'empreinte-qui-ne-correspond-pas' })),
+      obtenirComplet: vi.fn().mockResolvedValue(
+        documentFacture({
+          pdfCle: 't-1/doc-1.pdf',
+          pdfSha256: 'empreinte-qui-ne-correspond-pas',
+        }),
+      ),
     } as unknown as ServiceDocumentsVente;
     const service = new ServiceImpressionFacture(accesBaseFake(), stockage, serviceDocuments);
 
-    await expect(service.obtenirPdf(CTX, PRINCIPAL, 'doc-1')).rejects.toMatchObject({ code: 'ERREUR_INTERNE' });
+    await expect(service.obtenirPdf(CTX, PRINCIPAL, 'doc-1')).rejects.toMatchObject({
+      code: 'ERREUR_INTERNE',
+    });
   });
 });

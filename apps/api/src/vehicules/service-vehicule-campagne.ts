@@ -28,7 +28,10 @@ export class ServiceVehiculeCampagne {
     private readonly horloge: Horloge,
   ) {}
 
-  async lister(ctx: ContexteTenant, vehiculeId: string): Promise<readonly ReponseVehiculeCampagne[]> {
+  async lister(
+    ctx: ContexteTenant,
+    vehiculeId: string,
+  ): Promise<readonly ReponseVehiculeCampagne[]> {
     return this.acces.enTenant(ctx, async (tx) => {
       await chargerLigneVehicule(tx, ctx, vehiculeId);
       const lignes = await listerCampagnes(tx, ctx, vehiculeId);
@@ -36,7 +39,11 @@ export class ServiceVehiculeCampagne {
     });
   }
 
-  async creer(ctx: ContexteTenant, vehiculeId: string, entree: EntreeCampagneVehicule): Promise<ReponseVehiculeCampagne> {
+  async creer(
+    ctx: ContexteTenant,
+    vehiculeId: string,
+    entree: EntreeCampagneVehicule,
+  ): Promise<ReponseVehiculeCampagne> {
     return this.acces.enTenant(ctx, async (tx) => {
       await chargerLigneVehicule(tx, ctx, vehiculeId);
 
@@ -52,7 +59,10 @@ export class ServiceVehiculeCampagne {
         .returning();
       const inseree = lignes[0];
       if (!inseree) {
-        throw new ErreurMetier('ERREUR_INTERNE', "L'insertion de la campagne n'a rendu aucune ligne.");
+        throw new ErreurMetier(
+          'ERREUR_INTERNE',
+          "L'insertion de la campagne n'a rendu aucune ligne.",
+        );
       }
       return versReponse(inseree);
     });
@@ -94,11 +104,16 @@ export class ServiceVehiculeCampagne {
           statut: entree.statut,
           closeLe,
         })
-        .where(and(eq(vehiculeCampagne.tenantId, ctx.tenantId), eq(vehiculeCampagne.id, campagneId)))
+        .where(
+          and(eq(vehiculeCampagne.tenantId, ctx.tenantId), eq(vehiculeCampagne.id, campagneId)),
+        )
         .returning();
       const mise = misesAJour[0];
       if (!mise) {
-        throw new ErreurMetier('ERREUR_INTERNE', 'La modification de campagne n’a rendu aucune ligne.');
+        throw new ErreurMetier(
+          'ERREUR_INTERNE',
+          'La modification de campagne n’a rendu aucune ligne.',
+        );
       }
       return versReponse(mise);
     });

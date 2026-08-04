@@ -1,5 +1,26 @@
-import { Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCookieAuth,
+  ApiHeader,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { z } from 'zod';
 import {
@@ -46,9 +67,19 @@ function exigerVersionIfMatch(ifMatch: string | undefined): number {
   }
   const version = extraireVersionEtagDocument(ifMatch);
   if (version === null) {
-    throw new ErreurMetier('VALIDATION_ECHOUEE', 'En-tête If-Match doit porter la forme W/"<version>".', {
-      erreurs: [{ champ: 'If-Match', code: 'format_invalide', message: 'Forme attendue : W/"<version>".' }],
-    });
+    throw new ErreurMetier(
+      'VALIDATION_ECHOUEE',
+      'En-tête If-Match doit porter la forme W/"<version>".',
+      {
+        erreurs: [
+          {
+            champ: 'If-Match',
+            code: 'format_invalide',
+            message: 'Forme attendue : W/"<version>".',
+          },
+        ],
+      },
+    );
   }
   return version;
 }
@@ -73,7 +104,8 @@ export class DocumentVenteController {
   @ExigerDroit('facturation.document.lire')
   @ApiOperation({
     summary: 'Liste des documents de vente du tenant courant.',
-    description: 'SOUS-ENSEMBLE des filtres du contrat (`siteId`, `typeDocument`, `statut`, `clientId`, `vehiculeId`) — voir `ServiceDocumentsVente.lister`.',
+    description:
+      'SOUS-ENSEMBLE des filtres du contrat (`siteId`, `typeDocument`, `statut`, `clientId`, `vehiculeId`) — voir `ServiceDocumentsVente.lister`.',
   })
   @ApiOkResponse({ type: PageDocumentVenteDto })
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
@@ -83,7 +115,13 @@ export class DocumentVenteController {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
     const { limite, curseur, ...filtres } = query;
-    const { donnees, curseurSuivant } = await this.service.lister(ctx, principal, filtres, limite, curseur);
+    const { donnees, curseurSuivant } = await this.service.lister(
+      ctx,
+      principal,
+      filtres,
+      limite,
+      curseur,
+    );
     return { donnees, curseurSuivant, limite };
   }
 
@@ -93,16 +131,23 @@ export class DocumentVenteController {
   @ApiOperation({
     summary: "Création d'un brouillon (devis, bon de commande ou facture créée directement).",
     description:
-      "`Idempotency-Key` obligatoire (uuid v4) — un brouillon ne consomme aucun numéro (RF-9), mais un double-clic comptoir ne doit pas produire deux brouillons. " +
-      "`documentSourceId` transforme un devis accepté ou un bon de commande émis (RF-8) — jamais une facture recopiée depuis un OR (POST /ordres-reparation/{id}/facturer, hors périmètre de ce lot).",
+      '`Idempotency-Key` obligatoire (uuid v4) — un brouillon ne consomme aucun numéro (RF-9), mais un double-clic comptoir ne doit pas produire deux brouillons. ' +
+      '`documentSourceId` transforme un devis accepté ou un bon de commande émis (RF-8) — jamais une facture recopiée depuis un OR (POST /ordres-reparation/{id}/facturer, hors périmètre de ce lot).',
   })
-  @ApiHeader({ name: EN_TETE_IDEMPOTENCE, required: true, description: 'uuid v4, identité de la requête.' })
+  @ApiHeader({
+    name: EN_TETE_IDEMPOTENCE,
+    required: true,
+    description: 'uuid v4, identité de la requête.',
+  })
   @ApiResponse({ status: 201, type: EnveloppeDocumentVenteDto })
   @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Client, véhicule ou document source introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, 'DOCUMENT_SOURCE_DEJA_TRANSFORME, DOCUMENT_TRANSITION_INTERDITE ou IDEMPOTENCE_CONFLIT.')
+  @ApiReponseProbleme(
+    409,
+    'DOCUMENT_SOURCE_DEJA_TRANSFORME, DOCUMENT_TRANSITION_INTERDITE ou IDEMPOTENCE_CONFLIT.',
+  )
   async creer(
     @CorpsZod(schemaCreationDocumentVente, {
       exemple: {
@@ -145,7 +190,10 @@ export class DocumentVenteController {
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Document introuvable pour ce tenant.')
-  async parId(@Param('id', new PipeZod(schemaIdentifiant)) id: string, @Res({ passthrough: true }) res: Response): Promise<ReponseDocumentVente> {
+  async parId(
+    @Param('id', new PipeZod(schemaIdentifiant)) id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<ReponseDocumentVente> {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
     const document = await this.service.obtenirComplet(ctx, principal, id);
@@ -160,7 +208,11 @@ export class DocumentVenteController {
     description: '`If-Match: W/"<version>"` OBLIGATOIRE. `statut` reste en lecture seule.',
   })
   @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiHeader({ name: 'If-Match', required: true, description: 'W/"<version>" lu sur la dernière lecture (ETag).' })
+  @ApiHeader({
+    name: 'If-Match',
+    required: true,
+    description: 'W/"<version>" lu sur la dernière lecture (ETag).',
+  })
   @ApiOkResponse({ type: EnveloppeDocumentVenteDto })
   @ApiReponseProbleme(400, 'Corps invalide ou If-Match manquant/mal formé.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
@@ -182,10 +234,14 @@ export class DocumentVenteController {
     // voir `document-vente.etag.ts` pour la substitution `version = modifie_le` epoch ms.
     const lecture = await this.service.obtenirComplet(ctx, principal, id);
     if (lecture.version !== versionAttendue) {
-      throw new ErreurMetier('CONFLIT', 'La version du document a changé depuis la dernière lecture.', {
-        detail: `version_attendue=${String(versionAttendue)};version_actuelle=${String(lecture.version)}`,
-        actionsProposees: [{ code: 'RAFRAICHIR' }],
-      });
+      throw new ErreurMetier(
+        'CONFLIT',
+        'La version du document a changé depuis la dernière lecture.',
+        {
+          detail: `version_attendue=${String(versionAttendue)};version_actuelle=${String(lecture.version)}`,
+          actionsProposees: [{ code: 'RAFRAICHIR' }],
+        },
+      );
     }
 
     const { donnees, avertissements } = await this.service.modifier(ctx, principal, id, entree);
@@ -207,7 +263,14 @@ export class DocumentVenteController {
   async ajouterLigne(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,
     @CorpsZod(schemaCreationLigneDocument, {
-      exemple: { type: 'piece', designation: 'Plaquettes de frein avant', quantiteMillieme: 1000, prixUnitaireTtcCentimes: 8900, tauxTvaPourmille: 81, datePrestation: '2026-07-29' },
+      exemple: {
+        type: 'piece',
+        designation: 'Plaquettes de frein avant',
+        quantiteMillieme: 1000,
+        prixUnitaireTtcCentimes: 8900,
+        tauxTvaPourmille: 81,
+        datePrestation: '2026-07-29',
+      },
     })
     entree: EntreeCreationLigneDocument,
   ) {
@@ -248,7 +311,10 @@ export class DocumentVenteController {
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Document ou ligne introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'DOCUMENT_VERROUILLE (document émis).')
-  async supprimerLigne(@Param('id', new PipeZod(schemaIdentifiant)) id: string, @Param('ligneId', new PipeZod(schemaIdentifiant)) ligneId: string) {
+  async supprimerLigne(
+    @Param('id', new PipeZod(schemaIdentifiant)) id: string,
+    @Param('ligneId', new PipeZod(schemaIdentifiant)) ligneId: string,
+  ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
     return this.service.supprimerLigne(ctx, principal, id, ligneId);

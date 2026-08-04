@@ -65,7 +65,12 @@ function construireOr(overrides: Partial<ReponseOrdreReparation> = {}): ReponseO
     statut: 'planifie',
     client: CLIENT,
     vehicule: VEHICULE,
-    figees: { clientDesignation: 'Jean Dupont', adresseFacturation: null, plaque: '123456', detenteurClientId: 'cl-1' },
+    figees: {
+      clientDesignation: 'Jean Dupont',
+      adresseFacturation: null,
+      plaque: '123456',
+      detenteurClientId: 'cl-1',
+    },
     conducteurPresentNom: null,
     kilometrageEntree: null,
     kilometrageSortie: null,
@@ -108,9 +113,14 @@ function construireOr(overrides: Partial<ReponseOrdreReparation> = {}): ReponseO
 }
 
 describe('useTransitionsOrdreReparation', () => {
-  it("useReceptionnerOr appelle EXACTEMENT POST /ordres-reparation/{id}/receptionner et repose le document complet renvoyé, sans relecture", async () => {
+  it('useReceptionnerOr appelle EXACTEMENT POST /ordres-reparation/{id}/receptionner et repose le document complet renvoyé, sans relecture', async () => {
     const OR_INITIAL = construireOr();
-    const OR_APRES = construireOr({ statut: 'ouvert', etatAffiche: 'ouvert', kilometrageEntree: 91234, actionsDisponibles: ['demarrer'] });
+    const OR_APRES = construireOr({
+      statut: 'ouvert',
+      etatAffiche: 'ouvert',
+      kilometrageEntree: 91234,
+      actionsDisponibles: ['demarrer'],
+    });
 
     let cheminAppele: string | null = null;
     server.use(
@@ -123,7 +133,9 @@ describe('useTransitionsOrdreReparation', () => {
     const queryClient = creerQueryClientTest();
     queryClient.setQueryData(clesQuery.or.detail('or-1'), OR_INITIAL);
 
-    const { result } = renderHook(() => useReceptionnerOr('or-1'), { wrapper: enveloppe(queryClient) });
+    const { result } = renderHook(() => useReceptionnerOr('or-1'), {
+      wrapper: enveloppe(queryClient),
+    });
 
     act(() => {
       result.current.mutate({ kilometrageEntree: 91234, unite: 'km', signatureDifferee: false });
@@ -170,7 +182,9 @@ describe('useTransitionsOrdreReparation', () => {
 
     expect(result.current.error).toBeInstanceOf(ErreurApi);
     expect((result.current.error as ErreurApi).probleme.code).toBe('OR_ANNULATION_IMPOSSIBLE');
-    expect((result.current.error as ErreurApi).blocages).toEqual([{ type: 'pointage', id: 'p1', libelle: 'Pointage en cours' }]);
+    expect((result.current.error as ErreurApi).blocages).toEqual([
+      { type: 'pointage', id: 'p1', libelle: 'Pointage en cours' },
+    ]);
     // Le cache n'a PAS bougé : un refus n'est jamais un succès optimiste déguisé.
     expect(queryClient.getQueryData(clesQuery.or.detail('or-1'))).toEqual(OR_INITIAL);
   });

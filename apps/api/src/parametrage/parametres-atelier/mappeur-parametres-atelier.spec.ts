@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { schema } from '../../db';
 import { versColonnesMiseAJour, versDtoParametresAtelier } from './mappeur-parametres-atelier';
 
-function ligneFactice(champs: Partial<schema.LigneParametreAtelier> = {}): schema.LigneParametreAtelier {
+function ligneFactice(
+  champs: Partial<schema.LigneParametreAtelier> = {},
+): schema.LigneParametreAtelier {
   return {
     tenantId: 'tid',
     orPrefixe: 'OR',
@@ -73,27 +75,39 @@ describe('versDtoParametresAtelier', () => {
     expect(dto.reception.plafondDefautCentimes).toBeNull();
   });
 
-  it('plafondDefautCentimes NULL n\'est JAMAIS confondu avec 0 (accord requis pour tout)', () => {
+  it("plafondDefautCentimes NULL n'est JAMAIS confondu avec 0 (accord requis pour tout)", () => {
     const dtoNul = versDtoParametresAtelier(ligneFactice({ plafondDefautCentimes: null }));
     const dtoZero = versDtoParametresAtelier(ligneFactice({ plafondDefautCentimes: 0 }));
-    expect(dtoNul.reception.plafondDefautCentimes).not.toBe(dtoZero.reception.plafondDefautCentimes);
+    expect(dtoNul.reception.plafondDefautCentimes).not.toBe(
+      dtoZero.reception.plafondDefautCentimes,
+    );
     expect(dtoZero.reception.plafondDefautCentimes).toBe(0);
   });
 
   it('plafondAvoirReceptionnaireCentimes NULL en base (RF-117 : aucun plafond convenu) reste null dans la réponse', () => {
-    const dto = versDtoParametresAtelier(ligneFactice({ plafondAvoirReceptionnaireCentimes: null }));
+    const dto = versDtoParametresAtelier(
+      ligneFactice({ plafondAvoirReceptionnaireCentimes: null }),
+    );
     expect(dto.reception.plafondAvoirReceptionnaireCentimes).toBeNull();
   });
 
-  it('plafondAvoirReceptionnaireCentimes NULL n\'est JAMAIS confondu avec 0 (toute émission doit escalader)', () => {
-    const dtoNul = versDtoParametresAtelier(ligneFactice({ plafondAvoirReceptionnaireCentimes: null }));
-    const dtoZero = versDtoParametresAtelier(ligneFactice({ plafondAvoirReceptionnaireCentimes: 0 }));
-    expect(dtoNul.reception.plafondAvoirReceptionnaireCentimes).not.toBe(dtoZero.reception.plafondAvoirReceptionnaireCentimes);
+  it("plafondAvoirReceptionnaireCentimes NULL n'est JAMAIS confondu avec 0 (toute émission doit escalader)", () => {
+    const dtoNul = versDtoParametresAtelier(
+      ligneFactice({ plafondAvoirReceptionnaireCentimes: null }),
+    );
+    const dtoZero = versDtoParametresAtelier(
+      ligneFactice({ plafondAvoirReceptionnaireCentimes: 0 }),
+    );
+    expect(dtoNul.reception.plafondAvoirReceptionnaireCentimes).not.toBe(
+      dtoZero.reception.plafondAvoirReceptionnaireCentimes,
+    );
     expect(dtoZero.reception.plafondAvoirReceptionnaireCentimes).toBe(0);
   });
 
   it('plafondAvoirReceptionnaireCentimes nominal restitué tel quel', () => {
-    const dto = versDtoParametresAtelier(ligneFactice({ plafondAvoirReceptionnaireCentimes: 500000 }));
+    const dto = versDtoParametresAtelier(
+      ligneFactice({ plafondAvoirReceptionnaireCentimes: 500000 }),
+    );
     expect(dto.reception.plafondAvoirReceptionnaireCentimes).toBe(500000);
   });
 
@@ -110,19 +124,29 @@ describe('versDtoParametresAtelier', () => {
 
   it('produitsAtelier JSONB vide -> mode "desactive" par défaut', () => {
     const dto = versDtoParametresAtelier(ligneFactice({ produitsAtelier: {} }));
-    expect(dto.facturation.produitsAtelier).toEqual({ mode: 'desactive', pourmille: null, plafondCentimes: null });
+    expect(dto.facturation.produitsAtelier).toEqual({
+      mode: 'desactive',
+      pourmille: null,
+      plafondCentimes: null,
+    });
   });
 
   it('produitsAtelier JSONB rempli -> restitué tel quel', () => {
     const dto = versDtoParametresAtelier(
-      ligneFactice({ produitsAtelier: { mode: 'pourcentage_plafonne', pourmille: 30, plafondCentimes: 5000 } }),
+      ligneFactice({
+        produitsAtelier: { mode: 'pourcentage_plafonne', pourmille: 30, plafondCentimes: 5000 },
+      }),
     );
-    expect(dto.facturation.produitsAtelier).toEqual({ mode: 'pourcentage_plafonne', pourmille: 30, plafondCentimes: 5000 });
+    expect(dto.facturation.produitsAtelier).toEqual({
+      mode: 'pourcentage_plafonne',
+      pourmille: 30,
+      plafondCentimes: 5000,
+    });
   });
 });
 
 describe('versColonnesMiseAJour', () => {
-  it("corps vide -> aucune colonne", () => {
+  it('corps vide -> aucune colonne', () => {
     expect(versColonnesMiseAJour({})).toEqual({});
   });
 

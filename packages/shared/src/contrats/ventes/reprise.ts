@@ -185,9 +185,9 @@ export type EntreeActionNegocierReprise = z.infer<typeof schemaActionNegocierRep
  * la correction exceptionnelle (dossier orphelin, resynchronisation), motif obligatoire pour la
  * même raison.
  */
-export const schemaActionConfirmerReprise = z.object({ motif: schemaMotif }).extend(
-  schemaConfirmations.shape,
-);
+export const schemaActionConfirmerReprise = z
+  .object({ motif: schemaMotif })
+  .extend(schemaConfirmations.shape);
 export type EntreeActionConfirmerReprise = z.infer<typeof schemaActionConfirmerReprise>;
 
 /** `POST /dossiers-vente/{dossierVenteId}/reprise/refuser` — `{estimee, negociee} -> refusee`

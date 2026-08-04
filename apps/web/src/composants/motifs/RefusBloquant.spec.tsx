@@ -70,16 +70,30 @@ describe('RefusBloquant', () => {
   });
 
   it('I-08 : rend deux lignes cliquables et le bouton « Créer un devis complémentaire »', async () => {
-    render(<RefusBloquant code="OR_LIGNES_A_VALIDER" blocages={BLOCAGES_I08} actionsProposees={ACTIONS_I08} />);
+    render(
+      <RefusBloquant
+        code="OR_LIGNES_A_VALIDER"
+        blocages={BLOCAGES_I08}
+        actionsProposees={ACTIONS_I08}
+      />,
+    );
 
     const lignes = screen.getAllByRole('button', { name: /ligne à valider/i });
     expect(lignes).toHaveLength(2);
-    expect(screen.getByRole('button', { name: 'Créer un devis complémentaire' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Créer un devis complémentaire' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Valider les lignes' })).toBeInTheDocument();
   });
 
   it('I-09 : rend deux techniciens et le bouton « Arrêter les pointages »', () => {
-    render(<RefusBloquant code="OR_POINTAGE_OUVERT" blocages={BLOCAGES_I09} actionsProposees={ACTIONS_I09} />);
+    render(
+      <RefusBloquant
+        code="OR_POINTAGE_OUVERT"
+        blocages={BLOCAGES_I09}
+        actionsProposees={ACTIONS_I09}
+      />,
+    );
 
     expect(screen.getByText(/Rui/)).toBeInTheDocument();
     expect(screen.getByText(/Sarah/)).toBeInTheDocument();
@@ -89,14 +103,22 @@ describe('RefusBloquant', () => {
 
   it('le `libelle` serveur (I-08 ET I-09) n’apparaît jamais dans le DOM', () => {
     const { container: c8 } = render(
-      <RefusBloquant code="OR_LIGNES_A_VALIDER" blocages={BLOCAGES_I08} actionsProposees={ACTIONS_I08} />,
+      <RefusBloquant
+        code="OR_LIGNES_A_VALIDER"
+        blocages={BLOCAGES_I08}
+        actionsProposees={ACTIONS_I08}
+      />,
     );
     for (const element of BLOCAGES_I08) {
       expect(c8.textContent).not.toContain(element.libelle);
     }
 
     const { container: c9 } = render(
-      <RefusBloquant code="OR_POINTAGE_OUVERT" blocages={BLOCAGES_I09} actionsProposees={ACTIONS_I09} />,
+      <RefusBloquant
+        code="OR_POINTAGE_OUVERT"
+        blocages={BLOCAGES_I09}
+        actionsProposees={ACTIONS_I09}
+      />,
     );
     for (const element of BLOCAGES_I09) {
       expect(c9.textContent).not.toContain(element.libelle);
@@ -123,23 +145,38 @@ describe('RefusBloquant', () => {
     const { signalerErreur } = await import('@/observabilite/sentry');
     render(<RefusBloquant code="OR_ANNULATION_IMPOSSIBLE" blocages={[]} actionsProposees={[]} />);
 
-    expect(screen.getByText("L'opération n'a pas pu être effectuée. Réessayez.")).toBeInTheDocument();
+    expect(
+      screen.getByText("L'opération n'a pas pu être effectuée. Réessayez."),
+    ).toBeInTheDocument();
     expect(signalerErreur).toHaveBeenCalledTimes(1);
   });
 
   it('actionsProposees vide MAIS contexte terminal (`estTerminal`) : pas de repli, pas de signalement', async () => {
     const { signalerErreur } = await import('@/observabilite/sentry');
-    render(<RefusBloquant code="OR_ANNULATION_IMPOSSIBLE" blocages={[]} actionsProposees={[]} estTerminal />);
+    render(
+      <RefusBloquant
+        code="OR_ANNULATION_IMPOSSIBLE"
+        blocages={[]}
+        actionsProposees={[]}
+        estTerminal
+      />,
+    );
 
-    expect(screen.queryByText("L'opération n'a pas pu être effectuée. Réessayez.")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("L'opération n'a pas pu être effectuée. Réessayez."),
+    ).not.toBeInTheDocument();
     expect(signalerErreur).not.toHaveBeenCalled();
   });
 
   it('rend le message via erreurs:codes.<CODE>, traduit en allemand', async () => {
     await i18n.changeLanguage('de');
-    render(<RefusBloquant code="OR_LIGNES_A_VALIDER" blocages={[]} actionsProposees={[]} estTerminal />);
+    render(
+      <RefusBloquant code="OR_LIGNES_A_VALIDER" blocages={[]} actionsProposees={[]} estTerminal />,
+    );
     expect(
-      screen.getByText('Einige Positionen erwarten eine Kundenfreigabe. Sie sind unten aufgelistet.'),
+      screen.getByText(
+        'Einige Positionen erwarten eine Kundenfreigabe. Sie sind unten aufgelistet.',
+      ),
     ).toBeInTheDocument();
   });
 });

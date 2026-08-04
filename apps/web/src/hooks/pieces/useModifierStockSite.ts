@@ -23,13 +23,20 @@ interface VariablesModificationStockSite {
  * gain. La couche transport/mutation est posée et testée-typée pour qu'un écran dédié (avec sa
  * propre lecture des réglages, absente des 18 routes de ce lot) puisse la consommer directement.
  */
-export function useModifierStockSite(): UseMutationResult<ReponseStockArticle, unknown, VariablesModificationStockSite> {
+export function useModifierStockSite(): UseMutationResult<
+  ReponseStockArticle,
+  unknown,
+  VariablesModificationStockSite
+> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ articleId, siteId, entree }: VariablesModificationStockSite) => modifierStockSite(articleId, siteId, entree),
+    mutationFn: ({ articleId, siteId, entree }: VariablesModificationStockSite) =>
+      modifierStockSite(articleId, siteId, entree),
     onSuccess: (_donnees, variables) => {
-      void queryClient.invalidateQueries({ queryKey: clesPieces.articles.detail(variables.articleId) });
+      void queryClient.invalidateQueries({
+        queryKey: clesPieces.articles.detail(variables.articleId),
+      });
       void queryClient.invalidateQueries({ queryKey: ['pieces', 'stock', 'reapprovisionnement'] });
     },
   });

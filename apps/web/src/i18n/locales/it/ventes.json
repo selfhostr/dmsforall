@@ -1,0 +1,677 @@
+{
+  "titre": "Vendite",
+  "commun": {
+    "titrePage": {
+      "parc": "Parco veicoli in stock",
+      "dossiers": "Pratiche di vendita",
+      "dossierDetail": "Pratica di vendita"
+    },
+    "typeVehicule": {
+      "vn": "Nuovo",
+      "vo": "Usato",
+      "vnLong": "Auto nuova",
+      "voLong": "Auto d'occasione",
+      "tous": "Tutti"
+    },
+    "champs": {
+      "clientAcheteur": "Cliente acquirente",
+      "clientFacture": "Cliente fatturato",
+      "clientConducteur": "Conducente",
+      "vehicule": "Veicolo",
+      "dateLivraisonEstimee": "Data di consegna prevista",
+      "dateLivraisonEffective": "Data di consegna effettiva",
+      "kilometrageDepart": "Chilometraggio alla consegna",
+      "unite": "Unità",
+      "identitePieceType": "Documento d'identità presentato",
+      "referenceContrat": "Riferimento contratto",
+      "organisme": "Istituto"
+    },
+    "unites": {
+      "km": "Chilometri",
+      "mi": "Miglia"
+    },
+    "identitePieceType": {
+      "carteIdentite": "Carta d'identità",
+      "passeport": "Passaporto",
+      "permisConduire": "Licenza di condurre",
+      "titreSejour": "Permesso di soggiorno",
+      "autre": "Altro"
+    },
+    "actions": {
+      "nouveauDossier": "Nuova pratica di vendita",
+      "vendre": "Vendere",
+      "voirDossier": "Visualizzare la pratica di vendita",
+      "assignerVehicule": "Assegnare un veicolo",
+      "creerBonCommande": "Creare l'ordine di acquisto",
+      "creerDevis": "Creare un preventivo",
+      "proposerFinancement": "Proporre un finanziamento",
+      "ajouterReprise": "Aggiungere una permuta"
+    },
+    "nonAssigne": "Nessun veicolo assegnato",
+    "nonRenseigne": "—",
+    "facturePar": "Fatturato a: {nom}",
+    "conducteurLigne": "Conducente: {nom}",
+    "actuel": "Attuale",
+    "chargementCourt": "Caricamento...",
+    "organisme": {
+      "rechercheClientPlaceholder": "Cercare un cliente…",
+      "aucunClientTrouve": "Nessun cliente corrisponde a questa ricerca."
+    }
+  },
+  "stock": {
+    "titre": "Parco veicoli in stock",
+    "filtres": {
+      "q": "Targa, VIN o descrizione…",
+      "statutCommercial": "Stato commerciale",
+      "statutTous": "Tutti gli stati",
+      "typeVehicule": "Tipo",
+      "typeTous": "Tutti i tipi",
+      "provenance": "Provenienza",
+      "provenanceToutes": "Tutte le provenienze",
+      "afficherVendusLivres": "Mostra anche i veicoli venduti/consegnati"
+    },
+    "tri": {
+      "label": "Ordina per",
+      "joursStockDesc": "Da più tempo in stock",
+      "dateEntreeStockDesc": "Ingresso in stock più recente",
+      "dateEntreeStockAsc": "Ingresso in stock meno recente",
+      "prixVenteAsc": "Prezzo di vendita crescente",
+      "prixVenteDesc": "Prezzo di vendita decrescente"
+    },
+    "colonnes": {
+      "vehicule": "Veicolo",
+      "type": "Tipo",
+      "statut": "Stato",
+      "joursStock": "Giorni in stock",
+      "fraisRemiseEtat": "Costi di rimessa a nuovo",
+      "prixVente": "Prezzo di vendita"
+    },
+    "types": {
+      "vn": "Nuovo",
+      "vo": "Usato"
+    },
+    "provenances": {
+      "neuf_constructeur": "Nuovo di fabbrica",
+      "reprise": "Permuta",
+      "achat_particulier": "Acquisto da privato",
+      "achat_professionnel": "Acquisto da professionista",
+      "retour_leasing": "Rientro da leasing",
+      "demonstrateur": "Vettura dimostrativa"
+    },
+    "statuts": {
+      "en_commande": "Ordinato",
+      "disponible": "Disponibile",
+      "reserve": "Riservato",
+      "vendu": "Venduto",
+      "livre": "Consegnato"
+    },
+    "actions": {
+      "mettreAJour": "Aggiornare",
+      "receptionner": "Accettare",
+      "remettreDisponible": "Rendere di nuovo disponibile",
+      "marquerVendu": "Contrassegnare come venduto"
+    },
+    "champs": {
+      "site": "Sede",
+      "provenance": "Provenienza",
+      "statutCommercial": "Stato commerciale",
+      "typeVehicule": "Tipo",
+      "dateEntreeStock": "Data di ingresso in stock",
+      "joursStock": "Giorni in stock",
+      "prixAchat": "Prezzo di acquisto",
+      "fraisRemiseEtatCumules": "Costi di rimessa a nuovo cumulati",
+      "prixVenteAffiche": "Prezzo di vendita esposto",
+      "vendeurPrecedentAssujetti": "Precedente venditore soggetto IVA",
+      "receptionneLe": "Accettato il",
+      "reserveLe": "Riservato il",
+      "venduLe": "Venduto il",
+      "livreLe": "Consegnato il",
+      "motif": "Motivo"
+    },
+    "assujetti": {
+      "oui": "Sì",
+      "non": "No",
+      "nonRenseigne": "Non indicato"
+    },
+    "joursStock": {
+      "libelle": "Giorni in stock",
+      "valeur": "{n, plural, one {# giorno} other {# giorni}}"
+    },
+    "prixVenteAFixer": "da definire",
+    "prixNonFixe": "da definire",
+    "miseEnStock": {
+      "titre": "Immettere in stock",
+      "champs": {
+        "site": "Sede",
+        "provenance": "Provenienza",
+        "dateEntreeStock": "Data di ingresso in stock",
+        "prixAchat": "Prezzo di acquisto",
+        "prixVenteAffiche": "Prezzo di vendita esposto",
+        "vendeurPrecedentAssujetti": "Precedente venditore soggetto IVA"
+      },
+      "bouton": "Immettere in stock"
+    },
+    "modification": {
+      "titre": "Modificare la scheda costi",
+      "bouton": "Salvare"
+    },
+    "confirmations": {
+      "receptionnerTitre": "Accettare questo veicolo?",
+      "receptionnerDescription": "Il veicolo passa allo stato «Disponibile».",
+      "remettreDisponibleTitre": "Rendere di nuovo disponibile questo veicolo?",
+      "remettreDisponibleMotifLabel": "Motivo",
+      "remettreDisponibleMotifPlaceholder": "Spiegare perché questo veicolo torna disponibile…"
+    },
+    "blocVente": {
+      "titre": "Vendita",
+      "provenance": "Provenienza",
+      "prixAchat": "Prezzo di acquisto",
+      "fraisRemiseEtat": "Costi di rimessa a nuovo",
+      "prixVente": "Prezzo di vendita esposto"
+    },
+    "liste": {
+      "titre": "Parco veicoli in stock",
+      "vide": "Nessun veicolo in stock.",
+      "rechercherPlaceholder": "Targa, VIN o descrizione…",
+      "erreur": {
+        "titre": "Impossibile visualizzare il parco veicoli in stock"
+      },
+      "colonnes": {
+        "vehicule": "Veicolo",
+        "type": "Tipo",
+        "provenance": "Provenienza",
+        "statut": "Stato",
+        "joursStock": "Giorni in stock",
+        "prixVente": "Prezzo di vendita"
+      },
+      "actions": {
+        "ficheCommerciale": "Scheda commerciale",
+        "mettreEnStock": "Immettere in stock"
+      },
+      "tri": {
+        "label": "Ordina per",
+        "dateEntreeStockDesc": "Ingresso in stock più recente",
+        "dateEntreeStockAsc": "Ingresso in stock meno recente",
+        "joursStockDesc": "Da più tempo in stock",
+        "prixVenteAsc": "Prezzo di vendita crescente",
+        "prixVenteDesc": "Prezzo di vendita decrescente"
+      }
+    },
+    "fiche": {
+      "titre": "Scheda commerciale",
+      "erreur": {
+        "titre": "Impossibile visualizzare questa scheda"
+      },
+      "voirFicheVehicule": "Visualizzare la scheda veicolo",
+      "actions": {
+        "mettreAJour": "Aggiornare",
+        "receptionner": "Accettare",
+        "remettreDisponible": "Rendere di nuovo disponibile",
+        "marquerVendu": "Contrassegnare come venduto"
+      },
+      "donneesCommerciales": "Dati commerciali",
+      "historique": "Cronologia",
+      "creeLe": "Creato il",
+      "modifieLe": "Modificato il",
+      "prixAchatVerrouille": "Il prezzo di acquisto non può più essere modificato dopo la vendita.",
+      "remettreDisponibleDescription": "Il veicolo torna disponibile alla vendita.",
+      "receptionnerDescription": "Il veicolo passa allo stato «Disponibile».",
+      "marquerVenduDescription": "Il veicolo passa allo stato «Venduto»."
+    },
+    "entree": {
+      "titre": "Immettere in stock",
+      "rechercherVehiculePlaceholder": "Targa, VIN o descrizione…",
+      "vehiculeIntrouvable": "Veicolo introvabile?",
+      "creerVehicule": "Creare una scheda veicolo",
+      "aucunVehiculeTitre": "Nessun veicolo trovato",
+      "aucunVehiculeDescription": "Nessun veicolo corrisponde a questa ricerca.",
+      "choisirVehicule": "Scegliere",
+      "changerVehicule": "Cambiare veicolo",
+      "mettreEnStock": "Immettere in stock",
+      "provenanceAutre": "Altra provenienza"
+    },
+    "vide": "Nessun veicolo in stock.",
+    "erreur": {
+      "titre": "Impossibile visualizzare il parco veicoli in stock"
+    },
+    "refus": {
+      "dejaExistant": "Questo veicolo è già in stock."
+    }
+  },
+  "dossier": {
+    "titre": "Pratiche di vendita",
+    "liste": {
+      "titre": "Pratiche di vendita",
+      "nouveauDossier": "Nuova pratica di vendita",
+      "vide": "Nessuna pratica di vendita.",
+      "vehiculeNonAssigne": "— non assegnato",
+      "erreur": {
+        "titre": "Impossibile visualizzare le pratiche di vendita"
+      },
+      "colonnes": {
+        "client": "Cliente",
+        "vehicule": "Veicolo",
+        "prix": "Prezzo",
+        "statut": "Stato",
+        "dateLivraisonEstimee": "Consegna prevista"
+      },
+      "filtres": {
+        "q": "Nome del cliente o targa…",
+        "statut": "Stato",
+        "statutLabel": "Stato",
+        "statutActifs": "Pratiche attive",
+        "statutTous": "Tutti gli stati",
+        "afficherTermines": "Mostra anche le pratiche chiuse, annullate o abbandonate"
+      },
+      "tri": {
+        "label": "Ordina per",
+        "prospectionLeDesc": "Più recenti",
+        "prospectionLeAsc": "Più vecchie",
+        "dateLivraisonEstimeeAsc": "Consegna più vicina",
+        "dateLivraisonEstimeeDesc": "Consegna più lontana"
+      }
+    },
+    "creation": {
+      "titre": "Nuova pratica di vendita",
+      "aideVehicule": "Facoltativo — il veicolo può essere assegnato in seguito.",
+      "aideClientFacture": "Facoltativo — per impostazione predefinita, il cliente acquirente.",
+      "aideConducteur": "Facoltativo — per impostazione predefinita, il cliente acquirente.",
+      "bouton": "Creare la pratica"
+    },
+    "nouveau": {
+      "titre": "Nuova pratica di vendita",
+      "creer": "Creare la pratica",
+      "dateLivraisonEstimee": "Data di consegna prevista",
+      "siteManquant": {
+        "titre": "Nessuna sede selezionata",
+        "description": "Scegliere una sede per creare una pratica di vendita."
+      },
+      "client": {
+        "titre": "Cliente acquirente",
+        "rechercherPlaceholder": "Nome del cliente…",
+        "aucun": "Nessun cliente corrisponde a questa ricerca."
+      },
+      "vehicule": {
+        "titre": "Veicolo",
+        "rechercherPlaceholder": "Targa, VIN o descrizione…",
+        "aucun": "Nessun veicolo in stock corrisponde a questa ricerca."
+      },
+      "clientFacture": {
+        "activer": "Fatturare a un altro cliente",
+        "titre": "Cliente fatturato"
+      },
+      "clientConducteur": {
+        "activer": "Conducente diverso dall'acquirente",
+        "titre": "Conducente"
+      }
+    },
+    "fiche": {
+      "titre": "Pratica di vendita",
+      "erreur": {
+        "titre": "Impossibile visualizzare questa pratica"
+      },
+      "factureA": "Fatturato a: {nom}",
+      "conducteur": "Conducente: {nom}",
+      "aucunVehicule": "Nessun veicolo assegnato",
+      "assignerVehicule": "Assegnare un veicolo",
+      "prix": "Prezzo",
+      "prixAucun": "Prezzo non definito",
+      "prixIndicatif": "Indicativo (preventivo): {montant}",
+      "dateLivraisonEstimee": "Data di consegna prevista",
+      "modifier": {
+        "titre": "Modificare la pratica",
+        "vehicule": "Veicolo",
+        "vehiculeVerrouille": "Il veicolo non può più essere modificato in questa fase."
+      }
+    },
+    "transitions": {
+      "engager": "Confermare l'ordine",
+      "preparer": "Avviare la preparazione",
+      "marquerPretALivrer": "Contrassegnare come pronto per la consegna",
+      "livrer": "Consegnare",
+      "cloturer": "Chiudere",
+      "annuler": "Annullare",
+      "abandonner": "Abbandonare",
+      "confirmer": "Confermare",
+      "aucuneActionDisponible": "Nessuna azione disponibile al momento.",
+      "bonCommande": "Ordine di acquisto",
+      "aucunBonCommande": "Nessun ordine di acquisto per questa pratica",
+      "identitePieceType": "Documento d'identità presentato",
+      "identitePieceTypes": {
+        "carte_identite": "Carta d'identità",
+        "passeport": "Passaporto",
+        "permis_conduire": "Licenza di condurre",
+        "titre_sejour": "Permesso di soggiorno",
+        "autre": "Altro"
+      },
+      "engagerConfirmation": "Il veicolo sarà riservato.",
+      "engagerConfirmationReprise": "La permuta sarà confermata.",
+      "confirmerAction": "Confermare",
+      "cloturerDescription": "Puramente amministrativo — non viene effettuato alcun controllo supplementare.",
+      "dateLivraisonEffective": "Data di consegna effettiva",
+      "kilometrageDepart": "Chilometraggio alla consegna",
+      "livrerConfirmationDetention": "Il possesso del veicolo passa a {nom}.",
+      "livrerConfirmationGarantie": "La garanzia del costruttore inizia da questa data.",
+      "livrerConfirmationReprise": "Il veicolo permutato entrerà nel parco in stock al valore negoziato ({montant}).",
+      "motif": "Motivo",
+      "motifRequis": "Il motivo è obbligatorio.",
+      "annulerConfirmationVehicule": "Se un veicolo è riservato per questa pratica, torna disponibile alla vendita."
+    },
+    "statuts": {
+      "prospection": "In prospezione",
+      "engage": "Ordine confermato",
+      "enPreparation": "In preparazione",
+      "pretALivrer": "Pronto per la consegna",
+      "livre": "Consegnato",
+      "clos": "Chiuso",
+      "annule": "Annullato",
+      "abandonne": "Abbandonato"
+    },
+    "actions": {
+      "modifier": "Modificare",
+      "engager": "Confermare l'ordine",
+      "preparer": "Avviare la preparazione",
+      "marquerPretALivrer": "Contrassegnare come pronto per la consegna",
+      "livrer": "Consegnare",
+      "cloturer": "Chiudere",
+      "annuler": "Annullare",
+      "abandonner": "Abbandonare"
+    },
+    "dates": {
+      "prospectionLe": "In prospezione",
+      "engageLe": "Ordine confermato il",
+      "enPreparationLe": "In preparazione dal",
+      "pretALivrerLe": "Pronto per la consegna dal",
+      "livreLe": "Consegnato il",
+      "closLe": "Chiuso il"
+    },
+    "motifCloture": "Motivo: {motif}",
+    "enTete": {
+      "vehiculeNonAssigne": "Nessun veicolo assegnato",
+      "prixIndicatifDevis": "Indicativo (preventivo)",
+      "prixNonDefini": "Prezzo non definito",
+      "livraisonEstimee": "Consegna prevista: {date}"
+    },
+    "prochaineEtape": {
+      "titre": "Prossima tappa",
+      "conditions": {
+        "vehiculeAssigne": "Veicolo assegnato",
+        "identiteVerifiee": "Identità verificata",
+        "repriseNegociee": "Permuta negoziata",
+        "financementConfirme": "Finanziamento confermato",
+        "expertiseAJour": "MFK aggiornata",
+        "documentsReunis": "Documenti di consegna riuniti"
+      },
+      "aFaire": {
+        "assignerVehicule": "Chi: voi — assegnare un veicolo",
+        "verifierIdentite": "Chi: voi — verificare un documento d'identità",
+        "negocierReprise": "Chi: voi — negoziare la permuta prima della firma",
+        "financementEnAttente": "Chi: {organisme} — finanziamento in attesa",
+        "financementEnAttenteGenerique": "Chi: l'istituto di finanziamento — finanziamento in attesa",
+        "verifierExpertise": "Chi: l'officina — verificare la MFK",
+        "documentsManquants": "{n, plural, one {Chi: # documento mancante} other {Chi: # documenti mancanti}}"
+      },
+      "resteAFaireCloturer": "Da fare: chiudere la pratica"
+    },
+    "actionsPanneau": {
+      "engager": {
+        "titre": "Confermare l'ordine",
+        "champBonCommande": "Ordine di acquisto",
+        "aucunBonCommande": "Nessun ordine di acquisto per questa pratica",
+        "champIdentite": "Documento d'identità presentato",
+        "consequenceVehicule": "Il veicolo sarà riservato.",
+        "consequenceReprise": "La permuta sarà confermata."
+      },
+      "preparer": {
+        "titre": "Avviare la preparazione",
+        "description": "Confermare l'avvio della preparazione del veicolo."
+      },
+      "marquerPretALivrer": {
+        "titre": "Contrassegnare come pronto per la consegna",
+        "description": "Confermare che la pratica è pronta per la consegna."
+      },
+      "cloturer": {
+        "titre": "Chiudere la pratica",
+        "description": "Puramente amministrativo — non viene effettuato alcun controllo supplementare."
+      },
+      "annuler": {
+        "titre": "Annullare la pratica",
+        "motifLabel": "Motivo dell'annullamento",
+        "motifPlaceholder": "Spiegare perché questa pratica viene annullata…",
+        "consequenceVehicule": "Se un veicolo è riservato per questa pratica, torna disponibile alla vendita."
+      },
+      "abandonner": {
+        "titre": "Abbandonare la pratica",
+        "motifLabel": "Motivo dell'abbandono",
+        "motifPlaceholder": "Spiegare perché questa pratica viene abbandonata…",
+        "consequenceVehicule": "Se un veicolo è riservato per questa pratica, torna disponibile alla vendita."
+      }
+    },
+    "livraison": {
+      "titre": "Consegnare il veicolo",
+      "champDateEffective": "Data di consegna effettiva",
+      "champKilometrageDepart": "Chilometraggio alla consegna",
+      "champUnite": "Unità",
+      "consequenceDetention": "Il possesso del veicolo passa a {nom}.",
+      "consequenceGarantie": "La garanzia del costruttore inizia da questa data.",
+      "consequenceReprise": "Il veicolo permutato entrerà nel parco in stock al valore negoziato ({montant})."
+    },
+    "documents": {
+      "titre": "Documenti",
+      "vide": "Nessun documento per questa pratica.",
+      "tronques": "Elenco limitato ai primi 50 documenti",
+      "solde": "Saldo: {montant}",
+      "statuts": {
+        "brouillon": "Bozza",
+        "emis": "Emessa",
+        "accepte": "Accettata",
+        "refuse": "Rifiutata",
+        "expire": "Scaduta",
+        "remplace": "Sostituita",
+        "transforme": "Trasformata",
+        "annule": "Annullata",
+        "annuleParAvoir": "Annullata da nota di credito",
+        "abandonne": "Abbandonata"
+      },
+      "colonnes": {
+        "type": "Tipo",
+        "numero": "Numero",
+        "statut": "Stato",
+        "montantTtc": "Importo IVA inclusa",
+        "solde": "Saldo",
+        "date": "Data"
+      }
+    },
+    "documentsRequis": {
+      "titre": "Documenti richiesti",
+      "vide": "Nessun documento richiesto per questa pratica.",
+      "fourniLe": "Fornito il {date}",
+      "erreurLigne": "Impossibile salvare — riprovare"
+    },
+    "erreur": {
+      "titre": "Impossibile visualizzare questa pratica",
+      "titreSection": "Impossibile caricare questa sezione"
+    },
+    "refus": {
+      "vehiculeManquant": "Nessun veicolo è associato a questa pratica.",
+      "vehiculeIndisponible": "Questo veicolo non è più disponibile — un'altra pratica lo ha riservato nel frattempo.",
+      "financementNonConfirme": "Il finanziamento deve essere confermato prima di contrassegnare la pratica come pronta per la consegna.",
+      "expertiseRequise": "Una MFK richiesta deve essere risolta prima della consegna.",
+      "livraisonIncomplete": "Non tutti gli elementi richiesti per la consegna sono riuniti.",
+      "annulationImpossible": "Questa pratica non può più essere annullata o abbandonata in questa fase.",
+      "transitionInterdite": "Questa transizione non è consentita nello stato attuale della pratica."
+    }
+  },
+  "reprise": {
+    "titre": "Permuta",
+    "absente": {
+      "titre": "Nessuna permuta per questa pratica"
+    },
+    "aucuneReprise": "Nessuna permuta per questa pratica.",
+    "valeurEstimee": "Valore stimato",
+    "valeurNegociee": "Valore negoziato",
+    "enNegociation": "In fase di negoziazione",
+    "ecart": "Differenza: {montant}",
+    "detteResiduelle": "Debito residuo di finanziamento: {montant}",
+    "detteConditionSuspensive": "Condizione sospensiva della permuta.",
+    "motif": "Motivo",
+    "motifRequis": "Il motivo è obbligatorio.",
+    "motifRefusAffiche": "Motivo del rifiuto: {motif}",
+    "negociation": {
+      "avertissement": "Questo valore sarà comunicato al cliente e dedotto dal prezzo di acquisto.",
+      "valeurNegociee": "Nuovo valore negoziato"
+    },
+    "confirmation": {
+      "avertissement": "Correzione eccezionale — normalmente attivata automaticamente alla firma dell'ordine di acquisto."
+    },
+    "transitions": {
+      "negocier": "Negoziare",
+      "confirmer": "Confermare",
+      "refuser": "Rifiutare"
+    },
+    "creation": {
+      "titre": "Aggiungere una permuta",
+      "description": "Il veicolo permutato entrerà nel parco in stock alla consegna, al suo valore negoziato.",
+      "champVehiculeRepris": "Veicolo permutato",
+      "champVehicule": "Veicolo permutato",
+      "champVehiculePlaceholder": "Targa o descrizione…",
+      "champVehiculeIndication": "Digitare una targa o una descrizione per cercare il veicolo permutato.",
+      "aucunVehiculeTrouve": "Nessun veicolo corrisponde a questa ricerca.",
+      "vehiculeSelectionne": "Veicolo selezionato: {designation}",
+      "champValeurEstimee": "Valore stimato",
+      "valeurEstimee": "Valore stimato",
+      "champDetteResiduelle": "Debito residuo di finanziamento",
+      "champOrganisme": "Istituto di finanziamento",
+      "aideOrganisme": "Cercare un cliente esistente o inserire un nome.",
+      "detteActive": "Debito residuo di finanziamento su questo veicolo",
+      "detteMontant": "Importo del debito",
+      "detteOrganisme": "Istituto",
+      "detteOrganismeModeClient": "Cliente esistente",
+      "detteOrganismeModeTexteLibre": "Testo libero",
+      "detteOrganismeRecherche": "Cercare l'istituto",
+      "detteOrganismeTexte": "Nome dell'istituto",
+      "bouton": "Salvare"
+    },
+    "statuts": {
+      "estimee": "Stimata",
+      "negociee": "Negoziata",
+      "confirmee": "Confermata",
+      "refusee": "Rifiutata"
+    },
+    "actions": {
+      "creer": "Aggiungere la permuta",
+      "ajouter": "Aggiungere una permuta",
+      "modifier": "Rivedere la stima",
+      "negocier": "Negoziare",
+      "confirmer": "Confermare",
+      "refuser": "Rifiutare",
+      "confirmerAction": "Confermare",
+      "correctionMenu": "Azioni di correzione"
+    },
+    "champs": {
+      "valeurEstimee": "Valore stimato",
+      "valeurNegociee": "Valore negoziato",
+      "enNegociation": "In fase di negoziazione",
+      "ecart": "Differenza / gesto commerciale",
+      "detteResiduelle": "Debito residuo di finanziamento",
+      "detteAide": "Condizione sospensiva della permuta.",
+      "organisme": "Istituto"
+    },
+    "modification": {
+      "titre": "Rivedere la stima",
+      "bouton": "Salvare"
+    },
+    "negocier": {
+      "titre": "Negoziare la permuta",
+      "champValeurNegociee": "Nuovo valore negoziato",
+      "aide": "Questo valore sarà comunicato al cliente e dedotto dal prezzo di acquisto."
+    },
+    "confirmer": {
+      "titre": "Confermare la permuta",
+      "aide": "Correzione eccezionale — normalmente attivata automaticamente alla firma dell'ordine di acquisto.",
+      "motifLabel": "Motivo"
+    },
+    "refuser": {
+      "titre": "Rifiutare la permuta",
+      "motifLabel": "Motivo del rifiuto",
+      "motifPlaceholder": "Spiegare perché questa permuta viene rifiutata…"
+    },
+    "motifRefus": "Motivo del rifiuto: {motif}",
+    "erreur": {
+      "titre": "Impossibile visualizzare questa permuta"
+    },
+    "refus": {
+      "valeurNegocieeRequise": "La permuta deve essere negoziata prima della conferma.",
+      "dejaExistante": "Esiste già una permuta per questa pratica."
+    }
+  },
+  "financement": {
+    "titre": "Finanziamento",
+    "actuel": "Attuale",
+    "absent": "Nessun finanziamento in corso.",
+    "aucunFinancement": "Nessun tentativo di finanziamento registrato.",
+    "historique": {
+      "titre": "Cronologia",
+      "vide": "Nessun tentativo di finanziamento registrato."
+    },
+    "tronque": "Cronologia limitata agli ultimi 20 tentativi",
+    "historiqueTronque": "Cronologia limitata agli ultimi 20 tentativi",
+    "motif": "Motivo",
+    "motifRequis": "Il motivo è obbligatorio.",
+    "motifRefusAffiche": "Motivo del rifiuto: {motif}",
+    "types": {
+      "comptant": "Contanti",
+      "credit": "Credito",
+      "leasing": "Leasing"
+    },
+    "statuts": {
+      "enAttente": "In attesa",
+      "confirme": "Confermato",
+      "refuse": "Rifiutato"
+    },
+    "actions": {
+      "confirmer": "Confermare",
+      "refuser": "Rifiutare",
+      "proposer": "Proporre un finanziamento",
+      "confirmerAction": "Confermare"
+    },
+    "transitions": {
+      "confirmer": "Confermare",
+      "refuser": "Rifiutare"
+    },
+    "confirmation": {
+      "avertissement": "Confermare che questo finanziamento è concesso."
+    },
+    "proposer": {
+      "titre": "Proporre un finanziamento",
+      "champType": "Tipo di finanziamento",
+      "champOrganisme": "Istituto",
+      "champReferenceContrat": "Riferimento contratto",
+      "aideComptant": "Per un pagamento in contanti non è necessaria alcuna ulteriore conferma.",
+      "bouton": "Proporre"
+    },
+    "creation": {
+      "titre": "Proporre un finanziamento",
+      "description": "Aggiungere una nuova proposta di finanziamento per questa pratica.",
+      "champType": "Tipo di finanziamento",
+      "champOrganisme": "Istituto",
+      "champReferenceContrat": "Riferimento contratto",
+      "comptantAucuneConfirmation": "Per un pagamento in contanti non è necessaria alcuna ulteriore conferma."
+    },
+    "confirmer": {
+      "titre": "Confermare questo finanziamento"
+    },
+    "refuser": {
+      "titre": "Rifiutare questo finanziamento",
+      "motifLabel": "Motivo del rifiuto",
+      "motifPlaceholder": "Spiegare perché questo finanziamento viene rifiutato…"
+    },
+    "motifRefus": "Motivo del rifiuto: {motif}",
+    "erreur": {
+      "titre": "Impossibile visualizzare il finanziamento"
+    },
+    "refus": {
+      "nonConfirme": "Il finanziamento deve essere confermato prima di proseguire."
+    }
+  }
+}

@@ -32,10 +32,20 @@ const ICONES: Readonly<Record<TypeDocumentVente, LucideIcon>> = {
 export function BadgeTypeDocument({ type, nature, className }: Props) {
   const { t } = useTranslation('facturation');
   const Icone = ICONES[type];
-  const cleLibelle = type === 'facture' && nature === 'acompte' ? 'factureAcompte' : type === 'bon_commande' ? 'bonCommande' : type;
+  const cleLibelle =
+    type === 'facture' && nature === 'acompte'
+      ? 'factureAcompte'
+      : type === 'bon_commande'
+        ? 'bonCommande'
+        : type;
 
   return (
-    <span className={cn('inline-flex items-center gap-1.5 texte-corps text-muted-foreground', className)}>
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 texte-corps text-muted-foreground',
+        className,
+      )}
+    >
       <Icone aria-hidden className="h-4 w-4 shrink-0" />
       {t(`facturation:document.type.${cleLibelle}`)}
     </span>

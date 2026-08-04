@@ -9,7 +9,11 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { useArticle } from '@/hooks/pieces/useArticle';
-import { useMarquerObsoleteArticle, useDesactiverArticle, useReactiverArticle } from '@/hooks/pieces/useTransitionsArticle';
+import {
+  useMarquerObsoleteArticle,
+  useDesactiverArticle,
+  useReactiverArticle,
+} from '@/hooks/pieces/useTransitionsArticle';
 import { useSession } from '@/hooks/useSession';
 
 import { peutCreerMouvement, peutEcrireArticle } from './droits';
@@ -78,7 +82,8 @@ export function EcranFicheArticle() {
     }
   }
 
-  const enCoursTransition = marquerObsolete.isPending || desactiver.isPending || reactiver.isPending;
+  const enCoursTransition =
+    marquerObsolete.isPending || desactiver.isPending || reactiver.isPending;
   const erreurTransition = marquerObsolete.error ?? desactiver.error ?? reactiver.error;
 
   return (
@@ -102,15 +107,23 @@ export function EcranFicheArticle() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="texte-titre-section">{t('pieces:articles.references.titre')}</CardTitle>
+          <CardTitle className="texte-titre-section">
+            {t('pieces:articles.references.titre')}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {article.references.length === 0 ? (
-            <EtatVide titre={t('pieces:articles.references.titre')} description={t('pieces:articles.vide')} />
+            <EtatVide
+              titre={t('pieces:articles.references.titre')}
+              description={t('pieces:articles.vide')}
+            />
           ) : (
             <ul className="flex flex-col gap-2">
               {article.references.map((reference) => (
-                <li key={reference.id} className="flex items-center justify-between gap-3 texte-corps">
+                <li
+                  key={reference.id}
+                  className="flex items-center justify-between gap-3 texte-corps"
+                >
                   <span className="font-mono">{reference.reference}</span>
                   <span className="texte-libelle text-muted-foreground">
                     {t(`pieces:articles.references.types.${reference.type}`)}
@@ -122,7 +135,11 @@ export function EcranFicheArticle() {
         </CardContent>
       </Card>
 
-      <PanneauStockArticle articleId={article.id} stocksResume={article.stocksResume} sites={sites} />
+      <PanneauStockArticle
+        articleId={article.id}
+        stocksResume={article.stocksResume}
+        sites={sites}
+      />
 
       <PanneauMouvementsArticle
         articleId={article.id}
@@ -131,7 +148,13 @@ export function EcranFicheArticle() {
         siteParDefaut={site}
       />
 
-      {peutEcrire ? <FormulaireArticle ouvert={formulaireOuvert} onOuvertChange={setFormulaireOuvert} article={article} /> : null}
+      {peutEcrire ? (
+        <FormulaireArticle
+          ouvert={formulaireOuvert}
+          onOuvertChange={setFormulaireOuvert}
+          article={article}
+        />
+      ) : null}
 
       <AvertissementConfirmable
         ouvert={confirmation !== null}
@@ -139,7 +162,9 @@ export function EcranFicheArticle() {
           if (!ouvert) setConfirmation(null);
         }}
         titre={confirmation ? t(`pieces:articles.confirmations.${confirmation}Titre`) : ''}
-        description={confirmation ? t(`pieces:articles.confirmations.${confirmation}Description`) : ''}
+        description={
+          confirmation ? t(`pieces:articles.confirmations.${confirmation}Description`) : ''
+        }
         libelleConfirmation={confirmation ? t(`pieces:articles.actions.${confirmation}`) : ''}
         onConfirmer={confirmer}
         enCours={enCoursTransition}

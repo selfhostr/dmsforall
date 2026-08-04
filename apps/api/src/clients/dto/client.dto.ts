@@ -16,7 +16,10 @@ export class ClientDto implements ReponseClient {
   @ApiProperty({ format: 'uuid' })
   readonly id!: string;
 
-  @ApiProperty({ example: 'CL-000123', description: 'Numéro continu par tenant, jamais réutilisé (RM-11).' })
+  @ApiProperty({
+    example: 'CL-000123',
+    description: 'Numéro continu par tenant, jamais réutilisé (RM-11).',
+  })
   readonly numeroClient!: string;
 
   @ApiProperty({ enum: TYPES_CLIENT, description: 'Immuable après création (RM-01).' })
@@ -37,7 +40,9 @@ export class ClientDto implements ReponseClient {
   @ApiProperty({ type: String, nullable: true })
   readonly raisonSociale!: string | null;
 
-  @ApiProperty({ description: 'Rendu d’affichage calculé par le serveur (raisonSociale, ou nom prenom).' })
+  @ApiProperty({
+    description: 'Rendu d’affichage calculé par le serveur (raisonSociale, ou nom prenom).',
+  })
   readonly nomAffiche!: string;
 
   @ApiProperty({ type: String, nullable: true, example: 'CHE-123.456.789' })
@@ -61,20 +66,30 @@ export class ClientDto implements ReponseClient {
   @ApiProperty({ type: String, format: 'uuid', nullable: true })
   readonly groupeId!: string | null;
 
-  @ApiProperty({ type: String, format: 'uuid', nullable: true, description: 'Renseigné sur la fiche ABSORBÉE (RM-06, lot 2).' })
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description: 'Renseigné sur la fiche ABSORBÉE (RM-06, lot 2).',
+  })
   readonly fusionneVersClientId!: string | null;
 
   @ApiProperty({ type: String, nullable: true })
   readonly referenceExterne!: string | null;
 
-  @ApiProperty({ type: String, format: 'date-time', nullable: true, description: 'Dérivé du dernier OR ouvert pour ce client.' })
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    description: 'Dérivé du dernier OR ouvert pour ce client.',
+  })
   readonly dernierPassageLe!: string | null;
 
   @ApiProperty({
     type: () => [ClientNoteDto],
     description:
       "Notes de nature `alerte` UNIQUEMENT (RM-13) — affichée à l'ouverture de la fiche, au RDV " +
-      "et à la réception. Les notes `interne` ne sortent JAMAIS ici, voir GET .../notes.",
+      'et à la réception. Les notes `interne` ne sortent JAMAIS ici, voir GET .../notes.',
   })
   readonly notesAlerte!: readonly ClientNoteDto[];
 
@@ -107,20 +122,30 @@ export class ClientResumeDto implements ClientResume {
   @ApiProperty()
   readonly poObligatoire!: boolean;
 
-  @ApiProperty({ type: String, nullable: true, description: 'Colonne directe de la fiche client — désambiguïsation comptoir.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Colonne directe de la fiche client — désambiguïsation comptoir.',
+  })
   readonly telephone!: string | null;
 
   @ApiProperty({
     type: String,
     nullable: true,
-    description: "Localité de l'adresse PRINCIPALE active du client. `null` si aucune adresse (fiche fraîche, cas normal).",
+    description:
+      "Localité de l'adresse PRINCIPALE active du client. `null` si aucune adresse (fiche fraîche, cas normal).",
   })
   readonly localite!: string | null;
 
   @ApiProperty({ description: 'Véhicules actuellement détenus (détentions ouvertes).' })
   readonly nombreVehicules!: number;
 
-  @ApiProperty({ type: String, format: 'date-time', nullable: true, description: 'Dérivé du dernier OR ouvert pour ce client.' })
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    description: 'Dérivé du dernier OR ouvert pour ce client.',
+  })
   readonly dernierPassageLe!: string | null;
 }
 
@@ -128,7 +153,11 @@ export class PageClientResumeDto implements PageCurseur<ClientResumeDto> {
   @ApiProperty({ type: () => [ClientResumeDto] })
   readonly donnees!: readonly ClientResumeDto[];
 
-  @ApiProperty({ type: String, nullable: true, description: 'Opaque base64url ; null = fin de liste.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Opaque base64url ; null = fin de liste.',
+  })
   readonly curseurSuivant!: string | null;
 
   @ApiProperty({ example: 50 })

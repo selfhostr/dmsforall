@@ -14,10 +14,22 @@ import {
 import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { useCreerPrestation } from '@/hooks/parametrage/useCreerPrestation';
 import { useModifierPrestation } from '@/hooks/parametrage/useModifierPrestation';
@@ -49,7 +61,9 @@ const VALEURS_VIDES: EntreeCreationPrestation = {
   prixCentimes: null,
 };
 
-function versValeursFormulaire(prestation: ReponsePrestation | undefined): EntreeCreationPrestation {
+function versValeursFormulaire(
+  prestation: ReponsePrestation | undefined,
+): EntreeCreationPrestation {
   if (!prestation) return VALEURS_VIDES;
   return {
     code: prestation.code,
@@ -72,7 +86,12 @@ const AUCUN = '__aucun__';
  * TVA COMPRISE (RF-40) : `prixCentimes` est ce que le garage annonce au comptoir, jamais un
  * montant hors taxe à recalculer.
  */
-export function DialoguePrestation({ ouvert, onOuvertChange, prestation, codesTauxHoraires }: Props) {
+export function DialoguePrestation({
+  ouvert,
+  onOuvertChange,
+  prestation,
+  codesTauxHoraires,
+}: Props) {
   const { t } = useTranslation(['parametrage', 'commun', 'validation', 'erreurs']);
   const estModification = prestation !== undefined;
   const creer = useCreerPrestation();
@@ -123,33 +142,50 @@ export function DialoguePrestation({ ouvert, onOuvertChange, prestation, codesTa
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {estModification ? t('parametrage:referentiels.prestations.modifier') : t('parametrage:referentiels.prestations.nouvelle')}
+            {estModification
+              ? t('parametrage:referentiels.prestations.modifier')
+              : t('parametrage:referentiels.prestations.nouvelle')}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={soumettre} noValidate className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pr-code">{t('parametrage:referentiels.prestations.champs.code')}</Label>
+              <Label htmlFor="pr-code">
+                {t('parametrage:referentiels.prestations.champs.code')}
+              </Label>
               <Input
                 id="pr-code"
                 readOnly={estModification || enCours}
                 aria-invalid={form.formState.errors.code ? true : undefined}
                 {...form.register('code')}
               />
-              {form.formState.errors.code ? <p className="texte-libelle text-destructive">{t('validation:requis')}</p> : null}
+              {form.formState.errors.code ? (
+                <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+              ) : null}
               {estModification ? (
-                <p className="texte-libelle text-muted-foreground">{t('parametrage:referentiels.prestations.codeVerrouille')}</p>
+                <p className="texte-libelle text-muted-foreground">
+                  {t('parametrage:referentiels.prestations.codeVerrouille')}
+                </p>
               ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pr-type">{t('parametrage:referentiels.prestations.champs.typeLigne')}</Label>
+              <Label htmlFor="pr-type">
+                {t('parametrage:referentiels.prestations.champs.typeLigne')}
+              </Label>
               <Controller
                 control={form.control}
                 name="typeLigne"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={(valeur) => field.onChange(valeur as TypeLigneOr)} disabled={enCours}>
-                    <SelectTrigger id="pr-type" aria-label={t('parametrage:referentiels.prestations.champs.typeLigne')}>
+                  <Select
+                    value={field.value}
+                    onValueChange={(valeur) => field.onChange(valeur as TypeLigneOr)}
+                    disabled={enCours}
+                  >
+                    <SelectTrigger
+                      id="pr-type"
+                      aria-label={t('parametrage:referentiels.prestations.champs.typeLigne')}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -177,14 +213,18 @@ export function DialoguePrestation({ ouvert, onOuvertChange, prestation, codesTa
                 aria-invalid={form.formState.errors.designationFr ? true : undefined}
                 {...form.register('designationFr')}
               />
-              {form.formState.errors.designationFr ? <p className="texte-libelle text-destructive">{t('validation:requis')}</p> : null}
+              {form.formState.errors.designationFr ? (
+                <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+              ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="pr-designation-de">{t('commun:langues.de')}</Label>
               <Input
                 id="pr-designation-de"
                 readOnly={enCours}
-                {...form.register('designationDe', { setValueAs: (valeur: string) => (valeur === '' ? null : valeur) })}
+                {...form.register('designationDe', {
+                  setValueAs: (valeur: string) => (valeur === '' ? null : valeur),
+                })}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -192,7 +232,9 @@ export function DialoguePrestation({ ouvert, onOuvertChange, prestation, codesTa
               <Input
                 id="pr-designation-it"
                 readOnly={enCours}
-                {...form.register('designationIt', { setValueAs: (valeur: string) => (valeur === '' ? null : valeur) })}
+                {...form.register('designationIt', {
+                  setValueAs: (valeur: string) => (valeur === '' ? null : valeur),
+                })}
               />
             </div>
           </fieldset>
@@ -225,11 +267,15 @@ export function DialoguePrestation({ ouvert, onOuvertChange, prestation, codesTa
               )}
             />
           </div>
-          <p className="-mt-2 texte-libelle text-muted-foreground">{t('parametrage:referentiels.prestations.prixTvaComprise')}</p>
+          <p className="-mt-2 texte-libelle text-muted-foreground">
+            {t('parametrage:referentiels.prestations.prixTvaComprise')}
+          </p>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pr-taux-horaire">{t('parametrage:referentiels.prestations.champs.tauxHoraireCode')}</Label>
+              <Label htmlFor="pr-taux-horaire">
+                {t('parametrage:referentiels.prestations.champs.tauxHoraireCode')}
+              </Label>
               <Controller
                 control={form.control}
                 name="tauxHoraireCode"
@@ -239,11 +285,16 @@ export function DialoguePrestation({ ouvert, onOuvertChange, prestation, codesTa
                     onValueChange={(valeur) => field.onChange(valeur === AUCUN ? null : valeur)}
                     disabled={enCours}
                   >
-                    <SelectTrigger id="pr-taux-horaire" aria-label={t('parametrage:referentiels.prestations.champs.tauxHoraireCode')}>
+                    <SelectTrigger
+                      id="pr-taux-horaire"
+                      aria-label={t('parametrage:referentiels.prestations.champs.tauxHoraireCode')}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={AUCUN}>{t('parametrage:referentiels.prestations.aucunTauxHoraire')}</SelectItem>
+                      <SelectItem value={AUCUN}>
+                        {t('parametrage:referentiels.prestations.aucunTauxHoraire')}
+                      </SelectItem>
                       {codesTauxHoraires.map((code) => (
                         <SelectItem key={code} value={code}>
                           {code}
@@ -255,13 +306,22 @@ export function DialoguePrestation({ ouvert, onOuvertChange, prestation, codesTa
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="pr-tva">{t('parametrage:referentiels.prestations.champs.tauxTva')}</Label>
+              <Label htmlFor="pr-tva">
+                {t('parametrage:referentiels.prestations.champs.tauxTva')}
+              </Label>
               <Controller
                 control={form.control}
                 name="tauxTvaPourmille"
                 render={({ field }) => (
-                  <Select value={String(field.value)} onValueChange={(valeur) => field.onChange(Number(valeur))} disabled={enCours}>
-                    <SelectTrigger id="pr-tva" aria-label={t('parametrage:referentiels.prestations.champs.tauxTva')}>
+                  <Select
+                    value={String(field.value)}
+                    onValueChange={(valeur) => field.onChange(Number(valeur))}
+                    disabled={enCours}
+                  >
+                    <SelectTrigger
+                      id="pr-tva"
+                      aria-label={t('parametrage:referentiels.prestations.champs.tauxTva')}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -279,19 +339,30 @@ export function DialoguePrestation({ ouvert, onOuvertChange, prestation, codesTa
 
           {estModification ? (
             <label className="flex items-center gap-2 texte-corps">
-              <Checkbox checked={actif} onCheckedChange={(coche) => setActif(coche === true)} disabled={enCours} />
+              <Checkbox
+                checked={actif}
+                onCheckedChange={(coche) => setActif(coche === true)}
+                disabled={enCours}
+              />
               {t('parametrage:referentiels.prestations.champs.actif')}
             </label>
           ) : null}
 
           {erreur ? (
             <p className="texte-libelle text-destructive" role="alert">
-              {estConflit ? t('parametrage:referentiels.prestations.erreurCodeExistant') : messageErreur(erreur, t)}
+              {estConflit
+                ? t('parametrage:referentiels.prestations.erreurCodeExistant')
+                : messageErreur(erreur, t)}
             </p>
           ) : null}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOuvertChange(false)} disabled={enCours}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOuvertChange(false)}
+              disabled={enCours}
+            >
               {t('commun:actions.annuler')}
             </Button>
             <Button type="submit" disabled={enCours}>

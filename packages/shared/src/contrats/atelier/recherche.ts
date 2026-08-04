@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { TYPES_RESULTAT_RECHERCHE, type TypeResultatRecherche } from './enums';
+import { schemaListeQuery } from '../filtres';
 
 /**
  * Recherche unifiée (contrats-api-etape-1.md §7.5, D-08).
@@ -61,7 +62,7 @@ export interface ReponseRecherche {
  */
 export const schemaParametresRecherche = z.object({
   q: z.string().trim().min(1).max(120),
-  types: z.array(z.enum(TYPES_RESULTAT_RECHERCHE)).optional(),
+  types: schemaListeQuery(z.enum(TYPES_RESULTAT_RECHERCHE)).optional(),
   limite: z.coerce.number().int().min(1).max(50).default(20),
 });
 

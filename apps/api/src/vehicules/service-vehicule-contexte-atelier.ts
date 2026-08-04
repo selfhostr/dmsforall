@@ -1,5 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { MAX_TRAVAUX_REPORTES_CONTEXTE, type ReponseContexteAtelier, type RoleUtilisateur } from '@dfa/shared';
+import {
+  MAX_TRAVAUX_REPORTES_CONTEXTE,
+  type ReponseContexteAtelier,
+  type RoleUtilisateur,
+} from '@dfa/shared';
 import { JETON_DB, type AccesBase, type ContexteTenant } from '../db';
 import { CollecteurAvertissements } from '../common/avertissements';
 import { Horloge } from '../common/horloge';
@@ -52,7 +56,11 @@ export class ServiceVehiculeContexteAtelier {
     private readonly horloge: Horloge,
   ) {}
 
-  async obtenir(ctx: ContexteTenant, vehiculeId: string, role: RoleUtilisateur): Promise<ReponseContexteAtelier> {
+  async obtenir(
+    ctx: ContexteTenant,
+    vehiculeId: string,
+    role: RoleUtilisateur,
+  ): Promise<ReponseContexteAtelier> {
     return this.acces.enTenant(ctx, async (tx) => {
       const maintenant = this.horloge.maintenant();
       const aujourdHui = jourIso(maintenant);
@@ -62,23 +70,33 @@ export class ServiceVehiculeContexteAtelier {
       // PREMIER pour ne jamais laisser une section suivante fuiter une info avant le contrôle 404.
       const reponseVehicule = await construireReponseVehicule(tx, ctx, vehiculeId, maintenant);
 
-      const [detentionCourante, dernierKm, expertiseRef, campagnesOuvertes, totalTravauxOuverts, travauxOuverts, orOuverts] =
-        await Promise.all([
-          lireDetentionCouranteAvecClient(tx, ctx, vehiculeId),
-          lireDernierKilometrage(tx, ctx, vehiculeId),
-          lireExpertiseReference(tx, ctx, vehiculeId),
-          listerCampagnesOuvertes(tx, ctx, vehiculeId),
-          compterTravauxReportesOuverts(tx, ctx, vehiculeId),
-          listerTravauxReportesOuverts(tx, ctx, vehiculeId, MAX_TRAVAUX_REPORTES_CONTEXTE),
-          listerOrOuverts(tx, ctx, vehiculeId),
-        ]);
+      const [
+        detentionCourante,
+        dernierKm,
+        expertiseRef,
+        campagnesOuvertes,
+        totalTravauxOuverts,
+        travauxOuverts,
+        orOuverts,
+      ] = await Promise.all([
+        lireDetentionCouranteAvecClient(tx, ctx, vehiculeId),
+        lireDernierKilometrage(tx, ctx, vehiculeId),
+        lireExpertiseReference(tx, ctx, vehiculeId),
+        listerCampagnesOuvertes(tx, ctx, vehiculeId),
+        compterTravauxReportesOuverts(tx, ctx, vehiculeId),
+        listerTravauxReportesOuverts(tx, ctx, vehiculeId, MAX_TRAVAUX_REPORTES_CONTEXTE),
+        listerOrOuverts(tx, ctx, vehiculeId),
+      ]);
 
       // Alertes client : dépendent du détenteur courant tout juste résolu ci-dessus — impossible à
       // paralléliser avec le `Promise.all` précédent, mais toujours `listerAlertesClient`, la MÊME
       // fonction qui servirait `GET /clients/{id}/notes?nature=alerte`.
-      const alertesClient = detentionCourante ? await listerAlertesClient(tx, ctx, detentionCourante.client.id) : [];
+      const alertesClient = detentionCourante
+        ? await listerAlertesClient(tx, ctx, detentionCourante.client.id)
+        : [];
 
-      const echue = expertiseRef?.prochaineEcheance != null && expertiseRef.prochaineEcheance < aujourdHui;
+      const echue =
+        expertiseRef?.prochaineEcheance != null && expertiseRef.prochaineEcheance < aujourdHui;
 
       return {
         vehicule: {
@@ -121,7 +139,9 @@ export class ServiceVehiculeContexteAtelier {
               echue,
               // Nombre de jours ENTIERS écoulés depuis l'échéance — `null` tant qu'elle n'est pas
               // dépassée (une échéance due aujourd'hui même n'est pas encore « échue »).
-              joursDepuisEcheance: echue ? joursEntre(expertiseRef.prochaineEcheance as string, aujourdHui) : null,
+              joursDepuisEcheance: echue
+                ? joursEntre(expertiseRef.prochaineEcheance as string, aujourdHui)
+                : null,
             }
           : null,
         garantie: {
@@ -138,8 +158,16 @@ export class ServiceVehiculeContexteAtelier {
           total: totalTravauxOuverts,
           elements: travauxOuverts.map((ligne) => versReponseTravailReporte(ligne, role)),
         },
-        alertesClient: alertesClient.map((note) => ({ id: note.id, nature: 'alerte' as const, texte: note.texte })),
-        ordresReparationOuverts: orOuverts.map((or) => ({ id: or.id, numero: or.numero, statut: or.statut })),
+        alertesClient: alertesClient.map((note) => ({
+          id: note.id,
+          nature: 'alerte' as const,
+          texte: note.texte,
+        })),
+        ordresReparationOuverts: orOuverts.map((or) => ({
+          id: or.id,
+          numero: or.numero,
+          statut: or.statut,
+        })),
         // Réserve la place de l'hôtel à pneus sans engager d'implémentation (§8.1) — voir le
         // commentaire du contrat `ReponseContexteAtelier.depotPneus` dans `@dfa/shared`.
         depotPneus: null,

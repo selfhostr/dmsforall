@@ -26,9 +26,17 @@ function accesFactice(options: {
   readonly ligneUpdate?: schema.LigneParametreSite | undefined;
 }): AccesBase {
   const tx = {
-    select: () => ({ from: () => ({ where: () => Promise.resolve(options.ligneSelect ? [options.ligneSelect] : []) }) }),
+    select: () => ({
+      from: () => ({
+        where: () => Promise.resolve(options.ligneSelect ? [options.ligneSelect] : []),
+      }),
+    }),
     update: () => ({
-      set: () => ({ where: () => ({ returning: () => Promise.resolve(options.ligneUpdate ? [options.ligneUpdate] : []) }) }),
+      set: () => ({
+        where: () => ({
+          returning: () => Promise.resolve(options.ligneUpdate ? [options.ligneUpdate] : []),
+        }),
+      }),
     }),
   };
   return {
@@ -47,14 +55,18 @@ describe('ServiceParametresSite.obtenir', () => {
   });
 
   it('capacite non saisie : null, jamais 0 (§8.5, honnêteté de la barre de charge)', async () => {
-    const service = new ServiceParametresSite(accesFactice({ ligneSelect: ligneBrute({ capaciteHeuresJourCentiemes: null }) }));
+    const service = new ServiceParametresSite(
+      accesFactice({ ligneSelect: ligneBrute({ capaciteHeuresJourCentiemes: null }) }),
+    );
     const dto = await service.obtenir(CTX, SITE_ID);
     expect(dto.capaciteHeuresJourCentiemes).toBeNull();
   });
 
   it('site sans ligne de paramétrage : RESSOURCE_INTROUVABLE', async () => {
     const service = new ServiceParametresSite(accesFactice({ ligneSelect: undefined }));
-    await expect(service.obtenir(CTX, SITE_ID)).rejects.toMatchObject({ code: 'RESSOURCE_INTROUVABLE' });
+    await expect(service.obtenir(CTX, SITE_ID)).rejects.toMatchObject({
+      code: 'RESSOURCE_INTROUVABLE',
+    });
   });
 });
 

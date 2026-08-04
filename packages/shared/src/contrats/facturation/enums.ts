@@ -239,7 +239,13 @@ export type MoyenPaiement = (typeof MOYENS_PAIEMENT)[number];
  * l'invariant `MD-51` (b) — `arrondi`, `escompte`, `perte` et `compensation` soldent un document
  * sans qu'aucun argent supplémentaire ne circule (`CF-05`, `CF-22`).
  */
-export const NATURES_IMPUTATION = ['reglement', 'escompte', 'arrondi', 'perte', 'compensation'] as const;
+export const NATURES_IMPUTATION = [
+  'reglement',
+  'escompte',
+  'arrondi',
+  'perte',
+  'compensation',
+] as const;
 export type NatureImputation = (typeof NATURES_IMPUTATION)[number];
 
 /** `paiement_source` — **GELÉ** (`MD-50`). `manuel` est la seule source produite par l'API de

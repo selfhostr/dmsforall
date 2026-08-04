@@ -1,0 +1,346 @@
+import { ChevronDown } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Link, useParams, useSearchParams } from 'react-router';
+
+import type { StatutCommercialVehicule } from '@dfa/shared';
+import { PROVENANCES_VEHICULE_STOCK } from '@dfa/shared';
+
+import { messageErreur } from '@/api/erreurs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { EtatChargement } from '@/composants/commun/EtatChargement';
+import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
+import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
+import { useSession } from '@/hooks/useSession';
+import {
+  useMarquerVenduVehiculeStock,
+  useReceptionnerVehiculeStock,
+  useRemettreDisponibleVehiculeStock,
+} from '@/hooks/ventes/stock/useTransitionsVehiculeStock';
+import { useVehiculeStock } from '@/hooks/ventes/stock/useVehiculeStock';
+import { formaterDate, formaterMontant } from '@/lib/formats';
+import { chemins } from '@/routes/chemins';
+
+import { DialogueActionAvecMotif } from './_composants/DialogueActionAvecMotif';
+import { FormulaireVehiculeStock } from './_composants/FormulaireVehiculeStock';
+import { peutCorrigerVehiculeStock, peutEcrireVehiculeStock } from './droits';
+
+const VARIANTE_BADGE_STATUT: Record<StatutCommercialVehicule, 'default' | 'secondary' | 'outline'> =
+  {
+    en_commande: 'outline',
+    disponible: 'default',
+    reserve: 'secondary',
+    vendu: 'secondary',
+    livre: 'secondary',
+  };
+
+function texteDate(valeur: string | null): string {
+  return valeur === null ? '—' : formaterDate(valeur);
+}
+
+/**
+ * Fiche COMMERCIALE d'un véhicule en stock (`/ventes/stock/{id}`, `EcranFicheVehiculeStock`) —
+ * DÉCISION DE NAVIGATION déjà actée (voir docs/design-ecrans-ventes.md et le brief de livraison
+ * de cet agent) : `EcranFicheVehicule.tsx` (`/vehicules/{id}`, hors périmètre de cet agent) reste
+ * L'écran unique de la fiche véhicule technique, y compris pour un véhicule en stock, via une
+ * section `BlocVente` future — PAS remplacée ici. Cet écran est donc un COMPLÉMENT, pas un
+ * doublon : il affiche l'identité véhicule en LECTURE SEULE (`IdentiteVehicule`, à partir de
+ * `ReponseVehiculeStock.vehicule`) + toutes les données commerciales/stock (prix, statut,
+ * historique, actions), avec un lien explicite vers la fiche véhicule complète pour tout ce qui
+ * est technique/atelier.
+ *
+ * DÉCISION DE CONCEPTION signalée au rapport de livraison : le sort à terme de cet écran
+ * (fusionné dans `BlocVente` ou maintenu séparé) appartient à la session principale — cet agent
+ * ne pouvait pas trancher sans le périmètre `BlocVente`, confié à un autre travail.
+ *
+ * Une seule requête PRIMAIRE bloque l'écran entier (la fiche stock elle-même) — même
+ * architecture que `EcranFicheArticle`/`EcranFicheVehicule`.
+ */
+export function EcranFicheVehiculeStock() {
+  const { t } = useTranslation(['ventes', 'commun', 'erreurs']);
+  const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const site = searchParams.get('site') ?? undefined;
+  const { data: session } = useSession();
+  const role = session?.utilisateur.role;
+
+  const [formulaireOuvert, setFormulaireOuvert] = useState(false);
+  const [remettreDisponibleOuvert, setRemettreDisponibleOuvert] = useState(false);
+  const [marquerVenduOuvert, setMarquerVenduOuvert] = useState(false);
+  const [confirmationReceptionOuverte, setConfirmationReceptionOuverte] = useState(false);
+
+  const requeteStock = useVehiculeStock(id);
+  const receptionner = useReceptionnerVehiculeStock(id ?? '');
+  const remettreDisponible = useRemettreDisponibleVehiculeStock(id ?? '');
+  const marquerVendu = useMarquerVenduVehiculeStock(id ?? '');
+
+  if (requeteStock.isPending) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <h1 className="sr-only">{t('ventes:stock.fiche.titre')}</h1>
+        <EtatChargement lignes={8} />
+      </div>
+    );
+  }
+
+  if (requeteStock.isError) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <h1 className="sr-only">{t('ventes:stock.fiche.titre')}</h1>
+        <EtatErreur
+          titre={t('ventes:stock.fiche.erreur.titre')}
+          description={messageErreur(requeteStock.error, t)}
+          onReessayer={() => void requeteStock.refetch()}
+        />
+      </div>
+    );
+  }
+
+  const stock = requeteStock.data;
+  const peutEcrire = peutEcrireVehiculeStock(role);
+  const peutCorriger = peutCorrigerVehiculeStock(role);
+
+  const proposeMettreAJour = peutEcrire && stock.actionsDisponibles.includes('mettre_a_jour');
+  const proposeReceptionner = peutEcrire && stock.actionsDisponibles.includes('receptionner');
+  const proposeRemettreDisponible =
+    peutCorriger && stock.actionsDisponibles.includes('remettre_disponible');
+  /** `marquer_vendu` — AJOUTÉ après le premier gel de `ACTIONS_VEHICULE_STOCK` (@dfa/shared,
+   *  voir enums.ts) : correction exceptionnelle `reserve -> vendu`, même droit et même forme de
+   *  corps (`{ motif }`) que `remettre_disponible` — voir `peutCorrigerVehiculeStock`. */
+  const proposeMarquerVendu = peutCorriger && stock.actionsDisponibles.includes('marquer_vendu');
+  const aucuneAction =
+    !proposeMettreAJour &&
+    !proposeReceptionner &&
+    !proposeRemettreDisponible &&
+    !proposeMarquerVendu;
+
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      <h1 className="sr-only">{t('ventes:stock.fiche.titre')}</h1>
+
+      <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <IdentiteVehicule vehicule={stock.vehicule} taillePlaque="xl" />
+            <Badge variant={VARIANTE_BADGE_STATUT[stock.statutCommercial]}>
+              {t(`ventes:stock.statuts.${stock.statutCommercial}`)}
+            </Badge>
+          </div>
+          <p className="texte-corps text-muted-foreground">
+            {t(`ventes:stock.types.${stock.typeVehicule}`)}
+          </p>
+          <Link
+            to={chemins.vehicules.detail(stock.id, site)}
+            className="texte-corps text-primary underline-offset-4 hover:underline"
+          >
+            {t('ventes:stock.fiche.voirFicheVehicule')}
+          </Link>
+        </div>
+
+        {!aucuneAction ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                {t('commun:actions.modifier')}
+                <ChevronDown className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {proposeMettreAJour ? (
+                <DropdownMenuItem onSelect={() => setFormulaireOuvert(true)}>
+                  {t('ventes:stock.fiche.actions.mettreAJour')}
+                </DropdownMenuItem>
+              ) : null}
+              {proposeReceptionner ? (
+                <DropdownMenuItem onSelect={() => setConfirmationReceptionOuverte(true)}>
+                  {t('ventes:stock.fiche.actions.receptionner')}
+                </DropdownMenuItem>
+              ) : null}
+              {proposeRemettreDisponible ? (
+                <DropdownMenuItem onSelect={() => setRemettreDisponibleOuvert(true)}>
+                  {t('ventes:stock.fiche.actions.remettreDisponible')}
+                </DropdownMenuItem>
+              ) : null}
+              {proposeMarquerVendu ? (
+                <DropdownMenuItem onSelect={() => setMarquerVenduOuvert(true)}>
+                  {t('ventes:stock.fiche.actions.marquerVendu')}
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
+      </div>
+
+      {receptionner.error ? (
+        <p className="texte-libelle text-destructive" role="alert">
+          {messageErreur(receptionner.error, t)}
+        </p>
+      ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="texte-titre-section">
+            {t('ventes:stock.fiche.donneesCommerciales')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 texte-corps sm:grid-cols-3">
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.provenance')}
+              </dt>
+              <dd>
+                {PROVENANCES_VEHICULE_STOCK.includes(
+                  stock.provenance as (typeof PROVENANCES_VEHICULE_STOCK)[number],
+                )
+                  ? t(`ventes:stock.provenances.${stock.provenance}`)
+                  : stock.provenance}
+              </dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.dateEntreeStock')}
+              </dt>
+              <dd>{formaterDate(stock.dateEntreeStock)}</dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.joursStock')}
+              </dt>
+              <dd className="tabular-nums">{stock.joursStock}</dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.prixAchat')}
+              </dt>
+              <dd className="tabular-nums font-medium">
+                {formaterMontant(stock.prixAchatCentimes)}
+              </dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.fraisRemiseEtatCumules')}
+              </dt>
+              <dd className="tabular-nums">
+                {formaterMontant(stock.fraisRemiseEtatCumulesCentimes)}
+              </dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.prixVenteAffiche')}
+              </dt>
+              <dd className="tabular-nums font-medium">
+                {stock.prixVenteAfficheCentimes === null
+                  ? t('ventes:stock.prixNonFixe')
+                  : formaterMontant(stock.prixVenteAfficheCentimes)}
+              </dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.vendeurPrecedentAssujetti')}
+              </dt>
+              <dd>
+                {stock.vendeurPrecedentAssujetti === null
+                  ? t('ventes:stock.assujetti.nonRenseigne')
+                  : stock.vendeurPrecedentAssujetti
+                    ? t('ventes:stock.assujetti.oui')
+                    : t('ventes:stock.assujetti.non')}
+              </dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="texte-titre-section">
+            {t('ventes:stock.fiche.historique')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 texte-corps sm:grid-cols-4">
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.receptionneLe')}
+              </dt>
+              <dd>{texteDate(stock.receptionneLe)}</dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.reserveLe')}
+              </dt>
+              <dd>{texteDate(stock.reserveLe)}</dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.venduLe')}
+              </dt>
+              <dd>{texteDate(stock.venduLe)}</dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.livreLe')}
+              </dt>
+              <dd>{texteDate(stock.livreLe)}</dd>
+            </div>
+          </dl>
+          <p className="mt-3 texte-libelle text-muted-foreground">
+            {t('ventes:stock.fiche.creeLe')} {formaterDate(stock.creeLe)} ·{' '}
+            {t('ventes:stock.fiche.modifieLe')} {formaterDate(stock.modifieLe)}
+          </p>
+        </CardContent>
+      </Card>
+
+      {formulaireOuvert ? (
+        <FormulaireVehiculeStock
+          ouvert={formulaireOuvert}
+          onOuvertChange={setFormulaireOuvert}
+          stock={stock}
+        />
+      ) : null}
+
+      {remettreDisponibleOuvert ? (
+        <DialogueActionAvecMotif
+          ouvert={remettreDisponibleOuvert}
+          onOuvertChange={setRemettreDisponibleOuvert}
+          titre={t('ventes:stock.fiche.actions.remettreDisponible')}
+          description={t('ventes:stock.fiche.remettreDisponibleDescription')}
+          libelleConfirmation={t('ventes:stock.fiche.actions.remettreDisponible')}
+          mutation={remettreDisponible}
+        />
+      ) : null}
+
+      {marquerVenduOuvert ? (
+        <DialogueActionAvecMotif
+          ouvert={marquerVenduOuvert}
+          onOuvertChange={setMarquerVenduOuvert}
+          titre={t('ventes:stock.fiche.actions.marquerVendu')}
+          description={t('ventes:stock.fiche.marquerVenduDescription')}
+          libelleConfirmation={t('ventes:stock.fiche.actions.marquerVendu')}
+          mutation={marquerVendu}
+        />
+      ) : null}
+
+      <AvertissementConfirmable
+        ouvert={confirmationReceptionOuverte}
+        onOuvertChange={setConfirmationReceptionOuverte}
+        titre={t('ventes:stock.fiche.actions.receptionner')}
+        description={t('ventes:stock.fiche.receptionnerDescription')}
+        libelleConfirmation={t('ventes:stock.fiche.actions.receptionner')}
+        onConfirmer={() =>
+          receptionner.mutate({}, { onSuccess: () => setConfirmationReceptionOuverte(false) })
+        }
+        enCours={receptionner.isPending}
+      />
+    </div>
+  );
+}

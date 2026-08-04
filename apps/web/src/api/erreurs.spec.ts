@@ -237,16 +237,28 @@ describe('ErreurApi — transport des blocages et actionsProposees (invariant n�
       code: 'OR_PLAFOND_DEPASSE',
       instance: '01J8Z6MC5N7P9R1T3V5X7Z9B1D',
       blocages: [
-        { type: 'ligne_or', id: 'b17d…4e0', libelle: 'Plaquettes avant', donnees: { totalTtcCentimes: 9000 } },
+        {
+          type: 'ligne_or',
+          id: 'b17d…4e0',
+          libelle: 'Plaquettes avant',
+          donnees: { totalTtcCentimes: 9000 },
+        },
         {
           type: 'champ',
           id: 'plafondCentimes',
           libelle: 'Plafond autorisé 30000, déjà validé 28000, demandé 9000',
-          donnees: { plafondCentimes: 30000, dejaValideCentimes: 28000, apresValidationCentimes: 37000 },
+          donnees: {
+            plafondCentimes: 30000,
+            dejaValideCentimes: 28000,
+            apresValidationCentimes: 37000,
+          },
         },
       ],
       actionsProposees: [
-        { code: 'CREER_DEVIS_COMPLEMENTAIRE', parametres: { ligneIds: ['b17d…4e0'], nouveauPlafondSuggereCentimes: 37000 } },
+        {
+          code: 'CREER_DEVIS_COMPLEMENTAIRE',
+          parametres: { ligneIds: ['b17d…4e0'], nouveauPlafondSuggereCentimes: 37000 },
+        },
       ],
     };
     const reponse = new Response(JSON.stringify(corps), {

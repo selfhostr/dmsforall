@@ -1,5 +1,22 @@
-import { Controller, Headers, HttpCode, HttpStatus, Param, Post, Res, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCookieAuth,
+  ApiHeader,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import {
   EN_TETE_IDEMPOTENCE,
@@ -33,12 +50,22 @@ import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 
-import { EnveloppeOrDto, ReponseFacturationOrdreReparationDto, ReponseOrdreReparationDto } from './dto';
+import {
+  EnveloppeOrDto,
+  ReponseFacturationOrdreReparationDto,
+  ReponseOrdreReparationDto,
+} from './dto';
 import { ServiceFacturationOr } from './service-facturation-or';
 import { ServiceTransitions } from './service-transitions';
 
-const EnveloppeOrdreReparationDto = EnveloppeOrDto(ReponseOrdreReparationDto, 'OrdreReparationTransition');
-const EnveloppeFacturationOrDto = EnveloppeOrDto(ReponseFacturationOrdreReparationDto, 'FacturationOr');
+const EnveloppeOrdreReparationDto = EnveloppeOrDto(
+  ReponseOrdreReparationDto,
+  'OrdreReparationTransition',
+);
+const EnveloppeFacturationOrDto = EnveloppeOrDto(
+  ReponseFacturationOrdreReparationDto,
+  'FacturationOr',
+);
 
 /**
  * Les 11 actions de transition de l'OR (§7.7, §5.1) : chacune porte son CORPS propre, son DROIT
@@ -64,13 +91,15 @@ export class OrdreReparationTransitionsController {
 
   @Post(':orId/receptionner')
   @ExigerDroit('atelier.or.receptionner')
-  @ApiOperation({ summary: 'T-03 `planifie -> ouvert` : réception du véhicule, kilométrage d’entrée (RM-51).' })
+  @ApiOperation({
+    summary: 'T-03 `planifie -> ouvert` : réception du véhicule, kilométrage d’entrée (RM-51).',
+  })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })
   @ApiReponseProbleme(400, 'Corps invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE ou VEHICULE_KILOMETRAGE_REGRESSIF.')
   async receptionner(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
@@ -86,12 +115,15 @@ export class OrdreReparationTransitionsController {
 
   @Post(':orId/demarrer')
   @ExigerDroit('atelier.or.demarrer')
-  @ApiOperation({ summary: 'T-04 `ouvert -> en_cours` : démarrage des travaux (I-07 : réception requise au préalable).' })
+  @ApiOperation({
+    summary:
+      'T-04 `ouvert -> en_cours` : démarrage des travaux (I-07 : réception requise au préalable).',
+  })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE ou OR_RECEPTION_REQUISE.')
   async demarrer(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
@@ -104,17 +136,23 @@ export class OrdreReparationTransitionsController {
 
   @Post(':orId/reprendre-travaux')
   @ExigerDroit('atelier.or.modifier')
-  @ApiOperation({ summary: 'T-06/T-08/T-10 : lève les blocages sur tout ou partie des lignes (A-03, pas une transition de statut).' })
+  @ApiOperation({
+    summary:
+      'T-06/T-08/T-10 : lève les blocages sur tout ou partie des lignes (A-03, pas une transition de statut).',
+  })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })
   @ApiReponseProbleme(400, 'Corps invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   async reprendreTravaux(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
     @CorpsZod(schemaActionReprendreTravaux, {
-      exemple: { ligneIds: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'], motif: 'Pièce reçue, travaux repris.' },
+      exemple: {
+        ligneIds: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'],
+        motif: 'Pièce reçue, travaux repris.',
+      },
     })
     entree: EntreeActionReprendreTravaux,
   ) {
@@ -125,12 +163,15 @@ export class OrdreReparationTransitionsController {
 
   @Post(':orId/passer-en-controle')
   @ExigerDroit('atelier.or.passer_en_controle')
-  @ApiOperation({ summary: 'T-11 `{ouvert,en_cours} -> controle` (I-08 : lignes à valider ; I-09 : pointage ouvert).' })
+  @ApiOperation({
+    summary:
+      'T-11 `{ouvert,en_cours} -> controle` (I-08 : lignes à valider ; I-09 : pointage ouvert).',
+  })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE, OR_LIGNES_A_VALIDER ou OR_POINTAGE_OUVERT.')
   async passerEnControle(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
@@ -143,13 +184,15 @@ export class OrdreReparationTransitionsController {
 
   @Post(':orId/refuser-controle')
   @ExigerDroit('atelier.or.controler')
-  @ApiOperation({ summary: 'T-12 `controle -> en_cours` : contrôle qualité non conforme, motif obligatoire.' })
+  @ApiOperation({
+    summary: 'T-12 `controle -> en_cours` : contrôle qualité non conforme, motif obligatoire.',
+  })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })
   @ApiReponseProbleme(400, 'Motif manquant.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE.')
   async refuserControle(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
@@ -165,13 +208,16 @@ export class OrdreReparationTransitionsController {
 
   @Post(':orId/valider-controle')
   @ExigerDroit('atelier.or.controler')
-  @ApiOperation({ summary: 'T-13 `controle -> termine` (I-09 : un contrôle qualité ne clôt pas un pointage ouvert).' })
+  @ApiOperation({
+    summary:
+      'T-13 `controle -> termine` (I-09 : un contrôle qualité ne clôt pas un pointage ouvert).',
+  })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })
   @ApiReponseProbleme(400, 'Corps invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE ou OR_POINTAGE_OUVERT.')
   async validerControle(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
@@ -195,15 +241,17 @@ export class OrdreReparationTransitionsController {
   @Post(':orId/terminer')
   @ExigerDroit('atelier.or.terminer')
   @ApiOperation({
-    summary: 'T-14 `{ouvert,en_cours} -> termine` — REFUSÉE si le contrôle qualité est obligatoire pour ce garage (P-08).',
-    description: 'Gardes I-08 (lignes à valider), I-09 (pointage ouvert), I-10 (lignes validées non réalisées), RM-14 (PO client).',
+    summary:
+      'T-14 `{ouvert,en_cours} -> termine` — REFUSÉE si le contrôle qualité est obligatoire pour ce garage (P-08).',
+    description:
+      'Gardes I-08 (lignes à valider), I-09 (pointage ouvert), I-10 (lignes validées non réalisées), RM-14 (PO client).',
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })
   @ApiReponseProbleme(400, 'Corps invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   @ApiReponseProbleme(
     409,
     'OR_TRANSITION_INTERDITE, OR_LIGNES_A_VALIDER, OR_POINTAGE_OUVERT, OR_LIGNE_NON_REALISEE ou OR_PO_MANQUANT.',
@@ -222,18 +270,21 @@ export class OrdreReparationTransitionsController {
   @ExigerDroit('atelier.or.rouvrir')
   @ApiOperation({
     summary: 'T-15 `termine -> en_cours` : réouverture avant facturation, motif obligatoire.',
-    description: 'Depuis `facture`, la base rejette (I-02) et propose `CREER_OR_RETOUCHE` — jamais une réouverture directe.',
+    description:
+      'Depuis `facture`, la base rejette (I-02) et propose `CREER_OR_RETOUCHE` — jamais une réouverture directe.',
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })
   @ApiReponseProbleme(400, 'Motif manquant.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE.')
   async rouvrir(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
-    @CorpsZod(schemaActionRouvrir, { exemple: { motif: 'Le client signale que le bruit persiste après restitution.' } })
+    @CorpsZod(schemaActionRouvrir, {
+      exemple: { motif: 'Le client signale que le bruit persiste après restitution.' },
+    })
     entree: EntreeActionRouvrir,
   ) {
     const ctx = this.contexte.contexteTenant();
@@ -243,13 +294,16 @@ export class OrdreReparationTransitionsController {
 
   @Post(':orId/restituer')
   @ExigerDroit('atelier.or.restituer')
-  @ApiOperation({ summary: 'T-17/T-18 `{facture,termine} -> restitue` — réserve de sécurité obligatoire si une ligne de sécurité est refusée (§6.12).' })
+  @ApiOperation({
+    summary:
+      'T-17/T-18 `{facture,termine} -> restitue` — réserve de sécurité obligatoire si une ligne de sécurité est refusée (§6.12).',
+  })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })
   @ApiReponseProbleme(400, 'Corps invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE ou OR_RESERVE_SECURITE_REQUISE.')
   async restituer(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
@@ -275,7 +329,7 @@ export class OrdreReparationTransitionsController {
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE.')
   async cloturer(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
@@ -290,18 +344,21 @@ export class OrdreReparationTransitionsController {
   @ExigerDroit('atelier.or.annuler')
   @ApiOperation({
     summary: 'T-20 `{planifie,ouvert} -> annule` : motif obligatoire (RM-62).',
-    description: 'Refusée s’il existe des pointages, des pièces engagées ou une facture (CT-25, CT-26).',
+    description:
+      'Refusée s’il existe des pointages, des pièces engagées ou une facture (CT-25, CT-26).',
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })
   @ApiReponseProbleme(400, 'Motif manquant.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'OR_TRANSITION_INTERDITE ou OR_ANNULATION_IMPOSSIBLE.')
   async annuler(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
-    @CorpsZod(schemaActionAnnuler, { exemple: { motif: 'Le client renonce, véhicule repris par un tiers.' } })
+    @CorpsZod(schemaActionAnnuler, {
+      exemple: { motif: 'Le client renonce, véhicule repris par un tiers.' },
+    })
     entree: EntreeActionAnnuler,
   ) {
     const ctx = this.contexte.contexteTenant();
@@ -313,20 +370,32 @@ export class OrdreReparationTransitionsController {
   @HttpCode(HttpStatus.CREATED)
   @ExigerDroit('facturation.document.creer')
   @ApiOperation({
-    summary: "RF-81 : transforme les lignes `realisee` d'un OR `termine` en brouillon(s) de facture, un par groupe payeur choisi.",
+    summary:
+      "RF-81 : transforme les lignes `realisee` d'un OR `termine` en brouillon(s) de facture, un par groupe payeur choisi.",
     description:
       "Sélection par GROUPE PAYEUR `(payeur, payeurClientId)` (RF-87, MD-62), jamais ligne par ligne. Rejouable tant que l'OR reste " +
       "`termine` et qu'il reste un groupe facturable (RF-83/RF-84, facturation partielle assumée) : `ordreReparation.statut` ne passe " +
       "à `facture` que lorsque cet appel traite le DERNIER groupe encore facturable. Ne crée que des BROUILLONS — l'émission reste " +
-      "`POST /documents-vente/{id}/emettre`.",
+      '`POST /documents-vente/{id}/emettre`.',
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
-  @ApiHeader({ name: EN_TETE_IDEMPOTENCE, required: true, description: 'uuid v4 — porte sur CET appel (ce sous-ensemble de groupes, ce corps exact), pas sur l’historique de facturation de l’OR.' })
+  @ApiHeader({
+    name: EN_TETE_IDEMPOTENCE,
+    required: true,
+    description:
+      'uuid v4 — porte sur CET appel (ce sous-ensemble de groupes, ce corps exact), pas sur l’historique de facturation de l’OR.',
+  })
   @ApiResponse({ status: 201, type: EnveloppeFacturationOrDto })
-  @ApiReponseProbleme(400, 'Corps invalide (groupe dupliqué, payeurClientId incohérent, Idempotency-Key manquante/mal formée).')
+  @ApiReponseProbleme(
+    400,
+    'Corps invalide (groupe dupliqué, payeurClientId incohérent, Idempotency-Key manquante/mal formée).',
+  )
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation, client destinataire ou tiers payeur introuvable pour ce tenant.")
+  @ApiReponseProbleme(
+    404,
+    'Ordre de réparation, client destinataire ou tiers payeur introuvable pour ce tenant.',
+  )
   @ApiReponseProbleme(
     409,
     'OR_TRANSITION_INTERDITE, FACTURATION_LIGNES_INDECISES, OR_FACTURATION_AUCUNE_LIGNE, CONFIRMATION_REQUISE ou IDEMPOTENCE_CONFLIT.',
@@ -342,7 +411,13 @@ export class OrdreReparationTransitionsController {
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    const resultat = await this.facturation.facturer(ctx, principal, orId, entree, cleIdempotence ?? '');
+    const resultat = await this.facturation.facturer(
+      ctx,
+      principal,
+      orId,
+      entree,
+      cleIdempotence ?? '',
+    );
 
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');

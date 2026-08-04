@@ -17,7 +17,10 @@ export class MontantsLigneDocumentDto implements MontantsLigneDocument {
   @ApiProperty()
   readonly montantTtcCentimes!: number;
 
-  @ApiProperty({ description: 'MD-66 : 0 sur les trois axes pour une ligne à charge du garage. Toujours = montantTtcCentimes ici (aucune ligne « payeur garage » ne provient de ce module).' })
+  @ApiProperty({
+    description:
+      'MD-66 : 0 sur les trois axes pour une ligne à charge du garage. Toujours = montantTtcCentimes ici (aucune ligne « payeur garage » ne provient de ce module).',
+  })
   readonly montantFacturableCentimes!: number;
 
   @ApiProperty()
@@ -49,16 +52,28 @@ export class ReponseLigneDocumentVenteDto implements ReponseLigneDocumentVente {
   @ApiProperty({ type: String, nullable: true })
   readonly referenceTexte!: string | null;
 
-  @ApiProperty({ type: String, format: 'uuid', nullable: true, description: 'Accroche étape 3 (stock pièces).' })
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description: 'Accroche étape 3 (stock pièces).',
+  })
   readonly articleId!: string | null;
 
   @ApiProperty({ example: 1000, description: 'Millièmes — 1000 = quantité 1.' })
   readonly quantiteMillieme!: number;
 
-  @ApiProperty({ type: Number, nullable: true, description: "TTC en centimes — null uniquement pour une ligne 'texte'." })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: "TTC en centimes — null uniquement pour une ligne 'texte'.",
+  })
   readonly prixUnitaireTtcCentimes!: number | null;
 
-  @ApiProperty({ enum: MODES_CALCUL_TVA, description: 'Lecture seule — toujours `ttc` pour toute ligne saisie via ce module (Δ-RF40).' })
+  @ApiProperty({
+    enum: MODES_CALCUL_TVA,
+    description: 'Lecture seule — toujours `ttc` pour toute ligne saisie via ce module (Δ-RF40).',
+  })
   readonly modeCalculTva!: ReponseLigneDocumentVente['modeCalculTva'];
 
   @ApiProperty({ enum: REGIMES_TVA })
@@ -79,7 +94,10 @@ export class ReponseLigneDocumentVenteDto implements ReponseLigneDocumentVente {
   @ApiProperty()
   readonly remiseGlobaleRepartieCentimes!: number;
 
-  @ApiPropertyOptional({ type: () => MontantsLigneDocumentDto, description: 'Absent pour un rôle sans droit aux montants.' })
+  @ApiPropertyOptional({
+    type: () => MontantsLigneDocumentDto,
+    description: 'Absent pour un rôle sans droit aux montants.',
+  })
   readonly montants?: MontantsLigneDocument;
 
   @ApiProperty({ format: 'date-time' })

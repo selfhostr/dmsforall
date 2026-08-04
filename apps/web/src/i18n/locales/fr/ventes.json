@@ -1,0 +1,677 @@
+{
+  "titre": "Ventes",
+  "commun": {
+    "titrePage": {
+      "parc": "Parc en stock",
+      "dossiers": "Dossiers de vente",
+      "dossierDetail": "Dossier de vente"
+    },
+    "typeVehicule": {
+      "vn": "VN",
+      "vo": "VO",
+      "vnLong": "Véhicule neuf",
+      "voLong": "Véhicule d'occasion",
+      "tous": "Tous"
+    },
+    "champs": {
+      "clientAcheteur": "Client acheteur",
+      "clientFacture": "Client facturé",
+      "clientConducteur": "Conducteur",
+      "vehicule": "Véhicule",
+      "dateLivraisonEstimee": "Date de livraison estimée",
+      "dateLivraisonEffective": "Date de livraison effective",
+      "kilometrageDepart": "Kilométrage au départ",
+      "unite": "Unité",
+      "identitePieceType": "Pièce d'identité présentée",
+      "referenceContrat": "Référence de contrat",
+      "organisme": "Organisme"
+    },
+    "unites": {
+      "km": "Kilomètres",
+      "mi": "Milles"
+    },
+    "identitePieceType": {
+      "carteIdentite": "Carte d'identité",
+      "passeport": "Passeport",
+      "permisConduire": "Permis de conduire",
+      "titreSejour": "Titre de séjour",
+      "autre": "Autre"
+    },
+    "actions": {
+      "nouveauDossier": "Nouveau dossier de vente",
+      "vendre": "Vendre",
+      "voirDossier": "Voir le dossier de vente",
+      "assignerVehicule": "Assigner un véhicule",
+      "creerBonCommande": "Créer le bon de commande",
+      "creerDevis": "Créer un devis",
+      "proposerFinancement": "Proposer un financement",
+      "ajouterReprise": "Ajouter une reprise"
+    },
+    "nonAssigne": "Aucun véhicule assigné",
+    "nonRenseigne": "—",
+    "facturePar": "Facturé à : {nom}",
+    "conducteurLigne": "Conducteur : {nom}",
+    "actuel": "Actuel",
+    "chargementCourt": "Chargement…",
+    "organisme": {
+      "rechercheClientPlaceholder": "Rechercher un client…",
+      "aucunClientTrouve": "Aucun client ne correspond à cette recherche."
+    }
+  },
+  "stock": {
+    "titre": "Parc en stock",
+    "filtres": {
+      "q": "Plaque, VIN ou désignation…",
+      "statutCommercial": "Statut commercial",
+      "statutTous": "Tous les statuts",
+      "typeVehicule": "Type",
+      "typeTous": "Tous les types",
+      "provenance": "Provenance",
+      "provenanceToutes": "Toutes les provenances",
+      "afficherVendusLivres": "Afficher aussi les véhicules vendus/livrés"
+    },
+    "tri": {
+      "label": "Trier par",
+      "joursStockDesc": "En stock depuis le plus longtemps",
+      "dateEntreeStockDesc": "Entrée en stock la plus récente",
+      "dateEntreeStockAsc": "Entrée en stock la plus ancienne",
+      "prixVenteAsc": "Prix de vente croissant",
+      "prixVenteDesc": "Prix de vente décroissant"
+    },
+    "colonnes": {
+      "vehicule": "Véhicule",
+      "type": "Type",
+      "statut": "Statut",
+      "joursStock": "Jours en stock",
+      "fraisRemiseEtat": "Coût remise en état",
+      "prixVente": "Prix de vente"
+    },
+    "types": {
+      "vn": "VN",
+      "vo": "VO"
+    },
+    "provenances": {
+      "neuf_constructeur": "Neuf constructeur",
+      "reprise": "Reprise",
+      "achat_particulier": "Achat particulier",
+      "achat_professionnel": "Achat professionnel",
+      "retour_leasing": "Retour de leasing",
+      "demonstrateur": "Véhicule de démonstration"
+    },
+    "statuts": {
+      "en_commande": "En commande",
+      "disponible": "Disponible",
+      "reserve": "Réservé",
+      "vendu": "Vendu",
+      "livre": "Livré"
+    },
+    "actions": {
+      "mettreAJour": "Mettre à jour",
+      "receptionner": "Réceptionner",
+      "remettreDisponible": "Remettre disponible",
+      "marquerVendu": "Marquer vendu"
+    },
+    "champs": {
+      "site": "Site",
+      "provenance": "Provenance",
+      "statutCommercial": "Statut commercial",
+      "typeVehicule": "Type",
+      "dateEntreeStock": "Date d'entrée en stock",
+      "joursStock": "Jours en stock",
+      "prixAchat": "Prix d'achat",
+      "fraisRemiseEtatCumules": "Frais de remise en état cumulés",
+      "prixVenteAffiche": "Prix de vente affiché",
+      "vendeurPrecedentAssujetti": "Vendeur précédent assujetti à la TVA",
+      "receptionneLe": "Réceptionné le",
+      "reserveLe": "Réservé le",
+      "venduLe": "Vendu le",
+      "livreLe": "Livré le",
+      "motif": "Motif"
+    },
+    "assujetti": {
+      "oui": "Oui",
+      "non": "Non",
+      "nonRenseigne": "Non renseigné"
+    },
+    "joursStock": {
+      "libelle": "Jours en stock",
+      "valeur": "{n, plural, one {# jour} other {# jours}}"
+    },
+    "prixVenteAFixer": "à fixer",
+    "prixNonFixe": "à fixer",
+    "miseEnStock": {
+      "titre": "Mettre en stock",
+      "champs": {
+        "site": "Site",
+        "provenance": "Provenance",
+        "dateEntreeStock": "Date d'entrée en stock",
+        "prixAchat": "Prix d'achat",
+        "prixVenteAffiche": "Prix de vente affiché",
+        "vendeurPrecedentAssujetti": "Vendeur précédent assujetti à la TVA"
+      },
+      "bouton": "Mettre en stock"
+    },
+    "modification": {
+      "titre": "Modifier la fiche de coût",
+      "bouton": "Enregistrer"
+    },
+    "confirmations": {
+      "receptionnerTitre": "Réceptionner ce véhicule ?",
+      "receptionnerDescription": "Le véhicule passe en statut « Disponible ».",
+      "remettreDisponibleTitre": "Remettre ce véhicule disponible ?",
+      "remettreDisponibleMotifLabel": "Motif",
+      "remettreDisponibleMotifPlaceholder": "Expliquez pourquoi ce véhicule redevient disponible…"
+    },
+    "blocVente": {
+      "titre": "Vente",
+      "provenance": "Provenance",
+      "prixAchat": "Prix d'achat",
+      "fraisRemiseEtat": "Frais de remise en état",
+      "prixVente": "Prix de vente affiché"
+    },
+    "liste": {
+      "titre": "Parc en stock",
+      "vide": "Aucun véhicule en stock.",
+      "rechercherPlaceholder": "Plaque, VIN ou désignation…",
+      "erreur": {
+        "titre": "Impossible d'afficher le parc en stock"
+      },
+      "colonnes": {
+        "vehicule": "Véhicule",
+        "type": "Type",
+        "provenance": "Provenance",
+        "statut": "Statut",
+        "joursStock": "Jours en stock",
+        "prixVente": "Prix de vente"
+      },
+      "actions": {
+        "ficheCommerciale": "Fiche commerciale",
+        "mettreEnStock": "Mettre en stock"
+      },
+      "tri": {
+        "label": "Trier par",
+        "dateEntreeStockDesc": "Entrée en stock la plus récente",
+        "dateEntreeStockAsc": "Entrée en stock la plus ancienne",
+        "joursStockDesc": "En stock depuis le plus longtemps",
+        "prixVenteAsc": "Prix de vente croissant",
+        "prixVenteDesc": "Prix de vente décroissant"
+      }
+    },
+    "fiche": {
+      "titre": "Fiche commerciale",
+      "erreur": {
+        "titre": "Impossible d'afficher cette fiche"
+      },
+      "voirFicheVehicule": "Voir la fiche véhicule",
+      "actions": {
+        "mettreAJour": "Mettre à jour",
+        "receptionner": "Réceptionner",
+        "remettreDisponible": "Remettre disponible",
+        "marquerVendu": "Marquer vendu"
+      },
+      "donneesCommerciales": "Données commerciales",
+      "historique": "Historique",
+      "creeLe": "Créé le",
+      "modifieLe": "Modifié le",
+      "prixAchatVerrouille": "Le prix d'achat n'est plus modifiable après la vente.",
+      "remettreDisponibleDescription": "Le véhicule redevient disponible à la vente.",
+      "receptionnerDescription": "Le véhicule passe en statut « Disponible ».",
+      "marquerVenduDescription": "Le véhicule passe en statut « Vendu »."
+    },
+    "entree": {
+      "titre": "Mettre en stock",
+      "rechercherVehiculePlaceholder": "Plaque, VIN ou désignation…",
+      "vehiculeIntrouvable": "Véhicule introuvable ?",
+      "creerVehicule": "Créer une fiche véhicule",
+      "aucunVehiculeTitre": "Aucun véhicule trouvé",
+      "aucunVehiculeDescription": "Aucun véhicule ne correspond à cette recherche.",
+      "choisirVehicule": "Choisir",
+      "changerVehicule": "Changer de véhicule",
+      "mettreEnStock": "Mettre en stock",
+      "provenanceAutre": "Autre provenance"
+    },
+    "vide": "Aucun véhicule en stock.",
+    "erreur": {
+      "titre": "Impossible d'afficher le parc en stock"
+    },
+    "refus": {
+      "dejaExistant": "Ce véhicule est déjà en stock."
+    }
+  },
+  "dossier": {
+    "titre": "Dossiers de vente",
+    "liste": {
+      "titre": "Dossiers de vente",
+      "nouveauDossier": "Nouveau dossier de vente",
+      "vide": "Aucun dossier de vente.",
+      "vehiculeNonAssigne": "— non assigné",
+      "erreur": {
+        "titre": "Impossible d'afficher les dossiers de vente"
+      },
+      "colonnes": {
+        "client": "Client",
+        "vehicule": "Véhicule",
+        "prix": "Prix",
+        "statut": "Statut",
+        "dateLivraisonEstimee": "Livraison estimée"
+      },
+      "filtres": {
+        "q": "Nom du client ou plaque…",
+        "statut": "Statut",
+        "statutLabel": "Statut",
+        "statutActifs": "Dossiers actifs",
+        "statutTous": "Tous les statuts",
+        "afficherTermines": "Afficher aussi les dossiers clos, annulés ou abandonnés"
+      },
+      "tri": {
+        "label": "Trier par",
+        "prospectionLeDesc": "Plus récents",
+        "prospectionLeAsc": "Plus anciens",
+        "dateLivraisonEstimeeAsc": "Livraison la plus proche",
+        "dateLivraisonEstimeeDesc": "Livraison la plus lointaine"
+      }
+    },
+    "creation": {
+      "titre": "Nouveau dossier de vente",
+      "aideVehicule": "Optionnel — le véhicule peut être assigné plus tard.",
+      "aideClientFacture": "Optionnel — par défaut, le client acheteur.",
+      "aideConducteur": "Optionnel — par défaut, le client acheteur.",
+      "bouton": "Créer le dossier"
+    },
+    "nouveau": {
+      "titre": "Nouveau dossier de vente",
+      "creer": "Créer le dossier",
+      "dateLivraisonEstimee": "Date de livraison estimée",
+      "siteManquant": {
+        "titre": "Aucun site sélectionné",
+        "description": "Choisissez un site pour créer un dossier de vente."
+      },
+      "client": {
+        "titre": "Client acheteur",
+        "rechercherPlaceholder": "Nom du client…",
+        "aucun": "Aucun client ne correspond à cette recherche."
+      },
+      "vehicule": {
+        "titre": "Véhicule",
+        "rechercherPlaceholder": "Plaque, VIN ou désignation…",
+        "aucun": "Aucun véhicule en stock ne correspond à cette recherche."
+      },
+      "clientFacture": {
+        "activer": "Facturer à un autre client",
+        "titre": "Client facturé"
+      },
+      "clientConducteur": {
+        "activer": "Conducteur différent de l'acheteur",
+        "titre": "Conducteur"
+      }
+    },
+    "fiche": {
+      "titre": "Dossier de vente",
+      "erreur": {
+        "titre": "Impossible d'afficher ce dossier"
+      },
+      "factureA": "Facturé à : {nom}",
+      "conducteur": "Conducteur : {nom}",
+      "aucunVehicule": "Aucun véhicule assigné",
+      "assignerVehicule": "Assigner un véhicule",
+      "prix": "Prix",
+      "prixAucun": "Prix non défini",
+      "prixIndicatif": "Indicatif (devis) : {montant}",
+      "dateLivraisonEstimee": "Date de livraison estimée",
+      "modifier": {
+        "titre": "Modifier le dossier",
+        "vehicule": "Véhicule",
+        "vehiculeVerrouille": "Le véhicule ne peut plus être modifié à ce stade."
+      }
+    },
+    "transitions": {
+      "engager": "Engager",
+      "preparer": "Démarrer la préparation",
+      "marquerPretALivrer": "Marquer prêt à livrer",
+      "livrer": "Livrer",
+      "cloturer": "Clôturer",
+      "annuler": "Annuler",
+      "abandonner": "Abandonner",
+      "confirmer": "Confirmer",
+      "aucuneActionDisponible": "Aucune action disponible pour le moment.",
+      "bonCommande": "Bon de commande",
+      "aucunBonCommande": "Aucun bon de commande sur ce dossier",
+      "identitePieceType": "Pièce d'identité présentée",
+      "identitePieceTypes": {
+        "carte_identite": "Carte d'identité",
+        "passeport": "Passeport",
+        "permis_conduire": "Permis de conduire",
+        "titre_sejour": "Titre de séjour",
+        "autre": "Autre"
+      },
+      "engagerConfirmation": "Le véhicule sera réservé.",
+      "engagerConfirmationReprise": "La reprise sera confirmée.",
+      "confirmerAction": "Confirmer",
+      "cloturerDescription": "Purement administratif — aucune vérification supplémentaire n'est effectuée.",
+      "dateLivraisonEffective": "Date de livraison effective",
+      "kilometrageDepart": "Kilométrage au départ",
+      "livrerConfirmationDetention": "La détention du véhicule sera transférée à {nom}.",
+      "livrerConfirmationGarantie": "La garantie constructeur démarre à cette date.",
+      "livrerConfirmationReprise": "Le véhicule repris entrera au parc en stock à sa valeur négociée ({montant}).",
+      "motif": "Motif",
+      "motifRequis": "Le motif est requis.",
+      "annulerConfirmationVehicule": "Si un véhicule est réservé sur ce dossier, il redevient disponible à la vente."
+    },
+    "statuts": {
+      "prospection": "Prospection",
+      "engage": "Engagé",
+      "enPreparation": "En préparation",
+      "pretALivrer": "Prêt à livrer",
+      "livre": "Livré",
+      "clos": "Clos",
+      "annule": "Annulé",
+      "abandonne": "Abandonné"
+    },
+    "actions": {
+      "modifier": "Modifier",
+      "engager": "Engager",
+      "preparer": "Démarrer la préparation",
+      "marquerPretALivrer": "Marquer prêt à livrer",
+      "livrer": "Livrer",
+      "cloturer": "Clôturer",
+      "annuler": "Annuler",
+      "abandonner": "Abandonner"
+    },
+    "dates": {
+      "prospectionLe": "Prospection",
+      "engageLe": "Engagé le",
+      "enPreparationLe": "En préparation le",
+      "pretALivrerLe": "Prêt à livrer le",
+      "livreLe": "Livré le",
+      "closLe": "Clos le"
+    },
+    "motifCloture": "Motif : {motif}",
+    "enTete": {
+      "vehiculeNonAssigne": "Aucun véhicule assigné",
+      "prixIndicatifDevis": "Indicatif (devis)",
+      "prixNonDefini": "Prix non défini",
+      "livraisonEstimee": "Livraison estimée : {date}"
+    },
+    "prochaineEtape": {
+      "titre": "Prochaine étape",
+      "conditions": {
+        "vehiculeAssigne": "Véhicule assigné",
+        "identiteVerifiee": "Identité vérifiée",
+        "repriseNegociee": "Reprise négociée",
+        "financementConfirme": "Financement confirmé",
+        "expertiseAJour": "Expertise MFK à jour",
+        "documentsReunis": "Documents de livraison réunis"
+      },
+      "aFaire": {
+        "assignerVehicule": "À : vous — assigner un véhicule",
+        "verifierIdentite": "À : vous — vérifier une pièce d'identité",
+        "negocierReprise": "À : vous — négocier la reprise avant de signer",
+        "financementEnAttente": "À : {organisme} — financement en attente",
+        "financementEnAttenteGenerique": "À : l'organisme de financement — financement en attente",
+        "verifierExpertise": "À : l'atelier — expertise MFK à vérifier",
+        "documentsManquants": "À : {n, plural, one {# document manquant} other {# documents manquants}}"
+      },
+      "resteAFaireCloturer": "Reste à faire : clôturer le dossier"
+    },
+    "actionsPanneau": {
+      "engager": {
+        "titre": "Engager le dossier",
+        "champBonCommande": "Bon de commande",
+        "aucunBonCommande": "Aucun bon de commande sur ce dossier",
+        "champIdentite": "Pièce d'identité présentée",
+        "consequenceVehicule": "Le véhicule sera réservé.",
+        "consequenceReprise": "La reprise sera confirmée."
+      },
+      "preparer": {
+        "titre": "Démarrer la préparation",
+        "description": "Confirmer le démarrage de la préparation du véhicule."
+      },
+      "marquerPretALivrer": {
+        "titre": "Marquer prêt à livrer",
+        "description": "Confirmer que le dossier est prêt à livrer."
+      },
+      "cloturer": {
+        "titre": "Clôturer le dossier",
+        "description": "Purement administratif — aucune vérification supplémentaire n'est effectuée."
+      },
+      "annuler": {
+        "titre": "Annuler le dossier",
+        "motifLabel": "Motif d'annulation",
+        "motifPlaceholder": "Expliquez pourquoi ce dossier est annulé…",
+        "consequenceVehicule": "Si un véhicule est réservé sur ce dossier, il redevient disponible à la vente."
+      },
+      "abandonner": {
+        "titre": "Abandonner le dossier",
+        "motifLabel": "Motif d'abandon",
+        "motifPlaceholder": "Expliquez pourquoi ce dossier est abandonné…",
+        "consequenceVehicule": "Si un véhicule est réservé sur ce dossier, il redevient disponible à la vente."
+      }
+    },
+    "livraison": {
+      "titre": "Livrer le véhicule",
+      "champDateEffective": "Date de livraison effective",
+      "champKilometrageDepart": "Kilométrage au départ",
+      "champUnite": "Unité",
+      "consequenceDetention": "La détention du véhicule sera transférée à {nom}.",
+      "consequenceGarantie": "La garantie constructeur démarre à cette date.",
+      "consequenceReprise": "Le véhicule repris entrera au parc en stock à sa valeur négociée ({montant})."
+    },
+    "documents": {
+      "titre": "Documents",
+      "vide": "Aucun document sur ce dossier.",
+      "tronques": "Liste limitée aux 50 premiers documents",
+      "solde": "Solde : {montant}",
+      "statuts": {
+        "brouillon": "Brouillon",
+        "emis": "Émise",
+        "accepte": "Acceptée",
+        "refuse": "Refusée",
+        "expire": "Expirée",
+        "remplace": "Remplacée",
+        "transforme": "Transformée",
+        "annule": "Annulée",
+        "annuleParAvoir": "Annulée par avoir",
+        "abandonne": "Abandonnée"
+      },
+      "colonnes": {
+        "type": "Type",
+        "numero": "Numéro",
+        "statut": "Statut",
+        "montantTtc": "Montant TTC",
+        "solde": "Solde",
+        "date": "Date"
+      }
+    },
+    "documentsRequis": {
+      "titre": "Documents requis",
+      "vide": "Aucun document requis pour ce dossier.",
+      "fourniLe": "Fourni le {date}",
+      "erreurLigne": "Impossible d'enregistrer — réessayez"
+    },
+    "erreur": {
+      "titre": "Impossible d'afficher ce dossier",
+      "titreSection": "Impossible de charger cette section"
+    },
+    "refus": {
+      "vehiculeManquant": "Aucun véhicule n'est associé à ce dossier.",
+      "vehiculeIndisponible": "Ce véhicule n'est plus disponible — un autre dossier l'a réservé entre-temps.",
+      "financementNonConfirme": "Le financement doit être confirmé avant de marquer le dossier prêt à livrer.",
+      "expertiseRequise": "Une expertise MFK requise doit être résolue avant la livraison.",
+      "livraisonIncomplete": "Les éléments requis pour la livraison ne sont pas tous réunis.",
+      "annulationImpossible": "Ce dossier ne peut plus être annulé ou abandonné à ce stade.",
+      "transitionInterdite": "Cette transition n'est pas autorisée dans l'état actuel du dossier."
+    }
+  },
+  "reprise": {
+    "titre": "Reprise",
+    "absente": {
+      "titre": "Pas de reprise sur ce dossier"
+    },
+    "aucuneReprise": "Pas de reprise sur ce dossier.",
+    "valeurEstimee": "Valeur estimée",
+    "valeurNegociee": "Valeur négociée",
+    "enNegociation": "En cours de négociation",
+    "ecart": "Écart : {montant}",
+    "detteResiduelle": "Dette de financement résiduelle : {montant}",
+    "detteConditionSuspensive": "Condition suspensive de la reprise.",
+    "motif": "Motif",
+    "motifRequis": "Le motif est requis.",
+    "motifRefusAffiche": "Motif du refus : {motif}",
+    "negociation": {
+      "avertissement": "Cette valeur sera annoncée au client et déduite du prix d'achat.",
+      "valeurNegociee": "Nouvelle valeur négociée"
+    },
+    "confirmation": {
+      "avertissement": "Correction exceptionnelle — normalement déclenchée automatiquement à la signature du bon de commande."
+    },
+    "transitions": {
+      "negocier": "Négocier",
+      "confirmer": "Confirmer",
+      "refuser": "Refuser"
+    },
+    "creation": {
+      "titre": "Ajouter une reprise",
+      "description": "Le véhicule repris entrera au parc en stock à la livraison, à sa valeur négociée.",
+      "champVehiculeRepris": "Véhicule repris",
+      "champVehicule": "Véhicule repris",
+      "champVehiculePlaceholder": "Plaque ou désignation…",
+      "champVehiculeIndication": "Tapez une plaque ou une désignation pour rechercher le véhicule repris.",
+      "aucunVehiculeTrouve": "Aucun véhicule ne correspond à cette recherche.",
+      "vehiculeSelectionne": "Véhicule sélectionné : {designation}",
+      "champValeurEstimee": "Valeur estimée",
+      "valeurEstimee": "Valeur estimée",
+      "champDetteResiduelle": "Dette de financement résiduelle",
+      "champOrganisme": "Organisme de financement",
+      "aideOrganisme": "Recherchez un client existant ou saisissez un nom.",
+      "detteActive": "Dette de financement résiduelle sur ce véhicule",
+      "detteMontant": "Montant de la dette",
+      "detteOrganisme": "Organisme",
+      "detteOrganismeModeClient": "Client existant",
+      "detteOrganismeModeTexteLibre": "Texte libre",
+      "detteOrganismeRecherche": "Rechercher l'organisme",
+      "detteOrganismeTexte": "Nom de l'organisme",
+      "bouton": "Enregistrer"
+    },
+    "statuts": {
+      "estimee": "Estimée",
+      "negociee": "Négociée",
+      "confirmee": "Confirmée",
+      "refusee": "Refusée"
+    },
+    "actions": {
+      "creer": "Ajouter la reprise",
+      "ajouter": "Ajouter une reprise",
+      "modifier": "Réviser l'estimation",
+      "negocier": "Négocier",
+      "confirmer": "Confirmer",
+      "refuser": "Refuser",
+      "confirmerAction": "Confirmer",
+      "correctionMenu": "Actions de correction"
+    },
+    "champs": {
+      "valeurEstimee": "Valeur estimée",
+      "valeurNegociee": "Valeur négociée",
+      "enNegociation": "En cours de négociation",
+      "ecart": "Écart / geste commercial",
+      "detteResiduelle": "Dette de financement résiduelle",
+      "detteAide": "Condition suspensive de la reprise.",
+      "organisme": "Organisme"
+    },
+    "modification": {
+      "titre": "Réviser l'estimation",
+      "bouton": "Enregistrer"
+    },
+    "negocier": {
+      "titre": "Négocier la reprise",
+      "champValeurNegociee": "Nouvelle valeur négociée",
+      "aide": "Cette valeur sera annoncée au client et déduite du prix d'achat."
+    },
+    "confirmer": {
+      "titre": "Confirmer la reprise",
+      "aide": "Correction exceptionnelle — normalement déclenchée automatiquement à la signature du bon de commande.",
+      "motifLabel": "Motif"
+    },
+    "refuser": {
+      "titre": "Refuser la reprise",
+      "motifLabel": "Motif du refus",
+      "motifPlaceholder": "Expliquez pourquoi cette reprise est refusée…"
+    },
+    "motifRefus": "Motif du refus : {motif}",
+    "erreur": {
+      "titre": "Impossible d'afficher cette reprise"
+    },
+    "refus": {
+      "valeurNegocieeRequise": "La reprise doit être négociée avant confirmation.",
+      "dejaExistante": "Une reprise existe déjà sur ce dossier."
+    }
+  },
+  "financement": {
+    "titre": "Financement",
+    "actuel": "Actuel",
+    "absent": "Aucun financement en cours.",
+    "aucunFinancement": "Aucune tentative de financement enregistrée.",
+    "historique": {
+      "titre": "Historique",
+      "vide": "Aucune tentative de financement enregistrée."
+    },
+    "tronque": "Historique limité aux 20 dernières tentatives",
+    "historiqueTronque": "Historique limité aux 20 dernières tentatives",
+    "motif": "Motif",
+    "motifRequis": "Le motif est requis.",
+    "motifRefusAffiche": "Motif du refus : {motif}",
+    "types": {
+      "comptant": "Comptant",
+      "credit": "Crédit",
+      "leasing": "Leasing"
+    },
+    "statuts": {
+      "enAttente": "En attente",
+      "confirme": "Confirmé",
+      "refuse": "Refusé"
+    },
+    "actions": {
+      "confirmer": "Confirmer",
+      "refuser": "Refuser",
+      "proposer": "Proposer un financement",
+      "confirmerAction": "Confirmer"
+    },
+    "transitions": {
+      "confirmer": "Confirmer",
+      "refuser": "Refuser"
+    },
+    "confirmation": {
+      "avertissement": "Confirmer que ce financement est accordé."
+    },
+    "proposer": {
+      "titre": "Proposer un financement",
+      "champType": "Type de financement",
+      "champOrganisme": "Organisme",
+      "champReferenceContrat": "Référence de contrat",
+      "aideComptant": "Aucune confirmation supplémentaire n'est nécessaire pour un paiement comptant.",
+      "bouton": "Proposer"
+    },
+    "creation": {
+      "titre": "Proposer un financement",
+      "description": "Ajoutez une nouvelle proposition de financement pour ce dossier.",
+      "champType": "Type de financement",
+      "champOrganisme": "Organisme",
+      "champReferenceContrat": "Référence de contrat",
+      "comptantAucuneConfirmation": "Aucune confirmation supplémentaire n'est nécessaire pour un paiement comptant."
+    },
+    "confirmer": {
+      "titre": "Confirmer ce financement"
+    },
+    "refuser": {
+      "titre": "Refuser ce financement",
+      "motifLabel": "Motif du refus",
+      "motifPlaceholder": "Expliquez pourquoi ce financement est refusé…"
+    },
+    "motifRefus": "Motif du refus : {motif}",
+    "erreur": {
+      "titre": "Impossible d'afficher le financement"
+    },
+    "refus": {
+      "nonConfirme": "Le financement doit être confirmé avant de poursuivre."
+    }
+  }
+}

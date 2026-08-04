@@ -19,7 +19,10 @@ export interface ProprietesChoixPlaqueInterchangeable {
  * ordre de tabulation naturel, volontairement HORS du mécanisme de sélection active de `cmdk`
  * (qui, lui, surligne automatiquement un premier élément — l'exact contraire de l'exigence).
  */
-export function ChoixPlaqueInterchangeable({ vehicules, onChoisir }: ProprietesChoixPlaqueInterchangeable) {
+export function ChoixPlaqueInterchangeable({
+  vehicules,
+  onChoisir,
+}: ProprietesChoixPlaqueInterchangeable) {
   const { t } = useTranslation('recherche');
 
   return (

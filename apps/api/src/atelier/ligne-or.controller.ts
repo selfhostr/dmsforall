@@ -1,5 +1,25 @@
-import { Controller, Get, Headers, HttpCode, HttpStatus, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCookieAuth,
+  ApiHeader,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { z } from 'zod';
 import {
@@ -32,7 +52,10 @@ import { etagOrdreReparation } from './ordre-reparation.etag';
 import { ServiceLigneOr } from './service-ligne-or';
 
 const EnveloppeLigneOrDto = EnveloppeOrDto(ReponseLigneOrDto, 'LigneOr');
-const EnveloppeOrdreReparationDto = EnveloppeOrDto(ReponseOrdreReparationDto, 'OrdreReparationActionLignes');
+const EnveloppeOrdreReparationDto = EnveloppeOrDto(
+  ReponseOrdreReparationDto,
+  'OrdreReparationActionLignes',
+);
 const PageLigneOrDto = PageOrDto(ReponseLigneOrDto, 'LigneOr');
 
 const schemaListeLignes = schemaFiltresLignesOr.extend({
@@ -61,15 +84,19 @@ export class LigneOrController {
   @ExigerDroit('atelier.or.lire')
   @ApiOperation({
     summary: "Collection paginée des lignes d'un OR — destinée aux connecteurs.",
-    description: "L'écran lit les lignes EMBARQUÉES dans le document OR (§8.3) ; ce endpoint sert la pagination hors de ce seuil.",
+    description:
+      "L'écran lit les lignes EMBARQUÉES dans le document OR (§8.3) ; ce endpoint sert la pagination hors de ce seuil.",
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: PageLigneOrDto })
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
-  async lister(@Param('orId', new PipeZod(schemaIdentifiant)) orId: string, @Query(new PipeZod(schemaListeLignes)) query: EntreeListeLignes) {
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
+  async lister(
+    @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
+    @Query(new PipeZod(schemaListeLignes)) query: EntreeListeLignes,
+  ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
     const { limite, curseur, ...filtres } = query;
@@ -80,16 +107,25 @@ export class LigneOrController {
   @HttpCode(HttpStatus.CREATED)
   @ExigerDroit('atelier.ligne.creer')
   @ApiOperation({
-    summary: "Ajout d'une ligne à l'OR — saisie libre (RM-65 : taux horaire et prix figés par le serveur).",
-    description: '`Idempotency-Key` obligatoire (uuid v4) : la saisie se fait en rafale au comptoir.',
+    summary:
+      "Ajout d'une ligne à l'OR — saisie libre (RM-65 : taux horaire et prix figés par le serveur).",
+    description:
+      '`Idempotency-Key` obligatoire (uuid v4) : la saisie se fait en rafale au comptoir.',
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
-  @ApiHeader({ name: 'Idempotency-Key', required: true, description: 'uuid v4, identité de la requête.' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description: 'uuid v4, identité de la requête.',
+  })
   @ApiResponse({ status: 201, type: EnveloppeLigneOrDto })
-  @ApiReponseProbleme(400, 'Corps invalide, Idempotency-Key manquante/mal formée, ou taux horaire introuvable pour une ligne de main d’œuvre.')
+  @ApiReponseProbleme(
+    400,
+    'Corps invalide, Idempotency-Key manquante/mal formée, ou taux horaire introuvable pour une ligne de main d’œuvre.',
+  )
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'OR_LIGNE_VERROUILLEE ou IDEMPOTENCE_CONFLIT.')
   async creer(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
@@ -109,7 +145,13 @@ export class LigneOrController {
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    const resultat = await this.serviceLigneOr.creer(ctx, principal, orId, entree, cleIdempotence ?? '');
+    const resultat = await this.serviceLigneOr.creer(
+      ctx,
+      principal,
+      orId,
+      entree,
+      cleIdempotence ?? '',
+    );
 
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
@@ -119,8 +161,10 @@ export class LigneOrController {
   @Patch(':orId/lignes/:ligneId')
   @ExigerDroit('atelier.ligne.modifier')
   @ApiOperation({
-    summary: "Modification libre d'une ligne (§10 L970/L971 : rabais/payeur bornés par le service, pas ce guard).",
-    description: 'Sur une ligne déjà `validee`, une hausse de montant peut produire `409 OR_PLAFOND_DEPASSE`.',
+    summary:
+      "Modification libre d'une ligne (§10 L970/L971 : rabais/payeur bornés par le service, pas ce guard).",
+    description:
+      'Sur une ligne déjà `validee`, une hausse de montant peut produire `409 OR_PLAFOND_DEPASSE`.',
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiParam({ name: 'ligneId', format: 'uuid' })
@@ -133,7 +177,9 @@ export class LigneOrController {
   async modifier(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
     @Param('ligneId', new PipeZod(schemaIdentifiant)) ligneId: string,
-    @CorpsZod(schemaModificationLigneOr, { exemple: { designation: 'Remplacement plaquettes + disques avant', rabaisPourmille: 50 } })
+    @CorpsZod(schemaModificationLigneOr, {
+      exemple: { designation: 'Remplacement plaquettes + disques avant', rabaisPourmille: 50 },
+    })
     entree: EntreeModificationLigneOr,
   ) {
     const ctx = this.contexte.contexteTenant();
@@ -143,7 +189,10 @@ export class LigneOrController {
 
   @Post(':orId/lignes/:ligneId/marquer-realisee')
   @ExigerDroit('atelier.ligne.marquer_realisee')
-  @ApiOperation({ summary: '`en_cours -> realisee`. `refusee -> realisee` n’existe pas (RM-72, CT-28) — `LIGNE_TRANSITION_INTERDITE`.' })
+  @ApiOperation({
+    summary:
+      '`en_cours -> realisee`. `refusee -> realisee` n’existe pas (RM-72, CT-28) — `LIGNE_TRANSITION_INTERDITE`.',
+  })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiParam({ name: 'ligneId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeLigneOrDto })
@@ -155,7 +204,8 @@ export class LigneOrController {
   async marquerRealisee(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
     @Param('ligneId', new PipeZod(schemaIdentifiant)) ligneId: string,
-    @CorpsZod(schemaMarquageRealisee, { exemple: { tempsReelCentiemes: 75 } }) entree: EntreeMarquageRealisee,
+    @CorpsZod(schemaMarquageRealisee, { exemple: { tempsReelCentiemes: 75 } })
+    entree: EntreeMarquageRealisee,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
@@ -166,18 +216,25 @@ export class LigneOrController {
   @ExigerDroit('atelier.ligne.valider')
   @ApiOperation({
     summary: 'Action groupée ATOMIQUE : `proposee|a_valider -> validee` (§10 L967).',
-    description: 'Le plafond de l’OR (RM-54) est vérifié UNE FOIS sur la somme du lot avant toute écriture — tout ou rien.',
+    description:
+      'Le plafond de l’OR (RM-54) est vérifié UNE FOIS sur la somme du lot avant toute écriture — tout ou rien.',
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })
   @ApiReponseProbleme(400, 'Liste de lignes vide ou invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
-  @ApiReponseProbleme(409, 'OR_PLAFOND_DEPASSE, OR_LIGNE_VERROUILLEE ou LIGNE_TRANSITION_INTERDITE.')
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
+  @ApiReponseProbleme(
+    409,
+    'OR_PLAFOND_DEPASSE, OR_LIGNE_VERROUILLEE ou LIGNE_TRANSITION_INTERDITE.',
+  )
   async validerLignes(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
-    @CorpsZod(schemaValidationLignes, { exemple: { ligneIds: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'] } }) entree: EntreeValidationLignes,
+    @CorpsZod(schemaValidationLignes, {
+      exemple: { ligneIds: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'] },
+    })
+    entree: EntreeValidationLignes,
     @Res({ passthrough: true }) res: Response,
   ) {
     const ctx = this.contexte.contexteTenant();
@@ -195,12 +252,15 @@ export class LigneOrController {
   @ApiReponseProbleme(400, 'Liste de lignes vide ou invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'OR_LIGNE_VERROUILLEE ou LIGNE_TRANSITION_INTERDITE.')
   async refuserLignes(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
     @CorpsZod(schemaRefusLignes, {
-      exemple: { ligneIds: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'], motif: 'Client refuse le devis complémentaire' },
+      exemple: {
+        ligneIds: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'],
+        motif: 'Client refuse le devis complémentaire',
+      },
     })
     entree: EntreeRefusLignes,
     @Res({ passthrough: true }) res: Response,
@@ -227,12 +287,15 @@ export class LigneOrController {
   @ApiReponseProbleme(400, 'Motif manquant ou liste de lignes vide/invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'OR_LIGNE_VERROUILLEE ou LIGNE_TRANSITION_INTERDITE.')
   async annulerLignes(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
     @CorpsZod(schemaAnnulationLignes, {
-      exemple: { ligneIds: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'], motif: 'Pièce indisponible chez le fournisseur' },
+      exemple: {
+        ligneIds: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'],
+        motif: 'Pièce indisponible chez le fournisseur',
+      },
     })
     entree: EntreeAnnulationLignes,
     @Res({ passthrough: true }) res: Response,
@@ -248,18 +311,21 @@ export class LigneOrController {
   @ExigerDroit('atelier.devis.creer')
   @ApiOperation({
     summary: 'Action groupée ATOMIQUE : `proposee -> a_valider` (blocage `accord`).',
-    description: 'Prépare l’envoi d’un devis complémentaire (`POST .../devis-complementaires`) — ne l’envoie pas elle-même.',
+    description:
+      'Prépare l’envoi d’un devis complémentaire (`POST .../devis-complementaires`) — ne l’envoie pas elle-même.',
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiOkResponse({ type: EnveloppeOrdreReparationDto })
   @ApiReponseProbleme(400, 'Liste de lignes vide ou invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  @ApiReponseProbleme(404, "Ordre de réparation introuvable pour ce tenant.")
+  @ApiReponseProbleme(404, 'Ordre de réparation introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'OR_LIGNE_VERROUILLEE ou LIGNE_TRANSITION_INTERDITE.')
   async soumettreLignesADevis(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
-    @CorpsZod(schemaSoumissionLignesADevis, { exemple: { ligneIds: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'] } })
+    @CorpsZod(schemaSoumissionLignesADevis, {
+      exemple: { ligneIds: ['5a1c9e2e-2f0a-4b3a-9c1a-8e6f2d4b7a10'] },
+    })
     entree: EntreeSoumissionLignesADevis,
     @Res({ passthrough: true }) res: Response,
   ) {

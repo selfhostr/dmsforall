@@ -39,11 +39,20 @@
 
 import type { EcritureExport, LigneEcritureExport } from '@dfa/shared';
 
-import type { LigneDocumentVente, LigneDocumentVenteTva, LigneLigneDocument } from '../../../db/schema';
+import type {
+  LigneDocumentVente,
+  LigneDocumentVenteTva,
+  LigneLigneDocument,
+} from '../../../db/schema';
 import type { BesoinMappingManquant, ComptesResolusADate } from './comptes-resolus';
 
 export type ResultatConstructionEcriture =
-  | { readonly succes: true; readonly ecriture: EcritureExport; readonly totalDebitCentimes: bigint; readonly totalCreditCentimes: bigint }
+  | {
+      readonly succes: true;
+      readonly ecriture: EcritureExport;
+      readonly totalDebitCentimes: bigint;
+      readonly totalCreditCentimes: bigint;
+    }
   | { readonly succes: false; readonly manquants: readonly BesoinMappingManquant[] };
 
 /** `categorie` pour l'usage `produit` (MD-86 : « type de ligne, moyen de paiement, ou taux de TVA
@@ -76,10 +85,14 @@ export function construireEcritureDocument(
     // Garde défensive : `document_vente_numero_brouillon_chk` interdit un `numero` nul pour tout
     // statut ≠ brouillon — un document `emis`/`annule_par_avoir` (seuls statuts sélectionnés par
     // `service-export-comptable.ts`) en porte toujours un. Ne devrait jamais se produire.
-    throw new Error(`document ${document.id} sans numéro alors que son statut (${document.statut}) l'exige.`);
+    throw new Error(
+      `document ${document.id} sans numéro alors que son statut (${document.statut}) l'exige.`,
+    );
   }
   if (document.dateDocument === null) {
-    throw new Error(`document ${document.id} sans date de document alors que son statut (${document.statut}) l'exige.`);
+    throw new Error(
+      `document ${document.id} sans date de document alors que son statut (${document.statut}) l'exige.`,
+    );
   }
   const numero = document.numero;
   const dateDocument = document.dateDocument;
@@ -89,7 +102,12 @@ export function construireEcritureDocument(
   // --- Créances clients (une ligne, TTC, polarité DÉBIT naturelle) --------------------------------
   const compteCreances = comptes.resoudreCompte('creances_clients', 'defaut');
   if (compteCreances === undefined) {
-    manquants.push({ type: 'compte', usage: 'creances_clients', categorie: 'defaut', documentNumero: numero });
+    manquants.push({
+      type: 'compte',
+      usage: 'creances_clients',
+      categorie: 'defaut',
+      documentNumero: numero,
+    });
   }
   groupes.push({
     usage: 'creances_clients',
@@ -103,10 +121,17 @@ export function construireEcritureDocument(
   });
 
   // --- Produits / acomptes reçus / écart de reprise, groupés par catégorie (polarité CRÉDIT) -----
-  const sommesParCategorie = new Map<string, { usage: 'produit' | 'acomptes_recus' | 'ecart_reprise'; categorie: string; somme: bigint }>();
+  const sommesParCategorie = new Map<
+    string,
+    { usage: 'produit' | 'acomptes_recus' | 'ecart_reprise'; categorie: string; somme: bigint }
+  >();
   for (const ligne of lignes) {
     const usage: 'produit' | 'acomptes_recus' | 'ecart_reprise' =
-      ligne.typeLigne === 'ecart_reprise' ? 'ecart_reprise' : ligne.typeLigne === 'acompte_deduit' ? 'acomptes_recus' : 'produit';
+      ligne.typeLigne === 'ecart_reprise'
+        ? 'ecart_reprise'
+        : ligne.typeLigne === 'acompte_deduit'
+          ? 'acomptes_recus'
+          : 'produit';
     const categorie = usage === 'produit' ? categorieProduit(ligne) : 'defaut';
     const cle = `${usage}::${categorie}`;
     const existant = sommesParCategorie.get(cle);
@@ -139,10 +164,20 @@ export function construireEcritureDocument(
     const compte = comptes.resoudreCompte('tva_due', String(v.tauxTvaPourmille));
     const codeTva = comptes.resoudreCodeTva(v.regimeTva, v.tauxTvaPourmille);
     if (compte === undefined) {
-      manquants.push({ type: 'compte', usage: 'tva_due', categorie: String(v.tauxTvaPourmille), documentNumero: numero });
+      manquants.push({
+        type: 'compte',
+        usage: 'tva_due',
+        categorie: String(v.tauxTvaPourmille),
+        documentNumero: numero,
+      });
     }
     if (codeTva === undefined) {
-      manquants.push({ type: 'code_tva', regimeTva: v.regimeTva, tauxPourmille: v.tauxTvaPourmille, documentNumero: numero });
+      manquants.push({
+        type: 'code_tva',
+        regimeTva: v.regimeTva,
+        tauxPourmille: v.tauxTvaPourmille,
+        documentNumero: numero,
+      });
     }
     groupes.push({
       usage: 'tva_due',
@@ -166,7 +201,10 @@ export function construireEcritureDocument(
     const compte = comptes.resoudreCompte(g.usage, g.categorie);
     // Ne peut pas être `undefined` ici : `manquants` aurait intercepté le cas ci-dessus et la
     // fonction serait déjà sortie. Garde défensive pour le typage, jamais atteinte en pratique.
-    if (compte === undefined) throw new Error(`compte introuvable pour ${g.usage}/${g.categorie} — devrait avoir été signalé en manquants.`);
+    if (compte === undefined)
+      throw new Error(
+        `compte introuvable pour ${g.usage}/${g.categorie} — devrait avoir été signalé en manquants.`,
+      );
 
     if (g.montantSigneCentimes === 0n) continue;
     const positif = g.montantSigneCentimes > 0n;
@@ -211,7 +249,11 @@ export function construireEcritureDocument(
   return { succes: true, ecriture, totalDebitCentimes, totalCreditCentimes };
 }
 
-function libelleGroupe(usage: 'produit' | 'acomptes_recus' | 'ecart_reprise', categorie: string, numero: string): string {
+function libelleGroupe(
+  usage: 'produit' | 'acomptes_recus' | 'ecart_reprise',
+  categorie: string,
+  numero: string,
+): string {
   if (usage === 'acomptes_recus') return `Déduction d'acompte — ${numero}`;
   if (usage === 'ecart_reprise') return `Écart de reprise — ${numero}`;
   return `${categorie} — ${numero}`;

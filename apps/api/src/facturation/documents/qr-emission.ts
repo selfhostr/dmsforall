@@ -66,8 +66,15 @@ export interface BlocCreancierResolu {
  * — jamais un `500`, jamais un QR bancal. Appelé AVANT l'allocation du numéro (RF-26 : tout ce qui
  * peut échouer s'exécute avant).
  */
-export async function resoudreBlocCreancierPourEmission(tx: TransactionDfa, ctx: ContexteTenant): Promise<BlocCreancierResolu> {
-  const [ligne] = await tx.select().from(tenantBlocCreancier).where(eq(tenantBlocCreancier.tenantId, ctx.tenantId)).limit(1);
+export async function resoudreBlocCreancierPourEmission(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+): Promise<BlocCreancierResolu> {
+  const [ligne] = await tx
+    .select()
+    .from(tenantBlocCreancier)
+    .where(eq(tenantBlocCreancier.tenantId, ctx.tenantId))
+    .limit(1);
 
   const adresse: AdresseStructuree = {
     nom: ligne?.nom ?? '',
@@ -107,7 +114,11 @@ export async function resoudreBlocCreancierPourEmission(tx: TransactionDfa, ctx:
       // la clé modulo 97 (déléguée à l'applicatif, justification dans la migration) : une ligne
       // écrite hors service (script, seed manuel) pourrait donc porter un IBAN dont la clé est
       // fausse. Même code que le reste de cette fonction — c'est la même famille de refus.
-      throw new ErreurMetier('QR_CREANCIER_INCOMPLET', `IBAN du garage invalide : ${erreur.message}`, { detail: erreur.code });
+      throw new ErreurMetier(
+        'QR_CREANCIER_INCOMPLET',
+        `IBAN du garage invalide : ${erreur.message}`,
+        { detail: erreur.code },
+      );
     }
     throw erreur;
   }
@@ -181,7 +192,11 @@ export async function construireBlocQrPourEmission(
     });
   } catch (erreur) {
     if (erreur instanceof ErreurQrFacture) {
-      throw new ErreurMetier('QR_CREANCIER_INCOMPLET', `QR-facture impossible à produire (${erreur.code}) : ${erreur.message}`, { detail: erreur.code });
+      throw new ErreurMetier(
+        'QR_CREANCIER_INCOMPLET',
+        `QR-facture impossible à produire (${erreur.code}) : ${erreur.message}`,
+        { detail: erreur.code },
+      );
     }
     throw erreur;
   }
@@ -204,7 +219,12 @@ export async function construireBlocQrPourEmission(
   };
 }
 
-async function construireBaseReferenceQrr(tx: TransactionDfa, ctx: ContexteTenant, compteurs: ServiceCompteurs, exercice: number): Promise<string> {
+async function construireBaseReferenceQrr(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  compteurs: ServiceCompteurs,
+  exercice: number,
+): Promise<string> {
   const compteurQr = await compteurs.prochainNumero(tx, {
     tenantId: ctx.tenantId,
     typeDocument: 'reference_qr',

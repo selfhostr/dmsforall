@@ -236,11 +236,18 @@ function estCheminAuthentification(url: string | undefined): boolean {
   return /\/auth(\/|$|\?)/i.test(url);
 }
 
-function nettoyerEnTetes(headers: Record<string, string> | undefined): Record<string, string> | undefined {
+function nettoyerEnTetes(
+  headers: Record<string, string> | undefined,
+): Record<string, string> | undefined {
   if (!headers) {
     return headers;
   }
-  const EN_TETES_RETIRES = new Set(['authorization', 'cookie', 'x-forwarded-authorization', 'proxy-authorization']);
+  const EN_TETES_RETIRES = new Set([
+    'authorization',
+    'cookie',
+    'x-forwarded-authorization',
+    'proxy-authorization',
+  ]);
   const resultat: Record<string, string> = {};
   for (const [nom, valeur] of Object.entries(headers)) {
     resultat[nom] = EN_TETES_RETIRES.has(nom.toLowerCase()) ? MASQUE : assainirChaine(valeur);
@@ -265,7 +272,12 @@ function nettoyerUrl(url: string): string {
  * un texte SQL peut embarquer des valeurs littérales (paramètres non liés), une query string
  * d'URL porte les mêmes filtres de recherche que `request.query_string`.
  */
-const CLES_SPAN_MASQUAGE_TOTAL = new Set(['db.statement', 'db.query.text', 'url.query', 'http.target']);
+const CLES_SPAN_MASQUAGE_TOTAL = new Set([
+  'db.statement',
+  'db.query.text',
+  'url.query',
+  'http.target',
+]);
 
 /** Attributs de span porteurs d'une URL complète — la query string en est coupée, pas rédigée. */
 const CLES_SPAN_URL = new Set(['http.url', 'url.full']);
@@ -361,7 +373,10 @@ export function assainirEvenement<E extends FormeEvenementCommune>(event: E): E 
     event.extra = filtre && Object.keys(filtre).length > 0 ? filtre : undefined;
   }
   if (event.contexts) {
-    const filtre = filtrerParAllowList(event.contexts, CLES_CONTEXTS_AUTORISEES) as typeof event.contexts;
+    const filtre = filtrerParAllowList(
+      event.contexts,
+      CLES_CONTEXTS_AUTORISEES,
+    ) as typeof event.contexts;
     event.contexts = filtre && Object.keys(filtre).length > 0 ? filtre : undefined;
   }
 
@@ -387,7 +402,11 @@ export function assainirEvenement<E extends FormeEvenementCommune>(event: E): E 
   if (event.tags) {
     const tagsNettoyes: Record<string, unknown> = {};
     for (const [cle, valeur] of Object.entries(event.tags)) {
-      tagsNettoyes[cle] = estCleSensible(cle) ? MASQUE : typeof valeur === 'string' ? assainirChaine(valeur) : valeur;
+      tagsNettoyes[cle] = estCleSensible(cle)
+        ? MASQUE
+        : typeof valeur === 'string'
+          ? assainirChaine(valeur)
+          : valeur;
     }
     event.tags = tagsNettoyes as typeof event.tags;
   }

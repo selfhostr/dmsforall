@@ -43,7 +43,12 @@ function txFactice(selects: readonly unknown[][]) {
     update: () => ({
       set: (vals: unknown) => {
         setArgs.push(vals);
-        return { where: () => ({ returning: () => Promise.resolve([ligneParametres(vals as Partial<LigneParametrePieces>)]) }) };
+        return {
+          where: () => ({
+            returning: () =>
+              Promise.resolve([ligneParametres(vals as Partial<LigneParametrePieces>)]),
+          }),
+        };
       },
     }),
   };
@@ -52,7 +57,11 @@ function txFactice(selects: readonly unknown[][]) {
 }
 
 function accesFactice(tx: TransactionDfa): AccesBase {
-  return { enTenant: vi.fn((_ctx, travail) => travail(tx)), verifierConnexion: vi.fn(), verifierPostureRls: vi.fn() };
+  return {
+    enTenant: vi.fn((_ctx, travail) => travail(tx)),
+    verifierConnexion: vi.fn(),
+    verifierPostureRls: vi.fn(),
+  };
 }
 
 describe('ServiceParametragePieces — §10 : résilient à l’absence de ligne de bootstrap (voir en-tête du service)', () => {

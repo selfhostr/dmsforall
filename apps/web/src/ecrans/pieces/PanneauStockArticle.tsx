@@ -5,7 +5,14 @@ import type { SiteResume, StockResumeArticle } from '@dfa/shared';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { messageErreur } from '@/api/erreurs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
@@ -68,8 +75,12 @@ export function PanneauStockArticle({ articleId, stocksResume, sites }: Props) {
             {stocksResume.map((stock) => (
               <TableRow key={stock.siteId}>
                 <TableCell>{nomSite(sites, stock.siteId)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formaterQuantiteMillieme(stock.quantitePhysiqueMillieme)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formaterQuantiteMillieme(stock.quantiteDisponibleMillieme)}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formaterQuantiteMillieme(stock.quantitePhysiqueMillieme)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formaterQuantiteMillieme(stock.quantiteDisponibleMillieme)}
+                </TableCell>
                 <TableCell className="text-right">
                   <Button
                     type="button"
@@ -84,7 +95,13 @@ export function PanneauStockArticle({ articleId, stocksResume, sites }: Props) {
           </TableBody>
         </Table>
 
-        {siteDeplie ? <DetailDisponibilite articleId={articleId} siteId={siteDeplie} nomSite={nomSite(sites, siteDeplie)} /> : null}
+        {siteDeplie ? (
+          <DetailDisponibilite
+            articleId={articleId}
+            siteId={siteDeplie}
+            nomSite={nomSite(sites, siteDeplie)}
+          />
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -126,12 +143,16 @@ function DetailDisponibilite({ articleId, siteId, nomSite: nom }: PropsDetail) {
       ) : (
         <ul className="mt-2 flex flex-col gap-2">
           {disponibilite.reservationsActives.map((reservation) => (
-            <li key={reservation.reservationId} className="flex items-center justify-between gap-3 texte-corps">
+            <li
+              key={reservation.reservationId}
+              className="flex items-center justify-between gap-3 texte-corps"
+            >
               <span>
                 {reservation.numeroOrdreReparation} · {reservation.clientNomAffichage}
               </span>
               <span className="tabular-nums text-muted-foreground">
-                {formaterQuantiteMillieme(reservation.quantiteMillieme)} · {formaterDateHeure(reservation.reserveeLe)}
+                {formaterQuantiteMillieme(reservation.quantiteMillieme)} ·{' '}
+                {formaterDateHeure(reservation.reserveeLe)}
               </span>
             </li>
           ))}

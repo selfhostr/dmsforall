@@ -28,7 +28,10 @@ export function OngletTauxHoraires({ role }: Props) {
   const [dialogueOuvert, setDialogueOuvert] = useState(false);
   const [tauxEnEdition, setTauxEnEdition] = useState<ReponseTauxHoraire | undefined>(undefined);
 
-  const lignes = useMemo(() => requete.data?.pages.flatMap((page) => page.donnees) ?? [], [requete.data]);
+  const lignes = useMemo(
+    () => requete.data?.pages.flatMap((page) => page.donnees) ?? [],
+    [requete.data],
+  );
 
   const ouvrirCreation = () => {
     setTauxEnEdition(undefined);
@@ -40,8 +43,16 @@ export function OngletTauxHoraires({ role }: Props) {
   };
 
   const colonnes: ColonneComptoir<ReponseTauxHoraire>[] = [
-    { id: 'code', libelle: t('parametrage:referentiels.tauxHoraires.champs.code'), rendu: (t2) => <span className="font-medium">{t2.code}</span> },
-    { id: 'libelle', libelle: t('parametrage:referentiels.tauxHoraires.champs.libelle'), rendu: (t2) => t2.libelle },
+    {
+      id: 'code',
+      libelle: t('parametrage:referentiels.tauxHoraires.champs.code'),
+      rendu: (t2) => <span className="font-medium">{t2.code}</span>,
+    },
+    {
+      id: 'libelle',
+      libelle: t('parametrage:referentiels.tauxHoraires.champs.libelle'),
+      rendu: (t2) => t2.libelle,
+    },
     {
       id: 'montant',
       libelle: t('parametrage:referentiels.tauxHoraires.champs.montant'),
@@ -51,7 +62,9 @@ export function OngletTauxHoraires({ role }: Props) {
     {
       id: 'valideDuLe',
       libelle: t('parametrage:referentiels.tauxHoraires.champs.valideDuLe'),
-      rendu: (t2) => <span className="tabular-nums text-muted-foreground">{formaterDate(t2.valideDuLe)}</span>,
+      rendu: (t2) => (
+        <span className="tabular-nums text-muted-foreground">{formaterDate(t2.valideDuLe)}</span>
+      ),
     },
     {
       id: 'valideAuLe',
@@ -98,7 +111,9 @@ export function OngletTauxHoraires({ role }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
-        <p className="texte-corps text-muted-foreground">{t('parametrage:referentiels.tauxHoraires.explication')}</p>
+        <p className="texte-corps text-muted-foreground">
+          {t('parametrage:referentiels.tauxHoraires.explication')}
+        </p>
         {peutEcrire ? (
           <Button type="button" onClick={ouvrirCreation}>
             <Plus aria-hidden className="h-4 w-4" />
@@ -131,7 +146,11 @@ export function OngletTauxHoraires({ role }: Props) {
         </>
       )}
 
-      <DialogueTauxHoraire ouvert={dialogueOuvert} onOuvertChange={setDialogueOuvert} tauxHoraire={tauxEnEdition} />
+      <DialogueTauxHoraire
+        ouvert={dialogueOuvert}
+        onOuvertChange={setDialogueOuvert}
+        tauxHoraire={tauxEnEdition}
+      />
     </div>
   );
 }

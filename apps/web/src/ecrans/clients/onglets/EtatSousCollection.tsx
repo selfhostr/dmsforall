@@ -17,7 +17,14 @@ interface Props {
 /** Les trois états (chargement/vide/erreur) communs aux cinq onglets de sous-collection de la
  *  fiche — factorisés une fois pour ne pas les réécrire cinq fois à l'identique. Le corps réel
  *  (`children`, la liste + le formulaire d'ajout) reste propre à chaque onglet. */
-export function EtatSousCollection({ enChargement, erreur, onReessayer, vide, texteVide, children }: Props) {
+export function EtatSousCollection({
+  enChargement,
+  erreur,
+  onReessayer,
+  vide,
+  texteVide,
+  children,
+}: Props) {
   const { t } = useTranslation('erreurs');
 
   if (enChargement) return <EtatChargement lignes={2} />;

@@ -1,11 +1,20 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { CANAUX_DEVIS, DECISIONS_DEVIS, type ReponseDevisComplementaire, type ReponseDevisLigne } from '@dfa/shared';
+import {
+  CANAUX_DEVIS,
+  DECISIONS_DEVIS,
+  type ReponseDevisComplementaire,
+  type ReponseDevisLigne,
+} from '@dfa/shared';
 
 export class ReponseDevisLigneDto implements ReponseDevisLigne {
   @ApiProperty({ format: 'uuid' })
   readonly ligneId!: string;
 
-  @ApiProperty({ enum: DECISIONS_DEVIS, nullable: true, description: "`null` tant que le devis n'a pas reçu de réponse `partiel` (CT-33)." })
+  @ApiProperty({
+    enum: DECISIONS_DEVIS,
+    nullable: true,
+    description: "`null` tant que le devis n'a pas reçu de réponse `partiel` (CT-33).",
+  })
   readonly decision!: ReponseDevisLigne['decision'];
 }
 
@@ -22,7 +31,10 @@ export class ReponseDevisComplementaireDto implements ReponseDevisComplementaire
   @ApiProperty({ type: () => [ReponseDevisLigneDto] })
   readonly lignes!: readonly ReponseDevisLigne[];
 
-  @ApiPropertyOptional({ description: 'Absent pour un rôle sans droit aux montants. Calculé par le serveur depuis les lignes référencées.' })
+  @ApiPropertyOptional({
+    description:
+      'Absent pour un rôle sans droit aux montants. Calculé par le serveur depuis les lignes référencées.',
+  })
   readonly montantTtcCentimes?: number;
 
   @ApiPropertyOptional({ description: 'Absent pour un rôle sans droit aux montants.' })
@@ -40,10 +52,22 @@ export class ReponseDevisComplementaireDto implements ReponseDevisComplementaire
   @ApiProperty({ format: 'date-time' })
   readonly envoyeLe!: string;
 
-  @ApiProperty({ type: 'object', nullable: true, properties: { utilisateurId: { type: 'string', format: 'uuid' }, nomAffiche: { type: 'string' } } })
+  @ApiProperty({
+    type: 'object',
+    nullable: true,
+    properties: {
+      utilisateurId: { type: 'string', format: 'uuid' },
+      nomAffiche: { type: 'string' },
+    },
+  })
   readonly emetteur!: { readonly utilisateurId: string; readonly nomAffiche: string } | null;
 
-  @ApiProperty({ type: String, nullable: true, description: 'Le NOM DE LA PERSONNE qui a répondu (RM-81). Obligatoire dès qu’il y a une réponse.' })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'Le NOM DE LA PERSONNE qui a répondu (RM-81). Obligatoire dès qu’il y a une réponse.',
+  })
   readonly interlocuteurNom!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time', nullable: true })

@@ -73,7 +73,7 @@ describe('construireMiddlewareEnTetesSecurite — CSP', () => {
   });
 
   it.each(['/api/docs', '/api/docs.json', '/api/docs/swagger-ui-bundle.js'])(
-    "relâche la CSP (self + unsafe-inline) sur %s pour ne pas casser Swagger",
+    'relâche la CSP (self + unsafe-inline) sur %s pour ne pas casser Swagger',
     (chemin) => {
       const res = reponseTest();
       middleware(requeteTest(chemin, true), res, vi.fn() as NextFunction);
@@ -92,7 +92,7 @@ describe('construireMiddlewareEnTetesSecurite — CSP', () => {
     expect(appelCsp?.[1]).toContain("default-src 'none'");
   });
 
-  it('conserve frame-ancestors \'none\' même sur la CSP relâchée de Swagger', () => {
+  it("conserve frame-ancestors 'none' même sur la CSP relâchée de Swagger", () => {
     const res = reponseTest();
     middleware(requeteTest('/api/docs', true), res, vi.fn() as NextFunction);
 

@@ -20,7 +20,10 @@ export interface PageMouvements {
   readonly curseur?: string;
 }
 
-function construireParametresMouvements(filtres: FiltresMouvementsStock, page: PageMouvements): string {
+function construireParametresMouvements(
+  filtres: FiltresMouvementsStock,
+  page: PageMouvements,
+): string {
   const parametres = new URLSearchParams();
   for (const valeur of filtres.type ?? []) parametres.append('type', valeur);
   if (filtres.siteId) parametres.set('siteId', filtres.siteId);
@@ -51,11 +54,14 @@ export async function creerMouvementCasse(
   entree: EntreeCreationMouvementCasse,
   idempotencyKey: string,
 ): Promise<ReponseMouvementStock> {
-  const reponse = await requeteApi<ReponseMouvementStock>(`/articles/${articleId}/mouvements/casse`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-    idempotencyKey,
-  });
+  const reponse = await requeteApi<ReponseMouvementStock>(
+    `/articles/${articleId}/mouvements/casse`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+      idempotencyKey,
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /articles/mouvements/casse.');
   }
@@ -68,11 +74,14 @@ export async function creerMouvementPerte(
   entree: EntreeCreationMouvementPerte,
   idempotencyKey: string,
 ): Promise<ReponseMouvementStock> {
-  const reponse = await requeteApi<ReponseMouvementStock>(`/articles/${articleId}/mouvements/perte`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-    idempotencyKey,
-  });
+  const reponse = await requeteApi<ReponseMouvementStock>(
+    `/articles/${articleId}/mouvements/perte`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+      idempotencyKey,
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /articles/mouvements/perte.');
   }
@@ -86,11 +95,14 @@ export async function creerMouvementTransfert(
   entree: EntreeCreationMouvementTransfert,
   idempotencyKey: string,
 ): Promise<ReponseMouvementStock> {
-  const reponse = await requeteApi<ReponseMouvementStock>(`/articles/${articleId}/mouvements/transfert`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-    idempotencyKey,
-  });
+  const reponse = await requeteApi<ReponseMouvementStock>(
+    `/articles/${articleId}/mouvements/transfert`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+      idempotencyKey,
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /articles/mouvements/transfert.');
   }
@@ -121,11 +133,14 @@ export async function creerRetourFournisseur(
   entree: EntreeCreationRetourFournisseur,
   idempotencyKey: string,
 ): Promise<ReponseMouvementStock> {
-  const reponse = await requeteApi<ReponseMouvementStock>(`/articles/${articleId}/mouvements/retour-fournisseur`, {
-    method: 'POST',
-    body: JSON.stringify(entree),
-    idempotencyKey,
-  });
+  const reponse = await requeteApi<ReponseMouvementStock>(
+    `/articles/${articleId}/mouvements/retour-fournisseur`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+      idempotencyKey,
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /articles/mouvements/retour-fournisseur.');
   }

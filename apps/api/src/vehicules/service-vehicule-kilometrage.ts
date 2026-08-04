@@ -1,5 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { MOTIFS_KILOMETRAGE_REGRESSIF, type EntreeKilometrageVehicule, type ReponseVehiculeKilometrage, type RoleUtilisateur } from '@dfa/shared';
+import {
+  MOTIFS_KILOMETRAGE_REGRESSIF,
+  type EntreeKilometrageVehicule,
+  type ReponseVehiculeKilometrage,
+  type RoleUtilisateur,
+} from '@dfa/shared';
 import { MATRICE_DROITS } from '../auth/matrice-droits';
 import { JETON_DB, type AccesBase, type ContexteTenant } from '../db';
 import { vehiculeKilometrage, type LigneVehiculeKilometrage } from '../db/schema';
@@ -9,7 +14,11 @@ import { JETON_EVENEMENTS, type ServiceEvenements } from '../common/evenements';
 import { Horloge } from '../common/horloge';
 import { convertirEnKm, evaluerKilometrage } from './kilometrage.regles';
 import type { FiltresKilometrages } from './schemas-locales';
-import { chargerLigneVehicule, lireDernierKilometrage, listerKilometrages } from './vehicule-requetes';
+import {
+  chargerLigneVehicule,
+  lireDernierKilometrage,
+  listerKilometrages,
+} from './vehicule-requetes';
 
 function versReponse(ligne: LigneVehiculeKilometrage): ReponseVehiculeKilometrage {
   return {
@@ -42,7 +51,11 @@ export class ServiceVehiculeKilometrage {
     private readonly horloge: Horloge,
   ) {}
 
-  async lister(ctx: ContexteTenant, vehiculeId: string, filtres: FiltresKilometrages): Promise<readonly ReponseVehiculeKilometrage[]> {
+  async lister(
+    ctx: ContexteTenant,
+    vehiculeId: string,
+    filtres: FiltresKilometrages,
+  ): Promise<readonly ReponseVehiculeKilometrage[]> {
     return this.acces.enTenant(ctx, async (tx) => {
       await chargerLigneVehicule(tx, ctx, vehiculeId);
       let lignes = await listerKilometrages(tx, ctx, vehiculeId);
@@ -91,24 +104,41 @@ export class ServiceVehiculeKilometrage {
       const nouveauValeurKm = convertirEnKm(entree.valeur, entree.unite);
       const decision = evaluerKilometrage(
         nouveauValeurKm,
-        dernier ? { valeurKm: dernier.valeurKm ?? convertirEnKm(dernier.valeur, dernier.unite), releveLe: dernier.releveLe } : null,
+        dernier
+          ? {
+              valeurKm: dernier.valeurKm ?? convertirEnKm(dernier.valeur, dernier.unite),
+              releveLe: dernier.releveLe,
+            }
+          : null,
         this.horloge.maintenant(),
       );
 
       if (decision.regressif && !entree.motifRegression) {
-        throw new ErreurMetier('VEHICULE_KILOMETRAGE_REGRESSIF', 'Le kilométrage saisi est inférieur au dernier relevé connu.', {
-          blocages: dernier
-            ? [
-                {
-                  type: 'champ' as const,
-                  id: 'valeur',
-                  libelle: 'Dernier relevé connu',
-                  donnees: { valeurKm: dernier.valeurKm, releveLe: dernier.releveLe.toISOString() },
-                },
-              ]
-            : undefined,
-          actionsProposees: [{ code: 'FOURNIR_MOTIF', parametres: { motifsAcceptes: MOTIFS_KILOMETRAGE_REGRESSIF } }],
-        });
+        throw new ErreurMetier(
+          'VEHICULE_KILOMETRAGE_REGRESSIF',
+          'Le kilométrage saisi est inférieur au dernier relevé connu.',
+          {
+            blocages: dernier
+              ? [
+                  {
+                    type: 'champ' as const,
+                    id: 'valeur',
+                    libelle: 'Dernier relevé connu',
+                    donnees: {
+                      valeurKm: dernier.valeurKm,
+                      releveLe: dernier.releveLe.toISOString(),
+                    },
+                  },
+                ]
+              : undefined,
+            actionsProposees: [
+              {
+                code: 'FOURNIR_MOTIF',
+                parametres: { motifsAcceptes: MOTIFS_KILOMETRAGE_REGRESSIF },
+              },
+            ],
+          },
+        );
       }
 
       // Branche régressive AVEC motif fourni : c'est une CORRECTION (§10 L962), pas une saisie
@@ -127,10 +157,14 @@ export class ServiceVehiculeKilometrage {
       }
 
       if (decision.aberrant) {
-        avertissements.ajouter('VEHICULE_KILOMETRAGE_ABERRANT', "Écart aberrant avec le dernier relevé connu (RM-25).", {
-          nouveauValeurKm,
-          dernierValeurKm: dernier?.valeurKm ?? null,
-        });
+        avertissements.ajouter(
+          'VEHICULE_KILOMETRAGE_ABERRANT',
+          'Écart aberrant avec le dernier relevé connu (RM-25).',
+          {
+            nouveauValeurKm,
+            dernierValeurKm: dernier?.valeurKm ?? null,
+          },
+        );
       }
 
       const lignes = await tx
@@ -157,7 +191,12 @@ export class ServiceVehiculeKilometrage {
         versionSchema: 1,
         siteId: null,
         ressource: { type: 'vehicule', id: vehiculeId },
-        donnees: { valeurKm: nouveauValeurKm, unite: entree.unite, source: entree.source, releveLe: entree.releveLe },
+        donnees: {
+          valeurKm: nouveauValeurKm,
+          unite: entree.unite,
+          source: entree.source,
+          releveLe: entree.releveLe,
+        },
       });
 
       return { donnees: versReponse(inseree), avertissements };

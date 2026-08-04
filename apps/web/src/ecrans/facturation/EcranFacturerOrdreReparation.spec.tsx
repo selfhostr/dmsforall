@@ -5,7 +5,12 @@ import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ClientResume, ReponseLigneOr, ReponseOrdreReparation, VehiculeResume } from '@dfa/shared';
+import type {
+  ClientResume,
+  ReponseLigneOr,
+  ReponseOrdreReparation,
+  VehiculeResume,
+} from '@dfa/shared';
 
 import '@/i18n';
 import i18n from '@/i18n';
@@ -87,7 +92,12 @@ function construireLigne(overrides: Partial<ReponseLigneOr> = {}): ReponseLigneO
 
 // Deux sinistres qui se croisent sur le même véhicule (MD-62) : deux lignes `payeur = 'assurance'`
 // mais deux `payeurClientId` distincts — le cas exact que le regroupement doit garder séparé.
-const LIGNE_CLIENT = construireLigne({ id: 'ligne-client', payeur: 'client', payeurClientId: null, designation: 'Vidange' });
+const LIGNE_CLIENT = construireLigne({
+  id: 'ligne-client',
+  payeur: 'client',
+  payeurClientId: null,
+  designation: 'Vidange',
+});
 const LIGNE_ASSURANCE_A = construireLigne({
   id: 'ligne-assurance-a',
   payeur: 'assurance',
@@ -110,7 +120,12 @@ function construireOr(overrides: Partial<ReponseOrdreReparation> = {}): ReponseO
     statut: 'termine',
     client: CLIENT,
     vehicule: VEHICULE,
-    figees: { clientDesignation: 'Jean Dupont', adresseFacturation: null, plaque: '123456', detenteurClientId: 'cl-1' },
+    figees: {
+      clientDesignation: 'Jean Dupont',
+      adresseFacturation: null,
+      plaque: '123456',
+      detenteurClientId: 'cl-1',
+    },
     conducteurPresentNom: null,
     kilometrageEntree: 90000,
     kilometrageSortie: 90050,
@@ -192,7 +207,10 @@ function rendre() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/ordres-reparation/or-1/facturer']}>
         <Routes>
-          <Route path="/ordres-reparation/:orId/facturer" element={<EcranFacturerOrdreReparation />} />
+          <Route
+            path="/ordres-reparation/:orId/facturer"
+            element={<EcranFacturerOrdreReparation />}
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -212,15 +230,19 @@ describe('EcranFacturerOrdreReparation', () => {
   });
 
   it(
-    "regroupe par (payeur, payeurClientId) — MD-62 : deux assurances distinctes restent DEUX groupes " +
+    'regroupe par (payeur, payeurClientId) — MD-62 : deux assurances distinctes restent DEUX groupes ' +
       'séparés, jamais fusionnés sous prétexte qu’elles partagent payeur = "assurance"',
     async () => {
       installerHandlerOr(construireOr());
       rendre();
 
       expect(await screen.findByText('Groupe payeur « Client »')).toBeInTheDocument();
-      expect(await screen.findByText('Groupe payeur « Assurance — Zurich Assurances »')).toBeInTheDocument();
-      expect(await screen.findByText('Groupe payeur « Assurance — Mobilière »')).toBeInTheDocument();
+      expect(
+        await screen.findByText('Groupe payeur « Assurance — Zurich Assurances »'),
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByText('Groupe payeur « Assurance — Mobilière »'),
+      ).toBeInTheDocument();
       // Trois groupes, trois lignes uniques réparties une par groupe — pas de fusion silencieuse.
       expect(screen.getByText('Vidange')).toBeInTheDocument();
       expect(screen.getByText('Choc avant')).toBeInTheDocument();
@@ -242,7 +264,11 @@ describe('EcranFacturerOrdreReparation', () => {
             {
               donnees: {
                 facturesCreees: [{ id: 'facture-1' }, { id: 'facture-2' }, { id: 'facture-3' }],
-                ordreReparation: { ...or, statut: 'facture', factureLe: '2026-07-30T10:00:00.000Z' },
+                ordreReparation: {
+                  ...or,
+                  statut: 'facture',
+                  factureLe: '2026-07-30T10:00:00.000Z',
+                },
               },
               avertissements: [],
             },

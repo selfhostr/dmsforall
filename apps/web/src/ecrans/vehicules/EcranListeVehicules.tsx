@@ -2,12 +2,23 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
 
-import { TRI_DEFAUT_VEHICULES, TRIS_VEHICULES, type StatutVehicule, type VehiculeResume } from '@dfa/shared';
+import {
+  TRI_DEFAUT_VEHICULES,
+  TRIS_VEHICULES,
+  type StatutVehicule,
+  type VehiculeResume,
+} from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
@@ -56,12 +67,26 @@ export function EcranListeVehicules() {
   }, [qSaisie]);
 
   const filtres = useMemo(
-    () => ({ q: q.trim() === '' ? undefined : q.trim(), statut, importe: importe || undefined, siteId: site, tri }),
+    () => ({
+      q: q.trim() === '' ? undefined : q.trim(),
+      statut,
+      importe: importe || undefined,
+      siteId: site,
+      tri,
+    }),
     [q, statut, importe, site, tri],
   );
 
-  const { vehicules, isPending, isError, error, refetch, hasNextPage, isFetchingNextPage, fetchNextPage } =
-    useListeVehicules(filtres);
+  const {
+    vehicules,
+    isPending,
+    isError,
+    error,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useListeVehicules(filtres);
 
   const filtresStructuresActifs = statut !== undefined || importe;
   const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
@@ -94,7 +119,12 @@ export function EcranListeVehicules() {
 
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
-    contenuVide = <EtatVideRecherche titre={t('vehicules:liste.titre')} description={t('vehicules:vide.recherche')} />;
+    contenuVide = (
+      <EtatVideRecherche
+        titre={t('vehicules:liste.titre')}
+        description={t('vehicules:vide.recherche')}
+      />
+    );
   } else if (filtresStructuresActifs) {
     contenuVide = (
       <EtatVideFiltre
@@ -104,7 +134,12 @@ export function EcranListeVehicules() {
       />
     );
   } else {
-    contenuVide = <EtatVidePremierUsage titre={t('vehicules:liste.titre')} description={t('vehicules:vide.nouveau')} />;
+    contenuVide = (
+      <EtatVidePremierUsage
+        titre={t('vehicules:liste.titre')}
+        description={t('vehicules:vide.nouveau')}
+      />
+    );
   }
 
   if (isPending) {
@@ -133,20 +168,33 @@ export function EcranListeVehicules() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold tracking-tight">{t('vehicules:liste.titre')}</h1>
 
-      <BarreFiltres q={qSaisie} onChangeQ={setQSaisie} filtresActifs={filtresActifs} onEffacerFiltres={effacerFiltres}>
+      <BarreFiltres
+        q={qSaisie}
+        onChangeQ={setQSaisie}
+        filtresActifs={filtresActifs}
+        onEffacerFiltres={effacerFiltres}
+      >
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="filtre-statut">{t('vehicules:liste.filtres.statut')}</Label>
           <Select
             value={statut ?? 'tous'}
-            onValueChange={(valeur) => setStatut(valeur === 'tous' ? undefined : (valeur as StatutVehicule))}
+            onValueChange={(valeur) =>
+              setStatut(valeur === 'tous' ? undefined : (valeur as StatutVehicule))
+            }
           >
-            <SelectTrigger id="filtre-statut" className="w-[180px]" aria-label={t('vehicules:liste.filtres.statut')}>
+            <SelectTrigger
+              id="filtre-statut"
+              className="w-[180px]"
+              aria-label={t('vehicules:liste.filtres.statut')}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="tous">{t('vehicules:liste.filtres.statutTous')}</SelectItem>
               <SelectItem value="actif">{t('vehicules:liste.filtres.statuts.actif')}</SelectItem>
-              <SelectItem value="archive">{t('vehicules:liste.filtres.statuts.archive')}</SelectItem>
+              <SelectItem value="archive">
+                {t('vehicules:liste.filtres.statuts.archive')}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>

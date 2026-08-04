@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { STATUTS_TRAVAIL_REPORTE, URGENCES_TRAVAIL, type ReponseTravailReporte, type StatutTravailReporte, type UrgenceTravail } from '@dfa/shared';
+import {
+  STATUTS_TRAVAIL_REPORTE,
+  URGENCES_TRAVAIL,
+  type ReponseTravailReporte,
+  type StatutTravailReporte,
+  type UrgenceTravail,
+} from '@dfa/shared';
 
 export class ReponseTravailReporteDto implements ReponseTravailReporte {
   @ApiProperty({ format: 'uuid' })
@@ -11,7 +17,11 @@ export class ReponseTravailReporteDto implements ReponseTravailReporte {
   @ApiProperty({ enum: URGENCES_TRAVAIL })
   readonly urgence!: UrgenceTravail;
 
-  @ApiPropertyOptional({ type: Number, nullable: true, description: 'Absent pour les rôles de ROLES_SANS_MONTANT.' })
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+    description: 'Absent pour les rôles de ROLES_SANS_MONTANT.',
+  })
   readonly montantEstimeCentimes?: number | null;
 
   @ApiProperty({ type: Number, nullable: true })

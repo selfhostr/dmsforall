@@ -4,7 +4,11 @@ import { TRI_DEFAUT_CREATION, type PageCurseur, type SiteResume } from '@dfa/sha
 import type { AccesBase, ContexteTenant } from '../db/db.types';
 import { JETON_DB } from '../db/db.jetons';
 import { site, type LigneSite } from '../db/schema';
-import { decoderCurseurTrie, encoderCurseurTrie, valeurCurseurTimestamptz } from '../common/pagination';
+import {
+  decoderCurseurTrie,
+  encoderCurseurTrie,
+  valeurCurseurTimestamptz,
+} from '../common/pagination';
 import { ErreurMetier } from '../common/erreurs';
 
 export interface ParametresListeSites {
@@ -26,11 +30,16 @@ function versSiteResume(ligne: LigneSite): SiteResume {
  * curseur v1 historique (socle étape 0, `decoderCurseurTrie` le traite comme équivalent à
  * `TRI_DEFAUT_CREATION`) qu'un curseur v2 émis par `lister()` ci-dessous.
  */
-function decoderCurseurSite(curseur: string): { readonly creeLeTexte: string; readonly id: string } {
+function decoderCurseurSite(curseur: string): {
+  readonly creeLeTexte: string;
+  readonly id: string;
+} {
   const donnees = decoderCurseurTrie(curseur, TRI_DEFAUT_CREATION);
   if (typeof donnees.valeur !== 'string') {
     throw new ErreurMetier('VALIDATION_ECHOUEE', 'Curseur de pagination invalide.', {
-      erreurs: [{ champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' }],
+      erreurs: [
+        { champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' },
+      ],
     });
   }
   return { creeLeTexte: donnees.valeur, id: donnees.id };
@@ -44,7 +53,10 @@ function decoderCurseurSite(curseur: string): { readonly creeLeTexte: string; re
 export class ServiceSite {
   constructor(@Inject(JETON_DB) private readonly acces: AccesBase) {}
 
-  async lister(ctx: ContexteTenant, params: ParametresListeSites): Promise<PageCurseur<SiteResume>> {
+  async lister(
+    ctx: ContexteTenant,
+    params: ParametresListeSites,
+  ): Promise<PageCurseur<SiteResume>> {
     const { limite } = params;
     const curseurDecode = params.curseur ? decoderCurseurSite(params.curseur) : null;
 
@@ -60,7 +72,9 @@ export class ServiceSite {
       const conditionCurseur = curseurDecode
         ? sql`(${site.creeLe}, ${site.id}) < (${curseurDecode.creeLeTexte}::timestamptz, ${curseurDecode.id})`
         : undefined;
-      const conditionFinale = conditionCurseur ? and(conditionTenant, conditionCurseur) : conditionTenant;
+      const conditionFinale = conditionCurseur
+        ? and(conditionTenant, conditionCurseur)
+        : conditionTenant;
 
       const lignes = await tx
         .select({

@@ -47,13 +47,18 @@ export const SelectContent = forwardRef<
       position={position}
       className={cn(
         'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border border-input bg-popover text-popover-foreground shadow-md',
-        position === 'popper' && 'translate-y-1 data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1',
+        position === 'popper' &&
+          'translate-y-1 data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1',
         className,
       )}
       {...props}
     >
       <SelectPrimitive.Viewport
-        className={cn('p-1', position === 'popper' && 'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]')}
+        className={cn(
+          'p-1',
+          position === 'popper' &&
+            'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]',
+        )}
       >
         {children}
       </SelectPrimitive.Viewport>
@@ -66,7 +71,11 @@ export const SelectLabel = forwardRef<
   ElementRef<typeof SelectPrimitive.Label>,
   ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
 >(({ className, ...props }, ref) => (
-  <SelectPrimitive.Label ref={ref} className={cn('px-2 py-1.5 texte-libelle font-medium', className)} {...props} />
+  <SelectPrimitive.Label
+    ref={ref}
+    className={cn('px-2 py-1.5 texte-libelle font-medium', className)}
+    {...props}
+  />
 ));
 SelectLabel.displayName = SelectPrimitive.Label.displayName;
 
@@ -98,6 +107,10 @@ export const SelectSeparator = forwardRef<
   ElementRef<typeof SelectPrimitive.Separator>,
   ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
 >(({ className, ...props }, ref) => (
-  <SelectPrimitive.Separator ref={ref} className={cn('-mx-1 my-1 h-px bg-border', className)} {...props} />
+  <SelectPrimitive.Separator
+    ref={ref}
+    className={cn('-mx-1 my-1 h-px bg-border', className)}
+    {...props}
+  />
 ));
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;

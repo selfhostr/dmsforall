@@ -6,7 +6,9 @@ import { ServiceParametresAtelier } from './service-parametres-atelier';
 
 const CTX: ContexteTenant = { tenantId: 'tid', utilisateurId: null, requeteId: null };
 
-function ligneBrute(champs: Partial<schema.LigneParametreAtelier> = {}): schema.LigneParametreAtelier {
+function ligneBrute(
+  champs: Partial<schema.LigneParametreAtelier> = {},
+): schema.LigneParametreAtelier {
   return {
     tenantId: 'tid',
     orPrefixe: 'OR',
@@ -101,7 +103,9 @@ describe('ServiceParametresAtelier.modifier', () => {
     const service = new ServiceParametresAtelier(
       accesFactice({ ligneUpdate: ligneBrute({ plafondAvoirReceptionnaireCentimes: 500000 }) }),
     );
-    const dto = await service.modifier(CTX, { reception: { plafondAvoirReceptionnaireCentimes: 500000 } });
+    const dto = await service.modifier(CTX, {
+      reception: { plafondAvoirReceptionnaireCentimes: 500000 },
+    });
     expect(dto.reception.plafondAvoirReceptionnaireCentimes).toBe(500000);
   });
 
@@ -109,16 +113,22 @@ describe('ServiceParametresAtelier.modifier', () => {
     const service = new ServiceParametresAtelier(
       accesFactice({ ligneUpdate: ligneBrute({ plafondAvoirReceptionnaireCentimes: null }) }),
     );
-    const dto = await service.modifier(CTX, { reception: { plafondAvoirReceptionnaireCentimes: null } });
+    const dto = await service.modifier(CTX, {
+      reception: { plafondAvoirReceptionnaireCentimes: null },
+    });
     expect(dto.reception.plafondAvoirReceptionnaireCentimes).toBeNull();
   });
 
   it('domaine inerte (facturation) : 501 FONCTION_NON_DISPONIBLE, AVANT tout accès base', async () => {
     const acces = accesFactice({});
     const service = new ServiceParametresAtelier(acces);
-    const entree: EntreeModificationParametresAtelier = { facturation: { multiPayeursAutorise: true } };
+    const entree: EntreeModificationParametresAtelier = {
+      facturation: { multiPayeursAutorise: true },
+    };
 
-    await expect(service.modifier(CTX, entree)).rejects.toMatchObject({ code: 'FONCTION_NON_DISPONIBLE' });
+    await expect(service.modifier(CTX, entree)).rejects.toMatchObject({
+      code: 'FONCTION_NON_DISPONIBLE',
+    });
     expect(acces.enTenant).not.toHaveBeenCalled();
   });
 
@@ -140,7 +150,7 @@ describe('ServiceParametresAtelier.modifier', () => {
     expect(dto.travaux.controleQualite).toBe('toujours');
   });
 
-  it('corps sans colonne à écrire : relit l\'état courant sans UPDATE sans SET', async () => {
+  it("corps sans colonne à écrire : relit l'état courant sans UPDATE sans SET", async () => {
     const service = new ServiceParametresAtelier(accesFactice({ ligneSelect: ligneBrute() }));
     const dto = await service.modifier(CTX, {});
     expect(dto.or.prefixe).toBe('OR');

@@ -55,6 +55,8 @@ describe('sha256Hex', () => {
   it('empreinte stable et connue pour un contenu fixe', () => {
     // sha256("dfa") — calculée indépendamment (`printf 'dfa' | shasum -a 256`), valeur figée pour
     // détecter toute régression.
-    expect(sha256Hex(Buffer.from('dfa'))).toBe('5dd336c3be7b217f5b6d2daa9dd55963271c1b851bf9d6325bfbc17b109debd5');
+    expect(sha256Hex(Buffer.from('dfa'))).toBe(
+      '5dd336c3be7b217f5b6d2daa9dd55963271c1b851bf9d6325bfbc17b109debd5',
+    );
   });
 });

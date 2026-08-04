@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { LANGUES, STATUTS_CLIENT, TYPES_CLIENT, type ClientResume, type VehiculeResume } from '@dfa/shared';
+import {
+  LANGUES,
+  STATUTS_CLIENT,
+  TYPES_CLIENT,
+  type ClientResume,
+  type VehiculeResume,
+} from '@dfa/shared';
 
 /**
  * Projections partagées entre les DTO de ce module (véhicule, client) — copies module-locales des

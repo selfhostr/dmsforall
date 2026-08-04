@@ -22,7 +22,7 @@ describe('normaliserPlaque', () => {
     // "VD 123456" a pu être portée par deux véhicules successifs (RM-17) : la recherche envoyée
     // au serveur doit être identique quelle que soit la façon dont l'utilisateur l'a tapée,
     // sinon un des deux véhicules devient introuvable selon la casse/ponctuation saisie.
-    const variantes = ["VD 123456", "vd-123456", "V.D.123.456", "VD'123456"];
+    const variantes = ['VD 123456', 'vd-123456', 'V.D.123.456', "VD'123456"];
     const normalisees = variantes.map(normaliserPlaque);
     expect(new Set(normalisees).size).toBe(1);
     expect(normalisees[0]).toBe('VD123456');

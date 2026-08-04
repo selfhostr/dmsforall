@@ -47,6 +47,7 @@ proposition à la livraison, le financement au comptant et le leasing, les frais
 plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculation), la livraison.
 
 **Hors périmètre étape 4** (à ne pas reconstruire ici, juste ne pas s'y fermer) :
+
 - **Le contrat de leasing lui-même** — mensualités, taux, durée, valeur résiduelle. C'est un
   contrat entre le client et l'organisme de financement ; DFA n'en tient pas la comptabilité, au
   même titre que DFA ne tient pas la comptabilité générale du garage (`RF-101` de la spec étape 2).
@@ -128,29 +129,30 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
 
 ## 3. Vocabulaire
 
-| Terme | Définition métier |
-|---|---|
-| **VN** | Véhicule neuf (*Neuwagen*). Commandé au constructeur/importateur, n'existe en stock DFA qu'à partir de la commande ferme (ou de son arrivée), délai de livraison de plusieurs semaines à plusieurs mois. |
-| **VO** | Véhicule d'occasion (*Occasion*). Disponible immédiatement ou après remise en état, provenance variable (§5.1). |
-| **Occasion certifiée** | VO du programme du constructeur (souvent appelée par sa marque commerciale, ex. véhicule labellisé), avec garantie et standards de préparation propres au programme — à distinguer d'une VO « garage » sans label. |
-| **Véhicule de démonstration (démo)** | Véhicule en stock utilisé pour les essais clients avant d'être vendu, généralement sous plaques professionnelles interchangeables. |
-| **Reprise** | Véhicule apporté par le client en déduction du prix d'un véhicule acheté chez le garage. Entre en stock du garage à la livraison. |
-| **Valeur de reprise négociée** | Le montant réellement porté au dossier de vente en déduction — peut différer de la valeur marchande réelle estimée (§5.3). |
-| **Prime constructeur / prime de reprise** | Rabais temporaire financé (en tout ou partie) par le constructeur/importateur pour stimuler les ventes, distinct de la valeur de reprise du véhicule lui-même. |
-| **Dossier de vente** | L'objet qui porte tout le parcours d'une vente : proposition, véhicule vendu, reprise éventuelle, financement, frais annexes, documents liés, jusqu'à la livraison. |
-| **Bon de commande** | Le document signé par le client qui l'engage sur l'achat (type `bon_commande` de la chaîne documentaire existante). |
-| **Leasing** | Financement où l'organisme devient acquéreur du véhicule auprès du garage ; le client est preneur (locataire) auprès de l'organisme, pas acheteur auprès du garage (§5.5). |
-| **Plaques professionnelles (plaques garagiste)** | Jeu de plaques interchangeables détenues par le garage, utilisées pour les essais et les déplacements de véhicules en stock non immatriculés individuellement (déjà modélisées, §2). |
-| **MFK** | Expertise / contrôle technique cantonal périodique. Une VO peut nécessiter un passage avant livraison si l'échéance est proche ou dépassée. |
-| **Frais de remise en état (reconditionnement)** | Travaux (mécanique, carrosserie, pneus, nettoyage) exécutés sur une VO entre son entrée en stock et sa mise en vente, qui réduisent la marge affichée. |
-| **Jours de stock (aging)** | Durée écoulée depuis l'entrée en stock d'un véhicule non vendu — indicateur de coût d'immobilisation. |
-| **Immatriculation** | Démarche administrative cantonale qui attribue (ou transfère) des plaques au nom du nouveau détenteur. |
+| Terme                                            | Définition métier                                                                                                                                                                                                  |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **VN**                                           | Véhicule neuf (_Neuwagen_). Commandé au constructeur/importateur, n'existe en stock DFA qu'à partir de la commande ferme (ou de son arrivée), délai de livraison de plusieurs semaines à plusieurs mois.           |
+| **VO**                                           | Véhicule d'occasion (_Occasion_). Disponible immédiatement ou après remise en état, provenance variable (§5.1).                                                                                                    |
+| **Occasion certifiée**                           | VO du programme du constructeur (souvent appelée par sa marque commerciale, ex. véhicule labellisé), avec garantie et standards de préparation propres au programme — à distinguer d'une VO « garage » sans label. |
+| **Véhicule de démonstration (démo)**             | Véhicule en stock utilisé pour les essais clients avant d'être vendu, généralement sous plaques professionnelles interchangeables.                                                                                 |
+| **Reprise**                                      | Véhicule apporté par le client en déduction du prix d'un véhicule acheté chez le garage. Entre en stock du garage à la livraison.                                                                                  |
+| **Valeur de reprise négociée**                   | Le montant réellement porté au dossier de vente en déduction — peut différer de la valeur marchande réelle estimée (§5.3).                                                                                         |
+| **Prime constructeur / prime de reprise**        | Rabais temporaire financé (en tout ou partie) par le constructeur/importateur pour stimuler les ventes, distinct de la valeur de reprise du véhicule lui-même.                                                     |
+| **Dossier de vente**                             | L'objet qui porte tout le parcours d'une vente : proposition, véhicule vendu, reprise éventuelle, financement, frais annexes, documents liés, jusqu'à la livraison.                                                |
+| **Bon de commande**                              | Le document signé par le client qui l'engage sur l'achat (type `bon_commande` de la chaîne documentaire existante).                                                                                                |
+| **Leasing**                                      | Financement où l'organisme devient acquéreur du véhicule auprès du garage ; le client est preneur (locataire) auprès de l'organisme, pas acheteur auprès du garage (§5.5).                                         |
+| **Plaques professionnelles (plaques garagiste)** | Jeu de plaques interchangeables détenues par le garage, utilisées pour les essais et les déplacements de véhicules en stock non immatriculés individuellement (déjà modélisées, §2).                               |
+| **MFK**                                          | Expertise / contrôle technique cantonal périodique. Une VO peut nécessiter un passage avant livraison si l'échéance est proche ou dépassée.                                                                        |
+| **Frais de remise en état (reconditionnement)**  | Travaux (mécanique, carrosserie, pneus, nettoyage) exécutés sur une VO entre son entrée en stock et sa mise en vente, qui réduisent la marge affichée.                                                             |
+| **Jours de stock (aging)**                       | Durée écoulée depuis l'entrée en stock d'un véhicule non vendu — indicateur de coût d'immobilisation.                                                                                                              |
+| **Immatriculation**                              | Démarche administrative cantonale qui attribue (ou transfère) des plaques au nom du nouveau détenteur.                                                                                                             |
 
 ---
 
 ## 4. Le flux réel de bout en bout
 
 **VN — de la commande à la livraison :**
+
 1. Le client configure/choisit un modèle avec le vendeur. Un **devis** est émis (prix catalogue,
    options, reprise estimée si applicable).
 2. Le client signe le **bon de commande** — engagement ferme, souvent avec un acompte.
@@ -164,6 +166,7 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
 7. **Livraison** : remise des clés, explication du véhicule, remise des documents (§5.7).
 
 **VO — de l'entrée en stock à la vente :**
+
 1. Le véhicule entre en stock par une des voies de provenance (§5.1) : reprise, achat direct à un
    particulier, achat professionnel/enchères, retour de leasing, ou véhicule de démonstration
    déclassé.
@@ -176,6 +179,7 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
 7. **Facture** émise, **livraison** (§5.7).
 
 **La reprise, en parallèle d'une vente VN ou VO :**
+
 1. Estimation initiale de la valeur du véhicule du client (souvent donnée verbalement, avant même
    que la vente soit ferme).
 2. Négociation : la valeur de reprise finale portée au dossier de vente peut différer de
@@ -211,8 +215,8 @@ plus du véhicule (plaques, expertise MFK, garantie, préparation, immatriculati
 - **`RV-05`** — Le **prix de vente affiché** est distinct du prix finalement facturé (négociation,
   remise, reprise). Le prix affiché est ce que montre l'annonce/la vitrine ; le dossier de vente
   (§5.4) porte le prix réellement convenu.
-- **`RV-06`** — La **marge** d'un véhicule en stock se calcule comme *prix de vente convenu − (prix
-  d'achat + frais de remise en état cumulés + coûts de reprise éventuels imputés, `RV-21`)*. Elle
+- **`RV-06`** — La **marge** d'un véhicule en stock se calcule comme _prix de vente convenu − (prix
+  d'achat + frais de remise en état cumulés + coûts de reprise éventuels imputés, `RV-21`)_. Elle
   n'est visible que par les rôles habilités (direction, vente) — jamais montrée sur un document
   client.
 - **`RV-07`** — La **durée en stock** (« jours de stock ») se calcule depuis la date d'entrée en
@@ -699,15 +703,15 @@ Volontairement conceptuel — noms de champs indicatifs, pas un schéma final (r
 
 ## 10. Ce qui doit être paramétrable
 
-| Repère | Ce qui varie d'un garage à l'autre |
-|---|---|
-| `PV-01` | Seuil de jours de stock déclenchant une alerte (`RV-08`) |
-| `PV-02` | Taux/montant d'acompte par défaut à la signature du bon de commande (`RV-33`) |
-| `PV-03` | Check-list exacte des documents requis avant livraison (`RV-35`) |
-| `PV-04` | Tolérance de livraison sans paiement intégral confirmé, si elle existe (`RV-37`) |
-| `PV-05` | Liste des provenances de véhicule en stock, extensible par tenant (`RV-02`) |
-| `PV-06` | Durée et étendue par défaut de la garantie occasion du garage (`RV-16`) |
-| `PV-07` | Ventilation exacte des frais annexes facturés par défaut (`RV-46`) |
+| Repère  | Ce qui varie d'un garage à l'autre                                                                                                                                  |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PV-01` | Seuil de jours de stock déclenchant une alerte (`RV-08`)                                                                                                            |
+| `PV-02` | Taux/montant d'acompte par défaut à la signature du bon de commande (`RV-33`)                                                                                       |
+| `PV-03` | Check-list exacte des documents requis avant livraison (`RV-35`)                                                                                                    |
+| `PV-04` | Tolérance de livraison sans paiement intégral confirmé, si elle existe (`RV-37`)                                                                                    |
+| `PV-05` | Liste des provenances de véhicule en stock, extensible par tenant (`RV-02`)                                                                                         |
+| `PV-06` | Durée et étendue par défaut de la garantie occasion du garage (`RV-16`)                                                                                             |
+| `PV-07` | Ventilation exacte des frais annexes facturés par défaut (`RV-46`)                                                                                                  |
 | `PV-08` | Statuts intermédiaires du dossier de vente activés/désactivés selon la taille du garage (`en_preparation` a-t-il un sens pour un tout petit garage VO uniquement ?) |
 
 ---
@@ -717,17 +721,17 @@ Volontairement conceptuel — noms de champs indicatifs, pas un schéma final (r
 Cohérente avec `apps/api/src/auth/matrice-droits.ts` — ce module ne crée pas de nouveau rôle, il
 étend l'usage des rôles existants.
 
-| Action | vendeur | direction | comptable | réceptionnaire |
-|---|---|---|---|---|
-| Créer/modifier un dossier de vente en `prospection` | oui | oui | — | — |
-| Faire signer un bon de commande | oui | oui | — | — |
-| Saisir une estimation/valeur de reprise négociée | oui | oui | — | — |
-| Voir la marge d'un véhicule en stock (`RV-06`) | **[À VALIDER, `QV-15`]** | oui | oui | — |
-| Émettre la facture de vente | oui | oui | oui | — |
-| Émettre un avoir sur une facture de vente | **non** (§2, déjà tranché) | oui | oui | — |
-| Confirmer un financement/leasing | oui | oui | oui | — |
-| Enregistrer la livraison (changement de détention) | oui | oui | — | possible selon organisation (`QV-16`) |
-| Modifier le prix d'achat/frais de remise en état d'un véhicule en stock | **[À VALIDER, `QV-15`]** | oui | — | — |
+| Action                                                                  | vendeur                    | direction | comptable | réceptionnaire                        |
+| ----------------------------------------------------------------------- | -------------------------- | --------- | --------- | ------------------------------------- |
+| Créer/modifier un dossier de vente en `prospection`                     | oui                        | oui       | —         | —                                     |
+| Faire signer un bon de commande                                         | oui                        | oui       | —         | —                                     |
+| Saisir une estimation/valeur de reprise négociée                        | oui                        | oui       | —         | —                                     |
+| Voir la marge d'un véhicule en stock (`RV-06`)                          | **[À VALIDER, `QV-15`]**   | oui       | oui       | —                                     |
+| Émettre la facture de vente                                             | oui                        | oui       | oui       | —                                     |
+| Émettre un avoir sur une facture de vente                               | **non** (§2, déjà tranché) | oui       | oui       | —                                     |
+| Confirmer un financement/leasing                                        | oui                        | oui       | oui       | —                                     |
+| Enregistrer la livraison (changement de détention)                      | oui                        | oui       | —         | possible selon organisation (`QV-16`) |
+| Modifier le prix d'achat/frais de remise en état d'un véhicule en stock | **[À VALIDER, `QV-15`]**   | oui       | —         | —                                     |
 
 ---
 

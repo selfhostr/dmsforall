@@ -19,7 +19,13 @@ import { VehiculesStockController } from './vehicules-stock.controller';
  * `ClientsModule`/`PiecesModule`.
  */
 @Module({
-  controllers: [VehiculeStockController, VehiculesStockController, DossierVenteController, RepriseController, FinancementController],
+  controllers: [
+    VehiculeStockController,
+    VehiculesStockController,
+    DossierVenteController,
+    RepriseController,
+    FinancementController,
+  ],
   providers: [ServiceVehiculeStock, ServiceDossierVente, ServiceReprise, ServiceFinancement],
   exports: [ServiceVehiculeStock, ServiceDossierVente, ServiceReprise, ServiceFinancement],
 })

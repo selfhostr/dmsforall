@@ -27,7 +27,9 @@ describe('CalculLigneSimple', () => {
   });
 
   it('applique le rabais avant la TVA (ordre gelé)', () => {
-    const m = calcul.calculer(entree({ prixUnitaireCentimes: 10000, quantiteMillieme: 1000, rabaisPourmille: 100 }));
+    const m = calcul.calculer(
+      entree({ prixUnitaireCentimes: 10000, quantiteMillieme: 1000, rabaisPourmille: 100 }),
+    );
     // brut 10000, rabais 10% -> HT 9000, TVA 8.1% de 9000 = 729
     expect(m.montantHtCentimes).toBe(9000);
     expect(m.montantTvaCentimes).toBe(729);
@@ -36,7 +38,12 @@ describe('CalculLigneSimple', () => {
 
   it('calcule une ligne de main d’œuvre depuis le temps barème et le taux horaire figés', () => {
     const m = calcul.calculer(
-      entree({ type: 'main_oeuvre_bareme', tempsBaremeCentiemes: 150, tauxHoraireCentimes: 12000, prixUnitaireCentimes: null }),
+      entree({
+        type: 'main_oeuvre_bareme',
+        tempsBaremeCentiemes: 150,
+        tauxHoraireCentimes: 12000,
+        prixUnitaireCentimes: null,
+      }),
     );
     // 1.5h * 120.00 CHF/h = 180.00 CHF = 18000 centimes HT
     expect(m.montantHtCentimes).toBe(18000);
@@ -45,13 +52,22 @@ describe('CalculLigneSimple', () => {
   });
 
   it('accepte un montant négatif (ligne de type remise)', () => {
-    const m = calcul.calculer(entree({ type: 'remise', prixUnitaireCentimes: -5000, quantiteMillieme: 1000 }));
+    const m = calcul.calculer(
+      entree({ type: 'remise', prixUnitaireCentimes: -5000, quantiteMillieme: 1000 }),
+    );
     expect(m.montantHtCentimes).toBe(-5000);
     expect(m.montantTtcCentimes).toBeLessThan(0);
   });
 
   it('garantit montantTtc = montantHt + montantTva (invariant de base)', () => {
-    const m = calcul.calculer(entree({ prixUnitaireCentimes: 3333, quantiteMillieme: 700, rabaisPourmille: 137, tauxTvaPourmille: 26 }));
+    const m = calcul.calculer(
+      entree({
+        prixUnitaireCentimes: 3333,
+        quantiteMillieme: 700,
+        rabaisPourmille: 137,
+        tauxTvaPourmille: 26,
+      }),
+    );
     expect(m.montantTtcCentimes).toBe(m.montantHtCentimes + m.montantTvaCentimes);
   });
 
@@ -60,6 +76,10 @@ describe('CalculLigneSimple', () => {
       { montantHtCentimes: 100, montantTvaCentimes: 8, montantTtcCentimes: 108 },
       { montantHtCentimes: 200, montantTvaCentimes: 16, montantTtcCentimes: 216 },
     ]);
-    expect(total).toEqual({ montantHtCentimes: 300, montantTvaCentimes: 24, montantTtcCentimes: 324 });
+    expect(total).toEqual({
+      montantHtCentimes: 300,
+      montantTvaCentimes: 24,
+      montantTtcCentimes: 324,
+    });
   });
 });

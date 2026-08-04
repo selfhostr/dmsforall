@@ -11,12 +11,19 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 // Module CommonJS : `__dirname` est fourni par le runtime, pas besoin de `import.meta.url`.
-const CHEMIN_OPENAPI = path.resolve(__dirname, '../../../../packages/shared/openapi/dfa-openapi.json');
+const CHEMIN_OPENAPI = path.resolve(
+  __dirname,
+  '../../../../packages/shared/openapi/dfa-openapi.json',
+);
 
 type SchemaJson = Record<string, unknown>;
 
 function resoudreRef(schema: unknown, document: SchemaJson): SchemaJson | undefined {
-  if (schema && typeof schema === 'object' && typeof (schema as { $ref?: unknown }).$ref === 'string') {
+  if (
+    schema &&
+    typeof schema === 'object' &&
+    typeof (schema as { $ref?: unknown }).$ref === 'string'
+  ) {
     const ref = (schema as { $ref: string }).$ref;
     if (!ref.startsWith('#/')) return undefined;
     const segments = ref.slice(2).split('/');
@@ -51,7 +58,8 @@ function chercherProprieteTenantId(
   for (const cle of ['items', 'allOf', 'oneOf', 'anyOf'] as const) {
     const valeur = (schema as Record<string, unknown>)[cle];
     if (Array.isArray(valeur)) {
-      for (const v of valeur) chercherProprieteTenantId(v, document, libelleOperation, infractions, dejaVus);
+      for (const v of valeur)
+        chercherProprieteTenantId(v, document, libelleOperation, infractions, dejaVus);
     } else if (valeur) {
       chercherProprieteTenantId(valeur, document, libelleOperation, infractions, dejaVus);
     }
@@ -70,18 +78,25 @@ describe('contrat OpenAPI — la règle n°1 du projet (isolation tenant) ne peu
       );
     }
 
-    const document = JSON.parse(brut) as SchemaJson & { paths?: Record<string, Record<string, unknown>> };
+    const document = JSON.parse(brut) as SchemaJson & {
+      paths?: Record<string, Record<string, unknown>>;
+    };
     const infractions: string[] = [];
     const chemins = document.paths ?? {};
 
-    expect(Object.keys(chemins).length, 'document OpenAPI sans aucun chemin — génération incomplète ?').toBeGreaterThan(0);
+    expect(
+      Object.keys(chemins).length,
+      'document OpenAPI sans aucun chemin — génération incomplète ?',
+    ).toBeGreaterThan(0);
 
     for (const [chemin, operationsDuChemin] of Object.entries(chemins)) {
-      const parametresPartagesDuChemin = (operationsDuChemin as { parameters?: unknown[] }).parameters ?? [];
+      const parametresPartagesDuChemin =
+        (operationsDuChemin as { parameters?: unknown[] }).parameters ?? [];
 
       for (const [methode, operation] of Object.entries(operationsDuChemin)) {
         // Les clés non-HTTP (ex. "parameters" au niveau du chemin) n'ont pas de "responses".
-        if (!operation || typeof operation !== 'object' || !('responses' in (operation as object))) continue;
+        if (!operation || typeof operation !== 'object' || !('responses' in (operation as object)))
+          continue;
 
         const libelle = `${methode.toUpperCase()} ${chemin}`;
         const parametresOperation = (operation as { parameters?: unknown[] }).parameters ?? [];
@@ -94,8 +109,9 @@ describe('contrat OpenAPI — la règle n°1 du projet (isolation tenant) ne peu
           }
         }
 
-        const schemaCorps = (operation as { requestBody?: { content?: Record<string, { schema?: unknown }> } }).requestBody
-          ?.content?.['application/json']?.schema;
+        const schemaCorps = (
+          operation as { requestBody?: { content?: Record<string, { schema?: unknown }> } }
+        ).requestBody?.content?.['application/json']?.schema;
         if (schemaCorps) {
           chercherProprieteTenantId(schemaCorps, document, libelle, infractions, new Set());
         }

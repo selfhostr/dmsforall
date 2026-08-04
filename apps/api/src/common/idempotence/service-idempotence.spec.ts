@@ -4,7 +4,11 @@ import { ErreurMetier } from '../erreurs/erreur-metier';
 import type { Horloge } from '../horloge/horloge';
 import { ServiceIdempotenceImpl } from './service-idempotence';
 
-const CTX: ContexteTenant = { tenantId: '3fa85f64-5717-4562-b3fc-2c963f66afa6', utilisateurId: null, requeteId: null };
+const CTX: ContexteTenant = {
+  tenantId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+  utilisateurId: null,
+  requeteId: null,
+};
 const CLE = 'a1b2c3d4-e5f6-4789-a012-3456789abcde';
 
 function horlogeFigee(): Horloge {
@@ -31,10 +35,14 @@ describe('ServiceIdempotenceImpl.executer', () => {
     const service = creerService({ execute });
 
     await expect(
-      service.executer(CTX, { methode: 'POST', chemin: '/clients', cle: 'pas-un-uuid', corps: {} }, async () => ({
-        statutHttp: 201,
-        corps: {},
-      })),
+      service.executer(
+        CTX,
+        { methode: 'POST', chemin: '/clients', cle: 'pas-un-uuid', corps: {} },
+        async () => ({
+          statutHttp: 201,
+          corps: {},
+        }),
+      ),
     ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE' });
     expect(execute).not.toHaveBeenCalled();
   });
@@ -50,9 +58,16 @@ describe('ServiceIdempotenceImpl.executer', () => {
 
     const travail = vi.fn(async () => ({ statutHttp: 201, corps: { id: 'C-2026-001' } }));
 
-    const resultat = await service.executer(CTX, { methode: 'POST', chemin: '/clients', cle: CLE, corps: { nom: 'Dupont' } }, travail);
+    const resultat = await service.executer(
+      CTX,
+      { methode: 'POST', chemin: '/clients', cle: CLE, corps: { nom: 'Dupont' } },
+      travail,
+    );
 
-    expect(resultat).toEqual({ reponse: { statutHttp: 201, corps: { id: 'C-2026-001' } }, rejoue: false });
+    expect(resultat).toEqual({
+      reponse: { statutHttp: 201, corps: { id: 'C-2026-001' } },
+      rejoue: false,
+    });
     expect(travail).toHaveBeenCalledTimes(1);
     expect(execute).toHaveBeenCalledTimes(2);
   });
@@ -68,15 +83,29 @@ describe('ServiceIdempotenceImpl.executer', () => {
       .mockResolvedValueOnce({ rows: [] })
       // select de relecture
       .mockResolvedValueOnce({
-        rows: [{ empreinte_requete: empreinte, statut: 'termine', statut_http: 201, reponse: { id: 'C-2026-001' } }],
+        rows: [
+          {
+            empreinte_requete: empreinte,
+            statut: 'termine',
+            statut_http: 201,
+            reponse: { id: 'C-2026-001' },
+          },
+        ],
       });
     const service = creerService({ execute });
 
     const travail = vi.fn(async () => ({ statutHttp: 201, corps: { id: 'AUTRE' } }));
 
-    const resultat = await service.executer(CTX, { methode: 'POST', chemin: '/clients', cle: CLE, corps }, travail);
+    const resultat = await service.executer(
+      CTX,
+      { methode: 'POST', chemin: '/clients', cle: CLE, corps },
+      travail,
+    );
 
-    expect(resultat).toEqual({ reponse: { statutHttp: 201, corps: { id: 'C-2026-001' } }, rejoue: true });
+    expect(resultat).toEqual({
+      reponse: { statutHttp: 201, corps: { id: 'C-2026-001' } },
+      rejoue: true,
+    });
     expect(travail).not.toHaveBeenCalled();
     expect(execute).toHaveBeenCalledTimes(2);
   });
@@ -89,13 +118,24 @@ describe('ServiceIdempotenceImpl.executer', () => {
       .fn()
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({
-        rows: [{ empreinte_requete: empreinteAutreCorps, statut: 'termine', statut_http: 201, reponse: {} }],
+        rows: [
+          {
+            empreinte_requete: empreinteAutreCorps,
+            statut: 'termine',
+            statut_http: 201,
+            reponse: {},
+          },
+        ],
       });
     const service = creerService({ execute });
     const travail = vi.fn(async () => ({ statutHttp: 201, corps: {} }));
 
     await expect(
-      service.executer(CTX, { methode: 'POST', chemin: '/clients', cle: CLE, corps: { nom: 'Dupont' } }, travail),
+      service.executer(
+        CTX,
+        { methode: 'POST', chemin: '/clients', cle: CLE, corps: { nom: 'Dupont' } },
+        travail,
+      ),
     ).rejects.toMatchObject({ code: 'IDEMPOTENCE_CONFLIT' });
     expect(travail).not.toHaveBeenCalled();
   });
@@ -108,13 +148,21 @@ describe('ServiceIdempotenceImpl.executer', () => {
     const execute = vi
       .fn()
       .mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [{ empreinte_requete: empreinte, statut: 'en_cours', statut_http: null, reponse: null }] });
+      .mockResolvedValueOnce({
+        rows: [
+          { empreinte_requete: empreinte, statut: 'en_cours', statut_http: null, reponse: null },
+        ],
+      });
     const service = creerService({ execute });
     const travail = vi.fn(async () => ({ statutHttp: 201, corps: {} }));
 
     let erreurCapturee: unknown;
     try {
-      await service.executer(CTX, { methode: 'POST', chemin: '/clients', cle: CLE, corps }, travail);
+      await service.executer(
+        CTX,
+        { methode: 'POST', chemin: '/clients', cle: CLE, corps },
+        travail,
+      );
     } catch (erreur) {
       erreurCapturee = erreur;
     }
@@ -136,14 +184,18 @@ describe('ServiceIdempotenceImpl.executer', () => {
     expect(travail).not.toHaveBeenCalled();
   });
 
-  it('si le travail échoue, aucune mise à jour de mémorisation n\'est tentée', async () => {
+  it("si le travail échoue, aucune mise à jour de mémorisation n'est tentée", async () => {
     const execute = vi.fn().mockResolvedValueOnce({ rows: [{ cle: CLE }] });
     const service = creerService({ execute });
 
     await expect(
-      service.executer(CTX, { methode: 'POST', chemin: '/clients', cle: CLE, corps: {} }, async () => {
-        throw new Error('échec métier');
-      }),
+      service.executer(
+        CTX,
+        { methode: 'POST', chemin: '/clients', cle: CLE, corps: {} },
+        async () => {
+          throw new Error('échec métier');
+        },
+      ),
     ).rejects.toThrow('échec métier');
     expect(execute).toHaveBeenCalledTimes(1);
   });

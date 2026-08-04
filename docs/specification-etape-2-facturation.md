@@ -5,7 +5,7 @@
 > fiduciaire réelle. Une erreur ici ne se corrige pas par un correctif : elle se corrige par une
 > lettre à l'AFC.
 >
-> **Statut** : spécification métier — le *quoi* et le *pourquoi*. Elle décide des règles de gestion
+> **Statut** : spécification métier — le _quoi_ et le _pourquoi_. Elle décide des règles de gestion
 > et des parcours ; elle ne décide ni du schéma ni des endpoints.
 
 ---
@@ -16,11 +16,11 @@ Trois hypothèses de la première rédaction ont été tranchées par @laupernoe
 tout le document ; **aucune règle et aucun cas de test n'a été renuméroté**, y compris ceux qui
 changent de sens ou de valeur. Les règles et cas modifiés portent la mention **`↻ révisé 29.07.2026`**.
 
-| # | Arbitrage | Réponse de @laupernoe | Règles touchées | Cas de test recalculés |
-|---|---|---|---|---|
-| **A1** | Saisie HT ou TTC ? | **Toujours TTC**, y compris pour les entreprises. TVA détaillée en pied de facture uniquement | `RF-6`, `RF-35`, `RF-38`, `RF-39`, **`RF-40`**, `RF-42` → `RF-44`, `RF-78`, `RF-90`, `RF-96`, `RF-100` + **`RF-121`** → **`RF-123`** (nouvelles) | `CF-16`, `CF-18`, `CF-19`, `CF-20`, `CF-21`, `CF-22`, `CF-24`, `CF-25`, `CF-26` |
-| **A2** | Le client peut-il repartir sans avoir payé ? | **Oui, c'est courant.** Restitution et paiement sont indépendants, dans les deux ordres. Aucun blocage | **`RF-83`**, `RF-84`, `RF-98` | aucun (pas d'arithmétique) |
-| **A3** | Quelles fiduciaires au pilote ? | **WinBIZ** (prioritaire) et **iReach**. Abacus sort du périmètre | `RF-102`, `RF-106`, `RF-112` + §0.3 | `CF-27` (cibles renommées) |
+| #      | Arbitrage                                    | Réponse de @laupernoe                                                                                         | Règles touchées                                                                                                                                  | Cas de test recalculés                                                          |
+| ------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| **A1** | Saisie HT ou TTC ?                           | **Toujours TTC**, y compris pour les entreprises. TVA détaillée en pied de facture uniquement          | `RF-6`, `RF-35`, `RF-38`, `RF-39`, **`RF-40`**, `RF-42` → `RF-44`, `RF-78`, `RF-90`, `RF-96`, `RF-100` + **`RF-121`** → **`RF-123`** (nouvelles) | `CF-16`, `CF-18`, `CF-19`, `CF-20`, `CF-21`, `CF-22`, `CF-24`, `CF-25`, `CF-26` |
+| **A2** | Le client peut-il repartir sans avoir payé ? | **Oui, c'est courant.** Restitution et paiement sont indépendants, dans les deux ordres. Aucun blocage | **`RF-83`**, `RF-84`, `RF-98`                                                                                                                    | aucun (pas d'arithmétique)                                                      |
+| **A3** | Quelles fiduciaires au pilote ?              | **WinBIZ** (prioritaire) et **iReach**. Abacus sort du périmètre                                       | `RF-102`, `RF-106`, `RF-112` + §0.3                                                                                                              | `CF-27` (cibles renommées)                                                      |
 
 > **A1 était l'hypothèse marquée « irrattrapable après coup ».** Elle est fermée. Dériver la TVA
 > depuis un TTC n'est pas l'inverse de l'ajouter à un HT : les arrondis ne tombent pas au même
@@ -32,20 +32,20 @@ changent de sens ou de valeur. Les règles et cas modifiés portent la mention *
 
 ## Sommaire
 
-| § | Contenu |
-|---|---|
-| [0](#0-comment-lire-ce-document) | Comment lire ce document, périmètre, articulation |
-| [1](#1-vocabulaire--la-collision-à-régler-avant-tout) | Vocabulaire — la collision `devis` |
-| [2](#2-chaîne-documentaire-et-immuabilité) | Chaîne documentaire et immuabilité (`RF-1` → `RF-19`) |
-| [3](#3-numérotation) | Numérotation, concurrence, trous (`RF-20` → `RF-32`) |
-| [4](#4-montants-tva-remises-escompte) | Montants, TVA, remises, escompte (`RF-33` → `RF-52`, **`RF-121` → `RF-123`**) |
-| [5](#5-qr-facture) | QR-facture (`RF-53` → `RF-64`) |
-| [6](#6-paiements-et-lettrage) | Paiements et lettrage (`RF-65` → `RF-80`) |
-| [7](#7-de-latelier-à-la-facture) | De l'atelier à la facture (`RF-81` → `RF-100`) |
-| [8](#8-export-fiduciaire) | Export fiduciaire (`RF-101` → `RF-113`) |
-| [9](#9-qui-a-le-droit-de-faire-quoi) | Droits par rôle (`RF-114` → `RF-120`) |
-| [10](#10-cas-de-test-métier-chiffrés) | Cas de test chiffrés `CF-16` → `CF-27` |
-| [11](#11-hypothèses-à-valider-et-questions-ouvertes) | Hypothèses ⚠️ et questions ouvertes |
+| §                                                     | Contenu                                                                       |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [0](#0-comment-lire-ce-document)                      | Comment lire ce document, périmètre, articulation                             |
+| [1](#1-vocabulaire--la-collision-à-régler-avant-tout) | Vocabulaire — la collision `devis`                                            |
+| [2](#2-chaîne-documentaire-et-immuabilité)            | Chaîne documentaire et immuabilité (`RF-1` → `RF-19`)                         |
+| [3](#3-numérotation)                                  | Numérotation, concurrence, trous (`RF-20` → `RF-32`)                          |
+| [4](#4-montants-tva-remises-escompte)                 | Montants, TVA, remises, escompte (`RF-33` → `RF-52`, **`RF-121` → `RF-123`**) |
+| [5](#5-qr-facture)                                    | QR-facture (`RF-53` → `RF-64`)                                                |
+| [6](#6-paiements-et-lettrage)                         | Paiements et lettrage (`RF-65` → `RF-80`)                                     |
+| [7](#7-de-latelier-à-la-facture)                      | De l'atelier à la facture (`RF-81` → `RF-100`)                                |
+| [8](#8-export-fiduciaire)                             | Export fiduciaire (`RF-101` → `RF-113`)                                       |
+| [9](#9-qui-a-le-droit-de-faire-quoi)                  | Droits par rôle (`RF-114` → `RF-120`)                                         |
+| [10](#10-cas-de-test-métier-chiffrés)                 | Cas de test chiffrés `CF-16` → `CF-27`                                        |
+| [11](#11-hypothèses-à-valider-et-questions-ouvertes)  | Hypothèses ⚠️ et questions ouvertes                                           |
 
 ---
 
@@ -55,12 +55,12 @@ changent de sens ou de valeur. Les règles et cas modifiés portent la mention *
 
 Trois documents se partagent la facturation. **Ils ne se recouvrent pas.**
 
-| Document | Rôle | Numérotation |
-|---|---|---|
-| `docs/modele-documentaire-facturation.md` | Le **modèle** : tables, colonnes, contraintes, triggers, arithmétique | `MD-01` → `MD-95`, `AC-01` → `AC-25`, `PF-01` → `PF-05`, `QF-01` → `QF-13`, `CF-01` → `CF-15` |
-| **Ce document** | La **règle métier** : parcours, décisions de gestion, ce que le garagiste voit et fait | `RF-1` → `RF-120`, `CF-16` → `CF-27` |
-| `docs/specification-etape-1-atelier-clients.md` | L'amont : OR, lignes, devis complémentaires, clients | `RM-xx`, `P-xx`, `CT-xx` |
-| `docs/exports-fiduciaires.md` | Les **cibles d'export** : WinBIZ, iReach, Bexio, Banana, CSV — formats, mapping, questions ouvertes | `EF-xx` |
+| Document                                        | Rôle                                                                                                | Numérotation                                                                                  |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `docs/modele-documentaire-facturation.md`       | Le **modèle** : tables, colonnes, contraintes, triggers, arithmétique                               | `MD-01` → `MD-95`, `AC-01` → `AC-25`, `PF-01` → `PF-05`, `QF-01` → `QF-13`, `CF-01` → `CF-15` |
+| **Ce document**                                 | La **règle métier** : parcours, décisions de gestion, ce que le garagiste voit et fait              | `RF-1` → `RF-120`, `CF-16` → `CF-27`                                                          |
+| `docs/specification-etape-1-atelier-clients.md` | L'amont : OR, lignes, devis complémentaires, clients                                                | `RM-xx`, `P-xx`, `CT-xx`                                                                      |
+| `docs/exports-fiduciaires.md`                   | Les **cibles d'export** : WinBIZ, iReach, Bexio, Banana, CSV — formats, mapping, questions ouvertes | `EF-xx`                                                                                       |
 
 **Règle de non-duplication.** Quand une décision est déjà prise par un `MD-xx`, ce document la
 **cite** et n'en écrit pas une deuxième version. Deux formulations d'une même règle finissent
@@ -98,28 +98,28 @@ multi-moyens de paiement, la remise multi-taux et la correction d'adresse.
 
 **Hors périmètre, explicitement :**
 
-| Exclu | Pourquoi | Où |
-|---|---|---|
-| Comptabilité interne (grand livre, bilan, décompte TVA) | DFA n'est pas un logiciel de compta. La fiduciaire tient les comptes | jamais |
-| Rapprochement bancaire camt.054 | phase 2 ; seules les colonnes support sont posées (`MD-76` et §5.5 du modèle) | après étape 2 |
-| Vente de véhicule (dossier, reprise, financement, prime) | étape 4. Seule `dossier_vente_id` est posée, vide (`MD-70`) | étape 4 |
-| Stock pièces, valorisation, marge sur pièce | étape 3 | étape 3 |
-| **Abacus** | **Tranché (A3) : aucune fiduciaire du pilote n'est sur Abacus.** L'adaptateur demandait un agrément et un format à obtenir — le coût n'est plus justifié | étape 5, ou jamais |
-| Relance automatisée (envoi d'e-mails, mise en demeure, contentieux) | l'étape 2 pose les niveaux et les dates ; l'envoi reste manuel | étape 5 |
+| Exclu                                                               | Pourquoi                                                                                                                                                 | Où                 |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| Comptabilité interne (grand livre, bilan, décompte TVA)             | DFA n'est pas un logiciel de compta. La fiduciaire tient les comptes                                                                                     | jamais             |
+| Rapprochement bancaire camt.054                                     | phase 2 ; seules les colonnes support sont posées (`MD-76` et §5.5 du modèle)                                                                            | après étape 2      |
+| Vente de véhicule (dossier, reprise, financement, prime)            | étape 4. Seule `dossier_vente_id` est posée, vide (`MD-70`)                                                                                              | étape 4            |
+| Stock pièces, valorisation, marge sur pièce                         | étape 3                                                                                                                                                  | étape 3            |
+| **Abacus**                                                          | **Tranché (A3) : aucune fiduciaire du pilote n'est sur Abacus.** L'adaptateur demandait un agrément et un format à obtenir — le coût n'est plus justifié | étape 5, ou jamais |
+| Relance automatisée (envoi d'e-mails, mise en demeure, contentieux) | l'étape 2 pose les niveaux et les dates ; l'envoi reste manuel                                                                                           | étape 5            |
 
 **Arbitrage A3 — les fiduciaires du premier garage sont WinBIZ et iReach.** C'est un **ordre de
 priorité, pas une liste d'abandons.** DFA vise plusieurs garages suisses ; Bexio en particulier est
 très répandu chez les PME et restera une cible utile. Ce qui change est l'ordre dans lequel les
 adaptateurs s'écrivent — **le pilote décide de ce qui passe en premier, pas de ce qui existe.**
 
-| Cible | Priorité | Pourquoi |
-|---|---|---|
-| **WinBIZ** | **1 — bloquant pilote.** Format établi et sourcé, `EF-10` → `EF-19` | Fiduciaire réelle du pilote, déjà au périmètre initial. C'est l'export qui doit fonctionner au jour 1 |
-| **iReach** | **2 — bloqué par une question, pas par du code.** `EF-20` → `EF-29` | Information nouvelle. **Aucune spécification d'échange publique trouvée.** Une ambiguïté de fond est à lever avant d'écrire une ligne (`EF-20`) |
-| **CSV générique** | **3 — filet de sécurité** | Une fiduciaire sans connecteur reprend toujours un CSV. C'est aussi le repli si iReach reste indéterminé au moment du pilote |
-| **Bexio** | 4 — **différé, pas abandonné** | Aucune fiduciaire du pilote, mais **la cible la plus fréquente du marché suisse PME** et une API publique documentée. Le travail déjà fait la concernant reste valable et ne doit pas être supprimé |
-| **Banana** | 5 — **différé, pas abandonné** | Seule cible qui motivait le mode `agrege` (`RF-106`). Le mode reste au périmètre : c'est une capacité du cœur, pas une particularité de Banana |
-| Abacus | Hors périmètre | Aucune fiduciaire du pilote ; l'adaptateur demandait un agrément et un format à obtenir |
+| Cible             | Priorité                                                            | Pourquoi                                                                                                                                                                                            |
+| ----------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **WinBIZ**        | **1 — bloquant pilote.** Format établi et sourcé, `EF-10` → `EF-19` | Fiduciaire réelle du pilote, déjà au périmètre initial. C'est l'export qui doit fonctionner au jour 1                                                                                               |
+| **iReach**        | **2 — bloqué par une question, pas par du code.** `EF-20` → `EF-29` | Information nouvelle. **Aucune spécification d'échange publique trouvée.** Une ambiguïté de fond est à lever avant d'écrire une ligne (`EF-20`)                                                     |
+| **CSV générique** | **3 — filet de sécurité**                                           | Une fiduciaire sans connecteur reprend toujours un CSV. C'est aussi le repli si iReach reste indéterminé au moment du pilote                                                                        |
+| **Bexio**         | 4 — **différé, pas abandonné**                                      | Aucune fiduciaire du pilote, mais **la cible la plus fréquente du marché suisse PME** et une API publique documentée. Le travail déjà fait la concernant reste valable et ne doit pas être supprimé |
+| **Banana**        | 5 — **différé, pas abandonné**                                      | Seule cible qui motivait le mode `agrege` (`RF-106`). Le mode reste au périmètre : c'est une capacité du cœur, pas une particularité de Banana                                                      |
+| Abacus            | Hors périmètre                                                      | Aucune fiduciaire du pilote ; l'adaptateur demandait un agrément et un format à obtenir                                                                                                             |
 
 > **Contrat partagé.** `CIBLES_EXPORT = ['winbiz', 'ireach', 'csv']` ne liste que les cibles du
 > **pilote**. Bexio et Banana entreront dans l'enum quand leur adaptateur sera écrit — l'enum décrit
@@ -132,13 +132,13 @@ adaptateurs s'écrivent — **le pilote décide de ce qui passe en premier, pas 
 > **sans contrat HTTP complet derrière** — même parti pris qu'au lot 1. Un code d'erreur déclaré
 > n'est pas une fonctionnalité livrée.
 
-⚠️ **À VALIDER AVEC @laupernoe — iReach.** *Les recherches identifient « iReach » comme un **DMS
+⚠️ **À VALIDER AVEC @laupernoe — iReach.** _Les recherches identifient « iReach » comme un **DMS
 automobile** édité par Automotive Systems (Bornem, BE), distribué en Suisse, embarquant son
 **propre module comptable**. Si c'est bien ce produit, alors iReach n'est pas une cible d'export
 fiduciaire mais un **DMS concurrent** — donc un sujet de reprise de données, pas de connecteur
 comptable. La question à poser avant tout développement est en `EF-20`, et elle tient en une phrase :
 **qui utilise iReach — le garage, ou sa fiduciaire ?** Les deux réponses mènent à deux chantiers
-différents, dans deux étapes différentes.*
+différents, dans deux étapes différentes._
 
 ---
 
@@ -147,15 +147,15 @@ différents, dans deux étapes différentes.*
 L'étape 1 a livré un objet nommé **devis** qui n'est pas celui de l'étape 2. Les deux existent, les
 deux sont légitimes, et les confondre casserait la chaîne documentaire dès la première ligne de code.
 
-| | Devis complémentaire (étape 1) | Devis commercial (étape 2) |
-|---|---|---|
-| Contrat | `contrats/atelier/devis.ts`, `devis_complementaire` | `document_vente`, `type_document = 'devis'` |
-| Objet | Faire approuver des **travaux supplémentaires** découverts pendant l'intervention | Proposer un **prix** avant tout engagement |
-| Porté par | Un OR en cours | Un client, éventuellement un véhicule |
-| Émis vers | Le client par téléphone / SMS / e-mail (`CANAUX_DEVIS`) | Le client, en PDF |
-| Réponse | `accepte` / `refuse` / `partiel`, ligne par ligne, avec `interlocuteurNom` | `accepte` / `refuse` / `expire` / `remplace` |
-| Numéroté | Rang dans l'OR (`numeroOrdre` : 1, 2, 3…) | Série continue par tenant et par année (`MD-11`) |
-| Devient une facture | **Non**, jamais directement | Oui, via bon de commande ou directement |
+|                     | Devis complémentaire (étape 1)                                                    | Devis commercial (étape 2)                       |
+| ------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Contrat             | `contrats/atelier/devis.ts`, `devis_complementaire`                               | `document_vente`, `type_document = 'devis'`      |
+| Objet               | Faire approuver des **travaux supplémentaires** découverts pendant l'intervention | Proposer un **prix** avant tout engagement       |
+| Porté par           | Un OR en cours                                                                    | Un client, éventuellement un véhicule            |
+| Émis vers           | Le client par téléphone / SMS / e-mail (`CANAUX_DEVIS`)                           | Le client, en PDF                                |
+| Réponse             | `accepte` / `refuse` / `partiel`, ligne par ligne, avec `interlocuteurNom`        | `accepte` / `refuse` / `expire` / `remplace`     |
+| Numéroté            | Rang dans l'OR (`numeroOrdre` : 1, 2, 3…)                                         | Série continue par tenant et par année (`MD-11`) |
+| Devient une facture | **Non**, jamais directement                                                       | Oui, via bon de commande ou directement          |
 
 **`RF-1`** — Les deux objets coexistent sans lien de conversion. Un devis complémentaire accepté
 **ne produit pas** de devis commercial : il débloque des lignes d'OR, lesquelles seront facturées
@@ -167,24 +167,24 @@ garagiste ne doit jamais avoir à demander « lequel des deux ». Le terme techn
 `devis_complementaire` reste inchangé dans le code et les contrats — c'est un contrat gelé de
 l'étape 1, et le renommer serait une rupture pour un gain d'affichage.
 
-⚠️ **À VALIDER AVEC @laupernoe** — *« demande d'accord » est ma proposition ; le terrain dit peut-être
+⚠️ **À VALIDER AVEC @laupernoe** — _« demande d'accord » est ma proposition ; le terrain dit peut-être
 « devis complémentaire », « accord client » ou « OK client » (et `Kostenvoranschlag` / `Freigabe` en
-DE). C'est le vocabulaire des réceptionnaires qui tranche, pas le mien.*
+DE). C'est le vocabulaire des réceptionnaires qui tranche, pas le mien._
 
 **`RF-3`** — Vocabulaire des documents, figé pour l'i18n (clés `facturation.document.type.*`) :
 
-| Code | FR | DE | IT |
-|---|---|---|---|
-| `devis` | Devis | Offerte | Preventivo |
-| `bon_commande` | Bon de commande | Auftragsbestätigung | Conferma d'ordine |
-| `facture` | Facture | Rechnung | Fattura |
-| `avoir` | Avoir | Gutschrift | Nota di credito |
-| `facture` + `nature = acompte` | Facture d'acompte | Anzahlungsrechnung | Fattura di acconto |
-| `bulletin_paiement` | Bulletin de versement | Zahlteil | Polizza di pagamento |
+| Code                           | FR                    | DE                  | IT                   |
+| ------------------------------ | --------------------- | ------------------- | -------------------- |
+| `devis`                        | Devis                 | Offerte             | Preventivo           |
+| `bon_commande`                 | Bon de commande       | Auftragsbestätigung | Conferma d'ordine    |
+| `facture`                      | Facture               | Rechnung            | Fattura              |
+| `avoir`                        | Avoir                 | Gutschrift          | Nota di credito      |
+| `facture` + `nature = acompte` | Facture d'acompte     | Anzahlungsrechnung  | Fattura di acconto   |
+| `bulletin_paiement`            | Bulletin de versement | Zahlteil            | Polizza di pagamento |
 
-⚠️ **À VALIDER AVEC @laupernoe** — *les traductions DE/IT sont à faire confirmer par `expert-i18n` contre
+⚠️ **À VALIDER AVEC @laupernoe** — _les traductions DE/IT sont à faire confirmer par `expert-i18n` contre
 l'usage des garages alémaniques et tessinois. `Gutschrift` en particulier désigne aussi un avoir
-bancaire ; certains garages disent `Rechnungskorrektur`.*
+bancaire ; certains garages disent `Rechnungskorrektur`._
 
 **`RF-4`** — « Avoir » désigne **toujours** le document de correction (`type_document = 'avoir'`).
 L'avance disponible d'un client (trop-perçu non imputé, `MD-57`) se dit **« avance client »**,
@@ -268,7 +268,7 @@ pas une exception au modèle** — et c'est la seule manière d'obtenir l'adhés
 céder sur la règle.
 
 **`RF-13`** — Les trois documents portent trois numéros consommés dans leurs séries respectives :
-facture *n*, avoir *m*, facture *n+1*. **Ce n'est pas un trou** — les séries restent contiguës.
+facture _n_, avoir _m_, facture _n+1_. **Ce n'est pas un trou** — les séries restent contiguës.
 Le garagiste qui s'étonne de « sauter » des numéros de facture reçoit la réponse en une phrase :
 chaque document existe, aucun ne manque, et l'avoir explique l'écart.
 
@@ -295,11 +295,11 @@ et c'est correct : la correction est un événement de février (`MD-93`).
 **`RF-17`** — Ces trois cas **ne passent pas** par un avoir, et les confondre est l'erreur la plus
 fréquente :
 
-| Situation | Traitement | Pourquoi pas un avoir |
-|---|---|---|
-| Le client paie moins que dû (escompte accordé) | imputation `escompte` (`MD-71`) | La facture est juste. C'est le règlement qui est réduit |
-| Le client paie trop | avance client (`MD-57`, `CF-11`) | Aucun document n'est faux. Un avoir créerait de la TVA récupérée à tort |
-| La créance est abandonnée | imputation `perte` (`MD-72`) | La prestation a bien eu lieu. L'annuler falsifierait le chiffre d'affaires |
+| Situation                                      | Traitement                       | Pourquoi pas un avoir                                                      |
+| ---------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------- |
+| Le client paie moins que dû (escompte accordé) | imputation `escompte` (`MD-71`)  | La facture est juste. C'est le règlement qui est réduit                    |
+| Le client paie trop                            | avance client (`MD-57`, `CF-11`) | Aucun document n'est faux. Un avoir créerait de la TVA récupérée à tort    |
+| La créance est abandonnée                      | imputation `perte` (`MD-72`)     | La prestation a bien eu lieu. L'annuler falsifierait le chiffre d'affaires |
 
 **`RF-18`** — Un avoir **partiel** corrige une partie des lignes (`MD-23`). Il sert quand une seule
 prestation est contestée sur une facture de vingt lignes. Il ne sert **jamais** à ajuster un montant
@@ -309,11 +309,11 @@ prestation est contestée sur une facture de vingt lignes. Il ne sert **jamais**
 (`MD-77`). Il ne consomme pas de numéro, ne crée pas de document, et n'est pas régénéré : c'est
 l'octet-pour-octet du fichier conservé qui est renvoyé (`MD-95`).
 
-⚠️ **À VALIDER AVEC @laupernoe** — *faut-il imprimer la mention « DUPLICATA » sur une réimpression ? La
+⚠️ **À VALIDER AVEC @laupernoe** — _faut-il imprimer la mention « DUPLICATA » sur une réimpression ? La
 pratique varie : certaines fiduciaires l'exigent pour éviter qu'un double serve de justificatif deux
 fois ; d'autres refusent qu'un duplicata diffère de l'original. Techniquement, une mention ajoutée
 change le fichier et donc son empreinte — il faudrait alors deux PDF, l'original scellé et le
-duplicata tamponné.*
+duplicata tamponné._
 
 ---
 
@@ -346,13 +346,13 @@ applicatif, jamais par un `SELECT max(numero) + 1`.
 
 **`RF-24`** — Comportement observable, qui est ce que la spec garantit au métier :
 
-| Situation | Résultat garanti |
-|---|---|
+| Situation                                           | Résultat garanti                                                                                      |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | Deux émissions simultanées, même tenant, même série | Deux numéros consécutifs distincts. La seconde transaction attend la première, quelques millisecondes |
-| Deux émissions simultanées, tenants différents | Aucune attente. Les compteurs sont des lignes distinctes |
-| Émission qui échoue après l'allocation | **Aucun numéro consommé.** Le `ROLLBACK` rembobine le compteur (modèle §2.3) |
-| Double-clic sur « Émettre » | Un seul document. `Idempotency-Key` obligatoire sur l'émission |
-| Panne serveur entre l'allocation et le `COMMIT` | Aucun numéro consommé. La transaction n'a jamais eu lieu |
+| Deux émissions simultanées, tenants différents      | Aucune attente. Les compteurs sont des lignes distinctes                                              |
+| Émission qui échoue après l'allocation              | **Aucun numéro consommé.** Le `ROLLBACK` rembobine le compteur (modèle §2.3)                          |
+| Double-clic sur « Émettre »                         | Un seul document. `Idempotency-Key` obligatoire sur l'émission                                        |
+| Panne serveur entre l'allocation et le `COMMIT`     | Aucun numéro consommé. La transaction n'a jamais eu lieu                                              |
 
 **`RF-25`** — L'émission est **idempotente** : rejouer la même requête avec la même
 `Idempotency-Key` rend le **même** document, avec le même numéro, sans en créer un second. C'est ce
@@ -447,15 +447,15 @@ de paiement — et surtout le montant encodé dans le QR.
 
 > **Décision de @laupernoe, 29.07.2026.** Les prix sont saisis et affichés **TVA comprise**, sans
 > exception, y compris pour les clients entreprise. La TVA est **détaillée en pied de facture**.
-> *Le prix annoncé au client est celui qu'il paie.*
+> _Le prix annoncé au client est celui qu'il paie._
 >
 > C'était l'hypothèse marquée irrattrapable après coup, parce qu'aucune relecture ne permet de
 > retrouver, six mois plus tard, quel mode portait une ligne donnée. Elle est fermée.
 
 **`RF-39`** — ↻ **révisé 29.07.2026 (A1) — la règle change de sens, le numéro est conservé.**
 
-*Ancienne rédaction* : chaque ligne porte son mode de calcul (`ht` ou `ttc`), au choix.
-*Nouvelle rédaction* : **toute ligne produite par DFA est en mode `ttc`.** La colonne
+_Ancienne rédaction_ : chaque ligne porte son mode de calcul (`ht` ou `ttc`), au choix.
+_Nouvelle rédaction_ : **toute ligne produite par DFA est en mode `ttc`.** La colonne
 `mode_calcul_tva` de `MD-43` **est conservée** — elle reste figée avec le reste du document — mais
 elle ne prend qu'une seule valeur pour tout ce que DFA émet.
 
@@ -480,23 +480,23 @@ réponse.
 **`RF-40` — ↻ révisé 29.07.2026 (A1) — la règle change entièrement de contenu, le numéro est
 conservé parce que du code et d'autres documents le citent.**
 
-*Ancienne rédaction* : un tableau de modes par défaut par type de ligne (main-d'œuvre en `ht`,
+_Ancienne rédaction_ : un tableau de modes par défaut par type de ligne (main-d'œuvre en `ht`,
 forfaits et pièces en `ttc`…), paramétrable par tenant et surchargeable par ligne.
 **Cette table est supprimée. Elle n'est remplacée par aucune autre.**
 
-| Type de ligne | Mode | Prix saisi |
-|---|---|---|
-| **Tous**, sans exception | `ttc` | **TTC** |
+| Type de ligne            | Mode  | Prix saisi |
+| ------------------------ | ----- | ---------- |
+| **Tous**, sans exception | `ttc` | **TTC**    |
 
 Il n'y a plus de défaut par type de ligne, plus de paramètre de tenant `mode_calcul_tva`
 (`PF-01` perd cette entrée), et **plus de surcharge par ligne**. Un réglage qui n'a qu'une valeur
 n'est pas un réglage : c'est une porte laissée ouverte. Les deux seuls cas particuliers survivants
 ne sont pas des exceptions au mode mais des contraintes de cohérence :
 
-| Cas | Contrainte | Référence |
-|---|---|---|
-| `acompte_deduit` | Reprend obligatoirement le mode de la facture d'acompte — donc `ttc` pour toute facture d'acompte émise par DFA | `MD-55`, `CF-07`, `RF-78` |
-| Ligne de répartition (franchise, prise en charge) | Identique des deux côtés — donc `ttc` des deux côtés, **trivialement satisfait** | `MD-63`, `RF-96`, `CF-20` |
+| Cas                                               | Contrainte                                                                                                      | Référence                 |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `acompte_deduit`                                  | Reprend obligatoirement le mode de la facture d'acompte — donc `ttc` pour toute facture d'acompte émise par DFA | `MD-55`, `CF-07`, `RF-78` |
+| Ligne de répartition (franchise, prise en charge) | Identique des deux côtés — donc `ttc` des deux côtés, **trivialement satisfait**                                | `MD-63`, `RF-96`, `CF-20` |
 
 **Ce que ce changement fait disparaître, et qu'il faut nommer** : `CF-10` chiffrait à CHF 37.47 la
 fuite de base provoquée par une ligne de répartition saisie en `ht` d'un côté et `ttc` de l'autre.
@@ -520,14 +520,14 @@ prix_unitaire_ttc = arrondiCommercial(prix_unitaire_ht × (1000 + taux), 1000)
 Elle préserve la recette du garage au centime près sur l'unité. Exemples vérifiés en exécution, au
 taux 81 ‰ :
 
-| Tarif HT | Tarif TTC converti | Commentaire |
-|---|---|---|
-| 165.00 /h | **178.37** /h | Le tarif atelier de référence de `CF-01`, `CF-18`, `CF-19`, `CF-20` |
-| 155.00 /h | **167.56** /h | Tarif garantie constructeur (`CF-19`) |
-| 18.50 /L | **20.00** /L | Tombe sur un montant rond — cas favorable |
-| 142.50 | **154.04** | Pompe à eau (`CF-19`) |
-| 24.90 | **26.92** | Filtre à huile (`CF-01`) |
-| 3.50 | **3.78** | Taxe d'élimination (`CF-01`) |
+| Tarif HT  | Tarif TTC converti | Commentaire                                                         |
+| --------- | ------------------ | ------------------------------------------------------------------- |
+| 165.00 /h | **178.37** /h      | Le tarif atelier de référence de `CF-01`, `CF-18`, `CF-19`, `CF-20` |
+| 155.00 /h | **167.56** /h      | Tarif garantie constructeur (`CF-19`)                               |
+| 18.50 /L  | **20.00** /L       | Tombe sur un montant rond — cas favorable                           |
+| 142.50    | **154.04**         | Pompe à eau (`CF-19`)                                               |
+| 24.90     | **26.92**          | Filtre à huile (`CF-01`)                                            |
+| 3.50      | **3.78**           | Taxe d'élimination (`CF-01`)                                        |
 
 Trois obligations autour de cette conversion :
 
@@ -539,10 +539,10 @@ Trois obligations autour de cette conversion :
 3. **La conversion ne touche aucun document émis.** Les documents figés gardent leurs montants et
    leur mode (`MD-24`, `RF-39`).
 
-⚠️ **À VALIDER AVEC @laupernoe** — *le garage veut-il conserver ses tarifs au centime (178.37 /h) ou
+⚠️ **À VALIDER AVEC @laupernoe** — _le garage veut-il conserver ses tarifs au centime (178.37 /h) ou
 arrondir sa grille à des valeurs affichables (178.00, 180.00) ? La conversion mécanique est neutre
 et sans perte ; l'arrondi est une décision de prix. Cette question doit être posée **avant** la
-bascule du paramétrage, pas après la première facture.*
+bascule du paramétrage, pas après la première facture._
 
 **`RF-122` — Le TTC annoncé fait foi. ✚ nouvelle règle (A1), invariant central.**
 
@@ -552,17 +552,17 @@ Ce n'est pas un contrôle de cohérence parmi d'autres : c'est **la promesse fai
 voix**, et c'est elle qui arbitre en cas de conflit.
 
 **En cas d'écart d'arrondi, c'est le total TTC qui l'emporte.** Jamais le HT, jamais la TVA. Le HT
-et la TVA sont des grandeurs *dérivées* du TTC ; le TTC est la seule qui ait été prononcée à voix
+et la TVA sont des grandeurs _dérivées_ du TTC ; le TTC est la seule qui ait été prononcée à voix
 haute au comptoir.
 
 Comment l'invariant est tenu, mécaniquement :
 
-| Situation | Mécanisme | Écart possible ? |
-|---|---|---|
-| Ligne simple | `TVA = arrondi(TTC × taux, 1000 + taux)`, `HT = TTC − TVA` | **Non.** `TTC = HT + TVA` par construction (`MD-43`) |
-| Document = somme de ses lignes | `RF-35` : la TVA du document est la somme des TVA de ligne | **Non.** L'égalité se propage par addition |
-| Remise de pied de facture | Ventilée au prorata des **bases TTC**, résidu absorbé par `RF-44` | **Non.** `Σ parts = remise saisie` au centime |
-| **Prix « tout compris » négocié** | Le garagiste annonce un TTC qui n'est pas la somme des lignes | **Oui — et c'est le seul cas.** Traité ci-dessous |
+| Situation                         | Mécanisme                                                         | Écart possible ?                                     |
+| --------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------- |
+| Ligne simple                      | `TVA = arrondi(TTC × taux, 1000 + taux)`, `HT = TTC − TVA`        | **Non.** `TTC = HT + TVA` par construction (`MD-43`) |
+| Document = somme de ses lignes    | `RF-35` : la TVA du document est la somme des TVA de ligne        | **Non.** L'égalité se propage par addition           |
+| Remise de pied de facture         | Ventilée au prorata des **bases TTC**, résidu absorbé par `RF-44` | **Non.** `Σ parts = remise saisie` au centime        |
+| **Prix « tout compris » négocié** | Le garagiste annonce un TTC qui n'est pas la somme des lignes     | **Oui — et c'est le seul cas.** Traité ci-dessous    |
 
 **Le cas du prix « tout compris »** est celui qui donne sa raison d'être à la règle. Le
 réceptionnaire annonce « je vous fais ça à 1'300.— tout compris » sur un document dont les lignes
@@ -586,14 +586,14 @@ sur le total, découverte au décompte trimestriel. L'écart se ventile, ou il n
 
 **`RF-123` — Où le HT a le droit d'apparaître. ✚ nouvelle règle (A1).**
 
-| Emplacement | HT visible ? |
-|---|---|
-| Ligne de document (écran et PDF) | **Non.** Prix unitaire TTC, montant de ligne TTC |
-| Total du document | **Non.** TTC uniquement |
-| **Récapitulatif TVA en pied de facture** | **Oui** — une ligne par couple (régime, taux) : base HT, taux, montant de TVA. C'est le seul endroit |
-| Écran de saisie, y compris pour un client entreprise | **Non** (`RF-6` révisé) |
-| Export fiduciaire, écritures comptables | **Oui**, évidemment — la comptabilité est tenue en HT + TVA (§8) |
-| Écrans de rentabilité atelier, marge, statistiques internes | **Oui** — ce ne sont pas des documents client |
+| Emplacement                                                 | HT visible ?                                                                                         |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Ligne de document (écran et PDF)                            | **Non.** Prix unitaire TTC, montant de ligne TTC                                                     |
+| Total du document                                           | **Non.** TTC uniquement                                                                              |
+| **Récapitulatif TVA en pied de facture**                    | **Oui** — une ligne par couple (régime, taux) : base HT, taux, montant de TVA. C'est le seul endroit |
+| Écran de saisie, y compris pour un client entreprise        | **Non** (`RF-6` révisé)                                                                              |
+| Export fiduciaire, écritures comptables                     | **Oui**, évidemment — la comptabilité est tenue en HT + TVA (§8)                                     |
+| Écrans de rentabilité atelier, marge, statistiques internes | **Oui** — ce ne sont pas des documents client                                                        |
 
 Le récapitulatif de pied reste **obligatoire** : c'est une mention légale (LTVA, `QF-11`), pas un
 confort d'affichage. Une facture TTC sans ventilation de TVA n'est pas déductible par un client
@@ -629,12 +629,12 @@ où elle compte.
 Sur une facture multi-taux, ne pas ventiler produit toujours une **déclaration TVA fausse**, mais
 l'erreur ne se cache plus au même endroit :
 
-| | Avant A1 (saisie HT) | **Après A1 (saisie TTC)** |
-|---|---|---|
+|                                                           | Avant A1 (saisie HT)           | **Après A1 (saisie TTC)**       |
+| --------------------------------------------------------- | ------------------------------ | ------------------------------- |
 | Grandeur rigoureusement identique dans les deux variantes | **le total HT** (CHF 1'220.00) | **le total TTC** (CHF 1'317.20) |
-| Écart de TVA | CHF 0.74 | **CHF 0.63** |
-| Écart de HT | **aucun** | **CHF 0.63** (en sens inverse) |
-| Écart sur la base déclarée au taux normal | CHF 9.09 | **CHF 7.84** |
+| Écart de TVA                                              | CHF 0.74                       | **CHF 0.63**                    |
+| Écart de HT                                               | **aucun**                      | **CHF 0.63** (en sens inverse)  |
+| Écart sur la base déclarée au taux normal                 | CHF 9.09                       | **CHF 7.84**                    |
 
 L'erreur reste **invisible pour le client** — il paie exactement le même total dans les deux
 variantes, et c'est ce qui la rend dangereuse. Mais elle devient **visible en interne** : le total
@@ -672,7 +672,7 @@ dès le départ.
 
 **`RF-47`** — L'escompte n'est **jamais appliqué automatiquement**. Le client qui paie dans les
 délais verse le montant escompté ; le rapprochement constate un écart, et l'écran propose au
-comptable : *« Écart de CHF 69.18 — escompte 2 % à 10 jours, paiement reçu au 8ᵉ jour : accorder ? »*
+comptable : _« Écart de CHF 69.18 — escompte 2 % à 10 jours, paiement reçu au 8ᵉ jour : accorder ? »_
 Accorder est un clic, mais c'est un clic humain.
 
 **`RF-48`** — Un escompte réclamé **hors délai** ne se refuse pas automatiquement non plus. Le solde
@@ -680,10 +680,10 @@ reste ouvert et l'écran signale « escompte pris hors délai (25ᵉ jour pour 1
 comptable accorde par geste commercial ou relance. `CF-26` fixe le comportement attendu : **aucune
 imputation automatique, solde ouvert de CHF 69.18, statut `partiel`**.
 
-⚠️ **À VALIDER AVEC @laupernoe** — *les garages accordent-ils réellement des escomptes ? C'est courant en
+⚠️ **À VALIDER AVEC @laupernoe** — _les garages accordent-ils réellement des escomptes ? C'est courant en
 B2B (flottes, assurances, sous-traitance entre garages) et rare au comptoir particulier. Si aucun
 garage du parc ne pratique l'escompte, `PF-04` reste à « 30 jours net, sans escompte » et tout le
-dispositif dort sans coûter — mais il ne faut pas le supprimer, il faut le désactiver.*
+dispositif dort sans coûter — mais il ne faut pas le supprimer, il faut le désactiver._
 
 ### 4.4 Arrondi au 5 centimes
 
@@ -705,15 +705,15 @@ physiquement dans le tiroir.
 arrondi qui ne descendrait jamais serait un arrondi qui vole le client, et il se verrait au premier
 contrôle.
 
-⚠️ **À VALIDER AVEC @laupernoe** — *`arrondi_especes_actif` (`AC-20`) est-il activé par défaut ? Un garage
+⚠️ **À VALIDER AVEC @laupernoe** — _`arrondi_especes_actif` (`AC-20`) est-il activé par défaut ? Un garage
 qui n'encaisse plus d'espèces (de plus en plus fréquent) n'en a jamais besoin. Proposition : actif
-par défaut, car le désactiver à tort est sans conséquence tant qu'aucune espèce n'entre.*
+par défaut, car le désactiver à tort est sans conséquence tant qu'aucune espèce n'entre._
 
 ---
 
 ## 5. QR-facture
 
-> Référence : *Swiss Payment Standards — Implementation Guidelines QR-bill*. **Tout ce qui suit est
+> Référence : _Swiss Payment Standards — Implementation Guidelines QR-bill_. **Tout ce qui suit est
 > à revérifier contre la version en vigueur au moment d'implémenter** : la spécification est
 > vivante et a déjà supprimé une fonctionnalité en cours de route (l'adresse combinée, type `K`).
 > Le contrôle se fait contre le document officiel, pas contre ce fichier.
@@ -731,10 +731,10 @@ transforme un blocage de trente secondes en une créance non payée.
 
 **`RF-55` — Le type de référence découle du type d'IBAN, et n'est pas un choix** (`MD-74`) :
 
-| IBAN du garage | Référence | Interdit |
-|---|---|---|
+| IBAN du garage                | Référence                          | Interdit  |
+| ----------------------------- | ---------------------------------- | --------- |
 | **QR-IBAN** (IID 30000–31999) | **QRR** — 27 chiffres, obligatoire | SCOR, NON |
-| IBAN ordinaire | **SCOR** (ISO 11649) ou **NON** | QRR |
+| IBAN ordinaire                | **SCOR** (ISO 11649) ou **NON**    | QRR       |
 
 **`RF-56` — Ce qui est obligatoire dans le payload** : le type QR, la version, l'encodage, l'IBAN,
 le bloc créancier **complet en adresse structurée**, la devise, le type de référence et le trailer
@@ -746,9 +746,9 @@ procédures alternatives.
 
 **`RF-58`** — Devise **CHF ou EUR uniquement**, montant de 0.01 à 999'999'999.99 (`MD-81`). Une
 facture dans une autre devise existe, mais sa section paiement est remplacée par les coordonnées
-bancaires en clair. ⚠️ **À VALIDER AVEC @laupernoe** — *un garage suisse facture-t-il jamais en EUR ?
+bancaires en clair. ⚠️ **À VALIDER AVEC @laupernoe** — _un garage suisse facture-t-il jamais en EUR ?
 Frontaliers, clients français ou allemands, véhicules exportés : le cas existe peut-être, et il
-change les paramètres de compte bancaire.*
+change les paramètres de compte bancaire._
 
 ### 5.2 Le client du comptoir qui n'a pas d'adresse complète
 
@@ -771,11 +771,11 @@ Le contrôle est mécanique, jamais laissé au jugement de l'utilisateur.
 > `RF-60` les exige en plus, et fait donc tomber le bloc débiteur pour des adresses que les banques
 > **accepteraient** :
 >
-> | Adresse | Norme SIX | `RF-60` actuelle |
-> |---|---|---|
-> | Case postale 42, 1950 Sion | ✅ acceptée | ❌ bloc débiteur omis |
+> | Adresse                                              | Norme SIX   | `RF-60` actuelle      |
+> | ---------------------------------------------------- | ----------- | --------------------- |
+> | Case postale 42, 1950 Sion                           | ✅ acceptée | ❌ bloc débiteur omis |
 > | Les Rasses, 1450 Sainte-Croix (lieu-dit sans numéro) | ✅ acceptée | ❌ bloc débiteur omis |
-> | Hameau sans numérotation, commune rurale | ✅ acceptée | ❌ bloc débiteur omis |
+> | Hameau sans numérotation, commune rurale             | ✅ acceptée | ❌ bloc débiteur omis |
 >
 > **Ces cas sont courants en Suisse rurale — donc chez des clients de garage.** Ce n'est pas un
 > détail théorique.
@@ -803,9 +803,9 @@ l'obliger à donner son adresse pour recevoir sa facture est un irritant sans co
 facture **sans section paiement** (mention « Payé le … , montant reçu … »). Émettre un bulletin de
 versement pour une facture déjà soldée invite le client à payer deux fois.
 
-⚠️ **À VALIDER AVEC @laupernoe** — *`RF-62` est une hypothèse d'ergonomie. Certains garages impriment
+⚠️ **À VALIDER AVEC @laupernoe** — _`RF-62` est une hypothèse d'ergonomie. Certains garages impriment
 toujours la même facture, payée ou non, pour n'avoir qu'un seul gabarit. La question à poser :
-« quand le client paie cash au comptoir, que lui donnez-vous exactement ? »*
+« quand le client paie cash au comptoir, que lui donnez-vous exactement ? »_
 
 ### 5.3 Structure et stabilité
 
@@ -820,7 +820,7 @@ la bonne facture (`CF-08`).
 
 > ### ⚠️ Divergence assumée avec `modele-documentaire-facturation.md` — **c'est cette spec qui fait foi**
 >
-> §5.3 du modèle documentaire décrit le bloc *Ultimate Creditor* comme **« 6 lignes vides »**.
+> §5.3 du modèle documentaire décrit le bloc _Ultimate Creditor_ comme **« 6 lignes vides »**.
 > **C'est faux.** Un bloc d'adresse comporte `AdrTp` **plus** ses six lignes (nom, rue, numéro, NPA,
 > localité, pays), soit **7 champs** — exactement comme pour le bloc débiteur omis.
 >
@@ -846,12 +846,12 @@ calqué sur une énumération partielle a **refusé d'émettre une facture parfa
 > facultatif présent ajoute ses lignes.** C'est la règle qui doit être implémentée ; l'énumération
 > n'en est qu'une vérification.
 
-| Blocs facultatifs présents | Éléments |
-|---|---|
-| Aucun | **31** |
-| Information de facturation Swico | **32** |
-| **Une seule** procédure de paiement alternative (`AltPmt`) | **33** |
-| Les **deux** procédures alternatives, ou Swico + une `AltPmt` | **34** |
+| Blocs facultatifs présents                                    | Éléments |
+| ------------------------------------------------------------- | -------- |
+| Aucun                                                         | **31**   |
+| Information de facturation Swico                              | **32**   |
+| **Une seule** procédure de paiement alternative (`AltPmt`)    | **33**   |
+| Les **deux** procédures alternatives, ou Swico + une `AltPmt` | **34**   |
 
 **Les deux lignes `AltPmt` sont indépendantes.** N'en déclarer qu'une est un cas **conforme** à la
 norme. Tout contrôle écrit comme `nb ∈ {31, 32, 34}` rejette une facture valide — la valeur
@@ -868,12 +868,12 @@ la liste.
 `paiement` est ce qui est réellement entré en caisse ou en banque ; l'`imputation` est ce que cet
 argent solde. Cette séparation, à elle seule, résout les quatre cas du terrain :
 
-| Cas | Résolution |
-|---|---|
-| Paiement partiel | Plusieurs imputations sur un même document |
-| Un paiement pour plusieurs factures | Plusieurs imputations d'un même paiement |
-| Trop-perçu | Une partie du paiement reste **non imputée** |
-| Acompte avant tout document | Un paiement non imputé, ou imputé sur un bon de commande |
+| Cas                                 | Résolution                                               |
+| ----------------------------------- | -------------------------------------------------------- |
+| Paiement partiel                    | Plusieurs imputations sur un même document               |
+| Un paiement pour plusieurs factures | Plusieurs imputations d'un même paiement                 |
+| Trop-perçu                          | Une partie du paiement reste **non imputée**             |
+| Acompte avant tout document         | Un paiement non imputé, ou imputé sur un bon de commande |
 
 **`RF-66`** — Un paiement est **immuable** (`MD-52`). Une saisie erronée se corrige par un paiement
 de sens opposé, lié au premier. La saisie fausse reste visible avec sa correction — c'est ce que la
@@ -921,22 +921,22 @@ avant que le tiroir s'ouvre.
 distinction, le rapprochement bancaire de la fiduciaire ne tombe jamais juste, parce que les
 recettes carte arrivent en banque avec deux jours de décalage et une commission.
 
-⚠️ **À VALIDER AVEC @laupernoe** — *les commissions sur cartes et TWINT sont-elles comptabilisées par DFA
+⚠️ **À VALIDER AVEC @laupernoe** — _les commissions sur cartes et TWINT sont-elles comptabilisées par DFA
 (encaissement brut + charge de commission) ou par la fiduciaire depuis le relevé du prestataire ?
 La seconde est plus simple et plus courante chez les petits garages ; la première est plus juste.
-Cela décide si `paiement` doit porter un montant brut et une commission, ou seulement le brut.*
+Cela décide si `paiement` doit porter un montant brut et une commission, ou seulement le brut._
 
 ### 6.4 Acomptes
 
 **`RF-76`** — Deux dispositifs coexistent et **ne se valent pas** (`MD-54`) :
 
-| | Encaissement d'acompte sans facture | Facture d'acompte |
-|---|---|---|
-| Document | Aucun (paiement sur bon de commande) | Une `facture` de nature `acompte` |
-| TVA due | **Non**, à ce stade | **Oui**, immédiatement |
-| Compte crédité | Acomptes reçus, en **TTC** | Acomptes reçus en **HT** + TVA due |
+|                | Encaissement d'acompte sans facture             | Facture d'acompte                            |
+| -------------- | ----------------------------------------------- | -------------------------------------------- |
+| Document       | Aucun (paiement sur bon de commande)            | Une `facture` de nature `acompte`            |
+| TVA due        | **Non**, à ce stade                             | **Oui**, immédiatement                       |
+| Compte crédité | Acomptes reçus, en **TTC**                      | Acomptes reçus en **HT** + TVA due           |
 | Facture finale | Lettrage du paiement, pas de ligne de déduction | Ligne `acompte_deduit` obligatoire (`MD-55`) |
-| Cas de test | `CF-23` | `CF-07` |
+| Cas de test    | `CF-23`                                         | `CF-07`                                      |
 
 La comparaison chiffrée de `CF-23` et `CF-07` sur le **même** véhicule à CHF 24'500.00 et le **même**
 acompte de CHF 5'000.00 montre l'écart : CHF 374.65 de TVA déclarée à la date de l'acompte dans un
@@ -990,7 +990,7 @@ prévu.
 **`RF-83` — La facturation, le paiement et la restitution du véhicule sont indépendants.**
 ↻ **révisé 29.07.2026 (A2) — hypothèse confirmée et étendue au paiement.**
 
-> **Décision de @laupernoe.** *Un client peut repartir sans avoir payé, c'est courant.* Restitution et
+> **Décision de @laupernoe.** _Un client peut repartir sans avoir payé, c'est courant._ Restitution et
 > paiement sont indépendants, **dans les deux ordres**.
 
 L'énumération `STATUTS_ORDRE_REPARATION` est gelée et suggère un ordre
@@ -1006,20 +1006,20 @@ transitions gagne des lignes.
 
 **Ce que A2 ferme définitivement — les trois blocages qui n'existeront pas :**
 
-| Blocage envisagé | Statut | Pourquoi |
-|---|---|---|
-| « Véhicule non restituable tant que la facture n'est pas soldée » | **N'existe pas.** Aucun endpoint, aucun droit, aucun paramètre de tenant | La restitution est un fait physique. Un logiciel qui prétend l'empêcher ment sur ce qu'il contrôle, et le premier contournement sera de ne pas saisir la restitution — DFA perdrait la donnée en plus de la bataille |
-| « Restitution impossible tant que l'OR n'est pas facturé » | **N'existe pas** | C'est le cas carrosserie, majoritaire en volume sur les gros montants |
-| « Avertissement bloquant à la restitution d'un véhicule non payé » | **N'existe pas comme blocage** ; existe comme **information** (voir ci-dessous) | Un avertissement qu'on doit acquitter à chaque fois devient un réflexe, et un réflexe n'avertit plus |
+| Blocage envisagé                                                   | Statut                                                                          | Pourquoi                                                                                                                                                                                                             |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| « Véhicule non restituable tant que la facture n'est pas soldée »  | **N'existe pas.** Aucun endpoint, aucun droit, aucun paramètre de tenant        | La restitution est un fait physique. Un logiciel qui prétend l'empêcher ment sur ce qu'il contrôle, et le premier contournement sera de ne pas saisir la restitution — DFA perdrait la donnée en plus de la bataille |
+| « Restitution impossible tant que l'OR n'est pas facturé »         | **N'existe pas**                                                                | C'est le cas carrosserie, majoritaire en volume sur les gros montants                                                                                                                                                |
+| « Avertissement bloquant à la restitution d'un véhicule non payé » | **N'existe pas comme blocage** ; existe comme **information** (voir ci-dessous) | Un avertissement qu'on doit acquitter à chaque fois devient un réflexe, et un réflexe n'avertit plus                                                                                                                 |
 
 **Ce que le comptoir voit à la place — informer sans jamais barrer la route.** L'écran de
 restitution affiche l'état de règlement en évidence, et propose l'action utile :
 
-- Facture soldée → *« Facture 2026-00318 — soldée le 29.07.2026 »*, en gris. Rien à faire.
-- Facture ouverte → *« Facture 2026-00318 — solde CHF 566.63 »*, avec deux boutons :
+- Facture soldée → _« Facture 2026-00318 — soldée le 29.07.2026 »_, en gris. Rien à faire.
+- Facture ouverte → _« Facture 2026-00318 — solde CHF 566.63 »_, avec deux boutons :
   **« Encaisser maintenant »** et **« Restituer sans encaisser »**. Les deux sont au même niveau
   hiérarchique ; aucun n'est un chemin dégradé.
-- Aucune facture émise → *« OR non facturé »*, avec **« Facturer »** et **« Restituer »**, les deux
+- Aucune facture émise → _« OR non facturé »_, avec **« Facturer »** et **« Restituer »**, les deux
   disponibles.
 
 Le second bouton n'est ni caché, ni grisé, ni précédé d'une confirmation modale. **Le réceptionnaire
@@ -1037,21 +1037,21 @@ faits distincts et **le statut de règlement n'entre dans ni l'un ni l'autre** (
 être `restitue` sans être `facture`, `facture` sans être payé, et les trois notions se lisent
 séparément à l'écran.
 
-⚠️ *Une question de terrain reste ouverte et n'est pas bloquante : le garage veut-il une **liste des
+⚠️ _Une question de terrain reste ouverte et n'est pas bloquante : le garage veut-il une **liste des
 véhicules restitués non payés** au tableau de bord du comptoir ? C'est un écran de suivi, pas une
-règle de gestion — il peut arriver après le pilote.*
+règle de gestion — il peut arriver après le pilote._
 
 ### 7.2 Quelles lignes sont facturées, et à qui
 
 **`RF-85`** — Le tri est mécanique, jamais laissé à l'appréciation :
 
-| Statut de ligne | Devient | Pourquoi |
-|---|---|---|
-| `realisee` | **Facturée** | Le travail est fait |
-| `refusee` | **Jamais facturée** → travaux reportés | Le client a dit non (`RM-72`, `RM-73`) |
-| `annulee` | **Jamais facturée** | Elle reste visible avec son motif, mais n'a rien produit |
-| `validee`, `en_cours`, `proposee`, `a_valider` | **Bloquent l'émission** | On ne facture pas un travail dont l'état est indécis |
-| `facturee` | Déjà facturée | Une ligne d'OR n'apparaît que sur **un seul** document non annulé (`MD-15`) |
+| Statut de ligne                                | Devient                                | Pourquoi                                                                    |
+| ---------------------------------------------- | -------------------------------------- | --------------------------------------------------------------------------- |
+| `realisee`                                     | **Facturée**                           | Le travail est fait                                                         |
+| `refusee`                                      | **Jamais facturée** → travaux reportés | Le client a dit non (`RM-72`, `RM-73`)                                      |
+| `annulee`                                      | **Jamais facturée**                    | Elle reste visible avec son motif, mais n'a rien produit                    |
+| `validee`, `en_cours`, `proposee`, `a_valider` | **Bloquent l'émission**                | On ne facture pas un travail dont l'état est indécis                        |
+| `facturee`                                     | Déjà facturée                          | Une ligne d'OR n'apparaît que sur **un seul** document non annulé (`MD-15`) |
 
 **`RF-86`** — L'émission est **refusée** tant qu'une ligne est dans un état indécis, avec un message
 qui **liste les lignes concernées** et propose les trois issues possibles (marquer réalisée, refuser,
@@ -1060,13 +1060,13 @@ bloque fait perdre dix minutes à chaque fois.
 
 **`RF-87` — Groupement par payeur** (`MD-62`). Un OR produit **une facture par payeur** :
 
-| `payeur` de la ligne | Destinataire de la facture |
-|---|---|
-| `client` | Le client (ou son adresse de facturation, `AC-13`) |
-| `assurance` | L'assurance désignée par `payeur_client_id` (`AC-08`) |
-| `constructeur` | L'importateur / le constructeur (garantie, campagne) |
-| `tiers` | Le tiers désigné (employeur, leaser, garage confrère) |
-| `garage` | **Personne** — facturée 0.00, valorisée quand même (`RF-92`) |
+| `payeur` de la ligne | Destinataire de la facture                                   |
+| -------------------- | ------------------------------------------------------------ |
+| `client`             | Le client (ou son adresse de facturation, `AC-13`)           |
+| `assurance`          | L'assurance désignée par `payeur_client_id` (`AC-08`)        |
+| `constructeur`       | L'importateur / le constructeur (garantie, campagne)         |
+| `tiers`              | Le tiers désigné (employeur, leaser, garage confrère)        |
+| `garage`             | **Personne** — facturée 0.00, valorisée quand même (`RF-92`) |
 
 **`RF-88`** — L'**invariant de non-fuite** (`MD-64`) est vérifié à l'émission et par requête de
 contrôle nocturne : pour chaque OR et chaque taux, la somme des bases et des TVA de tous les
@@ -1157,21 +1157,21 @@ que la restitution peut suivre la facturation (`RF-83`), `restituee` peut valoir
 de l'émission** et passer à `true` deux jours plus tard. La règle telle qu'écrite ne savait pas
 traiter ce cas. Elle se lit désormais sur l'**intention**, pas sur le fait accompli :
 
-| État à l'émission | Ligne de taxe | Suite |
-|---|---|---|
-| `aRestituer = false` | **Facturée** | Le garage élimine. Rien à faire |
-| `aRestituer = true`, `restituee = true` | **Exclue** | Cas nominal inchangé : la pièce est déjà partie avec le client |
-| **`aRestituer = true`, `restituee = false`** | **Exclue**, et l'écran le signale | **C'est le cas nouveau.** Le client a *demandé* sa pièce ; c'est son intention qui décide, et elle est connue à l'émission |
-| `aRestituer = true`, pièce finalement **non reprise** par le client | La taxe devient due | **Facture complémentaire**, jamais une modification (`RF-11`). Montant faible, cas rare |
+| État à l'émission                                                   | Ligne de taxe                     | Suite                                                                                                                      |
+| ------------------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `aRestituer = false`                                                | **Facturée**                      | Le garage élimine. Rien à faire                                                                                            |
+| `aRestituer = true`, `restituee = true`                             | **Exclue**                        | Cas nominal inchangé : la pièce est déjà partie avec le client                                                             |
+| **`aRestituer = true`, `restituee = false`**                        | **Exclue**, et l'écran le signale | **C'est le cas nouveau.** Le client a _demandé_ sa pièce ; c'est son intention qui décide, et elle est connue à l'émission |
+| `aRestituer = true`, pièce finalement **non reprise** par le client | La taxe devient due               | **Facture complémentaire**, jamais une modification (`RF-11`). Montant faible, cas rare                                    |
 
 Le choix d'exclure sur l'intention plutôt que sur le fait est délibéré : **il fait tomber l'erreur du
 bon côté**. Exclure à tort produit une facture complémentaire de CHF 3.78 dans un cas rare ; facturer
 à tort produit un avoir et un client qui a payé pour un service qu'il n'a pas reçu — et qui s'en
 souvient.
 
-⚠️ *`RF-98` (la vieille pièce est remise à la restitution) reste inchangé et devient plus important :
+⚠️ _`RF-98` (la vieille pièce est remise à la restitution) reste inchangé et devient plus important :
 c'est maintenant le seul point du parcours où l'engagement se matérialise, et il peut survenir avant
-comme après la facture.*
+comme après la facture._
 
 **`RF-100` — La consigne d'un échange standard est facturée sur la facture initiale, et remboursée
 par un avoir partiel au retour de la vieille pièce.** L'alternative — attendre le retour avant de
@@ -1185,15 +1185,16 @@ Une conséquence d'ergonomie à ne pas manquer : la consigne s'annonce désormai
 **« 162.15 »** et non plus « 150.— plus TVA ». C'est le montant qu'il verra revenir sur son avoir, et
 c'est celui qu'il faut lui dire au comptoir.
 
-⚠️ **À VALIDER AVEC @laupernoe** — *trois questions de terrain sur ce paragraphe, que je ne peux pas
-trancher :*
-> 1. *Les garages du parc pratiquent-ils réellement l'échange standard avec consigne (alternateurs,
->    démarreurs, injecteurs, turbos, boîtes) ? Si oui, quel ordre de grandeur ?*
-> 2. *La consigne est-elle soumise à TVA au taux normal ? Je la traite comme une livraison à 8.1 %,
->    ce qui me paraît l'hypothèse la plus probable, mais c'est une question fiscale (`QF-06`).*
-> 3. *Que se passe-t-il quand le client ne rend pas la vieille pièce et ne la réclame pas non plus,
+⚠️ **À VALIDER AVEC @laupernoe** — _trois questions de terrain sur ce paragraphe, que je ne peux pas
+trancher :_
+
+> 1. _Les garages du parc pratiquent-ils réellement l'échange standard avec consigne (alternateurs,
+>    démarreurs, injecteurs, turbos, boîtes) ? Si oui, quel ordre de grandeur ?_
+> 2. _La consigne est-elle soumise à TVA au taux normal ? Je la traite comme une livraison à 8.1 %,
+>    ce qui me paraît l'hypothèse la plus probable, mais c'est une question fiscale (`QF-06`)._
+> 3. _Que se passe-t-il quand le client ne rend pas la vieille pièce et ne la réclame pas non plus,
 >    et que le garage la garde ? La consigne reste acquise — mais qui décide, et au bout de combien
->    de temps ?*
+>    de temps ?_
 
 ---
 
@@ -1238,10 +1239,10 @@ pas un journal partiellement faux à une fiduciaire : on corrige et on retransme
 
 **`RF-106`** — Deux modes, paramétrables par tenant **et par cible** (`PF-05`, `MD-88`) :
 
-| Mode | Une écriture par | Pour qui |
-|---|---|---|
-| `detaille` (défaut) | Document, puis par paiement | **WinBIZ**, CSV générique, Bexio : la fiduciaire tient le grand livre des débiteurs dans son outil |
-| `agrege` | Jour × compte × taux de TVA | Le petit garage dont la fiduciaire ne veut pas 900 écritures par mois — DFA reste alors le grand livre des débiteurs. Cas typique de Banana, et disponible en CSV générique |
+| Mode                | Une écriture par            | Pour qui                                                                                                                                                                    |
+| ------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `detaille` (défaut) | Document, puis par paiement | **WinBIZ**, CSV générique, Bexio : la fiduciaire tient le grand livre des débiteurs dans son outil                                                                          |
+| `agrege`            | Jour × compte × taux de TVA | Le petit garage dont la fiduciaire ne veut pas 900 écritures par mois — DFA reste alors le grand livre des débiteurs. Cas typique de Banana, et disponible en CSV générique |
 
 ↻ **note A3** : le mode `agrege` **reste au périmètre** bien que Banana soit différée. C'est une
 **capacité du cœur** (`MD-88`), pas une particularité d'une cible : elle est atteignable dès
@@ -1283,22 +1284,22 @@ changement d'outil, garage qui grandit. Le jour où ça arrive, DFA doit être l
 
 **`RF-112` — Ce qui casse, et comment on l'encaisse :**
 
-| Ce qui casse | Effet | Traitement |
-|---|---|---|
-| **Le plan comptable** — la nouvelle fiduciaire impose ses comptes | Les écritures futures changent de compte | Le mapping est **versionné par dates** (`actif_du`, `actif_au`, `MD-86`). On **n'écrase jamais** un mapping : on le clôt et on en ouvre un nouveau. Sinon les exports passés deviennent irreproductibles |
-| **Les correspondances externes** — identifiants de contacts et de comptes chez la cible | La nouvelle cible ne connaît aucun identifiant | `correspondance_externe` est indexée **par cible** (`MD-87`). La nouvelle repart vide et se remplit au premier export. Risque réel : **doublons de contacts** chez la nouvelle fiduciaire au premier lot |
-| **Le mode d'agrégation** — passage de `detaille` (WinBIZ) à `agrege` (CSV, Banana) | Deux granularités pour la même période | **Le changement ne prend effet qu'à une frontière de période comptable**, jamais en cours de mois. Sinon la fiduciaire reçoit mars en détaillé et avril en agrégé avec un chevauchement, et personne ne sait ce qui a déjà été saisi |
-| **Les codes TVA** — propres à chaque cible | Les codes de l'ancienne cible ne veulent rien dire dans la nouvelle | `mapping_code_tva` est indexé sur `(cible, régime, taux)` (`MD-86`). À remplir avant le premier export, et c'est un travail humain de trente minutes avec la fiduciaire |
-| **Le grand livre des débiteurs** — qui le tient ? | Si WinBIZ le tenait et que la nouvelle cible ne le tient pas, il faut basculer la responsabilité | **C'est le seul point qui demande une décision humaine.** Solde d'ouverture des créances à la date de bascule, produit par DFA, saisi une fois par la fiduciaire. Même problème que `QF-10` à la reprise |
+| Ce qui casse                                                                            | Effet                                                                                            | Traitement                                                                                                                                                                                                                           |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Le plan comptable** — la nouvelle fiduciaire impose ses comptes                       | Les écritures futures changent de compte                                                         | Le mapping est **versionné par dates** (`actif_du`, `actif_au`, `MD-86`). On **n'écrase jamais** un mapping : on le clôt et on en ouvre un nouveau. Sinon les exports passés deviennent irreproductibles                             |
+| **Les correspondances externes** — identifiants de contacts et de comptes chez la cible | La nouvelle cible ne connaît aucun identifiant                                                   | `correspondance_externe` est indexée **par cible** (`MD-87`). La nouvelle repart vide et se remplit au premier export. Risque réel : **doublons de contacts** chez la nouvelle fiduciaire au premier lot                             |
+| **Le mode d'agrégation** — passage de `detaille` (WinBIZ) à `agrege` (CSV, Banana)      | Deux granularités pour la même période                                                           | **Le changement ne prend effet qu'à une frontière de période comptable**, jamais en cours de mois. Sinon la fiduciaire reçoit mars en détaillé et avril en agrégé avec un chevauchement, et personne ne sait ce qui a déjà été saisi |
+| **Les codes TVA** — propres à chaque cible                                              | Les codes de l'ancienne cible ne veulent rien dire dans la nouvelle                              | `mapping_code_tva` est indexé sur `(cible, régime, taux)` (`MD-86`). À remplir avant le premier export, et c'est un travail humain de trente minutes avec la fiduciaire                                                              |
+| **Le grand livre des débiteurs** — qui le tient ?                                       | Si WinBIZ le tenait et que la nouvelle cible ne le tient pas, il faut basculer la responsabilité | **C'est le seul point qui demande une décision humaine.** Solde d'ouverture des créances à la date de bascule, produit par DFA, saisi une fois par la fiduciaire. Même problème que `QF-10` à la reprise                             |
 
 **`RF-113`** — Le changement de fiduciaire se fait donc **à une date de bascule** qui est une
 frontière de période comptable close, avec : dernier lot transmis et accepté à l'ancienne cible,
 nouveau mapping ouvert à la date de bascule, état des créances ouvertes produit pour la nouvelle. `CF-27`
 en fixe le scénario de test.
 
-⚠️ **À VALIDER AVEC @laupernoe** — *combien de garages du parc ont changé de fiduciaire ces cinq dernières
+⚠️ **À VALIDER AVEC @laupernoe** — _combien de garages du parc ont changé de fiduciaire ces cinq dernières
 années, et comment ça s'est passé avec leur DMS actuel ? Si la réponse est « on a tout ressaisi »,
-c'est un argument commercial direct pour DFA, et il vaut la peine d'être mesuré.*
+c'est un argument commercial direct pour DFA, et il vaut la peine d'être mesuré._
 
 ---
 
@@ -1307,21 +1308,21 @@ c'est un argument commercial direct pour DFA, et il vaut la peine d'être mesur�
 **`RF-114`** — La matrice est **serveur**, jamais seulement affichée. Un bouton caché n'est pas une
 autorisation.
 
-| Action | direction | comptable | vendeur | réceptionnaire | chef d'atelier | magasinier | technicien | admin |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Voir les montants | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Créer / modifier un brouillon | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Émettre un devis / bon de commande | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Émettre une facture** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Émettre un avoir** | ✅ | ✅ | ❌ | ⚠️ plafonné | ❌ | ❌ | ❌ | ❌ |
-| Remise au-delà du plafond du rôle | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Encaisser / imputer | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
-| Rembourser un trop-perçu | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Marquer irrécouvrable | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Clore une période comptable | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Générer / transmettre un export | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Modifier le mapping comptable | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Modifier le bloc créancier QR | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Action                             | direction | comptable | vendeur | réceptionnaire | chef d'atelier | magasinier | technicien | admin |
+| ---------------------------------- | :-------: | :-------: | :-----: | :------------: | :------------: | :--------: | :--------: | :---: |
+| Voir les montants                  |    ✅     |    ✅     |   ✅    |       ✅       |       ✅       |     ✅     |     ❌     |  ❌   |
+| Créer / modifier un brouillon      |    ✅     |    ✅     |   ✅    |       ✅       |       ✅       |     ✅     |     ❌     |  ❌   |
+| Émettre un devis / bon de commande |    ✅     |    ✅     |   ✅    |       ✅       |       ✅       |     ❌     |     ❌     |  ❌   |
+| **Émettre une facture**            |    ✅     |    ✅     |   ✅    |       ✅       |       ❌       |     ❌     |     ❌     |  ❌   |
+| **Émettre un avoir**               |    ✅     |    ✅     |   ❌    |  ⚠️ plafonné   |       ❌       |     ❌     |     ❌     |  ❌   |
+| Remise au-delà du plafond du rôle  |    ✅     |    ❌     |   ❌    |       ❌       |       ❌       |     ❌     |     ❌     |  ❌   |
+| Encaisser / imputer                |    ✅     |    ✅     |   ✅    |       ✅       |       ❌       |     ✅     |     ❌     |  ❌   |
+| Rembourser un trop-perçu           |    ✅     |    ✅     |   ❌    |       ❌       |       ❌       |     ❌     |     ❌     |  ❌   |
+| Marquer irrécouvrable              |    ✅     |    ✅     |   ❌    |       ❌       |       ❌       |     ❌     |     ❌     |  ❌   |
+| Clore une période comptable        |    ✅     |    ✅     |   ❌    |       ❌       |       ❌       |     ❌     |     ❌     |  ❌   |
+| Générer / transmettre un export    |    ✅     |    ✅     |   ❌    |       ❌       |       ❌       |     ❌     |     ❌     |  ❌   |
+| Modifier le mapping comptable      |    ✅     |    ✅     |   ❌    |       ❌       |       ❌       |     ❌     |     ❌     |  ❌   |
+| Modifier le bloc créancier QR      |    ✅     |    ❌     |   ❌    |       ❌       |       ❌       |     ❌     |     ❌     |  ❌   |
 
 **`RF-115` — `admin` est un rôle technique et n'a aucun droit financier.** Il administre les
 utilisateurs, les sites et les paramètres techniques ; il ne voit pas les montants, n'émet rien et
@@ -1376,20 +1377,20 @@ aurait amputé chaque cas de 7.5 % et n'aurait rien prouvé du tout.
 
 **Résultat, cas par cas :**
 
-| Cas | Effet de A1 | Détail |
-|---|---|---|
-| `CF-16` | **Change** | Facture `CF-01` : CHF 566.60 → **CHF 566.63**. HT 524.15 → **524.18**. **TVA inchangée à 42.45** |
-| `CF-17` | Inchangé | Aucune arithmétique de montants — numérotation et concurrence uniquement |
-| `CF-18` | **Inchangé** | 198.00 / 16.04 / 214.04 à l'identique. Le détour par 178.37 TTC/h retombe exactement |
-| `CF-19` | **Change** | Importateur 455.64 → **455.65** ; client 278.36 → **278.37**. **Les deux TVA inchangées** (34.14 / 20.86) |
-| `CF-20` | **Change, et révèle un cas nouveau** | 635.09 / 635.09 → **635.10 / 635.09**. Le partage 50 % tombe sur un demi-centime (`RF-96`) |
-| `CF-21` | **Change** | Montant du payload QR : 566.60 → **566.63**. Décompte des champs **inchangé** (31 éléments) |
-| `CF-22` | **Inchangé** | 204.31 / 1.531 / 189.00 à l'identique, arrondi 5 centimes compris |
-| `CF-23` | **Inchangé** | Déjà ancré TTC dans la rédaction d'origine — c'est le cas témoin |
-| `CF-24` | **Change, et le profil de l'erreur se déplace** | Voir §10.10. TTC 1'309.84 → **1'317.20** ; écart de la variante fautive 0.74 → **0.63** |
-| `CF-25` | **Inchangé** | 150.00 / 12.15 / 162.15 à l'identique |
-| `CF-26` | **Inchangé** | 3'459.20 / 259.20 / 3'200.00 et l'escompte de 69.18 à l'identique |
-| `CF-27` | Change de cibles, pas de montants | Bexio → **WinBIZ** (A3) |
+| Cas     | Effet de A1                                     | Détail                                                                                                    |
+| ------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `CF-16` | **Change**                                      | Facture `CF-01` : CHF 566.60 → **CHF 566.63**. HT 524.15 → **524.18**. **TVA inchangée à 42.45**          |
+| `CF-17` | Inchangé                                        | Aucune arithmétique de montants — numérotation et concurrence uniquement                                  |
+| `CF-18` | **Inchangé**                                    | 198.00 / 16.04 / 214.04 à l'identique. Le détour par 178.37 TTC/h retombe exactement                      |
+| `CF-19` | **Change**                                      | Importateur 455.64 → **455.65** ; client 278.36 → **278.37**. **Les deux TVA inchangées** (34.14 / 20.86) |
+| `CF-20` | **Change, et révèle un cas nouveau**            | 635.09 / 635.09 → **635.10 / 635.09**. Le partage 50 % tombe sur un demi-centime (`RF-96`)                |
+| `CF-21` | **Change**                                      | Montant du payload QR : 566.60 → **566.63**. Décompte des champs **inchangé** (31 éléments)               |
+| `CF-22` | **Inchangé**                                    | 204.31 / 1.531 / 189.00 à l'identique, arrondi 5 centimes compris                                         |
+| `CF-23` | **Inchangé**                                    | Déjà ancré TTC dans la rédaction d'origine — c'est le cas témoin                                          |
+| `CF-24` | **Change, et le profil de l'erreur se déplace** | Voir §10.10. TTC 1'309.84 → **1'317.20** ; écart de la variante fautive 0.74 → **0.63**                   |
+| `CF-25` | **Inchangé**                                    | 150.00 / 12.15 / 162.15 à l'identique                                                                     |
+| `CF-26` | **Inchangé**                                    | 3'459.20 / 259.20 / 3'200.00 et l'escompte de 69.18 à l'identique                                         |
+| `CF-27` | Change de cibles, pas de montants               | Bexio → **WinBIZ** (A3)                                                                                   |
 
 **Trois constats qui méritent d'être dits, parce qu'ils étaient contre-intuitifs :**
 
@@ -1407,15 +1408,15 @@ aurait amputé chaque cas de 7.5 % et n'aurait rien prouvé du tout.
 `docs/modele-documentaire-facturation.md` porte `CF-01` → `CF-15`, dont l'arithmétique est
 **antérieure à A1**. Sous ancrage TTC :
 
-| Cas du modèle | Effet attendu de A1 | Priorité |
-|---|---|---|
-| `CF-01` | **HT 524.15 → 524.18, TTC 566.60 → 566.63**, TVA inchangée | **Haute** — cité par `CF-03`, `CF-04`, `CF-16`, `CF-21` |
-| `CF-03` | À rejouer sur les nouvelles bases de `CF-01` | Haute |
-| `CF-04` | Écriture à recalculer (débit 566.63, ventilation des crédits) | Haute |
-| `CF-13` | **Change de rôle**, pas de valeurs : devient un test de non-régression (`RF-39`) | Moyenne |
-| `CF-10` | La variante fautive `ht`/`ttc` n'est plus atteignable depuis l'UI | Moyenne |
-| `CF-02`, `CF-05`, `CF-07`, `CF-14`, `CF-15` | **Inchangés** — déjà ancrés TTC ou indépendants du mode | — |
-| `CF-06`, `CF-08`, `CF-09`, `CF-11`, `CF-12` | À revérifier ; non recalculés ici faute de périmètre | Moyenne |
+| Cas du modèle                               | Effet attendu de A1                                                              | Priorité                                                |
+| ------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `CF-01`                                     | **HT 524.15 → 524.18, TTC 566.60 → 566.63**, TVA inchangée                       | **Haute** — cité par `CF-03`, `CF-04`, `CF-16`, `CF-21` |
+| `CF-03`                                     | À rejouer sur les nouvelles bases de `CF-01`                                     | Haute                                                   |
+| `CF-04`                                     | Écriture à recalculer (débit 566.63, ventilation des crédits)                    | Haute                                                   |
+| `CF-13`                                     | **Change de rôle**, pas de valeurs : devient un test de non-régression (`RF-39`) | Moyenne                                                 |
+| `CF-10`                                     | La variante fautive `ht`/`ttc` n'est plus atteignable depuis l'UI                | Moyenne                                                 |
+| `CF-02`, `CF-05`, `CF-07`, `CF-14`, `CF-15` | **Inchangés** — déjà ancrés TTC ou indépendants du mode                          | —                                                       |
+| `CF-06`, `CF-08`, `CF-09`, `CF-11`, `CF-12` | À revérifier ; non recalculés ici faute de périmètre                             | Moyenne                                                 |
 
 Je n'ai **pas** modifié ce document et je n'ai **pas** recalculé les cas que je n'ai pas repris.
 Ce tableau est une liste de travail, pas un résultat.
@@ -1425,37 +1426,37 @@ Ce tableau est une liste de travail, pas un résultat.
 `CF-01` → `CF-15` sont définis dans `docs/modele-documentaire-facturation.md` §9, leur arithmétique
 est exécutée, et **ce document ne les redéfinit pas**. Rappel de leur objet :
 
-| Cas | Objet |
-|---|---|
+| Cas     | Objet                                                                                        |
+| ------- | -------------------------------------------------------------------------------------------- |
 | `CF-01` | Facture d'atelier, 8.1 % — ↻ **CHF 566.63** en ancrage TTC (566.60 en mode `ht`), voir §10.0 |
-| `CF-02` | Avoir total : symétrie de l'arrondi |
-| `CF-03` | TVA par ligne agrégée ≠ TVA sur base agrégée |
-| `CF-04` | Écriture de facture émise, équilibrée |
-| `CF-05` | Arrondi 5 centimes à l'encaissement, dans les deux sens |
-| `CF-06` | Remise globale ventilée, résidu d'arrondi |
-| `CF-07` | Vente de véhicule avec **facture** d'acompte, mode `ttc` |
-| `CF-08` | Paiement partiel et bulletin de solde |
-| `CF-09` | Avoir sur facture émise sous un taux antérieur |
-| `CF-10` | Carrosserie multi-payeur, invariant de non-fuite |
-| `CF-11` | Trop-perçu |
-| `CF-12` | Facture reprise à TVA non ventilée |
-| `CF-13` | Le mode de calcul n'est pas une préférence d'affichage |
-| `CF-14` | Escompte 2 % avec correction proportionnelle de TVA |
-| `CF-15` | Référence QR : composition et chiffre de contrôle |
+| `CF-02` | Avoir total : symétrie de l'arrondi                                                          |
+| `CF-03` | TVA par ligne agrégée ≠ TVA sur base agrégée                                                 |
+| `CF-04` | Écriture de facture émise, équilibrée                                                        |
+| `CF-05` | Arrondi 5 centimes à l'encaissement, dans les deux sens                                      |
+| `CF-06` | Remise globale ventilée, résidu d'arrondi                                                    |
+| `CF-07` | Vente de véhicule avec **facture** d'acompte, mode `ttc`                                     |
+| `CF-08` | Paiement partiel et bulletin de solde                                                        |
+| `CF-09` | Avoir sur facture émise sous un taux antérieur                                               |
+| `CF-10` | Carrosserie multi-payeur, invariant de non-fuite                                             |
+| `CF-11` | Trop-perçu                                                                                   |
+| `CF-12` | Facture reprise à TVA non ventilée                                                           |
+| `CF-13` | Le mode de calcul n'est pas une préférence d'affichage                                       |
+| `CF-14` | Escompte 2 % avec correction proportionnelle de TVA                                          |
+| `CF-15` | Référence QR : composition et chiffre de contrôle                                            |
 
-### 10.2 `CF-16` — Correction d'adresse : avoir total + refacturation ↻ *recalculé (A1)*
+### 10.2 `CF-16` — Correction d'adresse : avoir total + refacturation ↻ _recalculé (A1)_
 
 Prouve `RF-11`, `RF-12`, `RF-13`, `MD-22`. Facture de `CF-01` **recalculée en ancrage TTC**
 (**CHF 566.63**), coquille d'adresse détectée avant tout envoi.
 
 **La facture support, ligne à ligne** (tarifs convertis par `RF-121`, taux 81 ‰) :
 
-| # | Désignation | Qté | PU TTC | `ttc` | `tva` | `ht` |
-|---|---|---|---|---|---|---|
-| 1 | Main-d'œuvre atelier | `2500` (2.5 h) | `17837` | `44593` | `3341` | `41252` |
-| 2 | Filtre à huile | `1000` (1 pce) | `2692` | `2692` | `202` | `2490` |
-| 3 | Huile moteur 5W30 | `4500` (4.5 L) | `2000` | `9000` | `674` | `8326` |
-| 4 | Taxe d'élimination | `1000` (1 pce) | `378` | `378` | `28` | `350` |
+| #   | Désignation          | Qté            | PU TTC  | `ttc`   | `tva`  | `ht`    |
+| --- | -------------------- | -------------- | ------- | ------- | ------ | ------- |
+| 1   | Main-d'œuvre atelier | `2500` (2.5 h) | `17837` | `44593` | `3341` | `41252` |
+| 2   | Filtre à huile       | `1000` (1 pce) | `2692`  | `2692`  | `202`  | `2490`  |
+| 3   | Huile moteur 5W30    | `4500` (4.5 L) | `2000`  | `9000`  | `674`  | `8326`  |
+| 4   | Taxe d'élimination   | `1000` (1 pce) | `378`   | `378`   | `28`   | `350`   |
 
 ```
 total_ttc = 44593 + 2692 + 9000 + 378 = 56663 ct   →  CHF 566.63
@@ -1465,11 +1466,11 @@ total_ht  = 41252 + 2490 + 8326 + 350 = 52418 ct   →  CHF 524.18   (524.15 en 
 RF-122 : 52418 + 4245 = 56663 ct = total_ttc annoncé                     ✅
 ```
 
-| Document | `total_ht` | `total_tva` | `total_ttc` |
-|---|---|---|---|
-| Facture 2026-00318 | `52418` | `4245` | `56663` |
-| Avoir 2026-00007 | `−52418` | `−4245` | `−56663` |
-| Facture 2026-00319 (adresse corrigée) | `52418` | `4245` | `56663` |
+| Document                              | `total_ht` | `total_tva` | `total_ttc` |
+| ------------------------------------- | ---------- | ----------- | ----------- |
+| Facture 2026-00318                    | `52418`    | `4245`      | `56663`     |
+| Avoir 2026-00007                      | `−52418`   | `−4245`     | `−56663`    |
+| Facture 2026-00319 (adresse corrigée) | `52418`    | `4245`      | `56663`     |
 
 ```
 solde de la facture 2026-00318 après lettrage de l'avoir  =  0 ct        ✅
@@ -1496,13 +1497,13 @@ numéros consommés : 2 dans la série facture, 1 dans la série avoir       ✅
 
 Prouve `RF-23`, `RF-24`, `RF-26`, `MD-28` → `MD-31`. Test d'intégration, base réelle.
 
-| Scénario | Attendu |
-|---|---|
-| Deux émissions concurrentes, même tenant/série | Numéros `n` et `n+1`, distincts, aucune perte |
+| Scénario                                              | Attendu                                                                  |
+| ----------------------------------------------------- | ------------------------------------------------------------------------ |
+| Deux émissions concurrentes, même tenant/série        | Numéros `n` et `n+1`, distincts, aucune perte                            |
 | Transaction B échoue après allocation (`CHECK` violé) | A obtient `n`. **B ne consomme rien.** L'émission suivante obtient `n+1` |
-| Même `Idempotency-Key` rejouée | **Même** document, **même** numéro, aucun second document |
-| Deux tenants en parallèle | Aucune attente mutuelle, séries indépendantes |
-| Requête de continuité (modèle §2.4) après le scénario | **0 ligne** |
+| Même `Idempotency-Key` rejouée                        | **Même** document, **même** numéro, aucun second document                |
+| Deux tenants en parallèle                             | Aucune attente mutuelle, séries indépendantes                            |
+| Requête de continuité (modèle §2.4) après le scénario | **0 ligne**                                                              |
 
 ```
 attendu après 2 émissions réussies et 1 rollback : count(*) = 2, min = n, max = n+1
@@ -1514,7 +1515,7 @@ après le rollback, et c'est le comportement voulu (`MD-75`). Une référence QR
 rapprocherait un paiement de 2031 sur une facture de 2026 encore ouverte. Le test doit porter un
 commentaire pour que personne ne « corrige » ce trou.
 
-### 10.4 `CF-18` — Démontage facturé après refus de devis ↻ *revérifié (A1) — valeurs inchangées*
+### 10.4 `CF-18` — Démontage facturé après refus de devis ↻ _revérifié (A1) — valeurs inchangées_
 
 Prouve `RF-90`, `RF-91`, `P-24`. Devis complémentaire refusé, démontage/remontage réel de 1.2 h au
 tarif atelier, `P-24 = 'facturer'`.
@@ -1530,7 +1531,7 @@ RF-122 : 19800 + 1604 = 21404 ct                                          ✅
 ```
 
 **Les trois valeurs sont rigoureusement identiques à la rédaction HT** (198.00 / 16.04 / 214.04).
-Le test n'a pas à être modifié — seule sa *dérivation* change, et le commentaire du test doit le
+Le test n'a pas à être modifié — seule sa _dérivation_ change, et le commentaire du test doit le
 dire, sinon le prochain lecteur croira que le cas n'a pas été revu. **C'est une coïncidence
 arithmétique propre à ce jeu de chiffres, pas une propriété générale** : `CF-01` et `CF-19`, eux,
 bougent d'un à trois centimes.
@@ -1540,24 +1541,24 @@ apparaissent dans les travaux reportés du véhicule, et la ligne de démontage 
 l'utilisateur ne l'a pas explicitement ajoutée (`CT-36`) — un test qui l'obtiendrait automatiquement
 signale une régression.
 
-### 10.5 `CF-19` — Garantie constructeur et travaux client sur un même OR ↻ *recalculé (A1)*
+### 10.5 `CF-19` — Garantie constructeur et travaux client sur un même OR ↻ _recalculé (A1)_
 
 Prouve `RF-87`, `RF-88`, `RF-93`, `RF-94`, `MD-62`, `MD-64`.
 
 Tarifs convertis par `RF-121` : 155.00 HT → **167.56 TTC/h** (garantie), 165.00 HT → **178.37
 TTC/h** (client), 142.50 → **154.04**, 18.50 → **20.00**.
 
-| Ligne | Payeur | Détail | PU TTC | `ttc` | `tva` 81 ‰ | `ht` |
-|---|---|---|---|---|---|---|
-| MO garantie | `constructeur` | 1.8 h à 167.56 | `16756` | `30161` | `2260` | `27901` |
-| Pompe à eau | `constructeur` | 1 × 154.04 | `15404` | `15404` | `1154` | `14250` |
-| MO service annuel | `client` | 1.0 h à 178.37 | `17837` | `17837` | `1337` | `16500` |
-| Huile 5W30 | `client` | 5.0 L à 20.00 | `2000` | `10000` | `749` | `9251` |
+| Ligne             | Payeur         | Détail         | PU TTC  | `ttc`   | `tva` 81 ‰ | `ht`    |
+| ----------------- | -------------- | -------------- | ------- | ------- | ---------- | ------- |
+| MO garantie       | `constructeur` | 1.8 h à 167.56 | `16756` | `30161` | `2260`     | `27901` |
+| Pompe à eau       | `constructeur` | 1 × 154.04     | `15404` | `15404` | `1154`     | `14250` |
+| MO service annuel | `client`       | 1.0 h à 178.37 | `17837` | `17837` | `1337`     | `16500` |
+| Huile 5W30        | `client`       | 5.0 L à 20.00  | `2000`  | `10000` | `749`      | `9251`  |
 
-| | Facture importateur | Facture client |
-|---|---|---|
-| `total_ht` | `42151` (CHF 421.51) | `25751` (CHF 257.51) |
-| `total_tva` | `3414` (CHF 34.14) | `2086` (CHF 20.86) |
+|             | Facture importateur  | Facture client       |
+| ----------- | -------------------- | -------------------- |
+| `total_ht`  | `42151` (CHF 421.51) | `25751` (CHF 257.51) |
+| `total_tva` | `3414` (CHF 34.14)   | `2086` (CHF 20.86)   |
 | `total_ttc` | `45565` (CHF 455.65) | `27837` (CHF 278.37) |
 
 **Invariant de non-fuite (`MD-64`), au taux 81 ‰ :**
@@ -1585,7 +1586,7 @@ au TTC : c'est un contrôle gratuit et c'est celui qui correspond à ce que le c
 l'autre (155.00 figé sur les lignes garantie, 165.00 sur les lignes client) ; l'OR ne passe
 `facture` qu'une fois les **deux** documents émis (`RF-84`).
 
-### 10.6 `CF-20` — Prise en charge partielle par l'importateur (50 %) ↻ *recalculé (A1) — cas nouveau révélé*
+### 10.6 `CF-20` — Prise en charge partielle par l'importateur (50 %) ↻ _recalculé (A1) — cas nouveau révélé_
 
 Prouve `RF-96`, `RF-97`, `MD-63`, `MD-64`. Réparation hors garantie, l'importateur accepte 50 % par
 geste commercial.
@@ -1614,10 +1615,10 @@ ht   = 63510 − 4759                 = 58751 ct
 > mais **les deux factures diffèrent désormais d'un centime**, et l'écran ne doit pas prétendre le
 > contraire (`RF-96`).
 
-| | Facture client | Facture importateur |
-|---|---|---|
-| `total_ht` | `58750` (CHF 587.50) | `58751` (CHF 587.51) |
-| `total_tva` | `4759` (CHF 47.59) | `4759` (CHF 47.59) |
+|             | Facture client       | Facture importateur      |
+| ----------- | -------------------- | ------------------------ |
+| `total_ht`  | `58750` (CHF 587.50) | `58751` (CHF 587.51)     |
+| `total_tva` | `4759` (CHF 47.59)   | `4759` (CHF 47.59)       |
 | `total_ttc` | `63509` (CHF 635.09) | **`63510`** (CHF 635.10) |
 
 ```
@@ -1649,7 +1650,7 @@ utilisateur peut réellement commettre.
 
 ### 10.7 `CF-21` — QR au comptoir sans adresse de débiteur
 
-↻ *montant recalculé (A1), décompte des champs inchangé.*
+↻ _montant recalculé (A1), décompte des champs inchangé._
 
 Prouve `RF-59`, `RF-60`, `MD-79`, et le décompte des champs du payload. Facture de `CF-01`
 recalculée en ancrage TTC (**CHF 566.63**), client de passage dont la fiche n'a qu'un nom et un
@@ -1657,17 +1658,17 @@ téléphone.
 
 Décompte attendu du payload, séparateur `CR+LF`, encodage UTF-8 :
 
-| Bloc | Champs | Contenu attendu |
-|---|---|---|
-| En-tête | 3 | `SPC` / `0200` / `1` |
-| IBAN | 1 | QR-IBAN du garage, sans espaces |
-| Créancier | 7 | `S` + nom + rue + n° + NPA + localité + pays |
-| **Ultimate Creditor** | **7** | **7 champs vides** — réservé, jamais rempli |
-| Montant + devise | 2 | `566.63` / `CHF` |
-| **Débiteur** | **7** | **7 champs vides** — adresse incomplète (`RF-59`) |
-| Référence | 2 | `QRR` + 27 chiffres |
-| Message non structuré | 1 | `Facture 2026-00424` |
-| Trailer | 1 | `EPD` |
+| Bloc                  | Champs | Contenu attendu                                   |
+| --------------------- | ------ | ------------------------------------------------- |
+| En-tête               | 3      | `SPC` / `0200` / `1`                              |
+| IBAN                  | 1      | QR-IBAN du garage, sans espaces                   |
+| Créancier             | 7      | `S` + nom + rue + n° + NPA + localité + pays      |
+| **Ultimate Creditor** | **7**  | **7 champs vides** — réservé, jamais rempli       |
+| Montant + devise      | 2      | `566.63` / `CHF`                                  |
+| **Débiteur**          | **7**  | **7 champs vides** — adresse incomplète (`RF-59`) |
+| Référence             | 2      | `QRR` + 27 chiffres                               |
+| Message non structuré | 1      | `Facture 2026-00424`                              |
+| Trailer               | 1      | `EPD`                                             |
 
 ```
 éléments jusqu'à EPD inclus                    =  31          ✅
@@ -1700,7 +1701,7 @@ Trois assertions, toutes nécessaires :
 
 ### 10.8 `CF-22` — Deux moyens de paiement, arrondi sur la seule part espèces
 
-↻ *revérifié (A1) — valeurs inchangées.*
+↻ _revérifié (A1) — valeurs inchangées._
 
 Prouve `RF-50`, `RF-73`, `RF-74`, `MD-49`, `MD-51` (b). Forfait **annoncé CHF 204.31 TTC** (le
 tarif de 189.00 HT se convertit exactement en 204.31 TTC, `RF-121`), client dont le plafond carte
@@ -1714,10 +1715,10 @@ ttc = 20431 ct        tva = arrondi(20431 × 81, 1081) = 1531 ct       ht = 1890
 `RF-40` ne perturbe pas l'arrondi au 5 centimes : celui-ci vit sur le **paiement**, jamais sur le
 document (`RF-49`), et il est donc indifférent au mode de calcul de la TVA.
 
-| Étape | Moyen | Montant | Solde après |
-|---|---|---|---|
-| 1 | Carte | `10000` (CHF 100.00) | `10431` (CHF 104.31) |
-| 2 | Espèces | `10430` (CHF 104.30) | `0` |
+| Étape | Moyen   | Montant              | Solde après          |
+| ----- | ------- | -------------------- | -------------------- |
+| 1     | Carte   | `10000` (CHF 100.00) | `10431` (CHF 104.31) |
+| 2     | Espèces | `10430` (CHF 104.30) | `0`                  |
 
 ```
 arrondiCinqCentimes(10431) = ((10431 + 2) / 5) × 5 = 10430 ct
@@ -1791,7 +1792,7 @@ chiffres et non d'une intuition.
 (`RF-78` ne s'applique qu'au dispositif 2) ; le solde du compte `2030` revient exactement à zéro pour
 le dossier.
 
-### 10.10 `CF-24` — Remise de pied de facture sur une facture **multi-taux** ↻ *recalculé (A1) — l'erreur change de cachette*
+### 10.10 `CF-24` — Remise de pied de facture sur une facture **multi-taux** ↻ _recalculé (A1) — l'erreur change de cachette_
 
 Prouve `RF-42`, `RF-43`, `RF-44`, `MD-59`, `MD-60`, `RF-122`. Le cas qui justifie la ventilation :
 sans elle, le client paie **exactement la même chose** et la déclaration TVA est **fausse**.
@@ -1801,11 +1802,11 @@ le client), remise globale de **CHF 100.00 TTC**. Bases converties par `RF-121` 
 **864.80 TTC**, 400.00 HT → **432.40 TTC** ; le débours en régime `exclu` reste à **120.00** (taux
 nul, la conversion est l'identité).
 
-| # | Ligne | Régime | Base TTC | Part de remise | `ttc` | `tva` | `ht` |
-|---|---|---|---|---|---|---|---|
-| 1 | Main-d'œuvre | `normal` 81 ‰ | `86480` | `6102` | `80378` | `6023` | `74355` |
-| 2 | Pièces | `normal` 81 ‰ | `43240` | `3051` | `40189` | `3011` | `37178` |
-| 3 | Débours émoluments | `exclu` 0 ‰ | `12000` | `847` | `11153` | `0` | `11153` |
+| #   | Ligne              | Régime        | Base TTC | Part de remise | `ttc`   | `tva`  | `ht`    |
+| --- | ------------------ | ------------- | -------- | -------------- | ------- | ------ | ------- |
+| 1   | Main-d'œuvre       | `normal` 81 ‰ | `86480`  | `6102`         | `80378` | `6023` | `74355` |
+| 2   | Pièces             | `normal` 81 ‰ | `43240`  | `3051`         | `40189` | `3011` | `37178` |
+| 3   | Débours émoluments | `exclu` 0 ‰   | `12000`  | `847`          | `11153` | `0`    | `11153` |
 
 ```
 parts au prorata des bases TTC : arrondi(10000 × 86480, 141720) = 6102
@@ -1841,12 +1842,12 @@ identique entre les deux variantes était le **total HT** ; la TVA seule diverge
 En saisie TTC, la grandeur identique est le **total TTC** — CHF 1'317.20 dans les deux cas — et
 l'écart de CHF 0.63 se répartit **en miroir sur la TVA et sur le HT**.
 
-| | Avant A1 | **Après A1** |
-|---|---|---|
-| Identique dans les deux variantes | total HT (1'220.00) | **total TTC (1'317.20)** |
-| Écart de TVA | 0.74 | **0.63** |
-| Écart de HT | **0.00** — invisible | **0.63** — visible en interne |
-| Base fausse au taux normal | 9.09 | **7.84** |
+|                                   | Avant A1             | **Après A1**                  |
+| --------------------------------- | -------------------- | ----------------------------- |
+| Identique dans les deux variantes | total HT (1'220.00)  | **total TTC (1'317.20)**      |
+| Écart de TVA                      | 0.74                 | **0.63**                      |
+| Écart de HT                       | **0.00** — invisible | **0.63** — visible en interne |
+| Base fausse au taux normal        | 9.09                 | **7.84**                      |
 
 **L'argument de `RF-43` survit intact, et se renforce.** L'erreur reste **totalement invisible pour
 le client** : il paie CHF 1'317.20 dans les deux cas, et aucune relecture du document ne peut la
@@ -1859,15 +1860,15 @@ recommandée par une procédure.** Ce qui bouge, c'est qu'on dispose d'un second
 
 ### 10.11 `CF-25` — Consigne d'échange standard et retour de la vieille pièce
 
-↻ *revérifié (A1) — valeurs inchangées.*
+↻ _revérifié (A1) — valeurs inchangées._
 
 Prouve `RF-100`, `MD-23`, `MD-40`. Alternateur en échange standard, consigne **annoncée
 CHF 162.15 TTC** (le tarif de 150.00 HT se convertit exactement en 162.15 TTC, `RF-121`).
 
-| Événement | `total_ht` | `total_tva` | `total_ttc` |
-|---|---|---|---|
-| Facture initiale, ligne de consigne | `15000` | `1215` | `16215` |
-| Avoir partiel au retour de la pièce | `−15000` | `−1215` | `−16215` |
+| Événement                           | `total_ht` | `total_tva` | `total_ttc` |
+| ----------------------------------- | ---------- | ----------- | ----------- |
+| Facture initiale, ligne de consigne | `15000`    | `1215`      | `16215`     |
+| Avoir partiel au retour de la pièce | `−15000`   | `−1215`     | `−16215`    |
 
 ```
 tva = arrondi(16215 × 81, 1081) = 1215 ct        →  CHF 12.15
@@ -1884,12 +1885,12 @@ il hérite du taux de la facture (`MD-23`) ; sa TVA est **exactement** l'opposé
 de `MD-40`) ; et un second avoir sur la même ligne de consigne est **refusé** (`MD-23` : Σ avoirs ≤
 total de la facture, par taux).
 
-⚠️ *Ce cas repose sur les hypothèses de `RF-100` — existence de la pratique, taux applicable à la
-consigne. À reprendre si @laupernoe indique une autre pratique.*
+⚠️ _Ce cas repose sur les hypothèses de `RF-100` — existence de la pratique, taux applicable à la
+consigne. À reprendre si @laupernoe indique une autre pratique._
 
 ### 10.12 `CF-26` — Escompte réclamé hors délai
 
-↻ *revérifié (A1) — valeurs inchangées.*
+↻ _revérifié (A1) — valeurs inchangées._
 
 Prouve `RF-47`, `RF-48`. Même facture que `CF-14`, **annoncée CHF 3'459.20 TTC** (le tarif de
 3'200.00 HT se convertit exactement en 3'459.20 TTC, `RF-121`) :
@@ -1910,13 +1911,13 @@ montant versé              = 339002 ct   (CHF 3'390.02)
 escompte pris par le client =   6918 ct   (CHF    69.18)
 ```
 
-| | Attendu |
-|---|---|
-| Imputation `reglement` | `339002` ct |
-| Imputation `escompte` | **aucune** — pas d'imputation automatique |
-| `solde_centimes` | **`6918`** (CHF 69.18) |
-| `statut_reglement` | **`partiel`** |
-| Signalement à l'écran | « Escompte pris hors délai : 25ᵉ jour pour 10 jours convenus » |
+|                        | Attendu                                                        |
+| ---------------------- | -------------------------------------------------------------- |
+| Imputation `reglement` | `339002` ct                                                    |
+| Imputation `escompte`  | **aucune** — pas d'imputation automatique                      |
+| `solde_centimes`       | **`6918`** (CHF 69.18)                                         |
+| `statut_reglement`     | **`partiel`**                                                  |
+| Signalement à l'écran  | « Escompte pris hors délai : 25ᵉ jour pour 10 jours convenus » |
 
 Le comptable dispose alors de deux actions, **toutes deux humaines** :
 
@@ -1939,7 +1940,7 @@ TVA nette due     = 25920 − 518                           = 25402 ct
 **Variante fautive à tester comme rejet** : une imputation `escompte` créée automatiquement à la
 réception du paiement. `RF-47` l'interdit dans les deux sens — ni accord ni refus automatique.
 
-### 10.13 `CF-27` — Changement de fiduciaire en cours d'exercice ↻ *cibles mises à jour (A3)*
+### 10.13 `CF-27` — Changement de fiduciaire en cours d'exercice ↻ _cibles mises à jour (A3)_
 
 Prouve `RF-109`, `RF-110`, `RF-112`, `RF-113`, `MD-86`, `MD-91`, `MD-92`. **WinBIZ** en `detaille`
 jusqu'au 30.06.2026, **CSV générique** en `agrege` à partir du 01.07.2026.
@@ -1957,17 +1958,17 @@ bout en bout, et il supporte le mode `agrege` — ce que le cas doit exercer.
   test écrit contre un format supposé est **pire qu'un test absent** : il donne la sensation d'une
   couverture qu'on n'a pas, et il passera au vert jusqu'au premier export réel.
 
-| Vérification | Attendu |
-|---|---|
-| Lot WinBIZ de juin, déjà transmis | Reproductible à l'identique — même `empreinte_sha256` |
-| Documents de juin dans le lot CSV de juillet | **Aucun** (`MD-92`) |
-| Mapping WinBIZ | `actif_au = 2026-06-30`, **jamais supprimé ni écrasé** |
-| Mapping CSV | `actif_du = 2026-07-01` |
-| Ré-génération d'un export de mai après la bascule | Utilise le mapping **de mai**, pas celui de juillet |
-| `correspondance_externe` cible CSV | Vide avant le premier export, remplie après |
-| `correspondance_externe` cible WinBIZ | **Inchangée** — elle reste exploitable si l'on revient |
-| Bascule tentée au 15.07 (milieu de période) | **Refusée** (`RF-112`) |
-| Avoir émis le 05.07 sur une facture de juin | Part dans le lot **CSV de juillet** (`MD-93`) |
+| Vérification                                      | Attendu                                                |
+| ------------------------------------------------- | ------------------------------------------------------ |
+| Lot WinBIZ de juin, déjà transmis                 | Reproductible à l'identique — même `empreinte_sha256`  |
+| Documents de juin dans le lot CSV de juillet      | **Aucun** (`MD-92`)                                    |
+| Mapping WinBIZ                                    | `actif_au = 2026-06-30`, **jamais supprimé ni écrasé** |
+| Mapping CSV                                       | `actif_du = 2026-07-01`                                |
+| Ré-génération d'un export de mai après la bascule | Utilise le mapping **de mai**, pas celui de juillet    |
+| `correspondance_externe` cible CSV                | Vide avant le premier export, remplie après            |
+| `correspondance_externe` cible WinBIZ             | **Inchangée** — elle reste exploitable si l'on revient |
+| Bascule tentée au 15.07 (milieu de période)       | **Refusée** (`RF-112`)                                 |
+| Avoir émis le 05.07 sur une facture de juin       | Part dans le lot **CSV de juillet** (`MD-93`)          |
 
 ```
 Σ débits = Σ crédits sur chacun des deux lots, en bigint                        ✅
@@ -1978,7 +1979,7 @@ bout en bout, et il supporte le mode `agrege` — ce que le cas doit exercer.
 Ce dernier contrôle est le seul qui prouve qu'aucune écriture n'a été perdue ou comptée deux fois à
 la charnière — et c'est exactement ce que le garage et sa nouvelle fiduciaire voudront voir.
 
-### 10.14 Table de couverture ↻ *révisée — contrainte de budget*
+### 10.14 Table de couverture ↻ _révisée — contrainte de budget_
 
 > **Consigne de @laupernoe pour l'étape 2 : pas de tests d'intégration, pas de suite de sécurité.**
 > Elle est appliquée telle quelle ci-dessous. Elle a un coût, il est chiffrable, et le taire serait
@@ -1986,20 +1987,20 @@ la charnière — et c'est exactement ce que le garage et sa nouvelle fiduciaire
 
 **Ce qui reste testé, et qui couvre l'essentiel de l'argent :**
 
-| Cas | Règles prouvées | Où | Praticable sans base ? |
-|---|---|---|---|
-| `CF-16` | `RF-11` → `RF-15` | `@dfa/shared` (montants) | **Partiel** — les montants oui, le verrouillage non |
-| `CF-17` | `RF-23` → `RF-26`, `RF-28` | — | **Non.** Voir ci-dessous |
-| `CF-18` | `RF-89`, `RF-90`, `RF-91` | `@dfa/shared` | **Oui** |
-| `CF-19` | `RF-87`, `RF-88`, `RF-93`, `RF-94` | `@dfa/shared` | **Oui** — le groupement par payeur et la non-fuite sont du calcul pur |
-| `CF-20` | `RF-96`, `RF-97` | `@dfa/shared` | **Oui** |
-| `CF-21` | `RF-59`, `RF-60`, `RF-61` | `@dfa/shared` | **Oui** |
-| `CF-22` | `RF-50`, `RF-51`, `RF-73`, `RF-74` | `@dfa/shared` | **Oui** |
-| `CF-23` | `RF-76`, `RF-77`, `RF-78` | `@dfa/shared` | **Oui** — montants et écritures |
-| `CF-24` | `RF-42`, `RF-43`, `RF-44`, `RF-122` | `@dfa/shared` | **Oui** |
-| `CF-25` | `RF-100` | `@dfa/shared` | **Oui** |
-| `CF-26` | `RF-47`, `RF-48` | `@dfa/shared` | **Oui** |
-| `CF-27` | `RF-109`, `RF-110`, `RF-112`, `RF-113` | `@dfa/shared` (équilibre des lots) | **Partiel** — l'équilibre oui, l'unicité des lots non |
+| Cas     | Règles prouvées                        | Où                                 | Praticable sans base ?                                                |
+| ------- | -------------------------------------- | ---------------------------------- | --------------------------------------------------------------------- |
+| `CF-16` | `RF-11` → `RF-15`                      | `@dfa/shared` (montants)           | **Partiel** — les montants oui, le verrouillage non                   |
+| `CF-17` | `RF-23` → `RF-26`, `RF-28`             | —                                  | **Non.** Voir ci-dessous                                              |
+| `CF-18` | `RF-89`, `RF-90`, `RF-91`              | `@dfa/shared`                      | **Oui**                                                               |
+| `CF-19` | `RF-87`, `RF-88`, `RF-93`, `RF-94`     | `@dfa/shared`                      | **Oui** — le groupement par payeur et la non-fuite sont du calcul pur |
+| `CF-20` | `RF-96`, `RF-97`                       | `@dfa/shared`                      | **Oui**                                                               |
+| `CF-21` | `RF-59`, `RF-60`, `RF-61`              | `@dfa/shared`                      | **Oui**                                                               |
+| `CF-22` | `RF-50`, `RF-51`, `RF-73`, `RF-74`     | `@dfa/shared`                      | **Oui**                                                               |
+| `CF-23` | `RF-76`, `RF-77`, `RF-78`              | `@dfa/shared`                      | **Oui** — montants et écritures                                       |
+| `CF-24` | `RF-42`, `RF-43`, `RF-44`, `RF-122`    | `@dfa/shared`                      | **Oui**                                                               |
+| `CF-25` | `RF-100`                               | `@dfa/shared`                      | **Oui**                                                               |
+| `CF-26` | `RF-47`, `RF-48`                       | `@dfa/shared`                      | **Oui**                                                               |
+| `CF-27` | `RF-109`, `RF-110`, `RF-112`, `RF-113` | `@dfa/shared` (équilibre des lots) | **Partiel** — l'équilibre oui, l'unicité des lots non                 |
 
 **Bonne nouvelle du recalcul A1** : dix des douze cas deviennent praticables **sans base de
 données**, parce que A1 a déplacé l'essentiel du risque vers l'arithmétique pure — et l'arithmétique
@@ -2008,13 +2009,13 @@ beaucoup moins cher qu'il n'y paraît sur §10.
 
 **Ce qui n'est plus prouvé, et qu'il faut assumer explicitement :**
 
-| Règle | Ce qui n'est plus vérifié | Gravité si ça casse |
-|---|---|---|
+| Règle                          | Ce qui n'est plus vérifié                                                                                                                      | Gravité si ça casse                                                                                                                                                                                                          |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`RF-23` → `RF-28`, `CF-17`** | **Numérotation continue sous concurrence.** Le compteur transactionnel, le rollback qui ne consomme pas de numéro, l'idempotence de l'émission | **Maximale.** Un trou dans la série est le seul défaut de ce document qui se paie devant l'AFC (`RF-20`). Il ne se démontre que sur une vraie base, avec deux transactions réelles — aucun test unitaire ne peut l'approcher |
-| `RF-10`, `RF-31`, `RF-120` | Le trigger d'immuabilité et l'absence de privilège `DELETE` | Élevée — c'est une garantie de **base**, pas de code |
-| `RF-114` → `RF-118` | Matrice rôle × action côté serveur | Élevée — et c'est précisément ce que couvrirait la suite de sécurité écartée |
-| `RF-88` (contrôle nocturne) | La requête de non-fuite sur données réelles | Moyenne — le calcul est testé, la requête ne l'est pas |
-| `RF-105`, `RF-28` | Le blocage d'export sur détection de trou | Moyenne |
+| `RF-10`, `RF-31`, `RF-120`     | Le trigger d'immuabilité et l'absence de privilège `DELETE`                                                                                    | Élevée — c'est une garantie de **base**, pas de code                                                                                                                                                                         |
+| `RF-114` → `RF-118`            | Matrice rôle × action côté serveur                                                                                                             | Élevée — et c'est précisément ce que couvrirait la suite de sécurité écartée                                                                                                                                                 |
+| `RF-88` (contrôle nocturne)    | La requête de non-fuite sur données réelles                                                                                                    | Moyenne — le calcul est testé, la requête ne l'est pas                                                                                                                                                                       |
+| `RF-105`, `RF-28`              | Le blocage d'export sur détection de trou                                                                                                      | Moyenne                                                                                                                                                                                                                      |
 
 **Recommandation, à l'arbitrage de @laupernoe.** Je ne rouvre pas la décision de budget. Mais je note qu'un
 **seul** test d'intégration — `CF-17`, la continuité de la numérotation sous concurrence — couvre à
@@ -2046,11 +2047,11 @@ d'émission sans bloc créancier), `RF-85` et `RF-86` (matrice statut de ligne �
 
 #### ✅ Tranchées le 29.07.2026 — ne pas rouvrir
 
-| # | Hypothèse | Réponse de @laupernoe | Répercuté dans |
-|---|---|---|---|
-| **1** | Répartition `ht` / `ttc` par type de ligne | ❌ **Rejetée. Tout est TTC**, saisie et affichage, y compris pour les entreprises. TVA détaillée en pied de facture | `RF-6`, `RF-35`, `RF-39`, **`RF-40`**, `RF-41` → `RF-44`, `RF-78`, `RF-91`, `RF-96`, `RF-100`, **`RF-121`** → **`RF-123`**, §10.0 et 9 cas recalculés |
-| **2** | Le client peut repartir sans avoir payé | ✅ **Confirmée, et étendue.** C'est courant. Restitution et paiement indépendants dans les deux ordres ; **aucun blocage** | **`RF-83`**, `RF-84`, `RF-99` |
-| **3** | La fiduciaire du pilote n'est pas sur Abacus | ✅ **Confirmée.** WinBIZ et iReach. Abacus sort du périmètre | §0.3, `RF-102`, `RF-106`, `CF-27`, `docs/exports-fiduciaires.md` |
+| #     | Hypothèse                                    | Réponse de @laupernoe                                                                                                             | Répercuté dans                                                                                                                                        |
+| ----- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1** | Répartition `ht` / `ttc` par type de ligne   | ❌ **Rejetée. Tout est TTC**, saisie et affichage, y compris pour les entreprises. TVA détaillée en pied de facture        | `RF-6`, `RF-35`, `RF-39`, **`RF-40`**, `RF-41` → `RF-44`, `RF-78`, `RF-91`, `RF-96`, `RF-100`, **`RF-121`** → **`RF-123`**, §10.0 et 9 cas recalculés |
+| **2** | Le client peut repartir sans avoir payé      | ✅ **Confirmée, et étendue.** C'est courant. Restitution et paiement indépendants dans les deux ordres ; **aucun blocage** | **`RF-83`**, `RF-84`, `RF-99`                                                                                                                         |
+| **3** | La fiduciaire du pilote n'est pas sur Abacus | ✅ **Confirmée.** WinBIZ et iReach. Abacus sort du périmètre                                                               | §0.3, `RF-102`, `RF-106`, `CF-27`, `docs/exports-fiduciaires.md`                                                                                      |
 
 L'hypothèse n°1 était la seule marquée **irrattrapable après coup**. Sa fermeture est le principal
 gain de cette révision : il n'existe plus de document dont on ne saura pas, dans six mois, dans
@@ -2062,21 +2063,21 @@ Le classement a changé : les deux hypothèses les plus chères sont tombées, e
 questions sont nées de la révision elle-même** (n°1 et n°2 ci-dessous). Elles arrivent en tête,
 parce qu'elles conditionnent des développements qui ne sont pas encore écrits.
 
-| # | Hypothèse ouverte | Où | Coût si fausse |
-|---|---|---|---|
-| **1** | **✚ iReach est une cible d'export fiduciaire** — et non un DMS concurrent utilisé par le garage lui-même | §0.3, `EF-20` | **Maximal.** Les deux réponses mènent à deux chantiers différents, dans deux étapes différentes. Un adaptateur écrit contre un format supposé est découvert faux au premier export réel. **À lever avant toute ligne de code** |
-| **2** | **✚ Le garage accepte des tarifs TTC non ronds** (178.37 /h) plutôt que d'arrondir sa grille | `RF-121` | **Élevé** — c'est une décision de **prix**, pas d'arithmétique. À poser avant la bascule du paramétrage, pas après la première facture |
-| **3** | **✚ `RF-60` doit-elle rester plus stricte que la norme SIX ?** Exiger rue + numéro fait tomber le bloc débiteur pour les cases postales, lieux-dits et hameaux — **courants en Suisse rurale** | `RF-60`, §5.2 | **Moyen à élevé selon le parc.** Jamais un paiement perdu, seulement un bulletin non pré-rempli. Mais si le premier garage est en zone rurale, l'irritant est quotidien. **Décision de @laupernoe** |
-| 4 | **Les garages pratiquent l'échange standard avec consigne**, TVA au taux normal | `RF-100`, `CF-25` | Moyen — le dispositif dort sans coûter s'il est inutile, mais le taux est une question fiscale (`QF-06`) |
-| 5 | **Les commissions carte / TWINT sont comptabilisées par la fiduciaire**, pas par DFA | `RF-75` | Moyen — décide si `paiement` porte un montant brut et une commission |
-| 6 | **Vocabulaire « demande d'accord » vs « devis »** | `RF-2` | Moyen — se corrige, mais après que les utilisateurs ont pris l'habitude |
-| 7 | **✚ Le garagiste accepte de ne plus voir le HT à la facturation** | `RF-123` | Moyen — conséquence directe de A1. Si le terrain le rejette, c'est l'**ergonomie** qui s'adapte (où retrouver le HT), jamais la règle de saisie |
-| 8 | **Le client qui paie cash au comptoir reçoit une facture sans bulletin** | `RF-62` | Faible — question de gabarit |
-| 9 | **L'escompte est pratiqué** (au moins en B2B) | `RF-48` | Faible — le dispositif se désactive par paramètre |
-| 10 | **Arrondi 5 centimes actif par défaut** | `RF-52` | Faible — sans conséquence tant qu'aucune espèce n'entre |
-| 11 | **Mention « DUPLICATA » sur une réimpression** | `RF-19` | Faible, mais structurant s'il faut deux PDF distincts |
-| 12 | **Facturation en EUR** — le cas existe-t-il ? | `RF-58` | Faible — change le paramétrage bancaire |
-| 13 | **Traductions DE/IT des types de document** | `RF-3` | Faible — à confirmer par `expert-i18n` |
+| #     | Hypothèse ouverte                                                                                                                                                                              | Où                | Coût si fausse                                                                                                                                                                                                                 |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1** | **✚ iReach est une cible d'export fiduciaire** — et non un DMS concurrent utilisé par le garage lui-même                                                                                       | §0.3, `EF-20`     | **Maximal.** Les deux réponses mènent à deux chantiers différents, dans deux étapes différentes. Un adaptateur écrit contre un format supposé est découvert faux au premier export réel. **À lever avant toute ligne de code** |
+| **2** | **✚ Le garage accepte des tarifs TTC non ronds** (178.37 /h) plutôt que d'arrondir sa grille                                                                                                   | `RF-121`          | **Élevé** — c'est une décision de **prix**, pas d'arithmétique. À poser avant la bascule du paramétrage, pas après la première facture                                                                                         |
+| **3** | **✚ `RF-60` doit-elle rester plus stricte que la norme SIX ?** Exiger rue + numéro fait tomber le bloc débiteur pour les cases postales, lieux-dits et hameaux — **courants en Suisse rurale** | `RF-60`, §5.2     | **Moyen à élevé selon le parc.** Jamais un paiement perdu, seulement un bulletin non pré-rempli. Mais si le premier garage est en zone rurale, l'irritant est quotidien. **Décision de @laupernoe**                                    |
+| 4     | **Les garages pratiquent l'échange standard avec consigne**, TVA au taux normal                                                                                                                | `RF-100`, `CF-25` | Moyen — le dispositif dort sans coûter s'il est inutile, mais le taux est une question fiscale (`QF-06`)                                                                                                                       |
+| 5     | **Les commissions carte / TWINT sont comptabilisées par la fiduciaire**, pas par DFA                                                                                                           | `RF-75`           | Moyen — décide si `paiement` porte un montant brut et une commission                                                                                                                                                           |
+| 6     | **Vocabulaire « demande d'accord » vs « devis »**                                                                                                                                              | `RF-2`            | Moyen — se corrige, mais après que les utilisateurs ont pris l'habitude                                                                                                                                                        |
+| 7     | **✚ Le garagiste accepte de ne plus voir le HT à la facturation**                                                                                                                              | `RF-123`          | Moyen — conséquence directe de A1. Si le terrain le rejette, c'est l'**ergonomie** qui s'adapte (où retrouver le HT), jamais la règle de saisie                                                                                |
+| 8     | **Le client qui paie cash au comptoir reçoit une facture sans bulletin**                                                                                                                       | `RF-62`           | Faible — question de gabarit                                                                                                                                                                                                   |
+| 9     | **L'escompte est pratiqué** (au moins en B2B)                                                                                                                                                  | `RF-48`           | Faible — le dispositif se désactive par paramètre                                                                                                                                                                              |
+| 10    | **Arrondi 5 centimes actif par défaut**                                                                                                                                                        | `RF-52`           | Faible — sans conséquence tant qu'aucune espèce n'entre                                                                                                                                                                        |
+| 11    | **Mention « DUPLICATA » sur une réimpression**                                                                                                                                                 | `RF-19`           | Faible, mais structurant s'il faut deux PDF distincts                                                                                                                                                                          |
+| 12    | **Facturation en EUR** — le cas existe-t-il ?                                                                                                                                                  | `RF-58`           | Faible — change le paramétrage bancaire                                                                                                                                                                                        |
+| 13    | **Traductions DE/IT des types de document**                                                                                                                                                    | `RF-3`            | Faible — à confirmer par `expert-i18n`                                                                                                                                                                                         |
 
 **Deux questions à poser aux garages qui n'apparaissent nulle part ailleurs :**
 
@@ -2088,29 +2089,29 @@ parce qu'elles conditionnent des développements qui ne sont pas encore écrits.
   facture par OR ou un relevé mensuel ? La seconde forme change la chaîne documentaire (plusieurs OR
   → une facture) et n'est pas couverte par ce document.
 
-⚠️ **À VALIDER AVEC @laupernoe** — *ces deux questions sont susceptibles d'ajouter du périmètre à l'étape 2.
-Mieux vaut les poser avant l'implémentation que les découvrir au pilote.*
+⚠️ **À VALIDER AVEC @laupernoe** — _ces deux questions sont susceptibles d'ajouter du périmètre à l'étape 2.
+Mieux vaut les poser avant l'implémentation que les découvrir au pilote._
 
 ### 11.2 Les questions qui ne sont pas les miennes
 
 `QF-01` → `QF-13` du modèle documentaire restent ouvertes et **aucune ne doit être tranchée par un
 agent**. Ce document n'en résout aucune ; il les rend seulement plus concrètes :
 
-| Question | Ce que ce document apporte |
-|---|---|
-| `QF-01` — TVA = Σ des TVA de ligne ? | Confirmé comme règle (`RF-35`), écart chiffré par `CF-03`. ↻ **A1 durcit la réponse** : ce n'est plus un choix de méthode, c'est la condition de `RF-122`. La fiduciaire peut contester la valeur ; elle ne peut pas demander l'autre méthode sans casser l'égalité `Σ HT + Σ TVA = TTC annoncé` |
-| `QF-02` — Acomptes : facture ou encaissement ? | **`CF-23` chiffre enfin l'autre branche** et la met en regard de `CF-07`. La décision se prend maintenant sur deux jeux de chiffres |
-| `QF-03` — Plan comptable, compte d'arrondi, TVA sur l'arrondi | `CF-22` ajoute le compte d'encaissement carte à la liste à valider |
-| `QF-04` — Escompte : imputation ou avoir ? | `RF-46` retient l'imputation ; `CF-26` ajoute le cas hors délai |
-| `QF-05` — Sinistre : facture adressée au client ou à l'assurance ? | `RF-87` sépare destinataire et payeur, sans imposer de pratique |
-| `QF-06` — Taxes de recyclage, débours, taux historiques | `RF-99` ajoute une question : la taxe d'élimination est-elle due quand le client reprend sa pièce ? ↻ **A2 en ajoute une seconde, plus fine** : elle se juge désormais sur l'**intention** du client à l'émission, la restitution pouvant survenir après la facture. `CF-24` ajoute le traitement des débours en régime `exclu` |
-| `QF-07` — Occasions, impôt préalable fictif | Hors périmètre étape 2 (`dossier_vente_id` posée, vide) |
-| `QF-08` — `exonere` vs `exclu`, justificatifs | `CF-24` exerce le régime `exclu` sur un débours |
-| `QF-09` — Monotonie des dates : bloquant ou avertissement ? | `RF-16` en dépend directement pour le cas de la correction tardive. **Reste ouverte, et volontairement** : **aucun code d'erreur n'a été créé** dans le contrat partagé, précisément pour ne pas préjuger de la réponse. Créer un code `DATE_NON_MONOTONE` reviendrait à trancher « bloquant » par le seul fait de l'existence du code. C'est une question pour la fiduciaire de @laupernoe |
-| `QF-10` — Créances reprises, grand livre des débiteurs | `RF-112` montre que le **même** problème se repose à chaque changement de fiduciaire, pas seulement à la reprise |
-| `QF-11` — Mentions légales obligatoires (LTVA art. 26) | Non traité ici : c'est le gabarit PDF |
-| `QF-12` — Délais, escompte, cadence de relance | `RF-48` en dépend |
-| `QF-13` — Conservation 10 ans, intégrité | `RF-19` en dépend (duplicata = PDF stocké, pas régénéré) |
+| Question                                                           | Ce que ce document apporte                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `QF-01` — TVA = Σ des TVA de ligne ?                               | Confirmé comme règle (`RF-35`), écart chiffré par `CF-03`. ↻ **A1 durcit la réponse** : ce n'est plus un choix de méthode, c'est la condition de `RF-122`. La fiduciaire peut contester la valeur ; elle ne peut pas demander l'autre méthode sans casser l'égalité `Σ HT + Σ TVA = TTC annoncé`                                                                                     |
+| `QF-02` — Acomptes : facture ou encaissement ?                     | **`CF-23` chiffre enfin l'autre branche** et la met en regard de `CF-07`. La décision se prend maintenant sur deux jeux de chiffres                                                                                                                                                                                                                                                  |
+| `QF-03` — Plan comptable, compte d'arrondi, TVA sur l'arrondi      | `CF-22` ajoute le compte d'encaissement carte à la liste à valider                                                                                                                                                                                                                                                                                                                   |
+| `QF-04` — Escompte : imputation ou avoir ?                         | `RF-46` retient l'imputation ; `CF-26` ajoute le cas hors délai                                                                                                                                                                                                                                                                                                                      |
+| `QF-05` — Sinistre : facture adressée au client ou à l'assurance ? | `RF-87` sépare destinataire et payeur, sans imposer de pratique                                                                                                                                                                                                                                                                                                                      |
+| `QF-06` — Taxes de recyclage, débours, taux historiques            | `RF-99` ajoute une question : la taxe d'élimination est-elle due quand le client reprend sa pièce ? ↻ **A2 en ajoute une seconde, plus fine** : elle se juge désormais sur l'**intention** du client à l'émission, la restitution pouvant survenir après la facture. `CF-24` ajoute le traitement des débours en régime `exclu`                                                      |
+| `QF-07` — Occasions, impôt préalable fictif                        | Hors périmètre étape 2 (`dossier_vente_id` posée, vide)                                                                                                                                                                                                                                                                                                                              |
+| `QF-08` — `exonere` vs `exclu`, justificatifs                      | `CF-24` exerce le régime `exclu` sur un débours                                                                                                                                                                                                                                                                                                                                      |
+| `QF-09` — Monotonie des dates : bloquant ou avertissement ?        | `RF-16` en dépend directement pour le cas de la correction tardive. **Reste ouverte, et volontairement** : **aucun code d'erreur n'a été créé** dans le contrat partagé, précisément pour ne pas préjuger de la réponse. Créer un code `DATE_NON_MONOTONE` reviendrait à trancher « bloquant » par le seul fait de l'existence du code. C'est une question pour la fiduciaire de @laupernoe |
+| `QF-10` — Créances reprises, grand livre des débiteurs             | `RF-112` montre que le **même** problème se repose à chaque changement de fiduciaire, pas seulement à la reprise                                                                                                                                                                                                                                                                     |
+| `QF-11` — Mentions légales obligatoires (LTVA art. 26)             | Non traité ici : c'est le gabarit PDF                                                                                                                                                                                                                                                                                                                                                |
+| `QF-12` — Délais, escompte, cadence de relance                     | `RF-48` en dépend                                                                                                                                                                                                                                                                                                                                                                    |
+| `QF-13` — Conservation 10 ans, intégrité                           | `RF-19` en dépend (duplicata = PDF stocké, pas régénéré)                                                                                                                                                                                                                                                                                                                             |
 
 ### 11.3 Ce que ce document affirme, et avec quel degré de certitude
 
@@ -2138,8 +2139,8 @@ Par honnêteté sur le statut de ce qui précède :
 - **iReach n'est décrit nulle part dans ce document comme un format.** Ce qui est écrit à son sujet,
   en §0.3 et dans `docs/exports-fiduciaires.md`, est soit sourcé, soit explicitement marqué comme
   inconnu. Aucun champ, aucune extension, aucune capacité produit n'a été supposé.
-- **Le décompte des champs du payload QR** (§5.3, `CF-21`) : 7 champs pour le bloc *Ultimate
-  Creditor* et 31 éléments jusqu'à `EPD`. Cela **contredit** le « 6 lignes vides » de
+- **Le décompte des champs du payload QR** (§5.3, `CF-21`) : 7 champs pour le bloc _Ultimate
+  Creditor_ et 31 éléments jusqu'à `EPD`. Cela **contredit** le « 6 lignes vides » de
   `modele-documentaire-facturation.md` §5.3. Ma lecture est qu'un bloc d'adresse comporte `AdrTp`
   **plus** six lignes, mais **c'est la spécification officielle qui tranche, pas moi** — à vérifier
   avant d'écrire l'encodeur.

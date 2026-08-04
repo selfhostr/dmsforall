@@ -142,7 +142,11 @@ export function EcranFicheVehicule() {
       </Card>
 
       {vehiculeId ? (
-        <FormulaireKilometrage vehiculeId={vehiculeId} ouvert={formulaireKmOuvert} onOuvertChange={setFormulaireKmOuvert} />
+        <FormulaireKilometrage
+          vehiculeId={vehiculeId}
+          ouvert={formulaireKmOuvert}
+          onOuvertChange={setFormulaireKmOuvert}
+        />
       ) : null}
     </div>
   );

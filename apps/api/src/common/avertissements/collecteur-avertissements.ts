@@ -17,8 +17,14 @@ export class CollecteurAvertissements {
   private readonly avertissements: Avertissement[] = [];
 
   /** Ajoute un avertissement, dans l'ordre où il est détecté. */
-  ajouter(code: CodeAvertissement, message: string, donnees?: Readonly<Record<string, unknown>>): void {
-    this.avertissements.push(donnees !== undefined ? { code, message, donnees } : { code, message });
+  ajouter(
+    code: CodeAvertissement,
+    message: string,
+    donnees?: Readonly<Record<string, unknown>>,
+  ): void {
+    this.avertissements.push(
+      donnees !== undefined ? { code, message, donnees } : { code, message },
+    );
   }
 
   estVide(): boolean {

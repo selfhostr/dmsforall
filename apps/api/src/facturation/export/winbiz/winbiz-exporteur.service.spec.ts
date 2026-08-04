@@ -7,7 +7,10 @@ import type { EcritureExport, LigneEcritureExport } from '@dfa/shared';
 import { WinbizExporteurService } from './winbiz-exporteur.service';
 import { ErreurExportWinbiz } from './winbiz.erreurs';
 
-function ligne(partiel: Partial<LigneEcritureExport> & Pick<LigneEcritureExport, 'compte' | 'sens' | 'montantCentimes'>): LigneEcritureExport {
+function ligne(
+  partiel: Partial<LigneEcritureExport> &
+    Pick<LigneEcritureExport, 'compte' | 'sens' | 'montantCentimes'>,
+): LigneEcritureExport {
   return { codeTva: null, tauxPourmille: null, baseTvaCentimes: null, libelle: '', ...partiel };
 }
 
@@ -41,7 +44,10 @@ describe('WinbizExporteurService — contrat AccountingExporter', () => {
 describe('WinbizExporteurService.genererLot', () => {
   it('produit une empreinte SHA-256 correspondant EXACTEMENT au contenu produit (MD-91, EF-07)', () => {
     const service = new WinbizExporteurService();
-    const lot = service.genererLot([ecritureDePaiement(1), ecritureDePaiement(2)], 'export-2026-07.csv');
+    const lot = service.genererLot(
+      [ecritureDePaiement(1), ecritureDePaiement(2)],
+      'export-2026-07.csv',
+    );
 
     const empreinteAttendue = createHash('sha256').update(lot.contenu).digest('hex');
     expect(lot.empreinteSha256).toBe(empreinteAttendue);

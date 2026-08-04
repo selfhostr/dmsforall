@@ -39,6 +39,26 @@ export interface UtilisateurCourant {
 export interface SessionCourante {
   readonly utilisateur: UtilisateurCourant;
   readonly tenant: TenantCourant;
+  /**
+   * Sites sur lesquels CE compte peut agir — jamais « tous les sites du tenant » par principe.
+   *
+   * - compte de personne (`ROLES_PERSONNE`) : tous les sites du tenant, comme depuis l'étape 0 ;
+   * - compte de service (`ROLES_COMPTE_DE_SERVICE`, ex. la borne d'atelier) : exactement UN site,
+   *   celui de `siteRattachementId`.
+   *
+   * Le front ne doit donc jamais offrir un sélecteur de site à un compte de service : la liste
+   * n'en contient qu'un.
+   */
   readonly sites: readonly SiteResume[];
+  /**
+   * Site auquel le COMPTE est structurellement rattaché (`utilisateur.site_id`), `null` pour un
+   * compte de personne (qui n'est rattaché à aucun site en particulier).
+   *
+   * Renseigné exactement pour les rôles de `ROLES_COMPTE_DE_SERVICE`. Côté serveur, la valeur
+   * faisant foi est `PrincipalAuthentifie.siteId`, résolue depuis la session — ce champ n'est que
+   * sa projection pour l'affichage (« Borne — atelier de Sion »), jamais une entrée à renvoyer
+   * au serveur.
+   */
+  readonly siteRattachementId: string | null;
   readonly expireLe: string; // ISO 8601
 }

@@ -24,12 +24,17 @@ vi.mock('@sentry/react', () => ({
 
 describe('initialiserSentry — instance Sentry injoignable', () => {
   it("l'échec de Sentry.init est rattrapé silencieusement : l'application continue sans supervision", async () => {
-    definirEnvPourTests({ VITE_API_URL: '/api/v1', VITE_SENTRY_DSN: 'https://cle@instance-en-panne.exemple.ch/1' });
+    definirEnvPourTests({
+      VITE_API_URL: '/api/v1',
+      VITE_SENTRY_DSN: 'https://cle@instance-en-panne.exemple.ch/1',
+    });
     const avertissement = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     expect(() => initialiserSentry()).not.toThrow();
 
-    const idEvenement = await signalerErreur(new Error('un vrai bug, mais sans supervision disponible'));
+    const idEvenement = await signalerErreur(
+      new Error('un vrai bug, mais sans supervision disponible'),
+    );
     expect(idEvenement).toBeUndefined();
     expect(avertissement).toHaveBeenCalledTimes(1);
 

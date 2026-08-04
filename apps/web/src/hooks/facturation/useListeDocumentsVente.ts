@@ -17,7 +17,9 @@ export type ResultatListeDocumentsVente = UseInfiniteQueryResult<
 };
 
 /** `GET /documents-vente`, pagination par curseur — écran 5 (liste des factures). */
-export function useListeDocumentsVente(filtres: FiltresDocumentsVente): ResultatListeDocumentsVente {
+export function useListeDocumentsVente(
+  filtres: FiltresDocumentsVente,
+): ResultatListeDocumentsVente {
   const resultat = useInfiniteQuery({
     queryKey: clesFacturation.documents.liste(filtres),
     queryFn: ({ pageParam }: { pageParam: string | undefined }) =>

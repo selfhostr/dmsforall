@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { schemaModificationParametresAtelier, type EntreeModificationParametresAtelier } from '@dfa/shared';
+import {
+  schemaModificationParametresAtelier,
+  type EntreeModificationParametresAtelier,
+} from '@dfa/shared';
 
 /**
  * `RF-117` (`db/migrations/0018_plafond_avoir_receptionnaire.sql`) : plafond d'émission d'avoir
@@ -35,11 +38,15 @@ const schemaReceptionEtendu = schemaModificationParametresAtelier.shape.receptio
   plafondAvoirReceptionnaireCentimes: z.number().int().min(0).max(100_000_000).nullish(),
 });
 
-export const schemaModificationParametresAtelierEtendu = schemaModificationParametresAtelier.extend({
-  reception: schemaReceptionEtendu.optional(),
-});
+export const schemaModificationParametresAtelierEtendu = schemaModificationParametresAtelier.extend(
+  {
+    reception: schemaReceptionEtendu.optional(),
+  },
+);
 
-export type EntreeModificationParametresAtelierEtendue = z.infer<typeof schemaModificationParametresAtelierEtendu>;
+export type EntreeModificationParametresAtelierEtendue = z.infer<
+  typeof schemaModificationParametresAtelierEtendu
+>;
 
 /**
  * Filet de type : toute valeur produite par `schemaModificationParametresAtelierEtendu` doit
@@ -47,8 +54,9 @@ export type EntreeModificationParametresAtelierEtendue = z.infer<typeof schemaMo
  * un remplacement d'un champ existant) — si ça cesse un jour d'être vrai, cette ligne rougit à la
  * compilation plutôt que de laisser le service recevoir un type silencieusement incompatible.
  */
-type _VerificationCompatibiliteAvecContratGele = EntreeModificationParametresAtelierEtendue extends EntreeModificationParametresAtelier
-  ? true
-  : never;
+type _VerificationCompatibiliteAvecContratGele =
+  EntreeModificationParametresAtelierEtendue extends EntreeModificationParametresAtelier
+    ? true
+    : never;
 const _verification: _VerificationCompatibiliteAvecContratGele = true;
 void _verification;

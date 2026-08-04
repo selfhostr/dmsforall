@@ -50,7 +50,12 @@ function horlogeFixe(): Horloge {
 }
 
 function accesBaseFactice() {
-  return { enTenant: vi.fn(async (_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<unknown>) => travail(TX_FACTICE)) };
+  return {
+    enTenant: vi.fn(
+      async (_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<unknown>) =>
+        travail(TX_FACTICE),
+    ),
+  };
 }
 
 function reponseVehiculeFactice(partiel: Partial<ReponseVehicule> = {}): ReponseVehicule {
@@ -88,7 +93,12 @@ function reponseVehiculeFactice(partiel: Partial<ReponseVehicule> = {}): Reponse
     intervalleEntretienKm: null,
     intervalleEntretienMois: null,
     importe: { estImporte: false, paysOrigine: null, importeLe: null },
-    garantieConstructeur: { debutLe: '2018-03-01', finLe: '2020-03-01', plafondKm: 100_000, active: false },
+    garantieConstructeur: {
+      debutLe: '2018-03-01',
+      finLe: '2020-03-01',
+      plafondKm: 100_000,
+      active: false,
+    },
     garantieGarage: null,
     proprietaireEconomiqueClientId: null,
     conducteurHabituel: null,
@@ -165,7 +175,9 @@ describe('ServiceVehiculeContexteAtelier.obtenir', () => {
     const acces = accesBaseFactice();
     const service = new ServiceVehiculeContexteAtelier(acces as never, horlogeFixe());
 
-    await expect(service.obtenir(CTX, VEHICULE_ID, 'receptionnaire')).rejects.toMatchObject({ code: 'RESSOURCE_INTROUVABLE' });
+    await expect(service.obtenir(CTX, VEHICULE_ID, 'receptionnaire')).rejects.toMatchObject({
+      code: 'RESSOURCE_INTROUVABLE',
+    });
     // Aucune section suivante n'est interrogée si le véhicule n'existe pas pour ce tenant.
     expect(vehiculeRequetes.lireDetentionCouranteAvecClient).not.toHaveBeenCalled();
   });
@@ -176,13 +188,43 @@ describe('ServiceVehiculeContexteAtelier.obtenir', () => {
 
     await service.obtenir(CTX, VEHICULE_ID, 'receptionnaire');
 
-    expect(vehiculeRequetes.construireReponseVehicule).toHaveBeenCalledWith(TX_FACTICE, CTX, VEHICULE_ID, MAINTENANT);
-    expect(vehiculeRequetes.lireDetentionCouranteAvecClient).toHaveBeenCalledWith(TX_FACTICE, CTX, VEHICULE_ID);
-    expect(vehiculeRequetes.lireDernierKilometrage).toHaveBeenCalledWith(TX_FACTICE, CTX, VEHICULE_ID);
-    expect(vehiculeRequetes.lireExpertiseReference).toHaveBeenCalledWith(TX_FACTICE, CTX, VEHICULE_ID);
-    expect(vehiculeRequetes.listerCampagnesOuvertes).toHaveBeenCalledWith(TX_FACTICE, CTX, VEHICULE_ID);
-    expect(vehiculeRequetes.listerTravauxReportesOuverts).toHaveBeenCalledWith(TX_FACTICE, CTX, VEHICULE_ID, 10);
-    expect(vehiculeRequetes.compterTravauxReportesOuverts).toHaveBeenCalledWith(TX_FACTICE, CTX, VEHICULE_ID);
+    expect(vehiculeRequetes.construireReponseVehicule).toHaveBeenCalledWith(
+      TX_FACTICE,
+      CTX,
+      VEHICULE_ID,
+      MAINTENANT,
+    );
+    expect(vehiculeRequetes.lireDetentionCouranteAvecClient).toHaveBeenCalledWith(
+      TX_FACTICE,
+      CTX,
+      VEHICULE_ID,
+    );
+    expect(vehiculeRequetes.lireDernierKilometrage).toHaveBeenCalledWith(
+      TX_FACTICE,
+      CTX,
+      VEHICULE_ID,
+    );
+    expect(vehiculeRequetes.lireExpertiseReference).toHaveBeenCalledWith(
+      TX_FACTICE,
+      CTX,
+      VEHICULE_ID,
+    );
+    expect(vehiculeRequetes.listerCampagnesOuvertes).toHaveBeenCalledWith(
+      TX_FACTICE,
+      CTX,
+      VEHICULE_ID,
+    );
+    expect(vehiculeRequetes.listerTravauxReportesOuverts).toHaveBeenCalledWith(
+      TX_FACTICE,
+      CTX,
+      VEHICULE_ID,
+      10,
+    );
+    expect(vehiculeRequetes.compterTravauxReportesOuverts).toHaveBeenCalledWith(
+      TX_FACTICE,
+      CTX,
+      VEHICULE_ID,
+    );
     expect(vehiculeRequetes.listerOrOuverts).toHaveBeenCalledWith(TX_FACTICE, CTX, VEHICULE_ID);
     // Sans détenteur courant, les alertes client ne sont JAMAIS interrogées (pas de clientId).
     expect(vehiculeRequetes.listerAlertesClient).not.toHaveBeenCalled();
@@ -192,7 +234,12 @@ describe('ServiceVehiculeContexteAtelier.obtenir', () => {
     const reponse = reponseVehiculeFactice({
       plaque: 'FR 999999',
       canton: 'FR',
-      garantieConstructeur: { debutLe: '2024-01-01', finLe: '2027-01-01', plafondKm: 60_000, active: true },
+      garantieConstructeur: {
+        debutLe: '2024-01-01',
+        finLe: '2027-01-01',
+        plafondKm: 60_000,
+        active: true,
+      },
     });
     vi.mocked(vehiculeRequetes.construireReponseVehicule).mockResolvedValue(reponse);
     const service = new ServiceVehiculeContexteAtelier(accesBaseFactice() as never, horlogeFixe());
@@ -210,7 +257,10 @@ describe('ServiceVehiculeContexteAtelier.obtenir', () => {
       importe: reponse.importe,
       identificationIncomplete: reponse.identificationIncomplete,
     });
-    expect(contexte.garantie).toEqual({ constructeur: reponse.garantieConstructeur, garage: reponse.garantieGarage });
+    expect(contexte.garantie).toEqual({
+      constructeur: reponse.garantieConstructeur,
+      garage: reponse.garantieGarage,
+    });
   });
 
   it('detenteurCourant : projette la détention courante ET déclenche listerAlertesClient sur son clientId', async () => {
@@ -231,7 +281,11 @@ describe('ServiceVehiculeContexteAtelier.obtenir', () => {
     const service = new ServiceVehiculeContexteAtelier(accesBaseFactice() as never, horlogeFixe());
     const contexte = await service.obtenir(CTX, VEHICULE_ID, 'receptionnaire');
 
-    expect(vehiculeRequetes.listerAlertesClient).toHaveBeenCalledWith(TX_FACTICE, CTX, detention.client.id);
+    expect(vehiculeRequetes.listerAlertesClient).toHaveBeenCalledWith(
+      TX_FACTICE,
+      CTX,
+      detention.client.id,
+    );
     expect(contexte.detenteurCourant).toEqual({
       clientId: detention.client.id,
       numeroClient: 'C-004128',
@@ -241,7 +295,9 @@ describe('ServiceVehiculeContexteAtelier.obtenir', () => {
       depuisLe: '2022-05-01',
       poObligatoire: true,
     });
-    expect(contexte.alertesClient).toEqual([{ id: 'note-1', nature: 'alerte', texte: alerte.texte }]);
+    expect(contexte.alertesClient).toEqual([
+      { id: 'note-1', nature: 'alerte', texte: alerte.texte },
+    ]);
   });
 
   it('expertise : échéance dans le passé → echue=true et joursDepuisEcheance calculé en jours entiers', async () => {
@@ -335,12 +391,20 @@ describe('ServiceVehiculeContexteAtelier.obtenir', () => {
     // doit retirer montantEstimeCentimes — preuve du filtrage serveur partagé, pas dupliqué.
     const contexteTechnicien = await service.obtenir(CTX, VEHICULE_ID, 'technicien');
     expect(contexteTechnicien.travauxReportes.total).toBe(14);
-    expect(contexteTechnicien.travauxReportes.elements).toEqual([versReponseTravailReporte(travail, 'technicien')]);
-    expect(contexteTechnicien.travauxReportes.elements[0]).not.toHaveProperty('montantEstimeCentimes');
+    expect(contexteTechnicien.travauxReportes.elements).toEqual([
+      versReponseTravailReporte(travail, 'technicien'),
+    ]);
+    expect(contexteTechnicien.travauxReportes.elements[0]).not.toHaveProperty(
+      'montantEstimeCentimes',
+    );
 
     const contexteReception = await service.obtenir(CTX, VEHICULE_ID, 'receptionnaire');
-    expect(contexteReception.travauxReportes.elements).toEqual([versReponseTravailReporte(travail, 'receptionnaire')]);
-    expect(contexteReception.travauxReportes.elements[0]).toMatchObject({ montantEstimeCentimes: 25_000 });
+    expect(contexteReception.travauxReportes.elements).toEqual([
+      versReponseTravailReporte(travail, 'receptionnaire'),
+    ]);
+    expect(contexteReception.travauxReportes.elements[0]).toMatchObject({
+      montantEstimeCentimes: 25_000,
+    });
   });
 
   it('campagnesOuvertes/ordresReparationOuverts/depotPneus/avertissements : projections minimales attendues par le contrat', async () => {
@@ -363,7 +427,9 @@ describe('ServiceVehiculeContexteAtelier.obtenir', () => {
     expect(contexte.campagnesOuvertes).toEqual([
       { id: 'campagne-1', code: '23K7', description: 'Rappel airbag passager', obligatoire: true },
     ]);
-    expect(contexte.ordresReparationOuverts).toEqual([{ id: 'or-1', numero: 'OR-2026-0042', statut: 'en_cours' }]);
+    expect(contexte.ordresReparationOuverts).toEqual([
+      { id: 'or-1', numero: 'OR-2026-0042', statut: 'en_cours' },
+    ]);
     expect(contexte.depotPneus).toBeNull();
     expect(contexte.avertissements).toEqual([]);
   });

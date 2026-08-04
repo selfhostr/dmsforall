@@ -6,7 +6,14 @@ import { ROLES_CONTACT, type RoleContact } from '@dfa/shared';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useContactsClient, useCreerContactClient } from '@/hooks/clients/useContactsClient';
@@ -56,14 +63,21 @@ export function OngletContacts({ clientId }: Props) {
         email: email.trim() || undefined,
         roles,
       },
-      { onSuccess: () => { setOuvert(false); reinitialiser(); } },
+      {
+        onSuccess: () => {
+          setOuvert(false);
+          reinitialiser();
+        },
+      },
     );
   };
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="texte-titre-section font-medium text-foreground">{t('clients:contacts.titre')}</h3>
+        <h3 className="texte-titre-section font-medium text-foreground">
+          {t('clients:contacts.titre')}
+        </h3>
         <Dialog open={ouvert} onOpenChange={setOuvert}>
           <DialogTrigger asChild>
             <Button type="button" size="sm" variant="outline">
@@ -77,33 +91,58 @@ export function OngletContacts({ clientId }: Props) {
             <form onSubmit={soumettre} noValidate className="space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="contact-nom">{t('clients:identite.nom')}</Label>
-                <Input id="contact-nom" value={nom} onChange={(e) => setNom(e.target.value)} required />
+                <Input
+                  id="contact-nom"
+                  value={nom}
+                  onChange={(e) => setNom(e.target.value)}
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contact-prenom">{t('clients:identite.prenom')}</Label>
-                <Input id="contact-prenom" value={prenom} onChange={(e) => setPrenom(e.target.value)} />
+                <Input
+                  id="contact-prenom"
+                  value={prenom}
+                  onChange={(e) => setPrenom(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contact-telephone">{t('clients:identite.telephone')}</Label>
-                <Input id="contact-telephone" type="tel" value={telephone} onChange={(e) => setTelephone(e.target.value)} />
+                <Input
+                  id="contact-telephone"
+                  type="tel"
+                  value={telephone}
+                  onChange={(e) => setTelephone(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contact-email">{t('clients:identite.email')}</Label>
-                <Input id="contact-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input
+                  id="contact-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label>{t('clients:contacts.champs.roles')}</Label>
                 <div className="flex flex-wrap gap-x-4 gap-y-2">
                   {ROLES_CONTACT.map((role) => (
                     <label key={role} className="flex items-center gap-2 texte-corps">
-                      <Checkbox checked={roles.includes(role)} onCheckedChange={(v) => basculerRole(role, v === true)} />
+                      <Checkbox
+                        checked={roles.includes(role)}
+                        onCheckedChange={(v) => basculerRole(role, v === true)}
+                      />
                       {t(`clients:contacts.roles.${cleRoleContact(role)}`)}
                     </label>
                   ))}
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit" disabled={creerContact.isPending || !nom.trim() || roles.length === 0}>
+                <Button
+                  type="submit"
+                  disabled={creerContact.isPending || !nom.trim() || roles.length === 0}
+                >
                   {t('commun:actions.ajouter')}
                 </Button>
               </DialogFooter>
@@ -129,14 +168,19 @@ export function OngletContacts({ clientId }: Props) {
                 </span>
                 <div className="flex flex-wrap gap-1">
                   {contact.roles.map((role) => (
-                    <span key={role} className="texte-libelle rounded-full border px-2 py-0.5 text-muted-foreground">
+                    <span
+                      key={role}
+                      className="texte-libelle rounded-full border px-2 py-0.5 text-muted-foreground"
+                    >
                       {t(`clients:contacts.roles.${cleRoleContact(role)}`)}
                     </span>
                   ))}
                 </div>
               </div>
               <p className="texte-libelle text-muted-foreground">
-                {texteOuVide([contact.telephone, contact.email].filter(Boolean).join(' · ') || null)}
+                {texteOuVide(
+                  [contact.telephone, contact.email].filter(Boolean).join(' · ') || null,
+                )}
               </p>
             </li>
           ))}

@@ -76,13 +76,22 @@ export function ListeLignesOrdreReparation({ lignes, lignesTronquees }: Props) {
           <div className="flex items-center gap-1.5">
             <span className="texte-corps font-medium text-foreground">{ligne.designation}</span>
             {ligne.securite ? (
-              <ShieldAlert aria-label={t('or:lignes.marqueurs.securite')} className="h-3.5 w-3.5 shrink-0 text-statut-danger" />
+              <ShieldAlert
+                aria-label={t('or:lignes.marqueurs.securite')}
+                className="h-3.5 w-3.5 shrink-0 text-statut-danger"
+              />
             ) : null}
             {ligne.fournieParClient ? (
-              <UserRound aria-label={t('or:lignes.marqueurs.fournieParClient')} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <UserRound
+                aria-label={t('or:lignes.marqueurs.fournieParClient')}
+                className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+              />
             ) : null}
             {ligne.aRestituer ? (
-              <PackageCheck aria-label={t('or:lignes.marqueurs.pieceARestituer')} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <PackageCheck
+                aria-label={t('or:lignes.marqueurs.pieceARestituer')}
+                className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+              />
             ) : null}
           </div>
           <span className="texte-libelle text-muted-foreground">
@@ -95,13 +104,19 @@ export function ListeLignesOrdreReparation({ lignes, lignesTronquees }: Props) {
     {
       id: 'type',
       libelle: t('or:lignes.colonnes.type'),
-      rendu: (ligne) => <span className="texte-libelle text-muted-foreground">{t(`or:lignes.types.${CLES_TYPE[ligne.type]}`)}</span>,
+      rendu: (ligne) => (
+        <span className="texte-libelle text-muted-foreground">
+          {t(`or:lignes.types.${CLES_TYPE[ligne.type]}`)}
+        </span>
+      ),
     },
     {
       id: 'quantite',
       libelle: t('or:lignes.colonnes.quantite'),
       alignement: 'droite',
-      rendu: (ligne) => <span className="tabular-nums">{formaterQuantite(ligne.quantiteMillieme)}</span>,
+      rendu: (ligne) => (
+        <span className="tabular-nums">{formaterQuantite(ligne.quantiteMillieme)}</span>
+      ),
     },
     {
       id: 'tempsBareme',
@@ -109,7 +124,9 @@ export function ListeLignesOrdreReparation({ lignes, lignesTronquees }: Props) {
       alignement: 'droite',
       rendu: (ligne) => (
         <span className="tabular-nums text-muted-foreground">
-          {ligne.tempsBaremeCentiemes !== null ? formaterTempsHeures(ligne.tempsBaremeCentiemes) : ''}
+          {ligne.tempsBaremeCentiemes !== null
+            ? formaterTempsHeures(ligne.tempsBaremeCentiemes)
+            : ''}
         </span>
       ),
     },
@@ -120,7 +137,9 @@ export function ListeLignesOrdreReparation({ lignes, lignesTronquees }: Props) {
       // Toujours vide au lot 1 (module pointage absent) : `tempsReelCentiemes` est réellement
       // `null`, ce n'est jamais un droit manquant — rien à masquer ni à inventer.
       rendu: (ligne) => (
-        <span className="tabular-nums">{ligne.tempsReelCentiemes !== null ? formaterTempsHeures(ligne.tempsReelCentiemes) : ''}</span>
+        <span className="tabular-nums">
+          {ligne.tempsReelCentiemes !== null ? formaterTempsHeures(ligne.tempsReelCentiemes) : ''}
+        </span>
       ),
     },
     {
@@ -128,13 +147,17 @@ export function ListeLignesOrdreReparation({ lignes, lignesTronquees }: Props) {
       libelle: t('or:lignes.colonnes.rabais'),
       alignement: 'droite',
       rendu: (ligne) => (
-        <span className="tabular-nums text-muted-foreground">{ligne.rabaisPourmille !== 0 ? formaterPourmille(ligne.rabaisPourmille) : ''}</span>
+        <span className="tabular-nums text-muted-foreground">
+          {ligne.rabaisPourmille !== 0 ? formaterPourmille(ligne.rabaisPourmille) : ''}
+        </span>
       ),
     },
     {
       id: 'payeur',
       libelle: t('or:lignes.colonnes.payeur'),
-      rendu: (ligne) => <span className="texte-libelle">{t(`or:lignes.payeurs.${ligne.payeur}`)}</span>,
+      rendu: (ligne) => (
+        <span className="texte-libelle">{t(`or:lignes.payeurs.${ligne.payeur}`)}</span>
+      ),
     },
     {
       id: 'total',
@@ -142,12 +165,18 @@ export function ListeLignesOrdreReparation({ lignes, lignesTronquees }: Props) {
       alignement: 'droite',
       // Absent (pas 0) pour un rôle sans droit aux montants : `ligne.montants` est alors omis en
       // bloc par le serveur (§ contrat MontantsLigneOr), jamais substitué à « 0.00 ».
-      rendu: (ligne) => <span className="tabular-nums font-medium">{ligne.montants ? formaterMontant(ligne.montants.montantTtcCentimes) : ''}</span>,
+      rendu: (ligne) => (
+        <span className="tabular-nums font-medium">
+          {ligne.montants ? formaterMontant(ligne.montants.montantTtcCentimes) : ''}
+        </span>
+      ),
     },
     {
       id: 'statut',
       libelle: t('or:lignes.colonnes.statut'),
-      rendu: (ligne) => <Badge variant="secondary">{t(`or:lignes.statuts.${CLES_STATUT[ligne.statut]}`)}</Badge>,
+      rendu: (ligne) => (
+        <Badge variant="secondary">{t(`or:lignes.statuts.${CLES_STATUT[ligne.statut]}`)}</Badge>
+      ),
     },
   ];
 
@@ -159,7 +188,9 @@ export function ListeLignesOrdreReparation({ lignes, lignesTronquees }: Props) {
         cleLigne={(ligne) => ligne.id}
         contenuVide={<EtatVide titre={t('or:lignes.titre')} description={t('or:lignes.vide')} />}
       />
-      {lignesTronquees ? <p className="texte-libelle text-muted-foreground">{t('or:lignes.tronquees')}</p> : null}
+      {lignesTronquees ? (
+        <p className="texte-libelle text-muted-foreground">{t('or:lignes.tronquees')}</p>
+      ) : null}
     </div>
   );
 }

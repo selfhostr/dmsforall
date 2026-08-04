@@ -14,10 +14,22 @@ import {
 import { useCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { messageErreur } from '@/api/erreurs';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { useCreerArticle } from '@/hooks/pieces/useCreerArticle';
@@ -98,7 +110,9 @@ function versEntree(valeurs: ValeursFormulaireArticle): EntreeCreationArticle {
     prixVenteTtcCentimes: valeurs.prixVenteTtcCentimes ?? 0,
     tauxTvaPourmille: valeurs.tauxTvaPourmille,
     estEchangeStandard: valeurs.estEchangeStandard,
-    montantConsigneTtcCentimes: valeurs.estEchangeStandard ? valeurs.montantConsigneTtcCentimes : null,
+    montantConsigneTtcCentimes: valeurs.estEchangeStandard
+      ? valeurs.montantConsigneTtcCentimes
+      : null,
   };
 }
 
@@ -165,7 +179,11 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
     <Dialog open={ouvert} onOpenChange={onOuvertChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{estModification ? t('pieces:articles.actions.modifier') : t('pieces:articles.actions.ajouter')}</DialogTitle>
+          <DialogTitle>
+            {estModification
+              ? t('pieces:articles.actions.modifier')
+              : t('pieces:articles.actions.ajouter')}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={soumettre} noValidate className="flex flex-col gap-4">
@@ -178,7 +196,9 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
                 aria-invalid={form.formState.errors.designation ? true : undefined}
                 {...form.register('designation', { required: true })}
               />
-              {form.formState.errors.designation ? <p className="texte-libelle text-destructive">{t('validation:requis')}</p> : null}
+              {form.formState.errors.designation ? (
+                <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+              ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="art-marque">{t('pieces:articles.marque')}</Label>
@@ -211,7 +231,11 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
               control={form.control}
               name="categorie"
               render={({ field }) => (
-                <Select value={field.value} onValueChange={(valeur) => field.onChange(valeur as CategorieArticle)} disabled={enCours}>
+                <Select
+                  value={field.value}
+                  onValueChange={(valeur) => field.onChange(valeur as CategorieArticle)}
+                  disabled={enCours}
+                >
                   <SelectTrigger id="art-categorie" aria-label={t('pieces:articles.categorie')}>
                     <SelectValue />
                   </SelectTrigger>
@@ -239,7 +263,9 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
                   disabled={enCours}
                   valeurCentimes={field.value}
                   onChangeCentimes={field.onChange}
-                  erreur={form.formState.errors.prixVenteTtcCentimes ? t('validation:requis') : undefined}
+                  erreur={
+                    form.formState.errors.prixVenteTtcCentimes ? t('validation:requis') : undefined
+                  }
                 />
               )}
             />
@@ -249,7 +275,11 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
                 control={form.control}
                 name="tauxTvaPourmille"
                 render={({ field }) => (
-                  <Select value={String(field.value)} onValueChange={(valeur) => field.onChange(Number(valeur))} disabled={enCours}>
+                  <Select
+                    value={String(field.value)}
+                    onValueChange={(valeur) => field.onChange(Number(valeur))}
+                    disabled={enCours}
+                  >
                     <SelectTrigger id="art-tva" aria-label={t('pieces:articles.tva')}>
                       <SelectValue />
                     </SelectTrigger>
@@ -265,7 +295,9 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
               />
             </div>
           </div>
-          <p className="-mt-2 texte-libelle text-muted-foreground">{t('pieces:articles.prix.aideTvaComprise')}</p>
+          <p className="-mt-2 texte-libelle text-muted-foreground">
+            {t('pieces:articles.prix.aideTvaComprise')}
+          </p>
 
           <div className="flex flex-col gap-3 rounded-md border p-3">
             <label className="flex items-center gap-2 texte-corps">
@@ -273,7 +305,11 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
                 control={form.control}
                 name="estEchangeStandard"
                 render={({ field }) => (
-                  <Checkbox checked={field.value} onCheckedChange={(coche) => field.onChange(coche === true)} disabled={enCours} />
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={(coche) => field.onChange(coche === true)}
+                    disabled={enCours}
+                  />
                 )}
               />
               {t('pieces:articles.echangeStandard')}
@@ -290,7 +326,11 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
                     disabled={enCours}
                     valeurCentimes={field.value}
                     onChangeCentimes={field.onChange}
-                    erreur={form.formState.errors.montantConsigneTtcCentimes ? t('validation:requis') : undefined}
+                    erreur={
+                      form.formState.errors.montantConsigneTtcCentimes
+                        ? t('validation:requis')
+                        : undefined
+                    }
                   />
                 )}
               />
@@ -304,7 +344,12 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
           ) : null}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOuvertChange(false)} disabled={enCours}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOuvertChange(false)}
+              disabled={enCours}
+            >
               {t('commun:actions.annuler')}
             </Button>
             <Button type="submit" disabled={enCours}>

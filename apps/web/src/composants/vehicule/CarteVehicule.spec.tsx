@@ -51,8 +51,6 @@ describe('CarteVehicule', () => {
   it('affiche le badge identification incomplète (RM-16), traduit en allemand', async () => {
     await i18n.changeLanguage('de');
     render(<CarteVehicule vehicule={{ ...VEHICULE, identificationIncomplete: true }} />);
-    expect(
-      screen.getByText('Identifikation unvollständig'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Identifikation unvollständig')).toBeInTheDocument();
   });
 });

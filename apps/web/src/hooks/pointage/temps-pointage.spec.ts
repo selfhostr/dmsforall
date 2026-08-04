@@ -55,7 +55,7 @@ describe('hooks/pointage/temps-pointage', () => {
       expect(fin.getTime()).toBeGreaterThan(debut.getTime());
     });
 
-    it('lève une erreur si le format n\'a pas exactement 3 parties séparées par des tirets', () => {
+    it("lève une erreur si le format n'a pas exactement 3 parties séparées par des tirets", () => {
       expect(() => bornesJourneeLocale('2024/08/15')).toThrow('Format de date invalide');
       expect(() => bornesJourneeLocale('2024-08')).toThrow('Format de date invalide');
       expect(() => bornesJourneeLocale('2024')).toThrow('Format de date invalide');

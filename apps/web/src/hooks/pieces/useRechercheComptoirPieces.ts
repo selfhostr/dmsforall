@@ -34,7 +34,9 @@ export interface EtatRechercheComptoirPieces {
  * contrôlée, anti-rebond, dérivation chargement/vide/erreur — mais paramétrée par un `siteId`
  * obligatoire (la disponibilité annoncée au comptoir n'a de sens que POUR un site).
  */
-export function useRechercheComptoirPieces(siteId: string | undefined): EtatRechercheComptoirPieces {
+export function useRechercheComptoirPieces(
+  siteId: string | undefined,
+): EtatRechercheComptoirPieces {
   const [saisie, setSaisie] = useState('');
   const [termeDebounce, setTermeDebounce] = useState('');
 
@@ -58,7 +60,10 @@ export function useRechercheComptoirPieces(siteId: string | undefined): EtatRech
   });
 
   const saisieNonVide = saisie.trim().length > 0;
-  const enChargement = siteId !== undefined && saisieNonVide && (termeDebounce !== saisie.trim() || requete.isFetching);
+  const enChargement =
+    siteId !== undefined &&
+    saisieNonVide &&
+    (termeDebounce !== saisie.trim() || requete.isFetching);
 
   return {
     saisie,

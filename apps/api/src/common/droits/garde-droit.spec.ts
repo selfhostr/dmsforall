@@ -38,7 +38,8 @@ function contexteExecutionTest(): ExecutionContext {
 function contexteRequeteTest(principal: PrincipalAuthentifie | null): ServiceContexteRequete {
   return {
     exigerPrincipal: vi.fn(() => {
-      if (!principal) throw new Error('Aucun principal authentifié dans le contexte de la requête courante.');
+      if (!principal)
+        throw new Error('Aucun principal authentifié dans le contexte de la requête courante.');
       return principal;
     }),
   } as unknown as ServiceContexteRequete;
@@ -126,7 +127,10 @@ describe('GardeDroit — @AucunDroitRequis', () => {
   });
 
   it('propage l’erreur si, malgré tout, aucun principal n’est attaché (défense en profondeur)', () => {
-    const guard = new GardeDroit(reflectorTest({ [CLE_META_AUCUN_DROIT]: true }), contexteRequeteTest(null));
+    const guard = new GardeDroit(
+      reflectorTest({ [CLE_META_AUCUN_DROIT]: true }),
+      contexteRequeteTest(null),
+    );
 
     expect(() => guard.canActivate(contexteExecutionTest())).toThrow(
       'Aucun principal authentifié dans le contexte de la requête courante.',

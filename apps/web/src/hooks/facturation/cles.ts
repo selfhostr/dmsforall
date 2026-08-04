@@ -17,10 +17,12 @@ export const clesFacturation = {
      *  `statut`, `statutReglement`) sont des tableaux, qu'un `Record<string, primitif>` ad hoc ne
      *  peut pas représenter. Seul appelant à ce jour : `useListeDocumentsVente`, qui construit
      *  toujours l'objet complet (`tri` inclus) — pas de valeur par défaut ici. */
-    liste: (filtres: FiltresDocumentsVente) => ['facturation', 'documents', 'liste', filtres] as const,
+    liste: (filtres: FiltresDocumentsVente) =>
+      ['facturation', 'documents', 'liste', filtres] as const,
     detail: (id: string) => ['facturation', 'documents', 'detail', id] as const,
     /** Factures ouvertes d'un client — source de l'écran 3 (encaissement) quand l'entrée se fait
      *  depuis la fiche client plutôt que depuis une facture précise (§5, point d'entrée 2). */
-    ouvertesClient: (clientId: string) => ['facturation', 'documents', 'ouvertesClient', clientId] as const,
+    ouvertesClient: (clientId: string) =>
+      ['facturation', 'documents', 'ouvertesClient', clientId] as const,
   },
 } as const;

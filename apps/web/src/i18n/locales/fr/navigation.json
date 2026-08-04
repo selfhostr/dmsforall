@@ -16,11 +16,22 @@
     "piecesRechercheComptoir": "Recherche comptoir",
     "piecesArticles": "Articles",
     "piecesReservations": "Réservations",
-    "piecesReapprovisionnement": "Réapprovisionnement"
+    "piecesReapprovisionnement": "Réapprovisionnement",
+    "piecesCommandesFournisseur": "Commandes fournisseur",
+    "piecesFournisseurs": "Fournisseurs",
+    "piecesConsignes": "Consignes",
+    "pointageSaisie": "Pointage",
+    "pointageJournal": "Journal de pointage",
+    "pointageEquipe": "Équipe",
+    "pointageCloture": "Clôture de période",
+    "ventesStock": "Véhicules en stock",
+    "ventesDossiers": "Dossiers de vente"
   },
   "groupes": {
     "parametrage": "Paramétrage",
-    "pieces": "Pièces"
+    "pieces": "Pièces",
+    "pointage": "Pointage",
+    "ventes": "Ventes"
   },
   "menu": {
     "ouvrir": "Ouvrir le menu"

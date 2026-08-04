@@ -33,7 +33,9 @@ describe('ChampPlaque', () => {
   });
 
   it('affiche une erreur associée au champ via aria-describedby', () => {
-    render(<ChampPlaque valeur="VD1" onChangeValeur={vi.fn()} label="Plaque" erreur="Plaque invalide" />);
+    render(
+      <ChampPlaque valeur="VD1" onChangeValeur={vi.fn()} label="Plaque" erreur="Plaque invalide" />,
+    );
     const champ = screen.getByLabelText('Plaque');
     expect(screen.getByText('Plaque invalide')).toBeInTheDocument();
     expect(champ).toHaveAttribute('aria-describedby', screen.getByText('Plaque invalide').id);

@@ -11,7 +11,7 @@ describe('BandeauAlerteClient', () => {
     await i18n.changeLanguage('fr');
   });
 
-  it("ne rend rien pour un client sans alerte ni blocage", () => {
+  it('ne rend rien pour un client sans alerte ni blocage', () => {
     const { container } = render(<BandeauAlerteClient />);
     expect(container).toBeEmptyDOMElement();
   });

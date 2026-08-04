@@ -8,13 +8,20 @@ import { messageErreur } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { useEncaissement } from '@/hooks/facturation/useEncaissement';
 import { useFacturesOuvertesClient } from '@/hooks/facturation/useFacturesOuvertesClient';
 import { formaterDate, formaterMontant } from '@/lib/formats';
+import { genererUuid } from '@/lib/uuid';
 
 import { EncartAvanceClient } from './EncartAvanceClient';
 
@@ -56,7 +63,14 @@ interface Props {
  * points d'entrée (facture précochée / liste des factures ouvertes du client), un `Sheet`
  * (`side="right"`), jamais une page dédiée.
  */
-export function SheetEncaissement({ ouvert, onOuvertChange, siteId, clientId, destinataireNom, factureIdPreselectionnee }: Props) {
+export function SheetEncaissement({
+  ouvert,
+  onOuvertChange,
+  siteId,
+  clientId,
+  destinataireNom,
+  factureIdPreselectionnee,
+}: Props) {
   const { t } = useTranslation(['facturation', 'commun']);
   const facturesOuvertes = useFacturesOuvertesClient(ouvert ? clientId : undefined);
   const encaissement = useEncaissement();
@@ -79,9 +93,16 @@ export function SheetEncaissement({ ouvert, onOuvertChange, siteId, clientId, de
     .filter((facture) => selection.has(facture.id))
     .reduce((somme, facture) => somme + (facture.soldeCentimes ?? 0), 0);
 
-  const sommeLignesCentimes = lignes.reduce((somme, ligne) => somme + (ligne.montantCentimes ?? 0), 0);
-  const sommeEcartsCentimes = lignes.reduce((somme, ligne) => somme + (ligne.ecartArrondiCentimes ?? 0), 0);
-  const resteAEncaisserCentimes = totalSelectionneCentimes - sommeLignesCentimes + sommeEcartsCentimes;
+  const sommeLignesCentimes = lignes.reduce(
+    (somme, ligne) => somme + (ligne.montantCentimes ?? 0),
+    0,
+  );
+  const sommeEcartsCentimes = lignes.reduce(
+    (somme, ligne) => somme + (ligne.ecartArrondiCentimes ?? 0),
+    0,
+  );
+  const resteAEncaisserCentimes =
+    totalSelectionneCentimes - sommeLignesCentimes + sommeEcartsCentimes;
   const tropPercuCentimes = sommeLignesCentimes - sommeEcartsCentimes - totalSelectionneCentimes;
 
   function basculerFacture(id: string) {
@@ -95,7 +116,7 @@ export function SheetEncaissement({ ouvert, onOuvertChange, siteId, clientId, de
 
   function ajouterLigne() {
     const resteExact = totalSelectionneCentimes - sommeLignesCentimes;
-    const id = crypto.randomUUID();
+    const id = genererUuid();
     // Espèces par défaut (le geste comptoir le plus fréquent) : si ce reste zéro le solde,
     // arrondi commercial automatique et visible sans qu'on ait à le savoir (§5.3).
     if (resteExact > 0) {
@@ -103,10 +124,18 @@ export function SheetEncaissement({ ouvert, onOuvertChange, siteId, clientId, de
       const ecart = arrondi - resteExact;
       setLignes((valeur) => [
         ...valeur,
-        { id, moyen: 'especes', montantCentimes: arrondi, ecartArrondiCentimes: ecart !== 0 ? ecart : null },
+        {
+          id,
+          moyen: 'especes',
+          montantCentimes: arrondi,
+          ecartArrondiCentimes: ecart !== 0 ? ecart : null,
+        },
       ]);
     } else {
-      setLignes((valeur) => [...valeur, { id, moyen: 'especes', montantCentimes: null, ecartArrondiCentimes: null }]);
+      setLignes((valeur) => [
+        ...valeur,
+        { id, moyen: 'especes', montantCentimes: null, ecartArrondiCentimes: null },
+      ]);
     }
   }
 
@@ -115,11 +144,19 @@ export function SheetEncaissement({ ouvert, onOuvertChange, siteId, clientId, de
   }
 
   function modifierMoyen(id: string, moyen: MoyenPaiement) {
-    setLignes((valeur) => valeur.map((ligne) => (ligne.id === id ? { ...ligne, moyen, ecartArrondiCentimes: null } : ligne)));
+    setLignes((valeur) =>
+      valeur.map((ligne) =>
+        ligne.id === id ? { ...ligne, moyen, ecartArrondiCentimes: null } : ligne,
+      ),
+    );
   }
 
   function modifierMontant(id: string, montantCentimes: number | null) {
-    setLignes((valeur) => valeur.map((ligne) => (ligne.id === id ? { ...ligne, montantCentimes, ecartArrondiCentimes: null } : ligne)));
+    setLignes((valeur) =>
+      valeur.map((ligne) =>
+        ligne.id === id ? { ...ligne, montantCentimes, ecartArrondiCentimes: null } : ligne,
+      ),
+    );
   }
 
   function fermer() {
@@ -136,7 +173,10 @@ export function SheetEncaissement({ ouvert, onOuvertChange, siteId, clientId, de
    */
   async function soumettre() {
     setErreurGenerique(null);
-    if (lignes.length === 0 || lignes.some((ligne) => ligne.montantCentimes === null || ligne.montantCentimes <= 0)) {
+    if (
+      lignes.length === 0 ||
+      lignes.some((ligne) => ligne.montantCentimes === null || ligne.montantCentimes <= 0)
+    ) {
       setErreurGenerique(t('facturation:encaissement.lignesInvalides'));
       return;
     }
@@ -188,22 +228,34 @@ export function SheetEncaissement({ ouvert, onOuvertChange, siteId, clientId, de
 
         <div className="flex flex-col gap-6 py-4">
           <section className="flex flex-col gap-2">
-            <h2 className="texte-libelle font-medium text-foreground">{t('facturation:encaissement.facturesOuvertes.titre')}</h2>
+            <h2 className="texte-libelle font-medium text-foreground">
+              {t('facturation:encaissement.facturesOuvertes.titre')}
+            </h2>
             {facturesOuvertes.isPending ? (
               <EtatChargement lignes={2} />
             ) : factures.length === 0 ? (
-              <p className="texte-corps text-muted-foreground">{t('facturation:encaissement.facturesOuvertes.vide')}</p>
+              <p className="texte-corps text-muted-foreground">
+                {t('facturation:encaissement.facturesOuvertes.vide')}
+              </p>
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {factures.map((facture) => (
                   <li key={facture.id} className="flex items-center gap-2 texte-corps">
-                    <Checkbox checked={selection.has(facture.id)} onCheckedChange={() => basculerFacture(facture.id)} />
+                    <Checkbox
+                      checked={selection.has(facture.id)}
+                      onCheckedChange={() => basculerFacture(facture.id)}
+                    />
                     <span className="flex-1">
-                      {facture.numero} · {t('facturation:encaissement.facturesOuvertes.emiseLe', { date: formaterDate(facture.dateDocument) })}
+                      {facture.numero} ·{' '}
+                      {t('facturation:encaissement.facturesOuvertes.emiseLe', {
+                        date: formaterDate(facture.dateDocument),
+                      })}
                     </span>
                     {facture.soldeCentimes !== undefined ? (
                       <span className="tabular-nums text-muted-foreground">
-                        {t('facturation:encaissement.facturesOuvertes.resteDu', { montant: formaterMontant(facture.soldeCentimes) })}
+                        {t('facturation:encaissement.facturesOuvertes.resteDu', {
+                          montant: formaterMontant(facture.soldeCentimes),
+                        })}
                       </span>
                     ) : null}
                   </li>
@@ -221,13 +273,23 @@ export function SheetEncaissement({ ouvert, onOuvertChange, siteId, clientId, de
           </section>
 
           <section className="flex flex-col gap-3">
-            <h2 className="texte-libelle font-medium text-foreground">{t('facturation:encaissement.lignes.titre')}</h2>
+            <h2 className="texte-libelle font-medium text-foreground">
+              {t('facturation:encaissement.lignes.titre')}
+            </h2>
             {lignes.map((ligne) => (
               <div key={ligne.id} className="flex items-end gap-2 rounded-md border p-2">
                 <div className="flex flex-col gap-1.5">
-                  <span className="texte-libelle text-muted-foreground">{t('facturation:encaissement.lignes.moyen')}</span>
-                  <Select value={ligne.moyen} onValueChange={(valeur) => modifierMoyen(ligne.id, valeur as MoyenPaiement)}>
-                    <SelectTrigger className="w-[160px]" aria-label={t('facturation:encaissement.lignes.moyen')}>
+                  <span className="texte-libelle text-muted-foreground">
+                    {t('facturation:encaissement.lignes.moyen')}
+                  </span>
+                  <Select
+                    value={ligne.moyen}
+                    onValueChange={(valeur) => modifierMoyen(ligne.id, valeur as MoyenPaiement)}
+                  >
+                    <SelectTrigger
+                      className="w-[160px]"
+                      aria-label={t('facturation:encaissement.lignes.moyen')}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -270,23 +332,39 @@ export function SheetEncaissement({ ouvert, onOuvertChange, siteId, clientId, de
           </section>
 
           {tropPercuCentimes > 0 ? (
-            <EncartAvanceClient message={t('facturation:avanceClient.message', { montant: formaterMontant(totalSelectionneCentimes) })} />
+            <EncartAvanceClient
+              message={t('facturation:avanceClient.message', {
+                montant: formaterMontant(totalSelectionneCentimes),
+              })}
+            />
           ) : null}
 
           <div className="flex items-center justify-between border-t pt-3 texte-corps font-semibold">
             <span>{t('facturation:encaissement.resteAEncaisser')}</span>
-            <span className="tabular-nums">{formaterMontant(Math.max(resteAEncaisserCentimes, 0))}</span>
+            <span className="tabular-nums">
+              {formaterMontant(Math.max(resteAEncaisserCentimes, 0))}
+            </span>
           </div>
 
-          {encaissement.isError ? <p className="texte-libelle text-destructive">{messageErreur(encaissement.error, t)}</p> : null}
-          {erreurGenerique ? <p className="texte-libelle text-destructive">{erreurGenerique}</p> : null}
+          {encaissement.isError ? (
+            <p className="texte-libelle text-destructive">{messageErreur(encaissement.error, t)}</p>
+          ) : null}
+          {erreurGenerique ? (
+            <p className="texte-libelle text-destructive">{erreurGenerique}</p>
+          ) : null}
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={fermer} disabled={enCours}>
               {t('commun:actions.annuler')}
             </Button>
-            <Button type="button" onClick={() => void soumettre()} disabled={enCours || lignes.length === 0}>
-              {enCours ? t('facturation:encaissement.enCours') : t('facturation:encaissement.confirmer')}
+            <Button
+              type="button"
+              onClick={() => void soumettre()}
+              disabled={enCours || lignes.length === 0}
+            >
+              {enCours
+                ? t('facturation:encaissement.enCours')
+                : t('facturation:encaissement.confirmer')}
             </Button>
           </div>
         </div>

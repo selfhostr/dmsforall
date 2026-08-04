@@ -1,6 +1,10 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 
-import type { EntreeKilometrageVehicule, ReponseAvecAvertissements, ReponseVehiculeKilometrage } from '@dfa/shared';
+import type {
+  EntreeKilometrageVehicule,
+  ReponseAvecAvertissements,
+  ReponseVehiculeKilometrage,
+} from '@dfa/shared';
 
 import { clesQuery } from '@/api/cles';
 
@@ -12,7 +16,11 @@ import { creerKilometrageVehicule } from './vehicules.api';
  *  l'historique ET le contexte-atelier (le dernier relevé affiché change dans les deux). */
 export function useEnregistrerKilometrage(
   vehiculeId: string,
-): UseMutationResult<ReponseAvecAvertissements<ReponseVehiculeKilometrage>, unknown, EntreeKilometrageVehicule> {
+): UseMutationResult<
+  ReponseAvecAvertissements<ReponseVehiculeKilometrage>,
+  unknown,
+  EntreeKilometrageVehicule
+> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -20,7 +28,9 @@ export function useEnregistrerKilometrage(
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: clesQuery.vehicules.kilometrages(vehiculeId) }),
-        queryClient.invalidateQueries({ queryKey: clesQuery.vehicules.contexteAtelier(vehiculeId) }),
+        queryClient.invalidateQueries({
+          queryKey: clesQuery.vehicules.contexteAtelier(vehiculeId),
+        }),
       ]);
     },
   });

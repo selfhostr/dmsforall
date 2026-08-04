@@ -118,7 +118,7 @@ export const formeLigneDocument = z.object({
 
 export const schemaCreationLigneDocument = formeLigneDocument
   .refine((v) => !(v.remisePourmille != null && v.remiseMontantCentimes != null), {
-    message: "Remise en pour mille et remise en montant sont exclusives (MD-41).",
+    message: 'Remise en pour mille et remise en montant sont exclusives (MD-41).',
     path: ['remiseMontantCentimes'],
   })
   .refine((v) => v.type !== 'texte' || v.prixUnitaireTtcCentimes == null, {

@@ -13,20 +13,27 @@ export interface OptionsDocumentOpenApi {
  * référence le même schéma — c'est ce document que le front lit pour générer ses types
  * (`openapi-typescript`), une réponse non déclarée ici n'existe pas pour lui.
  */
-export function construireDocument(app: INestApplication, options: OptionsDocumentOpenApi): OpenAPIObject {
+export function construireDocument(
+  app: INestApplication,
+  options: OptionsDocumentOpenApi,
+): OpenAPIObject {
   const builder = new DocumentBuilder()
     .setOpenAPIVersion('3.1.0')
     .setTitle('API dmsforall (DFA)')
     .setDescription(
       'API du DMS (Dealer Management System) pour garages et concessions suisses. ' +
         "Contrat d'erreur unique application/problem+json (schéma ProblemeDetailCommunDto, code machine stable). " +
-        'Le tenant est toujours résolu depuis la session — aucun endpoint n\'accepte de tenantId en paramètre.',
+        "Le tenant est toujours résolu depuis la session — aucun endpoint n'accepte de tenantId en paramètre.",
     )
     .setVersion(options.versionApp)
     .addTag('Auth', 'Connexion, déconnexion, session courante.')
     .addTag('Socle', 'Tenant courant et sites.')
     .addTag('Santé', 'Sondes de vie et de disponibilité applicative.')
-    .addCookieAuth(options.cookieNom, { type: 'apiKey', in: 'cookie', name: options.cookieNom }, 'cookie')
+    .addCookieAuth(
+      options.cookieNom,
+      { type: 'apiKey', in: 'cookie', name: options.cookieNom },
+      'cookie',
+    )
     .build();
 
   return SwaggerModule.createDocument(app, builder, {

@@ -17,7 +17,9 @@ export type { EntreeModificationBlocCreancier };
 
 /** `GET /parametres-facturation/creancier` — jamais un 404, voir `BlocCreancier`. */
 export async function recupererBlocCreancier(): Promise<BlocCreancier> {
-  const bloc = await requeteApi<BlocCreancier>('/parametres-facturation/creancier', { method: 'GET' });
+  const bloc = await requeteApi<BlocCreancier>('/parametres-facturation/creancier', {
+    method: 'GET',
+  });
   if (!bloc) {
     throw new Error('Réponse vide inattendue : GET /parametres-facturation/creancier.');
   }
@@ -28,7 +30,9 @@ export async function recupererBlocCreancier(): Promise<BlocCreancier> {
  *  en-tête de concurrence optimiste sur cette route (upsert, pas de ligne préexistante requise).
  *  Pas d'`Idempotency-Key` non plus : ce n'est pas une création qui consomme une ressource rare
  *  (numéro, etc.), juste la mise à jour d'un singleton de paramétrage. */
-export async function modifierBlocCreancier(entree: EntreeModificationBlocCreancier): Promise<BlocCreancier> {
+export async function modifierBlocCreancier(
+  entree: EntreeModificationBlocCreancier,
+): Promise<BlocCreancier> {
   const bloc = await requeteApi<BlocCreancier>('/parametres-facturation/creancier', {
     method: 'PATCH',
     body: JSON.stringify(entree),

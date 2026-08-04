@@ -13,7 +13,13 @@ const CHAMPS_SENSIBLES = ['motDePasse', 'cookie', 'authorization', 'tokenClair']
 function construireCheminsRedaction(): string[] {
   const chemins: string[] = [];
   for (const champ of CHAMPS_SENSIBLES) {
-    chemins.push(champ, `*.${champ}`, `*.*.${champ}`, `headers.${champ}`, `requete.headers.${champ}`);
+    chemins.push(
+      champ,
+      `*.${champ}`,
+      `*.*.${champ}`,
+      `headers.${champ}`,
+      `requete.headers.${champ}`,
+    );
   }
   return chemins;
 }

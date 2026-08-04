@@ -4,10 +4,26 @@ import { useTranslation } from 'react-i18next';
 import { TYPES_CONSENTEMENT, type TypeConsentement } from '@dfa/shared';
 
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useConsentementsClient, useCreerConsentementClient } from '@/hooks/clients/useConsentementsClient';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  useConsentementsClient,
+  useCreerConsentementClient,
+} from '@/hooks/clients/useConsentementsClient';
 import { formaterDateHeure } from '@/lib/formats';
 
 import { EtatSousCollection } from './EtatSousCollection';
@@ -43,7 +59,9 @@ export function OngletConsentements({ clientId }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="texte-titre-section font-medium text-foreground">{t('clients:consentements.titre')}</h3>
+        <h3 className="texte-titre-section font-medium text-foreground">
+          {t('clients:consentements.titre')}
+        </h3>
         <Dialog open={ouvert} onOpenChange={setOuvert}>
           <DialogTrigger asChild>
             <Button type="button" size="sm" variant="outline">
@@ -58,7 +76,10 @@ export function OngletConsentements({ clientId }: Props) {
               <div className="space-y-2">
                 <Label htmlFor="consentement-type">{t('clients:consentements.champs.type')}</Label>
                 <Select value={type} onValueChange={(v) => setType(v as TypeConsentement)}>
-                  <SelectTrigger id="consentement-type" aria-label={t('clients:consentements.champs.type')}>
+                  <SelectTrigger
+                    id="consentement-type"
+                    aria-label={t('clients:consentements.champs.type')}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -89,10 +110,15 @@ export function OngletConsentements({ clientId }: Props) {
       >
         <ul className="space-y-2">
           {lignes.map((consentement) => (
-            <li key={consentement.id} className="flex items-center justify-between gap-3 rounded-md border p-3 texte-corps">
+            <li
+              key={consentement.id}
+              className="flex items-center justify-between gap-3 rounded-md border p-3 texte-corps"
+            >
               <span>{t(`clients:consentements.types.${consentement.type}`)}</span>
               <span className="text-right text-muted-foreground">
-                {consentement.accorde ? t('clients:consentements.champs.accorde') : t('clients:consentements.champs.revoque')}
+                {consentement.accorde
+                  ? t('clients:consentements.champs.accorde')
+                  : t('clients:consentements.champs.revoque')}
                 {' · '}
                 {formaterDateHeure(consentement.recueilliLe)}
               </span>

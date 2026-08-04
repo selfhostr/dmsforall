@@ -79,13 +79,18 @@ export function verifierArrondiEspeces(c: ContexteVerificationArrondi): void {
       `L'écart d'arrondi soumis (${c.arrondiCentimes} ct) dépasse la borne d'un arrondi au 5 centimes (±${ARRONDI_ESPECES_MAGNITUDE_MAX_CENTIMES} ct, RF-51).`,
       {
         erreurs: [
-          { champ: 'imputations[].montantCentimes', code: 'arrondi_hors_borne', message: 'Écart d’arrondi hors de {-2,-1,+1,+2} centimes.' },
+          {
+            champ: 'imputations[].montantCentimes',
+            code: 'arrondi_hors_borne',
+            message: 'Écart d’arrondi hors de {-2,-1,+1,+2} centimes.',
+          },
         ],
       },
     );
   }
 
-  const montantRegleApres = c.montantRegleAvantCentimes + c.sommeReglementLotCentimes + c.arrondiCentimes;
+  const montantRegleApres =
+    c.montantRegleAvantCentimes + c.sommeReglementLotCentimes + c.arrondiCentimes;
   if (montantRegleApres !== c.totalDocumentCentimes) {
     throw new ErreurMetier(
       'VALIDATION_ECHOUEE',
@@ -95,7 +100,8 @@ export function verifierArrondiEspeces(c: ContexteVerificationArrondi): void {
           {
             champ: 'imputations[].nature',
             code: 'arrondi_ne_solde_pas',
-            message: 'reglement + arrondi + montant déjà réglé doit être exactement égal au total du document.',
+            message:
+              'reglement + arrondi + montant déjà réglé doit être exactement égal au total du document.',
           },
         ],
       },

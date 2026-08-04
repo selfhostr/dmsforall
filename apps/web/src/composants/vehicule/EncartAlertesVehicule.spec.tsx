@@ -34,7 +34,9 @@ const CONTEXTE: ReponseContexteAtelier = {
     constructeur: { debutLe: '2024-01-01', finLe: '2027-01-01', plafondKm: 100000, active: true },
     garage: null,
   },
-  campagnesOuvertes: [{ id: 'camp1', code: 'RC-2026-04', description: 'Rappel airbag', obligatoire: true }],
+  campagnesOuvertes: [
+    { id: 'camp1', code: 'RC-2026-04', description: 'Rappel airbag', obligatoire: true },
+  ],
   travauxReportes: {
     total: 1,
     elements: [
@@ -128,7 +130,10 @@ describe('EncartAlertesVehicule', () => {
     const boutons = screen.getAllByRole('button', { name: 'Ajouter à ce RDV' });
     expect(boutons).toHaveLength(2);
     await utilisateur.click(boutons[0]!);
-    expect(onAjouter).toHaveBeenCalledWith({ famille: 'campagne', item: CONTEXTE.campagnesOuvertes[0] });
+    expect(onAjouter).toHaveBeenCalledWith({
+      famille: 'campagne',
+      item: CONTEXTE.campagnesOuvertes[0],
+    });
   });
 
   it('omet le bouton « Ajouter » quand onAjouter est omis', () => {

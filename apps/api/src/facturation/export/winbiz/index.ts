@@ -13,7 +13,11 @@ export {
   baliseVtCodeWinbiz,
 } from './winbiz.constantes';
 
-export { ErreurExportWinbiz, CODES_ERREUR_EXPORT_WINBIZ, type CodeErreurExportWinbiz } from './winbiz.erreurs';
+export {
+  ErreurExportWinbiz,
+  CODES_ERREUR_EXPORT_WINBIZ,
+  type CodeErreurExportWinbiz,
+} from './winbiz.erreurs';
 
 export { encoderWindows1252, type ResultatEncodageWindows1252 } from './winbiz-encodage';
 

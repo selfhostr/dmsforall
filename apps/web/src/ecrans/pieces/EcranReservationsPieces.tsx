@@ -14,7 +14,13 @@ import { messageErreur } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
@@ -54,8 +60,21 @@ export function EcranReservationsPieces() {
 
   const satisfaire = useSatisfaireReservation();
 
-  const filtres: FiltresReservations = { statut: statut ? [statut] : undefined, tri: TRI_DEFAUT_RESERVATIONS, limite: 50 };
-  const { reservations, isPending, isError, error, refetch, hasNextPage, isFetchingNextPage, fetchNextPage } = useReservations(filtres);
+  const filtres: FiltresReservations = {
+    statut: statut ? [statut] : undefined,
+    tri: TRI_DEFAUT_RESERVATIONS,
+    limite: 50,
+  };
+  const {
+    reservations,
+    isPending,
+    isError,
+    error,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useReservations(filtres);
 
   const colonnes: ColonneComptoir<ReponseReservationPiece>[] = [
     {
@@ -88,12 +107,20 @@ export function EcranReservationsPieces() {
       id: 'quantite',
       libelle: t('pieces:reservations.quantite'),
       alignement: 'droite',
-      rendu: (reservation) => <span className="tabular-nums">{formaterQuantiteMillieme(reservation.quantiteMillieme)}</span>,
+      rendu: (reservation) => (
+        <span className="tabular-nums">
+          {formaterQuantiteMillieme(reservation.quantiteMillieme)}
+        </span>
+      ),
     },
     {
       id: 'statut',
       libelle: t('pieces:reservations.statut'),
-      rendu: (reservation) => <Badge variant={VARIANTE_BADGE_STATUT[reservation.statut]}>{t(`pieces:reservations.statuts.${reservation.statut}`)}</Badge>,
+      rendu: (reservation) => (
+        <Badge variant={VARIANTE_BADGE_STATUT[reservation.statut]}>
+          {t(`pieces:reservations.statuts.${reservation.statut}`)}
+        </Badge>
+      ),
     },
     {
       id: 'creeLe',
@@ -110,12 +137,23 @@ export function EcranReservationsPieces() {
         return (
           <div className="flex justify-end gap-2">
             {peutSatisfaireReservation(role) ? (
-              <Button type="button" size="sm" variant="outline" disabled={satisfaire.isPending} onClick={() => satisfaire.mutate(reservation.id)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={satisfaire.isPending}
+                onClick={() => satisfaire.mutate(reservation.id)}
+              >
                 {t('pieces:reservations.actions.satisfaire')}
               </Button>
             ) : null}
             {peutLibererReservation(role) ? (
-              <Button type="button" size="sm" variant="ghost" onClick={() => setReservationALiberer(reservation.id)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setReservationALiberer(reservation.id)}
+              >
                 {t('pieces:reservations.actions.liberer')}
               </Button>
             ) : null}
@@ -138,7 +176,11 @@ export function EcranReservationsPieces() {
     return (
       <div className="flex flex-col gap-6">
         <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:reservations.titre')}</h1>
-        <EtatErreur titre={t('pieces:reservations.erreur.titre')} description={messageErreur(error, t)} onReessayer={() => void refetch()} />
+        <EtatErreur
+          titre={t('pieces:reservations.erreur.titre')}
+          description={messageErreur(error, t)}
+          onReessayer={() => void refetch()}
+        />
       </div>
     );
   }
@@ -151,9 +193,14 @@ export function EcranReservationsPieces() {
         <Label htmlFor="filtre-statut-reservation">{t('pieces:reservations.statut')}</Label>
         <Select
           value={statut ?? 'toutes'}
-          onValueChange={(valeur) => setStatut(valeur === 'toutes' ? undefined : (valeur as StatutReservationPiece))}
+          onValueChange={(valeur) =>
+            setStatut(valeur === 'toutes' ? undefined : (valeur as StatutReservationPiece))
+          }
         >
-          <SelectTrigger id="filtre-statut-reservation" aria-label={t('pieces:reservations.statut')}>
+          <SelectTrigger
+            id="filtre-statut-reservation"
+            aria-label={t('pieces:reservations.statut')}
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -173,16 +220,30 @@ export function EcranReservationsPieces() {
         cleLigne={(reservation) => reservation.id}
         contenuVide={
           statut ? (
-            <EtatVideFiltre titre={t('pieces:reservations.titre')} description={t('pieces:reservations.vide')} onEffacerFiltres={() => setStatut(undefined)} />
+            <EtatVideFiltre
+              titre={t('pieces:reservations.titre')}
+              description={t('pieces:reservations.vide')}
+              onEffacerFiltres={() => setStatut(undefined)}
+            />
           ) : (
-            <EtatVidePremierUsage titre={t('pieces:reservations.titre')} description={t('pieces:reservations.vide')} />
+            <EtatVidePremierUsage
+              titre={t('pieces:reservations.titre')}
+              description={t('pieces:reservations.vide')}
+            />
           )
         }
       />
 
-      <BoutonChargerPlus aChargerPlus={Boolean(hasNextPage)} enChargement={isFetchingNextPage} onChargerPlus={() => void fetchNextPage()} />
+      <BoutonChargerPlus
+        aChargerPlus={Boolean(hasNextPage)}
+        enChargement={isFetchingNextPage}
+        onChargerPlus={() => void fetchNextPage()}
+      />
 
-      <DialogueLiberationReservation reservationId={reservationALiberer} onFerme={() => setReservationALiberer(null)} />
+      <DialogueLiberationReservation
+        reservationId={reservationALiberer}
+        onFerme={() => setReservationALiberer(null)}
+      />
     </div>
   );
 }

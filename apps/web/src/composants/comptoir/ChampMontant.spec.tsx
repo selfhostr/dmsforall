@@ -8,7 +8,9 @@ describe('ChampMontant', () => {
   it("n'émet qu'un entier de centimes pour une saisie décimale", async () => {
     const onChangeCentimes = vi.fn();
     const utilisateur = userEvent.setup();
-    render(<ChampMontant valeurCentimes={null} onChangeCentimes={onChangeCentimes} label="Montant" />);
+    render(
+      <ChampMontant valeurCentimes={null} onChangeCentimes={onChangeCentimes} label="Montant" />,
+    );
 
     await utilisateur.type(screen.getByLabelText('Montant'), '12.5');
     for (const appel of onChangeCentimes.mock.calls) {
@@ -22,7 +24,9 @@ describe('ChampMontant', () => {
   it('accepte la virgule comme séparateur décimal suisse', async () => {
     const onChangeCentimes = vi.fn();
     const utilisateur = userEvent.setup();
-    render(<ChampMontant valeurCentimes={null} onChangeCentimes={onChangeCentimes} label="Montant" />);
+    render(
+      <ChampMontant valeurCentimes={null} onChangeCentimes={onChangeCentimes} label="Montant" />,
+    );
 
     await utilisateur.type(screen.getByLabelText('Montant'), '9,90');
     expect(onChangeCentimes).toHaveBeenLastCalledWith(990);
@@ -31,7 +35,9 @@ describe('ChampMontant', () => {
   it('émet null pour une saisie non interprétable, jamais une valeur devinée', async () => {
     const onChangeCentimes = vi.fn();
     const utilisateur = userEvent.setup();
-    render(<ChampMontant valeurCentimes={100} onChangeCentimes={onChangeCentimes} label="Montant" />);
+    render(
+      <ChampMontant valeurCentimes={100} onChangeCentimes={onChangeCentimes} label="Montant" />,
+    );
 
     await utilisateur.clear(screen.getByLabelText('Montant'));
     await utilisateur.type(screen.getByLabelText('Montant'), 'abc');

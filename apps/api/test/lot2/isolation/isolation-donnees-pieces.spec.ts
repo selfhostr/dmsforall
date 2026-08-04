@@ -12,8 +12,16 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { demarrerBaseEphemere, requeteSousTenant, type BaseEphemere } from '../../setup/postgres-ephemere';
-import { creerLignePourTest, creerOrPourTest, semerGarageDemoLot1, type GarageDemoLot1Fixture } from '../../lot1/fixtures/garage-demo-lot1';
+import {
+  demarrerBaseEphemere,
+  requeteSousTenant,
+  type BaseEphemere,
+} from '../../setup/postgres-ephemere';
+import {
+  creerOrPourTest,
+  semerGarageDemoLot1,
+  type GarageDemoLot1Fixture,
+} from '../../lot1/fixtures/garage-demo-lot1';
 import {
   creerArticleAvecStockPourTest,
   creerCommandeFournisseurPourTest,
@@ -42,24 +50,55 @@ interface JeuPieces {
   /** OR + ligne d'OR VALIDES, SANS réservation posée dessus — dédiés au test d'impersonation en
    *  écriture de `reservation_piece` (qui a besoin de références réellement existantes côté B
    *  pour que le refus observé vienne du RLS, pas d'une violation de clé étrangère annexe). */
-  readonly cibleLibrePourImpersonation: { readonly ligneOrId: string; readonly ordreReparationId: string };
+  readonly cibleLibrePourImpersonation: {
+    readonly ligneOrId: string;
+    readonly ordreReparationId: string;
+  };
 }
 
 async function semerJeuPieces(t: GarageDemoLot1Fixture['tenantA']): Promise<JeuPieces> {
   const siteId = t.tenant.sites[0]!.id;
   const fournisseur = await creerFournisseurPourTest(bdd, t.tenant, `Fournisseur ${t.tenant.slug}`);
-  const article = await creerArticleAvecStockPourTest(bdd, t.tenant, siteId, { quantitePhysiqueMillieme: 3000 });
-  const mouvement = await creerMouvementStockPourTest(bdd, t.tenant, article.id, siteId, { type: 'entree_livraison' });
+  const article = await creerArticleAvecStockPourTest(bdd, t.tenant, siteId, {
+    quantitePhysiqueMillieme: 3000,
+  });
+  const mouvement = await creerMouvementStockPourTest(bdd, t.tenant, article.id, siteId, {
+    type: 'entree_livraison',
+  });
   const commande = await creerCommandeFournisseurPourTest(bdd, t.tenant, siteId, fournisseur.id);
 
   const or = await creerOrPourTest(bdd, t.tenant, siteId, t.clients[0]!, t.vehicules[0]!);
   const ligne = await creerLigneOrPiecePourTest(bdd, t.tenant, or.id, article.id, 1);
-  const reservation = await creerReservationPiecePourTest(bdd, t.tenant, article.id, siteId, ligne.id, or.id, 1000);
+  const reservation = await creerReservationPiecePourTest(
+    bdd,
+    t.tenant,
+    article.id,
+    siteId,
+    ligne.id,
+    or.id,
+    1000,
+  );
 
   const orConsigne = await creerOrPourTest(bdd, t.tenant, siteId, t.clients[0]!, t.vehicules[0]!);
-  const ligneConsigne = await creerLigneOrPiecePourTest(bdd, t.tenant, orConsigne.id, article.id, 1);
-  const mouvementConsigne = await creerMouvementStockPourTest(bdd, t.tenant, article.id, siteId, { type: 'entree_livraison' });
-  const consigne = await creerConsignePourTest(bdd, t.tenant, ligneConsigne.id, orConsigne.id, article.id, siteId, mouvementConsigne.id);
+  const ligneConsigne = await creerLigneOrPiecePourTest(
+    bdd,
+    t.tenant,
+    orConsigne.id,
+    article.id,
+    1,
+  );
+  const mouvementConsigne = await creerMouvementStockPourTest(bdd, t.tenant, article.id, siteId, {
+    type: 'entree_livraison',
+  });
+  const consigne = await creerConsignePourTest(
+    bdd,
+    t.tenant,
+    ligneConsigne.id,
+    orConsigne.id,
+    article.id,
+    siteId,
+    mouvementConsigne.id,
+  );
 
   const orLibre = await creerOrPourTest(bdd, t.tenant, siteId, t.clients[0]!, t.vehicules[0]!);
   const ligneLibre = await creerLigneOrPiecePourTest(bdd, t.tenant, orLibre.id, article.id, 1);
@@ -82,7 +121,10 @@ let jeuB: JeuPieces;
 beforeAll(async () => {
   bdd = await demarrerBaseEphemere();
   garage = await semerGarageDemoLot1(bdd);
-  [jeuA, jeuB] = await Promise.all([semerJeuPieces(garage.tenantA), semerJeuPieces(garage.tenantB)]);
+  [jeuA, jeuB] = await Promise.all([
+    semerJeuPieces(garage.tenantA),
+    semerJeuPieces(garage.tenantB),
+  ]);
 }, 180_000);
 
 afterAll(async () => {
@@ -97,32 +139,35 @@ describe('lecture — les données Pièces du tenant B sont invisibles sous le c
     ['mouvement_stock', 'mouvement_stock'] as const,
     ['reservation_piece', 'reservation_piece'] as const,
     ['consigne_echange_standard', 'consigne_echange_standard'] as const,
-  ])('%s : select explicite par id d\'une ligne du tenant B rend zéro ligne sous le tenant A', async (_desc, table) => {
-    const idsParTable: Record<string, string> = {
-      fournisseur: jeuB.fournisseur.id,
-      article: jeuB.article.id,
-      commande_fournisseur: jeuB.commande.id,
-      mouvement_stock: jeuB.mouvement.id,
-      reservation_piece: jeuB.reservation.id,
-      consigne_echange_standard: jeuB.consigne.id,
-    };
-    const lignes = await requeteSousTenant(
-      bdd.poolApp,
-      garage.tenantA.tenant.id,
-      `select * from ${table} where id = $1`,
-      [idsParTable[table]],
-    );
-    expect(lignes).toHaveLength(0);
+  ])(
+    "%s : select explicite par id d'une ligne du tenant B rend zéro ligne sous le tenant A",
+    async (_desc, table) => {
+      const idsParTable: Record<string, string> = {
+        fournisseur: jeuB.fournisseur.id,
+        article: jeuB.article.id,
+        commande_fournisseur: jeuB.commande.id,
+        mouvement_stock: jeuB.mouvement.id,
+        reservation_piece: jeuB.reservation.id,
+        consigne_echange_standard: jeuB.consigne.id,
+      };
+      const lignes = await requeteSousTenant(
+        bdd.poolApp,
+        garage.tenantA.tenant.id,
+        `select * from ${table} where id = $1`,
+        [idsParTable[table]],
+      );
+      expect(lignes).toHaveLength(0);
 
-    // Contrôle positif : la même lecture sous le BON tenant trouve bien la ligne.
-    const lignesBonTenant = await requeteSousTenant(
-      bdd.poolApp,
-      garage.tenantB.tenant.id,
-      `select * from ${table} where id = $1`,
-      [idsParTable[table]],
-    );
-    expect(lignesBonTenant, `contrôle positif ${table}`).toHaveLength(1);
-  });
+      // Contrôle positif : la même lecture sous le BON tenant trouve bien la ligne.
+      const lignesBonTenant = await requeteSousTenant(
+        bdd.poolApp,
+        garage.tenantB.tenant.id,
+        `select * from ${table} where id = $1`,
+        [idsParTable[table]],
+      );
+      expect(lignesBonTenant, `contrôle positif ${table}`).toHaveLength(1);
+    },
+  );
 
   it('stock_article (clé composite, pas de colonne id) : la ligne de stock de B est invisible sous A', async () => {
     const lignes = await requeteSousTenant(
@@ -162,7 +207,7 @@ describe('lecture — les données Pièces du tenant B sont invisibles sous le c
   });
 });
 
-describe("écriture — impersonation du tenant B refusée sous le contexte A (WITH CHECK), avec des données par ailleurs valides pour B", () => {
+describe('écriture — impersonation du tenant B refusée sous le contexte A (WITH CHECK), avec des données par ailleurs valides pour B', () => {
   it('fournisseur : insert tenant_id=B exécuté sous le contexte A viole la politique RLS', async () => {
     await expect(
       requeteSousTenant(
@@ -219,7 +264,7 @@ describe("écriture — impersonation du tenant B refusée sous le contexte A (W
     // de LECTURE de `stock_article` (qui restreint déjà à `tenant_id = tenant_courant() = A`) ne
     // peut donc JAMAIS trouver la ligne de stock de B, quelle que soit la donnée insérée — le
     // trigger échoue en ZDFA4 (« aucune ligne de stock… ») avant même d'atteindre le RLS de
-        // `reservation_piece`. C'est une preuve PLUS FORTE que le cas générique : même un trigger
+    // `reservation_piece`. C'est une preuve PLUS FORTE que le cas générique : même un trigger
     // `security invoker` qui lit une AUTRE table ne peut pas voir au travers du RLS pour fabriquer
     // une réservation sur les données d'un autre tenant.
     await expect(
@@ -239,7 +284,7 @@ describe("écriture — impersonation du tenant B refusée sous le contexte A (W
     ).rejects.toMatchObject({ code: 'ZDFA4' });
   });
 
-  it("commande_fournisseur : insert visant le fournisseur ET le site de B, tenant_id=B, sous le contexte A — refusé", async () => {
+  it('commande_fournisseur : insert visant le fournisseur ET le site de B, tenant_id=B, sous le contexte A — refusé', async () => {
     await expect(
       requeteSousTenant(
         bdd.poolApp,
@@ -250,7 +295,7 @@ describe("écriture — impersonation du tenant B refusée sous le contexte A (W
     ).rejects.toThrow(/policy|permission/i);
   });
 
-  it("mouvement_stock (IMMUABLE, dfa_app) : un UPDATE, même sous le BON tenant, est refusé par le privilège Postgres — pas seulement un problème RLS", async () => {
+  it('mouvement_stock (IMMUABLE, dfa_app) : un UPDATE, même sous le BON tenant, est refusé par le privilège Postgres — pas seulement un problème RLS', async () => {
     await expect(
       requeteSousTenant(
         bdd.poolApp,
@@ -263,7 +308,12 @@ describe("écriture — impersonation du tenant B refusée sous le contexte A (W
 
   it('mouvement_stock (IMMUABLE, dfa_app) : un DELETE, même sous le BON tenant, est refusé par le privilège Postgres', async () => {
     await expect(
-      requeteSousTenant(bdd.poolApp, garage.tenantA.tenant.id, `delete from mouvement_stock where id = $1`, [jeuA.mouvement.id]),
+      requeteSousTenant(
+        bdd.poolApp,
+        garage.tenantA.tenant.id,
+        `delete from mouvement_stock where id = $1`,
+        [jeuA.mouvement.id],
+      ),
     ).rejects.toThrow(/permission denied/i);
   });
 

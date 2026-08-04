@@ -1,7 +1,14 @@
 /**
  * `GET|POST /referentiels/taux-horaires` · `PATCH /{id}` (contrats-api-etape-1.md §7.12, RM-65).
  */
-import { ApiCookieAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
 import {
   schemaCreationTauxHoraire,
@@ -52,10 +59,18 @@ export class TauxHorairesController {
   })
   @ApiResponse({ status: 201, description: 'Taux horaire créé.', type: ReponseTauxHoraireDto })
   @ApiReponseProbleme(400, 'VALIDATION_ECHOUEE — corps invalide.')
-  @ApiReponseProbleme(409, 'CONFLIT — période chevauchant une période valide existante du même code.')
+  @ApiReponseProbleme(
+    409,
+    'CONFLIT — période chevauchant une période valide existante du même code.',
+  )
   async creer(
     @CorpsZod(schemaCreationTauxHoraire, {
-      exemple: { code: 'MECANIQUE', libelle: 'Taux horaire mécanique', montantCentimes: 14500, valideDuLe: '2026-01-01' },
+      exemple: {
+        code: 'MECANIQUE',
+        libelle: 'Taux horaire mécanique',
+        montantCentimes: 14500,
+        valideDuLe: '2026-01-01',
+      },
     })
     corps: EntreeCreationTauxHoraire,
   ): Promise<ReponseTauxHoraireDto> {
@@ -65,14 +80,25 @@ export class TauxHorairesController {
   @ExigerDroit('parametrage.referentiel.modifier')
   @Patch(':id')
   @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiOperation({ summary: 'Modifie partiellement une période de taux horaire (jamais son `code`).' })
-  @ApiResponse({ status: 200, description: 'Taux horaire mis à jour.', type: ReponseTauxHoraireDto })
+  @ApiOperation({
+    summary: 'Modifie partiellement une période de taux horaire (jamais son `code`).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Taux horaire mis à jour.',
+    type: ReponseTauxHoraireDto,
+  })
   @ApiReponseProbleme(400, 'VALIDATION_ECHOUEE — corps invalide.')
   @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — taux horaire inconnu de ce tenant.')
-  @ApiReponseProbleme(409, 'CONFLIT — nouvelle période chevauchant une période valide existante du même code.')
+  @ApiReponseProbleme(
+    409,
+    'CONFLIT — nouvelle période chevauchant une période valide existante du même code.',
+  )
   async modifier(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,
-    @CorpsZod(schemaModificationTauxHoraire, { exemple: { montantCentimes: 15000, valideAuLe: '2026-12-31' } })
+    @CorpsZod(schemaModificationTauxHoraire, {
+      exemple: { montantCentimes: 15000, valideAuLe: '2026-12-31' },
+    })
     corps: EntreeModificationTauxHoraire,
   ): Promise<ReponseTauxHoraireDto> {
     return this.service.modifier(this.contexte.contexteTenant(), id, corps);

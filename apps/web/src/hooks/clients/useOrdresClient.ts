@@ -1,4 +1,8 @@
-import { useInfiniteQuery, type InfiniteData, type UseInfiniteQueryResult } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  type InfiniteData,
+  type UseInfiniteQueryResult,
+} from '@tanstack/react-query';
 
 import type { OrdreReparationResume, PageCurseur, StatutOrdreReparation } from '@dfa/shared';
 
@@ -24,7 +28,11 @@ export function useOrdresClient(
     queryKey: clesQuery.clients.ordres(clientId ?? ''),
     queryFn: async ({ pageParam }) => {
       const params = construireRequete(
-        { tri: filtres.tri ?? 'ouvertLe:desc', limite: LIMITE_PAR_PAGE, curseur: pageParam ?? undefined },
+        {
+          tri: filtres.tri ?? 'ouvertLe:desc',
+          limite: LIMITE_PAR_PAGE,
+          curseur: pageParam ?? undefined,
+        },
         { statut: filtres.statut },
       );
       const page = await requeteApi<PageCurseur<OrdreReparationResume>>(

@@ -8,7 +8,13 @@ import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 import { PageOrdreReparationResumeDto } from './dto';
 import { PageVehiculeResumeDto } from './dto';
-import { schemaListeOrDuClient, schemaListeVehiculesDuClient, schemaUuid, type ParametresListeOrDuClient, type ParametresListeVehiculesDuClient } from './schemas';
+import {
+  schemaListeOrDuClient,
+  schemaListeVehiculesDuClient,
+  schemaUuid,
+  type ParametresListeOrDuClient,
+  type ParametresListeVehiculesDuClient,
+} from './schemas';
 import { ServiceClientOrdresReparation } from './service-client-ordres-reparation';
 import { ServiceClientVehicules } from './service-client-vehicules';
 
@@ -35,7 +41,8 @@ export class ClientVehiculesController {
   @ExigerDroit('vehicule.lire')
   @ApiOperation({
     summary: 'Véhicules détenus par le client (RM-20).',
-    description: "Les détentions CLOSES ne sont visibles que sur demande explicite (`inclureAnciennesDetentions`).",
+    description:
+      'Les détentions CLOSES ne sont visibles que sur demande explicite (`inclureAnciennesDetentions`).',
   })
   @ApiParam({ name: 'clientId', format: 'uuid' })
   @ApiOkResponse({ type: PageVehiculeResumeDto })

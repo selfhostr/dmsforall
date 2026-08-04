@@ -16,7 +16,10 @@ export function calculerEtag(version: number): string {
  * `true` si l'en-tête `If-None-Match` (potentiellement une liste séparée par virgules, ou `*`)
  * couvre la version courante — auquel cas le contrôleur doit répondre `304` sans corps.
  */
-export function ifNoneMatchSatisfait(enteteIfNoneMatch: string | undefined, version: number): boolean {
+export function ifNoneMatchSatisfait(
+  enteteIfNoneMatch: string | undefined,
+  version: number,
+): boolean {
   if (!enteteIfNoneMatch) return false;
   if (enteteIfNoneMatch.trim() === '*') return true;
   const etag = calculerEtag(version);

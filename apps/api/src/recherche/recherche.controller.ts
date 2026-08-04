@@ -1,6 +1,10 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { schemaParametresRecherche, TYPES_RESULTAT_RECHERCHE, type ParametresRecherche } from '@dfa/shared';
+import {
+  schemaParametresRecherche,
+  TYPES_RESULTAT_RECHERCHE,
+  type ParametresRecherche,
+} from '@dfa/shared';
 import { z } from 'zod';
 
 import { ServiceContexteRequete } from '../common/contexte';
@@ -52,12 +56,12 @@ export class RechercheController {
   @ApiOperation({
     summary: 'Recherche comptoir unifiée — véhicules, clients, ordres de réparation.',
     description:
-      "Projection, pas une collection : aucun curseur, `limite` <= 50 (défaut 20). La " +
+      'Projection, pas une collection : aucun curseur, `limite` <= 50 (défaut 20). La ' +
       'normalisation (casse, accents, espaces, apostrophes, tirets, points) est strictement ' +
       "serveur (§7.5) — le front ne normalise que pour l'affichage. `types` est répétable " +
       '(`?types=vehicule&types=client`), jamais une liste séparée par virgules. Une plaque ' +
       'historique (RM-17) reste trouvable : `correspondance.historique = true` + ' +
-      "`porteeJusquLe`. Une plaque interchangeable (RM-18) renvoie les DEUX véhicules et " +
+      '`porteeJusquLe`. Une plaque interchangeable (RM-18) renvoie les DEUX véhicules et ' +
       '`plaqueInterchangeable = true` — le serveur ne choisit jamais à la place de ' +
       "l'utilisateur.",
   })
@@ -70,9 +74,18 @@ export class RechercheController {
     explode: true,
     description: 'Répétable. Par défaut, les trois natures sont cherchées.',
   })
-  @ApiQuery({ name: 'limite', required: false, type: Number, example: 20, description: 'Entre 1 et 50, défaut 20.' })
+  @ApiQuery({
+    name: 'limite',
+    required: false,
+    type: Number,
+    example: 20,
+    description: 'Entre 1 et 50, défaut 20.',
+  })
   @ApiOkResponse({ type: ReponseRechercheDto })
-  @ApiReponseProbleme(400, 'Paramètres de recherche invalides (q vide, limite hors bornes, type inconnu).')
+  @ApiReponseProbleme(
+    400,
+    'Paramètres de recherche invalides (q vide, limite hors bornes, type inconnu).',
+  )
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans recherche.executer).')
   @ApiReponseProbleme(

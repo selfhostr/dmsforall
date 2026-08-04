@@ -26,6 +26,7 @@ import { site } from '../site';
 import { tenant } from '../tenant';
 import {
   arrondiPointageEnum,
+  modeIdentificationPointageEnum,
   politiqueControleQualiteEnum,
   politiqueDemontageRefuseEnum,
   politiqueDeuxOrMemeVehiculeEnum,
@@ -45,7 +46,9 @@ export const parametreAtelier = pgTable('parametre_atelier', {
     .references(() => tenant.id, { onDelete: 'restrict' }),
 
   orPrefixe: text('or_prefixe'),
-  orPorteeNumerotation: porteeNumerotationEnum('or_portee_numerotation').notNull().default('tenant'),
+  orPorteeNumerotation: porteeNumerotationEnum('or_portee_numerotation')
+    .notNull()
+    .default('tenant'),
   orResetAnnuel: boolean('or_reset_annuel').notNull().default(true),
   uniteTemps: uniteTempsEnum('unite_temps').notNull().default('heures_decimales'),
 
@@ -62,11 +65,17 @@ export const parametreAtelier = pgTable('parametre_atelier', {
    */
   plafondAvoirReceptionnaireCentimes: integer('plafond_avoir_receptionnaire_centimes'),
 
-  chevauchementPointageAutorise: boolean('chevauchement_pointage_autorise').notNull().default(false),
-  pointageObligatoirePourTerminer: boolean('pointage_obligatoire_pour_terminer').notNull().default(false),
+  chevauchementPointageAutorise: boolean('chevauchement_pointage_autorise')
+    .notNull()
+    .default(false),
+  pointageObligatoirePourTerminer: boolean('pointage_obligatoire_pour_terminer')
+    .notNull()
+    .default(false),
   /** Δ3 : type PG complet (4 valeurs), CHECK restreint à jamais|toujours au lot 1. */
   controleQualite: politiqueControleQualiteEnum('controle_qualite').notNull().default('jamais'),
-  signatureReception: politiqueSignatureReceptionEnum('signature_reception').notNull().default('recommandee'),
+  signatureReception: politiqueSignatureReceptionEnum('signature_reception')
+    .notNull()
+    .default('recommandee'),
   kmEntreeObligatoire: boolean('km_entree_obligatoire').notNull().default(true),
   kmSortieObligatoire: boolean('km_sortie_obligatoire').notNull().default(false),
   restitutionAvantPaiement: boolean('restitution_avant_paiement').notNull().default(true),
@@ -85,9 +94,15 @@ export const parametreAtelier = pgTable('parametre_atelier', {
     .notNull()
     .default('technique'),
   /** P-27 : « A » ou « B », pas de source `@dfa/shared` — contraint en dur (voir migration). */
-  attentePiecesLongueDefaut: char('attente_pieces_longue_defaut', { length: 1 }).notNull().default('A'),
-  mentionSecurite: politiqueMentionSecuriteEnum('mention_securite').notNull().default('obligatoire'),
-  deuxOrMemeVehicule: politiqueDeuxOrMemeVehiculeEnum('deux_or_meme_vehicule').notNull().default('avertir'),
+  attentePiecesLongueDefaut: char('attente_pieces_longue_defaut', { length: 1 })
+    .notNull()
+    .default('A'),
+  mentionSecurite: politiqueMentionSecuriteEnum('mention_securite')
+    .notNull()
+    .default('obligatoire'),
+  deuxOrMemeVehicule: politiqueDeuxOrMemeVehiculeEnum('deux_or_meme_vehicule')
+    .notNull()
+    .default('avertir'),
   expertiseAlerteMois: smallint('expertise_alerte_mois').notNull().default(2),
   noShowSeuilAlerte: smallint('no_show_seuil_alerte').notNull().default(2),
   blocageJoursAlerte: smallint('blocage_jours_alerte').notNull().default(3),
@@ -113,6 +128,16 @@ export const parametreSite = pgTable(
     heureCloturePointage: time('heure_cloture_pointage'),
     capaciteHeuresJourCentiemes: integer('capacite_heures_jour_centiemes'),
     joursFermeture: jsonb('jours_fermeture').notNull().default([]),
+    /**
+     * RM-124 (0036, `docs/specification-pointage-borne.md`) : mode d'identification du pointage
+     * pour ce site. Défaut `'session_personnelle'` impératif — tous les sites existants
+     * continuent de fonctionner à l'identique sans intervention. Même droit que les autres
+     * colonnes de cet enregistrement (`parametrage.atelier.modifier`), via le même endpoint
+     * `PATCH /sites/{siteId}/parametres-atelier` déjà en place.
+     */
+    modeIdentificationPointage: modeIdentificationPointageEnum('mode_identification_pointage')
+      .notNull()
+      .default('session_personnelle'),
     ...colonnesHorodatage(),
   },
   (t) => [

@@ -1,5 +1,24 @@
-import { Controller, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCookieAuth,
+  ApiHeader,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import {
   schemaCreationAjustementInventaire,
@@ -112,7 +131,10 @@ export class MouvementController {
   @Post(':articleId/mouvements/transfert')
   @HttpCode(HttpStatus.CREATED)
   @ExigerDroit('pieces.mouvement.creer')
-  @ApiOperation({ summary: 'Transfère une quantité entre deux sites — un mouvement unique (RP-13). `Idempotency-Key` obligatoire.' })
+  @ApiOperation({
+    summary:
+      'Transfère une quantité entre deux sites — un mouvement unique (RP-13). `Idempotency-Key` obligatoire.',
+  })
   @ApiParam({ name: 'articleId', format: 'uuid' })
   @ApiHeader({ name: 'Idempotency-Key', required: true })
   @ApiResponse({ status: 201, type: MouvementStockDto })
@@ -129,7 +151,13 @@ export class MouvementController {
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
     const { role } = this.contexte.exigerPrincipal();
-    const resultat = await this.service.transfert(ctx, role, articleId, entree, cleIdempotence ?? '');
+    const resultat = await this.service.transfert(
+      ctx,
+      role,
+      articleId,
+      entree,
+      cleIdempotence ?? '',
+    );
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
     return resultat.reponse.corps;
@@ -158,7 +186,13 @@ export class MouvementController {
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
     const { role } = this.contexte.exigerPrincipal();
-    const resultat = await this.service.ajustementInventaire(ctx, role, articleId, entree, cleIdempotence ?? '');
+    const resultat = await this.service.ajustementInventaire(
+      ctx,
+      role,
+      articleId,
+      entree,
+      cleIdempotence ?? '',
+    );
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
     return resultat.reponse.corps;
@@ -167,7 +201,9 @@ export class MouvementController {
   @Post(':articleId/mouvements/retour-fournisseur')
   @HttpCode(HttpStatus.CREATED)
   @ExigerDroit('pieces.mouvement.creer')
-  @ApiOperation({ summary: 'Enregistre un retour au fournisseur (RP-30). `Idempotency-Key` obligatoire.' })
+  @ApiOperation({
+    summary: 'Enregistre un retour au fournisseur (RP-30). `Idempotency-Key` obligatoire.',
+  })
   @ApiParam({ name: 'articleId', format: 'uuid' })
   @ApiHeader({ name: 'Idempotency-Key', required: true })
   @ApiResponse({ status: 201, type: MouvementStockDto })
@@ -184,7 +220,13 @@ export class MouvementController {
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
     const { role } = this.contexte.exigerPrincipal();
-    const resultat = await this.service.retourFournisseur(ctx, role, articleId, entree, cleIdempotence ?? '');
+    const resultat = await this.service.retourFournisseur(
+      ctx,
+      role,
+      articleId,
+      entree,
+      cleIdempotence ?? '',
+    );
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
     return resultat.reponse.corps;

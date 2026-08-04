@@ -13,7 +13,10 @@ import { Label } from '@/components/ui/label';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
-import { useDoublonsClients, type CriteresDoublonsClients } from '@/hooks/clients/useDoublonsClients';
+import {
+  useDoublonsClients,
+  type CriteresDoublonsClients,
+} from '@/hooks/clients/useDoublonsClients';
 import { chemins } from '@/routes/chemins';
 
 const DELAI_DEBOUNCE_MS = 400;
@@ -99,8 +102,15 @@ export function EcranDoublonsClients() {
 
   const requete = useDoublonsClients(criteres);
   const candidats = requete.data?.candidats ?? [];
-  const auMoinsUnCritereSaisi = nom.trim() !== '' || npa.trim() !== '' || email.trim() !== '' || telephone.trim() !== '' || ide.trim() !== '';
-  const auMoinsUnCritereEffectif = Boolean(criteres.nom ?? criteres.npa ?? criteres.email ?? criteres.telephoneMobile ?? criteres.ide);
+  const auMoinsUnCritereSaisi =
+    nom.trim() !== '' ||
+    npa.trim() !== '' ||
+    email.trim() !== '' ||
+    telephone.trim() !== '' ||
+    ide.trim() !== '';
+  const auMoinsUnCritereEffectif = Boolean(
+    criteres.nom ?? criteres.npa ?? criteres.email ?? criteres.telephoneMobile ?? criteres.ide,
+  );
 
   const effacer = () => {
     setNom('');
@@ -115,31 +125,58 @@ export function EcranDoublonsClients() {
   return (
     <div className="flex flex-col gap-4 p-6">
       <div>
-        <h1 className="texte-titre font-semibold text-foreground">{t('clients:doublonsEcran.titre')}</h1>
-        <p className="texte-corps text-muted-foreground">{t('clients:doublonsEcran.description')}</p>
+        <h1 className="texte-titre font-semibold text-foreground">
+          {t('clients:doublonsEcran.titre')}
+        </h1>
+        <p className="texte-corps text-muted-foreground">
+          {t('clients:doublonsEcran.description')}
+        </p>
       </div>
 
       <Card>
         <CardContent className="grid gap-3 pt-6 sm:grid-cols-2 lg:grid-cols-5">
           <div className="space-y-2">
             <Label htmlFor="dc-nom">{t('clients:doublonsEcran.champs.nom')}</Label>
-            <Input id="dc-nom" value={nom} onChange={(evenement) => setNom(evenement.target.value)} />
+            <Input
+              id="dc-nom"
+              value={nom}
+              onChange={(evenement) => setNom(evenement.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="dc-npa">{t('clients:doublonsEcran.champs.npa')}</Label>
-            <Input id="dc-npa" value={npa} onChange={(evenement) => setNpa(evenement.target.value)} />
+            <Input
+              id="dc-npa"
+              value={npa}
+              onChange={(evenement) => setNpa(evenement.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="dc-email">{t('clients:doublonsEcran.champs.email')}</Label>
-            <Input id="dc-email" type="email" value={email} onChange={(evenement) => setEmail(evenement.target.value)} />
+            <Input
+              id="dc-email"
+              type="email"
+              value={email}
+              onChange={(evenement) => setEmail(evenement.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="dc-telephone">{t('clients:doublonsEcran.champs.telephone')}</Label>
-            <Input id="dc-telephone" type="tel" value={telephone} onChange={(evenement) => setTelephone(evenement.target.value)} />
+            <Input
+              id="dc-telephone"
+              type="tel"
+              value={telephone}
+              onChange={(evenement) => setTelephone(evenement.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="dc-ide">{t('clients:doublonsEcran.champs.ide')}</Label>
-            <Input id="dc-ide" placeholder="CHE-123.456.789" value={ide} onChange={(evenement) => setIde(evenement.target.value)} />
+            <Input
+              id="dc-ide"
+              placeholder="CHE-123.456.789"
+              value={ide}
+              onChange={(evenement) => setIde(evenement.target.value)}
+            />
           </div>
         </CardContent>
         {auMoinsUnCritereSaisi ? (
@@ -170,8 +207,12 @@ export function EcranDoublonsClients() {
           className="flex flex-col items-center gap-3 rounded-lg border border-statut-succes/40 bg-statut-succes/10 p-10 text-center"
         >
           <CheckCircle2 aria-hidden className="h-8 w-8 text-statut-succes" />
-          <h2 className="text-lg font-semibold text-foreground">{t('clients:doublonsEcran.vide.aucunDoublon')}</h2>
-          <p className="max-w-md text-muted-foreground">{t('clients:doublonsEcran.vide.aucunDoublonDescription')}</p>
+          <h2 className="text-lg font-semibold text-foreground">
+            {t('clients:doublonsEcran.vide.aucunDoublon')}
+          </h2>
+          <p className="max-w-md text-muted-foreground">
+            {t('clients:doublonsEcran.vide.aucunDoublonDescription')}
+          </p>
         </div>
       ) : (
         <Card>
@@ -189,15 +230,20 @@ export function EcranDoublonsClients() {
                 >
                   <div className="min-w-0">
                     <p className="truncate texte-corps font-medium text-foreground">
-                      {candidat.nom} <span className="texte-libelle text-muted-foreground">{candidat.numeroClient}</span>
+                      {candidat.nom}{' '}
+                      <span className="texte-libelle text-muted-foreground">
+                        {candidat.numeroClient}
+                      </span>
                     </p>
                     <p className="texte-libelle text-muted-foreground">
-                      {t(`clients:doublons.criteres.${candidat.critere}`)} · {t('clients:doublons.score')}{' '}
-                      {Math.round(candidat.score * 100)} %
+                      {t(`clients:doublons.criteres.${candidat.critere}`)} ·{' '}
+                      {t('clients:doublons.score')} {Math.round(candidat.score * 100)} %
                     </p>
                   </div>
                   <Button asChild variant="outline" size="sm">
-                    <Link to={chemins.clients.detail(candidat.clientId, site)}>{t('clients:doublons.voir')}</Link>
+                    <Link to={chemins.clients.detail(candidat.clientId, site)}>
+                      {t('clients:doublons.voir')}
+                    </Link>
                   </Button>
                 </li>
               ))}

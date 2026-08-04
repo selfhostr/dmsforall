@@ -266,16 +266,21 @@
       "reapprovisionnement": "Riordino"
     },
     "fournisseur": "Fornitore",
+    "voirFournisseur": "Vedi il fornitore",
     "site": "Ubicazione",
     "dateCommande": "Data ordine",
     "envoyeeLe": "Inviato il",
     "reference": "Riferimento fornitore",
+    "montantAttendu": "Importo previsto",
+    "montantPartiel": "(parziale — prezzo mancante su almeno una riga)",
+    "motifAnnulation": "Motivo dell'annullamento",
     "lignes": {
       "titre": "Righe",
       "article": "Articolo",
       "quantiteCommandee": "Quantita ordinata",
       "quantiteRecue": "Quantita ricevuta",
       "quantiteReliquat": "Importo in sospeso",
+      "reliquatAnnule": "annullato",
       "prixAchatAttendu": "Prezzo di acquisto previsto",
       "prixAchatReel": "Prezzo di acquisto effettivo",
       "motif": "Motivo"
@@ -289,8 +294,33 @@
     },
     "reception": {
       "titre": "Ricezione",
+      "description": "Indicare cosa e stato effettivamente consegnato, riga per riga.",
+      "ligneNumero": "Riga {numero}",
+      "aucuneLigne": "Selezionare almeno una riga ricevuta.",
       "referenceLibellee": "Riferimento consegnato",
       "ecart": "Differenza rilevata — riferimento diverso"
+    },
+    "nouvelle": {
+      "aucuneLigne": "Aggiungere almeno una riga all'ordine.",
+      "choisirSiteDabord": "Scegliere prima un'ubicazione per cercare gli articoli."
+    },
+    "filtres": {
+      "statutTous": "Tutti gli stati",
+      "avecReliquat": "Solo con importo in sospeso"
+    },
+    "confirmations": {
+      "annulerTitre": "Annullare questo ordine?",
+      "annulerDescription": "L'ordine viene annullato definitivamente. Indicare il motivo.",
+      "annulerReliquatTitre": "Annullare questo importo in sospeso?",
+      "annulerReliquatDescription": "La quantita restante non sara piu attesa da questo fornitore. Indicare il motivo."
+    },
+    "erreur": {
+      "titre": "Impossibile visualizzare gli ordini"
+    },
+    "fiche": {
+      "erreur": {
+        "titre": "Impossibile visualizzare questo ordine"
+      }
     },
     "vide": "Nessun ordine."
   },
@@ -317,6 +347,13 @@
       "anciennete": "Eta minima (giorni)",
       "description": "Cauzioni create almeno {jours} {jours, plural, one {giorno} other {giorni}} fa"
     },
+    "confirmations": {
+      "marquerRetourTitre": "Contrassegnare questa cauzione come restituita?",
+      "marquerRetourDescription": "Il pezzo vecchio viene restituito al fornitore. Questa azione e definitiva."
+    },
+    "erreur": {
+      "titre": "Impossibile visualizzare le cauzioni"
+    },
     "vide": "Nessuna cauzione."
   },
   "fournisseurs": {
@@ -329,6 +366,32 @@
     "nom": "Nome",
     "contact": "Contatto",
     "coordonnees": "Coordinate",
+    "email": "E-mail",
+    "telephone": "Telefono",
+    "delaiHabituelJours": "Termine abituale (giorni)",
+    "actions": {
+      "ajouter": "Crea fornitore",
+      "modifier": "Modifica",
+      "desactiver": "Disattiva",
+      "reactiver": "Riattiva"
+    },
+    "filtres": {
+      "statutTous": "Tutti gli stati"
+    },
+    "confirmations": {
+      "desactiverTitre": "Disattivare questo fornitore?",
+      "desactiverDescription": "Il fornitore non verra piu proposto per un nuovo ordine. Azione reversibile.",
+      "reactiverTitre": "Riattivare questo fornitore?",
+      "reactiverDescription": "Il fornitore torna proponibile normalmente."
+    },
+    "erreur": {
+      "titre": "Impossibile visualizzare i fornitori"
+    },
+    "fiche": {
+      "erreur": {
+        "titre": "Impossibile visualizzare questo fornitore"
+      }
+    },
     "vide": "Nessun fornitore."
   }
 }

@@ -50,9 +50,12 @@ export async function listerVehicules(
   filtres: FiltresListeVehicules,
   page: PageVehicules,
 ): Promise<PageCurseur<VehiculeResume>> {
-  const page_ = await requeteApi<PageCurseur<VehiculeResume>>(`/vehicules?${construireParametres(filtres, page)}`, {
-    method: 'GET',
-  });
+  const page_ = await requeteApi<PageCurseur<VehiculeResume>>(
+    `/vehicules?${construireParametres(filtres, page)}`,
+    {
+      method: 'GET',
+    },
+  );
   return page_ ?? { donnees: [], curseurSuivant: null, limite: page.limite };
 }
 
@@ -66,27 +69,42 @@ export async function recupererVehicule(vehiculeId: string): Promise<ReponseVehi
 
 /** `GET /vehicules/{id}/contexte-atelier` (§8.1) — agrégat consommé au même instant à la prise
  *  de RDV et à la réception du matin (D-01, RM-36, CT-13). */
-export async function recupererContexteAtelier(vehiculeId: string): Promise<ReponseContexteAtelier> {
-  const contexte = await requeteApi<ReponseContexteAtelier>(`/vehicules/${vehiculeId}/contexte-atelier`, {
-    method: 'GET',
-  });
+export async function recupererContexteAtelier(
+  vehiculeId: string,
+): Promise<ReponseContexteAtelier> {
+  const contexte = await requeteApi<ReponseContexteAtelier>(
+    `/vehicules/${vehiculeId}/contexte-atelier`,
+    {
+      method: 'GET',
+    },
+  );
   if (!contexte) {
     throw new Error('Réponse contexte-atelier inattendue : corps vide.');
   }
   return contexte;
 }
 
-export async function listerKilometragesVehicule(vehiculeId: string): Promise<readonly ReponseVehiculeKilometrage[]> {
-  const releves = await requeteApi<readonly ReponseVehiculeKilometrage[]>(`/vehicules/${vehiculeId}/kilometrages`, {
-    method: 'GET',
-  });
+export async function listerKilometragesVehicule(
+  vehiculeId: string,
+): Promise<readonly ReponseVehiculeKilometrage[]> {
+  const releves = await requeteApi<readonly ReponseVehiculeKilometrage[]>(
+    `/vehicules/${vehiculeId}/kilometrages`,
+    {
+      method: 'GET',
+    },
+  );
   return releves ?? [];
 }
 
-export async function listerDetentionsVehicule(vehiculeId: string): Promise<readonly ReponseVehiculeDetention[]> {
-  const detentions = await requeteApi<readonly ReponseVehiculeDetention[]>(`/vehicules/${vehiculeId}/detentions`, {
-    method: 'GET',
-  });
+export async function listerDetentionsVehicule(
+  vehiculeId: string,
+): Promise<readonly ReponseVehiculeDetention[]> {
+  const detentions = await requeteApi<readonly ReponseVehiculeDetention[]>(
+    `/vehicules/${vehiculeId}/detentions`,
+    {
+      method: 'GET',
+    },
+  );
   return detentions ?? [];
 }
 

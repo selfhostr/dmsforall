@@ -1,4 +1,8 @@
-import { useInfiniteQuery, type InfiniteData, type UseInfiniteQueryResult } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  type InfiniteData,
+  type UseInfiniteQueryResult,
+} from '@tanstack/react-query';
 
 import type { ClientResume, PageCurseur, StatutClient, TypeClient } from '@dfa/shared';
 
@@ -12,7 +16,13 @@ const LIMITE_PAR_PAGE = 50;
 /** Tris fermés de `GET /clients` (`TRIS_CLIENTS`, `@dfa/shared`) — dupliqués ici en littéraux
  *  plutôt qu'importés en valeur : seul le type compte côté écran (le `SelecteurTri` les reçoit
  *  déjà traduits), `TRIS_CLIENTS` reste la source de vérité runtime côté validation serveur. */
-export type TriClients = 'nom:asc' | 'nom:desc' | 'numeroClient:asc' | 'numeroClient:desc' | 'creeLe:desc' | 'dernierPassageLe:desc';
+export type TriClients =
+  | 'nom:asc'
+  | 'nom:desc'
+  | 'numeroClient:asc'
+  | 'numeroClient:desc'
+  | 'creeLe:desc'
+  | 'dernierPassageLe:desc';
 
 export interface FiltresListeClients {
   readonly q?: string;
@@ -25,7 +35,13 @@ export interface FiltresListeClients {
 
 function cheminListeClients(filtres: FiltresListeClients, curseur: string | null): string {
   const params = construireRequete(
-    { q: filtres.q, type: filtres.type, tri: filtres.tri, limite: LIMITE_PAR_PAGE, curseur: curseur ?? undefined },
+    {
+      q: filtres.q,
+      type: filtres.type,
+      tri: filtres.tri,
+      limite: LIMITE_PAR_PAGE,
+      curseur: curseur ?? undefined,
+    },
     { statut: filtres.statut },
   );
   return `/clients?${params.toString()}`;
@@ -43,9 +59,12 @@ export function useListeClients(
       tri: filtres.tri ?? '',
     }),
     queryFn: async ({ pageParam }) => {
-      const page = await requeteApi<PageCurseur<ClientResume>>(cheminListeClients(filtres, pageParam), {
-        method: 'GET',
-      });
+      const page = await requeteApi<PageCurseur<ClientResume>>(
+        cheminListeClients(filtres, pageParam),
+        {
+          method: 'GET',
+        },
+      );
       return exigerCorps(page, 'GET /clients');
     },
     initialPageParam: null as string | null,

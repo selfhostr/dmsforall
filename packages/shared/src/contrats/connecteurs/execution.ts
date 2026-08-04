@@ -9,6 +9,7 @@ import {
   type TypeDeclenchementConnecteur,
 } from './enums';
 import { schemaMotif, schemaIdentifiant } from '../atelier/primitives';
+import { schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 import type { TypeEvenementMetier } from '../atelier/evenement';
 
@@ -91,9 +92,9 @@ export const TRI_DEFAUT_EXECUTIONS_CONNECTEUR = 'creeLe:desc';
 
 export const schemaFiltresExecutionsConnecteur = schemaParametresPage.extend({
   connecteurActivationId: schemaIdentifiant.optional(),
-  operation: z.array(z.enum(OPERATIONS_CONNECTEUR)).optional(),
-  statut: z.array(z.enum(STATUTS_EXECUTION_CONNECTEUR)).optional(),
-  declenchement: z.array(z.enum(TYPES_DECLENCHEMENT_CONNECTEUR)).optional(),
+  operation: schemaListeQuery(z.enum(OPERATIONS_CONNECTEUR)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_EXECUTION_CONNECTEUR)).optional(),
+  declenchement: schemaListeQuery(z.enum(TYPES_DECLENCHEMENT_CONNECTEUR)).optional(),
   /** `true` : exécutions qui attendent une action humaine (`RC-04`) — sucre équivalent à
    *  `statut: ['necessite_action']`, même doctrine que `avecReliquat`
    *  (`pieces/commande-fournisseur.ts`) : une vue reste reproductible par les filtres primitifs. */
@@ -131,4 +132,6 @@ export type EntreeRejouerExecutionConnecteur = z.infer<typeof schemaRejouerExecu
 export const schemaAnnulationExecutionConnecteur = z.object({
   motif: schemaMotif,
 });
-export type EntreeAnnulationExecutionConnecteur = z.infer<typeof schemaAnnulationExecutionConnecteur>;
+export type EntreeAnnulationExecutionConnecteur = z.infer<
+  typeof schemaAnnulationExecutionConnecteur
+>;

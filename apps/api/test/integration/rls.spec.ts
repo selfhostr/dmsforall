@@ -17,7 +17,11 @@ import {
   ROLES_UTILISATEUR,
   TYPES_EVENEMENT_SECURITE,
 } from '@dfa/shared';
-import { demarrerBaseEphemere, requeteSousTenant, type BaseEphemere } from '../setup/postgres-ephemere';
+import {
+  demarrerBaseEphemere,
+  requeteSousTenant,
+  type BaseEphemere,
+} from '../setup/postgres-ephemere';
 import { semerGarageDemo, type GarageDemoFixture } from '../fixtures/garage-demo';
 import { creerAccesBaseTest, demarrerRedisEphemere, type RedisEphemere } from '../setup/app-test';
 
@@ -40,13 +44,22 @@ afterAll(async () => {
 
 describe('isolation tenant par RLS — lecture et écriture', () => {
   it('sous app.tenant_id = A, "select count(*) from site" ne rend que les sites du tenant A', async () => {
-    const lignes = await requeteSousTenant<{ n: string }>(bdd.poolApp, demo.tenantA.id, 'select count(*) as n from site');
+    const lignes = await requeteSousTenant<{ n: string }>(
+      bdd.poolApp,
+      demo.tenantA.id,
+      'select count(*) as n from site',
+    );
     expect(Number(lignes[0]?.n)).toBe(demo.tenantA.sites.length);
   });
 
-  it("un select explicite where id = <site du tenant B> rend zéro ligne sous le contexte du tenant A", async () => {
+  it('un select explicite where id = <site du tenant B> rend zéro ligne sous le contexte du tenant A', async () => {
     const siteDeB = demo.tenantB.sites[0]!;
-    const lignes = await requeteSousTenant(bdd.poolApp, demo.tenantA.id, 'select * from site where id = $1', [siteDeB.id]);
+    const lignes = await requeteSousTenant(
+      bdd.poolApp,
+      demo.tenantA.id,
+      'select * from site where id = $1',
+      [siteDeB.id],
+    );
     expect(lignes).toHaveLength(0);
   });
 
@@ -55,7 +68,7 @@ describe('isolation tenant par RLS — lecture et écriture', () => {
     expect(lignes).toHaveLength(0);
   });
 
-  it("un insert portant le tenant_id du tenant B, exécuté sous le contexte du tenant A, viole la politique RLS", async () => {
+  it('un insert portant le tenant_id du tenant B, exécuté sous le contexte du tenant A, viole la politique RLS', async () => {
     await expect(
       requeteSousTenant(
         bdd.poolApp,
@@ -69,10 +82,12 @@ describe('isolation tenant par RLS — lecture et écriture', () => {
   it('un update qui ferait passer un site du tenant A vers tenant_id = B est refusé par le RLS', async () => {
     const siteDeA = demo.tenantA.sites[0]!;
     await expect(
-      requeteSousTenant(bdd.poolApp, demo.tenantA.id, 'update site set tenant_id = $2 where id = $1', [
-        siteDeA.id,
-        demo.tenantB.id,
-      ]),
+      requeteSousTenant(
+        bdd.poolApp,
+        demo.tenantA.id,
+        'update site set tenant_id = $2 where id = $1',
+        [siteDeA.id, demo.tenantB.id],
+      ),
     ).rejects.toThrow(/policy|permission/i);
 
     // Le site n'a pas bougé : ni le tenant_id, ni même une écriture partielle quelconque.
@@ -86,9 +101,9 @@ describe('isolation tenant par RLS — lecture et écriture', () => {
   });
 });
 
-describe('le piège du pooling — raison d\'être de tout le dispositif', () => {
+describe("le piège du pooling — raison d'être de tout le dispositif", () => {
   it(
-    "un set_config posé en portée transaction (is_local=true, le mécanisme documenté pour enTenant) " +
+    'un set_config posé en portée transaction (is_local=true, le mécanisme documenté pour enTenant) ' +
       'disparaît après COMMIT sur la même connexion physique reprise du pool',
     async () => {
       // max:1 force la réutilisation d'une seule et même connexion physique, pour être certain
@@ -99,8 +114,12 @@ describe('le piège du pooling — raison d\'être de tout le dispositif', () =>
         let pidConnexionPhysique: number;
         try {
           await clientPendantTransaction.query('begin');
-          pidConnexionPhysique = (await clientPendantTransaction.query('select pg_backend_pid() as pid')).rows[0].pid;
-          await clientPendantTransaction.query("select set_config('app.tenant_id', $1, true)", [demo.tenantA.id]);
+          pidConnexionPhysique = (
+            await clientPendantTransaction.query('select pg_backend_pid() as pid')
+          ).rows[0].pid;
+          await clientPendantTransaction.query("select set_config('app.tenant_id', $1, true)", [
+            demo.tenantA.id,
+          ]);
           const pendantLaTransaction = await clientPendantTransaction.query(
             "select current_setting('app.tenant_id', true) as v",
           );
@@ -112,14 +131,18 @@ describe('le piège du pooling — raison d\'être de tout le dispositif', () =>
 
         const clientRepriseDuPool = await pool.connect();
         try {
-          const pid = (await clientRepriseDuPool.query('select pg_backend_pid() as pid')).rows[0].pid;
+          const pid = (await clientRepriseDuPool.query('select pg_backend_pid() as pid')).rows[0]
+            .pid;
           // Précondition du test : si ce n'est pas la même connexion physique, le test ne
           // prouve rien — mieux vaut le faire échouer bruyamment que le laisser passer à tort.
-          expect(pid, 'la connexion reprise du pool doit être le même socket physique (max:1)').toBe(
-            pidConnexionPhysique,
-          );
+          expect(
+            pid,
+            'la connexion reprise du pool doit être le même socket physique (max:1)',
+          ).toBe(pidConnexionPhysique);
 
-          const apresCommit = await clientRepriseDuPool.query("select current_setting('app.tenant_id', true) as v");
+          const apresCommit = await clientRepriseDuPool.query(
+            "select current_setting('app.tenant_id', true) as v",
+          );
           expect(apresCommit.rows[0].v === null || apresCommit.rows[0].v === '').toBe(true);
         } finally {
           clientRepriseDuPool.release();
@@ -138,13 +161,17 @@ describe('le piège du pooling — raison d\'être de tout le dispositif', () =>
       try {
         const premiereConnexion = await pool.connect();
         try {
-          await premiereConnexion.query("select set_config('app.tenant_id', $1, false)", [demo.tenantB.id]);
+          await premiereConnexion.query("select set_config('app.tenant_id', $1, false)", [
+            demo.tenantB.id,
+          ]);
         } finally {
           premiereConnexion.release();
         }
         const deuxiemeConnexion = await pool.connect();
         try {
-          const resultat = await deuxiemeConnexion.query("select current_setting('app.tenant_id', true) as v");
+          const resultat = await deuxiemeConnexion.query(
+            "select current_setting('app.tenant_id', true) as v",
+          );
           expect(resultat.rows[0].v).toBe(demo.tenantB.id);
         } finally {
           deuxiemeConnexion.release();
@@ -157,22 +184,28 @@ describe('le piège du pooling — raison d\'être de tout le dispositif', () =>
 
   it(
     "l'implémentation réelle AccesBase.enTenant() ne laisse fuiter aucune donnée entre deux tenants " +
-      "consécutifs, même sur un pool réduit à une seule connexion physique",
+      'consécutifs, même sur un pool réduit à une seule connexion physique',
     async () => {
-      const { accesBase, fermer } = await creerAccesBaseTest(bdd, redis.url, { DATABASE_POOL_MAX: '1' });
+      const { accesBase, fermer } = await creerAccesBaseTest(bdd, redis.url, {
+        DATABASE_POOL_MAX: '1',
+      });
       try {
         for (let iteration = 0; iteration < 5; iteration += 1) {
           const resultatA = await accesBase.enTenant(
             { tenantId: demo.tenantA.id, utilisateurId: null, requeteId: null },
             async (tx) => tx.execute(sql`select count(*)::int as n from site`),
           );
-          expect((resultatA as unknown as { rows: Array<{ n: number }> }).rows[0]?.n).toBe(demo.tenantA.sites.length);
+          expect((resultatA as unknown as { rows: Array<{ n: number }> }).rows[0]?.n).toBe(
+            demo.tenantA.sites.length,
+          );
 
           const resultatB = await accesBase.enTenant(
             { tenantId: demo.tenantB.id, utilisateurId: null, requeteId: null },
             async (tx) => tx.execute(sql`select count(*)::int as n from site`),
           );
-          expect((resultatB as unknown as { rows: Array<{ n: number }> }).rows[0]?.n).toBe(demo.tenantB.sites.length);
+          expect((resultatB as unknown as { rows: Array<{ n: number }> }).rows[0]?.n).toBe(
+            demo.tenantB.sites.length,
+          );
         }
       } finally {
         await fermer();
@@ -185,7 +218,10 @@ describe('posture du rôle applicatif dfa_app', () => {
   it("dfa_app n'est ni superutilisateur ni bypassrls, et ne possède aucune table", async () => {
     const client = await bdd.poolSuperutilisateur.connect();
     try {
-      const role = await client.query('select rolsuper, rolbypassrls from pg_roles where rolname = $1', ['dfa_app']);
+      const role = await client.query(
+        'select rolsuper, rolbypassrls from pg_roles where rolname = $1',
+        ['dfa_app'],
+      );
       expect(role.rows).toHaveLength(1);
       expect(role.rows[0]).toEqual({ rolsuper: false, rolbypassrls: false });
 
@@ -201,7 +237,9 @@ describe('posture du rôle applicatif dfa_app', () => {
   it('dfa_app ne peut pas créer de table (aucun droit CREATE sur le schéma public)', async () => {
     const client = await bdd.poolApp.connect();
     try {
-      await expect(client.query('create table t_intrus (x int)')).rejects.toThrow(/permission denied/i);
+      await expect(client.query('create table t_intrus (x int)')).rejects.toThrow(
+        /permission denied/i,
+      );
     } finally {
       client.release();
     }
@@ -212,7 +250,11 @@ describe('couverture RLS générique — attrape automatiquement toute future ta
   it('toute table de public portant une colonne tenant_id a relrowsecurity=true et au moins une politique', async () => {
     const client = await bdd.poolSuperutilisateur.connect();
     try {
-      const { rows } = await client.query<{ table_nom: string; rls_actif: boolean; nb_politiques: string }>(`
+      const { rows } = await client.query<{
+        table_nom: string;
+        rls_actif: boolean;
+        nb_politiques: string;
+      }>(`
         select
           c.relname as table_nom,
           c.relrowsecurity as rls_actif,
@@ -230,12 +272,18 @@ describe('couverture RLS générique — attrape automatiquement toute future ta
 
       // Si aucune table n'est trouvée, le test ne PROUVE rien (schéma pas encore migré, ou
       // convention de nommage différente) — on le fait échouer plutôt que passer à tort.
-      expect(rows.length, 'aucune table avec colonne tenant_id trouvée — le schéma est-il migré ?').toBeGreaterThan(0);
+      expect(
+        rows.length,
+        'aucune table avec colonne tenant_id trouvée — le schéma est-il migré ?',
+      ).toBeGreaterThan(0);
 
       for (const ligne of rows) {
         expect.soft(ligne.rls_actif, `${ligne.table_nom}.relrowsecurity doit être true`).toBe(true);
         expect
-          .soft(Number(ligne.nb_politiques), `${ligne.table_nom} doit avoir au moins une politique RLS`)
+          .soft(
+            Number(ligne.nb_politiques),
+            `${ligne.table_nom} doit avoir au moins une politique RLS`,
+          )
           .toBeGreaterThan(0);
       }
     } finally {
@@ -243,7 +291,7 @@ describe('couverture RLS générique — attrape automatiquement toute future ta
     }
   });
 
-  it("la table tenant elle-même a relrowsecurity=true et une politique (cas particulier documenté : la politique porte sur id, pas tenant_id)", async () => {
+  it('la table tenant elle-même a relrowsecurity=true et une politique (cas particulier documenté : la politique porte sur id, pas tenant_id)', async () => {
     const client = await bdd.poolSuperutilisateur.connect();
     try {
       const { rows } = await client.query<{ rls_actif: boolean; nb_politiques: string }>(`
@@ -321,7 +369,10 @@ describe('couverture RLS générique — attrape automatiquement toute future ta
 
       for (const ligne of politiquesVisantDfaApp) {
         expect
-          .soft(ligne.expr_using, `${ligne.table_nom}.${ligne.politique_nom} : USING doit référencer tenant_courant()`)
+          .soft(
+            ligne.expr_using,
+            `${ligne.table_nom}.${ligne.politique_nom} : USING doit référencer tenant_courant()`,
+          )
           .toMatch(/tenant_courant\(\)/);
         expect
           .soft(

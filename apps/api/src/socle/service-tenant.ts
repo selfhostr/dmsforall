@@ -31,9 +31,13 @@ export class ServiceTenant {
         // Ne devrait jamais arriver pour une session valide (le tenant existe forcément si la
         // session a été résolue) : incohérence interne, pas une erreur métier attendue côté
         // client — §4 endpoint 4 ne documente que 401/403 pour cette route.
-        this.journal.error('Tenant introuvable pour un ContexteTenant issu d\'une session valide', undefined, {
-          tenantId: ctx.tenantId,
-        });
+        this.journal.error(
+          "Tenant introuvable pour un ContexteTenant issu d'une session valide",
+          undefined,
+          {
+            tenantId: ctx.tenantId,
+          },
+        );
         throw new ErreurMetier('ERREUR_INTERNE', 'Tenant courant introuvable.');
       }
 

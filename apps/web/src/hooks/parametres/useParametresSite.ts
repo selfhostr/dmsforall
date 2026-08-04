@@ -26,7 +26,9 @@ async function recupererParametresSite(siteId: string): Promise<ReponseParametre
  * gérer une garde `if (siteId)` séparée : la requête reste simplement `enabled: false` tant que
  * `siteId` est absent, comme `useRechercheComptoir` le fait pour son terme de recherche.
  */
-export function useParametresSite(siteId: string | undefined): UseQueryResult<ReponseParametresSite> {
+export function useParametresSite(
+  siteId: string | undefined,
+): UseQueryResult<ReponseParametresSite> {
   return useQuery({
     queryKey: clesQuery.parametres.site(siteId ?? ''),
     queryFn: () => recupererParametresSite(siteId as string),

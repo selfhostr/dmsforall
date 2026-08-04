@@ -18,7 +18,14 @@ import {
 import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
@@ -176,9 +183,12 @@ export function PanneauActionsOr({ or }: Props) {
     // Le panneau doit rester capable de router N'IMPORTE quelle des onze actions vers SA mutation
     // typée, ce que TypeScript ne peut pas vérifier statiquement ici sans dupliquer onze fois ce
     // bloc — le cast est donc délibéré, borné à cette seule ligne.
-    (mutationActive.mutate as (valeur: unknown, options?: { onSuccess?: () => void }) => void)(entree, {
-      onSuccess: () => fermer(),
-    });
+    (mutationActive.mutate as (valeur: unknown, options?: { onSuccess?: () => void }) => void)(
+      entree,
+      {
+        onSuccess: () => fermer(),
+      },
+    );
   }
 
   function resoumettreAvecConfirmations(confirmations: readonly CodeConfirmation[]) {
@@ -193,7 +203,11 @@ export function PanneauActionsOr({ or }: Props) {
   }
 
   if (actionsNiveauOr.length === 0) {
-    return <p className="texte-libelle text-muted-foreground">{t('or:actions.aucuneActionDisponible')}</p>;
+    return (
+      <p className="texte-libelle text-muted-foreground">
+        {t('or:actions.aucuneActionDisponible')}
+      </p>
+    );
   }
 
   const cleTitre = actionOuverte ? CLES_TRANSITION[actionOuverte] : undefined;
@@ -205,7 +219,12 @@ export function PanneauActionsOr({ or }: Props) {
         {actionsNiveauOr.map((action) => {
           const cle = CLES_TRANSITION[action];
           if (!cle) return null;
-          const variant = action === 'annuler' ? 'destructive' : action === 'receptionner' || action === 'demarrer' ? 'default' : 'outline';
+          const variant =
+            action === 'annuler'
+              ? 'destructive'
+              : action === 'receptionner' || action === 'demarrer'
+                ? 'default'
+                : 'outline';
           const libelle = t(`or:transitions.${cle}`);
 
           // `facturer` navigue vers `EcranFacturerOrdreReparation` (choix par groupe payeur) au
@@ -226,7 +245,10 @@ export function PanneauActionsOr({ or }: Props) {
         })}
       </div>
 
-      <Dialog open={actionOuverte !== null} onOpenChange={(ouvert) => (ouvert ? undefined : fermer())}>
+      <Dialog
+        open={actionOuverte !== null}
+        onOpenChange={(ouvert) => (ouvert ? undefined : fermer())}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{titreDialogue}</DialogTitle>
@@ -244,9 +266,19 @@ export function PanneauActionsOr({ or }: Props) {
           {/* CONFIRMATION_REQUISE (§4.4) : la transition reste possible, un rôle habilité doit
            *  juste confirmer explicitement — jamais un second clic silencieux sur le même bouton. */}
           {confirmationsRequises.length > 0 ? (
-            <div role="alert" className="rounded-md border border-statut-attention/40 bg-statut-attention/10 p-3">
-              <p className="texte-corps text-statut-attention">{erreurActive ? messageErreur(erreurActive, t) : ''}</p>
-              <Button type="button" variant="outline" className="mt-2" onClick={() => setConfirmationOuverte(true)}>
+            <div
+              role="alert"
+              className="rounded-md border border-statut-attention/40 bg-statut-attention/10 p-3"
+            >
+              <p className="texte-corps text-statut-attention">
+                {erreurActive ? messageErreur(erreurActive, t) : ''}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-2"
+                onClick={() => setConfirmationOuverte(true)}
+              >
                 {t('commun:actions.continuerQuandMeme')}
               </Button>
             </div>
@@ -262,12 +294,17 @@ export function PanneauActionsOr({ or }: Props) {
                 obligatoire
               />
               <label className="flex items-center gap-2 texte-corps">
-                <Checkbox checked={signatureDifferee} onCheckedChange={(coche) => setSignatureDifferee(coche === true)} />
+                <Checkbox
+                  checked={signatureDifferee}
+                  onCheckedChange={(coche) => setSignatureDifferee(coche === true)}
+                />
                 {t('or:actions.signatureDifferee')}
               </label>
               {signatureDifferee ? (
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="or-action-motif-differee">{t('or:actions.motifSignatureDifferee')}</Label>
+                  <Label htmlFor="or-action-motif-differee">
+                    {t('or:actions.motifSignatureDifferee')}
+                  </Label>
                   <Textarea
                     id="or-action-motif-differee"
                     value={motifDifferee}
@@ -275,7 +312,9 @@ export function PanneauActionsOr({ or }: Props) {
                   />
                 </div>
               ) : null}
-              {erreurValidation ? <p className="texte-libelle text-destructive">{erreurValidation}</p> : null}
+              {erreurValidation ? (
+                <p className="texte-libelle text-destructive">{erreurValidation}</p>
+              ) : null}
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">{t('commun:actions.annuler')}</Button>
@@ -306,9 +345,15 @@ export function PanneauActionsOr({ or }: Props) {
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="or-action-motif-reprise">{t('or:actions.motif')}</Label>
-                <Textarea id="or-action-motif-reprise" value={motif} onChange={(evenement) => setMotif(evenement.target.value)} />
+                <Textarea
+                  id="or-action-motif-reprise"
+                  value={motif}
+                  onChange={(evenement) => setMotif(evenement.target.value)}
+                />
               </div>
-              {erreurValidation ? <p className="texte-libelle text-destructive">{erreurValidation}</p> : null}
+              {erreurValidation ? (
+                <p className="texte-libelle text-destructive">{erreurValidation}</p>
+              ) : null}
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">{t('commun:actions.annuler')}</Button>
@@ -332,12 +377,20 @@ export function PanneauActionsOr({ or }: Props) {
             </div>
           ) : null}
 
-          {(actionOuverte === 'refuser-controle' || actionOuverte === 'rouvrir' || actionOuverte === 'annuler') ? (
+          {actionOuverte === 'refuser-controle' ||
+          actionOuverte === 'rouvrir' ||
+          actionOuverte === 'annuler' ? (
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="or-action-motif">{t('or:actions.motif')}</Label>
-                <Textarea id="or-action-motif" value={motif} onChange={(evenement) => setMotif(evenement.target.value)} />
-                {erreurValidation ? <p className="texte-libelle text-destructive">{erreurValidation}</p> : null}
+                <Textarea
+                  id="or-action-motif"
+                  value={motif}
+                  onChange={(evenement) => setMotif(evenement.target.value)}
+                />
+                {erreurValidation ? (
+                  <p className="texte-libelle text-destructive">{erreurValidation}</p>
+                ) : null}
               </div>
               <DialogFooter>
                 <DialogClose asChild>
@@ -376,7 +429,9 @@ export function PanneauActionsOr({ or }: Props) {
                 unite="km"
                 label={t('or:actions.kilometrageSortie')}
               />
-              {erreurValidation ? <p className="texte-libelle text-destructive">{erreurValidation}</p> : null}
+              {erreurValidation ? (
+                <p className="texte-libelle text-destructive">{erreurValidation}</p>
+              ) : null}
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">{t('commun:actions.annuler')}</Button>
@@ -384,7 +439,9 @@ export function PanneauActionsOr({ or }: Props) {
                 <Button
                   disabled={mutationActive?.isPending}
                   onClick={() => {
-                    const resultat = schemaActionTerminer.safeParse({ kilometrageSortie: kilometrage });
+                    const resultat = schemaActionTerminer.safeParse({
+                      kilometrageSortie: kilometrage,
+                    });
                     if (!resultat.success) {
                       setErreurValidation(t('validation:requis'));
                       return;
@@ -407,10 +464,15 @@ export function PanneauActionsOr({ or }: Props) {
                 label={t('or:actions.kilometrageSortie')}
               />
               <label className="flex items-center gap-2 texte-corps">
-                <Checkbox checked={paiementRecu} onCheckedChange={(coche) => setPaiementRecu(coche === true)} />
+                <Checkbox
+                  checked={paiementRecu}
+                  onCheckedChange={(coche) => setPaiementRecu(coche === true)}
+                />
                 {t('or:actions.paiementRecu')}
               </label>
-              {erreurValidation ? <p className="texte-libelle text-destructive">{erreurValidation}</p> : null}
+              {erreurValidation ? (
+                <p className="texte-libelle text-destructive">{erreurValidation}</p>
+              ) : null}
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">{t('commun:actions.annuler')}</Button>
@@ -455,7 +517,9 @@ export function PanneauActionsOr({ or }: Props) {
             </div>
           ) : null}
 
-          {actionOuverte === 'demarrer' || actionOuverte === 'passer-en-controle' || actionOuverte === 'cloturer' ? (
+          {actionOuverte === 'demarrer' ||
+          actionOuverte === 'passer-en-controle' ||
+          actionOuverte === 'cloturer' ? (
             <div className="flex flex-col gap-4">
               <p className="texte-corps text-muted-foreground">{t('or:actions.confirmerAction')}</p>
               <DialogFooter>

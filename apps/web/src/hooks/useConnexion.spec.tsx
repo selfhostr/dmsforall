@@ -19,7 +19,9 @@ const CLE_RESIDU_TENANT_PRECEDENT = ['residu-tenant-precedent'] as const;
 function Consommateur() {
   const connexion = useConnexion();
   return (
-    <button onClick={() => connexion.mutate({ email: 'jean.dupont@garage.ch', motDePasse: 'secret' })}>
+    <button
+      onClick={() => connexion.mutate({ email: 'jean.dupont@garage.ch', motDePasse: 'secret' })}
+    >
       Connecter
     </button>
   );
@@ -57,7 +59,9 @@ describe('useConnexion', () => {
     // Ordre strict : clear() appelé avant fetchQuery().
     expect(clearSpy).toHaveBeenCalledTimes(1);
     expect(fetchQuerySpy).toHaveBeenCalledTimes(1);
-    expect(clearSpy.mock.invocationCallOrder[0]!).toBeLessThan(fetchQuerySpy.mock.invocationCallOrder[0]!);
+    expect(clearSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      fetchQuerySpy.mock.invocationCallOrder[0]!,
+    );
 
     // Le résidu du tenant précédent n'a pas survécu ; le cache contient la nouvelle session.
     expect(queryClient.getQueryData(CLE_RESIDU_TENANT_PRECEDENT)).toBeUndefined();

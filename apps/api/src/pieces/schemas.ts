@@ -22,7 +22,9 @@ import {
  * `contrats/pieces/{mouvement,stock,reservation}.ts`) — pas de composition supplémentaire requise
  * pour elles, réexportées ici pour que tout ce module lise ses schémas de liste au même endroit.
  */
-export const schemaListeArticles = schemaParametresPage.omit({ tri: true }).extend(schemaFiltresArticles.shape);
+export const schemaListeArticles = schemaParametresPage
+  .omit({ tri: true })
+  .extend(schemaFiltresArticles.shape);
 export type ParametresListeArticles = z.infer<typeof schemaListeArticles>;
 
 export {

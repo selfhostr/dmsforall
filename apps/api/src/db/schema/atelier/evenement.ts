@@ -8,7 +8,17 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { check, index, jsonb, pgTable, smallint, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  index,
+  jsonb,
+  pgTable,
+  smallint,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 import { colonneCreeLe, colonneId, colonneTenantId } from '../colonnes-communes';
 import { tenant } from '../tenant';

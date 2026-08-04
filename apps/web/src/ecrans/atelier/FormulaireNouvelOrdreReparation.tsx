@@ -18,7 +18,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
@@ -62,7 +68,13 @@ interface ErreursChamps {
  * le parent) : un OR s'ouvre avec le minimum, le reste (kilométrage, plafond, PO, restitution) se
  * complète depuis la fiche ensuite (`PATCH /ordres-reparation/{id}`, écran existant).
  */
-export function FormulaireNouvelOrdreReparation({ site, client, vehicule, onChangerVehicule, onCree }: Props) {
+export function FormulaireNouvelOrdreReparation({
+  site,
+  client,
+  vehicule,
+  onChangerVehicule,
+  onCree,
+}: Props) {
   const { t } = useTranslation(['or', 'commun', 'erreurs', 'validation']);
   const parametresAtelier = useParametresAtelier();
   const creation = useCreationOrdreReparation();
@@ -106,9 +118,12 @@ export function FormulaireNouvelOrdreReparation({ site, client, vehicule, onChan
       demandes: demandes.map((verbatim) => ({ verbatim })),
       plafondCentimes: plafondCentimes ?? undefined,
       plafondAutorisePar: plafondAutorisePar.trim() === '' ? undefined : plafondAutorisePar.trim(),
-      restitutionPromiseLe: restitutionSaisie === '' ? undefined : new Date(restitutionSaisie).toISOString(),
-      conducteurPresentNom: conducteurPresentNom.trim() === '' ? undefined : conducteurPresentNom.trim(),
-      numeroCommandeInterne: numeroCommandeInterne.trim() === '' ? undefined : numeroCommandeInterne.trim(),
+      restitutionPromiseLe:
+        restitutionSaisie === '' ? undefined : new Date(restitutionSaisie).toISOString(),
+      conducteurPresentNom:
+        conducteurPresentNom.trim() === '' ? undefined : conducteurPresentNom.trim(),
+      numeroCommandeInterne:
+        numeroCommandeInterne.trim() === '' ? undefined : numeroCommandeInterne.trim(),
     };
   }
 
@@ -122,8 +137,10 @@ export function FormulaireNouvelOrdreReparation({ site, client, vehicule, onChan
       let autre = false;
       for (const probleme of resultat.error.issues) {
         const chemin = probleme.path[0];
-        if (chemin === 'kilometrageEntree') parChamp.kilometrageEntree = t('or:nouveau.champs.kmInvalide');
-        else if (chemin === 'plafondCentimes') parChamp.plafondCentimes = t('or:nouveau.champs.plafondInvalide');
+        if (chemin === 'kilometrageEntree')
+          parChamp.kilometrageEntree = t('or:nouveau.champs.kmInvalide');
+        else if (chemin === 'plafondCentimes')
+          parChamp.plafondCentimes = t('or:nouveau.champs.plafondInvalide');
         else autre = true;
       }
       setErreursChamps(parChamp);
@@ -145,18 +162,34 @@ export function FormulaireNouvelOrdreReparation({ site, client, vehicule, onChan
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-3 rounded-md border p-3">
         <div className="flex min-w-0 flex-col gap-1">
-          <span className="texte-libelle text-muted-foreground">{t('or:nouveau.vehicule.titre')}</span>
-          <span className="truncate texte-corps font-medium text-foreground">{vehicule.designation}</span>
+          <span className="texte-libelle text-muted-foreground">
+            {t('or:nouveau.vehicule.titre')}
+          </span>
+          <span className="truncate texte-corps font-medium text-foreground">
+            {vehicule.designation}
+          </span>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={onChangerVehicule} disabled={enCours}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onChangerVehicule}
+          disabled={enCours}
+        >
           {t('commun:actions.modifier')}
         </Button>
       </div>
 
       {creation.erreur ? (
         <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'}>
-          {estErreurReseau ? <WifiOff className="h-4 w-4" aria-hidden="true" /> : <AlertCircle className="h-4 w-4" aria-hidden="true" />}
-          <AlertTitle>{t(estErreurReseau ? 'erreurs:reseau.titre' : 'or:nouveau.erreur.titre')}</AlertTitle>
+          {estErreurReseau ? (
+            <WifiOff className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <AlertCircle className="h-4 w-4" aria-hidden="true" />
+          )}
+          <AlertTitle>
+            {t(estErreurReseau ? 'erreurs:reseau.titre' : 'or:nouveau.erreur.titre')}
+          </AlertTitle>
           <AlertDescription>{messageErreur(creation.erreur, t)}</AlertDescription>
         </Alert>
       ) : null}
@@ -165,9 +198,19 @@ export function FormulaireNouvelOrdreReparation({ site, client, vehicule, onChan
        *  jamais un second clic silencieux sur « Ouvrir l'OR ». Prompt inline PUIS modal, comme
        *  `PanneauActionsOr` (le seul autre écran de ce module à traiter ce cas). */}
       {confirmationsRequises.length > 0 ? (
-        <div role="alert" className="rounded-md border border-statut-attention/40 bg-statut-attention/10 p-3">
-          <p className="texte-corps text-statut-attention">{creation.erreurActive ? messageErreur(creation.erreurActive, t) : ''}</p>
-          <Button type="button" variant="outline" className="mt-2" onClick={() => setConfirmationOuverte(true)}>
+        <div
+          role="alert"
+          className="rounded-md border border-statut-attention/40 bg-statut-attention/10 p-3"
+        >
+          <p className="texte-corps text-statut-attention">
+            {creation.erreurActive ? messageErreur(creation.erreurActive, t) : ''}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-2"
+            onClick={() => setConfirmationOuverte(true)}
+          >
             {t('commun:actions.continuerQuandMeme')}
           </Button>
         </div>
@@ -192,8 +235,14 @@ export function FormulaireNouvelOrdreReparation({ site, client, vehicule, onChan
       {etatPlanifieActif ? (
         <div className="space-y-2">
           <Label>{t('or:nouveau.champs.statutInitial')}</Label>
-          <div role="group" aria-label={t('or:nouveau.champs.statutInitial')} className="inline-flex overflow-hidden rounded-md border">
-            {(['ouvert', 'planifie'] as const satisfies readonly StatutInitialOrdreReparation[]).map((valeur) => (
+          <div
+            role="group"
+            aria-label={t('or:nouveau.champs.statutInitial')}
+            className="inline-flex overflow-hidden rounded-md border"
+          >
+            {(
+              ['ouvert', 'planifie'] as const satisfies readonly StatutInitialOrdreReparation[]
+            ).map((valeur) => (
               <button
                 key={valeur}
                 type="button"
@@ -202,7 +251,9 @@ export function FormulaireNouvelOrdreReparation({ site, client, vehicule, onChan
                 disabled={enCours}
                 className={cn(
                   'h-11 px-4 texte-corps font-medium transition-colors',
-                  statutInitial === valeur ? 'bg-primary text-primary-foreground' : 'bg-background text-foreground hover:bg-muted',
+                  statutInitial === valeur
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-foreground hover:bg-muted',
                 )}
               >
                 {t(`or:statuts.${valeur}`)}
@@ -213,12 +264,17 @@ export function FormulaireNouvelOrdreReparation({ site, client, vehicule, onChan
       ) : null}
 
       <fieldset className="space-y-2 rounded-md border p-3">
-        <legend className="px-1 texte-libelle font-medium text-foreground">{t('or:demandes.titre')}</legend>
+        <legend className="px-1 texte-libelle font-medium text-foreground">
+          {t('or:demandes.titre')}
+        </legend>
         <p className="texte-libelle text-muted-foreground">{t('or:demandes.aide')}</p>
         {demandes.length > 0 ? (
           <ul className="flex flex-col gap-1.5">
             {demandes.map((verbatim, index) => (
-              <li key={index} className="flex items-start justify-between gap-2 rounded-md bg-muted p-2 texte-corps">
+              <li
+                key={index}
+                className="flex items-start justify-between gap-2 rounded-md bg-muted p-2 texte-corps"
+              >
                 <span className="min-w-0 flex-1">« {verbatim} »</span>
                 <button
                   type="button"
@@ -248,7 +304,12 @@ export function FormulaireNouvelOrdreReparation({ site, client, vehicule, onChan
               }
             }}
           />
-          <Button type="button" variant="outline" onClick={ajouterDemande} disabled={enCours || demandeSaisie.trim() === ''}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={ajouterDemande}
+            disabled={enCours || demandeSaisie.trim() === ''}
+          >
             <Plus className="h-4 w-4" aria-hidden="true" />
             {t('or:demandes.ajouter')}
           </Button>
@@ -265,7 +326,9 @@ export function FormulaireNouvelOrdreReparation({ site, client, vehicule, onChan
       />
 
       <fieldset className="space-y-3 rounded-md border p-3">
-        <legend className="px-1 texte-libelle font-medium text-foreground">{t('or:nouveau.champs.avance')}</legend>
+        <legend className="px-1 texte-libelle font-medium text-foreground">
+          {t('or:nouveau.champs.avance')}
+        </legend>
 
         <div className="grid grid-cols-2 gap-3">
           <ChampMontant
@@ -310,11 +373,15 @@ export function FormulaireNouvelOrdreReparation({ site, client, vehicule, onChan
             value={numeroCommandeInterne}
             onChange={(evenement) => setNumeroCommandeInterne(evenement.target.value)}
           />
-          {client.poObligatoire ? <p className="texte-libelle text-muted-foreground">{t('or:refus.poManquant')}</p> : null}
+          {client.poObligatoire ? (
+            <p className="texte-libelle text-muted-foreground">{t('or:refus.poManquant')}</p>
+          ) : null}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="or-nouveau-conducteur">{t('or:nouveau.champs.conducteurPresentNom')}</Label>
+          <Label htmlFor="or-nouveau-conducteur">
+            {t('or:nouveau.champs.conducteurPresentNom')}
+          </Label>
           <Input
             id="or-nouveau-conducteur"
             maxLength={200}

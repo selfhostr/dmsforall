@@ -7,7 +7,10 @@ import { listerArticles, type FiltresListeArticles } from './articles.api';
 
 const LIMITE_PAGE = 50;
 
-export type ResultatListeArticles = UseInfiniteQueryResult<{ readonly pages: readonly PageCurseur<ReponseArticle>[] }, unknown> & {
+export type ResultatListeArticles = UseInfiniteQueryResult<
+  { readonly pages: readonly PageCurseur<ReponseArticle>[] },
+  unknown
+> & {
   /** Toutes les pages chargées, aplaties — l'écran ne manipule jamais `data.pages` directement,
    *  même convention que `useListeVehicules`. */
   readonly articles: readonly ReponseArticle[];

@@ -8,6 +8,7 @@ import {
   schemaTexteLong,
 } from '../atelier/primitives';
 import { schemaConfirmations } from '../atelier/avertissement';
+import { schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 import {
   STATUTS_COMMERCIAUX_VEHICULE,
@@ -123,8 +124,12 @@ export const TRI_DEFAUT_VEHICULES_STOCK = 'dateEntreeStock:desc';
 
 export const schemaFiltresVehiculesStock = schemaParametresPage.extend({
   siteId: schemaIdentifiant.optional(),
-  provenance: z.array(z.string()).optional(),
-  statutCommercial: z.array(z.enum(STATUTS_COMMERCIAUX_VEHICULE)).optional(),
+  // `z.array(z.string())` a le même piège qu'un `z.array(z.enum(...))` : la coercition n'est pas
+  // spécifique aux enums, elle porte sur le TRANSPORT (une occurrence -> chaîne, deux occurrences
+  // -> tableau chez Express), donc `provenance` en a besoin exactement comme `statutCommercial`
+  // juste en dessous, même si `z.array(z.enum` ne le fait pas ressortir au grep.
+  provenance: schemaListeQuery(z.string()).optional(),
+  statutCommercial: schemaListeQuery(z.enum(STATUTS_COMMERCIAUX_VEHICULE)).optional(),
   typeVehicule: z.enum(TYPES_VEHICULE_VENTE).optional(),
   /** Porte sur la plaque, le VIN et la désignation du véhicule (même principe que `q` de
    *  `atelier/ordre-reparation.ts`) — pas sur `recherche/` transverse, qui n'inclut pas encore ce
@@ -193,3 +198,21 @@ export const schemaRemettreDisponibleVehiculeStock = z.object({ motif: schemaTex
 export type EntreeRemettreDisponibleVehiculeStock = z.infer<
   typeof schemaRemettreDisponibleVehiculeStock
 >;
+
+/**
+ * `POST /vehicules/{vehiculeId}/stock/marquer-vendu` — `reserve -> vendu`, pose `venduLe`.
+ *
+ * USAGE NORMAL : effet de bord PROGRAMMATIQUE de l'émission de la facture (`facturation/`, hors
+ * périmètre de ce fichier) — `ServiceVehiculeStock` est exporté par `VentesModule` précisément
+ * pour cette injection croisée (voir le rappel de doctrine dans `service-vehicule-stock.ts`).
+ * `transition_autorisee` (`migrations/0032_ventes.sql` §9) porte `exige_motif = false` pour cette
+ * transition — la machine à états elle-même n'exige rien.
+ *
+ * Cet endpoint HTTP est l'EXCEPTION, **normalement un EFFET DE BORD** de l'émission de facture, pas
+ * un geste comptoir courant : correction manuelle / resynchronisation avant que ce câblage
+ * facturation n'existe, ou incohérence constatée — même doctrine que
+ * `schemaRemettreDisponibleVehiculeStock`, motif obligatoire pour la même raison (traçabilité d'une
+ * correction exceptionnelle, `dernier_motif_transition`).
+ */
+export const schemaMarquerVenduVehiculeStock = z.object({ motif: schemaTexteLong });
+export type EntreeMarquerVenduVehiculeStock = z.infer<typeof schemaMarquerVenduVehiculeStock>;

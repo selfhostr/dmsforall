@@ -32,14 +32,18 @@ function listerFichiersTypeScript(dossier: string): string[] {
 describe("portée du jeton d'amorçage JETON_DB_AMORCAGE", () => {
   it("aucun fichier de src/ en dehors de src/db/ et src/auth/ n'importe ou ne référence JETON_DB_AMORCAGE", () => {
     if (!existsSync(RACINE_SRC)) {
-      throw new Error(`${RACINE_SRC} n'existe pas encore — ce test suppose que apps/api/src/ a été initialisé.`);
+      throw new Error(
+        `${RACINE_SRC} n'existe pas encore — ce test suppose que apps/api/src/ a été initialisé.`,
+      );
     }
 
     const fichiers = listerFichiersTypeScript(RACINE_SRC);
     const infractions: string[] = [];
 
     for (const fichier of fichiers) {
-      const estDansUnDossierAutorise = DOSSIERS_AUTORISES.some((dossier) => fichier.startsWith(dossier + path.sep));
+      const estDansUnDossierAutorise = DOSSIERS_AUTORISES.some((dossier) =>
+        fichier.startsWith(dossier + path.sep),
+      );
       if (estDansUnDossierAutorise) continue;
 
       const contenu = readFileSync(fichier, 'utf8');

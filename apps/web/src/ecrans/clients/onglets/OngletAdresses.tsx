@@ -5,10 +5,23 @@ import { useTranslation } from 'react-i18next';
 import { TYPES_ADRESSE, type TypeAdresse } from '@dfa/shared';
 
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAdressesClient, useCreerAdresseClient } from '@/hooks/clients/useAdressesClient';
 
 import { EtatSousCollection } from './EtatSousCollection';
@@ -44,14 +57,21 @@ export function OngletAdresses({ clientId }: Props) {
     if (!rue.trim() || !npa.trim() || !localite.trim()) return;
     creerAdresse.mutate(
       { type, rue: rue.trim(), npa: npa.trim(), localite: localite.trim(), pays: 'CH' },
-      { onSuccess: () => { setOuvert(false); reinitialiser(); } },
+      {
+        onSuccess: () => {
+          setOuvert(false);
+          reinitialiser();
+        },
+      },
     );
   };
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="texte-titre-section font-medium text-foreground">{t('clients:adresses.titre')}</h3>
+        <h3 className="texte-titre-section font-medium text-foreground">
+          {t('clients:adresses.titre')}
+        </h3>
         <Dialog open={ouvert} onOpenChange={setOuvert}>
           <DialogTrigger asChild>
             <Button type="button" size="sm" variant="outline">
@@ -80,20 +100,40 @@ export function OngletAdresses({ clientId }: Props) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="adresse-rue">{t('clients:adresses.champs.rue')}</Label>
-                <Input id="adresse-rue" value={rue} onChange={(e) => setRue(e.target.value)} required />
+                <Input
+                  id="adresse-rue"
+                  value={rue}
+                  onChange={(e) => setRue(e.target.value)}
+                  required
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="adresse-npa">{t('clients:adresses.champs.npa')}</Label>
-                  <Input id="adresse-npa" value={npa} onChange={(e) => setNpa(e.target.value)} required />
+                  <Input
+                    id="adresse-npa"
+                    value={npa}
+                    onChange={(e) => setNpa(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="adresse-localite">{t('clients:adresses.champs.localite')}</Label>
-                  <Input id="adresse-localite" value={localite} onChange={(e) => setLocalite(e.target.value)} required />
+                  <Input
+                    id="adresse-localite"
+                    value={localite}
+                    onChange={(e) => setLocalite(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit" disabled={creerAdresse.isPending || !rue.trim() || !npa.trim() || !localite.trim()}>
+                <Button
+                  type="submit"
+                  disabled={
+                    creerAdresse.isPending || !rue.trim() || !npa.trim() || !localite.trim()
+                  }
+                >
                   {t('commun:actions.ajouter')}
                 </Button>
               </DialogFooter>
@@ -117,7 +157,9 @@ export function OngletAdresses({ clientId }: Props) {
                   {t(`clients:adresses.types.${adresse.type}`)}
                 </span>
                 {!adresse.actif ? (
-                  <span className="texte-libelle text-muted-foreground">{t('clients:liste.statuts.inactif')}</span>
+                  <span className="texte-libelle text-muted-foreground">
+                    {t('clients:liste.statuts.inactif')}
+                  </span>
                 ) : null}
               </div>
               <p className="texte-corps text-foreground">

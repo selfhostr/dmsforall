@@ -69,7 +69,10 @@ import {
 // TypeScript ; le `create type` réel n'a lieu qu'une fois, dans 0003.
 export const entiteAuditeeEnum = pgEnum('entite_auditee', ENTITES_AUDITEES);
 export const actionAuditeeEnum = pgEnum('action_auditee', ACTIONS_AUDITEES);
-export const statutOrdreReparationEnum = pgEnum('statut_ordre_reparation', STATUTS_ORDRE_REPARATION);
+export const statutOrdreReparationEnum = pgEnum(
+  'statut_ordre_reparation',
+  STATUTS_ORDRE_REPARATION,
+);
 export const statutLigneOrEnum = pgEnum('statut_ligne_or', STATUTS_LIGNE_OR);
 
 // --- 0004 (transverse)
@@ -97,7 +100,10 @@ export const sourceEcheanceExpertiseEnum = pgEnum(
 );
 export const statutCampagneEnum = pgEnum('statut_campagne', STATUTS_CAMPAGNE);
 export const statutVehiculeEnum = pgEnum('statut_vehicule', STATUTS_VEHICULE);
-export const motifArchivageVehiculeEnum = pgEnum('motif_archivage_vehicule', MOTIFS_ARCHIVAGE_VEHICULE);
+export const motifArchivageVehiculeEnum = pgEnum(
+  'motif_archivage_vehicule',
+  MOTIFS_ARCHIVAGE_VEHICULE,
+);
 export const urgenceTravailEnum = pgEnum('urgence_travail', URGENCES_TRAVAIL);
 export const statutTravailReporteEnum = pgEnum('statut_travail_reporte', STATUTS_TRAVAIL_REPORTE);
 
@@ -116,32 +122,76 @@ export const decisionDevisEnum = pgEnum('decision_devis', DECISIONS_DEVIS);
 export const statutRendezVousEnum = pgEnum('statut_rendez_vous', STATUTS_RENDEZ_VOUS);
 export const modeAttenteRdvEnum = pgEnum('mode_attente_rdv', MODES_ATTENTE_RDV);
 export const origineRendezVousEnum = pgEnum('origine_rendez_vous', ORIGINES_RENDEZ_VOUS);
-export const typeRessourcePlanningEnum = pgEnum('type_ressource_planning', TYPES_RESSOURCE_PLANNING);
+export const typeRessourcePlanningEnum = pgEnum(
+  'type_ressource_planning',
+  TYPES_RESSOURCE_PLANNING,
+);
 
 export const statutPointageEnum = pgEnum('statut_pointage', STATUTS_POINTAGE);
 export const sourcePointageEnum = pgEnum('source_pointage', SOURCES_POINTAGE);
-export const natureActivitePointageEnum = pgEnum('nature_activite_pointage', NATURES_ACTIVITE_POINTAGE);
-export const statutPeriodePointageEnum = pgEnum('statut_periode_pointage', STATUTS_PERIODE_POINTAGE);
+export const natureActivitePointageEnum = pgEnum(
+  'nature_activite_pointage',
+  NATURES_ACTIVITE_POINTAGE,
+);
+export const statutPeriodePointageEnum = pgEnum(
+  'statut_periode_pointage',
+  STATUTS_PERIODE_POINTAGE,
+);
 
-export const etatVehiculeCourtoisieEnum = pgEnum('etat_vehicule_courtoisie', ETATS_VEHICULE_COURTOISIE);
+export const etatVehiculeCourtoisieEnum = pgEnum(
+  'etat_vehicule_courtoisie',
+  ETATS_VEHICULE_COURTOISIE,
+);
 export const statutPretCourtoisieEnum = pgEnum('statut_pret_courtoisie', STATUTS_PRET_COURTOISIE);
 
 export const porteeNumerotationEnum = pgEnum('portee_numerotation', PORTEES_NUMEROTATION);
 export const uniteTempsEnum = pgEnum('unite_temps', UNITES_TEMPS);
-export const politiqueControleQualiteEnum = pgEnum('politique_controle_qualite', POLITIQUES_CONTROLE_QUALITE);
+export const politiqueControleQualiteEnum = pgEnum(
+  'politique_controle_qualite',
+  POLITIQUES_CONTROLE_QUALITE,
+);
 export const politiqueSignatureReceptionEnum = pgEnum(
   'politique_signature_reception',
   POLITIQUES_SIGNATURE_RECEPTION,
 );
 export const arrondiPointageEnum = pgEnum('arrondi_pointage', ARRONDIS_POINTAGE);
-export const politiqueLangueDocumentEnum = pgEnum('politique_langue_document', POLITIQUES_LANGUE_DOCUMENT);
-export const politiqueDemontageRefuseEnum = pgEnum('politique_demontage_refuse', POLITIQUES_DEMONTAGE_REFUSE);
+export const politiqueLangueDocumentEnum = pgEnum(
+  'politique_langue_document',
+  POLITIQUES_LANGUE_DOCUMENT,
+);
+export const politiqueDemontageRefuseEnum = pgEnum(
+  'politique_demontage_refuse',
+  POLITIQUES_DEMONTAGE_REFUSE,
+);
 export const visibiliteHistoriqueVehiculeEnum = pgEnum(
   'visibilite_historique_vehicule',
   VISIBILITES_HISTORIQUE_VEHICULE,
 );
-export const politiqueMentionSecuriteEnum = pgEnum('politique_mention_securite', POLITIQUES_MENTION_SECURITE);
+export const politiqueMentionSecuriteEnum = pgEnum(
+  'politique_mention_securite',
+  POLITIQUES_MENTION_SECURITE,
+);
 export const politiqueDeuxOrMemeVehiculeEnum = pgEnum(
   'politique_deux_or_meme_vehicule',
   POLITIQUES_DEUX_OR_MEME_VEHICULE,
 );
+
+// --- 0036 (pointage — mode borne PIN) ---------------------------------------------------------
+//
+// DÉVIATION ASSUMÉE de la doctrine « source unique @dfa/shared » de ce fichier (voir l'en-tête :
+// chaque `pgEnum(...)` ci-dessus est normalement un miroir d'une constante exportée par
+// `@dfa/shared`). Le périmètre EXCLUSIF de la tâche qui introduit cet enum est limité à
+// `apps/api/src/db/migrations/0036_*.sql` et `apps/api/src/db/schema/` — `packages/shared` en
+// est explicitement exclu. Le tableau de valeurs est donc posé EN DUR ici plutôt qu'importé.
+//
+// À RÉSORBER dès qu'un agent peut toucher `packages/shared` : ajouter
+// `MODES_IDENTIFICATION_POINTAGE = ['session_personnelle', 'borne_partagee'] as const` dans
+// `contrats/pointage/enums.ts` (même convention que `ACTIVITES_INDIRECTES`/
+// `MOTIFS_ANOMALIE_POINTAGE` du même fichier), l'exporter depuis `@dfa/shared`, puis remplacer le
+// tableau littéral ci-dessous par cet import — sans toucher au nom Postgres ni à la migration
+// 0036, déjà appliquée et immuable.
+/** RM-124 (`docs/specification-pointage-borne.md`) : mode d'identification du pointage, par site. */
+export const modeIdentificationPointageEnum = pgEnum('mode_identification_pointage', [
+  'session_personnelle',
+  'borne_partagee',
+] as const);

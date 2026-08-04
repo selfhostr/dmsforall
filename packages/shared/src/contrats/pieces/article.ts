@@ -15,6 +15,7 @@ import {
   schemaPourmille,
   schemaTexteCourt,
 } from '../atelier/primitives';
+import { schemaListeQuery } from '../filtres';
 
 /**
  * Le référentiel article (`article`, `article_reference`) — `RP-01` → `RP-08`.
@@ -114,8 +115,8 @@ export const TRI_DEFAUT_ARTICLES = 'designation:asc';
  */
 export const schemaFiltresArticles = z.object({
   q: z.string().trim().min(1).max(120).optional(),
-  categorie: z.array(z.enum(CATEGORIES_ARTICLE)).optional(),
-  statut: z.array(z.enum(STATUTS_ARTICLE)).optional(),
+  categorie: schemaListeQuery(z.enum(CATEGORIES_ARTICLE)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_ARTICLE)).optional(),
   estEchangeStandard: z.coerce.boolean().optional(),
   tri: z.enum(TRIS_ARTICLES).default(TRI_DEFAUT_ARTICLES),
 });
@@ -182,7 +183,7 @@ export const schemaCreationArticle = schemaArticleObjet.refine(
   (v) => v.estEchangeStandard === (v.montantConsigneTtcCentimes != null),
   {
     message:
-      "`montantConsigneTtcCentimes` est obligatoire quand `estEchangeStandard = true`, et doit être absent sinon (RP-37).",
+      '`montantConsigneTtcCentimes` est obligatoire quand `estEchangeStandard = true`, et doit être absent sinon (RP-37).',
     path: ['montantConsigneTtcCentimes'],
   },
 );

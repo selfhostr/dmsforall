@@ -51,7 +51,10 @@ export interface EntreeActionSansCorps {
   readonly confirmations?: readonly CodeConfirmation[];
 }
 
-function construireParametres(filtres: FiltresListeOrdresReparation, page: PageOrdresReparation): string {
+function construireParametres(
+  filtres: FiltresListeOrdresReparation,
+  page: PageOrdresReparation,
+): string {
   const parametres = new URLSearchParams();
   if (filtres.q && filtres.q.trim() !== '') parametres.set('q', filtres.q.trim());
   if (filtres.statut) parametres.set('statut', filtres.statut);
@@ -79,7 +82,9 @@ export async function listerOrdresReparation(
 /** `GET /ordres-reparation/{id}` — LE document complet (D-10) : lignes, devis, signatures et
  *  cumuls de pointage en font partie, ce n'est pas un agrégat d'écran. */
 export async function recupererOrdreReparation(orId: string): Promise<ReponseOrdreReparation> {
-  const or = await requeteApi<ReponseOrdreReparation>(`/ordres-reparation/${orId}`, { method: 'GET' });
+  const or = await requeteApi<ReponseOrdreReparation>(`/ordres-reparation/${orId}`, {
+    method: 'GET',
+  });
   if (!or) {
     throw new Error('Réponse OR inattendue : corps vide.');
   }
@@ -94,11 +99,14 @@ export async function creerOrdreReparation(
   entree: EntreeCreationOrdreReparation,
   idempotencyKey: string,
 ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseOrdreReparation>>('/ordres-reparation', {
-    method: 'POST',
-    body: JSON.stringify(entree),
-    idempotencyKey,
-  });
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseOrdreReparation>>(
+    '/ordres-reparation',
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+      idempotencyKey,
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /ordres-reparation.');
   }
@@ -129,8 +137,10 @@ export const receptionnerOrdreReparation = (orId: string, entree: EntreeActionRe
 export const demarrerOrdreReparation = (orId: string, entree: EntreeActionSansCorps) =>
   executerActionOr(orId, 'demarrer', entree);
 
-export const reprendreTravauxOrdreReparation = (orId: string, entree: EntreeActionReprendreTravaux) =>
-  executerActionOr(orId, 'reprendre-travaux', entree);
+export const reprendreTravauxOrdreReparation = (
+  orId: string,
+  entree: EntreeActionReprendreTravaux,
+) => executerActionOr(orId, 'reprendre-travaux', entree);
 
 export const passerEnControleOrdreReparation = (orId: string, entree: EntreeActionSansCorps) =>
   executerActionOr(orId, 'passer-en-controle', entree);

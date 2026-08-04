@@ -128,13 +128,24 @@ export async function semerFacturationDemo(options: OptionsSeedFacturation): Pro
     const evenements = new ServiceEvenementsImpl(horloge);
     const compteurs = new ServiceCompteursImpl();
     const documents = new ServiceDocumentsVente(acces, idempotence, audit, horloge);
-    const emission = new ServiceEmissionDocument(acces, idempotence, evenements, compteurs, horloge, documents);
+    const emission = new ServiceEmissionDocument(
+      acces,
+      idempotence,
+      evenements,
+      compteurs,
+      horloge,
+      documents,
+    );
     const paiements = new ServicePaiement(acces, idempotence, horloge);
 
     // Front de comptoir (RF-114 : créer/émettre devis et factures) et back-office comptable
     // (encaissement) — deux comptes distincts, exactement comme sur le terrain, et ça peuple
     // l'audit trail (`creePar`/`emisPar`) de deux identités différentes plutôt qu'une seule.
-    const ctxReceptionnaire: ContexteTenant = { tenantId: options.tenantId, utilisateurId: idReceptionnaire, requeteId: null };
+    const ctxReceptionnaire: ContexteTenant = {
+      tenantId: options.tenantId,
+      utilisateurId: idReceptionnaire,
+      requeteId: null,
+    };
     const receptionnaire: PrincipalAuthentifie = {
       sessionId: 'seed-facturation-demo',
       tenantId: options.tenantId,
@@ -142,7 +153,11 @@ export async function semerFacturationDemo(options: OptionsSeedFacturation): Pro
       role: 'receptionnaire',
       langue: 'fr',
     };
-    const ctxComptable: ContexteTenant = { tenantId: options.tenantId, utilisateurId: idComptable, requeteId: null };
+    const ctxComptable: ContexteTenant = {
+      tenantId: options.tenantId,
+      utilisateurId: idComptable,
+      requeteId: null,
+    };
 
     // === Devis — Golf / Meier — émis, reprend les deux travaux reportés constatés en atelier ===
     // (VEHICULES_DEMO.travauxReportes de seed-dev.ts : mêmes désignations, mêmes montants estimés
@@ -159,7 +174,12 @@ export async function semerFacturationDemo(options: OptionsSeedFacturation): Pro
         ligneDocument('piece', 'Remplacement ampoule de feu de position', 3_500, '2026-07-10'),
       ],
     };
-    const resultatDevis = await documents.creer(ctxReceptionnaire, receptionnaire, entreeDevis, CLE_DEVIS_GOLF_CREATION);
+    const resultatDevis = await documents.creer(
+      ctxReceptionnaire,
+      receptionnaire,
+      entreeDevis,
+      CLE_DEVIS_GOLF_CREATION,
+    );
     const devisId = resultatDevis.reponse.corps.donnees.id;
     await emission.emettre(ctxReceptionnaire, receptionnaire, devisId, CLE_DEVIS_GOLF_EMISSION);
     journaliser(`  devis Golf/Meier — émis, 2 lignes (48'500 c. TTC)`);
@@ -178,7 +198,12 @@ export async function semerFacturationDemo(options: OptionsSeedFacturation): Pro
         ligneDocument('forfait', 'Changement de pneus (4 roues)', 32_000, '2026-07-18'),
       ],
     };
-    await documents.creer(ctxReceptionnaire, receptionnaire, entreeFactureOctavia, CLE_FACTURE_OCTAVIA_CREATION);
+    await documents.creer(
+      ctxReceptionnaire,
+      receptionnaire,
+      entreeFactureOctavia,
+      CLE_FACTURE_OCTAVIA_CREATION,
+    );
     journaliser(`  facture Octavia/Dupont — brouillon, 2 lignes (44'000 c. TTC)`);
 
     // === Facture émise — Master / Transports Rhône, reprend le thème de l'OR terminé =============
@@ -198,12 +223,26 @@ export async function semerFacturationDemo(options: OptionsSeedFacturation): Pro
         ligneDocument('forfait', 'Vidange huile + filtre', 9_000, '2026-07-05'),
       ],
     };
-    const resultatFactureMaster = await documents.creer(ctxReceptionnaire, receptionnaire, entreeFactureMaster, CLE_FACTURE_MASTER_CREATION);
+    const resultatFactureMaster = await documents.creer(
+      ctxReceptionnaire,
+      receptionnaire,
+      entreeFactureMaster,
+      CLE_FACTURE_MASTER_CREATION,
+    );
     const factureMasterId = resultatFactureMaster.reponse.corps.donnees.id;
-    await emission.emettre(ctxReceptionnaire, receptionnaire, factureMasterId, CLE_FACTURE_MASTER_EMISSION);
+    await emission.emettre(
+      ctxReceptionnaire,
+      receptionnaire,
+      factureMasterId,
+      CLE_FACTURE_MASTER_EMISSION,
+    );
     journaliser(`  facture Master/Transports Rhône — ÉMISE, 2 lignes (24'000 c. TTC)`);
 
-    const imputation: EntreeCreationImputation = { documentId: factureMasterId, montantCentimes: 15_000, nature: 'reglement' };
+    const imputation: EntreeCreationImputation = {
+      documentId: factureMasterId,
+      montantCentimes: 15_000,
+      nature: 'reglement',
+    };
     const entreePaiement: EntreeCreationPaiement = {
       siteId: idSion,
       dateValeur: '2026-07-12',
@@ -215,7 +254,9 @@ export async function semerFacturationDemo(options: OptionsSeedFacturation): Pro
       imputations: [imputation],
     };
     await paiements.creer(ctxComptable, entreePaiement, CLE_PAIEMENT_MASTER);
-    journaliser(`  paiement Transports Rhône — 150.00 CHF (virement), imputé partiel sur la facture Master (solde 90.00 CHF)`);
+    journaliser(
+      `  paiement Transports Rhône — 150.00 CHF (virement), imputé partiel sur la facture Master (solde 90.00 CHF)`,
+    );
   } finally {
     // Même raison que `seed-atelier-demo.ts` : pas de conteneur Nest ici pour appeler
     // `onModuleDestroy` automatiquement, donc à ce script de refermer le pool lui-même.

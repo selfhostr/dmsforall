@@ -15,7 +15,9 @@ export class ClientResumeOrDto implements ClientResume {
   @ApiProperty({ example: 'CL-000123' })
   readonly numeroClient!: string;
 
-  @ApiProperty({ description: 'Rendu d’affichage calculé par le serveur (raisonSociale, ou nom prenom).' })
+  @ApiProperty({
+    description: 'Rendu d’affichage calculé par le serveur (raisonSociale, ou nom prenom).',
+  })
   readonly nomAffiche!: string;
 
   @ApiProperty({ enum: TYPES_CLIENT })
@@ -33,13 +35,22 @@ export class ClientResumeOrDto implements ClientResume {
   @ApiProperty({ type: String, nullable: true, description: 'Colonne directe de la fiche client.' })
   readonly telephone!: string | null;
 
-  @ApiProperty({ type: String, nullable: true, description: "Localité de l'adresse PRINCIPALE active du client. `null` si aucune adresse." })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: "Localité de l'adresse PRINCIPALE active du client. `null` si aucune adresse.",
+  })
   readonly localite!: string | null;
 
   @ApiProperty({ description: 'Véhicules actuellement détenus (détentions ouvertes).' })
   readonly nombreVehicules!: number;
 
-  @ApiProperty({ type: String, format: 'date-time', nullable: true, description: 'Dérivée du dernier OR ouvert.' })
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    description: 'Dérivée du dernier OR ouvert.',
+  })
   readonly dernierPassageLe!: string | null;
 }
 

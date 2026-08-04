@@ -15,7 +15,10 @@ import { requeteApi } from '@/api/client';
 
 /** `POST /paiements` — `Idempotency-Key` OBLIGATOIRE (consigne explicite de @laupernoe sur toute création
  *  sensible). `imputations` embarquées : l'écran d'encaissement lettre en un seul geste (`RF-69`). */
-export async function creerPaiement(entree: EntreeCreationPaiement, idempotencyKey: string): Promise<ReponsePaiement> {
+export async function creerPaiement(
+  entree: EntreeCreationPaiement,
+  idempotencyKey: string,
+): Promise<ReponsePaiement> {
   const paiement = await requeteApi<ReponsePaiement>('/paiements', {
     method: 'POST',
     body: JSON.stringify(entree),

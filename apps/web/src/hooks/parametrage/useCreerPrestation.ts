@@ -7,7 +7,11 @@ import { creerPrestation } from './prestations.api';
 
 /** `POST /referentiels/prestations` — invalide le catalogue entier (même raisonnement que
  *  `useCreerTauxHoraire` : l'ordre d'une page déjà en cache peut changer). */
-export function useCreerPrestation(): UseMutationResult<ReponsePrestation, unknown, EntreeCreationPrestation> {
+export function useCreerPrestation(): UseMutationResult<
+  ReponsePrestation,
+  unknown,
+  EntreeCreationPrestation
+> {
   const queryClient = useQueryClient();
 
   return useMutation({

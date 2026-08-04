@@ -13,7 +13,9 @@ describe('BoutonChargerPlus', () => {
   });
 
   it('ne rend rien en fin de liste (aChargerPlus = false)', () => {
-    const { container } = render(<BoutonChargerPlus aChargerPlus={false} onChargerPlus={vi.fn()} />);
+    const { container } = render(
+      <BoutonChargerPlus aChargerPlus={false} onChargerPlus={vi.fn()} />,
+    );
     expect(container).toBeEmptyDOMElement();
   });
 

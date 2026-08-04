@@ -15,10 +15,18 @@ import { vehicule, type LigneVehicule } from '../db/schema';
 import { CollecteurAvertissements } from '../common/avertissements';
 import { ErreurMetier } from '../common/erreurs';
 import { Horloge } from '../common/horloge';
-import { decoderCurseurTrie, encoderCurseurTrie, valeurCurseurTimestamptz } from '../common/pagination';
+import {
+  decoderCurseurTrie,
+  encoderCurseurTrie,
+  valeurCurseurTimestamptz,
+} from '../common/pagination';
 import { interpreterContrainteVehicule } from './erreurs-contraintes';
 import { versVehiculeResume } from './vehicule.mappers';
-import { chargerLigneVehicule, construireReponseVehicule, listerOrOuverts } from './vehicule-requetes';
+import {
+  chargerLigneVehicule,
+  construireReponseVehicule,
+  listerOrOuverts,
+} from './vehicule-requetes';
 
 /**
  * VIN accepté mais de moins de 17 caractères (RM-15) → avertissement `VEHICULE_VIN_COURT`.
@@ -49,7 +57,14 @@ export class ServiceVehicule {
     const curseurDecode = pagination.curseur ? decoderCurseurTrie(pagination.curseur, tri) : null;
 
     return this.acces.enTenant(ctx, async (tx) => {
-      const lignes = await executerListeVehicules(tx, ctx.tenantId, filtres, tri, curseurDecode, limite);
+      const lignes = await executerListeVehicules(
+        tx,
+        ctx.tenantId,
+        filtres,
+        tri,
+        curseurDecode,
+        limite,
+      );
 
       const aUnePageSuivante = lignes.length > limite;
       const pageLignes = aUnePageSuivante ? lignes.slice(0, limite) : lignes;
@@ -57,7 +72,10 @@ export class ServiceVehicule {
 
       return {
         donnees: pageLignes.map((ligne) =>
-          versVehiculeResume(ligne, ligne.plaqueValeur ? { valeur: ligne.plaqueValeur, canton: ligne.plaqueCanton } : null),
+          versVehiculeResume(
+            ligne,
+            ligne.plaqueValeur ? { valeur: ligne.plaqueValeur, canton: ligne.plaqueCanton } : null,
+          ),
         ),
         curseurSuivant:
           aUnePageSuivante && derniere
@@ -69,7 +87,9 @@ export class ServiceVehicule {
   }
 
   async parId(ctx: ContexteTenant, vehiculeId: string): Promise<ReponseVehicule> {
-    return this.acces.enTenant(ctx, (tx) => construireReponseVehicule(tx, ctx, vehiculeId, this.horloge.maintenant()));
+    return this.acces.enTenant(ctx, (tx) =>
+      construireReponseVehicule(tx, ctx, vehiculeId, this.horloge.maintenant()),
+    );
   }
 
   /**
@@ -86,12 +106,19 @@ export class ServiceVehicule {
     const identificationIncomplete = !entree.vin;
 
     if (entree.vin && entree.vin.length < LONGUEUR_VIN_COMPLET) {
-      avertissements.ajouter('VEHICULE_VIN_COURT', 'VIN de moins de 17 caractères — accepté (RM-15).', {
-        longueur: entree.vin.length,
-      });
+      avertissements.ajouter(
+        'VEHICULE_VIN_COURT',
+        'VIN de moins de 17 caractères — accepté (RM-15).',
+        {
+          longueur: entree.vin.length,
+        },
+      );
     }
     if (identificationIncomplete) {
-      avertissements.ajouter('VEHICULE_IDENTIFICATION_INCOMPLETE', 'Véhicule créé sans VIN (RM-16).');
+      avertissements.ajouter(
+        'VEHICULE_IDENTIFICATION_INCOMPLETE',
+        'Véhicule créé sans VIN (RM-16).',
+      );
     }
 
     let inseree: LigneVehicule;
@@ -162,11 +189,18 @@ export class ServiceVehicule {
     const existante = await chargerLigneVehicule(tx, ctx, vehiculeId);
 
     if (entree.vin !== undefined && entree.vin && entree.vin.length < LONGUEUR_VIN_COMPLET) {
-      avertissements.ajouter('VEHICULE_VIN_COURT', 'VIN de moins de 17 caractères — accepté (RM-15).');
+      avertissements.ajouter(
+        'VEHICULE_VIN_COURT',
+        'VIN de moins de 17 caractères — accepté (RM-15).',
+      );
     }
-    const identificationIncomplete = entree.vin !== undefined ? !entree.vin : existante.identificationIncomplete;
+    const identificationIncomplete =
+      entree.vin !== undefined ? !entree.vin : existante.identificationIncomplete;
     if (entree.vin !== undefined && !entree.vin) {
-      avertissements.ajouter('VEHICULE_IDENTIFICATION_INCOMPLETE', 'Véhicule modifié sans VIN (RM-16).');
+      avertissements.ajouter(
+        'VEHICULE_IDENTIFICATION_INCOMPLETE',
+        'Véhicule modifié sans VIN (RM-16).',
+      );
     }
 
     try {
@@ -180,32 +214,50 @@ export class ServiceVehicule {
           finition: entree.finition !== undefined ? (entree.finition ?? null) : undefined,
           codeTypeCh: entree.codeTypeCh !== undefined ? (entree.codeTypeCh ?? null) : undefined,
           date1reCirculation:
-            entree.premiereMiseEnCirculationLe !== undefined ? (entree.premiereMiseEnCirculationLe ?? null) : undefined,
+            entree.premiereMiseEnCirculationLe !== undefined
+              ? (entree.premiereMiseEnCirculationLe ?? null)
+              : undefined,
           carburant: entree.carburant !== undefined ? (entree.carburant ?? null) : undefined,
-          cylindreeCm3: entree.cylindreeCm3 !== undefined ? (entree.cylindreeCm3 ?? null) : undefined,
+          cylindreeCm3:
+            entree.cylindreeCm3 !== undefined ? (entree.cylindreeCm3 ?? null) : undefined,
           puissanceKw: entree.puissanceKw !== undefined ? (entree.puissanceKw ?? null) : undefined,
           boite: entree.boite !== undefined ? (entree.boite ?? null) : undefined,
-          transmission: entree.transmission !== undefined ? (entree.transmission ?? null) : undefined,
+          transmission:
+            entree.transmission !== undefined ? (entree.transmission ?? null) : undefined,
           couleur: entree.couleur !== undefined ? (entree.couleur ?? null) : undefined,
-          conducteurHabituel: entree.conducteurHabituel !== undefined ? (entree.conducteurHabituel ?? null) : undefined,
+          conducteurHabituel:
+            entree.conducteurHabituel !== undefined
+              ? (entree.conducteurHabituel ?? null)
+              : undefined,
           proprietaireEconomiqueClientId:
-            entree.proprietaireEconomiqueClientId !== undefined ? (entree.proprietaireEconomiqueClientId ?? null) : undefined,
+            entree.proprietaireEconomiqueClientId !== undefined
+              ? (entree.proprietaireEconomiqueClientId ?? null)
+              : undefined,
           importe: entree.importe,
           paysOrigine: entree.paysOrigine !== undefined ? (entree.paysOrigine ?? null) : undefined,
           dateImportation: entree.importeLe !== undefined ? (entree.importeLe ?? null) : undefined,
           pneusEte: entree.pneusEte !== undefined ? (entree.pneusEte ?? null) : undefined,
           pneusHiver: entree.pneusHiver !== undefined ? (entree.pneusHiver ?? null) : undefined,
-          pressionPneus: entree.pressionPneus !== undefined ? (entree.pressionPneus ?? null) : undefined,
+          pressionPneus:
+            entree.pressionPneus !== undefined ? (entree.pressionPneus ?? null) : undefined,
           huileType: entree.huileType !== undefined ? (entree.huileType ?? null) : undefined,
-          huileQuantiteDl: entree.huileQuantiteDl !== undefined ? (entree.huileQuantiteDl ?? null) : undefined,
+          huileQuantiteDl:
+            entree.huileQuantiteDl !== undefined ? (entree.huileQuantiteDl ?? null) : undefined,
           batterie: entree.batterie !== undefined ? (entree.batterie ?? null) : undefined,
           codeRadio: entree.codeRadio !== undefined ? (entree.codeRadio ?? null) : undefined,
           codeCle: entree.codeCle !== undefined ? (entree.codeCle ?? null) : undefined,
-          intervalleEntretienKm: entree.intervalleEntretienKm !== undefined ? (entree.intervalleEntretienKm ?? null) : undefined,
+          intervalleEntretienKm:
+            entree.intervalleEntretienKm !== undefined
+              ? (entree.intervalleEntretienKm ?? null)
+              : undefined,
           intervalleEntretienMois:
-            entree.intervalleEntretienMois !== undefined ? (entree.intervalleEntretienMois ?? null) : undefined,
-          garantieDebut: entree.garantieDebutLe !== undefined ? (entree.garantieDebutLe ?? null) : undefined,
-          garantieMois: entree.garantieMois !== undefined ? (entree.garantieMois ?? null) : undefined,
+            entree.intervalleEntretienMois !== undefined
+              ? (entree.intervalleEntretienMois ?? null)
+              : undefined,
+          garantieDebut:
+            entree.garantieDebutLe !== undefined ? (entree.garantieDebutLe ?? null) : undefined,
+          garantieMois:
+            entree.garantieMois !== undefined ? (entree.garantieMois ?? null) : undefined,
           garantieKm: entree.garantieKm !== undefined ? (entree.garantieKm ?? null) : undefined,
           identificationIncomplete,
         })
@@ -224,23 +276,33 @@ export class ServiceVehicule {
     vehiculeId: string,
     entree: EntreeModificationVehicule,
   ): Promise<ResultatEcritureVehicule> {
-    return this.acces.enTenant(ctx, (tx) => this.modifierDansTransaction(tx, ctx, vehiculeId, entree));
+    return this.acces.enTenant(ctx, (tx) =>
+      this.modifierDansTransaction(tx, ctx, vehiculeId, entree),
+    );
   }
 
-  async archiver(ctx: ContexteTenant, vehiculeId: string, entree: EntreeArchivageVehicule): Promise<ResultatEcritureVehicule> {
+  async archiver(
+    ctx: ContexteTenant,
+    vehiculeId: string,
+    entree: EntreeArchivageVehicule,
+  ): Promise<ResultatEcritureVehicule> {
     return this.acces.enTenant(ctx, async (tx) => {
       await chargerLigneVehicule(tx, ctx, vehiculeId);
 
       const orOuverts = await listerOrOuverts(tx, ctx, vehiculeId);
       if (orOuverts.length > 0) {
-        throw new ErreurMetier('VEHICULE_ARCHIVAGE_IMPOSSIBLE', 'Le véhicule porte encore des ordres de réparation ouverts.', {
-          blocages: orOuverts.map((or) => ({
-            type: 'ordre_reparation' as const,
-            id: or.id,
-            libelle: or.numero,
-            donnees: { statut: or.statut },
-          })),
-        });
+        throw new ErreurMetier(
+          'VEHICULE_ARCHIVAGE_IMPOSSIBLE',
+          'Le véhicule porte encore des ordres de réparation ouverts.',
+          {
+            blocages: orOuverts.map((or) => ({
+              type: 'ordre_reparation' as const,
+              id: or.id,
+              libelle: or.numero,
+              donnees: { statut: or.statut },
+            })),
+          },
+        );
       }
 
       await tx
@@ -248,7 +310,12 @@ export class ServiceVehicule {
         .set({ statut: 'archive', motifArchivage: entree.motifArchivage })
         .where(and(eq(vehicule.tenantId, ctx.tenantId), eq(vehicule.id, vehiculeId)));
 
-      const reponse = await construireReponseVehicule(tx, ctx, vehiculeId, this.horloge.maintenant());
+      const reponse = await construireReponseVehicule(
+        tx,
+        ctx,
+        vehiculeId,
+        this.horloge.maintenant(),
+      );
       return { donnees: reponse, avertissements: new CollecteurAvertissements() };
     });
   }
@@ -270,7 +337,10 @@ export class ServiceVehicule {
     entree: EntreeFusionVehicule,
   ): Promise<ResultatEcritureVehicule> {
     if (principalRole !== 'direction' && principalRole !== 'admin') {
-      throw new ErreurMetier('DROIT_INSUFFISANT', 'La fusion de véhicules est réservée à la direction.');
+      throw new ErreurMetier(
+        'DROIT_INSUFFISANT',
+        'La fusion de véhicules est réservée à la direction.',
+      );
     }
 
     return this.acces.enTenant(ctx, async (tx) => {
@@ -278,9 +348,19 @@ export class ServiceVehicule {
       const source = await chargerLigneVehicule(tx, ctx, entree.vehiculeSourceId);
 
       if (!source.vin || source.vin.toUpperCase() !== entree.confirmationVin.toUpperCase()) {
-        throw new ErreurMetier('VALIDATION_ECHOUEE', 'Le VIN de confirmation ne correspond pas au véhicule source.', {
-          erreurs: [{ champ: 'confirmationVin', code: 'vin_incorrect', message: 'Le VIN saisi ne correspond pas.' }],
-        });
+        throw new ErreurMetier(
+          'VALIDATION_ECHOUEE',
+          'Le VIN de confirmation ne correspond pas au véhicule source.',
+          {
+            erreurs: [
+              {
+                champ: 'confirmationVin',
+                code: 'vin_incorrect',
+                message: 'Le VIN saisi ne correspond pas.',
+              },
+            ],
+          },
+        );
       }
 
       await tx
@@ -288,7 +368,12 @@ export class ServiceVehicule {
         .set({ statut: 'archive', motifArchivage: 'doublon', fusionneVersVehiculeId: vehiculeId })
         .where(and(eq(vehicule.tenantId, ctx.tenantId), eq(vehicule.id, entree.vehiculeSourceId)));
 
-      const reponse = await construireReponseVehicule(tx, ctx, vehiculeId, this.horloge.maintenant());
+      const reponse = await construireReponseVehicule(
+        tx,
+        ctx,
+        vehiculeId,
+        this.horloge.maintenant(),
+      );
       return { donnees: reponse, avertissements: new CollecteurAvertissements() };
     });
   }
@@ -298,7 +383,11 @@ export class ServiceVehicule {
    * l'appelant (mêmes garanties que `construireReponseVehicule`, dont c'est un simple relais lié
    * à l'horloge de ce service — voir `creerDansTransaction`).
    */
-  private async chargerReponse(tx: TransactionDfa, ctx: ContexteTenant, vehiculeId: string): Promise<ReponseVehicule> {
+  private async chargerReponse(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    vehiculeId: string,
+  ): Promise<ReponseVehicule> {
     return construireReponseVehicule(tx, ctx, vehiculeId, this.horloge.maintenant());
   }
 }
@@ -310,7 +399,10 @@ function jourIso(date: Date): string {
 function relancerErreurContrainte(erreur: unknown): never {
   const interpretation = interpreterContrainteVehicule(erreur);
   if (interpretation) {
-    throw new ErreurMetier(interpretation.code, `Contrainte violée : ${interpretation.contrainte}.`);
+    throw new ErreurMetier(
+      interpretation.code,
+      `Contrainte violée : ${interpretation.contrainte}.`,
+    );
   }
   throw erreur;
 }
@@ -399,7 +491,11 @@ async function executerListeVehicules(
 ): Promise<readonly LigneListeVehicule[]> {
   const conditions: SQL[] = [sql`v.tenant_id = ${tenantId}`];
   if (filtres.statut && filtres.statut.length > 0) {
-    conditions.push(sql`v.statut = any(${filtres.statut})`);
+    // `sql.param(...)::public.statut_vehicule[]` — jamais l'interpolation directe d'un tableau JS
+    // dans `sql\`\``, qui produit un constructeur d'enregistrement (`any(($2, $3))`) au lieu d'un
+    // tableau SQL et fait échouer la requête à l'exécution. Même motif qu'en recherche (voir
+    // `recherche/service-recherche.ts`, `v.id = any(${sql.param(vehiculeIds)}::uuid[])`).
+    conditions.push(sql`v.statut = any(${sql.param(filtres.statut)}::public.statut_vehicule[])`);
   }
   if (filtres.marque) {
     conditions.push(sql`v.marque ilike ${`%${filtres.marque}%`}`);
@@ -471,17 +567,13 @@ function construireTriEtSeuil(
   if (tri === 'plaque:asc') {
     const v = typeof curseur?.valeur === 'string' ? curseur.valeur : '￿';
     const id = curseur?.id ?? '';
-    const seuil = curseur
-      ? sql`(coalesce(pc.valeur, '￿'), v.id) > (${v}, ${id})`
-      : sql`true`;
+    const seuil = curseur ? sql`(coalesce(pc.valeur, '￿'), v.id) > (${v}, ${id})` : sql`true`;
     return { ordre: sql`coalesce(pc.valeur, '￿') asc, v.id asc`, seuil };
   }
   if (tri === 'plaque:desc') {
     const v = typeof curseur?.valeur === 'string' ? curseur.valeur : '';
     const id = curseur?.id ?? '';
-    const seuil = curseur
-      ? sql`(coalesce(pc.valeur, ''), v.id) < (${v}, ${id})`
-      : sql`true`;
+    const seuil = curseur ? sql`(coalesce(pc.valeur, ''), v.id) < (${v}, ${id})` : sql`true`;
     return { ordre: sql`coalesce(pc.valeur, '') desc, v.id desc`, seuil };
   }
   if (tri === 'prochaineExpertiseLe:asc') {

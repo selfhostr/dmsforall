@@ -6,7 +6,11 @@ import { FacturationModule } from '../facturation/facturation.module';
 import { ServiceVehiculeTravailReporte } from '../vehicules/service-vehicule-travail-reporte';
 import { VehiculesModule } from '../vehicules/vehicules.module';
 
-import { JETON_CALCUL_LIGNE, JETON_CREATION_TRAVAIL_REPORTE, JETON_LECTURE_POINTAGE } from './atelier.jetons';
+import {
+  JETON_CALCUL_LIGNE,
+  JETON_CREATION_TRAVAIL_REPORTE,
+  JETON_LECTURE_POINTAGE,
+} from './atelier.jetons';
 import { CalculLigneSimple } from './calcul-ligne';
 import { DevisComplementaireController } from './devis-complementaire.controller';
 import { LigneOrController } from './ligne-or.controller';
@@ -59,7 +63,12 @@ import { ServiceTransitions } from './service-transitions';
  */
 @Module({
   imports: [FacturationModule, VehiculesModule, PointageModule],
-  controllers: [OrdreReparationController, OrdreReparationTransitionsController, LigneOrController, DevisComplementaireController],
+  controllers: [
+    OrdreReparationController,
+    OrdreReparationTransitionsController,
+    LigneOrController,
+    DevisComplementaireController,
+  ],
   providers: [
     ServiceOr,
     ServiceSnapshotOr,
@@ -71,6 +80,13 @@ import { ServiceTransitions } from './service-transitions';
     { provide: JETON_CALCUL_LIGNE, useClass: CalculLigneSimple },
     { provide: JETON_CREATION_TRAVAIL_REPORTE, useExisting: ServiceVehiculeTravailReporte },
   ],
-  exports: [ServiceOr, ServiceSnapshotOr, ServiceTransitions, ServiceLigneOr, ServiceDevis, ServiceFacturationOr],
+  exports: [
+    ServiceOr,
+    ServiceSnapshotOr,
+    ServiceTransitions,
+    ServiceLigneOr,
+    ServiceDevis,
+    ServiceFacturationOr,
+  ],
 })
 export class AtelierModule {}

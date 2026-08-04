@@ -36,7 +36,11 @@ class RedisFactice {
 
   // Signature volontairement large (les arguments variadiques de `eval` sont `string | Buffer |
   // number` côté ioredis) : seule la doublure de test a besoin de connaître l'ordre réel.
-  async eval(_script: string, _numkeys: number, ...args: Array<string | number>): Promise<[number, number]> {
+  async eval(
+    _script: string,
+    _numkeys: number,
+    ...args: Array<string | number>
+  ): Promise<[number, number]> {
     const cle = String(args[0]);
     const maintenant = Number(args[1]);
     const fenetreMs = Number(args[2]);
@@ -78,7 +82,7 @@ function creerService(horloge: Horloge): ServiceLimitationDebitRedis {
 }
 
 describe('ServiceLimitationDebitRedis.consommer', () => {
-  it('autorise les tentatives jusqu\'à la limite puis refuse la suivante', async () => {
+  it("autorise les tentatives jusqu'à la limite puis refuse la suivante", async () => {
     const service = creerService(horlogeFigeeA(1_000_000));
 
     for (let i = 0; i < 5; i += 1) {
@@ -132,7 +136,9 @@ describe('ServiceLimitationDebitRedis.consommer', () => {
     const nombreRequetesConcurrentes = 100;
 
     const resultats = await Promise.all(
-      Array.from({ length: nombreRequetesConcurrentes }, () => service.consommer('cle-concurrence', limite, 900)),
+      Array.from({ length: nombreRequetesConcurrentes }, () =>
+        service.consommer('cle-concurrence', limite, 900),
+      ),
     );
 
     const nombreAutorises = resultats.filter((r) => r.autorise).length;

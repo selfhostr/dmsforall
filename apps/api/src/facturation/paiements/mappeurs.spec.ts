@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { LigneImputationPaiement, LignePaiement } from '../../db/schema';
 
-import { calculerIssuesDisponibles, calculerMontantNonImputeCentimes, versPaiement } from './mappeurs';
+import {
+  calculerIssuesDisponibles,
+  calculerMontantNonImputeCentimes,
+  versPaiement,
+} from './mappeurs';
 
 function imputation(champs: Partial<LigneImputationPaiement> = {}): LigneImputationPaiement {
   return {
@@ -49,18 +53,27 @@ describe('calculerMontantNonImputeCentimes — trop-perçu / avance client (RF-7
   });
 
   it("un paiement entièrement imputé en 'reglement' n'a plus rien de non imputé", () => {
-    expect(calculerMontantNonImputeCentimes(20000n, [imputation({ montantCentimes: 20000n })])).toBe(0n);
+    expect(
+      calculerMontantNonImputeCentimes(20000n, [imputation({ montantCentimes: 20000n })]),
+    ).toBe(0n);
   });
 
   it('CF-11 : virement de 585.60 pour une facture de 566.60 — 19.00 restent non imputés (trop-perçu)', () => {
-    const nonImpute = calculerMontantNonImputeCentimes(58560n, [imputation({ montantCentimes: 56660n })]);
+    const nonImpute = calculerMontantNonImputeCentimes(58560n, [
+      imputation({ montantCentimes: 56660n }),
+    ]);
     expect(nonImpute).toBe(1900n);
   });
 
   it("seule la nature 'reglement' réduit le non-imputé — un 'arrondi'/'compensation' du même paiement ne le réduit pas (formule littérale du contrat gelé)", () => {
     const imputations = [
       imputation({ montantCentimes: 10000n, nature: 'reglement' }),
-      imputation({ id: 'imp-2', montantCentimes: 500n, nature: 'compensation', documentId: 'doc-regul' }),
+      imputation({
+        id: 'imp-2',
+        montantCentimes: 500n,
+        nature: 'compensation',
+        documentId: 'doc-regul',
+      }),
     ];
     // montant total 20000, reglement 10000 -> non imputé 10000, PAS 9500.
     expect(calculerMontantNonImputeCentimes(20000n, imputations)).toBe(10000n);
@@ -73,7 +86,9 @@ describe('calculerMontantNonImputeCentimes — trop-perçu / avance client (RF-7
   it('ne descend jamais sous zéro (filet de sécurité applicatif)', () => {
     // Cas normalement inatteignable (invariant MD-51.b empêche de dépasser le montant en base),
     // mais la fonction de mapping ne doit jamais produire un nombre négatif affiché au comptoir.
-    expect(calculerMontantNonImputeCentimes(1000n, [imputation({ montantCentimes: 1500n })])).toBe(0n);
+    expect(calculerMontantNonImputeCentimes(1000n, [imputation({ montantCentimes: 1500n })])).toBe(
+      0n,
+    );
   });
 });
 
@@ -83,7 +98,11 @@ describe('calculerIssuesDisponibles — RF-79, trois issues jamais automatiques'
   });
 
   it('les trois issues (remboursement, imputation_future, abandon) dès qu’un reliquat existe', () => {
-    expect(calculerIssuesDisponibles(1900n)).toEqual(['remboursement', 'imputation_future', 'abandon']);
+    expect(calculerIssuesDisponibles(1900n)).toEqual([
+      'remboursement',
+      'imputation_future',
+      'abandon',
+    ]);
   });
 });
 

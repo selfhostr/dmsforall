@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import type { EntreeCreationMouvementCasse, FiltresMouvementsStock } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
-import type { ReponseMemorisable, RequeteIdempotente, ResultatIdempotent, ServiceIdempotence } from '../common/idempotence';
+import type {
+  ReponseMemorisable,
+  RequeteIdempotente,
+  ResultatIdempotent,
+  ServiceIdempotence,
+} from '../common/idempotence';
 import type { LigneMouvementStock } from '../db/schema';
 import { ServiceMouvement } from './service-mouvement';
 
@@ -37,7 +42,12 @@ function ligneMouvement(champs: Partial<LigneMouvementStock> = {}): LigneMouveme
  * l'ordre, les jeux fournis par `executes` (utilisé par `ServiceStock.chargerPourVerrou`) ;
  * `insert().values()` expose `.returning()`. Même patron que `clients/service-client.spec.ts`.
  */
-function txFactice(plan: { selects?: readonly unknown[][]; executes?: ReadonlyArray<{ rows: readonly unknown[] }> } = {}) {
+function txFactice(
+  plan: {
+    selects?: readonly unknown[][];
+    executes?: ReadonlyArray<{ rows: readonly unknown[] }>;
+  } = {},
+) {
   const selects = [...(plan.selects ?? [])];
   const executes = [...(plan.executes ?? [])];
   const insertsReturning: unknown[][] = [];
@@ -66,7 +76,11 @@ function txFactice(plan: { selects?: readonly unknown[][]; executes?: ReadonlyAr
 }
 
 function accesFactice(tx: TransactionDfa): AccesBase {
-  return { enTenant: vi.fn((_ctx, travail) => travail(tx)), verifierConnexion: vi.fn(), verifierPostureRls: vi.fn() };
+  return {
+    enTenant: vi.fn((_ctx, travail) => travail(tx)),
+    verifierConnexion: vi.fn(),
+    verifierPostureRls: vi.fn(),
+  };
 }
 
 function idempotenceFactice(tx: TransactionDfa): ServiceIdempotence {
@@ -100,7 +114,9 @@ describe('ServiceMouvement.casse — RP-15/PP-02 : le disponible protège contre
     });
     const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
 
-    await expect(service.casse(CTX, 'magasinier', 'a1', ENTREE_CASSE, 'idem-1')).rejects.toMatchObject({
+    await expect(
+      service.casse(CTX, 'magasinier', 'a1', ENTREE_CASSE, 'idem-1'),
+    ).rejects.toMatchObject({
       code: 'STOCK_INSUFFISANT',
       status: 409,
     });
@@ -119,7 +135,12 @@ describe('ServiceMouvement.casse — RP-15/PP-02 : le disponible protège contre
 
     expect(resultat.reponse.statutHttp).toBe(201);
     expect(insertValuesArgs).toHaveLength(1);
-    expect(insertValuesArgs[0]).toMatchObject({ type: 'casse', quantiteMillieme: -2000, siteId: 's1', auteurId: 'u1' });
+    expect(insertValuesArgs[0]).toMatchObject({
+      type: 'casse',
+      quantiteMillieme: -2000,
+      siteId: 's1',
+      auteurId: 'u1',
+    });
   });
 
   it('`forcer: true` contourne le refus STOCK_INSUFFISANT (RP-15, forçage journalisé)', async () => {
@@ -130,12 +151,17 @@ describe('ServiceMouvement.casse — RP-15/PP-02 : le disponible protège contre
     poserRetourInsert([ligneMouvement()]);
     const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
 
-    const resultat = await service.casse(CTX, 'magasinier', 'a1', { ...ENTREE_CASSE, forcer: true }, 'idem-3');
+    const resultat = await service.casse(
+      CTX,
+      'magasinier',
+      'a1',
+      { ...ENTREE_CASSE, forcer: true },
+      'idem-3',
+    );
 
     expect(resultat.reponse.statutHttp).toBe(201);
     expect(insertValuesArgs).toHaveLength(1);
   });
-
 });
 
 describe('ServiceMouvement.ajustementInventaire — §7.6 : un compte qui correspond déjà au stock ne crée aucun mouvement', () => {
@@ -146,7 +172,13 @@ describe('ServiceMouvement.ajustementInventaire — §7.6 : un compte qui corres
     });
     const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
 
-    const resultat = await service.ajustementInventaire(CTX, 'magasinier', 'a1', { siteId: 's1', quantiteCompteeMillieme: 3000, motif: 'Inventaire annuel' }, 'idem-4');
+    const resultat = await service.ajustementInventaire(
+      CTX,
+      'magasinier',
+      'a1',
+      { siteId: 's1', quantiteCompteeMillieme: 3000, motif: 'Inventaire annuel' },
+      'idem-4',
+    );
 
     expect(resultat.reponse.statutHttp).toBe(200);
     expect(resultat.reponse.corps.donnees).toBeNull();
@@ -161,10 +193,19 @@ describe('ServiceMouvement.ajustementInventaire — §7.6 : un compte qui corres
     poserRetourInsert([ligneMouvement({ type: 'ajustement_inventaire', quantiteMillieme: -500 })]);
     const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
 
-    const resultat = await service.ajustementInventaire(CTX, 'magasinier', 'a1', { siteId: 's1', quantiteCompteeMillieme: 2500, motif: 'Inventaire annuel' }, 'idem-5');
+    const resultat = await service.ajustementInventaire(
+      CTX,
+      'magasinier',
+      'a1',
+      { siteId: 's1', quantiteCompteeMillieme: 2500, motif: 'Inventaire annuel' },
+      'idem-5',
+    );
 
     expect(resultat.reponse.statutHttp).toBe(201);
-    expect(insertValuesArgs[0]).toMatchObject({ type: 'ajustement_inventaire', quantiteMillieme: -500 });
+    expect(insertValuesArgs[0]).toMatchObject({
+      type: 'ajustement_inventaire',
+      quantiteMillieme: -500,
+    });
     expect(resultat.reponse.corps.donnees).not.toBeNull();
   });
 });
@@ -176,9 +217,13 @@ describe('ServiceMouvement.lister — masquage de prixAchatReelCentimes par rôl
    * (`selects`), donc les deux files coexistent dans le même plan.
    */
   function txListeFactice(lignes: readonly Partial<LigneMouvementStock>[]) {
-    const executes: Array<{ rows: readonly unknown[] }> = [{ rows: lignes.map((l) => ligneMouvement(l)) }];
+    const executes: Array<{ rows: readonly unknown[] }> = [
+      { rows: lignes.map((l) => ligneMouvement(l)) },
+    ];
     const tx = {
-      select: () => ({ from: () => ({ where: () => ({ limit: () => Promise.resolve([{ id: 'a1' }]) }) }) }),
+      select: () => ({
+        from: () => ({ where: () => ({ limit: () => Promise.resolve([{ id: 'a1' }]) }) }),
+      }),
       execute: vi.fn(() => Promise.resolve(executes.shift() ?? { rows: [] })),
     };
     return tx as unknown as TransactionDfa;

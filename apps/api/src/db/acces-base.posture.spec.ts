@@ -35,9 +35,7 @@ function tableConforme(overrides: Partial<PostureTable> = {}): PostureTable {
     porte_tenant_id: true,
     politiques_isolantes: 1,
     politiques_non_isolantes: [],
-    inventaire_politiques: [
-      'or_isolation_tenant [ALL] USING isolant, WITH CHECK isolant',
-    ],
+    inventaire_politiques: ['or_isolation_tenant [ALL] USING isolant, WITH CHECK isolant'],
     commentaire: null,
     peut_selectionner: true,
     peut_inserer: true,
@@ -57,7 +55,9 @@ function referentielConforme(overrides: Partial<PostureTable> = {}): PostureTabl
     porte_tenant_id: false,
     rls_force: false,
     politiques_isolantes: 0,
-    politiques_non_isolantes: ['transition_lecture [ALL] USING NON ISOLANT (true), WITH CHECK absent'],
+    politiques_non_isolantes: [
+      'transition_lecture [ALL] USING NON ISOLANT (true), WITH CHECK absent',
+    ],
     inventaire_politiques: ['transition_lecture [ALL] USING NON ISOLANT (true), WITH CHECK absent'],
     commentaire: `Transitions d'états autorisées. [${MARQUEUR_REFERENTIEL}] ${RAISON}`,
     peut_selectionner: true,
@@ -99,7 +99,7 @@ describe('analyserPostureTables', () => {
     expect(problemes.join('\n')).toContain('NON ISOLANTE');
   });
 
-  it('refuse une politique laxiste posée À CÔTÉ d\'une politique isolante', () => {
+  it("refuse une politique laxiste posée À CÔTÉ d'une politique isolante", () => {
     // Cas que le comptage seul laissait passer : les politiques permissives sont OR-ées, donc
     // la politique de debug rouvre la table malgré la politique légitime.
     const problemes = analyserPostureTables(
@@ -124,10 +124,10 @@ describe('analyserPostureTables', () => {
         tableConforme({
           politiques_isolantes: 0,
           politiques_non_isolantes: [
-            'or_isolation [ALL] USING NON ISOLANT ((statut = \'ouvert\')), WITH CHECK isolant',
+            "or_isolation [ALL] USING NON ISOLANT ((statut = 'ouvert')), WITH CHECK isolant",
           ],
           inventaire_politiques: [
-            'or_isolation [ALL] USING NON ISOLANT ((statut = \'ouvert\')), WITH CHECK isolant',
+            "or_isolation [ALL] USING NON ISOLANT ((statut = 'ouvert')), WITH CHECK isolant",
           ],
         }),
       ],
@@ -139,7 +139,7 @@ describe('analyserPostureTables', () => {
 
   // --- Qualité du diagnostic (on le lira à 2 h du matin) ----------------------------------------
 
-  it('nomme la table, la politique, l\'expression fautive et le rôle évalué', () => {
+  it("nomme la table, la politique, l'expression fautive et le rôle évalué", () => {
     const [probleme] = analyserPostureTables(
       [
         tableConforme({
@@ -158,7 +158,7 @@ describe('analyserPostureTables', () => {
     expect(probleme).toContain('tenant_courant()'); // ce qu'il faut écrire
   });
 
-  it('énumère les politiques vues quand aucune n\'isole, y compris « aucune »', () => {
+  it("énumère les politiques vues quand aucune n'isole, y compris « aucune »", () => {
     const [probleme] = analyserPostureTables(
       [tableConforme({ politiques_isolantes: 0, inventaire_politiques: [] })],
       ROLE,
@@ -212,7 +212,7 @@ describe('analyserPostureTables', () => {
     expect(problemes).toEqual([]);
   });
 
-  it('exige une politique sur « tenant », qui s\'isole sur id sans porter de tenant_id', () => {
+  it("exige une politique sur « tenant », qui s'isole sur id sans porter de tenant_id", () => {
     const problemes = analyserPostureTables(
       [
         tableConforme({
@@ -229,7 +229,7 @@ describe('analyserPostureTables', () => {
     expect(problemes[0]).toContain('tenant');
   });
 
-  it('tolère FORCE RLS absent sur les seules tables du chemin d\'amorçage', () => {
+  it("tolère FORCE RLS absent sur les seules tables du chemin d'amorçage", () => {
     for (const table of ['utilisateur', 'session', 'journal_securite']) {
       expect(
         analyserPostureTables([tableConforme({ table_name: table, rls_force: false })], ROLE),
@@ -270,7 +270,9 @@ describe('analyserPostureTables — tables sans tenant_id', () => {
           porte_tenant_id: false,
           politiques_isolantes: 0,
           politiques_non_isolantes: [],
-          inventaire_politiques: ['lor_isolation [ALL] USING NON ISOLANT (true), WITH CHECK NON ISOLANT (true)'],
+          inventaire_politiques: [
+            'lor_isolation [ALL] USING NON ISOLANT (true), WITH CHECK NON ISOLANT (true)',
+          ],
           commentaire: null,
         }),
       ],
@@ -308,7 +310,7 @@ describe('analyserPostureTables — tables sans tenant_id', () => {
     expect(problemes[0]).toContain('lecture seule');
   });
 
-  it('empêche une table métier de « passer pour un référentiel » : la déclaration n\'ouvre rien', () => {
+  it("empêche une table métier de « passer pour un référentiel » : la déclaration n'ouvre rien", () => {
     // Le scénario exact à interdire : on oublie tenant_id, et pour faire taire le démarrage on
     // colle le marqueur. Comme la table reste inscriptible, elle est refusée quand même.
     const problemes = analyserPostureTables(
@@ -377,7 +379,7 @@ describe('analyserPostureTables — tables sans tenant_id', () => {
     expect(problemes[0]).toContain('sans justification');
   });
 
-  it('REFUSE un marqueur mal orthographié plutôt que de l\'ignorer', () => {
+  it("REFUSE un marqueur mal orthographié plutôt que de l'ignorer", () => {
     // Le pire des cas : l'auteur croit avoir déclaré, le contrôle ne voit rien, et la table
     // passerait pour non déclarée… ou pour déclarée, selon le sens du vent.
     const problemes = analyserPostureTables(
@@ -494,7 +496,7 @@ describe('analyserPostureTables — partitions', () => {
       ...o,
     });
 
-  it('REFUSE une partition qui n\'a pas repris la posture de sa mère', () => {
+  it("REFUSE une partition qui n'a pas repris la posture de sa mère", () => {
     const problemes = analyserPostureTables([partitionNue()], ROLE);
 
     // Deux fautes distinctes, deux messages : les privilèges hérités (R3) et l'absence de RLS.
@@ -535,7 +537,7 @@ describe('analyserPostureTables — partitions', () => {
     expect(analyserPostureTables([partitionConforme()], ROLE)).toEqual([]);
   });
 
-  it('n\'ajoute l\'explication qu\'aux partitions, jamais à une table ordinaire', () => {
+  it("n'ajoute l'explication qu'aux partitions, jamais à une table ordinaire", () => {
     const [probleme] = analyserPostureTables([tableConforme({ rls_active: false })], ROLE);
 
     expect(probleme).not.toContain('PARTITION');
@@ -587,7 +589,7 @@ describe('lireDeclaration', () => {
     expect(d.justification).toBe('');
   });
 
-  it('ignore un crochet qui n\'est pas un marqueur dfa:', () => {
+  it("ignore un crochet qui n'est pas un marqueur dfa:", () => {
     const d = lireDeclaration('Table des OR [voir spécification §4.2] et de leurs lignes.');
 
     expect(d.marqueurs.size).toBe(0);

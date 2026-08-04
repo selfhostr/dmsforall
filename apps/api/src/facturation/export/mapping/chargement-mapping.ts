@@ -26,7 +26,11 @@ export async function chargerComptesResolusADate(
   codesTvaDejaCharges?: ReadonlyMap<string, string>,
 ): Promise<ComptesResolusADate> {
   const lignesComptes = await tx
-    .select({ usage: mappingCompte.usage, categorie: mappingCompte.categorie, compte: mappingCompte.compte })
+    .select({
+      usage: mappingCompte.usage,
+      categorie: mappingCompte.categorie,
+      compte: mappingCompte.compte,
+    })
     .from(mappingCompte)
     .where(
       and(
@@ -40,9 +44,17 @@ export async function chargerComptesResolusADate(
   return new ComptesResolusADate(indexerComptes(lignesComptes), codesTva);
 }
 
-export async function chargerCodesTva(tx: TransactionDfa, ctx: ContexteTenant, cible: CibleExport): Promise<ReadonlyMap<string, string>> {
+export async function chargerCodesTva(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  cible: CibleExport,
+): Promise<ReadonlyMap<string, string>> {
   const lignes = await tx
-    .select({ regimeTva: mappingCodeTva.regimeTva, tauxPourmille: mappingCodeTva.tauxPourmille, codeExterne: mappingCodeTva.codeExterne })
+    .select({
+      regimeTva: mappingCodeTva.regimeTva,
+      tauxPourmille: mappingCodeTva.tauxPourmille,
+      codeExterne: mappingCodeTva.codeExterne,
+    })
     .from(mappingCodeTva)
     .where(and(eq(mappingCodeTva.tenantId, ctx.tenantId), eq(mappingCodeTva.cible, cible)));
   return indexerCodesTva(lignes);

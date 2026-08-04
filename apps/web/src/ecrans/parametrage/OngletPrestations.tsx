@@ -32,15 +32,21 @@ export function OngletPrestations({ role }: Props) {
   // `tauxHoraireCode` du dialogue reste à jour sans prop drilling entre les deux onglets.
   const requeteTauxHoraires = useListeTauxHoraires();
   const codesTauxHoraires = useMemo(
-    () => (requeteTauxHoraires.data?.pages.flatMap((page) => page.donnees.map((th) => th.code)) ?? []),
+    () =>
+      requeteTauxHoraires.data?.pages.flatMap((page) => page.donnees.map((th) => th.code)) ?? [],
     [requeteTauxHoraires.data],
   );
   const peutEcrire = peutModifierParametrage(role);
 
   const [dialogueOuvert, setDialogueOuvert] = useState(false);
-  const [prestationEnEdition, setPrestationEnEdition] = useState<ReponsePrestation | undefined>(undefined);
+  const [prestationEnEdition, setPrestationEnEdition] = useState<ReponsePrestation | undefined>(
+    undefined,
+  );
 
-  const lignes = useMemo(() => requete.data?.pages.flatMap((page) => page.donnees) ?? [], [requete.data]);
+  const lignes = useMemo(
+    () => requete.data?.pages.flatMap((page) => page.donnees) ?? [],
+    [requete.data],
+  );
 
   const ouvrirCreation = () => {
     setPrestationEnEdition(undefined);
@@ -52,7 +58,11 @@ export function OngletPrestations({ role }: Props) {
   };
 
   const colonnes: ColonneComptoir<ReponsePrestation>[] = [
-    { id: 'code', libelle: t('parametrage:referentiels.prestations.champs.code'), rendu: (p) => <span className="font-medium">{p.code}</span> },
+    {
+      id: 'code',
+      libelle: t('parametrage:referentiels.prestations.champs.code'),
+      rendu: (p) => <span className="font-medium">{p.code}</span>,
+    },
     {
       id: 'designation',
       libelle: t('parametrage:referentiels.prestations.champs.designation'),
@@ -61,13 +71,21 @@ export function OngletPrestations({ role }: Props) {
     {
       id: 'typeLigne',
       libelle: t('parametrage:referentiels.prestations.champs.typeLigne'),
-      rendu: (p) => <span className="text-muted-foreground">{t(`parametrage:referentiels.prestations.typesLigne.${p.typeLigne}`)}</span>,
+      rendu: (p) => (
+        <span className="text-muted-foreground">
+          {t(`parametrage:referentiels.prestations.typesLigne.${p.typeLigne}`)}
+        </span>
+      ),
     },
     {
       id: 'prix',
       libelle: t('parametrage:referentiels.prestations.champs.prix'),
       alignement: 'droite',
-      rendu: (p) => <span className="tabular-nums">{p.prixCentimes !== null ? formaterMontant(p.prixCentimes) : '—'}</span>,
+      rendu: (p) => (
+        <span className="tabular-nums">
+          {p.prixCentimes !== null ? formaterMontant(p.prixCentimes) : '—'}
+        </span>
+      ),
     },
     {
       id: 'actif',
@@ -115,7 +133,9 @@ export function OngletPrestations({ role }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
-        <p className="texte-corps text-muted-foreground">{t('parametrage:referentiels.prestations.explication')}</p>
+        <p className="texte-corps text-muted-foreground">
+          {t('parametrage:referentiels.prestations.explication')}
+        </p>
         {peutEcrire ? (
           <Button type="button" onClick={ouvrirCreation}>
             <Plus aria-hidden className="h-4 w-4" />

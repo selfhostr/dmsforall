@@ -1,6 +1,17 @@
 import { Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { schemaExpertiseVehicule, schemaIdentifiant, type EntreeExpertiseVehicule } from '@dfa/shared';
+import {
+  ApiCookieAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import {
+  schemaExpertiseVehicule,
+  schemaIdentifiant,
+  type EntreeExpertiseVehicule,
+} from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
 import { CorpsZod } from '../common/documentation';
@@ -38,7 +49,8 @@ export class VehiculeExpertiseController {
   @ExigerDroit('vehicule.expertise.saisir')
   @ApiOperation({
     summary: "Enregistrement d'une expertise (RM-28, CT-10).",
-    description: 'Une convocation cantonale (`sourceEcheance: "convocation"`) prime toujours sur une périodicité calculée.',
+    description:
+      'Une convocation cantonale (`sourceEcheance: "convocation"`) prime toujours sur une périodicité calculée.',
   })
   @ApiParam({ name: 'vehiculeId', format: 'uuid' })
   @ApiResponse({ status: 201, type: ReponseVehiculeExpertiseDto })
@@ -49,7 +61,13 @@ export class VehiculeExpertiseController {
   async creer(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
     @CorpsZod(schemaExpertiseVehicule, {
-      exemple: { dateLe: '2026-06-02', resultat: 'accepte_avec_defauts', defauts: 'Jeu léger rotule de direction', prochaineEcheanceLe: '2030-06-02', sourceEcheance: 'calculee' },
+      exemple: {
+        dateLe: '2026-06-02',
+        resultat: 'accepte_avec_defauts',
+        defauts: 'Jeu léger rotule de direction',
+        prochaineEcheanceLe: '2030-06-02',
+        sourceEcheance: 'calculee',
+      },
     })
     entree: EntreeExpertiseVehicule,
   ) {

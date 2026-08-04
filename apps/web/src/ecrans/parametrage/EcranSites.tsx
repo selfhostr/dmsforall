@@ -15,7 +15,10 @@ import { Label } from '@/components/ui/label';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
-import { useModifierParametresSite, type EntreeModificationParametresSite } from '@/hooks/parametres/useModifierParametresSite';
+import {
+  useModifierParametresSite,
+  type EntreeModificationParametresSite,
+} from '@/hooks/parametres/useModifierParametresSite';
 import { useParametresSite } from '@/hooks/parametres/useParametresSite';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
@@ -81,7 +84,9 @@ export function EcranSites() {
   if (!session) {
     return (
       <div className="flex flex-col gap-4 p-6">
-        <h1 className="texte-titre font-semibold text-foreground">{t('parametrage:sites.titre')}</h1>
+        <h1 className="texte-titre font-semibold text-foreground">
+          {t('parametrage:sites.titre')}
+        </h1>
         <EtatChargement lignes={6} />
       </div>
     );
@@ -92,11 +97,17 @@ export function EcranSites() {
       <h1 className="texte-titre font-semibold text-foreground">{t('parametrage:sites.titre')}</h1>
 
       {sites.length === 0 ? (
-        <EtatVide titre={t('parametrage:sites.vide.titre')} description={t('parametrage:sites.vide.description')} />
+        <EtatVide
+          titre={t('parametrage:sites.vide.titre')}
+          description={t('parametrage:sites.vide.description')}
+        />
       ) : (
         <div className="flex flex-col gap-4 lg:flex-row">
           {sites.length > 1 ? (
-            <nav aria-label={t('parametrage:sites.titre')} className="flex shrink-0 flex-col gap-1 lg:w-56">
+            <nav
+              aria-label={t('parametrage:sites.titre')}
+              className="flex shrink-0 flex-col gap-1 lg:w-56"
+            >
               {sites.map((site) => (
                 <button
                   key={site.id}
@@ -105,12 +116,19 @@ export function EcranSites() {
                   onClick={() => setSiteSelectionneId(site.id)}
                   className={cn(
                     'flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left texte-corps transition-colors',
-                    site.id === siteSelectionneId ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
+                    site.id === siteSelectionneId
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-muted',
                   )}
                 >
                   <span className="truncate">{site.nom}</span>
                   {!site.actif ? (
-                    <Badge variant="outline" className={site.id === siteSelectionneId ? 'border-primary-foreground/40' : undefined}>
+                    <Badge
+                      variant="outline"
+                      className={
+                        site.id === siteSelectionneId ? 'border-primary-foreground/40' : undefined
+                      }
+                    >
                       {t('parametrage:sites.inactif')}
                     </Badge>
                   ) : null}
@@ -121,7 +139,11 @@ export function EcranSites() {
 
           <div className="flex-1">
             {siteSelectionneId ? (
-              <FormulaireSite key={siteSelectionneId} siteId={siteSelectionneId} role={session.utilisateur.role} />
+              <FormulaireSite
+                key={siteSelectionneId}
+                siteId={siteSelectionneId}
+                role={session.utilisateur.role}
+              />
             ) : null}
           </div>
         </div>
@@ -211,30 +233,53 @@ function FormulaireSiteContenu({ siteId, donnees, peutEcrire }: PropsFormulaireS
 
       <Card>
         <CardHeader>
-          <CardTitle className="texte-titre-section">{t('parametrage:sites.horaires.titre')}</CardTitle>
+          <CardTitle className="texte-titre-section">
+            {t('parametrage:sites.horaires.titre')}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="ps-ouverture">{t('parametrage:sites.horaires.ouverture')}</Label>
-              <Input id="ps-ouverture" type="time" disabled={!peutEcrire} {...form.register('heureOuverture')} />
+              <Input
+                id="ps-ouverture"
+                type="time"
+                disabled={!peutEcrire}
+                {...form.register('heureOuverture')}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="ps-fermeture">{t('parametrage:sites.horaires.fermeture')}</Label>
-              <Input id="ps-fermeture" type="time" disabled={!peutEcrire} {...form.register('heureFermeture')} />
+              <Input
+                id="ps-fermeture"
+                type="time"
+                disabled={!peutEcrire}
+                {...form.register('heureFermeture')}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ps-cloture-pointage">{t('parametrage:sites.horaires.cloturePointage')}</Label>
-              <Input id="ps-cloture-pointage" type="time" disabled={!peutEcrire} {...form.register('heureCloturePointage')} />
+              <Label htmlFor="ps-cloture-pointage">
+                {t('parametrage:sites.horaires.cloturePointage')}
+              </Label>
+              <Input
+                id="ps-cloture-pointage"
+                type="time"
+                disabled={!peutEcrire}
+                {...form.register('heureCloturePointage')}
+              />
             </div>
           </div>
-          <p className="texte-libelle text-muted-foreground">{t('parametrage:sites.horaires.cloturePointageAide')}</p>
+          <p className="texte-libelle text-muted-foreground">
+            {t('parametrage:sites.horaires.cloturePointageAide')}
+          </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="texte-titre-section">{t('parametrage:sites.capacite.titre')}</CardTitle>
+          <CardTitle className="texte-titre-section">
+            {t('parametrage:sites.capacite.titre')}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <Controller
@@ -254,18 +299,26 @@ function FormulaireSiteContenu({ siteId, donnees, peutEcrire }: PropsFormulaireS
               />
             )}
           />
-          <p className="texte-libelle text-muted-foreground">{t('parametrage:sites.capacite.aide')}</p>
+          <p className="texte-libelle text-muted-foreground">
+            {t('parametrage:sites.capacite.aide')}
+          </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="texte-titre-section">{t('parametrage:sites.fermeture.titre')}</CardTitle>
+          <CardTitle className="texte-titre-section">
+            {t('parametrage:sites.fermeture.titre')}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="texte-corps text-muted-foreground">{t('parametrage:sites.fermeture.explication')}</p>
+          <p className="texte-corps text-muted-foreground">
+            {t('parametrage:sites.fermeture.explication')}
+          </p>
           {joursFermeture.length === 0 ? (
-            <p className="texte-libelle text-muted-foreground">{t('parametrage:sites.fermeture.aucun')}</p>
+            <p className="texte-libelle text-muted-foreground">
+              {t('parametrage:sites.fermeture.aucun')}
+            </p>
           ) : (
             <ul className="flex flex-wrap gap-2">
               {[...joursFermeture].sort().map((jour) => (
@@ -276,7 +329,9 @@ function FormulaireSiteContenu({ siteId, donnees, peutEcrire }: PropsFormulaireS
                       <button
                         type="button"
                         onClick={() => retirerJourFermeture(jour)}
-                        aria-label={t('parametrage:sites.fermeture.retirer', { date: formaterDate(jour) })}
+                        aria-label={t('parametrage:sites.fermeture.retirer', {
+                          date: formaterDate(jour),
+                        })}
                         className="rounded-full p-0.5 hover:bg-black/10"
                       >
                         <X className="h-3 w-3" aria-hidden="true" />
@@ -291,9 +346,19 @@ function FormulaireSiteContenu({ siteId, donnees, peutEcrire }: PropsFormulaireS
             <div className="flex items-end gap-2">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="ps-nouveau-jour">{t('parametrage:sites.fermeture.ajouter')}</Label>
-                <Input id="ps-nouveau-jour" type="date" value={nouveauJour} onChange={(e) => setNouveauJour(e.target.value)} />
+                <Input
+                  id="ps-nouveau-jour"
+                  type="date"
+                  value={nouveauJour}
+                  onChange={(e) => setNouveauJour(e.target.value)}
+                />
               </div>
-              <Button type="button" variant="outline" onClick={ajouterJourFermeture} disabled={nouveauJour === ''}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={ajouterJourFermeture}
+                disabled={nouveauJour === ''}
+              >
                 <Plus aria-hidden className="h-4 w-4" />
                 {t('commun:actions.ajouter')}
               </Button>

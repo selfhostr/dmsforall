@@ -62,17 +62,23 @@ describe('chemins.parametrage', () => {
 describe('chemins.pieces', () => {
   it('construit la recherche comptoir, scopée par site', () => {
     expect(chemins.pieces.rechercheComptoir()).toBe('/pieces/recherche-comptoir');
-    expect(chemins.pieces.rechercheComptoir('site-1')).toBe('/pieces/recherche-comptoir?site=site-1');
+    expect(chemins.pieces.rechercheComptoir('site-1')).toBe(
+      '/pieces/recherche-comptoir?site=site-1',
+    );
   });
 
   it('construit la liste et le détail d’un article', () => {
     expect(chemins.pieces.articles('site-1')).toBe('/pieces/articles?site=site-1');
-    expect(chemins.pieces.articleDetail('art-1', 'site-1')).toBe('/pieces/articles/art-1?site=site-1');
+    expect(chemins.pieces.articleDetail('art-1', 'site-1')).toBe(
+      '/pieces/articles/art-1?site=site-1',
+    );
     expect(chemins.pieces.articleDetail('art-1')).toBe('/pieces/articles/art-1');
   });
 
   it('construit les réservations et le réapprovisionnement', () => {
     expect(chemins.pieces.reservations('site-1')).toBe('/pieces/reservations?site=site-1');
-    expect(chemins.pieces.reapprovisionnement('site-1')).toBe('/pieces/reapprovisionnement?site=site-1');
+    expect(chemins.pieces.reapprovisionnement('site-1')).toBe(
+      '/pieces/reapprovisionnement?site=site-1',
+    );
   });
 });

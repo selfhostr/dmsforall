@@ -25,7 +25,10 @@ import type { OptionsApiCorpsZod } from './api-corps-zod.decorator';
  * `schema` reste la SEULE source de vérité (validation ET documentation) : aucune classe DTO de
  * requête à entretenir en parallèle.
  */
-export function CorpsZod<T>(schema: ZodType<T>, options: OptionsApiCorpsZod = {}): ParameterDecorator {
+export function CorpsZod<T>(
+  schema: ZodType<T>,
+  options: OptionsApiCorpsZod = {},
+): ParameterDecorator {
   const appliquerBody = Body(new PipeZod(schema));
   const appliquerApiBody = ApiBody({
     description: options.description,

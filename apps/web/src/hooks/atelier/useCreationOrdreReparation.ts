@@ -1,6 +1,10 @@
 import { useRef, useState } from 'react';
 
-import type { CodeConfirmation, EntreeCreationOrdreReparation, ReponseOrdreReparation } from '@dfa/shared';
+import type {
+  CodeConfirmation,
+  EntreeCreationOrdreReparation,
+  ReponseOrdreReparation,
+} from '@dfa/shared';
 
 import { ErreurApi } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
@@ -21,11 +25,16 @@ export interface CreationOrdreReparation {
    *  CONFIRMATION_REQUISE` (ex. `CLIENT_BLOQUE`, `VEHICULE_DEUX_OR_OUVERTS`, `OR_SANS_RDV`). */
   readonly confirmationsRequises: readonly CodeConfirmation[];
   /** Première tentative — construit sa propre clé d'idempotence. */
-  readonly soumettre: (entree: EntreeCreationOrdreReparation, options: { readonly onSuccess: (or: ReponseOrdreReparation) => void }) => void;
+  readonly soumettre: (
+    entree: EntreeCreationOrdreReparation,
+    options: { readonly onSuccess: (or: ReponseOrdreReparation) => void },
+  ) => void;
   /** Rejeu APRÈS accord explicite de l'utilisateur sur `confirmationsRequises` — régénère la clé
    *  d'idempotence avant d'émettre (§4.4/§5.1 : `confirmations` entre dans l'empreinte, donc
    *  réutiliser la clé transformerait ce rejeu volontaire en `409 IDEMPOTENCE_CONFLIT`). */
-  readonly confirmerEtResoumettre: (options: { readonly onSuccess: (or: ReponseOrdreReparation) => void }) => void;
+  readonly confirmerEtResoumettre: (options: {
+    readonly onSuccess: (or: ReponseOrdreReparation) => void;
+  }) => void;
 }
 
 /**
@@ -52,7 +61,10 @@ export function useCreationOrdreReparation(): CreationOrdreReparation {
   const erreurActive = mutation.error instanceof ErreurApi ? mutation.error : null;
   const confirmationsRequises = erreurActive?.confirmationsRequises ?? [];
 
-  function soumettre(entree: EntreeCreationOrdreReparation, options: { readonly onSuccess: (or: ReponseOrdreReparation) => void }) {
+  function soumettre(
+    entree: EntreeCreationOrdreReparation,
+    options: { readonly onSuccess: (or: ReponseOrdreReparation) => void },
+  ) {
     setDerniereEntree(entree);
     mutation.mutate(
       { entree, idempotencyKey: cleIdempotenceRef.current },
@@ -66,7 +78,9 @@ export function useCreationOrdreReparation(): CreationOrdreReparation {
     );
   }
 
-  function confirmerEtResoumettre(options: { readonly onSuccess: (or: ReponseOrdreReparation) => void }) {
+  function confirmerEtResoumettre(options: {
+    readonly onSuccess: (or: ReponseOrdreReparation) => void;
+  }) {
     if (!derniereEntree) return;
     cleIdempotenceRef.current = genererCleIdempotence();
     soumettre({ ...derniereEntree, confirmations: [...confirmationsRequises] }, options);

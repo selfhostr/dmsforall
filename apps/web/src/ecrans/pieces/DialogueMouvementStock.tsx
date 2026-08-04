@@ -8,10 +8,22 @@ import { useCleIdempotence } from '@/api/idempotence';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   useCreerAjustementInventaire,
   useCreerMouvementCasse,
@@ -26,7 +38,13 @@ import { saisieVersQuantiteMillieme } from './utils';
  *  `entree_livraison`/`sortie_or`/`sortie_comptoir`/`retour_client`/`retour_consigne` sont des
  *  effets de bord d'autres actions (réception de commande, réservation, facturation) : aucune
  *  saisie manuelle pour eux ici. */
-const TYPES_SAISISSABLES: readonly TypeMouvementStock[] = ['casse', 'perte', 'transfert', 'ajustement_inventaire', 'retour_fournisseur'];
+const TYPES_SAISISSABLES: readonly TypeMouvementStock[] = [
+  'casse',
+  'perte',
+  'transfert',
+  'ajustement_inventaire',
+  'retour_fournisseur',
+];
 
 interface Props {
   readonly ouvert: boolean;
@@ -44,7 +62,13 @@ interface Props {
  * gestes, ici CINQ). `mouvement_stock` est IMMUABLE côté serveur : ce dialogue ne modifie jamais
  * un mouvement existant, il n'en crée qu'un nouveau à chaque soumission.
  */
-export function DialogueMouvementStock({ ouvert, onOuvertChange, articleId, sites, siteParDefaut }: Props) {
+export function DialogueMouvementStock({
+  ouvert,
+  onOuvertChange,
+  articleId,
+  sites,
+  siteParDefaut,
+}: Props) {
   const { t } = useTranslation(['pieces', 'commun', 'validation', 'erreurs']);
   const idempotence = useCleIdempotence();
 
@@ -77,8 +101,14 @@ export function DialogueMouvementStock({ ouvert, onOuvertChange, articleId, site
   const ajustement = useCreerAjustementInventaire(articleId);
   const retourFournisseur = useCreerRetourFournisseur(articleId);
 
-  const enCours = casse.isPending || perte.isPending || transfert.isPending || ajustement.isPending || retourFournisseur.isPending;
-  const erreur = casse.error ?? perte.error ?? transfert.error ?? ajustement.error ?? retourFournisseur.error;
+  const enCours =
+    casse.isPending ||
+    perte.isPending ||
+    transfert.isPending ||
+    ajustement.isPending ||
+    retourFournisseur.isPending;
+  const erreur =
+    casse.error ?? perte.error ?? transfert.error ?? ajustement.error ?? retourFournisseur.error;
 
   const motifObligatoire = type !== 'transfert';
   const motifRequis = motif.trim().length >= 3;
@@ -107,7 +137,10 @@ export function DialogueMouvementStock({ ouvert, onOuvertChange, articleId, site
     if (type === 'casse') {
       if (!siteId) return setErreurValidation(t('validation:requis'));
       casse.mutate(
-        { entree: { siteId, quantiteMillieme: quantite, motif, ligneOrId: null, forcer }, idempotencyKey },
+        {
+          entree: { siteId, quantiteMillieme: quantite, motif, ligneOrId: null, forcer },
+          idempotencyKey,
+        },
         { onSuccess: fermerApresSucces },
       );
       return;
@@ -115,7 +148,10 @@ export function DialogueMouvementStock({ ouvert, onOuvertChange, articleId, site
     if (type === 'perte') {
       if (!siteId) return setErreurValidation(t('validation:requis'));
       perte.mutate(
-        { entree: { siteId, quantiteMillieme: quantite, motif, ligneOrId: null, forcer }, idempotencyKey },
+        {
+          entree: { siteId, quantiteMillieme: quantite, motif, ligneOrId: null, forcer },
+          idempotencyKey,
+        },
         { onSuccess: fermerApresSucces },
       );
       return;
@@ -127,7 +163,12 @@ export function DialogueMouvementStock({ ouvert, onOuvertChange, articleId, site
       }
       transfert.mutate(
         {
-          entree: { siteSourceId, siteDestinationId, quantiteMillieme: quantite, motif: motif.trim() === '' ? undefined : motif },
+          entree: {
+            siteSourceId,
+            siteDestinationId,
+            quantiteMillieme: quantite,
+            motif: motif.trim() === '' ? undefined : motif,
+          },
           idempotencyKey,
         },
         { onSuccess: fermerApresSucces },
@@ -153,7 +194,10 @@ export function DialogueMouvementStock({ ouvert, onOuvertChange, articleId, site
     // retour_fournisseur
     if (!siteId) return setErreurValidation(t('validation:requis'));
     retourFournisseur.mutate(
-      { entree: { siteId, quantiteMillieme: quantite, motif, commandeFournisseurLigneId: null }, idempotencyKey },
+      {
+        entree: { siteId, quantiteMillieme: quantite, motif, commandeFournisseurLigneId: null },
+        idempotencyKey,
+      },
       { onSuccess: fermerApresSucces },
     );
   }
@@ -167,9 +211,18 @@ export function DialogueMouvementStock({ ouvert, onOuvertChange, articleId, site
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mvt-type">{t('pieces:stock.mouvements.nouveauMouvement.champType')}</Label>
-            <Select value={type} onValueChange={(valeur) => setType(valeur as TypeMouvementStock)} disabled={enCours}>
-              <SelectTrigger id="mvt-type" aria-label={t('pieces:stock.mouvements.nouveauMouvement.champType')}>
+            <Label htmlFor="mvt-type">
+              {t('pieces:stock.mouvements.nouveauMouvement.champType')}
+            </Label>
+            <Select
+              value={type}
+              onValueChange={(valeur) => setType(valeur as TypeMouvementStock)}
+              disabled={enCours}
+            >
+              <SelectTrigger
+                id="mvt-type"
+                aria-label={t('pieces:stock.mouvements.nouveauMouvement.champType')}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -187,7 +240,10 @@ export function DialogueMouvementStock({ ouvert, onOuvertChange, articleId, site
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="mvt-site-source">{t('pieces:stock.mouvements.siteSource')}</Label>
                 <Select value={siteSourceId} onValueChange={setSiteSourceId} disabled={enCours}>
-                  <SelectTrigger id="mvt-site-source" aria-label={t('pieces:stock.mouvements.siteSource')}>
+                  <SelectTrigger
+                    id="mvt-site-source"
+                    aria-label={t('pieces:stock.mouvements.siteSource')}
+                  >
                     <SelectValue placeholder={t('pieces:stock.site')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -200,9 +256,18 @@ export function DialogueMouvementStock({ ouvert, onOuvertChange, articleId, site
                 </Select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="mvt-site-destination">{t('pieces:stock.mouvements.siteDestination')}</Label>
-                <Select value={siteDestinationId} onValueChange={setSiteDestinationId} disabled={enCours}>
-                  <SelectTrigger id="mvt-site-destination" aria-label={t('pieces:stock.mouvements.siteDestination')}>
+                <Label htmlFor="mvt-site-destination">
+                  {t('pieces:stock.mouvements.siteDestination')}
+                </Label>
+                <Select
+                  value={siteDestinationId}
+                  onValueChange={setSiteDestinationId}
+                  disabled={enCours}
+                >
+                  <SelectTrigger
+                    id="mvt-site-destination"
+                    aria-label={t('pieces:stock.mouvements.siteDestination')}
+                  >
                     <SelectValue placeholder={t('pieces:stock.site')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -235,7 +300,9 @@ export function DialogueMouvementStock({ ouvert, onOuvertChange, articleId, site
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mvt-quantite">
-              {type === 'ajustement_inventaire' ? t('pieces:stock.mouvements.nouveauMouvement.champQuantiteComptee') : t('pieces:stock.mouvements.quantite')}
+              {type === 'ajustement_inventaire'
+                ? t('pieces:stock.mouvements.nouveauMouvement.champQuantiteComptee')
+                : t('pieces:stock.mouvements.quantite')}
             </Label>
             <Input
               id="mvt-quantite"
@@ -252,19 +319,30 @@ export function DialogueMouvementStock({ ouvert, onOuvertChange, articleId, site
               {t('pieces:stock.mouvements.motif')}
               {motifObligatoire ? ' *' : ''}
             </Label>
-            <Input id="mvt-motif" readOnly={enCours} value={motif} onChange={(evenement) => setMotif(evenement.target.value)} />
+            <Input
+              id="mvt-motif"
+              readOnly={enCours}
+              value={motif}
+              onChange={(evenement) => setMotif(evenement.target.value)}
+            />
           </div>
 
           {type === 'casse' || type === 'perte' ? (
             <label className="flex items-center gap-2 texte-corps">
-              <Checkbox checked={forcer} onCheckedChange={(coche) => setForcer(coche === true)} disabled={enCours} />
+              <Checkbox
+                checked={forcer}
+                onCheckedChange={(coche) => setForcer(coche === true)}
+                disabled={enCours}
+              />
               {t('pieces:stock.mouvements.nouveauMouvement.champForcer')}
             </label>
           ) : null}
 
           {aucunMouvementCree ? (
             <Alert variant="avertissement">
-              <AlertDescription>{t('pieces:stock.mouvements.nouveauMouvement.aucunEcart')}</AlertDescription>
+              <AlertDescription>
+                {t('pieces:stock.mouvements.nouveauMouvement.aucunEcart')}
+              </AlertDescription>
             </Alert>
           ) : null}
 
@@ -281,7 +359,12 @@ export function DialogueMouvementStock({ ouvert, onOuvertChange, articleId, site
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOuvertChange(false)} disabled={enCours}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOuvertChange(false)}
+            disabled={enCours}
+          >
             {t('commun:actions.annuler')}
           </Button>
           <Button type="button" disabled={enCours} onClick={soumettre}>

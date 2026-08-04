@@ -17,7 +17,15 @@ import type {
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import { JETON_DB } from '../db';
-import { client, clientAdresse, clientCondition, clientConsentement, clientContact, clientNote, utilisateur } from '../db/schema';
+import {
+  client,
+  clientAdresse,
+  clientCondition,
+  clientConsentement,
+  clientContact,
+  clientNote,
+  utilisateur,
+} from '../db/schema';
 import { CollecteurAvertissements } from '../common/avertissements';
 import { ErreurMetier } from '../common/erreurs';
 import { ServiceJournal } from '../common/journal';
@@ -68,11 +76,17 @@ export class ServiceClientSousCollections {
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);
       const curseurDecode = params.curseur ? decoderCurseur(params.curseur) : null;
-      const conditionTenant = and(eq(clientAdresse.tenantId, ctx.tenantId), eq(clientAdresse.clientId, clientId));
+      const conditionTenant = and(
+        eq(clientAdresse.tenantId, ctx.tenantId),
+        eq(clientAdresse.clientId, clientId),
+      );
       const conditionCurseur = curseurDecode
         ? or(
             lt(clientAdresse.creeLe, curseurDecode.creeLe),
-            and(eq(clientAdresse.creeLe, curseurDecode.creeLe), lt(clientAdresse.id, curseurDecode.id)),
+            and(
+              eq(clientAdresse.creeLe, curseurDecode.creeLe),
+              lt(clientAdresse.id, curseurDecode.id),
+            ),
           )
         : undefined;
       const lignes = await tx
@@ -87,7 +101,10 @@ export class ServiceClientSousCollections {
       const derniere = pageLignes[pageLignes.length - 1];
       return {
         donnees: pageLignes.map(versAdresseResponse),
-        curseurSuivant: aUnePageSuivante && derniere ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id }) : null,
+        curseurSuivant:
+          aUnePageSuivante && derniere
+            ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id })
+            : null,
         limite: params.limite,
       };
     });
@@ -131,14 +148,26 @@ export class ServiceClientSousCollections {
         await tx
           .update(clientAdresse)
           .set(entree)
-          .where(and(eq(clientAdresse.tenantId, ctx.tenantId), eq(clientAdresse.clientId, clientId), eq(clientAdresse.id, adresseId)));
+          .where(
+            and(
+              eq(clientAdresse.tenantId, ctx.tenantId),
+              eq(clientAdresse.clientId, clientId),
+              eq(clientAdresse.id, adresseId),
+            ),
+          );
       } catch (erreur) {
         throw this.traduireViolationAdresse(erreur, entree.type);
       }
       const lignes = await tx
         .select()
         .from(clientAdresse)
-        .where(and(eq(clientAdresse.tenantId, ctx.tenantId), eq(clientAdresse.clientId, clientId), eq(clientAdresse.id, adresseId)))
+        .where(
+          and(
+            eq(clientAdresse.tenantId, ctx.tenantId),
+            eq(clientAdresse.clientId, clientId),
+            eq(clientAdresse.id, adresseId),
+          ),
+        )
         .limit(1);
       const ligne = lignes[0];
       if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Adresse introuvable.');
@@ -151,16 +180,28 @@ export class ServiceClientSousCollections {
       estViolation(erreur, '23505', 'client_adresse_principale_uk') ||
       estViolation(erreur, '23505', 'client_adresse_facturation_uk')
     ) {
-      return new ErreurMetier('VALIDATION_ECHOUEE', 'Une seule adresse de ce type peut être active à la fois (RM-03).', {
-        erreurs: [{ champ: 'type', code: 'adresse_active_unique', message: `Une adresse « ${type ?? ''} » active existe déjà.` }],
-      });
+      return new ErreurMetier(
+        'VALIDATION_ECHOUEE',
+        'Une seule adresse de ce type peut être active à la fois (RM-03).',
+        {
+          erreurs: [
+            {
+              champ: 'type',
+              code: 'adresse_active_unique',
+              message: `Une adresse « ${type ?? ''} » active existe déjà.`,
+            },
+          ],
+        },
+      );
     }
     if (erreur instanceof ErreurMetier) return erreur;
     // F-01 (audit sécurité) : JAMAIS `String(erreur)` en `detail` — `FiltreProbleme` recopie ce
     // champ tel quel dans la réponse HTTP pour TOUT `ErreurMetier`, y compris `ERREUR_INTERNE`.
     // Une erreur pg brute non reconnue (message du pilote, nom de contrainte) reste donc
     // JOURNALISÉE (`ServiceJournal`, jamais exposée) — le client ne reçoit qu'un code stable.
-    this.journal.error("Échec technique non typé sur une adresse client", erreur, { clientOperation: 'adresse' });
+    this.journal.error('Échec technique non typé sur une adresse client', erreur, {
+      clientOperation: 'adresse',
+    });
     return new ErreurMetier('ERREUR_INTERNE', "Échec sur l'adresse.");
   }
 
@@ -176,11 +217,17 @@ export class ServiceClientSousCollections {
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);
       const curseurDecode = params.curseur ? decoderCurseur(params.curseur) : null;
-      const conditionTenant = and(eq(clientContact.tenantId, ctx.tenantId), eq(clientContact.clientId, clientId));
+      const conditionTenant = and(
+        eq(clientContact.tenantId, ctx.tenantId),
+        eq(clientContact.clientId, clientId),
+      );
       const conditionCurseur = curseurDecode
         ? or(
             lt(clientContact.creeLe, curseurDecode.creeLe),
-            and(eq(clientContact.creeLe, curseurDecode.creeLe), lt(clientContact.id, curseurDecode.id)),
+            and(
+              eq(clientContact.creeLe, curseurDecode.creeLe),
+              lt(clientContact.id, curseurDecode.id),
+            ),
           )
         : undefined;
       const lignes = await tx
@@ -195,7 +242,10 @@ export class ServiceClientSousCollections {
       const derniere = pageLignes[pageLignes.length - 1];
       return {
         donnees: pageLignes.map(versContactResponse),
-        curseurSuivant: aUnePageSuivante && derniere ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id }) : null,
+        curseurSuivant:
+          aUnePageSuivante && derniere
+            ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id })
+            : null,
         limite: params.limite,
       };
     });
@@ -229,15 +279,30 @@ export class ServiceClientSousCollections {
     this.exigerCorpsNonVide(entree);
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);
-      const valeurs = 'telephone' in entree ? { ...entree, telephoneE164: normaliserTelephoneCh(entree.telephone ?? null) } : entree;
+      const valeurs =
+        'telephone' in entree
+          ? { ...entree, telephoneE164: normaliserTelephoneCh(entree.telephone ?? null) }
+          : entree;
       await tx
         .update(clientContact)
         .set(valeurs)
-        .where(and(eq(clientContact.tenantId, ctx.tenantId), eq(clientContact.clientId, clientId), eq(clientContact.id, contactId)));
+        .where(
+          and(
+            eq(clientContact.tenantId, ctx.tenantId),
+            eq(clientContact.clientId, clientId),
+            eq(clientContact.id, contactId),
+          ),
+        );
       const lignes = await tx
         .select()
         .from(clientContact)
-        .where(and(eq(clientContact.tenantId, ctx.tenantId), eq(clientContact.clientId, clientId), eq(clientContact.id, contactId)))
+        .where(
+          and(
+            eq(clientContact.tenantId, ctx.tenantId),
+            eq(clientContact.clientId, clientId),
+            eq(clientContact.id, contactId),
+          ),
+        )
         .limit(1);
       const ligne = lignes[0];
       if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Contact introuvable.');
@@ -257,11 +322,17 @@ export class ServiceClientSousCollections {
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);
       const curseurDecode = params.curseur ? decoderCurseur(params.curseur) : null;
-      const conditionTenant = and(eq(clientCondition.tenantId, ctx.tenantId), eq(clientCondition.clientId, clientId));
+      const conditionTenant = and(
+        eq(clientCondition.tenantId, ctx.tenantId),
+        eq(clientCondition.clientId, clientId),
+      );
       const conditionCurseur = curseurDecode
         ? or(
             lt(clientCondition.creeLe, curseurDecode.creeLe),
-            and(eq(clientCondition.creeLe, curseurDecode.creeLe), lt(clientCondition.id, curseurDecode.id)),
+            and(
+              eq(clientCondition.creeLe, curseurDecode.creeLe),
+              lt(clientCondition.id, curseurDecode.id),
+            ),
           )
         : undefined;
       const lignes = await tx
@@ -276,7 +347,10 @@ export class ServiceClientSousCollections {
       const derniere = pageLignes[pageLignes.length - 1];
       return {
         donnees: pageLignes.map(versConditionResponse),
-        curseurSuivant: aUnePageSuivante && derniere ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id }) : null,
+        curseurSuivant:
+          aUnePageSuivante && derniere
+            ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id })
+            : null,
         limite: params.limite,
       };
     });
@@ -313,14 +387,26 @@ export class ServiceClientSousCollections {
         // périodes — traduit en 400 (§7.3 du contrat), PAS en 409 : c'est une erreur de saisie
         // de dates, pas un conflit de ressource.
         if (estViolation(erreur, '23P01', 'client_condition_periode_excl')) {
-          throw new ErreurMetier('VALIDATION_ECHOUEE', 'Cette période chevauche des conditions déjà en vigueur pour ce client (RM-07).', {
-            erreurs: [{ champ: 'valideDuLe', code: 'periode_chevauchement', message: 'Période de validité en conflit avec une autre.' }],
-          });
+          throw new ErreurMetier(
+            'VALIDATION_ECHOUEE',
+            'Cette période chevauche des conditions déjà en vigueur pour ce client (RM-07).',
+            {
+              erreurs: [
+                {
+                  champ: 'valideDuLe',
+                  code: 'periode_chevauchement',
+                  message: 'Période de validité en conflit avec une autre.',
+                },
+              ],
+            },
+          );
         }
         if (erreur instanceof ErreurMetier) throw erreur;
         // F-01 (audit sécurité) : même règle que `traduireViolationAdresse` — jamais `String(erreur)`
         // en `detail`, toujours journalisé côté serveur, jamais exposé au client.
-        this.journal.error('Échec technique non typé sur une condition client', erreur, { clientOperation: 'condition' });
+        this.journal.error('Échec technique non typé sur une condition client', erreur, {
+          clientOperation: 'condition',
+        });
         throw new ErreurMetier('ERREUR_INTERNE', 'Échec sur la condition.');
       }
     });
@@ -338,11 +424,17 @@ export class ServiceClientSousCollections {
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);
       const curseurDecode = params.curseur ? decoderCurseur(params.curseur) : null;
-      const conditionTenant = and(eq(clientConsentement.tenantId, ctx.tenantId), eq(clientConsentement.clientId, clientId));
+      const conditionTenant = and(
+        eq(clientConsentement.tenantId, ctx.tenantId),
+        eq(clientConsentement.clientId, clientId),
+      );
       const conditionCurseur = curseurDecode
         ? or(
             lt(clientConsentement.creeLe, curseurDecode.creeLe),
-            and(eq(clientConsentement.creeLe, curseurDecode.creeLe), lt(clientConsentement.id, curseurDecode.id)),
+            and(
+              eq(clientConsentement.creeLe, curseurDecode.creeLe),
+              lt(clientConsentement.id, curseurDecode.id),
+            ),
           )
         : undefined;
       const lignes = await tx
@@ -357,7 +449,10 @@ export class ServiceClientSousCollections {
       const derniere = pageLignes[pageLignes.length - 1];
       return {
         donnees: pageLignes.map(versConsentementResponse),
-        curseurSuivant: aUnePageSuivante && derniere ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id }) : null,
+        curseurSuivant:
+          aUnePageSuivante && derniere
+            ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id })
+            : null,
         limite: params.limite,
       };
     });
@@ -401,15 +496,31 @@ export class ServiceClientSousCollections {
       await this.verifierClientExiste(tx, ctx, clientId);
 
       const curseurDecode = params.curseur ? decoderCurseur(params.curseur) : null;
-      const conditionTenant = and(eq(clientNote.tenantId, ctx.tenantId), eq(clientNote.clientId, clientId));
+      const conditionTenant = and(
+        eq(clientNote.tenantId, ctx.tenantId),
+        eq(clientNote.clientId, clientId),
+      );
       const conditionCurseur = curseurDecode
-        ? or(lt(clientNote.creeLe, curseurDecode.creeLe), and(eq(clientNote.creeLe, curseurDecode.creeLe), lt(clientNote.id, curseurDecode.id)))
+        ? or(
+            lt(clientNote.creeLe, curseurDecode.creeLe),
+            and(eq(clientNote.creeLe, curseurDecode.creeLe), lt(clientNote.id, curseurDecode.id)),
+          )
         : undefined;
 
       const lignes = await tx
-        .select({ ...getTableColumns(clientNote), auteurPrenom: utilisateur.prenom, auteurNom: utilisateur.nom })
+        .select({
+          ...getTableColumns(clientNote),
+          auteurPrenom: utilisateur.prenom,
+          auteurNom: utilisateur.nom,
+        })
         .from(clientNote)
-        .leftJoin(utilisateur, and(eq(clientNote.tenantId, utilisateur.tenantId), eq(clientNote.auteurId, utilisateur.id)))
+        .leftJoin(
+          utilisateur,
+          and(
+            eq(clientNote.tenantId, utilisateur.tenantId),
+            eq(clientNote.auteurId, utilisateur.id),
+          ),
+        )
         .where(conditionCurseur ? and(conditionTenant, conditionCurseur) : conditionTenant)
         .orderBy(desc(clientNote.creeLe), desc(clientNote.id))
         .limit(params.limite + 1);
@@ -420,7 +531,10 @@ export class ServiceClientSousCollections {
 
       return {
         donnees: pageLignes.map((ligne) => versNoteResponse(ligne, this.auteurDepuisLigne(ligne))),
-        curseurSuivant: aUnePageSuivante && derniere ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id }) : null,
+        curseurSuivant:
+          aUnePageSuivante && derniere
+            ? encoderCurseur({ creeLe: derniere.creeLe, id: derniere.id })
+            : null,
         limite: params.limite,
       };
     });
@@ -435,11 +549,19 @@ export class ServiceClientSousCollections {
       await this.verifierClientExiste(tx, ctx, clientId);
       const [ligne] = await tx
         .insert(clientNote)
-        .values({ tenantId: ctx.tenantId, clientId, nature: entree.nature, texte: entree.texte, auteurId: ctx.utilisateurId })
+        .values({
+          tenantId: ctx.tenantId,
+          clientId,
+          nature: entree.nature,
+          texte: entree.texte,
+          auteurId: ctx.utilisateurId,
+        })
         .returning();
       if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création de la note.');
 
-      const auteur = ctx.utilisateurId ? await this.chargerAuteur(tx, ctx, ctx.utilisateurId) : null;
+      const auteur = ctx.utilisateurId
+        ? await this.chargerAuteur(tx, ctx, ctx.utilisateurId)
+        : null;
       return new CollecteurAvertissements().envelopper(versNoteResponse(ligne, auteur));
     });
   }
@@ -460,15 +582,27 @@ export class ServiceClientSousCollections {
    */
   private exigerCorpsNonVide(entree: Readonly<Record<string, unknown>>): void {
     if (Object.keys(entree).length === 0) {
-      throw new ErreurMetier('VALIDATION_ECHOUEE', 'Le corps de la requête ne contient aucun champ à modifier.', {
-        erreurs: [
-          { champ: '(corps)', code: 'corps_vide', message: 'Au moins un champ doit être fourni pour une modification.' },
-        ],
-      });
+      throw new ErreurMetier(
+        'VALIDATION_ECHOUEE',
+        'Le corps de la requête ne contient aucun champ à modifier.',
+        {
+          erreurs: [
+            {
+              champ: '(corps)',
+              code: 'corps_vide',
+              message: 'Au moins un champ doit être fourni pour une modification.',
+            },
+          ],
+        },
+      );
     }
   }
 
-  private async verifierClientExiste(tx: TransactionDfa, ctx: ContexteTenant, clientId: string): Promise<void> {
+  private async verifierClientExiste(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    clientId: string,
+  ): Promise<void> {
     const lignes = await tx
       .select({ id: client.id })
       .from(client)
@@ -477,7 +611,11 @@ export class ServiceClientSousCollections {
     if (lignes.length === 0) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Client introuvable.');
   }
 
-  private async chargerAuteur(tx: TransactionDfa, ctx: ContexteTenant, utilisateurId: string): Promise<AuteurNote | null> {
+  private async chargerAuteur(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    utilisateurId: string,
+  ): Promise<AuteurNote | null> {
     const lignes = await tx
       .select({ prenom: utilisateur.prenom, nom: utilisateur.nom })
       .from(utilisateur)
@@ -487,7 +625,11 @@ export class ServiceClientSousCollections {
     return ligne ? { utilisateurId, nomAffiche: `${ligne.prenom} ${ligne.nom}` } : null;
   }
 
-  private auteurDepuisLigne(ligne: { auteurId: string | null; auteurPrenom: string | null; auteurNom: string | null }): AuteurNote | null {
+  private auteurDepuisLigne(ligne: {
+    auteurId: string | null;
+    auteurPrenom: string | null;
+    auteurNom: string | null;
+  }): AuteurNote | null {
     return ligne.auteurId && ligne.auteurPrenom && ligne.auteurNom
       ? { utilisateurId: ligne.auteurId, nomAffiche: `${ligne.auteurPrenom} ${ligne.auteurNom}` }
       : null;

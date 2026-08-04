@@ -1,8 +1,19 @@
 import { z } from 'zod';
 
-import { ORIGINES_COMMANDE_FOURNISSEUR, STATUTS_COMMANDE_FOURNISSEUR, type OrigineCommandeFournisseur, type StatutCommandeFournisseur } from './enums';
+import {
+  ORIGINES_COMMANDE_FOURNISSEUR,
+  STATUTS_COMMANDE_FOURNISSEUR,
+  type OrigineCommandeFournisseur,
+  type StatutCommandeFournisseur,
+} from './enums';
 import { schemaCentimesPositif } from './primitives';
-import { schemaDateJour, schemaIdentifiant, schemaMotif, schemaQuantiteMillieme } from '../atelier/primitives';
+import {
+  schemaDateJour,
+  schemaIdentifiant,
+  schemaMotif,
+  schemaQuantiteMillieme,
+} from '../atelier/primitives';
+import { schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 
 /**
@@ -47,6 +58,9 @@ export interface ReponseCommandeFournisseur {
   readonly envoyeeLe: string | null;
   /** Référence externe libre (numéro de commande porté par le fournisseur, si communiqué). */
   readonly reference: string | null;
+  /** Renseigné uniquement pour `statut = 'annulee'` (§6.2, `POST /{id}/annuler`) — raison saisie
+   *  par l'appelant, exigée en base par `commande_fournisseur_annulation_coherente_chk` (0034). */
+  readonly motifAnnulation: string | null;
   readonly lignes: readonly ReponseLigneCommandeFournisseur[];
   readonly lignesTronquees: boolean;
   readonly creeLe: string;
@@ -59,11 +73,15 @@ export const SEUIL_LIGNES_EMBARQUEES_COMMANDE_FOURNISSEUR = 100;
 /* Lecture — collection                                                */
 /* ------------------------------------------------------------------ */
 
-export const TRIS_COMMANDES_FOURNISSEUR = ['creeLe:desc', 'creeLe:asc', 'dateCommande:desc'] as const;
+export const TRIS_COMMANDES_FOURNISSEUR = [
+  'creeLe:desc',
+  'creeLe:asc',
+  'dateCommande:desc',
+] as const;
 export const TRI_DEFAUT_COMMANDES_FOURNISSEUR = 'creeLe:desc';
 
 export const schemaFiltresCommandesFournisseur = schemaParametresPage.extend({
-  statut: z.array(z.enum(STATUTS_COMMANDE_FOURNISSEUR)).optional(),
+  statut: schemaListeQuery(z.enum(STATUTS_COMMANDE_FOURNISSEUR)).optional(),
   fournisseurId: schemaIdentifiant.optional(),
   siteId: schemaIdentifiant.optional(),
   /** `true` : commandes avec au moins un reliquat non soldé (`RP-27`) — sucre équivalent à
@@ -159,4 +177,6 @@ export type EntreeAnnulationReliquat = z.infer<typeof schemaAnnulationReliquat>;
 export const schemaAnnulationCommandeFournisseur = z.object({
   motif: schemaMotif,
 });
-export type EntreeAnnulationCommandeFournisseur = z.infer<typeof schemaAnnulationCommandeFournisseur>;
+export type EntreeAnnulationCommandeFournisseur = z.infer<
+  typeof schemaAnnulationCommandeFournisseur
+>;

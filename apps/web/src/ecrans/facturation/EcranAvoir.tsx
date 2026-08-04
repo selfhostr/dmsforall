@@ -8,9 +8,22 @@ import { messageErreur } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
@@ -48,7 +61,10 @@ export function EcranAvoir() {
   const [motifAutre, setMotifAutre] = useState('');
   const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
   const [dialogueOuvert, setDialogueOuvert] = useState(false);
-  const [clesIdempotence, setClesIdempotence] = useState<{ readonly creation: string; readonly emission: string } | null>(null);
+  const [clesIdempotence, setClesIdempotence] = useState<{
+    readonly creation: string;
+    readonly emission: string;
+  } | null>(null);
   const [erreurEtape, setErreurEtape] = useState<unknown>(null);
 
   useEffect(() => {
@@ -82,7 +98,8 @@ export function EcranAvoir() {
 
   const facture = requete.data;
   const lignesEligibles = facture.lignes.filter((ligne) => ligne.montants);
-  const toutesSelectionnees = lignesEligibles.length > 0 && lignesEligibles.every((ligne) => selection.has(ligne.id));
+  const toutesSelectionnees =
+    lignesEligibles.length > 0 && lignesEligibles.every((ligne) => selection.has(ligne.id));
 
   function basculerLigne(id_: string) {
     setSelection((valeur) => {
@@ -114,13 +131,20 @@ export function EcranAvoir() {
         portee === 'partiel'
           ? lignesEligibles
               .filter((ligne) => selection.has(ligne.id))
-              .map((ligne) => ({ ligneDocumentId: ligne.id, montantTtcCentimes: ligne.montants?.montantTtcCentimes ?? 0 }))
+              .map((ligne) => ({
+                ligneDocumentId: ligne.id,
+                montantTtcCentimes: ligne.montants?.montantTtcCentimes ?? 0,
+              }))
           : [],
     });
     if (!resultat.success) return;
 
     try {
-      const brouillon = await creation.mutateAsync({ factureId: id, entree: resultat.data, idempotencyKey: clesIdempotence.creation });
+      const brouillon = await creation.mutateAsync({
+        factureId: id,
+        entree: resultat.data,
+        idempotencyKey: clesIdempotence.creation,
+      });
       const emis = await emission.mutateAsync({
         id: brouillon.donnees.id,
         entree: {},
@@ -142,7 +166,10 @@ export function EcranAvoir() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="texte-titre-section font-semibold text-foreground">
-          {t('facturation:avoir.titre', { numero: facture.numero ?? '', destinataire: facture.figees.clientDesignation })}
+          {t('facturation:avoir.titre', {
+            numero: facture.numero ?? '',
+            destinataire: facture.figees.clientDesignation,
+          })}
         </h1>
         <Button type="button" disabled={!peutEmettre} onClick={() => setDialogueOuvert(true)}>
           {t('facturation:avoir.action.emettre')}
@@ -173,12 +200,18 @@ export function EcranAvoir() {
                 onChange={(evenement) => setMotifAutre(evenement.target.value)}
               />
             ) : null}
-            {!motifValide ? <p className="texte-libelle text-destructive">{t('facturation:motifsAvoir.autreTexteObligatoire')}</p> : null}
+            {!motifValide ? (
+              <p className="texte-libelle text-destructive">
+                {t('facturation:motifsAvoir.autreTexteObligatoire')}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-2 rounded-md border p-3">
             <div className="flex items-center justify-between">
-              <h2 className="texte-libelle font-medium text-foreground">{t('facturation:avoir.lignesOrigine.titre')}</h2>
+              <h2 className="texte-libelle font-medium text-foreground">
+                {t('facturation:avoir.lignesOrigine.titre')}
+              </h2>
               <Button type="button" variant="outline" size="sm" onClick={toutSelectionner}>
                 {t('facturation:avoir.lignesOrigine.toutSelectionner')}
               </Button>
@@ -195,9 +228,13 @@ export function EcranAvoir() {
                     />
                     <span className="flex-1">{ligne.designation}</span>
                     {ligne.montants ? (
-                      <span className="tabular-nums">{formaterMontant(ligne.montants.montantTtcCentimes)}</span>
+                      <span className="tabular-nums">
+                        {formaterMontant(ligne.montants.montantTtcCentimes)}
+                      </span>
                     ) : (
-                      <span className="texte-libelle text-muted-foreground">{t('facturation:avoir.lignesOrigine.dejaCreditee')}</span>
+                      <span className="texte-libelle text-muted-foreground">
+                        {t('facturation:avoir.lignesOrigine.dejaCreditee')}
+                      </span>
                     )}
                   </li>
                 );
@@ -205,12 +242,18 @@ export function EcranAvoir() {
             </ul>
           </div>
 
-          {selection.size === 0 ? <p className="texte-libelle text-muted-foreground">{t('facturation:avoir.motifObligatoire')}</p> : null}
+          {selection.size === 0 ? (
+            <p className="texte-libelle text-muted-foreground">
+              {t('facturation:avoir.motifObligatoire')}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-3 rounded-md border p-4">
           <p className="texte-libelle text-muted-foreground">{t('facturation:avoir.totalAvoir')}</p>
-          <p className="texte-chiffre-geant tabular-nums font-semibold text-foreground">−{formaterMontant(totalAvoirCentimes)}</p>
+          <p className="texte-chiffre-geant tabular-nums font-semibold text-foreground">
+            −{formaterMontant(totalAvoirCentimes)}
+          </p>
         </div>
       </div>
 
@@ -227,16 +270,22 @@ export function EcranAvoir() {
               })}
             </p>
             <p className="texte-corps text-muted-foreground">
-              {t('facturation:fiche.dialogueEmission.avertissementAvoir', { numero: facture.numero ?? '' })}
+              {t('facturation:fiche.dialogueEmission.avertissementAvoir', {
+                numero: facture.numero ?? '',
+              })}
             </p>
-            {erreurActive ? <p className="texte-libelle text-destructive">{messageErreur(erreurActive, t)}</p> : null}
+            {erreurActive ? (
+              <p className="texte-libelle text-destructive">{messageErreur(erreurActive, t)}</p>
+            ) : null}
           </div>
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline">{t('commun:actions.annuler')}</Button>
             </DialogClose>
             <Button disabled={enCours} onClick={() => void soumettre()}>
-              {enCours ? t('facturation:avoir.action.enCours') : t('facturation:fiche.dialogueEmission.confirmer')}
+              {enCours
+                ? t('facturation:avoir.action.enCours')
+                : t('facturation:fiche.dialogueEmission.confirmer')}
             </Button>
           </DialogFooter>
         </DialogContent>

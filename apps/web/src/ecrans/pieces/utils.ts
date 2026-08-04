@@ -19,7 +19,9 @@ const APOSTROPHE_TYPOGRAPHIQUE = /’/g;
 /** Millièmes d'unité (integer) -> quantité affichable (ex. `2500` -> `"2.5"`, `1000` -> `"1"`). */
 export function formaterQuantiteMillieme(millieme: number): string {
   if (!Number.isInteger(millieme)) {
-    throw new TypeError(`formaterQuantiteMillieme attend un entier (millièmes), reçu : ${millieme}`);
+    throw new TypeError(
+      `formaterQuantiteMillieme attend un entier (millièmes), reçu : ${millieme}`,
+    );
   }
   return FORMATEUR_QUANTITE.format(millieme / 1000).replace(APOSTROPHE_TYPOGRAPHIQUE, "'");
 }
@@ -38,4 +40,18 @@ export function saisieVersQuantiteMillieme(saisie: string): number | null {
 /** Affichage neutre d'une valeur absente — même convention que `ecrans/clients/utils.ts`. */
 export function texteOuVide(valeur: string | number | null | undefined): string {
   return valeur === null || valeur === undefined || valeur === '' ? '—' : String(valeur);
+}
+
+/** Millièmes -> valeur ÉDITABLE pré-remplie dans un champ de saisie (ex. `2500` -> `"2.5"`) —
+ *  distinct de `formaterQuantiteMillieme` (affichage suisse, apostrophe des milliers) : un champ
+ *  de saisie ne doit jamais recevoir de séparateur de milliers, seulement le point décimal que
+ *  `saisieVersQuantiteMillieme` sait reparser sans ambiguïté. Utilisé pour pré-remplir la
+ *  quantité reçue d'une ligne de réception avec son reliquat (`DialogueReceptionCommande`). */
+export function quantiteMilliemeVersSaisie(millieme: number): string {
+  if (!Number.isInteger(millieme)) {
+    throw new TypeError(
+      `quantiteMilliemeVersSaisie attend un entier (millièmes), reçu : ${millieme}`,
+    );
+  }
+  return String(millieme / 1000);
 }

@@ -29,12 +29,21 @@ function txFactice(plan: { selects?: readonly unknown[][] } = {}) {
 
   function chaineWhere() {
     const valeur = Promise.resolve(selects.shift() ?? []);
-    return { limit: () => valeur, then: (resolve: (v: unknown) => void, reject?: (e: unknown) => void) => valeur.then(resolve, reject) };
+    return {
+      limit: () => valeur,
+      then: (resolve: (v: unknown) => void, reject?: (e: unknown) => void) =>
+        valeur.then(resolve, reject),
+    };
   }
 
   const tx = {
     select: () => ({ from: () => ({ where: () => chaineWhere() }) }),
-    update: () => ({ set: (vals: unknown) => { setArgs.push(vals); return { where: () => Promise.resolve(undefined) }; } }),
+    update: () => ({
+      set: (vals: unknown) => {
+        setArgs.push(vals);
+        return { where: () => Promise.resolve(undefined) };
+      },
+    }),
     insert: (_table: unknown) => ({
       values: (vals: Record<string, unknown>) => {
         insertValuesArgs.push(vals);
@@ -47,7 +56,11 @@ function txFactice(plan: { selects?: readonly unknown[][] } = {}) {
 }
 
 function accesFactice(tx: TransactionDfa): AccesBase {
-  return { enTenant: vi.fn((_ctx, travail) => travail(tx)), verifierConnexion: vi.fn(), verifierPostureRls: vi.fn() };
+  return {
+    enTenant: vi.fn((_ctx, travail) => travail(tx)),
+    verifierConnexion: vi.fn(),
+    verifierPostureRls: vi.fn(),
+  };
 }
 
 describe('ServiceFournisseur — RP-26/§1 : référentiel minimal, pas de suppression', () => {
@@ -55,7 +68,10 @@ describe('ServiceFournisseur — RP-26/§1 : référentiel minimal, pas de suppr
     const { tx } = txFactice({ selects: [[]] });
     const service = new ServiceFournisseur(accesFactice(tx));
 
-    await expect(service.parId(CTX, 'inconnu')).rejects.toMatchObject({ code: 'RESSOURCE_INTROUVABLE', status: 404 });
+    await expect(service.parId(CTX, 'inconnu')).rejects.toMatchObject({
+      code: 'RESSOURCE_INTROUVABLE',
+      status: 404,
+    });
   });
 
   it('creer : pas d’Idempotency-Key nécessaire, insère et enveloppe d’avertissements (vide)', async () => {
@@ -67,11 +83,17 @@ describe('ServiceFournisseur — RP-26/§1 : référentiel minimal, pas de suppr
 
     expect(resultat.donnees.nom).toBe('Bosch Suisse SA');
     expect(resultat.avertissements).toHaveLength(0);
-    expect(insertValuesArgs[0]).toMatchObject({ tenantId: 'tid-1', nom: 'Bosch Suisse SA', delaiHabituelJours: 3 });
+    expect(insertValuesArgs[0]).toMatchObject({
+      tenantId: 'tid-1',
+      nom: 'Bosch Suisse SA',
+      delaiHabituelJours: 3,
+    });
   });
 
   it('desactiver : bascule statut à inactif (RP-07/RM-12/RM-31 — jamais de suppression)', async () => {
-    const { tx, setArgs } = txFactice({ selects: [[ligneFournisseur()], [ligneFournisseur({ statut: 'inactif' })]] });
+    const { tx, setArgs } = txFactice({
+      selects: [[ligneFournisseur()], [ligneFournisseur({ statut: 'inactif' })]],
+    });
     const service = new ServiceFournisseur(accesFactice(tx));
 
     const resultat = await service.desactiver(CTX, 'f1');

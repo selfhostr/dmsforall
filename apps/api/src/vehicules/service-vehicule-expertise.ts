@@ -26,7 +26,10 @@ function versReponse(ligne: LigneVehiculeExpertise): ReponseVehiculeExpertise {
 export class ServiceVehiculeExpertise {
   constructor(@Inject(JETON_DB) private readonly acces: AccesBase) {}
 
-  async lister(ctx: ContexteTenant, vehiculeId: string): Promise<readonly ReponseVehiculeExpertise[]> {
+  async lister(
+    ctx: ContexteTenant,
+    vehiculeId: string,
+  ): Promise<readonly ReponseVehiculeExpertise[]> {
     return this.acces.enTenant(ctx, async (tx) => {
       await chargerLigneVehicule(tx, ctx, vehiculeId);
       const lignes = await listerExpertises(tx, ctx, vehiculeId);
@@ -34,7 +37,11 @@ export class ServiceVehiculeExpertise {
     });
   }
 
-  async creer(ctx: ContexteTenant, vehiculeId: string, entree: EntreeExpertiseVehicule): Promise<ReponseVehiculeExpertise> {
+  async creer(
+    ctx: ContexteTenant,
+    vehiculeId: string,
+    entree: EntreeExpertiseVehicule,
+  ): Promise<ReponseVehiculeExpertise> {
     return this.acces.enTenant(ctx, async (tx) => {
       await chargerLigneVehicule(tx, ctx, vehiculeId);
 
@@ -54,7 +61,10 @@ export class ServiceVehiculeExpertise {
         .returning();
       const inseree = lignes[0];
       if (!inseree) {
-        throw new ErreurMetier('ERREUR_INTERNE', "L'insertion de l'expertise n'a rendu aucune ligne.");
+        throw new ErreurMetier(
+          'ERREUR_INTERNE',
+          "L'insertion de l'expertise n'a rendu aucune ligne.",
+        );
       }
       return versReponse(inseree);
     });

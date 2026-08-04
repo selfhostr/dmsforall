@@ -1,6 +1,10 @@
 import { useRef, useState } from 'react';
 
-import type { CodeConfirmation, EntreeFacturationOrdreReparation, ReponseFacturationOrdreReparation } from '@dfa/shared';
+import type {
+  CodeConfirmation,
+  EntreeFacturationOrdreReparation,
+  ReponseFacturationOrdreReparation,
+} from '@dfa/shared';
 
 import { ErreurApi } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
@@ -30,7 +34,9 @@ export interface FacturationOrdreReparation {
    *  d'idempotence avant d'émettre (`confirmations` entre dans l'empreinte, §5.1 du contrat de
    *  facturer-or : réutiliser la clé transformerait ce rejeu volontaire en `409
    *  IDEMPOTENCE_CONFLIT`). */
-  readonly confirmerEtResoumettre: (options: { readonly onSuccess: (reponse: ReponseFacturationOrdreReparation) => void }) => void;
+  readonly confirmerEtResoumettre: (options: {
+    readonly onSuccess: (reponse: ReponseFacturationOrdreReparation) => void;
+  }) => void;
 }
 
 /**
@@ -70,10 +76,16 @@ export function useFacturationOrdreReparation(): FacturationOrdreReparation {
     );
   }
 
-  function confirmerEtResoumettre(options: { readonly onSuccess: (reponse: ReponseFacturationOrdreReparation) => void }) {
+  function confirmerEtResoumettre(options: {
+    readonly onSuccess: (reponse: ReponseFacturationOrdreReparation) => void;
+  }) {
     if (!derniereEntree) return;
     cleIdempotenceRef.current = genererCleIdempotence();
-    soumettre(derniereEntree.orId, { ...derniereEntree.entree, confirmations: [...confirmationsRequises] }, options);
+    soumettre(
+      derniereEntree.orId,
+      { ...derniereEntree.entree, confirmations: [...confirmationsRequises] },
+      options,
+    );
   }
 
   return {

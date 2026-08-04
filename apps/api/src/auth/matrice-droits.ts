@@ -333,6 +333,24 @@ export const TOUTES_ACTIONS = [
   'atelier.pointage.corriger_autrui',
   'atelier.pointage.verrouiller_periode',
   'atelier.pointage.deverrouiller_periode',
+  // ---- Mode « borne partagée » du pointage (docs/specification-pointage-borne.md) --------------
+  // Deux actions posées par expert-auth EN AMONT du module PIN, pour que l'agent qui construira
+  // `pin_pointage` / `POST /pointages/identification` s'appuie sur des noms déjà figés plutôt que
+  // d'en inventer. Aucune route ne les exerce aujourd'hui : elles sont déclarées
+  // `action-inerte-anticipee` dans `common/droits/allowlist-actions-non-decorees.ts`.
+  //
+  // `identifier` : reconnaître un technicien par son code PIN sur une borne. N'ouvre AUCUNE
+  // session (contrat `pointage/identification.ts`) — c'est pourquoi ce n'est pas une action
+  // d'auth mais une action de pointage. Réservée au seul rôle `poste_atelier` : sur un compte de
+  // personne, l'identification n'a pas d'objet (la session dit déjà qui agit), et l'ouvrir plus
+  // largement offrirait un oracle de PIN à n'importe quel compte du tenant.
+  //
+  // `gerer_pin` : attribuer ou réinitialiser le PIN d'un technicien sur un site (RM-128). Droit
+  // DISTINCT de `parametrage.atelier.modifier` (qui gouverne le MODE du site, décision
+  // d'organisation rare, direction/admin) : attribuer un PIN est un geste quotidien d'atelier qui
+  // ne doit pas attendre la direction.
+  'atelier.pointage.identifier',
+  'atelier.pointage.gerer_pin',
 ] as const;
 
 /**
@@ -413,7 +431,10 @@ const INFERE_CLIENT_CONDITIONS: readonly Action[] = ['client.condition.modifier'
  * de contact client, dans le périmètre réceptionnaire/chef d'atelier/direction, comme la
  * désactivation.
  */
-const INFERE_CLIENT_CONTACT: readonly Action[] = ['client.consentement.enregistrer', 'client.note.ecrire'];
+const INFERE_CLIENT_CONTACT: readonly Action[] = [
+  'client.consentement.enregistrer',
+  'client.note.ecrire',
+];
 
 /**
  * §10 L960 — Créer / modifier un véhicule : réceptionnaire, chef d'atelier, magasinier, direction.
@@ -511,7 +532,10 @@ const INFERE_OR_CLOTURE: readonly Action[] = ['atelier.or.cloturer'];
  * (T-11, ligne 441 : « technicien »). Pas de ligne §10 dédiée ; le technicien exécute (§2.1 ligne
  * 60), le chef d'atelier supervise et peut se substituer à tout instant.
  */
-const INFERE_OR_EXECUTION: readonly Action[] = ['atelier.or.demarrer', 'atelier.or.passer_en_controle'];
+const INFERE_OR_EXECUTION: readonly Action[] = [
+  'atelier.or.demarrer',
+  'atelier.or.passer_en_controle',
+];
 
 /**
  * §10 L975 — Valider le contrôle qualité : chef d'atelier, technicien (« autre que l'exécutant » —
@@ -728,6 +752,37 @@ const DROITS_COMPTABLE: readonly Action[] = [...LECTURE_SOCLE, ...LECTURE_ETENDU
 const DROITS_VENDEUR: readonly Action[] = [...LECTURE_SOCLE, ...LECTURE_ETENDUE];
 
 /**
+ * `poste_atelier` — LE SEUL RÔLE DE CE FICHIER QUI NE DÉSIGNE PAS UNE PERSONNE
+ * (`ROLES_COMPTE_DE_SERVICE`, `@dfa/shared`). C'est la tablette murale de l'atelier : un compte de
+ * service scopé à UN site (`utilisateur.site_id`, migration 0039), derrière lequel n'importe quel
+ * technicien de l'équipe se présente en tapant un code PIN.
+ *
+ * **La règle de construction n'est pas la même que pour les autres rôles.** Partout ailleurs dans
+ * ce fichier, la lecture est ouverte par défaut et seule l'écriture est gouvernée (voir
+ * `LECTURE_SOCLE` / `LECTURE_ETENDUE`, doctrine de tête de fichier). Ici c'est l'inverse : le
+ * périmètre est CONSTRUIT PAR ÉNUMÉRATION, et tout ce qui n'y figure pas est refusé. La raison est
+ * physique, pas philosophique — cet écran est accroché à un mur, allumé en permanence, sans
+ * verrouillage, et n'importe qui entrant dans l'atelier (client, livreur, visiteur) est devant.
+ * `LECTURE_ETENDUE` y exposerait le fichier clients complet du garage à la vue de tous ; c'est
+ * pourquoi ce rôle ne le reçoit PAS, à la différence des huit autres.
+ *
+ * Ce qu'il reçoit, et pourquoi chaque entrée :
+ *  - `LECTURE_SOCLE` : lire son tenant et son site. Nécessaire à l'en-tête de l'application, et
+ *    strictement borné — `session.sites` ne rend qu'un site à un compte de service, et
+ *    `verifierSiteAutorise()` (`auth/comptes-de-service.ts`) refuse tout autre site.
+ *  - `LECTURE_OR` : la borne affiche les OR en cours de SON atelier pour que le technicien
+ *    choisisse sur quoi pointer. Sans montants — `poste_atelier` figure dans `ROLES_SANS_MONTANT`.
+ *  - le bloc pointage (`DROITS_POINTAGE_PAR_ROLE.poste_atelier`) : identifier par PIN, démarrer,
+ *    arrêter, lire.
+ *
+ * Ce qu'il ne reçoit à AUCUN prix (RM-115/RM-131) : toute transition d'OR, toute réponse de devis,
+ * toute écriture client/véhicule, tout document, tout paiement, toute correction de pointage
+ * d'autrui, toute gestion de PIN. Un PIN emprunté doit rester une erreur d'imputation d'heures et
+ * ne jamais pouvoir devenir autre chose — cette liste est ce qui rend cette phrase vraie.
+ */
+const DROITS_POSTE_ATELIER: readonly Action[] = [...LECTURE_SOCLE, ...LECTURE_OR];
+
+/**
  * `direction` : voit les indicateurs, arbitre en dernier ressort (§2.1 ligne 63). « oui » ou
  * « sans limite » sur les 24 lignes de §10 sans exception : reçoit tout ce que `chef_atelier` a,
  * plus les actions réservées à direction seule (`client.condition.modifier`).
@@ -770,14 +825,20 @@ const DROITS_ADMIN: readonly Action[] = [...DROITS_DIRECTION];
 const LECTURE_PAIEMENT: readonly Action[] = ['facturation.paiement.lire'];
 /** RF-114, ligne « Encaisser / imputer » : direction, comptable, vendeur, réceptionnaire, magasinier
  *  — PAS chef d'atelier (❌ littéral), PAS technicien, PAS admin (RF-115). */
-const ENCAISSEMENT_PAIEMENT: readonly Action[] = ['facturation.paiement.creer', 'facturation.paiement.imputer'];
+const ENCAISSEMENT_PAIEMENT: readonly Action[] = [
+  'facturation.paiement.creer',
+  'facturation.paiement.imputer',
+];
 /**
  * RF-114, ligne « Rembourser un trop-perçu » : direction, comptable SEULS. `facturation.paiement.
  * abandonner` (RF-79 issue 3) N'A PAS de ligne littérale dans le tableau RF-114 — INFÉRÉ au même
  * périmètre : c'est une décision de disposition financière de l'avance client, structurellement
  * plus engageante qu'un remboursement (elle renonce à rendre l'argent au client), jamais moins.
  */
-const DISPOSITION_AVANCE_PAIEMENT: readonly Action[] = ['facturation.paiement.rembourser', 'facturation.paiement.abandonner'];
+const DISPOSITION_AVANCE_PAIEMENT: readonly Action[] = [
+  'facturation.paiement.rembourser',
+  'facturation.paiement.abandonner',
+];
 
 const DROITS_PAIEMENT_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
   direction: [...LECTURE_PAIEMENT, ...ENCAISSEMENT_PAIEMENT, ...DISPOSITION_AVANCE_PAIEMENT],
@@ -789,6 +850,8 @@ const DROITS_PAIEMENT_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
   technicien: [],
   // RF-115 : jamais de droit financier pour admin — voir le commentaire de tête de section.
   admin: [],
+  // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+  poste_atelier: [],
 };
 
 // =================================================================================================
@@ -803,33 +866,67 @@ const LECTURE_DOCUMENT: readonly Action[] = ['facturation.document.lire'];
 
 /** `RF-114` ligne « Créer / modifier un brouillon » : direction, comptable, vendeur, réceptionnaire,
  *  chef d'atelier, magasinier — PAS technicien, PAS admin (RF-115). */
-const ECRITURE_BROUILLON: readonly Action[] = ['facturation.document.creer', 'facturation.document.modifier', 'facturation.document.transitionner', 'facturation.avoir.creer'];
+const ECRITURE_BROUILLON: readonly Action[] = [
+  'facturation.document.creer',
+  'facturation.document.modifier',
+  'facturation.document.transitionner',
+  'facturation.avoir.creer',
+];
 
 /** `RF-114` ligne « Émettre un devis / bon de commande » : direction, comptable, vendeur,
  *  réceptionnaire, chef d'atelier — PAS magasinier, PAS technicien, PAS admin. */
-const EMISSION_DEVIS_BC: readonly Action[] = ['facturation.document.emettre', 'facturation.document.emettre_devis_bc'];
+const EMISSION_DEVIS_BC: readonly Action[] = [
+  'facturation.document.emettre',
+  'facturation.document.emettre_devis_bc',
+];
 
 /** `RF-114` ligne « Émettre une facture » : direction, comptable, vendeur, réceptionnaire — PAS
  *  chef d'atelier (rompt la hiérarchie habituelle chef_atelier ⊇ receptionnaire, voir la note de
  *  tête de section), PAS magasinier, PAS technicien, PAS admin. */
-const EMISSION_FACTURE: readonly Action[] = ['facturation.document.emettre', 'facturation.document.emettre_facture'];
+const EMISSION_FACTURE: readonly Action[] = [
+  'facturation.document.emettre',
+  'facturation.document.emettre_facture',
+];
 
 /** `RF-114` ligne « Émettre un avoir » : direction, comptable, réceptionnaire (⚠️ plafonné, RF-117
  *  non implémenté — voir la note sur le type `Action`) — PAS vendeur, PAS chef d'atelier, PAS
  *  magasinier, PAS technicien, PAS admin. */
-const EMISSION_AVOIR: readonly Action[] = ['facturation.document.emettre', 'facturation.document.emettre_avoir'];
+const EMISSION_AVOIR: readonly Action[] = [
+  'facturation.document.emettre',
+  'facturation.document.emettre_avoir',
+];
 
 const DROITS_DOCUMENT_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
-  direction: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON, ...EMISSION_DEVIS_BC, ...EMISSION_FACTURE, ...EMISSION_AVOIR],
-  comptable: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON, ...EMISSION_DEVIS_BC, ...EMISSION_FACTURE, ...EMISSION_AVOIR],
+  direction: [
+    ...LECTURE_DOCUMENT,
+    ...ECRITURE_BROUILLON,
+    ...EMISSION_DEVIS_BC,
+    ...EMISSION_FACTURE,
+    ...EMISSION_AVOIR,
+  ],
+  comptable: [
+    ...LECTURE_DOCUMENT,
+    ...ECRITURE_BROUILLON,
+    ...EMISSION_DEVIS_BC,
+    ...EMISSION_FACTURE,
+    ...EMISSION_AVOIR,
+  ],
   vendeur: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON, ...EMISSION_DEVIS_BC, ...EMISSION_FACTURE],
-  receptionnaire: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON, ...EMISSION_DEVIS_BC, ...EMISSION_FACTURE, ...EMISSION_AVOIR],
+  receptionnaire: [
+    ...LECTURE_DOCUMENT,
+    ...ECRITURE_BROUILLON,
+    ...EMISSION_DEVIS_BC,
+    ...EMISSION_FACTURE,
+    ...EMISSION_AVOIR,
+  ],
   chef_atelier: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON, ...EMISSION_DEVIS_BC],
   magasinier: [...LECTURE_DOCUMENT, ...ECRITURE_BROUILLON],
   technicien: [...LECTURE_DOCUMENT],
   // RF-115 : aucun droit financier pour admin, y compris la simple création d'un brouillon —
   // séparation des pouvoirs explicite, à ne JAMAIS combler par copier-coller de `direction`.
   admin: [...LECTURE_DOCUMENT],
+  // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+  poste_atelier: [],
 };
 
 // =================================================================================================
@@ -854,18 +951,21 @@ const DROITS_DOCUMENT_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
 const LECTURE_CREANCIER: readonly Action[] = ['facturation.parametrage.creancier.lire'];
 const ECRITURE_CREANCIER: readonly Action[] = ['facturation.parametrage.creancier.modifier'];
 
-const DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
-  direction: [...LECTURE_CREANCIER, ...ECRITURE_CREANCIER],
-  comptable: [...LECTURE_CREANCIER, ...ECRITURE_CREANCIER],
-  vendeur: [],
-  receptionnaire: [],
-  chef_atelier: [],
-  technicien: [],
-  magasinier: [],
-  // RF-115 : jamais de droit financier pour admin — voir le commentaire de tête de section. Changer
-  // l'IBAN d'encaissement du garage est au moins aussi engageant que rembourser un trop-perçu.
-  admin: [],
-};
+const DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> =
+  {
+    direction: [...LECTURE_CREANCIER, ...ECRITURE_CREANCIER],
+    comptable: [...LECTURE_CREANCIER, ...ECRITURE_CREANCIER],
+    vendeur: [],
+    receptionnaire: [],
+    chef_atelier: [],
+    technicien: [],
+    magasinier: [],
+    // RF-115 : jamais de droit financier pour admin — voir le commentaire de tête de section. Changer
+    // l'IBAN d'encaissement du garage est au moins aussi engageant que rembourser un trop-perçu.
+    admin: [],
+    // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+    poste_atelier: [],
+  };
 
 // =================================================================================================
 // Export fiduciaire (étape 2) : bloc ADDITIF PUR, même patron et MÊME PALIER que le bloc créancier.
@@ -896,6 +996,8 @@ const DROITS_EXPORT_COMPTABLE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonl
   // les écritures à la fiduciaire est irréversible côté destinataire, au moins aussi engageant que
   // rembourser un trop-perçu ou modifier l'IBAN créancier.
   admin: [],
+  // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+  poste_atelier: [],
 };
 
 // =================================================================================================
@@ -925,6 +1027,8 @@ const DROITS_IMPRESSION_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Acti
   // ROLES_SANS_MONTANT + admin) — il ne doit donc pas pouvoir les imprimer non plus. `[]`
   // VOLONTAIREMENT, jamais à combler par copier-coller de `direction`.
   admin: [],
+  // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+  poste_atelier: [],
 };
 
 // =================================================================================================
@@ -955,10 +1059,17 @@ const DROITS_IMPRESSION_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Acti
 // inventer une action inerte sans justification dans `allowlist-actions-non-decorees.ts`.
 
 /** §11 ligne « Consulter article/stock » — tous les rôles opérationnels, PAS `admin` (RF-115). */
-const LECTURE_PIECES: readonly Action[] = ['pieces.article.lire', 'pieces.stock.lire', 'pieces.reservation.lire'];
+const LECTURE_PIECES: readonly Action[] = [
+  'pieces.article.lire',
+  'pieces.stock.lire',
+  'pieces.reservation.lire',
+];
 
 /** §11 ligne « Créer/modifier un article » : direction, chef_atelier `[À VALIDER]`, magasinier. */
-const ECRITURE_ARTICLE_PIECES: readonly Action[] = ['pieces.article.creer', 'pieces.article.modifier'];
+const ECRITURE_ARTICLE_PIECES: readonly Action[] = [
+  'pieces.article.creer',
+  'pieces.article.modifier',
+];
 
 /**
  * Inféré — réglages de stock par site (`PATCH /articles/{id}/stock/{siteId}`, emplacement/seuils,
@@ -999,11 +1110,18 @@ const LIBERATION_RESERVATION_PIECES: readonly Action[] = ['pieces.reservation.li
 // alors que `parametrage.atelier.modifier`/`parametrage.referentiel.modifier` ne le sont pas — la
 // même nature de geste peut recevoir un traitement différent selon qu'il touche ou non à l'argent).
 const LECTURE_FOURNISSEUR_PIECES: readonly Action[] = ['pieces.fournisseur.lire'];
-const ECRITURE_FOURNISSEUR_PIECES: readonly Action[] = ['pieces.fournisseur.creer', 'pieces.fournisseur.modifier'];
+const ECRITURE_FOURNISSEUR_PIECES: readonly Action[] = [
+  'pieces.fournisseur.creer',
+  'pieces.fournisseur.modifier',
+];
 const LECTURE_COMMANDE_FOURNISSEUR_PIECES: readonly Action[] = ['pieces.commande_fournisseur.lire'];
-const ECRITURE_COMMANDE_FOURNISSEUR_PIECES: readonly Action[] = ['pieces.commande_fournisseur.creer'];
+const ECRITURE_COMMANDE_FOURNISSEUR_PIECES: readonly Action[] = [
+  'pieces.commande_fournisseur.creer',
+];
 /** Couvre aussi l'annulation de reliquat (note de l'agent, pas une seconde action distincte). */
-const RECEPTION_COMMANDE_FOURNISSEUR_PIECES: readonly Action[] = ['pieces.commande_fournisseur.reception'];
+const RECEPTION_COMMANDE_FOURNISSEUR_PIECES: readonly Action[] = [
+  'pieces.commande_fournisseur.reception',
+];
 const LECTURE_CONSIGNE_PIECES: readonly Action[] = ['pieces.consigne.lire'];
 const RETOUR_CONSIGNE_PIECES: readonly Action[] = ['pieces.consigne.retourner'];
 const LECTURE_PARAMETRAGE_PIECES: readonly Action[] = ['pieces.parametrage.lire'];
@@ -1062,6 +1180,8 @@ const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
   // RF-115, littéral sur TOUTE la matrice §11 (y compris la lecture) — voir la note de tête de
   // section. `[]` VOLONTAIREMENT, jamais à combler par copier-coller de `direction`.
   admin: [],
+  // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+  poste_atelier: [],
 };
 
 // =================================================================================================
@@ -1128,7 +1248,10 @@ const LECTURE_VEHICULE_STOCK: readonly Action[] = ['ventes.vehicule_stock.lire']
 
 /** Écriture `vehicule_stock` (mise en stock, PATCH, réception) : §11 ligne 9 ne donne l'écriture
  *  qu'à `direction` (`vendeur` `[À VALIDER, QV-15]`, traité `non` en attendant). */
-const ECRITURE_VEHICULE_STOCK: readonly Action[] = ['ventes.vehicule_stock.creer', 'ventes.vehicule_stock.modifier'];
+const ECRITURE_VEHICULE_STOCK: readonly Action[] = [
+  'ventes.vehicule_stock.creer',
+  'ventes.vehicule_stock.modifier',
+];
 
 /** Correction exceptionnelle (`remettre-disponible`, motif obligatoire) — INFÉRÉE, réservée à
  *  `direction` seule, même doctrine que `vehicule.detention.corriger` (étape 1). */
@@ -1158,7 +1281,11 @@ const LIVRAISON_DOSSIER_VENTE: readonly Action[] = ['ventes.dossier.livrer'];
 const LECTURE_REPRISE: readonly Action[] = ['ventes.reprise.lire'];
 
 /** §11 ligne 3 : `vendeur`, `direction` — création de l'estimation, modification, négociation. */
-const ECRITURE_REPRISE_NEGOCIATION: readonly Action[] = ['ventes.reprise.creer', 'ventes.reprise.modifier', 'ventes.reprise.negocier'];
+const ECRITURE_REPRISE_NEGOCIATION: readonly Action[] = [
+  'ventes.reprise.creer',
+  'ventes.reprise.modifier',
+  'ventes.reprise.negocier',
+];
 
 /** INFÉRÉ — le refus (le client garde son véhicule) suit le même périmètre que la négociation :
  *  c'est une décision commerciale courante, pas une correction exceptionnelle. */
@@ -1176,7 +1303,11 @@ const LECTURE_FINANCEMENT: readonly Action[] = ['ventes.financement.lire'];
  *  (INFÉRÉ) à la création de la proposition de financement et à son refus direct (flip-side de la
  *  confirmation, §7.3 : un refus fait revenir le dossier « en attente d'un nouveau mode de
  *  financement », c'est un événement courant du parcours de vente, pas une correction). */
-const ECRITURE_FINANCEMENT: readonly Action[] = ['ventes.financement.creer', 'ventes.financement.confirmer', 'ventes.financement.refuser'];
+const ECRITURE_FINANCEMENT: readonly Action[] = [
+  'ventes.financement.creer',
+  'ventes.financement.confirmer',
+  'ventes.financement.refuser',
+];
 
 const DROITS_VENTES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
   direction: [
@@ -1193,7 +1324,14 @@ const DROITS_VENTES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
     ...LECTURE_FINANCEMENT,
     ...ECRITURE_FINANCEMENT,
   ],
-  comptable: [...LECTURE_VEHICULE_STOCK, ...LECTURE_DOSSIER_VENTE, ...LECTURE_REPRISE, ...LECTURE_FINANCEMENT, 'ventes.financement.confirmer', 'ventes.financement.refuser'],
+  comptable: [
+    ...LECTURE_VEHICULE_STOCK,
+    ...LECTURE_DOSSIER_VENTE,
+    ...LECTURE_REPRISE,
+    ...LECTURE_FINANCEMENT,
+    'ventes.financement.confirmer',
+    'ventes.financement.refuser',
+  ],
   vendeur: [
     ...LECTURE_VEHICULE_STOCK,
     ...LECTURE_DOSSIER_VENTE,
@@ -1205,13 +1343,20 @@ const DROITS_VENTES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
     ...LECTURE_FINANCEMENT,
     ...ECRITURE_FINANCEMENT,
   ],
-  receptionnaire: [...LECTURE_VEHICULE_STOCK, ...LECTURE_DOSSIER_VENTE, ...LECTURE_REPRISE, ...LECTURE_FINANCEMENT],
+  receptionnaire: [
+    ...LECTURE_VEHICULE_STOCK,
+    ...LECTURE_DOSSIER_VENTE,
+    ...LECTURE_REPRISE,
+    ...LECTURE_FINANCEMENT,
+  ],
   chef_atelier: [...LECTURE_VEHICULE_STOCK, ...LECTURE_DOSSIER_VENTE],
   technicien: [],
   magasinier: [],
   // RF-115, appliqué ICI par décision de cet agent (§11 ne mentionne pas admin) — voir la note de
   // tête de section : `[]` VOLONTAIREMENT, jamais à combler par copier-coller de `direction`.
   admin: [],
+  // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+  poste_atelier: [],
 };
 
 // =================================================================================================
@@ -1257,6 +1402,14 @@ const DROITS_VENTES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
 // NOTE : `comptable` ne détient PAS non plus `atelier.pointage.lire` dans ce bloc (héritage de la
 // table transmise par l'agent `pointage/`, jamais réexaminé ici) — hors périmètre de cette
 // correction, qui porte UNIQUEMENT sur les deux actions de verrouillage signalées par le test.
+//
+// `gerer_pin` (RM-128, mode borne) — `chef_atelier`/`direction`/`admin`, exactement le trio qui
+// détient déjà `corriger_autrui` et les deux verrouillages de période. Volontairement PLUS
+// permissif que `parametrage.atelier.modifier` (direction/admin), qui gouverne le MODE du site :
+// changer le mode d'un site est une décision d'organisation rare ; attribuer ou réinitialiser un
+// PIN est un geste quotidien d'atelier (embauche, oubli, code soupçonné connu d'un collègue) qui
+// ne doit pas attendre la direction. Le technicien NE PEUT PAS s'auto-attribuer un PIN : il n'est
+// dans aucune de ces trois listes, et l'auto-service est explicitement reporté.
 const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
   chef_atelier: [
     'atelier.pointage.demarrer',
@@ -1265,6 +1418,7 @@ const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
     'atelier.pointage.corriger_autrui',
     'atelier.pointage.verrouiller_periode',
     'atelier.pointage.deverrouiller_periode',
+    'atelier.pointage.gerer_pin',
   ],
   direction: [
     'atelier.pointage.demarrer',
@@ -1273,6 +1427,7 @@ const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
     'atelier.pointage.corriger_autrui',
     'atelier.pointage.verrouiller_periode',
     'atelier.pointage.deverrouiller_periode',
+    'atelier.pointage.gerer_pin',
   ],
   admin: [
     'atelier.pointage.demarrer',
@@ -1281,9 +1436,19 @@ const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
     'atelier.pointage.corriger_autrui',
     'atelier.pointage.verrouiller_periode',
     'atelier.pointage.deverrouiller_periode',
+    'atelier.pointage.gerer_pin',
   ],
   technicien: ['atelier.pointage.demarrer', 'atelier.pointage.arreter', 'atelier.pointage.lire'],
   magasinier: ['atelier.pointage.demarrer', 'atelier.pointage.arreter', 'atelier.pointage.lire'],
+  // La borne : elle pointe pour le compte du technicien que le PIN vient de désigner, et elle
+  // identifie. Rien d'autre du domaine pointage — surtout PAS `corriger_autrui` (une correction se
+  // fait au bureau, depuis un compte nominatif, RM-131) ni les verrouillages de période.
+  poste_atelier: [
+    'atelier.pointage.identifier',
+    'atelier.pointage.demarrer',
+    'atelier.pointage.arreter',
+    'atelier.pointage.lire',
+  ],
   // Arbitrage @laupernoe (2026-08-03, documenté ci-dessus) : NI verrouiller NI déverrouiller — comptable
   // reste lecture-seule hors facturation/ventes, cet invariant prime sur la table transmise.
   comptable: [],
@@ -1380,6 +1545,17 @@ export const MATRICE_DROITS = {
     ...DROITS_VENTES_PAR_ROLE.comptable,
     ...DROITS_POINTAGE_PAR_ROLE.comptable,
   ],
+  poste_atelier: [
+    ...DROITS_POSTE_ATELIER,
+    ...DROITS_PAIEMENT_PAR_ROLE.poste_atelier,
+    ...DROITS_DOCUMENT_PAR_ROLE.poste_atelier,
+    ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.poste_atelier,
+    ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.poste_atelier,
+    ...DROITS_IMPRESSION_PAR_ROLE.poste_atelier,
+    ...DROITS_PIECES_PAR_ROLE.poste_atelier,
+    ...DROITS_VENTES_PAR_ROLE.poste_atelier,
+    ...DROITS_POINTAGE_PAR_ROLE.poste_atelier,
+  ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 
 /**
@@ -1390,8 +1566,13 @@ export const MATRICE_DROITS = {
  *
  * `technicien` : n'a aucun droit `atelier.ligne.modifier` (rabais, payeur) ni `atelier.or.plafond_modifier`
  * ni `client.condition.modifier` dans la matrice ci-dessus — cohérent avec l'exclusion des montants.
+ *
+ * `poste_atelier` : la borne est un écran mural allumé en permanence, à la vue de tout le monde
+ * (clients, livreurs, visiteurs). Y afficher un prix de main-d'œuvre, un plafond ou un total d'OR
+ * serait une divulgation commerciale par simple présence physique dans l'atelier — un canal que
+ * l'auth ne peut pas gouverner autrement qu'en retirant les montants à la source.
  */
-export const ROLES_SANS_MONTANT: readonly RoleUtilisateur[] = ['technicien'];
+export const ROLES_SANS_MONTANT: readonly RoleUtilisateur[] = ['technicien', 'poste_atelier'];
 
 /**
  * Droit requis pour rejouer une requête avec une confirmation donnée (contrats-api-etape-1.md

@@ -14,7 +14,12 @@ export interface ProprietesBoutonChargerPlus {
 
 /** Pied de liste à curseur : « Charger plus » tant qu'il reste une page, rien une fois la fin
  *  de liste atteinte (pas de bouton désactivé qui traîne). */
-export function BoutonChargerPlus({ aChargerPlus, enChargement = false, onChargerPlus, className }: ProprietesBoutonChargerPlus) {
+export function BoutonChargerPlus({
+  aChargerPlus,
+  enChargement = false,
+  onChargerPlus,
+  className,
+}: ProprietesBoutonChargerPlus) {
   const { t } = useTranslation('commun');
 
   if (!aChargerPlus) return null;

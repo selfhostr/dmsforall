@@ -54,7 +54,8 @@ export function BadgeStatutReglement({ statut, className }: Props) {
   const { t } = useTranslation('facturation');
   const config = CONFIG_STATUT[statut];
   const Icone = config.icone;
-  const classesToken = config.forme === 'plein' ? CLASSES_PLEIN[config.token] : CLASSES_CONTOUR[config.token];
+  const classesToken =
+    config.forme === 'plein' ? CLASSES_PLEIN[config.token] : CLASSES_CONTOUR[config.token];
 
   return (
     <span

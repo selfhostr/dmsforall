@@ -51,7 +51,10 @@ beforeEach(() => {
   setTag.mockClear();
   setContext.mockClear();
   captureException.mockClear();
-  definirEnvPourTests({ VITE_API_URL: '/api/v1', VITE_SENTRY_DSN: 'https://cle@sentry.exemple.ch/1' });
+  definirEnvPourTests({
+    VITE_API_URL: '/api/v1',
+    VITE_SENTRY_DSN: 'https://cle@sentry.exemple.ch/1',
+  });
   initialiserSentry();
 });
 
@@ -81,7 +84,9 @@ describe('beforeSend — filet de filtrage du bruit hors signalerErreur', () => 
    *  globales `window.onerror`, rejets de promesse non gérés) — ces captures ne passent JAMAIS
    *  par `signalerErreur`, donc le filtrage doit aussi vivre dans `beforeSend` lui-même. */
   function beforeSendConfigure(): (evenement: ErrorEvent, indice: EventHint) => ErrorEvent | null {
-    const options = init.mock.calls.at(-1)?.[0] as { beforeSend: (e: ErrorEvent, h: EventHint) => ErrorEvent | null };
+    const options = init.mock.calls.at(-1)?.[0] as {
+      beforeSend: (e: ErrorEvent, h: EventHint) => ErrorEvent | null;
+    };
     return options.beforeSend;
   }
 

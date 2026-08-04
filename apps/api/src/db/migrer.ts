@@ -127,9 +127,7 @@ async function listerMigrations(repertoire: string): Promise<readonly string[]> 
   return fichiers;
 }
 
-export async function appliquerMigrations(
-  options: OptionsMigration,
-): Promise<ResultatMigration> {
+export async function appliquerMigrations(options: OptionsMigration): Promise<ResultatMigration> {
   const journaliser = options.journaliser ?? ((m: string) => process.stdout.write(`${m}\n`));
   const repertoire =
     options.repertoire === undefined
@@ -186,7 +184,7 @@ export async function appliquerMigrations(
     `);
 
     // --- Verrou : deux instances qui démarrent ensemble ne doivent pas migrer en parallèle -----
-    journaliser("Acquisition du verrou de migration…");
+    journaliser('Acquisition du verrou de migration…');
     await client.query('select pg_advisory_lock($1)', [VERROU_MIGRATION.toString()]);
 
     const { rows: deja } = await client.query<{ nom: string; empreinte: string }>(
@@ -293,8 +291,9 @@ if (estPointDEntree()) {
       'problemes' in erreur &&
       Array.isArray((erreur as { problemes: unknown }).problemes)
     ) {
-      const problemes = (erreur as { problemes: ReadonlyArray<{ variable: string; message: string }> })
-        .problemes;
+      const problemes = (
+        erreur as { problemes: ReadonlyArray<{ variable: string; message: string }> }
+      ).problemes;
       for (const probleme of problemes) {
         process.stderr.write(`  - ${probleme.variable} : ${probleme.message}\n`);
       }

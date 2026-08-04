@@ -13,14 +13,21 @@ interface VariablesEncaissement {
 /** `POST /paiements` — écran 3 (encaissement). Invalide chaque document imputé (son
  *  `statutReglement`/`soldeCentimes` change) et la liste des factures ; invalide aussi les
  *  « factures ouvertes » de chaque payeur concerné (elles peuvent quitter cette liste). */
-export function useEncaissement(): UseMutationResult<ReponsePaiement, unknown, VariablesEncaissement> {
+export function useEncaissement(): UseMutationResult<
+  ReponsePaiement,
+  unknown,
+  VariablesEncaissement
+> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ entree, idempotencyKey }: VariablesEncaissement) => creerPaiement(entree, idempotencyKey),
+    mutationFn: ({ entree, idempotencyKey }: VariablesEncaissement) =>
+      creerPaiement(entree, idempotencyKey),
     onSuccess: (paiement, variables) => {
       for (const imputation of paiement.imputations) {
-        void queryClient.invalidateQueries({ queryKey: clesFacturation.documents.detail(imputation.documentId) });
+        void queryClient.invalidateQueries({
+          queryKey: clesFacturation.documents.detail(imputation.documentId),
+        });
       }
       void queryClient.invalidateQueries({ queryKey: ['facturation', 'documents', 'liste'] });
       if (variables.entree.payeurClientId) {

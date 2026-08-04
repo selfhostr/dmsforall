@@ -95,8 +95,21 @@ export class SessionCouranteDto implements SessionCourante {
   @ApiProperty({ type: TenantCourantDto })
   tenant!: TenantCourantDto;
 
+  /**
+   * Sites sur lesquels CE compte peut agir — pas « tous les sites du tenant » par principe. Un
+   * compte de service (borne d'atelier) n'en reçoit qu'un, le sien.
+   */
   @ApiProperty({ type: [SiteResumeDto] })
   sites!: readonly SiteResumeDto[];
+
+  /**
+   * Site de rattachement du COMPTE (`utilisateur.site_id`), `null` pour un compte de personne.
+   * Renseigné exactement pour les rôles de `ROLES_COMPTE_DE_SERVICE`. Purement informatif côté
+   * client : la valeur qui fait foi est résolue par le serveur depuis la session, ce champ ne se
+   * renvoie jamais au serveur.
+   */
+  @ApiProperty({ format: 'uuid', nullable: true, type: String })
+  siteRattachementId!: string | null;
 
   @ApiProperty({ format: 'date-time' })
   expireLe!: string;

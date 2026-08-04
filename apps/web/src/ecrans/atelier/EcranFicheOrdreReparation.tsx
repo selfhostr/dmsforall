@@ -92,15 +92,21 @@ export function EcranFicheOrdreReparation() {
                 <div key={`${totaux.payeur}:${totaux.payeurClientId ?? ''}`} className="contents">
                   <dt className="text-muted-foreground">
                     {t(`or:lignes.payeurs.${totaux.payeur}`)}
-                    {totaux.payeur !== 'client' && totaux.destinataire ? ` — ${totaux.destinataire.nomAffiche}` : ''}
+                    {totaux.payeur !== 'client' && totaux.destinataire
+                      ? ` — ${totaux.destinataire.nomAffiche}`
+                      : ''}
                   </dt>
-                  <dd className="col-span-2 font-medium text-foreground sm:col-span-1">{formaterMontant(totaux.montantTtcCentimes)}</dd>
+                  <dd className="col-span-2 font-medium text-foreground sm:col-span-1">
+                    {formaterMontant(totaux.montantTtcCentimes)}
+                  </dd>
                 </div>
               ))}
               {or.totalValideCentimes !== undefined ? (
                 <div className="contents border-t pt-2">
                   <dt className="text-muted-foreground">{t('or:totaux.totalValide')}</dt>
-                  <dd className="col-span-2 font-semibold text-foreground sm:col-span-1">{formaterMontant(or.totalValideCentimes)}</dd>
+                  <dd className="col-span-2 font-semibold text-foreground sm:col-span-1">
+                    {formaterMontant(or.totalValideCentimes)}
+                  </dd>
                 </div>
               ) : null}
             </dl>

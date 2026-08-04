@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { CIBLES_EXPORT, CODES_AVERTISSEMENT, MOYENS_PAIEMENT, type Avertissement, type CibleExport, type MoyenPaiement, type ReponseAvecAvertissements } from '@dfa/shared';
+import {
+  CIBLES_EXPORT,
+  CODES_AVERTISSEMENT,
+  MOYENS_PAIEMENT,
+  type Avertissement,
+  type CibleExport,
+  type MoyenPaiement,
+  type ReponseAvecAvertissements,
+} from '@dfa/shared';
 
 /** Sous-ensemble de `TYPES_DOCUMENT_VENTE` qui produit des écritures comptables (MD-84) — voir
  *  `TYPES_DOCUMENT_EXPORTABLES` dans `service-export-comptable.ts`, même liste, dupliquée ici
@@ -7,7 +15,13 @@ import { CIBLES_EXPORT, CODES_AVERTISSEMENT, MOYENS_PAIEMENT, type Avertissement
  *  une dépendance DTO → service dans le mauvais sens). */
 const TYPES_DOCUMENT_EXPORTABLES_SWAGGER = ['facture', 'avoir'] as const;
 
-import type { DocumentExporte, ImputationExportee, LotExportProduit, PaiementExporte, ReponseExportComptable } from '../service-export-comptable';
+import type {
+  DocumentExporte,
+  ImputationExportee,
+  LotExportProduit,
+  PaiementExporte,
+  ReponseExportComptable,
+} from '../service-export-comptable';
 
 /** Dupliqué volontairement de `facturation/paiements/dto/paiement.dto.ts::AvertissementPaiementDto`
  *  — même raison que partout ailleurs dans ce module : pas de dépendance croisée entre
@@ -26,13 +40,18 @@ export class AvertissementExportDto implements Avertissement {
 }
 
 export class LotExportProduitDto implements LotExportProduit {
-  @ApiProperty({ format: 'uuid', description: 'Identifiant de la ligne `export_comptable` — figée à vie (MD-91).' })
+  @ApiProperty({
+    format: 'uuid',
+    description: 'Identifiant de la ligne `export_comptable` — figée à vie (MD-91).',
+  })
   readonly exportId!: string;
 
   @ApiProperty({ enum: CIBLES_EXPORT })
   readonly cible!: CibleExport;
 
-  @ApiProperty({ description: 'Nom de fichier proposé (pas de stockage serveur — voir `contenuBase64`).' })
+  @ApiProperty({
+    description: 'Nom de fichier proposé (pas de stockage serveur — voir `contenuBase64`).',
+  })
   readonly nomFichier!: string;
 
   @ApiProperty({ description: "Nombre d'écritures comptables (une par document, mode détaillé)." })
@@ -41,19 +60,32 @@ export class LotExportProduitDto implements LotExportProduit {
   @ApiProperty({ description: 'Nombre de lignes du fichier CSV produit (en-tête comprise).' })
   readonly nbLignesCsv!: number;
 
-  @ApiProperty({ type: String, description: 'Total débit en centimes — chaîne (bigint, MD-85 : Σdébit = Σcrédit).' })
+  @ApiProperty({
+    type: String,
+    description: 'Total débit en centimes — chaîne (bigint, MD-85 : Σdébit = Σcrédit).',
+  })
   readonly totalDebitCentimes!: string;
 
-  @ApiProperty({ type: String, description: 'Total crédit en centimes — chaîne (bigint), égal à `totalDebitCentimes`.' })
+  @ApiProperty({
+    type: String,
+    description: 'Total crédit en centimes — chaîne (bigint), égal à `totalDebitCentimes`.',
+  })
   readonly totalCreditCentimes!: string;
 
   @ApiProperty({ description: 'SHA-256 hexadécimal du contenu du fichier (MD-91, RF-111).' })
   readonly empreinteSha256!: string;
 
-  @ApiProperty({ description: "Contenu du fichier encodé base64 — aucun stockage serveur dans ce lot, à l'appelant de le persister." })
+  @ApiProperty({
+    description:
+      "Contenu du fichier encodé base64 — aucun stockage serveur dans ce lot, à l'appelant de le persister.",
+  })
   readonly contenuBase64!: string;
 
-  @ApiProperty({ type: [String], description: "Avertissements de sérialisation WinBIZ (troncatures de champs) — libellés FR, pas un CodeAvertissement du contrat gelé." })
+  @ApiProperty({
+    type: [String],
+    description:
+      'Avertissements de sérialisation WinBIZ (troncatures de champs) — libellés FR, pas un CodeAvertissement du contrat gelé.',
+  })
   readonly avertissements!: readonly string[];
 }
 
@@ -71,7 +103,11 @@ export class DocumentExporteDto implements DocumentExporte {
 /** `PaiementExporte` (migration 0019, MD-91) : liste UNIQUEMENT les paiements dont le CASH part
  *  dans CE lot — voir `ImputationExporteeDto` pour la granularité réelle du suivi d'export. */
 export class PaiementExporteDto implements PaiementExporte {
-  @ApiProperty({ format: 'uuid', description: "Identifiant du paiement — pas de numéro affiché (MD-90), c'est la référence de l'écriture." })
+  @ApiProperty({
+    format: 'uuid',
+    description:
+      "Identifiant du paiement — pas de numéro affiché (MD-90), c'est la référence de l'écriture.",
+  })
   readonly id!: string;
 
   @ApiProperty({ enum: MOYENS_PAIEMENT })
@@ -95,7 +131,8 @@ export class ImputationExporteeDto implements ImputationExportee {
 export class ReponseExportComptableDto implements ReponseExportComptable {
   @ApiProperty({
     type: () => [LotExportProduitDto],
-    description: "Un seul lot dans ce lot logiciel (MD-91 : un `export_comptable` par lot transmis) — un tableau vide si aucun document ni paiement candidat sur la période.",
+    description:
+      'Un seul lot dans ce lot logiciel (MD-91 : un `export_comptable` par lot transmis) — un tableau vide si aucun document ni paiement candidat sur la période.',
   })
   readonly lots!: readonly LotExportProduitDto[];
 

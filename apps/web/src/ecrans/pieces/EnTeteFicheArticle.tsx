@@ -35,7 +35,14 @@ interface Props {
  *  (obsolète/désactiver depuis `actif`, réactiver depuis `obsolete`/`desactive`) — même discipline
  *  que `PanneauActionsOr` (atelier) : ne jamais proposer un bouton dont le clic échouerait à coup
  *  sûr côté serveur. */
-export function EnTeteFicheArticle({ article, peutEcrire, onModifier, onMarquerObsolete, onDesactiver, onReactiver }: Props) {
+export function EnTeteFicheArticle({
+  article,
+  peutEcrire,
+  onModifier,
+  onMarquerObsolete,
+  onDesactiver,
+  onReactiver,
+}: Props) {
   const { t } = useTranslation(['pieces', 'commun']);
 
   return (
@@ -43,12 +50,18 @@ export function EnTeteFicheArticle({ article, peutEcrire, onModifier, onMarquerO
       <div className="flex flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">{article.designation}</h1>
-          <Badge variant={VARIANTE_BADGE_STATUT[article.statut]}>{t(`pieces:articles.statuts.${article.statut}`)}</Badge>
+          <Badge variant={VARIANTE_BADGE_STATUT[article.statut]}>
+            {t(`pieces:articles.statuts.${article.statut}`)}
+          </Badge>
         </div>
-        <p className="texte-corps text-muted-foreground">{t('pieces:articles.numero', { numero: article.numeroArticle })}</p>
+        <p className="texte-corps text-muted-foreground">
+          {t('pieces:articles.numero', { numero: article.numeroArticle })}
+        </p>
         <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 texte-corps sm:grid-cols-3">
           <div>
-            <dt className="texte-libelle text-muted-foreground">{t('pieces:articles.reference')}</dt>
+            <dt className="texte-libelle text-muted-foreground">
+              {t('pieces:articles.reference')}
+            </dt>
             <dd className="font-mono">{article.referencePrincipale}</dd>
           </div>
           <div>
@@ -56,12 +69,18 @@ export function EnTeteFicheArticle({ article, peutEcrire, onModifier, onMarquerO
             <dd>{texteOuVide(article.marque)}</dd>
           </div>
           <div>
-            <dt className="texte-libelle text-muted-foreground">{t('pieces:articles.categorie')}</dt>
+            <dt className="texte-libelle text-muted-foreground">
+              {t('pieces:articles.categorie')}
+            </dt>
             <dd>{t(`pieces:articles.categories.${article.categorie}`)}</dd>
           </div>
           <div>
-            <dt className="texte-libelle text-muted-foreground">{t('pieces:articles.prix.vente')}</dt>
-            <dd className="tabular-nums font-medium">{formaterMontant(article.prixVenteTtcCentimes)}</dd>
+            <dt className="texte-libelle text-muted-foreground">
+              {t('pieces:articles.prix.vente')}
+            </dt>
+            <dd className="tabular-nums font-medium">
+              {formaterMontant(article.prixVenteTtcCentimes)}
+            </dd>
           </div>
           <div>
             <dt className="texte-libelle text-muted-foreground">{t('pieces:articles.tva')}</dt>
@@ -69,13 +88,18 @@ export function EnTeteFicheArticle({ article, peutEcrire, onModifier, onMarquerO
           </div>
           {article.estEchangeStandard && article.montantConsigneTtcCentimes !== null ? (
             <div>
-              <dt className="texte-libelle text-muted-foreground">{t('pieces:articles.montantConsigne')}</dt>
-              <dd className="tabular-nums">{formaterMontant(article.montantConsigneTtcCentimes)}</dd>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('pieces:articles.montantConsigne')}
+              </dt>
+              <dd className="tabular-nums">
+                {formaterMontant(article.montantConsigneTtcCentimes)}
+              </dd>
             </div>
           ) : null}
         </dl>
         <p className="mt-1 texte-libelle text-muted-foreground">
-          {t('pieces:articles.fiche.creeLe')} {formaterDate(article.creeLe)} · {t('pieces:articles.fiche.modifieLe')} {formaterDate(article.modifieLe)}
+          {t('pieces:articles.fiche.creeLe')} {formaterDate(article.creeLe)} ·{' '}
+          {t('pieces:articles.fiche.modifieLe')} {formaterDate(article.modifieLe)}
         </p>
       </div>
 
@@ -88,15 +112,23 @@ export function EnTeteFicheArticle({ article, peutEcrire, onModifier, onMarquerO
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={onModifier}>{t('pieces:articles.actions.modifier')}</DropdownMenuItem>
+            <DropdownMenuItem onSelect={onModifier}>
+              {t('pieces:articles.actions.modifier')}
+            </DropdownMenuItem>
             {article.statut === 'actif' ? (
-              <DropdownMenuItem onSelect={onMarquerObsolete}>{t('pieces:articles.actions.marquerObsolete')}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={onMarquerObsolete}>
+                {t('pieces:articles.actions.marquerObsolete')}
+              </DropdownMenuItem>
             ) : null}
             {article.statut === 'actif' ? (
-              <DropdownMenuItem onSelect={onDesactiver}>{t('pieces:articles.actions.desactiver')}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={onDesactiver}>
+                {t('pieces:articles.actions.desactiver')}
+              </DropdownMenuItem>
             ) : null}
             {article.statut !== 'actif' ? (
-              <DropdownMenuItem onSelect={onReactiver}>{t('pieces:articles.actions.reactiver')}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={onReactiver}>
+                {t('pieces:articles.actions.reactiver')}
+              </DropdownMenuItem>
             ) : null}
           </DropdownMenuContent>
         </DropdownMenu>

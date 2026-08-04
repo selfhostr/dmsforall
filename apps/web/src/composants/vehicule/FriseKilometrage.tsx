@@ -39,7 +39,10 @@ export function FriseKilometrage({ releves, className }: ProprietesFriseKilometr
   return (
     <ol className={className ? `${className} flex flex-col` : 'flex flex-col'}>
       {releves.map((releve) => (
-        <li key={releve.id} className="flex flex-wrap items-start gap-3 border-l-2 border-muted py-2 pl-4">
+        <li
+          key={releve.id}
+          className="flex flex-wrap items-start gap-3 border-l-2 border-muted py-2 pl-4"
+        >
           <Gauge aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div className="flex flex-col gap-0.5">
             <p className="texte-corps font-medium">
@@ -50,7 +53,9 @@ export function FriseKilometrage({ releves, className }: ProprietesFriseKilometr
                 </span>
               ) : null}
             </p>
-            <p className="texte-libelle text-muted-foreground">{formaterDateHeure(releve.releveLe)}</p>
+            <p className="texte-libelle text-muted-foreground">
+              {formaterDateHeure(releve.releveLe)}
+            </p>
             {releve.motifRegression ? (
               <p className="flex items-center gap-1 texte-libelle font-medium text-foreground">
                 <TriangleAlert aria-hidden className="h-3.5 w-3.5 shrink-0" />

@@ -29,7 +29,9 @@ export function IdentiteVehicule({ vehicule, taillePlaque = 'md', className }: P
       <span aria-hidden className="text-muted-foreground">
         ·
       </span>
-      <span className="truncate texte-corps font-medium text-foreground">{vehicule.designation}</span>
+      <span className="truncate texte-corps font-medium text-foreground">
+        {vehicule.designation}
+      </span>
       {annee !== null ? (
         <>
           <span aria-hidden className="text-muted-foreground">
@@ -39,7 +41,9 @@ export function IdentiteVehicule({ vehicule, taillePlaque = 'md', className }: P
         </>
       ) : null}
       {vehicule.identificationIncomplete ? (
-        <BadgeIdentificationIncomplete identificationIncomplete={vehicule.identificationIncomplete} />
+        <BadgeIdentificationIncomplete
+          identificationIncomplete={vehicule.identificationIncomplete}
+        />
       ) : null}
     </div>
   );

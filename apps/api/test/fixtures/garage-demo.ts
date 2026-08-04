@@ -72,7 +72,12 @@ interface TenantAInserer {
   readonly raisonSociale: string;
   readonly langueDefaut: Langue;
   readonly sites: ReadonlyArray<{ code: string; nom: string }>;
-  readonly utilisateurs: ReadonlyArray<{ prenom: string; nom: string; role: RoleUtilisateur; email: string }>;
+  readonly utilisateurs: ReadonlyArray<{
+    prenom: string;
+    nom: string;
+    role: RoleUtilisateur;
+    email: string;
+  }>;
 }
 
 const MOT_DE_PASSE_FIXTURE = 'CorrectHorseBatteryStaple!42';
@@ -100,12 +105,26 @@ const DEFINITION_TENANT_B: TenantAInserer = {
     { code: 'NYO', nom: 'Carrosserie Dupont — Nyon' },
   ],
   utilisateurs: [
-    { prenom: 'Julien', nom: 'Dupont', role: 'direction', email: 'julien.dupont@carrosserie-dupont.test' },
-    { prenom: 'Aline', nom: 'Fontaine', role: 'chef_atelier', email: 'aline.fontaine@carrosserie-dupont.test' },
+    {
+      prenom: 'Julien',
+      nom: 'Dupont',
+      role: 'direction',
+      email: 'julien.dupont@carrosserie-dupont.test',
+    },
+    {
+      prenom: 'Aline',
+      nom: 'Fontaine',
+      role: 'chef_atelier',
+      email: 'aline.fontaine@carrosserie-dupont.test',
+    },
   ],
 };
 
-async function semerTenant(bdd: BaseEphemere, definition: TenantAInserer, motDePasseHash: string): Promise<TenantFixture> {
+async function semerTenant(
+  bdd: BaseEphemere,
+  definition: TenantAInserer,
+  motDePasseHash: string,
+): Promise<TenantFixture> {
   const tenantId = randomUUID();
   await bdd.poolSuperutilisateur.query(
     `insert into tenant (id, slug, raison_sociale, numero_tva, pays, langue_defaut, statut)
@@ -180,7 +199,12 @@ export async function semerGarageDemo(bdd: BaseEphemere): Promise<GarageDemoFixt
 export async function ajouterUtilisateurFixture(
   bdd: BaseEphemere,
   tenantId: string,
-  options: { readonly prenom: string; readonly nom: string; readonly role: RoleUtilisateur; readonly email: string },
+  options: {
+    readonly prenom: string;
+    readonly nom: string;
+    readonly role: RoleUtilisateur;
+    readonly email: string;
+  },
 ): Promise<UtilisateurFixture> {
   const motDePasseHash = await hacherMotDePasseDeTest(MOT_DE_PASSE_FIXTURE);
   const utilisateurId = randomUUID();
@@ -188,7 +212,15 @@ export async function ajouterUtilisateurFixture(
     `insert into utilisateur
        (id, tenant_id, email, mot_de_passe_hash, prenom, nom, langue, role, statut, echecs_connexion, verrouille_jusqu_a)
      values ($1, $2, $3, $4, $5, $6, 'fr', $7, 'actif', 0, null)`,
-    [utilisateurId, tenantId, options.email, motDePasseHash, options.prenom, options.nom, options.role],
+    [
+      utilisateurId,
+      tenantId,
+      options.email,
+      motDePasseHash,
+      options.prenom,
+      options.nom,
+      options.role,
+    ],
   );
   return {
     id: utilisateurId,

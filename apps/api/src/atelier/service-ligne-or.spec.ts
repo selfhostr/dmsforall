@@ -30,7 +30,13 @@ const LIGNE_ID = 'ligne-1';
 const VEHICULE_ID = 'vehicule-1';
 
 function principal(role: PrincipalAuthentifie['role']): PrincipalAuthentifie {
-  return { sessionId: 'session-1', tenantId: 'tenant-a', utilisateurId: 'user-1', role, langue: 'fr' };
+  return {
+    sessionId: 'session-1',
+    tenantId: 'tenant-a',
+    utilisateurId: 'user-1',
+    role,
+    langue: 'fr',
+  };
 }
 
 function orFixture(): LigneOrdreReparation {
@@ -135,7 +141,12 @@ function txFactice(ligneRefusee: LigneLigneOr) {
 }
 
 function accesBaseFactice(tx: TransactionDfa) {
-  return { enTenant: vi.fn(async (_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<unknown>) => travail(tx)) };
+  return {
+    enTenant: vi.fn(
+      async (_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<unknown>) =>
+        travail(tx),
+    ),
+  };
 }
 
 function travailReporteFactice(): { creerDepuisRefus: ReturnType<typeof vi.fn> } {
@@ -176,16 +187,15 @@ describe('ServiceLigneOr.refuserLignes — câblage du port CreationTravailRepor
     const travailReporte = travailReporteFactice();
     const service = serviceFactice(acces, travailReporte, {} as ReponseOrdreReparation);
 
-    const entree: EntreeRefusLignes = { ligneIds: [LIGNE_ID], motif: 'Client refuse le devis, plaquettes reportées' };
+    const entree: EntreeRefusLignes = {
+      ligneIds: [LIGNE_ID],
+      motif: 'Client refuse le devis, plaquettes reportées',
+    };
     await service.refuserLignes(CTX, principal('receptionnaire'), OR_ID, entree);
 
     expect(travailReporte.creerDepuisRefus).toHaveBeenCalledTimes(1);
-    const [txAppel, ctxAppel, entreeAppel, maintenantAppel] = travailReporte.creerDepuisRefus.mock.calls[0] as [
-      TransactionDfa,
-      ContexteTenant,
-      unknown,
-      Date,
-    ];
+    const [txAppel, ctxAppel, entreeAppel, maintenantAppel] = travailReporte.creerDepuisRefus.mock
+      .calls[0] as [TransactionDfa, ContexteTenant, unknown, Date];
     expect(ctxAppel).toBe(CTX);
     expect(entreeAppel).toEqual({
       vehiculeId: VEHICULE_ID,
@@ -256,10 +266,14 @@ describe('ServiceLigneOr.refuserLignes — câblage du port CreationTravailRepor
     const travailReporte = travailReporteFactice();
     const service = serviceFactice(acces, travailReporte, {} as ReponseOrdreReparation);
 
-    await service.refuserLignes(CTX, principal('receptionnaire'), OR_ID, { ligneIds: ['ligne-a', 'ligne-b'] });
+    await service.refuserLignes(CTX, principal('receptionnaire'), OR_ID, {
+      ligneIds: ['ligne-a', 'ligne-b'],
+    });
 
     expect(travailReporte.creerDepuisRefus).toHaveBeenCalledTimes(2);
-    const ligneOrIds = travailReporte.creerDepuisRefus.mock.calls.map((appel) => (appel[2] as { ligneOrId: string }).ligneOrId);
+    const ligneOrIds = travailReporte.creerDepuisRefus.mock.calls.map(
+      (appel) => (appel[2] as { ligneOrId: string }).ligneOrId,
+    );
     expect(ligneOrIds).toEqual(['ligne-a', 'ligne-b']);
   });
 });

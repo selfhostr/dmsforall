@@ -45,7 +45,11 @@ const MILLISECONDES_PAR_JOUR = 24 * 60 * 60 * 1000;
  * reprise. `dateEntreeStock` est une colonne `date` Postgres (pas `timestamptz`) : comparaison au
  * jour calendaire, minuit UTC des deux bords.
  */
-export function calculerJoursStock(dateEntreeStock: string, venduLe: Date | null, maintenant: Date): number {
+export function calculerJoursStock(
+  dateEntreeStock: string,
+  venduLe: Date | null,
+  maintenant: Date,
+): number {
   const debut = new Date(`${dateEntreeStock}T00:00:00.000Z`).getTime();
   const fin = venduLe ? venduLe.getTime() : maintenant.getTime();
   return Math.max(0, Math.floor((fin - debut) / MILLISECONDES_PAR_JOUR));
@@ -56,7 +60,10 @@ export function calculerJoursStock(dateEntreeStock: string, venduLe: Date | null
  * spécification) : `vn` tant que `provenance = 'neuf_constructeur'` ET que le véhicule n'a jamais
  * été immatriculé (`date1reCirculation` nulle) ; `vo` dans tous les autres cas.
  */
-export function calculerTypeVehicule(provenance: string, date1reCirculation: string | null): TypeVehiculeVente {
+export function calculerTypeVehicule(
+  provenance: string,
+  date1reCirculation: string | null,
+): TypeVehiculeVente {
   return provenance === 'neuf_constructeur' && date1reCirculation === null ? 'vn' : 'vo';
 }
 
@@ -64,12 +71,16 @@ export function calculerTypeVehicule(provenance: string, date1reCirculation: str
 /* vehicule_stock                                                      */
 /* ------------------------------------------------------------------ */
 
-const ACTIONS_DEPUIS_STATUT_VEHICULE_STOCK: Readonly<Record<StatutCommercialVehicule, readonly ActionVehiculeStock[]>> = {
+const ACTIONS_DEPUIS_STATUT_VEHICULE_STOCK: Readonly<
+  Record<StatutCommercialVehicule, readonly ActionVehiculeStock[]>
+> = {
   en_commande: ['mettre_a_jour', 'receptionner'],
   disponible: ['mettre_a_jour'],
-  // `remettre_disponible` (RV-10) : correction exceptionnelle depuis `reserve`, l'action normale
-  // à ce stade étant `POST /dossiers-vente/{id}/annuler`/`/abandonner` (effet de bord).
-  reserve: ['mettre_a_jour', 'remettre_disponible'],
+  // `remettre_disponible` (RV-10) et `marquer_vendu` (trou comblé, voir enums.ts) : corrections
+  // exceptionnelles depuis `reserve`, l'action normale à ce stade étant respectivement
+  // `POST /dossiers-vente/{id}/annuler`/`/abandonner` et l'émission de la facture (`facturation/`,
+  // effets de bord programmatiques, pas des gestes comptoir).
+  reserve: ['mettre_a_jour', 'remettre_disponible', 'marquer_vendu'],
   // Verrouillé après vente (contrat, littéral : « prixAchatCentimes reste modifiable jusqu'à
   // statutCommercial = 'vendu' exclu »).
   vendu: [],
@@ -80,6 +91,7 @@ const DROIT_PAR_ACTION_VEHICULE_STOCK: Readonly<Record<ActionVehiculeStock, Acti
   mettre_a_jour: 'ventes.vehicule_stock.modifier',
   receptionner: 'ventes.vehicule_stock.modifier',
   remettre_disponible: 'ventes.vehicule_stock.corriger',
+  marquer_vendu: 'ventes.vehicule_stock.corriger',
 };
 
 export function calculerActionsDisponiblesVehiculeStock(
@@ -87,7 +99,9 @@ export function calculerActionsDisponiblesVehiculeStock(
   role: RoleUtilisateur,
 ): readonly ActionVehiculeStock[] {
   const droitsDuRole: readonly Action[] = MATRICE_DROITS[role] ?? [];
-  return ACTIONS_DEPUIS_STATUT_VEHICULE_STOCK[statut].filter((action) => droitsDuRole.includes(DROIT_PAR_ACTION_VEHICULE_STOCK[action]));
+  return ACTIONS_DEPUIS_STATUT_VEHICULE_STOCK[statut].filter((action) =>
+    droitsDuRole.includes(DROIT_PAR_ACTION_VEHICULE_STOCK[action]),
+  );
 }
 
 export interface EntreeMapperVehiculeStock {
@@ -131,7 +145,15 @@ export function versVehiculeStockResponse(e: EntreeMapperVehiculeStock): Reponse
 }
 
 export function versVehiculeStockResume(
-  ligne: Pick<LigneVehiculeStock, 'id' | 'provenance' | 'statutCommercial' | 'prixVenteAfficheCentimes' | 'dateEntreeStock' | 'venduLe'>,
+  ligne: Pick<
+    LigneVehiculeStock,
+    | 'id'
+    | 'provenance'
+    | 'statutCommercial'
+    | 'prixVenteAfficheCentimes'
+    | 'dateEntreeStock'
+    | 'venduLe'
+  >,
   vehicule: VehiculeResume,
   date1reCirculation: string | null,
   maintenant: Date,
@@ -151,7 +173,9 @@ export function versVehiculeStockResume(
 /* dossier_vente                                                       */
 /* ------------------------------------------------------------------ */
 
-const ACTIONS_DEPUIS_STATUT_DOSSIER: Readonly<Record<StatutDossierVente, readonly ActionDossierVente[]>> = {
+const ACTIONS_DEPUIS_STATUT_DOSSIER: Readonly<
+  Record<StatutDossierVente, readonly ActionDossierVente[]>
+> = {
   prospection: ['modifier', 'engager', 'annuler', 'abandonner'],
   engage: ['modifier', 'preparer', 'annuler', 'abandonner'],
   en_preparation: ['modifier', 'marquer_pret_a_livrer', 'annuler', 'abandonner'],
@@ -181,10 +205,14 @@ export function calculerActionsDisponiblesDossierVente(
   role: RoleUtilisateur,
 ): readonly ActionDossierVente[] {
   const droitsDuRole: readonly Action[] = MATRICE_DROITS[role] ?? [];
-  return ACTIONS_DEPUIS_STATUT_DOSSIER[statut].filter((action) => droitsDuRole.includes(DROIT_PAR_ACTION_DOSSIER[action]));
+  return ACTIONS_DEPUIS_STATUT_DOSSIER[statut].filter((action) =>
+    droitsDuRole.includes(DROIT_PAR_ACTION_DOSSIER[action]),
+  );
 }
 
-export function versDocumentRequisResponse(ligne: LigneDossierVenteDocumentRequis): DocumentRequisDossierVente {
+export function versDocumentRequisResponse(
+  ligne: LigneDossierVenteDocumentRequis,
+): DocumentRequisDossierVente {
   return {
     code: ligne.code,
     libelle: ligne.libelle,
@@ -202,7 +230,10 @@ export function versDocumentRequisResponse(ligne: LigneDossierVenteDocumentRequi
  * `ReponseDocumentVente`, reprise ici pour ne pas exposer un montant à un rôle qui ne le voit nulle
  * part ailleurs dans l'API.
  */
-export function versDocumentVenteResume(doc: LigneDocumentVente, role: RoleUtilisateur): DocumentVenteResume {
+export function versDocumentVenteResume(
+  doc: LigneDocumentVente,
+  role: RoleUtilisateur,
+): DocumentVenteResume {
   const voitMontants = roleVoitLesMontants(role);
   return {
     id: doc.id,
@@ -321,15 +352,23 @@ const DROIT_PAR_ACTION_REPRISE: Readonly<Record<ActionReprise, Action>> = {
   refuser: 'ventes.reprise.refuser',
 };
 
-export function calculerActionsDisponiblesReprise(statut: StatutReprise, role: RoleUtilisateur): readonly ActionReprise[] {
+export function calculerActionsDisponiblesReprise(
+  statut: StatutReprise,
+  role: RoleUtilisateur,
+): readonly ActionReprise[] {
   const droitsDuRole: readonly Action[] = MATRICE_DROITS[role] ?? [];
-  return ACTIONS_DEPUIS_STATUT_REPRISE[statut].filter((action) => droitsDuRole.includes(DROIT_PAR_ACTION_REPRISE[action]));
+  return ACTIONS_DEPUIS_STATUT_REPRISE[statut].filter((action) =>
+    droitsDuRole.includes(DROIT_PAR_ACTION_REPRISE[action]),
+  );
 }
 
 /** `ecartRepriseVehiculeCentimes` (RV-21) : DÉRIVÉ, `valeurNegocieeCentimes - valeurEstimeeCentimes`,
  *  `null` tant que `valeurNegocieeCentimes` est `null`. Peut être positif (reprise gonflée, RV-20)
  *  ou négatif — aucune base TVA calculée ici (RV-22/QV-05, non tranché, voir contrat gelé). */
-export function calculerEcartRepriseVehicule(valeurEstimeeCentimes: number, valeurNegocieeCentimes: number | null): number | null {
+export function calculerEcartRepriseVehicule(
+  valeurEstimeeCentimes: number,
+  valeurNegocieeCentimes: number | null,
+): number | null {
   return valeurNegocieeCentimes === null ? null : valeurNegocieeCentimes - valeurEstimeeCentimes;
 }
 
@@ -350,7 +389,10 @@ export function versRepriseResponse(e: EntreeMapperReprise): ReponseReprise {
     statut: ligne.statut,
     valeurEstimeeCentimes: ligne.valeurEstimeeCentimes,
     valeurNegocieeCentimes: ligne.valeurNegocieeCentimes,
-    ecartRepriseVehiculeCentimes: calculerEcartRepriseVehicule(ligne.valeurEstimeeCentimes, ligne.valeurNegocieeCentimes),
+    ecartRepriseVehiculeCentimes: calculerEcartRepriseVehicule(
+      ligne.valeurEstimeeCentimes,
+      ligne.valeurNegocieeCentimes,
+    ),
     detteFinancementResiduelleCentimes: ligne.detteFinancementResiduelleCentimes,
     detteFinancementOrganismeId: ligne.detteFinancementOrganismeId,
     detteFinancementOrganismeNom: ligne.detteFinancementOrganismeNom,
@@ -367,14 +409,20 @@ export function versRepriseResponse(e: EntreeMapperReprise): ReponseReprise {
   };
 }
 
-export function versRepriseResume(ligne: LigneReprise, vehiculeRepris: VehiculeResume): RepriseResume {
+export function versRepriseResume(
+  ligne: LigneReprise,
+  vehiculeRepris: VehiculeResume,
+): RepriseResume {
   return {
     id: ligne.id,
     vehiculeRepris,
     statut: ligne.statut,
     valeurEstimeeCentimes: ligne.valeurEstimeeCentimes,
     valeurNegocieeCentimes: ligne.valeurNegocieeCentimes,
-    ecartRepriseVehiculeCentimes: calculerEcartRepriseVehicule(ligne.valeurEstimeeCentimes, ligne.valeurNegocieeCentimes),
+    ecartRepriseVehiculeCentimes: calculerEcartRepriseVehicule(
+      ligne.valeurEstimeeCentimes,
+      ligne.valeurNegocieeCentimes,
+    ),
   };
 }
 
@@ -382,7 +430,9 @@ export function versRepriseResume(ligne: LigneReprise, vehiculeRepris: VehiculeR
 /* financement_vente                                                   */
 /* ------------------------------------------------------------------ */
 
-const ACTIONS_DEPUIS_STATUT_FINANCEMENT: Readonly<Record<StatutConfirmationFinancement, readonly ActionFinancement[]>> = {
+const ACTIONS_DEPUIS_STATUT_FINANCEMENT: Readonly<
+  Record<StatutConfirmationFinancement, readonly ActionFinancement[]>
+> = {
   en_attente: ['confirmer', 'refuser'],
   // CV-03 : `refuse` est TERMINAL, un nouveau mode de financement est une NOUVELLE ligne.
   confirme: [],
@@ -399,7 +449,9 @@ export function calculerActionsDisponiblesFinancement(
   role: RoleUtilisateur,
 ): readonly ActionFinancement[] {
   const droitsDuRole: readonly Action[] = MATRICE_DROITS[role] ?? [];
-  return ACTIONS_DEPUIS_STATUT_FINANCEMENT[statut].filter((action) => droitsDuRole.includes(DROIT_PAR_ACTION_FINANCEMENT[action]));
+  return ACTIONS_DEPUIS_STATUT_FINANCEMENT[statut].filter((action) =>
+    droitsDuRole.includes(DROIT_PAR_ACTION_FINANCEMENT[action]),
+  );
 }
 
 export function versFinancementResponse(
@@ -424,7 +476,10 @@ export function versFinancementResponse(
   };
 }
 
-export function versFinancementResume(ligne: LigneFinancementVente, organisme: ClientResume | null): FinancementResume {
+export function versFinancementResume(
+  ligne: LigneFinancementVente,
+  organisme: ClientResume | null,
+): FinancementResume {
   return {
     id: ligne.id,
     type: ligne.type,
@@ -437,6 +492,8 @@ export function versFinancementResume(ligne: LigneFinancementVente, organisme: C
  *  le plus récent dont `statut != 'refuse'`, ou le plus récent tout court si tous sont refusés —
  *  notion PUREMENT DE LECTURE, dérivée par tri (`listerFinancementsDossier`, `creeLe desc`), jamais
  *  un drapeau stocké (voir la doctrine de `schema/ventes/financement.ts`). */
-export function selectionnerFinancementCourant(financements: readonly LigneFinancementVente[]): LigneFinancementVente | null {
+export function selectionnerFinancementCourant(
+  financements: readonly LigneFinancementVente[],
+): LigneFinancementVente | null {
   return financements.find((f) => f.statut !== 'refuse') ?? financements[0] ?? null;
 }

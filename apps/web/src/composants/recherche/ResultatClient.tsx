@@ -17,7 +17,9 @@ export function ResultatClient({ resultat }: ProprietesResultatClient) {
   return (
     <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-1">
       <span className="texte-corps font-medium text-foreground">{nom}</span>
-      {numeroClient ? <span className="texte-libelle text-muted-foreground">{numeroClient}</span> : null}
+      {numeroClient ? (
+        <span className="texte-libelle text-muted-foreground">{numeroClient}</span>
+      ) : null}
       {telephone ? <span className="texte-libelle text-muted-foreground">{telephone}</span> : null}
       {localite ? <span className="texte-libelle text-muted-foreground">{localite}</span> : null}
     </div>

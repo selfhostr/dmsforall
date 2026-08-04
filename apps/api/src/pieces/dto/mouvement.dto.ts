@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TYPES_MOUVEMENT_STOCK, type PageCurseur, type ReponseAvecAvertissements, type ReponseMouvementStock } from '@dfa/shared';
+import {
+  TYPES_MOUVEMENT_STOCK,
+  type PageCurseur,
+  type ReponseAvecAvertissements,
+  type ReponseMouvementStock,
+} from '@dfa/shared';
 
 import { AvertissementDto } from './avertissement.dto';
 
@@ -13,7 +18,10 @@ export class MouvementStockDto implements ReponseMouvementStock {
   @ApiProperty({ enum: TYPES_MOUVEMENT_STOCK })
   readonly type!: ReponseMouvementStock['type'];
 
-  @ApiProperty({ description: 'Signée (RP-17) : positive à l’entrée, négative à la sortie ; toujours positive pour `transfert`.' })
+  @ApiProperty({
+    description:
+      'Signée (RP-17) : positive à l’entrée, négative à la sortie ; toujours positive pour `transfert`.',
+  })
   readonly quantiteMillieme!: number;
 
   @ApiProperty({ type: String, format: 'uuid', nullable: true })
@@ -25,10 +33,19 @@ export class MouvementStockDto implements ReponseMouvementStock {
   @ApiProperty({ type: String, format: 'uuid', nullable: true })
   readonly siteDestinationId!: string | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Uniquement pour entree_livraison (RP-29).' })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Uniquement pour entree_livraison (RP-29).',
+  })
   readonly prixAchatReelCentimes!: number | null;
 
-  @ApiProperty({ type: String, format: 'uuid', nullable: true, description: 'null : mouvement issu d’une reprise de données ou d’un import.' })
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description: 'null : mouvement issu d’une reprise de données ou d’un import.',
+  })
   readonly auteurId!: string | null;
 
   @ApiProperty({ type: String, nullable: true })

@@ -97,7 +97,9 @@ export interface IdentiteVehicule {
  * assumée que `nomAfficheClient` ci-dessus, vis-à-vis de `vehicules/vehicule.mappers.ts::calculerDesignation`.
  */
 export function designationVehicule(vehicule: IdentiteVehicule): string {
-  return [vehicule.marque, vehicule.modele, vehicule.version].filter((partie) => Boolean(partie && partie.trim())).join(' ');
+  return [vehicule.marque, vehicule.modele, vehicule.version]
+    .filter((partie) => Boolean(partie && partie.trim()))
+    .join(' ');
 }
 
 /**

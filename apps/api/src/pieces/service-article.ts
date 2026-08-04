@@ -16,11 +16,20 @@ import type {
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import { JETON_DB } from '../db';
 import { article, articleReference, reservationPiece, stockArticle } from '../db/schema';
-import type { LigneArticle, LigneArticleReference, LigneStockArticle, NouvelArticle } from '../db/schema';
+import type {
+  LigneArticle,
+  LigneArticleReference,
+  LigneStockArticle,
+  NouvelArticle,
+} from '../db/schema';
 import { CollecteurAvertissements } from '../common/avertissements';
 import { ErreurMetier } from '../common/erreurs';
 import { JETON_IDEMPOTENCE } from '../common/idempotence';
-import type { ReponseMemorisable, ResultatIdempotent, ServiceIdempotence } from '../common/idempotence';
+import type {
+  ReponseMemorisable,
+  ResultatIdempotent,
+  ServiceIdempotence,
+} from '../common/idempotence';
 
 import {
   versArticleReferenceResponse,
@@ -81,7 +90,11 @@ export class ServiceArticle {
     @Inject(JETON_IDEMPOTENCE) private readonly idempotence: ServiceIdempotence,
   ) {}
 
-  async lister(ctx: ContexteTenant, role: RoleUtilisateur, params: ParametresListeArticles): Promise<PageCurseur<ReponseArticle>> {
+  async lister(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    params: ParametresListeArticles,
+  ): Promise<PageCurseur<ReponseArticle>> {
     const definition = DEFINITIONS_TRI_ARTICLES[params.tri];
     const idExpr = sql`a.id`;
     const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
@@ -90,10 +103,20 @@ export class ServiceArticle {
       const conditions = [sql`a.tenant_id = ${ctx.tenantId}`];
 
       if (params.categorie && params.categorie.length > 0) {
-        conditions.push(sql`a.categorie::text in (${sql.join(params.categorie.map((c) => sql`${c}`), sql`, `)})`);
+        conditions.push(
+          sql`a.categorie::text in (${sql.join(
+            params.categorie.map((c) => sql`${c}`),
+            sql`, `,
+          )})`,
+        );
       }
       if (params.statut && params.statut.length > 0) {
-        conditions.push(sql`a.statut::text in (${sql.join(params.statut.map((s) => sql`${s}`), sql`, `)})`);
+        conditions.push(
+          sql`a.statut::text in (${sql.join(
+            params.statut.map((s) => sql`${s}`),
+            sql`, `,
+          )})`,
+        );
       }
       if (params.estEchangeStandard !== undefined) {
         conditions.push(sql`a.est_echange_standard = ${params.estEchangeStandard}`);
@@ -110,7 +133,9 @@ export class ServiceArticle {
         )`);
       }
       if (curseurDecode) {
-        conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
+        conditions.push(
+          construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id),
+        );
       }
 
       const requete = sql`
@@ -121,20 +146,32 @@ export class ServiceArticle {
          limit ${params.limite + 1}
       `;
 
-      const resultat = await tx.execute<LigneArticle & { triValeur: string | number | null }>(requete);
+      const resultat = await tx.execute<LigneArticle & { triValeur: string | number | null }>(
+        requete,
+      );
       const lignes = resultat.rows;
       const aUnePageSuivante = lignes.length > params.limite;
       const pageLignes = aUnePageSuivante ? lignes.slice(0, params.limite) : lignes;
       const derniere = pageLignes[pageLignes.length - 1];
 
       const idsPage = pageLignes.map((l) => l.id);
-      const { referencesParArticle, stocksParArticle } = await this.chargerSousCollections(tx, ctx, idsPage);
+      const { referencesParArticle, stocksParArticle } = await this.chargerSousCollections(
+        tx,
+        ctx,
+        idsPage,
+      );
 
       return {
-        donnees: pageLignes.map((ligne) => this.assemblerReponse(ligne, role, referencesParArticle, stocksParArticle)),
+        donnees: pageLignes.map((ligne) =>
+          this.assemblerReponse(ligne, role, referencesParArticle, stocksParArticle),
+        ),
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseurTrie({ tri: params.tri, valeur: valeurCurseurDepuisTri(definition, derniere.triValeur), id: derniere.id })
+            ? encoderCurseurTrie({
+                tri: params.tri,
+                valeur: valeurCurseurDepuisTri(definition, derniere.triValeur),
+                id: derniere.id,
+              })
             : null,
         limite: params.limite,
       };
@@ -214,16 +251,26 @@ export class ServiceArticle {
 
         return {
           statutHttp: 201,
-          corps: new CollecteurAvertissements().envelopper(versArticleResponse(ligne, role, [], false, [])),
+          corps: new CollecteurAvertissements().envelopper(
+            versArticleResponse(ligne, role, [], false, []),
+          ),
         };
       },
     );
   }
 
-  async parId(ctx: ContexteTenant, role: RoleUtilisateur, articleId: string): Promise<ReponseArticle> {
+  async parId(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    articleId: string,
+  ): Promise<ReponseArticle> {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await this.chargerOu404(tx, ctx, articleId);
-      const { referencesParArticle, stocksParArticle } = await this.chargerSousCollections(tx, ctx, [articleId]);
+      const { referencesParArticle, stocksParArticle } = await this.chargerSousCollections(
+        tx,
+        ctx,
+        [articleId],
+      );
       return this.assemblerReponse(ligne, role, referencesParArticle, stocksParArticle);
     });
   }
@@ -238,9 +285,11 @@ export class ServiceArticle {
       await this.chargerOu404(tx, ctx, articleId);
 
       const valeurs: Partial<NouvelArticle> = {};
-      if ('designation' in entree && entree.designation !== undefined) valeurs.designation = entree.designation;
+      if ('designation' in entree && entree.designation !== undefined)
+        valeurs.designation = entree.designation;
       if ('marque' in entree) valeurs.marque = entree.marque ?? null;
-      if ('categorie' in entree && entree.categorie !== undefined) valeurs.categorie = entree.categorie;
+      if ('categorie' in entree && entree.categorie !== undefined)
+        valeurs.categorie = entree.categorie;
       if ('referencePrincipale' in entree && entree.referencePrincipale !== undefined) {
         valeurs.referencePrincipale = entree.referencePrincipale;
       }
@@ -259,12 +308,21 @@ export class ServiceArticle {
       }
 
       if (Object.keys(valeurs).length > 0) {
-        await tx.update(article).set(valeurs).where(and(eq(article.tenantId, ctx.tenantId), eq(article.id, articleId)));
+        await tx
+          .update(article)
+          .set(valeurs)
+          .where(and(eq(article.tenantId, ctx.tenantId), eq(article.id, articleId)));
       }
 
       const ligneMaj = await this.chargerOu404(tx, ctx, articleId);
-      const { referencesParArticle, stocksParArticle } = await this.chargerSousCollections(tx, ctx, [articleId]);
-      return new CollecteurAvertissements().envelopper(this.assemblerReponse(ligneMaj, role, referencesParArticle, stocksParArticle));
+      const { referencesParArticle, stocksParArticle } = await this.chargerSousCollections(
+        tx,
+        ctx,
+        [articleId],
+      );
+      return new CollecteurAvertissements().envelopper(
+        this.assemblerReponse(ligneMaj, role, referencesParArticle, stocksParArticle),
+      );
     });
   }
 
@@ -291,7 +349,12 @@ export class ServiceArticle {
       const existantes = await tx
         .select()
         .from(articleReference)
-        .where(and(eq(articleReference.tenantId, ctx.tenantId), eq(articleReference.reference, entree.reference)))
+        .where(
+          and(
+            eq(articleReference.tenantId, ctx.tenantId),
+            eq(articleReference.reference, entree.reference),
+          ),
+        )
         .limit(1);
       const existante = existantes[0];
 
@@ -306,7 +369,9 @@ export class ServiceArticle {
         await tx
           .update(articleReference)
           .set({ type: entree.type, fournisseurId: entree.fournisseurId ?? null })
-          .where(and(eq(articleReference.tenantId, ctx.tenantId), eq(articleReference.id, existante.id)));
+          .where(
+            and(eq(articleReference.tenantId, ctx.tenantId), eq(articleReference.id, existante.id)),
+          );
       } else {
         await tx.insert(articleReference).values({
           tenantId: ctx.tenantId,
@@ -318,8 +383,14 @@ export class ServiceArticle {
       }
 
       const ligneMaj = await this.chargerOu404(tx, ctx, articleId);
-      const { referencesParArticle, stocksParArticle } = await this.chargerSousCollections(tx, ctx, [articleId]);
-      return new CollecteurAvertissements().envelopper(this.assemblerReponse(ligneMaj, role, referencesParArticle, stocksParArticle));
+      const { referencesParArticle, stocksParArticle } = await this.chargerSousCollections(
+        tx,
+        ctx,
+        [articleId],
+      );
+      return new CollecteurAvertissements().envelopper(
+        this.assemblerReponse(ligneMaj, role, referencesParArticle, stocksParArticle),
+      );
     });
   }
 
@@ -361,8 +432,14 @@ export class ServiceArticle {
         .where(and(eq(article.tenantId, ctx.tenantId), eq(article.id, articleId)));
 
       const ligneMaj = await this.chargerOu404(tx, ctx, articleId);
-      const { referencesParArticle, stocksParArticle } = await this.chargerSousCollections(tx, ctx, [articleId]);
-      return new CollecteurAvertissements().envelopper(this.assemblerReponse(ligneMaj, role, referencesParArticle, stocksParArticle));
+      const { referencesParArticle, stocksParArticle } = await this.chargerSousCollections(
+        tx,
+        ctx,
+        [articleId],
+      );
+      return new CollecteurAvertissements().envelopper(
+        this.assemblerReponse(ligneMaj, role, referencesParArticle, stocksParArticle),
+      );
     });
   }
 
@@ -395,16 +472,29 @@ export class ServiceArticle {
         );
       }
 
-      await tx.update(article).set({ statut: 'desactive' }).where(and(eq(article.tenantId, ctx.tenantId), eq(article.id, articleId)));
+      await tx
+        .update(article)
+        .set({ statut: 'desactive' })
+        .where(and(eq(article.tenantId, ctx.tenantId), eq(article.id, articleId)));
 
       const ligneMaj = await this.chargerOu404(tx, ctx, articleId);
-      const { referencesParArticle, stocksParArticle } = await this.chargerSousCollections(tx, ctx, [articleId]);
-      return new CollecteurAvertissements().envelopper(this.assemblerReponse(ligneMaj, role, referencesParArticle, stocksParArticle));
+      const { referencesParArticle, stocksParArticle } = await this.chargerSousCollections(
+        tx,
+        ctx,
+        [articleId],
+      );
+      return new CollecteurAvertissements().envelopper(
+        this.assemblerReponse(ligneMaj, role, referencesParArticle, stocksParArticle),
+      );
     });
   }
 
   /** `POST /articles/{id}/reactiver` — retour à `actif` depuis `obsolete` ou `desactive` (§6.1). */
-  async reactiver(ctx: ContexteTenant, role: RoleUtilisateur, articleId: string): Promise<ReponseAvecAvertissements<ReponseArticle>> {
+  async reactiver(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    articleId: string,
+  ): Promise<ReponseAvecAvertissements<ReponseArticle>> {
     return this.acces.enTenant(ctx, async (tx) => {
       await this.chargerOu404(tx, ctx, articleId);
 
@@ -414,8 +504,14 @@ export class ServiceArticle {
         .where(and(eq(article.tenantId, ctx.tenantId), eq(article.id, articleId)));
 
       const ligneMaj = await this.chargerOu404(tx, ctx, articleId);
-      const { referencesParArticle, stocksParArticle } = await this.chargerSousCollections(tx, ctx, [articleId]);
-      return new CollecteurAvertissements().envelopper(this.assemblerReponse(ligneMaj, role, referencesParArticle, stocksParArticle));
+      const { referencesParArticle, stocksParArticle } = await this.chargerSousCollections(
+        tx,
+        ctx,
+        [articleId],
+      );
+      return new CollecteurAvertissements().envelopper(
+        this.assemblerReponse(ligneMaj, role, referencesParArticle, stocksParArticle),
+      );
     });
   }
 
@@ -427,7 +523,9 @@ export class ServiceArticle {
   ): ReponseArticle {
     const referencesToutes = referencesParArticle.get(ligne.id) ?? [];
     const referencesTronquees = referencesToutes.length > SEUIL_REFERENCES_EMBARQUEES;
-    const references = referencesToutes.slice(0, SEUIL_REFERENCES_EMBARQUEES).map(versArticleReferenceResponse);
+    const references = referencesToutes
+      .slice(0, SEUIL_REFERENCES_EMBARQUEES)
+      .map(versArticleReferenceResponse);
     const stocksResume = (stocksParArticle.get(ligne.id) ?? []).map(versStockResumeArticle);
     return versArticleResponse(ligne, role, references, referencesTronquees, stocksResume);
   }
@@ -448,12 +546,22 @@ export class ServiceArticle {
     const references = await tx
       .select()
       .from(articleReference)
-      .where(and(eq(articleReference.tenantId, ctx.tenantId), inArray(articleReference.articleId, [...articleIds])))
+      .where(
+        and(
+          eq(articleReference.tenantId, ctx.tenantId),
+          inArray(articleReference.articleId, [...articleIds]),
+        ),
+      )
       .orderBy(articleReference.creeLe);
     const stocks = await tx
       .select()
       .from(stockArticle)
-      .where(and(eq(stockArticle.tenantId, ctx.tenantId), inArray(stockArticle.articleId, [...articleIds])));
+      .where(
+        and(
+          eq(stockArticle.tenantId, ctx.tenantId),
+          inArray(stockArticle.articleId, [...articleIds]),
+        ),
+      );
 
     const referencesParArticle = new Map<string, LigneArticleReference[]>();
     for (const r of references) {
@@ -471,7 +579,11 @@ export class ServiceArticle {
     return { referencesParArticle, stocksParArticle };
   }
 
-  private async chargerOu404(tx: TransactionDfa, ctx: ContexteTenant, articleId: string): Promise<LigneArticle> {
+  private async chargerOu404(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    articleId: string,
+  ): Promise<LigneArticle> {
     const lignes = await tx
       .select()
       .from(article)

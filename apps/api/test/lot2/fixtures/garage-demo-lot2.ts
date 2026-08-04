@@ -111,7 +111,15 @@ export async function creerMouvementStockPourTest(
     await client.query(
       `insert into mouvement_stock (id, tenant_id, article_id, type, quantite_millieme, site_id, motif)
        values ($1, $2, $3, $4, $5, $6, $7)`,
-      [id, tenant.id, articleId, type, options.quantiteMillieme ?? 1000, siteId, options.motif ?? null],
+      [
+        id,
+        tenant.id,
+        articleId,
+        type,
+        options.quantiteMillieme ?? 1000,
+        siteId,
+        options.motif ?? null,
+      ],
     );
   });
   return { id, tenantId: tenant.id };
@@ -152,7 +160,14 @@ export async function creerLigneOrPiecePourTest(
          (id, tenant_id, ordre_reparation_id, numero_ordre, type, origine, statut,
           designation, article_id, quantite_millieme, montant_ht_centimes, montant_tva_centimes, montant_ttc_centimes)
        values ($1, $2, $3, $4, 'piece', 'commandee', 'proposee', $5, $6, 1000, 4620, 370, 4990)`,
-      [id, tenant.id, ordreReparationId, numeroOrdre, `Pièce de test #${String(numeroOrdre)}`, articleId],
+      [
+        id,
+        tenant.id,
+        ordreReparationId,
+        numeroOrdre,
+        `Pièce de test #${String(numeroOrdre)}`,
+        articleId,
+      ],
     );
   });
   return { id, tenantId: tenant.id, ordreReparationId };
@@ -194,7 +209,16 @@ export async function creerConsignePourTest(
       `insert into consigne_echange_standard
          (id, tenant_id, ligne_or_id, ordre_reparation_id, article_id, site_id, montant_consigne_ttc_centimes, mouvement_entree_id)
        values ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [id, tenant.id, ligneOrId, ordreReparationId, articleId, siteId, montantConsigneTtcCentimes, mouvementEntreeId],
+      [
+        id,
+        tenant.id,
+        ligneOrId,
+        ordreReparationId,
+        articleId,
+        siteId,
+        montantConsigneTtcCentimes,
+        mouvementEntreeId,
+      ],
     );
   });
   return { id, tenantId: tenant.id };
@@ -230,7 +254,8 @@ export async function creerPointagePourTest(
   const nature = options.nature ?? 'indirect';
   const statut = options.statut ?? 'en_cours';
   const debutLe = options.debutLe ?? new Date();
-  const finLe = statut === 'en_cours' ? null : (options.finLe ?? new Date(debutLe.getTime() + 3_600_000));
+  const finLe =
+    statut === 'en_cours' ? null : (options.finLe ?? new Date(debutLe.getTime() + 3_600_000));
   const activiteIndirecte = nature === 'indirect' ? (options.activiteIndirecte ?? 'pause') : null;
 
   await ecrireSousTenant(bdd.poolApp, tenant.id, async (client: PoolClient) => {
@@ -269,7 +294,11 @@ export async function creerVehiculeStockPourTest(
   tenant: DonneesLot1Tenant['tenant'],
   siteId: string,
   vehiculeId: string,
-  options: { readonly statut?: string; readonly provenance?: string; readonly prixAchatCentimes?: number } = {},
+  options: {
+    readonly statut?: string;
+    readonly provenance?: string;
+    readonly prixAchatCentimes?: number;
+  } = {},
 ): Promise<{ id: string; tenantId: string }> {
   await ecrireSousTenant(bdd.poolApp, tenant.id, async (client: PoolClient) => {
     await client.query(
@@ -300,7 +329,14 @@ export async function creerDossierVentePourTest(
     await client.query(
       `insert into dossier_vente (id, tenant_id, site_id, statut, vehicule_id, client_acheteur_id)
        values ($1, $2, $3, $4, $5, $6)`,
-      [id, tenant.id, siteId, options.statut ?? 'prospection', options.vehiculeId ?? null, clientAcheteurId],
+      [
+        id,
+        tenant.id,
+        siteId,
+        options.statut ?? 'prospection',
+        options.vehiculeId ?? null,
+        clientAcheteurId,
+      ],
     );
   });
   return { id, tenantId: tenant.id };
@@ -328,7 +364,11 @@ export async function creerFinancementVentePourTest(
   bdd: BaseEphemere,
   tenant: DonneesLot1Tenant['tenant'],
   dossierVenteId: string,
-  options: { readonly type?: string; readonly statut?: string; readonly organismeId?: string | null } = {},
+  options: {
+    readonly type?: string;
+    readonly statut?: string;
+    readonly organismeId?: string | null;
+  } = {},
 ): Promise<{ id: string; tenantId: string }> {
   const id = randomUUID();
   const type = options.type ?? 'comptant';
@@ -336,7 +376,14 @@ export async function creerFinancementVentePourTest(
     await client.query(
       `insert into financement_vente (id, tenant_id, dossier_vente_id, type, organisme_id, statut)
        values ($1, $2, $3, $4, $5, $6)`,
-      [id, tenant.id, dossierVenteId, type, options.organismeId ?? null, options.statut ?? (type === 'comptant' ? 'confirme' : 'en_attente')],
+      [
+        id,
+        tenant.id,
+        dossierVenteId,
+        type,
+        options.organismeId ?? null,
+        options.statut ?? (type === 'comptant' ? 'confirme' : 'en_attente'),
+      ],
     );
   });
   return { id, tenantId: tenant.id };

@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ACTIONS_REPRISE, STATUTS_REPRISE, type ReponseAvecAvertissements, type ReponseReprise, type RepriseResume } from '@dfa/shared';
+import {
+  ACTIONS_REPRISE,
+  STATUTS_REPRISE,
+  type ReponseAvecAvertissements,
+  type ReponseReprise,
+  type RepriseResume,
+} from '@dfa/shared';
 
 import { AvertissementDto } from './avertissement.dto';
 import { ModifieParDto, VehiculeResumeDto } from './communs.dto';
@@ -20,7 +26,11 @@ export class RepriseResumeDto implements RepriseResume {
   @ApiProperty({ type: Number, nullable: true })
   readonly valeurNegocieeCentimes!: number | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Dérivé : valeurNegocieeCentimes - valeurEstimeeCentimes (RV-21).' })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Dérivé : valeurNegocieeCentimes - valeurEstimeeCentimes (RV-21).',
+  })
   readonly ecartRepriseVehiculeCentimes!: number | null;
 }
 
@@ -43,10 +53,18 @@ export class ReponseRepriseDto implements ReponseReprise {
   @ApiProperty({ type: Number, nullable: true })
   readonly valeurNegocieeCentimes!: number | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Dérivé (RV-21) — jamais utilisé pour une base TVA (RV-22/QV-05, non tranché).' })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Dérivé (RV-21) — jamais utilisé pour une base TVA (RV-22/QV-05, non tranché).',
+  })
   readonly ecartRepriseVehiculeCentimes!: number | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'RV-26/CV-02 : solde de financement encore dû sur le véhicule repris.' })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'RV-26/CV-02 : solde de financement encore dû sur le véhicule repris.',
+  })
   readonly detteFinancementResiduelleCentimes!: number | null;
 
   @ApiProperty({ type: String, format: 'uuid', nullable: true })

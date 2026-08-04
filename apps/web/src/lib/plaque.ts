@@ -89,7 +89,11 @@ export function detecterFormeSaisie(saisieBrute: string): FormeSaisie {
 
   const compact = normaliserPlaque(saisie);
 
-  if (compact.length === 17 && /^[A-Z0-9]+$/.test(compact) && !CARACTERE_INTERDIT_VIN.test(compact)) {
+  if (
+    compact.length === 17 &&
+    /^[A-Z0-9]+$/.test(compact) &&
+    !CARACTERE_INTERDIT_VIN.test(compact)
+  ) {
     return 'vin';
   }
 

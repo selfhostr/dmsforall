@@ -30,7 +30,12 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { colonneCreeLe, colonnesHorodatage, colonneId, colonneTenantId } from '../colonnes-communes';
+import {
+  colonneCreeLe,
+  colonnesHorodatage,
+  colonneId,
+  colonneTenantId,
+} from '../colonnes-communes';
 import { langueEnum } from '../enums';
 import { site } from '../site';
 import { tenant } from '../tenant';
@@ -104,11 +109,15 @@ export const documentVente = pgTable(
 
     totalHtCentimes: bigint('total_ht_centimes', { mode: 'bigint' }).notNull().default(0n),
     totalTvaCentimes: bigint('total_tva_centimes', { mode: 'bigint' }).notNull().default(0n),
-    ecartRepriseCentimes: bigint('ecart_reprise_centimes', { mode: 'bigint' }).notNull().default(0n),
+    ecartRepriseCentimes: bigint('ecart_reprise_centimes', { mode: 'bigint' })
+      .notNull()
+      .default(0n),
     totalTtcCentimes: bigint('total_ttc_centimes', { mode: 'bigint' }).notNull().default(0n),
     remiseGlobalePourmille: smallint('remise_globale_pourmille'),
     remiseGlobaleSaisieCentimes: bigint('remise_globale_saisie_centimes', { mode: 'bigint' }),
-    montantRegleCentimes: bigint('montant_regle_centimes', { mode: 'bigint' }).notNull().default(0n),
+    montantRegleCentimes: bigint('montant_regle_centimes', { mode: 'bigint' })
+      .notNull()
+      .default(0n),
     soldeCentimes: bigint('solde_centimes', { mode: 'bigint' }).notNull().default(0n),
 
     /** `document_vente_devise_chk` (migration 0015) : borné à CHF/EUR — même ensemble que
@@ -263,7 +272,10 @@ export const ligneDocument = pgTable(
     index('ligne_document_or_idx').on(t.tenantId, t.ligneOrId),
     // Δ-RF40 (§0.2) : type PG complet, restreint à 'ttc' pour le lot pilote.
     check('ligne_document_mode_ttc_lot_pilote_chk', sql`${t.modeCalculTva} = 'ttc'`),
-    check('ligne_document_montant_coherent_chk', sql`${t.ttcCentimes} = ${t.htCentimes} + ${t.tvaCentimes}`),
+    check(
+      'ligne_document_montant_coherent_chk',
+      sql`${t.ttcCentimes} = ${t.htCentimes} + ${t.tvaCentimes}`,
+    ),
   ],
 );
 

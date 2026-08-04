@@ -60,11 +60,11 @@ un brouillon. Aucun chemin ne transforme un document repris en document DFA.
 
 **MD-03** — Trois colonnes, trois rôles distincts, jamais confondus :
 
-| Colonne | Type | Rôle | `origine='dfa'` | `origine='reprise'` |
-|---|---|---|---|---|
-| `numero_sequence` | `integer null` | rang dans la séquence DFA — c'est **lui** qui porte la continuité légale | `NOT NULL` dès l'émission | toujours `NULL` |
-| `numero` | `text null` | le numéro **affiché**, celui qu'on cherche et qu'on imprime | composé depuis `numero_sequence` + préfixe + année (`P-01`) | copie nettoyée de `numero_origine` |
-| `numero_origine` | `text null` | le numéro source **verbatim**, octet pour octet | toujours `NULL` | `NOT NULL` |
+| Colonne           | Type           | Rôle                                                                     | `origine='dfa'`                                             | `origine='reprise'`                |
+| ----------------- | -------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------- | ---------------------------------- |
+| `numero_sequence` | `integer null` | rang dans la séquence DFA — c'est **lui** qui porte la continuité légale | `NOT NULL` dès l'émission                                   | toujours `NULL`                    |
+| `numero`          | `text null`    | le numéro **affiché**, celui qu'on cherche et qu'on imprime              | composé depuis `numero_sequence` + préfixe + année (`P-01`) | copie nettoyée de `numero_origine` |
+| `numero_origine`  | `text null`    | le numéro source **verbatim**, octet pour octet                          | toujours `NULL`                                             | `NOT NULL`                         |
 
 ```sql
 check (
@@ -88,7 +88,7 @@ l'arbitre.
 
 **MD-05 — Un document repris ne consomme jamais la séquence DFA.** Le chargeur d'import
 n'appelle jamais `ServiceParametrage.prochainNumero()` (`D-23`). C'est la contrainte qui rend la
-continuité légale démontrable : la suite DFA est contiguë *parce que* rien d'étranger n'y entre.
+continuité légale démontrable : la suite DFA est contiguë _parce que_ rien d'étranger n'y entre.
 
 **MD-06 — Contraintes d'unicité couvrant les deux populations.**
 
@@ -137,8 +137,8 @@ clé, la base refuse la collision au lieu de la produire silencieusement.
 ### 0.3 `tva_non_ventilee` — représenter une facture historique honnêtement
 
 **MD-07** — `document_vente.tva_non_ventilee boolean not null default false`. À `true`, il
-signifie : *la source ne donnait qu'un montant de TVA global ; le document porte ses totaux
-exacts, mais la ventilation par ligne et par taux n'existe pas et n'a pas été inventée.*
+signifie : _la source ne donnait qu'un montant de TVA global ; le document porte ses totaux
+exacts, mais la ventilation par ligne et par taux n'existe pas et n'a pas été inventée._
 
 Conséquences, toutes portées par le schéma :
 
@@ -195,11 +195,11 @@ Les trois premières décisions ( tenant, deux colonnes IBAN, payload figé) cha
 
 ### 0.5 Coût comparé — pourquoi maintenant et pas après
 
-| Ajout | Coût aujourd'hui (table vide) | Coût après la mise en production du pilote |
-|---|---|---|
-| `origine` | 1 enum + 1 colonne + 1 défaut | `ALTER TABLE` + backfill sur des lignes protégées par un trigger `BEFORE UPDATE` qu'il faut désactiver, donc une fenêtre où l'immuabilité est levée sur des factures émises |
-| `numero_origine` + éclatement `numero`/`numero_sequence` | 3 colonnes + 4 index | réécriture de la clé d'unicité **et** de tous les numéros affichés ; toute référence externe (relance envoyée, écriture chez la fiduciaire, camt.054 déjà rapproché) devient fausse |
-| `tva_non_ventilee` + `ecart_reprise_centimes` | 2 colonnes + 3 `CHECK` | un `CHECK` ajouté sur une table peuplée impose `NOT VALID` puis `VALIDATE`, et surtout : les documents repris déjà chargés auraient été soit refusés (impossible d'importer), soit ventilés arbitrairement (`D-04` violé, donc des faux en base) |
+| Ajout                                                    | Coût aujourd'hui (table vide) | Coût après la mise en production du pilote                                                                                                                                                                                                       |
+| -------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `origine`                                                | 1 enum + 1 colonne + 1 défaut | `ALTER TABLE` + backfill sur des lignes protégées par un trigger `BEFORE UPDATE` qu'il faut désactiver, donc une fenêtre où l'immuabilité est levée sur des factures émises                                                                      |
+| `numero_origine` + éclatement `numero`/`numero_sequence` | 3 colonnes + 4 index          | réécriture de la clé d'unicité **et** de tous les numéros affichés ; toute référence externe (relance envoyée, écriture chez la fiduciaire, camt.054 déjà rapproché) devient fausse                                                              |
+| `tva_non_ventilee` + `ecart_reprise_centimes`            | 2 colonnes + 3 `CHECK`        | un `CHECK` ajouté sur une table peuplée impose `NOT VALID` puis `VALIDATE`, et surtout : les documents repris déjà chargés auraient été soit refusés (impossible d'importer), soit ventilés arbitrairement (`D-04` violé, donc des faux en base) |
 
 La reprise du premier garage a lieu **avant** ou **pendant** l'étape 2. Il n'y a donc pas de
 fenêtre où l'on peut « voir venir » : la première facture importée arrive avant la première
@@ -257,13 +257,13 @@ une ligne d'OR ne peut apparaître que sur un seul document non annulé (index u
 
 ### 1.2 États
 
-| Type | États | Terminal |
-|---|---|---|
-| `devis` | `brouillon` → `emis` → {`accepte`, `refuse`, `expire`, `remplace`} | oui |
-| `bon_commande` | `brouillon` → `emis` → {`transforme`, `annule`} | oui |
-| `facture` | `brouillon` → `emis` → `annule_par_avoir` | oui |
-| `avoir` | `brouillon` → `emis` | oui |
-| tous | `brouillon` → `abandonne` | oui |
+| Type           | États                                                              | Terminal |
+| -------------- | ------------------------------------------------------------------ | -------- |
+| `devis`        | `brouillon` → `emis` → {`accepte`, `refuse`, `expire`, `remplace`} | oui      |
+| `bon_commande` | `brouillon` → `emis` → {`transforme`, `annule`}                    | oui      |
+| `facture`      | `brouillon` → `emis` → `annule_par_avoir`                          | oui      |
+| `avoir`        | `brouillon` → `emis`                                               | oui      |
+| tous           | `brouillon` → `abandonne`                                          | oui      |
 
 **MD-16 — Le règlement n'est pas un état du document.** `statut_reglement`
 (`non_regle` | `partiel` | `regle` | `trop_percu` | `irrecouvrable`) est une colonne **dérivée**,
@@ -498,22 +498,22 @@ fiduciaire déjà transmis (§6.5).
 aucune conversion par `parseFloat`. Un `numeric` en base et un `number` en TypeScript est le
 chemin le plus court vers un centime qui disparaît entre deux couches.
 
-| Grandeur | Colonne | Unité | Domaine |
-|---|---|---|---|
-| Prix unitaire | `prix_unitaire_centimes` | centime | `integer` |
-| Quantité | `quantite_millieme` | millième d'unité | `integer` (4.5 L = `4500`) |
-| Temps | `temps_millieme` | millième d'heure | `integer` (1.5 h = `1500`) |
-| Taux de TVA | `taux_tva_pourmille` | pour mille | `smallint` |
-| Remise en % | `remise_pourmille` | pour mille | `smallint` |
+| Grandeur      | Colonne                  | Unité            | Domaine                    |
+| ------------- | ------------------------ | ---------------- | -------------------------- |
+| Prix unitaire | `prix_unitaire_centimes` | centime          | `integer`                  |
+| Quantité      | `quantite_millieme`      | millième d'unité | `integer` (4.5 L = `4500`) |
+| Temps         | `temps_millieme`         | millième d'heure | `integer` (1.5 h = `1500`) |
+| Taux de TVA   | `taux_tva_pourmille`     | pour mille       | `smallint`                 |
+| Remise en %   | `remise_pourmille`       | pour mille       | `smallint`                 |
 
 **MD-36 — Le pour mille représente exactement tous les taux suisses, présents et passés.**
 
-| Période | Normal | Réduit | Hébergement |
-|---|---|---|---|
-| 01.01.2001 – 31.12.2010 | `76` | `24` | `36` |
-| 01.01.2011 – 31.12.2017 | `80` | `25` | `38` |
-| 01.01.2018 – 31.12.2023 | `77` | `25` | `37` |
-| depuis le 01.01.2024 | **`81`** | **`26`** | **`38`** |
+| Période                 | Normal   | Réduit   | Hébergement |
+| ----------------------- | -------- | -------- | ----------- |
+| 01.01.2001 – 31.12.2010 | `76`     | `24`     | `36`        |
+| 01.01.2011 – 31.12.2017 | `80`     | `25`     | `38`        |
+| 01.01.2018 – 31.12.2023 | `77`     | `25`     | `37`        |
+| depuis le 01.01.2024    | **`81`** | **`26`** | **`38`**    |
 
 Aucune décimale perdue, aucun taux non représentable. La reprise (`N-07`) valide ce choix sur
 l'historique ; l'étape 2 le valide sur le présent. Le tableau lui-même reste une base de travail
@@ -595,9 +595,9 @@ Sur un forfait annoncé **CHF 70.00 TTC** — un prix de lavage ou de diagnostic
 ordinaire :
 
 | HT saisi | `arrondi(HT × 81 / 1000)` | TTC obtenu |
-|---|---|---|
-| 64.75 | 5.24 | **69.99** |
-| 64.76 | 5.25 | **70.01** |
+| -------- | ------------------------- | ---------- |
+| 64.75    | 5.24                      | **69.99**  |
+| 64.76    | 5.25                      | **70.01**  |
 
 Il n'existe aucun HT donnant 70.00. Le garage qui affiche « 70.— » en vitrine ne peut pas émettre
 une facture à 70.00 en mode `ht`. Ce n'est pas un cas de laboratoire : sous CHF 40'000, **324'000
@@ -606,10 +606,10 @@ CHF 1.00, 3.00, 5.00, 70.00, 145.00 et 40.50 (`CF-13`).
 
 **MD-43 — `mode_calcul_tva` est une colonne de ligne**, enum `ht` | `ttc`, figée avec le reste :
 
-| Mode | Ancre | TVA | HT |
-|---|---|---|---|
-| `ht` (défaut) | `ht_centimes` | `arrondi(ht × taux, 1000)` | saisi |
-| `ttc` | `ttc_centimes` | `arrondi(ttc × taux, 1000 + taux)` | `ttc − tva` |
+| Mode          | Ancre          | TVA                                | HT          |
+| ------------- | -------------- | ---------------------------------- | ----------- |
+| `ht` (défaut) | `ht_centimes`  | `arrondi(ht × taux, 1000)`         | saisi       |
+| `ttc`         | `ttc_centimes` | `arrondi(ttc × taux, 1000 + taux)` | `ttc − tva` |
 
 Dans les deux cas `TTC = HT + TVA` tient exactement, par construction. Sur le même forfait en
 mode `ttc` : `TVA = arrondi(7'000 × 81 / 1081) = 525` ct, `HT = 6'475` ct, `TTC = 7'000` ct —
@@ -672,9 +672,7 @@ paiement, et surtout rendrait faux le montant encodé dans le QR.
 ```ts
 /** Arrondit au multiple de 5 centimes le plus proche, symétriquement autour de zéro. */
 export function arrondiCinqCentimes(centimes: bigint): bigint {
-  return centimes >= 0n
-    ? ((centimes + 2n) / 5n) * 5n
-    : -(((-centimes + 2n) / 5n) * 5n);
+  return centimes >= 0n ? ((centimes + 2n) / 5n) * 5n : -(((-centimes + 2n) / 5n) * 5n);
 }
 ```
 
@@ -719,12 +717,12 @@ imputation_paiement                        -- ce que cet encaissement solde, et 
 
 Cette séparation résout d'un seul coup les quatre cas que le terrain impose :
 
-| Cas | Résolution |
-|---|---|
-| Paiement partiel | plusieurs imputations sur un même document, `solde = total − Σ imputations` |
-| Un paiement pour plusieurs factures | plusieurs imputations d'un même paiement |
-| Trop-perçu | une partie du paiement reste **non imputée** — elle n'est ni perdue ni forcée sur le document |
-| Acompte avant tout document | un paiement non imputé, ou imputé sur un bon de commande |
+| Cas                                 | Résolution                                                                                    |
+| ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| Paiement partiel                    | plusieurs imputations sur un même document, `solde = total − Σ imputations`                   |
+| Un paiement pour plusieurs factures | plusieurs imputations d'un même paiement                                                      |
+| Trop-perçu                          | une partie du paiement reste **non imputée** — elle n'est ni perdue ni forcée sur le document |
+| Acompte avant tout document         | un paiement non imputé, ou imputé sur un bon de commande                                      |
 
 **MD-51 — Deux invariants, et ils ne portent pas sur le même ensemble d'imputations.**
 
@@ -786,11 +784,11 @@ check (type_ligne <> 'acompte_deduit' or (montant_ht_centimes < 0 and document_a
 **MD-57** — Le montant non imputé d'un paiement est une **avance client**. Trois issues, toutes
 explicites, aucune automatique :
 
-| Issue | Traitement |
-|---|---|
-| Remboursement | `paiement` de montant négatif, moyen `virement`, lié par `contre_passe_id` |
-| Imputation sur une facture future | nouvelle `imputation_paiement` sur le nouveau document |
-| Abandon en faveur du garage | imputation de nature `compensation` sur un document de régularisation |
+| Issue                             | Traitement                                                                 |
+| --------------------------------- | -------------------------------------------------------------------------- |
+| Remboursement                     | `paiement` de montant négatif, moyen `virement`, lié par `contre_passe_id` |
+| Imputation sur une facture future | nouvelle `imputation_paiement` sur le nouveau document                     |
+| Abandon en faveur du garage       | imputation de nature `compensation` sur un document de régularisation      |
 
 L'écran de fiche client affiche « avance disponible : CHF 19.00 » et la propose à l'imputation lors
 de la facture suivante. Ce qu'on ne fait **jamais** : créer un avoir pour matérialiser un
@@ -905,8 +903,8 @@ de pertes sur clients, avec la même correction de TVA. Le document n'est pas mo
 
 ## 5. QR-facture
 
-Référence : Swiss Payment Standards, *Implementation Guidelines QR-bill* (version 2.3) et
-*Style Guide QR-facture*. Tout ce qui suit est à revérifier contre la version en vigueur au moment
+Référence : Swiss Payment Standards, _Implementation Guidelines QR-bill_ (version 2.3) et
+_Style Guide QR-facture_. Tout ce qui suit est à revérifier contre la version en vigueur au moment
 de l'implémentation — c'est une spécification vivante, et elle a déjà supprimé une fonctionnalité
 en cours de route (`MD-77`).
 
@@ -915,19 +913,19 @@ en cours de route (`MD-77`).
 **MD-73** — Bloc créancier, au niveau du **tenant** (paramétrage) et **recopié figé** sur chaque
 document émis :
 
-| Donnée | Contrainte |
-|---|---|
-| `qr_iban` | IBAN suisse valide. **QR-IBAN** si l'IID (positions 5 à 9) est dans `30000`–`31999` |
-| `creancier_nom` | 70 caractères max |
-| `creancier_rue`, `creancier_numero` | adresse **structurée** obligatoire (`MD-77`) |
-| `creancier_npa`, `creancier_localite`, `creancier_pays` | NPA 16 car. max, localité 35, pays ISO-2 |
+| Donnée                                                  | Contrainte                                                                          |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `qr_iban`                                               | IBAN suisse valide. **QR-IBAN** si l'IID (positions 5 à 9) est dans `30000`–`31999` |
+| `creancier_nom`                                         | 70 caractères max                                                                   |
+| `creancier_rue`, `creancier_numero`                     | adresse **structurée** obligatoire (`MD-77`)                                        |
+| `creancier_npa`, `creancier_localite`, `creancier_pays` | NPA 16 car. max, localité 35, pays ISO-2                                            |
 
 **MD-74 — Le type de référence découle du type d'IBAN, et la base l'impose.**
 
-| IBAN | Référence | Interdit |
-|---|---|---|
+| IBAN                      | Référence                          | Interdit  |
+| ------------------------- | ---------------------------------- | --------- |
 | QR-IBAN (IID 30000–31999) | **QRR** — 27 chiffres, obligatoire | SCOR, NON |
-| IBAN ordinaire | **SCOR** (ISO 11649) ou **NON** | QRR |
+| IBAN ordinaire            | **SCOR** (ISO 11649) ou **NON**    | QRR       |
 
 ```sql
 check (
@@ -1060,27 +1058,27 @@ calcule un montant, ne choisit un compte, ni n'arrondit. C'est le principe de la
 
 ```ts
 export interface LigneEcriture {
-  readonly compte: string;                    // compte du plan du tenant
+  readonly compte: string; // compte du plan du tenant
   readonly sens: 'debit' | 'credit';
-  readonly montantCentimes: number;           // toujours > 0 ; le sens porte le signe
-  readonly codeTva: string | null;            // code de la cible, jamais un taux brut
+  readonly montantCentimes: number; // toujours > 0 ; le sens porte le signe
+  readonly codeTva: string | null; // code de la cible, jamais un taux brut
   readonly tauxPourmille: number | null;
   readonly baseTvaCentimes: number | null;
   readonly libelle: string;
 }
 
 export interface Ecriture {
-  readonly reference: string;                 // n° de document ou identifiant de paiement
-  readonly date: string;                      // ISO 8601, date comptable
+  readonly reference: string; // n° de document ou identifiant de paiement
+  readonly date: string; // ISO 8601, date comptable
   readonly libelle: string;
-  readonly centreDeCharge: string | null;     // code du site
-  readonly lignes: readonly LigneEcriture[];  // invariant : Σ débits = Σ crédits
-  readonly documentId: string | null;         // traçabilité retour vers DFA
+  readonly centreDeCharge: string | null; // code du site
+  readonly lignes: readonly LigneEcriture[]; // invariant : Σ débits = Σ crédits
+  readonly documentId: string | null; // traçabilité retour vers DFA
 }
 
 export interface AccountingExporter {
-  readonly cible: CibleExport;                // 'bexio'|'winbiz'|'abacus'|'banana'|'csv'
-  readonly capacites: CapacitesExport;        // multi-devise, centres de charge, codes TVA…
+  readonly cible: CibleExport; // 'bexio'|'winbiz'|'abacus'|'banana'|'csv'
+  readonly capacites: CapacitesExport; // multi-devise, centres de charge, codes TVA…
   exporter(lot: LotExport, ecritures: readonly Ecriture[]): Promise<ResultatExport>;
 }
 ```
@@ -1091,16 +1089,16 @@ partiellement faux à une fiduciaire, on corrige et on retransmet.
 
 ### 6.2 Les écritures produites
 
-| Événement | Débit | Crédit |
-|---|---|---|
-| Facture émise | Créances clients (TTC) | Produits par catégorie (HT par compte) + TVA due (par taux) |
-| Facture d'acompte | Créances clients (TTC) | Acomptes reçus (HT) + TVA due |
-| Facture finale avec acompte | Créances clients (solde) + Acomptes reçus (HT de l'acompte) | Produits (HT) + TVA due (différence) |
-| Avoir | Produits (HT) + TVA due | Créances clients (TTC) |
-| Encaissement | Compte financier | Créances clients |
-| Encaissement espèces arrondi | Caisse (montant arrondi) | Créances clients (montant exact) + Différences d'arrondi |
-| Escompte | Compte financier + Escomptes (HT) + TVA due (part) | Créances clients |
-| Perte sur créance | Compte financier + Pertes sur clients + TVA due (part) | Créances clients |
+| Événement                    | Débit                                                       | Crédit                                                      |
+| ---------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------- |
+| Facture émise                | Créances clients (TTC)                                      | Produits par catégorie (HT par compte) + TVA due (par taux) |
+| Facture d'acompte            | Créances clients (TTC)                                      | Acomptes reçus (HT) + TVA due                               |
+| Facture finale avec acompte  | Créances clients (solde) + Acomptes reçus (HT de l'acompte) | Produits (HT) + TVA due (différence)                        |
+| Avoir                        | Produits (HT) + TVA due                                     | Créances clients (TTC)                                      |
+| Encaissement                 | Compte financier                                            | Créances clients                                            |
+| Encaissement espèces arrondi | Caisse (montant arrondi)                                    | Créances clients (montant exact) + Différences d'arrondi    |
+| Escompte                     | Compte financier + Escomptes (HT) + TVA due (part)          | Créances clients                                            |
+| Perte sur créance            | Compte financier + Pertes sur clients + TVA due (part)      | Créances clients                                            |
 
 Chacune est démontrée équilibrée dans les cas de test `CF-04`, `CF-07`, `CF-09` et `CF-14`.
 
@@ -1122,20 +1120,20 @@ correspondance_externe (tenant_id, cible, entite, dfa_id, externe_id)
 Proposition de défaut, **à faire valider par la fiduciaire du pilote avant le premier export**
 (`QF-03`) :
 
-| Usage | Compte proposé | Libellé |
-|---|---|---|
-| Créances clients | `1100` | Créances résultant de ventes et de prestations |
-| Caisse / banque | `1000` / `1020` | selon le moyen de paiement |
-| Acomptes reçus | `2030` | Acomptes de clients |
-| TVA due | `2200` | TVA sur le chiffre d'affaires |
-| Produits — pièces, fournitures | `3200` | Ventes de marchandises |
-| Produits — main-d'œuvre, forfaits, produits d'atelier | `3400` | Prestations de services |
-| Produits — sous-traitance | `3400` ou compte dédié | à trancher avec la fiduciaire |
-| Produits — taxes de recyclage | `3600` | Autres prestations — dépend de `QF-06` |
-| Escomptes | `3800` | Déductions sur ventes |
-| Pertes sur clients | `3805` | Pertes sur créances |
-| Différences d'arrondi | à définir | `QF-03` — compte de produit ou de charge selon la fiduciaire |
-| Écart de reprise | compte technique dédié | jamais mélangé à un compte de produit |
+| Usage                                                 | Compte proposé         | Libellé                                                      |
+| ----------------------------------------------------- | ---------------------- | ------------------------------------------------------------ |
+| Créances clients                                      | `1100`                 | Créances résultant de ventes et de prestations               |
+| Caisse / banque                                       | `1000` / `1020`        | selon le moyen de paiement                                   |
+| Acomptes reçus                                        | `2030`                 | Acomptes de clients                                          |
+| TVA due                                               | `2200`                 | TVA sur le chiffre d'affaires                                |
+| Produits — pièces, fournitures                        | `3200`                 | Ventes de marchandises                                       |
+| Produits — main-d'œuvre, forfaits, produits d'atelier | `3400`                 | Prestations de services                                      |
+| Produits — sous-traitance                             | `3400` ou compte dédié | à trancher avec la fiduciaire                                |
+| Produits — taxes de recyclage                         | `3600`                 | Autres prestations — dépend de `QF-06`                       |
+| Escomptes                                             | `3800`                 | Déductions sur ventes                                        |
+| Pertes sur clients                                    | `3805`                 | Pertes sur créances                                          |
+| Différences d'arrondi                                 | à définir              | `QF-03` — compte de produit ou de charge selon la fiduciaire |
+| Écart de reprise                                      | compte technique dédié | jamais mélangé à un compte de produit                        |
 
 **MD-87 — `correspondance_externe` est le pendant de `correspondance_reprise`** (reprise §5.2) :
 l'API Bexio veut des identifiants de contacts et de comptes qui lui appartiennent. Sans table de
@@ -1145,10 +1143,10 @@ correspondance, chaque export recrée des doublons chez la fiduciaire.
 
 **MD-88 — Deux modes, paramétrables par tenant et par cible (`PF-05`), jamais un seul.**
 
-| Mode | Une écriture par | Pour qui |
-|---|---|---|
-| `detaille` (défaut) | document, puis par paiement | Bexio, WinBIZ, Abacus : la fiduciaire tient le grand livre des débiteurs dans son outil et veut chaque facture |
-| `agrege` | jour × compte × taux de TVA | Banana sur un petit garage : la fiduciaire ne veut pas 900 écritures par mois, DFA reste le grand livre des débiteurs |
+| Mode                | Une écriture par            | Pour qui                                                                                                              |
+| ------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `detaille` (défaut) | document, puis par paiement | Bexio, WinBIZ, Abacus : la fiduciaire tient le grand livre des débiteurs dans son outil et veut chaque facture        |
+| `agrege`            | jour × compte × taux de TVA | Banana sur un petit garage : la fiduciaire ne veut pas 900 écritures par mois, DFA reste le grand livre des débiteurs |
 
 **MD-89 — Trois choses ne sont jamais agrégées**, quel que soit le mode : les **taux de TVA** entre
 eux (la déclaration TVA deviendrait infaisable), le **compte de créances clients** par client
@@ -1211,48 +1209,48 @@ régénéré est un document différent.
 
 ### 7.1 Sur `ligne_or`
 
-| # | Ce qu'il faut | Pourquoi, et ce que ça coûte de l'ajouter après |
-|---|---|---|
-| **AC-01** | `taux_tva_pourmille smallint not null` **figé à la création de la ligne** | Un OR ouvert en décembre et facturé en janvier après un changement de taux serait facturé au mauvais taux. Après coup : il faut deviner rétroactivement le taux de milliers de lignes d'OR clôturés |
-| **AC-02** | `regime_tva` (enum, `normal` par défaut) | `exonere` et `exclu` valent tous deux 0 % et ne se déclarent pas pareil (`MD-37`). Une seule valeur est utilisée en étape 1 ; la colonne doit exister |
-| **AC-03** | `mode_calcul_tva` (`ht` \| `ttc`, défaut `ht`) | §3.4 : sans elle, une ligne saisie au prix TTC catalogue produit un centime d'écart sur la facture, et il n'y a aucun moyen de savoir après coup laquelle était en TTC |
-| **AC-04** | `date_prestation date not null` (défaut : date de clôture de l'OR) | `MD-39` — c'est la date de prestation, pas la date de facture, qui détermine le taux. Sans elle, le premier changement de taux impose de rouvrir des OR |
-| **AC-05** | `montant_ht_centimes`, `montant_tva_centimes`, `montant_ttc_centimes` **calculés et stockés** | La facture **recopie**, elle ne recalcule jamais (`MD-24`). Une ligne d'OR dont les montants sont dérivés à l'affichage rend la proposition de facturation non reproductible |
-| **AC-06** | `statut_facturation` (`non_facturable` \| `a_facturer` \| `facture` \| `annule`) | `MD-65`, facturation partielle dans le temps (assurance). **C'est l'accroche la plus rentable du lot** : sans elle, facturer le client avant l'assureur est impossible sans migration |
-| **AC-07** | `montant_facturable_centimes` **et** `montant_valorise_centimes` | `RM-70` / `MD-66` : une ligne à charge du garage est facturée 0.00 et valorisée quand même. Une seule colonne oblige à choisir entre mentir au client et perdre l'analyse |
-| **AC-08** | `payeur_client_id uuid null` à côté de `payeur` (`RM-66`) | Savoir que c'est « assurance » ne suffit pas à émettre une facture : il faut **quelle** assurance, avec son adresse. Après coup : il faut ressaisir les payeurs de tout l'historique |
-| **AC-09** | `categorie_comptable text null` | Surcharge exceptionnelle du mapping compte dérivé du type de ligne (§6.3). Nullable, presque toujours vide, indispensable le jour où un garage a un compte de produit particulier |
-| **AC-10** | `remise_pourmille` **xor** `remise_montant_centimes` (`CHECK`) | `MD-41`. Les deux colonnes existent déjà dans la spec (`7.5`) mais sans l'exclusion ; l'ajouter sur des données peuplées oblige à arbitrer des lignes ambiguës |
+| #         | Ce qu'il faut                                                                                 | Pourquoi, et ce que ça coûte de l'ajouter après                                                                                                                                                     |
+| --------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AC-01** | `taux_tva_pourmille smallint not null` **figé à la création de la ligne**                     | Un OR ouvert en décembre et facturé en janvier après un changement de taux serait facturé au mauvais taux. Après coup : il faut deviner rétroactivement le taux de milliers de lignes d'OR clôturés |
+| **AC-02** | `regime_tva` (enum, `normal` par défaut)                                                      | `exonere` et `exclu` valent tous deux 0 % et ne se déclarent pas pareil (`MD-37`). Une seule valeur est utilisée en étape 1 ; la colonne doit exister                                               |
+| **AC-03** | `mode_calcul_tva` (`ht` \| `ttc`, défaut `ht`)                                                | §3.4 : sans elle, une ligne saisie au prix TTC catalogue produit un centime d'écart sur la facture, et il n'y a aucun moyen de savoir après coup laquelle était en TTC                              |
+| **AC-04** | `date_prestation date not null` (défaut : date de clôture de l'OR)                            | `MD-39` — c'est la date de prestation, pas la date de facture, qui détermine le taux. Sans elle, le premier changement de taux impose de rouvrir des OR                                             |
+| **AC-05** | `montant_ht_centimes`, `montant_tva_centimes`, `montant_ttc_centimes` **calculés et stockés** | La facture **recopie**, elle ne recalcule jamais (`MD-24`). Une ligne d'OR dont les montants sont dérivés à l'affichage rend la proposition de facturation non reproductible                        |
+| **AC-06** | `statut_facturation` (`non_facturable` \| `a_facturer` \| `facture` \| `annule`)              | `MD-65`, facturation partielle dans le temps (assurance). **C'est l'accroche la plus rentable du lot** : sans elle, facturer le client avant l'assureur est impossible sans migration               |
+| **AC-07** | `montant_facturable_centimes` **et** `montant_valorise_centimes`                              | `RM-70` / `MD-66` : une ligne à charge du garage est facturée 0.00 et valorisée quand même. Une seule colonne oblige à choisir entre mentir au client et perdre l'analyse                           |
+| **AC-08** | `payeur_client_id uuid null` à côté de `payeur` (`RM-66`)                                     | Savoir que c'est « assurance » ne suffit pas à émettre une facture : il faut **quelle** assurance, avec son adresse. Après coup : il faut ressaisir les payeurs de tout l'historique                |
+| **AC-09** | `categorie_comptable text null`                                                               | Surcharge exceptionnelle du mapping compte dérivé du type de ligne (§6.3). Nullable, presque toujours vide, indispensable le jour où un garage a un compte de produit particulier                   |
+| **AC-10** | `remise_pourmille` **xor** `remise_montant_centimes` (`CHECK`)                                | `MD-41`. Les deux colonnes existent déjà dans la spec (`7.5`) mais sans l'exclusion ; l'ajouter sur des données peuplées oblige à arbitrer des lignes ambiguës                                      |
 
 ### 7.2 Sur `ordre_reparation`
 
-| # | Ce qu'il faut | Pourquoi |
-|---|---|---|
-| **AC-11** | `origine` (`dfa` \| `reprise`) + `numero_origine text null` + `origine_lot_id uuid null` | `D-06` et `D-23` : les OR repris entrent en `cloture` avec leur numéro d'origine et **ne consomment pas** le compteur. Exactement le même dispositif que §0, sur la même migration |
-| **AC-12** | `conditions_figees` étendues : délai de paiement, `escompte_pourmille`, `escompte_jours`, `numero_ide` du client, `langue_document` | `RM-50` fige déjà les conditions commerciales ; il manque les conditions de **paiement**, qui déterminent l'échéance, l'escompte (`MD-71`) et la mention TVA. Les ajouter après = des OR figés incomplets, donc des factures dont l'échéance est fausse |
-| **AC-13** | `adresse_facturation_figee` distincte de l'adresse du client (`RM-03`, §6.4 de la spec) | Une flotte facture au siège et livre en agence. Sans adresse de facturation figée, la facture part à la mauvaise adresse et le QR porte le mauvais débiteur |
-| **AC-14** | `date_prestation_debut` / `date_prestation_fin` | Alimentent `AC-04` et l'information Swico du QR (`MD-80`) |
-| **AC-15** | Table de liaison `or_document (tenant_id, or_id, document_id, payeur)` prévue, même si vide en étape 1 | `MD-62` : un OR donne **n** factures. Un `ordre_reparation.facture_id` unique serait faux dès le premier sinistre, et le corriger imposerait de casser une FK sur des OR clôturés |
-| **AC-16** | `ordre_reparation.statut` inclut `facture` dès l'étape 1 (déjà prévu §5.1) — avec la règle : `facture` ⟺ aucune ligne en `a_facturer` | Sinon la machine à états doit être modifiée en étape 2, sur une table protégée par `transition_autorisee` et par un trigger |
+| #         | Ce qu'il faut                                                                                                                         | Pourquoi                                                                                                                                                                                                                                                |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AC-11** | `origine` (`dfa` \| `reprise`) + `numero_origine text null` + `origine_lot_id uuid null`                                              | `D-06` et `D-23` : les OR repris entrent en `cloture` avec leur numéro d'origine et **ne consomment pas** le compteur. Exactement le même dispositif que §0, sur la même migration                                                                      |
+| **AC-12** | `conditions_figees` étendues : délai de paiement, `escompte_pourmille`, `escompte_jours`, `numero_ide` du client, `langue_document`   | `RM-50` fige déjà les conditions commerciales ; il manque les conditions de **paiement**, qui déterminent l'échéance, l'escompte (`MD-71`) et la mention TVA. Les ajouter après = des OR figés incomplets, donc des factures dont l'échéance est fausse |
+| **AC-13** | `adresse_facturation_figee` distincte de l'adresse du client (`RM-03`, §6.4 de la spec)                                               | Une flotte facture au siège et livre en agence. Sans adresse de facturation figée, la facture part à la mauvaise adresse et le QR porte le mauvais débiteur                                                                                             |
+| **AC-14** | `date_prestation_debut` / `date_prestation_fin`                                                                                       | Alimentent `AC-04` et l'information Swico du QR (`MD-80`)                                                                                                                                                                                               |
+| **AC-15** | Table de liaison `or_document (tenant_id, or_id, document_id, payeur)` prévue, même si vide en étape 1                                | `MD-62` : un OR donne **n** factures. Un `ordre_reparation.facture_id` unique serait faux dès le premier sinistre, et le corriger imposerait de casser une FK sur des OR clôturés                                                                       |
+| **AC-16** | `ordre_reparation.statut` inclut `facture` dès l'étape 1 (déjà prévu §5.1) — avec la règle : `facture` ⟺ aucune ligne en `a_facturer` | Sinon la machine à états doit être modifiée en étape 2, sur une table protégée par `transition_autorisee` et par un trigger                                                                                                                             |
 
 ### 7.3 Sur le paramétrage et les compteurs
 
-| # | Ce qu'il faut | Pourquoi |
-|---|---|---|
-| **AC-17** | `compteur_document.valeur_depart integer not null default 0` | `MD-26` : sans lui, la preuve de continuité (§2.4) est ininterprétable après une reprise. Une colonne, un défaut, zéro risque |
-| **AC-18** | `compteur_document.type_document` accepte dès maintenant `facture`, `avoir`, `devis`, `bon_commande`, `reference_qr` | La colonne est déjà `text` (plan backend §2.4) : rien à faire sinon ne pas la transformer en enum trop étroit |
-| **AC-19** | `ServiceParametrage.prochainNumero()` prend le type en paramètre ouvert et **reste appelable dans une transaction fournie** (`tx`) | Le contrat de sortie de T7 le prévoit déjà. Le point à ne pas perdre : `MD-28`, l'appel en dernier, et `MD-30`, l'ordre déterministe en cas d'allocations multiples — à écrire dans le contrat, pas seulement dans une revue |
-| **AC-20** | `parametre_atelier` : `mode_calcul_tva_defaut`, `taux_tva_defaut_pourmille`, `arrondi_especes_actif` | `PF-01`, `PF-02` : trois colonnes typées, dans la table qui existe déjà. Les ajouter en étape 2 est indolore, mais leur absence en étape 1 fait coder le taux en dur quelque part — et on ne retrouve jamais tous les endroits |
-| **AC-21** | Table `periode_comptable` créée (vide) | `MD-34`. Elle conditionne l'émission ; la créer plus tard oblige à traiter le cas « documents antérieurs à toute période » |
+| #         | Ce qu'il faut                                                                                                                      | Pourquoi                                                                                                                                                                                                                       |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **AC-17** | `compteur_document.valeur_depart integer not null default 0`                                                                       | `MD-26` : sans lui, la preuve de continuité (§2.4) est ininterprétable après une reprise. Une colonne, un défaut, zéro risque                                                                                                  |
+| **AC-18** | `compteur_document.type_document` accepte dès maintenant `facture`, `avoir`, `devis`, `bon_commande`, `reference_qr`               | La colonne est déjà `text` (plan backend §2.4) : rien à faire sinon ne pas la transformer en enum trop étroit                                                                                                                  |
+| **AC-19** | `ServiceParametrage.prochainNumero()` prend le type en paramètre ouvert et **reste appelable dans une transaction fournie** (`tx`) | Le contrat de sortie de T7 le prévoit déjà. Le point à ne pas perdre : `MD-28`, l'appel en dernier, et `MD-30`, l'ordre déterministe en cas d'allocations multiples — à écrire dans le contrat, pas seulement dans une revue   |
+| **AC-20** | `parametre_atelier` : `mode_calcul_tva_defaut`, `taux_tva_defaut_pourmille`, `arrondi_especes_actif`                               | `PF-01`, `PF-02` : trois colonnes typées, dans la table qui existe déjà. Les ajouter en étape 2 est indolore, mais leur absence en étape 1 fait coder le taux en dur quelque part — et on ne retrouve jamais tous les endroits |
+| **AC-21** | Table `periode_comptable` créée (vide)                                                                                             | `MD-34`. Elle conditionne l'émission ; la créer plus tard oblige à traiter le cas « documents antérieurs à toute période »                                                                                                     |
 
 ### 7.4 Transverse
 
-| # | Ce qu'il faut | Pourquoi |
-|---|---|---|
-| **AC-22** | `arrondiCommercial()` et `arrondiCinqCentimes()` dans `@dfa/shared`, en `bigint`, dès l'étape 1 | Les calculs de ligne d'OR (`AC-05`) les utilisent déjà. Deux implémentations de l'arrondi dans un même dépôt, c'est deux résultats différents sur la même facture |
-| **AC-23** | Règle ESLint interdisant `Math.round` / `parseFloat` / `Number()` sur tout identifiant contenant `centimes`, `montant`, `prix`, `tva` | Un garde-fou automatique vaut mieux qu'une convention. À poser avec la première ligne de code financier, pas après |
-| **AC-24** | `ServiceSnapshotClient` (T8) rend **aussi** le bloc de facturation figé (`AC-12`, `AC-13`) | `MD-25` / `V-07` : un seul producteur de champs figés. Deux producteurs, c'est deux vérités |
-| **AC-25** | Audit : `ordre_reparation` et `ligne_or` déjà journalisés (`RM-59`, `RM-111`) — étendre le même dispositif aux futurs documents, sans le réinventer | L'audit d'un document de vente est le même problème que celui d'un OR. Une deuxième implémentation divergerait |
+| #         | Ce qu'il faut                                                                                                                                       | Pourquoi                                                                                                                                                          |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AC-22** | `arrondiCommercial()` et `arrondiCinqCentimes()` dans `@dfa/shared`, en `bigint`, dès l'étape 1                                                     | Les calculs de ligne d'OR (`AC-05`) les utilisent déjà. Deux implémentations de l'arrondi dans un même dépôt, c'est deux résultats différents sur la même facture |
+| **AC-23** | Règle ESLint interdisant `Math.round` / `parseFloat` / `Number()` sur tout identifiant contenant `centimes`, `montant`, `prix`, `tva`               | Un garde-fou automatique vaut mieux qu'une convention. À poser avec la première ligne de code financier, pas après                                                |
+| **AC-24** | `ServiceSnapshotClient` (T8) rend **aussi** le bloc de facturation figé (`AC-12`, `AC-13`)                                                          | `MD-25` / `V-07` : un seul producteur de champs figés. Deux producteurs, c'est deux vérités                                                                       |
+| **AC-25** | Audit : `ordre_reparation` et `ligne_or` déjà journalisés (`RM-59`, `RM-111`) — étendre le même dispositif aux futurs documents, sans le réinventer | L'audit d'un document de vente est le même problème que celui d'un OR. Une deuxième implémentation divergerait                                                    |
 
 ### 7.5 Ce qu'il ne faut **pas** faire en étape 1
 
@@ -1335,6 +1333,7 @@ table pour servir de cible, enums Postgres dérivés de `@dfa/shared`, RLS `FORC
 > d'implémentation, jamais une tolérance d'arrondi.
 >
 > Règles de rédaction des tests, non négociables :
+>
 > - **Aucun `toBeCloseTo` sur de l'argent**, jamais, sous aucun prétexte (`CONTRIBUTING.md`). Égalité
 >   stricte sur des entiers de centimes.
 > - Les montants sont écrits **en centimes dans le code** (`56660`) et **en francs dans le nom du
@@ -1349,12 +1348,12 @@ table pour servir de cible, enums Postgres dérivés de `@dfa/shared`, RLS `FORC
 
 Le cas nominal. Prouve `MD-35`, `MD-40`, §3.3, `MD-42`, `MD-44`.
 
-| # | Désignation | Quantité | Prix unitaire | HT | TVA 81 ‰ | TTC |
-|---|---|---|---|---|---|---|
-| 1 | Main-d'œuvre atelier | `2500` (2.5 h) | 165.00 | **412.50** | **33.41** | 445.91 |
-| 2 | Filtre à huile | `1000` (1 pce) | 24.90 | **24.90** | **2.02** | 26.92 |
-| 3 | Huile moteur 5W30 | `4500` (4.5 L) | 18.50 | **83.25** | **6.74** | 89.99 |
-| 4 | Taxe d'élimination | `1000` (1 pce) | 3.50 | **3.50** | **0.28** | 3.78 |
+| #   | Désignation          | Quantité       | Prix unitaire | HT         | TVA 81 ‰  | TTC    |
+| --- | -------------------- | -------------- | ------------- | ---------- | --------- | ------ |
+| 1   | Main-d'œuvre atelier | `2500` (2.5 h) | 165.00        | **412.50** | **33.41** | 445.91 |
+| 2   | Filtre à huile       | `1000` (1 pce) | 24.90         | **24.90**  | **2.02**  | 26.92  |
+| 3   | Huile moteur 5W30    | `4500` (4.5 L) | 18.50         | **83.25**  | **6.74**  | 89.99  |
+| 4   | Taxe d'élimination   | `1000` (1 pce) | 3.50          | **3.50**   | **0.28**  | 3.78   |
 
 ```
 total_ht_centimes  =  52415      (CHF 524.15)
@@ -1376,10 +1375,10 @@ Prouve `MD-40` (« éloigné de zéro » et non « vers le haut ») et `MD-23`. 
 Une ligne unique de **CHF 5.00 HT** à 81 ‰ : `5.00 × 0.081 = 0.405` — exactement à mi-chemin entre
 deux centimes. C'est le pire cas, et il se produit sur un montant rond que tout garage facture.
 
-| Règle d'arrondi | TVA facture | TVA avoir | TTC facture | TTC avoir | Solde après avoir total |
-|---|---|---|---|---|---|
-| **Éloigné de zéro** (`MD-40`) | +0.41 | **−0.41** | +5.41 | −5.41 | **0.00** ✅ |
-| Vers `+∞` (« half up ») | +0.41 | **−0.40** | +5.41 | −5.40 | **+0.01** ❌ |
+| Règle d'arrondi               | TVA facture | TVA avoir | TTC facture | TTC avoir | Solde après avoir total |
+| ----------------------------- | ----------- | --------- | ----------- | --------- | ----------------------- |
+| **Éloigné de zéro** (`MD-40`) | +0.41       | **−0.41** | +5.41       | −5.41     | **0.00** ✅             |
+| Vers `+∞` (« half up »)       | +0.41       | **−0.40** | +5.41       | −5.40     | **+0.01** ❌            |
 
 Avec la seconde règle, un avoir total ne solde pas sa facture. Le document reste éternellement en
 `statut_reglement = 'partiel'` pour un centime, il apparaît dans chaque relance, et la fiduciaire
@@ -1409,13 +1408,13 @@ investigation.
 
 Prouve `MD-84`, `MD-85`, §6.2. Facture `2026-00318` de `CF-01`, mode `detaille`.
 
-| Sens | Compte | Libellé | Montant | Code TVA | Base |
-|---|---|---|---|---|---|
-| Débit | `1100` | Créances résultant de ventes | **566.60** | — | — |
-| Crédit | `3400` | Prestations de services | 412.50 | `UN81` | 412.50 |
-| Crédit | `3200` | Ventes de marchandises | 108.15 | `UN81` | 108.15 |
-| Crédit | `3600` | Autres prestations | 3.50 | `UN81` | 3.50 |
-| Crédit | `2200` | TVA sur le chiffre d'affaires | **42.45** | — | 524.15 |
+| Sens   | Compte | Libellé                       | Montant    | Code TVA | Base   |
+| ------ | ------ | ----------------------------- | ---------- | -------- | ------ |
+| Débit  | `1100` | Créances résultant de ventes  | **566.60** | —        | —      |
+| Crédit | `3400` | Prestations de services       | 412.50     | `UN81`   | 412.50 |
+| Crédit | `3200` | Ventes de marchandises        | 108.15     | `UN81`   | 108.15 |
+| Crédit | `3600` | Autres prestations            | 3.50       | `UN81`   | 3.50   |
+| Crédit | `2200` | TVA sur le chiffre d'affaires | **42.45**  | —        | 524.15 |
 
 ```
 Σ débits = 56660 ct   Σ crédits = 41250 + 10815 + 350 + 4245 = 56660 ct   ✅
@@ -1431,9 +1430,9 @@ Prouve `MD-47`, `MD-48`, `MD-49` et la restriction (b) de `MD-51`. Facture de **
 (forfait 189.00 HT + 8.1 % = 15.31).
 
 | Total facture | Espèces encaissées | Imputation `reglement` | Imputation `arrondi` | Σ imputations | Solde |
-|---|---|---|---|---|---|
-| **204.31** | **204.30** | 204.30 | **+0.01** | 204.31 | 0.00 |
-| **204.33** | **204.35** | 204.35 | **−0.02** | 204.33 | 0.00 |
+| ------------- | ------------------ | ---------------------- | -------------------- | ------------- | ----- |
+| **204.31**    | **204.30**         | 204.30                 | **+0.01**            | 204.31        | 0.00  |
+| **204.33**    | **204.35**         | 204.35                 | **−0.02**            | 204.33        | 0.00  |
 
 Détail : `arrondiCinqCentimes(20431)` = `((20431 + 2) / 5) × 5` = `20430`. Et
 `arrondiCinqCentimes(20433)` = `((20433 + 2) / 5) × 5` = `20435`. Les deux sens sont testés parce
@@ -1441,7 +1440,7 @@ qu'un arrondi qui ne descendrait jamais serait un arrondi qui vole le client.
 
 **Le premier cas est celui qui casse un invariant naïf** : les imputations totalisent 204.31 alors
 que le paiement vaut 204.30. C'est le contre-exemple qui impose la formulation corrigée de
-`MD-51` (b) — à écrire comme test de non-régression, avec un commentaire expliquant *pourquoi*
+`MD-51` (b) — à écrire comme test de non-régression, avec un commentaire expliquant _pourquoi_
 il doit passer.
 
 Écriture correspondante :
@@ -1470,11 +1469,11 @@ part au prorata = arrondi(1000 × 5500, 16500) = 333 ct   pour chacune des trois
 Le résidu va à la ligne de plus grande base ; **les trois sont égales**, donc à celle dont l'ordre
 d'affichage est le plus petit — la ligne 1.
 
-| Ligne | Base | `remise_globale_repartie` | HT | TVA 81 ‰ |
-|---|---|---|---|---|
-| 1 | 55.00 | **3.34** | 51.66 | 4.18 |
-| 2 | 55.00 | 3.33 | 51.67 | 4.19 |
-| 3 | 55.00 | 3.33 | 51.67 | 4.19 |
+| Ligne | Base  | `remise_globale_repartie` | HT    | TVA 81 ‰ |
+| ----- | ----- | ------------------------- | ----- | -------- |
+| 1     | 55.00 | **3.34**                  | 51.66 | 4.18     |
+| 2     | 55.00 | 3.33                      | 51.67 | 4.19     |
+| 3     | 55.00 | 3.33                      | 51.67 | 4.19     |
 
 ```
 Σ remises réparties = 1000 ct = remise_globale_saisie_centimes   ✅  (invariant MD-60)
@@ -1506,10 +1505,10 @@ D 1100 Créances clients               5'000.00
 
 **Étape 2 — facture finale `2026-00412`**, véhicule à **CHF 24'500.00 TTC**, mode `ttc` :
 
-| Ligne | Type | TTC | TVA | HT |
-|---|---|---|---|---|
-| 1 | véhicule | +24'500.00 | +1'835.80 | +22'664.20 |
-| 2 | `acompte_deduit` → `2026-00301` | **−5'000.00** | **−374.65** | **−4'625.35** |
+| Ligne | Type                            | TTC           | TVA         | HT            |
+| ----- | ------------------------------- | ------------- | ----------- | ------------- |
+| 1     | véhicule                        | +24'500.00    | +1'835.80   | +22'664.20    |
+| 2     | `acompte_deduit` → `2026-00301` | **−5'000.00** | **−374.65** | **−4'625.35** |
 
 ```
 total_ht  = 1'803'885 ct   →  CHF 18'038.85
@@ -1544,11 +1543,11 @@ fiduciaire fera en premier.
 
 Prouve `MD-16`, `MD-50`, `MD-53`, `MD-82`. Facture de `CF-01`, **CHF 566.60**.
 
-| Date | Événement | `montant_regle` | `solde` | `statut_reglement` |
-|---|---|---|---|---|
-| 20.03.2026 | émission | 0.00 | 566.60 | `non_regle` |
-| 15.04.2026 | virement 300.00 | 300.00 | 266.60 | `partiel` |
-| 02.05.2026 | virement 266.60 | 566.60 | **0.00** | `regle` |
+| Date       | Événement       | `montant_regle` | `solde`  | `statut_reglement` |
+| ---------- | --------------- | --------------- | -------- | ------------------ |
+| 20.03.2026 | émission        | 0.00            | 566.60   | `non_regle`        |
+| 15.04.2026 | virement 300.00 | 300.00          | 266.60   | `partiel`          |
+| 02.05.2026 | virement 266.60 | 566.60          | **0.00** | `regle`            |
 
 Ce que le test doit vérifier **en plus** des trois lignes ci-dessus, et qui est le vrai objet du
 cas :
@@ -1569,13 +1568,13 @@ et il s'est déjà produit une fois : 7.7 % → 8.1 % au 01.01.2024.
 Facture émise le **15.12.2023** : main-d'œuvre 1'000.00 HT à **77 ‰** → TVA 77.00, TTC 1'077.00.
 Avoir total émis le **20.01.2024**, alors que le taux courant vaut 81 ‰.
 
-| Taux utilisé par l'avoir | TVA de l'avoir | TTC de l'avoir | Solde de la facture | Conséquence |
-|---|---|---|---|---|
-| **77 ‰ — hérité** (`MD-23`) | −77.00 | −1'077.00 | **0.00** | correct |
-| 81 ‰ — courant | −81.00 | −1'081.00 | **−4.00** | trop-perçu fabriqué **et CHF 4.00 de TVA récupérée à tort auprès de l'AFC** |
+| Taux utilisé par l'avoir    | TVA de l'avoir | TTC de l'avoir | Solde de la facture | Conséquence                                                                 |
+| --------------------------- | -------------- | -------------- | ------------------- | --------------------------------------------------------------------------- |
+| **77 ‰ — hérité** (`MD-23`) | −77.00         | −1'077.00      | **0.00**            | correct                                                                     |
+| 81 ‰ — courant              | −81.00         | −1'081.00      | **−4.00**           | trop-perçu fabriqué **et CHF 4.00 de TVA récupérée à tort auprès de l'AFC** |
 
 La seconde ligne n'est pas une erreur d'affichage : c'est une déclaration TVA fausse dans les deux
-cases (chiffre d'affaires *et* impôt), sur un exercice différent de celui de la facture. Le test
+cases (chiffre d'affaires _et_ impôt), sur un exercice différent de celui de la facture. Le test
 doit vérifier que le trigger **refuse** l'avoir au taux courant, avec un code d'erreur stable.
 
 ```
@@ -1595,22 +1594,22 @@ moins.
 
 **OR de carrosserie**, lignes facturables :
 
-| Ligne | Payeur | HT | TVA 81 ‰ |
-|---|---|---|---|
-| Tôlerie + peinture | assurance | 4'200.00 | 340.20 |
-| Pièces de carrosserie | assurance | 1'850.00 | 149.85 |
-| Service annuel demandé au passage | client | 380.00 | 30.78 |
-| Retouche offerte | **garage** | facturable **0.00** / valorisée **120.00** | 0.00 |
+| Ligne                             | Payeur     | HT                                         | TVA 81 ‰ |
+| --------------------------------- | ---------- | ------------------------------------------ | -------- |
+| Tôlerie + peinture                | assurance  | 4'200.00                                   | 340.20   |
+| Pièces de carrosserie             | assurance  | 1'850.00                                   | 149.85   |
+| Service annuel demandé au passage | client     | 380.00                                     | 30.78    |
+| Retouche offerte                  | **garage** | facturable **0.00** / valorisée **120.00** | 0.00     |
 
 Franchise convenue : **CHF 500.00**, portée en ligne explicite sur les deux documents, **en mode
 `ttc` des deux côtés** → HT 462.53, TVA 37.47.
 
-| | Facture assurance | Facture client |
-|---|---|---|
-| Lignes | tôlerie + pièces − franchise | service + franchise + retouche à 0.00 |
-| `total_ht` | **5'587.47** | **842.53** |
-| `total_tva` | **452.58** | **68.25** |
-| `total_ttc` | **6'040.05** | **910.78** |
+|             | Facture assurance            | Facture client                        |
+| ----------- | ---------------------------- | ------------------------------------- |
+| Lignes      | tôlerie + pièces − franchise | service + franchise + retouche à 0.00 |
+| `total_ht`  | **5'587.47**                 | **842.53**                            |
+| `total_tva` | **452.58**                   | **68.25**                             |
+| `total_ttc` | **6'040.05**                 | **910.78**                            |
 
 **Invariant de non-fuite (`MD-64`), au taux 81 ‰ :**
 
@@ -1675,16 +1674,16 @@ Facture Auto-i `FA-2019-1184`, émise le 12.09.2019, taux d'époque **77 ‰**. 
 arrondissait le **total du document** au 5 centimes — pratique que DFA interdit (`MD-47`) et que la
 reprise doit néanmoins représenter fidèlement.
 
-| Champ | Valeur importée |
-|---|---|
-| `origine` | `reprise` |
-| `numero_origine` | `FA-2019-1184` (verbatim) |
-| `numero` | `FA-2019-1184` |
-| `numero_sequence` | **`NULL`** — la séquence DFA n'est pas consommée (`MD-05`) |
-| `numero_normalise` | `FA20191184` |
-| `tva_non_ventilee` | `true` |
-| `taux_tva_pourmille` (document) | `77` — déduit de la date d'émission (`MD-09`, `N-07`) |
-| lignes dans `document_vente_tva` | **aucune** (`MD-07`) |
+| Champ                            | Valeur importée                                            |
+| -------------------------------- | ---------------------------------------------------------- |
+| `origine`                        | `reprise`                                                  |
+| `numero_origine`                 | `FA-2019-1184` (verbatim)                                  |
+| `numero`                         | `FA-2019-1184`                                             |
+| `numero_sequence`                | **`NULL`** — la séquence DFA n'est pas consommée (`MD-05`) |
+| `numero_normalise`               | `FA20191184`                                               |
+| `tva_non_ventilee`               | `true`                                                     |
+| `taux_tva_pourmille` (document)  | `77` — déduit de la date d'émission (`MD-09`, `N-07`)      |
+| lignes dans `document_vente_tva` | **aucune** (`MD-07`)                                       |
 
 ```
 total_ht_centimes      = 124'000    (CHF 1'240.00)   ← de la source, jamais recalculé
@@ -1713,11 +1712,11 @@ d'ouverture à la bascule — voir `QF-10`, qui n'est pas tranché.
 
 Prouve `MD-43` et §3.4. Forfait annoncé **CHF 70.00 TTC**, 81 ‰.
 
-| Mode | HT | TVA | TTC obtenu |
-|---|---|---|---|
-| `ht`, HT saisi à 64.75 | 64.75 | 5.24 | **69.99** ❌ |
-| `ht`, HT saisi à 64.76 | 64.76 | 5.25 | **70.01** ❌ |
-| **`ttc`** | **64.75** | **5.25** | **70.00** ✅ |
+| Mode                   | HT        | TVA      | TTC obtenu   |
+| ---------------------- | --------- | -------- | ------------ |
+| `ht`, HT saisi à 64.75 | 64.75     | 5.24     | **69.99** ❌ |
+| `ht`, HT saisi à 64.76 | 64.76     | 5.25     | **70.01** ❌ |
+| **`ttc`**              | **64.75** | **5.25** | **70.00** ✅ |
 
 Aucun HT entier ne donne 70.00 : la valeur est **inatteignable** en mode `ht`. Noter que le mode
 `ttc` retient le **même HT** (64.75) que la première ligne, et une TVA différente d'un centime —
@@ -1784,13 +1783,13 @@ chiffre de contrôle   =  (10 − report) mod 10
 
 Facture n° 424 de l'exercice 2026, série `facture` (code `10`) :
 
-| Segment | Longueur | Valeur |
-|---|---|---|
-| Remplissage | 10 | `0000000000` |
-| Exercice | 4 | `2026` |
-| Type de série | 2 | `10` |
-| Compteur `reference_qr` | 10 | `0000000424` |
-| **Chiffre de contrôle** | 1 | **`1`** |
+| Segment                 | Longueur | Valeur       |
+| ----------------------- | -------- | ------------ |
+| Remplissage             | 10       | `0000000000` |
+| Exercice                | 4        | `2026`       |
+| Type de série           | 2        | `10`         |
+| Compteur `reference_qr` | 10       | `0000000424` |
+| **Chiffre de contrôle** | 1        | **`1`**      |
 
 ```
 26 chiffres utiles :  00000000002026100000000424
@@ -1817,23 +1816,23 @@ mérite un commentaire dans le code pour que personne ne le « corrige ».
 Un cas de test qui ne couvre aucune règle est du bruit ; une règle qu'aucun cas ne couvre est une
 promesse.
 
-| Cas | Règles prouvées | Où |
-|---|---|---|
-| `CF-01` | `MD-35`, `MD-40`, `MD-42`, `MD-44` | `@dfa/shared` |
-| `CF-02` | `MD-23`, `MD-40` | `@dfa/shared` |
-| `CF-03` | `MD-44`, `MD-45` | `@dfa/shared` |
-| `CF-04` | `MD-84`, `MD-85`, `MD-86`, `MD-90` | intégration |
-| `CF-05` | `MD-47`, `MD-48`, `MD-49`, `MD-51` (b) | intégration |
-| `CF-06` | `MD-41`, `MD-59`, `MD-60` | `@dfa/shared` |
-| `CF-07` | `MD-12`, `MD-43`, `MD-54`, `MD-55`, `MD-56` | intégration |
-| `CF-08` | `MD-16`, `MD-50`, `MD-53`, `MD-82` | intégration |
-| `CF-09` | `MD-23`, `MD-36`, `MD-38`, `MD-45` | intégration |
-| `CF-10` | `MD-62`, `MD-63`, `MD-64`, `MD-66` | intégration |
-| `CF-11` | `MD-51`, `MD-52`, `MD-57` | intégration |
-| `CF-12` | `MD-01` à `MD-10` | intégration |
-| `CF-13` | `MD-43` | `@dfa/shared` |
-| `CF-14` | `MD-71`, `MD-72` | `@dfa/shared` |
-| `CF-15` | `MD-74`, `MD-75`, `MD-76` | `@dfa/shared` |
+| Cas     | Règles prouvées                             | Où            |
+| ------- | ------------------------------------------- | ------------- |
+| `CF-01` | `MD-35`, `MD-40`, `MD-42`, `MD-44`          | `@dfa/shared` |
+| `CF-02` | `MD-23`, `MD-40`                            | `@dfa/shared` |
+| `CF-03` | `MD-44`, `MD-45`                            | `@dfa/shared` |
+| `CF-04` | `MD-84`, `MD-85`, `MD-86`, `MD-90`          | intégration   |
+| `CF-05` | `MD-47`, `MD-48`, `MD-49`, `MD-51` (b)      | intégration   |
+| `CF-06` | `MD-41`, `MD-59`, `MD-60`                   | `@dfa/shared` |
+| `CF-07` | `MD-12`, `MD-43`, `MD-54`, `MD-55`, `MD-56` | intégration   |
+| `CF-08` | `MD-16`, `MD-50`, `MD-53`, `MD-82`          | intégration   |
+| `CF-09` | `MD-23`, `MD-36`, `MD-38`, `MD-45`          | intégration   |
+| `CF-10` | `MD-62`, `MD-63`, `MD-64`, `MD-66`          | intégration   |
+| `CF-11` | `MD-51`, `MD-52`, `MD-57`                   | intégration   |
+| `CF-12` | `MD-01` à `MD-10`                           | intégration   |
+| `CF-13` | `MD-43`                                     | `@dfa/shared` |
+| `CF-14` | `MD-71`, `MD-72`                            | `@dfa/shared` |
+| `CF-15` | `MD-74`, `MD-75`, `MD-76`                   | `@dfa/shared` |
 
 **Règles structurelles non couvertes par ces quinze cas**, et qui exigent leurs propres tests
 d'intégration : `MD-18` à `MD-22` (immuabilité — un test par colonne de la liste blanche),
@@ -1856,13 +1855,13 @@ l'apparence du juste.
 Décidés par tenant, modifiables sans migration, **jamais codés en dur**. Ils n'ont pas besoin d'être
 tranchés avant l'implémentation : seule leur **valeur par défaut** engage.
 
-| # | Paramètre | Défaut proposé | Portée |
-|---|---|---|---|
-| **PF-01** | `mode_calcul_tva_defaut` (`ht` \| `ttc`) | `ht` | tenant, **surchargeable par ligne** (§3.4) |
-| **PF-02** | `taux_tva_defaut_pourmille`, `regime_tva_defaut` | `81`, `normal` | tenant, surchargeable par prestation et par ligne |
-| **PF-03** | Bloc créancier QR : `qr_iban`, nom, adresse structurée, `type_reference_qr` | aucun — **l'émission est refusée tant qu'il est vide** | tenant, éventuellement par site |
-| **PF-04** | Conditions de paiement : délai, `escompte_pourmille`, `escompte_jours`, barème de relance | 30 jours net, sans escompte | tenant, surchargeable par client (`AC-12`) |
-| **PF-05** | Export : cible, mode d'agrégation (`detaille` \| `agrege`), périodicité, mapping de comptes | `detaille` | tenant **× cible** |
+| #         | Paramètre                                                                                   | Défaut proposé                                         | Portée                                            |
+| --------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------- |
+| **PF-01** | `mode_calcul_tva_defaut` (`ht` \| `ttc`)                                                    | `ht`                                                   | tenant, **surchargeable par ligne** (§3.4)        |
+| **PF-02** | `taux_tva_defaut_pourmille`, `regime_tva_defaut`                                            | `81`, `normal`                                         | tenant, surchargeable par prestation et par ligne |
+| **PF-03** | Bloc créancier QR : `qr_iban`, nom, adresse structurée, `type_reference_qr`                 | aucun — **l'émission est refusée tant qu'il est vide** | tenant, éventuellement par site                   |
+| **PF-04** | Conditions de paiement : délai, `escompte_pourmille`, `escompte_jours`, barème de relance   | 30 jours net, sans escompte                            | tenant, surchargeable par client (`AC-12`)        |
+| **PF-05** | Export : cible, mode d'agrégation (`detaille` \| `agrege`), périodicité, mapping de comptes | `detaille`                                             | tenant **× cible**                                |
 
 La numérotation (préfixe, format, portée par site, remise à zéro annuelle) n'apparaît pas ici :
 elle est déjà `P-01` de la spécification étape 1, et l'étape 2 n'y ajoute que `valeur_depart`
@@ -1876,21 +1875,21 @@ le garage l'apprend une semaine plus tard.
 
 Colonne « bloque quoi » : ce qui ne peut pas être écrit tant que la réponse n'est pas là.
 
-| # | Question | À qui | Bloque quoi | Si personne ne répond |
-|---|---|---|---|---|
-| **QF-01** | TVA du document = **Σ des TVA de ligne** (écart d'un centime de `CF-03`) — confirmé ? | fiduciaire | le premier export | on garde la méthode par ligne, imposée par `CONTRIBUTING.md` et `RM-107`, et on documente l'écart |
-| **QF-02** | Acomptes : **facture d'acompte** (TVA due immédiatement) ou **encaissement sans facture** ? Le garage décompte-t-il selon les contre-prestations **convenues** ou **reçues** ? | fiduciaire **et** garagiste | la vente de véhicule, donc l'étape 4 ; le modèle porte les deux dispositifs (`MD-54`) | on livre les deux, on laisse le garage choisir au cas par cas — au risque d'une pratique incohérente sur un même exercice |
-| **QF-03** | Plan comptable : les comptes proposés en §6.3, **et** le compte des différences d'arrondi (produit ou charge ?), **et** l'arrondi 5 ct entraîne-t-il une correction de TVA ? | fiduciaire | le premier export ; l'hypothèse « pas de correction de TVA sur l'arrondi » de `CF-05` | on livre le plan PME par défaut ; le mapping étant paramétrable, l'erreur est rattrapable — **sauf** sur la TVA de l'arrondi, qui ne l'est pas |
-| **QF-04** | Escompte : **imputation** (`MD-71`, `CF-14`) ou **avoir** ? Certaines fiduciaires exigent l'avoir | fiduciaire | rien immédiatement | on livre l'imputation, dont `CF-14` prouve l'exactitude ; basculer vers l'avoir plus tard est additif |
-| **QF-05** | Sinistre : la facture est-elle **adressée** au client ou à l'assurance ? Qui déduit l'impôt préalable ? | fiduciaire **et** garagiste | la pratique, pas le modèle — qui porte déjà destinataire et payeur séparément (`MD-67`) | le garage choisit par dossier ; risque d'incohérence entre deux réceptionnaires |
-| **QF-06** | Taxes de recyclage / d'élimination et débours : quel taux, quel compte, sont-ils dans la base TVA ? Et **validation du tableau des taux historiques** de `MD-36` | fiduciaire | la ligne 4 de `CF-01` et le compte `3600` | on facture à 8.1 % sur un compte de produit — **hypothèse la plus probable mais non vérifiée** |
-| **QF-07** | Occasions : mentions requises sur la facture de vente sous **déduction de l'impôt préalable fictif** (LTVA art. 28a). Faut-il conserver le prix d'achat sur le document ? | fiduciaire | l'étape 4, mais `dossier_vente_id` (`MD-70`) doit être posée en étape 2 | on pose la colonne, vide. Coût nul, et elle évite une migration sur des factures verrouillées |
-| **QF-08** | `exonere` vs `exclu` : véhicule livré à l'étranger, plaques U, vente à un diplomate. Quels justificatifs le document doit-il porter ? | fiduciaire | la mention légale sur le document, pas le modèle (`MD-37` porte les deux régimes) | les deux régimes existent et se déclarent différemment ; la mention imprimée reste à écrire |
-| **QF-09** | Monotonie des dates dans une série (`MD-33`) : contrôle **bloquant** ou avertissement ? Quelle tolérance en pratique ? | fiduciaire | le comportement de l'émission | bloquant. Une série non monotone est un défaut de forme, et il est plus facile de desserrer que de resserrer |
-| **QF-10** | **Créances reprises** : à la bascule, qui tient le grand livre des débiteurs ? Solde d'ouverture chez la fiduciaire, ou export d'écritures depuis DFA ? Les documents `origine = 'reprise'` sont-ils exportés (`CF-12`) ? | fiduciaire **et** expert-migration-donnees | la reprise elle-même — **cette question a la date de péremption la plus proche** | on n'exporte aucun document repris et on produit un état des créances ouvertes à la date de bascule, à charge pour la fiduciaire de le saisir |
-| **QF-11** | Mentions légales obligatoires sur la facture (LTVA art. 26) : n° IDE, désignation de la prestation, période. Le gabarit proposé les porte-t-il toutes ? | fiduciaire | le gabarit PDF, pas le modèle | on applique l'art. 26 tel qu'on le lit — **une facture non conforme fait perdre au client son droit à déduction, et c'est le garage qui l'entend** |
-| **QF-12** | Délais de paiement, escompte, barème et cadence de relance du garage | garagiste | la valeur par défaut de `PF-04` | 30 jours net, sans escompte |
-| **QF-13** | Conservation 10 ans (CO art. 958f) et **intégrité sur support modifiable** : `pdf_sha256` + `qr_payload_sha256` + journal d'audit suffisent-ils, ou faut-il un stockage WORM ? | fiduciaire, éventuellement un conseil | l'architecture de stockage des PDF — **structurant, et coûteux à changer après** | on stocke le PDF avec son empreinte et on journalise ; si le WORM est exigé, c'est une reprise d'infrastructure, pas une migration de schéma |
+| #         | Question                                                                                                                                                                                                                  | À qui                                      | Bloque quoi                                                                             | Si personne ne répond                                                                                                                              |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **QF-01** | TVA du document = **Σ des TVA de ligne** (écart d'un centime de `CF-03`) — confirmé ?                                                                                                                                     | fiduciaire                                 | le premier export                                                                       | on garde la méthode par ligne, imposée par `CONTRIBUTING.md` et `RM-107`, et on documente l'écart                                                        |
+| **QF-02** | Acomptes : **facture d'acompte** (TVA due immédiatement) ou **encaissement sans facture** ? Le garage décompte-t-il selon les contre-prestations **convenues** ou **reçues** ?                                            | fiduciaire **et** garagiste                | la vente de véhicule, donc l'étape 4 ; le modèle porte les deux dispositifs (`MD-54`)   | on livre les deux, on laisse le garage choisir au cas par cas — au risque d'une pratique incohérente sur un même exercice                          |
+| **QF-03** | Plan comptable : les comptes proposés en §6.3, **et** le compte des différences d'arrondi (produit ou charge ?), **et** l'arrondi 5 ct entraîne-t-il une correction de TVA ?                                              | fiduciaire                                 | le premier export ; l'hypothèse « pas de correction de TVA sur l'arrondi » de `CF-05`   | on livre le plan PME par défaut ; le mapping étant paramétrable, l'erreur est rattrapable — **sauf** sur la TVA de l'arrondi, qui ne l'est pas     |
+| **QF-04** | Escompte : **imputation** (`MD-71`, `CF-14`) ou **avoir** ? Certaines fiduciaires exigent l'avoir                                                                                                                         | fiduciaire                                 | rien immédiatement                                                                      | on livre l'imputation, dont `CF-14` prouve l'exactitude ; basculer vers l'avoir plus tard est additif                                              |
+| **QF-05** | Sinistre : la facture est-elle **adressée** au client ou à l'assurance ? Qui déduit l'impôt préalable ?                                                                                                                   | fiduciaire **et** garagiste                | la pratique, pas le modèle — qui porte déjà destinataire et payeur séparément (`MD-67`) | le garage choisit par dossier ; risque d'incohérence entre deux réceptionnaires                                                                    |
+| **QF-06** | Taxes de recyclage / d'élimination et débours : quel taux, quel compte, sont-ils dans la base TVA ? Et **validation du tableau des taux historiques** de `MD-36`                                                          | fiduciaire                                 | la ligne 4 de `CF-01` et le compte `3600`                                               | on facture à 8.1 % sur un compte de produit — **hypothèse la plus probable mais non vérifiée**                                                     |
+| **QF-07** | Occasions : mentions requises sur la facture de vente sous **déduction de l'impôt préalable fictif** (LTVA art. 28a). Faut-il conserver le prix d'achat sur le document ?                                                 | fiduciaire                                 | l'étape 4, mais `dossier_vente_id` (`MD-70`) doit être posée en étape 2                 | on pose la colonne, vide. Coût nul, et elle évite une migration sur des factures verrouillées                                                      |
+| **QF-08** | `exonere` vs `exclu` : véhicule livré à l'étranger, plaques U, vente à un diplomate. Quels justificatifs le document doit-il porter ?                                                                                     | fiduciaire                                 | la mention légale sur le document, pas le modèle (`MD-37` porte les deux régimes)       | les deux régimes existent et se déclarent différemment ; la mention imprimée reste à écrire                                                        |
+| **QF-09** | Monotonie des dates dans une série (`MD-33`) : contrôle **bloquant** ou avertissement ? Quelle tolérance en pratique ?                                                                                                    | fiduciaire                                 | le comportement de l'émission                                                           | bloquant. Une série non monotone est un défaut de forme, et il est plus facile de desserrer que de resserrer                                       |
+| **QF-10** | **Créances reprises** : à la bascule, qui tient le grand livre des débiteurs ? Solde d'ouverture chez la fiduciaire, ou export d'écritures depuis DFA ? Les documents `origine = 'reprise'` sont-ils exportés (`CF-12`) ? | fiduciaire **et** expert-migration-donnees | la reprise elle-même — **cette question a la date de péremption la plus proche**        | on n'exporte aucun document repris et on produit un état des créances ouvertes à la date de bascule, à charge pour la fiduciaire de le saisir      |
+| **QF-11** | Mentions légales obligatoires sur la facture (LTVA art. 26) : n° IDE, désignation de la prestation, période. Le gabarit proposé les porte-t-il toutes ?                                                                   | fiduciaire                                 | le gabarit PDF, pas le modèle                                                           | on applique l'art. 26 tel qu'on le lit — **une facture non conforme fait perdre au client son droit à déduction, et c'est le garage qui l'entend** |
+| **QF-12** | Délais de paiement, escompte, barème et cadence de relance du garage                                                                                                                                                      | garagiste                                  | la valeur par défaut de `PF-04`                                                         | 30 jours net, sans escompte                                                                                                                        |
+| **QF-13** | Conservation 10 ans (CO art. 958f) et **intégrité sur support modifiable** : `pdf_sha256` + `qr_payload_sha256` + journal d'audit suffisent-ils, ou faut-il un stockage WORM ?                                            | fiduciaire, éventuellement un conseil      | l'architecture de stockage des PDF — **structurant, et coûteux à changer après**        | on stocke le PDF avec son empreinte et on journalise ; si le WORM est exigé, c'est une reprise d'infrastructure, pas une migration de schéma       |
 
 ### 10.3 Les quatre à poser en premier
 

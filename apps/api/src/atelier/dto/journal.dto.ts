@@ -18,10 +18,22 @@ export class ReponseEntreeJournalDto implements ReponseEntreeJournal {
   @ApiProperty({ format: 'date-time' })
   readonly survenuLe!: string;
 
-  @ApiProperty({ type: 'object', nullable: true, properties: { utilisateurId: { type: 'string', format: 'uuid' }, nomAffiche: { type: 'string' } } })
+  @ApiProperty({
+    type: 'object',
+    nullable: true,
+    properties: {
+      utilisateurId: { type: 'string', format: 'uuid' },
+      nomAffiche: { type: 'string' },
+    },
+  })
   readonly auteur!: { readonly utilisateurId: string; readonly nomAffiche: string } | null;
 
-  @ApiProperty({ type: 'object', nullable: true, additionalProperties: true, description: 'Avant/après, restreints aux champs modifiés. Montants filtrés par rôle.' })
+  @ApiProperty({
+    type: 'object',
+    nullable: true,
+    additionalProperties: true,
+    description: 'Avant/après, restreints aux champs modifiés. Montants filtrés par rôle.',
+  })
   readonly avant!: Readonly<Record<string, unknown>> | null;
 
   @ApiProperty({ type: 'object', nullable: true, additionalProperties: true })
@@ -30,6 +42,9 @@ export class ReponseEntreeJournalDto implements ReponseEntreeJournal {
   @ApiProperty({ type: String, nullable: true })
   readonly motif!: string | null;
 
-  @ApiProperty({ type: [String], description: 'Confirmations données lors du geste (§4.4) — un forçage se trace.' })
+  @ApiProperty({
+    type: [String],
+    description: 'Confirmations données lors du geste (§4.4) — un forçage se trace.',
+  })
   readonly confirmations!: readonly string[];
 }

@@ -38,9 +38,9 @@ export class ImpressionFactureController {
   @ApiOperation({
     summary: 'Bulletin QR-facture au format PDF (facture émise uniquement).',
     description:
-      "Génération paresseuse au premier appel, mise en cache (`document_vente.pdfCle`/`pdfSha256`), " +
-      "JAMAIS régénérée ensuite — une facture émise est immuable, son PDF aussi (DI-3). " +
-      "`RF-116` : la charge QR contient le montant en clair — droit dédié, distinct de `facturation.document.lire`.",
+      'Génération paresseuse au premier appel, mise en cache (`document_vente.pdfCle`/`pdfSha256`), ' +
+      'JAMAIS régénérée ensuite — une facture émise est immuable, son PDF aussi (DI-3). ' +
+      '`RF-116` : la charge QR contient le montant en clair — droit dédié, distinct de `facturation.document.lire`.',
   })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiProduces('application/pdf')
@@ -48,7 +48,10 @@ export class ImpressionFactureController {
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Document introuvable pour ce tenant.')
   @ApiReponseProbleme(409, "DOCUMENT_PDF_INDISPONIBLE — le document n'est pas une facture émise.")
-  async telechargerPdf(@Param('id', new PipeZod(schemaIdentifiant)) id: string, @Res() res: Response): Promise<void> {
+  async telechargerPdf(
+    @Param('id', new PipeZod(schemaIdentifiant)) id: string,
+    @Res() res: Response,
+  ): Promise<void> {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
 

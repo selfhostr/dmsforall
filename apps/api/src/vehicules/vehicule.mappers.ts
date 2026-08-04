@@ -1,15 +1,28 @@
-import type { GarantieVehicule, ImportationVehicule, ReponseVehicule, VehiculeResume } from '@dfa/shared';
+import type {
+  GarantieVehicule,
+  ImportationVehicule,
+  ReponseVehicule,
+  VehiculeResume,
+} from '@dfa/shared';
 import type { LigneVehicule } from '../db/schema';
 
 /** Rendu d'affichage calculé par le serveur (`marque modele version`), jamais recomposé côté client. */
-export function calculerDesignation(ligne: Pick<LigneVehicule, 'marque' | 'modele' | 'version'>): string {
-  return [ligne.marque, ligne.modele, ligne.version].filter((partie) => Boolean(partie && partie.trim())).join(' ');
+export function calculerDesignation(
+  ligne: Pick<LigneVehicule, 'marque' | 'modele' | 'version'>,
+): string {
+  return [ligne.marque, ligne.modele, ligne.version]
+    .filter((partie) => Boolean(partie && partie.trim()))
+    .join(' ');
 }
 
 export function versImportation(
   ligne: Pick<LigneVehicule, 'importe' | 'paysOrigine' | 'dateImportation'>,
 ): ImportationVehicule {
-  return { estImporte: ligne.importe, paysOrigine: ligne.paysOrigine, importeLe: ligne.dateImportation };
+  return {
+    estImporte: ligne.importe,
+    paysOrigine: ligne.paysOrigine,
+    importeLe: ligne.dateImportation,
+  };
 }
 
 /** Ajoute `mois` mois à une date ISO (`aaaa-mm-jj`), en arithmétique calendaire UTC. */
@@ -51,7 +64,8 @@ export function calculerGarantie(
 
   const finLe = mois != null ? ajouterMoisIso(debutLe, mois) : null;
   const dateEncoreValide = finLe ? maintenant.toISOString().slice(0, 10) <= finLe : true;
-  const kmEncoreValide = plafondKm != null && dernierKilometrageKm != null ? dernierKilometrageKm <= plafondKm : true;
+  const kmEncoreValide =
+    plafondKm != null && dernierKilometrageKm != null ? dernierKilometrageKm <= plafondKm : true;
 
   return { debutLe, finLe, plafondKm, active: dateEncoreValide && kmEncoreValide };
 }
@@ -113,7 +127,13 @@ export function versReponseVehicule(
 export function versVehiculeResume(
   ligne: Pick<
     LigneVehicule,
-    'id' | 'marque' | 'modele' | 'version' | 'vin' | 'date1reCirculation' | 'identificationIncomplete'
+    | 'id'
+    | 'marque'
+    | 'modele'
+    | 'version'
+    | 'vin'
+    | 'date1reCirculation'
+    | 'identificationIncomplete'
   >,
   plaqueCourante: { readonly valeur: string; readonly canton: string | null } | null,
 ): VehiculeResume {

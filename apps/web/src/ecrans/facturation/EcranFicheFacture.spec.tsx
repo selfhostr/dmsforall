@@ -84,7 +84,9 @@ function construireDocument(overrides: Partial<ReponseDocumentVente> = {}): Repo
     totalTvaCentimes: 915,
     ecartRepriseCentimes: 0,
     totalTtcCentimes: 12345,
-    ventilationTva: [{ regimeTva: 'normal', tauxTvaPourmille: 81, baseCentimes: 11430, tvaCentimes: 915 }],
+    ventilationTva: [
+      { regimeTva: 'normal', tauxTvaPourmille: 81, baseCentimes: 11430, tvaCentimes: 915 },
+    ],
     remiseGlobaleSaisieCentimes: null,
     remiseGlobalePourmille: null,
     montantRegleCentimes: 0,
@@ -116,7 +118,9 @@ function construireDocument(overrides: Partial<ReponseDocumentVente> = {}): Repo
 /** Reproduit le masquage serveur d'un rôle sans droit aux montants (`RF-114` → `RF-116`,
  *  `mapperDocument`) : `qr` et tous les champs montant/TVA sont ABSENTS, jamais substitués par
  *  `null`/`0` — exactement ce que `roleVoitLesMontants(role) === false` produit. */
-function construireDocumentSansMontants(overrides: Partial<ReponseDocumentVente> = {}): ReponseDocumentVente {
+function construireDocumentSansMontants(
+  overrides: Partial<ReponseDocumentVente> = {},
+): ReponseDocumentVente {
   const complet = construireDocument(overrides);
   const {
     statutReglement: _statutReglement,
@@ -133,7 +137,9 @@ function construireDocumentSansMontants(overrides: Partial<ReponseDocumentVente>
 }
 
 function installerHandlerDocument(document_: ReponseDocumentVente) {
-  server.use(http.get(`/api/v1/documents-vente/${document_.id}`, () => HttpResponse.json(document_)));
+  server.use(
+    http.get(`/api/v1/documents-vente/${document_.id}`, () => HttpResponse.json(document_)),
+  );
 }
 
 function rendre(id = 'facture-1') {
@@ -169,7 +175,9 @@ describe('EcranFicheFacture — action Imprimer / télécharger le PDF', () => {
     const boutonAutresActions = await screen.findByRole('button', { name: 'Autres actions' });
     await utilisateur.click(boutonAutresActions);
 
-    const lienImprimer = await screen.findByRole('menuitem', { name: 'Imprimer / télécharger le PDF' });
+    const lienImprimer = await screen.findByRole('menuitem', {
+      name: 'Imprimer / télécharger le PDF',
+    });
     expect(lienImprimer).toHaveAttribute('href', '/api/v1/documents-vente/facture-1/pdf');
     expect(lienImprimer).toHaveAttribute('target', '_blank');
   });
@@ -225,8 +233,12 @@ describe('EcranFicheFacture — action Imprimer / télécharger le PDF', () => {
       const boutonAutresActions = await screen.findByRole('button', { name: 'Autres actions' });
       await utilisateur.click(boutonAutresActions);
 
-      expect(await screen.findByRole('menuitem', { name: 'Corriger cette facture' })).toBeInTheDocument();
-      expect(screen.queryByRole('menuitem', { name: 'Imprimer / télécharger le PDF' })).not.toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitem', { name: 'Corriger cette facture' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitem', { name: 'Imprimer / télécharger le PDF' }),
+      ).not.toBeInTheDocument();
     },
   );
 
@@ -244,9 +256,13 @@ describe('EcranFicheFacture — action Imprimer / télécharger le PDF', () => {
       const boutonAutresActions = await screen.findByRole('button', { name: 'Autres actions' });
       await utilisateur.click(boutonAutresActions);
 
-      expect(await screen.findByRole('menuitem', { name: 'Imprimer / télécharger le PDF' })).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitem', { name: 'Imprimer / télécharger le PDF' }),
+      ).toBeInTheDocument();
       // « Corriger »/« Créer un avoir » n'ont en revanche plus de sens sur une facture déjà annulée.
-      expect(screen.queryByRole('menuitem', { name: 'Corriger cette facture' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitem', { name: 'Corriger cette facture' }),
+      ).not.toBeInTheDocument();
     },
   );
 });
@@ -257,7 +273,9 @@ describe('EcranFicheFacture — bulletin de versement (qr)', () => {
   });
 
   it('qr === null (devis, bon de commande, avoir, brouillon, rôle sans droit) ne laisse aucune zone vide ni erreur', async () => {
-    installerHandlerDocument(construireDocument({ statut: 'brouillon', numero: null, numeroSequence: null, qr: null }));
+    installerHandlerDocument(
+      construireDocument({ statut: 'brouillon', numero: null, numeroSequence: null, qr: null }),
+    );
     rendre();
 
     // L'écran se charge et affiche son contenu normalement — pas d'exception, pas de zone
@@ -273,6 +291,8 @@ describe('EcranFicheFacture — bulletin de versement (qr)', () => {
     rendre();
 
     await screen.findByText('Jean Dupont');
-    await waitFor(() => expect(screen.queryByText('Bulletin de versement')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText('Bulletin de versement')).not.toBeInTheDocument(),
+    );
   });
 });

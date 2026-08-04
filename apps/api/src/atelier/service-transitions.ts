@@ -17,7 +17,14 @@ import type {
 } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
-import { ligneOr, orControleQualite, ordreReparation, vehiculeKilometrage, type LigneLigneOr, type LigneOrdreReparation } from '../db/schema';
+import {
+  ligneOr,
+  orControleQualite,
+  ordreReparation,
+  vehiculeKilometrage,
+  type LigneLigneOr,
+  type LigneOrdreReparation,
+} from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { Horloge } from '../common/horloge/horloge';
@@ -27,7 +34,11 @@ import { JETON_LECTURE_POINTAGE, type LecturePointage } from './atelier.jetons';
 import { convertirEnKm } from './kilometrage';
 import { roleVoitLesMontants } from './mappeurs';
 import { chargerOrPourEcriture, listerLignesOr } from './or-requetes';
-import { chargerClientLigne, chargerDernierKilometrage, chargerParametresAtelier } from './references';
+import {
+  chargerClientLigne,
+  chargerDernierKilometrage,
+  chargerParametresAtelier,
+} from './references';
 import { ServiceOr, estOrVerrouille } from './service-or';
 import { traduireErreurTransition } from './traducteur-transition';
 
@@ -57,64 +68,105 @@ export class ServiceTransitions {
     orId: string,
     entree: EntreeActionReceptionner,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executer(ctx, orId, async (tx, or) => {
-      const kmKm = convertirEnKm(entree.kilometrageEntree, entree.unite);
-      const dernier = await chargerDernierKilometrage(tx, ctx, or.vehiculeId);
-      // `valeurKm` est une colonne GENERATED côté base (cf. schéma) donc typée nullable par
-      // Drizzle ; un relevé existant SANS valeur km comparable n'a rien à opposer à la saisie —
-      // c'est le même cas métier qu'« aucun relevé antérieur », pas un relevé à zéro km.
-      const dernierKm = dernier?.valeurKm ?? null;
-      if (dernierKm !== null && kmKm < dernierKm) {
-        throw new ErreurMetier('VEHICULE_KILOMETRAGE_REGRESSIF', 'Le kilométrage saisi est inférieur au dernier relevé connu.', {
-          blocages: [
+    return this.executer(
+      ctx,
+      orId,
+      async (tx, or) => {
+        const kmKm = convertirEnKm(entree.kilometrageEntree, entree.unite);
+        const dernier = await chargerDernierKilometrage(tx, ctx, or.vehiculeId);
+        // `valeurKm` est une colonne GENERATED côté base (cf. schéma) donc typée nullable par
+        // Drizzle ; un relevé existant SANS valeur km comparable n'a rien à opposer à la saisie —
+        // c'est le même cas métier qu'« aucun relevé antérieur », pas un relevé à zéro km.
+        const dernierKm = dernier?.valeurKm ?? null;
+        if (dernierKm !== null && kmKm < dernierKm) {
+          throw new ErreurMetier(
+            'VEHICULE_KILOMETRAGE_REGRESSIF',
+            'Le kilométrage saisi est inférieur au dernier relevé connu.',
             {
-              type: 'champ',
-              id: 'kilometrageEntree',
-              libelle: `Dernier relevé connu : ${String(dernierKm)} km`,
-              donnees: { dernierConnuKm: dernierKm, saisiKm: kmKm },
+              blocages: [
+                {
+                  type: 'champ',
+                  id: 'kilometrageEntree',
+                  libelle: `Dernier relevé connu : ${String(dernierKm)} km`,
+                  donnees: { dernierConnuKm: dernierKm, saisiKm: kmKm },
+                },
+              ],
+              actionsProposees: [
+                {
+                  code: 'FOURNIR_MOTIF',
+                  parametres: {
+                    motifsAcceptes: [
+                      'compteur_remplace',
+                      'erreur_saisie',
+                      'changement_unite',
+                      'correction',
+                    ],
+                  },
+                },
+              ],
             },
-          ],
-          actionsProposees: [{ code: 'FOURNIR_MOTIF', parametres: { motifsAcceptes: ['compteur_remplace', 'erreur_saisie', 'changement_unite', 'correction'] } }],
-        });
-      }
+          );
+        }
 
-      const maintenant = this.horloge.maintenant();
-      await this.transitionner(tx, or, 'ouvert', {
-        kmEntree: kmKm,
-        ouvertLe: maintenant,
-        receptionnaireId: principal.utilisateurId,
-      });
-      await tx.insert(vehiculeKilometrage).values({
-        tenantId: ctx.tenantId,
-        vehiculeId: or.vehiculeId,
-        valeur: entree.kilometrageEntree,
-        unite: entree.unite,
-        releveLe: maintenant,
-        source: 'reception',
-        ordreReparationId: orId,
-        saisiParId: principal.utilisateurId,
-      });
-      await this.evenements.publier(tx, ctx, {
-        type: 'ordre_reparation.ouvert',
-        versionSchema: 1,
-        siteId: or.siteId,
-        ressource: { type: 'ordre_reparation', id: orId, numero: or.numero },
-        donnees: { statut: 'ouvert' },
-      });
-    }, principal.role);
+        const maintenant = this.horloge.maintenant();
+        await this.transitionner(tx, or, 'ouvert', {
+          kmEntree: kmKm,
+          ouvertLe: maintenant,
+          receptionnaireId: principal.utilisateurId,
+        });
+        await tx.insert(vehiculeKilometrage).values({
+          tenantId: ctx.tenantId,
+          vehiculeId: or.vehiculeId,
+          valeur: entree.kilometrageEntree,
+          unite: entree.unite,
+          releveLe: maintenant,
+          source: 'reception',
+          ordreReparationId: orId,
+          saisiParId: principal.utilisateurId,
+        });
+        await this.evenements.publier(tx, ctx, {
+          type: 'ordre_reparation.ouvert',
+          versionSchema: 1,
+          siteId: or.siteId,
+          ressource: { type: 'ordre_reparation', id: orId, numero: or.numero },
+          donnees: { statut: 'ouvert' },
+        });
+      },
+      principal.role,
+    );
   }
 
   /** T-04 `ouvert -> en_cours`. I-07 (CT-18) : proposée en amont, plus lisible que le ZDFA1 générique. */
-  async demarrer(ctx: ContexteTenant, principal: PrincipalAuthentifie, orId: string): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executer(ctx, orId, async (tx, or) => {
-      if (or.statut === 'planifie') {
-        throw new ErreurMetier('OR_RECEPTION_REQUISE', "Le véhicule doit être réceptionné avant de démarrer les travaux (I-07).", {
-          blocages: [{ type: 'ordre_reparation', id: orId, libelle: or.numero, donnees: { statutActuel: or.statut } }],
-          actionsProposees: [{ code: 'RECEPTIONNER_VEHICULE' }],
-        });
-      }
-      await this.transitionner(tx, or, 'en_cours', {});
-    }, principal.role);
+  async demarrer(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    orId: string,
+  ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
+    return this.executer(
+      ctx,
+      orId,
+      async (tx, or) => {
+        if (or.statut === 'planifie') {
+          throw new ErreurMetier(
+            'OR_RECEPTION_REQUISE',
+            'Le véhicule doit être réceptionné avant de démarrer les travaux (I-07).',
+            {
+              blocages: [
+                {
+                  type: 'ordre_reparation',
+                  id: orId,
+                  libelle: or.numero,
+                  donnees: { statutActuel: or.statut },
+                },
+              ],
+              actionsProposees: [{ code: 'RECEPTIONNER_VEHICULE' }],
+            },
+          );
+        }
+        await this.transitionner(tx, or, 'en_cours', {});
+      },
+      principal.role,
+    );
   }
 
   /** T-06/T-08/T-10 — lève les blocages sur tout ou partie des lignes. Pas une transition de
@@ -125,33 +177,47 @@ export class ServiceTransitions {
     orId: string,
     entree: EntreeActionReprendreTravaux,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executer(ctx, orId, async (tx, _or) => {
-      const conditions = entree.ligneIds
-        ? and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.ordreReparationId, orId))
-        : and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.ordreReparationId, orId));
-      void conditions;
-      const lignes = await listerLignesOr(tx, ctx, orId);
-      const ciblees = entree.ligneIds
-        ? lignes.filter((l) => entree.ligneIds?.includes(l.id))
-        : lignes.filter((l) => l.blocage !== 'aucun');
-      for (const ligne of ciblees) {
-        // eslint-disable-next-line no-await-in-loop -- petit lot borné (200 lignes max par OR)
-        await tx
-          .update(ligneOr)
-          .set({ blocage: 'aucun' })
-          .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.id, ligne.id)));
-      }
-    }, principal.role);
+    return this.executer(
+      ctx,
+      orId,
+      async (tx, _or) => {
+        const conditions = entree.ligneIds
+          ? and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.ordreReparationId, orId))
+          : and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.ordreReparationId, orId));
+        void conditions;
+        const lignes = await listerLignesOr(tx, ctx, orId);
+        const ciblees = entree.ligneIds
+          ? lignes.filter((l) => entree.ligneIds?.includes(l.id))
+          : lignes.filter((l) => l.blocage !== 'aucun');
+        for (const ligne of ciblees) {
+          // eslint-disable-next-line no-await-in-loop -- petit lot borné (200 lignes max par OR)
+          await tx
+            .update(ligneOr)
+            .set({ blocage: 'aucun' })
+            .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.id, ligne.id)));
+        }
+      },
+      principal.role,
+    );
   }
 
   /** T-11 `en_cours -> controle` (aussi `ouvert -> controle` si le garage saute le pointage).
    *  Gardes I-08 (lignes à valider) et I-09 (pointage ouvert). */
-  async passerEnControle(ctx: ContexteTenant, principal: PrincipalAuthentifie, orId: string): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executer(ctx, orId, async (tx, or) => {
-      await this.verifierLignesAValider(tx, ctx, orId, principal.role);
-      await this.verifierPointageOuvert(tx, ctx, orId);
-      await this.transitionner(tx, or, 'controle', {});
-    }, principal.role);
+  async passerEnControle(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    orId: string,
+  ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
+    return this.executer(
+      ctx,
+      orId,
+      async (tx, or) => {
+        await this.verifierLignesAValider(tx, ctx, orId, principal.role);
+        await this.verifierPointageOuvert(tx, ctx, orId);
+        await this.transitionner(tx, or, 'controle', {});
+      },
+      principal.role,
+    );
   }
 
   /** T-12 `controle -> en_cours` — motif obligatoire (déjà imposé par le schéma zod). */
@@ -161,17 +227,22 @@ export class ServiceTransitions {
     orId: string,
     entree: EntreeActionRefuserControle,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executer(ctx, orId, async (tx, or) => {
-      await this.transitionner(tx, or, 'en_cours', {});
-      await tx.insert(orControleQualite).values({
-        tenantId: ctx.tenantId,
-        ordreReparationId: orId,
-        controleurId: principal.utilisateurId,
-        controleLe: this.horloge.maintenant(),
-        conforme: false,
-        motifNonConformite: entree.motif,
-      });
-    }, principal.role);
+    return this.executer(
+      ctx,
+      orId,
+      async (tx, or) => {
+        await this.transitionner(tx, or, 'en_cours', {});
+        await tx.insert(orControleQualite).values({
+          tenantId: ctx.tenantId,
+          ordreReparationId: orId,
+          controleurId: principal.utilisateurId,
+          controleLe: this.horloge.maintenant(),
+          conforme: false,
+          motifNonConformite: entree.motif,
+        });
+      },
+      principal.role,
+    );
   }
 
   /** T-13 `controle -> termine`. Garde I-09 : un contrôle qualité ne clôt pas un pointage ouvert. */
@@ -181,26 +252,31 @@ export class ServiceTransitions {
     orId: string,
     entree: EntreeActionValiderControle,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executer(ctx, orId, async (tx, or) => {
-      await this.verifierPointageOuvert(tx, ctx, orId);
-      const maintenant = this.horloge.maintenant();
-      await this.transitionner(tx, or, 'termine', { termineLe: maintenant });
-      await tx.insert(orControleQualite).values({
-        tenantId: ctx.tenantId,
-        ordreReparationId: orId,
-        controleurId: entree.controleurId,
-        controleLe: maintenant,
-        conforme: true,
-        motifNonConformite: null,
-      });
-      await this.evenements.publier(tx, ctx, {
-        type: 'ordre_reparation.termine',
-        versionSchema: 1,
-        siteId: or.siteId,
-        ressource: { type: 'ordre_reparation', id: orId, numero: or.numero },
-        donnees: { statut: 'termine' },
-      });
-    }, principal.role);
+    return this.executer(
+      ctx,
+      orId,
+      async (tx, or) => {
+        await this.verifierPointageOuvert(tx, ctx, orId);
+        const maintenant = this.horloge.maintenant();
+        await this.transitionner(tx, or, 'termine', { termineLe: maintenant });
+        await tx.insert(orControleQualite).values({
+          tenantId: ctx.tenantId,
+          ordreReparationId: orId,
+          controleurId: entree.controleurId,
+          controleLe: maintenant,
+          conforme: true,
+          motifNonConformite: null,
+        });
+        await this.evenements.publier(tx, ctx, {
+          type: 'ordre_reparation.termine',
+          versionSchema: 1,
+          siteId: or.siteId,
+          ressource: { type: 'ordre_reparation', id: orId, numero: or.numero },
+          donnees: { statut: 'termine' },
+        });
+      },
+      principal.role,
+    );
   }
 
   /**
@@ -214,30 +290,52 @@ export class ServiceTransitions {
     orId: string,
     entree: EntreeActionTerminer,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executer(ctx, orId, async (tx, or) => {
-      const parametres = await chargerParametresAtelier(tx, ctx);
-      if (parametres.controleQualite !== 'jamais') {
-        throw new ErreurMetier('OR_TRANSITION_INTERDITE', 'Le contrôle qualité est obligatoire pour ce garage avant de terminer (P-08).', {
-          blocages: [{ type: 'ordre_reparation', id: orId, libelle: or.numero, donnees: { statutActuel: or.statut } }],
-          actionsProposees: [{ code: 'COMPLETER_CONTROLE_QUALITE' }],
-        });
-      }
-      await this.verifierLignesAValider(tx, ctx, orId, principal.role);
-      await this.verifierPointageOuvert(tx, ctx, orId);
-      await this.verifierLignesNonRealisees(tx, ctx, orId, principal.role);
-      await this.verifierPoRequis(tx, ctx, or);
+    return this.executer(
+      ctx,
+      orId,
+      async (tx, or) => {
+        const parametres = await chargerParametresAtelier(tx, ctx);
+        if (parametres.controleQualite !== 'jamais') {
+          throw new ErreurMetier(
+            'OR_TRANSITION_INTERDITE',
+            'Le contrôle qualité est obligatoire pour ce garage avant de terminer (P-08).',
+            {
+              blocages: [
+                {
+                  type: 'ordre_reparation',
+                  id: orId,
+                  libelle: or.numero,
+                  donnees: { statutActuel: or.statut },
+                },
+              ],
+              actionsProposees: [{ code: 'COMPLETER_CONTROLE_QUALITE' }],
+            },
+          );
+        }
+        await this.verifierLignesAValider(tx, ctx, orId, principal.role);
+        await this.verifierPointageOuvert(tx, ctx, orId);
+        await this.verifierLignesNonRealisees(tx, ctx, orId, principal.role);
+        await this.verifierPoRequis(tx, ctx, or);
 
-      const kmSortieKm = entree.kilometrageSortie != null ? convertirEnKm(entree.kilometrageSortie, entree.unite) : null;
-      const maintenant = this.horloge.maintenant();
-      await this.transitionner(tx, or, 'termine', { termineLe: maintenant, ...(kmSortieKm !== null ? { kmSortie: kmSortieKm } : {}) });
-      await this.evenements.publier(tx, ctx, {
-        type: 'ordre_reparation.termine',
-        versionSchema: 1,
-        siteId: or.siteId,
-        ressource: { type: 'ordre_reparation', id: orId, numero: or.numero },
-        donnees: { statut: 'termine' },
-      });
-    }, principal.role);
+        const kmSortieKm =
+          entree.kilometrageSortie != null
+            ? convertirEnKm(entree.kilometrageSortie, entree.unite)
+            : null;
+        const maintenant = this.horloge.maintenant();
+        await this.transitionner(tx, or, 'termine', {
+          termineLe: maintenant,
+          ...(kmSortieKm !== null ? { kmSortie: kmSortieKm } : {}),
+        });
+        await this.evenements.publier(tx, ctx, {
+          type: 'ordre_reparation.termine',
+          versionSchema: 1,
+          siteId: or.siteId,
+          ressource: { type: 'ordre_reparation', id: orId, numero: or.numero },
+          donnees: { statut: 'termine' },
+        });
+      },
+      principal.role,
+    );
   }
 
   /** T-15 `termine -> en_cours` — motif obligatoire. Depuis `facture`, la DB rejette (I-02) et le
@@ -248,9 +346,14 @@ export class ServiceTransitions {
     orId: string,
     _entree: EntreeActionRouvrir,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executer(ctx, orId, async (tx, or) => {
-      await this.transitionner(tx, or, 'en_cours', { termineLe: null });
-    }, principal.role);
+    return this.executer(
+      ctx,
+      orId,
+      async (tx, or) => {
+        await this.transitionner(tx, or, 'en_cours', { termineLe: null });
+      },
+      principal.role,
+    );
   }
 
   /** T-17 `facture -> restitue` / T-18 `termine -> restitue`. Garde §6.12/CT-52 : une ligne de
@@ -261,47 +364,79 @@ export class ServiceTransitions {
     orId: string,
     entree: EntreeActionRestituer,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executer(ctx, orId, async (tx, or) => {
-      const parametres = await chargerParametresAtelier(tx, ctx);
-      if (parametres.mentionSecurite === 'obligatoire') {
-        const lignes = await listerLignesOr(tx, ctx, orId);
-        const refuseesSecurite = lignes.filter((l) => l.securite && l.statut === 'refusee');
-        if (refuseesSecurite.length > 0) {
-          throw new ErreurMetier('OR_RESERVE_SECURITE_REQUISE', 'Une réserve de sécurité doit être signée avant restitution (§6.12).', {
-            blocages: refuseesSecurite
-              .slice(0, 50)
-              .map((l): ElementBloquant => ({ type: 'ligne_or', id: l.id, libelle: l.designation ?? '', donnees: { numeroLigne: l.numeroOrdre } })),
-            actionsProposees: [{ code: 'SIGNER_RESERVE_SECURITE', parametres: { typeSignature: 'reserve-securite' } }],
-          });
+    return this.executer(
+      ctx,
+      orId,
+      async (tx, or) => {
+        const parametres = await chargerParametresAtelier(tx, ctx);
+        if (parametres.mentionSecurite === 'obligatoire') {
+          const lignes = await listerLignesOr(tx, ctx, orId);
+          const refuseesSecurite = lignes.filter((l) => l.securite && l.statut === 'refusee');
+          if (refuseesSecurite.length > 0) {
+            throw new ErreurMetier(
+              'OR_RESERVE_SECURITE_REQUISE',
+              'Une réserve de sécurité doit être signée avant restitution (§6.12).',
+              {
+                blocages: refuseesSecurite.slice(0, 50).map((l): ElementBloquant => ({
+                  type: 'ligne_or',
+                  id: l.id,
+                  libelle: l.designation ?? '',
+                  donnees: { numeroLigne: l.numeroOrdre },
+                })),
+                actionsProposees: [
+                  {
+                    code: 'SIGNER_RESERVE_SECURITE',
+                    parametres: { typeSignature: 'reserve-securite' },
+                  },
+                ],
+              },
+            );
+          }
         }
-      }
 
-      const kmSortieKm = entree.kilometrageSortie != null ? convertirEnKm(entree.kilometrageSortie, entree.unite) : null;
-      const maintenant = this.horloge.maintenant();
-      await this.transitionner(tx, or, 'restitue', { restitueLe: maintenant, ...(kmSortieKm !== null ? { kmSortie: kmSortieKm } : {}) });
-      await this.evenements.publier(tx, ctx, {
-        type: 'ordre_reparation.restitue',
-        versionSchema: 1,
-        siteId: or.siteId,
-        ressource: { type: 'ordre_reparation', id: orId, numero: or.numero },
-        donnees: { statut: 'restitue' },
-      });
-    }, principal.role);
+        const kmSortieKm =
+          entree.kilometrageSortie != null
+            ? convertirEnKm(entree.kilometrageSortie, entree.unite)
+            : null;
+        const maintenant = this.horloge.maintenant();
+        await this.transitionner(tx, or, 'restitue', {
+          restitueLe: maintenant,
+          ...(kmSortieKm !== null ? { kmSortie: kmSortieKm } : {}),
+        });
+        await this.evenements.publier(tx, ctx, {
+          type: 'ordre_reparation.restitue',
+          versionSchema: 1,
+          siteId: or.siteId,
+          ressource: { type: 'ordre_reparation', id: orId, numero: or.numero },
+          donnees: { statut: 'restitue' },
+        });
+      },
+      principal.role,
+    );
   }
 
   /** T-19 `restitue -> cloture`. */
-  async cloturer(ctx: ContexteTenant, principal: PrincipalAuthentifie, orId: string): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executer(ctx, orId, async (tx, or) => {
-      const maintenant = this.horloge.maintenant();
-      await this.transitionner(tx, or, 'cloture', { clotureLe: maintenant });
-      await this.evenements.publier(tx, ctx, {
-        type: 'ordre_reparation.cloture',
-        versionSchema: 1,
-        siteId: or.siteId,
-        ressource: { type: 'ordre_reparation', id: orId, numero: or.numero },
-        donnees: { statut: 'cloture' },
-      });
-    }, principal.role);
+  async cloturer(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    orId: string,
+  ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
+    return this.executer(
+      ctx,
+      orId,
+      async (tx, or) => {
+        const maintenant = this.horloge.maintenant();
+        await this.transitionner(tx, or, 'cloture', { clotureLe: maintenant });
+        await this.evenements.publier(tx, ctx, {
+          type: 'ordre_reparation.cloture',
+          versionSchema: 1,
+          siteId: or.siteId,
+          ressource: { type: 'ordre_reparation', id: orId, numero: or.numero },
+          donnees: { statut: 'cloture' },
+        });
+      },
+      principal.role,
+    );
   }
 
   /** T-20 `{planifie,ouvert} -> annule` — motif obligatoire (RM-62). Refusée s'il existe des
@@ -312,33 +447,54 @@ export class ServiceTransitions {
     orId: string,
     entree: EntreeActionAnnuler,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executer(ctx, orId, async (tx, or) => {
-      const lignes = await listerLignesOr(tx, ctx, orId);
-      const pointagesOuverts = await this.pointage.pointagesOuvertsPourOr(tx, orId);
-      const lignesFacturees = lignes.filter((l) => l.statut === 'facturee' || l.factureId !== null);
+    return this.executer(
+      ctx,
+      orId,
+      async (tx, or) => {
+        const lignes = await listerLignesOr(tx, ctx, orId);
+        const pointagesOuverts = await this.pointage.pointagesOuvertsPourOr(tx, orId);
+        const lignesFacturees = lignes.filter(
+          (l) => l.statut === 'facturee' || l.factureId !== null,
+        );
 
-      const blocages: ElementBloquant[] = [
-        ...pointagesOuverts.map((p): ElementBloquant => ({ type: 'pointage', id: p.pointageId, libelle: p.technicienNomAffiche })),
-        ...lignesFacturees
-          .slice(0, 50)
-          .map((l): ElementBloquant => ({ type: 'ligne_or', id: l.id, libelle: l.designation ?? '', donnees: { numeroLigne: l.numeroOrdre } })),
-      ];
-      if (blocages.length > 0) {
-        throw new ErreurMetier('OR_ANNULATION_IMPOSSIBLE', "Annulation impossible : des pointages ou des lignes facturées existent (RM-62).", {
-          blocages,
-          actionsProposees: [{ code: 'RAFRAICHIR' }],
+        const blocages: ElementBloquant[] = [
+          ...pointagesOuverts.map((p): ElementBloquant => ({
+            type: 'pointage',
+            id: p.pointageId,
+            libelle: p.technicienNomAffiche,
+          })),
+          ...lignesFacturees.slice(0, 50).map((l): ElementBloquant => ({
+            type: 'ligne_or',
+            id: l.id,
+            libelle: l.designation ?? '',
+            donnees: { numeroLigne: l.numeroOrdre },
+          })),
+        ];
+        if (blocages.length > 0) {
+          throw new ErreurMetier(
+            'OR_ANNULATION_IMPOSSIBLE',
+            'Annulation impossible : des pointages ou des lignes facturées existent (RM-62).',
+            {
+              blocages,
+              actionsProposees: [{ code: 'RAFRAICHIR' }],
+            },
+          );
+        }
+
+        await this.transitionner(tx, or, 'annule', {
+          annuleLe: this.horloge.maintenant(),
+          motifAnnulation: entree.motif,
         });
-      }
-
-      await this.transitionner(tx, or, 'annule', { annuleLe: this.horloge.maintenant(), motifAnnulation: entree.motif });
-      await this.evenements.publier(tx, ctx, {
-        type: 'ordre_reparation.annule',
-        versionSchema: 1,
-        siteId: or.siteId,
-        ressource: { type: 'ordre_reparation', id: orId, numero: or.numero },
-        donnees: { statut: 'annule', motif: entree.motif },
-      });
-    }, principal.role);
+        await this.evenements.publier(tx, ctx, {
+          type: 'ordre_reparation.annule',
+          versionSchema: 1,
+          siteId: or.siteId,
+          ressource: { type: 'ordre_reparation', id: orId, numero: or.numero },
+          donnees: { statut: 'annule', motif: entree.motif },
+        });
+      },
+      principal.role,
+    );
   }
 
   // -----------------------------------------------------------------------------------------
@@ -382,44 +538,78 @@ export class ServiceTransitions {
   }
 
   /** I-08 : refuse tant que des lignes attendent une décision d'accord. */
-  private async verifierLignesAValider(tx: TransactionDfa, ctx: ContexteTenant, orId: string, role: RoleUtilisateur): Promise<void> {
+  private async verifierLignesAValider(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    orId: string,
+    role: RoleUtilisateur,
+  ): Promise<void> {
     const lignes = await tx
       .select()
       .from(ligneOr)
-      .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.ordreReparationId, orId), eq(ligneOr.statut, 'a_valider')));
+      .where(
+        and(
+          eq(ligneOr.tenantId, ctx.tenantId),
+          eq(ligneOr.ordreReparationId, orId),
+          eq(ligneOr.statut, 'a_valider'),
+        ),
+      );
     if (lignes.length === 0) return;
 
     const voitMontants = roleVoitLesMontants(role);
-    throw new ErreurMetier('OR_LIGNES_A_VALIDER', 'Des lignes attendent encore une décision (I-08).', {
-      blocages: lignes.slice(0, 50).map((l) => this.blocageLigne(l, voitMontants)),
-      actionsProposees: [
-        {
-          code: 'CREER_DEVIS_COMPLEMENTAIRE',
-          methode: 'POST',
-          parametres: { ligneIds: lignes.map((l) => l.id) },
-        },
-        { code: 'VALIDER_LIGNES' },
-      ],
-    });
+    throw new ErreurMetier(
+      'OR_LIGNES_A_VALIDER',
+      'Des lignes attendent encore une décision (I-08).',
+      {
+        blocages: lignes.slice(0, 50).map((l) => this.blocageLigne(l, voitMontants)),
+        actionsProposees: [
+          {
+            code: 'CREER_DEVIS_COMPLEMENTAIRE',
+            methode: 'POST',
+            parametres: { ligneIds: lignes.map((l) => l.id) },
+          },
+          { code: 'VALIDER_LIGNES' },
+        ],
+      },
+    );
   }
 
   /** I-10 : refuse tant qu'une ligne validée n'a pas été exécutée. */
-  private async verifierLignesNonRealisees(tx: TransactionDfa, ctx: ContexteTenant, orId: string, role: RoleUtilisateur): Promise<void> {
+  private async verifierLignesNonRealisees(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    orId: string,
+    role: RoleUtilisateur,
+  ): Promise<void> {
     const lignes = await tx
       .select()
       .from(ligneOr)
-      .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.ordreReparationId, orId), eq(ligneOr.statut, 'validee')));
+      .where(
+        and(
+          eq(ligneOr.tenantId, ctx.tenantId),
+          eq(ligneOr.ordreReparationId, orId),
+          eq(ligneOr.statut, 'validee'),
+        ),
+      );
     if (lignes.length === 0) return;
 
     const voitMontants = roleVoitLesMontants(role);
-    throw new ErreurMetier('OR_LIGNE_NON_REALISEE', "Des lignes validées n'ont pas été réalisées (I-10).", {
-      blocages: lignes.slice(0, 50).map((l) => this.blocageLigne(l, voitMontants)),
-      actionsProposees: [{ code: 'MARQUER_LIGNES_REALISEES' }],
-    });
+    throw new ErreurMetier(
+      'OR_LIGNE_NON_REALISEE',
+      "Des lignes validées n'ont pas été réalisées (I-10).",
+      {
+        blocages: lignes.slice(0, 50).map((l) => this.blocageLigne(l, voitMontants)),
+        actionsProposees: [{ code: 'MARQUER_LIGNES_REALISEES' }],
+      },
+    );
   }
 
   /** I-09 : refuse tant qu'un pointage reste ouvert. Toujours vide au lot 1 (Δ4, module absent). */
-  private async verifierPointageOuvert(tx: TransactionDfa, ctx: ContexteTenant, orId: string): Promise<void> {
+  private async verifierPointageOuvert(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    orId: string,
+  ): Promise<void> {
     void ctx;
     const ouverts = await this.pointage.pointagesOuvertsPourOr(tx, orId);
     if (ouverts.length === 0) return;
@@ -428,7 +618,12 @@ export class ServiceTransitions {
         type: 'pointage' as const,
         id: p.pointageId,
         libelle: `${p.technicienNomAffiche} — depuis ${p.debutLe.toISOString()}`,
-        donnees: { technicienId: p.technicienId, technicienPrenom: p.technicienNomAffiche, debutLe: p.debutLe.toISOString(), ligneOrId: p.ligneOrId },
+        donnees: {
+          technicienId: p.technicienId,
+          technicienPrenom: p.technicienNomAffiche,
+          debutLe: p.debutLe.toISOString(),
+          ligneOrId: p.ligneOrId,
+        },
       })),
       actionsProposees: [{ code: 'ARRETER_POINTAGES' }],
     });
@@ -436,13 +631,27 @@ export class ServiceTransitions {
 
   /** RM-14/CT-49 : un client dont la fiche exige un n° de commande interne ne peut pas voir son
    *  OR terminé sans lui. */
-  private async verifierPoRequis(tx: TransactionDfa, ctx: ContexteTenant, or: LigneOrdreReparation): Promise<void> {
+  private async verifierPoRequis(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    or: LigneOrdreReparation,
+  ): Promise<void> {
     const clientLigne = await chargerClientLigne(tx, ctx, or.clientId);
     if (clientLigne.poObligatoire && !or.numeroCommandeInterne) {
-      throw new ErreurMetier('OR_PO_MANQUANT', 'Un numéro de commande client est requis pour ce client (RM-14).', {
-        blocages: [{ type: 'champ', id: 'numeroCommandeInterne', libelle: 'Numéro de commande client manquant' }],
-        actionsProposees: [{ code: 'RENSEIGNER_PO' }],
-      });
+      throw new ErreurMetier(
+        'OR_PO_MANQUANT',
+        'Un numéro de commande client est requis pour ce client (RM-14).',
+        {
+          blocages: [
+            {
+              type: 'champ',
+              id: 'numeroCommandeInterne',
+              libelle: 'Numéro de commande client manquant',
+            },
+          ],
+          actionsProposees: [{ code: 'RENSEIGNER_PO' }],
+        },
+      );
     }
   }
 

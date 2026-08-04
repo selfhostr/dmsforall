@@ -27,10 +27,15 @@ export function EnTeteFicheVehicule({ vehicule, dernierKilometrage }: Props) {
   const { t } = useTranslation('vehicules');
 
   const champs: DefinitionChamp[] = [];
-  if (vehicule.vin) champs.push({ libelle: t('identite.vin'), valeur: vehicule.vin, copiable: true });
-  if (vehicule.codeTypeCh) champs.push({ libelle: t('identite.codeType'), valeur: vehicule.codeTypeCh, copiable: true });
+  if (vehicule.vin)
+    champs.push({ libelle: t('identite.vin'), valeur: vehicule.vin, copiable: true });
+  if (vehicule.codeTypeCh)
+    champs.push({ libelle: t('identite.codeType'), valeur: vehicule.codeTypeCh, copiable: true });
   if (vehicule.premiereMiseEnCirculationLe) {
-    champs.push({ libelle: t('identite.mise1reCirc'), valeur: formaterDate(vehicule.premiereMiseEnCirculationLe) });
+    champs.push({
+      libelle: t('identite.mise1reCirc'),
+      valeur: formaterDate(vehicule.premiereMiseEnCirculationLe),
+    });
   }
   if (dernierKilometrage) {
     champs.push({

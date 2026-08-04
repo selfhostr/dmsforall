@@ -110,7 +110,16 @@ export const schemaConfig = z
     // à défaut, `initialiserSentry` retombe sur NODE_ENV — évite de dupliquer la même valeur
     // dans deux variables en usage courant, tout en laissant la main pour un déploiement où les
     // deux devraient diverger (ex. plusieurs environnements de staging sous NODE_ENV=production).
-    SENTRY_ENVIRONMENT: z.string().min(1).optional(),
+    // Même `.preprocess` que SENTRY_DSN ci-dessus, et pour la même raison : `.env.example` livre
+    // la ligne `SENTRY_ENVIRONMENT=` vide, et dotenv produit alors une chaîne vide — définie,
+    // donc non couverte par `.optional()`, et rejetée par `.min(1)`. Sans cette conversion, la
+    // séquence de démarrage documentée (`cp .env.example .env` puis `pnpm db:migrate`) échoue sur
+    // tout clone neuf, avec un message qui désigne Sentry alors que le projet n'utilise aucune
+    // supervision en dev.
+    SENTRY_ENVIRONMENT: z.preprocess(
+      (v) => (v === '' ? undefined : v),
+      z.string().min(1).optional(),
+    ),
     // Taux d'échantillonnage des traces de performance (0 à 1). Défaut À ZÉRO (audit sécurité,
     // finding H2) : le tracing produit des événements de TRANSACTION, qui contiennent les mêmes
     // catégories de données que les erreurs (requête, URL, spans avec leurs attributs) mais dont
@@ -126,7 +135,8 @@ export const schemaConfig = z
       ctx.addIssue({
         code: 'custom',
         path: ['COOKIE_SECURE'],
-        message: 'COOKIE_SECURE doit être true en production (sinon le cookie de session ne part jamais en HTTPS).',
+        message:
+          'COOKIE_SECURE doit être true en production (sinon le cookie de session ne part jamais en HTTPS).',
       });
     }
     if (c.DATABASE_URL === c.DATABASE_URL_MIGRATION) {

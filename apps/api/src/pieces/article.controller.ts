@@ -1,5 +1,26 @@
-import { Controller, Get, Headers, HttpCode, HttpStatus, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiHeader, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiCookieAuth,
+  ApiHeader,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import {
   schemaCreationArticle,
@@ -21,7 +42,12 @@ import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 
-import { ArticleAvecAvertissementsDto, ArticleDto, PageArticleDto, ResultatRechercheComptoirArticleDto } from './dto';
+import {
+  ArticleAvecAvertissementsDto,
+  ArticleDto,
+  PageArticleDto,
+  ResultatRechercheComptoirArticleDto,
+} from './dto';
 import { schemaListeArticles, schemaUuid, type ParametresListeArticles } from './schemas';
 import { ServiceArticle } from './service-article';
 
@@ -46,7 +72,9 @@ export class ArticleController {
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans pieces.article.lire).')
-  async lister(@Query(new PipeZod(schemaListeArticles)) query: ParametresListeArticles): Promise<PageArticleDto> {
+  async lister(
+    @Query(new PipeZod(schemaListeArticles)) query: ParametresListeArticles,
+  ): Promise<PageArticleDto> {
     const ctx = this.contexte.contexteTenant();
     const { role } = this.contexte.exigerPrincipal();
     return this.service.lister(ctx, role, query);
@@ -55,7 +83,8 @@ export class ArticleController {
   @Get('recherche-comptoir')
   @ExigerDroit('pieces.article.lire')
   @ApiOperation({
-    summary: 'Recherche compacte pour la saisie assistée (comptoir, ligne d’OR pièce) — un seul appel donne prix, référence et disponibilité au site.',
+    summary:
+      'Recherche compacte pour la saisie assistée (comptoir, ligne d’OR pièce) — un seul appel donne prix, référence et disponibilité au site.',
   })
   @ApiQuery({ name: 'q', required: true })
   @ApiQuery({ name: 'siteId', required: true, format: 'uuid' })
@@ -65,7 +94,12 @@ export class ArticleController {
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   async rechercheComptoir(
-    @Query(new PipeZod(schemaRechercheComptoir)) query: { q: string; siteId: string; limite: number },
+    @Query(new PipeZod(schemaRechercheComptoir))
+    query: {
+      q: string;
+      siteId: string;
+      limite: number;
+    },
   ): Promise<readonly ResultatRechercheComptoirArticleDto[]> {
     const ctx = this.contexte.contexteTenant();
     return this.service.rechercheComptoir(ctx, query);
@@ -76,14 +110,22 @@ export class ArticleController {
   @ExigerDroit('pieces.article.creer')
   @ApiOperation({
     summary: "Création d'un article.",
-    description: '`Idempotency-Key` obligatoire (uuid v4) : un rejeu ne doit pas brûler un second numéro d’article (RP-08).',
+    description:
+      '`Idempotency-Key` obligatoire (uuid v4) : un rejeu ne doit pas brûler un second numéro d’article (RP-08).',
   })
-  @ApiHeader({ name: 'Idempotency-Key', required: true, description: 'uuid v4, identité de la requête.' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+    description: 'uuid v4, identité de la requête.',
+  })
   @ApiResponse({ status: 201, type: ArticleAvecAvertissementsDto })
   @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant (rôle sans pieces.article.creer).')
-  @ApiReponseProbleme(409, 'IDEMPOTENCE_CONFLIT — même clé, corps différent ou exécution encore en cours.')
+  @ApiReponseProbleme(
+    409,
+    'IDEMPOTENCE_CONFLIT — même clé, corps différent ou exécution encore en cours.',
+  )
   async creer(
     @CorpsZod(schemaCreationArticle, {
       exemple: {
@@ -143,14 +185,20 @@ export class ArticleController {
 
   @Post(':articleId/references')
   @ExigerDroit('pieces.article.modifier')
-  @ApiOperation({ summary: 'Ajoute ou met à jour une référence alternative (upsert sur (tenant, reference) — RP-02/RP-03).' })
+  @ApiOperation({
+    summary:
+      'Ajoute ou met à jour une référence alternative (upsert sur (tenant, reference) — RP-02/RP-03).',
+  })
   @ApiParam({ name: 'articleId', format: 'uuid' })
   @ApiOkResponse({ type: ArticleAvecAvertissementsDto })
   @ApiReponseProbleme(400, 'Corps invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Article introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, 'ARTICLE_REFERENCE_COLLISION — référence déjà portée par un autre article.')
+  @ApiReponseProbleme(
+    409,
+    'ARTICLE_REFERENCE_COLLISION — référence déjà portée par un autre article.',
+  )
   async ajouterReference(
     @Param('articleId', new PipeZod(schemaUuid)) articleId: string,
     @CorpsZod(schemaCreationReferenceArticle) entree: EntreeCreationReferenceArticle,
@@ -180,7 +228,9 @@ export class ArticleController {
 
   @Post(':articleId/desactiver')
   @ExigerDroit('pieces.article.modifier')
-  @ApiOperation({ summary: 'Désactive un article (§6.1) — refusé si une réservation active porte sur lui.' })
+  @ApiOperation({
+    summary: 'Désactive un article (§6.1) — refusé si une réservation active porte sur lui.',
+  })
   @ApiParam({ name: 'articleId', format: 'uuid' })
   @ApiOkResponse({ type: ArticleAvecAvertissementsDto })
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
@@ -199,13 +249,17 @@ export class ArticleController {
   @Post(':articleId/reactiver')
   @HttpCode(HttpStatus.OK)
   @ExigerDroit('pieces.article.modifier')
-  @ApiOperation({ summary: 'Réactive un article (retour à `actif` depuis `obsolete` ou `desactive`, §6.1).' })
+  @ApiOperation({
+    summary: 'Réactive un article (retour à `actif` depuis `obsolete` ou `desactive`, §6.1).',
+  })
   @ApiParam({ name: 'articleId', format: 'uuid' })
   @ApiOkResponse({ type: ArticleAvecAvertissementsDto })
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Article introuvable pour ce tenant.')
-  async reactiver(@Param('articleId', new PipeZod(schemaUuid)) articleId: string): Promise<ArticleAvecAvertissementsDto> {
+  async reactiver(
+    @Param('articleId', new PipeZod(schemaUuid)) articleId: string,
+  ): Promise<ArticleAvecAvertissementsDto> {
     const ctx = this.contexte.contexteTenant();
     const { role } = this.contexte.exigerPrincipal();
     return this.service.reactiver(ctx, role, articleId);

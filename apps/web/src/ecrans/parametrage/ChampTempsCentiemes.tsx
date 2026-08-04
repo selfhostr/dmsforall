@@ -49,7 +49,9 @@ export function ChampTempsCentiemes({
   const idChamp = id ?? idGenere;
   const idErreur = `${idChamp}-erreur`;
 
-  const [saisie, setSaisie] = useState(() => (valeurCentiemes === null ? '' : (valeurCentiemes / 100).toFixed(2)));
+  const [saisie, setSaisie] = useState(() =>
+    valeurCentiemes === null ? '' : (valeurCentiemes / 100).toFixed(2),
+  );
 
   useEffect(() => {
     if (analyserCentiemes(saisie) !== valeurCentiemes) {

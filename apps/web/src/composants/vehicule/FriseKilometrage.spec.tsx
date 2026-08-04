@@ -30,7 +30,9 @@ describe('FriseKilometrage', () => {
   });
 
   it("affiche la valeur d'origine en complément quand la saisie était en milles", () => {
-    render(<FriseKilometrage releves={[{ ...RELEVE, valeur: 55000, unite: 'mi', valeurKm: 88514 }]} />);
+    render(
+      <FriseKilometrage releves={[{ ...RELEVE, valeur: 55000, unite: 'mi', valeurKm: 88514 }]} />,
+    );
     expect(screen.getByText(/88'514 km/)).toBeInTheDocument();
     expect(screen.getByText(/55'000 mi/)).toBeInTheDocument();
   });

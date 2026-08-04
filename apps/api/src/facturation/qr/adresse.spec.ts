@@ -65,7 +65,10 @@ describe('evaluerCompletudeAdresse — la règle du comptoir (RF-59, RF-60)', ()
   });
 
   it('déclare partielle l’adresse du client de passage — nom seul', () => {
-    const evaluation = evaluerCompletudeAdresse({ nom: 'Jean Dupont' }, CHAMPS_REQUIS_BLOC_DEBITEUR);
+    const evaluation = evaluerCompletudeAdresse(
+      { nom: 'Jean Dupont' },
+      CHAMPS_REQUIS_BLOC_DEBITEUR,
+    );
     expect(evaluation.complete).toBe(false);
     expect(evaluation.partielle).toBe(true);
     expect(evaluation.champsManquants).toEqual(['rue', 'numero', 'npa', 'localite']);
@@ -107,9 +110,9 @@ describe('evaluerCompletudeAdresse — la règle du comptoir (RF-59, RF-60)', ()
       localite: 'Vétroz',
     };
     expect(evaluerCompletudeAdresse(casePostale, CHAMPS_REQUIS_BLOC_DEBITEUR).complete).toBe(false);
-    expect(
-      evaluerCompletudeAdresse(casePostale, ['nom', 'npa', 'localite', 'pays']).complete,
-    ).toBe(true);
+    expect(evaluerCompletudeAdresse(casePostale, ['nom', 'npa', 'localite', 'pays']).complete).toBe(
+      true,
+    );
   });
 });
 

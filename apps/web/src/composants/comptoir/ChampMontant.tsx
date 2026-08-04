@@ -49,7 +49,9 @@ export function ChampMontant({
   const idChamp = id ?? idGenere;
   const idErreur = `${idChamp}-erreur`;
 
-  const [saisie, setSaisie] = useState(() => (valeurCentimes === null ? '' : (valeurCentimes / 100).toFixed(2)));
+  const [saisie, setSaisie] = useState(() =>
+    valeurCentimes === null ? '' : (valeurCentimes / 100).toFixed(2),
+  );
 
   // Resynchronise depuis l'extérieur (ex. réinitialisation de formulaire/filtres) — jamais
   // pendant une frappe normale, puisque le centimes recalculé à partir de `saisie` correspond

@@ -23,7 +23,17 @@ import type {
 } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
-import { documentVente, dossierVente, dossierVenteDocumentRequis, reprise, vehiculeDetention, vehiculeStock, type LigneDossierVente, type LigneReprise, type LigneVehiculeStock } from '../db/schema';
+import {
+  documentVente,
+  dossierVente,
+  dossierVenteDocumentRequis,
+  reprise,
+  vehiculeDetention,
+  vehiculeStock,
+  type LigneDossierVente,
+  type LigneReprise,
+  type LigneVehiculeStock,
+} from '../db/schema';
 import {
   chargerClientLigne,
   chargerPlaqueCourante,
@@ -37,7 +47,12 @@ import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.t
 import { JETON_AUDIT, type ServiceAudit } from '../common/audit';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { Horloge } from '../common/horloge/horloge';
-import { JETON_IDEMPOTENCE, type ReponseMemorisable, type ResultatIdempotent, type ServiceIdempotence } from '../common/idempotence';
+import {
+  JETON_IDEMPOTENCE,
+  type ReponseMemorisable,
+  type ResultatIdempotent,
+  type ServiceIdempotence,
+} from '../common/idempotence';
 
 import {
   calculerTypeVehicule,
@@ -46,7 +61,6 @@ import {
   versDocumentVenteResume,
   versDossierVenteResponse,
   versFinancementResume,
-  versRepriseResponse,
   versRepriseResume,
 } from './mappers';
 import {
@@ -62,7 +76,6 @@ import {
   chargerDossierVente,
   chargerDossierVentePourEcriture,
   chargerRepriseParDossierOuNull,
-  chargerRepriseParDossierPourEcriture,
   chargerVehiculeStock,
   chargerVehiculeStockOuNull,
   chargerVehiculeStockPourEcriture,
@@ -74,14 +87,33 @@ import {
 import { extraireVersionETag } from './service-vehicule-stock';
 import { traduireErreurTransitionVente } from './traducteur-transition-ventes';
 
-const DEFINITIONS_TRI_DOSSIERS_VENTE: Readonly<Record<FiltresDossiersVente['tri'], DefinitionTri>> = {
-  'prospectionLe:desc': { expression: sql`dv.cree_le`, sens: 'desc', nullable: false, temporel: true },
-  'prospectionLe:asc': { expression: sql`dv.cree_le`, sens: 'asc', nullable: false, temporel: true },
-  // `date_livraison_estimee` est une colonne `date` (pas `timestamptz`) : pas de perte de
-  // microseconde possible, `temporel` n'est pas nécessaire.
-  'dateLivraisonEstimee:asc': { expression: sql`dv.date_livraison_estimee`, sens: 'asc', nullable: true },
-  'dateLivraisonEstimee:desc': { expression: sql`dv.date_livraison_estimee`, sens: 'desc', nullable: true },
-};
+const DEFINITIONS_TRI_DOSSIERS_VENTE: Readonly<Record<FiltresDossiersVente['tri'], DefinitionTri>> =
+  {
+    'prospectionLe:desc': {
+      expression: sql`dv.cree_le`,
+      sens: 'desc',
+      nullable: false,
+      temporel: true,
+    },
+    'prospectionLe:asc': {
+      expression: sql`dv.cree_le`,
+      sens: 'asc',
+      nullable: false,
+      temporel: true,
+    },
+    // `date_livraison_estimee` est une colonne `date` (pas `timestamptz`) : pas de perte de
+    // microseconde possible, `temporel` n'est pas nécessaire.
+    'dateLivraisonEstimee:asc': {
+      expression: sql`dv.date_livraison_estimee`,
+      sens: 'asc',
+      nullable: true,
+    },
+    'dateLivraisonEstimee:desc': {
+      expression: sql`dv.date_livraison_estimee`,
+      sens: 'desc',
+      nullable: true,
+    },
+  };
 
 /**
  * Le dossier de vente (RV-29→RV-38, RV-52→RV-58, §6.2) — objet CENTRAL du module. Priorité 2.
@@ -91,12 +123,23 @@ const DEFINITIONS_TRI_DOSSIERS_VENTE: Readonly<Record<FiltresDossiersVente['tri'
  *    l'atelier) ni la check-list `documentsRequis` autrement qu'en lecture — aucun paramètre tenant
  *    (`PV-03`) n'existe encore pour piloter ces gardes, `contrats/ventes/index.ts` le signale déjà
  *    comme un gap connu de CE lot ;
- *  - `livrer` NE POSE PAS le début de garantie constructeur (RV-54, aucune colonne identifiée sur
- *    `vehicule` pour ce lot) ni la mise en stock automatique du véhicule repris (RV-24, détenteur
- *    cible `[À VALIDER, QV-01]`) ni l'enregistrement du kilométrage de départ dans
- *    `vehicule_kilometrage` (aucune valeur d'enum `source` connue pour « vente ») — trois effets
- *    de bord documentés par le contrat, hors de portée sûre de cet agent tant que ces questions ne
- *    sont pas tranchées ;
+ *  - `livrer` POSE désormais la mise en stock automatique du véhicule repris confirmé (RV-24, voir
+ *    le bloc dédié dans le corps de la méthode) et la clôture de sa détention (motif `reprise`,
+ *    SANS réouverture — détenteur cible `[À VALIDER, QV-01]`, non tranché) ;
+ *  - `livrer` NE POSE TOUJOURS PAS le début de garantie constructeur (RV-54,
+ *    `vehicule.garantieDebut`) ni l'enregistrement du kilométrage de départ dans
+ *    `vehicule_kilometrage` (source `vente`) — **CORRECTIF DE CONSTAT** (relu en reprenant ce
+ *    fichier) : le commentaire précédent affirmait qu'aucune colonne/valeur d'enum n'existait pour
+ *    ces deux effets — C'EST INEXACT. `vehicule.garantie_debut`/`garantie_mois`/`garantie_km`
+ *    existent depuis `migrations/0007_vehicules.sql` (étape 1, avant même ce module), et
+ *    `source_kilometrage` porte bien la valeur `'vente'` (`contrats/atelier/enums.ts::
+ *    SOURCES_KILOMETRAGE`). Ces deux effets restent NON implémentés ICI volontairement : la
+ *    consigne de cet agent est explicitement de ne pas toucher au domaine `vehicule` (étape 1,
+ *    propriété d'un autre périmètre) au-delà de l'usage déjà établi de `vehicule_detention`
+ *    ci-dessous — écrire dans `vehicule.garantie_debut`/`vehicule_kilometrage` sans arbitrage sur
+ *    la source de `garantieMois`/`garantieKm` (déjà posés à l'intake ? valeur par défaut ?) serait
+ *    inventer une règle métier. Remonté à l'orchestrateur avec le détail ci-dessus (rapport de
+ *    livraison) plutôt que corrigé silencieusement ou laissé sous un faux prétexte technique ;
  *  - `documents-requis/marquer` est UPDATE-ONLY : `schemaMarquerDocumentRequis` ne porte pas de
  *    `libelle`, impossible de CRÉER un item sans texte d'affichage tant que `PV-03` n'existe pas.
  */
@@ -115,7 +158,11 @@ export class ServiceDossierVente {
     principal: PrincipalAuthentifie,
     entree: EntreeCreationDossierVente,
     cleIdempotence: string,
-  ): Promise<ResultatIdempotent<ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseDossierVente> }>> {
+  ): Promise<
+    ResultatIdempotent<
+      ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseDossierVente> }
+    >
+  > {
     return this.idempotence.executer(
       ctx,
       { methode: 'POST', chemin: '/dossiers-vente', cle: cleIdempotence, corps: entree },
@@ -138,7 +185,11 @@ export class ServiceDossierVente {
             dateLivraisonEstimee: entree.dateLivraisonEstimee ?? null,
           })
           .returning();
-        if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', "La création du dossier de vente n'a rendu aucune ligne.");
+        if (!ligne)
+          throw new ErreurMetier(
+            'ERREUR_INTERNE',
+            "La création du dossier de vente n'a rendu aucune ligne.",
+          );
 
         const document = await this.assembler(tx, ctx, principal.role, ligne);
         return { statutHttp: 201, corps: new CollecteurAvertissements().envelopper(document) };
@@ -146,7 +197,11 @@ export class ServiceDossierVente {
     );
   }
 
-  async obtenirComplet(ctx: ContexteTenant, role: RoleUtilisateur, dossierVenteId: string): Promise<ReponseDossierVente> {
+  async obtenirComplet(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    dossierVenteId: string,
+  ): Promise<ReponseDossierVente> {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await chargerDossierVente(tx, ctx, dossierVenteId);
       return this.assembler(tx, ctx, role, ligne);
@@ -168,13 +223,18 @@ export class ServiceDossierVente {
       const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
 
       if (versionAttendue !== ligne.version) {
-        throw new ErreurMetier('CONFLIT', 'La version du dossier de vente a changé depuis la dernière lecture.', {
-          detail: `version_attendue=${String(versionAttendue)};version_actuelle=${String(ligne.version)}`,
-          actionsProposees: [{ code: 'RAFRAICHIR' }],
-        });
+        throw new ErreurMetier(
+          'CONFLIT',
+          'La version du dossier de vente a changé depuis la dernière lecture.',
+          {
+            detail: `version_attendue=${String(versionAttendue)};version_actuelle=${String(ligne.version)}`,
+            actionsProposees: [{ code: 'RAFRAICHIR' }],
+          },
+        );
       }
 
-      const reassigneVehicule = entree.vehiculeId !== undefined && entree.vehiculeId !== ligne.vehiculeId;
+      const reassigneVehicule =
+        entree.vehiculeId !== undefined && entree.vehiculeId !== ligne.vehiculeId;
       if (reassigneVehicule && ligne.statut !== 'prospection') {
         throw new ErreurMetier(
           'VENTE_DOSSIER_TRANSITION_INTERDITE',
@@ -190,10 +250,16 @@ export class ServiceDossierVente {
       await tx
         .update(dossierVente)
         .set({
-          ...(entree.clientFactureId !== undefined ? { clientFactureId: entree.clientFactureId ?? null } : {}),
-          ...(entree.clientConducteurId !== undefined ? { clientConducteurId: entree.clientConducteurId ?? null } : {}),
+          ...(entree.clientFactureId !== undefined
+            ? { clientFactureId: entree.clientFactureId ?? null }
+            : {}),
+          ...(entree.clientConducteurId !== undefined
+            ? { clientConducteurId: entree.clientConducteurId ?? null }
+            : {}),
           ...(reassigneVehicule ? { vehiculeId: entree.vehiculeId ?? null } : {}),
-          ...(entree.dateLivraisonEstimee !== undefined ? { dateLivraisonEstimee: entree.dateLivraisonEstimee ?? null } : {}),
+          ...(entree.dateLivraisonEstimee !== undefined
+            ? { dateLivraisonEstimee: entree.dateLivraisonEstimee ?? null }
+            : {}),
         })
         .where(and(eq(dossierVente.tenantId, ctx.tenantId), eq(dossierVente.id, dossierVenteId)));
 
@@ -239,7 +305,11 @@ export class ServiceDossierVente {
   }
 
   /** `GET /dossiers-vente` — collection paginée par curseur. */
-  async lister(ctx: ContexteTenant, role: RoleUtilisateur, filtres: FiltresDossiersVente): Promise<PageCurseur<ReponseDossierVente>> {
+  async lister(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    filtres: FiltresDossiersVente,
+  ): Promise<PageCurseur<ReponseDossierVente>> {
     const definition = DEFINITIONS_TRI_DOSSIERS_VENTE[filtres.tri];
     const idExpr = sql`dv.id`;
     const curseurDecode = decoderCurseurPourTri(filtres.curseur, filtres.tri);
@@ -248,12 +318,20 @@ export class ServiceDossierVente {
       const conditions = [sql`dv.tenant_id = ${ctx.tenantId}`];
       if (filtres.siteId) conditions.push(sql`dv.site_id = ${filtres.siteId}`);
       if (filtres.statut && filtres.statut.length > 0) {
-        conditions.push(sql`dv.statut::text in (${sql.join(filtres.statut.map((s) => sql`${s}`), sql`, `)})`);
+        conditions.push(
+          sql`dv.statut::text in (${sql.join(
+            filtres.statut.map((s) => sql`${s}`),
+            sql`, `,
+          )})`,
+        );
       }
-      if (filtres.clientAcheteurId) conditions.push(sql`dv.client_acheteur_id = ${filtres.clientAcheteurId}`);
+      if (filtres.clientAcheteurId)
+        conditions.push(sql`dv.client_acheteur_id = ${filtres.clientAcheteurId}`);
       if (filtres.vehiculeId) conditions.push(sql`dv.vehicule_id = ${filtres.vehiculeId}`);
       if (curseurDecode) {
-        conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
+        conditions.push(
+          construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id),
+        );
       }
 
       const requete = sql`
@@ -280,7 +358,11 @@ export class ServiceDossierVente {
         donnees,
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseurTrie({ tri: filtres.tri, valeur: valeurCurseurDepuisTri(definition, derniere.triValeur), id: derniere.id })
+            ? encoderCurseurTrie({
+                tri: filtres.tri,
+                valeur: valeurCurseurDepuisTri(definition, derniere.triValeur),
+                id: derniere.id,
+              })
             : null,
         limite: filtres.limite,
       };
@@ -302,10 +384,16 @@ export class ServiceDossierVente {
       const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
 
       if (!ligne.vehiculeId) {
-        throw new ErreurMetier('VENTE_VEHICULE_MANQUANT', "Aucun véhicule associé à ce dossier — impossible d'engager (RV-30/RV-32).");
+        throw new ErreurMetier(
+          'VENTE_VEHICULE_MANQUANT',
+          "Aucun véhicule associé à ce dossier — impossible d'engager (RV-30/RV-32).",
+        );
       }
       const vehiculeStockLigne = await chargerVehiculeStockPourEcriture(tx, ctx, ligne.vehiculeId);
-      if (vehiculeStockLigne.statutCommercial !== 'disponible' && vehiculeStockLigne.statutCommercial !== 'en_commande') {
+      if (
+        vehiculeStockLigne.statutCommercial !== 'disponible' &&
+        vehiculeStockLigne.statutCommercial !== 'en_commande'
+      ) {
         throw new ErreurMetier(
           'VENTE_VEHICULE_INDISPONIBLE',
           `Le véhicule associé n'est plus disponible (statut actuel : ${vehiculeStockLigne.statutCommercial}) — un autre dossier l'a réservé entre-temps (CV-01).`,
@@ -315,10 +403,18 @@ export class ServiceDossierVente {
       const documentsExistants = await tx
         .select({ id: documentVente.id })
         .from(documentVente)
-        .where(and(eq(documentVente.tenantId, ctx.tenantId), eq(documentVente.id, entree.bonCommandeDocumentId)))
+        .where(
+          and(
+            eq(documentVente.tenantId, ctx.tenantId),
+            eq(documentVente.id, entree.bonCommandeDocumentId),
+          ),
+        )
         .limit(1);
       if (documentsExistants.length === 0) {
-        throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Document ${entree.bonCommandeDocumentId} introuvable pour ce tenant.`);
+        throw new ErreurMetier(
+          'RESSOURCE_INTROUVABLE',
+          `Document ${entree.bonCommandeDocumentId} introuvable pour ce tenant.`,
+        );
       }
 
       const repriseLigne = await this.chargerRepriseOuNullPourEcriture(tx, ctx, dossierVenteId);
@@ -330,12 +426,18 @@ export class ServiceDossierVente {
           );
         }
         if (repriseLigne.statut === 'negociee') {
-          await this.transitionnerReprise(tx, repriseLigne, { statut: 'confirmee', confirmeeLe: this.horloge.maintenant() });
+          await this.transitionnerReprise(tx, repriseLigne, {
+            statut: 'confirmee',
+            confirmeeLe: this.horloge.maintenant(),
+          });
         }
       }
 
       const maintenant = this.horloge.maintenant();
-      await this.transitionnerVehiculeStock(tx, vehiculeStockLigne, { statutCommercial: 'reserve', reserveLe: maintenant });
+      await this.transitionnerVehiculeStock(tx, vehiculeStockLigne, {
+        statutCommercial: 'reserve',
+        reserveLe: maintenant,
+      });
       await this.transitionnerDossier(tx, ligne, {
         statut: 'engage',
         engageLe: maintenant,
@@ -358,7 +460,10 @@ export class ServiceDossierVente {
   ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
-      await this.transitionnerDossier(tx, ligne, { statut: 'en_preparation', enPreparationLe: this.horloge.maintenant() });
+      await this.transitionnerDossier(tx, ligne, {
+        statut: 'en_preparation',
+        enPreparationLe: this.horloge.maintenant(),
+      });
       const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
       const reponse = await this.assembler(tx, ctx, role, misAJour);
       return new CollecteurAvertissements().envelopper(reponse);
@@ -378,10 +483,16 @@ export class ServiceDossierVente {
       const financements = await listerFinancementsDossier(tx, ctx, dossierVenteId);
       const courant = selectionnerFinancementCourant(financements);
       if (!courant || courant.statut !== 'confirme') {
-        throw new ErreurMetier('VENTE_FINANCEMENT_NON_CONFIRME', "Le financement de ce dossier n'est pas confirmé (RV-37).");
+        throw new ErreurMetier(
+          'VENTE_FINANCEMENT_NON_CONFIRME',
+          "Le financement de ce dossier n'est pas confirmé (RV-37).",
+        );
       }
 
-      await this.transitionnerDossier(tx, ligne, { statut: 'pret_a_livrer', pretALivrerLe: this.horloge.maintenant() });
+      await this.transitionnerDossier(tx, ligne, {
+        statut: 'pret_a_livrer',
+        pretALivrerLe: this.horloge.maintenant(),
+      });
       const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
       const reponse = await this.assembler(tx, ctx, role, misAJour);
       return new CollecteurAvertissements().envelopper(reponse);
@@ -401,8 +512,11 @@ export class ServiceDossierVente {
         throw new ErreurMetier('VENTE_VEHICULE_MANQUANT', 'Aucun véhicule associé à ce dossier.');
       }
 
-      // `vehicule_stock` passe `reserve -> vendu` à l'émission de la facture (facturation, hors
-      // périmètre de ce fichier) — ici, on exige que ce soit déjà fait avant de livrer.
+      // `vehicule_stock` passe `reserve -> vendu` à l'émission de la facture — effet de bord
+      // PROGRAMMATIQUE de `facturation/` (hors périmètre de ce fichier) via
+      // `ServiceVehiculeStock.marquerVendu` (exporté par `VentesModule` pour cette injection
+      // croisée, câblage réel côté facturation encore à faire par son propriétaire). Ici, on exige
+      // que ce soit déjà fait avant de livrer.
       const vehiculeStockLigne = await chargerVehiculeStockPourEcriture(tx, ctx, ligne.vehiculeId);
       if (vehiculeStockLigne.statutCommercial !== 'vendu') {
         throw new ErreurMetier(
@@ -412,7 +526,10 @@ export class ServiceDossierVente {
       }
 
       const maintenant = this.horloge.maintenant();
-      await this.transitionnerVehiculeStock(tx, vehiculeStockLigne, { statutCommercial: 'livre', livreLe: maintenant });
+      await this.transitionnerVehiculeStock(tx, vehiculeStockLigne, {
+        statutCommercial: 'livre',
+        livreLe: maintenant,
+      });
       await this.transitionnerDossier(tx, ligne, {
         statut: 'livre',
         livreLe: maintenant,
@@ -426,13 +543,24 @@ export class ServiceDossierVente {
       const [detentionOuverte] = await tx
         .select({ id: vehiculeDetention.id })
         .from(vehiculeDetention)
-        .where(and(eq(vehiculeDetention.tenantId, ctx.tenantId), eq(vehiculeDetention.vehiculeId, ligne.vehiculeId), isNull(vehiculeDetention.au)))
+        .where(
+          and(
+            eq(vehiculeDetention.tenantId, ctx.tenantId),
+            eq(vehiculeDetention.vehiculeId, ligne.vehiculeId),
+            isNull(vehiculeDetention.au),
+          ),
+        )
         .limit(1);
       if (detentionOuverte) {
         await tx
           .update(vehiculeDetention)
           .set({ au: entree.dateLivraisonEffective, motifFin: 'vente' })
-          .where(and(eq(vehiculeDetention.tenantId, ctx.tenantId), eq(vehiculeDetention.id, detentionOuverte.id)));
+          .where(
+            and(
+              eq(vehiculeDetention.tenantId, ctx.tenantId),
+              eq(vehiculeDetention.id, detentionOuverte.id),
+            ),
+          );
       }
       await tx.insert(vehiculeDetention).values({
         tenantId: ctx.tenantId,
@@ -440,6 +568,100 @@ export class ServiceDossierVente {
         clientId: nouveauDetenteurId,
         du: entree.dateLivraisonEffective,
       });
+
+      // RV-24 : une reprise CONFIRMÉE entre en stock à la livraison — TROU COMBLÉ (constaté en
+      // reprenant ce fichier : `origineRepriseDossierVenteId` n'était jamais ÉCRIT nulle part dans
+      // ce module, seulement lu). C'est la VALEUR NÉGOCIÉE, jamais l'estimée (RV-24, littéral,
+      // rappel explicite en pied de `contrats/ventes/reprise.ts`), qui devient le prix d'achat
+      // d'entrée en stock. `chargerRepriseOuNullPourEcriture` verrouille la ligne reprise pour la
+      // durée de CETTE transaction (même verrou que `engager()`), donc atomique avec le reste de
+      // `livrer()` : facture déjà émise, livraison ET entrée en stock de la reprise réussissent ou
+      // échouent ensemble.
+      const repriseLigne = await this.chargerRepriseOuNullPourEcriture(tx, ctx, dossierVenteId);
+      if (repriseLigne && repriseLigne.statut === 'confirmee') {
+        if (repriseLigne.valeurNegocieeCentimes === null) {
+          // Ne peut pas arriver en pratique : `reprise_valeur_negociee_requise_chk`
+          // (migrations/0032_ventes.sql) impose cette valeur dès que `statut <> 'estimee'`. Garde
+          // défensive pour le typage (colonne nullable côté Drizzle), pas un cas métier attendu.
+          throw new ErreurMetier(
+            'ERREUR_INTERNE',
+            'Reprise confirmée sans valeur négociée — incohérence de données (RV-27).',
+          );
+        }
+
+        // Garde applicative explicite (SELECT verrouillé avant INSERT), même style que
+        // `ServiceVehiculeStock.mettreEnStock` pour `VENTE_VEHICULE_STOCK_DEJA_EXISTANT` : plus
+        // lisible qu'une contrainte SQL brute, le `catch` ci-dessous reste le filet (course
+        // concurrente), pas le mécanisme.
+        const dejaEnStock = await chargerVehiculeStockOuNull(
+          tx,
+          ctx,
+          repriseLigne.vehiculeRepriseId,
+          true,
+        );
+        if (dejaEnStock) {
+          throw new ErreurMetier(
+            'VENTE_VEHICULE_STOCK_DEJA_EXISTANT',
+            'Le véhicule repris est déjà (ou a déjà été) mis en stock.',
+          );
+        }
+
+        try {
+          await tx.insert(vehiculeStock).values({
+            id: repriseLigne.vehiculeRepriseId,
+            tenantId: ctx.tenantId,
+            // RV-24 littéral ne précise pas le site — le dossier de vente porteur de la reprise est
+            // la seule référence de site disponible à ce stade (pas de second champ « site de
+            // reprise » dans le contrat `reprise.ts`).
+            siteId: ligne.siteId,
+            provenance: 'reprise',
+            dateEntreeStock: entree.dateLivraisonEffective,
+            prixAchatCentimes: repriseLigne.valeurNegocieeCentimes,
+            // Même dérivation que `mettreEnStock` : `provenance = 'reprise'` n'est jamais
+            // `neuf_constructeur`, donc jamais `en_commande` — toujours `disponible` d'emblée.
+            statutCommercial: 'disponible',
+            receptionneLe: maintenant,
+            origineRepriseDossierVenteId: dossierVenteId,
+          });
+        } catch (erreur) {
+          if (estViolationCleUniqueVehiculeStock(erreur)) {
+            throw new ErreurMetier(
+              'VENTE_VEHICULE_STOCK_DEJA_EXISTANT',
+              'Le véhicule repris est déjà (ou a déjà été) mis en stock.',
+            );
+          }
+          throw erreur;
+        }
+        // Audit : `vehicule_stock_audit` (trigger `after insert`, migrations/0032_ventes.sql)
+        // capture cette création automatiquement — aucun appel explicite à `ServiceAudit` requis,
+        // même mécanisme que la création via `POST /vehicules/{id}/stock`.
+
+        // Détention du véhicule REPRIS : clôture motif `reprise` (RV-23), SANS réouverture — le
+        // détenteur cible n'est PAS tranché (`QV-01`, rappel explicite en pied de
+        // `contrats/ventes/reprise.ts`) ; cette action ne l'invente pas.
+        const [detentionRepriseOuverte] = await tx
+          .select({ id: vehiculeDetention.id })
+          .from(vehiculeDetention)
+          .where(
+            and(
+              eq(vehiculeDetention.tenantId, ctx.tenantId),
+              eq(vehiculeDetention.vehiculeId, repriseLigne.vehiculeRepriseId),
+              isNull(vehiculeDetention.au),
+            ),
+          )
+          .limit(1);
+        if (detentionRepriseOuverte) {
+          await tx
+            .update(vehiculeDetention)
+            .set({ au: entree.dateLivraisonEffective, motifFin: 'reprise' })
+            .where(
+              and(
+                eq(vehiculeDetention.tenantId, ctx.tenantId),
+                eq(vehiculeDetention.id, detentionRepriseOuverte.id),
+              ),
+            );
+        }
+      }
 
       const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
       const reponse = await this.assembler(tx, ctx, role, misAJour);
@@ -456,7 +678,10 @@ export class ServiceDossierVente {
   ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
-      await this.transitionnerDossier(tx, ligne, { statut: 'clos', closLe: this.horloge.maintenant() });
+      await this.transitionnerDossier(tx, ligne, {
+        statut: 'clos',
+        closLe: this.horloge.maintenant(),
+      });
       const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
       const reponse = await this.assembler(tx, ctx, role, misAJour);
       return new CollecteurAvertissements().envelopper(reponse);
@@ -495,7 +720,11 @@ export class ServiceDossierVente {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
 
-      if (ligne.statut !== 'prospection' && ligne.statut !== 'engage' && ligne.statut !== 'en_preparation') {
+      if (
+        ligne.statut !== 'prospection' &&
+        ligne.statut !== 'engage' &&
+        ligne.statut !== 'en_preparation'
+      ) {
         throw new ErreurMetier(
           'VENTE_DOSSIER_ANNULATION_IMPOSSIBLE',
           `Ce dossier ne peut plus être annulé/abandonné depuis son état actuel (${ligne.statut}) — RV-38 verrouille toute correction dès la préparation dépassée.`,
@@ -511,9 +740,17 @@ export class ServiceDossierVente {
 
       // CV-01 : un véhicule réservé le redevient disponible, jamais bloqué indéfiniment.
       if (ligne.vehiculeId) {
-        const vehiculeStockLigne = await chargerVehiculeStockOuNull(tx, ctx, ligne.vehiculeId, true);
+        const vehiculeStockLigne = await chargerVehiculeStockOuNull(
+          tx,
+          ctx,
+          ligne.vehiculeId,
+          true,
+        );
         if (vehiculeStockLigne?.statutCommercial === 'reserve') {
-          await this.transitionnerVehiculeStock(tx, vehiculeStockLigne, { statutCommercial: 'disponible', dernierMotifTransition: motif });
+          await this.transitionnerVehiculeStock(tx, vehiculeStockLigne, {
+            statutCommercial: 'disponible',
+            dernierMotifTransition: motif,
+          });
         }
       }
 
@@ -527,11 +764,20 @@ export class ServiceDossierVente {
   // Assemblage + primitives internes
   // -----------------------------------------------------------------------------------------
 
-  private async assembler(tx: TransactionDfa, ctx: ContexteTenant, role: RoleUtilisateur, ligne: LigneDossierVente): Promise<ReponseDossierVente> {
+  private async assembler(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    ligne: LigneDossierVente,
+  ): Promise<ReponseDossierVente> {
     const clientAcheteurLigne = await chargerClientLigne(tx, ctx, ligne.clientAcheteurId);
     const clientAcheteur = await versClientResume(tx, ctx, clientAcheteurLigne);
-    const clientFactureLigne = ligne.clientFactureId ? await chargerClientLigne(tx, ctx, ligne.clientFactureId) : clientAcheteurLigne;
-    const clientFacture = ligne.clientFactureId ? await versClientResume(tx, ctx, clientFactureLigne) : clientAcheteur;
+    const clientFactureLigne = ligne.clientFactureId
+      ? await chargerClientLigne(tx, ctx, ligne.clientFactureId)
+      : clientAcheteurLigne;
+    const clientFacture = ligne.clientFactureId
+      ? await versClientResume(tx, ctx, clientFactureLigne)
+      : clientAcheteur;
     const clientConducteur = ligne.clientConducteurId
       ? await versClientResume(tx, ctx, await chargerClientLigne(tx, ctx, ligne.clientConducteurId))
       : null;
@@ -544,22 +790,30 @@ export class ServiceDossierVente {
     const financements: FinancementResume[] = [];
     let financementCourant: FinancementResume | null = null;
     for (const f of financementsLignes) {
-      // eslint-disable-next-line no-await-in-loop -- petit lot borné (SEUIL_FINANCEMENTS_EMBARQUES = 20)
-      const organisme = f.organismeId ? await versClientResume(tx, ctx, await chargerClientLigne(tx, ctx, f.organismeId)) : null;
+      const organisme = f.organismeId
+        ? await versClientResume(tx, ctx, await chargerClientLigne(tx, ctx, f.organismeId))
+        : null;
       const resume = versFinancementResume(f, organisme);
       financements.push(resume);
-      if (financementCourantLigne && f.id === financementCourantLigne.id) financementCourant = resume;
+      if (financementCourantLigne && f.id === financementCourantLigne.id)
+        financementCourant = resume;
     }
 
     const documentsBrut = await listerDocumentsDossierBrut(tx, ctx, ligne.id);
     const documentsTronques = documentsBrut.length > SEUIL_DOCUMENTS_DOSSIER;
-    const documents = (documentsTronques ? documentsBrut.slice(0, SEUIL_DOCUMENTS_DOSSIER) : documentsBrut).map((d) => versDocumentVenteResume(d, role));
+    const documents = (
+      documentsTronques ? documentsBrut.slice(0, SEUIL_DOCUMENTS_DOSSIER) : documentsBrut
+    ).map((d) => versDocumentVenteResume(d, role));
 
     const documentsRequisLignes = await listerDocumentsRequis(tx, ctx, ligne.id);
     const documentsRequis = documentsRequisLignes.map(versDocumentRequisResponse);
 
     const journal = await this.audit.pourEntite(ctx, 'dossier_vente', ligne.id);
-    const modifiePar = await chargerResumeUtilisateur(tx, ctx, journal.at(-1)?.utilisateurId ?? null);
+    const modifiePar = await chargerResumeUtilisateur(
+      tx,
+      ctx,
+      journal.at(-1)?.utilisateurId ?? null,
+    );
 
     return versDossierVenteResponse({
       ligne,
@@ -586,14 +840,20 @@ export class ServiceDossierVente {
     tx: TransactionDfa,
     ctx: ContexteTenant,
     vehiculeId: string | null,
-  ): Promise<{ vehicule: VehiculeStockResume | null; typeVehicule: ReponseDossierVente['typeVehicule'] }> {
+  ): Promise<{
+    vehicule: VehiculeStockResume | null;
+    typeVehicule: ReponseDossierVente['typeVehicule'];
+  }> {
     if (!vehiculeId) return { vehicule: null, typeVehicule: null };
 
     const vehiculeStockLigne = await chargerVehiculeStock(tx, ctx, vehiculeId);
     const vehiculeLigne = await chargerVehiculeLigne(tx, ctx, vehiculeId);
     const plaque = await chargerPlaqueCourante(tx, ctx, vehiculeId);
     const resumeVehicule = construireVehiculeResume(vehiculeLigne, plaque);
-    const typeVehicule = calculerTypeVehicule(vehiculeStockLigne.provenance, vehiculeLigne.date1reCirculation);
+    const typeVehicule = calculerTypeVehicule(
+      vehiculeStockLigne.provenance,
+      vehiculeLigne.date1reCirculation,
+    );
 
     const vehicule: VehiculeStockResume = {
       id: vehiculeStockLigne.id,
@@ -607,10 +867,18 @@ export class ServiceDossierVente {
     return { vehicule, typeVehicule };
   }
 
-  private async assemblerRepriseResume(tx: TransactionDfa, ctx: ContexteTenant, dossierVenteId: string): Promise<RepriseResume | null> {
+  private async assemblerRepriseResume(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    dossierVenteId: string,
+  ): Promise<RepriseResume | null> {
     const repriseLigne = await chargerRepriseParDossierOuNull(tx, ctx, dossierVenteId, false);
     if (!repriseLigne) return null;
-    const vehiculeRepriseLigne = await chargerVehiculeLigne(tx, ctx, repriseLigne.vehiculeRepriseId);
+    const vehiculeRepriseLigne = await chargerVehiculeLigne(
+      tx,
+      ctx,
+      repriseLigne.vehiculeRepriseId,
+    );
     const plaqueReprise = await chargerPlaqueCourante(tx, ctx, repriseLigne.vehiculeRepriseId);
     const vehiculeRepriseResume = construireVehiculeResume(vehiculeRepriseLigne, plaqueReprise);
     return versRepriseResume(repriseLigne, vehiculeRepriseResume);
@@ -618,17 +886,26 @@ export class ServiceDossierVente {
 
   /** Utilisée par `engager()` — `null` si aucune reprise n'existe pour ce dossier, jamais une
    *  exception (la reprise reste une composante OPTIONNELLE, RV-25). */
-  private async chargerRepriseOuNullPourEcriture(tx: TransactionDfa, ctx: ContexteTenant, dossierVenteId: string): Promise<LigneReprise | null> {
+  private async chargerRepriseOuNullPourEcriture(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    dossierVenteId: string,
+  ): Promise<LigneReprise | null> {
     return chargerRepriseParDossierOuNull(tx, ctx, dossierVenteId, true);
   }
 
   private async transitionnerDossier(
     tx: TransactionDfa,
     ligne: LigneDossierVente,
-    champs: Partial<Omit<LigneDossierVente, 'id' | 'tenantId'>> & { readonly statut: LigneDossierVente['statut'] },
+    champs: Partial<Omit<LigneDossierVente, 'id' | 'tenantId'>> & {
+      readonly statut: LigneDossierVente['statut'];
+    },
   ): Promise<void> {
     try {
-      await tx.update(dossierVente).set(champs).where(and(eq(dossierVente.tenantId, ligne.tenantId), eq(dossierVente.id, ligne.id)));
+      await tx
+        .update(dossierVente)
+        .set(champs)
+        .where(and(eq(dossierVente.tenantId, ligne.tenantId), eq(dossierVente.id, ligne.id)));
     } catch (erreur) {
       const traduite = traduireErreurTransitionVente(erreur, ligne.id, ligne.id);
       if (traduite) throw traduite;
@@ -639,22 +916,42 @@ export class ServiceDossierVente {
   private async transitionnerVehiculeStock(
     tx: TransactionDfa,
     ligne: LigneVehiculeStock,
-    champs: Partial<Omit<LigneVehiculeStock, 'id' | 'tenantId'>> & { readonly statutCommercial: LigneVehiculeStock['statutCommercial'] },
+    champs: Partial<Omit<LigneVehiculeStock, 'id' | 'tenantId'>> & {
+      readonly statutCommercial: LigneVehiculeStock['statutCommercial'];
+    },
   ): Promise<void> {
-    await tx.update(vehiculeStock).set(champs).where(and(eq(vehiculeStock.tenantId, ligne.tenantId), eq(vehiculeStock.id, ligne.id)));
+    await tx
+      .update(vehiculeStock)
+      .set(champs)
+      .where(and(eq(vehiculeStock.tenantId, ligne.tenantId), eq(vehiculeStock.id, ligne.id)));
   }
 
   private async transitionnerReprise(
     tx: TransactionDfa,
     ligne: LigneReprise,
-    champs: Partial<Omit<LigneReprise, 'id' | 'tenantId'>> & { readonly statut: LigneReprise['statut'] },
+    champs: Partial<Omit<LigneReprise, 'id' | 'tenantId'>> & {
+      readonly statut: LigneReprise['statut'];
+    },
   ): Promise<void> {
     try {
-      await tx.update(reprise).set(champs).where(and(eq(reprise.tenantId, ligne.tenantId), eq(reprise.id, ligne.id)));
+      await tx
+        .update(reprise)
+        .set(champs)
+        .where(and(eq(reprise.tenantId, ligne.tenantId), eq(reprise.id, ligne.id)));
     } catch (erreur) {
       const traduite = traduireErreurTransitionVente(erreur, ligne.id, ligne.id);
       if (traduite) throw traduite;
       throw erreur;
     }
   }
+}
+
+/** `23505` = `unique_violation` PostgreSQL — course concurrente sur `vehicule_stock.id` (PK, =
+ *  `vehicule.id`) au moment de la mise en stock automatique d'une reprise confirmée. COPIE LOCALE
+ *  VOLONTAIRE de `service-vehicule-stock.ts::estViolationCleUnique` (non exportée) — même doctrine
+ *  de duplication assumée que `service-reprise.ts` pour la même petite fonction. */
+function estViolationCleUniqueVehiculeStock(erreur: unknown): boolean {
+  return (
+    typeof erreur === 'object' && erreur !== null && (erreur as { code?: unknown }).code === '23505'
+  );
 }

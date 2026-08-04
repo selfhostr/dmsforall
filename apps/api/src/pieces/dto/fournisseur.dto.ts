@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { STATUTS_FOURNISSEUR, type PageCurseur, type ReponseAvecAvertissements, type ReponseFournisseur } from '@dfa/shared';
+import {
+  STATUTS_FOURNISSEUR,
+  type PageCurseur,
+  type ReponseAvecAvertissements,
+  type ReponseFournisseur,
+} from '@dfa/shared';
 
 import { AvertissementDto } from './avertissement.dto';
 
@@ -16,7 +21,11 @@ export class FournisseurDto implements ReponseFournisseur {
   @ApiProperty({ type: String, nullable: true })
   readonly telephone!: string | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Délai habituel de livraison, en jours (RP-26) — indicatif.' })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Délai habituel de livraison, en jours (RP-26) — indicatif.',
+  })
   readonly delaiHabituelJours!: number | null;
 
   @ApiProperty({ enum: STATUTS_FOURNISSEUR })

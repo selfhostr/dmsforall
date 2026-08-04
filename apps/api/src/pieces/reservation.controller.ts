@@ -1,6 +1,10 @@
 import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
-import { schemaLiberationReservation, type EntreeLiberationReservation, type FiltresReservations } from '@dfa/shared';
+import {
+  schemaLiberationReservation,
+  type EntreeLiberationReservation,
+  type FiltresReservations,
+} from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
 import { CorpsZod } from '../common/documentation';
@@ -8,7 +12,11 @@ import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 
-import { PageReservationPieceDto, ReservationPieceAvecAvertissementsDto, ReservationPieceDto } from './dto';
+import {
+  PageReservationPieceDto,
+  ReservationPieceAvecAvertissementsDto,
+  ReservationPieceDto,
+} from './dto';
 import { schemaFiltresReservations, schemaUuid } from './schemas';
 import { ServiceReservation } from './service-reservation';
 
@@ -34,14 +42,18 @@ export class ReservationController {
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
-  async lister(@Query(new PipeZod(schemaFiltresReservations)) query: FiltresReservations): Promise<PageReservationPieceDto> {
+  async lister(
+    @Query(new PipeZod(schemaFiltresReservations)) query: FiltresReservations,
+  ): Promise<PageReservationPieceDto> {
     const ctx = this.contexte.contexteTenant();
     return this.service.lister(ctx, query);
   }
 
   @Post(':id/satisfaire')
   @ExigerDroit('pieces.reservation.satisfaire')
-  @ApiOperation({ summary: 'Le magasinier remet physiquement la pièce (RP-21) — génère le mouvement sortie_or.' })
+  @ApiOperation({
+    summary: 'Le magasinier remet physiquement la pièce (RP-21) — génère le mouvement sortie_or.',
+  })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: ReservationPieceDto })
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
@@ -55,7 +67,10 @@ export class ReservationController {
 
   @Post(':id/liberer')
   @ExigerDroit('pieces.reservation.liberer')
-  @ApiOperation({ summary: 'Geste explicite du magasinier ou du chef d’atelier (RP-23, 3e cas) : libère la réservation sans mouvement.' })
+  @ApiOperation({
+    summary:
+      'Geste explicite du magasinier ou du chef d’atelier (RP-23, 3e cas) : libère la réservation sans mouvement.',
+  })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: ReservationPieceAvecAvertissementsDto })
   @ApiReponseProbleme(400, 'Motif manquant ou trop court.')

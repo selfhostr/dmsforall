@@ -30,7 +30,10 @@ export class LigneCommandeFournisseurDto implements ReponseLigneCommandeFourniss
   @ApiProperty()
   readonly quantiteRecueCumuleeMillieme!: number;
 
-  @ApiProperty({ description: 'DÉRIVÉ : max(0, commandée - reçue), sauf reliquatAnnuleLe renseigné auquel cas 0 (RP-28).' })
+  @ApiProperty({
+    description:
+      'DÉRIVÉ : max(0, commandée - reçue), sauf reliquatAnnuleLe renseigné auquel cas 0 (RP-28).',
+  })
   readonly quantiteReliquatMillieme!: number;
 
   @ApiProperty({ type: String, format: 'date-time', nullable: true })
@@ -71,6 +74,13 @@ export class CommandeFournisseurDto implements ReponseCommandeFournisseur {
   @ApiProperty({ type: String, nullable: true })
   readonly reference!: string | null;
 
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: "Renseigné uniquement pour statut = 'annulee' (§6.2).",
+  })
+  readonly motifAnnulation!: string | null;
+
   @ApiProperty({ type: () => [LigneCommandeFournisseurDto] })
   readonly lignes!: readonly LigneCommandeFournisseurDto[];
 
@@ -109,7 +119,10 @@ export class PageCommandeFournisseurDto implements PageCurseur<CommandeFournisse
 }
 
 class ReceptionCommandeFournisseurDto implements ReponseReceptionCommandeFournisseur {
-  @ApiProperty({ type: () => [String], description: 'Un mouvement entree_livraison par ligne reçue de cet appel.' })
+  @ApiProperty({
+    type: () => [String],
+    description: 'Un mouvement entree_livraison par ligne reçue de cet appel.',
+  })
   readonly mouvementsCrees!: readonly string[];
 
   @ApiProperty({ type: () => CommandeFournisseurDto })
@@ -126,9 +139,7 @@ class ReceptionCommandeFournisseurDto implements ReponseReceptionCommandeFournis
  * contrat qui définit `T`), cohérent avec CHAQUE autre action de ce domaine qui peut produire un
  * avertissement (`ajustementInventaire`, `liberer`…).
  */
-export class ReceptionCommandeFournisseurAvecAvertissementsDto
-  implements ReponseAvecAvertissements<ReceptionCommandeFournisseurDto>
-{
+export class ReceptionCommandeFournisseurAvecAvertissementsDto implements ReponseAvecAvertissements<ReceptionCommandeFournisseurDto> {
   @ApiProperty({ type: () => ReceptionCommandeFournisseurDto })
   readonly donnees!: ReceptionCommandeFournisseurDto;
 

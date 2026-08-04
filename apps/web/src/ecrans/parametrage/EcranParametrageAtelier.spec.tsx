@@ -116,7 +116,9 @@ describe('EcranParametrageAtelier', () => {
     rendre();
 
     expect(screen.getByText(i18n.t('commun:chargement.enCours'))).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByLabelText(i18n.t('parametrage:atelier.or.prefixe'))).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByLabelText(i18n.t('parametrage:atelier.or.prefixe'))).toBeInTheDocument(),
+    );
   });
 
   it('affiche les valeurs actuelles et les domaines inertes en lecture seule (rôle habilité)', async () => {
@@ -124,9 +126,13 @@ describe('EcranParametrageAtelier', () => {
     server.use(http.get(CHEMIN, () => HttpResponse.json(PARAMETRES)));
     rendre();
 
-    expect(await screen.findByLabelText(i18n.t('parametrage:atelier.or.prefixe'))).toHaveValue('OR');
+    expect(await screen.findByLabelText(i18n.t('parametrage:atelier.or.prefixe'))).toHaveValue(
+      'OR',
+    );
     expect(screen.getByText(i18n.t('parametrage:atelier.aVenir.titre'))).toBeInTheDocument();
-    expect(screen.getAllByText(i18n.t('parametrage:atelier.aVenir.pasEncoreDisponible')).length).toBe(4);
+    expect(
+      screen.getAllByText(i18n.t('parametrage:atelier.aVenir.pasEncoreDisponible')).length,
+    ).toBe(4);
     expect(screen.queryByText(i18n.t('parametrage:atelier.lectureSeule'))).not.toBeInTheDocument();
   });
 
@@ -136,7 +142,9 @@ describe('EcranParametrageAtelier', () => {
     rendre();
 
     expect(await screen.findByText(i18n.t('parametrage:atelier.lectureSeule'))).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: i18n.t('commun:actions.enregistrer') })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: i18n.t('commun:actions.enregistrer') }),
+    ).not.toBeInTheDocument();
     // Champs désactivés, pas retirés — le réceptionnaire voit toujours la configuration réelle.
     expect(screen.getByLabelText(i18n.t('parametrage:atelier.or.prefixe'))).toBeDisabled();
   });
@@ -148,7 +156,11 @@ describe('EcranParametrageAtelier', () => {
       http.get(CHEMIN, () => HttpResponse.json(PARAMETRES)),
       http.patch(CHEMIN, async ({ request }) => {
         corpsRecu = await request.json();
-        return HttpResponse.json({ ...PARAMETRES, or: { ...PARAMETRES.or, prefixe: 'REP' }, version: PARAMETRES.version + 1 });
+        return HttpResponse.json({
+          ...PARAMETRES,
+          or: { ...PARAMETRES.or, prefixe: 'REP' },
+          version: PARAMETRES.version + 1,
+        });
       }),
     );
     rendre();
@@ -157,9 +169,13 @@ describe('EcranParametrageAtelier', () => {
     const utilisateur = userEvent.setup();
     await utilisateur.clear(champPrefixe);
     await utilisateur.type(champPrefixe, 'REP');
-    await utilisateur.click(screen.getByRole('button', { name: i18n.t('commun:actions.enregistrer') }));
+    await utilisateur.click(
+      screen.getByRole('button', { name: i18n.t('commun:actions.enregistrer') }),
+    );
 
-    expect(await screen.findByText(i18n.t('parametrage:atelier.enregistrementReussi'))).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n.t('parametrage:atelier.enregistrementReussi')),
+    ).toBeInTheDocument();
     expect(corpsRecu).toMatchObject({ or: { prefixe: 'REP' } });
     const corps = corpsRecu as Record<string, unknown>;
     expect(corps.facturation).toBeUndefined();
@@ -171,13 +187,21 @@ describe('EcranParametrageAtelier', () => {
     server.use(
       http.get(CHEMIN, () =>
         HttpResponse.json(
-          { type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE', title: 'Erreur interne', status: 500, code: 'ERREUR_INTERNE', instance: 'req-1' },
+          {
+            type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
+            title: 'Erreur interne',
+            status: 500,
+            code: 'ERREUR_INTERNE',
+            instance: 'req-1',
+          },
           { status: 500, headers: { 'content-type': 'application/problem+json' } },
         ),
       ),
     );
     rendre();
 
-    expect(await screen.findByRole('button', { name: i18n.t('commun:actions.reessayer') })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: i18n.t('commun:actions.reessayer') }),
+    ).toBeInTheDocument();
   });
 });

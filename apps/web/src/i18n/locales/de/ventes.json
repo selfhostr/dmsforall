@@ -1,0 +1,677 @@
+{
+  "titre": "Verkauf",
+  "commun": {
+    "titrePage": {
+      "parc": "Fahrzeugbestand",
+      "dossiers": "Verkaufsdossiers",
+      "dossierDetail": "Verkaufsdossier"
+    },
+    "typeVehicule": {
+      "vn": "VN",
+      "vo": "VO",
+      "vnLong": "Neuwagen",
+      "voLong": "Occasion",
+      "tous": "Alle"
+    },
+    "champs": {
+      "clientAcheteur": "Käufer",
+      "clientFacture": "Rechnungsempfänger",
+      "clientConducteur": "Fahrer",
+      "vehicule": "Fahrzeug",
+      "dateLivraisonEstimee": "Voraussichtliches Übergabedatum",
+      "dateLivraisonEffective": "Tatsächliches Übergabedatum",
+      "kilometrageDepart": "Kilometerstand bei Übergabe",
+      "unite": "Einheit",
+      "identitePieceType": "Vorgelegter Ausweis",
+      "referenceContrat": "Vertragsreferenz",
+      "organisme": "Institut"
+    },
+    "unites": {
+      "km": "Kilometer",
+      "mi": "Meilen"
+    },
+    "identitePieceType": {
+      "carteIdentite": "Identitätskarte",
+      "passeport": "Reisepass",
+      "permisConduire": "Führerausweis",
+      "titreSejour": "Aufenthaltsbewilligung",
+      "autre": "Andere"
+    },
+    "actions": {
+      "nouveauDossier": "Neues Verkaufsdossier",
+      "vendre": "Verkaufen",
+      "voirDossier": "Verkaufsdossier anzeigen",
+      "assignerVehicule": "Fahrzeug zuweisen",
+      "creerBonCommande": "Bestellung erstellen",
+      "creerDevis": "Kostenvoranschlag erstellen",
+      "proposerFinancement": "Finanzierung vorschlagen",
+      "ajouterReprise": "Eintausch hinzufügen"
+    },
+    "nonAssigne": "Kein Fahrzeug zugewiesen",
+    "nonRenseigne": "—",
+    "facturePar": "Rechnung an: {nom}",
+    "conducteurLigne": "Fahrer: {nom}",
+    "actuel": "Aktuell",
+    "chargementCourt": "Wird geladen…",
+    "organisme": {
+      "rechercheClientPlaceholder": "Kunde suchen…",
+      "aucunClientTrouve": "Kein Kunde entspricht dieser Suche."
+    }
+  },
+  "stock": {
+    "titre": "Fahrzeugbestand",
+    "filtres": {
+      "q": "Kennzeichen, VIN oder Bezeichnung…",
+      "statutCommercial": "Verkaufsstatus",
+      "statutTous": "Alle Status",
+      "typeVehicule": "Typ",
+      "typeTous": "Alle Typen",
+      "provenance": "Herkunft",
+      "provenanceToutes": "Alle Herkünfte",
+      "afficherVendusLivres": "Auch verkaufte/übergebene Fahrzeuge anzeigen"
+    },
+    "tri": {
+      "label": "Sortieren nach",
+      "joursStockDesc": "Am längsten im Bestand",
+      "dateEntreeStockDesc": "Neuester Bestandseingang",
+      "dateEntreeStockAsc": "Ältester Bestandseingang",
+      "prixVenteAsc": "Verkaufspreis aufsteigend",
+      "prixVenteDesc": "Verkaufspreis absteigend"
+    },
+    "colonnes": {
+      "vehicule": "Fahrzeug",
+      "type": "Typ",
+      "statut": "Status",
+      "joursStock": "Tage im Bestand",
+      "fraisRemiseEtat": "Instandsetzungskosten",
+      "prixVente": "Verkaufspreis"
+    },
+    "types": {
+      "vn": "VN",
+      "vo": "VO"
+    },
+    "provenances": {
+      "neuf_constructeur": "Herstellerneuwagen",
+      "reprise": "Eintausch",
+      "achat_particulier": "Ankauf bei Privatperson",
+      "achat_professionnel": "Ankauf bei Gewerbetreibendem",
+      "retour_leasing": "Rückgabe aus Leasing",
+      "demonstrateur": "Vorführwagen"
+    },
+    "statuts": {
+      "en_commande": "Bestellt",
+      "disponible": "Verfügbar",
+      "reserve": "Reserviert",
+      "vendu": "Verkauft",
+      "livre": "Übergeben"
+    },
+    "actions": {
+      "mettreAJour": "Aktualisieren",
+      "receptionner": "Annehmen",
+      "remettreDisponible": "Wieder verfügbar machen",
+      "marquerVendu": "Als verkauft markieren"
+    },
+    "champs": {
+      "site": "Standort",
+      "provenance": "Herkunft",
+      "statutCommercial": "Verkaufsstatus",
+      "typeVehicule": "Typ",
+      "dateEntreeStock": "Datum der Bestandsaufnahme",
+      "joursStock": "Tage im Bestand",
+      "prixAchat": "Ankaufspreis",
+      "fraisRemiseEtatCumules": "Kumulierte Instandsetzungskosten",
+      "prixVenteAffiche": "Angezeigter Verkaufspreis",
+      "vendeurPrecedentAssujetti": "Vorheriger Verkäufer MWST-pflichtig",
+      "receptionneLe": "Angenommen am",
+      "reserveLe": "Reserviert am",
+      "venduLe": "Verkauft am",
+      "livreLe": "Übergeben am",
+      "motif": "Grund"
+    },
+    "assujetti": {
+      "oui": "Ja",
+      "non": "Nein",
+      "nonRenseigne": "Nicht angegeben"
+    },
+    "joursStock": {
+      "libelle": "Tage im Bestand",
+      "valeur": "{n, plural, one {# Tag} other {# Tage}}"
+    },
+    "prixVenteAFixer": "noch festzulegen",
+    "prixNonFixe": "noch festzulegen",
+    "miseEnStock": {
+      "titre": "In den Bestand aufnehmen",
+      "champs": {
+        "site": "Standort",
+        "provenance": "Herkunft",
+        "dateEntreeStock": "Datum der Bestandsaufnahme",
+        "prixAchat": "Ankaufspreis",
+        "prixVenteAffiche": "Angezeigter Verkaufspreis",
+        "vendeurPrecedentAssujetti": "Vorheriger Verkäufer MWST-pflichtig"
+      },
+      "bouton": "In den Bestand aufnehmen"
+    },
+    "modification": {
+      "titre": "Kostenblatt bearbeiten",
+      "bouton": "Speichern"
+    },
+    "confirmations": {
+      "receptionnerTitre": "Dieses Fahrzeug annehmen?",
+      "receptionnerDescription": "Das Fahrzeug wechselt in den Status «Verfügbar».",
+      "remettreDisponibleTitre": "Dieses Fahrzeug wieder verfügbar machen?",
+      "remettreDisponibleMotifLabel": "Grund",
+      "remettreDisponibleMotifPlaceholder": "Erklären Sie, weshalb dieses Fahrzeug wieder verfügbar wird…"
+    },
+    "blocVente": {
+      "titre": "Verkauf",
+      "provenance": "Herkunft",
+      "prixAchat": "Ankaufspreis",
+      "fraisRemiseEtat": "Instandsetzungskosten",
+      "prixVente": "Angezeigter Verkaufspreis"
+    },
+    "liste": {
+      "titre": "Fahrzeugbestand",
+      "vide": "Kein Fahrzeug im Bestand.",
+      "rechercherPlaceholder": "Kennzeichen, VIN oder Bezeichnung…",
+      "erreur": {
+        "titre": "Der Fahrzeugbestand kann nicht angezeigt werden"
+      },
+      "colonnes": {
+        "vehicule": "Fahrzeug",
+        "type": "Typ",
+        "provenance": "Herkunft",
+        "statut": "Status",
+        "joursStock": "Tage im Bestand",
+        "prixVente": "Verkaufspreis"
+      },
+      "actions": {
+        "ficheCommerciale": "Verkaufsblatt",
+        "mettreEnStock": "In den Bestand aufnehmen"
+      },
+      "tri": {
+        "label": "Sortieren nach",
+        "dateEntreeStockDesc": "Neuester Bestandseingang",
+        "dateEntreeStockAsc": "Ältester Bestandseingang",
+        "joursStockDesc": "Am längsten im Bestand",
+        "prixVenteAsc": "Verkaufspreis aufsteigend",
+        "prixVenteDesc": "Verkaufspreis absteigend"
+      }
+    },
+    "fiche": {
+      "titre": "Verkaufsblatt",
+      "erreur": {
+        "titre": "Dieses Blatt kann nicht angezeigt werden"
+      },
+      "voirFicheVehicule": "Fahrzeugblatt anzeigen",
+      "actions": {
+        "mettreAJour": "Aktualisieren",
+        "receptionner": "Annehmen",
+        "remettreDisponible": "Wieder verfügbar machen",
+        "marquerVendu": "Als verkauft markieren"
+      },
+      "donneesCommerciales": "Verkaufsdaten",
+      "historique": "Verlauf",
+      "creeLe": "Erstellt am",
+      "modifieLe": "Geändert am",
+      "prixAchatVerrouille": "Der Ankaufspreis kann nach dem Verkauf nicht mehr geändert werden.",
+      "remettreDisponibleDescription": "Das Fahrzeug wird wieder verfügbar zum Verkauf.",
+      "receptionnerDescription": "Das Fahrzeug wechselt in den Status «Verfügbar».",
+      "marquerVenduDescription": "Das Fahrzeug wechselt in den Status «Verkauft»."
+    },
+    "entree": {
+      "titre": "In den Bestand aufnehmen",
+      "rechercherVehiculePlaceholder": "Kennzeichen, VIN oder Bezeichnung…",
+      "vehiculeIntrouvable": "Fahrzeug nicht gefunden?",
+      "creerVehicule": "Fahrzeugblatt erstellen",
+      "aucunVehiculeTitre": "Kein Fahrzeug gefunden",
+      "aucunVehiculeDescription": "Kein Fahrzeug entspricht dieser Suche.",
+      "choisirVehicule": "Auswählen",
+      "changerVehicule": "Fahrzeug ändern",
+      "mettreEnStock": "In den Bestand aufnehmen",
+      "provenanceAutre": "Andere Herkunft"
+    },
+    "vide": "Kein Fahrzeug im Bestand.",
+    "erreur": {
+      "titre": "Der Fahrzeugbestand kann nicht angezeigt werden"
+    },
+    "refus": {
+      "dejaExistant": "Dieses Fahrzeug ist bereits im Bestand."
+    }
+  },
+  "dossier": {
+    "titre": "Verkaufsdossiers",
+    "liste": {
+      "titre": "Verkaufsdossiers",
+      "nouveauDossier": "Neues Verkaufsdossier",
+      "vide": "Kein Verkaufsdossier.",
+      "vehiculeNonAssigne": "— nicht zugewiesen",
+      "erreur": {
+        "titre": "Die Verkaufsdossiers können nicht angezeigt werden"
+      },
+      "colonnes": {
+        "client": "Kunde",
+        "vehicule": "Fahrzeug",
+        "prix": "Preis",
+        "statut": "Status",
+        "dateLivraisonEstimee": "Voraussichtliche Übergabe"
+      },
+      "filtres": {
+        "q": "Kundenname oder Kennzeichen…",
+        "statut": "Status",
+        "statutLabel": "Status",
+        "statutActifs": "Aktive Dossiers",
+        "statutTous": "Alle Status",
+        "afficherTermines": "Auch abgeschlossene, stornierte oder aufgegebene Dossiers anzeigen"
+      },
+      "tri": {
+        "label": "Sortieren nach",
+        "prospectionLeDesc": "Neueste zuerst",
+        "prospectionLeAsc": "Älteste zuerst",
+        "dateLivraisonEstimeeAsc": "Nächste Übergabe zuerst",
+        "dateLivraisonEstimeeDesc": "Späteste Übergabe zuerst"
+      }
+    },
+    "creation": {
+      "titre": "Neues Verkaufsdossier",
+      "aideVehicule": "Optional — das Fahrzeug kann später zugewiesen werden.",
+      "aideClientFacture": "Optional — standardmässig der Käufer.",
+      "aideConducteur": "Optional — standardmässig der Käufer.",
+      "bouton": "Dossier erstellen"
+    },
+    "nouveau": {
+      "titre": "Neues Verkaufsdossier",
+      "creer": "Dossier erstellen",
+      "dateLivraisonEstimee": "Voraussichtliches Übergabedatum",
+      "siteManquant": {
+        "titre": "Kein Standort ausgewählt",
+        "description": "Wählen Sie einen Standort, um ein Verkaufsdossier zu erstellen."
+      },
+      "client": {
+        "titre": "Käufer",
+        "rechercherPlaceholder": "Kundenname…",
+        "aucun": "Kein Kunde entspricht dieser Suche."
+      },
+      "vehicule": {
+        "titre": "Fahrzeug",
+        "rechercherPlaceholder": "Kennzeichen, VIN oder Bezeichnung…",
+        "aucun": "Kein Fahrzeug im Bestand entspricht dieser Suche."
+      },
+      "clientFacture": {
+        "activer": "An einen anderen Kunden fakturieren",
+        "titre": "Rechnungsempfänger"
+      },
+      "clientConducteur": {
+        "activer": "Fahrer unterscheidet sich vom Käufer",
+        "titre": "Fahrer"
+      }
+    },
+    "fiche": {
+      "titre": "Verkaufsdossier",
+      "erreur": {
+        "titre": "Dieses Dossier kann nicht angezeigt werden"
+      },
+      "factureA": "Rechnung an: {nom}",
+      "conducteur": "Fahrer: {nom}",
+      "aucunVehicule": "Kein Fahrzeug zugewiesen",
+      "assignerVehicule": "Fahrzeug zuweisen",
+      "prix": "Preis",
+      "prixAucun": "Preis nicht festgelegt",
+      "prixIndicatif": "Unverbindlich (Kostenvoranschlag): {montant}",
+      "dateLivraisonEstimee": "Voraussichtliches Übergabedatum",
+      "modifier": {
+        "titre": "Dossier bearbeiten",
+        "vehicule": "Fahrzeug",
+        "vehiculeVerrouille": "Das Fahrzeug kann in diesem Stadium nicht mehr geändert werden."
+      }
+    },
+    "transitions": {
+      "engager": "Verbindlich bestellen",
+      "preparer": "Vorbereitung starten",
+      "marquerPretALivrer": "Als übergabebereit markieren",
+      "livrer": "Übergeben",
+      "cloturer": "Abschliessen",
+      "annuler": "Stornieren",
+      "abandonner": "Aufgeben",
+      "confirmer": "Bestätigen",
+      "aucuneActionDisponible": "Derzeit keine Aktion verfügbar.",
+      "bonCommande": "Bestellung",
+      "aucunBonCommande": "Keine Bestellung für dieses Dossier vorhanden",
+      "identitePieceType": "Vorgelegter Ausweis",
+      "identitePieceTypes": {
+        "carte_identite": "Identitätskarte",
+        "passeport": "Reisepass",
+        "permis_conduire": "Führerausweis",
+        "titre_sejour": "Aufenthaltsbewilligung",
+        "autre": "Andere"
+      },
+      "engagerConfirmation": "Das Fahrzeug wird reserviert.",
+      "engagerConfirmationReprise": "Der Eintausch wird bestätigt.",
+      "confirmerAction": "Bestätigen",
+      "cloturerDescription": "Rein administrativ — es erfolgt keine zusätzliche Prüfung.",
+      "dateLivraisonEffective": "Tatsächliches Übergabedatum",
+      "kilometrageDepart": "Kilometerstand bei Übergabe",
+      "livrerConfirmationDetention": "Der Besitz des Fahrzeugs geht an {nom} über.",
+      "livrerConfirmationGarantie": "Die Herstellergarantie beginnt an diesem Datum.",
+      "livrerConfirmationReprise": "Das eingetauschte Fahrzeug wird zum verhandelten Wert ({montant}) in den Bestand aufgenommen.",
+      "motif": "Grund",
+      "motifRequis": "Der Grund ist erforderlich.",
+      "annulerConfirmationVehicule": "Falls ein Fahrzeug für dieses Dossier reserviert ist, wird es wieder verkaufbar."
+    },
+    "statuts": {
+      "prospection": "In Anbahnung",
+      "engage": "Verbindlich bestellt",
+      "enPreparation": "In Vorbereitung",
+      "pretALivrer": "Übergabebereit",
+      "livre": "Übergeben",
+      "clos": "Abgeschlossen",
+      "annule": "Storniert",
+      "abandonne": "Aufgegeben"
+    },
+    "actions": {
+      "modifier": "Bearbeiten",
+      "engager": "Verbindlich bestellen",
+      "preparer": "Vorbereitung starten",
+      "marquerPretALivrer": "Als übergabebereit markieren",
+      "livrer": "Übergeben",
+      "cloturer": "Abschliessen",
+      "annuler": "Stornieren",
+      "abandonner": "Aufgeben"
+    },
+    "dates": {
+      "prospectionLe": "In Anbahnung",
+      "engageLe": "Verbindlich bestellt am",
+      "enPreparationLe": "In Vorbereitung seit",
+      "pretALivrerLe": "Übergabebereit seit",
+      "livreLe": "Übergeben am",
+      "closLe": "Abgeschlossen am"
+    },
+    "motifCloture": "Grund: {motif}",
+    "enTete": {
+      "vehiculeNonAssigne": "Kein Fahrzeug zugewiesen",
+      "prixIndicatifDevis": "Unverbindlich (Kostenvoranschlag)",
+      "prixNonDefini": "Preis nicht festgelegt",
+      "livraisonEstimee": "Voraussichtliche Übergabe: {date}"
+    },
+    "prochaineEtape": {
+      "titre": "Nächster Schritt",
+      "conditions": {
+        "vehiculeAssigne": "Fahrzeug zugewiesen",
+        "identiteVerifiee": "Identität geprüft",
+        "repriseNegociee": "Eintausch verhandelt",
+        "financementConfirme": "Finanzierung bestätigt",
+        "expertiseAJour": "MFK aktuell",
+        "documentsReunis": "Übergabedokumente vollständig"
+      },
+      "aFaire": {
+        "assignerVehicule": "Wer: Sie — ein Fahrzeug zuweisen",
+        "verifierIdentite": "Wer: Sie — einen Ausweis prüfen",
+        "negocierReprise": "Wer: Sie — den Eintausch vor der Unterschrift verhandeln",
+        "financementEnAttente": "Wer: {organisme} — Finanzierung ausstehend",
+        "financementEnAttenteGenerique": "Wer: die Finanzierungsgesellschaft — Finanzierung ausstehend",
+        "verifierExpertise": "Wer: die Werkstatt — MFK prüfen",
+        "documentsManquants": "{n, plural, one {Wer: # fehlendes Dokument} other {Wer: # fehlende Dokumente}}"
+      },
+      "resteAFaireCloturer": "Noch zu erledigen: Dossier abschliessen"
+    },
+    "actionsPanneau": {
+      "engager": {
+        "titre": "Verbindlich bestellen",
+        "champBonCommande": "Bestellung",
+        "aucunBonCommande": "Keine Bestellung für dieses Dossier vorhanden",
+        "champIdentite": "Vorgelegter Ausweis",
+        "consequenceVehicule": "Das Fahrzeug wird reserviert.",
+        "consequenceReprise": "Der Eintausch wird bestätigt."
+      },
+      "preparer": {
+        "titre": "Vorbereitung starten",
+        "description": "Den Start der Fahrzeugvorbereitung bestätigen."
+      },
+      "marquerPretALivrer": {
+        "titre": "Als übergabebereit markieren",
+        "description": "Bestätigen, dass das Dossier übergabebereit ist."
+      },
+      "cloturer": {
+        "titre": "Dossier abschliessen",
+        "description": "Rein administrativ — es erfolgt keine zusätzliche Prüfung."
+      },
+      "annuler": {
+        "titre": "Dossier stornieren",
+        "motifLabel": "Grund der Stornierung",
+        "motifPlaceholder": "Erklären Sie, weshalb dieses Dossier storniert wird…",
+        "consequenceVehicule": "Falls ein Fahrzeug für dieses Dossier reserviert ist, wird es wieder verkaufbar."
+      },
+      "abandonner": {
+        "titre": "Dossier aufgeben",
+        "motifLabel": "Grund der Aufgabe",
+        "motifPlaceholder": "Erklären Sie, weshalb dieses Dossier aufgegeben wird…",
+        "consequenceVehicule": "Falls ein Fahrzeug für dieses Dossier reserviert ist, wird es wieder verkaufbar."
+      }
+    },
+    "livraison": {
+      "titre": "Fahrzeug übergeben",
+      "champDateEffective": "Tatsächliches Übergabedatum",
+      "champKilometrageDepart": "Kilometerstand bei Übergabe",
+      "champUnite": "Einheit",
+      "consequenceDetention": "Der Besitz des Fahrzeugs geht an {nom} über.",
+      "consequenceGarantie": "Die Herstellergarantie beginnt an diesem Datum.",
+      "consequenceReprise": "Das eingetauschte Fahrzeug wird zum verhandelten Wert ({montant}) in den Bestand aufgenommen."
+    },
+    "documents": {
+      "titre": "Dokumente",
+      "vide": "Kein Dokument für dieses Dossier.",
+      "tronques": "Liste auf die ersten 50 Dokumente beschränkt",
+      "solde": "Saldo: {montant}",
+      "statuts": {
+        "brouillon": "Entwurf",
+        "emis": "Ausgestellt",
+        "accepte": "Angenommen",
+        "refuse": "Abgelehnt",
+        "expire": "Abgelaufen",
+        "remplace": "Ersetzt",
+        "transforme": "Umgewandelt",
+        "annule": "Storniert",
+        "annuleParAvoir": "Storniert durch Gutschrift",
+        "abandonne": "Aufgegeben"
+      },
+      "colonnes": {
+        "type": "Typ",
+        "numero": "Nummer",
+        "statut": "Status",
+        "montantTtc": "Betrag inkl. MWST",
+        "solde": "Saldo",
+        "date": "Datum"
+      }
+    },
+    "documentsRequis": {
+      "titre": "Erforderliche Dokumente",
+      "vide": "Kein Dokument für dieses Dossier erforderlich.",
+      "fourniLe": "Erbracht am {date}",
+      "erreurLigne": "Speichern nicht möglich — erneut versuchen"
+    },
+    "erreur": {
+      "titre": "Dieses Dossier kann nicht angezeigt werden",
+      "titreSection": "Dieser Abschnitt kann nicht geladen werden"
+    },
+    "refus": {
+      "vehiculeManquant": "Diesem Dossier ist kein Fahrzeug zugewiesen.",
+      "vehiculeIndisponible": "Dieses Fahrzeug ist nicht mehr verfügbar — ein anderes Dossier hat es inzwischen reserviert.",
+      "financementNonConfirme": "Die Finanzierung muss bestätigt sein, bevor das Dossier als übergabebereit markiert werden kann.",
+      "expertiseRequise": "Eine erforderliche MFK muss vor der Übergabe geklärt werden.",
+      "livraisonIncomplete": "Nicht alle für die Übergabe erforderlichen Elemente sind vorhanden.",
+      "annulationImpossible": "Dieses Dossier kann in diesem Stadium nicht mehr storniert oder aufgegeben werden.",
+      "transitionInterdite": "Dieser Übergang ist im aktuellen Status des Dossiers nicht zulässig."
+    }
+  },
+  "reprise": {
+    "titre": "Eintausch",
+    "absente": {
+      "titre": "Kein Eintausch bei diesem Dossier"
+    },
+    "aucuneReprise": "Kein Eintausch bei diesem Dossier.",
+    "valeurEstimee": "Geschätzter Wert",
+    "valeurNegociee": "Verhandelter Wert",
+    "enNegociation": "In Verhandlung",
+    "ecart": "Differenz: {montant}",
+    "detteResiduelle": "Restschuld aus Finanzierung: {montant}",
+    "detteConditionSuspensive": "Aufschiebende Bedingung des Eintauschs.",
+    "motif": "Grund",
+    "motifRequis": "Der Grund ist erforderlich.",
+    "motifRefusAffiche": "Grund der Ablehnung: {motif}",
+    "negociation": {
+      "avertissement": "Dieser Wert wird dem Kunden mitgeteilt und vom Ankaufspreis abgezogen.",
+      "valeurNegociee": "Neuer verhandelter Wert"
+    },
+    "confirmation": {
+      "avertissement": "Ausnahmsweise Korrektur — normalerweise wird dies automatisch bei der Unterschrift der Bestellung ausgelöst."
+    },
+    "transitions": {
+      "negocier": "Verhandeln",
+      "confirmer": "Bestätigen",
+      "refuser": "Ablehnen"
+    },
+    "creation": {
+      "titre": "Eintausch hinzufügen",
+      "description": "Das eingetauschte Fahrzeug wird bei der Übergabe zum verhandelten Wert in den Bestand aufgenommen.",
+      "champVehiculeRepris": "Eingetauschtes Fahrzeug",
+      "champVehicule": "Eingetauschtes Fahrzeug",
+      "champVehiculePlaceholder": "Kennzeichen oder Bezeichnung…",
+      "champVehiculeIndication": "Geben Sie ein Kennzeichen oder eine Bezeichnung ein, um das eingetauschte Fahrzeug zu suchen.",
+      "aucunVehiculeTrouve": "Kein Fahrzeug entspricht dieser Suche.",
+      "vehiculeSelectionne": "Ausgewähltes Fahrzeug: {designation}",
+      "champValeurEstimee": "Geschätzter Wert",
+      "valeurEstimee": "Geschätzter Wert",
+      "champDetteResiduelle": "Restschuld aus Finanzierung",
+      "champOrganisme": "Finanzierungsgesellschaft",
+      "aideOrganisme": "Suchen Sie einen bestehenden Kunden oder geben Sie einen Namen ein.",
+      "detteActive": "Restschuld aus Finanzierung auf diesem Fahrzeug",
+      "detteMontant": "Betrag der Schuld",
+      "detteOrganisme": "Institut",
+      "detteOrganismeModeClient": "Bestehender Kunde",
+      "detteOrganismeModeTexteLibre": "Freier Text",
+      "detteOrganismeRecherche": "Institut suchen",
+      "detteOrganismeTexte": "Name des Instituts",
+      "bouton": "Speichern"
+    },
+    "statuts": {
+      "estimee": "Geschätzt",
+      "negociee": "Verhandelt",
+      "confirmee": "Bestätigt",
+      "refusee": "Abgelehnt"
+    },
+    "actions": {
+      "creer": "Eintausch hinzufügen",
+      "ajouter": "Eintausch hinzufügen",
+      "modifier": "Schätzung überarbeiten",
+      "negocier": "Verhandeln",
+      "confirmer": "Bestätigen",
+      "refuser": "Ablehnen",
+      "confirmerAction": "Bestätigen",
+      "correctionMenu": "Korrekturaktionen"
+    },
+    "champs": {
+      "valeurEstimee": "Geschätzter Wert",
+      "valeurNegociee": "Verhandelter Wert",
+      "enNegociation": "In Verhandlung",
+      "ecart": "Differenz / Entgegenkommen",
+      "detteResiduelle": "Restschuld aus Finanzierung",
+      "detteAide": "Aufschiebende Bedingung des Eintauschs.",
+      "organisme": "Institut"
+    },
+    "modification": {
+      "titre": "Schätzung überarbeiten",
+      "bouton": "Speichern"
+    },
+    "negocier": {
+      "titre": "Eintausch verhandeln",
+      "champValeurNegociee": "Neuer verhandelter Wert",
+      "aide": "Dieser Wert wird dem Kunden mitgeteilt und vom Ankaufspreis abgezogen."
+    },
+    "confirmer": {
+      "titre": "Eintausch bestätigen",
+      "aide": "Ausnahmsweise Korrektur — normalerweise wird dies automatisch bei der Unterschrift der Bestellung ausgelöst.",
+      "motifLabel": "Grund"
+    },
+    "refuser": {
+      "titre": "Eintausch ablehnen",
+      "motifLabel": "Grund der Ablehnung",
+      "motifPlaceholder": "Erklären Sie, weshalb dieser Eintausch abgelehnt wird…"
+    },
+    "motifRefus": "Grund der Ablehnung: {motif}",
+    "erreur": {
+      "titre": "Dieser Eintausch kann nicht angezeigt werden"
+    },
+    "refus": {
+      "valeurNegocieeRequise": "Der Eintausch muss vor der Bestätigung verhandelt werden.",
+      "dejaExistante": "Für dieses Dossier besteht bereits ein Eintausch."
+    }
+  },
+  "financement": {
+    "titre": "Finanzierung",
+    "actuel": "Aktuell",
+    "absent": "Keine laufende Finanzierung.",
+    "aucunFinancement": "Kein Finanzierungsversuch erfasst.",
+    "historique": {
+      "titre": "Verlauf",
+      "vide": "Kein Finanzierungsversuch erfasst."
+    },
+    "tronque": "Verlauf auf die letzten 20 Versuche beschränkt",
+    "historiqueTronque": "Verlauf auf die letzten 20 Versuche beschränkt",
+    "motif": "Grund",
+    "motifRequis": "Der Grund ist erforderlich.",
+    "motifRefusAffiche": "Grund der Ablehnung: {motif}",
+    "types": {
+      "comptant": "Barzahlung",
+      "credit": "Kredit",
+      "leasing": "Leasing"
+    },
+    "statuts": {
+      "enAttente": "Ausstehend",
+      "confirme": "Bestätigt",
+      "refuse": "Abgelehnt"
+    },
+    "actions": {
+      "confirmer": "Bestätigen",
+      "refuser": "Ablehnen",
+      "proposer": "Finanzierung vorschlagen",
+      "confirmerAction": "Bestätigen"
+    },
+    "transitions": {
+      "confirmer": "Bestätigen",
+      "refuser": "Ablehnen"
+    },
+    "confirmation": {
+      "avertissement": "Bestätigen, dass diese Finanzierung gewährt wird."
+    },
+    "proposer": {
+      "titre": "Finanzierung vorschlagen",
+      "champType": "Finanzierungsart",
+      "champOrganisme": "Institut",
+      "champReferenceContrat": "Vertragsreferenz",
+      "aideComptant": "Für eine Barzahlung ist keine weitere Bestätigung erforderlich.",
+      "bouton": "Vorschlagen"
+    },
+    "creation": {
+      "titre": "Finanzierung vorschlagen",
+      "description": "Fügen Sie einen neuen Finanzierungsvorschlag für dieses Dossier hinzu.",
+      "champType": "Finanzierungsart",
+      "champOrganisme": "Institut",
+      "champReferenceContrat": "Vertragsreferenz",
+      "comptantAucuneConfirmation": "Für eine Barzahlung ist keine weitere Bestätigung erforderlich."
+    },
+    "confirmer": {
+      "titre": "Diese Finanzierung bestätigen"
+    },
+    "refuser": {
+      "titre": "Diese Finanzierung ablehnen",
+      "motifLabel": "Grund der Ablehnung",
+      "motifPlaceholder": "Erklären Sie, weshalb diese Finanzierung abgelehnt wird…"
+    },
+    "motifRefus": "Grund der Ablehnung: {motif}",
+    "erreur": {
+      "titre": "Die Finanzierung kann nicht angezeigt werden"
+    },
+    "refus": {
+      "nonConfirme": "Die Finanzierung muss bestätigt sein, bevor fortgefahren werden kann."
+    }
+  }
+}

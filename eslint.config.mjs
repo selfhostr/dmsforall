@@ -3,6 +3,7 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 export default tseslint.config(
   {
@@ -62,11 +63,32 @@ export default tseslint.config(
     languageOptions: {
       globals: { ...globals.browser },
     },
+    plugins: {
+      'react-hooks': reactHooks,
+    },
+    rules: {
+      // Seules les deux règles historiques de `eslint-plugin-react-hooks` (règles des hooks +
+      // exhaustivité des dépendances). La version 7 du paquet embarque désormais aussi les
+      // règles du React Compiler (purity, immutability, set-state-in-effect, etc.) : les activer
+      // serait une adoption d'outillage à part entière, pas un correctif mécanique — à évaluer
+      // séparément par expert-react si souhaité.
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+    },
   },
   {
     files: ['**/*.spec.ts', '**/*.test.ts', '**/test/**/*.ts'],
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
+  {
+    // JavaScript navigateur pur, hors du monorepo `apps/web` (pas de bundler, pas de types
+    // générés) : `document`/`window` doivent être déclarés explicitement, sinon `no-undef` les
+    // traite comme des globales inconnues.
+    files: ['ancien-site/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.browser },
     },
   },
   prettier,

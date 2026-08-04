@@ -47,7 +47,8 @@ import type { Action } from '../../auth/matrice-droits';
  *     `ServiceOr.modifier`, ce qui justifie désormais sa présence ici.)
  */
 
-export type CategorieAllowlistAction = 'verification-conditionnelle-service' | 'action-inerte-anticipee';
+export type CategorieAllowlistAction =
+  'verification-conditionnelle-service' | 'action-inerte-anticipee';
 
 export interface EntreeAllowlistAction {
   readonly action: Action;
@@ -71,8 +72,8 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
     action: 'vehicule.kilometrage.corriger_regression',
     categorie: 'verification-conditionnelle-service',
     justification:
-      "Contrôle réel : ServiceVehiculeKilometrage.creer() (apps/api/src/vehicules/service-vehicule-kilometrage.ts), " +
-      "bloc `if (decision.regressif) { const droitsDuRole = MATRICE_DROITS[role] ?? []; if " +
+      'Contrôle réel : ServiceVehiculeKilometrage.creer() (apps/api/src/vehicules/service-vehicule-kilometrage.ts), ' +
+      'bloc `if (decision.regressif) { const droitsDuRole = MATRICE_DROITS[role] ?? []; if ' +
       "(!droitsDuRole.includes('vehicule.kilometrage.corriger_regression')) throw ... }`, exécuté UNIQUEMENT quand le " +
       'relevé nouvellement soumis est inférieur au dernier relevé connu — jamais en permanence, sinon la saisie ' +
       'normale du technicien (droit vehicule.kilometrage.saisir) serait aussi bloquée par ce droit plus fort.',
@@ -91,14 +92,14 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
     categorie: 'verification-conditionnelle-service',
     justification:
       'Contrôle réel : ServiceOr.modifier() (apps/api/src/atelier/service-or.ts, ~lignes 248-270), bloc ' +
-      "`const modifiePlafond = entree.plafondCentimes !== undefined && entree.plafondCentimes !== (ligne.plafondCentimes " +
+      '`const modifiePlafond = entree.plafondCentimes !== undefined && entree.plafondCentimes !== (ligne.plafondCentimes ' +
       '?? undefined); if (modifiePlafond) { const droitsDuRole = MATRICE_DROITS[principal.role] ?? []; if ' +
       "(!droitsDuRole.includes('atelier.or.plafond_modifier')) throw ... }`, exécuté UNIQUEMENT quand la valeur de " +
       'plafondCentimes soumise diffère de la valeur actuelle en base (resoumettre la même valeur ne déclenche pas la ' +
       'garde) — jamais en permanence, sinon les modifications ordinaires des autres champs de la même route seraient ' +
       "aussi bloquées par ce droit plus fort. Le rôle est lu depuis l'appelant (principal.role), jamais depuis le " +
       'client. Couvert par 5 tests dans apps/api/src/atelier/service-or.spec.ts : refus 403 sans écriture en base ' +
-      "pour un rôle non habilité qui tente de RELEVER le plafond, acceptation pour un rôle habilité (réceptionnaire), " +
+      'pour un rôle non habilité qui tente de RELEVER le plafond, acceptation pour un rôle habilité (réceptionnaire), ' +
       'un champ ordinaire (localisation) reste modifiable sans le droit fort, resoumission de la même valeur ne ' +
       'déclenche pas la garde, et une BAISSE du plafond est bloquée aussi (pas seulement une hausse).',
   },
@@ -154,9 +155,9 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
     action: 'facturation.document.emettre_devis_bc',
     categorie: 'verification-conditionnelle-service',
     justification:
-      "Contrôle réel : ServiceEmissionDocument.verifierDroitEmission() (apps/api/src/facturation/documents/" +
+      'Contrôle réel : ServiceEmissionDocument.verifierDroitEmission() (apps/api/src/facturation/documents/' +
       'service-emission.ts, ~lignes 237-251), appelée par emettre() juste après chargement du document et AVANT ' +
-      "tout effet de bord (ligne 66, avant recalcul TVA/numérotation). Calcule `action` selon `typeDocument` réel " +
+      'tout effet de bord (ligne 66, avant recalcul TVA/numérotation). Calcule `action` selon `typeDocument` réel ' +
       "('devis'/'bon_commande' → 'facturation.document.emettre_devis_bc', 'facture' → '..._facture', 'avoir' → " +
       "'..._avoir'), puis vérifie `MATRICE_DROITS[principal.role].includes(action)` et lève DROIT_INSUFFISANT sinon " +
       '— même patron que atelier.or.plafond_modifier (ServiceOr.modifier). Le rôle est lu depuis principal.role ' +
@@ -170,7 +171,7 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
     action: 'facturation.document.emettre_facture',
     categorie: 'verification-conditionnelle-service',
     justification:
-      "Même contrôle réel que facturation.document.emettre_devis_bc ci-dessus : ServiceEmissionDocument." +
+      'Même contrôle réel que facturation.document.emettre_devis_bc ci-dessus : ServiceEmissionDocument.' +
       'verifierDroitEmission() (apps/api/src/facturation/documents/service-emission.ts, ~lignes 237-251), branche ' +
       "`typeDocument === 'facture' → action = 'facturation.document.emettre_facture'`, vérifiée contre " +
       'MATRICE_DROITS[principal.role] avant tout effet de bord. « Émettre une facture » est ✅ pour receptionnaire, ' +
@@ -182,7 +183,7 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
     action: 'facturation.document.emettre_avoir',
     categorie: 'verification-conditionnelle-service',
     justification:
-      "Même contrôle réel que facturation.document.emettre_devis_bc ci-dessus : ServiceEmissionDocument." +
+      'Même contrôle réel que facturation.document.emettre_devis_bc ci-dessus : ServiceEmissionDocument.' +
       'verifierDroitEmission() (apps/api/src/facturation/documents/service-emission.ts, ~lignes 237-251), branche ' +
       "`typeDocument === 'avoir' → action = 'facturation.document.emettre_avoir'`, vérifiée contre " +
       'MATRICE_DROITS[principal.role] avant tout effet de bord. ⚠️ RF-117 (plafond de montant sur l’émission ' +
@@ -203,8 +204,8 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
     action: 'vehicule.campagne.gerer',
     categorie: 'action-inerte-anticipee',
     justification:
-      "Aucune route HTTP pour ServiceVehiculeCampagne.creer()/modifier() au lot 1 — voir le commentaire de tête de " +
-      "apps/api/src/vehicules/vehicules.module.ts, juste au-dessus du décorateur @Module. Le service et le provider " +
+      'Aucune route HTTP pour ServiceVehiculeCampagne.creer()/modifier() au lot 1 — voir le commentaire de tête de ' +
+      'apps/api/src/vehicules/vehicules.module.ts, juste au-dessus du décorateur @Module. Le service et le provider ' +
       "existent, prêts pour un futur contrôleur d'écriture ; la lecture (campagnes ouvertes) passe par GET " +
       '.../contexte-atelier sous le droit vehicule.lire, pas sous cette action.',
   },
@@ -244,5 +245,40 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
       "(créer/confirmer/refuser), toutes décorées de leur propre action — aucune n'est ventes.financement.lire. " +
       "Vérifié par recherche texte : cette action n'apparaît dans aucun fichier du dépôt hors auth/matrice-" +
       'droits.ts et son spec.',
+  },
+  {
+    // Mode « borne partagée » du pointage (docs/specification-pointage-borne.md) : expert-auth a
+    // livré l'INFRASTRUCTURE d'identité (rôle `poste_atelier`, rattachement `utilisateur.site_id`,
+    // résolution du site depuis la session) SANS le code PIN lui-même — table `pin_pointage`,
+    // `POST /pointages/identification` et verrouillage anti-balayage appartiennent à l'agent
+    // suivant, qui construira dessus. Les deux actions existent DÈS MAINTENANT dans la matrice
+    // pour que cet agent s'appuie sur des noms figés et un périmètre de rôles déjà arbitré, au
+    // lieu d'en inventer et de faire diverger la matrice de sa spec. Aucune route ne les exerce
+    // aujourd'hui : il n'y a rien à décorer, et le déclarer ici vaut mieux que de le laisser
+    // deviner.
+    //
+    // À RETIRER par l'agent PIN au moment où il pose `@ExigerDroit('atelier.pointage.identifier')`
+    // sur `POST /pointages/identification` et `@ExigerDroit('atelier.pointage.gerer_pin')` sur les
+    // routes d'attribution/réinitialisation.
+    action: 'atelier.pointage.identifier',
+    categorie: 'action-inerte-anticipee',
+    justification:
+      "Aucun endpoint POST /pointages/identification n'existe encore : expert-auth a livré l'identité de la borne " +
+      '(rôle poste_atelier, utilisateur.site_id, PrincipalAuthentifie.siteId, migration 0039) mais PAS le code PIN, ' +
+      "explicitement hors de son périmètre. L'action est posée en amont pour que l'agent qui construira " +
+      'pin_pointage reprenne un nom et un périmètre de rôles déjà arbitrés (poste_atelier SEUL) plutôt que de les ' +
+      'réinventer. À retirer de cette allowlist en même temps que la route sera décorée.',
+  },
+  {
+    // Même livraison, même raison que `atelier.pointage.identifier` ci-dessus : le droit de gestion
+    // des PIN (RM-128, chef_atelier/direction/admin) est arbitré maintenant, ses routes viendront
+    // avec le module PIN.
+    action: 'atelier.pointage.gerer_pin',
+    categorie: 'action-inerte-anticipee',
+    justification:
+      "Aucune route d'attribution/réinitialisation de PIN n'existe encore (table pin_pointage non créée, hors " +
+      "périmètre d'expert-auth). Droit arbitré en amont — RM-128 : chef_atelier/direction/admin, délibérément plus " +
+      'permissif que parametrage.atelier.modifier qui gouverne le MODE du site — pour que la matrice ne diverge ' +
+      "jamais de la spec pendant l'intervalle. À retirer quand les routes seront décorées.",
   },
 ];

@@ -95,7 +95,11 @@ export interface DtoParametresAtelier {
   readonly version: number;
 }
 
-const PRODUITS_ATELIER_DEFAUT = { mode: 'desactive', pourmille: null, plafondCentimes: null } as const;
+const PRODUITS_ATELIER_DEFAUT = {
+  mode: 'desactive',
+  pourmille: null,
+  plafondCentimes: null,
+} as const;
 const RAPPEL_DEFAUT = { canal: 'sms', joursAvant: 1 } as const;
 
 /** `fonctionnalites` — calculé, jamais stocké (Δ3, `db/migrations/0005_parametrage.sql`). Fixe au
@@ -107,7 +111,9 @@ export const FONCTIONNALITES_REPONSE_LOT1 = {
   prets: false,
 } as const;
 
-export function versDtoParametresAtelier(ligne: schema.LigneParametreAtelier): DtoParametresAtelier {
+export function versDtoParametresAtelier(
+  ligne: schema.LigneParametreAtelier,
+): DtoParametresAtelier {
   const produitsAtelier = (ligne.produitsAtelier ?? {}) as Partial<typeof PRODUITS_ATELIER_DEFAUT>;
 
   return {
@@ -182,17 +188,25 @@ export function versColonnesMiseAJour(
 
   if (entree.or) {
     if (entree.or.prefixe !== undefined) colonnes.orPrefixe = entree.or.prefixe;
-    if (entree.or.porteeNumerotation !== undefined) colonnes.orPorteeNumerotation = entree.or.porteeNumerotation;
+    if (entree.or.porteeNumerotation !== undefined)
+      colonnes.orPorteeNumerotation = entree.or.porteeNumerotation;
     if (entree.or.resetAnnuel !== undefined) colonnes.orResetAnnuel = entree.or.resetAnnuel;
-    if (entree.or.etatPlanifieActif !== undefined) colonnes.etatPlanifieActif = entree.or.etatPlanifieActif;
-    if (entree.or.sansRdvAutorise !== undefined) colonnes.orSansRdvAutorise = entree.or.sansRdvAutorise;
-    if (entree.or.rdvRetroactifAuto !== undefined) colonnes.rdvRetroactifAuto = entree.or.rdvRetroactifAuto;
-    if (entree.or.deuxOrMemeVehicule !== undefined) colonnes.deuxOrMemeVehicule = entree.or.deuxOrMemeVehicule;
+    if (entree.or.etatPlanifieActif !== undefined)
+      colonnes.etatPlanifieActif = entree.or.etatPlanifieActif;
+    if (entree.or.sansRdvAutorise !== undefined)
+      colonnes.orSansRdvAutorise = entree.or.sansRdvAutorise;
+    if (entree.or.rdvRetroactifAuto !== undefined)
+      colonnes.rdvRetroactifAuto = entree.or.rdvRetroactifAuto;
+    if (entree.or.deuxOrMemeVehicule !== undefined)
+      colonnes.deuxOrMemeVehicule = entree.or.deuxOrMemeVehicule;
   }
   if (entree.reception) {
-    if (entree.reception.kmEntreeObligatoire !== undefined) colonnes.kmEntreeObligatoire = entree.reception.kmEntreeObligatoire;
-    if (entree.reception.kmSortieObligatoire !== undefined) colonnes.kmSortieObligatoire = entree.reception.kmSortieObligatoire;
-    if (entree.reception.signature !== undefined) colonnes.signatureReception = entree.reception.signature;
+    if (entree.reception.kmEntreeObligatoire !== undefined)
+      colonnes.kmEntreeObligatoire = entree.reception.kmEntreeObligatoire;
+    if (entree.reception.kmSortieObligatoire !== undefined)
+      colonnes.kmSortieObligatoire = entree.reception.kmSortieObligatoire;
+    if (entree.reception.signature !== undefined)
+      colonnes.signatureReception = entree.reception.signature;
     if (entree.reception.plafondDefautCentimes !== undefined) {
       colonnes.plafondDefautCentimes = entree.reception.plafondDefautCentimes;
     }
@@ -201,19 +215,22 @@ export function versColonnesMiseAJour(
     // juste au-dessus) — l'omettre du corps laisse la colonne inchangée, l'envoyer explicitement
     // à `null` doit pouvoir l'effacer.
     if (entree.reception.plafondAvoirReceptionnaireCentimes !== undefined) {
-      colonnes.plafondAvoirReceptionnaireCentimes = entree.reception.plafondAvoirReceptionnaireCentimes;
+      colonnes.plafondAvoirReceptionnaireCentimes =
+        entree.reception.plafondAvoirReceptionnaireCentimes;
     }
   }
   if (entree.travaux) {
     if (entree.travaux.uniteTemps !== undefined) colonnes.uniteTemps = entree.travaux.uniteTemps;
-    if (entree.travaux.arrondiPointage !== undefined) colonnes.arrondiPointage = entree.travaux.arrondiPointage;
+    if (entree.travaux.arrondiPointage !== undefined)
+      colonnes.arrondiPointage = entree.travaux.arrondiPointage;
     if (entree.travaux.chevauchementPointageAutorise !== undefined) {
       colonnes.chevauchementPointageAutorise = entree.travaux.chevauchementPointageAutorise;
     }
     if (entree.travaux.pointageObligatoirePourTerminer !== undefined) {
       colonnes.pointageObligatoirePourTerminer = entree.travaux.pointageObligatoirePourTerminer;
     }
-    if (entree.travaux.controleQualite !== undefined) colonnes.controleQualite = entree.travaux.controleQualite;
+    if (entree.travaux.controleQualite !== undefined)
+      colonnes.controleQualite = entree.travaux.controleQualite;
     if (entree.travaux.dureeMaxPointageHeures !== undefined) {
       colonnes.pointageDureeMaxHeures = entree.travaux.dureeMaxPointageHeures;
     }
@@ -236,17 +253,22 @@ export function versColonnesMiseAJour(
   }
   if (entree.documents) {
     if (entree.documents.langue !== undefined) colonnes.langueDocuments = entree.documents.langue;
-    if (entree.documents.mentionSecurite !== undefined) colonnes.mentionSecurite = entree.documents.mentionSecurite;
+    if (entree.documents.mentionSecurite !== undefined)
+      colonnes.mentionSecurite = entree.documents.mentionSecurite;
   }
   if (entree.vehicule) {
-    if (entree.vehicule.expertiseAlerteMois !== undefined) colonnes.expertiseAlerteMois = entree.vehicule.expertiseAlerteMois;
+    if (entree.vehicule.expertiseAlerteMois !== undefined)
+      colonnes.expertiseAlerteMois = entree.vehicule.expertiseAlerteMois;
     if (entree.vehicule.visibiliteHistoriqueNouveauDetenteur !== undefined) {
-      colonnes.visibiliteHistoriqueNouveauDetenteur = entree.vehicule.visibiliteHistoriqueNouveauDetenteur;
+      colonnes.visibiliteHistoriqueNouveauDetenteur =
+        entree.vehicule.visibiliteHistoriqueNouveauDetenteur;
     }
   }
   if (entree.planning) {
-    if (entree.planning.noShowSeuilAlerte !== undefined) colonnes.noShowSeuilAlerte = entree.planning.noShowSeuilAlerte;
-    if (entree.planning.tamponPretMinutes !== undefined) colonnes.tamponPretMinutes = entree.planning.tamponPretMinutes;
+    if (entree.planning.noShowSeuilAlerte !== undefined)
+      colonnes.noShowSeuilAlerte = entree.planning.noShowSeuilAlerte;
+    if (entree.planning.tamponPretMinutes !== undefined)
+      colonnes.tamponPretMinutes = entree.planning.tamponPretMinutes;
     // `rappel` : pas de colonne, voir le commentaire de `DtoParametresAtelier.planning.rappel`.
   }
 

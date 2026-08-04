@@ -18,13 +18,29 @@ import type {
 } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
-import { ligneOr, tauxHoraire, type LigneLigneOr, type LigneOrdreReparation, type LigneTauxHoraire } from '../db/schema';
+import {
+  ligneOr,
+  tauxHoraire,
+  type LigneLigneOr,
+  type LigneOrdreReparation,
+  type LigneTauxHoraire,
+} from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { JETON_EVENEMENTS, type ServiceEvenements } from '../common/evenements';
-import { JETON_IDEMPOTENCE, type ReponseMemorisable, type ResultatIdempotent, type ServiceIdempotence } from '../common/idempotence';
+import {
+  JETON_IDEMPOTENCE,
+  type ReponseMemorisable,
+  type ResultatIdempotent,
+  type ServiceIdempotence,
+} from '../common/idempotence';
 
-import { JETON_CALCUL_LIGNE, JETON_CREATION_TRAVAIL_REPORTE, type CalculLigne, type CreationTravailReporte } from './atelier.jetons';
+import {
+  JETON_CALCUL_LIGNE,
+  JETON_CREATION_TRAVAIL_REPORTE,
+  type CalculLigne,
+  type CreationTravailReporte,
+} from './atelier.jetons';
 import { roleVoitLesMontants, mapperLigneOr } from './mappeurs';
 import {
   chargerLigneOrPourEcriture,
@@ -34,14 +50,23 @@ import {
   listerLignesOr,
 } from './or-requetes';
 import { chargerClientLigne } from './references';
-import { decoderCurseurOffset, encoderCurseurOffset, estOrVerrouille, ServiceOr } from './service-or';
+import {
+  decoderCurseurOffset,
+  encoderCurseurOffset,
+  estOrVerrouille,
+  ServiceOr,
+} from './service-or';
 import { traduireErreurTransition } from './traducteur-transition';
 
 /** `AC-08`/`MD-62`/`MD-67` : `payeurClientId` obligatoire et UNIQUEMENT pour ces trois payeurs —
  *  règle SERVEUR (pas zod, voir le commentaire de `ReponseLigneOr.payeurClientId` dans le
  *  contrat) : `schemaCreationLigneOr` doit rester un `ZodObject` nu pour que
  *  `schemaModificationLigneOr` continue à l'`.omit()`/`.partial()`. */
-const PAYEURS_AVEC_TIERS: ReadonlySet<PayeurLigneOr> = new Set(['constructeur', 'assurance', 'tiers']);
+const PAYEURS_AVEC_TIERS: ReadonlySet<PayeurLigneOr> = new Set([
+  'constructeur',
+  'assurance',
+  'tiers',
+]);
 
 /**
  * Lignes d'ordre de réparation (contrats-api-etape-1.md §7.8) : création, modification libre,
@@ -89,7 +114,8 @@ export class ServiceLigneOr {
       const toutes = await listerLignesOr(tx, ctx, orId);
 
       const filtrees = toutes.filter((l) => {
-        if (filtres.statut && filtres.statut.length > 0 && !filtres.statut.includes(l.statut)) return false;
+        if (filtres.statut && filtres.statut.length > 0 && !filtres.statut.includes(l.statut))
+          return false;
         if (filtres.origine && l.origine !== filtres.origine) return false;
         if (filtres.payeur && l.payeur !== filtres.payeur) return false;
         if (filtres.technicienId && l.technicienId !== filtres.technicienId) return false;
@@ -99,7 +125,8 @@ export class ServiceLigneOr {
 
       const decalage = decoderCurseurOffset(curseur);
       const page = filtrees.slice(decalage, decalage + limite);
-      const curseurSuivant = decalage + limite < filtrees.length ? encoderCurseurOffset(decalage + limite) : null;
+      const curseurSuivant =
+        decalage + limite < filtrees.length ? encoderCurseurOffset(decalage + limite) : null;
 
       return { donnees: page.map((l) => mapperLigneOr(l, principal.role)), curseurSuivant, limite };
     });
@@ -117,10 +144,17 @@ export class ServiceLigneOr {
     orId: string,
     entree: EntreeCreationLigneOr,
     cleIdempotence: string,
-  ): Promise<ResultatIdempotent<ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseLigneOr> }>> {
+  ): Promise<
+    ResultatIdempotent<ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseLigneOr> }>
+  > {
     return this.idempotence.executer(
       ctx,
-      { methode: 'POST', chemin: '/ordres-reparation/:orId/lignes', cle: cleIdempotence, corps: { orId, ...entree } },
+      {
+        methode: 'POST',
+        chemin: '/ordres-reparation/:orId/lignes',
+        cle: cleIdempotence,
+        corps: { orId, ...entree },
+      },
       async (tx) => {
         const or = await chargerOrPourEcriture(tx, ctx, orId);
         this.garantirNonVerrouille(or, orId);
@@ -132,9 +166,19 @@ export class ServiceLigneOr {
           ? await this.resoudreTauxHoraireCentimes(tx, ctx, or)
           : null;
         if (this.estMainOeuvre(entree.type) && tauxHoraireCentimes === null) {
-          throw new ErreurMetier('VALIDATION_ECHOUEE', 'Aucun taux horaire résoluble pour cette ligne de main d’œuvre.', {
-            erreurs: [{ champ: 'type', code: 'taux_horaire_introuvable', message: 'Taux horaire introuvable ou absent des conditions client (RM-65).' }],
-          });
+          throw new ErreurMetier(
+            'VALIDATION_ECHOUEE',
+            'Aucun taux horaire résoluble pour cette ligne de main d’œuvre.',
+            {
+              erreurs: [
+                {
+                  champ: 'type',
+                  code: 'taux_horaire_introuvable',
+                  message: 'Taux horaire introuvable ou absent des conditions client (RM-65).',
+                },
+              ],
+            },
+          );
         }
 
         const montants =
@@ -158,19 +202,49 @@ export class ServiceLigneOr {
         // de contrainte traduite après coup.
         const payeurAttendTiers = PAYEURS_AVEC_TIERS.has(entree.payeur);
         if (payeurAttendTiers && !entree.payeurClientId) {
-          throw new ErreurMetier('VALIDATION_ECHOUEE', `payeurClientId est obligatoire pour payeur = « ${entree.payeur} » (AC-08, MD-62).`, {
-            erreurs: [{ champ: 'payeurClientId', code: 'requis', message: 'Le tiers payeur doit être désigné.' }],
-          });
+          throw new ErreurMetier(
+            'VALIDATION_ECHOUEE',
+            `payeurClientId est obligatoire pour payeur = « ${entree.payeur} » (AC-08, MD-62).`,
+            {
+              erreurs: [
+                {
+                  champ: 'payeurClientId',
+                  code: 'requis',
+                  message: 'Le tiers payeur doit être désigné.',
+                },
+              ],
+            },
+          );
         }
         if (!payeurAttendTiers && entree.payeurClientId) {
-          throw new ErreurMetier('VALIDATION_ECHOUEE', `payeurClientId doit être absent pour payeur = « ${entree.payeur} » (AC-08, MD-62).`, {
-            erreurs: [{ champ: 'payeurClientId', code: 'interdit', message: "Seuls 'constructeur', 'assurance' et 'tiers' portent un tiers payeur." }],
-          });
+          throw new ErreurMetier(
+            'VALIDATION_ECHOUEE',
+            `payeurClientId doit être absent pour payeur = « ${entree.payeur} » (AC-08, MD-62).`,
+            {
+              erreurs: [
+                {
+                  champ: 'payeurClientId',
+                  code: 'interdit',
+                  message: "Seuls 'constructeur', 'assurance' et 'tiers' portent un tiers payeur.",
+                },
+              ],
+            },
+          );
         }
         if (entree.payeurClientId) await chargerClientLigne(tx, ctx, entree.payeurClientId);
 
-        const statutInitial = this.determinerStatutInitial(entree.origine, entree.payeur, or, montants.montantTtcCentimes);
-        const blocage = entree.blocage !== 'aucun' ? entree.blocage : statutInitial === 'a_valider' ? 'accord' : 'aucun';
+        const statutInitial = this.determinerStatutInitial(
+          entree.origine,
+          entree.payeur,
+          or,
+          montants.montantTtcCentimes,
+        );
+        const blocage =
+          entree.blocage !== 'aucun'
+            ? entree.blocage
+            : statutInitial === 'a_valider'
+              ? 'accord'
+              : 'aucun';
 
         const [ligne] = await tx
           .insert(ligneOr)
@@ -207,7 +281,10 @@ export class ServiceLigneOr {
           })
           .returning();
         if (!ligne) {
-          throw new ErreurMetier('ERREUR_INTERNE', "L'insertion de la ligne n'a rendu aucune ligne.");
+          throw new ErreurMetier(
+            'ERREUR_INTERNE',
+            "L'insertion de la ligne n'a rendu aucune ligne.",
+          );
         }
 
         if (entree.origine === 'constatee') {
@@ -220,7 +297,10 @@ export class ServiceLigneOr {
           });
         }
 
-        return { statutHttp: 201, corps: { donnees: mapperLigneOr(ligne, principal.role), avertissements: [] } };
+        return {
+          statutHttp: 201,
+          corps: { donnees: mapperLigneOr(ligne, principal.role), avertissements: [] },
+        };
       },
     );
   }
@@ -260,7 +340,11 @@ export class ServiceLigneOr {
         : ligne.tauxHoraireCentimes;
 
       const montants = !champsTarifRenseignes
-        ? { montantHtCentimes: ligne.montantHtCentimes, montantTvaCentimes: ligne.montantTvaCentimes, montantTtcCentimes: ligne.montantTtcCentimes }
+        ? {
+            montantHtCentimes: ligne.montantHtCentimes,
+            montantTvaCentimes: ligne.montantTvaCentimes,
+            montantTtcCentimes: ligne.montantTtcCentimes,
+          }
         : payeurEffectif === 'garage'
           ? { montantHtCentimes: 0, montantTvaCentimes: 0, montantTtcCentimes: 0 }
           : this.calcul.calculer({
@@ -277,28 +361,65 @@ export class ServiceLigneOr {
       // (après fusion avec l'existant) — un `PATCH { payeur: 'assurance' }` sans `payeurClientId`
       // (ni sur la ligne existante ni dans ce corps) doit être refusé, pas silencieusement accepté
       // avec un tiers `null`.
-      const payeurClientIdEffectif = entree.payeurClientId !== undefined ? entree.payeurClientId : ligne.payeurClientId;
+      const payeurClientIdEffectif =
+        entree.payeurClientId !== undefined ? entree.payeurClientId : ligne.payeurClientId;
       const payeurEffectifAttendTiers = PAYEURS_AVEC_TIERS.has(payeurEffectif);
       if (payeurEffectifAttendTiers && !payeurClientIdEffectif) {
-        throw new ErreurMetier('VALIDATION_ECHOUEE', `payeurClientId est obligatoire pour payeur = « ${payeurEffectif} » (AC-08, MD-62).`, {
-          erreurs: [{ champ: 'payeurClientId', code: 'requis', message: 'Le tiers payeur doit être désigné.' }],
-        });
+        throw new ErreurMetier(
+          'VALIDATION_ECHOUEE',
+          `payeurClientId est obligatoire pour payeur = « ${payeurEffectif} » (AC-08, MD-62).`,
+          {
+            erreurs: [
+              {
+                champ: 'payeurClientId',
+                code: 'requis',
+                message: 'Le tiers payeur doit être désigné.',
+              },
+            ],
+          },
+        );
       }
       if (!payeurEffectifAttendTiers && payeurClientIdEffectif) {
-        throw new ErreurMetier('VALIDATION_ECHOUEE', `payeurClientId doit être absent pour payeur = « ${payeurEffectif} » (AC-08, MD-62).`, {
-          erreurs: [{ champ: 'payeurClientId', code: 'interdit', message: "Seuls 'constructeur', 'assurance' et 'tiers' portent un tiers payeur." }],
-        });
+        throw new ErreurMetier(
+          'VALIDATION_ECHOUEE',
+          `payeurClientId doit être absent pour payeur = « ${payeurEffectif} » (AC-08, MD-62).`,
+          {
+            erreurs: [
+              {
+                champ: 'payeurClientId',
+                code: 'interdit',
+                message: "Seuls 'constructeur', 'assurance' et 'tiers' portent un tiers payeur.",
+              },
+            ],
+          },
+        );
       }
       if (entree.payeurClientId) await chargerClientLigne(tx, ctx, entree.payeurClientId);
 
-      const STATUTS_COMPTES_DANS_PLAFOND: ReadonlySet<LigneLigneOr['statut']> = new Set(['validee', 'en_cours', 'realisee', 'facturee']);
+      const STATUTS_COMPTES_DANS_PLAFOND: ReadonlySet<LigneLigneOr['statut']> = new Set([
+        'validee',
+        'en_cours',
+        'realisee',
+        'facturee',
+      ]);
       if (or.plafondCentimes !== null && STATUTS_COMPTES_DANS_PLAFOND.has(ligne.statut)) {
-        const nouveauTotal = or.totalValideCentimes - ligne.montantTtcCentimes + montants.montantTtcCentimes;
+        const nouveauTotal =
+          or.totalValideCentimes - ligne.montantTtcCentimes + montants.montantTtcCentimes;
         if (nouveauTotal > or.plafondCentimes) {
-          throw new ErreurMetier('OR_PLAFOND_DEPASSE', `Le plafond autorisé (${String(or.plafondCentimes)} centimes) serait dépassé.`, {
-            blocages: [this.blocageLigne(ligne, roleVoitLesMontants(principal.role))],
-            actionsProposees: [{ code: 'CREER_DEVIS_COMPLEMENTAIRE', methode: 'POST', parametres: { ligneIds: [ligneId] } }],
-          });
+          throw new ErreurMetier(
+            'OR_PLAFOND_DEPASSE',
+            `Le plafond autorisé (${String(or.plafondCentimes)} centimes) serait dépassé.`,
+            {
+              blocages: [this.blocageLigne(ligne, roleVoitLesMontants(principal.role))],
+              actionsProposees: [
+                {
+                  code: 'CREER_DEVIS_COMPLEMENTAIRE',
+                  methode: 'POST',
+                  parametres: { ligneIds: [ligneId] },
+                },
+              ],
+            },
+          );
         }
       }
 
@@ -307,22 +428,45 @@ export class ServiceLigneOr {
         .set({
           ...(entree.type !== undefined ? { type: entree.type } : {}),
           ...(entree.designation !== undefined ? { designation: entree.designation } : {}),
-          ...(entree.referenceTexte !== undefined ? { referenceTexte: entree.referenceTexte ?? null } : {}),
-          ...(entree.quantiteMillieme !== undefined ? { quantiteMillieme: entree.quantiteMillieme } : {}),
-          ...(entree.tempsBaremeCentiemes !== undefined ? { tempsBaremeCentiemes: entree.tempsBaremeCentiemes ?? null } : {}),
-          ...(entree.prixUnitaireCentimes !== undefined ? { prixUnitaireCentimes: entree.prixUnitaireCentimes ?? null } : {}),
-          ...(entree.rabaisPourmille !== undefined ? { rabaisPourmille: entree.rabaisPourmille } : {}),
+          ...(entree.referenceTexte !== undefined
+            ? { referenceTexte: entree.referenceTexte ?? null }
+            : {}),
+          ...(entree.quantiteMillieme !== undefined
+            ? { quantiteMillieme: entree.quantiteMillieme }
+            : {}),
+          ...(entree.tempsBaremeCentiemes !== undefined
+            ? { tempsBaremeCentiemes: entree.tempsBaremeCentiemes ?? null }
+            : {}),
+          ...(entree.prixUnitaireCentimes !== undefined
+            ? { prixUnitaireCentimes: entree.prixUnitaireCentimes ?? null }
+            : {}),
+          ...(entree.rabaisPourmille !== undefined
+            ? { rabaisPourmille: entree.rabaisPourmille }
+            : {}),
           ...(entree.payeur !== undefined ? { payeur: entree.payeur } : {}),
-          ...(entree.payeurClientId !== undefined || (entree.payeur !== undefined && !payeurEffectifAttendTiers) ? { payeurClientId: payeurEffectifAttendTiers ? payeurClientIdEffectif : null } : {}),
-          ...(entree.technicienId !== undefined ? { technicienId: entree.technicienId ?? null } : {}),
+          ...(entree.payeurClientId !== undefined ||
+          (entree.payeur !== undefined && !payeurEffectifAttendTiers)
+            ? { payeurClientId: payeurEffectifAttendTiers ? payeurClientIdEffectif : null }
+            : {}),
+          ...(entree.technicienId !== undefined
+            ? { technicienId: entree.technicienId ?? null }
+            : {}),
           ...(entree.urgence !== undefined ? { urgence: entree.urgence ?? null } : {}),
           ...(entree.securite !== undefined ? { securite: entree.securite } : {}),
-          ...(entree.fournieParClient !== undefined ? { fourniParClient: entree.fournieParClient } : {}),
+          ...(entree.fournieParClient !== undefined
+            ? { fourniParClient: entree.fournieParClient }
+            : {}),
           ...(entree.pieceARestituer !== undefined ? { aRestituer: entree.pieceARestituer } : {}),
-          ...(entree.codeOperation !== undefined ? { codeOperation: entree.codeOperation ?? null } : {}),
+          ...(entree.codeOperation !== undefined
+            ? { codeOperation: entree.codeOperation ?? null }
+            : {}),
           ...(entree.codeDefaut !== undefined ? { codeDefaut: entree.codeDefaut ?? null } : {}),
-          ...(entree.numeroSinistre !== undefined ? { numeroSinistre: entree.numeroSinistre ?? null } : {}),
-          ...(entree.numeroAccord !== undefined ? { numeroAccord: entree.numeroAccord ?? null } : {}),
+          ...(entree.numeroSinistre !== undefined
+            ? { numeroSinistre: entree.numeroSinistre ?? null }
+            : {}),
+          ...(entree.numeroAccord !== undefined
+            ? { numeroAccord: entree.numeroAccord ?? null }
+            : {}),
           ...(entree.blocage !== undefined ? { blocage: entree.blocage } : {}),
           ...(tauxHoraireCentimes !== ligne.tauxHoraireCentimes ? { tauxHoraireCentimes } : {}),
           montantHtCentimes: montants.montantHtCentimes,
@@ -332,7 +476,10 @@ export class ServiceLigneOr {
         .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.id, ligneId)))
         .returning();
       if (!misAJour) {
-        throw new ErreurMetier('ERREUR_INTERNE', "La mise à jour de la ligne n'a rendu aucune ligne.");
+        throw new ErreurMetier(
+          'ERREUR_INTERNE',
+          "La mise à jour de la ligne n'a rendu aucune ligne.",
+        );
       }
 
       return { donnees: mapperLigneOr(misAJour, principal.role), avertissements: [] };
@@ -373,21 +520,40 @@ export class ServiceLigneOr {
     orId: string,
     entree: EntreeValidationLignes,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executerActionGroupee(ctx, principal, orId, entree.ligneIds, async (tx, or, cibles) => {
-      const eligibles = cibles.filter((l) => l.statut === 'proposee' || l.statut === 'a_valider');
-      if (or.plafondCentimes !== null) {
-        const totalCandidat = or.totalValideCentimes + eligibles.reduce((s, l) => s + l.montantTtcCentimes, 0);
-        if (totalCandidat > or.plafondCentimes) {
-          throw new ErreurMetier('OR_PLAFOND_DEPASSE', `Le plafond autorisé (${String(or.plafondCentimes)} centimes) serait dépassé.`, {
-            blocages: eligibles.map((l) => this.blocageLigne(l, roleVoitLesMontants(principal.role))),
-            actionsProposees: [{ code: 'CREER_DEVIS_COMPLEMENTAIRE', methode: 'POST', parametres: { ligneIds: eligibles.map((l) => l.id) } }],
-          });
+    return this.executerActionGroupee(
+      ctx,
+      principal,
+      orId,
+      entree.ligneIds,
+      async (tx, or, cibles) => {
+        const eligibles = cibles.filter((l) => l.statut === 'proposee' || l.statut === 'a_valider');
+        if (or.plafondCentimes !== null) {
+          const totalCandidat =
+            or.totalValideCentimes + eligibles.reduce((s, l) => s + l.montantTtcCentimes, 0);
+          if (totalCandidat > or.plafondCentimes) {
+            throw new ErreurMetier(
+              'OR_PLAFOND_DEPASSE',
+              `Le plafond autorisé (${String(or.plafondCentimes)} centimes) serait dépassé.`,
+              {
+                blocages: eligibles.map((l) =>
+                  this.blocageLigne(l, roleVoitLesMontants(principal.role)),
+                ),
+                actionsProposees: [
+                  {
+                    code: 'CREER_DEVIS_COMPLEMENTAIRE',
+                    methode: 'POST',
+                    parametres: { ligneIds: eligibles.map((l) => l.id) },
+                  },
+                ],
+              },
+            );
+          }
         }
-      }
-      for (const ligne of eligibles) {
-        await this.transitionnerLigne(tx, ctx, ligne, 'validee', {});
-      }
-    });
+        for (const ligne of eligibles) {
+          await this.transitionnerLigne(tx, ctx, ligne, 'validee', {});
+        }
+      },
+    );
   }
 
   /**
@@ -412,27 +578,33 @@ export class ServiceLigneOr {
     orId: string,
     entree: EntreeRefusLignes,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executerActionGroupee(ctx, principal, orId, entree.ligneIds, async (tx, or, cibles) => {
-      const maintenant = new Date();
-      for (const ligne of cibles) {
-        await this.transitionnerLigne(tx, ctx, ligne, 'refusee', {});
-        await this.travailReporte.creerDepuisRefus(
-          tx,
-          ctx,
-          {
-            vehiculeId: or.vehiculeId,
-            ordreReparationId: orId,
-            ligneOrId: ligne.id,
-            designation: ligne.designation ?? '',
-            urgence: ligne.urgence,
-            montantEstimeCentimes: ligne.montantTtcCentimes,
-            securite: ligne.securite,
-            motifRefus: entree.motif ?? null,
-          },
-          maintenant,
-        );
-      }
-    });
+    return this.executerActionGroupee(
+      ctx,
+      principal,
+      orId,
+      entree.ligneIds,
+      async (tx, or, cibles) => {
+        const maintenant = new Date();
+        for (const ligne of cibles) {
+          await this.transitionnerLigne(tx, ctx, ligne, 'refusee', {});
+          await this.travailReporte.creerDepuisRefus(
+            tx,
+            ctx,
+            {
+              vehiculeId: or.vehiculeId,
+              ordreReparationId: orId,
+              ligneOrId: ligne.id,
+              designation: ligne.designation ?? '',
+              urgence: ligne.urgence,
+              montantEstimeCentimes: ligne.montantTtcCentimes,
+              securite: ligne.securite,
+              motifRefus: entree.motif ?? null,
+            },
+            maintenant,
+          );
+        }
+      },
+    );
   }
 
   /** `POST /ordres-reparation/{orId}/annuler-lignes` — motif OBLIGATOIRE (RM-71), un seul motif
@@ -450,11 +622,19 @@ export class ServiceLigneOr {
     orId: string,
     entree: EntreeAnnulationLignes,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executerActionGroupee(ctx, principal, orId, entree.ligneIds, async (tx, _or, cibles) => {
-      for (const ligne of cibles) {
-        await this.transitionnerLigne(tx, ctx, ligne, 'annulee', { motifAnnulation: entree.motif });
-      }
-    });
+    return this.executerActionGroupee(
+      ctx,
+      principal,
+      orId,
+      entree.ligneIds,
+      async (tx, _or, cibles) => {
+        for (const ligne of cibles) {
+          await this.transitionnerLigne(tx, ctx, ligne, 'annulee', {
+            motifAnnulation: entree.motif,
+          });
+        }
+      },
+    );
   }
 
   /**
@@ -469,11 +649,17 @@ export class ServiceLigneOr {
     orId: string,
     entree: EntreeSoumissionLignesADevis,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
-    return this.executerActionGroupee(ctx, principal, orId, entree.ligneIds, async (tx, _or, cibles) => {
-      for (const ligne of cibles) {
-        await this.transitionnerLigne(tx, ctx, ligne, 'a_valider', { blocage: 'accord' });
-      }
-    });
+    return this.executerActionGroupee(
+      ctx,
+      principal,
+      orId,
+      entree.ligneIds,
+      async (tx, _or, cibles) => {
+        for (const ligne of cibles) {
+          await this.transitionnerLigne(tx, ctx, ligne, 'a_valider', { blocage: 'accord' });
+        }
+      },
+    );
   }
 
   // -----------------------------------------------------------------------------------------
@@ -487,7 +673,11 @@ export class ServiceLigneOr {
     principal: PrincipalAuthentifie,
     orId: string,
     ligneIds: readonly string[],
-    travail: (tx: TransactionDfa, or: LigneOrdreReparation, cibles: readonly LigneLigneOr[]) => Promise<void>,
+    travail: (
+      tx: TransactionDfa,
+      or: LigneOrdreReparation,
+      cibles: readonly LigneLigneOr[],
+    ) => Promise<void>,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
     return this.acces.enTenant(ctx, async (tx) => {
       const or = await chargerOrPourEcriture(tx, ctx, orId);
@@ -515,7 +705,10 @@ export class ServiceLigneOr {
         .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.id, ligne.id)))
         .returning();
       if (!misAJour) {
-        throw new ErreurMetier('ERREUR_INTERNE', "La mise à jour de la ligne n'a rendu aucune ligne.");
+        throw new ErreurMetier(
+          'ERREUR_INTERNE',
+          "La mise à jour de la ligne n'a rendu aucune ligne.",
+        );
       }
       return misAJour;
     } catch (erreur) {
@@ -527,10 +720,21 @@ export class ServiceLigneOr {
 
   private garantirNonVerrouille(or: LigneOrdreReparation, orId: string): void {
     if (estOrVerrouille(or.statut)) {
-      throw new ErreurMetier('OR_LIGNE_VERROUILLEE', `Ordre de réparation verrouillé (statut ${or.statut}).`, {
-        blocages: [{ type: 'ordre_reparation', id: orId, libelle: or.numero, donnees: { statutActuel: or.statut } }],
-        actionsProposees: [{ code: 'RAFRAICHIR' }],
-      });
+      throw new ErreurMetier(
+        'OR_LIGNE_VERROUILLEE',
+        `Ordre de réparation verrouillé (statut ${or.statut}).`,
+        {
+          blocages: [
+            {
+              type: 'ordre_reparation',
+              id: orId,
+              libelle: or.numero,
+              donnees: { statutActuel: or.statut },
+            },
+          ],
+          actionsProposees: [{ code: 'RAFRAICHIR' }],
+        },
+      );
     }
   }
 
@@ -538,10 +742,21 @@ export class ServiceLigneOr {
    *  l'OR, pas à la ligne — garde locale, interprétation signalée). */
   private garantirLigneModifiable(ligne: LigneLigneOr): void {
     if (ligne.statut === 'facturee' || ligne.statut === 'annulee') {
-      throw new ErreurMetier('OR_LIGNE_VERROUILLEE', `Ligne verrouillée (statut ${ligne.statut}).`, {
-        blocages: [{ type: 'ligne_or', id: ligne.id, libelle: ligne.designation ?? '', donnees: { statutActuel: ligne.statut } }],
-        actionsProposees: [{ code: 'RAFRAICHIR' }],
-      });
+      throw new ErreurMetier(
+        'OR_LIGNE_VERROUILLEE',
+        `Ligne verrouillée (statut ${ligne.statut}).`,
+        {
+          blocages: [
+            {
+              type: 'ligne_or',
+              id: ligne.id,
+              libelle: ligne.designation ?? '',
+              donnees: { statutActuel: ligne.statut },
+            },
+          ],
+          actionsProposees: [{ code: 'RAFRAICHIR' }],
+        },
+      );
     }
   }
 
@@ -568,7 +783,11 @@ export class ServiceLigneOr {
    * `ServiceSnapshotOr` à l'ouverture). Lecture directe de `taux_horaire`, même doctrine que
    * `references.ts` pour `parametre_atelier` : pas de jeton pour une lecture de table.
    */
-  private async resoudreTauxHoraireCentimes(tx: TransactionDfa, ctx: ContexteTenant, or: LigneOrdreReparation): Promise<number | null> {
+  private async resoudreTauxHoraireCentimes(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    or: LigneOrdreReparation,
+  ): Promise<number | null> {
     const conditions = (or.conditionsFigees as { tauxHoraireCode?: string | null } | null) ?? null;
     const code = conditions?.tauxHoraireCode;
     if (!code) return null;
@@ -579,7 +798,9 @@ export class ServiceLigneOr {
       .where(and(eq(tauxHoraire.tenantId, ctx.tenantId), eq(tauxHoraire.code, code)));
 
     const dateJour = new Date().toISOString().slice(0, 10);
-    const valide = lignes.find((l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu >= dateJour));
+    const valide = lignes.find(
+      (l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu >= dateJour),
+    );
     return valide?.montantCentimes ?? null;
   }
 
@@ -598,7 +819,11 @@ export class ServiceLigneOr {
   ): 'proposee' | 'a_valider' | 'validee' {
     if (payeur === 'garage') return 'validee';
     if (origine === 'constatee') return 'proposee';
-    if (or.plafondCentimes !== null && or.totalValideCentimes + montantTtcCentimes > or.plafondCentimes) return 'a_valider';
+    if (
+      or.plafondCentimes !== null &&
+      or.totalValideCentimes + montantTtcCentimes > or.plafondCentimes
+    )
+      return 'a_valider';
     return 'validee';
   }
 }

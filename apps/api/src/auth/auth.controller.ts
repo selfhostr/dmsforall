@@ -5,7 +5,17 @@
  * dans `main.ts` (propriété expert-nestjs) : ce contrôleur ne déclare que le chemin relatif
  * `auth`, conformément au reste du socle.
  */
-import { Body, Controller, Get, HttpCode, HttpStatus, Inject, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Inject,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { schemaConnexion, type SessionCourante } from '@dfa/shared';
@@ -18,10 +28,7 @@ import { ApiCorpsZod } from '../common/documentation';
 import { Principal } from './decorateurs/principal.decorator';
 import { Public } from './decorateurs/public.decorator';
 import { construireAttributsCookie, effacerCookieSession, poserCookieSession } from './cookie';
-import {
-  ProblemeDetailDto,
-  SessionCouranteDto,
-} from './dto/auth.dto';
+import { ProblemeDetailDto, SessionCouranteDto } from './dto/auth.dto';
 import { ErreurValidation, type CorpsErreurAuth } from './erreurs-auth';
 import { JETON_SERVICE_SESSION } from './jetons';
 import type { ServiceSession } from './auth.types';
@@ -50,11 +57,25 @@ export class AuthController {
       '401 AUTH_IDENTIFIANTS_INVALIDES, avec un temps de réponse égalisé — ceci est un choix de ' +
       'sécurité délibéré (anti-énumération de comptes), pas une omission.',
   })
-  @ApiCorpsZod(schemaConnexion, { exemple: { email: 'accueil@garage-martin.ch', motDePasse: 'Demo1234!Garage' } })
+  @ApiCorpsZod(schemaConnexion, {
+    exemple: { email: 'accueil@garage-martin.ch', motDePasse: 'Demo1234!Garage' },
+  })
   @ApiResponse({ status: 200, description: 'Session ouverte.', type: SessionCouranteDto })
-  @ApiResponse({ status: 400, description: 'VALIDATION_ECHOUEE — corps de requête invalide.', type: ProblemeDetailDto })
-  @ApiResponse({ status: 401, description: 'AUTH_IDENTIFIANTS_INVALIDES.', type: ProblemeDetailDto })
-  @ApiResponse({ status: 403, description: 'AUTH_COMPTE_SUSPENDU, AUTH_TENANT_SUSPENDU ou AUTH_ORIGINE_REFUSEE.', type: ProblemeDetailDto })
+  @ApiResponse({
+    status: 400,
+    description: 'VALIDATION_ECHOUEE — corps de requête invalide.',
+    type: ProblemeDetailDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'AUTH_IDENTIFIANTS_INVALIDES.',
+    type: ProblemeDetailDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'AUTH_COMPTE_SUSPENDU, AUTH_TENANT_SUSPENDU ou AUTH_ORIGINE_REFUSEE.',
+    type: ProblemeDetailDto,
+  })
   @ApiResponse({ status: 423, description: 'AUTH_COMPTE_VERROUILLE.', type: ProblemeDetailDto })
   @ApiResponse({ status: 429, description: 'AUTH_TROP_DE_TENTATIVES.', type: ProblemeDetailDto })
   async connexion(
@@ -97,12 +118,12 @@ export class AuthController {
   @Post('deconnexion')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Déconnexion. Idempotente : 204 même sans session active.' })
-  @ApiResponse({ status: 204, description: 'Cookie de session effacé (session fermée si elle existait).' })
+  @ApiResponse({
+    status: 204,
+    description: 'Cookie de session effacé (session fermée si elle existait).',
+  })
   @ApiResponse({ status: 403, description: 'AUTH_ORIGINE_REFUSEE.', type: ProblemeDetailDto })
-  async deconnexion(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<void> {
+  async deconnexion(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
     const token = req.cookies?.[this.config.SESSION_COOKIE_NOM];
     if (typeof token === 'string' && token.length > 0) {
       try {
@@ -137,7 +158,11 @@ export class AuthController {
   @Get('moi')
   @ApiOperation({ summary: 'Session courante de l’utilisateur authentifié.' })
   @ApiResponse({ status: 200, description: 'Session courante.', type: SessionCouranteDto })
-  @ApiResponse({ status: 401, description: 'AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE.', type: ProblemeDetailDto })
+  @ApiResponse({
+    status: 401,
+    description: 'AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE.',
+    type: ProblemeDetailDto,
+  })
   async moi(@Principal() principal: PrincipalAuthentifie): Promise<SessionCourante> {
     return this.authService.sessionCourante(principal);
   }

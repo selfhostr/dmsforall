@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { decoderCurseurDefaut, pageDepuisLignes, type LigneAvecCreation } from './pagination-defaut';
+import {
+  decoderCurseurDefaut,
+  pageDepuisLignes,
+  type LigneAvecCreation,
+} from './pagination-defaut';
 
 // `decoderCurseurTrie` (common/pagination/curseur.ts) exige un `id` au format UUID — un curseur
 // v2 ne peut pas encoder n'importe quelle chaîne. Les fixtures utilisent donc de vrais UUID
@@ -21,7 +25,10 @@ function ligne(id: string, creeLeTexte: string): LigneTest {
 
 describe('pageDepuisLignes', () => {
   it('moins de lignes que la limite : pas de suite, curseurSuivant null', () => {
-    const lignes = [ligne(ID_A, '2026-01-01 00:00:00.000000+00'), ligne(ID_B, '2026-01-02 00:00:00.000000+00')];
+    const lignes = [
+      ligne(ID_A, '2026-01-01 00:00:00.000000+00'),
+      ligne(ID_B, '2026-01-02 00:00:00.000000+00'),
+    ];
     const { page, curseurSuivant } = pageDepuisLignes(lignes, 5);
     expect(page).toHaveLength(2);
     expect(curseurSuivant).toBeNull();
@@ -78,7 +85,8 @@ describe('decoderCurseurDefaut', () => {
 // Oracle de test : microsecondes exactes depuis l'epoch, calculées SANS jamais passer par `Date`
 // pour la partie fractionnaire.
 // -------------------------------------------------------------------------------------------
-const FORMAT_TEST = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?(Z|[+-]\d{2}(?::?\d{2})?)$/;
+const FORMAT_TEST =
+  /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?(Z|[+-]\d{2}(?::?\d{2})?)$/;
 
 function decalageIsoComplet(brut: string): string {
   if (brut === 'Z') return 'Z';
@@ -110,7 +118,7 @@ const QUATRE_LIGNES_MEME_MILLISECONDE: readonly LigneTest[] = [
   ligne(ID_D, '2026-07-29 13:37:35.171181+00'),
 ];
 
-describe('régression pagination — ancienne méthode (Date.toISOString() à l\'encodage, new Date() au décodage) : caractérisation autonome du bug', () => {
+describe("régression pagination — ancienne méthode (Date.toISOString() à l'encodage, new Date() au décodage) : caractérisation autonome du bug", () => {
   // Reproduit fidèlement, en autonomie (sans dépendre de l'état courant de `pagination-defaut.ts`),
   // la paire encodage/décodage fautive qui existait avant ce correctif : `dernier.creeLe.toISOString()`
   // pour construire la valeur du curseur, `new Date(donnees.valeur)` pour la relire. Comme dans
@@ -135,7 +143,10 @@ describe('régression pagination — ancienne méthode (Date.toISOString() à l\
     return admissibles.slice(0, limite);
   }
 
-  function paginerAncienneMethode(lignes: readonly LigneTest[], limite: number): readonly LigneTest[] {
+  function paginerAncienneMethode(
+    lignes: readonly LigneTest[],
+    limite: number,
+  ): readonly LigneTest[] {
     const triees = [...lignes].sort((a, b) => {
       const d = microsecondesExactes(b.creeLeTexte) - microsecondesExactes(a.creeLeTexte);
       if (d !== 0n) return d < 0n ? -1 : 1;
@@ -156,7 +167,7 @@ describe('régression pagination — ancienne méthode (Date.toISOString() à l\
     return rendues;
   }
 
-  it('la page 2 revient vide alors qu\'il reste des lignes à rendre (limite=1)', () => {
+  it("la page 2 revient vide alors qu'il reste des lignes à rendre (limite=1)", () => {
     const rendues = paginerAncienneMethode(QUATRE_LIGNES_MEME_MILLISECONDE, 1);
     // C'est le symptôme mesuré en conditions réelles (`GET /vehicules?...`) : la pagination
     // s'arrête avant d'avoir tout rendu, silencieusement — le seuil tronqué (`.171000`) est
@@ -174,7 +185,10 @@ describe('régression pagination — nouvelle méthode (pageDepuisLignes + decod
    * keyset simulé, encode/décode le curseur en base64url à chaque tour — le chemin complet, pas
    * une fonction isolée.
    */
-  function paginerIntegralement(lignes: readonly LigneTest[], limite: number): readonly LigneTest[] {
+  function paginerIntegralement(
+    lignes: readonly LigneTest[],
+    limite: number,
+  ): readonly LigneTest[] {
     const triees = [...lignes].sort((a, b) => {
       const d = microsecondesExactes(b.creeLeTexte) - microsecondesExactes(a.creeLeTexte);
       if (d !== 0n) return d < 0n ? -1 : 1;
@@ -185,7 +199,9 @@ describe('régression pagination — nouvelle méthode (pageDepuisLignes + decod
     let curseurEncode: string | undefined;
     for (let page = 0; page < 100; page += 1) {
       const curseurDecode = decoderCurseurDefaut(curseurEncode);
-      const seuil = curseurDecode ? { micros: microsecondesExactes(curseurDecode.creeLeTexte), id: curseurDecode.id } : null;
+      const seuil = curseurDecode
+        ? { micros: microsecondesExactes(curseurDecode.creeLeTexte), id: curseurDecode.id }
+        : null;
       const admissibles = triees.filter((l) => {
         if (!seuil) return true;
         const micros = microsecondesExactes(l.creeLeTexte);

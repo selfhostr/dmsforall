@@ -28,7 +28,8 @@ export class OrdreReparationResumeDto implements OrdreReparationResume {
 
   @ApiProperty({
     enum: ETATS_AFFICHES_ORDRE_REPARATION,
-    description: 'Le statut, OU le drapeau d’attente le plus bloquant (priorité accord > pieces > externe), calculé côté serveur.',
+    description:
+      'Le statut, OU le drapeau d’attente le plus bloquant (priorité accord > pieces > externe), calculé côté serveur.',
   })
   readonly etatAffiche!: OrdreReparationResume['etatAffiche'];
 
@@ -53,7 +54,10 @@ export class OrdreReparationResumeDto implements OrdreReparationResume {
   @ApiProperty()
   readonly nombreLignes!: number;
 
-  @ApiProperty({ required: false, description: "Absent pour un rôle sans droit aux montants (ex. technicien)." })
+  @ApiProperty({
+    required: false,
+    description: 'Absent pour un rôle sans droit aux montants (ex. technicien).',
+  })
   readonly totalTtcCentimes?: number;
 }
 

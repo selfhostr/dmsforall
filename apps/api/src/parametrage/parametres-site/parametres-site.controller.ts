@@ -10,7 +10,11 @@
 import { ApiCookieAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Controller, Get, Headers, Param, Patch, Res } from '@nestjs/common';
 import type { Response } from 'express';
-import { schemaIdentifiant, schemaModificationParametresSite, type EntreeModificationParametresSite } from '@dfa/shared';
+import {
+  schemaIdentifiant,
+  schemaModificationParametresSite,
+  type EntreeModificationParametresSite,
+} from '@dfa/shared';
 
 import { ApiReponseProbleme } from '../../common/erreurs';
 import { ServiceContexteRequete } from '../../common/contexte';
@@ -36,7 +40,10 @@ export class ParametresSiteController {
   @ApiOperation({ summary: 'Paramètres du site (P-20 capacité, P-31 clôture pointage).' })
   @ApiResponse({ status: 200, description: 'Paramètres du site.', type: ReponseParametresSiteDto })
   @ApiResponse({ status: 304, description: 'Non modifié depuis `If-None-Match`.' })
-  @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — site inconnu de ce tenant, ou sans ligne de paramétrage.')
+  @ApiReponseProbleme(
+    404,
+    'RESSOURCE_INTROUVABLE — site inconnu de ce tenant, ou sans ligne de paramétrage.',
+  )
   async obtenir(
     @Param('siteId', new PipeZod(schemaIdentifiant)) siteId: string,
     @Headers('if-none-match') ifNoneMatch: string | undefined,
@@ -57,13 +64,25 @@ export class ParametresSiteController {
   @Patch()
   @ApiParam({ name: 'siteId', format: 'uuid' })
   @ApiOperation({ summary: 'Modifie partiellement les paramètres du site.' })
-  @ApiResponse({ status: 200, description: 'Paramètres du site mis à jour.', type: ReponseParametresSiteDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Paramètres du site mis à jour.',
+    type: ReponseParametresSiteDto,
+  })
   @ApiReponseProbleme(400, 'VALIDATION_ECHOUEE — corps invalide.')
-  @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — site inconnu de ce tenant, ou sans ligne de paramétrage.')
+  @ApiReponseProbleme(
+    404,
+    'RESSOURCE_INTROUVABLE — site inconnu de ce tenant, ou sans ligne de paramétrage.',
+  )
   async modifier(
     @Param('siteId', new PipeZod(schemaIdentifiant)) siteId: string,
     @CorpsZod(schemaModificationParametresSite, {
-      exemple: { heureOuverture: '07:30', heureFermeture: '18:00', heureCloturePointage: '18:30', capaciteHeuresJourCentiemes: 4800 },
+      exemple: {
+        heureOuverture: '07:30',
+        heureFermeture: '18:00',
+        heureCloturePointage: '18:30',
+        capaciteHeuresJourCentiemes: 4800,
+      },
     })
     corps: EntreeModificationParametresSite,
   ): Promise<ReponseParametresSiteDto> {

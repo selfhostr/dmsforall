@@ -30,7 +30,9 @@ import { ErreurMetier } from '../common/erreurs/erreur-metier';
  */
 
 /** `nomAffiche` d'un client : raison sociale pour une entreprise, "nom prénom" sinon. */
-export function nomAfficheClient(row: Pick<LigneClient, 'type' | 'nom' | 'prenom' | 'raisonSociale'>): string {
+export function nomAfficheClient(
+  row: Pick<LigneClient, 'type' | 'nom' | 'prenom' | 'raisonSociale'>,
+): string {
   if (row.type === 'entreprise') {
     return row.raisonSociale ?? '';
   }
@@ -38,7 +40,9 @@ export function nomAfficheClient(row: Pick<LigneClient, 'type' | 'nom' | 'prenom
 }
 
 /** Rendu d'affichage d'un véhicule : `marque modele version`, espaces superflus retirés. */
-export function designationVehicule(row: Pick<LigneVehicule, 'marque' | 'modele' | 'version'>): string {
+export function designationVehicule(
+  row: Pick<LigneVehicule, 'marque' | 'modele' | 'version'>,
+): string {
   return [row.marque, row.modele, row.version].filter((v): v is string => Boolean(v)).join(' ');
 }
 
@@ -83,17 +87,34 @@ export async function chargerVehiculeLigne(
  * parallèles). Un seul appel par assemblage de document OR (un seul client par OR), jamais dans
  * une boucle de liste — le coût de ces requêtes supplémentaires est borné.
  */
-export async function versClientResume(tx: TransactionDfa, ctx: ContexteTenant, ligne: LigneClient): Promise<ClientResume> {
+export async function versClientResume(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  ligne: LigneClient,
+): Promise<ClientResume> {
   const [adressePrincipale] = await tx
     .select({ localite: clientAdresse.localite })
     .from(clientAdresse)
-    .where(and(eq(clientAdresse.tenantId, ctx.tenantId), eq(clientAdresse.clientId, ligne.id), eq(clientAdresse.type, 'principale'), eq(clientAdresse.actif, true)))
+    .where(
+      and(
+        eq(clientAdresse.tenantId, ctx.tenantId),
+        eq(clientAdresse.clientId, ligne.id),
+        eq(clientAdresse.type, 'principale'),
+        eq(clientAdresse.actif, true),
+      ),
+    )
     .limit(1);
 
   const vehiculesDetenus = await tx
     .select({ id: vehiculeDetention.id })
     .from(vehiculeDetention)
-    .where(and(eq(vehiculeDetention.tenantId, ctx.tenantId), eq(vehiculeDetention.clientId, ligne.id), isNull(vehiculeDetention.au)));
+    .where(
+      and(
+        eq(vehiculeDetention.tenantId, ctx.tenantId),
+        eq(vehiculeDetention.clientId, ligne.id),
+        isNull(vehiculeDetention.au),
+      ),
+    );
 
   const [dernierOrOuvert] = await tx
     .select({ ouvertLe: ordreReparation.ouvertLe })
@@ -127,7 +148,13 @@ export async function chargerPlaqueCourante(
   const [ligne] = await tx
     .select()
     .from(vehiculePlaque)
-    .where(and(eq(vehiculePlaque.tenantId, ctx.tenantId), eq(vehiculePlaque.vehiculeId, vehiculeId), isNull(vehiculePlaque.au)))
+    .where(
+      and(
+        eq(vehiculePlaque.tenantId, ctx.tenantId),
+        eq(vehiculePlaque.vehiculeId, vehiculeId),
+        isNull(vehiculePlaque.au),
+      ),
+    )
     .orderBy(desc(vehiculePlaque.du))
     .limit(1);
   return ligne ?? null;
@@ -142,7 +169,10 @@ export async function chargerVehiculeResume(
   return construireVehiculeResume(ligne, await chargerPlaqueCourante(tx, ctx, vehiculeId));
 }
 
-export function construireVehiculeResume(ligne: LigneVehicule, plaque: LigneVehiculePlaque | null): VehiculeResume {
+export function construireVehiculeResume(
+  ligne: LigneVehicule,
+  plaque: LigneVehiculePlaque | null,
+): VehiculeResume {
   return {
     id: ligne.id,
     plaque: plaque?.valeur ?? null,
@@ -164,7 +194,12 @@ export async function chargerDernierKilometrage(
   const [ligne] = await tx
     .select()
     .from(vehiculeKilometrage)
-    .where(and(eq(vehiculeKilometrage.tenantId, ctx.tenantId), eq(vehiculeKilometrage.vehiculeId, vehiculeId)))
+    .where(
+      and(
+        eq(vehiculeKilometrage.tenantId, ctx.tenantId),
+        eq(vehiculeKilometrage.vehiculeId, vehiculeId),
+      ),
+    )
     .orderBy(desc(vehiculeKilometrage.releveLe))
     .limit(1);
   return ligne ?? null;
@@ -179,7 +214,13 @@ export async function chargerDetenteurCourantId(
   const [ligne] = await tx
     .select({ clientId: vehiculeDetention.clientId })
     .from(vehiculeDetention)
-    .where(and(eq(vehiculeDetention.tenantId, ctx.tenantId), eq(vehiculeDetention.vehiculeId, vehiculeId), isNull(vehiculeDetention.au)))
+    .where(
+      and(
+        eq(vehiculeDetention.tenantId, ctx.tenantId),
+        eq(vehiculeDetention.vehiculeId, vehiculeId),
+        isNull(vehiculeDetention.au),
+      ),
+    )
     .limit(1);
   return ligne?.clientId ?? null;
 }
@@ -202,7 +243,11 @@ export async function chargerAdresseFacturation(
         or(eq(clientAdresse.type, 'facturation'), eq(clientAdresse.type, 'principale')),
       ),
     );
-  return lignes.find((l) => l.type === 'facturation') ?? lignes.find((l) => l.type === 'principale') ?? null;
+  return (
+    lignes.find((l) => l.type === 'facturation') ??
+    lignes.find((l) => l.type === 'principale') ??
+    null
+  );
 }
 
 /** Conditions commerciales en vigueur à la date `le` (RM-07, RM-50) — au plus une ligne, garanti
@@ -218,7 +263,10 @@ export async function chargerConditionsEnVigueur(
     .select()
     .from(clientCondition)
     .where(and(eq(clientCondition.tenantId, ctx.tenantId), eq(clientCondition.clientId, clientId)));
-  return lignes.find((l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu >= dateJour)) ?? null;
+  return (
+    lignes.find((l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu >= dateJour)) ??
+    null
+  );
 }
 
 /**
@@ -228,7 +276,10 @@ export async function chargerConditionsEnVigueur(
  * `0005_parametrage.sql`, pour le cas défensif où la ligne n'existerait pas encore (tenant créé
  * hors du chemin normal, ex. fixture de test).
  */
-const PARAMETRES_ATELIER_PAR_DEFAUT: Omit<LigneParametreAtelier, 'tenantId' | 'creeLe' | 'modifieLe'> = {
+const PARAMETRES_ATELIER_PAR_DEFAUT: Omit<
+  LigneParametreAtelier,
+  'tenantId' | 'creeLe' | 'modifieLe'
+> = {
   orPrefixe: null,
   orPorteeNumerotation: 'tenant',
   orResetAnnuel: true,

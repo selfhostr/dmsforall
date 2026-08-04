@@ -70,12 +70,14 @@ async function main(): Promise<void> {
     config = chargerConfig(process.env);
   } catch (erreur) {
     if (erreur instanceof ErreurConfigInvalide) {
-      process.stderr.write('Configuration invalide, l\'API refuse de démarrer :\n');
+      process.stderr.write("Configuration invalide, l'API refuse de démarrer :\n");
       for (const probleme of erreur.problemes) {
         process.stderr.write(`  - ${probleme.variable} : ${probleme.message}\n`);
       }
     } else {
-      process.stderr.write(`Erreur inattendue au chargement de la configuration : ${String(erreur)}\n`);
+      process.stderr.write(
+        `Erreur inattendue au chargement de la configuration : ${String(erreur)}\n`,
+      );
     }
     process.exit(CODE_SORTIE_CONFIG_INVALIDE);
   }

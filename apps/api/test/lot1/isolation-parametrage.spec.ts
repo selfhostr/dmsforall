@@ -26,7 +26,13 @@ import {
   type BaseEphemere,
 } from '../setup/postgres-ephemere';
 import { semerGarageDemoLot1, type GarageDemoLot1Fixture } from './fixtures/garage-demo-lot1';
-import { creerAccesBaseTest, creerAppTest, demarrerRedisEphemere, type AppTest, type RedisEphemere } from '../setup/app-test';
+import {
+  creerAccesBaseTest,
+  creerAppTest,
+  demarrerRedisEphemere,
+  type AppTest,
+  type RedisEphemere,
+} from '../setup/app-test';
 import { cookieDeSessionPour } from './isolation-http-aide';
 
 let bdd: BaseEphemere;
@@ -44,7 +50,11 @@ interface DonneesParametrageTenant {
   readonly activiteIndirecteId: string;
 }
 
-async function semerDonneesParametrage(tenantId: string, siteId: string, prefixeCode: string): Promise<DonneesParametrageTenant> {
+async function semerDonneesParametrage(
+  tenantId: string,
+  siteId: string,
+  prefixeCode: string,
+): Promise<DonneesParametrageTenant> {
   const compteurDocumentId = randomUUID();
   const tauxHoraireId = randomUUID();
   const prestationId = randomUUID();
@@ -57,7 +67,10 @@ async function semerDonneesParametrage(tenantId: string, siteId: string, prefixe
     // Singletons — une seule ligne par tenant / par site, PK confondue avec tenant_id / site_id
     // (0005_parametrage.sql §2 et §3). Amorcés ici : la fixture partagée ne les crée pas.
     await client.query(`insert into parametre_atelier (tenant_id) values ($1)`, [tenantId]);
-    await client.query(`insert into parametre_site (tenant_id, site_id) values ($1, $2)`, [tenantId, siteId]);
+    await client.query(`insert into parametre_site (tenant_id, site_id) values ($1, $2)`, [
+      tenantId,
+      siteId,
+    ]);
 
     await client.query(
       `insert into compteur_document (id, tenant_id, type_document, annee, site_id, valeur)
@@ -95,7 +108,15 @@ async function semerDonneesParametrage(tenantId: string, siteId: string, prefixe
     );
   });
 
-  return { compteurDocumentId, tauxHoraireId, prestationId, prestationPrixId, motifRendezVousId, posteTravailId, activiteIndirecteId };
+  return {
+    compteurDocumentId,
+    tauxHoraireId,
+    prestationId,
+    prestationPrixId,
+    motifRendezVousId,
+    posteTravailId,
+    activiteIndirecteId,
+  };
 }
 
 let donneesA: DonneesParametrageTenant;
@@ -129,21 +150,43 @@ afterAll(async () => {
 // 1. Lecture croisée, table par table
 // -------------------------------------------------------------------------------------------
 
-async function verifierIsolationLecture(table: string, colonne: string, idPropreA: string, idDeB: string): Promise<void> {
-  const propre = await requeteSousTenant(bdd.poolApp, garage.tenantA.tenant.id, `select * from ${table} where ${colonne} = $1`, [
-    idPropreA,
-  ]);
-  expect(propre.length, `contrôle positif : ${table} de garage-a doit être visible sous son propre contexte`).toBeGreaterThan(0);
+async function verifierIsolationLecture(
+  table: string,
+  colonne: string,
+  idPropreA: string,
+  idDeB: string,
+): Promise<void> {
+  const propre = await requeteSousTenant(
+    bdd.poolApp,
+    garage.tenantA.tenant.id,
+    `select * from ${table} where ${colonne} = $1`,
+    [idPropreA],
+  );
+  expect(
+    propre.length,
+    `contrôle positif : ${table} de garage-a doit être visible sous son propre contexte`,
+  ).toBeGreaterThan(0);
 
-  const croise = await requeteSousTenant(bdd.poolApp, garage.tenantA.tenant.id, `select * from ${table} where ${colonne} = $1`, [
-    idDeB,
-  ]);
-  expect(croise, `${table} de garage-b doit être invisible sous le contexte de garage-a`).toHaveLength(0);
+  const croise = await requeteSousTenant(
+    bdd.poolApp,
+    garage.tenantA.tenant.id,
+    `select * from ${table} where ${colonne} = $1`,
+    [idDeB],
+  );
+  expect(
+    croise,
+    `${table} de garage-b doit être invisible sous le contexte de garage-a`,
+  ).toHaveLength(0);
 }
 
 describe('lecture croisée — table par table, module paramétrage', () => {
   it('parametre_atelier : le singleton de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('parametre_atelier', 'tenant_id', garage.tenantA.tenant.id, garage.tenantB.tenant.id);
+    await verifierIsolationLecture(
+      'parametre_atelier',
+      'tenant_id',
+      garage.tenantA.tenant.id,
+      garage.tenantB.tenant.id,
+    );
   });
 
   it('parametre_site : les paramètres du site de garage-b sont invisibles sous garage-a', async () => {
@@ -151,31 +194,66 @@ describe('lecture croisée — table par table, module paramétrage', () => {
   });
 
   it('compteur_document : le compteur de numérotation de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('compteur_document', 'id', donneesA.compteurDocumentId, donneesB.compteurDocumentId);
+    await verifierIsolationLecture(
+      'compteur_document',
+      'id',
+      donneesA.compteurDocumentId,
+      donneesB.compteurDocumentId,
+    );
   });
 
   it('taux_horaire : un taux horaire de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('taux_horaire', 'id', donneesA.tauxHoraireId, donneesB.tauxHoraireId);
+    await verifierIsolationLecture(
+      'taux_horaire',
+      'id',
+      donneesA.tauxHoraireId,
+      donneesB.tauxHoraireId,
+    );
   });
 
   it('prestation : une prestation du catalogue de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('prestation', 'id', donneesA.prestationId, donneesB.prestationId);
+    await verifierIsolationLecture(
+      'prestation',
+      'id',
+      donneesA.prestationId,
+      donneesB.prestationId,
+    );
   });
 
   it('prestation_prix : un prix daté de prestation de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('prestation_prix', 'id', donneesA.prestationPrixId, donneesB.prestationPrixId);
+    await verifierIsolationLecture(
+      'prestation_prix',
+      'id',
+      donneesA.prestationPrixId,
+      donneesB.prestationPrixId,
+    );
   });
 
   it('motif_rendez_vous : un motif de RDV de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('motif_rendez_vous', 'id', donneesA.motifRendezVousId, donneesB.motifRendezVousId);
+    await verifierIsolationLecture(
+      'motif_rendez_vous',
+      'id',
+      donneesA.motifRendezVousId,
+      donneesB.motifRendezVousId,
+    );
   });
 
   it('poste_travail : un poste de travail de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('poste_travail', 'id', donneesA.posteTravailId, donneesB.posteTravailId);
+    await verifierIsolationLecture(
+      'poste_travail',
+      'id',
+      donneesA.posteTravailId,
+      donneesB.posteTravailId,
+    );
   });
 
   it('activite_indirecte : une activité indirecte de garage-b est invisible sous garage-a', async () => {
-    await verifierIsolationLecture('activite_indirecte', 'id', donneesA.activiteIndirecteId, donneesB.activiteIndirecteId);
+    await verifierIsolationLecture(
+      'activite_indirecte',
+      'id',
+      donneesA.activiteIndirecteId,
+      donneesB.activiteIndirecteId,
+    );
   });
 });
 
@@ -196,42 +274,79 @@ describe('fail-closed — sans app.tenant_id, aucune lecture ne rend jamais une 
     'activite_indirecte',
   ] as const;
 
-  it.each(TABLES_MODULE_PARAMETRAGE)('%s : select sans contexte tenant rend zéro ligne, pas une erreur', async (table) => {
-    const totalA = await requeteSousTenant<{ n: string }>(bdd.poolApp, garage.tenantA.tenant.id, `select count(*) as n from ${table}`);
-    const totalB = await requeteSousTenant<{ n: string }>(bdd.poolApp, garage.tenantB.tenant.id, `select count(*) as n from ${table}`);
-    const totalCombine = Number(totalA[0]?.n ?? 0) + Number(totalB[0]?.n ?? 0);
-    expect(totalCombine, `précondition : ${table} doit contenir au moins une ligne, tous tenants confondus`).toBeGreaterThan(0);
+  it.each(TABLES_MODULE_PARAMETRAGE)(
+    '%s : select sans contexte tenant rend zéro ligne, pas une erreur',
+    async (table) => {
+      const totalA = await requeteSousTenant<{ n: string }>(
+        bdd.poolApp,
+        garage.tenantA.tenant.id,
+        `select count(*) as n from ${table}`,
+      );
+      const totalB = await requeteSousTenant<{ n: string }>(
+        bdd.poolApp,
+        garage.tenantB.tenant.id,
+        `select count(*) as n from ${table}`,
+      );
+      const totalCombine = Number(totalA[0]?.n ?? 0) + Number(totalB[0]?.n ?? 0);
+      expect(
+        totalCombine,
+        `précondition : ${table} doit contenir au moins une ligne, tous tenants confondus`,
+      ).toBeGreaterThan(0);
 
-    const lignes = await requeteSousTenant(bdd.poolApp, null, `select * from ${table}`);
-    expect(lignes, table).toHaveLength(0);
-  });
+      const lignes = await requeteSousTenant(bdd.poolApp, null, `select * from ${table}`);
+      expect(lignes, table).toHaveLength(0);
+    },
+  );
 });
 
 // -------------------------------------------------------------------------------------------
 // 3. Écriture croisée
 // -------------------------------------------------------------------------------------------
 
-async function verifierUpdateCroiseSansEffet(table: string, colonneId: string, assignation: string, idDeB: string): Promise<void> {
+async function verifierUpdateCroiseSansEffet(
+  table: string,
+  colonneId: string,
+  assignation: string,
+  idDeB: string,
+): Promise<void> {
   const lignes = await requeteSousTenant(
     bdd.poolApp,
     garage.tenantA.tenant.id,
     `update ${table} set ${assignation} where ${colonneId} = $1 returning ${colonneId}`,
     [idDeB],
   );
-  expect(lignes, `UPDATE sur ${table} ciblant une ligne de garage-b ne doit affecter AUCUNE ligne sous garage-a`).toHaveLength(0);
+  expect(
+    lignes,
+    `UPDATE sur ${table} ciblant une ligne de garage-b ne doit affecter AUCUNE ligne sous garage-a`,
+  ).toHaveLength(0);
 }
 
 describe('écriture croisée — UPDATE ciblant une ligne de garage-b, sous le contexte de garage-a', () => {
   it("parametre_atelier : modifier le singleton de garage-b (visé par tenant_id) n'affecte aucune ligne", async () => {
-    await verifierUpdateCroiseSansEffet('parametre_atelier', 'tenant_id', "or_prefixe = 'INTRUS'", garage.tenantB.tenant.id);
+    await verifierUpdateCroiseSansEffet(
+      'parametre_atelier',
+      'tenant_id',
+      "or_prefixe = 'INTRUS'",
+      garage.tenantB.tenant.id,
+    );
   });
 
   it("parametre_site : modifier les paramètres du site de garage-b n'affecte aucune ligne", async () => {
-    await verifierUpdateCroiseSansEffet('parametre_site', 'site_id', "heure_ouverture = '06:00'", siteIdB);
+    await verifierUpdateCroiseSansEffet(
+      'parametre_site',
+      'site_id',
+      "heure_ouverture = '06:00'",
+      siteIdB,
+    );
   });
 
   it("taux_horaire : modifier le montant d'un taux de garage-b n'affecte aucune ligne", async () => {
-    await verifierUpdateCroiseSansEffet('taux_horaire', 'id', 'montant_centimes = 1', donneesB.tauxHoraireId);
+    await verifierUpdateCroiseSansEffet(
+      'taux_horaire',
+      'id',
+      'montant_centimes = 1',
+      donneesB.tauxHoraireId,
+    );
 
     // Contrôle positif : le taux de garage-b n'a réellement pas bougé (relu sous SON tenant).
     const releve = await requeteSousTenant<{ montant_centimes: number }>(
@@ -244,15 +359,25 @@ describe('écriture croisée — UPDATE ciblant une ligne de garage-b, sous le c
   });
 
   it("prestation : modifier une prestation de garage-b n'affecte aucune ligne", async () => {
-    await verifierUpdateCroiseSansEffet('prestation', 'id', "designation_fr = 'Intrus'", donneesB.prestationId);
+    await verifierUpdateCroiseSansEffet(
+      'prestation',
+      'id',
+      "designation_fr = 'Intrus'",
+      donneesB.prestationId,
+    );
   });
 
   it("motif_rendez_vous : modifier un motif de RDV de garage-b n'affecte aucune ligne", async () => {
-    await verifierUpdateCroiseSansEffet('motif_rendez_vous', 'id', "libelle_fr = 'Intrus'", donneesB.motifRendezVousId);
+    await verifierUpdateCroiseSansEffet(
+      'motif_rendez_vous',
+      'id',
+      "libelle_fr = 'Intrus'",
+      donneesB.motifRendezVousId,
+    );
   });
 });
 
-describe("écriture croisée — impersonation (WITH CHECK) et suppression, module paramétrage", () => {
+describe('écriture croisée — impersonation (WITH CHECK) et suppression, module paramétrage', () => {
   it('taux_horaire : un insert portant tenant_id = garage-b, exécuté sous le contexte de garage-a, viole la politique RLS', async () => {
     await expect(
       requeteSousTenant(
@@ -276,9 +401,14 @@ describe("écriture croisée — impersonation (WITH CHECK) et suppression, modu
     ).rejects.toThrow(/policy|permission/i);
   });
 
-  it("taux_horaire : DELETE refusé au niveau PRIVILÈGE (revoke delete, Δ6), même sur sa PROPRE ligne", async () => {
+  it('taux_horaire : DELETE refusé au niveau PRIVILÈGE (revoke delete, Δ6), même sur sa PROPRE ligne', async () => {
     await expect(
-      requeteSousTenant(bdd.poolApp, garage.tenantA.tenant.id, 'delete from taux_horaire where id = $1', [donneesA.tauxHoraireId]),
+      requeteSousTenant(
+        bdd.poolApp,
+        garage.tenantA.tenant.id,
+        'delete from taux_horaire where id = $1',
+        [donneesA.tauxHoraireId],
+      ),
     ).rejects.toThrow(/permission denied/i);
   });
 });
@@ -288,7 +418,7 @@ describe("écriture croisée — impersonation (WITH CHECK) et suppression, modu
 // -------------------------------------------------------------------------------------------
 
 describe('IDOR via HTTP — PATCH /api/v1/referentiels/taux-horaires/{id}', () => {
-  it("un taux horaire de garage-b, PATCHé par son UUID réel sous une session garage-a, rend 404 RESSOURCE_INTROUVABLE — jamais 403", async () => {
+  it('un taux horaire de garage-b, PATCHé par son UUID réel sous une session garage-a, rend 404 RESSOURCE_INTROUVABLE — jamais 403', async () => {
     const admin = garage.tenantA.utilisateursParRole.admin;
     const cookie = await cookieDeSessionPour(ctx, admin.email, admin.motDePasseClair);
 
@@ -331,11 +461,13 @@ describe('IDOR via HTTP — PATCH /api/v1/referentiels/taux-horaires/{id}', () =
 });
 
 describe('IDOR via HTTP — GET /api/v1/sites/{id}/parametres-atelier', () => {
-  it("les paramètres du site de garage-b, demandés par son UUID réel sous une session garage-a, rendent 404 — jamais 403", async () => {
+  it('les paramètres du site de garage-b, demandés par son UUID réel sous une session garage-a, rendent 404 — jamais 403', async () => {
     const admin = garage.tenantA.utilisateursParRole.admin;
     const cookie = await cookieDeSessionPour(ctx, admin.email, admin.motDePasseClair);
 
-    const reponse = await ctx.requete.get(`/api/v1/sites/${siteIdB}/parametres-atelier`).set('Cookie', cookie);
+    const reponse = await ctx.requete
+      .get(`/api/v1/sites/${siteIdB}/parametres-atelier`)
+      .set('Cookie', cookie);
 
     expect(reponse.status).toBe(404);
     expect((reponse.body as { code?: string }).code).toBe('RESSOURCE_INTROUVABLE');
@@ -345,7 +477,9 @@ describe('IDOR via HTTP — GET /api/v1/sites/{id}/parametres-atelier', () => {
     const admin = garage.tenantA.utilisateursParRole.admin;
     const cookie = await cookieDeSessionPour(ctx, admin.email, admin.motDePasseClair);
 
-    const reponse = await ctx.requete.get(`/api/v1/sites/${siteIdA}/parametres-atelier`).set('Cookie', cookie);
+    const reponse = await ctx.requete
+      .get(`/api/v1/sites/${siteIdA}/parametres-atelier`)
+      .set('Cookie', cookie);
 
     expect(reponse.status).toBe(200);
   });
@@ -356,8 +490,10 @@ describe('IDOR via HTTP — GET /api/v1/sites/{id}/parametres-atelier', () => {
 // -------------------------------------------------------------------------------------------
 
 describe('portée transactionnelle du GUC, module paramétrage', () => {
-  it("cinq allers-retours garage-a / garage-b consécutifs sur `taux_horaire`, via AccesBase.enTenant, ne mélangent jamais les comptages", async () => {
-    const { accesBase, fermer } = await creerAccesBaseTest(bdd, redis.url, { DATABASE_POOL_MAX: '1' });
+  it('cinq allers-retours garage-a / garage-b consécutifs sur `taux_horaire`, via AccesBase.enTenant, ne mélangent jamais les comptages', async () => {
+    const { accesBase, fermer } = await creerAccesBaseTest(bdd, redis.url, {
+      DATABASE_POOL_MAX: '1',
+    });
     try {
       for (let iteration = 0; iteration < 5; iteration += 1) {
         const resultatA = await accesBase.enTenant(
@@ -395,10 +531,13 @@ describe('posture du rôle applicatif dfa_app — module paramétrage', () => {
     'activite_indirecte',
   ] as const;
 
-  it('dfa_app n\'est ni superutilisateur ni BYPASSRLS, et ne possède aucune des 9 tables du module', async () => {
+  it("dfa_app n'est ni superutilisateur ni BYPASSRLS, et ne possède aucune des 9 tables du module", async () => {
     const client = await bdd.poolSuperutilisateur.connect();
     try {
-      const role = await client.query('select rolsuper, rolbypassrls from pg_roles where rolname = $1', ['dfa_app']);
+      const role = await client.query(
+        'select rolsuper, rolbypassrls from pg_roles where rolname = $1',
+        ['dfa_app'],
+      );
       expect(role.rows).toHaveLength(1);
       expect(role.rows[0]).toEqual({ rolsuper: false, rolbypassrls: false });
 
@@ -406,7 +545,10 @@ describe('posture du rôle applicatif dfa_app — module paramétrage', () => {
         `select tablename from pg_tables where schemaname = 'public' and tableowner = 'dfa_app' and tablename = any($1)`,
         [TABLES_MODULE_PARAMETRAGE],
       );
-      expect(rows, 'dfa_app ne doit être propriétaire d\'aucune table du module paramétrage').toHaveLength(0);
+      expect(
+        rows,
+        "dfa_app ne doit être propriétaire d'aucune table du module paramétrage",
+      ).toHaveLength(0);
     } finally {
       client.release();
     }
@@ -438,12 +580,21 @@ describe('posture du rôle applicatif dfa_app — module paramétrage', () => {
         [TABLES_MODULE_PARAMETRAGE],
       );
 
-      expect(rows, 'les 9 tables du module paramétrage doivent exister').toHaveLength(TABLES_MODULE_PARAMETRAGE.length);
+      expect(rows, 'les 9 tables du module paramétrage doivent exister').toHaveLength(
+        TABLES_MODULE_PARAMETRAGE.length,
+      );
       for (const ligne of rows) {
-        expect.soft(ligne.rls_actif, `${ligne.table_nom} : relrowsecurity doit être true`).toBe(true);
-        expect.soft(ligne.rls_force, `${ligne.table_nom} : relforcerowsecurity doit être true`).toBe(true);
         expect
-          .soft(Number(ligne.nb_politiques_conformes), `${ligne.table_nom} : au moins une politique USING+WITH CHECK sur tenant_courant()`)
+          .soft(ligne.rls_actif, `${ligne.table_nom} : relrowsecurity doit être true`)
+          .toBe(true);
+        expect
+          .soft(ligne.rls_force, `${ligne.table_nom} : relforcerowsecurity doit être true`)
+          .toBe(true);
+        expect
+          .soft(
+            Number(ligne.nb_politiques_conformes),
+            `${ligne.table_nom} : au moins une politique USING+WITH CHECK sur tenant_courant()`,
+          )
           .toBeGreaterThan(0);
       }
     } finally {

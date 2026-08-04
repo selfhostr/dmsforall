@@ -6,7 +6,9 @@ import { clesQuery } from '@/api/cles';
 import { requeteApi } from '@/api/client';
 
 async function recupererParametresAtelier(): Promise<ReponseParametresAtelier> {
-  const reponse = await requeteApi<ReponseParametresAtelier>('/parametres-atelier', { method: 'GET' });
+  const reponse = await requeteApi<ReponseParametresAtelier>('/parametres-atelier', {
+    method: 'GET',
+  });
   if (!reponse) {
     throw new Error('Réponse de paramètres atelier inattendue : corps vide.');
   }

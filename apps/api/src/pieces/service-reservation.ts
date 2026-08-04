@@ -15,7 +15,15 @@ import { CollecteurAvertissements } from '../common/avertissements';
 import { ErreurMetier } from '../common/erreurs';
 
 import { versReservationResponse } from './mappers';
-import { construireConditionKeyset, construireOrderBy, decoderCurseurPourTri, encoderCurseurTrie, expressionTriValeur, valeurCurseurDepuisTri, type DefinitionTri } from './pagination-triee';
+import {
+  construireConditionKeyset,
+  construireOrderBy,
+  decoderCurseurPourTri,
+  encoderCurseurTrie,
+  expressionTriValeur,
+  valeurCurseurDepuisTri,
+  type DefinitionTri,
+} from './pagination-triee';
 
 const DEFINITIONS_TRI_RESERVATIONS: Readonly<Record<FiltresReservations['tri'], DefinitionTri>> = {
   'creeLe:desc': { expression: sql`r.cree_le`, sens: 'desc', nullable: false, temporel: true },
@@ -42,7 +50,10 @@ const COLONNES_RESERVATION_ALIASEES = sql`
 export class ServiceReservation {
   constructor(@Inject(JETON_DB) private readonly acces: AccesBase) {}
 
-  async lister(ctx: ContexteTenant, params: FiltresReservations): Promise<PageCurseur<ReponseReservationPiece>> {
+  async lister(
+    ctx: ContexteTenant,
+    params: FiltresReservations,
+  ): Promise<PageCurseur<ReponseReservationPiece>> {
     const definition = DEFINITIONS_TRI_RESERVATIONS[params.tri];
     const idExpr = sql`r.id`;
     const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
@@ -51,15 +62,25 @@ export class ServiceReservation {
       const conditions = [sql`r.tenant_id = ${ctx.tenantId}`];
       if (params.articleId) conditions.push(sql`r.article_id = ${params.articleId}`);
       if (params.siteId) conditions.push(sql`r.site_id = ${params.siteId}`);
-      if (params.ordreReparationId) conditions.push(sql`r.ordre_reparation_id = ${params.ordreReparationId}`);
+      if (params.ordreReparationId)
+        conditions.push(sql`r.ordre_reparation_id = ${params.ordreReparationId}`);
       if (params.statut && params.statut.length > 0) {
-        conditions.push(sql`r.statut::text in (${sql.join(params.statut.map((s) => sql`${s}`), sql`, `)})`);
+        conditions.push(
+          sql`r.statut::text in (${sql.join(
+            params.statut.map((s) => sql`${s}`),
+            sql`, `,
+          )})`,
+        );
       }
       if (curseurDecode) {
-        conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
+        conditions.push(
+          construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id),
+        );
       }
 
-      const resultat = await tx.execute<LigneReservationPiece & { triValeur: string | number | null }>(sql`
+      const resultat = await tx.execute<
+        LigneReservationPiece & { triValeur: string | number | null }
+      >(sql`
         select ${COLONNES_RESERVATION_ALIASEES}, ${expressionTriValeur(definition)} as "triValeur"
           from public.reservation_piece r
          where ${sql.join(conditions, sql` and `)}
@@ -76,7 +97,11 @@ export class ServiceReservation {
         donnees: pageLignes.map((l) => versReservationResponse(l)),
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseurTrie({ tri: params.tri, valeur: valeurCurseurDepuisTri(definition, derniere.triValeur), id: derniere.id })
+            ? encoderCurseurTrie({
+                tri: params.tri,
+                valeur: valeurCurseurDepuisTri(definition, derniere.triValeur),
+                id: derniere.id,
+              })
             : null,
         limite: params.limite,
       };
@@ -111,7 +136,8 @@ export class ServiceReservation {
         returning id as "id"
       `);
       const mouvementId = resultatMouvement.rows[0]?.id;
-      if (!mouvementId) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du mouvement de sortie.');
+      if (!mouvementId)
+        throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du mouvement de sortie.');
 
       await tx.execute(sql`
         update public.reservation_piece
@@ -132,7 +158,11 @@ export class ServiceReservation {
    * `ligne_or` ne permet de distinguer sans lire `atelier/service-devis.ts` (hors périmètre) ; ce
    * service se limite au statut de l'OR, le cas le plus fréquent et le plus lisible.
    */
-  async liberer(ctx: ContexteTenant, reservationId: string, entree: EntreeLiberationReservation): Promise<ReponseAvecAvertissements<ReponseReservationPiece>> {
+  async liberer(
+    ctx: ContexteTenant,
+    reservationId: string,
+    entree: EntreeLiberationReservation,
+  ): Promise<ReponseAvecAvertissements<ReponseReservationPiece>> {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await this.chargerPourVerrouOu404(tx, ctx, reservationId);
       if (ligne.statut !== 'active') {
@@ -167,7 +197,11 @@ export class ServiceReservation {
     });
   }
 
-  private async chargerOu404(tx: TransactionDfa, ctx: ContexteTenant, reservationId: string): Promise<LigneReservationPiece> {
+  private async chargerOu404(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    reservationId: string,
+  ): Promise<LigneReservationPiece> {
     const resultat = await tx.execute<LigneReservationPiece>(sql`
       select ${COLONNES_RESERVATION_ALIASEES} from public.reservation_piece r
        where r.tenant_id = ${ctx.tenantId} and r.id = ${reservationId}
@@ -178,7 +212,11 @@ export class ServiceReservation {
   }
 
   /** `select … for update` : sérialise satisfaire/liberer concurrents sur la MÊME réservation. */
-  private async chargerPourVerrouOu404(tx: TransactionDfa, ctx: ContexteTenant, reservationId: string): Promise<LigneReservationPiece> {
+  private async chargerPourVerrouOu404(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    reservationId: string,
+  ): Promise<LigneReservationPiece> {
     const resultat = await tx.execute<LigneReservationPiece>(sql`
       select ${COLONNES_RESERVATION_ALIASEES} from public.reservation_piece r
        where r.tenant_id = ${ctx.tenantId} and r.id = ${reservationId}

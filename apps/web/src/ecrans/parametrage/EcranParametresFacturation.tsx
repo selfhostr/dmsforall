@@ -33,7 +33,8 @@ export function EcranParametresFacturation() {
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const requete = useBlocCreancier();
 
-  const estRefusDroit = requete.error instanceof ErreurApi && requete.error.probleme.code === 'DROIT_INSUFFISANT';
+  const estRefusDroit =
+    requete.error instanceof ErreurApi && requete.error.probleme.code === 'DROIT_INSUFFISANT';
 
   return (
     <div className="flex flex-col gap-6">
@@ -42,10 +43,15 @@ export function EcranParametresFacturation() {
       {requete.isPending ? (
         <EtatChargement lignes={8} />
       ) : requete.isError && estRefusDroit ? (
-        <div className="flex flex-col items-center gap-3 rounded-lg border p-10 text-center" role="alert">
+        <div
+          className="flex flex-col items-center gap-3 rounded-lg border p-10 text-center"
+          role="alert"
+        >
           <ShieldAlert className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
           <h2 className="text-lg font-semibold">{t('parametrage:creancier.refus.titre')}</h2>
-          <p className="max-w-md text-muted-foreground">{t('parametrage:creancier.refus.description')}</p>
+          <p className="max-w-md text-muted-foreground">
+            {t('parametrage:creancier.refus.description')}
+          </p>
           <Button asChild variant="outline">
             <Link to="/">{t('parametrage:creancier.refus.retourAccueil')}</Link>
           </Button>

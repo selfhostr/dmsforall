@@ -45,8 +45,18 @@ import * as Sentry from '@sentry/nestjs';
 import type { Event as EvenementSentry } from '@sentry/nestjs';
 
 import { demarrerBaseEphemere, type BaseEphemere } from '../setup/postgres-ephemere';
-import { semerGarageDemo, ajouterUtilisateurFixture, type GarageDemoFixture } from '../fixtures/garage-demo';
-import { creerAppTest, demarrerRedisEphemere, extraireValeurCookie, type AppTest, type RedisEphemere } from '../setup/app-test';
+import {
+  semerGarageDemo,
+  ajouterUtilisateurFixture,
+  type GarageDemoFixture,
+} from '../fixtures/garage-demo';
+import {
+  creerAppTest,
+  demarrerRedisEphemere,
+  extraireValeurCookie,
+  type AppTest,
+  type RedisEphemere,
+} from '../setup/app-test';
 
 const CHEMIN_CONNEXION = '/api/v1/auth/connexion';
 const CHEMIN_MOI = '/api/v1/auth/moi';
@@ -200,7 +210,7 @@ describe('avec SENTRY_DSN pointant une instance injoignable (port local fermé)'
   });
 
   it(
-    "une erreur interne inattendue répond normalement (jamais bloquée par un Sentry injoignable), " +
+    'une erreur interne inattendue répond normalement (jamais bloquée par un Sentry injoignable), ' +
       "et produit malgré tout un événement Sentry — la preuve que le harnais d'interception capte " +
       'bien un événement RÉEL quand il y en a un (et donc que "zéro événement" dans le test suivant ' +
       "n'est pas un faux négatif dû à un hook mal branché)",
@@ -211,7 +221,9 @@ describe('avec SENTRY_DSN pointant une instance injoignable (port local fermé)'
       // Ça déclenche une VRAIE erreur Postgres non typée ("permission denied for function"),
       // exactement le genre d'erreur imprévue que `FiltreProbleme` transforme en 500
       // ERREUR_INTERNE et envoie à Sentry — sans toucher un octet de code applicatif.
-      await bdd.poolMigrateur.query('revoke execute on function amorcage.utilisateur_par_email(text) from dfa_app');
+      await bdd.poolMigrateur.query(
+        'revoke execute on function amorcage.utilisateur_par_email(text) from dfa_app',
+      );
       try {
         const debut = Date.now();
         const reponse = await ctx.requete
@@ -232,7 +244,9 @@ describe('avec SENTRY_DSN pointant une instance injoignable (port local fermé)'
         await attendreQue(() => evenements.length >= 1);
         expect(evenements.length).toBeGreaterThanOrEqual(1);
       } finally {
-        await bdd.poolMigrateur.query('grant execute on function amorcage.utilisateur_par_email(text) to dfa_app');
+        await bdd.poolMigrateur.query(
+          'grant execute on function amorcage.utilisateur_par_email(text) to dfa_app',
+        );
       }
     },
   );
@@ -245,7 +259,9 @@ describe('avec SENTRY_DSN pointant une instance injoignable (port local fermé)'
       const MOT_DE_PASSE = 'UnAutreMotDePasseSensible!77';
       const COOKIE_SECRET = 'dfa_session=un-jeton-de-session-strictement-secret-xyz789';
 
-      await bdd.poolMigrateur.query('revoke execute on function amorcage.utilisateur_par_email(text) from dfa_app');
+      await bdd.poolMigrateur.query(
+        'revoke execute on function amorcage.utilisateur_par_email(text) from dfa_app',
+      );
       try {
         const reponse = await ctx.requete
           .post(CHEMIN_CONNEXION)
@@ -260,7 +276,9 @@ describe('avec SENTRY_DSN pointant une instance injoignable (port local fermé)'
         for (const evenement of evenements) {
           expect(evenementContient(evenement, MOT_DE_PASSE)).toBe(false);
           expect(evenementContient(evenement, EMAIL)).toBe(false);
-          expect(evenementContient(evenement, 'un-jeton-de-session-strictement-secret-xyz789')).toBe(false);
+          expect(
+            evenementContient(evenement, 'un-jeton-de-session-strictement-secret-xyz789'),
+          ).toBe(false);
           expect(evenementContient(evenement, 'dfa_session=')).toBe(false);
           // Défense en profondeur : le corps de requête entier ne doit pas apparaître non plus
           // (chemin /auth → suppression intégrale de `request.data`, voir nettoyer-evenement.ts).
@@ -268,13 +286,15 @@ describe('avec SENTRY_DSN pointant une instance injoignable (port local fermé)'
           expect(evenement.request?.cookies).toBeUndefined();
         }
       } finally {
-        await bdd.poolMigrateur.query('grant execute on function amorcage.utilisateur_par_email(text) to dfa_app');
+        await bdd.poolMigrateur.query(
+          'grant execute on function amorcage.utilisateur_par_email(text) to dfa_app',
+        );
       }
     },
   );
 
   it(
-    "sur une requête AUTHENTIFIÉE (session valide) qui échoue de façon inattendue, le jeton de " +
+    'sur une requête AUTHENTIFIÉE (session valide) qui échoue de façon inattendue, le jeton de ' +
       "session en clair ne fuite pas non plus dans l'événement capturé",
     async () => {
       // Contrairement aux deux tests ci-dessus (échec AVANT authentification, sur /auth/connexion),
@@ -312,7 +332,9 @@ describe('avec SENTRY_DSN pointant une instance injoignable (port local fermé)'
 
         for (const evenement of evenements) {
           expect(evenementContient(evenement, jetonClair)).toBe(false);
-          expect(evenementContient(evenement, `${ctx.config.SESSION_COOKIE_NOM}=${jetonClair}`)).toBe(false);
+          expect(
+            evenementContient(evenement, `${ctx.config.SESSION_COOKIE_NOM}=${jetonClair}`),
+          ).toBe(false);
           expect(evenementContient(evenement, utilisateurDedie.email)).toBe(false);
           expect(evenement.request?.cookies).toBeUndefined();
         }
@@ -322,7 +344,7 @@ describe('avec SENTRY_DSN pointant une instance injoignable (port local fermé)'
     },
   );
 
-  it("un échec de connexion normal (401 identifiants invalides) ne produit AUCUN événement Sentry", async () => {
+  it('un échec de connexion normal (401 identifiants invalides) ne produit AUCUN événement Sentry', async () => {
     const reponse = await ctx.requete
       .post(CHEMIN_CONNEXION)
       .set('Origin', ctx.config.WEB_URL_PUBLIQUE)

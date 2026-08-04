@@ -16,7 +16,7 @@ describe('Plaque', () => {
     expect(screen.queryByText('null')).not.toBeInTheDocument();
   });
 
-  it("rend un tiret neutre quand le véhicule ne porte aucune plaque", () => {
+  it('rend un tiret neutre quand le véhicule ne porte aucune plaque', () => {
     render(<Plaque canton={null} numero={null} />);
     expect(screen.getByText('—')).toBeInTheDocument();
   });

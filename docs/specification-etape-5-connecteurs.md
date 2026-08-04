@@ -22,18 +22,18 @@ Préfixes déjà pris ailleurs dans le dépôt et donc évités ici : `RM`/`CT` 
 `PF`/`QF` (étape 2), `RP`/`CP`/`PP`/`QP` (étape 3), `RV`/`CV`/`PV`/`QV` (étape 4), `EF` (exports
 fiduciaires).
 
-| § | Contenu | Identifiants |
-|---|---|---|
-| [1](#1-principe-transversal--un-connecteur-nest-jamais-une-dépendance-dure) | Principe transversal : panne, source de vérité, idempotence, nLPD | `RC-01` → `RC-19` |
-| [2](#2-constructeurs-oem) | Constructeurs (OEM) : pièces, garanties, campagnes, forfaits MO, immatriculation | `RC-20` → `RC-39` |
-| [3](#3-plateformes-dannonces) | AutoScout24 et plateformes d'annonces | `RC-40` → `RC-49` |
-| [4](#4-fiduciaires--ce-qui-manque-autour-de-lexistant) | Fiduciaires — ce qui manque autour de l'existant | `RC-50` → `RC-59` |
-| [5](#5-banques--rapprochement-camt054) | Banques — rapprochement camt.054 | `RC-60` → `RC-69` |
-| [6](#6-fournisseurs-de-pièces) | Fournisseurs de pièces (Derendinger, Technomag, ESA…) | `RC-70` → `RC-79` |
-| [7](#7-contrôles-et-administration) | MFK, offices cantonaux | `RC-80` → `RC-89` |
-| [8](#8-cas-de-test-métier-transversaux) | Cas de test métier | `CC-01` → `CC-16` |
-| [9](#9-paramétrage) | Paramétrage par garage | `PC-01` → `PC-10` |
-| [10](#10-ce-qui-doit-remonter-à-laupernoe) | **Ce qui doit remonter à @laupernoe** | `QC-01` → `QC-20` |
+| §                                                                           | Contenu                                                                          | Identifiants      |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ----------------- |
+| [1](#1-principe-transversal--un-connecteur-nest-jamais-une-dépendance-dure) | Principe transversal : panne, source de vérité, idempotence, nLPD                | `RC-01` → `RC-19` |
+| [2](#2-constructeurs-oem)                                                   | Constructeurs (OEM) : pièces, garanties, campagnes, forfaits MO, immatriculation | `RC-20` → `RC-39` |
+| [3](#3-plateformes-dannonces)                                               | AutoScout24 et plateformes d'annonces                                            | `RC-40` → `RC-49` |
+| [4](#4-fiduciaires--ce-qui-manque-autour-de-lexistant)                      | Fiduciaires — ce qui manque autour de l'existant                                 | `RC-50` → `RC-59` |
+| [5](#5-banques--rapprochement-camt054)                                      | Banques — rapprochement camt.054                                                 | `RC-60` → `RC-69` |
+| [6](#6-fournisseurs-de-pièces)                                              | Fournisseurs de pièces (Derendinger, Technomag, ESA…)                            | `RC-70` → `RC-79` |
+| [7](#7-contrôles-et-administration)                                         | MFK, offices cantonaux                                                           | `RC-80` → `RC-89` |
+| [8](#8-cas-de-test-métier-transversaux)                                     | Cas de test métier                                                               | `CC-01` → `CC-16` |
+| [9](#9-paramétrage)                                                         | Paramétrage par garage                                                           | `PC-01` → `PC-10` |
+| [10](#10-ce-qui-doit-remonter-à-laupernoe)                                        | **Ce qui doit remonter à @laupernoe**                                                   | `QC-01` → `QC-20` |
 
 ---
 
@@ -469,13 +469,13 @@ n'est pas répondue.
 Points qui varient d'un garage à l'autre et ne doivent jamais être codés en dur — conformément à la
 convention déjà appliquée aux étapes 1 à 4.
 
-| # | Contenu | Portée | Valeur par défaut |
-|---|---|---|---|
-| `PC-01` | Nombre de tentatives et espacement avant qu'un connecteur en échec bascule en « nécessite une action » (`RC-04`) | par connecteur | **aucune valeur avancée — dépend du connecteur, à définir à l'implémentation** |
-| `PC-02` | Connecteurs activés pour le tenant (un garage peut ne représenter qu'une marque, n'utiliser qu'une plateforme d'annonces) | tenant | aucun connecteur actif par défaut — activation explicite |
-| `PC-03` | Seuil et fenêtre temporelle de reconnaissance d'un escompte lors du rapprochement bancaire (`RC-63`) | tenant | **aucune valeur avancée — dépend des conditions commerciales du garage, `QC-18`** |
-| `PC-04` | Compte ou emplacement de destination du prix « indicatif » importé d'un catalogue fournisseur, avant validation à la réception (`RC-71`) | tenant | pas de préremplissage automatique tant que le point n'est pas confirmé terrain |
-| `PC-05` | Fréquence de synchronisation catalogue/disponibilité fournisseur, si un connecteur de consultation est activé | par connecteur | **inconnu — dépend de ce que chaque fournisseur autorise, `QC-17`** |
+| #       | Contenu                                                                                                                                  | Portée         | Valeur par défaut                                                                 |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------- |
+| `PC-01` | Nombre de tentatives et espacement avant qu'un connecteur en échec bascule en « nécessite une action » (`RC-04`)                         | par connecteur | **aucune valeur avancée — dépend du connecteur, à définir à l'implémentation**    |
+| `PC-02` | Connecteurs activés pour le tenant (un garage peut ne représenter qu'une marque, n'utiliser qu'une plateforme d'annonces)                | tenant         | aucun connecteur actif par défaut — activation explicite                          |
+| `PC-03` | Seuil et fenêtre temporelle de reconnaissance d'un escompte lors du rapprochement bancaire (`RC-63`)                                     | tenant         | **aucune valeur avancée — dépend des conditions commerciales du garage, `QC-18`** |
+| `PC-04` | Compte ou emplacement de destination du prix « indicatif » importé d'un catalogue fournisseur, avant validation à la réception (`RC-71`) | tenant         | pas de préremplissage automatique tant que le point n'est pas confirmé terrain    |
+| `PC-05` | Fréquence de synchronisation catalogue/disponibilité fournisseur, si un connecteur de consultation est activé                            | par connecteur | **inconnu — dépend de ce que chaque fournisseur autorise, `QC-17`**               |
 
 ---
 
@@ -505,15 +505,15 @@ garage.
 
 ### Où aller regarder, connecteur par connecteur
 
-| Connecteur | Où trouver la réponse |
-|---|---|
-| **OEM — commandes pièces, garanties, campagnes** | Le poste qui se connecte aujourd'hui au portail constructeur dans chaque garage (souvent le chef d'atelier ou le magasinier) — demande-lui de te montrer un dossier de garantie de bout en bout |
-| **OEM — accès et conditions** | L'importateur national de chaque marque représentée ; c'est lui qui gère les accès agréés, pas le constructeur central |
-| **AutoScout24** | Le vendeur VO qui publie les annonces aujourd'hui — et le contrat commercial du garage avec AutoScout24, qui devrait mentionner un accès « professionnel »/« intégration » distinct de la saisie manuelle grand public |
-| **Fiduciaires (Bexio/Abacus/Banana, au-delà de WinBIZ)** | Les fiduciaires elles-mêmes des garages qui ne sont pas sur WinBIZ — la même question que `EF-40` Q1-Q4, à reposer pour chaque garage non couvert |
-| **Banque / camt.054** | Le service e-banking de la banque du garage — demande directement « pouvez-vous me fournir des avis de crédit au format camt.054, et par quel canal ? » |
-| **Fournisseurs de pièces** | Le magasinier de chaque garage : quel fournisseur a un portail de commande en ligne aujourd'hui, lequel se fait encore par téléphone/fax |
-| **MFK / cantonal** | À vérifier en priorité que ce connecteur a un sens avant d'y investir une ligne de code — demande directement au garage comment se passe concrètement un dépôt de plaques ou un changement de détenteur aujourd'hui |
+| Connecteur                                               | Où trouver la réponse                                                                                                                                                                                                  |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **OEM — commandes pièces, garanties, campagnes**         | Le poste qui se connecte aujourd'hui au portail constructeur dans chaque garage (souvent le chef d'atelier ou le magasinier) — demande-lui de te montrer un dossier de garantie de bout en bout                        |
+| **OEM — accès et conditions**                            | L'importateur national de chaque marque représentée ; c'est lui qui gère les accès agréés, pas le constructeur central                                                                                                 |
+| **AutoScout24**                                          | Le vendeur VO qui publie les annonces aujourd'hui — et le contrat commercial du garage avec AutoScout24, qui devrait mentionner un accès « professionnel »/« intégration » distinct de la saisie manuelle grand public |
+| **Fiduciaires (Bexio/Abacus/Banana, au-delà de WinBIZ)** | Les fiduciaires elles-mêmes des garages qui ne sont pas sur WinBIZ — la même question que `EF-40` Q1-Q4, à reposer pour chaque garage non couvert                                                                      |
+| **Banque / camt.054**                                    | Le service e-banking de la banque du garage — demande directement « pouvez-vous me fournir des avis de crédit au format camt.054, et par quel canal ? »                                                                |
+| **Fournisseurs de pièces**                               | Le magasinier de chaque garage : quel fournisseur a un portail de commande en ligne aujourd'hui, lequel se fait encore par téléphone/fax                                                                               |
+| **MFK / cantonal**                                       | À vérifier en priorité que ce connecteur a un sens avant d'y investir une ligne de code — demande directement au garage comment se passe concrètement un dépôt de plaques ou un changement de détenteur aujourd'hui    |
 
 ### Questions ouvertes qui touchent ce domaine, déjà croisées ailleurs dans le dépôt
 

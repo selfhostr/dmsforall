@@ -25,8 +25,12 @@ export function useModifierTravailReporte(
       modifierTravailReporteVehicule(vehiculeId, travailId, entree),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: clesQuery.vehicules.travauxReportes(vehiculeId) }),
-        queryClient.invalidateQueries({ queryKey: clesQuery.vehicules.contexteAtelier(vehiculeId) }),
+        queryClient.invalidateQueries({
+          queryKey: clesQuery.vehicules.travauxReportes(vehiculeId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: clesQuery.vehicules.contexteAtelier(vehiculeId),
+        }),
       ]);
     },
   });

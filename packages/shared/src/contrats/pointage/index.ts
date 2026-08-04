@@ -31,3 +31,4 @@ export * from './identification';
 export * from './pointage';
 export * from './periode';
 export * from './indicateurs';
+export * from './agregat-ligne';

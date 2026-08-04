@@ -60,6 +60,9 @@ export default defineConfig({
             'test/integration/**/*.spec.ts',
             'test/contrat/**/*.spec.ts',
             'test/lot1/**/*.spec.ts',
+            // 'test/lot2/**' : périmètre du lot 2 (Pointage, Pièces) — isolation multi-tenant et
+            // agrégats métier, jusqu'ici écrits mais jamais collectés par ce projet (oubli).
+            'test/lot2/**/*.spec.ts',
           ],
           exclude: ['**/node_modules/**', 'dist/**'],
           environment: 'node',

@@ -12,7 +12,10 @@ import type { RoleUtilisateur } from '@dfa/shared';
  * à soumettre un formulaire reçoit un `403 DROIT_INSUFFISANT` géré normalement par les dialogues
  * (bandeau d'erreur générique via `messageErreur`).
  */
-const ROLES_GOUVERNANCE_PARAMETRAGE: ReadonlySet<RoleUtilisateur> = new Set(['chef_atelier', 'direction']);
+const ROLES_GOUVERNANCE_PARAMETRAGE: ReadonlySet<RoleUtilisateur> = new Set([
+  'chef_atelier',
+  'direction',
+]);
 
 export function peutModifierParametrage(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_GOUVERNANCE_PARAMETRAGE.has(role);

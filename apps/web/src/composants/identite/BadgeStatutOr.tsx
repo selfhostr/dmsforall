@@ -47,7 +47,12 @@ const CONFIG_STATUT_OR: Readonly<Record<EtatAfficheOrdreReparation, EntreeStatut
   ouvert: { cle: 'ouvert', icone: Circle, token: 'info', forme: 'plein' },
   en_cours: { cle: 'enCours', icone: Wrench, token: 'info', forme: 'plein' },
   attente_accord: { cle: 'attenteAccord', icone: HelpCircle, token: 'attention', forme: 'plein' },
-  attente_pieces: { cle: 'attentePieces', icone: PackageSearch, token: 'attention', forme: 'plein' },
+  attente_pieces: {
+    cle: 'attentePieces',
+    icone: PackageSearch,
+    token: 'attention',
+    forme: 'plein',
+  },
   attente_externe: { cle: 'attenteExterne', icone: Truck, token: 'attention', forme: 'plein' },
   controle: { cle: 'controle', icone: Search, token: 'attention', forme: 'plein' },
   termine: { cle: 'termine', icone: CheckCircle2, token: 'succes', forme: 'plein' },
@@ -91,7 +96,8 @@ export function BadgeStatutOr({ etat, className }: Props) {
   const { t } = useTranslation('or');
   const config = CONFIG_STATUT_OR[etat];
   const Icone = config.icone;
-  const classesToken = config.forme === 'plein' ? CLASSES_PLEIN[config.token] : CLASSES_CONTOUR[config.token];
+  const classesToken =
+    config.forme === 'plein' ? CLASSES_PLEIN[config.token] : CLASSES_CONTOUR[config.token];
 
   return (
     <span

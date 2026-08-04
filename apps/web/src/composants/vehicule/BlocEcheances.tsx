@@ -65,7 +65,12 @@ function LigneEcheanceExpertise({ expertise }: { readonly expertise: EcheanceExp
     <div className="flex flex-wrap items-center gap-3">
       <CalendarClock aria-hidden className="h-5 w-5 shrink-0 text-muted-foreground" />
       <div className="flex flex-col gap-0.5">
-        <p className={cn('texte-donnee-proeminente', expertise.echue && 'font-semibold text-foreground')}>
+        <p
+          className={cn(
+            'texte-donnee-proeminente',
+            expertise.echue && 'font-semibold text-foreground',
+          )}
+        >
           {formaterDate(expertise.prochaineLe)}
           {expertise.echue ? (
             <span className="ml-2 inline-flex items-center gap-1 align-middle texte-libelle font-semibold text-foreground">
@@ -83,7 +88,13 @@ function LigneEcheanceExpertise({ expertise }: { readonly expertise: EcheanceExp
   );
 }
 
-function LigneGarantie({ titre, garantie }: { readonly titre: string; readonly garantie: GarantieVehicule | null }) {
+function LigneGarantie({
+  titre,
+  garantie,
+}: {
+  readonly titre: string;
+  readonly garantie: GarantieVehicule | null;
+}) {
   const { t } = useTranslation('vehicules');
   const active = garantie?.active === true;
   const Icone = active ? ShieldCheck : ShieldOff;
@@ -100,7 +111,10 @@ function LigneGarantie({ titre, garantie }: { readonly titre: string; readonly g
   return (
     <div className="flex flex-col gap-1 rounded-md border p-3">
       <div className="flex items-center gap-2">
-        <Icone aria-hidden className={cn('h-4 w-4 shrink-0', active ? 'text-foreground' : 'text-muted-foreground')} />
+        <Icone
+          aria-hidden
+          className={cn('h-4 w-4 shrink-0', active ? 'text-foreground' : 'text-muted-foreground')}
+        />
         <p className="texte-libelle text-muted-foreground">{titre}</p>
         <span
           className={cn(

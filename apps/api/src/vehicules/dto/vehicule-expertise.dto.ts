@@ -29,6 +29,9 @@ export class ReponseVehiculeExpertiseDto implements ReponseVehiculeExpertise {
   @ApiPropertyOptional({ type: String, nullable: true, format: 'date' })
   readonly prochaineEcheanceLe!: string | null;
 
-  @ApiProperty({ enum: SOURCES_ECHEANCE_EXPERTISE, description: 'Une convocation prime toujours (RM-28, CT-10).' })
+  @ApiProperty({
+    enum: SOURCES_ECHEANCE_EXPERTISE,
+    description: 'Une convocation prime toujours (RM-28, CT-10).',
+  })
   readonly sourceEcheance!: SourceEcheanceExpertise;
 }

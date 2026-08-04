@@ -102,7 +102,10 @@ class ExpertiseContexteDto {
   @ApiProperty({ type: String, nullable: true, format: 'date' })
   readonly prochaineLe!: string | null;
 
-  @ApiProperty({ enum: SOURCES_ECHEANCE_EXPERTISE, description: 'Une convocation prime toujours (RM-28, CT-10).' })
+  @ApiProperty({
+    enum: SOURCES_ECHEANCE_EXPERTISE,
+    description: 'Une convocation prime toujours (RM-28, CT-10).',
+  })
   readonly source!: SourceEcheanceExpertise;
 
   @ApiProperty({ description: 'Calculé serveur — jamais recalculé côté client.' })
@@ -135,10 +138,15 @@ class CampagneOuverteContexteDto {
 }
 
 class TravauxReportesContexteDto {
-  @ApiProperty({ description: 'Compte réel des travaux OUVERTS — peut dépasser `elements.length` (borné).' })
+  @ApiProperty({
+    description: 'Compte réel des travaux OUVERTS — peut dépasser `elements.length` (borné).',
+  })
   readonly total!: number;
 
-  @ApiProperty({ type: () => [ReponseTravailReporteDto], description: `Borné à MAX_TRAVAUX_REPORTES_CONTEXTE (10).` })
+  @ApiProperty({
+    type: () => [ReponseTravailReporteDto],
+    description: `Borné à MAX_TRAVAUX_REPORTES_CONTEXTE (10).`,
+  })
   readonly elements!: readonly ReponseTravailReporte[];
 }
 
@@ -189,7 +197,10 @@ export class ReponseContexteAtelierDto implements ReponseContexteAtelier {
   @ApiProperty({ type: () => [AlerteClientContexteDto] })
   readonly alertesClient!: readonly AlerteClientContexteDto[];
 
-  @ApiProperty({ type: () => [OrdreReparationOuvertContexteDto], description: 'Alimente la confirmation VEHICULE_DEUX_OR_OUVERTS (P-29).' })
+  @ApiProperty({
+    type: () => [OrdreReparationOuvertContexteDto],
+    description: 'Alimente la confirmation VEHICULE_DEUX_OR_OUVERTS (P-29).',
+  })
   readonly ordresReparationOuverts!: readonly OrdreReparationOuvertContexteDto[];
 
   @ApiPropertyOptional({
@@ -199,9 +210,9 @@ export class ReponseContexteAtelierDto implements ReponseContexteAtelier {
     example: null,
     description:
       "Réservé à l'hôtel à pneus — toujours `null` au lot 1 (place retenue dans le contrat). " +
-      "`type` fixé explicitement : le type TS `null` seul ne produit aucune métadonnée " +
+      '`type` fixé explicitement : le type TS `null` seul ne produit aucune métadonnée ' +
       '`design:type` côté `emitDecoratorMetadata` (TypeScript ne sait pas sérialiser un type ' +
-      "littéral `null`), ce qui faisait échouer la génération Swagger au démarrage avec un faux " +
+      'littéral `null`), ce qui faisait échouer la génération Swagger au démarrage avec un faux ' +
       'positif « circular dependency » (voir schema-object-factory.js, createNotBuiltInTypeReference).',
   })
   readonly depotPneus!: null;

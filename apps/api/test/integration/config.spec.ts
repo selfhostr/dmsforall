@@ -21,7 +21,7 @@ function envValide(surcharges: Partial<NodeJS.ProcessEnv> = {}): NodeJS.ProcessE
   return { ...ENV_VALIDE, ...surcharges };
 }
 
-describe("validation de la configuration au démarrage (schéma zod, échec rapide)", () => {
+describe('validation de la configuration au démarrage (schéma zod, échec rapide)', () => {
   it('une configuration valide et complète est chargée sans erreur', () => {
     expect(() => chargerConfig(envValide())).not.toThrow();
   });
@@ -70,7 +70,7 @@ describe("validation de la configuration au démarrage (schéma zod, échec rapi
     expect(() => chargerConfig(env)).not.toThrow();
   });
 
-  it('DATABASE_URL identique à DATABASE_URL_MIGRATION est refusé (l\'app tournerait avec le rôle qui peut modifier le schéma / contourner le RLS)', () => {
+  it("DATABASE_URL identique à DATABASE_URL_MIGRATION est refusé (l'app tournerait avec le rôle qui peut modifier le schéma / contourner le RLS)", () => {
     const env = envValide();
     env.DATABASE_URL_MIGRATION = env.DATABASE_URL;
     expect(() => chargerConfig(env)).toThrow(ErreurConfigInvalide);

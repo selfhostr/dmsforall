@@ -1,6 +1,10 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 
-import type { EntreeCorrectionFacture, ReponseAvecAvertissements, ReponseCorrectionFacture } from '@dfa/shared';
+import type {
+  EntreeCorrectionFacture,
+  ReponseAvecAvertissements,
+  ReponseCorrectionFacture,
+} from '@dfa/shared';
 
 import { clesFacturation } from './cles';
 import { corrigerFacture } from './documents-vente.api';
@@ -25,14 +29,20 @@ export function useCorrigerFacture(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ factureId, entree, idempotencyKey }: VariablesCorrection) => corrigerFacture(factureId, entree, idempotencyKey),
+    mutationFn: ({ factureId, entree, idempotencyKey }: VariablesCorrection) =>
+      corrigerFacture(factureId, entree, idempotencyKey),
     onSuccess: (reponse, variables) => {
-      queryClient.setQueryData(clesFacturation.documents.detail(reponse.donnees.avoir.id), reponse.donnees.avoir);
+      queryClient.setQueryData(
+        clesFacturation.documents.detail(reponse.donnees.avoir.id),
+        reponse.donnees.avoir,
+      );
       queryClient.setQueryData(
         clesFacturation.documents.detail(reponse.donnees.factureRemplacement.id),
         reponse.donnees.factureRemplacement,
       );
-      void queryClient.invalidateQueries({ queryKey: clesFacturation.documents.detail(variables.factureId) });
+      void queryClient.invalidateQueries({
+        queryKey: clesFacturation.documents.detail(variables.factureId),
+      });
       void queryClient.invalidateQueries({ queryKey: ['facturation', 'documents', 'liste'] });
     },
   });

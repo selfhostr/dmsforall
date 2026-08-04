@@ -104,13 +104,45 @@ export class GardeSession implements CanActivate {
     try {
       const origineAttendue = new URL(this.config.WEB_URL_PUBLIQUE).origin;
       const origineRecue = new URL(origine).origin;
-      if (origineRecue !== origineAttendue) throw new ErreurOrigineRefusee();
+      if (origineRecue === origineAttendue) return;
+      if (
+        this.config.NODE_ENV !== 'production' &&
+        this.originesLoopbackEquivalentes(origineRecue, origineAttendue)
+      ) {
+        return;
+      }
+      throw new ErreurOrigineRefusee();
     } catch (erreur) {
       if (erreur instanceof ErreurOrigineRefusee) throw erreur;
       // `Origin` malformé (n'est même pas une URL valide) : traité comme un refus, jamais comme
       // une erreur serveur (500) — l'entrée est hostile ou cassée, pas notre bug.
       throw new ErreurOrigineRefusee();
     }
+  }
+
+  /**
+   * Tolérance de développement, EXCLUE en production (`NODE_ENV === 'production'` la
+   * court-circuite avant même d'appeler cette méthode) : `localhost` et `127.0.0.1` désignent la
+   * même machine loopback, donc la même frontière de confiance qu'un navigateur — un attaquant
+   * distant ne peut usurper ni l'un ni l'autre (l'en-tête `Origin` n'est pas falsifiable
+   * cross-site). Cause racine du bug reproduit : `vite.config.ts` écoute sur `0.0.0.0`
+   * (`server.host: true`, nécessaire pour l'accès depuis un conteneur Docker), ce qui rend le
+   * front joignable aussi bien via `http://localhost:5173` que `http://127.0.0.1:5173` — mais
+   * `WEB_URL_PUBLIQUE` ne fixe qu'une seule valeur. Un navigateur ouvert sur la variante non
+   * configurée obtenait `403 AUTH_ORIGINE_REFUSEE` sur CHAQUE requête mutante, dont le login.
+   * Portée volontairement étroite : seuls `localhost`/`127.0.0.1` (jamais un autre hôte) avec le
+   * même schéma et le même port sont équivalents — ni un hôte LAN, ni un domaine tiers.
+   */
+  private originesLoopbackEquivalentes(a: string, b: string): boolean {
+    const HOTES_LOOPBACK = new Set(['localhost', '127.0.0.1']);
+    const urlA = new URL(a);
+    const urlB = new URL(b);
+    return (
+      HOTES_LOOPBACK.has(urlA.hostname) &&
+      HOTES_LOOPBACK.has(urlB.hostname) &&
+      urlA.protocol === urlB.protocol &&
+      urlA.port === urlB.port
+    );
   }
 
   private lireCookieSession(req: Request): string | null {

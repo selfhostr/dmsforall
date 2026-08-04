@@ -49,14 +49,18 @@ export class ServiceImpressionFacture {
     private readonly serviceDocuments: ServiceDocumentsVente,
   ) {}
 
-  async obtenirPdf(ctx: ContexteTenant, principal: PrincipalAuthentifie, documentId: string): Promise<PdfFactureResultat> {
+  async obtenirPdf(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    documentId: string,
+  ): Promise<PdfFactureResultat> {
     const document = await this.serviceDocuments.obtenirComplet(ctx, principal, documentId);
 
     if (!estEligibleImpression(document)) {
       throw new ErreurMetier(
         'DOCUMENT_PDF_INDISPONIBLE',
         `Le document ${documentId} n'a pas de bulletin QR-facture : seule une FACTURE ÉMISE en ` +
-          'porte un (un devis, un bon de commande, un avoir ou un brouillon n\'en ont jamais).',
+          "porte un (un devis, un bon de commande, un avoir ou un brouillon n'en ont jamais).",
       );
     }
 
@@ -98,12 +102,23 @@ export class ServiceImpressionFacture {
    * déjà posé par une requête plus rapide. Le fichier physique de la « perdante » reste sur disque,
    * orphelin mais inoffensif (même clé de tenant/document, contenu identique).
    */
-  private async persisterCleEtEmpreinte(ctx: ContexteTenant, documentId: string, cle: string, sha256: string): Promise<void> {
+  private async persisterCleEtEmpreinte(
+    ctx: ContexteTenant,
+    documentId: string,
+    cle: string,
+    sha256: string,
+  ): Promise<void> {
     await this.acces.enTenant(ctx, async (tx) => {
       await tx
         .update(documentVente)
         .set({ pdfCle: cle, pdfSha256: sha256 })
-        .where(and(eq(documentVente.tenantId, ctx.tenantId), eq(documentVente.id, documentId), isNull(documentVente.pdfCle)));
+        .where(
+          and(
+            eq(documentVente.tenantId, ctx.tenantId),
+            eq(documentVente.id, documentId),
+            isNull(documentVente.pdfCle),
+          ),
+        );
     });
   }
 }

@@ -4,7 +4,19 @@
  * Détail des règles, triggers et machine à états : migrations/0032_ventes.sql.
  */
 
-import { boolean, check, date, foreignKey, index, integer, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  check,
+  date,
+  foreignKey,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 import { colonnesHorodatage } from '../colonnes-communes';
@@ -45,7 +57,9 @@ export const vehiculeStock = pgTable(
   'vehicule_stock',
   {
     id: uuid('id').primaryKey(),
-    tenantId: uuid('tenant_id').notNull().references(() => tenant.id, { onDelete: 'restrict' }),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenant.id, { onDelete: 'restrict' }),
     siteId: uuid('site_id').notNull(),
     /** RV-02, PV-05 : liste EXTENSIBLE **par tenant** (pas seulement par migration produit) — texte
      *  libre plutôt qu'un enum PG partagé par tous les tenants, même choix que

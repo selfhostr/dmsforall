@@ -34,7 +34,9 @@ const QR_IBAN_VALIDE = 'CH44 3199 9123 0008 89012';
 // Même IBAN ordinaire, dernier chiffre altéré : modulo 97 vérifié ≠ 1 (28), clé de contrôle fausse.
 const IBAN_CLE_FAUSSE = 'CH93 0076 2011 6238 5295 8';
 
-function ligneBrute(champs: Partial<schema.LigneTenantBlocCreancier> = {}): schema.LigneTenantBlocCreancier {
+function ligneBrute(
+  champs: Partial<schema.LigneTenantBlocCreancier> = {},
+): schema.LigneTenantBlocCreancier {
   return {
     id: 'bloc-id',
     tenantId: 'tid',
@@ -115,11 +117,16 @@ describe('ServiceBlocCreancier.modifier', () => {
     const service = new ServiceBlocCreancier(acces);
     const dto = await service.modifier(CTX, { iban: IBAN_ORDINAIRE_VALIDE });
     expect(dto.iban).toBe('CH9300762011623852957');
-    expect(acces.valeursInserees[0]).toMatchObject({ tenantId: 'tid', iban: 'CH9300762011623852957' });
+    expect(acces.valeursInserees[0]).toMatchObject({
+      tenantId: 'tid',
+      iban: 'CH9300762011623852957',
+    });
   });
 
   it('QR-IBAN valide dans le champ qrIban : accepté', async () => {
-    const acces = accesFactice({ ligneUpsert: ligneBrute({ qrIban: 'CH4431999123000889012', iban: null }) });
+    const acces = accesFactice({
+      ligneUpsert: ligneBrute({ qrIban: 'CH4431999123000889012', iban: null }),
+    });
     const service = new ServiceBlocCreancier(acces);
     const dto = await service.modifier(CTX, { qrIban: QR_IBAN_VALIDE });
     expect(dto.qrIban).toBe('CH4431999123000889012');
@@ -161,7 +168,7 @@ describe('ServiceBlocCreancier.modifier', () => {
     expect(acces.valeursInserees[0]).toMatchObject({ iban: null });
   });
 
-  it('corps vide : relit l\'état courant sans upsert', async () => {
+  it("corps vide : relit l'état courant sans upsert", async () => {
     const service = new ServiceBlocCreancier(accesFactice({ ligneSelect: ligneBrute() }));
     const dto = await service.modifier(CTX, {});
     expect(dto.nom).toBe('Garage Martin SA');
@@ -174,7 +181,7 @@ describe('ServiceBlocCreancier.modifier', () => {
     expect(dto.numero).toBeNull();
   });
 
-  it('pays hors CH/LI mal formé (forme zod) n\'atteint jamais ce service — vérifié en amont par schema-bloc-creancier ; ici on vérifie qu\'un pays bien formé passe tel quel', async () => {
+  it("pays hors CH/LI mal formé (forme zod) n'atteint jamais ce service — vérifié en amont par schema-bloc-creancier ; ici on vérifie qu'un pays bien formé passe tel quel", async () => {
     const acces = accesFactice({ ligneUpsert: ligneBrute({ pays: 'LI' }) });
     const service = new ServiceBlocCreancier(acces);
     const dto = await service.modifier(CTX, { pays: 'LI' });

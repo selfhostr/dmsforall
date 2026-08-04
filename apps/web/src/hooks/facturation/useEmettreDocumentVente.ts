@@ -1,6 +1,10 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 
-import type { EntreeEmissionDocumentVente, ReponseAvecAvertissements, ReponseDocumentVente } from '@dfa/shared';
+import type {
+  EntreeEmissionDocumentVente,
+  ReponseAvecAvertissements,
+  ReponseDocumentVente,
+} from '@dfa/shared';
 
 import { clesFacturation } from './cles';
 import { emettreDocumentVente } from './documents-vente.api';
@@ -28,14 +32,20 @@ export function useEmettreDocumentVente(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, entree, idempotencyKey }: VariablesEmission) => emettreDocumentVente(id, entree, idempotencyKey),
+    mutationFn: ({ id, entree, idempotencyKey }: VariablesEmission) =>
+      emettreDocumentVente(id, entree, idempotencyKey),
     onSuccess: (reponse) => {
-      queryClient.setQueryData(clesFacturation.documents.detail(reponse.donnees.id), reponse.donnees);
+      queryClient.setQueryData(
+        clesFacturation.documents.detail(reponse.donnees.id),
+        reponse.donnees,
+      );
       void queryClient.invalidateQueries({ queryKey: ['facturation', 'documents', 'liste'] });
       // Un avoir émis modifie le solde (jamais le `statut`) de la facture qu'il crédite : la fiche
       // de la facture d'origine doit se rafraîchir si elle est déjà en cache (§6.2).
       if (reponse.donnees.factureAnnuleeId) {
-        void queryClient.invalidateQueries({ queryKey: clesFacturation.documents.detail(reponse.donnees.factureAnnuleeId) });
+        void queryClient.invalidateQueries({
+          queryKey: clesFacturation.documents.detail(reponse.donnees.factureAnnuleeId),
+        });
       }
     },
   });

@@ -284,9 +284,18 @@ export const schemaModificationParametresAtelier = z.object({
 });
 
 export const schemaModificationParametresSite = z.object({
-  heureOuverture: z.string().regex(/^\d{2}:\d{2}$/).nullish(),
-  heureFermeture: z.string().regex(/^\d{2}:\d{2}$/).nullish(),
-  heureCloturePointage: z.string().regex(/^\d{2}:\d{2}$/).nullish(),
+  heureOuverture: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .nullish(),
+  heureFermeture: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .nullish(),
+  heureCloturePointage: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .nullish(),
   /** `null` = non saisie. Ne jamais confondre avec `0` (voir `ReponseParametresSite`). */
   capaciteHeuresJourCentiemes: schemaCentiemes.nullish(),
   joursFermeture: z.array(schemaDateJour).max(400).optional(),
@@ -300,7 +309,9 @@ export const schemaCreationTauxHoraire = z.object({
   valideAuLe: schemaDateJour.nullish(),
 });
 
-export const schemaModificationTauxHoraire = schemaCreationTauxHoraire.partial().omit({ code: true });
+export const schemaModificationTauxHoraire = schemaCreationTauxHoraire
+  .partial()
+  .omit({ code: true });
 
 export const schemaCreationPrestation = z.object({
   code: z.string().trim().min(1).max(40),
@@ -323,7 +334,9 @@ export const schemaParametresTransitions = z.object({
   entite: z.enum(ENTITES_A_TRANSITIONS),
 });
 
-export type EntreeModificationParametresAtelier = z.infer<typeof schemaModificationParametresAtelier>;
+export type EntreeModificationParametresAtelier = z.infer<
+  typeof schemaModificationParametresAtelier
+>;
 export type EntreeModificationParametresSite = z.infer<typeof schemaModificationParametresSite>;
 export type EntreeCreationTauxHoraire = z.infer<typeof schemaCreationTauxHoraire>;
 export type EntreeCreationPrestation = z.infer<typeof schemaCreationPrestation>;

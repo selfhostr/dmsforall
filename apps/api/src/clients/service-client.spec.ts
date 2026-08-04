@@ -6,7 +6,12 @@ import type { EntreeCreationClient, EntreeDesactivationClient } from '@dfa/share
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import { Horloge } from '../common/horloge';
 import { decoderCurseurTrie } from '../common/pagination';
-import type { ReponseMemorisable, RequeteIdempotente, ResultatIdempotent, ServiceIdempotence } from '../common/idempotence';
+import type {
+  ReponseMemorisable,
+  RequeteIdempotente,
+  ResultatIdempotent,
+  ServiceIdempotence,
+} from '../common/idempotence';
 import type { ServiceCompteurs } from '../parametrage/compteurs/compteurs.types';
 import type { LigneClient } from '../db/schema';
 import { ServiceClient } from './service-client';
@@ -48,7 +53,12 @@ function ligneClient(champs: Partial<LigneClient> = {}): LigneClient {
  * `.returning()` pour les insert qui l'utilisent. Les arguments passés à `.where()`, `.set()` et
  * `.values()` sont capturés pour vérifier le scope tenant et le contenu écrit.
  */
-function txFactice(plan: { selects?: readonly unknown[][]; executes?: ReadonlyArray<{ rows: readonly unknown[] }> } = {}) {
+function txFactice(
+  plan: {
+    selects?: readonly unknown[][];
+    executes?: ReadonlyArray<{ rows: readonly unknown[] }>;
+  } = {},
+) {
   const selects = [...(plan.selects ?? [])];
   const executes = [...(plan.executes ?? [])];
   const insertsReturning: unknown[][] = [];
@@ -88,7 +98,13 @@ function txFactice(plan: { selects?: readonly unknown[][]; executes?: ReadonlyAr
     execute: vi.fn(() => Promise.resolve(executes.shift() ?? { rows: [] })),
   };
 
-  return { tx: tx as unknown as TransactionDfa, whereArgs, setArgs, insertValuesArgs, poserRetourInsert: (lignes: unknown[]) => insertsReturning.push(lignes) };
+  return {
+    tx: tx as unknown as TransactionDfa,
+    whereArgs,
+    setArgs,
+    insertValuesArgs,
+    poserRetourInsert: (lignes: unknown[]) => insertsReturning.push(lignes),
+  };
 }
 
 function accesFactice(tx: TransactionDfa): AccesBase {
@@ -124,7 +140,13 @@ const ENTREE_MINIMALE: EntreeCreationClient = {
   raisonSociale: null,
   ide: null,
   langueCorrespondance: 'fr',
-  adressePrincipale: { rue: 'Rue du Lac 1', complement: null, npa: '1000', localite: 'Lausanne', pays: 'CH' },
+  adressePrincipale: {
+    rue: 'Rue du Lac 1',
+    complement: null,
+    npa: '1000',
+    localite: 'Lausanne',
+    pays: 'CH',
+  },
   telephones: [],
   email: null,
   poObligatoire: false,
@@ -136,7 +158,12 @@ describe("ServiceClient.modifier — le type d'un client ne peut plus changer ap
   it('un corps contenant la clé "type" est refusé (409 CLIENT_TYPE_IMMUABLE), sans toucher la base', async () => {
     const { tx } = txFactice();
     const acces = accesFactice(tx);
-    const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
 
     await expect(service.modifier(CTX, 'c1', { type: 'entreprise' })).rejects.toMatchObject({
       code: 'CLIENT_TYPE_IMMUABLE',
@@ -148,7 +175,12 @@ describe("ServiceClient.modifier — le type d'un client ne peut plus changer ap
   it('la présence de "type" est refusée même si la valeur envoyée est identique au type actuel (le garde ne compare rien, il refuse la présence)', async () => {
     const { tx } = txFactice();
     const acces = accesFactice(tx);
-    const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
 
     await expect(service.modifier(CTX, 'c1', { type: 'particulier' })).rejects.toMatchObject({
       code: 'CLIENT_TYPE_IMMUABLE',
@@ -157,9 +189,16 @@ describe("ServiceClient.modifier — le type d'un client ne peut plus changer ap
 
   it('un corps sans "type" est accepté et met à jour les champs demandés', async () => {
     // Deux lectures : la vérification d'existence avant écriture, puis la relecture après UPDATE.
-    const { tx, setArgs } = txFactice({ selects: [[ligneClient()], [ligneClient({ nom: 'Nouveau-Nom' })]] });
+    const { tx, setArgs } = txFactice({
+      selects: [[ligneClient()], [ligneClient({ nom: 'Nouveau-Nom' })]],
+    });
     const acces = accesFactice(tx);
-    const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
 
     const enveloppe = await service.modifier(CTX, 'c1', { nom: 'Nouveau-Nom' });
 
@@ -175,7 +214,12 @@ describe('ServiceClient.desactiver — refus tant que des OR ou détentions rest
       selects: [[ligneClient()], [{ id: 'or1', numero: 'OR-000042' }], []],
     });
     const acces = accesFactice(tx);
-    const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
     const entree: EntreeDesactivationClient = { motif: 'Client parti à la concurrence' };
 
     const erreur = await service.desactiver(CTX, 'c1', entree).catch((e: unknown) => e);
@@ -192,7 +236,12 @@ describe('ServiceClient.desactiver — refus tant que des OR ou détentions rest
       selects: [[ligneClient()], [], [{ id: 'd1' }]],
     });
     const acces = accesFactice(tx);
-    const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
 
     await expect(service.desactiver(CTX, 'c1', { motif: 'Véhicule vendu' })).rejects.toMatchObject({
       code: 'CLIENT_DESACTIVATION_IMPOSSIBLE',
@@ -206,9 +255,16 @@ describe('ServiceClient.desactiver — refus tant que des OR ou détentions rest
       executes: [{ rows: [{ dernier: null }] }],
     });
     const acces = accesFactice(tx);
-    const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
 
-    const enveloppe = await service.desactiver(CTX, 'c1', { motif: 'Client parti à la concurrence' });
+    const enveloppe = await service.desactiver(CTX, 'c1', {
+      motif: 'Client parti à la concurrence',
+    });
 
     expect(enveloppe.donnees.statut).toBe('inactif');
     expect(setArgs).toEqual([{ statut: 'inactif' }]);
@@ -217,14 +273,23 @@ describe('ServiceClient.desactiver — refus tant que des OR ou détentions rest
   });
 });
 
-describe("ServiceClient.creer — un doublon probable est un avertissement, jamais un refus (RM-05, CT-01)", () => {
-  it("la création réussit malgré un doublon détecté, et le signale dans avertissements[] sans bloquer", async () => {
+describe('ServiceClient.creer — un doublon probable est un avertissement, jamais un refus (RM-05, CT-01)', () => {
+  it('la création réussit malgré un doublon détecté, et le signale dans avertissements[] sans bloquer', async () => {
     const { tx, poserRetourInsert } = txFactice({
-      executes: [{ rows: [{ client_id: 'c-existant', numero: 'CL-000001', nom: 'Dupont Jean', npa: '1000' }] }],
+      executes: [
+        {
+          rows: [{ client_id: 'c-existant', numero: 'CL-000001', nom: 'Dupont Jean', npa: '1000' }],
+        },
+      ],
     });
     poserRetourInsert([ligneClient()]);
     const acces = accesFactice(tx);
-    const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(7), new Horloge());
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(7),
+      new Horloge(),
+    );
 
     const resultat = await service.creer(CTX, ENTREE_MINIMALE, 'idem-key-1');
 
@@ -238,7 +303,12 @@ describe("ServiceClient.creer — un doublon probable est un avertissement, jama
     const { tx, poserRetourInsert } = txFactice({ executes: [{ rows: [] }] });
     poserRetourInsert([ligneClient()]);
     const acces = accesFactice(tx);
-    const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(7), new Horloge());
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(7),
+      new Horloge(),
+    );
 
     const resultat = await service.creer(CTX, ENTREE_MINIMALE, 'idem-key-2');
 
@@ -249,12 +319,21 @@ describe("ServiceClient.creer — un doublon probable est un avertissement, jama
     const { tx, poserRetourInsert, insertValuesArgs } = txFactice({ executes: [{ rows: [] }] });
     poserRetourInsert([ligneClient()]);
     const acces = accesFactice(tx);
-    const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(7), new Horloge());
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(7),
+      new Horloge(),
+    );
 
     await service.creer(CTX, ENTREE_MINIMALE, 'idem-key-3');
 
     const insertClient = insertValuesArgs.find((appel) => 'type' in appel);
-    expect(insertClient).toMatchObject({ tenantId: 'tid-1', numero: 'CL-000007', type: 'particulier' });
+    expect(insertClient).toMatchObject({
+      tenantId: 'tid-1',
+      numero: 'CL-000007',
+      type: 'particulier',
+    });
   });
 });
 
@@ -262,7 +341,12 @@ describe('ServiceClient — isolation tenant : le tenant du contexte est explici
   it('parId() : un client absent du tenant courant est 404 RESSOURCE_INTROUVABLE, jamais 403', async () => {
     const { tx } = txFactice({ selects: [[]] });
     const acces = accesFactice(tx);
-    const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
 
     await expect(service.parId(CTX, 'c-autre-tenant')).rejects.toMatchObject({
       code: 'RESSOURCE_INTROUVABLE',
@@ -271,9 +355,17 @@ describe('ServiceClient — isolation tenant : le tenant du contexte est explici
   });
 
   it('parId() : la condition de sélection porte le tenantId du CONTEXTE, en plus de son id', async () => {
-    const { tx, whereArgs } = txFactice({ selects: [[ligneClient()]], executes: [{ rows: [{ dernier: null }] }] });
+    const { tx, whereArgs } = txFactice({
+      selects: [[ligneClient()]],
+      executes: [{ rows: [{ dernier: null }] }],
+    });
     const acces = accesFactice(tx);
-    const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
 
     await service.parId(CTX, 'c1');
 
@@ -283,10 +375,15 @@ describe('ServiceClient — isolation tenant : le tenant du contexte est explici
     expect(params).toContain('tid-1');
   });
 
-  it("lister() filtre explicitement sur le tenantId du contexte dans la requête exécutée", async () => {
+  it('lister() filtre explicitement sur le tenantId du contexte dans la requête exécutée', async () => {
     const { tx } = txFactice({ executes: [{ rows: [] }] });
     const acces = accesFactice(tx);
-    const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
 
     await service.lister(CTX, { tri: 'nom:asc', limite: 20 });
 
@@ -307,7 +404,12 @@ describe(
     it('la colonne `triValeur` est sélectionnée avec un cast ::text explicite, jamais laissée au parseur par défaut du pilote', async () => {
       const { tx } = txFactice({ executes: [{ rows: [] }] });
       const acces = accesFactice(tx);
-      const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+      const service = new ServiceClient(
+        acces,
+        idempotenceFactice(tx),
+        compteursFactice(1),
+        new Horloge(),
+      );
 
       await service.lister(CTX, { tri: 'creeLe:desc', limite: 20 });
 
@@ -327,14 +429,31 @@ describe(
           executes: [
             {
               rows: [
-                { ...ligneClient({ id: ID_1 }), triValeur: MEME_INSTANT, localite: null, nombreVehicules: 0, dernierPassageLe: null },
-                { ...ligneClient({ id: ID_2 }), triValeur: MEME_INSTANT, localite: null, nombreVehicules: 0, dernierPassageLe: null },
+                {
+                  ...ligneClient({ id: ID_1 }),
+                  triValeur: MEME_INSTANT,
+                  localite: null,
+                  nombreVehicules: 0,
+                  dernierPassageLe: null,
+                },
+                {
+                  ...ligneClient({ id: ID_2 }),
+                  triValeur: MEME_INSTANT,
+                  localite: null,
+                  nombreVehicules: 0,
+                  dernierPassageLe: null,
+                },
               ],
             },
           ],
         });
         const acces = accesFactice(tx);
-        const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+        const service = new ServiceClient(
+          acces,
+          idempotenceFactice(tx),
+          compteursFactice(1),
+          new Horloge(),
+        );
 
         const page = await service.lister(CTX, { tri: 'creeLe:desc', limite: 1 });
 
@@ -357,7 +476,12 @@ describe(
     it('exécute une seule requête (un seul appel execute()) même enrichie des trois LATERAL', async () => {
       const { tx } = txFactice({ executes: [{ rows: [] }] });
       const acces = accesFactice(tx);
-      const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+      const service = new ServiceClient(
+        acces,
+        idempotenceFactice(tx),
+        compteursFactice(1),
+        new Horloge(),
+      );
 
       await service.lister(CTX, { tri: 'nom:asc', limite: 20 });
 
@@ -367,7 +491,12 @@ describe(
     it('les trois jointures ajoutées sont des LEFT JOIN LATERAL — un client sans adresse ni véhicule ne doit jamais disparaître de la page', async () => {
       const { tx } = txFactice({ executes: [{ rows: [] }] });
       const acces = accesFactice(tx);
-      const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+      const service = new ServiceClient(
+        acces,
+        idempotenceFactice(tx),
+        compteursFactice(1),
+        new Horloge(),
+      );
 
       await service.lister(CTX, { tri: 'nom:asc', limite: 20 });
 
@@ -384,7 +513,7 @@ describe(
     });
 
     it(
-      "un client sans adresse principale active et sans détention ouverte ressort bien dans la page, avec " +
+      'un client sans adresse principale active et sans détention ouverte ressort bien dans la page, avec ' +
         'localite: null et nombreVehicules: 0 (pas exclu de la liste)',
       async () => {
         const { tx } = txFactice({
@@ -403,12 +532,22 @@ describe(
           ],
         });
         const acces = accesFactice(tx);
-        const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+        const service = new ServiceClient(
+          acces,
+          idempotenceFactice(tx),
+          compteursFactice(1),
+          new Horloge(),
+        );
 
         const page = await service.lister(CTX, { tri: 'nom:asc', limite: 20 });
 
         expect(page.donnees).toHaveLength(1);
-        expect(page.donnees[0]).toMatchObject({ id: 'c-neuf', localite: null, nombreVehicules: 0, dernierPassageLe: null });
+        expect(page.donnees[0]).toMatchObject({
+          id: 'c-neuf',
+          localite: null,
+          nombreVehicules: 0,
+          dernierPassageLe: null,
+        });
       },
     );
 
@@ -429,7 +568,12 @@ describe(
         ],
       });
       const acces = accesFactice(tx);
-      const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+      const service = new ServiceClient(
+        acces,
+        idempotenceFactice(tx),
+        compteursFactice(1),
+        new Horloge(),
+      );
 
       const page = await service.lister(CTX, { tri: 'nom:asc', limite: 20 });
 
@@ -463,7 +607,12 @@ describe(
           ],
         });
         const acces = accesFactice(tx);
-        const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+        const service = new ServiceClient(
+          acces,
+          idempotenceFactice(tx),
+          compteursFactice(1),
+          new Horloge(),
+        );
 
         const page = await service.lister(CTX, { tri: 'nom:asc', limite: 20 });
 
@@ -494,7 +643,12 @@ describe("ServiceClient.parId — notesAlerte (RM-13) : uniquement les notes de 
       ],
     });
     const acces = accesFactice(tx);
-    const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
 
     const dto = await service.parId(CTX, 'c1');
 
@@ -513,7 +667,7 @@ describe("ServiceClient.parId — notesAlerte (RM-13) : uniquement les notes de 
     'dernierPassageLe et creeLe (note) rendus EN CHAÎNE (forme défensive gérée par `enDate()`, en plus du ' +
       '`Date` que rendent en pratique les deux requêtes SQL brutes de `parId` — `dernierPassage()` et ' +
       '`chargerNotesAlerte()` — voir la doc de `enDate()`) ' +
-      "sont projetés en ISO sans planter, tout comme quand ils sont rendus en `Date`",
+      'sont projetés en ISO sans planter, tout comme quand ils sont rendus en `Date`',
     async () => {
       const { tx } = txFactice({
         selects: [[ligneClient()]],
@@ -534,7 +688,12 @@ describe("ServiceClient.parId — notesAlerte (RM-13) : uniquement les notes de 
         ],
       });
       const acces = accesFactice(tx);
-      const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+      const service = new ServiceClient(
+        acces,
+        idempotenceFactice(tx),
+        compteursFactice(1),
+        new Horloge(),
+      );
 
       const dto = await service.parId(CTX, 'c1');
 
@@ -546,19 +705,25 @@ describe("ServiceClient.parId — notesAlerte (RM-13) : uniquement les notes de 
   it(
     "la requête de notes exécutée filtre explicitement sur nature = 'alerte' (et le tenant) — " +
       "une note 'interne' (ex. le motif de désactivation) ne peut donc jamais fuiter ici ; " +
-      "seul GET /clients/{id}/notes les expose",
+      'seul GET /clients/{id}/notes les expose',
     async () => {
       const { tx } = txFactice({
         selects: [[ligneClient()]],
         executes: [{ rows: [{ dernier: null }] }, { rows: [] }],
       });
       const acces = accesFactice(tx);
-      const service = new ServiceClient(acces, idempotenceFactice(tx), compteursFactice(1), new Horloge());
+      const service = new ServiceClient(
+        acces,
+        idempotenceFactice(tx),
+        compteursFactice(1),
+        new Horloge(),
+      );
 
       await service.parId(CTX, 'c1');
 
       // Deuxième appel execute() de parId() : dernierPassage() est le premier, chargerNotesAlerte() le second.
-      const appelNotes = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls[1]?.[0] as SQL;
+      const appelNotes = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock
+        .calls[1]?.[0] as SQL;
       const { sql: texte, params } = dialect.sqlToQuery(appelNotes);
       expect(texte).toContain("nature = 'alerte'");
       expect(texte).not.toContain("nature = 'interne'");

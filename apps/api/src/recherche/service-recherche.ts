@@ -214,7 +214,10 @@ function detecterPlaqueInterchangeable(lignes: readonly LigneCorrespondanceVehic
   const groupes = new Map<string, { vehiculeIds: Set<string>; interchangeable: boolean }>();
   for (const ligne of lignes) {
     if (ligne.champ !== 'plaque' || ligne.au !== null) continue;
-    const groupe = groupes.get(ligne.normalise) ?? { vehiculeIds: new Set<string>(), interchangeable: false };
+    const groupe = groupes.get(ligne.normalise) ?? {
+      vehiculeIds: new Set<string>(),
+      interchangeable: false,
+    };
     groupe.vehiculeIds.add(ligne.vehicule_id);
     groupe.interchangeable = groupe.interchangeable || ligne.interchangeable;
     groupes.set(ligne.normalise, groupe);
@@ -348,7 +351,9 @@ function construireResultatVehicule(
       champ: correspondance.champ,
       valeur: correspondance.valeur,
       historique: correspondance.historique,
-      ...(correspondance.porteeJusquLe !== undefined ? { porteeJusquLe: correspondance.porteeJusquLe } : {}),
+      ...(correspondance.porteeJusquLe !== undefined
+        ? { porteeJusquLe: correspondance.porteeJusquLe }
+        : {}),
     },
     resume,
   };
@@ -373,7 +378,8 @@ async function chercherVehicules(
   }
 
   const meilleures = choisirMeilleureCorrespondanceVehicule(correspondances);
-  const { interchangeable, vehiculeIds: vehiculeIdsGarantis } = detecterPlaqueInterchangeable(correspondances);
+  const { interchangeable, vehiculeIds: vehiculeIdsGarantis } =
+    detecterPlaqueInterchangeable(correspondances);
 
   const enrichissements = await enrichirVehicules(tx, tenantId, [...meilleures.keys()]);
   const parVehicule = new Map(enrichissements.map((e) => [e.vehicule_id, e]));
@@ -536,25 +542,27 @@ async function chercherOrdres(
      limit ${limiteInterne}
   `);
 
-  return resultat.rows.map(
-    (ligne): ResultatRecherche => ({
-      type: 'ordre_reparation',
-      id: ligne.id,
-      score: ligne.score,
-      correspondance: { champ: 'numero', valeur: ligne.numero, historique: false },
-      resume: {
-        numero: ligne.numero,
-        statut: etatAfficheOrdreReparation(
-          ligne.statut,
-          ligne.attente_accord,
-          ligne.attente_pieces,
-          ligne.attente_externe,
-        ),
-        ...(ligne.plaque_figee !== null ? { plaque: ligne.plaque_figee } : {}),
-        designationVehicule: designationVehicule({ marque: ligne.marque, modele: ligne.modele, version: ligne.version }),
-      },
-    }),
-  );
+  return resultat.rows.map((ligne): ResultatRecherche => ({
+    type: 'ordre_reparation',
+    id: ligne.id,
+    score: ligne.score,
+    correspondance: { champ: 'numero', valeur: ligne.numero, historique: false },
+    resume: {
+      numero: ligne.numero,
+      statut: etatAfficheOrdreReparation(
+        ligne.statut,
+        ligne.attente_accord,
+        ligne.attente_pieces,
+        ligne.attente_externe,
+      ),
+      ...(ligne.plaque_figee !== null ? { plaque: ligne.plaque_figee } : {}),
+      designationVehicule: designationVehicule({
+        marque: ligne.marque,
+        modele: ligne.modele,
+        version: ligne.version,
+      }),
+    },
+  }));
 }
 
 // =================================================================================================
@@ -616,21 +624,21 @@ async function chercherDocuments(
      limit ${limiteInterne}
   `);
 
-  return resultat.rows.map(
-    (ligne): ResultatRecherche => ({
-      type: 'document_vente',
-      id: ligne.id,
-      score: ligne.score,
-      correspondance: { champ: 'numero', valeur: ligne.numero, historique: false },
-      resume: {
-        numero: ligne.numero,
-        typeDocument: ligne.type_document,
-        statut: ligne.statut,
-        clientNom: ligne.client_designation_figee,
-        ...(ligne.date_document !== null ? { dateDocument: formaterDateJour(ligne.date_document) } : {}),
-      },
-    }),
-  );
+  return resultat.rows.map((ligne): ResultatRecherche => ({
+    type: 'document_vente',
+    id: ligne.id,
+    score: ligne.score,
+    correspondance: { champ: 'numero', valeur: ligne.numero, historique: false },
+    resume: {
+      numero: ligne.numero,
+      typeDocument: ligne.type_document,
+      statut: ligne.statut,
+      clientNom: ligne.client_designation_figee,
+      ...(ligne.date_document !== null
+        ? { dateDocument: formaterDateJour(ligne.date_document) }
+        : {}),
+    },
+  }));
 }
 
 // =================================================================================================

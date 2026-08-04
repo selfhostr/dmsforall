@@ -35,7 +35,11 @@ function txFactice(executes: ReadonlyArray<{ rows: readonly unknown[] }>) {
 }
 
 function accesFactice(tx: TransactionDfa): AccesBase {
-  return { enTenant: vi.fn((_ctx, travail) => travail(tx)), verifierConnexion: vi.fn(), verifierPostureRls: vi.fn() };
+  return {
+    enTenant: vi.fn((_ctx, travail) => travail(tx)),
+    verifierConnexion: vi.fn(),
+    verifierPostureRls: vi.fn(),
+  };
 }
 
 describe('ServiceReservation.satisfaire — RP-21 : seule une réservation active peut être satisfaite', () => {
@@ -55,14 +59,19 @@ describe('ServiceReservation.satisfaire — RP-21 : seule une réservation activ
     const tx = txFactice([{ rows: [ligneReservation({ statut: 'liberee' })] }]);
     const service = new ServiceReservation(accesFactice(tx));
 
-    await expect(service.satisfaire(CTX, 'r1')).rejects.toMatchObject({ code: 'RESERVATION_TRANSITION_INTERDITE' });
+    await expect(service.satisfaire(CTX, 'r1')).rejects.toMatchObject({
+      code: 'RESERVATION_TRANSITION_INTERDITE',
+    });
   });
 
   it('404 RESSOURCE_INTROUVABLE quand la réservation n’existe pas pour ce tenant', async () => {
     const tx = txFactice([{ rows: [] }]);
     const service = new ServiceReservation(accesFactice(tx));
 
-    await expect(service.satisfaire(CTX, 'r-inconnue')).rejects.toMatchObject({ code: 'RESSOURCE_INTROUVABLE', status: 404 });
+    await expect(service.satisfaire(CTX, 'r-inconnue')).rejects.toMatchObject({
+      code: 'RESSOURCE_INTROUVABLE',
+      status: 404,
+    });
   });
 
   it('active : insère un mouvement sortie_or de quantité NÉGATIVE, puis marque la réservation satisfaite', async () => {
@@ -70,7 +79,15 @@ describe('ServiceReservation.satisfaire — RP-21 : seule une réservation activ
       { rows: [ligneReservation()] }, // SELECT FOR UPDATE
       { rows: [{ id: 'mvt-1' }] }, // INSERT mouvement_stock RETURNING id
       { rows: [] }, // UPDATE reservation_piece
-      { rows: [ligneReservation({ statut: 'satisfaite', satisfaiteLe: new Date(), mouvementSortieId: 'mvt-1' })] }, // reload
+      {
+        rows: [
+          ligneReservation({
+            statut: 'satisfaite',
+            satisfaiteLe: new Date(),
+            mouvementSortieId: 'mvt-1',
+          }),
+        ],
+      }, // reload
     ]);
     const service = new ServiceReservation(accesFactice(tx));
 
@@ -89,7 +106,9 @@ describe('ServiceReservation.liberer — RP-23 : geste explicite, motif obligato
     const tx = txFactice([{ rows: [ligneReservation({ statut: 'satisfaite' })] }]);
     const service = new ServiceReservation(accesFactice(tx));
 
-    await expect(service.liberer(CTX, 'r1', { motif: 'Erreur de saisie côté atelier' })).rejects.toMatchObject({
+    await expect(
+      service.liberer(CTX, 'r1', { motif: 'Erreur de saisie côté atelier' }),
+    ).rejects.toMatchObject({
       code: 'RESERVATION_TRANSITION_INTERDITE',
     });
   });

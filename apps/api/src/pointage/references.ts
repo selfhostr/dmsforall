@@ -51,10 +51,19 @@ export async function chargerLignePourPointage(
   const [ligne] = await tx
     .select()
     .from(ligneOr)
-    .where(and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.ordreReparationId, orId), eq(ligneOr.id, ligneId)))
+    .where(
+      and(
+        eq(ligneOr.tenantId, ctx.tenantId),
+        eq(ligneOr.ordreReparationId, orId),
+        eq(ligneOr.id, ligneId),
+      ),
+    )
     .for('update');
   if (!ligne) {
-    throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Ligne ${ligneId} introuvable sur l'OR ${orId}.`);
+    throw new ErreurMetier(
+      'RESSOURCE_INTROUVABLE',
+      `Ligne ${ligneId} introuvable sur l'OR ${orId}.`,
+    );
   }
   return ligne;
 }
@@ -104,7 +113,12 @@ const PARAMETRES_ATELIER_PAR_DEFAUT_POINTAGE: Pick<
 export async function chargerParametresPointage(
   tx: TransactionDfa,
   ctx: ContexteTenant,
-): Promise<Pick<LigneParametreAtelier, 'chevauchementPointageAutorise' | 'pointageDureeMaxHeures' | 'arrondiPointage'>> {
+): Promise<
+  Pick<
+    LigneParametreAtelier,
+    'chevauchementPointageAutorise' | 'pointageDureeMaxHeures' | 'arrondiPointage'
+  >
+> {
   const [ligne] = await tx
     .select({
       chevauchementPointageAutorise: parametreAtelier.chevauchementPointageAutorise,
@@ -115,6 +129,29 @@ export async function chargerParametresPointage(
     .where(eq(parametreAtelier.tenantId, ctx.tenantId))
     .limit(1);
   return ligne ?? PARAMETRES_ATELIER_PAR_DEFAUT_POINTAGE;
+}
+
+/** `GET /pointages/agregats-ligne` — toutes les lignes de l'OR, triées `numeroOrdre` (voir
+ *  `regles-pointage.ts::calculerAgregatsTempsLigne`, qui filtre ensuite celles à rendre). Lecture
+ *  NON verrouillée : un rapport de consultation, pas une écriture. */
+export async function chargerLignesOrPourAgregat(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  ordreReparationId: string,
+): Promise<
+  readonly Pick<LigneLigneOr, 'id' | 'ordreReparationId' | 'numeroOrdre' | 'tempsBaremeCentiemes'>[]
+> {
+  return tx
+    .select({
+      id: ligneOr.id,
+      ordreReparationId: ligneOr.ordreReparationId,
+      numeroOrdre: ligneOr.numeroOrdre,
+      tempsBaremeCentiemes: ligneOr.tempsBaremeCentiemes,
+    })
+    .from(ligneOr)
+    .where(
+      and(eq(ligneOr.tenantId, ctx.tenantId), eq(ligneOr.ordreReparationId, ordreReparationId)),
+    );
 }
 
 export interface ResumeTechnicien {

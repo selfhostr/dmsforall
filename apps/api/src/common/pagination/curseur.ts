@@ -18,8 +18,7 @@ export interface DonneesCurseurTrie {
   readonly id: string;
 }
 
-const REGEX_UUID =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Encode `{creeLe, id}` en curseur opaque base64url : `{"c":"<ISO>","i":"<uuid>"}`.
@@ -73,7 +72,12 @@ export function decoderCurseurTrie(curseur: string, triAttendu: string): Donnees
 
   if (estChargeV2(objet)) {
     const { t, v, i } = objet;
-    if (typeof t !== 'string' || typeof i !== 'string' || !REGEX_UUID.test(i) || !estValeurTriValide(v)) {
+    if (
+      typeof t !== 'string' ||
+      typeof i !== 'string' ||
+      !REGEX_UUID.test(i) ||
+      !estValeurTriValide(v)
+    ) {
       throw erreurCurseurInvalide();
     }
     if (t !== triAttendu) {
@@ -144,6 +148,8 @@ function validerChargeV1(objet: unknown): DonneesCurseur {
 
 function erreurCurseurInvalide(): ErreurMetier {
   return new ErreurMetier('VALIDATION_ECHOUEE', 'Curseur de pagination invalide.', {
-    erreurs: [{ champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' }],
+    erreurs: [
+      { champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' },
+    ],
   });
 }

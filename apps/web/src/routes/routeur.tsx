@@ -17,19 +17,36 @@ import { EcranParametrageAtelier } from '@/ecrans/parametrage/EcranParametrageAt
 import { EcranParametresFacturation } from '@/ecrans/parametrage/EcranParametresFacturation';
 import { EcranReferentiels } from '@/ecrans/parametrage/EcranReferentiels';
 import { EcranSites } from '@/ecrans/parametrage/EcranSites';
+import { EcranConsignesPieces } from '@/ecrans/pieces/EcranConsignesPieces';
 import { EcranFicheArticle } from '@/ecrans/pieces/EcranFicheArticle';
+import { EcranFicheCommandeFournisseur } from '@/ecrans/pieces/EcranFicheCommandeFournisseur';
+import { EcranFicheFournisseur } from '@/ecrans/pieces/EcranFicheFournisseur';
 import { EcranListeArticles } from '@/ecrans/pieces/EcranListeArticles';
+import { EcranListeCommandesFournisseur } from '@/ecrans/pieces/EcranListeCommandesFournisseur';
+import { EcranListeFournisseurs } from '@/ecrans/pieces/EcranListeFournisseurs';
+import { EcranNouvelleCommandeFournisseur } from '@/ecrans/pieces/EcranNouvelleCommandeFournisseur';
 import { EcranReapprovisionnement } from '@/ecrans/pieces/EcranReapprovisionnement';
 import { EcranRechercheComptoirPieces } from '@/ecrans/pieces/EcranRechercheComptoirPieces';
 import { EcranReservationsPieces } from '@/ecrans/pieces/EcranReservationsPieces';
+import { EcranCloturePeriodePointage } from '@/ecrans/pointage/EcranCloturePeriodePointage';
+import { EcranEquipePointage } from '@/ecrans/pointage/EcranEquipePointage';
+import { EcranJournalPointage } from '@/ecrans/pointage/EcranJournalPointage';
+import { EcranPointageTechnicien } from '@/ecrans/pointage/EcranPointageTechnicien';
+import { ROLES_POINTAGE, ROLES_POINTAGE_ENCADREMENT } from '@/ecrans/pointage/droits';
 import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
 import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
 import { EcranFicheVehicule } from '@/ecrans/vehicules/EcranFicheVehicule';
 import { EcranListeVehicules } from '@/ecrans/vehicules/EcranListeVehicules';
+import { EcranFicheDossierVente } from '@/ecrans/ventes/dossiers/EcranFicheDossierVente';
+import { EcranListeDossiersVente } from '@/ecrans/ventes/dossiers/EcranListeDossiersVente';
+import { EcranNouveauDossierVente } from '@/ecrans/ventes/dossiers/EcranNouveauDossierVente';
+import { EcranEntreeEnStock } from '@/ecrans/ventes/stock/EcranEntreeEnStock';
+import { EcranFicheVehiculeStock } from '@/ecrans/ventes/stock/EcranFicheVehiculeStock';
+import { EcranListeVehiculesStock } from '@/ecrans/ventes/stock/EcranListeVehiculesStock';
 
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
-import { ROLES_PIECES } from './droits-routes';
+import { ROLES_PIECES, ROLES_VENTES } from './droits-routes';
 
 /**
  * Convention structurelle qui fait qu'une route oubliée tombe du côté SÛR (même principe que la
@@ -188,6 +205,159 @@ export const routesConfig: RouteObject[] = [
         element: (
           <RouteProtegee rolesAutorises={ROLES_PIECES}>
             <EcranReapprovisionnement />
+          </RouteProtegee>
+        ),
+      },
+      // Commandes fournisseur + fournisseurs + consignes (étape 3, complément) — même garde
+      // `ROLES_PIECES` que le reste du module (restriction RÉELLE, `admin` exclu, voir plus haut).
+      {
+        path: 'pieces/commandes-fournisseur',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranListeCommandesFournisseur />
+          </RouteProtegee>
+        ),
+      },
+      // Segment statique `nouvelle` déclaré AVANT `:id` : même logique que `pieces/articles/:id`
+      // ci-dessus (React Router v6 résout sans ambiguïté quel que soit l'ordre, mais la lisibilité
+      // du fichier suit la convention déjà en place ici).
+      {
+        path: 'pieces/commandes-fournisseur/nouvelle',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranNouvelleCommandeFournisseur />
+          </RouteProtegee>
+        ),
+      },
+      // `EcranFicheCommandeFournisseur` lit `useParams<{ id: string }>()`.
+      {
+        path: 'pieces/commandes-fournisseur/:id',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranFicheCommandeFournisseur />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pieces/fournisseurs',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranListeFournisseurs />
+          </RouteProtegee>
+        ),
+      },
+      // `EcranFicheFournisseur` lit `useParams<{ id: string }>()`.
+      {
+        path: 'pieces/fournisseurs/:id',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranFicheFournisseur />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pieces/consignes',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PIECES}>
+            <EcranConsignesPieces />
+          </RouteProtegee>
+        ),
+      },
+      // Module pointage (lot 2) — DEUX gardes distinctes selon le rôle requis, reflétant la même
+      // restriction RÉELLE que celle documentée dans `ecrans/pointage/droits.ts`
+      // (`DROITS_POINTAGE_PAR_ROLE` côté API) : `ROLES_POINTAGE` pour les écrans ouverts à tout
+      // rôle qui pointe (y compris `technicien`/`magasinier`), `ROLES_POINTAGE_ENCADREMENT` pour
+      // les écrans réservés à l'encadrement (vue équipe, corrections, clôture de période).
+      {
+        path: 'pointage',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_POINTAGE}>
+            <EcranPointageTechnicien />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pointage/jour',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_POINTAGE}>
+            <EcranJournalPointage />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pointage/equipe',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_POINTAGE_ENCADREMENT}>
+            <EcranEquipePointage />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'pointage/cloture',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_POINTAGE_ENCADREMENT}>
+            <EcranCloturePeriodePointage />
+          </RouteProtegee>
+        ),
+      },
+      // Module ventes VN/VO (étape 4) — SIX routes, TOUTES sous `rolesAutorises={ROLES_VENTES}`
+      // (`droits-routes.ts`) : `ventes.vehicule_stock.lire` et `ventes.dossier.lire` ferment tous
+      // deux la LECTURE elle-même à `admin`/`technicien`/`magasinier` (RF-115, voir
+      // `ecrans/ventes/stock/droits.ts` et `ecrans/ventes/dossiers/droits.ts`) — même raisonnement
+      // que `ROLES_PIECES` ci-dessus, cette garde reflète une restriction RÉELLE de l'API. Reprise
+      // et Financement N'ONT PAS de route dédiée : ce sont des cartes intégrées à la fiche dossier
+      // (design gelé §8-9), pas des écrans autonomes.
+      //
+      // Segment statique `nouveau` déclaré AVANT `:id` dans chacun des deux sous-groupes, même
+      // convention que `pieces/articles/:id` plus haut (React Router v6 résout sans ambiguïté quel
+      // que soit l'ordre, mais la lisibilité du fichier suit la convention déjà en place ici).
+      {
+        path: 'ventes/stock',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+            <EcranListeVehiculesStock />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'ventes/stock/nouveau',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+            <EcranEntreeEnStock />
+          </RouteProtegee>
+        ),
+      },
+      // `EcranFicheVehiculeStock` lit `useParams<{ id: string }>()`.
+      {
+        path: 'ventes/stock/:id',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+            <EcranFicheVehiculeStock />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'ventes/dossiers',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+            <EcranListeDossiersVente />
+          </RouteProtegee>
+        ),
+      },
+      {
+        path: 'ventes/dossiers/nouveau',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+            <EcranNouveauDossierVente />
+          </RouteProtegee>
+        ),
+      },
+      // `EcranFicheDossierVente` lit `useParams<{ id: string }>()`.
+      {
+        path: 'ventes/dossiers/:id',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+            <EcranFicheDossierVente />
           </RouteProtegee>
         ),
       },

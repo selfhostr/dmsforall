@@ -25,7 +25,9 @@ describe('BlocDonneesAtelier', () => {
   });
 
   it('rend uniquement les champs renseignés, jamais une grille de champs vides', () => {
-    render(<BlocDonneesAtelier donnees={{ ...TOUT_VIDE, codeRadio: 'AX4471', batterie: '12V 70Ah' }} />);
+    render(
+      <BlocDonneesAtelier donnees={{ ...TOUT_VIDE, codeRadio: 'AX4471', batterie: '12V 70Ah' }} />,
+    );
     expect(screen.getByText('AX4471')).toBeInTheDocument();
     expect(screen.getByText('12V 70Ah')).toBeInTheDocument();
     expect(screen.queryByText('Pneus')).not.toBeInTheDocument();

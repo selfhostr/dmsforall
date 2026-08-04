@@ -45,9 +45,12 @@ describe('useListeClients', () => {
       }),
     );
 
-    const { result } = renderHook(() => useListeClients({ statut: ['actif', 'bloque'], tri: 'numeroClient:desc' }), {
-      wrapper: enveloppe(),
-    });
+    const { result } = renderHook(
+      () => useListeClients({ statut: ['actif', 'bloque'], tri: 'numeroClient:desc' }),
+      {
+        wrapper: enveloppe(),
+      },
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(statutsRecus).toEqual(['actif', 'bloque']);
@@ -61,7 +64,11 @@ describe('useListeClients', () => {
         const curseur = new URL(request.url).searchParams.get('curseur');
         curseursRecus.push(curseur);
         if (!curseur) {
-          return HttpResponse.json({ donnees: [CLIENT_TEST], curseurSuivant: 'page-2', limite: 50 });
+          return HttpResponse.json({
+            donnees: [CLIENT_TEST],
+            curseurSuivant: 'page-2',
+            limite: 50,
+          });
         }
         return HttpResponse.json({
           donnees: [{ ...CLIENT_TEST, id: 'cl-2', numeroClient: 'CL-000002' }],

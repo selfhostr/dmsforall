@@ -12,7 +12,12 @@ const RESULTAT_OR: ResultatRecherche = {
   id: 'or1',
   score: 0.99,
   correspondance: { champ: 'numero', valeur: 'OR-2026-1042', historique: false },
-  resume: { numero: '2026-1042', statut: 'attente_pieces', plaque: 'VD 123456', designationVehicule: 'VW Touran' },
+  resume: {
+    numero: '2026-1042',
+    statut: 'attente_pieces',
+    plaque: 'VD 123456',
+    designationVehicule: 'VW Touran',
+  },
 };
 
 describe('ResultatOr', () => {

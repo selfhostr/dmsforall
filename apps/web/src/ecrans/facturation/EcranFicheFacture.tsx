@@ -9,9 +9,28 @@ import { messageErreur } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
@@ -129,7 +148,8 @@ export function EcranFicheFacture() {
   // Encaisser/corriger/créer un avoir : uniquement une FACTURE déjà émise, pas encore annulée par
   // un avoir (§4.6 — une facture annulée par avoir ne se corrige ni ne se recrédite une deuxième
   // fois).
-  const peutGererFacture = !estBrouillon && !estAnnuleeParAvoir && document_.typeDocument === 'facture';
+  const peutGererFacture =
+    !estBrouillon && !estAnnuleeParAvoir && document_.typeDocument === 'facture';
   // Imprimer : condition DÉCOUPLÉE de `peutGererFacture` — voir le commentaire de tête de fichier.
   // `document_.qr !== null` implique déjà `typeDocument === 'facture'` et une émission passée
   // (`mapperDocument`, serveur), donc ce document reste imprimable même `estAnnuleeParAvoir`
@@ -180,7 +200,9 @@ export function EcranFicheFacture() {
             </button>
           ) : null}
           {document_.emisLe ? (
-            <span className="texte-libelle text-muted-foreground">{t('facturation:fiche.emiseLe', { date: formaterDate(document_.emisLe) })}</span>
+            <span className="texte-libelle text-muted-foreground">
+              {t('facturation:fiche.emiseLe', { date: formaterDate(document_.emisLe) })}
+            </span>
           ) : null}
         </div>
 
@@ -198,7 +220,12 @@ export function EcranFicheFacture() {
           {peutGererFacture || peutImprimer ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="icon" aria-label={t('facturation:fiche.actions.autresActions')}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('facturation:fiche.actions.autresActions')}
+                >
                   <MoreHorizontal className="h-4 w-4" aria-hidden />
                 </Button>
               </DropdownMenuTrigger>
@@ -212,7 +239,9 @@ export function EcranFicheFacture() {
                 ) : null}
                 {peutGererFacture ? (
                   <>
-                    <DropdownMenuItem onSelect={ouvrirCorrection}>{t('facturation:fiche.actions.menu.corriger')}</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={ouvrirCorrection}>
+                      {t('facturation:fiche.actions.menu.corriger')}
+                    </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => navigate(`/factures/${document_.id}/avoir`)}>
                       {t('facturation:fiche.actions.menu.creerAvoir')}
                     </DropdownMenuItem>
@@ -234,7 +263,9 @@ export function EcranFicheFacture() {
         <div className="flex flex-col gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="texte-titre-section">{t('facturation:fiche.destinataire.titre')}</CardTitle>
+              <CardTitle className="texte-titre-section">
+                {t('facturation:fiche.destinataire.titre')}
+              </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
               {(() => {
@@ -285,7 +316,9 @@ export function EcranFicheFacture() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="texte-titre-section">{t('facturation:fiche.lignes.titre')}</CardTitle>
+              <CardTitle className="texte-titre-section">
+                {t('facturation:fiche.lignes.titre')}
+              </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {!estBrouillon ? (
@@ -298,16 +331,26 @@ export function EcranFicheFacture() {
                 </button>
               ) : null}
               {document_.lignes.length === 0 ? (
-                <p className="texte-corps text-muted-foreground">{t('facturation:fiche.lignes.vide')}</p>
+                <p className="texte-corps text-muted-foreground">
+                  {t('facturation:fiche.lignes.vide')}
+                </p>
               ) : (
                 <Table densite="dense">
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t('facturation:fiche.lignes.colonnes.designation')}</TableHead>
-                      <TableHead className="text-right">{t('facturation:fiche.lignes.colonnes.quantite')}</TableHead>
-                      <TableHead className="text-right">{t('facturation:fiche.lignes.colonnes.prixUnitaire')}</TableHead>
-                      <TableHead className="text-right">{t('facturation:fiche.lignes.colonnes.montant')}</TableHead>
-                      <TableHead className="text-right">{t('facturation:fiche.lignes.colonnes.tva')}</TableHead>
+                      <TableHead className="text-right">
+                        {t('facturation:fiche.lignes.colonnes.quantite')}
+                      </TableHead>
+                      <TableHead className="text-right">
+                        {t('facturation:fiche.lignes.colonnes.prixUnitaire')}
+                      </TableHead>
+                      <TableHead className="text-right">
+                        {t('facturation:fiche.lignes.colonnes.montant')}
+                      </TableHead>
+                      <TableHead className="text-right">
+                        {t('facturation:fiche.lignes.colonnes.tva')}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -317,15 +360,23 @@ export function EcranFicheFacture() {
                           <TableCell>
                             {ligne.designation}
                             {ligne.ligneOrId !== null ? (
-                              <span className="ml-2 texte-libelle text-muted-foreground">{t('facturation:ligneDepuisOrGenerique')}</span>
+                              <span className="ml-2 texte-libelle text-muted-foreground">
+                                {t('facturation:ligneDepuisOrGenerique')}
+                              </span>
                             ) : null}
                           </TableCell>
-                          <TableCell className="text-right tabular-nums">{(ligne.quantiteMillieme / 1000).toString()}</TableCell>
                           <TableCell className="text-right tabular-nums">
-                            {ligne.prixUnitaireTtcCentimes !== null ? formaterMontant(ligne.prixUnitaireTtcCentimes) : ''}
+                            {(ligne.quantiteMillieme / 1000).toString()}
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
-                            {ligne.montants ? formaterMontant(ligne.montants.montantTtcCentimes) : ''}
+                            {ligne.prixUnitaireTtcCentimes !== null
+                              ? formaterMontant(ligne.prixUnitaireTtcCentimes)
+                              : ''}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {ligne.montants
+                              ? formaterMontant(ligne.montants.montantTtcCentimes)
+                              : ''}
                           </TableCell>
                           <TableCell className="text-right texte-libelle text-muted-foreground">
                             {formaterPourmille(ligne.tauxTvaPourmille)}
@@ -343,7 +394,9 @@ export function EcranFicheFacture() {
           {estBrouillon ? (
             <Card>
               <CardHeader>
-                <CardTitle className="texte-titre-section">{t('facturation:champs.remiseGlobale.titre')}</CardTitle>
+                <CardTitle className="texte-titre-section">
+                  {t('facturation:champs.remiseGlobale.titre')}
+                </CardTitle>
               </CardHeader>
               <CardContent className="flex items-end gap-3">
                 <ChampMontant
@@ -351,7 +404,12 @@ export function EcranFicheFacture() {
                   onChangeCentimes={setRemiseCentimes}
                   label={t('facturation:champs.remiseGlobale.montant')}
                 />
-                <Button type="button" variant="outline" disabled={modification.isPending} onClick={enregistrerRemise}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={modification.isPending}
+                  onClick={enregistrerRemise}
+                >
                   {t('facturation:actions.enregistrer')}
                 </Button>
               </CardContent>
@@ -360,22 +418,31 @@ export function EcranFicheFacture() {
 
           <div className="flex justify-end">
             <div className="rounded-md border p-4 text-right">
-              <p className="texte-libelle text-muted-foreground">{t('facturation:fiche.totalTtc')}</p>
+              <p className="texte-libelle text-muted-foreground">
+                {t('facturation:fiche.totalTtc')}
+              </p>
               <p className="texte-chiffre-geant tabular-nums font-semibold text-foreground">
-                {document_.totalTtcCentimes !== undefined ? formaterMontant(document_.totalTtcCentimes) : t('facturation:fiche.montantIndisponible')}
+                {document_.totalTtcCentimes !== undefined
+                  ? formaterMontant(document_.totalTtcCentimes)
+                  : t('facturation:fiche.montantIndisponible')}
               </p>
             </div>
           </div>
         </div>
 
         <div className="flex flex-col gap-6">
-          <RecapitulatifTVA ventilationTva={document_.ventilationTva} totalTtcCentimes={document_.totalTtcCentimes} />
+          <RecapitulatifTVA
+            ventilationTva={document_.ventilationTva}
+            totalTtcCentimes={document_.totalTtcCentimes}
+          />
 
           <CarteBulletinVersement qr={document_.qr} />
 
           <Card>
             <CardHeader>
-              <CardTitle className="texte-titre-section">{t('facturation:fiche.documentsLies.titre')}</CardTitle>
+              <CardTitle className="texte-titre-section">
+                {t('facturation:fiche.documentsLies.titre')}
+              </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-2 texte-corps">
               {document_.ordreReparationId ? (
@@ -405,7 +472,9 @@ export function EcranFicheFacture() {
                   {t('facturation:fiche.documentsLies.avoir')}
                 </button>
               ) : null}
-              {!document_.ordreReparationId && !document_.factureAnnuleeId && !document_.annuleParAvoirId ? (
+              {!document_.ordreReparationId &&
+              !document_.factureAnnuleeId &&
+              !document_.annuleParAvoirId ? (
                 <p className="text-muted-foreground">{t('facturation:fiche.documentsLies.vide')}</p>
               ) : null}
             </CardContent>
@@ -422,19 +491,32 @@ export function EcranFicheFacture() {
             <p className="texte-corps">
               {t('facturation:fiche.dialogueEmission.resume', {
                 destinataire: destinataireNom,
-                montant: document_.totalTtcCentimes !== undefined ? formaterMontant(document_.totalTtcCentimes) : '',
+                montant:
+                  document_.totalTtcCentimes !== undefined
+                    ? formaterMontant(document_.totalTtcCentimes)
+                    : '',
               })}
             </p>
-            <p className="texte-corps text-muted-foreground">{t('facturation:fiche.dialogueEmission.avertissement')}</p>
-            {!adresseComplete ? <p className="texte-libelle text-statut-attention">{t('facturation:champs.adresseIncompleteEmission')}</p> : null}
-            {emission.isError ? <p className="texte-libelle text-destructive">{messageErreur(emission.error, t)}</p> : null}
+            <p className="texte-corps text-muted-foreground">
+              {t('facturation:fiche.dialogueEmission.avertissement')}
+            </p>
+            {!adresseComplete ? (
+              <p className="texte-libelle text-statut-attention">
+                {t('facturation:champs.adresseIncompleteEmission')}
+              </p>
+            ) : null}
+            {emission.isError ? (
+              <p className="texte-libelle text-destructive">{messageErreur(emission.error, t)}</p>
+            ) : null}
           </div>
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline">{t('commun:actions.annuler')}</Button>
             </DialogClose>
             <Button disabled={emission.isPending} onClick={soumettreEmission}>
-              {emission.isPending ? t('facturation:fiche.dialogueEmission.enCours') : t('facturation:fiche.dialogueEmission.confirmer')}
+              {emission.isPending
+                ? t('facturation:fiche.dialogueEmission.enCours')
+                : t('facturation:fiche.dialogueEmission.confirmer')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -453,7 +535,9 @@ export function EcranFicheFacture() {
         facture={document_}
         ouvert={correctionOuverte}
         onOuvertChange={setCorrectionOuverte}
-        onSucces={(_avoirNumero, _nouvelleNumero, idNouvelleFacture) => navigate(`/factures/${idNouvelleFacture}`)}
+        onSucces={(_avoirNumero, _nouvelleNumero, idNouvelleFacture) =>
+          navigate(`/factures/${idNouvelleFacture}`)
+        }
       />
     </div>
   );

@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { ROLES_UTILISATEUR, type RoleUtilisateur } from '@dfa/shared';
+import {
+  ROLES_COMPTE_DE_SERVICE,
+  ROLES_PERSONNE,
+  ROLES_UTILISATEUR,
+  type RoleUtilisateur,
+} from '@dfa/shared';
 
-import { type Action, DROIT_PAR_CONFIRMATION, MATRICE_DROITS, ROLES_SANS_MONTANT } from './matrice-droits';
+import {
+  type Action,
+  DROIT_PAR_CONFIRMATION,
+  MATRICE_DROITS,
+  ROLES_SANS_MONTANT,
+} from './matrice-droits';
 // Import de lecture depuis le périmètre `facturation/documents/` (pas d'écriture) : le test ci-dessous
 // doit lier `facturation.document.imprimer` à la fonction RÉELLE, pas à une copie de sa liste de rôles
 // recopiée à la main — exactement le risque que ce test existe pour éliminer.
@@ -86,7 +96,9 @@ describe('MATRICE_DROITS — §10 de la spec métier, ligne par ligne', () => {
   });
 
   it('L965 — Ouvrir un OR : réceptionnaire, chef d’atelier, direction, admin (creer et receptionner)', () => {
-    expect(rolesAyant('atelier.or.creer')).toEqual(['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort());
+    expect(rolesAyant('atelier.or.creer')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort(),
+    );
     expect(rolesAyant('atelier.or.receptionner')).toEqual(
       ['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort(),
     );
@@ -123,7 +135,9 @@ describe('MATRICE_DROITS — §10 de la spec métier, ligne par ligne', () => {
   });
 
   it('L975 — Valider le contrôle qualité : chef d’atelier, technicien, direction, admin (pas réceptionnaire)', () => {
-    expect(rolesAyant('atelier.or.controler')).toEqual(['admin', 'chef_atelier', 'direction', 'technicien'].sort());
+    expect(rolesAyant('atelier.or.controler')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'technicien'].sort(),
+    );
   });
 
   it('L976 — Passer l’OR à terminé : réceptionnaire, chef d’atelier, direction, admin', () => {
@@ -139,7 +153,9 @@ describe('MATRICE_DROITS — §10 de la spec métier, ligne par ligne', () => {
   });
 
   it('L979 — Annuler un OR : réceptionnaire, chef d’atelier, direction, admin', () => {
-    expect(rolesAyant('atelier.or.annuler')).toEqual(['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort());
+    expect(rolesAyant('atelier.or.annuler')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort(),
+    );
   });
 
   it('L959, L963, L964, L972-974, L977, L980-981 — hors périmètre du lot 1 (Δ4 : fusion client, RDV, pointage, facturation étape 2, rétention, indicateurs) : aucune action de ces domaines n’existe', () => {
@@ -161,12 +177,18 @@ describe('MATRICE_DROITS — actions inférées (aucune ligne §10 littérale)',
   });
 
   it('parametrage.atelier.modifier / parametrage.referentiel.modifier — chef d’atelier, direction, admin uniquement', () => {
-    expect(rolesAyant('parametrage.atelier.modifier')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
-    expect(rolesAyant('parametrage.referentiel.modifier')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+    expect(rolesAyant('parametrage.atelier.modifier')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
+    expect(rolesAyant('parametrage.referentiel.modifier')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
   });
 
   it('atelier.or.demarrer / atelier.or.passer_en_controle — chef d’atelier, technicien, direction, admin (T-04/T-11) : pas réceptionnaire', () => {
-    expect(rolesAyant('atelier.or.demarrer')).toEqual(['admin', 'chef_atelier', 'direction', 'technicien'].sort());
+    expect(rolesAyant('atelier.or.demarrer')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'technicien'].sort(),
+    );
     expect(rolesAyant('atelier.or.passer_en_controle')).toEqual(
       ['admin', 'chef_atelier', 'direction', 'technicien'].sort(),
     );
@@ -184,15 +206,21 @@ describe('MATRICE_DROITS — actions inférées (aucune ligne §10 littérale)',
   });
 
   it('atelier.or.cloturer — réceptionnaire, chef d’atelier, direction, admin, symétrique de restituer/terminer/annuler (T-19)', () => {
-    expect(rolesAyant('atelier.or.cloturer')).toEqual(['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort());
+    expect(rolesAyant('atelier.or.cloturer')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort(),
+    );
   });
 
   it('vehicule.detention.corriger — chef d’atelier, direction, admin (correction sensible, symétrique du kilométrage à la baisse)', () => {
-    expect(rolesAyant('vehicule.detention.corriger')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+    expect(rolesAyant('vehicule.detention.corriger')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
   });
 
   it('atelier.journal.lire — réceptionnaire, chef d’atelier, direction, admin uniquement (pas technicien/magasinier/comptable)', () => {
-    expect(rolesAyant('atelier.journal.lire')).toEqual(['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort());
+    expect(rolesAyant('atelier.journal.lire')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort(),
+    );
   });
 });
 
@@ -218,8 +246,12 @@ describe('MATRICE_DROITS — RF-114, facturation/paiements (étape 2)', () => {
   });
 
   it('« Rembourser un trop-perçu » et l’abandon d’avance inféré (RF-79 issue 3) : direction, comptable SEULS', () => {
-    expect(rolesAyant('facturation.paiement.rembourser')).toEqual(['comptable', 'direction'].sort());
-    expect(rolesAyant('facturation.paiement.abandonner')).toEqual(['comptable', 'direction'].sort());
+    expect(rolesAyant('facturation.paiement.rembourser')).toEqual(
+      ['comptable', 'direction'].sort(),
+    );
+    expect(rolesAyant('facturation.paiement.abandonner')).toEqual(
+      ['comptable', 'direction'].sort(),
+    );
   });
 });
 
@@ -239,12 +271,20 @@ describe('MATRICE_DROITS — RF-114, facturation/paiements (étape 2)', () => {
  *    base) : `receptionnaire` la détient SANS PLAFOND dans la matrice — signalé, pas caché.
  */
 describe('MATRICE_DROITS — RF-114, facturation/documents (étape 2)', () => {
-  it('« (lecture) » — accordée aux 8 rôles sans exception, y compris admin : RF-116 (montants) filtré ailleurs (facturation/documents/mappeurs.ts), pas ici', () => {
-    expect(rolesAyant('facturation.document.lire')).toEqual([...ROLES_UTILISATEUR].sort());
+  it('« (lecture) » — accordée aux 8 rôles de PERSONNE sans exception, y compris admin (RF-116, les montants sont filtrés ailleurs : facturation/documents/mappeurs.ts) — mais PAS au compte de service poste_atelier, dont le périmètre est construit par énumération et non par ouverture de la lecture par défaut', () => {
+    expect(rolesAyant('facturation.document.lire')).toEqual([...ROLES_PERSONNE].sort());
+    expect(MATRICE_DROITS.poste_atelier).not.toContain('facturation.document.lire');
   });
 
   it('« Créer / modifier un brouillon » (creer, modifier, transitionner, avoir.creer) : direction, comptable, vendeur, réceptionnaire, chef d’atelier, magasinier — PAS technicien, PAS admin (RF-115)', () => {
-    const attendus = ['chef_atelier', 'comptable', 'direction', 'magasinier', 'receptionnaire', 'vendeur'].sort();
+    const attendus = [
+      'chef_atelier',
+      'comptable',
+      'direction',
+      'magasinier',
+      'receptionnaire',
+      'vendeur',
+    ].sort();
     const actionsBrouillon: Action[] = [
       'facturation.document.creer',
       'facturation.document.modifier',
@@ -274,7 +314,9 @@ describe('MATRICE_DROITS — RF-114, facturation/documents (étape 2)', () => {
   });
 
   it('« Émettre un avoir » : direction, comptable, réceptionnaire — PAS vendeur, PAS chef d’atelier, PAS magasinier, PAS technicien, PAS admin', () => {
-    expect(rolesAyant('facturation.document.emettre_avoir')).toEqual(['comptable', 'direction', 'receptionnaire'].sort());
+    expect(rolesAyant('facturation.document.emettre_avoir')).toEqual(
+      ['comptable', 'direction', 'receptionnaire'].sort(),
+    );
     expect(MATRICE_DROITS.vendeur).not.toContain('facturation.document.emettre_avoir');
     expect(MATRICE_DROITS.chef_atelier).not.toContain('facturation.document.emettre_avoir');
   });
@@ -291,8 +333,13 @@ describe('MATRICE_DROITS — RF-114, facturation/documents (étape 2)', () => {
       'facturation.paiement.imputer',
     ];
     for (const action of financiersReceptionnaireSansChefAtelier) {
-      expect(MATRICE_DROITS.receptionnaire, `receptionnaire devrait détenir '${action}'`).toContain(action);
-      expect(MATRICE_DROITS.chef_atelier, `chef_atelier NE DEVRAIT PAS détenir '${action}'`).not.toContain(action);
+      expect(MATRICE_DROITS.receptionnaire, `receptionnaire devrait détenir '${action}'`).toContain(
+        action,
+      );
+      expect(
+        MATRICE_DROITS.chef_atelier,
+        `chef_atelier NE DEVRAIT PAS détenir '${action}'`,
+      ).not.toContain(action);
     }
   });
 });
@@ -311,8 +358,12 @@ describe('MATRICE_DROITS — RF-114, facturation/documents (étape 2)', () => {
  */
 describe('MATRICE_DROITS — bloc créancier QR-facture (facturation/parametrage/bloc-creancier, palier de gouvernance le plus élevé)', () => {
   it('« Voir » / « Modifier » l’IBAN créancier : direction, comptable SEULS — comme facturation.paiement.rembourser/abandonner, le palier le plus haut de la matrice', () => {
-    expect(rolesAyant('facturation.parametrage.creancier.lire')).toEqual(['comptable', 'direction'].sort());
-    expect(rolesAyant('facturation.parametrage.creancier.modifier')).toEqual(['comptable', 'direction'].sort());
+    expect(rolesAyant('facturation.parametrage.creancier.lire')).toEqual(
+      ['comptable', 'direction'].sort(),
+    );
+    expect(rolesAyant('facturation.parametrage.creancier.modifier')).toEqual(
+      ['comptable', 'direction'].sort(),
+    );
   });
 
   it('RF-115 — admin N’A NI la lecture NI l’écriture de l’IBAN créancier, à la différence de parametrage.atelier.modifier/parametrage.referentiel.modifier qui, eux, donnent l’écriture à admin : un test doit échouer si l’entrée admin de ce bloc est un jour remplie par copier-coller de direction, en la prenant pour un oubli de recopie plutôt qu’une décision RF-115 délibérée', () => {
@@ -325,14 +376,22 @@ describe('MATRICE_DROITS — bloc créancier QR-facture (facturation/parametrage
   });
 
   it('aucun autre rôle que direction/comptable ne détient l’une ou l’autre action (vendeur, réceptionnaire, chef_atelier, technicien, magasinier exclus, alignés sur DISPOSITION_AVANCE_PAIEMENT)', () => {
-    const rolesExclus: RoleUtilisateur[] = ['vendeur', 'receptionnaire', 'chef_atelier', 'technicien', 'magasinier'];
+    const rolesExclus: RoleUtilisateur[] = [
+      'vendeur',
+      'receptionnaire',
+      'chef_atelier',
+      'technicien',
+      'magasinier',
+    ];
     for (const role of rolesExclus) {
-      expect(MATRICE_DROITS[role], `${role} ne devrait détenir aucune action creancier`).not.toContain(
-        'facturation.parametrage.creancier.lire',
-      );
-      expect(MATRICE_DROITS[role], `${role} ne devrait détenir aucune action creancier`).not.toContain(
-        'facturation.parametrage.creancier.modifier',
-      );
+      expect(
+        MATRICE_DROITS[role],
+        `${role} ne devrait détenir aucune action creancier`,
+      ).not.toContain('facturation.parametrage.creancier.lire');
+      expect(
+        MATRICE_DROITS[role],
+        `${role} ne devrait détenir aucune action creancier`,
+      ).not.toContain('facturation.parametrage.creancier.modifier');
     }
   });
 });
@@ -357,9 +416,18 @@ describe('MATRICE_DROITS — export fiduciaire (facturation/export, même palier
   });
 
   it('aucun autre rôle que direction/comptable ne détient cette action (vendeur, réceptionnaire, chef_atelier, technicien, magasinier exclus, alignés sur DISPOSITION_AVANCE_PAIEMENT et le bloc créancier)', () => {
-    const rolesExclus: RoleUtilisateur[] = ['vendeur', 'receptionnaire', 'chef_atelier', 'technicien', 'magasinier'];
+    const rolesExclus: RoleUtilisateur[] = [
+      'vendeur',
+      'receptionnaire',
+      'chef_atelier',
+      'technicien',
+      'magasinier',
+    ];
     for (const role of rolesExclus) {
-      expect(MATRICE_DROITS[role], `${role} ne devrait détenir aucun droit d'export fiduciaire`).not.toContain('facturation.export.creer');
+      expect(
+        MATRICE_DROITS[role],
+        `${role} ne devrait détenir aucun droit d'export fiduciaire`,
+      ).not.toContain('facturation.export.creer');
     }
   });
 });
@@ -403,7 +471,7 @@ describe('MATRICE_DROITS — impression PDF facture QR (RF-116, facturation/impr
 });
 
 describe('MATRICE_DROITS — lecture large (LECTURE_SOCLE et LECTURE_ETENDUE)', () => {
-  it('recherche.executer, parametrage.*.lire, client.lire, vehicule.lire — accordés aux 8 rôles', () => {
+  it('recherche.executer, parametrage.*.lire, client.lire, vehicule.lire — accordés aux 8 rôles de PERSONNE, JAMAIS au compte de service poste_atelier : la borne est un écran mural allumé en permanence devant clients et visiteurs, LECTURE_ETENDUE y exposerait le fichier clients du garage à la vue de tous', () => {
     const lectures: Action[] = [
       'recherche.executer',
       'parametrage.atelier.lire',
@@ -412,13 +480,26 @@ describe('MATRICE_DROITS — lecture large (LECTURE_SOCLE et LECTURE_ETENDUE)', 
       'vehicule.lire',
     ];
     for (const action of lectures) {
-      expect(rolesAyant(action)).toEqual([...ROLES_UTILISATEUR].sort());
+      expect(rolesAyant(action)).toEqual([...ROLES_PERSONNE].sort());
+      expect(
+        MATRICE_DROITS.poste_atelier,
+        `poste_atelier ne doit pas détenir ${action}`,
+      ).not.toContain(action);
     }
   });
 
-  it('atelier.or.lire — accordé à tous les rôles SAUF vendeur (absent des flux étape 1, §2.1)', () => {
+  it('atelier.or.lire — accordé à tous les rôles SAUF vendeur (absent des flux étape 1, §2.1), y compris à poste_atelier : la borne doit afficher les OR en cours de son atelier pour que le technicien choisisse sur quoi pointer (sans montants, cf. ROLES_SANS_MONTANT)', () => {
     expect(rolesAyant('atelier.or.lire')).toEqual(
-      ['admin', 'chef_atelier', 'comptable', 'direction', 'magasinier', 'receptionnaire', 'technicien'].sort(),
+      [
+        'admin',
+        'chef_atelier',
+        'comptable',
+        'direction',
+        'magasinier',
+        'poste_atelier',
+        'receptionnaire',
+        'technicien',
+      ].sort(),
     );
     expect(MATRICE_DROITS.vendeur).not.toContain('atelier.or.lire');
   });
@@ -463,7 +544,10 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
     // pour la même raison, décision de l'agent ventes (voir `DROITS_VENTES_PAR_ROLE`) : admin n'a
     // aucun droit sur le domaine ventes, y compris la lecture.
     const sansFacturationNiPiecesNiVentes = (actions: readonly Action[]) =>
-      actions.filter((a) => !a.startsWith('facturation.') && !a.startsWith('pieces.') && !a.startsWith('ventes.'));
+      actions.filter(
+        (a) =>
+          !a.startsWith('facturation.') && !a.startsWith('pieces.') && !a.startsWith('ventes.'),
+      );
     expect([...sansFacturationNiPiecesNiVentes(MATRICE_DROITS.admin)].sort()).toEqual(
       [...sansFacturationNiPiecesNiVentes(MATRICE_DROITS.direction)].sort(),
     );
@@ -475,14 +559,20 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
   });
 
   it('RF-115 — admin n’a AUCUN droit financier D’ÉCRITURE NI D’ENCAISSEMENT (aucune action facturation.paiement.*, aucune écriture/émission facturation.document.*), contrairement à direction : séparation des pouvoirs explicite dès l’étape 2. SEULE exception, volontaire et distincte : facturation.document.lire (RF-116, visibilité des MONTANTS, est filtré ailleurs — facturation/documents/mappeurs.ts — jamais en cachant la ligne de document elle-même à admin) — documenté ici pour que ce ne soit jamais lu comme un oubli.', () => {
-    expect(MATRICE_DROITS.admin.filter((a) => a.startsWith('facturation.'))).toEqual(['facturation.document.lire']);
+    expect(MATRICE_DROITS.admin.filter((a) => a.startsWith('facturation.'))).toEqual([
+      'facturation.document.lire',
+    ]);
     expect(MATRICE_DROITS.admin.some((a) => a.startsWith('facturation.paiement.'))).toBe(false);
     expect(MATRICE_DROITS.direction.some((a) => a.startsWith('facturation.'))).toBe(true);
   });
 
   it('RF-116 — ROLES_SANS_MONTANT (const PARTAGÉ avec l’atelier) n’est PAS étendu à admin dans ce fichier : le masquage des montants pour admin en facturation (RF-115) est appliqué LOCALEMENT dans facturation/documents/mappeurs.ts (ROLES_SANS_MONTANT_FACTURATION = ROLES_SANS_MONTANT + admin), précisément pour ne pas changer, par effet de bord, l’affichage des montants d’admin côté atelier — non demandé par aucune règle métier', () => {
     expect(ROLES_SANS_MONTANT).not.toContain('admin');
-    expect(ROLES_SANS_MONTANT).toEqual(['technicien']);
+    // Contenu exact : `technicien` (lot 1) et `poste_atelier` (mode borne — écran mural exposé
+    // aux clients). L'assertion reste EXHAUSTIVE, pas relâchée en `toContain` : ce qu'elle garde,
+    // c'est qu'aucun rôle n'entre ni ne sort de cette liste sans décision consciente — `admin` en
+    // particulier, qui est masqué en facturation SEULEMENT, par ROLES_SANS_MONTANT_FACTURATION.
+    expect(ROLES_SANS_MONTANT).toEqual(['technicien', 'poste_atelier']);
   });
 
   it('direction détient tout ce que chef_atelier détient, plus au moins client.condition.modifier', () => {
@@ -519,7 +609,9 @@ describe('MATRICE_DROITS — ventes VN/VO (étape 4, matrice §11)', () => {
   });
 
   it('§11 ligne 4 [À VALIDER, QV-15] — visibilité de la marge/du prix d’achat : lecture accordée à direction, comptable ET vendeur (le contrat gelé `ReponseVehiculeStock.prixAchatCentimes` est `number` non-nullable — masquer le CHAMP par rôle exigerait de rouvrir un contrat gelé, hors périmètre de cet agent) ; SEULE L’ÉCRITURE reste conservatrice (voir le test suivant)', () => {
-    expect(rolesAyant('ventes.vehicule_stock.lire')).toEqual(['chef_atelier', 'comptable', 'direction', 'receptionnaire', 'vendeur'].sort());
+    expect(rolesAyant('ventes.vehicule_stock.lire')).toEqual(
+      ['chef_atelier', 'comptable', 'direction', 'receptionnaire', 'vendeur'].sort(),
+    );
   });
 
   it('§11 ligne 9 [À VALIDER, QV-15] — modifier le prix d’achat/frais de remise en état d’un véhicule en stock : direction SEULE ; vendeur EXCLU en position conservatrice tant que QV-15 n’est pas tranché', () => {
@@ -530,7 +622,9 @@ describe('MATRICE_DROITS — ventes VN/VO (étape 4, matrice §11)', () => {
   });
 
   it('§11 ligne 7 — confirmer un financement/leasing : vendeur, direction, comptable', () => {
-    expect(rolesAyant('ventes.financement.confirmer')).toEqual(['comptable', 'direction', 'vendeur'].sort());
+    expect(rolesAyant('ventes.financement.confirmer')).toEqual(
+      ['comptable', 'direction', 'vendeur'].sort(),
+    );
   });
 
   it('§11 ligne 8 [À VALIDER, QV-16] — enregistrer la livraison : vendeur, direction SEULS ; receptionnaire EXCLU en position conservatrice (« possible selon organisation » non tranché)', () => {
@@ -576,24 +670,112 @@ describe('MATRICE_DROITS — ventes VN/VO (étape 4, matrice §11)', () => {
  * facturation/ventes ».
  */
 describe('MATRICE_DROITS — pointage (lot 2)', () => {
-  it('demarrer/arreter/lire : chef_atelier, direction, admin, technicien, magasinier — PAS receptionnaire, PAS vendeur, PAS comptable', () => {
-    const attendus = ['admin', 'chef_atelier', 'direction', 'magasinier', 'technicien'].sort();
+  it('demarrer/arreter/lire : chef_atelier, direction, admin, technicien, magasinier + le compte de service poste_atelier — PAS receptionnaire, PAS vendeur, PAS comptable', () => {
+    // POURQUOI `poste_atelier` est ici (mode borne, docs/specification-pointage-borne.md) : la
+    // requête `POST /pointages` qui écrit la ligne est émise par la SESSION DE LA BORNE. Le PIN
+    // n'est qu'une donnée du corps qui NOMME le `technicienId` — il ne porte, par contrat gelé
+    // (`packages/shared/src/contrats/pointage/identification.ts`), AUCUNE autorité : « le DROIT
+    // d'écrire un pointage est déjà porté par la session de la borne, pas par le PIN ». Sans ces
+    // droits sur le compte de borne, `POST /pointages` répondrait 403 et le mode borne serait
+    // mort-né. `lire` est nécessaire pour que l'écran affiche le pointage qu'il vient d'ouvrir
+    // (« Marco, en cours depuis 14:12 »).
+    //
+    // Ce n'est PAS une porte dérobée : la borne ne gagne rien d'autre que ces trois gestes plus
+    // `identifier` et deux lectures (voir le bloc « poste_atelier, compte de service » en fin de
+    // fichier, qui fige sa liste EXHAUSTIVE et interdit nommément tout geste sensible). Le pire
+    // effet d'un PIN emprunté reste ce que la spécification déclare accepter : une heure imputée
+    // au mauvais nom, jamais une élévation de privilège.
+    const attendus = [
+      'admin',
+      'chef_atelier',
+      'direction',
+      'magasinier',
+      'poste_atelier',
+      'technicien',
+    ].sort();
     expect(rolesAyant('atelier.pointage.demarrer')).toEqual(attendus);
     expect(rolesAyant('atelier.pointage.arreter')).toEqual(attendus);
     expect(rolesAyant('atelier.pointage.lire')).toEqual(attendus);
+
+    // L'intention d'origine du test, préservée mot pour mot : ces trois rôles restent exclus.
+    for (const role of ['receptionnaire', 'vendeur', 'comptable'] as const) {
+      for (const action of [
+        'atelier.pointage.demarrer',
+        'atelier.pointage.arreter',
+        'atelier.pointage.lire',
+      ] as const) {
+        expect(MATRICE_DROITS[role], `${role} ne doit pas détenir ${action}`).not.toContain(action);
+      }
+    }
+  });
+
+  it('GARDE-FOU DU MODE BORNE — le compte de service n’obtient QUE les trois gestes de pointage ci-dessus (plus `identifier`) : il ne détient AUCUNE autre action `atelier.pointage.*`, et son périmètre TOTAL sur toute la matrice se limite à sept actions dont aucune n’écrit hors du pointage. Un écran mural non verrouillé, accessible à quiconque entre dans l’atelier, ne doit jamais devenir le chemin par lequel on contourne « le PIN n’autorise aucun geste sensible »', () => {
+    expect([...MATRICE_DROITS.poste_atelier].sort()).toEqual(
+      [
+        'socle.tenant.lire',
+        'socle.site.lire',
+        'atelier.or.lire',
+        'atelier.pointage.identifier',
+        'atelier.pointage.demarrer',
+        'atelier.pointage.arreter',
+        'atelier.pointage.lire',
+      ].sort(),
+    );
+
+    // Les trois actions de pointage QUI RESTENT interdites à la borne — celles qui réécrivent ou
+    // figent des heures déjà déclarées, donc les seules du domaine qui engagent la paie.
+    for (const action of [
+      'atelier.pointage.corriger_autrui',
+      'atelier.pointage.verrouiller_periode',
+      'atelier.pointage.deverrouiller_periode',
+      'atelier.pointage.gerer_pin',
+    ] as const) {
+      expect(MATRICE_DROITS.poste_atelier, `borne : ${action} doit rester interdit`).not.toContain(
+        action,
+      );
+    }
+
+    // Échantillon nommé des gestes sensibles exigés par RM-115/RM-131 : signature/réponse de
+    // devis, transitions d'OR, facturation, lecture du fichier clients, montants.
+    for (const action of [
+      'atelier.devis.repondre',
+      'atelier.or.receptionner',
+      'atelier.or.restituer',
+      'atelier.ligne.valider',
+      'facturation.document.lire',
+      'facturation.document.emettre_facture',
+      'facturation.paiement.creer',
+      'facturation.paiement.imputer',
+      'client.lire',
+      'vehicule.lire',
+      'recherche.executer',
+    ] as const) {
+      expect(MATRICE_DROITS.poste_atelier, `borne : ${action} doit rester interdit`).not.toContain(
+        action,
+      );
+    }
+
+    // Et aucun montant ne doit atteindre l'écran, quel que soit l'endpoint emprunté.
+    expect(ROLES_SANS_MONTANT).toContain('poste_atelier');
   });
 
   it('corriger_autrui : chef_atelier, direction, admin SEULS', () => {
-    expect(rolesAyant('atelier.pointage.corriger_autrui')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+    expect(rolesAyant('atelier.pointage.corriger_autrui')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
   });
 
   it('verrouiller_periode : chef_atelier, direction, admin SEULS — PAS comptable (arbitrage @laupernoe 2026-08-03 : verrouiller une période fige des heures de travail avant la paie, geste de droit du travail réservé à l’atelier/la direction, pas un geste comptable)', () => {
-    expect(rolesAyant('atelier.pointage.verrouiller_periode')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+    expect(rolesAyant('atelier.pointage.verrouiller_periode')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
     expect(MATRICE_DROITS.comptable).not.toContain('atelier.pointage.verrouiller_periode');
   });
 
   it('deverrouiller_periode : chef_atelier, direction, admin SEULS — PAS comptable (rouvrir une période figée est plus engageant que la clôturer, même précédent que atelier.or.rouvrir réservé à chef_atelier/direction alors que la fermeture symétrique est plus largement accordée)', () => {
-    expect(rolesAyant('atelier.pointage.deverrouiller_periode')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+    expect(rolesAyant('atelier.pointage.deverrouiller_periode')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
     expect(MATRICE_DROITS.comptable).not.toContain('atelier.pointage.deverrouiller_periode');
     expect(MATRICE_DROITS.comptable).not.toContain('atelier.pointage.verrouiller_periode');
   });
@@ -617,7 +799,9 @@ describe('MATRICE_DROITS — pointage (lot 2)', () => {
   });
 
   it('receptionnaire et vendeur — aucune action de pointage (pas leur outil)', () => {
-    expect(MATRICE_DROITS.receptionnaire.filter((a) => a.startsWith('atelier.pointage.'))).toEqual([]);
+    expect(MATRICE_DROITS.receptionnaire.filter((a) => a.startsWith('atelier.pointage.'))).toEqual(
+      [],
+    );
     expect(MATRICE_DROITS.vendeur.filter((a) => a.startsWith('atelier.pointage.'))).toEqual([]);
   });
 });
@@ -755,6 +939,13 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'atelier.pointage.corriger_autrui',
       'atelier.pointage.verrouiller_periode',
       'atelier.pointage.deverrouiller_periode',
+      // --- Mode « borne partagée » du pointage (docs/specification-pointage-borne.md) ----------
+      // Livrées par expert-auth EN AMONT du module PIN, pour que l'agent qui construira
+      // `pin_pointage` reprenne des noms et un périmètre de rôles déjà arbitrés. Inertes tant
+      // qu'aucune route ne les exerce — déclarées comme telles dans
+      // `common/droits/allowlist-actions-non-decorees.ts`.
+      'atelier.pointage.identifier',
+      'atelier.pointage.gerer_pin',
     ];
 
     const actionsAccordees = new Set(Object.values(MATRICE_DROITS).flat());
@@ -770,8 +961,8 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
  * rabais/payeur de ligne, conditions commerciales).
  */
 describe('ROLES_SANS_MONTANT', () => {
-  it('contient exactement technicien', () => {
-    expect(ROLES_SANS_MONTANT).toEqual(['technicien']);
+  it('contient exactement technicien et poste_atelier — le second ajouté avec le mode borne : un écran mural allumé en permanence, à la vue des clients et des visiteurs, ne doit afficher aucun prix ni total (divulgation commerciale par simple présence physique dans l’atelier, un canal que l’auth ne peut gouverner qu’en retirant les montants à la source)', () => {
+    expect(ROLES_SANS_MONTANT).toEqual(['technicien', 'poste_atelier']);
   });
 
   it('un rôle sans montant ne détient aucune action monétaire de la matrice', () => {
@@ -795,7 +986,9 @@ describe('ROLES_SANS_MONTANT', () => {
 describe('DROIT_PAR_CONFIRMATION', () => {
   it('mappe les 3 confirmations opérationnelles du lot 1 vers les actions atelier.confirmation.*, avec un droit détenu par chef_atelier et direction (contrats-api-etape-1.md L524-529)', () => {
     expect(DROIT_PAR_CONFIRMATION.CLIENT_BLOQUE).toBe('atelier.confirmation.client_bloque');
-    expect(DROIT_PAR_CONFIRMATION.VEHICULE_DEUX_OR_OUVERTS).toBe('atelier.confirmation.deux_or_ouverts');
+    expect(DROIT_PAR_CONFIRMATION.VEHICULE_DEUX_OR_OUVERTS).toBe(
+      'atelier.confirmation.deux_or_ouverts',
+    );
     expect(DROIT_PAR_CONFIRMATION.OR_SANS_RDV).toBe('atelier.confirmation.or_sans_rdv');
 
     for (const code of ['CLIENT_BLOQUE', 'VEHICULE_DEUX_OR_OUVERTS', 'OR_SANS_RDV'] as const) {
@@ -804,14 +997,20 @@ describe('DROIT_PAR_CONFIRMATION', () => {
       expect(MATRICE_DROITS.direction).toContain(action);
     }
     // VEHICULE_DEUX_OR_OUVERTS est « receptionnaire+ » (contrats-api-etape-1.md L525).
-    expect(MATRICE_DROITS.receptionnaire).toContain(DROIT_PAR_CONFIRMATION.VEHICULE_DEUX_OR_OUVERTS);
+    expect(MATRICE_DROITS.receptionnaire).toContain(
+      DROIT_PAR_CONFIRMATION.VEHICULE_DEUX_OR_OUVERTS,
+    );
     // CLIENT_BLOQUE et OR_SANS_RDV sont réservés à chef d'atelier/direction (L524, L529).
     expect(MATRICE_DROITS.receptionnaire).not.toContain(DROIT_PAR_CONFIRMATION.CLIENT_BLOQUE);
     expect(MATRICE_DROITS.receptionnaire).not.toContain(DROIT_PAR_CONFIRMATION.OR_SANS_RDV);
   });
 
   it('mappe les 3 confirmations hors périmètre (RDV, prêt) vers des actions dédiées, elles aussi détenues par chef_atelier et direction', () => {
-    for (const code of ['RDV_RESSOURCE_CHEVAUCHEMENT', 'RDV_HORS_OUVERTURE', 'PRET_VEHICULE_INDISPONIBLE'] as const) {
+    for (const code of [
+      'RDV_RESSOURCE_CHEVAUCHEMENT',
+      'RDV_HORS_OUVERTURE',
+      'PRET_VEHICULE_INDISPONIBLE',
+    ] as const) {
       const action = DROIT_PAR_CONFIRMATION[code];
       expect(MATRICE_DROITS.chef_atelier).toContain(action);
       expect(MATRICE_DROITS.direction).toContain(action);
@@ -828,5 +1027,134 @@ describe('DROIT_PAR_CONFIRMATION', () => {
       'OR_SANS_RDV',
     ].sort();
     expect(Object.keys(DROIT_PAR_CONFIRMATION).sort()).toEqual(clesAttendues);
+  });
+});
+
+/**
+ * `poste_atelier` — compte de SERVICE (la borne tactile de l'atelier), pas une personne.
+ *
+ * Ces tests ne vérifient pas une liste, ils verrouillent une DOCTRINE : ce rôle est le seul du
+ * fichier dont le périmètre est construit par ÉNUMÉRATION (tout ce qui n'y est pas est refusé),
+ * à rebours de la règle générale « la lecture est ouverte, seule l'écriture est gouvernée ». La
+ * raison est physique : l'écran est accroché à un mur, allumé en permanence, sans verrouillage,
+ * et n'importe qui entrant dans l'atelier est devant.
+ *
+ * Le risque que ces tests existent pour empêcher est précis : un futur agent qui, voyant la borne
+ * « manquer » d'un droit pour faire marcher un écran, lui ajoute `LECTURE_ETENDUE` par confort de
+ * copie — et publie du même geste le fichier clients du garage sur un mur d'atelier. Un test rouge
+ * est la seule chose qui transforme ce geste en décision consciente.
+ */
+describe('MATRICE_DROITS — poste_atelier, compte de service (mode borne du pointage)', () => {
+  it('est le seul rôle de ROLES_COMPTE_DE_SERVICE, et il est bien absent de ROLES_PERSONNE (les deux partitionnent ROLES_UTILISATEUR)', () => {
+    expect([...ROLES_COMPTE_DE_SERVICE]).toEqual(['poste_atelier']);
+    expect(ROLES_PERSONNE).not.toContain('poste_atelier');
+    expect([...ROLES_PERSONNE, ...ROLES_COMPTE_DE_SERVICE].sort()).toEqual(
+      [...ROLES_UTILISATEUR].sort(),
+    );
+  });
+
+  it('détient EXACTEMENT six actions, ni une de plus : lire son tenant, lire son site, lire les OR, identifier par PIN, démarrer et arrêter un pointage', () => {
+    expect([...MATRICE_DROITS.poste_atelier].sort()).toEqual(
+      [
+        'socle.tenant.lire',
+        'socle.site.lire',
+        'atelier.or.lire',
+        'atelier.pointage.identifier',
+        'atelier.pointage.demarrer',
+        'atelier.pointage.arreter',
+        'atelier.pointage.lire',
+      ].sort(),
+    );
+  });
+
+  it('ne détient AUCUNE action d’écriture hors du domaine pointage : tout ce qu’il porte est soit un `.lire`, soit une action `atelier.pointage.*` — un geste sensible depuis un écran mural non verrouillé (RM-115/RM-131) doit rester structurellement impossible', () => {
+    for (const action of MATRICE_DROITS.poste_atelier) {
+      expect(
+        action.endsWith('.lire') || action.startsWith('atelier.pointage.'),
+        `poste_atelier détient ${action}, qui n’est ni une lecture ni une action de pointage`,
+      ).toBe(true);
+    }
+  });
+
+  it('ne détient AUCUNE action des domaines facturation, ventes, pièces, client, véhicule, paramétrage ni recherche — y compris en LECTURE, à la différence de tous les autres rôles', () => {
+    const domainesInterdits = [
+      'facturation.',
+      'ventes.',
+      'pieces.',
+      'client.',
+      'vehicule.',
+      'parametrage.',
+      'recherche.',
+      'rendez_vous.',
+      'pret_vehicule.',
+    ];
+    for (const action of MATRICE_DROITS.poste_atelier) {
+      for (const prefixe of domainesInterdits) {
+        expect(
+          action.startsWith(prefixe),
+          `poste_atelier détient ${action}, du domaine interdit ${prefixe}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  it('ne détient AUCUNE transition d’OR ni action de ligne/devis : la borne pointe, elle ne pilote pas l’atelier (RM-131)', () => {
+    const interdits: Action[] = [
+      'atelier.or.creer',
+      'atelier.or.modifier',
+      'atelier.or.receptionner',
+      'atelier.or.demarrer',
+      'atelier.or.passer_en_controle',
+      'atelier.or.controler',
+      'atelier.or.terminer',
+      'atelier.or.rouvrir',
+      'atelier.or.restituer',
+      'atelier.or.cloturer',
+      'atelier.or.annuler',
+      'atelier.ligne.creer',
+      'atelier.ligne.valider',
+      'atelier.ligne.marquer_realisee',
+      'atelier.devis.repondre',
+      'atelier.journal.lire',
+    ];
+    for (const action of interdits) {
+      expect(
+        MATRICE_DROITS.poste_atelier,
+        `poste_atelier ne doit pas détenir ${action}`,
+      ).not.toContain(action);
+    }
+  });
+
+  it('ne détient NI corriger_autrui NI les verrouillages de période : une correction ou une clôture d’heures se décide depuis un compte nominatif, au bureau — jamais depuis un écran partagé où l’auteur réel n’est prouvé par rien', () => {
+    expect(MATRICE_DROITS.poste_atelier).not.toContain('atelier.pointage.corriger_autrui');
+    expect(MATRICE_DROITS.poste_atelier).not.toContain('atelier.pointage.verrouiller_periode');
+    expect(MATRICE_DROITS.poste_atelier).not.toContain('atelier.pointage.deverrouiller_periode');
+  });
+
+  it('ne détient PAS gerer_pin : la borne ne s’auto-administre pas ses propres codes — sinon quiconque devant l’écran pourrait s’attribuer un PIN et pointer au nom de n’importe qui', () => {
+    expect(MATRICE_DROITS.poste_atelier).not.toContain('atelier.pointage.gerer_pin');
+  });
+
+  it('figure dans ROLES_SANS_MONTANT : aucun montant ne doit atteindre un écran mural exposé aux clients et visiteurs', () => {
+    expect(ROLES_SANS_MONTANT).toContain('poste_atelier');
+    expect(roleVoitLesMontants('poste_atelier')).toBe(false);
+  });
+
+  it('atelier.pointage.identifier est détenu par poste_atelier SEUL : sur un compte de personne l’identification n’a pas d’objet (la session dit déjà qui agit), et l’ouvrir plus largement offrirait un oracle de PIN à tout compte du tenant', () => {
+    expect(rolesAyant('atelier.pointage.identifier')).toEqual(['poste_atelier']);
+  });
+
+  it('atelier.pointage.gerer_pin (RM-128) est détenu par chef_atelier, direction et admin — exactement le trio qui corrige déjà les pointages d’autrui et verrouille les périodes ; PAS le technicien (aucun auto-service de PIN), PAS le comptable, PAS la borne', () => {
+    expect(rolesAyant('atelier.pointage.gerer_pin')).toEqual(
+      ['admin', 'chef_atelier', 'direction'].sort(),
+    );
+    expect(MATRICE_DROITS.technicien).not.toContain('atelier.pointage.gerer_pin');
+  });
+
+  it('CONSTAT MESURÉ, contraire à la prémisse de RM-124 : gerer_pin et parametrage.atelier.modifier ont AUJOURD’HUI exactement le même périmètre de rôles — la spec borne présente le second comme « déjà porté par direction/admin », alors que la matrice du lot 1 l’accorde AUSSI au chef d’atelier. Les deux droits restent deux entrées distinctes de TOUTES_ACTIONS, donc séparables sans migration le jour où la gouvernance du MODE de site sera réellement resserrée ; ce test fige le constat plutôt qu’une intention', () => {
+    const perimetreGerationPin = rolesAyant('atelier.pointage.gerer_pin');
+    const perimetreModeSite = rolesAyant('parametrage.atelier.modifier');
+    expect(perimetreGerationPin).toEqual(['admin', 'chef_atelier', 'direction'].sort());
+    expect(perimetreModeSite).toEqual(perimetreGerationPin);
   });
 });

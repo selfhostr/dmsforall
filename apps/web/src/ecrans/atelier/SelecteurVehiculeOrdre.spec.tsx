@@ -31,14 +31,23 @@ const VEHICULE_2: VehiculeResume = {
 };
 
 function rendre(clientId = 'cl-1', onChangeValeur = vi.fn()) {
-  return { onChangeValeur, ...renduAvecQueryClient(<SelecteurVehiculeOrdre clientId={clientId} valeur={null} onChangeValeur={onChangeValeur} />) };
+  return {
+    onChangeValeur,
+    ...renduAvecQueryClient(
+      <SelecteurVehiculeOrdre clientId={clientId} valeur={null} onChangeValeur={onChangeValeur} />,
+    ),
+  };
 }
 
 describe('SelecteurVehiculeOrdre', () => {
   it('affiche un squelette de chargement puis la liste des véhicules détenus par le client', async () => {
     server.use(
       http.get('/api/v1/clients/cl-1/vehicules', () =>
-        HttpResponse.json({ donnees: [VEHICULE_1, VEHICULE_2], curseurSuivant: null, limite: 50 } satisfies PageCurseur<VehiculeResume>),
+        HttpResponse.json({
+          donnees: [VEHICULE_1, VEHICULE_2],
+          curseurSuivant: null,
+          limite: 50,
+        } satisfies PageCurseur<VehiculeResume>),
       ),
     );
     rendre();
@@ -50,16 +59,22 @@ describe('SelecteurVehiculeOrdre', () => {
   it("affiche un état vide explicite quand le client ne détient aucun véhicule, plutôt qu'une liste vide silencieuse", async () => {
     server.use(
       http.get('/api/v1/clients/cl-1/vehicules', () =>
-        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 } satisfies PageCurseur<VehiculeResume>),
+        HttpResponse.json({
+          donnees: [],
+          curseurSuivant: null,
+          limite: 50,
+        } satisfies PageCurseur<VehiculeResume>),
       ),
     );
     rendre();
 
-    expect(await screen.findByText("Ce client n'a aucun véhicule enregistré à son nom.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Ce client n'a aucun véhicule enregistré à son nom."),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
   });
 
-  it("affiche une erreur actionnable avec réessayer si le chargement échoue", async () => {
+  it('affiche une erreur actionnable avec réessayer si le chargement échoue', async () => {
     server.use(
       http.get('/api/v1/clients/cl-1/vehicules', () =>
         HttpResponse.json(
@@ -82,7 +97,11 @@ describe('SelecteurVehiculeOrdre', () => {
   it('sélectionner un véhicule transmet SON identifiant ET son objet complet — jamais reconstruit localement', async () => {
     server.use(
       http.get('/api/v1/clients/cl-1/vehicules', () =>
-        HttpResponse.json({ donnees: [VEHICULE_1, VEHICULE_2], curseurSuivant: null, limite: 50 } satisfies PageCurseur<VehiculeResume>),
+        HttpResponse.json({
+          donnees: [VEHICULE_1, VEHICULE_2],
+          curseurSuivant: null,
+          limite: 50,
+        } satisfies PageCurseur<VehiculeResume>),
       ),
     );
     const utilisateur = userEvent.setup();

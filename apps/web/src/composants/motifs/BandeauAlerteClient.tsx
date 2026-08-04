@@ -39,7 +39,9 @@ export function BandeauAlerteClient({ bloque = false, alertes = [], className }:
           className="flex items-start gap-3 rounded-md border border-statut-danger/40 bg-statut-danger/12 p-4"
         >
           <Ban aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-statut-danger" />
-          <p className="flex-1 texte-corps font-medium text-foreground">{t('clients:alertes.bloque')}</p>
+          <p className="flex-1 texte-corps font-medium text-foreground">
+            {t('clients:alertes.bloque')}
+          </p>
         </div>
       ) : null}
       {alertes.map((alerte) => (

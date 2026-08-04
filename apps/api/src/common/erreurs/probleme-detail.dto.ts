@@ -29,16 +29,22 @@ export class ProblemeDetailCommunDto implements ProblemeDetail {
   @ApiProperty({ example: 'https://docs.dmsforall.example/erreurs/VALIDATION_ECHOUEE' })
   readonly type!: string;
 
-  @ApiProperty({ description: 'Libellé FR stable — JAMAIS affiché par le front.', example: 'Validation échouée' })
+  @ApiProperty({
+    description: 'Libellé FR stable — JAMAIS affiché par le front.',
+    example: 'Validation échouée',
+  })
   readonly title!: string;
 
   @ApiProperty({ example: 400 })
   readonly status!: number;
 
-  @ApiProperty({ enum: CODES_ERREUR, description: 'Contrat machine : seul champ que le front doit lire.' })
+  @ApiProperty({
+    enum: CODES_ERREUR,
+    description: 'Contrat machine : seul champ que le front doit lire.',
+  })
   readonly code!: CodeErreur;
 
-  @ApiPropertyOptional({ description: 'Détail technique — jamais affiché à l\'utilisateur final.' })
+  @ApiPropertyOptional({ description: "Détail technique — jamais affiché à l'utilisateur final." })
   readonly detail?: string;
 
   @ApiProperty({ description: 'Identifiant de la requête, = en-tête X-Requete-Id.' })

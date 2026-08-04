@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { interpreterErreurTransitionInterdite } from './traducteur-erreur-transition-sql';
 
 /** Construit une erreur pg brute plausible, telle que `node-postgres` la produirait pour ZDFA1. */
-function erreurPg(champs: { code?: string; table?: string; detail?: string; hint?: string }): Error {
+function erreurPg(champs: {
+  code?: string;
+  table?: string;
+  detail?: string;
+  hint?: string;
+}): Error {
   return Object.assign(new Error('Transition interdite'), champs);
 }
 
@@ -30,7 +35,7 @@ describe('interpreterErreurTransitionInterdite', () => {
       code: 'ZDFA1',
       table: 'ligne_or',
       detail: 'entite=ligne_or;depuis=facturee;vers=annulee',
-      hint: '« facturee » est un état terminal : aucune transition n\'en part.',
+      hint: "« facturee » est un état terminal : aucune transition n'en part.",
     });
 
     const resultat = interpreterErreurTransitionInterdite(erreur);
@@ -42,53 +47,79 @@ describe('interpreterErreurTransitionInterdite', () => {
   it('reconnaît rendez_vous et pointage (déclarés au lot 1, transitions non encore émises)', () => {
     expect(
       interpreterErreurTransitionInterdite(
-        erreurPg({ code: 'ZDFA1', table: 'rendez_vous', detail: 'entite=rendez_vous;depuis=planifie;vers=honore' }),
+        erreurPg({
+          code: 'ZDFA1',
+          table: 'rendez_vous',
+          detail: 'entite=rendez_vous;depuis=planifie;vers=honore',
+        }),
       )?.code,
     ).toBe('RDV_TRANSITION_INTERDITE');
     expect(
       interpreterErreurTransitionInterdite(
-        erreurPg({ code: 'ZDFA1', table: 'pointage', detail: 'entite=pointage;depuis=ouvert;vers=clos' }),
+        erreurPg({
+          code: 'ZDFA1',
+          table: 'pointage',
+          detail: 'entite=pointage;depuis=ouvert;vers=clos',
+        }),
       )?.code,
     ).toBe('POINTAGE_TRANSITION_INTERDITE');
   });
 
   it('rend null pour un code SQLSTATE différent', () => {
-    const erreur = erreurPg({ code: '23505', table: 'ordre_reparation', detail: 'entite=ordre_reparation;depuis=ouvert;vers=facture' });
+    const erreur = erreurPg({
+      code: '23505',
+      table: 'ordre_reparation',
+      detail: 'entite=ordre_reparation;depuis=ouvert;vers=facture',
+    });
     expect(interpreterErreurTransitionInterdite(erreur)).toBeNull();
   });
 
   it('rend null pour une table non cartographiée (entité sans machine à états)', () => {
-    const erreur = erreurPg({ code: 'ZDFA1', table: 'client', detail: 'entite=client;depuis=actif;vers=archive' });
+    const erreur = erreurPg({
+      code: 'ZDFA1',
+      table: 'client',
+      detail: 'entite=client;depuis=actif;vers=archive',
+    });
     expect(interpreterErreurTransitionInterdite(erreur)).toBeNull();
   });
 
   it('rend null quand detail est absent ou mal formé', () => {
-    expect(interpreterErreurTransitionInterdite(erreurPg({ code: 'ZDFA1', table: 'ordre_reparation' }))).toBeNull();
     expect(
-      interpreterErreurTransitionInterdite(erreurPg({ code: 'ZDFA1', table: 'ordre_reparation', detail: 'charabia' })),
+      interpreterErreurTransitionInterdite(erreurPg({ code: 'ZDFA1', table: 'ordre_reparation' })),
+    ).toBeNull();
+    expect(
+      interpreterErreurTransitionInterdite(
+        erreurPg({ code: 'ZDFA1', table: 'ordre_reparation', detail: 'charabia' }),
+      ),
     ).toBeNull();
   });
 
   it('rend null quand table est absent', () => {
     expect(
-      interpreterErreurTransitionInterdite(erreurPg({ code: 'ZDFA1', detail: 'entite=ordre_reparation;depuis=ouvert;vers=facture' })),
+      interpreterErreurTransitionInterdite(
+        erreurPg({ code: 'ZDFA1', detail: 'entite=ordre_reparation;depuis=ouvert;vers=facture' }),
+      ),
     ).toBeNull();
   });
 
-  it('rend null pour une valeur qui n\'est pas un objet, ou null', () => {
+  it("rend null pour une valeur qui n'est pas un objet, ou null", () => {
     expect(interpreterErreurTransitionInterdite('pas une erreur')).toBeNull();
     expect(interpreterErreurTransitionInterdite(null)).toBeNull();
     expect(interpreterErreurTransitionInterdite(undefined)).toBeNull();
   });
 
   it('un hint absent produit une liste vide et estEtatTerminal false, sans lever', () => {
-    const erreur = erreurPg({ code: 'ZDFA1', table: 'ordre_reparation', detail: 'entite=ordre_reparation;depuis=ouvert;vers=facture' });
+    const erreur = erreurPg({
+      code: 'ZDFA1',
+      table: 'ordre_reparation',
+      detail: 'entite=ordre_reparation;depuis=ouvert;vers=facture',
+    });
     const resultat = interpreterErreurTransitionInterdite(erreur);
     expect(resultat?.estEtatTerminal).toBe(false);
     expect(resultat?.transitionsPossibles).toEqual([]);
   });
 
-  it('un hint d\'une seule transition possible rend un tableau à un élément', () => {
+  it("un hint d'une seule transition possible rend un tableau à un élément", () => {
     const erreur = erreurPg({
       code: 'ZDFA1',
       table: 'ordre_reparation',

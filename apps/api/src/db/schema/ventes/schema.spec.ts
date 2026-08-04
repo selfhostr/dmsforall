@@ -168,7 +168,7 @@ describe('schema/ventes — dossier_vente (RV-29→RV-38)', () => {
     }
   });
 
-  it("ne porte PAS de colonne prospection_le — TOUJOURS égal à cree_le, jamais dupliqué", () => {
+  it('ne porte PAS de colonne prospection_le — TOUJOURS égal à cree_le, jamais dupliqué', () => {
     expect(cfg.columns.find((c) => c.name === 'prospection_le')).toBeUndefined();
   });
 
@@ -211,7 +211,7 @@ describe('schema/ventes — financement_vente (RV-39→RV-45)', () => {
     expect(cfg.columns.find((c) => c.name === 'tenant_id')?.notNull).toBe(true);
   });
 
-  it("ne porte PAS de colonne actif — contrats/ventes/financement.ts n'expose aucun drapeau, le \"courant\" est une dérivation en lecture (tri par cree_le)", () => {
+  it('ne porte PAS de colonne actif — contrats/ventes/financement.ts n\'expose aucun drapeau, le "courant" est une dérivation en lecture (tri par cree_le)', () => {
     expect(cfg.columns.find((c) => c.name === 'actif')).toBeUndefined();
   });
 
@@ -223,7 +223,7 @@ describe('schema/ventes — financement_vente (RV-39→RV-45)', () => {
     expect(cfg.checks.map((c) => c.name)).toContain('financement_vente_motif_refus_chk');
   });
 
-  it('statut est NOT NULL SANS défaut — CV-03 : la valeur initiale dépend du type (comptant = confirme direct, credit/leasing = en_attente), pas d\'un défaut de colonne unique', () => {
+  it("statut est NOT NULL SANS défaut — CV-03 : la valeur initiale dépend du type (comptant = confirme direct, credit/leasing = en_attente), pas d'un défaut de colonne unique", () => {
     const col = cfg.columns.find((c) => c.name === 'statut');
     expect(col?.notNull).toBe(true);
     expect(col?.hasDefault).toBe(false);
@@ -269,30 +269,33 @@ describe('schema/ventes — isolation tenant : chaque table du module (règle n�
     expect(cfg.columns.find((c) => c.name === 'tenant_id')?.notNull).toBe(true);
   });
 
-  it.each(tables)('%s ne déclare AUCUNE FK sur le seul id de l\'étranger (toujours (tenant_id, …))', (_nom, table) => {
-    const cfg = getTableConfig(table);
-    for (const fk of cfg.foreignKeys) {
-      const reference = fk.reference();
-      // Exception UNIQUE et volontaire, posée par `colonneTenantId().references(() =>
-      // tenant.id, …)` (même patron que schema/atelier/vehicule.ts et tout le dépôt) : la colonne
-      // `tenant_id` elle-même référence `tenant.id` en mono-colonne — ce n'est pas le trou que ce
-      // test cherche (il n'existe qu'un seul tenant possible pour cette FK précise, la table
-      // `tenant` elle-même).
-      const estAutoReferenceTenant =
-        reference.columns.length === 1 &&
-        reference.columns[0]?.name === 'tenant_id' &&
-        reference.foreignColumns.length === 1 &&
-        reference.foreignColumns[0]?.name === 'id' &&
-        getTableConfig(reference.foreignTable as typeof table).name === 'tenant';
-      if (estAutoReferenceTenant) continue;
+  it.each(tables)(
+    "%s ne déclare AUCUNE FK sur le seul id de l'étranger (toujours (tenant_id, …))",
+    (_nom, table) => {
+      const cfg = getTableConfig(table);
+      for (const fk of cfg.foreignKeys) {
+        const reference = fk.reference();
+        // Exception UNIQUE et volontaire, posée par `colonneTenantId().references(() =>
+        // tenant.id, …)` (même patron que schema/atelier/vehicule.ts et tout le dépôt) : la colonne
+        // `tenant_id` elle-même référence `tenant.id` en mono-colonne — ce n'est pas le trou que ce
+        // test cherche (il n'existe qu'un seul tenant possible pour cette FK précise, la table
+        // `tenant` elle-même).
+        const estAutoReferenceTenant =
+          reference.columns.length === 1 &&
+          reference.columns[0]?.name === 'tenant_id' &&
+          reference.foreignColumns.length === 1 &&
+          reference.foreignColumns[0]?.name === 'id' &&
+          getTableConfig(reference.foreignTable as typeof table).name === 'tenant';
+        if (estAutoReferenceTenant) continue;
 
-      // Toute AUTRE FK de ce module doit être composite (au moins 2 colonnes), avec tenant_id en
-      // tête — une FK mono-colonne sur un id étranger permettrait de rattacher une ligne d'un
-      // tenant A à une ligne d'un tenant B partageant le même UUID d'id (improbable en pratique,
-      // mais STRUCTURELLEMENT possible sans la composition — exactement ce que ce test interdit).
-      expect(reference.columns.length).toBeGreaterThanOrEqual(2);
-      expect(reference.columns[0]?.name).toBe('tenant_id');
-      expect(reference.foreignColumns[0]?.name).toBe('tenant_id');
-    }
-  });
+        // Toute AUTRE FK de ce module doit être composite (au moins 2 colonnes), avec tenant_id en
+        // tête — une FK mono-colonne sur un id étranger permettrait de rattacher une ligne d'un
+        // tenant A à une ligne d'un tenant B partageant le même UUID d'id (improbable en pratique,
+        // mais STRUCTURELLEMENT possible sans la composition — exactement ce que ce test interdit).
+        expect(reference.columns.length).toBeGreaterThanOrEqual(2);
+        expect(reference.columns[0]?.name).toBe('tenant_id');
+        expect(reference.foreignColumns[0]?.name).toBe('tenant_id');
+      }
+    },
+  );
 });

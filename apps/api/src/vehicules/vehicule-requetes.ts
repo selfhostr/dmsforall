@@ -33,7 +33,11 @@ import { STATUTS_OR_OUVERTS } from './vehicules.constants';
  * RÉUTILISÉE par tous les sous-services (plaques, détentions, kilométrages, expertises,
  * campagnes, travaux reportés, contexte-atelier).
  */
-export async function chargerLigneVehicule(tx: TransactionDfa, ctx: ContexteTenant, vehiculeId: string): Promise<LigneVehicule> {
+export async function chargerLigneVehicule(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  vehiculeId: string,
+): Promise<LigneVehicule> {
   const lignes = await tx
     .select()
     .from(vehicule)
@@ -46,7 +50,11 @@ export async function chargerLigneVehicule(tx: TransactionDfa, ctx: ContexteTena
   return ligne;
 }
 
-export async function exigerVehiculeExiste(tx: TransactionDfa, ctx: ContexteTenant, vehiculeId: string): Promise<void> {
+export async function exigerVehiculeExiste(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  vehiculeId: string,
+): Promise<void> {
   await chargerLigneVehicule(tx, ctx, vehiculeId);
 }
 
@@ -119,7 +127,9 @@ export async function listerPlaques(
   return tx
     .select()
     .from(vehiculePlaque)
-    .where(and(eq(vehiculePlaque.tenantId, ctx.tenantId), eq(vehiculePlaque.vehiculeId, vehiculeId)))
+    .where(
+      and(eq(vehiculePlaque.tenantId, ctx.tenantId), eq(vehiculePlaque.vehiculeId, vehiculeId)),
+    )
     .orderBy(desc(vehiculePlaque.du));
 }
 
@@ -131,7 +141,12 @@ export async function lireDernierKilometrage(
   const lignes = await tx
     .select()
     .from(vehiculeKilometrage)
-    .where(and(eq(vehiculeKilometrage.tenantId, ctx.tenantId), eq(vehiculeKilometrage.vehiculeId, vehiculeId)))
+    .where(
+      and(
+        eq(vehiculeKilometrage.tenantId, ctx.tenantId),
+        eq(vehiculeKilometrage.vehiculeId, vehiculeId),
+      ),
+    )
     .orderBy(desc(vehiculeKilometrage.releveLe))
     .limit(1);
   return lignes[0] ?? null;
@@ -145,7 +160,12 @@ export async function listerKilometrages(
   return tx
     .select()
     .from(vehiculeKilometrage)
-    .where(and(eq(vehiculeKilometrage.tenantId, ctx.tenantId), eq(vehiculeKilometrage.vehiculeId, vehiculeId)))
+    .where(
+      and(
+        eq(vehiculeKilometrage.tenantId, ctx.tenantId),
+        eq(vehiculeKilometrage.vehiculeId, vehiculeId),
+      ),
+    )
     .orderBy(desc(vehiculeKilometrage.releveLe));
 }
 
@@ -162,7 +182,13 @@ export async function lireDetentionCouranteAvecClient(
   const lignes = await tx
     .select({ detention: vehiculeDetention, client })
     .from(vehiculeDetention)
-    .innerJoin(client, and(eq(client.tenantId, vehiculeDetention.tenantId), eq(client.id, vehiculeDetention.clientId)))
+    .innerJoin(
+      client,
+      and(
+        eq(client.tenantId, vehiculeDetention.tenantId),
+        eq(client.id, vehiculeDetention.clientId),
+      ),
+    )
     .where(
       and(
         eq(vehiculeDetention.tenantId, ctx.tenantId),
@@ -183,8 +209,19 @@ export async function listerDetentions(
   return tx
     .select({ detention: vehiculeDetention, client })
     .from(vehiculeDetention)
-    .innerJoin(client, and(eq(client.tenantId, vehiculeDetention.tenantId), eq(client.id, vehiculeDetention.clientId)))
-    .where(and(eq(vehiculeDetention.tenantId, ctx.tenantId), eq(vehiculeDetention.vehiculeId, vehiculeId)))
+    .innerJoin(
+      client,
+      and(
+        eq(client.tenantId, vehiculeDetention.tenantId),
+        eq(client.id, vehiculeDetention.clientId),
+      ),
+    )
+    .where(
+      and(
+        eq(vehiculeDetention.tenantId, ctx.tenantId),
+        eq(vehiculeDetention.vehiculeId, vehiculeId),
+      ),
+    )
     .orderBy(desc(vehiculeDetention.du));
 }
 
@@ -207,7 +244,12 @@ export async function lireExpertiseReference(
   const lignes = await tx
     .select()
     .from(vehiculeExpertise)
-    .where(and(eq(vehiculeExpertise.tenantId, ctx.tenantId), eq(vehiculeExpertise.vehiculeId, vehiculeId)))
+    .where(
+      and(
+        eq(vehiculeExpertise.tenantId, ctx.tenantId),
+        eq(vehiculeExpertise.vehiculeId, vehiculeId),
+      ),
+    )
     .orderBy(desc(vehiculeExpertise.creeLe))
     .limit(1);
   return lignes[0] ?? null;
@@ -221,7 +263,12 @@ export async function listerExpertises(
   return tx
     .select()
     .from(vehiculeExpertise)
-    .where(and(eq(vehiculeExpertise.tenantId, ctx.tenantId), eq(vehiculeExpertise.vehiculeId, vehiculeId)))
+    .where(
+      and(
+        eq(vehiculeExpertise.tenantId, ctx.tenantId),
+        eq(vehiculeExpertise.vehiculeId, vehiculeId),
+      ),
+    )
     .orderBy(desc(vehiculeExpertise.dateExpertise));
 }
 
@@ -251,7 +298,9 @@ export async function listerCampagnes(
   return tx
     .select()
     .from(vehiculeCampagne)
-    .where(and(eq(vehiculeCampagne.tenantId, ctx.tenantId), eq(vehiculeCampagne.vehiculeId, vehiculeId)))
+    .where(
+      and(eq(vehiculeCampagne.tenantId, ctx.tenantId), eq(vehiculeCampagne.vehiculeId, vehiculeId)),
+    )
     .orderBy(desc(vehiculeCampagne.creeLe));
 }
 
@@ -263,7 +312,12 @@ export async function listerTravauxReportes(
   return tx
     .select()
     .from(vehiculeTravailReporte)
-    .where(and(eq(vehiculeTravailReporte.tenantId, ctx.tenantId), eq(vehiculeTravailReporte.vehiculeId, vehiculeId)))
+    .where(
+      and(
+        eq(vehiculeTravailReporte.tenantId, ctx.tenantId),
+        eq(vehiculeTravailReporte.vehiculeId, vehiculeId),
+      ),
+    )
     .orderBy(desc(vehiculeTravailReporte.dateConstat));
 }
 
@@ -331,6 +385,12 @@ export async function listerAlertesClient(
   return tx
     .select()
     .from(clientNote)
-    .where(and(eq(clientNote.tenantId, ctx.tenantId), eq(clientNote.clientId, clientId), eq(clientNote.nature, 'alerte')))
+    .where(
+      and(
+        eq(clientNote.tenantId, ctx.tenantId),
+        eq(clientNote.clientId, clientId),
+        eq(clientNote.nature, 'alerte'),
+      ),
+    )
     .orderBy(desc(clientNote.creeLe));
 }

@@ -9,7 +9,15 @@ import type { LigneConsigneEchangeStandard, NouveauMouvementStock } from '../db/
 import { ErreurMetier } from '../common/erreurs';
 
 import { versConsigneResponse } from './mappers';
-import { construireConditionKeyset, construireOrderBy, decoderCurseurPourTri, encoderCurseurTrie, expressionTriValeur, valeurCurseurDepuisTri, type DefinitionTri } from './pagination-triee';
+import {
+  construireConditionKeyset,
+  construireOrderBy,
+  decoderCurseurPourTri,
+  encoderCurseurTrie,
+  expressionTriValeur,
+  valeurCurseurDepuisTri,
+  type DefinitionTri,
+} from './pagination-triee';
 
 const DEFINITIONS_TRI_CONSIGNES: Readonly<Record<FiltresConsignes['tri'], DefinitionTri>> = {
   'creeLe:desc': { expression: sql`c.cree_le`, sens: 'desc', nullable: false, temporel: true },
@@ -37,7 +45,10 @@ const COLONNES_CONSIGNE_ALIASEES = sql`
 export class ServiceConsigne {
   constructor(@Inject(JETON_DB) private readonly acces: AccesBase) {}
 
-  async lister(ctx: ContexteTenant, params: FiltresConsignes): Promise<PageCurseur<ReponseConsigneEchangeStandard>> {
+  async lister(
+    ctx: ContexteTenant,
+    params: FiltresConsignes,
+  ): Promise<PageCurseur<ReponseConsigneEchangeStandard>> {
     const definition = DEFINITIONS_TRI_CONSIGNES[params.tri];
     const idExpr = sql`c.id`;
     const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
@@ -45,20 +56,31 @@ export class ServiceConsigne {
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`c.tenant_id = ${ctx.tenantId}`];
       if (params.statut && params.statut.length > 0) {
-        conditions.push(sql`c.statut::text in (${sql.join(params.statut.map((s) => sql`${s}`), sql`, `)})`);
+        conditions.push(
+          sql`c.statut::text in (${sql.join(
+            params.statut.map((s) => sql`${s}`),
+            sql`, `,
+          )})`,
+        );
       }
       if (params.siteId) conditions.push(sql`c.site_id = ${params.siteId}`);
       // §7.7 : « une liste de consignes non soldées après N jours (P) » — filtre serveur sur
       // `creeLe`, AUCUNE action de ce service ne solde une consigne automatiquement (RP-41,
       // non tranché — voir `contrats/pieces/parametrage.ts::delaiConsigneAcquisitionJours`).
       if (params.ancienneteJoursMin !== undefined) {
-        conditions.push(sql`c.cree_le <= now() - make_interval(days => ${params.ancienneteJoursMin})`);
+        conditions.push(
+          sql`c.cree_le <= now() - make_interval(days => ${params.ancienneteJoursMin})`,
+        );
       }
       if (curseurDecode) {
-        conditions.push(construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id));
+        conditions.push(
+          construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id),
+        );
       }
 
-      const resultat = await tx.execute<LigneConsigneEchangeStandard & { triValeur: string | number | null }>(sql`
+      const resultat = await tx.execute<
+        LigneConsigneEchangeStandard & { triValeur: string | number | null }
+      >(sql`
         select ${COLONNES_CONSIGNE_ALIASEES}, ${expressionTriValeur(definition)} as "triValeur"
           from public.consigne_echange_standard c
          where ${sql.join(conditions, sql` and `)}
@@ -75,7 +97,11 @@ export class ServiceConsigne {
         donnees: pageLignes.map((l) => versConsigneResponse(l)),
         curseurSuivant:
           aUnePageSuivante && derniere
-            ? encoderCurseurTrie({ tri: params.tri, valeur: valeurCurseurDepuisTri(definition, derniere.triValeur), id: derniere.id })
+            ? encoderCurseurTrie({
+                tri: params.tri,
+                valeur: valeurCurseurDepuisTri(definition, derniere.triValeur),
+                id: derniere.id,
+              })
             : null,
         limite: params.limite,
       };
@@ -94,9 +120,16 @@ export class ServiceConsigne {
    * avec l'avoir de facturation (RF-100) reste un point d'intégration cross-module NON résolu ici,
    * signalé au rapport de livraison, pas tranché seul.
    */
-  async marquerRetourFournisseur(ctx: ContexteTenant, id: string): Promise<ReponseConsigneEchangeStandard> {
+  async marquerRetourFournisseur(
+    ctx: ContexteTenant,
+    id: string,
+  ): Promise<ReponseConsigneEchangeStandard> {
     return this.acces.enTenant(ctx, async (tx) => {
-      const { consigne, quantiteLigneOrMillieme } = await this.chargerAvecQuantiteOu404PourVerrou(tx, ctx, id);
+      const { consigne, quantiteLigneOrMillieme } = await this.chargerAvecQuantiteOu404PourVerrou(
+        tx,
+        ctx,
+        id,
+      );
       if (consigne.statut !== 'en_attente_retour_fournisseur') {
         throw new ErreurMetier(
           'CONSIGNE_TRANSITION_INTERDITE',
@@ -113,7 +146,11 @@ export class ServiceConsigne {
         auteurId: ctx.utilisateurId,
       };
       const [mouvement] = await tx.insert(mouvementStock).values(valeursMouvement).returning();
-      if (!mouvement) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du mouvement de retour de consigne.');
+      if (!mouvement)
+        throw new ErreurMetier(
+          'ERREUR_INTERNE',
+          'Échec de création du mouvement de retour de consigne.',
+        );
 
       await tx.execute(sql`
         update public.consigne_echange_standard
@@ -126,7 +163,11 @@ export class ServiceConsigne {
     });
   }
 
-  private async chargerOu404(tx: TransactionDfa, ctx: ContexteTenant, id: string): Promise<LigneConsigneEchangeStandard> {
+  private async chargerOu404(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    id: string,
+  ): Promise<LigneConsigneEchangeStandard> {
     const resultat = await tx.execute<LigneConsigneEchangeStandard>(sql`
       select ${COLONNES_CONSIGNE_ALIASEES} from public.consigne_echange_standard c
        where c.tenant_id = ${ctx.tenantId} and c.id = ${id}
@@ -142,7 +183,9 @@ export class ServiceConsigne {
     ctx: ContexteTenant,
     id: string,
   ): Promise<{ consigne: LigneConsigneEchangeStandard; quantiteLigneOrMillieme: number }> {
-    const resultat = await tx.execute<LigneConsigneEchangeStandard & { quantiteLigneOrMillieme: number }>(sql`
+    const resultat = await tx.execute<
+      LigneConsigneEchangeStandard & { quantiteLigneOrMillieme: number }
+    >(sql`
       select ${COLONNES_CONSIGNE_ALIASEES}, lo.quantite_millieme as "quantiteLigneOrMillieme"
         from public.consigne_echange_standard c
         join public.ligne_or lo on lo.tenant_id = c.tenant_id and lo.id = c.ligne_or_id

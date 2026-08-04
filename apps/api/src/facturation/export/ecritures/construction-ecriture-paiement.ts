@@ -98,10 +98,19 @@
  * avant de rendre l'écriture (même garde que `construction-ecriture.ts`, MD-85).
  */
 
-import type { EcritureExport, LigneEcritureExport, MoyenPaiement, NatureImputation } from '@dfa/shared';
+import type {
+  EcritureExport,
+  LigneEcritureExport,
+  MoyenPaiement,
+  NatureImputation,
+} from '@dfa/shared';
 
 import { arrondiCommercial } from '../../documents/calcul-document';
-import type { BesoinMappingManquant, ComptesResolusADate, UsageMappingCompte } from './comptes-resolus';
+import type {
+  BesoinMappingManquant,
+  ComptesResolusADate,
+  UsageMappingCompte,
+} from './comptes-resolus';
 
 /** Ligne de TVA d'un document, telle qu'utile pour la correction proportionnelle d'un escompte ou
  *  d'une perte (`CF-14`) — juste (régime, taux), pas les montants (déjà les nôtres, pas ceux du
@@ -142,8 +151,17 @@ export interface PaiementPourEcriture {
  *  paramétrant le tenant) : ceci est une limite du CODE, pas du PARAMÉTRAGE — `FONCTION_NON_
  *  DISPONIBLE`, pas `EXPORT_MAPPING_INCOMPLET`, côté orchestrateur. */
 export type LimiteEcriturePaiement =
-  | { readonly type: 'compensation_non_supportee'; readonly paiementId: string; readonly documentId: string }
-  | { readonly type: 'taux_multiples_non_supporte'; readonly paiementId: string; readonly documentId: string; readonly nature: 'escompte' | 'perte' };
+  | {
+      readonly type: 'compensation_non_supportee';
+      readonly paiementId: string;
+      readonly documentId: string;
+    }
+  | {
+      readonly type: 'taux_multiples_non_supporte';
+      readonly paiementId: string;
+      readonly documentId: string;
+      readonly nature: 'escompte' | 'perte';
+    };
 
 export function decrireLimitePaiement(l: LimiteEcriturePaiement): string {
   if (l.type === 'compensation_non_supportee') {
@@ -153,8 +171,17 @@ export function decrireLimitePaiement(l: LimiteEcriturePaiement): string {
 }
 
 export type ResultatConstructionEcriturePaiement =
-  | { readonly succes: true; readonly ecriture: EcritureExport; readonly totalDebitCentimes: bigint; readonly totalCreditCentimes: bigint }
-  | { readonly succes: false; readonly manquants: readonly BesoinMappingManquant[]; readonly limites: readonly LimiteEcriturePaiement[] };
+  | {
+      readonly succes: true;
+      readonly ecriture: EcritureExport;
+      readonly totalDebitCentimes: bigint;
+      readonly totalCreditCentimes: bigint;
+    }
+  | {
+      readonly succes: false;
+      readonly manquants: readonly BesoinMappingManquant[];
+      readonly limites: readonly LimiteEcriturePaiement[];
+    };
 
 /** Une ligne de regroupement AVANT résolution du compte et calcul du sens — même patron que
  *  `GroupeSigne` de `construction-ecriture.ts` (`estDebitPositif` y joue le rôle d'`estCreances` :
@@ -173,7 +200,12 @@ interface GroupeSignePaiement {
   readonly libelle: string;
 }
 
-const NATURES_SOLDANT_UN_DOCUMENT: ReadonlySet<NatureImputation> = new Set(['reglement', 'arrondi', 'escompte', 'perte']);
+const NATURES_SOLDANT_UN_DOCUMENT: ReadonlySet<NatureImputation> = new Set([
+  'reglement',
+  'arrondi',
+  'escompte',
+  'perte',
+]);
 
 export function construireEcriturePaiement(
   paiement: PaiementPourEcriture,
@@ -192,11 +224,18 @@ export function construireEcriturePaiement(
   let sommeArrondiCentimes = 0n;
   let sommeEscompteHtCentimes = 0n;
   let sommePerteHtCentimes = 0n;
-  const tvaCorrigeeParTaux = new Map<string, { regimeTva: string; tauxPourmille: number; montantCentimes: bigint; baseCentimes: bigint }>();
+  const tvaCorrigeeParTaux = new Map<
+    string,
+    { regimeTva: string; tauxPourmille: number; montantCentimes: bigint; baseCentimes: bigint }
+  >();
 
   for (const imp of imputations) {
     if (imp.nature === 'compensation') {
-      limites.push({ type: 'compensation_non_supportee', paiementId: paiement.id, documentId: imp.documentId });
+      limites.push({
+        type: 'compensation_non_supportee',
+        paiementId: paiement.id,
+        documentId: imp.documentId,
+      });
       continue;
     }
     if (!NATURES_SOLDANT_UN_DOCUMENT.has(imp.nature)) continue; // garde de typage — les cinq natures sont exhaustivement traitées ci-dessus/dessous.
@@ -204,7 +243,10 @@ export function construireEcriturePaiement(
     // Toute nature qui solde un document (reglement/arrondi/escompte/perte) crédite la créance de
     // son montant plein, SIGNÉ À L'INVERSE (voir l'en-tête de fichier) — MD-51 a garantit que la
     // somme ne dépassera jamais le total du document.
-    creancesParDocument.set(imp.documentId, (creancesParDocument.get(imp.documentId) ?? 0n) - imp.montantCentimes);
+    creancesParDocument.set(
+      imp.documentId,
+      (creancesParDocument.get(imp.documentId) ?? 0n) - imp.montantCentimes,
+    );
 
     if (imp.nature === 'reglement') {
       sommeReglementCentimes += imp.montantCentimes;
@@ -220,12 +262,18 @@ export function construireEcriturePaiement(
     const infoDocument = documents.get(imp.documentId);
     const ventilation = infoDocument?.ventilationTva ?? [];
     if (ventilation.length > 1) {
-      limites.push({ type: 'taux_multiples_non_supporte', paiementId: paiement.id, documentId: imp.documentId, nature: imp.nature });
+      limites.push({
+        type: 'taux_multiples_non_supporte',
+        paiementId: paiement.id,
+        documentId: imp.documentId,
+        nature: imp.nature,
+      });
       continue;
     }
     const ligneTva = ventilation[0];
     const taux = ligneTva?.tauxTvaPourmille ?? 0;
-    const tvaPartCentimes = taux === 0 ? 0n : arrondiCommercial(imp.montantCentimes * BigInt(taux), BigInt(1000 + taux));
+    const tvaPartCentimes =
+      taux === 0 ? 0n : arrondiCommercial(imp.montantCentimes * BigInt(taux), BigInt(1000 + taux));
     const htPartCentimes = imp.montantCentimes - tvaPartCentimes;
 
     if (imp.nature === 'escompte') sommeEscompteHtCentimes += htPartCentimes;
@@ -233,7 +281,12 @@ export function construireEcriturePaiement(
 
     if (ligneTva && tvaPartCentimes !== 0n) {
       const cle = String(taux);
-      const existant = tvaCorrigeeParTaux.get(cle) ?? { regimeTva: ligneTva.regimeTva, tauxPourmille: taux, montantCentimes: 0n, baseCentimes: 0n };
+      const existant = tvaCorrigeeParTaux.get(cle) ?? {
+        regimeTva: ligneTva.regimeTva,
+        tauxPourmille: taux,
+        montantCentimes: 0n,
+        baseCentimes: 0n,
+      };
       tvaCorrigeeParTaux.set(cle, {
         ...existant,
         montantCentimes: existant.montantCentimes - tvaPartCentimes,
@@ -248,7 +301,11 @@ export function construireEcriturePaiement(
   // antérieur (MD-91, migration 0019 — voir l'en-tête de fichier). Cette écriture-ci ne fait
   // qu'AFFECTER une imputation tardive, jamais ré-encaisser — vocabulaire distinct pour que la
   // fiduciaire ne lise pas deux fois « Encaissement » pour le même argent.
-  const verbe = !financierNouveauCetExport ? 'Affectation' : paiement.montantCentimes >= 0n ? 'Encaissement' : 'Remboursement';
+  const verbe = !financierNouveauCetExport
+    ? 'Affectation'
+    : paiement.montantCentimes >= 0n
+      ? 'Encaissement'
+      : 'Remboursement';
   const groupes: GroupeSignePaiement[] = [];
 
   // --- financier (compte caisse/banque par moyen de paiement) — MD-50 : le delta est le montant
@@ -300,7 +357,10 @@ export function construireEcriturePaiement(
     regimeTvaPourManquant: null,
     tauxPourmille: null,
     baseTvaCentimes: null,
-    libelle: nonImputeCentimes >= 0n ? `Avance non affectée — ${paiement.payeurLibelle}` : `Reprise d'avance — ${paiement.payeurLibelle}`,
+    libelle:
+      nonImputeCentimes >= 0n
+        ? `Avance non affectée — ${paiement.payeurLibelle}`
+        : `Reprise d'avance — ${paiement.payeurLibelle}`,
   });
 
   // --- différence d'arrondi espèces (CF-05, MD-47→MD-49) — une seule ligne agrégée. -------------
@@ -343,7 +403,12 @@ export function construireEcriturePaiement(
   });
 
   // --- TVA corrigée (escompte + perte confondus, MÊME compte de TVA due que le document) --------
-  for (const { regimeTva, tauxPourmille, montantCentimes, baseCentimes } of tvaCorrigeeParTaux.values()) {
+  for (const {
+    regimeTva,
+    tauxPourmille,
+    montantCentimes,
+    baseCentimes,
+  } of tvaCorrigeeParTaux.values()) {
     if (montantCentimes === 0n) continue;
     const codeTva = comptes.resoudreCodeTva(regimeTva, tauxPourmille);
     groupes.push({
@@ -363,7 +428,12 @@ export function construireEcriturePaiement(
   for (const g of groupes) {
     if (g.montantSigneCentimes === 0n) continue;
     if (comptes.resoudreCompte(g.usage, g.categorie) === undefined) {
-      manquants.push({ type: 'compte', usage: g.usage, categorie: g.categorie, documentNumero: paiement.id });
+      manquants.push({
+        type: 'compte',
+        usage: g.usage,
+        categorie: g.categorie,
+        documentNumero: paiement.id,
+      });
     }
     if (g.usage === 'tva_due' && g.codeTva === null) {
       manquants.push({
@@ -384,7 +454,10 @@ export function construireEcriturePaiement(
     if (g.montantSigneCentimes === 0n) continue;
     const compte = comptes.resoudreCompte(g.usage, g.categorie);
     // Ne peut pas être `undefined` ici : `manquants` aurait intercepté le cas ci-dessus.
-    if (compte === undefined) throw new Error(`compte introuvable pour ${g.usage}/${g.categorie} — devrait avoir été signalé en manquants.`);
+    if (compte === undefined)
+      throw new Error(
+        `compte introuvable pour ${g.usage}/${g.categorie} — devrait avoir été signalé en manquants.`,
+      );
 
     const positif = g.montantSigneCentimes > 0n;
     const sens: 'debit' | 'credit' = positif === g.estDebitPositif ? 'debit' : 'credit';

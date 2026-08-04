@@ -1,5 +1,12 @@
 import { Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import {
   schemaChangementDetenteur,
   schemaClotureDetention,
@@ -46,7 +53,9 @@ export class VehiculeDetentionController {
   @Post('detentions')
   @HttpCode(HttpStatus.CREATED)
   @ExigerDroit('vehicule.detention.corriger')
-  @ApiOperation({ summary: 'Correction ou import de détention — le geste normal est `changer-detenteur`.' })
+  @ApiOperation({
+    summary: 'Correction ou import de détention — le geste normal est `changer-detenteur`.',
+  })
   @ApiParam({ name: 'vehiculeId', format: 'uuid' })
   @ApiResponse({ status: 201, type: ReponseVehiculeDetentionDto })
   @ApiReponseProbleme(400, 'Corps invalide ou deux détenteurs courants (VALIDATION_ECHOUEE).')
@@ -55,7 +64,9 @@ export class VehiculeDetentionController {
   @ApiReponseProbleme(404, 'Véhicule introuvable pour ce tenant.')
   async creer(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
-    @CorpsZod(schemaDetentionVehicule, { exemple: { clientId: '3f9a1c2e-6b4d-4a1f-9c2e-8b7a6d5c4e3f', debutLe: '2024-05-01' } })
+    @CorpsZod(schemaDetentionVehicule, {
+      exemple: { clientId: '3f9a1c2e-6b4d-4a1f-9c2e-8b7a6d5c4e3f', debutLe: '2024-05-01' },
+    })
     entree: EntreeDetentionVehicule,
   ) {
     const ctx = this.contexte.contexteTenant();
@@ -97,7 +108,10 @@ export class VehiculeDetentionController {
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Véhicule introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, 'VALIDATION_ECHOUEE (deux détenteurs courants) ou VEHICULE_PLAQUE_COLLISION.')
+  @ApiReponseProbleme(
+    409,
+    'VALIDATION_ECHOUEE (deux détenteurs courants) ou VEHICULE_PLAQUE_COLLISION.',
+  )
   async changerDetenteur(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
     @CorpsZod(schemaChangementDetenteur, {
@@ -105,13 +119,23 @@ export class VehiculeDetentionController {
         nouveauClientId: '3f9a1c2e-6b4d-4a1f-9c2e-8b7a6d5c4e3f',
         changementLe: '2026-07-15',
         motifFin: 'vente',
-        nouvellePlaque: { valeur: 'VD 654321', canton: 'VD', pays: 'CH', interchangeable: false, professionnelle: false },
+        nouvellePlaque: {
+          valeur: 'VD 654321',
+          canton: 'VD',
+          pays: 'CH',
+          interchangeable: false,
+          professionnelle: false,
+        },
       },
     })
     entree: EntreeChangementDetenteur,
   ) {
     const ctx = this.contexte.contexteTenant();
-    const { donnees, avertissements } = await this.service.changerDetenteur(ctx, vehiculeId, entree);
+    const { donnees, avertissements } = await this.service.changerDetenteur(
+      ctx,
+      vehiculeId,
+      entree,
+    );
     return avertissements.envelopper(donnees);
   }
 }

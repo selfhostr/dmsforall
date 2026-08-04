@@ -38,8 +38,18 @@ export type UsageMappingCompteDocument = UsageMappingCompte;
  *  `documentNumero` porte le numéro affiché pour une écriture DOCUMENT ou l'identifiant du paiement
  *  pour une écriture PAIEMENT (même convention que `EcritureExport.reference`, MD-90). */
 export type BesoinMappingManquant =
-  | { readonly type: 'compte'; readonly usage: UsageMappingCompte; readonly categorie: string; readonly documentNumero: string }
-  | { readonly type: 'code_tva'; readonly regimeTva: string; readonly tauxPourmille: number; readonly documentNumero: string };
+  | {
+      readonly type: 'compte';
+      readonly usage: UsageMappingCompte;
+      readonly categorie: string;
+      readonly documentNumero: string;
+    }
+  | {
+      readonly type: 'code_tva';
+      readonly regimeTva: string;
+      readonly tauxPourmille: number;
+      readonly documentNumero: string;
+    };
 
 export function decrireBesoinManquant(b: BesoinMappingManquant): string {
   if (b.type === 'compte') {
@@ -48,8 +58,10 @@ export function decrireBesoinManquant(b: BesoinMappingManquant): string {
   return `mapping_code_tva manquant (régime=${b.regimeTva}, taux=${b.tauxPourmille}‰) pour le document ${b.documentNumero}`;
 }
 
-const cleCompte = (usage: UsageMappingCompteDocument, categorie: string): string => `${usage}::${categorie}`;
-const cleCodeTva = (regimeTva: string, tauxPourmille: number): string => `${regimeTva}::${String(tauxPourmille)}`;
+const cleCompte = (usage: UsageMappingCompteDocument, categorie: string): string =>
+  `${usage}::${categorie}`;
+const cleCodeTva = (regimeTva: string, tauxPourmille: number): string =>
+  `${regimeTva}::${String(tauxPourmille)}`;
 
 /**
  * Vue résolue pour UNE date comptable (`mapping_compte` est versionné par dates, `RF-112` — deux
@@ -78,15 +90,20 @@ export class ComptesResolusADate {
 /** Construit la map de lookup `mapping_compte` à partir des lignes brutes chargées pour une date
  *  (une ligne par (usage, categorie) actif à cette date — le chargement garantit l'unicité, portée
  *  par l'EXCLUDE GiST `mapping_compte_periode_excl`, migration 0010 §13.3). */
-export function indexerComptes(lignes: readonly { usage: string; categorie: string; compte: string }[]): ReadonlyMap<string, string> {
+export function indexerComptes(
+  lignes: readonly { usage: string; categorie: string; compte: string }[],
+): ReadonlyMap<string, string> {
   const index = new Map<string, string>();
-  for (const l of lignes) index.set(cleCompte(l.usage as UsageMappingCompteDocument, l.categorie), l.compte);
+  for (const l of lignes)
+    index.set(cleCompte(l.usage as UsageMappingCompteDocument, l.categorie), l.compte);
   return index;
 }
 
 /** Construit la map de lookup `mapping_code_tva` (non versionné par date — une seule ligne par
  *  (tenant, cible, régime, taux), `mapping_code_tva_tenant_uk`). */
-export function indexerCodesTva(lignes: readonly { regimeTva: string; tauxPourmille: number; codeExterne: string }[]): ReadonlyMap<string, string> {
+export function indexerCodesTva(
+  lignes: readonly { regimeTva: string; tauxPourmille: number; codeExterne: string }[],
+): ReadonlyMap<string, string> {
   const index = new Map<string, string>();
   for (const l of lignes) index.set(cleCodeTva(l.regimeTva, l.tauxPourmille), l.codeExterne);
   return index;

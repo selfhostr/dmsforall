@@ -44,21 +44,17 @@ const REFERENCES_VALIDES_PUBLIEES = [
 ] as const;
 
 /** Complète à 27 chiffres, comme sur un bulletin. */
-const a27Chiffres = (reference: string): string =>
-  reference.replace(/\s/g, '').padStart(27, '0');
+const a27Chiffres = (reference: string): string => reference.replace(/\s/g, '').padStart(27, '0');
 
 describe('modulo 10 récursif — confrontation à des références publiées', () => {
-  it.each(REFERENCES_VALIDES_PUBLIEES)(
-    'reproduit le chiffre de contrôle de « %s »',
-    (publiee) => {
-      const complete = a27Chiffres(publiee);
-      const base = complete.slice(0, 26);
-      const chiffreAttendu = Number(complete.charAt(26));
+  it.each(REFERENCES_VALIDES_PUBLIEES)('reproduit le chiffre de contrôle de « %s »', (publiee) => {
+    const complete = a27Chiffres(publiee);
+    const base = complete.slice(0, 26);
+    const chiffreAttendu = Number(complete.charAt(26));
 
-      expect(calculerChiffreControleModulo10Recursif(base)).toBe(chiffreAttendu);
-      expect(validerReferenceQrr(complete)).toBe(complete);
-    },
-  );
+    expect(calculerChiffreControleModulo10Recursif(base)).toBe(chiffreAttendu);
+    expect(validerReferenceQrr(complete)).toBe(complete);
+  });
 
   it('rejette la référence d’exemple dont le dernier chiffre a été altéré (7 → 6)', () => {
     // Contre-exemple publié par la même suite de tests : InvalidChecksum attendu.

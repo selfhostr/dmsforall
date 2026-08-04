@@ -61,7 +61,9 @@ export const schemaDeverrouillagePeriodePointage = z.object({
   jusquauLe: schemaDateJour,
   motif: schemaMotif,
 });
-export type EntreeDeverrouillagePeriodePointage = z.infer<typeof schemaDeverrouillagePeriodePointage>;
+export type EntreeDeverrouillagePeriodePointage = z.infer<
+  typeof schemaDeverrouillagePeriodePointage
+>;
 
 /** Rapport d'exécution de l'une ou l'autre action — pas une ressource, voir plus haut. */
 export interface ReponseVerrouillagePeriodePointage {

@@ -64,7 +64,12 @@ const VEHICULE: ReponseVehicule = {
   intervalleEntretienKm: 15000,
   intervalleEntretienMois: 12,
   importe: { estImporte: true, paysOrigine: 'DE', importeLe: '2019-02-01' },
-  garantieConstructeur: { debutLe: '2024-01-01', finLe: '2027-01-01', plafondKm: 100000, active: true },
+  garantieConstructeur: {
+    debutLe: '2024-01-01',
+    finLe: '2027-01-01',
+    plafondKm: 100000,
+    active: true,
+  },
   garantieGarage: null,
   proprietaireEconomiqueClientId: null,
   conducteurHabituel: null,
@@ -91,7 +96,12 @@ const CONTEXTE: ReponseContexteAtelier = {
     identificationIncomplete: false,
   },
   detenteurCourant: null,
-  dernierKilometrage: { valeurKm: 90000, unite: 'km', releveLe: '2026-06-01T08:00:00.000Z', source: 'reception' },
+  dernierKilometrage: {
+    valeurKm: 90000,
+    unite: 'km',
+    releveLe: '2026-06-01T08:00:00.000Z',
+    source: 'reception',
+  },
   expertise: {
     derniereLe: '2022-05-01',
     prochaineLe: '2026-06-16',
@@ -278,7 +288,10 @@ describe('EcranFicheVehicule', () => {
       http.post('/api/v1/vehicules/v1/kilometrages', async ({ request }) => {
         const corps = (await request.json()) as { readonly valeur: number };
         expect(corps.valeur).toBe(95000);
-        return HttpResponse.json({ donnees: { ...KILOMETRAGES[0], valeur: 95000, valeurKm: 95000 }, avertissements: [] }, { status: 201 });
+        return HttpResponse.json(
+          { donnees: { ...KILOMETRAGES[0], valeur: 95000, valeurKm: 95000 }, avertissements: [] },
+          { status: 201 },
+        );
       }),
     );
     const utilisateur = userEvent.setup();
@@ -287,7 +300,9 @@ describe('EcranFicheVehicule', () => {
     await utilisateur.click(await screen.findByRole('button', { name: 'Relever le kilométrage' }));
     const dialogue = await screen.findByRole('dialog');
     await utilisateur.type(within(dialogue).getByLabelText('Km', { exact: false }), '95000');
-    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Relever le kilométrage' }));
+    await utilisateur.click(
+      within(dialogue).getByRole('button', { name: 'Relever le kilométrage' }),
+    );
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
@@ -298,7 +313,10 @@ describe('EcranFicheVehicule', () => {
     server.use(
       http.post('/api/v1/vehicules/v1/kilometrages', async ({ request }) => {
         tentatives += 1;
-        const corps = (await request.json()) as { readonly valeur: number; readonly motifRegression: string | null };
+        const corps = (await request.json()) as {
+          readonly valeur: number;
+          readonly motifRegression: string | null;
+        };
         if (corps.motifRegression === null) {
           return HttpResponse.json(
             {
@@ -313,7 +331,16 @@ describe('EcranFicheVehicule', () => {
         }
         expect(corps.motifRegression).toBe('compteur_remplace');
         return HttpResponse.json(
-          { donnees: { ...KILOMETRAGES[0], id: 'k2', valeur: 100, valeurKm: 100, motifRegression: 'compteur_remplace' }, avertissements: [] },
+          {
+            donnees: {
+              ...KILOMETRAGES[0],
+              id: 'k2',
+              valeur: 100,
+              valeurKm: 100,
+              motifRegression: 'compteur_remplace',
+            },
+            avertissements: [],
+          },
           { status: 201 },
         );
       }),
@@ -328,16 +355,22 @@ describe('EcranFicheVehicule', () => {
     await utilisateur.click(await screen.findByRole('button', { name: 'Relever le kilométrage' }));
     const dialogue = await screen.findByRole('dialog');
     await utilisateur.type(within(dialogue).getByLabelText('Km', { exact: false }), '100');
-    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Relever le kilométrage' }));
+    await utilisateur.click(
+      within(dialogue).getByRole('button', { name: 'Relever le kilométrage' }),
+    );
 
     // Motif redemandé, PAS de resoumission silencieuse.
     expect(
-      await within(dialogue).findByText('Le kilométrage saisi est inférieur au précédent. Indiquez un motif pour continuer.'),
+      await within(dialogue).findByText(
+        'Le kilométrage saisi est inférieur au précédent. Indiquez un motif pour continuer.',
+      ),
     ).toBeInTheDocument();
     const boutonContinuer = within(dialogue).getByRole('button', { name: 'Continuer quand même' });
     expect(boutonContinuer).toBeDisabled();
 
-    await utilisateur.click(within(dialogue).getByRole('combobox', { name: 'Motif de la régression' }));
+    await utilisateur.click(
+      within(dialogue).getByRole('combobox', { name: 'Motif de la régression' }),
+    );
     const listeMotifs = await screen.findByRole('listbox');
     await utilisateur.click(within(listeMotifs).getByText('Compteur remplacé'));
     expect(boutonContinuer).toBeEnabled();
@@ -348,7 +381,9 @@ describe('EcranFicheVehicule', () => {
     // confirmation est au-dessus — un seul dialogue reste donc accessible à la requête.
     const dialogueConfirmation = await screen.findByRole('dialog');
     expect(within(dialogueConfirmation).getByText(/motif pour continuer/)).toBeInTheDocument();
-    await utilisateur.click(within(dialogueConfirmation).getByRole('button', { name: 'Continuer quand même' }));
+    await utilisateur.click(
+      within(dialogueConfirmation).getByRole('button', { name: 'Continuer quand même' }),
+    );
 
     await waitFor(() => expect(tentatives).toBe(2));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());

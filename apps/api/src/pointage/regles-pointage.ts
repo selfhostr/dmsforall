@@ -1,4 +1,11 @@
-import type { ArrondiPointage, EntreeDemarragePointage, StatutLigneOr, StatutOrdreReparation } from '@dfa/shared';
+import type {
+  AgregatTempsLigneOr,
+  ArrondiPointage,
+  EntreeDemarragePointage,
+  StatutLigneOr,
+  StatutOrdreReparation,
+  StatutPointage,
+} from '@dfa/shared';
 import type { LignePointage } from '../db/schema';
 
 /**
@@ -88,14 +95,20 @@ export interface ClotureChevauchement {
   readonly ordreInverse: boolean;
 }
 
-export function calculerClotureChevauchement(ancienDebutLe: Date, nouveauDebutLe: Date): ClotureChevauchement {
+export function calculerClotureChevauchement(
+  ancienDebutLe: Date,
+  nouveauDebutLe: Date,
+): ClotureChevauchement {
   const ordreInverse = ancienDebutLe.getTime() > nouveauDebutLe.getTime();
   const finLe = ordreInverse ? ancienDebutLe : nouveauDebutLe;
   return { finLe, ordreInverse };
 }
 
 /** RM-89 (P-06 faux) vs RM-90 (P-06 vrai) : l'inversion d'horloge doit-elle produire une anomalie ? */
-export function chevauchementDoitProduireAnomalie(ordreInverse: boolean, chevauchementAutorise: boolean): boolean {
+export function chevauchementDoitProduireAnomalie(
+  ordreInverse: boolean,
+  chevauchementAutorise: boolean,
+): boolean {
   return ordreInverse && !chevauchementAutorise;
 }
 
@@ -119,7 +132,10 @@ const UNITE_ARRONDI_SECONDES: Readonly<Record<ArrondiPointage, number>> = {
  * cette fonction ne fait que DÉRIVER `dureeArrondieCentiemes` pour l'affichage/le calcul (arrondi au
  * plus proche multiple de l'unité P-19, arrondi commercial — `Math.round`).
  */
-export function calculerDureeArrondieCentiemes(dureeBruteSecondes: number, arrondi: ArrondiPointage): number {
+export function calculerDureeArrondieCentiemes(
+  dureeBruteSecondes: number,
+  arrondi: ArrondiPointage,
+): number {
   const unite = UNITE_ARRONDI_SECONDES[arrondi];
   const secondesArrondies = Math.round(dureeBruteSecondes / unite) * unite;
   return Math.round((secondesArrondies / SECONDES_PAR_HEURE) * CENTIEMES_PAR_HEURE);
@@ -188,7 +204,10 @@ export function orDevenuNonPointable(statut: StatutOrdreReparation): boolean {
  * geste a été rejoué et peuvent légitimement différer d'un essai à l'autre sans que ce soit un
  * geste différent.
  */
-export function pointageCorrespondEntree(existant: LignePointage, entree: EntreeDemarragePointage): boolean {
+export function pointageCorrespondEntree(
+  existant: LignePointage,
+  entree: EntreeDemarragePointage,
+): boolean {
   if (existant.technicienId !== entree.technicienId) return false;
   if (existant.siteId !== entree.siteId) return false;
   if (existant.nature !== entree.nature) return false;
@@ -203,4 +222,91 @@ export function pointageCorrespondEntree(existant: LignePointage, entree: Entree
     existant.ligneOrId === ligneOrId &&
     existant.activiteIndirecte === activiteIndirecte
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* GET /pointages/agregats-ligne : temps réellement passé vs temps facturé, par ligne d'OR         */
+/* ------------------------------------------------------------------ */
+
+/** Entrée minimale, DB-agnostique, tirée de `ligne_or` — voir `references.ts::chargerLignesOrPourAgregat`. */
+export interface LigneOrPourAgregat {
+  readonly id: string;
+  readonly ordreReparationId: string;
+  readonly numeroOrdre: number;
+  readonly tempsBaremeCentiemes: number | null;
+}
+
+/** Entrée minimale, DB-agnostique, tirée de `pointage` — voir `pointage-requetes.ts::chargerPointagesPourAgregatLigne`. */
+export interface PointagePourAgregat {
+  readonly ligneOrId: string | null;
+  readonly statut: StatutPointage;
+  readonly dureeArrondieCentiemes: number | null;
+}
+
+/** RM-97 : seuls ces trois statuts portent une `dureeArrondieCentiemes` FIGÉE — `en_cours` n'a pas
+ *  encore de fin, sa durée n'existe pas tant qu'il n'est pas arrêté (voir `pointageEnCours` pour le
+ *  signaler séparément, sans jamais l'additionner à un total qui doit rester exact). */
+const STATUTS_POINTAGE_DUREE_ACQUISE: ReadonlySet<StatutPointage> = new Set([
+  'termine',
+  'valide',
+  'verrouille',
+]);
+
+/**
+ * Agrège, EN MÉMOIRE (aucune I/O ici, même doctrine que le reste de ce fichier), le temps
+ * réellement pointé de chaque ligne face à son temps barémé — `contrats/pointage/agregat-ligne.ts`
+ * pour le contrat exposé par `GET /pointages/agregats-ligne`. Une ligne est OMISE du résultat si
+ * elle n'a ni temps barémé chiffré ni le moindre pointage (rien à raconter) ; sinon INCLUSE même à
+ * zéro (une ligne barémée jamais encore pointée doit apparaître, à `dureePointeeCentiemes: 0` — «
+ * pas commencée » est une information, pas une absence de ligne).
+ */
+export function calculerAgregatsTempsLigne(
+  lignes: readonly LigneOrPourAgregat[],
+  pointages: readonly PointagePourAgregat[],
+): readonly AgregatTempsLigneOr[] {
+  const parLigne = new Map<
+    string,
+    { dureePointeeCentiemes: number; nombrePointages: number; pointageEnCours: boolean }
+  >();
+
+  for (const p of pointages) {
+    if (!p.ligneOrId) continue;
+    const courant = parLigne.get(p.ligneOrId) ?? {
+      dureePointeeCentiemes: 0,
+      nombrePointages: 0,
+      pointageEnCours: false,
+    };
+    const dureeAcquise = STATUTS_POINTAGE_DUREE_ACQUISE.has(p.statut)
+      ? (p.dureeArrondieCentiemes ?? 0)
+      : 0;
+    parLigne.set(p.ligneOrId, {
+      dureePointeeCentiemes: courant.dureePointeeCentiemes + dureeAcquise,
+      nombrePointages: courant.nombrePointages + 1,
+      pointageEnCours: courant.pointageEnCours || p.statut === 'en_cours',
+    });
+  }
+
+  return lignes
+    .filter((ligne) => ligne.tempsBaremeCentiemes !== null || parLigne.has(ligne.id))
+    .slice()
+    .sort((a, b) => a.numeroOrdre - b.numeroOrdre)
+    .map((ligne): AgregatTempsLigneOr => {
+      const agrege = parLigne.get(ligne.id) ?? {
+        dureePointeeCentiemes: 0,
+        nombrePointages: 0,
+        pointageEnCours: false,
+      };
+      return {
+        ligneOrId: ligne.id,
+        ordreReparationId: ligne.ordreReparationId,
+        dureePointeeCentiemes: agrege.dureePointeeCentiemes,
+        nombrePointages: agrege.nombrePointages,
+        pointageEnCours: agrege.pointageEnCours,
+        tempsBaremeCentiemes: ligne.tempsBaremeCentiemes,
+        ecartCentiemes:
+          ligne.tempsBaremeCentiemes !== null
+            ? agrege.dureePointeeCentiemes - ligne.tempsBaremeCentiemes
+            : null,
+      };
+    });
 }

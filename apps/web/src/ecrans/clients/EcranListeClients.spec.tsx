@@ -37,7 +37,9 @@ function rendreEcran(routeInitiale = '/clients') {
 
 function repondreListe(donnees: readonly ClientResume[]) {
   server.use(
-    http.get('/api/v1/clients', () => HttpResponse.json({ donnees, curseurSuivant: null, limite: 50 })),
+    http.get('/api/v1/clients', () =>
+      HttpResponse.json({ donnees, curseurSuivant: null, limite: 50 }),
+    ),
   );
 }
 
@@ -72,7 +74,9 @@ describe('EcranListeClients', () => {
     repondreListe([]);
     rendreEcran();
 
-    expect(await screen.findByText('Aucun client enregistré. Créez le premier.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Aucun client enregistré. Créez le premier.'),
+    ).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Nouveau client' }).length).toBeGreaterThan(0);
   });
 
@@ -101,7 +105,9 @@ describe('EcranListeClients', () => {
     repondreListe([]);
     rendreEcran();
 
-    expect(await screen.findByText('Kein Kunde registriert. Erstellen Sie den ersten.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Kein Kunde registriert. Erstellen Sie den ersten.'),
+    ).toBeInTheDocument();
   });
 
   describe('propagation du site (?site=) au clic sur une ligne', () => {

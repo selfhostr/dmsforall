@@ -115,7 +115,9 @@ export function EncartAlertesVehicule({
             </p>
             <p className="text-muted-foreground">
               {garantieVehicule.valeur.finLe ? formaterDate(garantieVehicule.valeur.finLe) : null}
-              {garantieVehicule.valeur.finLe && garantieVehicule.valeur.plafondKm !== null ? ' · ' : null}
+              {garantieVehicule.valeur.finLe && garantieVehicule.valeur.plafondKm !== null
+                ? ' · '
+                : null}
               {garantieVehicule.valeur.plafondKm !== null
                 ? `${t('garantie.plafond')} : ${formaterKilometrage(garantieVehicule.valeur.plafondKm, 'km')}`
                 : null}
@@ -155,7 +157,12 @@ export function EncartAlertesVehicule({
     lignes.push({
       cle: `travail-${travail.id}`,
       icone: <Wrench aria-hidden className="h-5 w-5 shrink-0" />,
-      token: travail.urgence === 'urgent' ? 'danger' : travail.urgence === 'a_faire' ? 'attention' : 'neutre',
+      token:
+        travail.urgence === 'urgent'
+          ? 'danger'
+          : travail.urgence === 'a_faire'
+            ? 'attention'
+            : 'neutre',
       contenu: (
         <>
           <p className="font-medium text-foreground">
@@ -163,7 +170,9 @@ export function EncartAlertesVehicule({
           </p>
           <p className="text-muted-foreground">
             {formaterDate(travail.constateLe)}
-            {travail.kilometrageAlors !== null ? ` · ${formaterKilometrage(travail.kilometrageAlors, 'km')}` : ''}
+            {travail.kilometrageAlors !== null
+              ? ` · ${formaterKilometrage(travail.kilometrageAlors, 'km')}`
+              : ''}
           </p>
         </>
       ),
@@ -207,7 +216,10 @@ export function EncartAlertesVehicule({
       {lignes.map((ligne) => (
         <div
           key={ligne.cle}
-          className={cn('flex items-start gap-3 rounded-md border p-4 texte-corps', TOKEN_CLASSES[ligne.token])}
+          className={cn(
+            'flex items-start gap-3 rounded-md border p-4 texte-corps',
+            TOKEN_CLASSES[ligne.token],
+          )}
         >
           {ligne.icone}
           <div className="flex-1">{ligne.contenu}</div>

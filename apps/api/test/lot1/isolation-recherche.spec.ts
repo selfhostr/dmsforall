@@ -23,7 +23,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { demarrerBaseEphemere, type BaseEphemere } from '../setup/postgres-ephemere';
 import { semerGarageDemoLot1, type GarageDemoLot1Fixture } from './fixtures/garage-demo-lot1';
-import { creerAppTest, demarrerRedisEphemere, type AppTest, type RedisEphemere } from '../setup/app-test';
+import {
+  creerAppTest,
+  demarrerRedisEphemere,
+  type AppTest,
+  type RedisEphemere,
+} from '../setup/app-test';
 import { cookieDeSessionPour } from './isolation-http-aide';
 
 let bdd: BaseEphemere;
@@ -48,7 +53,10 @@ interface CorpsRecherche {
   readonly resultats: ReadonlyArray<{ readonly id: string; readonly type: string }>;
 }
 
-async function rechercher(cookie: string, q: string): Promise<{ status: number; body: CorpsRecherche }> {
+async function rechercher(
+  cookie: string,
+  q: string,
+): Promise<{ status: number; body: CorpsRecherche }> {
   const reponse = await ctx.requete
     .get('/api/v1/recherche')
     .query({ q, types: 'vehicule' })
@@ -57,7 +65,7 @@ async function rechercher(cookie: string, q: string): Promise<{ status: number; 
 }
 
 describe("recherche comptoir — un VIN complet et sans ambiguïté d'un véhicule de garage-b reste introuvable sous une session garage-a", () => {
-  it("q = VIN complet du véhicule de garage-b, sous une session garage-a : aucun résultat", async () => {
+  it('q = VIN complet du véhicule de garage-b, sous une session garage-a : aucun résultat', async () => {
     const admin = garage.tenantA.utilisateursParRole.admin;
     const cookie = await cookieDeSessionPour(ctx, admin.email, admin.motDePasseClair);
     const vinDeB = garage.tenantB.vehicules[0]!.vin;
@@ -68,7 +76,7 @@ describe("recherche comptoir — un VIN complet et sans ambiguïté d'un véhicu
     expect(body.resultats).toHaveLength(0);
   });
 
-  it("contrôle positif : LE MÊME VIN, sous une session garage-b, trouve bien le véhicule — sinon le test ci-dessus ne prouverait rien (une recherche qui ne trouve jamais rien serait vide de sens)", async () => {
+  it('contrôle positif : LE MÊME VIN, sous une session garage-b, trouve bien le véhicule — sinon le test ci-dessus ne prouverait rien (une recherche qui ne trouve jamais rien serait vide de sens)', async () => {
     const adminB = garage.tenantB.utilisateursParRole.admin;
     const cookie = await cookieDeSessionPour(ctx, adminB.email, adminB.motDePasseClair);
     const vehiculeB = garage.tenantB.vehicules[0]!;
@@ -79,7 +87,7 @@ describe("recherche comptoir — un VIN complet et sans ambiguïté d'un véhicu
     expect(body.resultats.map((r) => r.id)).toContain(vehiculeB.id);
   });
 
-  it("contrôle positif : le VIN du PROPRE véhicule de garage-a se trouve bien sous sa propre session", async () => {
+  it('contrôle positif : le VIN du PROPRE véhicule de garage-a se trouve bien sous sa propre session', async () => {
     const admin = garage.tenantA.utilisateursParRole.admin;
     const cookie = await cookieDeSessionPour(ctx, admin.email, admin.motDePasseClair);
     const vehiculeA = garage.tenantA.vehicules[0]!;

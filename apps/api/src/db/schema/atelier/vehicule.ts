@@ -23,7 +23,12 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { colonneCreeLe, colonnesHorodatage, colonneId, colonneTenantId } from '../colonnes-communes';
+import {
+  colonneCreeLe,
+  colonnesHorodatage,
+  colonneId,
+  colonneTenantId,
+} from '../colonnes-communes';
 import { tenant } from '../tenant';
 import { utilisateur } from '../utilisateur';
 import { client } from './client';
@@ -304,8 +309,14 @@ export const vehiculeTravailReporte = pgTable(
       columns: [t.tenantId, t.vehiculeId],
       foreignColumns: [vehicule.tenantId, vehicule.id],
     }).onDelete('restrict'),
-    check('vehicule_travail_reporte_designation_non_vide_chk', sql`length(btrim(${t.designation})) > 0`),
-    check('vehicule_travail_reporte_motif_refus_non_vide_chk', sql`${t.motifRefus} is null or length(btrim(${t.motifRefus})) > 0`),
+    check(
+      'vehicule_travail_reporte_designation_non_vide_chk',
+      sql`length(btrim(${t.designation})) > 0`,
+    ),
+    check(
+      'vehicule_travail_reporte_motif_refus_non_vide_chk',
+      sql`${t.motifRefus} is null or length(btrim(${t.motifRefus})) > 0`,
+    ),
     check(
       'vehicule_travail_reporte_motif_modification_non_vide_chk',
       sql`${t.motifModification} is null or length(btrim(${t.motifModification})) > 0`,

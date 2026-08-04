@@ -49,6 +49,30 @@ export function bornesJourneeLocale(dateJour: string): BornesJournee {
   return { debutDu: debut.toISOString(), debutAu: fin.toISOString() };
 }
 
+/** Bornes ISO de la SEMAINE CALENDAIRE (lundi -> dimanche, convention suisse/ISO-8601) contenant
+ *  `dateJour` (`YYYY-MM-DD`), en calendrier LOCAL — même doctrine que `bornesJourneeLocale`.
+ *  Sert la vue « semaine » d'`EcranJournalPointage`. */
+export function bornesSemaineLocale(dateJour: string): BornesJournee {
+  const parties = dateJour.split('-');
+  if (parties.length !== 3) {
+    throw new Error(`Format de date invalide, attendu YYYY-MM-DD: ${dateJour}`);
+  }
+  const annee = Number(parties[0]);
+  const mois = Number(parties[1]);
+  const jour = Number(parties[2]);
+  if (!Number.isFinite(annee) || !Number.isFinite(mois) || !Number.isFinite(jour)) {
+    throw new Error(`Conversion en nombre échouée pour la date: ${dateJour}`);
+  }
+
+  const reference = new Date(annee, mois - 1, jour);
+  // `getDay()` : 0 = dimanche -> 6 jours depuis le lundi précédent ; 1 = lundi -> 0 ; etc.
+  const decalageDepuisLundi = (reference.getDay() + 6) % 7;
+
+  const lundi = new Date(annee, mois - 1, jour - decalageDepuisLundi, 0, 0, 0, 0);
+  const dimanche = new Date(annee, mois - 1, jour - decalageDepuisLundi + 6, 23, 59, 59, 999);
+  return { debutDu: lundi.toISOString(), debutAu: dimanche.toISOString() };
+}
+
 /** Secondes écoulées entre `debutLe` (ISO) et maintenant — jamais négatif (une horloge cliente en
  *  retard sur `debutLe` ne doit pas afficher un chrono négatif). */
 function secondesEcoulees(debutLe: string, maintenant: number): number {
@@ -66,13 +90,41 @@ export function formaterChrono(secondes: number): string {
   return `${deuxChiffres(h)}:${deuxChiffres(m)}:${deuxChiffres(s)}`;
 }
 
+/** Centièmes d'HEURE (`schemaCentiemes`, `ligne_or.tempsReelCentiemes`/`tempsBaremeCentiemes`,
+ *  `CumulsPointageOr.totalCentiemes`) -> SECONDES entières — un centième d'heure vaut exactement
+ *  36 secondes (1/100 * 3600). Sert UNIQUEMENT à réutiliser `formaterDureeLisible` (secondes) sur
+ *  des grandeurs exprimées en centièmes d'heure (vue « par OR » : temps réellement pointé vs temps
+ *  facturé) — jamais l'inverse (`dureeBruteSecondes` d'un pointage reste en secondes de bout en
+ *  bout, voir l'en-tête de `contrats/pointage/primitives.ts` sur la distinction délibérée des deux
+ *  unités). Arrondi à la seconde la plus proche : aucune perte pratique, un centième d'heure ne
+ *  produit jamais de fraction de seconde. */
+export function centiemesHeureEnSecondes(centiemes: number): number {
+  return Math.round(centiemes * 36);
+}
+
+/** `3725` -> `"1 h 02"` (h/min lisible pour un garagiste — vues jour/semaine/équipe, cumuls),
+ *  jamais la forme chrono `HH:MM:SS` de `formaterChrono` (réservée au pointage EN COURS qui
+ *  défile). `0` -> `"0 min"` (pas de minutes seules sans unité en dessous d'une heure) ;
+ *  en dessous d'une heure -> `"45 min"`, sans le `0 h` inutile. Jamais de float : arrondi à la
+ *  minute la plus proche depuis les secondes entières fournies. */
+export function formaterDureeLisible(secondes: number): string {
+  const minutesTotales = Math.round(secondes / 60);
+  const h = Math.floor(minutesTotales / 60);
+  const m = minutesTotales % 60;
+  const deuxChiffres = (valeur: number) => String(valeur).padStart(2, '0');
+  return h > 0 ? `${h} h ${deuxChiffres(m)}` : `${m} min`;
+}
+
 /**
  * Chrono live d'un pointage `en_cours` — recalcule les secondes écoulées chaque seconde tant que
  * `debutLe` est fourni (`null`/`undefined` = pas de pointage en cours, aucun timer démarré).
  * Purement AFFICHAGE : la durée de VÉRITÉ (`dureeArrondieCentiemes`, arrondi P-19) n'existe
  * qu'une fois le pointage arrêté et reste calculée par le serveur — ce hook ne l'anticipe jamais.
  */
-export function useChronoPointage(debutLe: string | null | undefined): { readonly secondes: number; readonly libelle: string } {
+export function useChronoPointage(debutLe: string | null | undefined): {
+  readonly secondes: number;
+  readonly libelle: string;
+} {
   const [maintenant, setMaintenant] = useState(() => Date.now());
 
   useEffect(() => {

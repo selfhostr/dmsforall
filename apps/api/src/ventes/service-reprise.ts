@@ -13,16 +13,33 @@ import type {
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import { reprise, type LigneReprise } from '../db/schema';
-import { chargerClientLigne, chargerPlaqueCourante, chargerResumeUtilisateur, chargerVehiculeLigne, construireVehiculeResume, versClientResume } from '../atelier/references';
+import {
+  chargerClientLigne,
+  chargerPlaqueCourante,
+  chargerResumeUtilisateur,
+  chargerVehiculeLigne,
+  construireVehiculeResume,
+  versClientResume,
+} from '../atelier/references';
 import { CollecteurAvertissements } from '../common/avertissements';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { JETON_AUDIT, type ServiceAudit } from '../common/audit';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { Horloge } from '../common/horloge/horloge';
-import { JETON_IDEMPOTENCE, type ReponseMemorisable, type ResultatIdempotent, type ServiceIdempotence } from '../common/idempotence';
+import {
+  JETON_IDEMPOTENCE,
+  type ReponseMemorisable,
+  type ResultatIdempotent,
+  type ServiceIdempotence,
+} from '../common/idempotence';
 
 import { versRepriseResponse } from './mappers';
-import { chargerDossierVente, chargerRepriseParDossier, chargerRepriseParDossierOuNull, chargerRepriseParDossierPourEcriture } from './references';
+import {
+  chargerDossierVente,
+  chargerRepriseParDossier,
+  chargerRepriseParDossierOuNull,
+  chargerRepriseParDossierPourEcriture,
+} from './references';
 import { extraireVersionETag } from './service-vehicule-stock';
 import { traduireErreurTransitionVente } from './traducteur-transition-ventes';
 
@@ -50,20 +67,31 @@ export class ServiceReprise {
     dossierVenteId: string,
     entree: EntreeCreationReprise,
     cleIdempotence: string,
-  ): Promise<ResultatIdempotent<ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseReprise> }>> {
+  ): Promise<
+    ResultatIdempotent<ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseReprise> }>
+  > {
     return this.idempotence.executer(
       ctx,
-      { methode: 'POST', chemin: '/dossiers-vente/{dossierVenteId}/reprise', cle: cleIdempotence, corps: entree },
+      {
+        methode: 'POST',
+        chemin: '/dossiers-vente/{dossierVenteId}/reprise',
+        cle: cleIdempotence,
+        corps: entree,
+      },
       async (tx) => {
         await chargerDossierVente(tx, ctx, dossierVenteId);
 
         const existante = await chargerRepriseParDossierOuNull(tx, ctx, dossierVenteId, true);
         if (existante) {
-          throw new ErreurMetier('VENTE_REPRISE_DEJA_EXISTANTE', 'Ce dossier de vente porte déjà une reprise.');
+          throw new ErreurMetier(
+            'VENTE_REPRISE_DEJA_EXISTANTE',
+            'Ce dossier de vente porte déjà une reprise.',
+          );
         }
 
         await chargerVehiculeLigne(tx, ctx, entree.vehiculeReprisId);
-        if (entree.detteFinancementOrganismeId) await chargerClientLigne(tx, ctx, entree.detteFinancementOrganismeId);
+        if (entree.detteFinancementOrganismeId)
+          await chargerClientLigne(tx, ctx, entree.detteFinancementOrganismeId);
 
         let ligne: LigneReprise;
         try {
@@ -81,11 +109,18 @@ export class ServiceReprise {
             })
             .returning();
           const inseree = inserees[0];
-          if (!inseree) throw new ErreurMetier('ERREUR_INTERNE', "La création de la reprise n'a rendu aucune ligne.");
+          if (!inseree)
+            throw new ErreurMetier(
+              'ERREUR_INTERNE',
+              "La création de la reprise n'a rendu aucune ligne.",
+            );
           ligne = inseree;
         } catch (erreur) {
           if (estViolationCleUnique(erreur)) {
-            throw new ErreurMetier('VENTE_REPRISE_DEJA_EXISTANTE', 'Ce dossier de vente porte déjà une reprise.');
+            throw new ErreurMetier(
+              'VENTE_REPRISE_DEJA_EXISTANTE',
+              'Ce dossier de vente porte déjà une reprise.',
+            );
           }
           throw erreur;
         }
@@ -96,7 +131,11 @@ export class ServiceReprise {
     );
   }
 
-  async obtenir(ctx: ContexteTenant, role: RoleUtilisateur, dossierVenteId: string): Promise<ReponseReprise> {
+  async obtenir(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    dossierVenteId: string,
+  ): Promise<ReponseReprise> {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await chargerRepriseParDossier(tx, ctx, dossierVenteId);
       return this.assembler(tx, ctx, role, ligne);
@@ -118,29 +157,51 @@ export class ServiceReprise {
       const ligne = await chargerRepriseParDossierPourEcriture(tx, ctx, dossierVenteId);
 
       if (versionAttendue !== ligne.version) {
-        throw new ErreurMetier('CONFLIT', 'La version de la reprise a changé depuis la dernière lecture.', {
-          detail: `version_attendue=${String(versionAttendue)};version_actuelle=${String(ligne.version)}`,
-          actionsProposees: [{ code: 'RAFRAICHIR' }],
-        });
+        throw new ErreurMetier(
+          'CONFLIT',
+          'La version de la reprise a changé depuis la dernière lecture.',
+          {
+            detail: `version_attendue=${String(versionAttendue)};version_actuelle=${String(ligne.version)}`,
+            actionsProposees: [{ code: 'RAFRAICHIR' }],
+          },
+        );
       }
 
-      if (entree.valeurEstimeeCentimes !== undefined && entree.valeurEstimeeCentimes !== ligne.valeurEstimeeCentimes && ligne.statut !== 'estimee') {
-        throw new ErreurMetier('CONFLIT', "La valeur estimée n'est plus modifiable au-delà du stade « estimée » (RV-27).", {
-          detail: `statutActuel=${ligne.statut}`,
-        });
+      if (
+        entree.valeurEstimeeCentimes !== undefined &&
+        entree.valeurEstimeeCentimes !== ligne.valeurEstimeeCentimes &&
+        ligne.statut !== 'estimee'
+      ) {
+        throw new ErreurMetier(
+          'CONFLIT',
+          "La valeur estimée n'est plus modifiable au-delà du stade « estimée » (RV-27).",
+          {
+            detail: `statutActuel=${ligne.statut}`,
+          },
+        );
       }
 
-      if (entree.detteFinancementOrganismeId) await chargerClientLigne(tx, ctx, entree.detteFinancementOrganismeId);
+      if (entree.detteFinancementOrganismeId)
+        await chargerClientLigne(tx, ctx, entree.detteFinancementOrganismeId);
 
       await tx
         .update(reprise)
         .set({
-          ...(entree.valeurEstimeeCentimes !== undefined ? { valeurEstimeeCentimes: entree.valeurEstimeeCentimes } : {}),
-          ...(entree.detteFinancementResiduelleCentimes !== undefined
-            ? { detteFinancementResiduelleCentimes: entree.detteFinancementResiduelleCentimes ?? null }
+          ...(entree.valeurEstimeeCentimes !== undefined
+            ? { valeurEstimeeCentimes: entree.valeurEstimeeCentimes }
             : {}),
-          ...(entree.detteFinancementOrganismeId !== undefined ? { detteFinancementOrganismeId: entree.detteFinancementOrganismeId ?? null } : {}),
-          ...(entree.detteFinancementOrganismeNom !== undefined ? { detteFinancementOrganismeNom: entree.detteFinancementOrganismeNom ?? null } : {}),
+          ...(entree.detteFinancementResiduelleCentimes !== undefined
+            ? {
+                detteFinancementResiduelleCentimes:
+                  entree.detteFinancementResiduelleCentimes ?? null,
+              }
+            : {}),
+          ...(entree.detteFinancementOrganismeId !== undefined
+            ? { detteFinancementOrganismeId: entree.detteFinancementOrganismeId ?? null }
+            : {}),
+          ...(entree.detteFinancementOrganismeNom !== undefined
+            ? { detteFinancementOrganismeNom: entree.detteFinancementOrganismeNom ?? null }
+            : {}),
         })
         .where(and(eq(reprise.tenantId, ctx.tenantId), eq(reprise.id, ligne.id)));
 
@@ -188,7 +249,10 @@ export class ServiceReprise {
           'Impossible de confirmer une reprise sans valeur négociée (RV-27).',
         );
       }
-      await this.transitionner(tx, ligne, { statut: 'confirmee', confirmeeLe: this.horloge.maintenant() });
+      await this.transitionner(tx, ligne, {
+        statut: 'confirmee',
+        confirmeeLe: this.horloge.maintenant(),
+      });
       const misAJour = await chargerRepriseParDossier(tx, ctx, dossierVenteId);
       const reponse = await this.assembler(tx, ctx, role, misAJour);
       return new CollecteurAvertissements().envelopper(reponse);
@@ -205,35 +269,63 @@ export class ServiceReprise {
   ): Promise<ReponseAvecAvertissements<ReponseReprise>> {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await chargerRepriseParDossierPourEcriture(tx, ctx, dossierVenteId);
-      await this.transitionner(tx, ligne, { statut: 'refusee', refuseeLe: this.horloge.maintenant(), motifRefus: entree.motif });
+      await this.transitionner(tx, ligne, {
+        statut: 'refusee',
+        refuseeLe: this.horloge.maintenant(),
+        motifRefus: entree.motif,
+      });
       const misAJour = await chargerRepriseParDossier(tx, ctx, dossierVenteId);
       const reponse = await this.assembler(tx, ctx, role, misAJour);
       return new CollecteurAvertissements().envelopper(reponse);
     });
   }
 
-  private async assembler(tx: TransactionDfa, ctx: ContexteTenant, role: RoleUtilisateur, ligne: LigneReprise): Promise<ReponseReprise> {
+  private async assembler(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    ligne: LigneReprise,
+  ): Promise<ReponseReprise> {
     const vehiculeRepriseLigne = await chargerVehiculeLigne(tx, ctx, ligne.vehiculeRepriseId);
     const plaque = await chargerPlaqueCourante(tx, ctx, ligne.vehiculeRepriseId);
     const vehiculeReprisResume = construireVehiculeResume(vehiculeRepriseLigne, plaque);
 
     const organisme = ligne.detteFinancementOrganismeId
-      ? await versClientResume(tx, ctx, await chargerClientLigne(tx, ctx, ligne.detteFinancementOrganismeId))
+      ? await versClientResume(
+          tx,
+          ctx,
+          await chargerClientLigne(tx, ctx, ligne.detteFinancementOrganismeId),
+        )
       : null;
 
     const journal = await this.audit.pourEntite(ctx, 'reprise', ligne.id);
-    const modifiePar = await chargerResumeUtilisateur(tx, ctx, journal.at(-1)?.utilisateurId ?? null);
+    const modifiePar = await chargerResumeUtilisateur(
+      tx,
+      ctx,
+      journal.at(-1)?.utilisateurId ?? null,
+    );
 
-    return versRepriseResponse({ ligne, vehiculeRepris: vehiculeReprisResume, detteFinancementOrganisme: organisme, role, modifiePar });
+    return versRepriseResponse({
+      ligne,
+      vehiculeRepris: vehiculeReprisResume,
+      detteFinancementOrganisme: organisme,
+      role,
+      modifiePar,
+    });
   }
 
   private async transitionner(
     tx: TransactionDfa,
     ligne: LigneReprise,
-    champs: Partial<Omit<LigneReprise, 'id' | 'tenantId'>> & { readonly statut: LigneReprise['statut'] },
+    champs: Partial<Omit<LigneReprise, 'id' | 'tenantId'>> & {
+      readonly statut: LigneReprise['statut'];
+    },
   ): Promise<void> {
     try {
-      await tx.update(reprise).set(champs).where(and(eq(reprise.tenantId, ligne.tenantId), eq(reprise.id, ligne.id)));
+      await tx
+        .update(reprise)
+        .set(champs)
+        .where(and(eq(reprise.tenantId, ligne.tenantId), eq(reprise.id, ligne.id)));
     } catch (erreur) {
       const traduite = traduireErreurTransitionVente(erreur, ligne.id, ligne.id);
       if (traduite) throw traduite;
@@ -243,5 +335,7 @@ export class ServiceReprise {
 }
 
 function estViolationCleUnique(erreur: unknown): boolean {
-  return typeof erreur === 'object' && erreur !== null && (erreur as { code?: unknown }).code === '23505';
+  return (
+    typeof erreur === 'object' && erreur !== null && (erreur as { code?: unknown }).code === '23505'
+  );
 }

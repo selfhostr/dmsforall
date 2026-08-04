@@ -12,13 +12,19 @@
 import type { AppTest } from '../setup/app-test';
 import { extraireValeurCookie } from '../setup/app-test';
 
-export async function cookieDeSessionPour(ctx: AppTest, email: string, motDePasse: string): Promise<string> {
+export async function cookieDeSessionPour(
+  ctx: AppTest,
+  email: string,
+  motDePasse: string,
+): Promise<string> {
   const reponse = await ctx.requete
     .post('/api/v1/auth/connexion')
     .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
     .send({ email, motDePasse });
   if (reponse.status !== 200) {
-    throw new Error(`connexion de test échouée (${reponse.status}) : ${JSON.stringify(reponse.body)}`);
+    throw new Error(
+      `connexion de test échouée (${reponse.status}) : ${JSON.stringify(reponse.body)}`,
+    );
   }
   const token = extraireValeurCookie(reponse, ctx.config.SESSION_COOKIE_NOM);
   return `${ctx.config.SESSION_COOKIE_NOM}=${token}`;

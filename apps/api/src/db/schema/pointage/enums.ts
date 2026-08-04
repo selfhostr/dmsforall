@@ -25,7 +25,10 @@ import { ACTIVITES_INDIRECTES, MOTIFS_ANOMALIE_POINTAGE } from '@dfa/shared';
  * `ACTIVITES_INDIRECTES` (`contrats/pointage/enums.ts`), lui-même verbatim du namespace i18n
  * `pointage.activites.*` déjà complet FR/DE/IT.
  */
-export const activiteIndirectePointageEnum = pgEnum('activite_indirecte_pointage', ACTIVITES_INDIRECTES);
+export const activiteIndirectePointageEnum = pgEnum(
+  'activite_indirecte_pointage',
+  ACTIVITES_INDIRECTES,
+);
 
 /**
  * `motif_anomalie_pointage` — extensible. RM-91/RM-96/RM-123 : motif posé sur un pointage en
@@ -33,4 +36,7 @@ export const activiteIndirectePointageEnum = pgEnum('activite_indirecte_pointage
  * (`contrats/pointage/enums.ts`), y compris `derive_horloge` (seule valeur sans clé i18n
  * existante à ce jour — signalé par le contrat, pas comblé ici).
  */
-export const motifAnomaliePointageEnum = pgEnum('motif_anomalie_pointage', MOTIFS_ANOMALIE_POINTAGE);
+export const motifAnomaliePointageEnum = pgEnum(
+  'motif_anomalie_pointage',
+  MOTIFS_ANOMALIE_POINTAGE,
+);

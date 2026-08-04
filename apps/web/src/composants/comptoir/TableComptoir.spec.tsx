@@ -22,7 +22,14 @@ describe('TableComptoir', () => {
   it('rend une ligne par élément et déclenche la navigation au clic', async () => {
     const onOuvrirLigne = vi.fn();
     const utilisateur = userEvent.setup();
-    render(<TableComptoir colonnes={COLONNES} lignes={LIGNES} cleLigne={(l) => l.id} onOuvrirLigne={onOuvrirLigne} />);
+    render(
+      <TableComptoir
+        colonnes={COLONNES}
+        lignes={LIGNES}
+        cleLigne={(l) => l.id}
+        onOuvrirLigne={onOuvrirLigne}
+      />,
+    );
 
     expect(screen.getByText('Alice')).toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument();
@@ -34,7 +41,14 @@ describe('TableComptoir', () => {
   it('navigue au clavier avec Entrée sur une ligne focalisée', async () => {
     const onOuvrirLigne = vi.fn();
     const utilisateur = userEvent.setup();
-    render(<TableComptoir colonnes={COLONNES} lignes={LIGNES} cleLigne={(l) => l.id} onOuvrirLigne={onOuvrirLigne} />);
+    render(
+      <TableComptoir
+        colonnes={COLONNES}
+        lignes={LIGNES}
+        cleLigne={(l) => l.id}
+        onOuvrirLigne={onOuvrirLigne}
+      />,
+    );
 
     const lignes = screen.getAllByRole('link');
     lignes[1]?.focus();

@@ -15,7 +15,9 @@ import { chemins } from '@/routes/chemins';
  *  ajouté que s'il est déjà défini, jamais inventé — répété ici (comme dans EcranFicheClient.tsx)
  *  plutôt que d'éditer un fichier hors périmètre. */
 function cheminOr(id: string, site: string | undefined): string {
-  return site ? `/ordres-reparation/${id}?site=${encodeURIComponent(site)}` : `/ordres-reparation/${id}`;
+  return site
+    ? `/ordres-reparation/${id}?site=${encodeURIComponent(site)}`
+    : `/ordres-reparation/${id}`;
 }
 
 /** Même raison que `cheminOr` ci-dessus : `chemins.ts` n'a pas encore d'entrée Facturation
@@ -37,7 +39,10 @@ function cheminFacture(id: string, site: string | undefined): string {
  * site en sortant de la recherche romprait le même contrat que perdre `?site=` en sortant de la
  * liste clients/véhicules (routes/chemins.ts).
  */
-const CONSTRUCTEURS_CHEMIN: Record<TypeResultatRecherche, (id: string, site: string | undefined) => string> = {
+const CONSTRUCTEURS_CHEMIN: Record<
+  TypeResultatRecherche,
+  (id: string, site: string | undefined) => string
+> = {
   vehicule: (id, site) => chemins.vehicules.detail(id, site),
   client: (id, site) => chemins.clients.detail(id, site),
   ordre_reparation: (id, site) => cheminOr(id, site),
@@ -62,7 +67,8 @@ export function EcranRecherche() {
   // deux onglets sur deux sites différents ne doivent pas se contredire.
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
-  const { saisie, onSaisieChange, enChargement, reponse, enErreur, erreur, relancer } = useRechercheComptoir();
+  const { saisie, onSaisieChange, enChargement, reponse, enErreur, erreur, relancer } =
+    useRechercheComptoir();
 
   const saisieNonVide = saisie.trim().length > 0;
 
@@ -76,7 +82,11 @@ export function EcranRecherche() {
 
       {enErreur ? (
         <EtatErreur
-          titre={erreur instanceof ErreurReseau ? t('erreurs:reseau.titre') : t('erreurs:inattendue.titre')}
+          titre={
+            erreur instanceof ErreurReseau
+              ? t('erreurs:reseau.titre')
+              : t('erreurs:inattendue.titre')
+          }
           description={messageErreur(erreur, t)}
           onReessayer={relancer}
         />
@@ -90,7 +100,9 @@ export function EcranRecherche() {
             onSelectionner={selectionner}
             onEchap={saisieNonVide ? () => onSaisieChange('') : undefined}
           />
-          {!saisieNonVide ? <EtatVide titre={t('recherche:titre')} description={t('recherche:aide')} /> : null}
+          {!saisieNonVide ? (
+            <EtatVide titre={t('recherche:titre')} description={t('recherche:aide')} />
+          ) : null}
         </>
       )}
     </div>

@@ -35,7 +35,10 @@ const VEHICULE_2: VehiculeResume = {
   identificationIncomplete: true,
 };
 
-function pageDe(donnees: readonly VehiculeResume[], curseurSuivant: string | null = null): PageCurseur<VehiculeResume> {
+function pageDe(
+  donnees: readonly VehiculeResume[],
+  curseurSuivant: string | null = null,
+): PageCurseur<VehiculeResume> {
   return { donnees, curseurSuivant, limite: 50 };
 }
 
@@ -95,7 +98,9 @@ describe('EcranListeVehicules', () => {
   });
 
   it('rend une ligne par véhicule et navigue vers la fiche au clic', async () => {
-    server.use(http.get('/api/v1/vehicules', () => HttpResponse.json(pageDe([VEHICULE_1, VEHICULE_2]))));
+    server.use(
+      http.get('/api/v1/vehicules', () => HttpResponse.json(pageDe([VEHICULE_1, VEHICULE_2]))),
+    );
     const utilisateur = userEvent.setup();
     rendre();
 
@@ -120,14 +125,18 @@ describe('EcranListeVehicules', () => {
 
     await utilisateur.type(screen.getByRole('searchbox'), 'introuvable');
 
-    expect(await screen.findByText('Aucun véhicule trouvé', {}, { timeout: 2000 })).toBeInTheDocument();
+    expect(
+      await screen.findByText('Aucun véhicule trouvé', {}, { timeout: 2000 }),
+    ).toBeInTheDocument();
   });
 
   it('charge la page suivante au clic sur « Charger plus » (pagination par curseur)', async () => {
     server.use(
       http.get('/api/v1/vehicules', ({ request }) => {
         const curseur = new URL(request.url).searchParams.get('curseur');
-        return HttpResponse.json(curseur ? pageDe([VEHICULE_2]) : pageDe([VEHICULE_1], 'curseur-page-2'));
+        return HttpResponse.json(
+          curseur ? pageDe([VEHICULE_2]) : pageDe([VEHICULE_1], 'curseur-page-2'),
+        );
       }),
     );
     const utilisateur = userEvent.setup();

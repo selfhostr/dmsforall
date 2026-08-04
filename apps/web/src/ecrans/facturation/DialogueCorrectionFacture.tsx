@@ -8,10 +8,23 @@ import { messageErreur } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useCorrigerFacture } from '@/hooks/facturation/useCorrigerFacture';
 
@@ -21,18 +34,31 @@ import { useCorrigerFacture } from '@/hooks/facturation/useCorrigerFacture';
  * ces deux motifs redirigent vers l'écran Avoir général (§6), qui ne recrée pas de facture de
  * remplacement.
  */
-const MOTIFS_CORRECTION_TOTALE = ['erreur_adresse', 'erreur_destinataire', 'erreur_montant', 'erreur_taux', 'autre'] as const;
+const MOTIFS_CORRECTION_TOTALE = [
+  'erreur_adresse',
+  'erreur_destinataire',
+  'erreur_montant',
+  'erreur_taux',
+  'autre',
+] as const;
 
 /** Motifs pour lesquels `POST .../corriger` porte réellement un champ à corriger
  *  (`schemaCorrectionFacture.champsCorriges` ne connaît QUE `clientDesignation` et
  *  `adresseFacturation` — voir l'ÉCART SIGNALÉ ci-dessous). */
-const MOTIFS_AVEC_CHAMP_ADRESSE: ReadonlySet<MotifAvoir> = new Set(['erreur_adresse', 'erreur_destinataire']);
+const MOTIFS_AVEC_CHAMP_ADRESSE: ReadonlySet<MotifAvoir> = new Set([
+  'erreur_adresse',
+  'erreur_destinataire',
+]);
 
 interface Props {
   readonly facture: ReponseDocumentVente;
   readonly ouvert: boolean;
   readonly onOuvertChange: (ouvert: boolean) => void;
-  readonly onSucces: (numeroAvoir: string | null, numeroNouvelleFacture: string | null, idNouvelleFacture: string) => void;
+  readonly onSucces: (
+    numeroAvoir: string | null,
+    numeroNouvelleFacture: string | null,
+    idNouvelleFacture: string,
+  ) => void;
 }
 
 /**
@@ -117,7 +143,11 @@ export function DialogueCorrectionFacture({ facture, ouvert, onOuvertChange, onS
       { factureId: facture.id, entree: resultat.data, idempotencyKey },
       {
         onSuccess: (reponse) => {
-          onSucces(reponse.donnees.avoir.numero, reponse.donnees.factureRemplacement.numero, reponse.donnees.factureRemplacement.id);
+          onSucces(
+            reponse.donnees.avoir.numero,
+            reponse.donnees.factureRemplacement.numero,
+            reponse.donnees.factureRemplacement.id,
+          );
           onOuvertChange(false);
         },
       },
@@ -128,11 +158,15 @@ export function DialogueCorrectionFacture({ facture, ouvert, onOuvertChange, onS
     <Dialog open={ouvert} onOpenChange={onOuvertChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t('facturation:fiche.correction.titre', { numero: facture.numero ?? '' })}</DialogTitle>
+          <DialogTitle>
+            {t('facturation:fiche.correction.titre', { numero: facture.numero ?? '' })}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
-          <p className="texte-corps text-muted-foreground">{t('facturation:fiche.correction.explication')}</p>
+          <p className="texte-corps text-muted-foreground">
+            {t('facturation:fiche.correction.explication')}
+          </p>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="correction-motif">{t('facturation:motifsAvoir.champ')}</Label>
@@ -163,21 +197,37 @@ export function DialogueCorrectionFacture({ facture, ouvert, onOuvertChange, onS
             <div className="grid grid-cols-2 gap-3">
               {motif === 'erreur_destinataire' ? (
                 <div className="col-span-2 flex flex-col gap-1.5">
-                  <Label htmlFor="correction-destinataire">{t('facturation:champs.destinataire')}</Label>
-                  <Input id="correction-destinataire" value={clientDesignation} onChange={(e) => setClientDesignation(e.target.value)} />
+                  <Label htmlFor="correction-destinataire">
+                    {t('facturation:champs.destinataire')}
+                  </Label>
+                  <Input
+                    id="correction-destinataire"
+                    value={clientDesignation}
+                    onChange={(e) => setClientDesignation(e.target.value)}
+                  />
                 </div>
               ) : null}
               <div className="col-span-2 flex flex-col gap-1.5">
-                <Label htmlFor="correction-rue">{t('facturation:fiche.correction.adresse.rue')}</Label>
+                <Label htmlFor="correction-rue">
+                  {t('facturation:fiche.correction.adresse.rue')}
+                </Label>
                 <Input id="correction-rue" value={rue} onChange={(e) => setRue(e.target.value)} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="correction-npa">{t('facturation:fiche.correction.adresse.npa')}</Label>
+                <Label htmlFor="correction-npa">
+                  {t('facturation:fiche.correction.adresse.npa')}
+                </Label>
                 <Input id="correction-npa" value={npa} onChange={(e) => setNpa(e.target.value)} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="correction-localite">{t('facturation:fiche.correction.adresse.localite')}</Label>
-                <Input id="correction-localite" value={localite} onChange={(e) => setLocalite(e.target.value)} />
+                <Label htmlFor="correction-localite">
+                  {t('facturation:fiche.correction.adresse.localite')}
+                </Label>
+                <Input
+                  id="correction-localite"
+                  value={localite}
+                  onChange={(e) => setLocalite(e.target.value)}
+                />
               </div>
             </div>
           ) : null}
@@ -200,13 +250,20 @@ export function DialogueCorrectionFacture({ facture, ouvert, onOuvertChange, onS
 
           {brancheAdresse ? (
             <label className="flex items-center gap-2 texte-corps">
-              <Checkbox checked={corrigerFiche} onCheckedChange={(coche) => setCorrigerFiche(coche === true)} />
+              <Checkbox
+                checked={corrigerFiche}
+                onCheckedChange={(coche) => setCorrigerFiche(coche === true)}
+              />
               {t('facturation:fiche.correction.corrigerFiche')}
             </label>
           ) : null}
 
-          {erreurValidation ? <p className="texte-libelle text-destructive">{erreurValidation}</p> : null}
-          {correction.isError ? <p className="texte-libelle text-destructive">{messageErreur(correction.error, t)}</p> : null}
+          {erreurValidation ? (
+            <p className="texte-libelle text-destructive">{erreurValidation}</p>
+          ) : null}
+          {correction.isError ? (
+            <p className="texte-libelle text-destructive">{messageErreur(correction.error, t)}</p>
+          ) : null}
 
           <DialogFooter>
             <DialogClose asChild>
@@ -214,7 +271,9 @@ export function DialogueCorrectionFacture({ facture, ouvert, onOuvertChange, onS
             </DialogClose>
             {brancheAdresse ? (
               <Button disabled={correction.isPending} onClick={soumettre}>
-                {correction.isPending ? t('facturation:fiche.correction.enCours') : t('facturation:fiche.correction.confirmer')}
+                {correction.isPending
+                  ? t('facturation:fiche.correction.enCours')
+                  : t('facturation:fiche.correction.confirmer')}
               </Button>
             ) : null}
           </DialogFooter>

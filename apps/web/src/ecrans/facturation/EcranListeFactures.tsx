@@ -73,8 +73,16 @@ export function EcranListeFactures() {
     return base;
   }, [q, onglet]);
 
-  const { documents, isPending, isError, error, refetch, hasNextPage, isFetchingNextPage, fetchNextPage } =
-    useListeDocumentsVente(filtres);
+  const {
+    documents,
+    isPending,
+    isError,
+    error,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useListeDocumentsVente(filtres);
 
   function effacerFiltres() {
     setQSaisie('');
@@ -93,12 +101,18 @@ export function EcranListeFactures() {
       // `clientDesignation` est la valeur FIGÉE du document (§8.3 de `document.ts`) — un document
       // liste sa propre identité figée, pas celle vivante du client (pas de `ClientResume` imbriqué
       // sur `DocumentVenteResume`, donc pas de `IdentiteClient` ici).
-      rendu: (document_) => <span className="truncate texte-corps text-foreground">{document_.clientDesignation}</span>,
+      rendu: (document_) => (
+        <span className="truncate texte-corps text-foreground">{document_.clientDesignation}</span>
+      ),
     },
     {
       id: 'emiseLe',
       libelle: t('facturation:liste.colonnes.emiseLe'),
-      rendu: (document_) => <span className="texte-libelle text-muted-foreground">{formaterDate(document_.dateDocument)}</span>,
+      rendu: (document_) => (
+        <span className="texte-libelle text-muted-foreground">
+          {formaterDate(document_.dateDocument)}
+        </span>
+      ),
     },
     {
       id: 'montant',
@@ -106,13 +120,20 @@ export function EcranListeFactures() {
       alignement: 'droite',
       // Absent (jamais 0.00) pour un rôle sans droit aux montants.
       rendu: (document_) => (
-        <span className="tabular-nums">{document_.totalTtcCentimes !== undefined ? formaterMontant(document_.totalTtcCentimes) : ''}</span>
+        <span className="tabular-nums">
+          {document_.totalTtcCentimes !== undefined
+            ? formaterMontant(document_.totalTtcCentimes)
+            : ''}
+        </span>
       ),
     },
     {
       id: 'statut',
       libelle: t('facturation:liste.colonnes.statut'),
-      rendu: (document_) => (document_.statutReglement ? <BadgeStatutReglement statut={document_.statutReglement} /> : null),
+      rendu: (document_) =>
+        document_.statutReglement ? (
+          <BadgeStatutReglement statut={document_.statutReglement} />
+        ) : null,
     },
     {
       id: 'retard',
@@ -125,7 +146,12 @@ export function EcranListeFactures() {
 
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
-    contenuVide = <EtatVideRecherche titre={t('facturation:liste.titre')} description={t('facturation:liste.vide.recherche')} />;
+    contenuVide = (
+      <EtatVideRecherche
+        titre={t('facturation:liste.titre')}
+        description={t('facturation:liste.vide.recherche')}
+      />
+    );
   } else if (onglet === 'toutes') {
     contenuVide = (
       <EtatVide
@@ -135,11 +161,26 @@ export function EcranListeFactures() {
       />
     );
   } else if (onglet === 'nonReglees') {
-    contenuVide = <EtatVide titre={t('facturation:liste.titre')} description={t('facturation:liste.vide.nonReglees')} />;
+    contenuVide = (
+      <EtatVide
+        titre={t('facturation:liste.titre')}
+        description={t('facturation:liste.vide.nonReglees')}
+      />
+    );
   } else if (onglet === 'enRetard') {
-    contenuVide = <EtatVide titre={t('facturation:liste.titre')} description={t('facturation:liste.vide.enRetard')} />;
+    contenuVide = (
+      <EtatVide
+        titre={t('facturation:liste.titre')}
+        description={t('facturation:liste.vide.enRetard')}
+      />
+    );
   } else {
-    contenuVide = <EtatVide titre={t('facturation:liste.titre')} description={t('facturation:liste.vide.aRelancer')} />;
+    contenuVide = (
+      <EtatVide
+        titre={t('facturation:liste.titre')}
+        description={t('facturation:liste.vide.aRelancer')}
+      />
+    );
   }
 
   return (
@@ -155,12 +196,21 @@ export function EcranListeFactures() {
         </TabsList>
       </Tabs>
 
-      <BarreFiltres q={qSaisie} onChangeQ={setQSaisie} filtresActifs={q.trim() !== ''} onEffacerFiltres={effacerFiltres} />
+      <BarreFiltres
+        q={qSaisie}
+        onChangeQ={setQSaisie}
+        filtresActifs={q.trim() !== ''}
+        onEffacerFiltres={effacerFiltres}
+      />
 
       {donneeRetardIndisponible ? (
         <EtatVide
           titre={t('facturation:liste.titre')}
-          description={onglet === 'enRetard' ? t('facturation:liste.vide.enRetard') : t('facturation:liste.vide.aRelancer')}
+          description={
+            onglet === 'enRetard'
+              ? t('facturation:liste.vide.enRetard')
+              : t('facturation:liste.vide.aRelancer')
+          }
         />
       ) : isPending ? (
         <EtatChargement lignes={6} />
