@@ -71,6 +71,20 @@ describe('BarreLaterale', () => {
     expect(hrefDuLien(/facturation/i)).toBe('/factures');
   });
 
+  it('expose un lien Ordres de réparation vers /ordres-reparation, sans restriction de rôle', () => {
+    // Régression (audit du 04.08.2026) : l'écran fonctionnait déjà (routé, câblé à l'API) mais
+    // n'était atteignable qu'en tapant l'URL à la main — même défaut que « Facturation » ci-dessus.
+    rendre('/');
+
+    expect(hrefDuLien(/ordres de réparation/i)).toBe('/ordres-reparation');
+  });
+
+  it('conserve le site courant de l’URL sur le lien Ordres de réparation', () => {
+    rendre('/clients?site=site-secondaire');
+
+    expect(hrefDuLien(/ordres de réparation/i)).toBe('/ordres-reparation?site=site-secondaire');
+  });
+
   it('expose un lien Doublons clients vers /clients/doublons, sans restriction de rôle (RM-05, `client.lire` est ouvert à tous)', () => {
     rendre('/');
 

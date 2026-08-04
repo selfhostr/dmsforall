@@ -47,6 +47,19 @@ export const chemins = {
     nouveau: (site?: string) => construireChemin('/vehicules/nouveau', { site }),
     detail: (id: string, site?: string) => construireChemin(`/vehicules/${id}`, { site }),
   },
+  /** Ordres de réparation (lot 1, atelier) — même mécanique `?site=` que `clients`/`vehicules`
+   *  ci-dessus (`EcranListeOrdresReparation` lit `site` depuis l'URL, jamais depuis la session).
+   *  Chemin littéral `/ordres-reparation` (pas `/atelier/ordres-reparation`) : c'est le préfixe déjà
+   *  posé dans `routeur.tsx` pour la liste et la fiche (`ordres-reparation/:orId`) — seule la route
+   *  de création vit sous `atelier/ordres-reparation/nouveau` (repris tel quel du design), non
+   *  reproduite ici car aucun lien de menu n'y pointe.
+   */
+  atelier: {
+    ordresReparation: {
+      liste: (site?: string) => construireChemin('/ordres-reparation', { site }),
+      detail: (id: string, site?: string) => construireChemin(`/ordres-reparation/${id}`, { site }),
+    },
+  },
   /** Paramétrage — singletons par TENANT (facturation, référentiels, atelier), jamais par site :
    *  pas de `?site=` à conserver pour ceux-là (contrairement à `clients`/`vehicules` ci-dessus).
    *  `sites` est la seule exception du groupe : `GET|PATCH /sites/{siteId}/parametres-atelier`

@@ -5,6 +5,7 @@ import {
   CalendarClock,
   Car,
   CarFront,
+  ClipboardList,
   Clock,
   Copy,
   FileText,
@@ -55,6 +56,14 @@ function classeLien({ isActive }: { readonly isActive: boolean }): string {
  * Le lot 1 (Atelier + Clients) ajoute la recherche, les clients et les véhicules à côté de
  * l'unique lien « Accueil » de l'étape 0 — toujours aucun élément grisé « à venir » : chaque lien
  * ci-dessous pointe vers un écran réellement atteignable.
+ *
+ * « Ordres de réparation » (audit du 04.08.2026) : l'écran `EcranListeOrdresReparation` était routé
+ * et fonctionnel depuis le lot 1, mais atteignable UNIQUEMENT en tapant `/ordres-reparation` à la
+ * main — absent de ce menu, oubli constaté a posteriori. Lien SANS restriction de rôle, au même
+ * titre que « Clients »/« Véhicules » juste au-dessus : `ordres-reparation` ne pose pas
+ * `rolesAutorises` dans `routeur.tsx` (la LECTURE y est ouverte à tout rôle authentifié, même
+ * raisonnement que `vehicules` — voir le commentaire de cette route). Même mécanique `?site=` que
+ * `clients`/`vehicules` (`chemins.atelier.ordresReparation.liste`, `routes/chemins.ts`).
  *
  * `chemins.*` conserve le site courant (`?site=`) plutôt que de le perdre à la navigation
  * (voir routes/chemins.ts). Le site actif est lu **depuis l'URL courante**, exactement comme
@@ -156,6 +165,10 @@ export function BarreLaterale({ className }: Props) {
       <NavLink to={chemins.vehicules.liste(site)} className={classeLien}>
         <Car className="h-4 w-4" aria-hidden="true" />
         {t('navigation:liens.vehicules')}
+      </NavLink>
+      <NavLink to={chemins.atelier.ordresReparation.liste(site)} className={classeLien}>
+        <ClipboardList className="h-4 w-4" aria-hidden="true" />
+        {t('navigation:liens.ordresReparation')}
       </NavLink>
       <NavLink to="/factures" className={classeLien}>
         <Receipt className="h-4 w-4" aria-hidden="true" />
