@@ -117,12 +117,13 @@ function accesBaseFactice(tx: TransactionDfa) {
   };
 }
 
-/** Seul `acces` (transaction) est exercé par `modifier()` — les 6 autres dépendances du
- *  constructeur (idempotence, événements, audit, compteurs, snapshot, horloge) n'interviennent
- *  QUE dans `creer()`/`assemblerDocument()`, jamais dans `modifier()` lui-même. */
+/** Seul `acces` (transaction) est exercé par `modifier()` — les 7 autres dépendances du
+ *  constructeur (idempotence, événements, audit, compteurs, pointage, snapshot, horloge)
+ *  n'interviennent QUE dans `creer()`/`assemblerDocument()`, jamais dans `modifier()` lui-même. */
 function serviceFactice(acces: ReturnType<typeof accesBaseFactice>): ServiceOr {
   return new ServiceOr(
     acces as never,
+    {} as never,
     {} as never,
     {} as never,
     {} as never,

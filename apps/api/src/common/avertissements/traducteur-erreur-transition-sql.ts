@@ -18,9 +18,22 @@ import type { CodeErreur } from '@dfa/shared';
  * propre à chaque module consommateur (atelier connaît le sens de ses propres transitions ; ce
  * module commun ne le connaît pas et ne doit pas l'inventer). Cette fonction rend donc la liste
  * BRUTE des transitions possibles, pas des `ActionProposee` déjà construites.
+ *
+ * L'erreur `pg` SQLSTATE `ZDFA1` n'arrive quasiment jamais « à plat » : `drizzle-orm` (méthode
+ * `NodePgPreparedQuery.queryWithCache`) l'enveloppe dans un `DrizzleQueryError` dont les champs
+ * `code`/`table`/`detail`/`hint` du driver `pg` se retrouvent sous `.cause`, pas au premier
+ * niveau — vérifié en conditions réelles (transition interdite déclenchée en direct, objet
+ * intercepté avant traduction) :
+ *
+ *   DrizzleQueryError { query, params, cause: DatabaseError { code: 'ZDFA1', table, detail, hint } }
+ *
+ * `trouverCauseZdfa1` remonte donc la chaîne `.cause` (potentiellement imbriquée plus d'un niveau
+ * selon la couche qui relance) jusqu'à trouver l'objet qui porte réellement `code === 'ZDFA1'`.
  */
 
 const SQLSTATE_TRANSITION_INTERDITE = 'ZDFA1';
+/** Borne défensive contre une chaîne `.cause` cyclique ou anormalement profonde. */
+const PROFONDEUR_MAX_CAUSE = 10;
 
 /**
  * Convention produit : `<ENTITE>_TRANSITION_INTERDITE`. Seules les entités qui portent
@@ -43,6 +56,28 @@ interface ErreurPgBrute {
   readonly table?: unknown;
   readonly detail?: unknown;
   readonly hint?: unknown;
+  readonly cause?: unknown;
+}
+
+/**
+ * Remonte `erreur`, puis `erreur.cause`, `erreur.cause.cause`… jusqu'à trouver le premier objet
+ * dont `code === 'ZDFA1'` (le `DatabaseError` `pg` réel), ou `null` si aucun niveau ne le porte.
+ * Fonctionne aussi bien sur une erreur « à plat » (tests unitaires, appelants qui construisent
+ * déjà le bon objet) que sur l'enveloppe `DrizzleQueryError` produite en conditions réelles.
+ */
+function trouverCauseZdfa1(erreur: unknown): ErreurPgBrute | null {
+  let courant: unknown = erreur;
+  for (let profondeur = 0; profondeur < PROFONDEUR_MAX_CAUSE; profondeur += 1) {
+    if (typeof courant !== 'object' || courant === null) {
+      return null;
+    }
+    const brute = courant as ErreurPgBrute;
+    if (brute.code === SQLSTATE_TRANSITION_INTERDITE) {
+      return brute;
+    }
+    courant = brute.cause;
+  }
+  return null;
 }
 
 export interface InterpretationTransitionInterdite {
@@ -70,14 +105,11 @@ const MOTIF_HINT_LISTE = /transitions autorisées\s*:\s*(.+?)\.?$/;
 export function interpreterErreurTransitionInterdite(
   erreur: unknown,
 ): InterpretationTransitionInterdite | null {
-  if (typeof erreur !== 'object' || erreur === null) {
+  const brute = trouverCauseZdfa1(erreur);
+  if (!brute) {
     return null;
   }
-  const brute = erreur as ErreurPgBrute;
 
-  if (brute.code !== SQLSTATE_TRANSITION_INTERDITE) {
-    return null;
-  }
   if (typeof brute.table !== 'string') {
     return null;
   }

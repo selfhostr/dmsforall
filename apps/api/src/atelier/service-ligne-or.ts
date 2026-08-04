@@ -550,7 +550,13 @@ export class ServiceLigneOr {
           }
         }
         for (const ligne of eligibles) {
-          await this.transitionnerLigne(tx, ctx, ligne, 'validee', {});
+          // `blocage: 'aucun'` — sans quoi une ligne soumise à accord (`blocage: 'accord'`, posé
+          // par `soumettreLignesADevis` ci-dessous) resterait bloquée après sa propre validation :
+          // le trigger `recalculer_drapeaux_ordre_reparation` lit `ligne_or.blocage`, pas son
+          // `statut`, pour maintenir `ordre_reparation.attente_accord` — valider la décision EST
+          // ce qui lève le blocage, exactement comme `annulerLignesAccord` (`service-transitions.ts`
+          // ~L197) le fait pour un refus/une annulation de la demande.
+          await this.transitionnerLigne(tx, ctx, ligne, 'validee', { blocage: 'aucun' });
         }
       },
     );

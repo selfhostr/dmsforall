@@ -18,6 +18,7 @@ import type {
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
+  auditAtelier,
   ligneOr,
   orControleQualite,
   ordreReparation,
@@ -338,19 +339,66 @@ export class ServiceTransitions {
     );
   }
 
-  /** T-15 `termine -> en_cours` — motif obligatoire. Depuis `facture`, la DB rejette (I-02) et le
-   *  traducteur propose `CREER_OR_RETOUCHE` — volontairement PAS reproduit ici en amont. */
+  /**
+   * T-15 `termine -> en_cours` — motif obligatoire. Depuis `facture`, la DB rejette (I-02) et le
+   * traducteur propose `CREER_OR_RETOUCHE` — volontairement PAS reproduit ici en amont.
+   *
+   * GARDE D'ORIGINE APPLICATIVE, en plus du contrôle DB : `transition_autorisee` autorise aussi
+   * `ouvert -> en_cours` (T-04, un tout autre geste métier — premier pointage/déclenchement
+   * manuel) et `controle -> en_cours` (T-12, `refuserControle`, sa propre action). Sans cette
+   * garde, appeler `rouvrir` sur un OR `ouvert` réussirait (201) en empruntant SILENCIEUSEMENT la
+   * ligne T-04 de la machine à états — un comportement correct pour `receptionner`, faux pour
+   * `rouvrir`, que le trigger SQL ne peut pas distinguer puisqu'il ne connaît que `(depuis, vers)`,
+   * jamais quelle ACTION applicative les a demandés. `rouvrir` n'a de sens que depuis `termine`.
+   */
   async rouvrir(
     ctx: ContexteTenant,
     principal: PrincipalAuthentifie,
     orId: string,
-    _entree: EntreeActionRouvrir,
+    entree: EntreeActionRouvrir,
   ): Promise<ReponseAvecAvertissements<ReponseOrdreReparation>> {
     return this.executer(
       ctx,
       orId,
       async (tx, or) => {
+        if (or.statut !== 'termine') {
+          throw new ErreurMetier(
+            'OR_TRANSITION_INTERDITE',
+            `Transition ${or.statut} → en_cours interdite : rouvrir (T-15) n'est valide que depuis « termine ».`,
+            {
+              detail: `entite=ordre_reparation;depuis=${or.statut};vers=en_cours`,
+              blocages: [
+                {
+                  type: 'ordre_reparation',
+                  id: or.id,
+                  libelle: or.numero,
+                  donnees: { statutActuel: or.statut, statutDemande: 'en_cours' },
+                },
+              ],
+              actionsProposees: [{ code: 'RAFRAICHIR' }],
+            },
+          );
+        }
+
         await this.transitionner(tx, or, 'en_cours', { termineLe: null });
+
+        // Pas de colonne dédiée sur `ordre_reparation` pour ce motif, et aucun type
+        // `TypeEvenementMetier` (`@dfa/shared`, contrat gelé hors périmètre de ce module) ne
+        // couvre « OR rouvert » — l'ajouter est une décision de contrat à négocier, pas à prendre
+        // ici. INSERT direct dans `audit_atelier`, mécanisme explicitement prévu pour journaliser
+        // UN champ précis sans faire porter une colonne dédiée à la table (migration `0004`
+        // §objet, même motif que CT-31) : c'est ce qui rend le motif visible au journal (`champ`
+        // + `valeurApres`, lus par `ServiceOr.journal`).
+        await tx.insert(auditAtelier).values({
+          tenantId: ctx.tenantId,
+          entite: 'ordre_reparation',
+          entiteId: orId,
+          action: 'transition',
+          champ: 'motif',
+          valeurApres: entree.motif,
+          utilisateurId: principal.utilisateurId,
+          requeteId: ctx.requeteId,
+        });
       },
       principal.role,
     );

@@ -28,7 +28,7 @@ import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.t
 import { calculerNomAffiche } from '../common/identite-client';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { Horloge } from '../common/horloge/horloge';
-import { JETON_AUDIT, type ServiceAudit } from '../common/audit';
+import { JETON_AUDIT, type EntreeAudit, type ServiceAudit } from '../common/audit';
 import { JETON_EVENEMENTS, type ServiceEvenements } from '../common/evenements';
 import {
   JETON_IDEMPOTENCE,
@@ -39,6 +39,7 @@ import {
 import { JETON_COMPTEURS } from '../parametrage/compteurs/compteurs.jetons';
 import type { ServiceCompteurs } from '../parametrage/compteurs/compteurs.types';
 
+import { JETON_LECTURE_POINTAGE, type LecturePointage } from './atelier.jetons';
 import { verifierConfirmation } from './confirmations';
 import { calculerActionsDisponiblesPourRole, calculerEtatAffiche } from './etat-affiche';
 import { convertirEnKm } from './kilometrage';
@@ -84,6 +85,7 @@ export class ServiceOr {
     @Inject(JETON_EVENEMENTS) private readonly evenements: ServiceEvenements,
     @Inject(JETON_AUDIT) private readonly audit: ServiceAudit,
     @Inject(JETON_COMPTEURS) private readonly compteurs: ServiceCompteurs,
+    @Inject(JETON_LECTURE_POINTAGE) private readonly pointage: LecturePointage,
     private readonly snapshot: ServiceSnapshotOr,
     private readonly horloge: Horloge,
   ) {}
@@ -455,6 +457,28 @@ export class ServiceOr {
    * service agrège donc N+1 lectures, acceptable au volume d'un seul OR (quelques dizaines de
    * lignes au plus au lot 1).
    *
+   * SÉRIALISÉ délibérément (pas de `Promise.all`) : chaque appel à `pourEntite` ouvre SA PROPRE
+   * transaction (`AccesBase.enTenant`), donc SA PROPRE connexion prise sur le pool partagé — alors
+   * que cette méthode tourne déjà À L'INTÉRIEUR d'une transaction (`this.acces.enTenant` ci-
+   * dessous) qui en détient une. Paralléliser N lectures d'audit revient à réclamer N connexions
+   * SUPPLÉMENTAIRES d'un coup pour une seule requête HTTP (`DATABASE_POOL_MAX=10` en dev, partagé
+   * par tout le trafic) : un OR à plusieurs dizaines de lignes peut à lui seul saturer le pool et
+   * mettre en attente (voire expirer, `connectionTimeoutMillis=5000`) toute autre requête
+   * concurrente. Sérialiser tient ce coût à UNE connexion supplémentaire à la fois, quel que soit
+   * le nombre de lignes/devis.
+   *
+   * NORMALISATION `creeLe` : `ServiceAudit.pourEntite` déclare `EntreeAudit.creeLe: Date`
+   * (`common/audit/audit.types.ts`), mais son implémentation (`common/audit/service-audit.ts`)
+   * lit `audit_atelier` par SQL brut (`tx.execute<LigneAuditBrute>`), hors du mapping de colonnes
+   * Drizzle — vérifié en conditions réelles : la valeur reçue ICI est en fait une `string` Postgres
+   * (`"2026-08-04 09:29:38.68287+00"`), pas une instance `Date`. Un tri par `.getTime()` sur cette
+   * valeur plantait avec `TypeError: b.creeLe.getTime is not a function` (500 sur CHAQUE appel,
+   * quel que soit l'OR — la cause réelle de ce défaut, distincte de l'épuisement du pool ci-
+   * dessus, qui restait latent tant que peu de lignes existaient). `normaliserCreeLe` blinde CE
+   * point de consommation contre l'écart entre le type déclaré et le type réellement reçu, sans
+   * modifier `common/audit/` (hors périmètre de ce module) — une correction du contrat lui-même
+   * (faire respecter `Date` à la source) reste préférable et à faire là-bas.
+   *
    * Pagination et filtres implémentés en mémoire après fusion/tri — SIMPLIFICATION SIGNALÉE :
    * pas le mécanisme de curseur trié partagé (`common/pagination/curseur.ts`, conçu pour un tri
    * SQL), un curseur d'offset opaque suffit à ce volume et reste conforme au contrat (opaque,
@@ -483,9 +507,14 @@ export class ServiceOr {
         ...devisRows.map((d) => ({ entite: 'devis_complementaire' as const, id: d.id })),
       ];
 
-      const brutes = (
-        await Promise.all(entites.map(({ entite, id }) => this.audit.pourEntite(ctx, entite, id)))
-      ).flat();
+      const brutes: EntreeAudit[] = [];
+      for (const { entite, id } of entites) {
+        // eslint-disable-next-line no-await-in-loop -- sérialisation délibérée, voir doc ci-dessus.
+        const lot = await this.audit.pourEntite(ctx, entite, id);
+        for (const entree of lot) {
+          brutes.push({ ...entree, creeLe: normaliserCreeLe(entree.creeLe) });
+        }
+      }
 
       const filtrees = brutes.filter((entree) => {
         if (filtres.entite && entree.entite !== filtres.entite) return false;
@@ -515,9 +544,23 @@ export class ServiceOr {
           action: entree.action,
           survenuLe: entree.creeLe.toISOString(),
           auteur: await chargerResumeUtilisateur(tx, ctx, entree.utilisateurId),
-          avant: (entree.valeurAvant as Record<string, unknown> | null) ?? null,
-          apres: (entree.valeurApres as Record<string, unknown> | null) ?? null,
-          motif: null,
+          // `champ === null` = snapshot de ligne entière (posé par le trigger générique, migration
+          // `0004` §objet) : `avant`/`apres` portent la ligne. `champ` renseigné = INSERT direct
+          // d'UN champ précis (ex. `rouvrir`, `service-transitions.ts`) : ce n'est pas un diff de
+          // ligne, donc pas de `avant`/`apres` — la valeur va dans `motif` quand `champ === 'motif'`
+          // (seul champ narrow connu à ce jour), null sinon plutôt que de deviner.
+          avant:
+            entree.champ === null
+              ? ((entree.valeurAvant as Record<string, unknown> | null) ?? null)
+              : null,
+          apres:
+            entree.champ === null
+              ? ((entree.valeurApres as Record<string, unknown> | null) ?? null)
+              : null,
+          motif:
+            entree.champ === 'motif' && typeof entree.valeurApres === 'string'
+              ? entree.valeurApres
+              : null,
           confirmations: [],
         })),
       );
@@ -592,6 +635,7 @@ export class ServiceOr {
       devisRows,
       controle,
       journalOr,
+      pointagesOuverts,
     ] = await Promise.all([
       versClientResume(tx, ctx, clientLigne),
       chargerVehiculeLigne(tx, ctx, or.vehiculeId),
@@ -601,6 +645,11 @@ export class ServiceOr {
       listerDevisOr(tx, ctx, orId),
       chargerControleQualite(tx, ctx, orId),
       this.audit.pourEntite(ctx, 'ordre_reparation', orId),
+      // I-09 : `LecturePointage.pointagesOuvertsPourOr` prend `tx` en premier paramètre et lit
+      // DANS la transaction courante (doctrine du port, `atelier.jetons.ts`) — pas de transaction
+      // imbriquée ici, à la différence de `ServiceAudit.pourEntite` juste au-dessus (hors
+      // périmètre de ce correctif, voir `journal()`).
+      this.pointage.pointagesOuvertsPourOr(tx, orId),
     ]);
 
     const demandes = await Promise.all(
@@ -708,7 +757,24 @@ export class ServiceOr {
         : null,
       signatures: [],
       pret: null,
-      cumulsPointage: { totalCentiemes: 0, parTechnicien: [], pointagesOuverts: 0 },
+      // `pointagesOuverts` : réel, câblé sur le port FIGÉ `LecturePointage.pointagesOuvertsPourOr`
+      // (même appel que la garde I-09), donc sans écart de connexion supplémentaire (§ note
+      // ci-dessus). `totalCentiemes`/`parTechnicien` RESTENT à zéro/vide, SIGNALÉ : `LecturePointage`
+      // (port déclaré par `atelier`, `atelier.jetons.ts`) n'expose que des pointages OUVERTS et un
+      // simple booléen « la ligne a du temps pointé » (`lignesAvecTempsPointe`) — aucune des deux
+      // méthodes ne rend un montant ni un temps agrégé. Cette agrégation existe déjà côté
+      // `pointage/` (`ServicePointage`, `chargerPointagesPourAgregatLigne`, backing
+      // `GET /pointages/agregats-ligne`), mais n'est PAS exposée par le port : il manque une
+      // méthode `LecturePointage.cumulsPourOr(tx, orId): Promise<{ totalCentiemes, parTechnicien }>`
+      // (ou équivalent), à ajouter au port ET implémenter dans
+      // `pointage/service-lecture-pointage.ts` — ce second fichier est hors périmètre de ce
+      // correctif (`apps/api/src/pointage/**`). Mettre `0`/`[]` ici reste plus honnête qu'inventer
+      // un calcul partiel à partir de données absentes du port.
+      cumulsPointage: {
+        totalCentiemes: 0,
+        parTechnicien: [],
+        pointagesOuverts: pointagesOuverts.length,
+      },
       ...(voitMontants ? { totauxParPayeur } : {}),
       attentes,
       etatAffiche: calculerEtatAffiche(or.statut, attentes),
@@ -811,6 +877,17 @@ function extraireVersionETag(ifMatch: string | undefined): number {
  */
 export function encoderCurseurOffset(decalage: number): string {
   return Buffer.from(String(decalage), 'utf8').toString('base64url');
+}
+
+/**
+ * `EntreeAudit.creeLe` est TYPÉ `Date` (`common/audit/audit.types.ts`) mais son implémentation
+ * lit `audit_atelier` par SQL brut, hors mapping de colonnes Drizzle — la valeur REÇUE ici est en
+ * réalité une chaîne Postgres (`"2026-08-04 09:29:38.68287+00"`), vérifié en conditions réelles.
+ * Blinde ce point de consommation : accepte une vraie `Date` telle quelle, convertit toute autre
+ * valeur. Voir la note détaillée sur `ServiceOr.journal` ci-dessus.
+ */
+function normaliserCreeLe(valeur: Date | string): Date {
+  return valeur instanceof Date ? valeur : new Date(valeur);
 }
 
 export function decoderCurseurOffset(curseur: string | undefined): number {

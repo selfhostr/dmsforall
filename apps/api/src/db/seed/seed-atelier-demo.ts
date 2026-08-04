@@ -140,16 +140,17 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
     const audit = new ServiceAuditImpl(acces);
     const compteurs = new ServiceCompteursImpl();
     const snapshot = new ServiceSnapshotOr(horloge);
+    const pointage = new LecturePointageVide();
     const serviceOr = new ServiceOr(
       acces,
       idempotence,
       evenements,
       audit,
       compteurs,
+      pointage,
       snapshot,
       horloge,
     );
-    const pointage = new LecturePointageVide();
     const serviceTransitions = new ServiceTransitions(
       acces,
       evenements,

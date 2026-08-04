@@ -11,6 +11,24 @@ function erreurPg(champs: {
   return Object.assign(new Error('Transition interdite'), champs);
 }
 
+/**
+ * Reproduit la forme RÉELLE observée en conditions réelles (transition interdite déclenchée en
+ * direct sur l'API, objet intercepté avant traduction) : `drizzle-orm` enveloppe le
+ * `DatabaseError` `pg` dans un `DrizzleQueryError`, et les champs SQLSTATE (`code`, `table`,
+ * `detail`, `hint`) se retrouvent sous `.cause`, pas au premier niveau. C'est CETTE forme que
+ * `ServiceTransitions.transitionner` (atelier) et les traducteurs homologues (pointage, ventes)
+ * reçoivent réellement dans leur `catch`.
+ */
+function erreurDrizzleEnveloppee(champs: {
+  code?: string;
+  table?: string;
+  detail?: string;
+  hint?: string;
+}): Error {
+  const cause = Object.assign(new Error('Transition interdite'), champs);
+  return Object.assign(new Error('Failed query: update "ordre_reparation" set …'), { cause });
+}
+
 describe('interpreterErreurTransitionInterdite', () => {
   it('interprète un refus sur ordre_reparation avec une liste de transitions possibles', () => {
     const erreur = erreurPg({
@@ -127,5 +145,65 @@ describe('interpreterErreurTransitionInterdite', () => {
       hint: 'Depuis « restitue », transitions autorisées : cloture.',
     });
     expect(interpreterErreurTransitionInterdite(erreur)?.transitionsPossibles).toEqual(['cloture']);
+  });
+
+  describe('erreur enveloppée par drizzle-orm (forme réelle en production)', () => {
+    it('remonte `.cause` pour trouver le ZDFA1 sur ordre_reparation', () => {
+      const erreur = erreurDrizzleEnveloppee({
+        code: 'ZDFA1',
+        table: 'ordre_reparation',
+        detail: 'entite=ordre_reparation;depuis=ouvert;vers=cloture',
+        hint: 'Depuis « ouvert », transitions autorisées : annule, controle, en_cours, termine.',
+      });
+
+      expect(interpreterErreurTransitionInterdite(erreur)).toEqual({
+        code: 'OR_TRANSITION_INTERDITE',
+        entite: 'ordre_reparation',
+        statutDepuis: 'ouvert',
+        statutVers: 'cloture',
+        estEtatTerminal: false,
+        transitionsPossibles: ['annule', 'controle', 'en_cours', 'termine'],
+      });
+    });
+
+    it('remonte `.cause` pour trouver le ZDFA1 sur ligne_or', () => {
+      const erreur = erreurDrizzleEnveloppee({
+        code: 'ZDFA1',
+        table: 'ligne_or',
+        detail: 'entite=ligne_or;depuis=proposee;vers=refusee',
+        hint: 'Depuis « proposee », transitions autorisées : validee, refusee.',
+      });
+
+      const resultat = interpreterErreurTransitionInterdite(erreur);
+      expect(resultat?.code).toBe('LIGNE_TRANSITION_INTERDITE');
+      expect(resultat?.statutDepuis).toBe('proposee');
+      expect(resultat?.statutVers).toBe('refusee');
+    });
+
+    it('remonte une chaîne `.cause` imbriquée sur plusieurs niveaux', () => {
+      const zdfa1 = Object.assign(new Error('Transition interdite'), {
+        code: 'ZDFA1',
+        table: 'ordre_reparation',
+        detail: 'entite=ordre_reparation;depuis=ouvert;vers=facture',
+      });
+      const niveau2 = Object.assign(new Error('Failed query'), { cause: zdfa1 });
+      const niveau3 = Object.assign(new Error('Query execution failed'), { cause: niveau2 });
+
+      expect(interpreterErreurTransitionInterdite(niveau3)?.code).toBe('OR_TRANSITION_INTERDITE');
+    });
+
+    it("rend null si aucun niveau de la chaîne `.cause` ne porte ZDFA1 (n'invente rien)", () => {
+      const causeSansRapport = Object.assign(new Error('connexion perdue'), { code: 'ECONNRESET' });
+      const enveloppe = Object.assign(new Error('Failed query'), { cause: causeSansRapport });
+      expect(interpreterErreurTransitionInterdite(enveloppe)).toBeNull();
+    });
+
+    it('ne boucle pas indéfiniment sur une chaîne `.cause` cyclique', () => {
+      const a: { message: string; code?: string; cause?: unknown } = new Error('a');
+      const b: { message: string; code?: string; cause?: unknown } = new Error('b');
+      a.cause = b;
+      b.cause = a;
+      expect(interpreterErreurTransitionInterdite(a)).toBeNull();
+    });
   });
 });
