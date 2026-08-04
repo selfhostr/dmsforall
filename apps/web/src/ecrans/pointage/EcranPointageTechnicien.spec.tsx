@@ -5,7 +5,13 @@ import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { OrdreReparationResume, PageCurseur, ReponseLigneOr, ReponseOrdreReparation, ReponsePointage } from '@dfa/shared';
+import type {
+  OrdreReparationResume,
+  PageCurseur,
+  ReponseLigneOr,
+  ReponseOrdreReparation,
+  ReponsePointage,
+} from '@dfa/shared';
 
 import '@/i18n';
 
@@ -104,7 +110,9 @@ const POINTAGE_EN_COURS: ReponsePointage = {
  *  `OR_ASSIGNE` ci-dessus n'est que le `OrdreReparationResume` de la liste « Mes OR du jour ».
  *  Champs alignés sur `construireOr` d'`EcranFicheOrdreReparation.spec.tsx` pour rester cohérent
  *  avec la convention de fixture déjà en usage dans le dépôt. */
-function construireOrDetail(overrides: Partial<ReponseOrdreReparation> = {}): ReponseOrdreReparation {
+function construireOrDetail(
+  overrides: Partial<ReponseOrdreReparation> = {},
+): ReponseOrdreReparation {
   return {
     id: 'or-1',
     numero: 'OR-000123',
@@ -113,7 +121,12 @@ function construireOrDetail(overrides: Partial<ReponseOrdreReparation> = {}): Re
     statut: 'ouvert',
     client: OR_ASSIGNE.client,
     vehicule: OR_ASSIGNE.vehicule,
-    figees: { clientDesignation: 'Jean Dupont', adresseFacturation: null, plaque: '123456', detenteurClientId: 'cl-1' },
+    figees: {
+      clientDesignation: 'Jean Dupont',
+      adresseFacturation: null,
+      plaque: '123456',
+      detenteurClientId: 'cl-1',
+    },
     conducteurPresentNom: null,
     kilometrageEntree: 90000,
     kilometrageSortie: null,
@@ -282,7 +295,9 @@ describe('EcranPointageTechnicien', () => {
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
       http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
       http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([OR_ASSIGNE]))),
-      http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(orDetailAvecLignesLongues)),
+      http.get('/api/v1/ordres-reparation/or-1', () =>
+        HttpResponse.json(orDetailAvecLignesLongues),
+      ),
     );
 
     const utilisateur = userEvent.setup();

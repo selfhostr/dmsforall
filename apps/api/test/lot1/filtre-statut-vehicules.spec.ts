@@ -40,7 +40,13 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { demarrerBaseEphemere, type BaseEphemere } from '../setup/postgres-ephemere';
 import { semerGarageDemoLot1, type GarageDemoLot1Fixture } from './fixtures/garage-demo-lot1';
-import { creerAccesBaseTest, creerAppTest, demarrerRedisEphemere, type AppTest, type RedisEphemere } from '../setup/app-test';
+import {
+  creerAccesBaseTest,
+  creerAppTest,
+  demarrerRedisEphemere,
+  type AppTest,
+  type RedisEphemere,
+} from '../setup/app-test';
 import { cookieDeSessionPour } from './isolation-http-aide';
 import { ServiceVehicule } from '../../src/vehicules/service-vehicule';
 import { Horloge } from '../../src/common/horloge';
@@ -63,16 +69,25 @@ beforeAll(async () => {
   ctx = await creerAppTest(bdd, redis.url);
 
   const receptionnaire = garage.tenantA.utilisateursParRole.receptionnaire;
-  const cookieReceptionnaire = await cookieDeSessionPour(ctx, receptionnaire.email, receptionnaire.motDePasseClair);
+  const cookieReceptionnaire = await cookieDeSessionPour(
+    ctx,
+    receptionnaire.email,
+    receptionnaire.motDePasseClair,
+  );
 
   vehiculeArchiveId = garage.tenantA.vehicules[0]!.id;
   const reponseArchivage = await ctx.requete
     .post(`/api/v1/vehicules/${vehiculeArchiveId}/archiver`)
     .set('Cookie', cookieReceptionnaire)
     .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
-    .send({ motifArchivage: 'doublon', motif: 'Fiche en double, conservée pour test de filtre statut.' });
+    .send({
+      motifArchivage: 'doublon',
+      motif: 'Fiche en double, conservée pour test de filtre statut.',
+    });
   if (reponseArchivage.status !== 201) {
-    throw new Error(`archivage de fixture échoué (${String(reponseArchivage.status)}) : ${JSON.stringify(reponseArchivage.body)}`);
+    throw new Error(
+      `archivage de fixture échoué (${String(reponseArchivage.status)}) : ${JSON.stringify(reponseArchivage.body)}`,
+    );
   }
 }, 180_000);
 
@@ -100,12 +115,17 @@ describe('GET /api/v1/vehicules?statut= — HTTP bout en bout, DEUX statuts', ()
     // Les 3 véhicules de tenantA (1 archivé + 2 actifs) sont tous présents — aucun n'a été
     // silencieusement filtré par une clause `any(...)` mal construite.
     for (const v of garage.tenantA.vehicules) {
-      expect(idsRendus, `véhicule ${v.id} (${v.marque} ${v.modele}) manquant de la page`).toContain(v.id);
+      expect(idsRendus, `véhicule ${v.id} (${v.marque} ${v.modele}) manquant de la page`).toContain(
+        v.id,
+      );
     }
 
     // Isolation : aucun véhicule de tenantB ne fuite dans la réponse de tenantA.
     for (const v of garage.tenantB.vehicules) {
-      expect(idsRendus, `véhicule ${v.id} de tenantB ne doit jamais apparaître sous tenantA`).not.toContain(v.id);
+      expect(
+        idsRendus,
+        `véhicule ${v.id} de tenantB ne doit jamais apparaître sous tenantA`,
+      ).not.toContain(v.id);
     }
   });
 });
@@ -139,9 +159,13 @@ describe('ServiceVehicule.lister — appel direct, tableau `statut` à UN SEUL �
       );
 
       const idsRendus = page.donnees.map((v) => v.id);
-      const idsActifsAttendus = garage.tenantA.vehicules.map((v) => v.id).filter((id) => id !== vehiculeArchiveId);
+      const idsActifsAttendus = garage.tenantA.vehicules
+        .map((v) => v.id)
+        .filter((id) => id !== vehiculeArchiveId);
 
-      expect(idsRendus, 'le véhicule archivé ne doit pas apparaître').not.toContain(vehiculeArchiveId);
+      expect(idsRendus, 'le véhicule archivé ne doit pas apparaître').not.toContain(
+        vehiculeArchiveId,
+      );
       expect(new Set(idsRendus)).toEqual(new Set(idsActifsAttendus));
     } finally {
       await fermer();
