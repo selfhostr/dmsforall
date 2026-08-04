@@ -9,6 +9,11 @@
 secrets/
 credentials.json
 
+# Surcouche Docker locale : ports d'hôte et réglages propres à un poste. Compose la charge
+# automatiquement par-dessus docker-compose.yml, qui reste la référence partagée. Utile quand la
+# machine héberge déjà d'autres services et que 5432/6379/3000 ne sont pas libres.
+docker-compose.override.yml
+
 # Dépendances
 node_modules/
 .pnpm-store/
