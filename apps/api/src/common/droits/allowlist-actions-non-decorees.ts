@@ -264,7 +264,7 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
     categorie: 'action-inerte-anticipee',
     justification:
       "Aucun endpoint POST /pointages/identification n'existe encore : expert-auth a livré l'identité de la borne " +
-      '(rôle poste_atelier, utilisateur.site_id, PrincipalAuthentifie.siteId, migration 0037) mais PAS le code PIN, ' +
+      '(rôle poste_atelier, utilisateur.site_id, PrincipalAuthentifie.siteId, migration 0039) mais PAS le code PIN, ' +
       "explicitement hors de son périmètre. L'action est posée en amont pour que l'agent qui construira " +
       'pin_pointage reprenne un nom et un périmètre de rôles déjà arbitrés (poste_atelier SEUL) plutôt que de les ' +
       'réinventer. À retirer de cette allowlist en même temps que la route sera décorée.',

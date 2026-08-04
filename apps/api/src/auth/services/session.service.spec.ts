@@ -37,7 +37,7 @@ function sessionAmorcageTest(overrides: Partial<SessionAmorcage> = {}): SessionA
     langue: 'fr',
     statutUtilisateur: 'actif',
     statutTenant: 'actif',
-    // Compte de PERSONNE : aucun rattachement de site (migration 0037). Les comptes de service
+    // Compte de PERSONNE : aucun rattachement de site (migration 0039). Les comptes de service
     // sont couverts par leurs propres tests, plus bas et dans `comptes-de-service.spec.ts`.
     siteId: null,
     ...overrides,
@@ -335,7 +335,7 @@ describe('ServiceSessionImpl.ouvrir', () => {
 });
 
 /**
- * Compte de service (borne d'atelier, migration 0037) — ce que la session doit garantir.
+ * Compte de service (borne d'atelier, migration 0039) — ce que la session doit garantir.
  *
  * Deux propriétés, toutes deux nécessaires au mode « borne partagée » du pointage :
  *

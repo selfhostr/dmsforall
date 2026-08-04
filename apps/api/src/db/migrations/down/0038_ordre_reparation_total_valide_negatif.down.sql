@@ -1,5 +1,5 @@
 -- =============================================================================================
--- 0036_ordre_reparation_total_valide_negatif.down.sql — inverse EXACT de la montante : ré-ajoute
+-- 0038_ordre_reparation_total_valide_negatif.down.sql — inverse EXACT de la montante : ré-ajoute
 -- `ordre_reparation_total_valide_chk` telle qu'elle existait en 0008, et restaure le commentaire
 -- de colonne d'origine (0008 n'en posait aucun via `comment on column` — seul le commentaire de
 -- TABLE existait ; ce down retire donc le commentaire de colonne posé par la montante plutôt que

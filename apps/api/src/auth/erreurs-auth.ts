@@ -110,7 +110,7 @@ export class ErreurDroitInsuffisant extends ErreurAuth {
 
 /**
  * 403 — un COMPTE DE SERVICE (borne d'atelier) tente d'agir sur un site autre que le sien
- * (`utilisateur.site_id`, migration 0037). Levée par `verifierSiteAutorise()`
+ * (`utilisateur.site_id`, migration 0039). Levée par `verifierSiteAutorise()`
  * (`auth/comptes-de-service.ts`).
  *
  * Réutilise `DROIT_INSUFFISANT` plutôt qu'un code neuf : le comportement attendu côté client est

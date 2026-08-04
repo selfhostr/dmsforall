@@ -107,7 +107,7 @@ export function inactiviteSessionMinutes(
  *  - lève `401 AUTH_SESSION_EXPIREE` pour un compte de service SANS site. Ce cas est impossible
  *    par contrainte de base (`utilisateur_site_compte_de_service_chk`) : s'il se produit
  *    néanmoins, c'est que la session a été résolue par un chemin qui ne remonte pas `site_id`
- *    (migration 0037 non appliquée, fonction d'amorçage périmée) — un état où le serveur ne SAIT
+ *    (migration 0039 non appliquée, fonction d'amorçage périmée) — un état où le serveur ne SAIT
  *    pas à quel site la borne appartient. Refuser est la seule réponse correcte : accepter
  *    laisserait une borne agir sans portée, donc sur n'importe quel site du tenant.
  */

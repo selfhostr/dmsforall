@@ -1,5 +1,5 @@
 -- =============================================================================================
--- 0036_ordre_reparation_total_valide_negatif.sql — défaut réel CONFIRMÉ en exécution (pas
+-- 0038_ordre_reparation_total_valide_negatif.sql — défaut réel CONFIRMÉ en exécution (pas
 -- seulement en test) : créer une ligne d'OR de type `remise` (montant négatif, RM-63) SEULE sur
 -- un OR neuf répond `500 ERREUR_INTERNE` au lieu de `201`.
 --
@@ -86,7 +86,7 @@
 --
 -- RÉVERSIBLE INTÉGRALEMENT : `drop constraint` / `add constraint` sur une simple CHECK ne laisse
 -- aucun résidu de catalogue (contrairement à `alter type ... add value` ou à une ACL matérialisée,
--- cf. 0035) — voir migrations/down/0036_ordre_reparation_total_valide_negatif.down.sql.
+-- cf. 0035) — voir migrations/down/0038_ordre_reparation_total_valide_negatif.down.sql.
 -- =============================================================================================
 
 alter table public.ordre_reparation
@@ -97,7 +97,7 @@ comment on column public.ordre_reparation.total_valide_centimes is
   'ligne_or.montant_ttc_centimes pour les lignes validee/en_cours/realisee/facturee. Sert '
   'UNIQUEMENT la garde de plafond RM-54 (comparaison < plafond_centimes) — ce n''est PAS un '
   'document facturable, et PEUT être transitoirement négatif (ligne(s) `remise` sans autre ligne '
-  'validée en contrepartie, 0036). L''invariant « un document normal n''est pas négatif » existe '
+  'validée en contrepartie, 0038). L''invariant « un document normal n''est pas négatif » existe '
   'et s''applique déjà, correctement, au niveau du devis/facture/avoir (0010, '
   'document_vente_signe_avoir_chk / document_vente_signe_positif_chk) — pas ici.';
 
@@ -113,7 +113,7 @@ begin
      where conrelid = 'public.ordre_reparation'::regclass
        and conname = 'ordre_reparation_total_valide_chk'
   ) then
-    raise exception '0036 : ordre_reparation_total_valide_chk existe encore après migration.';
+    raise exception '0038 : ordre_reparation_total_valide_chk existe encore après migration.';
   end if;
 end
 $$;

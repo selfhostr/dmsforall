@@ -1,6 +1,6 @@
 -- =============================================================================================
--- 0037_poste_atelier_compte_de_service.down.sql — inverse EXACT de
--- 0037_poste_atelier_compte_de_service.sql.
+-- 0039_poste_atelier_compte_de_service.down.sql — inverse EXACT de
+-- 0039_poste_atelier_compte_de_service.sql.
 --
 -- Réversibilité INTÉGRALE, sans exception à déclarer dans
 -- `scripts/verifier-reversibilite-migrations.sh` : la montante recrée le type `role_utilisateur`
@@ -37,7 +37,7 @@ begin
   select count(*) into n from public.utilisateur where role = 'poste_atelier';
   if n <> 0 then
     raise exception
-      '0037 (down) : % compte(s) de service poste_atelier existent encore. Les retirer ou les rétrograder DÉLIBÉRÉMENT avant de redescendre — ce down ne décide pas du sort de bornes déclarées.',
+      '0039 (down) : % compte(s) de service poste_atelier existent encore. Les retirer ou les rétrograder DÉLIBÉRÉMENT avant de redescendre — ce down ne décide pas du sort de bornes déclarées.',
       n;
   end if;
 end
@@ -67,7 +67,7 @@ alter table public.utilisateur
 -- 4. `role_utilisateur` restauré à ses huit valeurs d'origine (texte exact de 0000 §1).
 -- ---------------------------------------------------------------------------------------------
 
-alter type public.role_utilisateur rename to role_utilisateur_apres_0037;
+alter type public.role_utilisateur rename to role_utilisateur_apres_0039;
 
 create type public.role_utilisateur as enum (
   'admin', 'direction', 'vendeur', 'receptionnaire', 'chef_atelier', 'technicien', 'magasinier', 'comptable'
@@ -77,7 +77,7 @@ alter table public.utilisateur
   alter column role type public.role_utilisateur
   using role::text::public.role_utilisateur;
 
-drop type public.role_utilisateur_apres_0037;
+drop type public.role_utilisateur_apres_0039;
 
 
 -- ---------------------------------------------------------------------------------------------

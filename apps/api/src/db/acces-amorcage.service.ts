@@ -225,7 +225,7 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
       statutUtilisateur: l.statut_utilisateur,
       statutTenant: l.statut_tenant,
       // `?? null` et non `l.site_id` brut : une colonne absente de la projection (fonction SQL
-      // d'une version antérieure encore en place, migration 0037 non appliquée) rendrait
+      // d'une version antérieure encore en place, migration 0039 non appliquée) rendrait
       // `undefined`, qui traverserait le typage `string | null` sans que rien ne le signale.
       // Normaliser ici garantit que `siteId` vaut TOUJOURS `string` ou `null` en aval — le
       // contrôle fail-closed de `siteImposeAuPrincipal()` (auth/comptes-de-service.ts) repose

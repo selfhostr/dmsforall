@@ -63,7 +63,7 @@ function accesBaseTest(): AccesBase {
       nom: 'Dupont',
       role: 'admin',
       langue: 'fr',
-      // Compte de personne : aucun rattachement de site (migration 0037) — `sessionCourante()`
+      // Compte de personne : aucun rattachement de site (migration 0039) — `sessionCourante()`
       // rend alors TOUS les sites du tenant, comportement inchangé depuis l'étape 0.
       siteId: null,
     },
@@ -658,7 +658,7 @@ describe('ServiceAuthentificationImpl.deconnecter', () => {
 });
 
 /**
- * `sessionCourante()` — portée de site d'un COMPTE DE SERVICE (borne d'atelier, migration 0037).
+ * `sessionCourante()` — portée de site d'un COMPTE DE SERVICE (borne d'atelier, migration 0039).
  *
  * L'enjeu : jusqu'ici, `GET /auth/moi` rendait TOUS les sites du tenant à n'importe quel compte.
  * Pour une borne, ce serait à la fois inutile (elle n'a qu'un atelier) et trompeur (le front
@@ -758,7 +758,7 @@ describe('ServiceAuthentificationImpl.sessionCourante — portée de site des co
       langue: 'fr',
       siteId: null,
     });
-    // Compte de personne : scoping tenant SEUL, exactement comme avant la migration 0037 — aucune
+    // Compte de personne : scoping tenant SEUL, exactement comme avant la migration 0039 — aucune
     // régression sur le comportement des huit rôles existants.
     expect(dialecte.sqlToQuery(clausesPersonne[2] as SQL).params).toEqual(['tenant-id']);
     expect(corpsPersonne.siteRattachementId).toBeNull();

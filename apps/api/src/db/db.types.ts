@@ -124,7 +124,7 @@ export interface SessionAmorcage {
   readonly statutUtilisateur: StatutUtilisateur;
   readonly statutTenant: StatutTenant;
   /**
-   * `utilisateur.site_id` (migration 0037) : site de rattachement d'un COMPTE DE SERVICE
+   * `utilisateur.site_id` (migration 0039) : site de rattachement d'un COMPTE DE SERVICE
    * (`ROLES_COMPTE_DE_SERVICE`, aujourd'hui la borne d'atelier), `null` pour tout compte de
    * personne. Contrainte en base : `poste_atelier` ⇔ `site_id` renseigné.
    *

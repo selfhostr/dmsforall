@@ -1,5 +1,5 @@
 -- =============================================================================================
--- 0037_poste_atelier_compte_de_service.sql — identité durable de la borne d'atelier.
+-- 0039_poste_atelier_compte_de_service.sql — identité durable de la borne d'atelier.
 --
 -- CONTEXTE : `docs/specification-pointage-borne.md` §0 relève deux trous d'architecture qui
 -- bloquent le mode « borne partagée » du pointage :
@@ -68,7 +68,7 @@ drop function amorcage.session_par_empreinte(bytea);
 -- c'est ce tableau que `apps/api/src/db/schema/enums.ts` passe à `pgEnum()`.
 -- ---------------------------------------------------------------------------------------------
 
-alter type public.role_utilisateur rename to role_utilisateur_avant_0037;
+alter type public.role_utilisateur rename to role_utilisateur_avant_0039;
 
 create type public.role_utilisateur as enum (
   'admin', 'direction', 'vendeur', 'receptionnaire', 'chef_atelier', 'technicien', 'magasinier', 'comptable', 'poste_atelier'
@@ -78,7 +78,7 @@ alter table public.utilisateur
   alter column role type public.role_utilisateur
   using role::text::public.role_utilisateur;
 
-drop type public.role_utilisateur_avant_0037;
+drop type public.role_utilisateur_avant_0039;
 
 
 -- ---------------------------------------------------------------------------------------------
@@ -95,7 +95,7 @@ alter table public.utilisateur
   add column site_id uuid;
 
 comment on column public.utilisateur.site_id is
-  'Site de rattachement du COMPTE (0037). NOT NULL pour un compte de service (role = ''poste_atelier''), '
+  'Site de rattachement du COMPTE (0039). NOT NULL pour un compte de service (role = ''poste_atelier''), '
   'obligatoirement NULL pour un compte de personne — biconditionnelle imposée par '
   'utilisateur_site_compte_de_service_chk. C''est la SOURCE du site de la borne d''atelier : il est '
   'résolu depuis la session (PrincipalAuthentifie.siteId), jamais depuis un paramètre de requête, '
@@ -134,7 +134,7 @@ begin
    where (role = 'poste_atelier') <> (site_id is not null);
   if n <> 0 then
     raise exception
-      '0037 : % compte(s) violent la biconditionnelle role=poste_atelier <=> site_id renseigne.', n;
+      '0039 : % compte(s) violent la biconditionnelle role=poste_atelier <=> site_id renseigne.', n;
   end if;
 end
 $$;
@@ -259,7 +259,7 @@ begin
       join pg_catalog.pg_type t on t.oid = e.enumtypid
      where t.typname = 'role_utilisateur' and e.enumlabel = 'poste_atelier'
   ) then
-    raise exception '0037 : la valeur poste_atelier est absente du type role_utilisateur.';
+    raise exception '0039 : la valeur poste_atelier est absente du type role_utilisateur.';
   end if;
 
   if not exists (
@@ -267,22 +267,22 @@ begin
      where conname = 'utilisateur_site_compte_de_service_chk'
        and conrelid = 'public.utilisateur'::regclass
   ) then
-    raise exception '0037 : contrainte utilisateur_site_compte_de_service_chk absente.';
+    raise exception '0039 : contrainte utilisateur_site_compte_de_service_chk absente.';
   end if;
 
   if not exists (
     select 1 from pg_catalog.pg_constraint
      where conname = 'utilisateur_fk_site' and conrelid = 'public.utilisateur'::regclass
   ) then
-    raise exception '0037 : contrainte utilisateur_fk_site absente.';
+    raise exception '0039 : contrainte utilisateur_fk_site absente.';
   end if;
 
   if has_function_privilege('public', 'amorcage.session_par_empreinte(bytea)', 'execute') then
-    raise exception '0037 : amorcage.session_par_empreinte est restée exécutable par PUBLIC.';
+    raise exception '0039 : amorcage.session_par_empreinte est restée exécutable par PUBLIC.';
   end if;
 
   if has_function_privilege('public', 'amorcage.utilisateur_par_email(text)', 'execute') then
-    raise exception '0037 : amorcage.utilisateur_par_email est restée exécutable par PUBLIC.';
+    raise exception '0039 : amorcage.utilisateur_par_email est restée exécutable par PUBLIC.';
   end if;
 end
 $$;

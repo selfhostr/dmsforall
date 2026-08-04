@@ -21,7 +21,7 @@ export type StatutUtilisateur = (typeof STATUTS_UTILISATEUR)[number];
  *
  * L'ORDRE EST SIGNIFIANT : `apps/api/src/db/schema/enums.ts` construit le type PostgreSQL
  * `role_utilisateur` directement depuis ce tableau. Une valeur ne s'ajoute qu'À LA FIN, et jamais
- * sans la migration correspondante (`0037` pour `poste_atelier`).
+ * sans la migration correspondante (`0039` pour `poste_atelier`).
  */
 export const ROLES_UTILISATEUR = [
   'admin',

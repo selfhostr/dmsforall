@@ -754,7 +754,7 @@ const DROITS_VENDEUR: readonly Action[] = [...LECTURE_SOCLE, ...LECTURE_ETENDUE]
 /**
  * `poste_atelier` — LE SEUL RÔLE DE CE FICHIER QUI NE DÉSIGNE PAS UNE PERSONNE
  * (`ROLES_COMPTE_DE_SERVICE`, `@dfa/shared`). C'est la tablette murale de l'atelier : un compte de
- * service scopé à UN site (`utilisateur.site_id`, migration 0037), derrière lequel n'importe quel
+ * service scopé à UN site (`utilisateur.site_id`, migration 0039), derrière lequel n'importe quel
  * technicien de l'équipe se présente en tapant un code PIN.
  *
  * **La règle de construction n'est pas la même que pour les autres rôles.** Partout ailleurs dans

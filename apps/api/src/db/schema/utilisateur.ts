@@ -52,7 +52,7 @@ export const utilisateur = pgTable(
     role: roleUtilisateurEnum('role').notNull(),
 
     /**
-     * Site de rattachement du COMPTE (migration 0037).
+     * Site de rattachement du COMPTE (migration 0039).
      *
      * Renseigné pour un compte de SERVICE (`role = 'poste_atelier'` — la borne tactile de
      * l'atelier), obligatoirement NULL pour un compte de personne. La biconditionnelle est
@@ -60,7 +60,7 @@ export const utilisateur = pgTable(
      *
      * Ce n'est PAS une affectation utilisateur↔site généralisée : aucune autorisation du produit
      * n'est scopée par site (la matrice est rôle × action, l'étanchéité est tenant), et aucun
-     * compte de personne n'en porte. Voir l'en-tête de la migration 0037 pour le raisonnement
+     * compte de personne n'en porte. Voir l'en-tête de la migration 0039 pour le raisonnement
      * complet.
      *
      * C'est la SOURCE du site de la borne, résolu depuis la session
@@ -115,7 +115,7 @@ export const utilisateur = pgTable(
     check('utilisateur_echecs_connexion_chk', sql`${t.echecsConnexion} >= 0`),
     check('utilisateur_mot_de_passe_hash_non_vide_chk', sql`length(${t.motDePasseHash}) > 0`),
 
-    // --- Rattachement de site des comptes de service (migration 0037) --------------------------
+    // --- Rattachement de site des comptes de service (migration 0039) --------------------------
     // FK COMPOSITE avec le tenant, comme toutes les FK du produit : rattacher une borne au site
     // d'un AUTRE tenant devient structurellement impossible, pas seulement improbable.
     foreignKey({
@@ -126,7 +126,7 @@ export const utilisateur = pgTable(
 
     // Biconditionnelle, PAS une simple implication : elle interdit aussi de rattacher un compte
     // de personne à un site, ce qui donnerait l'illusion d'une affectation utilisateur↔site
-    // générale qui n'existe pas et que rien n'appliquerait (voir en-tête de la migration 0037).
+    // générale qui n'existe pas et que rien n'appliquerait (voir en-tête de la migration 0039).
     check(
       'utilisateur_site_compte_de_service_chk',
       sql`(${t.role} = 'poste_atelier') = (${t.siteId} is not null)`,

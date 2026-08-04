@@ -8,7 +8,7 @@
  *
  *  - une borne du site A demande une action sur le site B (le PIN d'un collègue d'un autre garage
  *    du même prestataire, un pointage imputé au mauvais atelier) → refus 403 ;
- *  - un principal de compte de service dont le site est ABSENT (migration 0037 non appliquée,
+ *  - un principal de compte de service dont le site est ABSENT (migration 0039 non appliquée,
  *    fonction d'amorçage périmée, principal fabriqué) → refus, jamais « aucune restriction » ;
  *  - un compte de personne, lui, n'est restreint par aucun site — le comportement du produit ne
  *    change pas d'un pouce pour les huit rôles existants.
@@ -66,7 +66,7 @@ describe('siteImposeAuPrincipal — portée de site résolue depuis la session',
     }
   });
 
-  it('REFUSE de la même façon un compte de service dont le champ siteId est carrément ABSENT (principal construit avant la migration 0037, ou à la main) : l’absence ne doit jamais être lue comme « aucune restriction »', () => {
+  it('REFUSE de la même façon un compte de service dont le champ siteId est carrément ABSENT (principal construit avant la migration 0039, ou à la main) : l’absence ne doit jamais être lue comme « aucune restriction »', () => {
     expect(() => siteImposeAuPrincipal(principal('poste_atelier', undefined))).toThrowError();
   });
 });

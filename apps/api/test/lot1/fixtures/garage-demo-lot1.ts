@@ -46,7 +46,7 @@ import {
 // 1. Complétion des 8 rôles sur un tenant qui n'en porte déjà que 2 (garage-demo.ts)
 // -------------------------------------------------------------------------------------------
 
-// `RolePersonne` et non `RoleUtilisateur` : depuis la migration 0037, `ROLES_UTILISATEUR` porte
+// `RolePersonne` et non `RoleUtilisateur` : depuis la migration 0039, `ROLES_UTILISATEUR` porte
 // aussi `poste_atelier`, un compte de SERVICE (borne d'atelier) qui n'a ni prénom ni nom, et que
 // la base refuserait d'insérer ici — la contrainte `utilisateur_site_compte_de_service_chk` exige
 // un `site_id`, que cette fixture ne fournit pas. Le compilateur impose donc exactement les huit

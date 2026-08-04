@@ -12,7 +12,7 @@ export interface PrincipalAuthentifie {
   readonly role: RoleUtilisateur;
   readonly langue: Langue;
   /**
-   * Site auquel le COMPTE est structurellement rattaché (`utilisateur.site_id`, migration 0037),
+   * Site auquel le COMPTE est structurellement rattaché (`utilisateur.site_id`, migration 0039),
    * résolu depuis la session à chaque requête — JAMAIS depuis un paramètre de requête, même
    * doctrine que `tenantId` et pour la même raison.
    *
