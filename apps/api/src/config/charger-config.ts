@@ -31,7 +31,18 @@ export const schemaConfig = z
     // partagé par les 200 tenants visés — un `min` réglé au niveau de `max` annulerait le
     // bénéfice même d'un pool à taille variable et gèlerait des connexions à vide sur un tenant
     // inactif la nuit.
-    DATABASE_POOL_MIN: z.coerce.number().int().min(0).max(50).default(2),
+    // SANS DÉFAUT ICI : le défaut « 2, sauf si DATABASE_POOL_MAX est plus petit » est calculé par
+    // le `.transform()` de fin de schéma, une fois DATABASE_POOL_MAX connu — un `.default(2)` fixe
+    // posé directement ici est incompatible avec un `DATABASE_POOL_MAX` réduit à 1 (pool à une
+    // seule connexion physique, délibéré dans les tests d'isolation tenant — rls.spec.ts,
+    // isolation-parametrage/vehicules.spec.ts — pour prouver que l'isolement tient même quand
+    // deux tenants consécutifs SE PARTAGENT la même connexion) : `chargerConfig` refusait alors de
+    // démarrer avant même l'exécution du test, empêchant précisément le test qui est la raison
+    // d'être de tout le dispositif d'isolation. Voir le `.transform()` en bas de fichier pour le
+    // calcul complet. Une valeur EXPLICITE de DATABASE_POOL_MIN reste validée par le superRefine
+    // juste en dessous : seul le défaut implicite s'ajuste, jamais une valeur que l'opérateur a
+    // réellement tapée — un vrai `min > max` explicite doit continuer à échouer au démarrage.
+    DATABASE_POOL_MIN: z.coerce.number().int().min(0).max(50).optional(),
     DATABASE_TIMEOUT_REQUETE_MS: z.coerce.number().int().min(100).default(10_000),
     // `connectionTimeoutMillis` du pool `pg` : délai maximal accordé à UNE tentative de connexion
     // (nouvelle ou en file d'attente derrière `DATABASE_POOL_MAX`) avant `pg-pool` ne lève
@@ -223,15 +234,35 @@ export const schemaConfig = z
     }
     // Un `min` supérieur à `max` n'a aucun sens pour le pool `pg` (`Pool.options.min`/`.max`) et
     // produirait un pool qui tente de maintenir plus de connexions chaudes qu'il n'a le droit
-    // d'en ouvrir — fail-fast plutôt que de laisser `pg-pool` arbitrer silencieusement.
-    if (c.DATABASE_POOL_MIN > c.DATABASE_POOL_MAX) {
+    // d'en ouvrir — fail-fast plutôt que de laisser `pg-pool` arbitrer silencieusement. Ne
+    // s'applique qu'à une valeur EXPLICITE (`c.DATABASE_POOL_MIN !== undefined`) : le défaut
+    // implicite est recalculé par le `.transform()` ci-dessous en fonction de DATABASE_POOL_MAX et
+    // ne peut donc jamais violer cette contrainte — voir son commentaire pour le raisonnement.
+    if (c.DATABASE_POOL_MIN !== undefined && c.DATABASE_POOL_MIN > c.DATABASE_POOL_MAX) {
       ctx.addIssue({
         code: 'custom',
         path: ['DATABASE_POOL_MIN'],
         message: 'DATABASE_POOL_MIN ne peut pas dépasser DATABASE_POOL_MAX.',
       });
     }
-  });
+  })
+  // Défaut de DATABASE_POOL_MIN calculé APRÈS coup, une fois DATABASE_POOL_MAX connu : `min(2,
+  // DATABASE_POOL_MAX)`. Motivé par une régression réelle (commit fcc9d71) — `DATABASE_POOL_MIN`
+  // portait un `.default(2)` fixe, incompatible avec les trois tests d'isolation tenant qui
+  // réduisent DATABASE_POOL_MAX à 1 pour prouver que l'isolement tient même sur un pool à une
+  // seule connexion physique (rls.spec.ts, isolation-parametrage/vehicules.spec.ts) :
+  // `chargerConfig` refusait de démarrer avant même l'exécution du test. Clamper le défaut au
+  // maximum protège symétriquement un déploiement réel qui réduirait DATABASE_POOL_MAX en
+  // production sans penser à ajuster DATABASE_POOL_MIN en conséquence. Ceci ne masque aucune
+  // vraie erreur de configuration : une valeur EXPLICITE de DATABASE_POOL_MIN qui dépasse
+  // DATABASE_POOL_MAX continue à être rejetée par le superRefine ci-dessus — seul le défaut
+  // IMPLICITE (l'opérateur n'a rien tapé) s'ajuste silencieusement, et seulement vers le bas
+  // (jamais au-dessus de 2), donc jamais vers un comportement plus gourmand que ce que documente
+  // le commentaire de DATABASE_POOL_MIN plus haut.
+  .transform((c) => ({
+    ...c,
+    DATABASE_POOL_MIN: c.DATABASE_POOL_MIN ?? Math.min(2, c.DATABASE_POOL_MAX),
+  }));
 
 export type Config = Readonly<z.infer<typeof schemaConfig>>;
 
