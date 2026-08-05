@@ -17,6 +17,7 @@
   },
   "jeu": {
     "sansRepere": "Senza ubicazione",
+    "sansDimension": "Dimensione sconosciuta",
     "plaqueInconnue": "Targa sconosciuta",
     "dernierMouvement": "Ultimo movimento il {date}",
     "avertissementRelance": "Nessun movimento da oltre due anni — da richiamare presso il cliente.",

@@ -13,10 +13,23 @@ interface Props {
   readonly resultat: UseQueryResult<ReponseFinancierTableauBord>;
 }
 
-function Indicateur({ valeur, libelle }: { readonly valeur: string; readonly libelle: string }) {
+/** `devise` préfixe le montant, dans le MÊME nœud texte que le chiffre (jamais un élément
+ *  distinct : un lecteur d'écran doit annoncer « CHF 1'234.50 » d'un bloc, pas deux fragments
+ *  séparés) — jamais traduit (code ISO 4217, identique dans les trois langues). */
+function Indicateur({
+  valeur,
+  devise,
+  libelle,
+}: {
+  readonly valeur: string;
+  readonly devise: string;
+  readonly libelle: string;
+}) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="tabular-nums text-3xl font-semibold leading-none">{valeur}</span>
+      <span className="tabular-nums text-3xl font-semibold leading-none">
+        {devise} {valeur}
+      </span>
       <span className="text-sm text-muted-foreground">{libelle}</span>
     </div>
   );
@@ -31,6 +44,13 @@ function Indicateur({ valeur, libelle }: { readonly valeur: string; readonly lib
  *
  * Aucune notion de marge ici (absente du contrat, `ReponseFinancierTableauBord`) — rien n'est
  * inventé au-delà de ce que l'API expose.
+ *
+ * Les trois montants sont préfixés `CHF` (STRUCTURELLEMENT, pas une supposition) : ce bloc AGRÈGE
+ * tout le tenant (`ReponseFinancierTableauBord` ne porte aucun champ `devise`, à la différence
+ * d'un document individuel — voir `EcranListeFactures`), et le front ne crée aujourd'hui des
+ * documents qu'en CHF. Si un document en EUR entrait un jour dans cette agrégation, ce serait un
+ * changement de CONTRAT (un total mêlant deux devises n'a pas de sens sans conversion) avant
+ * d'être un changement d'affichage ici.
  */
 export function BlocFinancierTableauBord({ resultat }: Props) {
   const { t } = useTranslation(['tableauBord', 'commun']);
@@ -75,6 +95,7 @@ export function BlocFinancierTableauBord({ resultat }: Props) {
           <CardContent className="pt-6">
             <Indicateur
               valeur={formaterMontant(data.chiffreAffaires.totalTtcCentimes)}
+              devise="CHF"
               libelle={t('tableauBord:financier.chiffreAffaires.libelle')}
             />
             <p className="mt-2 text-xs text-muted-foreground">
@@ -90,6 +111,7 @@ export function BlocFinancierTableauBord({ resultat }: Props) {
           <CardContent className="pt-6">
             <Indicateur
               valeur={formaterMontant(data.encaissementsCentimes)}
+              devise="CHF"
               libelle={t('tableauBord:financier.encaissements.libelle')}
             />
           </CardContent>
@@ -98,6 +120,7 @@ export function BlocFinancierTableauBord({ resultat }: Props) {
           <CardContent className="pt-6">
             <Indicateur
               valeur={formaterMontant(data.encoursClientsCentimes)}
+              devise="CHF"
               libelle={t('tableauBord:financier.encoursClients.libelle')}
             />
           </CardContent>

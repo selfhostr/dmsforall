@@ -21,7 +21,11 @@
     },
     "delaiRestitution": {
       "libelle": "Délai moyen de restitution",
-      "sansDonnee": "Sans donnée"
+      "sansDonnee": "Sans donnée",
+      "minutes": "{minutes} min",
+      "heuresMinutes": "{heures} h {minutes}",
+      "joursHeures": "{jours} j {heures} h",
+      "jours": "{jours} j"
     },
     "lignesEnAttenteValidation": {
       "libelle": "Lignes en attente de validation"

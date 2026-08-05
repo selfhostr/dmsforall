@@ -248,6 +248,11 @@ export function EcranListeVehicules() {
         lignes={vehicules}
         cleLigne={(vehicule) => vehicule.id}
         onOuvrirLigne={(vehicule) => navigate(chemins.vehicules.detail(vehicule.id, site))}
+        // `plaque` peut être `null` (identification incomplète, voir `VehiculeResume`) : repli sur
+        // `designation` (toujours renseignée) plutôt qu'un nom accessible vide ou générique.
+        libelleLigne={(vehicule) =>
+          t('commun:actions.ouvrirElement', { nom: vehicule.plaque ?? vehicule.designation })
+        }
         contenuVide={contenuVide}
       />
 

@@ -126,34 +126,39 @@ export function EcranListeFactures() {
         </span>
       ),
     },
-    {
-      id: 'montant',
-      libelle: t('facturation:liste.colonnes.montant'),
-      alignement: 'droite',
-      // Absent (jamais 0.00) pour un rôle sans droit aux montants.
-      rendu: (document_) => (
-        <span className="tabular-nums">
-          {document_.totalTtcCentimes !== undefined
-            ? formaterMontant(document_.totalTtcCentimes)
-            : ''}
-        </span>
-      ),
-    },
-    {
-      id: 'statut',
-      libelle: t('facturation:liste.colonnes.statut'),
-      rendu: (document_) =>
-        document_.statutReglement ? (
-          <BadgeStatutReglement statut={document_.statutReglement} />
-        ) : null,
-    },
-    // Colonne structurellement ABSENTE (ni en-tête ni cellule) pour un rôle sans droit financier —
-    // à la différence de `montant`/`statut` ci-dessus, qui restent affichées avec des cellules
-    // vides pour ces mêmes rôles. Décision volontaire (voir `droits.ts`) : la donnée de retard
-    // n'a pas de sens partiel comme un badge de statut, une colonne vide serait un bruit visuel
-    // sans contrepartie.
+    // `montant`, `statut` et `retard` sont TOUTES LES TROIS structurellement ABSENTES (ni en-tête
+    // ni cellule, colonne entière retirée du tableau) pour un rôle sans droit financier — jamais
+    // une colonne présente à cellules vides : le serveur masque déjà `totalTtcCentimes`/
+    // `statutReglement`/`dateEcheance`/`enRetard`/`joursRetard` (champs `?:` absents, jamais
+    // `null`/`0`, voir `droits.ts`), donc une colonne construite quand même rendrait un tableau
+    // entièrement vide sur toutes les lignes — du bruit visuel sans contrepartie, jamais la
+    // doctrine du produit (un rôle sans droit ne voit pas un vide, il ne voit rien).
     ...(voitMontantsFacturation
       ? [
+          {
+            id: 'montant',
+            libelle: t('facturation:liste.colonnes.montant'),
+            alignement: 'droite' as const,
+            // `devise` (`CHF`/`EUR`, migration `0015`) voyage jusqu'au front sur CHAQUE document —
+            // affichée avec le montant plutôt qu'assumée en CHF : le front ne CRÉE qu'en CHF
+            // aujourd'hui, mais un document repris ou créé par API peut porter `EUR`, et rien ne
+            // doit se lire comme un montant suisse s'il ne l'est pas.
+            rendu: (document_: DocumentVenteResume) => (
+              <span className="tabular-nums">
+                {document_.totalTtcCentimes !== undefined
+                  ? `${document_.devise} ${formaterMontant(document_.totalTtcCentimes)}`
+                  : ''}
+              </span>
+            ),
+          },
+          {
+            id: 'statut',
+            libelle: t('facturation:liste.colonnes.statut'),
+            rendu: (document_: DocumentVenteResume) =>
+              document_.statutReglement ? (
+                <BadgeStatutReglement statut={document_.statutReglement} />
+              ) : null,
+          },
           {
             id: 'retard',
             libelle: t('facturation:liste.colonnes.retard'),

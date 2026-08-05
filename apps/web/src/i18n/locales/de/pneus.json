@@ -17,6 +17,7 @@
   },
   "jeu": {
     "sansRepere": "Kein Standort",
+    "sansDimension": "Dimension unbekannt",
     "plaqueInconnue": "Kennzeichen unbekannt",
     "dernierMouvement": "Letzte Bewegung am {date}",
     "avertissementRelance": "Seit über zwei Jahren ohne Bewegung — beim Kunden nachfragen.",

@@ -17,6 +17,7 @@
   },
   "jeu": {
     "sansRepere": "Sans repère",
+    "sansDimension": "Dimension inconnue",
     "plaqueInconnue": "Plaque inconnue",
     "dernierMouvement": "Dernier mouvement le {date}",
     "avertissementRelance": "Sans mouvement depuis plus de deux ans — à relancer auprès du client.",

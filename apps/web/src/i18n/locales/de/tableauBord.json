@@ -21,7 +21,11 @@
     },
     "delaiRestitution": {
       "libelle": "Durchschnittliche Rückgabedauer",
-      "sansDonnee": "Keine Daten"
+      "sansDonnee": "Keine Daten",
+      "minutes": "{minutes} Min.",
+      "heuresMinutes": "{heures} Std {minutes}",
+      "joursHeures": "{jours} T {heures} Std",
+      "jours": "{jours} T"
     },
     "lignesEnAttenteValidation": {
       "libelle": "Positionen zur Freigabe"

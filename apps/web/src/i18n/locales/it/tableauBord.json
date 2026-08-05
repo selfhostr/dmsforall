@@ -21,7 +21,11 @@
     },
     "delaiRestitution": {
       "libelle": "Tempo medio di restituzione",
-      "sansDonnee": "Nessun dato"
+      "sansDonnee": "Nessun dato",
+      "minutes": "{minutes} min",
+      "heuresMinutes": "{heures} h {minutes}",
+      "joursHeures": "{jours} g {heures} h",
+      "jours": "{jours} g"
     },
     "lignesEnAttenteValidation": {
       "libelle": "Righe in attesa di convalida"

@@ -1,5 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -76,7 +77,7 @@ describe('EcranSuiviVentes', () => {
     ).toBeInTheDocument();
   });
 
-  it('état erreur : message actionnable avec retry', async () => {
+  it('état erreur : message actionnable avec retry, ET les onglets restent visibles (choix d’horizon toujours possible)', async () => {
     server.use(
       http.get('/api/v1/ventes/suivi', () =>
         HttpResponse.json(
@@ -98,6 +99,47 @@ describe('EcranSuiviVentes', () => {
       await screen.findByText("Impossible d'afficher le suivi des échéances"),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
+    // DÉFAUT AUDIT corrigé : une erreur réseau ne doit jamais faire disparaître la barre
+    // d'onglets — sinon plus aucun moyen de revenir à l'onglet précédent.
+    expect(screen.getByRole('tab', { name: '30 prochains jours' })).toBeInTheDocument();
+  });
+
+  // DÉFAUT AUDIT — les onglets s'évaporaient : les retours anticipés chargement/erreur vivaient
+  // AVANT le rendu des onglets, donc chaque changement d'horizon (nouvelle clé de requête,
+  // `isPending` repasse à vrai) faisait disparaître puis réapparaître la barre entière. Preuve
+  // directe : la barre d'onglets est présente PENDANT le chargement, pas seulement avant/après.
+  it('les onglets restent visibles pendant le chargement (jamais d’évaporation au changement d’horizon)', async () => {
+    server.use(
+      http.get('/api/v1/ventes/suivi', async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return HttpResponse.json(page([LIGNE_NOMINALE]));
+      }),
+    );
+
+    rendre();
+
+    // Encore en vol : les onglets sont déjà là, la table pas encore.
+    expect(screen.getByRole('tab', { name: '30 prochains jours' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '90 prochains jours' })).toBeInTheDocument();
+    expect(screen.queryByText('Jean Dupont')).not.toBeInTheDocument();
+
+    expect(await screen.findByText('Jean Dupont')).toBeInTheDocument();
+    // Toujours là après résolution — pas de clignotement.
+    expect(screen.getByRole('tab', { name: '30 prochains jours' })).toBeInTheDocument();
+  });
+
+  it('changer d’onglet ne fait pas disparaître la barre, même pendant le rechargement induit', async () => {
+    server.use(http.get('/api/v1/ventes/suivi', () => HttpResponse.json(page([LIGNE_NOMINALE]))));
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    expect(await screen.findByText('Jean Dupont')).toBeInTheDocument();
+
+    await utilisateur.click(screen.getByRole('tab', { name: '90 prochains jours' }));
+
+    // La barre reste montée pendant que la nouvelle page (nouvelle clé de requête) se charge.
+    expect(screen.getByRole('tab', { name: '30 prochains jours' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '90 prochains jours' })).toBeInTheDocument();
   });
 
   it("échéance de financement non confirmée : jamais estimée, aucune date inventée sur l'écran complet", async () => {

@@ -125,28 +125,13 @@ export function EcranSuiviVentes() {
     </div>
   );
 
-  if (isPending) {
-    return (
-      <div className="flex flex-col gap-6 p-6">
-        {enTete}
-        <EtatChargement lignes={6} />
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="flex flex-col gap-6 p-6">
-        {enTete}
-        <EtatErreur
-          titre={t('ventes:suivi.erreur.titre')}
-          description={messageErreur(error, t)}
-          onReessayer={() => void refetch()}
-        />
-      </div>
-    );
-  }
-
+  // DÉFAUT AUDIT corrigé — les onglets sont rendus INCONDITIONNELLEMENT, AVANT tout retour anticipé
+  // chargement/erreur (même patron que `EcranListeFactures.tsx`, référence explicite du brief).
+  // Changer d'horizon change `dansJours`, donc la clé de requête, donc `isPending` repasse à vrai :
+  // si les onglets vivaient DANS les branches de retour anticipé (comme avant ce correctif), la
+  // barre entière disparaissait puis reparaissait à chaque changement d'horizon — et en cas
+  // d'erreur réseau, plus aucun moyen de revenir à l'onglet précédent. Seul le CONTENU sous les
+  // onglets (chargement / erreur / table) varie selon l'état de la requête.
   return (
     <div className="flex flex-col gap-6 p-6">
       {enTete}
@@ -161,24 +146,36 @@ export function EcranSuiviVentes() {
         </TabsList>
       </Tabs>
 
-      <TableComptoir
-        colonnes={colonnes}
-        lignes={lignes}
-        cleLigne={(ligne) => ligne.dossierVenteId}
-        onOuvrirLigne={(ligne) =>
-          navigate(chemins.ventes.dossiers.detail(ligne.dossierVenteId, site))
-        }
-        libelleLigne={(ligne) =>
-          t('commun:actions.ouvrirElement', { nom: ligne.clientAcheteur.nomAffiche })
-        }
-        contenuVide={contenuVide}
-      />
+      {isPending ? (
+        <EtatChargement lignes={6} />
+      ) : isError ? (
+        <EtatErreur
+          titre={t('ventes:suivi.erreur.titre')}
+          description={messageErreur(error, t)}
+          onReessayer={() => void refetch()}
+        />
+      ) : (
+        <>
+          <TableComptoir
+            colonnes={colonnes}
+            lignes={lignes}
+            cleLigne={(ligne) => ligne.dossierVenteId}
+            onOuvrirLigne={(ligne) =>
+              navigate(chemins.ventes.dossiers.detail(ligne.dossierVenteId, site))
+            }
+            libelleLigne={(ligne) =>
+              t('commun:actions.ouvrirElement', { nom: ligne.clientAcheteur.nomAffiche })
+            }
+            contenuVide={contenuVide}
+          />
 
-      <BoutonChargerPlus
-        aChargerPlus={Boolean(hasNextPage)}
-        enChargement={isFetchingNextPage}
-        onChargerPlus={() => void fetchNextPage()}
-      />
+          <BoutonChargerPlus
+            aChargerPlus={Boolean(hasNextPage)}
+            enChargement={isFetchingNextPage}
+            onChargerPlus={() => void fetchNextPage()}
+          />
+        </>
+      )}
     </div>
   );
 }

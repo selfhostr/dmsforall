@@ -16,6 +16,7 @@ import type {
 import '@/i18n';
 import i18n from '@/i18n';
 
+import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
 
@@ -212,8 +213,12 @@ const DETENTIONS: readonly ReponseVehiculeDetention[] = [
   },
 ];
 
+// `SESSION_TEST.utilisateur.role` = `chef_atelier` (a `vehicule.modifier`, voir `matrice-droits.ts`
+// et `ecrans/vehicules/droits.ts`) : le rôle par défaut de ces tests doit voir le crayon d'édition
+// de l'emplacement, cohérent avec le test d'intégration existant qui clique « Modifier ».
 function installerHandlersOk() {
   server.use(
+    http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
     http.get('/api/v1/vehicules/v1', () => HttpResponse.json(VEHICULE)),
     http.get('/api/v1/vehicules/v1/contexte-atelier', () => HttpResponse.json(CONTEXTE)),
     http.get('/api/v1/vehicules/v1/kilometrages', () => HttpResponse.json(KILOMETRAGES)),
@@ -424,7 +429,7 @@ describe('EcranFicheVehicule', () => {
     rendre();
 
     expect(await screen.findByText('Devant, place 3')).toBeInTheDocument();
-    await utilisateur.click(screen.getByRole('button', { name: 'Modifier' }));
+    await utilisateur.click(await screen.findByRole('button', { name: 'Modifier' }));
     const champ = screen.getByLabelText('Emplacement');
     await utilisateur.clear(champ);
     await utilisateur.type(champ, 'Atelier, pont 2');
@@ -432,5 +437,30 @@ describe('EcranFicheVehicule', () => {
 
     await waitFor(() => expect(corpsRecu).toEqual({ emplacementLibre: 'Atelier, pont 2' }));
     expect(await screen.findByText('Atelier, pont 2')).toBeInTheDocument();
+  });
+
+  // DÉFAUT AUDIT — LE PLUS GRAVE : une action proposée à qui ne peut pas l'accomplir. `technicien`
+  // n'a que `vehicule.lire` côté API (`matrice-droits.ts`), PAS `vehicule.modifier` — sans cette
+  // garde, il verrait le crayon, taperait un emplacement, et recevrait un refus serveur après
+  // coup. Preuve bout en bout depuis la session réelle (au-dessus de la preuve unitaire sur
+  // `ChampEmplacementVehicule.spec.tsx`, qui pilote `peutModifier` directement en prop).
+  it("ne propose pas l'édition de l'emplacement à un rôle sans vehicule.modifier (technicien)", async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' },
+        }),
+      ),
+      http.get('/api/v1/vehicules/v1', () => HttpResponse.json(VEHICULE)),
+      http.get('/api/v1/vehicules/v1/contexte-atelier', () => HttpResponse.json(CONTEXTE)),
+      http.get('/api/v1/vehicules/v1/kilometrages', () => HttpResponse.json(KILOMETRAGES)),
+      http.get('/api/v1/vehicules/v1/detentions', () => HttpResponse.json(DETENTIONS)),
+      http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json(TRAVAUX_REPORTES)),
+    );
+    rendre();
+
+    expect(await screen.findByText('Devant, place 3')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Modifier' })).not.toBeInTheDocument();
   });
 });

@@ -72,7 +72,21 @@ export function BlocActiviteTableauBord({ resultat }: Props) {
   }
 
   const maxParStatut = Math.max(1, ...data.ordresReparationParStatut.map((ligne) => ligne.nombre));
-  const delaiFormate = formaterDureeMoyenneTableauBord(data.delaiMoyenRestitutionMinutes);
+  const delai = formaterDureeMoyenneTableauBord(data.delaiMoyenRestitutionMinutes);
+  // Composition TRADUITE ici (ce composant a `t()`, contrairement au hook qui décompose la durée
+  // en nombres bruts) — une clé par granularité, jamais un « min »/« h »/« j » en dur : un
+  // garagiste alémanique doit lire « Std »/« T », pas leur équivalent français. `deuxChiffres`
+  // ne pad que le CHIFFRE (convention d'affichage « 1 h 00 »), pas une chaîne traduite.
+  const deuxChiffres = (valeur: number) => String(valeur).padStart(2, '0');
+  const delaiFormate =
+    delai === null
+      ? null
+      : t(`tableauBord:activite.delaiRestitution.${delai.granularite}`, {
+          jours: delai.jours,
+          heures: delai.heures,
+          minutes:
+            delai.granularite === 'heuresMinutes' ? deuxChiffres(delai.minutes) : delai.minutes,
+        });
 
   return (
     <div className="flex flex-col gap-4">

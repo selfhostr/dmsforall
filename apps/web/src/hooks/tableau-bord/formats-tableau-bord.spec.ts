@@ -7,24 +7,69 @@ describe('formaterDureeMoyenneTableauBord', () => {
     expect(formaterDureeMoyenneTableauBord(null)).toBeNull();
   });
 
-  it('rend les minutes seules en dessous d’une heure, jamais "0 h"', () => {
-    expect(formaterDureeMoyenneTableauBord(45)).toBe('45 min');
-    expect(formaterDureeMoyenneTableauBord(1)).toBe('1 min');
+  it('décompose en minutes seules en dessous d’une heure, jamais de composante "heures"', () => {
+    expect(formaterDureeMoyenneTableauBord(45)).toEqual({
+      granularite: 'minutes',
+      jours: 0,
+      heures: 0,
+      minutes: 45,
+    });
+    expect(formaterDureeMoyenneTableauBord(1)).toEqual({
+      granularite: 'minutes',
+      jours: 0,
+      heures: 0,
+      minutes: 1,
+    });
   });
 
-  it('rend "0 min" pour un délai nul (distinct de `null`, une vraie mesure à zéro)', () => {
-    expect(formaterDureeMoyenneTableauBord(0)).toBe('0 min');
+  it('décompose "0 minute" pour un délai nul (distinct de `null`, une vraie mesure à zéro)', () => {
+    expect(formaterDureeMoyenneTableauBord(0)).toEqual({
+      granularite: 'minutes',
+      jours: 0,
+      heures: 0,
+      minutes: 0,
+    });
   });
 
-  it('rend heures + minutes entre 1h et 24h', () => {
-    expect(formaterDureeMoyenneTableauBord(200)).toBe('3 h 20');
-    expect(formaterDureeMoyenneTableauBord(60)).toBe('1 h 00');
-    expect(formaterDureeMoyenneTableauBord(1439)).toBe('23 h 59');
+  it('décompose heures + minutes entre 1h et 24h', () => {
+    expect(formaterDureeMoyenneTableauBord(200)).toEqual({
+      granularite: 'heuresMinutes',
+      jours: 0,
+      heures: 3,
+      minutes: 20,
+    });
+    expect(formaterDureeMoyenneTableauBord(60)).toEqual({
+      granularite: 'heuresMinutes',
+      jours: 0,
+      heures: 1,
+      minutes: 0,
+    });
+    expect(formaterDureeMoyenneTableauBord(1439)).toEqual({
+      granularite: 'heuresMinutes',
+      jours: 0,
+      heures: 23,
+      minutes: 59,
+    });
   });
 
-  it('rend jours + heures au-delà de 24h, sans heures résiduelles si nulles', () => {
-    expect(formaterDureeMoyenneTableauBord(24 * 60)).toBe('1 j');
-    expect(formaterDureeMoyenneTableauBord(2 * 24 * 60 + 4 * 60)).toBe('2 j 4 h');
-    expect(formaterDureeMoyenneTableauBord(2 * 24 * 60 + 30)).toBe('2 j');
+  it('décompose jours + heures au-delà de 24h, granularité "jours" seule si les heures résiduelles sont nulles', () => {
+    expect(formaterDureeMoyenneTableauBord(24 * 60)).toEqual({
+      granularite: 'jours',
+      jours: 1,
+      heures: 0,
+      minutes: 0,
+    });
+    expect(formaterDureeMoyenneTableauBord(2 * 24 * 60 + 4 * 60)).toEqual({
+      granularite: 'joursHeures',
+      jours: 2,
+      heures: 4,
+      minutes: 0,
+    });
+    expect(formaterDureeMoyenneTableauBord(2 * 24 * 60 + 30)).toEqual({
+      granularite: 'jours',
+      jours: 2,
+      heures: 0,
+      minutes: 0,
+    });
   });
 });

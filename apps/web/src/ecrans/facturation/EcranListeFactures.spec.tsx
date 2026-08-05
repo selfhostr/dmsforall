@@ -141,6 +141,10 @@ describe('EcranListeFactures', () => {
   });
 
   it('affiche Client / Montant TTC / Statut dès le premier rendu réussi, en lisant les champs à leur emplacement RÉEL (`figees.clientDesignation`, pas un champ de premier niveau qui n’existe pas côté serveur)', async () => {
+    // Montant/statut/retard sont des colonnes financières (voir `droits.ts`) : un rôle qui les
+    // voit doit être connecté explicitement, même doctrine que la section « colonne Retard »
+    // ci-dessous.
+    connecterSession('chef_atelier');
     server.use(
       http.get('/api/v1/documents-vente', () =>
         HttpResponse.json({
@@ -154,7 +158,8 @@ describe('EcranListeFactures', () => {
     rendre();
 
     await waitFor(() => expect(screen.getByText('Jean Dupont')).toBeInTheDocument());
-    expect(screen.getByText('123.45')).toBeInTheDocument();
+    // `CHF` préfixe le montant (devise réelle du document, migration `0015`) — jamais un nombre nu.
+    expect(screen.getByText('CHF 123.45')).toBeInTheDocument();
     expect(screen.getByText('2026-00007')).toBeInTheDocument();
     // Statut de règlement rendu (badge `non_regle`) — preuve que `statutReglement` (premier
     // niveau dans les deux formes) reste correctement lu.
@@ -248,7 +253,7 @@ describe('EcranListeFactures — colonne Retard', () => {
     expect(screen.queryByText(/en retard/)).not.toBeInTheDocument();
   });
 
-  it('masque la colonne « Retard » EN BLOC (en-tête compris) pour un rôle sans droit financier (technicien)', async () => {
+  it('masque montant/statut/retard EN BLOC (en-tête compris) pour un rôle sans droit financier (technicien)', async () => {
     connecterSession('technicien');
     server.use(
       http.get('/api/v1/documents-vente', () =>
@@ -271,13 +276,15 @@ describe('EcranListeFactures — colonne Retard', () => {
     rendre();
 
     await screen.findByText('Jean Dupont');
-    // Ni en-tête ni cellule — à la différence de `montant`/`statut`, qui restent affichées vides.
+    // Ni en-tête ni cellule pour AUCUNE des trois colonnes financières — le serveur masque déjà
+    // les champs sous-jacents (`?:` absents), une colonne construite quand même rendrait un
+    // tableau entièrement vide sur toutes les lignes plutôt que de disparaître.
     expect(screen.queryByRole('columnheader', { name: 'Retard' })).not.toBeInTheDocument();
-    // Les colonnes montant/statut, elles, restent présentes (cellules vides, comportement inchangé).
-    expect(screen.getByRole('columnheader', { name: 'Montant TTC' })).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Montant TTC' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Statut' })).not.toBeInTheDocument();
   });
 
-  it('masque également la colonne « Retard » pour poste_atelier', async () => {
+  it('masque également montant/statut/retard pour poste_atelier', async () => {
     connecterSession('poste_atelier');
     server.use(
       http.get('/api/v1/documents-vente', () =>
@@ -293,6 +300,8 @@ describe('EcranListeFactures — colonne Retard', () => {
 
     await screen.findByText('Jean Dupont');
     expect(screen.queryByRole('columnheader', { name: 'Retard' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Montant TTC' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Statut' })).not.toBeInTheDocument();
   });
 
   it('affiche la colonne « Retard » pour un rôle qui voit les montants (chef_atelier)', async () => {

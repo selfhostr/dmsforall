@@ -126,11 +126,12 @@ describe('EcranTableauBord — affichage nominal (direction)', () => {
     // Délai moyen de restitution : 200 min -> "3 h 20".
     expect(screen.getByText('3 h 20')).toBeInTheDocument();
 
-    // Montants suisses : "1'234.50" (chiffre d'affaires TTC), "987.00" (encaissements),
-    // "456.00" (encours clients) — le bloc financier résout séparément (deuxième requête).
-    expect(await screen.findByText("1'234.50")).toBeInTheDocument();
-    expect(screen.getByText('987.00')).toBeInTheDocument();
-    expect(screen.getByText('456.00')).toBeInTheDocument();
+    // Montants suisses, préfixés CHF (agrégat tenant, voir `BlocFinancierTableauBord`) :
+    // "CHF 1'234.50" (chiffre d'affaires TTC), "CHF 987.00" (encaissements), "CHF 456.00"
+    // (encours clients) — le bloc financier résout séparément (deuxième requête).
+    expect(await screen.findByText("CHF 1'234.50")).toBeInTheDocument();
+    expect(screen.getByText('CHF 987.00')).toBeInTheDocument();
+    expect(screen.getByText('CHF 456.00')).toBeInTheDocument();
   });
 });
 
@@ -155,8 +156,8 @@ describe('EcranTableauBord — période sans aucune activité', () => {
     // Les compteurs à zéro restent affichés (au moins une occurrence de "0").
     expect(screen.getAllByText('0').length).toBeGreaterThan(0);
     // Le bloc financier résout séparément (deuxième requête, deuxième `isPending`) : on attend
-    // son propre indicateur avant d'affirmer le montant zéro formaté.
-    expect((await screen.findAllByText('0.00')).length).toBeGreaterThan(0);
+    // son propre indicateur avant d'affirmer le montant zéro formaté, préfixé CHF.
+    expect((await screen.findAllByText('CHF 0.00')).length).toBeGreaterThan(0);
   });
 });
 

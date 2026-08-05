@@ -6,6 +6,9 @@ import { formaterDate, formaterKilometrage } from '@/lib/formats';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { BoutonCopier } from '@/composants/vehicule/BoutonCopier';
 import { ChampEmplacementVehicule } from '@/composants/vehicule/ChampEmplacementVehicule';
+import { useSession } from '@/hooks/useSession';
+
+import { peutModifierVehicule } from './droits';
 
 interface Props {
   readonly vehicule: ReponseVehicule;
@@ -23,9 +26,16 @@ interface DefinitionChamp {
  * recomposée localement) + les champs d'identification que le comptoir lit au téléphone (VIN,
  * code type, kilométrage actuel). Le kilométrage vient du contexte-atelier (`dernierKilometrage`),
  * pas de `ReponseVehicule` qui ne le porte pas — voir `packages/shared/…/vehicule.ts`.
+ *
+ * `peutModifier` (`ChampEmplacementVehicule`) est calculé ICI depuis la session (`vehicule.
+ * modifier`, `droits.ts`) — tant que la session n'est pas résolue, `role === undefined` ->
+ * `peutModifierVehicule` rend `false` -> le crayon reste absent jusqu'à confirmation du droit,
+ * jamais l'inverse (bouton visible puis retiré), même principe que `EcranListeFactures`.
  */
 export function EnTeteFicheVehicule({ vehicule, dernierKilometrage }: Props) {
   const { t } = useTranslation('vehicules');
+  const { data: session } = useSession();
+  const peutModifierEmplacement = peutModifierVehicule(session?.utilisateur.role);
 
   const champs: DefinitionChamp[] = [];
   if (vehicule.vin)
@@ -65,6 +75,7 @@ export function EnTeteFicheVehicule({ vehicule, dernierKilometrage }: Props) {
         vehiculeId={vehicule.id}
         emplacement={vehicule.emplacementLibre}
         majLe={vehicule.emplacementMajLe}
+        peutModifier={peutModifierEmplacement}
       />
     </div>
   );

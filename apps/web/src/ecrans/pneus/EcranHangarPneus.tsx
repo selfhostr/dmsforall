@@ -143,7 +143,16 @@ export function EcranHangarPneus() {
           description={t('pneus:hangar.siteRequis.description')}
           action={
             sites.length > 0 ? (
-              <Select onValueChange={(siteId) => setSearchParams({ site: siteId })}>
+              <Select
+                onValueChange={(siteId) => {
+                  // Copie les paramètres EXISTANTS plutôt que de les remplacer (même patron que
+                  // `EcranTableauBord.changerSite`) : `setSearchParams({ site })` écraserait tout
+                  // autre paramètre déjà présent dans l'URL.
+                  const parametres = new URLSearchParams(searchParams);
+                  parametres.set('site', siteId);
+                  setSearchParams(parametres);
+                }}
+              >
                 <SelectTrigger aria-label={t('pneus:hangar.siteRequis.label')} className="w-64">
                   <SelectValue placeholder={t('pneus:hangar.siteRequis.label')} />
                 </SelectTrigger>

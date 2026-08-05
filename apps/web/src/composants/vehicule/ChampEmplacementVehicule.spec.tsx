@@ -28,6 +28,7 @@ describe('ChampEmplacementVehicule', () => {
         vehiculeId="v1"
         emplacement="Devant, place 3"
         majLe="2026-07-20T09:15:00.000Z"
+        peutModifier
       />,
     );
 
@@ -37,12 +38,31 @@ describe('ChampEmplacementVehicule', () => {
 
   it("affiche un texte neutre — ni erreur ni alarme — quand l'emplacement n'est pas renseigné, sans date", () => {
     renduAvecQueryClient(
-      <ChampEmplacementVehicule vehiculeId="v1" emplacement={null} majLe={null} />,
+      <ChampEmplacementVehicule vehiculeId="v1" emplacement={null} majLe={null} peutModifier />,
     );
 
     expect(screen.getByText('Emplacement non renseigné')).toBeInTheDocument();
     expect(screen.queryByText(/Noté le/)).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  // DÉFAUT AUDIT — une action proposée à qui ne peut pas l'accomplir (`PATCH /vehicules/{id}`
+  // exige `vehicule.modifier`, absent pour technicien/comptable/vendeur/poste_atelier). Preuve
+  // directe sur le composant, en plus de la preuve d'intégration depuis la session dans
+  // `EcranFicheVehicule.spec.tsx` : `peutModifier={false}` retire le crayon, jamais un bouton
+  // désactivé ni un refus après coup.
+  it("ne propose pas l'édition quand l'appelant indique l'absence du droit (peutModifier=false)", () => {
+    renduAvecQueryClient(
+      <ChampEmplacementVehicule
+        vehiculeId="v1"
+        emplacement="Devant, place 3"
+        majLe={null}
+        peutModifier={false}
+      />,
+    );
+
+    expect(screen.getByText('Devant, place 3')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Modifier' })).not.toBeInTheDocument();
   });
 
   // Le composant est piloté par ses props (`emplacement`/`majLe`), source de vérité = le cache
@@ -68,7 +88,7 @@ describe('ChampEmplacementVehicule', () => {
     );
     const utilisateur = userEvent.setup();
     renduAvecQueryClient(
-      <ChampEmplacementVehicule vehiculeId="v1" emplacement={null} majLe={null} />,
+      <ChampEmplacementVehicule vehiculeId="v1" emplacement={null} majLe={null} peutModifier />,
     );
 
     await utilisateur.click(screen.getByRole('button', { name: 'Modifier' }));
@@ -97,7 +117,12 @@ describe('ChampEmplacementVehicule', () => {
     );
     const utilisateur = userEvent.setup();
     renduAvecQueryClient(
-      <ChampEmplacementVehicule vehiculeId="v1" emplacement="Devant, place 3" majLe={null} />,
+      <ChampEmplacementVehicule
+        vehiculeId="v1"
+        emplacement="Devant, place 3"
+        majLe={null}
+        peutModifier
+      />,
     );
 
     await utilisateur.click(screen.getByRole('button', { name: 'Modifier' }));
@@ -111,7 +136,12 @@ describe('ChampEmplacementVehicule', () => {
   it('annule la saisie avec Échap sans appeler le serveur', async () => {
     const utilisateur = userEvent.setup();
     renduAvecQueryClient(
-      <ChampEmplacementVehicule vehiculeId="v1" emplacement="Devant, place 3" majLe={null} />,
+      <ChampEmplacementVehicule
+        vehiculeId="v1"
+        emplacement="Devant, place 3"
+        majLe={null}
+        peutModifier
+      />,
     );
 
     await utilisateur.click(screen.getByRole('button', { name: 'Modifier' }));
@@ -141,7 +171,7 @@ describe('ChampEmplacementVehicule', () => {
     );
     const utilisateur = userEvent.setup();
     renduAvecQueryClient(
-      <ChampEmplacementVehicule vehiculeId="v1" emplacement={null} majLe={null} />,
+      <ChampEmplacementVehicule vehiculeId="v1" emplacement={null} majLe={null} peutModifier />,
     );
 
     await utilisateur.click(screen.getByRole('button', { name: 'Modifier' }));
@@ -159,7 +189,7 @@ describe('ChampEmplacementVehicule', () => {
   it('traduit le champ en allemand', async () => {
     await i18n.changeLanguage('de');
     renduAvecQueryClient(
-      <ChampEmplacementVehicule vehiculeId="v1" emplacement={null} majLe={null} />,
+      <ChampEmplacementVehicule vehiculeId="v1" emplacement={null} majLe={null} peutModifier />,
     );
 
     expect(screen.getByText('Kein Standort erfasst')).toBeInTheDocument();

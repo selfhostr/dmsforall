@@ -76,7 +76,7 @@ export function EcranJeuxARelancer() {
     {
       id: 'dimension',
       libelle: t('pneus:aRelancer.colonnes.dimension'),
-      rendu: (depot) => depot.dimension ?? '—',
+      rendu: (depot) => depot.dimension ?? t('pneus:jeu.sansDimension'),
     },
     {
       id: 'dernierMouvement',
@@ -153,7 +153,18 @@ export function EcranJeuxARelancer() {
           <Label htmlFor="pneus-a-relancer-site">{t('pneus:aRelancer.filtreSite')}</Label>
           <Select
             value={site ?? 'tous'}
-            onValueChange={(valeur) => setSearchParams(valeur === 'tous' ? {} : { site: valeur })}
+            onValueChange={(valeur) => {
+              // Copie les paramètres EXISTANTS plutôt que de les remplacer (même patron que
+              // `EcranTableauBord.changerSite`) : `setSearchParams({ site })` écraserait tout
+              // autre paramètre déjà présent dans l'URL.
+              const parametres = new URLSearchParams(searchParams);
+              if (valeur === 'tous') {
+                parametres.delete('site');
+              } else {
+                parametres.set('site', valeur);
+              }
+              setSearchParams(parametres);
+            }}
           >
             <SelectTrigger id="pneus-a-relancer-site">
               <SelectValue />

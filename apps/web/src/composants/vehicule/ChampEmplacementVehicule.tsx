@@ -17,6 +17,13 @@ export interface ProprietesChampEmplacementVehicule {
   /** `null` autant quand l'emplacement n'a jamais été noté que quand il l'a été puis effacé —
    *  aucune ambiguïté à lever ici : dans les deux cas, rien à afficher. */
   readonly majLe: string | null;
+  /** `PATCH /vehicules/{id}` exige `vehicule.modifier`, que `technicien`/`comptable`/`vendeur`/
+   *  `poste_atelier` n'ont PAS (lecture seule, voir `ecrans/vehicules/droits.ts`). Calculé par
+   *  l'APPELANT (`EnTeteFicheVehicule`, depuis la session) plutôt qu'ici : ce composant n'a pas
+   *  à connaître la session pour rester testable en isolation avec des props explicites. `false`
+   *  retire le crayon d'édition — jamais un bouton désactivé ni un message d'erreur après coup,
+   *  l'action ne doit simplement pas être proposée à qui ne peut pas l'accomplir. */
+  readonly peutModifier: boolean;
   readonly className?: string;
 }
 
@@ -33,6 +40,7 @@ export function ChampEmplacementVehicule({
   vehiculeId,
   emplacement,
   majLe,
+  peutModifier,
   className,
 }: ProprietesChampEmplacementVehicule) {
   const { t } = useTranslation(['vehicules', 'commun']);
@@ -84,16 +92,18 @@ export function ChampEmplacementVehicule({
           <span className="texte-corps font-medium">
             {emplacement ?? t('vehicules:emplacement.vide')}
           </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={ouvrirEdition}
-            aria-label={t('commun:actions.modifier')}
-            title={t('commun:actions.modifier')}
-          >
-            <Pencil aria-hidden className="h-4 w-4" />
-          </Button>
+          {peutModifier ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={ouvrirEdition}
+              aria-label={t('commun:actions.modifier')}
+              title={t('commun:actions.modifier')}
+            >
+              <Pencil aria-hidden className="h-4 w-4" />
+            </Button>
+          ) : null}
         </div>
         {majLe ? (
           <p className="texte-libelle text-muted-foreground">

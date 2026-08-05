@@ -117,6 +117,30 @@ describe('EcranListeVehicules', () => {
     expect(await screen.findByText('PAGE_FICHE_VEHICULE')).toBeInTheDocument();
   });
 
+  // DÉFAUT AUDIT — seul appelant de `TableComptoir` (sur treize) oublié lors du chantier
+  // d'accessibilité : `onOuvrirLigne` sans `libelleLigne` pose un `role="link"` sans nom
+  // accessible, un lecteur d'écran annonce alors « lien » cinquante fois sans jamais dire quelle
+  // plaque. Preuve directe via `getByRole` + nom, pas une classe CSS.
+  it('donne un nom accessible à chaque ligne (plaque), jamais un lien anonyme', async () => {
+    server.use(
+      http.get('/api/v1/vehicules', () => HttpResponse.json(pageDe([VEHICULE_1, VEHICULE_2]))),
+    );
+    rendre();
+
+    expect(await screen.findByRole('link', { name: 'Ouvrir 123456' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ouvrir 654321' })).toBeInTheDocument();
+  });
+
+  it('replie le nom accessible de la ligne sur la désignation quand la plaque est absente', async () => {
+    const vehiculeSansPlaque: VehiculeResume = { ...VEHICULE_2, id: 'v3', plaque: null };
+    server.use(
+      http.get('/api/v1/vehicules', () => HttpResponse.json(pageDe([vehiculeSansPlaque]))),
+    );
+    rendre();
+
+    expect(await screen.findByRole('link', { name: 'Ouvrir Renault Clio' })).toBeInTheDocument();
+  });
+
   it('affiche l’état vide « recherche » quand une recherche texte ne remonte aucun résultat', async () => {
     server.use(
       http.get('/api/v1/vehicules', ({ request }) => {
