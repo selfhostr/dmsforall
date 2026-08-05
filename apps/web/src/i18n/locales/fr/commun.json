@@ -20,7 +20,8 @@
     "chargerPlus": "Charger plus",
     "copier": "Copier",
     "imprimer": "Imprimer",
-    "voir": "Voir"
+    "voir": "Voir",
+    "ouvrirElement": "Ouvrir {nom}"
   },
   "chargement": {
     "enCours": "Chargement…"

@@ -328,8 +328,9 @@ export function DialogueMouvementStock({
           </div>
 
           {type === 'casse' || type === 'perte' ? (
-            <label className="flex items-center gap-2 texte-corps">
+            <label htmlFor="mvt-forcer" className="flex items-center gap-2 texte-corps">
               <Checkbox
+                id="mvt-forcer"
                 checked={forcer}
                 onCheckedChange={(coche) => setForcer(coche === true)}
                 disabled={enCours}

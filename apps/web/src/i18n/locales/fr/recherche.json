@@ -18,5 +18,6 @@
     "titre": "Aucun résultat",
     "description": "Vérifiez la saisie et réessayez"
   },
-  "chargement": "Recherche…"
+  "chargement": "Recherche…",
+  "annonceResultats": "{count, plural, one {# résultat trouvé} other {# résultats trouvés}}"
 }

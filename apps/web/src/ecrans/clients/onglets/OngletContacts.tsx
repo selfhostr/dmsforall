@@ -166,8 +166,13 @@ export function OngletContacts({ clientId }: Props) {
                 <Label>{t('clients:contacts.champs.roles')}</Label>
                 <div className="flex flex-wrap gap-x-4 gap-y-2">
                   {ROLES_CONTACT.map((role) => (
-                    <label key={role} className="flex items-center gap-2 texte-corps">
+                    <label
+                      key={role}
+                      htmlFor={`contact-role-${role}`}
+                      className="flex items-center gap-2 texte-corps"
+                    >
                       <Checkbox
+                        id={`contact-role-${role}`}
                         checked={roles.includes(role)}
                         onCheckedChange={(v) => basculerRole(role, v === true)}
                       />

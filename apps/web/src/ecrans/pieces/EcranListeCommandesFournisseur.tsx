@@ -196,8 +196,12 @@ export function EcranListeCommandesFournisseur() {
           </Select>
         </div>
 
-        <label className="flex items-center gap-2 texte-corps pb-2">
+        <label
+          htmlFor="commandes-avec-reliquat"
+          className="flex items-center gap-2 texte-corps pb-2"
+        >
           <Checkbox
+            id="commandes-avec-reliquat"
             checked={avecReliquat}
             onCheckedChange={(coche) => setAvecReliquat(coche === true)}
           />
@@ -210,6 +214,11 @@ export function EcranListeCommandesFournisseur() {
         lignes={commandes}
         cleLigne={(commande) => commande.id}
         onOuvrirLigne={(commande) => navigate(`/pieces/commandes-fournisseur/${commande.id}`)}
+        libelleLigne={(commande) =>
+          t('commun:actions.ouvrirElement', {
+            nom: commande.reference ?? formaterDate(commande.dateCommande),
+          })
+        }
         contenuVide={
           filtresActifs ? (
             <EtatVideFiltre

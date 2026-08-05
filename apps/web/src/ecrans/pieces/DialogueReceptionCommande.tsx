@@ -139,8 +139,12 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
             if (!saisie) return null;
             return (
               <div key={ligne.id} className="flex flex-col gap-3 rounded-md border p-3">
-                <label className="flex items-center gap-2 texte-corps font-medium">
+                <label
+                  htmlFor={`reception-ligne-${ligne.id}`}
+                  className="flex items-center gap-2 texte-corps font-medium"
+                >
                   <Checkbox
+                    id={`reception-ligne-${ligne.id}`}
                     checked={saisie.selectionnee}
                     onCheckedChange={(coche) =>
                       majLigne(ligne.id, { selectionnee: coche === true })

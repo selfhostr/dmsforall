@@ -365,6 +365,9 @@ export function EcranListeVehiculesStock() {
         lignes={vehiculesStock}
         cleLigne={(ligne) => ligne.id}
         onOuvrirLigne={(ligne) => navigate(chemins.vehicules.detail(ligne.id, site))}
+        libelleLigne={(ligne) =>
+          t('commun:actions.ouvrirElement', { nom: ligne.vehicule.designation })
+        }
         contenuVide={contenuVide}
       />
 

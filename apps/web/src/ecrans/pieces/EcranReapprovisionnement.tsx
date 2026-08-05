@@ -195,6 +195,7 @@ export function EcranReapprovisionnement() {
         cleLigne={(ligne) => `${ligne.articleId}-${ligne.siteId}`}
         enChargement={isPending}
         onOuvrirLigne={(ligne) => navigate(chemins.pieces.articleDetail(ligne.articleId, site))}
+        libelleLigne={(ligne) => t('commun:actions.ouvrirElement', { nom: ligne.designation })}
         contenuVide={
           <EtatVidePremierUsage
             titre={t('pieces:stock.reapprovisionnement.titre')}

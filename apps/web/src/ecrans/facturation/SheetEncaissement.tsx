@@ -242,15 +242,16 @@ export function SheetEncaissement({
                 {factures.map((facture) => (
                   <li key={facture.id} className="flex items-center gap-2 texte-corps">
                     <Checkbox
+                      id={`encaissement-facture-${facture.id}`}
                       checked={selection.has(facture.id)}
                       onCheckedChange={() => basculerFacture(facture.id)}
                     />
-                    <span className="flex-1">
+                    <label htmlFor={`encaissement-facture-${facture.id}`} className="flex-1">
                       {facture.numero} ·{' '}
                       {t('facturation:encaissement.facturesOuvertes.emiseLe', {
                         date: formaterDate(facture.dateDocument),
                       })}
-                    </span>
+                    </label>
                     {facture.soldeCentimes !== undefined ? (
                       <span className="tabular-nums text-muted-foreground">
                         {t('facturation:encaissement.facturesOuvertes.resteDu', {

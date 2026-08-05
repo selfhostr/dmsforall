@@ -168,6 +168,9 @@ export function EcranSuiviVentes() {
         onOuvrirLigne={(ligne) =>
           navigate(chemins.ventes.dossiers.detail(ligne.dossierVenteId, site))
         }
+        libelleLigne={(ligne) =>
+          t('commun:actions.ouvrirElement', { nom: ligne.clientAcheteur.nomAffiche })
+        }
         contenuVide={contenuVide}
       />
 

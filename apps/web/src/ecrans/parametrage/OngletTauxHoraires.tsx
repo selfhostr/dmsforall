@@ -135,6 +135,9 @@ export function OngletTauxHoraires({ role }: Props) {
             lignes={lignes}
             cleLigne={(tauxHoraire) => tauxHoraire.id}
             onOuvrirLigne={peutEcrire ? ouvrirEdition : undefined}
+            libelleLigne={(tauxHoraire) =>
+              t('commun:actions.ouvrirElement', { nom: tauxHoraire.libelle })
+            }
             enChargement={requete.isLoading}
             contenuVide={contenuVide}
           />

@@ -121,12 +121,29 @@ describe('PanneauResultatsRecherche', () => {
 
   it('état de chargement : montre le message dédié', () => {
     render(panneau(null, { enChargement: true }));
-    expect(screen.getByText('Recherche…')).toBeInTheDocument();
+    // `{ ignore: ... }` exclut la région `aria-live` (annonce lecteur d'écran, même texte que le
+    // message visible `CommandEmpty` par construction) : sans lui, deux nœuds portent "Recherche…"
+    // et `getByText` échouerait sur un match ambigu.
+    expect(screen.getByText('Recherche…', { ignore: '[aria-live]' })).toBeInTheDocument();
   });
 
   it('état vide : la variante recherche dédiée, jamais un tableau vide silencieux', () => {
     render(panneau({ resultats: [], plaqueInterchangeable: false }));
-    expect(screen.getByText('Aucun résultat')).toBeInTheDocument();
+    expect(screen.getByText('Aucun résultat', { ignore: '[aria-live]' })).toBeInTheDocument();
+  });
+
+  it('annonce le nombre de résultats à chaque changement pour un lecteur d’écran (aria-live)', () => {
+    const { rerender } = render(panneau(null));
+    expect(screen.getByRole('status')).toHaveTextContent('');
+
+    rerender(panneau({ resultats: [VEHICULE_A, CLIENT_A], plaqueInterchangeable: false }));
+    expect(screen.getByRole('status')).toHaveTextContent('2 résultats trouvés');
+
+    rerender(panneau({ resultats: [], plaqueInterchangeable: false }));
+    expect(screen.getByRole('status')).toHaveTextContent('Aucun résultat');
+
+    rerender(panneau(null, { enChargement: true }));
+    expect(screen.getByRole('status')).toHaveTextContent('Recherche…');
   });
 
   it('traduit le libellé du groupe véhicules en allemand', async () => {

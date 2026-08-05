@@ -20,7 +20,8 @@
     "chargerPlus": "Carica altro",
     "copier": "Copia",
     "imprimer": "Stampa",
-    "voir": "Visualizza"
+    "voir": "Visualizza",
+    "ouvrirElement": "Apri {nom}"
   },
   "chargement": {
     "enCours": "Caricamento..."

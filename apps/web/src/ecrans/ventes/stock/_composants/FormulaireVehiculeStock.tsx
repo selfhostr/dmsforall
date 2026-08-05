@@ -138,15 +138,14 @@ export function FormulaireVehiculeStock({ ouvert, onOuvertChange, stock }: Props
                 <DateInput
                   id="stock-date-entree"
                   disabled={modifier.isPending}
-                  aria-invalid={form.formState.errors.dateEntreeStock ? true : undefined}
+                  erreur={
+                    form.formState.errors.dateEntreeStock ? t('validation:requis') : undefined
+                  }
                   value={field.value}
                   onChange={(iso) => field.onChange(iso ?? '')}
                 />
               )}
             />
-            {form.formState.errors.dateEntreeStock ? (
-              <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
-            ) : null}
           </div>
 
           <div className="grid grid-cols-2 gap-3">

@@ -293,8 +293,12 @@ export function PanneauActionsOr({ or }: Props) {
                 label={t('or:actions.kilometrageEntree')}
                 obligatoire
               />
-              <label className="flex items-center gap-2 texte-corps">
+              <label
+                htmlFor="or-action-signature-differee"
+                className="flex items-center gap-2 texte-corps"
+              >
                 <Checkbox
+                  id="or-action-signature-differee"
                   checked={signatureDifferee}
                   onCheckedChange={(coche) => setSignatureDifferee(coche === true)}
                 />
@@ -463,8 +467,12 @@ export function PanneauActionsOr({ or }: Props) {
                 unite="km"
                 label={t('or:actions.kilometrageSortie')}
               />
-              <label className="flex items-center gap-2 texte-corps">
+              <label
+                htmlFor="or-action-paiement-recu"
+                className="flex items-center gap-2 texte-corps"
+              >
                 <Checkbox
+                  id="or-action-paiement-recu"
                   checked={paiementRecu}
                   onCheckedChange={(coche) => setPaiementRecu(coche === true)}
                 />

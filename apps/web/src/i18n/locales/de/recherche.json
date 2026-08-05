@@ -18,5 +18,6 @@
     "titre": "Kein Ergebnis",
     "description": "Überprüfen Sie Ihre Eingabe und versuchen Sie es erneut"
   },
-  "chargement": "Suche läuft…"
+  "chargement": "Suche läuft…",
+  "annonceResultats": "{count, plural, one {# Ergebnis gefunden} other {# Ergebnisse gefunden}}"
 }

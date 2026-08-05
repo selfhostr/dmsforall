@@ -145,6 +145,9 @@ export function EcranRechercheComptoirPieces() {
           onOuvrirLigne={(article) =>
             navigate(chemins.pieces.articleDetail(article.articleId, site))
           }
+          libelleLigne={(article) =>
+            t('commun:actions.ouvrirElement', { nom: article.designation })
+          }
           contenuVide={
             <EtatVideRecherche
               titre={t('pieces:rechercheComptoir.titre')}

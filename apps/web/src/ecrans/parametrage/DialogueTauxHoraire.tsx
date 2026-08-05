@@ -145,10 +145,13 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
                 id="th-code"
                 readOnly={estModification || enCours}
                 aria-invalid={form.formState.errors.code ? true : undefined}
+                aria-describedby={form.formState.errors.code ? 'th-code-erreur' : undefined}
                 {...form.register('code')}
               />
               {form.formState.errors.code ? (
-                <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+                <p id="th-code-erreur" className="texte-libelle text-destructive">
+                  {t('validation:requis')}
+                </p>
               ) : null}
               {estModification ? (
                 <p className="texte-libelle text-muted-foreground">
@@ -164,10 +167,13 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
                 id="th-libelle"
                 readOnly={enCours}
                 aria-invalid={form.formState.errors.libelle ? true : undefined}
+                aria-describedby={form.formState.errors.libelle ? 'th-libelle-erreur' : undefined}
                 {...form.register('libelle')}
               />
               {form.formState.errors.libelle ? (
-                <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+                <p id="th-libelle-erreur" className="texte-libelle text-destructive">
+                  {t('validation:requis')}
+                </p>
               ) : null}
             </div>
           </div>
@@ -200,15 +206,12 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
                   <DateInput
                     id="th-valide-du"
                     disabled={enCours}
-                    aria-invalid={form.formState.errors.valideDuLe ? true : undefined}
+                    erreur={form.formState.errors.valideDuLe ? t('validation:requis') : undefined}
                     value={field.value}
                     onChange={(iso) => field.onChange(iso ?? '')}
                   />
                 )}
               />
-              {form.formState.errors.valideDuLe ? (
-                <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
-              ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="th-valide-au">

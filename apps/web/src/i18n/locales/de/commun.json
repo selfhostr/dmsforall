@@ -20,7 +20,8 @@
     "chargerPlus": "Mehr laden",
     "copier": "Kopieren",
     "imprimer": "Drucken",
-    "voir": "Ansehen"
+    "voir": "Ansehen",
+    "ouvrirElement": "{nom} öffnen"
   },
   "chargement": {
     "enCours": "Wird geladen…"

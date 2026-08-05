@@ -222,11 +222,14 @@ export function EcranAvoir() {
                 return (
                   <li key={ligne.id} className="flex items-center gap-2 texte-corps">
                     <Checkbox
+                      id={`avoir-ligne-${ligne.id}`}
                       checked={selection.has(ligne.id)}
                       disabled={!eligible}
                       onCheckedChange={() => basculerLigne(ligne.id)}
                     />
-                    <span className="flex-1">{ligne.designation}</span>
+                    <label htmlFor={`avoir-ligne-${ligne.id}`} className="flex-1">
+                      {ligne.designation}
+                    </label>
                     {ligne.montants ? (
                       <span className="tabular-nums">
                         {formaterMontant(ligne.montants.montantTtcCentimes)}

@@ -157,6 +157,11 @@ export function OngletPrestations({ role }: Props) {
             lignes={lignes}
             cleLigne={(prestation) => prestation.id}
             onOuvrirLigne={peutEcrire ? ouvrirEdition : undefined}
+            libelleLigne={(prestation) =>
+              t('commun:actions.ouvrirElement', {
+                nom: prestation.designation[langue] || prestation.designation.fr,
+              })
+            }
             enChargement={requete.isLoading}
             contenuVide={contenuVide}
           />

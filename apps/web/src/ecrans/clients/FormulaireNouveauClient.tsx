@@ -272,10 +272,11 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
               id="nc-nom"
               readOnly={enCours}
               aria-invalid={form.formState.errors.nom ? true : undefined}
+              aria-describedby={form.formState.errors.nom ? 'nc-nom-erreur' : undefined}
               {...form.register('nom', { setValueAs: videVersIndefini })}
             />
             {form.formState.errors.nom ? (
-              <p className="text-sm text-destructive">
+              <p id="nc-nom-erreur" className="text-sm text-destructive">
                 {form.formState.errors.nom.type === 'server'
                   ? form.formState.errors.nom.message
                   : t('validation:requis')}
@@ -299,10 +300,13 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
               id="nc-raison-sociale"
               readOnly={enCours}
               aria-invalid={form.formState.errors.raisonSociale ? true : undefined}
+              aria-describedby={
+                form.formState.errors.raisonSociale ? 'nc-raison-sociale-erreur' : undefined
+              }
               {...form.register('raisonSociale', { setValueAs: videVersIndefini })}
             />
             {form.formState.errors.raisonSociale ? (
-              <p className="text-sm text-destructive">
+              <p id="nc-raison-sociale-erreur" className="text-sm text-destructive">
                 {form.formState.errors.raisonSociale.type === 'server'
                   ? form.formState.errors.raisonSociale.message
                   : t('validation:requis')}
@@ -316,6 +320,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
               readOnly={enCours}
               placeholder="CHE-123.456.789"
               aria-invalid={form.formState.errors.ide ? true : undefined}
+              aria-describedby={form.formState.errors.ide ? 'nc-ide-erreur' : undefined}
               {...form.register('ide', { setValueAs: videVersIndefini })}
             />
             {form.formState.errors.ide ? (
@@ -324,7 +329,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
               // de soumettre (aucune requête réseau), et rien ne le montre au garagiste. Le message
               // zod natif n'étant pas traduit (§ commentaire de `messageErreurChamp`), on retombe
               // sur le générique existant plutôt que d'afficher un texte anglais brut.
-              <p className="text-sm text-destructive">
+              <p id="nc-ide-erreur" className="text-sm text-destructive">
                 {form.formState.errors.ide.type === 'server'
                   ? form.formState.errors.ide.message
                   : t('erreurs:codes.VALIDATION_ECHOUEE')}
@@ -376,10 +381,11 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
             type="email"
             readOnly={enCours}
             aria-invalid={form.formState.errors.email ? true : undefined}
+            aria-describedby={form.formState.errors.email ? 'nc-email-erreur' : undefined}
             {...form.register('email', { setValueAs: videVersIndefini })}
           />
           {form.formState.errors.email ? (
-            <p className="text-sm text-destructive">
+            <p id="nc-email-erreur" className="text-sm text-destructive">
               {form.formState.errors.email.type === 'server'
                 ? form.formState.errors.email.message
                 : t('validation:email.invalide')}
@@ -398,10 +404,13 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
             id="nc-rue"
             readOnly={enCours}
             aria-invalid={form.formState.errors.adressePrincipale?.rue ? true : undefined}
+            aria-describedby={
+              form.formState.errors.adressePrincipale?.rue ? 'nc-rue-erreur' : undefined
+            }
             {...form.register('adressePrincipale.rue')}
           />
           {form.formState.errors.adressePrincipale?.rue ? (
-            <p className="text-sm text-destructive">
+            <p id="nc-rue-erreur" className="text-sm text-destructive">
               {form.formState.errors.adressePrincipale.rue.type === 'server'
                 ? form.formState.errors.adressePrincipale.rue.message
                 : t('validation:requis')}
@@ -415,10 +424,13 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
               id="nc-npa"
               readOnly={enCours}
               aria-invalid={form.formState.errors.adressePrincipale?.npa ? true : undefined}
+              aria-describedby={
+                form.formState.errors.adressePrincipale?.npa ? 'nc-npa-erreur' : undefined
+              }
               {...form.register('adressePrincipale.npa')}
             />
             {form.formState.errors.adressePrincipale?.npa ? (
-              <p className="text-sm text-destructive">
+              <p id="nc-npa-erreur" className="text-sm text-destructive">
                 {form.formState.errors.adressePrincipale.npa.type === 'server'
                   ? form.formState.errors.adressePrincipale.npa.message
                   : t('validation:requis')}
@@ -431,10 +443,13 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
               id="nc-localite"
               readOnly={enCours}
               aria-invalid={form.formState.errors.adressePrincipale?.localite ? true : undefined}
+              aria-describedby={
+                form.formState.errors.adressePrincipale?.localite ? 'nc-localite-erreur' : undefined
+              }
               {...form.register('adressePrincipale.localite')}
             />
             {form.formState.errors.adressePrincipale?.localite ? (
-              <p className="text-sm text-destructive">
+              <p id="nc-localite-erreur" className="text-sm text-destructive">
                 {form.formState.errors.adressePrincipale.localite.type === 'server'
                   ? form.formState.errors.adressePrincipale.localite.message
                   : t('validation:requis')}

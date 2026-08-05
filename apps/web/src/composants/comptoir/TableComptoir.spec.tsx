@@ -28,6 +28,7 @@ describe('TableComptoir', () => {
         lignes={LIGNES}
         cleLigne={(l) => l.id}
         onOuvrirLigne={onOuvrirLigne}
+        libelleLigne={(l) => `Ouvrir ${l.nom}`}
       />,
     );
 
@@ -47,6 +48,7 @@ describe('TableComptoir', () => {
         lignes={LIGNES}
         cleLigne={(l) => l.id}
         onOuvrirLigne={onOuvrirLigne}
+        libelleLigne={(l) => `Ouvrir ${l.nom}`}
       />,
     );
 
@@ -54,6 +56,27 @@ describe('TableComptoir', () => {
     lignes[1]?.focus();
     await utilisateur.keyboard('{Enter}');
     expect(onOuvrirLigne).toHaveBeenCalledWith(LIGNES[1]);
+  });
+
+  it('pose un nom accessible sur chaque ligne cliquable via `libelleLigne`', () => {
+    render(
+      <TableComptoir
+        colonnes={COLONNES}
+        lignes={LIGNES}
+        cleLigne={(l) => l.id}
+        onOuvrirLigne={vi.fn()}
+        libelleLigne={(l) => `Ouvrir ${l.nom}`}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Ouvrir Alice' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ouvrir Bob' })).toBeInTheDocument();
+  });
+
+  it('ne pose pas de rôle « link » quand les lignes ne sont pas cliquables', () => {
+    render(<TableComptoir colonnes={COLONNES} lignes={LIGNES} cleLigne={(l) => l.id} />);
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
   it('pose aria-sort sur la colonne triée et appelle onTrier au clic sur l’en-tête', async () => {

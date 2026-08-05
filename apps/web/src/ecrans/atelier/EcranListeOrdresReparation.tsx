@@ -262,6 +262,7 @@ export function EcranListeOrdresReparation() {
         lignes={ordres}
         cleLigne={(or) => or.id}
         onOuvrirLigne={(or) => navigate(cheminDetailOr(or.id, site))}
+        libelleLigne={(or) => t('commun:actions.ouvrirElement', { nom: or.numero })}
         contenuVide={contenuVide}
       />
 

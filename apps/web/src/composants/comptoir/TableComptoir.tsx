@@ -48,6 +48,11 @@ export interface ProprietesTableComptoir<T> {
   /** Navigation au clic/`Entrée` sur la ligne. Omis => lignes non cliquables (table de
    *  résumé, pas de fiche à ouvrir). */
   readonly onOuvrirLigne?: (ligne: T) => void;
+  /** Nom accessible de la ligne quand `onOuvrirLigne` est fourni — posé en `aria-label` sur le
+   *  `role="link"` de la ligne. Sans lui, un lecteur d'écran annonce « lien » sans dire lequel :
+   *  À FOURNIR dès que `onOuvrirLigne` l'est (déjà traduit par l'appelant, ex.
+   *  `t('commun:actions.ouvrirElement', { nom: ligne.numero })`). */
+  readonly libelleLigne?: (ligne: T) => string;
   /** `true` pendant le chargement initial : rend des lignes squelette au lieu du corps. */
   readonly enChargement?: boolean;
   readonly lignesSquelette?: number;
@@ -66,6 +71,10 @@ function classeAlignement(alignement: 'gauche' | 'droite' | undefined): string |
  * Table dense du comptoir : en-têtes triables (`aria-sort`), lignes cliquables navigables au
  * clavier, colonne d'actions qui n'active pas la navigation. Densité `dense` par défaut
  * (contexte bureau/comptoir — docs/design-comptoir.md §1 et §4).
+ *
+ * Ligne cliquable = `role="link"` : sans nom accessible, un lecteur d'écran annonce « lien »
+ * sans dire lequel. `libelleLigne` porte ce nom (`aria-label`) — à fournir par tout appelant qui
+ * passe `onOuvrirLigne`.
  */
 export function TableComptoir<T>({
   colonnes,
@@ -75,6 +84,7 @@ export function TableComptoir<T>({
   tri = null,
   onTrier,
   onOuvrirLigne,
+  libelleLigne,
   enChargement = false,
   lignesSquelette = 5,
   contenuVide,
@@ -154,6 +164,7 @@ export function TableComptoir<T>({
             <TableRow
               key={cleLigne(ligne)}
               role={onOuvrirLigne ? 'link' : undefined}
+              aria-label={onOuvrirLigne ? libelleLigne?.(ligne) : undefined}
               tabIndex={onOuvrirLigne ? 0 : undefined}
               className={onOuvrirLigne ? 'cursor-pointer' : undefined}
               onClick={onOuvrirLigne ? () => gererClicLigne(ligne) : undefined}

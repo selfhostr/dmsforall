@@ -290,6 +290,7 @@ export function EcranListeArticles() {
         lignes={articles}
         cleLigne={(article) => article.id}
         onOuvrirLigne={(article) => navigate(chemins.pieces.articleDetail(article.id))}
+        libelleLigne={(article) => t('commun:actions.ouvrirElement', { nom: article.designation })}
         contenuVide={contenuVide}
       />
 

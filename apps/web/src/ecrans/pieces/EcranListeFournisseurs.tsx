@@ -167,6 +167,7 @@ export function EcranListeFournisseurs() {
         lignes={fournisseurs}
         cleLigne={(fournisseur) => fournisseur.id}
         onOuvrirLigne={(fournisseur) => navigate(`/pieces/fournisseurs/${fournisseur.id}`)}
+        libelleLigne={(fournisseur) => t('commun:actions.ouvrirElement', { nom: fournisseur.nom })}
         contenuVide={
           statut ? (
             <EtatVideFiltre

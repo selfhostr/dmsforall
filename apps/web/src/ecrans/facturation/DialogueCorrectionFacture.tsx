@@ -249,8 +249,9 @@ export function DialogueCorrectionFacture({ facture, ouvert, onOuvertChange, onS
           ) : null}
 
           {brancheAdresse ? (
-            <label className="flex items-center gap-2 texte-corps">
+            <label htmlFor="facture-corriger-fiche" className="flex items-center gap-2 texte-corps">
               <Checkbox
+                id="facture-corriger-fiche"
                 checked={corrigerFiche}
                 onCheckedChange={(coche) => setCorrigerFiche(coche === true)}
               />

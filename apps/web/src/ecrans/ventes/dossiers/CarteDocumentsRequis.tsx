@@ -67,8 +67,12 @@ export function CarteDocumentsRequis({ dossierVenteId, documentsRequis, peutModi
               const enErreur = erreurParCode[item.code] === true;
               return (
                 <li key={item.code} className="flex flex-col gap-1">
-                  <label className="flex min-h-11 items-center gap-3 texte-corps">
+                  <label
+                    htmlFor={`document-requis-${item.code}`}
+                    className="flex min-h-11 items-center gap-3 texte-corps"
+                  >
                     <Checkbox
+                      id={`document-requis-${item.code}`}
                       checked={item.fourni}
                       disabled={!peutModifier || codeEnCours === item.code}
                       onCheckedChange={() => basculer(item.code, item.fourni)}

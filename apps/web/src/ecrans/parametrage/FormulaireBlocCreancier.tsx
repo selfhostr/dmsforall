@@ -349,6 +349,7 @@ function ChampCompte({
   erreur,
   t,
 }: PropsChampCompte) {
+  const idErreur = `${id}-erreur`;
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{libelle}</Label>
@@ -357,11 +358,12 @@ function ChampCompte({
         maxLength={34}
         readOnly={lectureSeule}
         aria-invalid={invalide || undefined}
+        aria-describedby={erreur ? idErreur : undefined}
         {...register}
       />
       <p className="text-sm text-muted-foreground">{aide}</p>
       {erreur ? (
-        <p className="text-sm text-destructive" role="alert">
+        <p id={idErreur} className="text-sm text-destructive" role="alert">
           {t(`erreurs:codes.${erreur.code}`, {
             defaultValue: t('erreurs:codes.VALIDATION_ECHOUEE'),
           })}

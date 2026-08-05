@@ -252,6 +252,9 @@ export function EcranListeFactures() {
             lignes={documents}
             cleLigne={(document_) => document_.id}
             onOuvrirLigne={(document_) => navigate(`/factures/${document_.id}`)}
+            libelleLigne={(document_) =>
+              t('commun:actions.ouvrirElement', { nom: document_.numero })
+            }
             contenuVide={contenuVide}
           />
           <BoutonChargerPlus

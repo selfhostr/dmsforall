@@ -236,6 +236,7 @@ export function EcranListeClients() {
             tri={triComptoir}
             onTrier={trier}
             onOuvrirLigne={(client) => navigate(chemins.clients.detail(client.id, site))}
+            libelleLigne={(client) => t('commun:actions.ouvrirElement', { nom: client.nomAffiche })}
             enChargement={requete.isLoading}
             contenuVide={contenuVide}
           />

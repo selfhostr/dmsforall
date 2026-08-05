@@ -116,7 +116,12 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
     const invalideInterne =
       touche && saisie.trim() !== '' && parserSaisieDate(saisie) === undefined;
     const ariaInvalideExterneVrai = ariaInvalidExterne === true || ariaInvalidExterne === 'true';
-    const ariaInvalide = ariaInvalideExterneVrai || invalideInterne ? true : ariaInvalidExterne;
+    // `erreur` (ex. « champ requis » porté par l'appelant, react-hook-form) rend le champ invalide
+    // au même titre qu'un format de date illisible détecté en interne — sans ce `Boolean(erreur)`,
+    // un champ requis resté vide affichait son message (`messageErreurAffiche`) sans jamais poser
+    // `aria-invalid` (la saisie vide échoue le test `saisie.trim() !== ''` d'`invalideInterne`).
+    const ariaInvalide =
+      ariaInvalideExterneVrai || invalideInterne || Boolean(erreur) ? true : ariaInvalidExterne;
     const messageErreurAffiche = erreur ?? (invalideInterne ? t('dateInvalide') : undefined);
 
     return (

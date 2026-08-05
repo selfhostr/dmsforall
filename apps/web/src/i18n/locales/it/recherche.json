@@ -18,5 +18,6 @@
     "titre": "Nessun risultato",
     "description": "Verificare l'immissione e riprovare"
   },
-  "chargement": "Ricerca in corso…"
+  "chargement": "Ricerca in corso…",
+  "annonceResultats": "{count, plural, one {# risultato trovato} other {# risultati trovati}}"
 }

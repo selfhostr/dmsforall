@@ -194,10 +194,15 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
                 id="art-designation"
                 readOnly={enCours}
                 aria-invalid={form.formState.errors.designation ? true : undefined}
+                aria-describedby={
+                  form.formState.errors.designation ? 'art-designation-erreur' : undefined
+                }
                 {...form.register('designation', { required: true })}
               />
               {form.formState.errors.designation ? (
-                <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+                <p id="art-designation-erreur" className="texte-libelle text-destructive">
+                  {t('validation:requis')}
+                </p>
               ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
@@ -213,10 +218,15 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
                 id="art-reference"
                 readOnly={enCours}
                 aria-invalid={form.formState.errors.referencePrincipale ? true : undefined}
+                aria-describedby={
+                  form.formState.errors.referencePrincipale ? 'art-reference-erreur' : undefined
+                }
                 {...form.register('referencePrincipale', { required: true })}
               />
               {form.formState.errors.referencePrincipale ? (
-                <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+                <p id="art-reference-erreur" className="texte-libelle text-destructive">
+                  {t('validation:requis')}
+                </p>
               ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
@@ -300,12 +310,16 @@ export function FormulaireArticle({ ouvert, onOuvertChange, article, onCree }: P
           </p>
 
           <div className="flex flex-col gap-3 rounded-md border p-3">
-            <label className="flex items-center gap-2 texte-corps">
+            <label
+              htmlFor="article-echange-standard"
+              className="flex items-center gap-2 texte-corps"
+            >
               <Controller
                 control={form.control}
                 name="estEchangeStandard"
                 render={({ field }) => (
                   <Checkbox
+                    id="article-echange-standard"
                     checked={field.value}
                     onCheckedChange={(coche) => field.onChange(coche === true)}
                     disabled={enCours}

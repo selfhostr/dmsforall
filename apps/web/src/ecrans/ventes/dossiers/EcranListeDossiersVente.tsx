@@ -305,8 +305,12 @@ export function EcranListeDossiersVente() {
         </div>
 
         {filtreStatut === 'tous' ? (
-          <label className="flex items-center gap-2 texte-corps">
+          <label
+            htmlFor="dossiers-afficher-termines"
+            className="flex items-center gap-2 texte-corps"
+          >
             <Checkbox
+              id="dossiers-afficher-termines"
               checked={afficherTermines}
               onCheckedChange={(coche) => setAfficherTermines(coche === true)}
             />
@@ -328,6 +332,9 @@ export function EcranListeDossiersVente() {
         lignes={dossiers}
         cleLigne={(dossier) => dossier.id}
         onOuvrirLigne={(dossier) => navigate(chemins.ventes.dossiers.detail(dossier.id, site))}
+        libelleLigne={(dossier) =>
+          t('commun:actions.ouvrirElement', { nom: dossier.clientAcheteur.nomAffiche })
+        }
         contenuVide={contenuVide}
       />
 

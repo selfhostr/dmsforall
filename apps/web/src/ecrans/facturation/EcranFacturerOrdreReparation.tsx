@@ -311,8 +311,15 @@ export function EcranFacturerOrdreReparation() {
               <h2 className="texte-titre-section font-semibold text-foreground">
                 {t('facturation:facturerOr.groupe.titre', { payeur: libelleGroupe(t, groupe) })}
               </h2>
-              <label className="flex items-center gap-2 texte-corps">
-                <Checkbox checked={!decoche} onCheckedChange={() => basculerGroupe(cle)} />
+              <label
+                htmlFor={`facturer-or-groupe-${cle}`}
+                className="flex items-center gap-2 texte-corps"
+              >
+                <Checkbox
+                  id={`facturer-or-groupe-${cle}`}
+                  checked={!decoche}
+                  onCheckedChange={() => basculerGroupe(cle)}
+                />
                 {t('facturation:facturerOr.groupe.facturerMaintenant')}
               </label>
             </div>
@@ -348,8 +355,12 @@ export function EcranFacturerOrdreReparation() {
                     montant: formaterMontant(or.demontageFacturablePropose.montantTtcCentimes),
                   })}
                 </p>
-                <label className="flex items-center gap-2 texte-corps">
+                <label
+                  htmlFor="facturer-or-demontage-refuse"
+                  className="flex items-center gap-2 texte-corps"
+                >
                   <Checkbox
+                    id="facturer-or-demontage-refuse"
                     checked={inclureDemontageRefuse}
                     onCheckedChange={(coche) => setInclureDemontageRefuse(coche === true)}
                   />

@@ -148,7 +148,12 @@ export function FormulaireEntreeEnStock({ vehicule, sites, onRetour, onMisEnStoc
               onValueChange={field.onChange}
               disabled={mettreEnStock.isPending}
             >
-              <SelectTrigger id="entree-site" aria-label={t('ventes:stock.champs.site')}>
+              <SelectTrigger
+                id="entree-site"
+                aria-label={t('ventes:stock.champs.site')}
+                aria-invalid={form.formState.errors.siteId ? true : undefined}
+                aria-describedby={form.formState.errors.siteId ? 'entree-site-erreur' : undefined}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -162,7 +167,9 @@ export function FormulaireEntreeEnStock({ vehicule, sites, onRetour, onMisEnStoc
           )}
         />
         {form.formState.errors.siteId ? (
-          <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+          <p id="entree-site-erreur" className="texte-libelle text-destructive">
+            {t('validation:requis')}
+          </p>
         ) : null}
       </div>
 
@@ -225,12 +232,17 @@ export function FormulaireEntreeEnStock({ vehicule, sites, onRetour, onMisEnStoc
             id="entree-provenance-libre"
             readOnly={mettreEnStock.isPending}
             aria-invalid={form.formState.errors.provenanceLibre ? true : undefined}
+            aria-describedby={
+              form.formState.errors.provenanceLibre ? 'entree-provenance-libre-erreur' : undefined
+            }
             {...form.register('provenanceLibre', {
               required: provenanceSelect === PROVENANCE_AUTRE,
             })}
           />
           {form.formState.errors.provenanceLibre ? (
-            <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+            <p id="entree-provenance-libre-erreur" className="texte-libelle text-destructive">
+              {t('validation:requis')}
+            </p>
           ) : null}
         </div>
       ) : null}

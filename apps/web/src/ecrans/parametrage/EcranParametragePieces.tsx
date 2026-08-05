@@ -367,13 +367,15 @@ interface PropsCaseACocher {
 }
 
 function CaseACocher({ name, form, disabled, libelle }: PropsCaseACocher) {
+  const id = `param-pieces-${name}`;
   return (
     <Controller
       control={form.control}
       name={name}
       render={({ field }) => (
-        <label className="flex items-center gap-2 texte-corps">
+        <label htmlFor={id} className="flex items-center gap-2 texte-corps">
           <Checkbox
+            id={id}
             checked={field.value}
             onCheckedChange={(coche) => field.onChange(coche === true)}
             disabled={disabled}

@@ -239,8 +239,9 @@ export function EcranNouveauDossierVente() {
 
       <Card>
         <CardContent className="flex flex-col gap-4 pt-6">
-          <label className="flex items-center gap-2 texte-corps">
+          <label htmlFor="dossier-facturer-a-tiers" className="flex items-center gap-2 texte-corps">
             <Checkbox
+              id="dossier-facturer-a-tiers"
               checked={facturerATiers}
               onCheckedChange={(coche) => setFacturerATiers(coche === true)}
             />
@@ -254,8 +255,12 @@ export function EcranNouveauDossierVente() {
             />
           ) : null}
 
-          <label className="flex items-center gap-2 texte-corps">
+          <label
+            htmlFor="dossier-conducteur-different"
+            className="flex items-center gap-2 texte-corps"
+          >
             <Checkbox
+              id="dossier-conducteur-different"
               checked={conducteurDifferent}
               onCheckedChange={(coche) => setConducteurDifferent(coche === true)}
             />

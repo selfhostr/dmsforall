@@ -102,4 +102,20 @@ describe('DateInput', () => {
     const messageErreur = document.getElementById('date-erreur-externe-erreur');
     expect(messageErreur?.textContent).toBe('Ce champ est obligatoire.');
   });
+
+  it('pose aria-invalid quand `erreur` est fourni même sur un champ resté VIDE (ex. champ requis) — la détection interne seule ne le voit pas, une saisie vide n’étant jamais « un format illisible »', () => {
+    render(
+      <DateInput
+        id="date-requis-vide"
+        aria-label="Date"
+        value={null}
+        onChange={vi.fn()}
+        erreur="Ce champ est obligatoire."
+      />,
+    );
+
+    const champ = screen.getByLabelText('Date');
+    expect(champ).toHaveAttribute('aria-invalid', 'true');
+    expect(champ).toHaveAttribute('aria-describedby', 'date-requis-vide-erreur');
+  });
 });

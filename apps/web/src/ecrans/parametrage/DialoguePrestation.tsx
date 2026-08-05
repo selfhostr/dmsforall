@@ -161,10 +161,13 @@ export function DialoguePrestation({
                 id="pr-code"
                 readOnly={estModification || enCours}
                 aria-invalid={form.formState.errors.code ? true : undefined}
+                aria-describedby={form.formState.errors.code ? 'pr-code-erreur' : undefined}
                 {...form.register('code')}
               />
               {form.formState.errors.code ? (
-                <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+                <p id="pr-code-erreur" className="texte-libelle text-destructive">
+                  {t('validation:requis')}
+                </p>
               ) : null}
               {estModification ? (
                 <p className="texte-libelle text-muted-foreground">
@@ -214,10 +217,15 @@ export function DialoguePrestation({
                 id="pr-designation-fr"
                 readOnly={enCours}
                 aria-invalid={form.formState.errors.designationFr ? true : undefined}
+                aria-describedby={
+                  form.formState.errors.designationFr ? 'pr-designation-fr-erreur' : undefined
+                }
                 {...form.register('designationFr')}
               />
               {form.formState.errors.designationFr ? (
-                <p className="texte-libelle text-destructive">{t('validation:requis')}</p>
+                <p id="pr-designation-fr-erreur" className="texte-libelle text-destructive">
+                  {t('validation:requis')}
+                </p>
               ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
@@ -341,8 +349,9 @@ export function DialoguePrestation({
           </div>
 
           {estModification ? (
-            <label className="flex items-center gap-2 texte-corps">
+            <label htmlFor="prestation-actif" className="flex items-center gap-2 texte-corps">
               <Checkbox
+                id="prestation-actif"
                 checked={actif}
                 onCheckedChange={(coche) => setActif(coche === true)}
                 disabled={enCours}

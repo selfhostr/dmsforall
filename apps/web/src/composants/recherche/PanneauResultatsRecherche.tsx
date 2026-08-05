@@ -68,8 +68,28 @@ export function PanneauResultatsRecherche({
   const plaqueInterchangeable = reponse?.plaqueInterchangeable === true;
   const aucunResultat = reponse !== null && reponse.resultats.length === 0;
 
+  // Le focus reste dans `CommandInput` pendant toute la frappe : le changement de résultats en
+  // dessous (nombre, passage chargement -> vide/rempli) ne serait jamais annoncé par un lecteur
+  // d'écran sans cette région dédiée — `CommandList`/`CommandEmpty` (cmdk) ne posent aucun
+  // `aria-live`. Texte caché visuellement, jamais dupliqué avec le contenu déjà visible.
+  let annonceLive: string;
+  if (enChargement) {
+    annonceLive = t('chargement');
+  } else if (aucunResultat) {
+    annonceLive = t('vide.titre');
+  } else if (reponse !== null) {
+    annonceLive = t('annonceResultats', { count: reponse.resultats.length });
+  } else {
+    // Rien saisi/recherché encore — aucune annonce, l'aide (`recherche:aide`) affichée à côté
+    // reste l'unique message tant qu'aucune requête n'est partie.
+    annonceLive = '';
+  }
+
   return (
     <div onKeyDown={gererClavier} className={className}>
+      <span role="status" aria-live="polite" className="sr-only">
+        {annonceLive}
+      </span>
       {/* RM-18 / §6.9 : rendu HORS de la liste `cmdk` — ni ordonnancement par score, ni
           surlignage automatique du premier élément (voir ChoixPlaqueInterchangeable). */}
       {plaqueInterchangeable && vehicules.length > 0 ? (
