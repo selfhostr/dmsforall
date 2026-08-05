@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, getTableColumns, sql } from 'drizzle-orm';
 import {
+  npaSuisseValide,
   TRI_DEFAUT_CREATION,
   type EntreeAdresseClient,
   type EntreeConditionClient,
@@ -221,31 +222,54 @@ export class ServiceClientSousCollections {
     this.exigerCorpsNonVide(entree);
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);
+      const conditionAdresse = and(
+        eq(clientAdresse.tenantId, ctx.tenantId),
+        eq(clientAdresse.clientId, clientId),
+        eq(clientAdresse.id, adresseId),
+      );
+      // Trou de validation partielle (NPA×pays, `schemaModificationAdresseClient` dans
+      // `@dfa/shared`) : le schéma zod ne voit que CE corps, jamais la ligne existante. Un
+      // `PATCH { npa: 'ABCDE' }` seul sur une adresse CH existante — ou symétriquement
+      // `PATCH { pays: 'CH' }` seul sur une adresse dont le NPA en base ne fait pas 4 chiffres —
+      // atteindrait la base sans jamais être revalidé. On ne charge l'existant QUE si `npa` ou
+      // `pays` est touché : un corps qui ne les modifie pas ne peut pas violer cette règle,
+      // aucune lecture supplémentaire n'est justifiée.
+      if ('npa' in entree || 'pays' in entree) {
+        const lignesExistantes = await tx
+          .select()
+          .from(clientAdresse)
+          .where(conditionAdresse)
+          .limit(1);
+        const ligneExistante = lignesExistantes[0];
+        if (!ligneExistante)
+          throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Adresse introuvable.');
+        const paysEffectif = 'pays' in entree ? entree.pays : ligneExistante.pays;
+        const npaEffectif = 'npa' in entree ? entree.npa : ligneExistante.npa;
+        // `clientAdresse.npa` est NULLABLE en base (migration 0006, `npa text null` — legacy),
+        // même si le contrat API l'exige toujours à la création (`schemaAdresseClientBase`) :
+        // un `npa` absent (`null`/`undefined`) sur une adresse CH échoue au même titre qu'un
+        // format invalide — `npaSuisseValide` n'accepte qu'une chaîne à 4 chiffres.
+        if (
+          paysEffectif === 'CH' &&
+          !(typeof npaEffectif === 'string' && npaSuisseValide(npaEffectif))
+        ) {
+          throw new ErreurMetier('VALIDATION_ECHOUEE', 'Validation échouée.', {
+            erreurs: [
+              {
+                champ: 'npa',
+                code: 'custom',
+                message: 'Le NPA suisse comporte exactement 4 chiffres (ex. 1950).',
+              },
+            ],
+          });
+        }
+      }
       try {
-        await tx
-          .update(clientAdresse)
-          .set(entree)
-          .where(
-            and(
-              eq(clientAdresse.tenantId, ctx.tenantId),
-              eq(clientAdresse.clientId, clientId),
-              eq(clientAdresse.id, adresseId),
-            ),
-          );
+        await tx.update(clientAdresse).set(entree).where(conditionAdresse);
       } catch (erreur) {
         throw this.traduireViolationAdresse(erreur, entree.type);
       }
-      const lignes = await tx
-        .select()
-        .from(clientAdresse)
-        .where(
-          and(
-            eq(clientAdresse.tenantId, ctx.tenantId),
-            eq(clientAdresse.clientId, clientId),
-            eq(clientAdresse.id, adresseId),
-          ),
-        )
-        .limit(1);
+      const lignes = await tx.select().from(clientAdresse).where(conditionAdresse).limit(1);
       const ligne = lignes[0];
       if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Adresse introuvable.');
       return new CollecteurAvertissements().envelopper(versAdresseResponse(ligne));

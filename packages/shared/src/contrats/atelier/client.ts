@@ -287,14 +287,23 @@ export const schemaParametresDoublonsClients = z
  * Appliquée par `.superRefine(...)`, PAS par un simple `.regex()` sur le champ `npa` seul : la
  * règle dépend de DEUX champs (`npa` ET `pays`), donc elle ne peut être exprimée qu'au niveau de
  * l'objet entier.
+ *
+ * `npaSuisseValide` est exportée pour rester l'UNIQUE source de vérité du format : réutilisée par
+ * `ServiceClientSousCollections.modifierAdresse` (`apps/api/src/clients/service-client-sous-collections.ts`)
+ * pour revalider l'état EFFECTIF (base + corps `PATCH` fusionnés) — voir la doc de
+ * `schemaModificationAdresseClient` plus bas pour le trou que ce partage ferme.
  */
 const NPA_SUISSE_REGEX = /^\d{4}$/;
+
+export function npaSuisseValide(npa: string): boolean {
+  return NPA_SUISSE_REGEX.test(npa);
+}
 
 function validerNpaSelonPays(
   valeurs: { readonly npa?: string; readonly pays?: string },
   ctx: z.RefinementCtx,
 ): void {
-  if (valeurs.pays === 'CH' && valeurs.npa !== undefined && !NPA_SUISSE_REGEX.test(valeurs.npa)) {
+  if (valeurs.pays === 'CH' && valeurs.npa !== undefined && !npaSuisseValide(valeurs.npa)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'Le NPA suisse comporte exactement 4 chiffres (ex. 1950).',
@@ -322,13 +331,19 @@ const schemaAdresseClientBase = z.object({
 export const schemaAdresseClient = schemaAdresseClientBase.superRefine(validerNpaSelonPays);
 
 /**
- * `PATCH` (partiel) : LIMITE CONNUE, signalée plutôt que devinée — si le corps ne modifie QUE
- * `npa` sans renvoyer `pays`, cette validation ne peut pas savoir si l'adresse existante est
- * suisse (le schéma ne voit que le corps de la requête, jamais la ligne en base). La règle ne
- * s'applique donc que lorsque LES DEUX champs sont présents dans le même corps — un NPA envoyé
- * seul, sur une adresse CH existante, n'est pas rattrapé ici. Fermer ce trou exigerait une
- * vérification côté service (charger l'adresse existante avant de valider), hors du périmètre
- * « validation au niveau du schéma partagé » de ce correctif.
+ * `PATCH` (partiel) : ce schéma seul NE PEUT PAS garantir la règle NPA×pays sur l'état résultant
+ * — si le corps ne modifie QUE `npa` (ou QUE `pays`), il ne voit jamais la ligne existante en
+ * base, donc `.superRefine(validerNpaSelonPays)` ci-dessous ne s'applique qu'aux champs
+ * effectivement présents dans CE corps. Le trou (créer une adresse CH valide, puis la corrompre
+ * via `PATCH { npa: 'ABCDE' }` sans `pays`) est fermé, mais PAS ici : c'est
+ * `ServiceClientSousCollections.modifierAdresse`
+ * (`apps/api/src/clients/service-client-sous-collections.ts`) qui en est le propriétaire réel.
+ * Mécanisme : si `npa` ou `pays` figure dans le corps, le service charge l'adresse existante
+ * AVANT d'écrire, fusionne (champ envoyé sinon valeur en base) pour obtenir l'état EFFECTIF, et
+ * revalide cet état avec `npaSuisseValide` (même prédicat que `validerNpaSelonPays` ci-dessus,
+ * exporté précisément pour que les deux couches ne divergent jamais). Un corps qui ne touche ni
+ * `npa` ni `pays` ne déclenche aucune lecture supplémentaire — la règle ne peut pas être violée
+ * par une telle requête.
  */
 export const schemaModificationAdresseClient = schemaAdresseClientBase
   .partial()

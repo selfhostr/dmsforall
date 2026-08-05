@@ -208,6 +208,84 @@ describe("ServiceClient.modifier — le type d'un client ne peut plus changer ap
   });
 });
 
+/**
+ * Frère du trou NPA×pays (adresses) : une règle qui dépend de DEUX champs (`type` × `nom`/
+ * `raisonSociale`), contournable en `PATCH` si un seul des deux est envoyé. `type` reste
+ * IMMUABLE (RM-01, non touché ici) — c'est `nom`/`raisonSociale` qui doit être revalidé contre le
+ * `type` DÉJÀ EN BASE, jamais un `type` du corps (qui est de toute façon interdit en PATCH). Le
+ * CHECK `client_identite_chk` (migration 0006) garantit déjà l'intégrité en base : ce correctif
+ * transforme une erreur pg brute en `400 VALIDATION_ECHOUEE` propre, il ne comble pas un trou
+ * d'intégrité (contrairement au cas NPA, qui n'avait aucun filet DB).
+ */
+describe('ServiceClient.modifier — nom/raisonSociale revalidés contre le type EN BASE (client_identite_chk, frère du trou NPA×pays)', () => {
+  it('PATCH { nom: null } sur un client particulier est refusé en 400 VALIDATION_ECHOUEE (champ nom), avant toute écriture', async () => {
+    const { tx, setArgs } = txFactice({
+      selects: [[ligneClient({ type: 'particulier', nom: 'Dupont' })]],
+    });
+    const acces = accesFactice(tx);
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
+
+    const erreur = await service.modifier(CTX, 'c1', { nom: null }).catch((e: unknown) => e);
+
+    expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+    expect((erreur as { erreurs: Array<{ champ: string }> }).erreurs[0]).toMatchObject({
+      champ: 'nom',
+    });
+    expect(setArgs).toHaveLength(0);
+  });
+
+  it('PATCH { raisonSociale: null } sur un client entreprise est refusé en 400 VALIDATION_ECHOUEE (champ raisonSociale), avant toute écriture', async () => {
+    const { tx, setArgs } = txFactice({
+      selects: [
+        [ligneClient({ type: 'entreprise', nom: null, raisonSociale: 'Garage Martin SA' })],
+      ],
+    });
+    const acces = accesFactice(tx);
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
+
+    const erreur = await service
+      .modifier(CTX, 'c1', { raisonSociale: null })
+      .catch((e: unknown) => e);
+
+    expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+    expect((erreur as { erreurs: Array<{ champ: string }> }).erreurs[0]).toMatchObject({
+      champ: 'raisonSociale',
+    });
+    expect(setArgs).toHaveLength(0);
+  });
+
+  it("un PATCH qui ne touche ni nom ni raisonSociale sur un client entreprise (dont le nom en base est déjà null) n'est jamais faussement refusé", async () => {
+    const { tx, setArgs } = txFactice({
+      selects: [
+        [ligneClient({ type: 'entreprise', nom: null, raisonSociale: 'Garage Martin SA' })],
+        [ligneClient({ type: 'entreprise', nom: null, raisonSociale: 'Garage Martin SA' })],
+      ],
+    });
+    const acces = accesFactice(tx);
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
+
+    const enveloppe = await service.modifier(CTX, 'c1', { email: 'contact@garage-martin.ch' });
+
+    expect(enveloppe.donnees.raisonSociale).toBe('Garage Martin SA');
+    expect(setArgs).toEqual([{ email: 'contact@garage-martin.ch' }]);
+  });
+});
+
 describe('ServiceClient.desactiver — refus tant que des OR ou détentions restent ouverts (RM-12)', () => {
   it('refuse quand un ordre de réparation non terminal existe encore, en le nommant dans blocages[]', async () => {
     const { tx, setArgs } = txFactice({

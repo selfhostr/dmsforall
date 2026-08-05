@@ -371,6 +371,118 @@ describe('ServiceClientSousCollections.modifierAdresse/modifierContact — corps
   );
 });
 
+/**
+ * `modifierAdresse` — trou NPA×pays en modification partielle : le schéma zod
+ * (`schemaModificationAdresseClient`) ne voit que le corps de la requête, jamais la ligne
+ * existante en base. Ces tests prouvent que le SERVICE, lui, regarde l'état EFFECTIF (base +
+ * corps fusionnés) — pas seulement les champs envoyés dans CETTE requête.
+ */
+describe('ServiceClientSousCollections.modifierAdresse — NPA×pays sur l’état EFFECTIF (trou de validation partielle fermé)', () => {
+  function adresseExistante(champs: Partial<Record<string, unknown>> = {}) {
+    return {
+      id: 'a1',
+      tenantId: 'tid-1',
+      clientId: 'c1',
+      type: 'principale' as const,
+      rue: 'Rue Neuve 2',
+      complement: null,
+      npa: '1200',
+      localite: 'Genève',
+      pays: 'CH',
+      actif: true,
+      creeLe: new Date('2026-01-01T00:00:00.000Z'),
+      modifieLe: new Date('2026-01-01T00:00:00.000Z'),
+      ...champs,
+    };
+  }
+
+  it('PATCH { npa } seul, invalide, sur une adresse CH existante est refusé en 400 VALIDATION_ECHOUEE (champ npa), avant toute écriture', async () => {
+    const fabrique = txFactice({
+      selects: [[{ id: 'c1' }], [adresseExistante({ npa: '1200', pays: 'CH' })]],
+    });
+    const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
+
+    const erreur = await service
+      .modifierAdresse(CTX, 'c1', 'a1', { npa: 'ABCDE' })
+      .catch((e: unknown) => e);
+
+    expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+    expect(
+      (erreur as { erreurs: Array<{ champ: string; code: string }> }).erreurs[0],
+    ).toMatchObject({ champ: 'npa', code: 'custom' });
+    expect(fabrique.updateSetArgs).toHaveLength(0);
+  });
+
+  it('PATCH { npa } seul, valide, sur une adresse CH existante est accepté', async () => {
+    const fabrique = txFactice({
+      selects: [
+        [{ id: 'c1' }],
+        [adresseExistante({ npa: '1200', pays: 'CH' })],
+        [adresseExistante({ npa: '1950', pays: 'CH' })],
+      ],
+    });
+    const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
+
+    const enveloppe = await service.modifierAdresse(CTX, 'c1', 'a1', { npa: '1950' });
+
+    expect(enveloppe.donnees.npa).toBe('1950');
+    expect(fabrique.updateSetArgs).toEqual([{ npa: '1950' }]);
+  });
+
+  it('PATCH { pays: "DE", npa: "75001" } simultanés sur une adresse jusque-là CH est accepté (pays étranger, pas de contrainte de format stricte)', async () => {
+    const fabrique = txFactice({
+      selects: [
+        [{ id: 'c1' }],
+        [adresseExistante({ npa: '1200', pays: 'CH' })],
+        [adresseExistante({ npa: '75001', pays: 'DE' })],
+      ],
+    });
+    const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
+
+    const enveloppe = await service.modifierAdresse(CTX, 'c1', 'a1', {
+      pays: 'DE',
+      npa: '75001',
+    });
+
+    expect(enveloppe.donnees.pays).toBe('DE');
+    expect(enveloppe.donnees.npa).toBe('75001');
+  });
+
+  it('PATCH { pays: "CH" } seul sur une adresse jusque-là étrangère dont le NPA EN BASE ne fait pas 4 chiffres est refusé (preuve que le NPA vient de la base, pas du corps)', async () => {
+    const fabrique = txFactice({
+      selects: [[{ id: 'c1' }], [adresseExistante({ npa: '75001', pays: 'DE' })]],
+    });
+    const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
+
+    const erreur = await service
+      .modifierAdresse(CTX, 'c1', 'a1', { pays: 'CH' })
+      .catch((e: unknown) => e);
+
+    expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+    expect((erreur as { erreurs: Array<{ champ: string }> }).erreurs[0]).toMatchObject({
+      champ: 'npa',
+    });
+    expect(fabrique.updateSetArgs).toHaveLength(0);
+  });
+
+  it('une adresse étrangère modifiée sans toucher npa/pays ne déclenche aucune lecture supplémentaire et n’est jamais faussement refusée', async () => {
+    const fabrique = txFactice({
+      selects: [
+        [{ id: 'c1' }],
+        [adresseExistante({ npa: '75001', pays: 'DE', localite: 'Berlin' })],
+      ],
+    });
+    const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
+
+    const enveloppe = await service.modifierAdresse(CTX, 'c1', 'a1', { localite: 'Berlin' });
+
+    expect(enveloppe.donnees.localite).toBe('Berlin');
+    // Deux lectures seulement (existence client + relecture finale) : aucune lecture
+    // supplémentaire de l'adresse existante n'a été faite, puisque ni npa ni pays n'est touché.
+    expect(fabrique.updateSetArgs).toEqual([{ localite: 'Berlin' }]);
+  });
+});
+
 describe('ServiceClientSousCollections.creerConsentement — append-only, jamais de mise à jour (RM-09, nLPD)', () => {
   it('une révocation (accorde: false) insère une NOUVELLE ligne — aucune ligne existante ne doit être modifiée', async () => {
     const fabrique = txFactice({ selects: [[{ id: 'c1' }]] });

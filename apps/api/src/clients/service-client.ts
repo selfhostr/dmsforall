@@ -433,7 +433,7 @@ export class ServiceClient {
     const entree = new PipeZod(schemaModificationClient).transform(corpsBrut);
 
     return this.acces.enTenant(ctx, async (tx) => {
-      await this.chargerOu404(tx, ctx, clientId);
+      const ligneActuelle = await this.chargerOu404(tx, ctx, clientId);
 
       const valeurs: Partial<NouveauClient> = {};
       if ('civilite' in entree) valeurs.civilite = entree.civilite ?? null;
@@ -452,6 +452,40 @@ export class ServiceClient {
         valeurs.poObligatoire = entree.poObligatoire;
       if ('groupeId' in entree) valeurs.groupeClientId = entree.groupeId ?? null;
       if ('referenceExterne' in entree) valeurs.referenceExterne = entree.referenceExterne ?? null;
+
+      // Miroir du CHECK `client_identite_chk` (migration 0006), évalué AVANT l'update — le CHECK
+      // garantit l'intégrité en base (ce n'est donc jamais corrompu), mais sans cette validation
+      // ici l'échec ne serait rattrapé qu'à l'écriture, en erreur pg brute non typée plutôt qu'en
+      // `400 VALIDATION_ECHOUEE` propre. `type` est IMMUABLE (RM-01, refusé plus haut) : c'est
+      // TOUJOURS `ligneActuelle.type` qui fait autorité, jamais une valeur du corps. `nom`/
+      // `raisonSociale` effectifs : la valeur envoyée si le champ est présent dans le corps,
+      // sinon celle déjà en base — un `PATCH { nom: null }` sur un `particulier` doit être
+      // rattrapé même si `raisonSociale` n'est jamais mentionné.
+      const nomEffectif = 'nom' in entree ? (entree.nom ?? null) : ligneActuelle.nom;
+      const raisonSocialeEffectif =
+        'raisonSociale' in entree ? (entree.raisonSociale ?? null) : ligneActuelle.raisonSociale;
+      if (ligneActuelle.type === 'particulier' && !nomEffectif) {
+        throw new ErreurMetier('VALIDATION_ECHOUEE', 'Validation échouée.', {
+          erreurs: [
+            {
+              champ: 'nom',
+              code: 'custom',
+              message: 'Un particulier exige `nom`.',
+            },
+          ],
+        });
+      }
+      if (ligneActuelle.type === 'entreprise' && !raisonSocialeEffectif) {
+        throw new ErreurMetier('VALIDATION_ECHOUEE', 'Validation échouée.', {
+          erreurs: [
+            {
+              champ: 'raisonSociale',
+              code: 'custom',
+              message: 'Une entreprise exige `raisonSociale`.',
+            },
+          ],
+        });
+      }
 
       if (Object.keys(valeurs).length > 0) {
         await tx
