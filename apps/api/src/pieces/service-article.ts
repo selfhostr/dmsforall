@@ -121,7 +121,11 @@ export class ServiceArticle {
   ): Promise<PageCurseur<ReponseArticle>> {
     const definition = DEFINITIONS_TRI_ARTICLES[params.tri];
     const idExpr = sql`a.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(
+      params.curseur,
+      params.tri,
+      DEFINITIONS_TRI_ARTICLES,
+    );
 
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`a.tenant_id = ${ctx.tenantId}`];
@@ -258,7 +262,11 @@ export class ServiceArticle {
   ): Promise<PageCurseur<ReponseArticleReference>> {
     const definition = DEFINITIONS_TRI_REFERENCES[params.tri];
     const idExpr = sql`ar.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(
+      params.curseur,
+      params.tri,
+      DEFINITIONS_TRI_REFERENCES,
+    );
 
     return this.acces.enTenant(ctx, async (tx) => {
       await this.chargerOu404(tx, ctx, articleId);

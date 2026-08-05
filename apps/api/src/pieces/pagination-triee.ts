@@ -78,13 +78,33 @@ export function construireConditionKeyset(
   return def.nullable ? sql`(${suite} or ${def.expression} is null)` : suite;
 }
 
-/** Décode le curseur de la requête pour le `tri` demandé — `null` si aucun curseur fourni. */
+/**
+ * Décode le curseur de la requête pour le `tri` demandé — `null` si aucun curseur fourni.
+ *
+ * DÉFAUT CORRIGÉ (même classe que `common/pagination/curseur.ts`, déjà corrigé dans
+ * `clients/pagination-triee.ts`) : cette fonction ne demandait auparavant à `decoderCurseurTrie`
+ * qu'une validation de FORME, jamais de CONTENU — alors que plusieurs des `DEFINITIONS_TRI_*` de ce
+ * domaine (`service-article.ts`, `service-consigne.ts`, `service-reservation.ts`,
+ * `service-fournisseur.ts`, `service-commande-fournisseur.ts`, `service-mouvement.ts`) portent déjà
+ * `temporel: true` sur leurs tris `creeLe:asc/desc` (colonnes `timestamptz`) — ce marqueur n'était
+ * simplement jamais LU ici, faute du paramètre `definitions` que `clients/pagination-triee.ts`
+ * possède déjà. Un curseur v2 syntaxiquement valide mais dont la valeur n'était pas un horodatage
+ * PostgreSQL bien formé traversait donc ce décodage intact et atteignait la clause `WHERE`
+ * construite par `construireConditionKeyset`, non castée — PostgreSQL levait alors `22007`, non
+ * intercepté (`500` sur une simple liste).
+ *
+ * `definitions` est la table `DEFINITIONS_TRI_*` PROPRE À L'APPELANT : seul l'appelant sait, via
+ * `DefinitionTri.temporel`, si le tri demandé porte sur une colonne temporelle — ce module ne fait
+ * que router cette information vers `decoderCurseurTrie`, qui porte la validation elle-même.
+ */
 export function decoderCurseurPourTri(
   curseur: string | undefined,
   triDemande: string,
+  definitions: Readonly<Record<string, DefinitionTri>>,
 ): { readonly valeur: string | number | null; readonly id: string } | null {
   if (!curseur) return null;
-  const { valeur, id } = decoderCurseurTrie(curseur, triDemande);
+  const typeValeur = definitions[triDemande]?.temporel ? 'temporel' : 'texte';
+  const { valeur, id } = decoderCurseurTrie(curseur, triDemande, typeValeur);
   return { valeur, id };
 }
 

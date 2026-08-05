@@ -57,7 +57,11 @@ export class ServiceConsigne {
   ): Promise<PageCurseur<ReponseConsigneEchangeStandard>> {
     const definition = DEFINITIONS_TRI_CONSIGNES[params.tri];
     const idExpr = sql`c.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(
+      params.curseur,
+      params.tri,
+      DEFINITIONS_TRI_CONSIGNES,
+    );
 
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`c.tenant_id = ${ctx.tenantId}`];

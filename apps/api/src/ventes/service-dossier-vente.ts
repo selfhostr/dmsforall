@@ -314,7 +314,11 @@ export class ServiceDossierVente {
   ): Promise<PageCurseur<ReponseDossierVente>> {
     const definition = DEFINITIONS_TRI_DOSSIERS_VENTE[filtres.tri];
     const idExpr = sql`dv.id`;
-    const curseurDecode = decoderCurseurPourTri(filtres.curseur, filtres.tri);
+    const curseurDecode = decoderCurseurPourTri(
+      filtres.curseur,
+      filtres.tri,
+      DEFINITIONS_TRI_DOSSIERS_VENTE,
+    );
 
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`dv.tenant_id = ${ctx.tenantId}`];

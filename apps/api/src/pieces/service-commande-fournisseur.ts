@@ -160,7 +160,11 @@ export class ServiceCommandeFournisseur {
   ): Promise<PageCurseur<ReponseCommandeFournisseur>> {
     const definition = DEFINITIONS_TRI_COMMANDES[params.tri];
     const idExpr = sql`cf.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(
+      params.curseur,
+      params.tri,
+      DEFINITIONS_TRI_COMMANDES,
+    );
 
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`cf.tenant_id = ${ctx.tenantId}`];
@@ -240,7 +244,11 @@ export class ServiceCommandeFournisseur {
   ): Promise<PageCurseur<ReponseLigneCommandeFournisseur>> {
     const definition = DEFINITIONS_TRI_LIGNES_COMMANDE[params.tri];
     const idExpr = sql`l.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(
+      params.curseur,
+      params.tri,
+      DEFINITIONS_TRI_LIGNES_COMMANDE,
+    );
 
     return this.acces.enTenant(ctx, async (tx) => {
       await this.chargerCommandeOu404(tx, ctx, commandeId);

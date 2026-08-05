@@ -114,7 +114,7 @@ export class ServiceStock {
   ): Promise<PageCurseur<LigneReapprovisionnement>> {
     const definition = DEFINITION_TRI_ECART[params.tri];
     const idExpr = sql`a.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri, DEFINITION_TRI_ECART);
 
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [

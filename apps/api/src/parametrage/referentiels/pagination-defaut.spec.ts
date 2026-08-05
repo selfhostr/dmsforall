@@ -74,6 +74,90 @@ describe('decoderCurseurDefaut', () => {
 });
 
 // -------------------------------------------------------------------------------------------
+// DÉFAUT CORRIGÉ (correctif pagination, même classe que common/pagination/curseur.ts) : un
+// curseur v2 SYNTAXIQUEMENT valide (forme `{t,v,i}` correcte, `t` égal à TRI_DEFAUT_CREATION, `i`
+// un uuid) mais dont `v` n'est pas le texte natif PostgreSQL d'un `timestamptz` traversait ce
+// décodage intact — `service-taux-horaires.ts`/`service-prestations.ts` castent ensuite
+// `curseurDecode.creeLeTexte` en `::timestamptz` dans la clause `WHERE`, ce qui faisait lever à
+// PostgreSQL une erreur `22007` non interceptée (500 sur une simple liste de taux horaires ou de
+// prestations). Aucun test existant n'exerçait un curseur FORGÉ : seuls des curseurs absents ou
+// produits par `pageDepuisLignes` (donc déjà valides) étaient couverts.
+// -------------------------------------------------------------------------------------------
+describe('decoderCurseurDefaut — curseur forgé (défaut corrigé)', () => {
+  function curseurV2(v: unknown, id = '01dc576e-7560-4e7f-9fc7-2b1806186f67'): string {
+    const brut = JSON.stringify({ t: 'creeLe:desc', v, i: id });
+    return Buffer.from(brut, 'utf8').toString('base64url');
+  }
+
+  it(
+    "rejette (VALIDATION_ECHOUEE, 400) une valeur qui n'est pas un timestamptz PostgreSQL — " +
+      "c'était le crash reproduit (500 ERREUR_INTERNE via 22007 non intercepté)",
+    () => {
+      const curseur = curseurV2('not-a-real-timestamp');
+      expect(() => decoderCurseurDefaut(curseur)).toThrowError(
+        expect.objectContaining({ code: 'VALIDATION_ECHOUEE', status: 400 }),
+      );
+    },
+  );
+
+  it('rejette une valeur numérique (le seul tri de ce module est temporel)', () => {
+    const curseur = curseurV2(42);
+    expect(() => decoderCurseurDefaut(curseur)).toThrowError(
+      expect.objectContaining({ code: 'VALIDATION_ECHOUEE', status: 400 }),
+    );
+  });
+
+  it('rejette une chaîne vide', () => {
+    const curseur = curseurV2('');
+    expect(() => decoderCurseurDefaut(curseur)).toThrowError(
+      expect.objectContaining({ code: 'VALIDATION_ECHOUEE', status: 400 }),
+    );
+  });
+
+  it('un uuid mal formé pour `i` est rejeté', () => {
+    const curseur = curseurV2('2026-04-01 08:00:00+00', 'pas-un-uuid');
+    expect(() => decoderCurseurDefaut(curseur)).toThrowError(
+      expect.objectContaining({ code: 'VALIDATION_ECHOUEE', status: 400 }),
+    );
+  });
+
+  it('un curseur encodé pour un autre tri est refusé (pas silencieusement réinterprété)', () => {
+    const brut = JSON.stringify({
+      t: 'nom:asc',
+      v: '2026-04-01 08:00:00+00',
+      i: '01dc576e-7560-4e7f-9fc7-2b1806186f67',
+    });
+    const curseur = Buffer.from(brut, 'utf8').toString('base64url');
+    expect(() => decoderCurseurDefaut(curseur)).toThrowError(
+      expect.objectContaining({ code: 'VALIDATION_ECHOUEE', status: 400 }),
+    );
+  });
+
+  it('accepte le texte natif PostgreSQL (avec microseconde) — cas nominal, non-régression', () => {
+    // `decoderCurseurDefaut` VALIDE le format temporel (via `decoderCurseurTrie(..., 'temporel')`)
+    // mais ne le CANONICALISE pas : `valeur` est rendue telle quelle — la canonicalisation
+    // (`valeurCurseurTimestamptz`) n'intervient qu'à l'ENCODAGE, dans `pageDepuisLignes` ci-dessus.
+    const curseur = curseurV2('2026-04-01 08:00:00.123456+00');
+    const decode = decoderCurseurDefaut(curseur);
+    expect(decode).toEqual({
+      creeLeTexte: '2026-04-01 08:00:00.123456+00',
+      id: '01dc576e-7560-4e7f-9fc7-2b1806186f67',
+    });
+  });
+
+  it('aucun message d’erreur ne fuit de fragment SQL, de nom de colonne ou de trace', () => {
+    const curseur = curseurV2('not-a-real-timestamp');
+    try {
+      decoderCurseurDefaut(curseur);
+      throw new Error('devrait avoir levé');
+    } catch (e) {
+      const message = (e as Error).message;
+      expect(message).not.toMatch(/select|cree_le|timestamptz|22007|stack/i);
+    }
+  });
+});
+
+// -------------------------------------------------------------------------------------------
 // Régression : perte silencieuse de lignes en pagination keyset sur `creeLe`, quand plusieurs
 // lignes partagent la même MILLISECONDE mais pas la même MICROSECONDE. Constat identique à celui
 // documenté dans common/pagination/valeur-temporelle.spec.ts, reproduit ici au niveau de

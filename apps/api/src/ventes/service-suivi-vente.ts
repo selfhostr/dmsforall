@@ -144,7 +144,14 @@ export class ServiceSuiviVente {
   ): Promise<PageCurseur<LigneSuiviVente>> {
     const definition = construireDefinitionTri(role);
     const idExpr = sql`dv.id`;
-    const curseurDecode = decoderCurseurPourTri(filtres.curseur, filtres.tri);
+    // Un seul tri exposé par ce module (`TRIS_SUIVI_VENTE`, voir `contrats/ventes/suivi.ts`) : la
+    // table `definitions` attendue par `decoderCurseurPourTri` se réduit à une seule entrée, celle
+    // du tri effectivement demandé — cohérent avec `construireDefinitionTri(role)` ci-dessus, qui
+    // ne connaît elle non plus qu'un seul tri. `definition.temporel` est `undefined` ici (voir son
+    // en-tête : l'expression est déjà `(...)::text` sur une `date`, pas un `timestamptz`).
+    const curseurDecode = decoderCurseurPourTri(filtres.curseur, filtres.tri, {
+      [filtres.tri]: definition,
+    });
     const exprProchaineEcheance = construireExpressionProchaineEcheance(role);
     const maintenant = this.horloge.maintenant();
 

@@ -96,7 +96,11 @@ export class ServiceMouvement {
   ): Promise<PageCurseur<ReponseMouvementStock>> {
     const definition = DEFINITIONS_TRI_MOUVEMENTS[params.tri];
     const idExpr = sql`m.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(
+      params.curseur,
+      params.tri,
+      DEFINITIONS_TRI_MOUVEMENTS,
+    );
 
     return this.acces.enTenant(ctx, async (tx) => {
       await this.chargerArticleOu404(tx, ctx, articleId);

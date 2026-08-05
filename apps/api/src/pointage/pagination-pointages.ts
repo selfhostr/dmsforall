@@ -6,6 +6,7 @@ import {
   encoderCurseurTrie,
   valeurCurseurTimestamptz,
 } from '../common/pagination';
+import { ErreurMetier } from '../common/erreurs';
 
 /**
  * Support du curseur v2 triable (§6.1) pour `GET /pointages` — copie locale volontaire, MÊME
@@ -31,20 +32,40 @@ export interface CurseurPointageDecode {
   readonly id: string;
 }
 
+/**
+ * DEUX DÉFAUTS CORRIGÉS ICI :
+ *
+ * 1. (même classe que `common/pagination/curseur.ts`, déjà corrigé dans `clients/`, `vehicules/`,
+ *    `socle/`, `pneus/`) — `debut_le` est un `timestamptz` (voir `conditionKeysetPointage`
+ *    ci-dessous, qui caste `valeur::timestamptz` dans la clause `WHERE`) : un curseur
+ *    syntaxiquement valide dont la valeur n'était pas un horodatage PostgreSQL bien formé
+ *    traversait ce décodage intact et atteignait PostgreSQL, qui levait `22007` — non intercepté,
+ *    `500` sur une simple liste de pointages. `typeValeur: 'temporel'` ferme ce trou au décodage.
+ *
+ * 2. Le garde-fou local ci-dessous (type de `valeur` inattendu pour une colonne `NOT NULL`) levait
+ *    une `Error` générique plutôt qu'une `ErreurMetier` — un curseur forgé avec une valeur d'un
+ *    type inattendu (numérique/`null` sur un tri qui n'admet que du texte) produisait donc, lui
+ *    aussi, un `500 ERREUR_INTERNE` non mappé, alors qu'il s'agit exactement de la même classe de
+ *    donnée cliente malformée que le reste de ce module traite en `400 VALIDATION_ECHOUEE`.
+ */
 export function decoderCurseurPointages(
   curseur: string | undefined,
   triDemande: string,
 ): CurseurPointageDecode | null {
   if (!curseur) return null;
-  const { valeur, id } = decoderCurseurTrie(curseur, triDemande);
+  const { valeur, id } = decoderCurseurTrie(curseur, triDemande, 'temporel');
   if (typeof valeur !== 'string') {
     // `debut_le` est NOT NULL : un curseur légitimement construit par `encoderCurseurTrie` ci-dessous
     // porte toujours une chaîne ici. Une valeur d'un autre type ne peut venir que d'un curseur forgé
-    // à la main — `decoderCurseurTrie` a déjà validé la FORME (t/v/i), pas le TYPE attendu par CE
-    // domaine ; ce garde-fou local referme ce trou sans dupliquer la validation générique.
-    throw new Error(
-      "Curseur de pagination pointage : valeur de tri d'un type inattendu pour une colonne NOT NULL.",
-    );
+    // à la main — `decoderCurseurTrie` a déjà validé la FORME (t/v/i) et, avec `'temporel'` ci-dessus,
+    // le CONTENU d'une chaîne le cas échéant ; ce garde-fou local referme le dernier trou (un `null`
+    // ou un nombre, valides pour `decoderCurseurTrie` en général, ne le sont pas pour CE domaine, où
+    // la colonne est `NOT NULL`) sans dupliquer la validation générique.
+    throw new ErreurMetier('VALIDATION_ECHOUEE', 'Curseur de pagination invalide.', {
+      erreurs: [
+        { champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' },
+      ],
+    });
   }
   return { valeur, id };
 }

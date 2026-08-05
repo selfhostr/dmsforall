@@ -36,10 +36,22 @@ export interface CurseurDefautDecode {
   readonly id: string;
 }
 
-/** Décode le curseur reçu, ou `null` en première page. Toujours contre `TRI_DEFAUT_CREATION`. */
+/**
+ * Décode le curseur reçu, ou `null` en première page. Toujours contre `TRI_DEFAUT_CREATION`.
+ *
+ * DÉFAUT CORRIGÉ (même classe que `common/pagination/curseur.ts`, déjà corrigé dans
+ * `clients/pagination-triee.ts`, `vehicules/service-vehicule.ts`, `socle/service-site.ts`,
+ * `pneus/pagination-triee.ts`) : le seul tri de ce module porte sur `cree_le`, une colonne
+ * `timestamptz` (voir `service-taux-horaires.ts`/`service-prestations.ts`, qui castent
+ * `curseurDecode.creeLeTexte` en `::timestamptz` dans la clause `WHERE`) — un curseur
+ * syntaxiquement valide dont la valeur n'était pas un horodatage PostgreSQL bien formé traversait
+ * ce décodage intact et faisait lever à PostgreSQL une erreur `22007` non interceptée (`500` sur
+ * une simple liste de taux horaires/prestations). `typeValeur: 'temporel'` ferme ce trou au
+ * décodage, avant toute requête SQL.
+ */
 export function decoderCurseurDefaut(curseur: string | undefined): CurseurDefautDecode | null {
   if (!curseur) return null;
-  const donnees = decoderCurseurTrie(curseur, TRI_DEFAUT_CREATION);
+  const donnees = decoderCurseurTrie(curseur, TRI_DEFAUT_CREATION, 'temporel');
   if (typeof donnees.valeur !== 'string') {
     // Un curseur v2 valide pour `TRI_DEFAUT_CREATION` mais dont `v` n'est pas une chaîne ne peut
     // pas être un texte `timestamptz` — donnée cliente malformée, jamais une erreur serveur.

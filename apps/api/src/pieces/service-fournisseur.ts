@@ -54,7 +54,11 @@ export class ServiceFournisseur {
   ): Promise<PageCurseur<ReponseFournisseur>> {
     const definition = DEFINITIONS_TRI_FOURNISSEURS[params.tri];
     const idExpr = sql`f.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(
+      params.curseur,
+      params.tri,
+      DEFINITIONS_TRI_FOURNISSEURS,
+    );
 
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`f.tenant_id = ${ctx.tenantId}`];

@@ -436,7 +436,11 @@ export class ServiceVehiculeStock {
   ): Promise<PageCurseur<VehiculeStockResume>> {
     const definition = DEFINITIONS_TRI_VEHICULES_STOCK[filtres.tri];
     const idExpr = sql`vs.id`;
-    const curseurDecode = decoderCurseurPourTri(filtres.curseur, filtres.tri);
+    const curseurDecode = decoderCurseurPourTri(
+      filtres.curseur,
+      filtres.tri,
+      DEFINITIONS_TRI_VEHICULES_STOCK,
+    );
 
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`vs.tenant_id = ${ctx.tenantId}`];

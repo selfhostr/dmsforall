@@ -57,7 +57,11 @@ export class ServiceReservation {
   ): Promise<PageCurseur<ReponseReservationPiece>> {
     const definition = DEFINITIONS_TRI_RESERVATIONS[params.tri];
     const idExpr = sql`r.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(
+      params.curseur,
+      params.tri,
+      DEFINITIONS_TRI_RESERVATIONS,
+    );
 
     return this.acces.enTenant(ctx, async (tx) => {
       const conditions = [sql`r.tenant_id = ${ctx.tenantId}`];
