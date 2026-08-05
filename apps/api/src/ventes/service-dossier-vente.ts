@@ -42,6 +42,7 @@ import {
   construireVehiculeResume,
   versClientResume,
 } from '../atelier/references';
+import { interpreterContrainteVehicule } from '../vehicules/erreurs-contraintes';
 import { CollecteurAvertissements } from '../common/avertissements';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { JETON_AUDIT, type ServiceAudit } from '../common/audit';
@@ -555,23 +556,37 @@ export class ServiceDossierVente {
           ),
         )
         .limit(1);
-      if (detentionOuverte) {
-        await tx
-          .update(vehiculeDetention)
-          .set({ au: entree.dateLivraisonEffective, motifFin: 'vente' })
-          .where(
-            and(
-              eq(vehiculeDetention.tenantId, ctx.tenantId),
-              eq(vehiculeDetention.id, detentionOuverte.id),
-            ),
-          );
+      // BUG CORRIGÉ (constaté en exécution réelle, signalé par un agent tiers, `remonter-cause-pg.ts`
+      // citait déjà ce fichier parmi les quatre concernés) : cette clôture/réouverture de détention
+      // n'était protégée par AUCUN try/catch — une `dateLivraisonEffective` antérieure au `du` de la
+      // détention actuellement ouverte viole `vehicule_detention_periode_chk` (`au > du`,
+      // `schema/atelier/vehicule.ts`) et ressortait en 500 `ERREUR_INTERNE` au lieu d'un code métier
+      // stable. Traduction réutilisée telle quelle depuis `vehicules/erreurs-contraintes.ts`
+      // (`interpreterContrainteVehicule`, déjà câblée pour ce couple SQLSTATE/contrainte côté
+      // `ServiceVehiculeDetention.changerDetenteur`) — pas une seconde table de contraintes.
+      try {
+        if (detentionOuverte) {
+          await tx
+            .update(vehiculeDetention)
+            .set({ au: entree.dateLivraisonEffective, motifFin: 'vente' })
+            .where(
+              and(
+                eq(vehiculeDetention.tenantId, ctx.tenantId),
+                eq(vehiculeDetention.id, detentionOuverte.id),
+              ),
+            );
+        }
+        await tx.insert(vehiculeDetention).values({
+          tenantId: ctx.tenantId,
+          vehiculeId: ligne.vehiculeId,
+          clientId: nouveauDetenteurId,
+          du: entree.dateLivraisonEffective,
+        });
+      } catch (erreur) {
+        const traduite = this.traduireErreurDetentionVehicule(erreur);
+        if (traduite) throw traduite;
+        throw erreur;
       }
-      await tx.insert(vehiculeDetention).values({
-        tenantId: ctx.tenantId,
-        vehiculeId: ligne.vehiculeId,
-        clientId: nouveauDetenteurId,
-        du: entree.dateLivraisonEffective,
-      });
 
       // RV-24 : une reprise CONFIRMÉE entre en stock à la livraison — TROU COMBLÉ (constaté en
       // reprenant ce fichier : `origineRepriseDossierVenteId` n'était jamais ÉCRIT nulle part dans
@@ -655,15 +670,24 @@ export class ServiceDossierVente {
           )
           .limit(1);
         if (detentionRepriseOuverte) {
-          await tx
-            .update(vehiculeDetention)
-            .set({ au: entree.dateLivraisonEffective, motifFin: 'reprise' })
-            .where(
-              and(
-                eq(vehiculeDetention.tenantId, ctx.tenantId),
-                eq(vehiculeDetention.id, detentionRepriseOuverte.id),
-              ),
-            );
+          // Même garde que la clôture de détention ci-dessus (bug corrigé) : traduit une violation
+          // de `vehicule_detention_periode_chk`/`vehicule_detention_unicite_excl` plutôt que de la
+          // laisser fuiter en 500.
+          try {
+            await tx
+              .update(vehiculeDetention)
+              .set({ au: entree.dateLivraisonEffective, motifFin: 'reprise' })
+              .where(
+                and(
+                  eq(vehiculeDetention.tenantId, ctx.tenantId),
+                  eq(vehiculeDetention.id, detentionRepriseOuverte.id),
+                ),
+              );
+          } catch (erreur) {
+            const traduite = this.traduireErreurDetentionVehicule(erreur);
+            if (traduite) throw traduite;
+            throw erreur;
+          }
         }
       }
 
@@ -941,6 +965,38 @@ export class ServiceDossierVente {
       .update(vehiculeStock)
       .set(champs)
       .where(and(eq(vehiculeStock.tenantId, ligne.tenantId), eq(vehiculeStock.id, ligne.id)));
+  }
+
+  /**
+   * BUG CORRIGÉ (`livrer()`, constaté en exécution réelle) : `vehicule_detention` porte deux
+   * contraintes qu'une saisie utilisateur peut légitimement violer — `vehicule_detention_periode_chk`
+   * (`au is null or au > du` : `dateLivraisonEffective` antérieure au début de la détention en
+   * cours) et `vehicule_detention_unicite_excl` (RM-20 : deux détentions actives simultanées sur le
+   * même véhicule). Sans traduction, l'une ou l'autre remontait en 500 `ERREUR_INTERNE` — jamais
+   * acceptable pour une transition de machine à états (CONTRIBUTING.md). Réutilise
+   * `interpreterContrainteVehicule` (`vehicules/erreurs-contraintes.ts`) TEL QUEL : cette table de
+   * contraintes existe déjà et couvre exactement ces deux noms, inutile d'en tenir une seconde ici
+   * (même bug que celui déjà documenté sur `traduireErreurTransitionVente`/
+   * `estViolationCleUniqueVehiculeStock` dans ce fichier — l'un et l'autre déballent déjà `.cause`,
+   * seul ce troisième site en avait été oublié).
+   */
+  private traduireErreurDetentionVehicule(erreur: unknown): ErreurMetier | null {
+    const violee = interpreterContrainteVehicule(erreur);
+    if (!violee) return null;
+    const message =
+      violee.contrainte === 'vehicule_detention_periode_chk'
+        ? "La date de livraison précède le début d'une détention déjà enregistrée pour ce véhicule — vérifiez la date saisie."
+        : 'Ce véhicule porte déjà une détention active sur la période demandée (RM-20).';
+    // CORRECTIF DE CONSTAT (relu en reprenant ce fichier) : `message` n'était passé qu'au
+    // constructeur `Error` sous-jacent (`super(message)`, `ErreurMetier.message`), jamais à
+    // `options.detail` — le seul champ que `FiltreProbleme`/`construireCorps` sérialise dans le
+    // corps `problem+json` réellement renvoyé au client (`title` ne porte que le libellé FR FIXE
+    // par code, `TITRE_FR_PAR_CODE_ERREUR`, pas ce message contextualisé). Sans `detail`, le
+    // 400 `VALIDATION_ECHOUEE` renvoyé ici était certes stable (pas un 500), mais totalement muet
+    // pour l'appelant : aucune indication de CE QUI bloque, ni pourquoi (constaté en reproduisant
+    // `POST /dossiers-vente/{id}/livrer` en conditions réelles — la seule différence visible entre
+    // ce cas et un corps JSON malformé était l'absence du champ `erreurs`).
+    return new ErreurMetier(violee.code, message, { detail: message });
   }
 
   private async transitionnerReprise(

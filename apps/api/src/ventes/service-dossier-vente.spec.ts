@@ -331,6 +331,92 @@ describe('ServiceDossierVente.livrer — RV-24 : mise en stock automatique de la
 });
 
 /**
+ * Bug corrigé (constaté en exécution réelle, reproduit via `POST /dossiers-vente/{id}/livrer` sur
+ * un véhicule portant déjà une détention ouverte à la même date que `dateLivraisonEffective`) :
+ * `vehicule_detention_periode_chk`/`vehicule_detention_unicite_excl` sont déjà traduites en
+ * `ErreurMetier` par `traduireErreurDetentionVehicule` (jamais un 500 nu), mais le message
+ * contextualisé n'était passé qu'au constructeur `Error` sous-jacent — jamais à `options.detail`,
+ * le seul champ que `FiltreProbleme` sérialise réellement dans le corps `problem+json`. Le client
+ * recevait donc un 400 `VALIDATION_ECHOUEE` STABLE mais MUET (aucun indice de ce qui bloque).
+ */
+describe('ServiceDossierVente.livrer — traduction de la violation de contrainte vehicule_detention', () => {
+  function erreurPgEnveloppee(sqlstate: string, contrainte: string): Error {
+    const brute = new Error('constraint violation') as Error & {
+      code: string;
+      constraint: string;
+    };
+    brute.code = sqlstate;
+    brute.constraint = contrainte;
+    const enveloppee = new Error('Failed query') as Error & { cause: unknown };
+    enveloppee.cause = brute;
+    return enveloppee;
+  }
+
+  it('`vehicule_detention_periode_chk` (date de livraison antérieure à une détention déjà ouverte) : 400 VALIDATION_ECHOUEE avec `detail` exploitable, jamais 500', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(dossierFixture());
+    vi.mocked(references.chargerVehiculeStockPourEcriture).mockResolvedValue(
+      vehiculeStockVenduFixture(),
+    );
+
+    const { tx, insertCalls, updateCalls } = txFactice([[{ id: 'detention-vendu-ouverte' }]]);
+    // `livrer()` fait DEUX `update` avant l'écriture `vehicule_detention` : `transitionnerVehiculeStock`
+    // (`vehicule_stock`) puis `transitionnerDossier` (`dossier_vente`), tous deux SANS rapport avec
+    // cette contrainte — seul l'`update` de clôture de la détention ouverte du véhicule VENDU doit
+    // échouer ici, sans quoi l'erreur brute remonterait depuis un des deux premiers `update`
+    // (aucun catch adapté à ce SQLSTATE) au lieu d'exercer `traduireErreurDetentionVehicule`.
+    const updateReel = tx.update.bind(tx);
+    tx.update = ((table: unknown) =>
+      table === vehiculeDetention
+        ? {
+            set: (champs: unknown) => {
+              updateCalls.push({ table, champs });
+              return {
+                where: () =>
+                  Promise.reject(erreurPgEnveloppee('23514', 'vehicule_detention_periode_chk')),
+              };
+            },
+          }
+        : updateReel(table as never)) as unknown as TransactionDfa['update'];
+    const svc = serviceFactice(accesFactice(tx));
+
+    const rejet = svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE);
+    await expect(rejet).rejects.toMatchObject({
+      code: 'VALIDATION_ECHOUEE',
+      detail:
+        "La date de livraison précède le début d'une détention déjà enregistrée pour ce véhicule — vérifiez la date saisie.",
+    });
+    // Jamais un 500 nu : la violation de contrainte est bien interceptée et traduite, pas relancée
+    // telle quelle (`ERREUR_INTERNE` uniquement pour un SQLSTATE non reconnu par cette table).
+    await expect(rejet).rejects.not.toMatchObject({ code: 'ERREUR_INTERNE' });
+    expect(insertCalls.filter((c) => c.table === vehiculeStock)).toHaveLength(0);
+  });
+
+  it('`vehicule_detention_unicite_excl` (deux détenteurs courants) : 409→400 VALIDATION_ECHOUEE avec `detail`, jamais 500', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(dossierFixture());
+    vi.mocked(references.chargerVehiculeStockPourEcriture).mockResolvedValue(
+      vehiculeStockVenduFixture(),
+    );
+
+    // Pas de détention ouverte à clôturer (select vide) : l'échec porte sur l'INSERT de la
+    // nouvelle détention (nouveau détenteur, RV-53).
+    const { tx } = txFactice([[]]);
+    tx.insert = ((table: unknown) =>
+      table === vehiculeDetention
+        ? {
+            values: () =>
+              Promise.reject(erreurPgEnveloppee('23P01', 'vehicule_detention_unicite_excl')),
+          }
+        : { values: () => Promise.resolve(undefined) }) as unknown as TransactionDfa['insert'];
+    const svc = serviceFactice(accesFactice(tx));
+
+    await expect(svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE)).rejects.toMatchObject({
+      code: 'VALIDATION_ECHOUEE',
+      detail: 'Ce véhicule porte déjà une détention active sur la période demandée (RM-20).',
+    });
+  });
+});
+
+/**
  * Bug corrigé (audit 2026-08-04) : `estViolationCleUniqueVehiculeStock` testait `erreur.code` au
  * premier niveau, mais Drizzle enveloppe SYSTÉMATIQUEMENT l'erreur `pg` brute dans une
  * `DrizzleQueryError` (`code` sous `.cause`, jamais en surface) — une course concurrente sur

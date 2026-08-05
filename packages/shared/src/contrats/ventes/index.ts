@@ -29,3 +29,4 @@ export * from './vehicule-stock';
 export * from './reprise';
 export * from './financement';
 export * from './dossier-vente';
+export * from './suivi';

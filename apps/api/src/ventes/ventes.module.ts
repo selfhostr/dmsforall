@@ -6,7 +6,9 @@ import { RepriseController } from './reprise.controller';
 import { ServiceDossierVente } from './service-dossier-vente';
 import { ServiceFinancement } from './service-financement';
 import { ServiceReprise } from './service-reprise';
+import { ServiceSuiviVente } from './service-suivi-vente';
 import { ServiceVehiculeStock } from './service-vehicule-stock';
+import { SuiviVenteController } from './suivi-vente.controller';
 import { VehiculeStockController } from './vehicule-stock.controller';
 import { VehiculesStockController } from './vehicules-stock.controller';
 
@@ -25,8 +27,15 @@ import { VehiculesStockController } from './vehicules-stock.controller';
     DossierVenteController,
     RepriseController,
     FinancementController,
+    SuiviVenteController,
   ],
-  providers: [ServiceVehiculeStock, ServiceDossierVente, ServiceReprise, ServiceFinancement],
+  providers: [
+    ServiceVehiculeStock,
+    ServiceDossierVente,
+    ServiceReprise,
+    ServiceFinancement,
+    ServiceSuiviVente,
+  ],
   exports: [ServiceVehiculeStock, ServiceDossierVente, ServiceReprise, ServiceFinancement],
 })
 export class VentesModule {}
