@@ -29,6 +29,8 @@ import { EcranNouvelleCommandeFournisseur } from '@/ecrans/pieces/EcranNouvelleC
 import { EcranReapprovisionnement } from '@/ecrans/pieces/EcranReapprovisionnement';
 import { EcranRechercheComptoirPieces } from '@/ecrans/pieces/EcranRechercheComptoirPieces';
 import { EcranReservationsPieces } from '@/ecrans/pieces/EcranReservationsPieces';
+import { EcranHangarPneus } from '@/ecrans/pneus/EcranHangarPneus';
+import { EcranJeuxARelancer } from '@/ecrans/pneus/EcranJeuxARelancer';
 import { EcranBornePointage } from '@/ecrans/pointage/EcranBornePointage';
 import { EcranCloturePeriodePointage } from '@/ecrans/pointage/EcranCloturePeriodePointage';
 import { EcranEquipePointage } from '@/ecrans/pointage/EcranEquipePointage';
@@ -53,6 +55,7 @@ import { RoutePublique } from './RoutePublique';
 import {
   ROLES_PARAMETRAGE_PIECES,
   ROLES_PIECES,
+  ROLES_PNEUS,
   ROLES_TABLEAU_BORD_ACTIVITE,
   ROLES_VENTES,
 } from './droits-routes';
@@ -363,6 +366,29 @@ export const routesConfig: RouteObject[] = [
         element: (
           <RouteProtegee rolesAutorises={['poste_atelier']}>
             <EcranBornePointage />
+          </RouteProtegee>
+        ),
+      },
+      // Hangar à pneus (Lot B) — DEUX routes, TOUTES sous `rolesAutorises={ROLES_PNEUS}`
+      // (`droits-routes.ts`) : `ROLES_PNEUS_DEPOT_LECTURE` ferme la lecture elle-même à
+      // `poste_atelier` côté API (voir `apps/api/src/pneus/droits-provisoires.ts`) — même
+      // raisonnement que `ROLES_PIECES`/`ROLES_VENTES` ci-dessus, cette garde reflète une
+      // restriction RÉELLE (bien que PROVISOIRE côté matrice de droits).
+      {
+        path: 'pneus',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PNEUS}>
+            <EcranHangarPneus />
+          </RouteProtegee>
+        ),
+      },
+      // Segment statique `a-relancer` : aucun risque d'ambiguïté avec un futur segment
+      // dynamique sous `pneus/`, même convention que `pieces/articles/:id` plus haut.
+      {
+        path: 'pneus/a-relancer',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PNEUS}>
+            <EcranJeuxARelancer />
           </RouteProtegee>
         ),
       },

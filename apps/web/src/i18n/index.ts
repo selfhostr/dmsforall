@@ -25,6 +25,7 @@ import deFacturation from './locales/de/facturation.json';
 import deParametrage from './locales/de/parametrage.json';
 import dePieces from './locales/de/pieces.json';
 import deVentes from './locales/de/ventes.json';
+import dePneus from './locales/de/pneus.json';
 import deTableauBord from './locales/de/tableauBord.json';
 import frAccueil from './locales/fr/accueil.json';
 import frAuth from './locales/fr/auth.json';
@@ -43,6 +44,7 @@ import frFacturation from './locales/fr/facturation.json';
 import frParametrage from './locales/fr/parametrage.json';
 import frPieces from './locales/fr/pieces.json';
 import frVentes from './locales/fr/ventes.json';
+import frPneus from './locales/fr/pneus.json';
 import frTableauBord from './locales/fr/tableauBord.json';
 import itAccueil from './locales/it/accueil.json';
 import itAuth from './locales/it/auth.json';
@@ -61,6 +63,7 @@ import itFacturation from './locales/it/facturation.json';
 import itParametrage from './locales/it/parametrage.json';
 import itPieces from './locales/it/pieces.json';
 import itVentes from './locales/it/ventes.json';
+import itPneus from './locales/it/pneus.json';
 import itTableauBord from './locales/it/tableauBord.json';
 
 /** 18 namespaces par domaine (propriété expert-i18n) : jamais modifiés ici, seulement importés.
@@ -90,6 +93,7 @@ export const NAMESPACES = [
   'parametrage',
   'pieces',
   'ventes',
+  'pneus',
   'tableauBord',
 ] as const;
 
@@ -112,6 +116,7 @@ const ressources = {
     parametrage: frParametrage,
     pieces: frPieces,
     ventes: frVentes,
+    pneus: frPneus,
     tableauBord: frTableauBord,
   },
   de: {
@@ -132,6 +137,7 @@ const ressources = {
     parametrage: deParametrage,
     pieces: dePieces,
     ventes: deVentes,
+    pneus: dePneus,
     tableauBord: deTableauBord,
   },
   it: {
@@ -152,6 +158,7 @@ const ressources = {
     parametrage: itParametrage,
     pieces: itPieces,
     ventes: itVentes,
+    pneus: itPneus,
     tableauBord: itTableauBord,
   },
 } as const;

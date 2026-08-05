@@ -674,5 +674,52 @@
     "refus": {
       "nonConfirme": "Le financement doit être confirmé avant de poursuivre."
     }
+  },
+  "suivi": {
+    "titre": "Suivi financement & garantie",
+    "lienDepuisListe": "Suivi financement & garantie",
+    "retourListe": "Retour aux dossiers de vente",
+    "colonnes": {
+      "dossier": "Client / véhicule",
+      "echeance": "Prochaine échéance",
+      "financement": "Financement",
+      "garantie": "Garantie"
+    },
+    "filtres": {
+      "horizonLabel": "Horizon",
+      "horizon": {
+        "30": "30 prochains jours",
+        "90": "90 prochains jours",
+        "180": "180 prochains jours",
+        "toutes": "Toutes les échéances"
+      }
+    },
+    "urgence": {
+      "aucune": "Aucune échéance connue",
+      "echue": "{n, plural, one {Échue depuis # jour} other {Échue depuis # jours}}",
+      "aujourdHui": "Aujourd'hui",
+      "demain": "Demain",
+      "dansNJours": "{n, plural, one {Dans # jour} other {Dans # jours}}"
+    },
+    "financement": {
+      "echeance": "Échéance",
+      "nonCommunique": "Non communiqué",
+      "nonConfirmee": "En attente de confirmation — échéance non estimée"
+    },
+    "garantie": {
+      "active": "Garantie active",
+      "echue": "Garantie échue",
+      "depuisLe": "Depuis le {date}",
+      "jusquAu": "Jusqu'au {date}",
+      "dureeInconnue": "Durée non renseignée — fin non déterminable",
+      "plafond": "Plafond {km}"
+    },
+    "vide": {
+      "titre": "Aucune échéance à venir",
+      "description": "Bonne nouvelle : aucun dossier n'arrive à échéance sur la période sélectionnée."
+    },
+    "erreur": {
+      "titre": "Impossible d'afficher le suivi des échéances"
+    }
   }
 }

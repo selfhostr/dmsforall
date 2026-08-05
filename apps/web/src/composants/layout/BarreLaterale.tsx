@@ -24,6 +24,7 @@ import {
   Undo2,
   Users,
   UsersRound,
+  Warehouse,
   Wrench,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -37,6 +38,7 @@ import {
   ROLES_MENU_PARAMETRAGE_ATELIER,
   ROLES_PARAMETRAGE_PIECES,
   ROLES_PIECES,
+  ROLES_PNEUS,
   ROLES_TABLEAU_BORD_ACTIVITE,
   ROLES_VENTES,
 } from '@/routes/droits-routes';
@@ -155,6 +157,10 @@ export function BarreLaterale({ className }: Props) {
   const peutAccederPointage = role !== undefined && ROLES_POINTAGE.includes(role);
   const peutGererPointageEncadrement =
     role !== undefined && ROLES_POINTAGE_ENCADREMENT.includes(role);
+  // Hangar à pneus (Lot B) — même patron que `peutAccederPieces` ci-dessus : `ROLES_PNEUS`
+  // reflète la restriction RÉELLE de l'API (`ROLES_PNEUS_DEPOT_LECTURE` ferme `poste_atelier`,
+  // voir `apps/api/src/pneus/droits-provisoires.ts`), pas une liste inventée pour le menu.
+  const peutAccederPneus = role !== undefined && ROLES_PNEUS.includes(role);
 
   return (
     <nav
@@ -267,6 +273,22 @@ export function BarreLaterale({ className }: Props) {
               {t('navigation:liens.pointageCloture')}
             </NavLink>
           ) : null}
+        </>
+      ) : null}
+
+      {peutAccederPneus ? (
+        <>
+          <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {t('navigation:groupes.pneus')}
+          </p>
+          <NavLink to={chemins.pneus.hangar(site)} className={classeLien}>
+            <Warehouse className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.pneusHangar')}
+          </NavLink>
+          <NavLink to={chemins.pneus.aRelancer(site)} className={classeLien}>
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.pneusARelancer')}
+          </NavLink>
         </>
       ) : null}
 

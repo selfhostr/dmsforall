@@ -1,0 +1,116 @@
+{
+  "saison": {
+    "ete": "Été",
+    "hiver": "Hiver"
+  },
+  "statut": {
+    "en_depot": "En dépôt",
+    "monte": "Monté",
+    "a_relancer": "À relancer",
+    "sorti": "Sorti"
+  },
+  "motifSortie": {
+    "rendu_au_client": "Rendu au client",
+    "vehicule_vendu": "Véhicule vendu",
+    "mis_au_rebut": "Mis au rebut",
+    "autre": "Autre"
+  },
+  "jeu": {
+    "sansRepere": "Sans repère",
+    "plaqueInconnue": "Plaque inconnue",
+    "dernierMouvement": "Dernier mouvement le {date}",
+    "avertissementRelance": "Sans mouvement depuis plus de deux ans — à relancer auprès du client.",
+    "actions": {
+      "voirVehicule": "Voir le véhicule",
+      "changerSaison": "Changer de saison",
+      "sortir": "Sortir"
+    }
+  },
+  "hangar": {
+    "titre": "Hangar à pneus",
+    "erreur": {
+      "titre": "Impossible d'afficher le hangar"
+    },
+    "siteRequis": {
+      "titre": "Choisissez un site",
+      "description": "Le hangar à pneus est propre à chaque site — choisissez celui à consulter.",
+      "label": "Site"
+    },
+    "recherche": {
+      "champLabel": "Rechercher par plaque ou nom client",
+      "champPlaceholder": "Ex. VD 123456 ou Dupont",
+      "erreur": {
+        "titre": "La recherche a échoué"
+      },
+      "aucunResultat": {
+        "titre": "Aucun jeu trouvé",
+        "description": "Aucun véhicule ni client ne correspond à cette recherche, ou aucun jeu actif ne lui est rattaché."
+      }
+    },
+    "filtres": {
+      "statut": "Statut",
+      "statutActifs": "Tous les jeux du hangar",
+      "statutARelancer": "À relancer uniquement",
+      "saison": "Saison",
+      "saisonToutes": "Toutes",
+      "repere": "Filtrer par repère",
+      "reperePlaceholder": "Ex. Rack 3"
+    },
+    "vide": {
+      "titre": "Hangar à pneus",
+      "filtreDescription": "Aucun jeu ne correspond à ce repère.",
+      "aucunARelancer": "Aucun jeu à relancer pour l'instant.",
+      "premierUsage": "Aucun jeu de pneus n'est encore entré dans ce hangar."
+    },
+    "lienARelancer": {
+      "description": "Des jeux oubliés depuis plus de deux ans se cachent peut-être dans ce hangar.",
+      "lien": "Voir les jeux à relancer"
+    }
+  },
+  "creation": {
+    "titre": "Nouveau dépôt de pneus",
+    "description": "Entre un jeu de pneus dans le hangar de ce site.",
+    "actions": {
+      "ouvrir": "Nouveau dépôt",
+      "creer": "Créer le dépôt"
+    },
+    "champVehicule": "Véhicule",
+    "champVehiculePlaceholder": "Plaque, marque ou modèle",
+    "champVehiculeIndication": "Tapez pour rechercher un véhicule déjà enregistré.",
+    "aucunVehiculeTrouve": "Aucun véhicule ne correspond à cette recherche.",
+    "champSaison": "Saison",
+    "champCodeCase": "Repère du hangar",
+    "champCodeCasePlaceholder": "Ex. Rack 3, étagère B",
+    "champDimension": "Dimension",
+    "champDimensionPlaceholder": "Ex. 205/55 R16",
+    "champDimensionIndication": "Laissez vide pour reprendre la dimension enregistrée sur le véhicule.",
+    "champEtat": "État (observation libre)"
+  },
+  "changementSaison": {
+    "titre": "Changer de saison",
+    "description": "Le jeu \"{codeCase}\" et son jumeau (saison opposée) inversent leur statut monté/en dépôt."
+  },
+  "sortie": {
+    "titre": "Sortir ce jeu du hangar",
+    "description": "Le jeu \"{codeCase}\" passe en statut définitif \"sorti\". Cette action n'est pas réversible — indiquez le motif.",
+    "champMotif": "Motif de sortie",
+    "champMotifPlaceholder": "Choisir un motif"
+  },
+  "aRelancer": {
+    "titre": "Jeux à relancer",
+    "description": "Jeux de pneus sans mouvement depuis plus de deux ans — à relancer auprès du client avant qu'ils n'immobilisent une place pour rien.",
+    "erreur": {
+      "titre": "Impossible d'afficher les jeux à relancer"
+    },
+    "vide": "Aucun jeu à relancer.",
+    "filtreSite": "Site",
+    "filtreSiteTous": "Tous les sites",
+    "colonnes": {
+      "repere": "Repère",
+      "saison": "Saison",
+      "dimension": "Dimension",
+      "dernierMouvement": "Dernier mouvement",
+      "vehicule": "Véhicule"
+    }
+  }
+}

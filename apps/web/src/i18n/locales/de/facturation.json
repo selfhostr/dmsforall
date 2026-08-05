@@ -25,9 +25,9 @@
     }
   },
   "retard": {
-    "premierNiveau": "überfällig",
-    "relanceAvancee": "überfällig — {niveau}. Mahnung",
-    "relanceLe": "Mahnung versendet am {date}"
+    "enRetard": "{jours, plural, one {# Tag} other {# Tage}} überfällig",
+    "echeanceLe": "Fällig am {date}",
+    "echeanceInconnue": "Fälligkeit unbekannt"
   },
   "recapTva": {
     "titre": "MWST-Zusammenfassung",

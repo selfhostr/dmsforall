@@ -1,0 +1,116 @@
+{
+  "saison": {
+    "ete": "Sommer",
+    "hiver": "Winter"
+  },
+  "statut": {
+    "en_depot": "Eingelagert",
+    "monte": "Montiert",
+    "a_relancer": "Nachfassen",
+    "sorti": "Ausgelagert"
+  },
+  "motifSortie": {
+    "rendu_au_client": "Dem Kunden zurückgegeben",
+    "vehicule_vendu": "Fahrzeug verkauft",
+    "mis_au_rebut": "Entsorgt",
+    "autre": "Anderer Grund"
+  },
+  "jeu": {
+    "sansRepere": "Kein Standort",
+    "plaqueInconnue": "Kennzeichen unbekannt",
+    "dernierMouvement": "Letzte Bewegung am {date}",
+    "avertissementRelance": "Seit über zwei Jahren ohne Bewegung — beim Kunden nachfragen.",
+    "actions": {
+      "voirVehicule": "Fahrzeug anzeigen",
+      "changerSaison": "Saison wechseln",
+      "sortir": "Auslagern"
+    }
+  },
+  "hangar": {
+    "titre": "Reifenhotel",
+    "erreur": {
+      "titre": "Das Reifenhotel kann nicht angezeigt werden"
+    },
+    "siteRequis": {
+      "titre": "Standort wählen",
+      "description": "Das Reifenhotel ist pro Standort organisiert — wählen Sie den gewünschten Standort.",
+      "label": "Standort"
+    },
+    "recherche": {
+      "champLabel": "Suche nach Kennzeichen oder Kundenname",
+      "champPlaceholder": "Z. B. VD 123456 oder Dupont",
+      "erreur": {
+        "titre": "Die Suche ist fehlgeschlagen"
+      },
+      "aucunResultat": {
+        "titre": "Kein Reifensatz gefunden",
+        "description": "Kein Fahrzeug und kein Kunde entspricht dieser Suche, oder es ist kein aktiver Satz zugeordnet."
+      }
+    },
+    "filtres": {
+      "statut": "Status",
+      "statutActifs": "Alle Sätze im Hotel",
+      "statutARelancer": "Nur Nachfassen",
+      "saison": "Saison",
+      "saisonToutes": "Alle",
+      "repere": "Nach Standort filtern",
+      "reperePlaceholder": "Z. B. Regal 3"
+    },
+    "vide": {
+      "titre": "Reifenhotel",
+      "filtreDescription": "Kein Satz entspricht diesem Standort.",
+      "aucunARelancer": "Aktuell kein Satz zum Nachfassen.",
+      "premierUsage": "Noch kein Reifensatz in diesem Hotel eingelagert."
+    },
+    "lienARelancer": {
+      "description": "Möglicherweise befinden sich seit über zwei Jahren vergessene Sätze in diesem Hotel.",
+      "lien": "Sätze zum Nachfassen anzeigen"
+    }
+  },
+  "creation": {
+    "titre": "Neue Reifeneinlagerung",
+    "description": "Einen Reifensatz in das Reifenhotel dieses Standorts einlagern.",
+    "actions": {
+      "ouvrir": "Neue Einlagerung",
+      "creer": "Einlagerung erstellen"
+    },
+    "champVehicule": "Fahrzeug",
+    "champVehiculePlaceholder": "Kennzeichen, Marke oder Modell",
+    "champVehiculeIndication": "Tippen Sie, um ein bereits erfasstes Fahrzeug zu suchen.",
+    "aucunVehiculeTrouve": "Kein Fahrzeug entspricht dieser Suche.",
+    "champSaison": "Saison",
+    "champCodeCase": "Standort im Hotel",
+    "champCodeCasePlaceholder": "Z. B. Regal 3, Fach B",
+    "champDimension": "Dimension",
+    "champDimensionPlaceholder": "Z. B. 205/55 R16",
+    "champDimensionIndication": "Leer lassen, um die am Fahrzeug hinterlegte Dimension zu übernehmen.",
+    "champEtat": "Zustand (freie Bemerkung)"
+  },
+  "changementSaison": {
+    "titre": "Saison wechseln",
+    "description": "Der Satz \"{codeCase}\" und sein Gegenstück (Gegensaison) tauschen ihren Status montiert/eingelagert."
+  },
+  "sortie": {
+    "titre": "Diesen Satz auslagern",
+    "description": "Der Satz \"{codeCase}\" erhält den endgültigen Status \"ausgelagert\". Diese Aktion ist nicht rückgängig zu machen — Grund angeben.",
+    "champMotif": "Grund der Auslagerung",
+    "champMotifPlaceholder": "Grund wählen"
+  },
+  "aRelancer": {
+    "titre": "Sätze zum Nachfassen",
+    "description": "Reifensätze ohne Bewegung seit über zwei Jahren — beim Kunden nachfragen, bevor sie unnötig einen Platz belegen.",
+    "erreur": {
+      "titre": "Die Sätze zum Nachfassen können nicht angezeigt werden"
+    },
+    "vide": "Keine Sätze zum Nachfassen.",
+    "filtreSite": "Standort",
+    "filtreSiteTous": "Alle Standorte",
+    "colonnes": {
+      "repere": "Standort",
+      "saison": "Saison",
+      "dimension": "Dimension",
+      "dernierMouvement": "Letzte Bewegung",
+      "vehicule": "Fahrzeug"
+    }
+  }
+}

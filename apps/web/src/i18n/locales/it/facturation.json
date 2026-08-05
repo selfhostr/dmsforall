@@ -25,9 +25,9 @@
     }
   },
   "retard": {
-    "premierNiveau": "in ritardo",
-    "relanceAvancee": "in ritardo — {niveau}° sollecito",
-    "relanceLe": "Sollecito inviato il {date}"
+    "enRetard": "in ritardo da {jours, plural, one {# giorno} other {# giorni}}",
+    "echeanceLe": "Scadenza: {date}",
+    "echeanceInconnue": "Scadenza sconosciuta"
   },
   "recapTva": {
     "titre": "Riepilogo IVA",

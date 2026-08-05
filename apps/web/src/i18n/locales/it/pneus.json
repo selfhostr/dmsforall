@@ -1,0 +1,116 @@
+{
+  "saison": {
+    "ete": "Estate",
+    "hiver": "Inverno"
+  },
+  "statut": {
+    "en_depot": "In deposito",
+    "monte": "Montato",
+    "a_relancer": "Da richiamare",
+    "sorti": "Uscito"
+  },
+  "motifSortie": {
+    "rendu_au_client": "Restituito al cliente",
+    "vehicule_vendu": "Veicolo venduto",
+    "mis_au_rebut": "Smaltito",
+    "autre": "Altro"
+  },
+  "jeu": {
+    "sansRepere": "Senza ubicazione",
+    "plaqueInconnue": "Targa sconosciuta",
+    "dernierMouvement": "Ultimo movimento il {date}",
+    "avertissementRelance": "Nessun movimento da oltre due anni — da richiamare presso il cliente.",
+    "actions": {
+      "voirVehicule": "Vedi il veicolo",
+      "changerSaison": "Cambio stagione",
+      "sortir": "Fai uscire"
+    }
+  },
+  "hangar": {
+    "titre": "Deposito pneumatici",
+    "erreur": {
+      "titre": "Impossibile visualizzare il deposito"
+    },
+    "siteRequis": {
+      "titre": "Scegliere una sede",
+      "description": "Il deposito pneumatici è organizzato per sede — scegliere quella da consultare.",
+      "label": "Sede"
+    },
+    "recherche": {
+      "champLabel": "Cerca per targa o nome cliente",
+      "champPlaceholder": "Es. VD 123456 o Dupont",
+      "erreur": {
+        "titre": "La ricerca non è riuscita"
+      },
+      "aucunResultat": {
+        "titre": "Nessun set trovato",
+        "description": "Nessun veicolo o cliente corrisponde a questa ricerca, oppure nessun set attivo è associato."
+      }
+    },
+    "filtres": {
+      "statut": "Stato",
+      "statutActifs": "Tutti i set del deposito",
+      "statutARelancer": "Solo da richiamare",
+      "saison": "Stagione",
+      "saisonToutes": "Tutte",
+      "repere": "Filtra per ubicazione",
+      "reperePlaceholder": "Es. Scaffale 3"
+    },
+    "vide": {
+      "titre": "Deposito pneumatici",
+      "filtreDescription": "Nessun set corrisponde a questa ubicazione.",
+      "aucunARelancer": "Nessun set da richiamare al momento.",
+      "premierUsage": "Nessun set di pneumatici ancora depositato in questo deposito."
+    },
+    "lienARelancer": {
+      "description": "Set dimenticati da oltre due anni potrebbero trovarsi in questo deposito.",
+      "lien": "Vedi i set da richiamare"
+    }
+  },
+  "creation": {
+    "titre": "Nuovo deposito pneumatici",
+    "description": "Registra un set di pneumatici nel deposito di questa sede.",
+    "actions": {
+      "ouvrir": "Nuovo deposito",
+      "creer": "Crea il deposito"
+    },
+    "champVehicule": "Veicolo",
+    "champVehiculePlaceholder": "Targa, marca o modello",
+    "champVehiculeIndication": "Digitare per cercare un veicolo già registrato.",
+    "aucunVehiculeTrouve": "Nessun veicolo corrisponde a questa ricerca.",
+    "champSaison": "Stagione",
+    "champCodeCase": "Ubicazione nel deposito",
+    "champCodeCasePlaceholder": "Es. Scaffale 3, ripiano B",
+    "champDimension": "Dimensione",
+    "champDimensionPlaceholder": "Es. 205/55 R16",
+    "champDimensionIndication": "Lasciare vuoto per riprendere la dimensione registrata sul veicolo.",
+    "champEtat": "Stato (osservazione libera)"
+  },
+  "changementSaison": {
+    "titre": "Cambio stagione",
+    "description": "Il set \"{codeCase}\" e il suo gemello (stagione opposta) invertono lo stato montato/in deposito."
+  },
+  "sortie": {
+    "titre": "Fai uscire questo set dal deposito",
+    "description": "Il set \"{codeCase}\" passa allo stato definitivo \"uscito\". Questa azione non è reversibile — indicare il motivo.",
+    "champMotif": "Motivo dell'uscita",
+    "champMotifPlaceholder": "Scegliere un motivo"
+  },
+  "aRelancer": {
+    "titre": "Set da richiamare",
+    "description": "Set di pneumatici senza movimento da oltre due anni — da richiamare presso il cliente prima che occupino inutilmente un posto.",
+    "erreur": {
+      "titre": "Impossibile visualizzare i set da richiamare"
+    },
+    "vide": "Nessun set da richiamare.",
+    "filtreSite": "Sede",
+    "filtreSiteTous": "Tutte le sedi",
+    "colonnes": {
+      "repere": "Ubicazione",
+      "saison": "Stagione",
+      "dimension": "Dimensione",
+      "dernierMouvement": "Ultimo movimento",
+      "vehicule": "Veicolo"
+    }
+  }
+}

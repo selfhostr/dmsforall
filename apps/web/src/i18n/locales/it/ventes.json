@@ -674,5 +674,52 @@
     "refus": {
       "nonConfirme": "Il finanziamento deve essere confermato prima di proseguire."
     }
+  },
+  "suivi": {
+    "titre": "Monitoraggio finanziamento e garanzia",
+    "lienDepuisListe": "Monitoraggio finanziamento e garanzia",
+    "retourListe": "Torna alle pratiche di vendita",
+    "colonnes": {
+      "dossier": "Cliente / veicolo",
+      "echeance": "Prossima scadenza",
+      "financement": "Finanziamento",
+      "garantie": "Garanzia"
+    },
+    "filtres": {
+      "horizonLabel": "Orizzonte",
+      "horizon": {
+        "30": "Prossimi 30 giorni",
+        "90": "Prossimi 90 giorni",
+        "180": "Prossimi 180 giorni",
+        "toutes": "Tutte le scadenze"
+      }
+    },
+    "urgence": {
+      "aucune": "Nessuna scadenza nota",
+      "echue": "{n, plural, one {Scaduta da # giorno} other {Scaduta da # giorni}}",
+      "aujourdHui": "Oggi",
+      "demain": "Domani",
+      "dansNJours": "{n, plural, one {Tra # giorno} other {Tra # giorni}}"
+    },
+    "financement": {
+      "echeance": "Scadenza",
+      "nonCommunique": "Non comunicato",
+      "nonConfirmee": "In attesa di conferma — scadenza non stimabile"
+    },
+    "garantie": {
+      "active": "Garanzia attiva",
+      "echue": "Garanzia scaduta",
+      "depuisLe": "Dal {date}",
+      "jusquAu": "Fino al {date}",
+      "dureeInconnue": "Durata non indicata — fine non determinabile",
+      "plafond": "Limite {km}"
+    },
+    "vide": {
+      "titre": "Nessuna scadenza in arrivo",
+      "description": "Buona notizia: nessuna pratica raggiunge una scadenza nel periodo selezionato."
+    },
+    "erreur": {
+      "titre": "Impossibile visualizzare il monitoraggio delle scadenze"
+    }
   }
 }

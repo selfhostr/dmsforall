@@ -119,6 +119,30 @@ export const ROLES_VENTES: readonly RoleUtilisateur[] = [
 ];
 
 /**
+ * Hangar à pneus (Lot B) — CAS DE FIGURE 1 CI-DESSUS (protection RÉELLE de route), même
+ * raisonnement que `ROLES_PIECES`/`ROLES_VENTES` : `apps/api/src/pneus/droits-provisoires.ts`
+ * (`ROLES_PNEUS_DEPOT_LECTURE`) ferme la LECTURE elle-même à `poste_atelier` (la borne murale de
+ * l'atelier n'a aucune utilité au hangar à pneus) — poser `rolesAutorises: ROLES_PNEUS` reflète
+ * donc une restriction RÉELLE, même si PROVISOIRE côté API (`@AucunDroitRequis()` + vérification
+ * en service, `pneus.depot.*` n'existe pas encore dans `auth/matrice-droits.ts`, voir le
+ * commentaire de tête de `droits-provisoires.ts`).
+ *
+ * Liste DUPLIQUÉE depuis `ecrans/pneus/droits.ts` (`ROLES_PNEUS`, même chaîne de duplication
+ * assumée que `ROLES_PIECES`/`ROLES_VENTES`/`ROLES_TABLEAU_BORD_ACTIVITE` ci-dessus — `routes/` ne
+ * dépend pas d'`ecrans/*`).
+ */
+export const ROLES_PNEUS: readonly RoleUtilisateur[] = [
+  'admin',
+  'direction',
+  'vendeur',
+  'receptionnaire',
+  'chef_atelier',
+  'technicien',
+  'magasinier',
+  'comptable',
+];
+
+/**
  * Tableau de bord — CAS DE FIGURE 1 CI-DESSUS (protection RÉELLE de route) : `GET /tableau-bord/
  * activite` est ouvert à tout rôle de PERSONNE, mais explicitement fermé à `poste_atelier` (la
  * borne murale partagée, voir `apps/api/src/tableau-bord/droits-provisoires.ts`) — la LECTURE

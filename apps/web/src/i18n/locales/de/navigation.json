@@ -28,13 +28,16 @@
     "pointageEquipe": "Team",
     "pointageCloture": "Periodenabschluss",
     "ventesStock": "Fahrzeugbestand",
-    "ventesDossiers": "Verkaufsdossiers"
+    "ventesDossiers": "Verkaufsdossiers",
+    "pneusHangar": "Reifenhotel",
+    "pneusARelancer": "Sätze zum Nachfassen"
   },
   "groupes": {
     "parametrage": "Einstellungen",
     "pieces": "Teile",
     "pointage": "Zeiterfassung",
-    "ventes": "Verkauf"
+    "ventes": "Verkauf",
+    "pneus": "Reifen"
   },
   "menu": {
     "ouvrir": "Menü öffnen"

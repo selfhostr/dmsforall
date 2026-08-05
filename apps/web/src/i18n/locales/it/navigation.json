@@ -28,13 +28,16 @@
     "pointageEquipe": "Team",
     "pointageCloture": "Chiusura periodo",
     "ventesStock": "Veicoli in stock",
-    "ventesDossiers": "Pratiche di vendita"
+    "ventesDossiers": "Pratiche di vendita",
+    "pneusHangar": "Deposito pneumatici",
+    "pneusARelancer": "Set da richiamare"
   },
   "groupes": {
     "parametrage": "Impostazioni",
     "pieces": "Ricambi",
     "pointage": "Timbratura",
-    "ventes": "Vendite"
+    "ventes": "Vendite",
+    "pneus": "Pneumatici"
   },
   "menu": {
     "ouvrir": "Apri menu"

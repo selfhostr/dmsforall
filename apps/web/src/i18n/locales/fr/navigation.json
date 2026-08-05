@@ -28,13 +28,16 @@
     "pointageEquipe": "Équipe",
     "pointageCloture": "Clôture de période",
     "ventesStock": "Véhicules en stock",
-    "ventesDossiers": "Dossiers de vente"
+    "ventesDossiers": "Dossiers de vente",
+    "pneusHangar": "Hangar à pneus",
+    "pneusARelancer": "Jeux à relancer"
   },
   "groupes": {
     "parametrage": "Paramétrage",
     "pieces": "Pièces",
     "pointage": "Pointage",
-    "ventes": "Ventes"
+    "ventes": "Ventes",
+    "pneus": "Pneus"
   },
   "menu": {
     "ouvrir": "Ouvrir le menu"

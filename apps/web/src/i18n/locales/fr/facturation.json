@@ -25,9 +25,9 @@
     }
   },
   "retard": {
-    "premierNiveau": "en retard",
-    "relanceAvancee": "en retard — {niveau}e relance",
-    "relanceLe": "Relance envoyée le {date}"
+    "enRetard": "en retard de {jours, plural, one {# jour} other {# jours}}",
+    "echeanceLe": "Échéance : {date}",
+    "echeanceInconnue": "Échéance inconnue"
   },
   "recapTva": {
     "titre": "Récapitulatif TVA",

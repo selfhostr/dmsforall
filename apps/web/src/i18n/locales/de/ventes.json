@@ -674,5 +674,52 @@
     "refus": {
       "nonConfirme": "Die Finanzierung muss bestätigt sein, bevor fortgefahren werden kann."
     }
+  },
+  "suivi": {
+    "titre": "Finanzierungs- & Garantieübersicht",
+    "lienDepuisListe": "Finanzierungs- & Garantieübersicht",
+    "retourListe": "Zurück zu den Verkaufsdossiers",
+    "colonnes": {
+      "dossier": "Kunde / Fahrzeug",
+      "echeance": "Nächste Fälligkeit",
+      "financement": "Finanzierung",
+      "garantie": "Garantie"
+    },
+    "filtres": {
+      "horizonLabel": "Zeithorizont",
+      "horizon": {
+        "30": "Nächste 30 Tage",
+        "90": "Nächste 90 Tage",
+        "180": "Nächste 180 Tage",
+        "toutes": "Alle Fälligkeiten"
+      }
+    },
+    "urgence": {
+      "aucune": "Keine bekannte Fälligkeit",
+      "echue": "{n, plural, one {Seit # Tag fällig} other {Seit # Tagen fällig}}",
+      "aujourdHui": "Heute",
+      "demain": "Morgen",
+      "dansNJours": "{n, plural, one {In # Tag} other {In # Tagen}}"
+    },
+    "financement": {
+      "echeance": "Fälligkeit",
+      "nonCommunique": "Nicht mitgeteilt",
+      "nonConfirmee": "Ausstehende Bestätigung — Fälligkeit nicht schätzbar"
+    },
+    "garantie": {
+      "active": "Garantie aktiv",
+      "echue": "Garantie abgelaufen",
+      "depuisLe": "Seit dem {date}",
+      "jusquAu": "Bis zum {date}",
+      "dureeInconnue": "Dauer nicht erfasst — Ende nicht bestimmbar",
+      "plafond": "Obergrenze {km}"
+    },
+    "vide": {
+      "titre": "Keine anstehende Fälligkeit",
+      "description": "Gute Nachricht: In diesem Zeitraum wird kein Dossier fällig."
+    },
+    "erreur": {
+      "titre": "Die Fälligkeitsübersicht kann nicht angezeigt werden"
+    }
   }
 }

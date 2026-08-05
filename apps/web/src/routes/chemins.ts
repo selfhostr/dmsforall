@@ -122,6 +122,16 @@ export const chemins = {
      *  utilise `saisie`, la borne murale partagée utilise `borne`. */
     borne: () => '/pointage/borne',
   },
+  /** Hangar à pneus (Lot B, `docs/specification-parc-et-hangar-pneus.md`). `hangar` suit la même
+   *  mécanique `?site=` que `clients`/`vehicules`/`pieces` ci-dessus — `GET
+   *  /sites/{siteId}/hangar-pneus` est scopé par site, le site sélectionné vient de l'URL, jamais
+   *  d'un état global. `aRelancer` n'IMPOSE pas de site (`GET /depots-pneus/a-relancer` accepte un
+   *  `siteId` optionnel, défaut tenant entier, RPP-04) mais le conserve quand même s'il est déjà
+   *  connu, même raisonnement que `tableauBord` ci-dessus. */
+  pneus: {
+    hangar: (site?: string) => construireChemin('/pneus', { site }),
+    aRelancer: (site?: string) => construireChemin('/pneus/a-relancer', { site }),
+  },
   /** Module ventes VN/VO (étape 4). Repris À L'IDENTIQUE des chemins locaux posés par les agents
    *  qui ont livré les écrans — `ecrans/ventes/stock/_composants/chemins-locaux.ts`
    *  (`cheminsStockVentes`) et `ecrans/ventes/dossiers/chemins-dossiers.ts`, tous deux marqués
