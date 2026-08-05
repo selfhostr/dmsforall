@@ -103,15 +103,17 @@ Alternatives considérées : Go (backend plus performant mais deux langages à m
 | **1. Atelier + Clients** | Clients, véhicules, RDV, OR, planning, pointage sur OR                           | ✅ Livré (API + écrans)                                                           |
 | **2. Facturation**       | Devis/facture/avoir, QR-facture, export fiduciaire WinBIZ, encaissement          | ✅ Livré (API + écrans + jeu démo)                                                |
 | **Lot 2. Pointage**      | Pointage par technicien/OR (temps réel, tracé historisé, statut OR=en_cours)     | 🟨 API livrée, écrans en cours                                                    |
-| **3. Pièces**            | Articles, stock par site, mouvements (casse/transfert/retour), réservations      | 🟨 API + écrans livrés, commandes fournisseur EN COURS                            |
-| **4. Ventes VN/VO**      | Stock garage, dossiers de vente, reprises, financement                           | 🟨 Schéma + contrats livrés (migrations 0031-0032), API EN COURS, écrans EN COURS |
-| **5. Connecteurs**       | Interfaces pour TecDoc, AutoScout24, exports comptables, OEM                     | 🟨 Contrats définis, implémentation EN COURS                                      |
+| **3. Pièces**            | Articles, stock par site, mouvements (casse/transfert/retour/comptoir), réservations | ✅ API + écrans livrés ; 🟨 commandes fournisseur, consignes EN COURS                            |
+| **4. Ventes VN/VO**      | Stock garage, dossiers de vente, reprises, financement, leasings, garanties      | ✅ Cycle complet (API + écrans livrés) ; 🟨 suivi leasings/garanties EN COURS     |
+| **Tableau-bord**         | Activité atelier (ouverte), financier (direction/comptabilité seulement)         | ✅ API + écrans + droits dédiés livrés                                             |
+| **Pneus**                | Hangar à dépôt, déposer/retirer pneus, changement de saison                      | ✅ API + écrans livrés (migrations 0043–0044)                                      |
+| **5. Connecteurs**       | Interfaces pour TecDoc, AutoScout24, exports comptables, OEM ; socle d'exécution | ✅ Socle exécutable (registre, résilience) ; 🟨 adaptateurs (4 interfaces sans contrat métier) |
 
 Jalon clé : **fin d'étape 2 (31.07.2026) = premier garage prêt pour une utilisation réelle.** Étapes 3-5 élargissent le périmètre ; aucune n'est bloquante pour le pilote.
 
 ## 7. Décisions et questions ouvertes
 
-Décidé (27.07.2026 et confirmé 31.07.2026) :
+Décidé (27.07.2026, confirmé 31.07.2026, confirmé 05.08.2026) :
 
 - [x] **Nom : dmsforall (DFA).**
 - [x] **Stack validée** (§3) : TypeScript + NestJS + PostgreSQL/Drizzle + React/Vite.
@@ -119,12 +121,15 @@ Décidé (27.07.2026 et confirmé 31.07.2026) :
 - [x] **Dev hybride** : Postgres + Redis dans Docker (installé), backend/front en Node local en dev, tout conteneurisé en prod.
 - [x] **Étapes 1-2 livrées** : atelier (OR, planning, pointage), clients, véhicules, facturation (QR-facture, export WinBIZ, encaissement).
 - [x] **Décision ventes VN/VO** (§4) : un véhicule en stock n'est pas un second objet ; c'est le même enregistrement `vehicule` étendu (colonnes `prix_*`, `statut_stock`, photos, etc.).
+- [x] **Étapes 3-4 cycle complet** : pièces (stock, mouvements, réservation atelier) et ventes (dossier de vente, cycle complet, facturation) API + écrans complets. Atelier câblé aux pièces. Cycle ventes marque le véhicule vendu.
+- [x] **Tableau-bord + Pneus** : transversaux livrés (droits, écrans, migrations).
+- [x] **Étape 5 socle** : registre, résilience, adaptateurs factices. Cinq interfaces définies : `AccountingExporter` implémenté (facturation) ; quatre autres (`PartsCatalogProvider`, `VehicleReferenceProvider`, `OrderProvider`, `ListingPublisher`) ne sont que des NOMS — contrats métier en attente du partenaire réel.
 
 Encore ouvert :
 
-- [ ] Premier garage : à confirmer avant démarrage etape 2 production.
-- [ ] Licence TecDoc : coûts à évaluer avant étape 3 (pièces).
+- [ ] Premier garage : à confirmer avant démarrage etape 2 production (facturation).
+- [ ] Licence TecDoc : coûts à évaluer avant adaptateur (étape 5).
 - [ ] Migration données Auto-i/Nextlane : modalités par premier garage — voir `docs/specification-reprise-donnees.md`.
-- [ ] Étape 3 : commandes fournisseur et consignes pièces (socle posé, implémentation EN COURS).
-- [ ] Étape 4 : endpoints ventes VN/VO (schéma confirmé 31.07, implémentation EN COURS).
-- [ ] Étape 5 : adaptateurs connecteurs (TecDoc, AutoScout24 prioritaires ; OEM au rythme agréments commerciaux).
+- [ ] Étape 3 : commandes fournisseur, consignes pièces EN COURS (socle attelier + pièces posé).
+- [ ] Étape 4 : leasings et garanties, suivi détaillé EN COURS (cycle complet posé).
+- [ ] Étape 5 : adaptateurs connecteurs (TecDoc, AutoScout24 prioritaires ; OEM au rythme agréments commerciaux). Les contrats métier des quatre interfaces sont encore vides — à définir avec chaque partenaire au moment de l'intégration.
