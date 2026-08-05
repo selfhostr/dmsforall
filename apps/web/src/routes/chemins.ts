@@ -157,5 +157,8 @@ export const chemins = {
         construireChemin('/ventes/dossiers/nouveau', { site, clientId, vehiculeId }),
       detail: (id: string, site?: string) => construireChemin(`/ventes/dossiers/${id}`, { site }),
     },
+    /** Suivi financement & garantie — vue dérivée des dossiers de vente (`GET /ventes/suivi`, même
+     *  droit `ventes.dossier.lire` que `dossiers` ci-dessus). Même mécanique `?site=`. */
+    suivi: (site?: string) => construireChemin('/ventes/suivi', { site }),
   },
 } as const;

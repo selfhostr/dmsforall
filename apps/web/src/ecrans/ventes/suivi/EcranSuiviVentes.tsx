@@ -1,0 +1,181 @@
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Link, useNavigate, useSearchParams } from 'react-router';
+
+import type { LigneSuiviVente } from '@dfa/shared';
+
+import { messageErreur } from '@/api/erreurs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { EtatChargement } from '@/composants/commun/EtatChargement';
+import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { EtatVide } from '@/composants/commun/EtatVide';
+import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
+import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
+import { useListeSuiviVente } from '@/hooks/ventes/suivi/useListeSuiviVente';
+import { chemins } from '@/routes/chemins';
+
+import { BadgeEcheanceSuivi } from './BadgeEcheanceSuivi';
+import { CelluleFinancementSuivi } from './CelluleFinancementSuivi';
+import { CelluleGarantieSuivi } from './CelluleGarantieSuivi';
+
+/** Options d'horizon (`GET /ventes/suivi?dansJours=`) — `toutes` omet le paramètre : le serveur
+ *  renvoie alors tout dossier suivi, échéances déjà dépassées comprises, triées en premier
+ *  (voir l'en-tête de `contrats/ventes/suivi.ts`). Forme extensible, pas un enum du contrat. */
+const OPTIONS_HORIZON = ['30', '90', '180', 'toutes'] as const;
+type Horizon = (typeof OPTIONS_HORIZON)[number];
+const HORIZON_DEFAUT: Horizon = '30';
+
+function versDansJours(horizon: Horizon): number | undefined {
+  return horizon === 'toutes' ? undefined : Number(horizon);
+}
+
+/**
+ * Écran d'ACTION, pas un rapport (brief) : ce qui arrive bientôt doit sauter aux yeux, chaque
+ * ligne ouvre son dossier en un clic, une liste vide est la BONNE nouvelle (rien n'arrive à
+ * échéance) — jamais formulée comme un échec.
+ *
+ * Route dédiée `/ventes/suivi` (`routes/routeur.tsx`, `chemins.ventes.suivi`) — gardée par le
+ * MÊME `rolesAutorises={ROLES_VENTES}` que `/ventes/dossiers`, car le droit de lecture serveur
+ * (`ventes.dossier.lire`) est déjà celui qui garde `/ventes/dossiers` au niveau routeur (même
+ * liste de rôles, `droits-routes.ts` documente l'invariant), donc aucune garde supplémentaire
+ * n'est nécessaire ici — `ecrans/ventes/suivi/droits.ts` reste défensif seulement, comme le reste
+ * du produit.
+ *
+ * `dansJours` filtre CÔTÉ SERVEUR (brief : « en s'appuyant sur le paramètre... plutôt qu'en
+ * filtrant côté client ») — changer d'horizon relance la requête, jamais un `.filter()` local sur
+ * les lignes déjà chargées.
+ */
+export function EcranSuiviVentes() {
+  const { t } = useTranslation(['ventes', 'commun']);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const site = searchParams.get('site') ?? undefined;
+
+  const [horizon, setHorizon] = useState<Horizon>(HORIZON_DEFAUT);
+
+  const filtres = useMemo(
+    () => ({ siteId: site, dansJours: versDansJours(horizon) }),
+    [site, horizon],
+  );
+
+  const {
+    lignes,
+    isPending,
+    isError,
+    error,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useListeSuiviVente(filtres);
+
+  const colonnes: ColonneComptoir<LigneSuiviVente>[] = [
+    {
+      id: 'dossier',
+      libelle: t('ventes:suivi.colonnes.dossier'),
+      rendu: (ligne) => (
+        <div className="flex flex-col gap-0.5">
+          <span className="texte-corps font-medium text-foreground">
+            {ligne.clientAcheteur.nomAffiche}
+          </span>
+          <span className="texte-libelle text-muted-foreground">
+            {ligne.vehicule
+              ? `${ligne.vehicule.designation}${ligne.vehicule.vin ? ` · ${ligne.vehicule.vin}` : ''}`
+              : t('ventes:dossier.liste.vehiculeNonAssigne')}
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: 'echeance',
+      libelle: t('ventes:suivi.colonnes.echeance'),
+      rendu: (ligne) => <BadgeEcheanceSuivi prochaineEcheanceLe={ligne.prochaineEcheanceLe} />,
+    },
+    {
+      id: 'financement',
+      libelle: t('ventes:suivi.colonnes.financement'),
+      rendu: (ligne) => <CelluleFinancementSuivi financement={ligne.financement} />,
+    },
+    {
+      id: 'garantie',
+      libelle: t('ventes:suivi.colonnes.garantie'),
+      rendu: (ligne) => <CelluleGarantieSuivi garantie={ligne.garantie} />,
+    },
+  ];
+
+  // Une liste vide ICI est une bonne nouvelle : rien n'arrive à échéance sur l'horizon choisi.
+  const contenuVide = (
+    <EtatVide
+      titre={t('ventes:suivi.vide.titre')}
+      description={t('ventes:suivi.vide.description')}
+    />
+  );
+
+  const enTete = (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h1 className="texte-titre-section font-semibold text-foreground">
+        {t('ventes:suivi.titre')}
+      </h1>
+      <Link
+        to={chemins.ventes.dossiers.liste(site)}
+        className="texte-corps text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        {t('ventes:suivi.retourListe')}
+      </Link>
+    </div>
+  );
+
+  if (isPending) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        {enTete}
+        <EtatChargement lignes={6} />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        {enTete}
+        <EtatErreur
+          titre={t('ventes:suivi.erreur.titre')}
+          description={messageErreur(error, t)}
+          onReessayer={() => void refetch()}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      {enTete}
+
+      <Tabs value={horizon} onValueChange={(valeur) => setHorizon(valeur as Horizon)}>
+        <TabsList aria-label={t('ventes:suivi.filtres.horizonLabel')}>
+          {OPTIONS_HORIZON.map((valeur) => (
+            <TabsTrigger key={valeur} value={valeur}>
+              {t(`ventes:suivi.filtres.horizon.${valeur}`)}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      <TableComptoir
+        colonnes={colonnes}
+        lignes={lignes}
+        cleLigne={(ligne) => ligne.dossierVenteId}
+        onOuvrirLigne={(ligne) =>
+          navigate(chemins.ventes.dossiers.detail(ligne.dossierVenteId, site))
+        }
+        contenuVide={contenuVide}
+      />
+
+      <BoutonChargerPlus
+        aChargerPlus={Boolean(hasNextPage)}
+        enChargement={isFetchingNextPage}
+        onChargerPlus={() => void fetchNextPage()}
+      />
+    </div>
+  );
+}

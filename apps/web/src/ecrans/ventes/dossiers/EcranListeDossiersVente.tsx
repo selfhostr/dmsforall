@@ -93,6 +93,10 @@ const CLES_STATUT: Record<StatutDossierVente, string> = {
  *     l'absence de numéro de dossier plutôt que d'en inventer un).
  *  3. **Filtre « période »** — demandé par le brief, aucun paramètre de plage de dates n'existe sur
  *     le contrat (seul le TRI par `dateLivraisonEstimee` existe). Non implémenté.
+ *
+ * Lien vers le suivi financement/garantie (`chemins.ventes.suivi`, route dédiée `/ventes/suivi`,
+ * `routes/routeur.tsx`) affiché dans l'en-tête ci-dessous — simple découvrabilité, pas un
+ * aiguillage : `EcranSuiviVentes` est un écran autonome atteignable par sa propre route.
  */
 export function EcranListeDossiersVente() {
   const { t } = useTranslation(['ventes', 'commun']);
@@ -255,7 +259,12 @@ export function EcranListeDossiersVente() {
         <h1 className="texte-titre-section font-semibold text-foreground">
           {t('ventes:dossier.liste.titre')}
         </h1>
-        {boutonNouveauDossier}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link to={chemins.ventes.suivi(site)}>{t('ventes:suivi.lienDepuisListe')}</Link>
+          </Button>
+          {boutonNouveauDossier}
+        </div>
       </div>
 
       <BarreFiltres

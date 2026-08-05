@@ -49,6 +49,7 @@ import { EcranNouveauDossierVente } from '@/ecrans/ventes/dossiers/EcranNouveauD
 import { EcranEntreeEnStock } from '@/ecrans/ventes/stock/EcranEntreeEnStock';
 import { EcranFicheVehiculeStock } from '@/ecrans/ventes/stock/EcranFicheVehiculeStock';
 import { EcranListeVehiculesStock } from '@/ecrans/ventes/stock/EcranListeVehiculesStock';
+import { EcranSuiviVentes } from '@/ecrans/ventes/suivi/EcranSuiviVentes';
 
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
@@ -392,13 +393,16 @@ export const routesConfig: RouteObject[] = [
           </RouteProtegee>
         ),
       },
-      // Module ventes VN/VO (étape 4) — SIX routes, TOUTES sous `rolesAutorises={ROLES_VENTES}`
+      // Module ventes VN/VO (étape 4) — SEPT routes, TOUTES sous `rolesAutorises={ROLES_VENTES}`
       // (`droits-routes.ts`) : `ventes.vehicule_stock.lire` et `ventes.dossier.lire` ferment tous
       // deux la LECTURE elle-même à `admin`/`technicien`/`magasinier` (RF-115, voir
       // `ecrans/ventes/stock/droits.ts` et `ecrans/ventes/dossiers/droits.ts`) — même raisonnement
       // que `ROLES_PIECES` ci-dessus, cette garde reflète une restriction RÉELLE de l'API. Reprise
       // et Financement N'ONT PAS de route dédiée : ce sont des cartes intégrées à la fiche dossier
-      // (design gelé §8-9), pas des écrans autonomes.
+      // (design gelé §8-9), pas des écrans autonomes. `ventes/suivi` (suivi financement & garantie,
+      // `GET /ventes/suivi`) est gardé par le MÊME droit `ventes.dossier.lire` que `ventes/dossiers`
+      // ci-dessous (`suivi-vente.controller.ts`), donc le même `ROLES_VENTES` suffit — aucune
+      // nouvelle liste de rôles n'est nécessaire.
       //
       // Segment statique `nouveau` déclaré AVANT `:id` dans chacun des deux sous-groupes, même
       // convention que `pieces/articles/:id` plus haut (React Router v6 résout sans ambiguïté quel
@@ -433,6 +437,16 @@ export const routesConfig: RouteObject[] = [
         element: (
           <RouteProtegee rolesAutorises={ROLES_VENTES}>
             <EcranListeDossiersVente />
+          </RouteProtegee>
+        ),
+      },
+      // Segment statique distinct de `dossiers` ci-dessus — aucune ambiguïté de matching React
+      // Router. Vue dérivée des dossiers de vente (échéances de financement/garantie à venir).
+      {
+        path: 'ventes/suivi',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_VENTES}>
+            <EcranSuiviVentes />
           </RouteProtegee>
         ),
       },

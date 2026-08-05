@@ -1,4 +1,5 @@
 import {
+  AlarmClock,
   Bookmark,
   Boxes,
   Building2,
@@ -111,12 +112,14 @@ function classeLien({ isActive }: { readonly isActive: boolean }): string {
  * (gouvernance atelier seule — `chef_atelier`/`direction`/`admin`). Aucun `?site=` : le pointage se
  * filtre par technicien et par période, pas par site (voir `routes/chemins.ts`).
  *
- * Groupe « Ventes » (étape 4) : DEUX entrées, « Véhicules en stock » et « Dossiers de vente »
- * (`ROLES_VENTES`, `routes/droits-routes.ts`) — masquage qui reflète une restriction RÉELLE côté
- * API, même patron que « Pièces »/« Pointage » ci-dessus : `admin`, `technicien` et `magasinier`
- * n'ont aucun droit `ventes.*` (RF-115). Reprise et Financement n'ont pas d'entrée : ce sont des
- * cartes intégrées à la fiche dossier (design gelé §8-9), pas des écrans autonomes vers lesquels
- * naviguer depuis ce menu.
+ * Groupe « Ventes » (étape 4) : TROIS entrées, « Véhicules en stock », « Dossiers de vente » et
+ * « Suivi financement & garantie » (`ROLES_VENTES`, `routes/droits-routes.ts`) — masquage qui
+ * reflète une restriction RÉELLE côté API, même patron que « Pièces »/« Pointage » ci-dessus :
+ * `admin`, `technicien` et `magasinier` n'ont aucun droit `ventes.*` (RF-115). Le suivi partage le
+ * même droit serveur (`ventes.dossier.lire`) que « Dossiers de vente », donc la même garde
+ * `ROLES_VENTES` suffit. Reprise et Financement n'ont pas d'entrée : ce sont des cartes intégrées
+ * à la fiche dossier (design gelé §8-9), pas des écrans autonomes vers lesquels naviguer depuis ce
+ * menu.
  */
 export function BarreLaterale({ className }: Props) {
   const { t } = useTranslation('navigation');
@@ -304,6 +307,10 @@ export function BarreLaterale({ className }: Props) {
           <NavLink to={chemins.ventes.dossiers.liste(site)} className={classeLien}>
             <FileText className="h-4 w-4" aria-hidden="true" />
             {t('navigation:liens.ventesDossiers')}
+          </NavLink>
+          <NavLink to={chemins.ventes.suivi(site)} className={classeLien}>
+            <AlarmClock className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.ventesSuivi')}
           </NavLink>
         </>
       ) : null}
