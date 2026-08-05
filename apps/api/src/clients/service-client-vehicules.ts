@@ -68,7 +68,11 @@ export class ServiceClientVehicules {
   ): Promise<PageCurseur<VehiculeResume>> {
     const definition = DEFINITIONS_TRI_VEHICULES[params.tri];
     const idExpr = sql`v.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(
+      params.curseur,
+      params.tri,
+      DEFINITIONS_TRI_VEHICULES,
+    );
 
     return this.acces.enTenant(ctx, async (tx) => {
       const clientExiste = await tx.execute<{ id: string }>(

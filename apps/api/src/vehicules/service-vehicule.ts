@@ -54,7 +54,17 @@ export class ServiceVehicule {
   ): Promise<PageCurseur<VehiculeResume>> {
     const tri = filtres.tri;
     const limite = pagination.limite;
-    const curseurDecode = pagination.curseur ? decoderCurseurTrie(pagination.curseur, tri) : null;
+    // DÉFAUT CORRIGÉ (même classe que celui documenté dans `common/pagination/curseur.ts`, constaté
+    // en exécution réelle sur `apps/api/src/pneus/**`) : seul `creeLe:desc` porte sur une colonne
+    // `timestamptz` (`construireTriEtSeuil` ci-dessous caste explicitement `${v}::timestamptz` dans
+    // cette seule branche) — `plaque:asc/desc` et `prochaineExpertiseLe:asc` comparent du texte à du
+    // texte sans cast, donc sans risque d'erreur PostgreSQL native sur un contenu arbitraire.
+    // `typeValeur = 'temporel'` uniquement pour `creeLe:desc` : une valeur forgée qui n'est pas un
+    // horodatage bien formé est alors rejetée ICI, avant d'atteindre le `::timestamptz` de
+    // `construireTriEtSeuil`, en `400 VALIDATION_ECHOUEE` plutôt qu'en `500 ERREUR_INTERNE`.
+    const curseurDecode = pagination.curseur
+      ? decoderCurseurTrie(pagination.curseur, tri, tri === 'creeLe:desc' ? 'temporel' : 'texte')
+      : null;
 
     return this.acces.enTenant(ctx, async (tx) => {
       const lignes = await executerListeVehicules(

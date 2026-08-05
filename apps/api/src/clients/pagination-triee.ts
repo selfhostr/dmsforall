@@ -102,13 +102,32 @@ export function construireConditionKeyset(
   return def.nullable ? sql`(${suite} or ${def.expression} is null)` : suite;
 }
 
-/** Décode le curseur de la requête pour le `tri` demandé — `null` si aucun curseur fourni. */
+/**
+ * Décode le curseur de la requête pour le `tri` demandé — `null` si aucun curseur fourni.
+ *
+ * DÉFAUT CORRIGÉ (même classe que celui documenté dans `common/pagination/curseur.ts` et déjà
+ * corrigé dans `apps/api/src/pneus/pagination-triee.ts`, constaté en exécution réelle sur ce
+ * dernier — `500 ERREUR_INTERNE` sur un curseur v2 syntaxiquement valide dont la valeur n'était
+ * pas un horodatage PostgreSQL bien formé) : cette fonction ne demandait auparavant à
+ * `decoderCurseurTrie` qu'une validation de FORME, jamais de contenu — alors que trois des tris de
+ * ce module (`creeLe:desc`, `ouvertLe:asc/desc`, `dernierPassageLe:desc`, voir les `DefinitionTri`
+ * de `service-client.ts`/`service-client-ordres-reparation.ts`) portent sur une colonne
+ * `timestamptz` et atteignent `construireConditionKeyset()` sans jamais être castés, devenant un
+ * littéral non castable dans la clause `WHERE` en cas de valeur forgée invalide.
+ *
+ * `definitions` est la table `DEFINITIONS_TRI_*` PROPRE À L'APPELANT (`service-client.ts`,
+ * `service-client-vehicules.ts`, `service-client-ordres-reparation.ts`) : seul l'appelant sait, via
+ * `DefinitionTri.temporel`, si le tri demandé porte sur une colonne temporelle — ce module ne fait
+ * que router cette information vers `decoderCurseurTrie`, qui porte la validation elle-même.
+ */
 export function decoderCurseurPourTri(
   curseur: string | undefined,
   triDemande: string,
+  definitions: Readonly<Record<string, DefinitionTri>>,
 ): { readonly valeur: string | number | null; readonly id: string } | null {
   if (!curseur) return null;
-  const { valeur, id } = decoderCurseurTrie(curseur, triDemande);
+  const typeValeur = definitions[triDemande]?.temporel ? 'temporel' : 'texte';
+  const { valeur, id } = decoderCurseurTrie(curseur, triDemande, typeValeur);
   return { valeur, id };
 }
 

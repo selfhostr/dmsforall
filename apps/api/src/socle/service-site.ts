@@ -29,12 +29,20 @@ function versSiteResume(ligne: LigneSite): SiteResume {
  * `common/pagination/valeur-temporelle.ts` pour la mesure complète du défaut. Décode aussi bien un
  * curseur v1 historique (socle étape 0, `decoderCurseurTrie` le traite comme équivalent à
  * `TRI_DEFAUT_CREATION`) qu'un curseur v2 émis par `lister()` ci-dessous.
+ *
+ * DÉFAUT CORRIGÉ (même classe que celui documenté dans `common/pagination/curseur.ts`, constaté en
+ * exécution réelle sur `apps/api/src/pneus/**`) : `typeValeur = 'temporel'` est désormais demandé
+ * explicitement à `decoderCurseurTrie` — sans quoi une valeur forgée qui n'est pas un horodatage
+ * PostgreSQL bien formé traverserait ce décodage intacte (le contrôle `typeof !== 'string'`
+ * ci-dessous ne vérifie que le TYPE JS, pas le format) et atteindrait le `::timestamptz` de
+ * `conditionCurseur` dans `lister()`, provoquant une erreur PostgreSQL native (`22007`) non
+ * interceptée → `500 ERREUR_INTERNE` au lieu du `400 VALIDATION_ECHOUEE` attendu.
  */
 function decoderCurseurSite(curseur: string): {
   readonly creeLeTexte: string;
   readonly id: string;
 } {
-  const donnees = decoderCurseurTrie(curseur, TRI_DEFAUT_CREATION);
+  const donnees = decoderCurseurTrie(curseur, TRI_DEFAUT_CREATION, 'temporel');
   if (typeof donnees.valeur !== 'string') {
     throw new ErreurMetier('VALIDATION_ECHOUEE', 'Curseur de pagination invalide.', {
       erreurs: [

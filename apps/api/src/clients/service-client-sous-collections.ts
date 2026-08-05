@@ -100,12 +100,19 @@ function estViolation(erreur: unknown, sqlstate: string, contrainte?: string): b
  * : un curseur v1 encore en circulation au moment de ce correctif continue donc à se décoder
  * normalement (jamais un 500, jamais une page qui saute), avec la précision milliseconde qu'il
  * portait déjà — seuls les curseurs ÉMIS APRÈS ce correctif gagnent la précision microseconde.
+ *
+ * DÉFAUT CORRIGÉ (même classe que celui documenté dans `common/pagination/curseur.ts`, constaté
+ * en exécution réelle sur `apps/api/src/pneus/**`) : le `decoderCurseurTrie` appelé ici demande
+ * désormais explicitement `typeValeur = 'temporel'` — sans quoi une valeur forgée qui n'est pas un
+ * horodatage PostgreSQL bien formé traverserait ce décodage intacte et atteindrait le `::timestamptz`
+ * de la clause `WHERE` ci-dessous (`conditionCurseur`), provoquant une erreur PostgreSQL native
+ * (`22007`) non interceptée → `500 ERREUR_INTERNE` au lieu du `400 VALIDATION_ECHOUEE` attendu.
  */
 function decoderCurseurSousCollection(curseur: string): {
   readonly creeLeTexte: string;
   readonly id: string;
 } {
-  const donnees = decoderCurseurTrie(curseur, TRI_DEFAUT_CREATION);
+  const donnees = decoderCurseurTrie(curseur, TRI_DEFAUT_CREATION, 'temporel');
   if (typeof donnees.valeur !== 'string') {
     throw new ErreurMetier('VALIDATION_ECHOUEE', 'Curseur de pagination invalide.', {
       erreurs: [

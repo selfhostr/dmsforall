@@ -1,5 +1,6 @@
 import { TRI_DEFAUT_CREATION } from '@dfa/shared';
 import { ErreurMetier } from '../erreurs/erreur-metier';
+import { valeurCurseurTimestamptz } from './valeur-temporelle';
 
 /** Contenu décodé d'un curseur de pagination : date de création + id, pour un tri stable. */
 export interface DonneesCurseur {
@@ -17,6 +18,18 @@ export interface DonneesCurseurTrie {
   readonly valeur: string | number | null;
   readonly id: string;
 }
+
+/**
+ * Nature attendue du CONTENU de `valeur` pour le tri demandé — au-delà de sa simple forme
+ * (`string | number | null`, déjà vérifiée par `estValeurTriValide`).
+ *
+ * `'temporel'` : le tri porte sur une colonne (ou expression) `timestamptz` — `valeur`, si non
+ * `null`, DOIT être le texte natif PostgreSQL d'un tel horodatage (voir `valeurCurseurTimestamptz`,
+ * `./valeur-temporelle.ts`). `'texte'` (défaut) : aucune validation de contenu au-delà de la forme
+ * générique — comportement HISTORIQUE, conservé pour compatibilité ascendante stricte des
+ * appelants qui ne précisent pas encore ce paramètre (voir `decoderCurseurTrie`).
+ */
+export type TypeValeurCurseur = 'texte' | 'temporel';
 
 const REGEX_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -66,8 +79,28 @@ export function encoderCurseurTrie(donnees: DonneesCurseurTrie): string {
  *
  * Toute anomalie de forme (les deux ci-dessus confondues) produit `VALIDATION_ECHOUEE`, jamais
  * une exception non typée.
+ *
+ * DÉFAUT CORRIGÉ (constaté en exécution réelle, `GET /sites/{id}/hangar-pneus` → `500
+ * ERREUR_INTERNE` sur un curseur v2 syntaxiquement valide) : cette fonction ne validait la forme de
+ * `v` que jusqu'à `string | number | null` (`estValeurTriValide`), jamais son CONTENU. Un curseur
+ * portant un tri sur colonne `timestamptz` mais une valeur qui n'était pas un horodatage bien
+ * formé traversait tout ce décodage intact, puis devenait un littéral non castable dans la clause
+ * `WHERE` construite par l'appelant — PostgreSQL levait alors une erreur native (`22007`) qu'aucun
+ * code applicatif n'interceptait. Le paramètre `typeValeur` ci-dessous ferme ce trou : chaque
+ * appelant connaît déjà la nature de la colonne qu'il trie (c'est exactement ce que porte son
+ * `DefinitionTri.temporel` local dans les copies module-locales de la mécanique de curseur triable)
+ * et peut donc demander la validation de contenu appropriée — ici, au décodage, plutôt que
+ * dupliquée dans chaque copie.
+ *
+ * `typeValeur` par défaut à `'texte'` (comportement historique, INCHANGÉ) : un appelant qui ne
+ * précise pas ce paramètre continue de se comporter exactement comme avant — aucune régression,
+ * mais reste exposé à ce défaut jusqu'à sa mise à jour pour passer `'temporel'` où pertinent.
  */
-export function decoderCurseurTrie(curseur: string, triAttendu: string): DonneesCurseurTrie {
+export function decoderCurseurTrie(
+  curseur: string,
+  triAttendu: string,
+  typeValeur: TypeValeurCurseur = 'texte',
+): DonneesCurseurTrie {
   const objet = decoderBase64Json(curseur);
 
   if (estChargeV2(objet)) {
@@ -83,6 +116,7 @@ export function decoderCurseurTrie(curseur: string, triAttendu: string): Donnees
     if (t !== triAttendu) {
       throw erreurCurseurInvalide();
     }
+    validerContenuValeur(v, typeValeur);
     return { tri: t, valeur: v, id: i };
   }
 
@@ -91,7 +125,12 @@ export function decoderCurseurTrie(curseur: string, triAttendu: string): Donnees
     if (triAttendu !== TRI_DEFAUT_CREATION) {
       throw erreurCurseurInvalide();
     }
-    return { tri: TRI_DEFAUT_CREATION, valeur: donneesV1.creeLe.toISOString(), id: donneesV1.id };
+    // Toujours un horodatage ISO valide (construit depuis un `Date` déjà validé ci-dessus par
+    // `validerChargeV1`) : la validation de contenu ne peut jamais y échouer, mais on la fait tout
+    // de même transiter pour rester sur un seul chemin de vérité — pas de branche non couverte.
+    const valeur = donneesV1.creeLe.toISOString();
+    validerContenuValeur(valeur, typeValeur);
+    return { tri: TRI_DEFAUT_CREATION, valeur, id: donneesV1.id };
   }
 
   throw erreurCurseurInvalide();
@@ -144,6 +183,25 @@ function validerChargeV1(objet: unknown): DonneesCurseur {
   }
 
   return { creeLe, id: i };
+}
+
+/**
+ * Valide le CONTENU de `valeur` pour `typeValeur === 'temporel'` — `'texte'` ne rajoute aucune
+ * contrainte (comportement historique). `null` est toujours accepté (colonne nullable, `NULLS
+ * LAST`) quel que soit `typeValeur` : un curseur forgé peut prétendre `null` sur une colonne non
+ * nullable sans risque, `construireConditionKeyset` ne rendant alors simplement aucune ligne.
+ */
+function validerContenuValeur(valeur: string | number | null, typeValeur: TypeValeurCurseur): void {
+  if (typeValeur !== 'temporel' || valeur === null) return;
+  if (typeof valeur === 'string') {
+    try {
+      valeurCurseurTimestamptz(valeur);
+      return;
+    } catch {
+      // Tombe dans le rejet commun ci-dessous — même code/statut que le reste de ce module.
+    }
+  }
+  throw erreurCurseurInvalide();
 }
 
 function erreurCurseurInvalide(): ErreurMetier {

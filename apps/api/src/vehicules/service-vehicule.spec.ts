@@ -182,3 +182,106 @@ describe('ServiceVehicule.lister — SQL brut (tx.execute), tri creeLe:desc', ()
     },
   );
 });
+
+/**
+ * Défaut n°1 (rapport de livraison, même classe que celle corrigée dans
+ * `apps/api/src/pneus/pagination-triee.ts`) : `GET /vehicules?tri=creeLe:desc` répondait `500
+ * ERREUR_INTERNE` sur un curseur v2 SYNTAXIQUEMENT valide (forme `{t,v,i}` correcte, `t` égal au
+ * tri demandé, `i` un uuid) mais dont la valeur `v` n'était pas le texte natif PostgreSQL d'un
+ * `timestamptz` : `construireTriEtSeuil()` (`service-vehicule.ts`) caste `${v}::timestamptz`
+ * directement dans la clause `WHERE` pour ce tri, sans qu'aucune validation de contenu n'ait
+ * jamais eu lieu avant. Chaque cas ci-dessous doit être rejeté AVANT tout appel à `tx.execute`.
+ */
+describe('ServiceVehicule.lister — curseur forgé : rejet 400 avant toute requête SQL', () => {
+  function txQuiEchoueSiInterroge(): TransactionDfa {
+    return {
+      execute: vi.fn(() => {
+        throw new Error('ne doit jamais être atteint : le curseur devait être rejeté avant.');
+      }),
+    } as unknown as TransactionDfa;
+  }
+
+  function curseurV2(tri: string, v: unknown, id = V1): string {
+    const brut = JSON.stringify({ t: tri, v, i: id });
+    return Buffer.from(brut, 'utf8').toString('base64url');
+  }
+
+  it('tri creeLe:desc (temporel) : rejette une valeur qui n’est pas un timestamptz PostgreSQL', async () => {
+    const service = new ServiceVehicule(accesFactice(txQuiEchoueSiInterroge()), new Horloge());
+
+    await expect(
+      service.lister(CTX, FILTRES_TRI_CREE_LE, {
+        limite: 2,
+        curseur: curseurV2('creeLe:desc', 'not-a-real-timestamp'),
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+  });
+
+  it('tri creeLe:desc (temporel) : rejette une valeur numérique', async () => {
+    const service = new ServiceVehicule(accesFactice(txQuiEchoueSiInterroge()), new Horloge());
+
+    await expect(
+      service.lister(CTX, FILTRES_TRI_CREE_LE, {
+        limite: 2,
+        curseur: curseurV2('creeLe:desc', 42),
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+  });
+
+  it('tri creeLe:desc (temporel) : rejette une chaîne vide', async () => {
+    const service = new ServiceVehicule(accesFactice(txQuiEchoueSiInterroge()), new Horloge());
+
+    await expect(
+      service.lister(CTX, FILTRES_TRI_CREE_LE, {
+        limite: 2,
+        curseur: curseurV2('creeLe:desc', ''),
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+  });
+
+  it('rejette un curseur encodé pour un autre tri (plaque:asc) alors que creeLe:desc est demandé', async () => {
+    const service = new ServiceVehicule(accesFactice(txQuiEchoueSiInterroge()), new Horloge());
+
+    await expect(
+      service.lister(CTX, FILTRES_TRI_CREE_LE, {
+        limite: 2,
+        curseur: curseurV2('plaque:asc', 'VD 123456'),
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+  });
+
+  it('rejette un uuid mal formé dans "i"', async () => {
+    const service = new ServiceVehicule(accesFactice(txQuiEchoueSiInterroge()), new Horloge());
+
+    await expect(
+      service.lister(CTX, FILTRES_TRI_CREE_LE, {
+        limite: 2,
+        curseur: curseurV2('creeLe:desc', '2026-01-01 00:00:00+00', 'pas-un-uuid'),
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+  });
+
+  it('rejette un base64 invalide', async () => {
+    const service = new ServiceVehicule(accesFactice(txQuiEchoueSiInterroge()), new Horloge());
+
+    await expect(
+      service.lister(CTX, FILTRES_TRI_CREE_LE, { limite: 2, curseur: '!!!pas-base64url!!!' }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+  });
+
+  it(
+    'tri plaque:asc (NON temporel, comparaison texte/texte sans cast en SQL) : une valeur ' +
+      'arbitraire n’a pas besoin d’être un timestamptz — aucun risque de 22007 côté base',
+    async () => {
+      const { tx } = txFactice([{ rows: [] }]);
+      const service = new ServiceVehicule(accesFactice(tx), new Horloge());
+
+      await expect(
+        service.lister(CTX, { tri: 'plaque:asc' } as FiltresVehicules, {
+          limite: 2,
+          curseur: curseurV2('plaque:asc', 'valeur-quelconque'),
+        }),
+      ).resolves.toMatchObject({ donnees: [] });
+    },
+  );
+});

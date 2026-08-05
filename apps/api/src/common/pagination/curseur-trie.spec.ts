@@ -178,3 +178,99 @@ describe('decoderCurseurTrie — toute entrée cliente invalide produit VALIDATI
     attendErreurCurseurInvalide(() => decoderCurseurTrie(encoderObjetBrut(null), 'creeLe:desc'));
   });
 });
+
+/**
+ * Défaut n°1 (rapport de livraison) : `decoderCurseurTrie` ne validait la valeur `v` d'un curseur
+ * v2 que jusqu'à sa FORME (`string | number | null`, `estValeurTriValide`), jamais son CONTENU —
+ * reproduit en exécution réelle sur `GET /sites/{id}/hangar-pneus` (`apps/api/src/pneus/**`) : un
+ * curseur syntaxiquement valide portant une valeur non-timestamptz sur un tri temporel traversait
+ * ce décodage intact, atteignait `construireConditionKeyset()` et devenait un littéral non
+ * castable dans la clause `WHERE` — PostgreSQL levait alors une erreur native (`22007`) non
+ * interceptée → `500 ERREUR_INTERNE` au lieu du `400 VALIDATION_ECHOUEE` attendu.
+ *
+ * Le paramètre `typeValeur` (défaut `'texte'`, comportement HISTORIQUE inchangé) ferme ce trou :
+ * `'temporel'` déclenche la même validation de format que `valeurCurseurTimestamptz`.
+ */
+describe('decoderCurseurTrie — typeValeur = "temporel" : validation du CONTENU de v, pas seulement sa forme', () => {
+  it('rejette (VALIDATION_ECHOUEE) une valeur qui n’est pas un timestamptz PostgreSQL — c’était le crash reproduit', () => {
+    const curseur = encoderCurseurTrie({
+      tri: 'creeLe:desc',
+      valeur: 'not-a-real-timestamp',
+      id: 'a1b2c3d4-e5f6-4789-a012-3456789abcde',
+    });
+    attendErreurCurseurInvalide(() => decoderCurseurTrie(curseur, 'creeLe:desc', 'temporel'));
+  });
+
+  it('rejette une valeur numérique sur un tri temporel', () => {
+    const curseur = encoderCurseurTrie({
+      tri: 'creeLe:desc',
+      valeur: 42,
+      id: 'a1b2c3d4-e5f6-4789-a012-3456789abcde',
+    });
+    attendErreurCurseurInvalide(() => decoderCurseurTrie(curseur, 'creeLe:desc', 'temporel'));
+  });
+
+  it('rejette une chaîne vide sur un tri temporel', () => {
+    const curseur = encoderCurseurTrie({
+      tri: 'creeLe:desc',
+      valeur: '',
+      id: 'a1b2c3d4-e5f6-4789-a012-3456789abcde',
+    });
+    attendErreurCurseurInvalide(() => decoderCurseurTrie(curseur, 'creeLe:desc', 'temporel'));
+  });
+
+  it('accepte une valeur null sur un tri temporel (branche NULLS LAST), quel que soit typeValeur', () => {
+    const curseur = encoderCurseurTrie({
+      tri: 'creeLe:desc',
+      valeur: null,
+      id: 'a1b2c3d4-e5f6-4789-a012-3456789abcde',
+    });
+    expect(decoderCurseurTrie(curseur, 'creeLe:desc', 'temporel').valeur).toBeNull();
+  });
+
+  it('accepte le texte natif PostgreSQL (avec microseconde) sur un tri temporel', () => {
+    const curseur = encoderCurseurTrie({
+      tri: 'creeLe:desc',
+      valeur: '2026-04-01 08:00:00.123456+00',
+      id: 'a1b2c3d4-e5f6-4789-a012-3456789abcde',
+    });
+    expect(decoderCurseurTrie(curseur, 'creeLe:desc', 'temporel').valeur).toBe(
+      '2026-04-01 08:00:00.123456+00',
+    );
+  });
+
+  it('un curseur v1 (toujours re-sérialisé en ISO valide) passe la validation temporelle sans jamais lever', () => {
+    const curseurV1 = encoderCurseur({
+      creeLe: new Date('2026-01-01T00:00:00.000Z'),
+      id: 'a1b2c3d4-e5f6-4789-a012-3456789abcde',
+    });
+    expect(() => decoderCurseurTrie(curseurV1, TRI_DEFAUT_CREATION, 'temporel')).not.toThrow();
+  });
+
+  it('sans typeValeur (défaut "texte") : une valeur non-timestamptz est acceptée — comportement historique inchangé, aucune régression pour un appelant non mis à jour', () => {
+    const curseur = encoderCurseurTrie({
+      tri: 'creeLe:desc',
+      valeur: 'not-a-real-timestamp',
+      id: 'a1b2c3d4-e5f6-4789-a012-3456789abcde',
+    });
+    expect(decoderCurseurTrie(curseur, 'creeLe:desc').valeur).toBe('not-a-real-timestamp');
+  });
+
+  it('typeValeur = "texte" explicite sur un tri non temporel (numéro, texte) : aucune contrainte de format', () => {
+    const curseur = encoderCurseurTrie({
+      tri: 'numero:desc',
+      valeur: 'CL-000010',
+      id: 'a1b2c3d4-e5f6-4789-a012-3456789abcde',
+    });
+    expect(decoderCurseurTrie(curseur, 'numero:desc', 'texte').valeur).toBe('CL-000010');
+  });
+
+  it('un curseur d’un autre tri reste rejeté AVANT la validation de contenu, quel que soit typeValeur', () => {
+    const curseur = encoderCurseurTrie({
+      tri: 'numero:asc',
+      valeur: 'X-001',
+      id: 'a1b2c3d4-e5f6-4789-a012-3456789abcde',
+    });
+    attendErreurCurseurInvalide(() => decoderCurseurTrie(curseur, 'creeLe:desc', 'temporel'));
+  });
+});

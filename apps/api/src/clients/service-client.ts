@@ -140,7 +140,11 @@ export class ServiceClient {
   ): Promise<PageCurseur<ClientResume>> {
     const definition = DEFINITIONS_TRI_CLIENTS[params.tri];
     const idExpr = sql`c.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(
+      params.curseur,
+      params.tri,
+      DEFINITIONS_TRI_CLIENTS,
+    );
     // RM-... / §6.2 : défaut `actif`+`bloque` — un client bloqué reste visible au comptoir.
     const statuts =
       params.statut && params.statut.length > 0 ? params.statut : (['actif', 'bloque'] as const);

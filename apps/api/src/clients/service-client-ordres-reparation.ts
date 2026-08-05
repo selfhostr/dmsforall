@@ -137,7 +137,7 @@ export class ServiceClientOrdresReparation {
   ): Promise<PageCurseur<OrdreReparationResume>> {
     const definition = DEFINITIONS_TRI_OR[params.tri];
     const idExpr = sql`o.id`;
-    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
+    const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri, DEFINITIONS_TRI_OR);
 
     return this.acces.enTenant(ctx, async (tx) => {
       const lignesClient = await tx
