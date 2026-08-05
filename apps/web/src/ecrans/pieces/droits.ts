@@ -93,6 +93,23 @@ const ROLES_LECTURE_CONSIGNE: ReadonlySet<RoleUtilisateur> = new Set([
  *  de comptoir qui constate physiquement le retour. */
 const ROLES_RETOUR_CONSIGNE: ReadonlySet<RoleUtilisateur> = new Set(['magasinier']);
 
+/**
+ * Paramétrage pièces (`pieces.parametrage.lire`/`pieces.parametrage.modifier`,
+ * `apps/api/src/auth/matrice-droits.ts`) — LECTURE accordée à `direction`, `chef_atelier` ET
+ * `magasinier` (« exécute la politique de stock, ne la fixe pas »), ÉCRITURE réservée à
+ * `direction`/`chef_atelier` seuls, un sous-ensemble strict. Distinct des deux constantes
+ * précédentes : ni un droit d'article, ni un droit de fournisseur.
+ */
+const ROLES_LECTURE_PARAMETRAGE_PIECES: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'chef_atelier',
+  'magasinier',
+]);
+const ROLES_ECRITURE_PARAMETRAGE_PIECES: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'chef_atelier',
+]);
+
 export function peutEcrireArticle(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_ECRITURE_ARTICLE.has(role);
 }
@@ -141,4 +158,12 @@ export function peutLireConsigne(role: RoleUtilisateur | undefined): boolean {
 
 export function peutRetournerConsigne(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_RETOUR_CONSIGNE.has(role);
+}
+
+export function peutLireParametragePieces(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_LECTURE_PARAMETRAGE_PIECES.has(role);
+}
+
+export function peutModifierParametragePieces(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_ECRITURE_PARAMETRAGE_PIECES.has(role);
 }

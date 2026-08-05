@@ -13,6 +13,7 @@ import { EcranFacturerOrdreReparation } from '@/ecrans/facturation/EcranFacturer
 import { EcranFicheFacture } from '@/ecrans/facturation/EcranFicheFacture';
 import { EcranListeFactures } from '@/ecrans/facturation/EcranListeFactures';
 import { EcranDoublonsClients } from '@/ecrans/clients/EcranDoublonsClients';
+import { EcranParametragePieces } from '@/ecrans/parametrage/EcranParametragePieces';
 import { EcranParametrageAtelier } from '@/ecrans/parametrage/EcranParametrageAtelier';
 import { EcranParametresFacturation } from '@/ecrans/parametrage/EcranParametresFacturation';
 import { EcranReferentiels } from '@/ecrans/parametrage/EcranReferentiels';
@@ -48,7 +49,7 @@ import { EcranListeVehiculesStock } from '@/ecrans/ventes/stock/EcranListeVehicu
 
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
-import { ROLES_PIECES, ROLES_VENTES } from './droits-routes';
+import { ROLES_PARAMETRAGE_PIECES, ROLES_PIECES, ROLES_VENTES } from './droits-routes';
 
 /**
  * Convention structurelle qui fait qu'une route oubliée tombe du côté SÛR (même principe que la
@@ -274,6 +275,21 @@ export const routesConfig: RouteObject[] = [
         element: (
           <RouteProtegee rolesAutorises={ROLES_PIECES}>
             <EcranConsignesPieces />
+          </RouteProtegee>
+        ),
+      },
+      // Paramétrage pièces (`GET|PATCH /parametrage/pieces`, §10) — garde DISTINCTE de
+      // `ROLES_PIECES` ci-dessus : `pieces.parametrage.lire` restreint la LECTURE elle-même à
+      // `direction`/`chef_atelier`/`magasinier` (voir `droits-routes.ts`,
+      // `ROLES_PARAMETRAGE_PIECES`), un sous-ensemble strict des sept rôles opérationnels du
+      // module. Chemin littéral `parametrage/pieces` (pas `pieces/parametrage`) : même famille que
+      // `parametrage/atelier`/`parametrage/sites`/`parametrage/facturation` plus haut, cohérent
+      // avec `chemins.parametrage.pieces`.
+      {
+        path: 'parametrage/pieces',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_PARAMETRAGE_PIECES}>
+            <EcranParametragePieces />
           </RouteProtegee>
         ),
       },

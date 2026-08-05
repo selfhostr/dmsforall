@@ -77,6 +77,22 @@ export const ROLES_PIECES: readonly RoleUtilisateur[] = [
 ];
 
 /**
+ * Paramétrage pièces (`/parametrage/pieces`) — sous-ensemble STRICT de `ROLES_PIECES` ci-dessus,
+ * pas une liste indépendante : `pieces.parametrage.lire` (`apps/api/src/auth/matrice-droits.ts`)
+ * n'est accordé qu'à `direction`, `chef_atelier` et `magasinier` — `comptable`, `vendeur`,
+ * `receptionnaire` et `technicien` ont `pieces.article.lire`/`pieces.stock.lire`/etc. (d'où leur
+ * présence dans `ROLES_PIECES`) mais AUCUN droit `pieces.parametrage.*`. Une garde de route
+ * distincte reflète cette restriction RÉELLE, plus étroite que le reste du module. L'ÉCRITURE est
+ * encore plus restreinte (`direction`/`chef_atelier` seuls, `magasinier` en lecture seule) — gérée
+ * dans l'écran (`peutModifierParametragePieces`, `ecrans/pieces/droits.ts`), pas ici.
+ */
+export const ROLES_PARAMETRAGE_PIECES: readonly RoleUtilisateur[] = [
+  'direction',
+  'chef_atelier',
+  'magasinier',
+];
+
+/**
  * Module ventes VN/VO (étape 4) — CAS DE FIGURE 1 CI-DESSUS (protection RÉELLE de route), même
  * raisonnement que `ROLES_PIECES` : `admin`, `technicien` et `magasinier` reçoivent `[]`
  * littéralement sur tout le domaine `ventes.*` côté API (RF-115, `DROITS_VENTES_PAR_ROLE`,

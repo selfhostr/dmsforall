@@ -58,4 +58,7 @@ export const clesPieces = {
   consignes: {
     liste: (filtres: FiltresConsignes) => ['pieces', 'consignes', 'liste', filtres] as const,
   },
+
+  /** Singleton du tenant (`GET|PATCH /parametrage/pieces`) — aucun filtre, une seule clé. */
+  parametrage: () => ['pieces', 'parametrage'] as const,
 } as const;

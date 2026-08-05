@@ -17,6 +17,7 @@ import {
   Receipt,
   RefreshCw,
   Search,
+  Settings2,
   Tag,
   Truck,
   Undo2,
@@ -33,6 +34,7 @@ import { chemins } from '@/routes/chemins';
 import {
   ROLES_MENU_FINANCIER,
   ROLES_MENU_PARAMETRAGE_ATELIER,
+  ROLES_PARAMETRAGE_PIECES,
   ROLES_PIECES,
   ROLES_VENTES,
 } from '@/routes/droits-routes';
@@ -128,6 +130,13 @@ export function BarreLaterale({ className }: Props) {
   // ci-dessus : `ROLES_PIECES` est la même liste que celle qui protège les routes
   // (`routeur.tsx`), pas une liste séparée inventée pour le menu.
   const peutAccederPieces = role !== undefined && ROLES_PIECES.includes(role);
+  // Paramétrage pièces (`/parametrage/pieces`) — masquage qui reflète une restriction RÉELLE côté
+  // API, PLUS ÉTROITE que `peutAccederPieces` ci-dessus : `pieces.parametrage.lire` n'est accordé
+  // qu'à `direction`/`chef_atelier`/`magasinier` (voir `routes/droits-routes.ts`,
+  // `ROLES_PARAMETRAGE_PIECES`) — un `vendeur`/`receptionnaire`/`technicien`/`comptable` voit le
+  // reste du menu Pièces mais pas cette entrée.
+  const peutAccederParametragePieces =
+    role !== undefined && ROLES_PARAMETRAGE_PIECES.includes(role);
   // Module ventes VN/VO (étape 4) — même patron que `peutAccederPieces` ci-dessus : `ROLES_VENTES`
   // reflète la restriction RÉELLE de l'API (`ventes.*` fermé à `admin`/`technicien`/`magasinier`,
   // RF-115, voir `routes/droits-routes.ts`), pas une liste inventée pour le menu.
@@ -212,6 +221,12 @@ export function BarreLaterale({ className }: Props) {
             <Undo2 className="h-4 w-4" aria-hidden="true" />
             {t('navigation:liens.piecesConsignes')}
           </NavLink>
+          {peutAccederParametragePieces ? (
+            <NavLink to={chemins.parametrage.pieces()} className={classeLien}>
+              <Settings2 className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.piecesParametrage')}
+            </NavLink>
+          ) : null}
         </>
       ) : null}
 

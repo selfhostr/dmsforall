@@ -71,6 +71,11 @@ export const chemins = {
     referentiels: () => '/parametrage/referentiels',
     atelier: () => '/parametrage/atelier',
     sites: (site?: string) => construireChemin('/parametrage/sites', { site }),
+    /** Singleton par TENANT (`GET|PATCH /parametrage/pieces`), même famille que `atelier`/
+     *  `referentiels` ci-dessus — pas de `?site=`. À la différence de ces deux-là, la route est
+     *  gardée par `rolesAutorises={ROLES_PARAMETRAGE_PIECES}` (`routeur.tsx`) : la lecture elle-même
+     *  est restreinte côté API (`pieces.parametrage.lire`), pas seulement l'écriture. */
+    pieces: () => '/parametrage/pieces',
   },
   /** Module pièces (étape 3). Même mécanique `?site=` que `clients`/`vehicules` : la recherche
    *  comptoir et le réapprovisionnement sont scopés par site (RP-03/RP-12), la fiche et la liste

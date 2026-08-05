@@ -1,7 +1,8 @@
+import { useQueries } from '@tanstack/react-query';
 import { X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 
 import {
   schemaCreationCommandeFournisseur,
@@ -25,13 +26,20 @@ import {
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
+import { recupererArticle } from '@/hooks/pieces/articles.api';
+import { clesPieces } from '@/hooks/pieces/cles';
 import { useCreerCommandeFournisseur } from '@/hooks/pieces/useCreerCommandeFournisseur';
 import { useListeFournisseurs } from '@/hooks/pieces/useListeFournisseurs';
 import { useRechercheComptoirPieces } from '@/hooks/pieces/useRechercheComptoirPieces';
 import { useSession } from '@/hooks/useSession';
 import { formaterMontant } from '@/lib/formats';
 
-import { formaterQuantiteMillieme, saisieVersQuantiteMillieme } from './utils';
+import { estEtatPreremplissageValide } from './etat-preremplissage-commande';
+import {
+  formaterQuantiteMillieme,
+  quantiteMilliemeVersSaisie,
+  saisieVersQuantiteMillieme,
+} from './utils';
 
 interface LigneEnCours {
   readonly articleId: string;
@@ -48,10 +56,25 @@ interface LigneEnCours {
  * choix du site pilote directement la recherche comptoir (`useRechercheComptoirPieces`) : une
  * commande se pose sur UN site, la disponibilité affichée pendant la recherche est celle de ce
  * site précis.
+ *
+ * PRÉ-REMPLISSAGE depuis `EcranReapprovisionnement` (correctif : « le réapprovisionnement ne
+ * mène nulle part ») — reçu via `useLocation().state` (état de navigation React Router, jamais un
+ * paramètre d'URL : plus simple ici pour un tableau de lignes de longueur variable, voir
+ * `etat-preremplissage-commande.ts`). Site et lignes (quantités suggérées) sont posés dès le
+ * premier rendu ; le fournisseur reste VIDE au départ — `LigneReapprovisionnement` ne porte aucune
+ * information de fournisseur — puis DÉTECTÉ ci-dessous si (et seulement si) tous les articles
+ * sélectionnés partagent EXACTEMENT une même référence fournisseur (`GET /articles/{id}`,
+ * `references[].type === 'fournisseur'`). Reste un formulaire pleinement utilisable SANS
+ * pré-remplissage (lien direct, ou bouton « Créer une commande » habituel) : rien ci-dessous ne
+ * suppose la présence de `état`.
  */
 export function EcranNouvelleCommandeFournisseur() {
   const { t } = useTranslation(['pieces', 'commun', 'validation', 'erreurs']);
   const navigate = useNavigate();
+  const location = useLocation();
+  const etatPreremplissage = estEtatPreremplissageValide(location.state)
+    ? location.state
+    : undefined;
   const { data: session } = useSession();
   const sites = (session?.sites ?? []).filter((site) => site.actif);
 
@@ -65,15 +88,83 @@ export function EcranNouvelleCommandeFournisseur() {
   const creer = useCreerCommandeFournisseur();
 
   const [fournisseurId, setFournisseurId] = useState('');
-  const [siteId, setSiteId] = useState('');
+  const [siteId, setSiteId] = useState(() => etatPreremplissage?.siteId ?? '');
   const [dateCommande, setDateCommande] = useState('');
   const [reference, setReference] = useState('');
-  const [lignes, setLignes] = useState<readonly LigneEnCours[]>([]);
+  const [lignes, setLignes] = useState<readonly LigneEnCours[]>(() =>
+    (etatPreremplissage?.lignes ?? []).map((ligne) => ({
+      articleId: ligne.articleId,
+      numeroArticle: ligne.numeroArticle,
+      designation: ligne.designation,
+      quantiteSaisie: quantiteMilliemeVersSaisie(ligne.quantiteSuggereeMillieme),
+      prixAttenduCentimes: null,
+    })),
+  );
   const [erreurValidation, setErreurValidation] = useState<string | null>(null);
 
   const recherche = useRechercheComptoirPieces(siteId || undefined);
 
   const idsDejaAjoutes = useMemo(() => new Set(lignes.map((ligne) => ligne.articleId)), [lignes]);
+
+  // Détection du fournisseur + reprise du dernier prix d'achat connu, à partir des articles
+  // pré-remplis — même source que `EcranFicheArticle` (`recupererArticle`), PAS un nouvel
+  // endpoint. `enabled` lié à `etatPreremplissage` : aucun appel réseau supplémentaire pour un
+  // usage direct de l'écran (sans pré-remplissage).
+  const requetesArticlesPreremplis = useQueries({
+    queries: (etatPreremplissage?.lignes ?? []).map((ligne) => ({
+      queryKey: clesPieces.articles.detail(ligne.articleId),
+      queryFn: () => recupererArticle(ligne.articleId),
+      enabled: etatPreremplissage !== undefined,
+    })),
+  });
+  // Applique le prix d'achat repris UNE SEULE FOIS (`useRef`, pas une dépendance d'effet) :
+  // `requetesArticlesPreremplis` change de référence à chaque rendu (comportement normal de
+  // `useQueries`), une garde par simple condition rejouerait `setLignes` en boucle.
+  const prixRepriseAppliqueRef = useRef(false);
+  useEffect(() => {
+    if (etatPreremplissage === undefined) return;
+    if (requetesArticlesPreremplis.length === 0) return;
+    if (!requetesArticlesPreremplis.every((requete) => requete.isSuccess)) return;
+
+    if (!prixRepriseAppliqueRef.current) {
+      prixRepriseAppliqueRef.current = true;
+      setLignes((valeur) =>
+        valeur.map((ligne) => {
+          if (ligne.prixAttenduCentimes !== null) return ligne;
+          const article = requetesArticlesPreremplis.find(
+            (requete) => requete.data?.id === ligne.articleId,
+          )?.data;
+          return article?.prixAchatCentimes != null
+            ? { ...ligne, prixAttenduCentimes: article.prixAchatCentimes }
+            : ligne;
+        }),
+      );
+    }
+
+    // Fournisseur détecté SEULEMENT si encore vide (jamais après un choix — manuel ou déjà
+    // détecté) et seulement s'il figure parmi les fournisseurs ACTIFS chargés (jamais une valeur
+    // que le `<Select>` ne pourrait pas représenter).
+    if (fournisseurId !== '') return;
+    const referencesFournisseurParArticle = requetesArticlesPreremplis.map(
+      (requete) =>
+        new Set(
+          (requete.data?.references ?? [])
+            .filter((refArticle) => refArticle.type === 'fournisseur' && refArticle.fournisseurId)
+            .map((refArticle) => refArticle.fournisseurId as string),
+        ),
+    );
+    const [premier, ...reste] = referencesFournisseurParArticle;
+    if (!premier || premier.size === 0) return;
+    const communs = [...premier].filter((id) => reste.every((ensemble) => ensemble.has(id)));
+    if (communs.length !== 1) return;
+    const idDetecte = communs[0] as string;
+    if (fournisseurs.some((fournisseur) => fournisseur.id === idDetecte)) {
+      setFournisseurId(idDetecte);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `requetesArticlesPreremplis` change
+    // de référence à chaque rendu ; les gardes internes (ref + `fournisseurId !== ''`) empêchent
+    // toute boucle de mise à jour.
+  }, [requetesArticlesPreremplis, fournisseurs, fournisseurId, etatPreremplissage]);
 
   function ajouterLigne(
     articleId: string,
@@ -121,7 +212,11 @@ export function EcranNouvelleCommandeFournisseur() {
       siteId,
       dateCommande: dateCommande === '' ? undefined : dateCommande,
       reference: reference.trim() === '' ? undefined : reference.trim(),
-      origine: 'manuelle',
+      // `reapprovisionnement` uniquement quand CET écran a été ouvert pré-rempli depuis
+      // `EcranReapprovisionnement` — même si les lignes/quantités sont ensuite ajustées à la
+      // main, l'origine de la démarche reste le réapprovisionnement (RP-12). `manuelle` dans
+      // tous les autres cas (usage direct de l'écran), comme avant ce correctif.
+      origine: etatPreremplissage !== undefined ? 'reapprovisionnement' : 'manuelle',
       lignes: lignesEntree,
     };
   }
