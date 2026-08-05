@@ -1,9 +1,12 @@
 /**
  * Contrats de l'étape 5 — Connecteurs (`docs/specification-etape-5-connecteurs.md`, repères
- * `RC-xx`). Socle commun aux six familles (OEM, plateformes d'annonces, fiduciaires, banques,
- * fournisseurs de pièces, administration) : déclaration d'un type de connecteur, activation par
- * tenant, secrets référencés, état de santé, journal d'exécution, reprise après échec, import et
- * export génériques, déclenchement (manuel/planifié/événementiel), abonnements webhook.
+ * `RC-xx`). Socle commun aux sept familles (OEM, plateformes d'annonces, fiduciaires, banques,
+ * fournisseurs de pièces, administration, messagerie) : déclaration d'un type de connecteur,
+ * activation par tenant, secrets référencés, état de santé, journal d'exécution, reprise après
+ * échec, import et export génériques, déclenchement (manuel/planifié/événementiel), abonnements
+ * webhook, envoi de message client. La famille `messagerie` et l'interface `NotificationSender`
+ * viennent d'un second document, `docs/specification-relances-automatiques.md` §6.3 — pas un
+ * `RC-xx` : le module de relances automatiques ne peut exister sans cette sixième interface.
  *
  * Point d'entrée unique du domaine, même règle que `contrats/pieces/index.ts` : tout ce qui est
  * exporté ici est GELÉ au nom près et à la signature près une fois validé par l'orchestrateur. Un
@@ -32,3 +35,4 @@ export * from './import';
 export * from './export';
 export * from './declenchement';
 export * from './webhook';
+export * from './notification-sender';

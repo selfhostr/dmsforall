@@ -5,6 +5,7 @@ import type { RequeteOperationConnecteur } from '../adaptateur-connecteur';
 
 import { AdaptateurAccountingExporterFactice } from './adaptateur-accounting-exporter.factice';
 import { AdaptateurListingPublisherFactice } from './adaptateur-listing-publisher.factice';
+import { AdaptateurNotificationSenderFactice } from './adaptateur-notification-sender.factice';
 import { AdaptateurOrderProviderFactice } from './adaptateur-order-provider.factice';
 import { AdaptateurPartsCatalogProviderFactice } from './adaptateur-parts-catalog-provider.factice';
 import { AdaptateurVehicleReferenceProviderFactice } from './adaptateur-vehicle-reference-provider.factice';
@@ -37,6 +38,7 @@ const CLASSES_FACTICES = [
   { Classe: AdaptateurOrderProviderFactice, nomInterface: 'OrderProvider' },
   { Classe: AdaptateurListingPublisherFactice, nomInterface: 'ListingPublisher' },
   { Classe: AdaptateurAccountingExporterFactice, nomInterface: 'AccountingExporter' },
+  { Classe: AdaptateurNotificationSenderFactice, nomInterface: 'NotificationSender' },
 ] as const;
 
 describe.each(CLASSES_FACTICES)('$Classe.name', ({ Classe, nomInterface }) => {

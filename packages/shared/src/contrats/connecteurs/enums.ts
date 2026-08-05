@@ -25,9 +25,11 @@
 /* ------------------------------------------------------------------ */
 
 /**
- * `famille_connecteur` — extensible. Les six familles couvertes par la spécification (§2 → §7) :
- * aucune séquence imposée entre elles, une nouvelle famille (ex. un futur type de plateforme) ne
- * casse aucun client qui traite déjà les six.
+ * `famille_connecteur` — extensible. Les six familles couvertes par la spécification étape 5
+ * (§2 → §7), plus `messagerie` (SMS/e-mail, `docs/specification-relances-automatiques.md` §6.3 —
+ * aucun `RC-xx` ne la sourçait encore, la spécification des relances automatiques est la première
+ * à exiger un envoi de message au client) : aucune séquence imposée entre elles, une nouvelle
+ * famille (ex. un futur type de plateforme) ne casse aucun client qui traite déjà les sept.
  */
 export const FAMILLES_CONNECTEUR = [
   'oem', // §2, RC-20 → RC-27
@@ -36,19 +38,25 @@ export const FAMILLES_CONNECTEUR = [
   'banque', // §5, RC-60 → RC-66
   'fournisseur_pieces', // §6, RC-70 → RC-74
   'administration', // §7, RC-80 → RC-82
+  'messagerie', // docs/specification-relances-automatiques.md §6.3 — SMS/e-mail au client
 ] as const;
 export type FamilleConnecteur = (typeof FAMILLES_CONNECTEUR)[number];
 
 /**
- * `nom_interface_connecteur` — **GELÉ**. Reprend LITTÉRALEMENT les cinq interfaces stables nommées
- * par `ARCHITECTURE.md` §5 (schéma « Cœur GarageOS → interfaces stables → adaptateurs ») : le cœur
- * ne connaît que ces cinq noms, jamais un partenaire. `AccountingExporter` est déjà implémentée
- * (`contrats/facturation/export.ts`, `RF-101` → `RF-113`) ; ce module pose le socle d'exécution
- * commun aux quatre autres sans fixer leurs méthodes — une méthode par partenaire serait déjà une
- * invention de format (voir le rapport d'accompagnement, `RC-20`/`RC-40`/`RC-70` marqués
- * `[INCONNU]`). Gelé parce qu'un tiers doit pouvoir lire `ReponseTypeConnecteur.interfaces` et
- * savoir exhaustivement ce que ces cinq valeurs peuvent signifier — une sixième interface est un
- * changement d'architecture, pas un ajout de catalogue.
+ * `nom_interface_connecteur` — **GELÉ**. Reprenait LITTÉRALEMENT les cinq interfaces stables
+ * nommées par `ARCHITECTURE.md` §5 (schéma « Cœur GarageOS → interfaces stables → adaptateurs ») ;
+ * `NotificationSender` est la SIXIÈME, ajoutée par `docs/specification-relances-automatiques.md`
+ * §6.3 (« Il manque une sixième interface de connecteur (…) même doctrine — port générique, aucun
+ * nom de fournisseur en dur, adaptateur factice pour les tests. Préalable au lot d'envoi. ») : le
+ * module de relances ne peut exister sans elle, ce n'est pas un ajout de confort. Rester gelé
+ * malgré cet ajout signifie la même chose qu'avant : le cœur ne connaît QUE ces six noms, jamais
+ * un partenaire, et une SEPTIÈME resterait un changement d'architecture à motiver au même niveau
+ * que celui-ci — pas un ajout de catalogue ordinaire. `AccountingExporter` et `NotificationSender`
+ * sont les deux seules interfaces dont la FORME (types de requête/réponse, pas seulement le nom)
+ * est déjà posée dans ce paquet (`contrats/facturation/export.ts` ;
+ * `contrats/connecteurs/notification-sender.ts`) ; les quatre autres restent `[INCONNU]` côté
+ * méthodes (`RC-20`/`RC-40`/`RC-70`, voir le rapport d'accompagnement de l'agent d'origine) — ce
+ * module continue de ne PAS inventer leur forme par anticipation.
  */
 export const NOMS_INTERFACE_CONNECTEUR = [
   'PartsCatalogProvider',
@@ -56,6 +64,7 @@ export const NOMS_INTERFACE_CONNECTEUR = [
   'OrderProvider',
   'ListingPublisher',
   'AccountingExporter',
+  'NotificationSender',
 ] as const;
 export type NomInterfaceConnecteur = (typeof NOMS_INTERFACE_CONNECTEUR)[number];
 
@@ -210,3 +219,54 @@ export const STATUTS_LIVRAISON_WEBHOOK = [
   'abandonnee',
 ] as const;
 export type StatutLivraisonWebhook = (typeof STATUTS_LIVRAISON_WEBHOOK)[number];
+
+/* ------------------------------------------------------------------ */
+/* Envoi de message client — `NotificationSender` (voir                */
+/* notification-sender.ts pour la justification de périmètre ;         */
+/* docs/specification-relances-automatiques.md §5, §6.3, RA-05, RA-11,  */
+/* RA-12 — pas un `RC-xx` sourcé)                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * `canal_message_client` — extensible. Les deux seuls canaux exigés par
+ * `docs/specification-relances-automatiques.md` §5 (`regle_relance.canaux`, « sous-ensemble
+ * email/sms ») : aucun autre canal n'y est mentionné. Un appel téléphonique
+ * (`marketing_appel` dans `client_consentement`) reste un geste humain du garagiste, jamais un
+ * envoi automatisé par ce connecteur — ne pas confondre un TYPE DE CONSENTEMENT avec un CANAL
+ * D'ENVOI. Extensible : un futur canal (notification push, courrier) est un ajout de membre
+ * d'union dans `ContenuMessageClient` (`notification-sender.ts`), jamais une réécriture des deux
+ * existants.
+ */
+export const CANAUX_MESSAGE_CLIENT = ['sms', 'email'] as const;
+export type CanalMessageClient = (typeof CANAUX_MESSAGE_CLIENT)[number];
+
+/**
+ * `statut_envoi_message_client` — extensible, et délibérément DISTINCT de
+ * `STATUTS_EXECUTION_CONNECTEUR` (voir l'en-tête de `notification-sender.ts` pour la
+ * justification complète du non-réemploi). Couvre UNIQUEMENT ce que
+ * `docs/specification-relances-automatiques.md` exige aujourd'hui : l'ACCEPTATION synchrone par
+ * le prestataire (« le prestataire accepte le message, la remise arrive plus tard »), jamais la
+ * confirmation de remise finale — `relance_envoi.statut_envoi` (§5) ne connaît lui-même que
+ * `envoye`/`echoue`, aucun état « livré » n'existe dans le modèle de données appelant. Extensible
+ * pour qu'un futur mécanisme de réconciliation (webhook entrant, sondage — non modélisé ici,
+ * volontairement, voir le rapport d'accompagnement) puisse ajouter une valeur de remise confirmée
+ * sans rupture pour un client qui ne connaît que ces deux-là.
+ */
+export const STATUTS_ENVOI_MESSAGE_CLIENT = ['accepte', 'rejete'] as const;
+export type StatutEnvoiMessageClient = (typeof STATUTS_ENVOI_MESSAGE_CLIENT)[number];
+
+/**
+ * `raison_rejet_message_client` — extensible. Un REJET (`ReponseEnvoiMessageClient` avec
+ * `statut: 'rejete'`) est un RÉSULTAT normal rendu par la promesse, jamais une exception : il
+ * distingue un échec DÉFINITIF (destinataire invalide, contenu refusé…), que le socle de
+ * résilience existant (`apps/api/src/connecteurs/resilience/`) ne doit jamais réessayer en
+ * boucle, d'un échec TRANSITOIRE (réseau, délai dépassé), qui reste porté par un rejet de
+ * promesse et absorbé par ce même socle. Voir l'en-tête de `notification-sender.ts`.
+ */
+export const RAISONS_REJET_MESSAGE_CLIENT = [
+  'destinataire_invalide',
+  'canal_non_supporte',
+  'contenu_refuse',
+  'quota_depasse',
+] as const;
+export type RaisonRejetMessageClient = (typeof RAISONS_REJET_MESSAGE_CLIENT)[number];

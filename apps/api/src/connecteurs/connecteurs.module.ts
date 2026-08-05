@@ -4,6 +4,7 @@ import type { AdaptateurConnecteur } from './adaptateur-connecteur';
 import {
   AdaptateurAccountingExporterFactice,
   AdaptateurListingPublisherFactice,
+  AdaptateurNotificationSenderFactice,
   AdaptateurOrderProviderFactice,
   AdaptateurPartsCatalogProviderFactice,
   AdaptateurVehicleReferenceProviderFactice,
@@ -23,6 +24,7 @@ const ADAPTATEURS_FACTICES = [
   AdaptateurOrderProviderFactice,
   AdaptateurListingPublisherFactice,
   AdaptateurAccountingExporterFactice,
+  AdaptateurNotificationSenderFactice,
 ] as const;
 
 /**

@@ -1,4 +1,5 @@
 export * from './adaptateur-connecteur';
+export * from './adaptateur-notification-sender';
 export * from './connecteurs.jetons';
 export * from './connecteurs.module';
 export * from './service-registre-connecteurs';

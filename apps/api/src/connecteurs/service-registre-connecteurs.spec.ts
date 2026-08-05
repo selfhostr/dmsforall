@@ -54,6 +54,21 @@ describe('RegistreConnecteursService', () => {
     expect(journal.error).not.toHaveBeenCalled();
   });
 
+  it('résout `null` pour `NotificationSender` quand aucune activation n’existe — cas normal aujourd’hui, aucun garage n’a de connecteur de messagerie', async () => {
+    const journal = journalFactice();
+    const registre = new RegistreConnecteursService(
+      new SourceActivationsConnecteurAucune(),
+      [adaptateurFactice('factice_listing_publisher')],
+      journal,
+    );
+
+    const resolu = await registre.resoudre(CTX_TENANT_A, 'NotificationSender');
+
+    expect(resolu).toBeNull();
+    expect(journal.warn).not.toHaveBeenCalled();
+    expect(journal.error).not.toHaveBeenCalled();
+  });
+
   it('résout l’adaptateur dont le code correspond à l’activation active du tenant', async () => {
     const activation: DescripteurActivationConnecteur = {
       id: 'act-1',
