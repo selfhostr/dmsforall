@@ -400,5 +400,28 @@
       }
     },
     "vide": "Aucun fournisseur."
+  },
+  "comptoirVente": {
+    "actions": {
+      "titre": "Actions",
+      "vendre": "Vendre sans facture",
+      "retourClient": "Retour client"
+    },
+    "vente": {
+      "titre": "Sortie comptoir — sans facture",
+      "avisSansFacture": "Cette sortie n'est pas facturée : la pièce quitte le stock, mais aucune facture n'est créée. Pour une vente facturée, utilisez un document de vente.",
+      "quantite": "Quantité",
+      "disponible": "{n} disponible(s)",
+      "confirmer": "Sortir la pièce",
+      "erreur": {
+        "stockInsuffisant": "Stock insuffisant : il reste {n} en stock."
+      }
+    },
+    "retour": {
+      "titre": "Retour client",
+      "quantite": "Quantité",
+      "motif": "Motif du retour",
+      "confirmer": "Enregistrer le retour"
+    }
   }
 }

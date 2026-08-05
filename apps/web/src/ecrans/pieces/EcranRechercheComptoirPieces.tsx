@@ -1,18 +1,24 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
 
 import type { ResultatRechercheComptoirArticle } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
+import { Button } from '@/components/ui/button';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { useRechercheComptoirPieces } from '@/hooks/pieces/useRechercheComptoirPieces';
+import { useSession } from '@/hooks/useSession';
 import { formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
+import { DialogueRetourClientComptoir } from './DialogueRetourClientComptoir';
+import { DialogueVenteComptoir } from './DialogueVenteComptoir';
+import { peutCreerMouvement } from './droits';
 import { SelecteurSiteRequis } from './SelecteurSiteRequis';
 import { formaterQuantiteMillieme } from './utils';
 
@@ -29,8 +35,20 @@ export function EcranRechercheComptoirPieces() {
   const [searchParams, setSearchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
 
+  const { data: session } = useSession();
+  const peutVendre = peutCreerMouvement(session?.utilisateur.role);
+
   const { saisie, onSaisieChange, enChargement, resultats, enErreur, erreur, relancer } =
     useRechercheComptoirPieces(site);
+
+  // Id de l'article ciblé par chaque dialogue — jamais l'objet lui-même : `article` est
+  // retrouvé par id dans `resultats` À CHAQUE rendu (voir l'en-tête des deux dialogues), pour que
+  // la quantité disponible affichée se corrige toute seule après un refus ou un succès (la
+  // mutation invalide la recherche comptoir, `resultats` se rafraîchit, cet écran re-rend).
+  const [venteOuverteId, setVenteOuverteId] = useState<string | null>(null);
+  const [retourOuvertId, setRetourOuvertId] = useState<string | null>(null);
+  const articleVente = resultats?.find((a) => a.articleId === venteOuverteId) ?? null;
+  const articleRetour = resultats?.find((a) => a.articleId === retourOuvertId) ?? null;
 
   const colonnes: ColonneComptoir<ResultatRechercheComptoirArticle>[] = [
     {
@@ -90,6 +108,39 @@ export function EcranRechercheComptoirPieces() {
         ),
     },
   ];
+
+  // Masquée entièrement sans le droit (`pieces.mouvement.creer`, magasinier seul, §11) — pas
+  // seulement désactivée : un rôle qui ne peut rien faire de cette colonne n'a aucune raison de
+  // la voir (même doctrine que `PanneauMouvementsArticle`/`peutCreerMouvement`).
+  if (peutVendre) {
+    colonnes.push({
+      id: 'actions',
+      libelle: t('pieces:comptoirVente.actions.titre'),
+      alignement: 'droite',
+      actions: true,
+      rendu: (article) => (
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={article.quantiteDisponibleMillieme <= 0}
+            onClick={() => setVenteOuverteId(article.articleId)}
+          >
+            {t('pieces:comptoirVente.actions.vendre')}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setRetourOuvertId(article.articleId)}
+          >
+            {t('pieces:comptoirVente.actions.retourClient')}
+          </Button>
+        </div>
+      ),
+    });
+  }
 
   if (!site) {
     return (
@@ -156,6 +207,27 @@ export function EcranRechercheComptoirPieces() {
           }
         />
       )}
+
+      {peutVendre ? (
+        <>
+          <DialogueVenteComptoir
+            ouvert={venteOuverteId !== null}
+            onOuvertChange={(ouvert) => {
+              if (!ouvert) setVenteOuverteId(null);
+            }}
+            siteId={site}
+            article={articleVente}
+          />
+          <DialogueRetourClientComptoir
+            ouvert={retourOuvertId !== null}
+            onOuvertChange={(ouvert) => {
+              if (!ouvert) setRetourOuvertId(null);
+            }}
+            siteId={site}
+            article={articleRetour}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

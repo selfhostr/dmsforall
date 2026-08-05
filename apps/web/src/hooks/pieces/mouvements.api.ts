@@ -2,6 +2,8 @@ import type {
   EntreeCreationAjustementInventaire,
   EntreeCreationMouvementCasse,
   EntreeCreationMouvementPerte,
+  EntreeCreationMouvementRetourClient,
+  EntreeCreationMouvementSortieComptoir,
   EntreeCreationMouvementTransfert,
   EntreeCreationRetourFournisseur,
   FiltresMouvementsStock,
@@ -143,6 +145,50 @@ export async function creerRetourFournisseur(
   );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /articles/mouvements/retour-fournisseur.');
+  }
+  return reponse;
+}
+
+/** `POST /articles/{id}/mouvements/sortie-comptoir` — `Idempotency-Key` OBLIGATOIRE. Vente
+ *  DIRECTE au comptoir, sans document de vente (voir la note d'intégration en fin de
+ *  `contrats/pieces/mouvement.ts`) : refusée par `409 STOCK_INSUFFISANT` si la quantité dépasse le
+ *  disponible du site, pas de `forcer` sur cette route. */
+export async function creerMouvementSortieComptoir(
+  articleId: string,
+  entree: EntreeCreationMouvementSortieComptoir,
+  idempotencyKey: string,
+): Promise<ReponseMouvementStock> {
+  const reponse = await requeteApi<ReponseMouvementStock>(
+    `/articles/${articleId}/mouvements/sortie-comptoir`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+      idempotencyKey,
+    },
+  );
+  if (!reponse) {
+    throw new Error('Réponse vide inattendue : POST /articles/mouvements/sortie-comptoir.');
+  }
+  return reponse;
+}
+
+/** `POST /articles/{id}/mouvements/retour-client` — `Idempotency-Key` OBLIGATOIRE. Le client
+ *  rapporte une pièce : jamais refusée pour stock insuffisant (une entrée ne l'est jamais). */
+export async function creerMouvementRetourClient(
+  articleId: string,
+  entree: EntreeCreationMouvementRetourClient,
+  idempotencyKey: string,
+): Promise<ReponseMouvementStock> {
+  const reponse = await requeteApi<ReponseMouvementStock>(
+    `/articles/${articleId}/mouvements/retour-client`,
+    {
+      method: 'POST',
+      body: JSON.stringify(entree),
+      idempotencyKey,
+    },
+  );
+  if (!reponse) {
+    throw new Error('Réponse vide inattendue : POST /articles/mouvements/retour-client.');
   }
   return reponse;
 }

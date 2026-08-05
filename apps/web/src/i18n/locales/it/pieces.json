@@ -400,5 +400,28 @@
       }
     },
     "vide": "Nessun fornitore."
+  },
+  "comptoirVente": {
+    "actions": {
+      "titre": "Azioni",
+      "vendre": "Vendere senza fattura",
+      "retourClient": "Reso cliente"
+    },
+    "vente": {
+      "titre": "Uscita al banco — senza fattura",
+      "avisSansFacture": "Questa uscita non viene fatturata: il pezzo esce dal magazzino, ma non viene creata alcuna fattura. Per una vendita fatturata, utilizzare un documento di vendita.",
+      "quantite": "Quantità",
+      "disponible": "{n} disponibili",
+      "confirmer": "Preleva il pezzo",
+      "erreur": {
+        "stockInsuffisant": "Scorta insufficiente: ne restano {n} disponibili."
+      }
+    },
+    "retour": {
+      "titre": "Reso cliente",
+      "quantite": "Quantità",
+      "motif": "Motivo del reso",
+      "confirmer": "Registra il reso"
+    }
   }
 }

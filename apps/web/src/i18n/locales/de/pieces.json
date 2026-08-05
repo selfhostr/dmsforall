@@ -400,5 +400,28 @@
       }
     },
     "vide": "Keine Lieferanten."
+  },
+  "comptoirVente": {
+    "actions": {
+      "titre": "Aktionen",
+      "vendre": "Verkaufen (ohne Rechnung)",
+      "retourClient": "Kundenretoure"
+    },
+    "vente": {
+      "titre": "Thekenausgabe — ohne Rechnung",
+      "avisSansFacture": "Diese Ausgabe wird nicht fakturiert: Das Teil verlässt das Lager, aber es wird keine Rechnung erstellt. Für einen fakturierten Verkauf verwenden Sie einen Verkaufsbeleg.",
+      "quantite": "Menge",
+      "disponible": "{n} verfügbar",
+      "confirmer": "Teil ausgeben",
+      "erreur": {
+        "stockInsuffisant": "Lagerbestand nicht ausreichend: Es sind noch {n} an Lager."
+      }
+    },
+    "retour": {
+      "titre": "Kundenretoure",
+      "quantite": "Menge",
+      "motif": "Grund der Rückgabe",
+      "confirmer": "Rückgabe erfassen"
+    }
   }
 }
