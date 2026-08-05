@@ -41,22 +41,112 @@ const LIGNE_BASE: LignePointage = {
   modifieLe: new Date('2026-08-04T08:00:00.000Z'),
 };
 
+/** Cible d'affichage neutre, réutilisée par les tests qui ne portent pas sur ce sous-objet. */
+const CIBLE_VIDE = { ordreReparationNumero: null, ligneOrDesignation: null };
+
 describe('mapperPointage — technicienNomAffiche', () => {
   it('relaie le nom affiché reçu de l’appelant, tel quel', () => {
-    const reponse = mapperPointage(LIGNE_BASE, null, 'Marco Rossi');
+    const reponse = mapperPointage(LIGNE_BASE, null, 'Marco Rossi', CIBLE_VIDE);
     expect(reponse.technicienId).toBe(LIGNE_BASE.technicienId);
     expect(reponse.technicienNomAffiche).toBe('Marco Rossi');
   });
 
   it('ne déduit jamais le nom depuis technicienId — deux techniciens différents, deux noms différents', () => {
-    const reponseUn = mapperPointage(LIGNE_BASE, null, 'Marco Rossi');
+    const reponseUn = mapperPointage(LIGNE_BASE, null, 'Marco Rossi', CIBLE_VIDE);
     const reponseDeux = mapperPointage(
       { ...LIGNE_BASE, technicienId: '33333333-3333-3333-3333-333333333333' },
       null,
       'Chiara Bianchi',
+      CIBLE_VIDE,
     );
     expect(reponseUn.technicienNomAffiche).toBe('Marco Rossi');
     expect(reponseDeux.technicienNomAffiche).toBe('Chiara Bianchi');
+  });
+});
+
+/**
+ * Défaut UX corrigé (constat écran réel) — la colonne « Cible » d'`EcranEquipePointage` n'affichait
+ * jamais le numéro d'OR faute de ce champ sur `ReponsePointage`. `mapperPointage` reçoit désormais
+ * `cible: CibleAffichagePointage` (numéro d'OR + désignation de ligne) en quatrième paramètre,
+ * résolu par l'APPELANT (`references.ts::resoudreCibleAffichagePointage` pour une lecture unitaire,
+ * `leftJoin` direct pour `lister`) — ces tests prouvent que le mappeur RELAIE fidèlement ce qu'il
+ * reçoit, JAMAIS ne le déduit depuis `ordreReparationId`/`ligneOrId`.
+ */
+describe('mapperPointage — ordreReparationNumero / ligneOrDesignation', () => {
+  it('relaie le numéro d’OR et la désignation de ligne reçus, tels quels', () => {
+    const ligne = {
+      ...LIGNE_BASE,
+      nature: 'productif_ligne' as const,
+      ordreReparationId: '77777777-7777-7777-7777-777777777777',
+      ligneOrId: '88888888-8888-8888-8888-888888888888',
+      activiteIndirecte: null,
+    };
+    const reponse = mapperPointage(ligne, null, 'Marco Rossi', {
+      ordreReparationNumero: 'OR-2026-00042',
+      ligneOrDesignation: 'Remplacement plaquettes avant',
+    });
+    expect(reponse.ordreReparationNumero).toBe('OR-2026-00042');
+    expect(reponse.ligneOrDesignation).toBe('Remplacement plaquettes avant');
+  });
+
+  it('ne déduit RIEN d’un identifiant présent — deux pointages visant le même OR, deux numéros différents fournis, deux résultats différents', () => {
+    const ligneCommune = {
+      ...LIGNE_BASE,
+      nature: 'productif_or' as const,
+      ordreReparationId: '77777777-7777-7777-7777-777777777777',
+      activiteIndirecte: null,
+    };
+    const reponseUn = mapperPointage(ligneCommune, null, 'Marco Rossi', {
+      ordreReparationNumero: 'OR-2026-00001',
+      ligneOrDesignation: null,
+    });
+    const reponseDeux = mapperPointage(ligneCommune, null, 'Marco Rossi', {
+      ordreReparationNumero: 'OR-2026-00002',
+      ligneOrDesignation: null,
+    });
+    // Même `ordreReparationId` sur les deux lignes source : si le mappeur déduisait le numéro de
+    // l'identifiant plutôt que de relayer `cible`, ces deux valeurs seraient identiques à tort.
+    expect(reponseUn.ordreReparationNumero).toBe('OR-2026-00001');
+    expect(reponseDeux.ordreReparationNumero).toBe('OR-2026-00002');
+  });
+
+  it('nature indirect (sans OR ni ligne) : les deux champs restent null, jamais une chaîne vide', () => {
+    const reponse = mapperPointage(LIGNE_BASE, null, 'Marco Rossi', CIBLE_VIDE);
+    expect(reponse.ordreReparationId).toBeNull();
+    expect(reponse.ligneOrId).toBeNull();
+    expect(reponse.ordreReparationNumero).toBeNull();
+    expect(reponse.ligneOrDesignation).toBeNull();
+  });
+
+  it('nature productif_or (OR entier, sans ligne précise) : ligneOrDesignation reste null même si ordreReparationNumero est renseigné', () => {
+    const ligne = {
+      ...LIGNE_BASE,
+      nature: 'productif_or' as const,
+      ordreReparationId: '77777777-7777-7777-7777-777777777777',
+      activiteIndirecte: null,
+    };
+    const reponse = mapperPointage(ligne, null, 'Marco Rossi', {
+      ordreReparationNumero: 'OR-2026-00042',
+      ligneOrDesignation: null,
+    });
+    expect(reponse.ordreReparationNumero).toBe('OR-2026-00042');
+    expect(reponse.ligneOrDesignation).toBeNull();
+  });
+
+  it('ligne ciblée sans désignation saisie (colonne nullable en base) : ligneOrDesignation reste null même si ligneOrId est renseigné', () => {
+    const ligne = {
+      ...LIGNE_BASE,
+      nature: 'productif_ligne' as const,
+      ordreReparationId: '77777777-7777-7777-7777-777777777777',
+      ligneOrId: '88888888-8888-8888-8888-888888888888',
+      activiteIndirecte: null,
+    };
+    const reponse = mapperPointage(ligne, null, 'Marco Rossi', {
+      ordreReparationNumero: 'OR-2026-00042',
+      ligneOrDesignation: null,
+    });
+    expect(reponse.ligneOrId).toBe('88888888-8888-8888-8888-888888888888');
+    expect(reponse.ligneOrDesignation).toBeNull();
   });
 });
 

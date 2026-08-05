@@ -71,6 +71,7 @@ import {
   chargerOrPourPointage,
   chargerParametresPointage,
   chargerResumeTechnicien,
+  resoudreCibleAffichagePointage,
 } from './references';
 import {
   calculerAgregatsTempsLigne,
@@ -249,10 +250,18 @@ export class ServicePointage {
             );
           }
           const duree = dureeBruteDepuisPeriode(existant.debutLe, existant.finLe);
+          // Rejeu idempotent : `or`/`ligne` (chargés plus bas UNIQUEMENT sur le chemin de création)
+          // ne sont pas disponibles ici — résolution dédiée, au plus deux lectures unitaires.
+          const cible = await resoudreCibleAffichagePointage(
+            tx,
+            ctx,
+            existant.ordreReparationId,
+            existant.ligneOrId,
+          );
           return {
             statutHttp: 200,
             corps: {
-              donnees: mapperPointage(existant, duree, technicien.nomAffiche),
+              donnees: mapperPointage(existant, duree, technicien.nomAffiche, cible),
               avertissements: [],
             },
           };
@@ -422,7 +431,15 @@ export class ServicePointage {
 
         return {
           statutHttp: 201,
-          corps: collecteur.envelopper(mapperPointage(cree, null, technicien.nomAffiche)),
+          corps: collecteur.envelopper(
+            // `or`/`ligne` sont déjà chargés plus haut (verrouillés, pour la validation RM-92/93)
+            // sur CE chemin de création — les réutiliser évite une lecture redondante ; contraste
+            // avec la branche de rejeu ci-dessus, qui n'a jamais chargé ces lignes.
+            mapperPointage(cree, null, technicien.nomAffiche, {
+              ordreReparationNumero: or?.numero ?? null,
+              ligneOrDesignation: ligne?.designation ?? null,
+            }),
+          ),
         };
       },
     );
@@ -483,9 +500,13 @@ export class ServicePointage {
           );
         }
 
-        const [parametres, technicien] = await Promise.all([
+        // `arreter` ne change jamais la cible (`ordreReparationId`/`ligneOrId` restent ceux du
+        // pointage chargé sous verrou) — troisième lecture indépendante ajoutée au même
+        // `Promise.all` déjà en place pour `parametres`/`technicien`.
+        const [parametres, technicien, cible] = await Promise.all([
           chargerParametresPointage(tx, ctx),
           chargerResumeTechnicien(tx, ctx, actuel.technicienId),
+          resoudreCibleAffichagePointage(tx, ctx, actuel.ordreReparationId, actuel.ligneOrId),
         ]);
         const dureeBrute = dureeBruteDepuisPeriode(actuel.debutLe, finLe) ?? 0;
         const dureeArrondie = calculerDureeArrondieCentiemes(
@@ -529,7 +550,7 @@ export class ServicePointage {
         return {
           statutHttp: 200,
           corps: {
-            donnees: mapperPointage(misAJour, dureeBrute, technicien.nomAffiche),
+            donnees: mapperPointage(misAJour, dureeBrute, technicien.nomAffiche, cible),
             avertissements: [],
           },
         };
@@ -645,12 +666,18 @@ export class ServicePointage {
           );
         }
 
+        // Cible FINALE (post-fusion avec `actuel`) — résolue UNE FOIS ici, réutilisée par les DEUX
+        // chemins de retour ci-dessous (`rienNeChange` inclus : `ordreReparationId`/`ligneOrId` y
+        // valent alors exactement `actuel.ordreReparationId`/`actuel.ligneOrId`, donc la même
+        // résolution s'applique).
+        const cible = await resoudreCibleAffichagePointage(tx, ctx, ordreReparationId, ligneOrId);
+
         if (rienNeChange) {
           const duree = dureeBruteDepuisPeriode(actuel.debutLe, actuel.finLe);
           return {
             statutHttp: 200,
             corps: {
-              donnees: mapperPointage(actuel, duree, technicien.nomAffiche),
+              donnees: mapperPointage(actuel, duree, technicien.nomAffiche, cible),
               avertissements: [],
             },
           };
@@ -703,7 +730,7 @@ export class ServicePointage {
         return {
           statutHttp: 200,
           corps: {
-            donnees: mapperPointage(misAJour, dureeBrute, technicien.nomAffiche),
+            donnees: mapperPointage(misAJour, dureeBrute, technicien.nomAffiche, cible),
             avertissements: [],
           },
         };
@@ -746,11 +773,15 @@ export class ServicePointage {
       ) {
         throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Pointage ${id} introuvable.`);
       }
-      const technicien = await chargerResumeTechnicien(tx, ctx, ligne.technicienId);
+      const [technicien, cible] = await Promise.all([
+        chargerResumeTechnicien(tx, ctx, ligne.technicienId),
+        resoudreCibleAffichagePointage(tx, ctx, ligne.ordreReparationId, ligne.ligneOrId),
+      ]);
       return mapperPointage(
         ligne,
         dureeBruteDepuisPeriode(ligne.debutLe, ligne.finLe),
         technicien.nomAffiche,
+        cible,
       );
     });
   }
@@ -804,6 +835,15 @@ export class ServicePointage {
       // pointagesOuvertsPourOr` (`service-lecture-pointage.ts`) : une page de résultats à N lignes
       // ne doit jamais coûter N+1 requêtes. `innerJoin` : `technicien_id` est `NOT NULL` et
       // référence toujours un `utilisateur` du même tenant (même hypothèse que ce voisin).
+      //
+      // `leftJoin` (PAS `innerJoin`) sur `ordre_reparation`/`ligne_or` pour `ordreReparationNumero`/
+      // `ligneOrDesignation` — MÊME RAISONNEMENT « une page, une requête », mais `LEFT` cette fois :
+      // un pointage `nature = 'indirect'` n'a NI `ordreReparationId` NI `ligneOrId` (RM-87), et un
+      // `innerJoin` l'éliminerait purement et simplement de la page. La condition de jointure compare
+      // à une colonne potentiellement `NULL` (`pointage.ordreReparationId`/`.ligneOrId`) : aucune
+      // ligne ne matche pour ces pointages, `LEFT JOIN` rend alors `NULL` sur les deux colonnes
+      // jointes — exactement la valeur attendue (voir `ReponsePointage.ordreReparationNumero` /
+      // `.ligneOrDesignation`, `contrats/pointage/pointage.ts`).
       const colonnes = getTableColumns(pointage);
       const lignes = await tx
         .select({
@@ -811,6 +851,8 @@ export class ServicePointage {
           triValeur: expressionTriValeurPointage,
           technicienPrenom: utilisateur.prenom,
           technicienNom: utilisateur.nom,
+          ordreReparationNumero: ordreReparation.numero,
+          ligneOrDesignation: ligneOr.designation,
         })
         .from(pointage)
         .innerJoin(
@@ -819,6 +861,17 @@ export class ServicePointage {
             eq(utilisateur.tenantId, pointage.tenantId),
             eq(utilisateur.id, pointage.technicienId),
           ),
+        )
+        .leftJoin(
+          ordreReparation,
+          and(
+            eq(ordreReparation.tenantId, pointage.tenantId),
+            eq(ordreReparation.id, pointage.ordreReparationId),
+          ),
+        )
+        .leftJoin(
+          ligneOr,
+          and(eq(ligneOr.tenantId, pointage.tenantId), eq(ligneOr.id, pointage.ligneOrId)),
         )
         .where(and(...clauses))
         .orderBy(...ordreParDebutLe(sens))
@@ -834,6 +887,10 @@ export class ServicePointage {
             l,
             dureeBruteDepuisPeriode(l.debutLe, l.finLe),
             `${l.technicienPrenom} ${l.technicienNom}`.trim(),
+            {
+              ordreReparationNumero: l.ordreReparationNumero,
+              ligneOrDesignation: l.ligneOrDesignation,
+            },
           ),
         ),
         curseurSuivant:

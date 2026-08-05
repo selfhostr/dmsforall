@@ -11,6 +11,7 @@ import {
   type LigneParametreAtelier,
 } from '../db/schema';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
+import type { CibleAffichagePointage } from './mappeurs';
 
 /**
  * Lectures PARTAGÉES par les services `pointage/` sur les entités d'un AUTRE domaine
@@ -173,4 +174,30 @@ export async function chargerResumeTechnicien(
     throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Technicien ${technicienId} introuvable.`);
   }
   return { technicienId: ligne.id, nomAffiche: `${ligne.prenom} ${ligne.nom}`.trim() };
+}
+
+/**
+ * Résout `ReponsePointage.ordreReparationNumero` / `.ligneOrDesignation` pour un POINTAGE UNITAIRE
+ * (`obtenir`, `arreter`, `corriger`, la branche de rejeu idempotent de `demarrer`) — AU PLUS DEUX
+ * lectures non verrouillées (`chargerOrOuNull` + `chargerLigneOuNull` ci-dessus), jamais davantage.
+ *
+ * PAS POUR `lister` — une page de résultats à N lignes ne doit jamais coûter N appels à cette
+ * fonction : `service-pointage.ts::lister` résout les mêmes deux champs par un `leftJoin` DIRECT
+ * sur `ordre_reparation`/`ligne_or`, une seule requête pour toute la page (même doctrine que le
+ * `innerJoin` déjà en place sur `utilisateur` pour `technicienNomAffiche`).
+ */
+export async function resoudreCibleAffichagePointage(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  ordreReparationId: string | null,
+  ligneOrId: string | null,
+): Promise<CibleAffichagePointage> {
+  const [or, ligne] = await Promise.all([
+    ordreReparationId ? chargerOrOuNull(tx, ctx, ordreReparationId) : Promise.resolve(null),
+    ligneOrId ? chargerLigneOuNull(tx, ctx, ligneOrId) : Promise.resolve(null),
+  ]);
+  return {
+    ordreReparationNumero: or?.numero ?? null,
+    ligneOrDesignation: ligne?.designation ?? null,
+  };
 }

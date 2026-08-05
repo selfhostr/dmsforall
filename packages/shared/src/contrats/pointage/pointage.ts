@@ -111,6 +111,39 @@ export interface ReponsePointage {
   readonly nature: NatureActivitePointage;
   readonly ordreReparationId: string | null;
   readonly ligneOrId: string | null;
+  /**
+   * Numéro de l'OR ciblé (`ordre_reparation.numero`) — CHAMP REQUIS (toujours présent sur l'objet),
+   * VALEUR nullable, exactement comme `ordreReparationId` juste au-dessus : `null` si et seulement
+   * si `ordreReparationId` est `null` (pointage `nature = 'indirect'`), sinon toujours renseigné (la
+   * FK `pointage -> ordre_reparation` garantit que l'OR existe tant que le pointage le référence).
+   *
+   * Défaut corrigé (constat écran réel) : la colonne « Cible » d'`EcranEquipePointage` n'affichait
+   * QUE « OR (sans ligne précise) » / « Ligne d'OR » — jamais le numéro d'OR — faute de ce champ.
+   * `ReponsePointage` ne portait que l'identifiant opaque `ordreReparationId`, et le front n'a pas à
+   * inventer un numéro métier depuis un UUID. MÊME PATRON que `technicienNomAffiche` ci-dessus :
+   * résolu par le SERVEUR, jamais déduit côté client.
+   *
+   * REQUIS PLUTÔT QU'OPTIONNEL (`?:`) — décision délibérée, pas la voie de moindre résistance :
+   * un champ optionnel laisserait un lecteur du contrat se demander si son absence signifie « pas
+   * d'OR » ou « pas encore peuplé par cette version du serveur », ambiguïté qu'un contrat FIGÉ ne
+   * doit pas porter. La valeur, elle, reste honnêtement `string | null` — même mécanique que
+   * `ordreReparationId`. CONSÉQUENCE ASSUMÉE, signalée explicitement : comme pour
+   * `technicienNomAffiche` hier, ajouter une clé requise à un contrat partagé casse toute fixture
+   * qui construit un `ReponsePointage` à la main (front ET tests) — le front devra être aligné par
+   * l'agent qui en a le périmètre.
+   */
+  readonly ordreReparationNumero: string | null;
+  /**
+   * Désignation de la ligne ciblée (`ligne_or.designation`) — même statut requis/nullable que
+   * `ordreReparationNumero` ci-dessus, MAIS nullité DÉCOUPLÉE de celle de `ligneOrId` : la colonne
+   * `ligne_or.designation` est elle-même NULLABLE en base (`db/schema/atelier/ordre-reparation.ts`,
+   * `designation: text('designation')`, sans `.notNull()`) — une ligne peut exister sans désignation
+   * saisie. `ligneOrId !== null` ne garantit donc PAS `ligneOrDesignation !== null` ; ne jamais
+   * remplacer une valeur `null` ici par une chaîne vide pour « faire joli », le front sait déjà
+   * replier proprement sur un texte générique quand cette donnée manque réellement (voir
+   * `EcranEquipePointage`, `libelleCibleEquipePointage`).
+   */
+  readonly ligneOrDesignation: string | null;
   readonly activiteIndirecte: ActiviteIndirecte | null;
   readonly source: SourcePointage;
   readonly appareilId: string | null;

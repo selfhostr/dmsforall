@@ -18,7 +18,12 @@
  *    preuve que ce n'est pas la garde qui a bloqué.
  */
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
-import type { EntreeArretPointage, EntreeDemarragePointage, RoleUtilisateur } from '@dfa/shared';
+import type {
+  EntreeArretPointage,
+  EntreeDemarragePointage,
+  FiltresPointages,
+  RoleUtilisateur,
+} from '@dfa/shared';
 
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
@@ -265,5 +270,158 @@ describe('estCollisionIdPointage (faille corrigée : .cause non déballé)', () 
     const cyclique = new Error('cyclique') as Error & { cause: unknown };
     cyclique.cause = cyclique;
     expect(estCollisionIdPointage(cyclique)).toBe(false);
+  });
+});
+
+/**
+ * Défaut UX corrigé (constat écran réel) — la colonne « Cible » d'`EcranEquipePointage` n'affichait
+ * jamais le numéro d'OR. Le correctif ajoute `ordreReparationNumero`/`ligneOrDesignation` à
+ * `ReponsePointage`, peuplés par `lister` via un `leftJoin` DIRECT sur `ordre_reparation`/`ligne_or`
+ * (`service-pointage.ts`) — JAMAIS par un appel de résolution PAR LIGNE de la page (ce dépôt a déjà
+ * épuisé son pool de connexions deux fois de cette façon, voir le commentaire de tête de la méthode).
+ *
+ * Ces tests le PROUVENT structurellement, sans base de données réelle : un `tx` factice qui compte
+ * ses appels à `.select(...)` — le point d'entrée UNIQUE d'une requête Drizzle — pour une page
+ * contenant PLUSIEURS pointages ciblant des OR DIFFÉRENTS. Si `lister` résolvait le numéro d'OR par
+ * un aller-retour supplémentaire par ligne (N+1), `.select` serait appelé plus d'une fois ; le
+ * correctif garantit exactement UN appel, quelle que soit la taille de la page.
+ */
+describe('ServicePointage.lister — ordreReparationNumero / ligneOrDesignation SANS N+1', () => {
+  /** Ligne brute telle que rendue par le SELECT réel (colonnes `pointage` + jointures), avec des
+   *  valeurs par défaut « pointage indirect sans cible » — surchargées par cas de test. */
+  function ligneListee(overrides: Record<string, unknown>) {
+    return {
+      id: POINTAGE_ID,
+      tenantId: TENANT,
+      siteId: SITE,
+      technicienId: MOI,
+      statut: 'en_cours',
+      nature: 'indirect',
+      ordreReparationId: null,
+      ligneOrId: null,
+      activiteIndirecte: 'nettoyage',
+      source: 'ecran_atelier',
+      appareilId: null,
+      debutLe: new Date('2026-07-31T08:00:00.000Z'),
+      finLe: null,
+      dureeArrondieCentiemes: null,
+      decalageHorlogeMsDebut: null,
+      decalageHorlogeMsFin: null,
+      clotureAutomatique: false,
+      anomalieMotif: null,
+      anomalieDetecteeLe: null,
+      anomalieTraiteeLe: null,
+      derniereCorrectionMotif: null,
+      derniereCorrectionParUtilisateurId: null,
+      derniereCorrectionLe: null,
+      debutLeOrigine: null,
+      finLeOrigine: null,
+      creeLe: new Date('2026-07-31T08:00:00.000Z'),
+      modifieLe: new Date('2026-07-31T08:00:00.000Z'),
+      triValeur: '2026-07-31 08:00:00+00',
+      technicienPrenom: 'Marco',
+      technicienNom: 'Rossi',
+      ordreReparationNumero: null,
+      ligneOrDesignation: null,
+      ...overrides,
+    };
+  }
+
+  /** `tx` factice : chaîne `.select().from().innerJoin().leftJoin().leftJoin().where().orderBy()
+   *  .limit()` — chaque maillon retourne le même builder (chaînable à volonté), `.limit()` seul
+   *  résout la promesse. `.select` est le SEUL point compté : un maillon de chaîne SUPPLÉMENTAIRE
+   *  par ligne de résultat n'existe structurellement pas dans ce mock, exactement comme dans le vrai
+   *  client Drizzle (`.select` initie UNE requête, quel que soit ce qu'elle retourne). */
+  function txFausseAvecCompteur(lignes: readonly unknown[]) {
+    let appelsSelect = 0;
+    const builder = {
+      from: vi.fn(() => builder),
+      innerJoin: vi.fn(() => builder),
+      leftJoin: vi.fn(() => builder),
+      where: vi.fn(() => builder),
+      orderBy: vi.fn(() => builder),
+      limit: vi.fn(() => Promise.resolve(lignes)),
+    };
+    return {
+      tx: {
+        select: vi.fn(() => {
+          appelsSelect += 1;
+          return builder;
+        }),
+      },
+      nombreAppelsSelect: () => appelsSelect,
+    };
+  }
+
+  it('une seule requête (`tx.select` appelé UNE fois) pour une page de 3 pointages ciblant 2 OR différents + un pointage indirect', async () => {
+    const lignes = [
+      ligneListee({
+        id: 'p1',
+        nature: 'productif_or',
+        ordreReparationId: 'or-1',
+        activiteIndirecte: null,
+        ordreReparationNumero: 'OR-2026-00001',
+      }),
+      ligneListee({
+        id: 'p2',
+        nature: 'productif_ligne',
+        ordreReparationId: 'or-2',
+        ligneOrId: 'ligne-2',
+        activiteIndirecte: null,
+        ordreReparationNumero: 'OR-2026-00002',
+        ligneOrDesignation: 'Vidange + filtres',
+      }),
+      ligneListee({ id: 'p3' }), // indirect : aucune cible, ni requête ni valeur à résoudre.
+    ];
+    const { tx, nombreAppelsSelect } = txFausseAvecCompteur(lignes);
+    const acces = {
+      enTenant: vi.fn((_ctx: unknown, cb: (tx: unknown) => unknown) => cb(tx)),
+    } as unknown as ConstructorParameters<typeof ServicePointage>[0];
+    const idempotence = {} as unknown as ConstructorParameters<typeof ServicePointage>[1];
+    const service = new ServicePointage(acces, idempotence, horlogeStub);
+
+    const filtres = { tri: 'debutLe:desc' } as unknown as FiltresPointages;
+    const page = await service.lister(CTX, principal('chef_atelier', MOI), filtres, 10, undefined);
+
+    // La preuve d'absence de N+1 : UN SEUL appel à `.select`, indépendamment du nombre de pointages
+    // et du nombre d'OR distincts qu'ils ciblent.
+    expect(nombreAppelsSelect()).toBe(1);
+
+    expect(page.donnees).toHaveLength(3);
+    expect(page.donnees[0]).toMatchObject({
+      ordreReparationNumero: 'OR-2026-00001',
+      ligneOrDesignation: null,
+    });
+    expect(page.donnees[1]).toMatchObject({
+      ordreReparationNumero: 'OR-2026-00002',
+      ligneOrDesignation: 'Vidange + filtres',
+    });
+    // Pointage indirect (RM-87, aucune cible) : les deux champs restent `null`, jamais une chaîne
+    // vide ni une valeur empruntée à un autre pointage de la même page.
+    expect(page.donnees[2]).toMatchObject({
+      ordreReparationId: null,
+      ligneOrId: null,
+      ordreReparationNumero: null,
+      ligneOrDesignation: null,
+    });
+  });
+
+  it('active bien les deux `leftJoin` (ordre_reparation, ligne_or) en plus de l’`innerJoin` utilisateur existant', async () => {
+    const { tx } = txFausseAvecCompteur([ligneListee({ id: 'p1' })]);
+    const acces = {
+      enTenant: vi.fn((_ctx: unknown, cb: (tx: unknown) => unknown) => cb(tx)),
+    } as unknown as ConstructorParameters<typeof ServicePointage>[0];
+    const idempotence = {} as unknown as ConstructorParameters<typeof ServicePointage>[1];
+    const service = new ServicePointage(acces, idempotence, horlogeStub);
+
+    const filtres = { tri: 'debutLe:desc' } as unknown as FiltresPointages;
+    await service.lister(CTX, principal('direction', MOI), filtres, 10, undefined);
+
+    const builderRendu = (tx.select as Mock).mock.results[0]?.value as {
+      innerJoin: Mock;
+      leftJoin: Mock;
+    };
+    expect(builderRendu.innerJoin).toHaveBeenCalledTimes(1);
+    expect(builderRendu.leftJoin).toHaveBeenCalledTimes(2);
   });
 });

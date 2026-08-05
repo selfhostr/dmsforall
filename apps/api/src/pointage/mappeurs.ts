@@ -2,6 +2,24 @@ import type { AnomaliePointage, DerniereCorrectionPointage, ReponsePointage } fr
 import type { LignePointage } from '../db/schema';
 
 /**
+ * `ordreReparationNumero` / `ligneOrDesignation` — même doctrine que `technicienNomAffiche` :
+ * ni l'un ni l'autre n'est une colonne de `LignePointage` (l'un vit sur `ordre_reparation`, l'autre
+ * sur `ligne_or`), donc RIEN N'EST DÉDUIT ICI depuis `ordreReparationId`/`ligneOrId` — ce mappeur
+ * reste pur (aucun accès base) et relaie tel quel ce que l'appelant a résolu en amont. Voir
+ * `references.ts::resoudreCibleAffichagePointage` (lectures unitaires : `obtenir`, `arreter`,
+ * `corriger`, la branche de rejeu de `demarrer`) et le `leftJoin` direct de
+ * `service-pointage.ts::lister` (page entière en UNE requête, jamais un aller-retour par ligne).
+ */
+export interface CibleAffichagePointage {
+  /** Cf. le commentaire de `ReponsePointage.ordreReparationNumero` (`contrats/pointage/pointage.ts`)
+   *  pour la règle de nullité exacte. */
+  readonly ordreReparationNumero: string | null;
+  /** Cf. le commentaire de `ReponsePointage.ligneOrDesignation` (`contrats/pointage/pointage.ts`) —
+   *  nullable même quand `ligneOrId` est renseigné (`ligne_or.designation` est nullable en base). */
+  readonly ligneOrDesignation: string | null;
+}
+
+/**
  * `dureeBruteSecondes` n'est PAS une colonne de `LignePointage` (GENERATED, non modélisé par
  * Drizzle — voir l'en-tête de `db/schema/pointage/pointage.ts`). Un appelant qui l'a sélectionnée
  * explicitement (`select … duree_brute_secondes` en SQL brut, ou calculée en mémoire depuis
@@ -18,6 +36,7 @@ export function mapperPointage(
   ligne: LignePointage,
   dureeBruteSecondes: number | null,
   technicienNomAffiche: string,
+  cible: CibleAffichagePointage,
 ): ReponsePointage {
   const anomalie: AnomaliePointage | null =
     ligne.anomalieMotif !== null && ligne.anomalieDetecteeLe !== null
@@ -51,6 +70,8 @@ export function mapperPointage(
     nature: ligne.nature,
     ordreReparationId: ligne.ordreReparationId,
     ligneOrId: ligne.ligneOrId,
+    ordreReparationNumero: cible.ordreReparationNumero,
+    ligneOrDesignation: cible.ligneOrDesignation,
     activiteIndirecte: ligne.activiteIndirecte,
     source: ligne.source,
     appareilId: ligne.appareilId,

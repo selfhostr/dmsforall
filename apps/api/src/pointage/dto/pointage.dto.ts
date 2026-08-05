@@ -78,6 +78,27 @@ export class ReponsePointageDto implements ReponsePointage {
   @ApiProperty({ type: String, format: 'uuid', nullable: true })
   readonly ligneOrId!: string | null;
 
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      "Numéro de l'OR ciblé (ordre_reparation.numero), résolu par le serveur. `null` si et " +
+      'seulement si `ordreReparationId` est `null` (pointage indirect).',
+    example: 'OR-2026-00042',
+  })
+  readonly ordreReparationNumero!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'Désignation de la ligne ciblée (ligne_or.designation), résolue par le serveur. Nullable ' +
+      'même quand `ligneOrId` est renseigné : la désignation elle-même est une colonne nullable ' +
+      'en base.',
+    example: 'Remplacement plaquettes avant',
+  })
+  readonly ligneOrDesignation!: string | null;
+
   @ApiProperty({ enum: ACTIVITES_INDIRECTES, nullable: true })
   readonly activiteIndirecte!: ReponsePointage['activiteIndirecte'];
 
