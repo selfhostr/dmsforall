@@ -11,3 +11,4 @@ export * from './contrats/ventes';
 export * from './contrats/pneus';
 export * from './contrats/connecteurs';
 export * from './contrats/tableau-bord';
+export * from './contrats/relances';

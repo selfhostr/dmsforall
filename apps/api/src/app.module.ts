@@ -24,6 +24,7 @@ import { PiecesModule } from './pieces/pieces.module';
 import { PneusModule } from './pneus/pneus.module';
 import { PointageModule } from './pointage/pointage.module';
 import { RechercheModule } from './recherche/recherche.module';
+import { RelancesModule } from './relances/relances.module';
 import { SanteModule } from './sante';
 import { SocleModule } from './socle';
 import { TableauBordModule } from './tableau-bord/tableau-bord.module';
@@ -87,6 +88,11 @@ export class AppModule implements NestModule {
         // `ServiceExecuteurConnecteurResilient` soient injectables par un futur module qui en
         // aurait besoin, voir `connecteurs/connecteurs.module.ts`.
         ConnecteursModule,
+        // `RelancesModule` (lot 1 — facturation, rappel #2, `docs/specification-relances-
+        // automatiques.md`) — importe `ConnecteursModule` lui-même (`RegistreConnecteursService`,
+        // résolution de l'adaptateur `NotificationSender`) ; placé après lui par lisibilité,
+        // aucune contrainte d'ordre réelle (même raisonnement que `PneusModule` juste au-dessus).
+        RelancesModule,
       ],
     };
   }

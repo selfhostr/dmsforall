@@ -23,3 +23,4 @@ export * from './pieces';
 export * from './pointage';
 export * from './ventes';
 export * from './pneus';
+export * from './relances';
