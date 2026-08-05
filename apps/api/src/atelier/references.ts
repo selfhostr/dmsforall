@@ -206,6 +206,7 @@ export function construireVehiculeResume(
     vin: ligne.vin,
     premiereMiseEnCirculationLe: ligne.date1reCirculation,
     identificationIncomplete: ligne.identificationIncomplete,
+    emplacementLibre: ligne.emplacementLibre,
   };
 }
 

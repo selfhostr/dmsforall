@@ -28,6 +28,9 @@ export class VehiculeResumeDto implements VehiculeResume {
 
   @ApiProperty()
   readonly identificationIncomplete!: boolean;
+
+  @ApiProperty({ type: String, nullable: true, example: 'Devant, place 3' })
+  readonly emplacementLibre!: string | null;
 }
 
 export class PageVehiculeResumeDto implements PageCurseur<VehiculeResumeDto> {

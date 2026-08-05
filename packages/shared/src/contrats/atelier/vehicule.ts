@@ -115,6 +115,14 @@ export interface ReponseVehicule {
   readonly statut: StatutVehicule;
   readonly motifArchivage: MotifArchivageVehicule | null;
   readonly fusionneVersVehiculeId: string | null;
+  /**
+   * Plan du parc, Lot C simplifié (migration 0044) : position DÉCLARATIVE du véhicule dans le
+   * garage, texte libre (« devant, place 3 », « chez le carrossier »). Aide-mémoire, PAS un
+   * inventaire audité : pas de format imposé, vide est normal, aucun trigger générique.
+   */
+  readonly emplacementLibre: string | null;
+  /** Dernier instant où `emplacementLibre` a été touché — PAS `modifieLe` (voir le mapper). */
+  readonly emplacementMajLe: string | null;
   readonly creeLe: string;
   readonly modifieLe: string;
 }
@@ -128,6 +136,11 @@ export interface VehiculeResume {
   readonly vin: string | null;
   readonly premiereMiseEnCirculationLe: string | null;
   readonly identificationIncomplete: boolean;
+  /** Colonne plate de `vehicule`, sans jointure supplémentaire (coût quasi nul dans la liste SQL
+   *  brute) — présent ici volontairement, à la différence de `creeLe`/`modifieLe` (exclus de cette
+   *  projection minimale) : un aide-mémoire de position perd son intérêt s'il faut ouvrir la fiche
+   *  pour le lire. `emplacementMajLe` reste réservé à `ReponseVehicule` (fiche complète). */
+  readonly emplacementLibre: string | null;
 }
 
 /**
@@ -419,6 +432,10 @@ export const schemaModificationVehicule = schemaCreationVehicule
     codeCle: z.string().trim().max(40).nullish(),
     intervalleEntretienKm: z.number().int().min(0).max(200_000).nullish(),
     intervalleEntretienMois: z.number().int().min(0).max(120).nullish(),
+    /** Migration 0044 : position dans le garage, texte libre — borne applicative de longueur
+     *  seulement, même doctrine que `pneusEte`/`batterie` ci-dessus, PAS de champ obligatoire ni
+     *  de format imposé (ce n'est pas un inventaire audité). */
+    emplacementLibre: z.string().trim().max(60).nullish(),
     garantieDebutLe: schemaDateJour.nullish(),
     garantieMois: z.number().int().min(0).max(240).nullish(),
     garantieKm: z.number().int().min(0).max(1_000_000).nullish(),

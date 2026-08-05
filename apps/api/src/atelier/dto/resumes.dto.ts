@@ -75,4 +75,7 @@ export class VehiculeResumeOrDto implements VehiculeResume {
 
   @ApiProperty()
   readonly identificationIncomplete!: boolean;
+
+  @ApiProperty({ type: String, nullable: true, example: 'Devant, place 3' })
+  readonly emplacementLibre!: string | null;
 }

@@ -40,6 +40,7 @@ type LigneVehiculeResumeBrute = {
   readonly vin: string | null;
   readonly premiereMiseEnCirculationLe: string | null;
   readonly identificationIncomplete: boolean;
+  readonly emplacementLibre: string | null;
   readonly triValeur: string | number | null;
 };
 
@@ -52,6 +53,7 @@ function versVehiculeResume(ligne: LigneVehiculeResumeBrute): VehiculeResume {
     vin: ligne.vin,
     premiereMiseEnCirculationLe: ligne.premiereMiseEnCirculationLe,
     identificationIncomplete: ligne.identificationIncomplete,
+    emplacementLibre: ligne.emplacementLibre,
   };
 }
 
@@ -98,6 +100,7 @@ export class ServiceClientVehicules {
           v.vin as "vin",
           v.date_1re_circulation as "premiereMiseEnCirculationLe",
           v.identification_incomplete as "identificationIncomplete",
+          v.emplacement_libre as "emplacementLibre",
           ${definition.expression} as "triValeur"
         from public.vehicule v
         left join public.vehicule_plaque p on p.tenant_id = v.tenant_id and p.vehicule_id = v.id and p.au is null

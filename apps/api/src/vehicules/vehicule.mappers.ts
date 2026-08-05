@@ -119,6 +119,8 @@ export function versReponseVehicule(
     statut: ligne.statut,
     motifArchivage: ligne.motifArchivage,
     fusionneVersVehiculeId: ligne.fusionneVersVehiculeId,
+    emplacementLibre: ligne.emplacementLibre,
+    emplacementMajLe: ligne.emplacementMajLe?.toISOString() ?? null,
     creeLe: ligne.creeLe.toISOString(),
     modifieLe: ligne.modifieLe.toISOString(),
   };
@@ -134,6 +136,7 @@ export function versVehiculeResume(
     | 'vin'
     | 'date1reCirculation'
     | 'identificationIncomplete'
+    | 'emplacementLibre'
   >,
   plaqueCourante: { readonly valeur: string; readonly canton: string | null } | null,
 ): VehiculeResume {
@@ -145,5 +148,6 @@ export function versVehiculeResume(
     vin: ligne.vin,
     premiereMiseEnCirculationLe: ligne.date1reCirculation,
     identificationIncomplete: ligne.identificationIncomplete,
+    emplacementLibre: ligne.emplacementLibre,
   };
 }

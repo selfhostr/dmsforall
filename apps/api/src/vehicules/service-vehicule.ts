@@ -259,6 +259,14 @@ export class ServiceVehicule {
           garantieMois:
             entree.garantieMois !== undefined ? (entree.garantieMois ?? null) : undefined,
           garantieKm: entree.garantieKm !== undefined ? (entree.garantieKm ?? null) : undefined,
+          // `emplacementMajLe` n'avance QUE quand `emplacementLibre` figure dans le corps de la
+          // requête (poser une valeur ou l'effacer avec `null` compte pareil comme y toucher) —
+          // JAMAIS via `modifieLe`/un trigger générique, qui avancerait sur n'importe quel autre
+          // champ (couleur, kilométrage...) sans rapport avec la position (migration 0044).
+          emplacementLibre:
+            entree.emplacementLibre !== undefined ? (entree.emplacementLibre ?? null) : undefined,
+          emplacementMajLe:
+            entree.emplacementLibre !== undefined ? this.horloge.maintenant() : undefined,
           identificationIncomplete,
         })
         .where(and(eq(vehicule.tenantId, ctx.tenantId), eq(vehicule.id, vehiculeId)));
@@ -447,6 +455,10 @@ type LigneListeVehiculeBrute = {
   readonly plaque_valeur: string | null;
   readonly plaque_canton: string | null;
   readonly prochaine_expertise_le: string | null;
+  // Colonne plate de `vehicule`, sans jointure supplémentaire (migration 0044) : coût quasi nul
+  // ajouté à ce SELECT déjà LATERAL sur la plaque/l'expertise — voir `VehiculeResume.emplacementLibre`
+  // (packages/shared) pour la justification de sa présence dans cette projection de liste.
+  readonly emplacement_libre: string | null;
 };
 
 interface LigneListeVehicule {
@@ -463,6 +475,7 @@ interface LigneListeVehicule {
   readonly plaqueValeur: string | null;
   readonly plaqueCanton: string | null;
   readonly prochaineExpertiseLe: string | null;
+  readonly emplacementLibre: string | null;
 }
 
 function versLigneListe(brute: LigneListeVehiculeBrute): LigneListeVehicule {
@@ -478,6 +491,7 @@ function versLigneListe(brute: LigneListeVehiculeBrute): LigneListeVehicule {
     plaqueValeur: brute.plaque_valeur,
     plaqueCanton: brute.plaque_canton,
     prochaineExpertiseLe: brute.prochaine_expertise_le,
+    emplacementLibre: brute.emplacement_libre,
   };
 }
 
@@ -544,7 +558,7 @@ async function executerListeVehicules(
 
   const requete = sql`
     select v.id, v.marque, v.modele, v.version, v.vin, v.date_1re_circulation, v.identification_incomplete,
-           v.cree_le::text as cree_le,
+           v.cree_le::text as cree_le, v.emplacement_libre,
            pc.valeur as plaque_valeur, pc.canton as plaque_canton,
            ne.prochaine_echeance as prochaine_expertise_le
       from public.vehicule v

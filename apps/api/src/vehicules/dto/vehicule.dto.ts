@@ -159,6 +159,12 @@ export class ReponseVehiculeDto implements ReponseVehicule {
   @ApiProperty({ type: String, format: 'uuid', nullable: true })
   readonly fusionneVersVehiculeId!: string | null;
 
+  @ApiProperty({ type: String, nullable: true, example: 'Devant, place 3' })
+  readonly emplacementLibre!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, format: 'date-time' })
+  readonly emplacementMajLe!: string | null;
+
   @ApiProperty({ format: 'date-time' })
   readonly creeLe!: string;
 
@@ -187,6 +193,9 @@ export class VehiculeResumeDto implements VehiculeResume {
 
   @ApiProperty()
   readonly identificationIncomplete!: boolean;
+
+  @ApiProperty({ type: String, nullable: true, example: 'Devant, place 3' })
+  readonly emplacementLibre!: string | null;
 }
 
 export class PageVehiculeResumeDto implements PageCurseur<VehiculeResumeDto> {

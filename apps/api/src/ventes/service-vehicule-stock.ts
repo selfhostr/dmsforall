@@ -92,6 +92,7 @@ const COLONNES_VEHICULE_STOCK_LISTE = sql`
   vs.livre_le as "livreLe", vs.version as "version", vs.cree_le as "creeLe", vs.modifie_le as "modifieLe",
   v.marque as "vMarque", v.modele as "vModele", v.version as "vVersion", v.vin as "vVin",
   v.date_1re_circulation as "vDate1reCirculation", v.identification_incomplete as "vIdentificationIncomplete",
+  v.emplacement_libre as "vEmplacementLibre",
   p.valeur as "pValeur", p.canton as "pCanton"
 `;
 
@@ -518,6 +519,7 @@ export class ServiceVehiculeStock {
         vVin: string | null;
         vDate1reCirculation: string | null;
         vIdentificationIncomplete: boolean;
+        vEmplacementLibre: string | null;
         pValeur: string | null;
         pCanton: string | null;
         triValeur: string | number | null;
@@ -548,6 +550,7 @@ export class ServiceVehiculeStock {
             vin: l.vVin,
             premiereMiseEnCirculationLe: l.vDate1reCirculation,
             identificationIncomplete: l.vIdentificationIncomplete,
+            emplacementLibre: l.vEmplacementLibre,
           },
           l.vDate1reCirculation,
           maintenant,

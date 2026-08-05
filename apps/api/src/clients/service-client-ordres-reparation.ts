@@ -66,6 +66,7 @@ type LigneOrDuClientBrute = {
   readonly vehiculeVin: string | null;
   readonly vehiculePremiereMiseEnCirculationLe: string | null;
   readonly vehiculeIdentificationIncomplete: boolean;
+  readonly vehiculeEmplacementLibre: string | null;
   readonly nombreLignes: number;
   readonly totalTtcCentimes: number;
   readonly aAttenteAccord: boolean;
@@ -97,6 +98,7 @@ function versVehiculeResume(ligne: LigneOrDuClientBrute): VehiculeResume {
     vin: ligne.vehiculeVin,
     premiereMiseEnCirculationLe: ligne.vehiculePremiereMiseEnCirculationLe,
     identificationIncomplete: ligne.vehiculeIdentificationIncomplete,
+    emplacementLibre: ligne.vehiculeEmplacementLibre,
   };
 }
 
@@ -197,6 +199,7 @@ export class ServiceClientOrdresReparation {
           (v.marque || ' ' || v.modele || coalesce(' ' || v.version, '')) as "vehiculeDesignation",
           v.vin as "vehiculeVin", v.date_1re_circulation as "vehiculePremiereMiseEnCirculationLe",
           v.identification_incomplete as "vehiculeIdentificationIncomplete",
+          v.emplacement_libre as "vehiculeEmplacementLibre",
           (select count(*) from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.statut <> 'annulee') as "nombreLignes",
           (select coalesce(sum(l.montant_ttc_centimes), 0) from public.ligne_or l where l.tenant_id = o.tenant_id and l.ordre_reparation_id = o.id and l.statut::text not in (${sql.join(
             STATUTS_LIGNE_HORS_TOTAL.map((s) => sql`${s}`),

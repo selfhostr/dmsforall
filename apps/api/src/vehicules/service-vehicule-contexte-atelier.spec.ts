@@ -106,6 +106,8 @@ function reponseVehiculeFactice(partiel: Partial<ReponseVehicule> = {}): Reponse
     statut: 'actif',
     motifArchivage: null,
     fusionneVersVehiculeId: null,
+    emplacementLibre: null,
+    emplacementMajLe: null,
     creeLe: '2018-03-01T00:00:00.000Z',
     modifieLe: '2018-03-01T00:00:00.000Z',
     ...partiel,
