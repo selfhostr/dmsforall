@@ -417,6 +417,101 @@ describe('ServiceDossierVente.livrer — traduction de la violation de contraint
 });
 
 /**
+ * DÉFAUT CORRIGÉ (tests d'intégration) : `preparer`, `marquerPretALivrer` et `cloturer` n'avaient
+ * AUCUNE garde applicative de rejeu — contrairement à `engager`/`livrer`, qui échouent déjà
+ * indirectement via l'état du véhicule associé. Le trigger générique `verifier_transition()`
+ * (`0003_prealables_etape1.sql`) traite un UPDATE qui réécrit LE MÊME statut comme un non-événement
+ * (`old.statut is not distinct from new.statut`) et ne consulte alors jamais
+ * `transition_autorisee` : un second appel une fois la cible déjà atteinte ne bougeait que
+ * l'horodatage, en silence, sans jamais lever `ZDFA1`. Ces trois méthodes vérifient désormais
+ * explicitement le statut de départ attendu AVANT toute écriture.
+ */
+describe('ServiceDossierVente — garde de rejeu explicite (preparer/marquerPretALivrer/cloturer)', () => {
+  it('preparer refuse un rejeu (dossier déjà en_preparation) avec VENTE_DOSSIER_TRANSITION_INTERDITE, sans écrire', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(
+      dossierFixture({ statut: 'en_preparation' }),
+    );
+    const { tx, updateCalls } = txFactice();
+    const svc = serviceFactice(accesFactice(tx));
+
+    await expect(svc.preparer(CTX, 'direction', DOSSIER_ID, {})).rejects.toMatchObject({
+      code: 'VENTE_DOSSIER_TRANSITION_INTERDITE',
+    });
+    expect(updateCalls).toHaveLength(0);
+  });
+
+  it('preparer transitionne normalement depuis engage (comportement légitime non cassé)', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(
+      dossierFixture({ statut: 'engage' }),
+    );
+    vi.mocked(references.chargerDossierVente).mockResolvedValue(
+      dossierFixture({ statut: 'en_preparation' }),
+    );
+    const { tx, updateCalls } = txFactice();
+    const svc = serviceFactice(accesFactice(tx));
+
+    await svc.preparer(CTX, 'direction', DOSSIER_ID, {});
+
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0]?.champs).toMatchObject({ statut: 'en_preparation' });
+  });
+
+  it('marquerPretALivrer refuse un rejeu (dossier déjà pret_a_livrer) avec VENTE_DOSSIER_TRANSITION_INTERDITE, sans écrire', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(
+      dossierFixture({ statut: 'pret_a_livrer' }),
+    );
+    const { tx, updateCalls } = txFactice();
+    const svc = serviceFactice(accesFactice(tx));
+
+    await expect(svc.marquerPretALivrer(CTX, 'direction', DOSSIER_ID, {})).rejects.toMatchObject({
+      code: 'VENTE_DOSSIER_TRANSITION_INTERDITE',
+    });
+    // La garde de rejeu échoue AVANT même la vérification du financement (RV-37) : aucune écriture.
+    expect(updateCalls).toHaveLength(0);
+  });
+
+  it('marquerPretALivrer refuse un rejeu même depuis un statut plus ancien (engage) — le préalable reste engage/en_preparation uniquement', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(
+      dossierFixture({ statut: 'engage' }),
+    );
+    const { tx, updateCalls } = txFactice();
+    const svc = serviceFactice(accesFactice(tx));
+
+    await expect(svc.marquerPretALivrer(CTX, 'direction', DOSSIER_ID, {})).rejects.toMatchObject({
+      code: 'VENTE_DOSSIER_TRANSITION_INTERDITE',
+    });
+    expect(updateCalls).toHaveLength(0);
+  });
+
+  it('cloturer refuse un rejeu (dossier déjà clos) avec VENTE_DOSSIER_TRANSITION_INTERDITE, sans écrire', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(
+      dossierFixture({ statut: 'clos' }),
+    );
+    const { tx, updateCalls } = txFactice();
+    const svc = serviceFactice(accesFactice(tx));
+
+    await expect(svc.cloturer(CTX, 'direction', DOSSIER_ID, {})).rejects.toMatchObject({
+      code: 'VENTE_DOSSIER_TRANSITION_INTERDITE',
+    });
+    expect(updateCalls).toHaveLength(0);
+  });
+
+  it('cloturer transitionne normalement depuis livre (comportement légitime non cassé)', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(
+      dossierFixture({ statut: 'livre' }),
+    );
+    vi.mocked(references.chargerDossierVente).mockResolvedValue(dossierFixture({ statut: 'clos' }));
+    const { tx, updateCalls } = txFactice();
+    const svc = serviceFactice(accesFactice(tx));
+
+    await svc.cloturer(CTX, 'direction', DOSSIER_ID, {});
+
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0]?.champs).toMatchObject({ statut: 'clos' });
+  });
+});
+
+/**
  * Bug corrigé (audit 2026-08-04) : `estViolationCleUniqueVehiculeStock` testait `erreur.code` au
  * premier niveau, mais Drizzle enveloppe SYSTÉMATIQUEMENT l'erreur `pg` brute dans une
  * `DrizzleQueryError` (`code` sous `.cause`, jamais en surface) — une course concurrente sur

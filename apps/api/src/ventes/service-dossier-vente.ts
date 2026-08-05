@@ -456,7 +456,19 @@ export class ServiceDossierVente {
     });
   }
 
-  /** `POST /dossiers-vente/{id}/preparer` — `engage -> en_preparation`. */
+  /**
+   * `POST /dossiers-vente/{id}/preparer` — `engage -> en_preparation`.
+   *
+   * GARDE APPLICATIVE EXPLICITE (défaut constaté et corrigé, tests d'intégration) : contrairement à
+   * `engager`/`livrer`, dont un rejeu échoue déjà indirectement via l'état du véhicule associé,
+   * cette transition ne touche jamais `vehicule_stock` — rien ne l'empêchait, avant ce correctif,
+   * d'être rejouée. Le trigger générique `verifier_transition()` (`0003_prealables_etape1.sql`)
+   * traite un UPDATE qui écrit LE MÊME statut comme un non-événement (`old.statut is not distinct
+   * from new.statut`) et ne consulte alors JAMAIS `transition_autorisee` — un second appel une fois
+   * `en_preparation` déjà atteint ne changeait donc que l'horodatage, en silence, sans jamais lever
+   * `ZDFA1`. D'où cette vérification AVANT `transitionnerDossier`, pour refuser tout rejeu par un
+   * code métier stable plutôt que de laisser passer une transition fantôme.
+   */
   async preparer(
     ctx: ContexteTenant,
     role: RoleUtilisateur,
@@ -465,6 +477,12 @@ export class ServiceDossierVente {
   ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
+      if (ligne.statut !== 'engage') {
+        throw new ErreurMetier(
+          'VENTE_DOSSIER_TRANSITION_INTERDITE',
+          `Préparation impossible : ce dossier n'est pas « engage » (statut actuel : ${ligne.statut}).`,
+        );
+      }
       await this.transitionnerDossier(tx, ligne, {
         statut: 'en_preparation',
         enPreparationLe: this.horloge.maintenant(),
@@ -475,7 +493,13 @@ export class ServiceDossierVente {
     });
   }
 
-  /** `POST /dossiers-vente/{id}/marquer-pret-a-livrer` — `en_preparation -> pret_a_livrer`. */
+  /**
+   * `POST /dossiers-vente/{id}/marquer-pret-a-livrer` — `en_preparation -> pret_a_livrer`.
+   *
+   * Même garde de rejeu explicite que `preparer` (voir sa docstring) : rien d'autre ne bloque un
+   * second appel une fois `pret_a_livrer` déjà atteint — le financement reste `confirme`, et le
+   * trigger générique laisse passer une écriture qui n'y change rien.
+   */
   async marquerPretALivrer(
     ctx: ContexteTenant,
     role: RoleUtilisateur,
@@ -484,6 +508,12 @@ export class ServiceDossierVente {
   ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
+      if (ligne.statut !== 'en_preparation') {
+        throw new ErreurMetier(
+          'VENTE_DOSSIER_TRANSITION_INTERDITE',
+          `Passage à « pret_a_livrer » impossible : ce dossier n'est pas « en_preparation » (statut actuel : ${ligne.statut}).`,
+        );
+      }
 
       const financements = await listerFinancementsDossier(tx, ctx, dossierVenteId);
       const courant = selectionnerFinancementCourant(financements);
@@ -697,7 +727,13 @@ export class ServiceDossierVente {
     });
   }
 
-  /** `POST /dossiers-vente/{id}/cloturer` — `livre -> clos`. */
+  /**
+   * `POST /dossiers-vente/{id}/cloturer` — `livre -> clos`.
+   *
+   * Même garde de rejeu explicite que `preparer`/`marquerPretALivrer` (voir la docstring de
+   * `preparer`) : `clos` est terminal, mais rien n'empêchait avant ce correctif un second appel
+   * après une première clôture réussie de passer en silence (seul `closLe` aurait bougé).
+   */
   async cloturer(
     ctx: ContexteTenant,
     role: RoleUtilisateur,
@@ -706,6 +742,12 @@ export class ServiceDossierVente {
   ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await chargerDossierVentePourEcriture(tx, ctx, dossierVenteId);
+      if (ligne.statut !== 'livre') {
+        throw new ErreurMetier(
+          'VENTE_DOSSIER_TRANSITION_INTERDITE',
+          `Clôture impossible : ce dossier n'est pas « livre » (statut actuel : ${ligne.statut}).`,
+        );
+      }
       await this.transitionnerDossier(tx, ligne, {
         statut: 'clos',
         closLe: this.horloge.maintenant(),

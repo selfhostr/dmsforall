@@ -424,12 +424,12 @@ export class ServiceEmissionDocument {
     // marquage réussi — même doctrine que `evenements.publier`, jamais réémis au rejeu.
     if (resultat.rejoue) return resultat;
 
-    const avertissementVente = await this.marquerVehiculeVenduSiApplicable(
+    const avertissementsVente = await this.marquerVehiculeVenduSiApplicable(
       ctx,
       principal,
       resultat.reponse.corps.donnees,
     );
-    if (!avertissementVente) return resultat;
+    if (avertissementsVente.length === 0) return resultat;
 
     return {
       ...resultat,
@@ -437,7 +437,7 @@ export class ServiceEmissionDocument {
         ...resultat.reponse,
         corps: {
           ...resultat.reponse.corps,
-          avertissements: [...resultat.reponse.corps.avertissements, avertissementVente],
+          avertissements: [...resultat.reponse.corps.avertissements, ...avertissementsVente],
         },
       },
     };
@@ -473,14 +473,20 @@ export class ServiceEmissionDocument {
    * (pas dans le corps mémorisé pour le rejeu idempotent, déjà écrit avant que cette méthode ne
    * s'exécute — un rejeu ultérieur ne reverra donc pas cet avertissement précis, limite acceptée).
    *
-   * Rend `null` si rien à signaler (document pas concerné, ou marquage réussi).
+   * Rend `[]` si rien à signaler (document pas concerné), le ou les avertissements produits par
+   * `ServiceVehiculeStock.marquerVendu` si le marquage réussit — RPP-06 notamment,
+   * `VEHICULE_DEPOTS_PNEUS_OUVERTS` : la vente aboutit toujours, ce n'est qu'un signalement — ou
+   * `VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE` si le marquage lui-même échoue. Défaut constaté et
+   * corrigé : cette méthode jetait auparavant sans condition les avertissements d'un marquage
+   * réussi (`return null`), rendant RPP-06 invisible sur le chemin normal d'une vente (facture
+   * émise) alors qu'il est bien rendu par `POST /vehicules/{id}/stock/marquer-vendu`.
    */
   private async marquerVehiculeVenduSiApplicable(
     ctx: ContexteTenant,
     principal: PrincipalAuthentifie,
     doc: ReponseDocumentVente,
-  ): Promise<Avertissement | null> {
-    if (doc.typeDocument !== 'facture' || !doc.dossierVenteId) return null;
+  ): Promise<Avertissement[]> {
+    if (doc.typeDocument !== 'facture' || !doc.dossierVenteId) return [];
 
     const libelle = doc.numero ?? doc.id;
 
@@ -489,40 +495,47 @@ export class ServiceEmissionDocument {
         `RV-37 : facture ${libelle} rattachée au dossier de vente ${doc.dossierVenteId} sans ` +
           `vehiculeId — marquage vendu impossible.`,
       );
-      return {
-        code: 'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE',
-        message:
-          `La facture ${libelle} a été émise, mais aucun véhicule ne lui est associé : le ` +
-          `véhicule du dossier de vente ${doc.dossierVenteId} n'a pas pu être marqué vendu ` +
-          `(à corriger manuellement, POST /vehicules/{id}/stock/marquer-vendu).`,
-        donnees: { documentId: doc.id, dossierVenteId: doc.dossierVenteId },
-      };
+      return [
+        {
+          code: 'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE',
+          message:
+            `La facture ${libelle} a été émise, mais aucun véhicule ne lui est associé : le ` +
+            `véhicule du dossier de vente ${doc.dossierVenteId} n'a pas pu être marqué vendu ` +
+            `(à corriger manuellement, POST /vehicules/{id}/stock/marquer-vendu).`,
+          donnees: { documentId: doc.id, dossierVenteId: doc.dossierVenteId },
+        },
+      ];
     }
 
     try {
-      await this.vehiculeStock.marquerVendu(ctx, principal.role, doc.vehiculeId, {
-        motif: `Facture ${libelle} émise (RV-37).`,
-      });
-      return null;
+      const { avertissements } = await this.vehiculeStock.marquerVendu(
+        ctx,
+        principal.role,
+        doc.vehiculeId,
+        { motif: `Facture ${libelle} émise (RV-37).` },
+      );
+      return [...avertissements];
     } catch (erreur) {
       const messageErreur = erreur instanceof Error ? erreur.message : String(erreur);
       this.journal.error(
         `RV-37 : marquage vendu du véhicule ${doc.vehiculeId} en échec après émission de la ` +
           `facture ${libelle} (dossier ${doc.dossierVenteId}) : ${messageErreur}`,
       );
-      return {
-        code: 'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE',
-        message:
-          `La facture ${libelle} a été émise, mais le véhicule ${doc.vehiculeId} n'a pas pu être ` +
-          `marqué vendu automatiquement (à corriger manuellement, ` +
-          `POST /vehicules/{id}/stock/marquer-vendu).`,
-        donnees: {
-          documentId: doc.id,
-          dossierVenteId: doc.dossierVenteId,
-          vehiculeId: doc.vehiculeId,
-          erreur: messageErreur,
+      return [
+        {
+          code: 'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE',
+          message:
+            `La facture ${libelle} a été émise, mais le véhicule ${doc.vehiculeId} n'a pas pu ` +
+            `être marqué vendu automatiquement (à corriger manuellement, ` +
+            `POST /vehicules/{id}/stock/marquer-vendu).`,
+          donnees: {
+            documentId: doc.id,
+            dossierVenteId: doc.dossierVenteId,
+            vehiculeId: doc.vehiculeId,
+            erreur: messageErreur,
+          },
         },
-      };
+      ];
     }
   }
 

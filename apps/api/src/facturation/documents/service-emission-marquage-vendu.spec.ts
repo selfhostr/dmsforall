@@ -279,6 +279,39 @@ describe("ServiceEmissionDocument.emettre — marquage vendu du véhicule d'un d
     ]);
   });
 
+  it(
+    'DÉFAUT CORRIGÉ (RPP-06) : quand `ServiceVehiculeStock.marquerVendu` réussit ET produit un ' +
+      "avertissement (dépôt de pneus encore ouvert), l'émission de la facture le remonte dans sa " +
+      "propre réponse — jusqu'ici la méthode rendait `null` inconditionnellement sur un marquage " +
+      'réussi, jetant en silence tout avertissement produit par `marquerVendu`.',
+    async () => {
+      const { tx } = txFactice();
+      const { service, vehiculeStock } = serviceFactice(tx, documentAssembleFixture());
+      vehiculeStock.marquerVendu.mockResolvedValueOnce({
+        donnees: {},
+        avertissements: [
+          {
+            code: 'VEHICULE_DEPOTS_PNEUS_OUVERTS',
+            message: '1 dépôt(s) de pneus encore ouvert(s) pour ce véhicule vendu.',
+            donnees: { depotsOuverts: [{ id: 'depot-1', saison: 'hiver', statut: 'en_depot' }] },
+          },
+        ],
+      } as never);
+
+      const resultat = await service.emettre(
+        CTX,
+        principal('direction'),
+        FACTURE_ID,
+        CLE_IDEMPOTENCE,
+      );
+
+      expect(resultat.reponse.statutHttp).toBe(200);
+      expect(resultat.reponse.corps.avertissements).toEqual([
+        expect.objectContaining({ code: 'VEHICULE_DEPOTS_PNEUS_OUVERTS' }) as unknown,
+      ]);
+    },
+  );
+
   it('un REJEU idempotent (Idempotency-Key déjà traitée) ne retente JAMAIS le marquage — même doctrine que `evenements.publier`, jamais réémis au rejeu', async () => {
     const { tx } = txFactice();
     const { service, vehiculeStock, idempotence } = serviceFactice(tx, documentAssembleFixture());
