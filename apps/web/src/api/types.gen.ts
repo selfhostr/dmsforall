@@ -162,6 +162,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/articles/{articleId}/mouvements/retour-client": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Le client rapporte une pièce : remet la quantité en stock physique du site. `Idempotency-Key` obligatoire. */
+        post: operations["MouvementController_retourClient"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/articles/{articleId}/mouvements/retour-fournisseur": {
         parameters: {
             query?: never;
@@ -173,6 +190,23 @@ export interface paths {
         put?: never;
         /** Enregistre un retour au fournisseur (RP-30). `Idempotency-Key` obligatoire. */
         post: operations["MouvementController_retourFournisseur"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/articles/{articleId}/mouvements/sortie-comptoir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Vente directe au comptoir, sans OR ni document de vente. `Idempotency-Key` obligatoire. Aucun lien vers une facture n’est posé par cette route (voir `mouvement.ts`, note d’intégration). */
+        post: operations["MouvementController_sortieComptoir"];
         delete?: never;
         options?: never;
         head?: never;
@@ -220,7 +254,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Références alternatives d’un article, page complète (pagination par curseur) — le recours quand `ArticleDto.referencesTronquees = true`. */
+        get: operations["ArticleController_listerReferences"];
         put?: never;
         /** Ajoute ou met à jour une référence alternative (upsert sur (tenant, reference) — RP-02/RP-03). */
         post: operations["ArticleController_ajouterReference"];
@@ -622,6 +657,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/commandes-fournisseur/{id}/lignes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lignes d’une commande fournisseur, page complète (pagination par curseur) — le recours quand `CommandeFournisseurDto.lignesTronquees = true`. */
+        get: operations["CommandeFournisseurController_listerLignes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/commandes-fournisseur/{id}/lignes/{ligneId}/annuler-reliquat": {
         parameters: {
             query?: never;
@@ -684,6 +736,57 @@ export interface paths {
         put?: never;
         /** Le client ramène la vieille pièce (RP-40) — génère le mouvement retour_consigne, statut terminal. */
         post: operations["ConsigneController_marquerRetourFournisseur"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/depots-pneus/{id}/changer-saison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** RPP-03 : inverse monté ↔ en dépôt du jeu visé et de son jumeau actif (saison opposée, même véhicule) s’il existe. `ligneOrId` facultatif. */
+        post: operations["DepotPneusController_changerSaison"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/depots-pneus/{id}/sortir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** RPP-05 : statut TERMINAL, motif obligatoire. Jamais une suppression de ligne. Réservé aux rôles qui clôturent la garde du garage sur un bien du client (même périmètre que atelier.or.restituer — receptionnaire/chef d’atelier/direction/admin, PAS technicien ni magasinier, qui détiennent creer/changer-saison mais pas sortir). */
+        post: operations["DepotPneusController_sortir"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/depots-pneus/a-relancer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Jeux oubliés (RPP-04) : statut a_relancer, site ou tenant entier. */
+        get: operations["DepotPneusController_aRelancer"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2375,6 +2478,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sites/{siteId}/hangar-pneus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vue hangar : jeux de pneus du site, filtrables par statut/saison (spec §5, §6). */
+        get: operations["SiteHangarPneusController_hangar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sites/{siteId}/parametres-atelier": {
         parameters: {
             query?: never;
@@ -2402,6 +2522,46 @@ export interface paths {
         };
         /** Articles sous leur stock minimum, par site (RP-12). */
         get: operations["ReapprovisionnementController_lister"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tableau-bord/activite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Indicateurs d'activité atelier + stock (aucun montant).
+         * @description OR encore actifs par statut (snapshot), OR ouverts/restitués sur la période, délai moyen de restitution, lignes en attente de validation, articles sous seuil de réapprovisionnement. `du`/`au` omis → mois civil UTC courant. Réservé aux rôles de personne (`poste_atelier`, la borne murale, en est exclu).
+         */
+        get: operations["TableauBordActiviteController_activite"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tableau-bord/financier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Chiffre d’affaires, encaissements, encours clients — réservé direction/comptable.
+         * @description Chiffre d'affaires HT/TVA/TTC (factures + avoirs ÉMIS de la période, net d'annulation), encaissements (paiements de la période, net des remboursements), encours clients (snapshot, factures encore émises non soldées). `du`/`au` omis → mois civil UTC courant. Aucune notion de marge : voir la documentation du contrat (`@dfa/shared`, `contrats/tableau-bord/financier.ts`).
+         */
+        get: operations["TableauBordFinancierController_financier"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2537,6 +2697,24 @@ export interface paths {
         get: operations["VehiculeController_contexteAtelier"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vehicules/{vehiculeId}/depots-pneus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Historique COMPLET (tous statuts, sorti compris — RPP-05) des jeux de pneus d’un véhicule. */
+        get: operations["VehiculeDepotsPneusController_parVehicule"];
+        put?: never;
+        /** Entre un jeu de pneus en dépôt (RPP-01, RPP-02). `Idempotency-Key` obligatoire. `dimension` omise → recopiée depuis vehicule.pneusEte/pneusHiver. */
+        post: operations["VehiculeDepotsPneusController_creer"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2797,6 +2975,26 @@ export interface paths {
         patch: operations["VehiculeTravailReporteController_modifier"];
         trace?: never;
     };
+    "/ventes/suivi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Liste paginée des dossiers de vente avec financement (crédit/leasing) et/ou garantie à suivre.
+         * @description Un dossier n'apparaît ici que s'il porte un financement credit/leasing (quel que soit son état) ou un véhicule associé dont `garantieDebut` est renseigné (RM-33). Triée par défaut sur l'échéance la plus proche (les dossiers en retard remontent en premier). Filtrable par `dansJours` (échéance dans les N prochains jours, bornes incluses) et par `siteId`.
+         */
+        get: operations["SuiviVenteController_lister"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2913,7 +3111,7 @@ export interface components {
         };
         AvertissementDocumentDto: {
             /** @enum {string} */
-            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE" | "PIECE_RESERVATION_INDISPONIBLE" | "RECEPTION_EXCEDENT_RELIQUAT" | "RESERVATION_LIBEREE_OR_ACTIF" | "INVENTAIRE_ECART_SIGNIFICATIF";
+            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE" | "PIECE_RESERVATION_INDISPONIBLE" | "RECEPTION_EXCEDENT_RELIQUAT" | "RESERVATION_LIBEREE_OR_ACTIF" | "INVENTAIRE_ECART_SIGNIFICATIF" | "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE" | "VEHICULE_DEPOTS_PNEUS_OUVERTS" | "AVOIR_RETOUR_STOCK_NON_DECLENCHE";
             donnees?: {
                 [key: string]: unknown;
             };
@@ -2926,7 +3124,7 @@ export interface components {
              * @example CLIENT_DOUBLON_PROBABLE
              * @enum {string}
              */
-            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE" | "PIECE_RESERVATION_INDISPONIBLE" | "RECEPTION_EXCEDENT_RELIQUAT" | "RESERVATION_LIBEREE_OR_ACTIF" | "INVENTAIRE_ECART_SIGNIFICATIF";
+            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE" | "PIECE_RESERVATION_INDISPONIBLE" | "RECEPTION_EXCEDENT_RELIQUAT" | "RESERVATION_LIBEREE_OR_ACTIF" | "INVENTAIRE_ECART_SIGNIFICATIF" | "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE" | "VEHICULE_DEPOTS_PNEUS_OUVERTS" | "AVOIR_RETOUR_STOCK_NON_DECLENCHE";
             donnees?: {
                 [key: string]: unknown;
             };
@@ -2935,7 +3133,7 @@ export interface components {
         };
         AvertissementExportDto: {
             /** @enum {string} */
-            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE" | "PIECE_RESERVATION_INDISPONIBLE" | "RECEPTION_EXCEDENT_RELIQUAT" | "RESERVATION_LIBEREE_OR_ACTIF" | "INVENTAIRE_ECART_SIGNIFICATIF";
+            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE" | "PIECE_RESERVATION_INDISPONIBLE" | "RECEPTION_EXCEDENT_RELIQUAT" | "RESERVATION_LIBEREE_OR_ACTIF" | "INVENTAIRE_ECART_SIGNIFICATIF" | "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE" | "VEHICULE_DEPOTS_PNEUS_OUVERTS" | "AVOIR_RETOUR_STOCK_NON_DECLENCHE";
             donnees?: {
                 [key: string]: unknown;
             };
@@ -2944,7 +3142,7 @@ export interface components {
         };
         AvertissementOrDto: {
             /** @enum {string} */
-            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE" | "PIECE_RESERVATION_INDISPONIBLE" | "RECEPTION_EXCEDENT_RELIQUAT" | "RESERVATION_LIBEREE_OR_ACTIF" | "INVENTAIRE_ECART_SIGNIFICATIF";
+            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE" | "PIECE_RESERVATION_INDISPONIBLE" | "RECEPTION_EXCEDENT_RELIQUAT" | "RESERVATION_LIBEREE_OR_ACTIF" | "INVENTAIRE_ECART_SIGNIFICATIF" | "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE" | "VEHICULE_DEPOTS_PNEUS_OUVERTS" | "AVOIR_RETOUR_STOCK_NON_DECLENCHE";
             donnees?: {
                 [key: string]: unknown;
             };
@@ -2953,7 +3151,7 @@ export interface components {
         };
         AvertissementPaiementDto: {
             /** @enum {string} */
-            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE" | "PIECE_RESERVATION_INDISPONIBLE" | "RECEPTION_EXCEDENT_RELIQUAT" | "RESERVATION_LIBEREE_OR_ACTIF" | "INVENTAIRE_ECART_SIGNIFICATIF";
+            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE" | "PIECE_RESERVATION_INDISPONIBLE" | "RECEPTION_EXCEDENT_RELIQUAT" | "RESERVATION_LIBEREE_OR_ACTIF" | "INVENTAIRE_ECART_SIGNIFICATIF" | "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE" | "VEHICULE_DEPOTS_PNEUS_OUVERTS" | "AVOIR_RETOUR_STOCK_NON_DECLENCHE";
             donnees?: {
                 [key: string]: unknown;
             };
@@ -2962,7 +3160,7 @@ export interface components {
         };
         AvertissementPointageDto: {
             /** @enum {string} */
-            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE" | "PIECE_RESERVATION_INDISPONIBLE" | "RECEPTION_EXCEDENT_RELIQUAT" | "RESERVATION_LIBEREE_OR_ACTIF" | "INVENTAIRE_ECART_SIGNIFICATIF";
+            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE" | "PIECE_RESERVATION_INDISPONIBLE" | "RECEPTION_EXCEDENT_RELIQUAT" | "RESERVATION_LIBEREE_OR_ACTIF" | "INVENTAIRE_ECART_SIGNIFICATIF" | "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE" | "VEHICULE_DEPOTS_PNEUS_OUVERTS" | "AVOIR_RETOUR_STOCK_NON_DECLENCHE";
             donnees?: {
                 [key: string]: unknown;
             };
@@ -2971,7 +3169,7 @@ export interface components {
         };
         AvertissementVehiculeDto: {
             /** @enum {string} */
-            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE" | "PIECE_RESERVATION_INDISPONIBLE" | "RECEPTION_EXCEDENT_RELIQUAT" | "RESERVATION_LIBEREE_OR_ACTIF" | "INVENTAIRE_ECART_SIGNIFICATIF";
+            code: "CLIENT_DOUBLON_PROBABLE" | "VEHICULE_VIN_COURT" | "VEHICULE_IDENTIFICATION_INCOMPLETE" | "VEHICULE_KILOMETRAGE_ABERRANT" | "VEHICULE_EXPERTISE_ECHUE" | "PLANNING_CAPACITE_DEPASSEE" | "POINTAGE_CLOTURE_AUTOMATIQUE" | "PRET_CASCADE_RESTITUTION" | "OR_MULTI_PAYEURS_DESACTIVE" | "PIECE_RESERVATION_INDISPONIBLE" | "RECEPTION_EXCEDENT_RELIQUAT" | "RESERVATION_LIBEREE_OR_ACTIF" | "INVENTAIRE_ECART_SIGNIFICATIF" | "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE" | "VEHICULE_DEPOTS_PNEUS_OUVERTS" | "AVOIR_RETOUR_STOCK_NON_DECLENCHE";
             donnees?: {
                 [key: string]: unknown;
             };
@@ -2997,6 +3195,14 @@ export interface components {
             numeroClient: string;
             /** @example 0.9 */
             score: number;
+        };
+        ChiffreAffairesPeriodeTableauBordDto: {
+            /** @description Nombre de factures + avoirs émis entrant dans la somme. */
+            nombreDocuments: number;
+            /** @description Net des avoirs émis sur la période (déjà négatifs en base). */
+            totalHtCentimes: number;
+            totalTtcCentimes: number;
+            totalTvaCentimes: number;
         };
         ClientAdresseAvecAvertissementsDto: {
             avertissements: components["schemas"]["AvertissementDto"][];
@@ -3202,6 +3408,11 @@ export interface components {
             /** @enum {string} */
             type: "particulier" | "entreprise";
         };
+        ClientSuiviVenteDto: {
+            /** Format: uuid */
+            id: string;
+            nomAffiche: string;
+        };
         CommandeFournisseurAvecAvertissementsDto: {
             avertissements: components["schemas"]["AvertissementDto"][];
             donnees: components["schemas"]["CommandeFournisseurDto"];
@@ -3302,6 +3513,33 @@ export interface components {
             nomAffiche: string;
             /** Format: uuid */
             technicienId: string;
+        };
+        DepotPneusDto: {
+            codeCase: string | null;
+            /** Format: date-time */
+            creeLe: string;
+            /** Format: date-time */
+            dernierMouvementLe: string;
+            dimension: string | null;
+            /** Format: date-time */
+            entreLe: string;
+            etat: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            ligneOrDernierChangementId: string | null;
+            /** Format: date-time */
+            modifieLe: string;
+            /** @enum {string|null} */
+            motifSortie: "rendu_au_client" | "vehicule_vendu" | "mis_au_rebut" | "autre" | null;
+            /** @enum {string} */
+            saison: "ete" | "hiver";
+            /** Format: uuid */
+            siteId: string;
+            /** @enum {string} */
+            statut: "en_depot" | "monte" | "a_relancer" | "sorti";
+            /** Format: uuid */
+            vehiculeId: string;
         };
         DerniereCorrectionPointageDto: {
             /** Format: date-time */
@@ -3628,6 +3866,26 @@ export interface components {
             siteId: string;
             stockMinimumMillieme: number;
         };
+        LigneSuiviVenteDto: {
+            clientAcheteur: components["schemas"]["ClientSuiviVenteDto"];
+            /** @enum {string} */
+            dossierStatut: "prospection" | "engage" | "en_preparation" | "pret_a_livrer" | "livre" | "clos" | "annule" | "abandonne";
+            /** Format: uuid */
+            dossierVenteId: string;
+            /** @description Le financement COURANT du dossier, restreint aux types credit/leasing — null si aucun (RV-44). */
+            financement: components["schemas"]["SuiviFinancementDto"] | null;
+            /** @description null si le véhicule associé (ou aucun véhicule) n'a pas de garantieDebut renseigné. */
+            garantie: components["schemas"]["SuiviGarantieDto"] | null;
+            /**
+             * Format: date
+             * @description La plus proche des échéances VISIBLES par l'appelant (financement.echeanceLe si non omise, garantie.finLe) — null si aucune des deux n'est calculable ou visible.
+             */
+            prochaineEcheanceLe: string | null;
+            /** Format: uuid */
+            siteId: string;
+            /** @description null tant qu'aucun véhicule n'est associé (RV-30, dossier encore en prospection). */
+            vehicule: components["schemas"]["VehiculeSuiviVenteDto"] | null;
+        };
         LotExportProduitDto: {
             /** @description Avertissements de sérialisation WinBIZ (troncatures de champs) — libellés FR, pas un CodeAvertissement du contrat gelé. */
             avertissements: string[];
@@ -3764,6 +4022,13 @@ export interface components {
             /** @example 50 */
             limite: number;
         };
+        PageArticleReferenceDto: {
+            /** @description Opaque base64url ; null = fin de liste. */
+            curseurSuivant: string | null;
+            donnees: components["schemas"]["ArticleReferenceDto"][];
+            /** @example 50 */
+            limite: number;
+        };
         PageClientAdresseDto: {
             curseurSuivant: string | null;
             donnees: components["schemas"]["ClientAdresseDto"][];
@@ -3813,6 +4078,12 @@ export interface components {
             /** @example 50 */
             limite: number;
         };
+        PageDepotPneusDto: {
+            curseurSuivant: string | null;
+            donnees: components["schemas"]["DepotPneusDto"][];
+            /** @example 50 */
+            limite: number;
+        };
         PageDevisComplementaireDto: {
             /** @description Opaque base64url ; null = fin de liste. */
             curseurSuivant: string | null;
@@ -3844,6 +4115,12 @@ export interface components {
         PageFournisseurDto: {
             curseurSuivant: string | null;
             donnees: components["schemas"]["FournisseurDto"][];
+            /** @example 50 */
+            limite: number;
+        };
+        PageLigneCommandeFournisseurDto: {
+            curseurSuivant: string | null;
+            donnees: components["schemas"]["LigneCommandeFournisseurDto"][];
             /** @example 50 */
             limite: number;
         };
@@ -3911,6 +4188,13 @@ export interface components {
             /** @example 50 */
             limite: number;
         };
+        PageSuiviVenteDto: {
+            /** @description Opaque base64url ; null = fin de liste. */
+            curseurSuivant: string | null;
+            donnees: components["schemas"]["LigneSuiviVenteDto"][];
+            /** @example 50 */
+            limite: number;
+        };
         PageTauxHoraireDto: {
             curseurSuivant: string | null;
             donnees: components["schemas"]["ReponseTauxHoraireDto"][];
@@ -3965,6 +4249,18 @@ export interface components {
             /** @description PP-07 : taux TVA de la consigne, en pourmille (défaut proposé 81 = 8.1%, QP-06). */
             tauxTvaConsignePourmille: number;
         };
+        PeriodeResolueTableauBordDto: {
+            /**
+             * Format: date
+             * @description Borne haute INCLUSE.
+             */
+            au: string;
+            /**
+             * Format: date
+             * @description Borne basse INCLUSE.
+             */
+            du: string;
+        };
         PlanningParametresAtelierDto: {
             noShowSeuilAlerte: number;
             /** @description Aucune colonne en base au lot 1 (domaine `planning` inerte) — valeur par défaut de contrats-api-etape-1.md §8.2. */
@@ -3981,7 +4277,7 @@ export interface components {
              * @description Contrat machine : seul champ que le front doit lire.
              * @enum {string}
              */
-            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE" | "OR_TRANSITION_INTERDITE" | "OR_RECEPTION_REQUISE" | "OR_KM_ENTREE_REQUIS" | "OR_LIGNES_A_VALIDER" | "OR_POINTAGE_OUVERT" | "OR_LIGNE_NON_REALISEE" | "OR_CHECKLIST_INCOMPLETE" | "OR_PLAFOND_DEPASSE" | "OR_ANNULATION_IMPOSSIBLE" | "OR_LIGNE_VERROUILLEE" | "OR_PO_MANQUANT" | "OR_RESERVE_SECURITE_REQUISE" | "OR_FACTURATION_AUCUNE_LIGNE" | "LIGNE_TRANSITION_INTERDITE" | "LIGNE_SUPPRESSION_IMPOSSIBLE" | "DEVIS_IMMUABLE" | "DEVIS_INTERLOCUTEUR_REQUIS" | "RDV_TRANSITION_INTERDITE" | "RDV_IDENTIFICATION_INCOMPLETE" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_ANNULATION_IMPOSSIBLE" | "RDV_HORS_OUVERTURE" | "POINTAGE_TRANSITION_INTERDITE" | "POINTAGE_CHEVAUCHEMENT" | "POINTAGE_OR_NON_MODIFIABLE" | "POINTAGE_LIGNE_NON_POINTABLE" | "POINTAGE_PERIODE_VERROUILLEE" | "POINTAGE_MOTIF_REQUIS" | "POINTAGE_HORODATAGE_INVALIDE" | "VEHICULE_KILOMETRAGE_REGRESSIF" | "VEHICULE_PLAQUE_COLLISION" | "VEHICULE_VIN_EXISTANT" | "VEHICULE_ARCHIVAGE_IMPOSSIBLE" | "CLIENT_TYPE_IMMUABLE" | "CLIENT_DESACTIVATION_IMPOSSIBLE" | "PRET_VEHICULE_INDISPONIBLE" | "PRET_CONDUCTEUR_REQUIS" | "CONFIRMATION_REQUISE" | "IDEMPOTENCE_CONFLIT" | "FONCTION_NON_DISPONIBLE" | "RECHERCHE_TROP_DE_REQUETES" | "METHODE_NON_AUTORISEE" | "DOCUMENT_VERROUILLE" | "DOCUMENT_TRANSITION_INTERDITE" | "DOCUMENT_SOURCE_DEJA_TRANSFORME" | "DOCUMENT_PERIODE_CLOSE" | "DOCUMENT_PDF_INDISPONIBLE" | "FACTURATION_LIGNES_INDECISES" | "QR_CREANCIER_INCOMPLET" | "AVOIR_MONTANT_EXCEDENTAIRE" | "AVOIR_PLAFOND_DEPASSE" | "REMISE_PLAFOND_DEPASSE" | "IMPUTATION_MONTANT_EXCEDENTAIRE" | "ACOMPTE_DEJA_DEDUIT" | "EXPORT_TROU_NUMEROTATION" | "EXPORT_ECRITURES_DESEQUILIBREES" | "EXPORT_MAPPING_INCOMPLET" | "EXPORT_DEJA_TRANSMIS" | "BASCULE_FIDUCIAIRE_HORS_FRONTIERE" | "ARTICLE_REFERENCE_COLLISION" | "ARTICLE_REMPLACANT_REQUIS" | "ARTICLE_DESACTIVATION_IMPOSSIBLE" | "STOCK_INSUFFISANT" | "MOUVEMENT_MOTIF_REQUIS" | "RESERVATION_TRANSITION_INTERDITE" | "RESERVATION_SITE_INCOHERENT" | "COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE" | "COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE" | "RECEPTION_REFERENCE_NON_EQUIVALENTE" | "CONSIGNE_TRANSITION_INTERDITE" | "POINTAGE_PIN_INVALIDE" | "POINTAGE_PIN_VERROUILLE" | "VENTE_VEHICULE_STOCK_DEJA_EXISTANT" | "VENTE_DOSSIER_TRANSITION_INTERDITE" | "VENTE_REPRISE_TRANSITION_INTERDITE" | "VENTE_FINANCEMENT_TRANSITION_INTERDITE" | "VENTE_VEHICULE_INDISPONIBLE" | "VENTE_VEHICULE_MANQUANT" | "VENTE_FINANCEMENT_NON_CONFIRME" | "VENTE_LIVRAISON_EXPERTISE_REQUISE" | "VENTE_LIVRAISON_INCOMPLETE" | "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE" | "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE" | "VENTE_REPRISE_DEJA_EXISTANTE" | "CONNECTEUR_TYPE_INDISPONIBLE" | "CONNECTEUR_IDENTIFIANTS_MANQUANTS" | "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE" | "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE" | "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE";
+            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE" | "OR_TRANSITION_INTERDITE" | "OR_RECEPTION_REQUISE" | "OR_KM_ENTREE_REQUIS" | "OR_LIGNES_A_VALIDER" | "OR_POINTAGE_OUVERT" | "OR_LIGNE_NON_REALISEE" | "OR_CHECKLIST_INCOMPLETE" | "OR_PLAFOND_DEPASSE" | "OR_ANNULATION_IMPOSSIBLE" | "OR_LIGNE_VERROUILLEE" | "OR_PO_MANQUANT" | "OR_RESERVE_SECURITE_REQUISE" | "OR_FACTURATION_AUCUNE_LIGNE" | "LIGNE_TRANSITION_INTERDITE" | "LIGNE_SUPPRESSION_IMPOSSIBLE" | "DEVIS_IMMUABLE" | "DEVIS_INTERLOCUTEUR_REQUIS" | "RDV_TRANSITION_INTERDITE" | "RDV_IDENTIFICATION_INCOMPLETE" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_ANNULATION_IMPOSSIBLE" | "RDV_HORS_OUVERTURE" | "POINTAGE_TRANSITION_INTERDITE" | "POINTAGE_CHEVAUCHEMENT" | "POINTAGE_OR_NON_MODIFIABLE" | "POINTAGE_LIGNE_NON_POINTABLE" | "POINTAGE_PERIODE_VERROUILLEE" | "POINTAGE_MOTIF_REQUIS" | "POINTAGE_HORODATAGE_INVALIDE" | "VEHICULE_KILOMETRAGE_REGRESSIF" | "VEHICULE_PLAQUE_COLLISION" | "VEHICULE_VIN_EXISTANT" | "VEHICULE_ARCHIVAGE_IMPOSSIBLE" | "CLIENT_TYPE_IMMUABLE" | "CLIENT_DESACTIVATION_IMPOSSIBLE" | "PRET_VEHICULE_INDISPONIBLE" | "PRET_CONDUCTEUR_REQUIS" | "CONFIRMATION_REQUISE" | "IDEMPOTENCE_CONFLIT" | "FONCTION_NON_DISPONIBLE" | "RECHERCHE_TROP_DE_REQUETES" | "METHODE_NON_AUTORISEE" | "DOCUMENT_VERROUILLE" | "DOCUMENT_TRANSITION_INTERDITE" | "DOCUMENT_SOURCE_DEJA_TRANSFORME" | "DOCUMENT_PERIODE_CLOSE" | "DOCUMENT_PDF_INDISPONIBLE" | "FACTURATION_LIGNES_INDECISES" | "QR_CREANCIER_INCOMPLET" | "AVOIR_MONTANT_EXCEDENTAIRE" | "AVOIR_PLAFOND_DEPASSE" | "REMISE_PLAFOND_DEPASSE" | "IMPUTATION_MONTANT_EXCEDENTAIRE" | "ACOMPTE_DEJA_DEDUIT" | "EXPORT_TROU_NUMEROTATION" | "EXPORT_ECRITURES_DESEQUILIBREES" | "EXPORT_MAPPING_INCOMPLET" | "EXPORT_DEJA_TRANSMIS" | "BASCULE_FIDUCIAIRE_HORS_FRONTIERE" | "ARTICLE_REFERENCE_COLLISION" | "ARTICLE_REMPLACANT_REQUIS" | "ARTICLE_DESACTIVATION_IMPOSSIBLE" | "STOCK_INSUFFISANT" | "MOUVEMENT_MOTIF_REQUIS" | "RESERVATION_TRANSITION_INTERDITE" | "RESERVATION_SITE_INCOHERENT" | "COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE" | "COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE" | "RECEPTION_REFERENCE_NON_EQUIVALENTE" | "CONSIGNE_TRANSITION_INTERDITE" | "POINTAGE_PIN_INVALIDE" | "POINTAGE_PIN_VERROUILLE" | "VENTE_VEHICULE_STOCK_DEJA_EXISTANT" | "VENTE_DOSSIER_TRANSITION_INTERDITE" | "VENTE_REPRISE_TRANSITION_INTERDITE" | "VENTE_FINANCEMENT_TRANSITION_INTERDITE" | "VENTE_VEHICULE_INDISPONIBLE" | "VENTE_VEHICULE_MANQUANT" | "VENTE_FINANCEMENT_NON_CONFIRME" | "VENTE_LIVRAISON_EXPERTISE_REQUISE" | "VENTE_LIVRAISON_INCOMPLETE" | "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE" | "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE" | "VENTE_REPRISE_DEJA_EXISTANTE" | "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE" | "CONNECTEUR_TYPE_INDISPONIBLE" | "CONNECTEUR_IDENTIFIANTS_MANQUANTS" | "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE" | "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE" | "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE" | "LIGNE_DOCUMENT_STOCK_LIEE";
             /** @description Détail technique — jamais affiché à l'utilisateur final. */
             detail?: string;
             erreurs?: components["schemas"]["ErreurChampCommunDto"][];
@@ -3999,7 +4295,7 @@ export interface components {
         };
         ProblemeDetailDto: {
             /** @enum {string} */
-            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE" | "OR_TRANSITION_INTERDITE" | "OR_RECEPTION_REQUISE" | "OR_KM_ENTREE_REQUIS" | "OR_LIGNES_A_VALIDER" | "OR_POINTAGE_OUVERT" | "OR_LIGNE_NON_REALISEE" | "OR_CHECKLIST_INCOMPLETE" | "OR_PLAFOND_DEPASSE" | "OR_ANNULATION_IMPOSSIBLE" | "OR_LIGNE_VERROUILLEE" | "OR_PO_MANQUANT" | "OR_RESERVE_SECURITE_REQUISE" | "OR_FACTURATION_AUCUNE_LIGNE" | "LIGNE_TRANSITION_INTERDITE" | "LIGNE_SUPPRESSION_IMPOSSIBLE" | "DEVIS_IMMUABLE" | "DEVIS_INTERLOCUTEUR_REQUIS" | "RDV_TRANSITION_INTERDITE" | "RDV_IDENTIFICATION_INCOMPLETE" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_ANNULATION_IMPOSSIBLE" | "RDV_HORS_OUVERTURE" | "POINTAGE_TRANSITION_INTERDITE" | "POINTAGE_CHEVAUCHEMENT" | "POINTAGE_OR_NON_MODIFIABLE" | "POINTAGE_LIGNE_NON_POINTABLE" | "POINTAGE_PERIODE_VERROUILLEE" | "POINTAGE_MOTIF_REQUIS" | "POINTAGE_HORODATAGE_INVALIDE" | "VEHICULE_KILOMETRAGE_REGRESSIF" | "VEHICULE_PLAQUE_COLLISION" | "VEHICULE_VIN_EXISTANT" | "VEHICULE_ARCHIVAGE_IMPOSSIBLE" | "CLIENT_TYPE_IMMUABLE" | "CLIENT_DESACTIVATION_IMPOSSIBLE" | "PRET_VEHICULE_INDISPONIBLE" | "PRET_CONDUCTEUR_REQUIS" | "CONFIRMATION_REQUISE" | "IDEMPOTENCE_CONFLIT" | "FONCTION_NON_DISPONIBLE" | "RECHERCHE_TROP_DE_REQUETES" | "METHODE_NON_AUTORISEE" | "DOCUMENT_VERROUILLE" | "DOCUMENT_TRANSITION_INTERDITE" | "DOCUMENT_SOURCE_DEJA_TRANSFORME" | "DOCUMENT_PERIODE_CLOSE" | "DOCUMENT_PDF_INDISPONIBLE" | "FACTURATION_LIGNES_INDECISES" | "QR_CREANCIER_INCOMPLET" | "AVOIR_MONTANT_EXCEDENTAIRE" | "AVOIR_PLAFOND_DEPASSE" | "REMISE_PLAFOND_DEPASSE" | "IMPUTATION_MONTANT_EXCEDENTAIRE" | "ACOMPTE_DEJA_DEDUIT" | "EXPORT_TROU_NUMEROTATION" | "EXPORT_ECRITURES_DESEQUILIBREES" | "EXPORT_MAPPING_INCOMPLET" | "EXPORT_DEJA_TRANSMIS" | "BASCULE_FIDUCIAIRE_HORS_FRONTIERE" | "ARTICLE_REFERENCE_COLLISION" | "ARTICLE_REMPLACANT_REQUIS" | "ARTICLE_DESACTIVATION_IMPOSSIBLE" | "STOCK_INSUFFISANT" | "MOUVEMENT_MOTIF_REQUIS" | "RESERVATION_TRANSITION_INTERDITE" | "RESERVATION_SITE_INCOHERENT" | "COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE" | "COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE" | "RECEPTION_REFERENCE_NON_EQUIVALENTE" | "CONSIGNE_TRANSITION_INTERDITE" | "POINTAGE_PIN_INVALIDE" | "POINTAGE_PIN_VERROUILLE" | "VENTE_VEHICULE_STOCK_DEJA_EXISTANT" | "VENTE_DOSSIER_TRANSITION_INTERDITE" | "VENTE_REPRISE_TRANSITION_INTERDITE" | "VENTE_FINANCEMENT_TRANSITION_INTERDITE" | "VENTE_VEHICULE_INDISPONIBLE" | "VENTE_VEHICULE_MANQUANT" | "VENTE_FINANCEMENT_NON_CONFIRME" | "VENTE_LIVRAISON_EXPERTISE_REQUISE" | "VENTE_LIVRAISON_INCOMPLETE" | "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE" | "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE" | "VENTE_REPRISE_DEJA_EXISTANTE" | "CONNECTEUR_TYPE_INDISPONIBLE" | "CONNECTEUR_IDENTIFIANTS_MANQUANTS" | "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE" | "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE" | "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE";
+            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE" | "OR_TRANSITION_INTERDITE" | "OR_RECEPTION_REQUISE" | "OR_KM_ENTREE_REQUIS" | "OR_LIGNES_A_VALIDER" | "OR_POINTAGE_OUVERT" | "OR_LIGNE_NON_REALISEE" | "OR_CHECKLIST_INCOMPLETE" | "OR_PLAFOND_DEPASSE" | "OR_ANNULATION_IMPOSSIBLE" | "OR_LIGNE_VERROUILLEE" | "OR_PO_MANQUANT" | "OR_RESERVE_SECURITE_REQUISE" | "OR_FACTURATION_AUCUNE_LIGNE" | "LIGNE_TRANSITION_INTERDITE" | "LIGNE_SUPPRESSION_IMPOSSIBLE" | "DEVIS_IMMUABLE" | "DEVIS_INTERLOCUTEUR_REQUIS" | "RDV_TRANSITION_INTERDITE" | "RDV_IDENTIFICATION_INCOMPLETE" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_ANNULATION_IMPOSSIBLE" | "RDV_HORS_OUVERTURE" | "POINTAGE_TRANSITION_INTERDITE" | "POINTAGE_CHEVAUCHEMENT" | "POINTAGE_OR_NON_MODIFIABLE" | "POINTAGE_LIGNE_NON_POINTABLE" | "POINTAGE_PERIODE_VERROUILLEE" | "POINTAGE_MOTIF_REQUIS" | "POINTAGE_HORODATAGE_INVALIDE" | "VEHICULE_KILOMETRAGE_REGRESSIF" | "VEHICULE_PLAQUE_COLLISION" | "VEHICULE_VIN_EXISTANT" | "VEHICULE_ARCHIVAGE_IMPOSSIBLE" | "CLIENT_TYPE_IMMUABLE" | "CLIENT_DESACTIVATION_IMPOSSIBLE" | "PRET_VEHICULE_INDISPONIBLE" | "PRET_CONDUCTEUR_REQUIS" | "CONFIRMATION_REQUISE" | "IDEMPOTENCE_CONFLIT" | "FONCTION_NON_DISPONIBLE" | "RECHERCHE_TROP_DE_REQUETES" | "METHODE_NON_AUTORISEE" | "DOCUMENT_VERROUILLE" | "DOCUMENT_TRANSITION_INTERDITE" | "DOCUMENT_SOURCE_DEJA_TRANSFORME" | "DOCUMENT_PERIODE_CLOSE" | "DOCUMENT_PDF_INDISPONIBLE" | "FACTURATION_LIGNES_INDECISES" | "QR_CREANCIER_INCOMPLET" | "AVOIR_MONTANT_EXCEDENTAIRE" | "AVOIR_PLAFOND_DEPASSE" | "REMISE_PLAFOND_DEPASSE" | "IMPUTATION_MONTANT_EXCEDENTAIRE" | "ACOMPTE_DEJA_DEDUIT" | "EXPORT_TROU_NUMEROTATION" | "EXPORT_ECRITURES_DESEQUILIBREES" | "EXPORT_MAPPING_INCOMPLET" | "EXPORT_DEJA_TRANSMIS" | "BASCULE_FIDUCIAIRE_HORS_FRONTIERE" | "ARTICLE_REFERENCE_COLLISION" | "ARTICLE_REMPLACANT_REQUIS" | "ARTICLE_DESACTIVATION_IMPOSSIBLE" | "STOCK_INSUFFISANT" | "MOUVEMENT_MOTIF_REQUIS" | "RESERVATION_TRANSITION_INTERDITE" | "RESERVATION_SITE_INCOHERENT" | "COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE" | "COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE" | "RECEPTION_REFERENCE_NON_EQUIVALENTE" | "CONSIGNE_TRANSITION_INTERDITE" | "POINTAGE_PIN_INVALIDE" | "POINTAGE_PIN_VERROUILLE" | "VENTE_VEHICULE_STOCK_DEJA_EXISTANT" | "VENTE_DOSSIER_TRANSITION_INTERDITE" | "VENTE_REPRISE_TRANSITION_INTERDITE" | "VENTE_FINANCEMENT_TRANSITION_INTERDITE" | "VENTE_VEHICULE_INDISPONIBLE" | "VENTE_VEHICULE_MANQUANT" | "VENTE_FINANCEMENT_NON_CONFIRME" | "VENTE_LIVRAISON_EXPERTISE_REQUISE" | "VENTE_LIVRAISON_INCOMPLETE" | "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE" | "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE" | "VENTE_REPRISE_DEJA_EXISTANTE" | "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE" | "CONNECTEUR_TYPE_INDISPONIBLE" | "CONNECTEUR_IDENTIFIANTS_MANQUANTS" | "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE" | "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE" | "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE" | "LIGNE_DOCUMENT_STOCK_LIEE";
             detail?: string;
             erreurs?: components["schemas"]["ErreurChampDto"][];
             instance: string;
@@ -4042,6 +4338,23 @@ export interface components {
             plafondDefautCentimes: number | null;
             /** @enum {string} */
             signature: "obligatoire" | "recommandee" | "desactivee";
+        };
+        RepartitionStatutOrdreReparationTableauBordDto: {
+            nombre: number;
+            /** @enum {string} */
+            statut: "planifie" | "ouvert" | "en_cours" | "controle" | "termine" | "facture";
+        };
+        ReponseActiviteTableauBordDto: {
+            articlesSousSeuilReapprovisionnement: number;
+            /** @description `null` si aucun OR restitué sur la période (pas 0 : distinction délibérée). */
+            delaiMoyenRestitutionMinutes: number | null;
+            lignesEnAttenteValidation: number;
+            ordresReparationOuvertsPeriode: number;
+            ordresReparationParStatut: components["schemas"]["RepartitionStatutOrdreReparationTableauBordDto"][];
+            ordresReparationRestituesPeriode: number;
+            periode: components["schemas"]["PeriodeResolueTableauBordDto"];
+            /** Format: uuid */
+            siteId: string | null;
         };
         ReponseAgregatTempsLigneDto: {
             lignes: components["schemas"]["AgregatTempsLigneOrDto"][];
@@ -4162,6 +4475,11 @@ export interface components {
             creeLe: string;
             /** Format: date */
             dateDocument: string;
+            /**
+             * Format: date
+             * @description Échéance de paiement figée à l'émission (RF-04/PF-04), null sur devis/bon de commande/avoir, sur un brouillon, ou si aucun délai de paiement structuré du client n'a pu être déterminé à la création du document. Absent pour un rôle sans droit aux montants.
+             */
+            dateEcheance?: string | null;
             /** @enum {string} */
             devise: "CHF" | "EUR";
             /** Format: uuid */
@@ -4177,6 +4495,8 @@ export interface components {
                 /** Format: uuid */
                 utilisateurId?: string;
             } | null;
+            /** @description Dérivé de dateEcheance/soldeCentimes à l’instant de la réponse, jamais stocké. Absent pour un rôle sans droit aux montants. */
+            enRetard?: boolean;
             exercice: number | null;
             /** Format: date-time */
             exporteLe: string | null;
@@ -4187,6 +4507,8 @@ export interface components {
             figees: components["schemas"]["ValeursFigeesDocumentDto"];
             /** Format: uuid */
             id: string;
+            /** @description Entier strictement positif quand enRetard, sinon toujours null. Absent pour un rôle sans droit aux montants. */
+            joursRetard?: number | null;
             lignes: components["schemas"]["ReponseLigneDocumentVenteDto"][];
             /** @description Au-delà de 200 lignes, `lignes` est tronqué : paginer `GET .../lignes`. */
             lignesTronquees: boolean;
@@ -4342,7 +4664,7 @@ export interface components {
             /** @description Confirmations données lors du geste (§4.4) — un forçage se trace. */
             confirmations: string[];
             /** @enum {string} */
-            entite: "ordre_reparation" | "ligne_or" | "devis_complementaire" | "pointage" | "vehicule_detention" | "vehicule_kilometrage" | "client" | "rendez_vous" | "pret_courtoisie" | "document_vente" | "paiement" | "imputation_paiement" | "periode_comptable" | "export_comptable" | "mapping_compte" | "tenant_bloc_creancier" | "article" | "commande_fournisseur" | "mouvement_stock" | "consigne_echange_standard" | "periode_pointage" | "vehicule_stock" | "dossier_vente" | "reprise" | "financement_vente" | "vehicule_travail_reporte";
+            entite: "ordre_reparation" | "ligne_or" | "devis_complementaire" | "pointage" | "vehicule_detention" | "vehicule_kilometrage" | "client" | "rendez_vous" | "pret_courtoisie" | "document_vente" | "paiement" | "imputation_paiement" | "periode_comptable" | "export_comptable" | "mapping_compte" | "tenant_bloc_creancier" | "article" | "commande_fournisseur" | "mouvement_stock" | "consigne_echange_standard" | "periode_pointage" | "vehicule_stock" | "dossier_vente" | "reprise" | "financement_vente" | "vehicule_travail_reporte" | "depot_pneus";
             /** Format: uuid */
             entiteId: string;
             /** Format: uuid */
@@ -4399,6 +4721,16 @@ export interface components {
             /** @enum {string} */
             type: "comptant" | "credit" | "leasing";
             version: number;
+        };
+        ReponseFinancierTableauBordDto: {
+            chiffreAffaires: components["schemas"]["ChiffreAffairesPeriodeTableauBordDto"];
+            /** @description Net des remboursements (déjà négatifs en base). */
+            encaissementsCentimes: number;
+            /** @description Snapshot au moment de l’appel (PAS borné par `periode`) : créances ouvertes sur les factures encore au statut `emis`. */
+            encoursClientsCentimes: number;
+            periode: components["schemas"]["PeriodeResolueTableauBordDto"];
+            /** Format: uuid */
+            siteId: string | null;
         };
         ReponseIdentificationPinDto: {
             /** @description Nom, pour un accueil nominatif à l’écran. */
@@ -4484,7 +4816,7 @@ export interface components {
             aRestituer: boolean;
             /**
              * Format: uuid
-             * @description Accroche étape 3 (stock pièces).
+             * @description Étape 3 (stock pièces). Entrant à la création/modification : quand `type = 'piece'` et `fournieParClient = false`, réserve la pièce (RP-19/RP-20, effet de bord serveur).
              */
             articleId: string | null;
             /** @enum {string} */
@@ -4791,6 +5123,11 @@ export interface components {
              * @description Fourni par le client à la création (idempotence hors ligne) — jamais généré par le serveur.
              */
             id: string;
+            /**
+             * @description Désignation de la ligne ciblée (ligne_or.designation), résolue par le serveur. Nullable même quand `ligneOrId` est renseigné : la désignation elle-même est une colonne nullable en base.
+             * @example Remplacement plaquettes avant
+             */
+            ligneOrDesignation: string | null;
             /** Format: uuid */
             ligneOrId: string | null;
             /** Format: date-time */
@@ -4802,6 +5139,11 @@ export interface components {
             nature: "productif_ligne" | "productif_or" | "indirect";
             /** Format: uuid */
             ordreReparationId: string | null;
+            /**
+             * @description Numéro de l'OR ciblé (ordre_reparation.numero), résolu par le serveur. `null` si et seulement si `ordreReparationId` est `null` (pointage indirect).
+             * @example OR-2026-00042
+             */
+            ordreReparationNumero: string | null;
             /** Format: uuid */
             siteId: string;
             /** @enum {string} */
@@ -4950,6 +5292,10 @@ export interface components {
             cylindreeCm3: number | null;
             /** @example VW Touran 2.0 TDI */
             designation: string;
+            /** @example Devant, place 3 */
+            emplacementLibre: string | null;
+            /** Format: date-time */
+            emplacementMajLe: string | null;
             finition: string | null;
             /** Format: uuid */
             fusionneVersVehiculeId: string | null;
@@ -5249,6 +5595,40 @@ export interface components {
             /** Format: uuid */
             siteId: string;
         };
+        SuiviFinancementDto: {
+            /** Format: date-time */
+            confirmeLe: string | null;
+            /** @description Durée du contrat en mois. Omis si le rôle appelant ne voit pas les montants (RF-116). */
+            dureeMois?: Record<string, never> | null;
+            /**
+             * Format: date
+             * @description `confirmeLe + dureeMois`, uniquement si `statutConfirmation = confirme` et les deux connues — jamais estimée. Omis si le rôle appelant ne voit pas les montants (RF-116).
+             */
+            echeanceLe?: string | null;
+            /** Format: uuid */
+            id: string;
+            organisme: components["schemas"]["ClientSuiviVenteDto"] | null;
+            /** @enum {string} */
+            statutConfirmation: "en_attente" | "confirme" | "refuse";
+            /**
+             * @description `comptant` jamais présent ici (RV-44).
+             * @enum {string}
+             */
+            type: "comptant" | "credit" | "leasing";
+        };
+        SuiviGarantieDto: {
+            /** @description Vrai tant qu'aucune limite CONNUE (date ou kilométrage) n'est dépassée — même sémantique que `GarantieVehicule.active` (contrats/atelier/vehicule.ts), calculée par la même fonction serveur. */
+            active: boolean;
+            /** Format: date */
+            debutLe: string;
+            /**
+             * Format: date
+             * @description `null` si `mois` est inconnu — aucune date de fin sans durée connue.
+             */
+            finLe: string | null;
+            mois: number | null;
+            plafondKm: number | null;
+        };
         TenantCourantDto: {
             /** Format: uuid */
             id: string;
@@ -5360,6 +5740,8 @@ export interface components {
         VehiculeResumeDto: {
             canton: string | null;
             designation: string;
+            /** @example Devant, place 3 */
+            emplacementLibre: string | null;
             /** Format: uuid */
             id: string;
             identificationIncomplete: boolean;
@@ -5373,6 +5755,8 @@ export interface components {
             canton: string | null;
             /** @example VW Touran 2.0 TDI */
             designation: string;
+            /** @example Devant, place 3 */
+            emplacementLibre: string | null;
             /** Format: uuid */
             id: string;
             identificationIncomplete: boolean;
@@ -5406,6 +5790,12 @@ export interface components {
              */
             typeVehicule: "vn" | "vo";
             vehicule: components["schemas"]["VehiculeResumeDto"];
+        };
+        VehiculeSuiviVenteDto: {
+            designation: string;
+            /** Format: uuid */
+            id: string;
+            vin: string | null;
         };
         VentilationTvaDto: {
             baseHtCentimes: number;
@@ -6152,6 +6542,83 @@ export interface operations {
             };
         };
     };
+    MouvementController_retourClient: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                articleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    motif: string;
+                    quantiteMillieme: number;
+                    /** Format: uuid */
+                    siteId: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MouvementStockDto"];
+                };
+            };
+            /** @description Corps invalide ou Idempotency-Key manquante/mal formée. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Article ou site introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description IDEMPOTENCE_CONFLIT. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
     MouvementController_retourFournisseur: {
         parameters: {
             query?: never;
@@ -6168,6 +6635,83 @@ export interface operations {
                 "application/json": {
                     commandeFournisseurLigneId?: string | null;
                     motif: string;
+                    quantiteMillieme: number;
+                    /** Format: uuid */
+                    siteId: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MouvementStockDto"];
+                };
+            };
+            /** @description Corps invalide ou Idempotency-Key manquante/mal formée. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Article ou site introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description STOCK_INSUFFISANT, ou IDEMPOTENCE_CONFLIT. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    MouvementController_sortieComptoir: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                articleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    motif?: string;
                     quantiteMillieme: number;
                     /** Format: uuid */
                     siteId: string;
@@ -6326,6 +6870,63 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArticleAvecAvertissementsDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Article introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    ArticleController_listerReferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                articleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageArticleReferenceDto"];
+                };
+            };
+            /** @description Identifiant, filtres, tri ou curseur invalides. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
                 };
             };
             /** @description Session absente ou expirée. */
@@ -8206,6 +8807,63 @@ export interface operations {
             };
         };
     };
+    CommandeFournisseurController_listerLignes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageLigneCommandeFournisseurDto"];
+                };
+            };
+            /** @description Identifiant, filtres, tri ou curseur invalides. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Commande fournisseur introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
     CommandeFournisseurController_annulerReliquat: {
         parameters: {
             query?: never;
@@ -8463,6 +9121,206 @@ export interface operations {
             };
         };
     };
+    DepotPneusController_changerSaison: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    ligneOrId?: string | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepotPneusDto"];
+                };
+            };
+            /** @description Corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (pneus.depot.changer_saison). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Dépôt de pneus ou ligne OR introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Transition interdite : le dépôt n’est ni en_depot ni monte (RPP-03). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    DepotPneusController_sortir: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    motif: "rendu_au_client" | "vehicule_vendu" | "mis_au_rebut" | "autre";
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepotPneusDto"];
+                };
+            };
+            /** @description Motif manquant ou invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (pneus.depot.sortir). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Dépôt de pneus introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Ce dépôt est déjà "sorti" (RPP-05). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    DepotPneusController_aRelancer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDepotPneusDto"];
+                };
+            };
+            /** @description Filtres, tri ou curseur invalides. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (pneus.depot.lire). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Site introuvable pour ce tenant (si `siteId` fourni). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
     DocumentVenteController_lister: {
         parameters: {
             query?: never;
@@ -8533,8 +9391,10 @@ export interface operations {
                      */
                     devise?: "CHF" | "EUR";
                     documentSourceId?: string | null;
+                    dossierVenteId?: string | null;
                     /** @default [] */
                     lignes?: {
+                        articleId?: string | null;
                         /** Format: date */
                         datePrestation: string;
                         designation: string;
@@ -8550,6 +9410,7 @@ export interface operations {
                         regimeTva?: "normal" | "reduit" | "hebergement" | "exonere" | "exclu" | "marge" | "acquisition";
                         remiseMontantCentimes?: number;
                         remisePourmille?: number;
+                        siteId?: string | null;
                         tauxTvaPourmille: number;
                         /** @enum {string} */
                         type: "main_oeuvre_bareme" | "main_oeuvre_temps_reel" | "forfait" | "piece" | "fourniture" | "sous_traitance" | "produit_atelier" | "taxe" | "texte" | "acompte_deduit" | "ecart_reprise" | "repartition" | "consigne";
@@ -9065,6 +9926,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    articleId?: string | null;
                     /** Format: date */
                     datePrestation: string;
                     designation: string;
@@ -9080,6 +9942,7 @@ export interface operations {
                     regimeTva?: "normal" | "reduit" | "hebergement" | "exonere" | "exclu" | "marge" | "acquisition";
                     remiseMontantCentimes?: number;
                     remisePourmille?: number;
+                    siteId?: string | null;
                     tauxTvaPourmille: number;
                     /** @enum {string} */
                     type: "main_oeuvre_bareme" | "main_oeuvre_temps_reel" | "forfait" | "piece" | "fourniture" | "sous_traitance" | "produit_atelier" | "taxe" | "texte" | "acompte_deduit" | "ecart_reprise" | "repartition" | "consigne";
@@ -9213,6 +10076,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    articleId?: string | null;
                     /** Format: date */
                     datePrestation?: string;
                     designation?: string;
@@ -9228,6 +10092,7 @@ export interface operations {
                     regimeTva?: "normal" | "reduit" | "hebergement" | "exonere" | "exclu" | "marge" | "acquisition";
                     remiseMontantCentimes?: number;
                     remisePourmille?: number;
+                    siteId?: string | null;
                     tauxTvaPourmille?: number;
                     /** @enum {string} */
                     type?: "main_oeuvre_bareme" | "main_oeuvre_temps_reel" | "forfait" | "piece" | "fourniture" | "sous_traitance" | "produit_atelier" | "taxe" | "texte" | "acompte_deduit" | "ecart_reprise" | "repartition" | "consigne";
@@ -12444,6 +13309,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    articleId?: string | null;
                     /**
                      * @default aucun
                      * @enum {string}
@@ -12551,6 +13417,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    articleId?: string | null;
                     /** @enum {string} */
                     blocage?: "aucun" | "accord" | "pieces" | "externe";
                     codeDefaut?: string | null;
@@ -15716,6 +16583,63 @@ export interface operations {
             };
         };
     };
+    SiteHangarPneusController_hangar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                siteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDepotPneusDto"];
+                };
+            };
+            /** @description Filtres, tri ou curseur invalides. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (pneus.depot.lire). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Site introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
     ParametresSiteController_obtenir: {
         parameters: {
             query?: never;
@@ -15840,6 +16764,106 @@ export interface operations {
                 };
             };
             /** @description Droit insuffisant. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    TableauBordActiviteController_activite: {
+        parameters: {
+            query?: {
+                au?: unknown;
+                du?: unknown;
+                siteId?: unknown;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseActiviteTableauBordDto"];
+                };
+            };
+            /** @description `du`/`au`/`siteId` invalides, ou `du` postérieur à `au`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (rôle `poste_atelier`). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    TableauBordFinancierController_financier: {
+        parameters: {
+            query?: {
+                au?: unknown;
+                du?: unknown;
+                siteId?: unknown;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReponseFinancierTableauBordDto"];
+                };
+            };
+            /** @description `du`/`au`/`siteId` invalides, ou `du` postérieur à `au`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant — réservé à direction/comptable. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -16142,6 +17166,7 @@ export interface operations {
                     conducteurHabituel?: string | null;
                     couleur?: string | null;
                     cylindreeCm3?: number | null;
+                    emplacementLibre?: string | null;
                     finition?: string | null;
                     garantieDebutLe?: string | null;
                     garantieKm?: number | null;
@@ -16433,6 +17458,143 @@ export interface operations {
             };
             /** @description Véhicule introuvable pour ce tenant. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeDepotsPneusController_parVehicule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDepotPneusDto"];
+                };
+            };
+            /** @description Filtres, tri ou curseur invalides. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (pneus.depot.lire). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    VehiculeDepotsPneusController_creer: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                vehiculeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    codeCase?: string | null;
+                    dimension?: string | null;
+                    etat?: string | null;
+                    /** @enum {string} */
+                    saison: "ete" | "hiver";
+                    /** Format: uuid */
+                    siteId: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepotPneusDto"];
+                };
+            };
+            /** @description Corps invalide ou Idempotency-Key manquante/mal formée. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (pneus.depot.creer). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Véhicule ou site introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Un jeu actif existe déjà pour ce véhicule et cette saison (RPP-02), ou IDEMPOTENCE_CONFLIT. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17686,6 +18848,52 @@ export interface operations {
             };
             /** @description Travail reporté introuvable pour ce véhicule/tenant. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    SuiviVenteController_lister: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageSuiviVenteDto"];
+                };
+            };
+            /** @description Filtres, tri ou curseur invalides. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
