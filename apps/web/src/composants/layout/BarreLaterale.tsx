@@ -12,6 +12,7 @@ import {
   Handshake,
   Home,
   Landmark,
+  LayoutDashboard,
   Lock,
   PackageSearch,
   Receipt,
@@ -36,6 +37,7 @@ import {
   ROLES_MENU_PARAMETRAGE_ATELIER,
   ROLES_PARAMETRAGE_PIECES,
   ROLES_PIECES,
+  ROLES_TABLEAU_BORD_ACTIVITE,
   ROLES_VENTES,
 } from '@/routes/droits-routes';
 import { cn } from '@/lib/utils';
@@ -121,6 +123,10 @@ export function BarreLaterale({ className }: Props) {
   const { data: session } = useSession();
   const role = session?.utilisateur.role;
 
+  // Tableau de bord — masquage qui reflète une restriction RÉELLE côté API (`ROLES_TABLEAU_BORD_ACTIVITE`
+  // exclut `poste_atelier`, la borne murale partagée n'a pas d'usage tableau de bord), même patron que
+  // `peutAccederPieces` ci-dessous : la route (`routeur.tsx`) applique déjà cette même garde.
+  const peutAccederTableauBord = role !== undefined && ROLES_TABLEAU_BORD_ACTIVITE.includes(role);
   const peutGererParametrageAtelier =
     role !== undefined && ROLES_MENU_PARAMETRAGE_ATELIER.includes(role);
   const peutGererCreancier = role !== undefined && ROLES_MENU_FINANCIER.includes(role);
@@ -159,6 +165,12 @@ export function BarreLaterale({ className }: Props) {
         <Home className="h-4 w-4" aria-hidden="true" />
         {t('navigation:liens.accueil')}
       </NavLink>
+      {peutAccederTableauBord ? (
+        <NavLink to={chemins.tableauBord(site)} className={classeLien}>
+          <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+          {t('navigation:liens.tableauBord')}
+        </NavLink>
+      ) : null}
       <NavLink to={chemins.recherche.globale(site)} className={classeLien}>
         <Search className="h-4 w-4" aria-hidden="true" />
         {t('navigation:liens.recherche')}

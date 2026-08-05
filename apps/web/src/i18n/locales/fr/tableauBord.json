@@ -1,0 +1,49 @@
+{
+  "titre": "Tableau de bord",
+  "periode": {
+    "du": "Du",
+    "au": "Au",
+    "periodeAffichee": "Période affichée : {du} – {au}"
+  },
+  "activite": {
+    "titre": "Activité",
+    "erreur": {
+      "titre": "Impossible d'afficher l'activité"
+    },
+    "repartitionStatuts": {
+      "titre": "OR en cours par statut"
+    },
+    "ordresOuverts": {
+      "libelle": "OR ouverts sur la période"
+    },
+    "ordresRestitues": {
+      "libelle": "OR restitués sur la période"
+    },
+    "delaiRestitution": {
+      "libelle": "Délai moyen de restitution",
+      "sansDonnee": "Sans donnée"
+    },
+    "lignesEnAttenteValidation": {
+      "libelle": "Lignes en attente de validation"
+    },
+    "articlesSousSeuil": {
+      "libelle": "Articles sous seuil de réapprovisionnement"
+    }
+  },
+  "financier": {
+    "titre": "Financier",
+    "erreur": {
+      "titre": "Impossible d'afficher les indicateurs financiers"
+    },
+    "chiffreAffaires": {
+      "libelle": "Chiffre d'affaires TTC",
+      "detail": "HT {ht} · TVA {tva} · {nombreDocuments} {nombreDocuments, plural, one {document} other {documents}}"
+    },
+    "encaissements": {
+      "libelle": "Encaissements sur la période"
+    },
+    "encoursClients": {
+      "libelle": "Encours clients"
+    }
+  }
+}

@@ -117,3 +117,28 @@ export const ROLES_VENTES: readonly RoleUtilisateur[] = [
   'receptionnaire',
   'chef_atelier',
 ];
+
+/**
+ * Tableau de bord — CAS DE FIGURE 1 CI-DESSUS (protection RÉELLE de route) : `GET /tableau-bord/
+ * activite` est ouvert à tout rôle de PERSONNE, mais explicitement fermé à `poste_atelier` (la
+ * borne murale partagée, voir `apps/api/src/tableau-bord/droits-provisoires.ts`) — la LECTURE
+ * elle-même exclut ce rôle, poser `rolesAutorises` sur la route reflète donc une restriction
+ * RÉELLE, elle ne l'invente pas. `GET /tableau-bord/financier` est ENCORE plus restreint
+ * (`direction`/`comptable` seuls, RF-115, `admin` exclu) mais N'A PAS de route dédiée — le bloc
+ * financier est géré EN PLUS, à l'intérieur de l'écran (`ecrans/tableau-bord/droits.ts`,
+ * `peutVoirFinancierTableauBord`) : une garde de route ne peut pas exprimer deux niveaux de droits
+ * différents sur la même route.
+ *
+ * Liste DUPLIQUÉE depuis `ecrans/tableau-bord/droits.ts` (même chaîne de duplication assumée que
+ * `ROLES_PIECES`/`ROLES_VENTES` ci-dessus, `routes/` ne dépend pas d'`ecrans/*`).
+ */
+export const ROLES_TABLEAU_BORD_ACTIVITE: readonly RoleUtilisateur[] = [
+  'technicien',
+  'magasinier',
+  'vendeur',
+  'receptionnaire',
+  'chef_atelier',
+  'comptable',
+  'direction',
+  'admin',
+];

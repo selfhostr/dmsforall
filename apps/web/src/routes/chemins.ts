@@ -20,6 +20,12 @@ function construireChemin(
 }
 
 export const chemins = {
+  /** Tableau de bord — ressource par TENANT, `?site=` OPTIONNEL (contrairement à
+   *  `clients`/`vehicules` ci-dessous, un site absent est un état légitime qui agrège tous les
+   *  sites du tenant, `ReponseActiviteTableauBord.siteId: string | null`) mais conservé au même
+   *  titre pour rester cohérent avec le reste de l'app (deux onglets sur deux sites différents ne
+   *  doivent pas se contredire). */
+  tableauBord: (site?: string) => construireChemin('/tableau-bord', { site }),
   /** Absent avant cet ajout alors que `GET /recherche` existe déjà côté API et que l'écran est en
    *  cours d'écriture (agent dédié) — même forme que `clients`/`vehicules` ci-dessous. */
   recherche: {

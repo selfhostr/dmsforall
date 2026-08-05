@@ -25,6 +25,7 @@ import deFacturation from './locales/de/facturation.json';
 import deParametrage from './locales/de/parametrage.json';
 import dePieces from './locales/de/pieces.json';
 import deVentes from './locales/de/ventes.json';
+import deTableauBord from './locales/de/tableauBord.json';
 import frAccueil from './locales/fr/accueil.json';
 import frAuth from './locales/fr/auth.json';
 import frCommun from './locales/fr/commun.json';
@@ -42,6 +43,7 @@ import frFacturation from './locales/fr/facturation.json';
 import frParametrage from './locales/fr/parametrage.json';
 import frPieces from './locales/fr/pieces.json';
 import frVentes from './locales/fr/ventes.json';
+import frTableauBord from './locales/fr/tableauBord.json';
 import itAccueil from './locales/it/accueil.json';
 import itAuth from './locales/it/auth.json';
 import itCommun from './locales/it/commun.json';
@@ -59,16 +61,17 @@ import itFacturation from './locales/it/facturation.json';
 import itParametrage from './locales/it/parametrage.json';
 import itPieces from './locales/it/pieces.json';
 import itVentes from './locales/it/ventes.json';
+import itTableauBord from './locales/it/tableauBord.json';
 
-/** 17 namespaces par domaine (propriété expert-i18n) : jamais modifiés ici, seulement importés.
+/** 18 namespaces par domaine (propriété expert-i18n) : jamais modifiés ici, seulement importés.
  *  Les 6 premiers sont le socle (étape 0) ; les 7 suivants (`recherche` à `or`) sont le lot 1 —
  *  voir docs/plan-lot1-frontend-execution.md §2.3 (verrou V3). `facturation` et `parametrage`
- *  sont l'étape 2, `pieces` l'étape 3, `ventes` l'étape 4. `scripts/verifier-i18n.mjs` échoue
- *  désormais si un namespace présent sur disque (`src/i18n/locales/fr/*.json`) n'apparaît pas
- *  ici : ne jamais ajouter un fichier de traduction sans l'enregistrer à la fois dans ce tableau
- *  et dans `ressources` ci-dessous, pour les trois langues — un oubli ici rend un namespace
- *  parfaitement traduit totalement inutilisable à l'exécution, sans qu'aucun test ni lint ne le
- *  voie. */
+ *  sont l'étape 2, `pieces` l'étape 3, `ventes` l'étape 4, `tableauBord` le tableau de bord.
+ *  `scripts/verifier-i18n.mjs` échoue désormais si un namespace présent sur disque
+ *  (`src/i18n/locales/fr/*.json`) n'apparaît pas ici : ne jamais ajouter un fichier de traduction
+ *  sans l'enregistrer à la fois dans ce tableau et dans `ressources` ci-dessous, pour les trois
+ *  langues — un oubli ici rend un namespace parfaitement traduit totalement inutilisable à
+ *  l'exécution, sans qu'aucun test ni lint ne le voie. */
 export const NAMESPACES = [
   'commun',
   'auth',
@@ -87,6 +90,7 @@ export const NAMESPACES = [
   'parametrage',
   'pieces',
   'ventes',
+  'tableauBord',
 ] as const;
 
 const ressources = {
@@ -108,6 +112,7 @@ const ressources = {
     parametrage: frParametrage,
     pieces: frPieces,
     ventes: frVentes,
+    tableauBord: frTableauBord,
   },
   de: {
     commun: deCommun,
@@ -127,6 +132,7 @@ const ressources = {
     parametrage: deParametrage,
     pieces: dePieces,
     ventes: deVentes,
+    tableauBord: deTableauBord,
   },
   it: {
     commun: itCommun,
@@ -146,6 +152,7 @@ const ressources = {
     parametrage: itParametrage,
     pieces: itPieces,
     ventes: itVentes,
+    tableauBord: itTableauBord,
   },
 } as const;
 

@@ -1,0 +1,49 @@
+{
+  "titre": "Cruscotto",
+  "periode": {
+    "du": "Dal",
+    "au": "Al",
+    "periodeAffichee": "Periodo visualizzato: {du} – {au}"
+  },
+  "activite": {
+    "titre": "Attività officina",
+    "erreur": {
+      "titre": "Impossibile visualizzare l'attività"
+    },
+    "repartitionStatuts": {
+      "titre": "Ordini di riparazione in corso per stato"
+    },
+    "ordresOuverts": {
+      "libelle": "Ordini di riparazione aperti nel periodo"
+    },
+    "ordresRestitues": {
+      "libelle": "Veicoli restituiti nel periodo"
+    },
+    "delaiRestitution": {
+      "libelle": "Tempo medio di restituzione",
+      "sansDonnee": "Nessun dato"
+    },
+    "lignesEnAttenteValidation": {
+      "libelle": "Righe in attesa di convalida"
+    },
+    "articlesSousSeuil": {
+      "libelle": "Articoli sotto la soglia di riordino"
+    }
+  },
+  "financier": {
+    "titre": "Finanza",
+    "erreur": {
+      "titre": "Impossibile visualizzare gli indicatori finanziari"
+    },
+    "chiffreAffaires": {
+      "libelle": "Fatturato lordo",
+      "detail": "Netto {ht} · IVA {tva} · {nombreDocuments} {nombreDocuments, plural, one {documento} other {documenti}}"
+    },
+    "encaissements": {
+      "libelle": "Incassi nel periodo"
+    },
+    "encoursClients": {
+      "libelle": "Crediti clienti in essere"
+    }
+  }
+}

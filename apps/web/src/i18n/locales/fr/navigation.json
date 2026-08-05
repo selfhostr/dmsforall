@@ -4,6 +4,7 @@
   },
   "liens": {
     "accueil": "Accueil",
+    "tableauBord": "Tableau de bord",
     "clients": "Clients",
     "vehicules": "Véhicules",
     "ordresReparation": "Ordres de réparation",

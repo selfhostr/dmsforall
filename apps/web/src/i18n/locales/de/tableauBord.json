@@ -1,0 +1,49 @@
+{
+  "titre": "Übersicht",
+  "periode": {
+    "du": "Von",
+    "au": "Bis",
+    "periodeAffichee": "Angezeigter Zeitraum: {du} – {au}"
+  },
+  "activite": {
+    "titre": "Werkstattaktivität",
+    "erreur": {
+      "titre": "Aktivität kann nicht angezeigt werden"
+    },
+    "repartitionStatuts": {
+      "titre": "Laufende Reparaturaufträge nach Status"
+    },
+    "ordresOuverts": {
+      "libelle": "Eröffnete Reparaturaufträge im Zeitraum"
+    },
+    "ordresRestitues": {
+      "libelle": "Zurückgegebene Fahrzeuge im Zeitraum"
+    },
+    "delaiRestitution": {
+      "libelle": "Durchschnittliche Rückgabedauer",
+      "sansDonnee": "Keine Daten"
+    },
+    "lignesEnAttenteValidation": {
+      "libelle": "Positionen zur Freigabe"
+    },
+    "articlesSousSeuil": {
+      "libelle": "Artikel unter Meldebestand"
+    }
+  },
+  "financier": {
+    "titre": "Finanzen",
+    "erreur": {
+      "titre": "Finanzkennzahlen können nicht angezeigt werden"
+    },
+    "chiffreAffaires": {
+      "libelle": "Umsatz brutto",
+      "detail": "Netto {ht} · MWST {tva} · {nombreDocuments} {nombreDocuments, plural, one {Beleg} other {Belege}}"
+    },
+    "encaissements": {
+      "libelle": "Zahlungseingänge im Zeitraum"
+    },
+    "encoursClients": {
+      "libelle": "Offene Kundenforderungen"
+    }
+  }
+}

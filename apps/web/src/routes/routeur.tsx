@@ -37,6 +37,7 @@ import { EcranPointageTechnicien } from '@/ecrans/pointage/EcranPointageTechnici
 import { ROLES_POINTAGE, ROLES_POINTAGE_ENCADREMENT } from '@/ecrans/pointage/droits';
 import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
 import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
+import { EcranTableauBord } from '@/ecrans/tableau-bord/EcranTableauBord';
 import { EcranFicheVehicule } from '@/ecrans/vehicules/EcranFicheVehicule';
 import { EcranListeVehicules } from '@/ecrans/vehicules/EcranListeVehicules';
 import { EcranNouveauVehicule } from '@/ecrans/vehicules/EcranNouveauVehicule';
@@ -49,7 +50,12 @@ import { EcranListeVehiculesStock } from '@/ecrans/ventes/stock/EcranListeVehicu
 
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
-import { ROLES_PARAMETRAGE_PIECES, ROLES_PIECES, ROLES_VENTES } from './droits-routes';
+import {
+  ROLES_PARAMETRAGE_PIECES,
+  ROLES_PIECES,
+  ROLES_TABLEAU_BORD_ACTIVITE,
+  ROLES_VENTES,
+} from './droits-routes';
 
 /**
  * Convention structurelle qui fait qu'une route oubliée tombe du côté SÛR (même principe que la
@@ -81,6 +87,17 @@ export const routesConfig: RouteObject[] = [
     ),
     children: [
       { index: true, element: <EcranAccueil /> },
+      // Tableau de bord — restriction RÉELLE côté API (`GET /tableau-bord/activite` ferme
+      // `poste_atelier`, voir `droits-routes.ts` pour le détail complet et la distinction avec le
+      // bloc financier, géré EN PLUS à l'intérieur de l'écran, pas ici).
+      {
+        path: 'tableau-bord',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_TABLEAU_BORD_ACTIVITE}>
+            <EcranTableauBord />
+          </RouteProtegee>
+        ),
+      },
       { path: 'recherche', element: <EcranRecherche /> },
       { path: 'clients', element: <EcranListeClients /> },
       { path: 'clients/:id', element: <EcranFicheClient /> },
