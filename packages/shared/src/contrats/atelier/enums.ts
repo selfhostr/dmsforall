@@ -489,6 +489,15 @@ export type StatutPretCourtoisie = (typeof STATUTS_PRET_COURTOISIE)[number];
  * `reservation_piece_transition()` porte son propre code d'erreur, voir 0026 §"PAS D'AUDIT") —
  * ne l'ajoute pas ici sous prétexte de complétude.
  *
+ * `depot_pneus` (hangar à pneus, `0043_pneus_depot_pneus.sql`) — TROU COMBLÉ ici (signalé en tête
+ * de 0043, jamais reporté avant ce changement) : la valeur Postgres existe depuis 0043
+ * (`alter type ... add value if not exists 'depot_pneus'`, vérifié en exécution avant d'ajouter la
+ * ligne ci-dessous), mais le miroir TypeScript en était resté absent — aucun `GET
+ * .../journal?entite=depot_pneus` n'était donc réellement consultable malgré le trigger d'audit
+ * déjà posé en base. Un jeu de pneus engage la responsabilité du garage envers son client
+ * (spec `docs/specification-parc-et-hangar-pneus.md` §4.3) : c'est précisément le module où la
+ * traçabilité compte.
+ *
  * `periode_pointage` — PAS `pointage` : `pointage` (déjà présent depuis 0003) audite chaque
  * pointage individuel (démarrage, arrêt, correction, verrouillage EN LOT via le passage de statut
  * à `verrouille`, ce dernier déjà couvert puisque c'est une transition ordinaire de la ligne).
@@ -525,6 +534,7 @@ export const ENTITES_AUDITEES = [
   'reprise',
   'financement_vente',
   'vehicule_travail_reporte',
+  'depot_pneus',
 ] as const;
 export type EntiteAuditee = (typeof ENTITES_AUDITEES)[number];
 

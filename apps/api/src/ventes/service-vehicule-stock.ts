@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type {
   EntreeMarquerVenduVehiculeStock,
   EntreeMiseEnStock,
@@ -15,7 +15,7 @@ import type {
 } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
-import { vehiculeStock, type LigneVehiculeStock } from '../db/schema';
+import { depotPneus, vehiculeStock, type LigneVehiculeStock } from '../db/schema';
 import {
   chargerPlaqueCourante,
   chargerResumeUtilisateur,
@@ -372,8 +372,56 @@ export class ServiceVehiculeStock {
 
       const misAJour = await chargerVehiculeStock(tx, ctx, vehiculeId);
       const reponse = await this.assembler(tx, ctx, role, misAJour);
-      return new CollecteurAvertissements().envelopper(reponse);
+      const collecteur = new CollecteurAvertissements();
+      await this.signalerDepotsPneusOuverts(tx, ctx, vehiculeId, collecteur);
+      return collecteur.envelopper(reponse);
     });
+  }
+
+  /**
+   * RPP-06 (`docs/specification-parc-et-hangar-pneus.md`) : la vente d'un véhicule ne transfère
+   * JAMAIS automatiquement au nouveau propriétaire un éventuel dépôt de pneus qui lui est
+   * rattaché — c'est un choix commercial (le vendeur peut les inclure ou les reprendre), jamais un
+   * geste automatique sur un bien qui appartient au client. SIGNALEMENT, jamais un blocage : la
+   * vente aboutit dans tous les cas, cette méthode n'ajoute qu'un avertissement.
+   *
+   * Lecture SEULE de `depot_pneus` (module `pneus/`, hors périmètre d'écriture de cet agent —
+   * aucune mutation, aucune règle métier dupliquée depuis `pneus/service-depot-pneus.ts`) :
+   * seulement l'existence de jeux encore ACTIFS (`en_depot`/`monte`/`a_relancer`, tout sauf le
+   * statut TERMINAL `sorti`, RPP-05) pour ce véhicule. `vehiculeId` ici **est** `vehicule.id`
+   * (voir la tête de fichier de `db/schema/ventes/vehicule-stock.ts` : `vehicule_stock` est une
+   * extension 1:1 de `vehicule`, même identifiant), exactement la colonne que référence
+   * `depot_pneus.vehicule_id`.
+   *
+   * Cas « aucun dépôt » : ne fait rien, n'ajoute aucun avertissement, ne lève jamais — c'est le
+   * chemin normal de la quasi-totalité des ventes.
+   */
+  private async signalerDepotsPneusOuverts(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    vehiculeId: string,
+    collecteur: CollecteurAvertissements,
+  ): Promise<void> {
+    const ouverts = await tx
+      .select({ id: depotPneus.id, saison: depotPneus.saison, statut: depotPneus.statut })
+      .from(depotPneus)
+      .where(
+        and(
+          eq(depotPneus.tenantId, ctx.tenantId),
+          eq(depotPneus.vehiculeId, vehiculeId),
+          inArray(depotPneus.statut, ['en_depot', 'monte', 'a_relancer']),
+        ),
+      )
+      .limit(10);
+
+    if (ouverts.length === 0) return;
+
+    collecteur.ajouter(
+      'VEHICULE_DEPOTS_PNEUS_OUVERTS',
+      `${ouverts.length} dépôt(s) de pneus encore ouvert(s) pour ce véhicule vendu — à traiter ` +
+        `explicitement (garder, rendre au client, ou transférer au nouveau propriétaire), RPP-06.`,
+      { depotsOuverts: ouverts },
+    );
   }
 
   /**

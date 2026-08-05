@@ -150,6 +150,62 @@ describe('ServiceVehiculeStock.marquerVendu — `reserve -> vendu` (trou comblé
 });
 
 /**
+ * RPP-06 (`docs/specification-parc-et-hangar-pneus.md`) : la vente ne transfère JAMAIS
+ * automatiquement au nouveau propriétaire un éventuel dépôt de pneus rattaché au véhicule —
+ * signalement, jamais un blocage. `ServiceVehiculeStock.marquerVendu` lit `depot_pneus` en LECTURE
+ * SEULE (module `pneus/`, hors périmètre d'écriture de cet agent) et n'ajoute qu'un avertissement
+ * `VEHICULE_DEPOTS_PNEUS_OUVERTS` — la vente aboutit dans tous les cas, avec ou sans dépôt.
+ */
+describe('ServiceVehiculeStock.marquerVendu — RPP-06 (signalement des dépôts pneus ouverts)', () => {
+  it('cas nominal : des jeux actifs (en_depot/monte/a_relancer) sont signalés SANS bloquer la vente', async () => {
+    // 1er select : chargerVehiculeStockPourEcriture ; 2e : chargerVehiculeStock (relecture) ;
+    // 3e : signalerDepotsPneusOuverts (dépôts actifs pour ce véhicule).
+    const depotsOuverts = [
+      { id: 'depot-ete-1', saison: 'ete', statut: 'en_depot' },
+      { id: 'depot-hiver-1', saison: 'hiver', statut: 'monte' },
+    ];
+    const { tx, updateCalls } = txFactice([
+      [ligneReserveeFixture()],
+      [ligneReserveeFixture({ statutCommercial: 'vendu', venduLe: MAINTENANT })],
+      depotsOuverts,
+    ]);
+    const service = serviceFactice(tx);
+
+    const entree: EntreeMarquerVenduVehiculeStock = { motif: 'Facture n°2026-050 émise.' };
+    const resultat = await service.marquerVendu(CTX, 'direction', VEHICULE_ID, entree);
+
+    // La vente a bien eu lieu — le signalement n'est jamais un blocage.
+    expect(updateCalls.find((c) => c.table === vehiculeStock)?.champs).toMatchObject({
+      statutCommercial: 'vendu',
+    });
+    expect(resultat.avertissements).toEqual([
+      {
+        code: 'VEHICULE_DEPOTS_PNEUS_OUVERTS',
+        message: expect.stringContaining('2 dépôt'),
+        donnees: { depotsOuverts },
+      },
+    ]);
+  });
+
+  it("cas « véhicule vendu sans aucun dépôt » : n'ajoute aucun avertissement et ne lève pas", async () => {
+    const { tx, updateCalls } = txFactice([
+      [ligneReserveeFixture()],
+      [ligneReserveeFixture({ statutCommercial: 'vendu', venduLe: MAINTENANT })],
+      [],
+    ]);
+    const service = serviceFactice(tx);
+
+    const entree: EntreeMarquerVenduVehiculeStock = { motif: 'Facture n°2026-051 émise.' };
+    const resultat = await service.marquerVendu(CTX, 'direction', VEHICULE_ID, entree);
+
+    expect(updateCalls.find((c) => c.table === vehiculeStock)?.champs).toMatchObject({
+      statutCommercial: 'vendu',
+    });
+    expect(resultat.avertissements).toEqual([]);
+  });
+});
+
+/**
  * Bug corrigé (audit 2026-08-04) : `estViolationCleUnique` testait `erreur.code` au premier
  * niveau, mais Drizzle enveloppe SYSTÉMATIQUEMENT l'erreur `pg` brute dans une `DrizzleQueryError`
  * (`code` sous `.cause`, jamais en surface) — deux mises en stock concurrentes du même véhicule

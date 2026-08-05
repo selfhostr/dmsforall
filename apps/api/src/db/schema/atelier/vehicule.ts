@@ -93,6 +93,21 @@ export const vehicule = pgTable(
     fusionneVersVehiculeId: uuid('fusionne_vers_vehicule_id'),
     /** Accroche étape 4 (véhicules en stock) : sans FK tant que la cible n'existe pas. */
     vehiculeStockId: uuid('vehicule_stock_id'),
+    /**
+     * Plan du parc, Lot C simplifié (migrations/0044_vehicule_emplacement_libre.sql) : position
+     * courante DÉCLARATIVE du véhicule, texte libre (patron `stock_article.emplacement`), borne
+     * `.trim().max(60)` applicative uniquement — pas de CHECK de longueur en base (même doctrine
+     * que `depot_pneus.code_case`, 0043). Une aide à la mémoire visuelle, PAS une vérité
+     * d'inventaire auditée (spec §1.1/§1.3) : aucune contrainte d'unicité, aucun audit, aucun
+     * trigger `touche_modifie_le` (voir `emplacementMajLe` ci-dessous).
+     */
+    emplacementLibre: text('emplacement_libre'),
+    /**
+     * Dernière fois où `emplacementLibre` a été touché — maintenu par l'APPLICATIF au moment
+     * précis où la position est modifiée, PAS par un trigger générique sur `modifieLe` (qui
+     * avancerait sur N'IMPORTE QUELLE modification du véhicule, pas seulement sa position).
+     */
+    emplacementMajLe: timestamp('emplacement_maj_le', { withTimezone: true, mode: 'date' }),
     ...colonnesHorodatage(),
   },
   (t) => [

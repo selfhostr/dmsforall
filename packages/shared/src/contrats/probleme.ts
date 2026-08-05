@@ -612,6 +612,15 @@ export const CODES_AVERTISSEMENT = [
   // jamais bloquant, seulement signalé pour une correction manuelle
   // (`POST /vehicules/{id}/stock/marquer-vendu`, `ventes.vehicule_stock.corriger`).
   'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE',
+  // RPP-06 (docs/specification-parc-et-hangar-pneus.md) — la vente d'un véhicule ne transfère
+  // JAMAIS automatiquement au nouveau propriétaire un éventuel dépôt de pneus qui lui est
+  // rattaché : c'est un choix commercial (le vendeur peut les inclure ou les reprendre), jamais un
+  // geste automatique sur un bien qui appartient au client. `ServiceVehiculeStock.marquerVendu`
+  // (`reserve -> vendu`) signale — SANS jamais bloquer la vente — tout dépôt encore ACTIF
+  // (`en_depot`/`monte`/`a_relancer`, tout sauf le statut terminal `sorti`) lié au véhicule, pour
+  // que le vendeur statue explicitement (garder, rendre, transférer). `donnees` porte
+  // `{ depotsOuverts: { id, saison, statut }[] }`.
+  'VEHICULE_DEPOTS_PNEUS_OUVERTS',
 ] as const;
 export type CodeAvertissement = (typeof CODES_AVERTISSEMENT)[number];
 
