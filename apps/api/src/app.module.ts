@@ -20,6 +20,7 @@ import { FacturationModule } from './facturation/facturation.module';
 import { ImpressionModule } from './facturation/impression/impression.module';
 import { ParametrageModule } from './parametrage/parametrage.module';
 import { PiecesModule } from './pieces/pieces.module';
+import { PneusModule } from './pneus/pneus.module';
 import { PointageModule } from './pointage/pointage.module';
 import { RechercheModule } from './recherche/recherche.module';
 import { SanteModule } from './sante';
@@ -74,6 +75,11 @@ export class AppModule implements NestModule {
         // lisibilité (aucune dépendance de compilation réelle : `apps/api/src/tableau-bord/**`
         // n'importe aucun service d'un autre module, voir sa tête de fichier).
         TableauBordModule,
+        // `PneusModule` (hangar à pneus, `docs/specification-parc-et-hangar-pneus.md`, Lot A) —
+        // aucune dépendance de compilation avec un autre module (lit `vehicule`/`site`/`ligne_or`
+        // en lecture SQL directe, comme `TableauBordModule` juste au-dessus) : placé en toute fin
+        // par simple ordre d'ajout, pas de contrainte d'ordre réelle.
+        PneusModule,
       ],
     };
   }

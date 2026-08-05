@@ -22,3 +22,4 @@ export * from './facturation';
 export * from './pieces';
 export * from './pointage';
 export * from './ventes';
+export * from './pneus';
