@@ -15,6 +15,7 @@ import { ClientsModule } from './clients/clients.module';
 import { CommonModule, MiddlewareContexteRequete } from './common';
 import type { Config } from './config';
 import { ConfigModule } from './config';
+import { ConnecteursModule } from './connecteurs/connecteurs.module';
 import { DbModule } from './db/db.module';
 import { FacturationModule } from './facturation/facturation.module';
 import { ImpressionModule } from './facturation/impression/impression.module';
@@ -80,6 +81,12 @@ export class AppModule implements NestModule {
         // en lecture SQL directe, comme `TableauBordModule` juste au-dessus) : placé en toute fin
         // par simple ordre d'ajout, pas de contrainte d'ordre réelle.
         PneusModule,
+        // `ConnecteursModule` (étape 5 — socle d'exécution : registre, exécuteur résilient, cinq
+        // adaptateurs factices) — aucun contrôleur HTTP, aucune dépendance de compilation avec un
+        // autre module métier ; enregistré ici pour que `RegistreConnecteursService`/
+        // `ServiceExecuteurConnecteurResilient` soient injectables par un futur module qui en
+        // aurait besoin, voir `connecteurs/connecteurs.module.ts`.
+        ConnecteursModule,
       ],
     };
   }
