@@ -214,6 +214,47 @@ describe('EcranReferentiels — taux horaires', () => {
       await screen.findByRole('button', { name: i18n.t('commun:actions.reessayer') }),
     ).toBeInTheDocument();
   });
+
+  it('n’envoie rien et affiche une erreur par champ quand le formulaire de création est vide', async () => {
+    connecterSession('chef_atelier');
+    let appelPost = false;
+    server.use(
+      http.get(CHEMIN_TAUX_HORAIRES, () => HttpResponse.json(pageVide<ReponseTauxHoraire>())),
+      http.get(CHEMIN_PRESTATIONS, () => HttpResponse.json(pageVide<ReponsePrestation>())),
+      http.post(CHEMIN_TAUX_HORAIRES, () => {
+        appelPost = true;
+        return HttpResponse.json(TAUX_HORAIRE, { status: 201 });
+      }),
+    );
+    rendre();
+
+    const utilisateur = userEvent.setup();
+    const boutonsNouveau = await screen.findAllByRole('button', {
+      name: i18n.t('parametrage:referentiels.tauxHoraires.nouveau'),
+    });
+    await utilisateur.click(boutonsNouveau[0]!);
+
+    const dialogue = await screen.findByRole('dialog');
+    // Le montant est pré-affiché « 0.00 » (valeur par défaut de `ChampMontant`) : le vider rend
+    // le champ réellement vide (`null`), donc effectivement manquant pour le schéma zod.
+    await utilisateur.clear(
+      within(dialogue).getByLabelText(
+        i18n.t('parametrage:referentiels.tauxHoraires.champs.montant'),
+        {
+          exact: false,
+        },
+      ),
+    );
+    await utilisateur.click(
+      within(dialogue).getByRole('button', { name: i18n.t('commun:actions.enregistrer') }),
+    );
+
+    expect(await within(dialogue).findAllByText(i18n.t('validation:requis'))).not.toHaveLength(0);
+    expect(
+      within(dialogue).getByLabelText(i18n.t('parametrage:referentiels.tauxHoraires.champs.code')),
+    ).toHaveAttribute('aria-invalid', 'true');
+    expect(appelPost).toBe(false);
+  });
 });
 
 describe('EcranReferentiels — catalogue de prestations', () => {
@@ -263,5 +304,178 @@ describe('EcranReferentiels — catalogue de prestations', () => {
     expect(
       await screen.findByText(i18n.t('parametrage:referentiels.prestations.vide.titre')),
     ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', {
+        name: i18n.t('parametrage:referentiels.prestations.nouvelle'),
+      }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('crée une nouvelle prestation et l’envoie au serveur avec le corps attendu', async () => {
+    connecterSession('chef_atelier');
+    let corpsRecu: unknown;
+    server.use(
+      http.get(CHEMIN_TAUX_HORAIRES, () => HttpResponse.json(pageVide<ReponseTauxHoraire>())),
+      http.get(CHEMIN_PRESTATIONS, () => HttpResponse.json(pageVide<ReponsePrestation>())),
+      http.post(CHEMIN_PRESTATIONS, async ({ request }) => {
+        corpsRecu = await request.json();
+        return HttpResponse.json({ ...PRESTATION, id: 'pr-2', code: 'FREINS' }, { status: 201 });
+      }),
+    );
+    rendre();
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(
+      await screen.findByRole('tab', {
+        name: i18n.t('parametrage:referentiels.prestations.onglet'),
+      }),
+    );
+    const boutonsNouvelle = await screen.findAllByRole('button', {
+      name: i18n.t('parametrage:referentiels.prestations.nouvelle'),
+    });
+    await utilisateur.click(boutonsNouvelle[0]!);
+
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.type(
+      within(dialogue).getByLabelText(i18n.t('parametrage:referentiels.prestations.champs.code')),
+      'FREINS',
+    );
+    await utilisateur.type(
+      within(dialogue).getByLabelText(i18n.t('commun:langues.fr')),
+      'Remplacement plaquettes',
+    );
+    await utilisateur.click(
+      within(dialogue).getByRole('button', { name: i18n.t('commun:actions.enregistrer') }),
+    );
+
+    await waitFor(() =>
+      expect(corpsRecu).toMatchObject({
+        code: 'FREINS',
+        designationFr: 'Remplacement plaquettes',
+        typeLigne: 'forfait',
+        tauxTvaPourmille: 81,
+      }),
+    );
+  });
+
+  it('affiche l’erreur de code déjà utilisé renvoyée par le serveur', async () => {
+    connecterSession('chef_atelier');
+    server.use(
+      http.get(CHEMIN_TAUX_HORAIRES, () => HttpResponse.json(pageVide<ReponseTauxHoraire>())),
+      http.get(CHEMIN_PRESTATIONS, () => HttpResponse.json(pageVide<ReponsePrestation>())),
+      http.post(CHEMIN_PRESTATIONS, () =>
+        HttpResponse.json(
+          {
+            type: 'https://docs.dmsforall.example/erreurs/CONFLIT',
+            title: 'Conflit',
+            status: 409,
+            code: 'CONFLIT',
+            instance: 'req-2',
+          },
+          { status: 409, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      ),
+    );
+    rendre();
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(
+      await screen.findByRole('tab', {
+        name: i18n.t('parametrage:referentiels.prestations.onglet'),
+      }),
+    );
+    const boutonsNouvelle = await screen.findAllByRole('button', {
+      name: i18n.t('parametrage:referentiels.prestations.nouvelle'),
+    });
+    await utilisateur.click(boutonsNouvelle[0]!);
+
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.type(
+      within(dialogue).getByLabelText(i18n.t('parametrage:referentiels.prestations.champs.code')),
+      'VIDANGE-STD',
+    );
+    await utilisateur.type(
+      within(dialogue).getByLabelText(i18n.t('commun:langues.fr')),
+      'Vidange standard',
+    );
+    await utilisateur.click(
+      within(dialogue).getByRole('button', { name: i18n.t('commun:actions.enregistrer') }),
+    );
+
+    expect(
+      await within(dialogue).findByText(
+        i18n.t('parametrage:referentiels.prestations.erreurCodeExistant'),
+      ),
+    ).toBeInTheDocument();
+    // Le dialogue reste ouvert : aucune saisie perdue.
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('n’envoie rien et affiche une erreur par champ quand le formulaire de création est vide', async () => {
+    connecterSession('chef_atelier');
+    let appelPost = false;
+    server.use(
+      http.get(CHEMIN_TAUX_HORAIRES, () => HttpResponse.json(pageVide<ReponseTauxHoraire>())),
+      http.get(CHEMIN_PRESTATIONS, () => HttpResponse.json(pageVide<ReponsePrestation>())),
+      http.post(CHEMIN_PRESTATIONS, () => {
+        appelPost = true;
+        return HttpResponse.json(PRESTATION, { status: 201 });
+      }),
+    );
+    rendre();
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(
+      await screen.findByRole('tab', {
+        name: i18n.t('parametrage:referentiels.prestations.onglet'),
+      }),
+    );
+    const boutonsNouvelle = await screen.findAllByRole('button', {
+      name: i18n.t('parametrage:referentiels.prestations.nouvelle'),
+    });
+    await utilisateur.click(boutonsNouvelle[0]!);
+
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.click(
+      within(dialogue).getByRole('button', { name: i18n.t('commun:actions.enregistrer') }),
+    );
+
+    expect(await within(dialogue).findAllByText(i18n.t('validation:requis'))).not.toHaveLength(0);
+    expect(
+      within(dialogue).getByLabelText(i18n.t('parametrage:referentiels.prestations.champs.code')),
+    ).toHaveAttribute('aria-invalid', 'true');
+    expect(appelPost).toBe(false);
+  });
+
+  it('grise les actions d’écriture du catalogue pour un rôle sans droit de gouvernance (technicien)', async () => {
+    connecterSession('technicien');
+    server.use(
+      http.get(CHEMIN_TAUX_HORAIRES, () => HttpResponse.json(pageVide<ReponseTauxHoraire>())),
+      http.get(CHEMIN_PRESTATIONS, () =>
+        HttpResponse.json({
+          donnees: [PRESTATION],
+          curseurSuivant: null,
+          limite: 100,
+        } satisfies PageCurseur<ReponsePrestation>),
+      ),
+    );
+    rendre();
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(
+      await screen.findByRole('tab', {
+        name: i18n.t('parametrage:referentiels.prestations.onglet'),
+      }),
+    );
+
+    await screen.findByText('VIDANGE-STD');
+    expect(
+      screen.queryByRole('button', {
+        name: i18n.t('parametrage:referentiels.prestations.nouvelle'),
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: i18n.t('commun:actions.modifier') }),
+    ).not.toBeInTheDocument();
   });
 });
