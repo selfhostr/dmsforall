@@ -74,6 +74,9 @@ function projeterResume(document_: ReponseDocumentVente): DocumentVenteResume {
     devise: document_.devise,
     totalTtcCentimes: document_.totalTtcCentimes,
     soldeCentimes: document_.soldeCentimes,
+    dateEcheance: document_.dateEcheance,
+    enRetard: document_.enRetard,
+    joursRetard: document_.joursRetard,
   };
 }
 

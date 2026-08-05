@@ -9,9 +9,25 @@ import type { ReponseDocumentVente } from '@dfa/shared';
 import '@/i18n';
 
 import { server } from '@/test/msw/server';
+import { SESSION_TEST } from '@/test/msw/handlers';
 import { creerQueryClientTest } from '@/test/utils';
 
 import { EcranListeFactures } from './EcranListeFactures';
+
+/** Même pattern que `EcranTableauBord.spec.tsx` : surcharge `GET /auth/moi` pour un rôle donné.
+ *  Le handler global par défaut (`test/msw/handlers.ts`) répond 401 (« non connecté »), PAS
+ *  `chef_atelier` — sans appel explicite à cette fonction, `useSession()` rend `data: null` et
+ *  `role` reste `undefined`. Les tests d'AVANT l'ajout de la colonne « Retard » n'en avaient pas
+ *  besoin (montant/statut ne dépendent pas du rôle dans cet écran) ; tout test qui vérifie la
+ *  PRÉSENCE de la colonne « Retard » doit appeler cette fonction avec un rôle qui voit les
+ *  montants. */
+function connecterSession(role: (typeof SESSION_TEST)['utilisateur']['role']) {
+  server.use(
+    http.get('/api/v1/auth/moi', () =>
+      HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role } }),
+    ),
+  );
+}
 
 /**
  * Fixture à la forme RÉELLE de `GET /documents-vente` (voir l'ÉCART SIGNALÉ dans
@@ -160,5 +176,141 @@ describe('EcranListeFactures', () => {
 
     await waitFor(() => expect(screen.getByText('2026-00008')).toBeInTheDocument());
     expect(screen.getByText('Jean Dupont')).toBeInTheDocument();
+  });
+});
+
+describe('EcranListeFactures — colonne Retard', () => {
+  it('affiche "en retard de 20 jours" (alarme) pour une facture en retard', async () => {
+    // Le handler par défaut de `/auth/moi` répond 401 (« non connecté », voir
+    // `test/msw/handlers.ts`) — SANS session confirmée, `role` reste `undefined` et la colonne
+    // « Retard » resterait absente quel que soit le contenu du document. Un rôle qui voit les
+    // montants doit être connecté explicitement pour ces cas « colonne visible ».
+    connecterSession('chef_atelier');
+    server.use(
+      http.get('/api/v1/documents-vente', () =>
+        HttpResponse.json({
+          donnees: [
+            construireDocumentBrut({ dateEcheance: '2026-07-15', enRetard: true, joursRetard: 20 }),
+          ],
+          curseurSuivant: null,
+          limite: 50,
+        }),
+      ),
+    );
+
+    rendre();
+
+    expect(await screen.findByText('en retard de 20 jours')).toBeInTheDocument();
+  });
+
+  it("affiche l'échéance SANS alarme pour une facture à venir (enRetard: false)", async () => {
+    connecterSession('chef_atelier');
+    server.use(
+      http.get('/api/v1/documents-vente', () =>
+        HttpResponse.json({
+          donnees: [
+            construireDocumentBrut({
+              dateEcheance: '2026-09-01',
+              enRetard: false,
+              joursRetard: null,
+            }),
+          ],
+          curseurSuivant: null,
+          limite: 50,
+        }),
+      ),
+    );
+
+    rendre();
+
+    expect(await screen.findByText('Échéance : 01.09.2026')).toBeInTheDocument();
+    // Jamais présenté comme un retard.
+    expect(screen.queryByText(/en retard/)).not.toBeInTheDocument();
+  });
+
+  it('affiche un état neutre "Échéance inconnue" quand dateEcheance est null — jamais "à jour" ni "en retard"', async () => {
+    connecterSession('chef_atelier');
+    server.use(
+      http.get('/api/v1/documents-vente', () =>
+        HttpResponse.json({
+          donnees: [
+            construireDocumentBrut({ dateEcheance: null, enRetard: false, joursRetard: null }),
+          ],
+          curseurSuivant: null,
+          limite: 50,
+        }),
+      ),
+    );
+
+    rendre();
+
+    expect(await screen.findByText('Échéance inconnue')).toBeInTheDocument();
+    expect(screen.queryByText(/en retard/)).not.toBeInTheDocument();
+  });
+
+  it('masque la colonne « Retard » EN BLOC (en-tête compris) pour un rôle sans droit financier (technicien)', async () => {
+    connecterSession('technicien');
+    server.use(
+      http.get('/api/v1/documents-vente', () =>
+        HttpResponse.json({
+          donnees: [
+            construireDocumentBrut({
+              dateEcheance: undefined,
+              enRetard: undefined,
+              joursRetard: undefined,
+              statutReglement: undefined,
+              totalTtcCentimes: undefined,
+            }),
+          ],
+          curseurSuivant: null,
+          limite: 50,
+        }),
+      ),
+    );
+
+    rendre();
+
+    await screen.findByText('Jean Dupont');
+    // Ni en-tête ni cellule — à la différence de `montant`/`statut`, qui restent affichées vides.
+    expect(screen.queryByRole('columnheader', { name: 'Retard' })).not.toBeInTheDocument();
+    // Les colonnes montant/statut, elles, restent présentes (cellules vides, comportement inchangé).
+    expect(screen.getByRole('columnheader', { name: 'Montant TTC' })).toBeInTheDocument();
+  });
+
+  it('masque également la colonne « Retard » pour poste_atelier', async () => {
+    connecterSession('poste_atelier');
+    server.use(
+      http.get('/api/v1/documents-vente', () =>
+        HttpResponse.json({
+          donnees: [construireDocumentBrut({ dateEcheance: undefined, enRetard: undefined })],
+          curseurSuivant: null,
+          limite: 50,
+        }),
+      ),
+    );
+
+    rendre();
+
+    await screen.findByText('Jean Dupont');
+    expect(screen.queryByRole('columnheader', { name: 'Retard' })).not.toBeInTheDocument();
+  });
+
+  it('affiche la colonne « Retard » pour un rôle qui voit les montants (chef_atelier)', async () => {
+    connecterSession('chef_atelier');
+    server.use(
+      http.get('/api/v1/documents-vente', () =>
+        HttpResponse.json({
+          donnees: [
+            construireDocumentBrut({ dateEcheance: '2026-07-15', enRetard: true, joursRetard: 3 }),
+          ],
+          curseurSuivant: null,
+          limite: 50,
+        }),
+      ),
+    );
+
+    rendre();
+
+    expect(await screen.findByRole('columnheader', { name: 'Retard' })).toBeInTheDocument();
   });
 });

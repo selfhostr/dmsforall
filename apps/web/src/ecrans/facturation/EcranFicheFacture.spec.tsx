@@ -131,6 +131,11 @@ function construireDocumentSansMontants(
     ventilationTva: _ventilationTva,
     montantRegleCentimes: _montantRegleCentimes,
     soldeCentimes: _soldeCentimes,
+    // Même masquage (RF-114 → RF-116) pour le bloc échéance/retard — `dateEcheance`/`enRetard`/
+    // `joursRetard` sont une donnée financière au même titre qu'un montant (`document.ts`).
+    dateEcheance: _dateEcheance,
+    enRetard: _enRetard,
+    joursRetard: _joursRetard,
     ...sansMontants
   } = complet;
   return { ...sansMontants, qr: null };
@@ -297,6 +302,80 @@ describe('EcranFicheFacture — bulletin de versement (qr)', () => {
     await waitFor(() =>
       expect(screen.queryByText('Bulletin de versement')).not.toBeInTheDocument(),
     );
+  });
+});
+
+describe('EcranFicheFacture — échéance / retard (IndicateurRetard, en-tête)', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('fr');
+  });
+
+  it('affiche l\'alarme "en retard de N jours" pour une facture en retard', async () => {
+    installerHandlerDocument(
+      construireDocument({ dateEcheance: '2026-07-15', enRetard: true, joursRetard: 20 }),
+    );
+    rendre();
+
+    await screen.findByText('Jean Dupont');
+    expect(await screen.findByText('en retard de 20 jours')).toBeInTheDocument();
+  });
+
+  it("affiche l'échéance SANS alarme pour une facture à venir (enRetard: false)", async () => {
+    installerHandlerDocument(
+      construireDocument({ dateEcheance: '2026-09-01', enRetard: false, joursRetard: null }),
+    );
+    rendre();
+
+    await screen.findByText('Jean Dupont');
+    expect(await screen.findByText('Échéance : 01.09.2026')).toBeInTheDocument();
+    expect(screen.queryByText(/en retard/)).not.toBeInTheDocument();
+  });
+
+  it('affiche un état neutre "Échéance inconnue" quand dateEcheance est null (facture antérieure au champ, ou client sans délai paramétré)', async () => {
+    installerHandlerDocument(
+      construireDocument({ dateEcheance: null, enRetard: false, joursRetard: null }),
+    );
+    rendre();
+
+    await screen.findByText('Jean Dupont');
+    expect(await screen.findByText('Échéance inconnue')).toBeInTheDocument();
+    expect(screen.queryByText(/en retard/)).not.toBeInTheDocument();
+  });
+
+  it("ne laisse aucune zone vide inexpliquée pour un rôle sans droit aux montants — l'indicateur disparaît naturellement (dateEcheance absente)", async () => {
+    installerHandlerDocument(
+      construireDocumentSansMontants({
+        dateEcheance: '2026-07-15',
+        enRetard: true,
+        joursRetard: 20,
+      }),
+    );
+    rendre();
+
+    await screen.findByText('Jean Dupont');
+    expect(screen.queryByText(/en retard/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Échéance inconnue')).not.toBeInTheDocument();
+  });
+
+  it("n'affiche rien pour un devis/bon de commande/avoir (dateEcheance toujours null par construction, jamais un « Échéance inconnue » trompeur sur un document qui n'est structurellement jamais échu)", async () => {
+    installerHandlerDocument(
+      construireDocument({
+        id: 'avoir-echeance',
+        typeDocument: 'avoir',
+        natureFacture: null,
+        numero: '2026-AV-00002',
+        factureAnnuleeId: 'facture-1',
+        motifAvoir: 'geste_commercial',
+        qr: null,
+        dateEcheance: null,
+        enRetard: undefined,
+        joursRetard: null,
+      }),
+    );
+    rendre('avoir-echeance');
+
+    await screen.findByText('Jean Dupont');
+    expect(screen.queryByText('Échéance inconnue')).not.toBeInTheDocument();
   });
 });
 

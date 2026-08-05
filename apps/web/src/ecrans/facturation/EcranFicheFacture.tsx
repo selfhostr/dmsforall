@@ -45,6 +45,7 @@ import { BadgeTypeDocument } from './BadgeTypeDocument';
 import { CarteBulletinVersement } from './CarteBulletinVersement';
 import { ChampVerrouille } from './ChampVerrouille';
 import { DialogueCorrectionFacture } from './DialogueCorrectionFacture';
+import { IndicateurRetard } from './IndicateurRetard';
 import { RecapitulatifTVA } from './RecapitulatifTVA';
 import { SheetEncaissement } from './SheetEncaissement';
 
@@ -211,6 +212,19 @@ export function EcranFicheFacture() {
             <span className="texte-libelle text-muted-foreground">
               {t('facturation:fiche.emiseLe', { date: formaterDate(document_.emisLe) })}
             </span>
+          ) : null}
+          {/* `dateEcheance` n'a de sens que sur une facture (`document.ts` : toujours `null` pour
+              un devis/bon de commande/avoir — « aucune échéance de paiement ne les concerne »).
+              Restreindre l'affichage au `typeDocument` évite un "Échéance inconnue" trompeur sur
+              un document qui n'est structurellement jamais échu. La disparition pour un rôle sans
+              droit financier vient naturellement de `dateEcheance === undefined`
+              (`IndicateurRetard` rend alors `null`), même mécanisme que `totalTtcCentimes`. */}
+          {document_.typeDocument === 'facture' ? (
+            <IndicateurRetard
+              dateEcheance={document_.dateEcheance}
+              enRetard={document_.enRetard}
+              joursRetard={document_.joursRetard}
+            />
           ) : null}
         </div>
 

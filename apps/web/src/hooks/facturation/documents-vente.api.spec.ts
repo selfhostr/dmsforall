@@ -165,4 +165,108 @@ describe('listerDocumentsVente', () => {
     // La désignation client, elle, ne dépend d'aucun droit — toujours projetée.
     expect(page.donnees[0]?.clientDesignation).toBe('Dupont Claire');
   });
+
+  it('transporte dateEcheance/enRetard/joursRetard pour une facture en retard (colonne « Retard » de la liste, `IndicateurRetard`)', async () => {
+    server.use(
+      http.get('/api/v1/documents-vente', () =>
+        HttpResponse.json({
+          donnees: [
+            construireDocumentBrut({
+              dateEcheance: '2026-07-15',
+              enRetard: true,
+              joursRetard: 20,
+            }),
+          ],
+          curseurSuivant: null,
+          limite: 50,
+        }),
+      ),
+    );
+
+    const page = await listerDocumentsVente(
+      { typeDocument: ['facture'], tri: 'dateDocument:desc' },
+      { limite: 50 },
+    );
+
+    expect(page.donnees[0]?.dateEcheance).toBe('2026-07-15');
+    expect(page.donnees[0]?.enRetard).toBe(true);
+    expect(page.donnees[0]?.joursRetard).toBe(20);
+  });
+
+  it('transporte une échéance à venir (`enRetard: false`, `joursRetard: null` — jamais `0`, voir document.ts)', async () => {
+    server.use(
+      http.get('/api/v1/documents-vente', () =>
+        HttpResponse.json({
+          donnees: [
+            construireDocumentBrut({
+              dateEcheance: '2026-09-01',
+              enRetard: false,
+              joursRetard: null,
+            }),
+          ],
+          curseurSuivant: null,
+          limite: 50,
+        }),
+      ),
+    );
+
+    const page = await listerDocumentsVente(
+      { typeDocument: ['facture'], tri: 'dateDocument:desc' },
+      { limite: 50 },
+    );
+
+    expect(page.donnees[0]?.dateEcheance).toBe('2026-09-01');
+    expect(page.donnees[0]?.enRetard).toBe(false);
+    expect(page.donnees[0]?.joursRetard).toBeNull();
+  });
+
+  it('transporte `dateEcheance: null` (échéance inconnue — facture antérieure au champ, ou client sans délai paramétré) sans jamais la remplacer', async () => {
+    server.use(
+      http.get('/api/v1/documents-vente', () =>
+        HttpResponse.json({
+          donnees: [
+            construireDocumentBrut({ dateEcheance: null, enRetard: false, joursRetard: null }),
+          ],
+          curseurSuivant: null,
+          limite: 50,
+        }),
+      ),
+    );
+
+    const page = await listerDocumentsVente(
+      { typeDocument: ['facture'], tri: 'dateDocument:desc' },
+      { limite: 50 },
+    );
+
+    expect(page.donnees[0]?.dateEcheance).toBeNull();
+  });
+
+  it('laisse dateEcheance/enRetard/joursRetard absents pour un rôle sans droit aux montants (même masquage que le reste du bloc financier, RF-114→RF-116)', async () => {
+    server.use(
+      http.get('/api/v1/documents-vente', () =>
+        HttpResponse.json({
+          donnees: [
+            construireDocumentBrut({
+              statutReglement: undefined,
+              totalTtcCentimes: undefined,
+              dateEcheance: undefined,
+              enRetard: undefined,
+              joursRetard: undefined,
+            }),
+          ],
+          curseurSuivant: null,
+          limite: 50,
+        }),
+      ),
+    );
+
+    const page = await listerDocumentsVente(
+      { typeDocument: ['facture'], tri: 'dateDocument:desc' },
+      { limite: 50 },
+    );
+
+    expect(page.donnees[0]?.dateEcheance).toBeUndefined();
+    expect(page.donnees[0]?.enRetard).toBeUndefined();
+    expect(page.donnees[0]?.joursRetard).toBeUndefined();
+  });
 });

@@ -1,58 +1,81 @@
-import { AlertTriangle, Clock } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { formaterDate } from '@/lib/formats';
 import { cn } from '@/lib/utils';
 
-/** Niveau de relance à partir duquel l'indicateur bascule en `--statut-danger` plutôt qu'en
- *  `--statut-attention` (§2.4 : « relance avancée, paramétrable »). Le paramétrage réel par tenant
- *  n'existe pas encore côté contrat — seuil fixe assumé ici, à rendre configurable le jour où
- *  `parametresAtelier`-like expose un seuil de facturation. */
-const NIVEAU_RELANCE_AVANCEE = 2;
-
 interface Props {
-  readonly relanceNiveau: number;
-  readonly relanceLe: string | null;
+  readonly dateEcheance: string | null | undefined;
+  readonly enRetard: boolean | undefined;
+  readonly joursRetard: number | null | undefined;
   readonly className?: string;
 }
 
 /**
- * Indicateur de retard (§2.4) — texte + icône ACCOLÉ au badge de règlement, jamais une variante de
- * couleur du badge lui-même.
+ * Indicateur d'échéance / retard (§2.4) — texte + icône ACCOLÉ au badge de règlement, jamais une
+ * variante de couleur du badge lui-même.
  *
- * ADAPTATION AU CONTRAT RÉEL : le mockup du design (« en retard de 12 j ») suppose une date
- * d'échéance que `ReponseDocumentVente` n'expose pas (`conditionsPaiement` est un
- * `Record<string, unknown>` délibérément opaque, sans forme garantie — voir son commentaire dans
- * `document.ts`). Calculer un nombre de jours de retard à partir d'un champ dont la forme n'est pas
- * contractuelle serait une donnée fabriquée, pas lue. Cet indicateur s'appuie donc sur les deux
- * champs RÉELLEMENT dérivés et garantis par le serveur : `relanceNiveau` (0 = à jour) et
- * `relanceLe` (date de la dernière relance envoyée) — à réévaluer si une date d'échéance devient un
- * jour un champ de premier niveau du contrat.
+ * Consomme désormais les VRAIS champs dérivés serveur (`ReponseDocumentVente.dateEcheance` /
+ * `.enRetard` / `.joursRetard`, voir `document.ts`). ANCIEN CONTRAT RETIRÉ de ce composant :
+ * `relanceNiveau`/`relanceLe` existent toujours sur `ReponseDocumentVente` (rythme des relances
+ * envoyées), mais portent une notion ORTHOGONALE à l'échéance de paiement — un document peut être
+ * relancé sans être en retard au sens de l'échéance (relance amiable avant terme), ou en retard
+ * sans avoir encore été relancé une seule fois. Les mélanger dans un seul indicateur était
+ * exactement ce qui empêchait l'ancien composant d'afficher un vrai nombre de jours de retard (son
+ * commentaire d'origine expliquait ce contournement). Si un indicateur de suivi de relance est
+ * demandé un jour, ce doit être un second composant, pas un repli de celui-ci.
+ *
+ * Trois états honnêtement différents, sans repli qui fabriquerait une assurance non prouvée par le
+ * serveur (`dateEcheance` `null` est un état LÉGITIME et FRÉQUENT — factures antérieures à ce
+ * champ, clients sans délai de paiement paramétré — jamais assimilé à « à jour ») :
+ *  - `dateEcheance === undefined` (rôle sans droit financier, même masquage que `totalTtcCentimes`)
+ *    → composant invisible, ne rend rien.
+ *  - `dateEcheance === null` → état neutre explicite ("Échéance inconnue"), sans icône d'alarme.
+ *  - `enRetard === true` → visible immédiatement, alarme (`--statut-danger`), nombre de jours,
+ *    échéance en info-bulle (`title`).
+ *  - `enRetard === false` avec `dateEcheance` non nul → échéance affichée SANS alarme (style
+ *    neutre) : couvre aussi bien une facture « à venir » qu'une facture SOLDÉE dont l'échéance est
+ *    dépassée — le serveur a déjà tranché `enRetard: false` dans ce second cas (`soldeCentimes`
+ *    pris en compte côté serveur), rien à recalculer ici.
  */
-export function IndicateurRetard({ relanceNiveau, relanceLe, className }: Props) {
+export function IndicateurRetard({ dateEcheance, enRetard, joursRetard, className }: Props) {
   const { t } = useTranslation('facturation');
 
-  if (relanceNiveau <= 0) return null;
+  if (dateEcheance === undefined) return null;
 
-  const avancee = relanceNiveau >= NIVEAU_RELANCE_AVANCEE;
-  const Icone = avancee ? AlertTriangle : Clock;
-  const texte = avancee
-    ? t('facturation:retard.relanceAvancee', { niveau: relanceNiveau })
-    : t('facturation:retard.premierNiveau');
+  if (dateEcheance === null) {
+    return (
+      <span
+        className={cn(
+          'inline-flex items-center gap-1 texte-libelle text-muted-foreground',
+          className,
+        )}
+      >
+        {t('facturation:retard.echeanceInconnue')}
+      </span>
+    );
+  }
+
+  if (enRetard === true) {
+    return (
+      <span
+        className={cn('inline-flex items-center gap-1 texte-libelle text-statut-danger', className)}
+        title={t('facturation:retard.echeanceLe', { date: formaterDate(dateEcheance) })}
+      >
+        <AlertTriangle aria-hidden className="h-3.5 w-3.5 shrink-0" />
+        {t('facturation:retard.enRetard', { jours: joursRetard ?? 0 })}
+      </span>
+    );
+  }
 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 texte-libelle',
-        avancee ? 'text-statut-danger' : 'text-statut-attention',
+        'inline-flex items-center gap-1 texte-libelle text-muted-foreground',
         className,
       )}
-      title={
-        relanceLe ? t('facturation:retard.relanceLe', { date: formaterDate(relanceLe) }) : undefined
-      }
     >
-      <Icone aria-hidden className="h-3.5 w-3.5 shrink-0" />
-      {`· ${texte}`}
+      {t('facturation:retard.echeanceLe', { date: formaterDate(dateEcheance) })}
     </span>
   );
 }

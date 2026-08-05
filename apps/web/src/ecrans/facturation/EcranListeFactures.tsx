@@ -14,9 +14,12 @@ import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { useListeDocumentsVente } from '@/hooks/facturation/useListeDocumentsVente';
+import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
 
 import { BadgeStatutReglement } from './BadgeStatutReglement';
+import { peutVoirMontantsFacturation } from './droits';
+import { IndicateurRetard } from './IndicateurRetard';
 
 const DELAI_DEBOUNCE_MS = 300;
 
@@ -26,14 +29,16 @@ type OngletListeFactures = 'toutes' | 'nonReglees' | 'enRetard' | 'aRelancer';
  * Écran 5 — liste des factures (`design-etape-2-facturation.md` §7). Route attendue : `/factures`,
  * dans la navigation principale (câblage `routes/` hors périmètre de cet agent).
  *
- * ÉCART SIGNALÉ — onglets « En retard » et « À relancer » : le design (§7.1) suppose une donnée de
- * retard (jours d'échéance dépassée, niveau de relance) et un tri dédié sur la LISTE. Ni
- * `schemaFiltresDocumentsVente` (aucun paramètre de filtre sur le retard/la relance) ni
- * `DocumentVenteResume` (aucun champ `relanceNiveau`/`relanceLe` sur la PROJECTION de liste — ils
- * n'existent que sur `ReponseDocumentVente`, le document complet) ne portent cette information à ce
- * jour. Plutôt que de fabriquer un tri ou un badge de retard à partir de rien, ces deux onglets
- * affichent un état explicite qui nomme le manque, jamais une liste réordonnée en silence sur une
- * donnée absente. À lever dès que `DocumentVenteResume`/le filtre de liste exposent le retard.
+ * ÉCART SIGNALÉ — onglets « En retard » et « À relancer » : le design (§7.1) suppose un FILTRE et
+ * un TRI dédiés sur la LISTE (paramètre de requête sur le retard/la relance). `dateEcheance`/
+ * `enRetard`/`joursRetard` sont désormais bien portés par `DocumentVenteResume` (colonne « Retard »
+ * ci-dessous, câblée sur `IndicateurRetard`) — CE volet de l'écart est levé. Ce qui manque encore :
+ * `schemaFiltresDocumentsVente` (`@dfa/shared`) n'expose toujours aucun paramètre `enRetard`/
+ * `relanceNiveau`, et `TRIS_DOCUMENTS_VENTE` ne porte aucun tri par retard — sans ces deux ajouts
+ * côté contrat, reconstruire ce filtre CÔTÉ CLIENT sur une seule page déjà chargée donnerait un
+ * résultat silencieusement faux dès la deuxième page d'une liste paginée. Ces deux onglets restent
+ * donc dans leur état « donnée indisponible » actuel — à lever le jour où le contrat de filtre/tri
+ * les expose.
  *
  * ÉCART SIGNALÉ — accélérateur « Encaisser » au survol de ligne (§7.1, risque n°2 du design) :
  * NON implémenté ici. `DocumentVenteResume` ne porte pas `siteId` (seulement `document.ts` §
@@ -47,6 +52,13 @@ type OngletListeFactures = 'toutes' | 'nonReglees' | 'enRetard' | 'aRelancer';
 export function EcranListeFactures() {
   const { t } = useTranslation(['facturation', 'commun']);
   const navigate = useNavigate();
+  const { data: session } = useSession();
+  const role = session?.utilisateur.role;
+  // Tant que la session n'est pas résolue, `role === undefined` -> `peutVoirMontantsFacturation`
+  // rend `false` -> la colonne « Retard » reste absente jusqu'à confirmation du droit. Jamais
+  // l'inverse (colonne visible puis retirée) : cette direction est la seule qui ne fait pas
+  // clignoter le tableau (même principe que `autoriseFinancier` sur `EcranTableauBord`).
+  const voitMontantsFacturation = peutVoirMontantsFacturation(role);
 
   const [qSaisie, setQSaisie] = useState('');
   const [q, setQ] = useState('');
@@ -135,13 +147,26 @@ export function EcranListeFactures() {
           <BadgeStatutReglement statut={document_.statutReglement} />
         ) : null,
     },
-    {
-      id: 'retard',
-      libelle: t('facturation:liste.colonnes.retard'),
-      // Voir l'ÉCART SIGNALÉ en tête de fichier : aucune donnée de retard sur la projection de
-      // liste — colonne structurellement présente (conforme à la maquette §7.1), toujours vide.
-      rendu: () => null,
-    },
+    // Colonne structurellement ABSENTE (ni en-tête ni cellule) pour un rôle sans droit financier —
+    // à la différence de `montant`/`statut` ci-dessus, qui restent affichées avec des cellules
+    // vides pour ces mêmes rôles. Décision volontaire (voir `droits.ts`) : la donnée de retard
+    // n'a pas de sens partiel comme un badge de statut, une colonne vide serait un bruit visuel
+    // sans contrepartie.
+    ...(voitMontantsFacturation
+      ? [
+          {
+            id: 'retard',
+            libelle: t('facturation:liste.colonnes.retard'),
+            rendu: (document_: DocumentVenteResume) => (
+              <IndicateurRetard
+                dateEcheance={document_.dateEcheance}
+                enRetard={document_.enRetard}
+                joursRetard={document_.joursRetard}
+              />
+            ),
+          },
+        ]
+      : []),
   ];
 
   let contenuVide: ReactNode;
