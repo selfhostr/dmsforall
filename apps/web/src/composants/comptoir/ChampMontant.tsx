@@ -1,5 +1,7 @@
 import { useEffect, useId, useState, type FocusEvent } from 'react';
 
+import type { DeviseFacturation } from '@dfa/shared';
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formaterMontant } from '@/lib/formats';
@@ -18,6 +20,14 @@ export interface ProprietesChampMontant {
   readonly disabled?: boolean;
   readonly erreur?: string;
   readonly className?: string;
+  /** Devise affichée en préfixe du champ (`CHF` par défaut). Ce champ sert très majoritairement
+   *  des saisies qui n'ont structurellement PAS de devise propre — remise, taux horaire, prix
+   *  d'article, montant de reprise véhicule : tout ce que le tenant paramètre ou encaisse
+   *  aujourd'hui n'existe qu'en CHF (aucun de ces domaines ne porte de colonne `devise`). Un seul
+   *  appelant connu a une vraie devise de document à respecter : la remise globale d'un
+   *  `document_vente` (`EcranFicheFacture.tsx`), qui passe explicitement `document_.devise` — sans
+   *  ce prop, une remise saisie sur une facture EUR reprise afficherait un préfixe CHF trompeur. */
+  readonly devise?: DeviseFacturation;
 }
 
 /** "12.5" / "12,5" (saisie suisse, virgule ou point) -> 1250 centimes. `null` si non
@@ -44,6 +54,7 @@ export function ChampMontant({
   disabled,
   erreur,
   className,
+  devise = 'CHF',
 }: ProprietesChampMontant) {
   const idGenere = useId();
   const idChamp = id ?? idGenere;
@@ -85,7 +96,7 @@ export function ChampMontant({
       </Label>
       <div className="relative">
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 texte-libelle text-muted-foreground">
-          CHF
+          {devise}
         </span>
         <Input
           id={idChamp}

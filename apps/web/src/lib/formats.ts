@@ -1,3 +1,5 @@
+import type { DeviseFacturation } from '@dfa/shared';
+
 /**
  * Formats suisses — TOUJOURS 'de-CH' quelle que soit la langue d'interface (FR/DE/IT) :
  * 1'234.50 et 27.07.2026 sont les formats attendus par un garagiste suisse quelle que soit
@@ -48,6 +50,20 @@ export function formaterMontant(centimes: number): string {
   }
   const francs = centimes / 100;
   return corrigerApostropheMilliers(FORMATEUR_MONTANT.format(francs));
+}
+
+/**
+ * Centimes (integer) + devise (`CHF`/`EUR`, `document_vente.devise` depuis la migration `0015`)
+ * -> "CHF 1'234.50" / "EUR 1'234.50". Un document dans une autre devise que CHF perdrait sa
+ * section QR (`RF-58`), mais reste un document valide dont le montant doit se lire pour ce qu'il
+ * est — jamais un chiffre nu qui laisserait croire, par défaut, à des francs suisses. Le front ne
+ * CRÉE aujourd'hui qu'en CHF, mais un document repris d'un ancien DMS ou créé par l'API peut
+ * porter `EUR` : centraliser le préfixe ICI (plutôt que `${devise} ${formaterMontant(...)}`
+ * recopié dans chaque composant, comme l'ont fait par nécessité `EcranListeFactures.tsx` et
+ * `BlocFinancierTableauBord.tsx` avant que ce fichier ne soit dans le périmètre du correctif) évite
+ * qu'un futur écran choisisse un espacement ou un ordre différent. */
+export function formaterMontantAvecDevise(centimes: number, devise: DeviseFacturation): string {
+  return `${devise} ${formaterMontant(centimes)}`;
 }
 
 /** Date ISO ou objet Date -> "jj.mm.aaaa" (format suisse). */

@@ -23,7 +23,13 @@ import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
 import { useFacturationOrdreReparation } from '@/hooks/facturation/useFacturationOrdreReparation';
-import { formaterMontant } from '@/lib/formats';
+import { formaterMontant, formaterMontantAvecDevise } from '@/lib/formats';
+
+/** L'atelier (module `atelier`, contrat `ReponseOrdreReparation`) ne porte AUCUN champ `devise` —
+ *  à la différence de `document_vente` (migration `0015`), un OR n'existe qu'en CHF, sans
+ *  exception. La facture créée par cet écran est donc structurellement en CHF : ce n'est pas une
+ *  valeur devinée par défaut, c'est la seule devise que ce domaine connaisse aujourd'hui. */
+const DEVISE_FACTURATION_OR = 'CHF' as const;
 
 /** Statuts de ligne « indécis » qui bloquent la facturation (`RF-86`) : ni réalisées (facturables),
  *  ni refusées/annulées (définitivement écartées). */
@@ -334,6 +340,8 @@ export function EcranFacturerOrdreReparation() {
                       </span>
                     ) : null}
                   </span>
+                  {/* Pas de préfixe devise ici : toutes les lignes d'un même groupe payeur partagent
+                      la devise structurellement CHF de l'OR, déjà annoncée sur le sous-total. */}
                   <span className="tabular-nums">
                     {ligne.montants ? formaterMontant(ligne.montants.montantTtcCentimes) : ''}
                   </span>
@@ -344,7 +352,7 @@ export function EcranFacturerOrdreReparation() {
               <span>{t('facturation:facturerOr.groupe.sousTotal')}</span>
               <span className="tabular-nums">
                 {groupe.totalTtcCentimes !== undefined
-                  ? formaterMontant(groupe.totalTtcCentimes)
+                  ? formaterMontantAvecDevise(groupe.totalTtcCentimes, DEVISE_FACTURATION_OR)
                   : ''}
               </span>
             </div>
@@ -352,7 +360,10 @@ export function EcranFacturerOrdreReparation() {
               <div className="flex flex-col gap-1.5 rounded-md bg-muted px-3 py-2">
                 <p className="texte-corps text-foreground">
                   {t('facturation:facturerOr.demontage.message', {
-                    montant: formaterMontant(or.demontageFacturablePropose.montantTtcCentimes),
+                    montant: formaterMontantAvecDevise(
+                      or.demontageFacturablePropose.montantTtcCentimes,
+                      DEVISE_FACTURATION_OR,
+                    ),
                   })}
                 </p>
                 <label
@@ -436,11 +447,11 @@ export function EcranFacturerOrdreReparation() {
             : groupesCoches.length <= 1
               ? t('facturation:facturerOr.action.unSingulier', {
                   payeur: groupesCoches[0] ? libelleGroupe(t, groupesCoches[0]) : '',
-                  montant: formaterMontant(montantTotalCentimes),
+                  montant: formaterMontantAvecDevise(montantTotalCentimes, DEVISE_FACTURATION_OR),
                 })
               : t('facturation:facturerOr.action.plusieurs', {
                   count: groupesCoches.length,
-                  montant: formaterMontant(montantTotalCentimes),
+                  montant: formaterMontantAvecDevise(montantTotalCentimes, DEVISE_FACTURATION_OR),
                 })}
         </Button>
       </div>

@@ -1,13 +1,19 @@
 import { useTranslation } from 'react-i18next';
 
-import type { DocumentVenteTva } from '@dfa/shared';
+import type { DeviseFacturation, DocumentVenteTva } from '@dfa/shared';
 
-import { formaterMontant, formaterPourmille } from '@/lib/formats';
+import { formaterMontant, formaterMontantAvecDevise, formaterPourmille } from '@/lib/formats';
 import { cn } from '@/lib/utils';
 
 interface Props {
   readonly ventilationTva: readonly DocumentVenteTva[] | undefined;
   readonly totalTtcCentimes: number | undefined;
+  /** Devise du document (`ReponseDocumentVente.devise`, migration `0015`) — toujours fournie par
+   *  l'appelant (elle voyage sur CHAQUE document, y compris pour un rôle sans droit aux montants,
+   *  contrairement à `ventilationTva`/`totalTtcCentimes`). Affichée UNIQUEMENT sur le total général
+   *  ci-dessous : les lignes « Base HT »/« TVA » par taux partagent nécessairement cette même devise,
+   *  la répéter sur chacune serait du bruit sans information nouvelle. */
+  readonly devise: DeviseFacturation;
   readonly className?: string;
 }
 
@@ -20,7 +26,7 @@ interface Props {
  * `totalTtcCentimes` sont alors tous deux `undefined` côté serveur, jamais substitués par des
  * zéros qui laisseraient croire à un document sans TVA.
  */
-export function RecapitulatifTVA({ ventilationTva, totalTtcCentimes, className }: Props) {
+export function RecapitulatifTVA({ ventilationTva, totalTtcCentimes, devise, className }: Props) {
   const { t } = useTranslation('facturation');
 
   if (ventilationTva === undefined || totalTtcCentimes === undefined) return null;
@@ -61,7 +67,7 @@ export function RecapitulatifTVA({ ventilationTva, totalTtcCentimes, className }
           {t('facturation:recapTva.totalGeneral')}
         </span>
         <span className="tabular-nums texte-corps font-semibold text-foreground">
-          {formaterMontant(totalTtcCentimes)}
+          {formaterMontantAvecDevise(totalTtcCentimes, devise)}
         </span>
       </div>
     </div>

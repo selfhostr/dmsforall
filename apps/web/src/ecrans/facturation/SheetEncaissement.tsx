@@ -2,7 +2,12 @@ import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { MOYENS_PAIEMENT, type EntreeCreationPaiement, type MoyenPaiement } from '@dfa/shared';
+import {
+  MOYENS_PAIEMENT,
+  type DeviseFacturation,
+  type EntreeCreationPaiement,
+  type MoyenPaiement,
+} from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
@@ -20,7 +25,7 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { useEncaissement } from '@/hooks/facturation/useEncaissement';
 import { useFacturesOuvertesClient } from '@/hooks/facturation/useFacturesOuvertesClient';
-import { formaterDate, formaterMontant } from '@/lib/formats';
+import { formaterDate, formaterMontant, formaterMontantAvecDevise } from '@/lib/formats';
 import { genererUuid } from '@/lib/uuid';
 
 import { EncartAvanceClient } from './EncartAvanceClient';
@@ -92,6 +97,33 @@ export function SheetEncaissement({
   const totalSelectionneCentimes = factures
     .filter((facture) => selection.has(facture.id))
     .reduce((somme, facture) => somme + (facture.soldeCentimes ?? 0), 0);
+
+  /**
+   * Devise portée par les factures sélectionnées (`DocumentVenteResume.devise`, migration `0015`)
+   * — déterminée UNIQUEMENT quand la sélection est homogène. Sélection vide (rien à régler
+   * encore) ou mélangeant CHF/EUR (un client peut, en théorie, avoir des factures reprises dans
+   * deux devises) : `undefined`, jamais une devise devinée par défaut (règle du correctif).
+   *
+   * Un mélange réel resterait de toute façon arithmétiquement faux : `totalSelectionneCentimes`
+   * additionne des soldes qui ne partageraient pas une seule devise, et le paiement lui-même n'est
+   * créé qu'en CHF (`devise: 'CHF'` plus bas, `soumettre`) quelle que soit la devise de la facture
+   * réglée. Un vrai support multi-devise de l'encaissement (empêcher la sélection mixte, aligner la
+   * devise du paiement sur celle de la facture) est un chantier métier distinct qui dépasse un
+   * correctif d'affichage — signalé, non traité ici.
+   */
+  const devisesSelectionnees = new Set(
+    factures.filter((facture) => selection.has(facture.id)).map((facture) => facture.devise),
+  );
+  const deviseSelectionCommune: DeviseFacturation | undefined =
+    devisesSelectionnees.size === 1 ? [...devisesSelectionnees][0] : undefined;
+
+  /** Affiche la devise quand elle est connue et non ambiguë (`deviseSelectionCommune`), sinon un
+   *  montant nu plutôt qu'un préfixe inventé — voir le commentaire ci-dessus. */
+  function formaterTotalSelection(centimes: number): string {
+    return deviseSelectionCommune
+      ? formaterMontantAvecDevise(centimes, deviseSelectionCommune)
+      : formaterMontant(centimes);
+  }
 
   const sommeLignesCentimes = lignes.reduce(
     (somme, ligne) => somme + (ligne.montantCentimes ?? 0),
@@ -198,6 +230,10 @@ export function SheetEncaissement({
           dateValeur: new Date().toISOString().slice(0, 10),
           moyen: ligne.moyen,
           montantCentimes: ligne.montantCentimes as number,
+          // Codé en dur (pas de sélecteur de devise sur les lignes de paiement, `ChampMontant`
+          // ci-dessous affiche d'ailleurs son préfixe `CHF` par défaut) — voir le commentaire de
+          // `deviseSelectionCommune` plus haut : un paiement en EUR pour solder une facture EUR
+          // reprise n'est structurellement pas possible avec cet écran aujourd'hui.
           devise: 'CHF',
           payeurClientId: clientId,
           payeurLibelle: destinataireNom ?? '',
@@ -255,7 +291,7 @@ export function SheetEncaissement({
                     {facture.soldeCentimes !== undefined ? (
                       <span className="tabular-nums text-muted-foreground">
                         {t('facturation:encaissement.facturesOuvertes.resteDu', {
-                          montant: formaterMontant(facture.soldeCentimes),
+                          montant: formaterMontantAvecDevise(facture.soldeCentimes, facture.devise),
                         })}
                       </span>
                     ) : null}
@@ -268,7 +304,9 @@ export function SheetEncaissement({
             ) : (
               <div className="flex items-center justify-between border-t pt-2 texte-corps font-medium">
                 <span>{t('facturation:encaissement.facturesOuvertes.totalSelectionne')}</span>
-                <span className="tabular-nums">{formaterMontant(totalSelectionneCentimes)}</span>
+                <span className="tabular-nums">
+                  {formaterTotalSelection(totalSelectionneCentimes)}
+                </span>
               </div>
             )}
           </section>
@@ -335,7 +373,7 @@ export function SheetEncaissement({
           {tropPercuCentimes > 0 ? (
             <EncartAvanceClient
               message={t('facturation:avanceClient.message', {
-                montant: formaterMontant(totalSelectionneCentimes),
+                montant: formaterTotalSelection(totalSelectionneCentimes),
               })}
             />
           ) : null}
@@ -343,7 +381,7 @@ export function SheetEncaissement({
           <div className="flex items-center justify-between border-t pt-3 texte-corps font-semibold">
             <span>{t('facturation:encaissement.resteAEncaisser')}</span>
             <span className="tabular-nums">
-              {formaterMontant(Math.max(resteAEncaisserCentimes, 0))}
+              {formaterTotalSelection(Math.max(resteAEncaisserCentimes, 0))}
             </span>
           </div>
 

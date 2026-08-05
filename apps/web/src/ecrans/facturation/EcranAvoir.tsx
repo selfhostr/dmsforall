@@ -30,7 +30,7 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { useCreerAvoir } from '@/hooks/facturation/useCreerAvoir';
 import { useDocumentVente } from '@/hooks/facturation/useDocumentVente';
 import { useEmettreDocumentVente } from '@/hooks/facturation/useEmettreDocumentVente';
-import { formaterMontant } from '@/lib/formats';
+import { formaterMontant, formaterMontantAvecDevise } from '@/lib/formats';
 
 /** Suffixe camelCase de `facturation:motifsAvoir.*` — snake_case (`prestation_annulee`) vers
  *  camelCase (`prestationAnnulee`), même mapping que `DialogueCorrectionFacture`. */
@@ -230,6 +230,10 @@ export function EcranAvoir() {
                     <label htmlFor={`avoir-ligne-${ligne.id}`} className="flex-1">
                       {ligne.designation}
                     </label>
+                    {/* Pas de préfixe devise ici : toutes les lignes viennent de LA MÊME facture
+                        d'origine (`facture.devise`), déjà annoncée sur le total de l'avoir
+                        ci-dessous — la répéter par ligne serait du bruit (même règle que
+                        `EcranFicheFacture.tsx`). */}
                     {ligne.montants ? (
                       <span className="tabular-nums">
                         {formaterMontant(ligne.montants.montantTtcCentimes)}
@@ -255,7 +259,7 @@ export function EcranAvoir() {
         <div className="flex flex-col gap-3 rounded-md border p-4">
           <p className="texte-libelle text-muted-foreground">{t('facturation:avoir.totalAvoir')}</p>
           <p className="texte-chiffre-geant tabular-nums font-semibold text-foreground">
-            −{formaterMontant(totalAvoirCentimes)}
+            −{formaterMontantAvecDevise(totalAvoirCentimes, facture.devise)}
           </p>
         </div>
       </div>
@@ -269,7 +273,7 @@ export function EcranAvoir() {
             <p className="texte-corps">
               {t('facturation:fiche.dialogueEmission.resumeAvoir', {
                 numero: facture.numero ?? '',
-                montant: formaterMontant(totalAvoirCentimes),
+                montant: formaterMontantAvecDevise(totalAvoirCentimes, facture.devise),
               })}
             </p>
             <p className="texte-corps text-muted-foreground">

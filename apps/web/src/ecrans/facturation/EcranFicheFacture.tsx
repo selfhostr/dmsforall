@@ -38,7 +38,12 @@ import { obtenirEnv } from '@/config/env';
 import { useDocumentVente } from '@/hooks/facturation/useDocumentVente';
 import { useEmettreDocumentVente } from '@/hooks/facturation/useEmettreDocumentVente';
 import { useModifierDocumentVente } from '@/hooks/facturation/useModifierDocumentVente';
-import { formaterDate, formaterMontant, formaterPourmille } from '@/lib/formats';
+import {
+  formaterDate,
+  formaterMontant,
+  formaterMontantAvecDevise,
+  formaterPourmille,
+} from '@/lib/formats';
 
 import { BadgeEtatDocument } from './BadgeEtatDocument';
 import { BadgeTypeDocument } from './BadgeTypeDocument';
@@ -390,6 +395,12 @@ export function EcranFicheFacture() {
                           <TableCell className="text-right tabular-nums">
                             {(ligne.quantiteMillieme / 1000).toString()}
                           </TableCell>
+                          {/* Pas de préfixe devise ICI : toutes les lignes d'UN document partagent
+                              nécessairement la même devise (`document_.devise`), déjà annoncée au
+                              pied du document (Total TTC) et dans le dialogue d'émission — la
+                              répéter sur chaque ligne serait du bruit, pas de l'information (à la
+                              différence d'`EcranListeFactures`, où chaque LIGNE est un document
+                              distinct qui peut porter sa propre devise). */}
                           <TableCell className="text-right tabular-nums">
                             {ligne.prixUnitaireTtcCentimes !== null &&
                             ligne.prixUnitaireTtcCentimes !== undefined
@@ -426,6 +437,7 @@ export function EcranFicheFacture() {
                   valeurCentimes={remiseCentimes}
                   onChangeCentimes={setRemiseCentimes}
                   label={t('facturation:champs.remiseGlobale.montant')}
+                  devise={document_.devise}
                 />
                 <Button
                   type="button"
@@ -446,7 +458,7 @@ export function EcranFicheFacture() {
               </p>
               <p className="texte-chiffre-geant tabular-nums font-semibold text-foreground">
                 {document_.totalTtcCentimes !== undefined
-                  ? formaterMontant(document_.totalTtcCentimes)
+                  ? formaterMontantAvecDevise(document_.totalTtcCentimes, document_.devise)
                   : t('facturation:fiche.montantIndisponible')}
               </p>
             </div>
@@ -457,6 +469,7 @@ export function EcranFicheFacture() {
           <RecapitulatifTVA
             ventilationTva={document_.ventilationTva}
             totalTtcCentimes={document_.totalTtcCentimes}
+            devise={document_.devise}
           />
 
           <CarteBulletinVersement qr={document_.qr} />
@@ -516,7 +529,7 @@ export function EcranFicheFacture() {
                 destinataire: destinataireNom,
                 montant:
                   document_.totalTtcCentimes !== undefined
-                    ? formaterMontant(document_.totalTtcCentimes)
+                    ? formaterMontantAvecDevise(document_.totalTtcCentimes, document_.devise)
                     : '',
               })}
             </p>

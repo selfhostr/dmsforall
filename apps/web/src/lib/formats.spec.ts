@@ -6,8 +6,27 @@ import {
   formaterHeure,
   formaterKilometrage,
   formaterMontant,
+  formaterMontantAvecDevise,
   formaterPourmille,
 } from './formats';
+
+describe('formaterMontantAvecDevise', () => {
+  it('préfixe CHF sans altérer le format suisse du montant', () => {
+    expect(formaterMontantAvecDevise(123450, 'CHF')).toBe("CHF 1'234.50");
+  });
+
+  it('préfixe EUR (document repris ou créé par API, migration 0015)', () => {
+    expect(formaterMontantAvecDevise(123450, 'EUR')).toBe("EUR 1'234.50");
+  });
+
+  it('gère un montant négatif (avoir) sans déplacer le signe', () => {
+    expect(formaterMontantAvecDevise(-5000, 'CHF')).toBe('CHF -50.00');
+  });
+
+  it('gère zéro', () => {
+    expect(formaterMontantAvecDevise(0, 'CHF')).toBe('CHF 0.00');
+  });
+});
 
 describe('formaterMontant', () => {
   it('formate des centimes en 1’234.50 avec apostrophe droite (pas typographique)', () => {
