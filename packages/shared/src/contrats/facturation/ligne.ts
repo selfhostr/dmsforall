@@ -104,11 +104,40 @@ export interface ReponseLigneDocumentVente {
  * facturation est TOUJOURS un TTC en centimes entiers. Le serveur dérive HT et TVA
  * (`ttc − arrondiCommercial(ttc × taux, 1000 + taux) = ht`, `MD-43` mode `ttc`) et fige
  * `modeCalculTva = 'ttc'` sur la ligne créée.
+ *
+ * `articleId`/`siteId` — LE PONT vers le stock pièces (`RP-43`, note d'intégration de
+ * `contrats/pieces/mouvement.ts`), fermé par cette paire de champs. Facultatifs ENSEMBLE : une
+ * ligne `piece` ordinaire (correction, reprise de données, prestation valorisée sans article de
+ * référentiel) reste possible SANS eux, exactement comme avant ce lot — aucune régression sur les
+ * documents existants qui portent déjà des lignes `piece` sans article. Quand les DEUX sont
+ * fournis, le serveur les consomme pour appeler `ServiceMouvement.sortieComptoirPourLigneTx` DANS
+ * LA MÊME TRANSACTION que l'insertion de cette ligne (`apps/api/src/facturation/documents/
+ * service-documents.ts::inserterLigne`) — un mouvement `sortie_comptoir` naît, référence CETTE
+ * ligne via `mouvement_stock.document_vente_ligne_id`, et la vente échoue tout entière
+ * (`409 STOCK_INSUFFISANT`) si le stock disponible ne couvre pas `quantiteMillieme`.
+ *
+ * **NI L'UN NI L'AUTRE N'EST PERSISTÉ SUR `ligne_document`** : la table n'a AUCUNE colonne
+ * `article_id`/`site_id` (`0010_facturation.sql` — vérifié, aucune migration ultérieure n'en
+ * ajoute), et ce lot n'a pas le mandat d'en poser une (migrations 0043/0044 prises par un autre
+ * chantier au moment où ce pont a été construit). Ces deux champs sont donc PUREMENT transitoires
+ * côté serveur : consommés pour fabriquer le mouvement, jamais relus depuis `ligne_document`
+ * ensuite. Le lien DURABLE vit exclusivement côté stock (`mouvement_stock.document_vente_ligne_id`,
+ * FK `on delete restrict` — une ligne qui a déclenché un mouvement ne peut plus être supprimée,
+ * la base l'empêche). Conséquence assumée : `ReponseLigneDocumentVente.articleId` (déjà défini
+ * dans le contrat, `null` documenté « tant que le module n'existe pas ») reste `null` en LECTURE
+ * même pour une ligne qui a bien déclenché un mouvement — le mapper ne le retro-déduit pas depuis
+ * `mouvement_stock` dans ce lot (lecture non câblée, signalé au rapport de livraison).
+ *
+ * Réservés à `type = 'piece'` (refine ci-dessous) : une ligne `forfait`/`main_oeuvre_*`/`texte`…
+ * avec `articleId` renseigné n'a pas de sens, le stock ne se décrémente jamais pour ces types.
  */
 export const formeLigneDocument = z.object({
   type: z.enum(TYPES_LIGNE_DOCUMENT_VENTE),
   designation: schemaTexteCourt,
   referenceTexte: z.string().trim().max(80).nullish(),
+  /** Voir le paragraphe dédié ci-dessus — facultatifs ENSEMBLE, réservés à `type = 'piece'`. */
+  articleId: schemaIdentifiant.nullish(),
+  siteId: schemaIdentifiant.nullish(),
   quantiteMillieme: schemaQuantiteLigneDocument.default(1000),
   /** `null` UNIQUEMENT pour `type = 'texte'` (note libre sans prix). */
   prixUnitaireTtcCentimes: schemaCentimesTtc.nullish(),
@@ -135,11 +164,30 @@ export const schemaCreationLigneDocument = formeLigneDocument
   .refine((v) => v.type !== 'acompte_deduit' || v.documentAcompteId != null, {
     message: "Une ligne 'acompte_deduit' référence obligatoirement le document d'acompte (MD-55).",
     path: ['documentAcompteId'],
+  })
+  .refine((v) => (v.articleId == null) === (v.siteId == null), {
+    message: 'articleId et siteId (pont stock, RP-43) se fournissent ensemble, ou pas du tout.',
+    path: ['siteId'],
+  })
+  .refine((v) => v.type === 'piece' || v.articleId == null, {
+    message: "articleId/siteId (pont stock, RP-43) ne sont acceptés que pour type = 'piece'.",
+    path: ['articleId'],
   });
 
 export type EntreeCreationLigneDocument = z.infer<typeof schemaCreationLigneDocument>;
 
-/** `PATCH /documents-vente/{id}/lignes/{ligneId}` — uniquement sur un document `brouillon`
- *  (`MD-21`) ; champs libres. */
+/**
+ * `PATCH /documents-vente/{id}/lignes/{ligneId}` — uniquement sur un document `brouillon`
+ * (`MD-21`) ; champs libres.
+ *
+ * `articleId`/`siteId` HÉRITÉS de `formeLigneDocument` mais volontairement SANS effet différé sur
+ * le stock : le serveur (`ServiceDocumentsVente.modifierLigne`) refuse TOUTE modification —
+ * qu'elle touche ou non ces deux champs — d'une ligne qui a déjà déclenché un mouvement de stock
+ * (`409 LIGNE_DOCUMENT_STOCK_LIEE`). Une correction de quantité/article après coup n'a pas de
+ * traduction stock sûre (le mouvement déjà écrit est IMMUABLE, RP-18) ; la seule voie de correction
+ * reste, sur brouillon, une suppression suivie d'un ajout — bloquée elle aussi par la même garde
+ * tant qu'un mouvement existe (voir `service-documents.ts::supprimerLigne`) — donc en pratique :
+ * abandonner le brouillon si l'erreur porte sur une ligne déjà sortie physiquement.
+ */
 export const schemaModificationLigneDocument = formeLigneDocument.partial();
 export type EntreeModificationLigneDocument = z.infer<typeof schemaModificationLigneDocument>;

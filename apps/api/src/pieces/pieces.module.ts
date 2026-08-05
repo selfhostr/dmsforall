@@ -28,8 +28,13 @@ import { StockArticleController } from './stock.controller';
  *
  * Périmètre RESTANT hors de ce module (voir le rapport de livraison de ce lot) : `POST /consignes`
  * (aucune route, la pose naît comme effet de bord de `atelier/`, GELÉ), l'atomicité consigne ↔
- * avoir facturation (RF-100, cross-module, non résolue), la vente comptoir (RP-43→RP-48, hors des
- * quatre priorités de ce lot).
+ * avoir facturation (RF-100, cross-module, non résolue).
+ *
+ * Vente comptoir (`RP-43`→`RP-48`) : le pont vers `facturation/` est câblé (`sortieComptoirPourLigneTx`/
+ * `retourClientPourLigneTx`/`trouverMouvementParLigneDocumentTx`, `service-mouvement.ts`) — voir la
+ * note d'intégration de `contrats/pieces/mouvement.ts` pour ce qui est couvert et ce qui reste
+ * ouvert. `FacturationModule` importe ce module pour cette seule raison (même patron que
+ * `AtelierModule` important déjà `PiecesModule` pour `ServiceReservation`/`ServiceConsigne`).
  *
  * `JETON_DB`/`JETON_IDEMPOTENCE` sont fournis par `DbModule`/`CommonModule` (tous deux `@Global`,
  * voir `app.module.ts`) : aucun des deux n'est importé ici, même précédent que `ClientsModule`.

@@ -131,6 +131,30 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
       'apps/api/src/pointage/service-pointage.spec.ts (refus 403 pour un technicien ciblant autrui, sans écriture).',
   },
 
+  {
+    // FAILLE CORRIGÉE (audit sécurité) : `forcer: true` sur `POST /articles/{id}/mouvements/casse`
+    // et `.../perte` outrepasse le refus `409 STOCK_INSUFFISANT` (`RP-15`/`PP-02`) — jusqu'ici
+    // gouverné par le SEUL `pieces.mouvement.creer`, sans droit dédié pour le forçage lui-même. La
+    // route sert À LA FOIS la création NORMALE (tout appelant avec `pieces.mouvement.creer`,
+    // aujourd'hui `magasinier` seul) ET le forçage (sous-cas conditionné par `entree.forcer ===
+    // true`) : `@ExigerDroit` est statique par route, il ne peut pas distinguer les deux requêtes
+    // AVANT exécution — un `@ExigerDroit('pieces.mouvement.forcer')` posé statiquement sur la
+    // route interdirait AUSSI la création normale, non forcée, à `magasinier`. Même famille que
+    // `atelier.or.plafond_modifier` ci-dessus.
+    action: 'pieces.mouvement.forcer',
+    categorie: 'verification-conditionnelle-service',
+    justification:
+      'Contrôle réel : ServiceMouvement.creerMouvementSortie() (apps/api/src/pieces/service-mouvement.ts), appelée ' +
+      'par casse()/perte() — les deux seules actions du contrat qui exposent `forcer` (RP-15) — bloc `if (forcer) { ' +
+      "const droitsDuRole = MATRICE_DROITS[role] ?? []; if (!droitsDuRole.includes('pieces.mouvement.forcer')) throw " +
+      "new ErreurMetier('DROIT_INSUFFISANT', ...); }`, exécuté AVANT tout accès base (chargement article/site, " +
+      'vérification de disponibilité) — jamais quand `forcer` est absent ou `false`, sinon la création normale de ' +
+      "casse/perte (sans forçage) serait aussi bloquée par ce droit plus fort. Le rôle est lu depuis l'appelant " +
+      '(paramètre `role`, jamais depuis le client). Couvert par des tests dans ' +
+      'apps/api/src/pieces/service-mouvement.spec.ts : refus 403 sans écriture pour un rôle sans le droit qui tente ' +
+      'forcer=true, et non-régression pour le même rôle sans forcer (ou magasinier avec forcer=true).',
+  },
+
   // ---------------------------------------------------------------------------------------------
   // Actions inertes, créées par anticipation
   // ---------------------------------------------------------------------------------------------

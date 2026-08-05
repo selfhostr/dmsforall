@@ -1023,6 +1023,7 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'pieces.stock.lire',
       'pieces.stock.modifier',
       'pieces.mouvement.creer',
+      'pieces.mouvement.forcer',
       'pieces.reservation.lire',
       'pieces.reservation.satisfaire',
       'pieces.reservation.liberer',
@@ -1451,6 +1452,9 @@ describe('MATRICE_DROITS — invariante structurelle : écrire une entité impli
         // Un mouvement de stock (casse, perte, transfert, ajustement, retour) n'a pas de `.lire`
         // dédié : il se consulte via l'état du stock qu'il modifie.
         'pieces.mouvement.creer',
+        // `forcer` (audit sécurité) : même sous-ressource que `pieces.mouvement.creer` ci-dessus,
+        // même absence de `.lire` dédié.
+        'pieces.mouvement.forcer',
       ],
     },
     {

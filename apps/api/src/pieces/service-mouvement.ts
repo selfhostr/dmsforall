@@ -19,6 +19,7 @@ import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import { JETON_DB } from '../db';
 import { article, mouvementStock, parametrePieces, site } from '../db/schema';
 import type { LigneMouvementStock, NouveauMouvementStock } from '../db/schema';
+import { MATRICE_DROITS } from '../auth/matrice-droits';
 import { CollecteurAvertissements } from '../common/avertissements';
 import { remonterCausePg } from '../common/erreurs-pg/remonter-cause-pg';
 import { ErreurMetier } from '../common/erreurs';
@@ -439,6 +440,15 @@ export class ServiceMouvement {
       readonly entree: unknown;
     },
   ): Promise<ResultatIdempotent<ResultatCreationMouvement & ReponseMemorisable>> {
+    // FAILLE CORRIGÉE (audit sécurité) : `forcer` exige désormais `pieces.mouvement.forcer` EN PLUS
+    // du droit qui a laissé passer la requête jusqu'ici (`pieces.mouvement.creer`, vérifié par le
+    // contrôleur). Vérifié AVANT toute écriture d'idempotence et tout accès base (même position que
+    // `ServiceEmissionDocument.verifierDroitEmission`) — jamais quand `forcer` est absent/`false`,
+    // sinon la création normale non forcée serait aussi bloquée. Voir `auth/matrice-droits.ts`
+    // (`FORCAGE_MOUVEMENT_PIECES`) et `common/droits/allowlist-actions-non-decorees.ts` (entrée
+    // `pieces.mouvement.forcer`) pour la doctrine complète.
+    this.exigerDroitForcage(role, forcer);
+
     return this.idempotence.executer(
       ctx,
       {
@@ -519,6 +529,176 @@ export class ServiceMouvement {
         },
       );
     }
+  }
+
+  /**
+   * FAILLE CORRIGÉE (audit sécurité) : `pieces.mouvement.forcer` gouverne EXCLUSIVEMENT le
+   * passage outre `409 STOCK_INSUFFISANT` — n'a aucun effet et n'est jamais vérifié quand
+   * `forcer` est absent/`false` (la création normale reste ouverte à tout rôle qui a
+   * `pieces.mouvement.creer`, contrôlé par le contrôleur, pas ici).
+   */
+  private exigerDroitForcage(role: RoleUtilisateur, forcer: boolean): void {
+    if (!forcer) return;
+    const droitsDuRole = MATRICE_DROITS[role] ?? [];
+    if (!droitsDuRole.includes('pieces.mouvement.forcer')) {
+      throw new ErreurMetier(
+        'DROIT_INSUFFISANT',
+        `Le rôle "${role}" n'a pas le droit de forcer un mouvement de stock au-delà du disponible (paramètre "forcer", RP-15/PP-02).`,
+      );
+    }
+  }
+
+  /**
+   * Variante composable de `sortieComptoir`, `tx` déjà ouvert en PREMIER paramètre — même
+   * convention que `ServiceReservation.satisfaireTx` (`pieces/service-reservation.ts`), pour LA
+   * MÊME raison documentée là-bas : `AccesBase.enTenant`, appelé depuis l'intérieur d'un `tx` déjà
+   * ouvert, acquiert une connexion NEUVE avec son propre BEGIN/COMMIT — aucune atomicité réelle.
+   * Seule cette variante, qui reçoit le `tx` de l'appelant, pose un vrai point de reprise commun.
+   *
+   * Appelée par `ServiceDocumentsVente.inserterLigne` (`facturation/documents/service-documents.ts`)
+   * DANS LA MÊME TRANSACTION que l'`INSERT` de la ligne de document (`RP-43`, note d'intégration de
+   * `contrats/pieces/mouvement.ts`) — jamais depuis un second `POST` HTTP indépendant. AUCUN
+   * `Idempotency-Key` ici : la déduplication appartient à l'appelant HTTP (`ajouterLigne`), qui n'en
+   * porte pas lui-même aujourd'hui (gap signalé au rapport de livraison, hors périmètre de ce
+   * fichier).
+   *
+   * PAS de `forcer` (même contrat que `sortieComptoir`, l'entrypoint HTTP direct) : une vente
+   * comptoir n'a jamais la légitimité de `casse`/`perte` à contourner `409 STOCK_INSUFFISANT` —
+   * décision de contrat déjà posée dans `mouvement.ts`, reconduite ici à l'identique.
+   */
+  async sortieComptoirPourLigneTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    params: {
+      readonly articleId: string;
+      readonly siteId: string;
+      readonly quantiteMillieme: number;
+      readonly documentVenteLigneId: string;
+      readonly motif: string | null;
+    },
+  ): Promise<ReponseMouvementStock> {
+    await this.chargerArticleOu404(tx, ctx, params.articleId);
+    await this.chargerSiteOu404(tx, ctx, params.siteId);
+    await this.verifierDisponible(
+      tx,
+      ctx,
+      params.articleId,
+      params.siteId,
+      params.quantiteMillieme,
+      false,
+    );
+
+    const valeurs: NouveauMouvementStock = {
+      tenantId: ctx.tenantId,
+      articleId: params.articleId,
+      type: 'sortie_comptoir',
+      quantiteMillieme: -params.quantiteMillieme,
+      siteId: params.siteId,
+      motif: params.motif,
+      documentVenteLigneId: params.documentVenteLigneId,
+      auteurId: ctx.utilisateurId,
+    };
+    try {
+      const [ligne] = await tx.insert(mouvementStock).values(valeurs).returning();
+      if (!ligne) {
+        throw new ErreurMetier(
+          'ERREUR_INTERNE',
+          'Échec de création du mouvement de sortie comptoir (pont facturation, RP-43).',
+        );
+      }
+      return versMouvementResponse(ligne, role);
+    } catch (erreur) {
+      // Même filet que `creerMouvementSortie` — voir sa docstring pour le détail du déballage
+      // `remonterCausePg`.
+      if (erreur instanceof ErreurMetier) throw erreur;
+      if (estViolationStockInsuffisant(erreur)) {
+        throw new ErreurMetier(
+          'STOCK_INSUFFISANT',
+          'Stock disponible insuffisant (contrainte base — filet de sécurité, pont facturation RP-43).',
+          {
+            detail: `tenant=${ctx.tenantId};article=${params.articleId};site=${params.siteId};type=sortie_comptoir`,
+          },
+        );
+      }
+      throw erreur;
+    }
+  }
+
+  /**
+   * Variante composable de `retourClient`, même convention que `sortieComptoirPourLigneTx`
+   * ci-dessus — appelée par `ServiceAvoir.creer` (`facturation/documents/service-avoir.ts`) DANS
+   * LA MÊME TRANSACTION que l'`INSERT` de la ligne d'avoir, quand cet avoir crédite INTÉGRALEMENT
+   * une ligne de facture qui avait elle-même déclenché un mouvement `sortie_comptoir` (`RP-46`).
+   * `documentVenteLigneId` référence la ligne de l'AVOIR (celle qui vient d'être insérée), pas la
+   * ligne de la facture d'origine — symétrique de `sortieComptoirPourLigneTx`, qui référence la
+   * ligne de la facture.
+   *
+   * Aucune vérification de disponibilité (même doctrine que `retourClient`, l'entrypoint HTTP
+   * direct) : une ENTRÉE de stock n'est jamais refusée pour stock insuffisant.
+   */
+  async retourClientPourLigneTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    params: {
+      readonly articleId: string;
+      readonly siteId: string;
+      readonly quantiteMillieme: number;
+      readonly documentVenteLigneId: string;
+      readonly motif: string;
+    },
+  ): Promise<ReponseMouvementStock> {
+    await this.chargerArticleOu404(tx, ctx, params.articleId);
+    await this.chargerSiteOu404(tx, ctx, params.siteId);
+
+    const valeurs: NouveauMouvementStock = {
+      tenantId: ctx.tenantId,
+      articleId: params.articleId,
+      type: 'retour_client',
+      quantiteMillieme: params.quantiteMillieme,
+      siteId: params.siteId,
+      motif: params.motif,
+      documentVenteLigneId: params.documentVenteLigneId,
+      auteurId: ctx.utilisateurId,
+    };
+    const [ligne] = await tx.insert(mouvementStock).values(valeurs).returning();
+    if (!ligne) {
+      throw new ErreurMetier(
+        'ERREUR_INTERNE',
+        'Échec de création du mouvement de retour client (pont facturation, RP-46).',
+      );
+    }
+    return versMouvementResponse(ligne, role);
+  }
+
+  /**
+   * Cherche le mouvement de stock qui référence CETTE ligne de document de vente, s'il en existe
+   * un (`mouvement_stock.document_vente_ligne_id`) — au plus un par construction (une ligne ne
+   * déclenche jamais deux mouvements). Sert deux besoins :
+   *  1. `ServiceDocumentsVente.modifierLigne`/`supprimerLigne` : refuser toute écriture sur une
+   *     ligne déjà liée à un mouvement (`409 LIGNE_DOCUMENT_STOCK_LIEE`) — le mouvement est
+   *     IMMUABLE (RP-18), la ligne qui l'a fait naître le devient avec lui.
+   *  2. `ServiceAvoir.creer` : retrouver `articleId`/`siteId`/quantité du mouvement `sortie_comptoir`
+   *     d'origine pour fabriquer le `retour_client` symétrique (`RP-46`) — ces trois valeurs ne
+   *     sont PAS persistées sur `ligne_document` (voir la note d'intégration de
+   *     `contrats/pieces/mouvement.ts`), le mouvement est la SEULE source qui les porte encore.
+   *
+   * Pas de verrou (`for update`) : appelée en LECTURE avant une décision, jamais pour protéger une
+   * écriture concurrente sur `mouvement_stock` lui-même (immuable, aucun UPDATE n'existe à
+   * protéger).
+   */
+  async trouverMouvementParLigneDocumentTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    documentVenteLigneId: string,
+  ): Promise<LigneMouvementStock | null> {
+    const resultat = await tx.execute<LigneMouvementStock>(sql`
+      select ${COLONNES_MOUVEMENT_ALIASEES} from public.mouvement_stock m
+       where m.tenant_id = ${ctx.tenantId} and m.document_vente_ligne_id = ${documentVenteLigneId}
+       limit 1
+    `);
+    return resultat.rows[0] ?? null;
   }
 
   private async chargerSeuilAjustement(

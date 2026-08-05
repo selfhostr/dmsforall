@@ -244,6 +244,13 @@ export const CODES_ERREUR = [
   'CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE',
   'CONNECTEUR_EXECUTION_TRANSITION_INTERDITE',
   'ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE',
+  // --- Pont pièces ↔ facturation (RP-43/RP-46, vente comptoir) ---
+  // Une ligne de document de vente (`type = 'piece'`) qui a déclenché un mouvement de stock
+  // (`mouvement_stock.document_vente_ligne_id`) devient IMMUABLE au même titre qu'une ligne
+  // recopiée depuis un OR — RP-18 (le mouvement lui-même est immuable) se propage à la ligne qui
+  // l'a fait naître : la modifier ou la supprimer désynchroniserait la quantité facturée de la
+  // quantité réellement sortie du stock. `service-documents.ts::modifierLigne`/`supprimerLigne`.
+  'LIGNE_DOCUMENT_STOCK_LIEE',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -371,6 +378,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE: 409,
   CONNECTEUR_EXECUTION_TRANSITION_INTERDITE: 409,
   ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE: 409,
+  LIGNE_DOCUMENT_STOCK_LIEE: 409,
 };
 
 /**
@@ -484,6 +492,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE: 'Activation du connecteur impossible',
   CONNECTEUR_EXECUTION_TRANSITION_INTERDITE: 'Utilisation du connecteur impossible',
   ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE: 'Transition interdite pour cet abonnement webhook',
+  LIGNE_DOCUMENT_STOCK_LIEE: 'Ligne liée à un mouvement de stock, immuable',
 };
 
 /**
@@ -621,6 +630,13 @@ export const CODES_AVERTISSEMENT = [
   // que le vendeur statue explicitement (garder, rendre, transférer). `donnees` porte
   // `{ depotsOuverts: { id, saison, statut }[] }`.
   'VEHICULE_DEPOTS_PNEUS_OUVERTS',
+  // RP-46 — un avoir crédite PARTIELLEMENT (montant < TTC original) une ligne `piece` qui avait
+  // déclenché un mouvement `sortie_comptoir` : un montant partiel n'a pas de traduction fiable en
+  // quantité physique réellement rendue (un tiers du prix ne veut pas dire un tiers de la pièce),
+  // donc AUCUN mouvement `retour_client` n'est créé automatiquement — jamais bloquant (l'avoir
+  // financier reste émis), seulement signalé pour que le magasinier enregistre le retour physique
+  // à la main s'il a réellement eu lieu (`POST /articles/{id}/mouvements/retour-client`).
+  'AVOIR_RETOUR_STOCK_NON_DECLENCHE',
 ] as const;
 export type CodeAvertissement = (typeof CODES_AVERTISSEMENT)[number];
 

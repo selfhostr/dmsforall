@@ -8,6 +8,7 @@ import type {
   FiltresDocumentsVente,
   ReponseAvecAvertissements,
   ReponseDocumentVente,
+  RoleUtilisateur,
 } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../../db';
@@ -27,6 +28,11 @@ import {
   type ResultatIdempotent,
   type ServiceIdempotence,
 } from '../../common/idempotence';
+// Import de CLASSE (jamais `import type`, règle du dépôt — l'injection casse à l'exécution, pas à
+// la compilation) : `ServiceMouvement` est exporté par `PiecesModule` pour cette injection croisée
+// (RP-43, pont vente comptoir — voir `facturation.module.ts` et la note d'intégration de
+// `contrats/pieces/mouvement.ts`).
+import { ServiceMouvement } from '../../pieces/service-mouvement';
 
 import { calculerLigneDocument, calculerTotauxDocument } from './calcul-document';
 import {
@@ -64,6 +70,7 @@ export class ServiceDocumentsVente {
     @Inject(JETON_IDEMPOTENCE) private readonly idempotence: ServiceIdempotence,
     @Inject(JETON_AUDIT) private readonly audit: ServiceAudit,
     private readonly horloge: Horloge,
+    private readonly serviceMouvement: ServiceMouvement,
   ) {}
 
   /**
@@ -165,7 +172,7 @@ export class ServiceDocumentsVente {
 
         let numeroOrdre = 1;
         for (const ligneEntree of entree.lignes) {
-          await this.inserterLigne(tx, ctx, doc.id, numeroOrdre++, ligneEntree);
+          await this.inserterLigne(tx, ctx, principal.role, doc.id, numeroOrdre++, ligneEntree);
         }
 
         const document = await this.assemblerDocument(tx, ctx, principal.role, doc.id);
@@ -296,7 +303,7 @@ export class ServiceDocumentsVente {
 
       const existantes = await listerLignesDocument(tx, ctx, documentId);
       const numeroOrdre = (existantes.at(-1)?.numeroOrdre ?? 0) + 1;
-      await this.inserterLigne(tx, ctx, documentId, numeroOrdre, entree);
+      await this.inserterLigne(tx, ctx, principal.role, documentId, numeroOrdre, entree);
 
       const document = await this.assemblerDocument(tx, ctx, principal.role, documentId);
       return { donnees: document, avertissements: [] };
@@ -313,6 +320,7 @@ export class ServiceDocumentsVente {
     return this.acces.enTenant(ctx, async (tx) => {
       const doc = await chargerDocumentPourEcriture(tx, ctx, documentId);
       if (!estDocumentModifiable(doc.statut)) throw this.erreurVerrouille(doc);
+      await this.refuserSiLigneStockLiee(tx, ctx, ligneId);
 
       const ligneActuelle = await chargerLignePourEcriture(tx, ctx, documentId, ligneId);
       const fusionnee = this.fusionnerLigne(ligneActuelle, entree);
@@ -369,6 +377,7 @@ export class ServiceDocumentsVente {
       const doc = await chargerDocumentPourEcriture(tx, ctx, documentId);
       if (!estDocumentModifiable(doc.statut)) throw this.erreurVerrouille(doc);
       await chargerLignePourEcriture(tx, ctx, documentId, ligneId);
+      await this.refuserSiLigneStockLiee(tx, ctx, ligneId);
 
       try {
         await tx
@@ -484,9 +493,17 @@ export class ServiceDocumentsVente {
     );
   }
 
+  /**
+   * `role` (ajouté pour le pont RP-43) : nécessaire UNIQUEMENT pour construire la réponse du
+   * mouvement de stock créé en effet de bord (`versMouvementResponse` masque
+   * `prixAchatReelCentimes` par rôle, `pieces/mappers.ts`) — cette réponse n'est PAS renvoyée à
+   * l'appelant de `inserterLigne` (qui ne renvoie que la ligne de document), mais le paramètre est
+   * obligatoire côté `ServiceMouvement`, jamais optionnel.
+   */
   private async inserterLigne(
     tx: TransactionDfa,
     ctx: ContexteTenant,
+    role: RoleUtilisateur,
     documentId: string,
     numeroOrdre: number,
     entree: EntreeCreationLigneDocument,
@@ -532,7 +549,60 @@ export class ServiceDocumentsVente {
         'ERREUR_INTERNE',
         "L'insertion de la ligne de document n'a rendu aucune ligne.",
       );
+
+    // RP-43 — LE PONT : `articleId`/`siteId` fournis ENSEMBLE (contrainte du contrat,
+    // `schemaCreationLigneDocument`, réservée à `type = 'piece'`) déclenchent, DANS CETTE MÊME
+    // TRANSACTION, le mouvement `sortie_comptoir` correspondant — un échec ici (stock insuffisant,
+    // article/site introuvable) fait échouer `inserterLigne` tout entier, donc l'`INSERT` de la
+    // ligne ci-dessus n'est jamais committé sans lui (atomicité par construction : même `tx`, même
+    // callback `idempotence.executer`/`acces.enTenant`, rien n'intercepte cette exception plus
+    // haut). Absents (cas le plus courant hors comptoir — forfait, main d'œuvre, débours, ou une
+    // ligne `piece` sans article de référentiel), rien ne change par rapport à avant ce lot.
+    if (entree.articleId != null && entree.siteId != null) {
+      await this.serviceMouvement.sortieComptoirPourLigneTx(tx, ctx, role, {
+        articleId: entree.articleId,
+        siteId: entree.siteId,
+        quantiteMillieme: entree.quantiteMillieme,
+        documentVenteLigneId: ligne.id,
+        motif: null,
+      });
+    }
+
     return ligne;
+  }
+
+  /** RP-43/RP-46 : refuse `409 LIGNE_DOCUMENT_STOCK_LIEE` si `ligneId` a déjà déclenché un
+   *  mouvement de stock (`mouvement_stock.document_vente_ligne_id`) — le mouvement est IMMUABLE
+   *  (RP-18), la ligne qui l'a fait naître le devient avec lui (voir la docstring de
+   *  `articleId`/`siteId` dans `contrats/facturation/ligne.ts`). Appelée par `modifierLigne` ET
+   *  `supprimerLigne` — un blocage UNIFORME, pas seulement sur les champs qui touchent au stock :
+   *  toute écriture sur une telle ligne pourrait désynchroniser la quantité facturée de la quantité
+   *  réellement sortie. */
+  private async refuserSiLigneStockLiee(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    ligneId: string,
+  ): Promise<void> {
+    const mouvement = await this.serviceMouvement.trouverMouvementParLigneDocumentTx(
+      tx,
+      ctx,
+      ligneId,
+    );
+    if (!mouvement) return;
+    throw new ErreurMetier(
+      'LIGNE_DOCUMENT_STOCK_LIEE',
+      `La ligne ${ligneId} a déjà déclenché un mouvement de stock (${mouvement.type}) — immuable (RP-18), seule une suppression du document entier (brouillon) ou un avoir (document émis) permet une correction.`,
+      {
+        blocages: [
+          {
+            type: 'ligne_document',
+            id: ligneId,
+            libelle: ligneId,
+            donnees: { mouvementId: mouvement.id, mouvementType: mouvement.type },
+          },
+        ],
+      },
+    );
   }
 
   private fusionnerLigne(actuelle: LigneLigneDocument, entree: EntreeModificationLigneDocument) {

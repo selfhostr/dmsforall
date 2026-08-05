@@ -409,6 +409,202 @@ describe('ServiceMouvement.casse — RP-15/PP-02 : le disponible protège contre
   });
 });
 
+describe('ServiceMouvement — pieces.mouvement.forcer (audit sécurité, forcer dissocié de pieces.mouvement.creer)', () => {
+  it('`forcer: true` par un rôle SANS pieces.mouvement.forcer (technicien) est refusé 403 DROIT_INSUFFISANT, AUCUN accès base', async () => {
+    const { tx, insertValuesArgs } = txFactice({
+      // Aucun `selects`/`executes` posé : la preuve que le refus intervient AVANT tout accès base
+      // (chargerArticleOu404 inclus) est que consommer un jeu vide ferait échouer le test par une
+      // erreur différente (undefined) plutôt que par le rejet attendu — voir l'assertion ci-dessous.
+    });
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+
+    await expect(
+      service.casse(CTX, 'technicien', 'a1', { ...ENTREE_CASSE, forcer: true }, 'idem-forcer-1'),
+    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT', status: 403 });
+    expect(insertValuesArgs).toHaveLength(0);
+  });
+
+  it('`perte` avec `forcer: true` par un rôle sans le droit est refusé de la même façon (même garde que casse)', async () => {
+    const { tx, insertValuesArgs } = txFactice({});
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+
+    await expect(
+      service.perte(CTX, 'chef_atelier', 'a1', { ...ENTREE_CASSE, forcer: true }, 'idem-forcer-2'),
+    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT', status: 403 });
+    expect(insertValuesArgs).toHaveLength(0);
+  });
+
+  it('le MÊME rôle sans pieces.mouvement.forcer continue de fonctionner SANS forcer (non-régression : seul le forçage est gouverné, jamais la création normale)', async () => {
+    const { tx, insertValuesArgs, poserRetourInsert } = txFactice({
+      selects: [[{ id: 'a1' }], [{ id: 's1' }]],
+      executes: [{ rows: [{ physique: 5000, reservee: 0 }] }], // disponible 5000 >= 2000, pas besoin de forcer
+    });
+    poserRetourInsert([ligneMouvement()]);
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+
+    const resultat = await service.casse(
+      CTX,
+      'technicien',
+      'a1',
+      { ...ENTREE_CASSE, forcer: false },
+      'idem-forcer-3',
+    );
+
+    expect(resultat.reponse.statutHttp).toBe(201);
+    expect(insertValuesArgs).toHaveLength(1);
+  });
+
+  it('le MÊME rôle sans pieces.mouvement.forcer, sans forcer, reçoit toujours 409 STOCK_INSUFFISANT quand le stock manque (le droit ne change rien au refus normal)', async () => {
+    const { tx, insertValuesArgs } = txFactice({
+      selects: [[{ id: 'a1' }], [{ id: 's1' }]],
+      executes: [{ rows: [{ physique: 500, reservee: 0 }] }], // disponible 500 < 2000
+    });
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+
+    await expect(
+      service.casse(CTX, 'technicien', 'a1', { ...ENTREE_CASSE, forcer: false }, 'idem-forcer-4'),
+    ).rejects.toMatchObject({ code: 'STOCK_INSUFFISANT', status: 409 });
+    expect(insertValuesArgs).toHaveLength(0);
+  });
+
+  it('magasinier (a pieces.mouvement.forcer) : `forcer: true` reste accepté — non-régression du geste légitime déjà couvert plus haut', async () => {
+    const { tx, insertValuesArgs, poserRetourInsert } = txFactice({
+      selects: [[{ id: 'a1' }], [{ id: 's1' }]],
+      executes: [{ rows: [{ physique: 1000, reservee: 0 }] }], // disponible 1000 < 2000, forcer=true couvre
+    });
+    poserRetourInsert([ligneMouvement()]);
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+
+    const resultat = await service.perte(
+      CTX,
+      'magasinier',
+      'a1',
+      { ...ENTREE_CASSE, forcer: true },
+      'idem-forcer-5',
+    );
+
+    expect(resultat.reponse.statutHttp).toBe(201);
+    expect(insertValuesArgs).toHaveLength(1);
+  });
+});
+
+describe('ServiceMouvement.sortieComptoirPourLigneTx — pont facturation (RP-43), variante composable', () => {
+  it('nominal : mouvement `sortie_comptoir` créé avec `documentVenteLigneId` renseigné, quantité NÉGATIVE, dans le `tx` fourni (pas de nouvelle transaction)', async () => {
+    const { tx, insertValuesArgs, poserRetourInsert } = txFactice({
+      selects: [[{ id: 'a1' }], [{ id: 's1' }]],
+      executes: [{ rows: [{ physique: 5000, reservee: 0 }] }],
+    });
+    poserRetourInsert([
+      ligneMouvement({
+        type: 'sortie_comptoir',
+        quantiteMillieme: -1000,
+        documentVenteLigneId: 'ligne-doc-1',
+      }),
+    ]);
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+
+    const reponse = await service.sortieComptoirPourLigneTx(tx, CTX, 'vendeur', {
+      articleId: 'a1',
+      siteId: 's1',
+      quantiteMillieme: 1000,
+      documentVenteLigneId: 'ligne-doc-1',
+      motif: null,
+    });
+
+    expect(reponse.type).toBe('sortie_comptoir');
+    expect(insertValuesArgs).toHaveLength(1);
+    expect(insertValuesArgs[0]).toMatchObject({
+      type: 'sortie_comptoir',
+      quantiteMillieme: -1000,
+      siteId: 's1',
+      documentVenteLigneId: 'ligne-doc-1',
+      auteurId: 'u1',
+    });
+  });
+
+  it('stock insuffisant : rejette 409 STOCK_INSUFFISANT, AUCUN mouvement écrit — la ligne de document appelante doit alors échouer avec (atomicité prouvée côté service-documents.spec.ts)', async () => {
+    const { tx, insertValuesArgs } = txFactice({
+      selects: [[{ id: 'a1' }], [{ id: 's1' }]],
+      executes: [{ rows: [{ physique: 500, reservee: 0 }] }], // disponible 500 < 1000
+    });
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+
+    await expect(
+      service.sortieComptoirPourLigneTx(tx, CTX, 'vendeur', {
+        articleId: 'a1',
+        siteId: 's1',
+        quantiteMillieme: 1000,
+        documentVenteLigneId: 'ligne-doc-2',
+        motif: null,
+      }),
+    ).rejects.toMatchObject({ code: 'STOCK_INSUFFISANT', status: 409 });
+    expect(insertValuesArgs).toHaveLength(0);
+  });
+});
+
+describe('ServiceMouvement.retourClientPourLigneTx — pont facturation (RP-46), variante composable', () => {
+  it('nominal : mouvement `retour_client` créé avec `documentVenteLigneId` renseigné (ligne de l’AVOIR), quantité POSITIVE', async () => {
+    const { tx, insertValuesArgs, poserRetourInsert } = txFactice({
+      selects: [[{ id: 'a1' }], [{ id: 's1' }]],
+    });
+    poserRetourInsert([
+      ligneMouvement({
+        type: 'retour_client',
+        quantiteMillieme: 1000,
+        documentVenteLigneId: 'ligne-avoir-1',
+      }),
+    ]);
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+
+    const reponse = await service.retourClientPourLigneTx(tx, CTX, 'direction', {
+      articleId: 'a1',
+      siteId: 's1',
+      quantiteMillieme: 1000,
+      documentVenteLigneId: 'ligne-avoir-1',
+      motif: 'Retour client — avoir sur facture 2026-00042 (RP-46).',
+    });
+
+    expect(reponse.type).toBe('retour_client');
+    expect(insertValuesArgs).toHaveLength(1);
+    expect(insertValuesArgs[0]).toMatchObject({
+      type: 'retour_client',
+      quantiteMillieme: 1000,
+      siteId: 's1',
+      documentVenteLigneId: 'ligne-avoir-1',
+    });
+    expect((insertValuesArgs[0]?.quantiteMillieme as number) > 0).toBe(true);
+  });
+});
+
+describe('ServiceMouvement.trouverMouvementParLigneDocumentTx — retrouve le mouvement lié à une ligne de document', () => {
+  it('rend le mouvement quand `document_vente_ligne_id` correspond', async () => {
+    const executes = [
+      { rows: [ligneMouvement({ type: 'sortie_comptoir', documentVenteLigneId: 'ligne-doc-9' })] },
+    ];
+    const tx = {
+      execute: vi.fn(() => Promise.resolve(executes.shift() ?? { rows: [] })),
+    } as unknown as TransactionDfa;
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+
+    const mouvement = await service.trouverMouvementParLigneDocumentTx(tx, CTX, 'ligne-doc-9');
+
+    expect(mouvement?.documentVenteLigneId).toBe('ligne-doc-9');
+  });
+
+  it('rend `null` quand aucun mouvement ne référence cette ligne (cas normal : ligne sans article, forfait, main d’œuvre…)', async () => {
+    const tx = { execute: vi.fn(() => Promise.resolve({ rows: [] })) } as unknown as TransactionDfa;
+    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+
+    const mouvement = await service.trouverMouvementParLigneDocumentTx(
+      tx,
+      CTX,
+      'ligne-doc-inexistante',
+    );
+
+    expect(mouvement).toBeNull();
+  });
+});
+
 describe('ServiceMouvement.ajustementInventaire — §7.6 : un compte qui correspond déjà au stock ne crée aucun mouvement', () => {
   it('delta = 0 (compte = physique) : `donnees: null`, aucune ligne insérée (mouvement_stock_quantite_non_nulle_chk, 0025)', async () => {
     const { tx, insertValuesArgs } = txFactice({

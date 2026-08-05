@@ -145,7 +145,8 @@
     "CONNECTEUR_IDENTIFIANTS_MANQUANTS": "Anmeldedaten der Schnittstelle fehlen.",
     "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE": "Aktivierung der Schnittstelle nicht möglich.",
     "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE": "Verwendung der Schnittstelle nicht möglich.",
-    "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE": "Webhook-Abonnement in nicht kompatiblem Zustand."
+    "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE": "Webhook-Abonnement in nicht kompatiblem Zustand.",
+    "LIGNE_DOCUMENT_STOCK_LIEE": "Diese Position ist mit einer Lagerbewegung verknüpft und kann nicht geändert oder gelöscht werden."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Nachtragsofferte erstellen",

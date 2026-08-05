@@ -102,9 +102,17 @@ export type FiltresMouvementsStock = z.infer<typeof schemaFiltresMouvementsStock
  * `POST /articles/{id}/mouvements/casse` — `Idempotency-Key` OBLIGATOIRE (création sensible de
  * mouvement, même règle que toute écriture de stock listée dans le brief). Refusé
  * (`409 STOCK_INSUFFISANT`) si `quantiteMillieme` dépasse le stock physique disponible pour cet
- * article/site, SAUF `forcer: true` par un rôle habilité (`RP-15`, `PP-02`) — voir la note sur le
- * forçage en fin de fichier : ce contrat expose le drapeau, l'AUTORISATION de l'utiliser reste à
- * arbitrer côté droits (non figée ici, voir le rapport d'accompagnement).
+ * article/site, SAUF `forcer: true` par un rôle habilité (`RP-15`, `PP-02`).
+ *
+ * AUTORISATION DE `forcer: true` — RÉSOLUE (audit sécurité) : le seul droit `pieces.mouvement.creer`
+ * (qui gouverne la CRÉATION du mouvement, forçage ou non) ne suffit plus. `forcer: true` exige EN
+ * PLUS `pieces.mouvement.forcer` (`auth/matrice-droits.ts`, vérifié par
+ * `ServiceMouvement.creerMouvementSortie` avant tout accès base, `403 DROIT_INSUFFISANT` sinon) —
+ * réservé à `magasinier` : c'est le rôle qui détient déjà `pieces.mouvement.creer` seul, et le
+ * seul qui constate physiquement une casse/perte au-delà de ce que le système croit disponible.
+ * Avant cette résolution, quiconque possédait `pieces.mouvement.creer` héritait SILENCIEUSEMENT du
+ * pouvoir de forcer un stock négatif — un rôle futur qui recevrait `pieces.mouvement.creer` sans
+ * décision délibérée sur le forçage n'hériterait plus de cette capacité désormais.
  */
 export const schemaCreationMouvementCasse = z.object({
   siteId: schemaIdentifiant,
@@ -208,18 +216,41 @@ export type EntreeCreationMouvementRetourClient = z.infer<
 >;
 
 /**
- * NOTE D'INTÉGRATION, périmètre RESTANT de ce fichier — `sortie_comptoir`/`retour_client` ont
- * maintenant une action DIRECTE (ci-dessus), pour que la vente comptoir fonctionne aujourd'hui
- * sans dépendre de la facturation. Ce que cette action DIRECTE ne couvre PAS : le lien vers un
- * document de vente (`documentVenteLigneId` reste toujours `null` par ce chemin — aucun champ
- * n'est exposé pour le renseigner, volontairement, pour ne pas fabriquer une référence orpheline
- * vers une ligne qui n'existe pas). Quand `facturation` ajoutera une ligne de type `piece` SANS
- * `ordreReparationId` à un document de vente (`RP-43`) ou un avoir sur une telle ligne (`RP-46`),
- * le mouvement de stock correspondant devra naître dans la MÊME TRANSACTION que l'écriture
- * facturation (appel de service à service, jamais un second `POST` HTTP indépendant depuis le
- * front — une facture émise sans le mouvement de stock correspondant, ou l'inverse, sont deux
- * anomalies réelles) et devra alors renseigner `documentVenteLigneId`. Ce futur chemin est
- * DISTINCT des deux `POST` ci-dessus (qui resteront la voie manuelle : vente comptoir sans facture
- * immédiate, retour physique sans avoir) — signalé à l'orchestrateur pour arbitrage avec
- * expert-nestjs/expert-facturation, pas figé ici.
+ * NOTE D'INTÉGRATION — pont vers la facturation (`RP-43`/`RP-46`), RÉSOLU EN PARTIE.
+ *
+ * `sortie_comptoir`/`retour_client` gardent leur action DIRECTE ci-dessus (voie manuelle : vente
+ * comptoir sans facture immédiate, retour physique sans avoir) — ce paragraphe documente le
+ * SECOND chemin, désormais câblé : `facturation/documents/ligne.ts::formeLigneDocument` porte
+ * `articleId`/`siteId` (facultatifs ensemble, réservés à `type = 'piece'`). Quand une ligne de
+ * document de vente est créée AVEC ces deux champs (`POST /documents-vente/{id}/lignes`, ou une
+ * ligne embarquée à `POST /documents-vente`), `ServiceDocumentsVente.inserterLigne`
+ * (`apps/api/src/facturation/documents/service-documents.ts`) appelle
+ * `ServiceMouvement.sortieComptoirPourLigneTx` (`apps/api/src/pieces/service-mouvement.ts`) DANS
+ * LA MÊME TRANSACTION SQL que l'`INSERT` de la ligne — appel de service à service, jamais un
+ * second `POST` HTTP indépendant depuis le front, exactement comme anticipé ici. Le mouvement créé
+ * renseigne `documentVenteLigneId` avec l'identifiant de CETTE ligne. Symétriquement,
+ * `ServiceAvoir.creer` (`apps/api/src/facturation/documents/service-avoir.ts`) appelle
+ * `ServiceMouvement.retourClientPourLigneTx` quand un avoir crédite INTÉGRALEMENT une ligne qui
+ * portait elle-même un mouvement `sortie_comptoir` — un crédit PARTIEL (montant inférieur au TTC
+ * original de la ligne) NE déclenche PAS de mouvement automatique (un montant partiel n'a pas de
+ * traduction fiable en quantité physique retournée) : avertissement
+ * `AVOIR_RETOUR_STOCK_NON_DECLENCHE` à la place, le geste physique restant manuel
+ * (`POST /articles/{id}/mouvements/retour-client`).
+ *
+ * CE QUI RESTE OUVERT, honnêtement, plutôt que de fabriquer un lien inventé :
+ *  - `documentVenteLigneId` n'est jamais renseignable ni lisible EN LECTURE depuis
+ *    `ligne_document` elle-même (aucune colonne `article_id`/`site_id` sur cette table — voir la
+ *    docstring de `articleId`/`siteId` dans `contrats/facturation/ligne.ts`) : le lien durable vit
+ *    UNIQUEMENT côté `mouvement_stock`, jamais retro-exposé sur `ReponseLigneDocumentVente` par ce
+ *    lot.
+ *  - Le pont ne s'exerce QU'À LA CRÉATION de la ligne (`ajouterLigne`/lignes embarquées de
+ *    `creer()`) et À LA CRÉATION de l'avoir — jamais à l'ÉMISSION du document. Décision délibérée :
+ *    un brouillon qui n'est jamais émis existe déjà (`RF-9`), et lier le mouvement à l'ÉMISSION
+ *    aurait exigé de faire survivre `articleId`/`siteId` du brouillon jusque-là, ce qu'aucune
+ *    colonne ne permet — voir le point précédent. Une ligne `piece` qui a déjà déclenché un
+ *    mouvement ne peut donc plus être ni modifiée ni supprimée tant qu'elle existe
+ *    (`409 LIGNE_DOCUMENT_STOCK_LIEE`, `service-documents.ts::modifierLigne`/`supprimerLigne`) —
+ *    la seule correction, sur un brouillon, est d'abandonner ce document et d'en recommencer un.
+ *  - Le paiement/encaissement de la vente comptoir n'est PAS traité ici (RP-45 : suit le circuit
+ *    normal de `paiements/`, aucune distinction).
  */

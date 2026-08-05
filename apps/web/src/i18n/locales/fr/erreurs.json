@@ -145,7 +145,8 @@
     "CONNECTEUR_IDENTIFIANTS_MANQUANTS": "Identifiants du connecteur manquants.",
     "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE": "Activation du connecteur impossible.",
     "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE": "Utilisation du connecteur impossible.",
-    "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE": "Abonnement webhook dans un état incompatible."
+    "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE": "Abonnement webhook dans un état incompatible.",
+    "LIGNE_DOCUMENT_STOCK_LIEE": "Cette ligne est liée à un mouvement de stock et ne peut pas être modifiée ou supprimée."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Créer un devis complémentaire",

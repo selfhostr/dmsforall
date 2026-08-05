@@ -7,6 +7,7 @@ import { ServiceDocumentsVente } from './documents/service-documents';
 import { ServiceEmissionDocument } from './documents/service-emission';
 import { ExportModule } from './export/export.module';
 import { PaiementsModule } from './paiements/paiements.module';
+import { PiecesModule } from '../pieces/pieces.module';
 import { VentesModule } from '../ventes/ventes.module';
 
 /**
@@ -45,6 +46,15 @@ import { VentesModule } from '../ventes/ventes.module';
  *    `ServiceEmissionDocument.marquerVehiculeVenduSiApplicable` pour la limite d'atomicité connue
  *    et documentée). Pas de dépendance inverse : `VentesModule` n'importe jamais
  *    `FacturationModule` (vérifié dans `ventes/ventes.module.ts`), aucun cycle de modules.
+ *  - `pieces/` : câblé (`imports: [PiecesModule]`), AUCUN contrôleur importé (`PiecesModule`
+ *    déclare les siens) — même patron que `ventes/` ci-dessus. Seul `ServiceMouvement` (exporté par
+ *    `PiecesModule`) est injecté dans `ServiceDocumentsVente` ET `ServiceAvoir`, pour le pont
+ *    vente comptoir (`RP-43`/`RP-46`, voir la note d'intégration de `contrats/pieces/mouvement.ts`) :
+ *    `sortieComptoirPourLigneTx`/`retourClientPourLigneTx`/`trouverMouvementParLigneDocumentTx` sont
+ *    appelées avec le `tx` DÉJÀ OUVERT de l'écriture facturation (contrairement au pont `ventes/`
+ *    ci-dessus, qui n'a PAS cette atomicité réelle) — même patron que `AtelierModule` injectant
+ *    `ServiceReservation`/`ServiceConsigne`. Pas de dépendance inverse : `PiecesModule` n'importe
+ *    aucun autre module (`imports` absent de son `@Module`, vérifié), aucun cycle possible.
  *  - `qr/` : `ReponseDocumentVente.qr` est rendu `null` par ce lot (voir `documents/mappeurs.ts`).
  *    Câbler `qr/encodeur.ts` dans `ServiceEmissionDocument.emettre()` (§4-5, entre le recalcul des
  *    lignes et l'écriture du numéro) exige au minimum : le bloc créancier (IBAN + adresse du
@@ -60,7 +70,7 @@ import { VentesModule } from '../ventes/ventes.module';
  * `CommonModule`, tous deux `@Global`, importés une fois depuis `AppModule`.
  */
 @Module({
-  imports: [PaiementsModule, ExportModule, VentesModule],
+  imports: [PaiementsModule, ExportModule, VentesModule, PiecesModule],
   controllers: [DocumentVenteController, DocumentVenteTransitionsController],
   providers: [ServiceDocumentsVente, ServiceEmissionDocument, ServiceAvoir],
   exports: [ServiceDocumentsVente, ServiceEmissionDocument, ServiceAvoir],

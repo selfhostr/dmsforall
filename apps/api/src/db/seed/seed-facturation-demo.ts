@@ -51,6 +51,7 @@ import { ServiceDocumentsVente } from '../../facturation/documents/service-docum
 import { ServiceEmissionDocument } from '../../facturation/documents/service-emission';
 import { ServicePaiement } from '../../facturation/paiements/service-paiement';
 import { ServiceCompteursImpl } from '../../parametrage/compteurs/service-compteurs';
+import { ServiceMouvement } from '../../pieces/service-mouvement';
 import { ServiceVehiculeStock } from '../../ventes/service-vehicule-stock';
 import { ServiceAccesBase } from '../acces-base.service';
 import type { ConfigBase, ContexteTenant } from '../index';
@@ -131,7 +132,11 @@ export async function semerFacturationDemo(options: OptionsSeedFacturation): Pro
     const audit = new ServiceAuditImpl(acces);
     const evenements = new ServiceEvenementsImpl(horloge);
     const compteurs = new ServiceCompteursImpl();
-    const documents = new ServiceDocumentsVente(acces, idempotence, audit, horloge);
+    // `ServiceMouvement` (RP-43) : pont vente comptoir — ce seed ne pose aucune ligne `piece` avec
+    // `articleId`/`siteId` (aucune vente comptoir peuplée), donc jamais exercé ici, mais le câblage
+    // manuel doit rester compilable au même titre que `vehiculeStock` ci-dessous.
+    const mouvements = new ServiceMouvement(acces, idempotence);
+    const documents = new ServiceDocumentsVente(acces, idempotence, audit, horloge, mouvements);
     // `ServiceEmissionDocument` (RV-37) marque le véhicule d'un dossier de vente `vendu` à
     // l'émission d'une facture rattachée — ce seed ne peuple aucun dossier de vente
     // (`seed-facturation-demo.ts` reste antérieur à l'étape 4), donc jamais exercé ici, mais le

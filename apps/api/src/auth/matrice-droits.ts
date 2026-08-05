@@ -273,6 +273,15 @@ export const TOUTES_ACTIONS = [
   'pieces.stock.lire',
   'pieces.stock.modifier',
   'pieces.mouvement.creer',
+  // FAILLE CORRIGÉE (audit sécurité) : le paramètre `forcer` de `casse`/`perte`
+  // (`POST /articles/{id}/mouvements/{casse|perte}`, `contrats/pieces/mouvement.ts`) permet de
+  // passer outre le refus `409 STOCK_INSUFFISANT` et d'enregistrer un stock négatif — jusqu'ici
+  // gouverné par le SEUL `pieces.mouvement.creer`, sans droit dédié : quiconque pouvait créer un
+  // mouvement pouvait aussi forcer, sans décision distincte. Voir `DROITS_PIECES_PAR_ROLE` plus
+  // bas et `ServiceMouvement.creerMouvementSortie` (`pieces/service-mouvement.ts`) pour le
+  // contrôle réel, et `common/droits/allowlist-actions-non-decorees.ts` pour la justification de
+  // sa couverture (vérification conditionnelle en service, comme `atelier.or.plafond_modifier`).
+  'pieces.mouvement.forcer',
   'pieces.reservation.lire',
   'pieces.reservation.satisfaire',
   'pieces.reservation.liberer',
@@ -1137,6 +1146,22 @@ const ECRITURE_STOCK_SITE_PIECES: readonly Action[] = ['pieces.stock.modifier'];
 const ECRITURE_MOUVEMENT_PIECES: readonly Action[] = ['pieces.mouvement.creer'];
 
 /**
+ * FAILLE CORRIGÉE (audit sécurité) — `forcer: true` sur `casse`/`perte` outrepasse le refus de
+ * stock insuffisant (`RP-15`/`PP-02`) ; ce droit dédié le gouverne, EN PLUS de
+ * `ECRITURE_MOUVEMENT_PIECES` (les deux sont exigés ensemble par `ServiceMouvement`, `forcer` ne
+ * sert jamais seul). Réservé à `magasinier` : c'est le SEUL rôle qui détient déjà l'écriture de
+ * mouvement (§11, « non (P) » pour direction/chef_atelier — voir la note de tête de section), et
+ * le rôle qui constate PHYSIQUEMENT une casse/perte que le système croit ne pas pouvoir couvrir —
+ * la même logique que `PP-02`, qui n'a jamais remis en cause QUI force, seulement l'absence de
+ * droit dédié pour le faire. Ne pas l'accorder en plus à `direction`/`chef_atelier` : sans
+ * `pieces.mouvement.creer` (qu'ils n'ont pas), le droit y serait inerte — un signal trompeur
+ * plutôt qu'un contrôle réel. Si `pieces.mouvement.creer` est un jour étendu à un autre rôle, ce
+ * fichier devra alors statuer EXPLICITEMENT sur `pieces.mouvement.forcer` pour ce rôle plutôt que
+ * de l'hériter silencieusement — exactement le trou que cette action ferme.
+ */
+const FORCAGE_MOUVEMENT_PIECES: readonly Action[] = ['pieces.mouvement.forcer'];
+
+/**
  * §11 ligne « Créer une réservation (ligne d'OR pièce) » : DÉJÀ couverte par
  * `atelier.ligne.creer` (`L966_LIGNE_CREATION`, voir la note littérale de la matrice §11 elle-même)
  * — aucune action `pieces.reservation.creer` n'existe, la création n'a pas de route dans ce
@@ -1215,6 +1240,7 @@ const DROITS_PIECES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]
     ...ECRITURE_ARTICLE_PIECES,
     ...ECRITURE_STOCK_SITE_PIECES,
     ...ECRITURE_MOUVEMENT_PIECES,
+    ...FORCAGE_MOUVEMENT_PIECES,
     ...SATISFACTION_RESERVATION_PIECES,
     ...LIBERATION_RESERVATION_PIECES,
     ...LECTURE_FOURNISSEUR_PIECES,

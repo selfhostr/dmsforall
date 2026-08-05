@@ -80,11 +80,17 @@ function serviceFactice(tx: TransactionDfa) {
   };
   const audit = { pourEntite: vi.fn(async () => []), consigner: vi.fn(async () => undefined) };
   const horloge = { maintenant: () => new Date('2026-08-04T09:00:00.000Z') };
+  // `ServiceMouvement` (RP-43, pont vente comptoir) : jamais exercé ici, `entree.lignes = []` dans
+  // toutes les fixtures de ce fichier (`inserterLigne` n'atteint donc jamais la branche
+  // `articleId`/`siteId` qui l'appellerait) — voir `service-documents-mouvement.spec.ts` pour le
+  // câblage sous test.
+  const serviceMouvement = { sortieComptoirPourLigneTx: vi.fn() };
   const service = new ServiceDocumentsVente(
     {} as never, // `acces` (JETON_DB) : jamais exercé, seul `idempotence.executer` l'est.
     idempotence as never,
     audit as never,
     horloge as never,
+    serviceMouvement as never,
   );
   // Bypass volontaire de l'assemblage complet (`chargerDocument`/`listerLignesDocument`/audit réels)
   // — hors sujet ici, `mappeurs.spec.ts` le couvre. Seul le CÂBLAGE `creer()` → rattachement dossier

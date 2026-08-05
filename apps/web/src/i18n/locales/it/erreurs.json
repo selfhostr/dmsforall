@@ -145,7 +145,8 @@
     "CONNECTEUR_IDENTIFIANTS_MANQUANTS": "Credenziali dell'interfaccia mancanti.",
     "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE": "Attivazione dell'interfaccia non possibile.",
     "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE": "Utilizzo dell'interfaccia non possibile.",
-    "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE": "Abbonamento webhook in stato non compatibile."
+    "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE": "Abbonamento webhook in stato non compatibile.",
+    "LIGNE_DOCUMENT_STOCK_LIEE": "Questa riga è collegata a un movimento di magazzino e non può essere modificata o eliminata."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Crea preventivo supplementare",
