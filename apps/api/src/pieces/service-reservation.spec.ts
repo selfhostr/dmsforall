@@ -1,8 +1,12 @@
+import { PgDialect } from 'drizzle-orm/pg-core';
+import type { SQL } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import type { LigneReservationPiece } from '../db/schema';
 import { ServiceReservation } from './service-reservation';
+
+const dialect = new PgDialect();
 
 const CTX: ContexteTenant = { tenantId: 'tid-1', utilisateurId: 'u1', requeteId: null };
 
@@ -140,5 +144,101 @@ describe('ServiceReservation.liberer — RP-23 : geste explicite, motif obligato
     const resultat = await service.liberer(CTX, 'r1', { motif: 'OR annulé par le client' });
 
     expect(resultat.avertissements).toHaveLength(0);
+  });
+});
+
+/**
+ * Dette technique soldée (rapport de livraison étape 3-4) : `satisfairePourLigneTx`/
+ * `libererPourLigneTx` sont les variantes composables appelées par
+ * `atelier/service-ligne-or.ts` (`marquerRealisee`/`refuserLignes`/`annulerLignes`) DANS LEUR
+ * PROPRE `tx` déjà ouvert — jamais via `satisfaire`/`liberer`, qui ouvriraient une connexion NEUVE
+ * et casseraient l'atomicité (voir la doc de `satisfaire` dans `service-reservation.ts`). Point
+ * central prouvé ci-dessous : ces variantes n'appellent JAMAIS `acces.enTenant` elles-mêmes —
+ * l'appelant maîtrise entièrement la transaction.
+ */
+describe('ServiceReservation.satisfairePourLigneTx — RP-21, appelée par marquerRealisee (atelier)', () => {
+  it("n'ouvre AUCUNE connexion propre : `acces.enTenant` n'est JAMAIS appelé quand on invoque directement la variante composable avec un `tx` externe", async () => {
+    const tx = txFactice([{ rows: [] }]);
+    const acces = accesFactice(tx);
+    const service = new ServiceReservation(acces);
+
+    await service.satisfairePourLigneTx(tx, CTX, 'lo1');
+
+    expect(acces.enTenant).not.toHaveBeenCalled();
+  });
+
+  it('aucune réservation active pour cette ligne → rend `null`, AUCUNE écriture (jamais créée, stock insuffisant à la pose RP-24, ou déjà satisfaite/libérée)', async () => {
+    const tx = txFactice([{ rows: [] }]); // SELECT FOR UPDATE : aucune ligne active
+    const service = new ServiceReservation(accesFactice(tx));
+
+    const resultat = await service.satisfairePourLigneTx(tx, CTX, 'lo1');
+
+    expect(resultat).toBeNull();
+    expect((tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);
+  });
+
+  it('réservation active trouvée par ligneOrId → même écriture que satisfaireTx (mouvement sortie_or négatif, statut satisfaite)', async () => {
+    const tx = txFactice([
+      { rows: [ligneReservation()] }, // SELECT FOR UPDATE par ligne_or_id
+      { rows: [{ id: 'mvt-2' }] }, // INSERT mouvement_stock RETURNING id
+      { rows: [] }, // UPDATE reservation_piece
+      {
+        rows: [
+          ligneReservation({
+            statut: 'satisfaite',
+            satisfaiteLe: new Date(),
+            mouvementSortieId: 'mvt-2',
+          }),
+        ],
+      }, // reload
+    ]);
+    const service = new ServiceReservation(accesFactice(tx));
+
+    const resultat = await service.satisfairePourLigneTx(tx, CTX, 'lo1');
+
+    expect(resultat?.statut).toBe('satisfaite');
+    expect(resultat?.mouvementSortieId).toBe('mvt-2');
+    expect((tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(4);
+  });
+});
+
+describe('ServiceReservation.libererPourLigneTx — RP-23, appelée par annulerLignes/refuserLignes (atelier)', () => {
+  it("n'ouvre AUCUNE connexion propre : `acces.enTenant` n'est JAMAIS appelé", async () => {
+    const tx = txFactice([{ rows: [] }]);
+    const acces = accesFactice(tx);
+    const service = new ServiceReservation(acces);
+
+    await service.libererPourLigneTx(tx, CTX, 'lo1', 'annulation_ligne');
+
+    expect(acces.enTenant).not.toHaveBeenCalled();
+  });
+
+  it('aucune réservation active pour cette ligne → silencieux, AUCUNE écriture (rien à libérer n’est pas une anomalie)', async () => {
+    const tx = txFactice([{ rows: [] }]);
+    const service = new ServiceReservation(accesFactice(tx));
+
+    await service.libererPourLigneTx(tx, CTX, 'lo1', 'annulation_ligne');
+
+    expect((tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);
+  });
+
+  it("réservation active trouvée → UPDATE avec le motif fourni ('refus_devis'), SANS texte ni utilisateur (réservés au geste manuel, cohérent avec reservation_piece_motif_texte_chk, 0026)", async () => {
+    const tx = txFactice([
+      { rows: [{ id: 'r1' }] }, // SELECT id FOR UPDATE par ligne_or_id
+      { rows: [] }, // UPDATE reservation_piece
+    ]);
+    const service = new ServiceReservation(accesFactice(tx));
+
+    await service.libererPourLigneTx(tx, CTX, 'lo1', 'refus_devis');
+
+    const appels = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls;
+    expect(appels).toHaveLength(2);
+    const { sql: texte, params } = dialect.sqlToQuery(appels[1]?.[0] as SQL);
+    expect(texte).toContain('motif_liberation');
+    expect(texte).toContain('motif_liberation_texte');
+    expect(texte).toContain('liberee_par_utilisateur_id');
+    // Ordre des paramètres liés : motif, motif_liberation_texte (null), liberee_par_utilisateur_id
+    // (null), tenantId, reservationId — voir `ecrireLiberation` dans `service-reservation.ts`.
+    expect(params).toEqual(['refus_devis', null, null, 'tid-1', 'r1']);
   });
 });

@@ -1,11 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { FiltresConsignes, PageCurseur, ReponseConsigneEchangeStandard } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import { JETON_DB } from '../db';
-import { mouvementStock } from '../db/schema';
-import type { LigneConsigneEchangeStandard, NouveauMouvementStock } from '../db/schema';
+import { article, consigneEchangeStandard, mouvementStock } from '../db/schema';
+import type {
+  LigneArticle,
+  LigneConsigneEchangeStandard,
+  NouveauMouvementStock,
+  NouvelleConsigneEchangeStandard,
+} from '../db/schema';
 import { ErreurMetier } from '../common/erreurs';
 
 import { versConsigneResponse } from './mappers';
@@ -34,12 +39,13 @@ const COLONNES_CONSIGNE_ALIASEES = sql`
 `;
 
 /**
- * Service consigne d'échange standard (RP-37 → RP-42, §6.4) — priorité 3 du lot. AUCUNE création
- * ici (`POST /consignes` n'existe pas côté contrat : la pose de la consigne est un effet de bord
- * serveur de la réalisation d'une ligne d'OR de dépose, GELÉ, hors périmètre — voir l'en-tête de
- * `consigne.ts` et le rapport de livraison, point d'intégration cross-module signalé mais pas
- * implémenté ici). Ce service couvre la lecture transverse (§7.7 : « une consigne jamais rendue
- * est de l'argent qui dort ») et l'unique action nommée du cycle de vie, `marquer-retour-fournisseur`.
+ * Service consigne d'échange standard (RP-37 → RP-42, §6.4) — priorité 3 du lot. AUCUN `POST
+ * /consignes` côté contrat HTTP : la pose de la consigne est un effet de bord serveur de la
+ * réalisation d'une ligne d'OR de dépose (`atelier/service-ligne-or.ts::marquerRealisee`, GELÉ côté
+ * contrat, hors ressource propre) — couverte ici par `creerDepuisRealisationTx`, une variante
+ * composable SANS entrypoint HTTP à elle (voir sa doc). Ce service couvre par ailleurs la lecture
+ * transverse (§7.7 : « une consigne jamais rendue est de l'argent qui dort ») et l'unique action
+ * HTTP nommée du cycle de vie, `marquer-retour-fournisseur`.
  */
 @Injectable()
 export class ServiceConsigne {
@@ -109,10 +115,22 @@ export class ServiceConsigne {
   }
 
   /**
-   * `POST /consignes/{id}/marquer-retour-fournisseur` — le geste de comptoir de RP-40 : le client
-   * ramène la vieille pièce. Génère le mouvement `retour_consigne` (quantité = celle de la ligne
-   * d'OR d'origine, `ligne_or.quantiteMillieme` — `consigne_echange_standard` ne porte elle-même
-   * aucune quantité, seulement un montant), `statut → retournee_fournisseur` (TERMINAL).
+   * `POST /consignes/{id}/marquer-retour-fournisseur` — le geste de comptoir de RP-40. Ouvre SA
+   * PROPRE transaction — entrypoint HTTP autonome, voir `marquerRetourFournisseurTx`.
+   */
+  async marquerRetourFournisseur(
+    ctx: ContexteTenant,
+    id: string,
+  ): Promise<ReponseConsigneEchangeStandard> {
+    return this.acces.enTenant(ctx, (tx) => this.marquerRetourFournisseurTx(tx, ctx, id));
+  }
+
+  /**
+   * Variante composable de `marquerRetourFournisseur`, `tx` déjà ouvert en premier paramètre (même
+   * convention que `chargerXxx`/`listerXxx` et que `ServiceReservation.satisfaireTx`). Génère le
+   * mouvement `retour_consigne` (quantité = celle de la ligne d'OR d'origine,
+   * `ligne_or.quantiteMillieme` — `consigne_echange_standard` ne porte elle-même aucune quantité,
+   * seulement un montant), `statut → retournee_fournisseur` (TERMINAL).
    *
    * RP-40 exige que ce geste et l'avoir partiel côté facturation arrivent ENSEMBLE, « jamais l'un
    * sans l'autre » — ce service ne peut garantir QUE la moitié stock de cette atomicité (même
@@ -120,47 +138,113 @@ export class ServiceConsigne {
    * avec l'avoir de facturation (RF-100) reste un point d'intégration cross-module NON résolu ici,
    * signalé au rapport de livraison, pas tranché seul.
    */
-  async marquerRetourFournisseur(
+  async marquerRetourFournisseurTx(
+    tx: TransactionDfa,
     ctx: ContexteTenant,
     id: string,
   ): Promise<ReponseConsigneEchangeStandard> {
-    return this.acces.enTenant(ctx, async (tx) => {
-      const { consigne, quantiteLigneOrMillieme } = await this.chargerAvecQuantiteOu404PourVerrou(
-        tx,
-        ctx,
-        id,
+    const { consigne, quantiteLigneOrMillieme } = await this.chargerAvecQuantiteOu404PourVerrou(
+      tx,
+      ctx,
+      id,
+    );
+    if (consigne.statut !== 'en_attente_retour_fournisseur') {
+      throw new ErreurMetier(
+        'CONSIGNE_TRANSITION_INTERDITE',
+        `Transition interdite : la consigne est "${consigne.statut}", pas "en_attente_retour_fournisseur" (§6.4).`,
       );
-      if (consigne.statut !== 'en_attente_retour_fournisseur') {
-        throw new ErreurMetier(
-          'CONSIGNE_TRANSITION_INTERDITE',
-          `Transition interdite : la consigne est "${consigne.statut}", pas "en_attente_retour_fournisseur" (§6.4).`,
-        );
-      }
+    }
 
-      const valeursMouvement: NouveauMouvementStock = {
-        tenantId: ctx.tenantId,
-        articleId: consigne.articleId,
-        type: 'retour_consigne',
-        quantiteMillieme: -quantiteLigneOrMillieme,
-        siteId: consigne.siteId,
-        auteurId: ctx.utilisateurId,
-      };
-      const [mouvement] = await tx.insert(mouvementStock).values(valeursMouvement).returning();
-      if (!mouvement)
-        throw new ErreurMetier(
-          'ERREUR_INTERNE',
-          'Échec de création du mouvement de retour de consigne.',
-        );
+    const valeursMouvement: NouveauMouvementStock = {
+      tenantId: ctx.tenantId,
+      articleId: consigne.articleId,
+      type: 'retour_consigne',
+      quantiteMillieme: -quantiteLigneOrMillieme,
+      siteId: consigne.siteId,
+      auteurId: ctx.utilisateurId,
+    };
+    const [mouvement] = await tx.insert(mouvementStock).values(valeursMouvement).returning();
+    if (!mouvement)
+      throw new ErreurMetier(
+        'ERREUR_INTERNE',
+        'Échec de création du mouvement de retour de consigne.',
+      );
 
-      await tx.execute(sql`
-        update public.consigne_echange_standard
-           set statut = 'retournee_fournisseur', retournee_fournisseur_le = now(), mouvement_retour_id = ${mouvement.id}
-         where tenant_id = ${ctx.tenantId} and id = ${id}
-      `);
+    await tx.execute(sql`
+      update public.consigne_echange_standard
+         set statut = 'retournee_fournisseur', retournee_fournisseur_le = now(), mouvement_retour_id = ${mouvement.id}
+       where tenant_id = ${ctx.tenantId} and id = ${id}
+    `);
 
-      const ligneMaj = await this.chargerOu404(tx, ctx, id);
-      return versConsigneResponse(ligneMaj);
-    });
+    const ligneMaj = await this.chargerOu404(tx, ctx, id);
+    return versConsigneResponse(ligneMaj);
+  }
+
+  /**
+   * RP-38 (§6.4) : « la ligne d'OR facture pièce + consigne, ET la vieille pièce est réceptionnée
+   * en stock, dans le même geste ». Appelée par `ServiceLigneOr.marquerRealisee` (`atelier/`),
+   * DANS LA MÊME TRANSACTION que la réservation satisfaite qui la précède (`tx` déjà ouvert, en
+   * premier paramètre — même convention que partout ailleurs dans ce fichier) : un mouvement de
+   * sortie qui commite sans sa consigne, ou l'inverse, laisserait le stock incohérent, exactement
+   * ce que la composition par `tx` unique interdit.
+   *
+   * `null` si l'article déposé n'est PAS `estEchangeStandard` — pas une consigne, rien à créer.
+   *
+   * TYPE DE MOUVEMENT SIGNALÉ, PAS TRANCHÉ (hérité du rapport de livraison précédent) :
+   * `TYPES_MOUVEMENT_STOCK` (`pieces/mouvement.ts`, GELÉ) n'a AUCUN type dédié à « réception d'un
+   * cœur d'échange standard ». Choix retenu ICI : `retour_consigne`, quantité POSITIVE — symétrique
+   * du retour au fournisseur (`marquerRetourFournisseurTx`, MÊME type, quantité NÉGATIVE) : les
+   * deux jambes du cycle de consigne partagent un type, distinguées par le signe (RP-17 : « signée,
+   * positive à l'entrée, négative à la sortie »). À confirmer par expert-api/expert-database —
+   * l'enum reste extensible (RP-16) si un type dédié est préféré.
+   */
+  async creerDepuisRealisationTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    parametres: ParametresCreationConsigneDepuisRealisation,
+  ): Promise<ReponseConsigneEchangeStandard | null> {
+    const articleLigne = await this.chargerArticleOu404(tx, ctx, parametres.articleId);
+    if (!articleLigne.estEchangeStandard) return null;
+    if (articleLigne.montantConsigneTtcCentimes === null) {
+      // Défensif : `article_consigne_coherente_chk` (migration 0022) garantit que
+      // `estEchangeStandard = true` implique `montantConsigneTtcCentimes` non nul en base.
+      throw new ErreurMetier(
+        'ERREUR_INTERNE',
+        `Article ${parametres.articleId} d'échange standard sans montant de consigne (RP-38).`,
+      );
+    }
+
+    const entreeConsigne: NouveauMouvementStock = {
+      tenantId: ctx.tenantId,
+      articleId: parametres.articleId,
+      type: 'retour_consigne',
+      quantiteMillieme: parametres.quantiteMillieme,
+      siteId: parametres.siteId,
+      ligneOrId: parametres.ligneOrId,
+      auteurId: parametres.auteurId,
+    };
+    const [mouvementEntree] = await tx.insert(mouvementStock).values(entreeConsigne).returning();
+    if (!mouvementEntree) {
+      throw new ErreurMetier(
+        'ERREUR_INTERNE',
+        "Échec de création du mouvement d'entrée de consigne (RP-38).",
+      );
+    }
+
+    const consigne: NouvelleConsigneEchangeStandard = {
+      tenantId: ctx.tenantId,
+      ligneOrId: parametres.ligneOrId,
+      ordreReparationId: parametres.ordreReparationId,
+      articleId: parametres.articleId,
+      siteId: parametres.siteId,
+      montantConsigneTtcCentimes: articleLigne.montantConsigneTtcCentimes,
+      mouvementEntreeId: mouvementEntree.id,
+    };
+    const [ligneConsigne] = await tx.insert(consigneEchangeStandard).values(consigne).returning();
+    if (!ligneConsigne) {
+      throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création de la consigne (RP-38).');
+    }
+    return versConsigneResponse(ligneConsigne);
   }
 
   private async chargerOu404(
@@ -197,4 +281,36 @@ export class ServiceConsigne {
     const { quantiteLigneOrMillieme, ...consigne } = ligne;
     return { consigne, quantiteLigneOrMillieme };
   }
+
+  /** Même doctrine que `ServiceStock`/`ServiceMouvement` (`pieces/`) : chaque service porte sa
+   *  propre lecture d'article tenant-scopée plutôt qu'un helper partagé — pas de dépendance de
+   *  compilation supplémentaire pour une seule requête. */
+  private async chargerArticleOu404(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    articleId: string,
+  ): Promise<LigneArticle> {
+    const [ligne] = await tx
+      .select()
+      .from(article)
+      .where(and(eq(article.tenantId, ctx.tenantId), eq(article.id, articleId)))
+      .limit(1);
+    if (!ligne)
+      throw new ErreurMetier('RESSOURCE_INTROUVABLE', `Article ${articleId} introuvable.`);
+    return ligne;
+  }
+}
+
+/** Paramètres de `ServiceConsigne.creerDepuisRealisationTx` — l'appelant (`atelier/`) ne connaît
+ *  ni le montant de consigne (dérivé de l'article) ni le mouvement d'entrée (créé ici) : seuls les
+ *  identifiants et quantités issus de la ligne d'OR et de sa réservation satisfaite sont à fournir. */
+export interface ParametresCreationConsigneDepuisRealisation {
+  readonly ligneOrId: string;
+  readonly ordreReparationId: string;
+  readonly articleId: string;
+  readonly siteId: string;
+  readonly quantiteMillieme: number;
+  /** `string | null`, même type que `ContexteTenant.utilisateurId`/`NouveauMouvementStock.auteurId`
+   *  (colonne `auteur_id` nullable, `pieces/stock.ts`) — pas de resserrement de type ici. */
+  readonly auteurId: string | null;
 }

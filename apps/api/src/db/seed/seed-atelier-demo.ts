@@ -46,6 +46,8 @@ import { ServiceLigneOr } from '../../atelier/service-ligne-or';
 import { ServiceOr } from '../../atelier/service-or';
 import { ServiceSnapshotOr } from '../../atelier/service-snapshot-or';
 import { ServiceTransitions } from '../../atelier/service-transitions';
+import { ServiceConsigne } from '../../pieces/service-consigne';
+import { ServiceReservation } from '../../pieces/service-reservation';
 import { ServiceAccesBase } from '../acces-base.service';
 import type { ConfigBase, ContexteTenant } from '../index';
 
@@ -179,6 +181,14 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
         );
       },
     };
+    // RP-21/RP-23/RP-38 : `ServiceReservation`/`ServiceConsigne` (`pieces/`), septième et huitième
+    // arguments depuis que `ServiceLigneOr` compose avec leurs variantes `*Tx` plutôt que de
+    // répliquer leur SQL (dette technique soldée). Instances RÉELLES — mêmes garanties qu'en
+    // production, `acces` déjà construit ci-dessus — jamais de doublure inerte comme
+    // `travailReporteInerte` : ces services n'ont pas de dépendance supplémentaire à assembler à la
+    // main.
+    const serviceReservation = new ServiceReservation(acces);
+    const serviceConsigne = new ServiceConsigne(acces);
     const serviceLigneOr = new ServiceLigneOr(
       acces,
       idempotence,
@@ -186,6 +196,8 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
       calcul,
       travailReporteInerte,
       serviceOr,
+      serviceReservation,
+      serviceConsigne,
     );
 
     const ctx: ContexteTenant = {

@@ -5,18 +5,16 @@ import type {
   EntreeMarquageRealisee,
   EntreeRefusLignes,
   ReponseOrdreReparation,
+  ReponseReservationPiece,
 } from '@dfa/shared';
 import type { ContexteTenant, TransactionDfa } from '../db';
 import {
   article,
-  consigneEchangeStandard,
   ligneOr,
-  mouvementStock,
   reservationPiece,
   type LigneArticle,
   type LigneLigneOr,
   type LigneOrdreReparation,
-  type LigneReservationPiece,
 } from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import type { CreationTravailReporte } from './atelier.jetons';
@@ -33,8 +31,15 @@ import type { CreationTravailReporte } from './atelier.jetons';
  * avec les bons champs, DANS LA MÊME TRANSACTION que le passage de la ligne à `refusee`.
  *
  * Même doctrine pour les suites RP-19/RP-21/RP-23/RP-38 ajoutées plus bas (câblage atelier ↔
- * pièces, cf. rapport de livraison) : transaction et requêtes moquées, aucune preuve d'écriture
- * réelle en base (testcontainers, hors périmètre unitaire).
+ * pièces) : transaction et requêtes moquées, aucune preuve d'écriture réelle en base
+ * (testcontainers, hors périmètre unitaire). Depuis que la dette technique signalée au rapport de
+ * livraison étape 3-4 est soldée, `ServiceReservation`/`ServiceConsigne` sont des dépendances
+ * INJECTÉES de `ServiceLigneOr` (plus de SQL recopié ici) : les tests RP-21/RP-23/RP-38 ci-dessous
+ * moquent ces DEUX services plutôt que le SQL qu'ils exécutaient auparavant, et prouvent la
+ * composition (même `tx`, mêmes paramètres) — le comportement DÉTAILLÉ de
+ * `satisfaire(Tx|PourLigneTx)`/`liberer(Tx|PourLigneTx)`/`creerDepuisRealisationTx` est
+ * re-couvert, lui, dans `pieces/service-reservation.spec.ts`/`pieces/service-consigne.spec.ts`
+ * (propriétaire du comportement, un seul endroit).
  */
 vi.mock('./or-requetes', () => ({
   chargerOrPourEcriture: vi.fn(),
@@ -207,25 +212,29 @@ function articleFixture(overrides: Partial<LigneArticle> = {}): LigneArticle {
   } as LigneArticle;
 }
 
-function reservationFixture(overrides: Partial<LigneReservationPiece> = {}): LigneReservationPiece {
+/** Forme du RETOUR de `ServiceReservation.satisfairePourLigneTx` (`pieces/`), pas la ligne base de
+ *  données — c'est ce que `ServiceLigneOr.marquerRealisee` reçoit désormais (composition par
+ *  service injecté, plus de lecture SQL directe de `reservation_piece` ici). */
+function reponseReservationFixture(
+  overrides: Partial<ReponseReservationPiece> = {},
+): ReponseReservationPiece {
   return {
     id: RESERVATION_ID,
-    tenantId: 'tenant-a',
     articleId: ARTICLE_ID,
     siteId: 'site-1',
     ligneOrId: LIGNE_ID,
     ordreReparationId: OR_ID,
     quantiteMillieme: 1000,
-    statut: 'active',
-    creeLe: new Date('2026-07-28T07:00:00.000Z'),
-    satisfaiteLe: null,
-    mouvementSortieId: null,
+    statut: 'satisfaite',
+    creeLe: '2026-07-28T07:00:00.000Z',
+    satisfaiteLe: '2026-07-28T08:00:00.000Z',
+    mouvementSortieId: 'mouvement-sortie-1',
     libereeLe: null,
     motifLiberation: null,
     motifLiberationTexte: null,
     libereeParUtilisateurId: null,
     ...overrides,
-  } as LigneReservationPiece;
+  };
 }
 
 /** Enveloppe « thenable + `.returning()` » : imite le constructeur de requête Drizzle, qui reste
@@ -318,8 +327,35 @@ function travailReporteFactice(): { creerDepuisRefus: ReturnType<typeof vi.fn> }
   return { creerDepuisRefus: vi.fn(async () => undefined) };
 }
 
-/** Seuls `acces`, `travailReporte` et `serviceOr` sont exercés par `refuserLignes()` — les 3 autres
- *  dépendances du constructeur (idempotence, événements, calcul) n'interviennent QUE dans
+/** Stub par défaut de `ServiceReservation` injecté : `libererPourLigneTx` en no-op silencieux
+ *  (aucune réservation active — comportement par défaut sans mise en scène spécifique), jamais
+ *  exercé par les tests RM-73/`creer()` qui utilisent ce stub. */
+function serviceReservationFactice(
+  overrides: Partial<{
+    satisfairePourLigneTx: ReturnType<typeof vi.fn>;
+    libererPourLigneTx: ReturnType<typeof vi.fn>;
+  }> = {},
+) {
+  return {
+    satisfairePourLigneTx: vi.fn(async () => null),
+    libererPourLigneTx: vi.fn(async () => undefined),
+    ...overrides,
+  };
+}
+
+/** Stub par défaut de `ServiceConsigne` injecté — voir `serviceReservationFactice`. */
+function serviceConsigneFactice(
+  overrides: Partial<{ creerDepuisRealisationTx: ReturnType<typeof vi.fn> }> = {},
+) {
+  return {
+    creerDepuisRealisationTx: vi.fn(async () => null),
+    ...overrides,
+  };
+}
+
+/** Seuls `acces`, `travailReporte` et `serviceOr` sont exercés par `refuserLignes()` (au-delà du
+ *  stub par défaut de `ServiceReservation`, exercé par la libération automatique RP-23) — les 3
+ *  autres dépendances du constructeur (idempotence, événements, calcul) n'interviennent QUE dans
  *  `creer()`/`modifier()`, jamais dans les actions groupées. */
 function serviceFactice(
   acces: ReturnType<typeof accesBaseFactice>,
@@ -334,12 +370,15 @@ function serviceFactice(
     {} as never,
     travailReporte as unknown as CreationTravailReporte,
     serviceOr as never,
+    serviceReservationFactice() as never,
+    serviceConsigneFactice() as never,
   );
 }
 
 /** `creer()`/`marquerRealisee()` n'appellent jamais `acces.enTenant` directement (c'est
  *  `idempotence.executer` — mocké ici — qui l'aurait fait en production, voir
- *  `idempotence.types.ts`) ni `serviceOr`/`travailReporte` — dummies non exercés. */
+ *  `idempotence.types.ts`) ni `serviceOr`/`travailReporte`/`ServiceReservation`/`ServiceConsigne`
+ *  — dummies non exercés (`creer()` réserve la pièce par INSERT direct, RP-19/RP-20, GELÉ). */
 function serviceFacticePieces(
   tx: TransactionDfa,
   calcul: ReturnType<typeof calculFactice>,
@@ -351,12 +390,20 @@ function serviceFacticePieces(
     calcul as never,
     {} as never,
     {} as never,
+    {} as never,
+    {} as never,
   );
 }
 
 /** `marquerRealisee()` passe par `acces.enTenant` (pas d'idempotence sur une action de
- *  transition) — voir `service-ligne-or.ts::marquerRealisee`. */
-function serviceFacticePiecesRealisation(tx: TransactionDfa): ServiceLigneOr {
+ *  transition) — voir `service-ligne-or.ts::marquerRealisee`. `serviceReservation`/`serviceConsigne`
+ *  paramétrables : c'est PRÉCISÉMENT ce que les tests RP-21/RP-38 ci-dessous exercent (composition,
+ *  même `tx` transmis). */
+function serviceFacticePiecesRealisation(
+  tx: TransactionDfa,
+  serviceReservation: ReturnType<typeof serviceReservationFactice> = serviceReservationFactice(),
+  serviceConsigne: ReturnType<typeof serviceConsigneFactice> = serviceConsigneFactice(),
+): ServiceLigneOr {
   return new ServiceLigneOr(
     accesBaseFactice(tx) as never,
     {} as never,
@@ -364,6 +411,8 @@ function serviceFacticePiecesRealisation(tx: TransactionDfa): ServiceLigneOr {
     {} as never,
     {} as never,
     {} as never,
+    serviceReservation as never,
+    serviceConsigne as never,
   );
 }
 
@@ -470,6 +519,33 @@ describe('ServiceLigneOr.refuserLignes — câblage du port CreationTravailRepor
       (appel) => (appel[2] as { ligneOrId: string }).ligneOrId,
     );
     expect(ligneOrIds).toEqual(['ligne-a', 'ligne-b']);
+  });
+
+  it("RP-23, deuxième cas : refuser une ligne 'piece' appelle ServiceReservation.libererPourLigneTx(tx, ctx, ligneId, 'refus_devis'), avec le MÊME tx que la transition de la ligne", async () => {
+    const or = orFixture();
+    const ligne = ligneFixture({ type: 'piece', articleId: ARTICLE_ID });
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.chargerLignesPourEcriture).mockResolvedValue([ligne]);
+    const { tx } = txFactice(ligne);
+    const acces = accesBaseFactice(tx);
+    const travailReporte = travailReporteFactice();
+    const libererPourLigneTx = vi.fn(async () => undefined);
+    const service = new ServiceLigneOr(
+      acces as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      travailReporte as unknown as CreationTravailReporte,
+      { assemblerDocument: vi.fn(async () => ({}) as ReponseOrdreReparation) } as never,
+      { libererPourLigneTx } as never,
+      {} as never,
+    );
+
+    await service.refuserLignes(CTX, principal('receptionnaire'), OR_ID, {
+      ligneIds: [LIGNE_ID],
+    });
+
+    expect(libererPourLigneTx).toHaveBeenCalledWith(tx, CTX, LIGNE_ID, 'refus_devis');
   });
 });
 
@@ -641,10 +717,22 @@ describe('ServiceLigneOr.creer — réservation de pièce à la pose (RP-19/RP-2
 
 /* ------------------------------------------------------------------------------------------- */
 /* RP-21/RP-38 : sortie de stock et consigne à la réalisation d'une ligne d'OR                   */
+/*                                                                                                */
+/* Dette technique soldée (rapport de livraison étape 3-4) : `ServiceLigneOr` composait          */
+/* auparavant en répliquant le SQL de `ServiceReservation`/`ServiceConsigne` directement ici.    */
+/* Il compose maintenant en APPELANT ces services (`satisfairePourLigneTx`,                      */
+/* `creerDepuisRealisationTx`), qui reçoivent le `tx` en cours — la MÊME transaction que le       */
+/* passage de la ligne à `realisee`. Le comportement DÉTAILLÉ de ces méthodes (verrou, machine à  */
+/* états, cohérence des colonnes de libération) est couvert dans                                 */
+/* `pieces/service-reservation.spec.ts`/`pieces/service-consigne.spec.ts` — ce fichier prouve     */
+/* seulement la COMPOSITION : bons paramètres, même `tx`, et — point central de cette tâche —     */
+/* qu'un échec en cours de composition n'est PAS avalé (propriété dont dépend l'atomicité réelle,  */
+/* portée par `AccesBase.enTenant` en production : un rejet qui sort du callback fait ROLLBACK     */
+/* tout ce qui a été écrit dans ce `tx`, réservation/consigne/statut de ligne ensemble).           */
 /* ------------------------------------------------------------------------------------------- */
 
 describe('ServiceLigneOr.marquerRealisee — sortie de stock et consigne (RP-21/RP-38)', () => {
-  it("ligne 'piece' avec réservation active → mouvement sortie_or + réservation 'satisfaite'", async () => {
+  it("ligne 'piece' avec réservation active → satisfairePourLigneTx(tx, ctx, ligneId) PUIS creerDepuisRealisationTx(tx, ctx, {…}), avec le MÊME tx que la transition de la ligne", async () => {
     const or = orFixture();
     const ligne = ligneFixture({
       type: 'piece',
@@ -656,115 +744,44 @@ describe('ServiceLigneOr.marquerRealisee — sortie de stock et consigne (RP-21/
     vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
     vi.mocked(orRequetes.chargerLigneOrPourEcriture).mockResolvedValue(ligne);
 
-    const reservation = reservationFixture();
-    const select = construireSelect(
-      new Map<unknown, unknown[]>([
-        [reservationPiece, [reservation]],
-        [article, [articleFixture({ estEchangeStandard: false })]],
-      ]),
-    );
-    const mouvementSortie = { id: 'mouvement-sortie-1' };
-    const { insert, appels: appelsInsert } = construireInsert(
-      new Map([[mouvementStock, { lignes: [mouvementSortie] }]]),
-    );
-    const { update, appels: appelsUpdate } = construireUpdate(
-      new Map([[ligneOr, [ligneRealisee]]]),
-    );
-    const tx = { select, insert, update } as unknown as TransactionDfa;
+    const { update } = construireUpdate(new Map([[ligneOr, [ligneRealisee]]]));
+    const tx = { update } as unknown as TransactionDfa;
 
-    const service = serviceFacticePiecesRealisation(tx);
+    const reservationSatisfaite = reponseReservationFixture({
+      articleId: ARTICLE_ID,
+      siteId: 'site-2',
+      quantiteMillieme: 1000,
+    });
+    const satisfairePourLigneTx = vi.fn(async () => reservationSatisfaite);
+    const creerDepuisRealisationTx = vi.fn(async () => null);
+    const service = serviceFacticePiecesRealisation(
+      tx,
+      serviceReservationFactice({ satisfairePourLigneTx }),
+      serviceConsigneFactice({ creerDepuisRealisationTx }),
+    );
+
     const entree: EntreeMarquageRealisee = {};
     await service.marquerRealisee(CTX, principal('receptionnaire'), OR_ID, LIGNE_ID, entree);
 
-    const appelSortie = appelsInsert.find((a) => a.table === mouvementStock);
-    expect(appelSortie?.valeurs).toMatchObject({
-      articleId: ARTICLE_ID,
-      type: 'sortie_or',
-      quantiteMillieme: -1000,
-      siteId: 'site-1',
-      ligneOrId: LIGNE_ID,
-      reservationId: RESERVATION_ID,
-    });
+    expect(satisfairePourLigneTx).toHaveBeenCalledTimes(1);
+    expect(satisfairePourLigneTx).toHaveBeenCalledWith(tx, CTX, LIGNE_ID);
 
-    const appelReservation = appelsUpdate.find((a) => a.table === reservationPiece);
-    expect(appelReservation?.valeurs).toMatchObject({
-      statut: 'satisfaite',
-      mouvementSortieId: 'mouvement-sortie-1',
-    });
-    expect((appelReservation?.valeurs as { satisfaiteLe: Date }).satisfaiteLe).toBeInstanceOf(Date);
-
-    // Article non-échange-standard : aucune consigne posée.
-    expect(appelsInsert.some((a) => a.table === consigneEchangeStandard)).toBe(false);
-  });
-
-  it("article d'échange standard → consigne posée EN PLUS de la sortie (mouvement retour_consigne positif)", async () => {
-    const or = orFixture();
-    const ligne = ligneFixture({
-      type: 'piece',
-      articleId: ARTICLE_ID,
-      statut: 'en_cours',
-      quantiteMillieme: 1000,
-    });
-    const ligneRealisee = { ...ligne, statut: 'realisee' as const };
-    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
-    vi.mocked(orRequetes.chargerLigneOrPourEcriture).mockResolvedValue(ligne);
-
-    const reservation = reservationFixture();
-    const select = construireSelect(
-      new Map<unknown, unknown[]>([
-        [reservationPiece, [reservation]],
-        [
-          article,
-          [articleFixture({ estEchangeStandard: true, montantConsigneTtcCentimes: 12_000 })],
-        ],
-      ]),
-    );
-    const mouvementSortie = { id: 'mouvement-sortie-1' };
-    const mouvementEntreeConsigne = { id: 'mouvement-entree-consigne-1' };
-    let appelsMouvementStock = 0;
-    const { insert, appels: appelsInsert } = construireInsert(new Map());
-    // `construireInsert` générique rend TOUJOURS la même valeur pour une table donnée — la
-    // séquence sortie_or PUIS retour_consigne exige deux réponses différentes pour LA MÊME table
-    // (`mouvementStock`) : override local du handler pour ce test précis.
-    const insertPersonnalise = vi.fn((table: unknown) => ({
-      values: (valeurs: unknown) => {
-        if (table === mouvementStock) {
-          appelsMouvementStock += 1;
-          appelsInsert.push({ table, valeurs });
-          const lignes = appelsMouvementStock === 1 ? [mouvementSortie] : [mouvementEntreeConsigne];
-          return resultatChaine(lignes);
-        }
-        return insert(table).values(valeurs);
-      },
-    }));
-    const { update } = construireUpdate(new Map([[ligneOr, [ligneRealisee]]]));
-    const tx = { select, insert: insertPersonnalise, update } as unknown as TransactionDfa;
-
-    const service = serviceFacticePiecesRealisation(tx);
-    await service.marquerRealisee(CTX, principal('receptionnaire'), OR_ID, LIGNE_ID, {});
-
-    const appelsMouvement = appelsInsert.filter((a) => a.table === mouvementStock);
-    expect(appelsMouvement).toHaveLength(2);
-    expect(appelsMouvement[1]?.valeurs).toMatchObject({
-      articleId: ARTICLE_ID,
-      type: 'retour_consigne',
-      quantiteMillieme: 1000, // positif : entrée du cœur d'échange standard (symétrique de RP-40)
-      siteId: 'site-1',
-      ligneOrId: LIGNE_ID,
-    });
-
-    const appelConsigne = appelsInsert.find((a) => a.table === consigneEchangeStandard);
-    expect(appelConsigne?.valeurs).toMatchObject({
+    expect(creerDepuisRealisationTx).toHaveBeenCalledTimes(1);
+    expect(creerDepuisRealisationTx).toHaveBeenCalledWith(tx, CTX, {
       ligneOrId: LIGNE_ID,
       ordreReparationId: OR_ID,
       articleId: ARTICLE_ID,
-      siteId: 'site-1',
-      montantConsigneTtcCentimes: 12_000,
-      mouvementEntreeId: 'mouvement-entree-consigne-1',
+      siteId: 'site-2',
+      quantiteMillieme: 1000,
+      auteurId: CTX.utilisateurId,
     });
+
+    // `update` (transition ligne_or) a bien tourné sur ce MÊME `tx` — les trois écritures
+    // (transition, satisfaction, consigne) partagent l'unique transaction reçue en paramètre.
+    expect(update).toHaveBeenCalled();
   });
 
-  it("ligne 'piece' SANS réservation active (jamais créée, blocage='pieces' à la pose) → aucun mouvement généré", async () => {
+  it("aucune réservation active (satisfairePourLigneTx rend null) → creerDepuisRealisationTx N'EST PAS appelé (rien à consigner sans sortie de stock)", async () => {
     const or = orFixture();
     const ligne = ligneFixture({
       type: 'piece',
@@ -776,12 +793,17 @@ describe('ServiceLigneOr.marquerRealisee — sortie de stock et consigne (RP-21/
     vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
     vi.mocked(orRequetes.chargerLigneOrPourEcriture).mockResolvedValue(ligne);
 
-    const select = construireSelect(new Map()); // reservation_piece : aucune ligne active
-    const { insert, appels: appelsInsert } = construireInsert(new Map());
     const { update } = construireUpdate(new Map([[ligneOr, [ligneRealisee]]]));
-    const tx = { select, insert, update } as unknown as TransactionDfa;
+    const tx = { update } as unknown as TransactionDfa;
 
-    const service = serviceFacticePiecesRealisation(tx);
+    const satisfairePourLigneTx = vi.fn(async () => null);
+    const creerDepuisRealisationTx = vi.fn(async () => null);
+    const service = serviceFacticePiecesRealisation(
+      tx,
+      serviceReservationFactice({ satisfairePourLigneTx }),
+      serviceConsigneFactice({ creerDepuisRealisationTx }),
+    );
+
     const resultat = await service.marquerRealisee(
       CTX,
       principal('receptionnaire'),
@@ -791,7 +813,71 @@ describe('ServiceLigneOr.marquerRealisee — sortie de stock et consigne (RP-21/
     );
 
     expect(resultat.donnees.statut).toBe('realisee');
-    expect(appelsInsert.some((a) => a.table === mouvementStock)).toBe(false);
+    expect(satisfairePourLigneTx).toHaveBeenCalledTimes(1);
+    expect(creerDepuisRealisationTx).not.toHaveBeenCalled();
+  });
+
+  it("ligne PAS de type 'piece' → ni satisfairePourLigneTx ni creerDepuisRealisationTx appelés", async () => {
+    const or = orFixture();
+    const ligne = ligneFixture({ type: 'main_oeuvre_bareme', articleId: null, statut: 'en_cours' });
+    const ligneRealisee = { ...ligne, statut: 'realisee' as const };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.chargerLigneOrPourEcriture).mockResolvedValue(ligne);
+
+    const { update } = construireUpdate(new Map([[ligneOr, [ligneRealisee]]]));
+    const tx = { update } as unknown as TransactionDfa;
+
+    const satisfairePourLigneTx = vi.fn(async () => null);
+    const creerDepuisRealisationTx = vi.fn(async () => null);
+    const service = serviceFacticePiecesRealisation(
+      tx,
+      serviceReservationFactice({ satisfairePourLigneTx }),
+      serviceConsigneFactice({ creerDepuisRealisationTx }),
+    );
+
+    await service.marquerRealisee(CTX, principal('receptionnaire'), OR_ID, LIGNE_ID, {});
+
+    expect(satisfairePourLigneTx).not.toHaveBeenCalled();
+    expect(creerDepuisRealisationTx).not.toHaveBeenCalled();
+  });
+
+  it("ATOMICITÉ : un échec DANS creerDepuisRealisationTx (ex. consigne qui échoue APRÈS la sortie de stock déjà satisfaite dans ce tx) fait échouer marquerRealisee EN ENTIER — l'erreur n'est PAS avalée, elle sort du callback `acces.enTenant` (là où un vrai ROLLBACK Postgres annulerait ensemble la transition de ligne, la satisfaction ET la tentative de consigne, tous écrits dans le MÊME tx)", async () => {
+    const or = orFixture();
+    const ligne = ligneFixture({
+      type: 'piece',
+      articleId: ARTICLE_ID,
+      statut: 'en_cours',
+      quantiteMillieme: 1000,
+    });
+    const ligneRealisee = { ...ligne, statut: 'realisee' as const };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.chargerLigneOrPourEcriture).mockResolvedValue(ligne);
+
+    const { update } = construireUpdate(new Map([[ligneOr, [ligneRealisee]]]));
+    const tx = { update } as unknown as TransactionDfa;
+
+    const reservationSatisfaite = reponseReservationFixture();
+    const satisfairePourLigneTx = vi.fn(async () => reservationSatisfaite);
+    const echecConsigne = new Error('échec simulé : insertion de consigne_echange_standard');
+    const creerDepuisRealisationTx = vi.fn(async () => {
+      throw echecConsigne;
+    });
+    const service = serviceFacticePiecesRealisation(
+      tx,
+      serviceReservationFactice({ satisfairePourLigneTx }),
+      serviceConsigneFactice({ creerDepuisRealisationTx }),
+    );
+
+    await expect(
+      service.marquerRealisee(CTX, principal('receptionnaire'), OR_ID, LIGNE_ID, {}),
+    ).rejects.toBe(echecConsigne);
+
+    // La sortie de stock (satisfairePourLigneTx) a bien été exécutée AVANT l'échec, DANS LE MÊME
+    // tx que la transition de ligne déjà écrite (`update` a tourné) — sans le rejet non avalé
+    // ci-dessus, ces écritures resteraient commitées séparément de la consigne manquante,
+    // exactement l'incohérence de stock que cette tâche doit rendre impossible.
+    expect(satisfairePourLigneTx).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalled();
   });
 });
 
@@ -800,25 +886,21 @@ describe('ServiceLigneOr.marquerRealisee — sortie de stock et consigne (RP-21/
 /* ------------------------------------------------------------------------------------------- */
 
 describe('ServiceLigneOr.annulerLignes — libération automatique de la réservation (RP-23)', () => {
-  it("ligne 'piece' avec réservation active annulée → réservation 'liberee', motif 'annulation_ligne'", async () => {
+  it("ligne 'piece' annulée → ServiceReservation.libererPourLigneTx(tx, ctx, ligneId, 'annulation_ligne'), avec le MÊME tx que la transition de la ligne", async () => {
     const or = orFixture();
     const ligne = ligneFixture({ type: 'piece', articleId: ARTICLE_ID, statut: 'validee' });
     vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
     vi.mocked(orRequetes.chargerLignesPourEcriture).mockResolvedValue([ligne]);
 
-    const reservation = reservationFixture();
-    const select = construireSelect(
-      new Map<unknown, unknown[]>([[reservationPiece, [reservation]]]),
-    );
-    const { insert } = construireInsert(new Map());
     const ligneAnnulee = { ...ligne, statut: 'annulee' as const, motifAnnulation: 'Doublon' };
-    const { update, appels: appelsUpdate } = construireUpdate(new Map([[ligneOr, [ligneAnnulee]]]));
-    const tx = { select, insert, update } as unknown as TransactionDfa;
+    const { update } = construireUpdate(new Map([[ligneOr, [ligneAnnulee]]]));
+    const tx = { update } as unknown as TransactionDfa;
 
     const acces = accesBaseFactice(tx);
     const travailReporte = travailReporteFactice();
     const document = {} as ReponseOrdreReparation;
     const serviceOr = { assemblerDocument: vi.fn(async () => document) };
+    const libererPourLigneTx = vi.fn(async () => undefined);
     const service = new ServiceLigneOr(
       acces as never,
       {} as never,
@@ -826,49 +908,14 @@ describe('ServiceLigneOr.annulerLignes — libération automatique de la réserv
       {} as never,
       travailReporte as unknown as CreationTravailReporte,
       serviceOr as never,
+      { libererPourLigneTx } as never,
+      {} as never,
     );
 
     const entree: EntreeAnnulationLignes = { ligneIds: [LIGNE_ID], motif: 'Doublon' };
     await service.annulerLignes(CTX, principal('receptionnaire'), OR_ID, entree);
 
-    const appelLiberation = appelsUpdate.find((a) => a.table === reservationPiece);
-    expect(appelLiberation?.valeurs).toMatchObject({
-      statut: 'liberee',
-      motifLiberation: 'annulation_ligne',
-    });
-    expect((appelLiberation?.valeurs as { libereeLe: Date }).libereeLe).toBeInstanceOf(Date);
-  });
-
-  it("ligne 'piece' SANS réservation active → aucun UPDATE sur reservation_piece (silencieux)", async () => {
-    const or = orFixture();
-    const ligne = ligneFixture({ type: 'piece', articleId: ARTICLE_ID, statut: 'validee' });
-    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
-    vi.mocked(orRequetes.chargerLignesPourEcriture).mockResolvedValue([ligne]);
-
-    const select = construireSelect(new Map()); // reservation_piece : aucune ligne active
-    const { insert } = construireInsert(new Map());
-    const ligneAnnulee = { ...ligne, statut: 'annulee' as const, motifAnnulation: 'Doublon' };
-    const { update, appels: appelsUpdate } = construireUpdate(new Map([[ligneOr, [ligneAnnulee]]]));
-    const tx = { select, insert, update } as unknown as TransactionDfa;
-
-    const acces = accesBaseFactice(tx);
-    const travailReporte = travailReporteFactice();
-    const document = {} as ReponseOrdreReparation;
-    const serviceOr = { assemblerDocument: vi.fn(async () => document) };
-    const service = new ServiceLigneOr(
-      acces as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      travailReporte as unknown as CreationTravailReporte,
-      serviceOr as never,
-    );
-
-    await service.annulerLignes(CTX, principal('receptionnaire'), OR_ID, {
-      ligneIds: [LIGNE_ID],
-      motif: 'Doublon',
-    });
-
-    expect(appelsUpdate.some((a) => a.table === reservationPiece)).toBe(false);
+    expect(libererPourLigneTx).toHaveBeenCalledTimes(1);
+    expect(libererPourLigneTx).toHaveBeenCalledWith(tx, CTX, LIGNE_ID, 'annulation_ligne');
   });
 });

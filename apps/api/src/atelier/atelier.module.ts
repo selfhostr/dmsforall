@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { PointageModule } from '../pointage/pointage.module';
 import { ServiceLecturePointage } from '../pointage/service-lecture-pointage';
 import { FacturationModule } from '../facturation/facturation.module';
+import { PiecesModule } from '../pieces/pieces.module';
 import { ServiceVehiculeTravailReporte } from '../vehicules/service-vehicule-travail-reporte';
 import { VehiculesModule } from '../vehicules/vehicules.module';
 
@@ -60,9 +61,18 @@ import { ServiceTransitions } from './service-transitions';
  * (`atelier.jetons.ts`). Même sens de dépendance à SENS UNIQUE que `FacturationModule` :
  * `VehiculesModule` n'importe jamais `AtelierModule` (vérifié : seuls des commentaires y
  * référencent ce nom) — aucun cycle.
+ *
+ * `PiecesModule` importé pour `ServiceReservation`/`ServiceConsigne` (RP-21/RP-23/RP-38) :
+ * `ServiceLigneOr.marquerRealisee`/`refuserLignes`/`annulerLignes` composent avec leurs variantes
+ * `*Tx` (dette technique soldée — voir la doc de `ServiceLigneOr.satisfaireReservationSiApplicable`)
+ * pour que la réservation/consigne commite DANS LA MÊME transaction que le changement d'état de la
+ * ligne. Même sens de dépendance à SENS UNIQUE que `FacturationModule`/`VehiculesModule` :
+ * `PiecesModule` n'importe jamais `AtelierModule` (vérifié : aucune référence, même en
+ * commentaire) — aucun cycle. Même précédent que `PneusModule`/`VentesModule`, qui importent déjà
+ * `PiecesModule`.
  */
 @Module({
-  imports: [FacturationModule, VehiculesModule, PointageModule],
+  imports: [FacturationModule, VehiculesModule, PointageModule, PiecesModule],
   controllers: [
     OrdreReparationController,
     OrdreReparationTransitionsController,

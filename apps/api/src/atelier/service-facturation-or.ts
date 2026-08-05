@@ -30,7 +30,10 @@ import {
 } from '../common/idempotence';
 
 import { calculerLigneDocument } from '../facturation/documents/calcul-document';
-import { chargerAdresseFacturationStructuree } from '../facturation/documents/references';
+import {
+  chargerAdresseFacturationStructuree,
+  chargerConditionsPaiementEnVigueur,
+} from '../facturation/documents/references';
 import { ServiceDocumentsVente } from '../facturation/documents/service-documents';
 
 import { verifierConfirmation } from './confirmations';
@@ -218,6 +221,19 @@ export class ServiceFacturationOr {
 
           const adresseFacturationFigee =
             (await chargerAdresseFacturationStructuree(tx, ctx, destinataireId)) ?? {};
+          // RM-07/RF-04/PF-04, même patron que `facturation/documents/service-documents.ts::creer`
+          // (défaut soldé, cf. rapport de livraison signalé par expert-facturation) : conditions de
+          // paiement du DESTINATAIRE (pas forcément `or.clientId` — un groupe payeur `assurance`/
+          // `constructeur`/`tiers` facture un tiers différent, RF-92) EN VIGUEUR à `dateDocument`.
+          // `{}` si aucune ligne `client_condition` n'est en vigueur — jamais un délai fabriqué à
+          // partir d'un défaut codé en dur (aucune colonne ne le porte, voir l'en-tête d'`echeance.ts`) :
+          // l'échéance de cette facture reste alors `null`, honnête plutôt que fausse.
+          const conditionsPaiementFigees = await chargerConditionsPaiementEnVigueur(
+            tx,
+            ctx,
+            destinataireId,
+            new Date(`${dateDocument}T00:00:00.000Z`),
+          );
 
           const [doc] = await tx
             .insert(documentVente)
@@ -234,7 +250,7 @@ export class ServiceFacturationOr {
               clientIdeFige: destinataireLigne.ide,
               langueFigee: destinataireLigne.langue,
               adresseFacturationFigee,
-              conditionsPaiementFigees: {},
+              conditionsPaiementFigees,
               dateDocument,
               devise: 'CHF',
             })

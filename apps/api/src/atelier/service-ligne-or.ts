@@ -10,7 +10,6 @@ import type {
   EntreeSoumissionLignesADevis,
   EntreeValidationLignes,
   FiltresLignesOr,
-  MotifLiberationReservation,
   PageCurseur,
   PayeurLigneOr,
   ReponseAvecAvertissements,
@@ -20,17 +19,12 @@ import type {
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
-  consigneEchangeStandard,
   ligneOr,
-  mouvementStock,
   reservationPiece,
   tauxHoraire,
   type LigneLigneOr,
   type LigneOrdreReparation,
-  type LigneReservationPiece,
   type LigneTauxHoraire,
-  type NouveauMouvementStock,
-  type NouvelleConsigneEchangeStandard,
   type NouvelleReservationPiece,
 } from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
@@ -43,6 +37,8 @@ import {
   type ResultatIdempotent,
   type ServiceIdempotence,
 } from '../common/idempotence';
+import { ServiceConsigne } from '../pieces/service-consigne';
+import { ServiceReservation } from '../pieces/service-reservation';
 
 import {
   JETON_CALCUL_LIGNE,
@@ -102,6 +98,8 @@ export class ServiceLigneOr {
     @Inject(JETON_CALCUL_LIGNE) private readonly calcul: CalculLigne,
     @Inject(JETON_CREATION_TRAVAIL_REPORTE) private readonly travailReporte: CreationTravailReporte,
     private readonly serviceOr: ServiceOr,
+    private readonly serviceReservation: ServiceReservation,
+    private readonly serviceConsigne: ServiceConsigne,
   ) {}
 
   /**
@@ -513,8 +511,9 @@ export class ServiceLigneOr {
    *
    * RP-21/RP-38 (`pieces/reservation.ts`, `pieces/consigne.ts`) : une ligne `piece` réservée sort
    * PHYSIQUEMENT du stock (`sortie_or`) et, si l'article est d'échange standard, pose la consigne
-   * — DANS LA MÊME TRANSACTION que le passage à `realisee` (voir `satisfaireReservationSiApplicable`
-   * ci-dessous pour la raison de la duplication avec `pieces/service-reservation.ts`).
+   * — DANS LA MÊME TRANSACTION `tx` que le passage à `realisee`, composée via
+   * `ServiceReservation.satisfairePourLigneTx`/`ServiceConsigne.creerDepuisRealisationTx` (voir
+   * `satisfaireReservationSiApplicable` ci-dessous).
    */
   async marquerRealisee(
     ctx: ContexteTenant,
@@ -621,10 +620,8 @@ export class ServiceLigneOr {
         for (const ligne of cibles) {
           await this.transitionnerLigne(tx, ctx, ligne, 'refusee', {});
           // RP-23 (`pieces/reservation.ts`), deuxième cas : une ligne refusée en décision de
-          // devis libère AUTOMATIQUEMENT sa réservation active — voir
-          // `libererReservationSiActive` pour la raison de la duplication avec
-          // `pieces/service-reservation.ts::liberer`.
-          await this.libererReservationSiActive(tx, ctx, ligne.id, 'refus_devis');
+          // devis libère AUTOMATIQUEMENT sa réservation active, DANS LA MÊME transaction `tx`.
+          await this.serviceReservation.libererPourLigneTx(tx, ctx, ligne.id, 'refus_devis');
           await this.travailReporte.creerDepuisRefus(
             tx,
             ctx,
@@ -671,8 +668,8 @@ export class ServiceLigneOr {
             motifAnnulation: entree.motif,
           });
           // RP-23 (`pieces/reservation.ts`), premier cas : une ligne annulée libère
-          // AUTOMATIQUEMENT sa réservation active — voir `libererReservationSiActive`.
-          await this.libererReservationSiActive(tx, ctx, ligne.id, 'annulation_ligne');
+          // AUTOMATIQUEMENT sa réservation active, DANS LA MÊME transaction `tx`.
+          await this.serviceReservation.libererPourLigneTx(tx, ctx, ligne.id, 'annulation_ligne');
         }
       },
     );
@@ -891,20 +888,20 @@ export class ServiceLigneOr {
   }
 
   /**
-   * RP-21 (`pieces/reservation.ts`) : la réalisation d'une ligne `piece` portant une réservation
-   * `active` remet PHYSIQUEMENT la pièce — même effet que `POST /reservations/{id}/satisfaire`
-   * (`pieces/service-reservation.ts::satisfaire`), RÉPLIQUÉ ICI plutôt qu'appelé par injection de
-   * `ServiceReservation` : cette méthode ouvre SA PROPRE transaction (`AccesBase.enTenant`), ce
-   * qui romprait l'atomicité exigée avec le changement de statut de la ligne — `ligne_or.statut`
-   * et le mouvement `sortie_or` doivent commiter ou échouer ENSEMBLE, dans le même `tx`. Signalé
-   * au rapport de livraison comme dette technique : `ServiceReservation`/`ServiceConsigne`
-   * gagneraient une variante acceptant un `tx` externe pour que ce doublon disparaisse — hors
-   * périmètre de ce module (`apps/api/src/pieces/**`, propriété d'un autre agent).
+   * RP-21/RP-38 (`pieces/service-reservation.ts`, `pieces/service-consigne.ts`) : la réalisation
+   * d'une ligne `piece` portant une réservation `active` remet PHYSIQUEMENT la pièce et, si
+   * l'article est d'échange standard, pose la consigne — DANS LA MÊME TRANSACTION `tx` que le
+   * passage de la ligne à `realisee`. Dette technique soldée (rapport de livraison étape 3-4) :
+   * l'ancienne version répliquait le SQL de `ServiceReservation`/`ServiceConsigne` directement ici,
+   * faute d'une variante de ces services acceptant un `tx` externe (`AccesBase.enTenant`, appelé
+   * depuis l'intérieur d'un `tx` déjà ouvert, aurait ouvert une connexion NEUVE et cassé
+   * l'atomicité). `satisfairePourLigneTx`/`creerDepuisRealisationTx` reçoivent maintenant ce `tx`
+   * directement : la règle métier vit à un seul endroit, dans `pieces/`.
    *
    * Aucune réservation `active` trouvée (jamais créée, stock insuffisant à la pose,
-   * `blocage = 'pieces'`, RP-24 ; ou déjà `satisfaite`/`liberee`) → AUCUN mouvement généré : il
-   * n'y a rien à satisfaire. Forcer une sortie de stock sans réservation sortirait du périmètre
-   * documenté de cette tâche — signalé, pas tranché.
+   * `blocage = 'pieces'`, RP-24 ; ou déjà `satisfaite`/`liberee`) → `satisfairePourLigneTx` rend
+   * `null`, aucun mouvement généré : il n'y a rien à satisfaire. Forcer une sortie de stock sans
+   * réservation sortirait du périmètre documenté de cette tâche — signalé, pas tranché.
    */
   private async satisfaireReservationSiApplicable(
     tx: TransactionDfa,
@@ -913,147 +910,17 @@ export class ServiceLigneOr {
   ): Promise<void> {
     if (ligne.type !== 'piece' || !ligne.articleId) return;
 
-    const [reservation] = await tx
-      .select()
-      .from(reservationPiece)
-      .where(
-        and(
-          eq(reservationPiece.tenantId, ctx.tenantId),
-          eq(reservationPiece.ligneOrId, ligne.id),
-          eq(reservationPiece.statut, 'active'),
-        ),
-      )
-      .limit(1);
+    const reservation = await this.serviceReservation.satisfairePourLigneTx(tx, ctx, ligne.id);
     if (!reservation) return;
 
-    const sortie: NouveauMouvementStock = {
-      tenantId: ctx.tenantId,
-      articleId: reservation.articleId,
-      type: 'sortie_or',
-      quantiteMillieme: -reservation.quantiteMillieme,
-      siteId: reservation.siteId,
-      ligneOrId: ligne.id,
-      reservationId: reservation.id,
-      auteurId: ctx.utilisateurId,
-    };
-    const [mouvementSortie] = await tx.insert(mouvementStock).values(sortie).returning();
-    if (!mouvementSortie) {
-      throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du mouvement de sortie (RP-21).');
-    }
-
-    await tx
-      .update(reservationPiece)
-      .set({
-        statut: 'satisfaite',
-        satisfaiteLe: new Date(),
-        mouvementSortieId: mouvementSortie.id,
-      })
-      .where(
-        and(eq(reservationPiece.tenantId, ctx.tenantId), eq(reservationPiece.id, reservation.id)),
-      );
-
-    await this.creerConsigneSiApplicable(tx, ctx, ligne, reservation);
-  }
-
-  /**
-   * RP-38 (`pieces/consigne.ts`, en-tête) : « la ligne d'OR facture pièce + consigne, ET la
-   * vieille pièce est réceptionnée en stock, dans le même geste ». Effet de bord serveur de
-   * `marquer-realisee`, déclenché uniquement quand l'article déposé est `estEchangeStandard`.
-   *
-   * TYPE DE MOUVEMENT SIGNALÉ, PAS TRANCHÉ : `TYPES_MOUVEMENT_STOCK` (`pieces/mouvement.ts`, GELÉ)
-   * n'a AUCUN type dédié à « réception d'un cœur d'échange standard » — les dix valeurs existantes
-   * couvrent livraison fournisseur, sorties OR/comptoir, retours (fournisseur/client/consigne),
-   * transfert, ajustement, casse, perte. Choix retenu ICI : `retour_consigne`, quantité POSITIVE —
-   * symétrique du retour au fournisseur déjà implémenté
-   * (`pieces/service-consigne.ts::marquerRetourFournisseur`, MÊME type, quantité NÉGATIVE) : les
-   * deux jambes du cycle de consigne partagent un type, distinguées par le signe (RP-17 : « signée,
-   * positive à l'entrée, négative à la sortie »). Alternative rejetée : `entree_livraison`, qui
-   * porte une sémantique de réception FOURNISSEUR (prix d'achat réel, `RP-29`) étrangère à ce cas.
-   * À confirmer par expert-api/expert-database — l'enum reste extensible (RP-16) si un type dédié
-   * est préféré.
-   */
-  private async creerConsigneSiApplicable(
-    tx: TransactionDfa,
-    ctx: ContexteTenant,
-    ligne: LigneLigneOr,
-    reservation: LigneReservationPiece,
-  ): Promise<void> {
-    const articleLigne = await chargerArticleLigne(tx, ctx, reservation.articleId);
-    if (!articleLigne.estEchangeStandard) return;
-    if (articleLigne.montantConsigneTtcCentimes === null) {
-      // Défensif : `article_consigne_coherente_chk` (migration 0022) garantit que
-      // `estEchangeStandard = true` implique `montantConsigneTtcCentimes` non nul en base.
-      throw new ErreurMetier(
-        'ERREUR_INTERNE',
-        `Article ${reservation.articleId} d'échange standard sans montant de consigne (RP-38).`,
-      );
-    }
-
-    const entreeConsigne: NouveauMouvementStock = {
-      tenantId: ctx.tenantId,
-      articleId: reservation.articleId,
-      type: 'retour_consigne',
-      quantiteMillieme: reservation.quantiteMillieme,
-      siteId: reservation.siteId,
-      ligneOrId: ligne.id,
-      auteurId: ctx.utilisateurId,
-    };
-    const [mouvementEntree] = await tx.insert(mouvementStock).values(entreeConsigne).returning();
-    if (!mouvementEntree) {
-      throw new ErreurMetier(
-        'ERREUR_INTERNE',
-        "Échec de création du mouvement d'entrée de consigne (RP-38).",
-      );
-    }
-
-    const consigne: NouvelleConsigneEchangeStandard = {
-      tenantId: ctx.tenantId,
+    await this.serviceConsigne.creerDepuisRealisationTx(tx, ctx, {
       ligneOrId: ligne.id,
       ordreReparationId: ligne.ordreReparationId,
       articleId: reservation.articleId,
       siteId: reservation.siteId,
-      montantConsigneTtcCentimes: articleLigne.montantConsigneTtcCentimes,
-      mouvementEntreeId: mouvementEntree.id,
-    };
-    await tx.insert(consigneEchangeStandard).values(consigne);
-  }
-
-  /**
-   * RP-23 (`pieces/reservation.ts`), deux premiers cas : une ligne ANNULÉE ou REFUSÉE en décision
-   * de devis libère AUTOMATIQUEMENT sa réservation `active` — pas de second appel HTTP
-   * (`POST /reservations/{id}/liberer` reste réservé au geste MANUEL du magasinier,
-   * `motif_liberation = 'liberation_manuelle'`, troisième cas, hors périmètre de ce fichier).
-   * Même limite d'atomicité que `satisfaireReservationSiApplicable` ci-dessus : réplique l'UPDATE
-   * minimale de `ServiceReservation.liberer` plutôt que de l'appeler (transaction séparée).
-   *
-   * Silencieux si aucune réservation `active` n'existe (ligne sans pièce, ou réservation déjà
-   * `satisfaite`/`liberee`) — rien à libérer n'est pas une anomalie.
-   */
-  private async libererReservationSiActive(
-    tx: TransactionDfa,
-    ctx: ContexteTenant,
-    ligneId: string,
-    motif: MotifLiberationReservation,
-  ): Promise<void> {
-    const [reservation] = await tx
-      .select({ id: reservationPiece.id })
-      .from(reservationPiece)
-      .where(
-        and(
-          eq(reservationPiece.tenantId, ctx.tenantId),
-          eq(reservationPiece.ligneOrId, ligneId),
-          eq(reservationPiece.statut, 'active'),
-        ),
-      )
-      .limit(1);
-    if (!reservation) return;
-
-    await tx
-      .update(reservationPiece)
-      .set({ statut: 'liberee', libereeLe: new Date(), motifLiberation: motif })
-      .where(
-        and(eq(reservationPiece.tenantId, ctx.tenantId), eq(reservationPiece.id, reservation.id)),
-      );
+      quantiteMillieme: reservation.quantiteMillieme,
+      auteurId: ctx.utilisateurId,
+    });
   }
 
   private blocageLigne(ligne: LigneLigneOr, voitMontants: boolean): ElementBloquant {

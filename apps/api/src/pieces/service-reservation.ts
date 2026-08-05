@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import type {
   EntreeLiberationReservation,
   FiltresReservations,
+  MotifLiberationReservation,
   PageCurseur,
   ReponseAvecAvertissements,
   ReponseReservationPiece,
@@ -110,91 +111,200 @@ export class ServiceReservation {
 
   /**
    * `POST /reservations/{id}/satisfaire` — RP-21 : le magasinier remet PHYSIQUEMENT la pièce.
-   * Génère le mouvement `sortie_or`, `statut → satisfaite` (terminal, via le trigger
-   * `reservation_piece_transition`, 0026, qui libère `quantite_reservee_millieme` dans la MÊME
-   * transaction). `select … for update` sur la réservation elle-même AVANT tout, pour qu'un
-   * double-appel concurrent (deux magasiniers sur le même comptoir) ne puisse jamais générer deux
-   * mouvements de sortie pour la même réservation — le second attend, relit `statut = 'satisfaite'`
-   * et refuse proprement (`409 RESERVATION_TRANSITION_INTERDITE`).
+   * Ouvre SA PROPRE transaction — entrypoint HTTP autonome. Voir `satisfaireTx` pour la logique et
+   * pour la variante composable (dette technique soldée, atelier ↔ pièces, rapport de livraison
+   * étape 3-4 : `AccesBase.enTenant`, appelé depuis l'intérieur d'un `tx` déjà ouvert, acquiert
+   * quand même une connexion NEUVE et fait son propre BEGIN/COMMIT — aucune atomicité réelle avec
+   * l'appelant. `satisfaireTx`/`satisfairePourLigneTx` reçoivent un `tx` déjà ouvert, en PREMIER
+   * paramètre, même convention que les helpers `chargerXxx`/`listerXxx` de tout le dépôt).
    */
   async satisfaire(ctx: ContexteTenant, reservationId: string): Promise<ReponseReservationPiece> {
-    return this.acces.enTenant(ctx, async (tx) => {
-      const ligne = await this.chargerPourVerrouOu404(tx, ctx, reservationId);
-      if (ligne.statut !== 'active') {
-        throw new ErreurMetier(
-          'RESERVATION_TRANSITION_INTERDITE',
-          `Transition interdite : la réservation est "${ligne.statut}", pas "active".`,
-        );
-      }
-
-      const resultatMouvement = await tx.execute<{ id: string }>(sql`
-        insert into public.mouvement_stock
-          (tenant_id, article_id, type, quantite_millieme, site_id, auteur_id, ligne_or_id, reservation_id)
-        values
-          (${ctx.tenantId}, ${ligne.articleId}, 'sortie_or', ${-ligne.quantiteMillieme}, ${ligne.siteId},
-           ${ctx.utilisateurId}, ${ligne.ligneOrId}, ${ligne.id})
-        returning id as "id"
-      `);
-      const mouvementId = resultatMouvement.rows[0]?.id;
-      if (!mouvementId)
-        throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du mouvement de sortie.');
-
-      await tx.execute(sql`
-        update public.reservation_piece
-           set statut = 'satisfaite', satisfaite_le = now(), mouvement_sortie_id = ${mouvementId}
-         where tenant_id = ${ctx.tenantId} and id = ${reservationId}
-      `);
-
-      const ligneMaj = await this.chargerOu404(tx, ctx, reservationId);
-      return versReservationResponse(ligneMaj);
-    });
+    return this.acces.enTenant(ctx, (tx) => this.satisfaireTx(tx, ctx, reservationId));
   }
 
   /**
-   * `POST /reservations/{id}/liberer` — RP-23, geste explicite du magasinier (troisième cas).
-   * Avertissement `RESERVATION_LIBEREE_OR_ACTIF` quand l'OR porteur n'est PAS `annule` —
-   * approximation documentée (voir rapport de livraison) : `RP-23` décrit aussi la libération
-   * automatique par « refus d'une ligne en décision de devis », état qu'aucune colonne de
-   * `ligne_or` ne permet de distinguer sans lire `atelier/service-devis.ts` (hors périmètre) ; ce
-   * service se limite au statut de l'OR, le cas le plus fréquent et le plus lisible.
+   * Variante composable de `satisfaire`, pour un appelant qui possède déjà un `tx` ouvert (ex.
+   * `ServiceLigneOr.marquerRealisee`) et doit que la sortie de stock commite ou échoue DANS LA MÊME
+   * transaction que son propre changement d'état. `select … for update` sur la réservation
+   * elle-même AVANT tout, pour qu'un double-appel concurrent (deux magasiniers sur le même
+   * comptoir) ne puisse jamais générer deux mouvements de sortie pour la même réservation — le
+   * second attend, relit `statut = 'satisfaite'` et refuse proprement (`409
+   * RESERVATION_TRANSITION_INTERDITE`).
+   */
+  async satisfaireTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    reservationId: string,
+  ): Promise<ReponseReservationPiece> {
+    const ligne = await this.chargerPourVerrouOu404(tx, ctx, reservationId);
+    if (ligne.statut !== 'active') {
+      throw new ErreurMetier(
+        'RESERVATION_TRANSITION_INTERDITE',
+        `Transition interdite : la réservation est "${ligne.statut}", pas "active".`,
+      );
+    }
+    return this.appliquerSatisfaction(tx, ctx, ligne);
+  }
+
+  /**
+   * RP-21, appelée par `ServiceLigneOr.marquerRealisee` (`atelier/`) : satisfait la réservation
+   * `active` de la ligne d'OR `ligneOrId` s'il y en a une, sous verrou (même garantie que
+   * `satisfaireTx`, mais recherchée par `ligne_or_id` plutôt que par `id` de réservation — l'appelant
+   * atelier ne connaît que la ligne, pas l'identifiant de la réservation). Silencieuse (`null`) si
+   * aucune réservation active n'existe (jamais créée, stock insuffisant à la pose (`blocage =
+   * 'pieces'`, RP-24), ou déjà `satisfaite`/`liberee`) — il n'y a alors rien à satisfaire, pas une
+   * anomalie.
+   */
+  async satisfairePourLigneTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    ligneOrId: string,
+  ): Promise<ReponseReservationPiece | null> {
+    const resultat = await tx.execute<LigneReservationPiece>(sql`
+      select ${COLONNES_RESERVATION_ALIASEES} from public.reservation_piece r
+       where r.tenant_id = ${ctx.tenantId} and r.ligne_or_id = ${ligneOrId} and r.statut = 'active'
+       for update
+    `);
+    const ligne = resultat.rows[0];
+    if (!ligne) return null;
+    return this.appliquerSatisfaction(tx, ctx, ligne);
+  }
+
+  /** Cœur partagé de `satisfaireTx`/`satisfairePourLigneTx` : `ligne` DOIT déjà être verrouillée
+   *  (`for update`) et `statut = 'active'` — aucune re-vérification ici. */
+  private async appliquerSatisfaction(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    ligne: LigneReservationPiece,
+  ): Promise<ReponseReservationPiece> {
+    const resultatMouvement = await tx.execute<{ id: string }>(sql`
+      insert into public.mouvement_stock
+        (tenant_id, article_id, type, quantite_millieme, site_id, auteur_id, ligne_or_id, reservation_id)
+      values
+        (${ctx.tenantId}, ${ligne.articleId}, 'sortie_or', ${-ligne.quantiteMillieme}, ${ligne.siteId},
+         ${ctx.utilisateurId}, ${ligne.ligneOrId}, ${ligne.id})
+      returning id as "id"
+    `);
+    const mouvementId = resultatMouvement.rows[0]?.id;
+    if (!mouvementId)
+      throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du mouvement de sortie.');
+
+    await tx.execute(sql`
+      update public.reservation_piece
+         set statut = 'satisfaite', satisfaite_le = now(), mouvement_sortie_id = ${mouvementId}
+       where tenant_id = ${ctx.tenantId} and id = ${ligne.id}
+    `);
+
+    const ligneMaj = await this.chargerOu404(tx, ctx, ligne.id);
+    return versReservationResponse(ligneMaj);
+  }
+
+  /**
+   * `POST /reservations/{id}/liberer` — RP-23, geste explicite du magasinier (troisième cas). Ouvre
+   * SA PROPRE transaction — entrypoint HTTP autonome, voir `libererTx` pour la logique et la note
+   * d'atomicité de `satisfaire` ci-dessus (même doctrine).
    */
   async liberer(
     ctx: ContexteTenant,
     reservationId: string,
     entree: EntreeLiberationReservation,
   ): Promise<ReponseAvecAvertissements<ReponseReservationPiece>> {
-    return this.acces.enTenant(ctx, async (tx) => {
-      const ligne = await this.chargerPourVerrouOu404(tx, ctx, reservationId);
-      if (ligne.statut !== 'active') {
-        throw new ErreurMetier(
-          'RESERVATION_TRANSITION_INTERDITE',
-          `Transition interdite : la réservation est "${ligne.statut}", pas "active".`,
-        );
-      }
+    return this.acces.enTenant(ctx, (tx) => this.libererTx(tx, ctx, reservationId, entree));
+  }
 
-      await tx.execute(sql`
-        update public.reservation_piece
-           set statut = 'liberee', liberee_le = now(), motif_liberation = 'liberation_manuelle',
-               motif_liberation_texte = ${entree.motif}, liberee_par_utilisateur_id = ${ctx.utilisateurId}
-         where tenant_id = ${ctx.tenantId} and id = ${reservationId}
-      `);
+  /**
+   * Variante composable de `liberer`, `tx` déjà ouvert en premier paramètre (même convention que
+   * `satisfaireTx`). Avertissement `RESERVATION_LIBEREE_OR_ACTIF` quand l'OR porteur n'est PAS
+   * `annule` — approximation documentée (voir rapport de livraison) : `RP-23` décrit aussi la
+   * libération automatique par « refus d'une ligne en décision de devis », état qu'aucune colonne
+   * de `ligne_or` ne permet de distinguer sans lire `atelier/service-devis.ts` (hors périmètre) ;
+   * ce service se limite au statut de l'OR, le cas le plus fréquent et le plus lisible.
+   */
+  async libererTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    reservationId: string,
+    entree: EntreeLiberationReservation,
+  ): Promise<ReponseAvecAvertissements<ReponseReservationPiece>> {
+    const ligne = await this.chargerPourVerrouOu404(tx, ctx, reservationId);
+    if (ligne.statut !== 'active') {
+      throw new ErreurMetier(
+        'RESERVATION_TRANSITION_INTERDITE',
+        `Transition interdite : la réservation est "${ligne.statut}", pas "active".`,
+      );
+    }
 
-      const collecteur = new CollecteurAvertissements();
-      const orStatut = await tx.execute<{ statut: string }>(sql`
-        select statut::text as "statut" from public.ordre_reparation
-         where tenant_id = ${ctx.tenantId} and id = ${ligne.ordreReparationId}
-      `);
-      if (orStatut.rows[0]?.statut !== 'annule') {
-        collecteur.ajouter(
-          'RESERVATION_LIBEREE_OR_ACTIF',
-          "Réservation libérée alors que l'ordre de réparation porteur n'est pas annulé (RP-23).",
-          { reservationId, ordreReparationId: ligne.ordreReparationId },
-        );
-      }
+    await this.ecrireLiberation(
+      tx,
+      ctx,
+      reservationId,
+      'liberation_manuelle',
+      entree.motif,
+      ctx.utilisateurId,
+    );
 
-      const ligneMaj = await this.chargerOu404(tx, ctx, reservationId);
-      return collecteur.envelopper(versReservationResponse(ligneMaj));
-    });
+    const collecteur = new CollecteurAvertissements();
+    const orStatut = await tx.execute<{ statut: string }>(sql`
+      select statut::text as "statut" from public.ordre_reparation
+       where tenant_id = ${ctx.tenantId} and id = ${ligne.ordreReparationId}
+    `);
+    if (orStatut.rows[0]?.statut !== 'annule') {
+      collecteur.ajouter(
+        'RESERVATION_LIBEREE_OR_ACTIF',
+        "Réservation libérée alors que l'ordre de réparation porteur n'est pas annulé (RP-23).",
+        { reservationId, ordreReparationId: ligne.ordreReparationId },
+      );
+    }
+
+    const ligneMaj = await this.chargerOu404(tx, ctx, reservationId);
+    return collecteur.envelopper(versReservationResponse(ligneMaj));
+  }
+
+  /**
+   * RP-23, deux premiers cas (annulation d'une ligne, refus en décision de devis) : appelée par
+   * `ServiceLigneOr.annulerLignes`/`refuserLignes` (`atelier/`) — libère AUTOMATIQUEMENT la
+   * réservation `active` de la ligne d'OR `ligneOrId`, sans second appel HTTP
+   * (`POST /reservations/{id}/liberer` reste réservé au geste MANUEL du magasinier, troisième cas,
+   * `motif_liberation = 'liberation_manuelle'`). Silencieuse si aucune réservation `active` n'existe
+   * (ligne sans pièce, ou réservation déjà `satisfaite`/`liberee`) — rien à libérer n'est pas une
+   * anomalie, symétrique de `satisfairePourLigneTx`.
+   */
+  async libererPourLigneTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    ligneOrId: string,
+    motif: MotifLiberationReservation,
+  ): Promise<void> {
+    const resultat = await tx.execute<{ id: string }>(sql`
+      select r.id as "id" from public.reservation_piece r
+       where r.tenant_id = ${ctx.tenantId} and r.ligne_or_id = ${ligneOrId} and r.statut = 'active'
+       for update
+    `);
+    const reservation = resultat.rows[0];
+    if (!reservation) return;
+    await this.ecrireLiberation(tx, ctx, reservation.id, motif, null, null);
+  }
+
+  /** Cœur partagé de `libererTx`/`libererPourLigneTx` : UPDATE brut, sans relecture ni
+   *  avertissement — laissés à la charge de l'appelant (leur besoin diffère : `libererTx` recharge
+   *  et calcule `RESERVATION_LIBEREE_OR_ACTIF`, `libererPourLigneTx` n'en a besoin d'aucun des
+   *  deux). `motifTexte`/`libereeParUtilisateurId` à `null` pour toute libération AUTOMATIQUE —
+   *  cohérent avec `reservation_piece_motif_texte_chk` (0026) : le texte n'est obligatoire QUE pour
+   *  `motif = 'liberation_manuelle'`. */
+  private async ecrireLiberation(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    reservationId: string,
+    motif: MotifLiberationReservation,
+    motifTexte: string | null,
+    libereeParUtilisateurId: string | null,
+  ): Promise<void> {
+    await tx.execute(sql`
+      update public.reservation_piece
+         set statut = 'liberee', liberee_le = now(), motif_liberation = ${motif},
+             motif_liberation_texte = ${motifTexte}, liberee_par_utilisateur_id = ${libereeParUtilisateurId}
+       where tenant_id = ${ctx.tenantId} and id = ${reservationId}
+    `);
   }
 
   private async chargerOu404(
