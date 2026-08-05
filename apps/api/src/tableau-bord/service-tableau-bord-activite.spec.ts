@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { STATUTS_OR_TABLEAU_BORD } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
-import { ErreurMetier } from '../common/erreurs';
 
 import { ServiceTableauBordActivite } from './service-tableau-bord-activite';
 
@@ -32,29 +31,26 @@ function accesFactice(ligne: Record<string, unknown> | null) {
   return { acces, execute, enTenant };
 }
 
-describe('ServiceTableauBordActivite.obtenir — filtrage par droit AVANT tout accès base', () => {
-  it('poste_atelier (borne murale) : 403 DROIT_INSUFFISANT, AUCUN appel à enTenant/execute', async () => {
-    const { acces, enTenant } = accesFactice(LIGNE_VIDE);
-    const service = new ServiceTableauBordActivite(acces);
-
-    await expect(service.obtenir(CTX, 'poste_atelier', {})).rejects.toBeInstanceOf(ErreurMetier);
-    expect(enTenant).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    'technicien',
-    'magasinier',
-    'vendeur',
-    'receptionnaire',
-    'chef_atelier',
-    'comptable',
-    'direction',
-    'admin',
-  ] as const)('%s : accepté, la base est bien interrogée', async (role) => {
+/**
+ * L'autorisation par rôle (`tableau_bord.activite.lire`, `auth/matrice-droits.ts` — tous les rôles
+ * de personne SAUF `poste_atelier`) N'EST PLUS testée ici : elle est portée EXCLUSIVEMENT par
+ * `@ExigerDroit('tableau_bord.activite.lire')` + `GardeDroit` sur `TableauBordActiviteController`
+ * (bascule depuis le palliatif `tableau-bord/droits-provisoires.ts`, retiré — voir le commentaire
+ * de tête de `service-tableau-bord-activite.ts`). Cette garantie est couverte par :
+ *  - `auth/matrice-droits.spec.ts` (le rôle→action est correct, `poste_atelier` exclu) ;
+ *  - `common/droits/garde-droit.spec.ts` (le guard refuse bien AVANT le handler quand l'action
+ *    manque, générique à toute action) ;
+ *  - `common/droits/toutes-les-actions-couvertes.spec.ts` (`@ExigerDroit('tableau_bord.activite.
+ *    lire')` est bien posé sur une route réellement montée).
+ * Ce service n'a donc plus de rôle à recevoir : il interroge la base pour tout appelant, l'appel
+ * lui-même étant conditionné par le guard en amont.
+ */
+describe('ServiceTableauBordActivite.obtenir — interroge toujours la base (l’autorisation est au guard, pas ici)', () => {
+  it('appelle bien la base (aucun filtrage par rôle en service)', async () => {
     const { acces, execute } = accesFactice(LIGNE_VIDE);
     const service = new ServiceTableauBordActivite(acces);
 
-    await service.obtenir(CTX, role, {});
+    await service.obtenir(CTX, {});
 
     expect(execute).toHaveBeenCalledTimes(1);
   });
@@ -65,7 +61,7 @@ describe('ServiceTableauBordActivite.obtenir — période vide : zéro partout, 
     const { acces } = accesFactice(LIGNE_VIDE);
     const service = new ServiceTableauBordActivite(acces);
 
-    const resultat = await service.obtenir(CTX, 'direction', {
+    const resultat = await service.obtenir(CTX, {
       du: '2026-01-01',
       au: '2026-01-01',
     });
@@ -99,7 +95,7 @@ describe('ServiceTableauBordActivite.obtenir — arithmétique exacte, mapping f
     const { acces } = accesFactice(ligne);
     const service = new ServiceTableauBordActivite(acces);
 
-    const resultat = await service.obtenir(CTX, 'direction', {
+    const resultat = await service.obtenir(CTX, {
       du: '2026-08-01',
       au: '2026-08-04',
       siteId: 'site-1',
@@ -130,7 +126,7 @@ describe('ServiceTableauBordActivite.obtenir — arithmétique exacte, mapping f
     const { acces } = accesFactice(LIGNE_VIDE);
     const service = new ServiceTableauBordActivite(acces);
 
-    const resultat = await service.obtenir(CTX, 'direction', {});
+    const resultat = await service.obtenir(CTX, {});
 
     expect(resultat.siteId).toBeNull();
   });

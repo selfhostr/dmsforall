@@ -3,7 +3,7 @@ import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@
 import { schemaFiltreTableauBord, type FiltreTableauBord } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
-import { AucunDroitRequis, GardeDroit } from '../common/droits';
+import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 
@@ -12,14 +12,15 @@ import { ServiceTableauBordFinancier } from './service-tableau-bord-financier';
 
 /**
  * `GET /tableau-bord/financier` — chiffre d'affaires, encaissements, encours clients. Réservé
- * `direction`/`comptable` (`RF-115` : `admin` explicitement exclu). Voir `droits-provisoires.ts`
- * pour le détail du découpage — LE point sensible de tout ce module.
+ * `direction`/`comptable` (`tableau_bord.financier.lire`, `auth/matrice-droits.ts` — `RF-115` :
+ * `admin` explicitement exclu). LE point sensible de tout ce module.
  *
- * `@AucunDroitRequis()` PROVISOIRE, PAS un accès ouvert — voir l'en-tête de
- * `droits-provisoires.ts` : `ServiceTableauBordFinancier.obtenir` vérifie le rôle réel EN SERVICE,
- * AVANT tout accès base, en l'absence de l'action `tableau_bord.financier.lire` dans
- * `auth/matrice-droits.ts` (hors du périmètre d'écriture de ce module). Un rôle non autorisé
- * n'exécute JAMAIS la moindre requête d'agrégation financière.
+ * `@ExigerDroit('tableau_bord.financier.lire')` — mécanisme normal, `GardeDroit` refuse
+ * `403 DROIT_INSUFFISANT` en `canActivate()` AVANT que ce handler (donc `service.obtenir()`, donc
+ * toute requête d'agrégation financière) ne s'exécute : un rôle non autorisé n'atteint
+ * structurellement jamais la base. Remplace le palliatif `@AucunDroitRequis()` + vérification de
+ * rôle en service (`tableau-bord/droits-provisoires.ts`, retiré), posé faute d'accès de son auteur
+ * à `auth/matrice-droits.ts` au moment de la livraison de ce module.
  */
 @ApiTags('Tableau de bord')
 @ApiCookieAuth()
@@ -32,7 +33,7 @@ export class TableauBordFinancierController {
   ) {}
 
   @Get('financier')
-  @AucunDroitRequis()
+  @ExigerDroit('tableau_bord.financier.lire')
   @ApiOperation({
     summary: 'Chiffre d’affaires, encaissements, encours clients — réservé direction/comptable.',
     description:
@@ -52,7 +53,6 @@ export class TableauBordFinancierController {
     @Query(new PipeZod(schemaFiltreTableauBord)) query: FiltreTableauBord,
   ): Promise<ReponseFinancierTableauBordDto> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.service.obtenir(ctx, role, query);
+    return this.service.obtenir(ctx, query);
   }
 }

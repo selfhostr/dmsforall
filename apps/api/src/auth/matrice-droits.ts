@@ -368,6 +368,15 @@ export const TOUTES_ACTIONS = [
   // ne doit pas attendre la direction.
   'atelier.pointage.identifier',
   'atelier.pointage.gerer_pin',
+  // ---- Tableau de bord (arbitrage coordinateur) — `apps/api/src/tableau-bord/`, périmètre
+  // disjoint de ce fichier. Livré derrière un palliatif signalé, pas un accès ouvert par
+  // négligence : les deux routes portaient `@AucunDroitRequis()` + une vérification de rôle posée
+  // EN SERVICE (`tableau-bord/droits-provisoires.ts`, retiré par ce bloc — voir le détail rôle par
+  // rôle sous `DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE` / `DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE`
+  // ci-dessous), faute d'accès de son auteur à ce fichier — même patron que le bloc créancier avant
+  // que ses actions n'existent.
+  'tableau_bord.activite.lire',
+  'tableau_bord.financier.lire',
 ] as const;
 
 /**
@@ -1479,6 +1488,93 @@ const DROITS_POINTAGE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
   vendeur: [],
 };
 
+// =================================================================================================
+// Tableau de bord — activité atelier + stock (arbitrage coordinateur, quantités/comptes seulement)
+// =================================================================================================
+//
+// `GET /tableau-bord/activite` (`apps/api/src/tableau-bord/`) restait sous `@AucunDroitRequis()` +
+// une vérification de rôle posée EN SERVICE (`tableau-bord/droits-provisoires.ts`, retiré par ce
+// bloc), faute d'accès de son auteur à ce fichier — palliatif signalé par l'agent, pas un accès
+// ouvert par négligence, même patron que le bloc créancier avant que ses actions n'existent.
+//
+// AUCUN montant dans cette réponse (OR par statut, délai moyen de restitution, lignes en attente
+// de validation, articles sous seuil de réapprovisionnement — voir `ReponseActiviteTableauBord`,
+// `@dfa/shared`) : même doctrine que `LECTURE_ETENDUE` (tête de fichier, « la lecture est ouverte
+// par défaut, seule l'écriture est gouvernée »). Ouvert aux 8 rôles de PERSONNE SANS EXCEPTION,
+// `poste_atelier` EXCLU — SEULE exception, pour la MÊME raison physique déjà posée sur
+// `DROITS_POSTE_ATELIER` : la borne est un écran mural allumé en permanence devant clients et
+// visiteurs, et un tableau de bord n'a aucune utilité à sa fonction (identifier par PIN,
+// démarrer/arrêter un pointage) — l'y exposer serait le premier écran de statistiques accroché au
+// mur d'un atelier, hors de son rôle (RM-115/RM-131).
+//
+// `admin` INCLUS, à la différence des blocs financiers de ce fichier : RF-115 (« aucun droit
+// FINANCIER ») ne s'applique pas ici puisqu'aucun montant ne transite par cette réponse — même
+// précédent que le pointage (`DROITS_POINTAGE_PAR_ROLE`, « le pointage enregistre du temps de
+// travail, pas un montant ») : `admin` reste le rôle technique/propriétaire du tenant, superset de
+// `direction` sur tout domaine non financier.
+const LECTURE_TABLEAU_BORD_ACTIVITE: readonly Action[] = ['tableau_bord.activite.lire'];
+
+const DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> =
+  {
+    direction: [...LECTURE_TABLEAU_BORD_ACTIVITE],
+    comptable: [...LECTURE_TABLEAU_BORD_ACTIVITE],
+    vendeur: [...LECTURE_TABLEAU_BORD_ACTIVITE],
+    receptionnaire: [...LECTURE_TABLEAU_BORD_ACTIVITE],
+    chef_atelier: [...LECTURE_TABLEAU_BORD_ACTIVITE],
+    technicien: [...LECTURE_TABLEAU_BORD_ACTIVITE],
+    magasinier: [...LECTURE_TABLEAU_BORD_ACTIVITE],
+    admin: [...LECTURE_TABLEAU_BORD_ACTIVITE],
+    // La borne murale : périmètre construit par énumération (voir `DROITS_POSTE_ATELIER`), exclue
+    // délibérément — un tableau de bord n'a aucune utilité à sa fonction et exposerait le premier
+    // écran de statistiques accroché au mur d'un atelier.
+    poste_atelier: [],
+  };
+
+// =================================================================================================
+// Tableau de bord — financier (arbitrage coordinateur, palier de gouvernance le plus élevé)
+// =================================================================================================
+//
+// `GET /tableau-bord/financier` expose le chiffre d'affaires, les encaissements et l'encours
+// clients CONSOLIDÉS sur l'ensemble du garage, sur une période — une exposition structurellement
+// PLUS large qu'un document ou un paiement pris un par un (`RF-114`/`RF-116` gouvernent chacun UN
+// document ou UN paiement, jamais leur somme sur toute l'activité) : c'est précisément le piège que
+// ce module devait éviter, un tableau de bord qui afficherait le chiffre d'affaires à tout rôle
+// authentifié contournerait la séparation des pouvoirs déjà posée par `ROLES_SANS_MONTANT`/
+// `ROLES_SANS_MONTANT_FACTURATION`. Restait sous `@AucunDroitRequis()` + une vérification de rôle
+// posée EN SERVICE (`tableau-bord/droits-provisoires.ts`, retiré par ce bloc), même palliatif que
+// le bloc activité ci-dessus, pour la même raison (action absente de cette matrice).
+//
+// Aligné sur le palier de gouvernance le PLUS ÉLEVÉ déjà posé dans ce fichier — EXACTEMENT le même
+// périmètre que le bloc créancier, l'export fiduciaire et la disposition d'une avance de paiement
+// (`DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE`, `DROITS_EXPORT_COMPTABLE_PAR_ROLE`,
+// `DISPOSITION_AVANCE_PAIEMENT`) : `direction` + `comptable` SEULS.
+//
+// `admin` EXCLU délibérément (`RF-115`, littéral : « il ne voit pas les montants, n'émet rien et
+// n'encaisse rien, c'est une séparation des pouvoirs élémentaire »,
+// `docs/specification-etape-2-facturation.md` L1327) — JAMAIS comblé par copier-coller de
+// `direction`, exactement le geste que `RF-115` interdit et que ce fichier met en garde à plusieurs
+// reprises. `vendeur`/`receptionnaire`/`chef_atelier` EXCLUS bien que chacun détienne un droit
+// d'ÉMISSION sur UN document (`facturation.document.emettre*`) : émettre UNE facture n'est pas la
+// même exposition que voir le chiffre d'affaires CONSOLIDÉ du garage sur une période. Écart
+// SIGNALÉ, pas tranché ici — si le terrain montre qu'un rôle opérationnel a besoin de voir le CA de
+// son propre périmètre, c'est une décision de @laupernoe, pas une inférence de cet agent.
+const LECTURE_TABLEAU_BORD_FINANCIER: readonly Action[] = ['tableau_bord.financier.lire'];
+
+const DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> =
+  {
+    direction: [...LECTURE_TABLEAU_BORD_FINANCIER],
+    comptable: [...LECTURE_TABLEAU_BORD_FINANCIER],
+    vendeur: [],
+    receptionnaire: [],
+    chef_atelier: [],
+    technicien: [],
+    magasinier: [],
+    // RF-115 : jamais de droit financier pour admin — voir le commentaire de tête de section.
+    admin: [],
+    // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+    poste_atelier: [],
+  };
+
 export const MATRICE_DROITS = {
   admin: [
     ...DROITS_ADMIN,
@@ -1490,6 +1586,8 @@ export const MATRICE_DROITS = {
     ...DROITS_PIECES_PAR_ROLE.admin,
     ...DROITS_VENTES_PAR_ROLE.admin,
     ...DROITS_POINTAGE_PAR_ROLE.admin,
+    ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.admin,
+    ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.admin,
   ],
   direction: [
     ...DROITS_DIRECTION,
@@ -1501,6 +1599,8 @@ export const MATRICE_DROITS = {
     ...DROITS_PIECES_PAR_ROLE.direction,
     ...DROITS_VENTES_PAR_ROLE.direction,
     ...DROITS_POINTAGE_PAR_ROLE.direction,
+    ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.direction,
+    ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.direction,
   ],
   vendeur: [
     ...DROITS_VENDEUR,
@@ -1512,6 +1612,8 @@ export const MATRICE_DROITS = {
     ...DROITS_PIECES_PAR_ROLE.vendeur,
     ...DROITS_VENTES_PAR_ROLE.vendeur,
     ...DROITS_POINTAGE_PAR_ROLE.vendeur,
+    ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.vendeur,
+    ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.vendeur,
   ],
   receptionnaire: [
     ...DROITS_RECEPTIONNAIRE,
@@ -1523,6 +1625,8 @@ export const MATRICE_DROITS = {
     ...DROITS_PIECES_PAR_ROLE.receptionnaire,
     ...DROITS_VENTES_PAR_ROLE.receptionnaire,
     ...DROITS_POINTAGE_PAR_ROLE.receptionnaire,
+    ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.receptionnaire,
+    ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.receptionnaire,
   ],
   chef_atelier: [
     ...DROITS_CHEF_ATELIER,
@@ -1534,6 +1638,8 @@ export const MATRICE_DROITS = {
     ...DROITS_PIECES_PAR_ROLE.chef_atelier,
     ...DROITS_VENTES_PAR_ROLE.chef_atelier,
     ...DROITS_POINTAGE_PAR_ROLE.chef_atelier,
+    ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.chef_atelier,
+    ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.chef_atelier,
   ],
   technicien: [
     ...DROITS_TECHNICIEN,
@@ -1545,6 +1651,8 @@ export const MATRICE_DROITS = {
     ...DROITS_PIECES_PAR_ROLE.technicien,
     ...DROITS_VENTES_PAR_ROLE.technicien,
     ...DROITS_POINTAGE_PAR_ROLE.technicien,
+    ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.technicien,
+    ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.technicien,
   ],
   magasinier: [
     ...DROITS_MAGASINIER,
@@ -1556,6 +1664,8 @@ export const MATRICE_DROITS = {
     ...DROITS_PIECES_PAR_ROLE.magasinier,
     ...DROITS_VENTES_PAR_ROLE.magasinier,
     ...DROITS_POINTAGE_PAR_ROLE.magasinier,
+    ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.magasinier,
+    ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.magasinier,
   ],
   comptable: [
     ...DROITS_COMPTABLE,
@@ -1567,6 +1677,8 @@ export const MATRICE_DROITS = {
     ...DROITS_PIECES_PAR_ROLE.comptable,
     ...DROITS_VENTES_PAR_ROLE.comptable,
     ...DROITS_POINTAGE_PAR_ROLE.comptable,
+    ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.comptable,
+    ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.comptable,
   ],
   poste_atelier: [
     ...DROITS_POSTE_ATELIER,
@@ -1578,6 +1690,8 @@ export const MATRICE_DROITS = {
     ...DROITS_PIECES_PAR_ROLE.poste_atelier,
     ...DROITS_VENTES_PAR_ROLE.poste_atelier,
     ...DROITS_POINTAGE_PAR_ROLE.poste_atelier,
+    ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.poste_atelier,
+    ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.poste_atelier,
   ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 

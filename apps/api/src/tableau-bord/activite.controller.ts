@@ -3,7 +3,7 @@ import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@
 import { schemaFiltreTableauBord, type FiltreTableauBord } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
-import { AucunDroitRequis, GardeDroit } from '../common/droits';
+import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 
@@ -12,12 +12,16 @@ import { ServiceTableauBordActivite } from './service-tableau-bord-activite';
 
 /**
  * `GET /tableau-bord/activite` — indicateurs d'activité atelier + stock, EN QUANTITÉS/COMPTES
- * seulement, jamais un montant. Ouvert à tout rôle de personne (voir `droits-provisoires.ts`).
+ * seulement, jamais un montant. Ouvert à tout rôle de personne (`tableau_bord.activite.lire`,
+ * `auth/matrice-droits.ts`), `poste_atelier` exclu (borne murale, aucune utilité à une synthèse
+ * d'activité).
  *
- * `@AucunDroitRequis()` PROVISOIRE, PAS un accès ouvert par négligence — voir l'en-tête de
- * `droits-provisoires.ts` : `ServiceTableauBordActivite.obtenir` vérifie le rôle réel EN SERVICE,
- * avant tout accès base, en l'absence de l'action `tableau_bord.activite.lire` dans
- * `auth/matrice-droits.ts` (hors du périmètre d'écriture de ce module).
+ * `@ExigerDroit('tableau_bord.activite.lire')` — mécanisme normal, `GardeDroit` refuse
+ * `403 DROIT_INSUFFISANT` en `canActivate()` AVANT que ce handler (donc `service.obtenir()`, donc
+ * tout accès base) ne s'exécute : un rôle non autorisé ne déclenche structurellement aucune requête.
+ * Remplace le palliatif `@AucunDroitRequis()` + vérification de rôle en service
+ * (`tableau-bord/droits-provisoires.ts`, retiré), posé faute d'accès de son auteur à
+ * `auth/matrice-droits.ts` au moment de la livraison de ce module.
  */
 @ApiTags('Tableau de bord')
 @ApiCookieAuth()
@@ -30,7 +34,7 @@ export class TableauBordActiviteController {
   ) {}
 
   @Get('activite')
-  @AucunDroitRequis()
+  @ExigerDroit('tableau_bord.activite.lire')
   @ApiOperation({
     summary: "Indicateurs d'activité atelier + stock (aucun montant).",
     description:
@@ -50,7 +54,6 @@ export class TableauBordActiviteController {
     @Query(new PipeZod(schemaFiltreTableauBord)) query: FiltreTableauBord,
   ): Promise<ReponseActiviteTableauBordDto> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.service.obtenir(ctx, role, query);
+    return this.service.obtenir(ctx, query);
   }
 }

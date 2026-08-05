@@ -542,14 +542,21 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
     // pour admin sur TOUT le domaine pièces (y compris la simple lecture) — voir
     // `DROITS_PIECES_PAR_ROLE` dans matrice-droits.ts et le test dédié plus bas. `ventes.` exclu
     // pour la même raison, décision de l'agent ventes (voir `DROITS_VENTES_PAR_ROLE`) : admin n'a
-    // aucun droit sur le domaine ventes, y compris la lecture.
-    const sansFacturationNiPiecesNiVentes = (actions: readonly Action[]) =>
+    // aucun droit sur le domaine ventes, y compris la lecture. `tableau_bord.` exclu pour la MÊME
+    // raison que `facturation.` : `tableau_bord.financier.lire` (RF-115) diverge entre admin ([])
+    // et direction ; `tableau_bord.activite.lire`, lui, NE diverge PAS (admin l'a aussi, voir le
+    // test dédié « MATRICE_DROITS — tableau de bord » plus bas) — exclure tout le préfixe reste
+    // correct puisque ce test ne prétend vérifier QUE les domaines non financiers.
+    const sansFacturationNiPiecesNiVentesNiTableauBord = (actions: readonly Action[]) =>
       actions.filter(
         (a) =>
-          !a.startsWith('facturation.') && !a.startsWith('pieces.') && !a.startsWith('ventes.'),
+          !a.startsWith('facturation.') &&
+          !a.startsWith('pieces.') &&
+          !a.startsWith('ventes.') &&
+          !a.startsWith('tableau_bord.'),
       );
-    expect([...sansFacturationNiPiecesNiVentes(MATRICE_DROITS.admin)].sort()).toEqual(
-      [...sansFacturationNiPiecesNiVentes(MATRICE_DROITS.direction)].sort(),
+    expect([...sansFacturationNiPiecesNiVentesNiTableauBord(MATRICE_DROITS.admin)].sort()).toEqual(
+      [...sansFacturationNiPiecesNiVentesNiTableauBord(MATRICE_DROITS.direction)].sort(),
     );
   });
 
@@ -820,7 +827,47 @@ describe('MATRICE_DROITS — pointage (lot 2)', () => {
   });
 });
 
-describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste close du lot 1 + facturation/paiements + facturation/documents + bloc créancier + export fiduciaire + impression PDF étape 2 + pièces étape 3 + ventes étape 4 + pointage lot 2)', () => {
+/**
+ * Tableau de bord (arbitrage coordinateur) : bascule du palliatif `@AucunDroitRequis()` +
+ * vérification de rôle en service (`tableau-bord/droits-provisoires.ts`, retiré) vers le mécanisme
+ * normal `@ExigerDroit(...)` + `GardeDroit`. Les deux rôles cibles étaient déjà arbitrés et prouvés
+ * par les tests du module (`tableau-bord/droits-provisoires.spec.ts`, retirés en même temps que le
+ * palliatif) — ce bloc les revérifie ici, contre la matrice réelle cette fois.
+ */
+describe('MATRICE_DROITS — tableau de bord (activité + financier)', () => {
+  it('tableau_bord.activite.lire — accordée aux 8 rôles de PERSONNE sans exception, y compris admin (aucun montant dans cette réponse, RF-115 ne s’applique pas) — mais PAS au compte de service poste_atelier, écran mural sans utilité pour une synthèse d’activité', () => {
+    expect(rolesAyant('tableau_bord.activite.lire')).toEqual([...ROLES_PERSONNE].sort());
+    expect(MATRICE_DROITS.poste_atelier).not.toContain('tableau_bord.activite.lire');
+  });
+
+  it('tableau_bord.financier.lire — direction, comptable SEULS, même palier de gouvernance que facturation.paiement.rembourser/abandonner, le bloc créancier et l’export fiduciaire', () => {
+    expect(rolesAyant('tableau_bord.financier.lire')).toEqual(['comptable', 'direction'].sort());
+  });
+
+  it('RF-115 — admin N’A PAS accès aux indicateurs financiers consolidés, à la différence de tableau_bord.activite.lire qui, lui, lui est accordé (RF-115 filtre les MONTANTS agrégés du garage, pas la synthèse d’activité) : un test doit échouer si l’entrée admin de ce bloc est un jour remplie par copier-coller de direction, en la prenant pour un oubli de recopie plutôt qu’une décision RF-115 délibérée', () => {
+    expect(MATRICE_DROITS.admin).not.toContain('tableau_bord.financier.lire');
+    expect(MATRICE_DROITS.admin).toContain('tableau_bord.activite.lire');
+  });
+
+  it('aucun autre rôle que direction/comptable ne détient l’accès financier consolidé (vendeur, réceptionnaire, chef_atelier, technicien, magasinier, poste_atelier exclus, alignés sur DISPOSITION_AVANCE_PAIEMENT)', () => {
+    const rolesExclus: RoleUtilisateur[] = [
+      'vendeur',
+      'receptionnaire',
+      'chef_atelier',
+      'technicien',
+      'magasinier',
+      'poste_atelier',
+    ];
+    for (const role of rolesExclus) {
+      expect(
+        MATRICE_DROITS[role],
+        `${role} ne devrait détenir aucun accès financier consolidé`,
+      ).not.toContain('tableau_bord.financier.lire');
+    }
+  });
+});
+
+describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste close du lot 1 + facturation/paiements + facturation/documents + bloc créancier + export fiduciaire + impression PDF étape 2 + pièces étape 3 + ventes étape 4 + pointage lot 2 + tableau de bord)', () => {
   it('l’union de toutes les actions accordées ne contient QUE les actions du socle + les actions closes du lot 1 + les 5 actions facturation.paiement.* (agent paiements) + les 9 actions facturation.document.*/facturation.avoir.creer (agent documents) + les 2 actions facturation.parametrage.creancier.* + facturation.export.creer + facturation.document.imprimer (arbitrages coordinateur) + les 9 actions pieces.* (étape 3)', () => {
     const actionsAttendues: Action[] = [
       'socle.tenant.lire',
@@ -963,6 +1010,9 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       // `common/droits/allowlist-actions-non-decorees.ts`.
       'atelier.pointage.identifier',
       'atelier.pointage.gerer_pin',
+      // --- Tableau de bord (arbitrage coordinateur, bascule du palliatif droits-provisoires.ts) ---
+      'tableau_bord.activite.lire',
+      'tableau_bord.financier.lire',
     ];
 
     const actionsAccordees = new Set(Object.values(MATRICE_DROITS).flat());
@@ -1104,6 +1154,9 @@ describe('MATRICE_DROITS — poste_atelier, compte de service (mode borne du poi
       'recherche.',
       'rendez_vous.',
       'pret_vehicule.',
+      // Ajouté avec la bascule du tableau de bord (arbitrage coordinateur) : un écran mural
+      // exposé aux clients/visiteurs n'a aucune utilité à une synthèse d'activité ou financière.
+      'tableau_bord.',
     ];
     for (const action of MATRICE_DROITS.poste_atelier) {
       for (const prefixe of domainesInterdits) {

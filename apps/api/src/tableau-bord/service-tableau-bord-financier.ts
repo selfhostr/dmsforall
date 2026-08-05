@@ -1,11 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
-import type { FiltreTableauBord, ReponseFinancierTableauBord, RoleUtilisateur } from '@dfa/shared';
+import type { FiltreTableauBord, ReponseFinancierTableauBord } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant } from '../db';
 import { JETON_DB } from '../db';
 
-import { ROLES_TABLEAU_BORD_FINANCIER, verifierRoleAutorise } from './droits-provisoires';
 import { resoudrePeriodeTableauBord } from './periode';
 
 /**
@@ -26,7 +25,17 @@ type LigneFinanciereBrute = {
 
 /**
  * `GET /tableau-bord/financier` — chiffre d'affaires, encaissements, encours clients. Réservé
- * `direction`/`comptable` (voir `droits-provisoires.ts`) : LE domaine sensible de ce module.
+ * `direction`/`comptable` (`tableau_bord.financier.lire`, `auth/matrice-droits.ts` — RF-115 :
+ * `admin` explicitement exclu) : LE domaine sensible de ce module.
+ *
+ * Ce service ne prend PLUS de rôle en paramètre : l'autorisation est désormais portée
+ * EXCLUSIVEMENT par `@ExigerDroit('tableau_bord.financier.lire')` + `GardeDroit` sur
+ * `TableauBordFinancierController`, qui refuse `403 DROIT_INSUFFISANT` en `canActivate()` — AVANT
+ * que ce handler ne s'exécute, donc avant la moindre requête d'agrégation financière. Avant ce
+ * module (palliatif `tableau-bord/droits-provisoires.ts`, retiré), ce service portait sa propre
+ * vérification de rôle en l'absence de l'action dans la matrice ; ce n'est plus nécessaire, et une
+ * double vérification romprait la doctrine du dépôt (« un seul mécanisme d'autorisation »,
+ * `auth/matrice-droits.ts`, tête de fichier).
  */
 @Injectable()
 export class ServiceTableauBordFinancier {
@@ -34,13 +43,8 @@ export class ServiceTableauBordFinancier {
 
   async obtenir(
     ctx: ContexteTenant,
-    role: RoleUtilisateur,
     filtre: FiltreTableauBord,
   ): Promise<ReponseFinancierTableauBord> {
-    // Vérification AVANT tout accès base : un rôle refusé n'exécute JAMAIS la moindre requête
-    // d'agrégation financière — voir `droits-provisoires.ts`.
-    verifierRoleAutorise(role, ROLES_TABLEAU_BORD_FINANCIER, 'tableau_bord.financier.lire');
-
     const periode = resoudrePeriodeTableauBord(filtre);
     const siteId = filtre.siteId ?? null;
 

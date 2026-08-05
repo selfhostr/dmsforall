@@ -4,14 +4,12 @@ import type {
   FiltreTableauBord,
   ReponseActiviteTableauBord,
   RepartitionStatutOrdreReparationTableauBord,
-  RoleUtilisateur,
 } from '@dfa/shared';
 import { STATUTS_OR_TABLEAU_BORD } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant } from '../db';
 import { JETON_DB } from '../db';
 
-import { ROLES_TABLEAU_BORD_ACTIVITE, verifierRoleAutorise } from './droits-provisoires';
 import { resoudrePeriodeTableauBord } from './periode';
 
 /** Projection brute d'UNE SEULE ligne agrégée — voir `obtenir()` : une unique requête, huit
@@ -34,8 +32,15 @@ type LigneActiviteBrute = {
 /**
  * `GET /tableau-bord/activite` — indicateurs d'activité atelier + stock, en quantités/comptes
  * SEULEMENT (voir `ReponseActiviteTableauBord`, `@dfa/shared`, pour le détail champ par champ et
- * la doctrine « `null` ≠ `0` »). Aucun montant : ce service n'a JAMAIS besoin de connaître le rôle
- * au-delà de la vérification d'accès elle-même — contrairement à `ServiceTableauBordFinancier`.
+ * la doctrine « `null` ≠ `0` »). Aucun montant, et ce service ne prend PLUS de rôle en paramètre :
+ * l'autorisation (`tableau_bord.activite.lire`, `auth/matrice-droits.ts`) est désormais portée
+ * EXCLUSIVEMENT par `@ExigerDroit(...)` + `GardeDroit` sur `TableauBordActiviteController`, qui
+ * refuse `403 DROIT_INSUFFISANT` avant même que ce handler ne s'exécute — un rôle non autorisé
+ * n'atteint donc jamais cette méthode, encore moins la base. Avant ce module (palliatif
+ * `tableau-bord/droits-provisoires.ts`, retiré), ce service portait sa propre vérification de rôle
+ * en l'absence de l'action dans la matrice ; ce n'est plus nécessaire, et une double vérification
+ * romprait la doctrine du dépôt (« un seul mécanisme d'autorisation », `auth/matrice-droits.ts`,
+ * tête de fichier).
  */
 @Injectable()
 export class ServiceTableauBordActivite {
@@ -43,12 +48,8 @@ export class ServiceTableauBordActivite {
 
   async obtenir(
     ctx: ContexteTenant,
-    role: RoleUtilisateur,
     filtre: FiltreTableauBord,
   ): Promise<ReponseActiviteTableauBord> {
-    // Vérification AVANT tout accès base — voir `droits-provisoires.ts`.
-    verifierRoleAutorise(role, ROLES_TABLEAU_BORD_ACTIVITE, 'tableau_bord.activite.lire');
-
     const periode = resoudrePeriodeTableauBord(filtre);
     const siteId = filtre.siteId ?? null;
 

@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
-import { ErreurMetier } from '../common/erreurs';
 
 import { ServiceTableauBordFinancier } from './service-tableau-bord-financier';
 
@@ -26,47 +25,33 @@ function accesFactice(ligne: Record<string, unknown> | null) {
   return { acces, execute, enTenant };
 }
 
-describe('ServiceTableauBordFinancier.obtenir — filtrage par droit AVANT tout accès base (le piège principal de ce lot)', () => {
-  it.each([
-    'admin',
-    'vendeur',
-    'receptionnaire',
-    'chef_atelier',
-    'technicien',
-    'magasinier',
-    'poste_atelier',
-  ] as const)(
-    '%s : 403 DROIT_INSUFFISANT, AUCUN appel à enTenant/execute — aucun montant ne fuit',
-    async (role) => {
-      const { acces, enTenant, execute } = accesFactice(LIGNE_VIDE);
-      const service = new ServiceTableauBordFinancier(acces);
+/**
+ * L'autorisation par rôle (`tableau_bord.financier.lire`, `auth/matrice-droits.ts` — `direction`/
+ * `comptable` SEULS, `admin` explicitement exclu, RF-115) N'EST PLUS testée ici : elle est portée
+ * EXCLUSIVEMENT par `@ExigerDroit('tableau_bord.financier.lire')` + `GardeDroit` sur
+ * `TableauBordFinancierController` (bascule depuis le palliatif `tableau-bord/droits-provisoires.ts`,
+ * retiré — voir le commentaire de tête de `service-tableau-bord-financier.ts`). Le guard refuse
+ * `403 DROIT_INSUFFISANT` en `canActivate()`, AVANT que ce handler (donc `service.obtenir()`, donc
+ * la moindre requête d'agrégation financière) ne s'exécute — structurellement, pas par un test de ce
+ * service. Cette garantie est couverte par :
+ *  - `auth/matrice-droits.spec.ts` (le rôle→action est correct : direction/comptable seuls, admin
+ *    explicitement exclu par un test dédié RF-115) ;
+ *  - `common/droits/garde-droit.spec.ts` (le guard refuse bien AVANT le handler quand l'action
+ *    manque, générique à toute action) ;
+ *  - `common/droits/toutes-les-actions-couvertes.spec.ts` (`@ExigerDroit('tableau_bord.financier.
+ *    lire')` est bien posé sur une route réellement montée).
+ * Ce service n'a donc plus de rôle à recevoir : il interroge la base pour tout appelant, l'appel
+ * lui-même étant conditionné par le guard en amont.
+ */
+describe('ServiceTableauBordFinancier.obtenir — interroge toujours la base (l’autorisation est au guard, pas ici)', () => {
+  it('appelle bien la base (aucun filtrage par rôle en service)', async () => {
+    const { acces, execute } = accesFactice(LIGNE_VIDE);
+    const service = new ServiceTableauBordFinancier(acces);
 
-      let capturee: unknown;
-      try {
-        await service.obtenir(CTX, role, {});
-      } catch (erreur) {
-        capturee = erreur;
-      }
+    await service.obtenir(CTX, {});
 
-      expect(capturee).toBeInstanceOf(ErreurMetier);
-      expect((capturee as ErreurMetier).code).toBe('DROIT_INSUFFISANT');
-      expect((capturee as ErreurMetier).status).toBe(403);
-      expect(enTenant).not.toHaveBeenCalled();
-      expect(execute).not.toHaveBeenCalled();
-    },
-  );
-
-  it.each(['direction', 'comptable'] as const)(
-    '%s : accepté, la base est bien interrogée',
-    async (role) => {
-      const { acces, execute } = accesFactice(LIGNE_VIDE);
-      const service = new ServiceTableauBordFinancier(acces);
-
-      await service.obtenir(CTX, role, {});
-
-      expect(execute).toHaveBeenCalledTimes(1);
-    },
-  );
+    expect(execute).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('ServiceTableauBordFinancier.obtenir — période vide : zéro partout, jamais une exception', () => {
@@ -74,7 +59,7 @@ describe('ServiceTableauBordFinancier.obtenir — période vide : zéro partout,
     const { acces } = accesFactice(LIGNE_VIDE);
     const service = new ServiceTableauBordFinancier(acces);
 
-    const resultat = await service.obtenir(CTX, 'direction', {
+    const resultat = await service.obtenir(CTX, {
       du: '2026-01-01',
       au: '2026-01-01',
     });
@@ -106,7 +91,7 @@ describe('ServiceTableauBordFinancier.obtenir — arithmétique exacte (bigint t
     const { acces } = accesFactice(ligne);
     const service = new ServiceTableauBordFinancier(acces);
 
-    const resultat = await service.obtenir(CTX, 'comptable', {
+    const resultat = await service.obtenir(CTX, {
       du: '2026-08-01',
       au: '2026-08-04',
     });
@@ -138,7 +123,7 @@ describe('ServiceTableauBordFinancier.obtenir — arithmétique exacte (bigint t
     const { acces } = accesFactice(ligne);
     const service = new ServiceTableauBordFinancier(acces);
 
-    const resultat = await service.obtenir(CTX, 'direction', {});
+    const resultat = await service.obtenir(CTX, {});
 
     expect(resultat.chiffreAffaires.totalHtCentimes).toBe(-500);
     expect(resultat.chiffreAffaires.totalTtcCentimes).toBe(-540);
@@ -148,7 +133,7 @@ describe('ServiceTableauBordFinancier.obtenir — arithmétique exacte (bigint t
     const { acces } = accesFactice(LIGNE_VIDE);
     const service = new ServiceTableauBordFinancier(acces);
 
-    const resultat = await service.obtenir(CTX, 'direction', { siteId: 'site-42' });
+    const resultat = await service.obtenir(CTX, { siteId: 'site-42' });
 
     expect(resultat.siteId).toBe('site-42');
   });
