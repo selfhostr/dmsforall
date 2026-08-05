@@ -90,6 +90,50 @@ export function estErreurInvariantImputation(erreur: unknown): boolean {
 }
 
 /**
+ * Défaut corrigé (signalé par un agent front qui n'avait pas le droit d'écrire dans
+ * `facturation/`, 2026-08-05) : RIEN n'empêchait jusqu'ici d'imputer un paiement sur un document
+ * dont la devise diffère — un règlement en CHF sur une facture en EUR s'écrivait avec la même
+ * valeur numérique dans la mauvaise devise, une erreur comptable silencieuse. `document_vente` et
+ * `paiement` portent chacun leur propre `devise`, bornée à CHF/EUR (`DEVISES_FACTURATION`,
+ * migrations 0010/0015) mais jamais comparée entre les deux avant cette fonction.
+ *
+ * RÈGLE RETENUE (arbitrage de cet agent, à confirmer par expert-api si un tiers en dépend) : la
+ * devise du paiement est FOURNIE PAR L'APPELANT (champ `devise` du contrat, déjà obligatoire avec
+ * défaut `CHF` pour la compatibilité ascendante — `schemaDeviseFacturation`) et VÉRIFIÉE au moment
+ * de l'imputation, jamais devinée depuis le document. Trois options écartées :
+ *   - dérivée automatiquement des documents imputés : un paiement peut viser plusieurs documents
+ *     dans le même lot (RF-71), potentiellement de devises différentes — aucune valeur unique n'en
+ *     sortirait, et écraser silencieusement ce que l'appelant a envoyé serait le même défaut sous
+ *     une autre forme (une correction devinée plutôt que vérifiée) ;
+ *   - depuis le client payeur ou le tenant : ni l'un ni l'autre ne porte de devise unique — un
+ *     client ou un garage suisse facturant en EUR peut très bien avoir des documents dans les deux
+ *     devises.
+ * Une AVANCE CLIENT (paiement créé sans imputation, RF-65) n'a par construction aucun document à
+ * comparer : sa devise reste celle déclarée à la création, non vérifiée tant qu'aucune imputation
+ * ne la rattache à un document — le contrôle s'applique alors, via ce même chemin, à la première
+ * imputation ou compensation qui la rattache (`ajouterImputation`, `abandonner`).
+ */
+function verifierCoherenceDevise(
+  paiementLigne: Pick<LignePaiement, 'id' | 'devise'>,
+  document: Pick<LigneDocumentVente, 'id' | 'devise'>,
+): void {
+  if (paiementLigne.devise !== document.devise) {
+    // `detail` porte le contexte technique, PAS `erreurs` (§3.5 règle 5 du contrat d'erreur : ce
+    // champ est réservé à la validation de saisie, jamais à un blocage métier — même patron que
+    // `IMPUTATION_MONTANT_EXCEDENTAIRE` un peu plus bas dans ce fichier).
+    throw new ErreurMetier(
+      'IMPUTATION_DEVISE_INCOHERENTE',
+      `Le paiement ${paiementLigne.id} est en ${paiementLigne.devise}, le document ${document.id} ` +
+        `en ${document.devise} — imputation refusée (MD-50) : un paiement ne peut pas régler un ` +
+        'document dans une autre devise que la sienne.',
+      {
+        detail: `paiement_id=${paiementLigne.id};paiement_devise=${paiementLigne.devise};document_id=${document.id};document_devise=${document.devise}`,
+      },
+    );
+  }
+}
+
+/**
  * Applique un lot d'imputations `reglement`/`arrondi` sur UN OU PLUSIEURS documents (RF-71 : un
  * paiement peut se répartir sur plusieurs factures), dans la MÊME transaction que la création du
  * paiement ou l'ajout d'imputation. Groupe par document : chaque document n'est chargé et
@@ -147,6 +191,7 @@ export async function appliquerImputationsLettrage(
 
   for (const [documentId, groupe] of parDocument) {
     const document = await chargerDocumentPourEcriture(tx, ctx, documentId);
+    verifierCoherenceDevise(paiementLigne, document);
     const totalDocument =
       document.totalTtcCentimes < 0n ? -document.totalTtcCentimes : document.totalTtcCentimes;
     const restantAvant = totalDocument - document.montantRegleCentimes;
@@ -241,6 +286,7 @@ export async function appliquerCompensationAvance(
   montantCentimes: number,
 ): Promise<LigneImputationPaiement> {
   const document = await chargerDocumentPourEcriture(tx, ctx, documentRegularisationId);
+  verifierCoherenceDevise(paiementAvance, document);
   const totalDocument =
     document.totalTtcCentimes < 0n ? -document.totalTtcCentimes : document.totalTtcCentimes;
   const restantAvant = totalDocument - document.montantRegleCentimes;

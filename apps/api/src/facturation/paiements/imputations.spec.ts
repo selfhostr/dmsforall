@@ -378,6 +378,114 @@ describe('appliquerImputationsLettrage — un paiement réparti sur plusieurs fa
   });
 });
 
+describe('cohérence de devise entre le paiement et le document imputé (correctif 2026-08-05)', () => {
+  it('paiement CHF sur facture CHF (nominal) : imputation acceptée, solde recalculé', async () => {
+    const document = documentFactice({ devise: 'CHF', totalTtcCentimes: 20431n });
+    const { tx, updates } = txFactice({ documents: [document] });
+    const paiement = paiementFactice({ devise: 'CHF', montantCentimes: 20431n });
+
+    const resultat = await appliquerImputationsLettrage(tx, CTX, paiement, [
+      { documentId: 'doc-1', montantCentimes: 20431, nature: 'reglement' },
+    ]);
+
+    expect(resultat).toHaveLength(1);
+    expect(updates[0]?.montantRegleCentimes).toBe(20431n);
+    expect(updates[0]?.statutReglement).toBe('regle');
+  });
+
+  it('paiement EUR sur facture EUR (nominal) : imputation acceptée', async () => {
+    const document = documentFactice({ devise: 'EUR', totalTtcCentimes: 15000n });
+    const { tx, updates } = txFactice({ documents: [document] });
+    const paiement = paiementFactice({ devise: 'EUR', montantCentimes: 15000n });
+
+    const resultat = await appliquerImputationsLettrage(tx, CTX, paiement, [
+      { documentId: 'doc-1', montantCentimes: 15000, nature: 'reglement' },
+    ]);
+
+    expect(resultat).toHaveLength(1);
+    expect(updates[0]?.montantRegleCentimes).toBe(15000n);
+  });
+
+  it('paiement CHF imputé sur une facture EUR : refusé (IMPUTATION_DEVISE_INCOHERENTE), jamais silencieusement accepté', async () => {
+    const document = documentFactice({ devise: 'EUR', totalTtcCentimes: 15000n });
+    const { tx, updates, inserts } = txFactice({ documents: [document] });
+    const paiement = paiementFactice({ devise: 'CHF', montantCentimes: 15000n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-1', montantCentimes: 15000, nature: 'reglement' },
+      ]),
+    ).rejects.toMatchObject({ code: 'IMPUTATION_DEVISE_INCOHERENTE', status: 409 });
+
+    // Aucune écriture n'a dû partir : le refus intervient AVANT toute insertion/mise à jour.
+    expect(inserts).toHaveLength(0);
+    expect(updates).toHaveLength(0);
+  });
+
+  it('paiement EUR imputé sur une facture CHF : refusé dans l’autre sens aussi', async () => {
+    const document = documentFactice({ devise: 'CHF', totalTtcCentimes: 15000n });
+    const { tx } = txFactice({ documents: [document] });
+    const paiement = paiementFactice({ devise: 'EUR', montantCentimes: 15000n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-1', montantCentimes: 15000, nature: 'reglement' },
+      ]),
+    ).rejects.toMatchObject({ code: 'IMPUTATION_DEVISE_INCOHERENTE' });
+  });
+
+  it('appliquerCompensationAvance — une avance CHF ne peut pas compenser un document de régularisation EUR', async () => {
+    const document = documentFactice({
+      id: 'doc-regul',
+      devise: 'EUR',
+      totalTtcCentimes: 1000n,
+      montantRegleCentimes: 800n,
+    });
+    const { tx } = txFactice({ documents: [document] });
+    const paiementAvance = paiementFactice({
+      id: 'pmt-avance',
+      devise: 'CHF',
+      montantCentimes: 5000n,
+    });
+
+    await expect(
+      appliquerCompensationAvance(tx, CTX, paiementAvance, 'doc-regul', 200),
+    ).rejects.toMatchObject({ code: 'IMPUTATION_DEVISE_INCOHERENTE' });
+  });
+
+  it('appelant historique sans devise explicite (défaut CHF du contrat) imputé sur une facture EUR reprise : refusé explicitement, pas un 500 ni une écriture silencieuse', async () => {
+    // Simule le cas décrit par la tâche : un document repris d'un ancien DMS en EUR, et un
+    // appelant qui n'envoie pas `devise` — le schéma zod (`schemaDeviseFacturation.default('CHF')`)
+    // produit alors un paiement CHF. Le défaut aurait laissé ce règlement s'imputer tel quel sur
+    // le document EUR ; il doit maintenant être refusé au même titre qu'un envoi explicite.
+    const document = documentFactice({ devise: 'EUR', totalTtcCentimes: 15000n });
+    const { tx, inserts } = txFactice({ documents: [document] });
+    // `devise` absente de l'entrée : pas modélisé ici (paiementFactice simule la ligne DÉJÀ
+    // écrite en base, où `devise` a déjà reçu son défaut 'CHF' via la colonne — voir
+    // `schema/facturation/paiement.ts::devise`), donc CHF explicite ici représente fidèlement
+    // ce que produirait un appelant historique muet sur la devise.
+    const paiement = paiementFactice({ devise: 'CHF', montantCentimes: 15000n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-1', montantCentimes: 15000, nature: 'reglement' },
+      ]),
+    ).rejects.toMatchObject({ code: 'IMPUTATION_DEVISE_INCOHERENTE' });
+    expect(inserts).toHaveLength(0);
+  });
+
+  it('avance client sans imputation (RF-65) : la devise déclarée à la création n’est pas vérifiée tant qu’aucun document n’est visé', () => {
+    // Rien à exercer ici sur `imputations.ts` (aucune fonction de ce module n'est appelée sans
+    // document cible) — le test documente l'invariant : `verifierCoherenceDevise` n'intervient
+    // que dans `appliquerImputationsLettrage`/`appliquerCompensationAvance`, jamais à la création
+    // seule d'un paiement (`service-paiement.ts::creer`, hors périmètre de ce fichier). Une avance
+    // CHF créée sans imputation reste donc valide quelle que soit la devise des documents ouverts
+    // du client — le contrôle s'appliquera à la première imputation qui la rattache à un document.
+    const paiement = paiementFactice({ devise: 'CHF', montantCentimes: 5000n });
+    expect(paiement.devise).toBe('CHF');
+  });
+});
+
 describe('appliquerCompensationAvance — abandon d’avance (RF-79 issue 3)', () => {
   it("impute l'avance sur le document de régularisation, nature compensation, rattachée au paiement d'avance", async () => {
     const document = documentFactice({

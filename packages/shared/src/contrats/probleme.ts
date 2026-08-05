@@ -251,6 +251,15 @@ export const CODES_ERREUR = [
   // l'a fait naître : la modifier ou la supprimer désynchroniserait la quantité facturée de la
   // quantité réellement sortie du stock. `service-documents.ts::modifierLigne`/`supprimerLigne`.
   'LIGNE_DOCUMENT_STOCK_LIEE',
+  // --- Étape 2 : paiements et imputations — correctif devise (défaut latent signalé par un agent
+  // front, 2026-08-05) : un `paiement` porte UNE SEULE devise (MD-50, `DEVISES_FACTURATION`),
+  // vérifiée par l'appelant plutôt que devinée par le serveur — voir
+  // `apps/api/src/facturation/paiements/imputations.ts`. Imputer (ou compenser une avance) sur un
+  // `document_vente` dont la devise diffère de celle du paiement écrirait un montant dans la
+  // mauvaise devise avec la même valeur numérique (ex. un règlement CHF sur une facture EUR) —
+  // une erreur comptable silencieuse jusqu'ici possible faute de contrôle. Refusé explicitement,
+  // jamais laissé passer ni corrigé en silence en réécrivant une devise à la place de l'appelant.
+  'IMPUTATION_DEVISE_INCOHERENTE',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -379,6 +388,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   CONNECTEUR_EXECUTION_TRANSITION_INTERDITE: 409,
   ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE: 409,
   LIGNE_DOCUMENT_STOCK_LIEE: 409,
+  IMPUTATION_DEVISE_INCOHERENTE: 409,
 };
 
 /**
@@ -493,6 +503,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   CONNECTEUR_EXECUTION_TRANSITION_INTERDITE: 'Utilisation du connecteur impossible',
   ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE: 'Transition interdite pour cet abonnement webhook',
   LIGNE_DOCUMENT_STOCK_LIEE: 'Ligne liée à un mouvement de stock, immuable',
+  IMPUTATION_DEVISE_INCOHERENTE: 'Devise incohérente entre le paiement et le document',
 };
 
 /**
