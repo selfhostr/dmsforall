@@ -328,6 +328,69 @@ describe('ServiceDepotPneus — dépôt orphelin quand le véhicule est vendu (R
   });
 });
 
+describe('ServiceDepotPneus.deplacer — défaut n°2 : le repère de rangement (codeCase, RPP-07) devient modifiable après la création', () => {
+  it('modifie codeCase et met à jour dernierMouvementLe (un déplacement est un mouvement, RPP-04)', async () => {
+    const avant = ligneDepot({ id: 'd1', statut: 'en_depot', codeCase: 'A12' });
+    const apres = ligneDepot({
+      id: 'd1',
+      statut: 'en_depot',
+      codeCase: 'B03',
+      dernierMouvementLe: new Date('2026-08-05T09:00:00.000Z'),
+    });
+    const { tx } = txFactice({
+      executes: [
+        { rows: [avant] }, // chargerPourVerrouOu404
+        { rows: [] }, // UPDATE code_case
+        { rows: [apres] }, // chargerOu404 (reload)
+      ],
+    });
+    const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
+
+    const resultat = await service.deplacer(CTX, 'd1', { codeCase: 'B03' });
+
+    expect(resultat.codeCase).toBe('B03');
+    expect(resultat.dernierMouvementLe).toBe('2026-08-05T09:00:00.000Z');
+    expect((tx.execute as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(3);
+  });
+
+  it('accepte codeCase null — retrait du repère, sans erreur', async () => {
+    const avant = ligneDepot({ id: 'd1', statut: 'monte', codeCase: 'A12' });
+    const apres = ligneDepot({ id: 'd1', statut: 'monte', codeCase: null });
+    const { tx } = txFactice({
+      executes: [{ rows: [avant] }, { rows: [] }, { rows: [apres] }],
+    });
+    const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
+
+    const resultat = await service.deplacer(CTX, 'd1', { codeCase: null });
+
+    expect(resultat.codeCase).toBeNull();
+  });
+
+  it('refuse (409 CONFLIT) de déplacer un dépôt déjà "sorti" — RPP-05, statut TERMINAL', async () => {
+    const { tx } = txFactice({
+      executes: [{ rows: [ligneDepot({ statut: 'sorti', motifSortie: 'vehicule_vendu' })] }],
+    });
+    const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
+
+    await expect(service.deplacer(CTX, 'd1', { codeCase: 'B03' })).rejects.toMatchObject({
+      code: 'CONFLIT',
+      status: 409,
+    });
+    // Un seul appel execute (le SELECT ... FOR UPDATE) : aucun UPDATE émis sur un dépôt sorti.
+    expect((tx.execute as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);
+  });
+
+  it('404 RESSOURCE_INTROUVABLE quand le dépôt est introuvable pour ce tenant', async () => {
+    const { tx } = txFactice({ executes: [{ rows: [] }] });
+    const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
+
+    await expect(service.deplacer(CTX, 'd-inconnu', { codeCase: 'B03' })).rejects.toMatchObject({
+      code: 'RESSOURCE_INTROUVABLE',
+      status: 404,
+    });
+  });
+});
+
 describe('ServiceDepotPneus — pagination par curseur', () => {
   it('hangar() : limite+1 lignes rendues → curseurSuivant non nul, une seule page de `limite` éléments', async () => {
     const lignes = [1, 2, 3].map((n) =>
@@ -385,5 +448,38 @@ describe('ServiceDepotPneus — pagination par curseur', () => {
 
     expect(page.donnees).toHaveLength(1);
     expect(page.donnees[0]?.statut).toBe('a_relancer');
+  });
+
+  /**
+   * Défaut n°1 — reproduction au niveau service (complète `pagination-triee.spec.ts`, qui teste
+   * `decoderCurseurPourTri` isolément). Un curseur v2 syntaxiquement valide (bon tri, uuid valide)
+   * mais dont la valeur n'est pas un timestamptz PostgreSQL bien formé produisait `500
+   * ERREUR_INTERNE` : la valeur atteignait la requête SQL sans jamais être revalidée, et
+   * PostgreSQL levait une erreur native non interceptée. Ce test prouve que le rejet se produit
+   * MAINTENANT, et qu'il se produit AVANT tout accès base (`acces.enTenant` jamais appelé) — pas
+   * seulement avant le `SELECT` de liste : `decoderCurseurPourTri` s'exécute dans `hangar()` avant
+   * même l'ouverture de la transaction.
+   */
+  it('hangar() : curseur syntaxiquement valide mais valeur non temporelle → 400 AVANT tout accès base (c’était 500)', async () => {
+    const curseurForge = Buffer.from(
+      JSON.stringify({
+        t: 'dernierMouvementLe:desc',
+        v: 'not-a-real-timestamp',
+        i: '01dc576e-7560-4e7f-9fc7-2b1806186f67',
+      }),
+      'utf8',
+    ).toString('base64url');
+    const { tx } = txFactice();
+    const acces = accesFactice(tx);
+    const service = new ServiceDepotPneus(acces, idempotenceFactice(tx));
+
+    await expect(
+      service.hangar(CTX, 's1', {
+        limite: 50,
+        tri: 'dernierMouvementLe:desc',
+        curseur: curseurForge,
+      }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+    expect(acces.enTenant).not.toHaveBeenCalled();
   });
 });

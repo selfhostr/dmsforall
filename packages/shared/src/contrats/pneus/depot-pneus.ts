@@ -127,3 +127,16 @@ export const schemaSortieDepotPneus = z.object({
   motif: z.enum(MOTIFS_SORTIE_DEPOT_PNEUS),
 });
 export type EntreeSortieDepotPneus = z.infer<typeof schemaSortieDepotPneus>;
+
+/**
+ * `POST /depots-pneus/{id}/deplacer` — DÉFAUT CORRIGÉ : `codeCase` (RPP-07) n'était modifiable
+ * qu'à la création (`POST /vehicules/{id}/depots-pneus`), jamais ensuite. Or dans un hangar, les
+ * jeux de pneus se déplacent d'une case à l'autre — c'est le geste courant, pas l'exception.
+ * `codeCase` nullish : accepte aussi bien un nouveau repère qu'un retrait (case libérée sans
+ * repère connu). Refusé (`409 CONFLIT`) sur un dépôt déjà `sorti` (RPP-05, statut TERMINAL — un
+ * bien qui a quitté la garde du garage n'a plus de repère de rangement à tenir à jour).
+ */
+export const schemaDeplacementDepotPneus = z.object({
+  codeCase: schemaCodeCase.nullish(),
+});
+export type EntreeDeplacementDepotPneus = z.infer<typeof schemaDeplacementDepotPneus>;

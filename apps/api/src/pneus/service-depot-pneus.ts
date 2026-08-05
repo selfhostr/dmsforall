@@ -3,6 +3,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import type {
   EntreeChangementSaisonDepotPneus,
   EntreeCreationDepotPneus,
+  EntreeDeplacementDepotPneus,
   EntreeSortieDepotPneus,
   FiltresARelancerPneus,
   FiltresDepotsPneusVehicule,
@@ -401,6 +402,51 @@ export class ServiceDepotPneus {
       await tx.execute(sql`
         update public.depot_pneus
            set statut = 'sorti', motif_sortie = ${entree.motif}, dernier_mouvement_le = now()
+         where tenant_id = ${ctx.tenantId} and id = ${depotId}
+      `);
+
+      const ligneMaj = await this.chargerOu404(tx, ctx, depotId);
+      return versDepotPneusResponse(ligneMaj);
+    });
+  }
+
+  /**
+   * `POST /depots-pneus/{id}/deplacer` — DÉFAUT CORRIGÉ : `codeCase` (RPP-07, repère de rangement)
+   * n'était modifiable qu'à la création (`creer()` ci-dessus), jamais ensuite. Or dans un hangar,
+   * les jeux de pneus CHANGENT de case — c'est le geste courant, pas l'exception (constat terrain).
+   * Refusé (`409 CONFLIT`) sur un dépôt `sorti` (RPP-05, statut TERMINAL) : un bien qui a quitté la
+   * garde du garage n'a plus de repère de rangement à tenir à jour.
+   *
+   * `dernier_mouvement_le` est mis à jour : un déplacement physique EST un mouvement au sens
+   * RPP-04, au même titre qu'un changement de saison (`changerSaison` ci-dessous met à jour la
+   * même colonne) — ne pas le faire laisserait un jeu activement manipulé retomber en `a_relancer`
+   * comme s'il avait été oublié.
+   *
+   * Droit : `pneus.depot.changer_saison`, PAS un droit dédié (aucun n'existe pour ce geste — voir
+   * le rapport de livraison : `auth/matrice-droits.ts` est hors périmètre de cet agent, un
+   * troisième droit `pneus.depot.deplacer` y serait plus juste sémantiquement mais n'aurait pu
+   * être ajouté ici sans y toucher). Le choix n'est pas arbitraire : `changer_saison` est
+   * EXACTEMENT le même profil de geste — physique, routinier, réversible, réalisé par qui manipule
+   * les pneus (technicien, magasinier compris) — et PAS `sortir`, réservé à la clôture définitive
+   * de la garde d'un bien client (admin/direction/réceptionnaire/chef d'atelier seuls).
+   */
+  async deplacer(
+    ctx: ContexteTenant,
+    depotId: string,
+    entree: EntreeDeplacementDepotPneus,
+  ): Promise<ReponseDepotPneus> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const ligne = await this.chargerPourVerrouOu404(tx, ctx, depotId);
+      if (ligne.statut === 'sorti') {
+        throw new ErreurMetier(
+          'CONFLIT',
+          'Transition interdite : ce dépôt est "sorti", son repère de rangement ne peut plus être modifié (RPP-05).',
+        );
+      }
+
+      await tx.execute(sql`
+        update public.depot_pneus
+           set code_case = ${entree.codeCase ?? null}, dernier_mouvement_le = now()
          where tenant_id = ${ctx.tenantId} and id = ${depotId}
       `);
 

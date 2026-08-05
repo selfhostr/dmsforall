@@ -23,9 +23,11 @@ import type { Response } from 'express';
 import {
   schemaChangementSaisonDepotPneus,
   schemaCreationDepotPneus,
+  schemaDeplacementDepotPneus,
   schemaSortieDepotPneus,
   type EntreeChangementSaisonDepotPneus,
   type EntreeCreationDepotPneus,
+  type EntreeDeplacementDepotPneus,
   type EntreeSortieDepotPneus,
   type FiltresARelancerPneus,
   type FiltresDepotsPneusVehicule,
@@ -58,9 +60,27 @@ import { ServiceDepotPneus } from './service-depot-pneus';
  * requête. Remplace le palliatif `@AucunDroitRequis()` + vérification de rôle en service
  * (`pneus/droits-provisoires.ts`, retiré), posé faute d'accès de son auteur à
  * `auth/matrice-droits.ts` au moment de la livraison de ce module. `pneus.depot.lire` gouverne les
- * trois routes de lecture ; `pneus.depot.creer` l'entrée en dépôt ; `pneus.depot.changer_saison` et
+ * quatre routes de lecture ; `pneus.depot.creer` l'entrée en dépôt ; `pneus.depot.changer_saison`
+ * gouverne RPP-03 ET `deplacer` (défaut corrigé, voir plus bas — aucun droit dédié n'existe pour ce
+ * geste, `changer_saison` en reprend exactement le profil : physique, routinier, réversible) ;
  * `pneus.depot.sortir` (scindées depuis la proposition d'origine `pneus.depot.gerer`, voir
- * `matrice-droits.ts`) gouvernent respectivement RPP-03 et RPP-05.
+ * `matrice-droits.ts`) gouverne RPP-05.
+ *
+ * DÉFAUTS CORRIGÉS (rapport de livraison) :
+ *  1. `GET /sites/{siteId}/hangar-pneus` (et les autres listes) répondaient `500 ERREUR_INTERNE`
+ *     sur un curseur de pagination syntaxiquement valide mais dont la valeur n'était pas un
+ *     timestamptz PostgreSQL bien formé — corrigé dans `pagination-triee.ts::decoderCurseurPourTri`
+ *     (validation avant toute requête SQL, `400 VALIDATION_ECHOUEE` au lieu d'une erreur Postgres
+ *     non déballée).
+ *  2. Le repère de rangement (`codeCase`, RPP-07) n'était modifiable qu'à la création — corrigé
+ *     par la route `POST /depots-pneus/{id}/deplacer` ci-dessous.
+ *  3. `changer-saison` et `sortir` documentaient `200` (`@ApiOkResponse`) mais rendaient `201`
+ *     (défaut de NestJS sur `@Post()` sans `@HttpCode` explicite) — corrigé par l'ajout de
+ *     `@HttpCode(HttpStatus.OK)` sur les trois routes `POST` qui rendent effectivement `200`
+ *     (`changer-saison`, `sortir`, `deplacer`) ; `creer` avait déjà son `@HttpCode(HttpStatus.
+ *     CREATED)` explicite et n'était pas concernée. Le même écart existe ailleurs dans le dépôt
+ *     (`commande-fournisseur.controller.ts`, `annuler`/`envoyer`, déjà documenté dans un test) —
+ *     HORS PÉRIMÈTRE de cet agent (`pieces/` interdit), signalé pour correction séparée.
  */
 
 @ApiTags('Pneus — Hangar')
@@ -182,6 +202,7 @@ export class DepotPneusController {
   }
 
   @Post(':id/changer-saison')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('pneus.depot.changer_saison')
   @ApiOperation({
     summary:
@@ -203,7 +224,37 @@ export class DepotPneusController {
     return this.service.changerSaison(ctx, id, entree);
   }
 
+  @Post(':id/deplacer')
+  @HttpCode(HttpStatus.OK)
+  @ExigerDroit('pneus.depot.changer_saison')
+  @ApiOperation({
+    summary:
+      'DÉFAUT CORRIGÉ (RPP-07) : modifie le repère de rangement (`codeCase`) d’un dépôt — posable ' +
+      'seulement à la création jusqu’ici, alors que les jeux de pneus changent de case couramment ' +
+      'dans le hangar. `codeCase` nullish (retrait du repère accepté). Met à jour ' +
+      '`dernierMouvementLe` (un déplacement est un mouvement au sens RPP-04). Même droit que ' +
+      '`changer-saison` : geste physique routinier, pas une clôture de garde (voir `sortir`).',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: DepotPneusDto })
+  @ApiReponseProbleme(400, 'Corps invalide.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant (pneus.depot.changer_saison).')
+  @ApiReponseProbleme(404, 'Dépôt de pneus introuvable pour ce tenant.')
+  @ApiReponseProbleme(
+    409,
+    'Ce dépôt est "sorti" : son repère de rangement ne peut plus être modifié (RPP-05).',
+  )
+  async deplacer(
+    @Param('id', new PipeZod(schemaUuid)) id: string,
+    @CorpsZod(schemaDeplacementDepotPneus) entree: EntreeDeplacementDepotPneus,
+  ): Promise<DepotPneusDto> {
+    const ctx = this.contexte.contexteTenant();
+    return this.service.deplacer(ctx, id, entree);
+  }
+
   @Post(':id/sortir')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('pneus.depot.sortir')
   @ApiOperation({
     summary:
