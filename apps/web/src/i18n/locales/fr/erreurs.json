@@ -147,7 +147,10 @@
     "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE": "Utilisation du connecteur impossible.",
     "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE": "Abonnement webhook dans un état incompatible.",
     "LIGNE_DOCUMENT_STOCK_LIEE": "Cette ligne est liée à un mouvement de stock et ne peut pas être modifiée ou supprimée.",
-    "IMPUTATION_DEVISE_INCOHERENTE": "La devise du paiement ne correspond pas à celle du document. Vérifiez votre saisie."
+    "IMPUTATION_DEVISE_INCOHERENTE": "La devise du paiement ne correspond pas à celle du document. Vérifiez votre saisie.",
+    "AVOIR_RETOUR_STOCK_NON_DECLENCHE": "L'avoir a été crédité pour un montant partiel. Le retour de pièce n'a pas pu être enregistré automatiquement. Si vous avez récupéré la pièce, enregistrez le retour manuellement.",
+    "VEHICULE_DEPOTS_PNEUS_OUVERTS": "Des dépôts de pneus sont encore attachés à ce véhicule. Décidez si vous les cédez avec le véhicule, les reprenez ou les transférez au client.",
+    "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE": "La facture a été émise avec succès. Le marquage du véhicule comme vendu n'a pas pu être finalisé. Corrigez-le manuellement si nécessaire."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Créer un devis complémentaire",

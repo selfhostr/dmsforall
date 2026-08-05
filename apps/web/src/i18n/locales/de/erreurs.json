@@ -147,7 +147,10 @@
     "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE": "Verwendung der Schnittstelle nicht möglich.",
     "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE": "Webhook-Abonnement in nicht kompatiblem Zustand.",
     "LIGNE_DOCUMENT_STOCK_LIEE": "Diese Position ist mit einer Lagerbewegung verknüpft und kann nicht geändert oder gelöscht werden.",
-    "IMPUTATION_DEVISE_INCOHERENTE": "Die Zahlungswährung stimmt nicht mit der Dokumentwährung überein. Überprüfen Sie Ihre Eingabe."
+    "IMPUTATION_DEVISE_INCOHERENTE": "Die Zahlungswährung stimmt nicht mit der Dokumentwährung überein. Überprüfen Sie Ihre Eingabe.",
+    "AVOIR_RETOUR_STOCK_NON_DECLENCHE": "Das Guthaben wurde für einen Teilbetrag verbucht. Die Teilerückgabe konnte nicht automatisch erfasst werden. Wenn Sie das Teil zurückerhalten haben, erfassen Sie die Rückgabe manuell.",
+    "VEHICULE_DEPOTS_PNEUS_OUVERTS": "An diesem Fahrzeug sind noch Reifenlagerplätze angebracht. Entscheiden Sie, ob Sie diese mit dem Fahrzeug abgeben, zurückbehalten oder an den Kunden übertragen.",
+    "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE": "Die Rechnung wurde erfolgreich ausgestellt. Das Markieren des Fahrzeugs als verkauft konnte nicht finalisiert werden. Korrigieren Sie es manuell, falls notwendig."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Nachtragsofferte erstellen",

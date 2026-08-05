@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ContexteTenant } from '../../db';
 import type { ServiceJournal } from '../../common/journal';

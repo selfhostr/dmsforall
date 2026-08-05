@@ -147,7 +147,10 @@
     "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE": "Utilizzo dell'interfaccia non possibile.",
     "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE": "Abbonamento webhook in stato non compatibile.",
     "LIGNE_DOCUMENT_STOCK_LIEE": "Questa riga è collegata a un movimento di magazzino e non può essere modificata o eliminata.",
-    "IMPUTATION_DEVISE_INCOHERENTE": "La valuta del pagamento non corrisponde a quella del documento. Verifica il tuo inserimento."
+    "IMPUTATION_DEVISE_INCOHERENTE": "La valuta del pagamento non corrisponde a quella del documento. Verifica il tuo inserimento.",
+    "AVOIR_RETOUR_STOCK_NON_DECLENCHE": "Il credito è stato registrato per un importo parziale. Il reso parziale non ha potuto essere registrato automaticamente. Se hai ricevuto il pezzo, registra il reso manualmente.",
+    "VEHICULE_DEPOTS_PNEUS_OUVERTS": "I depositi di pneumatici sono ancora collegati a questo veicolo. Decidi se cederli con il veicolo, riprenderli o trasferirli al cliente.",
+    "VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE": "La fattura è stata emessa con successo. La marcatura del veicolo come venduto non ha potuto essere finalizzata. Correggila manualmente se necessario."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Crea preventivo supplementare",
