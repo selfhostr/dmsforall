@@ -389,6 +389,110 @@ export async function creerFinancementVentePourTest(
   return { id, tenantId: tenant.id };
 }
 
+// -------------------------------------------------------------------------------------------
+// Pneus — depot_pneus (hors numérotation de lot, migration 0043)
+// -------------------------------------------------------------------------------------------
+
+export interface DepotPneusDeTest {
+  readonly id: string;
+  readonly tenantId: string;
+}
+
+/**
+ * Insère un dépôt de pneus DIRECTEMENT en base (jamais via le service/l'API) — pour les tests qui
+ * ont besoin d'un jeu déjà existant sans dépendre du cycle HTTP complet (isolation, pagination,
+ * préparation d'un état à transitionner). `statut` par défaut `en_depot` ; passer un statut hors
+ * de `('en_depot', 'monte')` (ex. `a_relancer`) pour insérer PLUSIEURS lignes sur le même véhicule
+ * et la même saison sans heurter `depot_pneus_actif_uk` (RPP-02, index unique partiel).
+ * `entreLe`/`dernierMouvementLe` acceptent une valeur EXPLICITE (littéral, jamais `default now()`)
+ * pour reproduire un lot inséré au même instant — voir `hangar-pneus.spec.ts`, piège documenté
+ * `common/pagination/valeur-temporelle.ts`.
+ */
+export async function creerDepotPneusPourTest(
+  bdd: BaseEphemere,
+  tenant: DonneesLot1Tenant['tenant'],
+  vehiculeId: string,
+  siteId: string,
+  options: {
+    readonly id?: string;
+    readonly saison?: 'ete' | 'hiver';
+    readonly statut?: string;
+    readonly codeCase?: string | null;
+    readonly dimension?: string | null;
+    readonly etat?: string | null;
+    readonly entreLe?: Date;
+    readonly dernierMouvementLe?: Date;
+    readonly motifSortie?: string | null;
+    readonly ligneOrDernierChangementId?: string | null;
+  } = {},
+): Promise<DepotPneusDeTest> {
+  const id = options.id ?? randomUUID();
+  const entreLe = options.entreLe ?? new Date();
+  const dernierMouvementLe = options.dernierMouvementLe ?? entreLe;
+  await ecrireSousTenant(bdd.poolApp, tenant.id, async (client: PoolClient) => {
+    await client.query(
+      `insert into depot_pneus
+         (id, tenant_id, vehicule_id, site_id, saison, statut, code_case, dimension, etat,
+          entre_le, dernier_mouvement_le, motif_sortie, ligne_or_dernier_changement_id)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+      [
+        id,
+        tenant.id,
+        vehiculeId,
+        siteId,
+        options.saison ?? 'ete',
+        options.statut ?? 'en_depot',
+        options.codeCase ?? null,
+        options.dimension ?? null,
+        options.etat ?? null,
+        entreLe,
+        dernierMouvementLe,
+        options.motifSortie ?? null,
+        options.ligneOrDernierChangementId ?? null,
+      ],
+    );
+  });
+  return { id, tenantId: tenant.id };
+}
+
+/**
+ * Insère `n` dépôts de pneus pour le MÊME véhicule, TOUS au MÊME instant (une seule requête,
+ * valeurs littérales) — reproduit fidèlement le cas documenté par
+ * `common/pagination/valeur-temporelle.ts` (insertion en lot, plusieurs lignes qui partagent la
+ * MÊME microseconde `dernier_mouvement_le`/`entre_le`). Statut `a_relancer` pour toutes les
+ * lignes : hors du périmètre de `depot_pneus_actif_uk`, ce qui permet d'empiler `n` lignes sur un
+ * seul véhicule/une seule saison sans violer l'unicité partielle RPP-02.
+ */
+export async function semerDepotsPneusMemeInstant(
+  bdd: BaseEphemere,
+  tenant: DonneesLot1Tenant['tenant'],
+  vehiculeId: string,
+  siteId: string,
+  n: number,
+  instant: Date,
+): Promise<string[]> {
+  const ids: string[] = [];
+  const lignesValeurs: string[] = [];
+  const parametres: unknown[] = [];
+  for (let index = 0; index < n; index += 1) {
+    const id = randomUUID();
+    ids.push(id);
+    const base = parametres.length;
+    lignesValeurs.push(
+      `($${String(base + 1)}, $${String(base + 2)}, $${String(base + 3)}, $${String(base + 4)}, 'ete', 'a_relancer', $${String(base + 5)}, $${String(base + 5)})`,
+    );
+    parametres.push(id, tenant.id, vehiculeId, siteId, instant);
+  }
+  await ecrireSousTenant(bdd.poolApp, tenant.id, async (client: PoolClient) => {
+    await client.query(
+      `insert into depot_pneus (id, tenant_id, vehicule_id, site_id, saison, statut, entre_le, dernier_mouvement_le)
+       values ${lignesValeurs.join(', ')}`,
+      parametres,
+    );
+  });
+  return ids;
+}
+
 export async function creerDocumentRequisPourTest(
   bdd: BaseEphemere,
   tenant: DonneesLot1Tenant['tenant'],
