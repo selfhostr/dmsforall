@@ -513,6 +513,31 @@ export class ServiceMouvement {
    * `select … for update`) — même garantie de concurrence que `reservation_piece_verrouiller_stock`
    * (0026), appliquée ici côté application puisqu'aucune contrainte de base n'interdit un
    * physique négatif (RP-15 l'autorise explicitement sous forçage, voir 0025 §tête).
+   *
+   * ARBITRAGE, MESURÉ EN EXÉCUTION (`pont-atelier-pieces.spec.ts`, section `pieces.mouvement.
+   * forcer`) : `forcer: true` est structurellement INERTE pour `casse`/`perte`/
+   * `retour_fournisseur` dès que `quantiteDemandee` dépasse le `disponible` — pas seulement dans
+   * le cas extrême du 100%. Ces trois types NE touchent JAMAIS `quantite_reservee_millieme`
+   * (contrairement à `ServiceReservation.appliquerSatisfaction`, `pieces/service-reservation.ts`,
+   * qui libère la réservée dans LA MÊME opération) ; ignorer ce refus applicatif (ce que fait
+   * `forcer`) revient alors TOUJOURS à tenter un `physique_après = physique − quantiteDemandee`
+   * strictement inférieur à `reservee` (par définition de « dépasser le disponible » quand
+   * `reservee` ne bouge pas) — `stock_article_reservee_leq_physique_chk` (0025, invariant ABSOLU
+   * d'après 0026 §tête : « la réservation ne peut jamais dépasser le disponible ») le refuse alors
+   * INCONDITIONNELLEMENT, `forcer` ou pas (`estViolationStockInsuffisant` traduit ce refus en
+   * `409 STOCK_INSUFFISANT`, jamais un `500` — voir le `catch` de `creerMouvementSortie` — mais
+   * l'ISSUE, elle, ne change jamais).
+   *
+   * CE N'EST PAS UN BUG À CONTOURNER : lever cette garde (ex. en faisant AUSSI reculer `reservee`
+   * dans ces trois mouvements) reviendrait à laisser une casse/perte au comptoir consommer
+   * SILENCIEUSEMENT une pièce déjà PROMISE à un OR ouvert — exactement ce que RP-14/CP-02
+   * (`0026_pieces_reservation.sql` §tête) interdisent nommément. `forcer` garde donc un rôle réel
+   * et borné : passer outre le refus applicatif PRÉCOCE pour les cas où `physique` seul (jamais
+   * `reservee`) couvre encore la demande au-delà du calcul naïf `verifierDisponible` — aucun cas
+   * de ce type n'existe aujourd'hui pour `casse`/`perte`/`retour_fournisseur` (le calcul EST déjà
+   * exact), donc `forcer` n'a, EN PRATIQUE, aucun effet observable pour ces trois types tant que
+   * `reservee` reste hors de leur portée. Ne pas « corriger » en affaiblissant l'invariant : le
+   * paramètre doit rester sans pouvoir plutôt que de rendre le stock incohérent.
    */
   private async verifierDisponible(
     tx: TransactionDfa,

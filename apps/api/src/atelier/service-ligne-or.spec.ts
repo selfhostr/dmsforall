@@ -296,6 +296,20 @@ function construireUpdate(donnees: Map<unknown, unknown[]>) {
   return { update, appels };
 }
 
+/**
+ * `tx.transaction(async (tx2) => …)` — SAVEPOINT réel en production (`NodePgTransaction.
+ * transaction()`, voir la docstring de `reserverPieceSiApplicable`), simulé ici en PASSTHROUGH :
+ * le callback reçoit CE MÊME `tx` factice (un mock ne distingue pas `tx` de `tx2`, les deux
+ * exercent le même `insert(reservationPiece)` moqué) et toute erreur qu'il lève est PROPAGÉE telle
+ * quelle — exactement le comportement observable par l'appelant, que la transaction imbriquée
+ * commit ou fasse `ROLLBACK TO SAVEPOINT` avant de la relancer.
+ */
+function ajouterTransactionPassthrough<T extends object>(tx: T): T {
+  return Object.assign(tx, {
+    transaction: vi.fn((travail: (tx: T) => Promise<unknown>) => travail(tx)),
+  });
+}
+
 function idempotenceFactice(tx: TransactionDfa) {
   return {
     executer: vi.fn(
@@ -602,7 +616,11 @@ describe('ServiceLigneOr.creer — réservation de pièce à la pose (RP-19/RP-2
       ]),
     );
     const { update } = construireUpdate(new Map());
-    const tx = { select, insert, update } as unknown as TransactionDfa;
+    const tx = ajouterTransactionPassthrough({
+      select,
+      insert,
+      update,
+    }) as unknown as TransactionDfa;
 
     const service = serviceFacticePieces(tx, calculFactice());
     const resultat = await service.creer(
@@ -626,6 +644,13 @@ describe('ServiceLigneOr.creer — réservation de pièce à la pose (RP-19/RP-2
       ordreReparationId: OR_ID,
       quantiteMillieme: 1000,
     });
+    // Garde de régression pour le correctif SAVEPOINT (voir la docstring de
+    // `reserverPieceSiApplicable`) : l'INSERT spéculatif DOIT passer par `tx.transaction(...)`,
+    // jamais par un `tx.insert(...)` nu — sans quoi un ZDFA4 laisserait la transaction PostgreSQL
+    // "aborted" (25P02) et le rattrapage `blocage='pieces'` échouerait à son tour (500).
+    expect(
+      (tx as unknown as { transaction: ReturnType<typeof vi.fn> }).transaction,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it("stock insuffisant (ZDFA4) → PAS d’erreur HTTP, la ligne bascule blocage='pieces' (RP-24)", async () => {
@@ -654,7 +679,11 @@ describe('ServiceLigneOr.creer — réservation de pièce à la pose (RP-19/RP-2
       ]),
     );
     const { update, appels: appelsUpdate } = construireUpdate(new Map([[ligneOr, [ligneBloquee]]]));
-    const tx = { select, insert, update } as unknown as TransactionDfa;
+    const tx = ajouterTransactionPassthrough({
+      select,
+      insert,
+      update,
+    }) as unknown as TransactionDfa;
 
     const service = serviceFacticePieces(tx, calculFactice());
     const resultat = await service.creer(
@@ -671,6 +700,13 @@ describe('ServiceLigneOr.creer — réservation de pièce à la pose (RP-19/RP-2
 
     const appelBlocage = appelsUpdate.find((a) => a.table === ligneOr);
     expect(appelBlocage?.valeurs).toEqual({ blocage: 'pieces' });
+
+    // Preuve du correctif : le rattrapage `UPDATE ligne_or` a bien été TENTÉ ET RÉUSSI (une ligne
+    // rendue) APRÈS l'échec ZDFA4 — c'est exactement ce qui échouait avant (transaction "aborted",
+    // 500 ERREUR_INTERNE) sans le SAVEPOINT posé par `tx.transaction(...)`.
+    expect(
+      (tx as unknown as { transaction: ReturnType<typeof vi.fn> }).transaction,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it('article introuvable pour ce tenant → RESSOURCE_INTROUVABLE, aucune ligne insérée', async () => {
@@ -681,7 +717,11 @@ describe('ServiceLigneOr.creer — réservation de pièce à la pose (RP-19/RP-2
     const select = construireSelect(new Map()); // article : aucune ligne pour cette table
     const { insert, appels: appelsInsert } = construireInsert(new Map());
     const { update } = construireUpdate(new Map());
-    const tx = { select, insert, update } as unknown as TransactionDfa;
+    const tx = ajouterTransactionPassthrough({
+      select,
+      insert,
+      update,
+    }) as unknown as TransactionDfa;
 
     const service = serviceFacticePieces(tx, calculFactice());
 
@@ -701,7 +741,11 @@ describe('ServiceLigneOr.creer — réservation de pièce à la pose (RP-19/RP-2
     );
     const { insert, appels: appelsInsert } = construireInsert(new Map());
     const { update } = construireUpdate(new Map());
-    const tx = { select, insert, update } as unknown as TransactionDfa;
+    const tx = ajouterTransactionPassthrough({
+      select,
+      insert,
+      update,
+    }) as unknown as TransactionDfa;
 
     const service = serviceFacticePieces(tx, calculFactice());
 

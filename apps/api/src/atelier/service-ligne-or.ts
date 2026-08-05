@@ -848,6 +848,26 @@ export class ServiceLigneOr {
    *
    * N'EST PAS APPELÉE PAR `modifier()` : le contrat (`reservation.ts`, en-tête) ne fait naître la
    * réservation qu'à la création — voir la note sur `entree.articleId` dans `modifier()`.
+   *
+   * DÉFAUT CORRIGÉ (mesuré en exécution — `pont-atelier-pieces.spec.ts`, section RP-24) : sans
+   * précaution, un `INSERT` qui échoue en `ZDFA4` laisse la transaction PostgreSQL dans un état
+   * « aborted » (`current transaction is aborted, commands ignored until end of transaction
+   * block`, SQLSTATE `25P02`) — TOUTE instruction suivante y est rejetée, MÊME parfaitement valide
+   * par ailleurs, tant qu'aucun `ROLLBACK`/`ROLLBACK TO SAVEPOINT` n'a eu lieu. Le `catch`
+   * ci-dessous attrapait bien l'exception ZDFA4 côté application, mais l'`UPDATE` de rattrapage
+   * (`blocage = 'pieces'`) échouait alors À SON TOUR avec cette erreur DIFFÉRENTE, non reconnue —
+   * remontée telle quelle en `500 ERREUR_INTERNE` au lieu du `201` documenté par RP-24. Reproduit
+   * par isolation SQL directe (rapport de livraison) : l'`INSERT` seul échoue bien en `ZDFA4`, un
+   * `UPDATE ligne_or` seul (sa PROPRE transaction) réussit sans problème — c'est leur combinaison
+   * DANS LA MÊME transaction qui casse tout.
+   *
+   * CORRECTIF : `tx.transaction(...)`, appelé SUR un `tx` DÉJÀ ouvert (à la différence
+   * d'`AccesBase.enTenant`, qui ouvrirait une connexion NEUVE et briserait l'atomicité — voir la
+   * doc de `ServiceEmissionDocument.marquerVehiculeVenduSiApplicable`), pose un vrai `SAVEPOINT`
+   * PostgreSQL (`NodePgTransaction.transaction()`, `drizzle-orm/node-postgres/session.js`) : en cas
+   * d'erreur dans le callback, drizzle exécute lui-même `ROLLBACK TO SAVEPOINT` puis relance
+   * l'erreur D'ORIGINE (celle que `remonterCausePg` sait déjà déballer) — la transaction externe
+   * redevient utilisable, l'`UPDATE` de rattrapage peut s'exécuter normalement.
    */
   private async reserverPieceSiApplicable(
     tx: TransactionDfa,
@@ -867,7 +887,9 @@ export class ServiceLigneOr {
     };
 
     try {
-      await tx.insert(reservationPiece).values(valeurs);
+      await tx.transaction(async (tx2) => {
+        await tx2.insert(reservationPiece).values(valeurs);
+      });
       return ligne;
     } catch (erreur) {
       if (remonterCausePg(erreur)?.code !== 'ZDFA4') throw erreur;

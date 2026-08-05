@@ -81,8 +81,10 @@ describe('ServiceReservation.satisfaire — RP-21 : seule une réservation activ
   it('active : insère un mouvement sortie_or de quantité NÉGATIVE, puis marque la réservation satisfaite', async () => {
     const tx = txFactice([
       { rows: [ligneReservation()] }, // SELECT FOR UPDATE
+      { rows: [] }, // (a) palier : physique += Q, AVANT le mouvement
       { rows: [{ id: 'mvt-1' }] }, // INSERT mouvement_stock RETURNING id
       { rows: [] }, // UPDATE reservation_piece
+      { rows: [] }, // (d) palier retiré : physique -= Q, APRÈS la transition officielle
       {
         rows: [
           ligneReservation({
@@ -101,7 +103,43 @@ describe('ServiceReservation.satisfaire — RP-21 : seule une réservation activ
     expect(resultat.mouvementSortieId).toBe('mvt-1');
 
     const appels = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls;
-    expect(appels).toHaveLength(4);
+    expect(appels).toHaveLength(6);
+  });
+
+  /**
+   * Défaut corrigé (mesuré en exécution — `pont-atelier-pieces.spec.ts`, section « atomicité
+   * réelle ») : voir la docstring d'`appliquerSatisfaction` dans `service-reservation.ts`. Ce test
+   * prouve la FORME EXACTE du palier — deux `UPDATE stock_article` bruts, l'un AVANT l'INSERT du
+   * mouvement (delta = +Q), l'autre APRÈS la transition de la réservation (delta = -Q) — jamais
+   * l'inverse, et jamais un troisième (pas de dérive du solde dérivé).
+   */
+  it('appliquerSatisfaction : encadre le mouvement/la transition d’un palier +Q puis -Q sur quantite_physique_millieme, JAMAIS sur quantite_reservee_millieme', async () => {
+    const tx = txFactice([
+      { rows: [ligneReservation({ quantiteMillieme: 2000 })] }, // SELECT FOR UPDATE
+      { rows: [] }, // (a) palier +Q
+      { rows: [{ id: 'mvt-1' }] }, // INSERT mouvement_stock
+      { rows: [] }, // UPDATE reservation_piece
+      { rows: [] }, // (d) palier -Q
+      { rows: [ligneReservation({ statut: 'satisfaite', quantiteMillieme: 2000 })] }, // reload
+    ]);
+    const service = new ServiceReservation(accesFactice(tx));
+
+    await service.satisfaire(CTX, 'r1');
+
+    const appels = (tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls;
+    const { sql: sqlPalierBump } = dialect.sqlToQuery(appels[1]?.[0] as SQL);
+    const { sql: sqlPalierUnbump } = dialect.sqlToQuery(appels[4]?.[0] as SQL);
+    expect(sqlPalierBump).toContain('quantite_physique_millieme');
+    expect(sqlPalierBump).not.toContain('quantite_reservee_millieme');
+    expect(sqlPalierUnbump).toContain('quantite_physique_millieme');
+    expect(sqlPalierUnbump).not.toContain('quantite_reservee_millieme');
+
+    const { params: paramsBump } = dialect.sqlToQuery(appels[1]?.[0] as SQL);
+    const { params: paramsUnbump } = dialect.sqlToQuery(appels[4]?.[0] as SQL);
+    // Le delta signé est le PREMIER paramètre lié dans `ajusterPhysiqueSansMouvement` (`+
+    // ${deltaMillieme}` dans le texte SQL, voir service-reservation.ts).
+    expect(paramsBump[0]).toBe(2000);
+    expect(paramsUnbump[0]).toBe(-2000);
   });
 });
 
@@ -180,8 +218,10 @@ describe('ServiceReservation.satisfairePourLigneTx — RP-21, appelée par marqu
   it('réservation active trouvée par ligneOrId → même écriture que satisfaireTx (mouvement sortie_or négatif, statut satisfaite)', async () => {
     const tx = txFactice([
       { rows: [ligneReservation()] }, // SELECT FOR UPDATE par ligne_or_id
+      { rows: [] }, // (a) palier : physique += Q
       { rows: [{ id: 'mvt-2' }] }, // INSERT mouvement_stock RETURNING id
       { rows: [] }, // UPDATE reservation_piece
+      { rows: [] }, // (d) palier retiré : physique -= Q
       {
         rows: [
           ligneReservation({
@@ -198,7 +238,7 @@ describe('ServiceReservation.satisfairePourLigneTx — RP-21, appelée par marqu
 
     expect(resultat?.statut).toBe('satisfaite');
     expect(resultat?.mouvementSortieId).toBe('mvt-2');
-    expect((tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(4);
+    expect((tx.execute as unknown as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(6);
   });
 });
 

@@ -174,13 +174,64 @@ export class ServiceReservation {
     return this.appliquerSatisfaction(tx, ctx, ligne);
   }
 
-  /** Cœur partagé de `satisfaireTx`/`satisfairePourLigneTx` : `ligne` DOIT déjà être verrouillée
-   *  (`for update`) et `statut = 'active'` — aucune re-vérification ici. */
+  /**
+   * Cœur partagé de `satisfaireTx`/`satisfairePourLigneTx` : `ligne` DOIT déjà être verrouillée
+   * (`for update`) et `statut = 'active'` — aucune re-vérification ici.
+   *
+   * DÉFAUT CORRIGÉ (mesuré en exécution — `pont-atelier-pieces.spec.ts`, section « atomicité
+   * réelle », réservation à 100% du disponible) : cette méthode écrit `stock_article` en DEUX
+   * temps, chacun dans sa PROPRE instruction SQL, séparés par la FK `reservation_piece_fk_
+   * mouvement_sortie` (0026) qui impose que le mouvement de sortie existe déjà AVANT que la
+   * réservation puisse le référencer :
+   *   1. INSERT mouvement_stock('sortie_or', -Q) -> stock_article.physique -= Q (trigger 0025/0040)
+   *   2. UPDATE reservation_piece -> statut='satisfaite' -> stock_article.reservee -= Q (trigger 0026)
+   * `stock_article_reservee_leq_physique_chk` (0025) est une CHECK — JAMAIS DEFERRABLE en
+   * PostgreSQL (voir 0040, qui documente déjà ce piège pour un cas voisin) — donc évaluée
+   * IMMÉDIATEMENT à la fin de CHAQUE instruction, jamais à la fin de la transaction. Entre 1. et
+   * 2., `reservee` porte encore SON ANCIENNE valeur alors que `physique` a DÉJÀ baissé : dès que
+   * `Q` dépasse la moitié du disponible que CETTE réservation occupe seule (le cas le plus
+   * commun étant Q = disponible, « on utilise la dernière pièce »), l'étape 1 fait passer
+   * `physique` EN DESSOUS de `reservee` — PostgreSQL annule alors TOUTE la transaction, alors même
+   * que l'état FINAL (après les deux écritures) est parfaitement valide. Reproduit par isolation
+   * SQL directe (rapport de livraison) : l'INSERT seul échoue avec ce SQLSTATE `23514` ; une
+   * fois `reservee` déjà réduite avant l'INSERT, la séquence complète commit sans erreur.
+   *
+   * CORRECTIF — palier (« headroom ») temporaire sur `quantite_physique_millieme`, STRICTEMENT
+   * interne à cette méthode et à CETTE transaction, jamais visible d'aucune autre (verrou de ligne
+   * déjà posé — `for update` — par `chargerPourVerrouOu404`/`satisfairePourLigneTx` ; MVCC empêche
+   * toute lecture externe d'un état intermédiaire non commité) :
+   *   a. `physique += Q` AVANT l'INSERT du mouvement — augmenter `physique` ne peut JAMAIS violer
+   *      `reservee <= physique`.
+   *   b. le mouvement s'insère alors sans risque : `physique` retombe à SA valeur d'avant cette
+   *      méthode, `reservee` inchangé — c'est EXACTEMENT l'invariant qui tenait déjà (ligne
+   *      `stock_article` existante, donc `reservee <= physique` par construction).
+   *   c. la transition officielle libère `reservee` (trigger 0026) sans risque, pour la même
+   *      raison (`reservee` ne peut que DIMINUER : décroître ne menace jamais `<=`).
+   *   d. `physique -= Q` retire le palier : l'état final est EXACTEMENT `physique_avant - Q`,
+   *      `reservee_avant - Q` — identique à ce qu'une écriture directe unique (impossible ici,
+   *      voir ci-dessus) aurait produit.
+   * (a) et (d) s'ANNULENT TOUJOURS entre eux DANS LA MÊME transaction : soit elle commit et l'état
+   * persisté est cohérent avec le SEUL mouvement réellement inséré (aucune dérive du solde dérivé
+   * par rapport au grand livre `mouvement_stock`), soit elle échoue et PostgreSQL annule tout, y
+   * compris le palier. Prouvé par isolation SQL directe (rapport de livraison) : la séquence
+   * complète (a→b→c→d) commit et rend `physique`/`reservee` EXACTS.
+   *
+   * CORRECTIF STRUCTUREL PRÉFÉRABLE, SIGNALÉ PAS APPLIQUÉ (migrations gelées pour cette tâche,
+   * `0045` déjà prise et invalide) : faire porter la libération de `reservee` par LE MÊME trigger
+   * que celui qui décrémente `physique` (`mouvement_stock_appliquer_physique`/
+   * `stock_article_appliquer_delta`, 0025/0040) quand `mouvement_stock.reservation_id` est
+   * renseigné sur un `sortie_or`, et retirer cette responsabilité de `reservation_piece_transition`
+   * pour la branche `satisfaite` (la garder pour `liberee`, qui ne crée jamais de mouvement) — un
+   * SEUL UPDATE sur `stock_article` verrait alors l'état FINAL fusionné, jamais un état
+   * intermédiaire, et cette méthode n'aurait plus besoin du palier ci-dessus.
+   */
   private async appliquerSatisfaction(
     tx: TransactionDfa,
     ctx: ContexteTenant,
     ligne: LigneReservationPiece,
   ): Promise<ReponseReservationPiece> {
+    await this.ajusterPhysiqueSansMouvement(tx, ctx, ligne, ligne.quantiteMillieme);
+
     const resultatMouvement = await tx.execute<{ id: string }>(sql`
       insert into public.mouvement_stock
         (tenant_id, article_id, type, quantite_millieme, site_id, auteur_id, ligne_or_id, reservation_id)
@@ -199,8 +250,31 @@ export class ServiceReservation {
        where tenant_id = ${ctx.tenantId} and id = ${ligne.id}
     `);
 
+    await this.ajusterPhysiqueSansMouvement(tx, ctx, ligne, -ligne.quantiteMillieme);
+
     const ligneMaj = await this.chargerOu404(tx, ctx, ligne.id);
     return versReservationResponse(ligneMaj);
+  }
+
+  /**
+   * Palier temporaire sur `quantite_physique_millieme`, JAMAIS sur `quantite_reservee_millieme`
+   * (voir la docstring d'`appliquerSatisfaction` ci-dessus pour le raisonnement complet) — les deux
+   * appels de cette méthode depuis `appliquerSatisfaction` (+Q puis -Q) s'annulent TOUJOURS avant
+   * la fin de la transaction. AUCUN mouvement fictif : `mouvement_stock` (le grand livre auditable,
+   * RP-16→RP-18) n'enregistre QUE le mouvement RÉEL inséré par `appliquerSatisfaction` — ce palier
+   * ne lui correspond à rien de physique et ne doit JAMAIS y apparaître.
+   */
+  private async ajusterPhysiqueSansMouvement(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    ligne: LigneReservationPiece,
+    deltaMillieme: number,
+  ): Promise<void> {
+    await tx.execute(sql`
+      update public.stock_article
+         set quantite_physique_millieme = quantite_physique_millieme + ${deltaMillieme}
+       where tenant_id = ${ctx.tenantId} and article_id = ${ligne.articleId} and site_id = ${ligne.siteId}
+    `);
   }
 
   /**
