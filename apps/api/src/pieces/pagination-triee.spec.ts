@@ -2,7 +2,6 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import {
-  construireConditionKeyset,
   construireOrderBy,
   decoderCurseurPourTri,
   encoderCurseurTrie,

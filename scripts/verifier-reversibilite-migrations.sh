@@ -278,6 +278,8 @@ obtenir_exception_down_partiel() {
       printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (vehicule_travail_reporte) — même limite que 0010 ; voir l'en-tête de down/0033_vehicule_travail_reporte_motif_modification.down.sql." ;;
     "0043_pneus_depot_pneus.sql")
       printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (depot_pneus) — même limite que 0010 ; voir l'en-tête de down/0043_pneus_depot_pneus.down.sql." ;;
+    "0045_relances_socle.sql")
+      printf '%s' "ALTER TYPE ... ADD VALUE sur entite_auditee, 1 valeur (relance_planifiee) — même limite que 0010 ; voir l'en-tête de down/0045_relances_socle.down.sql." ;;
     *)
       return 1 ;;
   esac
