@@ -146,7 +146,8 @@
     "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE": "Attivazione dell'interfaccia non possibile.",
     "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE": "Utilizzo dell'interfaccia non possibile.",
     "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE": "Abbonamento webhook in stato non compatibile.",
-    "LIGNE_DOCUMENT_STOCK_LIEE": "Questa riga è collegata a un movimento di magazzino e non può essere modificata o eliminata."
+    "LIGNE_DOCUMENT_STOCK_LIEE": "Questa riga è collegata a un movimento di magazzino e non può essere modificata o eliminata.",
+    "IMPUTATION_DEVISE_INCOHERENTE": "La valuta del pagamento non corrisponde a quella del documento. Verifica il tuo inserimento."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Crea preventivo supplementare",

@@ -119,7 +119,8 @@
     "duree": "Durée",
     "plafond": "Plafond km",
     "enchantier": "En chantier",
-    "echue": "Échue"
+    "echue": "Échue",
+    "nonRenseignee": "Non renseignée"
   },
   "campagnes": {
     "titre": "Campagnes constructeur",

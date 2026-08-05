@@ -119,7 +119,8 @@
     "duree": "Dauer",
     "plafond": "km Grenze",
     "enchantier": "Gültig",
-    "echue": "Abgelaufen"
+    "echue": "Abgelaufen",
+    "nonRenseignee": "Nicht erfasst"
   },
   "campagnes": {
     "titre": "Herstellerrückrufe",

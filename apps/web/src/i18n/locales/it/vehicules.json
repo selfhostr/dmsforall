@@ -119,7 +119,8 @@
     "duree": "Durata",
     "plafond": "Limite km",
     "enchantier": "Valida",
-    "echue": "Scaduta"
+    "echue": "Scaduta",
+    "nonRenseignee": "Non registrata"
   },
   "campagnes": {
     "titre": "Richiami costruttore",
