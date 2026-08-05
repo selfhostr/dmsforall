@@ -867,6 +867,75 @@ describe('MATRICE_DROITS — tableau de bord (activité + financier)', () => {
   });
 });
 
+/**
+ * Pneus — hangar à pneus (`docs/specification-parc-et-hangar-pneus.md`, RPP-01→RPP-08) : bascule
+ * du palliatif `@AucunDroitRequis()` + vérification de rôle en service
+ * (`pneus/droits-provisoires.ts`, retiré) vers le mécanisme normal `@ExigerDroit(...)` +
+ * `GardeDroit`. `gerer` (proposition d'origine de l'agent `pneus/`) est ici scindée en
+ * `changer_saison`/`sortir` — voir le commentaire sur les entrées `pneus.depot.*` de
+ * `TOUTES_ACTIONS` (`matrice-droits.ts`) pour l'arbitrage complet.
+ */
+describe('MATRICE_DROITS — pneus (hangar à pneus)', () => {
+  it('pneus.depot.lire — accordée aux 8 rôles de PERSONNE sans exception, y compris admin (aucun montant dans depot_pneus, RF-115 ne s’applique pas) — mais PAS au compte de service poste_atelier, écran mural sans utilité au hangar à pneus', () => {
+    expect(rolesAyant('pneus.depot.lire')).toEqual([...ROLES_PERSONNE].sort());
+    expect(MATRICE_DROITS.poste_atelier).not.toContain('pneus.depot.lire');
+  });
+
+  it('pneus.depot.creer / pneus.depot.changer_saison — admin, direction, réceptionnaire, chef d’atelier, technicien, magasinier : EXACTEMENT le même périmètre que atelier.ligne.creer (geste physique d’atelier), PAS vendeur, PAS comptable', () => {
+    const attendus = [
+      'admin',
+      'chef_atelier',
+      'direction',
+      'magasinier',
+      'receptionnaire',
+      'technicien',
+    ].sort();
+    expect(rolesAyant('pneus.depot.creer')).toEqual(attendus);
+    expect(rolesAyant('pneus.depot.changer_saison')).toEqual(attendus);
+    expect(rolesAyant('pneus.depot.creer')).toEqual(rolesAyant('atelier.ligne.creer'));
+    expect(MATRICE_DROITS.vendeur).not.toContain('pneus.depot.creer');
+    expect(MATRICE_DROITS.comptable).not.toContain('pneus.depot.creer');
+  });
+
+  it('pneus.depot.sortir — admin, direction, réceptionnaire, chef d’atelier SEULS : EXACTEMENT le même périmètre que atelier.or.restituer (clôture de la garde du garage sur un bien du client), PAS technicien, PAS magasinier — la granularité que la proposition d’origine (« gerer » unique) n’arbitrait pas', () => {
+    const attendus = ['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort();
+    expect(rolesAyant('pneus.depot.sortir')).toEqual(attendus);
+    expect(rolesAyant('pneus.depot.sortir')).toEqual(rolesAyant('atelier.or.restituer'));
+    expect(MATRICE_DROITS.technicien).not.toContain('pneus.depot.sortir');
+    expect(MATRICE_DROITS.magasinier).not.toContain('pneus.depot.sortir');
+  });
+
+  it('technicien et magasinier détiennent creer/changer_saison mais PAS sortir : ils manipulent physiquement les pneus, mais ne décident pas seuls de la sortie définitive d’un bien du client', () => {
+    for (const role of ['technicien', 'magasinier'] as const) {
+      expect(MATRICE_DROITS[role]).toContain('pneus.depot.creer');
+      expect(MATRICE_DROITS[role]).toContain('pneus.depot.changer_saison');
+      expect(MATRICE_DROITS[role]).not.toContain('pneus.depot.sortir');
+    }
+  });
+
+  it('RF-115 ne s’applique pas au domaine pneus : admin détient les 4 actions, comme direction — aucun montant ne transite par depot_pneus (RPP-08 : le forfait de dépôt est facturé via un OR/facturation directe, pas un champ de cette table)', () => {
+    const actionsPneus: Action[] = [
+      'pneus.depot.lire',
+      'pneus.depot.creer',
+      'pneus.depot.changer_saison',
+      'pneus.depot.sortir',
+    ];
+    for (const action of actionsPneus) {
+      expect(MATRICE_DROITS.admin).toContain(action);
+      expect(MATRICE_DROITS.direction).toContain(action);
+    }
+  });
+
+  it('vendeur et comptable — lecture seule (aucun geste physique sur un jeu de pneus ne relève de leur fonction)', () => {
+    expect(MATRICE_DROITS.vendeur.filter((a) => a.startsWith('pneus.'))).toEqual([
+      'pneus.depot.lire',
+    ]);
+    expect(MATRICE_DROITS.comptable.filter((a) => a.startsWith('pneus.'))).toEqual([
+      'pneus.depot.lire',
+    ]);
+  });
+});
+
 describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste close du lot 1 + facturation/paiements + facturation/documents + bloc créancier + export fiduciaire + impression PDF étape 2 + pièces étape 3 + ventes étape 4 + pointage lot 2 + tableau de bord)', () => {
   it('l’union de toutes les actions accordées ne contient QUE les actions du socle + les actions closes du lot 1 + les 5 actions facturation.paiement.* (agent paiements) + les 9 actions facturation.document.*/facturation.avoir.creer (agent documents) + les 2 actions facturation.parametrage.creancier.* + facturation.export.creer + facturation.document.imprimer (arbitrages coordinateur) + les 9 actions pieces.* (étape 3)', () => {
     const actionsAttendues: Action[] = [
@@ -1013,6 +1082,11 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       // --- Tableau de bord (arbitrage coordinateur, bascule du palliatif droits-provisoires.ts) ---
       'tableau_bord.activite.lire',
       'tableau_bord.financier.lire',
+      // --- Pneus — hangar à pneus (arbitrage coordinateur, bascule du palliatif droits-provisoires.ts) ---
+      'pneus.depot.lire',
+      'pneus.depot.creer',
+      'pneus.depot.changer_saison',
+      'pneus.depot.sortir',
     ];
 
     const actionsAccordees = new Set(Object.values(MATRICE_DROITS).flat());
@@ -1157,6 +1231,9 @@ describe('MATRICE_DROITS — poste_atelier, compte de service (mode borne du poi
       // Ajouté avec la bascule du tableau de bord (arbitrage coordinateur) : un écran mural
       // exposé aux clients/visiteurs n'a aucune utilité à une synthèse d'activité ou financière.
       'tableau_bord.',
+      // Ajouté avec la bascule du hangar à pneus (arbitrage coordinateur) : même raison physique,
+      // aucune utilité au hangar depuis un écran mural.
+      'pneus.',
     ];
     for (const action of MATRICE_DROITS.poste_atelier) {
       for (const prefixe of domainesInterdits) {
@@ -1447,6 +1524,10 @@ describe('MATRICE_DROITS — invariante structurelle : écrire une entité impli
         'atelier.pointage.deverrouiller_periode',
         'atelier.pointage.gerer_pin',
       ],
+    },
+    {
+      lire: 'pneus.depot.lire',
+      ecriture: ['pneus.depot.creer', 'pneus.depot.changer_saison', 'pneus.depot.sortir'],
     },
   ];
 

@@ -113,53 +113,13 @@ const FILTRES_RELANCE_DEFAUT: FiltresARelancerPneus = { limite: 50, tri: 'dernie
 
 const ENTREE_CREATION: EntreeCreationDepotPneus = { siteId: 's1', saison: 'ete' };
 
-describe('ServiceDepotPneus — droits provisoires (verifierRoleAutorise, voir droits-provisoires.ts)', () => {
-  it('refuse (403 DROIT_INSUFFISANT) un rôle sans lecture, SANS toucher la base', async () => {
-    const { tx } = txFactice();
-    const acces = accesFactice(tx);
-    const service = new ServiceDepotPneus(acces, idempotenceFactice(tx));
-
-    await expect(
-      service.hangar(CTX, 'poste_atelier', 's1', FILTRES_HANGAR_DEFAUT),
-    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT', status: 403 });
-    expect(acces.enTenant).not.toHaveBeenCalled();
-  });
-
-  it('refuse (403) un rôle sans écriture sur la création, SANS jamais invoquer executer() (donc sans toucher la base)', async () => {
-    // Fake dédié plutôt que `idempotenceFactice` : celui-ci trace explicitement si `executer` a
-    // été invoqué, ce qu'un simple `not.toHaveBeenCalled()` sur `acces.enTenant` ne prouverait
-    // pas ici (`creer()` n'appelle JAMAIS `acces.enTenant` directement — c'est `executer()` qui,
-    // dans l'implémentation réelle, ouvre la transaction).
-    const { tx } = txFactice();
-    const acces = accesFactice(tx);
-    let executerAppele = false;
-    const idempotence: ServiceIdempotence = {
-      async executer<T extends ReponseMemorisable>(
-        _ctx: ContexteTenant,
-        _requete: RequeteIdempotente,
-        travail: (tx: TransactionDfa) => Promise<T>,
-      ): Promise<ResultatIdempotent<T>> {
-        executerAppele = true;
-        return { reponse: await travail(tx), rejoue: false };
-      },
-    };
-    const service = new ServiceDepotPneus(acces, idempotence);
-
-    await expect(
-      service.creer(CTX, 'comptable', 'v1', ENTREE_CREATION, 'idem-1'),
-    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT' });
-    expect(acces.enTenant).not.toHaveBeenCalled();
-    expect(executerAppele).toBe(false);
-  });
-});
-
 describe('ServiceDepotPneus — isolation tenant : toute lecture/écriture passe par enTenant(ctx)', () => {
   it('hangar() scope via enTenant() avec EXACTEMENT le contexte reçu, jamais un autre tenant', async () => {
     const { tx } = txFactice({ selects: [[{ id: 's1' }]], executes: [{ rows: [] }, { rows: [] }] });
     const acces = accesFactice(tx);
     const service = new ServiceDepotPneus(acces, idempotenceFactice(tx));
 
-    await service.hangar(CTX, 'magasinier', 's1', FILTRES_HANGAR_DEFAUT);
+    await service.hangar(CTX, 's1', FILTRES_HANGAR_DEFAUT);
 
     expect(acces.enTenant).toHaveBeenCalledTimes(1);
     expect((acces.enTenant as ReturnType<typeof vi.fn>).mock.calls[0]?.[0]).toBe(CTX);
@@ -180,7 +140,7 @@ describe('ServiceDepotPneus.creer — RPP-01, RPP-02', () => {
     poserRetourInsert([ligneDepot({ dimension: '205/55 R16' })]);
     const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
 
-    const resultat = await service.creer(CTX, 'magasinier', 'v1', ENTREE_CREATION, 'idem-1');
+    const resultat = await service.creer(CTX, 'v1', ENTREE_CREATION, 'idem-1');
 
     expect(resultat.reponse.statutHttp).toBe(201);
     expect(resultat.reponse.corps.dimension).toBe('205/55 R16');
@@ -190,9 +150,10 @@ describe('ServiceDepotPneus.creer — RPP-01, RPP-02', () => {
     const { tx } = txFactice({ selects: [[]] });
     const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
 
-    await expect(
-      service.creer(CTX, 'magasinier', 'v-inconnu', ENTREE_CREATION, 'idem-1'),
-    ).rejects.toMatchObject({ code: 'RESSOURCE_INTROUVABLE', status: 404 });
+    await expect(service.creer(CTX, 'v-inconnu', ENTREE_CREATION, 'idem-1')).rejects.toMatchObject({
+      code: 'RESSOURCE_INTROUVABLE',
+      status: 404,
+    });
   });
 
   it('refuse (409 CONFLIT) un second jeu actif pour le même véhicule et la même saison (RPP-02, depot_pneus_actif_uk)', async () => {
@@ -208,9 +169,10 @@ describe('ServiceDepotPneus.creer — RPP-01, RPP-02', () => {
     });
     const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
 
-    await expect(
-      service.creer(CTX, 'magasinier', 'v1', ENTREE_CREATION, 'idem-1'),
-    ).rejects.toMatchObject({ code: 'CONFLIT', status: 409 });
+    await expect(service.creer(CTX, 'v1', ENTREE_CREATION, 'idem-1')).rejects.toMatchObject({
+      code: 'CONFLIT',
+      status: 409,
+    });
   });
 });
 
@@ -256,7 +218,7 @@ describe('ServiceDepotPneus — cycle complet d’un dépôt : entrée → mont�
       accesFactice(txCreation),
       idempotenceFactice(txCreation),
     );
-    const cree = await serviceCreation.creer(CTX, 'magasinier', 'v1', ENTREE_CREATION, 'idem-1');
+    const cree = await serviceCreation.creer(CTX, 'v1', ENTREE_CREATION, 'idem-1');
     expect(cree.reponse.corps.statut).toBe('en_depot');
 
     // 2. Changement de saison : en_depot → monte. Aucun jumeau (jeu hiver jamais entré).
@@ -273,7 +235,7 @@ describe('ServiceDepotPneus — cycle complet d’un dépôt : entrée → mont�
       accesFactice(txSaison),
       idempotenceFactice(txSaison),
     );
-    const monte = await serviceSaison.changerSaison(CTX, 'technicien', 'd1', {});
+    const monte = await serviceSaison.changerSaison(CTX, 'd1', {});
     expect(monte.statut).toBe('monte');
 
     // 3. Sortie : motif obligatoire, statut TERMINAL.
@@ -288,7 +250,7 @@ describe('ServiceDepotPneus — cycle complet d’un dépôt : entrée → mont�
       accesFactice(txSortie),
       idempotenceFactice(txSortie),
     );
-    const sorti = await serviceSortie.sortir(CTX, 'magasinier', 'd1', { motif: 'rendu_au_client' });
+    const sorti = await serviceSortie.sortir(CTX, 'd1', { motif: 'rendu_au_client' });
     expect(sorti.statut).toBe('sorti');
     expect(sorti.motifSortie).toBe('rendu_au_client');
   });
@@ -299,9 +261,10 @@ describe('ServiceDepotPneus — cycle complet d’un dépôt : entrée → mont�
     });
     const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
 
-    await expect(
-      service.sortir(CTX, 'magasinier', 'd1', { motif: 'rendu_au_client' }),
-    ).rejects.toMatchObject({ code: 'CONFLIT', status: 409 });
+    await expect(service.sortir(CTX, 'd1', { motif: 'rendu_au_client' })).rejects.toMatchObject({
+      code: 'CONFLIT',
+      status: 409,
+    });
     // Un seul appel execute (le SELECT ... FOR UPDATE) : aucun UPDATE émis.
     expect((tx.execute as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);
   });
@@ -325,7 +288,7 @@ describe('ServiceDepotPneus.changerSaison — RPP-03 : inverse la paire été/hi
     });
     const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
 
-    const resultat = await service.changerSaison(CTX, 'chef_atelier', 'd1', { ligneOrId: 'lo1' });
+    const resultat = await service.changerSaison(CTX, 'd1', { ligneOrId: 'lo1' });
 
     expect(resultat.statut).toBe('en_depot');
     expect((tx.execute as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(7);
@@ -335,7 +298,7 @@ describe('ServiceDepotPneus.changerSaison — RPP-03 : inverse la paire été/hi
     const { tx } = txFactice({ executes: [{ rows: [ligneDepot({ statut: 'a_relancer' })] }] });
     const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
 
-    await expect(service.changerSaison(CTX, 'magasinier', 'd1', {})).rejects.toMatchObject({
+    await expect(service.changerSaison(CTX, 'd1', {})).rejects.toMatchObject({
       code: 'CONFLIT',
       status: 409,
     });
@@ -358,7 +321,7 @@ describe('ServiceDepotPneus — dépôt orphelin quand le véhicule est vendu (R
     });
     const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
 
-    const page = await service.parVehicule(CTX, 'magasinier', 'v1', FILTRES_VEHICULE_DEFAUT);
+    const page = await service.parVehicule(CTX, 'v1', FILTRES_VEHICULE_DEFAUT);
 
     expect(page.donnees).toHaveLength(1);
     expect(page.donnees[0]?.statut).toBe('a_relancer');
@@ -378,7 +341,7 @@ describe('ServiceDepotPneus — pagination par curseur', () => {
     });
     const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
 
-    const page = await service.hangar(CTX, 'magasinier', 's1', {
+    const page = await service.hangar(CTX, 's1', {
       limite: 2,
       tri: 'dernierMouvementLe:desc',
     });
@@ -399,7 +362,7 @@ describe('ServiceDepotPneus — pagination par curseur', () => {
     });
     const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
 
-    const page = await service.hangar(CTX, 'magasinier', 's1', {
+    const page = await service.hangar(CTX, 's1', {
       limite: 50,
       tri: 'dernierMouvementLe:desc',
     });
@@ -418,7 +381,7 @@ describe('ServiceDepotPneus — pagination par curseur', () => {
     });
     const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
 
-    const page = await service.aRelancer(CTX, 'direction', FILTRES_RELANCE_DEFAUT);
+    const page = await service.aRelancer(CTX, FILTRES_RELANCE_DEFAUT);
 
     expect(page.donnees).toHaveLength(1);
     expect(page.donnees[0]?.statut).toBe('a_relancer');

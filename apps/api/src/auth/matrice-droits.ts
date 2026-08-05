@@ -377,6 +377,31 @@ export const TOUTES_ACTIONS = [
   // que ses actions n'existent.
   'tableau_bord.activite.lire',
   'tableau_bord.financier.lire',
+  // ---- Pneus — hangar à pneus (docs/specification-parc-et-hangar-pneus.md, RPP-01→RPP-08) ------
+  // Bloc ADDITIF PUR, transmis par l'orchestrateur au nom de l'agent qui a livré
+  // `apps/api/src/pneus/` (périmètre disjoint, sans accès à ce fichier — palliatif signalé, pas un
+  // accès ouvert par négligence, même patron que le tableau de bord juste au-dessus : les six
+  // routes portaient `@AucunDroitRequis()` + une vérification de rôle posée EN SERVICE
+  // (`pneus/droits-provisoires.ts`, retiré par ce bloc), faute d'accès de son auteur à ce fichier.
+  //
+  // TROIS actions proposées par cet agent (`pneus.depot.lire`, `pneus.depot.creer`,
+  // `pneus.depot.gerer`) — CORRIGÉES ICI en QUATRE : `pneus.depot.gerer` couvrait à la fois
+  // `POST .../changer-saison` (RPP-03, bascule réversible monté ↔ en dépôt, geste physique
+  // routinier de l'atelier) ET `POST .../sortir` (RPP-05, statut TERMINAL, motif obligatoire —
+  // rendu au client, véhicule vendu, mis au rebut) avec le MÊME jeu de rôles pour les deux, faute
+  // d'arbitrage. Ce n'est PAS le même geste : « sortir » est la sortie DÉFINITIVE d'un bien du
+  // client de la garde du garage (le jeu de pneus quitte le hangar pour de bon, aucun retour en
+  // arrière possible hors nouvelle entrée), donc structurellement plus proche d'`atelier.or.
+  // restituer` (rendre le VÉHICULE au client, réservé receptionnaire/chef_atelier/direction/admin,
+  // PAS technicien/magasinier — `L978_OR_RESTITUER` ci-dessus) que d'un simple changement de statut
+  // réversible. Voir `DROITS_PNEUS_PAR_ROLE` ci-dessous pour le détail rôle par rôle : `sortir`
+  // reprend EXACTEMENT le périmètre de `atelier.or.restituer`, `creer`/`changer_saison` reprennent
+  // EXACTEMENT celui de `atelier.ligne.creer` (le geste physique de saisie d'atelier, déjà ouvert à
+  // technicien et magasinier dans ce fichier).
+  'pneus.depot.lire',
+  'pneus.depot.creer',
+  'pneus.depot.changer_saison',
+  'pneus.depot.sortir',
 ] as const;
 
 /**
@@ -1575,6 +1600,64 @@ const DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE: Readonly<Record<RoleUtilisateur, r
     poste_atelier: [],
   };
 
+// =================================================================================================
+// Pneus — hangar à pneus (docs/specification-parc-et-hangar-pneus.md, RPP-01→RPP-08) : bloc
+// ADDITIF PUR, même patron que le tableau de bord ci-dessus. Voir le commentaire sur les 4 entrées
+// `pneus.depot.*` de `TOUTES_ACTIONS` pour le détail de la correction apportée à la proposition de
+// l'agent `pneus/` (séparation de `gerer` en `changer_saison` / `sortir`).
+//
+// AUCUN MONTANT dans `depot_pneus` (id, véhicule, site, saison, statut, code_case, dimension,
+// état, dates, motif_sortie, ligne_or_dernier_changement_id — voir `versDepotPneusResponse`,
+// `pneus/mappers.ts`) : le forfait de dépôt, s'il existe, est facturé via un OR ou une facturation
+// directe, PAS un champ de cette table (RPP-08, spec §2 « Facturation du dépôt »). Vérifié en
+// lisant le schéma réel avant d'écrire ce bloc, pas supposé par analogie. `RF-115` (« admin est un
+// rôle technique et n'a aucun droit financier ») ne s'applique donc PAS ici — même précédent que le
+// pointage et le tableau de bord d'activité juste au-dessus (« le pointage enregistre du temps de
+// travail, pas un montant » ; ici, un dépôt de pneus n'enregistre ni l'un ni l'autre) : `admin`
+// reste le rôle technique/propriétaire du tenant, superset de `direction`.
+//
+// `pneus.depot.lire` : ouverte aux 8 rôles de PERSONNE sans exception (même doctrine que
+// `LECTURE_ETENDUE`/`tableau_bord.activite.lire` : « la lecture est ouverte par défaut, seule
+// l'écriture est gouvernée »), `poste_atelier` EXCLU pour la même raison physique que partout
+// ailleurs dans ce fichier — l'écran mural de l'atelier n'a aucune utilité au hangar à pneus, et son
+// périmètre est construit par énumération, jamais par ouverture de la lecture par défaut.
+//
+// `pneus.depot.creer` / `pneus.depot.changer_saison` : admin, direction, réceptionnaire, chef
+// d'atelier, technicien, magasinier — repris À L'IDENTIQUE du périmètre de `atelier.ligne.creer`
+// (`L966_LIGNE_CREATION`) : entrer un jeu en dépôt ou basculer été/hiver est un geste physique
+// d'atelier au même titre qu'ajouter une ligne constatée, réalisé par qui reçoit le véhicule
+// (réceptionnaire), qui exécute (technicien) ou qui gère le stock/l'emplacement (magasinier).
+// `vendeur` et `comptable` EXCLUS : aucun geste physique sur un jeu de pneus ne relève de leur
+// fonction (même exclusion que pour `atelier.ligne.creer`).
+//
+// `pneus.depot.sortir` : admin, direction, réceptionnaire, chef d'atelier SEULS — repris À
+// L'IDENTIQUE du périmètre de `atelier.or.restituer` (`L978_OR_RESTITUER`), PAS de
+// `creer`/`changer_saison` : contrairement à un changement de saison (réversible, purement
+// technique), sortir un jeu clôt la garde du garage sur un bien du client (rendu au client, véhicule
+// vendu, mis au rebut — RPP-05, motif obligatoire, statut TERMINAL) — le geste qui engage la
+// responsabilité du garage envers son client, décision de comptoir/supervision, pas un geste
+// d'exécution technique. `technicien` et `magasinier` EXCLUS : ils manipulent physiquement les
+// pneus (creer/changer_saison) mais ne décident pas seuls de la sortie définitive d'un bien client,
+// exactement comme ils n'ont pas `atelier.or.restituer` alors qu'ils ont `atelier.ligne.creer`.
+const LECTURE_PNEUS: readonly Action[] = ['pneus.depot.lire'];
+const ENTREE_PNEUS: readonly Action[] = ['pneus.depot.creer', 'pneus.depot.changer_saison'];
+const SORTIE_PNEUS: readonly Action[] = ['pneus.depot.sortir'];
+
+const DROITS_PNEUS_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  admin: [...LECTURE_PNEUS, ...ENTREE_PNEUS, ...SORTIE_PNEUS],
+  direction: [...LECTURE_PNEUS, ...ENTREE_PNEUS, ...SORTIE_PNEUS],
+  receptionnaire: [...LECTURE_PNEUS, ...ENTREE_PNEUS, ...SORTIE_PNEUS],
+  chef_atelier: [...LECTURE_PNEUS, ...ENTREE_PNEUS, ...SORTIE_PNEUS],
+  technicien: [...LECTURE_PNEUS, ...ENTREE_PNEUS],
+  magasinier: [...LECTURE_PNEUS, ...ENTREE_PNEUS],
+  vendeur: [...LECTURE_PNEUS],
+  comptable: [...LECTURE_PNEUS],
+  // La borne murale : périmètre construit par énumération (voir `DROITS_POSTE_ATELIER`), exclue
+  // délibérément — le hangar à pneus n'a aucune utilité à sa fonction (identifier par PIN,
+  // démarrer/arrêter un pointage).
+  poste_atelier: [],
+};
+
 export const MATRICE_DROITS = {
   admin: [
     ...DROITS_ADMIN,
@@ -1588,6 +1671,7 @@ export const MATRICE_DROITS = {
     ...DROITS_POINTAGE_PAR_ROLE.admin,
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.admin,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.admin,
+    ...DROITS_PNEUS_PAR_ROLE.admin,
   ],
   direction: [
     ...DROITS_DIRECTION,
@@ -1601,6 +1685,7 @@ export const MATRICE_DROITS = {
     ...DROITS_POINTAGE_PAR_ROLE.direction,
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.direction,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.direction,
+    ...DROITS_PNEUS_PAR_ROLE.direction,
   ],
   vendeur: [
     ...DROITS_VENDEUR,
@@ -1614,6 +1699,7 @@ export const MATRICE_DROITS = {
     ...DROITS_POINTAGE_PAR_ROLE.vendeur,
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.vendeur,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.vendeur,
+    ...DROITS_PNEUS_PAR_ROLE.vendeur,
   ],
   receptionnaire: [
     ...DROITS_RECEPTIONNAIRE,
@@ -1627,6 +1713,7 @@ export const MATRICE_DROITS = {
     ...DROITS_POINTAGE_PAR_ROLE.receptionnaire,
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.receptionnaire,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.receptionnaire,
+    ...DROITS_PNEUS_PAR_ROLE.receptionnaire,
   ],
   chef_atelier: [
     ...DROITS_CHEF_ATELIER,
@@ -1640,6 +1727,7 @@ export const MATRICE_DROITS = {
     ...DROITS_POINTAGE_PAR_ROLE.chef_atelier,
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.chef_atelier,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.chef_atelier,
+    ...DROITS_PNEUS_PAR_ROLE.chef_atelier,
   ],
   technicien: [
     ...DROITS_TECHNICIEN,
@@ -1653,6 +1741,7 @@ export const MATRICE_DROITS = {
     ...DROITS_POINTAGE_PAR_ROLE.technicien,
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.technicien,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.technicien,
+    ...DROITS_PNEUS_PAR_ROLE.technicien,
   ],
   magasinier: [
     ...DROITS_MAGASINIER,
@@ -1666,6 +1755,7 @@ export const MATRICE_DROITS = {
     ...DROITS_POINTAGE_PAR_ROLE.magasinier,
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.magasinier,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.magasinier,
+    ...DROITS_PNEUS_PAR_ROLE.magasinier,
   ],
   comptable: [
     ...DROITS_COMPTABLE,
@@ -1679,6 +1769,7 @@ export const MATRICE_DROITS = {
     ...DROITS_POINTAGE_PAR_ROLE.comptable,
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.comptable,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.comptable,
+    ...DROITS_PNEUS_PAR_ROLE.comptable,
   ],
   poste_atelier: [
     ...DROITS_POSTE_ATELIER,
@@ -1692,6 +1783,7 @@ export const MATRICE_DROITS = {
     ...DROITS_POINTAGE_PAR_ROLE.poste_atelier,
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.poste_atelier,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.poste_atelier,
+    ...DROITS_PNEUS_PAR_ROLE.poste_atelier,
   ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 

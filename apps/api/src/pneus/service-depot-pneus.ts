@@ -9,7 +9,6 @@ import type {
   FiltresHangarPneus,
   PageCurseur,
   ReponseDepotPneus,
-  RoleUtilisateur,
   SaisonPneu,
 } from '@dfa/shared';
 
@@ -26,11 +25,6 @@ import type {
   ServiceIdempotence,
 } from '../common/idempotence';
 
-import {
-  ROLES_PNEUS_DEPOT_ECRITURE,
-  ROLES_PNEUS_DEPOT_LECTURE,
-  verifierRoleAutorise,
-} from './droits-provisoires';
 import { versDepotPneusResponse } from './mappers';
 import {
   construireConditionKeyset,
@@ -105,8 +99,13 @@ export interface ResultatCreationDepotPneus {
 /**
  * Service hangar à pneus (`docs/specification-parc-et-hangar-pneus.md`, RPP-01 → RPP-08).
  *
- * Droits PROVISOIRES (voir `droits-provisoires.ts`, tête de fichier) : `verifierRoleAutorise` est
- * appelée en tout DÉBUT de chaque méthode publique, avant tout accès base — même doctrine que
+ * Droits posés définitivement dans `auth/matrice-droits.ts` (`pneus.depot.lire`/`.creer`/
+ * `.changer_saison`/`.sortir`) : l'autorisation est portée EXCLUSIVEMENT par `@ExigerDroit(...)` +
+ * `GardeDroit` sur `depot-pneus.controller.ts`, qui refuse `403 DROIT_INSUFFISANT` avant même que
+ * les méthodes ci-dessous ne s'exécutent — un rôle non autorisé n'atteint donc jamais ce service,
+ * encore moins la base. Ce service ne prend PLUS de rôle en paramètre (retiré avec le palliatif
+ * `pneus/droits-provisoires.ts` : une double vérification romprait la doctrine du dépôt, « un seul
+ * mécanisme d'autorisation », `auth/matrice-droits.ts`, tête de fichier) — même patron que
  * `tableau-bord/service-tableau-bord-activite.ts`.
  */
 @Injectable()
@@ -119,11 +118,9 @@ export class ServiceDepotPneus {
   /** `GET /sites/{siteId}/hangar-pneus` — vue hangar (spec §5, §6). */
   async hangar(
     ctx: ContexteTenant,
-    role: RoleUtilisateur,
     siteId: string,
     params: FiltresHangarPneus,
   ): Promise<PageCurseur<ReponseDepotPneus>> {
-    verifierRoleAutorise(role, ROLES_PNEUS_DEPOT_LECTURE, 'pneus.depot.lire');
     const definition = DEFINITIONS_TRI_HANGAR[params.tri];
     const idExpr = sql`d.id`;
     const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
@@ -164,11 +161,9 @@ export class ServiceDepotPneus {
   /** `GET /vehicules/{id}/depots-pneus` — historique COMPLET (tous statuts) d'un véhicule. */
   async parVehicule(
     ctx: ContexteTenant,
-    role: RoleUtilisateur,
     vehiculeId: string,
     params: FiltresDepotsPneusVehicule,
   ): Promise<PageCurseur<ReponseDepotPneus>> {
-    verifierRoleAutorise(role, ROLES_PNEUS_DEPOT_LECTURE, 'pneus.depot.lire');
     const definition = DEFINITIONS_TRI_VEHICULE[params.tri];
     const idExpr = sql`d.id`;
     const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
@@ -208,10 +203,8 @@ export class ServiceDepotPneus {
   /** `GET /depots-pneus/a-relancer` — jeux oubliés (RPP-04), site ou tenant entier. */
   async aRelancer(
     ctx: ContexteTenant,
-    role: RoleUtilisateur,
     params: FiltresARelancerPneus,
   ): Promise<PageCurseur<ReponseDepotPneus>> {
-    verifierRoleAutorise(role, ROLES_PNEUS_DEPOT_LECTURE, 'pneus.depot.lire');
     const definition = DEFINITIONS_TRI_RELANCE[params.tri];
     const idExpr = sql`d.id`;
     const curseurDecode = decoderCurseurPourTri(params.curseur, params.tri);
@@ -249,12 +242,10 @@ export class ServiceDepotPneus {
    */
   async creer(
     ctx: ContexteTenant,
-    role: RoleUtilisateur,
     vehiculeId: string,
     entree: EntreeCreationDepotPneus,
     cleIdempotence: string,
   ): Promise<ResultatIdempotent<ResultatCreationDepotPneus & ReponseMemorisable>> {
-    verifierRoleAutorise(role, ROLES_PNEUS_DEPOT_ECRITURE, 'pneus.depot.creer');
     return this.idempotence.executer(
       ctx,
       {
@@ -317,11 +308,9 @@ export class ServiceDepotPneus {
    */
   async changerSaison(
     ctx: ContexteTenant,
-    role: RoleUtilisateur,
     depotId: string,
     entree: EntreeChangementSaisonDepotPneus,
   ): Promise<ReponseDepotPneus> {
-    verifierRoleAutorise(role, ROLES_PNEUS_DEPOT_ECRITURE, 'pneus.depot.gerer');
     return this.acces.enTenant(ctx, async (tx) => {
       const cible = await this.chargerOu404(tx, ctx, depotId);
       if (cible.statut !== 'en_depot' && cible.statut !== 'monte') {
@@ -397,11 +386,9 @@ export class ServiceDepotPneus {
   /** `POST /depots-pneus/{id}/sortir` — RPP-05, statut TERMINAL, motif obligatoire. */
   async sortir(
     ctx: ContexteTenant,
-    role: RoleUtilisateur,
     depotId: string,
     entree: EntreeSortieDepotPneus,
   ): Promise<ReponseDepotPneus> {
-    verifierRoleAutorise(role, ROLES_PNEUS_DEPOT_ECRITURE, 'pneus.depot.gerer');
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await this.chargerPourVerrouOu404(tx, ctx, depotId);
       if (ligne.statut === 'sorti') {

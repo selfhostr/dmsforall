@@ -34,7 +34,7 @@ import {
 
 import { ServiceContexteRequete } from '../common/contexte';
 import { CorpsZod } from '../common/documentation';
-import { AucunDroitRequis, GardeDroit } from '../common/droits';
+import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 
@@ -50,9 +50,17 @@ import { ServiceDepotPneus } from './service-depot-pneus';
 /**
  * Trois contrôleurs pour un module — préfixes de route disjoints (`sites/`, `vehicules/`,
  * `depots-pneus/`), même patron que `pieces/` (un contrôleur par racine REST, pas un seul
- * contrôleur multi-préfixe). Droits PROVISOIRES sur toutes les routes (`@AucunDroitRequis()` +
- * vérification en service, voir `droits-provisoires.ts`) : `apps/api/src/auth/matrice-droits.ts`
- * n'est pas dans le périmètre d'écriture de cet agent.
+ * contrôleur multi-préfixe).
+ *
+ * Droits POSÉS DÉFINITIVEMENT (`auth/matrice-droits.ts`) : `@ExigerDroit(...)` + `GardeDroit`
+ * refuse `403 DROIT_INSUFFISANT` en `canActivate()` AVANT que le handler (donc `ServiceDepotPneus`,
+ * donc tout accès base) ne s'exécute — un rôle non autorisé ne déclenche structurellement aucune
+ * requête. Remplace le palliatif `@AucunDroitRequis()` + vérification de rôle en service
+ * (`pneus/droits-provisoires.ts`, retiré), posé faute d'accès de son auteur à
+ * `auth/matrice-droits.ts` au moment de la livraison de ce module. `pneus.depot.lire` gouverne les
+ * trois routes de lecture ; `pneus.depot.creer` l'entrée en dépôt ; `pneus.depot.changer_saison` et
+ * `pneus.depot.sortir` (scindées depuis la proposition d'origine `pneus.depot.gerer`, voir
+ * `matrice-droits.ts`) gouvernent respectivement RPP-03 et RPP-05.
  */
 
 @ApiTags('Pneus — Hangar')
@@ -66,25 +74,22 @@ export class SiteHangarPneusController {
   ) {}
 
   @Get(':siteId/hangar-pneus')
-  @AucunDroitRequis()
+  @ExigerDroit('pneus.depot.lire')
   @ApiOperation({
-    summary:
-      'Vue hangar : jeux de pneus du site, filtrables par statut/saison (spec §5, §6). ' +
-      'Rôle vérifié en service (pneus.depot.lire, droit provisoire).',
+    summary: 'Vue hangar : jeux de pneus du site, filtrables par statut/saison (spec §5, §6).',
   })
   @ApiParam({ name: 'siteId', format: 'uuid' })
   @ApiOkResponse({ type: PageDepotPneusDto })
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Rôle non autorisé (contrôle provisoire en service).')
+  @ApiReponseProbleme(403, 'Droit insuffisant (pneus.depot.lire).')
   @ApiReponseProbleme(404, 'Site introuvable pour ce tenant.')
   async hangar(
     @Param('siteId', new PipeZod(schemaUuid)) siteId: string,
     @Query(new PipeZod(schemaFiltresHangarPneus)) query: FiltresHangarPneus,
   ): Promise<PageDepotPneusDto> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.service.hangar(ctx, role, siteId, query);
+    return this.service.hangar(ctx, siteId, query);
   }
 }
 
@@ -99,7 +104,7 @@ export class VehiculeDepotsPneusController {
   ) {}
 
   @Get(':vehiculeId/depots-pneus')
-  @AucunDroitRequis()
+  @ExigerDroit('pneus.depot.lire')
   @ApiOperation({
     summary:
       'Historique COMPLET (tous statuts, sorti compris — RPP-05) des jeux de pneus d’un véhicule.',
@@ -108,20 +113,19 @@ export class VehiculeDepotsPneusController {
   @ApiOkResponse({ type: PageDepotPneusDto })
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Rôle non autorisé (contrôle provisoire en service).')
+  @ApiReponseProbleme(403, 'Droit insuffisant (pneus.depot.lire).')
   @ApiReponseProbleme(404, 'Véhicule introuvable pour ce tenant.')
   async parVehicule(
     @Param('vehiculeId', new PipeZod(schemaUuid)) vehiculeId: string,
     @Query(new PipeZod(schemaFiltresDepotsPneusVehicule)) query: FiltresDepotsPneusVehicule,
   ): Promise<PageDepotPneusDto> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.service.parVehicule(ctx, role, vehiculeId, query);
+    return this.service.parVehicule(ctx, vehiculeId, query);
   }
 
   @Post(':vehiculeId/depots-pneus')
   @HttpCode(HttpStatus.CREATED)
-  @AucunDroitRequis()
+  @ExigerDroit('pneus.depot.creer')
   @ApiOperation({
     summary:
       'Entre un jeu de pneus en dépôt (RPP-01, RPP-02). `Idempotency-Key` obligatoire. ' +
@@ -132,7 +136,7 @@ export class VehiculeDepotsPneusController {
   @ApiResponse({ status: 201, type: DepotPneusDto })
   @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Rôle non autorisé (contrôle provisoire en service).')
+  @ApiReponseProbleme(403, 'Droit insuffisant (pneus.depot.creer).')
   @ApiReponseProbleme(404, 'Véhicule ou site introuvable pour ce tenant.')
   @ApiReponseProbleme(
     409,
@@ -145,8 +149,7 @@ export class VehiculeDepotsPneusController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    const resultat = await this.service.creer(ctx, role, vehiculeId, entree, cleIdempotence ?? '');
+    const resultat = await this.service.creer(ctx, vehiculeId, entree, cleIdempotence ?? '');
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
     return resultat.reponse.corps;
@@ -164,23 +167,22 @@ export class DepotPneusController {
   ) {}
 
   @Get('a-relancer')
-  @AucunDroitRequis()
+  @ExigerDroit('pneus.depot.lire')
   @ApiOperation({ summary: 'Jeux oubliés (RPP-04) : statut a_relancer, site ou tenant entier.' })
   @ApiOkResponse({ type: PageDepotPneusDto })
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Rôle non autorisé (contrôle provisoire en service).')
+  @ApiReponseProbleme(403, 'Droit insuffisant (pneus.depot.lire).')
   @ApiReponseProbleme(404, 'Site introuvable pour ce tenant (si `siteId` fourni).')
   async aRelancer(
     @Query(new PipeZod(schemaFiltresARelancerPneus)) query: FiltresARelancerPneus,
   ): Promise<PageDepotPneusDto> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.service.aRelancer(ctx, role, query);
+    return this.service.aRelancer(ctx, query);
   }
 
   @Post(':id/changer-saison')
-  @AucunDroitRequis()
+  @ExigerDroit('pneus.depot.changer_saison')
   @ApiOperation({
     summary:
       'RPP-03 : inverse monté ↔ en dépôt du jeu visé et de son jumeau actif (saison opposée, ' +
@@ -190,7 +192,7 @@ export class DepotPneusController {
   @ApiOkResponse({ type: DepotPneusDto })
   @ApiReponseProbleme(400, 'Corps invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Rôle non autorisé (contrôle provisoire en service).')
+  @ApiReponseProbleme(403, 'Droit insuffisant (pneus.depot.changer_saison).')
   @ApiReponseProbleme(404, 'Dépôt de pneus ou ligne OR introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'Transition interdite : le dépôt n’est ni en_depot ni monte (RPP-03).')
   async changerSaison(
@@ -198,20 +200,23 @@ export class DepotPneusController {
     @CorpsZod(schemaChangementSaisonDepotPneus) entree: EntreeChangementSaisonDepotPneus,
   ): Promise<DepotPneusDto> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.service.changerSaison(ctx, role, id, entree);
+    return this.service.changerSaison(ctx, id, entree);
   }
 
   @Post(':id/sortir')
-  @AucunDroitRequis()
+  @ExigerDroit('pneus.depot.sortir')
   @ApiOperation({
-    summary: 'RPP-05 : statut TERMINAL, motif obligatoire. Jamais une suppression de ligne.',
+    summary:
+      'RPP-05 : statut TERMINAL, motif obligatoire. Jamais une suppression de ligne. Réservé aux ' +
+      'rôles qui clôturent la garde du garage sur un bien du client (même périmètre que ' +
+      'atelier.or.restituer — receptionnaire/chef d’atelier/direction/admin, PAS technicien ni ' +
+      'magasinier, qui détiennent creer/changer-saison mais pas sortir).',
   })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: DepotPneusDto })
   @ApiReponseProbleme(400, 'Motif manquant ou invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Rôle non autorisé (contrôle provisoire en service).')
+  @ApiReponseProbleme(403, 'Droit insuffisant (pneus.depot.sortir).')
   @ApiReponseProbleme(404, 'Dépôt de pneus introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'Ce dépôt est déjà "sorti" (RPP-05).')
   async sortir(
@@ -219,7 +224,6 @@ export class DepotPneusController {
     @CorpsZod(schemaSortieDepotPneus) entree: EntreeSortieDepotPneus,
   ): Promise<DepotPneusDto> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.service.sortir(ctx, role, id, entree);
+    return this.service.sortir(ctx, id, entree);
   }
 }
