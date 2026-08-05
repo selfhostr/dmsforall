@@ -291,23 +291,49 @@ export class ServiceDocumentsVente {
   /* Lignes — POST/PATCH/DELETE, brouillon uniquement (MD-21)                                       */
   /* -------------------------------------------------------------------------------------------- */
 
+  /**
+   * `POST /documents-vente/{id}/lignes` — `Idempotency-Key` OBLIGATOIRE, même doctrine que `creer`
+   * ci-dessus et tout le reste du module (`RP-43`) : une ligne `type = 'piece'` avec
+   * `articleId`+`siteId` déclenche un mouvement de stock `sortie_comptoir` DANS LA MÊME TRANSACTION
+   * que l'insertion de la ligne (`inserterLigne` ci-dessous) — sans idempotence, un rejeu réseau ou
+   * un double-clic sortirait la pièce du stock une seconde fois EN PLUS de dupliquer la ligne.
+   *
+   * `corps` de la clé d'idempotence inclut `documentId` explicitement : `chemin` est un PATRON de
+   * route (`/documents-vente/{id}/lignes`, jamais l'id interpolé — même convention que
+   * `pieces/service-mouvement.ts`), donc rien d'autre ne distingue deux documents différents dans
+   * l'empreinte calculée sur `corps`.
+   */
   async ajouterLigne(
     ctx: ContexteTenant,
     principal: PrincipalAuthentifie,
     documentId: string,
     entree: EntreeCreationLigneDocument,
-  ): Promise<ReponseAvecAvertissements<ReponseDocumentVente>> {
-    return this.acces.enTenant(ctx, async (tx) => {
-      const doc = await chargerDocumentPourEcriture(tx, ctx, documentId);
-      if (!estDocumentModifiable(doc.statut)) throw this.erreurVerrouille(doc);
+    cleIdempotence: string,
+  ): Promise<
+    ResultatIdempotent<
+      ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseDocumentVente> }
+    >
+  > {
+    return this.idempotence.executer(
+      ctx,
+      {
+        methode: 'POST',
+        chemin: '/documents-vente/{id}/lignes',
+        cle: cleIdempotence,
+        corps: { documentId, ...entree },
+      },
+      async (tx) => {
+        const doc = await chargerDocumentPourEcriture(tx, ctx, documentId);
+        if (!estDocumentModifiable(doc.statut)) throw this.erreurVerrouille(doc);
 
-      const existantes = await listerLignesDocument(tx, ctx, documentId);
-      const numeroOrdre = (existantes.at(-1)?.numeroOrdre ?? 0) + 1;
-      await this.inserterLigne(tx, ctx, principal.role, documentId, numeroOrdre, entree);
+        const existantes = await listerLignesDocument(tx, ctx, documentId);
+        const numeroOrdre = (existantes.at(-1)?.numeroOrdre ?? 0) + 1;
+        await this.inserterLigne(tx, ctx, principal.role, documentId, numeroOrdre, entree);
 
-      const document = await this.assemblerDocument(tx, ctx, principal.role, documentId);
-      return { donnees: document, avertissements: [] };
-    });
+        const document = await this.assemblerDocument(tx, ctx, principal.role, documentId);
+        return { statutHttp: 201, corps: { donnees: document, avertissements: [] } };
+      },
+    );
   }
 
   async modifierLigne(

@@ -252,14 +252,27 @@ export class DocumentVenteController {
   @Post(':id/lignes')
   @HttpCode(HttpStatus.CREATED)
   @ExigerDroit('facturation.document.modifier')
-  @ApiOperation({ summary: "Ajout d'une ligne sur un brouillon (MD-21)." })
+  @ApiOperation({
+    summary: "Ajout d'une ligne sur un brouillon (MD-21).",
+    description:
+      '`Idempotency-Key` obligatoire (uuid v4) — une ligne `piece` avec `articleId`+`siteId` déclenche un mouvement de stock `sortie_comptoir` DANS LA MÊME TRANSACTION que cette insertion (RP-43) : ' +
+      'un rejeu réseau ou un double-clic ne doit jamais sortir la pièce du stock une seconde fois ni dupliquer la ligne.',
+  })
   @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiHeader({
+    name: EN_TETE_IDEMPOTENCE,
+    required: true,
+    description: 'uuid v4, identité de la requête.',
+  })
   @ApiResponse({ status: 201, type: EnveloppeDocumentVenteDto })
-  @ApiReponseProbleme(400, 'Corps invalide.')
+  @ApiReponseProbleme(400, 'Corps invalide ou Idempotency-Key manquante/mal formée.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Document introuvable pour ce tenant.')
-  @ApiReponseProbleme(409, 'DOCUMENT_VERROUILLE (document émis).')
+  @ApiReponseProbleme(
+    409,
+    'DOCUMENT_VERROUILLE (document émis), STOCK_INSUFFISANT (RP-43) ou IDEMPOTENCE_CONFLIT.',
+  )
   async ajouterLigne(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,
     @CorpsZod(schemaCreationLigneDocument, {
@@ -273,10 +286,23 @@ export class DocumentVenteController {
       },
     })
     entree: EntreeCreationLigneDocument,
-  ) {
+    @Headers(EN_TETE_IDEMPOTENCE.toLowerCase()) cleIdempotence: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    return this.service.ajouterLigne(ctx, principal, id, entree);
+    const resultat = await this.service.ajouterLigne(
+      ctx,
+      principal,
+      id,
+      entree,
+      cleIdempotence ?? '',
+    );
+
+    res.status(resultat.reponse.statutHttp);
+    if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
+    res.setHeader('ETag', etagDocumentVente(new Date(resultat.reponse.corps.donnees.modifieLe)));
+    return resultat.reponse.corps;
   }
 
   @Patch(':id/lignes/:ligneId')

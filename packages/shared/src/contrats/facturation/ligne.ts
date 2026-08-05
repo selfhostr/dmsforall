@@ -100,6 +100,16 @@ export interface ReponseLigneDocumentVente {
  * ici, elle est RECOPIÉE par l'action serveur `POST /ordres-reparation/{id}/facturer` (`RF-81`),
  * qui ne prend aucune ligne en entrée.
  *
+ * `Idempotency-Key` OBLIGATOIRE (en-tête `EN_TETE_IDEMPOTENCE`, `atelier/avertissement.ts` —
+ * même mécanisme que `POST /documents-vente`, pas de second champ dans le corps) : une ligne
+ * `type = 'piece'` avec `articleId`+`siteId` (voir le paragraphe dédié ci-dessous) déclenche un
+ * mouvement de stock `sortie_comptoir` DANS LA MÊME TRANSACTION que l'insertion (`RP-43`,
+ * `service-documents.ts::inserterLigne`) — sans idempotence, un rejeu réseau, un double-clic ou un
+ * rejeu de requête sortirait la pièce du stock une seconde fois EN PLUS de dupliquer la ligne. Même
+ * doctrine que tout le reste du module `facturation/` (`POST /documents-vente`,
+ * `POST /documents-vente/{id}/emettre`, `POST /documents-vente/{factureId}/avoirs`,
+ * `POST /paiements` et ses sous-routes) : aucune création sensible n'y est facultative.
+ *
  * **Aucun champ HT, aucun `modeCalculTva`** : décision de @laupernoe, non rouverte — le prix saisi en
  * facturation est TOUJOURS un TTC en centimes entiers. Le serveur dérive HT et TVA
  * (`ttc − arrondiCommercial(ttc × taux, 1000 + taux) = ht`, `MD-43` mode `ttc`) et fige
