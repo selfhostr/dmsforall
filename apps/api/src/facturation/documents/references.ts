@@ -5,6 +5,7 @@ import type { ContexteTenant, TransactionDfa } from '../../db';
 import {
   client,
   clientAdresse,
+  clientCondition,
   dossierVente,
   utilisateur,
   vehicule,
@@ -150,6 +151,53 @@ export async function chargerAdresseFacturationStructuree(
     npa: retenue.npa,
     localite: retenue.localite,
     pays: retenue.pays,
+  };
+}
+
+/**
+ * Conditions commerciales du client EN VIGUEUR à la date `le` (RM-07/AC-12/PF-04) — copie locale
+ * du patron `atelier/references.ts::chargerConditionsEnVigueur` (même anti-couplage inter-experts
+ * que le reste de ce fichier : lecture directe du schéma Drizzle partagé, jamais un appel au
+ * service `atelier/`). Au plus une ligne, garanti par la contrainte d'exclusion en base sur
+ * `client_condition` (même commentaire que la fonction copiée).
+ *
+ * Rend directement la forme JSONB à figer sur `document_vente.conditions_paiement_figees`
+ * (`{} ` si aucune condition en vigueur — la colonne est `not null default '{}'::jsonb`, jamais
+ * `null`), MÊME SOUS-ENSEMBLE DE CHAMPS que `ValeursSnapshotOr.conditionsFigees`
+ * (`atelier/service-snapshot-or.ts`) pour que `conditions_paiement_figees` ait la même forme,
+ * qu'un document naisse ici (`ServiceDocumentsVente.creer`) ou via `atelier/service-facturation-
+ * or.ts` (qui, lui, écrit encore `{}` en dur au moment de cette tâche — SIGNALÉ, hors périmètre
+ * d'écriture : `apps/api/src/atelier/**` n'appartient pas à ce module).
+ *
+ * COMBLE LA SIMPLIFICATION SIGNALÉE qui bloquait tout calcul d'échéance (`echeance.ts` :
+ * `lireDelaiPaiementJoursFige` lit exactement `delaiPaiementJours` sur l'objet rendu ici) — avant
+ * cette fonction, `ServiceDocumentsVente.creer` écrivait `conditionsPaiementFigees: {}`
+ * inconditionnellement (RF-04/PF-04 jamais capturées), ce qui aurait rendu `date_echeance`
+ * TOUJOURS `null` même pour un client dont les conditions sont correctement paramétrées.
+ */
+export async function chargerConditionsPaiementEnVigueur(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  clientId: string,
+  le: Date,
+): Promise<Record<string, unknown>> {
+  const dateJour = le.toISOString().slice(0, 10);
+  const lignes = await tx
+    .select()
+    .from(clientCondition)
+    .where(and(eq(clientCondition.tenantId, ctx.tenantId), eq(clientCondition.clientId, clientId)));
+  const enVigueur =
+    lignes.find((l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu >= dateJour)) ??
+    null;
+  if (!enVigueur) return {};
+  return {
+    rabaisMoPourmille: enVigueur.rabaisMoPourmille,
+    rabaisPiecesPourmille: enVigueur.rabaisPiecesPourmille,
+    rabaisPneusPourmille: enVigueur.rabaisPneusPourmille,
+    tauxHoraireCode: enVigueur.tauxHoraireCode,
+    delaiPaiementJours: enVigueur.delaiPaiementJours,
+    modePaiement: enVigueur.modePaiement,
+    plafondCentimes: enVigueur.plafondCentimes,
   };
 }
 

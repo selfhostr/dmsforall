@@ -16,6 +16,7 @@ import { ROLES_SANS_MONTANT } from '../../auth/matrice-droits';
 import type { LigneDocumentVente, LigneLigneDocument } from '../../db/schema';
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 import { estQrIban } from '../qr';
+import { calculerRetardDocument } from './echeance';
 import type { ResumeUtilisateur } from './references';
 
 function estDeviseFacturation(valeur: string): valeur is DeviseFacturation {
@@ -160,6 +161,11 @@ export interface EntreeMapperDocument {
    *  `version` dédiée (contrairement à `ordre_reparation`), substituée par `modifie_le` en
    *  millisecondes epoch. Signalé dans `document-vente.etag.ts`. */
   readonly version: number;
+  /** Instant de LECTURE (injecté par l'appelant, jamais lu ici — même doctrine que `Horloge`
+   *  partout ailleurs) : sert uniquement à dériver `enRetard`/`joursRetard` (`echeance.ts`), qui ne
+   *  sont JAMAIS stockés — un document qui n'a pas changé peut légitimement passer « en retard »
+   *  d'une lecture à l'autre, sans qu'aucune colonne bouge. */
+  readonly maintenant: Date;
 }
 
 /**
@@ -331,6 +337,18 @@ export function mapperDocument(e: EntreeMapperDocument): ReponseDocumentVente {
           // n'écrit jamais ces deux colonnes.
           montantRegleCentimes: Number(doc.montantRegleCentimes),
           soldeCentimes: Number(doc.soldeCentimes),
+          // RF-04/PF-04/MD-94 : échéance figée à l'émission (`service-emission.ts`) — `null` sur un
+          // devis/bon de commande/avoir (jamais calculée pour ces types), ou sur une facture dont le
+          // client n'avait aucun délai de paiement structuré en vigueur à sa création (`echeance.ts`
+          // pour le raisonnement complet). `enRetard`/`joursRetard` sont DÉRIVÉS à CETTE lecture,
+          // jamais stockés (`calculerRetardDocument`) : un document non modifié peut légitimement
+          // basculer « en retard » d'une lecture à l'autre, sans qu'aucune colonne ne bouge.
+          dateEcheance: doc.dateEcheance,
+          ...calculerRetardDocument({
+            dateEcheance: doc.dateEcheance,
+            soldeCentimes: Number(doc.soldeCentimes),
+            maintenant: e.maintenant,
+          }),
         }
       : {}),
     remiseGlobaleSaisieCentimes:

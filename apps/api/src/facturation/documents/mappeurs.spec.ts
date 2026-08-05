@@ -1,9 +1,10 @@
 import type { RoleUtilisateur } from '@dfa/shared';
 import { describe, expect, it } from 'vitest';
 
-import type { LigneLigneDocument } from '../../db/schema';
+import type { LigneDocumentVente, LigneLigneDocument } from '../../db/schema';
 
-import { mapperLigneDocument, roleVoitLesMontants } from './mappeurs';
+import { mapperDocument, mapperLigneDocument, roleVoitLesMontants } from './mappeurs';
+import type { EntreeMapperDocument } from './mappeurs';
 
 /**
  * Régression de l'audit RF-115/RF-116 : `mappeurs.ts` n'était importé par AUCUN `.spec.ts`, d'où un
@@ -132,6 +133,157 @@ describe('mapperLigneDocument — matrice rôle exhaustive', () => {
       const ligne = mapperLigneDocument(ligneFixture(), role);
       expect('montants' in ligne).toBe(voit);
       expect('prixUnitaireTtcCentimes' in ligne).toBe(voit);
+    });
+  }
+});
+
+/**
+ * `mapperDocument` — échéance et retard (RF-04/PF-04, colonne « Retard » de l'écran liste des
+ * factures, jusqu'ici TOUJOURS vide faute de `date_echeance` renseignée en base). Deux choses
+ * prouvées ensemble : l'ARITHMÉTIQUE du retard (déléguée à `echeance.ts`, déjà couverte
+ * exhaustivement par `echeance.spec.ts` — pas re-testée ici en détail) et le MASQUAGE, RF-115/116,
+ * qui est la responsabilité propre de CE module. `dateEcheance`/`enRetard`/`joursRetard` sont une
+ * donnée financière au même titre qu'un montant : ils vivent dans le MÊME bloc conditionnel
+ * `voitMontants` que `soldeCentimes`/`totalTtcCentimes`, et doivent donc disparaître pour
+ * `technicien`/`poste_atelier`/`admin` exactement comme eux (`ROLES_SANS_MONTANT_FACTURATION`).
+ */
+describe('mapperDocument — dateEcheance/enRetard/joursRetard', () => {
+  const MAINTENANT = new Date('2026-08-04T10:00:00.000Z');
+
+  function documentFixture(overrides: Partial<LigneDocumentVente> = {}): LigneDocumentVente {
+    return {
+      id: 'doc-1',
+      tenantId: 'tenant-a',
+      siteId: 'site-1',
+      typeDocument: 'facture',
+      natureFacture: 'ordinaire',
+      origine: 'dfa',
+      numero: '2026-00042',
+      numeroSequence: 42,
+      numeroOrigine: null,
+      exercice: 2026,
+      statut: 'emis',
+      statutReglement: 'non_regle',
+      clientId: 'client-1',
+      vehiculeId: null,
+      ordreReparationId: null,
+      dossierVenteId: null,
+      documentSourceId: null,
+      factureAnnuleeId: null,
+      annuleParAvoirId: null,
+      remplaceId: null,
+      clientDesignationFigee: 'Jean Dupont',
+      clientIdeFige: null,
+      langueFigee: 'fr',
+      conditionsPaiementFigees: { delaiPaiementJours: 30 },
+      dateDocument: '2026-07-01',
+      dateEcheance: '2026-07-31',
+      devise: 'CHF',
+      tvaNonVentilee: false,
+      tauxTvaPourmille: null,
+      mentionTvaInterdite: false,
+      remiseGlobaleSaisieCentimes: null,
+      remiseGlobalePourmille: null,
+      montantRegleCentimes: 0n,
+      soldeCentimes: 12_000n,
+      relanceNiveau: 0,
+      relanceLe: null,
+      motifAvoir: null,
+      motifAvoirLibre: null,
+      porteeAvoir: null,
+      qrPayload: null,
+      pdfCle: null,
+      pdfSha256: null,
+      exporteLe: null,
+      exportId: null,
+      contentieux: false,
+      creeLe: MAINTENANT,
+      modifieLe: MAINTENANT,
+      ...overrides,
+    } as unknown as LigneDocumentVente;
+  }
+
+  function entreeFixture(
+    role: RoleUtilisateur,
+    docOverrides: Partial<LigneDocumentVente> = {},
+  ): EntreeMapperDocument {
+    return {
+      doc: documentFixture(docOverrides),
+      lignesToutes: [],
+      ventilationTva: [],
+      role,
+      figeesAdresse: null,
+      figeesPlaque: null,
+      emisPar: null,
+      modifiePar: null,
+      totaux: {
+        totalHtCentimes: 0,
+        totalTvaCentimes: 0,
+        totalTtcCentimes: 0,
+        ecartRepriseCentimes: 0,
+      },
+      version: 1,
+      maintenant: MAINTENANT,
+    };
+  }
+
+  it('facture échue et non soldée : enRetard=true, joursRetard exact, dateEcheance exposée (comptable)', () => {
+    const reponse = mapperDocument(
+      entreeFixture('comptable', { dateEcheance: '2026-07-25', soldeCentimes: 12_000n }),
+    );
+    expect(reponse.dateEcheance).toBe('2026-07-25');
+    expect(reponse.enRetard).toBe(true);
+    expect(reponse.joursRetard).toBe(10);
+  });
+
+  it('facture soldée : jamais en retard même très échue — dateEcheance reste exposée, seul le retard est faux', () => {
+    const reponse = mapperDocument(
+      entreeFixture('direction', { dateEcheance: '2026-01-01', soldeCentimes: 0n }),
+    );
+    expect(reponse.dateEcheance).toBe('2026-01-01');
+    expect(reponse.enRetard).toBe(false);
+    expect(reponse.joursRetard).toBeNull();
+  });
+
+  it('facture sans échéance connue (client sans conditions de paiement figées) : dateEcheance null, jamais en retard', () => {
+    const reponse = mapperDocument(
+      entreeFixture('comptable', { dateEcheance: null, soldeCentimes: 12_000n }),
+    );
+    expect(reponse.dateEcheance).toBeNull();
+    expect(reponse.enRetard).toBe(false);
+    expect(reponse.joursRetard).toBeNull();
+  });
+
+  for (const role of ['technicien', 'poste_atelier', 'admin'] as const) {
+    it(`${role} (RF-115/116) : dateEcheance/enRetard/joursRetard ABSENTS, pas null — même masquage que les montants`, () => {
+      const reponse = mapperDocument(
+        entreeFixture(role, { dateEcheance: '2026-07-25', soldeCentimes: 12_000n }),
+      );
+      expect('dateEcheance' in reponse).toBe(false);
+      expect('enRetard' in reponse).toBe(false);
+      expect('joursRetard' in reponse).toBe(false);
+
+      // Sérialisé : l'échéance ne doit apparaître nulle part dans la réponse.
+      const json = JSON.stringify(reponse);
+      expect(json).not.toContain('2026-07-25');
+    });
+  }
+
+  for (const role of [
+    'comptable',
+    'direction',
+    'vendeur',
+    'receptionnaire',
+    'chef_atelier',
+    'magasinier',
+  ] as const) {
+    it(`${role} : dateEcheance/enRetard/joursRetard exposés`, () => {
+      const reponse = mapperDocument(
+        entreeFixture(role, { dateEcheance: '2026-07-25', soldeCentimes: 12_000n }),
+      );
+      expect(reponse.dateEcheance).toBe('2026-07-25');
+      expect(reponse.enRetard).toBe(true);
+      expect(reponse.joursRetard).toBe(10);
     });
   }
 });

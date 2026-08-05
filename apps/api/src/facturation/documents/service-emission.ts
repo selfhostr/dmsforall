@@ -46,6 +46,7 @@ import {
   listerLignesDocumentPourEcriture,
   sommerAvoirsEmisPourFacture,
 } from './document-requetes';
+import { calculerDateEcheance, lireDelaiPaiementJoursFige } from './echeance';
 import { traduireErreurDocument } from './erreurs-sql-document';
 import { genererNumeroDocument } from './numerotation';
 import { construireBlocQrPourEmission, resoudreBlocCreancierPourEmission } from './qr-emission';
@@ -213,6 +214,23 @@ export class ServiceEmissionDocument {
         const dateDocumentReference = doc.dateDocument
           ? new Date(`${doc.dateDocument}T00:00:00.000Z`)
           : maintenant;
+
+        // 3.6. RF-04/PF-04/MD-94 : échéance FIGÉE ICI, comme le numéro et le total — le trigger de
+        // verrouillage (MD-20) refuse toute modification ultérieure de `date_echeance` dès que
+        // `statut` quitte `brouillon`, exactement comme `total_ttc_centimes` ci-dessous. Uniquement
+        // pour une FACTURE : un devis/bon de commande n'est jamais « dû », un avoir crédite le
+        // client au lieu de se faire payer (aucun des deux n'a de date d'échéance). `null` si le
+        // client n'a aucun délai de paiement structuré figé à la création du document
+        // (`conditionsPaiementFigees` — voir le raisonnement complet dans `echeance.ts`) : jamais une
+        // échéance fabriquée à partir d'un défaut codé en dur.
+        const dateEcheance =
+          doc.typeDocument === 'facture'
+            ? calculerDateEcheance(
+                doc.dateDocument ?? dateDocumentReference.toISOString().slice(0, 10),
+                lireDelaiPaiementJoursFige(doc.conditionsPaiementFigees),
+              )
+            : null;
+
         const { numero, numeroSequence, exercice } = await genererNumeroDocument(
           tx,
           ctx,
@@ -249,6 +267,7 @@ export class ServiceEmissionDocument {
               numeroSequence,
               exercice,
               emisLe: maintenant,
+              dateEcheance,
               totalHtCentimes: BigInt(totaux.totalHtCentimes),
               totalTvaCentimes: BigInt(totaux.totalTvaCentimes),
               totalTtcCentimes: BigInt(totaux.totalTtcCentimes),

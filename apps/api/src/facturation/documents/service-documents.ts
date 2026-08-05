@@ -42,6 +42,7 @@ import { mapperDocument, mapperLigneDocument, type TotauxDocumentMappes } from '
 import {
   chargerAdresseFacturationStructuree,
   chargerClientLigne,
+  chargerConditionsPaiementEnVigueur,
   chargerDossierVentePourRattachement,
   chargerPlaqueVehiculeCourante,
   chargerResumeUtilisateur,
@@ -113,6 +114,15 @@ export class ServiceDocumentsVente {
         const dateDocument = entree.dateDocument ?? maintenant.toISOString().slice(0, 10);
         const adresseFacturationFigee =
           (await chargerAdresseFacturationStructuree(tx, ctx, entree.clientId)) ?? {};
+        // RM-07 : conditions EN VIGUEUR à la date MÉTIER du document (`dateDocument`), pas à
+        // l'horloge serveur — un brouillon antidaté doit figer les conditions de l'époque visée,
+        // pas celles d'aujourd'hui (même principe que `atelier/service-snapshot-or.ts::capturer`).
+        const conditionsPaiementFigees = await chargerConditionsPaiementEnVigueur(
+          tx,
+          ctx,
+          entree.clientId,
+          new Date(`${dateDocument}T00:00:00.000Z`),
+        );
 
         const [doc] = await tx
           .insert(documentVente)
@@ -132,11 +142,12 @@ export class ServiceDocumentsVente {
             clientIdeFige: clientLigne.ide,
             langueFigee: clientLigne.langue,
             adresseFacturationFigee,
-            // Conditions de paiement figées (RF-04, PF-04) : SIMPLIFICATION SIGNALÉE — pas de capture
-            // des conditions commerciales du client (`client_condition`) dans ce lot, contrairement à
-            // `atelier/service-snapshot-or.ts` qui le fait pour l'OR. Laissé à `{}` : le champ existe
-            // (`ValeursFigeesDocument.conditionsPaiement`), non peuplé.
-            conditionsPaiementFigees: {},
+            // RF-04/PF-04 : conditions de paiement du client figées à la création (`delaiPaiementJours`
+            // notamment — fonde le calcul de `date_echeance` à l'émission, `echeance.ts`). `{}` si aucune
+            // ligne `client_condition` n'est en vigueur à `dateDocument` (client sans conditions
+            // paramétrées) — jamais une échéance fabriquée à partir d'un défaut codé en dur, voir
+            // l'en-tête de `echeance.ts`.
+            conditionsPaiementFigees,
             dateDocument,
             devise: entree.devise,
             remiseGlobaleSaisieCentimes:
@@ -445,6 +456,9 @@ export class ServiceDocumentsVente {
       modifiePar,
       totaux,
       version: versionDocumentVente(doc.modifieLe),
+      // Instant de LECTURE, jamais stocké — sert uniquement à dériver `enRetard`/`joursRetard`
+      // (`mappeurs.ts`) à l'instant de la réponse, comparaison pure sans second aller-retour base.
+      maintenant: this.horloge.maintenant(),
     });
   }
 

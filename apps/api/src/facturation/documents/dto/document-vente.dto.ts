@@ -159,6 +159,33 @@ export class ReponseDocumentVenteDto implements ReponseDocumentVente {
   @ApiProperty()
   readonly mentionTvaInterdite!: boolean;
 
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date',
+    nullable: true,
+    description:
+      "Échéance de paiement figée à l'émission (RF-04/PF-04), null sur devis/bon de " +
+      'commande/avoir, sur un brouillon, ou si aucun délai de paiement structuré du client ' +
+      "n'a pu être déterminé à la création du document. Absent pour un rôle sans droit aux montants.",
+  })
+  readonly dateEcheance?: string | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Dérivé de dateEcheance/soldeCentimes à l’instant de la réponse, jamais stocké. Absent pour ' +
+      'un rôle sans droit aux montants.',
+  })
+  readonly enRetard?: boolean;
+
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+    description:
+      'Entier strictement positif quand enRetard, sinon toujours null. Absent pour un rôle sans ' +
+      'droit aux montants.',
+  })
+  readonly joursRetard?: number | null;
+
   @ApiPropertyOptional({ description: 'Absent pour un rôle sans droit aux montants.' })
   readonly totalHtCentimes?: number;
 

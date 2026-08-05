@@ -20,6 +20,7 @@ import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requet
 vi.mock('./references', () => ({
   chargerAdresseFacturationStructuree: vi.fn(),
   chargerClientLigne: vi.fn(),
+  chargerConditionsPaiementEnVigueur: vi.fn(),
   chargerDossierVentePourRattachement: vi.fn(),
   chargerPlaqueVehiculeCourante: vi.fn(),
   chargerResumeUtilisateur: vi.fn(),
@@ -104,6 +105,7 @@ beforeEach(() => {
     langue: 'fr',
   } as never);
   vi.mocked(references.chargerAdresseFacturationStructuree).mockResolvedValue(null);
+  vi.mocked(references.chargerConditionsPaiementEnVigueur).mockResolvedValue({});
 });
 
 describe('ServiceDocumentsVente.creer — rattachement à un dossier de vente (RV-37/MD-70)', () => {

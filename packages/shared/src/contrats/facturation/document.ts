@@ -208,6 +208,30 @@ export interface ReponseDocumentVente {
   /** `MD-69` : à `true`, aucun taux ni montant de TVA n'est imprimé (imposition de la marge,
    *  documents repris antérieurs au 01.01.2018 — `MD-68`). */
   readonly mentionTvaInterdite: boolean;
+  /**
+   * Échéance de paiement (`RF-04`/`PF-04`, `MD-94`) — FIGÉE à l'émission (`service-emission.ts`),
+   * jamais recalculée ensuite (verrouillage `MD-20`, comme `numero`/`totalTtcCentimes`). `null` :
+   *  - sur `devis`/`bon_commande`/`avoir` (aucune échéance de paiement ne les concerne — un devis
+   *    n'est jamais dû, un avoir crédite le client au lieu de se faire payer) ;
+   *  - sur une `facture` en `brouillon` (rien n'est figé avant émission, `MD-19`) ;
+   *  - sur une `facture` ÉMISE dont le client n'avait AUCUN délai de paiement structuré en vigueur
+   *    au moment de la création du document (`figees.conditionsPaiement.delaiPaiementJours` absent
+   *    ou non numérique) — DFA ne fabrique jamais une échéance plausible à partir d'un délai par
+   *    défaut codé en dur (aucun paramètre tenant `PF-04` n'existe à ce jour, voir `echeance.ts`).
+   * Absent pour un rôle sans droit aux montants (`RF-114` → `RF-116`) — même masquage que le reste
+   * de ce bloc, l'échéance étant une donnée financière au même titre qu'un montant.
+   */
+  readonly dateEcheance?: string | null;
+  /**
+   * Dérivés de `dateEcheance`/`soldeCentimes` à l'INSTANT de la réponse, jamais stockés : `true`
+   * ⟺ `dateEcheance` non nulle, strictement dépassée, et `soldeCentimes > 0` (créance encore due,
+   * `RF-67`). Un document non modifié peut légitimement basculer `enRetard: true` d'une lecture à
+   * l'autre, sans qu'aucune colonne n'ait bougé — ce n'est PAS un bug de cache. `joursRetard` est
+   * un entier strictement positif quand `enRetard`, sinon toujours `null` (jamais `0`). Absents
+   * pour un rôle sans droit aux montants, même masquage que `dateEcheance` dont ils dérivent.
+   */
+  readonly enRetard?: boolean;
+  readonly joursRetard?: number | null;
   /** Absents pour un rôle sans droit aux montants (`RF-114` → `RF-116`). */
   readonly totalHtCentimes?: number;
   readonly totalTvaCentimes?: number;
@@ -280,6 +304,13 @@ export interface DocumentVenteResume {
   readonly devise: DeviseFacturation;
   readonly totalTtcCentimes?: number;
   readonly soldeCentimes?: number;
+  /** Même champ, même masquage, même règle de calcul que `ReponseDocumentVente.dateEcheance` — le
+   *  serveur rend en réalité `ReponseDocumentVente` complet sur `GET /documents-vente` (voir
+   *  `document-vente.controller.ts::lister`), cette projection n'est qu'un TYPE plus étroit côté
+   *  client ; l'ajouter ici suffit à le rendre lisible depuis la liste sans changer la route. */
+  readonly dateEcheance?: string | null;
+  readonly enRetard?: boolean;
+  readonly joursRetard?: number | null;
 }
 
 /* ------------------------------------------------------------------ */
