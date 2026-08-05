@@ -45,5 +45,8 @@
   },
   "entete": {
     "tousLesSites": "Tutte le officine"
+  },
+  "pied": {
+    "version": "Versione {numero}"
   }
 }

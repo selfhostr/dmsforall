@@ -45,5 +45,8 @@
   },
   "entete": {
     "tousLesSites": "Alle Werkstätten"
+  },
+  "pied": {
+    "version": "Version {numero}"
   }
 }

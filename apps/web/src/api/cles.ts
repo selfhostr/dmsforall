@@ -22,6 +22,13 @@ type FiltresListe = Record<string, string | number | boolean | undefined>;
 export const clesQuery = {
   session: () => ['auth', 'me'] as const,
 
+  /** Absent de la vague 0 (gelée) alors que `GET /sante` existe déjà côté API — ajout additif
+   *  pour `useVersionApplication` (hooks/useVersionApplication.ts), même patron que
+   *  `parametres.site` ci-dessous. */
+  sante: {
+    version: () => ['sante', 'version'] as const,
+  },
+
   recherche: {
     globale: (terme: string) => ['recherche', 'globale', terme] as const,
   },

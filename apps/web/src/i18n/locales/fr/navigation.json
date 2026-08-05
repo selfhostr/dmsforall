@@ -45,5 +45,8 @@
   },
   "entete": {
     "tousLesSites": "Tous les sites"
+  },
+  "pied": {
+    "version": "Version {numero}"
   }
 }

@@ -1,11 +1,12 @@
-import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
+import { render, screen, waitFor, type RenderResult } from '@testing-library/react';
+import { delay, http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
 import '@/i18n';
 
+import { clesQuery } from '@/api/cles';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
@@ -21,15 +22,18 @@ import { BarreLaterale } from './BarreLaterale';
  * inventé quand `?site=` est absent (sinon un affichage « tous sites » deviendrait un filtre
  * implicite).
  */
-function rendre(routeInitiale: string) {
+function rendre(routeInitiale: string): RenderResult & { queryClient: QueryClient } {
   const queryClient = creerQueryClientTest();
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[routeInitiale]}>
-        <BarreLaterale />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
+  return {
+    queryClient,
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[routeInitiale]}>
+          <BarreLaterale />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ),
+  };
 }
 
 function hrefDuLien(nom: RegExp): string | null {
@@ -363,5 +367,104 @@ describe('BarreLaterale — groupe Pointage (masquage par rôle, restriction RÉ
 
     await screen.findByRole('link', { name: /tarifs/i });
     expect(screen.queryByRole('link', { name: /^pointage$/i })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Numéro de version (support téléphonique) — décision de tâche : source = `GET /sante`, jamais
+ * le `package.json` du front. AUCUN état de chargement/erreur ne doit produire de texte
+ * (exception assumée à la règle « chargement / vide / erreur », voir le commentaire dans
+ * `BarreLaterale.tsx`) : les deux tests ci-dessous verrouillent cette absence, le premier
+ * verrouille l'affichage une fois la sonde résolue.
+ */
+describe('BarreLaterale — numéro de version', () => {
+  it('affiche « Version <numéro> » une fois la sonde de vie résolue', async () => {
+    server.use(
+      http.get('/api/v1/sante', () => HttpResponse.json({ statut: 'ok', version: '3.4.5-verif' })),
+    );
+    rendre('/');
+
+    expect(await screen.findByText('Version 3.4.5-verif')).toBeInTheDocument();
+  });
+
+  it('n’affiche aucun texte de version tant que la sonde de vie n’a pas répondu (pas de squelette, pas de placeholder)', async () => {
+    server.use(
+      http.get('/api/v1/sante', async () => {
+        // Ne se résout jamais pendant la durée du test : la requête reste `isPending` à coup sûr,
+        // ce qui prouve que l'absence de texte observée ci-dessous vient bien de cet état-là (et
+        // non d'une simple coïncidence de timing).
+        await delay('infinite');
+        return HttpResponse.json({ statut: 'ok', version: 'jamais-affichee' });
+      }),
+    );
+    const { queryClient } = rendre('/');
+
+    await waitFor(() => {
+      expect(queryClient.getQueryState(clesQuery.sante.version())?.status).toBe('pending');
+    });
+    expect(screen.queryByText(/version/i)).not.toBeInTheDocument();
+  });
+
+  it('n’affiche aucun texte de version quand la sonde de vie échoue (pas de message d’erreur)', async () => {
+    server.use(
+      http.get('/api/v1/sante', () =>
+        HttpResponse.json(
+          {
+            type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
+            title: 'Erreur interne',
+            status: 500,
+            code: 'ERREUR_INTERNE',
+            instance: 'req-3',
+          },
+          { status: 500, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      ),
+    );
+    const { queryClient } = rendre('/');
+
+    await waitFor(() => {
+      expect(queryClient.getQueryState(clesQuery.sante.version())?.status).toBe('error');
+    });
+    expect(screen.queryByText(/version/i)).not.toBeInTheDocument();
+  });
+
+  /**
+   * Régression ciblée : le pied de version doit rester ANCRÉ en bas même quand la liste de liens
+   * est longue (`chef_atelier`/`admin` avec tous les groupes visibles). jsdom ne calcule aucun
+   * layout réel — `overflow-y-auto`/hauteurs/scroll ne sont pas observables ici, donc ce test ne
+   * peut PAS prouver le pinning visuel lui-même (ça, seule une vérification manuelle dans le
+   * navigateur le prouve, voir le compte rendu de la tâche). Ce qui EST testable en jsdom, et
+   * suffisant pour verrouiller la régression structurelle : le pied vit dans un conteneur FRÈRE
+   * de la zone de liens, jamais un DESCENDANT de celle-ci — c'est cette séparation structurelle
+   * qui permet au CSS de faire défiler la zone de liens indépendamment sans jamais entraîner le
+   * pied avec elle, quel que soit le nombre de liens rendus au-dessus.
+   */
+  it('avec tous les groupes affichés (chef_atelier, liste longue) : le pied de version reste hors de la zone de liens défilante, jamais un descendant', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/sante', () =>
+        HttpResponse.json({ statut: 'ok', version: '9.9.9-liste-longue' }),
+      ),
+    );
+    rendre('/');
+
+    // Sanity : chef_atelier voit bien un lien de CHAQUE groupe (Pièces, Pointage — y compris
+    // encadrement, Ventes, Paramétrage) — la liste est donc effectivement longue, pas un cas
+    // dégénéré à un seul groupe. L'exhaustivité par rôle est déjà verrouillée par les describe
+    // ci-dessus ; il ne s'agit ici que de prouver qu'on est bien dans le cas « pire cas ».
+    await screen.findByRole('link', { name: /commandes fournisseur/i });
+    expect(screen.getByRole('link', { name: /^équipe$/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /véhicules en stock/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /paramètres atelier/i })).toBeInTheDocument();
+
+    const pied = await screen.findByText('Version 9.9.9-liste-longue');
+    const nav = screen.getByRole('navigation');
+    const zoneDeLiens = nav.firstElementChild;
+    const zonePied = nav.lastElementChild;
+
+    expect(zoneDeLiens).not.toBeNull();
+    expect(zoneDeLiens).not.toBe(zonePied);
+    expect(zoneDeLiens?.contains(pied)).toBe(false);
+    expect(zonePied?.contains(pied)).toBe(true);
   });
 });

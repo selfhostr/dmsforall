@@ -33,6 +33,7 @@ import { NavLink, useSearchParams } from 'react-router';
 
 import { ROLES_POINTAGE, ROLES_POINTAGE_ENCADREMENT } from '@/ecrans/pointage/droits';
 import { useSession } from '@/hooks/useSession';
+import { useVersionApplication } from '@/hooks/useVersionApplication';
 import { chemins } from '@/routes/chemins';
 import {
   ROLES_MENU_FINANCIER,
@@ -127,6 +128,11 @@ export function BarreLaterale({ className }: Props) {
   const site = searchParams.get('site') ?? undefined;
   const { data: session } = useSession();
   const role = session?.utilisateur.role;
+  // Numéro de version (support téléphonique) — `data` reste `undefined` pendant le chargement
+  // ET en cas d'erreur, ce qui suffit à ne rien afficher dans les deux cas : voir le paragraphe
+  // en bas du JSX pour la justification de cette exception à la règle « chargement / vide /
+  // erreur » des écrans métier.
+  const { data: sante } = useVersionApplication();
 
   // Tableau de bord — masquage qui reflète une restriction RÉELLE côté API (`ROLES_TABLEAU_BORD_ACTIVITE`
   // exclut `poste_atelier`, la borne murale partagée n'a pas d'usage tableau de bord), même patron que
@@ -166,179 +172,225 @@ export function BarreLaterale({ className }: Props) {
   const peutAccederPneus = role !== undefined && ROLES_PNEUS.includes(role);
 
   return (
-    <nav
-      aria-label={t('navigation:principale.aria')}
-      className={cn('flex flex-col gap-1 p-3', className)}
-    >
-      <NavLink to="/" end className={classeLien}>
-        <Home className="h-4 w-4" aria-hidden="true" />
-        {t('navigation:liens.accueil')}
-      </NavLink>
-      {peutAccederTableauBord ? (
-        <NavLink to={chemins.tableauBord(site)} className={classeLien}>
-          <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
-          {t('navigation:liens.tableauBord')}
+    // `h-full` : résolu par le parent — `AppShell` donne à l'aside desktop une hauteur de viewport
+    // (`lg:h-dvh`) et le tiroir mobile (`Sheet`) est déjà en hauteur pleine (`variantesSheet`) ;
+    // voir les commentaires respectifs. `min-h-0` autorise l'enfant `flex-1` ci-dessous à se
+    // rétrécir sous sa taille de contenu — sans lui, un flex item garde `min-height: auto` par
+    // défaut et **empêche `overflow-y-auto` de jamais déclencher un scroll interne** (le nav
+    // grandirait plutôt que de faire défiler la zone de liens, poussant le pied hors de vue).
+    <nav aria-label={t('navigation:principale.aria')} className="flex h-full min-h-0 flex-col">
+      {/* Zone de liens : seule partie qui défile. `overflow-x-hidden` en plus de `overflow-y-auto`
+          garantit qu'aucune barre horizontale n'apparaît (largeur fixe de 240px, aucun contenu ne
+          doit pourtant déborder — filet de sécurité explicite plutôt qu'une hypothèse implicite). */}
+      <div
+        className={cn(
+          'flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden p-3',
+          className,
+        )}
+      >
+        <NavLink to="/" end className={classeLien}>
+          <Home className="h-4 w-4" aria-hidden="true" />
+          {t('navigation:liens.accueil')}
         </NavLink>
-      ) : null}
-      <NavLink to={chemins.recherche.globale(site)} className={classeLien}>
-        <Search className="h-4 w-4" aria-hidden="true" />
-        {t('navigation:liens.recherche')}
-      </NavLink>
-      <NavLink to={chemins.clients.liste(site)} className={classeLien}>
-        <Users className="h-4 w-4" aria-hidden="true" />
-        {t('navigation:liens.clients')}
-      </NavLink>
-      <NavLink to={chemins.clients.doublons()} className={classeLien}>
-        <Copy className="h-4 w-4" aria-hidden="true" />
-        {t('navigation:liens.doublonsClients')}
-      </NavLink>
-      <NavLink to={chemins.vehicules.liste(site)} className={classeLien}>
-        <Car className="h-4 w-4" aria-hidden="true" />
-        {t('navigation:liens.vehicules')}
-      </NavLink>
-      <NavLink to={chemins.atelier.ordresReparation.liste(site)} className={classeLien}>
-        <ClipboardList className="h-4 w-4" aria-hidden="true" />
-        {t('navigation:liens.ordresReparation')}
-      </NavLink>
-      <NavLink to="/factures" className={classeLien}>
-        <Receipt className="h-4 w-4" aria-hidden="true" />
-        {t('navigation:liens.factures')}
-      </NavLink>
-      <NavLink to={chemins.parametrage.referentiels()} className={classeLien}>
-        <Tag className="h-4 w-4" aria-hidden="true" />
-        {t('navigation:liens.parametrageReferentiels')}
-      </NavLink>
+        {peutAccederTableauBord ? (
+          <NavLink to={chemins.tableauBord(site)} className={classeLien}>
+            <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.tableauBord')}
+          </NavLink>
+        ) : null}
+        <NavLink to={chemins.recherche.globale(site)} className={classeLien}>
+          <Search className="h-4 w-4" aria-hidden="true" />
+          {t('navigation:liens.recherche')}
+        </NavLink>
+        <NavLink to={chemins.clients.liste(site)} className={classeLien}>
+          <Users className="h-4 w-4" aria-hidden="true" />
+          {t('navigation:liens.clients')}
+        </NavLink>
+        <NavLink to={chemins.clients.doublons()} className={classeLien}>
+          <Copy className="h-4 w-4" aria-hidden="true" />
+          {t('navigation:liens.doublonsClients')}
+        </NavLink>
+        <NavLink to={chemins.vehicules.liste(site)} className={classeLien}>
+          <Car className="h-4 w-4" aria-hidden="true" />
+          {t('navigation:liens.vehicules')}
+        </NavLink>
+        <NavLink to={chemins.atelier.ordresReparation.liste(site)} className={classeLien}>
+          <ClipboardList className="h-4 w-4" aria-hidden="true" />
+          {t('navigation:liens.ordresReparation')}
+        </NavLink>
+        <NavLink to="/factures" className={classeLien}>
+          <Receipt className="h-4 w-4" aria-hidden="true" />
+          {t('navigation:liens.factures')}
+        </NavLink>
+        <NavLink to={chemins.parametrage.referentiels()} className={classeLien}>
+          <Tag className="h-4 w-4" aria-hidden="true" />
+          {t('navigation:liens.parametrageReferentiels')}
+        </NavLink>
 
-      {peutAccederPieces ? (
-        <>
-          <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {t('navigation:groupes.pieces')}
-          </p>
-          <NavLink to={chemins.pieces.rechercheComptoir(site)} className={classeLien}>
-            <PackageSearch className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.piecesRechercheComptoir')}
-          </NavLink>
-          <NavLink to={chemins.pieces.articles(site)} className={classeLien}>
-            <Boxes className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.piecesArticles')}
-          </NavLink>
-          <NavLink to={chemins.pieces.reservations(site)} className={classeLien}>
-            <Bookmark className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.piecesReservations')}
-          </NavLink>
-          <NavLink to={chemins.pieces.reapprovisionnement(site)} className={classeLien}>
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.piecesReapprovisionnement')}
-          </NavLink>
-          <NavLink to={chemins.pieces.commandesFournisseur.liste()} className={classeLien}>
-            <Truck className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.piecesCommandesFournisseur')}
-          </NavLink>
-          <NavLink to={chemins.pieces.fournisseurs.liste()} className={classeLien}>
-            <Handshake className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.piecesFournisseurs')}
-          </NavLink>
-          <NavLink to={chemins.pieces.consignes()} className={classeLien}>
-            <Undo2 className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.piecesConsignes')}
-          </NavLink>
-          {peutAccederParametragePieces ? (
-            <NavLink to={chemins.parametrage.pieces()} className={classeLien}>
-              <Settings2 className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.piecesParametrage')}
+        {peutAccederPieces ? (
+          <>
+            <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t('navigation:groupes.pieces')}
+            </p>
+            <NavLink to={chemins.pieces.rechercheComptoir(site)} className={classeLien}>
+              <PackageSearch className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.piecesRechercheComptoir')}
             </NavLink>
-          ) : null}
-        </>
-      ) : null}
+            <NavLink to={chemins.pieces.articles(site)} className={classeLien}>
+              <Boxes className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.piecesArticles')}
+            </NavLink>
+            <NavLink to={chemins.pieces.reservations(site)} className={classeLien}>
+              <Bookmark className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.piecesReservations')}
+            </NavLink>
+            <NavLink to={chemins.pieces.reapprovisionnement(site)} className={classeLien}>
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.piecesReapprovisionnement')}
+            </NavLink>
+            <NavLink to={chemins.pieces.commandesFournisseur.liste()} className={classeLien}>
+              <Truck className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.piecesCommandesFournisseur')}
+            </NavLink>
+            <NavLink to={chemins.pieces.fournisseurs.liste()} className={classeLien}>
+              <Handshake className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.piecesFournisseurs')}
+            </NavLink>
+            <NavLink to={chemins.pieces.consignes()} className={classeLien}>
+              <Undo2 className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.piecesConsignes')}
+            </NavLink>
+            {peutAccederParametragePieces ? (
+              <NavLink to={chemins.parametrage.pieces()} className={classeLien}>
+                <Settings2 className="h-4 w-4" aria-hidden="true" />
+                {t('navigation:liens.piecesParametrage')}
+              </NavLink>
+            ) : null}
+          </>
+        ) : null}
 
-      {peutAccederPointage ? (
-        <>
-          <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {t('navigation:groupes.pointage')}
-          </p>
-          <NavLink to={chemins.pointage.saisie()} className={classeLien}>
-            <Clock className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.pointageSaisie')}
-          </NavLink>
-          <NavLink to={chemins.pointage.jour()} className={classeLien}>
-            <CalendarClock className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.pointageJournal')}
-          </NavLink>
-          {peutGererPointageEncadrement ? (
-            <NavLink to={chemins.pointage.equipe()} className={classeLien}>
-              <UsersRound className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.pointageEquipe')}
+        {peutAccederPointage ? (
+          <>
+            <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t('navigation:groupes.pointage')}
+            </p>
+            <NavLink to={chemins.pointage.saisie()} className={classeLien}>
+              <Clock className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.pointageSaisie')}
             </NavLink>
-          ) : null}
-          {peutGererPointageEncadrement ? (
-            <NavLink to={chemins.pointage.cloture()} className={classeLien}>
-              <Lock className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.pointageCloture')}
+            <NavLink to={chemins.pointage.jour()} className={classeLien}>
+              <CalendarClock className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.pointageJournal')}
             </NavLink>
-          ) : null}
-        </>
-      ) : null}
+            {peutGererPointageEncadrement ? (
+              <NavLink to={chemins.pointage.equipe()} className={classeLien}>
+                <UsersRound className="h-4 w-4" aria-hidden="true" />
+                {t('navigation:liens.pointageEquipe')}
+              </NavLink>
+            ) : null}
+            {peutGererPointageEncadrement ? (
+              <NavLink to={chemins.pointage.cloture()} className={classeLien}>
+                <Lock className="h-4 w-4" aria-hidden="true" />
+                {t('navigation:liens.pointageCloture')}
+              </NavLink>
+            ) : null}
+          </>
+        ) : null}
 
-      {peutAccederPneus ? (
-        <>
-          <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {t('navigation:groupes.pneus')}
-          </p>
-          <NavLink to={chemins.pneus.hangar(site)} className={classeLien}>
-            <Warehouse className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.pneusHangar')}
-          </NavLink>
-          <NavLink to={chemins.pneus.aRelancer(site)} className={classeLien}>
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.pneusARelancer')}
-          </NavLink>
-        </>
-      ) : null}
+        {peutAccederPneus ? (
+          <>
+            <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t('navigation:groupes.pneus')}
+            </p>
+            <NavLink to={chemins.pneus.hangar(site)} className={classeLien}>
+              <Warehouse className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.pneusHangar')}
+            </NavLink>
+            <NavLink to={chemins.pneus.aRelancer(site)} className={classeLien}>
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.pneusARelancer')}
+            </NavLink>
+          </>
+        ) : null}
 
-      {peutAccederVentes ? (
-        <>
-          <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {t('navigation:groupes.ventes')}
-          </p>
-          <NavLink to={chemins.ventes.stock.liste(site)} className={classeLien}>
-            <CarFront className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.ventesStock')}
-          </NavLink>
-          <NavLink to={chemins.ventes.dossiers.liste(site)} className={classeLien}>
-            <FileText className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.ventesDossiers')}
-          </NavLink>
-          <NavLink to={chemins.ventes.suivi(site)} className={classeLien}>
-            <AlarmClock className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.ventesSuivi')}
-          </NavLink>
-        </>
-      ) : null}
+        {peutAccederVentes ? (
+          <>
+            <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t('navigation:groupes.ventes')}
+            </p>
+            <NavLink to={chemins.ventes.stock.liste(site)} className={classeLien}>
+              <CarFront className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.ventesStock')}
+            </NavLink>
+            <NavLink to={chemins.ventes.dossiers.liste(site)} className={classeLien}>
+              <FileText className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.ventesDossiers')}
+            </NavLink>
+            <NavLink to={chemins.ventes.suivi(site)} className={classeLien}>
+              <AlarmClock className="h-4 w-4" aria-hidden="true" />
+              {t('navigation:liens.ventesSuivi')}
+            </NavLink>
+          </>
+        ) : null}
 
-      {afficheGroupeParametrage ? (
-        <>
-          <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {t('navigation:groupes.parametrage')}
+        {afficheGroupeParametrage ? (
+          <>
+            <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t('navigation:groupes.parametrage')}
+            </p>
+            {peutGererParametrageAtelier ? (
+              <NavLink to={chemins.parametrage.atelier()} className={classeLien}>
+                <Wrench className="h-4 w-4" aria-hidden="true" />
+                {t('navigation:liens.parametrageAtelier')}
+              </NavLink>
+            ) : null}
+            {peutGererParametrageAtelier ? (
+              <NavLink to={chemins.parametrage.sites(site)} className={classeLien}>
+                <Building2 className="h-4 w-4" aria-hidden="true" />
+                {t('navigation:liens.parametrageSites')}
+              </NavLink>
+            ) : null}
+            {peutGererCreancier ? (
+              <NavLink to={chemins.parametrage.facturation()} className={classeLien}>
+                <Landmark className="h-4 w-4" aria-hidden="true" />
+                {t('navigation:liens.parametrageFacturation')}
+              </NavLink>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+
+      {/*
+       * Pied ancré — HORS de la zone défilante ci-dessus (`shrink-0` : ne rétrécit jamais, quelle
+       * que soit la hauteur prise par la liste de liens). C'est ce qui garantit le numéro de
+       * version « toujours visible en bas de la colonne de navigation », y compris quand la liste
+       * est longue (`chef_atelier`/`admin` avec tous les groupes) : avant, un simple dernier
+       * élément du flux se serait fait pousser sous la ligne de flottaison de la PAGE (voir
+       * `AppShell.tsx` pour la mécanique de hauteur/défilement côté aside et tiroir mobile).
+       *
+       * `border-t` : une fois ancré en bas, le numéro n'est plus « le dernier élément de la
+       * liste » mais un pied distinct — le filet encode la frontière entre la navigation
+       * (interactive) et une métadonnée inerte. `p-3` reprend l'inset de la zone de liens
+       * ci-dessus (mêmes bords), alignant le filet sur les boutons de lien.
+       *
+       * Chargement et erreur : `sante` reste `undefined` dans les deux cas -> RIEN n'est
+       * affiché, aucun squelette ni placeholder, ET le filet n'apparaît pas seul (le `<div>` du
+       * pied est conditionné par `sante`, pas seulement le texte à l'intérieur). Exception
+       * ASSUMÉE à la règle « chaque écran gère chargement / vide / erreur » du CONTRIBUTING.md : c'est
+       * une information d'ambiance dans un chrome affiché huit heures par jour, pas un écran
+       * métier — quand elle manque, l'utilisateur n'a rien à en faire, et un placeholder
+       * permanent serait du bruit.
+       *
+       * `<p>` non interactif (pas de lien, pas de focus clavier) ; le texte visible
+       * (« Version 0.1.0-dev ») est déjà explicite pour un lecteur au téléphone au support,
+       * donc pas d'`aria-label` séparé.
+       */}
+      {sante ? (
+        <div className="shrink-0 border-t p-3">
+          <p className="texte-libelle text-muted-foreground">
+            {t('navigation:pied.version', { numero: sante.version })}
           </p>
-          {peutGererParametrageAtelier ? (
-            <NavLink to={chemins.parametrage.atelier()} className={classeLien}>
-              <Wrench className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.parametrageAtelier')}
-            </NavLink>
-          ) : null}
-          {peutGererParametrageAtelier ? (
-            <NavLink to={chemins.parametrage.sites(site)} className={classeLien}>
-              <Building2 className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.parametrageSites')}
-            </NavLink>
-          ) : null}
-          {peutGererCreancier ? (
-            <NavLink to={chemins.parametrage.facturation()} className={classeLien}>
-              <Landmark className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.parametrageFacturation')}
-            </NavLink>
-          ) : null}
-        </>
+        </div>
       ) : null}
     </nav>
   );
