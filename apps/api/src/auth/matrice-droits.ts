@@ -411,6 +411,34 @@ export const TOUTES_ACTIONS = [
   'pneus.depot.creer',
   'pneus.depot.changer_saison',
   'pneus.depot.sortir',
+  // ---- Relances automatiques (docs/specification-relances-automatiques.md, lot 1 facturation) ---
+  // Bloc ADDITIF PUR, transmis par l'orchestrateur au nom de l'agent qui a livré
+  // `apps/api/src/relances/` (périmètre disjoint, sans accès à ce fichier — palliatif signalé, pas
+  // un accès ouvert par négligence, même patron que le tableau de bord et les pneus ci-dessus : les
+  // quatre routes portaient `@AucunDroitRequis()` + une vérification de rôle posée EN SERVICE
+  // (`relances/droits-provisoires.ts`, retiré par ce bloc), faute d'accès de son auteur à ce
+  // fichier.
+  //
+  // UN SEUL jeu de rôles pour LIRE et ÉCRIRE — arbitrage de @laupernoe, confirmé, qui casse ICI la
+  // doctrine par défaut de ce fichier (« la lecture est ouverte, seule l'écriture est gouvernée »,
+  // `LECTURE_ETENDUE`/`pneus.depot.lire`/`tableau_bord.activite.lire` ci-dessus) : même LIRE la
+  // configuration des relances (délais par palier, canaux) expose une politique de recouvrement du
+  // garage (quand et comment on relance un client en retard de paiement) — déjà une décision
+  // financière/commerciale, pas un fait neutre comme un statut d'OR ou un dépôt de pneus. Voir
+  // `DROITS_RELANCES_PAR_ROLE` ci-dessous.
+  //
+  // Aligné sur le palier de gouvernance le PLUS ÉLEVÉ déjà posé dans ce fichier — EXACTEMENT le
+  // même périmètre que le bloc créancier, l'export fiduciaire, la disposition d'une avance de
+  // paiement et le tableau de bord financier : `direction` + `comptable` SEULS. `admin` EXCLU
+  // délibérément (RF-115, littéral : « admin est un rôle technique et n'a aucun droit financier » —
+  // configurer ou déclencher un rappel de facture EST un geste financier, jamais comblé par
+  // copier-coller de `direction`). Tous les rôles opérationnels exclus également
+  // (`vendeur`/`receptionnaire`/`chef_atelier`/`technicien`/`magasinier`) : aucun d'eux ne pilote la
+  // politique de recouvrement du garage.
+  'relances.facturation.regle.lire',
+  'relances.facturation.regle.ecrire',
+  'relances.facturation.planifier',
+  'relances.facturation.envoyer',
 ] as const;
 
 /**
@@ -1684,6 +1712,33 @@ const DROITS_PNEUS_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>
   poste_atelier: [],
 };
 
+// =================================================================================================
+// Relances automatiques (docs/specification-relances-automatiques.md) : bloc ADDITIF PUR, même
+// patron que le tableau de bord et les pneus ci-dessus. Voir le commentaire sur les 4 entrées
+// `relances.facturation.*` de `TOUTES_ACTIONS` pour le détail de l'arbitrage — notamment le fait
+// qu'un SEUL jeu de rôles gouverne LIRE et ÉCRIRE ici, contrairement à la doctrine par défaut du
+// reste de ce fichier.
+const DROITS_RELANCES_FACTURATION: readonly Action[] = [
+  'relances.facturation.regle.lire',
+  'relances.facturation.regle.ecrire',
+  'relances.facturation.planifier',
+  'relances.facturation.envoyer',
+];
+
+const DROITS_RELANCES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  direction: [...DROITS_RELANCES_FACTURATION],
+  comptable: [...DROITS_RELANCES_FACTURATION],
+  vendeur: [],
+  receptionnaire: [],
+  chef_atelier: [],
+  technicien: [],
+  magasinier: [],
+  // RF-115 : jamais de droit financier pour admin — voir le commentaire de tête de section.
+  admin: [],
+  // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+  poste_atelier: [],
+};
+
 export const MATRICE_DROITS = {
   admin: [
     ...DROITS_ADMIN,
@@ -1698,6 +1753,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.admin,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.admin,
     ...DROITS_PNEUS_PAR_ROLE.admin,
+    ...DROITS_RELANCES_PAR_ROLE.admin,
   ],
   direction: [
     ...DROITS_DIRECTION,
@@ -1712,6 +1768,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.direction,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.direction,
     ...DROITS_PNEUS_PAR_ROLE.direction,
+    ...DROITS_RELANCES_PAR_ROLE.direction,
   ],
   vendeur: [
     ...DROITS_VENDEUR,
@@ -1726,6 +1783,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.vendeur,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.vendeur,
     ...DROITS_PNEUS_PAR_ROLE.vendeur,
+    ...DROITS_RELANCES_PAR_ROLE.vendeur,
   ],
   receptionnaire: [
     ...DROITS_RECEPTIONNAIRE,
@@ -1740,6 +1798,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.receptionnaire,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.receptionnaire,
     ...DROITS_PNEUS_PAR_ROLE.receptionnaire,
+    ...DROITS_RELANCES_PAR_ROLE.receptionnaire,
   ],
   chef_atelier: [
     ...DROITS_CHEF_ATELIER,
@@ -1754,6 +1813,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.chef_atelier,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.chef_atelier,
     ...DROITS_PNEUS_PAR_ROLE.chef_atelier,
+    ...DROITS_RELANCES_PAR_ROLE.chef_atelier,
   ],
   technicien: [
     ...DROITS_TECHNICIEN,
@@ -1768,6 +1828,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.technicien,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.technicien,
     ...DROITS_PNEUS_PAR_ROLE.technicien,
+    ...DROITS_RELANCES_PAR_ROLE.technicien,
   ],
   magasinier: [
     ...DROITS_MAGASINIER,
@@ -1782,6 +1843,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.magasinier,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.magasinier,
     ...DROITS_PNEUS_PAR_ROLE.magasinier,
+    ...DROITS_RELANCES_PAR_ROLE.magasinier,
   ],
   comptable: [
     ...DROITS_COMPTABLE,
@@ -1796,6 +1858,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.comptable,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.comptable,
     ...DROITS_PNEUS_PAR_ROLE.comptable,
+    ...DROITS_RELANCES_PAR_ROLE.comptable,
   ],
   poste_atelier: [
     ...DROITS_POSTE_ATELIER,
@@ -1810,6 +1873,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_ACTIVITE_PAR_ROLE.poste_atelier,
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.poste_atelier,
     ...DROITS_PNEUS_PAR_ROLE.poste_atelier,
+    ...DROITS_RELANCES_PAR_ROLE.poste_atelier,
   ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 

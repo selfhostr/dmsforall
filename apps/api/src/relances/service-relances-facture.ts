@@ -5,7 +5,6 @@ import type {
   Langue,
   ReponseEnvoiRelances,
   ReponsePlanificationRelances,
-  RoleUtilisateur,
   StatutReglementDocument,
 } from '@dfa/shared';
 
@@ -18,7 +17,6 @@ import { ServiceJournal } from '../common/journal';
 import type { AdaptateurNotificationSender } from '../connecteurs';
 import { RegistreConnecteursService } from '../connecteurs';
 
-import { ROLES_RELANCES_FACTURATION, verifierRoleAutorise } from './droits-provisoires';
 import {
   calculerPaliersDus,
   choisirCanalEtDestinataire,
@@ -42,9 +40,18 @@ import {
  *    mise à jour conditionnelle (`WHERE statut = 'prete'`, §6.1) avant tout appel au connecteur
  *    `NotificationSender` (résolu via `RegistreConnecteursService`, étape 5).
  *
+ * Droits posés définitivement dans `auth/matrice-droits.ts` (`relances.facturation.planifier`/
+ * `.envoyer`) : l'autorisation est portée EXCLUSIVEMENT par `@ExigerDroit(...)` + `GardeDroit` sur
+ * `relances.controller.ts` — ce service ne prend PLUS de rôle en paramètre (retiré avec le
+ * palliatif `relances/droits-provisoires.ts`, même patron que `service-regle-relance.ts` et
+ * `pneus/service-depot-pneus.ts`).
+ *
  * CE QUI RESTE À FAIRE (signalé, pas fait ici, hors périmètre déclaré de cette tâche) : un
  * déclencheur PÉRIODIQUE (cron applicatif, job BullMQ répété, ou appel externe programmé) qui
- * invoque ces deux méthodes à intervalle régulier — voir le rapport de livraison.
+ * invoque ces deux méthodes à intervalle régulier — voir le rapport de livraison. Un tel
+ * déclencheur n'a PAS de session utilisateur ; ni `direction` ni `comptable` (les deux seuls rôles
+ * qui détiennent `relances.facturation.planifier`/`.envoyer`) ne désignent un compte de service,
+ * voir le rapport de livraison pour l'arbitrage à trancher avec @laupernoe.
  */
 @Injectable()
 export class ServiceRelancesFacture {
@@ -60,12 +67,7 @@ export class ServiceRelancesFacture {
   /** Nombre de lignes `prete` traitées par appel. */
   private static readonly LOT_ENVOI = 100;
 
-  async planifier(
-    ctx: ContexteTenant,
-    role: RoleUtilisateur,
-  ): Promise<ReponsePlanificationRelances> {
-    verifierRoleAutorise(role, ROLES_RELANCES_FACTURATION, 'relances.facturation.planifier');
-
+  async planifier(ctx: ContexteTenant): Promise<ReponsePlanificationRelances> {
     return this.acces.enTenant(ctx, async (tx) => {
       const [regle] = await tx
         .select()
@@ -157,9 +159,7 @@ export class ServiceRelancesFacture {
     });
   }
 
-  async envoyerPretes(ctx: ContexteTenant, role: RoleUtilisateur): Promise<ReponseEnvoiRelances> {
-    verifierRoleAutorise(role, ROLES_RELANCES_FACTURATION, 'relances.facturation.envoyer');
-
+  async envoyerPretes(ctx: ContexteTenant): Promise<ReponseEnvoiRelances> {
     const resolu = await this.registre.resoudre(ctx, 'NotificationSender');
     if (!resolu) {
       // Cas NORMAL (§6.3, en-tête de `notification-sender.ts` : « aucun vrai prestataire n'est

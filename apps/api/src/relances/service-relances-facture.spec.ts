@@ -148,41 +148,6 @@ function adaptateurFactice(
   } as unknown as AdaptateurNotificationSender & { readonly appels: RequeteEnvoiMessageClient[] };
 }
 
-describe('ServiceRelancesFacture — droits provisoires', () => {
-  it('planifier : refuse un rôle non autorisé avant tout accès base', async () => {
-    const { tx } = txFactice([]);
-    const { acces } = accesFactice(tx);
-    const service = new ServiceRelancesFacture(
-      acces,
-      registreFactice(null),
-      horlogeFixe('2026-08-05'),
-      journalFactice(),
-    );
-
-    await expect(service.planifier(CTX, 'technicien')).rejects.toMatchObject({
-      code: 'DROIT_INSUFFISANT',
-    });
-    expect(acces.enTenant).not.toHaveBeenCalled();
-  });
-
-  it('envoyerPretes : refuse un rôle non autorisé AVANT même de résoudre le connecteur', async () => {
-    const { tx } = txFactice([]);
-    const { acces } = accesFactice(tx);
-    const registre = registreFactice(null);
-    const service = new ServiceRelancesFacture(
-      acces,
-      registre,
-      horlogeFixe('2026-08-05'),
-      journalFactice(),
-    );
-
-    await expect(service.envoyerPretes(CTX, 'magasinier')).rejects.toMatchObject({
-      code: 'DROIT_INSUFFISANT',
-    });
-    expect(registre.resoudre).not.toHaveBeenCalled();
-  });
-});
-
 describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
   it(
     'aucune règle configurée (ou inactive) → rien à planifier, AUCUNE lecture de document ' +
@@ -197,7 +162,7 @@ describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
         journalFactice(),
       );
 
-      const resultat = await service.planifier(CTX, 'direction');
+      const resultat = await service.planifier(CTX);
 
       expect(resultat).toEqual({ creees: 0, ignorees: 0, encoreATraiter: false });
       expect(restantes()).toBe(0);
@@ -225,7 +190,7 @@ describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
       journalFactice(),
     );
 
-    const resultat = await service.planifier(CTX, 'direction');
+    const resultat = await service.planifier(CTX);
     expect(resultat).toEqual({ creees: 1, ignorees: 0, encoreATraiter: false });
   });
 
@@ -254,7 +219,7 @@ describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
         journalFactice(),
       );
 
-      const resultat = await service.planifier(CTX, 'direction');
+      const resultat = await service.planifier(CTX);
       expect(resultat).toEqual({ creees: 0, ignorees: 1, encoreATraiter: false });
     },
   );
@@ -272,7 +237,7 @@ describe('ServiceRelancesFacture.planifier — RA-05 (idempotence)', () => {
       journalFactice(),
     );
 
-    const resultat = await service.planifier(CTX, 'direction');
+    const resultat = await service.planifier(CTX);
     expect(resultat).toEqual({ creees: 0, ignorees: 0, encoreATraiter: false });
     expect(restantes()).toBe(0);
   });
@@ -289,7 +254,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
       journalFactice(),
     );
 
-    const resultat = await service.envoyerPretes(CTX, 'direction');
+    const resultat = await service.envoyerPretes(CTX);
     expect(resultat).toEqual({ envoyees: 0, echouees: 0, annulees: 0, encoreATraiter: false });
     expect(acces.enTenant).not.toHaveBeenCalled();
   });
@@ -334,7 +299,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         journalFactice(),
       );
 
-      const resultat = await service.envoyerPretes(CTX, 'direction');
+      const resultat = await service.envoyerPretes(CTX);
       expect(resultat).toEqual({ envoyees: 0, echouees: 0, annulees: 1, encoreATraiter: false });
       expect(adaptateur.envoyer).not.toHaveBeenCalled();
     },
@@ -379,7 +344,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         journalFactice(),
       );
 
-      const resultat = await service.envoyerPretes(CTX, 'direction');
+      const resultat = await service.envoyerPretes(CTX);
       expect(resultat).toEqual({ envoyees: 0, echouees: 0, annulees: 1, encoreATraiter: false });
       expect(adaptateur.envoyer).not.toHaveBeenCalled();
     },
@@ -427,7 +392,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         journalFactice(),
       );
 
-      const resultat = await service.envoyerPretes(CTX, 'direction');
+      const resultat = await service.envoyerPretes(CTX);
 
       expect(resultat).toEqual({ envoyees: 1, echouees: 0, annulees: 0, encoreATraiter: false });
       expect(adaptateur.envoyer).toHaveBeenCalledTimes(1);
@@ -478,7 +443,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         journalFactice(),
       );
 
-      const resultat = await service.envoyerPretes(CTX, 'direction');
+      const resultat = await service.envoyerPretes(CTX);
       expect(resultat).toEqual({ envoyees: 0, echouees: 1, annulees: 0, encoreATraiter: false });
     },
   );

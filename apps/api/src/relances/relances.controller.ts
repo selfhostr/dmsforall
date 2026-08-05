@@ -8,7 +8,7 @@ import {
 
 import { ServiceContexteRequete } from '../common/contexte';
 import { CorpsZod } from '../common/documentation';
-import { AucunDroitRequis, GardeDroit } from '../common/droits';
+import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 
@@ -19,14 +19,22 @@ import { ServiceRelancesFacture } from './service-relances-facture';
 
 /**
  * Relances automatiques, LOT 1 (facturation, rappel #2 —
- * `docs/specification-relances-automatiques.md`). Droits PROVISOIRES sur toutes les routes
- * (`@AucunDroitRequis()` + vérification en service, voir `droits-provisoires.ts`) :
- * `apps/api/src/auth/matrice-droits.ts` n'est pas dans le périmètre d'écriture de cet agent.
+ * `docs/specification-relances-automatiques.md`).
+ *
+ * Droits POSÉS DÉFINITIVEMENT (`auth/matrice-droits.ts`) : `@ExigerDroit(...)` + `GardeDroit`
+ * refuse `403 DROIT_INSUFFISANT` en `canActivate()` AVANT que le handler (donc les services de ce
+ * module, donc tout accès base) ne s'exécute — un rôle non autorisé ne déclenche structurellement
+ * aucune requête. Remplace le palliatif `@AucunDroitRequis()` + vérification de rôle en service
+ * (`relances/droits-provisoires.ts`, retiré), posé faute d'accès de son auteur à
+ * `auth/matrice-droits.ts` au moment de la livraison de ce module. UN SEUL jeu de rôles
+ * (`direction`, `comptable`) gouverne les quatre routes ci-dessous — voir `matrice-droits.ts` pour
+ * l'arbitrage (même LIRE la configuration des relances expose une politique de recouvrement).
  *
  * AUCUN ORDONNANCEUR : `POST .../planifier` et `POST .../envoyer` sont des opérations APPELABLES
  * à la demande — un futur déclencheur périodique (cron applicatif, job BullMQ répété) les
  * invoquera à intervalle régulier, voir le rapport de livraison de ce lot pour ce qui manque
- * côté infrastructure.
+ * côté infrastructure, y compris l'identité machine sous laquelle un tel déclencheur devrait
+ * s'authentifier (aucun des deux rôles autorisés ci-dessus ne désigne un compte de service).
  */
 @ApiTags('Relances')
 @ApiCookieAuth()
@@ -40,23 +48,20 @@ export class RelancesController {
   ) {}
 
   @Get('regles')
-  @AucunDroitRequis()
+  @ExigerDroit('relances.facturation.regle.lire')
   @ApiOperation({
-    summary:
-      'Configuration des relances par type (§5, §4 de la spec). Rôle vérifié en service ' +
-      '(relances.facturation.regle.lire, droit provisoire).',
+    summary: 'Configuration des relances par type (§5, §4 de la spec).',
   })
   @ApiOkResponse({ type: [RegleRelanceDto] })
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Rôle non autorisé (contrôle provisoire en service).')
+  @ApiReponseProbleme(403, 'Droit insuffisant (relances.facturation.regle.lire).')
   async lister(): Promise<readonly RegleRelanceDto[]> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.serviceRegle.lister(ctx, role);
+    return this.serviceRegle.lister(ctx);
   }
 
   @Put('regles/:typeRelance')
-  @AucunDroitRequis()
+  @ExigerDroit('relances.facturation.regle.ecrire')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
@@ -67,18 +72,17 @@ export class RelancesController {
   @ApiOkResponse({ type: RegleRelanceDto })
   @ApiReponseProbleme(400, 'Type de relance ou corps invalide.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Rôle non autorisé (contrôle provisoire en service).')
+  @ApiReponseProbleme(403, 'Droit insuffisant (relances.facturation.regle.ecrire).')
   async upserter(
     @Param('typeRelance', new PipeZod(schemaTypeRelance)) typeRelance: TypeRelance,
     @CorpsZod(schemaUpsertRegleRelance) entree: EntreeUpsertRegleRelance,
   ): Promise<RegleRelanceDto> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.serviceRegle.upserter(ctx, role, typeRelance, entree);
+    return this.serviceRegle.upserter(ctx, typeRelance, entree);
   }
 
   @Post('facturation/planifier')
-  @AucunDroitRequis()
+  @ExigerDroit('relances.facturation.planifier')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
@@ -90,15 +94,14 @@ export class RelancesController {
   })
   @ApiOkResponse({ type: PlanificationRelancesDto })
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Rôle non autorisé (contrôle provisoire en service).')
+  @ApiReponseProbleme(403, 'Droit insuffisant (relances.facturation.planifier).')
   async planifier(): Promise<PlanificationRelancesDto> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.serviceFacture.planifier(ctx, role);
+    return this.serviceFacture.planifier(ctx);
   }
 
   @Post('facturation/envoyer')
-  @AucunDroitRequis()
+  @ExigerDroit('relances.facturation.envoyer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
@@ -107,10 +110,9 @@ export class RelancesController {
   })
   @ApiOkResponse({ type: EnvoiRelancesDto })
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'Rôle non autorisé (contrôle provisoire en service).')
+  @ApiReponseProbleme(403, 'Droit insuffisant (relances.facturation.envoyer).')
   async envoyer(): Promise<EnvoiRelancesDto> {
     const ctx = this.contexte.contexteTenant();
-    const { role } = this.contexte.exigerPrincipal();
-    return this.serviceFacture.envoyerPretes(ctx, role);
+    return this.serviceFacture.envoyerPretes(ctx);
   }
 }

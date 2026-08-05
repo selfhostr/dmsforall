@@ -1,24 +1,26 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { asc, eq } from 'drizzle-orm';
-import type {
-  EntreeUpsertRegleRelance,
-  ReponseRegleRelance,
-  RoleUtilisateur,
-  TypeRelance,
-} from '@dfa/shared';
+import type { EntreeUpsertRegleRelance, ReponseRegleRelance, TypeRelance } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant } from '../db';
 import { JETON_DB } from '../db';
 import { regleRelance } from '../db/schema';
 import { ErreurMetier } from '../common/erreurs';
 
-import { ROLES_RELANCES_FACTURATION, verifierRoleAutorise } from './droits-provisoires';
 import { versReponseRegleRelance } from './mappers';
 
 /**
  * Configuration `regle_relance` (§5, §4 de la spec) — une ligne par `(tenant, type_relance)`,
- * jamais supprimée (désactiver via `actif = false`). Voir `droits-provisoires.ts` pour l'état
- * PROVISOIRE de l'autorisation.
+ * jamais supprimée (désactiver via `actif = false`).
+ *
+ * Droits posés définitivement dans `auth/matrice-droits.ts` (`relances.facturation.regle.lire`/
+ * `.ecrire`) : l'autorisation est portée EXCLUSIVEMENT par `@ExigerDroit(...)` + `GardeDroit` sur
+ * `relances.controller.ts`, qui refuse `403 DROIT_INSUFFISANT` avant même que les méthodes
+ * ci-dessous ne s'exécutent — un rôle non autorisé n'atteint donc jamais ce service, encore moins
+ * la base. Ce service ne prend PLUS de rôle en paramètre (retiré avec le palliatif
+ * `relances/droits-provisoires.ts` : une double vérification romprait la doctrine du dépôt, « un
+ * seul mécanisme d'autorisation », `auth/matrice-droits.ts`, tête de fichier) — même patron que
+ * `pneus/service-depot-pneus.ts`.
  */
 @Injectable()
 export class ServiceRegleRelance {
@@ -26,12 +28,7 @@ export class ServiceRegleRelance {
 
   /** `GET /relances/regles` — au plus 9 lignes (une par `TypeRelance`) : aucune pagination n'est
    *  nécessaire, le domaine est borné par construction (voir `contrats/relances/enums.ts`). */
-  async lister(
-    ctx: ContexteTenant,
-    role: RoleUtilisateur,
-  ): Promise<readonly ReponseRegleRelance[]> {
-    verifierRoleAutorise(role, ROLES_RELANCES_FACTURATION, 'relances.facturation.regle.lire');
-
+  async lister(ctx: ContexteTenant): Promise<readonly ReponseRegleRelance[]> {
     return this.acces.enTenant(ctx, async (tx) => {
       const lignes = await tx
         .select()
@@ -49,12 +46,9 @@ export class ServiceRegleRelance {
    */
   async upserter(
     ctx: ContexteTenant,
-    role: RoleUtilisateur,
     typeRelance: TypeRelance,
     entree: EntreeUpsertRegleRelance,
   ): Promise<ReponseRegleRelance> {
-    verifierRoleAutorise(role, ROLES_RELANCES_FACTURATION, 'relances.facturation.regle.ecrire');
-
     return this.acces.enTenant(ctx, async (tx) => {
       const colonnes = {
         actif: entree.actif,

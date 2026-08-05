@@ -8,8 +8,9 @@ import { ServiceRelancesFacture } from './service-relances-facture';
 
 /**
  * Module relances automatiques — LOT 1 (facturation, rappel #2,
- * `docs/specification-relances-automatiques.md`). Droits posés PROVISOIREMENT (voir
- * `droits-provisoires.ts` — `apps/api/src/auth/matrice-droits.ts` hors périmètre de cet agent).
+ * `docs/specification-relances-automatiques.md`). Droits posés définitivement
+ * (`relances.facturation.regle.lire`/`.ecrire`/`.planifier`/`.envoyer`, `auth/matrice-droits.ts`)
+ * via `@ExigerDroit(...)` + `GardeDroit` sur `relances.controller.ts`.
  *
  * `ConnecteursModule` IMPORTÉ explicitement : contrairement à `JETON_DB`/`Horloge`/`ServiceJournal`
  * (fournis par des modules `@Global`, voir `app.module.ts`), `RegistreConnecteursService` ne l'est

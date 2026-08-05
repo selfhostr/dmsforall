@@ -66,41 +66,6 @@ function accesFactice(tx: TransactionDfa): { acces: AccesBase; ctxRecu: Contexte
 const CTX_A: ContexteTenant = { tenantId: 'tenant-A', utilisateurId: 'u1', requeteId: null };
 const CTX_B: ContexteTenant = { tenantId: 'tenant-B', utilisateurId: 'u2', requeteId: null };
 
-describe('ServiceRegleRelance — droits provisoires (voir droits-provisoires.ts)', () => {
-  it('lister : refuse un rôle non autorisé AVANT tout accès base (aucun DB touché)', async () => {
-    const { tx } = txFactice([[ligneRegle()]]);
-    const { acces } = accesFactice(tx);
-    const service = new ServiceRegleRelance(acces);
-
-    await expect(service.lister(CTX_A, 'technicien')).rejects.toMatchObject({
-      code: 'DROIT_INSUFFISANT',
-    });
-    expect(acces.enTenant).not.toHaveBeenCalled();
-  });
-
-  it('upserter : refuse un rôle non autorisé AVANT tout accès base', async () => {
-    const { tx } = txFactice([]);
-    const { acces } = accesFactice(tx);
-    const service = new ServiceRegleRelance(acces);
-    const entree: EntreeUpsertRegleRelance = { actif: true, delaisJours: [7], canaux: ['email'] };
-
-    await expect(service.upserter(CTX_A, 'vendeur', 'facture_echue', entree)).rejects.toMatchObject(
-      {
-        code: 'DROIT_INSUFFISANT',
-      },
-    );
-    expect(acces.enTenant).not.toHaveBeenCalled();
-  });
-
-  it.each(['direction', 'comptable'] as const)('%s est autorisé', async (role) => {
-    const { tx } = txFactice([[ligneRegle()]]);
-    const { acces } = accesFactice(tx);
-    const service = new ServiceRegleRelance(acces);
-
-    await expect(service.lister(CTX_A, role)).resolves.toHaveLength(1);
-  });
-});
-
 describe('ServiceRegleRelance — isolation tenant', () => {
   it(
     'lister : transmet EXACTEMENT le ctx (tenantId) de l’appelant à AccesBase.enTenant, ' +
@@ -111,13 +76,13 @@ describe('ServiceRegleRelance — isolation tenant', () => {
       const { acces, ctxRecu } = accesFactice(tx);
       const service = new ServiceRegleRelance(acces);
 
-      await service.lister(CTX_A, 'direction');
+      await service.lister(CTX_A);
       expect(ctxRecu).toEqual([CTX_A]);
 
       const { tx: tx2 } = txFactice([[ligneRegle({ tenantId: 'tenant-B' })]]);
       const { acces: acces2, ctxRecu: ctxRecu2 } = accesFactice(tx2);
       const service2 = new ServiceRegleRelance(acces2);
-      await service2.lister(CTX_B, 'direction');
+      await service2.lister(CTX_B);
       expect(ctxRecu2).toEqual([CTX_B]);
       expect(ctxRecu2).not.toEqual(ctxRecu);
     },
@@ -132,7 +97,7 @@ describe('ServiceRegleRelance — mapping et upsert (§5)', () => {
     const { acces } = accesFactice(tx);
     const service = new ServiceRegleRelance(acces);
 
-    const resultat = await service.lister(CTX_A, 'direction');
+    const resultat = await service.lister(CTX_A);
     expect(resultat).toHaveLength(1);
     expect(resultat[0]?.delaisJours).toEqual([]);
     expect(resultat[0]?.canaux).toEqual([]);
@@ -156,7 +121,7 @@ describe('ServiceRegleRelance — mapping et upsert (§5)', () => {
         canaux: ['sms', 'email'],
       };
 
-      const reponse = await service.upserter(CTX_A, 'comptable', 'facture_echue', entree);
+      const reponse = await service.upserter(CTX_A, 'facture_echue', entree);
 
       expect(insertValuesArgs[0]).toMatchObject({
         tenantId: 'tenant-A',

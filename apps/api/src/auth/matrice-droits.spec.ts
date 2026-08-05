@@ -504,9 +504,15 @@ describe('MATRICE_DROITS — lecture large (LECTURE_SOCLE et LECTURE_ETENDUE)', 
     expect(MATRICE_DROITS.vendeur).not.toContain('atelier.or.lire');
   });
 
-  it('comptable — consulte, ne modifie rien dans l’atelier/clients/véhicules (§2.1) : uniquement des actions *.lire ou recherche.executer HORS domaines facturation et ventes (RF-114 étape 2 ET §11 étape 4 lui donnent délibérément des droits d’écriture/de confirmation financiers — comptable n’est plus lecture-seule sur ces deux domaines)', () => {
+  it('comptable — consulte, ne modifie rien dans l’atelier/clients/véhicules (§2.1) : uniquement des actions *.lire ou recherche.executer HORS domaines facturation, ventes et relances (RF-114 étape 2, §11 étape 4 ET l’arbitrage relances lui donnent délibérément des droits d’écriture/de confirmation financiers — comptable n’est plus lecture-seule sur ces trois domaines)', () => {
     for (const action of MATRICE_DROITS.comptable) {
-      if (action.startsWith('facturation.') || action.startsWith('ventes.')) continue;
+      if (
+        action.startsWith('facturation.') ||
+        action.startsWith('ventes.') ||
+        action.startsWith('relances.')
+      ) {
+        continue;
+      }
       expect(action.endsWith('.lire') || action === 'recherche.executer').toBe(true);
     }
     // Le domaine financier, lui, doit bien contenir de l'écriture pour comptable (sinon RF-114 est cassé).
@@ -514,6 +520,8 @@ describe('MATRICE_DROITS — lecture large (LECTURE_SOCLE et LECTURE_ETENDUE)', 
     expect(MATRICE_DROITS.comptable).toContain('facturation.document.emettre_facture');
     // §11 étape 4, ligne 7 : comptable confirme/refuse un financement.
     expect(MATRICE_DROITS.comptable).toContain('ventes.financement.confirmer');
+    // Relances : comptable détient aussi l'écriture (arbitrage @laupernoe, voir le bloc dédié plus bas).
+    expect(MATRICE_DROITS.comptable).toContain('relances.facturation.regle.ecrire');
   });
 
   it('vendeur — hors flux de l’étape 1 : aucune écriture atelier, pas même la lecture d’un OR, HORS domaines facturation et ventes (RF-114 lui donne l’encaissement et l’émission devis/BC/facture mais PAS l’avoir ; §11 étape 4 lui donne le pilotage du dossier de vente mais PAS l’écriture sur `vehicule_stock`, QV-15 non tranché)', () => {
@@ -546,17 +554,23 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
     // raison que `facturation.` : `tableau_bord.financier.lire` (RF-115) diverge entre admin ([])
     // et direction ; `tableau_bord.activite.lire`, lui, NE diverge PAS (admin l'a aussi, voir le
     // test dédié « MATRICE_DROITS — tableau de bord » plus bas) — exclure tout le préfixe reste
-    // correct puisque ce test ne prétend vérifier QUE les domaines non financiers.
-    const sansFacturationNiPiecesNiVentesNiTableauBord = (actions: readonly Action[]) =>
+    // correct puisque ce test ne prétend vérifier QUE les domaines non financiers. `relances.`
+    // exclu pour la MÊME raison : les 4 actions `relances.facturation.*` divergent EN BLOC entre
+    // admin ([]) et direction (les 4) — voir `DROITS_RELANCES_PAR_ROLE` et le test dédié
+    // « MATRICE_DROITS — relances automatiques » plus bas.
+    const sansFacturationNiPiecesNiVentesNiTableauBordNiRelances = (actions: readonly Action[]) =>
       actions.filter(
         (a) =>
           !a.startsWith('facturation.') &&
           !a.startsWith('pieces.') &&
           !a.startsWith('ventes.') &&
-          !a.startsWith('tableau_bord.'),
+          !a.startsWith('tableau_bord.') &&
+          !a.startsWith('relances.'),
       );
-    expect([...sansFacturationNiPiecesNiVentesNiTableauBord(MATRICE_DROITS.admin)].sort()).toEqual(
-      [...sansFacturationNiPiecesNiVentesNiTableauBord(MATRICE_DROITS.direction)].sort(),
+    expect(
+      [...sansFacturationNiPiecesNiVentesNiTableauBordNiRelances(MATRICE_DROITS.admin)].sort(),
+    ).toEqual(
+      [...sansFacturationNiPiecesNiVentesNiTableauBordNiRelances(MATRICE_DROITS.direction)].sort(),
     );
   });
 
@@ -936,6 +950,60 @@ describe('MATRICE_DROITS — pneus (hangar à pneus)', () => {
   });
 });
 
+/**
+ * Relances automatiques (`docs/specification-relances-automatiques.md`) : bascule du palliatif
+ * `@AucunDroitRequis()` + vérification de rôle en service (`relances/droits-provisoires.ts`,
+ * retiré) vers le mécanisme normal `@ExigerDroit(...)` + `GardeDroit`. Arbitrage de @laupernoe, confirmé :
+ * UN SEUL jeu de rôles (`direction`, `comptable`) gouverne les QUATRE actions — LIRE la
+ * configuration des relances expose déjà une politique de recouvrement du garage, exactement au
+ * même titre que la déclencher. Ce bloc casse donc, délibérément, la doctrine par défaut de ce
+ * fichier (« la lecture est ouverte, seule l'écriture est gouvernée ») — contrairement au bloc
+ * pneus ci-dessus (`pneus.depot.lire` ouverte aux 8 rôles de personne).
+ */
+describe('MATRICE_DROITS — relances automatiques (facturation)', () => {
+  it('les 4 actions relances.facturation.* sont détenues EXACTEMENT par direction et comptable, aucun autre rôle — y compris admin (RF-115) et les rôles opérationnels de l’atelier/la vente', () => {
+    const actionsRelances: Action[] = [
+      'relances.facturation.regle.lire',
+      'relances.facturation.regle.ecrire',
+      'relances.facturation.planifier',
+      'relances.facturation.envoyer',
+    ];
+    for (const action of actionsRelances) {
+      expect(rolesAyant(action)).toEqual(['comptable', 'direction'].sort());
+    }
+  });
+
+  it('RF-115 — admin N’A PAS accès aux relances, y compris la simple lecture de la configuration : un test doit échouer si l’entrée admin de ce bloc est un jour remplie par copier-coller de direction, en la prenant pour un oubli de recopie plutôt qu’une décision RF-115 délibérée', () => {
+    expect(MATRICE_DROITS.admin.filter((a) => a.startsWith('relances.'))).toEqual([]);
+    expect(MATRICE_DROITS.direction.some((a) => a.startsWith('relances.'))).toBe(true);
+    expect(MATRICE_DROITS.comptable.some((a) => a.startsWith('relances.'))).toBe(true);
+  });
+
+  it('aucun rôle opérationnel (vendeur, réceptionnaire, chef d’atelier, technicien, magasinier, la borne poste_atelier) ne détient la moindre action relances.*, pas même la lecture — même palier que le bloc créancier, l’export fiduciaire et le tableau de bord financier', () => {
+    const rolesExclus: RoleUtilisateur[] = [
+      'vendeur',
+      'receptionnaire',
+      'chef_atelier',
+      'technicien',
+      'magasinier',
+      'poste_atelier',
+    ];
+    for (const role of rolesExclus) {
+      expect(
+        MATRICE_DROITS[role].filter((a) => a.startsWith('relances.')),
+        `${role} ne devrait détenir aucune action relances.*`,
+      ).toEqual([]);
+    }
+  });
+
+  it('CASSE DÉLIBÉRÉMENT la doctrine « lecture ouverte, écriture gouvernée » : relances.facturation.regle.lire n’est PAS accordée aux 8 rôles de personne (contrairement à pneus.depot.lire, tableau_bord.activite.lire, LECTURE_ETENDUE) — elle a EXACTEMENT le même périmètre que l’écriture, sur arbitrage explicite de @laupernoe', () => {
+    expect(rolesAyant('relances.facturation.regle.lire')).toEqual(
+      rolesAyant('relances.facturation.regle.ecrire'),
+    );
+    expect(rolesAyant('relances.facturation.regle.lire')).not.toEqual([...ROLES_PERSONNE].sort());
+  });
+});
+
 describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste close du lot 1 + facturation/paiements + facturation/documents + bloc créancier + export fiduciaire + impression PDF étape 2 + pièces étape 3 + ventes étape 4 + pointage lot 2 + tableau de bord)', () => {
   it('l’union de toutes les actions accordées ne contient QUE les actions du socle + les actions closes du lot 1 + les 5 actions facturation.paiement.* (agent paiements) + les 9 actions facturation.document.*/facturation.avoir.creer (agent documents) + les 2 actions facturation.parametrage.creancier.* + facturation.export.creer + facturation.document.imprimer (arbitrages coordinateur) + les 9 actions pieces.* (étape 3)', () => {
     const actionsAttendues: Action[] = [
@@ -1088,6 +1156,11 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'pneus.depot.creer',
       'pneus.depot.changer_saison',
       'pneus.depot.sortir',
+      // --- Relances automatiques (arbitrage coordinateur, bascule du palliatif droits-provisoires.ts) ---
+      'relances.facturation.regle.lire',
+      'relances.facturation.regle.ecrire',
+      'relances.facturation.planifier',
+      'relances.facturation.envoyer',
     ];
 
     const actionsAccordees = new Set(Object.values(MATRICE_DROITS).flat());
@@ -1235,6 +1308,9 @@ describe('MATRICE_DROITS — poste_atelier, compte de service (mode borne du poi
       // Ajouté avec la bascule du hangar à pneus (arbitrage coordinateur) : même raison physique,
       // aucune utilité au hangar depuis un écran mural.
       'pneus.',
+      // Ajouté avec la bascule des relances automatiques (arbitrage coordinateur) : la politique
+      // de recouvrement du garage n'a aucune utilité à un écran mural exposé aux clients.
+      'relances.',
     ];
     for (const action of MATRICE_DROITS.poste_atelier) {
       for (const prefixe of domainesInterdits) {
@@ -1532,6 +1608,14 @@ describe('MATRICE_DROITS — invariante structurelle : écrire une entité impli
     {
       lire: 'pneus.depot.lire',
       ecriture: ['pneus.depot.creer', 'pneus.depot.changer_saison', 'pneus.depot.sortir'],
+    },
+    {
+      lire: 'relances.facturation.regle.lire',
+      ecriture: [
+        'relances.facturation.regle.ecrire',
+        'relances.facturation.planifier',
+        'relances.facturation.envoyer',
+      ],
     },
   ];
 
