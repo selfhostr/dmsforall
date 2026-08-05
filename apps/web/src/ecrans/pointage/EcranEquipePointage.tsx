@@ -30,7 +30,7 @@ import { formaterHeure } from '@/lib/formats';
 
 import { DialogueCorrectionPointage } from './DialogueCorrectionPointage';
 import { peutCorrigerPointage } from './droits';
-import { libelleCibleEquipePointage } from './libelles';
+import { libelleCiblePointage } from './libelles';
 import { SelecteurSitePointage } from './SelecteurSitePointage';
 
 const DELAI_DEBOUNCE_MS = 300;
@@ -224,7 +224,7 @@ export function EcranEquipePointage() {
                     {requeteListe.pointages.map((pointage) => (
                       <tr key={pointage.id} className="border-t">
                         <td className="p-3">{pointage.technicienNomAffiche}</td>
-                        <td className="p-3">{libelleCibleEquipePointage(pointage, t)}</td>
+                        <td className="p-3">{libelleCiblePointage(pointage, t)}</td>
                         <td className="p-3 tabular-nums">{formaterHeure(pointage.debutLe)}</td>
                         <td className="p-3 tabular-nums">
                           {pointage.finLe ? formaterHeure(pointage.finLe) : ''}

@@ -44,63 +44,60 @@ export function libelleMotifAnomalie(motif: string, t: TFunction): string {
 }
 
 /**
- * Libellé GÉNÉRIQUE d'un pointage, construit UNIQUEMENT à partir des champs de `ReponsePointage`
- * (identifiants, `activiteIndirecte`) — sans numéro d'OR ni désignation de ligne, qui n'y
- * figurent pas (voir le commentaire de tête de `contrats/pointage/pointage.ts` §« Ressource —
- * lecture » : un objet plat à identifiants, pas un agrégat enrichi). Utilisé par les vues
- * jour/semaine et équipe, qui listent des pointages d'AUTRUI sans avoir déjà chargé l'OR
- * correspondant — contrairement à `EcranPointageTechnicien`, qui CONNAÎT le numéro d'OR et la
- * désignation de ligne au moment où IL démarre son propre pointage (voir sa fonction
- * `libelleCiblePointageTechnicien`, plus riche, propre à cet écran).
- */
-export function libelleCiblePointageGenerique(pointage: ReponsePointage, t: TFunction): string {
-  if (pointage.nature === 'indirect' && pointage.activiteIndirecte) {
-    return libelleActiviteIndirecte(pointage.activiteIndirecte, t);
-  }
-  if (pointage.nature === 'productif_ligne') {
-    return t('pointage:natures.productif_ligne');
-  }
-  return t('pointage:natures.productif_or');
-}
-
-/**
- * Libellé de la colonne « Cible » d'`EcranEquipePointage` (défaut 3) — LIMITATION DE CONTRAT
- * ASSUMÉE, documentée ici plutôt que masquée : `ReponsePointage` (`contrats/pointage/pointage.ts`)
- * ne porte NI numéro d'OR NI numéro/désignation de ligne, seulement des identifiants opaques
- * (`ordreReparationId`, `ligneOrId`). Contrairement à `EcranPointageTechnicien`
- * (`libelleCiblePointageTechnicien` ci-dessous), cet écran liste les pointages de TOUTE l'équipe —
- * charger le document OR de CHAQUE ligne du tableau pour en tirer le numéro serait un N+1 de
- * requêtes par rendu, hors périmètre d'un correctif d'écran. Amélioration apportée SANS toucher au
- * contrat : un libellé sans ambiguïté (« OR entier » / « Ligne d'OR »), jamais l'UUID brut de
- * `ordreReparationId`/`ligneOrId` — l'affichage précédent (`libelleCiblePointageGenerique`,
- * « OR (sans ligne précise) ») laissait à tort penser qu'une donnée manquait alors que c'est
- * toujours vrai pour `productif_or`.
+ * Libellé de la cible d'un pointage, construit à partir de `ReponsePointage` SEUL — désormais
+ * possible SANS charger le document OR : le serveur peuple `ordreReparationNumero` et
+ * `ligneOrDesignation` directement sur la ressource pointage (voir le commentaire de tête de
+ * `contrats/pointage/pointage.ts`, §« Ressource — lecture »). Avant l'ajout de ces deux champs,
+ * cette fonction (alors nommée `libelleCiblePointageGenerique`) ne pouvait afficher qu'un texte
+ * générique (« OR (sans ligne précise) », « Ligne d'OR ») faute de numéro — défaut 3 constaté sur
+ * `EcranEquipePointage`, colonne « Cible » muette sur QUEL OR. Trois cas, JAMAIS un identifiant
+ * technique affiché :
+ *  - `indirect` -> le libellé de l'activité (nettoyage, pause, …) ;
+ *  - `productif_or` -> `« {numéro} — OR entier »`, ou repli générique si le numéro manque
+ *    (ne DEVRAIT pas arriver : `ordreReparationNumero` est garanti non nul dès que
+ *    `ordreReparationId` l'est — voir le contrat — mais un contrat de LECTURE reste un contrat,
+ *    pas une preuve à l'exécution ; le repli protège d'un serveur qui dévierait) ;
+ *  - `productif_ligne` -> `« {numéro} — {désignation} »` si la ligne a une désignation saisie,
+ *    `« {numéro} — Ligne d'OR »` si `ligneOrDesignation` est `null` (désignation elle-même
+ *    nullable en base, même commentaire de contrat), repli générique si même le numéro manque.
  *
- * VRAI CORRECTIF, hors périmètre de ce fichier (`apps/web/src/ecrans/pointage/**` uniquement) :
- * ajouter à `ReponsePointage` un numéro d'OR (et la désignation de ligne si `ligneOrId` non nul),
- * porté par le serveur — voir `packages/shared/src/contrats/pointage/pointage.ts` (interface
- * `ReponsePointage`, §« Ressource — lecture ») pour le contrat, et le contrôleur de liste
- * `GET /pointages` sous `apps/api/src/pointage/` pour le peuplement. Une fois ce champ ajouté,
- * cette fonction devient obsolète au profit d'un affichage direct du numéro, comme
- * `libelleCiblePointageTechnicien` le fait déjà pour l'écran technicien (qui, lui, a déjà chargé
- * le document OR complet pour d'autres besoins).
+ * Utilisée par `EcranEquipePointage` (colonne « Cible », liste de TOUTE l'équipe — plus de N+1
+ * de requêtes : la donnée voyage déjà sur `GET /pointages`) et `EcranBornePointage` (carte du
+ * pointage en cours, mode PIN partagé — même bénéfice, aucun appel réseau supplémentaire).
+ * `EcranPointageTechnicien` a sa propre variante plus riche (`libelleCiblePointageTechnicien`
+ * ci-dessous), qui a de toute façon déjà chargé le document OR complet pour d'autres besoins
+ * (liste des lignes assignées au choix de cible) ; cette fonction-ci lui sert de repli le temps
+ * que ce document arrive, ou si son nature est `indirect`.
  */
-export function libelleCibleEquipePointage(pointage: ReponsePointage, t: TFunction): string {
-  if (pointage.nature === 'indirect' && pointage.activiteIndirecte) {
-    return libelleActiviteIndirecte(pointage.activiteIndirecte, t);
+export function libelleCiblePointage(pointage: ReponsePointage, t: TFunction): string {
+  if (pointage.nature === 'indirect') {
+    return pointage.activiteIndirecte
+      ? libelleActiviteIndirecte(pointage.activiteIndirecte, t)
+      : t('pointage:natures.indirect');
   }
   if (pointage.nature === 'productif_ligne') {
-    return t('pointage:equipe.cible.ligneOr');
+    if (!pointage.ordreReparationNumero) return t('pointage:natures.productif_ligne');
+    return pointage.ligneOrDesignation
+      ? t('pointage:cible.ligne', {
+          numero: pointage.ordreReparationNumero,
+          designation: pointage.ligneOrDesignation,
+        })
+      : t('pointage:cible.ligneSansDesignation', { numero: pointage.ordreReparationNumero });
   }
-  return t('pointage:equipe.cible.orEntier');
+  return pointage.ordreReparationNumero
+    ? t('pointage:cible.or', { numero: pointage.ordreReparationNumero })
+    : t('pointage:natures.productif_or');
 }
 
 /**
- * Libellé RICHE de la cible d'un pointage, propre à `EcranPointageTechnicien` : numéro d'OR (et
- * désignation de ligne le cas échéant) plutôt que le texte générique de
- * `libelleCiblePointageGenerique` ci-dessus. `ReponsePointage` ne porte que des identifiants — ce
- * numéro/cette désignation viennent TOUJOURS de `or`, le document `ReponseOrdreReparation` déjà
- * chargé par l'écran via `useOrdreReparation(pointage.ordreReparationId)`.
+ * Libellé de la cible d'un pointage, propre à `EcranPointageTechnicien` : quand le document OR
+ * est déjà chargé (`or`, via `useOrdreReparation(pointage.ordreReparationId)` — nécessaire de
+ * toute façon pour lister les lignes assignables au choix de cible), on en tire le numéro et,
+ * pour une ligne, sa désignation EXACTE au sein de ce document (utile notamment quand `or.lignes`
+ * contient la ligne mais que sa désignation a pu changer depuis le peuplement de `ReponsePointage`
+ * — un cas marginal, mais ce document est la source la plus fraîche disponible ici). Tant que `or`
+ * n'est pas chargé, repli sur `libelleCiblePointage` ci-dessus, qui tire désormais le même
+ * numéro/désignation directement de `ReponsePointage` — plus un texte générique vide de sens.
  *
  * Correctif défaut 2 (repli après F5) : avant, l'écran ne savait retrouver ce libellé riche que
  * depuis une mémoire locale (`dernierCible`) posée au moment où LUI-MÊME démarrait le pointage —
@@ -112,7 +109,10 @@ export function libelleCibleEquipePointage(pointage: ReponsePointage, t: TFuncti
  *
  * `or` est `undefined` tant que la requête de détail n'a pas abouti (chargement, erreur, ou
  * pointage `indirect` qui n'a justement AUCUN `ordreReparationId` à résoudre) : repli sur
- * `libelleCiblePointageGenerique` dans tous ces cas, jamais un texte à moitié construit.
+ * `libelleCiblePointage` dans tous ces cas — depuis l'ajout de `ordreReparationNumero`/
+ * `ligneOrDesignation` à `ReponsePointage`, ce repli n'est PLUS un texte générique vide de sens :
+ * il affiche déjà le numéro d'OR réel (voire la désignation de ligne) pendant que ce document se
+ * charge, jamais un texte à moitié construit.
  */
 export function libelleCiblePointageTechnicien(
   pointage: ReponsePointage,
@@ -134,5 +134,5 @@ export function libelleCiblePointageTechnicien(
     // numéro d'OR seul reste plus informatif que le repli générique.
     return t('pointage:technicien.cible.or', { numero: or.numero });
   }
-  return libelleCiblePointageGenerique(pointage, t);
+  return libelleCiblePointage(pointage, t);
 }

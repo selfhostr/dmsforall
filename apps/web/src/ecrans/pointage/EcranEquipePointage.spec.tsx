@@ -33,7 +33,9 @@ const POINTAGE: ReponsePointage = {
   statut: 'termine',
   nature: 'indirect',
   ordreReparationId: null,
+  ordreReparationNumero: null,
   ligneOrId: null,
+  ligneOrDesignation: null,
   activiteIndirecte: 'nettoyage',
   source: 'ecran_atelier',
   appareilId: null,
@@ -83,7 +85,7 @@ describe('EcranEquipePointage', () => {
   });
 
   it(
-    'régression défaut 1 : affiche le numéro d’OR réel dans la colonne « Cible » — ' +
+    'régression défaut 3 : affiche le numéro d’OR réel dans la colonne « Cible » — ' +
       "jamais l'UUID brut de ordreReparationId/ligneOrId",
     async () => {
       const pointageOr: ReponsePointage = {
@@ -91,7 +93,9 @@ describe('EcranEquipePointage', () => {
         id: 'pointage-2',
         nature: 'productif_or',
         ordreReparationId: 'or-1',
+        ordreReparationNumero: 'OR-2026-77',
         ligneOrId: null,
+        ligneOrDesignation: null,
         activiteIndirecte: null,
       };
       server.use(
@@ -104,11 +108,73 @@ describe('EcranEquipePointage', () => {
 
       rendre();
 
-      // Pas de numéro d'OR dans `ReponsePointage` (contrat actuel) : au minimum, un texte sans
-      // ambiguïté et sans UUID brut (voir la limitation documentée dans
-      // `EcranEquipePointage.tsx`/`libelles.ts`, `libelleCibleEquipePointage`).
-      expect(await screen.findByText('OR entier')).toBeInTheDocument();
+      // `ReponsePointage` porte désormais `ordreReparationNumero` — la colonne « Cible » affiche
+      // le numéro d'OR RÉEL, plus seulement le texte générique « OR entier » (voir `libelles.ts`,
+      // `libelleCiblePointage`). Aucun aller-retour supplémentaire : le numéro voyage déjà sur
+      // `GET /pointages`, d'où `GET /ordres-reparation` mocké vide ci-dessus (non appelé pour
+      // cette colonne).
+      expect(await screen.findByText('OR-2026-77 — OR entier')).toBeInTheDocument();
       expect(screen.queryByText('or-1')).not.toBeInTheDocument();
+      expect(screen.queryByText('OR entier')).not.toBeInTheDocument();
+    },
+  );
+
+  it(
+    'affiche le numéro d’OR et la désignation de ligne réels quand le pointage cible une ligne ' +
+      "précise — jamais le texte générique « Ligne d'OR » quand la désignation est connue",
+    async () => {
+      const pointageLigne: ReponsePointage = {
+        ...POINTAGE,
+        id: 'pointage-3',
+        nature: 'productif_ligne',
+        ordreReparationId: 'or-2',
+        ordreReparationNumero: 'OR-2026-88',
+        ligneOrId: 'ligne-9',
+        ligneOrDesignation: 'Vidange moteur',
+        activiteIndirecte: null,
+      };
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([pointageLigne]))),
+        http.get('/api/v1/ordres-reparation', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+        ),
+      );
+
+      rendre();
+
+      expect(await screen.findByText('OR-2026-88 — Vidange moteur')).toBeInTheDocument();
+      expect(screen.queryByText("Ligne d'OR")).not.toBeInTheDocument();
+    },
+  );
+
+  it(
+    "affiche le numéro d'OR avec un repli générique quand la ligne ciblée n'a pas de désignation " +
+      'saisie (`ligneOrDesignation` nullable en base, découplé de `ligneOrId`)',
+    async () => {
+      const pointageLigneSansDesignation: ReponsePointage = {
+        ...POINTAGE,
+        id: 'pointage-4',
+        nature: 'productif_ligne',
+        ordreReparationId: 'or-3',
+        ordreReparationNumero: 'OR-2026-99',
+        ligneOrId: 'ligne-10',
+        ligneOrDesignation: null,
+        activiteIndirecte: null,
+      };
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () =>
+          HttpResponse.json(pagePointages([pointageLigneSansDesignation])),
+        ),
+        http.get('/api/v1/ordres-reparation', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+        ),
+      );
+
+      rendre();
+
+      expect(await screen.findByText("OR-2026-99 — Ligne d'OR")).toBeInTheDocument();
     },
   );
 

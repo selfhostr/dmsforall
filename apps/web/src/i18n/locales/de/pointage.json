@@ -110,6 +110,11 @@
     "productif_or": "RA (ohne genaue Arbeit)",
     "indirect": "Indirekte Tätigkeit"
   },
+  "cible": {
+    "or": "{numero} — Ganzer RA",
+    "ligne": "{numero} — {designation}",
+    "ligneSansDesignation": "{numero} — RA-Position"
+  },
   "siteRequis": {
     "titre": "Standort wählen",
     "description": "Die Zeiterfassung erfolgt für einen bestimmten Standort — wählen Sie den Standort, an dem Sie heute arbeiten.",
@@ -194,10 +199,6 @@
       "duree": "Dauer",
       "statut": "Status",
       "actions": "Aktionen"
-    },
-    "cible": {
-      "orEntier": "Ganzer RA",
-      "ligneOr": "RA-Position"
     },
     "corriger": "Korrigieren",
     "parOr": {

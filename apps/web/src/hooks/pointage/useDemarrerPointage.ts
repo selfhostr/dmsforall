@@ -77,7 +77,13 @@ export function useDemarrerPointage(): UseMutationResult<
         statut: 'en_cours',
         nature: entree.nature,
         ordreReparationId: 'ordreReparationId' in entree ? entree.ordreReparationId : null,
+        // Numéro d'OR et désignation de ligne : résolus par le serveur (jointure), inconnus du
+        // client au moment de l'envoi optimiste — `null` honnête plutôt qu'une valeur inventée,
+        // `onSuccess` écrase avec la vérité serveur dans la même respiration réseau (même patron
+        // que `technicienNomAffiche` ci-dessus).
+        ordreReparationNumero: null,
         ligneOrId: 'ligneOrId' in entree ? entree.ligneOrId : null,
+        ligneOrDesignation: null,
         activiteIndirecte: 'activiteIndirecte' in entree ? entree.activiteIndirecte : null,
         source: entree.source ?? 'ecran_atelier',
         appareilId: entree.appareilId ?? null,

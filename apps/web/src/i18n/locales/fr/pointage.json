@@ -110,6 +110,11 @@
     "productif_or": "OR (sans ligne précise)",
     "indirect": "Activité indirecte"
   },
+  "cible": {
+    "or": "{numero} — OR entier",
+    "ligne": "{numero} — {designation}",
+    "ligneSansDesignation": "{numero} — Ligne d'OR"
+  },
   "siteRequis": {
     "titre": "Choisissez un site",
     "description": "Le pointage se fait pour un site précis — sélectionnez celui où vous travaillez aujourd'hui.",
@@ -194,10 +199,6 @@
       "duree": "Durée",
       "statut": "Statut",
       "actions": "Actions"
-    },
-    "cible": {
-      "orEntier": "OR entier",
-      "ligneOr": "Ligne d'OR"
     },
     "corriger": "Corriger",
     "parOr": {

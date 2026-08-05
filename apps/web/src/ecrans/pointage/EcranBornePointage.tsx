@@ -32,7 +32,7 @@ import { genererUuid } from '@/lib/uuid';
 
 import { CartePointageEnCours } from './CartePointageEnCours';
 import { DialogueChoixCiblePointage } from './DialogueChoixCiblePointage';
-import { libelleActiviteIndirecte, libelleCiblePointageGenerique } from './libelles';
+import { libelleActiviteIndirecte, libelleCiblePointage } from './libelles';
 import { PaveNumerique } from './PaveNumerique';
 
 const LONGUEUR_PIN = 4;
@@ -521,7 +521,7 @@ export function EcranBornePointage() {
             pointageOuvert.data ? (
               <CartePointageEnCours
                 pointage={pointageOuvert.data}
-                libelleCible={libelleCiblePointageGenerique(pointageOuvert.data, t)}
+                libelleCible={libelleCiblePointage(pointageOuvert.data, t)}
                 onArreter={() => void handleArreter()}
                 onPause={
                   pointageOuvert.data.nature === 'productif_ligne' ||

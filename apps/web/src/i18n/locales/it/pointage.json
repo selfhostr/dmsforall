@@ -110,6 +110,11 @@
     "productif_or": "Ordine (senza lavoro preciso)",
     "indirect": "Attivita indiretta"
   },
+  "cible": {
+    "or": "{numero} — Ordine intero",
+    "ligne": "{numero} — {designation}",
+    "ligneSansDesignation": "{numero} — Riga d'ordine"
+  },
   "siteRequis": {
     "titre": "Scegli una sede",
     "description": "La timbratura si fa per una sede precisa — seleziona la sede in cui lavori oggi.",
@@ -194,10 +199,6 @@
       "duree": "Durata",
       "statut": "Stato",
       "actions": "Azioni"
-    },
-    "cible": {
-      "orEntier": "Ordine intero",
-      "ligneOr": "Riga d'ordine"
     },
     "corriger": "Correggi",
     "parOr": {
