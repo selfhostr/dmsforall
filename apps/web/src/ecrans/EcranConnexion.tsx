@@ -84,10 +84,13 @@ export function EcranConnexion() {
                   placeholder={t('auth:connexion.champs.email.exemple')}
                   readOnly={enCours}
                   aria-invalid={form.formState.errors.email ? true : undefined}
+                  aria-describedby={form.formState.errors.email ? 'email-erreur' : undefined}
                   {...form.register('email')}
                 />
                 {form.formState.errors.email ? (
-                  <p className="text-sm text-destructive">{t('validation:email.invalide')}</p>
+                  <p id="email-erreur" className="text-sm text-destructive">
+                    {t('validation:email.invalide')}
+                  </p>
                 ) : null}
               </div>
 
@@ -101,6 +104,9 @@ export function EcranConnexion() {
                     readOnly={enCours}
                     className="pr-11"
                     aria-invalid={form.formState.errors.motDePasse ? true : undefined}
+                    aria-describedby={
+                      form.formState.errors.motDePasse ? 'motDePasse-erreur' : undefined
+                    }
                     {...form.register('motDePasse')}
                   />
                   <button
@@ -121,7 +127,9 @@ export function EcranConnexion() {
                   </button>
                 </div>
                 {form.formState.errors.motDePasse ? (
-                  <p className="text-sm text-destructive">{t('validation:requis')}</p>
+                  <p id="motDePasse-erreur" className="text-sm text-destructive">
+                    {t('validation:requis')}
+                  </p>
                 ) : null}
               </div>
 

@@ -32,6 +32,7 @@ const VEHICULE: VehiculeResume = {
   vin: 'TMBJJ7NE5J0123456',
   premiereMiseEnCirculationLe: null,
   identificationIncomplete: false,
+  emplacementLibre: null,
 };
 
 function pageDe(donnees: readonly VehiculeResume[]): PageCurseur<VehiculeResume> {

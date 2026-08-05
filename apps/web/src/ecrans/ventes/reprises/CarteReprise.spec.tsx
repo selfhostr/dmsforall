@@ -25,6 +25,7 @@ const REPRISE: ReponseReprise = {
     vin: 'WVWZZZ1KZAP123456',
     premiereMiseEnCirculationLe: '2018-03-01',
     identificationIncomplete: false,
+    emplacementLibre: null,
   },
   statut: 'negociee',
   valeurEstimeeCentimes: 800_000,

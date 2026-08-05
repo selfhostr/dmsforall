@@ -19,6 +19,7 @@ const VEHICULE: VehiculeResume = {
   vin: 'WVGZZZ1TZ8W123456',
   premiereMiseEnCirculationLe: '2018-03-14',
   identificationIncomplete: false,
+  emplacementLibre: null,
 };
 
 const CLIENT: ClientResume = {

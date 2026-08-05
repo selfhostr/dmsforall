@@ -6,7 +6,8 @@
     "titre": "Veicoli",
     "colonnes": {
       "vehicule": "Veicolo",
-      "vin": "VIN"
+      "vin": "VIN",
+      "emplacement": "Ubicazione"
     },
     "filtres": {
       "statut": "Stato",
@@ -222,5 +223,11 @@
   },
   "badges": {
     "identificationIncomplete": "Identificazione incompleta"
+  },
+  "emplacement": {
+    "titre": "Ubicazione",
+    "vide": "Ubicazione non indicata",
+    "placeholder": "Es.: davanti, posto 3",
+    "majLe": "Annotato il {date}"
   }
 }

@@ -129,7 +129,11 @@ describe('EcranRecherche', () => {
 
     await userEvent.setup().type(screen.getByRole('combobox'), 'introuvable');
 
-    expect(await screen.findByText('Aucun résultat')).toBeInTheDocument();
+    // `{ ignore: ... }` exclut la région `aria-live` (annonce lecteur d'écran de
+    // `PanneauResultatsRecherche`, même texte que le message visible par construction).
+    expect(
+      await screen.findByText('Aucun résultat', { ignore: '[aria-live]' }),
+    ).toBeInTheDocument();
   });
 
   it('sélectionner un résultat navigue vers sa fiche', async () => {

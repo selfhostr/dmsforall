@@ -1,5 +1,6 @@
 import type {
   EntreeKilometrageVehicule,
+  EntreeModificationVehicule,
   PageCurseur,
   ReponseAvecAvertissements,
   ReponseContexteAtelier,
@@ -65,6 +66,28 @@ export async function recupererVehicule(vehiculeId: string): Promise<ReponseVehi
     throw new Error('Réponse véhicule inattendue : corps vide.');
   }
   return vehicule;
+}
+
+/**
+ * `PATCH /vehicules/{id}` (RM-26, RM-33) — données d'atelier et garanties. Depuis la migration
+ * `0044`, `EntreeModificationVehicule` porte aussi `emplacementLibre` (Lot C du plan du parc,
+ * `docs/specification-parc-et-hangar-pneus.md` §7-8) : une position DÉCLARATIVE dans le garage,
+ * texte libre, jamais un inventaire audité. Ce module ne borne pas l'usage à `emplacementLibre`
+ * seul — `useModifierEmplacementVehicule.ts` (même périmètre) est le seul appelant à ce jour, mais
+ * rien n'empêche un futur hook d'écrire d'autres champs du même endpoint.
+ */
+export async function modifierVehicule(
+  vehiculeId: string,
+  entree: EntreeModificationVehicule,
+): Promise<ReponseAvecAvertissements<ReponseVehicule>> {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseVehicule>>(
+    `/vehicules/${vehiculeId}`,
+    { method: 'PATCH', body: JSON.stringify(entree) },
+  );
+  if (!reponse) {
+    throw new Error('Réponse vide inattendue : PATCH /vehicules/{id}.');
+  }
+  return reponse;
 }
 
 /** `GET /vehicules/{id}/contexte-atelier` (§8.1) — agrégat consommé au même instant à la prise

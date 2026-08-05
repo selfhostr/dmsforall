@@ -68,6 +68,8 @@ const VEHICULE_CREE: ReponseVehicule = {
   statut: 'actif',
   motifArchivage: null,
   fusionneVersVehiculeId: null,
+  emplacementLibre: null,
+  emplacementMajLe: null,
   creeLe: '2026-08-04T08:00:00.000Z',
   modifieLe: '2026-08-04T08:00:00.000Z',
 };

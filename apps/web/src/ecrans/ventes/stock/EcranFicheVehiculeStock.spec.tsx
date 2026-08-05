@@ -35,6 +35,7 @@ const VEHICULE_STOCK: ReponseVehiculeStock = {
     vin: 'WVWZZZ1KZAW123456',
     premiereMiseEnCirculationLe: '2018-04-01',
     identificationIncomplete: false,
+    emplacementLibre: null,
   },
   provenance: 'neuf_constructeur',
   dateEntreeStock: '2026-01-15',

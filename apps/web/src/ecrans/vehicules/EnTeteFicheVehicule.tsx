@@ -5,6 +5,7 @@ import type { ReponseContexteAtelier, ReponseVehicule } from '@dfa/shared';
 import { formaterDate, formaterKilometrage } from '@/lib/formats';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { BoutonCopier } from '@/composants/vehicule/BoutonCopier';
+import { ChampEmplacementVehicule } from '@/composants/vehicule/ChampEmplacementVehicule';
 
 interface Props {
   readonly vehicule: ReponseVehicule;
@@ -60,6 +61,11 @@ export function EnTeteFicheVehicule({ vehicule, dernierKilometrage }: Props) {
           ))}
         </dl>
       ) : null}
+      <ChampEmplacementVehicule
+        vehiculeId={vehicule.id}
+        emplacement={vehicule.emplacementLibre}
+        majLe={vehicule.emplacementMajLe}
+      />
     </div>
   );
 }

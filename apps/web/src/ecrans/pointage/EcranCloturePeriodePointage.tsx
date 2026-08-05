@@ -307,13 +307,18 @@ export function EcranCloturePeriodePointage() {
                 <Textarea
                   id="deverrouiller-motif"
                   aria-invalid={formDeverrouiller.formState.errors.motif ? true : undefined}
+                  aria-describedby={
+                    formDeverrouiller.formState.errors.motif
+                      ? 'deverrouiller-motif-erreur'
+                      : undefined
+                  }
                   {...formDeverrouiller.register('motif', {
                     required: true,
                     validate: (valeur) => valeur.trim().length > 0,
                   })}
                 />
                 {formDeverrouiller.formState.errors.motif ? (
-                  <p className="texte-libelle text-destructive">
+                  <p id="deverrouiller-motif-erreur" className="texte-libelle text-destructive">
                     {t('pointage:periode.deverrouiller.motifRequis')}
                   </p>
                 ) : null}

@@ -77,6 +77,8 @@ const VEHICULE: ReponseVehicule = {
   statut: 'actif',
   motifArchivage: null,
   fusionneVersVehiculeId: null,
+  emplacementLibre: 'Devant, place 3',
+  emplacementMajLe: '2026-07-20T09:15:00.000Z',
   creeLe: '2020-01-01T00:00:00.000Z',
   modifieLe: '2026-01-01T00:00:00.000Z',
 };
@@ -395,5 +397,40 @@ describe('EcranFicheVehicule', () => {
     rendre();
     expect(await screen.findByText('Werkstattdaten')).toBeInTheDocument();
     expect(screen.getByText('Halter')).toBeInTheDocument();
+  });
+
+  // Preuve d'intégration bout en bout (migration 0044, Lot C du plan du parc) : l'en-tête
+  // (`EnTeteFicheVehicule` -> `ChampEmplacementVehicule` -> `useModifierEmplacementVehicule` ->
+  // `PATCH /vehicules/{id}`) — au-delà de la couverture unitaire déjà faite sur le composant seul
+  // (`composants/vehicule/ChampEmplacementVehicule.spec.tsx`), qui ne prouve pas que le fil est
+  // réellement câblé depuis la fiche.
+  it("modifie l'emplacement du véhicule en place depuis l'en-tête, sans quitter la fiche", async () => {
+    installerHandlersOk();
+    let corpsRecu: Record<string, unknown> | null = null;
+    server.use(
+      http.patch('/api/v1/vehicules/v1', async ({ request }) => {
+        corpsRecu = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          donnees: {
+            ...VEHICULE,
+            emplacementLibre: 'Atelier, pont 2',
+            emplacementMajLe: '2026-08-05T10:00:00.000Z',
+          },
+          avertissements: [],
+        });
+      }),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    expect(await screen.findByText('Devant, place 3')).toBeInTheDocument();
+    await utilisateur.click(screen.getByRole('button', { name: 'Modifier' }));
+    const champ = screen.getByLabelText('Emplacement');
+    await utilisateur.clear(champ);
+    await utilisateur.type(champ, 'Atelier, pont 2');
+    await utilisateur.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(corpsRecu).toEqual({ emplacementLibre: 'Atelier, pont 2' }));
+    expect(await screen.findByText('Atelier, pont 2')).toBeInTheDocument();
   });
 });

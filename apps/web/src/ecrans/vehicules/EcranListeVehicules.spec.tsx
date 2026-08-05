@@ -23,6 +23,7 @@ const VEHICULE_1: VehiculeResume = {
   vin: 'WVGZZZ1TZ8W123456',
   premiereMiseEnCirculationLe: '2018-03-14',
   identificationIncomplete: false,
+  emplacementLibre: 'Devant, place 3',
 };
 
 const VEHICULE_2: VehiculeResume = {
@@ -33,6 +34,8 @@ const VEHICULE_2: VehiculeResume = {
   vin: null,
   premiereMiseEnCirculationLe: '2021-06-01',
   identificationIncomplete: true,
+  // Emplacement jamais renseigné (RPA-03) : cas normal et fréquent, pas d'alarme dans la liste.
+  emplacementLibre: null,
 };
 
 function pageDe(
@@ -106,6 +109,9 @@ describe('EcranListeVehicules', () => {
 
     expect(await screen.findByText('WVGZZZ1TZ8W123456')).toBeInTheDocument();
     expect(screen.getByText('Renault Clio')).toBeInTheDocument();
+    // Colonne emplacement : affichée quand renseignée (VEHICULE_1), silencieusement absente sinon
+    // (VEHICULE_2, `emplacementLibre: null`) — jamais un tiret ni une alarme.
+    expect(screen.getByText('Devant, place 3')).toBeInTheDocument();
 
     await utilisateur.click(screen.getByText('VW Touran 2.0 TDI'));
     expect(await screen.findByText('PAGE_FICHE_VEHICULE')).toBeInTheDocument();

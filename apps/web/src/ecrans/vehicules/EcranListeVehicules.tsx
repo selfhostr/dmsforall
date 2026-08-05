@@ -117,6 +117,19 @@ export function EcranListeVehicules() {
           </span>
         ) : null,
     },
+    {
+      // Colonne à faible coût de lecture : `emplacementLibre` est une colonne plate de `vehicule`
+      // (VehiculeResume la porte déjà, voir @dfa/shared) — un champ vide reste un rendu vide,
+      // jamais un tiret ni une alarme (même convention que la colonne VIN ci-dessus). L'édition ne
+      // vit PAS ici : la liste reste une lecture rapide, la modification se fait sur la fiche
+      // (`ChampEmplacementVehicule`, deux clics) où le geste est réellement fait au comptoir.
+      id: 'emplacement',
+      libelle: t('vehicules:liste.colonnes.emplacement'),
+      rendu: (vehicule) =>
+        vehicule.emplacementLibre ? (
+          <span className="texte-corps text-muted-foreground">{vehicule.emplacementLibre}</span>
+        ) : null,
+    },
   ];
 
   let contenuVide: ReactNode;

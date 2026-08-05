@@ -46,6 +46,7 @@ const VEHICULE_TEST: VehiculeResume = {
   vin: null,
   premiereMiseEnCirculationLe: null,
   identificationIncomplete: false,
+  emplacementLibre: null,
 };
 
 const OR_TEST: OrdreReparationResume = {

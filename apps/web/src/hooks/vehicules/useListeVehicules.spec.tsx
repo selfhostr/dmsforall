@@ -26,6 +26,7 @@ const VEHICULE_TEST: VehiculeResume = {
   vin: 'WVWZZZ1KZAP123456',
   premiereMiseEnCirculationLe: '2020-01-01',
   identificationIncomplete: false,
+  emplacementLibre: null,
 };
 
 /**

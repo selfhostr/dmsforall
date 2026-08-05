@@ -33,6 +33,7 @@ const VEHICULE_STOCK: VehiculeStockResume = {
     vin: 'WVWZZZ1KZAW123456',
     premiereMiseEnCirculationLe: '2018-04-01',
     identificationIncomplete: false,
+    emplacementLibre: null,
   },
   provenance: 'reprise',
   typeVehicule: 'vo',

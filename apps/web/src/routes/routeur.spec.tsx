@@ -64,6 +64,7 @@ const OR_TEST: ReponseOrdreReparation = {
     vin: null,
     premiereMiseEnCirculationLe: null,
     identificationIncomplete: false,
+    emplacementLibre: null,
   },
   figees: {
     clientDesignation: 'Jean Dupont',

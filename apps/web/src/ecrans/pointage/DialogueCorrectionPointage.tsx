@@ -129,13 +129,14 @@ export function DialogueCorrectionPointage({ ouvert, onOuvertChange, pointage, o
               id="correction-motif"
               placeholder={t('pointage:correction.motifPlaceholder')}
               aria-invalid={form.formState.errors.motif ? true : undefined}
+              aria-describedby={form.formState.errors.motif ? 'correction-motif-erreur' : undefined}
               {...form.register('motif', {
                 required: true,
                 validate: (valeur) => valeur.trim().length > 0,
               })}
             />
             {form.formState.errors.motif ? (
-              <p className="texte-libelle text-destructive">
+              <p id="correction-motif-erreur" className="texte-libelle text-destructive">
                 {t('pointage:correction.motifRequis')}
               </p>
             ) : null}

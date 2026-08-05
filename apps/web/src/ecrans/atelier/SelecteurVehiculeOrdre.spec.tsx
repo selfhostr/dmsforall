@@ -18,6 +18,7 @@ const VEHICULE_1: VehiculeResume = {
   vin: 'WVGZZZ1TZ8W123456',
   premiereMiseEnCirculationLe: '2018-03-14',
   identificationIncomplete: false,
+  emplacementLibre: null,
 };
 
 const VEHICULE_2: VehiculeResume = {
@@ -28,6 +29,7 @@ const VEHICULE_2: VehiculeResume = {
   vin: null,
   premiereMiseEnCirculationLe: '2015-06-01',
   identificationIncomplete: true,
+  emplacementLibre: null,
 };
 
 function rendre(clientId = 'cl-1', onChangeValeur = vi.fn()) {
