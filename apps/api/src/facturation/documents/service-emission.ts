@@ -231,6 +231,50 @@ export class ServiceEmissionDocument {
               )
             : null;
 
+        // 3.7. BUG CORRIGÉ (MD-53, encours clients du tableau de bord) : `solde_centimes` (défaut
+        // 0 en base, migration 0010) n'était JAMAIS initialisé à l'émission — seule une imputation
+        // ultérieure l'écrivait (`facturation/paiements/imputations.ts::
+        // recalculerDocumentApresImputation`). Une facture émise puis JAMAIS payée restait donc à
+        // `solde_centimes = 0`, et `tableau-bord/service-tableau-bord-financier.ts` (qui somme
+        // `solde_centimes` des factures `emis` pour `encoursClientsCentimes`) sous-évaluait
+        // silencieusement l'encours — précisément sur les créances qu'il existe pour signaler.
+        // Posé ICI, dans la MÊME écriture que le passage `statut = 'emis'` (même doctrine que
+        // `dateEcheance`/les totaux ci-dessus, MD-20 : verrouillé dès que le statut quitte
+        // `brouillon`, donc ce doit être maintenant ou jamais dans ce service).
+        //
+        // MÊME CONVENTION que `recalculerDocumentApresImputation` (`facturation/paiements/
+        // imputations.ts`), pour rester cohérent avec la SEULE autre logique qui écrit cette
+        // colonne : `totalDocument = abs(totalTtcCentimes)`, `solde = totalDocument -
+        // montantRegleCentimes`. À l'émission, `montantRegleCentimes` vaut encore 0 (colonne par
+        // défaut, aucune imputation ne peut précéder l'émission — `chargerDocumentPourEcriture`
+        // des paiements exige un document déjà `emis`), donc `solde = totalDocument` exactement.
+        // `abs()` couvre l'AVOIR (`total_ttc_centimes <= 0` par construction, migration 0010 §9 —
+        // même doctrine que `recalculerDocumentApresImputation` et que `RF-117` plus haut dans ce
+        // fichier, qui prennent déjà tous deux `abs(totalTtcCentimes)`) : un avoir émis porte donc
+        // un solde POSITIF, qui se
+        // lit comme « part du crédit encore à rembourser/compenser », jamais un solde négatif —
+        // symétrique du solde d'une facture (« part encore due »). Uniquement pour FACTURE/AVOIR :
+        // un devis/bon de commande n'est jamais payable (RF-114/MD-50), son solde reste 0 par
+        // défaut, sans signification à lui donner ici.
+        //
+        // RÉTROACTIVITÉ — les factures déjà émises AVANT ce correctif portent `solde_centimes = 0`
+        // en base alors qu'elles ne sont pas soldées : NON corrigé par ce changement, qui n'agit
+        // qu'au PROCHAIN passage par `emettre()`. `document_vente` est verrouillée par trigger dès
+        // que `statut <> 'brouillon'` (MD-20) — mais `solde_centimes`/`statut_reglement`/
+        // `montant_regle_centimes` figurent explicitement dans la liste blanche des colonnes qui
+        // RESTENT modifiables après émission (`document_vente_verrouiller_apres_emission`,
+        // migration 0010 §7.2, citée en tête de ce service) : un rattrapage des lignes historiques
+        // est donc un `UPDATE` ordinaire, PAS une migration de schéma — mais c'est un rattrapage de
+        // DONNÉES (un script, pas une migration DDL), hors du périmètre de ce correctif de service.
+        // Signalé au rapport de livraison pour arbitrage (script de rattrapage ou action manuelle
+        // fiduciaire) plutôt que traité en silence ici.
+        const totalTtcCentimesAbs =
+          totaux.totalTtcCentimes < 0 ? -totaux.totalTtcCentimes : totaux.totalTtcCentimes;
+        const soldeInitialCentimes =
+          doc.typeDocument === 'facture' || doc.typeDocument === 'avoir'
+            ? BigInt(totalTtcCentimesAbs)
+            : undefined;
+
         const { numero, numeroSequence, exercice } = await genererNumeroDocument(
           tx,
           ctx,
@@ -271,6 +315,9 @@ export class ServiceEmissionDocument {
               totalHtCentimes: BigInt(totaux.totalHtCentimes),
               totalTvaCentimes: BigInt(totaux.totalTvaCentimes),
               totalTtcCentimes: BigInt(totaux.totalTtcCentimes),
+              ...(soldeInitialCentimes !== undefined
+                ? { soldeCentimes: soldeInitialCentimes }
+                : {}),
               ...(blocQr
                 ? {
                     qrIban: blocQr.qrIban,
