@@ -363,6 +363,59 @@ export class ServiceReservation {
     await this.ecrireLiberation(tx, ctx, reservation.id, motif, null, null);
   }
 
+  /**
+   * Issue #11 — RP-23, appelée par `ServiceTransitions.annuler` (`atelier/`) : annulation de l'OR
+   * ENTIER (T-20), à distinguer d'`annulerLignes`/`refuserLignes` qui ciblent des lignes précises.
+   * L'appelant garantit (via `piecesSortiesPourOrTx` ci-dessous, appelée AVANT le passage à
+   * `annule`) qu'aucune réservation de cet OR n'est `satisfaite` au moment de cet appel — cette
+   * méthode ne traite donc jamais que des réservations `active`, exactement comme
+   * `libererPourLigneTx`, mais pour TOUTES les lignes de l'OR en une seule requête verrouillée
+   * plutôt qu'un aller-retour par ligne. Silencieuse si aucune réservation `active` n'existe (OR
+   * sans ligne `piece`, ou déjà toutes libérées/satisfaites) — rien à libérer n'est pas une
+   * anomalie, même doctrine que `libererPourLigneTx`.
+   */
+  async libererToutesActivesPourOrTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    ordreReparationId: string,
+    motif: MotifLiberationReservation,
+  ): Promise<void> {
+    const resultat = await tx.execute<{ id: string }>(sql`
+      select r.id as "id" from public.reservation_piece r
+       where r.tenant_id = ${ctx.tenantId} and r.ordre_reparation_id = ${ordreReparationId}
+         and r.statut = 'active'
+       for update
+    `);
+    // eslint-disable-next-line no-await-in-loop -- petit lot borné (200 lignes max par OR, RP-19 :
+    // au plus une réservation par ligne, donc au plus 200 réservations à traiter ici).
+    for (const reservation of resultat.rows) {
+      await this.ecrireLiberation(tx, ctx, reservation.id, motif, null, null);
+    }
+  }
+
+  /**
+   * RM-62, appelée par `ServiceTransitions.annuler` AVANT tout changement d'état : une réservation
+   * `satisfaite` signale une pièce PHYSIQUEMENT sortie du stock pour cet OR — l'annulation de l'OR
+   * ENTIER doit être refusée dans ce cas (« aucune pièce sortie », §4.4 RM-62, garde symétrique de
+   * celles déjà posées sur les pointages ouverts et les lignes facturées). Distinct de
+   * `libererToutesActivesPourOrTx` : une réservation déjà consommée ne se « libère » pas — la
+   * remettre en stock exigerait un mouvement de retour, hors champ d'une simple annulation d'OR.
+   * Rend les paires `(reservationId, ligneOrId)` bloquantes, pour que l'appelant les combine avec
+   * ses propres blocages (pointages, factures) dans une réponse `problem+json` unique.
+   */
+  async listerPiecesSortiesPourOrTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    ordreReparationId: string,
+  ): Promise<readonly { id: string; ligneOrId: string }[]> {
+    const resultat = await tx.execute<{ id: string; ligneOrId: string }>(sql`
+      select r.id as "id", r.ligne_or_id as "ligneOrId" from public.reservation_piece r
+       where r.tenant_id = ${ctx.tenantId} and r.ordre_reparation_id = ${ordreReparationId}
+         and r.statut = 'satisfaite'
+    `);
+    return resultat.rows;
+  }
+
   /** Cœur partagé de `libererTx`/`libererPourLigneTx` : UPDATE brut, sans relecture ni
    *  avertissement — laissés à la charge de l'appelant (leur besoin diffère : `libererTx` recharge
    *  et calcule `RESERVATION_LIBEREE_OR_ACTIF`, `libererPourLigneTx` n'en a besoin d'aucun des

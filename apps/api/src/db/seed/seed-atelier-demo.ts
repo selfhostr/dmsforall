@@ -156,12 +156,18 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
       snapshot,
       horloge,
     );
+    // ServiceReservation instancié avant ServiceTransitions : ce dernier le requiert depuis
+    // la correction de l'issue #11. Ce script instancie les services à la main (jamais via
+    // NestFactory sous tsx) — chaque nouvelle dépendance du constructeur exige de mettre à
+    // jour cette liste, c'est notre contrat de compatibilité avec la vraie API.
+    const serviceReservation = new ServiceReservation(acces);
     const serviceTransitions = new ServiceTransitions(
       acces,
       evenements,
       pointage,
       horloge,
       serviceOr,
+      serviceReservation,
     );
     const calcul = new CalculLigneSimple();
     // RM-73 : port CreationTravailReporte, sixième argument de ServiceLigneOr depuis son câblage
@@ -181,13 +187,12 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
         );
       },
     };
-    // RP-21/RP-23/RP-38 : `ServiceReservation`/`ServiceConsigne` (`pieces/`), septième et huitième
-    // arguments depuis que `ServiceLigneOr` compose avec leurs variantes `*Tx` plutôt que de
-    // répliquer leur SQL (dette technique soldée). Instances RÉELLES — mêmes garanties qu'en
-    // production, `acces` déjà construit ci-dessus — jamais de doublure inerte comme
-    // `travailReporteInerte` : ces services n'ont pas de dépendance supplémentaire à assembler à la
-    // main.
-    const serviceReservation = new ServiceReservation(acces);
+    // RP-21/RP-23/RP-38 : `ServiceConsigne` (`pieces/`), huitième argument de `ServiceLigneOr`
+    // depuis composition avec leur variante `*Tx` plutôt que réplication du SQL (dette technique
+    // soldée). Instance RÉELLE — mêmes garanties qu'en production, `acces` déjà construit
+    // ci-dessus — jamais de doublure inerte comme `travailReporteInerte`.
+    // `ServiceReservation` est instancié plus haut (déjà câblée à `ServiceTransitions` depuis
+    // l'issue #11).
     const serviceConsigne = new ServiceConsigne(acces);
     const serviceLigneOr = new ServiceLigneOr(
       acces,

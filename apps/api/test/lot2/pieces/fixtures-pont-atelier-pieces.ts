@@ -285,6 +285,17 @@ export function annulerLignes(
   );
 }
 
+/** T-20 `{planifie,ouvert} -> annule` — issue #11 : annuler l'OR ENTIER (pas une ligne isolée,
+ *  `annulerLignes` ci-dessus) doit libérer toutes les réservations `active` de ses lignes pièce. */
+export function annulerOr(
+  ctx: AppTest,
+  cookie: string,
+  orId: string,
+  motif = "Annulation de test (OR entier), réservations à libérer.",
+): Promise<ReponseHttp> {
+  return poster(ctx, cookie, `/api/v1/ordres-reparation/${orId}/annuler`, { motif }, false);
+}
+
 // -------------------------------------------------------------------------------------------
 // 3. Pointage (RM-117) — SEUL chemin qui fasse passer `ligne_or.statut` `validee -> en_cours`,
 //    précondition de `marquer-realisee` (`en_cours -> realisee`, CT-28).
@@ -312,4 +323,18 @@ export function demarrerPointage(
     debutLe: new Date().toISOString(),
     ...corps,
   });
+}
+
+/** `POST /pointages/{id}/arreter` — `en_cours -> termine` (RM-116). `Idempotency-Key`
+ *  OBLIGATOIRE ICI (déviation documentée par le contrôleur lui-même) — à la différence de
+ *  `marquerRealisee`/`annulerLignes` ci-dessus. Utile pour isoler, dans un test, un blocage dû à
+ *  une pièce sortie (RM-62) d'un blocage dû à un pointage resté ouvert (I-09) : `marquerRealisee`
+ *  NE ferme PAS le pointage automatiquement. */
+export function arreterPointage(
+  ctx: AppTest,
+  cookie: string,
+  pointageId: string,
+  finLe = new Date().toISOString(),
+): Promise<ReponseHttp> {
+  return poster(ctx, cookie, `/api/v1/pointages/${pointageId}/arreter`, { finLe });
 }
