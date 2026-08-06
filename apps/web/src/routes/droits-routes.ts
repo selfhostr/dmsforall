@@ -166,3 +166,17 @@ export const ROLES_TABLEAU_BORD_ACTIVITE: readonly RoleUtilisateur[] = [
   'direction',
   'admin',
 ];
+
+/**
+ * Relances automatiques (rappels de facture impayée, lot 1) — CAS DE FIGURE 1 CI-DESSUS
+ * (protection RÉELLE de route), même raisonnement que `ROLES_PIECES`/`ROLES_VENTES`/`ROLES_PNEUS` :
+ * `relances.facturation.regle.lire` n'est accordé qu'à `direction`/`comptable`
+ * (`apps/api/src/relances/relances.controller.ts`) — la LECTURE elle-même de la configuration est
+ * fermée à tous les autres rôles, pas seulement son écriture. Même LIRE la règle d'un rappel
+ * expose une politique de recouvrement (paliers, canaux, préréglage appliqué) qu'un garage peut
+ * légitimement vouloir garder à la gouvernance/comptabilité — un `chef_atelier` ou un `vendeur` ne
+ * doit pas atteindre cet écran, contrairement à `parametrage/referentiels` plus haut où la lecture
+ * est ouverte à tous. Poser `rolesAutorises: ROLES_RELANCES` reflète donc une restriction que
+ * l'API applique déjà, ça ne l'invente pas.
+ */
+export const ROLES_RELANCES: readonly RoleUtilisateur[] = ['direction', 'comptable'];

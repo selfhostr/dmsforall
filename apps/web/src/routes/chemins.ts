@@ -161,4 +161,10 @@ export const chemins = {
      *  droit `ventes.dossier.lire` que `dossiers` ci-dessus). Même mécanique `?site=`. */
     suivi: (site?: string) => construireChemin('/ventes/suivi', { site }),
   },
+  /** Relances automatiques (rappels de facture impayée, lot 1) — singleton par TENANT, comme
+   *  `parametrage.facturation` ci-dessus : `regle_relance` n'est jamais scopée par site, donc
+   *  aucun `?site=` à conserver ici. Gardée par `rolesAutorises={ROLES_RELANCES}`
+   *  (`routes/droits-routes.ts`) : la lecture elle-même est restreinte à `direction`/`comptable`
+   *  côté API. */
+  relances: () => '/relances',
 } as const;

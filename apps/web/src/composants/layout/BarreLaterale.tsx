@@ -1,5 +1,6 @@
 import {
   AlarmClock,
+  BellRing,
   Bookmark,
   Boxes,
   Building2,
@@ -41,6 +42,7 @@ import {
   ROLES_PARAMETRAGE_PIECES,
   ROLES_PIECES,
   ROLES_PNEUS,
+  ROLES_RELANCES,
   ROLES_TABLEAU_BORD_ACTIVITE,
   ROLES_VENTES,
 } from '@/routes/droits-routes';
@@ -121,6 +123,24 @@ function classeLien({ isActive }: { readonly isActive: boolean }): string {
  * `ROLES_VENTES` suffit. Reprise et Financement n'ont pas d'entrée : ce sont des cartes intégrées
  * à la fiche dossier (design gelé §8-9), pas des écrans autonomes vers lesquels naviguer depuis ce
  * menu.
+ *
+ * « Relances » (rappels de facture impayée, lot 1) : UNE entrée autonome, PAS un groupe — le
+ * module n'expose qu'un seul écran ce lot (voir `routeur.tsx`). Placée en lien SANS groupe, juste
+ * après « Facturation » (voisinage thématique : un rappel de facture impayée est un prolongement
+ * du cycle de facturation) plutôt que rattachée au groupe « Paramétrage » : ce n'est pas un
+ * réglage qu'on configure une fois puis oublie, mais un écran consulté et actionné régulièrement
+ * (déclenchement manuel de planification/envoi). Masquage qui reflète une restriction RÉELLE côté
+ * API, même patron que « Pièces »/« Ventes » ci-dessus — `ROLES_RELANCES` (`direction`/
+ * `comptable`) est la même liste que celle qui protège la route, PAS une liste inventée pour le
+ * menu : `relances.facturation.regle.lire` ferme la lecture elle-même aux autres rôles.
+ *
+ * Libellé du lien : `navigation:liens.relances` — le fichier `relances.json` porte AUSSI une clé
+ * `navigation.lien` (posée par un lot antérieur, en prévision de cet écran), mais ce fichier
+ * (`navigation.json`) centralise déjà TOUS les autres libellés de lien de cette barre
+ * (`liens.piecesArticles`, `liens.pointageSaisie`, etc.) — choix de cohérence avec l'existant
+ * plutôt qu'un second namespace consommé par ce seul composant. `relances:navigation.lien` reste
+ * en place, inutilisé ici, plutôt que supprimé : hors du périmètre d'écriture de cet agent que de
+ * retoucher le contenu métier de `relances.json` au-delà de ce qu'exige cet écran.
  */
 export function BarreLaterale({ className }: Props) {
   const { t } = useTranslation('navigation');
@@ -170,6 +190,11 @@ export function BarreLaterale({ className }: Props) {
   // reflète la restriction RÉELLE de l'API (`ROLES_PNEUS_DEPOT_LECTURE` ferme `poste_atelier`,
   // voir `apps/api/src/pneus/droits-provisoires.ts`), pas une liste inventée pour le menu.
   const peutAccederPneus = role !== undefined && ROLES_PNEUS.includes(role);
+  // Relances (rappels de facture impayée, lot 1) — même patron que `peutAccederPieces` ci-dessus :
+  // `ROLES_RELANCES` reflète la restriction RÉELLE de l'API (`relances.facturation.regle.lire`
+  // fermé à tout rôle hors `direction`/`comptable`, voir `apps/api/src/relances/
+  // relances.controller.ts`), pas une liste inventée pour le menu.
+  const peutAccederRelances = role !== undefined && ROLES_RELANCES.includes(role);
 
   return (
     // `h-full` : résolu par le parent — `AppShell` donne à l'aside desktop une hauteur de viewport
@@ -222,6 +247,12 @@ export function BarreLaterale({ className }: Props) {
           <Receipt className="h-4 w-4" aria-hidden="true" />
           {t('navigation:liens.factures')}
         </NavLink>
+        {peutAccederRelances ? (
+          <NavLink to={chemins.relances()} className={classeLien}>
+            <BellRing className="h-4 w-4" aria-hidden="true" />
+            {t('navigation:liens.relances')}
+          </NavLink>
+        ) : null}
         <NavLink to={chemins.parametrage.referentiels()} className={classeLien}>
           <Tag className="h-4 w-4" aria-hidden="true" />
           {t('navigation:liens.parametrageReferentiels')}

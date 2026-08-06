@@ -38,6 +38,7 @@ import { EcranJournalPointage } from '@/ecrans/pointage/EcranJournalPointage';
 import { EcranPointageTechnicien } from '@/ecrans/pointage/EcranPointageTechnicien';
 import { ROLES_POINTAGE, ROLES_POINTAGE_ENCADREMENT } from '@/ecrans/pointage/droits';
 import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
+import { EcranRelances } from '@/ecrans/relances/EcranRelances';
 import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
 import { EcranTableauBord } from '@/ecrans/tableau-bord/EcranTableauBord';
 import { EcranFicheVehicule } from '@/ecrans/vehicules/EcranFicheVehicule';
@@ -57,6 +58,7 @@ import {
   ROLES_PARAMETRAGE_PIECES,
   ROLES_PIECES,
   ROLES_PNEUS,
+  ROLES_RELANCES,
   ROLES_TABLEAU_BORD_ACTIVITE,
   ROLES_VENTES,
 } from './droits-routes';
@@ -464,6 +466,23 @@ export const routesConfig: RouteObject[] = [
         element: (
           <RouteProtegee rolesAutorises={ROLES_VENTES}>
             <EcranFicheDossierVente />
+          </RouteProtegee>
+        ),
+      },
+      // Relances automatiques (rappels de facture impayée, lot 1) — SEULE route du module,
+      // sous `rolesAutorises={ROLES_RELANCES}` (`droits-routes.ts`) : `relances.facturation.
+      // regle.lire` ferme la LECTURE elle-même à tout rôle hors `direction`/`comptable`
+      // (`apps/api/src/relances/relances.controller.ts`), même raisonnement que `ROLES_PIECES`/
+      // `ROLES_VENTES`/`ROLES_PNEUS` plus haut — cette garde reflète une restriction RÉELLE, elle
+      // ne l'invente pas. Même lire la configuration d'un rappel (paliers, canaux, préréglage
+      // appliqué) expose une politique de recouvrement que ce lot réserve à la gouvernance/
+      // comptabilité, contrairement à `parametrage/referentiels` (lecture ouverte à tous, voir son
+      // propre commentaire plus haut).
+      {
+        path: 'relances',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_RELANCES}>
+            <EcranRelances />
           </RouteProtegee>
         ),
       },
