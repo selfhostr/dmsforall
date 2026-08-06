@@ -5,6 +5,7 @@ import type {
   Langue,
   ReponseEnvoiRelances,
   ReponsePlanificationRelances,
+  StatutDocumentVente,
   StatutReglementDocument,
 } from '@dfa/shared';
 
@@ -89,6 +90,13 @@ export class ServiceRelancesFacture {
 
       const maintenant = this.horloge.maintenant();
       const limite = ServiceRelancesFacture.LOT_PLANIFICATION;
+      // `d.statut = 'emis'` : même condition que l'index partiel canonique du grand livre des
+      // débiteurs (`0010_facturation.sql`, `statut = 'emis'`). Sans ce filtre, une facture
+      // `annule_par_avoir` (RF-32) — dont `statutReglement` reste `non_regle` et `dateEcheance`
+      // n'est jamais nettoyée — reste candidate et continue d'être planifiée pour une créance qui
+      // n'existe plus. Défense en profondeur : `verifierArretAutomatiqueFacture` (via
+      // `factureEligibleRelance`) applique la même règle à l'exécution, pour une relance déjà
+      // planifiée AVANT que la facture soit annulée par avoir.
       const resultat = await tx.execute<LigneFactureCandidate>(sql`
         select
           d.id::text as "id",
@@ -100,6 +108,7 @@ export class ServiceRelancesFacture {
         join public.client c on c.tenant_id = d.tenant_id and c.id = d.client_id
         where d.tenant_id = ${ctx.tenantId}
           and d.type_document = 'facture'
+          and d.statut = 'emis'
           and d.contentieux = false
           and d.statut_reglement <> 'regle'
           and d.date_echeance is not null
@@ -254,6 +263,7 @@ export class ServiceRelancesFacture {
       const resultat = await tx.execute<LigneFactureEtClientFraiche>(sql`
         select
           d.numero as "numero",
+          d.statut::text as "statut",
           d.contentieux as "contentieux",
           d.statut_reglement::text as "statutReglement",
           d.total_ttc_centimes as "totalTtcCentimes",
@@ -278,9 +288,12 @@ export class ServiceRelancesFacture {
         );
       }
 
-      // RA-08/RA-14 vérifiées À L'EXÉCUTION, pas seulement à la planification (§9 cas n°1, n°8).
+      // RA-08/RA-14 vérifiées À L'EXÉCUTION, pas seulement à la planification (§9 cas n°1, n°8) —
+      // `statut` couvre le cas d'une facture annulée par avoir (RF-32) ENTRE la planification et
+      // l'envoi : voir le commentaire de `planifier()` et de `factureEligibleRelance`.
       const arret = verifierArretAutomatiqueFacture(
         {
+          statut: infos.statut as StatutDocumentVente,
           contentieux: infos.contentieux,
           statutReglement: infos.statutReglement as StatutReglementDocument,
         },
@@ -472,6 +485,7 @@ interface LigneFactureCandidate {
 interface LigneFactureEtClientFraiche {
   readonly [cle: string]: unknown;
   readonly numero: string | null;
+  readonly statut: string;
   readonly contentieux: boolean;
   readonly statutReglement: string;
   readonly totalTtcCentimes: string | number;

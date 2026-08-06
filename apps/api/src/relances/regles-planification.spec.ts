@@ -58,16 +58,44 @@ describe('calculerPaliersDus — §4, RA-05 (déterminisme, base de l’idempote
 
 describe('factureEligibleRelance — RA-08', () => {
   it('exclut un dossier en contentieux', () => {
-    expect(factureEligibleRelance({ contentieux: true, statutReglement: 'non_regle' })).toBe(false);
+    expect(
+      factureEligibleRelance({ statut: 'emis', contentieux: true, statutReglement: 'non_regle' }),
+    ).toBe(false);
   });
 
   it('exclut un dossier réglé', () => {
-    expect(factureEligibleRelance({ contentieux: false, statutReglement: 'regle' })).toBe(false);
+    expect(
+      factureEligibleRelance({ statut: 'emis', contentieux: false, statutReglement: 'regle' }),
+    ).toBe(false);
   });
 
-  it('éligible sinon (non réglé, hors contentieux)', () => {
-    expect(factureEligibleRelance({ contentieux: false, statutReglement: 'partiel' })).toBe(true);
-    expect(factureEligibleRelance({ contentieux: false, statutReglement: null })).toBe(true);
+  it('éligible sinon (non réglé, hors contentieux, statut emis)', () => {
+    expect(
+      factureEligibleRelance({ statut: 'emis', contentieux: false, statutReglement: 'partiel' }),
+    ).toBe(true);
+    expect(
+      factureEligibleRelance({ statut: 'emis', contentieux: false, statutReglement: null }),
+    ).toBe(true);
+  });
+
+  it(
+    'exclut une facture annulée par avoir (RF-32) même si statutReglement reste non_regle — ' +
+      'l’avoir touche `statut`, jamais `statutReglement` ni `dateEcheance`',
+    () => {
+      expect(
+        factureEligibleRelance({
+          statut: 'annule_par_avoir',
+          contentieux: false,
+          statutReglement: 'non_regle',
+        }),
+      ).toBe(false);
+    },
+  );
+
+  it('exclut tout statut différent de emis (ex. annule) même hors contentieux et non réglé', () => {
+    expect(
+      factureEligibleRelance({ statut: 'annule', contentieux: false, statutReglement: 'non_regle' }),
+    ).toBe(false);
   });
 });
 
@@ -132,7 +160,7 @@ describe('verifierArretAutomatiqueFacture — RA-08/RA-14, priorité RA-14 (§9 
   it('rien ne s’oppose à l’envoi : null', () => {
     expect(
       verifierArretAutomatiqueFacture(
-        { contentieux: false, statutReglement: 'non_regle' },
+        { statut: 'emis', contentieux: false, statutReglement: 'non_regle' },
         { plusAucunContact: false },
       ),
     ).toBeNull();
@@ -141,7 +169,7 @@ describe('verifierArretAutomatiqueFacture — RA-08/RA-14, priorité RA-14 (§9 
   it('contentieux → objet_traite (§9 cas n°4)', () => {
     expect(
       verifierArretAutomatiqueFacture(
-        { contentieux: true, statutReglement: 'non_regle' },
+        { statut: 'emis', contentieux: true, statutReglement: 'non_regle' },
         { plusAucunContact: false },
       ),
     ).toEqual({ raison: 'objet_traite' });
@@ -150,7 +178,7 @@ describe('verifierArretAutomatiqueFacture — RA-08/RA-14, priorité RA-14 (§9 
   it('réglé → objet_traite (§9 cas n°1)', () => {
     expect(
       verifierArretAutomatiqueFacture(
-        { contentieux: false, statutReglement: 'regle' },
+        { statut: 'emis', contentieux: false, statutReglement: 'regle' },
         { plusAucunContact: false },
       ),
     ).toEqual({ raison: 'objet_traite' });
@@ -162,7 +190,7 @@ describe('verifierArretAutomatiqueFacture — RA-08/RA-14, priorité RA-14 (§9 
     () => {
       expect(
         verifierArretAutomatiqueFacture(
-          { contentieux: false, statutReglement: 'non_regle' },
+          { statut: 'emis', contentieux: false, statutReglement: 'non_regle' },
           { plusAucunContact: true },
         ),
       ).toEqual({ raison: 'client_ne_plus_contacter' });
@@ -175,10 +203,24 @@ describe('verifierArretAutomatiqueFacture — RA-08/RA-14, priorité RA-14 (§9 
     () => {
       expect(
         verifierArretAutomatiqueFacture(
-          { contentieux: true, statutReglement: 'regle' },
+          { statut: 'emis', contentieux: true, statutReglement: 'regle' },
           { plusAucunContact: true },
         ),
       ).toEqual({ raison: 'client_ne_plus_contacter' });
+    },
+  );
+
+  it(
+    'une facture annulée par avoir (RF-32) entre la planification et l’envoi est arrêtée à ' +
+      'objet_traite, jamais envoyée — même si statutReglement est resté non_regle (l’avoir ne ' +
+      'touche que `statut`, jamais `statutReglement` ni `dateEcheance`)',
+    () => {
+      expect(
+        verifierArretAutomatiqueFacture(
+          { statut: 'annule_par_avoir', contentieux: false, statutReglement: 'non_regle' },
+          { plusAucunContact: false },
+        ),
+      ).toEqual({ raison: 'objet_traite' });
     },
   );
 });

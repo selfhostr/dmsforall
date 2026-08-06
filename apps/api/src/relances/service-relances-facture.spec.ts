@@ -277,6 +277,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
           valeur: [
             {
               numero: 'F-1',
+              statut: 'emis',
               contentieux: false,
               statutReglement: 'regle', // ← réglé entre-temps
               totalTtcCentimes: 1000,
@@ -322,6 +323,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
           valeur: [
             {
               numero: 'F-1',
+              statut: 'emis',
               contentieux: false,
               statutReglement: 'non_regle',
               totalTtcCentimes: 1000,
@@ -367,6 +369,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
           valeur: [
             {
               numero: 'F-1',
+              statut: 'emis',
               contentieux: false,
               statutReglement: 'non_regle',
               totalTtcCentimes: 1000,
@@ -419,6 +422,7 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
           valeur: [
             {
               numero: 'F-1',
+              statut: 'emis',
               contentieux: false,
               statutReglement: 'non_regle',
               totalTtcCentimes: 1000,
