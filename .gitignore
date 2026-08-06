@@ -38,6 +38,8 @@ blob-report/
 .eslintcache
 .turbo/
 .cache/
+# Graphe de connaissances AST généré localement, volatil et volumineux
+graphify-out/
 
 # Logs
 *.log
@@ -68,3 +70,7 @@ Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
 
+# Skills tierces installées localement par `npx skills add`, modifient le comportement des agents
+.assistant/skills/*
+!.assistant/skills/frontend-design/
+# Fichier généré par `npx skills add`, lockfile d'installation locale
