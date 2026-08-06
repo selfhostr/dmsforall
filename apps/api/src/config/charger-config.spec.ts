@@ -158,3 +158,34 @@ describe('finding M4 (audit sécurité) — refus des mots de passe de dev (dfa_
     expect(() => chargerConfig(env)).not.toThrow();
   });
 });
+
+/**
+ * VERSION_APP / VERSION_APP_BRANCHE — propriété expert-devops. Le calcul de repli lui-même
+ * (`calculerVersionAppParDefaut`/`calculerBrancheParDefaut`, cas HEAD détaché, dépôt sans `.git`)
+ * est verrouillé dans `version-app.spec.ts`, avec de vrais dépôts Git temporaires — pas reproduit
+ * ici. Ce qui EST propre au schéma zod, et donc testé ici : le `.preprocess` chaîne-vide →
+ * `undefined` (même patron que SENTRY_DSN plus bas dans le schéma), et la garantie qu'une valeur
+ * explicite (cas de production : `apps/api/Dockerfile` fixe `ARG`/`ENV` au build) n'est jamais
+ * recalculée.
+ */
+describe('VERSION_APP / VERSION_APP_BRANCHE — préprocesseur zod et repli (voir version-app.ts)', () => {
+  it('valeur explicite non vide : prise telle quelle, jamais recalculée (cas production)', () => {
+    const config = chargerConfig(
+      envValide({ VERSION_APP: '0.4.2+abcdef1', VERSION_APP_BRANCHE: 'main' }),
+    );
+    expect(config.VERSION_APP).toBe('0.4.2+abcdef1');
+    expect(config.VERSION_APP_BRANCHE).toBe('main');
+  });
+
+  it("chaîne vide (ligne laissée en blanc dans .env, même patron que SENTRY_DSN) déclenche le calcul de repli — jamais une chaîne vide en sortie", () => {
+    const config = chargerConfig(envValide({ VERSION_APP: '', VERSION_APP_BRANCHE: '' }));
+    expect(config.VERSION_APP.length).toBeGreaterThan(0);
+    expect(config.VERSION_APP_BRANCHE.length).toBeGreaterThan(0);
+  });
+
+  it('absence totale des deux variables (cas courant en développement) déclenche aussi le calcul de repli, jamais un plantage', () => {
+    const config = chargerConfig(envValide());
+    expect(config.VERSION_APP.length).toBeGreaterThan(0);
+    expect(config.VERSION_APP_BRANCHE.length).toBeGreaterThan(0);
+  });
+});

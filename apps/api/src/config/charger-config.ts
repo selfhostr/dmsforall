@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { calculerBrancheParDefaut, calculerVersionAppParDefaut } from './version-app';
+
 /**
  * Jeton d'injection de la configuration validée. Toute la config transite par ce jeton —
  * aucun service ne relit `process.env` directement (seul ce fichier et `main.ts` le font).
@@ -140,7 +142,34 @@ export const schemaConfig = z
       .enum(['true', 'false'])
       .default('false')
       .transform((v) => v === 'true'),
-    VERSION_APP: z.string().default('0.0.0-dev'),
+    // Version applicative + branche exposées par `GET /sante` (pied de la barre latérale,
+    // support téléphonique : « quelle version tourne chez ce garage ? ») et par les métadonnées
+    // d'observabilité (logs JSON, release Sentry, document OpenAPI). SANS DÉFAUT STATIQUE :
+    // l'ancien `.default('0.0.0-dev')` ne bougeait plus jamais une fois copié dans un `.env` (
+    // constat réel : `VERSION_APP=0.1.0-dev` figé depuis le tout début du projet, alors même que
+    // le numéro est maintenant affiché en permanence en pied de barre latérale). `.preprocess`
+    // convertit la chaîne vide (ligne laissée en blanc dans `.env.example`/`.env`, même patron
+    // que SENTRY_DSN/SENTRY_ENVIRONMENT plus bas) en `undefined` : seul un `undefined` déclenche
+    // le calcul dynamique de repli (`calculerVersionAppParDefaut`/`calculerBrancheParDefaut`,
+    // voir version-app.ts pour le schéma de numérotation et pourquoi il ne lève jamais). Une
+    // valeur EXPLICITE — toujours le cas en production, voir `apps/api/Dockerfile` (`ARG`/`ENV`
+    // fixés au moment du build par `.github/workflows/publier-images.yml`) — est prise telle
+    // quelle, jamais recalculée : le conteneur de production n'a de toute façon pas de `.git`.
+    VERSION_APP: z.preprocess(
+      (v) => (v === '' ? undefined : v),
+      z.string().min(1).default(calculerVersionAppParDefaut),
+    ),
+    // Nom de la branche (ou du tag) qui a produit ce build — affiché à côté de VERSION_APP dans
+    // le pied de la barre latérale (ex. « main 0.1.234 »). Même mécanisme de repli que
+    // VERSION_APP ci-dessus ; voir `calculerBrancheParDefaut` (version-app.ts) pour le cas du
+    // HEAD détaché (checkout d'un tag précis), qui ne doit jamais rendre la chaîne `HEAD` telle
+    // quelle. En CI/production, la valeur vient directement du contexte GitHub Actions
+    // (`github.ref_name`) plutôt que d'une commande git — voir publier-images.yml — donc jamais
+    // de HEAD détaché non plus à ce niveau-là.
+    VERSION_APP_BRANCHE: z.preprocess(
+      (v) => (v === '' ? undefined : v),
+      z.string().min(1).default(calculerBrancheParDefaut),
+    ),
     // --- Supervision (Sentry, auto-hébergé en Suisse — décision @laupernoe, cohérence nLPD) --------
     // DSN de l'instance Sentry. OPTIONNELLE et SANS DÉFAUT : son absence ne doit JAMAIS
     // empêcher l'API de démarrer, elle désactive proprement la supervision (voir

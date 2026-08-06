@@ -32,7 +32,11 @@ export class SanteController {
   })
   @ApiOkResponse({ type: SanteDto })
   sante(): SanteDto {
-    return { statut: 'ok', version: this.config.VERSION_APP };
+    return {
+      statut: 'ok',
+      version: this.config.VERSION_APP,
+      branche: this.config.VERSION_APP_BRANCHE,
+    };
   }
 
   @Public()

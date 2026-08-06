@@ -205,8 +205,16 @@ jobs:
           - image: web
             dockerfile: apps/web/Dockerfile
     steps:
+      # `fetch-depth: 0` (historique complet), PAS le défaut de actions/checkout@v4 (1 seul
+      # commit) : l'étape "Déterminer le tag d'image et la version applicative" ci-dessous calcule
+      # VERSION_APP à partir de `git rev-list --count HEAD` (nombre total de commits, voir
+      # apps/api/src/config/version-app.ts pour le même calcul côté développement) — sur un clone
+      # superficiel, cette commande ne compterait que les commits réellement présents localement
+      # (1, toujours) au lieu du vrai total, et le correctif de version n'avancerait jamais.
       - name: Récupérer le code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # ghcr.io exige un chemin d'image strictement en minuscules ; `github.repository_owner`
       # peut contenir des majuscules (nom d'utilisateur/organisation GitHub).
@@ -220,7 +228,24 @@ jobs:
       # tag : on la fait transiter par `env:` plutôt que de l'interpoler directement dans le
       # script `run:`, pour ne pas l'exposer à une injection de commande shell (recommandation de
       # sécurité standard GitHub Actions pour toute valeur issue du contexte `github.*`).
-      - name: Déterminer le tag d'image (immuable)
+      #
+      # Cette étape calcule EN PLUS `version_app`/`version_app_branche` — les deux variables lues
+      # par le schéma zod de configuration (apps/api/src/config/charger-config.ts) et exposées par
+      # `GET /sante` (pied de la barre latérale : « main 0.1.234 »). Injectées comme build-args
+      # Docker (voir l'étape "Construire et publier l'image" plus bas) puisque le conteneur de
+      # production n'a pas de `.git` pour les calculer lui-même à l'exécution.
+      #   - VERSION_APP = MAJEUR.MINEUR du package.json racine (bump manuel, jamais recalculé
+      #     ici) + CORRECTIF = nombre total de commits (`git rev-list --count HEAD`, strictement
+      #     croissant, incrémente à CHAQUE commit) + hash court en métadonnée semver (`+abcdef1`).
+      #     Même schéma qu'en développement (`calculerVersionAppParDefaut`, version-app.ts), pour
+      #     qu'un numéro observé en production se recoupe avec le même calcul fait localement.
+      #   - VERSION_APP_BRANCHE = `github.ref_name` directement, JAMAIS une commande git — c'est
+      #     ce qui évite le piège du HEAD détaché : un checkout par tag (`actions/checkout@v4` sur
+      #     un push de tag) laisse le dépôt en HEAD détaché, où `git rev-parse --abbrev-ref HEAD`
+      #     rendrait littéralement `HEAD` (inutilisable pour le support). `github.ref_name` rend
+      #     directement `main` sur un push de branche et le tag lui-même (ex. `v0.4.2`) sur un push
+      #     de tag — jamais `HEAD`, dans les deux cas.
+      - name: Déterminer le tag d'image et la version applicative
         id: image-tag
         env:
           REF_TYPE: ${{ github.ref_type }}
@@ -233,8 +258,13 @@ jobs:
           else
             TAG="main-${SHA_COURT}"
           fi
+          MAJEUR_MINEUR=$(jq -r '.version' package.json | cut -d. -f1,2)
+          NOMBRE_COMMITS=$(git rev-list --count HEAD)
+          VERSION_APP="${MAJEUR_MINEUR}.${NOMBRE_COMMITS}+${SHA_COURT}"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "sha_court=${SHA_COURT}" >> "$GITHUB_OUTPUT"
+          echo "version_app=${VERSION_APP}" >> "$GITHUB_OUTPUT"
+          echo "version_app_branche=${REF_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Préparer Buildx
         uses: docker/setup-buildx-action@v3
@@ -275,6 +305,15 @@ jobs:
           push: true
           platforms: linux/amd64
           provenance: false
+          # VERSION_APP/VERSION_APP_BRANCHE : seule apps/api/Dockerfile déclare ces ARG (voir son
+          # commentaire) — l'image web n'en a aucun usage (sa propre version vient d'un appel à
+          # l'API au runtime, jamais d'une valeur figée au build, voir apps/web/src/hooks/
+          # useVersionApplication.ts). Les lignes ci-dessous s'évaluent à une chaîne vide pour
+          # `matrix.image == 'web'` — build-push-action ignore les lignes vides d'une liste
+          # multiligne, aucun `--build-arg` n'est alors passé à cette image.
+          build-args: |
+            ${{ matrix.image == 'api' && format('VERSION_APP={0}', steps.image-tag.outputs.version_app) || '' }}
+            ${{ matrix.image == 'api' && format('VERSION_APP_BRANCHE={0}', steps.image-tag.outputs.version_app_branche) || '' }}
           tags: |
             ${{ env.REGISTRY }}/${{ steps.repo.outputs.owner }}/dfa-${{ matrix.image }}:${{ steps.image-tag.outputs.tag }}
             ${{ env.REGISTRY }}/${{ steps.repo.outputs.owner }}/dfa-${{ matrix.image }}:sha-${{ steps.image-tag.outputs.sha_court }}

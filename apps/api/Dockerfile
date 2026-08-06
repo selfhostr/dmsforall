@@ -113,6 +113,20 @@ COPY --from=build --chown=dfa:dfa /repo/packages/shared/dist ./packages/shared/d
 COPY --from=build --chown=dfa:dfa /repo/apps/api/package.json ./apps/api/package.json
 COPY --from=build --chown=dfa:dfa /repo/apps/api/dist ./apps/api/dist
 
+# VERSION_APP / VERSION_APP_BRANCHE : le dossier .git n'existe PAS dans cette image (voir
+# apps/api/src/config/version-app.ts, qui ne calcule ces deux valeurs QUE quand elles sont
+# absentes de l'environnement — jamais le cas ici, ARG/ENV les fixent toujours). Valeurs
+# calculées et injectées par `.github/workflows/publier-images.yml` (--build-arg) au moment de
+# construire et publier l'image ; les défauts ci-dessous ne servent qu'à un `docker build` manuel
+# hors CI (repli honnête, jamais un plantage de la validation zod au démarrage). `ENV` après `ARG`
+# fige la valeur dans l'image : `docker-compose.yml` ne la répète pas (ni dans
+# `environment:`, ni dans `.env.production`/`env_file:`), donc c'est bien cette valeur figée au
+# build qui atteint le schéma zod de configuration au démarrage du conteneur.
+ARG VERSION_APP=0.0.0-image
+ENV VERSION_APP=${VERSION_APP}
+ARG VERSION_APP_BRANCHE=inconnue
+ENV VERSION_APP_BRANCHE=${VERSION_APP_BRANCHE}
+
 USER dfa
 WORKDIR /repo/apps/api
 

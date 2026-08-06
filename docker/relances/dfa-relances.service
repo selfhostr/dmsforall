@@ -1,0 +1,33 @@
+# =================================================================================================
+# dfa-relances.service — unité systemd « oneshot » exécutant declencher-relances.sh. À installer
+# manuellement sur le serveur (`/etc/systemd/system/dfa-relances.service`), PAS dans le dépôt
+# déployé tel quel — ce fichier est un GABARIT à adapter (chemins `/opt/dfa/...`), voir
+# docs/declenchement-relances-cron.md §1.
+#
+# Après copie/modification :
+#   systemctl daemon-reload
+#   systemctl start dfa-relances.service     # test manuel immédiat, ne pas attendre le timer
+#   journalctl -u dfa-relances.service -n 50 # première commande à taper en cas de doute
+# =================================================================================================
+[Unit]
+Description=DFA — déclenchement des relances de facturation (tous tenants)
+# Le service applicatif doit être joignable (Caddy termine le TLS localement, voir le script) ;
+# ne bloque cependant PAS le boot dessus, ce timer ne tourne jamais avant un démarrage complet.
+After=docker.service
+
+[Service]
+Type=oneshot
+# Jamais de secret en argument (visible via `ps aux`) : tout passe par EnvironmentFile, jamais par
+# une ligne de commande. Deux fichiers distincts, même doctrine que
+# docker/postgres/sauvegarde/sauvegarde-postgres.sh : secrets APPLICATIFS (.env.production, dont
+# WEB_URL_PUBLIQUE) séparés des secrets D'EXPLOITATION propres à ce déclencheur.
+EnvironmentFile=/opt/dfa/.env.production
+EnvironmentFile=-/opt/dfa/secrets/relances-exploitation.env
+ExecStart=/opt/dfa/docker/relances/declencher-relances.sh
+# Si TOUS les tenants échouent ou qu'au moins un échoue, le script rend un code ≠ 0 (voir son
+# commentaire de tête) : systemd marque alors ce service `failed`, visible par
+# `systemctl --failed` et par la sonde de disponibilité si elle interroge aussi l'état systemd
+# (voir §5). `OnFailure=` déclenche en plus une notification explicite, pas seulement un statut
+# passif qu'il faudrait aller consulter.
+OnFailure=dfa-relances-echec.service
+TimeoutStartSec=600
