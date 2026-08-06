@@ -38,6 +38,8 @@ function ligneClient(champs: Partial<LigneClient> = {}): LigneClient {
     groupeClientId: null,
     fusionneVersClientId: null,
     referenceExterne: null,
+    plusAucunContact: false,
+    motif: null,
     creeLe: new Date('2026-01-01T00:00:00.000Z'),
     modifieLe: new Date('2026-07-27T09:14:22.000Z'),
     ...champs,
@@ -91,6 +93,22 @@ describe('versClientResponse', () => {
   it('fusionneVersClientId est propagé tel quel', () => {
     const dto = versClientResponse(ligneClient({ fusionneVersClientId: 'c-absorbant' }), null, []);
     expect(dto.fusionneVersClientId).toBe('c-absorbant');
+  });
+
+  it('RA-14 : plusAucunContact/motif par défaut (aucun refus posé) sont false/null', () => {
+    const dto = versClientResponse(ligneClient(), null, []);
+    expect(dto.plusAucunContact).toBe(false);
+    expect(dto.motif).toBeNull();
+  });
+
+  it('RA-14 : plusAucunContact/motif sont propagés tels quels quand le refus est posé', () => {
+    const dto = versClientResponse(
+      ligneClient({ plusAucunContact: true, motif: 'Litige en cours, mandataire désigné.' }),
+      null,
+      [],
+    );
+    expect(dto.plusAucunContact).toBe(true);
+    expect(dto.motif).toBe('Litige en cours, mandataire désigné.');
   });
 
   it('notesAlerte est propagé tel quel (le filtrage nature=alerte est la responsabilité de ServiceClient, pas du mapper)', () => {

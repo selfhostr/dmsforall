@@ -55,6 +55,8 @@ export function versClientResponse(
     groupeId: ligne.groupeClientId,
     fusionneVersClientId: ligne.fusionneVersClientId,
     referenceExterne: ligne.referenceExterne,
+    plusAucunContact: ligne.plusAucunContact,
+    motif: ligne.motif,
     dernierPassageLe: dernierPassageLe ? enDate(dernierPassageLe).toISOString() : null,
     notesAlerte,
     creeLe: ligne.creeLe.toISOString(),

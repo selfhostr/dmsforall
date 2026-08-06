@@ -60,6 +60,27 @@ export const client = pgTable(
     groupeClientId: uuid('groupe_client_id'),
     fusionneVersClientId: uuid('fusionne_vers_client_id'),
     referenceExterne: text('reference_externe'),
+    /**
+     * RA-14 (migration 0045) : « arrêt de tout contact » — plus fort que tout consentement
+     * marketing (`clientConsentement` ci-dessous), lu par le job de relances AVANT tout envoi, y
+     * compris pour une facture impayée où aucun consentement marketing n'est pourtant requis.
+     * Colonnes posées par 0045, mapping Drizzle ajouté ICI (propriétaire du module clients) — la
+     * migration elle-même ne pouvait pas toucher ce fichier (hors de son périmètre d'écriture),
+     * voir l'en-tête §D de `db/migrations/0045_relances_socle.sql`. Écrites exclusivement par les
+     * deux gestes dédiés `POST /clients/{id}/arreter-contact` et `.../reprendre-contact`
+     * (`clients/service-client.ts`) — jamais par le `PATCH` générique de la fiche, au même titre
+     * que `statut` (désactivation) : un booléen à conséquence légale mérite sa propre route
+     * traçable, pas un champ parmi d'autres d'un corps `PATCH` libre.
+     */
+    plusAucunContact: boolean('plus_aucun_contact').notNull().default(false),
+    /**
+     * Motif de `plusAucunContact` — requis dès que le drapeau est posé (CHECK ci-dessous, miroir
+     * exact de `client_plus_aucun_contact_motif_chk`, 0045). Sans rapport avec `clientNote`
+     * (notes internes libres) : ce champ documente spécifiquement la décision RA-14, et reste la
+     * valeur COURANTE (pas un historique — voir `clientConsentement` pour le patron append-only,
+     * délibérément écarté ici par 0045 : « pas de table séparée pour RA-14 »).
+     */
+    motif: text('motif'),
     ...colonnesHorodatage(),
   },
   (t) => [
@@ -91,6 +112,10 @@ export const client = pgTable(
     check(
       'client_fusionne_inactif_chk',
       sql`${t.fusionneVersClientId} is null or ${t.statut} = 'inactif'`,
+    ),
+    check(
+      'client_plus_aucun_contact_motif_chk',
+      sql`not ${t.plusAucunContact} or ${t.motif} is not null`,
     ),
   ],
 );

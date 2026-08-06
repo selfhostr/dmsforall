@@ -76,6 +76,16 @@ export interface ReponseClient {
    */
   readonly fusionneVersClientId: string | null;
   readonly referenceExterne: string | null;
+  /**
+   * RA-14 (`docs/specification-relances-automatiques.md` §5) : arrêt de tout contact demandé par
+   * le client (litige, mandataire) — PAS un consentement marketing (voir `TypeConsentement`,
+   * portée disjointe). Prime sur tout consentement, y compris pour une relance de facture impayée
+   * où aucun consentement marketing n'est requis. Posé/levé par ses deux gestes dédiés
+   * (`POST /clients/{id}/arreter-contact`, `.../reprendre-contact`) — jamais par `PATCH`.
+   */
+  readonly plusAucunContact: boolean;
+  /** Motif de `plusAucunContact` — requis tant que le drapeau est posé, `null` sinon. */
+  readonly motif: string | null;
   readonly dernierPassageLe: string | null;
   /**
    * Notes de nature `alerte` UNIQUEMENT (RM-13 : « affichée en rouge à l'ouverture de la fiche,
@@ -460,6 +470,32 @@ export const schemaModificationClient = z.object({
 export const schemaDesactivationClient = z.object({ motif: schemaMotif });
 
 /**
+ * `POST /clients/{clientId}/arreter-contact` — RA-14 : pose l'arrêt de tout contact. `motif`
+ * OBLIGATOIRE, miroir exact du CHECK base `client_plus_aucun_contact_motif_chk` (migration 0045) :
+ * la validation applicative donne un message utilisable au comptoir, la base garantit l'invariant
+ * même pour un correctif direct en base. Idempotent en pratique : reposer le drapeau alors qu'il
+ * l'est déjà REMPLACE `motif` par la valeur envoyée plutôt que d'échouer — un garagiste qui affine
+ * la raison ne doit pas être bloqué par un faux conflit, la trace des deux motifs successifs reste
+ * de toute façon dans `audit_atelier` (trigger générique posé sur `client` depuis la migration
+ * 0006) — PAS encore exposée par une route API à ce jour, GAP DE CONTRAT signalé au même
+ * titre que ceux déjà notés ailleurs dans ce fichier.
+ */
+export const schemaArreterContactClient = z.object({ motif: schemaMotif });
+
+/**
+ * `POST /clients/{clientId}/reprendre-contact` — RA-14 : lève l'arrêt de tout contact. `motif`
+ * OBLIGATOIRE ici aussi (arbitrage DÉLIBÉRÉ, non forcé par la base — le CHECK `client_plus_aucun_
+ * contact_motif_chk` n'exige `motif` que quand le drapeau est VRAI) : un geste qui réautorise à
+ * recontacter un client qui avait explicitement demandé l'inverse mérite la même traçabilité « qui,
+ * quand, pourquoi » que la pose, pas moins. Efface `client.motif` en base (voir le service) : ce
+ * champ documente la raison COURANTE du drapeau, qui devient `null` une fois celui-ci levé — donc
+ * PAS l'emplacement où persister la raison de la levée elle-même. Même situation que `client.statut`
+ * (`schemaDesactivationClient` ci-dessus) : le service conserve ce motif sous forme de `client_note`
+ * (nature `interne`) plutôt que de le perdre.
+ */
+export const schemaReprendreContactClient = z.object({ motif: schemaMotif });
+
+/**
  * `POST /clients/{clientId}/fusionner` (RM-06, CT-02) — droit `direction` seul.
  *
  * `confirmationNom` reprend le NOM EXACT de la fiche absorbée : une garde SAISIE, pas une case à
@@ -475,6 +511,8 @@ export const schemaFusionClient = z
 export type EntreeCreationClient = z.infer<typeof schemaCreationClient>;
 export type EntreeModificationClient = z.infer<typeof schemaModificationClient>;
 export type EntreeDesactivationClient = z.infer<typeof schemaDesactivationClient>;
+export type EntreeArreterContactClient = z.infer<typeof schemaArreterContactClient>;
+export type EntreeReprendreContactClient = z.infer<typeof schemaReprendreContactClient>;
 export type EntreeFusionClient = z.infer<typeof schemaFusionClient>;
 export type EntreeAdresseClient = z.infer<typeof schemaAdresseClient>;
 export type EntreeContactClient = z.infer<typeof schemaContactClient>;

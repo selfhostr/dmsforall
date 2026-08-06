@@ -3,14 +3,17 @@ import { and, eq, isNull, notInArray, sql } from 'drizzle-orm';
 import type {
   ClientResume,
   ElementBloquant,
+  EntreeArreterContactClient,
   EntreeCreationClient,
   EntreeDesactivationClient,
+  EntreeReprendreContactClient,
   PageCurseur,
   ParametresDoublonsClients,
   ReponseAvecAvertissements,
   ReponseClient,
   ReponseClientNote,
   ReponseDoublonsClients,
+  RoleUtilisateur,
 } from '@dfa/shared';
 import { schemaModificationClient } from '@dfa/shared';
 
@@ -39,6 +42,7 @@ import { JETON_COMPTEURS } from '../parametrage/compteurs/compteurs.jetons';
 import type { ServiceCompteurs } from '../parametrage/compteurs/compteurs.types';
 
 import { detecterDoublons } from './detection-doublons';
+import { ROLES_CLIENT_CONTACT, verifierRoleAutorise } from './droits-provisoires';
 import { versClientResponse, versClientResume } from './mappers';
 import {
   construireConditionKeyset,
@@ -582,6 +586,92 @@ export class ServiceClient {
         clientId,
         nature: 'interne',
         texte: `Désactivation : ${entree.motif}`,
+        auteurId: ctx.utilisateurId,
+      });
+
+      const ligneMaj = await this.chargerOu404(tx, ctx, clientId);
+      const dernierPassageLe = await this.dernierPassage(tx, ctx, clientId);
+      const notesAlerte = await this.chargerNotesAlerte(tx, ctx, clientId);
+      return new CollecteurAvertissements().envelopper(
+        versClientResponse(ligneMaj, dernierPassageLe, notesAlerte),
+      );
+    });
+  }
+
+  /**
+   * RA-14 (`docs/specification-relances-automatiques.md` §5) : pose l'arrêt de tout contact.
+   * GESTE DÉDIÉ, pas un champ du `PATCH` générique — même arbitrage que `desactiver()` ci-dessus
+   * (`statut`) : un booléen à conséquence légale et commerciale (le job de relances, `relances/
+   * service-relances-facture.ts`, le lit AVANT tout envoi et le fait primer sur tout consentement
+   * marketing) mérite une route nommée, traçable dans les journaux applicatifs, plutôt qu'une clé
+   * parmi d'autres d'un corps `PATCH` libre où elle serait facile à poser par erreur.
+   *
+   * Idempotent en pratique : reposer le drapeau alors qu'il l'est déjà REMPLACE `motif` (pas
+   * d'erreur 409 — voir `schemaArreterContactClient`). `client.motif` est écrit directement (colonne
+   * dédiée, CHECK `client_plus_aucun_contact_motif_chk` en base) : QUI a posé le drapeau et QUAND
+   * sont capturés par le trigger d'audit générique déjà posé sur `client` (migration 0006,
+   * `client_audit` → `audit_atelier`), sans code supplémentaire ici.
+   *
+   * `role` : droit PROVISOIRE (voir `droits-provisoires.ts`, tête de fichier) — vérifié ICI, avant
+   * tout accès base, faute d'accès de cette tâche à `auth/matrice-droits.ts`.
+   */
+  async arreterContact(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    clientId: string,
+    entree: EntreeArreterContactClient,
+  ): Promise<ReponseAvecAvertissements<ReponseClient>> {
+    verifierRoleAutorise(role, ROLES_CLIENT_CONTACT, 'client.contact.arreter');
+    return this.acces.enTenant(ctx, async (tx) => {
+      await this.chargerOu404(tx, ctx, clientId);
+
+      await tx
+        .update(client)
+        .set({ plusAucunContact: true, motif: entree.motif })
+        .where(and(eq(client.tenantId, ctx.tenantId), eq(client.id, clientId)));
+
+      const ligneMaj = await this.chargerOu404(tx, ctx, clientId);
+      const dernierPassageLe = await this.dernierPassage(tx, ctx, clientId);
+      const notesAlerte = await this.chargerNotesAlerte(tx, ctx, clientId);
+      return new CollecteurAvertissements().envelopper(
+        versClientResponse(ligneMaj, dernierPassageLe, notesAlerte),
+      );
+    });
+  }
+
+  /**
+   * RA-14 : lève l'arrêt de tout contact — pendant symétrique de `arreterContact()` ci-dessus,
+   * jamais un simple `PATCH` pour la même raison. `client.motif` documente la raison COURANTE du
+   * drapeau (requise par le CHECK base tant qu'il est posé) : une fois `plusAucunContact` remis à
+   * `false`, ce champ est vidé — il ne peut donc pas porter la raison de LA LEVÉE elle-même.
+   * `entree.motif` (obligatoire, `schemaReprendreContactClient`) est conservé comme `client_note`
+   * de nature `interne`, MÊME PATRON que `desactiver()` ci-dessus pour le motif de désactivation :
+   * une note interne plutôt qu'un motif perdu. Idempotent, comme `arreterContact` : lever un
+   * drapeau déjà baissé n'est pas une erreur, juste un état déjà atteint.
+   *
+   * `role` : droit PROVISOIRE (voir `droits-provisoires.ts`, tête de fichier) — vérifié ICI, avant
+   * tout accès base, faute d'accès de cette tâche à `auth/matrice-droits.ts`.
+   */
+  async reprendreContact(
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    clientId: string,
+    entree: EntreeReprendreContactClient,
+  ): Promise<ReponseAvecAvertissements<ReponseClient>> {
+    verifierRoleAutorise(role, ROLES_CLIENT_CONTACT, 'client.contact.reprendre');
+    return this.acces.enTenant(ctx, async (tx) => {
+      await this.chargerOu404(tx, ctx, clientId);
+
+      await tx
+        .update(client)
+        .set({ plusAucunContact: false, motif: null })
+        .where(and(eq(client.tenantId, ctx.tenantId), eq(client.id, clientId)));
+
+      await tx.insert(clientNote).values({
+        tenantId: ctx.tenantId,
+        clientId,
+        nature: 'interne',
+        texte: `Reprise de contact autorisée (RA-14) : ${entree.motif}`,
         auteurId: ctx.utilisateurId,
       });
 

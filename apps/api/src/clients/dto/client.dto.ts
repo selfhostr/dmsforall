@@ -78,6 +78,21 @@ export class ClientDto implements ReponseClient {
   readonly referenceExterne!: string | null;
 
   @ApiProperty({
+    description:
+      'RA-14 : arrêt de tout contact demandé par le client — prime sur tout consentement ' +
+      'marketing, y compris pour une relance de facture impayée. Posé/levé par ' +
+      '`POST .../arreter-contact` et `.../reprendre-contact`, jamais par ce `PATCH`.',
+  })
+  readonly plusAucunContact!: boolean;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Motif de `plusAucunContact` — requis tant que le drapeau est posé, `null` sinon.',
+  })
+  readonly motif!: string | null;
+
+  @ApiProperty({
     type: String,
     format: 'date-time',
     nullable: true,

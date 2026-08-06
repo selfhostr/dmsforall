@@ -40,6 +40,8 @@ function ligneClient(champs: Partial<LigneClient> = {}): LigneClient {
     groupeClientId: null,
     fusionneVersClientId: null,
     referenceExterne: null,
+    plusAucunContact: false,
+    motif: null,
     creeLe: new Date('2026-01-01T00:00:00.000Z'),
     modifieLe: new Date('2026-01-01T00:00:00.000Z'),
     ...champs,
@@ -348,6 +350,167 @@ describe('ServiceClient.desactiver — refus tant que des OR ou détentions rest
     expect(setArgs).toEqual([{ statut: 'inactif' }]);
     const insertNote = insertValuesArgs.find((appel) => 'texte' in appel);
     expect(insertNote?.texte).toContain('Client parti à la concurrence');
+  });
+});
+
+describe('ServiceClient.arreterContact — RA-14, pose du refus de tout contact', () => {
+  it('rôle non autorisé (technicien) : refus 403 DROIT_INSUFFISANT AVANT tout accès base', async () => {
+    const { tx } = txFactice();
+    const acces = accesFactice(tx);
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
+
+    await expect(
+      service.arreterContact(CTX, 'technicien', 'c1', { motif: 'Client en litige.' }),
+    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT', status: 403 });
+    expect(acces.enTenant).not.toHaveBeenCalled();
+  });
+
+  it('client introuvable pour ce tenant : 404 RESSOURCE_INTROUVABLE, jamais 403', async () => {
+    const { tx } = txFactice({ selects: [[]] });
+    const acces = accesFactice(tx);
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
+
+    await expect(
+      service.arreterContact(CTX, 'receptionnaire', 'c-autre-tenant', {
+        motif: 'Client en litige.',
+      }),
+    ).rejects.toMatchObject({ code: 'RESSOURCE_INTROUVABLE', status: 404 });
+  });
+
+  it('rôle autorisé (réceptionnaire) : pose plusAucunContact=true et écrit le motif, sur la colonne dédiée', async () => {
+    const { tx, setArgs, whereArgs } = txFactice({
+      selects: [
+        [ligneClient()],
+        [ligneClient({ plusAucunContact: true, motif: 'Litige en cours, mandataire désigné.' })],
+      ],
+      executes: [{ rows: [{ dernier: null }] }],
+    });
+    const acces = accesFactice(tx);
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
+
+    const enveloppe = await service.arreterContact(CTX, 'receptionnaire', 'c1', {
+      motif: 'Litige en cours, mandataire désigné.',
+    });
+
+    expect(enveloppe.donnees.plusAucunContact).toBe(true);
+    expect(enveloppe.donnees.motif).toBe('Litige en cours, mandataire désigné.');
+    expect(setArgs).toEqual([
+      { plusAucunContact: true, motif: 'Litige en cours, mandataire désigné.' },
+    ]);
+
+    // Isolation tenant : la clause WHERE de l'UPDATE porte le tenantId du CONTEXTE.
+    const { sql: texte, params } = dialect.sqlToQuery(whereArgs[1] as SQL);
+    expect(texte).toContain('tenant_id');
+    expect(params).toContain('tid-1');
+    expect(params).toContain('c1');
+  });
+
+  it('idempotent : reposer le drapeau alors qu’il l’est déjà REMPLACE le motif, sans erreur', async () => {
+    const { tx, setArgs } = txFactice({
+      selects: [
+        [ligneClient({ plusAucunContact: true, motif: 'Ancien motif.' })],
+        [ligneClient({ plusAucunContact: true, motif: 'Motif affiné.' })],
+      ],
+      executes: [{ rows: [{ dernier: null }] }],
+    });
+    const acces = accesFactice(tx);
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
+
+    const enveloppe = await service.arreterContact(CTX, 'direction', 'c1', {
+      motif: 'Motif affiné.',
+    });
+
+    expect(enveloppe.donnees.motif).toBe('Motif affiné.');
+    expect(setArgs).toEqual([{ plusAucunContact: true, motif: 'Motif affiné.' }]);
+  });
+});
+
+describe('ServiceClient.reprendreContact — RA-14, retrait du refus de tout contact', () => {
+  it('rôle non autorisé (comptable) : refus 403 DROIT_INSUFFISANT AVANT tout accès base', async () => {
+    const { tx } = txFactice();
+    const acces = accesFactice(tx);
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
+
+    await expect(
+      service.reprendreContact(CTX, 'comptable', 'c1', { motif: 'Litige résolu.' }),
+    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT', status: 403 });
+    expect(acces.enTenant).not.toHaveBeenCalled();
+  });
+
+  it('client introuvable pour ce tenant : 404 RESSOURCE_INTROUVABLE', async () => {
+    const { tx } = txFactice({ selects: [[]] });
+    const acces = accesFactice(tx);
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
+
+    await expect(
+      service.reprendreContact(CTX, 'chef_atelier', 'c-autre-tenant', {
+        motif: 'Litige résolu.',
+      }),
+    ).rejects.toMatchObject({ code: 'RESSOURCE_INTROUVABLE', status: 404 });
+  });
+
+  it('lève le drapeau, efface client.motif (colonne = raison COURANTE) et conserve le motif de la levée en note interne', async () => {
+    const { tx, setArgs, insertValuesArgs, whereArgs } = txFactice({
+      selects: [
+        [ligneClient({ plusAucunContact: true, motif: 'Litige en cours.' })],
+        [ligneClient({ plusAucunContact: false, motif: null })],
+      ],
+      executes: [{ rows: [{ dernier: null }] }],
+    });
+    const acces = accesFactice(tx);
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(1),
+      new Horloge(),
+    );
+
+    const enveloppe = await service.reprendreContact(CTX, 'chef_atelier', 'c1', {
+      motif: 'Litige résolu, le client demande la reprise du contact.',
+    });
+
+    expect(enveloppe.donnees.plusAucunContact).toBe(false);
+    expect(enveloppe.donnees.motif).toBeNull();
+    expect(setArgs).toEqual([{ plusAucunContact: false, motif: null }]);
+
+    const insertNote = insertValuesArgs.find((appel) => 'texte' in appel);
+    expect(insertNote?.texte).toContain('Litige résolu, le client demande la reprise du contact.');
+    expect(insertNote?.nature).toBe('interne');
+
+    // Isolation tenant : la clause WHERE de l'UPDATE porte le tenantId du CONTEXTE.
+    const { sql: texte, params } = dialect.sqlToQuery(whereArgs[1] as SQL);
+    expect(texte).toContain('tenant_id');
+    expect(params).toContain('tid-1');
   });
 });
 

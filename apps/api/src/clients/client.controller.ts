@@ -23,16 +23,20 @@ import {
 } from '@nestjs/swagger';
 import type { Response } from 'express';
 import {
+  schemaArreterContactClient,
   schemaCreationClient,
   schemaDesactivationClient,
   schemaModificationClient,
+  schemaReprendreContactClient,
+  type EntreeArreterContactClient,
   type EntreeCreationClient,
   type EntreeDesactivationClient,
+  type EntreeReprendreContactClient,
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
 import { ApiCorpsZod, CorpsZod } from '../common/documentation';
-import { ExigerDroit, GardeDroit } from '../common/droits';
+import { AucunDroitRequis, ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
 import { ClientAvecAvertissementsDto, ClientDto, PageClientResumeDto } from './dto';
@@ -50,6 +54,12 @@ import { ServiceClient } from './service-client';
  * Aucun `DELETE` : un client se DÉSACTIVE (RM-12), jamais ne se supprime. La fusion (RM-06,
  * `POST /clients/{id}/fusionner`) n'est pas exposée ici — hors du périmètre demandé pour ce
  * lot d'assemblage, `schemaFusionClient` existe déjà dans le contrat gelé pour quand elle le sera.
+ *
+ * `arreter-contact`/`reprendre-contact` (RA-14) portent `@AucunDroitRequis()` + vérification de
+ * rôle EN SERVICE (`ServiceClient.arreterContact`/`.reprendreContact`, droit PROVISOIRE — voir
+ * `droits-provisoires.ts`) : `apps/api/src/auth/matrice-droits.ts` n'est pas dans le périmètre
+ * d'écriture de cette tâche. Même patron que `pneus/depot-pneus.controller.ts` avant que ses droits
+ * ne deviennent définitifs.
  */
 @ApiTags('Clients')
 @ApiCookieAuth()
@@ -210,5 +220,62 @@ export class ClientController {
   ): Promise<ClientAvecAvertissementsDto> {
     const ctx = this.contexte.contexteTenant();
     return this.serviceClient.desactiver(ctx, clientId, entree);
+  }
+
+  @Post(':clientId/arreter-contact')
+  @AucunDroitRequis()
+  @ApiOperation({
+    summary: "Pose l'arrêt de tout contact d'un client (RA-14).",
+    description:
+      'Un client peut demander à ne plus être contacté (litige, mandataire) — ce drapeau prime ' +
+      'sur tout consentement marketing, y compris pour une relance de facture impayée, où aucun ' +
+      "consentement marketing n'est pourtant requis. `motif` obligatoire. GESTE DÉDIÉ, jamais un " +
+      'champ du `PATCH` générique — même doctrine que la désactivation ci-dessus. Rôle vérifié EN ' +
+      'SERVICE (`client.contact.arreter`, droit provisoire — voir `droits-provisoires.ts`).',
+  })
+  @ApiParam({ name: 'clientId', format: 'uuid' })
+  @ApiOkResponse({ type: ClientAvecAvertissementsDto })
+  @ApiReponseProbleme(400, 'Motif manquant.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Rôle non autorisé (contrôle provisoire en service).')
+  @ApiReponseProbleme(404, 'Client introuvable pour ce tenant.')
+  async arreterContact(
+    @Param('clientId', new PipeZod(schemaUuid)) clientId: string,
+    @CorpsZod(schemaArreterContactClient, {
+      exemple: { motif: 'Client en litige avec le garage, mandataire désigné pour tout contact.' },
+    })
+    entree: EntreeArreterContactClient,
+  ): Promise<ClientAvecAvertissementsDto> {
+    const ctx = this.contexte.contexteTenant();
+    const { role } = this.contexte.exigerPrincipal();
+    return this.serviceClient.arreterContact(ctx, role, clientId, entree);
+  }
+
+  @Post(':clientId/reprendre-contact')
+  @AucunDroitRequis()
+  @ApiOperation({
+    summary: "Lève l'arrêt de tout contact d'un client (RA-14).",
+    description:
+      "Pendant symétrique de `arreter-contact` — `motif` obligatoire (traçabilité 'pourquoi', " +
+      'conservé en note interne puisque `client.motif` documente uniquement la raison COURANTE ' +
+      'du drapeau, effacée à la levée). Rôle vérifié EN SERVICE (`client.contact.reprendre`, ' +
+      'droit provisoire — voir `droits-provisoires.ts`).',
+  })
+  @ApiParam({ name: 'clientId', format: 'uuid' })
+  @ApiOkResponse({ type: ClientAvecAvertissementsDto })
+  @ApiReponseProbleme(400, 'Motif manquant.')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Rôle non autorisé (contrôle provisoire en service).')
+  @ApiReponseProbleme(404, 'Client introuvable pour ce tenant.')
+  async reprendreContact(
+    @Param('clientId', new PipeZod(schemaUuid)) clientId: string,
+    @CorpsZod(schemaReprendreContactClient, {
+      exemple: { motif: 'Litige résolu, le client a demandé la reprise du contact le 06.08.2026.' },
+    })
+    entree: EntreeReprendreContactClient,
+  ): Promise<ClientAvecAvertissementsDto> {
+    const ctx = this.contexte.contexteTenant();
+    const { role } = this.contexte.exigerPrincipal();
+    return this.serviceClient.reprendreContact(ctx, role, clientId, entree);
   }
 }
