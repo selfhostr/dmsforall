@@ -1,0 +1,24 @@
+# =================================================================================================
+# dfa-relances-chien-de-garde.timer — planification de dfa-relances-chien-de-garde.service.
+# Gabarit à copier vers /etc/systemd/system/dfa-relances-chien-de-garde.timer (à côté du .service),
+# voir docs/declenchement-relances-cron.md §5.
+#
+# Activation :
+#   systemctl daemon-reload
+#   systemctl enable --now dfa-relances-chien-de-garde.timer
+# =================================================================================================
+[Unit]
+Description=DFA — vérification quotidienne (jours ouvrés) que dfa-relances.timer tourne toujours
+
+[Timer]
+# 09:00 : 90 minutes après l'heure attendue de dfa-relances.timer (07:30 + RandomizedDelaySec), et
+# la marge de 6h codée dans chien-de-garde-relances.sh s'ajoute PAR-DESSUS cette heure de
+# vérification — la fenêtre réelle avant une alerte va donc jusqu'à ~13h30 le jour même dans le
+# pire cas, ce qui reste largement dans la même journée ouvrée. Vérifié à nouveau le jour suivant
+# si la première alerte est manquée (Persistent=true ci-dessous, comme dfa-relances.timer).
+OnCalendar=Mon..Fri *-*-* 09:00:00 Europe/Zurich
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

@@ -24,7 +24,6 @@
 #
 # Usage (systemd timer — jamais de secret en argument de commande) :
 #   EnvironmentFile=/opt/dfa/.env.production
-#   EnvironmentFile=/opt/dfa/secrets/relances-exploitation.env
 #   ExecStart=/opt/dfa/docker/relances/declencher-relances.sh
 #
 # Variables requises dans l'environnement du planificateur :
@@ -35,11 +34,12 @@
 #                            dépôt git — voir identifiants-relances.env.example à côté de ce script
 #                            pour le format exact et où le placer réellement sur le serveur.
 # Variables optionnelles :
-#   HEARTBEAT_URL_OK        pingée après un passage SANS AUCUN échec tenant (voir §5 du document).
-#   HEARTBEAT_URL_ECHEC     pingée si au moins un tenant a échoué (silence total sinon si absente —
-#                            le monitoring d'absence de ping OK suffit déjà à alerter, voir §5).
 #   LIMITE_ITERATIONS       garde-fou anti-boucle-infinie sur `encoreATraiter` (défaut 20 — largement
 #                            au-dessus de ce qu'un lot borné réaliste produit en un passage).
+#
+# Supervision : voir lib-glitchtip.sh, sourcé ci-dessous — `SENTRY_DSN` est DÉJÀ présent dans
+# `.env.production` (l'application l'utilise déjà), rien de plus à provisionner ici (§5 du
+# document).
 # =================================================================================================
 set -uo pipefail
 # PAS de `-e` ici : voir le commentaire ci-dessus, la gestion d'erreur par tenant est EXPLICITE.
@@ -47,6 +47,9 @@ set -uo pipefail
 : "${WEB_URL_PUBLIQUE:?WEB_URL_PUBLIQUE manquant — voir .env.production}"
 IDENTIFIANTS_FICHIER="${IDENTIFIANTS_FICHIER:-/opt/dfa/secrets/identifiants-relances.env}"
 LIMITE_ITERATIONS="${LIMITE_ITERATIONS:-20}"
+
+# shellcheck source=./lib-glitchtip.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib-glitchtip.sh"
 
 if [ ! -f "$IDENTIFIANTS_FICHIER" ]; then
   echo "ERREUR : fichier d'identifiants introuvable ($IDENTIFIANTS_FICHIER)." >&2
@@ -137,6 +140,11 @@ while IFS=':' read -r tenant jeton || [ -n "$tenant" ]; do
   else
     TENANTS_ECHEC=$((TENANTS_ECHEC + 1))
     RESUME+=("$tenant:echec")
+    # Signalé PAR TENANT, pas seulement en résumé global : GlitchTip regroupe les événements de
+    # message identique dans un même ISSUE (comptage d'occurrences), donc dix tenants en échec le
+    # même jour ne noient pas la boîte de réception — voir §5 du document. Un échec ponctuel
+    # (connecteur du garage X en panne) reste distinguable d'un échec systémique (tous les tenants).
+    dfa_signaler_glitchtip "relances : tenant ${tenant} en échec (planifier/envoyer) — voir journalctl -u dfa-relances.service" "error"
   fi
 done < "$IDENTIFIANTS_FICHIER"
 
@@ -144,11 +152,12 @@ HORODATAGE="$(date -Iseconds)"
 if [ "$TENANTS_ECHEC" -eq 0 ]; then
   printf 'OK %s tenants=%d %s\n' "$HORODATAGE" "$TENANTS_OK" "${RESUME[*]:-}" > "$STATUT_FICHIER"
   echo "declencher-relances.sh : $TENANTS_OK tenant(s) traité(s) sans échec ($HORODATAGE)."
-  [ -n "${HEARTBEAT_URL_OK:-}" ] && curl -fsS --max-time 10 "$HEARTBEAT_URL_OK" >/dev/null 2>&1 || true
   exit 0
 else
   printf 'ECHEC_PARTIEL %s ok=%d echec=%d %s\n' "$HORODATAGE" "$TENANTS_OK" "$TENANTS_ECHEC" "${RESUME[*]}" > "$STATUT_FICHIER"
   echo "declencher-relances.sh : $TENANTS_ECHEC tenant(s) en échec sur $((TENANTS_OK + TENANTS_ECHEC)) ($HORODATAGE)." >&2
-  [ -n "${HEARTBEAT_URL_ECHEC:-}" ] && curl -fsS --max-time 10 "$HEARTBEAT_URL_ECHEC" >/dev/null 2>&1 || true
+  # Résumé global EN PLUS des signaux par tenant ci-dessus : utile pour voir d'un coup d'œil dans
+  # GlitchTip qu'un passage était partiellement en échec, sans avoir à recompter les issues.
+  dfa_signaler_glitchtip "relances : passage en échec partiel — $TENANTS_ECHEC/$((TENANTS_OK + TENANTS_ECHEC)) tenant(s)" "error"
   exit 1
 fi
