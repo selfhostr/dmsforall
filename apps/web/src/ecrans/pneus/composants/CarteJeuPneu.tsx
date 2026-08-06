@@ -28,6 +28,7 @@ interface Props {
   readonly site?: string;
   readonly peutGerer: boolean;
   readonly onChangerSaison: (depot: ReponseDepotPneus) => void;
+  readonly onDeplacer: (depot: ReponseDepotPneus) => void;
   readonly onSortir: (depot: ReponseDepotPneus) => void;
 }
 
@@ -42,6 +43,7 @@ export function CarteJeuPneu({
   site,
   peutGerer,
   onChangerSaison,
+  onDeplacer,
   onSortir,
 }: Props) {
   const { t } = useTranslation(['pneus', 'commun']);
@@ -111,6 +113,11 @@ export function CarteJeuPneu({
               onClick={() => onChangerSaison(depot)}
             >
               {t('pneus:jeu.actions.changerSaison')}
+            </Button>
+          ) : null}
+          {peutGerer && depot.statut !== 'sorti' ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => onDeplacer(depot)}>
+              {t('pneus:jeu.actions.deplacer')}
             </Button>
           ) : null}
           {peutGerer && depot.statut !== 'sorti' ? (

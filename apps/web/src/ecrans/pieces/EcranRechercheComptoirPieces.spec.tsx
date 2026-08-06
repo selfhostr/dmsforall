@@ -141,6 +141,40 @@ describe('EcranRechercheComptoirPieces — actions de comptoir', () => {
     await waitFor(() => expect(screen.getByText('2 en stock')).toBeInTheDocument());
   });
 
+  /**
+   * Défaut corrigé (rapport de test du 06.08.2026, n°3) : le montant affiché dans « Vendre sans
+   * facture » restait figé au PRIX UNITAIRE (CHF 89.00 pour `ARTICLE`) quel que soit le nombre de
+   * pièces saisi — un magasinier pressé pouvait croire qu'il vendait 2 pièces pour le prix d'une.
+   * Le total DOIT suivre la quantité, et le prix unitaire doit rester lisible séparément.
+   */
+  it('« Vendre sans facture » : le total TTC suit la quantité saisie, le prix unitaire reste affiché à part', async () => {
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () => HttpResponse.json(resultats(3000))),
+    );
+
+    rendre('magasinier');
+    await rechercher();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Vendre sans facture' }));
+    await screen.findByText('Sortie comptoir — sans facture');
+
+    // Quantité par défaut (1) : prix unitaire et total TTC coïncident.
+    expect(screen.getByText('Prix unitaire TTC')).toBeInTheDocument();
+    expect(screen.getByText('Total TTC')).toBeInTheDocument();
+    const champQuantite = screen.getByLabelText('Quantité');
+    expect(champQuantite).toHaveValue('1');
+    const zonePrixUnitaire = screen.getByText('Prix unitaire TTC').closest('div')!;
+    const zoneTotal = screen.getByText('Total TTC').closest('div')!;
+    expect(zonePrixUnitaire).toHaveTextContent('89.00');
+    expect(zoneTotal).toHaveTextContent('89.00');
+
+    // Quantité à 2 : le total se recalcule (178.00), le prix unitaire ne bouge pas (89.00).
+    await userEvent.clear(champQuantite);
+    await userEvent.type(champQuantite, '2');
+    await waitFor(() => expect(zoneTotal).toHaveTextContent('178.00'));
+    expect(zonePrixUnitaire).toHaveTextContent('89.00');
+  });
+
   it('un refus pour stock insuffisant affiche combien il reste, pas « erreur 409 »', async () => {
     let requetesRecherche = 0;
     server.use(

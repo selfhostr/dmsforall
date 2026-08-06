@@ -412,6 +412,8 @@
       "avisSansFacture": "Questa uscita non viene fatturata: il pezzo esce dal magazzino, ma non viene creata alcuna fattura. Per una vendita fatturata, utilizzare un documento di vendita.",
       "quantite": "Quantità",
       "disponible": "{n} disponibili",
+      "prixUnitaire": "Prezzo unitario IVA inclusa",
+      "totalTtc": "Totale IVA inclusa",
       "confirmer": "Preleva il pezzo",
       "erreur": {
         "stockInsuffisant": "Scorta insufficiente: ne restano {n} disponibili."

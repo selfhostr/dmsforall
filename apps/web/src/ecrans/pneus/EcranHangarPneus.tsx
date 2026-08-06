@@ -29,6 +29,7 @@ import { chemins } from '@/routes/chemins';
 
 import { CarteJeuPneu } from './composants/CarteJeuPneu';
 import { DialogueChangerSaisonPneu } from './DialogueChangerSaisonPneu';
+import { DialogueDeplacerDepotPneu } from './DialogueDeplacerDepotPneu';
 import { DialogueNouveauDepotPneu } from './DialogueNouveauDepotPneu';
 import { DialogueSortirDepotPneu } from './DialogueSortirDepotPneu';
 import { peutGererDepotPneus } from './droits';
@@ -66,12 +67,10 @@ const STATUTS_PAR_FILTRE: Record<FiltreStatutHangar, readonly ('en_depot' | 'a_r
  * véhicule »). La recherche par plaque/client (mécanisme 1 ci-dessus), elle, enrichit exactement
  * les quelques candidats trouvés — coût borné, pas de N+1 systématique.
  *
- * GAP SIGNALÉ (API) : aucun endpoint ne permet de MODIFIER `codeCase` après la création d'un
- * dépôt (`schemaChangementSaisonDepotPneus`/`schemaSortieDepotPneus` ne portent pas ce champ) —
- * l'exigence « l'emplacement physique... doit être... modifiable simplement » n'est donc
- * réalisable qu'À LA CRÉATION (`DialogueNouveauDepotPneu`). Un `PATCH /depots-pneus/{id}` dédié
- * (codeCase, etat) comblerait ce manque ; non ajouté ici (hors périmètre d'écriture, l'API n'est
- * pas dans mon périmètre pour cette tâche).
+ * DÉFAUT CORRIGÉ (rapport de test du 06.08.2026, n°2) : `codeCase` est désormais modifiable APRÈS
+ * la création via `POST /depots-pneus/{id}/deplacer` (`DialogueDeplacerDepotPneu`, bouton
+ * « Déplacer » sur `CarteJeuPneu`) — la route existait déjà côté API, seul l'écran ne l'exposait
+ * pas. `DialogueNouveauDepotPneu` reste le seul endroit où `codeCase` se saisit À LA CRÉATION.
  */
 export function EcranHangarPneus() {
   const { t } = useTranslation(['pneus', 'commun', 'erreurs']);
@@ -92,6 +91,7 @@ export function EcranHangarPneus() {
   const [depotChangementSaison, setDepotChangementSaison] = useState<ReponseDepotPneus | null>(
     null,
   );
+  const [depotDeplacement, setDepotDeplacement] = useState<ReponseDepotPneus | null>(null);
   const [depotSortie, setDepotSortie] = useState<ReponseDepotPneus | null>(null);
   const [creationOuverte, setCreationOuverte] = useState(false);
 
@@ -223,6 +223,7 @@ export function EcranHangarPneus() {
                   site={site}
                   peutGerer={peutGerer}
                   onChangerSaison={setDepotChangementSaison}
+                  onDeplacer={setDepotDeplacement}
                   onSortir={setDepotSortie}
                 />
               ))}
@@ -323,6 +324,7 @@ export function EcranHangarPneus() {
                     site={site}
                     peutGerer={peutGerer}
                     onChangerSaison={setDepotChangementSaison}
+                    onDeplacer={setDepotDeplacement}
                     onSortir={setDepotSortie}
                   />
                 ))}
@@ -347,6 +349,10 @@ export function EcranHangarPneus() {
       <DialogueChangerSaisonPneu
         depot={depotChangementSaison}
         onFerme={() => setDepotChangementSaison(null)}
+      />
+      <DialogueDeplacerDepotPneu
+        depot={depotDeplacement}
+        onFerme={() => setDepotDeplacement(null)}
       />
       <DialogueSortirDepotPneu depot={depotSortie} onFerme={() => setDepotSortie(null)} />
       <DialogueNouveauDepotPneu

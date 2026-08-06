@@ -24,6 +24,7 @@
     "actions": {
       "voirVehicule": "Voir le véhicule",
       "changerSaison": "Changer de saison",
+      "deplacer": "Déplacer",
       "sortir": "Sortir"
     }
   },
@@ -90,6 +91,11 @@
   "changementSaison": {
     "titre": "Changer de saison",
     "description": "Le jeu \"{codeCase}\" et son jumeau (saison opposée) inversent leur statut monté/en dépôt."
+  },
+  "deplacement": {
+    "titre": "Déplacer ce jeu",
+    "description": "Repère actuel : \"{codeCase}\". Indiquez la nouvelle case.",
+    "champCodeCase": "Nouveau repère"
   },
   "sortie": {
     "titre": "Sortir ce jeu du hangar",

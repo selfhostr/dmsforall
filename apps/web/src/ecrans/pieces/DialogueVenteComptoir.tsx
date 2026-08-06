@@ -81,6 +81,19 @@ export function DialogueVenteComptoir({ ouvert, onOuvertChange, siteId, article 
   const stockInsuffisant =
     erreur instanceof ErreurApi && erreur.probleme.code === 'STOCK_INSUFFISANT';
 
+  // DÉFAUT CORRIGÉ (rapport de test du 06.08.2026, n°3) : le montant affiché ne suivait pas la
+  // quantité — c'était le PRIX UNITAIRE (`article.prixVenteTtcCentimes`), figé, sous un libellé
+  // « TTC » qui laissait croire à un total. Recalculé ICI à chaque frappe (pas seulement à la
+  // confirmation) : `quantiteInterpretee` réutilise `saisieVersQuantiteMillieme`, la même fonction
+  // que `soumettre()`, pour qu'un magasinier voie EXACTEMENT le montant qui sera soumis. Centimes
+  // entiers uniquement (RM-01) : `Math.round` sur `prix * quantiteMillieme / 1000`, jamais de
+  // flottant intermédiaire conservé au-delà de ce calcul.
+  const quantiteInterpretee = saisieVersQuantiteMillieme(quantiteSaisie);
+  const totalTtcCentimes =
+    quantiteInterpretee !== null
+      ? Math.round((article.prixVenteTtcCentimes * quantiteInterpretee) / 1000)
+      : null;
+
   function soumettre() {
     setErreurValidation(null);
     const quantite = saisieVersQuantiteMillieme(quantiteSaisie);
@@ -139,11 +152,19 @@ export function DialogueVenteComptoir({ ouvert, onOuvertChange, siteId, article 
             </span>
           </div>
 
-          <div className="flex items-center justify-between texte-corps">
-            <span className="text-muted-foreground">{t('pieces:articles.prix.ttc')}</span>
-            <span className="tabular-nums font-medium">
-              {formaterMontant(article.prixVenteTtcCentimes)}
-            </span>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between texte-libelle text-muted-foreground">
+              <span>{t('pieces:comptoirVente.vente.prixUnitaire')}</span>
+              <span className="tabular-nums">{formaterMontant(article.prixVenteTtcCentimes)}</span>
+            </div>
+            <div className="flex items-center justify-between texte-corps">
+              <span className="text-muted-foreground">
+                {t('pieces:comptoirVente.vente.totalTtc')}
+              </span>
+              <span className="tabular-nums font-medium">
+                {totalTtcCentimes !== null ? formaterMontant(totalTtcCentimes) : '—'}
+              </span>
+            </div>
           </div>
 
           {erreurValidation ? (
