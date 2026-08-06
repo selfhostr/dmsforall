@@ -6,12 +6,13 @@ import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
+import { CarteFinancement } from '@/ecrans/ventes/financements/CarteFinancement';
+import { CarteReprise } from '@/ecrans/ventes/reprises/CarteReprise';
+import { useSession } from '@/hooks/useSession';
 import { useDossierVente } from '@/hooks/ventes/dossiers/useDossierVente';
 
 import { CarteDocumentsRequis } from './CarteDocumentsRequis';
 import { CarteDocumentsVente } from './CarteDocumentsVente';
-import { CarteFinancementResume } from './CarteFinancementResume';
-import { CarteRepriseResume } from './CarteRepriseResume';
 import { DialogueModifierDossierVente } from './DialogueModifierDossierVente';
 import { EnTeteDossierVente } from './EnTeteDossierVente';
 import { PanneauActionsDossierVente } from './PanneauActionsDossierVente';
@@ -30,6 +31,16 @@ import { PanneauActionsDossierVente } from './PanneauActionsDossierVente';
  * dupliquer une seconde matrice de droits pour ce seul geste (contrairement aux transitions
  * exposées par `PanneauActionsDossierVente`, qui ont chacune leur propre droit `ventes.dossier.*`
  * mais suivent la même logique serveur).
+ *
+ * `CarteReprise`/`CarteFinancement` (branchées ici, pas leurs anciennes variantes
+ * `CarteRepriseResume`/`CarteFinancementResume` en lecture seule — supprimées, plus aucun
+ * appelant) portent elles-mêmes le masquage par rôle (`peutLireReprise`/`peutLireFinancement`,
+ * chacune dans son propre `droits.ts` sous `ecrans/ventes/{reprises,financements}/`) : un rôle
+ * sans droit de lecture ne voit STRICTEMENT RIEN de la section, pas une carte vide ni un bouton
+ * grisé. `onMutationReussie` recharge la requête PRIMAIRE de cette fiche (`requete.refetch()`) —
+ * seule source de vérité de `dossier.reprise`/`dossier.financement` embarqués ; ni `CarteReprise`
+ * ni `CarteFinancement` n'écrivent dans ce cache dossier elles-mêmes (voir l'en-tête de
+ * `hooks/ventes/reprises/useCreerReprise.ts`).
  */
 export function EcranFicheDossierVente() {
   const { t } = useTranslation(['ventes', 'commun', 'erreurs']);
@@ -37,6 +48,8 @@ export function EcranFicheDossierVente() {
   const [modificationOuverte, setModificationOuverte] = useState(false);
 
   const requete = useDossierVente(id);
+  const { data: session } = useSession();
+  const role = session?.utilisateur.role;
 
   if (requete.isPending) {
     return (
@@ -84,12 +97,21 @@ export function EcranFicheDossierVente() {
 
       <PanneauActionsDossierVente dossier={dossier} />
 
-      <CarteRepriseResume reprise={dossier.reprise} />
+      <CarteReprise
+        dossierVenteId={dossier.id}
+        possedeReprise={dossier.reprise !== null}
+        role={role}
+        onMutationReussie={() => void requete.refetch()}
+      />
 
-      <CarteFinancementResume
-        financementCourant={dossier.financement}
+      <CarteFinancement
+        dossierVenteId={dossier.id}
+        financement={dossier.financement}
         financements={dossier.financements}
         financementsTronques={dossier.financementsTronques}
+        statutDossierVente={dossier.statut}
+        role={role}
+        onMutationReussie={() => void requete.refetch()}
       />
 
       <CarteDocumentsVente

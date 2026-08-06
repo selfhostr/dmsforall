@@ -5,7 +5,13 @@ import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { DocumentVenteResume, ReponseDocumentVente, ReponseDossierVente } from '@dfa/shared';
+import type {
+  DocumentVenteResume,
+  ReponseDocumentVente,
+  ReponseDossierVente,
+  ReponseReprise,
+  VehiculeResume,
+} from '@dfa/shared';
 
 import '@/i18n';
 
@@ -175,8 +181,177 @@ describe('EcranFicheDossierVente', () => {
     expect(await screen.findByText('Jean Dupont')).toBeInTheDocument();
     expect(screen.getAllByText('Prospection').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Engager' })).toBeInTheDocument();
+    // `CarteReprise`/`CarteFinancement` (branchées ici, plus les anciennes `*Resume` en lecture
+    // seule — voir l'en-tête de `EcranFicheDossierVente.tsx`) : un dossier `prospection` sans
+    // reprise ni financement affiche l'état vide INTERACTIF de chacune, pas un simple texte —
+    // « vendeur » (rôle par défaut de `rendre()`) a le droit d'en créer une des deux.
     expect(screen.getByText('Pas de reprise sur ce dossier')).toBeInTheDocument();
-    expect(screen.getByText('Aucun financement en cours.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ajouter une reprise' })).toBeInTheDocument();
+    expect(screen.getByText('Aucune tentative de financement enregistrée.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Proposer un financement' })).toBeInTheDocument();
+  });
+
+  // RÈGLE DURE (masquage par rôle, voir le brief de branchement) : un rôle qui lit le dossier de
+  // vente (`chef_atelier` ∈ `ROLES_LECTURE_DOSSIER_VENTE`, `ecrans/ventes/dossiers/droits.ts`) mais
+  // n'a AUCUN droit `ventes.reprise.*`/`ventes.financement.*` (`chef_atelier` absent des deux
+  // matrices dédiées, `ecrans/ventes/{reprises,financements}/droits.ts`) ne doit voir NI la carte
+  // reprise NI la carte financement — pas une carte vide grisée, rien du tout :
+  // `CarteReprise`/`CarteFinancement` retournent `null` avant même d'émettre une requête.
+  it('un rôle sans droit sur reprise/financement (chef_atelier) : le dossier reste visible, ces deux cartes disparaissent', async () => {
+    server.use(http.get('/api/v1/dossiers-vente/dossier-1', () => HttpResponse.json(DOSSIER)));
+
+    rendre('chef_atelier');
+
+    expect(await screen.findByText('Jean Dupont')).toBeInTheDocument();
+    expect(screen.queryByText('Pas de reprise sur ce dossier')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ajouter une reprise' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Aucune tentative de financement enregistrée.'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Proposer un financement' }),
+    ).not.toBeInTheDocument();
+  });
+
+  // Parcours complet demandé par l'audit de branchement : depuis la fiche du dossier (pas un
+  // écran tiers non routé), saisir une reprise, la voir apparaître sur CETTE fiche. `onCree` ->
+  // `onMutationReussie` -> `requete.refetch()` (voir `EcranFicheDossierVente.tsx`) recharge le
+  // dossier PRIMAIRE, dont `dossier.reprise` embarqué passe de `null` à non-`null` : c'est cette
+  // bascule que ce test exerce, pas seulement le POST isolé (déjà couvert par
+  // `CarteReprise.spec.tsx`).
+  it('parcours reprise : créer une reprise depuis la fiche du dossier la fait apparaître sur cette même fiche', async () => {
+    const PLAQUE_VEHICULE_REPRIS = '987654';
+    const VEHICULE_REPRIS: VehiculeResume = {
+      id: '22222222-2222-4222-8222-222222222222',
+      plaque: PLAQUE_VEHICULE_REPRIS,
+      canton: 'GE',
+      designation: 'Audi A4 2.0 TDI',
+      vin: 'WAUZZZ8K9BA123456',
+      premiereMiseEnCirculationLe: '2019-06-01',
+      identificationIncomplete: false,
+      emplacementLibre: null,
+    };
+    const REPRISE_CREEE: ReponseReprise = {
+      id: 'reprise-1',
+      dossierVenteId: 'dossier-1',
+      vehiculeRepris: VEHICULE_REPRIS,
+      statut: 'estimee',
+      valeurEstimeeCentimes: 800_000,
+      valeurNegocieeCentimes: null,
+      ecartRepriseVehiculeCentimes: null,
+      detteFinancementResiduelleCentimes: null,
+      detteFinancementOrganismeId: null,
+      detteFinancementOrganismeNom: null,
+      estimeeLe: '2026-08-06T09:00:00.000Z',
+      negocieeLe: null,
+      confirmeeLe: null,
+      refuseeLe: null,
+      motifRefus: null,
+      actionsDisponibles: ['negocier', 'refuser'],
+      version: 1,
+      creeLe: '2026-08-06T09:00:00.000Z',
+      modifieLe: '2026-08-06T09:00:00.000Z',
+      modifiePar: null,
+    };
+
+    let dossierPossedeReprise = false;
+
+    server.use(
+      http.get('/api/v1/dossiers-vente/dossier-1', () =>
+        HttpResponse.json({
+          ...DOSSIER,
+          reprise: dossierPossedeReprise
+            ? {
+                id: REPRISE_CREEE.id,
+                vehiculeRepris: REPRISE_CREEE.vehiculeRepris,
+                statut: REPRISE_CREEE.statut,
+                valeurEstimeeCentimes: REPRISE_CREEE.valeurEstimeeCentimes,
+                valeurNegocieeCentimes: REPRISE_CREEE.valeurNegocieeCentimes,
+                ecartRepriseVehiculeCentimes: REPRISE_CREEE.ecartRepriseVehiculeCentimes,
+              }
+            : null,
+        }),
+      ),
+      http.get('/api/v1/vehicules', () =>
+        HttpResponse.json({ donnees: [VEHICULE_REPRIS], curseurSuivant: null, limite: 50 }),
+      ),
+      http.get('/api/v1/dossiers-vente/dossier-1/reprise', () => HttpResponse.json(REPRISE_CREEE)),
+      http.post('/api/v1/dossiers-vente/dossier-1/reprise', () => {
+        dossierPossedeReprise = true;
+        return HttpResponse.json({ donnees: REPRISE_CREEE, avertissements: [] });
+      }),
+    );
+
+    rendre();
+    const utilisateur = userEvent.setup();
+
+    await utilisateur.click(await screen.findByRole('button', { name: 'Ajouter une reprise' }));
+    await utilisateur.type(screen.getByLabelText(/Véhicule repris/), PLAQUE_VEHICULE_REPRIS);
+    await utilisateur.click(await screen.findByRole('radio'));
+    await utilisateur.type(screen.getByLabelText(/Valeur estimée/), '8000');
+    await utilisateur.click(screen.getByRole('button', { name: 'Ajouter la reprise' }));
+
+    // Le dossier PRIMAIRE a été rechargé : `dossier.reprise` n'est plus `null`, `CarteReprise`
+    // bascule de son état vide à sa fiche complète (nouvelle requête `GET .../reprise`).
+    await waitFor(() =>
+      expect(screen.queryByText('Pas de reprise sur ce dossier')).not.toBeInTheDocument(),
+    );
+    expect(await screen.findByText('Audi A4 2.0 TDI')).toBeInTheDocument();
+    expect(screen.getByText('Estimée')).toBeInTheDocument();
+  });
+
+  // Même préoccupation côté financement — `comptant` évite la recherche d'organisme (hors sujet
+  // ici) et se confirme immédiatement côté serveur.
+  it('parcours financement : proposer un financement comptant depuis la fiche du dossier le fait apparaître sur cette même fiche', async () => {
+    let dossierAvecFinancement = false;
+    const FINANCEMENT_CREE = {
+      id: 'financement-1',
+      type: 'comptant' as const,
+      organisme: null,
+      statutConfirmation: 'confirme' as const,
+    };
+
+    server.use(
+      http.get('/api/v1/dossiers-vente/dossier-1', () =>
+        HttpResponse.json({
+          ...DOSSIER,
+          financement: dossierAvecFinancement ? FINANCEMENT_CREE : null,
+          financements: dossierAvecFinancement ? [FINANCEMENT_CREE] : [],
+        }),
+      ),
+      http.post('/api/v1/dossiers-vente/dossier-1/financements', () => {
+        dossierAvecFinancement = true;
+        return HttpResponse.json({
+          donnees: {
+            ...FINANCEMENT_CREE,
+            dossierVenteId: 'dossier-1',
+            referenceContrat: null,
+            confirmeLe: '2026-08-06T09:00:00.000Z',
+            refuseLe: null,
+            motifRefus: null,
+            actionsDisponibles: [],
+            version: 1,
+            creeLe: '2026-08-06T09:00:00.000Z',
+            modifieLe: '2026-08-06T09:00:00.000Z',
+          },
+          avertissements: [],
+        });
+      }),
+    );
+
+    rendre();
+    const utilisateur = userEvent.setup();
+
+    await utilisateur.click(await screen.findByRole('button', { name: 'Proposer un financement' }));
+    await utilisateur.click(await screen.findByRole('button', { name: 'Proposer' }));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Aucune tentative de financement enregistrée.'),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.getAllByText('Comptant').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Confirmé').length).toBeGreaterThan(0);
   });
 
   it('état erreur : message actionnable avec retry', async () => {

@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -139,5 +139,163 @@ describe('CarteFinancement', () => {
     // Le dialog reste ouvert — l'erreur est visible DANS le dialog (§4 du design), jamais après
     // fermeture.
     expect(screen.getByRole('button', { name: 'Proposer' })).toBeInTheDocument();
+  });
+
+  // Parcours « créer » complet (comptant, sans organisme requis) — même préoccupation que le test
+  // de création de `CarteReprise.spec.tsx` : prouver le câblage jusqu'ici jamais exercé sur un
+  // écran routé (`CarteFinancement` n'était monté nulle part avant le branchement dans
+  // `EcranFicheDossierVente`).
+  it('propose un financement comptant : POST avec le bon corps puis fermeture', async () => {
+    const onMutationReussie = vi.fn();
+    let corpsRecu: Record<string, unknown> | undefined;
+
+    server.use(
+      http.post('/api/v1/dossiers-vente/:id/financements', async ({ request }) => {
+        corpsRecu = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          donnees: {
+            id: 'financement-comptant-1',
+            dossierVenteId: 'dossier-1',
+            type: 'comptant',
+            organisme: null,
+            referenceContrat: null,
+            statutConfirmation: 'confirme',
+            confirmeLe: '2026-08-06T09:00:00.000Z',
+            refuseLe: null,
+            motifRefus: null,
+            actionsDisponibles: [],
+            version: 1,
+            creeLe: '2026-08-06T09:00:00.000Z',
+            modifieLe: '2026-08-06T09:00:00.000Z',
+          },
+          avertissements: [],
+        });
+      }),
+    );
+
+    const utilisateur = userEvent.setup();
+    rendre(
+      <CarteFinancement
+        dossierVenteId="dossier-1"
+        financement={null}
+        financements={[]}
+        financementsTronques={false}
+        statutDossierVente="prospection"
+        role="vendeur"
+        onMutationReussie={onMutationReussie}
+      />,
+    );
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Proposer un financement' }));
+    await utilisateur.click(await screen.findByRole('button', { name: 'Proposer' }));
+
+    await waitFor(() => expect(corpsRecu).toBeDefined());
+    expect(corpsRecu).toMatchObject({ type: 'comptant', organismeId: null });
+    await waitFor(() => expect(onMutationReussie).toHaveBeenCalled());
+    expect(
+      screen.queryByRole('dialog', { name: 'Proposer un financement' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('confirme un financement en attente : POST confirmer, callbacks appelés', async () => {
+    const onMutationReussie = vi.fn();
+
+    server.use(
+      http.post('/api/v1/dossiers-vente/:id/financements/:financementId/confirmer', () =>
+        HttpResponse.json({
+          donnees: {
+            ...FINANCEMENT_COURANT,
+            statutConfirmation: 'confirme',
+            confirmeLe: '2026-08-06T09:00:00.000Z',
+          },
+          avertissements: [],
+        }),
+      ),
+    );
+
+    const utilisateur = userEvent.setup();
+    rendre(
+      <CarteFinancement
+        dossierVenteId="dossier-1"
+        financement={FINANCEMENT_COURANT}
+        financements={[FINANCEMENT_COURANT]}
+        financementsTronques={false}
+        statutDossierVente="engage"
+        role="vendeur"
+        onMutationReussie={onMutationReussie}
+      />,
+    );
+
+    // « Confirmer » ouvre le dialog de confirmation, qui porte SON PROPRE bouton « Confirmer »
+    // dans le pied de page — `within(dialog)` lève l'ambiguïté plutôt que de compter les index.
+    await utilisateur.click(screen.getByRole('button', { name: 'Confirmer' }));
+    const dialogue = await screen.findByRole('dialog', { name: 'Confirmer ce financement' });
+    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Confirmer' }));
+
+    await waitFor(() => expect(onMutationReussie).toHaveBeenCalled());
+  });
+
+  it('refuse un financement en attente : le motif reste affiché après refus', async () => {
+    server.use(
+      http.post('/api/v1/dossiers-vente/:id/financements/:financementId/refuser', () =>
+        HttpResponse.json({
+          donnees: {
+            ...FINANCEMENT_COURANT,
+            statutConfirmation: 'refuse',
+            refuseLe: '2026-08-06T09:00:00.000Z',
+            motifRefus: 'Dossier de solvabilité incomplet',
+          },
+          avertissements: [],
+        }),
+      ),
+    );
+
+    const utilisateur = userEvent.setup();
+    rendre(
+      <CarteFinancement
+        dossierVenteId="dossier-1"
+        financement={FINANCEMENT_COURANT}
+        financements={[FINANCEMENT_COURANT]}
+        financementsTronques={false}
+        statutDossierVente="engage"
+        role="vendeur"
+      />,
+    );
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Refuser' }));
+    // Le dialog porte SON PROPRE bouton « Confirmer » dans le pied de page, distinct du bouton
+    // « Confirmer » resté visible dans la rangée d'actions sous le dialog — `within` lève
+    // l'ambiguïté.
+    const dialogue = await screen.findByRole('dialog', { name: 'Refuser ce financement' });
+    await utilisateur.type(
+      within(dialogue).getByLabelText('Motif du refus'),
+      'Dossier de solvabilité incomplet',
+    );
+    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Confirmer' }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('Motif du refus : Dossier de solvabilité incomplet'),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  // RÈGLE DURE (masquage par rôle) : un rôle qui ne détient ni `ventes.financement.confirmer` ni
+  // `ventes.financement.refuser` (`receptionnaire`, lecture seule sur ce sous-domaine) ne doit voir
+  // AUCUN des deux boutons, pas un bouton grisé.
+  it('un rôle en lecture seule (receptionnaire) ne voit aucune action sur un financement en attente', () => {
+    rendre(
+      <CarteFinancement
+        dossierVenteId="dossier-1"
+        financement={FINANCEMENT_COURANT}
+        financements={[FINANCEMENT_COURANT]}
+        financementsTronques={false}
+        statutDossierVente="engage"
+        role="receptionnaire"
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Confirmer' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Refuser' })).not.toBeInTheDocument();
   });
 });
