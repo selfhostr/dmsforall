@@ -1,3 +1,4 @@
+import { remonterCausePg } from '../../common/erreurs-pg';
 import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 
 /**
@@ -19,10 +20,11 @@ import { ErreurMetier } from '../../common/erreurs/erreur-metier';
  * une `DrizzleQueryError` qui porte la brute sous `.cause` — jamais `code`/`table`/`detail`/`hint`
  * en surface. Sans déballer `.cause`, aucun des trois traducteurs ci-dessous ne reconnaît jamais
  * rien et tout retombe en `ERREUR_INTERNE`/500 (constaté : modifier une facture émise, ou émettre
- * sur une période close, ressortaient en 500 avant ce correctif). `remonterCauseErreurPg` déballe
- * donc la chaîne, bornée pour ne jamais boucler à l'infini sur un `cause` cyclique pathologique —
- * même patron que `vehicules/erreurs-contraintes.ts::remonterCause` et
- * `common/avertissements/traducteur-erreur-transition-sql.ts::trouverCauseZdfa1`.
+ * sur une période close, ressortaient en 500 avant ce correctif). Le déballage lui-même est
+ * factorisé dans `common/erreurs-pg/remonter-cause-pg.ts::remonterCausePg` (même patron que
+ * `vehicules/erreurs-contraintes.ts::remonterCause`) — ce fichier ne fait qu'étendre localement la
+ * forme rendue (`table`, `hint`, en plus de `code`/`detail`) via un cast, la structure réelle de
+ * l'objet `pg` portant bien ces champs au runtime même si le type partagé ne les déclare pas.
  */
 
 interface ErreurPgBrute {
@@ -33,10 +35,6 @@ interface ErreurPgBrute {
   readonly cause?: unknown;
 }
 
-/** Profondeur maximale de déballage de `.cause` — Drizzle n'enveloppe qu'une seule fois en
- *  pratique, mais bornée pour ne jamais risquer une boucle infinie sur une chaîne cyclique. */
-const PROFONDEUR_MAX_CAUSE = 10;
-
 /**
  * Rend la première erreur de la chaîne `.cause` (elle-même incluse) qui porte un `code` (SQLSTATE)
  * en chaîne de caractères, ou `null` si aucune n'en porte un — que la chaîne soit vide (erreur
@@ -44,18 +42,7 @@ const PROFONDEUR_MAX_CAUSE = 10;
  * objet) ou qu'elle contienne une `DrizzleQueryError` (cas réel en production).
  */
 function remonterCauseErreurPg(erreur: unknown): ErreurPgBrute | null {
-  let courante: unknown = erreur;
-  for (let profondeur = 0; profondeur < PROFONDEUR_MAX_CAUSE; profondeur += 1) {
-    if (typeof courante !== 'object' || courante === null) {
-      return null;
-    }
-    const brute = courante as ErreurPgBrute;
-    if (typeof brute.code === 'string') {
-      return brute;
-    }
-    courante = brute.cause;
-  }
-  return null;
+  return remonterCausePg(erreur) as ErreurPgBrute | null;
 }
 
 const MOTIF_HINT_TERMINAL = /^«[^»]*»\s+est un état terminal/;

@@ -124,6 +124,36 @@ function decoderCurseurSousCollection(curseur: string): {
 }
 
 /**
+ * Assemblage de page identique aux cinq sous-collections (adresses, contacts, conditions,
+ * consentements, notes) : troncature à `limite`, mapping vers le DTO de réponse, encodage du
+ * curseur suivant sur `(creeLeTexte, id)` de la dernière ligne retenue — factorisé ici après
+ * constat de cinq copies BIT-À-BIT de cette même séquence dans les méthodes `lister*` ci-dessous
+ * (seules les requêtes SQL, elles, diffèrent réellement d'une sous-collection à l'autre).
+ */
+function assemblerPageSousCollection<TLigne extends { readonly creeLeTexte: string; readonly id: string }, TReponse>(
+  lignes: readonly TLigne[],
+  limite: number,
+  mapper: (ligne: TLigne) => TReponse,
+): PageCurseur<TReponse> {
+  const aUnePageSuivante = lignes.length > limite;
+  const pageLignes = aUnePageSuivante ? lignes.slice(0, limite) : lignes;
+  const derniere = pageLignes[pageLignes.length - 1];
+
+  return {
+    donnees: pageLignes.map(mapper),
+    curseurSuivant:
+      aUnePageSuivante && derniere
+        ? encoderCurseurTrie({
+            tri: TRI_DEFAUT_CREATION,
+            valeur: valeurCurseurTimestamptz(derniere.creeLeTexte),
+            id: derniere.id,
+          })
+        : null,
+    limite,
+  };
+}
+
+/**
  * Sous-collections de la fiche client : adresses (RM-03), contacts (RM-04), conditions
  * commerciales DATÉES (RM-07), consentements APPEND-ONLY (RM-09, nLPD), notes (RM-13).
  *
@@ -177,21 +207,7 @@ export class ServiceClientSousCollections {
         .orderBy(desc(clientAdresse.creeLe), desc(clientAdresse.id))
         .limit(params.limite + 1);
 
-      const aUnePageSuivante = lignes.length > params.limite;
-      const pageLignes = aUnePageSuivante ? lignes.slice(0, params.limite) : lignes;
-      const derniere = pageLignes[pageLignes.length - 1];
-      return {
-        donnees: pageLignes.map(versAdresseResponse),
-        curseurSuivant:
-          aUnePageSuivante && derniere
-            ? encoderCurseurTrie({
-                tri: TRI_DEFAUT_CREATION,
-                valeur: valeurCurseurTimestamptz(derniere.creeLeTexte),
-                id: derniere.id,
-              })
-            : null,
-        limite: params.limite,
-      };
+      return assemblerPageSousCollection(lignes, params.limite, versAdresseResponse);
     });
   }
 
@@ -342,21 +358,7 @@ export class ServiceClientSousCollections {
         .orderBy(desc(clientContact.creeLe), desc(clientContact.id))
         .limit(params.limite + 1);
 
-      const aUnePageSuivante = lignes.length > params.limite;
-      const pageLignes = aUnePageSuivante ? lignes.slice(0, params.limite) : lignes;
-      const derniere = pageLignes[pageLignes.length - 1];
-      return {
-        donnees: pageLignes.map(versContactResponse),
-        curseurSuivant:
-          aUnePageSuivante && derniere
-            ? encoderCurseurTrie({
-                tri: TRI_DEFAUT_CREATION,
-                valeur: valeurCurseurTimestamptz(derniere.creeLeTexte),
-                id: derniere.id,
-              })
-            : null,
-        limite: params.limite,
-      };
+      return assemblerPageSousCollection(lignes, params.limite, versContactResponse);
     });
   }
 
@@ -448,21 +450,7 @@ export class ServiceClientSousCollections {
         .orderBy(desc(clientCondition.creeLe), desc(clientCondition.id))
         .limit(params.limite + 1);
 
-      const aUnePageSuivante = lignes.length > params.limite;
-      const pageLignes = aUnePageSuivante ? lignes.slice(0, params.limite) : lignes;
-      const derniere = pageLignes[pageLignes.length - 1];
-      return {
-        donnees: pageLignes.map(versConditionResponse),
-        curseurSuivant:
-          aUnePageSuivante && derniere
-            ? encoderCurseurTrie({
-                tri: TRI_DEFAUT_CREATION,
-                valeur: valeurCurseurTimestamptz(derniere.creeLeTexte),
-                id: derniere.id,
-              })
-            : null,
-        limite: params.limite,
-      };
+      return assemblerPageSousCollection(lignes, params.limite, versConditionResponse);
     });
   }
 
@@ -551,21 +539,7 @@ export class ServiceClientSousCollections {
         .orderBy(desc(clientConsentement.creeLe), desc(clientConsentement.id))
         .limit(params.limite + 1);
 
-      const aUnePageSuivante = lignes.length > params.limite;
-      const pageLignes = aUnePageSuivante ? lignes.slice(0, params.limite) : lignes;
-      const derniere = pageLignes[pageLignes.length - 1];
-      return {
-        donnees: pageLignes.map(versConsentementResponse),
-        curseurSuivant:
-          aUnePageSuivante && derniere
-            ? encoderCurseurTrie({
-                tri: TRI_DEFAUT_CREATION,
-                valeur: valeurCurseurTimestamptz(derniere.creeLeTexte),
-                id: derniere.id,
-              })
-            : null,
-        limite: params.limite,
-      };
+      return assemblerPageSousCollection(lignes, params.limite, versConsentementResponse);
     });
   }
 
@@ -634,22 +608,9 @@ export class ServiceClientSousCollections {
         .orderBy(desc(clientNote.creeLe), desc(clientNote.id))
         .limit(params.limite + 1);
 
-      const aUnePageSuivante = lignes.length > params.limite;
-      const pageLignes = aUnePageSuivante ? lignes.slice(0, params.limite) : lignes;
-      const derniere = pageLignes[pageLignes.length - 1];
-
-      return {
-        donnees: pageLignes.map((ligne) => versNoteResponse(ligne, this.auteurDepuisLigne(ligne))),
-        curseurSuivant:
-          aUnePageSuivante && derniere
-            ? encoderCurseurTrie({
-                tri: TRI_DEFAUT_CREATION,
-                valeur: valeurCurseurTimestamptz(derniere.creeLeTexte),
-                id: derniere.id,
-              })
-            : null,
-        limite: params.limite,
-      };
+      return assemblerPageSousCollection(lignes, params.limite, (ligne) =>
+        versNoteResponse(ligne, this.auteurDepuisLigne(ligne)),
+      );
     });
   }
 

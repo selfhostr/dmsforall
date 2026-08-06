@@ -166,8 +166,8 @@ export async function chargerAdresseFacturationStructuree(
  * `null`), MÊME SOUS-ENSEMBLE DE CHAMPS que `ValeursSnapshotOr.conditionsFigees`
  * (`atelier/service-snapshot-or.ts`) pour que `conditions_paiement_figees` ait la même forme,
  * qu'un document naisse ici (`ServiceDocumentsVente.creer`) ou via `atelier/service-facturation-
- * or.ts` (qui, lui, écrit encore `{}` en dur au moment de cette tâche — SIGNALÉ, hors périmètre
- * d'écriture : `apps/api/src/atelier/**` n'appartient pas à ce module).
+ * or.ts::ServiceFacturationOr.facturer`, qui appelle CETTE MÊME fonction (import direct,
+ * `apps/api/src/atelier/service-facturation-or.ts`) plutôt que de dupliquer la lecture.
  *
  * COMBLE LA SIMPLIFICATION SIGNALÉE qui bloquait tout calcul d'échéance (`echeance.ts` :
  * `lireDelaiPaiementJoursFige` lit exactement `delaiPaiementJours` sur l'objet rendu ici) — avant

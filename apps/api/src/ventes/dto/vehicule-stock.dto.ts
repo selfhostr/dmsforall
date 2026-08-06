@@ -134,21 +134,6 @@ export class PageVehiculeStockResumeDto implements PageCurseur<VehiculeStockResu
   readonly limite!: number;
 }
 
-export class PageVehiculeStockDto implements PageCurseur<ReponseVehiculeStockDto> {
-  @ApiProperty({ type: () => [ReponseVehiculeStockDto] })
-  readonly donnees!: readonly ReponseVehiculeStockDto[];
-
-  @ApiProperty({
-    type: String,
-    nullable: true,
-    description: 'Opaque base64url ; null = fin de liste.',
-  })
-  readonly curseurSuivant!: string | null;
-
-  @ApiProperty({ example: 50 })
-  readonly limite!: number;
-}
-
 export class VehiculeStockAvecAvertissementsDto implements ReponseAvecAvertissements<ReponseVehiculeStockDto> {
   @ApiProperty({ type: () => ReponseVehiculeStockDto })
   readonly donnees!: ReponseVehiculeStockDto;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { remonterCausePg } from './remonter-cause-pg';
+import { remonterCauseParCode, remonterCausePg } from './remonter-cause-pg';
 
 /**
  * Défaut confirmé à l'audit (2026-08-04) — voir le commentaire de tête de `remonter-cause-pg.ts` :
@@ -91,5 +91,46 @@ describe('remonterCausePg', () => {
   it('rend null quand la chaîne se termine (.cause absent) sans jamais porter de code', () => {
     const sansCode = envelopper(envelopper(undefined));
     expect(remonterCausePg(sansCode)).toBeNull();
+  });
+});
+
+describe('remonterCauseParCode', () => {
+  it('reconnaît la forme brute quand le code correspond exactement', () => {
+    const brute = erreurPgBrute('ZDFA4');
+    expect(remonterCauseParCode(brute, 'ZDFA4')).toBe(brute);
+  });
+
+  it('rend null si le code de la forme brute ne correspond pas', () => {
+    const brute = erreurPgBrute('23505');
+    expect(remonterCauseParCode(brute, 'ZDFA4')).toBeNull();
+  });
+
+  it('déballe .cause pour trouver le code recherché (forme enveloppée par Drizzle)', () => {
+    const brute = erreurPgBrute('ZDFA4');
+    const enveloppee = envelopper(brute);
+    expect(remonterCauseParCode(enveloppee, 'ZDFA4')).toBe(brute);
+  });
+
+  it("continue de déballer au-delà d'un maillon qui porte un AUTRE code de type string", () => {
+    const sansRapport = erreurPgBrute('ECONNRESET');
+    const cible = erreurPgBrute('ZDFA1');
+    const enveloppee = envelopper(sansRapport);
+    // Force un maillon intermédiaire distinct du code recherché avant la cible : un simple
+    // `remonterCausePg` générique s'arrêterait à `sansRapport` (premier code string rencontré) ;
+    // `remonterCauseParCode` doit continuer jusqu'à `cible`.
+    (sansRapport as unknown as { cause: unknown }).cause = cible;
+    expect(remonterCauseParCode(enveloppee, 'ZDFA1')).toBe(cible);
+    expect(remonterCausePg(enveloppee)).toBe(sansRapport);
+  });
+
+  it('ne boucle jamais à l’infini sur une chaîne .cause cyclique', () => {
+    const cyclique = new Error('cyclique') as Error & { cause: unknown };
+    cyclique.cause = cyclique;
+    expect(remonterCauseParCode(cyclique, 'ZDFA4')).toBeNull();
+  });
+
+  it('rend null pour une valeur non-objet', () => {
+    expect(remonterCauseParCode('boom', 'ZDFA4')).toBeNull();
+    expect(remonterCauseParCode(null, 'ZDFA4')).toBeNull();
   });
 });

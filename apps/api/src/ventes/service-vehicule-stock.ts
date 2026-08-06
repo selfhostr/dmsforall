@@ -334,15 +334,17 @@ export class ServiceVehiculeStock {
    *
    * USAGE NORMAL : effet de bord PROGRAMMATIQUE de `facturation/` à l'émission de la facture
    * (RV-37) — `ServiceVehiculeStock` est exporté par `VentesModule` précisément pour cette
-   * injection croisée ; le câblage réel côté `facturation/` reste À FAIRE par le propriétaire de ce
-   * module (hors périmètre de cet agent), qui devra fournir un `motif` informatif (ex. « Facture
-   * <numero> émise ») — la transition elle-même n'exige rien (`exige_motif = false`), mais ce
-   * service garde un `motif` obligatoire pour un contrat UNIQUE entre l'usage normal et l'usage
-   * exceptionnel (voir ci-dessous), plutôt que deux méthodes quasi identiques.
+   * injection croisée. Câblage RÉEL et EN PLACE depuis
+   * `facturation/documents/service-emission.ts::marquerVehiculeVenduSiApplicable` (fournit un
+   * motif informatif du type « Facture <numero> émise », hors transaction SQL de l'émission —
+   * voir la docstring de cette méthode côté `facturation/` pour l'analyse d'atomicité) — la
+   * transition elle-même n'exige rien (`exige_motif = false`), mais ce service garde un `motif`
+   * obligatoire pour un contrat UNIQUE entre l'usage normal et l'usage exceptionnel (voir
+   * ci-dessous), plutôt que deux méthodes quasi identiques.
    *
    * Cet appel direct existe AUSSI pour la correction exceptionnelle (dossier orphelin,
-   * resynchronisation, ou usage/test avant que le câblage facturation n'existe) — même patron que
-   * `remettreDisponible` : motif obligatoire, droit `ventes.vehicule_stock.corriger`.
+   * resynchronisation) — même patron que `remettreDisponible` : motif obligatoire, droit
+   * `ventes.vehicule_stock.corriger`.
    */
   async marquerVendu(
     ctx: ContexteTenant,

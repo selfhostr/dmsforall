@@ -141,12 +141,7 @@ export class ServiceReservation {
     reservationId: string,
   ): Promise<ReponseReservationPiece> {
     const ligne = await this.chargerPourVerrouOu404(tx, ctx, reservationId);
-    if (ligne.statut !== 'active') {
-      throw new ErreurMetier(
-        'RESERVATION_TRANSITION_INTERDITE',
-        `Transition interdite : la réservation est "${ligne.statut}", pas "active".`,
-      );
-    }
+    this.verifierActiveOu409(ligne);
     return this.appliquerSatisfaction(tx, ctx, ligne);
   }
 
@@ -277,6 +272,16 @@ export class ServiceReservation {
     `);
   }
 
+  /** Garde de transition commune à `satisfaireTx`/`libererTx` : seule une réservation `active` peut être satisfaite ou libérée manuellement. */
+  private verifierActiveOu409(ligne: LigneReservationPiece): void {
+    if (ligne.statut !== 'active') {
+      throw new ErreurMetier(
+        'RESERVATION_TRANSITION_INTERDITE',
+        `Transition interdite : la réservation est "${ligne.statut}", pas "active".`,
+      );
+    }
+  }
+
   /**
    * `POST /reservations/{id}/liberer` — RP-23, geste explicite du magasinier (troisième cas). Ouvre
    * SA PROPRE transaction — entrypoint HTTP autonome, voir `libererTx` pour la logique et la note
@@ -305,12 +310,7 @@ export class ServiceReservation {
     entree: EntreeLiberationReservation,
   ): Promise<ReponseAvecAvertissements<ReponseReservationPiece>> {
     const ligne = await this.chargerPourVerrouOu404(tx, ctx, reservationId);
-    if (ligne.statut !== 'active') {
-      throw new ErreurMetier(
-        'RESERVATION_TRANSITION_INTERDITE',
-        `Transition interdite : la réservation est "${ligne.statut}", pas "active".`,
-      );
-    }
+    this.verifierActiveOu409(ligne);
 
     await this.ecrireLiberation(
       tx,

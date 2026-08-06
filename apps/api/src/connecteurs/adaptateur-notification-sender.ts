@@ -23,26 +23,25 @@ import type { AdaptateurConnecteur } from './adaptateur-connecteur';
  * `connecteur_activation` (à venir), même disjoncteur par `(tenant, typeConnecteurCode)`, même
  * journalisation sans secret.
  *
- * CE QUI S'AJOUTE, ET POURQUOI : la vraie méthode métier typée `envoyer()`, que le futur module de
- * relances (`apps/api/src/facturation/relances/`, hors périmètre de cette tâche — un autre agent)
- * appellera DIRECTEMENT pour faire partir un rappel, plutôt que de passer par le mécanisme
- * générique `RequeteOperationConnecteur`/`ResultatOperationConnecteur` (pensé pour de l'import/
- * export en masse, pas pour l'envoi d'UN message à UN client). Même distinction que
- * `AccountingExporter` / `facturation/export/winbiz/winbiz-exporteur.service.ts` : le registre
- * générique modélise la PRÉSENCE du connecteur, le vrai travail métier passe par une méthode
- * spécialisée exposée à côté.
+ * CE QUI S'AJOUTE, ET POURQUOI : la vraie méthode métier typée `envoyer()`, que le module de
+ * relances (`apps/api/src/relances/service-relances-facture.ts`, `envoyerPretes()`) appelle
+ * DIRECTEMENT pour faire partir un rappel, plutôt que de passer par le mécanisme générique
+ * `RequeteOperationConnecteur`/`ResultatOperationConnecteur` (pensé pour de l'import/export en
+ * masse, pas pour l'envoi d'UN message à UN client). Même distinction que `AccountingExporter` /
+ * `facturation/export/winbiz/winbiz-exporteur.service.ts` : le registre générique modélise la
+ * PRÉSENCE du connecteur, le vrai travail métier passe par une méthode spécialisée exposée à côté.
  *
  * HORS PÉRIMÈTRE, DÉLIBÉRÉMENT : câbler `envoyer()` dans le chemin de résilience générique
  * (`ServiceExecuteurConnecteurResilient`, délai/réessais à espacement croissant/disjoncteur) n'est
- * PAS fait ici. Ce service est partagé par les cinq autres interfaces et ne connaît aujourd'hui que
- * `RequeteOperationConnecteur`/`ResultatOperationConnecteur` — le généraliser pour qu'il enveloppe
- * aussi `envoyer()` toucherait un service commun sans appelant réel aujourd'hui (zéro module
- * n'invoque encore cette interface). Point d'extension futur documenté ici pour l'agent qui
- * câblera le module de relances : soit ce module appelle `envoyer()` directement et réimplémente
- * localement une politique de réessai adaptée à l'IDEMPOTENCE déjà portée par
- * `RequeteEnvoiMessageClient.cleIdempotence` (voir décision 2 du contrat), soit
- * `ServiceExecuteurConnecteurResilient` est généralisé à ce moment-là avec un besoin réel pour le
- * justifier.
+ * TOUJOURS PAS fait. Ce service reste partagé par les cinq autres interfaces et ne connaît que
+ * `RequeteOperationConnecteur`/`ResultatOperationConnecteur`. Le module de relances a tranché entre
+ * les deux options documentées ici auparavant : il appelle `envoyer()` directement
+ * (`traiterUneRelance()`) et réimplémente localement sa propre absorption d'échec transitoire (un
+ * `catch` local qui journalise sans PII et marque la ligne `rejete`/`quota_depasse`, sans réessai
+ * ni disjoncteur) — l'IDEMPOTENCE reste portée par `RequeteEnvoiMessageClient.cleIdempotence` (voir
+ * décision 2 du contrat), pas par ce socle de résilience. `ServiceExecuteurConnecteurResilient`
+ * n'a donc toujours aucun appelant pour `NotificationSender` ; le généraliser resterait à faire
+ * si un besoin réel de réessai/disjoncteur partagé apparaît pour ce connecteur.
  */
 export interface AdaptateurNotificationSender extends AdaptateurConnecteur {
   readonly nomInterface: Extract<NomInterfaceConnecteur, 'NotificationSender'>;

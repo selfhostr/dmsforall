@@ -2370,6 +2370,32 @@
         ],
         "type": "object"
       },
+      "EnvoiRelancesDto": {
+        "properties": {
+          "annulees": {
+            "example": 1,
+            "type": "number"
+          },
+          "echouees": {
+            "example": 0,
+            "type": "number"
+          },
+          "encoreATraiter": {
+            "type": "boolean"
+          },
+          "envoyees": {
+            "example": 5,
+            "type": "number"
+          }
+        },
+        "required": [
+          "envoyees",
+          "echouees",
+          "annulees",
+          "encoreATraiter"
+        ],
+        "type": "object"
+      },
       "ErreurChampCommunDto": {
         "properties": {
           "champ": {
@@ -4290,6 +4316,27 @@
         ],
         "type": "object"
       },
+      "PlanificationRelancesDto": {
+        "properties": {
+          "creees": {
+            "example": 3,
+            "type": "number"
+          },
+          "encoreATraiter": {
+            "type": "boolean"
+          },
+          "ignorees": {
+            "example": 12,
+            "type": "number"
+          }
+        },
+        "required": [
+          "creees",
+          "ignorees",
+          "encoreATraiter"
+        ],
+        "type": "object"
+      },
       "PlanningParametresAtelierDto": {
         "properties": {
           "noShowSeuilAlerte": {
@@ -4442,7 +4489,8 @@
               "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE",
               "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE",
               "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE",
-              "LIGNE_DOCUMENT_STOCK_LIEE"
+              "LIGNE_DOCUMENT_STOCK_LIEE",
+              "IMPUTATION_DEVISE_INCOHERENTE"
             ],
             "type": "string"
           },
@@ -4590,7 +4638,8 @@
               "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE",
               "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE",
               "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE",
-              "LIGNE_DOCUMENT_STOCK_LIEE"
+              "LIGNE_DOCUMENT_STOCK_LIEE",
+              "IMPUTATION_DEVISE_INCOHERENTE"
             ],
             "type": "string"
           },
@@ -4744,6 +4793,72 @@
           "signature",
           "plafondDefautCentimes",
           "plafondAvoirReceptionnaireCentimes"
+        ],
+        "type": "object"
+      },
+      "RegleRelanceDto": {
+        "properties": {
+          "actif": {
+            "type": "boolean"
+          },
+          "canaux": {
+            "items": {
+              "enum": [
+                "sms",
+                "email"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "delaisJours": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "modifieLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "prereglageAppliqueLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "texteModeleId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "typeRelance": {
+            "enum": [
+              "devis_sans_reponse",
+              "facture_echue",
+              "devis_complementaire_attente",
+              "vehicule_pret_non_restitue",
+              "depot_pneu_oublie",
+              "travail_reporte_urgent",
+              "pneus_saisonniers",
+              "expertise_mfk",
+              "campagne_constructeur"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "typeRelance",
+          "actif",
+          "delaisJours",
+          "canaux",
+          "texteModeleId",
+          "prereglageAppliqueLe",
+          "creeLe",
+          "modifieLe"
         ],
         "type": "object"
       },
@@ -8585,6 +8700,10 @@
       },
       "SanteDto": {
         "properties": {
+          "branche": {
+            "example": "main",
+            "type": "string"
+          },
           "statut": {
             "enum": [
               "ok"
@@ -8592,13 +8711,14 @@
             "type": "string"
           },
           "version": {
-            "example": "0.1.0-dev",
+            "example": "0.1.42+a1b2c3d",
             "type": "string"
           }
         },
         "required": [
           "statut",
-          "version"
+          "version",
+          "branche"
         ],
         "type": "object"
       },
@@ -15421,6 +15541,116 @@
         ]
       }
     },
+    "/depots-pneus/{id}/deplacer": {
+      "post": {
+        "operationId": "DepotPneusController_deplacer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "codeCase": {
+                    "anyOf": [
+                      {
+                        "maxLength": 60,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepotPneusDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (pneus.depot.changer_saison)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Dépôt de pneus introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Ce dépôt est \"sorti\" : son repère de rangement ne peut plus être modifié (RPP-05)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "DÉFAUT CORRIGÉ (RPP-07) : modifie le repère de rangement (`codeCase`) d’un dépôt — posable seulement à la création jusqu’ici, alors que les jeux de pneus changent de case couramment dans le hangar. `codeCase` nullish (retrait du repère accepté). Met à jour `dernierMouvementLe` (un déplacement est un mouvement au sens RPP-04). Même droit que `changer-saison` : geste physique routinier, pas une clôture de garde (voir `sortir`).",
+        "tags": [
+          "Pneus — Hangar"
+        ]
+      }
+    },
     "/depots-pneus/{id}/sortir": {
       "post": {
         "operationId": "DepotPneusController_sortir",
@@ -16737,6 +16967,7 @@
     },
     "/documents-vente/{id}/lignes": {
       "post": {
+        "description": "`Idempotency-Key` obligatoire (uuid v4) — une ligne `piece` avec `articleId`+`siteId` déclenche un mouvement de stock `sortie_comptoir` DANS LA MÊME TRANSACTION que cette insertion (RP-43) : un rejeu réseau ou un double-clic ne doit jamais sortir la pièce du stock une seconde fois ni dupliquer la ligne.",
         "operationId": "DocumentVenteController_ajouterLigne",
         "parameters": [
           {
@@ -16745,6 +16976,15 @@
             "required": true,
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "uuid v4, identité de la requête.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
               "type": "string"
             }
           }
@@ -16919,7 +17159,7 @@
                 }
               }
             },
-            "description": "Corps invalide."
+            "description": "Corps invalide ou Idempotency-Key manquante/mal formée."
           },
           "401": {
             "content": {
@@ -16959,7 +17199,7 @@
                 }
               }
             },
-            "description": "DOCUMENT_VERROUILLE (document émis)."
+            "description": "DOCUMENT_VERROUILLE (document émis), STOCK_INSUFFISANT (RP-43) ou IDEMPOTENCE_CONFLIT."
           }
         },
         "security": [
@@ -28732,6 +28972,268 @@
         "summary": "Modifie partiellement une période de taux horaire (jamais son `code`).",
         "tags": [
           "Paramétrage"
+        ]
+      }
+    },
+    "/relances/facturation/envoyer": {
+      "post": {
+        "operationId": "RelancesController_envoyer",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvoiRelancesDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (relances.facturation.envoyer)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Envoie les rappels facture `prete` (un lot borné par appel), via le connecteur NotificationSender — sans connecteur actif, rend un lot vide (jamais une erreur).",
+        "tags": [
+          "Relances"
+        ]
+      }
+    },
+    "/relances/facturation/planifier": {
+      "post": {
+        "description": "Aucun ordonnanceur ne déclenche cette route automatiquement — voir le rapport de livraison pour ce qu’il faut pour l’appeler périodiquement.",
+        "operationId": "RelancesController_planifier",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanificationRelancesDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (relances.facturation.planifier)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Calcule les paliers de rappel facture dus et les planifie (RA-05, idempotent — rejouable sans dommage, un lot borné par appel).",
+        "tags": [
+          "Relances"
+        ]
+      }
+    },
+    "/relances/regles": {
+      "get": {
+        "operationId": "RelancesController_lister",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RegleRelanceDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (relances.facturation.regle.lire)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Configuration des relances par type (§5, §4 de la spec).",
+        "tags": [
+          "Relances"
+        ]
+      }
+    },
+    "/relances/regles/{typeRelance}": {
+      "put": {
+        "operationId": "RelancesController_upserter",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "typeRelance",
+            "required": true,
+            "schema": {
+              "enum": [
+                "devis_sans_reponse",
+                "facture_echue",
+                "devis_complementaire_attente",
+                "vehicule_pret_non_restitue",
+                "depot_pneu_oublie",
+                "travail_reporte_urgent",
+                "pneus_saisonniers",
+                "expertise_mfk",
+                "campagne_constructeur"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "actif": {
+                    "type": "boolean"
+                  },
+                  "canaux": {
+                    "items": {
+                      "enum": [
+                        "sms",
+                        "email"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 2,
+                    "type": "array"
+                  },
+                  "delaisJours": {
+                    "items": {
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991,
+                      "type": "integer"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "actif",
+                  "delaisJours",
+                  "canaux"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegleRelanceDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Type de relance ou corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (relances.facturation.regle.ecrire)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Upsert idempotent de la configuration d’un type de relance (une ligne par (tenant, type), §5).",
+        "tags": [
+          "Relances"
         ]
       }
     },

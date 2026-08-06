@@ -1,5 +1,7 @@
 import type { CodeErreur } from '@dfa/shared';
 
+import { remonterCauseParCode } from '../erreurs-pg';
+
 /**
  * Interprète le SQLSTATE `ZDFA1` (transition d'état interdite) levé par le trigger générique
  * `public.verifier_transition()` (voir `db/migrations/0003_prealables_etape1.sql` §6) — SANS
@@ -27,13 +29,12 @@ import type { CodeErreur } from '@dfa/shared';
  *
  *   DrizzleQueryError { query, params, cause: DatabaseError { code: 'ZDFA1', table, detail, hint } }
  *
- * `trouverCauseZdfa1` remonte donc la chaîne `.cause` (potentiellement imbriquée plus d'un niveau
- * selon la couche qui relance) jusqu'à trouver l'objet qui porte réellement `code === 'ZDFA1'`.
+ * `remonterCauseParCode` (`common/erreurs-pg/remonter-cause-pg.ts`) remonte donc la chaîne `.cause`
+ * (potentiellement imbriquée plus d'un niveau selon la couche qui relance) jusqu'à trouver l'objet
+ * qui porte réellement `code === 'ZDFA1'`.
  */
 
 const SQLSTATE_TRANSITION_INTERDITE = 'ZDFA1';
-/** Borne défensive contre une chaîne `.cause` cyclique ou anormalement profonde. */
-const PROFONDEUR_MAX_CAUSE = 10;
 
 /**
  * Convention produit : `<ENTITE>_TRANSITION_INTERDITE`. Seules les entités qui portent
@@ -66,18 +67,7 @@ interface ErreurPgBrute {
  * déjà le bon objet) que sur l'enveloppe `DrizzleQueryError` produite en conditions réelles.
  */
 function trouverCauseZdfa1(erreur: unknown): ErreurPgBrute | null {
-  let courant: unknown = erreur;
-  for (let profondeur = 0; profondeur < PROFONDEUR_MAX_CAUSE; profondeur += 1) {
-    if (typeof courant !== 'object' || courant === null) {
-      return null;
-    }
-    const brute = courant as ErreurPgBrute;
-    if (brute.code === SQLSTATE_TRANSITION_INTERDITE) {
-      return brute;
-    }
-    courant = brute.cause;
-  }
-  return null;
+  return remonterCauseParCode(erreur, SQLSTATE_TRANSITION_INTERDITE) as ErreurPgBrute | null;
 }
 
 export interface InterpretationTransitionInterdite {

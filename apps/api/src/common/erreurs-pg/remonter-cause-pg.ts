@@ -22,10 +22,15 @@
  * `ERREUR_INTERNE`/500.
  *
  * Patron de référence : `vehicules/erreurs-contraintes.ts::remonterCause` (implémentation jumelle
- * antérieure, non touchée par ce module pour rester dans le périmètre du correctif). Ce module-ci
- * est le point de factorisation pour tout code NOUVEAU ou corrigé qui a seulement besoin de
- * retrouver l'erreur `pg` brute — sans la logique de table de contraintes propre au module
- * véhicules.
+ * antérieure, non touchée par ce module pour rester dans le périmètre du correctif d'origine — le
+ * module `vehicules/` reste hors périmètre de la factorisation qui suit). Ce module-ci est le point
+ * de factorisation pour tout code qui a seulement besoin de retrouver l'erreur `pg` brute — sans la
+ * logique de table de contraintes propre au module véhicules. Factorisation achevée pour les
+ * modules `facturation/`, `atelier/` et `common/` : `atelier/service-ligne-or.ts`,
+ * `facturation/paiements/imputations.ts`, `facturation/documents/erreurs-sql-document.ts`,
+ * `facturation/paiements/service-paiement.ts` et `common/avertissements/traducteur-erreur-
+ * transition-sql.ts` importent tous `remonterCausePg`/`remonterCauseParCode` d'ici, aucun n'a plus
+ * sa propre copie du déballage.
  */
 
 /** Forme minimale d'une erreur `pg` brute utile aux appelants — `code` (SQLSTATE standard ou
@@ -63,6 +68,31 @@ export function remonterCausePg(erreur: unknown): ErreurPgBrute | null {
     }
     const brute = courante as ErreurPgBrute;
     if (typeof brute.code === 'string') {
+      return brute;
+    }
+    courante = brute.cause;
+  }
+  return null;
+}
+
+/**
+ * Variante de `remonterCausePg` pour l'appelant qui connaît DÉJÀ le SQLSTATE exact recherché (ex.
+ * `ZDFA4`, `23505`) — walk identique de la chaîne `.cause`, mais le critère d'arrêt est
+ * `code === code` plutôt que « premier `code` de type `string` rencontré ». Différence
+ * observable UNIQUEMENT si la chaîne porte, à un niveau intermédiaire, un `code` de type `string`
+ * qui N'EST PAS celui recherché (Drizzle n'enveloppe qu'une fois en pratique — voir l'en-tête de ce
+ * fichier — donc ce cas ne survient pas en production ; cette variante existe pour ne jamais avoir
+ * à en faire l'hypothèse) : `remonterCausePg` s'arrêterait à ce niveau intermédiaire, celle-ci
+ * continue jusqu'à trouver EXACTEMENT `code`, ou `null` si aucun maillon ne le porte.
+ */
+export function remonterCauseParCode(erreur: unknown, code: string): ErreurPgBrute | null {
+  let courante: unknown = erreur;
+  for (let profondeur = 0; profondeur < PROFONDEUR_MAX_CAUSE; profondeur += 1) {
+    if (typeof courante !== 'object' || courante === null) {
+      return null;
+    }
+    const brute = courante as ErreurPgBrute;
+    if (brute.code === code) {
       return brute;
     }
     courante = brute.cause;

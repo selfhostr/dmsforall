@@ -265,9 +265,7 @@ export class ServiceDossierVente {
         })
         .where(and(eq(dossierVente.tenantId, ctx.tenantId), eq(dossierVente.id, dossierVenteId)));
 
-      const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
-      const reponse = await this.assembler(tx, ctx, role, misAJour);
-      return new CollecteurAvertissements().envelopper(reponse);
+      return this.assemblerReponseFinale(tx, ctx, role, dossierVenteId);
     });
   }
 
@@ -300,9 +298,7 @@ export class ServiceDossierVente {
         );
       }
 
-      const ligne = await chargerDossierVente(tx, ctx, dossierVenteId);
-      const reponse = await this.assembler(tx, ctx, role, ligne);
-      return new CollecteurAvertissements().envelopper(reponse);
+      return this.assemblerReponseFinale(tx, ctx, role, dossierVenteId);
     });
   }
 
@@ -454,9 +450,7 @@ export class ServiceDossierVente {
         identiteVerifieeLe: maintenant,
       });
 
-      const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
-      const reponse = await this.assembler(tx, ctx, role, misAJour);
-      return new CollecteurAvertissements().envelopper(reponse);
+      return this.assemblerReponseFinale(tx, ctx, role, dossierVenteId);
     });
   }
 
@@ -491,9 +485,7 @@ export class ServiceDossierVente {
         statut: 'en_preparation',
         enPreparationLe: this.horloge.maintenant(),
       });
-      const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
-      const reponse = await this.assembler(tx, ctx, role, misAJour);
-      return new CollecteurAvertissements().envelopper(reponse);
+      return this.assemblerReponseFinale(tx, ctx, role, dossierVenteId);
     });
   }
 
@@ -532,9 +524,7 @@ export class ServiceDossierVente {
         statut: 'pret_a_livrer',
         pretALivrerLe: this.horloge.maintenant(),
       });
-      const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
-      const reponse = await this.assembler(tx, ctx, role, misAJour);
-      return new CollecteurAvertissements().envelopper(reponse);
+      return this.assemblerReponseFinale(tx, ctx, role, dossierVenteId);
     });
   }
 
@@ -550,13 +540,22 @@ export class ServiceDossierVente {
       if (!ligne.vehiculeId) {
         throw new ErreurMetier('VENTE_VEHICULE_MANQUANT', 'Aucun véhicule associé à ce dossier.');
       }
+      // Capturé dans une constante locale (pas `ligne.vehiculeId` réutilisé plus bas) : le narrowing
+      // de la garde ci-dessus ne traverse pas la frontière de la closure `avecTraductionErreur`
+      // imbriquée plus bas — TypeScript ne propage jamais le narrowing d'un accès de propriété dans
+      // une fonction imbriquée, même sur un `const`, car rien ne garantit que la propriété n'a pas
+      // été réassignée entre-temps.
+      const vehiculeId = ligne.vehiculeId;
 
       // `vehicule_stock` passe `reserve -> vendu` à l'émission de la facture — effet de bord
       // PROGRAMMATIQUE de `facturation/` (hors périmètre de ce fichier) via
       // `ServiceVehiculeStock.marquerVendu` (exporté par `VentesModule` pour cette injection
-      // croisée, câblage réel côté facturation encore à faire par son propriétaire). Ici, on exige
-      // que ce soit déjà fait avant de livrer.
-      const vehiculeStockLigne = await chargerVehiculeStockPourEcriture(tx, ctx, ligne.vehiculeId);
+      // croisée). CORRECTIF DE CONSTAT (relu en reprenant ce fichier) : ce commentaire affirmait que
+      // le câblage réel côté facturation restait à faire par son propriétaire — C'EST INEXACT, il
+      // est déjà câblé (`facturation/documents/service-emission.ts::marquerVehiculeVenduSiApplicable`,
+      // appelée depuis `emettre()` après l'émission de la facture). Ici, on exige seulement que ce
+      // soit déjà fait avant de livrer.
+      const vehiculeStockLigne = await chargerVehiculeStockPourEcriture(tx, ctx, vehiculeId);
       if (vehiculeStockLigne.statutCommercial !== 'vendu') {
         throw new ErreurMetier(
           'VENTE_VEHICULE_INDISPONIBLE',
@@ -585,7 +584,7 @@ export class ServiceDossierVente {
         .where(
           and(
             eq(vehiculeDetention.tenantId, ctx.tenantId),
-            eq(vehiculeDetention.vehiculeId, ligne.vehiculeId),
+            eq(vehiculeDetention.vehiculeId, vehiculeId),
             isNull(vehiculeDetention.au),
           ),
         )
@@ -598,29 +597,28 @@ export class ServiceDossierVente {
       // stable. Traduction réutilisée telle quelle depuis `vehicules/erreurs-contraintes.ts`
       // (`interpreterContrainteVehicule`, déjà câblée pour ce couple SQLSTATE/contrainte côté
       // `ServiceVehiculeDetention.changerDetenteur`) — pas une seconde table de contraintes.
-      try {
-        if (detentionOuverte) {
-          await tx
-            .update(vehiculeDetention)
-            .set({ au: entree.dateLivraisonEffective, motifFin: 'vente' })
-            .where(
-              and(
-                eq(vehiculeDetention.tenantId, ctx.tenantId),
-                eq(vehiculeDetention.id, detentionOuverte.id),
-              ),
-            );
-        }
-        await tx.insert(vehiculeDetention).values({
-          tenantId: ctx.tenantId,
-          vehiculeId: ligne.vehiculeId,
-          clientId: nouveauDetenteurId,
-          du: entree.dateLivraisonEffective,
-        });
-      } catch (erreur) {
-        const traduite = this.traduireErreurDetentionVehicule(erreur);
-        if (traduite) throw traduite;
-        throw erreur;
-      }
+      await this.avecTraductionErreur(
+        async () => {
+          if (detentionOuverte) {
+            await tx
+              .update(vehiculeDetention)
+              .set({ au: entree.dateLivraisonEffective, motifFin: 'vente' })
+              .where(
+                and(
+                  eq(vehiculeDetention.tenantId, ctx.tenantId),
+                  eq(vehiculeDetention.id, detentionOuverte.id),
+                ),
+              );
+          }
+          await tx.insert(vehiculeDetention).values({
+            tenantId: ctx.tenantId,
+            vehiculeId,
+            clientId: nouveauDetenteurId,
+            du: entree.dateLivraisonEffective,
+          });
+        },
+        (erreur) => this.traduireErreurDetentionVehicule(erreur),
+      );
 
       // RV-24 : une reprise CONFIRMÉE entre en stock à la livraison — TROU COMBLÉ (constaté en
       // reprenant ce fichier : `origineRepriseDossierVenteId` n'était jamais ÉCRIT nulle part dans
@@ -707,27 +705,24 @@ export class ServiceDossierVente {
           // Même garde que la clôture de détention ci-dessus (bug corrigé) : traduit une violation
           // de `vehicule_detention_periode_chk`/`vehicule_detention_unicite_excl` plutôt que de la
           // laisser fuiter en 500.
-          try {
-            await tx
-              .update(vehiculeDetention)
-              .set({ au: entree.dateLivraisonEffective, motifFin: 'reprise' })
-              .where(
-                and(
-                  eq(vehiculeDetention.tenantId, ctx.tenantId),
-                  eq(vehiculeDetention.id, detentionRepriseOuverte.id),
-                ),
-              );
-          } catch (erreur) {
-            const traduite = this.traduireErreurDetentionVehicule(erreur);
-            if (traduite) throw traduite;
-            throw erreur;
-          }
+          await this.avecTraductionErreur(
+            async () => {
+              await tx
+                .update(vehiculeDetention)
+                .set({ au: entree.dateLivraisonEffective, motifFin: 'reprise' })
+                .where(
+                  and(
+                    eq(vehiculeDetention.tenantId, ctx.tenantId),
+                    eq(vehiculeDetention.id, detentionRepriseOuverte.id),
+                  ),
+                );
+            },
+            (erreur) => this.traduireErreurDetentionVehicule(erreur),
+          );
         }
       }
 
-      const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
-      const reponse = await this.assembler(tx, ctx, role, misAJour);
-      return new CollecteurAvertissements().envelopper(reponse);
+      return this.assemblerReponseFinale(tx, ctx, role, dossierVenteId);
     });
   }
 
@@ -756,9 +751,7 @@ export class ServiceDossierVente {
         statut: 'clos',
         closLe: this.horloge.maintenant(),
       });
-      const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
-      const reponse = await this.assembler(tx, ctx, role, misAJour);
-      return new CollecteurAvertissements().envelopper(reponse);
+      return this.assemblerReponseFinale(tx, ctx, role, dossierVenteId);
     });
   }
 
@@ -828,9 +821,7 @@ export class ServiceDossierVente {
         }
       }
 
-      const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
-      const reponse = await this.assembler(tx, ctx, role, misAJour);
-      return new CollecteurAvertissements().envelopper(reponse);
+      return this.assemblerReponseFinale(tx, ctx, role, dossierVenteId);
     });
   }
 
@@ -923,6 +914,22 @@ export class ServiceDossierVente {
     });
   }
 
+  /** Recharge le dossier depuis la base puis l'assemble, enveloppé pour la réponse HTTP — le motif
+   *  de fin commun à toutes les transitions et à `modifier`/`marquerDocumentRequis` (huit sites
+   *  identiques avant cette factorisation). `creer()` et `obtenirComplet()` ne l'utilisent PAS : le
+   *  premier assemble une ligne déjà en main (pas de rechargement), le second rend
+   *  `ReponseDossierVente` nu, jamais enveloppé d'avertissements. */
+  private async assemblerReponseFinale(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    role: RoleUtilisateur,
+    dossierVenteId: string,
+  ): Promise<ReponseAvecAvertissements<ReponseDossierVente>> {
+    const misAJour = await chargerDossierVente(tx, ctx, dossierVenteId);
+    const reponse = await this.assembler(tx, ctx, role, misAJour);
+    return new CollecteurAvertissements().envelopper(reponse);
+  }
+
   private async assemblerVehicule(
     tx: TransactionDfa,
     ctx: ContexteTenant,
@@ -988,16 +995,15 @@ export class ServiceDossierVente {
       readonly statut: LigneDossierVente['statut'];
     },
   ): Promise<void> {
-    try {
-      await tx
-        .update(dossierVente)
-        .set(champs)
-        .where(and(eq(dossierVente.tenantId, ligne.tenantId), eq(dossierVente.id, ligne.id)));
-    } catch (erreur) {
-      const traduite = traduireErreurTransitionVente(erreur, ligne.id, ligne.id);
-      if (traduite) throw traduite;
-      throw erreur;
-    }
+    await this.avecTraductionErreur(
+      async () => {
+        await tx
+          .update(dossierVente)
+          .set(champs)
+          .where(and(eq(dossierVente.tenantId, ligne.tenantId), eq(dossierVente.id, ligne.id)));
+      },
+      (erreur) => traduireErreurTransitionVente(erreur, ligne.id, ligne.id),
+    );
   }
 
   private async transitionnerVehiculeStock(
@@ -1052,13 +1058,29 @@ export class ServiceDossierVente {
       readonly statut: LigneReprise['statut'];
     },
   ): Promise<void> {
+    await this.avecTraductionErreur(
+      async () => {
+        await tx
+          .update(reprise)
+          .set(champs)
+          .where(and(eq(reprise.tenantId, ligne.tenantId), eq(reprise.id, ligne.id)));
+      },
+      (erreur) => traduireErreurTransitionVente(erreur, ligne.id, ligne.id),
+    );
+  }
+
+  /** Exécute `travail`, catch, et traduit via `traducteur` — relance la traduction si elle réussit,
+   *  sinon relance l'erreur d'origine telle quelle. Factorise le patron catch/traduire/relancer
+   *  répété quatre fois dans ce fichier avant cette extraction (transitions dossier/reprise,
+   *  ouverture et clôture de la détention véhicule à la livraison). */
+  private async avecTraductionErreur<T>(
+    travail: () => Promise<T>,
+    traducteur: (erreur: unknown) => ErreurMetier | null,
+  ): Promise<T> {
     try {
-      await tx
-        .update(reprise)
-        .set(champs)
-        .where(and(eq(reprise.tenantId, ligne.tenantId), eq(reprise.id, ligne.id)));
+      return await travail();
     } catch (erreur) {
-      const traduite = traduireErreurTransitionVente(erreur, ligne.id, ligne.id);
+      const traduite = traducteur(erreur);
       if (traduite) throw traduite;
       throw erreur;
     }

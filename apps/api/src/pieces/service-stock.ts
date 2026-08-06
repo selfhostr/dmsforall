@@ -29,6 +29,8 @@ import {
   construireOrderBy,
   decoderCurseurPourTri,
   encoderCurseurTrie,
+  expressionTriValeur,
+  valeurCurseurDepuisTri,
   type DefinitionTri,
 } from './pagination-triee';
 
@@ -137,14 +139,14 @@ export class ServiceStock {
         quantiteDisponibleMillieme: number;
         stockMinimumMillieme: number;
         quantiteCommandeStandardMillieme: number | null;
-        triValeur: number;
+        triValeur: string | number | null;
       }>(sql`
         select a.id as "articleId", coalesce(a.numero_article, '') as "numeroArticle",
                a.designation as "designation", s.site_id as "siteId",
                (s.quantite_physique_millieme - s.quantite_reservee_millieme) as "quantiteDisponibleMillieme",
                s.stock_minimum_millieme as "stockMinimumMillieme",
                s.quantite_commande_standard_millieme as "quantiteCommandeStandardMillieme",
-               ${definition.expression} as "triValeur"
+               ${expressionTriValeur(definition)} as "triValeur"
           from public.stock_article s
           join public.article a on a.tenant_id = s.tenant_id and a.id = s.article_id
          where ${sql.join(conditions, sql` and `)}
@@ -163,7 +165,7 @@ export class ServiceStock {
           aUnePageSuivante && derniere
             ? encoderCurseurTrie({
                 tri: params.tri,
-                valeur: derniere.triValeur,
+                valeur: valeurCurseurDepuisTri(definition, derniere.triValeur),
                 id: derniere.articleId,
               })
             : null,

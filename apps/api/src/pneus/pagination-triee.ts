@@ -5,8 +5,6 @@ import {
   valeurCurseurTimestamptz,
 } from '../common/pagination';
 
-import { ErreurMetier } from '../common/erreurs';
-
 /**
  * Support générique du curseur v2 triable (contrats-api-etape-1.md §6.1) pour les listes qui ne
  * s'expriment pas avec le seul query-builder Drizzle : tri sur colonne potentiellement NULL, ou
@@ -82,71 +80,35 @@ export function construireConditionKeyset(
 
 /** Décode le curseur de la requête pour le `tri` demandé — `null` si aucun curseur fourni.
  *
- * DÉFAUT CORRIGÉ (constaté en exécution réelle, `500 ERREUR_INTERNE`, non reproduit par les tests
- * d'intégration existants) : `decoderCurseurTrie()` valide la FORME du curseur v2 (`t`/`v`/`i`
- * présents, `t` égal au tri demandé, `i` un uuid) mais PAS le contenu de `v` au-delà de
- * `typeof v === 'string' | 'number' | null` — voir `estValeurTriValide()`, `common/pagination/
- * curseur.ts`. Tous les tris de ce module portent sur une colonne `timestamptz`
- * (`DEFINITIONS_TRI_*` ci-dessous, `temporel: true` partout) : un curseur syntaxiquement valide
- * (forme v2 correcte, tri correspondant, uuid valide) mais dont `v` n'est PAS le texte natif
- * PostgreSQL d'un timestamptz — un nombre, ou une chaîne quelconque — passe ce premier contrôle
- * sans erreur, puis atteint `construireConditionKeyset()` telle quelle : elle devient un littéral
- * injecté tel quel dans la clause `WHERE` (`d.dernier_mouvement_le < '<valeur>'`). PostgreSQL lève
- * alors une erreur NATIVE (`22007 invalid_datetime_format` ou équivalent) au moment de l'exécution
- * de la requête — une erreur qui n'est interceptée nulle part dans `ServiceDepotPneus` (aucun
- * `catch` ne la reconnaît, contrairement à `estViolationUniciteActif`/`estViolationFk`) et remonte
- * donc telle quelle jusqu'au filtre d'exception global, qui la traduit en `500 ERREUR_INTERNE`
- * anonyme au lieu d'un `400 VALIDATION_ECHOUEE` imputable au client qui a fourni ce curseur.
+ * DÉFAUT CORRIGÉ ICI EN PREMIER (constaté en exécution réelle, `500 ERREUR_INTERNE`, non
+ * reproduit par les tests d'intégration existants), depuis généralisé dans
+ * `common/pagination/curseur.ts` et adopté par `clients/`, `pieces/`, `ventes/` :
+ * `decoderCurseurTrie()` valide la FORME du curseur v2 (`t`/`v`/`i` présents, `t` égal au tri
+ * demandé, `i` un uuid) mais, sans le paramètre `typeValeur`, pas le CONTENU de `v` au-delà de
+ * `typeof v === 'string' | 'number' | null`. Un curseur syntaxiquement valide (forme v2 correcte,
+ * tri correspondant, uuid valide) mais dont `v` n'est pas le texte natif PostgreSQL d'un
+ * timestamptz — un nombre, ou une chaîne quelconque — passait alors ce premier contrôle sans
+ * erreur, puis atteignait `construireConditionKeyset()` telle quelle : un littéral injecté tel
+ * quel dans la clause `WHERE` (`d.dernier_mouvement_le < '<valeur>'`). PostgreSQL levait une erreur
+ * NATIVE (`22007 invalid_datetime_format`) non interceptée par `ServiceDepotPneus`, remontant en
+ * `500 ERREUR_INTERNE` anonyme au lieu d'un `400 VALIDATION_ECHOUEE` imputable au client.
  *
- * Pourquoi les 19 tests d'intégration existants ne l'ont pas vu : ils exercent tous des curseurs
- * soit ABSENTS, soit ENCODÉS PAR LE SERVEUR lui-même (`encoderCurseurTrie()` à partir d'une
- * `triValeur` déjà passée par `expressionTriValeur()`, donc déjà un texte PostgreSQL valide et
- * déjà validé par `valeurCurseurTimestamptz()` côté encodage, voir `valeurCurseurDepuisTri()`
- * ci-dessous) — jamais un curseur FORGÉ avec une valeur arbitraire dans le champ `v`, qui est
- * pourtant exactement ce qu'un client hostile, un bookmark périmé ou un bug côté appelant peut
- * envoyer. Le piège de pagination documenté dans `valeur-temporelle.ts` (deux lignes à la même
- * microseconde) est une classe de défaut DIFFÉRENTE : celui-là corrompt une valeur produite par le
- * SERVEUR ; celui-ci vient d'une valeur fournie par le CLIENT et jamais revalidée.
- *
- * Correction : revalider `valeur` ICI, au même format que celui qu'exige `valeurCurseurTimestamptz`
- * pour l'ENCODAGE — avant qu'elle n'atteigne la moindre requête SQL. Un rejet produit
- * `400 VALIDATION_ECHOUEE`, exactement ce que produit déjà `decoderCurseurTrie()` pour un curseur
- * malformé — le contrat côté client ne change pas, seul le classement d'un cas auparavant non
- * couvert passe de 500 à 400. */
+ * Correction adoptée : `decoderCurseurTrie()` porte désormais elle-même cette validation de
+ * contenu via son 3ᵉ paramètre `typeValeur` (voir `common/pagination/curseur.ts`,
+ * `validerContenuValeur`). Tous les tris de ce module portent sur une colonne `timestamptz`
+ * (`DEFINITIONS_TRI_HANGAR/VEHICULE/RELANCE`, `service-depot-pneus.ts` — `temporel: true`
+ * partout, aucun tri numérique côté pneus) : `'temporel'` peut donc être passé directement, sans
+ * détour par une table `definitions` comme le font `pieces/`/`ventes/` (qui, eux, mélangent des
+ * tris temporels et non temporels). Le contrat côté client ne change pas : un rejet produit
+ * toujours `400 VALIDATION_ECHOUEE`, exactement ce que produisait déjà la réimplémentation locale
+ * ci-dessus — seul le CHEMIN change. */
 export function decoderCurseurPourTri(
   curseur: string | undefined,
   triDemande: string,
 ): { readonly valeur: string | number | null; readonly id: string } | null {
   if (!curseur) return null;
-  const { valeur, id } = decoderCurseurTrie(curseur, triDemande);
-  validerValeurCurseurTemporelle(valeur);
+  const { valeur, id } = decoderCurseurTrie(curseur, triDemande, 'temporel');
   return { valeur, id };
-}
-
-/**
- * Toutes les définitions de tri de ce module (`DEFINITIONS_TRI_HANGAR/VEHICULE/RELANCE`,
- * `service-depot-pneus.ts`) sont `temporel: true` — aucun tri numérique n'existe côté pneus. La
- * valeur de curseur, si elle n'est pas `null` (colonne non nullable en pratique, mais un curseur
- * FORGÉ peut prétendre le contraire sans risque : voir la branche `valeur === null` de
- * `construireConditionKeyset`, qui ne rend simplement aucune ligne), DOIT donc être le texte natif
- * PostgreSQL d'un `timestamptz` — exactement ce que valide `valeurCurseurTimestamptz`. Un nombre
- * est rejeté directement (aucun tri temporel n'accepte une valeur numérique).
- */
-function validerValeurCurseurTemporelle(valeur: string | number | null): void {
-  if (valeur === null) return;
-  if (typeof valeur === 'string') {
-    try {
-      valeurCurseurTimestamptz(valeur);
-      return;
-    } catch {
-      // Tombe dans le rejet commun ci-dessous — même code/statut que `decoderCurseurTrie()`.
-    }
-  }
-  throw new ErreurMetier('VALIDATION_ECHOUEE', 'Curseur de pagination invalide.', {
-    erreurs: [
-      { champ: 'curseur', code: 'curseur_invalide', message: 'Curseur de pagination illisible.' },
-    ],
-  });
 }
 
 export { encoderCurseurTrie };

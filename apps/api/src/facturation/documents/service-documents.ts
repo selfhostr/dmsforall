@@ -84,11 +84,12 @@ export class ServiceDocumentsVente {
    * DANS CETTE MÊME transaction (aucune séquence numérotée n'est brûlée par cette transition, la
    * table `transition_document_autorisee` la déclare `exige_motif = false`).
    *
-   * SIMPLIFICATION SIGNALÉE : `entree.lignes` embarquées sont insérées telles quelles, avec
-   * `remiseGlobaleRepartieCentimes = 0` (la remise globale n'est ventilée qu'à l'émission, `MD-59`)
-   * — `POST /ordres-reparation/{id}/facturer` (recopie de lignes d'OR, `RF-81`) N'EST PAS
-   * implémenté dans ce lot : hors du périmètre listé pour cette tâche (« créer un brouillon,
-   * ajouter/modifier ses lignes, l'émettre, le transformer devis→facture, créer un avoir »).
+   * SIMPLIFICATION qui reste vraie ICI (pas dans le reste de la chaîne) : `entree.lignes`
+   * embarquées sont insérées telles quelles, avec `remiseGlobaleRepartieCentimes = 0` (la remise
+   * globale n'est ventilée qu'à l'émission, `MD-59`). `POST /ordres-reparation/{id}/facturer`
+   * (recopie de lignes d'OR, `RF-81`) EST implémenté depuis — voir `atelier/service-facturation-
+   * or.ts::ServiceFacturationOr.facturer` — mais N'APPELLE PAS cette méthode `creer` : il insère
+   * `document_vente`/`ligne_document` lui-même, hors de ce fichier.
    */
   async creer(
     ctx: ContexteTenant,

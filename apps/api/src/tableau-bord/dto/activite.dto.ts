@@ -1,9 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type {
-  PeriodeResolueTableauBord,
-  ReponseActiviteTableauBord,
-  RepartitionStatutOrdreReparationTableauBord,
-  StatutOrTableauBord,
+import {
+  STATUTS_OR_TABLEAU_BORD,
+  type PeriodeResolueTableauBord,
+  type ReponseActiviteTableauBord,
+  type RepartitionStatutOrdreReparationTableauBord,
+  type StatutOrTableauBord,
 } from '@dfa/shared';
 
 export class PeriodeResolueTableauBordDto implements PeriodeResolueTableauBord {
@@ -15,9 +16,7 @@ export class PeriodeResolueTableauBordDto implements PeriodeResolueTableauBord {
 }
 
 export class RepartitionStatutOrdreReparationTableauBordDto implements RepartitionStatutOrdreReparationTableauBord {
-  @ApiProperty({
-    enum: ['planifie', 'ouvert', 'en_cours', 'controle', 'termine', 'facture'],
-  })
+  @ApiProperty({ enum: STATUTS_OR_TABLEAU_BORD })
   readonly statut!: StatutOrTableauBord;
 
   @ApiProperty()

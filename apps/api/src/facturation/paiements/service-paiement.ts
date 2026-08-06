@@ -19,6 +19,7 @@ import {
   type LigneImputationPaiement,
   type LignePaiement,
 } from '../../db/schema';
+import { remonterCauseParCode } from '../../common/erreurs-pg';
 import { ErreurMetier } from '../../common/erreurs';
 import { Horloge } from '../../common/horloge/horloge';
 import {
@@ -114,16 +115,6 @@ function ligneDepuisBrute(brute: LignePaiementBrute): LignePaiement {
 /** SQLSTATE `23505` (unique_violation) — `identifiant_transaction_banque`. */
 const SQLSTATE_UNICITE = '23505';
 
-/** Profondeur maximale de déballage de `.cause` — même borne que
- *  `vehicules/erreurs-contraintes.ts::remonterCause` et
- *  `facturation/documents/erreurs-sql-document.ts::remonterCauseErreurPg`. */
-const PROFONDEUR_MAX_CAUSE = 10;
-
-interface ErreurPgBrute {
-  readonly code?: unknown;
-  readonly cause?: unknown;
-}
-
 /**
  * `code` PostgreSQL d'une violation de contrainte `unique` (23505) — pilote `pg`.
  *
@@ -131,23 +122,12 @@ interface ErreurPgBrute {
  * Drizzle (`pg-core/session.js`) l'enveloppe systématiquement dans une `DrizzleQueryError` qui
  * porte la brute sous `.cause` — jamais `code` en surface. Sans déballer `.cause`, cette fonction
  * ne reconnaît jamais rien et un doublon d'`identifiant_transaction_banque` retombe en
- * `ERREUR_INTERNE`/500 au lieu du `CONFLIT`/409 attendu. Déballage borné pour ne jamais boucler à
- * l'infini sur un `cause` cyclique pathologique — même patron que
+ * `ERREUR_INTERNE`/500 au lieu du `CONFLIT`/409 attendu. Déballage factorisé dans
+ * `common/erreurs-pg/remonter-cause-pg.ts::remonterCauseParCode` — même patron que
  * `vehicules/erreurs-contraintes.ts::remonterCause`.
  */
 function estViolationUnicite(erreur: unknown): boolean {
-  let courante: unknown = erreur;
-  for (let profondeur = 0; profondeur < PROFONDEUR_MAX_CAUSE; profondeur += 1) {
-    if (typeof courante !== 'object' || courante === null) {
-      return false;
-    }
-    const brute = courante as ErreurPgBrute;
-    if (brute.code === SQLSTATE_UNICITE) {
-      return true;
-    }
-    courante = brute.cause;
-  }
-  return false;
+  return remonterCauseParCode(erreur, SQLSTATE_UNICITE) !== null;
 }
 
 @Injectable()
