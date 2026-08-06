@@ -372,19 +372,24 @@ describe('BarreLaterale — groupe Pointage (masquage par rôle, restriction RÉ
 
 /**
  * Numéro de version (support téléphonique) — décision de tâche : source = `GET /sante`, jamais
- * le `package.json` du front. AUCUN état de chargement/erreur ne doit produire de texte
- * (exception assumée à la règle « chargement / vide / erreur », voir le commentaire dans
- * `BarreLaterale.tsx`) : les deux tests ci-dessous verrouillent cette absence, le premier
- * verrouille l'affichage une fois la sonde résolue.
+ * le `package.json` du front. Format retenu (demande explicite de @laupernoe) : « branche · version »
+ * (ex. « main · 0.1.234 »), le point médian étant le seul séparateur — pas de mot « Version » en
+ * préfixe. AUCUN état de chargement/erreur ne doit produire de texte (exception assumée à la
+ * règle « chargement / vide / erreur », voir le commentaire dans `BarreLaterale.tsx`) : les
+ * deux tests ci-dessous verrouillent cette absence via le point médian, seul caractère propre à
+ * ce pied (aucun autre texte de l'écran n'en contient), le premier verrouille l'affichage une
+ * fois la sonde résolue.
  */
 describe('BarreLaterale — numéro de version', () => {
-  it('affiche « Version <numéro> » une fois la sonde de vie résolue', async () => {
+  it('affiche « branche · version » une fois la sonde de vie résolue', async () => {
     server.use(
-      http.get('/api/v1/sante', () => HttpResponse.json({ statut: 'ok', version: '3.4.5-verif' })),
+      http.get('/api/v1/sante', () =>
+        HttpResponse.json({ statut: 'ok', version: '3.4.5-verif', branche: 'main' }),
+      ),
     );
     rendre('/');
 
-    expect(await screen.findByText('Version 3.4.5-verif')).toBeInTheDocument();
+    expect(await screen.findByText('main · 3.4.5-verif')).toBeInTheDocument();
   });
 
   it('n’affiche aucun texte de version tant que la sonde de vie n’a pas répondu (pas de squelette, pas de placeholder)', async () => {
@@ -394,7 +399,7 @@ describe('BarreLaterale — numéro de version', () => {
         // ce qui prouve que l'absence de texte observée ci-dessous vient bien de cet état-là (et
         // non d'une simple coïncidence de timing).
         await delay('infinite');
-        return HttpResponse.json({ statut: 'ok', version: 'jamais-affichee' });
+        return HttpResponse.json({ statut: 'ok', version: 'jamais-affichee', branche: 'jamais' });
       }),
     );
     const { queryClient } = rendre('/');
@@ -402,7 +407,7 @@ describe('BarreLaterale — numéro de version', () => {
     await waitFor(() => {
       expect(queryClient.getQueryState(clesQuery.sante.version())?.status).toBe('pending');
     });
-    expect(screen.queryByText(/version/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/·/)).not.toBeInTheDocument();
   });
 
   it('n’affiche aucun texte de version quand la sonde de vie échoue (pas de message d’erreur)', async () => {
@@ -425,7 +430,7 @@ describe('BarreLaterale — numéro de version', () => {
     await waitFor(() => {
       expect(queryClient.getQueryState(clesQuery.sante.version())?.status).toBe('error');
     });
-    expect(screen.queryByText(/version/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/·/)).not.toBeInTheDocument();
   });
 
   /**
@@ -443,7 +448,7 @@ describe('BarreLaterale — numéro de version', () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
       http.get('/api/v1/sante', () =>
-        HttpResponse.json({ statut: 'ok', version: '9.9.9-liste-longue' }),
+        HttpResponse.json({ statut: 'ok', version: '9.9.9-liste-longue', branche: 'main' }),
       ),
     );
     rendre('/');
@@ -457,7 +462,7 @@ describe('BarreLaterale — numéro de version', () => {
     expect(screen.getByRole('link', { name: /véhicules en stock/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /paramètres atelier/i })).toBeInTheDocument();
 
-    const pied = await screen.findByText('Version 9.9.9-liste-longue');
+    const pied = await screen.findByText('main · 9.9.9-liste-longue');
     const nav = screen.getByRole('navigation');
     const zoneDeLiens = nav.firstElementChild;
     const zonePied = nav.lastElementChild;

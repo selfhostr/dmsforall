@@ -1,0 +1,89 @@
+{
+  "titre": "Relances automatiques",
+  "sousTitre": "Rappels de factures impayées : réglez les paliers, déclenchez la planification et l'envoi.",
+  "navigation": {
+    "lien": "Relances"
+  },
+  "etatErreur": {
+    "titre": "Impossible d'afficher les relances",
+    "description": "La configuration des relances n'a pas pu être chargée. Vérifiez votre connexion et réessayez."
+  },
+  "regles": {
+    "titre": "Règle de rappel — facture échue",
+    "description": "Un rappel part automatiquement à chaque palier, compté en jours après l'échéance de la facture.",
+    "statut": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "nonConfiguree": {
+      "titre": "Aucune règle configurée",
+      "description": "Aucun rappel de facture impayée n'est encore réglé pour ce garage. Appliquez le préréglage recommandé pour démarrer, puis ajustez-le si besoin."
+    },
+    "paliers": {
+      "titre": "Paliers",
+      "vide": "Aucun palier défini",
+      "libelle": "Palier {n}",
+      "jours": "{n, plural, one {# jour} other {# jours}} après l'échéance"
+    },
+    "canaux": {
+      "titre": "Canaux d'envoi",
+      "sms": "SMS",
+      "email": "E-mail",
+      "vide": "Aucun canal choisi"
+    },
+    "prereglage": {
+      "bouton": "Activer le préréglage recommandé",
+      "description": "1er rappel à {p1} jours, 2e rappel à {p2} jours, sommation à {p3} jours, par e-mail.",
+      "applique": "Préréglage appliqué le {date}."
+    },
+    "actions": {
+      "modifier": "Modifier la règle",
+      "enregistrer": "Enregistrer",
+      "annuler": "Annuler"
+    },
+    "formulaire": {
+      "actif": "Envoyer ces rappels automatiquement",
+      "actifAide": "Décochez pour suspendre les rappels de facture sans perdre le réglage.",
+      "paliersLabel": "Délais des paliers (jours après l'échéance)",
+      "paliersAide": "Un délai par palier, par ordre d'envoi. Exemple : 10, puis 20, puis 30.",
+      "palierPlaceholder": "Jours",
+      "ajouterPalier": "Ajouter un palier",
+      "supprimerPalier": "Retirer le palier {n}",
+      "canauxLabel": "Canaux d'envoi",
+      "erreurPalierPositif": "Chaque palier doit être un nombre entier de jours supérieur à zéro.",
+      "erreurPaliersRequis": "Ajoutez au moins un palier pour activer les rappels.",
+      "erreurCanauxRequis": "Choisissez au moins un canal pour activer les rappels.",
+      "succes": "Règle enregistrée."
+    }
+  },
+  "declenchement": {
+    "titre": "Déclenchement manuel",
+    "description": "Aucun automatisme n'exécute encore ces opérations : lancez-les à la main. Elles sont sans danger si vous les relancez (aucun rappel n'est envoyé deux fois).",
+    "planifier": {
+      "titre": "Planifier les rappels",
+      "description": "Repère les factures dont un palier est dû et crée les rappels correspondants.",
+      "bouton": "Planifier maintenant",
+      "enCours": "Planification en cours…",
+      "creees": "{n, plural, =0 {Aucun rappel créé} one {# rappel créé} other {# rappels créés}}",
+      "ignorees": "{n, plural, =0 {aucun déjà planifié} one {# déjà planifié} other {# déjà planifiés}}",
+      "encore": "D'autres factures restent à traiter — relancez pour continuer.",
+      "termine": "Tout est traité."
+    },
+    "envoyer": {
+      "titre": "Envoyer les rappels prêts",
+      "description": "Envoie les rappels planifiés qui sont prêts, via le canal configuré pour chaque client.",
+      "bouton": "Envoyer maintenant",
+      "enCours": "Envoi en cours…",
+      "envoyees": "{n, plural, =0 {Aucun rappel envoyé} one {# rappel envoyé} other {# rappels envoyés}}",
+      "echouees": "{n, plural, =0 {aucun échec} one {# échec} other {# échecs}}",
+      "annulees": "{n, plural, =0 {aucune annulation} one {# annulation} other {# annulations}}",
+      "encore": "D'autres rappels restent à envoyer — relancez pour continuer.",
+      "termine": "Tout est envoyé."
+    },
+    "erreur": "L'opération a échoué : {message}"
+  },
+  "tracabilite": {
+    "titre": "Historique d'envoi",
+    "note": "Le journal détaillé — qui a reçu quel rappel, quand, et avec quel résultat — s'affichera ici dès que l'API de listing des envois sera livrée. En attendant, chaque déclenchement ci-dessus affiche le bilan de son exécution."
+  }
+}

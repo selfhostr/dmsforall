@@ -47,6 +47,6 @@
     "tousLesSites": "Alle Werkstätten"
   },
   "pied": {
-    "version": "Version {numero}"
+    "version": "{branche} · {numero}"
   }
 }

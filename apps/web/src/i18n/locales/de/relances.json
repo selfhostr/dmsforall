@@ -1,0 +1,89 @@
+{
+  "titre": "Automatische Mahnungen",
+  "sousTitre": "Erinnerungen für offene Rechnungen: Stufen einstellen, Planung und Versand auslösen.",
+  "navigation": {
+    "lien": "Mahnungen"
+  },
+  "etatErreur": {
+    "titre": "Mahnungen können nicht angezeigt werden",
+    "description": "Die Mahnungs-Konfiguration konnte nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+  },
+  "regles": {
+    "titre": "Mahnregel — fällige Rechnung",
+    "description": "Bei jeder Stufe wird automatisch eine Erinnerung versendet, gezählt in Tagen nach dem Fälligkeitsdatum der Rechnung.",
+    "statut": {
+      "active": "Aktiv",
+      "inactive": "Inaktiv"
+    },
+    "nonConfiguree": {
+      "titre": "Keine Regel konfiguriert",
+      "description": "Für diesen Betrieb ist noch keine Mahnung für offene Rechnungen eingestellt. Wenden Sie die empfohlene Voreinstellung an, um zu starten, und passen Sie sie bei Bedarf an."
+    },
+    "paliers": {
+      "titre": "Stufen",
+      "vide": "Keine Stufe festgelegt",
+      "libelle": "Stufe {n}",
+      "jours": "{n, plural, one {# Tag} other {# Tage}} nach Fälligkeit"
+    },
+    "canaux": {
+      "titre": "Versandkanäle",
+      "sms": "SMS",
+      "email": "E-Mail",
+      "vide": "Kein Kanal gewählt"
+    },
+    "prereglage": {
+      "bouton": "Empfohlene Voreinstellung aktivieren",
+      "description": "1. Erinnerung nach {p1} Tagen, 2. Erinnerung nach {p2} Tagen, Mahnung nach {p3} Tagen, per E-Mail.",
+      "applique": "Voreinstellung angewendet am {date}."
+    },
+    "actions": {
+      "modifier": "Regel bearbeiten",
+      "enregistrer": "Speichern",
+      "annuler": "Abbrechen"
+    },
+    "formulaire": {
+      "actif": "Diese Erinnerungen automatisch versenden",
+      "actifAide": "Deaktivieren, um Rechnungserinnerungen auszusetzen, ohne die Einstellung zu verlieren.",
+      "paliersLabel": "Fristen der Stufen (Tage nach Fälligkeit)",
+      "paliersAide": "Eine Frist pro Stufe, in Versandreihenfolge. Beispiel: 10, dann 20, dann 30.",
+      "palierPlaceholder": "Tage",
+      "ajouterPalier": "Stufe hinzufügen",
+      "supprimerPalier": "Stufe {n} entfernen",
+      "canauxLabel": "Versandkanäle",
+      "erreurPalierPositif": "Jede Stufe muss eine ganze Anzahl Tage grösser als null sein.",
+      "erreurPaliersRequis": "Fügen Sie mindestens eine Stufe hinzu, um Erinnerungen zu aktivieren.",
+      "erreurCanauxRequis": "Wählen Sie mindestens einen Kanal, um Erinnerungen zu aktivieren.",
+      "succes": "Regel gespeichert."
+    }
+  },
+  "declenchement": {
+    "titre": "Manuelle Auslösung",
+    "description": "Noch führt kein Automatismus diese Vorgänge aus: Starten Sie sie von Hand. Ein erneuter Start ist ungefährlich (keine Erinnerung wird zweimal versendet).",
+    "planifier": {
+      "titre": "Erinnerungen planen",
+      "description": "Erkennt die Rechnungen, deren Stufe fällig ist, und erstellt die entsprechenden Erinnerungen.",
+      "bouton": "Jetzt planen",
+      "enCours": "Planung läuft…",
+      "creees": "{n, plural, =0 {Keine Erinnerung erstellt} one {# Erinnerung erstellt} other {# Erinnerungen erstellt}}",
+      "ignorees": "{n, plural, =0 {keine bereits geplant} one {# bereits geplant} other {# bereits geplant}}",
+      "encore": "Weitere Rechnungen sind noch zu bearbeiten — erneut starten, um fortzufahren.",
+      "termine": "Alles bearbeitet."
+    },
+    "envoyer": {
+      "titre": "Bereite Erinnerungen versenden",
+      "description": "Versendet die geplanten Erinnerungen, die bereit sind, über den für jeden Kunden konfigurierten Kanal.",
+      "bouton": "Jetzt versenden",
+      "enCours": "Versand läuft…",
+      "envoyees": "{n, plural, =0 {Keine Erinnerung versendet} one {# Erinnerung versendet} other {# Erinnerungen versendet}}",
+      "echouees": "{n, plural, =0 {kein Fehler} one {# Fehler} other {# Fehler}}",
+      "annulees": "{n, plural, =0 {keine Stornierung} one {# Stornierung} other {# Stornierungen}}",
+      "encore": "Weitere Erinnerungen sind noch zu versenden — erneut starten, um fortzufahren.",
+      "termine": "Alles versendet."
+    },
+    "erreur": "Der Vorgang ist fehlgeschlagen: {message}"
+  },
+  "tracabilite": {
+    "titre": "Versandverlauf",
+    "note": "Das detaillierte Protokoll — wer welche Erinnerung wann und mit welchem Ergebnis erhalten hat — erscheint hier, sobald die Listing-API für Versände verfügbar ist. Bis dahin zeigt jede Auslösung oben die Bilanz ihrer Ausführung."
+  }
+}

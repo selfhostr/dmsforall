@@ -96,17 +96,23 @@ function LigneGarantie({
   readonly garantie: GarantieVehicule | null;
 }) {
   const { t } = useTranslation('vehicules');
-  const active = garantie?.active === true;
-  const Icone = active ? ShieldCheck : ShieldOff;
 
-  if (!garantie || (!garantie.finLe && garantie.plafondKm === null)) {
+  // `garantie === null` signifie « aucune garantie renseignée » — on ignore l'état, ce n'est PAS
+  // une garantie expirée. Confondre les deux (défaut constaté) fait dire « Échue » à un véhicule
+  // qui n'a simplement jamais reçu de garantie : état neutre, jamais d'icône d'alarme ici.
+  if (!garantie) {
     return (
       <div className="flex flex-col gap-1 rounded-md border border-dashed p-3">
         <p className="texte-libelle text-muted-foreground">{titre}</p>
-        <p className="texte-corps text-muted-foreground">{t('garantie.echue')}</p>
+        <p className="texte-corps text-muted-foreground">{t('garantie.nonRenseignee')}</p>
       </div>
     );
   }
+
+  // À partir d'ici, la garantie existe réellement : `active` (calculé côté serveur) fait foi, on ne
+  // le redérive jamais des dates/plafond côté écran.
+  const active = garantie.active;
+  const Icone = active ? ShieldCheck : ShieldOff;
 
   return (
     <div className="flex flex-col gap-1 rounded-md border p-3">

@@ -47,6 +47,6 @@
     "tousLesSites": "Tous les sites"
   },
   "pied": {
-    "version": "Version {numero}"
+    "version": "{branche} · {numero}"
   }
 }

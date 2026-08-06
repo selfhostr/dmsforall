@@ -47,6 +47,6 @@
     "tousLesSites": "Tutte le officine"
   },
   "pied": {
-    "version": "Versione {numero}"
+    "version": "{branche} · {numero}"
   }
 }

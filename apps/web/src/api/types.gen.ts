@@ -759,6 +759,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/depots-pneus/{id}/deplacer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** DÉFAUT CORRIGÉ (RPP-07) : modifie le repère de rangement (`codeCase`) d’un dépôt — posable seulement à la création jusqu’ici, alors que les jeux de pneus changent de case couramment dans le hangar. `codeCase` nullish (retrait du repère accepté). Met à jour `dernierMouvementLe` (un déplacement est un mouvement au sens RPP-04). Même droit que `changer-saison` : geste physique routinier, pas une clôture de garde (voir `sortir`). */
+        post: operations["DepotPneusController_deplacer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/depots-pneus/{id}/sortir": {
         parameters: {
             query?: never;
@@ -921,7 +938,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Ajout d'une ligne sur un brouillon (MD-21). */
+        /**
+         * Ajout d'une ligne sur un brouillon (MD-21).
+         * @description `Idempotency-Key` obligatoire (uuid v4) — une ligne `piece` avec `articleId`+`siteId` déclenche un mouvement de stock `sortie_comptoir` DANS LA MÊME TRANSACTION que cette insertion (RP-43) : un rejeu réseau ou un double-clic ne doit jamais sortir la pièce du stock une seconde fois ni dupliquer la ligne.
+         */
         post: operations["DocumentVenteController_ajouterLigne"];
         delete?: never;
         options?: never;
@@ -2350,6 +2370,77 @@ export interface paths {
         patch: operations["TauxHorairesController_modifier"];
         trace?: never;
     };
+    "/relances/facturation/envoyer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Envoie les rappels facture `prete` (un lot borné par appel), via le connecteur NotificationSender — sans connecteur actif, rend un lot vide (jamais une erreur). */
+        post: operations["RelancesController_envoyer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/relances/facturation/planifier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Calcule les paliers de rappel facture dus et les planifie (RA-05, idempotent — rejouable sans dommage, un lot borné par appel).
+         * @description Aucun ordonnanceur ne déclenche cette route automatiquement — voir le rapport de livraison pour ce qu’il faut pour l’appeler périodiquement.
+         */
+        post: operations["RelancesController_planifier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/relances/regles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Configuration des relances par type (§5, §4 de la spec). */
+        get: operations["RelancesController_lister"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/relances/regles/{typeRelance}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Upsert idempotent de la configuration d’un type de relance (une ligne par (tenant, type), §5). */
+        put: operations["RelancesController_upserter"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reservations": {
         parameters: {
             query?: never;
@@ -3699,6 +3790,15 @@ export interface components {
             avertissements: components["schemas"]["AvertissementVehiculeDto"][];
             donnees: components["schemas"]["ReponseVehiculeDto"];
         };
+        EnvoiRelancesDto: {
+            /** @example 1 */
+            annulees: number;
+            /** @example 0 */
+            echouees: number;
+            encoreATraiter: boolean;
+            /** @example 5 */
+            envoyees: number;
+        };
         ErreurChampCommunDto: {
             /**
              * @description Chemin du champ fautif (notation pointée).
@@ -4261,6 +4361,13 @@ export interface components {
              */
             du: string;
         };
+        PlanificationRelancesDto: {
+            /** @example 3 */
+            creees: number;
+            encoreATraiter: boolean;
+            /** @example 12 */
+            ignorees: number;
+        };
         PlanningParametresAtelierDto: {
             noShowSeuilAlerte: number;
             /** @description Aucune colonne en base au lot 1 (domaine `planning` inerte) — valeur par défaut de contrats-api-etape-1.md §8.2. */
@@ -4277,7 +4384,7 @@ export interface components {
              * @description Contrat machine : seul champ que le front doit lire.
              * @enum {string}
              */
-            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE" | "OR_TRANSITION_INTERDITE" | "OR_RECEPTION_REQUISE" | "OR_KM_ENTREE_REQUIS" | "OR_LIGNES_A_VALIDER" | "OR_POINTAGE_OUVERT" | "OR_LIGNE_NON_REALISEE" | "OR_CHECKLIST_INCOMPLETE" | "OR_PLAFOND_DEPASSE" | "OR_ANNULATION_IMPOSSIBLE" | "OR_LIGNE_VERROUILLEE" | "OR_PO_MANQUANT" | "OR_RESERVE_SECURITE_REQUISE" | "OR_FACTURATION_AUCUNE_LIGNE" | "LIGNE_TRANSITION_INTERDITE" | "LIGNE_SUPPRESSION_IMPOSSIBLE" | "DEVIS_IMMUABLE" | "DEVIS_INTERLOCUTEUR_REQUIS" | "RDV_TRANSITION_INTERDITE" | "RDV_IDENTIFICATION_INCOMPLETE" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_ANNULATION_IMPOSSIBLE" | "RDV_HORS_OUVERTURE" | "POINTAGE_TRANSITION_INTERDITE" | "POINTAGE_CHEVAUCHEMENT" | "POINTAGE_OR_NON_MODIFIABLE" | "POINTAGE_LIGNE_NON_POINTABLE" | "POINTAGE_PERIODE_VERROUILLEE" | "POINTAGE_MOTIF_REQUIS" | "POINTAGE_HORODATAGE_INVALIDE" | "VEHICULE_KILOMETRAGE_REGRESSIF" | "VEHICULE_PLAQUE_COLLISION" | "VEHICULE_VIN_EXISTANT" | "VEHICULE_ARCHIVAGE_IMPOSSIBLE" | "CLIENT_TYPE_IMMUABLE" | "CLIENT_DESACTIVATION_IMPOSSIBLE" | "PRET_VEHICULE_INDISPONIBLE" | "PRET_CONDUCTEUR_REQUIS" | "CONFIRMATION_REQUISE" | "IDEMPOTENCE_CONFLIT" | "FONCTION_NON_DISPONIBLE" | "RECHERCHE_TROP_DE_REQUETES" | "METHODE_NON_AUTORISEE" | "DOCUMENT_VERROUILLE" | "DOCUMENT_TRANSITION_INTERDITE" | "DOCUMENT_SOURCE_DEJA_TRANSFORME" | "DOCUMENT_PERIODE_CLOSE" | "DOCUMENT_PDF_INDISPONIBLE" | "FACTURATION_LIGNES_INDECISES" | "QR_CREANCIER_INCOMPLET" | "AVOIR_MONTANT_EXCEDENTAIRE" | "AVOIR_PLAFOND_DEPASSE" | "REMISE_PLAFOND_DEPASSE" | "IMPUTATION_MONTANT_EXCEDENTAIRE" | "ACOMPTE_DEJA_DEDUIT" | "EXPORT_TROU_NUMEROTATION" | "EXPORT_ECRITURES_DESEQUILIBREES" | "EXPORT_MAPPING_INCOMPLET" | "EXPORT_DEJA_TRANSMIS" | "BASCULE_FIDUCIAIRE_HORS_FRONTIERE" | "ARTICLE_REFERENCE_COLLISION" | "ARTICLE_REMPLACANT_REQUIS" | "ARTICLE_DESACTIVATION_IMPOSSIBLE" | "STOCK_INSUFFISANT" | "MOUVEMENT_MOTIF_REQUIS" | "RESERVATION_TRANSITION_INTERDITE" | "RESERVATION_SITE_INCOHERENT" | "COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE" | "COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE" | "RECEPTION_REFERENCE_NON_EQUIVALENTE" | "CONSIGNE_TRANSITION_INTERDITE" | "POINTAGE_PIN_INVALIDE" | "POINTAGE_PIN_VERROUILLE" | "VENTE_VEHICULE_STOCK_DEJA_EXISTANT" | "VENTE_DOSSIER_TRANSITION_INTERDITE" | "VENTE_REPRISE_TRANSITION_INTERDITE" | "VENTE_FINANCEMENT_TRANSITION_INTERDITE" | "VENTE_VEHICULE_INDISPONIBLE" | "VENTE_VEHICULE_MANQUANT" | "VENTE_FINANCEMENT_NON_CONFIRME" | "VENTE_LIVRAISON_EXPERTISE_REQUISE" | "VENTE_LIVRAISON_INCOMPLETE" | "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE" | "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE" | "VENTE_REPRISE_DEJA_EXISTANTE" | "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE" | "CONNECTEUR_TYPE_INDISPONIBLE" | "CONNECTEUR_IDENTIFIANTS_MANQUANTS" | "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE" | "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE" | "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE" | "LIGNE_DOCUMENT_STOCK_LIEE";
+            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE" | "OR_TRANSITION_INTERDITE" | "OR_RECEPTION_REQUISE" | "OR_KM_ENTREE_REQUIS" | "OR_LIGNES_A_VALIDER" | "OR_POINTAGE_OUVERT" | "OR_LIGNE_NON_REALISEE" | "OR_CHECKLIST_INCOMPLETE" | "OR_PLAFOND_DEPASSE" | "OR_ANNULATION_IMPOSSIBLE" | "OR_LIGNE_VERROUILLEE" | "OR_PO_MANQUANT" | "OR_RESERVE_SECURITE_REQUISE" | "OR_FACTURATION_AUCUNE_LIGNE" | "LIGNE_TRANSITION_INTERDITE" | "LIGNE_SUPPRESSION_IMPOSSIBLE" | "DEVIS_IMMUABLE" | "DEVIS_INTERLOCUTEUR_REQUIS" | "RDV_TRANSITION_INTERDITE" | "RDV_IDENTIFICATION_INCOMPLETE" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_ANNULATION_IMPOSSIBLE" | "RDV_HORS_OUVERTURE" | "POINTAGE_TRANSITION_INTERDITE" | "POINTAGE_CHEVAUCHEMENT" | "POINTAGE_OR_NON_MODIFIABLE" | "POINTAGE_LIGNE_NON_POINTABLE" | "POINTAGE_PERIODE_VERROUILLEE" | "POINTAGE_MOTIF_REQUIS" | "POINTAGE_HORODATAGE_INVALIDE" | "VEHICULE_KILOMETRAGE_REGRESSIF" | "VEHICULE_PLAQUE_COLLISION" | "VEHICULE_VIN_EXISTANT" | "VEHICULE_ARCHIVAGE_IMPOSSIBLE" | "CLIENT_TYPE_IMMUABLE" | "CLIENT_DESACTIVATION_IMPOSSIBLE" | "PRET_VEHICULE_INDISPONIBLE" | "PRET_CONDUCTEUR_REQUIS" | "CONFIRMATION_REQUISE" | "IDEMPOTENCE_CONFLIT" | "FONCTION_NON_DISPONIBLE" | "RECHERCHE_TROP_DE_REQUETES" | "METHODE_NON_AUTORISEE" | "DOCUMENT_VERROUILLE" | "DOCUMENT_TRANSITION_INTERDITE" | "DOCUMENT_SOURCE_DEJA_TRANSFORME" | "DOCUMENT_PERIODE_CLOSE" | "DOCUMENT_PDF_INDISPONIBLE" | "FACTURATION_LIGNES_INDECISES" | "QR_CREANCIER_INCOMPLET" | "AVOIR_MONTANT_EXCEDENTAIRE" | "AVOIR_PLAFOND_DEPASSE" | "REMISE_PLAFOND_DEPASSE" | "IMPUTATION_MONTANT_EXCEDENTAIRE" | "ACOMPTE_DEJA_DEDUIT" | "EXPORT_TROU_NUMEROTATION" | "EXPORT_ECRITURES_DESEQUILIBREES" | "EXPORT_MAPPING_INCOMPLET" | "EXPORT_DEJA_TRANSMIS" | "BASCULE_FIDUCIAIRE_HORS_FRONTIERE" | "ARTICLE_REFERENCE_COLLISION" | "ARTICLE_REMPLACANT_REQUIS" | "ARTICLE_DESACTIVATION_IMPOSSIBLE" | "STOCK_INSUFFISANT" | "MOUVEMENT_MOTIF_REQUIS" | "RESERVATION_TRANSITION_INTERDITE" | "RESERVATION_SITE_INCOHERENT" | "COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE" | "COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE" | "RECEPTION_REFERENCE_NON_EQUIVALENTE" | "CONSIGNE_TRANSITION_INTERDITE" | "POINTAGE_PIN_INVALIDE" | "POINTAGE_PIN_VERROUILLE" | "VENTE_VEHICULE_STOCK_DEJA_EXISTANT" | "VENTE_DOSSIER_TRANSITION_INTERDITE" | "VENTE_REPRISE_TRANSITION_INTERDITE" | "VENTE_FINANCEMENT_TRANSITION_INTERDITE" | "VENTE_VEHICULE_INDISPONIBLE" | "VENTE_VEHICULE_MANQUANT" | "VENTE_FINANCEMENT_NON_CONFIRME" | "VENTE_LIVRAISON_EXPERTISE_REQUISE" | "VENTE_LIVRAISON_INCOMPLETE" | "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE" | "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE" | "VENTE_REPRISE_DEJA_EXISTANTE" | "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE" | "CONNECTEUR_TYPE_INDISPONIBLE" | "CONNECTEUR_IDENTIFIANTS_MANQUANTS" | "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE" | "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE" | "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE" | "LIGNE_DOCUMENT_STOCK_LIEE" | "IMPUTATION_DEVISE_INCOHERENTE";
             /** @description Détail technique — jamais affiché à l'utilisateur final. */
             detail?: string;
             erreurs?: components["schemas"]["ErreurChampCommunDto"][];
@@ -4295,7 +4402,7 @@ export interface components {
         };
         ProblemeDetailDto: {
             /** @enum {string} */
-            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE" | "OR_TRANSITION_INTERDITE" | "OR_RECEPTION_REQUISE" | "OR_KM_ENTREE_REQUIS" | "OR_LIGNES_A_VALIDER" | "OR_POINTAGE_OUVERT" | "OR_LIGNE_NON_REALISEE" | "OR_CHECKLIST_INCOMPLETE" | "OR_PLAFOND_DEPASSE" | "OR_ANNULATION_IMPOSSIBLE" | "OR_LIGNE_VERROUILLEE" | "OR_PO_MANQUANT" | "OR_RESERVE_SECURITE_REQUISE" | "OR_FACTURATION_AUCUNE_LIGNE" | "LIGNE_TRANSITION_INTERDITE" | "LIGNE_SUPPRESSION_IMPOSSIBLE" | "DEVIS_IMMUABLE" | "DEVIS_INTERLOCUTEUR_REQUIS" | "RDV_TRANSITION_INTERDITE" | "RDV_IDENTIFICATION_INCOMPLETE" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_ANNULATION_IMPOSSIBLE" | "RDV_HORS_OUVERTURE" | "POINTAGE_TRANSITION_INTERDITE" | "POINTAGE_CHEVAUCHEMENT" | "POINTAGE_OR_NON_MODIFIABLE" | "POINTAGE_LIGNE_NON_POINTABLE" | "POINTAGE_PERIODE_VERROUILLEE" | "POINTAGE_MOTIF_REQUIS" | "POINTAGE_HORODATAGE_INVALIDE" | "VEHICULE_KILOMETRAGE_REGRESSIF" | "VEHICULE_PLAQUE_COLLISION" | "VEHICULE_VIN_EXISTANT" | "VEHICULE_ARCHIVAGE_IMPOSSIBLE" | "CLIENT_TYPE_IMMUABLE" | "CLIENT_DESACTIVATION_IMPOSSIBLE" | "PRET_VEHICULE_INDISPONIBLE" | "PRET_CONDUCTEUR_REQUIS" | "CONFIRMATION_REQUISE" | "IDEMPOTENCE_CONFLIT" | "FONCTION_NON_DISPONIBLE" | "RECHERCHE_TROP_DE_REQUETES" | "METHODE_NON_AUTORISEE" | "DOCUMENT_VERROUILLE" | "DOCUMENT_TRANSITION_INTERDITE" | "DOCUMENT_SOURCE_DEJA_TRANSFORME" | "DOCUMENT_PERIODE_CLOSE" | "DOCUMENT_PDF_INDISPONIBLE" | "FACTURATION_LIGNES_INDECISES" | "QR_CREANCIER_INCOMPLET" | "AVOIR_MONTANT_EXCEDENTAIRE" | "AVOIR_PLAFOND_DEPASSE" | "REMISE_PLAFOND_DEPASSE" | "IMPUTATION_MONTANT_EXCEDENTAIRE" | "ACOMPTE_DEJA_DEDUIT" | "EXPORT_TROU_NUMEROTATION" | "EXPORT_ECRITURES_DESEQUILIBREES" | "EXPORT_MAPPING_INCOMPLET" | "EXPORT_DEJA_TRANSMIS" | "BASCULE_FIDUCIAIRE_HORS_FRONTIERE" | "ARTICLE_REFERENCE_COLLISION" | "ARTICLE_REMPLACANT_REQUIS" | "ARTICLE_DESACTIVATION_IMPOSSIBLE" | "STOCK_INSUFFISANT" | "MOUVEMENT_MOTIF_REQUIS" | "RESERVATION_TRANSITION_INTERDITE" | "RESERVATION_SITE_INCOHERENT" | "COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE" | "COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE" | "RECEPTION_REFERENCE_NON_EQUIVALENTE" | "CONSIGNE_TRANSITION_INTERDITE" | "POINTAGE_PIN_INVALIDE" | "POINTAGE_PIN_VERROUILLE" | "VENTE_VEHICULE_STOCK_DEJA_EXISTANT" | "VENTE_DOSSIER_TRANSITION_INTERDITE" | "VENTE_REPRISE_TRANSITION_INTERDITE" | "VENTE_FINANCEMENT_TRANSITION_INTERDITE" | "VENTE_VEHICULE_INDISPONIBLE" | "VENTE_VEHICULE_MANQUANT" | "VENTE_FINANCEMENT_NON_CONFIRME" | "VENTE_LIVRAISON_EXPERTISE_REQUISE" | "VENTE_LIVRAISON_INCOMPLETE" | "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE" | "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE" | "VENTE_REPRISE_DEJA_EXISTANTE" | "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE" | "CONNECTEUR_TYPE_INDISPONIBLE" | "CONNECTEUR_IDENTIFIANTS_MANQUANTS" | "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE" | "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE" | "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE" | "LIGNE_DOCUMENT_STOCK_LIEE";
+            code: "VALIDATION_ECHOUEE" | "AUTH_IDENTIFIANTS_INVALIDES" | "AUTH_SESSION_ABSENTE" | "AUTH_SESSION_EXPIREE" | "AUTH_COMPTE_SUSPENDU" | "AUTH_COMPTE_VERROUILLE" | "AUTH_TENANT_SUSPENDU" | "AUTH_TROP_DE_TENTATIVES" | "AUTH_ORIGINE_REFUSEE" | "DROIT_INSUFFISANT" | "RESSOURCE_INTROUVABLE" | "CONFLIT" | "ERREUR_INTERNE" | "OR_TRANSITION_INTERDITE" | "OR_RECEPTION_REQUISE" | "OR_KM_ENTREE_REQUIS" | "OR_LIGNES_A_VALIDER" | "OR_POINTAGE_OUVERT" | "OR_LIGNE_NON_REALISEE" | "OR_CHECKLIST_INCOMPLETE" | "OR_PLAFOND_DEPASSE" | "OR_ANNULATION_IMPOSSIBLE" | "OR_LIGNE_VERROUILLEE" | "OR_PO_MANQUANT" | "OR_RESERVE_SECURITE_REQUISE" | "OR_FACTURATION_AUCUNE_LIGNE" | "LIGNE_TRANSITION_INTERDITE" | "LIGNE_SUPPRESSION_IMPOSSIBLE" | "DEVIS_IMMUABLE" | "DEVIS_INTERLOCUTEUR_REQUIS" | "RDV_TRANSITION_INTERDITE" | "RDV_IDENTIFICATION_INCOMPLETE" | "RDV_RESSOURCE_CHEVAUCHEMENT" | "RDV_ANNULATION_IMPOSSIBLE" | "RDV_HORS_OUVERTURE" | "POINTAGE_TRANSITION_INTERDITE" | "POINTAGE_CHEVAUCHEMENT" | "POINTAGE_OR_NON_MODIFIABLE" | "POINTAGE_LIGNE_NON_POINTABLE" | "POINTAGE_PERIODE_VERROUILLEE" | "POINTAGE_MOTIF_REQUIS" | "POINTAGE_HORODATAGE_INVALIDE" | "VEHICULE_KILOMETRAGE_REGRESSIF" | "VEHICULE_PLAQUE_COLLISION" | "VEHICULE_VIN_EXISTANT" | "VEHICULE_ARCHIVAGE_IMPOSSIBLE" | "CLIENT_TYPE_IMMUABLE" | "CLIENT_DESACTIVATION_IMPOSSIBLE" | "PRET_VEHICULE_INDISPONIBLE" | "PRET_CONDUCTEUR_REQUIS" | "CONFIRMATION_REQUISE" | "IDEMPOTENCE_CONFLIT" | "FONCTION_NON_DISPONIBLE" | "RECHERCHE_TROP_DE_REQUETES" | "METHODE_NON_AUTORISEE" | "DOCUMENT_VERROUILLE" | "DOCUMENT_TRANSITION_INTERDITE" | "DOCUMENT_SOURCE_DEJA_TRANSFORME" | "DOCUMENT_PERIODE_CLOSE" | "DOCUMENT_PDF_INDISPONIBLE" | "FACTURATION_LIGNES_INDECISES" | "QR_CREANCIER_INCOMPLET" | "AVOIR_MONTANT_EXCEDENTAIRE" | "AVOIR_PLAFOND_DEPASSE" | "REMISE_PLAFOND_DEPASSE" | "IMPUTATION_MONTANT_EXCEDENTAIRE" | "ACOMPTE_DEJA_DEDUIT" | "EXPORT_TROU_NUMEROTATION" | "EXPORT_ECRITURES_DESEQUILIBREES" | "EXPORT_MAPPING_INCOMPLET" | "EXPORT_DEJA_TRANSMIS" | "BASCULE_FIDUCIAIRE_HORS_FRONTIERE" | "ARTICLE_REFERENCE_COLLISION" | "ARTICLE_REMPLACANT_REQUIS" | "ARTICLE_DESACTIVATION_IMPOSSIBLE" | "STOCK_INSUFFISANT" | "MOUVEMENT_MOTIF_REQUIS" | "RESERVATION_TRANSITION_INTERDITE" | "RESERVATION_SITE_INCOHERENT" | "COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE" | "COMMANDE_FOURNISSEUR_RELIQUAT_DEJA_SOLDE" | "RECEPTION_REFERENCE_NON_EQUIVALENTE" | "CONSIGNE_TRANSITION_INTERDITE" | "POINTAGE_PIN_INVALIDE" | "POINTAGE_PIN_VERROUILLE" | "VENTE_VEHICULE_STOCK_DEJA_EXISTANT" | "VENTE_DOSSIER_TRANSITION_INTERDITE" | "VENTE_REPRISE_TRANSITION_INTERDITE" | "VENTE_FINANCEMENT_TRANSITION_INTERDITE" | "VENTE_VEHICULE_INDISPONIBLE" | "VENTE_VEHICULE_MANQUANT" | "VENTE_FINANCEMENT_NON_CONFIRME" | "VENTE_LIVRAISON_EXPERTISE_REQUISE" | "VENTE_LIVRAISON_INCOMPLETE" | "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE" | "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE" | "VENTE_REPRISE_DEJA_EXISTANTE" | "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE" | "CONNECTEUR_TYPE_INDISPONIBLE" | "CONNECTEUR_IDENTIFIANTS_MANQUANTS" | "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE" | "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE" | "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE" | "LIGNE_DOCUMENT_STOCK_LIEE" | "IMPUTATION_DEVISE_INCOHERENTE";
             detail?: string;
             erreurs?: components["schemas"]["ErreurChampDto"][];
             instance: string;
@@ -4338,6 +4445,21 @@ export interface components {
             plafondDefautCentimes: number | null;
             /** @enum {string} */
             signature: "obligatoire" | "recommandee" | "desactivee";
+        };
+        RegleRelanceDto: {
+            actif: boolean;
+            canaux: ("sms" | "email")[];
+            /** Format: date-time */
+            creeLe: string;
+            delaisJours: number[];
+            /** Format: date-time */
+            modifieLe: string;
+            /** Format: date-time */
+            prereglageAppliqueLe: string | null;
+            /** Format: uuid */
+            texteModeleId: string | null;
+            /** @enum {string} */
+            typeRelance: "devis_sans_reponse" | "facture_echue" | "devis_complementaire_attente" | "vehicule_pret_non_restitue" | "depot_pneu_oublie" | "travail_reporte_urgent" | "pneus_saisonniers" | "expertise_mfk" | "campagne_constructeur";
         };
         RepartitionStatutOrdreReparationTableauBordDto: {
             nombre: number;
@@ -5533,9 +5655,11 @@ export interface components {
             type: components["schemas"]["TypeResultatRecherche"];
         };
         SanteDto: {
+            /** @example main */
+            branche: string;
             /** @enum {string} */
             statut: "ok";
-            /** @example 0.1.0-dev */
+            /** @example 0.1.42+a1b2c3d */
             version: string;
         };
         SantePreteDto: {
@@ -9193,6 +9317,78 @@ export interface operations {
             };
         };
     };
+    DepotPneusController_deplacer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    codeCase?: string | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepotPneusDto"];
+                };
+            };
+            /** @description Corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (pneus.depot.changer_saison). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Dépôt de pneus introuvable pour ce tenant. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Ce dépôt est "sorti" : son repère de rangement ne peut plus être modifié (RPP-05). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
     DepotPneusController_sortir: {
         parameters: {
             query?: never;
@@ -9917,7 +10113,10 @@ export interface operations {
     DocumentVenteController_ajouterLigne: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description uuid v4, identité de la requête. */
+                "Idempotency-Key": string;
+            };
             path: {
                 id: string;
             };
@@ -9958,7 +10157,7 @@ export interface operations {
                     "application/json": components["schemas"]["EnveloppeDocumentVenteDto"];
                 };
             };
-            /** @description Corps invalide. */
+            /** @description Corps invalide ou Idempotency-Key manquante/mal formée. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -9994,7 +10193,7 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemeDetailCommunDto"];
                 };
             };
-            /** @description DOCUMENT_VERROUILLE (document émis). */
+            /** @description DOCUMENT_VERROUILLE (document émis), STOCK_INSUFFISANT (RP-43) ou IDEMPOTENCE_CONFLIT. */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -16244,6 +16443,173 @@ export interface operations {
             };
             /** @description CONFLIT — nouvelle période chevauchant une période valide existante du même code. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    RelancesController_envoyer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvoiRelancesDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (relances.facturation.envoyer). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    RelancesController_planifier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanificationRelancesDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (relances.facturation.planifier). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    RelancesController_lister: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegleRelanceDto"][];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (relances.facturation.regle.lire). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+        };
+    };
+    RelancesController_upserter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                typeRelance: "devis_sans_reponse" | "facture_echue" | "devis_complementaire_attente" | "vehicule_pret_non_restitue" | "depot_pneu_oublie" | "travail_reporte_urgent" | "pneus_saisonniers" | "expertise_mfk" | "campagne_constructeur";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    actif: boolean;
+                    canaux: ("sms" | "email")[];
+                    delaisJours: number[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegleRelanceDto"];
+                };
+            };
+            /** @description Type de relance ou corps invalide. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Session absente ou expirée. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemeDetailCommunDto"];
+                };
+            };
+            /** @description Droit insuffisant (relances.facturation.regle.ecrire). */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

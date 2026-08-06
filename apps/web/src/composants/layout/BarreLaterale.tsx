@@ -382,13 +382,16 @@ export function BarreLaterale({ className }: Props) {
        * permanent serait du bruit.
        *
        * `<p>` non interactif (pas de lien, pas de focus clavier) ; le texte visible
-       * (« Version 0.1.0-dev ») est déjà explicite pour un lecteur au téléphone au support,
-       * donc pas d'`aria-label` séparé.
+       * (« main · 0.1.234 » — branche puis version, séparées par un point médian, format demandé
+       * par @laupernoe) est déjà explicite pour un lecteur au téléphone au support, donc pas
+       * d'`aria-label` séparé. `branche` vient de `GET /sante` (`VERSION_APP_BRANCHE`) au même
+       * titre que `numero` (`VERSION_APP`) — voir apps/api/src/config/version-app.ts pour le
+       * calcul (dev : git local ; CI/prod : figé au build Docker depuis `github.ref_name`).
        */}
       {sante ? (
         <div className="shrink-0 border-t p-3">
           <p className="texte-libelle text-muted-foreground">
-            {t('navigation:pied.version', { numero: sante.version })}
+            {t('navigation:pied.version', { branche: sante.branche, numero: sante.version })}
           </p>
         </div>
       ) : null}
