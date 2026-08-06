@@ -8,10 +8,15 @@ import type {
   EntreeActionRouvrir,
   EntreeActionTerminer,
   EntreeActionValiderControle,
+  EntreeAnnulationLignes,
+  EntreeCreationLigneOr,
   EntreeCreationOrdreReparation,
+  EntreeRefusLignes,
+  EntreeValidationLignes,
   OrdreReparationResume,
   PageCurseur,
   ReponseAvecAvertissements,
+  ReponseLigneOr,
   ReponseOrdreReparation,
   StatutOrdreReparation,
 } from '@dfa/shared';
@@ -165,3 +170,33 @@ export const cloturerOrdreReparation = (orId: string, entree: EntreeActionSansCo
 
 export const annulerOrdreReparation = (orId: string, entree: EntreeActionAnnuler) =>
   executerActionOr(orId, 'annuler', entree);
+
+/** `POST /ordres-reparation/{orId}/lignes` (§7.8) — `Idempotency-Key` OBLIGATOIRE (saisie en
+ *  rafale au comptoir, un rejeu ne doit pas créer deux lignes). Renvoie SEULEMENT la ligne créée
+ *  (`EnveloppeLigneOrDto`), jamais le document OR complet — voir `useActionsLigneOr.ts` pour la
+ *  conséquence côté cache (invalidation, pas `setQueryData`). */
+export async function creerLigneOrdreReparation(
+  orId: string,
+  entree: EntreeCreationLigneOr,
+  idempotencyKey: string,
+): Promise<ReponseAvecAvertissements<ReponseLigneOr>> {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseLigneOr>>(
+    `/ordres-reparation/${orId}/lignes`,
+    { method: 'POST', body: JSON.stringify(entree), idempotencyKey },
+  );
+  if (!reponse) {
+    throw new Error(`Réponse vide inattendue : POST /ordres-reparation/${orId}/lignes.`);
+  }
+  return reponse;
+}
+
+/** Actions GROUPÉES portées par l'OR (§7.7/§7.8) — renvoient le DOCUMENT COMPLET, comme les
+ *  transitions ci-dessus (`executerActionOr`). */
+export const validerLignesOrdreReparation = (orId: string, entree: EntreeValidationLignes) =>
+  executerActionOr(orId, 'valider-lignes', entree);
+
+export const refuserLignesOrdreReparation = (orId: string, entree: EntreeRefusLignes) =>
+  executerActionOr(orId, 'refuser-lignes', entree);
+
+export const annulerLignesOrdreReparation = (orId: string, entree: EntreeAnnulationLignes) =>
+  executerActionOr(orId, 'annuler-lignes', entree);

@@ -38,12 +38,15 @@ import {
  * le plus rafraîchi du produit »). La liste est invalidée par PRÉFIXE (`['or', 'liste']`) pour
  * couvrir toute variante de filtre/tri déjà en cache, comme `useCreerClient`.
  *
- * Ligne-niveau (`valider-lignes`, `refuser-lignes`, `annuler-lignes`, `soumettre-lignes-a-devis`)
- * volontairement ABSENTES d'ici : elles exigent une sélection de lignes que l'écran de fiche ne
- * construit pas encore (pas de sélection multiple sur `ListeLignesOrdreReparation` en v1) —
- * ajouter ces hooks reste additif le jour où cette sélection existe.
+ * Ligne-niveau (`valider-lignes`, `refuser-lignes`, `annuler-lignes`) : `ListeLignesOrdreReparation`
+ * construit désormais une sélection multiple (case à cocher par ligne, gouvernée par
+ * `ecrans/atelier/droits.ts`) — leurs hooks vivent dans `useActionsLigneOr.ts`, qui RÉUTILISE
+ * `useActionOrdreReparation` ci-dessous (exporté pour cette raison) plutôt que de dupliquer le
+ * branchement `setQueryData`/invalidation : les deux familles d'actions renvoient le même DOCUMENT
+ * COMPLET dans l'enveloppe (`EnveloppeOrdreReparationDto`). `soumettre-lignes-a-devis` reste hors
+ * périmètre (aucun écran ne le déclenche encore).
  */
-function useActionOrdreReparation<TEntree extends object>(
+export function useActionOrdreReparation<TEntree extends object>(
   orId: string,
   action: (
     orId: string,

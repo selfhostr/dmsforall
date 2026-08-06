@@ -5,11 +5,17 @@ import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { ClientResume, ReponseOrdreReparation, VehiculeResume } from '@dfa/shared';
+import type {
+  ClientResume,
+  ReponseLigneOr,
+  ReponseOrdreReparation,
+  VehiculeResume,
+} from '@dfa/shared';
 
 import '@/i18n';
 import i18n from '@/i18n';
 
+import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
 
@@ -329,6 +335,124 @@ describe('EcranFicheOrdreReparation', () => {
       // Aucun dialogue de confirmation générique ne s'est ouvert : ce n'est pas une transition
       // mutée depuis ce panneau, c'est une navigation vers l'écran dédié au choix par groupe payeur.
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('bouton « Ajouter une ligne » — gouverné par `atelier.ligne.creer` (ecrans/atelier/droits.ts)', () => {
+    function construireLigne(overrides: Partial<ReponseLigneOr> = {}): ReponseLigneOr {
+      return {
+        id: 'ligne-1',
+        ordreReparationId: 'or-1',
+        numeroOrdre: 1,
+        type: 'main_oeuvre_bareme',
+        origine: 'commandee',
+        statut: 'validee',
+        payeur: 'client',
+        payeurClientId: null,
+        blocage: 'aucun',
+        designation: 'Remplacement plaquettes de frein avant',
+        referenceTexte: null,
+        articleId: null,
+        quantiteMillieme: 1000,
+        tempsBaremeCentiemes: 80,
+        tempsBaremeConstructeurCentiemes: null,
+        tempsReelCentiemes: null,
+        tauxHoraireCentimes: 12000,
+        prixUnitaireCentimes: null,
+        rabaisPourmille: 0,
+        tauxTvaPourmille: 81,
+        figeLe: '2026-08-06T08:00:00.000Z',
+        montants: { montantHtCentimes: 9600, montantTvaCentimes: 778, montantTtcCentimes: 10378 },
+        technicienId: null,
+        codeOperation: null,
+        codeDefaut: null,
+        numeroSinistre: null,
+        numeroAccord: null,
+        urgence: null,
+        securite: false,
+        fournieParClient: false,
+        aRestituer: false,
+        restituee: false,
+        motifAnnulation: null,
+        factureId: null,
+        creeLe: '2026-08-06T08:00:00.000Z',
+        modifieLe: '2026-08-06T08:00:00.000Z',
+        ...overrides,
+      };
+    }
+
+    it("un chef d'atelier (droit `atelier.ligne.creer`) voit le bouton", async () => {
+      server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+      installerHandler(construireOr());
+      rendre();
+
+      expect(await screen.findByRole('button', { name: 'Ajouter une ligne' })).toBeInTheDocument();
+    });
+
+    it('un rôle sans le droit (comptable) ne voit PAS le bouton', async () => {
+      server.use(
+        http.get('/api/v1/auth/moi', () =>
+          HttpResponse.json({
+            ...SESSION_TEST,
+            utilisateur: { ...SESSION_TEST.utilisateur, role: 'comptable' },
+          }),
+        ),
+      );
+      installerHandler(construireOr());
+      rendre();
+
+      await screen.findByText('OR-000123');
+      expect(screen.queryByRole('button', { name: 'Ajouter une ligne' })).not.toBeInTheDocument();
+    });
+
+    it('ajoute une ligne de main-d’œuvre depuis le dialogue, qui apparaît ensuite dans le tableau', async () => {
+      server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+      const ligneCreee = construireLigne();
+      let appelsGet = 0;
+      server.use(
+        http.get('/api/v1/ordres-reparation/or-1', () => {
+          appelsGet += 1;
+          return HttpResponse.json(
+            construireOr(
+              appelsGet === 1
+                ? {}
+                : { lignes: [ligneCreee], nombreLignes: 1, lignesTronquees: false },
+            ),
+          );
+        }),
+      );
+      let corpsRequete: unknown;
+      let cleIdempotence: string | null = null;
+      server.use(
+        http.post('/api/v1/ordres-reparation/or-1/lignes', async ({ request }) => {
+          corpsRequete = await request.json();
+          cleIdempotence = request.headers.get('idempotency-key');
+          return HttpResponse.json({ donnees: ligneCreee, avertissements: [] }, { status: 201 });
+        }),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await utilisateur.click(await screen.findByRole('button', { name: 'Ajouter une ligne' }));
+      const dialogue = await screen.findByRole('dialog');
+      await utilisateur.type(
+        within(dialogue).getByLabelText('Désignation *'),
+        'Remplacement plaquettes de frein avant',
+      );
+      await utilisateur.click(within(dialogue).getByRole('button', { name: 'Confirmer' }));
+
+      // La ligne créée apparaît dans le tableau une fois l'OR relu (invalidation, pas
+      // `setQueryData` — la réponse de `POST …/lignes` ne porte que la ligne, pas le document).
+      expect(await screen.findByText('Remplacement plaquettes de frein avant')).toBeInTheDocument();
+      expect(corpsRequete).toMatchObject({
+        type: 'main_oeuvre_bareme',
+        origine: 'commandee',
+        designation: 'Remplacement plaquettes de frein avant',
+      });
+      expect(cleIdempotence).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
     });
   });
 

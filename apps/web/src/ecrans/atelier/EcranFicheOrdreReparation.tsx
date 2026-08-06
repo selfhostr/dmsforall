@@ -6,8 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
+import { useSession } from '@/hooks/useSession';
 import { formaterMontant } from '@/lib/formats';
 
+import { DialogueAjoutLigneOr } from './DialogueAjoutLigneOr';
+import { peutCreerLigneOr } from './droits';
 import { EnTeteOrdreReparation } from './EnTeteOrdreReparation';
 import { ListeLignesOrdreReparation } from './ListeLignesOrdreReparation';
 import { PanneauActionsOr } from './PanneauActionsOr';
@@ -26,6 +29,7 @@ import { PanneauActionsOr } from './PanneauActionsOr';
 export function EcranFicheOrdreReparation() {
   const { t } = useTranslation(['or', 'commun']);
   const { orId } = useParams<{ orId: string }>();
+  const session = useSession();
 
   const requete = useOrdreReparation(orId);
 
@@ -69,11 +73,18 @@ export function EcranFicheOrdreReparation() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle className="texte-titre-section">{t('or:lignes.titre')}</CardTitle>
+          {peutCreerLigneOr(session.data?.utilisateur.role) ? (
+            <DialogueAjoutLigneOr orId={or.id} />
+          ) : null}
         </CardHeader>
         <CardContent>
-          <ListeLignesOrdreReparation lignes={or.lignes} lignesTronquees={or.lignesTronquees} />
+          <ListeLignesOrdreReparation
+            orId={or.id}
+            lignes={or.lignes}
+            lignesTronquees={or.lignesTronquees}
+          />
         </CardContent>
       </Card>
 

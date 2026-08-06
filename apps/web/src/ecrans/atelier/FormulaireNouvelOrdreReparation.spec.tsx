@@ -67,6 +67,8 @@ const CLIENT: ReponseClient = {
   creeLe: '2026-01-01T00:00:00.000Z',
   modifieLe: '2026-01-01T00:00:00.000Z',
   notesAlerte: [],
+  plusAucunContact: false,
+  motif: null,
 };
 
 const PARAMETRES_ATELIER: ReponseParametresAtelier = {
