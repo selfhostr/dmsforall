@@ -32,8 +32,8 @@ import { ErreurMetier } from '../../common/erreurs';
  *     RÉELLEMENT produits par ce module — un mécanisme conçu pour un piège de précision
  *     (microseconde `timestamptz` vs milliseconde `Date`) ne s'applique pas tel quel à une colonne
  *     `date`, qui n'a pas cette précision à préserver ;
- *   - `montantNonImputeCentimes` est une expression numérique (`abs(...) - coalesce(...)`), jamais
- *     une date : hors du périmètre de `'temporel'` par construction.
+ *   - `montantNonImputeCentimes` est une expression numérique (`EXPRESSION_MONTANT_NON_IMPUTE`
+ *     ci-dessous), jamais une date : hors du périmètre de `'temporel'` par construction.
  * Le risque réel n'est donc pas la perte de précision (`common/pagination/valeur-temporelle.ts`)
  * mais le MÊME défaut de fond que celui déjà corrigé ailleurs, décliné sur deux natures de
  * colonnes distinctes : un curseur v2 syntaxiquement valide (forme `{t,v,i}` correcte) dont `v`
@@ -55,6 +55,21 @@ import { ErreurMetier } from '../../common/erreurs';
  * la comparaison `expression > NULL` est simplement toujours indéterminée (aucune ligne ne
  * matche), jamais une erreur SQL.
  */
+/**
+ * Défaut corrigé (issue #9, GitHub — « un paiement négatif crédite une facture ») : cette
+ * expression DOIT rester le miroir EXACT de `mappeurs.ts::calculerMontantNonImputeCentimes`, y
+ * compris sur le cas limite qui a motivé l'issue. Avant correction, ce module et `mappeurs.ts`
+ * calculaient CHACUN, INDÉPENDAMMENT, une version « valeur absolue » du montant non imputé — deux
+ * implémentations du même défaut, découvertes en même temps. `p.montant_centimes <= 0`
+ * (remboursement/contre-passation `MD-57`, ou une écriture nulle) n'a JAMAIS rien de non imputé,
+ * quelle que soit sa magnitude : le rendre disponible ferait réapparaître, ICI, exactement le même
+ * défaut que celui refermé côté TypeScript (barrières 1-3, `service-paiement.ts`/`mappeurs.ts`/
+ * `imputations.ts`) — un remboursement qui se présenterait comme un reliquat imputable dans l'écran
+ * « encaissements à affecter » (`RF-72`, `nonImputeUniquement=true`) et dans le tri
+ * `montantNonImputeCentimes:desc`.
+ */
+export const EXPRESSION_MONTANT_NON_IMPUTE = sql`(case when p.montant_centimes > 0 then greatest(p.montant_centimes - coalesce(ri.somme_reglement, 0), 0) else 0 end)`;
+
 export interface DefinitionTriPaiement {
   readonly expression: SQL;
   readonly sens: 'asc' | 'desc';
@@ -68,7 +83,7 @@ const DEFINITIONS_TRI_PAIEMENTS: Readonly<
   'dateValeur:desc': { expression: sql`p.date_valeur`, sens: 'desc', natureValeur: 'date' },
   'dateValeur:asc': { expression: sql`p.date_valeur`, sens: 'asc', natureValeur: 'date' },
   'montantNonImputeCentimes:desc': {
-    expression: sql`(abs(p.montant_centimes) - coalesce(ri.somme_reglement, 0))`,
+    expression: EXPRESSION_MONTANT_NON_IMPUTE,
     sens: 'desc',
     natureValeur: 'numerique',
   },

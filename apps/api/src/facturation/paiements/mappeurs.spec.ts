@@ -79,8 +79,17 @@ describe('calculerMontantNonImputeCentimes — trop-perçu / avance client (RF-7
     expect(calculerMontantNonImputeCentimes(20000n, imputations)).toBe(10000n);
   });
 
-  it('un paiement négatif (remboursement, MD-52) se traite en valeur absolue', () => {
-    expect(calculerMontantNonImputeCentimes(-1900n, [])).toBe(1900n);
+  it(
+    'issue #9 (corrigé) : un paiement négatif (remboursement/contre-passation, MD-52/MD-57) n’a ' +
+      'JAMAIS rien de non imputé — avant correction, cette fonction prenait la valeur absolue et ' +
+      'rendait un remboursement de -1900 ct « disponible » à hauteur de 1900 ct',
+    () => {
+      expect(calculerMontantNonImputeCentimes(-1900n, [])).toBe(0n);
+    },
+  );
+
+  it('un paiement de montant nul n’a rien de non imputé (défensif — la création le refuse déjà en amont)', () => {
+    expect(calculerMontantNonImputeCentimes(0n, [])).toBe(0n);
   });
 
   it('ne descend jamais sous zéro (filet de sécurité applicatif)', () => {
@@ -133,13 +142,18 @@ describe('versPaiement — assemblage de la ressource publique', () => {
     expect(reponse.imputations[0]?.imputePar).toBeNull();
   });
 
-  it('un paiement de remboursement (montant négatif) reste correctement signé dans la réponse', () => {
-    const p = ligne({ montantCentimes: -1900n, moyen: 'virement', contrePasseId: 'pmt-original' });
+  it(
+    'un paiement de remboursement (montant négatif) reste correctement signé dans la réponse, ' +
+      'et n’a JAMAIS de reliquat non imputé à afficher (issue #9)',
+    () => {
+      const p = ligne({ montantCentimes: -1900n, moyen: 'virement', contrePasseId: 'pmt-original' });
 
-    const reponse = versPaiement(p, [], new Map());
+      const reponse = versPaiement(p, [], new Map());
 
-    expect(reponse.montantCentimes).toBe(-1900);
-    expect(reponse.contrePasseId).toBe('pmt-original');
-    expect(reponse.montantNonImputeCentimes).toBe(1900);
-  });
+      expect(reponse.montantCentimes).toBe(-1900);
+      expect(reponse.contrePasseId).toBe('pmt-original');
+      expect(reponse.montantNonImputeCentimes).toBe(0);
+      expect(reponse.issuesDisponibles).toEqual([]);
+    },
+  );
 });
