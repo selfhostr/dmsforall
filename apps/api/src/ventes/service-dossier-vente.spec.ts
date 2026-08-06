@@ -342,7 +342,17 @@ describe('ServiceDossierVente.livrer — RV-24 : mise en stock automatique de la
     expect(insertCalls.filter((c) => c.table === vehiculeStock)).toHaveLength(0);
   });
 
-  it('livraison refusée si le véhicule vendu n’est pas encore facturé (`vendu`) — garde déjà en place, non régressée', async () => {
+  /**
+   * Défaut constaté en navigateur puis reproduit en HTTP réel (`POST /dossiers-vente/{id}/livrer`
+   * sur un dossier `pret_a_livrer` dont le véhicule est `reserve`) : le refus était CORRECT dans
+   * son principe (RV-37, la facture doit précéder la livraison) mais sortait sous
+   * `VENTE_VEHICULE_INDISPONIBLE` — le même code que la garde d'`engager()`, dont la traduction
+   * dit « Ce véhicule n'est pas disponible actuellement ». Sur un véhicule `reserve`, qui EST son
+   * état normal après l'engagement, ce message ne décrit ni la cause ni le geste attendu, et le
+   * front ne peut pas faire mieux : `messageErreur`/`RefusBloquant` rendent `erreurs:codes.<CODE>`
+   * et JAMAIS `ProblemeDetail.detail`. D'où un code dédié.
+   */
+  it('livraison refusée tant que la facture n’est pas émise (véhicule `reserve`) : VENTE_LIVRAISON_FACTURE_REQUISE, et un `detail` qui nomme le statut réel', async () => {
     vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(dossierFixture());
     vi.mocked(references.chargerVehiculeStockPourEcriture).mockResolvedValue(
       vehiculeStockVenduFixture({ statutCommercial: 'reserve' }),
@@ -352,6 +362,27 @@ describe('ServiceDossierVente.livrer — RV-24 : mise en stock automatique de la
     const svc = serviceFactice(accesFactice(tx));
 
     await expect(svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE)).rejects.toMatchObject({
+      code: 'VENTE_LIVRAISON_FACTURE_REQUISE',
+      status: 409,
+      detail: expect.stringContaining('reserve'),
+    });
+  });
+
+  /**
+   * Verrou de non-régression du correctif ci-dessus : ce n'est pas le libellé qui compte mais le
+   * fait que les DEUX refus ne partagent plus le même code. Si quelqu'un réunifiait les deux
+   * gardes sous un code commun, le message redeviendrait vague sans qu'aucun autre test ne rougisse.
+   */
+  it('le refus de livraison et le refus d’engagement ne partagent PLUS le même code — deux causes, deux messages possibles', async () => {
+    vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(dossierFixture());
+    vi.mocked(references.chargerVehiculeStockPourEcriture).mockResolvedValue(
+      vehiculeStockVenduFixture({ statutCommercial: 'reserve' }),
+    );
+
+    const { tx } = txFactice([]);
+    const svc = serviceFactice(accesFactice(tx));
+
+    await expect(svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE)).rejects.not.toMatchObject({
       code: 'VENTE_VEHICULE_INDISPONIBLE',
     });
   });

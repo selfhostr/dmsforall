@@ -559,9 +559,23 @@ export class ServiceDossierVente {
       // soit déjà fait avant de livrer.
       const vehiculeStockLigne = await chargerVehiculeStockPourEcriture(tx, ctx, vehiculeId);
       if (vehiculeStockLigne.statutCommercial !== 'vendu') {
+        // CODE CORRIGÉ (constaté en navigateur, puis reproduit en HTTP réel) : ce refus sortait
+        // sous `VENTE_VEHICULE_INDISPONIBLE`, le MÊME code que la garde d'`engager()` ci-dessus
+        // (« un autre dossier a réservé le véhicule entre-temps »). Le front n'affiche jamais
+        // `detail` — `messageErreur`/`RefusBloquant` rendent `erreurs:codes.<CODE>` et rien
+        // d'autre — donc le vendeur lisait « Ce véhicule n'est pas disponible actuellement » sur un
+        // véhicule `reserve`, qui EST son état normal après l'engagement : un message à la fois
+        // vrai côté machine et inutile côté comptoir. `VENTE_LIVRAISON_FACTURE_REQUISE` nomme la
+        // cause, et sa traduction nomme le geste (« émettez d'abord la facture »).
+        //
+        // `detail` reste renseigné pour les journaux et le support (il porte le statut réel), il
+        // n'est simplement plus le seul endroit où l'information existe.
         throw new ErreurMetier(
-          'VENTE_VEHICULE_INDISPONIBLE',
+          'VENTE_LIVRAISON_FACTURE_REQUISE',
           `Livraison impossible : le véhicule n'est pas encore facturé (statut actuel : ${vehiculeStockLigne.statutCommercial}) — la facture doit être émise avant la livraison (RV-37).`,
+          {
+            detail: `Le véhicule est au statut « ${vehiculeStockLigne.statutCommercial} » : la facture de vente doit être émise avant la livraison (RV-37).`,
+          },
         );
       }
 

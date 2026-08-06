@@ -294,7 +294,8 @@ export class DossierVenteController {
   @ApiReponseProbleme(404, 'Dossier de vente introuvable pour ce tenant.')
   @ApiReponseProbleme(
     409,
-    'VENTE_DOSSIER_TRANSITION_INTERDITE, VENTE_VEHICULE_MANQUANT ou VENTE_VEHICULE_INDISPONIBLE (facture pas encore émise).',
+    'VENTE_DOSSIER_TRANSITION_INTERDITE, VENTE_VEHICULE_MANQUANT ou VENTE_LIVRAISON_FACTURE_REQUISE ' +
+      '(la facture de vente doit être émise avant la livraison — RV-37).',
   )
   async livrer(
     @Param('dossierVenteId', new PipeZod(schemaIdentifiant)) dossierVenteId: string,

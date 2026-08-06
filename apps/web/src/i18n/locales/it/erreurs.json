@@ -136,6 +136,7 @@
     "VENTE_VEHICULE_MANQUANT": "Questo veicolo non è stato trovato. Verifica il numero di telaio o la targa.",
     "VENTE_FINANCEMENT_NON_CONFIRME": "Il finanziamento non è stato confermato dall'istituto di credito.",
     "VENTE_LIVRAISON_EXPERTISE_REQUISE": "Il veicolo deve essere sottoposto a collaudo (MFK) prima della consegna.",
+    "VENTE_LIVRAISON_FACTURE_REQUISE": "Emetta prima la fattura di vendita: il veicolo può essere consegnato solo una volta fatturato.",
     "VENTE_LIVRAISON_INCOMPLETE": "Tutti i documenti di consegna devono essere completati.",
     "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE": "Questo fascicolo di vendita non può essere annullato in questo stato.",
     "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE": "Il valore negoziato della permuta deve essere indicato.",

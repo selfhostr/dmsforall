@@ -136,6 +136,7 @@
     "VENTE_VEHICULE_MANQUANT": "Dieses Fahrzeug wurde nicht gefunden. Überprüfen Sie die Fahrgestellnummer oder das Kontrollschild.",
     "VENTE_FINANCEMENT_NON_CONFIRME": "Die Finanzierung wurde vom Kreditgeber nicht bestätigt.",
     "VENTE_LIVRAISON_EXPERTISE_REQUISE": "Das Fahrzeug muss vor der Auslieferung einer MFK (Motorfahrzeugkontrolle) unterzogen werden.",
+    "VENTE_LIVRAISON_FACTURE_REQUISE": "Stellen Sie zuerst die Verkaufsrechnung aus: Das Fahrzeug kann erst nach der Fakturierung ausgeliefert werden.",
     "VENTE_LIVRAISON_INCOMPLETE": "Alle Auslieferungsdokumente müssen vollständig sein.",
     "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE": "Dieses Verkaufsdossier kann in diesem Status nicht storniert werden.",
     "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE": "Der vereinbarte Wert der Inzahlungnahme muss angegeben werden.",
