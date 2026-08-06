@@ -62,7 +62,8 @@
     "autrePlaceholder": "Precisare il motivo",
     "champ": "Motivo",
     "champObligatoire": "Il motivo è obbligatorio",
-    "autreTexteObligatoire": "Un motivo «Altro» richiede un testo libero"
+    "autreTexteObligatoire": "Un motivo «Altro» richiede un testo libero",
+    "autreTexteTropLong": "Il testo del motivo «Altro» non deve superare i 4000 caratteri"
   },
   "moyensPaiement": {
     "especes": "Contanti",

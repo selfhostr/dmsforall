@@ -38,6 +38,7 @@ import { obtenirEnv } from '@/config/env';
 import { useDocumentVente } from '@/hooks/facturation/useDocumentVente';
 import { useEmettreDocumentVente } from '@/hooks/facturation/useEmettreDocumentVente';
 import { useModifierDocumentVente } from '@/hooks/facturation/useModifierDocumentVente';
+import { useSession } from '@/hooks/useSession';
 import {
   formaterDate,
   formaterMontant,
@@ -50,6 +51,7 @@ import { BadgeTypeDocument } from './BadgeTypeDocument';
 import { CarteBulletinVersement } from './CarteBulletinVersement';
 import { ChampVerrouille } from './ChampVerrouille';
 import { DialogueCorrectionFacture } from './DialogueCorrectionFacture';
+import { peutEmettreAvoir, peutEmettreFacture, peutEncaisser } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
 import { RecapitulatifTVA } from './RecapitulatifTVA';
 import { SheetEncaissement } from './SheetEncaissement';
@@ -99,6 +101,8 @@ export function EcranFicheFacture() {
   const { t } = useTranslation(['facturation', 'commun', 'erreurs']);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { data: session } = useSession();
+  const role = session?.utilisateur.role;
 
   const requete = useDocumentVente(id);
   const modification = useModifierDocumentVente();
@@ -164,6 +168,15 @@ export function EcranFicheFacture() {
   // fois).
   const peutGererFacture =
     !estBrouillon && !estAnnuleeParAvoir && document_.typeDocument === 'facture';
+  // Trois droits DISTINCTS, superposés à `estBrouillon`/`peutGererFacture` (état du document) —
+  // défaut corrigé : ces deux booléens ne dépendaient auparavant que de l'état, jamais du rôle, et
+  // affichaient les trois gestes financiers à des rôles sans le droit correspondant côté serveur
+  // (`apps/api/src/auth/matrice-droits.ts`, voir `./droits.ts` pour le miroir exact). Doctrine du
+  // dépôt : un rôle sans droit ne voit pas un bouton grisé, il ne voit pas de bouton.
+  const proposeEmettre = estBrouillon && peutEmettreFacture(role);
+  const proposeEncaisser = peutGererFacture && peutEncaisser(role);
+  const proposeCreerAvoir = peutGererFacture && peutEmettreAvoir(role);
+  const proposeCorriger = peutGererFacture;
   // Imprimer : condition DÉCOUPLÉE de `peutGererFacture` — voir le commentaire de tête de fichier.
   // `document_.qr !== null` implique déjà `typeDocument === 'facture'` et une émission passée
   // (`mapperDocument`, serveur), donc ce document reste imprimable même `estAnnuleeParAvoir`
@@ -234,17 +247,17 @@ export function EcranFicheFacture() {
         </div>
 
         <div className="flex items-center gap-2">
-          {estBrouillon ? (
+          {proposeEmettre ? (
             <Button type="button" onClick={() => setDialogueEmissionOuvert(true)}>
               {t('facturation:fiche.actions.emettre')}
             </Button>
           ) : null}
-          {peutGererFacture ? (
+          {proposeEncaisser ? (
             <Button type="button" onClick={() => setEncaissementOuvert(true)}>
               {t('facturation:fiche.actions.encaisser')}
             </Button>
           ) : null}
-          {peutGererFacture || peutImprimer ? (
+          {peutImprimer || proposeCorriger || proposeCreerAvoir ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -264,15 +277,15 @@ export function EcranFicheFacture() {
                     </a>
                   </DropdownMenuItem>
                 ) : null}
-                {peutGererFacture ? (
-                  <>
-                    <DropdownMenuItem onSelect={ouvrirCorrection}>
-                      {t('facturation:fiche.actions.menu.corriger')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => navigate(`/factures/${document_.id}/avoir`)}>
-                      {t('facturation:fiche.actions.menu.creerAvoir')}
-                    </DropdownMenuItem>
-                  </>
+                {proposeCorriger ? (
+                  <DropdownMenuItem onSelect={ouvrirCorrection}>
+                    {t('facturation:fiche.actions.menu.corriger')}
+                  </DropdownMenuItem>
+                ) : null}
+                {proposeCreerAvoir ? (
+                  <DropdownMenuItem onSelect={() => navigate(`/factures/${document_.id}/avoir`)}>
+                    {t('facturation:fiche.actions.menu.creerAvoir')}
+                  </DropdownMenuItem>
                 ) : null}
               </DropdownMenuContent>
             </DropdownMenu>

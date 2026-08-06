@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { ReponseDepotPneus } from '@dfa/shared';
@@ -29,6 +30,16 @@ interface Props {
 export function DialogueChangerSaisonPneu({ depot, onFerme }: Props) {
   const { t } = useTranslation(['pneus', 'commun']);
   const changerSaison = useChangerSaisonDepotPneus();
+
+  useEffect(() => {
+    if (depot) {
+      // Défaut corrigé : sans ce `reset()`, une erreur de mutation restée affichée depuis le jeu
+      // précédent réapparaissait à l'ouverture du dialogue pour un autre jeu — même patron que
+      // `DialogueSortirDepotPneu`/`DialogueNouveauDepotPneu`.
+      changerSaison.reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- réinitialisation à la réouverture seulement
+  }, [depot]);
 
   function confirmer() {
     if (!depot) return;

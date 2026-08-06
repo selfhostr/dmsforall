@@ -41,6 +41,21 @@ const DEPOT: ReponseDepotPneus = {
   modifieLe: '2026-01-01T08:00:00.000Z',
 };
 
+const DEPOT_2: ReponseDepotPneus = {
+  ...DEPOT,
+  id: 'depot-2',
+  vehiculeId: 'vehicule-2',
+  codeCase: 'Rack 5',
+};
+
+const ERREUR_INTERNE_500 = {
+  type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
+  title: 'Erreur interne',
+  status: 500,
+  code: 'ERREUR_INTERNE',
+  instance: 'req-1',
+} as const;
+
 function pageDe(donnees: readonly ReponseDepotPneus[]): PageCurseur<ReponseDepotPneus> {
   return { donnees, curseurSuivant: null, limite: 50 };
 }
@@ -159,4 +174,92 @@ describe('EcranHangarPneus', () => {
     // consultation, lui, reste visible.
     expect(screen.getByRole('link', { name: 'Voir le véhicule' })).toBeInTheDocument();
   });
+
+  /**
+   * Défaut corrigé : l'erreur de mutation n'était jamais réinitialisée à la réouverture du
+   * dialogue — un échec sur le jeu A restait affiché à l'ouverture pour le jeu B. Deux jeux
+   * distincts (`DEPOT`/Rack 3, `DEPOT_2`/Rack 5) : ouverture pour A → échec → fermeture →
+   * ouverture pour B → l'erreur du jeu A ne doit plus apparaître (`mutation.reset()` sur `[depot]`).
+   */
+  it(
+    '« Changer de saison » : un échec sur un jeu ne reste pas affiché à la réouverture du ' +
+      'dialogue pour un AUTRE jeu',
+    async () => {
+      const utilisateur = userEvent.setup();
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/sites/site-1/hangar-pneus', () =>
+          HttpResponse.json(pageDe([DEPOT, DEPOT_2])),
+        ),
+        http.post('/api/v1/depots-pneus/depot-1/changer-saison', () =>
+          HttpResponse.json(ERREUR_INTERNE_500, {
+            status: 500,
+            headers: { 'content-type': 'application/problem+json' },
+          }),
+        ),
+      );
+
+      rendre();
+
+      await screen.findByText('Rack 3');
+      await screen.findByText('Rack 5');
+
+      // Jeu A (Rack 3, premier de la grille) : ouvre, confirme, échoue.
+      await utilisateur.click(screen.getAllByRole('button', { name: 'Changer de saison' })[0]!);
+      const dialogueA = await screen.findByRole('dialog');
+      await utilisateur.click(within(dialogueA).getByRole('button', { name: 'Changer de saison' }));
+      expect(await within(dialogueA).findByRole('alert')).toBeInTheDocument();
+
+      // Ferme, puis rouvre pour le jeu B (Rack 5, second de la grille).
+      await utilisateur.click(within(dialogueA).getByRole('button', { name: 'Annuler' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+      await utilisateur.click(screen.getAllByRole('button', { name: 'Changer de saison' })[1]!);
+      const dialogueB = await screen.findByRole('dialog');
+      expect(within(dialogueB).getByText(/Rack 5/)).toBeInTheDocument();
+      expect(within(dialogueB).queryByRole('alert')).not.toBeInTheDocument();
+    },
+  );
+
+  it(
+    '« Sortir » : un échec sur un jeu ne reste pas affiché à la réouverture du dialogue pour un ' +
+      'AUTRE jeu',
+    async () => {
+      const utilisateur = userEvent.setup();
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/sites/site-1/hangar-pneus', () =>
+          HttpResponse.json(pageDe([DEPOT, DEPOT_2])),
+        ),
+        http.post('/api/v1/depots-pneus/depot-1/sortir', () =>
+          HttpResponse.json(ERREUR_INTERNE_500, {
+            status: 500,
+            headers: { 'content-type': 'application/problem+json' },
+          }),
+        ),
+      );
+
+      rendre();
+
+      await screen.findByText('Rack 3');
+      await screen.findByText('Rack 5');
+
+      // Jeu A (Rack 3) : ouvre, choisit un motif, confirme, échoue.
+      await utilisateur.click(screen.getAllByRole('button', { name: 'Sortir' })[0]!);
+      const dialogueA = await screen.findByRole('dialog');
+      await utilisateur.click(within(dialogueA).getByRole('combobox', { name: 'Motif de sortie' }));
+      await utilisateur.click(await screen.findByRole('option', { name: 'Rendu au client' }));
+      await utilisateur.click(within(dialogueA).getByRole('button', { name: 'Sortir' }));
+      expect(await within(dialogueA).findByRole('alert')).toBeInTheDocument();
+
+      // Ferme, puis rouvre pour le jeu B (Rack 5).
+      await utilisateur.click(within(dialogueA).getByRole('button', { name: 'Annuler' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+      await utilisateur.click(screen.getAllByRole('button', { name: 'Sortir' })[1]!);
+      const dialogueB = await screen.findByRole('dialog');
+      expect(within(dialogueB).getByText(/Rack 5/)).toBeInTheDocument();
+      expect(within(dialogueB).queryByRole('alert')).not.toBeInTheDocument();
+    },
+  );
 });

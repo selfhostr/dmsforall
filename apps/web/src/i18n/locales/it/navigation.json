@@ -31,7 +31,8 @@
     "ventesDossiers": "Pratiche di vendita",
     "ventesSuivi": "Monitoraggio finanziamento e garanzia",
     "pneusHangar": "Deposito pneumatici",
-    "pneusARelancer": "Set da richiamare"
+    "pneusARelancer": "Set da richiamare",
+    "relances": "Solleciti"
   },
   "groupes": {
     "parametrage": "Impostazioni",

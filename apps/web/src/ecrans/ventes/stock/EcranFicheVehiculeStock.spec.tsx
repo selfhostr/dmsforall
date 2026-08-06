@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -118,6 +118,42 @@ describe('EcranFicheVehiculeStock', () => {
 
     expect(await screen.findByText('Disponible')).toBeInTheDocument();
     expect(appele).toBe(true);
+  });
+
+  /**
+   * Défaut corrigé : l'erreur de la mutation « réceptionner » s'affichait HORS du contenu du
+   * dialogue — donc sous l'overlay qui assombrit la page tant que la modale reste ouverte,
+   * invisible pour le garagiste. Même doctrine que `DialogueActionAvecMotif` (déjà correct dans
+   * ce même écran) : l'erreur doit apparaître DANS la modale, `within(dialogue)` le prouve.
+   */
+  it('affiche l’erreur de « réceptionner » DANS la modale, pas hors de son contenu', async () => {
+    rendre('direction');
+    server.use(
+      http.post('/api/v1/vehicules/veh-1/stock/receptionner', () =>
+        HttpResponse.json(
+          {
+            type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
+            title: 'Erreur interne',
+            status: 500,
+            code: 'ERREUR_INTERNE',
+            instance: 'req-1',
+          },
+          { status: 500, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      ),
+    );
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(await screen.findByRole('button', { name: 'Modifier' }));
+    await utilisateur.click(await screen.findByRole('menuitem', { name: 'Réceptionner' }));
+
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Réceptionner' }));
+
+    // L'erreur est bien À L'INTÉRIEUR du dialogue (rôle `alert` posé sur le paragraphe d'erreur
+    // dans `DialogContent`) — la modale reste ouverte, le message n'est pas perdu sous l'overlay.
+    expect(await within(dialogue).findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('état erreur : message actionnable avec retry', async () => {

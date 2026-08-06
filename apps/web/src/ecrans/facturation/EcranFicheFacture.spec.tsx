@@ -10,6 +10,7 @@ import type { BlocPaiementQrFige, ReponseDocumentVente } from '@dfa/shared';
 import '@/i18n';
 import i18n from '@/i18n';
 
+import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
 
@@ -144,6 +145,14 @@ function construireDocumentSansMontants(
 function installerHandlerDocument(document_: ReponseDocumentVente) {
   server.use(
     http.get(`/api/v1/documents-vente/${document_.id}`, () => HttpResponse.json(document_)),
+  );
+}
+
+function connecterSession(role: (typeof SESSION_TEST)['utilisateur']['role']) {
+  server.use(
+    http.get('/api/v1/auth/moi', () =>
+      HttpResponse.json({ ...SESSION_TEST, utilisateur: { ...SESSION_TEST.utilisateur, role } }),
+    ),
   );
 }
 
@@ -499,4 +508,97 @@ describe('EcranFicheFacture — remise globale : ne perd pas la saisie en cours'
     const nouveauChampRemise = await screen.findByLabelText('Montant');
     await waitFor(() => expect(nouveauChampRemise).toHaveValue('50.00'));
   });
+});
+
+/**
+ * Défaut corrigé (le plus grave de l'audit, récidive d'une famille déjà corrigée deux fois) :
+ * `estBrouillon`/`peutGererFacture` ne dépendaient que de l'ÉTAT du document, jamais du RÔLE. Un
+ * rôle sans le droit serveur correspondant (`apps/api/src/auth/matrice-droits.ts`) voyait quand
+ * même le bouton. Doctrine du dépôt : un rôle sans droit ne voit pas un bouton grisé, il ne voit
+ * pas de bouton — vérifié ici par `getByRole`/`queryByRole`, jamais par une classe CSS.
+ */
+describe('EcranFicheFacture — droits par geste (émettre / encaisser / créer un avoir)', () => {
+  beforeEach(() => {
+    Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
+    Element.prototype.setPointerCapture = vi.fn();
+    Element.prototype.releasePointerCapture = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  afterEach(async () => {
+    await i18n.changeLanguage('fr');
+  });
+
+  function documentBrouillon() {
+    return construireDocument({
+      statut: 'brouillon',
+      numero: null,
+      numeroSequence: null,
+      emisLe: null,
+      emisPar: null,
+      qr: null,
+    });
+  }
+
+  it(
+    '« Émettre » : absent pour chef_atelier (aucun droit `facturation.document.emettre_facture` ' +
+      'côté serveur), présent pour vendeur (autorisé)',
+    async () => {
+      installerHandlerDocument(documentBrouillon());
+      connecterSession('chef_atelier');
+      const rendu1 = rendre();
+      await screen.findByText('Jean Dupont');
+      expect(screen.queryByRole('button', { name: 'Émettre' })).not.toBeInTheDocument();
+      rendu1.unmount();
+
+      installerHandlerDocument(documentBrouillon());
+      connecterSession('vendeur');
+      rendre();
+      expect(await screen.findByRole('button', { name: 'Émettre' })).toBeInTheDocument();
+    },
+  );
+
+  it(
+    '« Encaisser » : absent pour admin (RF-115, aucun droit financier), présent pour magasinier ' +
+      '(autorisé)',
+    async () => {
+      installerHandlerDocument(construireDocument());
+      connecterSession('admin');
+      const rendu1 = rendre();
+      await screen.findByText('Jean Dupont');
+      expect(screen.queryByRole('button', { name: 'Encaisser' })).not.toBeInTheDocument();
+      rendu1.unmount();
+
+      installerHandlerDocument(construireDocument());
+      connecterSession('magasinier');
+      rendre();
+      expect(await screen.findByRole('button', { name: 'Encaisser' })).toBeInTheDocument();
+    },
+  );
+
+  it(
+    '« Créer un avoir » (menu ⋯) : absent pour vendeur (pas de droit `emettre_avoir`), présent ' +
+      'pour réceptionnaire (autorisé)',
+    async () => {
+      installerHandlerDocument(construireDocument());
+      connecterSession('vendeur');
+      const utilisateur = userEvent.setup();
+      const rendu1 = rendre();
+      const boutonAutresActionsVendeur = await screen.findByRole('button', {
+        name: 'Autres actions',
+      });
+      await utilisateur.click(boutonAutresActionsVendeur);
+      expect(screen.queryByRole('menuitem', { name: 'Créer un avoir' })).not.toBeInTheDocument();
+      rendu1.unmount();
+
+      installerHandlerDocument(construireDocument());
+      connecterSession('receptionnaire');
+      rendre();
+      const boutonAutresActionsReceptionnaire = await screen.findByRole('button', {
+        name: 'Autres actions',
+      });
+      await utilisateur.click(boutonAutresActionsReceptionnaire);
+      expect(await screen.findByRole('menuitem', { name: 'Créer un avoir' })).toBeInTheDocument();
+    },
+  );
 });

@@ -137,7 +137,15 @@ export function EcranAvoir() {
               }))
           : [],
     });
-    if (!resultat.success) return;
+    if (!resultat.success) {
+      // Défaut corrigé : `return` silencieux — le bouton restait actif et le clic ne faisait
+      // rien (cas déclencheur : motif « Autre » de plus de 4000 caractères, `schemaTexteLong`,
+      // au-delà de ce que `motifValide` ci-dessous et le `maxLength` du champ bornent déjà côté
+      // UI). Défensif : `motifValide` doit normalement empêcher d'arriver ici, mais un refus
+      // serveur inattendu ne doit jamais rester sans message (invariant n°8).
+      setErreurEtape(new Error('validation_avoir_echouee'));
+      return;
+    }
 
     try {
       const brouillon = await creation.mutateAsync({
@@ -159,7 +167,12 @@ export function EcranAvoir() {
 
   const enCours = creation.isPending || emission.isPending;
   const erreurActive = erreurEtape ?? creation.error ?? emission.error;
-  const motifValide = motif !== 'autre' || motifAutre.trim() !== '';
+  // `schemaTexteLong` (@dfa/shared) borne `motifAutre` à 4000 caractères — défaut corrigé : cette
+  // contrainte n'était testée nulle part côté écran (ni validation ni `maxLength` sur le champ),
+  // donc un texte plus long faisait échouer `schemaCreationAvoir.safeParse` en silence dans
+  // `soumettre()` sans que le bouton ne se désactive ni qu'aucun message n'apparaisse.
+  const motifAutreTropLong = motif === 'autre' && motifAutre.trim().length > 4000;
+  const motifValide = motif !== 'autre' || (motifAutre.trim() !== '' && !motifAutreTropLong);
   const peutEmettre = selection.size > 0 && motifValide;
 
   return (
@@ -198,11 +211,14 @@ export function EcranAvoir() {
                 placeholder={t('facturation:motifsAvoir.autrePlaceholder')}
                 value={motifAutre}
                 onChange={(evenement) => setMotifAutre(evenement.target.value)}
+                maxLength={4000}
               />
             ) : null}
             {!motifValide ? (
               <p className="texte-libelle text-destructive">
-                {t('facturation:motifsAvoir.autreTexteObligatoire')}
+                {motifAutreTropLong
+                  ? t('facturation:motifsAvoir.autreTexteTropLong')
+                  : t('facturation:motifsAvoir.autreTexteObligatoire')}
               </p>
             ) : null}
           </div>

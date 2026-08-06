@@ -26,3 +26,62 @@ const ROLES_SANS_MONTANT_FACTURATION: ReadonlySet<RoleUtilisateur> = new Set([
 export function peutVoirMontantsFacturation(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && !ROLES_SANS_MONTANT_FACTURATION.has(role);
 }
+
+/**
+ * Gouvernance des TROIS gestes financiers de `EcranFicheFacture` (émettre, encaisser, créer un
+ * avoir) — DUPLIQUÉE ici depuis `apps/api/src/auth/matrice-droits.ts` (bloc facturation —
+ * documents, ~ligne 950), JAMAIS importée depuis `apps/api` (même frontière tenant/serveur que
+ * `peutVoirMontantsFacturation` ci-dessus et `ecrans/ventes/stock/droits.ts`). Un défensif
+ * d'ERGONOMIE, pas la seule ligne de défense : le serveur reste l'arbitre final
+ * (`ServiceEmissionDocument.emettre()` re-vérifie le droit avant tout effet de bord). Doctrine du
+ * dépôt, non négociable : un rôle sans droit ne voit pas un bouton grisé, il ne voit pas de
+ * bouton — ces trois fonctions gouvernent donc la VISIBILITÉ, pas seulement l'activation.
+ *
+ * Trois ensembles DISTINCTS, PAS de superset chef_atelier ⊇ receptionnaire (la matrice financière
+ * ne suit délibérément pas la hiérarchie atelier — voir le commentaire de tête de
+ * `DROITS_DOCUMENT_PAR_ROLE`/`DROITS_PAIEMENT_PAR_ROLE` côté serveur) :
+ *
+ * - Émettre une facture (`EMISSION_FACTURE`, `facturation.document.emettre_facture`) : direction,
+ *   comptable, vendeur, réceptionnaire — PAS chef_atelier, PAS magasinier, PAS technicien, PAS
+ *   admin (RF-115).
+ * - Encaisser (`ENCAISSEMENT_PAIEMENT`, `facturation.paiement.creer`/`.imputer`) : direction,
+ *   comptable, vendeur, réceptionnaire, magasinier — PAS chef_atelier (❌ littéral côté serveur),
+ *   PAS technicien, PAS admin (RF-115).
+ * - Créer un avoir (`EMISSION_AVOIR`, `facturation.document.emettre_avoir` — le menu ⋯ navigue
+ *   vers `EcranAvoir`, qui crée PUIS émet le brouillon en un seul geste utilisateur, donc le droit
+ *   qui gouverne l'accès au menu est celui de l'ÉMISSION, plus restrictif que `facturation.
+ *   avoir.creer` seul) : direction, comptable, réceptionnaire — PAS vendeur, PAS chef_atelier, PAS
+ *   magasinier, PAS technicien, PAS admin.
+ */
+const ROLES_EMISSION_FACTURE: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'comptable',
+  'vendeur',
+  'receptionnaire',
+]);
+
+const ROLES_ENCAISSEMENT: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'comptable',
+  'vendeur',
+  'receptionnaire',
+  'magasinier',
+]);
+
+const ROLES_EMISSION_AVOIR: ReadonlySet<RoleUtilisateur> = new Set([
+  'direction',
+  'comptable',
+  'receptionnaire',
+]);
+
+export function peutEmettreFacture(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_EMISSION_FACTURE.has(role);
+}
+
+export function peutEncaisser(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_ENCAISSEMENT.has(role);
+}
+
+export function peutEmettreAvoir(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_EMISSION_AVOIR.has(role);
+}

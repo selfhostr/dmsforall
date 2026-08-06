@@ -62,7 +62,8 @@
     "autrePlaceholder": "Grund präzisieren",
     "champ": "Grund",
     "champObligatoire": "Der Grund ist obligatorisch",
-    "autreTexteObligatoire": "Der Grund «Andere» erfordert einen freien Text"
+    "autreTexteObligatoire": "Der Grund «Andere» erfordert einen freien Text",
+    "autreTexteTropLong": "Der Text des Grundes «Andere» darf 4000 Zeichen nicht überschreiten"
   },
   "moyensPaiement": {
     "especes": "Bar",

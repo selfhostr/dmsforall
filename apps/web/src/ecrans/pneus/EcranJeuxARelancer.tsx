@@ -24,7 +24,6 @@ import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
 import { BadgeSaisonPneu } from './composants/BadgeSaisonPneu';
-import { DialogueChangerSaisonPneu } from './DialogueChangerSaisonPneu';
 import { DialogueSortirDepotPneu } from './DialogueSortirDepotPneu';
 import { peutGererDepotPneus } from './droits';
 
@@ -44,9 +43,6 @@ export function EcranJeuxARelancer() {
   const peutGerer = peutGererDepotPneus(role);
   const sites = (session?.sites ?? []).filter((s) => s.actif);
 
-  const [depotChangementSaison, setDepotChangementSaison] = useState<ReponseDepotPneus | null>(
-    null,
-  );
   const [depotSortie, setDepotSortie] = useState<ReponseDepotPneus | null>(null);
 
   const {
@@ -104,15 +100,12 @@ export function EcranJeuxARelancer() {
             libelle: '',
             actions: true,
             rendu: (depot: ReponseDepotPneus) => (
+              // Pas de « Changer de saison » ici : cette liste ne contient QUE des dépôts au
+              // statut `a_relancer` (`GET /depots-pneus/a-relancer`), un statut où le serveur
+              // rejette systématiquement ce geste (autorisé seulement `en_depot`/`monte`, voir
+              // `CarteJeuPneu.tsx` — `estActif`). Défaut corrigé : le bouton était rendu sans
+              // condition ici et 100% des clics échouaient.
               <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setDepotChangementSaison(depot)}
-                >
-                  {t('pneus:jeu.actions.changerSaison')}
-                </Button>
                 <Button
                   type="button"
                   size="sm"
@@ -200,10 +193,6 @@ export function EcranJeuxARelancer() {
         onChargerPlus={() => void fetchNextPage()}
       />
 
-      <DialogueChangerSaisonPneu
-        depot={depotChangementSaison}
-        onFerme={() => setDepotChangementSaison(null)}
-      />
       <DialogueSortirDepotPneu depot={depotSortie} onFerme={() => setDepotSortie(null)} />
     </div>
   );

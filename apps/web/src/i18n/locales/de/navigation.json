@@ -31,7 +31,8 @@
     "ventesDossiers": "Verkaufsdossiers",
     "ventesSuivi": "Finanzierungs- & Garantieübersicht",
     "pneusHangar": "Reifenhotel",
-    "pneusARelancer": "Sätze zum Nachfassen"
+    "pneusARelancer": "Sätze zum Nachfassen",
+    "relances": "Mahnungen"
   },
   "groupes": {
     "parametrage": "Einstellungen",

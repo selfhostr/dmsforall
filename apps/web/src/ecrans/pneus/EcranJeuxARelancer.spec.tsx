@@ -79,4 +79,24 @@ describe('EcranJeuxARelancer', () => {
 
     expect(await screen.findByText('Aucun jeu à relancer.')).toBeInTheDocument();
   });
+
+  it(
+    'ne propose pas « Changer de saison » — défaut corrigé : cette liste ne contient QUE des ' +
+      'dépôts au statut `a_relancer`, un statut où le serveur rejette systématiquement ce geste ' +
+      '(autorisé seulement `en_depot`/`monte`, même condition que `CarteJeuPneu`) — « Sortir » ' +
+      'reste bien proposé, lui, à un rôle habilité (`chef_atelier`, session de test par défaut)',
+    async () => {
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/depots-pneus/a-relancer', () =>
+          HttpResponse.json(pageDe([DEPOT_A_RELANCER])),
+        ),
+      );
+
+      rendre();
+
+      expect(await screen.findByRole('button', { name: 'Sortir' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Changer de saison' })).not.toBeInTheDocument();
+    },
+  );
 });

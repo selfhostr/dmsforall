@@ -62,7 +62,8 @@
     "autrePlaceholder": "Précisez le motif",
     "champ": "Motif",
     "champObligatoire": "Le motif est obligatoire",
-    "autreTexteObligatoire": "Un motif « Autre » exige un texte libre"
+    "autreTexteObligatoire": "Un motif « Autre » exige un texte libre",
+    "autreTexteTropLong": "Le texte du motif « Autre » ne doit pas dépasser 4000 caractères"
   },
   "moyensPaiement": {
     "especes": "Espèces",

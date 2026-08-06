@@ -41,7 +41,14 @@ export function DialogueSortirDepotPneu({ depot, onFerme }: Props) {
   const [motif, setMotif] = useState<MotifSortieDepotPneus | null>(null);
 
   useEffect(() => {
-    if (depot) setMotif(null);
+    if (depot) {
+      setMotif(null);
+      // Défaut corrigé : sans ce `reset()`, une erreur de mutation restée affichée depuis le jeu
+      // précédent (ex. échec sur le jeu A) réapparaissait à l'ouverture du dialogue pour le jeu B
+      // — même patron que `DialogueNouveauDepotPneu` (`creer.reset()` à la réinitialisation).
+      sortir.reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- réinitialisation à la réouverture seulement
   }, [depot]);
 
   function confirmer() {

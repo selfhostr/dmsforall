@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams, useSearchParams } from 'react-router';
@@ -11,6 +11,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -19,7 +28,6 @@ import {
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
-import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { useSession } from '@/hooks/useSession';
 import {
   useMarquerVenduVehiculeStock,
@@ -82,6 +90,14 @@ export function EcranFicheVehiculeStock() {
   const receptionner = useReceptionnerVehiculeStock(id ?? '');
   const remettreDisponible = useRemettreDisponibleVehiculeStock(id ?? '');
   const marquerVendu = useMarquerVenduVehiculeStock(id ?? '');
+
+  // Défaut corrigé : la fermeture (annulation ou clic hors modale) réinitialise l'erreur — même
+  // patron que `DialogueActionAvecMotif.fermer` — pour qu'un échec du jeu précédent ne réapparaisse
+  // pas silencieusement sous l'overlay à la prochaine ouverture.
+  function fermerConfirmationReception(ouvertSuivant: boolean) {
+    if (!ouvertSuivant) receptionner.reset();
+    setConfirmationReceptionOuverte(ouvertSuivant);
+  }
 
   if (requeteStock.isPending) {
     return (
@@ -179,12 +195,6 @@ export function EcranFicheVehiculeStock() {
           </DropdownMenu>
         ) : null}
       </div>
-
-      {receptionner.error ? (
-        <p className="texte-libelle text-destructive" role="alert">
-          {messageErreur(receptionner.error, t)}
-        </p>
-      ) : null}
 
       <Card>
         <CardHeader>
@@ -330,17 +340,47 @@ export function EcranFicheVehiculeStock() {
         />
       ) : null}
 
-      <AvertissementConfirmable
-        ouvert={confirmationReceptionOuverte}
-        onOuvertChange={setConfirmationReceptionOuverte}
-        titre={t('ventes:stock.fiche.actions.receptionner')}
-        description={t('ventes:stock.fiche.receptionnerDescription')}
-        libelleConfirmation={t('ventes:stock.fiche.actions.receptionner')}
-        onConfirmer={() =>
-          receptionner.mutate({}, { onSuccess: () => setConfirmationReceptionOuverte(false) })
-        }
-        enCours={receptionner.isPending}
-      />
+      {/* Construit à la main (plutôt que `AvertissementConfirmable`, qui n'a pas d'emplacement pour
+          une erreur) précisément pour corriger le défaut signalé : l'erreur de la mutation
+          « réceptionner » s'affichait auparavant HORS du contenu du dialogue, donc invisible sous
+          l'overlay tant que la modale restait ouverte — même doctrine que `DialogueActionAvecMotif`
+          dans ce même écran (erreur affichée DANS la modale). */}
+      <Dialog open={confirmationReceptionOuverte} onOpenChange={fermerConfirmationReception}>
+        <DialogContent>
+          <DialogHeader>
+            <div className="flex items-start gap-3">
+              <TriangleAlert
+                aria-hidden
+                className="mt-0.5 h-5 w-5 shrink-0 text-statut-attention"
+              />
+              <DialogTitle>{t('ventes:stock.fiche.actions.receptionner')}</DialogTitle>
+            </div>
+            <DialogDescription>{t('ventes:stock.fiche.receptionnerDescription')}</DialogDescription>
+          </DialogHeader>
+
+          {receptionner.error ? (
+            <p className="texte-libelle text-destructive" role="alert">
+              {messageErreur(receptionner.error, t)}
+            </p>
+          ) : null}
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" disabled={receptionner.isPending}>
+                {t('commun:actions.annuler')}
+              </Button>
+            </DialogClose>
+            <Button
+              disabled={receptionner.isPending}
+              onClick={() =>
+                receptionner.mutate({}, { onSuccess: () => setConfirmationReceptionOuverte(false) })
+              }
+            >
+              {t('ventes:stock.fiche.actions.receptionner')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
