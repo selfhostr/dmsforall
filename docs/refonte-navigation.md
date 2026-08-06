@@ -133,7 +133,7 @@ pour le comptoir**. Ce besoin est réel et il est satisfait sans trois arboresce
 
 | Rôle | Atterrissage |
 | --- | --- |
-| `technicien` | Atelier › Pointage › Mon travail |
+| `technicien` | Via `/pointage/borne` partagée (voir note ci-dessous) |
 | `magasinier` | Pièces › Comptoir |
 | `receptionnaire`, `chef_atelier` | Aujourd'hui |
 | `vendeur` | Ventes › Dossiers |
@@ -149,6 +149,12 @@ unique, et il est faible.
 **Exception maintenue, la borne.** `poste_atelier` n'est pas un rôle, c'est un **appareil**. Aucun
 menu, aucun en-tête, aucune recherche : `/pointage/borne` en plein écran, cibles ≥ 64 px, pavé
 numérique, un seul geste. Les deux études sont d'accord, la décision est prise, on n'y revient pas.
+
+**Conséquence : les mécaniciens ne sont pas des utilisateurs quotidiens de l'arborescence principale.**
+Leur point d'entrée du jour est la borne murale partagée (`/pointage/borne`). L'arborescence de navigation
+est donc dimensionnée pour : réception, comptoir, chef d'atelier, magasinier, vendeur, direction, 
+comptabilité — pas pour le technicien au quotidien. Le compte nominatif `technicien` reste utile pour
+l'audit trail et la reprise de pointages, mais n'est pas un point d'entrée applicatif principal.
 
 ---
 
@@ -297,6 +303,19 @@ factures en retard sur Facturation. Un menu qui clignote de partout ne signale p
 
 ---
 
+## 4.6 Contraintes transverses (s'appliquent à tous les lots)
+
+**Responsive et tactile dès la conception.** Les postes de comptoir fonctionnent sur des écrans tactiles
+(≥ 24 pouces). La navigation doit être utilisable avec cliquer/taper, et dégradable vers tablette et
+mobile — même si le principal cas d'usage est desktop tactile. Conséquences concrètes :
+- Cibles tactiles **≥ 44 px** partout, y compris sur écran desktop (ne pas supposer clics pécis de souris).
+- Bouton de recherche (loupe) **toujours visible**, pas de Cmd+K seul. Le raccourci clavier reste, mais 
+  l'équivalent tactile doit exister en permanence pour ne pas supposer les raccourcis claviers.
+- Mise en page flexible : pas de colonnes fixes ; breakpoints testés réellement sur mobile/tablette avant
+  de laisser un lot partir en développement.
+
+---
+
 ## 5. Ordre des travaux
 
 Six lots. Chacun apporte de la valeur seul et peut être livré sans attendre le suivant.
@@ -307,7 +326,7 @@ dans `routes/chemins.ts` (tous deux marqués « provisoire » par leurs auteurs)
 `poste_atelier` sur `/pointage/borne` — défaut isolé, indépendant de la refonte, qui rend un écran
 livré inatteignable.
 
-**Lot A — La recherche partout. ★ Le meilleur rapport valeur/effort du chantier.**
+**Lot A — La recherche partout. ★ Le meilleur rapport valeur/effort du chantier. Sans regret, démarrable immédiatement.**
 Champ permanent dans l'en-tête (le centre des 64 px est vide), `Ctrl+K` annoncé dans le champ, et
 panneau de résultats **en surimpression de l'écran courant** — Échap referme, le contexte est
 intact. Le composant existe déjà et est bon (`PanneauResultatsRecherche.tsx`) : le travail consiste
@@ -318,7 +337,7 @@ son nom. Livrable seul, et il améliore déjà la journée du réceptionniste.
 *Prérequis API, en parallèle :* `TypeResultatRecherche` doit gagner `article`, `depot_pneu`,
 `fournisseur` — sinon la palette ne couvre que quatre natures d'objet sur huit.
 
-**Lot B — Les fiches deviennent cliquables. ★ La plus grande valeur métier absolue.**
+**Lot B — Les fiches deviennent cliquables. ★ La plus grande valeur métier absolue. Sans regret, démarrable immédiatement.**
 Quatre écrans indépendants, livrables un par un, `EcranFicheFacture.tsx` comme modèle :
 - **Fiche véhicule** → propriétaire · détenteurs précédents · ses OR · ses factures · son jeu de
   pneus au dépôt et son emplacement · travaux reportés avec « ouvrir un OR à partir de ces travaux »
@@ -338,10 +357,12 @@ endroit constant ; le reste (corriger, annuler, dupliquer, imprimer, exporter) d
 Sur un OR elle suit l'état : *Ajouter une ligne* en cours, *Facturer* quand tout est réalisé.
 Dépend de B pour les cibles de liens.
 
-**Lot D — Le menu à six entrées.** Ne peut venir qu'**après A et B**, pour la raison du §3.
-Comprend : la barre latérale sans défilement, les onglets internes, Réglages en pied séparé par un
-filet, l'atterrissage et l'onglet par défaut par rôle, et les deux fusions d'écrans confirmées
-(pointage journal/équipe, pneus hangar/à relancer).
+**Lot D — Le menu à six entrées. Bloqué jusqu'à une phase d'observation terrain.** Ne peut venir qu'**après A et B**, pour
+la raison du §3. **Prérequis supplémentaire : une courte mission d'observation chez un garagiste** pour
+identifier les gestes réflexes hérités d'Auto-i ou Nextlane. Réduire le menu sans connaître ces habitudes
+court le risque de casser un réflexe quotidien. Dès que cette observation est faite, le lot D comprend :
+la barre latérale sans défilement, les onglets internes, Réglages en pied séparé par un filet, l'atterrissage et
+l'onglet par défaut par rôle, et les deux fusions d'écrans confirmées (pointage journal/équipe, pneus hangar/à relancer).
 
 **Lot E — Ce qui devient contextuel.** Bandeau doublons dans l'écran Clients et détection à la
 frappe à la création ; clôture de période en action de la vue Équipe ; blocs actionnables dans
@@ -350,76 +371,70 @@ file d'attente.
 *Prérequis signalé :* l'onglet « À relancer » de `EcranListeFactures` est **inerte** — aucun filtre
 `relanceNiveau` / `enRetard` au contrat. À câbler côté API.
 
-**Lot F — Aujourd'hui. Celui qui peut attendre.** La fusion Accueil + Tableau de bord dépend de la
-réponse à la question 6 : si le chef d'atelier ouvre le tableau de bord chaque matin, cet écran
-devient le cœur du produit et mérite une conception à part entière ; s'il est mensuel et réservé à
-la direction, « Aujourd'hui » doit être conçu de zéro comme un écran de travail et non comme un
-tableau d'indicateurs. Dans les deux cas, l'écran actuel tient jusque-là.
+**Lot F — Aujourd'hui. Écran d'accueil du produit, conception décisive.** Le tableau de bord devient
+l'écran de destination après connexion. Cet écran doit être réellement utile le matin — activité atelier
+ouverte, à-faire du jour, garanties à relancer — sinon il se redégrade en simple entrée de menu. La conception
+de « Aujourd'hui » fusionne Accueil + Tableau de bord et mérite du temps : c'est la porte d'entrée du produit,
+et elle fixe la perception de la journée qui commence. Condition explicite de qualité : mesurer son usage réel
+auprès d'un chef d'atelier sur une semaine avant de la figer.
+*Note :* L'écran actuel tient le rôle temporairement ; ce lot apporte une conception à part entière.
 
 ---
 
-## 6. Questions à @laupernoe
+## 6. Réponses de @laupernoe (06.08.2026) — Arbitrages figés
 
-Huit questions, fusionnées depuis les seize des deux études. Chacune change concrètement quelque
-chose ; celles qui n'en changeaient pas ont été tranchées et sont listées après.
+Huit questions adressées le 06.08.2026 pour trancher les points résiduels. Toutes reçues une réponse.
+Chacune change concrètement quelque chose ; celles qui n'en changeaient pas ont été tranchées plus tôt.
 
-**1. Dans tes dix garages, une personne a-t-elle un seul métier, ou plusieurs casquettes dans la
-journée ?** (le patron qui vend et encaisse, le chef d'atelier qui reçoit)
-→ *Plusieurs casquettes* : on en reste là — six entrées pour tous, seul l'atterrissage change.
-*Un métier strict par personne* : on va plus loin et on masque aussi des **onglets** à l'intérieur
-des entrées, pas seulement des entrées.
+**Q1 — Casquettes multiples.** Réponse : « dans les grands garages chaque personne reste dans son rôle,
+mais à la base l'app est conçue pour les petits garages ; dans les garages de 1 à 5 personnes chacun
+peut tout faire. »
+→ **CONFIRMÉ.** L'arbitrage déjà pris est renforcé : une seule arborescence, filtrée par droits.
+Le petit garage (1–5 personnes) a des droits larges donc voit presque tout le menu ; le grand garage a
+des rôles stricts donc un menu filtré court. Le même menu sert les deux sans variante ni « postes de travail »
+figés.
 
-**2. Les mécaniciens ont-ils chacun leur compte, ou pointent-ils tous sur la borne murale ?**
-→ *Comptes nominatifs* : « Mon travail » est un vrai écran et l'atterrissage technicien compte.
-*Tous à la borne* : le rôle `technicien` ne sert presque plus dans l'application, et tout l'effort
-de pointage se concentre sur la borne plein écran.
+**Q2 — Comptes mécaniciens.** Réponse : « ils pointent sur une borne partagée. »
+→ **CHANGE LA PRIORITÉ DE CONCEPTION.** Les mécaniciens ne sont pas des utilisateurs quotidiens
+de l'arborescence principale ; leur point d'entrée du jour est la borne murale partagée (`/pointage/borne`).
+L'arborescence est donc dimensionnée pour : réception, comptoir, chef d'atelier, magasinier, vendeur,
+direction, comptabilité. Le compte nominatif `technicien` reste utile pour l'audit trail, mais n'est pas
+un point d'entrée applicatif principal. *(Voir §2, table d'atterrissage et note qui suit.)*
 
-**3. Combien de tes garages ont plus d'un site, et quelqu'un change-t-il de site plusieurs fois par
-jour ?**
-→ *Souvent* : le site devient un **sélecteur actif** dans l'en-tête à côté de la recherche (c'est
-aujourd'hui un texte passif). *Rarement* : il reste un filtre d'écran et on ne touche pas à
-l'en-tête, qui est un espace rare.
+**Q3 — Multi-sites.** Réponse : « il ne change rarement de site, peu de garages ont plusieurs sites,
+mais ça arrive. »
+→ **CONFIRMÉ.** Le sélecteur de site reste discret (menu profil/réglages), jamais une barre permanente en haut.
+Il existe parce que le cas arrive, mais il ne structure pas la navigation.
 
-**4. Les postes de comptoir : clavier et souris, ou écran tactile ? Et quel est le plus petit écran
-installé chez tes clients ?**
-→ *Clavier* : `Ctrl+K` devient le mécanisme principal et le menu peut maigrir sans réserve.
-*Tactile* : le champ de recherche doit rester visible et cliquable en permanence, les cibles
-passent à ≥ 44 px partout, et je garde deux ou trois raccourcis de plus dans le menu. La taille
-d'écran fixe le nombre de lignes qui tiennent sans défilement — tout le §4.2 en dépend.
+**Q4 — Poste comptoir et écrans.** Réponse : « minimum 24 pouces, mais je veux par la suite que l'app
+fonctionne sur iPad et mobile donc il faut déjà y penser ; il y a clavier-souris ET tactile. »
+→ **NOUVELLE CONTRAINTE TRANSVERSE.** La navigation doit être responsive dès la conception, avec cibles
+tactiles suffisantes (≥ 44 px) même sur poste desktop puisque les postes sont tactiles, et dégradable vers
+tablette et mobile. La palette de commande clavier (Cmd+K, lot A) doit conserver un équivalent tactile
+visible (bouton loupe) pour ne pas supposer les raccourcis claviers. Cette contrainte s'applique à **tous les lots**.
+*(Voir §4.6, « Contraintes transverses ».)*
 
-**5. Le gardiennage de pneus est-il facturé chaque année, et vends-tu aussi du pneu neuf comme
-article de stock ?**
-→ *Facturé* : le dépôt pneus a besoin d'un lien direct vers la facturation et gagne sa place dans
-Aujourd'hui à la saison. *Compris dans le changement* : c'est un pur outil de rangement.
-*Pneu neuf vendu* : deux objets homonymes coexistent (le pneu-article et le pneu-dépôt) et il faut
-les nommer différemment dans l'écran, sous peine de recréer la confusion qu'on corrige.
+**Q5 — Pneus.** Réponse : « le gardiennage peut être facturé et les pneus neufs font partie du stock. »
+→ **CONFIRMÉ.** Le dépôt de pneus client (gardiennage) reste sous Atelier / fiche véhicule. Le pneu neuf
+vendu est un article de Pièces. Le gardiennage facturable se traduit par un bouton « facturer le gardiennage »
+depuis le dépôt de pneus, et non par une entrée de menu dédiée. Le mot retenu reste **Pièces**.
 
-**6. Le chef d'atelier ouvre-t-il le tableau de bord chaque matin, ou est-ce un écran que seule la
-direction regarde une fois par mois ?**
-→ *Chaque matin* : la fusion en « Aujourd'hui » est juste et cet écran devient le cœur du produit
-(lot F remonte en priorité). *Mensuel* : les chiffres redescendent ailleurs et « Aujourd'hui » se
-conçoit de zéro comme un écran de travail.
+**Q6 — Tableau de bord.** Réponse : « tous les matins, si il est bien. »
+→ **CHANGE L'ORDRE DES LOTS.** Le tableau de bord devient l'écran d'accueil après connexion (le landing),
+et non plus une simple entrée de menu. Il reste accessible pour y revenir, mais le défaut au login est le
+tableau de bord. Condition explicite portée par le « si il est bien » : il doit être réellement utile le matin
+(activité atelier ouverte, à-faire du jour) ; s'il ne l'est pas, il redevient une simple entrée de menu.
+La conception de cet écran mérite du temps et une validation terrain. *(Voir lot F, §5.)*
 
-**7. Quelle est la langue réellement parlée dans les équipes de tes dix garages ?**
-→ Les mots retenus (« Aujourd'hui », « Pièces », « Dépôt pneus », « Véhicules en parc ») doivent
-survivre à l'allemand et à l'italien sans devenir bancals. *Terrain germanophone* : les libellés
-sont validés par un garagiste avant de figer les clés i18n — un mot qu'on retraduit après coup
-casse la mémoire des utilisateurs.
+**Q7 — Langues.** Réponse : « les 3 langues majeures de la Suisse (français, allemand, italien). »
+→ **EXIGENCE DE VALIDATION.** La largeur des libellés de menu doit être dimensionnée sur le plus long des trois,
+c'est-à-dire l'allemand (`Reparaturauftrag` est bien plus long qu'OR). **Tester le rendu réel du menu en
+allemand avant de figer les libellés**, et faire valider les termes par un garagiste germanophone pour éviter
+une retranslation qui casse la mémoire spatiale des utilisateurs.
 
-**8. Y a-t-il des habitudes venues d'Auto-i ou de Nextlane qu'il ne faut surtout pas casser ?**
-→ Une réorganisation qui a raison sur le papier échoue à la reprise si elle déplace un geste que
-les gens font sans réfléchir depuis dix ans. Une seule habitude nommée peut suffire à réordonner
-une entrée ou à garder un raccourci. À savoir **avant** le lot D.
-
-### Questions écartées, et ce que j'ai tranché à leur place
-
-- *« Combien de garages ont un magasinier à plein temps ? »* — les deux études répondent déjà : il
-  est minoritaire. Tranché : Pièces reste en quatrième position et **s'ouvre sur le Comptoir**, pas
-  sur l'inventaire.
-- *« Combien de garages vendent réellement des VN/VO ? »* — sans objet : le filtrage par droits
-  masque déjà Ventes pour qui n'a aucun droit `ventes.*`. Rien à décider.
-- *« Le patron veut-il faire ses relances et son export fiduciaire dans DFA ? »* — les écrans sont
-  livrés et les droits viennent d'être arrêtés. Tranché : ça reste, en onglet de Facturation.
-- *« Qui ouvre le hangar à pneus le matin ? »* — tranché au §4.4 par le test comptable, et rendu
-  secondaire par la décision de mettre le dépôt pneus dans la fiche véhicule (lot B).
-- *« Faut-il une navigation par rôle ? »* — tranché au §2 : non, l'arborescence est unique.
+**Q8 — Habitudes Auto-i / Nextlane.** Réponse : « je ne sais pas encore. »
+→ **RISQUE OUVERT, TRAITÉ COMME TEL.** Les lots A et B sont des améliorations sans regret et peuvent démarrer
+immédiatement. Le lot D (menu à six entrées) reste **BLOQUÉ** jusqu'à une courte phase d'observation chez un
+garagiste — regarder un utilisateur manipuler Auto-i ou Nextlane et noter les gestes réflexes. Couper le menu
+sans connaître ce qui est réflexe court le risque d'une refonte qui doit être refaite.
+*(Voir lot D, §5.)*
