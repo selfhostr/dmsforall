@@ -284,7 +284,13 @@ export class DossierVenteController {
   @ApiOperation({
     summary: '`pret_a_livrer -> livre` (RV-52/RV-53).',
     description:
-      'Bascule la détention du véhicule vers le client conducteur (ou acheteur), motif `vente`.',
+      'Bascule la détention du véhicule vers le client conducteur (ou acheteur), motif `vente`. ' +
+      'Exige que le véhicule soit déjà `vendu` — la facture doit avoir été émise AVANT cet appel ' +
+      '(RV-37) : l’enchaînement réel du parcours est engager → préparer → prêt à livrer → ' +
+      '**facturer** → livrer, pas « prêt à livrer → livrer » directement. `dateLivraisonEffective` ' +
+      'accepte le jour même (cas le plus courant en concession, issue #13) : une détention déjà ' +
+      'ouverte pour ce véhicule et démarrée ce même jour civil n’est pas un conflit ; seule une ' +
+      'date antérieure au début d’une détention déjà enregistrée reste refusée.',
   })
   @ApiParam({ name: 'dossierVenteId', format: 'uuid' })
   @ApiOkResponse({ type: DossierVenteAvecAvertissementsDto })
@@ -294,7 +300,8 @@ export class DossierVenteController {
   @ApiReponseProbleme(404, 'Dossier de vente introuvable pour ce tenant.')
   @ApiReponseProbleme(
     409,
-    'VENTE_DOSSIER_TRANSITION_INTERDITE, VENTE_VEHICULE_MANQUANT ou VENTE_VEHICULE_INDISPONIBLE (facture pas encore émise).',
+    'VENTE_DOSSIER_TRANSITION_INTERDITE, VENTE_VEHICULE_MANQUANT ou VENTE_VEHICULE_INDISPONIBLE ' +
+      '(facture pas encore émise — engager → préparer → prêt à livrer → facturer → livrer).',
   )
   async livrer(
     @Param('dossierVenteId', new PipeZod(schemaIdentifiant)) dossierVenteId: string,
