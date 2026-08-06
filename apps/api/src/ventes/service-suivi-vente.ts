@@ -4,7 +4,7 @@ import type { FiltresSuiviVente, LigneSuiviVente, PageCurseur, RoleUtilisateur }
 
 import { JETON_DB, type AccesBase, type ContexteTenant } from '../db';
 import { Horloge } from '../common/horloge/horloge';
-import { roleVoitLesMontants } from '../facturation/documents/mappeurs';
+import { roleVoitFinancement } from './mappers';
 
 import {
   construireConditionKeyset,
@@ -28,25 +28,35 @@ import { versLigneSuiviVente, type EntreeLigneSuiviVenteBrut } from './suivi-map
  * `versLigneSuiviVente` a besoin est sélectionné directement dans la requête de page, sans second
  * aller-retour par ligne).
  *
- * GARDE RF-116 TRANSITIVE SUR LA CLÉ DE TRI/FILTRE (IMPORTANT, LIRE AVANT DE MODIFIER) —
+ * GARDE `ventes.financement.lire` TRANSITIVE SUR LA CLÉ DE TRI/FILTRE (IMPORTANT, LIRE AVANT DE
+ * MODIFIER) —
  *
  * Le curseur de pagination (`PageCurseur.curseurSuivant`) encode sa valeur de tri en CLAIR
  * (base64url, jamais chiffré — voir `contrats/pagination.ts::DonneesCurseurV2`, "opaque" y
  * signifie "le client ne doit pas le construire à la main", pas "le contenu est secret"). Si la
  * clé de tri (`prochaineEcheanceLe`) était calculée à partir de `financement.echeanceLe` MÊME
- * pour un rôle qui n'a pas `roleVoitLesMontants(role)` (donc pour qui ce champ est OMIS de la
- * réponse JSON, RF-116), un tel rôle pourrait décoder son propre curseur et reconstituer la date
- * d'échéance masquée — un contournement trivial de l'omission RF-116, alors même que
- * `versLigneSuiviVente` (`suivi-mappers.ts`) l'omet correctement du corps de la réponse.
+ * pour un rôle qui n'a pas `ventes.financement.lire` (donc pour qui l'entité `financement` ENTIÈRE
+ * est OMISE de la réponse JSON, FAILLE CORRIGÉE — voir l'en-tête de `suivi-mappers.ts::
+ * versLigneSuiviVente`), un tel rôle pourrait décoder son propre curseur et reconstituer la date
+ * d'échéance masquée — un contournement trivial de l'omission, alors même que
+ * `versLigneSuiviVente` l'omet correctement du corps de la réponse.
  *
- * D'où `construireExpressionEcheanceFinancement(role)` ci-dessous : quand `!roleVoitLesMontants
+ * D'où `construireExpressionEcheanceFinancement(role)` ci-dessous : quand `!roleVoitFinancement
  * (role)`, l'expression SQL de l'échéance financement est remplacée par un `null` SQL LITTÉRAL —
  * elle ne contribue alors JAMAIS à `prochaineEcheanceLe` (ni au tri, ni au curseur, ni au filtre
  * `dansJours`) pour ce rôle. Conséquence assumée, documentée : l'ORDRE de la liste (et les pages
- * qui en résultent) diffère entre un rôle qui voit les montants et un rôle qui ne les voit pas —
- * c'est le prix nécessaire pour que l'omission RF-116 tienne de bout en bout, pas seulement dans
- * le corps de la première page. La garantie, elle, n'est jamais gatée (voir l'en-tête du contrat)
- * et contribue donc identiquement à `prochaineEcheanceLe` quel que soit le rôle.
+ * qui en résultent) diffère entre un rôle qui voit le financement et un rôle qui ne le voit pas —
+ * c'est le prix nécessaire pour que l'omission tienne de bout en bout, pas seulement dans le corps
+ * de la première page. La garantie, elle, n'est jamais gatée (voir l'en-tête du contrat) et
+ * contribue donc identiquement à `prochaineEcheanceLe` quel que soit le rôle.
+ *
+ * CORRIGÉ (audit sécurité) : gate initialement posée sur `roleVoitLesMontants(role)`, PAS sur le
+ * droit `ventes.financement.lire` — les deux étaient équivalents pour tout rôle qui atteint cette
+ * route (`ventes.dossier.lire` requis par le contrôleur) SAUF `chef_atelier`, pour qui
+ * `roleVoitLesMontants` est VRAI (il n'est pas dans `ROLES_SANS_MONTANT_FACTURATION`) alors qu'il
+ * n'a PAS `ventes.financement.lire`. La gate laissait donc contribuer l'échéance financement réelle
+ * au tri/curseur pour `chef_atelier`, alors que le corps de la réponse (après correction de
+ * `suivi-mappers.ts`) ne la lui montre plus — exactement le contournement décrit ci-dessus.
  */
 
 /** `credit`/`leasing` uniquement — un `comptant` n'est pas un financement (RV-44), rien à suivre. */
@@ -64,11 +74,11 @@ const EXPR_ECHEANCE_GARANTIE: SQL = sql`
     else null
   end`;
 
-/** `null` SQL littéral pour un rôle sans droit financier — voir la garde RF-116 en tête de
- *  fichier : l'échéance financement ne doit JAMAIS contribuer au tri/curseur/filtre pour ce rôle,
- *  pas seulement être omise du corps de la réponse. */
+/** `null` SQL littéral pour un rôle sans `ventes.financement.lire` — voir la garde transitive en
+ *  tête de fichier : l'échéance financement ne doit JAMAIS contribuer au tri/curseur/filtre pour ce
+ *  rôle, pas seulement être omise du corps de la réponse. */
 function construireExpressionEcheanceFinancement(role: RoleUtilisateur): SQL {
-  return roleVoitLesMontants(role) ? EXPR_ECHEANCE_FINANCEMENT : sql`null`;
+  return roleVoitFinancement(role) ? EXPR_ECHEANCE_FINANCEMENT : sql`null`;
 }
 
 function construireExpressionProchaineEcheance(role: RoleUtilisateur): SQL {
@@ -160,8 +170,12 @@ export class ServiceSuiviVente {
         sql`dv.tenant_id = ${ctx.tenantId}`,
         // Un dossier n'a rien à suivre ici sans financement credit/leasing NI garantie connue
         // (voir l'en-tête de `contrats/ventes/suivi.ts`) — condition d'EXISTENCE, jamais gatée
-        // par rôle : un rôle sans droit financier voit toujours que ce dossier a un financement
-        // en cours, seuls son détail monétaire et son échéance sont omis.
+        // par rôle : un rôle sans `ventes.financement.lire` voit toujours la LIGNE (le dossier
+        // reste listé, cohérent avec `ventes.dossier.lire` qu'il détient déjà pour atteindre cette
+        // route), mais plus AUCUN détail du financement lui-même depuis la correction de
+        // `suivi-mappers.ts` (`financement` est omis en ENTIER, pas seulement son détail
+        // monétaire) — la ligne peut alors n'exposer que `garantie`, ou rien d'autre que son
+        // identité si `garantie` est aussi `null`.
         sql`(fc.id is not null or v.garantie_debut is not null)`,
       ];
       if (filtres.siteId) conditions.push(sql`dv.site_id = ${filtres.siteId}`);

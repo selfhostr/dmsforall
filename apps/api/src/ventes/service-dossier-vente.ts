@@ -58,6 +58,8 @@ import {
 
 import {
   calculerTypeVehicule,
+  roleVoitFinancement,
+  roleVoitReprise,
   selectionnerFinancementCourant,
   versDocumentRequisResponse,
   versDocumentVenteResume,
@@ -859,20 +861,39 @@ export class ServiceDossierVente {
       : null;
 
     const { vehicule, typeVehicule } = await this.assemblerVehicule(tx, ctx, ligne.vehiculeId);
-    const repriseResume = await this.assemblerRepriseResume(tx, ctx, ligne.id);
 
-    const financementsLignes = await listerFinancementsDossier(tx, ctx, ligne.id);
-    const financementCourantLigne = selectionnerFinancementCourant(financementsLignes);
-    const financements: FinancementResume[] = [];
-    let financementCourant: FinancementResume | null = null;
-    for (const f of financementsLignes) {
-      const organisme = f.organismeId
-        ? await versClientResume(tx, ctx, await chargerClientLigne(tx, ctx, f.organismeId))
-        : null;
-      const resume = versFinancementResume(f, organisme, role);
-      financements.push(resume);
-      if (financementCourantLigne && f.id === financementCourantLigne.id)
-        financementCourant = resume;
+    // FAILLE CORRIGÉE (audit sécurité) : `reprise`/`financement(s)` n'étaient JAMAIS gatés par leur
+    // propre droit de lecture — `GET /dossiers-vente/{id}` (protégé par `ventes.dossier.lire` SEUL)
+    // exposait TOUJOURS le détail complet, y compris à un rôle sans `ventes.reprise.lire`/
+    // `ventes.financement.lire` (`chef_atelier`, voir `mappers.ts::roleVoitReprise`/
+    // `roleVoitFinancement` pour le détail de la faille). Le rôle SANS le droit correspondant ne
+    // déclenche même plus la requête : `undefined` en amont, jamais une valeur chargée puis
+    // masquée trop tard — `versDossierVenteResponse` omet alors la clé ENTIÈRE de la réponse.
+    const repriseResume = roleVoitReprise(role)
+      ? await this.assemblerRepriseResume(tx, ctx, ligne.id)
+      : undefined;
+
+    let financements: FinancementResume[] | undefined;
+    let financementCourant: FinancementResume | null | undefined;
+    let financementsTronques: boolean | undefined;
+    if (roleVoitFinancement(role)) {
+      const financementsLignes = await listerFinancementsDossier(tx, ctx, ligne.id);
+      const financementCourantLigne = selectionnerFinancementCourant(financementsLignes);
+      const financementsAssembles: FinancementResume[] = [];
+      let courant: FinancementResume | null = null;
+      for (const f of financementsLignes) {
+        const organisme = f.organismeId
+          ? await versClientResume(tx, ctx, await chargerClientLigne(tx, ctx, f.organismeId))
+          : null;
+        const resume = versFinancementResume(f, organisme, role);
+        financementsAssembles.push(resume);
+        if (financementCourantLigne && f.id === financementCourantLigne.id) courant = resume;
+      }
+      financements = financementsAssembles;
+      financementCourant = courant;
+      // Contrat : « borné par SEUIL_FINANCEMENTS_EMBARQUES comme filet plutôt que par nécessité
+      // réelle » (un garage ne réessaie pas dix organismes) — jamais tronqué en pratique.
+      financementsTronques = false;
     }
 
     const documentsBrut = await listerDocumentsDossierBrut(tx, ctx, ligne.id);
@@ -903,9 +924,7 @@ export class ServiceDossierVente {
       reprise: repriseResume,
       financement: financementCourant,
       financements,
-      // Contrat : « borné par SEUIL_FINANCEMENTS_EMBARQUES comme filet plutôt que par nécessité
-      // réelle » (un garage ne réessaie pas dix organismes) — jamais tronqué en pratique.
-      financementsTronques: false,
+      financementsTronques,
       documents,
       documentsTronques,
       documentsRequis,

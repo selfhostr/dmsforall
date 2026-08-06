@@ -122,10 +122,13 @@ export class LigneSuiviVenteDto implements LigneSuiviVente {
   @ApiProperty({
     type: () => SuiviFinancementDto,
     nullable: true,
+    required: false,
     description:
-      'Le financement COURANT du dossier, restreint aux types credit/leasing — null si aucun (RV-44).',
+      'Le financement COURANT du dossier, restreint aux types credit/leasing — null si aucun ' +
+      "(RV-44), pour un rôle autorisé. ABSENT (pas null) = le rôle appelant n'a pas " +
+      'ventes.financement.lire (FAILLE CORRIGÉE, audit sécurité).',
   })
-  readonly financement!: SuiviFinancementDto | null;
+  readonly financement?: SuiviFinancementDto | null;
 
   @ApiProperty({
     type: () => SuiviGarantieDto,

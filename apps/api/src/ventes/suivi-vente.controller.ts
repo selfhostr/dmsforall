@@ -26,12 +26,18 @@ import { ServiceSuiviVente } from './service-suivi-vente';
  * correct à préserver indéfiniment dans un fichier déjà long.
  *
  * DROIT : `ventes.dossier.lire` — même droit que `GET /dossiers-vente`, cette vue ne fait
- * qu'agréger et filtrer des données déjà accessibles par ce droit (le dossier, son financement
- * courant embarqué, le véhicule associé — `ventes/references.ts` lit déjà la table `vehicule`
- * sous ce même droit pour construire `VehiculeResume`, aucun droit `vehicules.lire` distinct
- * n'est requis nulle part ailleurs dans ce module pour la même lecture). Le détail monétaire du
- * financement (`dureeMois`/`echeanceLe`) reste gated par `roleVoitLesMontants` (RF-116),
- * indépendamment de ce droit d'accès à la ressource.
+ * qu'agréger et filtrer des données déjà accessibles par ce droit pour ce qui concerne le
+ * DOSSIER/véhicule (`ventes/references.ts` lit déjà la table `vehicule` sous ce même droit pour
+ * construire `VehiculeResume`, aucun droit `vehicules.lire` distinct n'est requis nulle part
+ * ailleurs dans ce module pour la même lecture).
+ *
+ * L'entité `financement` embarquée dans chaque ligne est un domaine DISTINCT, gatée séparément par
+ * `ventes.financement.lire` (FAILLE CORRIGÉE, audit sécurité — voir l'en-tête de
+ * `suivi-mappers.ts::versLigneSuiviVente` et de `service-suivi-vente.ts` pour la garde transitive
+ * sur le tri/curseur) : `ventes.dossier.lire` seul ne suffit plus à la voir. Le détail monétaire du
+ * financement (`dureeMois`/`echeanceLe`), lui, reste gated par `roleVoitLesMontants` (RF-116),
+ * à l'intérieur de l'entité déjà visible — indépendamment de ce droit d'accès à la ressource et du
+ * droit `ventes.financement.lire` ci-dessus.
  */
 @ApiTags('Suivi ventes')
 @ApiCookieAuth()

@@ -12,6 +12,7 @@ import type {
 
 import { designationVehicule, nomAfficheClient } from '../atelier/references';
 import { roleVoitLesMontants } from '../facturation/documents/mappeurs';
+import { roleVoitFinancement } from './mappers';
 import { ajouterMoisIso, calculerGarantie } from '../vehicules/vehicule.mappers';
 
 /**
@@ -222,7 +223,20 @@ export function versLigneSuiviVente(
     brut.dernierKilometrageKm,
     maintenant,
   );
-  const financement = versSuiviFinancement(brut.financement, role);
+  // FAILLE CORRIGÉE (audit sécurité, même défaut que `service-dossier-vente.ts::assembler` — voir
+  // l'en-tête de `contrats/ventes/suivi.ts::LigneSuiviVente.financement`) : `versSuiviFinancement`
+  // était appelé INCONDITIONNELLEMENT, gaté seulement sur `roleVoitLesMontants` pour son détail
+  // MONÉTAIRE — l'identité/le statut/l'organisme du financement restaient TOUJOURS visibles à tout
+  // rôle détenant `ventes.dossier.lire`, y compris `chef_atelier` qui n'a pas
+  // `ventes.financement.lire`. Pire : `roleVoitLesMontants('chef_atelier')` est VRAI (`chef_atelier`
+  // n'est pas dans `ROLES_SANS_MONTANT_FACTURATION`), donc `chef_atelier` voyait même
+  // `dureeMois`/`echeanceLe` avant cette correction. `roleVoitFinancement(role)` gate maintenant
+  // l'ENTITÉ ENTIÈRE ; `roleVoitLesMontants` continue de gater le détail monétaire À L'INTÉRIEUR de
+  // l'entité, pour un rôle qui la voit mais pas ses montants (aucun rôle actuel n'est dans ce cas,
+  // les deux gates restent posées en couches indépendantes par défense en profondeur).
+  const financement = roleVoitFinancement(role)
+    ? versSuiviFinancement(brut.financement, role)
+    : undefined;
 
   return {
     dossierVenteId: brut.dossierVenteId,
@@ -230,9 +244,10 @@ export function versLigneSuiviVente(
     dossierStatut: brut.dossierStatut as StatutDossierVente,
     clientAcheteur,
     vehicule,
-    financement,
+    ...(financement !== undefined ? { financement } : {}),
     garantie,
-    // Dérivée des champs VISIBLES uniquement (financement.echeanceLe est déjà omis ci-dessus si
+    // Dérivée des champs VISIBLES uniquement (financement est omis en amont si
+    // !roleVoitFinancement(role) ; financement.echeanceLe est en plus omis si
     // !roleVoitLesMontants(role)) — voir l'en-tête de `contrats/ventes/suivi.ts`.
     prochaineEcheanceLe: calculerProchaineEcheance(
       financement?.echeanceLe,

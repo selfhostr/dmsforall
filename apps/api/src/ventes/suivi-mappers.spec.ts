@@ -269,9 +269,11 @@ describe('versLigneSuiviVente — assemblage complet', () => {
     expect(ligne.prochaineEcheanceLe).toBe('2026-07-01');
   });
 
-  it('RF-116 transitive : rôle sans montant, `prochaineEcheanceLe` ne peut JAMAIS dériver de l’échéance financement masquée', () => {
+  it('RF-116 transitive : rôle sans `ventes.financement.lire` (donc sans montant), `prochaineEcheanceLe` ne peut JAMAIS dériver de l’échéance financement masquée', () => {
     // Financement confirmé à échéance TRÈS proche (2026-08-06) — si `prochaineEcheanceLe` la
-    // laissait fuiter malgré l'omission de `echeanceLe`, ce test la verrait apparaître ici.
+    // laissait fuiter malgré l'omission de `financement`, ce test la verrait apparaître ici.
+    // `technicien` n'a ni `ventes.financement.lire` ni `roleVoitLesMontants` (les deux gates
+    // coïncident pour ce rôle) — voir le test dédié ci-dessous pour un rôle où elles DIVERGENT.
     const ligne = versLigneSuiviVente(
       ligneBrutFixture({
         financement: financementBrutFixture({
@@ -282,8 +284,40 @@ describe('versLigneSuiviVente — assemblage complet', () => {
       ROLE_SANS_MONTANT,
       MAINTENANT,
     );
-    expect('echeanceLe' in (ligne.financement as object)).toBe(false);
+    expect('financement' in ligne).toBe(false);
     expect(ligne.prochaineEcheanceLe).toBeNull();
+  });
+
+  /**
+   * FAILLE CORRIGÉE (audit sécurité) : avant correction, `versLigneSuiviVente` appelait
+   * `versSuiviFinancement` INCONDITIONNELLEMENT et ne gatait que le détail MONÉTAIRE via
+   * `roleVoitLesMontants` — `chef_atelier` détient `ventes.dossier.lire` (route `GET /ventes/suivi`)
+   * mais explicitement PAS `ventes.financement.lire` (`auth/matrice-droits.ts::
+   * DROITS_VENTES_PAR_ROLE.chef_atelier`). Pire : `roleVoitLesMontants('chef_atelier')` est VRAI
+   * (il n'est pas dans `ROLES_SANS_MONTANT_FACTURATION`), donc `chef_atelier` voyait AVANT cette
+   * correction l'identité, l'organisme, ET `dureeMois`/`echeanceLe` du financement — le détail
+   * monétaire complet d'un domaine sur lequel il n'a aucun droit de lecture.
+   */
+  it('FAILLE CORRIGÉE : `chef_atelier` (dossier.lire sans financement.lire, mais roleVoitLesMontants VRAI) — `financement` ABSENT en entier, pas seulement son détail monétaire', () => {
+    const role: RoleUtilisateur = 'chef_atelier';
+    const ligne = versLigneSuiviVente(
+      ligneBrutFixture({ financement: financementBrutFixture() }),
+      role,
+      MAINTENANT,
+    );
+    expect('financement' in ligne).toBe(false);
+    expect(ligne.prochaineEcheanceLe).toBeNull();
+  });
+
+  it('un rôle autorisé (`direction`, `ventes.financement.lire`) reçoit toujours l’entité financement complète', () => {
+    const ligne = versLigneSuiviVente(
+      ligneBrutFixture({ financement: financementBrutFixture() }),
+      ROLE_VOIT_MONTANTS,
+      MAINTENANT,
+    );
+    expect('financement' in ligne).toBe(true);
+    expect(ligne.financement).not.toBeNull();
+    expect(ligne.financement?.id).toBe('financement-1');
   });
 
   it('ni financement ni garantie : `prochaineEcheanceLe` null', () => {

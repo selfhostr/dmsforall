@@ -3,8 +3,14 @@ import type { EntreeActionLivrer } from '@dfa/shared';
 
 import type { ContexteTenant, TransactionDfa } from '../db';
 import { vehiculeDetention, vehiculeStock } from '../db/schema';
-import type { LigneDossierVente, LigneReprise, LigneVehiculeStock } from '../db/schema';
+import type {
+  LigneDossierVente,
+  LigneFinancementVente,
+  LigneReprise,
+  LigneVehiculeStock,
+} from '../db/schema';
 import type { Horloge } from '../common/horloge/horloge';
+import type { ServiceAudit } from '../common/audit';
 
 /**
  * Trou n°1 comblé (audit préalable, rapport de livraison) : `POST /dossiers-vente/{id}/livrer`
@@ -21,7 +27,12 @@ import type { Horloge } from '../common/horloge/horloge';
  * COURT-CIRCUITÉ via `vi.spyOn` : ce fichier n'exerce QUE l'effet de bord ajouté, pas le reste du
  * document déjà exercé ailleurs (mêmes principes que `service-or.spec.ts` pour `assemblerDocument`,
  * qui est public là-bas — ici privé, d'où le cast `any` assumé, seule façon d'atteindre la méthode
- * depuis un fichier de test externe).
+ * depuis un fichier de test externe). EXCEPTION : le describe `obtenirComplet — FAILLE CORRIGÉE`
+ * plus bas exerce `assembler()` pour de vrai (justement pour prouver le masquage par rôle), avec ses
+ * propres mocks des collaborateurs (`chargerClientLigne`/`versClientResume` de `../atelier/
+ * references`, `listerFinancementsDossier`/`listerDocumentsDossierBrut`/`listerDocumentsRequis` de
+ * `./references` — ajoutés à la liste ci-dessous pour cette seule raison, les autres describe ne les
+ * touchent jamais puisqu'ils court-circuitent `assembler`).
  */
 vi.mock('./references', async (importOriginal) => {
   const reel = await importOriginal<typeof import('./references')>();
@@ -32,11 +43,27 @@ vi.mock('./references', async (importOriginal) => {
     chargerVehiculeStockPourEcriture: vi.fn(),
     chargerVehiculeStockOuNull: vi.fn(),
     chargerRepriseParDossierOuNull: vi.fn(),
+    listerFinancementsDossier: vi.fn(),
+    listerDocumentsDossierBrut: vi.fn(),
+    listerDocumentsRequis: vi.fn(),
+  };
+});
+
+vi.mock('../atelier/references', async (importOriginal) => {
+  const reel = await importOriginal<typeof import('../atelier/references')>();
+  return {
+    ...reel,
+    chargerClientLigne: vi.fn(),
+    versClientResume: vi.fn(),
+    chargerVehiculeLigne: vi.fn(),
+    chargerPlaqueCourante: vi.fn(),
+    construireVehiculeResume: vi.fn(),
   };
 });
 
 import { ServiceDossierVente, estViolationCleUniqueVehiculeStock } from './service-dossier-vente';
 import * as references from './references';
+import * as atelierReferences from '../atelier/references';
 
 const CTX: ContexteTenant = { tenantId: 'tid-1', utilisateurId: 'user-1', requeteId: null };
 const DOSSIER_ID = 'dossier-1';
@@ -536,5 +563,121 @@ describe('estViolationCleUniqueVehiculeStock', () => {
     enveloppee.cause = brute;
 
     expect(estViolationCleUniqueVehiculeStock(enveloppee)).toBe(false);
+  });
+});
+
+/**
+ * FAILLE CORRIGÉE (audit sécurité) : `GET /dossiers-vente/{id}` (`obtenirComplet`, qui appelle
+ * `assembler()` pour de vrai — contrairement au reste de ce fichier, qui le court-circuite) n'était
+ * protégé QUE par `ventes.dossier.lire` et embarquait TOUJOURS `reprise`/`financement(s)` en entier,
+ * quel que soit le rôle. Ces tests exercent `assembler()` RÉELLEMENT (via `obtenirComplet`, aucun
+ * `vi.spyOn` sur `assembler`) pour prouver la garde à l'endroit exact où la faille vivait :
+ * `chef_atelier` (droit `ventes.dossier.lire`, mais explicitement SANS `ventes.reprise.lire` NI
+ * `ventes.financement.lire`, voir `auth/matrice-droits.ts::DROITS_VENTES_PAR_ROLE`) ne reçoit plus
+ * ces deux entités du tout ; `direction` (les deux droits) continue de tout recevoir — le front
+ * fraîchement livré (cartes reprise/financement) ne doit rien perdre pour un rôle autorisé.
+ */
+describe('ServiceDossierVente.obtenirComplet — masquage reprise/financement par rôle (FAILLE CORRIGÉE)', () => {
+  function financementFixture(champs: Partial<LigneFinancementVente> = {}): LigneFinancementVente {
+    return {
+      id: 'fin-1',
+      tenantId: 'tid-1',
+      dossierVenteId: DOSSIER_ID,
+      type: 'leasing',
+      organismeId: null,
+      referenceContrat: 'LSG-2026-042',
+      montantFinanceCentimes: 2_500_000,
+      acompteCentimes: 300_000,
+      mensualiteCentimes: 45_000,
+      tauxInteretPourmille: 39,
+      dureeMois: 48,
+      statut: 'confirme',
+      confirmeLe: new Date('2026-07-20T09:00:00.000Z'),
+      refuseLe: null,
+      motifRefus: null,
+      version: 1,
+      creeLe: new Date('2026-07-15T08:00:00.000Z'),
+      modifieLe: new Date('2026-07-20T09:00:00.000Z'),
+      ...champs,
+    } as LigneFinancementVente;
+  }
+
+  /** `vehiculeId`/`clientConducteurId`/`clientFactureId` tous `null` : évite `assemblerVehicule`
+   *  (aucune requête) et la résolution d'un second/troisième client — seul `chargerClientLigne`/
+   *  `versClientResume` pour l'acheteur sont exercés, une seule fois. */
+  function dossierPourAssemblageReel(): LigneDossierVente {
+    return dossierFixture({
+      vehiculeId: null,
+      clientFactureId: null,
+      clientConducteurId: null,
+    });
+  }
+
+  function serviceAvecAssemblerReel(acces: ReturnType<typeof accesFactice>): ServiceDossierVente {
+    const audit: Pick<ServiceAudit, 'pourEntite'> = { pourEntite: vi.fn().mockResolvedValue([]) };
+    // `assembler()` N'EST PAS spié ici, contrairement à `serviceFactice()` plus haut — c'est
+    // exactement ce que ce describe veut exercer.
+    return new ServiceDossierVente(acces as never, {} as never, audit as never, horlogeFactice());
+  }
+
+  beforeEach(() => {
+    vi.mocked(atelierReferences.chargerClientLigne).mockResolvedValue({
+      id: 'client-acheteur-1',
+    } as never);
+    vi.mocked(atelierReferences.versClientResume).mockResolvedValue({
+      id: 'client-acheteur-1',
+      nomAffiche: 'Jean Dupont',
+    } as never);
+    vi.mocked(references.listerDocumentsDossierBrut).mockResolvedValue([]);
+    vi.mocked(references.listerDocumentsRequis).mockResolvedValue([]);
+  });
+
+  it('chef_atelier (ventes.dossier.lire SEUL) : `reprise`/`financement(s)` ABSENTS de la réponse — jamais chargés, jamais exposés', async () => {
+    vi.mocked(references.chargerDossierVente).mockResolvedValue(dossierPourAssemblageReel());
+    // Défensif : si la garde régresse et interroge quand même la reprise/le financement, ce test
+    // le verrait dans le corps de la réponse (les valeurs ci-dessous sont délibérément non vides).
+    vi.mocked(references.chargerRepriseParDossierOuNull).mockResolvedValue(repriseFixture());
+    vi.mocked(references.listerFinancementsDossier).mockResolvedValue([financementFixture()]);
+
+    const { tx } = txFactice([]);
+    const svc = serviceAvecAssemblerReel(accesFactice(tx));
+
+    const reponse = await svc.obtenirComplet(CTX, 'chef_atelier', DOSSIER_ID);
+
+    expect('reprise' in reponse).toBe(false);
+    expect('financement' in reponse).toBe(false);
+    expect('financements' in reponse).toBe(false);
+    expect('financementsTronques' in reponse).toBe(false);
+    // Le rôle sans le droit ne déclenche même pas la requête — pas seulement un masquage tardif.
+    expect(references.chargerRepriseParDossierOuNull).not.toHaveBeenCalled();
+    expect(references.listerFinancementsDossier).not.toHaveBeenCalled();
+  });
+
+  it('direction (les deux droits) : `reprise`/`financement(s)` PRÉSENTS avec leurs valeurs exactes — le front autorisé ne perd rien', async () => {
+    vi.mocked(references.chargerDossierVente).mockResolvedValue(dossierPourAssemblageReel());
+    vi.mocked(references.chargerRepriseParDossierOuNull).mockResolvedValue(repriseFixture());
+    vi.mocked(atelierReferences.chargerVehiculeLigne).mockResolvedValue({
+      id: VEHICULE_REPRIS_ID,
+    } as never);
+    vi.mocked(atelierReferences.chargerPlaqueCourante).mockResolvedValue(null);
+    vi.mocked(atelierReferences.construireVehiculeResume).mockReturnValue({
+      id: VEHICULE_REPRIS_ID,
+    } as never);
+    vi.mocked(references.listerFinancementsDossier).mockResolvedValue([financementFixture()]);
+
+    const { tx } = txFactice([]);
+    const svc = serviceAvecAssemblerReel(accesFactice(tx));
+
+    const reponse = await svc.obtenirComplet(CTX, 'direction', DOSSIER_ID);
+
+    expect('reprise' in reponse).toBe(true);
+    expect(reponse.reprise).not.toBeNull();
+    expect(reponse.reprise?.valeurNegocieeCentimes).toBe(750_000); // repriseFixture()
+    expect('financement' in reponse).toBe(true);
+    expect(reponse.financement?.montantFinanceCentimes).toBe(2_500_000);
+    expect('financements' in reponse).toBe(true);
+    expect(reponse.financements).toHaveLength(1);
+    expect('financementsTronques' in reponse).toBe(true);
+    expect(reponse.financementsTronques).toBe(false);
   });
 });
