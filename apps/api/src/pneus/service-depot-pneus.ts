@@ -279,10 +279,11 @@ export class ServiceDepotPneus {
           ligne = inserees[0];
         } catch (erreur) {
           if (estViolationUniciteActif(erreur)) {
-            throw new ErreurMetier(
-              'CONFLIT',
-              `Un jeu de pneus "${entree.saison}" est déjà en dépôt ou monté pour ce véhicule (RPP-02).`,
-            );
+            // Même correctif que `sortir()` ci-dessous (issue #15, point 1) : `detail` posé
+            // explicitement, sinon absent du corps `problem+json` malgré la documentation
+            // OpenAPI de la route (`@ApiReponseProbleme(409, ...)`).
+            const detail = `Un jeu de pneus "${entree.saison}" est déjà en dépôt ou monté pour ce véhicule (RPP-02).`;
+            throw new ErreurMetier('CONFLIT', detail, { detail });
           }
           throw erreur;
         }
@@ -315,10 +316,9 @@ export class ServiceDepotPneus {
     return this.acces.enTenant(ctx, async (tx) => {
       const cible = await this.chargerOu404(tx, ctx, depotId);
       if (cible.statut !== 'en_depot' && cible.statut !== 'monte') {
-        throw new ErreurMetier(
-          'CONFLIT',
-          `Transition interdite : le dépôt est "${cible.statut}", ni "en_depot" ni "monte" (RPP-03).`,
-        );
+        // Même correctif que `sortir()` (issue #15, point 1) : `detail` explicite.
+        const detail = `Transition interdite : le dépôt est "${cible.statut}", ni "en_depot" ni "monte" (RPP-03).`;
+        throw new ErreurMetier('CONFLIT', detail, { detail });
       }
       const saisonOpposee: SaisonPneu = cible.saison === 'ete' ? 'hiver' : 'ete';
       const jumeauCandidat = await this.trouverJumeauActif(
@@ -344,10 +344,10 @@ export class ServiceDepotPneus {
         !cibleVerrouillee ||
         (cibleVerrouillee.statut !== 'en_depot' && cibleVerrouillee.statut !== 'monte')
       ) {
-        throw new ErreurMetier(
-          'CONFLIT',
-          'Transition interdite : le dépôt a changé de statut entre sa lecture et son verrouillage (RPP-03).',
-        );
+        // Même correctif que `sortir()` (issue #15, point 1) : `detail` explicite.
+        const detail =
+          'Transition interdite : le dépôt a changé de statut entre sa lecture et son verrouillage (RPP-03).';
+        throw new ErreurMetier('CONFLIT', detail, { detail });
       }
 
       try {
@@ -393,9 +393,17 @@ export class ServiceDepotPneus {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await this.chargerPourVerrouOu404(tx, ctx, depotId);
       if (ligne.statut === 'sorti') {
+        // DÉFAUT CORRIGÉ (issue #15, point 1) : le second argument d'`ErreurMetier` est le
+        // message de l'exception JS (journal serveur uniquement, JAMAIS sérialisé) — c'est
+        // `options.detail` qui alimente le `detail` du corps `problem+json` (voir
+        // `common/erreurs/filtre-probleme.ts::construireCorps`). Sans lui, la route rendait un
+        // `409 CONFLIT` SANS `detail`, alors que sa documentation OpenAPI
+        // (`@ApiReponseProbleme(409, 'Ce dépôt est déjà "sorti" (RPP-05).')` ci-dessous) promet
+        // explicitement ce texte au client. `detail` reprend ici, verbatim, le texte documenté.
         throw new ErreurMetier(
           'CONFLIT',
           'Transition interdite : ce dépôt est déjà "sorti" (RPP-05).',
+          { detail: 'Ce dépôt est déjà "sorti" (RPP-05).' },
         );
       }
 
@@ -438,9 +446,12 @@ export class ServiceDepotPneus {
     return this.acces.enTenant(ctx, async (tx) => {
       const ligne = await this.chargerPourVerrouOu404(tx, ctx, depotId);
       if (ligne.statut === 'sorti') {
+        // Même correctif que `sortir()` (issue #15, point 1) : `detail` explicite, aligné sur
+        // le texte documenté par `@ApiReponseProbleme(409, ...)` de la route `deplacer` ci-dessous.
         throw new ErreurMetier(
           'CONFLIT',
           'Transition interdite : ce dépôt est "sorti", son repère de rangement ne peut plus être modifié (RPP-05).',
+          { detail: 'Ce dépôt est "sorti" : son repère de rangement ne peut plus être modifié (RPP-05).' },
         );
       }
 
