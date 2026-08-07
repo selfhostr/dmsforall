@@ -178,7 +178,10 @@ describe('EcranFicheDossierVente', () => {
 
     rendre();
 
-    expect(await screen.findByText('Jean Dupont')).toBeInTheDocument();
+    // Lot C (`docs/plan-refonte-navigation.md`) — le fil d'Ariane de `EnTeteDossierVente` répète
+    // désormais le nom du client acheteur en plus du bloc identité : deux occurrences légitimes,
+    // même idiome que `getAllByText('Prospection')` juste en dessous.
+    expect((await screen.findAllByText('Jean Dupont')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Prospection').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Engager' })).toBeInTheDocument();
     // `CarteReprise`/`CarteFinancement` (branchées ici, plus les anciennes `*Resume` en lecture
@@ -202,7 +205,7 @@ describe('EcranFicheDossierVente', () => {
 
     rendre('chef_atelier');
 
-    expect(await screen.findByText('Jean Dupont')).toBeInTheDocument();
+    expect((await screen.findAllByText('Jean Dupont')).length).toBeGreaterThan(0);
     expect(screen.queryByText('Pas de reprise sur ce dossier')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ajouter une reprise' })).not.toBeInTheDocument();
     expect(
