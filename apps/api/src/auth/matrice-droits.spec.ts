@@ -199,9 +199,9 @@ describe('MATRICE_DROITS — actions inférées (aucune ligne §10 littérale)',
     expect(rolesAyant('atelier.or.rouvrir')).toEqual(['admin', 'chef_atelier', 'direction'].sort());
   });
 
-  it('atelier.ligne.marquer_realisee — chef d’atelier, technicien, direction, admin : le technicien clôt sa propre exécution', () => {
+  it('atelier.ligne.marquer_realisee — chef d’atelier, technicien, magasinier, direction, admin : le technicien clôt sa propre exécution, le magasinier remet la pièce (#18 — c’est le geste qui déclenche la sortie de stock)', () => {
     expect(rolesAyant('atelier.ligne.marquer_realisee')).toEqual(
-      ['admin', 'chef_atelier', 'direction', 'technicien'].sort(),
+      ['admin', 'chef_atelier', 'direction', 'magasinier', 'technicien'].sort(),
     );
   });
 
