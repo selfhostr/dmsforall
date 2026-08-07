@@ -236,7 +236,8 @@ export function EcranFicheVehicule() {
                       {detention.client.nomAffiche} · {detention.client.numeroClient}
                     </button>
                     <span className="ml-2 texte-libelle text-muted-foreground">
-                      {formaterDate(detention.debutLe)} – {detention.finLe ? formaterDate(detention.finLe) : ''}
+                      {formaterDate(detention.debutLe)} –{' '}
+                      {detention.finLe ? formaterDate(detention.finLe) : ''}
                     </span>
                   </li>
                 ))}

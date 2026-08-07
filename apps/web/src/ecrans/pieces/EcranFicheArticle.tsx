@@ -94,7 +94,12 @@ export function EcranFicheArticle() {
     queryKey: ['article-commandes-fournisseur', id, fournisseurId],
     queryFn: () =>
       listerCommandesFournisseur(
-        { fournisseurId: fournisseurId as string, avecReliquat: true, tri: 'creeLe:desc', limite: 20 },
+        {
+          fournisseurId: fournisseurId as string,
+          avecReliquat: true,
+          tri: 'creeLe:desc',
+          limite: 20,
+        },
         { limite: 50 },
       ),
     enabled: fournisseurId !== undefined,
@@ -304,7 +309,12 @@ export function EcranFicheArticle() {
                     type="button"
                     className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     onClick={() =>
-                      navigate(chemins.atelier.ordresReparation.detail(reservation.ordreReparationId, site))
+                      navigate(
+                        chemins.atelier.ordresReparation.detail(
+                          reservation.ordreReparationId,
+                          site,
+                        ),
+                      )
                     }
                   >
                     {t('pieces:articles.fiche.reservationsActives.lien')}
@@ -349,7 +359,12 @@ export function EcranFicheArticle() {
                     type="button"
                     className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     onClick={() =>
-                      navigate(chemins.atelier.ordresReparation.detail(reservation.ordreReparationId, site))
+                      navigate(
+                        chemins.atelier.ordresReparation.detail(
+                          reservation.ordreReparationId,
+                          site,
+                        ),
+                      )
                     }
                   >
                     {t('pieces:articles.fiche.consommateurs.lien')}

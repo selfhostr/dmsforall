@@ -174,9 +174,7 @@ export function EcranFicheOrdreReparation() {
                   <button
                     type="button"
                     className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    onClick={() =>
-                      navigate(chemins.pieces.articleDetail(piece.articleId, site))
-                    }
+                    onClick={() => navigate(chemins.pieces.articleDetail(piece.articleId, site))}
                   >
                     {piece.designation}
                   </button>
