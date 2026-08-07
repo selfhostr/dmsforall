@@ -58,6 +58,14 @@ export interface OptionsSeedAtelier {
   readonly idsClientsParNumero: ReadonlyMap<string, string>;
   readonly idsVehiculesParCle: ReadonlyMap<string, string>;
   readonly idsUtilisateursParRole: ReadonlyMap<string, string>;
+  /** Clé = `referencePrincipale` d'article (`seed-pieces-demo.ts::ResultatSeedPieces`) — permet à
+   *  l'OR Octavia ci-dessous de poser une VRAIE ligne « pièce » référençant un article catalogué,
+   *  et donc d'exercer une réservation réelle (RP-19/RP-20) dès le jeu de démo. `undefined` si
+   *  `seed-pieces-demo.ts` n'a pas encore tourné : cette clé reste alors ABSENTE plutôt que
+   *  fournie vide, pour que l'erreur explicite ci-dessous (clé attendue manquante) désigne le bon
+   *  coupable — un oubli d'ordre dans `seed-dev.ts::principal()` — plutôt qu'un `undefined`
+   *  silencieux au milieu d'une ligne d'OR. */
+  readonly idsArticlesParReference?: ReadonlyMap<string, string>;
   readonly journaliser?: (message: string) => void;
 }
 
@@ -78,6 +86,9 @@ const CLE_LIGNE_GOLF_FREIN = '79dbf058-7a21-4aeb-b0a5-5cf37e0f9522';
 const CLE_OR_OCTAVIA = 'cced12be-f5ff-4352-b851-30b6d901a2ec';
 const CLE_LIGNE_OCTAVIA_DIAG = '51f9340d-2f94-420d-825a-8cbf0c6bb75a';
 const CLE_LIGNE_OCTAVIA_PNEUS = '683c53a5-4fe5-4410-92fe-9169e4ba73ff';
+/** RP-19/RP-20 : troisième ligne de l'OR Octavia, référençant un VRAI article catalogué
+ *  (`seed-pieces-demo.ts`) — voir la note de tête d'`OptionsSeedAtelier.idsArticlesParReference`. */
+const CLE_LIGNE_OCTAVIA_HUILE = '9e853144-f47e-4d6d-a978-075ef0d062e8';
 
 const CLE_OR_MASTER = '3f8cca0a-ceff-4d43-91ea-b8a2f68769f8';
 
@@ -106,6 +117,7 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
   const idBmw = options.idsVehiculesParCle.get('WBA8E9106K5E12348');
   const idChefAtelier = options.idsUtilisateursParRole.get('chef_atelier');
   const idTechnicien = options.idsUtilisateursParRole.get('technicien');
+  const idArticleHuile = options.idsArticlesParReference?.get('CASTROL-EDGE-5W30-5L');
 
   if (
     !idSion ||
@@ -118,12 +130,16 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
     !idMaster ||
     !idBmw ||
     !idChefAtelier ||
-    !idTechnicien
+    !idTechnicien ||
+    !idArticleHuile
   ) {
     throw new Error(
-      `seed-atelier-demo : une clé attendue de seed-dev.ts est absente (site, client, véhicule ou utilisateur). ` +
-        `Les deux fichiers ont dérivé l'un de l'autre — vérifier que les codes/numéros/VIN utilisés ici ` +
-        `correspondent encore à SITES_DEMO / CLIENTS_DEMO / VEHICULES_DEMO / UTILISATEURS_DEMO de seed-dev.ts.`,
+      `seed-atelier-demo : une clé attendue de seed-dev.ts ou seed-pieces-demo.ts est absente ` +
+        `(site, client, véhicule, utilisateur ou article). Les fichiers ont dérivé l'un de l'autre ` +
+        `— vérifier que les codes/numéros/VIN/références utilisés ici correspondent encore à ` +
+        `SITES_DEMO / CLIENTS_DEMO / VEHICULES_DEMO / UTILISATEURS_DEMO de seed-dev.ts et à ` +
+        `ARTICLES_DEMO de seed-pieces-demo.ts, et que seed-pieces-demo.ts tourne bien AVANT ` +
+        `seed-atelier-demo.ts dans seed-dev.ts::principal().`,
     );
   }
 
@@ -292,10 +308,22 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
       ligneForfait('Changement de pneus (4 roues)', 50, 32_000),
       CLE_LIGNE_OCTAVIA_PNEUS,
     );
+    // Troisième ligne, RÉFÉRENÇANT un vrai article catalogué (`seed-pieces-demo.ts`) : `type:
+    // 'piece'` + `articleId` renseigné + `fournieParClient: false` réserve la pièce EN BASE dans
+    // la même transaction que la création de la ligne (RP-19/RP-20,
+    // `ServiceLigneOr.reserverPieceSiApplicable`) — c'est ce qui rend les réservations pièces
+    // explorables dès `pnpm db:seed`, pas seulement les articles/le stock eux-mêmes. Stock
+    // MARTIGNY de cet article largement excédentaire (voir `seed-pieces-demo.ts::ARTICLES_DEMO`) :
+    // la réservation réussit, jamais de repli en `blocage: 'pieces'` (RP-24).
+    await creerLigne(
+      orOctaviaId,
+      lignePieceReferencee('Appoint huile moteur 5W30 (1 bidon)', idArticleHuile, 5_900, idTechnicien),
+      CLE_LIGNE_OCTAVIA_HUILE,
+    );
     if ((await statutCourant(orOctaviaId)) === 'ouvert') {
       await serviceTransitions.demarrer(ctx, chefAtelier, orOctaviaId);
     }
-    journaliser(`  OR Octavia/Dupont — en_cours, 2 lignes`);
+    journaliser(`  OR Octavia/Dupont — en_cours, 3 lignes (dont 1 pièce réservée)`);
 
     // === OR n°3 — Master / Transports Rhône — état « terminé », sans ligne =========================
     // Aucune ligne ici, DÉLIBÉRÉMENT : au lot 1, aucune méthode de service ne fait jamais passer une
@@ -438,5 +466,38 @@ function ligneConstatTechnicien(
     numeroSinistre: null,
     numeroAccord: null,
     blocage: 'aucun',
+  };
+}
+
+/** Même patron que `ligneConstatTechnicien`, `articleId` renseigné EN PLUS (RP-19/RP-20) : seule
+ *  différence, c'est elle qui fait naître une réservation réelle dans
+ *  `ServiceLigneOr.reserverPieceSiApplicable`. */
+function lignePieceReferencee(
+  designation: string,
+  articleId: string,
+  prixUnitaireCentimes: number,
+  technicienId: string,
+): EntreeCreationLigneOr {
+  return {
+    type: 'piece',
+    origine: 'constatee',
+    designation,
+    referenceTexte: null,
+    quantiteMillieme: 1_000,
+    tempsBaremeCentiemes: null,
+    prixUnitaireCentimes,
+    rabaisPourmille: 0,
+    payeur: 'client',
+    technicienId,
+    urgence: null,
+    securite: false,
+    fournieParClient: false,
+    pieceARestituer: false,
+    codeOperation: null,
+    codeDefaut: null,
+    numeroSinistre: null,
+    numeroAccord: null,
+    blocage: 'aucun',
+    articleId,
   };
 }
