@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { useNavigate, useSearchParams } from 'react-router';
 
 import type { ReponseDossierVente } from '@dfa/shared';
 
@@ -7,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { formaterDate, formaterMontant } from '@/lib/formats';
+import { chemins } from '@/routes/chemins';
 
 import { BadgeStatutDossierVente } from './BadgeStatutDossierVente';
 import { selectionnerPrixDossierVente } from './utils';
@@ -29,7 +31,11 @@ interface Props {
  */
 export function EnTeteDossierVente({ dossier, peutAssignerVehicule, onAssignerVehicule }: Props) {
   const { t } = useTranslation(['ventes', 'commun']);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const site = searchParams.get('site') ?? undefined;
   const prix = selectionnerPrixDossierVente(dossier.documents);
+  const vehiculeStock = dossier.vehicule;
 
   return (
     <Card>
@@ -39,7 +45,14 @@ export function EnTeteDossierVente({ dossier, peutAssignerVehicule, onAssignerVe
         </div>
 
         <div className="flex flex-col gap-1">
-          <IdentiteClient client={dossier.clientAcheteur} />
+          {/* Lot B (correction 6, vendeur) — bloc identité cliquable vers la fiche client, sur le
+           *  modèle du lien inverse déjà fonctionnel d'`EcranFicheVehiculeStock.tsx` (§ commentaire
+           *  de tête de ce fichier), adapté ici à `IdentiteClient.onClick` (nouveau, voir
+           *  `composants/identite/IdentiteClient.tsx`) plutôt qu'à un `<Link>` séparé à côté. */}
+          <IdentiteClient
+            client={dossier.clientAcheteur}
+            onClick={() => navigate(chemins.clients.detail(dossier.clientAcheteur.id, site))}
+          />
           {dossier.clientFacture.id !== dossier.clientAcheteur.id ? (
             <p className="texte-libelle text-muted-foreground">
               {t('ventes:dossier.fiche.factureA', { nom: dossier.clientFacture.nomAffiche })}
@@ -52,8 +65,16 @@ export function EnTeteDossierVente({ dossier, peutAssignerVehicule, onAssignerVe
           ) : null}
         </div>
 
-        {dossier.vehicule ? (
-          <IdentiteVehicule vehicule={dossier.vehicule.vehicule} taillePlaque="xl" />
+        {vehiculeStock ? (
+          <IdentiteVehicule
+            vehicule={vehiculeStock.vehicule}
+            taillePlaque="xl"
+            // `VehiculeStockResume.id` EST l'identifiant du véhicule (même enregistrement étendu,
+            // pas un second objet — voir ARCHITECTURE.md et le commentaire de tête
+            // d'`EcranFicheVehiculeStock.tsx`, qui navigue déjà vers `chemins.vehicules.detail(stock.id, …)`
+            // avec ce même id).
+            onClick={() => navigate(chemins.vehicules.detail(vehiculeStock.id, site))}
+          />
         ) : (
           <div className="flex items-center justify-between gap-3 rounded-md border border-dashed p-3">
             <span className="texte-corps text-muted-foreground">

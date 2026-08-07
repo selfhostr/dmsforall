@@ -1,12 +1,21 @@
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useNavigate, useSearchParams } from 'react-router';
 
-import type { LocalisationVehicule, ReponseOrdreReparation } from '@dfa/shared';
+import type {
+  LocalisationVehicule,
+  OrdreReparationResume,
+  PageCurseur,
+  ReponseOrdreReparation,
+} from '@dfa/shared';
 
+import { requeteApi } from '@/api/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { formaterDateHeure, formaterMontant, formaterKilometrage } from '@/lib/formats';
+import { chemins } from '@/routes/chemins';
 
 // `LocalisationVehicule` -> suffixe de `or:localisations` — mapping non trivial
 // (`sous_traitant` -> `sousTraitant` avec interpolation `{fournisseur}`), explicite comme partout
@@ -34,6 +43,34 @@ interface Props {
  */
 export function EnTeteOrdreReparation({ or }: Props) {
   const { t } = useTranslation(['or', 'commun']);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const site = searchParams.get('site') ?? undefined;
+
+  // Lot B (`docs/plan-refonte-navigation.md`) — « l'OR précédent du même véhicule ». Requête
+  // construite ICI plutôt que via `hooks/atelier/ordres-reparation.api.ts::listerOrdresReparation`
+  // (hors périmètre de cet agent) : cette fonction de transport ne sérialise QUE `q`/`statut`/
+  // `siteId`/`tri` dans son `URLSearchParams` — `vehiculeId` y serait silencieusement ignoré côté
+  // client alors que le serveur le supporte bien (`schemaFiltresOrdresReparation.vehiculeId`,
+  // `packages/shared/src/contrats/atelier/ordre-reparation.ts`). Requête minimale, non mise en
+  // cache sous une clé partagée (`clesQuery.or.*`, gelée, hors périmètre) pour ne rien risquer de
+  // collision avec l'invalidation existante de la liste d'OR.
+  const requetePrecedent = useQuery({
+    queryKey: ['or-precedent', or.vehicule.id, or.id],
+    queryFn: async () => {
+      const parametres = new URLSearchParams({
+        vehiculeId: or.vehicule.id,
+        tri: 'ouvertLe:desc',
+        limite: '5',
+      });
+      const page = await requeteApi<PageCurseur<OrdreReparationResume>>(
+        `/ordres-reparation?${parametres.toString()}`,
+        { method: 'GET' },
+      );
+      return page?.donnees ?? [];
+    },
+  });
+  const orPrecedent = requetePrecedent.data?.find((candidat) => candidat.id !== or.id) ?? null;
 
   const localisationTexte =
     or.localisation === 'sous_traitant'
@@ -55,14 +92,35 @@ export function EnTeteOrdreReparation({ or }: Props) {
           </div>
         </div>
 
-        <IdentiteVehicule vehicule={or.vehicule} taillePlaque="xl" />
-        <IdentiteClient client={or.client} />
+        <IdentiteVehicule
+          vehicule={or.vehicule}
+          taillePlaque="xl"
+          onClick={() => navigate(chemins.vehicules.detail(or.vehicule.id, site))}
+        />
+        <IdentiteClient
+          client={or.client}
+          onClick={() => navigate(chemins.clients.detail(or.client.id, site))}
+        />
 
         {or.numeroCommandeInterne ? (
           <p className="texte-corps">
             <span className="text-muted-foreground">{t('or:bandeau.numeroPo')} </span>
             <span className="font-medium text-foreground">{or.numeroCommandeInterne}</span>
           </p>
+        ) : null}
+
+        {/* Lot B — l'OR précédent du même véhicule (chef d'atelier, dix dossiers ouverts par
+         *  heure : retrouver l'historique sans retaper la plaque). Silencieux tant que la requête
+         *  est en vol ou n'a rien trouvé — « aucun OR précédent » est un état normal (premier
+         *  passage du véhicule), pas une erreur à signaler. */}
+        {orPrecedent ? (
+          <button
+            type="button"
+            className="w-fit texte-libelle text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            onClick={() => navigate(chemins.atelier.ordresReparation.detail(orPrecedent.id, site))}
+          >
+            {t('or:bandeau.orPrecedent', { numero: orPrecedent.numero })}
+          </button>
         ) : null}
 
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md border p-3 texte-corps sm:grid-cols-3">

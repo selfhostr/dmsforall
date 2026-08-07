@@ -41,7 +41,8 @@
     "totalDuJour": "Heute",
     "techniciensEnCours": "Techniker aktiv",
     "numeroPo": "Kundenauftrag",
-    "restitutionReportee": "Verschoben"
+    "restitutionReportee": "Verschoben",
+    "orPrecedent": "Vorheriger RA: {numero}"
   },
   "localisations": {
     "parc": "Stellplatz",
@@ -327,7 +328,21 @@
       "titre": "Reparaturauftrag konnte nicht geladen werden"
     },
     "montantIndisponible": "Nicht mitgeteilt",
-    "controleurAuto": "Sie werden als Kontrolleur erfasst."
+    "controleurAuto": "Sie werden als Kontrolleur erfasst.",
+    "erreurSection": {
+      "titre": "Bereich nicht verfügbar"
+    },
+    "piecesUtilisees": {
+      "titre": "Verwendete Teile"
+    },
+    "documentsVente": {
+      "titre": "Offerte und Rechnung",
+      "vide": "Kein Verkaufsdokument mit diesem RA verknüpft."
+    },
+    "pointage": {
+      "titre": "Wer hat erfasst",
+      "total": "Total erfasst"
+    }
   },
   "actions": {
     "titre": "Aktionen",

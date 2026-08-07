@@ -99,6 +99,10 @@ function repondreFicheOk(client: typeof CLIENT_TEST = CLIENT_TEST) {
     http.get('/api/v1/clients/cl-1/ordres-reparation', () => HttpResponse.json(PAGE_VIDE)),
     http.get('/api/v1/clients/cl-1/conditions', () => HttpResponse.json(PAGE_VIDE)),
     http.get('/api/v1/clients/cl-1/contacts', () => HttpResponse.json(PAGE_VIDE)),
+    // Lot B (`docs/plan-refonte-navigation.md`) — « ses dossiers de vente », troisième liste.
+    // `useListeDossiersVente` n'a pas d'option `enabled` : la requête part toujours, réponse vide
+    // par défaut ici (même doctrine que les quatre endpoints ci-dessus).
+    http.get('/api/v1/dossiers-vente', () => HttpResponse.json(PAGE_VIDE)),
   );
 }
 
@@ -138,6 +142,7 @@ describe('EcranFicheClient', () => {
       http.get('/api/v1/clients/cl-1/ordres-reparation', () => HttpResponse.json(PAGE_VIDE)),
       http.get('/api/v1/clients/cl-1/conditions', () => HttpResponse.json(PAGE_VIDE)),
       http.get('/api/v1/clients/cl-1/contacts', () => HttpResponse.json(PAGE_VIDE)),
+      http.get('/api/v1/dossiers-vente', () => HttpResponse.json(PAGE_VIDE)),
     );
     const { container } = rendreEcran();
 
@@ -166,6 +171,7 @@ describe('EcranFicheClient', () => {
       http.get('/api/v1/clients/cl-1/ordres-reparation', () => HttpResponse.json(PAGE_VIDE)),
       http.get('/api/v1/clients/cl-1/conditions', () => HttpResponse.json(PAGE_VIDE)),
       http.get('/api/v1/clients/cl-1/contacts', () => HttpResponse.json(PAGE_VIDE)),
+      http.get('/api/v1/dossiers-vente', () => HttpResponse.json(PAGE_VIDE)),
     );
     rendreEcran();
 
@@ -193,6 +199,7 @@ describe('EcranFicheClient', () => {
         ),
         http.get('/api/v1/clients/cl-1/conditions', () => HttpResponse.json(PAGE_VIDE)),
         http.get('/api/v1/clients/cl-1/contacts', () => HttpResponse.json(PAGE_VIDE)),
+        http.get('/api/v1/dossiers-vente', () => HttpResponse.json(PAGE_VIDE)),
       );
     }
 
