@@ -315,6 +315,17 @@ describe('verrouillage post-émission — trigger document_vente_verrouiller_apr
     const emise = await emettre(garage.tenantA, 'receptionnaire', facture.id);
     expect(emise.status).toBe(200);
 
+    // Le SQLSTATE ZDFA2 est LE MÊME pour les deux triggers de verrouillage de ce fichier
+    // (document_vente §7.2 ET ligne_document §8.1, migration 0010) : il ne suffit PAS à distinguer
+    // lequel s'est déclenché. `table` (qu'une violation de contrainte détectée par le moteur
+    // renseignerait) reste `undefined` ici — les deux triggers lèvent par `raise exception using
+    // errcode = ..., message = ..., detail = ...` (PL/pgSQL), et `RAISE` ne remplit jamais `table`.
+    // Le discriminant retenu est `detail`, pas `message` : la migration documente EXPLICITEMENT
+    // `detail` comme le champ prévu pour un mapping applicatif stable (« code=document_verrouille
+    // dans DETAIL, pour mapping applicatif vers le code problem+json stable », commentaire de
+    // `document_vente_verrouiller_apres_emission`, l.758-760) — c'est un `format('entite=%s;...')`
+    // à clé fixe, donc stable si le texte humain de `message` est reformulé un jour, contrairement
+    // à une assertion sur un fragment de `message` (qui n'a, lui, aucune promesse de stabilité).
     await expect(
       requeteSousTenant(
         bdd.poolApp,
@@ -322,7 +333,10 @@ describe('verrouillage post-émission — trigger document_vente_verrouiller_apr
         "update document_vente set client_designation_figee = 'INTRUS' where id = $1 returning id",
         [facture.id],
       ),
-    ).rejects.toMatchObject({ code: 'ZDFA2', table: 'document_vente' });
+    ).rejects.toMatchObject({
+      code: 'ZDFA2',
+      detail: expect.stringMatching(/^entite=document_vente;/),
+    });
   });
 
   it("à l'inverse, le MÊME champ reste librement modifiable tant que le document est en BROUILLON (contrôle positif — sans lui, le refus ci-dessus pourrait aussi bien signifier une table cassée)", async () => {
@@ -358,6 +372,10 @@ describe('verrouillage post-émission — trigger document_vente_verrouiller_apr
     const ligneId = (emise.body as { donnees: { lignes: readonly { id: string }[] } }).donnees
       .lignes[0]!.id;
 
+    // Même discriminant que le test précédent (voir son commentaire) : `code: 'ZDFA2'` seul ne
+    // distingue pas ce trigger (ligne_document_verrouiller_document, §8.1) de celui de
+    // document_vente (§7.2) ci-dessus — les deux partagent le même SQLSTATE. `detail` porte ici
+    // `entite=ligne_document;...`, confirmé par capture de l'erreur réelle en exécution.
     await expect(
       requeteSousTenant(
         bdd.poolApp,
@@ -365,7 +383,10 @@ describe('verrouillage post-émission — trigger document_vente_verrouiller_apr
         "update ligne_document set designation = 'INTRUS' where id = $1 returning id",
         [ligneId],
       ),
-    ).rejects.toMatchObject({ code: 'ZDFA2', table: 'ligne_document' });
+    ).rejects.toMatchObject({
+      code: 'ZDFA2',
+      detail: expect.stringMatching(/^entite=ligne_document;/),
+    });
   });
 });
 

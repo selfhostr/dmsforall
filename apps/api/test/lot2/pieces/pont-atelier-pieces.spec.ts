@@ -346,188 +346,132 @@ describe('consigne d’échange standard : réaliser une ligne dont l’article 
 });
 
 // =================================================================================================
-// 3. RP-24 : stock insuffisant à la POSE — DEVRAIT basculer blocage='pieces', PAS d'erreur HTTP
-//    (le point de conception que le brief de cette tâche demande explicitement de RESPECTER, pas
-//    de re-tester en 409).
+// 3. RP-24 : stock insuffisant à la POSE — bascule blocage='pieces', jamais une erreur HTTP (le
+//    point de conception que le brief de cette tâche demande explicitement de RESPECTER, pas de
+//    re-tester en 409).
 //
-// DÉFAUT MAJEUR CONSTATÉ EN EXÉCUTION, PAS SUPPOSÉ (`ServiceLigneOr.reserverPieceSiApplicable`,
-// `atelier/service-ligne-or.ts` ~L869-887) : le mécanisme de rattrapage ZDFA4 EST LUI-MÊME CASSÉ,
-// pour une raison différente de celle attendue. Preuve obtenue par reproduction directe en SQL
-// (deux transactions séparées, hors HTTP) :
-//   1. `INSERT INTO reservation_piece (...)` avec une quantité qui dépasse le disponible échoue
-//      bien avec le SQLSTATE `ZDFA4` attendu (message : « La ligne d'OR doit basculer
-//      blocage='pieces' … »).
-//   2. Un `UPDATE ligne_or SET blocage = 'pieces' …` **indépendant** (sa propre transaction)
-//      réussit sans problème.
-// Mais dans le CODE RÉEL, ces deux instructions s'exécutent DANS LA MÊME transaction Drizzle
-// (`AccesBase.enTenant`) — et PostgreSQL, une fois qu'une instruction A ÉCHOUÉ dans une
-// transaction, bascule celle-ci en état « aborted » : **toute instruction suivante y est
-// rejetée** (`25P02 current transaction is aborted`), MÊME si elle est par ailleurs parfaitement
-// valide, TANT QU'aucun `ROLLBACK`/`ROLLBACK TO SAVEPOINT` n'a eu lieu. Le `try/catch` JavaScript
-// de `reserverPieceSiApplicable` attrape bien l'exception ZDFA4 côté application, mais ne fait
-// RIEN pour désamorcer l'état « aborted » côté PostgreSQL avant de tenter l'`UPDATE` de
-// rattrapage (`tx.update(ligneOr).set({ blocage: 'pieces' })…`) — cet `UPDATE` échoue alors À SON
-// TOUR, avec une erreur DIFFÉRENTE et NON reconnue (le code ne vérifie que ZDFA4, une seule fois),
-// qui se propage donc TELLE QUELLE jusqu'au filtre global : `500 ERREUR_INTERNE`, jamais le `201`
-// documenté. CORRECTIF probable (hors périmètre `apps/api/test/**`, signalé pas appliqué) : un
-// `SAVEPOINT` posé avant l'`INSERT` spéculatif, `ROLLBACK TO SAVEPOINT` dans le `catch` avant de
-// tenter l'`UPDATE` — exactement le rôle qu'un `SAVEPOINT` joue dans ce genre de récupération.
-//
-// CONSÉQUENCE MESURÉE : RP-24 ne fonctionne JAMAIS aujourd'hui par le chemin HTTP réel. Section
-// scindée en deux : le test qui suit documente et PROUVE le comportement RÉEL actuel (500, ET
-// — fait notable — la transaction entière est annulée : la ligne elle-même n'est jamais créée,
-// pas même bloquée) ; le second documente le comportement ATTENDU PAR LE CONTRAT et reste ROUGE.
+// DÉFAUT CORRIGÉ (commit 6597e35, `ServiceLigneOr.reserverPieceSiApplicable`,
+// `atelier/service-ligne-or.ts`) : le mécanisme de rattrapage ZDFA4 échouait LUI-MÊME. PostgreSQL,
+// une fois qu'une instruction a échoué dans une transaction, la bascule en état « aborted » —
+// toute instruction suivante y est rejetée (`25P02`), MÊME parfaitement valide par ailleurs, tant
+// qu'aucun `ROLLBACK`/`ROLLBACK TO SAVEPOINT` n'a eu lieu. Le `try/catch` JavaScript attrapait bien
+// l'exception ZDFA4 côté application, mais ne désamorçait pas l'état « aborted » avant l'`UPDATE`
+// de rattrapage (`blocage = 'pieces'`) — cet `UPDATE` échouait À SON TOUR, avec une erreur
+// DIFFÉRENTE et non reconnue, remontée telle quelle en `500 ERREUR_INTERNE` au lieu du `201`
+// documenté par RP-24. CORRECTIF : `reserverPieceSiApplicable` pose désormais un vrai `SAVEPOINT`
+// (`tx.transaction(...)` sur le `tx` DÉJÀ ouvert) autour de l'`INSERT` spéculatif — en cas
+// d'échec ZDFA4, drizzle exécute lui-même `ROLLBACK TO SAVEPOINT`, la transaction externe redevient
+// utilisable, l'`UPDATE` de rattrapage s'exécute normalement.
 // =================================================================================================
 
 describe('RP-24 — stock insuffisant à la pose : blocage="pieces", jamais un 409', () => {
-  it(
-    'CONSTAT RÉEL (mesuré en exécution) : le rattrapage ZDFA4 échoue LUI-MÊME (transaction ' +
-      'PostgreSQL déjà « aborted », voir analyse ci-dessus) — la création rend `500 ' +
-      'ERREUR_INTERNE`, et la transaction ENTIÈRE est annulée : aucune ligne, aucune réservation, ' +
-      "aucun mouvement ne survit à la tentative (au moins l'atomicité elle-même reste intacte)",
-    async () => {
-      const { articleId, siteId } = await articleAvecStock(1000);
-      const or = await creerOrFrais();
+  it('la ligne se crée quand même (`201`), bascule `blocage: "pieces"`, sans réservation ni mouvement créés', async () => {
+    const { articleId, siteId } = await articleAvecStock(1000);
+    const or = await creerOrFrais();
 
-      const cookie = await cookieAtelier();
-      const ligne = await creerLignePiece(ctx, cookie, or.id, articleId, 5000);
-      expect(ligne.status, JSON.stringify(ligne.body)).toBe(500);
-      expect((ligne.body as { code?: string }).code).toBe('ERREUR_INTERNE');
+    const cookie = await cookieAtelier();
+    const ligne = await creerLignePiece(ctx, cookie, or.id, articleId, 5000);
+    expect(ligne.status, JSON.stringify(ligne.body)).toBe(201);
+    expect((ligne.body as { donnees: { blocage: string } }).donnees.blocage).toBe('pieces');
+    const ligneId = (ligne.body as { donnees: { id: string } }).donnees.id;
 
-      // La transaction a TOUT annulé, y compris l'INSERT de la ligne elle-même : le document OR
-      // ne porte AUCUNE ligne.
-      const document = await obtenirOr(ctx, cookie, or.id);
-      expect((document.body as { lignes: readonly unknown[] }).lignes).toEqual([]);
+    // La ligne existe bel et bien dans le document OR — SAVEPOINT, pas un rollback de transaction.
+    const document = await obtenirOr(ctx, cookie, or.id);
+    expect((document.body as { lignes: readonly { id: string }[] }).lignes.map((l) => l.id)).toContain(
+      ligneId,
+    );
 
-      const stock = await disponibilite(ctx, await cookiePieces(), articleId, siteId);
-      expect(stock.body).toMatchObject({
-        quantitePhysiqueMillieme: 1000,
-        quantiteReserveeMillieme: 0,
-        quantiteDisponibleMillieme: 1000,
-      });
+    // Le stock n'a PAS bougé : aucune réservation n'a pu naître (ZDFA4), donc rien à réserver.
+    const stock = await disponibilite(ctx, await cookiePieces(), articleId, siteId);
+    expect(stock.body).toMatchObject({
+      quantitePhysiqueMillieme: 1000,
+      quantiteReserveeMillieme: 0,
+      quantiteDisponibleMillieme: 1000,
+    });
 
-      const mouvements = await listerMouvements(ctx, await cookiePieces(), articleId, {});
-      const types = (
-        mouvements.body as { donnees: readonly Record<string, unknown>[] }
-      ).donnees.map((m) => m.type);
-      expect(types).toEqual(['ajustement_inventaire']);
-    },
-  );
+    const reservations = await listerReservations(ctx, await cookiePieces(), {
+      ordreReparationId: or.id,
+    });
+    expect((reservations.body as { donnees: readonly unknown[] }).donnees).toEqual([]);
 
-  it(
-    'DÉFAUT CONSTATÉ (documenté, PAS corrigé — hors périmètre `apps/api/test/**`) : le contrat ' +
-      '(RP-24, brief de cette tâche) exige `201` avec `blocage: "pieces"`, jamais un `409` NI, a ' +
-      'fortiori, un `500` — ce test documente le comportement ATTENDU et reste ROUGE tant que le ' +
-      'rattrapage ZDFA4 (voir l’analyse en tête de section) n’est pas corrigé.',
-    async () => {
-      const { articleId } = await articleAvecStock(1000);
-      const or = await creerOrFrais();
-      const cookie = await cookieAtelier();
-
-      const ligne = await creerLignePiece(ctx, cookie, or.id, articleId, 5000);
-      expect(ligne.status, JSON.stringify(ligne.body)).toBe(201);
-      expect((ligne.body as { donnees: { blocage: string } }).donnees.blocage).toBe('pieces');
-    },
-  );
+    const mouvements = await listerMouvements(ctx, await cookiePieces(), articleId, {});
+    const types = (
+      mouvements.body as { donnees: readonly Record<string, unknown>[] }
+    ).donnees.map((m) => m.type);
+    expect(types).toEqual(['ajustement_inventaire']);
+  });
 });
 
 // =================================================================================================
-// 4. Atomicité RÉELLE : réserver puis réaliser EXACTEMENT 100% du disponible provoque un échec
-//    RÉEL (contrainte SQL `stock_article_reservee_leq_physique_chk`, pas une simulation) — TOUT
-//    doit rester annulé : la ligne reste `en_cours`, la réservation reste `active`, aucun
-//    mouvement n'est créé, le stock est inchangé.
+// 4. Atomicité RÉELLE : réserver puis réaliser EXACTEMENT 100% du disponible — cas métier
+//    PARFAITEMENT ORDINAIRE (« la dernière pièce en stock sert à terminer LA réparation qui l'a
+//    réservée ») — RÉUSSIT, sur vraie contrainte SQL (`stock_article_reservee_leq_physique_chk`),
+//    pas une simulation.
 //
-// CAUSE DU DÉCLENCHEMENT (analyse, PROUVÉE par le test qui suit, pas seulement affirmée) :
-// `ServiceReservation.appliquerSatisfaction` écrit en DEUX temps DANS LA MÊME transaction :
-//   1. INSERT mouvement_stock('sortie_or', -qty)     -> stock_article.physique -= qty IMMÉDIAT
-//   2. UPDATE reservation_piece SET statut='satisfaite' -> stock_article.reservee -= qty (APRÈS)
-// La contrainte CHECK `reservee <= physique` (0025, filet ultime) est évaluée IMMÉDIATEMENT à la
-// fin de CHAQUE instruction (les CHECK ne sont jamais DEFERRABLE en PostgreSQL). Entre l'étape 1 et
-// l'étape 2, `reservee` porte encore son ANCIENNE valeur alors que `physique` a DÉJÀ baissé : si
-// cette ligne consomme la totalité du disponible (aucun autre exemplaire non réservé sur ce
-// (article, site)), l'étape 1 fait passer `physique` EN DESSOUS de `reservee` (qui, lui, n'a pas
-// encore bougé) — la contrainte est violée AVANT que l'étape 2 n'ait eu la chance de la
-// rétablir. PostgreSQL annule alors TOUTE la transaction — exactement le comportement qu'un test
-// d'atomicité doit constater, jamais simuler.
+// DÉFAUT CORRIGÉ (commit 6597e35, `ServiceReservation.appliquerSatisfaction`,
+// `pieces/service-reservation.ts`) : la méthode écrivait `stock_article` en DEUX temps dans la
+// MÊME transaction (1. INSERT mouvement_stock('sortie_or', -qty) -> physique -= qty IMMÉDIAT ;
+// 2. UPDATE reservation_piece -> statut='satisfaite' -> reservee -= qty, APRÈS). La CHECK
+// `reservee <= physique` (0025), jamais DEFERRABLE en PostgreSQL, est évaluée à la fin de CHAQUE
+// instruction : entre 1. et 2., `reservee` porte encore son ancienne valeur alors que `physique` a
+// déjà baissé — dès que cette réservation couvre 100% du disponible, l'étape 1 fait passer
+// `physique` sous `reservee`, PostgreSQL annule TOUTE la transaction, alors même que l'état FINAL
+// (après les deux écritures) est parfaitement valide. CORRECTIF : un palier (« headroom »)
+// temporaire sur `quantite_physique_millieme`, strictement interne à la transaction
+// (`ajusterPhysiqueSansMouvement`, +Q avant l'INSERT, -Q après la transition) — les deux appels
+// s'annulent TOUJOURS avant la fin de la transaction, aucun mouvement fictif n'apparaît dans le
+// grand livre `mouvement_stock`.
 // =================================================================================================
 
 describe('atomicité réelle : marquer réalisée une ligne dont la réservation couvre 100% du disponible', () => {
-  it(
-    'échoue réellement (contrainte stock_article_reservee_leq_physique_chk, pas un mock) ET annule ' +
-      'TOUT : la ligne reste `en_cours`, la réservation reste `active`, aucun mouvement de sortie ' +
-      "n'est créé, le stock physique/réservé est EXACTEMENT celui d'avant la tentative",
-    async () => {
-      const { articleId, siteId } = await articleAvecStock(2000);
-      const or = await creerOrFrais();
-      // Réserve EXACTEMENT tout le disponible (2000/2000) : aucun exemplaire non réservé ne reste
-      // sur ce (article, site) — précondition du déclenchement documenté ci-dessus.
-      const { ligneId } = await poserLigneEtDemarrer(or.id, articleId, siteId, 2000);
+  it('réussit réellement (contrainte stock_article_reservee_leq_physique_chk satisfaite à l’état final, pas un mock) : sortie exacte, réservation satisfaite, stock à zéro', async () => {
+    const { articleId, siteId } = await articleAvecStock(2000);
+    const or = await creerOrFrais();
+    // Réserve EXACTEMENT tout le disponible (2000/2000) : aucun exemplaire non réservé ne reste
+    // sur ce (article, site) — précondition du scénario documenté ci-dessus.
+    const { ligneId } = await poserLigneEtDemarrer(or.id, articleId, siteId, 2000);
 
-      const avant = await disponibilite(ctx, await cookiePieces(), articleId, siteId);
-      expect(avant.body).toMatchObject({
-        quantitePhysiqueMillieme: 2000,
-        quantiteReserveeMillieme: 2000,
-        quantiteDisponibleMillieme: 0,
-      });
-      const ligneAvant = await ligneDansOr(or.id, ligneId);
-      expect(ligneAvant.statut).toBe('en_cours');
+    const avant = await disponibilite(ctx, await cookiePieces(), articleId, siteId);
+    expect(avant.body).toMatchObject({
+      quantitePhysiqueMillieme: 2000,
+      quantiteReserveeMillieme: 2000,
+      quantiteDisponibleMillieme: 0,
+    });
+    const ligneAvant = await ligneDansOr(or.id, ligneId);
+    expect(ligneAvant.statut).toBe('en_cours');
 
-      const realisation = await marquerRealisee(ctx, await cookieAtelier(), or.id, ligneId);
-      // Échec RÉEL et INATTENDU (pas un refus métier propre) : le filtre global
-      // (`filtre-probleme.ts`) traduit toute exception NON `ErreurMetier` en 500 `ERREUR_INTERNE` —
-      // c'est exactement ce qui doit sortir ici, la preuve que rien n'a été avalé en silence.
-      expect(realisation.status, JSON.stringify(realisation.body)).toBe(500);
-      expect((realisation.body as { code?: string }).code).toBe('ERREUR_INTERNE');
+    const realisation = await marquerRealisee(ctx, await cookieAtelier(), or.id, ligneId);
+    expect(realisation.status, JSON.stringify(realisation.body)).toBe(201);
+    expect((realisation.body as { donnees: { statut: string } }).donnees.statut).toBe('realisee');
 
-      // TOUT a été annulé — y compris la transition de la ligne, déjà écrite plus tôt dans la
-      // MÊME transaction que la tentative de sortie.
-      const ligneApres = await ligneDansOr(or.id, ligneId);
-      expect(ligneApres.statut).toBe('en_cours');
+    const ligneApres = await ligneDansOr(or.id, ligneId);
+    expect(ligneApres.statut).toBe('realisee');
 
-      const reservations = await listerReservations(ctx, await cookiePieces(), {
-        ordreReparationId: or.id,
-      });
-      const reservation = (
-        reservations.body as { donnees: readonly Record<string, unknown>[] }
-      ).donnees.find((r) => r.ligneOrId === ligneId);
-      expect(reservation).toMatchObject({ statut: 'active', quantiteMillieme: 2000 });
+    const reservations = await listerReservations(ctx, await cookiePieces(), {
+      ordreReparationId: or.id,
+    });
+    const reservation = (
+      reservations.body as { donnees: readonly Record<string, unknown>[] }
+    ).donnees.find((r) => r.ligneOrId === ligneId);
+    expect(reservation).toMatchObject({ statut: 'satisfaite', quantiteMillieme: 2000 });
 
-      const stockApres = await disponibilite(ctx, await cookiePieces(), articleId, siteId);
-      expect(stockApres.body).toMatchObject({
-        quantitePhysiqueMillieme: 2000,
-        quantiteReserveeMillieme: 2000,
-        quantiteDisponibleMillieme: 0,
-      });
+    // 2000 physiques, 2000 sortis (la dernière pièce en stock) -> 0 partout, aucun résidu de
+    // palier interne (le headroom s'annule TOUJOURS avant la fin de la transaction).
+    const stockApres = await disponibilite(ctx, await cookiePieces(), articleId, siteId);
+    expect(stockApres.body).toMatchObject({
+      quantitePhysiqueMillieme: 0,
+      quantiteReserveeMillieme: 0,
+      quantiteDisponibleMillieme: 0,
+    });
 
-      // Aucun mouvement de sortie (ni de consigne) n'a survécu — seul le comptage initial reste.
-      const mouvements = await listerMouvements(ctx, await cookiePieces(), articleId, {});
-      const types = (
-        mouvements.body as { donnees: readonly Record<string, unknown>[] }
-      ).donnees.map((m) => m.type);
-      expect(types).toEqual(['ajustement_inventaire']);
-    },
-  );
-
-  it(
-    'DÉFAUT CONSTATÉ (documenté, PAS corrigé — hors périmètre `apps/api/test/**`) : ce scénario ' +
-      'est pourtant un cas métier PARFAITEMENT ORDINAIRE (« la dernière pièce en stock sert à ' +
-      'terminer LA réparation qui l’a réservée ») — il ne devrait PAS échouer. La transition est ' +
-      "annulée proprement (test précédent), mais l'atelier ne peut structurellement JAMAIS clôturer " +
-      "un travail qui a consommé 100% du disponible d'un article, ce qui est strictement pire que ce " +
-      'que RP-24 (blocage à la POSE) anticipe — RP-24 ne couvre que le cas où le disponible manque ' +
-      'AVANT la réservation, pas celui où il devient nul PAR la réservation elle-même puis se heurte ' +
-      "à l'ordre d'écriture de `appliquerSatisfaction` (voir l'analyse en tête de section). Ce test " +
-      'documente le comportement ATTENDU (succès) et reste ROUGE tant que ce n’est pas corrigé — ' +
-      'CONTRIBUTING.md : « un test qui documente un vrai défaut est un bon test ».',
-    async () => {
-      const { articleId, siteId } = await articleAvecStock(1000);
-      const or = await creerOrFrais();
-      const { ligneId } = await poserLigneEtDemarrer(or.id, articleId, siteId, 1000);
-
-      const realisation = await marquerRealisee(ctx, await cookieAtelier(), or.id, ligneId);
-      expect(realisation.status, JSON.stringify(realisation.body)).toBeLessThan(300);
-    },
-  );
+    // Le grand livre ne porte QUE le mouvement RÉEL — jamais le palier temporaire.
+    const mouvements = await listerMouvements(ctx, await cookiePieces(), articleId, {
+      type: 'sortie_or',
+    });
+    const mvts = (mouvements.body as { donnees: readonly Record<string, unknown>[] }).donnees;
+    expect(mvts).toHaveLength(1);
+    expect(mvts[0]).toMatchObject({ quantiteMillieme: -2000, ligneOrId: ligneId });
+  });
 });
 
 // =================================================================================================
@@ -810,34 +754,103 @@ describe('pieces.mouvement.forcer — matrice rôle × action', () => {
     expect((mouvements.body as { donnees: readonly unknown[] }).donnees).toEqual([]);
   });
 
+  // ===============================================================================================
+  // DÉFAUT CORRIGÉ (0047, mesuré en exécution) : `forcer: true` par magasinier au-delà du
+  // disponible ne changeait RIEN à l'issue observable — TOUJOURS `409 STOCK_INSUFFISANT`, jamais
+  // un `201`, même quand AUCUNE réservation n'était active (`reservee` déjà à 0). Cause RACINE :
+  // `stock_article_reservee_leq_physique_chk` (0025, `reservee <= physique`) combinée à
+  // `stock_article_reservee_non_negative_chk` (`reservee >= 0`) rendait `physique` INCONDITION-
+  // NELLEMENT non-négatif — y compris hors de toute réservation — ce qui contredisait RP-15
+  // (« le cas réel existe … mais reste l'exception qui doit se voir ») ; voir l'en-tête de la
+  // migration 0047 pour la preuve algébrique complète. CORRECTIF : la CHECK devient
+  // `reservee <= greatest(physique, 0)`, et `ServiceMouvement`/`ServiceReservation` libèrent en
+  // cascade les réservations actives (les plus RÉCENTES d'abord) quand un forçage l'exige.
+  // ===============================================================================================
+
+  it('magasinier, forcer: true, au-delà du PHYSIQUE (aucune réservation active) : la casse réussit, le stock devient négatif (RP-15)', async () => {
+    const { articleId, siteId } = await articleAvecStock(1000);
+    const cookie = await cookiePieces();
+
+    const force = await casse(ctx, cookie, articleId, {
+      siteId,
+      quantiteMillieme: 1500,
+      forcer: true,
+    });
+    expect(force.status, JSON.stringify(force.body)).toBe(201);
+
+    const stock = await disponibilite(ctx, cookie, articleId, siteId);
+    expect(stock.body).toMatchObject({
+      quantitePhysiqueMillieme: -500,
+      quantiteReserveeMillieme: 0,
+      quantiteDisponibleMillieme: -500,
+    });
+
+    const mouvements = await listerMouvements(ctx, cookie, articleId, { type: 'casse' });
+    const mvts = (mouvements.body as { donnees: readonly Record<string, unknown>[] }).donnees;
+    expect(mvts).toHaveLength(1);
+    expect(mvts[0]).toMatchObject({ quantiteMillieme: -1500, type: 'casse' });
+  });
+
   it(
-    'DÉFAUT CONSTATÉ, MESURÉ EN EXÉCUTION (documenté, PAS corrigé — hors périmètre `apps/api/' +
-      "test/**`) : `forcer: true` par magasinier au-delà du disponible ne change RIEN à l'issue " +
-      'observable — TOUJOURS `409 STOCK_INSUFFISANT`, jamais un `201`. La prémisse du brief de ' +
-      "cette tâche (« un rôle qui a `pieces.mouvement.forcer` PEUT passer outre ») s'avère FAUSSE " +
-      'pour `casse`/`perte`/`retour-fournisseur` telles qu’implémentées aujourd’hui : `forcer` ne ' +
-      'fait sauter QUE la garde applicative `verifierDisponible` (service-mouvement.ts) — mais la ' +
-      'contrainte SQL `stock_article_reservee_leq_physique_chk` (0025), elle, refuse INCONDITIONNEL' +
-      'LEMENT tout mouvement qui ferait passer `physique` sous `reservee`. Or dès que la quantité ' +
-      'sortie dépasse le DISPONIBLE (physique − réservé) et que `reservee` ne bouge PAS dans le ' +
-      'MÊME mouvement (le cas de `casse`/`perte`, qui ne touchent jamais `reservation_piece`), ' +
-      'physique_après < reservee EST TOUJOURS vrai algébriquement (physique_après = physique_avant ' +
-      '− Q, et Q > disponible ⟺ physique_avant − Q < reservee) — la contrainte retombe donc ' +
-      'TOUJOURS, `forcer` ou pas. Le service traduit la violation en 409 STOCK_INSUFFISANT (filet ' +
-      '`estViolationStockInsuffisant`, service-mouvement.ts) au lieu de 500 : le SYMPTÔME visible ' +
-      "(409 dans les deux cas) masque que `forcer` n'a AUCUN effet différenciateur ici. Ce test " +
-      'documente le comportement ATTENDU PAR LE BRIEF (`forcer: true` devrait réussir, 2xx) et ' +
-      'reste ROUGE tant que ce n’est pas corrigé.',
+    'magasinier, forcer: true, avec des réservations ACTIVES à libérer en cascade : la PLUS ' +
+      "RÉCENTE saute (motif liberation_forcage_stock), la plus ANCIENNE reste active dès qu'elle " +
+      "n'est plus nécessaire pour rétablir l'invariant",
     async () => {
       const { articleId, siteId } = await articleAvecStock(1000);
-      const cookie = await cookiePieces();
+      const or = await creerOrFrais();
+      const cookieAt = await cookieAtelier();
 
-      const force = await casse(ctx, cookie, articleId, {
-        siteId,
-        quantiteMillieme: 1500,
-        forcer: true,
+      // Réservation A (ANCIENNE, petite) — posée en premier.
+      const ligneA = await creerLignePiece(ctx, cookieAt, or.id, articleId, 100);
+      expect(ligneA.status, JSON.stringify(ligneA.body)).toBe(201);
+      const ligneIdA = (ligneA.body as { donnees: { id: string } }).donnees.id;
+
+      // Réservation B (RÉCENTE, grosse) — posée en second.
+      const ligneB = await creerLignePiece(ctx, cookieAt, or.id, articleId, 500);
+      expect(ligneB.status, JSON.stringify(ligneB.body)).toBe(201);
+      const ligneIdB = (ligneB.body as { donnees: { id: string } }).donnees.id;
+
+      // physique=1000, reservee=600 (100+500), disponible=400.
+      const avant = await disponibilite(ctx, await cookiePieces(), articleId, siteId);
+      expect(avant.body).toMatchObject({
+        quantitePhysiqueMillieme: 1000,
+        quantiteReserveeMillieme: 600,
+        quantiteDisponibleMillieme: 400,
       });
-      expect(force.status, JSON.stringify(force.body)).toBeLessThan(300);
+
+      // Casse forcée de 700 : dépasse le disponible (400) mais PAS le physique (1000). Sans
+      // libération, physique_après (300) < reservee (600) — la CHECK l'interdirait. Libérer B
+      // seule (500) suffit déjà à ramener reservee (100) sous le plafond (300) : A n'a PAS besoin
+      // de sauter.
+      const cookiePi = await cookiePieces();
+      const force = await casse(ctx, cookiePi, articleId, { siteId, quantiteMillieme: 700, forcer: true });
+      expect(force.status, JSON.stringify(force.body)).toBe(201);
+
+      const apres = await disponibilite(ctx, cookiePi, articleId, siteId);
+      expect(apres.body).toMatchObject({
+        quantitePhysiqueMillieme: 300,
+        quantiteReserveeMillieme: 100,
+        quantiteDisponibleMillieme: 200,
+      });
+
+      const reservations = await listerReservations(ctx, cookiePi, { ordreReparationId: or.id });
+      const donnees = (reservations.body as { donnees: readonly Record<string, unknown>[] }).donnees;
+      const reservationA = donnees.find((r) => r.ligneOrId === ligneIdA);
+      const reservationB = donnees.find((r) => r.ligneOrId === ligneIdB);
+      expect(reservationA, JSON.stringify(donnees)).toMatchObject({
+        statut: 'active',
+        quantiteMillieme: 100,
+      });
+      expect(reservationB, JSON.stringify(donnees)).toMatchObject({
+        statut: 'liberee',
+        motifLiberation: 'liberation_forcage_stock',
+        quantiteMillieme: 500,
+      });
+
+      const mouvements = await listerMouvements(ctx, cookiePi, articleId, { type: 'casse' });
+      const mvts = (mouvements.body as { donnees: readonly Record<string, unknown>[] }).donnees;
+      expect(mvts).toHaveLength(1);
+      expect(mvts[0]).toMatchObject({ quantiteMillieme: -700, type: 'casse' });
     },
   );
 });

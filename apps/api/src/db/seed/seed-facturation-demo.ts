@@ -52,6 +52,7 @@ import { ServiceEmissionDocument } from '../../facturation/documents/service-emi
 import { ServicePaiement } from '../../facturation/paiements/service-paiement';
 import { ServiceCompteursImpl } from '../../parametrage/compteurs/service-compteurs';
 import { ServiceMouvement } from '../../pieces/service-mouvement';
+import { ServiceReservation } from '../../pieces/service-reservation';
 import { ServiceVehiculeStock } from '../../ventes/service-vehicule-stock';
 import { ServiceAccesBase } from '../acces-base.service';
 import type { ConfigBase, ContexteTenant } from '../index';
@@ -134,8 +135,9 @@ export async function semerFacturationDemo(options: OptionsSeedFacturation): Pro
     const compteurs = new ServiceCompteursImpl();
     // `ServiceMouvement` (RP-43) : pont vente comptoir — ce seed ne pose aucune ligne `piece` avec
     // `articleId`/`siteId` (aucune vente comptoir peuplée), donc jamais exercé ici, mais le câblage
-    // manuel doit rester compilable au même titre que `vehiculeStock` ci-dessous.
-    const mouvements = new ServiceMouvement(acces, idempotence);
+    // manuel doit rester compilable au même titre que `vehiculeStock` ci-dessous. `ServiceReservation`
+    // (0047) : dépendance de la cascade de libération forcée, jamais exercée ici pour la même raison.
+    const mouvements = new ServiceMouvement(acces, idempotence, new ServiceReservation(acces));
     const documents = new ServiceDocumentsVente(acces, idempotence, audit, horloge, mouvements);
     // `ServiceEmissionDocument` (RV-37) marque le véhicule d'un dossier de vente `vendu` à
     // l'émission d'une facture rattachée — ce seed ne peuple aucun dossier de vente

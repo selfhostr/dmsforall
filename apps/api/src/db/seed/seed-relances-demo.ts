@@ -41,6 +41,7 @@ import { ServiceDocumentsVente } from '../../facturation/documents/service-docum
 import { ServiceEmissionDocument } from '../../facturation/documents/service-emission';
 import { ServiceCompteursImpl } from '../../parametrage/compteurs/service-compteurs';
 import { ServiceMouvement } from '../../pieces/service-mouvement';
+import { ServiceReservation } from '../../pieces/service-reservation';
 import { ServiceRegleRelance } from '../../relances/service-regle-relance';
 import { ServiceVehiculeStock } from '../../ventes/service-vehicule-stock';
 import { ServiceAccesBase } from '../acces-base.service';
@@ -108,7 +109,9 @@ export async function semerRelancesDemo(options: OptionsSeedRelances): Promise<v
     const evenements = new ServiceEvenementsImpl(horloge);
     const compteurs = new ServiceCompteursImpl();
     const journal = new ServiceJournal(options.config);
-    const mouvements = new ServiceMouvement(acces, idempotence);
+    // `ServiceReservation` (0047) : dépendance de la cascade de libération forcée, câblage manuel
+    // requis au même titre que les autres services de ce seed, jamais exercée ici.
+    const mouvements = new ServiceMouvement(acces, idempotence, new ServiceReservation(acces));
     const documents = new ServiceDocumentsVente(acces, idempotence, audit, horloge, mouvements);
     const vehiculeStock = new ServiceVehiculeStock(acces, idempotence, audit, horloge);
     const emission = new ServiceEmissionDocument(

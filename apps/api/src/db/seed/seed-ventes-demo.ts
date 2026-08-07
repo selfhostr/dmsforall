@@ -38,6 +38,7 @@ import { Horloge } from '../../common/horloge/horloge';
 import { ServiceIdempotenceImpl } from '../../common/idempotence';
 import { ServiceDocumentsVente } from '../../facturation/documents/service-documents';
 import { ServiceMouvement } from '../../pieces/service-mouvement';
+import { ServiceReservation } from '../../pieces/service-reservation';
 import { ServiceDossierVente } from '../../ventes/service-dossier-vente';
 import { ServiceVehiculeStock } from '../../ventes/service-vehicule-stock';
 import { ServiceVehicule } from '../../vehicules/service-vehicule';
@@ -96,7 +97,9 @@ export async function semerVentesDemo(options: OptionsSeedVentes): Promise<void>
     const horloge = new Horloge();
     const idempotence = new ServiceIdempotenceImpl(acces, horloge);
     const audit = new ServiceAuditImpl(acces);
-    const mouvements = new ServiceMouvement(acces, idempotence);
+    // `ServiceReservation` (0047) : dépendance de la cascade de libération forcée, câblage manuel
+    // requis au même titre que les autres services de ce seed, jamais exercée ici.
+    const mouvements = new ServiceMouvement(acces, idempotence, new ServiceReservation(acces));
     const documents = new ServiceDocumentsVente(acces, idempotence, audit, horloge, mouvements);
     const serviceVehicule = new ServiceVehicule(acces, horloge);
     const vehiculeStock = new ServiceVehiculeStock(acces, idempotence, audit, horloge);
