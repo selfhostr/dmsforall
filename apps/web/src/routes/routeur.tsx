@@ -52,6 +52,7 @@ import { EcranFicheVehiculeStock } from '@/ecrans/ventes/stock/EcranFicheVehicul
 import { EcranListeVehiculesStock } from '@/ecrans/ventes/stock/EcranListeVehiculesStock';
 import { EcranSuiviVentes } from '@/ecrans/ventes/suivi/EcranSuiviVentes';
 
+import { chemins } from './chemins';
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
 import {
@@ -92,7 +93,21 @@ export const routesConfig: RouteObject[] = [
       </RouteProtegee>
     ),
     children: [
-      { index: true, element: <EcranAccueil /> },
+      // Route index — Lot 0 (`docs/plan-refonte-navigation.md`, « Lot 0 — Dettes préalables ») :
+      // `redirectionParRole` fait atterrir `poste_atelier` (borne murale partagée) sur
+      // `/pointage/borne` plutôt que sur `EcranAccueil`, sans passer par `rolesAutorises` — le rôle
+      // a bien le droit de voir l'accueil, on choisit seulement de ne jamais le lui montrer. Avant
+      // ce lot, la borne n'était atteignable qu'en tapant l'URL à la main : aucun `NavLink` dans
+      // `BarreLaterale.tsx`, aucune redirection ici. Tous les autres rôles continuent d'atterrir
+      // sur `EcranAccueil`, comportement inchangé (`redirectionParRole` ne contient qu'une entrée).
+      {
+        index: true,
+        element: (
+          <RouteProtegee redirectionParRole={{ poste_atelier: chemins.pointage.borne() }}>
+            <EcranAccueil />
+          </RouteProtegee>
+        ),
+      },
       // Tableau de bord — restriction RÉELLE côté API (`GET /tableau-bord/activite` ferme
       // `poste_atelier`, voir `droits-routes.ts` pour le détail complet et la distinction avec le
       // bloc financier, géré EN PLUS à l'intérieur de l'écran, pas ici).

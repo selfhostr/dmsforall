@@ -23,16 +23,33 @@ interface Props {
    * l'URL l'atteindrait quand même sans ce contrôle.
    */
   readonly rolesAutorises?: readonly RoleUtilisateur[];
+  /**
+   * Redirection automatique par rôle, appliquée APRÈS la vérification de rôle mais AVANT le rendu
+   * de `children` — mécanisme distinct de `rolesAutorises` : ce n'est pas une restriction (le
+   * rôle qui matche ne perd aucun droit, il ne voit simplement pas CET écran-ci), c'est un choix
+   * d'atterrissage. Introduit pour le Lot 0 de la refonte de navigation
+   * (`docs/plan-refonte-navigation.md`, section « Lot 0 — Dettes préalables ») : le rôle
+   * `poste_atelier` (borne murale partagée, compte de service sans personne physique derrière)
+   * doit atterrir sur `/pointage/borne` plutôt que sur l'accueil générique — jusqu'ici la borne
+   * n'était atteignable qu'en tapant l'URL à la main (aucun `NavLink` vers elle dans
+   * `BarreLaterale.tsx`, aucune redirection ici), ce qui la rendait inatteignable en usage réel.
+   * Posé sur la route index (`routeur.tsx`) pour l'instant ; rien n'empêche de le poser sur une
+   * autre route protégée si un besoin similaire apparaît.
+   */
+  readonly redirectionParRole?: Partial<Record<RoleUtilisateur, string>>;
 }
 
-/** 5 branches strictes (les 4 historiques de contrats-etape-0.md §5, plus la restriction par
- *  rôle ajoutée au lot 2) :
+/** 6 branches strictes (les 4 historiques de contrats-etape-0.md §5, la restriction par rôle
+ *  ajoutée au lot 2, et la redirection par rôle ajoutée au Lot 0 de la refonte de navigation) :
  *  1. isPending    -> écran de vérification (identique à RoutePublique, anti-flash)
  *  2. isError      -> service indisponible (JAMAIS l'écran de login)
  *  3. data===null  -> redirection /login avec state.from pour revenir après connexion
  *  4. rôle refusé  -> écran d'accès refusé (JAMAIS le contenu, JAMAIS une redirection muette)
- *  5. data + rôle OK -> contenu protégé */
-export function RouteProtegee({ children, rolesAutorises }: Props) {
+ *  5. redirection posée pour ce rôle -> `<Navigate>` vers la destination dédiée (ex.
+ *     `poste_atelier` -> `/pointage/borne`), AVANT le rendu de `children` : ce n'est pas un refus,
+ *     l'utilisateur a bien le droit d'être ici, on choisit juste de ne pas lui montrer CET écran
+ *  6. data + rôle OK + aucune redirection posée -> contenu protégé */
+export function RouteProtegee({ children, rolesAutorises, redirectionParRole }: Props) {
   const { data, isPending, isError } = useSession();
   const location = useLocation();
 
@@ -43,6 +60,10 @@ export function RouteProtegee({ children, rolesAutorises }: Props) {
   }
   if (rolesAutorises && !rolesAutorises.includes(data.utilisateur.role)) {
     return <EcranAccesRefuse />;
+  }
+  const destinationRedirection = redirectionParRole?.[data.utilisateur.role];
+  if (destinationRedirection) {
+    return <Navigate to={destinationRedirection} replace />;
   }
   return <>{children}</>;
 }

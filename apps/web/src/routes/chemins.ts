@@ -132,12 +132,10 @@ export const chemins = {
     hangar: (site?: string) => construireChemin('/pneus', { site }),
     aRelancer: (site?: string) => construireChemin('/pneus/a-relancer', { site }),
   },
-  /** Module ventes VN/VO (étape 4). Repris À L'IDENTIQUE des chemins locaux posés par les agents
-   *  qui ont livré les écrans — `ecrans/ventes/stock/_composants/chemins-locaux.ts`
-   *  (`cheminsStockVentes`) et `ecrans/ventes/dossiers/chemins-dossiers.ts`, tous deux marqués
-   *  « provisoire, à fusionner ici » par leurs auteurs. Ces deux fichiers restent en place pour
-   *  l'instant (hors périmètre de ce câblage) : à supprimer dans un passage ultérieur au profit du
-   *  bloc ci-dessous, une fois que les écrans qui les importent encore auront été repointés ici.
+  /** Module ventes VN/VO (étape 4). Les chemins locaux posés provisoirement par les agents qui ont
+   *  livré les écrans (`ecrans/ventes/stock/_composants/chemins-locaux.ts`,
+   *  `ecrans/ventes/dossiers/chemins-dossiers.ts`) ont été fusionnés ici au commit `4dbdca2` ; ces
+   *  deux fichiers n'existent plus dans le dépôt.
    *
    *  `stock` suit la même mécanique `?site=` que `pieces`/`clients`/`vehicules` ci-dessus (le site
    *  sélectionné est un paramètre de requête, jamais un état global). `dossiers.nouveau` accepte en
