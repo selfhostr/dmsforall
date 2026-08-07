@@ -1,3 +1,4 @@
+import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -5,6 +6,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 
 import type { SessionCourante } from '@dfa/shared';
+
+import { creerQueryClientTest } from '@/test/utils';
 
 import { EnTete } from './EnTete';
 
@@ -51,10 +54,17 @@ const session: SessionCourante = {
 };
 
 function rendre(routeInitiale: string) {
+  // `RechercheGlobale` (Lot A, montée dans `EnTete` depuis le centre de la barre haute) appelle
+  // `useRechercheComptoir`, donc `useQuery` — un `QueryClientProvider` est désormais requis même
+  // si aucun de ces tests n'ouvre le panneau (la requête reste `enabled: false` tant que rien
+  // n'est saisi, aucun handler MSW n'est donc nécessaire ici).
+  const queryClient = creerQueryClientTest();
   return render(
-    <MemoryRouter initialEntries={[routeInitiale]}>
-      <EnTete />
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[routeInitiale]}>
+        <EnTete />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
