@@ -71,7 +71,9 @@ describe('evaluerCompletudeAdresse — la règle du comptoir (RF-59, RF-60)', ()
     );
     expect(evaluation.complete).toBe(false);
     expect(evaluation.partielle).toBe(true);
-    expect(evaluation.champsManquants).toEqual(['rue', 'numero', 'npa', 'localite']);
+    // `pays` n'apparaît jamais dans les champs manquants : `lireChamp` le défaute à `PAYS_PAR_DEFAUT`
+    // avant même la vérification (voir le test « exige le pays... » plus bas) — pas une omission.
+    expect(evaluation.champsManquants).toEqual(['npa', 'localite']);
   });
 
   it('distingue « aucune adresse » de « adresse partielle »', () => {
@@ -95,24 +97,49 @@ describe('evaluerCompletudeAdresse — la règle du comptoir (RF-59, RF-60)', ()
     expect(evaluerCompletudeAdresse(sansPays, CHAMPS_REQUIS_BLOC_CREANCIER).complete).toBe(true);
   });
 
-  it('fige la règle RF-60, plus stricte que la spécification SIX', () => {
-    // ⚠️ Divergence documentée en tête de `adresse.ts`. SIX se contenterait de
-    // nom + NPA + localité + pays ; RF-60 exige en plus la rue et le numéro. Ce test existe
-    // pour que le jour où l'on relâche la règle, ce soit un choix explicite et non un effet
-    // de bord — il suffira de retirer 'rue' et 'numero' de la constante.
-    expect([...CHAMPS_REQUIS_BLOC_DEBITEUR]).toEqual(['nom', 'rue', 'numero', 'npa', 'localite']);
+  it('fige la règle RF-60 ASSOUPLIE vers la spécification SIX (issue #22)', () => {
+    // `rue`/`numero` ne sont plus requis : le contrat d'adresse client n'a jamais exposé
+    // `numero` (voir l'en-tête de `adresse.ts`), donc les exiger rendait le bloc débiteur
+    // structurellement inémettable — sur 100 % des factures, pas seulement en Suisse rurale.
+    // Ce test existe pour que tout retour en arrière soit un choix explicite, pas un effet de
+    // bord silencieux.
+    expect([...CHAMPS_REQUIS_BLOC_DEBITEUR]).toEqual(['nom', 'npa', 'localite', 'pays']);
 
-    // Conséquence concrète : une case postale sans numéro de rue perd son bloc débiteur.
+    // Conséquence concrète, exactement le cas de l'issue #22 : un client dont l'adresse a un
+    // nom + NPA + localité, mais AUCUN numéro de rue séparé (le cas nominal aujourd'hui, pas
+    // seulement une case postale), obtient désormais son bloc débiteur.
     const casePostale: AdresseStructuree = {
       nom: 'Jean Dupont',
       rue: 'Case postale',
       npa: '1963',
       localite: 'Vétroz',
     };
-    expect(evaluerCompletudeAdresse(casePostale, CHAMPS_REQUIS_BLOC_DEBITEUR).complete).toBe(false);
-    expect(evaluerCompletudeAdresse(casePostale, ['nom', 'npa', 'localite', 'pays']).complete).toBe(
-      true,
-    );
+    expect(evaluerCompletudeAdresse(casePostale, CHAMPS_REQUIS_BLOC_DEBITEUR).complete).toBe(true);
+
+    // Le cas nominal de l'issue : rue connue mais numéro absent (rue « Route du Simplon 42 »,
+    // numéro noyé dedans faute de contrat exposant le champ) — complet aussi.
+    const rueSansNumeroSepare: AdresseStructuree = {
+      nom: 'Pia-Maria Rutschmann-Schnyder',
+      rue: 'Grosse Marktgasse',
+      numero: null,
+      npa: '9400',
+      localite: 'Rorschach',
+    };
+    expect(
+      evaluerCompletudeAdresse(rueSansNumeroSepare, CHAMPS_REQUIS_BLOC_DEBITEUR).complete,
+    ).toBe(true);
+
+    // L'assouplissement porte sur ce qui est REQUIS pour émettre, pas sur ce qui est ÉMIS une
+    // fois que le bloc l'est : la rue connue reste imprimée sur le bulletin.
+    expect(encoderBlocAdresse(rueSansNumeroSepare, 'debiteur')).toEqual([
+      'S',
+      'Pia-Maria Rutschmann-Schnyder',
+      'Grosse Marktgasse',
+      '',
+      '9400',
+      'Rorschach',
+      'CH',
+    ]);
   });
 });
 

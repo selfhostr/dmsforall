@@ -6,14 +6,24 @@
  *
  * RÈGLE MÉTIER RETENUE, établie AVANT ce code (voir la docstring de `lireDelaiPaiementJoursFige`
  * pour ce qui la fonde) : l'échéance d'une facture suisse = sa `dateDocument` + un délai NET en
- * JOURS CALENDAIRES (pas ouvrés — pratique standard « net 30 »), délai lu sur les conditions de
- * paiement du CLIENT figées à la création du document (`document_vente.conditions_paiement_figees`
- * → `client_condition.delai_paiement_jours`, `docs/modele-documentaire-facturation.md` §7.2 AC-12,
- * §10.1 PF-04). Aucun texte libre n'est jamais analysé : PF-04 documente aussi un délai par défaut
- * TENANT (« 30 jours net, sans escompte ») mais AUCUNE table ne le porte à ce jour
- * (`parametre_atelier`/`parametre_facturation` n'ont pas de colonne correspondante — vérifié,
- * absent du schéma) ; ce module ne l'invente donc pas et rend `null` plutôt qu'un « 30 jours »
- * codé en dur qui se prétendrait paramétrable alors qu'il ne l'est pas. Signalé à l'orchestrateur.
+ * JOURS CALENDAIRES (pas ouvrés — pratique standard « net 30 »), délai lu PRIORITAIREMENT sur les
+ * conditions de paiement du CLIENT figées à la création du document
+ * (`document_vente.conditions_paiement_figees` → `client_condition.delai_paiement_jours`,
+ * `docs/modele-documentaire-facturation.md` §7.2 AC-12, §10.1 PF-04). Aucun texte libre n'est
+ * jamais analysé.
+ *
+ * ISSUE #17, RÉSOLUE PAR LA MIGRATION 0046 — DÉCISION ARBITRÉE SANS LE MAINTENEUR (voir l'en-tête de cette
+ * migration pour la justification complète et le chemin de retour arrière) : PF-04 documente
+ * aussi un délai par défaut TENANT (« 30 jours net, sans escompte »), qu'AUCUNE table ne portait
+ * jusqu'ici — un client créé sans conditions commerciales (chemin par défaut du formulaire
+ * standard) n'avait donc JAMAIS d'échéance, et restait invisible aux relances automatiques
+ * (`relances/regles-planification.ts`, qui calcule chaque palier depuis `date_echeance`).
+ * `tenant.delai_paiement_jours_defaut` (colonne `not null default 30`) porte maintenant ce
+ * réglage — {@link resoudreDelaiPaiementJours} ci-dessous applique la priorité : le délai du
+ * CLIENT, quand il existe, l'emporte TOUJOURS ; le défaut tenant n'intervient qu'en son absence
+ * totale, jamais en écrasement d'une valeur client déjà connue (y compris `0`, « payable à
+ * réception » — voir `lireDelaiPaiementJoursFige`, qui distingue déjà explicitement `0` de
+ * « absent »).
  *
  * Aucune fonction ici ne lit l'horloge elle-même : `maintenant` est toujours injecté par l'appelant
  * (même doctrine que `Horloge` partout ailleurs dans ce module) — un calcul de date doit rester
@@ -44,11 +54,32 @@ export function lireDelaiPaiementJoursFige(conditionsPaiementFigees: unknown): n
 }
 
 /**
+ * Résout le délai de paiement à appliquer (issue #17, migration 0046) : celui du CLIENT s'il
+ * existe (`delaiClientFige`, déjà lu par {@link lireDelaiPaiementJoursFige} — `0` est une valeur
+ * légitime, PAS un « absent »), sinon le défaut du TENANT (`delaiTenantDefaut`,
+ * `tenant.delai_paiement_jours_defaut`). `null` seulement si NI L'UN NI L'AUTRE n'est déterminable
+ * — cas résiduel (tenant introuvable dans la transaction), jamais le chemin normal depuis que la
+ * colonne tenant est `not null default 30`.
+ *
+ * Fonction PURE délibérément séparée de {@link calculerDateEcheance} : le repli tenant est une
+ * règle de RÉSOLUTION de délai, la conversion en date est un calcul de CALENDRIER — deux
+ * responsabilités, deux fonctions testables indépendamment.
+ */
+export function resoudreDelaiPaiementJours(
+  delaiClientFige: number | null,
+  delaiTenantDefaut: number | null,
+): number | null {
+  return delaiClientFige ?? delaiTenantDefaut;
+}
+
+/**
  * `dateDocument` (`YYYY-MM-DD`, date MÉTIER/LÉGALE — jamais un horodatage serveur, voir le
  * commentaire de `ReponseDocumentVente.dateDocument`) + `delaiPaiementJours` jours CALENDAIRES.
- * `null` si `delaiPaiementJours` est `null` (aucun délai de paiement structuré n'a pu être déterminé
- * pour le client à la création du document) : ne fabrique JAMAIS une échéance plausible à partir
- * d'une valeur par défaut codée en dur (voir l'en-tête de ce fichier).
+ * `null` si `delaiPaiementJours` est `null` (aucun délai de paiement — ni client, ni défaut
+ * tenant — n'a pu être déterminé) : ne fabrique JAMAIS une échéance plausible à partir d'une
+ * valeur par défaut codée en dur côté application (voir l'en-tête de ce fichier — le seul défaut
+ * qui existe désormais est en BASE, `tenant.delai_paiement_jours_defaut`, paramétrable, pas un
+ * littéral TypeScript).
  */
 export function calculerDateEcheance(
   dateDocument: string,
