@@ -49,6 +49,16 @@ jobs:
       - name: Installer les dépendances (lockfile figé)
         run: pnpm install --frozen-lockfile
 
+      # @dfa/shared est compilé en CommonJS pour NestJS (voir packages/shared/package.json :
+      # `exports` ne pointe que vers ./dist, aucun fallback vers les sources). apps/api résout
+      # donc @dfa/shared via son dist/ compilé, pas via `tsc --noEmit` (le script `typecheck` de
+      # shared, qui ne produit aucun dist/). Sans cette étape, `pnpm typecheck` ci-dessous échoue
+      # en cascade sur apps/api avec TS2307 (« Cannot find module '@dfa/shared' »). Même besoin
+      # déjà couvert dans les deux jobs suivants (« Tests d'intégration » et réversibilité des
+      # migrations) — ce job est le seul à l'avoir oublié.
+      - name: Construire @dfa/shared
+        run: pnpm --filter @dfa/shared build
+
       - name: Formatage (Prettier)
         run: pnpm format:check
 
