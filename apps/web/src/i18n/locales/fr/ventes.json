@@ -322,6 +322,10 @@
         "titre": "Modifier le dossier",
         "vehicule": "Véhicule",
         "vehiculeVerrouille": "Le véhicule ne peut plus être modifié à ce stade."
+      },
+      "ordresVehicule": {
+        "titre": "OR de ce véhicule",
+        "vide": "Aucun OR pour ce véhicule."
       }
     },
     "transitions": {

@@ -45,7 +45,10 @@
     "vehicules": "Veicoli del cliente",
     "vehiculesVide": "Nessun veicolo associato.",
     "derniersOr": "Ultimi passaggi in officina",
-    "derniersOrVide": "Nessun passaggio registrato."
+    "derniersOrVide": "Nessun passaggio registrato.",
+    "dossiersVente": "Pratiche di vendita",
+    "dossiersVenteVide": "Nessuna pratica di vendita.",
+    "dossierSansVehicule": "Veicolo non assegnato"
   },
   "alertes": {
     "bloque": "Bloccato - arretrati",

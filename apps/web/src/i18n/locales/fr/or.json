@@ -41,7 +41,8 @@
     "totalDuJour": "Aujourd'hui",
     "techniciensEnCours": "Techniciens en cours",
     "numeroPo": "PO du client",
-    "restitutionReportee": "Reportée"
+    "restitutionReportee": "Reportée",
+    "orPrecedent": "OR précédent : {numero}"
   },
   "localisations": {
     "parc": "Parc",
@@ -327,7 +328,21 @@
       "titre": "Impossible de charger l'ordre de réparation"
     },
     "montantIndisponible": "Non communiqué",
-    "controleurAuto": "Vous serez enregistré comme contrôleur."
+    "controleurAuto": "Vous serez enregistré comme contrôleur.",
+    "erreurSection": {
+      "titre": "Section indisponible"
+    },
+    "piecesUtilisees": {
+      "titre": "Pièces utilisées"
+    },
+    "documentsVente": {
+      "titre": "Devis et facture",
+      "vide": "Aucun document de vente lié à cet OR."
+    },
+    "pointage": {
+      "titre": "Qui a pointé",
+      "total": "Total pointé"
+    }
   },
   "actions": {
     "titre": "Actions",

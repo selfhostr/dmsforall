@@ -35,6 +35,34 @@
     },
     "erreurSection": {
       "titre": "Section indisponible"
+    },
+    "actions": {
+      "nouvelOr": "Nouvel OR"
+    },
+    "proprietaire": {
+      "titre": "Propriétaire et détenteurs",
+      "actuel": "Propriétaire actuel",
+      "precedents": "Détenteurs précédents",
+      "vide": "Aucun détenteur enregistré pour ce véhicule."
+    },
+    "dossierVente": {
+      "titre": "Dossier de vente"
+    },
+    "ordresReparation": {
+      "titre": "Ordres de réparation",
+      "vide": "Aucun ordre de réparation pour ce véhicule."
+    },
+    "factures": {
+      "titre": "Factures",
+      "vide": "Aucune facture pour ce véhicule.",
+      "brouillon": "Brouillon"
+    },
+    "pneus": {
+      "titre": "Pneus au dépôt",
+      "vide": "Aucun jeu de pneus au dépôt pour ce véhicule.",
+      "emplacement": "Emplacement : {emplacement}",
+      "emplacementNonRenseigne": "Emplacement non renseigné",
+      "lienHangar": "Voir dans le hangar à pneus"
     }
   },
   "archiver": {

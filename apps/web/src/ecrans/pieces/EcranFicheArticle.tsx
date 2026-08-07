@@ -1,6 +1,7 @@
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams, useSearchParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 
 import { messageErreur } from '@/api/erreurs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,13 +9,18 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
+import { listerCommandesFournisseur } from '@/hooks/pieces/commandes-fournisseur.api';
 import { useArticle } from '@/hooks/pieces/useArticle';
+import { useFournisseur } from '@/hooks/pieces/useFournisseur';
+import { useReservations } from '@/hooks/pieces/useReservations';
 import {
   useMarquerObsoleteArticle,
   useDesactiverArticle,
   useReactiverArticle,
 } from '@/hooks/pieces/useTransitionsArticle';
 import { useSession } from '@/hooks/useSession';
+import { formaterDate } from '@/lib/formats';
+import { chemins } from '@/routes/chemins';
 
 import { peutCreerMouvement, peutEcrireArticle } from './droits';
 import { EnTeteFicheArticle } from './EnTeteFicheArticle';
@@ -33,6 +39,7 @@ type Confirmation = 'marquerObsolete' | 'desactiver' | 'reactiver' | null;
 export function EcranFicheArticle() {
   const { t } = useTranslation(['pieces', 'commun', 'erreurs']);
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
   const { data: session } = useSession();
@@ -46,6 +53,57 @@ export function EcranFicheArticle() {
   const marquerObsolete = useMarquerObsoleteArticle(id ?? '');
   const desactiver = useDesactiverArticle(id ?? '');
   const reactiver = useReactiverArticle(id ?? '');
+
+  // Lot B (`docs/plan-refonte-navigation.md`) — « les OR qui l'ont consommé » et « les
+  // réservations et pour quel OR ». `useReservations` (hooks/pieces/, déjà existant) accepte
+  // `articleId` tel quel dans son filtre gelé (`FiltresReservations`) — une réservation
+  // `satisfaite` EST la trace qu'un OR a consommé physiquement la pièce (`RP-21`, le magasinier
+  // « remet PHYSIQUEMENT la pièce » à ce moment-là), une réservation `active` est une réservation
+  // en cours, toutes deux DÉJÀ nommées par `ordreReparationId`.
+  const requeteConsommations = useReservations({
+    articleId: id,
+    statut: ['satisfaite'],
+    tri: 'creeLe:desc',
+    limite: 20,
+  });
+  const requeteReservationsActives = useReservations({
+    articleId: id,
+    statut: ['active'],
+    tri: 'creeLe:desc',
+    limite: 20,
+  });
+
+  // « le fournisseur » — un article n'a pas de champ `fournisseurId` direct (`ReponseArticle`) :
+  // le lien vit dans `references[].fournisseurId`, pour les entrées `type: 'fournisseur'`
+  // (`RP-02`). Un article peut en porter plusieurs (multi-sourcing) ; ce lot retient la PREMIÈRE
+  // trouvée — suffisant pour le geste le plus fréquent du magasinier (« qui me livre ça »), le
+  // reste des références reste consultable dans la Card « Références » déjà existante ci-dessous.
+  const premiereReferenceFournisseur =
+    requeteArticle.data?.references.find((reference) => reference.type === 'fournisseur') ?? null;
+  const fournisseurId = premiereReferenceFournisseur?.fournisseurId ?? undefined;
+  const requeteFournisseur = useFournisseur(fournisseurId);
+
+  // « les commandes fournisseur en attente » — `schemaFiltresCommandesFournisseur` n'a PAS de
+  // filtre `articleId` (seulement `fournisseurId`/`siteId`/`statut`/`avecReliquat`) : chaque
+  // commande listée embarque déjà ses lignes complètes (`ReponseCommandeFournisseur.lignes`,
+  // même doctrine que `dossiers-vente`), donc filtrée CÔTÉ CLIENT sur `lignes.some(articleId)`
+  // ci-dessous plutôt que de demander un filtre serveur qui n'existe pas. `useQuery` local (pas le
+  // hook `useListeCommandesFournisseur`, pagination infinie sans `enabled`) : n'interroge qu'une
+  // fois `fournisseurId` connu, pour ne jamais tirer TOUTES les commandes du tenant en attendant.
+  const requeteCommandes = useQuery({
+    queryKey: ['article-commandes-fournisseur', id, fournisseurId],
+    queryFn: () =>
+      listerCommandesFournisseur(
+        {
+          fournisseurId: fournisseurId as string,
+          avecReliquat: true,
+          tri: 'creeLe:desc',
+          limite: 20,
+        },
+        { limite: 50 },
+      ),
+    enabled: fournisseurId !== undefined,
+  });
 
   if (requeteArticle.isPending) {
     return (
@@ -71,6 +129,11 @@ export function EcranFicheArticle() {
 
   const article = requeteArticle.data;
   const peutEcrire = peutEcrireArticle(role);
+  const consommations = requeteConsommations.reservations;
+  const reservationsActives = requeteReservationsActives.reservations;
+  const commandesAvecArticle = (requeteCommandes.data?.donnees ?? []).filter((commande) =>
+    commande.lignes.some((ligne) => ligne.articleId === article.id),
+  );
 
   function confirmer() {
     if (confirmation === 'marquerObsolete') {
@@ -127,6 +190,188 @@ export function EcranFicheArticle() {
                   <span className="font-mono">{reference.reference}</span>
                   <span className="texte-libelle text-muted-foreground">
                     {t(`pieces:articles.references.types.${reference.type}`)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Lot B — le fournisseur (magasinier : « le lien qui manque le plus tous les jours »). */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="texte-titre-section">
+            {t('pieces:articles.fiche.fournisseur.titre')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {fournisseurId === undefined ? (
+            <EtatVide
+              titre={t('pieces:articles.fiche.fournisseur.titre')}
+              description={t('pieces:articles.fiche.fournisseur.vide')}
+            />
+          ) : requeteFournisseur.isPending ? (
+            <EtatChargement lignes={1} />
+          ) : requeteFournisseur.isError ? (
+            <EtatErreur
+              titre={t('pieces:articles.fiche.erreurSection.titre')}
+              description={messageErreur(requeteFournisseur.error, t)}
+              onReessayer={() => void requeteFournisseur.refetch()}
+            />
+          ) : (
+            <button
+              type="button"
+              className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              onClick={() => navigate(chemins.pieces.fournisseurs.detail(fournisseurId))}
+            >
+              {requeteFournisseur.data.nom}
+            </button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Lot B — commandes fournisseur en attente pour cet article. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="texte-titre-section">
+            {t('pieces:articles.fiche.commandesFournisseur.titre')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {fournisseurId === undefined ? (
+            <EtatVide
+              titre={t('pieces:articles.fiche.commandesFournisseur.titre')}
+              description={t('pieces:articles.fiche.commandesFournisseur.sansFournisseur')}
+            />
+          ) : requeteCommandes.isPending ? (
+            <EtatChargement lignes={2} />
+          ) : requeteCommandes.isError ? (
+            <EtatErreur
+              titre={t('pieces:articles.fiche.erreurSection.titre')}
+              description={messageErreur(requeteCommandes.error, t)}
+              onReessayer={() => void requeteCommandes.refetch()}
+            />
+          ) : commandesAvecArticle.length === 0 ? (
+            <EtatVide
+              titre={t('pieces:articles.fiche.commandesFournisseur.titre')}
+              description={t('pieces:articles.fiche.commandesFournisseur.vide')}
+            />
+          ) : (
+            <ul className="flex flex-col divide-y">
+              {commandesAvecArticle.map((commande) => (
+                <li key={commande.id} className="flex items-center justify-between gap-3 py-2">
+                  <button
+                    type="button"
+                    className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    onClick={() =>
+                      navigate(chemins.pieces.commandesFournisseur.detail(commande.id))
+                    }
+                  >
+                    {commande.reference ?? formaterDate(commande.dateCommande)}
+                  </button>
+                  <span className="texte-libelle text-muted-foreground">
+                    {t(`pieces:commandes.statuts.${commande.statut}`)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Lot B — réservations en cours, pour quel OR. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="texte-titre-section">
+            {t('pieces:articles.fiche.reservationsActives.titre')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {requeteReservationsActives.isPending ? (
+            <EtatChargement lignes={2} />
+          ) : requeteReservationsActives.isError ? (
+            <EtatErreur
+              titre={t('pieces:articles.fiche.erreurSection.titre')}
+              description={messageErreur(requeteReservationsActives.error, t)}
+              onReessayer={() => void requeteReservationsActives.refetch()}
+            />
+          ) : reservationsActives.length === 0 ? (
+            <EtatVide
+              titre={t('pieces:articles.fiche.reservationsActives.titre')}
+              description={t('pieces:articles.fiche.reservationsActives.vide')}
+            />
+          ) : (
+            <ul className="flex flex-col divide-y">
+              {reservationsActives.map((reservation) => (
+                <li key={reservation.id} className="flex items-center justify-between gap-3 py-2">
+                  <button
+                    type="button"
+                    className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    onClick={() =>
+                      navigate(
+                        chemins.atelier.ordresReparation.detail(
+                          reservation.ordreReparationId,
+                          site,
+                        ),
+                      )
+                    }
+                  >
+                    {t('pieces:articles.fiche.reservationsActives.lien')}
+                  </button>
+                  <span className="texte-libelle tabular-nums text-muted-foreground">
+                    {(reservation.quantiteMillieme / 1000).toString()} ·{' '}
+                    {formaterDate(reservation.creeLe)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Lot B — les OR qui ont consommé cet article. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="texte-titre-section">
+            {t('pieces:articles.fiche.consommateurs.titre')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {requeteConsommations.isPending ? (
+            <EtatChargement lignes={2} />
+          ) : requeteConsommations.isError ? (
+            <EtatErreur
+              titre={t('pieces:articles.fiche.erreurSection.titre')}
+              description={messageErreur(requeteConsommations.error, t)}
+              onReessayer={() => void requeteConsommations.refetch()}
+            />
+          ) : consommations.length === 0 ? (
+            <EtatVide
+              titre={t('pieces:articles.fiche.consommateurs.titre')}
+              description={t('pieces:articles.fiche.consommateurs.vide')}
+            />
+          ) : (
+            <ul className="flex flex-col divide-y">
+              {consommations.map((reservation) => (
+                <li key={reservation.id} className="flex items-center justify-between gap-3 py-2">
+                  <button
+                    type="button"
+                    className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    onClick={() =>
+                      navigate(
+                        chemins.atelier.ordresReparation.detail(
+                          reservation.ordreReparationId,
+                          site,
+                        ),
+                      )
+                    }
+                  >
+                    {t('pieces:articles.fiche.consommateurs.lien')}
+                  </button>
+                  <span className="texte-libelle tabular-nums text-muted-foreground">
+                    {(reservation.quantiteMillieme / 1000).toString()} ·{' '}
+                    {reservation.satisfaiteLe ? formaterDate(reservation.satisfaiteLe) : ''}
                   </span>
                 </li>
               ))}

@@ -45,7 +45,10 @@
     "vehicules": "Véhicules du client",
     "vehiculesVide": "Aucun véhicule rattaché.",
     "derniersOr": "Derniers passages à l'atelier",
-    "derniersOrVide": "Aucun passage enregistré."
+    "derniersOrVide": "Aucun passage enregistré.",
+    "dossiersVente": "Dossiers de vente",
+    "dossiersVenteVide": "Aucun dossier de vente.",
+    "dossierSansVehicule": "Véhicule non assigné"
   },
   "alertes": {
     "bloque": "Bloqué – impayés",

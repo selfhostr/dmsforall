@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   ClientResume,
@@ -129,6 +129,27 @@ function rendre() {
 }
 
 describe('EcranFicheOrdreReparation', () => {
+  // Lot B (`docs/plan-refonte-navigation.md`) — `EnTeteOrdreReparation` interroge désormais `GET
+  // /ordres-reparation?vehiculeId=…` (« l'OR précédent du même véhicule ») et
+  // `EcranFicheOrdreReparation` interroge `GET /documents-vente?ordreReparationId=…` (« devis
+  // d'origine, facture émise »), à CHAQUE rendu réussi de l'écran (pas seulement via
+  // `installerHandler`, certains tests plus bas posent leur propre `GET .../or-1` en direct).
+  // `server.listen({ onUnhandledRequest: 'error' })` (`test/setup.ts`) fait échouer toute requête
+  // non mockée : un `beforeEach` couvre les deux endpoints pour TOUS les tests de ce fichier,
+  // réponses vides par défaut — plus fiable qu'ajouter ces deux lignes dans chaque `server.use(...)`
+  // individuel (`afterEach(() => server.resetHandlers())`, `test/setup.ts`, repart de zéro à
+  // chaque test).
+  beforeEach(() => {
+    server.use(
+      http.get('/api/v1/ordres-reparation', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 5 }),
+      ),
+      http.get('/api/v1/documents-vente', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 20 }),
+      ),
+    );
+  });
+
   afterEach(async () => {
     await i18n.changeLanguage('fr');
   });

@@ -35,6 +35,34 @@
     },
     "erreurSection": {
       "titre": "Sezione non disponibile"
+    },
+    "actions": {
+      "nouvelOr": "Nuovo ordine"
+    },
+    "proprietaire": {
+      "titre": "Proprietario e detentori",
+      "actuel": "Proprietario attuale",
+      "precedents": "Detentori precedenti",
+      "vide": "Nessun detentore registrato per questo veicolo."
+    },
+    "dossierVente": {
+      "titre": "Pratica di vendita"
+    },
+    "ordresReparation": {
+      "titre": "Ordini di riparazione",
+      "vide": "Nessun ordine di riparazione per questo veicolo."
+    },
+    "factures": {
+      "titre": "Fatture",
+      "vide": "Nessuna fattura per questo veicolo.",
+      "brouillon": "Bozza"
+    },
+    "pneus": {
+      "titre": "Pneumatici in deposito",
+      "vide": "Nessun set di pneumatici in deposito per questo veicolo.",
+      "emplacement": "Posizione: {emplacement}",
+      "emplacementNonRenseigne": "Posizione non indicata",
+      "lienHangar": "Vedi nel deposito pneumatici"
     }
   },
   "archiver": {

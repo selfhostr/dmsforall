@@ -322,6 +322,10 @@
         "titre": "Dossier bearbeiten",
         "vehicule": "Fahrzeug",
         "vehiculeVerrouille": "Das Fahrzeug kann in diesem Stadium nicht mehr geändert werden."
+      },
+      "ordresVehicule": {
+        "titre": "Reparaturaufträge dieses Fahrzeugs",
+        "vide": "Kein Reparaturauftrag für dieses Fahrzeug."
       }
     },
     "transitions": {

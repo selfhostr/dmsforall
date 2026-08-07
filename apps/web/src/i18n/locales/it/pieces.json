@@ -119,6 +119,25 @@
       },
       "erreurSection": {
         "titre": "Impossibile caricare questa sezione"
+      },
+      "consommateurs": {
+        "titre": "Ordini che lo hanno consumato",
+        "vide": "Nessun ordine ha consumato questo articolo.",
+        "lien": "Vedi l'ordine"
+      },
+      "reservationsActives": {
+        "titre": "Prenotazioni in corso",
+        "vide": "Nessuna prenotazione in corso per questo articolo.",
+        "lien": "Vedi l'ordine"
+      },
+      "commandesFournisseur": {
+        "titre": "Ordini fornitore in attesa",
+        "vide": "Nessun ordine fornitore in attesa per questo articolo.",
+        "sansFournisseur": "Nessun fornitore noto per questo articolo."
+      },
+      "fournisseur": {
+        "titre": "Fornitore",
+        "vide": "Nessun fornitore referenziato per questo articolo."
       }
     },
     "confirmations": {

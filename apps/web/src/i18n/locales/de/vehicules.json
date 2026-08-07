@@ -35,6 +35,34 @@
     },
     "erreurSection": {
       "titre": "Bereich nicht verfügbar"
+    },
+    "actions": {
+      "nouvelOr": "Neuer RA"
+    },
+    "proprietaire": {
+      "titre": "Eigentümer und Halter",
+      "actuel": "Aktueller Eigentümer",
+      "precedents": "Frühere Halter",
+      "vide": "Kein Halter für dieses Fahrzeug erfasst."
+    },
+    "dossierVente": {
+      "titre": "Verkaufsdossier"
+    },
+    "ordresReparation": {
+      "titre": "Reparaturaufträge",
+      "vide": "Kein Reparaturauftrag für dieses Fahrzeug."
+    },
+    "factures": {
+      "titre": "Rechnungen",
+      "vide": "Keine Rechnung für dieses Fahrzeug.",
+      "brouillon": "Entwurf"
+    },
+    "pneus": {
+      "titre": "Reifen im Depot",
+      "vide": "Kein Reifensatz im Depot für dieses Fahrzeug.",
+      "emplacement": "Standort: {emplacement}",
+      "emplacementNonRenseigne": "Standort nicht erfasst",
+      "lienHangar": "Im Reifenlager ansehen"
     }
   },
   "archiver": {

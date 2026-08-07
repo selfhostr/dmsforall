@@ -41,7 +41,8 @@
     "totalDuJour": "Oggi",
     "techniciensEnCours": "Tecnici attivi",
     "numeroPo": "PO cliente",
-    "restitutionReportee": "Posticipata"
+    "restitutionReportee": "Posticipata",
+    "orPrecedent": "Ordine precedente: {numero}"
   },
   "localisations": {
     "parc": "Parcheggio",
@@ -327,7 +328,21 @@
       "titre": "Impossibile caricare l'ordine di riparazione"
     },
     "montantIndisponible": "Non comunicato",
-    "controleurAuto": "Sarete registrati come controllore."
+    "controleurAuto": "Sarete registrati come controllore.",
+    "erreurSection": {
+      "titre": "Sezione non disponibile"
+    },
+    "piecesUtilisees": {
+      "titre": "Pezzi utilizzati"
+    },
+    "documentsVente": {
+      "titre": "Preventivo e fattura",
+      "vide": "Nessun documento di vendita collegato a questo ordine."
+    },
+    "pointage": {
+      "titre": "Chi ha timbrato",
+      "total": "Totale timbrato"
+    }
   },
   "actions": {
     "titre": "Azioni",
