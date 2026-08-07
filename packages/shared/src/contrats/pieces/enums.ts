@@ -93,11 +93,20 @@ export type StatutReservationPiece = (typeof STATUTS_RESERVATION_PIECE)[number];
  * annulée, ligne refusée par décision de devis (`DECISIONS_DEVIS`, `contrats/atelier/enums.ts`),
  * ou geste explicite du magasinier. Catégorise un événement déjà survenu — ne pilote aucune
  * transition, donc pas de raison de le geler.
+ *
+ * `liberation_forcage_stock` (0047) — QUATRIÈME cas, automatique lui aussi : un mouvement `casse`/
+ * `perte` FORCÉ (`forcer: true`, RP-15/PP-02) qui dépasse le stock PHYSIQUE, pas seulement le
+ * disponible, oblige à réduire des réservations `active` pour que `reservee` ne dépasse jamais ce
+ * qui reste VRAIMENT en stock (CP-02 reste vrai même quand la réalité physique vient d'être
+ * corrigée à la baisse). Réservations les PLUS RÉCENTES du (article, site) libérées en premier,
+ * en totalité (jamais une fraction), jusqu'à couvrir le déficit — voir
+ * `ServiceReservation.libererPourCascadeForcageTx`, `apps/api/src/pieces/service-reservation.ts`.
  */
 export const MOTIFS_LIBERATION_RESERVATION = [
   'annulation_ligne',
   'refus_devis',
   'liberation_manuelle',
+  'liberation_forcage_stock',
 ] as const;
 export type MotifLiberationReservation = (typeof MOTIFS_LIBERATION_RESERVATION)[number];
 

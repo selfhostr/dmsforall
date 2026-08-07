@@ -1,11 +1,20 @@
 name: CI
 
-# Push sur main (post-merge) et toute PR ciblant main.
+# Push sur main et dev (post-merge), et toute PR ciblant l'une des deux.
+#
+# `dev` ajouté ici : le modèle de branches du dépôt est feature -> dev -> main, donc TOUTES les
+# relectures passent par une PR vers `dev` — celles vers `main` ne sont que la promotion d'un `dev`
+# déjà intégré. Sans `dev` dans ces deux listes, aucune PR de travail n'était jamais vérifiée : les
+# checks n'apparaissaient qu'au moment de promouvoir, c'est-à-dire trop tard pour servir de garde-fou.
+#
+# Constaté en vrai : la PR « reconciliation des tests d'integration » est sortie avec ZÉRO check,
+# alors qu'elle rendait justement le job d'intégration vert. Impossible de le prouver autrement qu'en
+# local, ce qui est exactement ce que la CI existe pour éviter.
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
 
 # Annule les runs obsolètes d'une même branche/PR quand de nouveaux commits arrivent :
 # évite de consommer des minutes CI sur du code déjà dépassé.

@@ -272,6 +272,91 @@ export class ServiceReservation {
     `);
   }
 
+  /**
+   * Cascade déclenchée par `ServiceMouvement.creerMouvementSortie` (`casse`/`perte`, `forcer:
+   * true`, RP-15/PP-02, 0047) quand le mouvement forcé ferait passer `quantite_physique_millieme`
+   * SOUS `quantite_reservee_millieme` — invariant que `stock_article_reservee_leq_physique_chk`
+   * (0025/0047 : `reservee <= greatest(physique, 0)`) refuse INCONDITIONNELLEMENT, `forcer` ou
+   * pas. `ligne`/`ctx` restent verrouillés par l'appelant (`ServiceStock.chargerPourVerrou` sur
+   * `stock_article`, avant que ce mouvement n'existe) — cette méthode n'acquiert QUE le verrou des
+   * lignes `reservation_piece` qu'elle va libérer, jamais celui de `stock_article` lui-même.
+   *
+   * ORDRE — les réservations les PLUS RÉCENTES du (article, site) sautent EN PREMIER
+   * (`order by cree_le desc`). Arbitrage assumé, aucune règle métier écrite ne le impose : une
+   * réservation ANCIENNE porte un OR ouvert depuis plus longtemps — la casser en dernier limite
+   * le risque de rouvrir un dossier que le client croit déjà avancé. Symétriquement, la
+   * réservation la plus RÉCENTE est, en moyenne, celle dont le travail a le moins progressé et
+   * dont le report perturbe le moins l'atelier. Signalé au rapport de livraison pour arbitrage
+   * définitif si un besoin réel contredit cette hypothèse (ex. priorité par date de rendez-vous
+   * client, information que cette méthode ne lit pas aujourd'hui).
+   *
+   * LIBÉRATION TOTALE, JAMAIS PARTIELLE — `reservation_piece.quantite_millieme` est FIGÉ à la
+   * création (§6.3 : la seule évolution possible est la TRANSITION `active -> {satisfaite,
+   * liberee}`, aucune colonne ni trigger ne réduit la quantité d'une réservation existante) : une
+   * réservation amputée n'est donc PAS représentable dans ce modèle. Cette cascade libère des
+   * réservations ENTIÈRES jusqu'à couvrir `quantiteACouvrirMillieme`, quitte à libérer LÉGÈREMENT
+   * plus que le strict déficit (le reliquat retourne au disponible commun de l'article/site,
+   * jamais perdu) — jamais une fraction d'une réservation.
+   *
+   * TERMINAISON GARANTIE : `quantite_reservee_millieme` est, par construction (0026 §tête), TOUJOURS
+   * exactement la somme des `quantite_millieme` des réservations `active` de ce (article, site) —
+   * libérer la totalité d'entre elles ramène donc TOUJOURS `reservee` à 0, qui satisfait
+   * `reservee <= greatest(physique, 0)` quel que soit `physique`. La boucle ne peut donc jamais
+   * s'arrêter faute de réservations tout en laissant l'invariant violé.
+   *
+   * Rend le détail de ce qui a sauté ([] si rien n'a dû l'être) — à charge de l'appelant de
+   * journaliser/avertir (RP-15 : « forçage explicite et journalisé »).
+   */
+  async libererPourCascadeForcageTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    articleId: string,
+    siteId: string,
+    quantiteACouvrirMillieme: number,
+  ): Promise<
+    readonly {
+      readonly id: string;
+      readonly ligneOrId: string;
+      readonly ordreReparationId: string;
+      readonly quantiteMillieme: number;
+    }[]
+  > {
+    if (quantiteACouvrirMillieme <= 0) return [];
+
+    const resultat = await tx.execute<{
+      id: string;
+      ligneOrId: string;
+      ordreReparationId: string;
+      quantiteMillieme: number;
+    }>(sql`
+      select r.id as "id", r.ligne_or_id as "ligneOrId", r.ordre_reparation_id as "ordreReparationId",
+             r.quantite_millieme as "quantiteMillieme"
+        from public.reservation_piece r
+       where r.tenant_id = ${ctx.tenantId} and r.article_id = ${articleId} and r.site_id = ${siteId}
+         and r.statut = 'active'
+       order by r.cree_le desc, r.id desc
+       for update
+    `);
+
+    const liberees: {
+      id: string;
+      ligneOrId: string;
+      ordreReparationId: string;
+      quantiteMillieme: number;
+    }[] = [];
+    let couvert = 0;
+    // eslint-disable-next-line no-await-in-loop -- lot borné (RP-19 : au plus une réservation par
+    // ligne d'OR, un (article, site) n'en accumule jamais un volume déraisonnable) — même doctrine
+    // que `libererToutesActivesPourOrTx` ci-dessus.
+    for (const reservation of resultat.rows) {
+      if (couvert >= quantiteACouvrirMillieme) break;
+      await this.ecrireLiberation(tx, ctx, reservation.id, 'liberation_forcage_stock', null, null);
+      liberees.push(reservation);
+      couvert += reservation.quantiteMillieme;
+    }
+    return liberees;
+  }
+
   /** Garde de transition commune à `satisfaireTx`/`libererTx` : seule une réservation `active` peut être satisfaite ou libérée manuellement. */
   private verifierActiveOu409(ligne: LigneReservationPiece): void {
     if (ligne.statut !== 'active') {

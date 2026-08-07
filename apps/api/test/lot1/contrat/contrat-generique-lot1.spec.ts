@@ -68,27 +68,66 @@ function chargerOpenApi(): { paths?: Record<string, Record<string, unknown>> } {
 /** C-03, extrait en fonction pure pour pouvoir la pointer, dans le même fichier, sur un document
  *  SAIN (le vrai) et sur un document SYNTHÉTIQUE portant volontairement un DELETE — la preuve que
  *  ce vérificateur détecte réellement ce qu'il prétend détecter (« un test qui ne peut pas échouer
- *  ne teste rien »), sans jamais écrire de DELETE dans le vrai document généré. */
-export function releverOperationsDelete(document: {
-  paths?: Record<string, Record<string, unknown>>;
-}): string[] {
+ *  ne teste rien »), sans jamais écrire de DELETE dans le vrai document généré.
+ *
+ *  `exceptions` : liste blanche EXPLICITE de chemins EXACTS tolérés (vide par défaut — c'est le
+ *  comportement historique, toujours utilisé par le test de preuve ci-dessous). Un chemin absent
+ *  de cette liste continue de faire échouer le test, quel qu'il soit : élargir la portée d'une
+ *  exception ne peut donc jamais se faire par accident, seulement en ajoutant une entrée nommée et
+ *  justifiée. */
+export function releverOperationsDelete(
+  document: { paths?: Record<string, Record<string, unknown>> },
+  exceptions: ReadonlySet<string> = new Set(),
+): string[] {
   const infractions: string[] = [];
   for (const [chemin, operationsDuChemin] of Object.entries(document.paths ?? {})) {
-    if ('delete' in operationsDuChemin) {
+    if ('delete' in operationsDuChemin && !exceptions.has(chemin)) {
       infractions.push(`DELETE ${chemin}`);
     }
   }
   return infractions;
 }
 
-describe('C-03 — aucune opération DELETE dans tout le document (RM-110 : pas de suppression physique)', () => {
-  it('le document réellement généré ne contient aucun DELETE', () => {
+/**
+ * SEULE exception admise à RM-110 aujourd'hui, EXACTEMENT UN chemin :
+ * `DELETE /documents-vente/{id}/lignes/{ligneId}` (`document-vente.controller.ts::supprimerLigne`,
+ * « Suppression d'une ligne sur un brouillon (MD-21, MD-19) »).
+ *
+ * CE N'EST PAS UNE VIOLATION DE RM-110 : la migration `0010_facturation.sql` (§7.4, commentaire de
+ * tête de `ligne_document`) le documente noir sur blanc — « CONTRAIREMENT à ligne_or qui l'est de
+ * façon PERMANENTE (RM-71), le DELETE reste possible tant que le document est en brouillon (une
+ * ligne ajoutée par erreur avant émission se retire) ». RM-110 protège les ENREGISTREMENTS
+ * MÉTIER (documents ÉMIS, paiements, mouvements de stock, OR...) contre la suppression physique —
+ * une ligne d'un document encore en BROUILLON n'en est pas un : rien n'a été facturé, aucune trace
+ * comptable ou légale n'existe encore à en garder. `docs/contrats-api-etape-1.md` §1.1/§13 énonce
+ * la règle générale dans son absolu (contrat de l'étape 1, avant que cette route de facturation —
+ * étape 2 — n'existe) ; cette exception, propre à `document-vente`, ne le contredit pas mais le
+ * complète et mériterait un addendum dans ce document — signalé, pas fait ici (hors périmètre
+ * `apps/api/test/**`).
+ *
+ * BORNÉ CÔTÉ SERVICE, PAS SEULEMENT DANS SA DESCRIPTION OPENAPI — vérifié en lisant
+ * `service-documents.ts::supprimerLigne` : `estDocumentModifiable(doc.statut)` (`statut ===
+ * 'brouillon'` strictement) est vérifié AVANT le DELETE SQL et lève `DOCUMENT_VERROUILLE` (409)
+ * sinon — un document déjà émis refuse structurellement cette route, pas seulement par convention
+ * documentaire.
+ *
+ * UNIQUE dans tout le dépôt : aucune autre route `@Delete` n'existe (`grep -r "@Delete" src/**\/*.controller.ts`
+ * ne rend que celle-ci). Si une seconde apparaissait ailleurs — un document ÉMIS, un paiement, un
+ * mouvement de stock, un OR — elle ne matcherait PAS cette liste blanche à un seul élément et ferait
+ * à nouveau échouer ce test, comme voulu.
+ */
+const EXCEPTIONS_DELETE_JUSTIFIEES_RM_110: ReadonlySet<string> = new Set([
+  '/documents-vente/{id}/lignes/{ligneId}',
+]);
+
+describe('C-03 — aucune opération DELETE dans tout le document, hors liste blanche justifiée (RM-110 : pas de suppression physique)', () => {
+  it('le document réellement généré ne contient aucun DELETE en dehors de la liste blanche justifiée', () => {
     const document = chargerOpenApi();
     expect(
       Object.keys(document.paths ?? {}).length,
       'document sans aucun chemin — génération incomplète ?',
     ).toBeGreaterThan(0);
-    expect(releverOperationsDelete(document)).toEqual([]);
+    expect(releverOperationsDelete(document, EXCEPTIONS_DELETE_JUSTIFIEES_RM_110)).toEqual([]);
   });
 
   it('preuve que le vérificateur détecte réellement un DELETE (document synthétique, jamais le vrai fichier)', () => {

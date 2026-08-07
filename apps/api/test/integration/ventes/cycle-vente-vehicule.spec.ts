@@ -295,7 +295,7 @@ describe('transitions interdites — code métier stable (409/404), jamais 500',
 
   it(
     'livrer un dossier prêt à livrer dont le véhicule n’est PAS encore vendu (facture jamais émise) ' +
-      'est refusé (409 VENTE_VEHICULE_INDISPONIBLE) — LA non-régression principale de cette tâche : ce ' +
+      'est refusé (409 VENTE_LIVRAISON_FACTURE_REQUISE) — LA non-régression principale de cette tâche : ce ' +
       'cycle était inatteignable avant que `document_vente.dossier_vente_id` ne soit correctement écrit',
     async () => {
       const cookie = await cookiePour(garage.tenantA, 'direction');
@@ -311,9 +311,13 @@ describe('transitions interdites — code métier stable (409/404), jamais 500',
       const stockAvant = await getVehiculeStock(ctx, cookie, vehiculeId);
       expect((stockAvant.body as { statutCommercial: string }).statutCommercial).toBe('reserve');
 
+      // Code dédié depuis 9242d86 : `livrer()` distingue désormais « facture pas encore émise »
+      // (VENTE_LIVRAISON_FACTURE_REQUISE) de « un autre dossier a pris le véhicule »
+      // (VENTE_VEHICULE_INDISPONIBLE, réservé à `engager()`) — un même code pour ces deux refus
+      // produisait un message trompeur pour un véhicule `reserve`, son état normal à ce stade.
       const livraison = await livrer(ctx, cookie, dossierVenteId, '2026-02-01', 0);
       expect(livraison.status, JSON.stringify(livraison.body)).toBe(409);
-      expect(livraison.body.code).toBe('VENTE_VEHICULE_INDISPONIBLE');
+      expect(livraison.body.code).toBe('VENTE_LIVRAISON_FACTURE_REQUISE');
 
       // Ni le dossier ni le véhicule n'ont bougé.
       const releture = await getDossier(ctx, cookie, dossierVenteId);

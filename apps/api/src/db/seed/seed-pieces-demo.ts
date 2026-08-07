@@ -37,6 +37,7 @@ import { Horloge } from '../../common/horloge/horloge';
 import { ServiceIdempotenceImpl } from '../../common/idempotence';
 import { ServiceArticle } from '../../pieces/service-article';
 import { ServiceMouvement } from '../../pieces/service-mouvement';
+import { ServiceReservation } from '../../pieces/service-reservation';
 import { ServiceStock } from '../../pieces/service-stock';
 import { ServiceAccesBase } from '../acces-base.service';
 import type { ConfigBase, ContexteTenant } from '../index';
@@ -206,7 +207,14 @@ export async function semerPiecesDemo(options: OptionsSeedPieces): Promise<Resul
     const idempotence = new ServiceIdempotenceImpl(acces, horloge);
     const serviceArticle = new ServiceArticle(acces, idempotence);
     const serviceStock = new ServiceStock(acces);
-    const serviceMouvement = new ServiceMouvement(acces, idempotence);
+    // 0047 : `ServiceMouvement` reçoit désormais `ServiceReservation` (cascade de libération quand
+    // un `casse`/`perte` forcé dépasse le physique) — même câblage manuel que les autres services
+    // de ce seed, jamais exercé ici (le jeu de démo ne force aucun mouvement).
+    const serviceMouvement = new ServiceMouvement(
+      acces,
+      idempotence,
+      new ServiceReservation(acces),
+    );
 
     const ctx: ContexteTenant = {
       tenantId: options.tenantId,

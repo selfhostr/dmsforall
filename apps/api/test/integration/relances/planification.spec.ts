@@ -40,6 +40,7 @@ import {
   lireRelancesPlanifieesPourObjet,
   planifier,
   reglerFactureIntegralementPourTest,
+  simulerFactureHeritageSansEcheancePourTest,
 } from './fixtures-relances';
 
 let bdd: BaseEphemere;
@@ -302,18 +303,33 @@ describe('exclusions — facture soldée, facture sans échéance', () => {
     expect(lignes).toEqual([]);
   });
 
-  it('une facture SANS condition de paiement figée (dateEcheance null) n’est jamais planifiée', async () => {
-    // `clients[1]` n'a REÇU AUCUNE condition (contrairement à `clients[0]`, configuré en
-    // `beforeAll`) : `chargerConditionsPaiementEnVigueur` ne trouve rien, `delaiPaiementJours`
-    // reste `null`, `calculerDateEcheance` rend `null` — exactement le cas visé (« factures
-    // d'avant le correctif d'échéance »).
+  it('une facture SANS échéance connue (dateEcheance null, ligne héritée d’avant le correctif d’échéance) n’est jamais planifiée', async () => {
+    // CONSTRUCTION CHANGÉE (voir `simulerFactureHeritageSansEcheancePourTest`, `fixtures-relances.ts`) :
+    // ce test fabriquait autrefois le cas en prenant un client SANS condition de paiement, comptant
+    // sur `delaiPaiementJours` resté `null` pour que `calculerDateEcheance` rende `null`. Le
+    // correctif #17 (`0046_...sql`, `tenant.delai_paiement_jours_defaut`) a invalidé cette méthode :
+    // un client sans conditions retombe désormais sur le délai par défaut du TENANT (30 jours),
+    // donc AUCUNE facture NOUVELLEMENT émise ne peut plus sortir sans échéance — l'ancienne
+    // construction produirait silencieusement une facture normale à échéance 30 jours, pas le cas
+    // visé. L'INTENTION du test reste pourtant parfaitement valide : des factures dont
+    // `date_echeance` est réellement `null` existent déjà en base chez un garage en production
+    // (émises avant ce correctif, jamais recalculées depuis — RF-04/MD-20, `date_echeance` est
+    // figée à l'émission) et ne doivent jamais être relancées. La fixture simule maintenant cette
+    // ligne héritée par écriture SQL directe plutôt que de compter sur l'absence de conditions
+    // client.
     const clientSansCondition = garage.tenantA.clients[1]!.id;
     const dateDocument = joursAvant(40);
-    const facture = await creerFactureEmisePourTest(ctx, garage.tenantA, cookiePour, {
-      siteId: SITE_A(),
-      clientId: clientSansCondition,
-      dateDocument,
-    });
+    const facture = await simulerFactureHeritageSansEcheancePourTest(
+      ctx,
+      bdd,
+      garage.tenantA,
+      cookiePour,
+      {
+        siteId: SITE_A(),
+        clientId: clientSansCondition,
+        dateDocument,
+      },
+    );
     expect(facture.dateEcheance).toBeNull();
 
     const cookieDirection = await cookiePour(garage.tenantA, 'direction');
