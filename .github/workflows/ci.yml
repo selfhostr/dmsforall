@@ -49,6 +49,13 @@ jobs:
       - name: Installer les dépendances (lockfile figé)
         run: pnpm install --frozen-lockfile
 
+      # apps/web/vite.config.ts fixe `envDir` sur la racine du monorepo et refuse de builder si
+      # VITE_API_URL n'en est pas résolue (garde-fou volontaire, voir CONTRIBUTING.md). `.env` est
+      # gitignoré et donc absent sur un checkout CI ; `.env.example` définit déjà
+      # VITE_API_URL=/api/v1, suffisant pour un build (aucun secret réel n'est nécessaire ici).
+      - name: Préparer le .env racine (VITE_API_URL pour le build web)
+        run: cp .env.example .env
+
       # @dfa/shared est compilé en CommonJS pour NestJS (voir packages/shared/package.json :
       # `exports` ne pointe que vers ./dist, aucun fallback vers les sources). apps/api résout
       # donc @dfa/shared via son dist/ compilé, pas via `tsc --noEmit` (le script `typecheck` de
