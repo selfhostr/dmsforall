@@ -377,9 +377,9 @@ describe('RP-24 — stock insuffisant à la pose : blocage="pieces", jamais un 4
 
     // La ligne existe bel et bien dans le document OR — SAVEPOINT, pas un rollback de transaction.
     const document = await obtenirOr(ctx, cookie, or.id);
-    expect((document.body as { lignes: readonly { id: string }[] }).lignes.map((l) => l.id)).toContain(
-      ligneId,
-    );
+    expect(
+      (document.body as { lignes: readonly { id: string }[] }).lignes.map((l) => l.id),
+    ).toContain(ligneId);
 
     // Le stock n'a PAS bougé : aucune réservation n'a pu naître (ZDFA4), donc rien à réserver.
     const stock = await disponibilite(ctx, await cookiePieces(), articleId, siteId);
@@ -395,9 +395,9 @@ describe('RP-24 — stock insuffisant à la pose : blocage="pieces", jamais un 4
     expect((reservations.body as { donnees: readonly unknown[] }).donnees).toEqual([]);
 
     const mouvements = await listerMouvements(ctx, await cookiePieces(), articleId, {});
-    const types = (
-      mouvements.body as { donnees: readonly Record<string, unknown>[] }
-    ).donnees.map((m) => m.type);
+    const types = (mouvements.body as { donnees: readonly Record<string, unknown>[] }).donnees.map(
+      (m) => m.type,
+    );
     expect(types).toEqual(['ajustement_inventaire']);
   });
 });
@@ -823,7 +823,11 @@ describe('pieces.mouvement.forcer — matrice rôle × action', () => {
       // seule (500) suffit déjà à ramener reservee (100) sous le plafond (300) : A n'a PAS besoin
       // de sauter.
       const cookiePi = await cookiePieces();
-      const force = await casse(ctx, cookiePi, articleId, { siteId, quantiteMillieme: 700, forcer: true });
+      const force = await casse(ctx, cookiePi, articleId, {
+        siteId,
+        quantiteMillieme: 700,
+        forcer: true,
+      });
       expect(force.status, JSON.stringify(force.body)).toBe(201);
 
       const apres = await disponibilite(ctx, cookiePi, articleId, siteId);
@@ -834,7 +838,8 @@ describe('pieces.mouvement.forcer — matrice rôle × action', () => {
       });
 
       const reservations = await listerReservations(ctx, cookiePi, { ordreReparationId: or.id });
-      const donnees = (reservations.body as { donnees: readonly Record<string, unknown>[] }).donnees;
+      const donnees = (reservations.body as { donnees: readonly Record<string, unknown>[] })
+        .donnees;
       const reservationA = donnees.find((r) => r.ligneOrId === ligneIdA);
       const reservationB = donnees.find((r) => r.ligneOrId === ligneIdB);
       expect(reservationA, JSON.stringify(donnees)).toMatchObject({

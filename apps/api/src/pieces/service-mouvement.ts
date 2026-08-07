@@ -582,7 +582,16 @@ export class ServiceMouvement {
     // pour un type qui n'a pas la légitimité de `casse`/`perte` à consommer une pièce promise.
     if (type !== 'casse' && type !== 'perte') return;
 
-    await this.libererCascadeSiNecessaire(tx, ctx, articleId, siteId, physique, reservee, quantiteDemandee, type);
+    await this.libererCascadeSiNecessaire(
+      tx,
+      ctx,
+      articleId,
+      siteId,
+      physique,
+      reservee,
+      quantiteDemandee,
+      type,
+    );
   }
 
   /**

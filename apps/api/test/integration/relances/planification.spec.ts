@@ -319,11 +319,17 @@ describe('exclusions — facture soldée, facture sans échéance', () => {
     // client.
     const clientSansCondition = garage.tenantA.clients[1]!.id;
     const dateDocument = joursAvant(40);
-    const facture = await simulerFactureHeritageSansEcheancePourTest(ctx, bdd, garage.tenantA, cookiePour, {
-      siteId: SITE_A(),
-      clientId: clientSansCondition,
-      dateDocument,
-    });
+    const facture = await simulerFactureHeritageSansEcheancePourTest(
+      ctx,
+      bdd,
+      garage.tenantA,
+      cookiePour,
+      {
+        siteId: SITE_A(),
+        clientId: clientSansCondition,
+        dateDocument,
+      },
+    );
     expect(facture.dateEcheance).toBeNull();
 
     const cookieDirection = await cookiePour(garage.tenantA, 'direction');

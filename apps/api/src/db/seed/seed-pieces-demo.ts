@@ -210,7 +210,11 @@ export async function semerPiecesDemo(options: OptionsSeedPieces): Promise<Resul
     // 0047 : `ServiceMouvement` reçoit désormais `ServiceReservation` (cascade de libération quand
     // un `casse`/`perte` forcé dépasse le physique) — même câblage manuel que les autres services
     // de ce seed, jamais exercé ici (le jeu de démo ne force aucun mouvement).
-    const serviceMouvement = new ServiceMouvement(acces, idempotence, new ServiceReservation(acces));
+    const serviceMouvement = new ServiceMouvement(
+      acces,
+      idempotence,
+      new ServiceReservation(acces),
+    );
 
     const ctx: ContexteTenant = {
       tenantId: options.tenantId,
