@@ -114,7 +114,19 @@ function txFactice() {
     },
   }));
   const insert = vi.fn((_table: unknown) => ({ values: vi.fn(async () => undefined) }));
-  return { tx: { update, insert } as unknown as TransactionDfa, update, insert, appelsUpdate };
+  // Issue #17/migration 0046 : une facture dont `conditionsPaiementFigees` n'a pas de délai
+  // client (le cas de `documentFixture()` ci-dessus, `{}`) déclenche désormais un repli sur
+  // `tenant.delai_paiement_jours_defaut` (`chargerDelaiPaiementJoursDefautTenant`, hors sujet
+  // dans ce fichier qui teste `solde_centimes` — 30 est une valeur de repli neutre).
+  const select = vi.fn((_colonnes: unknown) => ({
+    from: () => ({ where: () => ({ limit: async () => [{ delaiPaiementJoursDefaut: 30 }] }) }),
+  }));
+  return {
+    tx: { update, insert, select } as unknown as TransactionDfa,
+    update,
+    insert,
+    appelsUpdate,
+  };
 }
 
 /** Retrouve les `valeurs` du (ou des) `.set()` posé(s) sur `document_vente` parmi tous les

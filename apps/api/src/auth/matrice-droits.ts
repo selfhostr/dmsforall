@@ -669,6 +669,16 @@ const INFERE_LIGNE_DECISION: readonly Action[] = ['atelier.ligne.refuser', 'atel
  * Inféré — marquer une ligne réalisée (transition `en_cours` → `realisee`, §5.2 ligne 480). Pas
  * de ligne §10 (la machine à états des lignes ne nomme pas d'acteur) ; c'est le technicien qui
  * exécute (§2.1 ligne 60) qui clôt sa propre ligne, le chef d'atelier pouvant se substituer.
+ *
+ * `magasinier` (I-18/#18) : reçoit CE DROIT AUSSI, séparément, sur `DROITS_MAGASINIER` (pas via
+ * cette const, gardée fermée à sa composition d'origine ci-dessus). Sur une ligne `type: piece`,
+ * « marquer réalisée » EST le geste du magasinier — prendre la pièce sur l'étagère et la remettre
+ * au mécanicien, ce qui déclenche la sortie de stock (`satisfaireReservationSiApplicable`,
+ * `service-ligne-or.ts::marquerRealisee`) — pas une substitution au technicien mais l'exécution
+ * normale de SA partie du travail. Cohérent avec `pieces.mouvement.creer`/`pieces.stock.modifier`/
+ * `pieces.reservation.satisfaire` déjà reçus par `magasinier` (`DROITS_PIECES_PAR_ROLE`) : sans ce
+ * droit, il a l'accès pour sortir le stock mais pas celui d'actionner le geste qui le déclenche —
+ * un trou de matrice, pas une restriction voulue (confirmé par l'issue).
  */
 const INFERE_LIGNE_REALISATION: readonly Action[] = ['atelier.ligne.marquer_realisee'];
 
@@ -815,6 +825,15 @@ const DROITS_TECHNICIEN: readonly Action[] = [
  * ligne 61). Reçoit l'écriture générale client/véhicule (§10 L958/L960 l'y incluent
  * explicitement), le kilométrage, la création de lignes — PAS la gestion fine du véhicule
  * (plaque, détention, expertise, campagnes, travaux reportés) ni aucune décision sur l'OR.
+ *
+ * `...INFERE_LIGNE_REALISATION` (I-18/#18) : AJOUT STRICT — seul ce droit, pas une composition
+ * depuis `DROITS_TECHNICIEN`/`DROITS_CHEF_ATELIER` (interdit par la doctrine de tête de fichier).
+ * Voir le commentaire de `INFERE_LIGNE_REALISATION` ci-dessus pour la justification complète :
+ * remettre une pièce au mécanicien EST le geste qui déclenche la sortie de stock, domaine déjà
+ * ouvert au magasinier par `pieces.mouvement.creer`/`pieces.stock.modifier` (`DROITS_PIECES_PAR_
+ * ROLE.magasinier`). Ne PAS composer `DROITS_MAGASINIER` depuis `DROITS_TECHNICIEN` pour autant :
+ * ce dernier a aussi `INFERE_OR_EXECUTION` (démarrer/passer en contrôle une ligne), geste
+ * d'exécution technique qui reste hors du métier du magasinier.
  */
 const DROITS_MAGASINIER: readonly Action[] = [
   ...LECTURE_SOCLE,
@@ -824,6 +843,7 @@ const DROITS_MAGASINIER: readonly Action[] = [
   ...L960_VEHICULE_ECRITURE,
   ...KILOMETRAGE_SAISIE,
   ...L966_LIGNE_CREATION,
+  ...INFERE_LIGNE_REALISATION,
 ];
 
 /**

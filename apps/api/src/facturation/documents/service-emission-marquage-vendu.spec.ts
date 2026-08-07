@@ -107,7 +107,13 @@ function txFactice() {
   const update = vi.fn((_table: unknown) => ({ set: setUpdate }));
   const valuesInsert = vi.fn(async () => undefined);
   const insert = vi.fn((_table: unknown) => ({ values: valuesInsert }));
-  return { tx: { update, insert } as unknown as TransactionDfa, update, insert };
+  // Issue #17/migration 0046 : `factureFixture()` ne porte pas de `conditionsPaiementFigees`, donc
+  // `emettre()` bascule sur `tenant.delai_paiement_jours_defaut` (`chargerDelaiPaiementJoursDefaut
+  // Tenant`) — hors sujet dans ce fichier (marquage vendu du véhicule), 30 est une valeur neutre.
+  const select = vi.fn((_colonnes: unknown) => ({
+    from: () => ({ where: () => ({ limit: async () => [{ delaiPaiementJoursDefaut: 30 }] }) }),
+  }));
+  return { tx: { update, insert, select } as unknown as TransactionDfa, update, insert };
 }
 
 /** Document assemblé rendu par `ServiceDocumentsVente.assemblerDocument` — c'est CE retour, pas la

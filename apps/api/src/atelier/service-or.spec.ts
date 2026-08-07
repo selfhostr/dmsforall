@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { EntreeModificationOrdreReparation } from '@dfa/shared';
+import { QueryBuilder } from 'drizzle-orm/pg-core';
+import { TRI_DEFAUT_ORDRES_REPARATION } from '@dfa/shared';
+import type { EntreeModificationOrdreReparation, FiltresOrdresReparation } from '@dfa/shared';
 import type { ContexteTenant, TransactionDfa } from '../db';
 import type { LigneOrdreReparation } from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
@@ -35,7 +37,7 @@ vi.mock('./or-requetes', () => ({
   chargerOrPourEcriture: vi.fn(),
 }));
 
-import { ServiceOr } from './service-or';
+import { encoderCurseurOffset, ServiceOr } from './service-or';
 import * as orRequetes from './or-requetes';
 
 const CTX: ContexteTenant = { tenantId: 'tenant-a', utilisateurId: 'user-1', requeteId: 'req-1' };
@@ -222,5 +224,133 @@ describe('ServiceOr.modifier — droit dédié au plafond (audit sécurité, poi
       code: 'DROIT_INSUFFISANT',
     });
     expect(update).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * #19 — `GET /ordres-reparation?technicienId=...` était IGNORÉ (voir l'ancien commentaire de tête
+ * de `ServiceOr.lister`, retiré). Ces tests prouvent que le filtre est câblé EN `exists(...)`
+ * (corrélé sur `tenant_id` + `ordre_reparation_id`), jamais en jointure — la distinction est ce
+ * qui garantit qu'un OR à plusieurs lignes assignées au même technicien n'est ni dupliqué (une
+ * jointure produirait une ligne de résultat PAR ligne assignée) ni perdu par la pagination par
+ * curseur d'offset (`decalage`/`limite` comptent des OR, pas des lignes).
+ *
+ * Prouvé SANS Postgres réel, via `drizzle-orm/pg-core`'s `QueryBuilder` — un query-builder SANS
+ * pilote/connexion, qui construit un SQL RÉEL (inspectable par `.toSQL()`) et ne lève qu'À
+ * L'EXÉCUTION (`await`), jamais à la construction. On capture donc la requête bâtie par
+ * `ServiceOr.lister()` lui-même (pas une reconstruction indépendante dans le test, qui pourrait
+ * dériver du code réel sans jamais faire échouer ce test) puis on laisse l'`await` échouer — la
+ * même distinction que `txFactice()` ci-dessus (mock de `.update`), appliquée à `.select`.
+ */
+describe('ServiceOr.lister — filtre technicienId (I-19/#19)', () => {
+  /**
+   * Query-builder RÉEL de drizzle-orm, sans pilote — voir le commentaire de tête ci-dessus.
+   *
+   * `builder.select(...)` ne rend PAS un objet doté de `.toSQL()` : c'est SEULEMENT après
+   * `.from(...)` (vérifié en conditions réelles, `PgSelectBuilder.from` renvoie un `PgSelect`
+   * DISTINCT, pas `this`) que la requête devient inspectable — `.where()`/`.orderBy()`/`.limit()`/
+   * `.offset()`, eux, mutent CET objet en place. On intercepte donc `.from` pour capturer la
+   * requête réellement exploitable, pas le builder intermédiaire qui la précède.
+   */
+  function txQueryBuilderFactice() {
+    const qb = new QueryBuilder();
+    const capturedSelects: { toSQL: () => { sql: string; params: unknown[] } }[] = [];
+    const tx = {
+      select: (...args: unknown[]) => {
+        // Passthrough variadique vers le vrai query-builder pg-core, dont les deux surcharges
+        // (`select()`/`select(fields)`) ne s'expriment pas proprement en un seul type d'appel
+        // spread.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const builder: any = (qb.select as any)(...args);
+        const fromOriginal = builder.from.bind(builder);
+        builder.from = (...fromArgs: unknown[]) => {
+          const requete = fromOriginal(...fromArgs);
+          capturedSelects.push(requete);
+          return requete;
+        };
+        return builder;
+      },
+    };
+    return { tx: tx as unknown as TransactionDfa, capturedSelects };
+  }
+
+  /** La requête OUTER est TOUJOURS la dernière capturée : la sous-requête `exists(...)`, quand
+   *  elle existe, est construite AVANT (dans la condition poussée dans `conditions`), pendant que
+   *  `ServiceOr.lister` assemble encore le tableau `conditions` — avant d'appeler `tx.select()`
+   *  pour la requête principale. */
+  function requeteOuter(capturedSelects: { toSQL: () => { sql: string; params: unknown[] } }[]) {
+    const derniere = capturedSelects.at(-1);
+    if (!derniere) throw new Error('Aucune requête capturée — tx.select() jamais appelé.');
+    return derniere.toSQL();
+  }
+
+  /** `tri` : requis par le type `FiltresOrdresReparation` (défaut posé par le schéma zod côté
+   *  contrôleur), mais `ServiceOr.lister` l'ignore totalement (tri figé `ouvertLe:desc`, voir sa
+   *  doc de tête) — sans intérêt pour ces tests, fixé une fois ici plutôt que répété partout. */
+  async function executerListerEtCapturer(
+    filtres: Omit<FiltresOrdresReparation, 'tri'>,
+    curseur?: string,
+  ) {
+    const { tx, capturedSelects } = txQueryBuilderFactice();
+    const acces = accesBaseFactice(tx);
+    const service = serviceFactice(acces);
+
+    // Le query-builder driver-less rejette TOUJOURS à l'exécution (aucune Postgres réelle) — seule
+    // la CONSTRUCTION de la requête (déjà terminée avant cet `await`) nous intéresse ici.
+    await expect(
+      service.lister(
+        CTX,
+        principal('technicien'),
+        { ...filtres, tri: TRI_DEFAUT_ORDRES_REPARATION },
+        25,
+        curseur,
+      ),
+    ).rejects.toThrow();
+
+    return requeteOuter(capturedSelects);
+  }
+
+  it('technicienId fourni : la requête pose un exists(...) corrélé sur ligne_or (tenant_id ET ordre_reparation_id), filtré sur technicien_id = la valeur demandée — jamais une jointure', async () => {
+    const { sql, params } = await executerListerEtCapturer({ technicienId: 'tech-1' });
+
+    expect(sql).toContain('exists (select "id" from "ligne_or"');
+    // Corrélation par COLONNES (pas de paramètre) : la même ligne_or.tenant_id que l'OR englobant,
+    // et son ordre_reparation_id pointant sur CET OR précisément.
+    expect(sql).toContain('"ligne_or"."tenant_id" = "ordre_reparation"."tenant_id"');
+    expect(sql).toContain('"ligne_or"."ordre_reparation_id" = "ordre_reparation"."id"');
+    expect(sql).toContain('"ligne_or"."technicien_id" = $');
+    expect(params).toContain('tech-1');
+
+    // AUCUNE jointure : une seule table dans le FROM de la requête outer, ligne_or n'apparaît QUE
+    // dans le exists(...) — c'est ce qui interdit la duplication d'un OR par ligne assignée.
+    expect(sql).toMatch(/from "ordre_reparation"/);
+    expect(sql).not.toMatch(/\bjoin\b/i);
+  });
+
+  it("technicienId absent : ligne_or n'apparaît NULLE PART dans la requête — le filtre reste inerte par défaut, pas actif « à vide »", async () => {
+    const { sql } = await executerListerEtCapturer({});
+
+    expect(sql).not.toContain('ligne_or');
+    expect(sql).not.toMatch(/\bexists\b/i);
+  });
+
+  it("aucun OR n'est perdu ni dupliqué par la pagination : la requête outer reste une SELECT simple sur ordre_reparation (pas de GROUP BY, pas de DISTINCT rendus nécessaires par le filtre), avec limit/offset intacts — le exists(...) ne change ni la forme ni le compte de lignes retournées par OR", async () => {
+    const { sql, params } = await executerListerEtCapturer(
+      { technicienId: 'tech-1', siteId: 'site-1' },
+      // Curseur non nul : `decoderCurseurOffset(undefined)` vaut 0, et drizzle omet la clause
+      // `offset` quand la valeur est 0 (rien à sauter) — un curseur réel, produit par
+      // `encoderCurseurOffset`, est nécessaire pour observer la clause dans le SQL généré.
+      encoderCurseurOffset(10),
+    );
+
+    expect(sql).not.toMatch(/\bgroup by\b/i);
+    expect(sql).not.toMatch(/\bdistinct\b/i);
+    expect(sql).toMatch(/\blimit \$\d+/i);
+    expect(sql).toMatch(/\boffset \$\d+/i);
+    // Le filtre siteId (déjà câblé) et technicienId (nouvellement câblé) COMPOSENT par ET, sans
+    // que l'un écrase l'autre.
+    expect(sql).toContain('"ordre_reparation"."site_id" = $');
+    expect(params).toContain('site-1');
+    expect(params).toContain('tech-1');
   });
 });
