@@ -59,16 +59,31 @@ export function deviseFacturationDepuisBase(valeur: string, contexte: string): D
  * (nature `compensation`) ne réduit donc PAS cette valeur ni `issuesDisponibles`. Comportement
  * appliqué à la lettre du contrat gelé, signalé comme lacune probable plutôt que corrigé
  * silencieusement (le corriger reviendrait à dévier du contrat sans arbitrage).
+ *
+ * BARRIÈRE 2/3 (issue #9, GitHub — « un paiement négatif crédite une facture ») : un paiement de
+ * montant NÉGATIF OU NUL n'a, par construction, jamais rien de « non imputé » à offrir.
+ *  - Négatif = remboursement/contre-passation (`MD-57`, `contrePasseId` non nul, RF-79 issue 1) —
+ *    de l'argent qui est SORTI, jamais une avance disponible à lettrer sur un document. C'est
+ *    exactement le cas que `versPaiement`/`GET /paiements?nonImputeUniquement=true` doivent JAMAIS
+ *    présenter comme un reliquat à affecter.
+ *  - Nul est défensivement couvert ici aussi (`ServicePaiement.creer` le refuse déjà à la source,
+ *    barrière 1/3 — `service-paiement.ts`), sans qu'aucune imputation ne puisse exister dessus.
+ * AVANT correction, cette fonction prenait la valeur ABSOLUE du montant : un remboursement de
+ * -500 ct ressortait comme « 500 ct non imputés, disponibles », `issuesDisponibles` proposait même
+ * de le rembourser à nouveau — et RIEN n'empêchait ensuite une imputation `reglement` de +500 ct de
+ * s'y accrocher, créditant une vraie facture avec de l'argent qui, comptablement, était sorti. C'est
+ * le défaut prouvé par l'issue.
  */
 export function calculerMontantNonImputeCentimes(
   montantCentimes: bigint,
   imputations: readonly LigneImputationPaiement[],
 ): bigint {
+  if (montantCentimes <= 0n) return 0n;
+
   const sommeReglement = imputations
     .filter((i) => i.nature === 'reglement')
     .reduce((acc, i) => acc + i.montantCentimes, 0n);
-  const montantAbs = montantCentimes < 0n ? -montantCentimes : montantCentimes;
-  const nonImpute = montantAbs - sommeReglement;
+  const nonImpute = montantCentimes - sommeReglement;
   return nonImpute > 0n ? nonImpute : 0n;
 }
 

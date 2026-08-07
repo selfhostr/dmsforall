@@ -10,8 +10,14 @@ import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requet
  * (`document-requetes`/`qr-emission` moqués, transaction factice qui enregistre l'appel
  * `update(documentVente).set(...)`). Le calcul arithmétique lui-même (délai → date, jours de
  * retard) est couvert exhaustivement par `echeance.spec.ts` ; ce fichier prouve seulement le
- * CÂBLAGE : la bonne valeur, lue sur `conditions_paiement_figees`, atterrit dans le `.set()` qui
- * transitionne `brouillon → emis`, uniquement pour une FACTURE, jamais pour les trois autres types.
+ * CÂBLAGE : la bonne valeur, lue sur `conditions_paiement_figees` PUIS (issue #17, migration
+ * 0046) sur le défaut du tenant en repli, atterrit dans le `.set()` qui transitionne
+ * `brouillon → emis`, uniquement pour une FACTURE, jamais pour les trois autres types.
+ *
+ * `txFactice(delaiTenantDefaut)` mocke désormais aussi `tx.select(...)` — c'est le chemin que
+ * `chargerDelaiPaiementJoursDefautTenant` (`references.ts`) emprunte pour lire
+ * `tenant.delai_paiement_jours_defaut`, appelé UNIQUEMENT quand le client n'a lui-même aucun
+ * délai figé (voir `service-emission.ts`, section 3.6).
  */
 vi.mock('./document-requetes', () => ({
   chargerDocumentPourEcriture: vi.fn(),
@@ -91,13 +97,30 @@ function ligneFixture(): LigneLigneDocument {
   } as unknown as LigneLigneDocument;
 }
 
-function txFactice() {
+/**
+ * `delaiTenantDefaut` : valeur rendue par `tenant.delai_paiement_jours_defaut` — `null` simule un
+ * tenant introuvable dans la transaction (cas résiduel, voir `chargerDelaiPaiementJoursDefautTenant`),
+ * jamais le chemin normal (la colonne est `not null default 30` en base).
+ */
+function txFactice(delaiTenantDefaut: number | null = 30) {
   const whereUpdate = vi.fn(async () => undefined);
   const setUpdate = vi.fn(() => ({ where: whereUpdate }));
   const update = vi.fn((_table: unknown) => ({ set: setUpdate }));
   const valuesInsert = vi.fn(async () => undefined);
   const insert = vi.fn((_table: unknown) => ({ values: valuesInsert }));
-  return { tx: { update, insert } as unknown as TransactionDfa, update, setUpdate, insert };
+  const limitSelect = vi.fn(async () =>
+    delaiTenantDefaut === null ? [] : [{ delaiPaiementJoursDefaut: delaiTenantDefaut }],
+  );
+  const whereSelect = vi.fn(() => ({ limit: limitSelect }));
+  const fromSelect = vi.fn(() => ({ where: whereSelect }));
+  const select = vi.fn((_colonnes: unknown) => ({ from: fromSelect }));
+  return {
+    tx: { update, insert, select } as unknown as TransactionDfa,
+    update,
+    setUpdate,
+    insert,
+    select,
+  };
 }
 
 function serviceFactice(tx: TransactionDfa) {
@@ -151,11 +174,60 @@ describe("ServiceEmissionDocument.emettre — date_echeance figée à l'émissio
     );
   });
 
-  it("facture SANS délai de paiement connu (client sans conditions figées, {} d'origine) : date_echeance reste null — jamais fabriquée", async () => {
+  it("facture SANS délai de paiement connu (client sans conditions figées, {} d'origine) : bascule sur le défaut TENANT (issue #17, migration 0046) — n'est plus null", async () => {
     vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(
       documentFixture({ conditionsPaiementFigees: {} }),
     );
-    const { tx, setUpdate } = txFactice();
+    // Défaut tenant = 30 jours (valeur par défaut réelle de tenant.delai_paiement_jours_defaut).
+    const { tx, setUpdate, select } = txFactice(30);
+    const { service } = serviceFactice(tx);
+
+    await service.emettre(CTX, principal(), DOCUMENT_ID, CLE_IDEMPOTENCE);
+
+    // dateDocument = '2026-07-01' (documentFixture) + 30 jours = '2026-07-31'.
+    expect(setUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ statut: 'emis', dateEcheance: '2026-07-31' }) as unknown,
+    );
+    // La requête tenant n'est posée QUE dans ce cas résiduel (client sans délai propre) — pas
+    // dans le premier test de ce fichier (délai client déjà connu).
+    expect(select).toHaveBeenCalledTimes(1);
+  });
+
+  it('bascule sur un défaut tenant DIFFÉRENT de 30 quand il a été paramétré ainsi (paramétrable, pas codé en dur)', async () => {
+    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(
+      documentFixture({ conditionsPaiementFigees: {} }),
+    );
+    const { tx, setUpdate } = txFactice(45);
+    const { service } = serviceFactice(tx);
+
+    await service.emettre(CTX, principal(), DOCUMENT_ID, CLE_IDEMPOTENCE);
+
+    // '2026-07-01' + 45 jours = '2026-08-15'.
+    expect(setUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ statut: 'emis', dateEcheance: '2026-08-15' }) as unknown,
+    );
+  });
+
+  it('ne consulte JAMAIS le défaut tenant quand le client a déjà un délai propre (même 0, payable à réception)', async () => {
+    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(
+      documentFixture({ conditionsPaiementFigees: { delaiPaiementJours: 0 } }),
+    );
+    const { tx, setUpdate, select } = txFactice(30);
+    const { service } = serviceFactice(tx);
+
+    await service.emettre(CTX, principal(), DOCUMENT_ID, CLE_IDEMPOTENCE);
+
+    expect(setUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ statut: 'emis', dateEcheance: '2026-07-01' }) as unknown,
+    );
+    expect(select).not.toHaveBeenCalled();
+  });
+
+  it('tenant introuvable (cas résiduel) ET client sans délai propre : date_echeance reste null — jamais fabriquée', async () => {
+    vi.mocked(documentRequetes.chargerDocumentPourEcriture).mockResolvedValue(
+      documentFixture({ conditionsPaiementFigees: {} }),
+    );
+    const { tx, setUpdate } = txFactice(null);
     const { service } = serviceFactice(tx);
 
     await service.emettre(CTX, principal(), DOCUMENT_ID, CLE_IDEMPOTENCE);

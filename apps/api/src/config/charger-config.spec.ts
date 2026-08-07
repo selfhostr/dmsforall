@@ -177,7 +177,7 @@ describe('VERSION_APP / VERSION_APP_BRANCHE — préprocesseur zod et repli (voi
     expect(config.VERSION_APP_BRANCHE).toBe('main');
   });
 
-  it("chaîne vide (ligne laissée en blanc dans .env, même patron que SENTRY_DSN) déclenche le calcul de repli — jamais une chaîne vide en sortie", () => {
+  it('chaîne vide (ligne laissée en blanc dans .env, même patron que SENTRY_DSN) déclenche le calcul de repli — jamais une chaîne vide en sortie', () => {
     const config = chargerConfig(envValide({ VERSION_APP: '', VERSION_APP_BRANCHE: '' }));
     expect(config.VERSION_APP.length).toBeGreaterThan(0);
     expect(config.VERSION_APP_BRANCHE.length).toBeGreaterThan(0);

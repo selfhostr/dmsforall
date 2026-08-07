@@ -486,6 +486,103 @@ describe('cohérence de devise entre le paiement et le document imputé (correct
   });
 });
 
+/**
+ * Issue #9, GitHub — « un paiement negatif credite une facture ». Reproduction prouvée par le
+ * rapporteur : `POST /paiements` avec `montantCentimes: -500` rendait 201 (barrière 1/3, corrigée
+ * dans `service-paiement.ts`, empêche désormais ce cas à la création) ; `montantNonImputeCentimes`
+ * ressortait à `+500` en valeur absolue (barrière 2/3, corrigée dans `mappeurs.ts`) ; ces 500 ct
+ * s'imputaient ensuite sur une vraie facture, réduisant son solde de 10000 à 9500 (statut
+ * `partiel`) — RIEN, dans `imputations.ts`, ne vérifiait la cohérence de signe entre le montant du
+ * paiement et l'imputation demandée. BARRIÈRE 3/3 : `verifierPaiementImputable` refuse maintenant
+ * toute imputation (`reglement`/`arrondi` via `appliquerImputationsLettrage`, `compensation` via
+ * `appliquerCompensationAvance`) sur un paiement de montant non positif — le cas qui subsiste même
+ * après les deux premières barrières : `POST /paiements/{id}/imputations` ciblant un remboursement
+ * DÉJÀ créé légitimement par `rembourser()`.
+ */
+describe('imputation sur un paiement de montant non positif — issue #9 (barrière 3/3)', () => {
+  it(
+    'appliquerImputationsLettrage : reproduit exactement le scénario de l’issue — un paiement de ' +
+      '-500 ct ne peut PLUS régler une facture de 10000 ct (refus AVANT toute écriture)',
+    async () => {
+      const document = documentFactice({ totalTtcCentimes: 10000n, montantRegleCentimes: 0n });
+      const { tx, inserts, updates } = txFactice({ documents: [document] });
+      const paiementRemboursement = paiementFactice({
+        id: 'pmt-remb-1',
+        montantCentimes: -500n,
+        contrePasseId: 'pmt-avance-origine',
+      });
+
+      await expect(
+        appliquerImputationsLettrage(tx, CTX, paiementRemboursement, [
+          { documentId: 'doc-1', montantCentimes: 500, nature: 'reglement' },
+        ]),
+      ).rejects.toMatchObject({ code: 'IMPUTATION_MONTANT_EXCEDENTAIRE', status: 409 });
+
+      // Le document ne doit avoir été ni chargé pour écriture au-delà du contrôle, ni modifié : la
+      // garde intervient AVANT la boucle document-par-document, `restant`/solde ne bougent pas.
+      expect(inserts).toHaveLength(0);
+      expect(updates).toHaveLength(0);
+    },
+  );
+
+  it('appliquerImputationsLettrage : refuse aussi une imputation `arrondi` sur un paiement négatif', async () => {
+    const document = documentFactice({ totalTtcCentimes: 10000n, montantRegleCentimes: 9999n });
+    const { tx, inserts } = txFactice({ documents: [document] });
+    const paiementRemboursement = paiementFactice({ montantCentimes: -1n, moyen: 'especes' });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiementRemboursement, [
+        { documentId: 'doc-1', montantCentimes: 1, nature: 'arrondi' },
+      ]),
+    ).rejects.toMatchObject({ code: 'IMPUTATION_MONTANT_EXCEDENTAIRE' });
+    expect(inserts).toHaveLength(0);
+  });
+
+  it('appliquerImputationsLettrage : refuse aussi sur un paiement de montant nul (défensif)', async () => {
+    const document = documentFactice();
+    const { tx } = txFactice({ documents: [document] });
+    const paiementNul = paiementFactice({ montantCentimes: 0n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiementNul, [
+        { documentId: 'doc-1', montantCentimes: 100, nature: 'reglement' },
+      ]),
+    ).rejects.toMatchObject({ code: 'IMPUTATION_MONTANT_EXCEDENTAIRE' });
+  });
+
+  it('appliquerCompensationAvance : refuse une compensation depuis un paiement de remboursement (montant négatif)', async () => {
+    const document = documentFactice({
+      id: 'doc-regul',
+      totalTtcCentimes: 1000n,
+      montantRegleCentimes: 800n,
+    });
+    const { tx, inserts } = txFactice({ documents: [document] });
+    const paiementRemboursement = paiementFactice({
+      id: 'pmt-remb-2',
+      montantCentimes: -5000n,
+      contrePasseId: 'pmt-avance-origine',
+    });
+
+    await expect(
+      appliquerCompensationAvance(tx, CTX, paiementRemboursement, 'doc-regul', 200),
+    ).rejects.toMatchObject({ code: 'IMPUTATION_MONTANT_EXCEDENTAIRE' });
+    expect(inserts).toHaveLength(0);
+  });
+
+  it('un paiement de montant strictement positif reste imputable (non-régression)', async () => {
+    const document = documentFactice({ totalTtcCentimes: 10000n, montantRegleCentimes: 0n });
+    const { tx, updates } = txFactice({ documents: [document] });
+    const paiementEncaissement = paiementFactice({ montantCentimes: 500n });
+
+    await appliquerImputationsLettrage(tx, CTX, paiementEncaissement, [
+      { documentId: 'doc-1', montantCentimes: 500, nature: 'reglement' },
+    ]);
+
+    expect(updates[0]?.montantRegleCentimes).toBe(500n);
+    expect(updates[0]?.statutReglement).toBe('partiel');
+  });
+});
+
 describe('appliquerCompensationAvance — abandon d’avance (RF-79 issue 3)', () => {
   it("impute l'avance sur le document de régularisation, nature compensation, rattachée au paiement d'avance", async () => {
     const document = documentFactice({

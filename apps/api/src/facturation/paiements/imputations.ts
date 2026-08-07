@@ -134,6 +134,49 @@ function verifierCoherenceDevise(
 }
 
 /**
+ * BARRIÈRE 3/3 (issue #9, GitHub — « un paiement négatif crédite une facture ») : dernière ligne de
+ * défense APPLICATIVE avant le trigger PostgreSQL `imputation_paiement_verifier_invariants`
+ * (MD-51.b, `0010_facturation.sql` §11) — un paiement de montant NÉGATIF OU NUL ne peut RECEVOIR
+ * aucune imputation, quelle que soit sa nature.
+ *
+ * Un paiement négatif est un REMBOURSEMENT/contre-passation (`MD-57`, `contrePasseId`, RF-79
+ * issue 1) : une sortie de fonds déjà réglée par sa propre écriture (`ServicePaiement.rembourser`,
+ * `service-paiement.ts`), jamais une source à lettrer sur un document — le lettrer reviendrait à
+ * créditer une facture avec de l'argent comptablement sorti, exactement le scénario prouvé par
+ * l'issue (500 ct imputés sur une facture depuis un paiement de -500 ct).
+ *
+ * Cette garde comble un trou qui survit même après les barrières 1 et 2 (`service-paiement.ts::creer`,
+ * `mappeurs.ts::calculerMontantNonImputeCentimes`) : celles-ci empêchent de CRÉER un paiement
+ * négatif par ce chemin, ou de l'AFFICHER comme disponible, mais rien n'empêchait `ajouterImputation`
+ * (`POST /paiements/{id}/imputations`) de cibler l'identifiant d'un remboursement déjà existant
+ * (créé légitimement par `rembourser()`) et d'y accrocher une imputation `reglement` positive.
+ *
+ * Le trigger `imputation_paiement_verifier_invariants` — l'AUTORITÉ finale sur MD-51 — NE FERME PAS
+ * ce trou lui-même : il compare la somme des imputations `reglement` à `abs(paiement.montant_
+ * centimes)`, pas au SIGNE du montant (`0010_facturation.sql` lignes ~1320-1335, hors périmètre
+ * `facturation/` de cet agent — signalé, pas corrigé, voir le rapport de livraison). Sans cette
+ * garde applicative, une imputation `reglement` de +500 ct passerait donc le trigger contre un
+ * paiement de -500 ct (`500 <= abs(-500)`) tout comme elle passait le calcul défectueux de
+ * `mappeurs.ts` avant correction — la base n'est le filet que si le filet lui-même n'a pas le même
+ * trou, ce qui n'est PAS le cas ici : d'où l'importance de fermer le trou ICI, en amont.
+ */
+function verifierPaiementImputable(
+  paiementLigne: Pick<LignePaiement, 'id' | 'montantCentimes'>,
+): void {
+  if (paiementLigne.montantCentimes <= 0n) {
+    throw new ErreurMetier(
+      'IMPUTATION_MONTANT_EXCEDENTAIRE',
+      `Le paiement ${paiementLigne.id} a un montant non positif ` +
+        `(${paiementLigne.montantCentimes.toString()} ct) — c'est un remboursement ou une écriture ` +
+        'nulle, il ne peut recevoir aucune imputation (MD-51.b, MD-57).',
+      {
+        detail: `paiement_id=${paiementLigne.id};montant_centimes=${paiementLigne.montantCentimes.toString()}`,
+      },
+    );
+  }
+}
+
+/**
  * Applique un lot d'imputations `reglement`/`arrondi` sur UN OU PLUSIEURS documents (RF-71 : un
  * paiement peut se répartir sur plusieurs factures), dans la MÊME transaction que la création du
  * paiement ou l'ajout d'imputation. Groupe par document : chaque document n'est chargé et
@@ -150,6 +193,8 @@ export async function appliquerImputationsLettrage(
   paiementLigne: LignePaiement,
   imputations: readonly EntreeCreationImputation[],
 ): Promise<readonly LigneImputationPaiement[]> {
+  verifierPaiementImputable(paiementLigne);
+
   for (const imp of imputations) {
     if (!NATURES_LETTRAGE_GENERIQUE.has(imp.nature)) {
       throw new ErreurMetier(
@@ -285,6 +330,8 @@ export async function appliquerCompensationAvance(
   documentRegularisationId: string,
   montantCentimes: number,
 ): Promise<LigneImputationPaiement> {
+  verifierPaiementImputable(paiementAvance);
+
   const document = await chargerDocumentPourEcriture(tx, ctx, documentRegularisationId);
   verifierCoherenceDevise(paiementAvance, document);
   const totalDocument =

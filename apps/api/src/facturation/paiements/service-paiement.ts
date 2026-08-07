@@ -48,6 +48,7 @@ import {
   decoderCurseurPourTriPaiement,
   definitionTriPaiement,
   encoderCurseurTrie,
+  EXPRESSION_MONTANT_NON_IMPUTE,
 } from './pagination-paiements';
 import type { ParametresListePaiements } from './schemas';
 
@@ -152,16 +153,40 @@ export class ServicePaiement {
       ctx,
       { methode: 'POST', chemin: '/paiements', cle: cleIdempotence, corps: entree },
       async (tx) => {
-        if (entree.montantCentimes === 0) {
+        // BARRIÈRE 1/3 (issue #9, GitHub — « un paiement négatif crédite une facture ») :
+        // `POST /paiements` est le geste d'ENCAISSEMENT — MD-50 dit qu'un `paiement` PEUT être
+        // signé négativement (remboursement/contre-passation), mais ce signe négatif est le
+        // produit d'un geste métier DISTINCT, déjà modélisé et implémenté plus bas dans ce fichier
+        // (`rembourser()`, RF-79 issue 1, MD-57) : il crée un paiement de sens opposé, plafonné au
+        // solde réellement remboursable, tracé par `contrePasseId` vers l'avance d'origine — et
+        // insère DIRECTEMENT en base sans jamais repasser par cette méthode `creer()`. Un montant
+        // négatif saisi ICI n'aurait donc AUCUNE de ces garanties (pas d'origine, pas de plafond,
+        // pas de traçabilité) : ce n'est pas un remboursement, c'est un trou.
+        //
+        // Le schéma partagé (`schemaCreationPaiement.montantCentimes: schemaCentimesTtc`,
+        // `packages/shared/src/contrats/facturation/primitives.ts`) n'impose AUCUNE borne — signalé
+        // pour resserrement côté contrat (hors périmètre `facturation/` de cet agent, voir le
+        // rapport de livraison), corrigé ICI en attendant : la garde applicative est le premier
+        // rempart, pas le seul (voir aussi `mappeurs.ts::calculerMontantNonImputeCentimes` et
+        // `imputations.ts::verifierPaiementImputable` pour les deux suivants).
+        if (entree.montantCentimes <= 0) {
+          const negatif = entree.montantCentimes < 0;
           throw new ErreurMetier(
             'VALIDATION_ECHOUEE',
-            "Le montant d'un paiement ne peut pas être nul.",
+            negatif
+              ? "Le montant d'un paiement créé via POST /paiements doit être strictement positif " +
+                  "— c'est un encaissement. Un remboursement se crée via " +
+                  'POST /paiements/{id}/rembourser (RF-79), jamais avec un montant négatif saisi ' +
+                  'directement.'
+              : "Le montant d'un paiement ne peut pas être nul.",
             {
               erreurs: [
                 {
                   champ: 'montantCentimes',
-                  code: 'montant_nul',
-                  message: 'Montant non nul requis.',
+                  code: negatif ? 'montant_negatif' : 'montant_nul',
+                  message: negatif
+                    ? 'Montant strictement positif requis — utiliser POST /paiements/{id}/rembourser pour un remboursement.'
+                    : 'Montant non nul requis.',
                 },
               ],
             },
@@ -277,7 +302,11 @@ export class ServicePaiement {
       if (params.dateValeurDu) conditions.push(sql`p.date_valeur >= ${params.dateValeurDu}`);
       if (params.dateValeurAu) conditions.push(sql`p.date_valeur <= ${params.dateValeurAu}`);
       if (params.nonImputeUniquement) {
-        conditions.push(sql`(abs(p.montant_centimes) - coalesce(ri.somme_reglement, 0)) > 0`);
+        // Même expression que le tri `montantNonImputeCentimes:desc` (`EXPRESSION_MONTANT_NON_
+        // IMPUTE`, `pagination-paiements.ts`) — voir son commentaire (issue #9) : un remboursement
+        // (`montant_centimes <= 0`, MD-57) ne doit JAMAIS apparaître dans l'écran « encaissements à
+        // affecter » (RF-72), qui doit être vide en fin de journée.
+        conditions.push(sql`${EXPRESSION_MONTANT_NON_IMPUTE} > 0`);
       }
       if (curseurDecode) {
         conditions.push(
@@ -564,11 +593,14 @@ function valeurCurseurBrute(
   tri: FiltresPaiements['tri'],
 ): string | number {
   if (tri === 'montantNonImputeCentimes:desc') {
-    const montantAbs =
-      BigInt(ligne.montant_centimes) < 0n
-        ? -BigInt(ligne.montant_centimes)
-        : BigInt(ligne.montant_centimes);
-    return Number(montantAbs - BigInt(ligne.somme_reglement));
+    // Miroir JS de `EXPRESSION_MONTANT_NON_IMPUTE` (`pagination-paiements.ts`) — DOIT rester
+    // identique, sous peine de fabriquer un curseur v2 dont la valeur ne correspond plus à
+    // l'expression triée en base (une régression de pagination, pas de sécurité argent, mais le
+    // même principe « une seule formule, jamais deux qui divergent » — issue #9).
+    const montant = BigInt(ligne.montant_centimes);
+    if (montant <= 0n) return 0;
+    const nonImpute = montant - BigInt(ligne.somme_reglement);
+    return Number(nonImpute > 0n ? nonImpute : 0n);
   }
   return ligne.date_valeur;
 }

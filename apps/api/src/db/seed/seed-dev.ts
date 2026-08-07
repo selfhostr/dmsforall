@@ -1095,6 +1095,18 @@ async function principal(): Promise<void> {
     nodeEnv: config.NODE_ENV,
   });
 
+  // Étape 1bis du seed : catalogue d'articles et stock (pièces), AVANT l'atelier — l'OR Octavia
+  // posé juste après référence un vrai article et a donc besoin que celui-ci (et son stock)
+  // existent déjà pour que sa réservation réussisse (RP-19/RP-20). Voir la tête de
+  // `seed-pieces-demo.ts` (issue #20 : le catalogue était entièrement vide après `pnpm db:seed`).
+  const { semerPiecesDemo } = await import('./seed-pieces-demo');
+  const resultatPieces = await semerPiecesDemo({
+    config,
+    tenantId: resultat.tenantId,
+    idsSitesParCode: resultat.idsSitesParCode,
+    idsUtilisateursParRole: resultat.idsUtilisateursParRole,
+  });
+
   // Étape 2 du seed : ordres de réparation de démonstration, dans des états différents. Séparé de
   // `semerDev` (qui n'a besoin que du rôle `dfa_migrator`, hors contexte tenant) parce que ceci
   // appelle les VRAIS services métier de `atelier/` (via `AccesBase.enTenant`, rôle `dfa_app`,
@@ -1108,6 +1120,7 @@ async function principal(): Promise<void> {
     idsClientsParNumero: resultat.idsClientsParNumero,
     idsVehiculesParCle: resultat.idsVehiculesParCle,
     idsUtilisateursParRole: resultat.idsUtilisateursParRole,
+    idsArticlesParReference: resultatPieces.idsArticlesParReference,
   });
 
   // Étape 3 du seed : chaîne documentaire de facturation (devis, brouillon de facture, facture
@@ -1119,6 +1132,44 @@ async function principal(): Promise<void> {
     tenantId: resultat.tenantId,
     idsSitesParCode: resultat.idsSitesParCode,
     idsClientsParNumero: resultat.idsClientsParNumero,
+    idsVehiculesParCle: resultat.idsVehiculesParCle,
+    idsUtilisateursParRole: resultat.idsUtilisateursParRole,
+  });
+
+  // Étape 4 du seed : relances de facturation — une condition commerciale sur M. Meier (sans
+  // laquelle sa facture n'aurait pas d'échéance, issue #17), une facture émise en retard, et une
+  // règle de relance active. APRÈS `semerFacturationDemo` : cette facture est indépendante des
+  // documents qu'il pose, mais partage sa doctrine de câblage manuel — voir la tête de
+  // `seed-relances-demo.ts`.
+  const { semerRelancesDemo } = await import('./seed-relances-demo');
+  await semerRelancesDemo({
+    config,
+    tenantId: resultat.tenantId,
+    idsSitesParCode: resultat.idsSitesParCode,
+    idsClientsParNumero: resultat.idsClientsParNumero,
+    idsVehiculesParCle: resultat.idsVehiculesParCle,
+    idsUtilisateursParRole: resultat.idsUtilisateursParRole,
+  });
+
+  // Étape 5 du seed : cycle de vente VN/VO — un véhicule d'occasion mis en stock et un dossier de
+  // vente poussé à un statut intermédiaire (`en_preparation`). Voir la tête de
+  // `seed-ventes-demo.ts` (issue #20 : `vehicule_stock`/`dossier_vente` étaient vides).
+  const { semerVentesDemo } = await import('./seed-ventes-demo');
+  await semerVentesDemo({
+    config,
+    tenantId: resultat.tenantId,
+    idsSitesParCode: resultat.idsSitesParCode,
+    idsClientsParNumero: resultat.idsClientsParNumero,
+    idsUtilisateursParRole: resultat.idsUtilisateursParRole,
+  });
+
+  // Étape 6 du seed : hangar à pneus — un dépôt rattaché à un véhicule-client existant. Voir la
+  // tête de `seed-pneus-demo.ts` (issue #20 : `depot_pneus` était vide).
+  const { semerPneusDemo } = await import('./seed-pneus-demo');
+  await semerPneusDemo({
+    config,
+    tenantId: resultat.tenantId,
+    idsSitesParCode: resultat.idsSitesParCode,
     idsVehiculesParCle: resultat.idsVehiculesParCle,
     idsUtilisateursParRole: resultat.idsUtilisateursParRole,
   });

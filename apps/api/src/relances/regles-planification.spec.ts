@@ -94,7 +94,11 @@ describe('factureEligibleRelance — RA-08', () => {
 
   it('exclut tout statut différent de emis (ex. annule) même hors contentieux et non réglé', () => {
     expect(
-      factureEligibleRelance({ statut: 'annule', contentieux: false, statutReglement: 'non_regle' }),
+      factureEligibleRelance({
+        statut: 'annule',
+        contentieux: false,
+        statutReglement: 'non_regle',
+      }),
     ).toBe(false);
   });
 });

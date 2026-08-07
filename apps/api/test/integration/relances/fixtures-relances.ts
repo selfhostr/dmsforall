@@ -47,7 +47,11 @@ import { hash as hacherArgon2 } from '@node-rs/argon2';
 import type { PoolClient } from 'pg';
 import { EN_TETE_IDEMPOTENCE, type RoleUtilisateur } from '@dfa/shared';
 
-import { ecrireSousTenant, requeteSousTenant, type BaseEphemere } from '../../setup/postgres-ephemere';
+import {
+  ecrireSousTenant,
+  requeteSousTenant,
+  type BaseEphemere,
+} from '../../setup/postgres-ephemere';
 import type { AppTest } from '../../setup/app-test';
 import { cookieDeSessionPour } from '../../lot1/isolation-http-aide';
 import type { DonneesLot1Tenant } from '../../lot1/fixtures/garage-demo-lot1';
@@ -251,7 +255,12 @@ export async function creerAvoirTotalPourTest(
     );
   }
   const idAvoir = (brouillon.body as { donnees: { id: string } }).donnees.id;
-  const emission = await requeteJson(ctx, cookie, 'post', `/api/v1/documents-vente/${idAvoir}/emettre`);
+  const emission = await requeteJson(
+    ctx,
+    cookie,
+    'post',
+    `/api/v1/documents-vente/${idAvoir}/emettre`,
+  );
   if (emission.status !== 200) {
     throw new Error(
       `fixture relances : émission avoir sur ${factureId} a échoué (${String(emission.status)}) : ` +
@@ -277,7 +286,11 @@ export async function reglerFactureIntegralementPourTest(
     devise: 'CHF',
     payeurLibelle: 'Client de test relances',
     imputations: [
-      { documentId: params.factureId, montantCentimes: params.montantCentimes, nature: 'reglement' },
+      {
+        documentId: params.factureId,
+        montantCentimes: params.montantCentimes,
+        nature: 'reglement',
+      },
     ],
   });
   if (reponse.status !== 201) {
@@ -286,6 +299,54 @@ export async function reglerFactureIntegralementPourTest(
         JSON.stringify(reponse.body),
     );
   }
+}
+
+/**
+ * Simule une facture ÉMISE AVANT le correctif #17 (`0046_ligne_or_types_sans_temps_et_delai_paiement_tenant.sql`,
+ * `tenant.delai_paiement_jours_defaut`) — une ligne dont `date_echeance` est restée `null` en base,
+ * exactement comme une facture historique déjà chez un garage en production.
+ *
+ * POURQUOI PAS `creerFactureEmisePourTest` AVEC UN CLIENT SANS CONDITIONS (l'ancienne méthode) :
+ * depuis le correctif #17, `calculerDateEcheance` retombe sur `tenant.delai_paiement_jours_defaut`
+ * (30 jours) quand le client n'a aucune condition en vigueur — AUCUNE facture NOUVELLEMENT émise ne
+ * peut donc plus sortir sans échéance. Passer par ce chemin ne construit plus le cas visé, il
+ * construit une facture normale à échéance à 30 jours ; le test mentirait sur ce qu'il prouve.
+ *
+ * CONSTRUCTION : émission RÉELLE via l'API (mêmes triggers de numérotation/TVA/verrouillage que
+ * n'importe quelle facture), puis UNE SEULE colonne (`date_echeance`) est ramenée à `null` par
+ * écriture SQL directe — `session_replication_role = replica`, posé en `SET LOCAL` (donc scopé À
+ * LA TRANSACTION, jamais `SET SESSION` : la connexion revient ensuite au pool, un réglage qui y
+ * survivrait contaminerait silencieusement un autre test la réutilisant plus tard) — seul moyen de
+ * contourner `document_vente_verrouiller_apres_emission` (MD-20, `0010_facturation.sql`), dont la
+ * liste blanche n'inclut PAS `date_echeance` et NE DOIT PAS l'inclure : une facture émise
+ * aujourd'hui ne doit jamais pouvoir perdre son échéance par la voie applicative normale. Exige
+ * `poolSuperutilisateur` : `session_replication_role` n'est réglable que par un rôle superutilisateur,
+ * jamais par `dfa_app` (RLS).
+ */
+export async function simulerFactureHeritageSansEcheancePourTest(
+  ctx: AppTest,
+  bdd: BaseEphemere,
+  tenant: DonneesLot1Tenant,
+  cookiePour: CookiePour,
+  params: { readonly siteId: string; readonly clientId: string; readonly dateDocument: string },
+): Promise<FactureEcheeDeTest> {
+  const facture = await creerFactureEmisePourTest(ctx, tenant, cookiePour, params);
+  const client = await bdd.poolSuperutilisateur.connect();
+  try {
+    await client.query('begin');
+    await client.query('set local session_replication_role = replica');
+    await client.query(
+      `update public.document_vente set date_echeance = null where tenant_id = $1 and id = $2`,
+      [tenant.tenant.id, facture.id],
+    );
+    await client.query('commit');
+  } catch (erreur) {
+    await client.query('rollback').catch(() => undefined);
+    throw erreur;
+  } finally {
+    client.release();
+  }
+  return { ...facture, dateEcheance: null };
 }
 
 // -------------------------------------------------------------------------------------------
@@ -442,7 +503,11 @@ export async function envoyer(ctx: AppTest, cookie: string): Promise<ReponseEnvo
 export async function configurerRegleFactureEchue(
   ctx: AppTest,
   cookie: string,
-  params: { readonly actif: boolean; readonly delaisJours: readonly number[]; readonly canaux: readonly string[] },
+  params: {
+    readonly actif: boolean;
+    readonly delaisJours: readonly number[];
+    readonly canaux: readonly string[];
+  },
 ): Promise<{ readonly status: number; readonly body: Record<string, unknown> }> {
   const reponse = await ctx.requete
     .put('/api/v1/relances/regles/facture_echue')

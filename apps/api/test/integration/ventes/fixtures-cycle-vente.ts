@@ -128,7 +128,11 @@ export function mettreEnStock(
   });
 }
 
-export function getVehiculeStock(ctx: AppTest, cookie: string, vehiculeId: string): Promise<ReponseHttp> {
+export function getVehiculeStock(
+  ctx: AppTest,
+  cookie: string,
+  vehiculeId: string,
+): Promise<ReponseHttp> {
   return recuperer(ctx, cookie, `/api/v1/vehicules/${vehiculeId}/stock`);
 }
 
@@ -178,12 +182,20 @@ export function remettreDisponible(
 export function creerDossier(
   ctx: AppTest,
   cookie: string,
-  corps: { readonly siteId: string; readonly clientAcheteurId: string; readonly vehiculeId?: string },
+  corps: {
+    readonly siteId: string;
+    readonly clientAcheteurId: string;
+    readonly vehiculeId?: string;
+  },
 ): Promise<ReponseHttp> {
   return poster(ctx, cookie, '/api/v1/dossiers-vente', corps);
 }
 
-export function getDossier(ctx: AppTest, cookie: string, dossierVenteId: string): Promise<ReponseHttp> {
+export function getDossier(
+  ctx: AppTest,
+  cookie: string,
+  dossierVenteId: string,
+): Promise<ReponseHttp> {
   return recuperer(ctx, cookie, `/api/v1/dossiers-vente/${dossierVenteId}`);
 }
 
@@ -203,7 +215,11 @@ export function engager(
   );
 }
 
-export function preparer(ctx: AppTest, cookie: string, dossierVenteId: string): Promise<ReponseHttp> {
+export function preparer(
+  ctx: AppTest,
+  cookie: string,
+  dossierVenteId: string,
+): Promise<ReponseHttp> {
   return poster(ctx, cookie, `/api/v1/dossiers-vente/${dossierVenteId}/preparer`, {}, false);
 }
 
@@ -237,7 +253,11 @@ export function livrer(
   );
 }
 
-export function cloturer(ctx: AppTest, cookie: string, dossierVenteId: string): Promise<ReponseHttp> {
+export function cloturer(
+  ctx: AppTest,
+  cookie: string,
+  dossierVenteId: string,
+): Promise<ReponseHttp> {
   return poster(ctx, cookie, `/api/v1/dossiers-vente/${dossierVenteId}/cloturer`, {}, false);
 }
 
@@ -298,7 +318,11 @@ export function creerDocumentVente(
   });
 }
 
-export function emettreDocument(ctx: AppTest, cookie: string, documentId: string): Promise<ReponseHttp> {
+export function emettreDocument(
+  ctx: AppTest,
+  cookie: string,
+  documentId: string,
+): Promise<ReponseHttp> {
   return poster(ctx, cookie, `/api/v1/documents-vente/${documentId}/emettre`, {});
 }
 
@@ -329,7 +353,9 @@ export async function amenerDossierJusquAPretALivrer(
 ): Promise<DossierJusquApretALivrer> {
   const vehicule = await creerVehicule(ctx, cookie, suffixe);
   if (vehicule.status !== 201) {
-    throw new Error(`fixture cycle-vente : création véhicule échouée : ${JSON.stringify(vehicule.body)}`);
+    throw new Error(
+      `fixture cycle-vente : création véhicule échouée : ${JSON.stringify(vehicule.body)}`,
+    );
   }
   const vehiculeId = (vehicule.body as { donnees: { id: string } }).donnees.id;
 
@@ -340,7 +366,9 @@ export async function amenerDossierJusquAPretALivrer(
 
   const dossier = await creerDossier(ctx, cookie, { siteId, clientAcheteurId, vehiculeId });
   if (dossier.status !== 201) {
-    throw new Error(`fixture cycle-vente : création dossier échouée : ${JSON.stringify(dossier.body)}`);
+    throw new Error(
+      `fixture cycle-vente : création dossier échouée : ${JSON.stringify(dossier.body)}`,
+    );
   }
   const dossierVenteId = (dossier.body as { donnees: { id: string } }).donnees.id;
 
@@ -380,17 +408,23 @@ export async function amenerDossierJusquAPretALivrer(
 
   const preparation = await preparer(ctx, cookie, dossierVenteId);
   if (preparation.status >= 300) {
-    throw new Error(`fixture cycle-vente : préparation échouée : ${JSON.stringify(preparation.body)}`);
+    throw new Error(
+      `fixture cycle-vente : préparation échouée : ${JSON.stringify(preparation.body)}`,
+    );
   }
 
   const financement = await creerFinancementComptant(ctx, cookie, dossierVenteId);
   if (financement.status !== 201) {
-    throw new Error(`fixture cycle-vente : financement échoué : ${JSON.stringify(financement.body)}`);
+    throw new Error(
+      `fixture cycle-vente : financement échoué : ${JSON.stringify(financement.body)}`,
+    );
   }
 
   const pret = await marquerPretALivrer(ctx, cookie, dossierVenteId);
   if (pret.status >= 300) {
-    throw new Error(`fixture cycle-vente : marquer-pret-a-livrer échoué : ${JSON.stringify(pret.body)}`);
+    throw new Error(
+      `fixture cycle-vente : marquer-pret-a-livrer échoué : ${JSON.stringify(pret.body)}`,
+    );
   }
 
   return { vehiculeId, dossierVenteId, bonCommandeId };

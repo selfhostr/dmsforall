@@ -15,6 +15,7 @@ import type {
 } from '../common/idempotence';
 import type { LigneMouvementStock } from '../db/schema';
 import { ServiceMouvement } from './service-mouvement';
+import type { ServiceReservation } from './service-reservation';
 
 const CTX: ContexteTenant = { tenantId: 'tid-1', utilisateurId: 'u1', requeteId: null };
 
@@ -86,6 +87,23 @@ function accesFactice(tx: TransactionDfa): AccesBase {
     verifierConnexion: vi.fn(),
     verifierPostureRls: vi.fn(),
   };
+}
+
+/**
+ * Stub de `ServiceReservation` injecté (0047, cascade de libération forcée) : `libererPourCascade
+ * ForcageTx` en no-op silencieux (`[]`, aucune réservation à libérer) — c'est le comportement
+ * réellement exercé par TOUS les tests de ce fichier : `libererCascadeSiNecessaire`
+ * (`service-mouvement.ts`) ne l'appelle QUE quand `reservee > max(physiqueApres, 0)`, et chaque
+ * `executes` de ce fichier pose `reservee: 0`, donc `max(physiqueApres, 0) >= 0 = reservee`
+ * TOUJOURS — la branche retourne avant d'atteindre `ServiceReservation`. Seul
+ * `service-reservation.spec.ts` exerce `libererPourCascadeForcageTx` lui-même ; l'intégration
+ * complète (cascade RÉELLE, contrainte SQL relâchée par 0047) est prouvée par
+ * `test/lot2/pieces/pont-atelier-pieces.spec.ts`, section `pieces.mouvement.forcer`.
+ */
+function reservationFactice(): ServiceReservation {
+  return {
+    libererPourCascadeForcageTx: vi.fn(async () => []),
+  } as unknown as ServiceReservation;
 }
 
 function idempotenceFactice(tx: TransactionDfa): ServiceIdempotence {
@@ -160,7 +178,11 @@ describe('ServiceMouvement.sortieComptoir — ouvre la vente directe au comptoir
     poserRetourInsert([
       ligneMouvement({ type: 'sortie_comptoir', quantiteMillieme: -3000, motif: null }),
     ]);
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const resultat = await service.sortieComptoir(
       CTX,
@@ -187,7 +209,11 @@ describe('ServiceMouvement.sortieComptoir — ouvre la vente directe au comptoir
       // physique 2000, réservée 500 → disponible 1500 < 3000 demandés.
       executes: [{ rows: [{ physique: 2000, reservee: 500 }] }],
     });
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     await expect(
       service.sortieComptoir(CTX, 'magasinier', 'a1', ENTREE_SORTIE_COMPTOIR, 'idem-sc-2'),
@@ -201,7 +227,11 @@ describe('ServiceMouvement.sortieComptoir — ouvre la vente directe au comptoir
       executes: [{ rows: [{ physique: 5000, reservee: 0 }] }],
     });
     poserRetourInsert([ligneMouvement({ type: 'sortie_comptoir', quantiteMillieme: -3000 })]);
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     await service.sortieComptoir(CTX, 'magasinier', 'a1', ENTREE_SORTIE_COMPTOIR, 'idem-sc-3');
 
@@ -212,7 +242,11 @@ describe('ServiceMouvement.sortieComptoir — ouvre la vente directe au comptoir
     const { tx, insertValuesArgs } = txFactice({
       selects: [[]], // chargerArticleOu404 : aucune ligne pour (tenantId, articleId)
     });
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     await expect(
       service.sortieComptoir(CTX, 'magasinier', 'a1', ENTREE_SORTIE_COMPTOIR, 'idem-sc-4'),
@@ -229,7 +263,7 @@ describe('ServiceMouvement.sortieComptoir — ouvre la vente directe au comptoir
       ligneMouvement({ id: 'm-sc-1', type: 'sortie_comptoir', quantiteMillieme: -3000 }),
     ]);
     const { service: idempotence, compteurAppelsTravail } = idempotenceAvecCache(tx);
-    const service = new ServiceMouvement(accesFactice(tx), idempotence);
+    const service = new ServiceMouvement(accesFactice(tx), idempotence, reservationFactice());
 
     const premier = await service.sortieComptoir(
       CTX,
@@ -267,7 +301,11 @@ describe('ServiceMouvement.retourClient — le client rapporte une pièce, remis
         motif: ENTREE_RETOUR_CLIENT.motif,
       }),
     ]);
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const resultat = await service.retourClient(
       CTX,
@@ -297,7 +335,11 @@ describe('ServiceMouvement.retourClient — le client rapporte une pièce, remis
       selects: [[{ id: 'a1' }], [{ id: 's1' }]],
     });
     poserRetourInsert([ligneMouvement({ type: 'retour_client', quantiteMillieme: 1000 })]);
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     await service.retourClient(CTX, 'magasinier', 'a1', ENTREE_RETOUR_CLIENT, 'idem-rc-2');
 
@@ -312,7 +354,7 @@ describe('ServiceMouvement.retourClient — le client rapporte une pièce, remis
       ligneMouvement({ id: 'm-rc-1', type: 'retour_client', quantiteMillieme: 1000 }),
     ]);
     const { service: idempotence, compteurAppelsTravail } = idempotenceAvecCache(tx);
-    const service = new ServiceMouvement(accesFactice(tx), idempotence);
+    const service = new ServiceMouvement(accesFactice(tx), idempotence, reservationFactice());
 
     const premier = await service.retourClient(
       CTX,
@@ -339,7 +381,11 @@ describe('ServiceMouvement.retourClient — le client rapporte une pièce, remis
     const { tx, insertValuesArgs } = txFactice({
       selects: [[]],
     });
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     await expect(
       service.retourClient(CTX, 'magasinier', 'a1', ENTREE_RETOUR_CLIENT, 'idem-rc-3'),
@@ -357,7 +403,11 @@ describe('ServiceMouvement.casse — RP-15/PP-02 : le disponible protège contre
       // physique 1000, réservée 0 → disponible 1000 < 2000 demandés.
       executes: [{ rows: [{ physique: 1000, reservee: 0 }] }],
     });
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     await expect(
       service.casse(CTX, 'magasinier', 'a1', ENTREE_CASSE, 'idem-1'),
@@ -374,7 +424,11 @@ describe('ServiceMouvement.casse — RP-15/PP-02 : le disponible protège contre
       executes: [{ rows: [{ physique: 5000, reservee: 500 }] }], // disponible 4500 >= 2000
     });
     poserRetourInsert([ligneMouvement()]);
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const resultat = await service.casse(CTX, 'magasinier', 'a1', ENTREE_CASSE, 'idem-2');
 
@@ -394,7 +448,11 @@ describe('ServiceMouvement.casse — RP-15/PP-02 : le disponible protège contre
       executes: [{ rows: [{ physique: 1000, reservee: 0 }] }], // disponible 1000 < 2000, mais forcer=true
     });
     poserRetourInsert([ligneMouvement()]);
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const resultat = await service.casse(
       CTX,
@@ -416,7 +474,11 @@ describe('ServiceMouvement — pieces.mouvement.forcer (audit sécurité, forcer
       // (chargerArticleOu404 inclus) est que consommer un jeu vide ferait échouer le test par une
       // erreur différente (undefined) plutôt que par le rejet attendu — voir l'assertion ci-dessous.
     });
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     await expect(
       service.casse(CTX, 'technicien', 'a1', { ...ENTREE_CASSE, forcer: true }, 'idem-forcer-1'),
@@ -426,7 +488,11 @@ describe('ServiceMouvement — pieces.mouvement.forcer (audit sécurité, forcer
 
   it('`perte` avec `forcer: true` par un rôle sans le droit est refusé de la même façon (même garde que casse)', async () => {
     const { tx, insertValuesArgs } = txFactice({});
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     await expect(
       service.perte(CTX, 'chef_atelier', 'a1', { ...ENTREE_CASSE, forcer: true }, 'idem-forcer-2'),
@@ -440,7 +506,11 @@ describe('ServiceMouvement — pieces.mouvement.forcer (audit sécurité, forcer
       executes: [{ rows: [{ physique: 5000, reservee: 0 }] }], // disponible 5000 >= 2000, pas besoin de forcer
     });
     poserRetourInsert([ligneMouvement()]);
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const resultat = await service.casse(
       CTX,
@@ -459,7 +529,11 @@ describe('ServiceMouvement — pieces.mouvement.forcer (audit sécurité, forcer
       selects: [[{ id: 'a1' }], [{ id: 's1' }]],
       executes: [{ rows: [{ physique: 500, reservee: 0 }] }], // disponible 500 < 2000
     });
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     await expect(
       service.casse(CTX, 'technicien', 'a1', { ...ENTREE_CASSE, forcer: false }, 'idem-forcer-4'),
@@ -473,7 +547,11 @@ describe('ServiceMouvement — pieces.mouvement.forcer (audit sécurité, forcer
       executes: [{ rows: [{ physique: 1000, reservee: 0 }] }], // disponible 1000 < 2000, forcer=true couvre
     });
     poserRetourInsert([ligneMouvement()]);
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const resultat = await service.perte(
       CTX,
@@ -501,7 +579,11 @@ describe('ServiceMouvement.sortieComptoirPourLigneTx — pont facturation (RP-43
         documentVenteLigneId: 'ligne-doc-1',
       }),
     ]);
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const reponse = await service.sortieComptoirPourLigneTx(tx, CTX, 'vendeur', {
       articleId: 'a1',
@@ -527,7 +609,11 @@ describe('ServiceMouvement.sortieComptoirPourLigneTx — pont facturation (RP-43
       selects: [[{ id: 'a1' }], [{ id: 's1' }]],
       executes: [{ rows: [{ physique: 500, reservee: 0 }] }], // disponible 500 < 1000
     });
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     await expect(
       service.sortieComptoirPourLigneTx(tx, CTX, 'vendeur', {
@@ -554,7 +640,11 @@ describe('ServiceMouvement.retourClientPourLigneTx — pont facturation (RP-46),
         documentVenteLigneId: 'ligne-avoir-1',
       }),
     ]);
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const reponse = await service.retourClientPourLigneTx(tx, CTX, 'direction', {
       articleId: 'a1',
@@ -584,7 +674,11 @@ describe('ServiceMouvement.trouverMouvementParLigneDocumentTx — retrouve le mo
     const tx = {
       execute: vi.fn(() => Promise.resolve(executes.shift() ?? { rows: [] })),
     } as unknown as TransactionDfa;
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const mouvement = await service.trouverMouvementParLigneDocumentTx(tx, CTX, 'ligne-doc-9');
 
@@ -593,7 +687,11 @@ describe('ServiceMouvement.trouverMouvementParLigneDocumentTx — retrouve le mo
 
   it('rend `null` quand aucun mouvement ne référence cette ligne (cas normal : ligne sans article, forfait, main d’œuvre…)', async () => {
     const tx = { execute: vi.fn(() => Promise.resolve({ rows: [] })) } as unknown as TransactionDfa;
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const mouvement = await service.trouverMouvementParLigneDocumentTx(
       tx,
@@ -611,7 +709,11 @@ describe('ServiceMouvement.ajustementInventaire — §7.6 : un compte qui corres
       selects: [[{ id: 'a1', prixAchatCentimes: null }], [{ id: 's1' }]],
       executes: [{ rows: [{ physique: 3000, reservee: 0 }] }],
     });
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const resultat = await service.ajustementInventaire(
       CTX,
@@ -632,7 +734,11 @@ describe('ServiceMouvement.ajustementInventaire — §7.6 : un compte qui corres
       executes: [{ rows: [{ physique: 3000, reservee: 0 }] }],
     });
     poserRetourInsert([ligneMouvement({ type: 'ajustement_inventaire', quantiteMillieme: -500 })]);
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const resultat = await service.ajustementInventaire(
       CTX,
@@ -678,7 +784,11 @@ describe('ServiceMouvement.lister — masquage de prixAchatReelCentimes par rôl
 
   it('magasinier (rôle habilité, hors ROLES_SANS_PRIX_ACHAT_PIECES) : prixAchatReelCentimes est visible', async () => {
     const tx = txListeFactice([MOUVEMENT_ENTREE_LIVRAISON]);
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const page = await service.lister(CTX, 'magasinier', 'a1', FILTRES_DEFAUT);
 
@@ -687,7 +797,11 @@ describe('ServiceMouvement.lister — masquage de prixAchatReelCentimes par rôl
 
   it('PREUVE PAR FALSIFICATION — technicien (ROLES_SANS_PRIX_ACHAT_PIECES) : prixAchatReelCentimes est masqué (null), jamais la valeur brute', async () => {
     const tx = txListeFactice([MOUVEMENT_ENTREE_LIVRAISON]);
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const page = await service.lister(CTX, 'technicien', 'a1', FILTRES_DEFAUT);
 
@@ -702,7 +816,11 @@ describe('ServiceMouvement.lister — masquage de prixAchatReelCentimes par rôl
   it('vendeur, receptionnaire, admin : même masquage (ROLES_SANS_PRIX_ACHAT_PIECES complet)', async () => {
     for (const role of ['vendeur', 'receptionnaire', 'admin'] as const) {
       const tx = txListeFactice([MOUVEMENT_ENTREE_LIVRAISON]);
-      const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+      const service = new ServiceMouvement(
+        accesFactice(tx),
+        idempotenceFactice(tx),
+        reservationFactice(),
+      );
       const page = await service.lister(CTX, role, 'a1', FILTRES_DEFAUT);
       expect(page.donnees[0]?.prixAchatReelCentimes).toBeNull();
     }
@@ -710,7 +828,11 @@ describe('ServiceMouvement.lister — masquage de prixAchatReelCentimes par rôl
 
   it('un mouvement sans prix (casse, perte…) reste `null` quel que soit le rôle — le masquage ne fabrique jamais une distinction inverse', async () => {
     const tx = txListeFactice([{ type: 'casse', prixAchatReelCentimes: null }]);
-    const service = new ServiceMouvement(accesFactice(tx), idempotenceFactice(tx));
+    const service = new ServiceMouvement(
+      accesFactice(tx),
+      idempotenceFactice(tx),
+      reservationFactice(),
+    );
 
     const page = await service.lister(CTX, 'magasinier', 'a1', FILTRES_DEFAUT);
 

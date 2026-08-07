@@ -475,6 +475,149 @@ describe('ServiceDossierVente.livrer — traduction de la violation de contraint
 });
 
 /**
+ * BUG CORRIGÉ (issue GitHub #13, « Impossible de livrer un véhicule le jour même ») : livrer avec
+ * `dateLivraisonEffective` = aujourd'hui échouait SYSTÉMATIQUEMENT dès que le véhicule portait déjà
+ * une détention ouverte le même jour civil — le cas le plus courant en concession (client qui paie
+ * et repart avec sa voiture le jour même). Confirmé en conditions réelles contre le Postgres de dev
+ * (rôle `dfa_app`, RLS actif) avant ce correctif : `update vehicule_detention set au =
+ * current_date ... where du = current_date` lève `vehicule_detention_periode_chk` (`au > du`
+ * STRICT, deux `date` Postgres sans heure) — deux dates civiles ÉGALES, même si les instants réels
+ * diffèrent de plusieurs heures, ne satisfont jamais `>`.
+ *
+ * Niveau de comparaison retenu : le JOUR CIVIL, PAS l'instant. `vehicule_detention.du`/`au` sont
+ * des `date` Postgres et `EntreeActionLivrer.dateLivraisonEffective` un `schemaDateJour` — aucune
+ * heure n'existe nulle part dans cette donnée, la comparer à la microseconde près serait inventer
+ * une précision que le contrat n'offre pas. Fuseau : AUCUNE conversion n'a lieu dans ce correctif —
+ * `detentionOuverte.du` et `entree.dateLivraisonEffective` sont comparés comme deux CHAÎNES
+ * `aaaa-mm-jj` telles que reçues, jamais reconstruites en `Date`/UTC côté serveur. C'est
+ * délibéré : construire un `Date` à partir d'une `schemaDateJour` (ex. `new Date('2026-08-06')`)
+ * l'ancre à minuit UTC, alors que « aujourd'hui » n'a de sens qu'en Europe/Zurich pour un comptoir
+ * suisse — une comparaison naïve en UTC décalerait la frontière de minuit et rendrait le bug
+ * intermittent selon l'heure de la journée (pire que le défaut actuel). En ne touchant JAMAIS ces
+ * deux chaînes, le correctif est structurellement immunisé contre ce décalage, quelle que soit
+ * l'heure UTC de `this.horloge.maintenant()` au moment de l'appel (vérifié ci-dessous, cas « bornes
+ * du fuseau »).
+ */
+describe('ServiceDossierVente.livrer — issue #13 : livraison le jour même d’une détention déjà ouverte', () => {
+  it(
+    'détention ouverte CE MÊME jour (quelques heures plus tôt) : transfert du détenteur sur la ' +
+      'MÊME ligne — ni clôture (`au`/`motifFin`), ni nouvelle ligne, `du` jamais modifié',
+    async () => {
+      vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(dossierFixture());
+      vi.mocked(references.chargerVehiculeStockPourEcriture).mockResolvedValue(
+        vehiculeStockVenduFixture(),
+      );
+      vi.mocked(references.chargerRepriseParDossierOuNull).mockResolvedValue(null);
+      vi.mocked(references.chargerDossierVente).mockResolvedValue(
+        dossierFixture({ statut: 'livre' }),
+      );
+
+      // La détention a été ouverte le jour même (`du` = `dateLivraisonEffective` = '2026-08-01'),
+      // par ex. à 09h12 — l'heure réelle n'apparaît nulle part côté `du` (colonne `date`), ce test
+      // n'en a donc pas besoin pour prouver que ce n'est PAS traité comme un conflit.
+      const { tx, insertCalls, updateCalls } = txFactice([
+        [{ id: 'detention-meme-jour', du: '2026-08-01' }],
+      ]);
+      const svc = serviceFactice(accesFactice(tx));
+
+      // Ne doit PAS rejeter — c'est exactement le 400 constaté par l'issue #13 sur cette même
+      // configuration (détention ouverte le jour même) avant le correctif.
+      await svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE);
+
+      const updatesDetention = updateCalls.filter((c) => c.table === vehiculeDetention);
+      expect(updatesDetention).toHaveLength(1);
+      // Transfert du détenteur EN PLACE : uniquement `clientId`, ni `au` ni `motifFin` — la ligne
+      // reste ouverte, `du` (déjà enregistré) n'est jamais réécrit.
+      expect(updatesDetention[0]?.champs).toStrictEqual({ clientId: 'client-acheteur-1' });
+
+      // Aucune nouvelle ligne `vehicule_detention` : contrairement au cas général, ce jour est
+      // absorbé par la ligne déjà ouverte (deux lignes distinctes pour le même jour civil
+      // violeraient de toute façon `vehicule_detention_unicite_excl`).
+      expect(insertCalls.filter((c) => c.table === vehiculeDetention)).toHaveLength(0);
+    },
+  );
+
+  it(
+    'détention ouverte AVANT ce jour (cas général, non régressé) : clôture (`au`/`motifFin` = ' +
+      "`vente`) PUIS ouverture d'une nouvelle ligne pour le nouveau détenteur",
+    async () => {
+      vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(dossierFixture());
+      vi.mocked(references.chargerVehiculeStockPourEcriture).mockResolvedValue(
+        vehiculeStockVenduFixture(),
+      );
+      vi.mocked(references.chargerRepriseParDossierOuNull).mockResolvedValue(null);
+      vi.mocked(references.chargerDossierVente).mockResolvedValue(
+        dossierFixture({ statut: 'livre' }),
+      );
+
+      const { tx, insertCalls, updateCalls } = txFactice([
+        [{ id: 'detention-passee', du: '2026-07-20' }],
+      ]);
+      const svc = serviceFactice(accesFactice(tx));
+
+      await svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE);
+
+      const updatesDetention = updateCalls.filter((c) => c.table === vehiculeDetention);
+      expect(updatesDetention).toHaveLength(1);
+      expect(updatesDetention[0]?.champs).toStrictEqual({
+        au: '2026-08-01',
+        motifFin: 'vente',
+      });
+
+      const nouvelleDetention = insertCalls.find((c) => c.table === vehiculeDetention);
+      expect(nouvelleDetention?.valeurs).toMatchObject({
+        vehiculeId: VEHICULE_VENDU_ID,
+        clientId: 'client-acheteur-1',
+        du: '2026-08-01',
+      });
+    },
+  );
+
+  it(
+    'bornes du fuseau : le résultat ne dépend QUE des chaînes `du`/`dateLivraisonEffective`, ' +
+      'jamais de l’instant UTC de `horloge.maintenant()` — même juste avant/après minuit',
+    async () => {
+      // `maintenant()` posé à 22h50 UTC, soit déjà après minuit à Zurich (CEST, UTC+2, l'été) —
+      // si le correctif reconstruisait une `Date` UTC quelque part pour comparer les jours, cette
+      // horloge-là ferait basculer le jour retenu et casserait le cas « même jour ». Il ne le fait
+      // pas : `du`/`dateLivraisonEffective` restent comparés en chaînes brutes, immunisés.
+      const horlogeProcheMinuitUtc: Horloge = {
+        maintenant: () => new Date('2026-08-01T22:50:00.000Z'),
+      } as unknown as Horloge;
+
+      vi.mocked(references.chargerDossierVentePourEcriture).mockResolvedValue(dossierFixture());
+      vi.mocked(references.chargerVehiculeStockPourEcriture).mockResolvedValue(
+        vehiculeStockVenduFixture(),
+      );
+      vi.mocked(references.chargerRepriseParDossierOuNull).mockResolvedValue(null);
+      vi.mocked(references.chargerDossierVente).mockResolvedValue(
+        dossierFixture({ statut: 'livre' }),
+      );
+
+      const { tx, insertCalls, updateCalls } = txFactice([
+        [{ id: 'detention-meme-jour', du: '2026-08-01' }],
+      ]);
+      const acces = accesFactice(tx);
+      const svc = new ServiceDossierVente(
+        acces as never,
+        {} as never,
+        {} as never,
+        horlogeProcheMinuitUtc,
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.spyOn(svc as any, 'assembler').mockResolvedValue({} as never);
+
+      await svc.livrer(CTX, 'direction', DOSSIER_ID, ENTREE);
+
+      const updatesDetention = updateCalls.filter((c) => c.table === vehiculeDetention);
+      expect(updatesDetention).toHaveLength(1);
+      expect(updatesDetention[0]?.champs).toStrictEqual({ clientId: 'client-acheteur-1' });
+      expect(insertCalls.filter((c) => c.table === vehiculeDetention)).toHaveLength(0);
+    },
+  );
+});
+
+/**
  * DÉFAUT CORRIGÉ (tests d'intégration) : `preparer`, `marquerPretALivrer` et `cloturer` n'avaient
  * AUCUNE garde applicative de rejeu — contrairement à `engager`/`livrer`, qui échouent déjà
  * indirectement via l'état du véhicule associé. Le trigger générique `verifier_transition()`

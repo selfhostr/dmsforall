@@ -57,9 +57,12 @@ export async function upserterRegleRelance(
 
 /** `POST /relances/facturation/planifier` — idempotent, rejouable sans dommage (RA-05). */
 export async function planifierRelancesFacture(): Promise<ReponsePlanificationRelances> {
-  const reponse = await requeteApi<ReponsePlanificationRelances>('/relances/facturation/planifier', {
-    method: 'POST',
-  });
+  const reponse = await requeteApi<ReponsePlanificationRelances>(
+    '/relances/facturation/planifier',
+    {
+      method: 'POST',
+    },
+  );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /relances/facturation/planifier.');
   }

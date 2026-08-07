@@ -168,8 +168,8 @@ première, pas la dernière.
 
 **Réserve importante.** Le dépôt pneus a un second point d'entrée, et c'est même le principal :
 **la fiche du véhicule**. On n'ouvre pas « le hangar » pour chercher un jeu ; le client arrive, on
-ouvre son véhicule, et on doit lire là *« jeu hiver au dépôt, emplacement C-14, posé le
-12.11.2025 »*. Le menu Magasin sert au magasinier qui range ; la fiche véhicule sert au
+ouvre son véhicule, et on doit lire là _« jeu hiver au dépôt, emplacement C-14, posé le
+12.11.2025 »_. Le menu Magasin sert au magasinier qui range ; la fiche véhicule sert au
 réceptionniste qui reçoit — et il y a dix fois plus de réceptionnistes que de magasiniers.
 
 ### 4.4 Ce qui descend d'un niveau
@@ -268,7 +268,7 @@ trouver un véhicule.
 
 ### Le fil d'Ariane doit porter le contexte, pas l'adresse
 
-Sur un OR, le haut de l'écran doit dire *qui* et *quoi*, chaque morceau cliquable :
+Sur un OR, le haut de l'écran doit dire _qui_ et _quoi_, chaque morceau cliquable :
 
 ```
 Martin SA  ›  VD 123 456 · Golf VII  ›  OR-2026-0184
@@ -283,7 +283,7 @@ qui appartient à Martin SA.
 « Pas un milliard de boutons partout » : la règle qui rend ça vrai, c'est **une seule action primaire
 par écran**, en couleur, à un endroit constant. Tout le reste — corriger, annuler, dupliquer,
 imprimer, exporter — descend derrière un bouton « … ». Sur un OR, l'action primaire change avec
-l'état du dossier : *Ajouter une ligne* quand il est en cours, *Facturer* quand tout est réalisé.
+l'état du dossier : _Ajouter une ligne_ quand il est en cours, _Facturer_ quand tout est réalisé.
 L'écran répond à « et maintenant, je fais quoi ? » sans qu'on ait à choisir.
 
 ## 6. Ce que je pense, sans ménagement
@@ -319,7 +319,7 @@ de paramétrage. Dix entrées supprimées d'un coup sans perdre une seule foncti
 existent toutes, mais à l'endroit où on en a besoin.
 
 **Ce que je n'ajouterais pas, malgré la tentation :** des compteurs partout. Deux pastilles au
-maximum — les OR ouverts sur *Atelier*, les factures en retard sur *Facturation*. Un menu qui
+maximum — les OR ouverts sur _Atelier_, les factures en retard sur _Facturation_. Un menu qui
 clignote de partout ne signale plus rien.
 
 ## 7. Questions à @laupernoe

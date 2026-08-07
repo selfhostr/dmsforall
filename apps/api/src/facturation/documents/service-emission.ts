@@ -46,10 +46,15 @@ import {
   listerLignesDocumentPourEcriture,
   sommerAvoirsEmisPourFacture,
 } from './document-requetes';
-import { calculerDateEcheance, lireDelaiPaiementJoursFige } from './echeance';
+import {
+  calculerDateEcheance,
+  lireDelaiPaiementJoursFige,
+  resoudreDelaiPaiementJours,
+} from './echeance';
 import { traduireErreurDocument } from './erreurs-sql-document';
 import { genererNumeroDocument } from './numerotation';
 import { construireBlocQrPourEmission, resoudreBlocCreancierPourEmission } from './qr-emission';
+import { chargerDelaiPaiementJoursDefautTenant } from './references';
 import { adresseDepuisJsonb, ServiceDocumentsVente } from './service-documents';
 
 /**
@@ -219,17 +224,27 @@ export class ServiceEmissionDocument {
         // verrouillage (MD-20) refuse toute modification ultérieure de `date_echeance` dès que
         // `statut` quitte `brouillon`, exactement comme `total_ttc_centimes` ci-dessous. Uniquement
         // pour une FACTURE : un devis/bon de commande n'est jamais « dû », un avoir crédite le
-        // client au lieu de se faire payer (aucun des deux n'a de date d'échéance). `null` si le
-        // client n'a aucun délai de paiement structuré figé à la création du document
-        // (`conditionsPaiementFigees` — voir le raisonnement complet dans `echeance.ts`) : jamais une
-        // échéance fabriquée à partir d'un défaut codé en dur.
-        const dateEcheance =
-          doc.typeDocument === 'facture'
-            ? calculerDateEcheance(
-                doc.dateDocument ?? dateDocumentReference.toISOString().slice(0, 10),
-                lireDelaiPaiementJoursFige(doc.conditionsPaiementFigees),
-              )
-            : null;
+        // client au lieu de se faire payer (aucun des deux n'a de date d'échéance).
+        //
+        // ISSUE #17 (migration 0046, DÉCISION ARBITRÉE SANS LE MAINTENEUR — voir l'en-tête de la migration
+        // et de `echeance.ts` pour la justification complète) : le délai du CLIENT figé à la
+        // création du document (`conditionsPaiementFigees`) l'emporte TOUJOURS quand il existe ;
+        // c'est SEULEMENT en son absence totale que le défaut du TENANT
+        // (`tenant.delai_paiement_jours_defaut`) prend le relais — jamais un `null` qui rendrait
+        // la facture inexigible et invisible aux relances automatiques. `chargerDelaiPaiement
+        // JoursDefautTenant` n'est appelée QUE dans ce cas résiduel (client sans délai propre),
+        // jamais sur le chemin où le client est déjà correctement paramétré : la requête
+        // supplémentaire n'est payée que quand elle sert réellement.
+        let dateEcheance: string | null = null;
+        if (doc.typeDocument === 'facture') {
+          const delaiClientFige = lireDelaiPaiementJoursFige(doc.conditionsPaiementFigees);
+          const delaiTenantDefaut =
+            delaiClientFige === null ? await chargerDelaiPaiementJoursDefautTenant(tx, ctx) : null;
+          dateEcheance = calculerDateEcheance(
+            doc.dateDocument ?? dateDocumentReference.toISOString().slice(0, 10),
+            resoudreDelaiPaiementJours(delaiClientFige, delaiTenantDefaut),
+          );
+        }
 
         // 3.7. BUG CORRIGÉ (MD-53, encours clients du tableau de bord) : `solde_centimes` (défaut
         // 0 en base, migration 0010) n'était JAMAIS initialisé à l'émission — seule une imputation

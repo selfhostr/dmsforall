@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, exists, inArray } from 'drizzle-orm';
 import type {
   AttentesOr,
   ClientResume,
@@ -18,6 +18,7 @@ import type {
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import {
   client,
+  ligneOr,
   ordreReparation,
   ordreReparationDemande,
   type LigneLigneOr,
@@ -571,11 +572,24 @@ export class ServiceOr {
 
   /**
    * `GET /ordres-reparation` — SOUS-ENSEMBLE des filtres du contrat (§6.2) : `siteId`, `statut`
-   * (multi), `clientId`, `vehiculeId`, tri `ouvertLe:desc` par défaut. SIMPLIFICATION SIGNALÉE :
-   * `vue`, `attente`, `localisation`, `q`, `technicienId`, les bornes de date et les tris
-   * alternatifs ne sont pas câblés dans cette passe — chacun est une combinaison de filtres
+   * (multi), `clientId`, `vehiculeId`, `technicienId`, tri `ouvertLe:desc` par défaut.
+   * SIMPLIFICATION SIGNALÉE : `vue`, `attente`, `localisation`, `q`, les bornes de date et les
+   * tris alternatifs ne sont pas câblés dans cette passe — chacun est une combinaison de filtres
    * primitifs déjà exprimable par `statut`/`siteId` pour l'essentiel des vues, et la recherche
    * plein texte (`q`) est le périmètre de `recherche/` (L1-11), pas d'`atelier`.
+   *
+   * `technicienId` (I-18/#19) : « OR du technicien » = porte AU MOINS UNE ligne (`ligne_or`,
+   * tout statut confondu — y compris `annulee`/`realisee` : un OR déjà travaillé par ce
+   * technicien reste « le sien » pour la navigation) dont `technicien_id` vaut la valeur
+   * demandée. Implémenté en `exists(...)` (corrélé sur `tenant_id` + `ordre_reparation_id`),
+   * jamais en jointure : une jointure sur `ligne_or` dupliquerait l'OR par ligne assignée et
+   * casserait la pagination par curseur d'offset ci-dessous (le compte de lignes ne correspond
+   * plus au compte d'OR). Le pointage sans ligne assignée (technicien qui dépanne une ligne
+   * d'un collègue) N'EST PAS inclus : le contrat expose déjà `technicienId` comme un filtre sur
+   * l'ASSIGNATION (§6.2, `ligne.ts` `technicienId` porté par la ligne, pas par le pointage), et
+   * « Mes OR du jour » doit rester une garantie stricte (aucun OR sans ligne assignée) plutôt
+   * qu'une heuristique élargie — un filtre `attentePointage` séparé serait la bonne extension si
+   * ce second besoin se confirme, pas une redéfinition silencieuse de celui-ci.
    */
   async lister(
     ctx: ContexteTenant,
@@ -591,6 +605,23 @@ export class ServiceOr {
       if (filtres.vehiculeId) conditions.push(eq(ordreReparation.vehiculeId, filtres.vehiculeId));
       if (filtres.statut && filtres.statut.length > 0)
         conditions.push(inArray(ordreReparation.statut, filtres.statut));
+      if (filtres.technicienId) {
+        const technicienId = filtres.technicienId;
+        conditions.push(
+          exists(
+            tx
+              .select({ id: ligneOr.id })
+              .from(ligneOr)
+              .where(
+                and(
+                  eq(ligneOr.tenantId, ordreReparation.tenantId),
+                  eq(ligneOr.ordreReparationId, ordreReparation.id),
+                  eq(ligneOr.technicienId, technicienId),
+                ),
+              ),
+          ),
+        );
+      }
 
       const decalage = decoderCurseurOffset(curseur);
       const lignes = await tx

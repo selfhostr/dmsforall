@@ -145,7 +145,23 @@ const DEFINITIONS_TRI_DOSSIERS_VENTE: Readonly<Record<FiltresDossiersVente['tri'
  *    inventer une règle métier. Remonté à l'orchestrateur avec le détail ci-dessus (rapport de
  *    livraison) plutôt que corrigé silencieusement ou laissé sous un faux prétexte technique ;
  *  - `documents-requis/marquer` est UPDATE-ONLY : `schemaMarquerDocumentRequis` ne porte pas de
- *    `libelle`, impossible de CRÉER un item sans texte d'affichage tant que `PV-03` n'existe pas.
+ *    `libelle`, impossible de CRÉER un item sans texte d'affichage tant que `PV-03` n'existe pas ;
+ *  - `livrer` avec `dateLivraisonEffective` = aujourd'hui — le cas le plus fréquent du comptoir
+ *    (issue #13) — FONCTIONNE désormais même quand la détention actuellement ouverte du véhicule a
+ *    démarré CE MÊME jour civil (`vehicule_detention.du`/`au` sont des `date`, sans heure : deux
+ *    dates égales, même si les instants réels diffèrent de plusieurs heures) : dans ce cas précis,
+ *    le détenteur est transféré sur la ligne déjà ouverte plutôt que clôturée/réouverte (la clôture
+ *    échouerait sur `vehicule_detention_periode_chk`, `au > du` strict — voir le commentaire au
+ *    bloc concerné). Une `dateLivraisonEffective` réellement ANTÉRIEURE au début d'une détention
+ *    déjà ouverte reste refusée, à raison. Le même défaut affecte la clôture de la détention du
+ *    véhicule REPRIS (RV-23) sans solution symétrique possible (pas de nouveau détenteur à qui
+ *    transférer, `QV-01` non tranché) — dans ce sous-cas seulement, la détention du véhicule repris
+ *    reste ouverte plutôt que de faire échouer toute la livraison, voir le commentaire au bloc RV-24.
+ *  - `livrer` exige que la facture soit DÉJÀ ÉMISE (`VENTE_VEHICULE_INDISPONIBLE` sinon, RV-37) —
+ *    l'ordre réel du parcours est donc engager → préparer → prêt à livrer → **facturer** →
+ *    livrer, et non « prêt à livrer → livrer » : ce n'est pas un défaut (un véhicule livré doit
+ *    être vendu), mais un enchaînement qui n'était documenté nulle part (issue #13, second point).
+ *    Rendu explicite ici et sur la description OpenAPI de `POST /dossiers-vente/{id}/livrer`.
  */
 @Injectable()
 export class ServiceDossierVente {
@@ -595,7 +611,7 @@ export class ServiceDossierVente {
       // (CV-08, RV-40 dernier paragraphe).
       const nouveauDetenteurId = ligne.clientConducteurId ?? ligne.clientAcheteurId;
       const [detentionOuverte] = await tx
-        .select({ id: vehiculeDetention.id })
+        .select({ id: vehiculeDetention.id, du: vehiculeDetention.du })
         .from(vehiculeDetention)
         .where(
           and(
@@ -613,8 +629,43 @@ export class ServiceDossierVente {
       // stable. Traduction réutilisée telle quelle depuis `vehicules/erreurs-contraintes.ts`
       // (`interpreterContrainteVehicule`, déjà câblée pour ce couple SQLSTATE/contrainte côté
       // `ServiceVehiculeDetention.changerDetenteur`) — pas une seconde table de contraintes.
+      //
+      // ISSUE #13 — « livrer le jour même échoue » : `vehicule_detention_periode_chk` impose
+      // `au > du` STRICT. `du`/`au` sont des `date` Postgres (jour civil, `schemaDateJour` côté
+      // contrat — AUCUNE heure, donc aucun fuseau à convertir ici : la date saisie par le comptoir
+      // EST déjà « aujourd'hui » au sens suisse voulu, telle quelle). Si la détention actuellement
+      // ouverte a démarré CE MÊME jour civil (ex. véhicule/détenteur enregistrés le matin,
+      // livraison l'après-midi — le cas le plus courant en concession), `entree.dateLivraisonEffective`
+      // est ÉGALE à `detentionOuverte.du`, jamais strictement supérieure : la clôture échouait
+      // systématiquement, alors qu'il n'y a AUCUN conflit réel (la détention n'a jamais chevauché
+      // qui que ce soit). Comparer à l'heure près (timestamptz) réglerait le problème mais `du`/`au`
+      // ne portent pas cette précision — changer leur granularité est un choix de schéma
+      // (`db/schema/atelier/vehicule.ts`, hors périmètre de ce module) ; décaler arbitrairement la
+      // date d'un jour falsifierait la donnée saisie. Seule option correcte disponible SANS toucher
+      // au schéma : transférer le détenteur SUR LA MÊME ligne plutôt que clôturer/réouvrir — `du`
+      // n'est pas altéré (aucune date inventée), la ligne reste ouverte, et le trigger
+      // `vehicule_detention_audit` (AFTER INSERT OR DELETE OR UPDATE) capture le changement de
+      // `client_id` avant/après comme toute autre écriture (RM-111). Notons que `DELETE` est de
+      // toute façon révoqué pour `dfa_app` sur cette table (migrations/0007_vehicules.sql) : un
+      // couple DELETE+INSERT n'était pas une option. Quand `du` est strictement AVANT la date de
+      // livraison (cas normal), le comportement clôture+réouverture existant est inchangé ; quand
+      // `du` serait APRÈS (date de livraison antérieure à une détention déjà ouverte), la clôture
+      // échoue toujours — c'est le refus attendu, `traduireErreurDetentionVehicule` le restitue en
+      // 400 métier stable.
       await this.avecTraductionErreur(
         async () => {
+          if (detentionOuverte && detentionOuverte.du === entree.dateLivraisonEffective) {
+            await tx
+              .update(vehiculeDetention)
+              .set({ clientId: nouveauDetenteurId })
+              .where(
+                and(
+                  eq(vehiculeDetention.tenantId, ctx.tenantId),
+                  eq(vehiculeDetention.id, detentionOuverte.id),
+                ),
+              );
+            return;
+          }
           if (detentionOuverte) {
             await tx
               .update(vehiculeDetention)
@@ -707,7 +758,7 @@ export class ServiceDossierVente {
         // détenteur cible n'est PAS tranché (`QV-01`, rappel explicite en pied de
         // `contrats/ventes/reprise.ts`) ; cette action ne l'invente pas.
         const [detentionRepriseOuverte] = await tx
-          .select({ id: vehiculeDetention.id })
+          .select({ id: vehiculeDetention.id, du: vehiculeDetention.du })
           .from(vehiculeDetention)
           .where(
             and(
@@ -717,7 +768,24 @@ export class ServiceDossierVente {
             ),
           )
           .limit(1);
-        if (detentionRepriseOuverte) {
+        // ISSUE #13, même défaut ici que sur la clôture ci-dessus : `vehicule_detention_periode_chk`
+        // (`au > du` strict, jour civil) refuse de clôturer une détention ouverte CE MÊME jour —
+        // cas atteignable si l'ancien propriétaire du véhicule repris a été enregistré (ou son
+        // changement de détenteur) le jour même de cette reprise. Contrairement au bloc principal
+        // ci-dessus, il n'y a ICI aucun nouveau détenteur vers qui transférer la ligne (QV-01,
+        // toujours non tranché : « SANS réouverture », commentaire au-dessus) — le seul correctif
+        // disponible sans schéma serait de mutariser la ligne vers un détenteur, or aucun n'existe.
+        // On laisse donc cette détention ouverte plutôt que de faire échouer TOUTE la livraison
+        // (véhicule vendu + reprise) pour une clôture que le modèle jour-civil ne peut de toute
+        // façon pas représenter proprement à J égal (durée nulle, `DELETE` révoqué pour `dfa_app`,
+        // migrations/0007_vehicules.sql — repartir d'une ligne neuve est également impossible) :
+        // une détention qui reste un jour de trop au nom de l'ancien propriétaire, corrigible via
+        // `POST /vehicules/{id}/detentions` (vehicules/, hors périmètre), est un moindre défaut
+        // qu'une livraison bloquée.
+        if (
+          detentionRepriseOuverte &&
+          detentionRepriseOuverte.du !== entree.dateLivraisonEffective
+        ) {
           // Même garde que la clôture de détention ci-dessus (bug corrigé) : traduit une violation
           // de `vehicule_detention_periode_chk`/`vehicule_detention_unicite_excl` plutôt que de la
           // laisser fuiter en 500.

@@ -7,6 +7,7 @@ import {
   clientAdresse,
   clientCondition,
   dossierVente,
+  tenant,
   utilisateur,
   vehicule,
   vehiculePlaque,
@@ -199,6 +200,41 @@ export async function chargerConditionsPaiementEnVigueur(
     modePaiement: enVigueur.modePaiement,
     plafondCentimes: enVigueur.plafondCentimes,
   };
+}
+
+/**
+ * Délai de paiement PAR DÉFAUT du tenant (`tenant.delai_paiement_jours_defaut`, migration 0046,
+ * issue #17 — DÉCISION ARBITRÉE SANS LE MAINTENEUR, voir l'en-tête de la migration pour la justification
+ * complète et le chemin de retour arrière).
+ *
+ * NE REMPLACE PAS `chargerConditionsPaiementEnVigueur` ci-dessus : cette fonction-ci n'est
+ * consultée qu'à l'ÉMISSION (`service-emission.ts`), en dernier repli, quand
+ * `lireDelaiPaiementJoursFige(doc.conditionsPaiementFigees)` rend `null` — c'est-à-dire quand le
+ * CLIENT n'a lui-même AUCUN délai de paiement figé. Le délai du client, quand il existe (y
+ * compris `0`, « payable à réception »), l'emporte donc TOUJOURS ; ce repli ne s'applique qu'en
+ * son absence totale.
+ *
+ * Lue à l'ÉMISSION, pas à la CRÉATION du document (contrairement à `conditionsPaiementFigees`,
+ * qui fige au moment du brouillon) : le réglage tenant n'a aucune raison d'être figé plus tôt
+ * que l'instant où `date_echeance` elle-même se fige (RF-04/MD-20) — un brouillon qui traîne
+ * plusieurs jours avant émission doit voir le délai tenant EN VIGUEUR au moment de l'émission,
+ * pas celui qui existait quand le brouillon a été ouvert.
+ *
+ * `null` uniquement si le tenant lui-même est introuvable (ne devrait jamais arriver dans une
+ * transaction déjà scopée par RLS sur un `ctx.tenantId` valide) — jamais un `0` ou un défaut
+ * inventé côté application : la colonne porte SA PROPRE valeur par défaut (30, `not null` en
+ * base), donc toute ligne `tenant` existante en a une.
+ */
+export async function chargerDelaiPaiementJoursDefautTenant(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+): Promise<number | null> {
+  const [ligne] = await tx
+    .select({ delaiPaiementJoursDefaut: tenant.delaiPaiementJoursDefaut })
+    .from(tenant)
+    .where(eq(tenant.id, ctx.tenantId))
+    .limit(1);
+  return ligne?.delaiPaiementJoursDefaut ?? null;
 }
 
 /**

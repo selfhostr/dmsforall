@@ -132,3 +132,81 @@ describe('ServicePaiement.creer — 23505 sur identifiant_transaction_banque →
     await expect(service.creer(CTX, ENTREE, 'idem-4')).rejects.toThrow('cyclique');
   });
 });
+
+/**
+ * Issue #9, GitHub — « un paiement negatif credite une facture » : `POST /paiements` avec
+ * `montantCentimes: -500` rendait 201, et le calcul en aval (`mappeurs.ts`, corrigé séparément)
+ * traitait ce -500 comme +500 « disponible », imputable sur une vraie facture. BARRIÈRE 1/3 :
+ * cette méthode `creer()` — le SEUL chemin qui écrit un paiement à la demande d'un appelant
+ * externe — refuse maintenant tout montant non strictement positif, AVANT toute écriture en base
+ * (`tx.insert` n'est jamais atteint : voir `txFactice()` sans `ligneRetournee`, qui ferait échouer
+ * le test s'il fallait insérer quoi que ce soit).
+ */
+describe('ServicePaiement.creer — issue #9 : un montant non positif est refusé (barrière 1/3)', () => {
+  it('rejette un montant négatif avec VALIDATION_ECHOUEE, code montant_negatif — jamais un 201', async () => {
+    const tx = txFactice(); // aucune insertion ne doit être tentée.
+    const service = new ServicePaiement(accesFactice(tx), idempotenceFactice(tx), new Horloge());
+    const entreeNegative: EntreeCreationPaiement = { ...ENTREE, montantCentimes: -500 };
+
+    await expect(service.creer(CTX, entreeNegative, 'idem-neg-1')).rejects.toMatchObject({
+      code: 'VALIDATION_ECHOUEE',
+      status: 400,
+    });
+  });
+
+  it('le message d’erreur oriente explicitement vers /paiements/{id}/rembourser, pas une correction en place', async () => {
+    const tx = txFactice();
+    const service = new ServicePaiement(accesFactice(tx), idempotenceFactice(tx), new Horloge());
+    const entreeNegative: EntreeCreationPaiement = { ...ENTREE, montantCentimes: -500 };
+
+    await expect(service.creer(CTX, entreeNegative, 'idem-neg-2')).rejects.toMatchObject({
+      erreurs: [expect.objectContaining({ champ: 'montantCentimes', code: 'montant_negatif' })],
+    });
+  });
+
+  it('rejette toujours un montant nul (comportement préexistant, non régressé)', async () => {
+    const tx = txFactice();
+    const service = new ServicePaiement(accesFactice(tx), idempotenceFactice(tx), new Horloge());
+    const entreeNulle: EntreeCreationPaiement = { ...ENTREE, montantCentimes: 0 };
+
+    await expect(service.creer(CTX, entreeNulle, 'idem-nul-1')).rejects.toMatchObject({
+      code: 'VALIDATION_ECHOUEE',
+      erreurs: [expect.objectContaining({ champ: 'montantCentimes', code: 'montant_nul' })],
+    });
+  });
+
+  it('un montant strictement positif reste accepté (non-régression)', async () => {
+    const tx = txFactice({
+      ligneRetournee: {
+        id: 'pmt-pos-1',
+        tenantId: CTX.tenantId,
+        siteId: ENTREE.siteId,
+        dateValeur: ENTREE.dateValeur,
+        moyen: ENTREE.moyen,
+        montantCentimes: 1000n,
+        devise: 'CHF',
+        payeurClientId: null,
+        payeurLibelle: ENTREE.payeurLibelle,
+        referenceQr: null,
+        identifiantTransactionBanque: null,
+        source: 'manuel',
+        contrePasseId: null,
+        exporteLe: null,
+        exportId: null,
+        // `null`, pas `CTX.utilisateurId` : évite d'avoir à mocker `tx.select()` pour
+        // `chargerResumesUtilisateurs` (`paiement-requetes.ts`) — hors de ce que ce test vérifie
+        // (barrière 1/3 sur le signe du montant, pas la résolution des auteurs).
+        creeParId: null,
+        creeLe: new Date('2026-08-04T10:00:00.000Z'),
+        modifieLe: new Date('2026-08-04T10:00:00.000Z'),
+      },
+    });
+    const service = new ServicePaiement(accesFactice(tx), idempotenceFactice(tx), new Horloge());
+
+    const resultat = await service.creer(CTX, ENTREE, 'idem-pos-1');
+
+    expect(resultat.reponse.statutHttp).toBe(201);
+    expect(resultat.reponse.corps.donnees.montantCentimes).toBe(1000);
+    expect(resultat.reponse.corps.donnees.montantNonImputeCentimes).toBe(1000);
+  });
+});

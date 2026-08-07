@@ -239,13 +239,24 @@ describe('agrégation des totaux — TVA par ligne, JAMAIS sur le total agrégé
 });
 
 // -------------------------------------------------------------------------------------------
-// 3. Regroupement PAR PAYEUR — RM-70 : une ligne payeur="garage" (geste commercial) ne porte
-//    aucun montant (HT=TVA=TTC=0) et ne doit JAMAIS se mélanger au total du payeur "client" dans
-//    le MÊME sous-total, même si les deux lignes vivent sur le même OR.
+// 3. Regroupement PAR PAYEUR — RM-70/RF-92/MD-66 : une ligne payeur="garage" (geste commercial)
+//    ne porte aucun montant (HT=TVA=TTC=0) ET NE FORME JAMAIS SON PROPRE GROUPE — elle rejoint le
+//    groupe "client" (`totaux-payeur.ts::cleEffective` : `payeur === 'garage'` rend la clé
+//    `('client', null)`), sans en changer le total puisqu'elle est déjà valorisée à 0.
+//
+//    CORRIGÉ ICI (le test attendait auparavant un groupe "garage" SÉPARÉ, à zéro — CE N'EST PAS
+//    LE COMPORTEMENT DU CONTRAT) : `TotauxPayeurOr.payeur` ne rend JAMAIS `'garage'`
+//    (`packages/shared/.../ordre-reparation.ts`), documenté verbatim en tête de
+//    `atelier/totaux-payeur.ts` et déjà prouvé au niveau unitaire par
+//    `atelier/totaux-payeur.spec.ts` (« une ligne payeur = 'garage' rejoint le groupe 'client' —
+//    jamais de groupe 'garage' séparé ») et `atelier/service-facturation-or.spec.ts`. La ligne
+//    fautive cherchait `document.totauxParPayeur?.find((t) => t.payeur === 'garage')`, qui rend
+//    `undefined` PAR CONSTRUCTION — d'où l'erreur structurelle (`undefined.montantHtCentimes`),
+//    pas une régression du regroupement.
 // -------------------------------------------------------------------------------------------
 
 describe('regroupement par payeur — un geste commercial (payeur=garage) ne pollue pas le total client', () => {
-  it('une ligne payeur=client à 1000 centimes HT et une ligne payeur=garage à prix nominal 1000 : deux totaux DISTINCTS, celui de "garage" à zéro', async () => {
+  it('une ligne payeur=client à 1000 centimes HT et une ligne payeur=garage à prix nominal 1000 : un SEUL total ("client"), la ligne garage n\'y ajoute rien, et aucun groupe "garage" n\'apparaît (RM-70/RF-92)', async () => {
     const or = await nouvelOr();
     await creerLigne(or.id, {
       prixUnitaireCentimes: 1000,
@@ -263,11 +274,15 @@ describe('regroupement par payeur — un geste commercial (payeur=garage) ne pol
     expect(geste).toEqual({ montantHtCentimes: 0, montantTvaCentimes: 0, montantTtcCentimes: 0 });
 
     const document = await lireOrComplet(or.id);
+    // Un seul groupe : la ligne garage a rejoint 'client', pas créé le sien.
+    expect(document.totauxParPayeur).toHaveLength(1);
+    expect(document.totauxParPayeur?.some((t) => (t.payeur as string) === 'garage')).toBe(false);
+
     const totalClient = document.totauxParPayeur?.find((t) => t.payeur === 'client');
-    const totalGarage = document.totauxParPayeur?.find((t) => t.payeur === 'garage');
+    expect(totalClient, 'aucun total pour le payeur "client"').toBeDefined();
+    // 1000 (ligne client) + 0 (ligne garage, valorisée à zéro) — la fusion n'ajoute rien au total.
     expect(totalClient!.montantHtCentimes).toBe(1000);
-    expect(totalGarage!.montantHtCentimes).toBe(0);
-    expect(totalGarage!.montantTvaCentimes).toBe(0);
-    expect(totalGarage!.montantTtcCentimes).toBe(0);
+    expect(totalClient!.montantTvaCentimes).toBe(81);
+    expect(totalClient!.montantTtcCentimes).toBe(1081);
   });
 });

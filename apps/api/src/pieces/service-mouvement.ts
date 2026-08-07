@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
 import type {
   EntreeCreationAjustementInventaire,
@@ -40,6 +40,7 @@ import {
   valeurCurseurDepuisTri,
   type DefinitionTri,
 } from './pagination-triee';
+import { ServiceReservation } from './service-reservation';
 import { ServiceStock } from './service-stock';
 
 const DEFINITIONS_TRI_MOUVEMENTS: Readonly<Record<FiltresMouvementsStock['tri'], DefinitionTri>> = {
@@ -83,9 +84,12 @@ export interface ResultatAjustementInventaire {
  */
 @Injectable()
 export class ServiceMouvement {
+  private readonly journal = new Logger(ServiceMouvement.name);
+
   constructor(
     @Inject(JETON_DB) private readonly acces: AccesBase,
     @Inject(JETON_IDEMPOTENCE) private readonly idempotence: ServiceIdempotence,
+    private readonly reservation: ServiceReservation,
   ) {}
 
   async lister(
@@ -464,7 +468,7 @@ export class ServiceMouvement {
       async (tx) => {
         await this.chargerArticleOu404(tx, ctx, articleId);
         await this.chargerSiteOu404(tx, ctx, siteId);
-        await this.verifierDisponible(tx, ctx, articleId, siteId, quantiteMillieme, forcer);
+        await this.verifierDisponible(tx, ctx, articleId, siteId, quantiteMillieme, forcer, type);
 
         const valeurs: NouveauMouvementStock = {
           tenantId: ctx.tenantId,
@@ -514,30 +518,39 @@ export class ServiceMouvement {
    * (0026), appliquée ici côté application puisqu'aucune contrainte de base n'interdit un
    * physique négatif (RP-15 l'autorise explicitement sous forçage, voir 0025 §tête).
    *
-   * ARBITRAGE, MESURÉ EN EXÉCUTION (`pont-atelier-pieces.spec.ts`, section `pieces.mouvement.
-   * forcer`) : `forcer: true` est structurellement INERTE pour `casse`/`perte`/
-   * `retour_fournisseur` dès que `quantiteDemandee` dépasse le `disponible` — pas seulement dans
-   * le cas extrême du 100%. Ces trois types NE touchent JAMAIS `quantite_reservee_millieme`
-   * (contrairement à `ServiceReservation.appliquerSatisfaction`, `pieces/service-reservation.ts`,
-   * qui libère la réservée dans LA MÊME opération) ; ignorer ce refus applicatif (ce que fait
-   * `forcer`) revient alors TOUJOURS à tenter un `physique_après = physique − quantiteDemandee`
-   * strictement inférieur à `reservee` (par définition de « dépasser le disponible » quand
-   * `reservee` ne bouge pas) — `stock_article_reservee_leq_physique_chk` (0025, invariant ABSOLU
-   * d'après 0026 §tête : « la réservation ne peut jamais dépasser le disponible ») le refuse alors
-   * INCONDITIONNELLEMENT, `forcer` ou pas (`estViolationStockInsuffisant` traduit ce refus en
-   * `409 STOCK_INSUFFISANT`, jamais un `500` — voir le `catch` de `creerMouvementSortie` — mais
-   * l'ISSUE, elle, ne change jamais).
+   * DÉFAUT CORRIGÉ (0047, mesuré en exécution — `pont-atelier-pieces.spec.ts`, section
+   * `pieces.mouvement.forcer`) : `forcer: true` était structurellement INERTE dès que
+   * `quantiteDemandee` dépassait le `disponible` — `stock_article_reservee_leq_physique_chk`
+   * (0025, `reservee <= physique`) refusait alors INCONDITIONNELLEMENT le mouvement, `forcer` ou
+   * pas, y COMPRIS quand `reservee` valait déjà 0 (aucune réservation active — la cause n'était
+   * donc PAS seulement « `casse`/`perte` ne libèrent jamais `reservee` », mais la CHECK elle-même,
+   * qui interdisait tout `physique` négatif de façon inconditionnelle : voir l'en-tête de la
+   * migration 0047 pour la preuve algébrique complète).
    *
-   * CE N'EST PAS UN BUG À CONTOURNER : lever cette garde (ex. en faisant AUSSI reculer `reservee`
-   * dans ces trois mouvements) reviendrait à laisser une casse/perte au comptoir consommer
-   * SILENCIEUSEMENT une pièce déjà PROMISE à un OR ouvert — exactement ce que RP-14/CP-02
-   * (`0026_pieces_reservation.sql` §tête) interdisent nommément. `forcer` garde donc un rôle réel
-   * et borné : passer outre le refus applicatif PRÉCOCE pour les cas où `physique` seul (jamais
-   * `reservee`) couvre encore la demande au-delà du calcul naïf `verifierDisponible` — aucun cas
-   * de ce type n'existe aujourd'hui pour `casse`/`perte`/`retour_fournisseur` (le calcul EST déjà
-   * exact), donc `forcer` n'a, EN PRATIQUE, aucun effet observable pour ces trois types tant que
-   * `reservee` reste hors de leur portée. Ne pas « corriger » en affaiblissant l'invariant : le
-   * paramètre doit rester sans pouvoir plutôt que de rendre le stock incohérent.
+   * CORRECTIF, EN DEUX TEMPS :
+   *   1. `stock_article_reservee_leq_physique_chk` (0047) devient `reservee <= greatest(physique,
+   *      0)` — la réservation ne dépasse jamais le VRAIMENT disponible, y compris quand plus rien
+   *      n'est physiquement en stock (le plafond devient 0, pas un nombre négatif inatteignable).
+   *   2. Ici : quand `forcer` ferait passer `reservee` au-dessus de ce nouveau plafond (une
+   *      réservation ACTIVE promettait une pièce que la casse/perte vient de faire disparaître
+   *      PHYSIQUEMENT), `libererCascadeSiNecessaire` réduit en cascade les réservations `active`
+   *      de cet (article, site) AVANT l'insertion du mouvement — jamais après, pour que la CHECK
+   *      ne voie JAMAIS un état intermédiaire invalide (même discipline d'ordre que le palier de
+   *      `ServiceReservation.appliquerSatisfaction`). `casse`/`perte` restent les SEULS types
+   *      concernés : ce sont les seuls dont le schéma (`schemaCreationMouvementCasse`,
+   *      `contrats/pieces/mouvement.ts`) accepte `forcer` — `retour_fournisseur`/`sortie_comptoir`
+   *      ne le reçoivent jamais (leurs appelants, `retourFournisseur`/`sortieComptoir`
+   *      ci-dessus, invoquent `creerMouvementSortie` avec `forcer: false` en dur), donc n'entrent
+   *      jamais dans cette branche.
+   *
+   * CE QUI RESTE VRAI, INCHANGÉ : lever la garde `disponible` pour une VENTE (`sortie_comptoir`)
+   * resterait faux — laisser une vente comptoir consommer SILENCIEUSEMENT une pièce déjà PROMISE à
+   * un OR ouvert reste exactement ce que RP-14/CP-02 interdisent. C'est pour ça que `forcer`
+   * n'existe pas du tout sur `sortie_comptoir`/`retour_fournisseur` (décision de contrat déjà
+   * posée, `mouvement.ts`) — la cascade ci-dessous ne s'active QUE pour `casse`/`perte`, les deux
+   * seuls types où un rôle habilité (`pieces.mouvement.forcer`, réservé à `magasinier`) constate
+   * une réalité physique que le système ignorait, jamais une vente qui choisit délibérément de
+   * doubler une promesse déjà faite.
    */
   private async verifierDisponible(
     tx: TransactionDfa,
@@ -546,16 +559,85 @@ export class ServiceMouvement {
     siteId: string,
     quantiteDemandee: number,
     forcer: boolean,
+    type?: 'casse' | 'perte' | 'retour_fournisseur' | 'sortie_comptoir',
   ): Promise<void> {
     const { physique, reservee } = await ServiceStock.chargerPourVerrou(tx, ctx, articleId, siteId);
     const disponible = physique - reservee;
-    if (quantiteDemandee > disponible && !forcer) {
+    if (quantiteDemandee <= disponible) return;
+
+    if (!forcer) {
       throw new ErreurMetier(
         'STOCK_INSUFFISANT',
         `Stock disponible insuffisant : disponible ${String(disponible)}, demandé ${String(quantiteDemandee)}.`,
         {
           detail: `tenant=${ctx.tenantId};article=${articleId};site=${siteId};disponible=${String(disponible)};demande=${String(quantiteDemandee)}`,
         },
+      );
+    }
+
+    // `forcer: true` ne peut aujourd'hui atteindre cette branche que pour `casse`/`perte` (seuls
+    // types dont le schéma accepte le paramètre) — la garde de `type` ci-dessous est une
+    // ceinture-et-bretelles délibérée : mieux vaut un cas futur silencieusement SANS cascade (qui
+    // referait échouer l'insertion en 409, un refus SÛR) qu'une cascade qui s'activerait un jour
+    // pour un type qui n'a pas la légitimité de `casse`/`perte` à consommer une pièce promise.
+    if (type !== 'casse' && type !== 'perte') return;
+
+    await this.libererCascadeSiNecessaire(
+      tx,
+      ctx,
+      articleId,
+      siteId,
+      physique,
+      reservee,
+      quantiteDemandee,
+      type,
+    );
+  }
+
+  /**
+   * Réduit `reservee` (par libération en cascade de réservations `active`, `ServiceReservation.
+   * libererPourCascadeForcageTx`) AVANT que le mouvement forcé ne soit inséré, pour que la CHECK
+   * `reservee <= greatest(physique, 0)` (0047) ne voie jamais l'état intermédiaire invalide qui
+   * existerait si la libération suivait l'insertion. `physique`/`reservee` sont ceux lus SOUS
+   * VERROU par l'appelant (`verifierDisponible`) — la ligne `stock_article` reste verrouillée
+   * (`for update`, posé par `ServiceStock.chargerPourVerrou`) pendant tout l'appel, aucune autre
+   * transaction ne peut modifier `physique`/`reservee` entre-temps.
+   */
+  private async libererCascadeSiNecessaire(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    articleId: string,
+    siteId: string,
+    physique: number,
+    reservee: number,
+    quantiteDemandee: number,
+    type: 'casse' | 'perte',
+  ): Promise<void> {
+    const physiqueApres = physique - quantiteDemandee;
+    const plafondReservee = Math.max(physiqueApres, 0);
+    if (reservee <= plafondReservee) return;
+
+    const aLiberer = reservee - plafondReservee;
+    const liberees = await this.reservation.libererPourCascadeForcageTx(
+      tx,
+      ctx,
+      articleId,
+      siteId,
+      aLiberer,
+    );
+
+    // RP-15 : « forçage explicite ET JOURNALISÉ ». Le mouvement lui-même est audité
+    // (`mouvement_stock_audit`, 0025) et chaque réservation libérée porte sa propre trace
+    // (`motif_liberation = 'liberation_forcage_stock'`, `liberee_le`, interrogeable via
+    // `GET /reservations?statut=liberee`, 0026 §tête : « sa propre ligne EST déjà une trace
+    // complète ») — ce journal applicatif est le signalement IMMÉDIAT, day-1, pour l'exploitation
+    // (aucune alerte ne doit dépendre d'une requête a posteriori sur `reservation_piece`).
+    if (liberees.length > 0) {
+      this.journal.warn(
+        `Forçage ${type} au-delà du physique : ${String(liberees.length)} réservation(s) ` +
+          `libérée(s) en cascade (tenant=${ctx.tenantId};article=${articleId};site=${siteId};` +
+          `reservations=${liberees.map((l) => l.id).join(',')};` +
+          `ordresReparation=${liberees.map((l) => l.ordreReparationId).join(',')}).`,
       );
     }
   }

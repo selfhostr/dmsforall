@@ -1,11 +1,20 @@
 name: CI
 
-# Push sur main (post-merge) et toute PR ciblant main.
+# Push sur main et dev (post-merge), et toute PR ciblant l'une des deux.
+#
+# `dev` ajouté ici : le modèle de branches du dépôt est feature -> dev -> main, donc TOUTES les
+# relectures passent par une PR vers `dev` — celles vers `main` ne sont que la promotion d'un `dev`
+# déjà intégré. Sans `dev` dans ces deux listes, aucune PR de travail n'était jamais vérifiée : les
+# checks n'apparaissaient qu'au moment de promouvoir, c'est-à-dire trop tard pour servir de garde-fou.
+#
+# Constaté en vrai : la PR « reconciliation des tests d'integration » est sortie avec ZÉRO check,
+# alors qu'elle rendait justement le job d'intégration vert. Impossible de le prouver autrement qu'en
+# local, ce qui est exactement ce que la CI existe pour éviter.
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
 
 # Annule les runs obsolètes d'une même branche/PR quand de nouveaux commits arrivent :
 # évite de consommer des minutes CI sur du code déjà dépassé.
@@ -48,6 +57,23 @@ jobs:
 
       - name: Installer les dépendances (lockfile figé)
         run: pnpm install --frozen-lockfile
+
+      # apps/web/vite.config.ts fixe `envDir` sur la racine du monorepo et refuse de builder si
+      # VITE_API_URL n'en est pas résolue (garde-fou volontaire, voir CONTRIBUTING.md). `.env` est
+      # gitignoré et donc absent sur un checkout CI ; `.env.example` définit déjà
+      # VITE_API_URL=/api/v1, suffisant pour un build (aucun secret réel n'est nécessaire ici).
+      - name: Préparer le .env racine (VITE_API_URL pour le build web)
+        run: cp .env.example .env
+
+      # @dfa/shared est compilé en CommonJS pour NestJS (voir packages/shared/package.json :
+      # `exports` ne pointe que vers ./dist, aucun fallback vers les sources). apps/api résout
+      # donc @dfa/shared via son dist/ compilé, pas via `tsc --noEmit` (le script `typecheck` de
+      # shared, qui ne produit aucun dist/). Sans cette étape, `pnpm typecheck` ci-dessous échoue
+      # en cascade sur apps/api avec TS2307 (« Cannot find module '@dfa/shared' »). Même besoin
+      # déjà couvert dans les deux jobs suivants (« Tests d'intégration » et réversibilité des
+      # migrations) — ce job est le seul à l'avoir oublié.
+      - name: Construire @dfa/shared
+        run: pnpm --filter @dfa/shared build
 
       - name: Formatage (Prettier)
         run: pnpm format:check

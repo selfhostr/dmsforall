@@ -108,7 +108,7 @@ describe(
     it(
       'AXE NUMÉRIQUE : rejette une chaîne, même d’apparence numérique, sur ' +
         'montantNonImputeCentimes:desc — c’était le risque de 22P02 PostgreSQL non intercepté en ' +
-        'comparant l’expression numérique `(abs(p.montant_centimes) - coalesce(...))` à une chaîne',
+        'comparant l’expression numérique `EXPRESSION_MONTANT_NON_IMPUTE` à une chaîne',
       () => {
         const curseur = curseurV2('montantNonImputeCentimes:desc', '4200');
         expect(() =>

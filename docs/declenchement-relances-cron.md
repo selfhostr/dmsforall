@@ -19,12 +19,12 @@ dans le process API.**
 
 DFA est une **instance unique multi-tenant** (RLS, pas un déploiement par garage) : le coût d'une
 configuration manuelle sur UN serveur ne se multiplie pas par dix. Trois options, un seul critère
-retenu — *qui s'aperçoit que ça a cassé à 3h du matin* :
+retenu — _qui s'aperçoit que ça a cassé à 3h du matin_ :
 
 - **Systemd timer sur l'hôte (retenu)** : `OnFailure=` déclenche une unité de notification sans
   code à écrire (§5) ; `Persistent=true` rattrape une exécution manquée au redémarrage (cohérent
   avec l'idempotence, un rattrapage tardif ne produit jamais de doublon) ; `journalctl -u
-  dfa-relances.service` est le premier réflexe de débogage, déjà la doctrine du script de
+dfa-relances.service` est le premier réflexe de débogage, déjà la doctrine du script de
   sauvegarde (`docs/deploiement-production.md` §7.1) — un seul patron à retenir pour les deux
   tâches planifiées du produit. Le déclencheur ne fait qu'émettre des appels HTTP vers l'app déjà
   conteneurisée ; il ne porte ni état ni logique métier, donc l'exception à « tout en conteneurs »
@@ -48,11 +48,11 @@ pistes examinées et écartées, une troisième à construire.
 **Écarté — forger un `Origin`.** `GardeSession.verifierOrigine`
 (`apps/api/src/auth/garde-session.ts`) exige `Origin` sur TOUTE méthode mutante, y compris les
 routes `@Public()`, sans exception. Un script contrôle entièrement les en-têtes qu'il envoie, donc
-*techniquement* rien n'empêche de fabriquer un `Origin` accepté — mais c'est exactement le
+_techniquement_ rien n'empêche de fabriquer un `Origin` accepté — mais c'est exactement le
 contournement que la consigne de cette tâche interdit : ça maquille un appel serveur-à-serveur en
 requête de navigateur pour passer un contrôle anti-CSRF qui n'a pas de sens pour ce cas. Le
-commentaire du guard lui-même anticipe le bon chemin : *« les intégrations futures passeront par
-des tokens API dédiés, pas par ce cookie-session »* (garde-session.ts, ligne ~29).
+commentaire du guard lui-même anticipe le bon chemin : _« les intégrations futures passeront par
+des tokens API dédiés, pas par ce cookie-session »_ (garde-session.ts, ligne ~29).
 
 **Écarté — copier `poste_atelier`.** C'est le seul « compte de service » existant
 (`apps/api/src/auth/comptes-de-service.ts`), mais il résout un problème différent : une borne
@@ -68,11 +68,11 @@ doctrine du produit pour préserver l'audit trail, pas une exception à inventer
 1. Une nouvelle branche dans `GardeSession` : reconnaître `Authorization: Bearer <jeton>`, résoudre
    le principal depuis une nouvelle table de jetons plutôt que le cookie, et **dispenser
    uniquement ce chemin** de la vérification `Origin` — justifié parce que `Origin`/CSRF protège
-   un identifiant *ambiant* qu'un navigateur attache automatiquement (le cookie) ; un jeton porté
+   un identifiant _ambiant_ qu'un navigateur attache automatiquement (le cookie) ; un jeton porté
    explicitement dans un en-tête n'est jamais attaché à l'insu du client, donc rien à défendre. Si
    un cookie de session est présent, la vérification `Origin` doit continuer à s'appliquer sans
    exception, même avec un `Authorization` en plus — l'exemption ne vaut que pour un appel
-   *purement* porteur de jeton. Point à faire trancher explicitement par `reviewer-securite` avant
+   _purement_ porteur de jeton. Point à faire trancher explicitement par `reviewer-securite` avant
    toute implémentation : c'est un assouplissement d'un contrôle de sécurité gelé depuis l'étape 0.
 2. Une table de jetons (ex. `utilisateur_jeton_api` : `tenant_id`, `utilisateur_id`, hash du jeton,
    `cree_le`, `dernier_utilise_le`, `revoque_le`) — hachage rapide (SHA-256), pas Argon2id : c'est
@@ -171,7 +171,7 @@ hors périmètre de cette tâche) :
   **aucune nouvelle colonne n'est nécessaire**, la date de réclamation est déjà en base.
 - Ajouter, en tête de `envoyerPretes()` (ou en étape préliminaire dédiée), une requête de
   « déblocage » : `UPDATE relance_planifiee SET statut = 'prete' WHERE tenant_id = $1 AND statut =
-  'en_cours_envoi' AND modifie_le < now() - interval '15 minutes'`. Quinze minutes est une marge
+'en_cours_envoi' AND modifie_le < now() - interval '15 minutes'`. Quinze minutes est une marge
   large au-dessus du temps normal d'un appel réseau + aller-retour base ; à ajuster si le
   connecteur réel (aujourd'hui factice) s'avère plus lent.
 - Le déblocage est lui-même idempotent et sans risque de double traitement : il ne fait que

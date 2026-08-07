@@ -172,6 +172,9 @@ describe('ServiceDepotPneus.creer — RPP-01, RPP-02', () => {
     await expect(service.creer(CTX, 'v1', ENTREE_CREATION, 'idem-1')).rejects.toMatchObject({
       code: 'CONFLIT',
       status: 409,
+      // Même correctif que `sortir()` (issue #15, point 1), appliqué par cohérence à ce voisin
+      // qui portait exactement le même défaut (`detail` absent malgré le texte documenté).
+      detail: 'Un jeu de pneus "ete" est déjà en dépôt ou monté pour ce véhicule (RPP-02).',
     });
   });
 });
@@ -264,9 +267,29 @@ describe('ServiceDepotPneus — cycle complet d’un dépôt : entrée → mont�
     await expect(service.sortir(CTX, 'd1', { motif: 'rendu_au_client' })).rejects.toMatchObject({
       code: 'CONFLIT',
       status: 409,
+      // Issue #15, point 1 : `detail` doit être renseigné — la documentation OpenAPI de la route
+      // (`@ApiReponseProbleme(409, 'Ce dépôt est déjà "sorti" (RPP-05).')`) promet explicitement
+      // ce texte au client ; avant correctif, `detail` était `undefined` (message passé en
+      // second argument `ErreurMetier` — jamais sérialisé — plutôt qu'en `options.detail`).
+      detail: 'Ce dépôt est déjà "sorti" (RPP-05).',
     });
     // Un seul appel execute (le SELECT ... FOR UPDATE) : aucun UPDATE émis.
     expect((tx.execute as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);
+  });
+
+  it('refuse aussi (409 CONFLIT, `detail` renseigné) sur un SECOND dépôt distinct — pas un artefact du premier cas (issue #15, "reproduit sur deux dépôts distincts")', async () => {
+    const { tx } = txFactice({
+      executes: [
+        { rows: [ligneDepot({ id: 'd2', statut: 'sorti', motifSortie: 'mis_au_rebut' })] },
+      ],
+    });
+    const service = new ServiceDepotPneus(accesFactice(tx), idempotenceFactice(tx));
+
+    await expect(service.sortir(CTX, 'd2', { motif: 'rendu_au_client' })).rejects.toMatchObject({
+      code: 'CONFLIT',
+      status: 409,
+      detail: 'Ce dépôt est déjà "sorti" (RPP-05).',
+    });
   });
 });
 
@@ -301,6 +324,9 @@ describe('ServiceDepotPneus.changerSaison — RPP-03 : inverse la paire été/hi
     await expect(service.changerSaison(CTX, 'd1', {})).rejects.toMatchObject({
       code: 'CONFLIT',
       status: 409,
+      // Même correctif que `sortir()` (issue #15, point 1), appliqué par cohérence à ce voisin.
+      detail:
+        'Transition interdite : le dépôt est "a_relancer", ni "en_depot" ni "monte" (RPP-03).',
     });
   });
 });
@@ -375,6 +401,9 @@ describe('ServiceDepotPneus.deplacer — défaut n°2 : le repère de rangement 
     await expect(service.deplacer(CTX, 'd1', { codeCase: 'B03' })).rejects.toMatchObject({
       code: 'CONFLIT',
       status: 409,
+      // Même correctif que `sortir()` (issue #15, point 1), appliqué par cohérence à ce voisin —
+      // aligné sur le texte documenté par `@ApiReponseProbleme(409, ...)` de la route `deplacer`.
+      detail: 'Ce dépôt est "sorti" : son repère de rangement ne peut plus être modifié (RPP-05).',
     });
     // Un seul appel execute (le SELECT ... FOR UPDATE) : aucun UPDATE émis sur un dépôt sorti.
     expect((tx.execute as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);

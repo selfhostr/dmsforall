@@ -6,7 +6,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { char, check, pgTable, text, unique } from 'drizzle-orm/pg-core';
+import { char, check, integer, pgTable, text, unique } from 'drizzle-orm/pg-core';
 
 import { colonneId, colonnesHorodatage } from './colonnes-communes';
 import { langueEnum, statutTenantEnum } from './enums';
@@ -45,6 +45,16 @@ export const tenant = pgTable(
      * la suppression est une opération d'exploitation explicite, jamais un effet de bord.
      */
     statut: statutTenantEnum('statut').notNull().default('actif'),
+
+    /**
+     * Délai de paiement PAR DÉFAUT (jours calendaires), migration 0046 (issue #17 du dépôt,
+     * arbitré sans @laupernoe — voir l'en-tête de la migration pour la justification complète et le
+     * chemin de retour arrière). Utilisé à l'émission d'une facture UNIQUEMENT quand le client
+     * n'a AUCUNE condition commerciale en vigueur portant `delaiPaiementJours` — le délai du
+     * client, quand il existe, l'emporte toujours (`facturation/documents/echeance.ts`). 30 =
+     * usage suisse courant (« net 30 »).
+     */
+    delaiPaiementJoursDefaut: integer('delai_paiement_jours_defaut').notNull().default(30),
 
     ...colonnesHorodatage(),
   },

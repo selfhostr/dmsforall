@@ -30,6 +30,7 @@ import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.t
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { Horloge } from '../common/horloge/horloge';
 import { JETON_EVENEMENTS, type ServiceEvenements } from '../common/evenements';
+import { ServiceReservation } from '../pieces/service-reservation';
 
 import { JETON_LECTURE_POINTAGE, type LecturePointage } from './atelier.jetons';
 import { convertirEnKm } from './kilometrage';
@@ -60,6 +61,7 @@ export class ServiceTransitions {
     @Inject(JETON_LECTURE_POINTAGE) private readonly pointage: LecturePointage,
     private readonly horloge: Horloge,
     private readonly serviceOr: ServiceOr,
+    private readonly serviceReservation: ServiceReservation,
   ) {}
 
   /** T-03 `planifie -> ouvert`. RM-51 : le kilométrage d'entrée est le geste métier. */
@@ -487,8 +489,42 @@ export class ServiceTransitions {
     );
   }
 
-  /** T-20 `{planifie,ouvert} -> annule` — motif obligatoire (RM-62). Refusée s'il existe des
-   *  pointages, des pièces engagées ou une facture (CT-25, CT-26). */
+  /**
+   * T-20 `{planifie,ouvert} -> annule` — motif obligatoire (RM-62). Refusée s'il existe des
+   * pointages, des pièces PHYSIQUEMENT sorties ou une facture (CT-25, CT-26, RM-62 : « aucun
+   * pointage, aucune pièce sortie, aucune facture »).
+   *
+   * ISSUE #11 — CAUSE RACINE : `annulerLignes`/`refuserLignes` (`ServiceLigneOr`) appellent déjà
+   * `ServiceReservation.libererPourLigneTx` ligne par ligne (RP-23) ; cette méthode-ci, qui annule
+   * l'OR ENTIER (T-20, un tout autre geste métier), n'appelait JUSQU'ICI AUCUN des deux — elle se
+   * contentait d'écrire `ordre_reparation.statut = 'annule'` et ne touchait jamais
+   * `reservation_piece`. Toute ligne `piece` encore réservée restait donc `active` pour de bon : le
+   * stock qu'elle bloquait ne se libérait plus jamais spontanément (seul `POST
+   * /reservations/{id}/liberer`, geste manuel du magasinier, pouvait la débloquer). CORRIGÉ ci-
+   * dessous en deux volets, dans la MÊME transaction que le passage à `annule` :
+   *
+   *   1. GARDE (RM-62, nouvelle ici) : une réservation `satisfaite` de cet OR — pièce déjà sortie
+   *      physiquement du stock — bloque l'annulation, au même titre qu'un pointage ouvert ou une
+   *      ligne facturée. Symétrique de `ServiceLigneOr` : une ligne `realisee` dont la pièce est
+   *      SORTIE ne peut plus être neutralisée par une simple annulation d'OR (aucun mouvement de
+   *      retour n'est généré ici) — l'utilisateur doit statuer autrement (avoir, retour manuel).
+   *      Une ligne `realisee` SANS pièce sortie (`fourniParClient = true`, aucune réservation créée)
+   *      ne déclenche PAS cette garde : rien n'a quitté le stock du garage.
+   *   2. LIBÉRATION : une fois la garde passée, PAR CONSTRUCTION aucune réservation de cet OR n'est
+   *      `satisfaite` — chaque réservation encore `active` (ligne `proposee`/`a_valider`/`validee`/
+   *      `en_cours`, jamais réalisée) peut être libérée sans risque. `libererToutesActivesPourOrTx`
+   *      le fait en un seul aller-retour verrouillé (`select … for update`) plutôt qu'un appel par
+   *      ligne, et reste dans CETTE transaction : si la libération échouait à mi-chemin, PostgreSQL
+   *      annule tout — l'OR annulé et les réservations libérées commitent ensemble ou pas du tout,
+   *      jamais un état intermédiaire où l'OR serait `annule` avec des réservations encore actives.
+   *
+   * Motif transmis : `'annulation_ligne'` — le catalogue `MotifLiberationReservation`
+   * (`@dfa/shared`, contrat gelé pour cette tâche) ne porte aucune valeur dédiée à « OR annulé dans
+   * son ensemble » ; c'est la valeur la plus proche sémantiquement (la réservation est libérée parce
+   * que la ligne qui la porte est neutralisée par l'annulation, exactement comme
+   * `annulerLignes`). SIGNALÉ, pas tranché : un motif `annulation_or` distinct rendrait l'audit plus
+   * lisible, à ajouter au contrat dans un lot séparé si souhaité.
+   */
   async annuler(
     ctx: ContexteTenant,
     principal: PrincipalAuthentifie,
@@ -504,6 +540,12 @@ export class ServiceTransitions {
         const lignesFacturees = lignes.filter(
           (l) => l.statut === 'facturee' || l.factureId !== null,
         );
+        const piecesSorties = await this.serviceReservation.listerPiecesSortiesPourOrTx(
+          tx,
+          ctx,
+          orId,
+        );
+        const lignesParId = new Map(lignes.map((l) => [l.id, l] as const));
 
         const blocages: ElementBloquant[] = [
           ...pointagesOuverts.map((p): ElementBloquant => ({
@@ -517,11 +559,20 @@ export class ServiceTransitions {
             libelle: l.designation ?? '',
             donnees: { numeroLigne: l.numeroOrdre },
           })),
+          ...piecesSorties.slice(0, 50).map((r): ElementBloquant => {
+            const ligne = lignesParId.get(r.ligneOrId);
+            return {
+              type: 'ligne_or',
+              id: r.ligneOrId,
+              libelle: ligne?.designation ?? '',
+              donnees: { numeroLigne: ligne?.numeroOrdre ?? null, reservationId: r.id },
+            };
+          }),
         ];
         if (blocages.length > 0) {
           throw new ErreurMetier(
             'OR_ANNULATION_IMPOSSIBLE',
-            'Annulation impossible : des pointages ou des lignes facturées existent (RM-62).',
+            'Annulation impossible : des pointages, des pièces sorties ou des lignes facturées existent (RM-62).',
             {
               blocages,
               actionsProposees: [{ code: 'RAFRAICHIR' }],
@@ -533,6 +584,14 @@ export class ServiceTransitions {
           annuleLe: this.horloge.maintenant(),
           motifAnnulation: entree.motif,
         });
+        // Issue #11 : voir le commentaire de méthode ci-dessus (volet 2) — DANS la même transaction
+        // que l'écriture du statut, pour rester atomique.
+        await this.serviceReservation.libererToutesActivesPourOrTx(
+          tx,
+          ctx,
+          orId,
+          'annulation_ligne',
+        );
         await this.evenements.publier(tx, ctx, {
           type: 'ordre_reparation.annule',
           versionSchema: 1,

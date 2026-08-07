@@ -98,11 +98,17 @@ describe('CF-21 — QR au comptoir sans adresse de débiteur', () => {
   it('refuse la variante fautive « nom rempli, adresse vide » plutôt que de l’émettre', () => {
     // C'est la variante qui produirait une charge utile invalide, refusée par la banque : le
     // bloc partiel n'entre JAMAIS dans le payload.
+    //
+    // `rue`/`numero` ne comptent plus (RF-60 assoupli vers SIX, issue #22) : un cas qui n'aurait
+    // manqué QUE de rue/numéro n'est donc plus « partiel » ici, il est désormais COMPLET — d'où
+    // des cas choisis pour manquer explicitement de `npa` ou `localite`, y compris quand rue ET
+    // numéro sont connus, pour prouver que l'assouplissement ne les a pas rendus facultatifs eux
+    // aussi.
     const partiels: AdresseStructuree[] = [
       { nom: 'Jean Dupont' },
       { nom: 'Jean Dupont', localite: 'Lausanne' },
-      { nom: 'Jean Dupont', npa: '1010', localite: 'Lausanne' },
-      { nom: 'Jean Dupont', rue: 'Route de Berne', npa: '1010', localite: 'Lausanne' },
+      { nom: 'Jean Dupont', npa: '1010' },
+      { nom: 'Jean Dupont', rue: 'Route de Berne', numero: '1', localite: 'Lausanne' },
       { ...CLIENT_COMPLET, npa: '' },
       { ...CLIENT_COMPLET, nom: '   ' },
     ];
@@ -116,10 +122,12 @@ describe('CF-21 — QR au comptoir sans adresse de débiteur', () => {
   });
 
   it('avertit sans bloquer, en nommant les champs manquants (RF-61)', () => {
+    // `rue`/`numero` ne figurent plus ici (RF-60 assoupli, issue #22) : CLIENT_DE_PASSAGE n'a
+    // qu'un nom, il ne lui manque donc que npa/localite au regard des champs requis désormais.
     expect(resultat.avertissements).toEqual([
       {
         code: 'BLOC_DEBITEUR_OMIS_ADRESSE_INCOMPLETE',
-        champsManquants: ['rue', 'numero', 'npa', 'localite'],
+        champsManquants: ['npa', 'localite'],
       },
     ]);
   });

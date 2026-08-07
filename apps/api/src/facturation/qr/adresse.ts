@@ -15,19 +15,40 @@
  * adresse à la main et le paiement passe. Mieux vaut un QR valide et incomplet qu'un QR complet
  * et refusé au guichet.
  *
- * ⚠️  **Divergence à arbitrer, signalée plutôt que tranchée en silence.** `RF-60` exige les
- * cinq champs nom + rue + **numéro** + NPA + localité pour émettre le bloc débiteur. La
- * spécification SIX est plus permissive : dans une adresse structurée, seuls `Name`, `PstCd`,
- * `TwnNm` et `Ctry` sont obligatoires — `StrtNmOrAdrLine1` et `BldgNbOrAdrLine2` sont
- * facultatifs. Concrètement, `RF-60` fait tomber le bloc débiteur pour des adresses que les
- * banques accepteraient : case postale, lieu-dit, hameau sans numéro de rue — courants en
- * Suisse rurale, donc chez des clients de garage.
+ * ⚠️  **`RF-60` ASSOUPLI VERS LA NORME SIX — décision prise sans arbitrage de @laupernoe (issue #22).**
  *
- * Conséquence pratique : plus de bulletins sans destinataire pré-rempli que nécessaire. Ce
- * n'est jamais un paiement perdu (le QR reste valide), seulement un confort en moins. `RF-60`
- * est donc appliqué **tel quel** — c'est la spécification, et son coût est borné — mais le
- * choix est isolé dans {@link CHAMPS_REQUIS_BLOC_DEBITEUR} : passer à la règle SIX consiste à
- * retirer deux entrées de ce tableau, et rien d'autre.
+ * `RF-60`, tel qu'appliqué jusqu'ici, exigeait nom + rue + **numéro** + NPA + localité pour
+ * émettre le bloc débiteur. Or le contrat d'adresse client (`schemaAdresseClientBase`,
+ * `packages/shared/src/contrats/atelier/client.ts`) n'a JAMAIS exposé de champ `numero` — la
+ * colonne existe en base (`client_adresse.numero`, migration 0014) mais aucun appelant ne peut
+ * la renseigner. La condition était donc **structurellement insatisfiable** : le bloc débiteur
+ * était omis sur **100 % des factures**, pas seulement « plus souvent que nécessaire » comme le
+ * disait la version précédente de ce commentaire — vérifié en base sur `document_vente`, voir
+ * l'issue #22 pour le détail (facture `2026-00002`, adresse client complète, bloc débiteur
+ * omis quand même).
+ *
+ * La spécification SIX, elle, ne rend obligatoires que `Name`, `PstCd`, `TwnNm` et `Ctry` — dans
+ * une adresse structurée, `StrtNmOrAdrLine1` et `BldgNbOrAdrLine2` sont FACULTATIFS, et les
+ * banques les acceptent absents. {@link CHAMPS_REQUIS_BLOC_DEBITEUR} est donc désormais aligné
+ * sur cette règle : `rue` et `numero` en sont retirés, ne laissant que `nom`, `npa`, `localite`
+ * et `pays` (ce dernier lu `?? 'CH'`, donc en pratique toujours satisfait). C'est exactement les
+ * « deux entrées à retirer de ce tableau, et rien d'autre » que l'ancienne version de ce
+ * commentaire annonçait déjà comme le chemin de bascule.
+ *
+ * CE QUI NE CHANGE PAS : `rue`/`numero` restent ÉMIS dans le bloc débiteur quand ils sont
+ * connus — {@link encoderBlocAdresse} les encode inconditionnellement (`?? ''` sinon).
+ * L'assouplissement porte sur ce qui est REQUIS pour que le bloc soit émis DU TOUT, pas sur ce
+ * qui est émis une fois qu'il l'est : un client dont l'adresse porte une rue verra cette rue
+ * imprimée sur le bulletin, exactement comme avant.
+ *
+ * POUR REVENIR EN ARRIÈRE : remettre `'rue'` et `'numero'` dans
+ * {@link CHAMPS_REQUIS_BLOC_DEBITEUR} restaure `RF-60` strict — mais recrée alors le bug de
+ * l'issue #22 tant que le contrat d'adresse client n'expose pas `numero` (et que les adresses
+ * existantes, saisies avant toute exposition du champ, ne portent pas de numéro séparé). La
+ * correction alternative envisagée par l'issue — exposer `numero` dans le contrat ET rattraper
+ * les adresses existantes — reste possible plus tard, mais n'a pas été retenue ici : elle ne
+ * corrige rien pour les adresses déjà saisies sans reprise de données, alors que l'assouplissement
+ * SIX corrige tout de suite, pour toutes les adresses, sans aucune migration de données.
  */
 
 import { ErreurQrFacture } from './erreurs-qr';
@@ -65,19 +86,21 @@ export const CHAMPS_REQUIS_BLOC_CREANCIER: readonly ChampAdresse[] = [
 ];
 
 /**
- * Champs exigés du bloc **débiteur** pour qu'il soit émis (`RF-60`). Un seul manquant → aucun
- * bloc débiteur, jamais un bloc partiel. Contrôle mécanique, jamais laissé au jugement de
+ * Champs exigés du bloc **débiteur** pour qu'il soit émis. Un seul manquant → aucun bloc
+ * débiteur, jamais un bloc partiel. Contrôle mécanique, jamais laissé au jugement de
  * l'utilisateur.
  *
- * Voir la divergence documentée en tête de fichier : la spécification SIX se contenterait de
- * `['nom', 'npa', 'localite', 'pays']`.
+ * `RF-60` ASSOUPLI VERS LA NORME SIX (issue #22, décision prise sans arbitrage de @laupernoe — voir
+ * l'en-tête du fichier pour le raisonnement complet et le chemin de retour arrière) : `rue` et
+ * `numero` ne sont plus requis. Sans cet assouplissement, `numero` n'étant exposé par AUCUN
+ * contrat d'écriture d'adresse client, la condition était insatisfiable pour 100 % des clients —
+ * le bloc débiteur ne s'émettait jamais.
  */
 export const CHAMPS_REQUIS_BLOC_DEBITEUR: readonly ChampAdresse[] = [
   'nom',
-  'rue',
-  'numero',
   'npa',
   'localite',
+  'pays',
 ];
 
 /** Pays par défaut quand l'appelant ne le précise pas. */

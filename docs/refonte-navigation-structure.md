@@ -65,13 +65,13 @@ adressé à Auto-i et Nextlane.
 
 **D1 — Niveaux incohérents : une entité et son sous-cas au même rang.** Mesuré, pas supposé :
 
-| Rang 1 | Rang 1 (alors que c'est un sous-cas) | Preuve |
-| --- | --- | --- |
-| Clients | Doublons clients | outil contextuel de la gestion clients |
-| Pneus > Hangar | Pneus > À relancer | `EcranHangarPneus` expose littéralement `SelectItem value="a_relancer"`, même endpoint, mêmes actions |
-| Pièces > Articles | Pièces > Réapprovisionnement | même domaine, projection dérivée du stock |
-| Ventes > Dossiers | Ventes > Suivi | vue dérivée, même droit `ventes.dossier.lire` |
-| Pointage > Journal | Pointage > Équipe | **même hook `useListePointages`, même site, même fenêtre du jour** — seule l'agrégation diffère |
+| Rang 1             | Rang 1 (alors que c'est un sous-cas) | Preuve                                                                                                |
+| ------------------ | ------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| Clients            | Doublons clients                     | outil contextuel de la gestion clients                                                                |
+| Pneus > Hangar     | Pneus > À relancer                   | `EcranHangarPneus` expose littéralement `SelectItem value="a_relancer"`, même endpoint, mêmes actions |
+| Pièces > Articles  | Pièces > Réapprovisionnement         | même domaine, projection dérivée du stock                                                             |
+| Ventes > Dossiers  | Ventes > Suivi                       | vue dérivée, même droit `ventes.dossier.lire`                                                         |
+| Pointage > Journal | Pointage > Équipe                    | **même hook `useListePointages`, même site, même fenêtre du jour** — seule l'agrégation diffère       |
 
 **D2 — Regroupement par module technique, pas par intention.** Les cinq groupes du menu
 (`pieces`, `pointage`, `pneus`, `ventes`, `parametrage`) sont, à l'identique, les répertoires de
@@ -105,10 +105,11 @@ pas une personne : elle n'a pas besoin d'un menu, elle a besoin d'un seul geste 
 **Verdict : oui, et c'est ce qui rend le reste de la proposition possible.**
 
 L'API est déjà bonne. `GET /recherche` normalise côté serveur, détecte la forme saisie (2 lettres
-+ chiffres → plaque, 17 caractères → VIN, `@` → e-mail, `OR-` → numéro d'OR), cherche par
-fragment, gère les plaques historiques et interchangeables. C'est un moteur d'entrée sérieux.
 
-Ce qui est faux, c'est son **emplacement** : elle est une *destination* (un lien de menu, un écran
+- chiffres → plaque, 17 caractères → VIN, `@` → e-mail, `OR-` → numéro d'OR), cherche par
+  fragment, gère les plaques historiques et interchangeables. C'est un moteur d'entrée sérieux.
+
+Ce qui est faux, c'est son **emplacement** : elle est une _destination_ (un lien de menu, un écran
 plein). Concrètement, chercher une plaque depuis un OR ouvert coûte : quitter l'écran courant →
 page recherche → taper → cliquer → et l'OR est perdu. Une recherche qui fait perdre le contexte
 n'est pas un point d'entrée, c'est un détour.
@@ -126,8 +127,8 @@ n'est pas un point d'entrée, c'est un détour.
    pour qui connaît son nom**.
 
 **Sans le point 3, tout le reste s'effondre** : retirer un écran du menu sans palette, c'est
-l'enterrer. Avec palette, c'est le ranger. La règle qui en découle : *le menu porte ce qu'on ouvre
-sans savoir ce qu'on cherche ; la recherche porte ce qu'on cherche en le sachant.*
+l'enterrer. Avec palette, c'est le ranger. La règle qui en découle : _le menu porte ce qu'on ouvre
+sans savoir ce qu'on cherche ; la recherche porte ce qu'on cherche en le sachant._
 
 **Travail API requis** (hors périmètre de ce document, à signaler) : `TypeResultatRecherche` doit
 gagner `article`, `dossier_vente`, `depot_pneu`, `fournisseur`. Sans cela la palette ne couvre que
@@ -139,11 +140,11 @@ gagner `article`, `dossier_vente`, `depot_pneu`, `fournisseur`. Sans cela la pal
 
 ### 4.1 Les trois classes d'accès (la règle de rangement, D4)
 
-| Classe | Définition | Où ça vit |
-| --- | --- | --- |
-| **Destination** | un plan de travail qu'on ouvre sans savoir à l'avance quel objet on va manipuler | **le menu**, et rien d'autre |
-| **Objet** | un client, un véhicule, un OR, une facture, un article, un dossier | la **recherche** + les liens contextuels |
-| **Réglage** | configuré rarement, jamais dans le flux de travail | **Réglages**, une seule porte |
+| Classe          | Définition                                                                       | Où ça vit                                |
+| --------------- | -------------------------------------------------------------------------------- | ---------------------------------------- |
+| **Destination** | un plan de travail qu'on ouvre sans savoir à l'avance quel objet on va manipuler | **le menu**, et rien d'autre             |
+| **Objet**       | un client, un véhicule, un OR, une facture, un article, un dossier               | la **recherche** + les liens contextuels |
+| **Réglage**     | configuré rarement, jamais dans le flux de travail                               | **Réglages**, une seule porte            |
 
 Tout écran futur se range par cette règle. C'est ce qui empêche le menu de regrossir.
 
@@ -195,27 +196,27 @@ le support téléphonique peut dire « troisième entrée » et être compris.
 
 ### 4.3 Ce qui SORT du menu, entrée par entrée
 
-| Entrée actuelle | Devient |
-| --- | --- |
-| Accueil + Tableau de bord | fusionnés en « Aujourd'hui » (cf. question 6) |
-| Recherche | champ permanent d'en-tête + `Ctrl+K` |
-| **Doublons clients** | **bandeau dans l'écran Clients** (« 12 fiches probablement en double ») **+ détection à la frappe dans le formulaire de création** — c'est là qu'un doublon se crée, donc là qu'il faut l'empêcher. Une entrée de menu ne détecte rien : elle attend qu'on pense à cliquer. |
-| Référentiels | Réglages → Tarifs et prestations |
-| Relances | paliers → Réglages ; déclenchement → onglet « À relancer » de Factures, **aujourd'hui inerte faute de filtre au contrat** — à câbler |
-| Pièces > Recherche comptoir | Pièces, onglet Comptoir |
-| Pièces > Articles | Pièces, onglet Articles |
-| Pièces > Réapprovisionnement | Pièces > Approvisionnement, vue « À commander » |
-| Pièces > Commandes fournisseur | Pièces > Approvisionnement, vue « Commandes » |
-| Pièces > Fournisseurs | Pièces > Approvisionnement, vue « Fournisseurs » + recherche |
-| Pièces > Consignes | Pièces, onglet Consignes |
-| Pièces > Paramétrage | Réglages → Pièces |
-| Pointage > Saisie | Atelier > Pointage, vue « Ma saisie » |
-| Pointage > Journal / Équipe | Atelier > Pointage, deux vues du **même** écran (même hook, mesuré) |
-| Pointage > Clôture de période | **action** en tête de la vue Équipe, pas un écran : on clôture ce qu'on est en train de regarder |
-| Pneus > Hangar | Atelier > Dépôt pneus |
-| Pneus > À relancer | **filtre** de Dépôt pneus — c'est déjà exactement ce qu'il est dans le code |
-| Ventes > Stock / Dossiers / Suivi | trois onglets de Ventes |
-| Paramétrage atelier / sites / facturation | Réglages |
+| Entrée actuelle                           | Devient                                                                                                                                                                                                                                                                     |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Accueil + Tableau de bord                 | fusionnés en « Aujourd'hui » (cf. question 6)                                                                                                                                                                                                                               |
+| Recherche                                 | champ permanent d'en-tête + `Ctrl+K`                                                                                                                                                                                                                                        |
+| **Doublons clients**                      | **bandeau dans l'écran Clients** (« 12 fiches probablement en double ») **+ détection à la frappe dans le formulaire de création** — c'est là qu'un doublon se crée, donc là qu'il faut l'empêcher. Une entrée de menu ne détecte rien : elle attend qu'on pense à cliquer. |
+| Référentiels                              | Réglages → Tarifs et prestations                                                                                                                                                                                                                                            |
+| Relances                                  | paliers → Réglages ; déclenchement → onglet « À relancer » de Factures, **aujourd'hui inerte faute de filtre au contrat** — à câbler                                                                                                                                        |
+| Pièces > Recherche comptoir               | Pièces, onglet Comptoir                                                                                                                                                                                                                                                     |
+| Pièces > Articles                         | Pièces, onglet Articles                                                                                                                                                                                                                                                     |
+| Pièces > Réapprovisionnement              | Pièces > Approvisionnement, vue « À commander »                                                                                                                                                                                                                             |
+| Pièces > Commandes fournisseur            | Pièces > Approvisionnement, vue « Commandes »                                                                                                                                                                                                                               |
+| Pièces > Fournisseurs                     | Pièces > Approvisionnement, vue « Fournisseurs » + recherche                                                                                                                                                                                                                |
+| Pièces > Consignes                        | Pièces, onglet Consignes                                                                                                                                                                                                                                                    |
+| Pièces > Paramétrage                      | Réglages → Pièces                                                                                                                                                                                                                                                           |
+| Pointage > Saisie                         | Atelier > Pointage, vue « Ma saisie »                                                                                                                                                                                                                                       |
+| Pointage > Journal / Équipe               | Atelier > Pointage, deux vues du **même** écran (même hook, mesuré)                                                                                                                                                                                                         |
+| Pointage > Clôture de période             | **action** en tête de la vue Équipe, pas un écran : on clôture ce qu'on est en train de regarder                                                                                                                                                                            |
+| Pneus > Hangar                            | Atelier > Dépôt pneus                                                                                                                                                                                                                                                       |
+| Pneus > À relancer                        | **filtre** de Dépôt pneus — c'est déjà exactement ce qu'il est dans le code                                                                                                                                                                                                 |
+| Ventes > Stock / Dossiers / Suivi         | trois onglets de Ventes                                                                                                                                                                                                                                                     |
+| Paramétrage atelier / sites / facturation | Réglages                                                                                                                                                                                                                                                                    |
 
 **30 → 6 + Réglages.** Aucun écran supprimé, aucun rendu inatteignable.
 
@@ -258,14 +259,14 @@ raisons, dans l'ordre de poids :
 
 Ce qui varie par rôle, en revanche : **l'écran d'atterrissage** (`/`), et rien d'autre.
 
-| Rôle | Atterrissage |
-| --- | --- |
-| `technicien` | Atelier → Pointage, vue « Ma saisie » |
-| `magasinier` | Pièces → Comptoir |
-| `receptionnaire`, `chef_atelier` | Aujourd'hui |
-| `vendeur` | Ventes → Dossiers |
-| `comptable` | Facturation → Factures |
-| `direction`, `admin` | Aujourd'hui |
+| Rôle                             | Atterrissage                          |
+| -------------------------------- | ------------------------------------- |
+| `technicien`                     | Atelier → Pointage, vue « Ma saisie » |
+| `magasinier`                     | Pièces → Comptoir                     |
+| `receptionnaire`, `chef_atelier` | Aujourd'hui                           |
+| `vendeur`                        | Ventes → Dossiers                     |
+| `comptable`                      | Facturation → Factures                |
+| `direction`, `admin`             | Aujourd'hui                           |
 
 **L'ordre des six entrées reste identique pour tous** — un ordre variable détruirait la mémoire
 spatiale et le support téléphonique, pour un gain nul.

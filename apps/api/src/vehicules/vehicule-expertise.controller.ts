@@ -50,11 +50,19 @@ export class VehiculeExpertiseController {
   @ApiOperation({
     summary: "Enregistrement d'une expertise (RM-28, CT-10).",
     description:
-      'Une convocation cantonale (`sourceEcheance: "convocation"`) prime toujours sur une périodicité calculée.',
+      'Une convocation cantonale (`sourceEcheance: "convocation"`) prime toujours sur une ' +
+      'périodicité calculée. `delaiContreVisiteLe` et `dateContreVisiteLe`, si fournies, doivent ' +
+      'être postérieures ou égales à `dateLe` : la contre-visite suit toujours l’expertise qui ' +
+      'la déclenche, jamais l’inverse.',
   })
   @ApiParam({ name: 'vehiculeId', format: 'uuid' })
   @ApiResponse({ status: 201, type: ReponseVehiculeExpertiseDto })
-  @ApiReponseProbleme(400, 'Corps invalide.')
+  @ApiReponseProbleme(
+    400,
+    'Corps invalide, ou `delaiContreVisiteLe`/`dateContreVisiteLe` antérieure à `dateLe` — la ' +
+      'contre-visite suit toujours l’expertise qui la déclenche (RM-28) ; `erreurs[].champ` nomme ' +
+      'le champ en cause.',
+  )
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Véhicule introuvable pour ce tenant.')
