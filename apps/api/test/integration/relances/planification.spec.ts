@@ -112,7 +112,11 @@ describe('paliers dus — le bon palier au bon moment, jamais sauté ni doublé'
       const cookieDirection = await cookiePour(garage.tenantA, 'direction');
       await planifier(ctx, cookieDirection);
 
-      const lignes = await lireRelancesPlanifieesPourObjet(bdd, garage.tenantA.tenant.id, facture.id);
+      const lignes = await lireRelancesPlanifieesPourObjet(
+        bdd,
+        garage.tenantA.tenant.id,
+        facture.id,
+      );
       expect(lignes.map((l) => l.palier).sort((a, b) => a - b)).toEqual(paliersAttendus);
       for (const ligne of lignes) {
         expect(ligne.typeRelance).toBe('facture_echue');
@@ -166,7 +170,11 @@ describe('idempotence — planifier deux fois de suite n’insère jamais un dou
     // (il vient justement de créer quelque chose), seul appel2 (rejoué immédiatement après, sans
     // qu'aucune autre facture n'ait pu changer d'état entre-temps) peut l'être.
     const appel1 = await planifier(ctx, cookieDirection);
-    const lignesApres1 = await lireRelancesPlanifieesPourObjet(bdd, garage.tenantA.tenant.id, facture.id);
+    const lignesApres1 = await lireRelancesPlanifieesPourObjet(
+      bdd,
+      garage.tenantA.tenant.id,
+      facture.id,
+    );
     expect(lignesApres1.map((l) => l.palier)).toEqual([1]);
 
     // Rejeu immédiat, réel (deuxième requête HTTP, pas un mock) : la ligne palier=1 existe déjà en
@@ -183,7 +191,11 @@ describe('idempotence — planifier deux fois de suite n’insère jamais un dou
     expect(appel2.ignorees - appel1.ignorees).toBe(lignesApres1.length); // exactement le palier 1 de CETTE facture.
 
     // Toujours UNE SEULE ligne en base pour ce palier — jamais un doublon silencieux.
-    const lignesApres2 = await lireRelancesPlanifieesPourObjet(bdd, garage.tenantA.tenant.id, facture.id);
+    const lignesApres2 = await lireRelancesPlanifieesPourObjet(
+      bdd,
+      garage.tenantA.tenant.id,
+      facture.id,
+    );
     expect(lignesApres2).toHaveLength(1);
     expect(lignesApres2[0]!.id).toBe(lignesApres1[0]!.id); // même ligne, pas une nouvelle.
   });
@@ -225,7 +237,11 @@ describe('facture annulée par avoir — non-régression, couche PLANIFICATION',
     const cookieDirection = await cookiePour(garage.tenantA, 'direction');
 
     await planifier(ctx, cookieDirection);
-    const avantAvoir = await lireRelancesPlanifieesPourObjet(bdd, garage.tenantA.tenant.id, facture.id);
+    const avantAvoir = await lireRelancesPlanifieesPourObjet(
+      bdd,
+      garage.tenantA.tenant.id,
+      facture.id,
+    );
     expect(avantAvoir.map((l) => l.palier)).toEqual([1]);
 
     await creerAvoirTotalPourTest(ctx, garage.tenantA, cookiePour, facture.id);
@@ -234,7 +250,11 @@ describe('facture annulée par avoir — non-régression, couche PLANIFICATION',
     // facture (`annule_par_avoir`) — ni un doublon du palier 1, ni le palier 2 (qui, sans l'avoir,
     // deviendrait dû à J-15).
     await planifier(ctx, cookieDirection);
-    const apresAvoir = await lireRelancesPlanifieesPourObjet(bdd, garage.tenantA.tenant.id, facture.id);
+    const apresAvoir = await lireRelancesPlanifieesPourObjet(
+      bdd,
+      garage.tenantA.tenant.id,
+      facture.id,
+    );
     expect(apresAvoir).toHaveLength(1);
     expect(apresAvoir[0]!.id).toBe(avantAvoir[0]!.id);
     expect(apresAvoir[0]!.palier).toBe(1);

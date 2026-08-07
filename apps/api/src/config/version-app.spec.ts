@@ -75,10 +75,12 @@ describe('calculerVersionAppParDefaut — repli développement (voir charger-con
 
   it('package.json absent retombe sur MAJEUR.MINEUR = 0.0, sans jamais lever', () => {
     commit('un seul commit, pas de package.json');
-    expect(calculerVersionAppParDefaut(depot)).toBe(`0.0.1+${git(['rev-parse', '--short', 'HEAD'])}`);
+    expect(calculerVersionAppParDefaut(depot)).toBe(
+      `0.0.1+${git(['rev-parse', '--short', 'HEAD'])}`,
+    );
   });
 
-  it("dépôt sans `.git` (ex. archive téléchargée) : repli honnête `MAJEUR.MINEUR.0-dev+inconnu`, jamais un plantage", () => {
+  it('dépôt sans `.git` (ex. archive téléchargée) : repli honnête `MAJEUR.MINEUR.0-dev+inconnu`, jamais un plantage', () => {
     const sansGit = mkdtempSync(join(tmpdir(), 'dfa-sans-git-'));
     try {
       writeFileSync(join(sansGit, 'package.json'), JSON.stringify({ version: '3.1.0' }));

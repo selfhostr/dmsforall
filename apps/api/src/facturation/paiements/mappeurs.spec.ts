@@ -146,7 +146,11 @@ describe('versPaiement — assemblage de la ressource publique', () => {
     'un paiement de remboursement (montant négatif) reste correctement signé dans la réponse, ' +
       'et n’a JAMAIS de reliquat non imputé à afficher (issue #9)',
     () => {
-      const p = ligne({ montantCentimes: -1900n, moyen: 'virement', contrePasseId: 'pmt-original' });
+      const p = ligne({
+        montantCentimes: -1900n,
+        moyen: 'virement',
+        contrePasseId: 'pmt-original',
+      });
 
       const reponse = versPaiement(p, [], new Map());
 

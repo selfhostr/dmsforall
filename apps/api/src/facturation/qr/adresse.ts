@@ -96,7 +96,12 @@ export const CHAMPS_REQUIS_BLOC_CREANCIER: readonly ChampAdresse[] = [
  * contrat d'écriture d'adresse client, la condition était insatisfiable pour 100 % des clients —
  * le bloc débiteur ne s'émettait jamais.
  */
-export const CHAMPS_REQUIS_BLOC_DEBITEUR: readonly ChampAdresse[] = ['nom', 'npa', 'localite', 'pays'];
+export const CHAMPS_REQUIS_BLOC_DEBITEUR: readonly ChampAdresse[] = [
+  'nom',
+  'npa',
+  'localite',
+  'pays',
+];
 
 /** Pays par défaut quand l'appelant ne le précise pas. */
 export const PAYS_PAR_DEFAUT = 'CH';

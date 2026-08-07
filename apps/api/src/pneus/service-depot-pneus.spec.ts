@@ -325,7 +325,8 @@ describe('ServiceDepotPneus.changerSaison — RPP-03 : inverse la paire été/hi
       code: 'CONFLIT',
       status: 409,
       // Même correctif que `sortir()` (issue #15, point 1), appliqué par cohérence à ce voisin.
-      detail: 'Transition interdite : le dépôt est "a_relancer", ni "en_depot" ni "monte" (RPP-03).',
+      detail:
+        'Transition interdite : le dépôt est "a_relancer", ni "en_depot" ni "monte" (RPP-03).',
     });
   });
 });

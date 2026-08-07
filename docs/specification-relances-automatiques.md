@@ -41,17 +41,17 @@ manquent.
 
 ### Retenus
 
-| # | Rappel | Univers | Fam. | Ancrage en base | Valeur |
-|---|---|---|---|---|---|
-| 1 | Devis émis, sans réponse | Facturation | A | `document_vente` (`devis`, `envoye`) | Ferme des ventes qui dorment. |
-| 2 | Facture échue, rappel puis sommation | Facturation | A | `relanceNiveau`/`relanceLe` (déjà en base, jamais alimenté auto) | Trésorerie — un manque comblé, pas une nouveauté. |
-| 3 | Devis complémentaire en attente, mi-travaux | Atelier | A | OR ouvert, décision client due | Pont bloqué, urgence réelle. |
-| 4 | Véhicule prêt, non restitué | Atelier | A | OR clôturé, véhicule sur site | Évite parking qui déborde + responsabilité. |
-| 5 | Pneus en dépôt oubliés | Atelier | A | `depots-pneus` (liste manuelle `à-relancer` existe déjà) | Rendre un bien gardé, pas prospecter. |
-| 6 | Travail reporté urgent/sécurité non repris | Atelier | A | `vehicule_travail_reporte` (`urgent`/`securite`, chiffré) | Ancré à un diagnostic déjà discuté. |
-| 7 | Pneus saisonniers à remonter | Vente/service | B | Hangar pneus + saison | Cas en or : biannuel, universel, donnée déjà là. |
-| 8 | Échéance MFK qui approche | Vente/service | B | `vehicule_expertise.prochaineEcheance` | Échéance légale connue, occasion de RDV. |
-| 9 | Campagne constructeur sécurité (`obligatoire=true`) | Vente/service | A (§1) | `vehicule_campagne` | Sécurité + responsabilité garage. |
+| #   | Rappel                                              | Univers       | Fam.   | Ancrage en base                                                  | Valeur                                            |
+| --- | --------------------------------------------------- | ------------- | ------ | ---------------------------------------------------------------- | ------------------------------------------------- |
+| 1   | Devis émis, sans réponse                            | Facturation   | A      | `document_vente` (`devis`, `envoye`)                             | Ferme des ventes qui dorment.                     |
+| 2   | Facture échue, rappel puis sommation                | Facturation   | A      | `relanceNiveau`/`relanceLe` (déjà en base, jamais alimenté auto) | Trésorerie — un manque comblé, pas une nouveauté. |
+| 3   | Devis complémentaire en attente, mi-travaux         | Atelier       | A      | OR ouvert, décision client due                                   | Pont bloqué, urgence réelle.                      |
+| 4   | Véhicule prêt, non restitué                         | Atelier       | A      | OR clôturé, véhicule sur site                                    | Évite parking qui déborde + responsabilité.       |
+| 5   | Pneus en dépôt oubliés                              | Atelier       | A      | `depots-pneus` (liste manuelle `à-relancer` existe déjà)         | Rendre un bien gardé, pas prospecter.             |
+| 6   | Travail reporté urgent/sécurité non repris          | Atelier       | A      | `vehicule_travail_reporte` (`urgent`/`securite`, chiffré)        | Ancré à un diagnostic déjà discuté.               |
+| 7   | Pneus saisonniers à remonter                        | Vente/service | B      | Hangar pneus + saison                                            | Cas en or : biannuel, universel, donnée déjà là.  |
+| 8   | Échéance MFK qui approche                           | Vente/service | B      | `vehicule_expertise.prochaineEcheance`                           | Échéance légale connue, occasion de RDV.          |
+| 9   | Campagne constructeur sécurité (`obligatoire=true`) | Vente/service | A (§1) | `vehicule_campagne`                                              | Sécurité + responsabilité garage.                 |
 
 ### Écartés
 

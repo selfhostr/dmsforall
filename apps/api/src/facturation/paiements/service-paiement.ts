@@ -175,9 +175,9 @@ export class ServicePaiement {
             'VALIDATION_ECHOUEE',
             negatif
               ? "Le montant d'un paiement créé via POST /paiements doit être strictement positif " +
-                "— c'est un encaissement. Un remboursement se crée via " +
-                'POST /paiements/{id}/rembourser (RF-79), jamais avec un montant négatif saisi ' +
-                'directement.'
+                  "— c'est un encaissement. Un remboursement se crée via " +
+                  'POST /paiements/{id}/rembourser (RF-79), jamais avec un montant négatif saisi ' +
+                  'directement.'
               : "Le montant d'un paiement ne peut pas être nul.",
             {
               erreurs: [

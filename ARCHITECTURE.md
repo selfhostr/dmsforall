@@ -97,17 +97,17 @@ Alternatives considérées : Go (backend plus performant mais deux langages à m
 
 ## 6. État actuel et feuille de route
 
-| Étape                    | Contenu                                                                          | État                                                                              |
-| ------------------------ | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| **0. Socle**             | Auth, tenants, sites, rôles, i18n, API OpenAPI, squelette UI, CI/CD, hébergement | ✅ Livré, vérifié                                                                 |
-| **1. Atelier + Clients** | Clients, véhicules, RDV, OR, planning, pointage sur OR                           | ✅ Livré (API + écrans)                                                           |
-| **2. Facturation**       | Devis/facture/avoir, QR-facture, export fiduciaire WinBIZ, encaissement          | ✅ Livré (API + écrans + jeu démo)                                                |
-| **Lot 2. Pointage**      | Pointage par technicien/OR (temps réel, tracé historisé, statut OR=en_cours)     | 🟨 API livrée, écrans en cours                                                    |
-| **3. Pièces**            | Articles, stock par site, mouvements (casse/transfert/retour/comptoir), réservations | ✅ API + écrans livrés ; 🟨 commandes fournisseur, consignes EN COURS                            |
-| **4. Ventes VN/VO**      | Stock garage, dossiers de vente, reprises, financement, leasings, garanties      | ✅ Cycle complet (API + écrans livrés) ; 🟨 suivi leasings/garanties EN COURS     |
-| **Tableau-bord**         | Activité atelier (ouverte), financier (direction/comptabilité seulement)         | ✅ API + écrans + droits dédiés livrés                                             |
-| **Pneus**                | Hangar à dépôt, déposer/retirer pneus, changement de saison                      | ✅ API + écrans livrés (migrations 0043–0044)                                      |
-| **5. Connecteurs**       | Interfaces pour TecDoc, AutoScout24, exports comptables, OEM ; socle d'exécution | ✅ Socle exécutable (registre, résilience) ; 🟨 adaptateurs (4 interfaces sans contrat métier) |
+| Étape                    | Contenu                                                                              | État                                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| **0. Socle**             | Auth, tenants, sites, rôles, i18n, API OpenAPI, squelette UI, CI/CD, hébergement     | ✅ Livré, vérifié                                                                              |
+| **1. Atelier + Clients** | Clients, véhicules, RDV, OR, planning, pointage sur OR                               | ✅ Livré (API + écrans)                                                                        |
+| **2. Facturation**       | Devis/facture/avoir, QR-facture, export fiduciaire WinBIZ, encaissement              | ✅ Livré (API + écrans + jeu démo)                                                             |
+| **Lot 2. Pointage**      | Pointage par technicien/OR (temps réel, tracé historisé, statut OR=en_cours)         | 🟨 API livrée, écrans en cours                                                                 |
+| **3. Pièces**            | Articles, stock par site, mouvements (casse/transfert/retour/comptoir), réservations | ✅ API + écrans livrés ; 🟨 commandes fournisseur, consignes EN COURS                          |
+| **4. Ventes VN/VO**      | Stock garage, dossiers de vente, reprises, financement, leasings, garanties          | ✅ Cycle complet (API + écrans livrés) ; 🟨 suivi leasings/garanties EN COURS                  |
+| **Tableau-bord**         | Activité atelier (ouverte), financier (direction/comptabilité seulement)             | ✅ API + écrans + droits dédiés livrés                                                         |
+| **Pneus**                | Hangar à dépôt, déposer/retirer pneus, changement de saison                          | ✅ API + écrans livrés (migrations 0043–0044)                                                  |
+| **5. Connecteurs**       | Interfaces pour TecDoc, AutoScout24, exports comptables, OEM ; socle d'exécution     | ✅ Socle exécutable (registre, résilience) ; 🟨 adaptateurs (4 interfaces sans contrat métier) |
 
 Jalon clé : **fin d'étape 2 (31.07.2026) = premier garage prêt pour une utilisation réelle.** Étapes 3-5 élargissent le périmètre ; aucune n'est bloquante pour le pilote.
 

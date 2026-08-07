@@ -114,7 +114,13 @@ function txFactice(delaiTenantDefaut: number | null = 30) {
   const whereSelect = vi.fn(() => ({ limit: limitSelect }));
   const fromSelect = vi.fn(() => ({ where: whereSelect }));
   const select = vi.fn((_colonnes: unknown) => ({ from: fromSelect }));
-  return { tx: { update, insert, select } as unknown as TransactionDfa, update, setUpdate, insert, select };
+  return {
+    tx: { update, insert, select } as unknown as TransactionDfa,
+    update,
+    setUpdate,
+    insert,
+    select,
+  };
 }
 
 function serviceFactice(tx: TransactionDfa) {

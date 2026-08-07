@@ -51,7 +51,7 @@ describe('0046 — PARTIE A : validee -> realisee direct pour les types sans tem
     }
   });
 
-  it('la transition générique (type_ligne = \'*\') validee -> realisee reste absente', () => {
+  it("la transition générique (type_ligne = '*') validee -> realisee reste absente", () => {
     // Elle existait déjà AVANT 0046 sous la forme en_cours -> realisee, jamais validee ->
     // realisee : ce test garantit que 0046 ne l'ajoute pas par erreur pour TOUS les types.
     expect(MONTANTE).not.toMatch(/\('ligne_or',\s*'validee',\s*'realisee',\s*false\)/);
@@ -59,9 +59,7 @@ describe('0046 — PARTIE A : validee -> realisee direct pour les types sans tem
 
   it("étend transition_autorisee avec la colonne type_ligne (sentinel '*'), PK à 4 colonnes", () => {
     expect(MONTANTE).toMatch(/add column type_ligne text not null default '\*'/);
-    expect(MONTANTE).toMatch(
-      /primary key \(entite, statut_depuis, statut_vers, type_ligne\)/,
-    );
+    expect(MONTANTE).toMatch(/primary key \(entite, statut_depuis, statut_vers, type_ligne\)/);
   });
 
   it('verifier_transition() filtre désormais par type_ligne', () => {
@@ -69,7 +67,7 @@ describe('0046 — PARTIE A : validee -> realisee direct pour les types sans tem
     expect(MONTANTE).toMatch(/t\.type_ligne = '\*' or t\.type_ligne = type_ligne_actuel/);
   });
 
-  it('transition_autorisee_valide_contenu() réserve type_ligne <> \'*\' à ligne_or', () => {
+  it("transition_autorisee_valide_contenu() réserve type_ligne <> '*' à ligne_or", () => {
     expect(MONTANTE).toMatch(/new\.entite <> 'ligne_or'/);
     expect(MONTANTE).toMatch(/'public\.type_ligne_or'::regtype/);
   });
@@ -97,15 +95,15 @@ describe('0046 — PARTIE A : validee -> realisee direct pour les types sans tem
 
   it('le down retire la colonne type_ligne et restaure la PK à 3 colonnes', () => {
     expect(DESCENDANTE).toMatch(/drop column type_ligne/);
-    expect(DESCENDANTE).toMatch(/add constraint transition_autorisee_pk primary key \(entite, statut_depuis, statut_vers\)/);
+    expect(DESCENDANTE).toMatch(
+      /add constraint transition_autorisee_pk primary key \(entite, statut_depuis, statut_vers\)/,
+    );
   });
 });
 
 describe('0046 — PARTIE B : tenant.delai_paiement_jours_defaut (issue #17)', () => {
   it('ajoute la colonne NOT NULL DEFAULT 30, avec un CHECK >= 0', () => {
-    expect(MONTANTE).toMatch(
-      /add column delai_paiement_jours_defaut integer not null default 30/,
-    );
+    expect(MONTANTE).toMatch(/add column delai_paiement_jours_defaut integer not null default 30/);
     expect(MONTANTE).toMatch(/check \(delai_paiement_jours_defaut >= 0\)/);
   });
 

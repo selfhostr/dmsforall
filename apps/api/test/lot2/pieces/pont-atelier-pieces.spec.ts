@@ -127,7 +127,13 @@ async function articleAvecStock(
     (article.body as { donnees: { id: string } }).donnees as unknown as { id: string }
   ).id;
   const siteId = SITE_A();
-  const ajustement = await ajustementInventaire(ctx, cookie, articleId, siteId, quantitePhysiqueMillieme);
+  const ajustement = await ajustementInventaire(
+    ctx,
+    cookie,
+    articleId,
+    siteId,
+    quantitePhysiqueMillieme,
+  );
   expect(ajustement.status, JSON.stringify(ajustement.body)).toBe(201);
   return { articleId, siteId };
 }
@@ -143,7 +149,13 @@ async function articleEchangeStandardAvecStock(
     (article.body as { donnees: { id: string } }).donnees as unknown as { id: string }
   ).id;
   const siteId = SITE_A();
-  const ajustement = await ajustementInventaire(ctx, cookie, articleId, siteId, quantitePhysiqueMillieme);
+  const ajustement = await ajustementInventaire(
+    ctx,
+    cookie,
+    articleId,
+    siteId,
+    quantitePhysiqueMillieme,
+  );
   expect(ajustement.status, JSON.stringify(ajustement.body)).toBe(201);
   return { articleId, siteId };
 }
@@ -235,7 +247,7 @@ describe('cycle complet : poser une ligne pièce réserve, marquer réalisée so
     });
   });
 
-  it("marquer réalisée sort la pièce du stock : mouvement sortie_or EXACT, réservation satisfaite, AUCUNE consigne (article pas échange standard)", async () => {
+  it('marquer réalisée sort la pièce du stock : mouvement sortie_or EXACT, réservation satisfaite, AUCUNE consigne (article pas échange standard)', async () => {
     const { articleId, siteId } = await articleAvecStock(5000);
     const or = await creerOrFrais();
     const { ligneId } = await poserLigneEtDemarrer(or.id, articleId, siteId, 2000);
@@ -246,9 +258,7 @@ describe('cycle complet : poser une ligne pièce réserve, marquer réalisée so
     // exécution, pas supposé.
     const realisation = await marquerRealisee(ctx, await cookieAtelier(), or.id, ligneId);
     expect(realisation.status, JSON.stringify(realisation.body)).toBe(201);
-    expect(
-      (realisation.body as { donnees: { statut: string } }).donnees.statut,
-    ).toBe('realisee');
+    expect((realisation.body as { donnees: { statut: string } }).donnees.statut).toBe('realisee');
 
     // Stock : 5000 physiques, 2000 sortis, 0 réservé restant (la réservation vient d'être
     // satisfaite) -> 3000 disponible.
@@ -273,7 +283,11 @@ describe('cycle complet : poser une ligne pièce réserve, marquer réalisée so
     });
     const mvts = (mouvements.body as { donnees: readonly Record<string, unknown>[] }).donnees;
     expect(mvts).toHaveLength(1);
-    expect(mvts[0]).toMatchObject({ quantiteMillieme: -2000, ligneOrId: ligneId, type: 'sortie_or' });
+    expect(mvts[0]).toMatchObject({
+      quantiteMillieme: -2000,
+      ligneOrId: ligneId,
+      type: 'sortie_or',
+    });
 
     // Aucune consigne posée pour CETTE ligne — l'article n'est pas un échange standard.
     const consignes = await listerConsignes(ctx, await cookiePieces(), { siteId });
@@ -315,9 +329,9 @@ describe('consigne d’échange standard : réaliser une ligne dont l’article 
     expect(entree).toMatchObject({ quantiteMillieme: 1000, ligneOrId: ligneId });
 
     const consignes = await listerConsignes(ctx, await cookiePieces(), { siteId });
-    const consigne = (consignes.body as { donnees: readonly Record<string, unknown>[] }).donnees.find(
-      (c) => c.ligneOrId === ligneId,
-    );
+    const consigne = (
+      consignes.body as { donnees: readonly Record<string, unknown>[] }
+    ).donnees.find((c) => c.ligneOrId === ligneId);
     expect(consigne, JSON.stringify(consignes.body)).toBeDefined();
     expect(consigne).toMatchObject({
       articleId,
@@ -437,7 +451,7 @@ describe('RP-24 — stock insuffisant à la pose : blocage="pieces", jamais un 4
 // d'atomicité doit constater, jamais simuler.
 // =================================================================================================
 
-describe("atomicité réelle : marquer réalisée une ligne dont la réservation couvre 100% du disponible", () => {
+describe('atomicité réelle : marquer réalisée une ligne dont la réservation couvre 100% du disponible', () => {
   it(
     'échoue réellement (contrainte stock_article_reservee_leq_physique_chk, pas un mock) ET annule ' +
       'TOUT : la ligne reste `en_cours`, la réservation reste `active`, aucun mouvement de sortie ' +
@@ -496,12 +510,12 @@ describe("atomicité réelle : marquer réalisée une ligne dont la réservation
 
   it(
     'DÉFAUT CONSTATÉ (documenté, PAS corrigé — hors périmètre `apps/api/test/**`) : ce scénario ' +
-      "est pourtant un cas métier PARFAITEMENT ORDINAIRE (« la dernière pièce en stock sert à " +
+      'est pourtant un cas métier PARFAITEMENT ORDINAIRE (« la dernière pièce en stock sert à ' +
       'terminer LA réparation qui l’a réservée ») — il ne devrait PAS échouer. La transition est ' +
       "annulée proprement (test précédent), mais l'atelier ne peut structurellement JAMAIS clôturer " +
       "un travail qui a consommé 100% du disponible d'un article, ce qui est strictement pire que ce " +
-      "que RP-24 (blocage à la POSE) anticipe — RP-24 ne couvre que le cas où le disponible manque " +
-      "AVANT la réservation, pas celui où il devient nul PAR la réservation elle-même puis se heurte " +
+      'que RP-24 (blocage à la POSE) anticipe — RP-24 ne couvre que le cas où le disponible manque ' +
+      'AVANT la réservation, pas celui où il devient nul PAR la réservation elle-même puis se heurte ' +
       "à l'ordre d'écriture de `appliquerSatisfaction` (voir l'analyse en tête de section). Ce test " +
       'documente le comportement ATTENDU (succès) et reste ROUGE tant que ce n’est pas corrigé — ' +
       'CONTRIBUTING.md : « un test qui documente un vrai défaut est un bon test ».',
@@ -552,7 +566,7 @@ describe('isolation inter-tenant du pont atelier ↔ pièces', () => {
   });
 
   it(
-    "la réservation ET la consigne de tenant A sont invisibles depuis tenant B (les collections " +
+    'la réservation ET la consigne de tenant A sont invisibles depuis tenant B (les collections ' +
       'sont filtrées par tenant, RLS) — même quand tenant B interroge EXACTEMENT le même ' +
       'ordreReparationId/siteId',
     async () => {
@@ -568,9 +582,9 @@ describe('isolation inter-tenant du pont atelier ↔ pièces', () => {
 
       const consignesB = await listerConsignes(ctx, cookieB, { siteId });
       expect(consignesB.status).toBe(200);
-      const fuite = (consignesB.body as { donnees: readonly Record<string, unknown>[] }).donnees.some(
-        (c) => c.ligneOrId === ligneId,
-      );
+      const fuite = (
+        consignesB.body as { donnees: readonly Record<string, unknown>[] }
+      ).donnees.some((c) => c.ligneOrId === ligneId);
       expect(fuite).toBe(false);
     },
   );
@@ -740,7 +754,9 @@ describe('vente au comptoir — sortie et retour client, idempotence réelle', (
       const stock = await disponibilite(ctx, cookie, articleId, siteId);
       expect(stock.body).toMatchObject({ quantitePhysiqueMillieme: 2000 });
 
-      const mouvements = await listerMouvements(ctx, cookie, articleId, { type: 'sortie_comptoir' });
+      const mouvements = await listerMouvements(ctx, cookie, articleId, {
+        type: 'sortie_comptoir',
+      });
       expect((mouvements.body as { donnees: readonly unknown[] }).donnees).toHaveLength(2);
     },
   );
@@ -776,7 +792,10 @@ describe('pieces.mouvement.forcer — matrice rôle × action', () => {
     expect(casseNormale.status, JSON.stringify(casseNormale.body)).toBe(201);
 
     const stock = await disponibilite(ctx, cookie, articleId, siteId);
-    expect(stock.body).toMatchObject({ quantitePhysiqueMillieme: 600, quantiteDisponibleMillieme: 600 });
+    expect(stock.body).toMatchObject({
+      quantitePhysiqueMillieme: 600,
+      quantiteDisponibleMillieme: 600,
+    });
   });
 
   it('magasinier, SANS forcer, au-delà du disponible : refusé 409 STOCK_INSUFFISANT, aucun mouvement créé', async () => {
@@ -797,15 +816,15 @@ describe('pieces.mouvement.forcer — matrice rôle × action', () => {
       'observable — TOUJOURS `409 STOCK_INSUFFISANT`, jamais un `201`. La prémisse du brief de ' +
       "cette tâche (« un rôle qui a `pieces.mouvement.forcer` PEUT passer outre ») s'avère FAUSSE " +
       'pour `casse`/`perte`/`retour-fournisseur` telles qu’implémentées aujourd’hui : `forcer` ne ' +
-      "fait sauter QUE la garde applicative `verifierDisponible` (service-mouvement.ts) — mais la " +
+      'fait sauter QUE la garde applicative `verifierDisponible` (service-mouvement.ts) — mais la ' +
       'contrainte SQL `stock_article_reservee_leq_physique_chk` (0025), elle, refuse INCONDITIONNEL' +
-      "LEMENT tout mouvement qui ferait passer `physique` sous `reservee`. Or dès que la quantité " +
-      "sortie dépasse le DISPONIBLE (physique − réservé) et que `reservee` ne bouge PAS dans le " +
-      "MÊME mouvement (le cas de `casse`/`perte`, qui ne touchent jamais `reservation_piece`), " +
-      "physique_après < reservee EST TOUJOURS vrai algébriquement (physique_après = physique_avant " +
-      "− Q, et Q > disponible ⟺ physique_avant − Q < reservee) — la contrainte retombe donc " +
-      "TOUJOURS, `forcer` ou pas. Le service traduit la violation en 409 STOCK_INSUFFISANT (filet " +
-      "`estViolationStockInsuffisant`, service-mouvement.ts) au lieu de 500 : le SYMPTÔME visible " +
+      'LEMENT tout mouvement qui ferait passer `physique` sous `reservee`. Or dès que la quantité ' +
+      'sortie dépasse le DISPONIBLE (physique − réservé) et que `reservee` ne bouge PAS dans le ' +
+      'MÊME mouvement (le cas de `casse`/`perte`, qui ne touchent jamais `reservation_piece`), ' +
+      'physique_après < reservee EST TOUJOURS vrai algébriquement (physique_après = physique_avant ' +
+      '− Q, et Q > disponible ⟺ physique_avant − Q < reservee) — la contrainte retombe donc ' +
+      'TOUJOURS, `forcer` ou pas. Le service traduit la violation en 409 STOCK_INSUFFISANT (filet ' +
+      '`estViolationStockInsuffisant`, service-mouvement.ts) au lieu de 500 : le SYMPTÔME visible ' +
       "(409 dans les deux cas) masque que `forcer` n'a AUCUN effet différenciateur ici. Ce test " +
       'documente le comportement ATTENDU PAR LE BRIEF (`forcer: true` devrait réussir, 2xx) et ' +
       'reste ROUGE tant que ce n’est pas corrigé.',

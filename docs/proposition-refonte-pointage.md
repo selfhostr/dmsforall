@@ -8,7 +8,7 @@
 
 ## Déclencheur
 
-Retour utilisateur : le module de pointage ne semble pas logique ni *user-friendly* ; **ça doit être ultra rapide et instinctif pour les ouvriers**. Cette proposition documente les constats factuels (vérifiés en exécution), récapitule ce qui fonctionne bien, et propose une redirection ergonomique.
+Retour utilisateur : le module de pointage ne semble pas logique ni _user-friendly_ ; **ça doit être ultra rapide et instinctif pour les ouvriers**. Cette proposition documente les constats factuels (vérifiés en exécution), récapitule ce qui fonctionne bien, et propose une redirection ergonomique.
 
 ---
 
@@ -61,6 +61,7 @@ Retour utilisateur : le module de pointage ne semble pas logique ni *user-friend
 **C'est le point technique le plus important à remonter à @laupernoe.**
 
 **Illustration** :
+
 - Technicien A pointe une ligne, puis prend une pause (démarre activité `pause`).
 - Technicien B tape son PIN → rechargement de l'écran, `dernierCible` du technicien A est oubliée.
 - Technicien A reprend son identification → nouvel écran. Le bouton « Reprendre » n'existe plus.
@@ -127,6 +128,7 @@ Ces points ne sont pas perfectibles — ce sont de vraies bonnes décisions qu'i
 **Cas** : Matin à l'arrivée, ou après arrêt du soir précédent.
 
 **À l'écran** :
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ Pointage technicien                                             │
@@ -150,6 +152,7 @@ Ces points ne sont pas perfectibles — ce sont de vraies bonnes décisions qu'i
 **Cas** : Vous avez interrompu une ligne productive (pause, changement de tâche, interruption inattendue), ou une activité indirecte.
 
 **À l'écran** :
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ ↺ Reprendre : Plaquettes de frein — OR-2026-1042             │
@@ -169,11 +172,11 @@ Ces points ne sont pas perfectibles — ce sont de vraies bonnes décisions qu'i
 
 **Maquette du bandeau** (80 px, pleine largeur) :
 
-| Partie | Contenu | Taille |
-|--------|---------|--------|
-| Icône/indication | `↺` (ou icône généralisée « reprendre ») | 32 px |
-| Titre | **Reprendre :  {libellé court}** | Titre compact, pouvant wrap |
-| Sous-texte | `Interrompu il y a {dur}` · `{cumul} déjà pointées aujourd'hui`* | Texte petit, couleur muted |
+| Partie           | Contenu                                                          | Taille                      |
+| ---------------- | ---------------------------------------------------------------- | --------------------------- |
+| Icône/indication | `↺` (ou icône généralisée « reprendre »)                         | 32 px                       |
+| Titre            | **Reprendre : {libellé court}**                                  | Titre compact, pouvant wrap |
+| Sous-texte       | `Interrompu il y a {dur}` · `{cumul} déjà pointées aujourd'hui`* | Texte petit, couleur muted  |
 
 *Le cumul ne s'affiche que s'il existe : si c'est la première visite sur cette ligne aujourd'hui, pas besoin de polluer le sous-texte.
 
@@ -228,6 +231,7 @@ Ces points ne sont pas perfectibles — ce sont de vraies bonnes décisions qu'i
 ```
 
 **Boutons** :
+
 - **« Pause »** : Action primaire (pleine, pas d'outline), couleur standard (pas de rouge).
 - **« Arrêter »** : Action secondaire de contour, couleur neutre (pas destructive).
 
@@ -255,6 +259,7 @@ Ces points ne sont pas perfectibles — ce sont de vraies bonnes décisions qu'i
 ```
 
 **Boutons** :
+
 - **« Reprendre : {cible} »** : Action primaire (pleine, 80 px), libellé informatif.
 - **« Arrêter »** : Action secondaire de contour.
 
@@ -279,12 +284,12 @@ Ces points ne sont pas perfectibles — ce sont de vraies bonnes décisions qu'i
 
 Remplace le langage du mockup d'origine, en cohérence avec RM-118 :
 
-| Champ | Valeur |
-|-------|--------|
-| Titre du bandeau de reprise | `↺ Reprendre : {libellé de cible}` (ex. `↺ Reprendre : Plaquettes de frein — OR-2026-1042`) |
-| Sous-texte bandeau reprise | `Interrompu il y a {durée}` · `{cumul} déjà pointées aujourd'hui` |
-| Bouton reprise en pause | `Reprendre : {libellé court}` (ex. `Reprendre : Plaquettes de frein`) |
-| Bouton arrêt | `Arrêter` (pas `Terminer`) — terme technique neutre, pas `Terminer` du mockup originel (antérieur à RM-118, risque de confusion avec « marquer réalisée »). |
+| Champ                       | Valeur                                                                                                                                                      |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Titre du bandeau de reprise | `↺ Reprendre : {libellé de cible}` (ex. `↺ Reprendre : Plaquettes de frein — OR-2026-1042`)                                                                 |
+| Sous-texte bandeau reprise  | `Interrompu il y a {durée}` · `{cumul} déjà pointées aujourd'hui`                                                                                           |
+| Bouton reprise en pause     | `Reprendre : {libellé court}` (ex. `Reprendre : Plaquettes de frein`)                                                                                       |
+| Bouton arrêt                | `Arrêter` (pas `Terminer`) — terme technique neutre, pas `Terminer` du mockup originel (antérieur à RM-118, risque de confusion avec « marquer réalisée »). |
 
 ---
 
@@ -306,11 +311,13 @@ Ces points **ne demandent pas d'arbitrage supplémentaire** — ils représenten
 
 **Changement** : Remplacer l'état local `dernierCible` (qui s'évapore au rechargement) par une **requête serveur** au montage de l'écran : « Quel était mon dernier pointage en cours ou interrompu aujourd'hui ? »
 
-**Pourquoi** : 
+**Pourquoi** :
+
 - Mode personnel : F5 pendant une pause ne perd plus le bouton « Reprendre ».
 - **Mode borne : critique** — chaque PIN reset l'écran. La cible mémorisée doit vivre côté serveur pour traverser ce rechargement.
 
 **Ce que ça change**:
+
 - Une requête `GET /pointages/dernier-du-jour?technicienId=&siteId=` (ou équivalent) au montage.
 - Pas d'état React persistant.
 - Synchro possible : si deux technicidens pointent en parallèle (borne multitab, par erreur), le dernier GET gagne — comportement transparent et correct.
@@ -373,15 +380,15 @@ Ces points **ne demandent pas d'arbitrage supplémentaire** — ils représenten
 
 ### Ce qui change structurellement
 
-| Aspect | Aujourd'hui | Proposé | Justification |
-|--------|-----------|---------|---------------|
-| **Espace mental** | Modale « Que pointez-vous ? » | Écran plein écran, même principe | Pas de tap accidentel sur l'assombrissement. Cohérence. |
-| **Reprise après pause** | Tuile « Pause » → bouton « Reprendre » | Bandeau de rappel en tête, tap unique | Cas dominant (12–16 fois/jour) en un geste au lieu de 5. |
-| **Étendue de « Reprendre »** | Pause uniquement | Toutes activités indirectes | Les données existent, aucun surcoût, gain ergonomique. |
-| **Couleur du bouton Arrêter** | Destructive (rouge) | Neutre (contour) | Arrêter n'est ni dangereux ni rare. Rouge pour le risqué. |
-| **Cible tactile** | 64 px (sous-norme) | 72 px (conforme) | Mains gantées, norme du projet. |
-| **Affichage du temps** | Chrono seul | Chrono + cumul si > 1 segment | Clarification du what/where. |
-| **Mémoire de cible** | État React (volatil) | Requête serveur (persistant) | Critique pour mode borne. |
+| Aspect                        | Aujourd'hui                            | Proposé                               | Justification                                             |
+| ----------------------------- | -------------------------------------- | ------------------------------------- | --------------------------------------------------------- |
+| **Espace mental**             | Modale « Que pointez-vous ? »          | Écran plein écran, même principe      | Pas de tap accidentel sur l'assombrissement. Cohérence.   |
+| **Reprise après pause**       | Tuile « Pause » → bouton « Reprendre » | Bandeau de rappel en tête, tap unique | Cas dominant (12–16 fois/jour) en un geste au lieu de 5.  |
+| **Étendue de « Reprendre »**  | Pause uniquement                       | Toutes activités indirectes           | Les données existent, aucun surcoût, gain ergonomique.    |
+| **Couleur du bouton Arrêter** | Destructive (rouge)                    | Neutre (contour)                      | Arrêter n'est ni dangereux ni rare. Rouge pour le risqué. |
+| **Cible tactile**             | 64 px (sous-norme)                     | 72 px (conforme)                      | Mains gantées, norme du projet.                           |
+| **Affichage du temps**        | Chrono seul                            | Chrono + cumul si > 1 segment         | Clarification du what/where.                              |
+| **Mémoire de cible**          | État React (volatil)                   | Requête serveur (persistant)          | Critique pour mode borne.                                 |
 
 ### Ce qui ne change pas
 

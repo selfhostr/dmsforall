@@ -346,15 +346,9 @@ export async function rembourserPaiementPourTest(
 // -------------------------------------------------------------------------------------------
 
 export function getFinancier(ctx: AppTest, cookie: string, query: Record<string, string> = {}) {
-  return ctx.requete
-    .get('/api/v1/tableau-bord/financier')
-    .query(query)
-    .set('Cookie', cookie);
+  return ctx.requete.get('/api/v1/tableau-bord/financier').query(query).set('Cookie', cookie);
 }
 
 export function getActivite(ctx: AppTest, cookie: string, query: Record<string, string> = {}) {
-  return ctx.requete
-    .get('/api/v1/tableau-bord/activite')
-    .query(query)
-    .set('Cookie', cookie);
+  return ctx.requete.get('/api/v1/tableau-bord/activite').query(query).set('Cookie', cookie);
 }

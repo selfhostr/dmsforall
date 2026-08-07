@@ -161,12 +161,18 @@ describe('GET /tableau-bord/activite ne rend AUCUN montant, ni par un champ ni p
   it('avec des données financières réelles en base (facture émise, valeurs connues), la réponse activite ne porte que les clés documentées', async () => {
     const site = garage.tenantA.tenant.sites[0]!.id;
     const client = garage.tenantA.clients[0]!.id;
-    const facture = await creerFactureEmisePourTest(ctx, garage.tenantA, 'receptionnaire', cookiePour, {
-      siteId: site,
-      clientId: client,
-      dateDocument: new Date().toISOString().slice(0, 10),
-      nombreLignesPrimitives: 1,
-    });
+    const facture = await creerFactureEmisePourTest(
+      ctx,
+      garage.tenantA,
+      'receptionnaire',
+      cookiePour,
+      {
+        siteId: site,
+        clientId: client,
+        dateDocument: new Date().toISOString().slice(0, 10),
+        nombreLignesPrimitives: 1,
+      },
+    );
     // Contrôle positif : la donnée financière existe bien quelque part (le tableau financier la
     // voit), sans quoi l'absence de fuite ci-dessous ne prouverait rien (il n'y aurait simplement
     // rien à fuir).
@@ -209,7 +215,9 @@ describe('GET /tableau-bord/activite ne rend AUCUN montant, ni par un champ ni p
       }
       if (valeur !== null && typeof valeur === 'object') {
         for (const [cle, v] of Object.entries(valeur as Record<string, unknown>)) {
-          expect(cle, `clé suspecte dans la réponse activite : "${cle}"`).not.toMatch(motsInterdits);
+          expect(cle, `clé suspecte dans la réponse activite : "${cle}"`).not.toMatch(
+            motsInterdits,
+          );
           verifierAucuneCleFinanciere(v);
         }
       }
@@ -263,7 +271,10 @@ describe('isolation tenant — le chiffre d’affaires et l’activité de B son
     // solde=0 et ne fuiterait plus rien à voir même en cas de fuite réelle — ce contrôle
     // intermédiaire est donc la seule fenêtre de ce test qui puisse réellement rougir sur une
     // fuite inter-tenant de l'encours.
-    const pendantCreanceB = await getFinancier(ctx, cookieA, { du: '2031-01-01', au: '2031-01-31' });
+    const pendantCreanceB = await getFinancier(ctx, cookieA, {
+      du: '2031-01-01',
+      au: '2031-01-31',
+    });
     expect(pendantCreanceB.status, JSON.stringify(pendantCreanceB.body)).toBe(200);
     expect(
       (pendantCreanceB.body.encoursClientsCentimes as number) - encoursABaseline,
@@ -277,7 +288,9 @@ describe('isolation tenant — le chiffre d’affaires et l’activité de B son
       dateValeur: '2031-01-15',
       montantCentimes: PRIMITIVE_TTC,
       payeurLibelle: 'Client isolation tenant',
-      imputations: [{ documentId: facture.id, montantCentimes: PRIMITIVE_TTC, nature: 'reglement' }],
+      imputations: [
+        { documentId: facture.id, montantCentimes: PRIMITIVE_TTC, nature: 'reglement' },
+      ],
     });
 
     const sousA = await getFinancier(ctx, cookieA, { du: '2031-01-01', au: '2031-01-31' });

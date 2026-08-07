@@ -92,7 +92,11 @@ describe('exigerOrdreContreVisite — validation pure (issue #15, point 2)', () 
   it('refuse (VALIDATION_ECHOUEE) delaiContreVisiteLe antérieur à dateLe — cas exact de l’issue', () => {
     let erreur: unknown;
     try {
-      exigerOrdreContreVisite({ ...ENTREE_BASE, dateLe: '2026-08-06', delaiContreVisiteLe: '2020-01-01' });
+      exigerOrdreContreVisite({
+        ...ENTREE_BASE,
+        dateLe: '2026-08-06',
+        delaiContreVisiteLe: '2020-01-01',
+      });
     } catch (e) {
       erreur = e;
     }
@@ -106,7 +110,11 @@ describe('exigerOrdreContreVisite — validation pure (issue #15, point 2)', () 
   it('refuse (VALIDATION_ECHOUEE) dateContreVisiteLe antérieure à dateLe', () => {
     let erreur: unknown;
     try {
-      exigerOrdreContreVisite({ ...ENTREE_BASE, dateLe: '2026-08-06', dateContreVisiteLe: '2020-01-01' });
+      exigerOrdreContreVisite({
+        ...ENTREE_BASE,
+        dateLe: '2026-08-06',
+        dateContreVisiteLe: '2020-01-01',
+      });
     } catch (e) {
       erreur = e;
     }

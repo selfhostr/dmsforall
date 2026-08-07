@@ -47,7 +47,11 @@ import { hash as hacherArgon2 } from '@node-rs/argon2';
 import type { PoolClient } from 'pg';
 import { EN_TETE_IDEMPOTENCE, type RoleUtilisateur } from '@dfa/shared';
 
-import { ecrireSousTenant, requeteSousTenant, type BaseEphemere } from '../../setup/postgres-ephemere';
+import {
+  ecrireSousTenant,
+  requeteSousTenant,
+  type BaseEphemere,
+} from '../../setup/postgres-ephemere';
 import type { AppTest } from '../../setup/app-test';
 import { cookieDeSessionPour } from '../../lot1/isolation-http-aide';
 import type { DonneesLot1Tenant } from '../../lot1/fixtures/garage-demo-lot1';
@@ -251,7 +255,12 @@ export async function creerAvoirTotalPourTest(
     );
   }
   const idAvoir = (brouillon.body as { donnees: { id: string } }).donnees.id;
-  const emission = await requeteJson(ctx, cookie, 'post', `/api/v1/documents-vente/${idAvoir}/emettre`);
+  const emission = await requeteJson(
+    ctx,
+    cookie,
+    'post',
+    `/api/v1/documents-vente/${idAvoir}/emettre`,
+  );
   if (emission.status !== 200) {
     throw new Error(
       `fixture relances : émission avoir sur ${factureId} a échoué (${String(emission.status)}) : ` +
@@ -277,7 +286,11 @@ export async function reglerFactureIntegralementPourTest(
     devise: 'CHF',
     payeurLibelle: 'Client de test relances',
     imputations: [
-      { documentId: params.factureId, montantCentimes: params.montantCentimes, nature: 'reglement' },
+      {
+        documentId: params.factureId,
+        montantCentimes: params.montantCentimes,
+        nature: 'reglement',
+      },
     ],
   });
   if (reponse.status !== 201) {
@@ -442,7 +455,11 @@ export async function envoyer(ctx: AppTest, cookie: string): Promise<ReponseEnvo
 export async function configurerRegleFactureEchue(
   ctx: AppTest,
   cookie: string,
-  params: { readonly actif: boolean; readonly delaisJours: readonly number[]; readonly canaux: readonly string[] },
+  params: {
+    readonly actif: boolean;
+    readonly delaisJours: readonly number[];
+    readonly canaux: readonly string[];
+  },
 ): Promise<{ readonly status: number; readonly body: Record<string, unknown> }> {
   const reponse = await ctx.requete
     .put('/api/v1/relances/regles/facture_echue')

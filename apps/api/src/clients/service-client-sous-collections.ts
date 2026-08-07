@@ -130,7 +130,10 @@ function decoderCurseurSousCollection(curseur: string): {
  * constat de cinq copies BIT-À-BIT de cette même séquence dans les méthodes `lister*` ci-dessous
  * (seules les requêtes SQL, elles, diffèrent réellement d'une sous-collection à l'autre).
  */
-function assemblerPageSousCollection<TLigne extends { readonly creeLeTexte: string; readonly id: string }, TReponse>(
+function assemblerPageSousCollection<
+  TLigne extends { readonly creeLeTexte: string; readonly id: string },
+  TReponse,
+>(
   lignes: readonly TLigne[],
   limite: number,
   mapper: (ligne: TLigne) => TReponse,

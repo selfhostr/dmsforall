@@ -46,7 +46,11 @@ import {
   listerLignesDocumentPourEcriture,
   sommerAvoirsEmisPourFacture,
 } from './document-requetes';
-import { calculerDateEcheance, lireDelaiPaiementJoursFige, resoudreDelaiPaiementJours } from './echeance';
+import {
+  calculerDateEcheance,
+  lireDelaiPaiementJoursFige,
+  resoudreDelaiPaiementJours,
+} from './echeance';
 import { traduireErreurDocument } from './erreurs-sql-document';
 import { genererNumeroDocument } from './numerotation';
 import { construireBlocQrPourEmission, resoudreBlocCreancierPourEmission } from './qr-emission';
@@ -235,9 +239,7 @@ export class ServiceEmissionDocument {
         if (doc.typeDocument === 'facture') {
           const delaiClientFige = lireDelaiPaiementJoursFige(doc.conditionsPaiementFigees);
           const delaiTenantDefaut =
-            delaiClientFige === null
-              ? await chargerDelaiPaiementJoursDefautTenant(tx, ctx)
-              : null;
+            delaiClientFige === null ? await chargerDelaiPaiementJoursDefautTenant(tx, ctx) : null;
           dateEcheance = calculerDateEcheance(
             doc.dateDocument ?? dateDocumentReference.toISOString().slice(0, 10),
             resoudreDelaiPaiementJours(delaiClientFige, delaiTenantDefaut),

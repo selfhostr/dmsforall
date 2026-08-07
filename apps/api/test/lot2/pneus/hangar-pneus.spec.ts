@@ -43,7 +43,10 @@ import {
   type RedisEphemere,
 } from '../../setup/app-test';
 import { cookieDeSessionPour } from '../../lot1/isolation-http-aide';
-import { semerGarageDemoLot1, type GarageDemoLot1Fixture } from '../../lot1/fixtures/garage-demo-lot1';
+import {
+  semerGarageDemoLot1,
+  type GarageDemoLot1Fixture,
+} from '../../lot1/fixtures/garage-demo-lot1';
 import { creerDepotPneusPourTest, semerDepotsPneusMemeInstant } from '../fixtures/garage-demo-lot2';
 
 let bdd: BaseEphemere;
@@ -108,7 +111,9 @@ describe('GET /sites/{siteId}/hangar-pneus — cas limites de la route en défau
       t.utilisateursParRole.direction.motDePasseClair,
     );
 
-    const reponse = await ctx.requete.get(`/api/v1/sites/${site}/hangar-pneus`).set('Cookie', cookie);
+    const reponse = await ctx.requete
+      .get(`/api/v1/sites/${site}/hangar-pneus`)
+      .set('Cookie', cookie);
 
     expect(reponse.status, `réponse brute : ${JSON.stringify(reponse.body)}`).toBe(200);
     expect(reponse.body.donnees).toEqual([]);
@@ -159,7 +164,10 @@ describe('cycle complet d’un dépôt de pneus, par la vraie API HTTP', () => {
     expect(hangar.status, `réponse brute : ${JSON.stringify(hangar.body)}`).toBe(200);
     const lignes = hangar.body.donnees as ReadonlyArray<Record<string, unknown>>;
     const ligneTrouvee = lignes.find((l) => l.id === depotId);
-    expect(ligneTrouvee, `dépôt ${depotId} absent du hangar : ${JSON.stringify(lignes)}`).toBeDefined();
+    expect(
+      ligneTrouvee,
+      `dépôt ${depotId} absent du hangar : ${JSON.stringify(lignes)}`,
+    ).toBeDefined();
     expect(ligneTrouvee!.statut).toBe('en_depot');
 
     // Changement de saison : en_depot → monte (aucun jumeau hiver jamais entré pour ce véhicule).
@@ -375,7 +383,10 @@ describe('GET /sites/{siteId}/hangar-pneus — hangar peuplé, contenu ET pagina
     const ligne = (hangar.body.donnees as ReadonlyArray<Record<string, unknown>>).find(
       (l) => l.id === creation.body.id,
     );
-    expect(ligne, 'le dépôt créé doit apparaître dans le hangar filtré sur sa propre saison').toBeDefined();
+    expect(
+      ligne,
+      'le dépôt créé doit apparaître dans le hangar filtré sur sa propre saison',
+    ).toBeDefined();
     expect(ligne!.codeCase).toBe('REN-B03');
   });
 
@@ -443,7 +454,7 @@ describe('GET /sites/{siteId}/hangar-pneus — hangar peuplé, contenu ET pagina
     }
   });
 
-  it("tri explicite entreLe:asc sur les mêmes données : aucune ligne sautée non plus (le départage keyset ne dépend pas du sens du tri)", async () => {
+  it('tri explicite entreLe:asc sur les mêmes données : aucune ligne sautée non plus (le départage keyset ne dépend pas du sens du tri)', async () => {
     const site = garage.tenantA.tenant.sites[1]!.id; // même site REN, données accumulées par les 2 tests précédents (9 lignes)
 
     const idsCollectes: string[] = [];
@@ -455,7 +466,9 @@ describe('GET /sites/{siteId}/hangar-pneus — hangar peuplé, contenu ET pagina
       page += 1;
       const reponse = await ctx.requete
         .get(`/api/v1/sites/${site}/hangar-pneus`)
-        .query(curseur ? { limite: 4, curseur, tri: 'entreLe:asc' } : { limite: 4, tri: 'entreLe:asc' })
+        .query(
+          curseur ? { limite: 4, curseur, tri: 'entreLe:asc' } : { limite: 4, tri: 'entreLe:asc' },
+        )
         .set('Cookie', cookieReceptionnaire);
       expect(reponse.status, `page ${String(page)} : ${JSON.stringify(reponse.body)}`).toBe(200);
 

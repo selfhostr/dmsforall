@@ -27,7 +27,13 @@ import {
   semerGarageDemoLot1,
   type GarageDemoLot1Fixture,
 } from '../../lot1/fixtures/garage-demo-lot1';
-import { construireCookiePour, creerPosteAtelierPourTest, envoyer, getRegles, planifier } from './fixtures-relances';
+import {
+  construireCookiePour,
+  creerPosteAtelierPourTest,
+  envoyer,
+  getRegles,
+  planifier,
+} from './fixtures-relances';
 
 let bdd: BaseEphemere;
 let garage: GarageDemoLot1Fixture;
@@ -59,7 +65,9 @@ const ROLES_REFUSES: readonly RoleUtilisateur[] = [
   'magasinier',
 ];
 
-async function putRegle(cookie: string): Promise<{ readonly status: number; readonly body: unknown }> {
+async function putRegle(
+  cookie: string,
+): Promise<{ readonly status: number; readonly body: unknown }> {
   const reponse = await ctx.requete
     .put('/api/v1/relances/regles/facture_echue')
     .set('Origin', ctx.config.WEB_URL_PUBLIQUE)

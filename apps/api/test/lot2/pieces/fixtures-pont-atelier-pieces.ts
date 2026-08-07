@@ -274,7 +274,7 @@ export function annulerLignes(
   cookie: string,
   orId: string,
   ligneIds: readonly string[],
-  motif = "Annulation de test, réservation à libérer.",
+  motif = 'Annulation de test, réservation à libérer.',
 ): Promise<ReponseHttp> {
   return poster(
     ctx,
@@ -291,7 +291,7 @@ export function annulerOr(
   ctx: AppTest,
   cookie: string,
   orId: string,
-  motif = "Annulation de test (OR entier), réservations à libérer.",
+  motif = 'Annulation de test (OR entier), réservations à libérer.',
 ): Promise<ReponseHttp> {
   return poster(ctx, cookie, `/api/v1/ordres-reparation/${orId}/annuler`, { motif }, false);
 }

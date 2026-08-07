@@ -90,9 +90,19 @@ const ARTICLES_DEMO = [
       // SION : stock confortable — c'est CET article qu'`seed-atelier-demo.ts` réserve sur l'OR
       // Octavia (voir sa note de tête) ; le laisser largement au-dessus du seuil garantit une
       // réservation qui réussit plutôt qu'un `blocage: 'pieces'` (RP-24).
-      SION: { stockMinimumMillieme: 2_000, quantiteCommandeStandardMillieme: 4_000, compteMillieme: 6_000, emplacement: 'A-12' },
+      SION: {
+        stockMinimumMillieme: 2_000,
+        quantiteCommandeStandardMillieme: 4_000,
+        compteMillieme: 6_000,
+        emplacement: 'A-12',
+      },
       // MARTIGNY : volontairement SOUS le seuil — le cas d'usage RP-12 (réapprovisionnement).
-      MARTIGNY: { stockMinimumMillieme: 4_000, quantiteCommandeStandardMillieme: 4_000, compteMillieme: 1_000, emplacement: 'B-03' },
+      MARTIGNY: {
+        stockMinimumMillieme: 4_000,
+        quantiteCommandeStandardMillieme: 4_000,
+        compteMillieme: 1_000,
+        emplacement: 'B-03',
+      },
     },
   },
   {
@@ -103,8 +113,18 @@ const ARTICLES_DEMO = [
     prixVenteTtcCentimes: 1_800,
     tauxTvaPourmille: 81,
     stocks: {
-      SION: { stockMinimumMillieme: 3_000, quantiteCommandeStandardMillieme: 6_000, compteMillieme: 8_000, emplacement: 'A-04' },
-      MARTIGNY: { stockMinimumMillieme: 3_000, quantiteCommandeStandardMillieme: 6_000, compteMillieme: 4_000, emplacement: 'B-04' },
+      SION: {
+        stockMinimumMillieme: 3_000,
+        quantiteCommandeStandardMillieme: 6_000,
+        compteMillieme: 8_000,
+        emplacement: 'A-04',
+      },
+      MARTIGNY: {
+        stockMinimumMillieme: 3_000,
+        quantiteCommandeStandardMillieme: 6_000,
+        compteMillieme: 4_000,
+        emplacement: 'B-04',
+      },
     },
   },
   {
@@ -115,8 +135,18 @@ const ARTICLES_DEMO = [
     prixVenteTtcCentimes: 5_900,
     tauxTvaPourmille: 81,
     stocks: {
-      SION: { stockMinimumMillieme: 5_000, quantiteCommandeStandardMillieme: 10_000, compteMillieme: 10_000, emplacement: 'C-01' },
-      MARTIGNY: { stockMinimumMillieme: 4_000, quantiteCommandeStandardMillieme: 8_000, compteMillieme: 6_000, emplacement: 'C-01' },
+      SION: {
+        stockMinimumMillieme: 5_000,
+        quantiteCommandeStandardMillieme: 10_000,
+        compteMillieme: 10_000,
+        emplacement: 'C-01',
+      },
+      MARTIGNY: {
+        stockMinimumMillieme: 4_000,
+        quantiteCommandeStandardMillieme: 8_000,
+        compteMillieme: 6_000,
+        emplacement: 'C-01',
+      },
     },
   },
   {
@@ -127,8 +157,18 @@ const ARTICLES_DEMO = [
     prixVenteTtcCentimes: 3_600,
     tauxTvaPourmille: 81,
     stocks: {
-      SION: { stockMinimumMillieme: 3_000, quantiteCommandeStandardMillieme: 6_000, compteMillieme: 8_000, emplacement: 'D-02' },
-      MARTIGNY: { stockMinimumMillieme: 3_000, quantiteCommandeStandardMillieme: 6_000, compteMillieme: 5_000, emplacement: 'D-02' },
+      SION: {
+        stockMinimumMillieme: 3_000,
+        quantiteCommandeStandardMillieme: 6_000,
+        compteMillieme: 8_000,
+        emplacement: 'D-02',
+      },
+      MARTIGNY: {
+        stockMinimumMillieme: 3_000,
+        quantiteCommandeStandardMillieme: 6_000,
+        compteMillieme: 5_000,
+        emplacement: 'D-02',
+      },
     },
   },
 ] as const;
@@ -184,7 +224,9 @@ export async function semerPiecesDemo(options: OptionsSeedPieces): Promise<Resul
       ['SION', idSion],
       ['MARTIGNY', idMartigny],
     ]);
-    const clesAjustementParReferenceEtSite: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+    const clesAjustementParReferenceEtSite: Readonly<
+      Record<string, Readonly<Record<string, string>>>
+    > = {
       GDB1330DTE: { SION: CLE_AJUST_PLAQUETTES_SION, MARTIGNY: CLE_AJUST_PLAQUETTES_MARTIGNY },
       OC90: { SION: CLE_AJUST_FILTRE_SION, MARTIGNY: CLE_AJUST_FILTRE_MARTIGNY },
       'CASTROL-EDGE-5W30-5L': { SION: CLE_AJUST_HUILE_SION, MARTIGNY: CLE_AJUST_HUILE_MARTIGNY },
@@ -229,7 +271,8 @@ export async function semerPiecesDemo(options: OptionsSeedPieces): Promise<Resul
           montantConsigneTtcCentimes: null,
         };
         const cle = clesCreationParReference[a.reference];
-        if (!cle) throw new Error(`seed-pieces-demo : aucune clé d'idempotence pour « ${a.reference} ».`);
+        if (!cle)
+          throw new Error(`seed-pieces-demo : aucune clé d'idempotence pour « ${a.reference} ».`);
         const resultat = await serviceArticle.creer(ctx, role, entree, cle);
         articleId = resultat.reponse.corps.donnees.id;
       }
@@ -282,13 +325,20 @@ export async function semerPiecesDemo(options: OptionsSeedPieces): Promise<Resul
     // démontre que RP-16/RP-18 fonctionnent dès le jeu de démo, pas seulement les réservations
     // exercées via l'OR Octavia (`seed-atelier-demo.ts`).
     const idFiltre = idsArticlesParReference.get('OC90');
-    if (!idFiltre) throw new Error('seed-pieces-demo : article « OC90 » introuvable après création.');
+    if (!idFiltre)
+      throw new Error('seed-pieces-demo : article « OC90 » introuvable après création.');
     const entreeSortie: EntreeCreationMouvementSortieComptoir = {
       siteId: idSion,
       quantiteMillieme: 1_000,
       motif: 'Vente comptoir directe — client de passage',
     };
-    await serviceMouvement.sortieComptoir(ctx, role, idFiltre, entreeSortie, CLE_SORTIE_COMPTOIR_FILTRE);
+    await serviceMouvement.sortieComptoir(
+      ctx,
+      role,
+      idFiltre,
+      entreeSortie,
+      CLE_SORTIE_COMPTOIR_FILTRE,
+    );
     journaliser(`  sortie comptoir — 1 filtre à huile (SION)`);
 
     return { idsArticlesParReference };

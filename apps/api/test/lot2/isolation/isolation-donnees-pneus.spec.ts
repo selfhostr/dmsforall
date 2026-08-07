@@ -22,7 +22,10 @@ import {
   requeteSousTenant,
   type BaseEphemere,
 } from '../../setup/postgres-ephemere';
-import { semerGarageDemoLot1, type GarageDemoLot1Fixture } from '../../lot1/fixtures/garage-demo-lot1';
+import {
+  semerGarageDemoLot1,
+  type GarageDemoLot1Fixture,
+} from '../../lot1/fixtures/garage-demo-lot1';
 import { creerDepotPneusPourTest, type DepotPneusDeTest } from '../fixtures/garage-demo-lot2';
 
 let bdd: BaseEphemere;
@@ -52,8 +55,8 @@ afterAll(async () => {
   await bdd?.fermer();
 });
 
-describe("lecture — un dépôt de pneus du tenant B est invisible sous le contexte du tenant A (et réciproquement)", () => {
-  it("select explicite par id du dépôt de B rend zéro ligne sous A ; la même lecture sous B (contrôle positif) trouve la ligne", async () => {
+describe('lecture — un dépôt de pneus du tenant B est invisible sous le contexte du tenant A (et réciproquement)', () => {
+  it('select explicite par id du dépôt de B rend zéro ligne sous A ; la même lecture sous B (contrôle positif) trouve la ligne', async () => {
     const sousA = await requeteSousTenant(
       bdd.poolApp,
       garage.tenantA.tenant.id,
@@ -71,7 +74,7 @@ describe("lecture — un dépôt de pneus du tenant B est invisible sous le cont
     expect(sousB, 'contrôle positif : le propriétaire voit bien sa propre ligne').toHaveLength(1);
   });
 
-  it("select explicite par id du dépôt de A rend zéro ligne sous B (symétrie)", async () => {
+  it('select explicite par id du dépôt de A rend zéro ligne sous B (symétrie)', async () => {
     const sousB = await requeteSousTenant(
       bdd.poolApp,
       garage.tenantB.tenant.id,
@@ -81,7 +84,7 @@ describe("lecture — un dépôt de pneus du tenant B est invisible sous le cont
     expect(sousB).toHaveLength(0);
   });
 
-  it("le code_case du dépôt de B (\"B-01\") n'apparaît dans aucune recherche par valeur exacte sous A", async () => {
+  it('le code_case du dépôt de B ("B-01") n\'apparaît dans aucune recherche par valeur exacte sous A', async () => {
     const lignes = await requeteSousTenant(
       bdd.poolApp,
       garage.tenantA.tenant.id,
@@ -96,7 +99,7 @@ describe("lecture — un dépôt de pneus du tenant B est invisible sous le cont
   });
 });
 
-describe("écriture — impersonation du tenant B refusée sous le contexte A (WITH CHECK), avec un véhicule et un site RÉELS de B", () => {
+describe('écriture — impersonation du tenant B refusée sous le contexte A (WITH CHECK), avec un véhicule et un site RÉELS de B', () => {
   it('insert tenant_id=B (véhicule ET site RÉELS de B, aucune FK cassée), exécuté sous le contexte A, viole la politique RLS', async () => {
     const tB = garage.tenantB;
     await expect(
@@ -110,7 +113,7 @@ describe("écriture — impersonation du tenant B refusée sous le contexte A (W
     ).rejects.toThrow(/policy|permission/i);
   });
 
-  it("un update qui ferait passer le dépôt de A vers tenant_id = B est refusé, la ligne ne bouge pas", async () => {
+  it('un update qui ferait passer le dépôt de A vers tenant_id = B est refusé, la ligne ne bouge pas', async () => {
     const avant = await requeteSousTenant<{ tenant_id: string }>(
       bdd.poolApp,
       garage.tenantA.tenant.id,

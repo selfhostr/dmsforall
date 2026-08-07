@@ -317,7 +317,12 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<voi
     // la réservation réussit, jamais de repli en `blocage: 'pieces'` (RP-24).
     await creerLigne(
       orOctaviaId,
-      lignePieceReferencee('Appoint huile moteur 5W30 (1 bidon)', idArticleHuile, 5_900, idTechnicien),
+      lignePieceReferencee(
+        'Appoint huile moteur 5W30 (1 bidon)',
+        idArticleHuile,
+        5_900,
+        idTechnicien,
+      ),
       CLE_LIGNE_OCTAVIA_HUILE,
     );
     if ((await statutCourant(orOctaviaId)) === 'ouvert') {

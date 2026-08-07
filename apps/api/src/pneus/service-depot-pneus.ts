@@ -451,7 +451,10 @@ export class ServiceDepotPneus {
         throw new ErreurMetier(
           'CONFLIT',
           'Transition interdite : ce dépôt est "sorti", son repère de rangement ne peut plus être modifié (RPP-05).',
-          { detail: 'Ce dépôt est "sorti" : son repère de rangement ne peut plus être modifié (RPP-05).' },
+          {
+            detail:
+              'Ce dépôt est "sorti" : son repère de rangement ne peut plus être modifié (RPP-05).',
+          },
         );
       }
 

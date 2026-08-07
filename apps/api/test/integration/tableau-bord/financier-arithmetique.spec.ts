@@ -28,7 +28,10 @@ import {
   type AppTest,
   type RedisEphemere,
 } from '../../setup/app-test';
-import { semerGarageDemoLot1, type GarageDemoLot1Fixture } from '../../lot1/fixtures/garage-demo-lot1';
+import {
+  semerGarageDemoLot1,
+  type GarageDemoLot1Fixture,
+} from '../../lot1/fixtures/garage-demo-lot1';
 import {
   construireCookiePour,
   creerAvoirTotalPourTest,
@@ -100,15 +103,21 @@ describe("chiffre d'affaires — deux lignes primitives, une facture émise (203
 //    (`dateDocument` d'un avoir n'est pas paramétrable — période PAR DÉFAUT, isolée par site REN)
 // =================================================================================================
 
-describe("un avoir total (stocké en négatif) annule exactement le CA de la facture créditée (période par défaut, site REN)", () => {
+describe('un avoir total (stocké en négatif) annule exactement le CA de la facture créditée (période par défaut, site REN)', () => {
   it('CA net = 0 après avoir, nombreDocuments=2 (facture annulée + avoir, tous deux hors brouillon)', async () => {
     const site = SITE_1();
-    const facture = await creerFactureEmisePourTest(ctx, garage.tenantA, 'receptionnaire', cookiePour, {
-      siteId: site,
-      clientId: CLIENT_0(),
-      dateDocument: new Date().toISOString().slice(0, 10),
-      nombreLignesPrimitives: 1,
-    });
+    const facture = await creerFactureEmisePourTest(
+      ctx,
+      garage.tenantA,
+      'receptionnaire',
+      cookiePour,
+      {
+        siteId: site,
+        clientId: CLIENT_0(),
+        dateDocument: new Date().toISOString().slice(0, 10),
+        nombreLignesPrimitives: 1,
+      },
+    );
     expect(facture.totalTtcCentimes).toBe(PRIMITIVE_TTC);
 
     const cookie = await cookiePour(garage.tenantA, 'direction');
@@ -120,7 +129,13 @@ describe("un avoir total (stocké en négatif) annule exactement le CA de la fac
       nombreDocuments: 1,
     });
 
-    const avoir = await creerAvoirTotalPourTest(ctx, garage.tenantA, 'receptionnaire', cookiePour, facture.id);
+    const avoir = await creerAvoirTotalPourTest(
+      ctx,
+      garage.tenantA,
+      'receptionnaire',
+      cookiePour,
+      facture.id,
+    );
     // L'avoir est stocké EN NÉGATIF (document_vente_signe_avoir_chk) — jamais retraité côté API.
     expect(avoir.totalTtcCentimes).toBe(-PRIMITIVE_TTC);
     expect(avoir.totalHtCentimes).toBe(-PRIMITIVE_HT);
@@ -273,12 +288,18 @@ describe('encaissements et encours — exacts au centime, en delta (robuste à l
     const avant = await getFinancier(ctx, cookie);
     const encoursAvant = avant.body.encoursClientsCentimes as number;
 
-    const facture = await creerFactureEmisePourTest(ctx, garage.tenantA, 'receptionnaire', cookiePour, {
-      siteId: SITE_0(),
-      clientId: CLIENT_0(),
-      dateDocument: '2030-02-10',
-      nombreLignesPrimitives: 1,
-    });
+    const facture = await creerFactureEmisePourTest(
+      ctx,
+      garage.tenantA,
+      'receptionnaire',
+      cookiePour,
+      {
+        siteId: SITE_0(),
+        clientId: CLIENT_0(),
+        dateDocument: '2030-02-10',
+        nombreLignesPrimitives: 1,
+      },
+    );
     expect(facture.totalTtcCentimes).toBe(PRIMITIVE_TTC);
 
     const apres = await getFinancier(ctx, cookie);
@@ -305,12 +326,18 @@ describe('encaissements et encours — exacts au centime, en delta (robuste à l
     const encoursAvant = avant.body.encoursClientsCentimes as number;
     expect(avant.body.encaissementsCentimes).toBe(0); // fenêtre 2030-03 encore vierge
 
-    const facture = await creerFactureEmisePourTest(ctx, garage.tenantA, 'receptionnaire', cookiePour, {
-      siteId: SITE_0(),
-      clientId: CLIENT_0(),
-      dateDocument: '2030-03-10',
-      nombreLignesPrimitives: 2, // 14 000 c. TTC
-    });
+    const facture = await creerFactureEmisePourTest(
+      ctx,
+      garage.tenantA,
+      'receptionnaire',
+      cookiePour,
+      {
+        siteId: SITE_0(),
+        clientId: CLIENT_0(),
+        dateDocument: '2030-03-10',
+        nombreLignesPrimitives: 2, // 14 000 c. TTC
+      },
+    );
     expect(facture.totalTtcCentimes).toBe(2 * PRIMITIVE_TTC);
 
     await creerPaiementPourTest(ctx, garage.tenantA, 'receptionnaire', cookiePour, {
@@ -335,12 +362,18 @@ describe('encaissements et encours — exacts au centime, en delta (robuste à l
   it('un remboursement (paiement négatif, contre-passation) réduit net les encaissements (période par défaut, site LAU isolé)', async () => {
     const site = SITE_0();
     // Un paiement AVANCE non imputé : POST /paiements accepte des imputations vides (RF-65).
-    const paiement = await creerPaiementPourTest(ctx, garage.tenantA, 'receptionnaire', cookiePour, {
-      siteId: site,
-      dateValeur: new Date().toISOString().slice(0, 10),
-      montantCentimes: 5000,
-      payeurLibelle: 'Avance client à rembourser',
-    });
+    const paiement = await creerPaiementPourTest(
+      ctx,
+      garage.tenantA,
+      'receptionnaire',
+      cookiePour,
+      {
+        siteId: site,
+        dateValeur: new Date().toISOString().slice(0, 10),
+        montantCentimes: 5000,
+        payeurLibelle: 'Avance client à rembourser',
+      },
+    );
     expect(paiement.montantNonImputeCentimes).toBe(5000);
 
     const cookie = await cookiePour(garage.tenantA, 'direction');

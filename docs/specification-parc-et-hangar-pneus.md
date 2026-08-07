@@ -30,7 +30,7 @@ connue, ce n'est pas une vérité d'inventaire auditée.
 
 Conséquence directe : **une place n'est pas garantie unique à un véhicule** en base (pas de
 contrainte UNIQUE sur la place occupée) — le garagiste doit pouvoir forcer une position sans que
-le système refuse. Le système peut *signaler* un doublon, jamais le bloquer.
+le système refuse. Le système peut _signaler_ un doublon, jamais le bloquer.
 
 ### 1.2 Le hangar à pneus, ce que c'est vraiment
 
@@ -127,12 +127,12 @@ pas un système de vérité, c'est une aide à la mémoire visuelle (conséquenc
 
 ## 3. Ce qui varie d'un garage à l'autre — paramétrage proposé
 
-| Point variable | Options observées sur le terrain | Paramétrage proposé |
-|---|---|---|
-| Facturation du dépôt pneus | Gratuit si entretien chez eux / forfait annuel fixe / inclus dans un abonnement pneus | Booléen `facturation_depot_active` + montant par défaut au niveau site, dérogeable par dépôt |
-| Délai avant relance d'un jeu oublié | 12 à 36 mois selon garage | `delai_relance_mois` paramètre site, défaut 24 |
-| Rigueur du plan de parc | Certains garages veulent un plan fidèle au centimètre (grandes concessions), d'autres juste 3 zones grossières | Le plan est une grille libre dimensionnée par le garage lui-même (voir §5) — pas de taille imposée |
-| Un jeu de pneus peut-il être rattaché à un client sans véhicule connu (VO pas encore repris en DMS) | Cas réel à la migration d'un DMS existant | `vehicule_id` reste obligatoire mais le véhicule peut être un enregistrement minimal (`identificationIncomplete = true`, mécanisme déjà existant sur `vehicule`) |
+| Point variable                                                                                      | Options observées sur le terrain                                                                               | Paramétrage proposé                                                                                                                                              |
+| --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Facturation du dépôt pneus                                                                          | Gratuit si entretien chez eux / forfait annuel fixe / inclus dans un abonnement pneus                          | Booléen `facturation_depot_active` + montant par défaut au niveau site, dérogeable par dépôt                                                                     |
+| Délai avant relance d'un jeu oublié                                                                 | 12 à 36 mois selon garage                                                                                      | `delai_relance_mois` paramètre site, défaut 24                                                                                                                   |
+| Rigueur du plan de parc                                                                             | Certains garages veulent un plan fidèle au centimètre (grandes concessions), d'autres juste 3 zones grossières | Le plan est une grille libre dimensionnée par le garage lui-même (voir §5) — pas de taille imposée                                                               |
+| Un jeu de pneus peut-il être rattaché à un client sans véhicule connu (VO pas encore repris en DMS) | Cas réel à la migration d'un DMS existant                                                                      | `vehicule_id` reste obligatoire mais le véhicule peut être un enregistrement minimal (`identificationIncomplete = true`, mécanisme déjà existant sur `vehicule`) |
 
 ---
 
@@ -293,6 +293,7 @@ dizaines de véhicules simultanés, plusieurs employés qui cherchent en même t
 grille visuelle en Lot 3 seulement.
 
 **Recommandation d'ordre** :
+
 1. `depot_pneus` (hangar) — valeur métier prouvée, complexité contenue.
 2. `vehicule.emplacement_libre` seul (version simplifiée du parc) — quasi gratuit, livré avec le
    même lot que le hangar si un agent a de la marge.
@@ -305,6 +306,7 @@ grille visuelle en Lot 3 seulement.
 
 **Lot A — Hangar à pneus, schéma + API** (`expert-database` puis `expert-nestjs`, périmètre
 `apps/api/src/db/schema/pneus/` ou sous-module atelier + `apps/api/src/pneus/`)
+
 - Migration `depot_pneus` + enums (`saison_pneu`, `statut_depot_pneus`, `motif_sortie_depot_pneus`)
 - Audit trail (`audit_atelier` ou équivalent)
 - Endpoints CRUD + `changer-saison` + `sortir` + `a-relancer`
@@ -312,12 +314,14 @@ grille visuelle en Lot 3 seulement.
 
 **Lot B — Hangar à pneus, écran** (`expert-ui` puis `expert-react`, périmètre
 `apps/web/src/ecrans/pneus/` ou `atelier/`)
+
 - Grille de cases fixes, recherche par plaque/client, badge relance
 - Dépend du contrat OpenAPI du Lot A (bloquant pour le code ; la maquette peut être conçue en
   parallèle par `expert-ui`)
 
 **Lot C — Parc simplifié** (`expert-database` + `expert-nestjs`, périmètre
 `apps/api/src/db/schema/atelier/vehicule.ts` + endpoint véhicule existant)
+
 - Colonnes `emplacement_libre` + `emplacement_maj_le` sur `vehicule`
 - Filtre/tri par emplacement dans l'endpoint liste véhicules existant
 - Léger : peut être fait par le même agent que le Lot A en fin de mission, ou en parallèle strict

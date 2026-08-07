@@ -33,10 +33,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import {
-  demarrerBaseEphemere,
-  type BaseEphemere,
-} from '../../setup/postgres-ephemere';
+import { demarrerBaseEphemere, type BaseEphemere } from '../../setup/postgres-ephemere';
 import {
   creerAppTest,
   demarrerRedisEphemere,
@@ -162,9 +159,7 @@ describe("issue #11 — annuler l'OR entier libère la réservation active de sa
     // ne déclenchait AUCUNE libération.
     const annulation = await annulerOr(ctx, cookie, or.id);
     expect(annulation.status, JSON.stringify(annulation.body)).toBeLessThan(300);
-    expect(
-      (annulation.body as { donnees: { statut: string } }).donnees.statut,
-    ).toBe('annule');
+    expect((annulation.body as { donnees: { statut: string } }).donnees.statut).toBe('annule');
 
     // Étape 3 : la réservation n'est plus `active`, le disponible est restauré à l'identique
     // d'avant la pose.

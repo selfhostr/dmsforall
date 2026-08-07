@@ -33,7 +33,10 @@ import {
   type AppTest,
   type RedisEphemere,
 } from '../../setup/app-test';
-import { semerGarageDemoLot1, type GarageDemoLot1Fixture } from '../../lot1/fixtures/garage-demo-lot1';
+import {
+  semerGarageDemoLot1,
+  type GarageDemoLot1Fixture,
+} from '../../lot1/fixtures/garage-demo-lot1';
 import { creerDepotPneusPourTest } from '../../lot2/fixtures/garage-demo-lot2';
 import {
   amenerDossierJusquAPretALivrer,
@@ -98,7 +101,9 @@ describe('cycle nominal : créer un dossier → bon de commande → engager → 
 
     const stock = await mettreEnStock(ctx, cookie, vehiculeId, site);
     expect(stock.status, JSON.stringify(stock.body)).toBe(201);
-    expect((stock.body.donnees as { statutCommercial: string }).statutCommercial).toBe('disponible');
+    expect((stock.body.donnees as { statutCommercial: string }).statutCommercial).toBe(
+      'disponible',
+    );
 
     // 2. Dossier de vente — `prospection`, véhicule déjà associé (RV-30 l'autorise dès la création).
     const dossier = await creerDossier(ctx, cookie, {
@@ -109,7 +114,9 @@ describe('cycle nominal : créer un dossier → bon de commande → engager → 
     expect(dossier.status, JSON.stringify(dossier.body)).toBe(201);
     const dossierId = (dossier.body.donnees as { id: string }).id;
     expect((dossier.body.donnees as { statut: string }).statut).toBe('prospection');
-    expect((dossier.body.donnees as { vehicule: { id: string } | null }).vehicule?.id).toBe(vehiculeId);
+    expect((dossier.body.donnees as { vehicule: { id: string } | null }).vehicule?.id).toBe(
+      vehiculeId,
+    );
 
     // 3. Bon de commande rattaché (`dossierVenteId`, MD-70) — créé PUIS émis (numéro légal).
     const bonCommandeBrouillon = await creerDocumentVente(ctx, cookie, {
@@ -135,20 +142,24 @@ describe('cycle nominal : créer un dossier → bon de commande → engager → 
     const engagement = await engager(ctx, cookie, dossierId, bonCommandeId, 'carte_identite');
     expect(engagement.status, JSON.stringify(engagement.body)).toBeLessThan(300);
     expect((engagement.body.donnees as { statut: string }).statut).toBe('engage');
-    expect((engagement.body.donnees as { identitePieceType: string | null }).identitePieceType).toBe(
-      'carte_identite',
-    );
+    expect(
+      (engagement.body.donnees as { identitePieceType: string | null }).identitePieceType,
+    ).toBe('carte_identite');
     expect((engagement.body.donnees as { engageLe: string | null }).engageLe).not.toBeNull();
 
     const stockApresEngagement = await getVehiculeStock(ctx, cookie, vehiculeId);
     expect(stockApresEngagement.status).toBe(200);
-    expect((stockApresEngagement.body as { statutCommercial: string }).statutCommercial).toBe('reserve');
+    expect((stockApresEngagement.body as { statutCommercial: string }).statutCommercial).toBe(
+      'reserve',
+    );
 
     // 5. `preparer` — `engage -> en_preparation`.
     const preparation = await preparer(ctx, cookie, dossierId);
     expect(preparation.status, JSON.stringify(preparation.body)).toBeLessThan(300);
     expect((preparation.body.donnees as { statut: string }).statut).toBe('en_preparation');
-    expect((preparation.body.donnees as { enPreparationLe: string | null }).enPreparationLe).not.toBeNull();
+    expect(
+      (preparation.body.donnees as { enPreparationLe: string | null }).enPreparationLe,
+    ).not.toBeNull();
 
     // 6. Financement `comptant` — confirmé d'emblée (RV-44), condition de `marquer-pret-a-livrer` (RV-37).
     const financement = await creerFinancementComptant(ctx, cookie, dossierId);
@@ -213,7 +224,9 @@ describe('cycle nominal : créer un dossier → bon de commande → engager → 
     ).toBe('2026-01-20');
 
     const stockApresLivraison = await getVehiculeStock(ctx, cookie, vehiculeId);
-    expect((stockApresLivraison.body as { statutCommercial: string }).statutCommercial).toBe('livre');
+    expect((stockApresLivraison.body as { statutCommercial: string }).statutCommercial).toBe(
+      'livre',
+    );
     expect((stockApresLivraison.body as { livreLe: string | null }).livreLe).not.toBeNull();
 
     // 10. `cloturer` — `livre -> clos`, dernière étape purement administrative.
@@ -227,9 +240,11 @@ describe('cycle nominal : créer un dossier → bon de commande → engager → 
     const releture = await getDossier(ctx, cookie, dossierId);
     expect(releture.status).toBe(200);
     expect((releture.body as { statut: string }).statut).toBe('clos');
-    expect((releture.body as { documents: readonly { typeDocument: string }[] }).documents.map(
-      (d) => d.typeDocument,
-    )).toEqual(expect.arrayContaining(['bon_commande', 'facture']));
+    expect(
+      (releture.body as { documents: readonly { typeDocument: string }[] }).documents.map(
+        (d) => d.typeDocument,
+      ),
+    ).toEqual(expect.arrayContaining(['bon_commande', 'facture']));
   });
 });
 
@@ -328,9 +343,9 @@ describe('transitions interdites — code métier stable (409/404), jamais 500',
     'rejouer une transition déjà faite (`engager` une seconde fois sur un dossier déjà `engage`) est ' +
       'refusé (409 VENTE_VEHICULE_INDISPONIBLE — le véhicule n’est plus `disponible`, il est déjà ' +
       '`reserve` par le premier engagement) — PAS `VENTE_DOSSIER_TRANSITION_INTERDITE` : le trigger SQL ' +
-      "générique (`verifier_transition()`, `db/migrations/0003_prealables_etape1.sql`) traite une " +
-      "écriture qui ne CHANGE PAS le statut (« engage » -> « engage ») comme un non-événement et " +
-      "laisserait passer un second `engager()` sans la garde applicative explicite sur le véhicule — " +
+      'générique (`verifier_transition()`, `db/migrations/0003_prealables_etape1.sql`) traite une ' +
+      'écriture qui ne CHANGE PAS le statut (« engage » -> « engage ») comme un non-événement et ' +
+      'laisserait passer un second `engager()` sans la garde applicative explicite sur le véhicule — ' +
       "constaté en exécution réelle : `preparer`/`marquer-pret-a-livrer`/`cloturer` n'ont PAS cette " +
       'garde et acceptent silencieusement un second appel identique (seul le champ horodatage change) ; ' +
       "`engager`/`livrer` en ont une (véhicule), c'est elle qui rend le rejeu réellement impossible ici.",
@@ -440,7 +455,7 @@ describe('émission de facture rattachée à un dossier de vente : marquage vend
     "le marquage vendu ÉCHOUE après l'émission (véhicule remis disponible entre-temps, vraie base — " +
       'aucun mock) : la facture reste ÉMISE (numéro consommé, jamais annulée) et un avertissement ' +
       'VENTE_VEHICULE_MARQUAGE_VENDU_ECHOUE porte le détail — preuve directe que « véhicule vendu sans ' +
-      "facture » ne peut PAS arriver par ce chemin : la facture est déjà commise avant la tentative de " +
+      'facture » ne peut PAS arriver par ce chemin : la facture est déjà commise avant la tentative de ' +
       'marquage, jamais l’inverse',
     async () => {
       const cookie = await cookiePour(garage.tenantA, 'direction');
@@ -460,7 +475,9 @@ describe('émission de facture rattachée à un dossier de vente : marquage vend
       // le fera échouer PLUS TARD, une fois la facture déjà émise.
       const remise = await remettreDisponible(ctx, cookie, vehiculeId);
       expect(remise.status, JSON.stringify(remise.body)).toBeLessThan(300);
-      expect((remise.body.donnees as { statutCommercial: string }).statutCommercial).toBe('disponible');
+      expect((remise.body.donnees as { statutCommercial: string }).statutCommercial).toBe(
+        'disponible',
+      );
 
       const factureBrouillon = await creerDocumentVente(ctx, cookie, {
         typeDocument: 'facture',
@@ -543,7 +560,9 @@ describe('RPP-06 — dépôts de pneus ouverts signalés à la vente, jamais blo
       (bonCommandeBrouillon.body.donnees as { id: string }).id,
     );
     await engager(ctx, cookie, dossierId, (bonCommandeEmis.body.donnees as { id: string }).id);
-    expect((stock.body.donnees as { statutCommercial: string }).statutCommercial).toBe('disponible');
+    expect((stock.body.donnees as { statutCommercial: string }).statutCommercial).toBe(
+      'disponible',
+    );
 
     await creerDepotPneusPourTest(bdd, garage.tenantA.tenant, vehiculeId, site, {
       saison: 'hiver',
@@ -597,7 +616,7 @@ describe('RPP-06 — dépôts de pneus ouverts signalés à la vente, jamais blo
     'DÉFAUT CONSTATÉ (documenté, pas corrigé — hors périmètre `apps/api/test/**`) : quand le marquage ' +
       "vendu est déclenché AUTOMATIQUEMENT par l'émission d'une facture (le chemin normal d'une vente " +
       "réelle), l'avertissement RPP-06 est PERDU EN SILENCE — `ServiceEmissionDocument." +
-      "marquerVehiculeVenduSiApplicable` (`facturation/documents/service-emission.ts`, ~L502-506) " +
+      'marquerVehiculeVenduSiApplicable` (`facturation/documents/service-emission.ts`, ~L502-506) ' +
       'appelle `this.vehiculeStock.marquerVendu(...)` et retourne `null` inconditionnellement quand ' +
       "l'appel réussit, sans jamais lire les `avertissements` que `marquerVendu` a pourtant produits. " +
       'Conséquence réelle : un vendeur qui facture un véhicule dont un client a encore un train de ' +
@@ -702,7 +721,7 @@ describe('isolation inter-tenant', () => {
     expect((releture.body as { statut: string }).statut).toBe('prospection');
   });
 
-  it("référencer, en engageant un dossier de tenant A, un bon de commande qui appartient à tenant B est refusé (404 RESSOURCE_INTROUVABLE) — jamais rattaché à travers la frontière tenant", async () => {
+  it('référencer, en engageant un dossier de tenant A, un bon de commande qui appartient à tenant B est refusé (404 RESSOURCE_INTROUVABLE) — jamais rattaché à travers la frontière tenant', async () => {
     const cookieA = await cookiePour(garage.tenantA, 'direction');
     const cookieB = await cookiePour(garage.tenantB, 'direction');
     const siteA = SITE_A();
