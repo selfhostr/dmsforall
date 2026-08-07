@@ -169,6 +169,7 @@ describe('EcranHangarPneus', () => {
     await screen.findByText('Rack 3');
     expect(screen.queryByRole('button', { name: 'Nouveau dépôt' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Changer de saison' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Déplacer' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sortir' })).not.toBeInTheDocument();
     // La lecture reste ouverte à `comptable` (ROLES_PNEUS_DEPOT_LECTURE) : le lien de
     // consultation, lui, reste visible.
@@ -262,4 +263,110 @@ describe('EcranHangarPneus', () => {
       expect(within(dialogueB).queryByRole('alert')).not.toBeInTheDocument();
     },
   );
+
+  /**
+   * Défaut corrigé (rapport de test du 06.08.2026, n°2) : aucun bouton n'exposait
+   * `POST /depots-pneus/{id}/deplacer`, pourtant livré côté API — le geste le plus courant d'un
+   * hangar (déplacer un jeu d'une case à l'autre) était introuvable. Le champ est pré-rempli avec
+   * le repère ACTUEL (pas vide) : le geste habituel est de le CORRIGER.
+   */
+  it('déplacer : pré-rempli avec le repère actuel, confirme, invalide le hangar', async () => {
+    const utilisateur = userEvent.setup();
+    let corpsRecu: unknown;
+
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/sites/site-1/hangar-pneus', () => HttpResponse.json(pageDe([DEPOT]))),
+      http.post('/api/v1/depots-pneus/depot-1/deplacer', async ({ request }) => {
+        corpsRecu = await request.json();
+        return HttpResponse.json({ ...DEPOT, codeCase: 'B9' });
+      }),
+    );
+
+    rendre();
+
+    await screen.findByText('Rack 3');
+    await utilisateur.click(screen.getByRole('button', { name: 'Déplacer' }));
+
+    const dialogue = await screen.findByRole('dialog');
+    expect(within(dialogue).getByRole('heading', { name: 'Déplacer ce jeu' })).toBeInTheDocument();
+    const champCodeCase = within(dialogue).getByLabelText('Nouveau repère');
+    expect(champCodeCase).toHaveValue('Rack 3');
+
+    await utilisateur.clear(champCodeCase);
+    await utilisateur.type(champCodeCase, 'B9');
+    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Déplacer' }));
+
+    await waitFor(() => expect(corpsRecu).toEqual({ codeCase: 'B9' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  /**
+   * Défaut corrigé (rapport de test du 06.08.2026, n°1) : la recherche par nom de client ne
+   * trouvait jamais rien — `listerVehicules({ detenteurId: ... })` envoyait la requête SANS ce
+   * filtre (voir le commentaire de tête de `useRechercheHangarPneus.ts`). Reproduit ici la chaîne
+   * complète : `GET /recherche` (client) -> `GET /vehicules?detenteurId=` (son véhicule) ->
+   * `GET /vehicules/{id}/depots-pneus` (son jeu actif).
+   */
+  it('recherche par nom de client : trouve un jeu rattaché à un véhicule du client', async () => {
+    const utilisateur = userEvent.setup();
+
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/sites/site-1/hangar-pneus', () => HttpResponse.json(pageDe([]))),
+      http.get('/api/v1/recherche', ({ request }) => {
+        const q = new URL(request.url).searchParams.get('q');
+        if (q !== 'Meier') {
+          return HttpResponse.json({ resultats: [], plaqueInterchangeable: false });
+        }
+        return HttpResponse.json({
+          resultats: [
+            {
+              type: 'client',
+              id: 'client-1',
+              score: 0.5,
+              correspondance: { champ: 'nom', valeur: 'Meier Urs', historique: false },
+              resume: { nom: 'Meier Urs' },
+            },
+          ],
+          plaqueInterchangeable: false,
+        });
+      }),
+      http.get('/api/v1/vehicules', ({ request }) => {
+        const parametres = new URL(request.url).searchParams;
+        // La preuve du défaut : sans le correctif, ce paramètre n'était jamais envoyé.
+        expect(parametres.get('detenteurId')).toBe('client-1');
+        return HttpResponse.json({
+          donnees: [
+            {
+              id: 'vehicule-9',
+              plaque: 'VS 123456',
+              canton: 'VS',
+              designation: 'Volkswagen Golf',
+              vin: null,
+              premiereMiseEnCirculationLe: null,
+              identificationIncomplete: false,
+              emplacementLibre: null,
+            },
+          ],
+          curseurSuivant: null,
+          limite: 5,
+        });
+      }),
+      http.get('/api/v1/vehicules/vehicule-9/depots-pneus', () =>
+        HttpResponse.json(
+          pageDe([{ ...DEPOT, id: 'depot-9', vehiculeId: 'vehicule-9', codeCase: 'B3' }]),
+        ),
+      ),
+    );
+
+    rendre();
+
+    const champRecherche = await screen.findByLabelText('Rechercher par plaque ou nom client');
+    await utilisateur.type(champRecherche, 'Meier');
+
+    expect(await screen.findByText('B3', {}, { timeout: 2000 })).toBeInTheDocument();
+    expect(screen.getByText('Meier Urs')).toBeInTheDocument();
+    expect(screen.getByText(/Volkswagen Golf/)).toBeInTheDocument();
+  });
 });

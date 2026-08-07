@@ -24,6 +24,7 @@
     "actions": {
       "voirVehicule": "Fahrzeug anzeigen",
       "changerSaison": "Saison wechseln",
+      "deplacer": "Verschieben",
       "sortir": "Auslagern"
     }
   },
@@ -90,6 +91,11 @@
   "changementSaison": {
     "titre": "Saison wechseln",
     "description": "Der Satz \"{codeCase}\" und sein Gegenstück (Gegensaison) tauschen ihren Status montiert/eingelagert."
+  },
+  "deplacement": {
+    "titre": "Diesen Satz verschieben",
+    "description": "Aktueller Standort: \"{codeCase}\". Neuen Standort angeben.",
+    "champCodeCase": "Neuer Standort"
   },
   "sortie": {
     "titre": "Diesen Satz auslagern",

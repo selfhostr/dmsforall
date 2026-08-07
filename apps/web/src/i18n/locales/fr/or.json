@@ -153,6 +153,16 @@
       "motifRequis": "Le motif est obligatoire",
       "motifPlaceholder": "Raison de l'annulation",
       "confirmer": "Confirmer l'annulation"
+    },
+    "champs": {
+      "referenceTexte": "Référence"
+    },
+    "groupees": {
+      "colonneSelection": "Sélection",
+      "selectionnerLigne": "Sélectionner {designation}",
+      "validerTitre": "{count, plural, one {Valider # ligne} other {Valider # lignes}}",
+      "refuserTitre": "{count, plural, one {Refuser # ligne} other {Refuser # lignes}}",
+      "annulerTitre": "{count, plural, one {Annuler # ligne} other {Annuler # lignes}}"
     }
   },
   "demandes": {

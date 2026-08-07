@@ -37,6 +37,35 @@ import type {
 } from '../db/schema';
 import type { ResumeUtilisateur } from '../atelier/references';
 
+/**
+ * FAILLE CORRIGÉE (audit sécurité) : `GET /dossiers-vente/{id}` n'était protégé QUE par
+ * `ventes.dossier.lire` et embarquait TOUJOURS la reprise/le financement complets — un rôle qui
+ * détient `ventes.dossier.lire` sans `ventes.reprise.lire`/`ventes.financement.lire` (le cas exact
+ * de `chef_atelier`, voir `auth/matrice-droits.ts::DROITS_VENTES_PAR_ROLE`) recevait
+ * `valeurNegocieeCentimes`/`detteFinancementResiduelleCentimes`/`motifRefus`/
+ * `montantFinanceCentimes`/`tauxInteretPourmille` en clair dans le corps JSON — le masquage
+ * n'existait QUE côté écran (le front ne les affichait pas), jamais côté serveur.
+ *
+ * Ces deux fonctions gate l'ENTITÉ reprise/financement ENTIÈRE (id, statut, organisme — pas
+ * seulement ses montants), lues directement dans `MATRICE_DROITS` — la SEULE source de vérité de
+ * l'autorisation dans ce produit (voir la tête de `auth/matrice-droits.ts`). DISTINCTES de
+ * `roleVoitLesMontants` (`facturation/documents/mappeurs.ts`, importé ci-dessous) : ce dernier ne
+ * connaît RIEN de `ventes.reprise.lire`/`ventes.financement.lire` — il vaut VRAI pour `chef_atelier`
+ * (qui n'est PAS exclu de `ROLES_SANS_MONTANT_FACTURATION`), ce qui est précisément ce qui laissait
+ * fuiter le détail monétaire du financement à ce rôle avant cette correction. Les deux gates sont
+ * COMPLÉMENTAIRES : `roleVoitFinancement` gouverne si l'entité existe DU TOUT dans la réponse,
+ * `roleVoitLesMontants` gouverne, à l'intérieur d'une entité déjà visible, si son détail monétaire
+ * l'est aussi (RF-116, `detailMonetaireFinancement` plus bas) — la seconde ne dispense jamais de la
+ * première.
+ */
+export function roleVoitReprise(role: RoleUtilisateur): boolean {
+  return (MATRICE_DROITS[role] ?? []).includes('ventes.reprise.lire');
+}
+
+export function roleVoitFinancement(role: RoleUtilisateur): boolean {
+  return (MATRICE_DROITS[role] ?? []).includes('ventes.financement.lire');
+}
+
 const MILLISECONDES_PAR_JOUR = 24 * 60 * 60 * 1000;
 
 /**
@@ -267,10 +296,15 @@ export interface EntreeMapperDossierVente {
   readonly clientAcheteur: ClientResume;
   readonly clientFacture: ClientResume;
   readonly clientConducteur: ClientResume | null;
-  readonly reprise: RepriseResume | null;
-  readonly financement: FinancementResume | null;
-  readonly financements: readonly FinancementResume[];
-  readonly financementsTronques: boolean;
+  /** `undefined` = le rôle appelant n'a pas `ventes.reprise.lire`, voir `roleVoitReprise` plus bas
+   *  et la doctrine d'omission sur `@dfa/shared::ReponseDossierVente.reprise` (FAILLE CORRIGÉE). */
+  readonly reprise: RepriseResume | null | undefined;
+  /** `undefined` = le rôle appelant n'a pas `ventes.financement.lire`, voir `roleVoitFinancement`
+   *  plus bas. Même doctrine que `reprise` ci-dessus pour `financement`/`financements`/
+   *  `financementsTronques`. */
+  readonly financement: FinancementResume | null | undefined;
+  readonly financements: readonly FinancementResume[] | undefined;
+  readonly financementsTronques: boolean | undefined;
   readonly documents: readonly DocumentVenteResume[];
   readonly documentsTronques: boolean;
   readonly documentsRequis: readonly DocumentRequisDossierVente[];
@@ -289,10 +323,19 @@ export function versDossierVenteResponse(e: EntreeMapperDossierVente): ReponseDo
     clientAcheteur: e.clientAcheteur,
     clientFacture: e.clientFacture,
     clientConducteur: e.clientConducteur,
-    reprise: e.reprise,
-    financement: e.financement,
-    financements: e.financements,
-    financementsTronques: e.financementsTronques,
+    // FAILLE CORRIGÉE (audit sécurité) : `reprise`/`financement`/`financements`/
+    // `financementsTronques` étaient TOUJOURS présents, quel que soit le rôle appelant —
+    // `ServiceDossierVente.assembler` (`service-dossier-vente.ts`) ne les fournit désormais QUE si
+    // le rôle détient respectivement `ventes.reprise.lire`/`ventes.financement.lire`
+    // (`roleVoitReprise`/`roleVoitFinancement` ci-dessous). `undefined` ici => clé OMISE de la
+    // charge utile (spread conditionnel, jamais une valeur `undefined` assignée en dur) — jamais
+    // confondue avec `null` (fait métier « rien ici », pas un masquage).
+    ...(e.reprise !== undefined ? { reprise: e.reprise } : {}),
+    ...(e.financement !== undefined ? { financement: e.financement } : {}),
+    ...(e.financements !== undefined ? { financements: e.financements } : {}),
+    ...(e.financementsTronques !== undefined
+      ? { financementsTronques: e.financementsTronques }
+      : {}),
     documents: e.documents,
     documentsTronques: e.documentsTronques,
     documentsRequis: e.documentsRequis,

@@ -412,6 +412,8 @@
       "avisSansFacture": "Diese Ausgabe wird nicht fakturiert: Das Teil verlässt das Lager, aber es wird keine Rechnung erstellt. Für einen fakturierten Verkauf verwenden Sie einen Verkaufsbeleg.",
       "quantite": "Menge",
       "disponible": "{n} verfügbar",
+      "prixUnitaire": "Einzelpreis inkl. Mwst.",
+      "totalTtc": "Gesamtbetrag inkl. Mwst.",
       "confirmer": "Teil ausgeben",
       "erreur": {
         "stockInsuffisant": "Lagerbestand nicht ausreichend: Es sind noch {n} an Lager."

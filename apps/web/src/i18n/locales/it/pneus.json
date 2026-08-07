@@ -24,6 +24,7 @@
     "actions": {
       "voirVehicule": "Vedi il veicolo",
       "changerSaison": "Cambio stagione",
+      "deplacer": "Sposta",
       "sortir": "Fai uscire"
     }
   },
@@ -90,6 +91,11 @@
   "changementSaison": {
     "titre": "Cambio stagione",
     "description": "Il set \"{codeCase}\" e il suo gemello (stagione opposta) invertono lo stato montato/in deposito."
+  },
+  "deplacement": {
+    "titre": "Sposta questo set",
+    "description": "Ubicazione attuale: \"{codeCase}\". Indicare la nuova ubicazione.",
+    "champCodeCase": "Nuova ubicazione"
   },
   "sortie": {
     "titre": "Fai uscire questo set dal deposito",

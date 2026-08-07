@@ -58,6 +58,8 @@ const CLIENT_CREE: ReponseClient = {
   creeLe: '2026-07-28T08:00:00.000Z',
   modifieLe: '2026-07-28T08:00:00.000Z',
   notesAlerte: [],
+  plusAucunContact: false,
+  motif: null,
 };
 
 async function remplirIdentiteMinimale(utilisateur: ReturnType<typeof userEvent.setup>) {

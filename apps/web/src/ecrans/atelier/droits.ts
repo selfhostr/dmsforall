@@ -1,0 +1,51 @@
+import type { RoleUtilisateur } from '@dfa/shared';
+
+/**
+ * Miroir CÔTÉ FRONT de `L966_LIGNE_CREATION` / `L967_LIGNE_VALIDATION` / `INFERE_LIGNE_DECISION`
+ * (`apps/api/src/auth/matrice-droits.ts`, §10 L966/L967, RM-71/RM-72) — même doctrine que
+ * `ecrans/facturation/droits.ts` : un défensif d'ERGONOMIE (« un rôle sans droit ne voit pas un
+ * bouton grisé, il ne voit pas de bouton »), jamais la seule ligne de défense — le serveur reste
+ * l'arbitre final (`@ExigerDroit(...)` sur chaque route de `ligne-or.controller.ts`).
+ *
+ * `atelier.ligne.creer` (§10 L966, « ajouter une ligne constatée ») : réceptionnaire, chef
+ * d'atelier, technicien, magasinier, direction, admin — TOUT LE MONDE SAUF vendeur, comptable,
+ * poste_atelier. Aucun des trois exclus n'assemble `L966_LIGNE_CREATION` côté serveur
+ * (`DROITS_VENDEUR`, `DROITS_COMPTABLE`, `DROITS_POSTE_ATELIER`).
+ *
+ * `atelier.ligne.valider` (§10 L967) / `atelier.ligne.refuser` / `atelier.ligne.annuler`
+ * (inférés, RM-72/RM-71, alignés sur le périmètre de la validation) : réceptionnaire, chef
+ * d'atelier, direction, admin SEULS. `technicien` et `magasinier` créent une ligne mais
+ * n'arbitrent jamais son sort — exactement comme `DROITS_TECHNICIEN`/`DROITS_MAGASINIER` (côté
+ * serveur) n'assemblent ni `L967_LIGNE_VALIDATION` ni `INFERE_LIGNE_DECISION`.
+ */
+const ROLES_CREATION_LIGNE: ReadonlySet<RoleUtilisateur> = new Set([
+  'receptionnaire',
+  'chef_atelier',
+  'technicien',
+  'magasinier',
+  'direction',
+  'admin',
+]);
+
+const ROLES_DECISION_LIGNE: ReadonlySet<RoleUtilisateur> = new Set([
+  'receptionnaire',
+  'chef_atelier',
+  'direction',
+  'admin',
+]);
+
+export function peutCreerLigneOr(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_CREATION_LIGNE.has(role);
+}
+
+export function peutValiderLigneOr(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_DECISION_LIGNE.has(role);
+}
+
+export function peutRefuserLigneOr(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_DECISION_LIGNE.has(role);
+}
+
+export function peutAnnulerLigneOr(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_DECISION_LIGNE.has(role);
+}

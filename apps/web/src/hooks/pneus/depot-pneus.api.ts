@@ -1,6 +1,7 @@
 import type {
   EntreeChangementSaisonDepotPneus,
   EntreeCreationDepotPneus,
+  EntreeDeplacementDepotPneus,
   EntreeSortieDepotPneus,
   PageCurseur,
   ReponseDepotPneus,
@@ -140,6 +141,28 @@ export async function sortirDepotPneus(
   });
   if (!reponse) {
     throw new Error('Réponse vide inattendue : POST /depots-pneus/{id}/sortir.');
+  }
+  return reponse;
+}
+
+/**
+ * `POST /depots-pneus/{id}/deplacer` (défaut n°2 du rapport de test du 06.08.2026, RPP-07) — la
+ * route a été livrée côté API le 05-06.08.2026 (voir `apps/api/src/pneus/depot-pneus.controller.ts`
+ * et `service-depot-pneus.ts::deplacer`) mais aucun écran ne l'exposait encore : le geste le plus
+ * courant d'un hangar (les jeux changent de case en permanence) n'avait pas de bouton. Pas
+ * d'`Idempotency-Key` — même doctrine que `changerSaisonDepotPneus`, transition gardée par l'état
+ * de départ (`409 CONFLIT` sur un dépôt déjà `sorti`), pas une création.
+ */
+export async function deplacerDepotPneus(
+  depotId: string,
+  entree: EntreeDeplacementDepotPneus,
+): Promise<ReponseDepotPneus> {
+  const reponse = await requeteApi<ReponseDepotPneus>(`/depots-pneus/${depotId}/deplacer`, {
+    method: 'POST',
+    body: JSON.stringify(entree),
+  });
+  if (!reponse) {
+    throw new Error('Réponse vide inattendue : POST /depots-pneus/{id}/deplacer.');
   }
   return reponse;
 }

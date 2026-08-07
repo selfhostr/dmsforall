@@ -1,11 +1,36 @@
 import { PackageCheck, ShieldAlert, UserRound } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { ReponseLigneOr, StatutLigneOr, TypeLigneOr } from '@dfa/shared';
 
+import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import {
+  peutAnnulerLigneOr,
+  peutRefuserLigneOr,
+  peutValiderLigneOr,
+} from '@/ecrans/atelier/droits';
+import {
+  useAnnulerLignesOr,
+  useRefuserLignesOr,
+  useValiderLignesOr,
+} from '@/hooks/atelier/useActionsLigneOr';
+import { useSession } from '@/hooks/useSession';
 import { formaterMontant, formaterPourmille } from '@/lib/formats';
 
 const FORMATEUR_QUANTITE = new Intl.NumberFormat('de-CH', { maximumFractionDigits: 3 });
@@ -23,8 +48,10 @@ function formaterTempsHeures(centiemes: number): string {
 
 // `TypeLigneOr` -> suffixe de `or:lignes.types` : mapping NON trivial (ex. `taxe` -> `taxeElimination`,
 // `main_oeuvre_bareme` -> `mainOeuvreBaremee`), donc explicite plutôt que dérivé par manipulation
-// de chaîne — même précaution que `BadgeStatutOr`.
-const CLES_TYPE: Record<TypeLigneOr, string> = {
+// de chaîne — même précaution que `BadgeStatutOr`. Exporté : `DialogueAjoutLigneOr` réutilise CE
+// mapping pour libeller son sélecteur de type, plutôt que d'en dupliquer un second qui pourrait
+// diverger silencieusement du premier.
+export const CLES_TYPE: Record<TypeLigneOr, string> = {
   main_oeuvre_bareme: 'mainOeuvreBaremee',
   main_oeuvre_temps_reel: 'mainOeuvreTempsReel',
   forfait: 'forfait',
@@ -48,26 +75,137 @@ const CLES_STATUT: Record<StatutLigneOr, string> = {
   annulee: 'annulee',
 };
 
+type ActionGroupeeLigne = 'valider' | 'refuser' | 'annuler';
+
 interface Props {
+  readonly orId: string;
   readonly lignes: readonly ReponseLigneOr[];
   readonly lignesTronquees: boolean;
 }
 
 /**
- * Lignes de l'OR (travaux/pièces/forfaits…) — table LECTURE SEULE en v1 : aucune action de ligne
- * (`valider-lignes`/`refuser-lignes`/…) n'est câblée ici faute de sélection multi-lignes dans cet
- * écran (voir le commentaire d'en-tête de `useTransitionsOrdreReparation.ts`). Le montant total
- * n'est JAMAIS recalculé côté client (§ contrat) — uniquement affiché depuis `ligne.montants`, ou
- * laissé vide (jamais « 0.00 ») pour un rôle sans droit aux montants.
+ * Lignes de l'OR (travaux/pièces/forfaits…). Le montant total n'est JAMAIS recalculé côté client
+ * (§ contrat) — uniquement affiché depuis `ligne.montants`, ou laissé vide (jamais « 0.00 ») pour
+ * un rôle sans droit aux montants.
+ *
+ * Sélection multi-lignes + actions groupées (`valider-lignes`/`refuser-lignes`/`annuler-lignes`,
+ * §7.8) : une colonne de case à cocher n'apparaît QUE pour un rôle qui porte au moins un des trois
+ * droits de décision (`peutValiderLigneOr`/`peutRefuserLigneOr`/`peutAnnulerLigneOr`,
+ * `ecrans/atelier/droits.ts`) — un rôle qui ne peut rien décider derrière (technicien, magasinier)
+ * garde la table exactement lecture seule d'avant. Aucun filtrage CLIENT par statut de ligne avant
+ * l'envoi (ex. n'autoriser « Valider » que sur une sélection 100% `proposee`/`a_valider`) : la
+ * transition atomique tout-ou-rien est arbitrée par le serveur, qui répond `409
+ * LIGNE_TRANSITION_INTERDITE` le cas échéant — même doctrine que `PanneauActionsOr` (« une action
+ * affichée mais refusée à l'appel est pire que pas d'action », mais jamais un succès silencieux).
+ * C'est ce qui referme la boucle du lien « Résoudre » de `EcranFacturerOrdreReparation` (facturation,
+ * hors périmètre de ce fichier) : il navigue vers cette fiche SANS cibler la ligne bloquante, mais
+ * un chef d'atelier/réceptionnaire qui atterrit ici peut désormais RÉELLEMENT sélectionner puis
+ * valider/refuser la ligne `proposee`/`a_valider` qui bloquait — avant ce correctif, rien sur cet
+ * écran ne le permettait, quel que soit le rôle.
  *
  * Pas de composant `BadgeStatutLigne` dédié à ce jour (seul `BadgeStatutOr` existe dans
  * `composants/identite/` — voir le commentaire de `components/ui/badge.tsx`) : le statut de ligne
  * utilise donc le `Badge` générique, à remplacer par un composant dédié quand il existera.
  */
-export function ListeLignesOrdreReparation({ lignes, lignesTronquees }: Props) {
-  const { t } = useTranslation('or');
+export function ListeLignesOrdreReparation({ orId, lignes, lignesTronquees }: Props) {
+  const { t } = useTranslation(['or', 'commun']);
+  const session = useSession();
+  const role = session.data?.utilisateur.role;
+
+  const [selection, setSelection] = useState<ReadonlySet<string>>(new Set());
+  const [actionOuverte, setActionOuverte] = useState<ActionGroupeeLigne | null>(null);
+  const [motif, setMotif] = useState('');
+  const [erreurValidation, setErreurValidation] = useState<string | null>(null);
+
+  const validerLignes = useValiderLignesOr(orId);
+  const refuserLignes = useRefuserLignesOr(orId);
+  const annulerLignes = useAnnulerLignesOr(orId);
+
+  const peutValider = peutValiderLigneOr(role);
+  const peutRefuser = peutRefuserLigneOr(role);
+  const peutAnnuler = peutAnnulerLigneOr(role);
+  const peutDecider = peutValider || peutRefuser || peutAnnuler;
+
+  function basculerSelection(ligneId: string) {
+    setSelection((precedente) => {
+      const suivante = new Set(precedente);
+      if (suivante.has(ligneId)) {
+        suivante.delete(ligneId);
+      } else {
+        suivante.add(ligneId);
+      }
+      return suivante;
+    });
+  }
+
+  function fermerDialogue() {
+    setActionOuverte(null);
+    setMotif('');
+    setErreurValidation(null);
+  }
+
+  const mutationActive =
+    actionOuverte === 'valider'
+      ? validerLignes
+      : actionOuverte === 'refuser'
+        ? refuserLignes
+        : actionOuverte === 'annuler'
+          ? annulerLignes
+          : null;
+
+  const erreurActive = mutationActive?.error instanceof ErreurApi ? mutationActive.error : null;
+
+  function soumettreActionGroupee() {
+    if (!actionOuverte || !mutationActive) return;
+    const ligneIds = [...selection];
+
+    if (actionOuverte === 'annuler' && motif.trim() === '') {
+      setErreurValidation(t('or:actions.motifRequis'));
+      return;
+    }
+    setErreurValidation(null);
+
+    const entree =
+      actionOuverte === 'valider'
+        ? { ligneIds }
+        : actionOuverte === 'refuser'
+          ? { ligneIds, motif: motif.trim() === '' ? undefined : motif.trim() }
+          : { ligneIds, motif: motif.trim() };
+
+    // `mutate` est typé par action (`useValiderLignesOr`/`useRefuserLignesOr`/`useAnnulerLignesOr`
+    // exposent chacun leur propre `EntreeValidationLignes`/`EntreeRefusLignes`/
+    // `EntreeAnnulationLignes`) ; ce panneau route les TROIS vers la mutation active choisie
+    // ci-dessus — même cast délibéré, borné à cette seule ligne, que `PanneauActionsOr.soumettre`.
+    (mutationActive.mutate as (valeur: unknown, options?: { onSuccess?: () => void }) => void)(
+      entree,
+      {
+        onSuccess: () => {
+          setSelection(new Set());
+          fermerDialogue();
+        },
+      },
+    );
+  }
 
   const colonnes: ColonneComptoir<ReponseLigneOr>[] = [
+    ...(peutDecider
+      ? [
+          {
+            id: 'selection',
+            libelle: t('or:lignes.groupees.colonneSelection'),
+            actions: true,
+            rendu: (ligne: ReponseLigneOr) => (
+              <Checkbox
+                checked={selection.has(ligne.id)}
+                onCheckedChange={() => basculerSelection(ligne.id)}
+                aria-label={t('or:lignes.groupees.selectionnerLigne', {
+                  designation: ligne.designation,
+                })}
+              />
+            ),
+          } satisfies ColonneComptoir<ReponseLigneOr>,
+        ]
+      : []),
     {
       id: 'designation',
       libelle: t('or:lignes.colonnes.designation'),
@@ -180,8 +318,41 @@ export function ListeLignesOrdreReparation({ lignes, lignesTronquees }: Props) {
     },
   ];
 
+  const titreDialogue =
+    actionOuverte === 'valider'
+      ? t('or:lignes.groupees.validerTitre', { count: selection.size })
+      : actionOuverte === 'refuser'
+        ? t('or:lignes.groupees.refuserTitre', { count: selection.size })
+        : actionOuverte === 'annuler'
+          ? t('or:lignes.groupees.annulerTitre', { count: selection.size })
+          : '';
+
   return (
     <div className="flex flex-col gap-2">
+      {peutDecider && selection.size > 0 ? (
+        <div
+          role="group"
+          aria-label={t('or:lignes.groupees.colonneSelection')}
+          className="flex flex-wrap items-center gap-2"
+        >
+          {peutValider ? (
+            <Button type="button" variant="default" onClick={() => setActionOuverte('valider')}>
+              {`${t('or:lignes.actions.valider')} (${selection.size})`}
+            </Button>
+          ) : null}
+          {peutRefuser ? (
+            <Button type="button" variant="outline" onClick={() => setActionOuverte('refuser')}>
+              {`${t('or:lignes.actions.refuser')} (${selection.size})`}
+            </Button>
+          ) : null}
+          {peutAnnuler ? (
+            <Button type="button" variant="destructive" onClick={() => setActionOuverte('annuler')}>
+              {`${t('or:lignes.actions.annuler')} (${selection.size})`}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
       <TableComptoir
         colonnes={colonnes}
         lignes={lignes}
@@ -191,6 +362,51 @@ export function ListeLignesOrdreReparation({ lignes, lignesTronquees }: Props) {
       {lignesTronquees ? (
         <p className="texte-libelle text-muted-foreground">{t('or:lignes.tronquees')}</p>
       ) : null}
+
+      <Dialog
+        open={actionOuverte !== null}
+        onOpenChange={(ouvert) => (ouvert ? undefined : fermerDialogue())}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{titreDialogue}</DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4">
+            {actionOuverte === 'refuser' || actionOuverte === 'annuler' ? (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="or-lignes-groupees-motif">
+                  {t('or:actions.motif')}
+                  {actionOuverte === 'annuler' ? ' *' : ''}
+                </Label>
+                <Textarea
+                  id="or-lignes-groupees-motif"
+                  value={motif}
+                  onChange={(evenement) => setMotif(evenement.target.value)}
+                />
+              </div>
+            ) : null}
+
+            {erreurValidation ? (
+              <p className="texte-libelle text-destructive">{erreurValidation}</p>
+            ) : null}
+            {erreurActive ? (
+              <p role="alert" className="texte-libelle text-destructive">
+                {messageErreur(erreurActive, t)}
+              </p>
+            ) : null}
+          </div>
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">{t('commun:actions.annuler')}</Button>
+            </DialogClose>
+            <Button disabled={mutationActive?.isPending} onClick={soumettreActionGroupee}>
+              {t('or:actions.confirmer')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

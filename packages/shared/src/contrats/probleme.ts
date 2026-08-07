@@ -228,6 +228,17 @@ export const CODES_ERREUR = [
   'VENTE_VEHICULE_MANQUANT',
   'VENTE_FINANCEMENT_NON_CONFIRME',
   'VENTE_LIVRAISON_EXPERTISE_REQUISE',
+  // RV-37 : la livraison exige que la FACTURE DE VENTE soit déjà émise (le véhicule passe
+  // `reserve -> vendu` comme effet de bord de l'émission). Code DÉDIÉ, ajouté après constat en
+  // navigateur : `livrer()` refusait ce cas sous `VENTE_VEHICULE_INDISPONIBLE`, partagé avec
+  // `engager()` (« un autre dossier a réservé le véhicule entre-temps »). Or le front ne rend
+  // JAMAIS `ProblemeDetail.detail` — `messageErreur`/`RefusBloquant` (apps/web/src/api/erreurs.ts,
+  // composants/motifs/RefusBloquant.tsx) affichent uniquement `erreurs:codes.<CODE>`. Un code
+  // partagé par deux causes ne peut donc produire qu'un message vague (« Ce véhicule n'est pas
+  // disponible actuellement ») qui ne dit pas le geste attendu. Séparer le code est le SEUL moyen
+  // de dire « émettez d'abord la facture ». Frère exact de `VENTE_LIVRAISON_EXPERTISE_REQUISE`,
+  // même forme de nom, même statut 409.
+  'VENTE_LIVRAISON_FACTURE_REQUISE',
   'VENTE_LIVRAISON_INCOMPLETE',
   'VENTE_DOSSIER_ANNULATION_IMPOSSIBLE',
   'VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE',
@@ -377,6 +388,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   VENTE_VEHICULE_MANQUANT: 409,
   VENTE_FINANCEMENT_NON_CONFIRME: 409,
   VENTE_LIVRAISON_EXPERTISE_REQUISE: 409,
+  VENTE_LIVRAISON_FACTURE_REQUISE: 409,
   VENTE_LIVRAISON_INCOMPLETE: 409,
   VENTE_DOSSIER_ANNULATION_IMPOSSIBLE: 409,
   VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE: 409,
@@ -492,6 +504,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   VENTE_VEHICULE_MANQUANT: 'Véhicule introuvable',
   VENTE_FINANCEMENT_NON_CONFIRME: 'Financement non confirmé',
   VENTE_LIVRAISON_EXPERTISE_REQUISE: 'Expertise requise avant livraison',
+  VENTE_LIVRAISON_FACTURE_REQUISE: 'Facture requise avant livraison',
   VENTE_LIVRAISON_INCOMPLETE: 'Livraison incomplète',
   VENTE_DOSSIER_ANNULATION_IMPOSSIBLE: 'Annulation impossible pour ce dossier de vente',
   VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE: 'Valeur de reprise requise',

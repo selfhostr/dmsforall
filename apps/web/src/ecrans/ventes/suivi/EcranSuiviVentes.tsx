@@ -94,7 +94,16 @@ export function EcranSuiviVentes() {
     {
       id: 'financement',
       libelle: t('ventes:suivi.colonnes.financement'),
-      rendu: (ligne) => <CelluleFinancementSuivi financement={ligne.financement} />,
+      // `financement` est ABSENT (clé manquante, pas `null`) pour un rôle sans
+      // `ventes.financement.lire` (voir l'en-tête de `contrats/ventes/suivi.ts`) — à ne jamais
+      // confondre avec `null` (« pas de financement à suivre »). `in` est le seul test fiable
+      // pour distinguer les deux après désérialisation JSON (même doctrine que
+      // `CelluleFinancementSuivi` sur `echeanceLe`). Absence = rien n'est rendu pour cette
+      // cellule, pas un texte "non renseigné" trompeur.
+      rendu: (ligne) =>
+        'financement' in ligne ? (
+          <CelluleFinancementSuivi financement={ligne.financement ?? null} />
+        ) : null,
     },
     {
       id: 'garantie',

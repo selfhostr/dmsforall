@@ -97,25 +97,38 @@ export class ReponseDossierVenteDto implements ReponseDossierVente {
   @ApiProperty({
     type: () => RepriseResumeDto,
     nullable: true,
-    description: 'null = pas de reprise sur ce dossier (RV-25).',
+    required: false,
+    description:
+      'null = pas de reprise sur ce dossier (RV-25), pour un rôle autorisé. ABSENT (clé manquante, ' +
+      "pas null) = le rôle appelant n'a pas ventes.reprise.lire — omission complète de l'entité " +
+      '(FAILLE CORRIGÉE, audit sécurité).',
   })
-  readonly reprise!: RepriseResumeDto | null;
+  readonly reprise?: RepriseResumeDto | null;
 
   @ApiProperty({
     type: () => FinancementResumeDto,
     nullable: true,
-    description: 'Le financement COURANT — null uniquement en prospection.',
+    required: false,
+    description:
+      'Le financement COURANT — null uniquement en prospection, pour un rôle autorisé. ABSENT (pas ' +
+      "null) = le rôle appelant n'a pas ventes.financement.lire (FAILLE CORRIGÉE, audit sécurité).",
   })
-  readonly financement!: FinancementResumeDto | null;
+  readonly financement?: FinancementResumeDto | null;
 
   @ApiProperty({
     type: () => [FinancementResumeDto],
-    description: 'Historique COMPLET des tentatives de financement (CV-03).',
+    required: false,
+    description:
+      "Historique COMPLET des tentatives de financement (CV-03). ABSENT si le rôle n'a pas " +
+      'ventes.financement.lire — même doctrine que `financement` ci-dessus.',
   })
-  readonly financements!: readonly FinancementResumeDto[];
+  readonly financements?: readonly FinancementResumeDto[];
 
-  @ApiProperty()
-  readonly financementsTronques!: boolean;
+  @ApiProperty({
+    required: false,
+    description: 'ABSENT dans les mêmes conditions que `financements`.',
+  })
+  readonly financementsTronques?: boolean;
 
   @ApiProperty({ type: () => [DocumentVenteResumeDto] })
   readonly documents!: readonly DocumentVenteResumeDto[];

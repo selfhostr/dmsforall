@@ -24,6 +24,7 @@ import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
 import { BadgeSaisonPneu } from './composants/BadgeSaisonPneu';
+import { DialogueDeplacerDepotPneu } from './DialogueDeplacerDepotPneu';
 import { DialogueSortirDepotPneu } from './DialogueSortirDepotPneu';
 import { peutGererDepotPneus } from './droits';
 
@@ -44,6 +45,7 @@ export function EcranJeuxARelancer() {
   const sites = (session?.sites ?? []).filter((s) => s.actif);
 
   const [depotSortie, setDepotSortie] = useState<ReponseDepotPneus | null>(null);
+  const [depotDeplacement, setDepotDeplacement] = useState<ReponseDepotPneus | null>(null);
 
   const {
     depots,
@@ -105,7 +107,18 @@ export function EcranJeuxARelancer() {
               // rejette systématiquement ce geste (autorisé seulement `en_depot`/`monte`, voir
               // `CarteJeuPneu.tsx` — `estActif`). Défaut corrigé : le bouton était rendu sans
               // condition ici et 100% des clics échouaient.
+              // « Déplacer » (défaut n°2, rapport du 06.08.2026), lui, reste valide : un jeu
+              // `a_relancer` n'est PAS `sorti` (seul statut que `POST .../deplacer` refuse), et un
+              // jeu oublié depuis longtemps est justement celui qu'on retrouve mal rangé.
               <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setDepotDeplacement(depot)}
+                >
+                  {t('pneus:jeu.actions.deplacer')}
+                </Button>
                 <Button
                   type="button"
                   size="sm"
@@ -194,6 +207,10 @@ export function EcranJeuxARelancer() {
       />
 
       <DialogueSortirDepotPneu depot={depotSortie} onFerme={() => setDepotSortie(null)} />
+      <DialogueDeplacerDepotPneu
+        depot={depotDeplacement}
+        onFerme={() => setDepotDeplacement(null)}
+      />
     </div>
   );
 }

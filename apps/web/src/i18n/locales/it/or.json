@@ -153,6 +153,16 @@
       "motifRequis": "Il motivo è obbligatorio",
       "motifPlaceholder": "Motivo dell'annullamento",
       "confirmer": "Conferma annullamento"
+    },
+    "champs": {
+      "referenceTexte": "Riferimento"
+    },
+    "groupees": {
+      "colonneSelection": "Selezione",
+      "selectionnerLigne": "Seleziona {designation}",
+      "validerTitre": "{count, plural, one {Approva # riga} other {Approva # righe}}",
+      "refuserTitre": "{count, plural, one {Rifiuta # riga} other {Rifiuta # righe}}",
+      "annulerTitre": "{count, plural, one {Annulla # riga} other {Annulla # righe}}"
     }
   },
   "demandes": {

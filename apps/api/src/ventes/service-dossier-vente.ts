@@ -58,6 +58,8 @@ import {
 
 import {
   calculerTypeVehicule,
+  roleVoitFinancement,
+  roleVoitReprise,
   selectionnerFinancementCourant,
   versDocumentRequisResponse,
   versDocumentVenteResume,
@@ -573,9 +575,23 @@ export class ServiceDossierVente {
       // soit déjà fait avant de livrer.
       const vehiculeStockLigne = await chargerVehiculeStockPourEcriture(tx, ctx, vehiculeId);
       if (vehiculeStockLigne.statutCommercial !== 'vendu') {
+        // CODE CORRIGÉ (constaté en navigateur, puis reproduit en HTTP réel) : ce refus sortait
+        // sous `VENTE_VEHICULE_INDISPONIBLE`, le MÊME code que la garde d'`engager()` ci-dessus
+        // (« un autre dossier a réservé le véhicule entre-temps »). Le front n'affiche jamais
+        // `detail` — `messageErreur`/`RefusBloquant` rendent `erreurs:codes.<CODE>` et rien
+        // d'autre — donc le vendeur lisait « Ce véhicule n'est pas disponible actuellement » sur un
+        // véhicule `reserve`, qui EST son état normal après l'engagement : un message à la fois
+        // vrai côté machine et inutile côté comptoir. `VENTE_LIVRAISON_FACTURE_REQUISE` nomme la
+        // cause, et sa traduction nomme le geste (« émettez d'abord la facture »).
+        //
+        // `detail` reste renseigné pour les journaux et le support (il porte le statut réel), il
+        // n'est simplement plus le seul endroit où l'information existe.
         throw new ErreurMetier(
-          'VENTE_VEHICULE_INDISPONIBLE',
+          'VENTE_LIVRAISON_FACTURE_REQUISE',
           `Livraison impossible : le véhicule n'est pas encore facturé (statut actuel : ${vehiculeStockLigne.statutCommercial}) — la facture doit être émise avant la livraison (RV-37).`,
+          {
+            detail: `Le véhicule est au statut « ${vehiculeStockLigne.statutCommercial} » : la facture de vente doit être émise avant la livraison (RV-37).`,
+          },
         );
       }
 
@@ -927,20 +943,39 @@ export class ServiceDossierVente {
       : null;
 
     const { vehicule, typeVehicule } = await this.assemblerVehicule(tx, ctx, ligne.vehiculeId);
-    const repriseResume = await this.assemblerRepriseResume(tx, ctx, ligne.id);
 
-    const financementsLignes = await listerFinancementsDossier(tx, ctx, ligne.id);
-    const financementCourantLigne = selectionnerFinancementCourant(financementsLignes);
-    const financements: FinancementResume[] = [];
-    let financementCourant: FinancementResume | null = null;
-    for (const f of financementsLignes) {
-      const organisme = f.organismeId
-        ? await versClientResume(tx, ctx, await chargerClientLigne(tx, ctx, f.organismeId))
-        : null;
-      const resume = versFinancementResume(f, organisme, role);
-      financements.push(resume);
-      if (financementCourantLigne && f.id === financementCourantLigne.id)
-        financementCourant = resume;
+    // FAILLE CORRIGÉE (audit sécurité) : `reprise`/`financement(s)` n'étaient JAMAIS gatés par leur
+    // propre droit de lecture — `GET /dossiers-vente/{id}` (protégé par `ventes.dossier.lire` SEUL)
+    // exposait TOUJOURS le détail complet, y compris à un rôle sans `ventes.reprise.lire`/
+    // `ventes.financement.lire` (`chef_atelier`, voir `mappers.ts::roleVoitReprise`/
+    // `roleVoitFinancement` pour le détail de la faille). Le rôle SANS le droit correspondant ne
+    // déclenche même plus la requête : `undefined` en amont, jamais une valeur chargée puis
+    // masquée trop tard — `versDossierVenteResponse` omet alors la clé ENTIÈRE de la réponse.
+    const repriseResume = roleVoitReprise(role)
+      ? await this.assemblerRepriseResume(tx, ctx, ligne.id)
+      : undefined;
+
+    let financements: FinancementResume[] | undefined;
+    let financementCourant: FinancementResume | null | undefined;
+    let financementsTronques: boolean | undefined;
+    if (roleVoitFinancement(role)) {
+      const financementsLignes = await listerFinancementsDossier(tx, ctx, ligne.id);
+      const financementCourantLigne = selectionnerFinancementCourant(financementsLignes);
+      const financementsAssembles: FinancementResume[] = [];
+      let courant: FinancementResume | null = null;
+      for (const f of financementsLignes) {
+        const organisme = f.organismeId
+          ? await versClientResume(tx, ctx, await chargerClientLigne(tx, ctx, f.organismeId))
+          : null;
+        const resume = versFinancementResume(f, organisme, role);
+        financementsAssembles.push(resume);
+        if (financementCourantLigne && f.id === financementCourantLigne.id) courant = resume;
+      }
+      financements = financementsAssembles;
+      financementCourant = courant;
+      // Contrat : « borné par SEUIL_FINANCEMENTS_EMBARQUES comme filet plutôt que par nécessité
+      // réelle » (un garage ne réessaie pas dix organismes) — jamais tronqué en pratique.
+      financementsTronques = false;
     }
 
     const documentsBrut = await listerDocumentsDossierBrut(tx, ctx, ligne.id);
@@ -971,9 +1006,7 @@ export class ServiceDossierVente {
       reprise: repriseResume,
       financement: financementCourant,
       financements,
-      // Contrat : « borné par SEUIL_FINANCEMENTS_EMBARQUES comme filet plutôt que par nécessité
-      // réelle » (un garage ne réessaie pas dix organismes) — jamais tronqué en pratique.
-      financementsTronques: false,
+      financementsTronques,
       documents,
       documentsTronques,
       documentsRequis,

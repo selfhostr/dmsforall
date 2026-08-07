@@ -116,10 +116,24 @@ export interface LigneSuiviVente {
   /** `null` tant qu'aucun véhicule n'est associé (`RV-30`, dossier encore en `prospection`) — un
    *  dossier peut apparaître ici via un financement pré-approuvé avant le choix du véhicule. */
   readonly vehicule: VehiculeSuiviVente | null;
-  /** Le financement COURANT du dossier — même dérivation que `ReponseDossierVente.financement`
-   *  (`selectionnerFinancementCourant`), restreinte aux types `credit`/`leasing` (un `comptant`
-   *  n'a rien à suivre, RV-44). `null` si le dossier n'a aucun financement `credit`/`leasing`. */
-  readonly financement: SuiviFinancement | null;
+  /**
+   * Le financement COURANT du dossier — même dérivation que `ReponseDossierVente.financement`
+   * (`selectionnerFinancementCourant`), restreinte aux types `credit`/`leasing` (un `comptant`
+   * n'a rien à suivre, RV-44). `null` = pas de financement `credit`/`leasing` sur ce dossier, POUR
+   * UN RÔLE AUTORISÉ.
+   *
+   * CHAMP ABSENT (clé manquante, PAS `null`) = le rôle appelant n'a pas `ventes.financement.lire`
+   * (FAILLE CORRIGÉE, audit sécurité — même défaut et même doctrine de correction que
+   * `contrats/ventes/dossier-vente.ts::ReponseDossierVente.financement` : ce champ était rendu à
+   * tout rôle détenant `ventes.dossier.lire` sans jamais vérifier `ventes.financement.lire`, et
+   * exposait même `dureeMois`/`echeanceLe` — l'omission RF-116 sur ces deux derniers reposait sur
+   * `roleVoitLesMontants`, qui vaut VRAI pour `chef_atelier` bien qu'il n'ait pas
+   * `ventes.financement.lire`). Omission COMPLÈTE de l'entité, pas seulement de son détail
+   * monétaire — la garde RF-116 (`dureeMois`/`echeanceLe` omis pour qui n'a pas
+   * `roleVoitLesMontants`) reste appliquée EN PLUS, à l'intérieur de l'objet, pour un rôle qui voit
+   * l'entité mais pas ses montants.
+   */
+  readonly financement?: SuiviFinancement | null;
   /** `null` si le véhicule associé n'a pas de `garantieDebut` renseigné (ou aucun véhicule
    *  associé). */
   readonly garantie: SuiviGarantie | null;

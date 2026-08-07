@@ -153,6 +153,16 @@
       "motifRequis": "Der Grund ist erforderlich",
       "motifPlaceholder": "Grund für Stornierung",
       "confirmer": "Stornierung bestätigen"
+    },
+    "champs": {
+      "referenceTexte": "Referenz"
+    },
+    "groupees": {
+      "colonneSelection": "Auswahl",
+      "selectionnerLigne": "{designation} auswählen",
+      "validerTitre": "{count, plural, one {# Position freigeben} other {# Positionen freigeben}}",
+      "refuserTitre": "{count, plural, one {# Position ablehnen} other {# Positionen ablehnen}}",
+      "annulerTitre": "{count, plural, one {# Position stornieren} other {# Positionen stornieren}}"
     }
   },
   "demandes": {

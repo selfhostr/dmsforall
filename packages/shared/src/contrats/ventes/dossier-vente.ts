@@ -109,17 +109,42 @@ export interface ReponseDossierVente {
   /** `RV-36` : conducteur attitré, distinct de l'acheteur pour un véhicule de fonction. `null` =
    *  le conducteur est l'acheteur (cas normal, immense majorité des dossiers). */
   readonly clientConducteur: ClientResume | null;
-  /** `null` = pas de reprise sur ce dossier (`RV-25`, composante optionnelle). Fiche complète via
-   *  `GET /dossiers-vente/{id}/reprise`, même patron que `vehicule-stock.ts`. */
-  readonly reprise: RepriseResume | null;
-  /** Le financement COURANT — voir `financement.ts::FinancementResume`. `null` UNIQUEMENT en
-   *  `prospection` avant toute proposition de financement ; dès `engage`, `RV-32`/`RV-33` supposent
-   *  un mode de paiement choisi (même `comptant`, qui crée un financement `confirme` d'emblée). */
-  readonly financement: FinancementResume | null;
+  /**
+   * `null` = pas de reprise sur ce dossier, POUR UN RÔLE AUTORISÉ (`RV-25`, composante optionnelle).
+   * Fiche complète via `GET /dossiers-vente/{id}/reprise`, même patron que `vehicule-stock.ts`.
+   *
+   * CHAMP ABSENT (clé manquante de la charge utile, PAS `null`) = le rôle appelant n'a pas
+   * `ventes.reprise.lire` — omission de l'ENTITÉ ENTIÈRE, pas seulement de ses montants (FAILLE
+   * CORRIGÉE, audit sécurité) : `GET /dossiers-vente/{id}` ne vérifiait QUE `ventes.dossier.lire` et
+   * exposait TOUJOURS `valeurNegocieeCentimes`/`detteFinancementResiduelleCentimes`/`motifRefus`,
+   * quel que soit le rôle — un `chef_atelier` (qui détient `ventes.dossier.lire` mais explicitement
+   * PAS `ventes.reprise.lire`, voir `auth/matrice-droits.ts::DROITS_VENTES_PAR_ROLE.chef_atelier`)
+   * recevait ces montants dans le corps JSON, simplement non affichés côté écran. `null` et absence
+   * NE DOIVENT JAMAIS être confondus côté client : `null` est un FAIT métier (« pas de reprise »),
+   * l'absence est un MASQUAGE (« vous n'avez pas le droit de savoir s'il y en a une »).
+   */
+  readonly reprise?: RepriseResume | null;
+  /**
+   * Le financement COURANT — voir `financement.ts::FinancementResume`. `null` UNIQUEMENT en
+   * `prospection` avant toute proposition de financement, POUR UN RÔLE AUTORISÉ ; dès `engage`,
+   * `RV-32`/`RV-33` supposent un mode de paiement choisi (même `comptant`, qui crée un financement
+   * `confirme` d'emblée).
+   *
+   * CHAMP ABSENT (PAS `null`) = le rôle appelant n'a pas `ventes.financement.lire` — même doctrine
+   * d'omission complète que `reprise` ci-dessus (FAILLE CORRIGÉE, audit sécurité, même défaut :
+   * `montantFinanceCentimes`/`tauxInteretPourmille` exposés à un `chef_atelier` sans
+   * `ventes.financement.lire`). Distinct de l'omission `RF-116` déjà posée sur les cinq champs
+   * monétaires internes de `FinancementResume` (`roleVoitLesMontants`) : les deux gates sont
+   * COMPLÉMENTAIRES, la seconde ne dispense jamais de la première.
+   */
+  readonly financement?: FinancementResume | null;
   /** Historique COMPLET des tentatives de financement (`CV-03`) — voir la note de doctrine dans
-   *  `financement.ts` sur l'absence de pagination par curseur ici. */
-  readonly financements: readonly FinancementResume[];
-  readonly financementsTronques: boolean;
+   *  `financement.ts` sur l'absence de pagination par curseur ici. ABSENT (même doctrine que
+   *  `financement` ci-dessus) si le rôle appelant n'a pas `ventes.financement.lire`. */
+  readonly financements?: readonly FinancementResume[];
+  /** ABSENT dans les mêmes conditions que `financements` — un indicateur de troncature sur une
+   *  collection elle-même masquée n'a aucun sens à exposer. */
+  readonly financementsTronques?: boolean;
   /** Documents de la chaîne facturation liés à ce dossier (`dossierVenteId`, `MD-70`) — voir GAP
    *  CROISÉ SIGNALÉ en tête de fichier pour l'alternative paginée. */
   readonly documents: readonly DocumentVenteResume[];

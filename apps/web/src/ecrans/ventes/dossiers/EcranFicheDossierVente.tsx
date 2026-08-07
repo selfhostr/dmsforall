@@ -106,9 +106,9 @@ export function EcranFicheDossierVente() {
 
       <CarteFinancement
         dossierVenteId={dossier.id}
-        financement={dossier.financement}
-        financements={dossier.financements}
-        financementsTronques={dossier.financementsTronques}
+        financement={dossier.financement ?? null}
+        financements={dossier.financements ?? []}
+        financementsTronques={dossier.financementsTronques ?? false}
         statutDossierVente={dossier.statut}
         role={role}
         onMutationReussie={() => void requete.refetch()}

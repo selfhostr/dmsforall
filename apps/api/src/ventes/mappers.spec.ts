@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import type { RoleUtilisateur } from '@dfa/shared';
+import type { ClientResume, RepriseResume, RoleUtilisateur } from '@dfa/shared';
 
-import type { LigneFinancementVente } from '../db/schema';
+import type { LigneDossierVente, LigneFinancementVente } from '../db/schema';
 
 import {
   calculerActionsDisponiblesVehiculeStock,
   calculerEcartRepriseVehicule,
   calculerJoursStock,
+  roleVoitFinancement,
+  roleVoitReprise,
+  versDossierVenteResponse,
   versFinancementResponse,
   versFinancementResume,
+  type EntreeMapperDossierVente,
 } from './mappers';
 
 /**
@@ -172,5 +176,151 @@ describe('versFinancementResume — même doctrine d’omission que versFinancem
     const resume = versFinancementResume(ligneFinancementFixture(), null, 'technicien');
     expect('montantFinanceCentimes' in resume).toBe(false);
     expect('mensualiteCentimes' in resume).toBe(false);
+  });
+});
+
+/**
+ * FAILLE CORRIGÉE (audit sécurité) : `GET /dossiers-vente/{id}` n'était protégé QUE par
+ * `ventes.dossier.lire` et embarquait TOUJOURS `reprise`/`financement(s)` en entier, sans jamais
+ * vérifier `ventes.reprise.lire`/`ventes.financement.lire` — un `chef_atelier` (qui détient le
+ * premier droit mais explicitement PAS les deux seconds, `auth/matrice-droits.ts::
+ * DROITS_VENTES_PAR_ROLE.chef_atelier`) recevait `valeurNegocieeCentimes`,
+ * `detteFinancementResiduelleCentimes`, `motifRefus`, `montantFinanceCentimes`,
+ * `tauxInteretPourmille` en clair dans le corps JSON — masqué seulement côté écran. Ces tests
+ * prouvent : (1) `roleVoitReprise`/`roleVoitFinancement` lisent bien `MATRICE_DROITS`, la SEULE
+ * source de vérité de l'autorisation ; (2) `versDossierVenteResponse` OMET les clés
+ * `reprise`/`financement`/`financements`/`financementsTronques` (pas `null` — absentes de l'objet)
+ * quand l'appelant (`ServiceDossierVente.assembler`) lui passe `undefined`, et les expose telles
+ * quelles sinon.
+ */
+describe('roleVoitReprise / roleVoitFinancement — lisent MATRICE_DROITS, pas roleVoitLesMontants', () => {
+  it.each<RoleUtilisateur>(['direction', 'comptable', 'vendeur', 'receptionnaire'])(
+    'rôle %s : détient ventes.reprise.lire ET ventes.financement.lire',
+    (role) => {
+      expect(roleVoitReprise(role)).toBe(true);
+      expect(roleVoitFinancement(role)).toBe(true);
+    },
+  );
+
+  it('chef_atelier : détient ventes.dossier.lire mais NI ventes.reprise.lire NI ventes.financement.lire — le cas exact de la faille', () => {
+    expect(roleVoitReprise('chef_atelier')).toBe(false);
+    expect(roleVoitFinancement('chef_atelier')).toBe(false);
+  });
+
+  it.each<RoleUtilisateur>(['technicien', 'magasinier', 'admin', 'poste_atelier'])(
+    'rôle %s : ni l’un ni l’autre (aucun droit ventes.* pour ce domaine)',
+    (role) => {
+      expect(roleVoitReprise(role)).toBe(false);
+      expect(roleVoitFinancement(role)).toBe(false);
+    },
+  );
+});
+
+const CLIENT_RESUME_FIXTURE: ClientResume = {
+  id: 'client-acheteur-1',
+  type: 'particulier',
+  nomAffiche: 'Jean Dupont',
+  telephone: null,
+  email: null,
+  bloque: false,
+} as unknown as ClientResume;
+
+const REPRISE_RESUME_FIXTURE: RepriseResume = {
+  id: 'reprise-1',
+  vehiculeRepris: { id: 'veh-repris-1' } as never,
+  statut: 'negociee',
+  valeurEstimeeCentimes: 800_000,
+  valeurNegocieeCentimes: 850_000,
+  ecartRepriseVehiculeCentimes: 50_000,
+};
+
+function dossierVenteLigneFixture(): LigneDossierVente {
+  return {
+    id: 'dossier-1',
+    tenantId: 'tid-1',
+    siteId: 'site-1',
+    statut: 'engage',
+    vehiculeId: null,
+    clientAcheteurId: 'client-acheteur-1',
+    clientFactureId: null,
+    clientConducteurId: null,
+    dateLivraisonEstimee: null,
+    dateLivraisonEffective: null,
+    identitePieceType: null,
+    identiteVerifieeLe: null,
+    engageLe: new Date('2026-07-20T09:00:00.000Z'),
+    enPreparationLe: null,
+    pretALivrerLe: null,
+    livreLe: null,
+    closLe: null,
+    annuleLe: null,
+    abandonneLe: null,
+    motifCloture: null,
+    version: 2,
+    creeLe: new Date('2026-07-15T08:00:00.000Z'),
+    modifieLe: new Date('2026-07-20T09:00:00.000Z'),
+  } as LigneDossierVente;
+}
+
+/** Entrée minimale, `reprise`/`financement(s)` volontairement `undefined` par défaut — c'est ce que
+ *  `ServiceDossierVente.assembler` transmet désormais pour un rôle sans le droit correspondant. */
+function entreeMapperFixture(
+  champs: Partial<EntreeMapperDossierVente> = {},
+): EntreeMapperDossierVente {
+  return {
+    ligne: dossierVenteLigneFixture(),
+    vehicule: null,
+    typeVehicule: null,
+    clientAcheteur: CLIENT_RESUME_FIXTURE,
+    clientFacture: CLIENT_RESUME_FIXTURE,
+    clientConducteur: null,
+    reprise: undefined,
+    financement: undefined,
+    financements: undefined,
+    financementsTronques: undefined,
+    documents: [],
+    documentsTronques: false,
+    documentsRequis: [],
+    role: 'chef_atelier',
+    modifiePar: null,
+    ...champs,
+  };
+}
+
+describe('versDossierVenteResponse — omission complète de reprise/financement(s) par rôle (FAILLE CORRIGÉE)', () => {
+  it('entrée `undefined` (rôle sans le droit) : les quatre clés sont ABSENTES de la réponse, pas `null`', () => {
+    const reponse = versDossierVenteResponse(entreeMapperFixture());
+    expect('reprise' in reponse).toBe(false);
+    expect('financement' in reponse).toBe(false);
+    expect('financements' in reponse).toBe(false);
+    expect('financementsTronques' in reponse).toBe(false);
+  });
+
+  it('entrée renseignée (rôle autorisé) : les quatre clés sont PRÉSENTES, avec leurs valeurs exactes', () => {
+    const reponse = versDossierVenteResponse(
+      entreeMapperFixture({
+        role: 'direction',
+        reprise: REPRISE_RESUME_FIXTURE,
+        financement: null,
+        financements: [],
+        financementsTronques: false,
+      }),
+    );
+    expect('reprise' in reponse).toBe(true);
+    expect(reponse.reprise).toEqual(REPRISE_RESUME_FIXTURE);
+    expect('financement' in reponse).toBe(true);
+    expect(reponse.financement).toBeNull();
+    expect('financements' in reponse).toBe(true);
+    expect(reponse.financements).toEqual([]);
+    expect('financementsTronques' in reponse).toBe(true);
+    expect(reponse.financementsTronques).toBe(false);
+  });
+
+  it('reprise `null` pour un rôle autorisé (pas de reprise sur ce dossier) : clé PRÉSENTE à `null`, jamais confondue avec une absence', () => {
+    const reponse = versDossierVenteResponse(
+      entreeMapperFixture({ role: 'direction', reprise: null }),
+    );
+    expect('reprise' in reponse).toBe(true);
+    expect(reponse.reprise).toBeNull();
   });
 });
