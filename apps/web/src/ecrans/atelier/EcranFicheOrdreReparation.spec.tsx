@@ -206,7 +206,10 @@ describe('EcranFicheOrdreReparation', () => {
       installerHandler(or);
       rendre();
 
-      await screen.findByText('OR-000123');
+      // Lot C (`docs/plan-refonte-navigation.md`) — le fil d'Ariane répète désormais `or.numero`
+      // (page courante) en plus du titre de l'en-tête : deux occurrences légitimes, `findAllByText`
+      // plutôt que `findByText` (qui exigerait une correspondance unique et échouerait ici).
+      await screen.findAllByText('OR-000123');
       // Le libellé « Plafond » lui-même n'apparaît pas : le champ est absent, pas vide.
       expect(screen.queryByText('Plafond')).not.toBeInTheDocument();
       expect(screen.queryByText('Totaux')).not.toBeInTheDocument();
@@ -422,7 +425,10 @@ describe('EcranFicheOrdreReparation', () => {
       installerHandler(construireOr());
       rendre();
 
-      await screen.findByText('OR-000123');
+      // Lot C (`docs/plan-refonte-navigation.md`) — le fil d'Ariane répète désormais `or.numero`
+      // (page courante) en plus du titre de l'en-tête : deux occurrences légitimes, `findAllByText`
+      // plutôt que `findByText` (qui exigerait une correspondance unique et échouerait ici).
+      await screen.findAllByText('OR-000123');
       expect(screen.queryByRole('button', { name: 'Ajouter une ligne' })).not.toBeInTheDocument();
     });
 

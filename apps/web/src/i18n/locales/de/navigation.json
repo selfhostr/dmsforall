@@ -44,6 +44,12 @@
   "menu": {
     "ouvrir": "Menü öffnen"
   },
+  "filAriane": {
+    "aria": "Navigationspfad"
+  },
+  "actionPrimaire": {
+    "aria": "{action} (Hauptaktion)"
+  },
   "entete": {
     "tousLesSites": "Alle Werkstätten"
   },

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import type {
   LocalisationVehicule,
@@ -10,10 +10,13 @@ import type {
 } from '@dfa/shared';
 
 import { requeteApi } from '@/api/client';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
+import { ActionPrimaire } from '@/composants/layout/ActionPrimaire';
+import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane';
 import { formaterDateHeure, formaterMontant, formaterKilometrage } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
@@ -42,10 +45,44 @@ interface Props {
  * et sont simplement absents (jamais `0.00`) pour un rôle sans droit aux montants.
  */
 export function EnTeteOrdreReparation({ or }: Props) {
-  const { t } = useTranslation(['or', 'commun']);
+  const { t } = useTranslation(['or', 'commun', 'navigation']);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
+
+  // Lot C (`docs/plan-refonte-navigation.md`) — fil d'Ariane contextuel « qui et quoi » (client ›
+  // véhicule › OR), à la place du fil de menu générique. Mêmes cibles que les blocs identité
+  // cliquables ci-dessous (Lot B) : `chemins.clients.detail`/`chemins.vehicules.detail`.
+  const plaqueTexte = or.vehicule.plaque
+    ? `${or.vehicule.canton ? `${or.vehicule.canton} ` : ''}${or.vehicule.plaque}`
+    : null;
+  const libelleVehicule = plaqueTexte
+    ? `${plaqueTexte} · ${or.vehicule.designation}`
+    : or.vehicule.designation;
+  const segmentsFilAriane: readonly SegmentFilAriane[] = [
+    {
+      cle: 'client',
+      libelle: or.client.nomAffiche,
+      href: chemins.clients.detail(or.client.id, site),
+    },
+    {
+      cle: 'vehicule',
+      libelle: libelleVehicule,
+      href: chemins.vehicules.detail(or.vehicule.id, site),
+    },
+  ];
+
+  // Lot C — action primaire, elle SUIT l'état plutôt que de le redeviner : `facturer` est déjà le
+  // signal serveur (`or.actionsDisponibles`, même source que `PanneauActionsOr`, non dupliquée
+  // ici). SIGNALÉ (hors périmètre de ce lot) : l'autre moitié de l'exemple du plan, « Ajouter une
+  // ligne » tant que l'OR est en cours, n'est PAS implémentée ici — son seul déclencheur
+  // (`DialogueAjoutLigneOr`) vit dans `EcranFicheOrdreReparation.tsx` (fiche hors en-tête, hors
+  // périmètre) et n'expose aucun moyen de lui donner un libellé accessible distinct depuis
+  // l'extérieur ; le réutiliser tel quel créerait un second bouton strictement identique
+  // (même nom accessible « Ajouter une ligne ») et casserait les requêtes `findByRole` à
+  // correspondance unique déjà vertes dans `EcranFicheOrdreReparation.spec.tsx`. Un futur lot qui
+  // toucherait ce fichier pourrait déplacer ce déclencheur ici plutôt que de le dupliquer.
+  const peutFacturer = or.actionsDisponibles.includes('facturer');
 
   // Lot B (`docs/plan-refonte-navigation.md`) — « l'OR précédent du même véhicule ». Requête
   // construite ICI plutôt que via `hooks/atelier/ordres-reparation.api.ts::listerOrdresReparation`
@@ -85,11 +122,32 @@ export function EnTeteOrdreReparation({ or }: Props) {
   return (
     <Card>
       <CardContent className="flex flex-col gap-4 pt-6">
+        <FilAriane segments={segmentsFilAriane} pageCourante={or.numero} />
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <span className="texte-titre-section font-semibold text-foreground">{or.numero}</span>
             <BadgeStatutOr etat={or.etatAffiche} />
           </div>
+          {peutFacturer ? (
+            <ActionPrimaire>
+              <Button asChild variant="default">
+                <Link
+                  to={`/ordres-reparation/${or.id}/facturer`}
+                  // Distinct de `PanneauActionsOr` (même libellé visible « Facturer », ligne
+                  // ci-dessous — WCAG 2.5.3 : le nom accessible CONTIENT le texte visible) : deux
+                  // liens vers la même destination coexistent sur l'écran (celui-ci, mis en
+                  // avant ; l'autre, dans la liste complète des actions), un nom accessible
+                  // distinct évite toute ambiguïté au clavier/lecteur d'écran.
+                  aria-label={t('navigation:actionPrimaire.aria', {
+                    action: t('or:transitions.facturer'),
+                  })}
+                >
+                  {t('or:transitions.facturer')}
+                </Link>
+              </Button>
+            </ActionPrimaire>
+          ) : null}
         </div>
 
         <IdentiteVehicule

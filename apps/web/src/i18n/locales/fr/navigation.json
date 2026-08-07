@@ -44,6 +44,12 @@
   "menu": {
     "ouvrir": "Ouvrir le menu"
   },
+  "filAriane": {
+    "aria": "Fil d'Ariane"
+  },
+  "actionPrimaire": {
+    "aria": "{action} (action principale)"
+  },
   "entete": {
     "tousLesSites": "Tous les sites"
   },
