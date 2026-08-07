@@ -214,7 +214,8 @@ describe('routeur — protection par défaut', () => {
     // Le numéro de l'OR ne peut s'afficher que si la requête a abouti : la preuve que l'écran n'est
     // pas resté bloqué en chargement (le défaut serait invisible autrement — pas d'erreur, pas de
     // message, juste un squelette qui ne finit jamais).
-    expect(await screen.findByText(OR_TEST.numero)).toBeInTheDocument();
+    // `findAllByText` : le fil d'Ariane du Lot C affiche maintenant le numéro deux fois (fil + contenu).
+    expect((await screen.findAllByText(OR_TEST.numero)).length).toBeGreaterThan(0);
     expect(idRecu).toBe('or-1');
   });
 
@@ -512,7 +513,8 @@ describe('routeur — /pieces/* refuse admin (protection RÉELLE, RF-115), ouvre
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/pieces/articles/art-1' });
 
-    expect(await screen.findByText('Plaquettes de frein avant')).toBeInTheDocument();
+    // `findAllByText` : le fil d'Ariane du Lot C affiche maintenant la désignation deux fois (fil + contenu).
+    expect((await screen.findAllByText('Plaquettes de frein avant')).length).toBeGreaterThan(0);
   });
 });
 
