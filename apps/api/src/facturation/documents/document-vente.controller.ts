@@ -105,7 +105,9 @@ export class DocumentVenteController {
   @ApiOperation({
     summary: 'Liste des documents de vente du tenant courant.',
     description:
-      'SOUS-ENSEMBLE des filtres du contrat (`siteId`, `typeDocument`, `statut`, `clientId`, `vehiculeId`) — voir `ServiceDocumentsVente.lister`.',
+      'SOUS-ENSEMBLE des filtres du contrat (`siteId`, `typeDocument`, `statut`, `clientId`, `vehiculeId`, `enRetard`, `relanceNiveau`) — voir `ServiceDocumentsVente.lister`. ' +
+      '`enRetard=true` : facture `emis`, échéance dépassée, solde encore dû (même règle que `ReponseDocumentVente.enRetard`, une facture annulée par avoir en est exclue). ' +
+      '`relanceNiveau` : égalité stricte sur le palier de relance déjà atteint.',
   })
   @ApiOkResponse({ type: PageDocumentVenteDto })
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')

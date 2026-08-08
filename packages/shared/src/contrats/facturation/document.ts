@@ -340,6 +340,40 @@ export const schemaFiltresDocumentsVente = z.object({
   /** Bornes INCLUSES, convention `xDu` / `xAu` de toute l'API. */
   dateDocumentDu: schemaDateJour.optional(),
   dateDocumentAu: schemaDateJour.optional(),
+  /**
+   * `true` ⟺ MÊME définition que `ReponseDocumentVente.enRetard` ci-dessus (`calculerRetardDocument`,
+   * `facturation/documents/echeance.ts`, redit ici pour qu'un lecteur du contrat n'ait pas à sauter de
+   * fichier) : une FACTURE `statut = 'emis'` dont `dateEcheance` est strictement dépassée ET dont
+   * `soldeCentimes > 0`. Un `devis`/`bon_commande`/`avoir` n'a jamais `dateEcheance` renseignée, donc
+   * n'est jamais retenu. Une facture `statut = 'annule_par_avoir'` n'est PAS retenue même si `dateEcheance`
+   * (figée, jamais nettoyée à l'annulation) et `soldeCentimes` (jamais recrédité automatiquement par
+   * l'annulation — RF-32 ne touche ni `statutReglement` ni `soldeCentimes`) restent, en base, ceux
+   * d'avant l'annulation : même garde que `relances/regles-planification.ts::factureEligibleRelance`,
+   * qui exige `statut === 'emis'` pour la même raison (« un dossier annulé ne doit pas rester
+   * indéfiniment éligible pour un montant qui n'est plus dû »). `false`/absent : aucun filtre de
+   * retard n'est appliqué (même convention que les autres booléens de filtre de cette API, voir
+   * `nonImputeUniquement` de `facturation/paiement.ts` — seul `true` a un effet, `false` ne exclut
+   * PAS les factures en retard).
+   */
+  enRetard: z.coerce.boolean().optional(),
+  /**
+   * Filtre à ÉGALITÉ STRICTE sur `document_vente.relance_niveau` (colonne réelle, `smallint not null
+   * default 0`, migration `0010_facturation.sql` — déjà exposée en lecture par
+   * `ReponseDocumentVente.relanceNiveau`, incrémentée par `relances/service-relances-facture.ts` via
+   * `greatest(relance_niveau, palier)` à CHAQUE envoi réussi). `relanceNiveau: 0` sélectionne les
+   * documents jamais relancés (y compris hors de tout retard) ; une valeur `> 0` sélectionne ceux
+   * ayant atteint EXACTEMENT ce palier.
+   *
+   * AMBIGUÏTÉ SIGNALÉE (non tranchée ici, hors périmètre de cet agent) : l'onglet écran « À relancer »
+   * n'est pas forcément une égalité stricte sur un palier — il pourrait vouloir « en retard ET
+   * `relanceNiveau` en dessous du plafond configuré par le tenant » (`regle_relance.delaisJours`,
+   * variable par tenant, non lisible depuis un schéma de filtre). Ce champ expose la seule primitive
+   * qui repose sur une colonne réelle (`relance_niveau`) ; composer `enRetard=true&relanceNiveau=0`
+   * couvre déjà le cas usuel « en retard, jamais relancée » mais PAS « en retard, relancée une fois,
+   * palier suivant pas encore atteint » — à trancher côté expert-metier/expert-api avant de câbler
+   * l'onglet, plutôt que d'inventer ici une sémantique de seuil.
+   */
+  relanceNiveau: z.coerce.number().int().min(0).optional(),
   /** Porte sur le numéro affiché et la désignation client figée. */
   q: z.string().trim().min(1).max(120).optional(),
   tri: z.enum(TRIS_DOCUMENTS_VENTE).default(TRI_DEFAUT_DOCUMENTS_VENTE),
