@@ -563,12 +563,22 @@ export const ENTITES_A_TRANSITIONS = [
 ] as const;
 export type EntiteATransitions = (typeof ENTITES_A_TRANSITIONS)[number];
 
-/** Types de ressource renvoyés par `GET /recherche` (§7.5). Extensible. */
+/** Types de ressource renvoyés par `GET /recherche` (§7.5). Extensible.
+ *
+ * `article`/`fournisseur`/`depot_pneu` ajoutés en fin de liste (compatibilité ascendante — ajout
+ * pur, les quatre natures d'origine restent en tête inchangées) pour couvrir les besoins du
+ * magasinier (pièces) et du hangar à pneus, réclamés après la livraison initiale de `GET
+ * /recherche`. Voir `apps/api/src/recherche/service-recherche.ts` pour la mécanique de recherche
+ * et le portillon de droit propre à chacune (`pieces.article.lire`, `pieces.fournisseur.lire`,
+ * `pneus.depot.lire`). */
 export const TYPES_RESULTAT_RECHERCHE = [
   'vehicule',
   'client',
   'ordre_reparation',
   'document_vente',
+  'article',
+  'fournisseur',
+  'depot_pneu',
 ] as const;
 export type TypeResultatRecherche = (typeof TYPES_RESULTAT_RECHERCHE)[number];
 

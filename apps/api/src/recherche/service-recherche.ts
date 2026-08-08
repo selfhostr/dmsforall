@@ -5,7 +5,11 @@ import {
   type ParametresRecherche,
   type ReponseRecherche,
   type ResultatRecherche,
+  type SaisonPneu,
+  type StatutArticle,
+  type StatutDepotPneus,
   type StatutDocumentVente,
+  type StatutFournisseur,
   type StatutOrdreReparation,
   type TypeClient,
   type TypeDocumentVente,
@@ -101,6 +105,22 @@ import {
  * documente déjà). Portillon supplémentaire posé sur `facturation.document.lire`
  * (`MATRICE_DROITS`, lu ici en lecture seule) : accordé à TOUS les rôles aujourd'hui donc no-op
  * fonctionnel, posé par cohérence défensive si ce droit venait à se restreindre.
+ *
+ * ARTICLES / FOURNISSEURS / DÉPÔTS DE PNEUS — ajoutés après coup (réclamés par le magasinier et le
+ * hangar à pneus), MÊME mécanique que `document_vente` : `normaliser_recherche()`, portillon de
+ * droit supplémentaire ADDITIONNEL à `recherche.executer` (déjà vérifié au niveau route pour les
+ * SEPT natures), lu en lecture seule depuis `MATRICE_DROITS` :
+ *   - `article`     -> `pieces.article.lire`     (voir `chercherArticles`)
+ *   - `fournisseur` -> `pieces.fournisseur.lire`  (voir `chercherFournisseurs`)
+ *   - `depot_pneu`  -> `pneus.depot.lire`         (voir `chercherDepotsPneus`)
+ * Un rôle sans le droit correspondant ne voit JAMAIS ce type de résultat, même si `types` le
+ * demande explicitement dans la requête — même garantie que `document_vente`/`facturation.document.lire`.
+ *
+ * Aucun index trigram GIN n'existe encore sur `article` (designation/reference_principale),
+ * `fournisseur` (nom) ni `depot_pneus` (code_case) : seuls des btree classiques existent. MÊME
+ * traitement que `document_vente` ci-dessus — implémenté quand même via `normaliser_recherche()`
+ * par cohérence du moteur (Bitmap Heap Scan en attendant), index signalés au plus près du code de
+ * chaque fonction, PAS posés ici (`apps/api/src/db/` hors périmètre `recherche/`).
  */
 
 /** Miroir de `vehicules/vehicules.constants.ts::STATUTS_OR_OUVERTS` (module voisin, L1-09, hors
@@ -642,6 +662,336 @@ async function chercherDocuments(
 }
 
 // =================================================================================================
+// Articles — désignation et référence principale (catalogue pièces)
+// =================================================================================================
+
+type LigneArticleMatchBrute = {
+  readonly id: string;
+  readonly designation: string;
+  readonly reference_principale: string;
+  readonly numero_article: string | null;
+  readonly statut: StatutArticle;
+  readonly champ: 'designation' | 'reference';
+  readonly valeur_matchee: string;
+  readonly score: number;
+};
+
+/**
+ * Réclamé par le magasinier — cherche sur `designation` OU `reference_principale`, par fragment
+ * (même patron de CASE que `chercherClients` pour choisir entre deux champs candidats : le
+ * premier qui matche donne `champ`/`valeur_matchee`/`score`).
+ *
+ * AUCUNE clé monétaire dans `resume` (ni `prix_achat_centimes` ni `prix_vente_ttc_centimes`,
+ * `article.ts:62-63`) — même posture RF-116 que `chercherDocuments`.
+ *
+ * INDEX MANQUANT, signalé — PAS posé ici (`apps/api/src/db/` hors périmètre) : aucun index
+ * trigram GIN n'exploite `normaliser_recherche(designation)` ni
+ * `normaliser_recherche(reference_principale)` sur `article` (seuls `article_designation_idx` et
+ * `article_reference_principale_idx`, deux btree classiques, existent — migration 0022). Même
+ * situation que `document_vente` avant l'ajout de sa recherche par numéro (voir la note de tête de
+ * fichier) : implémenté quand même par cohérence du moteur, au prix d'un Bitmap Heap Scan en
+ * attendant l'index. Index proposés :
+ *   `create index article_recherche_designation_trgm_idx on public.article
+ *      using gin (tenant_id, normaliser_recherche(designation) gin_trgm_ops)`
+ *   `create index article_recherche_reference_trgm_idx on public.article
+ *      using gin (tenant_id, normaliser_recherche(reference_principale) gin_trgm_ops)`
+ *
+ * `a.statut <> 'desactive'` : un article désactivé est retiré du catalogue délibérément.
+ * `obsolete` reste cherchable (encore potentiellement en stock, légitimement recherché au
+ * comptoir) — INTERPRÉTATION signalée, pas une exigence explicite du contrat.
+ */
+async function chercherArticles(
+  tx: TransactionDfa,
+  tenantId: string,
+  q: string,
+  motif: string,
+  limiteInterne: number,
+): Promise<readonly ResultatRecherche[]> {
+  const resultat = await tx.execute<LigneArticleMatchBrute>(sql`
+    select
+      a.id                   as id,
+      a.designation          as designation,
+      a.reference_principale as reference_principale,
+      a.numero_article       as numero_article,
+      a.statut               as statut,
+      case
+        when public.normaliser_recherche(a.designation) like public.normaliser_recherche(${motif})
+        then 'designation' else 'reference'
+      end                    as champ,
+      case
+        when public.normaliser_recherche(a.designation) like public.normaliser_recherche(${motif})
+        then a.designation else a.reference_principale
+      end                    as valeur_matchee,
+      case
+        when public.normaliser_recherche(a.designation) like public.normaliser_recherche(${motif})
+        then public.similarity(
+               public.normaliser_recherche(a.designation),
+               public.normaliser_recherche(${q})
+             )
+        else public.similarity(
+               public.normaliser_recherche(a.reference_principale),
+               public.normaliser_recherche(${q})
+             )
+      end                    as score
+      from public.article a
+     where a.tenant_id = ${tenantId}
+       and a.statut <> 'desactive'
+       and (
+         public.normaliser_recherche(a.designation) like public.normaliser_recherche(${motif})
+         or public.normaliser_recherche(a.reference_principale) like public.normaliser_recherche(${motif})
+       )
+     order by score desc
+     limit ${limiteInterne}
+  `);
+
+  return resultat.rows.map((ligne): ResultatRecherche => {
+    const resume: Record<string, unknown> = {
+      designation: ligne.designation,
+      referencePrincipale: ligne.reference_principale,
+      statut: ligne.statut,
+    };
+    if (ligne.numero_article !== null) resume.numeroArticle = ligne.numero_article;
+
+    return {
+      type: 'article',
+      id: ligne.id,
+      score: ligne.score,
+      correspondance: { champ: ligne.champ, valeur: ligne.valeur_matchee, historique: false },
+      resume,
+    };
+  });
+}
+
+// =================================================================================================
+// Fournisseurs — nom
+// =================================================================================================
+
+type LigneFournisseurMatchBrute = {
+  readonly id: string;
+  readonly nom: string;
+  readonly statut: StatutFournisseur;
+  readonly score: number;
+};
+
+/**
+ * Réclamé par le magasinier — cherche sur `nom` par fragment.
+ *
+ * INDEX MANQUANT, signalé — PAS posé ici : aucun trigram GIN sur `fournisseur.nom` (seul
+ * `fournisseur_nom_idx`, btree classique, existe — migration 0022). Index proposé :
+ *   `create index fournisseur_recherche_trgm_idx on public.fournisseur
+ *      using gin (tenant_id, normaliser_recherche(nom) gin_trgm_ops)`
+ *
+ * `f.statut <> 'inactif'` : un fournisseur désactivé n'a plus vocation à apparaître dans une
+ * recherche comptoir active — même doctrine que `article`/`client` ci-dessus.
+ */
+async function chercherFournisseurs(
+  tx: TransactionDfa,
+  tenantId: string,
+  q: string,
+  motif: string,
+  limiteInterne: number,
+): Promise<readonly ResultatRecherche[]> {
+  const resultat = await tx.execute<LigneFournisseurMatchBrute>(sql`
+    select
+      f.id     as id,
+      f.nom    as nom,
+      f.statut as statut,
+      public.similarity(
+        public.normaliser_recherche(f.nom),
+        public.normaliser_recherche(${q})
+      )        as score
+      from public.fournisseur f
+     where f.tenant_id = ${tenantId}
+       and f.statut <> 'inactif'
+       and public.normaliser_recherche(f.nom) like public.normaliser_recherche(${motif})
+     order by score desc
+     limit ${limiteInterne}
+  `);
+
+  return resultat.rows.map((ligne): ResultatRecherche => ({
+    type: 'fournisseur',
+    id: ligne.id,
+    score: ligne.score,
+    correspondance: { champ: 'nom', valeur: ligne.nom, historique: false },
+    resume: { nom: ligne.nom, statut: ligne.statut },
+  }));
+}
+
+// =================================================================================================
+// Dépôts de pneus — plaque courante du véhicule, nom du détenteur courant, repère de rangement
+// =================================================================================================
+
+type LigneDepotPneusMatchBrute = {
+  readonly id: string;
+  readonly saison: SaisonPneu;
+  readonly statut: StatutDepotPneus;
+  readonly code_case: string | null;
+  readonly dimension: string | null;
+  readonly marque: string;
+  readonly modele: string;
+  readonly version: string | null;
+  readonly plaque_courante: string | null;
+  readonly detenteur_type: TypeClient | null;
+  readonly detenteur_nom: string | null;
+  readonly detenteur_prenom: string | null;
+  readonly detenteur_raison_sociale: string | null;
+  readonly champ: 'plaque' | 'nom' | 'code_case';
+  readonly valeur_matchee: string;
+  readonly score: number;
+};
+
+/**
+ * Réclamé par le hangar à pneus — cherche sur la plaque COURANTE du véhicule, OU le nom/raison
+ * sociale du détenteur COURANT, OU le repère de rangement (`code_case`), par fragment. Priorité
+ * plaque > nom > code_case dans le CASE (même idiome que `chercherClients`/`chercherArticles` :
+ * le premier candidat qui matche donne `champ`/`valeur_matchee`/`score`) — arbitraire mais stable,
+ * aucune hiérarchie n'étant imposée par le contrat.
+ *
+ * RPP-01 : `depot_pneus` ne porte AUCUN `client_id` direct — le détenteur courant se lit via
+ * `vehicule` -> `vehicule_detention` (`au is null`) -> `client`, EXACTEMENT la même jointure
+ * LATERAL que `enrichirVehicules` ci-dessus (réutilisée à l'identique, pas réinventée). La plaque
+ * courante se lit de la même façon via `vehicule_plaque` (`au is null`).
+ *
+ * INDEX MANQUANT, signalé — PAS posé ici : aucun trigram GIN sur `depot_pneus.code_case` (texte
+ * libre, RPP-07, aucun index aujourd'hui). La plaque et le nom du détenteur profitent déjà des
+ * index trigram posés pour `chercherVehicules`/`chercherClients` (migrations 0006/0007), traversés
+ * ici par jointure plutôt que dupliqués. Index proposé pour `code_case` :
+ *   `create index depot_pneus_recherche_code_case_trgm_idx on public.depot_pneus
+ *      using gin (tenant_id, normaliser_recherche(code_case) gin_trgm_ops)`
+ *
+ * `d.statut <> 'sorti'` — INTERPRÉTATION SIGNALÉE, pas une exigence explicite du contrat : un jeu
+ * `sorti` (rendu au client, vendu, mis au rebut — RPP-05, statut terminal) n'a plus vocation à
+ * apparaître dans une recherche comptoir active. Même doctrine que `v.statut = 'actif'` pour les
+ * véhicules (`enrichirVehicules` ci-dessus).
+ */
+async function chercherDepotsPneus(
+  tx: TransactionDfa,
+  tenantId: string,
+  q: string,
+  motif: string,
+  limiteInterne: number,
+): Promise<readonly ResultatRecherche[]> {
+  const resultat = await tx.execute<LigneDepotPneusMatchBrute>(sql`
+    select
+      d.id              as id,
+      d.saison          as saison,
+      d.statut          as statut,
+      d.code_case       as code_case,
+      d.dimension       as dimension,
+      v.marque          as marque,
+      v.modele          as modele,
+      v.version         as version,
+      vp.valeur         as plaque_courante,
+      cl.type           as detenteur_type,
+      cl.nom            as detenteur_nom,
+      cl.prenom         as detenteur_prenom,
+      cl.raison_sociale as detenteur_raison_sociale,
+      case
+        when vp.valeur is not null
+             and public.normaliser_recherche(vp.valeur) like public.normaliser_recherche(${motif})
+        then 'plaque'
+        when cl.id is not null
+             and public.normaliser_recherche(
+                   coalesce(cl.raison_sociale, cl.nom || ' ' || coalesce(cl.prenom, ''), '')
+                 ) like public.normaliser_recherche(${motif})
+        then 'nom'
+        else 'code_case'
+      end               as champ,
+      case
+        when vp.valeur is not null
+             and public.normaliser_recherche(vp.valeur) like public.normaliser_recherche(${motif})
+        then vp.valeur
+        when cl.id is not null
+             and public.normaliser_recherche(
+                   coalesce(cl.raison_sociale, cl.nom || ' ' || coalesce(cl.prenom, ''), '')
+                 ) like public.normaliser_recherche(${motif})
+        then coalesce(cl.raison_sociale, cl.nom || ' ' || coalesce(cl.prenom, ''))
+        else d.code_case
+      end               as valeur_matchee,
+      case
+        when vp.valeur is not null
+             and public.normaliser_recherche(vp.valeur) like public.normaliser_recherche(${motif})
+        then public.similarity(public.normaliser_recherche(vp.valeur), public.normaliser_recherche(${q}))
+        when cl.id is not null
+             and public.normaliser_recherche(
+                   coalesce(cl.raison_sociale, cl.nom || ' ' || coalesce(cl.prenom, ''), '')
+                 ) like public.normaliser_recherche(${motif})
+        then public.similarity(
+               public.normaliser_recherche(
+                 coalesce(cl.raison_sociale, cl.nom || ' ' || coalesce(cl.prenom, ''), '')
+               ),
+               public.normaliser_recherche(${q})
+             )
+        else public.similarity(
+               public.normaliser_recherche(coalesce(d.code_case, '')),
+               public.normaliser_recherche(${q})
+             )
+      end               as score
+      from public.depot_pneus d
+      join public.vehicule v on v.tenant_id = d.tenant_id and v.id = d.vehicule_id
+      left join lateral (
+        select valeur
+          from public.vehicule_plaque
+         where tenant_id = d.tenant_id and vehicule_id = d.vehicule_id and au is null
+         limit 1
+      ) vp on true
+      left join lateral (
+        select c.id, c.type, c.nom, c.prenom, c.raison_sociale
+          from public.vehicule_detention vd
+          join public.client c on c.tenant_id = vd.tenant_id and c.id = vd.client_id
+         where vd.tenant_id = d.tenant_id and vd.vehicule_id = d.vehicule_id and vd.au is null
+         limit 1
+      ) cl on true
+     where d.tenant_id = ${tenantId}
+       and d.statut <> 'sorti'
+       and (
+         (vp.valeur is not null
+           and public.normaliser_recherche(vp.valeur) like public.normaliser_recherche(${motif}))
+         or (cl.id is not null
+           and public.normaliser_recherche(
+                 coalesce(cl.raison_sociale, cl.nom || ' ' || coalesce(cl.prenom, ''), '')
+               ) like public.normaliser_recherche(${motif}))
+         or (d.code_case is not null
+           and public.normaliser_recherche(d.code_case) like public.normaliser_recherche(${motif}))
+       )
+     order by score desc
+     limit ${limiteInterne}
+  `);
+
+  return resultat.rows.map((ligne): ResultatRecherche => {
+    const resume: Record<string, unknown> = {
+      saison: ligne.saison,
+      statut: ligne.statut,
+      designationVehicule: designationVehicule({
+        marque: ligne.marque,
+        modele: ligne.modele,
+        version: ligne.version,
+      }),
+    };
+    if (ligne.dimension !== null) resume.dimension = ligne.dimension;
+    if (ligne.code_case !== null) resume.codeCase = ligne.code_case;
+    if (ligne.plaque_courante !== null) resume.plaque = ligne.plaque_courante;
+    if (ligne.detenteur_type !== null) {
+      const detenteurNom = nomAfficheClient({
+        type: ligne.detenteur_type,
+        nom: ligne.detenteur_nom,
+        prenom: ligne.detenteur_prenom,
+        raisonSociale: ligne.detenteur_raison_sociale,
+      });
+      if (detenteurNom) resume.detenteurNom = detenteurNom;
+    }
+
+    return {
+      type: 'depot_pneu',
+      id: ligne.id,
+      score: ligne.score,
+      correspondance: { champ: ligne.champ, valeur: ligne.valeur_matchee, historique: false },
+      resume,
+    };
+  });
+}
+
+// =================================================================================================
 // Service
 // =================================================================================================
 
@@ -670,32 +1020,48 @@ export class ServiceRecherche {
     const motif = motifFragment(q);
 
     // RF-116 : portillon supplémentaire, indépendant de `recherche.executer` (déjà vérifié par
-    // `GardeDroit` au niveau route, pour les QUATRE natures de résultat) — un rôle qui n'a pas
+    // `GardeDroit` au niveau route, pour les SEPT natures de résultat) — un rôle qui n'a pas
     // `facturation.document.lire` ne voit AUCUN résultat `document_vente`, pas seulement leurs
     // montants (qui n'apparaissent de toute façon jamais dans `resume`, voir `chercherDocuments`).
+    // Même patron pour `article`/`fournisseur`/`depot_pneu` : chacun a son propre portillon,
+    // indépendant des deux autres et de `recherche.executer` (voir la note de tête de fichier).
     // `MATRICE_DROITS` est lue ici, jamais modifiée (`apps/api/src/auth/` hors périmètre).
     const role = this.contexte.exigerPrincipal().role;
-    const peutVoirDocuments = (MATRICE_DROITS[role] ?? []).includes('facturation.document.lire');
+    const droitsRole = MATRICE_DROITS[role] ?? [];
+    const peutVoirDocuments = droitsRole.includes('facturation.document.lire');
+    const peutVoirArticles = droitsRole.includes('pieces.article.lire');
+    const peutVoirFournisseurs = droitsRole.includes('pieces.fournisseur.lire');
+    const peutVoirDepotsPneus = droitsRole.includes('pneus.depot.lire');
 
     return this.acces.enTenant(ctx, async (tx) => {
-      const [vehicules, clients, ordres, documents] = await Promise.all([
-        typesDemandes.has('vehicule')
-          ? chercherVehicules(tx, ctx.tenantId, motif, limite)
-          : Promise.resolve<ResultatVehicules>({
-              resultats: [],
-              plaqueInterchangeable: false,
-              vehiculeIdsGarantis: new Set<string>(),
-            }),
-        typesDemandes.has('client')
-          ? chercherClients(tx, ctx.tenantId, q, motif, limite)
-          : Promise.resolve<readonly ResultatRecherche[]>([]),
-        typesDemandes.has('ordre_reparation')
-          ? chercherOrdres(tx, ctx.tenantId, q, motif, limite)
-          : Promise.resolve<readonly ResultatRecherche[]>([]),
-        typesDemandes.has('document_vente') && peutVoirDocuments
-          ? chercherDocuments(tx, ctx.tenantId, q, motif, limite)
-          : Promise.resolve<readonly ResultatRecherche[]>([]),
-      ]);
+      const [vehicules, clients, ordres, documents, articles, fournisseurs, depotsPneus] =
+        await Promise.all([
+          typesDemandes.has('vehicule')
+            ? chercherVehicules(tx, ctx.tenantId, motif, limite)
+            : Promise.resolve<ResultatVehicules>({
+                resultats: [],
+                plaqueInterchangeable: false,
+                vehiculeIdsGarantis: new Set<string>(),
+              }),
+          typesDemandes.has('client')
+            ? chercherClients(tx, ctx.tenantId, q, motif, limite)
+            : Promise.resolve<readonly ResultatRecherche[]>([]),
+          typesDemandes.has('ordre_reparation')
+            ? chercherOrdres(tx, ctx.tenantId, q, motif, limite)
+            : Promise.resolve<readonly ResultatRecherche[]>([]),
+          typesDemandes.has('document_vente') && peutVoirDocuments
+            ? chercherDocuments(tx, ctx.tenantId, q, motif, limite)
+            : Promise.resolve<readonly ResultatRecherche[]>([]),
+          typesDemandes.has('article') && peutVoirArticles
+            ? chercherArticles(tx, ctx.tenantId, q, motif, limite)
+            : Promise.resolve<readonly ResultatRecherche[]>([]),
+          typesDemandes.has('fournisseur') && peutVoirFournisseurs
+            ? chercherFournisseurs(tx, ctx.tenantId, q, motif, limite)
+            : Promise.resolve<readonly ResultatRecherche[]>([]),
+          typesDemandes.has('depot_pneu') && peutVoirDepotsPneus
+            ? chercherDepotsPneus(tx, ctx.tenantId, q, motif, limite)
+            : Promise.resolve<readonly ResultatRecherche[]>([]),
+        ]);
 
       // RM-18 : la paire interchangeable ne doit JAMAIS être tronquée par `limite`, y compris
       // `limite=1`. On la réserve donc en tête, puis on complète avec le reste trié par score
@@ -707,6 +1073,9 @@ export class ServiceRecherche {
         ...clients,
         ...ordres,
         ...documents,
+        ...articles,
+        ...fournisseurs,
+        ...depotsPneus,
       ].sort((a, b) => b.score - a.score);
 
       const limiteEffective = Math.max(limite, garantis.length);
