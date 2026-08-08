@@ -1,53 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
 
-import type { ResultatRecherche, TypeResultatRecherche } from '@dfa/shared';
+import type { ResultatRecherche } from '@dfa/shared';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { CONSTRUCTEURS_CHEMIN_RESULTAT } from '@/composants/recherche/chemins-resultats';
 import { PanneauResultatsRecherche } from '@/composants/recherche/PanneauResultatsRecherche';
 import { useRechercheComptoir } from '@/hooks/recherche/useRechercheComptoir';
-import { chemins } from '@/routes/chemins';
-
-/** `chemins.ts` (routes/) n'a pas encore d'entrée Atelier — module en cours de câblage par un
- *  autre agent (périmètre disjoint). Même sémantique que `construireChemin` : le site n'est
- *  ajouté que s'il est déjà défini, jamais inventé — répété ici (comme dans EcranFicheClient.tsx)
- *  plutôt que d'éditer un fichier hors périmètre. */
-function cheminOr(id: string, site: string | undefined): string {
-  return site
-    ? `/ordres-reparation/${id}?site=${encodeURIComponent(site)}`
-    : `/ordres-reparation/${id}`;
-}
-
-/** Même raison que `cheminOr` ci-dessus : `chemins.ts` n'a pas encore d'entrée Facturation
- *  (module hors périmètre ici). Route confirmée par `routes/routeur.tsx` : `factures/:id`
- *  (`EcranFicheFacture` lit `useParams<{ id: string }>()`, pas `:factureId`). */
-function cheminFacture(id: string, site: string | undefined): string {
-  return site ? `/factures/${id}?site=${encodeURIComponent(site)}` : `/factures/${id}`;
-}
-
-/**
- * Destination d'un résultat sélectionné, par nature. `Record` exhaustif sur `TypeResultatRecherche`
- * (§ enums.ts) : l'ajout d'une nature de résultat future casserait la compilation ici plutôt que
- * de silencieusement ne rien faire au clic. Les OR n'ont pas encore de chemin dans
- * `routes/chemins.ts` (module Atelier en cours de câblage ailleurs) — slug local aligné sur celui
- * déjà utilisé par l'API (`/ordres-reparation/{id}`, voir `client.ts`). Même chose pour
- * `document_vente` : `/factures/{id}` (voir `cheminFacture` ci-dessus, `routes/routeur.tsx`).
- *
- * Le site sélectionné (`?site=` de l'URL courante) est propagé vers CHAQUE destination — perdre le
- * site en sortant de la recherche romprait le même contrat que perdre `?site=` en sortant de la
- * liste clients/véhicules (routes/chemins.ts).
- */
-const CONSTRUCTEURS_CHEMIN: Record<
-  TypeResultatRecherche,
-  (id: string, site: string | undefined) => string
-> = {
-  vehicule: (id, site) => chemins.vehicules.detail(id, site),
-  client: (id, site) => chemins.clients.detail(id, site),
-  ordre_reparation: (id, site) => cheminOr(id, site),
-  document_vente: (id, site) => cheminFacture(id, site),
-};
 
 /**
  * F1-R2 — écran de recherche comptoir (RM-112, D-08) : le point d'entrée n°1 du produit. Toute la
@@ -73,7 +34,7 @@ export function EcranRecherche() {
   const saisieNonVide = saisie.trim().length > 0;
 
   function selectionner(resultat: ResultatRecherche) {
-    navigate(CONSTRUCTEURS_CHEMIN[resultat.type](resultat.id, site));
+    navigate(CONSTRUCTEURS_CHEMIN_RESULTAT[resultat.type](resultat.id, site));
   }
 
   return (

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNotNull, lt } from 'drizzle-orm';
 import type {
   EntreeCreationDocumentVente,
   EntreeCreationLigneDocument,
@@ -243,11 +243,11 @@ export class ServiceDocumentsVente {
   }
 
   /** `GET /documents-vente` — SOUS-ENSEMBLE des filtres du contrat (`siteId`, `typeDocument`,
-   *  `statut`, `clientId`, `vehiculeId`), tri `dateDocument:desc` par défaut. SIMPLIFICATION
-   *  SIGNALÉE, même doctrine que `atelier/service-or.ts::lister` : `natureFacture`,
-   *  `statutReglement`, `ordreReparationId`, les bornes de date et `q` ne sont pas câblés dans
-   *  cette passe. Pagination par curseur d'offset opaque — volume d'un tenant, pas un flux
-   *  illimité. */
+   *  `statut`, `clientId`, `vehiculeId`, `enRetard`, `relanceNiveau`), tri `dateDocument:desc` par
+   *  défaut. SIMPLIFICATION SIGNALÉE, même doctrine que `atelier/service-or.ts::lister` :
+   *  `natureFacture`, `statutReglement`, `ordreReparationId`, les bornes de date et `q` ne sont
+   *  pas câblés dans cette passe. Pagination par curseur d'offset opaque — volume d'un tenant, pas
+   *  un flux illimité. */
   async lister(
     ctx: ContexteTenant,
     principal: PrincipalAuthentifie,
@@ -264,6 +264,29 @@ export class ServiceDocumentsVente {
         conditions.push(inArray(documentVente.typeDocument, filtres.typeDocument));
       if (filtres.statut && filtres.statut.length > 0)
         conditions.push(inArray(documentVente.statut, filtres.statut));
+      // `enRetard` — MÊME règle que `calculerRetardDocument` (`echeance.ts`), traduite en SQL :
+      // `statut = 'emis'` (une facture `annule_par_avoir` garde une `date_echeance`/
+      // `solde_centimes` d'avant son annulation, RF-32 ne les nettoie pas — sans cette condition
+      // elle resterait « en retard » pour un montant qui n'est plus dû, même garde que
+      // `relances/regles-planification.ts::factureEligibleRelance`), `date_echeance` renseignée et
+      // strictement dépassée par rapport à AUJOURD'HUI (horloge injectée, jamais `Date.now()` en
+      // dur — même doctrine que le reste de ce module), et un solde encore dû. `isNotNull` posé
+      // explicitement bien que `lt` sur une colonne `null` exclue déjà la ligne (comparaison SQL
+      // à `null` = `unknown`) : lisible sans connaître cette subtilité de NULL SQL.
+      if (filtres.enRetard) {
+        const aujourdHui = this.horloge.maintenant().toISOString().slice(0, 10);
+        conditions.push(
+          eq(documentVente.statut, 'emis'),
+          isNotNull(documentVente.dateEcheance),
+          lt(documentVente.dateEcheance, aujourdHui),
+          gt(documentVente.soldeCentimes, 0n),
+        );
+      }
+      // `relanceNiveau` — égalité stricte sur la colonne réelle `document_vente.relance_niveau`
+      // (voir la note d'ambiguïté du contrat, `contrats/facturation/document.ts` : ce filtre ne
+      // prétend pas modéliser à lui seul « eligible à la prochaine relance »).
+      if (filtres.relanceNiveau !== undefined)
+        conditions.push(eq(documentVente.relanceNiveau, filtres.relanceNiveau));
 
       const decalage = decoderCurseurOffset(curseur);
       const lignes = await tx

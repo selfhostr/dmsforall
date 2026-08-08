@@ -54,7 +54,9 @@ export class RechercheController {
 
   @Get()
   @ApiOperation({
-    summary: 'Recherche comptoir unifiée — véhicules, clients, ordres de réparation.',
+    summary:
+      'Recherche comptoir unifiée — véhicules, clients, ordres de réparation, documents de ' +
+      'vente, articles, fournisseurs, dépôts de pneus.',
     description:
       'Projection, pas une collection : aucun curseur, `limite` <= 50 (défaut 20). La ' +
       'normalisation (casse, accents, espaces, apostrophes, tirets, points) est strictement ' +
@@ -63,7 +65,11 @@ export class RechercheController {
       'historique (RM-17) reste trouvable : `correspondance.historique = true` + ' +
       '`porteeJusquLe`. Une plaque interchangeable (RM-18) renvoie les DEUX véhicules et ' +
       '`plaqueInterchangeable = true` — le serveur ne choisit jamais à la place de ' +
-      "l'utilisateur.",
+      "l'utilisateur. Quatre natures (`document_vente`, `article`, `fournisseur`, `depot_pneu`) " +
+      'portent chacune un portillon de droit supplémentaire, indépendant de ' +
+      '`recherche.executer` : un rôle sans le droit correspondant (`facturation.document.lire`, ' +
+      '`pieces.article.lire`, `pieces.fournisseur.lire`, `pneus.depot.lire`) ne voit jamais ce ' +
+      'type de résultat, même demandé explicitement.',
   })
   @ApiQuery({ name: 'q', required: true, type: String, example: '123456' })
   @ApiQuery({
@@ -72,7 +78,9 @@ export class RechercheController {
     isArray: true,
     enum: TYPES_RESULTAT_RECHERCHE,
     explode: true,
-    description: 'Répétable. Par défaut, les trois natures sont cherchées.',
+    description:
+      'Répétable. Par défaut, les sept natures sont cherchées (sous réserve des droits de ' +
+      'rôle propres à `document_vente`/`article`/`fournisseur`/`depot_pneu`).',
   })
   @ApiQuery({
     name: 'limite',

@@ -254,6 +254,25 @@ describe('mapperDocument — dateEcheance/enRetard/joursRetard', () => {
     expect(reponse.joursRetard).toBeNull();
   });
 
+  it(
+    'facture ANNULÉE PAR AVOIR (RF-32) : jamais en retard même si `dateEcheance`/`soldeCentimes` ' +
+      "restent, en base, ceux d'avant l'annulation (RF-32 ne les nettoie pas) — bogue constaté : " +
+      '`calculerRetardDocument` ne vérifiait pas `statut` avant ce correctif, et aurait rendu ' +
+      '`enRetard=true` pour un montant qui n’est plus dû',
+    () => {
+      const reponse = mapperDocument(
+        entreeFixture('comptable', {
+          statut: 'annule_par_avoir',
+          dateEcheance: '2026-07-25',
+          soldeCentimes: 12_000n,
+        }),
+      );
+      expect(reponse.dateEcheance).toBe('2026-07-25');
+      expect(reponse.enRetard).toBe(false);
+      expect(reponse.joursRetard).toBeNull();
+    },
+  );
+
   for (const role of ['technicien', 'poste_atelier', 'admin'] as const) {
     it(`${role} (RF-115/116) : dateEcheance/enRetard/joursRetard ABSENTS, pas null — même masquage que les montants`, () => {
       const reponse = mapperDocument(

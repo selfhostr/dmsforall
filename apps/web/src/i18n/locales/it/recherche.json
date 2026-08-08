@@ -6,7 +6,10 @@
     "vehicules": "{count, plural, one {# veicolo} other {# veicoli}}",
     "clients": "{count, plural, one {# cliente} other {# clienti}}",
     "ordres": "{count, plural, one {# ordine} other {# ordini}}",
-    "documents": "{count, plural, one {# documento} other {# documenti}}"
+    "documents": "{count, plural, one {# documento} other {# documenti}}",
+    "articles": "{count, plural, one {# articolo} other {# articoli}}",
+    "fournisseurs": "{count, plural, one {# fornitore} other {# fornitori}}",
+    "depotsPneus": "{count, plural, one {# set di pneumatici} other {# set di pneumatici}}"
   },
   "details": {
     "plaqueHistorique": "Targa precedente di {client} fino al {date}",

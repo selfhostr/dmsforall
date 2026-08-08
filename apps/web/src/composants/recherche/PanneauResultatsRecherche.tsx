@@ -14,8 +14,11 @@ import {
 import { EtatVide } from '@/composants/commun/EtatVide';
 
 import { ChoixPlaqueInterchangeable } from './ChoixPlaqueInterchangeable';
+import { ResultatArticle } from './ResultatArticle';
 import { ResultatClient } from './ResultatClient';
+import { ResultatDepotPneu } from './ResultatDepotPneu';
 import { ResultatDocumentVente } from './ResultatDocumentVente';
+import { ResultatFournisseur } from './ResultatFournisseur';
 import { ResultatOr } from './ResultatOr';
 import { ResultatVehicule } from './ResultatVehicule';
 
@@ -65,6 +68,10 @@ export function PanneauResultatsRecherche({
     reponse?.resultats.filter((resultat) => resultat.type === 'ordre_reparation') ?? [];
   const documents =
     reponse?.resultats.filter((resultat) => resultat.type === 'document_vente') ?? [];
+  const articles = reponse?.resultats.filter((resultat) => resultat.type === 'article') ?? [];
+  const fournisseurs =
+    reponse?.resultats.filter((resultat) => resultat.type === 'fournisseur') ?? [];
+  const depotsPneus = reponse?.resultats.filter((resultat) => resultat.type === 'depot_pneu') ?? [];
   const plaqueInterchangeable = reponse?.plaqueInterchangeable === true;
   const aucunResultat = reponse !== null && reponse.resultats.length === 0;
 
@@ -145,6 +152,33 @@ export function PanneauResultatsRecherche({
               resultats={documents}
               onSelectionner={onSelectionner}
               rendreContenu={(resultat) => <ResultatDocumentVente resultat={resultat} />}
+            />
+          ) : null}
+
+          {!enChargement && articles.length > 0 ? (
+            <GroupeResultats
+              heading={t('resultatsGroupes.articles', { count: articles.length })}
+              resultats={articles}
+              onSelectionner={onSelectionner}
+              rendreContenu={(resultat) => <ResultatArticle resultat={resultat} />}
+            />
+          ) : null}
+
+          {!enChargement && fournisseurs.length > 0 ? (
+            <GroupeResultats
+              heading={t('resultatsGroupes.fournisseurs', { count: fournisseurs.length })}
+              resultats={fournisseurs}
+              onSelectionner={onSelectionner}
+              rendreContenu={(resultat) => <ResultatFournisseur resultat={resultat} />}
+            />
+          ) : null}
+
+          {!enChargement && depotsPneus.length > 0 ? (
+            <GroupeResultats
+              heading={t('resultatsGroupes.depotsPneus', { count: depotsPneus.length })}
+              resultats={depotsPneus}
+              onSelectionner={onSelectionner}
+              rendreContenu={(resultat) => <ResultatDepotPneu resultat={resultat} />}
             />
           ) : null}
         </CommandList>

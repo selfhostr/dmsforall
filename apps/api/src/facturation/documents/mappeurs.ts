@@ -343,8 +343,13 @@ export function mapperDocument(e: EntreeMapperDocument): ReponseDocumentVente {
           // pour le raisonnement complet). `enRetard`/`joursRetard` sont DÉRIVÉS à CETTE lecture,
           // jamais stockés (`calculerRetardDocument`) : un document non modifié peut légitimement
           // basculer « en retard » d'une lecture à l'autre, sans qu'aucune colonne ne bouge.
+          // `statut` transmis explicitement : une facture `annule_par_avoir` garde une
+          // `date_echeance`/`solde_centimes` d'avant son annulation (RF-32 ne les touche pas) —
+          // sans ce paramètre, `calculerRetardDocument` la déclarerait « en retard » pour un
+          // montant qui n'est plus dû (voir sa docstring).
           dateEcheance: doc.dateEcheance,
           ...calculerRetardDocument({
+            statut: doc.statut,
             dateEcheance: doc.dateEcheance,
             soldeCentimes: Number(doc.soldeCentimes),
             maintenant: e.maintenant,

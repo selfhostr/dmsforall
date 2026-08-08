@@ -106,6 +106,7 @@ describe('calculerRetardDocument — colonne « Retard » de la liste des factur
   it('facture soldée (soldeCentimes = 0) : jamais en retard, même échéance largement dépassée', () => {
     expect(
       calculerRetardDocument({
+        statut: 'emis',
         dateEcheance: '2026-01-01',
         soldeCentimes: 0,
         maintenant: MAINTENANT,
@@ -113,9 +114,10 @@ describe('calculerRetardDocument — colonne « Retard » de la liste des factur
     ).toEqual({ enRetard: false, joursRetard: null });
   });
 
-  it('échue et non soldée : en retard, jours de retard exacts', () => {
+  it('facture émise, échue et non soldée : en retard, jours de retard exacts', () => {
     expect(
       calculerRetardDocument({
+        statut: 'emis',
         dateEcheance: '2026-07-25',
         soldeCentimes: 12_000,
         maintenant: MAINTENANT,
@@ -126,6 +128,7 @@ describe('calculerRetardDocument — colonne « Retard » de la liste des factur
   it('échéance future et non soldée : pas encore en retard', () => {
     expect(
       calculerRetardDocument({
+        statut: 'emis',
         dateEcheance: '2026-08-31',
         soldeCentimes: 12_000,
         maintenant: MAINTENANT,
@@ -136,6 +139,7 @@ describe('calculerRetardDocument — colonne « Retard » de la liste des factur
   it("échéance exactement aujourd'hui : pas encore en retard (comparaison stricte)", () => {
     expect(
       calculerRetardDocument({
+        statut: 'emis',
         dateEcheance: '2026-08-04',
         soldeCentimes: 12_000,
         maintenant: MAINTENANT,
@@ -145,15 +149,48 @@ describe('calculerRetardDocument — colonne « Retard » de la liste des factur
 
   it('aucune échéance connue (dateEcheance null) : jamais en retard, même non soldée', () => {
     expect(
-      calculerRetardDocument({ dateEcheance: null, soldeCentimes: 12_000, maintenant: MAINTENANT }),
+      calculerRetardDocument({
+        statut: 'emis',
+        dateEcheance: null,
+        soldeCentimes: 12_000,
+        maintenant: MAINTENANT,
+      }),
     ).toEqual({ enRetard: false, joursRetard: null });
   });
 
   it('solde négatif (ne devrait jamais arriver, RF-67) : traité comme soldé, jamais en retard', () => {
     expect(
       calculerRetardDocument({
+        statut: 'emis',
         dateEcheance: '2026-07-01',
         soldeCentimes: -100,
+        maintenant: MAINTENANT,
+      }),
+    ).toEqual({ enRetard: false, joursRetard: null });
+  });
+
+  it(
+    'facture ANNULÉE PAR AVOIR (RF-32), échéance dépassée et solde jamais recrédité ' +
+      "(date_echeance/solde_centimes intacts d'avant l'annulation) : jamais en retard — " +
+      'même garde que relances/regles-planification.ts::factureEligibleRelance',
+    () => {
+      expect(
+        calculerRetardDocument({
+          statut: 'annule_par_avoir',
+          dateEcheance: '2026-07-25',
+          soldeCentimes: 12_000,
+          maintenant: MAINTENANT,
+        }),
+      ).toEqual({ enRetard: false, joursRetard: null });
+    },
+  );
+
+  it('devis (jamais dateEcheance renseignée en pratique, RF-04) : jamais en retard même si le champ était incohérent', () => {
+    expect(
+      calculerRetardDocument({
+        statut: 'devis',
+        dateEcheance: '2026-07-25',
+        soldeCentimes: 12_000,
         maintenant: MAINTENANT,
       }),
     ).toEqual({ enRetard: false, joursRetard: null });
