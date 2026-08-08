@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { EntreeCreationDocumentVente } from '@dfa/shared';
+import { QueryBuilder } from 'drizzle-orm/pg-core';
+import { TRI_DEFAUT_DOCUMENTS_VENTE } from '@dfa/shared';
+import type { EntreeCreationDocumentVente, FiltresDocumentsVente } from '@dfa/shared';
 
 import type { ContexteTenant, TransactionDfa } from '../../db';
 import { documentVente } from '../../db/schema';
@@ -201,4 +203,189 @@ describe('ServiceDocumentsVente.creer — rattachement à un dossier de vente (R
       expect(insert).not.toHaveBeenCalled();
     },
   );
+});
+
+/**
+ * Lot E (prérequis navigation) — `GET /documents-vente?enRetard=...&relanceNiveau=...`, jusqu'ici
+ * INERTES : `schemaFiltresDocumentsVente` n'exposait ni l'un ni l'autre, et `ServiceDocumentsVente
+ * .lister` ne les traduisait donc nulle part en SQL (voir le commentaire de tête retiré de
+ * `EcranListeFactures.tsx`). Prouvé SANS Postgres réel, via le `QueryBuilder` driver-less de
+ * `drizzle-orm/pg-core` — même doctrine que `atelier/service-or.spec.ts::ServiceOr.lister —
+ * filtre technicienId` (§I-19/#19) : on capture la requête RÉELLEMENT construite par `lister()`
+ * (jamais une reconstruction indépendante dans le test) puis on laisse l'`await` échouer à
+ * l'exécution (aucun pilote branché) — seule la CONSTRUCTION du SQL nous intéresse ici.
+ */
+describe('ServiceDocumentsVente.lister — filtres enRetard/relanceNiveau (Lot E)', () => {
+  /** Même fabrique que `atelier/service-or.spec.ts` (capture la requête outer via `.from`). */
+  function txQueryBuilderFactice() {
+    const qb = new QueryBuilder();
+    const capturedSelects: { toSQL: () => { sql: string; params: unknown[] } }[] = [];
+    const tx = {
+      select: (...args: unknown[]) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const builder: any = (qb.select as any)(...args);
+        const fromOriginal = builder.from.bind(builder);
+        builder.from = (...fromArgs: unknown[]) => {
+          const requete = fromOriginal(...fromArgs);
+          capturedSelects.push(requete);
+          return requete;
+        };
+        return builder;
+      },
+    };
+    return { tx: tx as unknown as TransactionDfa, capturedSelects };
+  }
+
+  function requeteOuter(capturedSelects: { toSQL: () => { sql: string; params: unknown[] } }[]) {
+    const derniere = capturedSelects.at(-1);
+    if (!derniere) throw new Error('Aucune requête capturée — tx.select() jamais appelé.');
+    return derniere.toSQL();
+  }
+
+  /** Isole la clause `where` du SQL généré : le `select "..."` liste TOUTES les colonnes de
+   *  `document_vente` (dont `date_echeance`/`solde_centimes`, qui font partie du document renvoyé
+   *  indépendamment de tout filtre) — chercher ces noms de colonnes dans le SQL ENTIER serait donc
+   *  toujours vrai, filtre actif ou non. Seule la clause `where` révèle si le filtre retard a
+   *  effectivement posé ses conditions. */
+  function clauseWhere(sql: string): string {
+    const debut = sql.indexOf(' where ');
+    if (debut === -1) throw new Error('Aucune clause where dans le SQL capturé.');
+    const fin = sql.indexOf(' order by ', debut);
+    return fin === -1 ? sql.slice(debut) : sql.slice(debut, fin);
+  }
+
+  function accesBaseFactice(tx: TransactionDfa) {
+    return {
+      enTenant: vi.fn(
+        async (_ctx: ContexteTenant, travail: (tx: TransactionDfa) => Promise<unknown>) =>
+          travail(tx),
+      ),
+    };
+  }
+
+  /** Seuls `acces` (transaction) et `horloge` (source d'« aujourd'hui » pour `enRetard`, jamais
+   *  `Date.now()` en dur) sont exercés par `lister()` avant que l'exécution échoue — les 3 autres
+   *  dépendances du constructeur (idempotence, audit, mouvement pièces) n'interviennent que dans
+   *  `creer()`/`ajouterLigne()`. */
+  function serviceListerFactice(
+    acces: ReturnType<typeof accesBaseFactice>,
+    maintenant: Date,
+  ): ServiceDocumentsVente {
+    const horloge = { maintenant: () => maintenant };
+    return new ServiceDocumentsVente(
+      acces as never,
+      {} as never,
+      {} as never,
+      horloge as never,
+      {} as never,
+    );
+  }
+
+  const MAINTENANT = new Date('2026-08-04T09:00:00.000Z');
+
+  async function executerListerEtCapturer(
+    filtres: Partial<FiltresDocumentsVente>,
+    maintenant: Date = MAINTENANT,
+  ) {
+    const { tx, capturedSelects } = txQueryBuilderFactice();
+    const acces = accesBaseFactice(tx);
+    const service = serviceListerFactice(acces, maintenant);
+
+    await expect(
+      service.lister(
+        CTX,
+        principal(),
+        { tri: TRI_DEFAUT_DOCUMENTS_VENTE, ...filtres } as FiltresDocumentsVente,
+        25,
+        undefined,
+      ),
+    ).rejects.toThrow();
+
+    return requeteOuter(capturedSelects);
+  }
+
+  it(
+    "enRetard=true : la requête pose statut='emis' ET date_echeance IS NOT NULL ET date_echeance " +
+      "< aujourd'hui (horloge injectée) ET solde_centimes > 0 — même règle que " +
+      '`calculerRetardDocument` (`echeance.ts`), traduite en SQL, PAS une simple comparaison ' +
+      "d'échéance : une facture non émise ou déjà soldée ne doit jamais matcher.",
+    async () => {
+      const { sql, params } = await executerListerEtCapturer({ enRetard: true });
+
+      expect(sql).toContain('"document_vente"."statut" = $');
+      expect(sql).toContain('"document_vente"."date_echeance" is not null');
+      expect(sql).toContain('"document_vente"."date_echeance" < $');
+      expect(sql).toContain('"document_vente"."solde_centimes" > $');
+      expect(params).toContain('emis');
+      // Horloge injectée (`MAINTENANT` = 2026-08-04), jamais l'horloge système.
+      expect(params).toContain('2026-08-04');
+      expect(params.map(String)).toContain('0');
+    },
+  );
+
+  it(
+    "enRetard=true aligné sur le RÉGLAGE d'horloge : une autre date injectée change la borne " +
+      "'aujourd'hui' utilisée par le filtre — preuve que la valeur vient de l'horloge, pas d'une " +
+      'constante.',
+    async () => {
+      const { params } = await executerListerEtCapturer(
+        { enRetard: true },
+        new Date('2026-12-25T23:00:00.000Z'),
+      );
+      expect(params).toContain('2026-12-25');
+    },
+  );
+
+  it('enRetard absent : aucune des quatre conditions du filtre retard ne figure dans la requête — le filtre reste inerte par défaut, pas actif « à vide »', async () => {
+    const { sql } = await executerListerEtCapturer({});
+
+    expect(clauseWhere(sql)).not.toContain('date_echeance');
+    expect(clauseWhere(sql)).not.toContain('solde_centimes');
+  });
+
+  it('enRetard=false : traité comme absent (même convention que les autres filtres booléens de cette API, ex. `nonImputeUniquement`) — aucune condition ajoutée', async () => {
+    const { sql } = await executerListerEtCapturer({ enRetard: false });
+
+    expect(clauseWhere(sql)).not.toContain('date_echeance');
+    expect(clauseWhere(sql)).not.toContain('solde_centimes');
+  });
+
+  it('relanceNiveau : égalité stricte sur `document_vente.relance_niveau`, composée par ET avec le scope tenant', async () => {
+    const { sql, params } = await executerListerEtCapturer({ relanceNiveau: 2 });
+
+    expect(sql).toContain('"document_vente"."relance_niveau" = $');
+    expect(params).toContain(2);
+    expect(sql).toMatch(/"tenant_id" = \$1 and "document_vente"."relance_niveau" = \$2/);
+  });
+
+  it('relanceNiveau=0 : filtre bien appliqué (0 est une valeur légitime — jamais confondue avec « filtre absent », même doctrine que `delaiPaiementJours=0` de `echeance.ts`)', async () => {
+    const { sql, params } = await executerListerEtCapturer({ relanceNiveau: 0 });
+
+    expect(sql).toContain('"document_vente"."relance_niveau" = $');
+    expect(params).toContain(0);
+  });
+
+  it('enRetard=true ET relanceNiveau composés par ET (jamais l’un n’écrase l’autre), sans jointure ni duplication de ligne', async () => {
+    const { sql, params } = await executerListerEtCapturer({ enRetard: true, relanceNiveau: 0 });
+
+    expect(sql).toContain('"document_vente"."statut" = $');
+    expect(sql).toContain('"document_vente"."relance_niveau" = $');
+    expect(params).toContain('emis');
+    expect(params).toContain(0);
+    expect(sql).not.toMatch(/\bjoin\b/i);
+    expect(sql).not.toMatch(/\bgroup by\b/i);
+    expect(sql).not.toMatch(/\bdistinct\b/i);
+  });
+
+  it('siteId (déjà câblé) et enRetard (nouvellement câblé) composent par ET sans que le nouveau filtre écrase l’ancien', async () => {
+    const { sql, params } = await executerListerEtCapturer({
+      siteId: '11111111-1111-4111-8111-111111111111',
+      enRetard: true,
+    });
+
+    expect(sql).toContain('"document_vente"."site_id" = $');
+    expect(sql).toContain('"document_vente"."statut" = $');
+    expect(params).toContain('11111111-1111-4111-8111-111111111111');
+    expect(params).toContain('emis');
+  });
 });
