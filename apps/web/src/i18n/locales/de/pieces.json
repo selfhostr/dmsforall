@@ -83,7 +83,8 @@
       "modifier": "Ändern",
       "marquerObsolete": "Als veraltet markieren",
       "desactiver": "Deaktivieren",
-      "reactiver": "Reaktivieren"
+      "reactiver": "Reaktivieren",
+      "autresActions": "Weitere Aktionen"
     },
     "vide": "Keine Artikel.",
     "filtres": {
@@ -119,6 +120,25 @@
       },
       "erreurSection": {
         "titre": "Dieser Bereich konnte nicht geladen werden"
+      },
+      "consommateurs": {
+        "titre": "Verbrauchende Reparaturaufträge",
+        "vide": "Kein Reparaturauftrag hat diesen Artikel verbraucht.",
+        "lien": "RA ansehen"
+      },
+      "reservationsActives": {
+        "titre": "Laufende Reservierungen",
+        "vide": "Keine laufende Reservierung für diesen Artikel.",
+        "lien": "RA ansehen"
+      },
+      "commandesFournisseur": {
+        "titre": "Ausstehende Lieferantenbestellungen",
+        "vide": "Keine ausstehende Lieferantenbestellung für diesen Artikel.",
+        "sansFournisseur": "Kein Lieferant für diesen Artikel bekannt."
+      },
+      "fournisseur": {
+        "titre": "Lieferant",
+        "vide": "Kein Lieferant für diesen Artikel referenziert."
       }
     },
     "confirmations": {

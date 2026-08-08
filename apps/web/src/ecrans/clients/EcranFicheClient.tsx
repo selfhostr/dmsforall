@@ -13,9 +13,11 @@ import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
 import { BandeauAlerteClient } from '@/composants/motifs/BandeauAlerteClient';
+import { BadgeStatutDossierVente } from '@/ecrans/ventes/dossiers/BadgeStatutDossierVente';
 import { useClient } from '@/hooks/clients/useClient';
 import { useOrdresClient } from '@/hooks/clients/useOrdresClient';
 import { useVehiculesClient } from '@/hooks/clients/useVehiculesClient';
+import { useListeDossiersVente } from '@/hooks/ventes/dossiers/useListeDossiersVente';
 import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
@@ -56,6 +58,11 @@ export function EcranFicheClient() {
   const requete = useClient(id);
   const vehicules = useVehiculesClient(id);
   const ordres = useOrdresClient(id);
+  // Lot B (correction 6, ajout hors liste initiale) — « ses dossiers de vente », troisième liste
+  // à côté de « ses véhicules » et « ses OR » déjà câblées. `useListeDossiersVente`
+  // (hooks/ventes/dossiers/, déjà existant) accepte `clientAcheteurId` tel quel dans son filtre
+  // gelé (`FiltresDossiersVente`) — même acheteur, pas de second champ à croiser.
+  const dossiersVente = useListeDossiersVente({ clientAcheteurId: id, tri: 'prospectionLe:desc' });
 
   if (requete.isLoading) {
     return (
@@ -223,6 +230,42 @@ export function EcranFicheClient() {
                       <span className="texte-libelle text-muted-foreground">
                         {or.ouvertLe ? formaterDate(or.ouvertLe) : texteOuVide(null)}
                       </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* Lot B (correction 6) — « ses dossiers de vente », troisième liste. Première question
+           *  qu'un vendeur se pose face à un client qui revient — rien ne la couvrait avant ce
+           *  lot. */}
+          <section className="space-y-2">
+            <h2 className="texte-titre-section font-medium text-foreground">
+              {t('clients:fiche.dossiersVente')}
+            </h2>
+            {dossiersVente.isLoading ? (
+              <EtatChargement lignes={2} />
+            ) : dossiersVente.dossiers.length === 0 ? (
+              <p className="texte-corps text-muted-foreground">
+                {t('clients:fiche.dossiersVenteVide')}
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {dossiersVente.dossiers.map((dossier) => (
+                  <li key={dossier.id}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(chemins.ventes.dossiers.detail(dossier.id, site))}
+                      className="w-full space-y-1 rounded-md border p-3 text-left hover:bg-muted"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="texte-corps font-medium text-foreground">
+                          {dossier.vehicule?.vehicule.designation ??
+                            t('clients:fiche.dossierSansVehicule')}
+                        </span>
+                        <BadgeStatutDossierVente statut={dossier.statut} />
+                      </div>
                     </button>
                   </li>
                 ))}

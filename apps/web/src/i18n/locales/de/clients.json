@@ -45,7 +45,10 @@
     "vehicules": "Fahrzeuge des Kunden",
     "vehiculesVide": "Kein Fahrzeug zugeordnet.",
     "derniersOr": "Letzte Werkstattbesuche",
-    "derniersOrVide": "Kein Besuch erfasst."
+    "derniersOrVide": "Kein Besuch erfasst.",
+    "dossiersVente": "Verkaufsdossiers",
+    "dossiersVenteVide": "Kein Verkaufsdossier.",
+    "dossierSansVehicule": "Kein Fahrzeug zugewiesen"
   },
   "alertes": {
     "bloque": "Gesperrt – Zahlungsrückstände",

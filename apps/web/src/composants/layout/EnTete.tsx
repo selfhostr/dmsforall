@@ -7,6 +7,7 @@ import { useSession } from '@/hooks/useSession';
 import { Button } from '@/components/ui/button';
 
 import { MenuUtilisateur } from './MenuUtilisateur';
+import { RechercheGlobale } from './RechercheGlobale';
 import { SelecteurLangue } from './SelecteurLangue';
 
 /** Bouton « Se déconnecter » visible en clair, jamais enfoui dans un menu : poste d'atelier
@@ -30,8 +31,8 @@ export function EnTete() {
   const libelleSite = site?.nom ?? t('navigation:entete.tousLesSites');
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b bg-background px-4">
-      <div className="min-w-0">
+    <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-background px-4">
+      <div className="min-w-0 shrink">
         <p className="truncate font-semibold" title={session.tenant.raisonSociale}>
           {session.tenant.raisonSociale}
         </p>
@@ -39,7 +40,13 @@ export function EnTete() {
           {libelleSite}
         </p>
       </div>
-      <div className="flex items-center gap-3">
+      {/* Lot A (`docs/plan-refonte-navigation.md`) : centre de la barre haute, auparavant vide —
+          la recherche partout, jamais à une route dédiée. `min-w-0` laisse le bouton se réduire
+          plutôt que de forcer le header à défiler horizontalement sur petit écran. */}
+      <div className="flex min-w-0 flex-1 justify-center">
+        <RechercheGlobale />
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
         <SelecteurLangue />
         <MenuUtilisateur utilisateur={session.utilisateur} />
         <Button

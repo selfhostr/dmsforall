@@ -140,6 +140,35 @@ describe('routeur — protection par défaut', () => {
     ).toBeInTheDocument();
   });
 
+  it('/ redirige `poste_atelier` vers la borne de pointage, jamais l’accueil générique (Lot 0)', async () => {
+    // Défaut que ce test attrape : avant le Lot 0 (`docs/plan-refonte-navigation.md`), TOUT rôle
+    // atterrissait sur `EcranAccueil` — `poste_atelier` (borne murale partagée) n'atteignait
+    // `/pointage/borne` qu'en tapant l'URL à la main. `siteRattachementId: 'site-1'` (contrairement
+    // au `null` de `SESSION_TEST`) reflète la contrainte réelle d'un compte de service, toujours
+    // scopé à exactement un site (voir `EcranBornePointage.spec.tsx`).
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'poste_atelier' },
+          siteRattachementId: 'site-1',
+        }),
+      ),
+      http.get('/api/v1/pointages', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+      ),
+      http.get('/api/v1/ordres-reparation', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null }),
+      ),
+    );
+    renduAvecRoutes(routesConfig, { routeInitiale: '/' });
+
+    expect(await screen.findByText('Qui êtes-vous ?')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Retrouvez un client, un véhicule ou un ordre'),
+    ).not.toBeInTheDocument();
+  });
+
   it('la route de création d’OR rend l’écran réel, pas le placeholder « fonction à venir »', async () => {
     // Défaut que ce test attrape : `atelier/ordres-reparation/nouveau` câblé sur
     // `EcranFonctionAVenir` (repli générique) plutôt que sur `EcranNouvelOrdreReparation` — les deux
@@ -185,7 +214,8 @@ describe('routeur — protection par défaut', () => {
     // Le numéro de l'OR ne peut s'afficher que si la requête a abouti : la preuve que l'écran n'est
     // pas resté bloqué en chargement (le défaut serait invisible autrement — pas d'erreur, pas de
     // message, juste un squelette qui ne finit jamais).
-    expect(await screen.findByText(OR_TEST.numero)).toBeInTheDocument();
+    // `findAllByText` : le fil d'Ariane du Lot C affiche maintenant le numéro deux fois (fil + contenu).
+    expect((await screen.findAllByText(OR_TEST.numero)).length).toBeGreaterThan(0);
     expect(idRecu).toBe('or-1');
   });
 
@@ -483,7 +513,8 @@ describe('routeur — /pieces/* refuse admin (protection RÉELLE, RF-115), ouvre
     );
     renduAvecRoutes(routesConfig, { routeInitiale: '/pieces/articles/art-1' });
 
-    expect(await screen.findByText('Plaquettes de frein avant')).toBeInTheDocument();
+    // `findAllByText` : le fil d'Ariane du Lot C affiche maintenant la désignation deux fois (fil + contenu).
+    expect((await screen.findAllByText('Plaquettes de frein avant')).length).toBeGreaterThan(0);
   });
 });
 

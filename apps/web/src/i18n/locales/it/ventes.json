@@ -322,6 +322,10 @@
         "titre": "Modificare la pratica",
         "vehicule": "Veicolo",
         "vehiculeVerrouille": "Il veicolo non può più essere modificato in questa fase."
+      },
+      "ordresVehicule": {
+        "titre": "Ordini di questo veicolo",
+        "vide": "Nessun ordine per questo veicolo."
       }
     },
     "transitions": {

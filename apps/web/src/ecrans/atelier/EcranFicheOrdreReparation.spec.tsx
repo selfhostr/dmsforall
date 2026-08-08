@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   ClientResume,
@@ -129,6 +129,27 @@ function rendre() {
 }
 
 describe('EcranFicheOrdreReparation', () => {
+  // Lot B (`docs/plan-refonte-navigation.md`) — `EnTeteOrdreReparation` interroge désormais `GET
+  // /ordres-reparation?vehiculeId=…` (« l'OR précédent du même véhicule ») et
+  // `EcranFicheOrdreReparation` interroge `GET /documents-vente?ordreReparationId=…` (« devis
+  // d'origine, facture émise »), à CHAQUE rendu réussi de l'écran (pas seulement via
+  // `installerHandler`, certains tests plus bas posent leur propre `GET .../or-1` en direct).
+  // `server.listen({ onUnhandledRequest: 'error' })` (`test/setup.ts`) fait échouer toute requête
+  // non mockée : un `beforeEach` couvre les deux endpoints pour TOUS les tests de ce fichier,
+  // réponses vides par défaut — plus fiable qu'ajouter ces deux lignes dans chaque `server.use(...)`
+  // individuel (`afterEach(() => server.resetHandlers())`, `test/setup.ts`, repart de zéro à
+  // chaque test).
+  beforeEach(() => {
+    server.use(
+      http.get('/api/v1/ordres-reparation', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 5 }),
+      ),
+      http.get('/api/v1/documents-vente', () =>
+        HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 20 }),
+      ),
+    );
+  });
+
   afterEach(async () => {
     await i18n.changeLanguage('fr');
   });
@@ -185,7 +206,10 @@ describe('EcranFicheOrdreReparation', () => {
       installerHandler(or);
       rendre();
 
-      await screen.findByText('OR-000123');
+      // Lot C (`docs/plan-refonte-navigation.md`) — le fil d'Ariane répète désormais `or.numero`
+      // (page courante) en plus du titre de l'en-tête : deux occurrences légitimes, `findAllByText`
+      // plutôt que `findByText` (qui exigerait une correspondance unique et échouerait ici).
+      await screen.findAllByText('OR-000123');
       // Le libellé « Plafond » lui-même n'apparaît pas : le champ est absent, pas vide.
       expect(screen.queryByText('Plafond')).not.toBeInTheDocument();
       expect(screen.queryByText('Totaux')).not.toBeInTheDocument();
@@ -401,7 +425,10 @@ describe('EcranFicheOrdreReparation', () => {
       installerHandler(construireOr());
       rendre();
 
-      await screen.findByText('OR-000123');
+      // Lot C (`docs/plan-refonte-navigation.md`) — le fil d'Ariane répète désormais `or.numero`
+      // (page courante) en plus du titre de l'en-tête : deux occurrences légitimes, `findAllByText`
+      // plutôt que `findByText` (qui exigerait une correspondance unique et échouerait ici).
+      await screen.findAllByText('OR-000123');
       expect(screen.queryByRole('button', { name: 'Ajouter une ligne' })).not.toBeInTheDocument();
     });
 

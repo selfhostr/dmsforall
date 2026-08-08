@@ -216,6 +216,27 @@ const DETENTIONS: readonly ReponseVehiculeDetention[] = [
 // `SESSION_TEST.utilisateur.role` = `chef_atelier` (a `vehicule.modifier`, voir `matrice-droits.ts`
 // et `ecrans/vehicules/droits.ts`) : le rôle par défaut de ces tests doit voir le crayon d'édition
 // de l'emplacement, cohérent avec le test d'intégration existant qui clique « Modifier ».
+// Lot B (`docs/plan-refonte-navigation.md`) — quatre requêtes supplémentaires depuis cette fiche
+// (« ses OR », « ses factures », « son jeu de pneus au dépôt », « dossier de vente ») —
+// `server.listen({ onUnhandledRequest: 'error' })` (`test/setup.ts`) fait échouer toute requête
+// non mockée, réponses vides par défaut ici plutôt que dans chaque test.
+function installerHandlersLotB() {
+  server.use(
+    http.get('/api/v1/ordres-reparation', () =>
+      HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 20 }),
+    ),
+    http.get('/api/v1/documents-vente', () =>
+      HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 20 }),
+    ),
+    http.get('/api/v1/vehicules/v1/depots-pneus', () =>
+      HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 10 }),
+    ),
+    http.get('/api/v1/dossiers-vente', () =>
+      HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+    ),
+  );
+}
+
 function installerHandlersOk() {
   server.use(
     http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
@@ -225,6 +246,7 @@ function installerHandlersOk() {
     http.get('/api/v1/vehicules/v1/detentions', () => HttpResponse.json(DETENTIONS)),
     http.get('/api/v1/vehicules/v1/travaux-reportes', () => HttpResponse.json(TRAVAUX_REPORTES)),
   );
+  installerHandlersLotB();
 }
 
 function rendre() {
@@ -252,6 +274,10 @@ describe('EcranFicheVehicule', () => {
   });
 
   it('affiche une erreur actionnable si le véhicule est introuvable, avec un bouton réessayer', async () => {
+    // Lot B — `vehiculeId` vient du paramètre de route (toujours défini ici, `v1`), pas de la
+    // résolution de `requeteVehicule` : les requêtes secondaires de ce lot (OR, factures, pneus,
+    // dossiers de vente) partent donc MÊME quand la ressource primaire échoue en 404.
+    installerHandlersLotB();
     server.use(
       http.get('/api/v1/vehicules/v1', () =>
         HttpResponse.json(
@@ -445,6 +471,7 @@ describe('EcranFicheVehicule', () => {
   // coup. Preuve bout en bout depuis la session réelle (au-dessus de la preuve unitaire sur
   // `ChampEmplacementVehicule.spec.tsx`, qui pilote `peutModifier` directement en prop).
   it("ne propose pas l'édition de l'emplacement à un rôle sans vehicule.modifier (technicien)", async () => {
+    installerHandlersLotB();
     server.use(
       http.get('/api/v1/auth/moi', () =>
         HttpResponse.json({

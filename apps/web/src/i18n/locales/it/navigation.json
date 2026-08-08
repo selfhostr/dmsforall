@@ -44,6 +44,12 @@
   "menu": {
     "ouvrir": "Apri menu"
   },
+  "filAriane": {
+    "aria": "Percorso di navigazione"
+  },
+  "actionPrimaire": {
+    "aria": "{action} (azione principale)"
+  },
   "entete": {
     "tousLesSites": "Tutte le officine"
   },

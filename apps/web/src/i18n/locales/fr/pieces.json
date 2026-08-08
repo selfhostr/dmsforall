@@ -83,7 +83,8 @@
       "modifier": "Modifier",
       "marquerObsolete": "Marquer obsolète",
       "desactiver": "Désactiver",
-      "reactiver": "Réactiver"
+      "reactiver": "Réactiver",
+      "autresActions": "Autres actions"
     },
     "vide": "Aucun article.",
     "filtres": {
@@ -119,6 +120,25 @@
       },
       "erreurSection": {
         "titre": "Impossible de charger cette section"
+      },
+      "consommateurs": {
+        "titre": "OR consommateurs",
+        "vide": "Aucun OR n'a consommé cet article.",
+        "lien": "Voir l'OR"
+      },
+      "reservationsActives": {
+        "titre": "Réservations en cours",
+        "vide": "Aucune réservation en cours pour cet article.",
+        "lien": "Voir l'OR"
+      },
+      "commandesFournisseur": {
+        "titre": "Commandes fournisseur en attente",
+        "vide": "Aucune commande fournisseur en attente pour cet article.",
+        "sansFournisseur": "Aucun fournisseur connu pour cet article."
+      },
+      "fournisseur": {
+        "titre": "Fournisseur",
+        "vide": "Aucun fournisseur référencé pour cet article."
       }
     },
     "confirmations": {
