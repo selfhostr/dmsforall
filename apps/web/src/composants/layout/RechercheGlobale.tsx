@@ -3,50 +3,16 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
 
-import type { ResultatRecherche, TypeResultatRecherche } from '@dfa/shared';
+import type { ResultatRecherche } from '@dfa/shared';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { CONSTRUCTEURS_CHEMIN_RESULTAT } from '@/composants/recherche/chemins-resultats';
 import { PanneauResultatsRecherche } from '@/composants/recherche/PanneauResultatsRecherche';
 import { useRechercheComptoir } from '@/hooks/recherche/useRechercheComptoir';
-import { chemins } from '@/routes/chemins';
-
-// Même limitation que `ecrans/recherche/EcranRecherche.tsx` (module hors périmètre ici, propriété
-// d'un autre chantier) : `routes/chemins.ts` n'a pas encore d'entrée Atelier/Facturation pour les
-// OR et les documents de vente. Mapping DÉLIBÉRÉMENT dupliqué plutôt que d'éditer un fichier hors
-// périmètre — les deux copies pointent vers les mêmes routes littérales confirmées dans
-// `routes/routeur.tsx` (`ordres-reparation/:id`, `factures/:id`). Un futur ajout de ces entrées à
-// `chemins.ts` devrait faire disparaître les deux copies au profit d'un seul appel partagé — à
-// signaler à qui reprend `ecrans/recherche/`, pas à corriger ici (périmètre disjoint).
-function cheminOr(id: string, site: string | undefined): string {
-  return site
-    ? `/ordres-reparation/${id}?site=${encodeURIComponent(site)}`
-    : `/ordres-reparation/${id}`;
-}
-
-function cheminFacture(id: string, site: string | undefined): string {
-  return site ? `/factures/${id}?site=${encodeURIComponent(site)}` : `/factures/${id}`;
-}
-
-/**
- * Destination d'un résultat sélectionné, par nature — même contrat que `CONSTRUCTEURS_CHEMIN` dans
- * `EcranRecherche.tsx` : `Record` exhaustif sur `TypeResultatRecherche` pour qu'une nature future
- * (article/dépôt pneu/fournisseur — voir prérequis API du Lot A) casse la compilation ici plutôt
- * que de silencieusement ne rien faire au clic. Le site sélectionné (`?site=` de l'URL courante)
- * est propagé vers chaque destination, même règle que partout ailleurs dans l'app.
- */
-const CONSTRUCTEURS_CHEMIN: Record<
-  TypeResultatRecherche,
-  (id: string, site: string | undefined) => string
-> = {
-  vehicule: (id, site) => chemins.vehicules.detail(id, site),
-  client: (id, site) => chemins.clients.detail(id, site),
-  ordre_reparation: (id, site) => cheminOr(id, site),
-  document_vente: (id, site) => cheminFacture(id, site),
-};
 
 /** `Ctrl+K` (Windows/Linux) ou `Cmd+K` (macOS) — `preventDefault()` sur le `keydown` supprime le
  *  raccourci natif du navigateur (Chrome/Firefox réservent Ctrl+K pour la barre d'adresse) avant
@@ -101,7 +67,7 @@ export function RechercheGlobale() {
 
   function selectionner(resultat: ResultatRecherche) {
     fermer();
-    navigate(CONSTRUCTEURS_CHEMIN[resultat.type](resultat.id, site));
+    navigate(CONSTRUCTEURS_CHEMIN_RESULTAT[resultat.type](resultat.id, site));
   }
 
   const saisieNonVide = saisie.trim().length > 0;
