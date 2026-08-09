@@ -1,7 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
 import type { PageCurseur, ReponsePointage } from '@dfa/shared';
@@ -12,7 +11,7 @@ import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
 
-import { EcranJournalPointage } from './EcranJournalPointage';
+import { VueJournalPointage } from './VueJournalPointage';
 
 function pagePointages(donnees: readonly ReponsePointage[]): PageCurseur<ReponsePointage> {
   return { donnees, curseurSuivant: null, limite: 50 };
@@ -46,20 +45,23 @@ function construirePointage(overrides: Partial<ReponsePointage> = {}): ReponsePo
   };
 }
 
+/**
+ * Anciennement `EcranJournalPointage.spec.tsx` — adapté à la fusion (Lot D, voir l'en-tête
+ * d'`EcranPointage.tsx`) : `siteId` est désormais un prop direct (résolu par l'appelant), donc plus
+ * de test de gate de site ici (couvert UNE SEULE fois par `EcranPointage.spec.tsx`, où vivait de
+ * toute façon un test identique dupliqué trois fois avant la fusion). Toutes les assertions de
+ * contenu sont conservées telles quelles.
+ */
 function rendre() {
   const queryClient = creerQueryClientTest();
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/pointage/jour']}>
-        <Routes>
-          <Route path="/pointage/jour" element={<EcranJournalPointage />} />
-        </Routes>
-      </MemoryRouter>
+      <VueJournalPointage siteId="site-1" />
     </QueryClientProvider>,
   );
 }
 
-describe('EcranJournalPointage', () => {
+describe('VueJournalPointage', () => {
   it('affiche le cumul par technicien et le total', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),

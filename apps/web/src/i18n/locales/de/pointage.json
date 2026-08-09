@@ -1,5 +1,9 @@
 {
   "titre": "Zeiterfassung",
+  "vues": {
+    "journal": "Journal",
+    "equipe": "Team"
+  },
   "identification": {
     "titre": "Wer sind Sie?",
     "saisisseCode": "PIN eingeben",
@@ -201,6 +205,7 @@
       "actions": "Aktionen"
     },
     "corriger": "Korrigieren",
+    "clotureAction": "Periode abschliessen",
     "parOr": {
       "rechercherOrLabel": "RA-Nummer oder Fahrzeug",
       "rechercherOrPlaceholder": "RA suchen…",

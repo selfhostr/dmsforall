@@ -2,6 +2,58 @@
   "principale": {
     "aria": "Navigazione principale"
   },
+  "entrees": {
+    "aujourdhui": "Oggi",
+    "atelier": "Officina",
+    "clientsVehicules": "Clienti e veicoli",
+    "pieces": "Ricambi",
+    "facturation": "Fatturazione",
+    "ventes": "Vendite",
+    "reglages": "Impostazioni"
+  },
+  "onglets": {
+    "aria": "Schede — {domaine}",
+    "vuesAria": "Viste — {onglet}",
+    "aujourdhuiAccueil": "Home",
+    "aujourdhuiTableauBord": "Cruscotto",
+    "atelierOrdresReparation": "Ordini di riparazione",
+    "atelierPlanning": "Pianificazione",
+    "atelierPointage": "Timbratura",
+    "atelierDepotPneus": "Deposito pneumatici",
+    "pointageMonTravail": "Il mio lavoro",
+    "pointageJournal": "Registro",
+    "pointageEquipe": "Team",
+    "pointageCloture": "Chiusura periodo",
+    "pointageBorne": "Terminale officina",
+    "pneusAuDepot": "In deposito",
+    "pneusARelancer": "Da richiamare",
+    "clients": "Clienti",
+    "clientsTous": "Tutti",
+    "clientsDoublons": "Duplicati",
+    "vehicules": "Veicoli",
+    "piecesComptoir": "Banco",
+    "piecesArticles": "Articoli",
+    "piecesArticlesTous": "Tutti",
+    "piecesReservations": "Prenotazioni",
+    "piecesApprovisionnement": "Approvvigionamento",
+    "piecesACommander": "Da ordinare",
+    "piecesCommandes": "Ordini",
+    "piecesFournisseurs": "Fornitori",
+    "piecesConsignes": "Cauzioni",
+    "facturationFactures": "Fatture",
+    "facturationEncaissements": "Incassi",
+    "facturationRelances": "Solleciti",
+    "facturationExportFiduciaire": "Esportazione fiduciaria",
+    "ventesDossiers": "Pratiche",
+    "ventesParc": "Veicoli in parco",
+    "ventesSuivi": "Finanziamento e garanzia",
+    "reglagesAtelier": "Officina",
+    "reglagesSites": "Sedi",
+    "reglagesFacturation": "Fatturazione",
+    "reglagesTarifs": "Tariffe e prestazioni",
+    "reglagesPieces": "Ricambi",
+    "reglagesRelances": "Livelli di sollecito"
+  },
   "liens": {
     "accueil": "Home",
     "tableauBord": "Cruscotto",
@@ -43,6 +95,9 @@
   },
   "menu": {
     "ouvrir": "Apri menu"
+  },
+  "evitement": {
+    "contenu": "Vai al contenuto"
   },
   "filAriane": {
     "aria": "Percorso di navigazione"

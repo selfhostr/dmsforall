@@ -1,151 +1,70 @@
-import {
-  AlarmClock,
-  BellRing,
-  Bookmark,
-  Boxes,
-  Building2,
-  CalendarClock,
-  Car,
-  CarFront,
-  ClipboardList,
-  Clock,
-  Copy,
-  FileText,
-  Handshake,
-  Home,
-  Landmark,
-  LayoutDashboard,
-  Lock,
-  PackageSearch,
-  Receipt,
-  RefreshCw,
-  Search,
-  Settings2,
-  Tag,
-  Truck,
-  Undo2,
-  Users,
-  UsersRound,
-  Warehouse,
-  Wrench,
-} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { NavLink, useSearchParams } from 'react-router';
+import { Link, useLocation, useSearchParams } from 'react-router';
 
-import { ROLES_POINTAGE, ROLES_POINTAGE_ENCADREMENT } from '@/ecrans/pointage/droits';
 import { useSession } from '@/hooks/useSession';
 import { useVersionApplication } from '@/hooks/useVersionApplication';
-import { chemins } from '@/routes/chemins';
-import {
-  ROLES_MENU_FINANCIER,
-  ROLES_MENU_PARAMETRAGE_ATELIER,
-  ROLES_PARAMETRAGE_PIECES,
-  ROLES_PIECES,
-  ROLES_PNEUS,
-  ROLES_RELANCES,
-  ROLES_TABLEAU_BORD_ACTIVITE,
-  ROLES_VENTES,
-} from '@/routes/droits-routes';
 import { cn } from '@/lib/utils';
+
+import {
+  cheminEntree,
+  ENTREE_REGLAGES,
+  entreesVisibles,
+  reglagesVisibles,
+  trouverCorrespondance,
+  type EntreeMenu,
+} from './navigation-modele';
 
 interface Props {
   readonly className?: string;
 }
 
-const CLASSE_LIEN =
-  'flex h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors';
-
-function classeLien({ isActive }: { readonly isActive: boolean }): string {
-  return cn(
-    CLASSE_LIEN,
-    isActive ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-muted',
-  );
-}
-
 /**
- * Le lot 1 (Atelier + Clients) ajoute la recherche, les clients et les véhicules à côté de
- * l'unique lien « Accueil » de l'étape 0 — toujours aucun élément grisé « à venir » : chaque lien
- * ci-dessous pointe vers un écran réellement atteignable.
+ * BARRE LATÉRALE — Lot D de la refonte (`docs/refonte-navigation.md` §4.2,
+ * `docs/plan-refonte-navigation.md`, « Lot D — Le menu à six entrées »).
  *
- * « Ordres de réparation » (audit du 04.08.2026) : l'écran `EcranListeOrdresReparation` était routé
- * et fonctionnel depuis le lot 1, mais atteignable UNIQUEMENT en tapant `/ordres-reparation` à la
- * main — absent de ce menu, oubli constaté a posteriori. Lien SANS restriction de rôle, au même
- * titre que « Clients »/« Véhicules » juste au-dessus : `ordres-reparation` ne pose pas
- * `rolesAutorises` dans `routeur.tsx` (la LECTURE y est ouverte à tout rôle authentifié, même
- * raisonnement que `vehicules` — voir le commentaire de cette route). Même mécanique `?site=` que
- * `clients`/`vehicules` (`chemins.atelier.ordresReparation.liste`, `routes/chemins.ts`).
+ * TRENTE ENTRÉES DEVIENNENT SIX, plus Réglages en pied. Ce qui disparaît d'ici n'est pas supprimé :
+ * tout descend d'un niveau, en onglets (`OngletsDomaine.tsx`) et en vues, et le tableau complet du
+ * déménagement vit dans `navigation-modele.ts`. Deux chemins alternatifs, livrés avant ce lot, sont
+ * ce qui rend la coupe possible sans enfermer personne : la recherche permanente de l'en-tête
+ * (Lot A, `Ctrl+K` et bouton loupe) et les fiches devenues cliquables (Lot B). L'ordre était
+ * inversable dans un plan de projet, pas dans la réalité — retirer les entrées d'abord aurait
+ * retiré le seul chemin vers des écrans qui n'en avaient aucun autre.
  *
- * `chemins.*` conserve le site courant (`?site=`) plutôt que de le perdre à la navigation
- * (voir routes/chemins.ts). Le site actif est lu **depuis l'URL courante**, exactement comme
- * `EcranListeVehicules` (même mécanisme, pas un second) : deux onglets sur deux sites différents
- * ne doivent pas se contredire, et un utilisateur qui a navigué vers un site différent de celui
- * par défaut de sa session ne doit pas y être silencieusement ramené en cliquant un lien de cette
- * barre. Cette règle vaut pour les liens SANS restriction de rôle ci-dessous ; les liens du groupe
- * « Paramétrage » consultent la session pour une tout autre raison (savoir QUOI afficher, pas
- * calculer un `?site=`) — voir le paragraphe suivant.
+ * AUCUN DÉFILEMENT, et c'est le cœur du lot. La zone de liens portait `overflow-y-auto` : avec
+ * trente entrées, un `chef_atelier` sur une tablette faisait défiler son menu, et un menu qui
+ * défile n'a pas de mémoire spatiale — « troisième entrée, sous Atelier » cesse d'être vrai dès
+ * que la position dépend du défilement, et le support téléphonique perd son repère le plus utile.
+ * Six lignes de 44 px tiennent partout, y compris sur le plus petit appareil visé, donc plus rien
+ * ne défile ici. Ne pas réintroduire `overflow-y-auto` « par sécurité » : ce serait rouvrir la
+ * porte à une septième, puis une huitième entrée, sans que rien ne rougisse.
  *
- * Le lien « Facturation » (`/factures`) ne passe volontairement pas par `chemins.*` (qui
- * n'expose pas de constructeur pour la facturation, et appartient à un autre périmètre) : comme
- * le lien « Accueil » ci-dessous, c'est une chaîne brute. `EcranListeFactures` ne consomme de
- * toute façon pas `siteId` aujourd'hui (voir son propre commentaire), donc il n'y a rien de
- * `?site=` à préserver ici.
+ * L'ORDRE EST LE MÊME POUR TOUS LES RÔLES (§2). Les droits masquent des entrées, ils n'en
+ * réordonnent aucune. Trois arborescences selon le poste, c'est trois fois la question « tu es
+ * connecté avec quel compte ? » avant chaque réponse au téléphone, et trois jeux de captures
+ * d'écran à maintenir — pour un produit tenu par une personne qui dépanne dix garages.
  *
- * « Référentiels » (tarifs et prestations) est un lien SANS restriction de rôle, au même titre que
- * « Doublons clients » ci-dessus — arbitrage du coordinateur (lot 2) : c'est un outil de comptoir
- * (« combien coûte ce service ? »), et le réceptionniste est le rôle qui le consulte le plus. Le
- * masquer à qui n'est pas en gouvernance atelier casserait cet usage sans ajouter de protection
- * réelle (`parametrage.referentiel.lire` est ouvert à tous côté API — voir `droits-routes.ts`).
+ * MASQUAGE : chaque entrée est visible si et seulement si au moins un de ses onglets l'est
+ * (`entreesVisibles`), donc aucune entrée ne peut ouvrir sur un contenu vide. La distinction
+ * « protection réelle » / « confort de menu » reste celle documentée dans `routes/droits-routes.ts`
+ * — masquer ici n'a jamais protégé quoi que ce soit, l'API reste l'arbitre.
  *
- * Groupe « Paramétrage » (lot 2) : DEUX entrées seulement, « Paramétrage atelier »/« Sites »
- * (`ROLES_MENU_PARAMETRAGE_ATELIER`, chef d'atelier/direction/admin) et « Coordonnées bancaires »
- * (`ROLES_MENU_FINANCIER`, direction/comptable SEULEMENT — RF-115, `admin` en est exclu). Masquer
- * ici est un confort d'ERGONOMIE, PAS un mécanisme de protection (voir `droits-routes.ts` pour la
- * distinction complète) : aucune des routes correspondantes ne pose de restriction équivalente
- * dans `routeur.tsx` — la lecture y est ouverte à tout rôle authentifié côté API, seule l'écriture
- * reste gouvernée (grisée dans chaque écran ET refusée par le serveur). Un utilisateur qui
- * connaîtrait l'URL malgré un lien masqué ici atteint donc l'écran normalement, en lecture — ce
- * n'est pas un contournement, c'est le comportement voulu.
+ * LARGEUR : les libellés sont dimensionnés sur l'ALLEMAND, le plus long des trois langues (Q7).
+ * Budget réel pour le texte d'une entrée : 240 px de colonne − 24 px d'inset (`p-3`) − 24 px de
+ * padding de lien (`px-3`) − 16 px d'icône − 12 px de gouttière = 164 px. Le pire cas des trois
+ * langues est « Kunden & Fahrzeuge » (18 caractères, ~130 px à `text-sm`) : il passe, et c'est le
+ * seul libellé qui s'en approche. `Reparaturauftrag`, le mot qui motivait la question, n'est plus
+ * un libellé d'entrée mais un ONGLET, donc dans une rangée horizontale sans contrainte de largeur.
+ * Aucune troncature n'est posée : tronquer un libellé de menu détruit précisément le repère que ce
+ * lot cherche à construire. Si une traduction future ne tenait pas, c'est la colonne qui s'élargit.
  *
- * Groupe « Pointage » (lot 2) : masquage qui reflète une restriction RÉELLE côté API, même patron
- * que le groupe « Pièces » ci-dessus — `ROLES_POINTAGE`/`ROLES_POINTAGE_ENCADREMENT`
- * (`ecrans/pointage/droits.ts`) sont les mêmes listes que celles qui protègent les routes
- * (`routeur.tsx`), pas des listes séparées inventées pour le menu. Le groupe entier est absent pour
- * `comptable`/`receptionnaire`/`vendeur` (`atelier.pointage.lire` leur est fermé) ; à l'intérieur du
- * groupe, « Équipe » et « Clôture de période » restent en plus masqués à `technicien`/`magasinier`
- * (gouvernance atelier seule — `chef_atelier`/`direction`/`admin`). Aucun `?site=` : le pointage se
- * filtre par technicien et par période, pas par site (voir `routes/chemins.ts`).
- *
- * Groupe « Ventes » (étape 4) : TROIS entrées, « Véhicules en stock », « Dossiers de vente » et
- * « Suivi financement & garantie » (`ROLES_VENTES`, `routes/droits-routes.ts`) — masquage qui
- * reflète une restriction RÉELLE côté API, même patron que « Pièces »/« Pointage » ci-dessus :
- * `admin`, `technicien` et `magasinier` n'ont aucun droit `ventes.*` (RF-115). Le suivi partage le
- * même droit serveur (`ventes.dossier.lire`) que « Dossiers de vente », donc la même garde
- * `ROLES_VENTES` suffit. Reprise et Financement n'ont pas d'entrée : ce sont des cartes intégrées
- * à la fiche dossier (design gelé §8-9), pas des écrans autonomes vers lesquels naviguer depuis ce
- * menu.
- *
- * « Relances » (rappels de facture impayée, lot 1) : UNE entrée autonome, PAS un groupe — le
- * module n'expose qu'un seul écran ce lot (voir `routeur.tsx`). Placée en lien SANS groupe, juste
- * après « Facturation » (voisinage thématique : un rappel de facture impayée est un prolongement
- * du cycle de facturation) plutôt que rattachée au groupe « Paramétrage » : ce n'est pas un
- * réglage qu'on configure une fois puis oublie, mais un écran consulté et actionné régulièrement
- * (déclenchement manuel de planification/envoi). Masquage qui reflète une restriction RÉELLE côté
- * API, même patron que « Pièces »/« Ventes » ci-dessus — `ROLES_RELANCES` (`direction`/
- * `comptable`) est la même liste que celle qui protège la route, PAS une liste inventée pour le
- * menu : `relances.facturation.regle.lire` ferme la lecture elle-même aux autres rôles.
- *
- * Libellé du lien : `navigation:liens.relances` — le fichier `relances.json` porte AUSSI une clé
- * `navigation.lien` (posée par un lot antérieur, en prévision de cet écran), mais ce fichier
- * (`navigation.json`) centralise déjà TOUS les autres libellés de lien de cette barre
- * (`liens.piecesArticles`, `liens.pointageSaisie`, etc.) — choix de cohérence avec l'existant
- * plutôt qu'un second namespace consommé par ce seul composant. `relances:navigation.lien` reste
- * en place, inutilisé ici, plutôt que supprimé : hors du périmètre d'écriture de cet agent que de
- * retoucher le contenu métier de `relances.json` au-delà de ce qu'exige cet écran.
+ * `poste_atelier` (la borne murale) ne voit AUCUNE entrée — c'est un appareil, pas un employé
+ * (§2). `AppShell` retire alors la colonne entière plutôt que d'afficher un cadre vide.
  */
 export function BarreLaterale({ className }: Props) {
   const { t } = useTranslation('navigation');
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
+  const { pathname } = useLocation();
   const { data: session } = useSession();
   const role = session?.utilisateur.role;
   // Numéro de version (support téléphonique) — `data` reste `undefined` pendant le chargement
@@ -154,276 +73,86 @@ export function BarreLaterale({ className }: Props) {
   // erreur » des écrans métier.
   const { data: sante } = useVersionApplication();
 
-  // Tableau de bord — masquage qui reflète une restriction RÉELLE côté API (`ROLES_TABLEAU_BORD_ACTIVITE`
-  // exclut `poste_atelier`, la borne murale partagée n'a pas d'usage tableau de bord), même patron que
-  // `peutAccederPieces` ci-dessous : la route (`routeur.tsx`) applique déjà cette même garde.
-  const peutAccederTableauBord = role !== undefined && ROLES_TABLEAU_BORD_ACTIVITE.includes(role);
-  const peutGererParametrageAtelier =
-    role !== undefined && ROLES_MENU_PARAMETRAGE_ATELIER.includes(role);
-  const peutGererCreancier = role !== undefined && ROLES_MENU_FINANCIER.includes(role);
-  const afficheGroupeParametrage = peutGererParametrageAtelier || peutGererCreancier;
-  // Module pièces (étape 3) — masquage qui reflète une restriction RÉELLE côté API
-  // (`DROITS_PIECES_PAR_ROLE.admin = []`, RF-115), contrairement au groupe « Paramétrage »
-  // ci-dessus : `ROLES_PIECES` est la même liste que celle qui protège les routes
-  // (`routeur.tsx`), pas une liste séparée inventée pour le menu.
-  const peutAccederPieces = role !== undefined && ROLES_PIECES.includes(role);
-  // Paramétrage pièces (`/parametrage/pieces`) — masquage qui reflète une restriction RÉELLE côté
-  // API, PLUS ÉTROITE que `peutAccederPieces` ci-dessus : `pieces.parametrage.lire` n'est accordé
-  // qu'à `direction`/`chef_atelier`/`magasinier` (voir `routes/droits-routes.ts`,
-  // `ROLES_PARAMETRAGE_PIECES`) — un `vendeur`/`receptionnaire`/`technicien`/`comptable` voit le
-  // reste du menu Pièces mais pas cette entrée.
-  const peutAccederParametragePieces =
-    role !== undefined && ROLES_PARAMETRAGE_PIECES.includes(role);
-  // Module ventes VN/VO (étape 4) — même patron que `peutAccederPieces` ci-dessus : `ROLES_VENTES`
-  // reflète la restriction RÉELLE de l'API (`ventes.*` fermé à `admin`/`technicien`/`magasinier`,
-  // RF-115, voir `routes/droits-routes.ts`), pas une liste inventée pour le menu.
-  const peutAccederVentes = role !== undefined && ROLES_VENTES.includes(role);
-  // Module pointage (lot 2) — même patron que `peutAccederPieces` ci-dessus : `ROLES_POINTAGE`
-  // reflète la restriction RÉELLE de l'API (`atelier.pointage.lire` fermé à `comptable`/
-  // `receptionnaire`/`vendeur`, voir `ecrans/pointage/droits.ts`), pas une liste inventée pour le
-  // menu. `ROLES_POINTAGE_ENCADREMENT` restreint en plus « Équipe » et « Clôture de période » aux
-  // rôles de gouvernance (chef d'atelier/direction/admin) — même distinction que côté routeur.
-  const peutAccederPointage = role !== undefined && ROLES_POINTAGE.includes(role);
-  const peutGererPointageEncadrement =
-    role !== undefined && ROLES_POINTAGE_ENCADREMENT.includes(role);
-  // Hangar à pneus (Lot B) — même patron que `peutAccederPieces` ci-dessus : `ROLES_PNEUS`
-  // reflète la restriction RÉELLE de l'API (`ROLES_PNEUS_DEPOT_LECTURE` ferme `poste_atelier`,
-  // voir `apps/api/src/pneus/droits-provisoires.ts`), pas une liste inventée pour le menu.
-  const peutAccederPneus = role !== undefined && ROLES_PNEUS.includes(role);
-  // Relances (rappels de facture impayée, lot 1) — même patron que `peutAccederPieces` ci-dessus :
-  // `ROLES_RELANCES` reflète la restriction RÉELLE de l'API (`relances.facturation.regle.lire`
-  // fermé à tout rôle hors `direction`/`comptable`, voir `apps/api/src/relances/
-  // relances.controller.ts`), pas une liste inventée pour le menu.
-  const peutAccederRelances = role !== undefined && ROLES_RELANCES.includes(role);
+  // Le site actif est lu DEPUIS L'URL, jamais depuis la session (mécanisme unique du produit, voir
+  // `routes/chemins.ts`) : deux onglets ouverts sur deux sites différents ne doivent pas se
+  // contredire, et un utilisateur qui a navigué vers un site autre que son défaut de session ne
+  // doit pas y être silencieusement ramené en cliquant une entrée de cette barre.
+  const entrees = entreesVisibles(role);
+  const correspondance = trouverCorrespondance(pathname);
+  const idEntreeActive = correspondance?.entree.id;
+
+  function rendreEntree(entree: EntreeMenu) {
+    const cible = cheminEntree(entree, role, site);
+    if (cible === undefined) return null;
+    const Icone = entree.icone;
+    const actif = entree.id === idEntreeActive;
+    return (
+      <li key={entree.id}>
+        {/* `Link` ordinaire, pas `NavLink` : `NavLink` détruit le prop `aria-current` qu'on lui
+            passe (`ariaCurrentProp`) et ne le restitue que si son PROPRE `isActive` interne — la
+            comparaison entre SON `to` et `location.pathname` — est vrai. Ici `to` vaut le chemin du
+            PREMIER ONGLET VISIBLE de l'entrée (ex. `/ordres-reparation`), pas l'onglet courant
+            (ex. `/pointage/equipe`) : `isActive` de `NavLink` est alors `false` alors même que
+            l'entrée est bien la bonne au sens métier (`actif`, dérivé de `trouverCorrespondance`,
+            qui lui rattache correctement toute URL du domaine à son entrée). Un `Link` ne gère pas
+            `aria-current` lui-même : ce qu'on lui passe atteint le DOM tel quel, ce qui permet de
+            faire porter l'attribut par `actif` — la même valeur qui pose déjà `bg-primary`. */}
+        <Link
+          to={cible}
+          aria-current={actif ? 'page' : undefined}
+          className={cn(
+            // h-11 = 44 px : plancher tactile du produit, jamais réduit sur desktop (les postes de
+            // comptoir sont des écrans tactiles de 24 pouces, §4.6).
+            'flex h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            actif
+              ? 'bg-primary text-primary-foreground'
+              : 'text-foreground hover:bg-muted hover:text-foreground',
+          )}
+        >
+          <Icone className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {t(entree.cleLibelle)}
+        </Link>
+      </li>
+    );
+  }
 
   return (
     // `h-full` : résolu par le parent — `AppShell` donne à l'aside desktop une hauteur de viewport
-    // (`lg:h-dvh`) et le tiroir mobile (`Sheet`) est déjà en hauteur pleine (`variantesSheet`) ;
-    // voir les commentaires respectifs. `min-h-0` autorise l'enfant `flex-1` ci-dessous à se
-    // rétrécir sous sa taille de contenu — sans lui, un flex item garde `min-height: auto` par
-    // défaut et **empêche `overflow-y-auto` de jamais déclencher un scroll interne** (le nav
-    // grandirait plutôt que de faire défiler la zone de liens, poussant le pied hors de vue).
-    <nav aria-label={t('navigation:principale.aria')} className="flex h-full min-h-0 flex-col">
-      {/* Zone de liens : seule partie qui défile. `overflow-x-hidden` en plus de `overflow-y-auto`
-          garantit qu'aucune barre horizontale n'apparaît (largeur fixe de 240px, aucun contenu ne
-          doit pourtant déborder — filet de sécurité explicite plutôt qu'une hypothèse implicite). */}
-      <div
-        className={cn(
-          'flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden p-3',
-          className,
-        )}
-      >
-        <NavLink to="/" end className={classeLien}>
-          <Home className="h-4 w-4" aria-hidden="true" />
-          {t('navigation:liens.accueil')}
-        </NavLink>
-        {peutAccederTableauBord ? (
-          <NavLink to={chemins.tableauBord(site)} className={classeLien}>
-            <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.tableauBord')}
-          </NavLink>
-        ) : null}
-        <NavLink to={chemins.recherche.globale(site)} className={classeLien}>
-          <Search className="h-4 w-4" aria-hidden="true" />
-          {t('navigation:liens.recherche')}
-        </NavLink>
-        <NavLink to={chemins.clients.liste(site)} className={classeLien}>
-          <Users className="h-4 w-4" aria-hidden="true" />
-          {t('navigation:liens.clients')}
-        </NavLink>
-        <NavLink to={chemins.clients.doublons()} className={classeLien}>
-          <Copy className="h-4 w-4" aria-hidden="true" />
-          {t('navigation:liens.doublonsClients')}
-        </NavLink>
-        <NavLink to={chemins.vehicules.liste(site)} className={classeLien}>
-          <Car className="h-4 w-4" aria-hidden="true" />
-          {t('navigation:liens.vehicules')}
-        </NavLink>
-        <NavLink to={chemins.atelier.ordresReparation.liste(site)} className={classeLien}>
-          <ClipboardList className="h-4 w-4" aria-hidden="true" />
-          {t('navigation:liens.ordresReparation')}
-        </NavLink>
-        <NavLink to="/factures" className={classeLien}>
-          <Receipt className="h-4 w-4" aria-hidden="true" />
-          {t('navigation:liens.factures')}
-        </NavLink>
-        {peutAccederRelances ? (
-          <NavLink to={chemins.relances()} className={classeLien}>
-            <BellRing className="h-4 w-4" aria-hidden="true" />
-            {t('navigation:liens.relances')}
-          </NavLink>
-        ) : null}
-        <NavLink to={chemins.parametrage.referentiels()} className={classeLien}>
-          <Tag className="h-4 w-4" aria-hidden="true" />
-          {t('navigation:liens.parametrageReferentiels')}
-        </NavLink>
-
-        {peutAccederPieces ? (
-          <>
-            <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t('navigation:groupes.pieces')}
-            </p>
-            <NavLink to={chemins.pieces.rechercheComptoir(site)} className={classeLien}>
-              <PackageSearch className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.piecesRechercheComptoir')}
-            </NavLink>
-            <NavLink to={chemins.pieces.articles(site)} className={classeLien}>
-              <Boxes className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.piecesArticles')}
-            </NavLink>
-            <NavLink to={chemins.pieces.reservations(site)} className={classeLien}>
-              <Bookmark className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.piecesReservations')}
-            </NavLink>
-            <NavLink to={chemins.pieces.reapprovisionnement(site)} className={classeLien}>
-              <RefreshCw className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.piecesReapprovisionnement')}
-            </NavLink>
-            <NavLink to={chemins.pieces.commandesFournisseur.liste()} className={classeLien}>
-              <Truck className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.piecesCommandesFournisseur')}
-            </NavLink>
-            <NavLink to={chemins.pieces.fournisseurs.liste()} className={classeLien}>
-              <Handshake className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.piecesFournisseurs')}
-            </NavLink>
-            <NavLink to={chemins.pieces.consignes()} className={classeLien}>
-              <Undo2 className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.piecesConsignes')}
-            </NavLink>
-            {peutAccederParametragePieces ? (
-              <NavLink to={chemins.parametrage.pieces()} className={classeLien}>
-                <Settings2 className="h-4 w-4" aria-hidden="true" />
-                {t('navigation:liens.piecesParametrage')}
-              </NavLink>
-            ) : null}
-          </>
-        ) : null}
-
-        {peutAccederPointage ? (
-          <>
-            <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t('navigation:groupes.pointage')}
-            </p>
-            <NavLink to={chemins.pointage.saisie()} className={classeLien}>
-              <Clock className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.pointageSaisie')}
-            </NavLink>
-            <NavLink to={chemins.pointage.jour()} className={classeLien}>
-              <CalendarClock className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.pointageJournal')}
-            </NavLink>
-            {peutGererPointageEncadrement ? (
-              <NavLink to={chemins.pointage.equipe()} className={classeLien}>
-                <UsersRound className="h-4 w-4" aria-hidden="true" />
-                {t('navigation:liens.pointageEquipe')}
-              </NavLink>
-            ) : null}
-            {peutGererPointageEncadrement ? (
-              <NavLink to={chemins.pointage.cloture()} className={classeLien}>
-                <Lock className="h-4 w-4" aria-hidden="true" />
-                {t('navigation:liens.pointageCloture')}
-              </NavLink>
-            ) : null}
-          </>
-        ) : null}
-
-        {peutAccederPneus ? (
-          <>
-            <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t('navigation:groupes.pneus')}
-            </p>
-            <NavLink to={chemins.pneus.hangar(site)} className={classeLien}>
-              <Warehouse className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.pneusHangar')}
-            </NavLink>
-            <NavLink to={chemins.pneus.aRelancer(site)} className={classeLien}>
-              <RefreshCw className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.pneusARelancer')}
-            </NavLink>
-          </>
-        ) : null}
-
-        {peutAccederVentes ? (
-          <>
-            <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t('navigation:groupes.ventes')}
-            </p>
-            <NavLink to={chemins.ventes.stock.liste(site)} className={classeLien}>
-              <CarFront className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.ventesStock')}
-            </NavLink>
-            <NavLink to={chemins.ventes.dossiers.liste(site)} className={classeLien}>
-              <FileText className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.ventesDossiers')}
-            </NavLink>
-            <NavLink to={chemins.ventes.suivi(site)} className={classeLien}>
-              <AlarmClock className="h-4 w-4" aria-hidden="true" />
-              {t('navigation:liens.ventesSuivi')}
-            </NavLink>
-          </>
-        ) : null}
-
-        {afficheGroupeParametrage ? (
-          <>
-            <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t('navigation:groupes.parametrage')}
-            </p>
-            {peutGererParametrageAtelier ? (
-              <NavLink to={chemins.parametrage.atelier()} className={classeLien}>
-                <Wrench className="h-4 w-4" aria-hidden="true" />
-                {t('navigation:liens.parametrageAtelier')}
-              </NavLink>
-            ) : null}
-            {peutGererParametrageAtelier ? (
-              <NavLink to={chemins.parametrage.sites(site)} className={classeLien}>
-                <Building2 className="h-4 w-4" aria-hidden="true" />
-                {t('navigation:liens.parametrageSites')}
-              </NavLink>
-            ) : null}
-            {peutGererCreancier ? (
-              <NavLink to={chemins.parametrage.facturation()} className={classeLien}>
-                <Landmark className="h-4 w-4" aria-hidden="true" />
-                {t('navigation:liens.parametrageFacturation')}
-              </NavLink>
-            ) : null}
-          </>
-        ) : null}
-      </div>
+    // (`lg:h-dvh`) et le tiroir mobile (`Sheet`) est déjà en hauteur pleine.
+    <nav aria-label={t('navigation:principale.aria')} className="flex h-full flex-col">
+      {/* AUCUN `overflow-y-auto` ICI — voir le paragraphe « aucun défilement » en tête de fichier.
+          `flex-1` pousse simplement le pied en bas quand la colonne est plus haute que ses six
+          lignes ; il ne crée aucune zone défilante, et il n'y a plus de `min-h-0` à poser puisque
+          plus rien n'a besoin de se rétrécir sous sa taille de contenu. */}
+      <ul className={cn('flex flex-1 flex-col gap-1 p-3', className)}>
+        {entrees.map((entree) => rendreEntree(entree))}
+      </ul>
 
       {/*
-       * Pied ancré — HORS de la zone défilante ci-dessus (`shrink-0` : ne rétrécit jamais, quelle
-       * que soit la hauteur prise par la liste de liens). C'est ce qui garantit le numéro de
-       * version « toujours visible en bas de la colonne de navigation », y compris quand la liste
-       * est longue (`chef_atelier`/`admin` avec tous les groupes) : avant, un simple dernier
-       * élément du flux se serait fait pousser sous la ligne de flottaison de la PAGE (voir
-       * `AppShell.tsx` pour la mécanique de hauteur/défilement côté aside et tiroir mobile).
+       * Pied ancré, séparé des six entrées par un filet (§4.2) — `shrink-0` : ne rétrécit jamais.
+       * Le filet encode une frontière réelle : au-dessus, les six plans de travail qu'on ouvre
+       * chaque jour ; en dessous, ce qu'on configure rarement et jamais dans le flux de travail
+       * (Réglages), puis une métadonnée inerte (la version).
        *
-       * `border-t` : une fois ancré en bas, le numéro n'est plus « le dernier élément de la
-       * liste » mais un pied distinct — le filet encode la frontière entre la navigation
-       * (interactive) et une métadonnée inerte. `p-3` reprend l'inset de la zone de liens
-       * ci-dessus (mêmes bords), alignant le filet sur les boutons de lien.
-       *
-       * Chargement et erreur : `sante` reste `undefined` dans les deux cas -> RIEN n'est
-       * affiché, aucun squelette ni placeholder, ET le filet n'apparaît pas seul (le `<div>` du
-       * pied est conditionné par `sante`, pas seulement le texte à l'intérieur). Exception
-       * ASSUMÉE à la règle « chaque écran gère chargement / vide / erreur » du CONTRIBUTING.md : c'est
-       * une information d'ambiance dans un chrome affiché huit heures par jour, pas un écran
-       * métier — quand elle manque, l'utilisateur n'a rien à en faire, et un placeholder
-       * permanent serait du bruit.
-       *
-       * `<p>` non interactif (pas de lien, pas de focus clavier) ; le texte visible
-       * (« main · 0.1.234 » — branche puis version, séparées par un point médian, format demandé
-       * par @laupernoe) est déjà explicite pour un lecteur au téléphone au support, donc pas
-       * d'`aria-label` séparé. `branche` vient de `GET /sante` (`VERSION_APP_BRANCHE`) au même
-       * titre que `numero` (`VERSION_APP`) — voir apps/api/src/config/version-app.ts pour le
-       * calcul (dev : git local ; CI/prod : figé au build Docker depuis `github.ref_name`).
+       * Version — chargement et erreur : `sante` reste `undefined` dans les deux cas -> RIEN n'est
+       * affiché, aucun squelette ni placeholder. Exception ASSUMÉE à la règle « chaque écran gère
+       * chargement / vide / erreur » du CONTRIBUTING.md : c'est une information d'ambiance dans un chrome
+       * affiché huit heures par jour, pas un écran métier — quand elle manque, l'utilisateur n'a
+       * rien à en faire, et un placeholder permanent serait du bruit. Le texte visible
+       * (« main · 0.1.234 ») est déjà explicite pour un lecteur au téléphone, donc pas
+       * d'`aria-label` séparé.
        */}
-      {sante ? (
+      {reglagesVisibles(role) || sante ? (
         <div className="shrink-0 border-t p-3">
-          <p className="texte-libelle text-muted-foreground">
-            {t('navigation:pied.version', { branche: sante.branche, numero: sante.version })}
-          </p>
+          {reglagesVisibles(role) ? (
+            <ul className="flex flex-col gap-1">{rendreEntree(ENTREE_REGLAGES)}</ul>
+          ) : null}
+          {sante ? (
+            <p className="mt-2 px-3 texte-libelle text-muted-foreground">
+              {t('navigation:pied.version', { branche: sante.branche, numero: sante.version })}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </nav>

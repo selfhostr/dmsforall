@@ -1,5 +1,9 @@
 {
   "titre": "Pointage",
+  "vues": {
+    "journal": "Journal",
+    "equipe": "Équipe"
+  },
   "identification": {
     "titre": "Qui êtes-vous ?",
     "saisisseCode": "Saisissez le code PIN",
@@ -201,6 +205,7 @@
       "actions": "Actions"
     },
     "corriger": "Corriger",
+    "clotureAction": "Clôturer la période",
     "parOr": {
       "rechercherOrLabel": "Numéro d'OR ou véhicule",
       "rechercherOrPlaceholder": "Rechercher un OR…",

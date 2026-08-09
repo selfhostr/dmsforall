@@ -1,0 +1,247 @@
+import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
+import { render, screen, waitFor, within, type RenderResult } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
+import { MemoryRouter } from 'react-router';
+import { describe, expect, it } from 'vitest';
+
+import '@/i18n';
+
+import type { RoleUtilisateur } from '@dfa/shared';
+
+import { SESSION_TEST } from '@/test/msw/handlers';
+import { server } from '@/test/msw/server';
+import { creerQueryClientTest } from '@/test/utils';
+
+import { OngletsDomaine } from './OngletsDomaine';
+
+/**
+ * Le SECOND NIVEAU du Lot D. Ce que ces tests protègent, c'est la promesse centrale de la refonte :
+ * « 30 entrées -> 6, aucun écran supprimé, aucun rendu inatteignable ». Les vingt-quatre entrées
+ * retirées de la barre latérale sont ici, et si cette rangée cesse de se rendre, elles disparaissent
+ * toutes d'un coup sans qu'aucun autre test ne rougisse.
+ */
+function rendre(routeInitiale: string): RenderResult & { queryClient: QueryClient } {
+  const queryClient = creerQueryClientTest();
+  return {
+    queryClient,
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[routeInitiale]}>
+          <OngletsDomaine />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ),
+  };
+}
+
+function connecte(role: RoleUtilisateur): void {
+  server.use(
+    http.get('/api/v1/auth/moi', () =>
+      HttpResponse.json({
+        ...SESSION_TEST,
+        utilisateur: { ...SESSION_TEST.utilisateur, role },
+      }),
+    ),
+  );
+}
+
+function libelles(nav: HTMLElement): string[] {
+  return within(nav)
+    .getAllByRole('link')
+    .map((lien) => lien.textContent?.trim() ?? '');
+}
+
+describe('OngletsDomaine — les onglets d’un domaine', () => {
+  it('Atelier : Ordres de réparation, Pointage et Dépôt pneus — les entrées de menu retirées, retrouvées ici', async () => {
+    connecte('chef_atelier');
+    rendre('/ordres-reparation');
+
+    const onglets = await screen.findByRole('navigation', { name: /onglets/i });
+    expect(libelles(onglets)).toEqual(['Ordres de réparation', 'Pointage', 'Dépôt pneus']);
+  });
+
+  it('Pièces : Comptoir, Articles, Approvisionnement, Consignes — six entrées de menu devenues quatre onglets', async () => {
+    connecte('magasinier');
+    rendre('/pieces/articles');
+
+    const onglets = await screen.findByRole('navigation', { name: /onglets/i });
+    expect(libelles(onglets)).toEqual(['Comptoir', 'Articles', 'Approvisionnement', 'Consignes']);
+  });
+
+  it('Ventes : Dossiers en premier — c’est l’atterrissage du vendeur', async () => {
+    connecte('vendeur');
+    rendre('/ventes/stock');
+
+    const onglets = await screen.findByRole('navigation', { name: /onglets/i });
+    expect(libelles(onglets)).toEqual([
+      'Dossiers',
+      'Véhicules en parc',
+      'Suivi financement & garantie',
+    ]);
+  });
+
+  it('l’onglet courant se dit aux lecteurs d’écran, et lui seul', async () => {
+    connecte('vendeur');
+    rendre('/ventes/stock');
+
+    const onglets = await screen.findByRole('navigation', { name: /onglets/i });
+    expect(within(onglets).getByRole('link', { name: /véhicules en parc/i })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(onglets).getByRole('link', { name: /^dossiers$/i })).not.toHaveAttribute(
+      'aria-current',
+    );
+  });
+
+  /** Une fiche appartient au domaine de son objet : sans ça, ouvrir un dossier ferait disparaître
+   *  le repère « je suis dans Ventes » au moment précis où on en a le plus besoin. */
+  it('une fiche garde l’onglet de son domaine surligné', async () => {
+    connecte('vendeur');
+    rendre('/ventes/dossiers/42');
+
+    const onglets = await screen.findByRole('navigation', { name: /onglets/i });
+    expect(within(onglets).getByRole('link', { name: /^dossiers$/i })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+});
+
+describe('OngletsDomaine — les vues d’un onglet', () => {
+  it('Pointage : cinq vues pour l’encadrement, dont la borne (Journal / Équipe / Clôture, ex-entrées de menu)', async () => {
+    connecte('chef_atelier');
+    rendre('/pointage/jour');
+
+    const vues = await screen.findByRole('navigation', { name: /vues/i });
+    expect(libelles(vues)).toEqual([
+      'Mon travail',
+      'Journal',
+      'Équipe',
+      'Clôture de période',
+      "Borne d'atelier",
+    ]);
+    expect(within(vues).getByRole('link', { name: /^journal$/i })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('technicien : ni Équipe, ni Clôture, ni Borne — les vues d’encadrement disparaissent', async () => {
+    connecte('technicien');
+    rendre('/pointage/jour');
+
+    const vues = await screen.findByRole('navigation', { name: /vues/i });
+    expect(libelles(vues)).toEqual(['Mon travail', 'Journal']);
+  });
+
+  /**
+   * Changement de design assumé (`navigation-modele.ts`, tête de `ONGLETS_ATELIER` → `depotPneus`) :
+   * « Au dépôt » et « À relancer » n'étaient plus deux vues navigables dans le modèle depuis la
+   * fusion Lot D — c'étaient deux écrans réels (`EcranHangarPneus` / `EcranJeuxARelancer`) fusionnés
+   * en UN SEUL écran à onglets INTERNES (`EcranHangarPneus`, `?onglet=a_relancer`, un paramètre qui
+   * n'apparaît jamais dans le pathname). `trouverCorrespondance` résout par pathname : les deux
+   * anciennes vues produisaient le même pathname `/pneus`, l'une aurait donc systématiquement volé
+   * la surbrillance de l'autre. Le modèle n'expose donc plus AUCUNE vue sur cet onglet — la
+   * distinction vit désormais uniquement dans l'écran, hors de cette rangée.
+   */
+  it('Dépôt pneus : aucune vue — « à relancer » est un onglet interne de l’écran, pas une entrée de menu', async () => {
+    connecte('receptionnaire');
+    rendre('/pneus');
+
+    const onglets = await screen.findByRole('navigation', { name: /onglets/i });
+    expect(within(onglets).getByRole('link', { name: /dépôt pneus/i })).toBeInTheDocument();
+    // Aucune seconde rangée : `depotPneus` ne porte plus de `vues` du tout dans le modèle.
+    expect(screen.queryByRole('navigation', { name: /vues/i })).toBeNull();
+    // Garde-fou anti-régression : si « à relancer » redevenait une entrée de menu (vue ou onglet),
+    // ce lien apparaîtrait quelque part dans le document et ferait rougir cette assertion.
+    expect(screen.queryByRole('link', { name: /à relancer/i })).not.toBeInTheDocument();
+  });
+
+  it('un onglet sans vue ne rend aucune seconde rangée', async () => {
+    connecte('chef_atelier');
+    rendre('/ordres-reparation');
+
+    await screen.findByRole('navigation', { name: /onglets/i });
+    expect(screen.queryByRole('navigation', { name: /vues/i })).toBeNull();
+  });
+});
+
+describe('OngletsDomaine — quand il ne rend rien', () => {
+  it('URL hors arborescence : rien du tout, jamais une rangée vide', async () => {
+    connecte('direction');
+    const { container } = rendre('/recherche');
+
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
+  /** Une rangée à un seul onglet n'offre aucun choix : elle ne ferait que voler 44 px de hauteur.
+   *  Cas réel — un technicien sur Facturation ne voit que « Factures » (Relances lui est fermé). */
+  it('un seul onglet visible pour le rôle : rien non plus', async () => {
+    connecte('technicien');
+    const { container } = rendre('/factures');
+
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
+  it('le même écran rend bien la rangée pour un rôle qui a deux onglets (contre-épreuve)', async () => {
+    connecte('comptable');
+    rendre('/factures');
+
+    const onglets = await screen.findByRole('navigation', { name: /onglets/i });
+    expect(libelles(onglets)).toEqual(['Factures', 'Relances']);
+  });
+});
+
+describe('OngletsDomaine — contraintes du produit', () => {
+  /**
+   * `/pneus` (l'ancien porteur de ce test) ne convient plus : `depotPneus` ne porte plus aucune vue
+   * depuis le retrait de « à relancer » (voir le describe ci-dessus), donc aucune rangée de vues ne
+   * s'y rend et la moitié « vue » de la garantie n'a plus de support. `/pointage/jour` rend les DEUX
+   * rangées en une seule fois — l'onglet Dépôt pneus (aucune vue, pour la moitié « onglet ») et la
+   * vue Journal de l'onglet Pointage (pour la moitié « vue ») — donc rien de la garantie d'origine
+   * n'est perdu, seul le porteur change.
+   */
+  it('conserve le site courant de l’URL sur chaque onglet et chaque vue', async () => {
+    connecte('chef_atelier');
+    rendre('/pointage/jour?site=site-secondaire');
+
+    const onglets = await screen.findByRole('navigation', { name: /onglets/i });
+    expect(within(onglets).getByRole('link', { name: /dépôt pneus/i })).toHaveAttribute(
+      'href',
+      '/pneus?site=site-secondaire',
+    );
+    const vues = screen.getByRole('navigation', { name: /vues/i });
+    expect(within(vues).getByRole('link', { name: /^journal$/i })).toHaveAttribute(
+      'href',
+      '/pointage/jour?site=site-secondaire',
+    );
+  });
+
+  /** Postes de comptoir tactiles (≥ 24 pouces) — §4.6 : plancher de 44 px partout, y compris sur
+   *  le troisième niveau, y compris sur desktop. */
+  it('cibles tactiles : onglets ET vues font au moins 44 px de haut', async () => {
+    connecte('chef_atelier');
+    rendre('/pointage/jour');
+
+    await screen.findByRole('navigation', { name: /vues/i });
+    for (const lien of screen.getAllByRole('link')) {
+      expect(lien.className).toContain('h-11');
+    }
+  });
+
+  /** De vrais liens, jamais un `Tabs` à état local : c'est ce qui rend Ctrl+clic, le bouton
+   *  Précédent et une URL partagée cohérents avec ce que montre l'écran. */
+  it('les onglets sont des liens, pas des boutons d’onglet à état local', async () => {
+    connecte('chef_atelier');
+    rendre('/pointage/jour');
+
+    await screen.findByRole('navigation', { name: /onglets/i });
+    expect(screen.queryAllByRole('tab')).toHaveLength(0);
+    expect(screen.getAllByRole('link').length).toBeGreaterThan(0);
+  });
+});

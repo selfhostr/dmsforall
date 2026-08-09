@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PageCurseur, ReponseDepotPneus } from '@dfa/shared';
 
@@ -48,6 +48,25 @@ const DEPOT_2: ReponseDepotPneus = {
   codeCase: 'Rack 5',
 };
 
+/** Fixture reprise de l'ancien `EcranJeuxARelancer.spec.tsx` (écran fusionné dans celui-ci,
+ *  onglet « À relancer »). */
+const DEPOT_A_RELANCER: ReponseDepotPneus = {
+  id: 'depot-7',
+  vehiculeId: 'vehicule-7',
+  siteId: 'site-1',
+  saison: 'ete',
+  statut: 'a_relancer',
+  codeCase: 'Rack 7',
+  dimension: '195/65 R15',
+  etat: null,
+  entreLe: '2023-01-01T08:00:00.000Z',
+  dernierMouvementLe: '2023-01-01T08:00:00.000Z',
+  motifSortie: null,
+  ligneOrDernierChangementId: null,
+  creeLe: '2023-01-01T08:00:00.000Z',
+  modifieLe: '2023-01-01T08:00:00.000Z',
+};
+
 const ERREUR_INTERNE_500 = {
   type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
   title: 'Erreur interne',
@@ -60,11 +79,11 @@ function pageDe(donnees: readonly ReponseDepotPneus[]): PageCurseur<ReponseDepot
   return { donnees, curseurSuivant: null, limite: 50 };
 }
 
-function rendre() {
+function rendre(entree = '/pneus?site=site-1') {
   const queryClient = creerQueryClientTest();
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/pneus?site=site-1']}>
+      <MemoryRouter initialEntries={[entree]}>
         <Routes>
           <Route path="/pneus" element={<EcranHangarPneus />} />
         </Routes>
@@ -72,6 +91,17 @@ function rendre() {
     </QueryClientProvider>,
   );
 }
+
+// Le hangar fusionné (Lot D) interroge désormais AUSSI `GET /depots-pneus/a-relancer` dès le
+// montage (onglet « À relancer », voir la note de tête d'`EcranHangarPneus.tsx`) — même quand le
+// test ne s'intéresse qu'à l'onglet « Dans le hangar ». Réponse vide par défaut pour ne pas faire
+// échouer les tests existants sur une requête non mockée (`onUnhandledRequest: 'error'`, voir
+// `src/test/setup.ts`) ; les tests dédiés à l'onglet « À relancer » ci-dessous la RECOUVRENT avec
+// leur propre `server.use(...)`, enregistré après celui-ci et donc prioritaire (MSW v2 : dernier
+// handler enregistré gagne pour un même chemin).
+beforeEach(() => {
+  server.use(http.get('/api/v1/depots-pneus/a-relancer', () => HttpResponse.json(pageDe([]))));
+});
 
 describe('EcranHangarPneus', () => {
   it('affiche nominalement les jeux du hangar', async () => {
@@ -368,5 +398,109 @@ describe('EcranHangarPneus', () => {
     expect(await screen.findByText('B3', {}, { timeout: 2000 })).toBeInTheDocument();
     expect(screen.getByText('Meier Urs')).toBeInTheDocument();
     expect(screen.getByText(/Volkswagen Golf/)).toBeInTheDocument();
+  });
+
+  /**
+   * Fusion Lot D (`docs/refonte-navigation.md`) : `EcranJeuxARelancer` est supprimé, sa liste
+   * devient l'onglet « À relancer » de cet écran. Les quatre tests ci-dessous reprennent
+   * littéralement la couverture de l'ancien `EcranJeuxARelancer.spec.tsx` (mêmes assertions,
+   * aucune affaiblie), adaptée pour passer par le clic d'onglet plutôt que par une route dédiée.
+   */
+  describe('onglet « À relancer » (fusion Lot D)', () => {
+    it(
+      "atteignable SANS site choisi — capacité tenant entier de l'ancien écran préservée " +
+        "(contrairement à l'onglet « Dans le hangar », bloqué sans site)",
+      async () => {
+        const utilisateur = userEvent.setup();
+        server.use(
+          http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+          http.get('/api/v1/depots-pneus/a-relancer', ({ request }) => {
+            // Preuve que la vue est bien tenant entier : aucun `siteId` envoyé.
+            expect(new URL(request.url).searchParams.get('siteId')).toBeNull();
+            return HttpResponse.json(pageDe([DEPOT_A_RELANCER]));
+          }),
+        );
+
+        // Pas de `?site=` dans l'URL : l'onglet « Dans le hangar » (par défaut) doit réclamer un
+        // site, l'onglet « À relancer » non.
+        rendre('/pneus');
+
+        expect(await screen.findByText('Choisissez un site')).toBeInTheDocument();
+
+        await utilisateur.click(screen.getByRole('tab', { name: 'À relancer' }));
+
+        expect(await screen.findByText('Rack 7')).toBeInTheDocument();
+        expect(screen.queryByText('Choisissez un site')).not.toBeInTheDocument();
+      },
+    );
+
+    it('état vide : aucun jeu à relancer', async () => {
+      const utilisateur = userEvent.setup();
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/sites/site-1/hangar-pneus', () => HttpResponse.json(pageDe([]))),
+        http.get('/api/v1/depots-pneus/a-relancer', () => HttpResponse.json(pageDe([]))),
+      );
+
+      rendre();
+
+      await utilisateur.click(await screen.findByRole('tab', { name: 'À relancer' }));
+
+      expect(await screen.findByText('Aucun jeu à relancer.')).toBeInTheDocument();
+    });
+
+    it(
+      'ne propose pas « Changer de saison » — défaut corrigé : cette liste ne contient QUE des ' +
+        'dépôts au statut `a_relancer`, un statut où le serveur rejette systématiquement ce geste ' +
+        '(autorisé seulement `en_depot`/`monte`, même condition que `CarteJeuPneu`) — « Sortir » ' +
+        'reste bien proposé, lui, à un rôle habilité (`chef_atelier`, session de test par défaut)',
+      async () => {
+        const utilisateur = userEvent.setup();
+        server.use(
+          http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+          http.get('/api/v1/sites/site-1/hangar-pneus', () => HttpResponse.json(pageDe([]))),
+          http.get('/api/v1/depots-pneus/a-relancer', () =>
+            HttpResponse.json(pageDe([DEPOT_A_RELANCER])),
+          ),
+        );
+
+        rendre();
+
+        await utilisateur.click(await screen.findByRole('tab', { name: 'À relancer' }));
+
+        expect(await screen.findByRole('button', { name: 'Sortir' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Changer de saison' })).not.toBeInTheDocument();
+      },
+    );
+
+    it("erreur : message actionnable avec retry, propre à l'onglet (le plan reste consultable)", async () => {
+      const utilisateur = userEvent.setup();
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/sites/site-1/hangar-pneus', () => HttpResponse.json(pageDe([DEPOT]))),
+        http.get('/api/v1/depots-pneus/a-relancer', () =>
+          HttpResponse.json(
+            {
+              type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
+              title: 'Erreur interne',
+              status: 500,
+              code: 'ERREUR_INTERNE',
+              instance: 'req-1',
+            },
+            { status: 500, headers: { 'content-type': 'application/problem+json' } },
+          ),
+        ),
+      );
+
+      rendre();
+
+      await screen.findByText('Rack 3');
+      await utilisateur.click(screen.getByRole('tab', { name: 'À relancer' }));
+
+      expect(
+        await screen.findByText("Impossible d'afficher les jeux à relancer"),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
+    });
   });
 });

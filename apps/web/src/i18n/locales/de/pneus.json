@@ -50,9 +50,6 @@
       }
     },
     "filtres": {
-      "statut": "Status",
-      "statutActifs": "Alle Sätze im Hotel",
-      "statutARelancer": "Nur Nachfassen",
       "saison": "Saison",
       "saisonToutes": "Alle",
       "repere": "Nach Standort filtern",
@@ -61,12 +58,12 @@
     "vide": {
       "titre": "Reifenhotel",
       "filtreDescription": "Kein Satz entspricht diesem Standort.",
-      "aucunARelancer": "Aktuell kein Satz zum Nachfassen.",
       "premierUsage": "Noch kein Reifensatz in diesem Hotel eingelagert."
     },
-    "lienARelancer": {
-      "description": "Möglicherweise befinden sich seit über zwei Jahren vergessene Sätze in diesem Hotel.",
-      "lien": "Sätze zum Nachfassen anzeigen"
+    "onglets": {
+      "ariaLabel": "Ansicht des Reifenhotels",
+      "actifs": "Im Hotel",
+      "aRelancer": "Nachfassen"
     }
   },
   "creation": {

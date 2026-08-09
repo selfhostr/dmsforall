@@ -2,6 +2,58 @@
   "principale": {
     "aria": "Hauptnavigation"
   },
+  "entrees": {
+    "aujourdhui": "Heute",
+    "atelier": "Werkstatt",
+    "clientsVehicules": "Kunden & Fahrzeuge",
+    "pieces": "Teile",
+    "facturation": "Abrechnung",
+    "ventes": "Verkauf",
+    "reglages": "Einstellungen"
+  },
+  "onglets": {
+    "aria": "Register — {domaine}",
+    "vuesAria": "Ansichten — {onglet}",
+    "aujourdhuiAccueil": "Startseite",
+    "aujourdhuiTableauBord": "Übersicht",
+    "atelierOrdresReparation": "Reparaturaufträge",
+    "atelierPlanning": "Planung",
+    "atelierPointage": "Zeiterfassung",
+    "atelierDepotPneus": "Reifenhotel",
+    "pointageMonTravail": "Meine Arbeit",
+    "pointageJournal": "Journal",
+    "pointageEquipe": "Team",
+    "pointageCloture": "Periodenabschluss",
+    "pointageBorne": "Werkstatt-Terminal",
+    "pneusAuDepot": "Eingelagert",
+    "pneusARelancer": "Nachfassen",
+    "clients": "Kunden",
+    "clientsTous": "Alle",
+    "clientsDoublons": "Dubletten",
+    "vehicules": "Fahrzeuge",
+    "piecesComptoir": "Theke",
+    "piecesArticles": "Artikel",
+    "piecesArticlesTous": "Alle",
+    "piecesReservations": "Reservierungen",
+    "piecesApprovisionnement": "Beschaffung",
+    "piecesACommander": "Zu bestellen",
+    "piecesCommandes": "Bestellungen",
+    "piecesFournisseurs": "Lieferanten",
+    "piecesConsignes": "Pfand",
+    "facturationFactures": "Rechnungen",
+    "facturationEncaissements": "Zahlungseingänge",
+    "facturationRelances": "Mahnungen",
+    "facturationExportFiduciaire": "Treuhand-Export",
+    "ventesDossiers": "Dossiers",
+    "ventesParc": "Fahrzeugbestand",
+    "ventesSuivi": "Finanzierung & Garantie",
+    "reglagesAtelier": "Werkstatt",
+    "reglagesSites": "Standorte",
+    "reglagesFacturation": "Abrechnung",
+    "reglagesTarifs": "Tarife & Leistungen",
+    "reglagesPieces": "Teile",
+    "reglagesRelances": "Mahnstufen"
+  },
   "liens": {
     "accueil": "Startseite",
     "tableauBord": "Übersicht",
@@ -43,6 +95,9 @@
   },
   "menu": {
     "ouvrir": "Menü öffnen"
+  },
+  "evitement": {
+    "contenu": "Zum Inhalt springen"
   },
   "filAriane": {
     "aria": "Navigationspfad"

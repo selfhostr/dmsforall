@@ -1,5 +1,9 @@
 {
   "titre": "Timbratura",
+  "vues": {
+    "journal": "Registro",
+    "equipe": "Team"
+  },
   "identification": {
     "titre": "Chi sei?",
     "saisisseCode": "Inserisci codice PIN",
@@ -201,6 +205,7 @@
       "actions": "Azioni"
     },
     "corriger": "Correggi",
+    "clotureAction": "Chiudi il periodo",
     "parOr": {
       "rechercherOrLabel": "Numero ordine o veicolo",
       "rechercherOrPlaceholder": "Cerca un ordine…",

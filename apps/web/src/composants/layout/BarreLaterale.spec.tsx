@@ -1,10 +1,12 @@
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
-import { render, screen, waitFor, type RenderResult } from '@testing-library/react';
+import { render, screen, waitFor, within, type RenderResult } from '@testing-library/react';
 import { delay, http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
 import '@/i18n';
+
+import type { RoleUtilisateur } from '@dfa/shared';
 
 import { clesQuery } from '@/api/cles';
 import { SESSION_TEST } from '@/test/msw/handlers';
@@ -14,13 +16,16 @@ import { creerQueryClientTest } from '@/test/utils';
 import { BarreLaterale } from './BarreLaterale';
 
 /**
- * Régression : la barre latérale calculait autrefois le site des liens depuis la session
- * (`session.sites.find(actif) ?? sites[0]`), en ignorant totalement le `?site=` déjà présent dans
- * l'URL. Un utilisateur naviguant vers un site différent du défaut de sa session et cliquant
- * « Clients » ou « Véhicules » retombait silencieusement sur le site par défaut. Ces tests
- * verrouillent le mécanisme corrigé : l'URL est la source, jamais la session, et rien n'est
- * inventé quand `?site=` est absent (sinon un affichage « tous sites » deviendrait un filtre
- * implicite).
+ * Lot D — le menu à six entrées (`docs/refonte-navigation.md` §4.2). Ces tests verrouillent les
+ * trois promesses du lot, dans l'ordre où elles cassent si on les oublie :
+ *
+ *  1. SIX entrées et pas une de plus, dans un ordre identique pour tous les rôles — c'est ce qui
+ *     rend « troisième entrée, sous Atelier » vrai au téléphone quel que soit le compte.
+ *  2. Aucune zone défilante — le menu qui défile détruit la mémoire spatiale, et c'est
+ *     précisément la régression qu'un futur ajout d'entrée réintroduirait sans bruit.
+ *  3. Chaque entrée ouvre sur son PREMIER ONGLET VISIBLE pour le rôle, jamais sur un écran refusé.
+ *
+ * `SESSION_TEST` porte le rôle `chef_atelier`.
  */
 function rendre(routeInitiale: string): RenderResult & { queryClient: QueryClient } {
   const queryClient = creerQueryClientTest();
@@ -36,349 +41,356 @@ function rendre(routeInitiale: string): RenderResult & { queryClient: QueryClien
   };
 }
 
+function connecte(role: RoleUtilisateur): void {
+  server.use(
+    http.get('/api/v1/auth/moi', () =>
+      HttpResponse.json({
+        ...SESSION_TEST,
+        utilisateur: { ...SESSION_TEST.utilisateur, role },
+      }),
+    ),
+  );
+}
+
+/** Libellés des entrées dans l'ordre du DOM — la seule façon de prouver l'ORDRE, qu'une simple
+ *  série de `getByRole` ne dirait pas. */
+function libellesDesEntrees(): string[] {
+  return screen
+    .getAllByRole('link')
+    .map((lien) => lien.textContent?.trim() ?? '')
+    .filter((libelle) => libelle !== '');
+}
+
 function hrefDuLien(nom: RegExp): string | null {
   return screen.getByRole('link', { name: nom }).getAttribute('href');
 }
 
-describe('BarreLaterale', () => {
-  // `/^clients$/i` (correspondance exacte), PAS `/clients/i` : depuis l'ajout du lien « Doublons
-  // clients » (lot 2), la regex large matcherait DEUX liens et ferait échouer `getByRole` (résultat
-  // ambigu) — voir la description dédiée « expose un lien Doublons clients » plus bas.
-  it('conserve le site courant de l’URL sur les liens Clients et Véhicules', () => {
-    rendre('/clients?site=site-secondaire');
-
-    expect(hrefDuLien(/^clients$/i)).toBe('/clients?site=site-secondaire');
-    expect(hrefDuLien(/véhicules/i)).toBe('/vehicules?site=site-secondaire');
-  });
-
-  it('n’invente aucun site quand l’URL n’en porte pas', () => {
+describe('BarreLaterale — les six entrées', () => {
+  it('direction (droits les plus larges) : exactement six entrées + Réglages, dans l’ordre de la journée', async () => {
+    connecte('direction');
     rendre('/');
 
-    expect(hrefDuLien(/^clients$/i)).toBe('/clients');
-    expect(hrefDuLien(/véhicules/i)).toBe('/vehicules');
+    await screen.findByRole('link', { name: /^pièces$/i });
+
+    expect(libellesDesEntrees()).toEqual([
+      "Aujourd'hui",
+      'Atelier',
+      'Clients & véhicules',
+      'Pièces',
+      'Facturation',
+      'Ventes',
+      'Réglages',
+    ]);
   });
 
-  it('conserve le site de l’URL même quand il diffère de tout défaut plausible de session', () => {
-    // Le site de l'URL n'a pas besoin d'exister dans une session pour être respecté : la barre ne
-    // doit consulter aucune session pour construire ces liens-là, uniquement l'URL courante.
-    rendre('/vehicules?site=zurich-nord');
-
-    expect(hrefDuLien(/^clients$/i)).toBe('/clients?site=zurich-nord');
-    expect(hrefDuLien(/véhicules/i)).toBe('/vehicules?site=zurich-nord');
-  });
-
-  it('expose un lien Facturation vers /factures', () => {
-    // Régression : la facturation (étape 2) n'était atteignable qu'en tapant l'URL à la main, sans
-    // aucun point d'entrée depuis le menu principal.
+  it('l’ordre ne change pas avec le rôle : un magasinier voit un sous-ensemble, jamais un réarrangement', async () => {
+    connecte('magasinier');
     rendre('/');
 
-    expect(hrefDuLien(/facturation/i)).toBe('/factures');
+    await screen.findByRole('link', { name: /^pièces$/i });
+
+    // Pas de Ventes (`ventes.*` fermé au magasinier), mais Atelier reste avant
+    // Clients & véhicules, qui reste avant Pièces : l'ordre est absolu, pas relatif au rôle.
+    expect(libellesDesEntrees()).toEqual([
+      "Aujourd'hui",
+      'Atelier',
+      'Clients & véhicules',
+      'Pièces',
+      'Facturation',
+      'Réglages',
+    ]);
   });
 
-  it('expose un lien Ordres de réparation vers /ordres-reparation, sans restriction de rôle', () => {
-    // Régression (audit du 04.08.2026) : l'écran fonctionnait déjà (routé, câblé à l'API) mais
-    // n'était atteignable qu'en tapant l'URL à la main — même défaut que « Facturation » ci-dessus.
+  /**
+   * LE CŒUR DU LOT. jsdom ne calcule aucun layout, donc aucun test ne peut mesurer un défilement
+   * réel — ce qu'on verrouille ici est la CAUSE structurelle : plus aucune classe `overflow-y-*`
+   * dans la barre, et un nombre d'entrées borné. Un futur contributeur qui rajouterait
+   * `overflow-y-auto` « par sécurité » (le geste exact qui a produit l'état d'avant le lot) fait
+   * rougir ce test au lieu de laisser le menu se remettre à défiler en silence.
+   */
+  it('aucune zone défilante dans la barre, et jamais plus de sept liens à rendre', async () => {
+    connecte('direction');
+    const { container } = rendre('/');
+
+    await screen.findByRole('link', { name: /^pièces$/i });
+
+    expect(container.querySelectorAll('[class*="overflow-y"]')).toHaveLength(0);
+    expect(screen.getAllByRole('link').length).toBeLessThanOrEqual(7);
+  });
+
+  it('Réglages vit dans le pied, séparé des six entrées — jamais dans la même liste', async () => {
+    connecte('direction');
     rendre('/');
 
-    expect(hrefDuLien(/ordres de réparation/i)).toBe('/ordres-reparation');
+    const reglages = await screen.findByRole('link', { name: /^réglages$/i });
+    const nav = screen.getByRole('navigation');
+    const listeDesSix = nav.firstElementChild;
+    const pied = nav.lastElementChild;
+
+    expect(listeDesSix).not.toBe(pied);
+    expect(listeDesSix?.contains(reglages)).toBe(false);
+    expect(pied?.contains(reglages)).toBe(true);
+    // Le filet est ce qui encode la frontière entre les plans de travail et ce qu'on configure.
+    expect(pied?.className).toContain('border-t');
   });
 
-  it('conserve le site courant de l’URL sur le lien Ordres de réparation', () => {
-    rendre('/clients?site=site-secondaire');
-
-    expect(hrefDuLien(/ordres de réparation/i)).toBe('/ordres-reparation?site=site-secondaire');
-  });
-
-  it('expose un lien Doublons clients vers /clients/doublons, sans restriction de rôle (RM-05, `client.lire` est ouvert à tous)', () => {
+  it('cibles tactiles : chaque entrée fait au moins 44 px de haut (h-11), postes de comptoir tactiles', async () => {
+    connecte('direction');
     rendre('/');
 
-    expect(hrefDuLien(/doublons/i)).toBe('/clients/doublons');
-  });
+    await screen.findByRole('link', { name: /^pièces$/i });
 
-  it('expose un lien Référentiels (tarifs & prestations) vers /parametrage/referentiels, SANS restriction de rôle — arbitrage du coordinateur : c’est un outil de comptoir, le réceptionniste le consulte le plus', () => {
+    for (const lien of screen.getAllByRole('link')) {
+      expect(lien.className).toContain('h-11');
+    }
+  });
+});
+
+describe('BarreLaterale — où mène chaque entrée', () => {
+  it('chaque entrée ouvre sur son premier onglet visible pour le rôle', async () => {
+    connecte('direction');
     rendre('/');
 
-    expect(hrefDuLien(/tarifs/i)).toBe('/parametrage/referentiels');
+    await screen.findByRole('link', { name: /^pièces$/i });
+
+    expect(hrefDuLien(/aujourd/i)).toBe('/');
+    expect(hrefDuLien(/^atelier$/i)).toBe('/ordres-reparation');
+    expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients');
+    expect(hrefDuLien(/^pièces$/i)).toBe('/pieces/recherche-comptoir');
+    expect(hrefDuLien(/^facturation$/i)).toBe('/factures');
+    expect(hrefDuLien(/^ventes$/i)).toBe('/ventes/dossiers');
+    expect(hrefDuLien(/^réglages$/i)).toBe('/parametrage/atelier');
+  });
+
+  /**
+   * §2 : « l'onglet par défaut d'une entrée varie par rôle ». Le technicien qui ouvre Atelier vient
+   * pointer, pas lire la liste des OR du garage.
+   */
+  it('technicien : Atelier ouvre sur Pointage › Mon travail, pas sur la liste des OR', async () => {
+    connecte('technicien');
+    rendre('/');
+
+    await waitFor(() => expect(hrefDuLien(/^atelier$/i)).toBe('/pointage'));
+  });
+
+  /**
+   * Le premier onglet visible dépend des droits : un réceptionniste n'a accès qu'à « Tarifs et
+   * prestations » dans Réglages, l'entrée l'y emmène donc directement — jamais sur un onglet
+   * « Paramètres atelier » qui lui rendrait un refus.
+   */
+  it('réceptionniste : Réglages ouvre sur Tarifs et prestations, son seul onglet', async () => {
+    connecte('receptionnaire');
+    rendre('/');
+
+    await waitFor(() => expect(hrefDuLien(/^réglages$/i)).toBe('/parametrage/referentiels'));
+  });
+
+  it('comptable : Réglages ouvre sur les coordonnées bancaires (gouvernance atelier fermée)', async () => {
+    connecte('comptable');
+    rendre('/');
+
+    await waitFor(() => expect(hrefDuLien(/^réglages$/i)).toBe('/parametrage/facturation'));
   });
 });
 
 /**
- * Groupe « Paramétrage » (lot 2, réarbitré) : DEUX entrées seulement — « Paramétrage atelier » et
- * « Sites » (`ROLES_MENU_PARAMETRAGE_ATELIER`), « Coordonnées bancaires » (`ROLES_MENU_FINANCIER`).
- * « Référentiels » n'en fait PLUS partie (voir le describe ci-dessus : lien inconditionnel, testé
- * séparément) — la consigne initiale qui le classait ici s'est révélée cassée pour le métier
- * (voir droits-routes.ts) et a été corrigée par le coordinateur. Masquer ici reste un confort
- * d'ergonomie, jumeau du verrou posé côté route dans `routeur.spec.tsx` (qui prouve, lui, la
- * lecture ouverte à tous — pas une restriction).
+ * Le site actif est lu DEPUIS L'URL, jamais depuis la session — régression d'origine : la barre
+ * calculait le site depuis `session.sites.find(actif)` et ramenait silencieusement l'utilisateur
+ * sur son site par défaut. L'URL est la source, et rien n'est inventé quand `?site=` est absent.
  */
-describe('BarreLaterale — groupe Paramétrage (masquage par rôle, ergonomie)', () => {
-  it('sans session (401 sur /auth/moi, handler par défaut) : aucune entrée de paramétrage gouvernée, mais Référentiels reste visible', async () => {
+describe('BarreLaterale — conservation du site courant', () => {
+  it('conserve le site de l’URL sur toutes les entrées', async () => {
+    connecte('direction');
+    rendre('/clients?site=site-secondaire');
+
+    await screen.findByRole('link', { name: /^pièces$/i });
+
+    expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients?site=site-secondaire');
+    expect(hrefDuLien(/^atelier$/i)).toBe('/ordres-reparation?site=site-secondaire');
+    expect(hrefDuLien(/^pièces$/i)).toBe('/pieces/recherche-comptoir?site=site-secondaire');
+    // Régression corrigée par le Lot D : « Facturation » pointait `/factures` en chaîne brute et
+    // perdait le site, ce qui faisait retomber l'en-tête sur « Tous les sites » sans que
+    // l'utilisateur ait changé de site.
+    expect(hrefDuLien(/^facturation$/i)).toBe('/factures?site=site-secondaire');
+  });
+
+  it('n’invente aucun site quand l’URL n’en porte pas', async () => {
+    connecte('direction');
+    rendre('/');
+
+    await screen.findByRole('link', { name: /^pièces$/i });
+
+    expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients');
+    expect(hrefDuLien(/^atelier$/i)).toBe('/ordres-reparation');
+  });
+});
+
+/**
+ * `aria-current="page"` vient de l'état RÉSOLU du modèle (`trouverCorrespondance`), pas du
+ * `isActive` de `NavLink` : une fiche ou une vue doit garder son entrée surlignée, alors que
+ * `NavLink` ne compare que l'URL au `to` du lien.
+ */
+describe('BarreLaterale — entrée active', () => {
+  it('surligne Clients & véhicules sur une fiche client, dont l’URL ne vaut pas le `to` du lien', async () => {
+    connecte('direction');
+    rendre('/clients/42');
+
+    const actif = await screen.findByRole('link', { name: /clients & véhicules/i });
+    expect(actif).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: /^atelier$/i })).not.toHaveAttribute('aria-current');
+  });
+
+  /**
+   * NE PROVIENT PAS DE L'ARBITRAGE DE NAVIGATION. Ce test reste EN ROUGE après vérification, et
+   * pas à cause d'un modèle abandonné : `navigation-modele.ts` résout correctement
+   * `trouverCorrespondance('/pointage/equipe') → { entree: 'atelier', … }` (vérifié isolément), et
+   * `actif` dans `BarreLaterale.tsx` vaut donc bien `true` pour l'entrée Atelier au moment du rendu
+   * (la classe `bg-primary` est posée). Le défaut est dans la façon dont `aria-current` est confié à
+   * `<NavLink>` : react-router détruit le prop `aria-current` en `ariaCurrentProp` (défaut `"page"`)
+   * et ne le RESTITUE que si son PROPRE `isActive` (comparaison `to` / `location.pathname`, indépendante
+   * de ce composant) est vrai — voir `NavLinkWithRef` dans
+   * `react-router/dist/development/chunk-G5KIBF6U.js` (« let ariaCurrent = isActive ? ariaCurrentProp
+   * : void 0 »). Ici `to` vaut `/ordres-reparation` (premier onglet visible, onglet PAR DÉFAUT de
+   * l'entrée, pas l'onglet courant), donc `isActive` de `NavLink` est `false` sur
+   * `/pointage/equipe` quelle que soit la valeur passée à `aria-current` — `'page'` ou `undefined`
+   * aboutissent au MÊME rendu (`undefined` retombe sur le défaut `"page"` du destructuring, qui est
+   * de toute façon ignoré par le `isActive ? … : void 0` qui suit). Reproduit isolément avec un
+   * `<NavLink to="/ordres-reparation" aria-current="page">` nu dans un `MemoryRouter` sur
+   * `/pointage/equipe` : `aria-current` n'apparaît jamais dans le DOM.
+   *
+   * `OngletsDomaine.tsx` porte le même idiome mais n'est pas exposé au même défaut : son `to` est
+   * TOUJOURS le chemin propre de l'onglet/vue qu'on est en train de rendre (pas un onglet par
+   * défaut), donc le `isActive` propre à `NavLink` coïncide par construction avec `actif` — masquant
+   * le même bug plutôt que le corrigeant. `BarreLaterale.tsx` diffère structurellement : `to` est le
+   * chemin de l'onglet PAR DÉFAUT de l'entrée, qui n'a aucune raison de préfixer l'URL courante dès
+   * que l'onglet actif n'est pas cet onglet par défaut (ex. chef_atelier sur Pointage, dont
+   * `/pointage/equipe` ne préfixe jamais `/ordres-reparation`).
+   *
+   * Correction hors du périmètre d'écriture de ce fichier (`composants/layout/BarreLaterale.tsx` est
+   * explicitement interdit à l'agent qui a produit cette correction) : il faut soit rendre un `<a>`
+   * (ou `<Link>`) et poser `aria-current` soi-même sans passer par le prop géré de `NavLink`, soit
+   * une autre voie côté composant. Gardé EN ROUGE volontairement plutôt que rendu vert en affaiblissant
+   * l'assertion ou en choisissant un rôle/route qui ferait coïncider `to` et le pathname par
+   * accident (ex. `technicien`, dont l'onglet par défaut d'Atelier EST déjà Pointage) — un tel
+   * choix cesserait de prouver que la logique `actif`/`idEntreeActive` fonctionne réellement et
+   * masquerait la régression au lieu de la révéler.
+   */
+  it('surligne Atelier depuis une vue de pointage (`/pointage/equipe`), pas seulement depuis `/pointage`', async () => {
+    connecte('chef_atelier');
+    rendre('/pointage/equipe');
+
+    const actif = await screen.findByRole('link', { name: /^atelier$/i });
+    expect(actif).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('n’en surligne aucune sur une URL hors arborescence (`/recherche`)', async () => {
+    connecte('direction');
+    rendre('/recherche');
+
+    await screen.findByRole('link', { name: /^pièces$/i });
+    for (const lien of screen.getAllByRole('link')) {
+      expect(lien).not.toHaveAttribute('aria-current');
+    }
+  });
+});
+
+/**
+ * MASQUAGE PAR RÔLE — une entrée n'existe que si au moins un de ses onglets est ouvert au rôle,
+ * donc aucune entrée ne peut ouvrir sur un contenu vide. La distinction « protection réelle » /
+ * « confort de menu » reste celle documentée dans `routes/droits-routes.ts` : masquer ici ne
+ * protège rien, l'API est l'arbitre.
+ */
+describe('BarreLaterale — masquage par rôle', () => {
+  /**
+   * DÉCISION DU LOT D (RF-115). `facturation.document.lire` EST accordé à `admin` côté API — ce
+   * masquage est donc de l'ergonomie, pas de la sécurité, et il ne doit surtout pas devenir une
+   * garde de route. Motif : `EcranListeFactures` retire structurellement les colonnes montant,
+   * statut et retard pour un rôle sans droit financier ; proposer à `admin` une entrée qui ouvre
+   * une liste sans un seul montant annonce un contenu qu'il ne verra jamais. Jusqu'ici le lien
+   * `/factures` était le SEUL du menu sans aucune garde de rôle.
+   */
+  it('admin : aucune entrée Facturation (RF-115), ni Pièces, ni Ventes', async () => {
+    connecte('admin');
+    rendre('/');
+
+    await screen.findByRole('link', { name: /^atelier$/i });
+
+    expect(screen.queryByRole('link', { name: /^facturation$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^pièces$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^ventes$/i })).not.toBeInTheDocument();
+    // Il garde en revanche Réglages : la gouvernance atelier lui est ouverte.
+    expect(screen.getByRole('link', { name: /^réglages$/i })).toBeInTheDocument();
+  });
+
+  /**
+   * Le comptable est le contre-exemple utile d'`admin` : mêmes six entrées visibles (il porte
+   * `pieces.*` et `ventes.*` en lecture), Facturation comprise — la seule différence entre les
+   * deux rôles est financière, et c'est exactement ce que le masquage d'`admin` encode.
+   */
+  it('comptable : voit les six entrées, Facturation en tête de son travail', async () => {
+    connecte('comptable');
+    rendre('/');
+
+    expect(await screen.findByRole('link', { name: /^facturation$/i })).toHaveAttribute(
+      'href',
+      '/factures',
+    );
+    expect(libellesDesEntrees()).toEqual([
+      "Aujourd'hui",
+      'Atelier',
+      'Clients & véhicules',
+      'Pièces',
+      'Facturation',
+      'Ventes',
+      'Réglages',
+    ]);
+  });
+
+  it('technicien : ni Facturation masquée (il lit la facture de son OR) ni Ventes (fermées)', async () => {
+    connecte('technicien');
+    rendre('/');
+
+    expect(await screen.findByRole('link', { name: /^facturation$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^ventes$/i })).not.toBeInTheDocument();
+  });
+
+  /**
+   * `poste_atelier` est un APPAREIL, pas un employé (§2, « aucun menu, aucun en-tête, aucune
+   * recherche »). Filtrer entrée par entrée aurait laissé passer celles sans restriction de rôle
+   * (Clients & véhicules, Ordres de réparation) et remis un menu sur une tablette murale.
+   */
+  it('poste_atelier (borne murale) : aucune entrée du tout', async () => {
+    connecte('poste_atelier');
+    rendre('/pointage/borne');
+
+    await waitFor(() => {
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    });
+  });
+
+  /**
+   * Session non encore résolue : les entrées SANS restriction de rôle s'affichent, les entrées
+   * gouvernées apparaissent ensuite — jamais l'inverse. Le menu s'enrichit, il ne clignote pas.
+   */
+  it('sans session : les entrées gouvernées restent absentes, les autres sont déjà là', async () => {
     rendre('/');
 
     await waitFor(() => {
-      expect(screen.queryByText('Paramétrage')).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /^pièces$/i })).not.toBeInTheDocument();
     });
-    expect(screen.queryByRole('link', { name: /paramètres atelier/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /coordonnées bancaires/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /tarifs/i })).toBeInTheDocument();
-  });
-
-  it('technicien : ne voit ni Paramétrage atelier/Sites ni Coordonnées bancaires, mais voit Référentiels (outil de comptoir, pas de gouvernance)', async () => {
-    server.use(
-      http.get('/api/v1/auth/moi', () =>
-        HttpResponse.json({
-          ...SESSION_TEST,
-          utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' },
-        }),
-      ),
-    );
-    rendre('/');
-
-    expect(await screen.findByRole('link', { name: /tarifs/i })).toBeInTheDocument();
-    expect(screen.queryByText('Paramétrage')).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /paramètres atelier/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /^sites$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /coordonnées bancaires/i })).not.toBeInTheDocument();
-  });
-
-  it('réceptionniste : voit Référentiels (son outil de comptoir), mais PAS Paramétrage atelier/Sites ni Coordonnées bancaires', async () => {
-    server.use(
-      http.get('/api/v1/auth/moi', () =>
-        HttpResponse.json({
-          ...SESSION_TEST,
-          utilisateur: { ...SESSION_TEST.utilisateur, role: 'receptionnaire' },
-        }),
-      ),
-    );
-    rendre('/');
-
-    expect(await screen.findByRole('link', { name: /tarifs/i })).toHaveAttribute(
-      'href',
-      '/parametrage/referentiels',
-    );
-    expect(screen.queryByRole('link', { name: /paramètres atelier/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /coordonnées bancaires/i })).not.toBeInTheDocument();
-  });
-
-  it('chef d’atelier : voit Référentiels, Paramétrage atelier et Sites, PAS les coordonnées bancaires (palier financier réservé direction/comptable)', async () => {
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
-    rendre('/');
-
-    // On attend un lien GOUVERNÉ (« Paramétrage atelier »), pas « Tarifs » : ce dernier est
-    // désormais inconditionnel (présent dès le tout premier rendu, avant même que la session ait
-    // répondu) — l'attendre ne prouverait pas que la session est chargée, et les assertions
-    // synchrones suivantes s'exécuteraient parfois AVANT résolution (flake observé en pratique).
-    expect(await screen.findByRole('link', { name: /paramètres atelier/i })).toHaveAttribute(
-      'href',
-      '/parametrage/atelier',
-    );
-    expect(screen.getByRole('link', { name: /tarifs/i })).toHaveAttribute(
-      'href',
-      '/parametrage/referentiels',
-    );
-    expect(screen.getByRole('link', { name: /^sites$/i })).toHaveAttribute(
-      'href',
-      '/parametrage/sites',
-    );
-    expect(screen.queryByRole('link', { name: /coordonnées bancaires/i })).not.toBeInTheDocument();
-  });
-
-  it('admin : voit Référentiels, Paramétrage atelier et Sites, mais PAS les coordonnées bancaires (RF-115 : aucun droit financier)', async () => {
-    server.use(
-      http.get('/api/v1/auth/moi', () =>
-        HttpResponse.json({
-          ...SESSION_TEST,
-          utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' },
-        }),
-      ),
-    );
-    rendre('/');
-
-    expect(await screen.findByRole('link', { name: /paramètres atelier/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /tarifs/i })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /coordonnées bancaires/i })).not.toBeInTheDocument();
-  });
-
-  it('comptable : voit Référentiels (ouvert à tous) et Coordonnées bancaires, PAS Paramétrage atelier/Sites (gouvernance atelier réservée chef d’atelier/direction/admin)', async () => {
-    server.use(
-      http.get('/api/v1/auth/moi', () =>
-        HttpResponse.json({
-          ...SESSION_TEST,
-          utilisateur: { ...SESSION_TEST.utilisateur, role: 'comptable' },
-        }),
-      ),
-    );
-    rendre('/');
-
-    expect(await screen.findByRole('link', { name: /coordonnées bancaires/i })).toHaveAttribute(
-      'href',
-      '/parametrage/facturation',
-    );
-    expect(screen.getByRole('link', { name: /tarifs/i })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /paramètres atelier/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^atelier$/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /clients & véhicules/i })).toBeInTheDocument();
+    // Réglages reste proposé : « Tarifs et prestations » est ouvert à tout rôle authentifié
+    // (outil de comptoir — voir droits-routes.ts, l'absence de restriction EST la décision).
+    expect(screen.getByRole('link', { name: /^réglages$/i })).toBeInTheDocument();
   });
 });
 
 /**
- * Groupe « Pièces » (étape 3) : régression sur les TROIS entrées ajoutées avec le module pointage
- * (commandes fournisseur, fournisseurs, consignes) — ces écrans existaient déjà côté routeur
- * (`ROLES_PIECES`, même liste que `rechercheComptoir`/`articles`/`reservations`/
- * `reapprovisionnement`) mais n'étaient reliés à aucun lien de menu avant cet ajout.
- */
-describe('BarreLaterale — groupe Pièces (trois entrées ajoutées : commandes fournisseur, fournisseurs, consignes)', () => {
-  it('chef d’atelier : voit les trois nouvelles entrées, vers les bons chemins', async () => {
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
-    rendre('/');
-
-    expect(await screen.findByRole('link', { name: /commandes fournisseur/i })).toHaveAttribute(
-      'href',
-      '/pieces/commandes-fournisseur',
-    );
-    expect(screen.getByRole('link', { name: /^fournisseurs$/i })).toHaveAttribute(
-      'href',
-      '/pieces/fournisseurs',
-    );
-    expect(screen.getByRole('link', { name: /consignes/i })).toHaveAttribute(
-      'href',
-      '/pieces/consignes',
-    );
-  });
-
-  it('admin : ne voit AUCUNE entrée du groupe Pièces (RF-115, `DROITS_PIECES_PAR_ROLE.admin = []`)', async () => {
-    server.use(
-      http.get('/api/v1/auth/moi', () =>
-        HttpResponse.json({
-          ...SESSION_TEST,
-          utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' },
-        }),
-      ),
-    );
-    rendre('/');
-
-    // On attend d'abord un lien inconditionnel (session chargée) avant les assertions négatives,
-    // même précaution anti-flake que le groupe Paramétrage ci-dessus.
-    await screen.findByRole('link', { name: /tarifs/i });
-    expect(screen.queryByRole('link', { name: /commandes fournisseur/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /^fournisseurs$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /consignes/i })).not.toBeInTheDocument();
-  });
-});
-
-/**
- * Groupe « Pointage » (lot 2) : les quatre écrans existaient déjà côté routeur
- * (`ROLES_POINTAGE`/`ROLES_POINTAGE_ENCADREMENT`, `ecrans/pointage/droits.ts`) mais n'étaient
- * reliés à aucun lien de menu avant cet ajout — exactement le même défaut que le groupe Pièces
- * ci-dessus. Régression à verrouiller : masquage du groupe ENTIER pour les rôles sans
- * `atelier.pointage.lire` (comptable/réceptionniste/vendeur), et masquage supplémentaire
- * d'« Équipe »/« Clôture de période » pour qui n'est pas encadrement (technicien/magasinier).
- */
-describe('BarreLaterale — groupe Pointage (masquage par rôle, restriction RÉELLE API)', () => {
-  it('chef d’atelier (encadrement) : voit les quatre entrées, vers les bons chemins', async () => {
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
-    rendre('/');
-
-    expect(await screen.findByRole('link', { name: /^pointage$/i })).toHaveAttribute(
-      'href',
-      '/pointage',
-    );
-    expect(screen.getByRole('link', { name: /journal de pointage/i })).toHaveAttribute(
-      'href',
-      '/pointage/jour',
-    );
-    expect(screen.getByRole('link', { name: /^équipe$/i })).toHaveAttribute(
-      'href',
-      '/pointage/equipe',
-    );
-    expect(screen.getByRole('link', { name: /clôture de période/i })).toHaveAttribute(
-      'href',
-      '/pointage/cloture',
-    );
-  });
-
-  it('technicien : voit Pointage et Journal, mais PAS Équipe ni Clôture de période (encadrement seul)', async () => {
-    server.use(
-      http.get('/api/v1/auth/moi', () =>
-        HttpResponse.json({
-          ...SESSION_TEST,
-          utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' },
-        }),
-      ),
-    );
-    rendre('/');
-
-    expect(await screen.findByRole('link', { name: /^pointage$/i })).toHaveAttribute(
-      'href',
-      '/pointage',
-    );
-    expect(screen.getByRole('link', { name: /journal de pointage/i })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /^équipe$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /clôture de période/i })).not.toBeInTheDocument();
-  });
-
-  it('admin (encadrement) : voit les quatre entrées, y compris Équipe et Clôture de période', async () => {
-    server.use(
-      http.get('/api/v1/auth/moi', () =>
-        HttpResponse.json({
-          ...SESSION_TEST,
-          utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' },
-        }),
-      ),
-    );
-    rendre('/');
-
-    expect(await screen.findByRole('link', { name: /^équipe$/i })).toHaveAttribute(
-      'href',
-      '/pointage/equipe',
-    );
-    expect(screen.getByRole('link', { name: /clôture de période/i })).toHaveAttribute(
-      'href',
-      '/pointage/cloture',
-    );
-  });
-
-  it('comptable : ne voit AUCUNE entrée du groupe Pointage (atelier.pointage.lire fermé)', async () => {
-    server.use(
-      http.get('/api/v1/auth/moi', () =>
-        HttpResponse.json({
-          ...SESSION_TEST,
-          utilisateur: { ...SESSION_TEST.utilisateur, role: 'comptable' },
-        }),
-      ),
-    );
-    rendre('/');
-
-    await screen.findByRole('link', { name: /coordonnées bancaires/i });
-    expect(screen.queryByRole('link', { name: /^pointage$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /journal de pointage/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /^équipe$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /clôture de période/i })).not.toBeInTheDocument();
-  });
-
-  it('réceptionniste : ne voit AUCUNE entrée du groupe Pointage (atelier.pointage.lire fermé)', async () => {
-    server.use(
-      http.get('/api/v1/auth/moi', () =>
-        HttpResponse.json({
-          ...SESSION_TEST,
-          utilisateur: { ...SESSION_TEST.utilisateur, role: 'receptionnaire' },
-        }),
-      ),
-    );
-    rendre('/');
-
-    await screen.findByRole('link', { name: /tarifs/i });
-    expect(screen.queryByRole('link', { name: /^pointage$/i })).not.toBeInTheDocument();
-  });
-});
-
-/**
- * Numéro de version (support téléphonique) — décision de tâche : source = `GET /sante`, jamais
- * le `package.json` du front. Format retenu (demande explicite de @laupernoe) : « branche · version »
- * (ex. « main · 0.1.234 »), le point médian étant le seul séparateur — pas de mot « Version » en
- * préfixe. AUCUN état de chargement/erreur ne doit produire de texte (exception assumée à la
- * règle « chargement / vide / erreur », voir le commentaire dans `BarreLaterale.tsx`) : les
- * deux tests ci-dessous verrouillent cette absence via le point médian, seul caractère propre à
- * ce pied (aucun autre texte de l'écran n'en contient), le premier verrouille l'affichage une
- * fois la sonde résolue.
+ * Numéro de version (support téléphonique) — repris tel quel d'avant le Lot D. Format demandé par
+ * @laupernoe : « branche · version » (ex. « main · 0.1.234 »), le point médian étant le seul séparateur.
+ * AUCUN état de chargement/erreur ne doit produire de texte (exception assumée à la règle
+ * « chargement / vide / erreur », voir le commentaire dans `BarreLaterale.tsx`).
  */
 describe('BarreLaterale — numéro de version', () => {
   it('affiche « branche · version » une fois la sonde de vie résolue', async () => {
@@ -434,42 +446,30 @@ describe('BarreLaterale — numéro de version', () => {
   });
 
   /**
-   * Régression ciblée : le pied de version doit rester ANCRÉ en bas même quand la liste de liens
-   * est longue (`chef_atelier`/`admin` avec tous les groupes visibles). jsdom ne calcule aucun
-   * layout réel — `overflow-y-auto`/hauteurs/scroll ne sont pas observables ici, donc ce test ne
-   * peut PAS prouver le pinning visuel lui-même (ça, seule une vérification manuelle dans le
-   * navigateur le prouve, voir le compte rendu de la tâche). Ce qui EST testable en jsdom, et
-   * suffisant pour verrouiller la régression structurelle : le pied vit dans un conteneur FRÈRE
-   * de la zone de liens, jamais un DESCENDANT de celle-ci — c'est cette séparation structurelle
-   * qui permet au CSS de faire défiler la zone de liens indépendamment sans jamais entraîner le
-   * pied avec elle, quel que soit le nombre de liens rendus au-dessus.
+   * Le pied (Réglages + version) vit dans un conteneur FRÈRE de la liste des six entrées, jamais
+   * un DESCENDANT — c'est cette séparation structurelle qui garde le filet et le pied ancrés en
+   * bas de colonne quelle que soit la hauteur disponible. jsdom ne calculant aucun layout, c'est
+   * la seule forme de preuve disponible ici (le rendu visuel, lui, se vérifie au navigateur).
    */
-  it('avec tous les groupes affichés (chef_atelier, liste longue) : le pied de version reste hors de la zone de liens défilante, jamais un descendant', async () => {
+  it('le pied de version reste hors de la liste des six entrées, jamais un descendant', async () => {
+    connecte('direction');
     server.use(
-      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
       http.get('/api/v1/sante', () =>
-        HttpResponse.json({ statut: 'ok', version: '9.9.9-liste-longue', branche: 'main' }),
+        HttpResponse.json({ statut: 'ok', version: '9.9.9-pied', branche: 'main' }),
       ),
     );
     rendre('/');
 
-    // Sanity : chef_atelier voit bien un lien de CHAQUE groupe (Pièces, Pointage — y compris
-    // encadrement, Ventes, Paramétrage) — la liste est donc effectivement longue, pas un cas
-    // dégénéré à un seul groupe. L'exhaustivité par rôle est déjà verrouillée par les describe
-    // ci-dessus ; il ne s'agit ici que de prouver qu'on est bien dans le cas « pire cas ».
-    await screen.findByRole('link', { name: /commandes fournisseur/i });
-    expect(screen.getByRole('link', { name: /^équipe$/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /véhicules en stock/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /paramètres atelier/i })).toBeInTheDocument();
-
-    const pied = await screen.findByText('main · 9.9.9-liste-longue');
+    const pied = await screen.findByText('main · 9.9.9-pied');
     const nav = screen.getByRole('navigation');
-    const zoneDeLiens = nav.firstElementChild;
+    const listeDesSix = nav.firstElementChild;
     const zonePied = nav.lastElementChild;
 
-    expect(zoneDeLiens).not.toBeNull();
-    expect(zoneDeLiens).not.toBe(zonePied);
-    expect(zoneDeLiens?.contains(pied)).toBe(false);
+    expect(listeDesSix).not.toBeNull();
+    expect(listeDesSix).not.toBe(zonePied);
+    expect(listeDesSix?.contains(pied)).toBe(false);
     expect(zonePied?.contains(pied)).toBe(true);
+    // Les six entrées sont bien dans la liste, et elles sont six.
+    expect(within(listeDesSix as HTMLElement).getAllByRole('link')).toHaveLength(6);
   });
 });

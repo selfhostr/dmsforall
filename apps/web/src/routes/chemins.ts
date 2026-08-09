@@ -64,24 +64,57 @@ export const chemins = {
     ordresReparation: {
       liste: (site?: string) => construireChemin('/ordres-reparation', { site }),
       detail: (id: string, site?: string) => construireChemin(`/ordres-reparation/${id}`, { site }),
+      /** Création d'un OR — SEULE route de la ressource qui ne vit pas sous `/ordres-reparation`
+       *  (préfixe `/atelier/`, repris tel quel du design, cf. `routeur.tsx`). Constructeur ajouté
+       *  au Lot D pour que le modèle de navigation puisse rattacher cette URL à l'onglet
+       *  « Ordres de réparation » d'Atelier : sans lui, l'écran de création serait le seul écran
+       *  d'atelier sans onglet actif. `clientId` pré-remplit le client (l'écran lit les deux en
+       *  paramètres de requête, jamais en paramètre de chemin). */
+      nouveau: (site?: string, clientId?: string) =>
+        construireChemin('/atelier/ordres-reparation/nouveau', { site, clientId }),
+      /** Facturation d'un OR (`/ordres-reparation/:orId/facturer`) — passerelle atelier ->
+       *  facturation, rattachée à l'onglet « Ordres de réparation » par son préfixe. */
+      facturer: (id: string, site?: string) =>
+        construireChemin(`/ordres-reparation/${id}/facturer`, { site }),
     },
+  },
+  /** Facturation (étape 2) — ces chemins n'avaient AUCUN constructeur avant le Lot D : la barre
+   *  latérale pointait `/factures` en chaîne brute et les écrans de facturation naviguaient en
+   *  gabarit littéral (`` `/factures/${id}/avoir` ``). Le menu à six entrées a besoin de cibles
+   *  typées, et le `?site=` conservé ici corrige au passage une perte de contexte réelle : cliquer
+   *  « Facturation » abandonnait le site courant de l'URL, et l'en-tête retombait sur « Tous les
+   *  sites » alors que l'utilisateur n'avait pas changé de site. `EcranListeFactures` ignore ce
+   *  paramètre (il ne filtre pas par site aujourd'hui) — il n'est là que pour la continuité du
+   *  contexte affiché, exactement comme `tableauBord` ci-dessus. */
+  facturation: {
+    liste: (site?: string) => construireChemin('/factures', { site }),
+    detail: (id: string, site?: string) => construireChemin(`/factures/${id}`, { site }),
+    /** `id` est la facture D'ORIGINE à partir de laquelle l'avoir est émis, pas l'avoir lui-même
+     *  (qui n'existe pas encore quand cet écran s'ouvre) — voir `routeur.tsx`. */
+    avoir: (id: string, site?: string) => construireChemin(`/factures/${id}/avoir`, { site }),
   },
   /** Paramétrage — singletons par TENANT (facturation, référentiels, atelier), jamais par site :
    *  pas de `?site=` à conserver pour ceux-là (contrairement à `clients`/`vehicules` ci-dessus).
    *  `sites` est la seule exception du groupe : `GET|PATCH /sites/{siteId}/parametres-atelier`
    *  (capacité, heures d'ouverture, clôture du pointage) est réellement scopé par site — l'écran
    *  y sélectionne le site à paramétrer via `?site=`, même mécanisme que `clients`/`vehicules`.
+   *
+   *  Lot D : les trois singletons acceptent désormais un `site` OPTIONNEL, comme `tableauBord` et
+   *  `facturation` ci-dessus. Les écrans continuent de l'ignorer (ce sont bien des réglages par
+   *  tenant) ; le paramètre n'existe que pour ne pas perdre le site affiché dans l'en-tête en
+   *  passant par un onglet de Réglages. Appelés sans argument, ils rendent exactement la même
+   *  chaîne qu'avant — aucun appelant existant n'est affecté.
    */
   parametrage: {
-    facturation: () => '/parametrage/facturation',
-    referentiels: () => '/parametrage/referentiels',
-    atelier: () => '/parametrage/atelier',
+    facturation: (site?: string) => construireChemin('/parametrage/facturation', { site }),
+    referentiels: (site?: string) => construireChemin('/parametrage/referentiels', { site }),
+    atelier: (site?: string) => construireChemin('/parametrage/atelier', { site }),
     sites: (site?: string) => construireChemin('/parametrage/sites', { site }),
     /** Singleton par TENANT (`GET|PATCH /parametrage/pieces`), même famille que `atelier`/
      *  `referentiels` ci-dessus — pas de `?site=`. À la différence de ces deux-là, la route est
      *  gardée par `rolesAutorises={ROLES_PARAMETRAGE_PIECES}` (`routeur.tsx`) : la lecture elle-même
      *  est restreinte côté API (`pieces.parametrage.lire`), pas seulement l'écriture. */
-    pieces: () => '/parametrage/pieces',
+    pieces: (site?: string) => construireChemin('/parametrage/pieces', { site }),
   },
   /** Module pièces (étape 3). Même mécanique `?site=` que `clients`/`vehicules` : la recherche
    *  comptoir et le réapprovisionnement sont scopés par site (RP-03/RP-12), la fiche et la liste
@@ -98,39 +131,59 @@ export const chemins = {
     /** Commandes fournisseur — ressources par TENANT (pas de `?site=` : ni la liste ni la fiche
      *  d'une commande fournisseur ne se filtrent par site dans les écrans livrés). */
     commandesFournisseur: {
-      liste: () => '/pieces/commandes-fournisseur',
-      nouvelle: () => '/pieces/commandes-fournisseur/nouvelle',
-      detail: (id: string) => `/pieces/commandes-fournisseur/${id}`,
+      liste: (site?: string) => construireChemin('/pieces/commandes-fournisseur', { site }),
+      nouvelle: (site?: string) =>
+        construireChemin('/pieces/commandes-fournisseur/nouvelle', { site }),
+      detail: (id: string, site?: string) =>
+        construireChemin(`/pieces/commandes-fournisseur/${id}`, { site }),
     },
     fournisseurs: {
-      liste: () => '/pieces/fournisseurs',
-      detail: (id: string) => `/pieces/fournisseurs/${id}`,
+      liste: (site?: string) => construireChemin('/pieces/fournisseurs', { site }),
+      detail: (id: string, site?: string) =>
+        construireChemin(`/pieces/fournisseurs/${id}`, { site }),
     },
-    consignes: () => '/pieces/consignes',
+    consignes: (site?: string) => construireChemin('/pieces/consignes', { site }),
   },
   /** Module pointage (lot 2). Ressources par TENANT, jamais de `?site=` dans les écrans livrés —
    *  contrairement à `pieces`/`clients`/`vehicules`, le pointage se filtre par technicien et par
    *  période, pas par site. */
   pointage: {
-    saisie: () => '/pointage',
-    jour: () => '/pointage/jour',
-    equipe: () => '/pointage/equipe',
-    cloture: () => '/pointage/cloture',
+    saisie: (site?: string) => construireChemin('/pointage', { site }),
+    jour: (site?: string) => construireChemin('/pointage/jour', { site }),
+    equipe: (site?: string) => construireChemin('/pointage/equipe', { site }),
+    /** CONSERVÉ délibérément malgré la fusion Lot D (`ecrans/pointage/EcranPointage.tsx`, dont le
+     *  commentaire de tête suggérait de le retirer) : `composants/layout/navigation-modele.ts`
+     *  (hors périmètre d'écriture de `routes/`) construit encore sa vue « Clôture » avec ce
+     *  constructeur, et `routes/atteignabilite.spec.ts` verrouille explicitement que
+     *  `/pointage/cloture` résout sur cette vue. Le retirer casserait la compilation d'un fichier
+     *  hors périmètre et ferait rougir un test qu'il ne faut pas affaiblir — voir le commentaire de
+     *  la route `pointage/cloture` dans `routeur.tsx` pour le signalement complet. La route rend
+     *  aujourd'hui `EcranPointage`, comme `jour`/`equipe` ci-dessus — le geste de clôture lui-même
+     *  vit désormais dans `DialogueCloturePeriode`, monté par l'onglet Équipe. */
+    cloture: (site?: string) => construireChemin('/pointage/cloture', { site }),
     /** Borne d'atelier (mode « borne partagée », identification par PIN) — route distincte de
      *  `saisie` ci-dessus, réservée au compte de service `poste_atelier`
      *  (`RouteProtegee.rolesAutorises` dans `routeur.tsx`) : un technicien avec sa propre session
      *  utilise `saisie`, la borne murale partagée utilise `borne`. */
     borne: () => '/pointage/borne',
   },
-  /** Hangar à pneus (Lot B, `docs/specification-parc-et-hangar-pneus.md`). `hangar` suit la même
-   *  mécanique `?site=` que `clients`/`vehicules`/`pieces` ci-dessus — `GET
+  /** Hangar à pneus (Lot B, `docs/specification-parc-et-hangar-pneus.md` ; fusion Lot D). `hangar`
+   *  suit la même mécanique `?site=` que `clients`/`vehicules`/`pieces` ci-dessus — `GET
    *  /sites/{siteId}/hangar-pneus` est scopé par site, le site sélectionné vient de l'URL, jamais
-   *  d'un état global. `aRelancer` n'IMPOSE pas de site (`GET /depots-pneus/a-relancer` accepte un
-   *  `siteId` optionnel, défaut tenant entier, RPP-04) mais le conserve quand même s'il est déjà
-   *  connu, même raisonnement que `tableauBord` ci-dessus. */
+   *  d'un état global.
+   *
+   *  `aRelancer` ne pointe PLUS vers une route séparée depuis le Lot D : l'ancien écran
+   *  `EcranJeuxARelancer` est supprimé, fusionné dans `EcranHangarPneus` comme onglet
+   *  (`TabsContent value="a_relancer"`, lu depuis `?onglet=`, voir le commentaire de tête
+   *  d'`EcranHangarPneus.tsx`). Un lien externe (menu, futur bloc « Aujourd'hui ») doit continuer à
+   *  atterrir directement sur cet onglet — d'où `onglet: 'a_relancer'` conservé ici plutôt qu'un
+   *  chemin `/pneus/a-relancer` qui n'a plus d'écran à monter (la route correspondante a été
+   *  retirée de `routeur.tsx`). `site` reste optionnel et conservé quand connu, même raisonnement
+   *  que `tableauBord` ci-dessus — `GET /depots-pneus/a-relancer` accepte un `siteId` optionnel
+   *  (défaut tenant entier, RPP-04). */
   pneus: {
     hangar: (site?: string) => construireChemin('/pneus', { site }),
-    aRelancer: (site?: string) => construireChemin('/pneus/a-relancer', { site }),
+    aRelancer: (site?: string) => construireChemin('/pneus', { onglet: 'a_relancer', site }),
   },
   /** Module ventes VN/VO (étape 4). Les chemins locaux posés provisoirement par les agents qui ont
    *  livré les écrans (`ecrans/ventes/stock/_composants/chemins-locaux.ts`,
@@ -164,5 +217,5 @@ export const chemins = {
    *  aucun `?site=` à conserver ici. Gardée par `rolesAutorises={ROLES_RELANCES}`
    *  (`routes/droits-routes.ts`) : la lecture elle-même est restreinte à `direction`/`comptable`
    *  côté API. */
-  relances: () => '/relances',
+  relances: (site?: string) => construireChemin('/relances', { site }),
 } as const;

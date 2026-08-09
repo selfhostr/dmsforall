@@ -2,7 +2,6 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import '@/i18n';
@@ -11,7 +10,7 @@ import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
 
-import { EcranCloturePeriodePointage } from './EcranCloturePeriodePointage';
+import { DialogueCloturePeriode } from './DialogueCloturePeriode';
 
 beforeAll(() => {
   Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
@@ -20,20 +19,34 @@ beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 
+/**
+ * Anciennement `EcranCloturePeriodePointage.spec.tsx` — adapté à la fusion (Lot D/E, voir l'en-tête
+ * d'`EcranPointage.tsx` et de `DialogueCloturePeriode.tsx`) : ce geste vit désormais dans un
+ * dialogue monté par `VueEquipePointage`, plus dans un écran routé séparément. `siteId` est
+ * désormais un prop direct (résolu par l'appelant, lui-même sous la gate de site unique
+ * d'`EcranPointage`) — le dialogue s'ouvre donc toujours avec un site déjà connu.
+ *
+ * Test DEVENU CADUC et volontairement RETIRÉ (pas affaibli, RETIRÉ avec justification) :
+ * « site requis : invite à choisir un site quand plusieurs sont actifs ». Ce dialogue ne peut plus
+ * s'ouvrir sans site — il n'a plus de branche `if (!siteId)` du tout, `siteId` est un prop
+ * `string` non optionnel. Le comportement qu'il vérifiait (inviter à choisir un site) est couvert
+ * UNE SEULE FOIS par `EcranPointage.spec.tsx` (gate désormais partagée par les deux vues), là où il
+ * vivait auparavant en TROIS exemplaires quasi identiques (Journal, Équipe, Clôture de période).
+ *
+ * Toutes les autres assertions (verrouillage, conflit optimiste générique, résolution des
+ * techniciens bloquants, arrêt des pointages bloquants, motif obligatoire au déverrouillage) sont
+ * conservées à l'identique.
+ */
 function rendre() {
   const queryClient = creerQueryClientTest();
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/pointage/cloture']}>
-        <Routes>
-          <Route path="/pointage/cloture" element={<EcranCloturePeriodePointage />} />
-        </Routes>
-      </MemoryRouter>
+      <DialogueCloturePeriode ouvert onOuvertChange={() => {}} siteId="site-1" />
     </QueryClientProvider>,
   );
 }
 
-describe('EcranCloturePeriodePointage', () => {
+describe('DialogueCloturePeriode', () => {
   it('verrouille une période et affiche le nombre de pointages verrouillés', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
@@ -202,23 +215,5 @@ describe('EcranCloturePeriodePointage', () => {
     expect(
       await screen.findByText('Le motif est obligatoire pour déverrouiller une période.'),
     ).toBeInTheDocument();
-  });
-
-  it('site requis : invite à choisir un site quand plusieurs sont actifs', async () => {
-    server.use(
-      http.get('/api/v1/auth/moi', () =>
-        HttpResponse.json({
-          ...SESSION_TEST,
-          sites: [
-            { id: 'site-1', code: 'P', nom: 'Site principal', actif: true },
-            { id: 'site-2', code: 'S', nom: 'Site secondaire', actif: true },
-          ],
-        }),
-      ),
-    );
-
-    rendre();
-
-    expect(await screen.findByText('Choisissez un site')).toBeInTheDocument();
   });
 });

@@ -50,9 +50,6 @@
       }
     },
     "filtres": {
-      "statut": "Stato",
-      "statutActifs": "Tutti i set del deposito",
-      "statutARelancer": "Solo da richiamare",
       "saison": "Stagione",
       "saisonToutes": "Tutte",
       "repere": "Filtra per ubicazione",
@@ -61,12 +58,12 @@
     "vide": {
       "titre": "Deposito pneumatici",
       "filtreDescription": "Nessun set corrisponde a questa ubicazione.",
-      "aucunARelancer": "Nessun set da richiamare al momento.",
       "premierUsage": "Nessun set di pneumatici ancora depositato in questo deposito."
     },
-    "lienARelancer": {
-      "description": "Set dimenticati da oltre due anni potrebbero trovarsi in questo deposito.",
-      "lien": "Vedi i set da richiamare"
+    "onglets": {
+      "ariaLabel": "Vista del deposito pneumatici",
+      "actifs": "Nel deposito",
+      "aRelancer": "Da richiamare"
     }
   },
   "creation": {

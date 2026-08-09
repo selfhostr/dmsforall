@@ -2,6 +2,58 @@
   "principale": {
     "aria": "Navigation principale"
   },
+  "entrees": {
+    "aujourdhui": "Aujourd'hui",
+    "atelier": "Atelier",
+    "clientsVehicules": "Clients & véhicules",
+    "pieces": "Pièces",
+    "facturation": "Facturation",
+    "ventes": "Ventes",
+    "reglages": "Réglages"
+  },
+  "onglets": {
+    "aria": "Onglets — {domaine}",
+    "vuesAria": "Vues — {onglet}",
+    "aujourdhuiAccueil": "Accueil",
+    "aujourdhuiTableauBord": "Tableau de bord",
+    "atelierOrdresReparation": "Ordres de réparation",
+    "atelierPlanning": "Planning",
+    "atelierPointage": "Pointage",
+    "atelierDepotPneus": "Dépôt pneus",
+    "pointageMonTravail": "Mon travail",
+    "pointageJournal": "Journal",
+    "pointageEquipe": "Équipe",
+    "pointageCloture": "Clôture de période",
+    "pointageBorne": "Borne d'atelier",
+    "pneusAuDepot": "Au dépôt",
+    "pneusARelancer": "À relancer",
+    "clients": "Clients",
+    "clientsTous": "Tous",
+    "clientsDoublons": "Doublons",
+    "vehicules": "Véhicules",
+    "piecesComptoir": "Comptoir",
+    "piecesArticles": "Articles",
+    "piecesArticlesTous": "Tous",
+    "piecesReservations": "Réservations",
+    "piecesApprovisionnement": "Approvisionnement",
+    "piecesACommander": "À commander",
+    "piecesCommandes": "Commandes",
+    "piecesFournisseurs": "Fournisseurs",
+    "piecesConsignes": "Consignes",
+    "facturationFactures": "Factures",
+    "facturationEncaissements": "Encaissements",
+    "facturationRelances": "Relances",
+    "facturationExportFiduciaire": "Export fiduciaire",
+    "ventesDossiers": "Dossiers",
+    "ventesParc": "Véhicules en parc",
+    "ventesSuivi": "Suivi financement & garantie",
+    "reglagesAtelier": "Atelier",
+    "reglagesSites": "Sites",
+    "reglagesFacturation": "Facturation",
+    "reglagesTarifs": "Tarifs et prestations",
+    "reglagesPieces": "Pièces",
+    "reglagesRelances": "Paliers de relance"
+  },
   "liens": {
     "accueil": "Accueil",
     "tableauBord": "Tableau de bord",
@@ -43,6 +95,9 @@
   },
   "menu": {
     "ouvrir": "Ouvrir le menu"
+  },
+  "evitement": {
+    "contenu": "Aller au contenu"
   },
   "filAriane": {
     "aria": "Fil d'Ariane"

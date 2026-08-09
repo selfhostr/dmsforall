@@ -1,7 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { PageCurseur, ReponsePointage } from '@dfa/shared';
@@ -12,7 +12,7 @@ import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
 
-import { EcranEquipePointage } from './EcranEquipePointage';
+import { VueEquipePointage } from './VueEquipePointage';
 
 beforeAll(() => {
   Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
@@ -50,20 +50,24 @@ const POINTAGE: ReponsePointage = {
   modifieLe: '2026-08-03T07:30:00.000Z',
 };
 
+/**
+ * Anciennement `EcranEquipePointage.spec.tsx` — adapté à la fusion (Lot D, voir l'en-tête
+ * d'`EcranPointage.tsx`) : `siteId`/`role` sont désormais des props directs (résolus par
+ * l'appelant), donc plus de test de gate de site ici (couvert UNE SEULE fois par
+ * `EcranPointage.spec.tsx`). Toutes les assertions de contenu sont conservées telles quelles, plus
+ * un test nouveau pour le geste de clôture de période (Lot E, ex-écran séparé
+ * `EcranCloturePeriodePointage`, désormais une action de cette vue — voir `DialogueCloturePeriode`).
+ */
 function rendre() {
   const queryClient = creerQueryClientTest();
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/pointage/equipe']}>
-        <Routes>
-          <Route path="/pointage/equipe" element={<EcranEquipePointage />} />
-        </Routes>
-      </MemoryRouter>
+      <VueEquipePointage siteId="site-1" role="chef_atelier" />
     </QueryClientProvider>,
   );
 }
 
-describe('EcranEquipePointage', () => {
+describe('VueEquipePointage', () => {
   it("affiche les pointages de l'équipe avec l'activité et la durée", async () => {
     server.use(
       http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
@@ -218,4 +222,53 @@ describe('EcranEquipePointage', () => {
 
     expect(await screen.findByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
   });
+
+  it(
+    'Lot E : le bouton « Clôturer la période » ouvre le dialogue de clôture, avec ses deux ' +
+      'gestes (verrouiller/déverrouiller) intacts — la clôture est une ACTION de cette vue, plus ' +
+      'un écran séparé',
+    async () => {
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+        http.get('/api/v1/ordres-reparation', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+        ),
+      );
+
+      rendre();
+
+      const utilisateur = userEvent.setup();
+      await utilisateur.click(await screen.findByRole('button', { name: 'Clôturer la période' }));
+
+      const dialogue = await screen.findByRole('dialog');
+      expect(dialogue).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Verrouiller' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Déverrouiller' })).toBeInTheDocument();
+    },
+  );
+
+  it(
+    'le bouton « Clôturer la période » est ABSENT pour un rôle sans droit de verrouillage ' +
+      '(défense en profondeur, même si `EcranPointage` ne monte cette vue que pour l’encadrement)',
+    async () => {
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+        http.get('/api/v1/ordres-reparation', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+        ),
+      );
+
+      const queryClient = creerQueryClientTest();
+      render(
+        <QueryClientProvider client={queryClient}>
+          <VueEquipePointage siteId="site-1" role="comptable" />
+        </QueryClientProvider>,
+      );
+
+      await screen.findByText('Aucun pointage pour ce site sur cette période.');
+      expect(screen.queryByRole('button', { name: 'Clôturer la période' })).not.toBeInTheDocument();
+    },
+  );
 });
