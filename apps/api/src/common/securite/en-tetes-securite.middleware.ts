@@ -11,14 +11,17 @@
  *     stricte possible ici est un coût nul (aucun front légitime ne dépend d'un script/style/image
  *     chargé DEPUIS cette origine par l'API) et une défense en profondeur contre le rendu accidentel
  *     d'un corps de réponse comme HTML par un navigateur qui ignorerait `X-Content-Type-Options`.
- *   - `CSP_DOCUMENTATION`, réservée à `/api/docs` (Swagger UI), qui a RÉELLEMENT besoin de charger
- *     ses propres scripts/styles/images (servis en `self`, jamais depuis un CDN tiers) pour
- *     s'afficher. `'unsafe-inline'` y est accepté délibérément : `SwaggerModule.setup()` embarque du
- *     script/style inline dans la page qu'il sert, et l'ajout d'un système de nonce dépasserait le
- *     périmètre de cette correction pour une route de toute façon fermée par défaut en production
- *     (`OPENAPI_EXPOSER_DOCS` vaut `false` par défaut, finding 8 de l'audit sécurité étape 0 — voir
- *     `apps/api/src/config/charger-config.ts`). Relâchement scopé au strict chemin `/api/docs*`,
- *     jamais au reste de l'API.
+ *   - `CSP_DOCUMENTATION`, réservée à `/api/docs` (Swagger UI, document MÉTIER) et `/api/console/docs`
+ *     (Swagger UI, document CONSOLE — `main.ts` étape 12bis, `exploitation/openapi/construire-
+ *     document-console.ts`), qui ont RÉELLEMENT besoin de charger leurs propres scripts/styles/
+ *     images (servis en `self`, jamais depuis un CDN tiers) pour s'afficher. `'unsafe-inline'` y est
+ *     accepté délibérément : `SwaggerModule.setup()` embarque du script/style inline dans la page
+ *     qu'il sert, et l'ajout d'un système de nonce dépasserait le périmètre de cette correction pour
+ *     des routes de toute façon fermées par défaut en production (`OPENAPI_EXPOSER_DOCS` vaut
+ *     `false` par défaut, finding 8 de l'audit sécurité étape 0 — voir
+ *     `apps/api/src/config/charger-config.ts` ; le document console exige EN PLUS
+ *     `DATABASE_URL_CONSOLE`, absente par défaut). Relâchement scopé au strict chemin `/api/docs*`
+ *     ou `/api/console/docs*`, jamais au reste de l'API.
  *
  * `X-Frame-Options: DENY` accompagne `frame-ancestors 'none'` plutôt que d'en dépendre seul :
  * `frame-ancestors` (CSP niveau 2) est la directive moderne, mais `X-Frame-Options` reste le filet
@@ -33,9 +36,10 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { Config } from '../../config/config.types';
 
-/** Chemin EXACT de montage Swagger (`main.ts`, étape 12 : `SwaggerModule.setup('api/docs', …)`),
- *  hors du préfixe/versioning Nest — voir le commentaire de tête de `main.ts`. */
-const PREFIXE_DOCUMENTATION_SWAGGER = '/api/docs';
+/** Chemins EXACTS de montage Swagger (`main.ts`, étapes 12 et 12bis :
+ *  `SwaggerModule.setup('api/docs', …)` et `SwaggerModule.setup('api/console/docs', …)`), hors du
+ *  préfixe/versioning Nest — voir le commentaire de tête de `main.ts`. */
+const PREFIXES_DOCUMENTATION_SWAGGER = ['/api/docs', '/api/console/docs'] as const;
 
 const CSP_API = [
   "default-src 'none'",
@@ -61,10 +65,9 @@ const CSP_DOCUMENTATION = [
 const HSTS_VALEUR = 'max-age=63072000; includeSubDomains; preload';
 
 function estCheminDocumentation(chemin: string): boolean {
-  return (
-    chemin === PREFIXE_DOCUMENTATION_SWAGGER ||
-    chemin === `${PREFIXE_DOCUMENTATION_SWAGGER}.json` ||
-    chemin.startsWith(`${PREFIXE_DOCUMENTATION_SWAGGER}/`)
+  return PREFIXES_DOCUMENTATION_SWAGGER.some(
+    (prefixe) =>
+      chemin === prefixe || chemin === `${prefixe}.json` || chemin.startsWith(`${prefixe}/`),
   );
 }
 

@@ -15,7 +15,9 @@
  *   9. en-têtes de sécurité HTTP (HSTS/CSP/X-Frame-Options/Referrer-Policy) ;
  *   10. en-têtes de réponse globaux (`Cache-Control`, `X-Content-Type-Options`) ;
  *   11. préfixe `api` + versioning URI (`/api/v1/…`) ;
- *   12. Swagger sur `/api/docs` (+ `/api/docs.json`) si `OPENAPI_EXPOSER_DOCS` ;
+ *   12. Swagger sur `/api/docs` (+ `/api/docs.json`) si `OPENAPI_EXPOSER_DOCS` ; document CONSOLE
+ *       séparé sur `/api/console/docs` en plus, si la console d'exploitation est elle-même allumée
+ *       (`DATABASE_URL_CONSOLE` présente — voir `exploitation/config-console.ts`) ;
  *   13. `listen(PORT)`.
  *
  * Étape 5 (ex-étape 4) ajoutée après l'audit sécurité étape 0 (finding 2) : absente, `req.ip`
@@ -56,6 +58,7 @@ import { FiltreProbleme } from './common/erreurs';
 import { construireMiddlewareEnTetesSecurite } from './common/securite';
 import { JETON_DB } from './db/db.jetons';
 import type { AccesBase } from './db/db.types';
+import { construireDocumentConsole } from './exploitation';
 import { construireDocument } from './openapi';
 import { initialiserSentry, installerGestionnairesCrash } from './observabilite';
 
@@ -152,6 +155,24 @@ async function main(): Promise<void> {
       cookieNom: config.SESSION_COOKIE_NOM,
     });
     SwaggerModule.setup('api/docs', app, document, { jsonDocumentUrl: 'api/docs.json' });
+
+    // 12bis. Document CONSOLE, séparé et servi sur un chemin disjoint — voir
+    // exploitation/openapi/construire-document-console.ts pour pourquoi la séparation des deux
+    // documents n'est pas négociable (le test de contrat `test/contrat/openapi.spec.ts` interdit
+    // tout paramètre "tenantId" dans le document MÉTIER). Monté seulement quand la console est
+    // effectivement allumée : sans DATABASE_URL_CONSOLE, ExploitationModule ne porte aucun
+    // contrôleur, et exposer quand même une route `/api/console/docs` vide n'apprendrait rien
+    // d'utile à un opérateur tout en donnant à un attaquant un signal gratuit sur l'existence du
+    // plan console.
+    if (config.DATABASE_URL_CONSOLE !== undefined) {
+      const documentConsole = construireDocumentConsole(app, {
+        versionApp: config.VERSION_APP,
+        cookieNom: config.CONSOLE_COOKIE_NOM,
+      });
+      SwaggerModule.setup('api/console/docs', app, documentConsole, {
+        jsonDocumentUrl: 'api/console/docs.json',
+      });
+    }
   }
 
   // 13. Écoute.

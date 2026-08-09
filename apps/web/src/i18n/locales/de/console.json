@@ -1,0 +1,111 @@
+{
+  "titre": "Console d'exploitation",
+  "titreOnglet": "Console d'exploitation — Console DFA",
+  "bandeConsole": {
+    "deconnexion": "Se déconnecter"
+  },
+  "plateforme": {
+    "titre": "Vue plateforme",
+    "sousTitre": "Où ça va mal, là, sur l'ensemble des garages.",
+    "etatErreur": {
+      "titre": "Impossible d'afficher la vue plateforme"
+    },
+    "etatVide": {
+      "titre": "Aucun garage",
+      "description": "Aucun garage n'est encore enregistré sur la plateforme."
+    },
+    "etatVideFiltre": {
+      "titre": "Aucun garage ne correspond",
+      "description": "Aucun garage ne correspond à ces critères. Essayez une autre recherche ou retirez les filtres."
+    },
+    "recherche": {
+      "placeholder": "Nom ou identifiant du garage…"
+    },
+    "statutFiltre": {
+      "label": "Statut",
+      "tous": "Tous"
+    },
+    "statut": {
+      "critique": "Critique",
+      "attention": "Attention",
+      "ok": "OK"
+    },
+    "filtre": {
+      "actif": "Filtré : {libelle}",
+      "retirer": "Retirer le filtre"
+    },
+    "indicateurs": {
+      "groupe": "Indicateurs plateforme — cliquer pour filtrer la liste des garages",
+      "garagesCritiques": {
+        "libelle": "Garages en état critique"
+      },
+      "garageSuspendu": {
+        "libelle": "Garages suspendus ou résiliés"
+      },
+      "comptesVerrouilles": {
+        "libelle": "Comptes verrouillés"
+      },
+      "aucuneConnexion": {
+        "libelle": "Aucune connexion récente"
+      },
+      "exportComptableEnEchec": {
+        "libelle": "Dernier export comptable rejeté"
+      },
+      "relancesEnRetard": {
+        "libelle": "Relances en retard"
+      },
+      "relancesEnvoisEchoues": {
+        "libelle": "Envois de relance en échec"
+      },
+      "moduleInactif": {
+        "libelle": "Module actif mais inutilisé"
+      }
+    },
+    "indicateursIndisponibles": {
+      "titre": "Non mesuré pour l'instant :",
+      "code": {
+        "erreurs_serveur_5xx": "Erreurs serveur (24 h)",
+        "jobs_en_echec": "Jobs en échec",
+        "disjoncteurs_connecteur_ouverts": "Disjoncteurs de connecteur ouverts",
+        "connecteurs_configures": "Connecteurs configurés",
+        "modules_souscrits": "Modules souscrits"
+      }
+    },
+    "table": {
+      "colonnes": {
+        "garage": "Garage",
+        "statut": "Statut",
+        "derniereActivite": "Dernière activité",
+        "comptesVerrouilles": "Comptes verrouillés",
+        "relancesEnRetard": "Relances en retard",
+        "exportCompta": "Export compta",
+        "entrer": "Entrer"
+      },
+      "entrer": "Entrer",
+      "entrerAria": "Entrer dans {raisonSociale}",
+      "jamaisConnecte": "Jamais connecté",
+      "derniereActivite": {
+        "minute": "{n, plural, =0 {À l'instant} one {Il y a # minute} other {Il y a # minutes}}",
+        "heure": "{n, plural, one {Il y a # heure} other {Il y a # heures}}",
+        "jour": "{n, plural, one {Il y a # jour} other {Il y a # jours}}"
+      },
+      "exportCompta": {
+        "genere": "Généré",
+        "transmis": "Transmis",
+        "accepte": "Accepté",
+        "rejete": "Rejeté",
+        "inconnu": "Inconnu"
+      }
+    }
+  },
+  "bandeauContexte": {
+    "contenu": "Vous consultez {nomGarage} — accès support",
+    "quitter": "Quitter",
+    "duree": {
+      "moins5Min": "depuis moins de 5 minutes",
+      "moins30Min": "depuis moins de 30 minutes",
+      "moins1h": "depuis moins d'une heure",
+      "plus1h": "depuis plus d'une heure"
+    }
+  }
+}
