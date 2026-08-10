@@ -65,12 +65,12 @@ const CONFIG_STATUT_OR: Readonly<Record<EtatAfficheOrdreReparation, EntreeStatut
 };
 
 const CLASSES_PLEIN: Readonly<Record<TokenStatut, string>> = {
-  neutre: 'border-transparent bg-statut-neutre text-white',
-  info: 'border-transparent bg-statut-info text-white',
-  attention: 'border-transparent bg-statut-attention text-white',
-  succes: 'border-transparent bg-statut-succes text-white',
-  terminal: 'border-transparent bg-statut-terminal text-white',
-  danger: 'border-transparent bg-statut-danger text-white',
+  neutre: 'border-transparent bg-statut-neutre-fond text-statut-neutre',
+  info: 'border-transparent bg-statut-info-fond text-statut-info',
+  attention: 'border-transparent bg-statut-attention-fond text-statut-attention',
+  succes: 'border-transparent bg-statut-succes-fond text-statut-succes',
+  terminal: 'border-transparent bg-statut-terminal-fond text-statut-terminal',
+  danger: 'border-transparent bg-statut-danger-fond text-statut-danger',
 };
 
 const CLASSES_CONTOUR: Readonly<Record<TokenStatut, string>> = {

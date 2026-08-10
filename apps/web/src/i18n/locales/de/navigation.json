@@ -70,7 +70,12 @@
     "aria": "{action} (Hauptaktion)"
   },
   "entete": {
-    "tousLesSites": "Alle Werkstätten"
+    "tousLesSites": "Alle Werkstätten",
+    "changerSite": "Standort wechseln"
+  },
+  "repli": {
+    "reduire": "Seitenleiste einklappen",
+    "agrandir": "Seitenleiste ausklappen"
   },
   "pied": {
     "version": "{branche} · {numero}"

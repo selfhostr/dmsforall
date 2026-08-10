@@ -39,10 +39,10 @@ interface LigneAlerte {
 }
 
 const TOKEN_CLASSES: Record<LigneAlerte['token'], string> = {
-  danger: 'border-statut-danger/40 bg-statut-danger/10 text-statut-danger',
-  attention: 'border-statut-attention/40 bg-statut-attention/10 text-statut-attention',
-  succes: 'border-statut-succes/40 bg-statut-succes/10 text-statut-succes',
-  neutre: 'border-statut-neutre/40 bg-statut-neutre/10 text-statut-neutre',
+  danger: 'border-statut-danger bg-statut-danger-fond text-statut-danger',
+  attention: 'border-statut-attention bg-statut-attention-fond text-statut-attention',
+  succes: 'border-statut-succes bg-statut-succes-fond text-statut-succes',
+  neutre: 'border-statut-neutre bg-statut-neutre-fond text-statut-neutre',
 };
 
 /**

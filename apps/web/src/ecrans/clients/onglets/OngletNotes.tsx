@@ -146,7 +146,7 @@ export function OngletNotes({ clientId }: Props) {
               key={note.id}
               className={
                 note.nature === 'alerte'
-                  ? 'rounded-md border border-statut-danger/40 bg-statut-danger/12 p-3'
+                  ? 'rounded-md border border-statut-danger bg-statut-danger-fond p-3'
                   : 'rounded-md border p-3'
               }
             >

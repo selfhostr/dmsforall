@@ -70,7 +70,12 @@
     "aria": "{action} (azione principale)"
   },
   "entete": {
-    "tousLesSites": "Tutte le officine"
+    "tousLesSites": "Tutte le officine",
+    "changerSite": "Cambia sede"
+  },
+  "repli": {
+    "reduire": "Comprimi la barra laterale",
+    "agrandir": "Espandi la barra laterale"
   },
   "pied": {
     "version": "{branche} · {numero}"

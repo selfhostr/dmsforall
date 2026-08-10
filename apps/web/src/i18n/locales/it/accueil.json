@@ -1,5 +1,28 @@
 {
   "demarrage": {
-    "titre": "Trova un cliente, un veicolo o un ordine"
+    "titre": "Cosa succede oggi"
+  },
+  "calendrier": {
+    "titre": "Questa settimana",
+    "apercu": "Anteprima — le date di restituzione promesse questa settimana. La presa di appuntamento dell'officina arriverà più avanti in dmsforall; questo calendario ne sarà allora la superficie.",
+    "droitRequis": "Non hai il diritto di consultare gli ordini di riparazione.",
+    "vide": {
+      "titre": "Nessuna restituzione promessa questa settimana",
+      "description": "Nessun ordine di riparazione aperto ha una data di restituzione promessa nei prossimi 7 giorni."
+    },
+    "autres": "{count, plural, one {+ # altro} other {+ # altri}}"
+  },
+  "echeances": {
+    "titre": "Scadenze in arrivo",
+    "description": "Set di pneumatici senza movimento da oltre due anni, da richiamare presso il cliente.",
+    "droitRequis": "Non hai il diritto di consultare il deposito pneumatici.",
+    "vide": {
+      "titre": "Nessuna scadenza",
+      "description": "Nessun set di pneumatici è al momento da richiamare."
+    },
+    "depuisLe": "Senza movimento dal {date}",
+    "autres": "{count, plural, one {+ # altro set da richiamare} other {+ # altri set da richiamare}}",
+    "voirTout": "Vedi tutto il deposito pneumatici",
+    "aVenir": "I controlli MFK e le garanzie si aggiungeranno a questo elenco non appena esisterà un endpoint aggregato per essi."
   }
 }

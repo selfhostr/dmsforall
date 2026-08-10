@@ -17,6 +17,12 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Défaut vitest : 5000 ms. Relevé avec `asyncUtilTimeout` (src/test/setup.ts, voir sa
+    // justification) : un test peut enchaîner plusieurs `findBy`/`waitFor`, et sous la charge de
+    // `pnpm test` (les trois suites en parallèle) le budget de l'un peut à lui seul approcher les
+    // 5000 ms. 15000 ms laisse la place à deux attentes de ce budget plus l'interaction entre les
+    // deux, sans devenir un délai indéfini pour un test réellement bloqué.
+    testTimeout: 15000,
     // Vitest expose ces variables à la fois sur process.env et import.meta.env pendant les
     // tests : pas de .env réel nécessaire pour que config/env.ts valide correctement.
     env: {

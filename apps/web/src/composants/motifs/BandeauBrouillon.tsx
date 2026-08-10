@@ -20,7 +20,7 @@ export function BandeauBrouillon({ repriseLe, className }: Props) {
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-md border border-statut-attention/40 bg-statut-attention/12 px-4 py-3 texte-corps text-foreground',
+        'flex items-center gap-3 rounded-md border border-statut-attention bg-statut-attention-fond px-4 py-3 texte-corps text-foreground',
         className,
       )}
     >

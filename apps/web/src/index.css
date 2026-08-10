@@ -110,38 +110,35 @@
   --popover-foreground: 240 10% 3.9%;
 
   /* ── Couleur de marque ────────────────────────────────────────────────────
-     Violet d'encre profond `288 58% 36%` (#7c2791). Choix du Lot K, tranché sur
-     un raisonnement métier, pas sur un goût :
+     GRIS FONCÉ NEUTRE `240 6% 24%`. Décision de @laupernoe, revenue sur le violet
+     d'encre du Lot K (`288 58% 36%`) : le produit reste dans les nuances de
+     gris déjà posées par `--foreground`/`--border`/`--muted` (même teinte
+     240°), sans couleur d'accueil dédiée.
 
-     1. Toutes les couleurs FORTES d'un atelier sont déjà prises, et pas
-        seulement dans ce logiciel : rouge = arrêt/danger, ambre = avertissement,
-        vert = conforme, bleu = information. Ce sont les conventions du plancher
-        d'atelier (voyants, pictogrammes de sécurité, feux de pont élévateur)
-        ET les six tokens `--statut-*` ci-dessous, réservés au statut d'OR et de
-        ligne. Le violet est la seule teinte saturée qui ne porte AUCUNE
-        convention préexistante dans un garage : elle peut donc signifier « dfa,
-        voici votre action » et rien d'autre. C'est le critère de sélection.
-     2. Écart de teinte mesuré avec chaque token de statut : 48° (neutre et
-        terminal), 71° (info), 72° (danger), 110° (attention), 146° (succès).
-        Aucune confusion possible entre un bouton d'action et une pastille de
-        statut.
-     3. Volontairement SOMBRE et peu saturé, pas un violet produit clair
-        (l'indigo #6366f1 de la moitié des produits est à 239° et beaucoup plus
-        lumineux) : à 36 % de luminosité, il lit comme une encre de tampon, pas
-        comme une couleur d'accueil. Un DMS est une machine à documents.
+     Conséquence assumée sur le critère qui justifiait le violet (« aucune
+     confusion possible avec une pastille de statut ») : avec une saturation
+     quasi nulle (6 %), `--marque` n'a plus de teinte à comparer aux six
+     `--statut-*`, qui restent eux saturés (38° à 217°). La distinction ne
+     tient donc plus à un écart de teinte calculé mais à la valeur : `--marque`
+     est nettement plus sombre (24 % de luminosité) que les fonds clairs des
+     statuts (91-97 %, voir plus bas) et nettement plus clair que le texte
+     `--foreground` (3.9 %) — un bouton d'action reste identifiable au premier
+     coup d'œil, jamais par sa seule couleur.
 
      Contraste mesuré (méthode de docs/design-comptoir.md — luminance relative
-     WCAG 2.1, calcul programmatique) :
-       --marque sur --background ......... 8.25:1  (AAA)
-       --marque sur --muted .............. 7.50:1  (AAA)
-       blanc sur --marque (bouton plein) . 8.25:1  (AAA)
-       blanc sur --marque-fort (survol) .. 11.29:1 (AAA)
-       --marque sur --marque-doux ........ 7.35:1  (AAA)
+     WCAG 2.1, calcul programmatique, rejoué par
+     `src/test/accessibilite/contraste-jetons.spec.ts`) :
+       --marque sur --background ......... 11.28:1 (AAA)
+       --marque sur --muted .............. 10.26:1 (AAA)
+       blanc sur --marque (bouton plein) . 11.28:1 (AAA)
+       blanc sur --marque-fort (survol) .. 15.04:1 (AAA)
+       --marque sur --marque-doux ........ 10.00:1 (AAA)
+       --marque-doux-foreground sur --marque-doux .. 10.80:1 (AAA)
      ─────────────────────────────────────────────────────────────────────── */
-  --marque: 288 58% 36%;
-  --marque-fort: 288 60% 27%; /* survol / appui d'une surface pleine de marque */
-  --marque-doux: 288 60% 96%; /* surface de surlignage (élément de menu actif) */
-  --marque-doux-foreground: 288 60% 24%;
+  --marque: 240 6% 24%;
+  --marque-fort: 240 8% 16%; /* survol / appui d'une surface pleine de marque */
+  --marque-doux: 240 6% 95%; /* surface de surlignage (élément de menu actif) */
+  --marque-doux-foreground: 240 6% 22%;
 
   /* `--primary` EST la couleur de marque. Une seule source de vérité : il n'existe
      pas d'un côté un « gris primaire » et de l'autre une marque décorative, sans quoi
@@ -351,6 +348,36 @@
   --statut-succes: 142 72% 27%; /* terminé, facturé, restitué, réalisée */
   --statut-danger: 0 72% 42%; /* annulé, refusée, marqueur sécurité */
   --statut-terminal: 240 6% 30%; /* clôturé */
+
+  /* ── Variantes « fond » — décision de @laupernoe ──────────────────────────────
+     Les six tokens ci-dessus restent des couleurs TEXTE (contour de badge,
+     bordure, icône) : ils sont déjà mesurés à ≥ 4.5:1 sur `--background` et
+     `--muted`, inchangés. Ce qui a changé : sur les écrans de facturation et
+     de ventes, un badge « plein » (fond `--statut-*` saturé + texte blanc)
+     rendait le contenu illisible — trop sombre pour une surface large. La
+     règle produit devient : un fond de statut est CLAIR, le texte dessus est
+     FONCÉ (le token `--statut-*` correspondant) — jamais l'inverse.
+
+     Chaque `-fond` est une teinte OPAQUE explicite, pas une opacité Tailwind
+     (`bg-statut-info/10`) : un fond translucide change de ratio réel selon ce
+     qu'il y a dessous et n'est mesurable par aucun outil de ce dépôt (voir
+     l'avertissement en tête de `contraste-jetons.spec.ts`). Chaque paire
+     `--statut-X` (texte) sur `--statut-X-fond` est vérifiée à ≥ 4.5:1 dans ce
+     même fichier de test.
+
+     `--statut-neutre-fond` et `--statut-terminal-fond` sont volontairement
+     écartés de 6 points de luminosité (97 % / 91 %), pas seulement mesurés :
+     ce sont les deux seuls tokens de la famille sans teinte saturée
+     (S 4-7 %), donc les deux qui risquent de devenir deux gris clairs
+     indiscernables l'un de l'autre une fois éclaircis. Le texte associé porte
+     la même distinction (44 % vs 30 % de luminosité), en plus de la forme et
+     du mot qui restent obligatoires sur tout badge de statut. */
+  --statut-neutre-fond: 240 5% 97%;
+  --statut-info-fond: 217 85% 95%;
+  --statut-attention-fond: 38 90% 95%;
+  --statut-succes-fond: 142 55% 94%;
+  --statut-danger-fond: 0 80% 96%;
+  --statut-terminal-fond: 240 7% 91%;
 }
 
 @theme inline {
@@ -360,6 +387,13 @@
   --color-statut-succes: hsl(var(--statut-succes));
   --color-statut-danger: hsl(var(--statut-danger));
   --color-statut-terminal: hsl(var(--statut-terminal));
+
+  --color-statut-neutre-fond: hsl(var(--statut-neutre-fond));
+  --color-statut-info-fond: hsl(var(--statut-info-fond));
+  --color-statut-attention-fond: hsl(var(--statut-attention-fond));
+  --color-statut-succes-fond: hsl(var(--statut-succes-fond));
+  --color-statut-danger-fond: hsl(var(--statut-danger-fond));
+  --color-statut-terminal-fond: hsl(var(--statut-terminal-fond));
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
