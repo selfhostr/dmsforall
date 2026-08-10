@@ -135,6 +135,7 @@ export class DevisComplementaireController {
   }
 
   @Post(':orId/devis-complementaires/:devisId/repondre')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.devis.repondre')
   @ApiOperation({
     summary: 'Enregistrement de la réponse du client (RM-81, CT-33).',

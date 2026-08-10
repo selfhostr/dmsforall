@@ -188,6 +188,7 @@ export class LigneOrController {
   }
 
   @Post(':orId/lignes/:ligneId/marquer-realisee')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.ligne.marquer_realisee')
   @ApiOperation({
     summary:
@@ -213,6 +214,7 @@ export class LigneOrController {
   }
 
   @Post(':orId/valider-lignes')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.ligne.valider')
   @ApiOperation({
     summary: 'Action groupée ATOMIQUE : `proposee|a_valider -> validee` (§10 L967).',
@@ -245,6 +247,7 @@ export class LigneOrController {
   }
 
   @Post(':orId/refuser-lignes')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.ligne.refuser')
   @ApiOperation({ summary: 'Action groupée ATOMIQUE : `a_valider -> refusee` (CT-33).' })
   @ApiParam({ name: 'orId', format: 'uuid' })
@@ -273,6 +276,7 @@ export class LigneOrController {
   }
 
   @Post(':orId/annuler-lignes')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.ligne.annuler')
   @ApiOperation({
     summary: 'Action groupée ATOMIQUE : annulation avec motif obligatoire (RM-71).',
@@ -308,6 +312,7 @@ export class LigneOrController {
   }
 
   @Post(':orId/soumettre-lignes-a-devis')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.devis.creer')
   @ApiOperation({
     summary: 'Action groupée ATOMIQUE : `proposee -> a_valider` (blocage `accord`).',

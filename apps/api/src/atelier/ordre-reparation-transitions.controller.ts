@@ -90,6 +90,7 @@ export class OrdreReparationTransitionsController {
   ) {}
 
   @Post(':orId/receptionner')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.or.receptionner')
   @ApiOperation({
     summary: 'T-03 `planifie -> ouvert` : réception du véhicule, kilométrage d’entrée (RM-51).',
@@ -114,6 +115,7 @@ export class OrdreReparationTransitionsController {
   }
 
   @Post(':orId/demarrer')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.or.demarrer')
   @ApiOperation({
     summary:
@@ -135,6 +137,7 @@ export class OrdreReparationTransitionsController {
   }
 
   @Post(':orId/reprendre-travaux')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.or.modifier')
   @ApiOperation({
     summary:
@@ -162,6 +165,7 @@ export class OrdreReparationTransitionsController {
   }
 
   @Post(':orId/passer-en-controle')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.or.passer_en_controle')
   @ApiOperation({
     summary:
@@ -183,6 +187,7 @@ export class OrdreReparationTransitionsController {
   }
 
   @Post(':orId/refuser-controle')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.or.controler')
   @ApiOperation({
     summary: 'T-12 `controle -> en_cours` : contrôle qualité non conforme, motif obligatoire.',
@@ -207,6 +212,7 @@ export class OrdreReparationTransitionsController {
   }
 
   @Post(':orId/valider-controle')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.or.controler')
   @ApiOperation({
     summary:
@@ -239,6 +245,7 @@ export class OrdreReparationTransitionsController {
   }
 
   @Post(':orId/terminer')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.or.terminer')
   @ApiOperation({
     summary:
@@ -267,6 +274,7 @@ export class OrdreReparationTransitionsController {
   }
 
   @Post(':orId/rouvrir')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.or.rouvrir')
   @ApiOperation({
     summary: 'T-15 `termine -> en_cours` : réouverture avant facturation, motif obligatoire.',
@@ -293,6 +301,7 @@ export class OrdreReparationTransitionsController {
   }
 
   @Post(':orId/restituer')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.or.restituer')
   @ApiOperation({
     summary:
@@ -323,6 +332,7 @@ export class OrdreReparationTransitionsController {
   }
 
   @Post(':orId/cloturer')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.or.cloturer')
   @ApiOperation({ summary: 'T-19 `restitue -> cloture` : plus rien en suspens.' })
   @ApiParam({ name: 'orId', format: 'uuid' })
@@ -341,6 +351,7 @@ export class OrdreReparationTransitionsController {
   }
 
   @Post(':orId/annuler')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.or.annuler')
   @ApiOperation({
     summary: 'T-20 `{planifie,ouvert} -> annule` : motif obligatoire (RM-62).',
