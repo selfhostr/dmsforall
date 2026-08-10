@@ -5,7 +5,7 @@ import {
   type EntiteAuditee,
 } from '@dfa/shared';
 
-import type { ContexteTenant } from '../../db';
+import type { ContexteTenant, TransactionDfa } from '../../db';
 
 /**
  * Miroir TypeScript des enums Postgres `entite_auditee` / `action_auditee`
@@ -42,10 +42,40 @@ export interface EntreeAudit {
  * API, à commencer par `GET /ordres-reparation/{id}/journal` (L1-12).
  */
 export interface ServiceAudit {
-  /** Historique complet d'une entité, tri chronologique CROISSANT (ordre du récit). */
+  /**
+   * Historique complet d'une entité, tri chronologique CROISSANT (ordre du récit).
+   *
+   * Ouvre SA PROPRE transaction (`AccesBase.enTenant`) — donc sa propre connexion prise sur le
+   * pool partagé. Correct pour un appelant qui n'est PAS déjà dans une transaction applicative.
+   * Un appelant déjà dans une transaction (`this.acces.enTenant(ctx, async (tx) => ...)`) doit
+   * utiliser `pourEntiteTx`/`pourEntitesTx` ci-dessous avec le `tx` qu'il détient déjà — sans
+   * quoi la lecture d'audit n'est plus atomique avec le reste de la transaction appelante (elle
+   * peut lire un état antérieur ou postérieur au commit de cette dernière), et chaque appel
+   * réclame une connexion supplémentaire du pool (`DATABASE_POOL_MAX`).
+   */
   pourEntite(
     ctx: ContexteTenant,
     entite: EntiteAuditee,
     entiteId: string,
+  ): Promise<readonly EntreeAudit[]>;
+
+  /** Équivalent de `pourEntite`, mais lit DANS la transaction fournie — aucune transaction imbriquée. */
+  pourEntiteTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    entite: EntiteAuditee,
+    entiteId: string,
+  ): Promise<readonly EntreeAudit[]>;
+
+  /**
+   * Historique de PLUSIEURS entités en UNE SEULE requête SQL, dans la transaction fournie —
+   * remplace une boucle d'appels à `pourEntiteTx`/`pourEntite` (N requêtes, potentiellement N
+   * transactions/connexions imbriquées) par un aller-retour unique. Tri chronologique CROISSANT
+   * global (toutes entités confondues) ; à l'appelant de refiltrer/retrier par entité si besoin.
+   */
+  pourEntitesTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    entites: readonly { readonly entite: EntiteAuditee; readonly entiteId: string }[],
   ): Promise<readonly EntreeAudit[]>;
 }

@@ -602,3 +602,95 @@ describe('EcranFicheFacture — droits par geste (émettre / encaisser / créer 
     },
   );
 });
+
+/**
+ * Défaut corrigé : depuis une facture, aucun chemin ne menait au client (le seul lien, « Compléter
+ * la fiche », n'apparaissait que si l'adresse était incomplète). Le nom du destinataire est
+ * désormais un vrai bouton de navigation, sur le même patron que le lien vers l'OR (`issueDeOr`,
+ * déjà câblé plus haut dans ce fichier) — vérifié ici en navigation RÉELLE (un `<Route
+ * path="/clients/:id">` de test rend un marqueur reconnaissable), pas seulement par la présence
+ * d'un `role="button"` : un test qui se contenterait de `getByRole('button')` passerait même si
+ * `onClick` ne faisait rien.
+ */
+describe('EcranFicheFacture — navigation vers la fiche client', () => {
+  function rendreAvecRouteClient(id = 'facture-1') {
+    const queryClient = creerQueryClientTest();
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[`/factures/${id}`]}>
+          <Routes>
+            <Route path="/factures/:id" element={<EcranFicheFacture />} />
+            <Route path="/clients/:clientId" element={<p>Marqueur fiche client atteinte</p>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it('navigue vers la fiche client au clic sur le nom du destinataire, sur une facture émise', async () => {
+    installerHandlerDocument(construireDocument());
+    const utilisateur = userEvent.setup();
+    rendreAvecRouteClient();
+
+    const boutonDestinataire = await screen.findByRole('button', { name: 'Jean Dupont' });
+    await utilisateur.click(boutonDestinataire);
+
+    expect(await screen.findByText('Marqueur fiche client atteinte')).toBeInTheDocument();
+  });
+
+  it('navigue vers la fiche client au clic sur le nom du destinataire, sur un brouillon', async () => {
+    installerHandlerDocument(
+      construireDocument({
+        statut: 'brouillon',
+        numero: null,
+        numeroSequence: null,
+        emisLe: null,
+        emisPar: null,
+        qr: null,
+      }),
+    );
+    const utilisateur = userEvent.setup();
+    rendreAvecRouteClient();
+
+    const boutonDestinataire = await screen.findByRole('button', { name: 'Jean Dupont' });
+    await utilisateur.click(boutonDestinataire);
+
+    expect(await screen.findByText('Marqueur fiche client atteinte')).toBeInTheDocument();
+  });
+
+  it('le bouton de navigation reste distinct du popover « verrouillé » — le clic ne déclenche pas les deux', async () => {
+    // Facture émise avec adresse complète : le bloc adresse est enveloppé par `ChampVerrouille`
+    // (popover « corriger par un avoir »). Le nom, lui, ne doit PAS ouvrir ce popover — seulement
+    // naviguer. Preuve que les deux affordances ne sont plus imbriquées l'une dans l'autre.
+    installerHandlerDocument(
+      construireDocument({
+        figees: {
+          clientDesignation: 'Jean Dupont',
+          clientIde: null,
+          clientLangue: 'fr',
+          adresseFacturation: {
+            rue: 'Rue du Lac',
+            numero: '4',
+            npa: '1000',
+            localite: 'Lausanne',
+            pays: 'CH',
+          },
+          conditionsPaiement: null,
+          plaque: null,
+        },
+      }),
+    );
+    const utilisateur = userEvent.setup();
+    rendreAvecRouteClient();
+
+    const boutonDestinataire = await screen.findByRole('button', { name: 'Jean Dupont' });
+    await utilisateur.click(boutonDestinataire);
+
+    expect(await screen.findByText('Marqueur fiche client atteinte')).toBeInTheDocument();
+    // Le popover « verrouillé » (texte fixe `facturation:verrouille.message`) ne doit pas être
+    // apparu suite à ce clic.
+    expect(
+      screen.queryByText('Cette facture est émise et ne peut plus être modifiée.'),
+    ).not.toBeInTheDocument();
+  });
+});

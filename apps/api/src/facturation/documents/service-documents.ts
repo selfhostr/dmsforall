@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, gt, inArray, isNotNull, lt } from 'drizzle-orm';
+import { and, desc, eq, gt, gte, inArray, isNotNull, lt, lte, sql } from 'drizzle-orm';
 import type {
   EntreeCreationDocumentVente,
   EntreeCreationLigneDocument,
@@ -33,6 +33,11 @@ import {
 // (RP-43, pont vente comptoir — voir `facturation.module.ts` et la note d'intégration de
 // `contrats/pieces/mouvement.ts`).
 import { ServiceMouvement } from '../../pieces/service-mouvement';
+// Import direct du fichier (jamais le barrel `../../recherche`) : ce dernier réexporte aussi
+// `recherche.controller.ts`/`recherche.module.ts` — inutile ici et évite tout risque de dépendance
+// circulaire entre `facturation/` et `recherche/`. `motifFragment` est une fonction PURE (voir son
+// en-tête) : aucune connexion, aucun couplage NestJS.
+import { motifFragment } from '../../recherche/utilitaires-recherche';
 
 import { calculerLigneDocument, calculerTotauxDocument } from './calcul-document';
 import {
@@ -242,12 +247,34 @@ export class ServiceDocumentsVente {
     });
   }
 
-  /** `GET /documents-vente` — SOUS-ENSEMBLE des filtres du contrat (`siteId`, `typeDocument`,
-   *  `statut`, `clientId`, `vehiculeId`, `enRetard`, `relanceNiveau`), tri `dateDocument:desc` par
-   *  défaut. SIMPLIFICATION SIGNALÉE, même doctrine que `atelier/service-or.ts::lister` :
-   *  `natureFacture`, `statutReglement`, `ordreReparationId`, les bornes de date et `q` ne sont
-   *  pas câblés dans cette passe. Pagination par curseur d'offset opaque — volume d'un tenant, pas
-   *  un flux illimité. */
+  /**
+   * `GET /documents-vente` — TOUS les filtres de `FiltresDocumentsVente` sont câblés (`siteId`,
+   * `typeDocument`, `natureFacture`, `statut`, `statutReglement`, `clientId`, `vehiculeId`,
+   * `ordreReparationId`, `dateDocumentDu`/`dateDocumentAu`, `enRetard`, `relanceNiveau`, `q`), tri
+   * `dateDocument:desc` par défaut. Défaut PRÉCÉDENT corrigé : `ordreReparationId` était ACCEPTÉ par
+   * la validation zod mais jamais traduit en SQL — une fiche d'OR listait alors les cinq derniers
+   * documents du TENANT ENTIER (aucune condition sur cette colonne), preuve obtenue en comparant un
+   * OR réel à un `ordreReparationId` inexistant qui rendait rigoureusement la même liste.
+   *
+   * `natureFacture` : composé avec `typeDocument = 'facture'` — la colonne `document_vente
+   * .nature_facture` vaut `'ordinaire'` par défaut sur TOUT document (`creer()` ci-dessus, y
+   * compris un `devis`/`bon_commande`/`avoir`), alors que la RÉPONSE ne l'expose jamais que pour une
+   * `facture` (`MD-12`, `mappeurs.ts` : `null` sinon). Filtrer `natureFacture=ordinaire` sans cette
+   * condition renverrait aussi tout devis/bon de commande/avoir — un mensonge du même type que celui
+   * corrigé ici pour `ordreReparationId`.
+   *
+   * `q` : MÊME idiome que `recherche/service-recherche.ts::chercherDocuments` et
+   * `vehicules/service-vehicule.ts` — `public.normaliser_recherche()` des deux côtés du `LIKE`,
+   * jamais une normalisation TypeScript reconstruite (elle divergerait de celle de la base). Porte
+   * sur `numero` et `clientDesignationFigee`, comme documenté par le contrat. AUCUN index dédié
+   * n'exploite `normaliser_recherche()` sur `document_vente` aujourd'hui (Bitmap Heap Scan au grand
+   * volume, ~230 ms mesurés par `recherche/service-recherche.ts` sur 91k lignes) — tradeoff déjà
+   * accepté ailleurs dans le dépôt pour la même colonne, pas réintroduit ni aggravé ici.
+   *
+   * Pagination par curseur d'offset opaque — volume d'un tenant, pas un flux illimité ; chaque
+   * filtre supplémentaire ne fait que rétrécir la clause `where` commune aux deux appels
+   * (page N puis N+1), sans toucher au mécanisme de curseur lui-même.
+   */
   async lister(
     ctx: ContexteTenant,
     principal: PrincipalAuthentifie,
@@ -264,6 +291,23 @@ export class ServiceDocumentsVente {
         conditions.push(inArray(documentVente.typeDocument, filtres.typeDocument));
       if (filtres.statut && filtres.statut.length > 0)
         conditions.push(inArray(documentVente.statut, filtres.statut));
+      if (filtres.statutReglement && filtres.statutReglement.length > 0)
+        conditions.push(inArray(documentVente.statutReglement, filtres.statutReglement));
+      if (filtres.ordreReparationId)
+        conditions.push(eq(documentVente.ordreReparationId, filtres.ordreReparationId));
+      // `natureFacture` — voir la note de tête : composé avec `typeDocument = 'facture'` pour
+      // matcher la sémantique de la RÉPONSE (`MD-12`), pas la valeur brute en colonne (toujours
+      // renseignée, même hors facture).
+      if (filtres.natureFacture)
+        conditions.push(
+          eq(documentVente.typeDocument, 'facture'),
+          eq(documentVente.natureFacture, filtres.natureFacture),
+        );
+      // Bornes INCLUSES (convention `xDu`/`xAu` de toute l'API — voir le contrat).
+      if (filtres.dateDocumentDu)
+        conditions.push(gte(documentVente.dateDocument, filtres.dateDocumentDu));
+      if (filtres.dateDocumentAu)
+        conditions.push(lte(documentVente.dateDocument, filtres.dateDocumentAu));
       // `enRetard` — MÊME règle que `calculerRetardDocument` (`echeance.ts`), traduite en SQL :
       // `statut = 'emis'` (une facture `annule_par_avoir` garde une `date_echeance`/
       // `solde_centimes` d'avant son annulation, RF-32 ne les nettoie pas — sans cette condition
@@ -287,6 +331,15 @@ export class ServiceDocumentsVente {
       // prétend pas modéliser à lui seul « eligible à la prochaine relance »).
       if (filtres.relanceNiveau !== undefined)
         conditions.push(eq(documentVente.relanceNiveau, filtres.relanceNiveau));
+      // `q` — voir la note de tête : `numero` (nullable, `coalesce` défensif) et
+      // `clientDesignationFigee` (`not null`), normalisés identiquement des deux côtés du `LIKE`.
+      if (filtres.q) {
+        const motif = motifFragment(filtres.q);
+        conditions.push(sql`(
+          public.normaliser_recherche(coalesce(${documentVente.numero}, '')) like public.normaliser_recherche(${motif})
+          or public.normaliser_recherche(${documentVente.clientDesignationFigee}) like public.normaliser_recherche(${motif})
+        )`);
+      }
 
       const decalage = decoderCurseurOffset(curseur);
       const lignes = await tx

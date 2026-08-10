@@ -41,7 +41,10 @@ export const CommandInput = forwardRef<
   ElementRef<typeof CommandPrimitive.Input>,
   ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
 >(({ className, ...props }, ref) => (
-  <div className="flex items-center gap-2 border-b px-3" cmdk-input-wrapper="">
+  <div
+    className="flex items-center gap-2 border-b px-3 transition-colors focus-within:border-ring"
+    cmdk-input-wrapper=""
+  >
     <Search aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
     <CommandPrimitive.Input
       ref={ref}
@@ -113,8 +116,7 @@ export const CommandItem = forwardRef<
   <CommandPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex min-h-11 cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-2 texte-corps outline-none',
-      'data-[selected=true]:bg-muted',
+      'element-menu relative flex min-h-11 cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-2 texte-corps outline-none',
       'data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50',
       className,
     )}

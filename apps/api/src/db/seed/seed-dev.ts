@@ -24,6 +24,7 @@ import * as schema from '../schema';
 import {
   client as clientMetier,
   clientAdresse,
+  clientCondition,
   parametreAtelier,
   parametreSite,
   pinPointage,
@@ -321,6 +322,41 @@ const TAUX_HORAIRE_DEMO = [
     code: 'ATELIER',
     libelle: 'Taux horaire atelier',
     montantCentimes: 14500,
+    valideDu: '2026-01-01',
+    valideAu: null,
+  },
+  /**
+   * Taux NÉGOCIÉ, réservé au compte flotte (`CONDITIONS_CLIENT_DEMO` ci-dessous) — RM-07 : « taux
+   * horaire spécifique ÉVENTUEL ». Sans lui, tous les clients de la démo tombaient sur le même
+   * chemin de code et le repli RM-65 (`CODE_TAUX_HORAIRE_DEFAUT`, `atelier/service-ligne-or.ts`)
+   * n'était jamais départagé du cas négocié.
+   */
+  {
+    code: 'FLOTTE',
+    libelle: 'Taux horaire flotte (contrat de service)',
+    montantCentimes: 11500,
+    valideDu: '2026-01-01',
+    valideAu: null,
+  },
+] as const;
+
+/**
+ * Conditions commerciales (RM-07), volontairement posées sur UN SEUL client sur trois : c'est la
+ * proportion du terrain — un garage ne négocie un tarif qu'avec une poignée de comptes flotte, et
+ * l'immense majorité de ses clients particuliers n'a AUCUNE ligne `client_condition`. Le jeu de
+ * démonstration doit refléter les deux cas, sinon un défaut qui ne frappe QUE les clients sans
+ * condition (cas réel : la main-d'œuvre était insaisissable pour eux, RM-65) reste invisible.
+ */
+const CONDITIONS_CLIENT_DEMO = [
+  {
+    clientNumero: 'CL-0003',
+    rabaisMoPourmille: 100,
+    rabaisPiecesPourmille: 50,
+    rabaisPneusPourmille: null,
+    tauxHoraireCode: 'FLOTTE',
+    delaiPaiementJours: 30,
+    modePaiement: 'facture',
+    plafondCentimes: null,
     valideDu: '2026-01-01',
     valideAu: null,
   },
@@ -894,6 +930,47 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
     }
     journaliser(`  ${String(CLIENTS_DEMO.length)} clients`);
 
+    // --- Conditions commerciales (RM-07) — UN client sur trois, voir CONDITIONS_CLIENT_DEMO ----
+    // Posées AVANT `semerAtelierDemo` (appelé plus bas par `principal()`) : c'est le seul moment
+    // où elles peuvent être figées sur les OR de démonstration (RM-50, `ServiceSnapshotOr` capture
+    // à l'ouverture et le trigger `ordre_reparation_verrouiller_figes` interdit toute reprise
+    // après coup). Idempotence par lecture préalable (même raison que les taux horaires : EXCLUDE
+    // de périodes, pas de contrainte UNIQUE simple sur laquelle bâtir un `onConflict`).
+    for (const cc of CONDITIONS_CLIENT_DEMO) {
+      const idClient = idsClientsParNumero.get(cc.clientNumero);
+      if (idClient === undefined) {
+        throw new Error(`Client « ${cc.clientNumero} » introuvable pour ses conditions.`);
+      }
+      const conditionExistante = await base
+        .select({ id: clientCondition.id })
+        .from(clientCondition)
+        .where(
+          and(
+            eq(clientCondition.tenantId, tenantId),
+            eq(clientCondition.clientId, idClient),
+            eq(clientCondition.valideDu, cc.valideDu),
+          ),
+        );
+      if (conditionExistante.length === 0) {
+        await base.insert(clientCondition).values({
+          tenantId,
+          clientId: idClient,
+          rabaisMoPourmille: cc.rabaisMoPourmille,
+          rabaisPiecesPourmille: cc.rabaisPiecesPourmille,
+          rabaisPneusPourmille: cc.rabaisPneusPourmille,
+          tauxHoraireCode: cc.tauxHoraireCode,
+          delaiPaiementJours: cc.delaiPaiementJours,
+          modePaiement: cc.modePaiement,
+          plafondCentimes: cc.plafondCentimes,
+          valideDu: cc.valideDu,
+          valideAu: cc.valideAu,
+        });
+      }
+    }
+    journaliser(
+      `  ${String(CONDITIONS_CLIENT_DEMO.length)} condition(s) commerciale(s) — les autres clients n'en ont AUCUNE, comme au garage`,
+    );
+
     // --- Véhicules (4) + plaque + détention + kilométrages -----------------------------------
     const idsVehiculesParCle = new Map<string, string>();
     for (const v of VEHICULES_DEMO) {
@@ -1113,7 +1190,7 @@ async function principal(): Promise<void> {
   // sous RLS) plutôt que d'insérer des lignes brutes — voir la note de tête de
   // `seed-atelier-demo.ts` sur pourquoi ce fichier n'utilise jamais `NestFactory`.
   const { semerAtelierDemo } = await import('./seed-atelier-demo');
-  await semerAtelierDemo({
+  const resultatAtelier = await semerAtelierDemo({
     config,
     tenantId: resultat.tenantId,
     idsSitesParCode: resultat.idsSitesParCode,
@@ -1124,8 +1201,11 @@ async function principal(): Promise<void> {
   });
 
   // Étape 3 du seed : chaîne documentaire de facturation (devis, brouillon de facture, facture
-  // émise + paiement partiel) — même doctrine que `seed-atelier-demo.ts` (VRAIS services de
-  // `facturation/`, jamais `NestFactory`), voir la tête de `seed-facturation-demo.ts`.
+  // Master RÉELLEMENT facturée depuis son OR via RF-81 + paiement partiel) — même doctrine que
+  // `seed-atelier-demo.ts` (VRAIS services de `facturation/`, jamais `NestFactory`), voir la tête
+  // de `seed-facturation-demo.ts`. `idsOrdresReparationParCle` (nouveau, résultat de l'étape
+  // précédente) : c'est ce qui permet à `seed-facturation-demo.ts` de retrouver l'OR « master » et
+  // de le facturer réellement, au lieu de recréer une facture sans lien à sa source.
   const { semerFacturationDemo } = await import('./seed-facturation-demo');
   await semerFacturationDemo({
     config,
@@ -1134,6 +1214,7 @@ async function principal(): Promise<void> {
     idsClientsParNumero: resultat.idsClientsParNumero,
     idsVehiculesParCle: resultat.idsVehiculesParCle,
     idsUtilisateursParRole: resultat.idsUtilisateursParRole,
+    idsOrdresReparationParCle: resultatAtelier.idsOrdresReparationParCle,
   });
 
   // Étape 4 du seed : relances de facturation — une condition commerciale sur M. Meier (sans

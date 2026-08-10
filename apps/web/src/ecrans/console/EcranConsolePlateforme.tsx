@@ -27,7 +27,7 @@ import {
 } from './indicateurs-plateforme';
 import { IndicateursPlateformeConsole } from './IndicateursPlateformeConsole';
 import { TableGaragesConsole } from './TableGaragesConsole';
-import { useVuePlateformeConsole } from './useVuePlateformeConsole';
+import { categoriserErreurConsole, useVuePlateformeConsole } from './useVuePlateformeConsole';
 
 const STATUTS_FILTRE_GARAGE: readonly NiveauSanteGarage[] = ['critique', 'attention', 'ok'];
 
@@ -111,6 +111,40 @@ export function EcranConsolePlateforme() {
   }
 
   if (requete.isError) {
+    const categorie = categoriserErreurConsole(requete.error);
+
+    if (categorie === 'moduleInactif') {
+      return (
+        <ConsoleShell>
+          <div className="flex flex-col gap-6">
+            <h1 className="texte-titre font-semibold text-foreground">
+              {t('console:plateforme.titre')}
+            </h1>
+            <EtatErreur
+              titre={t('console:plateforme.etatErreur.moduleInactif.titre')}
+              description={t('console:plateforme.etatErreur.moduleInactif.description')}
+            />
+          </div>
+        </ConsoleShell>
+      );
+    }
+
+    if (categorie === 'accesRefuse') {
+      return (
+        <ConsoleShell>
+          <div className="flex flex-col gap-6">
+            <h1 className="texte-titre font-semibold text-foreground">
+              {t('console:plateforme.titre')}
+            </h1>
+            <EtatErreur
+              titre={t('console:plateforme.etatErreur.accesRefuse.titre')}
+              description={t('console:plateforme.etatErreur.accesRefuse.description')}
+            />
+          </div>
+        </ConsoleShell>
+      );
+    }
+
     return (
       <ConsoleShell>
         <div className="flex flex-col gap-6">

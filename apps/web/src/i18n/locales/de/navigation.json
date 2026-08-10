@@ -25,8 +25,6 @@
     "pointageEquipe": "Team",
     "pointageCloture": "Periodenabschluss",
     "pointageBorne": "Werkstatt-Terminal",
-    "pneusAuDepot": "Eingelagert",
-    "pneusARelancer": "Nachfassen",
     "clients": "Kunden",
     "clientsTous": "Alle",
     "clientsDoublons": "Dubletten",
@@ -55,43 +53,9 @@
     "reglagesRelances": "Mahnstufen"
   },
   "liens": {
-    "accueil": "Startseite",
-    "tableauBord": "Übersicht",
     "clients": "Kunden",
     "vehicules": "Fahrzeuge",
-    "ordresReparation": "Reparaturaufträge",
-    "recherche": "Suche",
-    "factures": "Abrechnung",
-    "doublonsClients": "Kundendubletten",
-    "parametrageReferentiels": "Tarife & Leistungen",
-    "parametrageAtelier": "Werkstatteinstellungen",
-    "parametrageSites": "Standorte",
-    "parametrageFacturation": "Bankverbindung",
-    "piecesRechercheComptoir": "Thekensuche",
-    "piecesArticles": "Artikel",
-    "piecesReservations": "Reservierungen",
-    "piecesReapprovisionnement": "Nachbestellung",
-    "piecesCommandesFournisseur": "Lieferantenbestellungen",
-    "piecesFournisseurs": "Lieferanten",
-    "piecesConsignes": "Pfand",
-    "piecesParametrage": "Teileeinstellungen",
-    "pointageSaisie": "Zeiterfassung",
-    "pointageJournal": "Zeiterfassungsjournal",
-    "pointageEquipe": "Team",
-    "pointageCloture": "Periodenabschluss",
-    "ventesStock": "Fahrzeugbestand",
-    "ventesDossiers": "Verkaufsdossiers",
-    "ventesSuivi": "Finanzierungs- & Garantieübersicht",
-    "pneusHangar": "Reifenhotel",
-    "pneusARelancer": "Sätze zum Nachfassen",
-    "relances": "Mahnungen"
-  },
-  "groupes": {
-    "parametrage": "Einstellungen",
-    "pieces": "Teile",
-    "pointage": "Zeiterfassung",
-    "ventes": "Verkauf",
-    "pneus": "Reifen"
+    "piecesArticles": "Artikel"
   },
   "menu": {
     "ouvrir": "Menü öffnen"

@@ -1,4 +1,4 @@
-import { ChevronDown, TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams, useSearchParams } from 'react-router';
@@ -19,15 +19,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
+import { ActionPrimaire, type ActionSecondaireMenu } from '@/composants/layout/ActionPrimaire';
 import { useSession } from '@/hooks/useSession';
 import {
   useMarquerVenduVehiculeStock,
@@ -133,11 +128,54 @@ export function EcranFicheVehiculeStock() {
    *  voir enums.ts) : correction exceptionnelle `reserve -> vendu`, même droit et même forme de
    *  corps (`{ motif }`) que `remettre_disponible` — voir `peutCorrigerVehiculeStock`. */
   const proposeMarquerVendu = peutCorriger && stock.actionsDisponibles.includes('marquer_vendu');
-  const aucuneAction =
-    !proposeMettreAJour &&
-    !proposeReceptionner &&
-    !proposeRemettreDisponible &&
-    !proposeMarquerVendu;
+
+  // Lot C (`docs/plan-refonte-navigation.md`) — action primaire unique, même patron que
+  // `EnTeteOrdreReparation`/`EnTeteDossierVente`/`EnTeteFicheArticle` : `stock.actionsDisponibles`
+  // gouverne, rien n'est redeviné depuis `statutCommercial`. La seule transition d'AVANCEMENT de ce
+  // cycle avec un déclencheur simple (dialogue de confirmation nue, sans formulaire — même famille
+  // que `preparer`/`marquer_pret_a_livrer`/`cloturer` sur le dossier de vente) est `receptionner` :
+  // promue en primaire dès qu'elle est disponible. Sinon `mettre_a_jour` (l'édition de la fiche de
+  // coût, présente sur tous les statuts hors `vendu`/`livre`, verrouillé) devient la primaire par
+  // défaut — même rôle que « Modifier » sur `EnTeteFicheArticle`. Les corrections exceptionnelles
+  // (`remettre_disponible`/`marquer_vendu`) ne sont JAMAIS primaires, toujours dans le menu de
+  // débordement.
+  const actionPrimaire = proposeReceptionner
+    ? {
+        cle: 'receptionner' as const,
+        libelle: t('ventes:stock.fiche.actions.receptionner'),
+        onClick: () => setConfirmationReceptionOuverte(true),
+      }
+    : proposeMettreAJour
+      ? {
+          cle: 'mettreAJour' as const,
+          libelle: t('ventes:stock.fiche.actions.mettreAJour'),
+          onClick: () => setFormulaireOuvert(true),
+        }
+      : null;
+
+  const actionsSecondaires: ActionSecondaireMenu[] = [
+    actionPrimaire?.cle !== 'mettreAJour' && proposeMettreAJour
+      ? {
+          cle: 'mettreAJour',
+          libelle: t('ventes:stock.fiche.actions.mettreAJour'),
+          onSelect: () => setFormulaireOuvert(true),
+        }
+      : null,
+    proposeRemettreDisponible
+      ? {
+          cle: 'remettreDisponible',
+          libelle: t('ventes:stock.fiche.actions.remettreDisponible'),
+          onSelect: () => setRemettreDisponibleOuvert(true),
+        }
+      : null,
+    proposeMarquerVendu
+      ? {
+          cle: 'marquerVendu',
+          libelle: t('ventes:stock.fiche.actions.marquerVendu'),
+          onSelect: () => setMarquerVenduOuvert(true),
+        }
+      : null,
+  ].filter((action): action is ActionSecondaireMenu => action !== null);
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -162,37 +200,15 @@ export function EcranFicheVehiculeStock() {
           </Link>
         </div>
 
-        {!aucuneAction ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                {t('commun:actions.modifier')}
-                <ChevronDown className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {proposeMettreAJour ? (
-                <DropdownMenuItem onSelect={() => setFormulaireOuvert(true)}>
-                  {t('ventes:stock.fiche.actions.mettreAJour')}
-                </DropdownMenuItem>
-              ) : null}
-              {proposeReceptionner ? (
-                <DropdownMenuItem onSelect={() => setConfirmationReceptionOuverte(true)}>
-                  {t('ventes:stock.fiche.actions.receptionner')}
-                </DropdownMenuItem>
-              ) : null}
-              {proposeRemettreDisponible ? (
-                <DropdownMenuItem onSelect={() => setRemettreDisponibleOuvert(true)}>
-                  {t('ventes:stock.fiche.actions.remettreDisponible')}
-                </DropdownMenuItem>
-              ) : null}
-              {proposeMarquerVendu ? (
-                <DropdownMenuItem onSelect={() => setMarquerVenduOuvert(true)}>
-                  {t('ventes:stock.fiche.actions.marquerVendu')}
-                </DropdownMenuItem>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
+        {actionPrimaire ? (
+          <ActionPrimaire
+            actionsSecondaires={actionsSecondaires}
+            libelleMenuSecondaire={t('ventes:stock.fiche.actions.autresActions')}
+          >
+            <Button type="button" variant="default" onClick={actionPrimaire.onClick}>
+              {actionPrimaire.libelle}
+            </Button>
+          </ActionPrimaire>
         ) : null}
       </div>
 

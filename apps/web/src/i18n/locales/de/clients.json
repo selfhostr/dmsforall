@@ -48,6 +48,7 @@
     "derniersOrVide": "Kein Besuch erfasst.",
     "dossiersVente": "Verkaufsdossiers",
     "dossiersVenteVide": "Kein Verkaufsdossier.",
+    "dossiersVenteDroitRequis": "Sie sind nicht berechtigt, die Verkaufsdossiers dieses Kunden einzusehen.",
     "dossierSansVehicule": "Kein Fahrzeug zugewiesen"
   },
   "alertes": {

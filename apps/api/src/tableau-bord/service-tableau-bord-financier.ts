@@ -62,16 +62,30 @@ export class ServiceTableauBordFinancier {
         and d.date_document >= ${periode.du} and d.date_document <= ${periode.au}
       `;
 
+      // Les quatre indicateurs de chiffre d'affaires (HT, TVA, TTC, nombre de documents) partagent
+      // EXACTEMENT le même filtre (`filtreDocumentsPeriode`) : un seul balayage de `document_vente`
+      // suffit à les calculer tous, au lieu des quatre sous-requêtes corrélées d'origine (une par
+      // colonne). Ce CTE est l'unique bénéficiaire de l'index partiel posé par la migration `0049`
+      // (`document_vente_financier_periode_idx`, sur `(tenant_id, type_document, date_document) where
+      // statut <> 'brouillon'`) : le prédicat n'est pas retouché ci-dessous, afin que l'index
+      // s'applique tel quel. `encaissementsCentimes` (table `paiement`) et `encoursClientsCentimes`
+      // (filtre différent : encours actuel, pas borné à la période) restent des sous-requêtes à part
+      // — ni la même table+filtre, ni candidates à la fusion demandée par l'audit.
       const resultat = await tx.execute<LigneFinanciereBrute>(sql`
+        with documents_periode as (
+          select
+            sum(d.total_ht_centimes) as total_ht_centimes,
+            sum(d.total_tva_centimes) as total_tva_centimes,
+            sum(d.total_ttc_centimes) as total_ttc_centimes,
+            count(*)::int as nombre_documents
+          from public.document_vente d
+          where ${filtreDocumentsPeriode}
+        )
         select
-          coalesce((select sum(d.total_ht_centimes) from public.document_vente d
-             where ${filtreDocumentsPeriode}), 0) as "totalHtCentimes",
-          coalesce((select sum(d.total_tva_centimes) from public.document_vente d
-             where ${filtreDocumentsPeriode}), 0) as "totalTvaCentimes",
-          coalesce((select sum(d.total_ttc_centimes) from public.document_vente d
-             where ${filtreDocumentsPeriode}), 0) as "totalTtcCentimes",
-          (select count(*)::int from public.document_vente d
-             where ${filtreDocumentsPeriode}) as "nombreDocuments",
+          coalesce(documents_periode.total_ht_centimes, 0) as "totalHtCentimes",
+          coalesce(documents_periode.total_tva_centimes, 0) as "totalTvaCentimes",
+          coalesce(documents_periode.total_ttc_centimes, 0) as "totalTtcCentimes",
+          coalesce(documents_periode.nombre_documents, 0) as "nombreDocuments",
           coalesce((select sum(p.montant_centimes) from public.paiement p
              where p.tenant_id = ${ctx.tenantId} ${filtreSitePaiement}
                and p.date_valeur >= ${periode.du} and p.date_valeur <= ${periode.au}
@@ -80,14 +94,18 @@ export class ServiceTableauBordFinancier {
              where d.tenant_id = ${ctx.tenantId} ${filtreSiteDocument}
                and d.type_document = 'facture' and d.statut = 'emis'
           ), 0) as "encoursClientsCentimes"
+        from documents_periode
       `);
 
       const ligne = resultat.rows[0];
       if (!ligne) {
-        // Impossible en pratique — mêmes garanties que `ServiceTableauBordActivite.obtenir`
-        // (six sous-requêtes scalaires, `coalesce(..., 0)` sur chaque somme).
+        // Impossible en pratique : `documents_periode` est un agrégat sans `group by` (toujours
+        // exactement une ligne, même sur zéro document — `count(*)` rend 0, jamais une absence de
+        // ligne), et le `select` externe ne fait que croiser cette ligne unique avec deux
+        // sous-requêtes scalaires (`coalesce(..., 0)` sur chacune). Mêmes garanties que
+        // `ServiceTableauBordActivite.obtenir`.
         throw new Error(
-          "tableau-bord/financier : l'agrégation n'a rendu aucune ligne (six sous-requêtes scalaires — impossible).",
+          "tableau-bord/financier : l'agrégation n'a rendu aucune ligne (impossible — agrégat sans group by).",
         );
       }
 

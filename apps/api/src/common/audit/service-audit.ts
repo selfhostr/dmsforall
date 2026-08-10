@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 
-import { JETON_DB, type AccesBase, type ContexteTenant } from '../../db';
+import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../../db';
 import type { ActionAuditee, EntiteAuditee, EntreeAudit, ServiceAudit } from './audit.types';
 
 /**
@@ -57,16 +57,48 @@ export class ServiceAuditImpl implements ServiceAudit {
     entite: EntiteAuditee,
     entiteId: string,
   ): Promise<readonly EntreeAudit[]> {
-    return this.acces.enTenant(ctx, async (tx) => {
-      // Rescope explicite sur tenant_id, même si le RLS filtre déjà via le GUC posé par
-      // enTenant() : le RLS est le filet, jamais le mécanisme (doctrine du projet).
-      const lignes = await tx.execute<LigneAuditBrute>(sql`
-        select id, entite, entite_id, action, champ, valeur_avant, valeur_apres, utilisateur_id, requete_id, cree_le
-          from public.audit_atelier
-         where tenant_id = ${ctx.tenantId} and entite = ${entite} and entite_id = ${entiteId}
-         order by cree_le asc
-      `);
-      return lignes.rows.map(versEntreeAudit);
-    });
+    return this.acces.enTenant(ctx, (tx) => this.pourEntiteTx(tx, ctx, entite, entiteId));
+  }
+
+  async pourEntiteTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    entite: EntiteAuditee,
+    entiteId: string,
+  ): Promise<readonly EntreeAudit[]> {
+    return this.pourEntitesTx(tx, ctx, [{ entite, entiteId }]);
+  }
+
+  async pourEntitesTx(
+    tx: TransactionDfa,
+    ctx: ContexteTenant,
+    entites: readonly { readonly entite: EntiteAuditee; readonly entiteId: string }[],
+  ): Promise<readonly EntreeAudit[]> {
+    if (entites.length === 0) return [];
+
+    // `unnest(tableau1, tableau2)` apparie les deux tableaux position par position (Postgres ≥
+    // 9.4) : produit les COUPLES (entite, entite_id) demandés en une seule requête, là où une
+    // boucle appelante en aurait fait une par entité. `sql.param(...)::type[]` — jamais
+    // l'interpolation directe d'un tableau JS dans `sql\`\``, qui produit un constructeur
+    // d'enregistrement au lieu d'un tableau SQL et fait échouer la requête à l'exécution (même
+    // motif que `recherche/service-recherche.ts` et `vehicules/service-vehicule.ts`).
+    const entiteNoms = entites.map((e) => e.entite);
+    const entiteIds = entites.map((e) => e.entiteId);
+
+    // Rescope explicite sur tenant_id, même si le RLS filtre déjà via le GUC posé par
+    // enTenant() : le RLS est le filet, jamais le mécanisme (doctrine du projet).
+    const lignes = await tx.execute<LigneAuditBrute>(sql`
+      select id, entite, entite_id, action, champ, valeur_avant, valeur_apres, utilisateur_id, requete_id, cree_le
+        from public.audit_atelier
+       where tenant_id = ${ctx.tenantId}
+         and (entite, entite_id) in (
+           select * from unnest(
+             ${sql.param(entiteNoms)}::public.entite_auditee[],
+             ${sql.param(entiteIds)}::uuid[]
+           )
+         )
+       order by cree_le asc
+    `);
+    return lignes.rows.map(versEntreeAudit);
   }
 }

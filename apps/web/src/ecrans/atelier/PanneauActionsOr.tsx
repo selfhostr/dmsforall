@@ -29,6 +29,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
+import { ActionPrimaire, type ActionSecondaireMenu } from '@/composants/layout/ActionPrimaire';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
 import {
@@ -73,6 +74,24 @@ import { useSession } from '@/hooks/useSession';
  * `facturer` dans `or.actionsDisponibles` (statut `termine` ET droit `facturation.document.creer`
  * de l'appelant courant, §`atelier/etat-affiche.ts`) — aucune règle d'état ni de droit
  * recodée côté client.
+ *
+ * Lot C (`docs/plan-refonte-navigation.md`) : une seule action mise en couleur (`ActionPrimaire`,
+ * réutilisé tel quel depuis `EnTeteOrdreReparation`/`EnTeteFicheArticle`), le reste derrière un
+ * « … » — jamais cinq boutons à plat de poids visuel égal. La PRIMAIRE est la première action de
+ * `or.actionsDisponibles` (ordre serveur, `atelier/etat-affiche.ts::ACTIONS_DEPUIS_STATUT`, déjà le
+ * chemin « avant » de chaque statut) qui n'est ni destructive ni de reprise
+ * (`RESERVEES_SECONDAIRES`, plus bas) ni `facturer` — jamais redevinée depuis `or.statut` : le tri
+ * porte sur la LISTE déjà filtrée par le serveur, pas sur une nouvelle machine à états côté client.
+ *
+ * « Une action indisponible doit être désactivée ou absente, jamais cliquable pour rien » : ce
+ * panneau ne rend QUE `or.actionsDisponibles` (jamais un bouton grisé pour une action que le
+ * serveur n'a pas listée — cf. le test « n'affiche QUE les actions listées par le serveur » plus
+ * bas), donc rien n'y est jamais désactivé sans raison affichable. Pas de garde `disabled` sur le
+ * déclencheur de la primaire pendant sa propre mutation non plus : `Dialog` (Radix, modal par
+ * défaut) marque déjà tout le reste de l'écran `aria-hidden` + `pointer-events: none` dès qu'il est
+ * ouvert — un second `disabled` sur un bouton déjà inatteignable à la souris ET retiré de l'arbre
+ * d'accessibilité serait mort, invérifiable autrement qu'en contournant cet `aria-hidden` dans un
+ * test (donc en testant un état qu'aucun utilisateur ne peut jamais rencontrer).
  */
 
 const ACTIONS_LIGNE: ReadonlySet<ActionOrdreReparation> = new Set([
@@ -99,6 +118,22 @@ const CLES_TRANSITION: Partial<Record<ActionOrdreReparation, string>> = {
   cloturer: 'cloturer',
   annuler: 'annuler',
 };
+
+/**
+ * Actions jamais retenues comme PRIMAIRE (Lot C, `docs/plan-refonte-navigation.md` §« Action
+ * primaire unique par écran ») : destructive (`annuler`), négatives (`refuser-controle`) ou de
+ * reprise/correction (`reprendre-travaux`, `rouvrir`) — jamais le chemin attendu par défaut, même
+ * quand le serveur les liste comme structurellement possibles. `facturer` en est exclu par
+ * construction ailleurs (voir plus bas) : `EnTeteOrdreReparation` en fait déjà SON action primaire
+ * de page dès qu'elle est disponible, la dupliquer en couleur ici contredirait « une seule action
+ * primaire par écran ».
+ */
+const RESERVEES_SECONDAIRES: ReadonlySet<ActionOrdreReparation> = new Set([
+  'annuler',
+  'refuser-controle',
+  'reprendre-travaux',
+  'rouvrir',
+]);
 
 interface Props {
   readonly or: ReponseOrdreReparation;
@@ -213,36 +248,58 @@ export function PanneauActionsOr({ or }: Props) {
   const cleTitre = actionOuverte ? CLES_TRANSITION[actionOuverte] : undefined;
   const titreDialogue = cleTitre ? t(`or:transitions.${cleTitre}`) : '';
 
+  function libelleTransition(action: ActionOrdreReparation): string {
+    const cle = CLES_TRANSITION[action] ?? action;
+    return t(`or:transitions.${cle}`);
+  }
+
+  // Lot C — `facturer` navigue vers `EcranFacturerOrdreReparation` (choix par groupe payeur, voir
+  // le commentaire d'en-tête) : jamais une transition mutée depuis ce panneau, donc jamais
+  // candidate à la PRIMAIRE ni au menu « … » (un `<Link>` dans un `DropdownMenuItem` changerait son
+  // rôle ARIA de « lien » à « élément de menu », ce que `EcranFicheOrdreReparation.spec.tsx`
+  // n'attend pas). Rendu à part, en second bouton visible — jamais masqué derrière le débordement.
+  const actionsTransition = actionsNiveauOr.filter((action) => action !== 'facturer');
+  const peutFacturer = actionsNiveauOr.includes('facturer');
+
+  // PRIMAIRE : la première action non réservée (`RESERVEES_SECONDAIRES`) dans l'ORDRE déjà décidé
+  // par le serveur — repli sur la première tout court si l'appelant n'a droit qu'à des actions
+  // réservées (aucun statut ne produit ce cas aujourd'hui, mais le repli évite un panneau sans
+  // aucune action mise en avant si la matrice de droits évolue).
+  const actionPrimaire =
+    actionsTransition.find((action) => !RESERVEES_SECONDAIRES.has(action)) ??
+    actionsTransition[0] ??
+    null;
+  const actionsSecondaires = actionsTransition.filter((action) => action !== actionPrimaire);
+
+  const menuSecondaire: ActionSecondaireMenu[] = actionsSecondaires.map((action) => ({
+    cle: action,
+    libelle: libelleTransition(action),
+    onSelect: () => ouvrir(action),
+  }));
+
   return (
     <>
-      <div className="flex flex-wrap gap-2" role="group" aria-label={t('or:titre')}>
-        {actionsNiveauOr.map((action) => {
-          const cle = CLES_TRANSITION[action];
-          if (!cle) return null;
-          const variant =
-            action === 'annuler'
-              ? 'destructive'
-              : action === 'receptionner' || action === 'demarrer'
-                ? 'default'
-                : 'outline';
-          const libelle = t(`or:transitions.${cle}`);
-
-          // `facturer` navigue vers `EcranFacturerOrdreReparation` (choix par groupe payeur) au
-          // lieu d'ouvrir le dialogue de confirmation générique — voir le commentaire d'en-tête.
-          if (action === 'facturer') {
-            return (
-              <Button key={action} asChild variant={variant}>
-                <Link to={`/ordres-reparation/${or.id}/facturer`}>{libelle}</Link>
-              </Button>
-            );
-          }
-
-          return (
-            <Button key={action} type="button" variant={variant} onClick={() => ouvrir(action)}>
-              {libelle}
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('or:titre')}>
+        {actionPrimaire ? (
+          <ActionPrimaire
+            actionsSecondaires={menuSecondaire}
+            libelleMenuSecondaire={t('or:actions.autresActions')}
+          >
+            <Button
+              type="button"
+              variant={actionPrimaire === 'annuler' ? 'destructive' : 'default'}
+              onClick={() => ouvrir(actionPrimaire)}
+            >
+              {libelleTransition(actionPrimaire)}
             </Button>
-          );
-        })}
+          </ActionPrimaire>
+        ) : null}
+
+        {peutFacturer ? (
+          <Button key="facturer" asChild variant="outline">
+            <Link to={`/ordres-reparation/${or.id}/facturer`}>{libelleTransition('facturer')}</Link>
+          </Button>
+        ) : null}
       </div>
 
       <Dialog

@@ -68,3 +68,5 @@ Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
 
+
+# CodeGraph — index de graphe du dépôt, reconstruit par `codegraph init` sur chaque poste

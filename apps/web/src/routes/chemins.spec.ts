@@ -11,10 +11,6 @@ describe('chemins.clients', () => {
     expect(chemins.clients.liste('site-lausanne')).toBe('/clients?site=site-lausanne');
   });
 
-  it('construit le chemin de création', () => {
-    expect(chemins.clients.nouveau('site-1')).toBe('/clients/nouveau?site=site-1');
-  });
-
   it('construit le chemin de détail avec id', () => {
     expect(chemins.clients.detail('abc-123', 'site-1')).toBe('/clients/abc-123?site=site-1');
   });

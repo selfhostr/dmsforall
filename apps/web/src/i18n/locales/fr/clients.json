@@ -48,6 +48,7 @@
     "derniersOrVide": "Aucun passage enregistré.",
     "dossiersVente": "Dossiers de vente",
     "dossiersVenteVide": "Aucun dossier de vente.",
+    "dossiersVenteDroitRequis": "Vous n'avez pas le droit de consulter les dossiers de vente de ce client.",
     "dossierSansVehicule": "Véhicule non assigné"
   },
   "alertes": {

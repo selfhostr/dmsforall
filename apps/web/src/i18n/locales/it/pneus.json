@@ -26,12 +26,22 @@
       "changerSaison": "Cambio stagione",
       "deplacer": "Sposta",
       "sortir": "Fai uscire"
+    },
+    "misEnEvidence": {
+      "badge": "Set cercato",
+      "ariaLabel": "Set cercato, ubicazione {repere}"
     }
   },
   "hangar": {
     "titre": "Deposito pneumatici",
     "erreur": {
       "titre": "Impossibile visualizzare il deposito"
+    },
+    "misEnEvidence": {
+      "absent": {
+        "titre": "Set introvabile qui",
+        "description": "Il deposito cercato non è più visibile in questo deposito per questa sede — potrebbe essere stato spostato, fatto uscire, oppure la sua sede è cambiata. Il piano qui sotto resta aggiornato."
+      }
     },
     "siteRequis": {
       "titre": "Scegliere una sede",

@@ -503,4 +503,56 @@ describe('EcranHangarPneus', () => {
       expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
     });
   });
+
+  /**
+   * Défaut corrigé : le lien « Voir dans le hangar à pneus » de la fiche véhicule menait à `/pneus`
+   * sans jamais désigner LEQUEL des jeux du site regarder — le magasinier devait refaire une
+   * recherche visuelle. `?depot=<id>` (même mécanique que `?site=`/`?onglet=`, voir le commentaire
+   * de tête du fichier) met la carte correspondante en évidence : défilement + focus programmatique
+   * (repérable au clavier/lecteur d'écran, pas seulement par la couleur) + badge textuel visible.
+   */
+  describe('mise en évidence par `?depot=`', () => {
+    it('surligne la carte du jeu ciblé : focus, badge textuel, sans filtrer le reste du plan', async () => {
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/sites/site-1/hangar-pneus', () =>
+          HttpResponse.json(pageDe([DEPOT, DEPOT_2])),
+        ),
+      );
+
+      rendre('/pneus?site=site-1&depot=depot-2');
+
+      // La carte visée prend le focus (repérable au clavier/lecteur d'écran, pas seulement par un
+      // contour de couleur) : preuve la plus forte que la mise en évidence est ACCESSIBLE.
+      const carteCiblee = await screen.findByRole('generic', { name: /Rack 5/ });
+      await waitFor(() => expect(carteCiblee).toHaveFocus());
+
+      // Badge textuel — la couleur seule ne porte jamais l'information dans ce dépôt.
+      expect(within(carteCiblee).getByText('Jeu recherché')).toBeInTheDocument();
+
+      // Le reste du plan reste VISIBLE autour (pas un filtre qui masquerait le contexte) : le
+      // magasinier doit pouvoir voir les cases voisines, qui elles n'ont PAS le badge.
+      const carteVoisine = screen.getByText('Rack 3').closest('.rounded-lg') as HTMLElement;
+      expect(within(carteVoisine).queryByText('Jeu recherché')).not.toBeInTheDocument();
+    });
+
+    it(
+      'dépôt absent (déplacé, sorti, ou pas sur ce site) : aucune mise en évidence fabriquée, ' +
+        'le hangar reste utilisable, message honnête affiché',
+      async () => {
+        server.use(
+          http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+          http.get('/api/v1/sites/site-1/hangar-pneus', () => HttpResponse.json(pageDe([DEPOT]))),
+        );
+
+        rendre('/pneus?site=site-1&depot=depot-introuvable');
+
+        // Le hangar s'affiche NORMALEMENT — aucun plantage, aucun état vide fabriqué.
+        expect(await screen.findByText('Rack 3')).toBeInTheDocument();
+        // Mention honnête : ni fausse mise en évidence, ni silence.
+        expect(await screen.findByText('Jeu introuvable ici')).toBeInTheDocument();
+        expect(screen.queryByText('Jeu recherché')).not.toBeInTheDocument();
+      },
+    );
+  });
 });

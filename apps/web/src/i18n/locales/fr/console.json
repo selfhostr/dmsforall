@@ -8,7 +8,15 @@
     "titre": "Vue plateforme",
     "sousTitre": "Où ça va mal, là, sur l'ensemble des garages.",
     "etatErreur": {
-      "titre": "Impossible d'afficher la vue plateforme"
+      "titre": "Impossible d'afficher la vue plateforme",
+      "moduleInactif": {
+        "titre": "La console d'exploitation n'est pas activée sur ce serveur.",
+        "description": "La variable de connexion dédiée n'est pas renseignée côté serveur (DATABASE_URL_CONSOLE). Renseignez-la puis redémarrez l'API pour activer la console."
+      },
+      "accesRefuse": {
+        "titre": "Vous n'avez pas accès à la console.",
+        "description": "Votre session ne dispose pas des droits nécessaires pour consulter la console d'exploitation."
+      }
     },
     "etatVide": {
       "titre": "Aucun garage",

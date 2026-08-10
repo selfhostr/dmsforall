@@ -26,12 +26,22 @@
       "changerSaison": "Changer de saison",
       "deplacer": "Déplacer",
       "sortir": "Sortir"
+    },
+    "misEnEvidence": {
+      "badge": "Jeu recherché",
+      "ariaLabel": "Jeu recherché, repère {repere}"
     }
   },
   "hangar": {
     "titre": "Hangar à pneus",
     "erreur": {
       "titre": "Impossible d'afficher le hangar"
+    },
+    "misEnEvidence": {
+      "absent": {
+        "titre": "Jeu introuvable ici",
+        "description": "Le dépôt demandé n'est plus visible dans ce hangar sur ce site — il a peut-être été déplacé, sorti, ou son site a changé. Le plan ci-dessous reste à jour."
+      }
     },
     "siteRequis": {
       "titre": "Choisissez un site",

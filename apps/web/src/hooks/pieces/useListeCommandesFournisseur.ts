@@ -1,10 +1,12 @@
-import { useInfiniteQuery, type UseInfiniteQueryResult } from '@tanstack/react-query';
+import { type UseInfiniteQueryResult } from '@tanstack/react-query';
 
 import type {
   FiltresCommandesFournisseur,
   PageCurseur,
   ReponseCommandeFournisseur,
 } from '@dfa/shared';
+
+import { useDoitReessayer, useListeCurseur } from '@/hooks/pagination-curseur';
 
 import { clesPieces } from './cles';
 import { listerCommandesFournisseur } from './commandes-fournisseur.api';
@@ -19,20 +21,17 @@ export type ResultatListeCommandesFournisseur = UseInfiniteQueryResult<
 };
 
 /** `GET /commandes-fournisseur` (RP-26 → RP-31), pagination par curseur — même architecture que
- *  `useListeArticles`. */
+ *  `useListeArticles`, y compris `reessayer` (RF-115 : `admin` porte `[]` sur tout le domaine
+ *  Pièces). */
 export function useListeCommandesFournisseur(
   filtres: FiltresCommandesFournisseur,
 ): ResultatListeCommandesFournisseur {
-  const resultat = useInfiniteQuery({
-    queryKey: clesPieces.commandesFournisseur.liste(filtres),
-    queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
-      listerCommandesFournisseur(filtres, { limite: LIMITE_PAGE, curseur: pageParam }),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (dernierePage) => dernierePage.curseurSuivant ?? undefined,
+  const reessayer = useDoitReessayer();
+  const { resultat, elements } = useListeCurseur<ReponseCommandeFournisseur>({
+    cle: clesPieces.commandesFournisseur.liste(filtres),
+    charger: (curseur) => listerCommandesFournisseur(filtres, { limite: LIMITE_PAGE, curseur }),
+    reessayer,
   });
 
-  return {
-    ...resultat,
-    commandes: resultat.data?.pages.flatMap((page) => page.donnees) ?? [],
-  };
+  return { ...resultat, commandes: elements };
 }

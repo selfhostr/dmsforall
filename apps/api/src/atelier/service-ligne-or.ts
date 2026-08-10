@@ -74,6 +74,29 @@ const PAYEURS_AVEC_TIERS: ReadonlySet<PayeurLigneOr> = new Set([
 ]);
 
 /**
+ * Code du taux horaire STANDARD du garage dans `taux_horaire` — celui qui s'applique à un client
+ * qui n'a négocié aucun tarif particulier (RM-07 : le taux client est « éventuel »). C'est la
+ * convention déjà en place dans le référentiel de démonstration (`db/seed/seed-dev.ts`, dont les
+ * prestations pointent toutes sur ce code).
+ *
+ * CONVENTION, PAS ENCORE UN PARAMÈTRE : `parametre_atelier` ne porte aucune colonne désignant le
+ * taux par défaut du tenant. Un garage qui nomme son taux autrement est rattrapé par le 3ᵉ cran de
+ * la cascade (`resoudreTauxHoraireCentimes`) tant qu'il n'en pratique qu'un seul ; au-delà, il doit
+ * nommer `ATELIER` celui qui sert de référence. Le vrai correctif —
+ * `parametre_atelier.taux_horaire_defaut_code` (migration + schéma Drizzle) — est HORS du périmètre
+ * d'écriture de ce fichier ; signalé au rapport de livraison.
+ */
+export const CODE_TAUX_HORAIRE_DEFAUT = 'ATELIER';
+
+/**
+ * Résultat de la résolution RM-65. L'échec porte SON MOTIF : « le taux négocié du client a expiré »
+ * et « le garage n'a pas de taux standard » appellent deux gestes de correction différents, et le
+ * réceptionniste qui lit le message doit savoir lequel — une absence de donnée n'est pas une valeur.
+ */
+type ResolutionTauxHoraire =
+  { readonly centimes: number } | { readonly centimes: null; readonly motif: string };
+
+/**
  * Lignes d'ordre de réparation (contrats-api-etape-1.md §7.8) : création, modification libre,
  * marquage réalisée (action de ligne), et les QUATRE actions GROUPÉES portées par l'OR (§7.7,
  * `ACTIONS_ORDRE_REPARATION` : `valider-lignes`, `refuser-lignes`, `annuler-lignes`,
@@ -170,23 +193,8 @@ export class ServiceLigneOr {
         const numeroOrdre = (existantes.at(-1)?.numeroOrdre ?? 0) + 1;
 
         const tauxHoraireCentimes = this.estMainOeuvre(entree.type)
-          ? await this.resoudreTauxHoraireCentimes(tx, ctx, or)
+          ? this.exigerTauxHoraire(await this.resoudreTauxHoraireCentimes(tx, ctx, or))
           : null;
-        if (this.estMainOeuvre(entree.type) && tauxHoraireCentimes === null) {
-          throw new ErreurMetier(
-            'VALIDATION_ECHOUEE',
-            'Aucun taux horaire résoluble pour cette ligne de main d’œuvre.',
-            {
-              erreurs: [
-                {
-                  champ: 'type',
-                  code: 'taux_horaire_introuvable',
-                  message: 'Taux horaire introuvable ou absent des conditions client (RM-65).',
-                },
-              ],
-            },
-          );
-        }
 
         const montants =
           entree.payeur === 'garage'
@@ -346,8 +354,14 @@ export class ServiceLigneOr {
 
       const payeurEffectif = entree.payeur ?? ligne.payeur;
       const typeEffectif = entree.type ?? ligne.type;
+      // Le taux DÉJÀ figé sur la ligne prime (RM-65 : figé à la création, il ne bouge plus) ; il
+      // n'est résolu ici que pour une ligne qui DEVIENT de la main-d'œuvre par ce `PATCH`. Même
+      // garde explicite qu'à la création : sans elle, un taux non résoluble descendait jusqu'à
+      // l'`UPDATE` et se traduisait par une violation de `ligne_or_taux_horaire_requis_chk`
+      // (migration 0008) — soit une erreur serveur illisible au lieu d'un 400 actionnable.
       const tauxHoraireCentimes = this.estMainOeuvre(typeEffectif)
-        ? (ligne.tauxHoraireCentimes ?? (await this.resoudreTauxHoraireCentimes(tx, ctx, or)))
+        ? (ligne.tauxHoraireCentimes ??
+          this.exigerTauxHoraire(await this.resoudreTauxHoraireCentimes(tx, ctx, or)))
         : ligne.tauxHoraireCentimes;
 
       const montants = !champsTarifRenseignes
@@ -963,30 +977,89 @@ export class ServiceLigneOr {
   }
 
   /**
-   * RM-65 : le taux horaire est FIGÉ à la création depuis le code porté par les conditions
-   * commerciales figées de l'OR (`or.conditionsFigees.tauxHoraireCode`, capturées par
-   * `ServiceSnapshotOr` à l'ouverture). Lecture directe de `taux_horaire`, même doctrine que
+   * RM-65 : le taux horaire est FIGÉ à la création de la ligne. RM-07 précise que le client porte
+   * un « taux horaire spécifique ÉVENTUEL » — c'est un ARRANGEMENT PARTICULIER, pas la source
+   * normale du tarif : le référentiel `taux_horaire` appartient au GARAGE (§7.9 « Taux horaires :
+   * par catégorie de travail, par marque, par catégorie de véhicule, avec dates de validité
+   * (RM-65) », P-02 « un seul, ou par type de travail / marque / … »), et RM-50 énumère bien DEUX
+   * choses figées distinctes à l'ouverture de l'OR : « les conditions commerciales ET les taux
+   * horaires applicables ».
+   *
+   * D'où la cascade ci-dessous. Sans elle (état antérieur : lecture du seul
+   * `conditionsFigees.tauxHoraireCode`, `null` sinon), AUCUNE ligne de main-d'œuvre n'était
+   * saisissable pour un client sans condition commerciale négociée — c'est-à-dire pour l'immense
+   * majorité des clients d'un garage, qui n'en négocie qu'avec une poignée de comptes flotte.
+   *
+   *  1. le taux NÉGOCIÉ du client (`or.conditionsFigees.tauxHoraireCode`, capturé par
+   *     `ServiceSnapshotOr` à l'ouverture) ;
+   *  2. à défaut, le taux STANDARD du garage (`CODE_TAUX_HORAIRE_DEFAUT`) ;
+   *  3. à défaut, l'unique taux en vigueur s'il n'y en a qu'un — configuration P-02 « un seul
+   *     taux », où le garage l'a nommé autrement (`MO`, `HORAIRE`, `STANDARD`…).
+   *
+   * Un code client qui ne résout RIEN n'est PAS rattrapé par le taux standard : facturer au tarif
+   * public un client à qui on a promis un tarif flotte est une erreur silencieuse et coûteuse. Le
+   * garage doit voir que la période de validité de SON taux négocié est expirée — d'où le refus
+   * explicite, avec le code fautif dans le message.
+   *
+   * Lecture directe de `taux_horaire` (une poignée de lignes par tenant), même doctrine que
    * `references.ts` pour `parametre_atelier` : pas de jeton pour une lecture de table.
    */
   private async resoudreTauxHoraireCentimes(
     tx: TransactionDfa,
     ctx: ContexteTenant,
     or: LigneOrdreReparation,
-  ): Promise<number | null> {
+  ): Promise<ResolutionTauxHoraire> {
     const conditions = (or.conditionsFigees as { tauxHoraireCode?: string | null } | null) ?? null;
-    const code = conditions?.tauxHoraireCode;
-    if (!code) return null;
+    const codeClient = conditions?.tauxHoraireCode ?? null;
 
     const lignes: readonly LigneTauxHoraire[] = await tx
       .select()
       .from(tauxHoraire)
-      .where(and(eq(tauxHoraire.tenantId, ctx.tenantId), eq(tauxHoraire.code, code)));
+      .where(eq(tauxHoraire.tenantId, ctx.tenantId));
 
     const dateJour = new Date().toISOString().slice(0, 10);
-    const valide = lignes.find(
+    const enVigueur = lignes.filter(
       (l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu >= dateJour),
     );
-    return valide?.montantCentimes ?? null;
+
+    if (codeClient) {
+      const negocie = enVigueur.find((l) => l.code === codeClient);
+      return negocie
+        ? { centimes: negocie.montantCentimes }
+        : {
+            centimes: null,
+            motif:
+              `Le taux horaire « ${codeClient} » convenu avec ce client (RM-07, figé à ` +
+              `l'ouverture de l'OR) n'a aucune période de validité couvrant le ${dateJour}.`,
+          };
+    }
+
+    const standard = enVigueur.find((l) => l.code === CODE_TAUX_HORAIRE_DEFAUT);
+    if (standard) return { centimes: standard.montantCentimes };
+
+    const codesEnVigueur = new Set(enVigueur.map((l) => l.code));
+    const unique = codesEnVigueur.size === 1 ? enVigueur[0] : undefined;
+    if (unique) return { centimes: unique.montantCentimes };
+
+    return {
+      centimes: null,
+      motif:
+        `Aucun taux horaire standard : ce client n'a pas de taux négocié (RM-07) et le ` +
+        `référentiel du garage ne porte ni le code « ${CODE_TAUX_HORAIRE_DEFAUT} » ni un taux ` +
+        `unique en vigueur au ${dateJour}. Renseigner les taux horaires dans le paramétrage.`,
+    };
+  }
+
+  /** Traduit une résolution en échec (RM-65) en `400 VALIDATION_ECHOUEE` lisible au comptoir. */
+  private exigerTauxHoraire(resolution: ResolutionTauxHoraire): number {
+    if (resolution.centimes !== null) return resolution.centimes;
+    throw new ErreurMetier(
+      'VALIDATION_ECHOUEE',
+      'Aucun taux horaire résoluble pour cette ligne de main d’œuvre.',
+      {
+        erreurs: [{ champ: 'type', code: 'taux_horaire_introuvable', message: resolution.motif }],
+      },
+    );
   }
 
   /**

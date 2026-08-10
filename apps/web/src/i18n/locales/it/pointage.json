@@ -226,11 +226,6 @@
   },
   "periode": {
     "titre": "Chiusura periodo",
-    "site": "Sede",
-    "vide": {
-      "titre": "Scegli una sede",
-      "description": "Seleziona una sede per bloccare o sbloccare un periodo di timbratura."
-    },
     "verrouiller": {
       "titre": "Blocca un periodo",
       "description": "Ogni timbratura terminata o convalidata, il cui inizio precede questa data, sara bloccata. Una timbratura ancora in corso nel periodo blocca l'intera operazione.",
@@ -242,7 +237,6 @@
       "blocageAvecTechniciens": "Timbrature ancora in corso per: {liste} — devono essere fermate prima di poter bloccare.",
       "arreterPointages": "Ferma le timbrature in corso",
       "arretEnCours": "Arresto delle timbrature in corso…",
-      "arretEchec": "Alcune timbrature non hanno potuto essere fermate. Riprova.",
       "arretReussi": "Timbrature fermate — puoi bloccare di nuovo."
     },
     "deverrouiller": {
@@ -253,9 +247,6 @@
       "motifRequis": "Il motivo e obbligatorio per sbloccare un periodo.",
       "action": "Sblocca",
       "resultat": "{count, plural, one {# timbratura sbloccata.} other {# timbrature sbloccate.}}"
-    },
-    "erreur": {
-      "titre": "Azione non possibile"
     }
   }
 }

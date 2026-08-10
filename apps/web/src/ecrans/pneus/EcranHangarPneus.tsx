@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router';
 import type { ReponseDepotPneus, SaisonPneu } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -122,17 +123,28 @@ function versOngletHangar(valeur: string | null): OngletHangar {
  * `CarteJeuPneu` (plan) une fois qu'expert-api/expert-facturation auront défini le contrat
  * (nature de la prestation facturée, périodicité, lien vers la chaîne devis→facture existante).
  *
- * NOTE PERFORMANCE (mineure, non bloquante) : les deux requêtes (`useHangarPneus`,
- * `useJeuxARelancer`) partent toutes les deux au montage de l'écran, même si l'utilisateur reste
- * sur un seul onglet — `useJeuxARelancer` (`hooks/pneus/`) ne porte pas d'option `enabled`, et ce
- * fichier est hors du périmètre d'écriture de cet agent (`ecrans/pneus/` seulement). Effet mesuré
- * : un aller-retour réseau de plus qu'un `enabled` conditionnel n'en ferait, pas une boucle ni un
- * N+1 — signalé, pas corrigé ici.
+ * DÉFAUT CORRIGÉ (audit du 09.08.2026, requête tirée pour un onglet inactif) : `useJeuxARelancer`
+ * (`hooks/pneus/`) porte désormais une option `enabled`, appelée ici avec `onglet === 'a_relancer'`
+ * — la requête ne part plus au montage si l'utilisateur reste sur l'onglet « Actifs ». Gardée SANS
+ * dépendre de `site` (contrairement à `useHangarPneus` ci-dessus) : cet onglet fonctionne aussi
+ * sans site choisi (tenant entier), voir la note d'arbitrage plus haut.
  *
  * DÉFAUT CORRIGÉ (rapport de test du 06.08.2026, n°2) : `codeCase` est désormais modifiable APRÈS
  * la création via `POST /depots-pneus/{id}/deplacer` (`DialogueDeplacerDepotPneu`, bouton
  * « Déplacer » sur `CarteJeuPneu`) — la route existait déjà côté API, seul l'écran ne l'exposait
  * pas. `DialogueNouveauDepotPneu` reste le seul endroit où `codeCase` se saisit À LA CRÉATION.
+ *
+ * MISE EN ÉVIDENCE D'UN DÉPÔT PRÉCIS (`?depot=<id>`, lien « Voir dans le hangar à pneus » de
+ * `EcranFicheVehicule.tsx`) — décision : SURLIGNER une carte du plan existant plutôt que
+ * PRÉ-FILTRER dessus. Le magasinier vient chercher un jeu précis mais doit voir le reste du local
+ * autour (case voisine libre, jeu mal rangé à côté) — un filtre qui masquerait tout le contexte
+ * serait pire que l'état actuel (aucune mise en évidence). Concrètement : `CarteJeuPneu` reçoit
+ * `misEnEvidence`, fait défiler jusqu'à elle-même et prend le focus (lecteur d'écran : la couleur
+ * seule — un simple contour — ne porte jamais l'info dans ce dépôt, d'où aussi le focus
+ * programmatique ET un badge textuel visible). Cas honnête : si `?depot=` ne correspond à AUCUN
+ * dépôt chargé pour CE site (déplacé ailleurs, sorti depuis, lien périmé), le hangar s'affiche
+ * normalement + un `Alert` dédié — jamais de mise en évidence fabriquée sur un élément absent, et
+ * jamais un plantage.
  *
  * ROUTES SIGNALÉ (hors périmètre d'écriture, `routes/` appartient à un autre agent) : le chemin
  * `/pneus/a-relancer` (`chemins.pneus.aRelancer`, `apps/web/src/routes/chemins.ts`) et sa route
@@ -147,6 +159,11 @@ export function EcranHangarPneus() {
   const [searchParams, setSearchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
   const onglet = versOngletHangar(searchParams.get('onglet'));
+  // Mise en évidence d'un dépôt précis (ex. lien « Voir dans le hangar à pneus » de la fiche
+  // véhicule, `EcranFicheVehicule.tsx`) — MÊME mécanique `?xxx=` que `site`/`onglet` ci-dessus,
+  // jamais un second système de navigation. `undefined` (absent de l'URL) reste le cas normal :
+  // tous les écrans hangar ouverts sans venir d'un lien précis.
+  const depotSurligne = searchParams.get('depot') ?? undefined;
   const {
     data: session,
     isPending: sessionEnChargement,
@@ -173,7 +190,10 @@ export function EcranHangarPneus() {
     tri: 'dernierMouvementLe:desc',
   });
 
-  const aRelancer = useJeuxARelancer({ siteId: site, tri: 'dernierMouvementLe:asc' });
+  const aRelancer = useJeuxARelancer(
+    { siteId: site, tri: 'dernierMouvementLe:asc' },
+    { enabled: onglet === 'a_relancer' },
+  );
 
   const depotsFiltres =
     filtreRepere.trim() === ''
@@ -384,6 +404,7 @@ export function EcranHangarPneus() {
                           }}
                           site={site}
                           peutGerer={peutGerer}
+                          misEnEvidence={depot.id === depotSurligne}
                           onChangerSaison={setDepotChangementSaison}
                           onDeplacer={setDepotDeplacement}
                           onSortir={setDepotSortie}
@@ -394,6 +415,24 @@ export function EcranHangarPneus() {
                 </div>
               ) : (
                 <>
+                  {/* Cas honnête (exigence de l'agent) : `?depot=` pointe vers un dépôt qui n'est
+                   *  ni sorti, ni monté, ni entré sur CE site — déplacé ailleurs, sorti depuis,
+                   *  ou lien périmé. On ne fabrique JAMAIS de mise en évidence sur un élément
+                   *  absent : le hangar s'affiche normalement, avec cette mention en plus. Gardé
+                   *  hors de `hangar.isPending`/`isError` pour ne pas se déclencher trop tôt ni
+                   *  se confondre avec `EtatErreur` (qui a son propre message + retry). */}
+                  {depotSurligne &&
+                  !hangar.isPending &&
+                  !hangar.isError &&
+                  !hangar.depots.some((d) => d.id === depotSurligne) ? (
+                    <Alert variant="avertissement">
+                      <AlertTitle>{t('pneus:hangar.misEnEvidence.absent.titre')}</AlertTitle>
+                      <AlertDescription>
+                        {t('pneus:hangar.misEnEvidence.absent.description')}
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
+
                   <div className="flex flex-wrap items-end gap-3">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="pneus-filtre-saison">
@@ -467,6 +506,7 @@ export function EcranHangarPneus() {
                             depot={depot}
                             site={site}
                             peutGerer={peutGerer}
+                            misEnEvidence={depot.id === depotSurligne}
                             onChangerSaison={setDepotChangementSaison}
                             onDeplacer={setDepotDeplacement}
                             onSortir={setDepotSortie}

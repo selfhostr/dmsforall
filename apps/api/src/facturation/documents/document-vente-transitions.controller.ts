@@ -19,12 +19,15 @@ import {
 import type { Response } from 'express';
 import {
   EN_TETE_IDEMPOTENCE,
+  schemaAccepterDevis,
   schemaAnnulerDocument,
   schemaCreationAvoir,
+  schemaEmissionDocumentVente,
   schemaIdentifiant,
   schemaRefuserDocument,
   type EntreeAnnulerDocument,
   type EntreeCreationAvoir,
+  type EntreeEmissionDocumentVente,
   type EntreeRefuserDocument,
 } from '@dfa/shared';
 
@@ -83,12 +86,13 @@ export class DocumentVenteTransitionsController {
   )
   async emettre(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,
+    @CorpsZod(schemaEmissionDocumentVente, { exemple: {} }) entree: EntreeEmissionDocumentVente,
     @Headers(EN_TETE_IDEMPOTENCE.toLowerCase()) cleIdempotence: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    const resultat = await this.emission.emettre(ctx, principal, id, cleIdempotence ?? '');
+    const resultat = await this.emission.emettre(ctx, principal, id, cleIdempotence ?? '', entree);
 
     res.status(resultat.reponse.statutHttp);
     if (resultat.rejoue) res.setHeader('Idempotency-Rejeu', 'true');
@@ -106,7 +110,10 @@ export class DocumentVenteTransitionsController {
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Document introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'DOCUMENT_TRANSITION_INTERDITE.')
-  async accepter(@Param('id', new PipeZod(schemaIdentifiant)) id: string) {
+  async accepter(
+    @Param('id', new PipeZod(schemaIdentifiant)) id: string,
+    @CorpsZod(schemaAccepterDevis, { exemple: {} }) _entree: unknown,
+  ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
     return this.emission.accepter(ctx, principal, id);

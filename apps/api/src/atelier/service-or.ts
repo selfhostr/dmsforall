@@ -60,6 +60,7 @@ import {
   chargerClientLigne,
   chargerParametresAtelier,
   chargerPlaqueCourante,
+  chargerResumesUtilisateurs,
   chargerResumeUtilisateur,
   chargerVehiculeLigne,
   construireVehiculeResume,
@@ -396,10 +397,15 @@ export class ServiceOr {
     return this.acces.enTenant(ctx, async (tx) => {
       await chargerOr(tx, ctx, orId);
       const lignes = await listerDemandesOr(tx, ctx, orId);
-      return Promise.all(
-        lignes.map(async (l) =>
-          mapperDemande(l, await chargerResumeUtilisateur(tx, ctx, l.saisiParId)),
-        ),
+      // Correctif N+1 : UNE requête pour tous les auteurs de la page, plutôt qu'un
+      // `chargerResumeUtilisateur` par demande — voir `chargerResumesUtilisateurs`.
+      const auteurs = await chargerResumesUtilisateurs(
+        tx,
+        ctx,
+        lignes.map((l) => l.saisiParId),
+      );
+      return lignes.map((l) =>
+        mapperDemande(l, l.saisiParId ? (auteurs.get(l.saisiParId) ?? null) : null),
       );
     });
   }
@@ -453,32 +459,29 @@ export class ServiceOr {
 
   /**
    * `GET /ordres-reparation/{orId}/journal` (RM-59, RM-111) : historique COMPLET de l'OR — son
-   * propre en-tête, plus chacune de ses lignes et de ses devis. `ServiceAudit.pourEntite` ne sait
-   * lire qu'un couple (entité, id) à la fois (port gelé, `common/audit/audit.types.ts`) : ce
-   * service agrège donc N+1 lectures, acceptable au volume d'un seul OR (quelques dizaines de
-   * lignes au plus au lot 1).
+   * propre en-tête, plus chacune de ses lignes et de ses devis.
    *
-   * SÉRIALISÉ délibérément (pas de `Promise.all`) : chaque appel à `pourEntite` ouvre SA PROPRE
-   * transaction (`AccesBase.enTenant`), donc SA PROPRE connexion prise sur le pool partagé — alors
-   * que cette méthode tourne déjà À L'INTÉRIEUR d'une transaction (`this.acces.enTenant` ci-
-   * dessous) qui en détient une. Paralléliser N lectures d'audit revient à réclamer N connexions
-   * SUPPLÉMENTAIRES d'un coup pour une seule requête HTTP (`DATABASE_POOL_MAX=10` en dev, partagé
-   * par tout le trafic) : un OR à plusieurs dizaines de lignes peut à lui seul saturer le pool et
-   * mettre en attente (voire expirer, `connectionTimeoutMillis=5000`) toute autre requête
-   * concurrente. Sérialiser tient ce coût à UNE connexion supplémentaire à la fois, quel que soit
-   * le nombre de lignes/devis.
+   * UN SEUL aller-retour d'audit : `ServiceAudit.pourEntitesTx` (`common/audit/service-audit.ts`)
+   * accepte la liste COMPLÈTE des couples (entité, id) à historiser et rend leurs entrées en une
+   * seule requête SQL (`unnest` apparié, pas une boucle) — corrige un défaut réel constaté ici :
+   * la version précédente bouclait sur `ServiceAudit.pourEntite`, qui ouvre SA PROPRE transaction
+   * (`AccesBase.enTenant`) à CHAQUE appel, donc sa propre connexion prise sur le pool partagé
+   * (`DATABASE_POOL_MAX=10` en dev), alors que cette méthode tourne déjà À L'INTÉRIEUR d'une
+   * transaction (`this.acces.enTenant` ci-dessous) qui en détient une — jusqu'à ~19 connexions
+   * imbriquées pour un seul OR (une par ligne/devis), et une lecture non atomique avec le reste de
+   * la transaction appelante (le journal pouvait voir un état antérieur ou postérieur au commit).
+   * `pourEntitesTx` lit DANS le `tx` fourni : une connexion, un seul aller-retour, atomique.
    *
-   * NORMALISATION `creeLe` : `ServiceAudit.pourEntite` déclare `EntreeAudit.creeLe: Date`
+   * NORMALISATION `creeLe` : `ServiceAudit.pourEntitesTx` déclare `EntreeAudit.creeLe: Date`
    * (`common/audit/audit.types.ts`), mais son implémentation (`common/audit/service-audit.ts`)
    * lit `audit_atelier` par SQL brut (`tx.execute<LigneAuditBrute>`), hors du mapping de colonnes
    * Drizzle — vérifié en conditions réelles : la valeur reçue ICI est en fait une `string` Postgres
    * (`"2026-08-04 09:29:38.68287+00"`), pas une instance `Date`. Un tri par `.getTime()` sur cette
    * valeur plantait avec `TypeError: b.creeLe.getTime is not a function` (500 sur CHAQUE appel,
-   * quel que soit l'OR — la cause réelle de ce défaut, distincte de l'épuisement du pool ci-
-   * dessus, qui restait latent tant que peu de lignes existaient). `normaliserCreeLe` blinde CE
-   * point de consommation contre l'écart entre le type déclaré et le type réellement reçu, sans
-   * modifier `common/audit/` (hors périmètre de ce module) — une correction du contrat lui-même
-   * (faire respecter `Date` à la source) reste préférable et à faire là-bas.
+   * quel que soit l'OR). `normaliserCreeLe` blinde CE point de consommation contre l'écart entre le
+   * type déclaré et le type réellement reçu, sans modifier `common/audit/` (hors périmètre de ce
+   * module) — une correction du contrat lui-même (faire respecter `Date` à la source) reste
+   * préférable et à faire là-bas.
    *
    * Pagination et filtres implémentés en mémoire après fusion/tri — SIMPLIFICATION SIGNALÉE :
    * pas le mécanisme de curseur trié partagé (`common/pagination/curseur.ts`, conçu pour un tri
@@ -501,21 +504,18 @@ export class ServiceOr {
 
       const entites: readonly {
         entite: 'ordre_reparation' | 'ligne_or' | 'devis_complementaire';
-        id: string;
+        entiteId: string;
       }[] = [
-        { entite: 'ordre_reparation', id: orId },
-        ...lignes.map((l) => ({ entite: 'ligne_or' as const, id: l.id })),
-        ...devisRows.map((d) => ({ entite: 'devis_complementaire' as const, id: d.id })),
+        { entite: 'ordre_reparation', entiteId: orId },
+        ...lignes.map((l) => ({ entite: 'ligne_or' as const, entiteId: l.id })),
+        ...devisRows.map((d) => ({ entite: 'devis_complementaire' as const, entiteId: d.id })),
       ];
 
-      const brutes: EntreeAudit[] = [];
-      for (const { entite, id } of entites) {
-        // eslint-disable-next-line no-await-in-loop -- sérialisation délibérée, voir doc ci-dessus.
-        const lot = await this.audit.pourEntite(ctx, entite, id);
-        for (const entree of lot) {
-          brutes.push({ ...entree, creeLe: normaliserCreeLe(entree.creeLe) });
-        }
-      }
+      const lot = await this.audit.pourEntitesTx(tx, ctx, entites);
+      const brutes: EntreeAudit[] = lot.map((entree) => ({
+        ...entree,
+        creeLe: normaliserCreeLe(entree.creeLe),
+      }));
 
       const filtrees = brutes.filter((entree) => {
         if (filtres.entite && entree.entite !== filtres.entite) return false;
@@ -537,34 +537,41 @@ export class ServiceOr {
       const suite =
         decalage + limite < filtrees.length ? encoderCurseurOffset(decalage + limite) : null;
 
-      const donnees = await Promise.all(
-        page.map(async (entree): Promise<ReponseEntreeJournal> => ({
-          id: entree.id,
-          entite: entree.entite,
-          entiteId: entree.entiteId,
-          action: entree.action,
-          survenuLe: entree.creeLe.toISOString(),
-          auteur: await chargerResumeUtilisateur(tx, ctx, entree.utilisateurId),
-          // `champ === null` = snapshot de ligne entière (posé par le trigger générique, migration
-          // `0004` §objet) : `avant`/`apres` portent la ligne. `champ` renseigné = INSERT direct
-          // d'UN champ précis (ex. `rouvrir`, `service-transitions.ts`) : ce n'est pas un diff de
-          // ligne, donc pas de `avant`/`apres` — la valeur va dans `motif` quand `champ === 'motif'`
-          // (seul champ narrow connu à ce jour), null sinon plutôt que de deviner.
-          avant:
-            entree.champ === null
-              ? ((entree.valeurAvant as Record<string, unknown> | null) ?? null)
-              : null,
-          apres:
-            entree.champ === null
-              ? ((entree.valeurApres as Record<string, unknown> | null) ?? null)
-              : null,
-          motif:
-            entree.champ === 'motif' && typeof entree.valeurApres === 'string'
-              ? entree.valeurApres
-              : null,
-          confirmations: [],
-        })),
+      // Correctif N+1 : UNE requête pour tous les auteurs de la page, plutôt qu'un
+      // `chargerResumeUtilisateur` par entrée de journal — voir `chargerResumesUtilisateurs`.
+      // Plus aucun `await` dans la boucle ci-dessous : `page.map` redevient une simple
+      // transformation synchrone (le `Promise.all` qui l'entourait n'a plus lieu d'être).
+      const auteurs = await chargerResumesUtilisateurs(
+        tx,
+        ctx,
+        page.map((entree) => entree.utilisateurId),
       );
+      const donnees = page.map((entree): ReponseEntreeJournal => ({
+        id: entree.id,
+        entite: entree.entite,
+        entiteId: entree.entiteId,
+        action: entree.action,
+        survenuLe: entree.creeLe.toISOString(),
+        auteur: entree.utilisateurId ? (auteurs.get(entree.utilisateurId) ?? null) : null,
+        // `champ === null` = snapshot de ligne entière (posé par le trigger générique, migration
+        // `0004` §objet) : `avant`/`apres` portent la ligne. `champ` renseigné = INSERT direct
+        // d'UN champ précis (ex. `rouvrir`, `service-transitions.ts`) : ce n'est pas un diff de
+        // ligne, donc pas de `avant`/`apres` — la valeur va dans `motif` quand `champ === 'motif'`
+        // (seul champ narrow connu à ce jour), null sinon plutôt que de deviner.
+        avant:
+          entree.champ === null
+            ? ((entree.valeurAvant as Record<string, unknown> | null) ?? null)
+            : null,
+        apres:
+          entree.champ === null
+            ? ((entree.valeurApres as Record<string, unknown> | null) ?? null)
+            : null,
+        motif:
+          entree.champ === 'motif' && typeof entree.valeurApres === 'string'
+            ? entree.valeurApres
+            : null,
+        confirmations: [],
+      }));
 
       return { donnees, curseurSuivant: suite };
     });
@@ -692,24 +699,34 @@ export class ServiceOr {
       chargerControleQualite(tx, ctx, orId),
       pourListe
         ? Promise.resolve<readonly EntreeAudit[]>([])
-        : this.audit.pourEntite(ctx, 'ordre_reparation', orId),
+        : this.audit.pourEntiteTx(tx, ctx, 'ordre_reparation', orId),
       // I-09 : `LecturePointage.pointagesOuvertsPourOr` prend `tx` en premier paramètre et lit
-      // DANS la transaction courante (doctrine du port, `atelier.jetons.ts`) — pas de transaction
-      // imbriquée ici, à la différence de `ServiceAudit.pourEntite` juste au-dessus (hors
-      // périmètre de ce correctif, voir `journal()`).
+      // DANS la transaction courante (doctrine du port, `atelier.jetons.ts`) — même patron que
+      // `ServiceAudit.pourEntiteTx` juste au-dessus : aucune transaction imbriquée ici non plus
+      // (voir `common/audit/service-audit.ts` pour la variante `Tx` de `ServiceAudit.pourEntite`).
       this.pointage.pointagesOuvertsPourOr(tx, orId),
     ]);
 
-    const demandes = await Promise.all(
-      demandesRows.map(async (d) =>
-        mapperDemande(d, await chargerResumeUtilisateur(tx, ctx, d.saisiParId)),
-      ),
-    );
+    const dernierEvenement = journalOr.at(-1) ?? null;
+
+    // Correctif N+1 : UNE requête pour TOUS les résumés utilisateur dont a besoin ce document
+    // (auteurs des demandes + émetteurs des devis + auteur du dernier événement de journal),
+    // plutôt qu'un `chargerResumeUtilisateur` par demande/devis/événement — voir
+    // `chargerResumesUtilisateurs`. Particulièrement sensible ici : `assemblerDocument` est aussi
+    // appelée UNE FOIS PAR OR depuis `lister()` (`pourListe = true`) — sans ce lot, une page de M
+    // OR aurait rouvert cette même boucle M fois.
+    const resumes = await chargerResumesUtilisateurs(tx, ctx, [
+      ...demandesRows.map((d) => d.saisiParId),
+      ...devisRows.map((d) => d.emetteurId),
+      dernierEvenement?.utilisateurId ?? null,
+    ]);
+    const resumePour = (id: string | null) => (id ? (resumes.get(id) ?? null) : null);
+
+    const demandes = demandesRows.map((d) => mapperDemande(d, resumePour(d.saisiParId)));
     const devis = await Promise.all(
       devisRows.map(async (d) => {
         const lignesDevis = await listerLignesDevis(tx, ctx, d.id);
-        const emetteur = await chargerResumeUtilisateur(tx, ctx, d.emetteurId);
-        return mapperDevis(d, lignesDevis, emetteur, role);
+        return mapperDevis(d, lignesDevis, resumePour(d.emetteurId), role);
       }),
     );
 
@@ -721,12 +738,7 @@ export class ServiceOr {
       pieces: or.attentePieces,
       externe: or.attenteExterne,
     };
-    const dernierEvenement = journalOr.at(-1) ?? null;
-    const modifiePar = await chargerResumeUtilisateur(
-      tx,
-      ctx,
-      dernierEvenement?.utilisateurId ?? null,
-    );
+    const modifiePar = resumePour(dernierEvenement?.utilisateurId ?? null);
     const voitMontants = roleVoitLesMontants(role);
 
     // `totauxParPayeur` (MD-62) : résout le destinataire de chaque groupe payeur tiers en UN SEUL

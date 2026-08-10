@@ -1,12 +1,15 @@
 import { MapPin } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
 import type { ReponseDepotPneus } from '@dfa/shared';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formaterDate } from '@/lib/formats';
+import { cn } from '@/lib/utils';
 import { chemins } from '@/routes/chemins';
 
 import { BadgeSaisonPneu } from './BadgeSaisonPneu';
@@ -27,6 +30,13 @@ interface Props {
   readonly identification?: IdentificationJeuPneu;
   readonly site?: string;
   readonly peutGerer: boolean;
+  /** Vrai quand ce jeu est celui ciblé par `?depot=` (venu d'un lien externe, ex. la fiche
+   *  véhicule — voir le commentaire de tête d'`EcranHangarPneus.tsx`). Fait défiler la carte à
+   *  l'écran ET la place au clavier/lecteur d'écran (`focus()` sur un conteneur `tabIndex={-1}`,
+   *  MÊME patron que le lien d'évitement d'`AppShell.tsx`) : un simple contour de couleur serait
+   *  invisible pour un lecteur d'écran, d'où aussi le badge textuel ci-dessous — la couleur seule
+   *  ne porte jamais l'information dans ce dépôt. */
+  readonly misEnEvidence?: boolean;
   readonly onChangerSaison: (depot: ReponseDepotPneus) => void;
   readonly onDeplacer: (depot: ReponseDepotPneus) => void;
   readonly onSortir: (depot: ReponseDepotPneus) => void;
@@ -42,15 +52,43 @@ export function CarteJeuPneu({
   identification,
   site,
   peutGerer,
+  misEnEvidence = false,
   onChangerSaison,
   onDeplacer,
   onSortir,
 }: Props) {
   const { t } = useTranslation(['pneus', 'commun']);
   const estActif = depot.statut === 'en_depot' || depot.statut === 'monte';
+  const carteRef = useRef<HTMLDivElement>(null);
+
+  // Fait défiler jusqu'à la carte et y place le focus quand elle vient d'être ciblée par
+  // `?depot=` — condition à l'existence de `matchMedia` (absent de jsdom sans polyfill dédié,
+  // qu'on ne pose pas ici : `test/setup.ts` est hors périmètre d'écriture de cet agent) et
+  // toujours en respectant `prefers-reduced-motion`.
+  useEffect(() => {
+    if (!misEnEvidence) return;
+    const noeud = carteRef.current;
+    if (!noeud) return;
+    const reduireMouvement =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    noeud.scrollIntoView({ behavior: reduireMouvement ? 'auto' : 'smooth', block: 'center' });
+    noeud.focus();
+  }, [misEnEvidence]);
 
   return (
-    <Card>
+    <Card
+      ref={carteRef}
+      tabIndex={misEnEvidence ? -1 : undefined}
+      aria-label={
+        misEnEvidence
+          ? t('pneus:jeu.misEnEvidence.ariaLabel', {
+              repere: depot.codeCase ?? t('pneus:jeu.sansRepere'),
+            })
+          : undefined
+      }
+      className={cn(misEnEvidence && 'ring-2 ring-primary ring-offset-2 ring-offset-background')}
+    >
       <CardContent className="flex flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1.5 texte-corps font-mono text-lg font-semibold text-foreground">
@@ -63,6 +101,12 @@ export function CarteJeuPneu({
           </div>
           <BadgeStatutDepotPneu statut={depot.statut} />
         </div>
+
+        {misEnEvidence ? (
+          <Badge variant="outline" className="w-fit border-primary text-primary">
+            {t('pneus:jeu.misEnEvidence.badge')}
+          </Badge>
+        ) : null}
 
         <div className="flex flex-wrap items-center gap-2">
           <BadgeSaisonPneu saison={depot.saison} />

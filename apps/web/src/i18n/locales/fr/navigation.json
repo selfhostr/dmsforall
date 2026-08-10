@@ -25,8 +25,6 @@
     "pointageEquipe": "Équipe",
     "pointageCloture": "Clôture de période",
     "pointageBorne": "Borne d'atelier",
-    "pneusAuDepot": "Au dépôt",
-    "pneusARelancer": "À relancer",
     "clients": "Clients",
     "clientsTous": "Tous",
     "clientsDoublons": "Doublons",
@@ -55,43 +53,9 @@
     "reglagesRelances": "Paliers de relance"
   },
   "liens": {
-    "accueil": "Accueil",
-    "tableauBord": "Tableau de bord",
     "clients": "Clients",
     "vehicules": "Véhicules",
-    "ordresReparation": "Ordres de réparation",
-    "recherche": "Recherche",
-    "factures": "Facturation",
-    "doublonsClients": "Doublons clients",
-    "parametrageReferentiels": "Tarifs & prestations",
-    "parametrageAtelier": "Paramètres atelier",
-    "parametrageSites": "Sites",
-    "parametrageFacturation": "Coordonnées bancaires",
-    "piecesRechercheComptoir": "Recherche comptoir",
-    "piecesArticles": "Articles",
-    "piecesReservations": "Réservations",
-    "piecesReapprovisionnement": "Réapprovisionnement",
-    "piecesCommandesFournisseur": "Commandes fournisseur",
-    "piecesFournisseurs": "Fournisseurs",
-    "piecesConsignes": "Consignes",
-    "piecesParametrage": "Paramétrage pièces",
-    "pointageSaisie": "Pointage",
-    "pointageJournal": "Journal de pointage",
-    "pointageEquipe": "Équipe",
-    "pointageCloture": "Clôture de période",
-    "ventesStock": "Véhicules en stock",
-    "ventesDossiers": "Dossiers de vente",
-    "ventesSuivi": "Suivi financement & garantie",
-    "pneusHangar": "Hangar à pneus",
-    "pneusARelancer": "Jeux à relancer",
-    "relances": "Relances"
-  },
-  "groupes": {
-    "parametrage": "Paramétrage",
-    "pieces": "Pièces",
-    "pointage": "Pointage",
-    "ventes": "Ventes",
-    "pneus": "Pneus"
+    "piecesArticles": "Articles"
   },
   "menu": {
     "ouvrir": "Ouvrir le menu"

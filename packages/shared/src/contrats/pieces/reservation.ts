@@ -80,13 +80,13 @@ export type FiltresReservations = z.infer<typeof schemaFiltresReservations>;
  * sortie demandé diffère du site de la réservation ET qu'aucun transfert (`RP-13`) n'a été
  * enregistré entre-temps (`RP-22`).
  *
- * PAS d'`Idempotency-Key` : c'est une TRANSITION gardée par l'état de départ (`active`), pas une
- * création au sens de `RETENTION_IDEMPOTENCE_JOURS` — un rejeu sur une réservation déjà
+ * AUCUN CORPS : la quantité sortie est TOUJOURS celle de la réservation déjà posée
+ * (`quantiteMillieme`, fixée à la création — voir note en fin de fichier), rien à saisir. PAS
+ * d'`Idempotency-Key` non plus : c'est une TRANSITION gardée par l'état de départ (`active`), pas
+ * une création au sens de `RETENTION_IDEMPOTENCE_JOURS` — un rejeu sur une réservation déjà
  * `satisfaite` échoue proprement avec le même code que toute transition rejouée, même patron que
  * les actions de `ordre-reparation.ts` (`facturer` excepté, qui crée des documents).
  */
-export const schemaSatisfactionReservation = z.object({});
-export type EntreeSatisfactionReservation = z.infer<typeof schemaSatisfactionReservation>;
 
 /**
  * `POST /reservations/{id}/liberer` — le geste EXPLICITE du magasinier (`RP-23`, troisième cas) ;

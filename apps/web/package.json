@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint . --config ../../eslint.config.mjs",
+    "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "i18n:check": "node scripts/verifier-i18n.mjs",

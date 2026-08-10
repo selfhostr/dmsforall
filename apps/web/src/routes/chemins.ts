@@ -33,7 +33,14 @@ export const chemins = {
   },
   clients: {
     liste: (site?: string) => construireChemin('/clients', { site }),
-    nouveau: (site?: string) => construireChemin('/clients/nouveau', { site }),
+    /** PAS de constructeur `nouveau` ici : la création d'un client n'est PAS une route distincte
+     *  (`/clients/nouveau` n'existe pas dans `routeur.tsx`, seuls `clients` et `clients/:id` y sont
+     *  déclarés) — c'est un panneau latéral (`Sheet`) monté par `EcranListeClients`
+     *  (`FormulaireNouveauClient`), qui reste sur `/clients`. Un ancien constructeur `nouveau`
+     *  pointait vers cette route inexistante ; retiré au nettoyage de la refonte de navigation
+     *  faute d'appelant réel (seule `routes/chemins.spec.ts` le référençait — un test du chemin
+     *  lui-même, pas un écran qui y naviguerait).
+     */
     detail: (id: string, site?: string) => construireChemin(`/clients/${id}`, { site }),
     fusion: (id: string, site?: string) => construireChemin(`/clients/${id}/fusion`, { site }),
     /** `GET /doublons-clients` (RM-05) n'accepte aucun paramètre `site` — c'est une recherche par

@@ -286,9 +286,12 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
                       {bonsCommande.map((document) => (
                         <SelectItem key={document.id} value={document.id}>
                           {document.numero ?? document.id}
-                          {document.totalTtcCentimes !== undefined
-                            ? ` · ${formaterMontant(document.totalTtcCentimes)}`
-                            : ''}
+                          {document.totalTtcCentimes !== undefined ? (
+                            <span className="texte-montant">
+                              {' '}
+                              · {formaterMontant(document.totalTtcCentimes)}
+                            </span>
+                          ) : null}
                         </SelectItem>
                       ))}
                     </SelectContent>

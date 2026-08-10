@@ -1,5 +1,4 @@
 import {
-  useInfiniteQuery,
   useMutation,
   useQueryClient,
   type InfiniteData,
@@ -17,33 +16,22 @@ import type {
 import { requeteApi } from '@/api/client';
 import { clesQuery } from '@/api/cles';
 import { donneesEcriture } from '@/api/enveloppe';
+import { useDoitReessayer, useListeCurseur } from '@/hooks/pagination-curseur';
 
-import { construireRequete, exigerCorps } from './support';
-
-const LIMITE_PAR_PAGE = 50;
+import { chargeurSousCollectionClient, exigerCorps } from './support';
 
 /** `GET /clients/{id}/consentements` (RM-09, nLPD, APPEND-ONLY) — onglet « Consentements » de la
  *  fiche. Aucun `PATCH`/`DELETE` : une révocation est une nouvelle ligne `accorde: false`. */
 export function useConsentementsClient(
   clientId: string | undefined,
 ): UseInfiniteQueryResult<InfiniteData<PageCurseur<ReponseClientConsentement>>, unknown> {
-  return useInfiniteQuery({
-    queryKey: clesQuery.clients.consentements(clientId ?? ''),
-    queryFn: async ({ pageParam }) => {
-      const params = construireRequete({
-        limite: LIMITE_PAR_PAGE,
-        curseur: pageParam ?? undefined,
-      });
-      const page = await requeteApi<PageCurseur<ReponseClientConsentement>>(
-        `/clients/${clientId}/consentements?${params.toString()}`,
-        { method: 'GET' },
-      );
-      return exigerCorps(page, `GET /clients/${clientId ?? ''}/consentements`);
-    },
-    initialPageParam: null as string | null,
-    getNextPageParam: (dernierePage) => dernierePage.curseurSuivant,
-    enabled: Boolean(clientId),
+  const reessayer = useDoitReessayer();
+  const { resultat } = useListeCurseur<ReponseClientConsentement>({
+    cle: clesQuery.clients.consentements(clientId ?? ''),
+    charger: clientId ? chargeurSousCollectionClient(clientId, 'consentements') : undefined,
+    reessayer,
   });
+  return resultat;
 }
 
 /** `POST /clients/{id}/consentements`. */

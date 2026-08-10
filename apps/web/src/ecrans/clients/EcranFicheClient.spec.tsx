@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { OrdreReparationResume, ReponseClient, VehiculeResume } from '@dfa/shared';
 
 import i18n from '@/i18n';
+import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { renduAvecRoutes } from '@/test/utils';
 
@@ -100,8 +101,11 @@ function repondreFicheOk(client: typeof CLIENT_TEST = CLIENT_TEST) {
     http.get('/api/v1/clients/cl-1/conditions', () => HttpResponse.json(PAGE_VIDE)),
     http.get('/api/v1/clients/cl-1/contacts', () => HttpResponse.json(PAGE_VIDE)),
     // Lot B (`docs/plan-refonte-navigation.md`) — « ses dossiers de vente », troisième liste.
-    // `useListeDossiersVente` n'a pas d'option `enabled` : la requête part toujours, réponse vide
-    // par défaut ici (même doctrine que les quatre endpoints ci-dessus).
+    // Sans mock de session, `useSession` résout `data: null` (401 par défaut, voir
+    // `test/msw/handlers.ts`) : `peutLireDossierVente(undefined)` est `false`, la requête
+    // `enabled: false` ne part JAMAIS (correctif RF-115). Ce handler reste enregistré pour les
+    // tests qui mockent explicitement une session autorisée (`repondreFicheOk` avec
+    // `server.use(http.get('/api/v1/auth/moi', ...))` en plus).
     http.get('/api/v1/dossiers-vente', () => HttpResponse.json(PAGE_VIDE)),
   );
 }
@@ -260,5 +264,97 @@ describe('EcranFicheClient', () => {
       expect(await screen.findByText('PAGE_NOUVEL_OR')).toBeInTheDocument();
       expect(routeur.state.location.search).toBe('?clientId=cl-1');
     });
+  });
+
+  // Défaut mesuré en navigateur (connecté `admin`, rôle SANS `ventes.dossier.lire`, RF-115) :
+  // « Dossiers de vente » affichait « Aucun dossier de vente. » — un refus de droit rendu comme
+  // une absence — puis martelait le serveur en boucle (six requêtes 403 en moins de dix secondes,
+  // `useListeDossiersVente` réessayant indéfiniment un état stable). Ces tests ÉCHOUAIENT avec
+  // l'ancien comportement : le premier trouvait « Aucun dossier de vente. » au lieu du message de
+  // refus, le second aurait vu la requête interdite partir malgré tout.
+  describe('dossiers de vente — refus de droit distinct d’une absence (RF-115)', () => {
+    function mockerSessionRole(role: (typeof SESSION_TEST)['utilisateur']['role']) {
+      server.use(
+        http.get('/api/v1/auth/moi', () =>
+          HttpResponse.json({
+            ...SESSION_TEST,
+            utilisateur: { ...SESSION_TEST.utilisateur, role },
+          }),
+        ),
+      );
+    }
+
+    it(
+      "affiche le refus de droit — jamais « aucun dossier » — et n'insiste pas quand le " +
+        'serveur répond 403 malgré un rôle autorisé côté front',
+      async () => {
+        // `chef_atelier` est autorisé par `peutLireDossierVente` (matrice front) : la requête part
+        // bel et bien. Le serveur répond 403 quand même (matrice réelle plus stricte, ou dérive) —
+        // c'est CE cas que `useListeDossiersVente` doit traiter sans jamais réessayer en boucle.
+        mockerSessionRole('chef_atelier');
+        let nombreAppels = 0;
+        server.use(
+          http.get('/api/v1/clients/cl-1', () => HttpResponse.json(CLIENT_TEST)),
+          http.get('/api/v1/clients/cl-1/vehicules', () => HttpResponse.json(PAGE_VIDE)),
+          http.get('/api/v1/clients/cl-1/ordres-reparation', () => HttpResponse.json(PAGE_VIDE)),
+          http.get('/api/v1/clients/cl-1/conditions', () => HttpResponse.json(PAGE_VIDE)),
+          http.get('/api/v1/clients/cl-1/contacts', () => HttpResponse.json(PAGE_VIDE)),
+          http.get('/api/v1/dossiers-vente', () => {
+            nombreAppels += 1;
+            return HttpResponse.json(
+              {
+                type: 'https://docs.dmsforall.example/erreurs/DROIT_INSUFFISANT',
+                title: 'Droit insuffisant',
+                status: 403,
+                code: 'DROIT_INSUFFISANT',
+                instance: 'req-403',
+              },
+              { status: 403, headers: { 'content-type': 'application/problem+json' } },
+            );
+          }),
+        );
+
+        rendreEcran();
+
+        expect(
+          await screen.findByText("Vous n'avez pas les droits pour cette action."),
+        ).toBeInTheDocument();
+        expect(screen.queryByText('Aucun dossier de vente.')).not.toBeInTheDocument();
+        // Politique de réessai (`useListeDossiersVente` : `retry: false` sur 403/404) — un seul
+        // appel, jamais le martèlement mesuré en navigateur (six requêtes en moins de dix
+        // secondes avec l'ancien comportement).
+        expect(nombreAppels).toBe(1);
+      },
+    );
+
+    it(
+      "n'interroge JAMAIS le serveur et affiche le message de droit requis pour `admin` " +
+        '(RF-115 : aucun droit `ventes.*`)',
+      async () => {
+        mockerSessionRole('admin');
+        let nombreAppels = 0;
+        server.use(
+          http.get('/api/v1/clients/cl-1', () => HttpResponse.json(CLIENT_TEST)),
+          http.get('/api/v1/clients/cl-1/vehicules', () => HttpResponse.json(PAGE_VIDE)),
+          http.get('/api/v1/clients/cl-1/ordres-reparation', () => HttpResponse.json(PAGE_VIDE)),
+          http.get('/api/v1/clients/cl-1/conditions', () => HttpResponse.json(PAGE_VIDE)),
+          http.get('/api/v1/clients/cl-1/contacts', () => HttpResponse.json(PAGE_VIDE)),
+          http.get('/api/v1/dossiers-vente', () => {
+            nombreAppels += 1;
+            return HttpResponse.json(PAGE_VIDE);
+          }),
+        );
+
+        rendreEcran();
+
+        expect(
+          await screen.findByText(
+            "Vous n'avez pas le droit de consulter les dossiers de vente de ce client.",
+          ),
+        ).toBeInTheDocument();
+        expect(screen.queryByText('Aucun dossier de vente.')).not.toBeInTheDocument();
+        expect(nombreAppels).toBe(0);
+      },
+    );
   });
 });

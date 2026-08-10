@@ -427,7 +427,13 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             await tx
               .update(utilisateur)
               .set({ motDePasseHash: nouveauHash })
-              .where(eq(utilisateur.id, utilisateurId));
+              .where(
+                // Le RLS est le filet, pas le mécanisme : cette requête reste scopée tenant
+                // explicitement, même si `enTenant()` positionne déjà le contexte RLS ci-dessus
+                // (même défense qu'en haut de ce fichier, voir `sessionCourante()` — finding
+                // sécurité #9).
+                and(eq(utilisateur.id, utilisateurId), eq(utilisateur.tenantId, tenantId)),
+              );
           },
         ),
       )

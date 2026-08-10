@@ -26,12 +26,22 @@
       "changerSaison": "Saison wechseln",
       "deplacer": "Verschieben",
       "sortir": "Auslagern"
+    },
+    "misEnEvidence": {
+      "badge": "Gesuchter Satz",
+      "ariaLabel": "Gesuchter Satz, Standort {repere}"
     }
   },
   "hangar": {
     "titre": "Reifenhotel",
     "erreur": {
       "titre": "Das Reifenhotel kann nicht angezeigt werden"
+    },
+    "misEnEvidence": {
+      "absent": {
+        "titre": "Satz hier nicht auffindbar",
+        "description": "Die gesuchte Einlagerung ist in diesem Reifenhotel an diesem Standort nicht mehr sichtbar — sie wurde möglicherweise verschoben, ausgelagert, oder der Standort hat sich geändert. Der Plan unten ist weiterhin aktuell."
+      }
     },
     "siteRequis": {
       "titre": "Standort wählen",

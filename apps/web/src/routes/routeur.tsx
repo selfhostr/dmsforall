@@ -107,7 +107,7 @@ export const routesConfig: RouteObject[] = [
   // un employé de garage connecté sous n'importe quel rôle métier d'atteindre le shell de la page
   // (`RoleUtilisateur` ne modélise pas « personnel DFA » — en inventer un ici serait la sécurité de
   // façade que ce fichier interdit ailleurs, voir `droits-routes.ts`). La barrière réelle reste donc
-  // côté serveur : `recupererVuePlateformeConsole` (`ecrans/console/console.api.ts`) appelle
+  // côté serveur : `recupererSantePlateformeConsole` (`ecrans/console/console.api.ts`) appelle
   // `GET /exploitation/v1/garages`, qui exige `session_exploitant` et répond 401/403 sans elle —
   // `EcranConsolePlateforme` gère déjà cet échec proprement (`requete.isError`, `EtatErreur`,
   // aucune donnée de garage n'est jamais rendue sans réponse serveur valide). À CONSTRUIRE avant
@@ -185,13 +185,6 @@ export const routesConfig: RouteObject[] = [
       // chemin ici) — voir EcranNouvelOrdreReparation.tsx pour le détail des deux repos honnêtes
       // affichés quand l'un des deux manque.
       { path: 'atelier/ordres-reparation/nouveau', element: <EcranNouvelOrdreReparation /> },
-      // Même paramètre `orId` que la fiche d'OR ci-dessus (`EcranFacturerOrdreReparation` lit
-      // `useParams<{ orId: string }>()`) et même préfixe `ordres-reparation/` que le reste de la
-      // ressource — le commentaire en tête d'`EcranFacturerOrdreReparation.tsx` documente
-      // `/or/:orId/facturer` (calque du design), mais rien dans le dépôt ne navigue déjà vers cette
-      // URL : `/or/` n'existe nulle part ailleurs dans le routeur, alors que `ordres-reparation/`
-      // est le préfixe déjà en place pour cette même ressource (liste, fiche). Choisi pour
-      // cohérence avec les routes existantes plutôt que pour coller littéralement au commentaire.
       { path: 'ordres-reparation/:orId/facturer', element: <EcranFacturerOrdreReparation /> },
       { path: 'factures', element: <EcranListeFactures /> },
       // `:id` (pas `:orId` ni `:factureId`) — `EcranFicheFacture` lit `useParams<{ id: string }>()`.
@@ -320,7 +313,6 @@ export const routesConfig: RouteObject[] = [
           </RouteProtegee>
         ),
       },
-      // `EcranFicheCommandeFournisseur` lit `useParams<{ id: string }>()`.
       {
         path: 'pieces/commandes-fournisseur/:id',
         element: (
@@ -337,7 +329,6 @@ export const routesConfig: RouteObject[] = [
           </RouteProtegee>
         ),
       },
-      // `EcranFicheFournisseur` lit `useParams<{ id: string }>()`.
       {
         path: 'pieces/fournisseurs/:id',
         element: (
@@ -495,7 +486,6 @@ export const routesConfig: RouteObject[] = [
           </RouteProtegee>
         ),
       },
-      // `EcranFicheVehiculeStock` lit `useParams<{ id: string }>()`.
       {
         path: 'ventes/stock/:id',
         element: (
@@ -530,7 +520,6 @@ export const routesConfig: RouteObject[] = [
           </RouteProtegee>
         ),
       },
-      // `EcranFicheDossierVente` lit `useParams<{ id: string }>()`.
       {
         path: 'ventes/dossiers/:id',
         element: (

@@ -1,111 +1,119 @@
 {
-  "titre": "Console d'exploitation",
-  "titreOnglet": "Console d'exploitation — Console DFA",
+  "titre": "Console di amministrazione",
+  "titreOnglet": "Console di amministrazione — Console DFA",
   "bandeConsole": {
-    "deconnexion": "Se déconnecter"
+    "deconnexion": "Esci"
   },
   "plateforme": {
-    "titre": "Vue plateforme",
-    "sousTitre": "Où ça va mal, là, sur l'ensemble des garages.",
+    "titre": "Vista piattaforma",
+    "sousTitre": "Panoramica dei problemi in tutti i garage.",
     "etatErreur": {
-      "titre": "Impossible d'afficher la vue plateforme"
+      "titre": "Impossibile visualizzare la vista piattaforma",
+      "moduleInactif": {
+        "titre": "La console di amministrazione non è abilitata su questo server.",
+        "description": "La variabile di connessione dedicata non è configurata sul server (DATABASE_URL_CONSOLE). Configurarla e riavviare l'API per abilitare la console."
+      },
+      "accesRefuse": {
+        "titre": "Non hai accesso alla console.",
+        "description": "La tua sessione non dispone dei diritti necessari per accedere alla console di amministrazione."
+      }
     },
     "etatVide": {
-      "titre": "Aucun garage",
-      "description": "Aucun garage n'est encore enregistré sur la plateforme."
+      "titre": "Nessun garage",
+      "description": "Nessun garage è stato ancora registrato sulla piattaforma."
     },
     "etatVideFiltre": {
-      "titre": "Aucun garage ne correspond",
-      "description": "Aucun garage ne correspond à ces critères. Essayez une autre recherche ou retirez les filtres."
+      "titre": "Nessun garage corrisponde",
+      "description": "Nessun garage corrisponde a questi criteri. Prova una ricerca diversa o rimuovi i filtri."
     },
     "recherche": {
-      "placeholder": "Nom ou identifiant du garage…"
+      "placeholder": "Nome o identificatore del garage…"
     },
     "statutFiltre": {
-      "label": "Statut",
-      "tous": "Tous"
+      "label": "Stato",
+      "tous": "Tutti"
     },
     "statut": {
-      "critique": "Critique",
-      "attention": "Attention",
+      "critique": "Critico",
+      "attention": "Attenzione",
       "ok": "OK"
     },
     "filtre": {
-      "actif": "Filtré : {libelle}",
-      "retirer": "Retirer le filtre"
+      "actif": "Filtrato per: {libelle}",
+      "retirer": "Rimuovi filtro"
     },
     "indicateurs": {
-      "groupe": "Indicateurs plateforme — cliquer pour filtrer la liste des garages",
+      "groupe": "Indicatori piattaforma — fai clic per filtrare l'elenco dei garage",
       "garagesCritiques": {
-        "libelle": "Garages en état critique"
+        "libelle": "Garage in stato critico"
       },
       "garageSuspendu": {
-        "libelle": "Garages suspendus ou résiliés"
+        "libelle": "Garage sospesi o terminati"
       },
       "comptesVerrouilles": {
-        "libelle": "Comptes verrouillés"
+        "libelle": "Account bloccati"
       },
       "aucuneConnexion": {
-        "libelle": "Aucune connexion récente"
+        "libelle": "Nessuna connessione recente"
       },
       "exportComptableEnEchec": {
-        "libelle": "Dernier export comptable rejeté"
+        "libelle": "Ultimo export contabile rifiutato"
       },
       "relancesEnRetard": {
-        "libelle": "Relances en retard"
+        "libelle": "Solleciti in ritardo"
       },
       "relancesEnvoisEchoues": {
-        "libelle": "Envois de relance en échec"
+        "libelle": "Invii solleciti non riusciti"
       },
       "moduleInactif": {
-        "libelle": "Module actif mais inutilisé"
+        "libelle": "Modulo attivo ma inutilizzato"
       }
     },
     "indicateursIndisponibles": {
-      "titre": "Non mesuré pour l'instant :",
+      "titre": "Attualmente non misurato:",
       "code": {
-        "erreurs_serveur_5xx": "Erreurs serveur (24 h)",
-        "jobs_en_echec": "Jobs en échec",
-        "disjoncteurs_connecteur_ouverts": "Disjoncteurs de connecteur ouverts",
-        "connecteurs_configures": "Connecteurs configurés",
-        "modules_souscrits": "Modules souscrits"
+        "erreurs_serveur_5xx": "Errori server (24 h)",
+        "jobs_en_echec": "Job non riusciti",
+        "disjoncteurs_connecteur_ouverts": "Disgiuntori connector aperti",
+        "connecteurs_configures": "Connector configurati",
+        "modules_souscrits": "Moduli sottoscritti"
       }
     },
     "table": {
       "colonnes": {
         "garage": "Garage",
-        "statut": "Statut",
-        "derniereActivite": "Dernière activité",
-        "comptesVerrouilles": "Comptes verrouillés",
-        "relancesEnRetard": "Relances en retard",
-        "exportCompta": "Export compta",
-        "entrer": "Entrer"
+        "statut": "Stato",
+        "derniereActivite": "Ultima attività",
+        "comptesVerrouilles": "Account bloccati",
+        "relancesEnRetard": "Solleciti in ritardo",
+        "exportCompta": "Contabilità",
+        "entrer": "Accedi"
       },
-      "entrer": "Entrer",
-      "entrerAria": "Entrer dans {raisonSociale}",
-      "jamaisConnecte": "Jamais connecté",
+      "entrer": "Accedi",
+      "entrerAria": "Accedi a {raisonSociale}",
+      "jamaisConnecte": "Mai connesso",
       "derniereActivite": {
-        "minute": "{n, plural, =0 {À l'instant} one {Il y a # minute} other {Il y a # minutes}}",
-        "heure": "{n, plural, one {Il y a # heure} other {Il y a # heures}}",
-        "jour": "{n, plural, one {Il y a # jour} other {Il y a # jours}}"
+        "minute": "{n, plural, =0 {Proprio ora} one {# minuto fa} other {# minuti fa}}",
+        "heure": "{n, plural, one {# ora fa} other {# ore fa}}",
+        "jour": "{n, plural, one {# giorno fa} other {# giorni fa}}"
       },
       "exportCompta": {
-        "genere": "Généré",
-        "transmis": "Transmis",
-        "accepte": "Accepté",
-        "rejete": "Rejeté",
-        "inconnu": "Inconnu"
+        "genere": "Generato",
+        "transmis": "Trasmesso",
+        "accepte": "Accettato",
+        "rejete": "Rifiutato",
+        "inconnu": "Sconosciuto"
       }
     }
   },
   "bandeauContexte": {
-    "contenu": "Vous consultez {nomGarage} — accès support",
-    "quitter": "Quitter",
+    "contenu": "Stai consultando {nomGarage} — accesso supporto",
+    "quitter": "Esci",
     "duree": {
-      "moins5Min": "depuis moins de 5 minutes",
-      "moins30Min": "depuis moins de 30 minutes",
-      "moins1h": "depuis moins d'une heure",
-      "plus1h": "depuis plus d'une heure"
+      "moins5Min": "meno di 5 minuti fa",
+      "moins30Min": "meno di 30 minuti fa",
+      "moins1h": "meno di un'ora fa",
+      "plus1h": "più di un'ora fa"
     }
   }
 }

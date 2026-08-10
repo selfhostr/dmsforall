@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import type {
   Avertissement,
   EntreeAnnulerDocument,
+  EntreeEmissionDocumentVente,
   EntreeRefuserDocument,
   ReponseAvecAvertissements,
   ReponseDocumentVente,
@@ -94,6 +95,14 @@ export class ServiceEmissionDocument {
     principal: PrincipalAuthentifie,
     documentId: string,
     cleIdempotence: string,
+    // Dernier paramètre, valeur par défaut : ajouté sans casser les appels positionnels existants
+    // à 4 arguments (`service-emission*.spec.ts`). `confirmations` (seul champ de
+    // `schemaEmissionDocumentVente` aujourd'hui) n'est plié QUE dans l'empreinte d'idempotence
+    // ci-dessous — aucune condition confirmable n'existe encore pour l'émission
+    // (`CODES_CONFIRMATION`, `@dfa/shared`, ne couvre aucun cas applicable à `emettre`) : le champ
+    // est accepté par anticipation d'additivité future, exactement comme `schemaActionDemarrer`
+    // côté atelier, jamais exploité pour bloquer quoi que ce soit ici.
+    entree: EntreeEmissionDocumentVente = {},
   ): Promise<
     ResultatIdempotent<
       ReponseMemorisable & { corps: ReponseAvecAvertissements<ReponseDocumentVente> }
@@ -105,7 +114,10 @@ export class ServiceEmissionDocument {
         methode: 'POST',
         chemin: '/documents-vente/:id/emettre',
         cle: cleIdempotence,
-        corps: { documentId },
+        // `...entree` entre dans l'empreinte SHA-256 (`calculerEmpreinte`, `common/idempotence/
+        // empreinte.ts`) : un rejeu avec les MÊMES `confirmations` reste un rejeu, un rejeu avec des
+        // `confirmations` DIFFÉRENTS sous la même `Idempotency-Key` devient IDEMPOTENCE_CONFLIT.
+        corps: { documentId, ...entree },
       },
       async (tx) => {
         const doc = await chargerDocumentPourEcriture(tx, ctx, documentId);

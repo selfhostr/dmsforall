@@ -19,7 +19,18 @@
   },
   "vide": {
     "titre": "Nessun risultato",
-    "description": "Verificare l'immissione e riprovare"
+    "description": "Verificare l'immissione e riprovare",
+    "titrePerimetreRestreint": "Nessun risultato nei dati a cui si ha accesso",
+    "descriptionPerimetreRestreint": "Verificare l'immissione e riprovare. La ricerca ha riguardato: {natures}."
+  },
+  "natures": {
+    "vehicule": "veicoli",
+    "client": "clienti",
+    "ordre_reparation": "ordini di riparazione",
+    "document_vente": "documenti di vendita",
+    "article": "articoli",
+    "fournisseur": "fornitori",
+    "depot_pneu": "set di pneumatici in deposito"
   },
   "chargement": "Ricerca in corso…",
   "annonceResultats": "{count, plural, one {# risultato trovato} other {# risultati trovati}}"

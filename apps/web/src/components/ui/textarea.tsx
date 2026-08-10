@@ -1,23 +1,15 @@
 import { type TextareaHTMLAttributes, forwardRef } from 'react';
 
+import { CLASSES_CHAMP } from '@/components/ui/classes-champ';
 import { cn } from '@/lib/utils';
 
-// text-base (16px) sans réduction desktop : en dessous de 16px, iPad zoome au focus (même
-// contrainte que Input, voir input.tsx).
+// Habillage et cinq états partagés avec Input/DateInput/SelectTrigger : voir
+// `classes-champ.ts`. Hauteur minimale de 88 px = deux fois la cible tactile : un champ
+// multiligne qui ressemble à un champ d'une ligne se remplit comme un champ d'une ligne.
 export const Textarea = forwardRef<
   HTMLTextAreaElement,
   TextareaHTMLAttributes<HTMLTextAreaElement>
 >(({ className, ...props }, ref) => (
-  <textarea
-    ref={ref}
-    className={cn(
-      'flex min-h-[88px] w-full rounded-md border border-input bg-background px-3 py-2 text-base',
-      'placeholder:text-muted-foreground',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-      'disabled:cursor-not-allowed disabled:opacity-50',
-      className,
-    )}
-    {...props}
-  />
+  <textarea ref={ref} className={cn(CLASSES_CHAMP, 'min-h-[88px]', className)} {...props} />
 ));
 Textarea.displayName = 'Textarea';

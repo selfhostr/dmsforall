@@ -25,8 +25,6 @@
     "pointageEquipe": "Team",
     "pointageCloture": "Chiusura periodo",
     "pointageBorne": "Terminale officina",
-    "pneusAuDepot": "In deposito",
-    "pneusARelancer": "Da richiamare",
     "clients": "Clienti",
     "clientsTous": "Tutti",
     "clientsDoublons": "Duplicati",
@@ -55,43 +53,9 @@
     "reglagesRelances": "Livelli di sollecito"
   },
   "liens": {
-    "accueil": "Home",
-    "tableauBord": "Cruscotto",
     "clients": "Clienti",
     "vehicules": "Veicoli",
-    "ordresReparation": "Ordini di riparazione",
-    "recherche": "Ricerca",
-    "factures": "Fatturazione",
-    "doublonsClients": "Clienti duplicati",
-    "parametrageReferentiels": "Tariffe e prestazioni",
-    "parametrageAtelier": "Impostazioni officina",
-    "parametrageSites": "Sedi",
-    "parametrageFacturation": "Coordinate bancarie",
-    "piecesRechercheComptoir": "Ricerca al banco",
-    "piecesArticles": "Articoli",
-    "piecesReservations": "Prenotazioni",
-    "piecesReapprovisionnement": "Riordino",
-    "piecesCommandesFournisseur": "Ordini fornitore",
-    "piecesFournisseurs": "Fornitori",
-    "piecesConsignes": "Cauzioni",
-    "piecesParametrage": "Impostazioni ricambi",
-    "pointageSaisie": "Timbratura",
-    "pointageJournal": "Registro timbrature",
-    "pointageEquipe": "Team",
-    "pointageCloture": "Chiusura periodo",
-    "ventesStock": "Veicoli in stock",
-    "ventesDossiers": "Pratiche di vendita",
-    "ventesSuivi": "Monitoraggio finanziamento e garanzia",
-    "pneusHangar": "Deposito pneumatici",
-    "pneusARelancer": "Set da richiamare",
-    "relances": "Solleciti"
-  },
-  "groupes": {
-    "parametrage": "Impostazioni",
-    "pieces": "Ricambi",
-    "pointage": "Timbratura",
-    "ventes": "Vendite",
-    "pneus": "Pneumatici"
+    "piecesArticles": "Articoli"
   },
   "menu": {
     "ouvrir": "Apri menu"

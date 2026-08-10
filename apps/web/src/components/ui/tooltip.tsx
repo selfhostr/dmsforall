@@ -20,7 +20,11 @@ export const TooltipContent = forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        'z-50 max-w-xs rounded-md bg-foreground px-2 py-1 texte-libelle text-background shadow-md',
+        // PAS `texte-libelle` ici : cet utilitaire impose lui-même `--muted-foreground` et
+        // l'emporte sur le `text-background` posé à côté (même spécificité, déclaré plus tard
+        // dans index.css). L'infobulle rendait donc du gris moyen sur fond quasi noir — 2.6:1,
+        // sous le seuil AA. Taille posée explicitement, la densité n'a pas de sens ici.
+        'z-50 max-w-xs rounded-md bg-foreground px-2 py-1 text-xs leading-4 text-background shadow-md',
         className,
       )}
       {...props}

@@ -207,7 +207,8 @@
         "mettreAJour": "Aktualisieren",
         "receptionner": "Annehmen",
         "remettreDisponible": "Wieder verfügbar machen",
-        "marquerVendu": "Als verkauft markieren"
+        "marquerVendu": "Als verkauft markieren",
+        "autresActions": "Weitere Aktionen"
       },
       "donneesCommerciales": "Verkaufsdaten",
       "historique": "Verlauf",

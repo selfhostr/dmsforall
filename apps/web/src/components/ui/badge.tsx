@@ -8,8 +8,23 @@ import { cn } from '@/lib/utils';
 // composants dédiés construits sur celui-ci dans src/composants/identite/, pas des variantes
 // ici : le mapping enum → token + icône doit rester exhaustif et type-safe à cet endroit-là,
 // pas dilué dans les variantes cva de cette primitive.
+//
+// LEQUEL CHOISIR (Lot K, tâche 4) — trois familles, jamais interchangeables :
+//   1. `Badge` (ici) — étiquette NEUTRE, sans sémantique de statut : un compteur, un type de
+//      document, un libellé court. Aucune de ses variantes ne dit « où en est cet OR ».
+//   2. Badges métier de `composants/identite/` (`BadgeStatutOr`, `BadgeStatutClient`,
+//      `BadgeTypeClient`, `BadgeEcheanceExpertise`, `BadgeIdentificationIncomplete`,
+//      `BadgeImporte`) — SEULS habilités à porter un état métier. Ils garantissent
+//      couleur + forme + icône + mot traduit, et l'exhaustivité du mapping est vérifiée par le
+//      typage. Un écran ne recompose JAMAIS un statut à la main avec `<Badge>`.
+//   3. Pastilles `--statut-*` — les six tokens de couleur eux-mêmes, réservés au statut d'OR et
+//      de ligne (voir l'en-tête de leur bloc dans index.css). On ne les emploie pas
+//      directement dans un écran : on passe par la famille 2.
+// Une pastille de NOTIFICATION de menu (compteur du menu latéral) relève de la famille 1 et ne
+// doit reprendre aucun des six tokens de statut, sous peine de laisser croire qu'elle porte un
+// état d'OR.
 const variantesBadge = cva(
-  'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+  'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors anneau-focus',
   {
     variants: {
       variant: {

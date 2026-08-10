@@ -1,6 +1,8 @@
-import { useInfiniteQuery, type UseInfiniteQueryResult } from '@tanstack/react-query';
+import { type UseInfiniteQueryResult } from '@tanstack/react-query';
 
 import type { FiltresFournisseurs, PageCurseur, ReponseFournisseur } from '@dfa/shared';
+
+import { useDoitReessayer, useListeCurseur } from '@/hooks/pagination-curseur';
 
 import { clesPieces } from './cles';
 import { listerFournisseurs } from './fournisseurs.api';
@@ -14,18 +16,15 @@ export type ResultatListeFournisseurs = UseInfiniteQueryResult<
   readonly fournisseurs: readonly ReponseFournisseur[];
 };
 
-/** `GET /fournisseurs` (RP-26), pagination par curseur — même architecture que `useListeArticles`. */
+/** `GET /fournisseurs` (RP-26), pagination par curseur — même architecture que `useListeArticles`,
+ *  y compris `reessayer` (RF-115 : `admin` porte `[]` sur tout le domaine Pièces). */
 export function useListeFournisseurs(filtres: FiltresFournisseurs): ResultatListeFournisseurs {
-  const resultat = useInfiniteQuery({
-    queryKey: clesPieces.fournisseurs.liste(filtres),
-    queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
-      listerFournisseurs(filtres, { limite: LIMITE_PAGE, curseur: pageParam }),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (dernierePage) => dernierePage.curseurSuivant ?? undefined,
+  const reessayer = useDoitReessayer();
+  const { resultat, elements } = useListeCurseur<ReponseFournisseur>({
+    cle: clesPieces.fournisseurs.liste(filtres),
+    charger: (curseur) => listerFournisseurs(filtres, { limite: LIMITE_PAGE, curseur }),
+    reessayer,
   });
 
-  return {
-    ...resultat,
-    fournisseurs: resultat.data?.pages.flatMap((page) => page.donnees) ?? [],
-  };
+  return { ...resultat, fournisseurs: elements };
 }

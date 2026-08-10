@@ -100,6 +100,7 @@ export function enregistrerTraductionsTestVentes(): void {
             receptionner: 'Réceptionner',
             remettreDisponible: 'Remettre disponible',
             marquerVendu: 'Marquer vendu',
+            autresActions: 'Autres actions',
           },
         },
         entree: {

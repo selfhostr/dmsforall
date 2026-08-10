@@ -87,14 +87,22 @@ describe('EcranFicheVehiculeStock', () => {
     expect(screen.getByText("32'000.00")).toBeInTheDocument();
   });
 
-  it('un rôle sans droit d’écriture ne voit aucun menu d’actions (équivalent état vide)', async () => {
+  it('un rôle sans droit d’écriture ne voit aucune action (ni primaire ni menu de débordement)', async () => {
     rendre('technicien');
 
     expect(await screen.findByText('VW Touran 2.0 TDI')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Modifier' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Réceptionner' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Mettre à jour' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Autres actions' })).not.toBeInTheDocument();
   });
 
-  it('la direction peut réceptionner le véhicule', async () => {
+  /**
+   * Lot C (`docs/plan-refonte-navigation.md`) — `receptionner` est la seule transition
+   * d'avancement disponible en `en_commande` (`ACTIONS_VEHICULE_STOCK`) : elle doit apparaître
+   * comme l'action PRIMAIRE (bouton coloré direct, pas un menu à ouvrir d'abord), sur le même
+   * patron que `EnTeteOrdreReparation`/`EnTeteDossierVente`.
+   */
+  it('la direction peut réceptionner le véhicule via l’action primaire', async () => {
     let appele = false;
     rendre('direction');
     server.use(
@@ -112,12 +120,29 @@ describe('EcranFicheVehiculeStock', () => {
     );
 
     const utilisateur = userEvent.setup();
-    await utilisateur.click(await screen.findByRole('button', { name: 'Modifier' }));
-    await utilisateur.click(await screen.findByRole('menuitem', { name: 'Réceptionner' }));
+    // `mettre_a_jour` (« Mettre à jour ») reste disponible en même temps que `receptionner` — la
+    // primaire promeut `receptionner`, `mettre_a_jour` bascule dans le menu de débordement : les
+    // deux coexistent sans ambiguïté de nom accessible.
+    expect(screen.queryByRole('button', { name: 'Mettre à jour' })).not.toBeInTheDocument();
     await utilisateur.click(await screen.findByRole('button', { name: 'Réceptionner' }));
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Réceptionner' }));
 
     expect(await screen.findByText('Disponible')).toBeInTheDocument();
     expect(appele).toBe(true);
+  });
+
+  it('« Mettre à jour » reste accessible depuis le menu de débordement', async () => {
+    rendre('direction');
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(await screen.findByRole('button', { name: 'Autres actions' }));
+    await utilisateur.click(await screen.findByRole('menuitem', { name: 'Mettre à jour' }));
+
+    // `FormulaireVehiculeStock` s'est bien ouvert (son titre de dialogue réutilise le même libellé
+    // que le déclencheur, « Mettre à jour » — non distinctif ; le champ « Date d'entrée en stock »,
+    // lui, n'existe que dans ce formulaire).
+    expect(await screen.findByLabelText("Date d'entrée en stock")).toBeInTheDocument();
   });
 
   /**
@@ -144,8 +169,7 @@ describe('EcranFicheVehiculeStock', () => {
     );
 
     const utilisateur = userEvent.setup();
-    await utilisateur.click(await screen.findByRole('button', { name: 'Modifier' }));
-    await utilisateur.click(await screen.findByRole('menuitem', { name: 'Réceptionner' }));
+    await utilisateur.click(await screen.findByRole('button', { name: 'Réceptionner' }));
 
     const dialogue = await screen.findByRole('dialog');
     await utilisateur.click(within(dialogue).getByRole('button', { name: 'Réceptionner' }));

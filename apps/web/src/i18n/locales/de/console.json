@@ -1,111 +1,119 @@
 {
-  "titre": "Console d'exploitation",
-  "titreOnglet": "Console d'exploitation — Console DFA",
+  "titre": "Verwaltungskonsole",
+  "titreOnglet": "Verwaltungskonsole — DFA-Konsole",
   "bandeConsole": {
-    "deconnexion": "Se déconnecter"
+    "deconnexion": "Abmelden"
   },
   "plateforme": {
-    "titre": "Vue plateforme",
-    "sousTitre": "Où ça va mal, là, sur l'ensemble des garages.",
+    "titre": "Plattform-Ansicht",
+    "sousTitre": "Übersicht der Probleme in allen Garagen.",
     "etatErreur": {
-      "titre": "Impossible d'afficher la vue plateforme"
+      "titre": "Plattform-Ansicht kann nicht angezeigt werden",
+      "moduleInactif": {
+        "titre": "Die Verwaltungskonsole ist auf diesem Server nicht aktiviert.",
+        "description": "Die Verbindungsvariable ist nicht auf dem Server konfiguriert (DATABASE_URL_CONSOLE). Bitte konfigurieren Sie diese Variable und starten Sie die API neu, um die Konsole zu aktivieren."
+      },
+      "accesRefuse": {
+        "titre": "Sie haben keinen Zugriff auf die Konsole.",
+        "description": "Ihre Sitzung verfügt nicht über die erforderlichen Rechte, um auf die Verwaltungskonsole zuzugreifen."
+      }
     },
     "etatVide": {
-      "titre": "Aucun garage",
-      "description": "Aucun garage n'est encore enregistré sur la plateforme."
+      "titre": "Keine Garage",
+      "description": "Es wurde noch keine Garage auf der Plattform registriert."
     },
     "etatVideFiltre": {
-      "titre": "Aucun garage ne correspond",
-      "description": "Aucun garage ne correspond à ces critères. Essayez une autre recherche ou retirez les filtres."
+      "titre": "Keine Garage entspricht",
+      "description": "Keine Garage entspricht diesen Kriterien. Versuchen Sie eine andere Suche oder entfernen Sie die Filter."
     },
     "recherche": {
-      "placeholder": "Nom ou identifiant du garage…"
+      "placeholder": "Name oder Kennung der Garage…"
     },
     "statutFiltre": {
-      "label": "Statut",
-      "tous": "Tous"
+      "label": "Status",
+      "tous": "Alle"
     },
     "statut": {
-      "critique": "Critique",
-      "attention": "Attention",
+      "critique": "Kritisch",
+      "attention": "Achtung",
       "ok": "OK"
     },
     "filtre": {
-      "actif": "Filtré : {libelle}",
-      "retirer": "Retirer le filtre"
+      "actif": "Gefiltert nach: {libelle}",
+      "retirer": "Filter entfernen"
     },
     "indicateurs": {
-      "groupe": "Indicateurs plateforme — cliquer pour filtrer la liste des garages",
+      "groupe": "Plattform-Indikatoren — klicken Sie, um die Garagen-Liste zu filtern",
       "garagesCritiques": {
-        "libelle": "Garages en état critique"
+        "libelle": "Garagen mit kritischem Status"
       },
       "garageSuspendu": {
-        "libelle": "Garages suspendus ou résiliés"
+        "libelle": "Suspendierte oder beendete Garagen"
       },
       "comptesVerrouilles": {
-        "libelle": "Comptes verrouillés"
+        "libelle": "Gesperrte Konten"
       },
       "aucuneConnexion": {
-        "libelle": "Aucune connexion récente"
+        "libelle": "Keine aktuellen Verbindungen"
       },
       "exportComptableEnEchec": {
-        "libelle": "Dernier export comptable rejeté"
+        "libelle": "Letzter Buchhaltungsexport abgelehnt"
       },
       "relancesEnRetard": {
-        "libelle": "Relances en retard"
+        "libelle": "Überfällige Mahnungen"
       },
       "relancesEnvoisEchoues": {
-        "libelle": "Envois de relance en échec"
+        "libelle": "Mahnung-Versandausfälle"
       },
       "moduleInactif": {
-        "libelle": "Module actif mais inutilisé"
+        "libelle": "Modul aktiv aber ungenutzt"
       }
     },
     "indicateursIndisponibles": {
-      "titre": "Non mesuré pour l'instant :",
+      "titre": "Aktuell nicht gemessen:",
       "code": {
-        "erreurs_serveur_5xx": "Erreurs serveur (24 h)",
-        "jobs_en_echec": "Jobs en échec",
-        "disjoncteurs_connecteur_ouverts": "Disjoncteurs de connecteur ouverts",
-        "connecteurs_configures": "Connecteurs configurés",
-        "modules_souscrits": "Modules souscrits"
+        "erreurs_serveur_5xx": "Serverfehler (24 h)",
+        "jobs_en_echec": "Fehlgeschlagene Jobs",
+        "disjoncteurs_connecteur_ouverts": "Offene Connector-Schutzschalter",
+        "connecteurs_configures": "Konfigurierte Connectors",
+        "modules_souscrits": "Abonnierte Module"
       }
     },
     "table": {
       "colonnes": {
         "garage": "Garage",
-        "statut": "Statut",
-        "derniereActivite": "Dernière activité",
-        "comptesVerrouilles": "Comptes verrouillés",
-        "relancesEnRetard": "Relances en retard",
-        "exportCompta": "Export compta",
-        "entrer": "Entrer"
+        "statut": "Status",
+        "derniereActivite": "Letzte Aktivität",
+        "comptesVerrouilles": "Gesperrte Konten",
+        "relancesEnRetard": "Überfällige Mahnungen",
+        "exportCompta": "Buchhaltung",
+        "entrer": "Öffnen"
       },
-      "entrer": "Entrer",
-      "entrerAria": "Entrer dans {raisonSociale}",
-      "jamaisConnecte": "Jamais connecté",
+      "entrer": "Öffnen",
+      "entrerAria": "Öffnen Sie {raisonSociale}",
+      "jamaisConnecte": "Niemals verbunden",
       "derniereActivite": {
-        "minute": "{n, plural, =0 {À l'instant} one {Il y a # minute} other {Il y a # minutes}}",
-        "heure": "{n, plural, one {Il y a # heure} other {Il y a # heures}}",
-        "jour": "{n, plural, one {Il y a # jour} other {Il y a # jours}}"
+        "minute": "{n, plural, =0 {Gerade eben} one {Vor # Minute} other {Vor # Minuten}}",
+        "heure": "{n, plural, one {Vor # Stunde} other {Vor # Stunden}}",
+        "jour": "{n, plural, one {Vor # Tag} other {Vor # Tagen}}"
       },
       "exportCompta": {
-        "genere": "Généré",
-        "transmis": "Transmis",
-        "accepte": "Accepté",
-        "rejete": "Rejeté",
-        "inconnu": "Inconnu"
+        "genere": "Generiert",
+        "transmis": "Übermittelt",
+        "accepte": "Akzeptiert",
+        "rejete": "Abgelehnt",
+        "inconnu": "Unbekannt"
       }
     }
   },
   "bandeauContexte": {
-    "contenu": "Vous consultez {nomGarage} — accès support",
-    "quitter": "Quitter",
+    "contenu": "Sie greifen auf {nomGarage} zu — Support-Zugriff",
+    "quitter": "Beenden",
     "duree": {
-      "moins5Min": "depuis moins de 5 minutes",
-      "moins30Min": "depuis moins de 30 minutes",
-      "moins1h": "depuis moins d'une heure",
-      "plus1h": "depuis plus d'une heure"
+      "moins5Min": "vor weniger als 5 Minuten",
+      "moins30Min": "vor weniger als 30 Minuten",
+      "moins1h": "vor weniger als einer Stunde",
+      "plus1h": "vor mehr als einer Stunde"
     }
   }
 }

@@ -282,6 +282,52 @@ describe('EcranConsolePlateforme — état erreur', () => {
 
     expect(await screen.findByText('Garage Rossi')).toBeInTheDocument();
   });
+
+  it('un 404 générique (module éteint, usage nominal) affiche un message dédié, sans bouton Réessayer', async () => {
+    server.use(
+      http.get('/api/v1/exploitation/sante-plateforme', () =>
+        // Pas de header `application/problem+json` : c'est exactement le corps que Nest répond
+        // quand le contrôleur n'est pas monté (`DATABASE_URL_CONSOLE` absente côté serveur) — la
+        // même forme que `construireErreurApi` synthétise en `ERREUR_INTERNE` tout en préservant
+        // `status: 404` depuis la réponse HTTP réelle.
+        HttpResponse.json(
+          {
+            statusCode: 404,
+            message: 'Cannot GET /api/v1/exploitation/sante-plateforme',
+            error: 'Not Found',
+          },
+          { status: 404 },
+        ),
+      ),
+    );
+    rendre();
+
+    expect(
+      await screen.findByText("La console d'exploitation n'est pas activée sur ce serveur."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Réessayer' })).not.toBeInTheDocument();
+  });
+
+  it('un 403 (droit refusé) affiche un message dédié, sans bouton Réessayer', async () => {
+    server.use(
+      http.get('/api/v1/exploitation/sante-plateforme', () =>
+        HttpResponse.json(
+          {
+            type: 'https://docs.dmsforall.example/erreurs/ACCES_REFUSE',
+            title: 'Accès refusé',
+            status: 403,
+            code: 'ACCES_REFUSE',
+            instance: 'req-2',
+          },
+          { status: 403, headers: { 'Content-Type': 'application/problem+json' } },
+        ),
+      ),
+    );
+    rendre();
+
+    expect(await screen.findByText("Vous n'avez pas accès à la console.")).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Réessayer' })).not.toBeInTheDocument();
+  });
 });
 
 describe('EcranConsolePlateforme — navigation vers le palier 2', () => {

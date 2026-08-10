@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Wrench } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 
 import type { FiltresDocumentsVente, OrdreReparationResume, PageCurseur } from '@dfa/shared';
 
@@ -20,8 +20,10 @@ import { EncartAlertesVehicule } from '@/composants/vehicule/EncartAlertesVehicu
 import { FriseDetentions } from '@/composants/vehicule/FriseDetentions';
 import { FriseKilometrage } from '@/composants/vehicule/FriseKilometrage';
 import { BadgeStatutDossierVente } from '@/ecrans/ventes/dossiers/BadgeStatutDossierVente';
+import { peutLireDossierVente } from '@/ecrans/ventes/dossiers/droits';
 import { listerDocumentsVente } from '@/hooks/facturation/documents-vente.api';
 import { listerDepotsPneusVehicule } from '@/hooks/pneus/depot-pneus.api';
+import { useSession } from '@/hooks/useSession';
 import { useContexteAtelier } from '@/hooks/vehicules/useContexteAtelier';
 import { useDetentionsVehicule } from '@/hooks/vehicules/useDetentionsVehicule';
 import { useKilometragesVehicule } from '@/hooks/vehicules/useKilometragesVehicule';
@@ -56,6 +58,22 @@ export function EcranFicheVehicule() {
   const requeteContexte = useContexteAtelier(vehiculeId);
   const requeteKilometrages = useKilometragesVehicule(vehiculeId);
   const requeteDetentions = useDetentionsVehicule(vehiculeId);
+
+  // RF-115 : `admin` n'a AUCUN droit `ventes.*` — un refus de droit (403) n'est pas une absence de
+  // donnée, les deux ne doivent jamais partager le même rendu (règle du dépôt : « on ne sait pas »,
+  // « il n'y en a pas » et « tu n'as pas le droit » ne partagent jamais le même rendu). Même
+  // correctif exact que `EcranFicheClient.tsx` (défaut mesuré identique côté client : un rôle sans
+  // droit martelait `GET /dossiers-vente` en 403 en boucle, TanStack Query réessayant par défaut un
+  // état qui ne se résoudra jamais, jusqu'à ce que la section disparaisse silencieusement).
+  // `peutLireDossierVente` (ecrans/ventes/dossiers/droits.ts) décide AVANT d'émettre la requête —
+  // gate via `enabled`, zéro requête pour un rôle qui n'a pas le droit — et
+  // `useListeDossiersVente` applique déjà `useDoitReessayer()` en interne (un 403/404 stable n'est
+  // jamais réessayé, même si le calcul front divergeait du serveur). Tant que la session n'est pas
+  // résolue, `session.data` vaut `undefined` et `peutLireDossierVente(undefined)` renvoie `false` :
+  // la section affiche son squelette de chargement (`session.isLoading`) plutôt que de flasher le
+  // message de refus avant de savoir — voir le rendu de la section plus bas.
+  const session = useSession();
+  const peutVoirDossiersVente = peutLireDossierVente(session.data?.utilisateur.role);
 
   // Lot B (`docs/plan-refonte-navigation.md`) — « ses OR ». `listerOrdresReparation`
   // (hooks/atelier/ordres-reparation.api.ts, hors périmètre) ne sérialise QUE `q`/`statut`/
@@ -111,11 +129,16 @@ export function EcranFicheVehicule() {
   });
 
   // « dossier de vente en cours ou passé » (correction 6, vendeur) — `useListeDossiersVente`
-  // (hooks/ventes/dossiers/, déjà existant) accepte `vehiculeId` tel quel dans son filtre gelé.
-  const requeteDossiersVente = useListeDossiersVente({
-    vehiculeId,
-    tri: 'prospectionLe:desc',
-  });
+  // (hooks/ventes/dossiers/, déjà existant) accepte `vehiculeId` tel quel dans son filtre gelé
+  // (`FiltresDossiersVente`) ET porte une option `enabled` dédiée précisément à ce correctif (voir
+  // son en-tête : « évite d'émettre une requête vouée à un 403 stable ») — le correctif réutilise
+  // ce hook plutôt que le `useQuery` local qu'utilisaient les autres sous-collections de cette
+  // fiche (`requeteOr`/`requeteFactures`/`requeteDepotsPneus`), car lui seul porte déjà la
+  // politique de réessai `useDoitReessayer()` attendue ici.
+  const requeteDossiersVente = useListeDossiersVente(
+    { vehiculeId, tri: 'prospectionLe:desc' },
+    { enabled: Boolean(vehiculeId) && peutVoirDossiersVente },
+  );
 
   if (requeteVehicule.isPending || requeteContexte.isPending) {
     return (
@@ -159,6 +182,19 @@ export function EcranFicheVehicule() {
   const facturesVehicule = requeteFactures.data?.donnees ?? [];
   const depotsPneus = requeteDepotsPneus.data?.donnees ?? [];
   const dossiersVente = requeteDossiersVente.dossiers;
+
+  // « le lien qui manque le plus tous les jours » (magasinier) menait à `/pneus` sans jamais
+  // désigner LEQUEL des jeux du véhicule regarder — retrouver la bonne case demandait de refaire
+  // une recherche visuelle dans le local. `chemins.pneus.hangar` (`routes/chemins.ts`, hors
+  // périmètre d'écriture exclusif de cet agent) n'a pas de troisième paramètre `depot` : le chemin
+  // est donc complété ICI plutôt que d'éditer `routes/`. `EcranHangarPneus.tsx` lit `?depot=` avec
+  // la même mécanique que `?site=`/`?onglet=` (voir sa note de tête) et fait défiler jusqu'à la
+  // carte correspondante, focus au clavier compris — jamais un filtre qui masquerait le reste du
+  // local.
+  function cheminHangarPourDepot(depotId: string): string {
+    const base = chemins.pneus.hangar(site);
+    return `${base}${base.includes('?') ? '&' : '?'}depot=${encodeURIComponent(depotId)}`;
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -250,15 +286,43 @@ export function EcranFicheVehicule() {
       {/* Lot B (correction 6, vendeur) — dossier de vente en cours ou passé, si ce véhicule est ou
        *  a été en stock. Le contrat ne porte pas de numéro court identifiable à l'oral pour un
        *  dossier (`EnTeteDossierVente.tsx`, même constat) : le lien s'appuie donc sur le statut et
-       *  le client, pas sur un « dossier n°x » qui n'existe pas côté serveur. */}
-      {dossiersVente.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="texte-titre-section">
-              {t('vehicules:fiche.dossierVente.titre')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+       *  le client, pas sur un « dossier n°x » qui n'existe pas côté serveur.
+       *
+       *  Défaut corrigé (mesuré en navigateur, connecté `admin` — rôle SANS `ventes.dossier.lire`,
+       *  RF-115) : la requête partait sans garde de droits ni politique de réessai — six requêtes
+       *  `GET /dossiers-vente` en moins de dix secondes, toutes en 403, jamais arrêtées, puis la
+       *  section entière disparaissait en silence (un refus de droit rendu comme une absence de
+       *  donnée). `peutVoirDossiersVente` gate désormais la requête elle-même (voir sa définition
+       *  plus haut) : zéro requête pour un rôle qui n'a pas le droit, et les trois états —
+       *  chargement de la session, droit manquant, résultat — restent chacun DISTINCTS, même
+       *  doctrine que les sections « Pneus »/« OR »/« Factures » ci-dessous. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="texte-titre-section">
+            {t('vehicules:fiche.dossierVente.titre')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {session.isLoading ? (
+            <EtatChargement lignes={2} />
+          ) : !peutVoirDossiersVente ? (
+            <p className="texte-corps text-muted-foreground">
+              {t('vehicules:fiche.dossierVente.droitRequis')}
+            </p>
+          ) : requeteDossiersVente.isPending ? (
+            <EtatChargement lignes={2} />
+          ) : requeteDossiersVente.isError ? (
+            <EtatErreur
+              titre={t('vehicules:fiche.erreurSection.titre')}
+              description={messageErreur(requeteDossiersVente.error, t)}
+              onReessayer={() => void requeteDossiersVente.refetch()}
+            />
+          ) : dossiersVente.length === 0 ? (
+            <EtatVide
+              titre={t('vehicules:fiche.dossierVente.titre')}
+              description={t('vehicules:fiche.dossierVente.vide')}
+            />
+          ) : (
             <ul className="flex flex-col divide-y">
               {dossiersVente.map((dossier) => (
                 <li key={dossier.id} className="flex items-center justify-between gap-3 py-2">
@@ -273,9 +337,9 @@ export function EcranFicheVehicule() {
                 </li>
               ))}
             </ul>
-          </CardContent>
-        </Card>
-      ) : null}
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <BlocEcheances
@@ -321,26 +385,28 @@ export function EcranFicheVehicule() {
           ) : (
             <ul className="flex flex-col divide-y">
               {depotsPneus.map((depot) => (
-                <li key={depot.id} className="flex items-center justify-between gap-3 py-2">
-                  <span className="texte-corps text-foreground">
-                    {t(`pneus:saison.${depot.saison}`)}
-                  </span>
-                  <span className="texte-libelle text-muted-foreground">
-                    {depot.codeCase
-                      ? t('vehicules:fiche.pneus.emplacement', { emplacement: depot.codeCase })
-                      : t('vehicules:fiche.pneus.emplacementNonRenseigne')}
-                  </span>
+                <li
+                  key={depot.id}
+                  className="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="texte-corps text-foreground">
+                      {t(`pneus:saison.${depot.saison}`)}
+                    </span>
+                    <span className="texte-libelle text-muted-foreground">
+                      {depot.codeCase
+                        ? t('vehicules:fiche.pneus.emplacement', { emplacement: depot.codeCase })
+                        : t('vehicules:fiche.pneus.emplacementNonRenseigne')}
+                    </span>
+                  </div>
+                  <Link
+                    to={cheminHangarPourDepot(depot.id)}
+                    className="texte-libelle font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    {t('vehicules:fiche.pneus.lienHangar')}
+                  </Link>
                 </li>
               ))}
-              <li className="pt-2">
-                <button
-                  type="button"
-                  className="texte-libelle text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  onClick={() => navigate(chemins.pneus.hangar(site))}
-                >
-                  {t('vehicules:fiche.pneus.lienHangar')}
-                </button>
-              </li>
             </ul>
           )}
         </CardContent>
