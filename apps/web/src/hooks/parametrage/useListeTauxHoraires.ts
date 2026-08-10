@@ -1,10 +1,8 @@
-import {
-  useInfiniteQuery,
-  type InfiniteData,
-  type UseInfiniteQueryResult,
-} from '@tanstack/react-query';
+import { type InfiniteData, type UseInfiniteQueryResult } from '@tanstack/react-query';
 
 import type { PageCurseur, ReponseTauxHoraire } from '@dfa/shared';
+
+import { useListeCurseur } from '@/hooks/pagination-curseur';
 
 import { clesParametrage } from './cles';
 import { listerTauxHoraires } from './taux-horaires.api';
@@ -15,10 +13,10 @@ export function useListeTauxHoraires(): UseInfiniteQueryResult<
   InfiniteData<PageCurseur<ReponseTauxHoraire>>,
   unknown
 > {
-  return useInfiniteQuery({
-    queryKey: clesParametrage.tauxHoraires.liste(),
-    queryFn: ({ pageParam }) => listerTauxHoraires(pageParam),
-    initialPageParam: null as string | null,
-    getNextPageParam: (dernierePage) => dernierePage.curseurSuivant,
+  const { resultat } = useListeCurseur<ReponseTauxHoraire>({
+    cle: clesParametrage.tauxHoraires.liste(),
+    // Même écart `null`/`undefined` que `useListePrestations` — voir le commentaire là-bas.
+    charger: (curseur) => listerTauxHoraires(curseur ?? null),
   });
+  return resultat;
 }

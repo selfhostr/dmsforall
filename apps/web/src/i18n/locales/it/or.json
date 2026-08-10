@@ -355,7 +355,8 @@
     "signatureDifferee": "Firmare più tardi",
     "motifSignatureDifferee": "Motivo del rinvio della firma",
     "paiementRecu": "Pagamento ricevuto alla restituzione",
-    "aucuneActionDisponible": "Nessuna azione disponibile al momento."
+    "aucuneActionDisponible": "Nessuna azione disponibile al momento.",
+    "autresActions": "Altre azioni"
   },
   "totaux": {
     "titre": "Totali",

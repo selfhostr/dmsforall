@@ -134,6 +134,126 @@ function verifierCoherenceDevise(
 }
 
 /**
+ * BARRIÈRE APPLICATIVE — correctif d'un défaut prouvé de bout en bout par un parcours navigateur
+ * (2026-08-10) : une facture créditée en TOTALITÉ par un avoir (`statut = 'annule_par_avoir'`,
+ * RF-32) restait imputable pour son montant D'ORIGINE. Séquence reproduite : facture CHF 60.00 →
+ * avoir total émis → panneau Encaisser la propose encore « reste dû CHF 60.00 » → `POST /paiements`
+ * avec une imputation dessus répondait `201 Created` → la facture portait ensuite
+ * `statutReglement: 'partiel'`, un vrai encaissement réconcilié contre une créance déjà éteinte.
+ *
+ * NI le trigger `imputation_paiement_verifier_invariants` (MD-51, `0010_facturation.sql` §11) NI
+ * `statut_reglement` ne fermaient ce trou : le premier ne vérifie QUE des invariants de MONTANT
+ * (Σ imputations ≤ total document, Σ imputations 'reglement' ≤ montant paiement), sans jamais lire
+ * `statut` ; le second est une colonne DÉLIBÉRÉMENT INDÉPENDANTE de `statut` (RF-68, voir
+ * `STATUTS_REGLEMENT_DOCUMENT` dans `packages/shared/src/contrats/facturation/enums.ts`) — RF-32
+ * (`service-emission.ts` §6) met à jour `statut`/`annule_par_avoir_id` mais NE TOUCHE JAMAIS
+ * `statut_reglement`/`solde_centimes`, qui restent ceux D'AVANT l'annulation. Un document
+ * `annule_par_avoir` continue donc de se présenter comme `statut_reglement: 'non_regle'` ou
+ * `'partiel'` avec un `solde_centimes` non nul — une créance visuellement ouverte alors qu'elle est
+ * comptablement éteinte.
+ *
+ * DÉCISION DE CONCEPTION (ne PAS re-proposer une correction de `statut_reglement` sur l'avoir/RF-32
+ * — déjà tranché ailleurs) : la doctrine du dépôt, déjà appliquée par
+ * `relances/regles-planification.ts::factureEligibleRelance` et
+ * `facturation/documents/echeance.ts::calculerRetardDocument`, est que `statut` et
+ * `statut_reglement` ne sont JAMAIS fusionnés — RF-68 l'interdit explicitement, et les deux colonnes
+ * ne partagent jamais le même espace d'affichage (voir le commentaire de `STATUTS_REGLEMENT_
+ * DOCUMENT`). C'est donc à CHAQUE CONSOMMATEUR de recombiner les deux, jamais à `statut_reglement`
+ * de porter l'information d'annulation. Cette barrière applique ICI, au moment où l'ARGENT bouge
+ * réellement, exactement le même principe que ces deux lecteurs appliquent déjà à l'affichage.
+ *
+ * Seul `statut = 'emis'` reste réglable : `brouillon` n'a même pas de total figé opposable
+ * (MD-19/20), et tous les autres statuts de la machine à états (MD-17) — `accepte`/`refuse`/
+ * `expire`/`remplace`/`transforme`/`annule`/`annule_par_avoir`/`abandonne` — désignent un document
+ * qui n'est plus une créance active.
+ */
+async function verifierDocumentImputable(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  document: Pick<LigneDocumentVente, 'id' | 'numero' | 'statut' | 'annuleParAvoirId'>,
+): Promise<void> {
+  if (document.statut === 'emis') return;
+
+  const reference = document.numero ?? document.id;
+
+  if (document.statut === 'annule_par_avoir' && document.annuleParAvoirId) {
+    const [avoir] = await tx
+      .select({ numero: documentVente.numero })
+      .from(documentVente)
+      .where(
+        and(
+          eq(documentVente.tenantId, ctx.tenantId),
+          eq(documentVente.id, document.annuleParAvoirId),
+        ),
+      )
+      .limit(1);
+    throw new ErreurMetier(
+      'IMPUTATION_DOCUMENT_NON_REGLABLE',
+      `Le document ${reference} a été annulé par l'avoir ${avoir?.numero ?? document.annuleParAvoirId} ` +
+        '— sa dette réelle est nulle, aucun paiement ne peut plus lui être imputé.',
+      {
+        detail: `document_id=${document.id};statut=annule_par_avoir;avoir_id=${document.annuleParAvoirId}`,
+      },
+    );
+  }
+
+  throw new ErreurMetier(
+    'IMPUTATION_DOCUMENT_NON_REGLABLE',
+    `Le document ${reference} est au statut "${document.statut}" — seul un document émis ("emis") ` +
+      'peut recevoir une imputation.',
+    {
+      detail: `document_id=${document.id};statut=${document.statut}`,
+    },
+  );
+}
+
+/**
+ * SECONDE BARRIÈRE, du MÊME défaut applicatif que `verifierDocumentImputable` ci-dessus — trouvée
+ * par le test d'intégration écrit pour PROUVER le premier correctif (2026-08-10) : celui-ci filtre
+ * sur `statut`, et un avoir ÉMIS porte `statut = 'emis'` comme n'importe quelle facture ouverte — il
+ * passait donc la première barrière, et rien d'autre ne s'y opposait. `POST /paiements` avec une
+ * imputation `reglement` visant un avoir répondait `201 Created`.
+ *
+ * TRANCHÉ PAR LA DOCTRINE DU DÉPÔT, PAS PAR PRUDENCE (MD-57, `docs/modele-documentaire-facturation.md`
+ * §4.3, table des trois issues d'un trop-perçu) : « Ce qu'on ne fait **jamais** : créer un avoir pour
+ * matérialiser un trop-perçu. **Un avoir corrige un document, pas un mouvement d'argent.** » Et MD-51
+ * qualifie explicitement `reglement`/`arrondi` (le seul lot accepté par le lettrage générique, voir
+ * `NATURES_LETTRAGE_GENERIQUE`) comme les DEUX SEULES natures où de l'argent circule RÉELLEMENT —
+ * `escompte`/`perte`/`compensation` sont, à l'inverse, « des écarts qui soldent un document sans
+ * qu'aucun argent ne circule ». Imputer un `reglement` sur un avoir revient donc à faire *rentrer*
+ * un encaissement contre un document qui, par nature, ne peut que *sortir* de l'argent du garage
+ * (`total_ttc_centimes <= 0` par construction, migration 0010 §9) — un contresens comptable que MD-57
+ * exclut littéralement, pas une prudence ajoutée ici sans fondement.
+ *
+ * Un avoir N'EST PAS pour autant totalement fermé aux imputations : MD-57 prévoit exactement UNE
+ * issue légitime, « abandon en faveur du garage » — la `compensation` d'une avance client contre un
+ * « document de régularisation », qui PEUT être un avoir (nette l'avance déjà détenue contre la dette
+ * que l'avoir représente, sans qu'aucun argent ne bouge une seconde fois). C'est PRÉCISÉMENT
+ * `appliquerCompensationAvance` (`POST /paiements/{id}/abandonner`, RF-79 issue 3, motif + document
+ * de régularisation choisis explicitement par l'opérateur) — cette fonction-ci N'EST DONC PAS
+ * appelée depuis `appliquerCompensationAvance` : un avoir doit rester une cible VALIDE pour
+ * `compensation`, seulement une cible REFUSÉE pour `reglement`/`arrondi`.
+ */
+function verifierDocumentPasAvoir(
+  document: Pick<LigneDocumentVente, 'id' | 'numero' | 'typeDocument'>,
+): void {
+  if (document.typeDocument !== 'avoir') return;
+
+  const reference = document.numero ?? document.id;
+  throw new ErreurMetier(
+    'IMPUTATION_DOCUMENT_NON_REGLABLE',
+    `Le document ${reference} est un avoir — une note de crédit, de l'argent que le garage doit au ` +
+      "client, pas une créance (MD-57 : « un avoir corrige un document, pas un mouvement d'argent »). " +
+      "Aucun encaissement (nature 'reglement'/'arrondi') ne peut lui être imputé. Pour affecter une " +
+      'avance client à cet avoir, utiliser POST /paiements/{id}/abandonner (compensation explicite, ' +
+      'RF-79).',
+    {
+      detail: `document_id=${document.id};type_document=avoir`,
+    },
+  );
+}
+
+/**
  * BARRIÈRE 3/3 (issue #9, GitHub — « un paiement négatif crédite une facture ») : dernière ligne de
  * défense APPLICATIVE avant le trigger PostgreSQL `imputation_paiement_verifier_invariants`
  * (MD-51.b, `0010_facturation.sql` §11) — un paiement de montant NÉGATIF OU NUL ne peut RECEVOIR
@@ -236,6 +356,8 @@ export async function appliquerImputationsLettrage(
 
   for (const [documentId, groupe] of parDocument) {
     const document = await chargerDocumentPourEcriture(tx, ctx, documentId);
+    await verifierDocumentImputable(tx, ctx, document);
+    verifierDocumentPasAvoir(document);
     verifierCoherenceDevise(paiementLigne, document);
     const totalDocument =
       document.totalTtcCentimes < 0n ? -document.totalTtcCentimes : document.totalTtcCentimes;
@@ -333,6 +455,7 @@ export async function appliquerCompensationAvance(
   verifierPaiementImputable(paiementAvance);
 
   const document = await chargerDocumentPourEcriture(tx, ctx, documentRegularisationId);
+  await verifierDocumentImputable(tx, ctx, document);
   verifierCoherenceDevise(paiementAvance, document);
   const totalDocument =
     document.totalTtcCentimes < 0n ? -document.totalTtcCentimes : document.totalTtcCentimes;

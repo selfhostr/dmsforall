@@ -388,4 +388,202 @@ describe('ServiceDocumentsVente.lister — filtres enRetard/relanceNiveau (Lot E
     expect(params).toContain('11111111-1111-4111-8111-111111111111');
     expect(params).toContain('emis');
   });
+
+  /**
+   * Défaut confirmé par preuve d'exécution : `ordreReparationId` était accepté par la validation
+   * zod mais jamais traduit en SQL — la fiche d'un OR affichait les cinq derniers documents du
+   * TENANT ENTIER, un OR réel et un `ordreReparationId` inexistant rendant rigoureusement la même
+   * liste. Le test décisif est le second ci-dessous : un id inexistant doit se traduire par une
+   * condition `= $<id inexistant>` dans la requête — la MÊME construction que pour un id réel,
+   * preuve que le paramètre n'est plus ignoré. Un test qui se contenterait de vérifier « le filtre
+   * n'écrase pas les autres » n'aurait pas suffi : il aurait pu passer même sans la condition SQL.
+   */
+  describe('ordreReparationId — câblé (correctif)', () => {
+    const OR_ID = '22222222-2222-4222-8222-222222222222';
+    const OR_INEXISTANT_ID = '00000000-0000-0000-0000-000000000000';
+
+    it('ordreReparationId fourni : la requête pose `ordre_reparation_id = $<valeur exacte>`', async () => {
+      const { sql, params } = await executerListerEtCapturer({ ordreReparationId: OR_ID });
+
+      expect(sql).toContain('"document_vente"."ordre_reparation_id" = $');
+      expect(params).toContain(OR_ID);
+    });
+
+    it("ordreReparationId inexistant : la MÊME condition SQL est posée, avec CE paramètre précis — ce test aurait rougi sur le défaut d'origine (paramètre accepté, jamais câblé)", async () => {
+      const { sql, params } = await executerListerEtCapturer({
+        ordreReparationId: OR_INEXISTANT_ID,
+      });
+
+      expect(sql).toContain('"document_vente"."ordre_reparation_id" = $');
+      expect(params).toContain(OR_INEXISTANT_ID);
+      // Un id réel et un id inexistant ne doivent JAMAIS produire la même absence de condition —
+      // preuve que le paramètre est bien celui transmis, pas ignoré au profit d'un scope plus large.
+      expect(params).not.toContain(OR_ID);
+    });
+
+    it('ordreReparationId absent : aucune condition sur la colonne — le filtre reste inerte par défaut', async () => {
+      const { sql } = await executerListerEtCapturer({});
+
+      expect(clauseWhere(sql)).not.toContain('ordre_reparation_id');
+    });
+
+    it('ordreReparationId composé par ET avec le scope tenant (jamais en OR, jamais substitué à lui)', async () => {
+      const { sql } = await executerListerEtCapturer({ ordreReparationId: OR_ID });
+
+      expect(sql).toMatch(/"tenant_id" = \$1 and "document_vente"\."ordre_reparation_id" = \$2/);
+    });
+  });
+
+  describe('statutReglement — câblé', () => {
+    it("statutReglement=['regle'] : `inArray` sur la colonne réelle `statut_reglement`", async () => {
+      const { sql, params } = await executerListerEtCapturer({
+        statutReglement: ['regle'],
+      });
+
+      expect(sql).toContain('"document_vente"."statut_reglement" in (');
+      expect(params).toContain('regle');
+    });
+
+    it("statutReglement=['partiel'] (valeur légitime, distincte de la précédente) : la condition change avec la valeur — preuve qu’elle n’est pas ignorée", async () => {
+      // Même rôle décisif qu'un UUID inexistant pour ordreReparationId : la condition doit
+      // apparaître dans le SQL, portant PRÉCISÉMENT la valeur transmise — pas une autre.
+      const { sql, params } = await executerListerEtCapturer({
+        statutReglement: ['partiel'],
+      });
+
+      expect(sql).toContain('"document_vente"."statut_reglement" in (');
+      expect(params).toContain('partiel');
+      expect(params).not.toContain('regle');
+    });
+
+    it('statutReglement absent : aucune condition sur la colonne', async () => {
+      const { sql } = await executerListerEtCapturer({});
+
+      expect(clauseWhere(sql)).not.toContain('statut_reglement');
+    });
+  });
+
+  /**
+   * `statut` protège désormais un chemin argent précis (correctif 2026-08-10, voir
+   * `paiements/imputations.ts::verifierDocumentImputable`) : c'est ce filtre, câblé côté
+   * `useFacturesOuvertesClient` (front), qui évite de PROPOSER une facture `annule_par_avoir` au
+   * panneau d'encaissement — la barrière applicative dans `imputations.ts` REFUSE le geste s'il est
+   * malgré tout tenté (un `curl` direct, un connecteur tiers), mais ce filtre-ci est ce qui évite de
+   * l'offrir en premier lieu. Câblage RÉ-VÉRIFIÉ en exécution contre l'API réelle (pas seulement par
+   * lecture) : `statut=emis` → 2 lignes, `statut=annule_par_avoir` → 1, `statut=refuse` → liste
+   * vide, sur le même client — trois valeurs, trois résultats distincts. Ce bloc-ci comble
+   * uniquement l'absence de garde-fou AUTOMATISÉ (même rôle que `statutReglement`/
+   * `ordreReparationId` juste au-dessus, aucun des deux n'avait de test avant leur découverte) :
+   * sans lui, une régression future sur CE filtre ne rougirait NULLE PART — ni les tests front (qui
+   * simulent la couche réseau, jamais le serveur), ni le reste de cette suite.
+   *
+   * RÉSERVE HONNÊTE (même que les blocs voisins de cette describe) : ceci capture le SQL
+   * RÉELLEMENT CONSTRUIT par le query-builder Drizzle (`toSQL()`), PAS un `tx.execute` simulé — la
+   * même technique qui a fait rougir `ordreReparationId` sur le défaut d'origine. Ça prouve que la
+   * VALEUR du filtre atteint la clause `where`, avec le bon paramètre. Ça NE prouve PAS le
+   * comportement contre une vraie base (RLS, `inArray` réellement exécuté, page de résultats) — la
+   * preuve d'exécution réelle mentionnée ci-dessus (2/1/0 lignes sur l'API en marche) est CE qui
+   * couvre ce dernier mètre, pas ce bloc.
+   */
+  describe('statut — câblé', () => {
+    it("statut=['emis'] : `inArray` sur la colonne réelle `statut`, composé par ET avec le scope tenant", async () => {
+      const { sql, params } = await executerListerEtCapturer({ statut: ['emis'] });
+
+      expect(sql).toContain('"document_vente"."statut" in (');
+      expect(params).toContain('emis');
+      expect(sql).toMatch(/"tenant_id" = \$1 and "document_vente"."statut" in \(/);
+    });
+
+    it("statut=['annule_par_avoir'] (valeur distincte, précisément celle du défaut prouvé par la tâche) : la condition change avec la valeur — preuve qu'elle n'est pas ignorée", async () => {
+      const { sql, params } = await executerListerEtCapturer({ statut: ['annule_par_avoir'] });
+
+      expect(sql).toContain('"document_vente"."statut" in (');
+      expect(params).toContain('annule_par_avoir');
+      expect(params).not.toContain('emis');
+    });
+
+    it('statut à plusieurs valeurs : toutes portées par le même `inArray`, aucune perdue', async () => {
+      const { sql, params } = await executerListerEtCapturer({
+        statut: ['emis', 'annule_par_avoir'],
+      });
+
+      expect(sql).toContain('"document_vente"."statut" in (');
+      expect(params).toContain('emis');
+      expect(params).toContain('annule_par_avoir');
+    });
+
+    it('statut absent : aucune condition sur la colonne — le filtre reste inerte par défaut', async () => {
+      const { sql } = await executerListerEtCapturer({});
+
+      expect(clauseWhere(sql)).not.toContain('"document_vente"."statut" in (');
+    });
+  });
+
+  describe('natureFacture — câblé, composé avec typeDocument = facture (MD-12)', () => {
+    it("natureFacture='acompte' : pose l'égalité sur `nature_facture` ET `type_document = 'facture'` — la colonne vaut 'ordinaire' par défaut même hors facture, sans cette seconde condition le filtre remonterait aussi des devis/bons de commande", async () => {
+      const { sql, params } = await executerListerEtCapturer({ natureFacture: 'acompte' });
+
+      expect(sql).toContain('"document_vente"."nature_facture" = $');
+      expect(sql).toContain('"document_vente"."type_document" = $');
+      expect(params).toContain('acompte');
+      expect(params).toContain('facture');
+    });
+
+    it('natureFacture absent : aucune condition sur `nature_facture` ni de `type_document` imposé par ce filtre', async () => {
+      const { sql } = await executerListerEtCapturer({});
+
+      expect(clauseWhere(sql)).not.toContain('nature_facture');
+    });
+  });
+
+  describe('dateDocumentDu / dateDocumentAu — câblés, bornes incluses', () => {
+    it('dateDocumentDu seul : `date_document >= $<borne>`', async () => {
+      const { sql, params } = await executerListerEtCapturer({ dateDocumentDu: '2026-01-01' });
+
+      expect(sql).toContain('"document_vente"."date_document" >= $');
+      expect(params).toContain('2026-01-01');
+    });
+
+    it('dateDocumentAu seul : `date_document <= $<borne>`', async () => {
+      const { sql, params } = await executerListerEtCapturer({ dateDocumentAu: '2026-12-31' });
+
+      expect(sql).toContain('"document_vente"."date_document" <= $');
+      expect(params).toContain('2026-12-31');
+    });
+
+    it('les deux bornes composées par ET, sans écraser l’une l’autre', async () => {
+      const { sql, params } = await executerListerEtCapturer({
+        dateDocumentDu: '2026-01-01',
+        dateDocumentAu: '2026-12-31',
+      });
+
+      expect(sql).toContain('"document_vente"."date_document" >= $');
+      expect(sql).toContain('"document_vente"."date_document" <= $');
+      expect(params).toContain('2026-01-01');
+      expect(params).toContain('2026-12-31');
+    });
+
+    it('bornes absentes : aucune condition sur `date_document` posée par ce filtre (la colonne reste sinon utilisée par le tri)', async () => {
+      const { sql } = await executerListerEtCapturer({});
+
+      expect(clauseWhere(sql)).not.toContain('date_document');
+    });
+  });
+
+  describe('q — câblé via `public.normaliser_recherche()` (même idiome que `recherche/`)', () => {
+    it('q fourni : condition normalisée sur `numero` OU `client_designation_figee`, motif enveloppé en fragment (`%...%`)', async () => {
+      const { sql, params } = await executerListerEtCapturer({ q: 'Dupont' });
+
+      expect(sql).toContain('normaliser_recherche(coalesce("document_vente"."numero"');
+      expect(sql).toContain('normaliser_recherche("document_vente"."client_designation_figee")');
+      expect(sql).toMatch(/like public\.normaliser_recherche/);
+      expect(params).toContain('%Dupont%');
+    });
+
+    it('q absent : aucune condition sur numero/client_designation_figee posée par ce filtre', async () => {
+      const { sql } = await executerListerEtCapturer({});
+
+      expect(clauseWhere(sql)).not.toContain('normaliser_recherche');
+    });
+  });
 });

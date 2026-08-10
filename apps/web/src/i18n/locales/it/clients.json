@@ -48,6 +48,7 @@
     "derniersOrVide": "Nessun passaggio registrato.",
     "dossiersVente": "Pratiche di vendita",
     "dossiersVenteVide": "Nessuna pratica di vendita.",
+    "dossiersVenteDroitRequis": "Non ha il diritto di consultare le pratiche di vendita di questo cliente.",
     "dossierSansVehicule": "Veicolo non assegnato"
   },
   "alertes": {

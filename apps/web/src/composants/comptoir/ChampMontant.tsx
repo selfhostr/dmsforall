@@ -113,7 +113,9 @@ export function ChampMontant({
         />
       </div>
       {valeurCentimes !== null && !erreur ? (
-        <p className="texte-libelle text-muted-foreground">{formaterMontant(valeurCentimes)}</p>
+        <p className="texte-libelle texte-montant text-muted-foreground">
+          {formaterMontant(valeurCentimes)}
+        </p>
       ) : null}
       {erreur ? (
         <p id={idErreur} className="texte-libelle text-destructive">

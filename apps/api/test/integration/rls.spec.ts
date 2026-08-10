@@ -385,6 +385,51 @@ describe('couverture RLS générique — attrape automatiquement toute future ta
       client.release();
     }
   });
+
+  // -----------------------------------------------------------------------------------------
+  // §8 de docs/conception-console-exploitation-acces.md, repris par le commentaire de tête de la
+  // migration 0048_exploitation_console_porte_1.sql (section 6) : le test ci-dessus ne couvre que
+  // `dfa_app`. Une politique permissive (`using (true)`) accordée à `dfa_console` — le rôle de la
+  // console d'exploitation — passerait donc inaperçue : la console lirait alors TOUT tenant
+  // confondu, exactement le motif que ce fichier interdit à `dfa_app` depuis le test précédent.
+  //
+  // On réutilise `exploitation.politiques_public_permissives(p_role)`, la fonction posée par la
+  // migration 0048 précisément pour cet usage (SQL, catalogue, `stable`, PAS security definer —
+  // voir son commentaire dans la migration), plutôt que de dupliquer la requête catalogue
+  // ci-dessus pour un second rôle : c'est le MÊME périmètre de tables (tenant_id, plus `tenant`),
+  // et c'est déjà la fonction que la migration elle-même appelle dans ses assertions de fin
+  // d'application (§7.1(a) — pour dfa_app ET dfa_console). Elle doit rendre zéro ligne ici aussi.
+  //
+  // Exécutée via `poolSuperutilisateur` : un superutilisateur Postgres contourne tout contrôle de
+  // privilège (GRANT/REVOKE), donc peut appeler cette fonction même si elle n'est explicitement
+  // accordée à aucun rôle applicatif — exactement comme les autres vérifications de catalogue de
+  // ce describe. Ce test reste significatif que `dfa_console` existe déjà ou non dans la base :
+  // sans le rôle, seules les politiques visant PUBLIC implicitement (`polroles = '{0}'`, un `TO`
+  // absent) remontent — ce qui est déjà le cas qui compte le plus, puisque c'est le motif par
+  // défaut d'une politique posée sans réfléchir au rôle visé.
+  // -----------------------------------------------------------------------------------------
+  it("aucune politique permissive sur public n'est accordée à dfa_console (exploitation.politiques_public_permissives)", async () => {
+    const client = await bdd.poolSuperutilisateur.connect();
+    try {
+      const { rows } = await client.query<{
+        table_nom: string;
+        politique_nom: string;
+        expr_using: string | null;
+        expr_with_check: string | null;
+      }>('select * from exploitation.politiques_public_permissives($1)', ['dfa_console']);
+
+      expect(
+        rows,
+        `politique(s) permissive(s) sur public accordée(s) à dfa_console : ${rows
+          .map((r) => `${r.table_nom}.${r.politique_nom}`)
+          .join(', ')} — la console d'exploitation contournerait l'isolation tenant. USING et ` +
+          'WITH CHECK doivent tous deux référencer tenant_courant() (conception-console-' +
+          'exploitation-acces.md §8, invariant 3).',
+      ).toHaveLength(0);
+    } finally {
+      client.release();
+    }
+  });
 });
 
 describe('parité des enums Postgres avec les unions TypeScript de @dfa/shared', () => {

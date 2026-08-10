@@ -7,6 +7,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type {
   ReponseContexteAtelier,
+  ReponseDepotPneus,
   ReponseTravailReporte,
   ReponseVehicule,
   ReponseVehiculeDetention,
@@ -202,6 +203,23 @@ const KILOMETRAGES: readonly ReponseVehiculeKilometrage[] = [
     ordreReparationId: null,
   },
 ];
+
+const DEPOT_PNEUS: ReponseDepotPneus = {
+  id: 'depot-1',
+  vehiculeId: 'v1',
+  siteId: 'site-1',
+  saison: 'hiver',
+  statut: 'en_depot',
+  codeCase: 'H-014',
+  dimension: '205/55 R16',
+  etat: null,
+  entreLe: '2026-01-01T08:00:00.000Z',
+  dernierMouvementLe: '2026-01-01T08:00:00.000Z',
+  motifSortie: null,
+  ligneOrDernierChangementId: null,
+  creeLe: '2026-01-01T08:00:00.000Z',
+  modifieLe: '2026-01-01T08:00:00.000Z',
+};
 
 const DETENTIONS: readonly ReponseVehiculeDetention[] = [
   {
@@ -490,4 +508,68 @@ describe('EcranFicheVehicule', () => {
     expect(await screen.findByText('Devant, place 3')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Modifier' })).not.toBeInTheDocument();
   });
+
+  // Défaut corrigé (« le lien qui n'aboutit qu'à moitié ») : « Voir dans le hangar à pneus » menait
+  // à `/pneus` sans jamais désigner LEQUEL des jeux du véhicule regarder — le magasinier devait
+  // refaire une recherche visuelle dans le local pour retrouver la case H-014. Le lien transmet
+  // désormais `?depot=<id>`, lu par `EcranHangarPneus` (même mécanique que `?site=`/`?onglet=`)
+  // pour mettre la bonne carte en évidence.
+  it('« Voir dans le hangar à pneus » transmet le dépôt concerné à l’écran du hangar', async () => {
+    installerHandlersOk();
+    server.use(
+      http.get('/api/v1/vehicules/v1/depots-pneus', () =>
+        HttpResponse.json({ donnees: [DEPOT_PNEUS], curseurSuivant: null, limite: 10 }),
+      ),
+    );
+    rendre();
+
+    expect(await screen.findByText('H-014', { exact: false })).toBeInTheDocument();
+    const lien = screen.getByRole('link', { name: 'Voir dans le hangar à pneus' });
+    expect(lien).toHaveAttribute('href', '/pneus?depot=depot-1');
+  });
+
+  // Défaut corrigé (mesuré en navigateur, connecté `admin` — rôle SANS `ventes.dossier.lire`,
+  // RF-115) : la requête `GET /dossiers-vente` partait sans garde de droits ni politique de
+  // réessai — martèlement en boucle sur des 403, puis la section « Dossier de vente » disparaissait
+  // en silence (un refus de droit rendu comme une absence de donnée, ce que la règle du dépôt
+  // interdit explicitement). AUCUN handler `/api/v1/dossiers-vente` n'est enregistré ci-dessous :
+  // `onUnhandledRequest: 'error'` (`test/setup.ts`) fait échouer ce test si l'écran émettait malgré
+  // tout cette requête — la preuve la plus forte de « zéro requête », plus robuste qu'un compteur.
+  it(
+    'ne demande jamais les dossiers de vente à un rôle sans droit (admin) : zéro requête, ' +
+      "message honnête plutôt qu'un vide fabriqué",
+    async () => {
+      server.use(
+        http.get('/api/v1/auth/moi', () =>
+          HttpResponse.json({
+            ...SESSION_TEST,
+            utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' },
+          }),
+        ),
+        http.get('/api/v1/vehicules/v1', () => HttpResponse.json(VEHICULE)),
+        http.get('/api/v1/vehicules/v1/contexte-atelier', () => HttpResponse.json(CONTEXTE)),
+        http.get('/api/v1/vehicules/v1/kilometrages', () => HttpResponse.json(KILOMETRAGES)),
+        http.get('/api/v1/vehicules/v1/detentions', () => HttpResponse.json(DETENTIONS)),
+        http.get('/api/v1/vehicules/v1/travaux-reportes', () =>
+          HttpResponse.json(TRAVAUX_REPORTES),
+        ),
+        http.get('/api/v1/ordres-reparation', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 20 }),
+        ),
+        http.get('/api/v1/documents-vente', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 20 }),
+        ),
+        http.get('/api/v1/vehicules/v1/depots-pneus', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 10 }),
+        ),
+      );
+      rendre();
+
+      expect(
+        await screen.findByText(
+          "Vous n'avez pas le droit de consulter les dossiers de vente de ce véhicule.",
+        ),
+      ).toBeInTheDocument();
+    },
+  );
 });

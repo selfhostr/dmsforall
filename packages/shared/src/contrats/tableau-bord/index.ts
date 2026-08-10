@@ -1,9 +1,10 @@
 /**
  * Contrats du tableau de bord (vue « d'un coup d'œil » du garage).
  *
- * Deux endpoints, DEUX niveaux d'exposition — le point sensible de tout ce domaine (voir
- * `apps/api/src/tableau-bord/droits-provisoires.ts` pour le détail des rôles et l'état d'
- * avancement de l'action de droit dédiée, pas encore posée dans `auth/matrice-droits.ts`) :
+ * Deux endpoints, DEUX niveaux d'exposition — le point sensible de tout ce domaine (rôles portés
+ * par les actions `tableau_bord.activite.lire`/`tableau_bord.financier.lire`, posées dans
+ * `apps/api/src/auth/matrice-droits.ts` et appliquées par `@ExigerDroit(...)` + `GardeDroit` dans
+ * les contrôleurs `apps/api/src/tableau-bord/*.controller.ts`) :
  *
  *  - `GET /tableau-bord/activite` (`activite.ts`) : atelier + stock, EN QUANTITÉS/COMPTES
  *    seulement, jamais un montant — ouvert à tout rôle de personne.

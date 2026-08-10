@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { CLASSES_CHAMP } from '@/components/ui/classes-champ';
 import { cn } from '@/lib/utils';
 import { dateVersFormatSuisse, formatSuisseVersISO, isoDirectValide } from '@/lib/formats';
 
@@ -131,13 +132,11 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
           id={idChamp}
           type="text"
           inputMode="numeric"
-          className={cn(
-            'flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base',
-            'placeholder:text-muted-foreground',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            className,
-          )}
+          // Habillage et cinq états partagés avec Input/Textarea/SelectTrigger : voir
+          // `classes-champ.ts`. L'état d'erreur y est piloté par `aria-invalid`, que ce
+          // composant pose déjà (contour rouge + lavis), et le message rendu plus bas porte
+          // l'information — la couleur ne la porte jamais seule.
+          className={cn(CLASSES_CHAMP, 'h-11', className)}
           placeholder={placeholder}
           value={saisie}
           onChange={gererChangement}
@@ -147,7 +146,10 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
           {...props}
         />
         {messageErreurAffiche ? (
-          <p id={idErreur} className="texte-libelle text-destructive">
+          // Même collision que dans tooltip.tsx : `texte-libelle` imposait
+          // `--muted-foreground` et écrasait `text-destructive`. Le message d'erreur d'une date
+          // s'affichait en gris, exactement comme une mention secondaire.
+          <p id={idErreur} className="text-xs leading-4 text-destructive">
             {messageErreurAffiche}
           </p>
         ) : null}

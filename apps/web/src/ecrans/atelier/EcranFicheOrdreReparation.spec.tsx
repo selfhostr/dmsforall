@@ -303,6 +303,92 @@ describe('EcranFicheOrdreReparation', () => {
     });
   });
 
+  describe('Lot C (`docs/plan-refonte-navigation.md`) — une seule action primaire, le reste derrière « Autres actions »', () => {
+    it('place la première action non destructive/de reprise en primaire et regroupe les quatre autres derrière « Autres actions » (statut ouvert)', async () => {
+      installerHandler(
+        construireOr({
+          statut: 'ouvert',
+          actionsDisponibles: [
+            'demarrer',
+            'passer-en-controle',
+            'terminer',
+            'annuler',
+            'reprendre-travaux',
+          ],
+        }),
+      );
+      rendre();
+
+      expect(
+        await screen.findByRole('button', { name: 'Démarrer les travaux' }),
+      ).toBeInTheDocument();
+
+      // Les quatre autres ne sont ni des boutons à plat sur l'écran, ni absents : derrière le
+      // débordement « Autres actions » — jamais cinq boutons de poids visuel égal (constat de ce
+      // lot).
+      expect(screen.queryByRole('button', { name: 'Passer en contrôle' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Terminer' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: "Annuler l'OR" })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Reprendre les travaux' }),
+      ).not.toBeInTheDocument();
+
+      const utilisateur = userEvent.setup();
+      await utilisateur.click(screen.getByRole('button', { name: 'Autres actions' }));
+
+      expect(
+        await screen.findByRole('menuitem', { name: 'Passer en contrôle' }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Terminer' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: "Annuler l'OR" })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Reprendre les travaux' })).toBeInTheDocument();
+    });
+
+    it("un clic sur une action du menu « Autres actions » ouvre le même dialogue de confirmation qu'un bouton de premier niveau", async () => {
+      installerHandler(
+        construireOr({ statut: 'ouvert', actionsDisponibles: ['demarrer', 'annuler'] }),
+      );
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await utilisateur.click(await screen.findByRole('button', { name: 'Autres actions' }));
+      await utilisateur.click(await screen.findByRole('menuitem', { name: "Annuler l'OR" }));
+
+      const dialogue = await screen.findByRole('dialog');
+      expect(within(dialogue).getByText("Annuler l'OR")).toBeInTheDocument();
+      expect(within(dialogue).getByLabelText('Motif')).toBeInTheDocument();
+    });
+
+    it('choisit le chemin positif comme primaire au contrôle qualité (« Valider le contrôle », pas « Refuser »)', async () => {
+      installerHandler(
+        construireOr({
+          statut: 'controle',
+          actionsDisponibles: ['refuser-controle', 'valider-controle'],
+        }),
+      );
+      rendre();
+
+      expect(
+        await screen.findByRole('button', { name: 'Valider le contrôle' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Refuser le contrôle' })).not.toBeInTheDocument();
+
+      const utilisateur = userEvent.setup();
+      await utilisateur.click(screen.getByRole('button', { name: 'Autres actions' }));
+      expect(
+        await screen.findByRole('menuitem', { name: 'Refuser le contrôle' }),
+      ).toBeInTheDocument();
+    });
+
+    it('ne rend aucun bouton « Autres actions » quand une seule action est disponible', async () => {
+      installerHandler(construireOr({ statut: 'en_cours', actionsDisponibles: ['terminer'] }));
+      rendre();
+
+      expect(await screen.findByRole('button', { name: 'Terminer' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Autres actions' })).not.toBeInTheDocument();
+    });
+  });
+
   describe("action « Facturer » — mène à l'écran de facturation, ne facture jamais depuis ce panneau", () => {
     // Rendu dédié : contrairement à `rendre()`, on a besoin d'une seconde route pour observer la
     // navigation réelle déclenchée par le clic (`/ordres-reparation/:orId/facturer`). L'écran cible
@@ -471,7 +557,17 @@ describe('EcranFicheOrdreReparation', () => {
 
       // La ligne créée apparaît dans le tableau une fois l'OR relu (invalidation, pas
       // `setQueryData` — la réponse de `POST …/lignes` ne porte que la ligne, pas le document).
-      expect(await screen.findByText('Remplacement plaquettes de frein avant')).toBeInTheDocument();
+      // Chaîne à deux requêtes réseau (POST puis, via l'invalidation, un second GET) avant que le
+      // tableau ne se re-rende : plus longue que le timeout par défaut de `findBy*` (1000 ms) une
+      // fois les trois suites (API/web/shared) en concurrence pour le CPU — même correctif, pour la
+      // même raison, que `EcranDoublonsClients.spec.tsx`/`FormulaireNouveauClient.spec.tsx`
+      // (3000 ms) et `EcranEntreeEnStock.spec.tsx`/`EcranRechercheComptoirPieces.spec.tsx`/
+      // `EcranHangarPneus.spec.tsx`/`EcranListeVehicules.spec.tsx` (2000 ms) : une attente
+      // déterministe sur l'effet observable (le texte de la ligne), juste avec plus de marge sous
+      // charge — jamais un délai arbitraire, jamais le timeout global de la suite.
+      expect(
+        await screen.findByText('Remplacement plaquettes de frein avant', {}, { timeout: 3000 }),
+      ).toBeInTheDocument();
       expect(corpsRequete).toMatchObject({
         type: 'main_oeuvre_bareme',
         origine: 'commandee',

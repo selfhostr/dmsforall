@@ -38,7 +38,7 @@ export function FilAriane({ segments, pageCourante, className }: Props) {
           <li key={segment.cle} className="flex items-center gap-1.5">
             <Link
               to={segment.href}
-              className="rounded-sm outline-none underline-offset-4 hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="rounded-sm underline-offset-4 hover:text-foreground hover:underline anneau-focus"
             >
               {segment.libelle}
             </Link>

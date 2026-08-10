@@ -14,7 +14,7 @@ import {
   type ReponseParametresAtelier,
 } from '@dfa/shared';
 
-import { messageErreur } from '@/api/erreurs';
+import { ErreurApi, messageErreur, messageErreurChamp } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -103,14 +103,22 @@ function versValeursFormulaire(donnees: ReponseParametresAtelier): ValeursFormul
  *  `apps/api/src/parametrage/parametres-atelier/gouvernance-fonctionnalites.ts` : un seul champ
  *  inerte dans le corps ferait échouer TOUT le `PATCH` en `501`). `plafondDefautCentimes` : le
  *  schéma serveur n'accepte qu'un nombre (jamais `null`, écart déjà signalé) — omis du corps tant
- *  qu'il reste vide, pour ne jamais tenter d'écrire une valeur que le contrat rejette.
+ *  qu'il reste vide, pour ne jamais tenter d'écrire une valeur que le contrat rejette. `or.prefixe`
+ *  suit la même règle, pour la même raison structurelle : `schemaModificationParametresAtelier` le
+ *  déclare `z.string().trim().min(1).max(10).optional()` — un préfixe RÉELLEMENT fourni ne peut pas
+ *  être vide, mais rien n'oblige à en fournir un à CHAQUE `PATCH`. L'état sorti de boîte (démo
+ *  comprise : `orPrefixe` nullable en base, servi comme `prefixe: ''` par
+ *  `mappeur-parametres-atelier.ts`) a un préfixe vide dès le premier chargement — l'envoyer tel
+ *  quel violait `min(1)` et faisait échouer TOUT le formulaire, y compris pour modifier un champ
+ *  sans rapport, avant même la moindre requête réseau (bug constaté en parcours navigateur). Omis
+ *  tant qu'il reste vide, jamais envoyé comme chaîne vide.
  */
 function versEntreeModification(
   valeurs: ValeursFormulaireAtelier,
 ): EntreeModificationParametresAtelier {
   return {
     or: {
-      prefixe: valeurs.prefixe,
+      ...(valeurs.prefixe.trim() !== '' ? { prefixe: valeurs.prefixe } : {}),
       porteeNumerotation: valeurs.porteeNumerotation,
       resetAnnuel: valeurs.resetAnnuel,
       etatPlanifieActif: valeurs.etatPlanifieActif,
@@ -204,6 +212,22 @@ function FormulaireParametresAtelier({ donnees, peutEcrire }: PropsFormulairePar
   const modifier = useModifierParametresAtelier();
   const [enregistre, setEnregistre] = useState(false);
 
+  // Erreur de CHAMP (`or.prefixe`, seul champ à saisie libre soumis à une contrainte que l'UI ne
+  // garantit pas déjà structurellement — les autres réglages passent par un `<Select>`/
+  // `<Checkbox>`, jamais susceptibles de produire une valeur hors contrat) : affichée SOUS le champ
+  // fautif, même discipline que `FormulaireBlocCreancier` (seul autre écran du périmètre à motiver
+  // une erreur de champ locale plutôt qu'un bandeau générique). Le bandeau générique n'affiche que
+  // ce qui RESTE non couvert par un message de champ — jamais la même information deux fois, mais
+  // jamais non plus une erreur qui disparaîtrait faute d'être rattachée à un champ affiché ici.
+  const erreurMutation = modifier.error;
+  const erreurApiMutation = erreurMutation instanceof ErreurApi ? erreurMutation : undefined;
+  const erreurPrefixe = erreurApiMutation?.champErreur('or.prefixe');
+  const erreurGlobaleAAfficher =
+    modifier.isError &&
+    (!erreurApiMutation ||
+      erreurApiMutation.erreursChamp.length === 0 ||
+      erreurApiMutation.erreursChamp.some((e) => e.champ !== 'or.prefixe'));
+
   const form = useForm<ValeursFormulaireAtelier>({ defaultValues: versValeursFormulaire(donnees) });
 
   // Dépendance volontairement limitée à `donnees.version` : une resynchronisation sur `donnees`
@@ -239,8 +263,15 @@ function FormulaireParametresAtelier({ donnees, peutEcrire }: PropsFormulairePar
                 id="pa-prefixe"
                 maxLength={10}
                 disabled={!peutEcrire}
+                aria-invalid={erreurPrefixe ? true : undefined}
+                aria-describedby={erreurPrefixe ? 'pa-prefixe-erreur' : undefined}
                 {...form.register('prefixe')}
               />
+              {erreurPrefixe ? (
+                <p id="pa-prefixe-erreur" className="texte-libelle text-destructive">
+                  {messageErreurChamp(erreurPrefixe, t)}
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="pa-portee">{t('parametrage:atelier.or.porteeNumerotation')}</Label>
@@ -568,10 +599,10 @@ function FormulaireParametresAtelier({ donnees, peutEcrire }: PropsFormulairePar
         </CardContent>
       </Card>
 
-      {modifier.isError ? (
+      {erreurGlobaleAAfficher ? (
         <Alert variant="destructive">
           <AlertTitle>{t('erreurs:inattendue.titre')}</AlertTitle>
-          <AlertDescription>{messageErreur(modifier.error, t)}</AlertDescription>
+          <AlertDescription>{messageErreur(erreurMutation, t)}</AlertDescription>
         </Alert>
       ) : null}
 

@@ -19,7 +19,18 @@
   },
   "vide": {
     "titre": "Aucun résultat",
-    "description": "Vérifiez la saisie et réessayez"
+    "description": "Vérifiez la saisie et réessayez",
+    "titrePerimetreRestreint": "Aucun résultat dans les données auxquelles vous avez accès",
+    "descriptionPerimetreRestreint": "Vérifiez la saisie et réessayez. Votre recherche a porté sur : {natures}."
+  },
+  "natures": {
+    "vehicule": "véhicules",
+    "client": "clients",
+    "ordre_reparation": "ordres de réparation",
+    "document_vente": "documents de vente",
+    "article": "articles",
+    "fournisseur": "fournisseurs",
+    "depot_pneu": "dépôts de pneus"
   },
   "chargement": "Recherche…",
   "annonceResultats": "{count, plural, one {# résultat trouvé} other {# résultats trouvés}}"

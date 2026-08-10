@@ -72,21 +72,43 @@ describe('construireMiddlewareEnTetesSecurite — CSP', () => {
     );
   });
 
-  it.each(['/api/docs', '/api/docs.json', '/api/docs/swagger-ui-bundle.js'])(
-    'relâche la CSP (self + unsafe-inline) sur %s pour ne pas casser Swagger',
-    (chemin) => {
-      const res = reponseTest();
-      middleware(requeteTest(chemin, true), res, vi.fn() as NextFunction);
+  it.each([
+    '/api/docs',
+    '/api/docs.json',
+    '/api/docs/swagger-ui-bundle.js',
+    // Document CONSOLE (main.ts étape 12bis) : même besoin que le document métier — Swagger UI
+    // embarque son propre script/style inline — donc la même CSP relâchée, scopée au même titre.
+    '/api/console/docs',
+    '/api/console/docs.json',
+    '/api/console/docs/swagger-ui-bundle.js',
+  ])('relâche la CSP (self + unsafe-inline) sur %s pour ne pas casser Swagger', (chemin) => {
+    const res = reponseTest();
+    middleware(requeteTest(chemin, true), res, vi.fn() as NextFunction);
 
-      const appelCsp = res.setHeader.mock.calls.find(([nom]) => nom === 'Content-Security-Policy');
-      expect(appelCsp?.[1]).toContain("default-src 'self'");
-      expect(appelCsp?.[1]).toContain("script-src 'self' 'unsafe-inline'");
-    },
-  );
+    const appelCsp = res.setHeader.mock.calls.find(([nom]) => nom === 'Content-Security-Policy');
+    expect(appelCsp?.[1]).toContain("default-src 'self'");
+    expect(appelCsp?.[1]).toContain("script-src 'self' 'unsafe-inline'");
+  });
 
   it("ne relâche PAS la CSP pour un chemin qui contient juste '/api/docs' en préfixe d'un AUTRE segment", () => {
     const res = reponseTest();
     middleware(requeteTest('/api/docsautrechose', true), res, vi.fn() as NextFunction);
+
+    const appelCsp = res.setHeader.mock.calls.find(([nom]) => nom === 'Content-Security-Policy');
+    expect(appelCsp?.[1]).toContain("default-src 'none'");
+  });
+
+  it("ne relâche PAS la CSP pour un chemin qui contient juste '/api/console/docs' en préfixe d'un AUTRE segment", () => {
+    const res = reponseTest();
+    middleware(requeteTest('/api/console/docsautrechose', true), res, vi.fn() as NextFunction);
+
+    const appelCsp = res.setHeader.mock.calls.find(([nom]) => nom === 'Content-Security-Policy');
+    expect(appelCsp?.[1]).toContain("default-src 'none'");
+  });
+
+  it("ne relâche PAS la CSP pour '/api/console' seul (sans /docs) — le reste du plan console reste API stricte", () => {
+    const res = reponseTest();
+    middleware(requeteTest('/api/console/sante-plateforme', true), res, vi.fn() as NextFunction);
 
     const appelCsp = res.setHeader.mock.calls.find(([nom]) => nom === 'Content-Security-Policy');
     expect(appelCsp?.[1]).toContain("default-src 'none'");

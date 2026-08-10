@@ -270,3 +270,69 @@ describe('listerDocumentsVente', () => {
     expect(page.donnees[0]?.joursRetard).toBeUndefined();
   });
 });
+
+describe('listerDocumentsVente — sérialisation des filtres `enRetard`/`relanceNiveau`', () => {
+  /**
+   * Défaut confirmé : `construireParametres` sérialisait chaque filtre champ par champ, mais
+   * n'émettait jamais `enRetard` ni `relanceNiveau` — les deux étaient acceptés par le contrat
+   * (`FiltresDocumentsVente`, `document.ts`) et sus de l'écran, mais silencieusement avalés avant
+   * d'atteindre le serveur, même famille de bug que `detenteurId` déjà documentée en tête de
+   * `documents-vente.api.ts`. `construireParametres` n'est pas exportée : la preuve passe par
+   * l'URL réellement reçue par le serveur simulé (MSW), pas par un appel direct à la fonction.
+   */
+  async function capturerParametresRequete(
+    filtres: Parameters<typeof listerDocumentsVente>[0],
+  ): Promise<URLSearchParams> {
+    let parametresRecus: URLSearchParams | undefined;
+    server.use(
+      http.get('/api/v1/documents-vente', ({ request }) => {
+        parametresRecus = new URL(request.url).searchParams;
+        return HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 });
+      }),
+    );
+
+    await listerDocumentsVente(filtres, { limite: 50 });
+
+    if (!parametresRecus) {
+      throw new Error('Aucune requête interceptée par MSW.');
+    }
+    return parametresRecus;
+  }
+
+  it('transmet `enRetard=true` au serveur (onglet « En retard »)', async () => {
+    const parametres = await capturerParametresRequete({
+      enRetard: true,
+      tri: 'dateDocument:desc',
+    });
+
+    expect(parametres.get('enRetard')).toBe('true');
+  });
+
+  it('transmet `relanceNiveau=0` au serveur — cas piège : une sérialisation par véracité (`if (valeur)`) perdrait silencieusement ce palier', async () => {
+    const parametres = await capturerParametresRequete({
+      enRetard: true,
+      relanceNiveau: 0,
+      tri: 'dateDocument:desc',
+    });
+
+    expect(parametres.get('enRetard')).toBe('true');
+    expect(parametres.has('relanceNiveau')).toBe(true);
+    expect(parametres.get('relanceNiveau')).toBe('0');
+  });
+
+  it('transmet un palier de relance non nul (`relanceNiveau=2`)', async () => {
+    const parametres = await capturerParametresRequete({
+      relanceNiveau: 2,
+      tri: 'dateDocument:desc',
+    });
+
+    expect(parametres.get('relanceNiveau')).toBe('2');
+  });
+
+  it("n'émet ni `enRetard` ni `relanceNiveau` quand aucun des deux filtres n'est fourni (pas de bruit sur les autres onglets)", async () => {
+    const parametres = await capturerParametresRequete({ tri: 'dateDocument:desc' });
+
+    expect(parametres.has('enRetard')).toBe(false);
+    expect(parametres.has('relanceNiveau')).toBe(false);
+  });
+});

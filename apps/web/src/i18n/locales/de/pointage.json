@@ -1,5 +1,9 @@
 {
   "titre": "Zeiterfassung",
+  "vues": {
+    "journal": "Journal",
+    "equipe": "Team"
+  },
   "identification": {
     "titre": "Wer sind Sie?",
     "saisisseCode": "PIN eingeben",
@@ -201,6 +205,7 @@
       "actions": "Aktionen"
     },
     "corriger": "Korrigieren",
+    "clotureAction": "Periode abschliessen",
     "parOr": {
       "rechercherOrLabel": "RA-Nummer oder Fahrzeug",
       "rechercherOrPlaceholder": "RA suchen…",
@@ -221,11 +226,6 @@
   },
   "periode": {
     "titre": "Periodenabschluss",
-    "site": "Standort",
-    "vide": {
-      "titre": "Standort wählen",
-      "description": "Wählen Sie einen Standort, um eine Zeiterfassungsperiode zu sperren oder zu entsperren."
-    },
     "verrouiller": {
       "titre": "Periode sperren",
       "description": "Jede beendete oder bestätigte Zeiterfassung mit Beginn vor diesem Datum wird gesperrt. Eine noch laufende Zeiterfassung im Zeitraum blockiert den gesamten Vorgang.",
@@ -237,7 +237,6 @@
       "blocageAvecTechniciens": "Noch laufende Zeiterfassungen für: {liste} — sie müssen zuerst beendet werden, bevor gesperrt werden kann.",
       "arreterPointages": "Laufende Zeiterfassungen beenden",
       "arretEnCours": "Zeiterfassungen werden beendet…",
-      "arretEchec": "Einige Zeiterfassungen konnten nicht beendet werden. Versuchen Sie es erneut.",
       "arretReussi": "Zeiterfassungen beendet — Sie können erneut sperren."
     },
     "deverrouiller": {
@@ -248,9 +247,6 @@
       "motifRequis": "Der Grund ist erforderlich, um eine Periode zu entsperren.",
       "action": "Entsperren",
       "resultat": "{count, plural, one {# Zeiterfassung entsperrt.} other {# Zeiterfassungen entsperrt.}}"
-    },
-    "erreur": {
-      "titre": "Aktion nicht möglich"
     }
   }
 }

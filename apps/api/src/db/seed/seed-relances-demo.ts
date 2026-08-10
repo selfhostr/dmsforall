@@ -176,8 +176,10 @@ export async function semerRelancesDemo(options: OptionsSeedRelances): Promise<v
 
     // --- Facture émise, en retard — datée du ${DATE_FACTURE_MEIER_RETARD}, échéance donc le
     // 2026-02-14 (30 jours), jamais réglée : c'est la cible que `POST /relances/facturation/
-    // planifier` doit trouver. Vente comptoir directe (petit contrôle), sans lien à un OR — même
-    // doctrine que la facture Master de `seed-facturation-demo.ts`.
+    // planifier` doit trouver. Vente comptoir directe (petit contrôle et appoint des niveaux),
+    // délibérément SANS lien à un OR : ce ticket n'est la suite d'aucun ordre de réparation de ce
+    // jeu de démo (à la différence de la facture Master de `seed-facturation-demo.ts`, qui EST
+    // désormais rattachée à son OR source via RF-81 — voir la tête de ce fichier-là).
     const entreeFacture: EntreeCreationDocumentVente = {
       typeDocument: 'facture',
       natureFacture: 'ordinaire',

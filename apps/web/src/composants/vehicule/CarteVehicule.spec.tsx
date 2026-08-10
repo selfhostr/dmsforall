@@ -33,20 +33,35 @@ describe('CarteVehicule', () => {
   });
 
   it("n'est pas cliquable sans onOuvrir", () => {
+    // Un seul bouton attendu : le VIN copiable (`BoutonCopier`) est TOUJOURS un vrai `<button>`,
+    // avec ou sans `onOuvrir` — `queryByRole('button')` seul serait donc ambigu ici.
     render(<CarteVehicule vehicule={VEHICULE} />);
-    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
-  it('appelle onOuvrir au clic et à Entrée quand fourni', async () => {
+  it('appelle onOuvrir au clic, à Entrée et à Espace quand fourni (rôle button, pas link : les deux touches sont valides)', async () => {
     const onOuvrir = vi.fn();
     const utilisateur = userEvent.setup();
     render(<CarteVehicule vehicule={VEHICULE} onOuvrir={onOuvrir} />);
-    const carte = screen.getByRole('link');
+    // Nom accessible filtré sur la désignation : `getByRole('button')` seul serait ambigu, le VIN
+    // copiable (`BoutonCopier`) étant lui aussi un vrai bouton dans l'arbre.
+    const carte = screen.getByRole('button', { name: /VW Touran/i });
     await utilisateur.click(carte);
     expect(onOuvrir).toHaveBeenCalledTimes(1);
     carte.focus();
     await utilisateur.keyboard('{Enter}');
     expect(onOuvrir).toHaveBeenCalledTimes(2);
+    await utilisateur.keyboard(' ');
+    expect(onOuvrir).toHaveBeenCalledTimes(3);
+  });
+
+  it('le clic sur le bouton copier du VIN ne déclenche pas onOuvrir (stopPropagation)', async () => {
+    const onOuvrir = vi.fn();
+    const utilisateur = userEvent.setup();
+    render(<CarteVehicule vehicule={VEHICULE} onOuvrir={onOuvrir} />);
+    const boutonCopier = screen.getByRole('button', { name: /copier/i });
+    await utilisateur.click(boutonCopier);
+    expect(onOuvrir).not.toHaveBeenCalled();
   });
 
   it('affiche le badge identification incomplète (RM-16), traduit en allemand', async () => {

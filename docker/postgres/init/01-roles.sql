@@ -4,7 +4,7 @@
 -- Un rôle superuser (comme `dfa`, celui du conteneur — cf. POSTGRES_USER dans
 -- docker-compose.yml) ou tout rôle propriétaire des tables / marqué BYPASSRLS contourne
 -- SILENCIEUSEMENT les politiques RLS. L'API ne doit donc JAMAIS se connecter avec `dfa`.
--- Ce script, exécuté en tant que superuser à l'initialisation du conteneur, crée les deux
+-- Ce script, exécuté en tant que superuser à l'initialisation du conteneur, crée les trois
 -- rôles réellement utilisés ensuite :
 --
 --   - dfa_migrator : NOSUPERUSER, NOBYPASSRLS, propriétaire du schéma applicatif.
@@ -12,10 +12,16 @@
 --     Peut créer/modifier des tables, poser des politiques RLS.
 --   - dfa_app      : NOSUPERUSER, NOBYPASSRLS, NON propriétaire des tables.
 --     Seul rôle utilisé par l'API en exécution (DATABASE_URL dans .env). Soumis au RLS.
+--   - dfa_console  : NOSUPERUSER, NOBYPASSRLS, NON propriétaire des tables. Rôle de la console
+--     d'exploitation (PORTE 1 — voir apps/api/src/db/migrations/0048_exploitation_console_porte_1.sql
+--     et docs/conception-console-exploitation-acces.md). N'obtient AUCUN privilège sur le schéma
+--     `public` ici, pas même USAGE : sa seule surface est `USAGE` sur le schéma `exploitation` et
+--     `EXECUTE` sur ses fonctions SECURITY DEFINER, accordés par la migration 0048 elle-même —
+--     jamais par ce script, qui se limite au provisionnement du rôle et à sa posture.
 --
 -- FILET DE PRODUCTION (audit sécurité, voir docs/deploiement-production.md §3.2/§8) : sur la
 -- base nommée EXACTEMENT `dfa_prod` (et seulement celle-là — jamais `dfa_dev` ni `dfa_test`, voir
--- plus bas), ces deux rôles sont créés avec une expiration automatique courte. Le mot de passe de
+-- plus bas), ces trois rôles sont créés avec une expiration automatique courte. Le mot de passe de
 -- DEV ci-dessous ne doit JAMAIS rester valide en production au-delà de la rotation immédiate
 -- prévue par la procédure ; s'il l'est quand même (rotation oubliée après une bascule ou une
 -- montée de version majeure), il expire de lui-même plutôt que de rester une porte ouverte
@@ -61,6 +67,21 @@ CREATE ROLE dfa_app WITH
   NOCREATEROLE
   NOBYPASSRLS;
 
+-- dfa_console : rôle de la console d'exploitation (PORTE 1). Créé ici, tout comme dfa_migrator et
+-- dfa_app ci-dessus, parce que la migration 0048 ne PEUT pas le créer elle-même (dfa_migrator est
+-- NOCREATEROLE — voir 0048_exploitation_console_porte_1.sql §1). La migration vérifie sa posture
+-- (NOSUPERUSER, NOBYPASSRLS, ni CREATEROLE ni CREATEDB, membre d'aucun des deux autres rôles) et
+-- échoue bruyamment si elle est mauvaise ; elle tolère aussi son ABSENCE totale (aucun GRANT n'est
+-- alors posé, la console reste éteinte) — donc ajouter ce rôle ici active la console, ne pas
+-- l'ajouter la laisse éteinte. Les deux états sont volontairement supportés.
+CREATE ROLE dfa_console WITH
+  LOGIN
+  PASSWORD 'dfa_console_dev'
+  NOSUPERUSER
+  NOCREATEDB
+  NOCREATEROLE
+  NOBYPASSRLS;
+
 -- Filet de production : voir le commentaire d'en-tête. UNIQUEMENT sur la base `dfa_prod`
 -- (jamais `dfa_dev` en développement local, jamais `dfa_test` sous testcontainers — les deux
 -- noms sont fixés ailleurs et ne collisionnent jamais avec celui-ci, voir docker-compose.yml et
@@ -78,6 +99,7 @@ BEGIN
   IF current_database() = 'dfa_prod' THEN
     EXECUTE 'ALTER ROLE dfa_migrator VALID UNTIL ' || quote_literal((now() + interval '7 days')::text);
     EXECUTE 'ALTER ROLE dfa_app VALID UNTIL ' || quote_literal((now() + interval '7 days')::text);
+    EXECUTE 'ALTER ROLE dfa_console VALID UNTIL ' || quote_literal((now() + interval '7 days')::text);
   END IF;
 END
 $$;
@@ -95,6 +117,14 @@ REVOKE ALL ON SCHEMA public FROM PUBLIC;
 -- migrations, table par table, en même temps que les politiques RLS correspondantes.
 GRANT USAGE ON SCHEMA public TO dfa_migrator;
 GRANT USAGE ON SCHEMA public TO dfa_app;
+
+-- PAS de `GRANT USAGE ON SCHEMA public TO dfa_console` — absence délibérée, pas un oubli. La
+-- console ne doit pouvoir nommer aucun objet de `public` : sans USAGE sur ce schéma, un GRANT de
+-- table posé par erreur sur une future migration resterait inexploitable par ce rôle (voir
+-- 0048_exploitation_console_porte_1.sql §7, et l'assertion de fin de migration qui vérifie
+-- `has_schema_privilege('dfa_console', 'public', 'USAGE') = false`). Son seul accès à `public`
+-- passe par les fonctions SECURITY DEFINER du schéma `exploitation`, sur lequel USAGE lui est
+-- accordé par la migration 0048 elle-même — jamais ici.
 
 -- Droit de créer des SCHÉMAS dans la base.
 --

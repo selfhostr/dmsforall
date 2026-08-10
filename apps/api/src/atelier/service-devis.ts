@@ -37,7 +37,7 @@ import {
   listerDevisOr,
   listerLignesDevis,
 } from './or-requetes';
-import { chargerResumeUtilisateur } from './references';
+import { chargerResumesUtilisateurs, chargerResumeUtilisateur } from './references';
 import { decoderCurseurOffset, encoderCurseurOffset, estOrVerrouille } from './service-or';
 import { traduireErreurTransition } from './traducteur-transition';
 
@@ -94,10 +94,18 @@ export class ServiceDevis {
       const curseurSuivant =
         decalage + limite < filtrees.length ? encoderCurseurOffset(decalage + limite) : null;
 
+      // Correctif N+1 : UNE requête pour tous les émetteurs de la page (dédoublonnée,
+      // scope tenant explicite), au lieu d'un `chargerResumeUtilisateur` par devis —
+      // voir `chargerResumesUtilisateurs` (`./references`) pour la doctrine.
+      const emetteurs = await chargerResumesUtilisateurs(
+        tx,
+        ctx,
+        page.map((d) => d.emetteurId),
+      );
       const donnees = await Promise.all(
         page.map(async (d) => {
           const lignesDevis = await listerLignesDevis(tx, ctx, d.id);
-          const emetteur = await chargerResumeUtilisateur(tx, ctx, d.emetteurId);
+          const emetteur = d.emetteurId ? (emetteurs.get(d.emetteurId) ?? null) : null;
           return mapperDevis(d, lignesDevis, emetteur, principal.role);
         }),
       );

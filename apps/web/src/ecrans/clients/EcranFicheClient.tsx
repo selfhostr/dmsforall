@@ -14,13 +14,19 @@ import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
 import { BandeauAlerteClient } from '@/composants/motifs/BandeauAlerteClient';
 import { BadgeStatutDossierVente } from '@/ecrans/ventes/dossiers/BadgeStatutDossierVente';
+// Matrice de droits ventes (RF-115) DUPLIQUÉE côté front, jamais importée depuis `apps/api` —
+// voir l'en-tête de `ecrans/ventes/dossiers/droits.ts`. Hors périmètre d'écriture ici
+// (`ecrans/ventes/`), import en lecture seulement.
+import { peutLireDossierVente } from '@/ecrans/ventes/dossiers/droits';
 import { useClient } from '@/hooks/clients/useClient';
 import { useOrdresClient } from '@/hooks/clients/useOrdresClient';
 import { useVehiculesClient } from '@/hooks/clients/useVehiculesClient';
 import { useListeDossiersVente } from '@/hooks/ventes/dossiers/useListeDossiersVente';
+import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
+import { EtatSousCollection } from './onglets/EtatSousCollection';
 import { OngletAdresses } from './onglets/OngletAdresses';
 import { OngletConditions } from './onglets/OngletConditions';
 import { OngletConsentements } from './onglets/OngletConsentements';
@@ -58,11 +64,25 @@ export function EcranFicheClient() {
   const requete = useClient(id);
   const vehicules = useVehiculesClient(id);
   const ordres = useOrdresClient(id);
+  const session = useSession();
+  // RF-115 : `admin` n'a AUCUN droit `ventes.*` — un refus de droit (403) n'est pas une absence
+  // de donnée, les deux ne doivent jamais partager le même rendu (« Aucun dossier de vente. »
+  // affiché à un rôle qui n'a simplement pas le droit de le savoir aurait fait croire à un client
+  // sans historique). `peutLireDossierVente` (ecrans/ventes/dossiers/droits.ts) laisse decider
+  // AVANT d'émettre la requête plutôt qu'après un 403 — correctif le plus juste : ne pas demander
+  // ce qu'on n'a pas le droit de voir. Tant que la session n'est pas résolue, `session.data` vaut
+  // `undefined` et `peutLireDossierVente(undefined)` renvoie `false` : la section affiche son
+  // squelette de chargement (`session.isLoading`) plutôt que de flasher le message de refus avant
+  // de savoir — voir le rendu de la section plus bas.
+  const peutVoirDossiersVente = peutLireDossierVente(session.data?.utilisateur.role);
   // Lot B (correction 6, ajout hors liste initiale) — « ses dossiers de vente », troisième liste
   // à côté de « ses véhicules » et « ses OR » déjà câblées. `useListeDossiersVente`
   // (hooks/ventes/dossiers/, déjà existant) accepte `clientAcheteurId` tel quel dans son filtre
   // gelé (`FiltresDossiersVente`) — même acheteur, pas de second champ à croiser.
-  const dossiersVente = useListeDossiersVente({ clientAcheteurId: id, tri: 'prospectionLe:desc' });
+  const dossiersVente = useListeDossiersVente(
+    { clientAcheteurId: id, tri: 'prospectionLe:desc' },
+    { enabled: Boolean(id) && peutVoirDossiersVente },
+  );
 
   if (requete.isLoading) {
     return (
@@ -177,17 +197,25 @@ export function EcranFicheClient() {
         </div>
 
         <div className="min-w-0 space-y-6">
+          {/* Défaut corrigé : cette section testait `isLoading` puis la longueur de la liste,
+           *  SANS branche d'erreur — un 403/404 stable retombait indéfiniment dans le squelette
+           *  de chargement (TanStack Query réessaie par défaut), jamais résolu. `EtatSousCollection`
+           *  (déjà utilisé par les 5 onglets de sous-collection, voir `onglets/`) couvre les trois
+           *  états explicitement. Réessai encore par défaut ici : `useVehiculesClient`
+           *  (hooks/clients/, hors périmètre d'écriture de ce correctif) n'a pas de politique de
+           *  réessai dédiée aux 403/404 — à aligner sur `useListeDossiersVente` par le
+           *  propriétaire de `hooks/clients/`. */}
           <section className="space-y-2">
             <h2 className="texte-titre-section font-medium text-foreground">
               {t('clients:fiche.vehicules')}
             </h2>
-            {vehicules.isLoading ? (
-              <EtatChargement lignes={2} />
-            ) : lignesVehicules.length === 0 ? (
-              <p className="texte-corps text-muted-foreground">
-                {t('clients:fiche.vehiculesVide')}
-              </p>
-            ) : (
+            <EtatSousCollection
+              enChargement={vehicules.isLoading}
+              erreur={vehicules.error}
+              onReessayer={() => void vehicules.refetch()}
+              vide={lignesVehicules.length === 0}
+              texteVide={t('clients:fiche.vehiculesVide')}
+            >
               <ul className="space-y-2">
                 {lignesVehicules.map((vehicule) => (
                   <li key={vehicule.id}>
@@ -201,20 +229,23 @@ export function EcranFicheClient() {
                   </li>
                 ))}
               </ul>
-            )}
+            </EtatSousCollection>
           </section>
 
+          {/* Même défaut, même correctif que la section « véhicules » ci-dessus — voir son
+           *  commentaire. Même réserve sur la politique de réessai : `useOrdresClient`
+           *  (hooks/clients/) est hors périmètre d'écriture ici. */}
           <section className="space-y-2">
             <h2 className="texte-titre-section font-medium text-foreground">
               {t('clients:fiche.derniersOr')}
             </h2>
-            {ordres.isLoading ? (
-              <EtatChargement lignes={2} />
-            ) : lignesOrdres.length === 0 ? (
-              <p className="texte-corps text-muted-foreground">
-                {t('clients:fiche.derniersOrVide')}
-              </p>
-            ) : (
+            <EtatSousCollection
+              enChargement={ordres.isLoading}
+              erreur={ordres.error}
+              onReessayer={() => void ordres.refetch()}
+              vide={lignesOrdres.length === 0}
+              texteVide={t('clients:fiche.derniersOrVide')}
+            >
               <ul className="space-y-2">
                 {lignesOrdres.map((or) => (
                   <li key={or.id}>
@@ -234,42 +265,63 @@ export function EcranFicheClient() {
                   </li>
                 ))}
               </ul>
-            )}
+            </EtatSousCollection>
           </section>
 
           {/* Lot B (correction 6) — « ses dossiers de vente », troisième liste. Première question
            *  qu'un vendeur se pose face à un client qui revient — rien ne la couvrait avant ce
-           *  lot. */}
+           *  lot.
+           *
+           *  Défaut corrigé (mesuré en navigateur, connecté `admin` — rôle SANS
+           *  `ventes.dossier.lire`, RF-115) : six requêtes `GET /dossiers-vente` en moins de dix
+           *  secondes, toutes en 403, jamais arrêtées — TanStack Query réessaie par défaut un état
+           *  qui ne se résoudra jamais, et l'écran affichait indéfiniment le squelette de
+           *  chargement. Deux corrections :
+           *   1. `peutVoirDossiersVente` gate la requête elle-même (`enabled`, voir plus haut) : un
+           *      rôle qui n'a pas le droit ne le demande plus du tout — ni martèlement, ni attente.
+           *   2. Si le calcul front divergeait malgré tout de la matrice réelle (défensif
+           *      seulement, le serveur reste l'arbitre — voir `droits.ts`), le message « vous n'avez
+           *      pas le droit » (ci-dessous) et le 403 réel (`EtatSousCollection`, `retry: false`
+           *      sur 403/404 dans `useListeDossiersVente`) restent tous deux DISTINCTS de « aucun
+           *      dossier de vente » — jamais le même rendu pour deux informations opposées. */}
           <section className="space-y-2">
             <h2 className="texte-titre-section font-medium text-foreground">
               {t('clients:fiche.dossiersVente')}
             </h2>
-            {dossiersVente.isLoading ? (
+            {session.isLoading ? (
               <EtatChargement lignes={2} />
-            ) : dossiersVente.dossiers.length === 0 ? (
+            ) : !peutVoirDossiersVente ? (
               <p className="texte-corps text-muted-foreground">
-                {t('clients:fiche.dossiersVenteVide')}
+                {t('clients:fiche.dossiersVenteDroitRequis')}
               </p>
             ) : (
-              <ul className="space-y-2">
-                {dossiersVente.dossiers.map((dossier) => (
-                  <li key={dossier.id}>
-                    <button
-                      type="button"
-                      onClick={() => navigate(chemins.ventes.dossiers.detail(dossier.id, site))}
-                      className="w-full space-y-1 rounded-md border p-3 text-left hover:bg-muted"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="texte-corps font-medium text-foreground">
-                          {dossier.vehicule?.vehicule.designation ??
-                            t('clients:fiche.dossierSansVehicule')}
-                        </span>
-                        <BadgeStatutDossierVente statut={dossier.statut} />
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <EtatSousCollection
+                enChargement={dossiersVente.isLoading}
+                erreur={dossiersVente.error}
+                onReessayer={() => void dossiersVente.refetch()}
+                vide={dossiersVente.dossiers.length === 0}
+                texteVide={t('clients:fiche.dossiersVenteVide')}
+              >
+                <ul className="space-y-2">
+                  {dossiersVente.dossiers.map((dossier) => (
+                    <li key={dossier.id}>
+                      <button
+                        type="button"
+                        onClick={() => navigate(chemins.ventes.dossiers.detail(dossier.id, site))}
+                        className="w-full space-y-1 rounded-md border p-3 text-left hover:bg-muted"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="texte-corps font-medium text-foreground">
+                            {dossier.vehicule?.vehicule.designation ??
+                              t('clients:fiche.dossierSansVehicule')}
+                          </span>
+                          <BadgeStatutDossierVente statut={dossier.statut} />
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </EtatSousCollection>
             )}
           </section>
         </div>

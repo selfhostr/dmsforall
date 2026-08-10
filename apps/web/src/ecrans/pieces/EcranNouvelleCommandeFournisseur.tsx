@@ -161,9 +161,6 @@ export function EcranNouvelleCommandeFournisseur() {
     if (fournisseurs.some((fournisseur) => fournisseur.id === idDetecte)) {
       setFournisseurId(idDetecte);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `requetesArticlesPreremplis` change
-    // de référence à chaque rendu ; les gardes internes (ref + `fournisseurId !== ''`) empêchent
-    // toute boucle de mise à jour.
   }, [requetesArticlesPreremplis, fournisseurs, fournisseurId, etatPreremplissage]);
 
   function ajouterLigne(

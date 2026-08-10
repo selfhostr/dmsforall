@@ -149,7 +149,7 @@ export function CarteReprise({ dossierVenteId, possedeReprise, role, onMutationR
             <p className="texte-libelle text-muted-foreground">
               {t('ventes:reprise.champs.valeurEstimee')}
             </p>
-            <p className="texte-corps text-muted-foreground">
+            <p className="texte-corps text-muted-foreground texte-montant">
               {formaterMontant(reprise.valeurEstimeeCentimes)}
             </p>
           </div>

@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { screen } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -168,6 +168,72 @@ describe('routeur — protection par défaut', () => {
       screen.queryByText('Retrouvez un client, un véhicule ou un ordre'),
     ).not.toBeInTheDocument();
   });
+
+  /**
+   * TABLE D'ATTERRISSAGE PAR RÔLE — Lot D (`routes/atterrissage.ts`, arbitrage §2). Le Lot 0
+   * n'avait posé la redirection que pour `poste_atelier` (test ci-dessus) ; le Lot D l'étend aux
+   * quatre rôles qui ont un plan de travail propre, pour que personne n'ait à traverser un
+   * lanceur générique avant d'arriver là où il va de toute façon.
+   *
+   * Les QUATRE rôles absents de la table (`direction`, `admin`, `receptionnaire`, `chef_atelier`)
+   * continuent d'atterrir sur `EcranAccueil` — c'est ce que prouve le test « / amène à l'accueil »
+   * ci-dessus, `SESSION_TEST` portant `chef_atelier`.
+   */
+  it.each([
+    ['technicien', '/pointage'],
+    ['magasinier', '/pieces/recherche-comptoir'],
+    ['vendeur', '/ventes/dossiers'],
+    ['comptable', '/factures'],
+  ])(
+    '/ fait atterrir %s sur %s (table §2), jamais sur le lanceur générique',
+    async (role, cible) => {
+      server.use(
+        http.get('/api/v1/auth/moi', () =>
+          HttpResponse.json({
+            ...SESSION_TEST,
+            utilisateur: { ...SESSION_TEST.utilisateur, role },
+          }),
+        ),
+        // Filet générique pour les appels de l'écran de DESTINATION, quel qu'il soit : `onUnhandledRequest:
+        // 'error'` (test/setup.ts) ferait échouer le test sur une requête non simulée, et lister à la main
+        // les endpoints de quatre écrans distincts rendrait ce test faux au premier hook ajouté ailleurs.
+        // Enregistré APRÈS le handler de session, donc consulté après lui (msw retient la première
+        // correspondance).
+        http.get('/api/v1/*', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+        ),
+      );
+      // L'assertion porte sur l'URL RÉSOLUE par le routeur, pas sur un titre d'écran : c'est
+      // l'atterrissage qui est testé ici, pas le contenu de la destination (chaque écran a déjà son
+      // propre `*.spec.tsx`) — et un titre deviné se périmerait au premier renommage de libellé.
+      const { routeur } = renduAvecRoutes(routesConfig, { routeInitiale: '/' });
+
+      await waitFor(() => expect(routeur.state.location.pathname).toBe(cible));
+      expect(
+        screen.queryByText('Retrouvez un client, un véhicule ou un ordre'),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it.each(['direction', 'admin', 'receptionnaire', 'chef_atelier'])(
+    '/ garde %s sur l’accueil : les quatre rôles absents de la table ne sont jamais redirigés',
+    async (role) => {
+      server.use(
+        http.get('/api/v1/auth/moi', () =>
+          HttpResponse.json({
+            ...SESSION_TEST,
+            utilisateur: { ...SESSION_TEST.utilisateur, role },
+          }),
+        ),
+      );
+      const { routeur } = renduAvecRoutes(routesConfig, { routeInitiale: '/' });
+
+      expect(
+        await screen.findByText('Retrouvez un client, un véhicule ou un ordre'),
+      ).toBeInTheDocument();
+      expect(routeur.state.location.pathname).toBe('/');
+    },
+  );
 
   it('la route de création d’OR rend l’écran réel, pas le placeholder « fonction à venir »', async () => {
     // Défaut que ce test attrape : `atelier/ordres-reparation/nouveau` câblé sur
@@ -386,15 +452,19 @@ describe('routeur — /parametrage/facturation refuse réellement (protection pa
 });
 
 /**
- * RÉORIENTÉ (lot 2), troisième volet : la distinction « qui peut atteindre » / « à qui on propose »
- * (`droits-routes.ts`) se prouve ici en assemblage complet — le menu masque « Paramétrage atelier »/
- * « Sites » à un rôle sans gouvernance, alors que la route elle-même (test ci-dessus) reste ouverte
- * en lecture à ce même rôle. Ergonomie, pas sécurité : jumeau de la couverture déjà posée dans
- * `BarreLaterale.spec.tsx`, ici rendue via le VRAI `routesConfig` (AppShell + BarreLaterale
- * assemblés, pas le composant isolé).
+ * RÉORIENTÉ AU LOT D. La distinction « qui peut ATTEINDRE » / « à qui on PROPOSE »
+ * (`droits-routes.ts`) se prouve toujours ici en assemblage complet, mais le second niveau a
+ * déménagé : « Paramétrage atelier », « Sites » et « Tarifs et prestations » ne sont plus des
+ * entrées de la barre latérale, ce sont des ONGLETS de Réglages (`OngletsDomaine`, monté par
+ * `AppShell`). Ce que ces tests verrouillent est donc devenu plus fort qu'avant — non seulement le
+ * masquage par rôle, mais le fait que la rangée d'onglets EXISTE réellement dans l'assemblage réel,
+ * qui est précisément ce qu'un composant testé isolément ne peut pas prouver.
+ *
+ * Route rendue : `/parametrage/referentiels`, atteignable par TOUS les rôles (test du describe
+ * précédent) — ce qui permet de comparer deux rôles sur exactement la même URL.
  */
-describe('routeur — le menu masque Paramétrage atelier / Sites à un rôle sans gouvernance (ergonomie, pas sécurité)', () => {
-  it('technicien : le menu ne propose ni Paramétrage atelier ni Sites, mais propose Référentiels', async () => {
+describe('routeur — Réglages : les onglets existent dans l’assemblage réel et se filtrent par rôle', () => {
+  it('technicien : la rangée de Réglages ne propose que Tarifs et prestations', async () => {
     server.use(
       http.get('/api/v1/auth/moi', () =>
         HttpResponse.json({
@@ -402,30 +472,46 @@ describe('routeur — le menu masque Paramétrage atelier / Sites à un rôle sa
           utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' },
         }),
       ),
+      http.get('/api/v1/*', () => HttpResponse.json({ donnees: [], curseurSuivant: null })),
     );
-    renduAvecRoutes(routesConfig, { routeInitiale: '/' });
+    renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/referentiels' });
 
-    expect(await screen.findByRole('link', { name: /tarifs/i })).toBeInTheDocument();
+    // Un seul onglet visible => aucune rangée rendue (une rangée à un onglet n'offre aucun choix).
+    await waitFor(() => {
+      expect(screen.queryByRole('link', { name: /^réglages$/i })).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('navigation', { name: /onglets/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /paramètres atelier/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /^sites$/i })).not.toBeInTheDocument();
   });
 
-  it('chef d’atelier : le menu propose Référentiels, Paramétrage atelier et Sites', async () => {
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
-    renduAvecRoutes(routesConfig, { routeInitiale: '/' });
+  it('chef d’atelier : la rangée de Réglages propose Atelier, Sites et Tarifs, vers les bons chemins', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      http.get('/api/v1/*', () => HttpResponse.json({ donnees: [], curseurSuivant: null })),
+    );
+    renduAvecRoutes(routesConfig, { routeInitiale: '/parametrage/referentiels' });
 
-    expect(await screen.findByRole('link', { name: /paramètres atelier/i })).toHaveAttribute(
+    const onglets = await screen.findByRole('navigation', { name: /onglets/i });
+    expect(within(onglets).getByRole('link', { name: /^atelier$/i })).toHaveAttribute(
       'href',
       '/parametrage/atelier',
     );
-    expect(screen.getByRole('link', { name: /^sites$/i })).toHaveAttribute(
+    expect(within(onglets).getByRole('link', { name: /^sites$/i })).toHaveAttribute(
       'href',
       '/parametrage/sites',
     );
-    expect(screen.getByRole('link', { name: /tarifs/i })).toHaveAttribute(
+    expect(within(onglets).getByRole('link', { name: /tarifs/i })).toHaveAttribute(
       'href',
       '/parametrage/referentiels',
     );
+    // L'onglet courant est celui de l'URL, et il le dit aux lecteurs d'écran.
+    expect(within(onglets).getByRole('link', { name: /tarifs/i })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    // Coordonnées bancaires : absente pour le chef d'atelier (palier financier direction/comptable).
+    expect(within(onglets).queryByRole('link', { name: /^facturation$/i })).toBeNull();
   });
 });
 

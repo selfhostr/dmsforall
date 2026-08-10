@@ -1,5 +1,4 @@
 import {
-  useInfiniteQuery,
   useMutation,
   useQueryClient,
   type InfiniteData,
@@ -17,10 +16,9 @@ import type {
 import { requeteApi } from '@/api/client';
 import { clesQuery } from '@/api/cles';
 import { donneesEcriture } from '@/api/enveloppe';
+import { useDoitReessayer, useListeCurseur } from '@/hooks/pagination-curseur';
 
-import { construireRequete, exigerCorps } from './support';
-
-const LIMITE_PAR_PAGE = 50;
+import { chargeurSousCollectionClient, exigerCorps } from './support';
 
 /** `GET /clients/{id}/notes` (RM-13) — onglet « Notes » de la fiche. Les notes de nature
  *  `alerte` sont ÉGALEMENT embarquées dans `GET /clients/{id}` (`ReponseClient.notesAlerte`, voir
@@ -29,25 +27,13 @@ const LIMITE_PAR_PAGE = 50;
 export function useNotesClient(
   clientId: string | undefined,
 ): UseInfiniteQueryResult<InfiniteData<PageCurseur<ReponseClientNote>>, unknown> {
-  return useInfiniteQuery({
-    queryKey: clesQuery.clients.notes(clientId ?? ''),
-    queryFn: async ({ pageParam }) => {
-      const params = construireRequete({
-        limite: LIMITE_PAR_PAGE,
-        curseur: pageParam ?? undefined,
-      });
-      const page = await requeteApi<PageCurseur<ReponseClientNote>>(
-        `/clients/${clientId}/notes?${params.toString()}`,
-        {
-          method: 'GET',
-        },
-      );
-      return exigerCorps(page, `GET /clients/${clientId ?? ''}/notes`);
-    },
-    initialPageParam: null as string | null,
-    getNextPageParam: (dernierePage) => dernierePage.curseurSuivant,
-    enabled: Boolean(clientId),
+  const reessayer = useDoitReessayer();
+  const { resultat } = useListeCurseur<ReponseClientNote>({
+    cle: clesQuery.clients.notes(clientId ?? ''),
+    charger: clientId ? chargeurSousCollectionClient(clientId, 'notes') : undefined,
+    reessayer,
   });
+  return resultat;
 }
 
 /**

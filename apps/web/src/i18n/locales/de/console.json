@@ -1,0 +1,119 @@
+{
+  "titre": "Verwaltungskonsole",
+  "titreOnglet": "Verwaltungskonsole — DFA-Konsole",
+  "bandeConsole": {
+    "deconnexion": "Abmelden"
+  },
+  "plateforme": {
+    "titre": "Plattform-Ansicht",
+    "sousTitre": "Übersicht der Probleme in allen Garagen.",
+    "etatErreur": {
+      "titre": "Plattform-Ansicht kann nicht angezeigt werden",
+      "moduleInactif": {
+        "titre": "Die Verwaltungskonsole ist auf diesem Server nicht aktiviert.",
+        "description": "Die Verbindungsvariable ist nicht auf dem Server konfiguriert (DATABASE_URL_CONSOLE). Bitte konfigurieren Sie diese Variable und starten Sie die API neu, um die Konsole zu aktivieren."
+      },
+      "accesRefuse": {
+        "titre": "Sie haben keinen Zugriff auf die Konsole.",
+        "description": "Ihre Sitzung verfügt nicht über die erforderlichen Rechte, um auf die Verwaltungskonsole zuzugreifen."
+      }
+    },
+    "etatVide": {
+      "titre": "Keine Garage",
+      "description": "Es wurde noch keine Garage auf der Plattform registriert."
+    },
+    "etatVideFiltre": {
+      "titre": "Keine Garage entspricht",
+      "description": "Keine Garage entspricht diesen Kriterien. Versuchen Sie eine andere Suche oder entfernen Sie die Filter."
+    },
+    "recherche": {
+      "placeholder": "Name oder Kennung der Garage…"
+    },
+    "statutFiltre": {
+      "label": "Status",
+      "tous": "Alle"
+    },
+    "statut": {
+      "critique": "Kritisch",
+      "attention": "Achtung",
+      "ok": "OK"
+    },
+    "filtre": {
+      "actif": "Gefiltert nach: {libelle}",
+      "retirer": "Filter entfernen"
+    },
+    "indicateurs": {
+      "groupe": "Plattform-Indikatoren — klicken Sie, um die Garagen-Liste zu filtern",
+      "garagesCritiques": {
+        "libelle": "Garagen mit kritischem Status"
+      },
+      "garageSuspendu": {
+        "libelle": "Suspendierte oder beendete Garagen"
+      },
+      "comptesVerrouilles": {
+        "libelle": "Gesperrte Konten"
+      },
+      "aucuneConnexion": {
+        "libelle": "Keine aktuellen Verbindungen"
+      },
+      "exportComptableEnEchec": {
+        "libelle": "Letzter Buchhaltungsexport abgelehnt"
+      },
+      "relancesEnRetard": {
+        "libelle": "Überfällige Mahnungen"
+      },
+      "relancesEnvoisEchoues": {
+        "libelle": "Mahnung-Versandausfälle"
+      },
+      "moduleInactif": {
+        "libelle": "Modul aktiv aber ungenutzt"
+      }
+    },
+    "indicateursIndisponibles": {
+      "titre": "Aktuell nicht gemessen:",
+      "code": {
+        "erreurs_serveur_5xx": "Serverfehler (24 h)",
+        "jobs_en_echec": "Fehlgeschlagene Jobs",
+        "disjoncteurs_connecteur_ouverts": "Offene Connector-Schutzschalter",
+        "connecteurs_configures": "Konfigurierte Connectors",
+        "modules_souscrits": "Abonnierte Module"
+      }
+    },
+    "table": {
+      "colonnes": {
+        "garage": "Garage",
+        "statut": "Status",
+        "derniereActivite": "Letzte Aktivität",
+        "comptesVerrouilles": "Gesperrte Konten",
+        "relancesEnRetard": "Überfällige Mahnungen",
+        "exportCompta": "Buchhaltung",
+        "entrer": "Öffnen"
+      },
+      "entrer": "Öffnen",
+      "entrerAria": "Öffnen Sie {raisonSociale}",
+      "jamaisConnecte": "Niemals verbunden",
+      "derniereActivite": {
+        "minute": "{n, plural, =0 {Gerade eben} one {Vor # Minute} other {Vor # Minuten}}",
+        "heure": "{n, plural, one {Vor # Stunde} other {Vor # Stunden}}",
+        "jour": "{n, plural, one {Vor # Tag} other {Vor # Tagen}}"
+      },
+      "exportCompta": {
+        "genere": "Generiert",
+        "transmis": "Übermittelt",
+        "accepte": "Akzeptiert",
+        "rejete": "Abgelehnt",
+        "inconnu": "Unbekannt"
+      }
+    }
+  },
+  "bandeauContexte": {
+    "contenu": "Sie greifen auf {nomGarage} zu — Support-Zugriff",
+    "quitter": "Beenden",
+    "duree": {
+      "moins5Min": "vor weniger als 5 Minuten",
+      "moins30Min": "vor weniger als 30 Minuten",
+      "moins1h": "vor weniger als einer Stunde",
+      "plus1h": "vor mehr als einer Stunde"
+    }
+  }
+}

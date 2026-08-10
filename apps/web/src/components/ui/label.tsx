@@ -10,7 +10,11 @@ export const Label = forwardRef<
   <LabelPrimitive.Root
     ref={ref}
     className={cn(
-      'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
+      'texte-corps font-medium leading-none text-foreground',
+      // `text-muted-foreground` plutôt qu'`opacity-70` : un libellé doit rester LISIBLE quand
+      // son champ est désactivé (il nomme une valeur qu'on doit encore pouvoir lire), il doit
+      // seulement paraître inactif. À 70 % d'opacité il tombait à 2.9:1.
+      'peer-disabled:cursor-not-allowed peer-disabled:text-muted-foreground',
       className,
     )}
     {...props}

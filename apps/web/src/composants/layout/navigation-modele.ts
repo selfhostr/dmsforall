@@ -1,0 +1,764 @@
+import {
+  Boxes,
+  CarFront,
+  Receipt,
+  Settings,
+  Sunrise,
+  Users,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react';
+
+import type { RoleUtilisateur } from '@dfa/shared';
+
+import { chemins } from '@/routes/chemins';
+import {
+  ROLES_BORNE_POINTAGE,
+  ROLES_MENU_FACTURATION,
+  ROLES_MENU_FINANCIER,
+  ROLES_MENU_PARAMETRAGE_ATELIER,
+  ROLES_PARAMETRAGE_PIECES,
+  ROLES_PIECES,
+  ROLES_PNEUS,
+  ROLES_POINTAGE,
+  ROLES_POINTAGE_ENCADREMENT,
+  ROLES_RELANCES,
+  ROLES_TABLEAU_BORD_ACTIVITE,
+  ROLES_VENTES,
+} from '@/routes/droits-routes';
+
+/**
+ * MODÈLE DE NAVIGATION — Lot D de la refonte (`docs/refonte-navigation.md` §4.2,
+ * `docs/plan-refonte-navigation.md`, « Lot D — Le menu à six entrées »).
+ *
+ * SOURCE DE VÉRITÉ UNIQUE de l'arborescence : la barre latérale (`BarreLaterale.tsx`) et la barre
+ * d'onglets (`OngletsDomaine.tsx`) LISENT toutes les deux ce fichier, aucune des deux ne redéclare
+ * sa propre liste. C'est ce qui garantit qu'une entrée de menu et l'onglet correspondant ne
+ * peuvent pas diverger — le défaut classique quand deux composants portent chacun leur copie.
+ *
+ * TROIS NIVEAUX, et pas un de plus (§4.1, « la règle de rangement ») :
+ *
+ *  1. ENTRÉE — un plan de travail qu'on ouvre sans savoir quel objet on va manipuler. SIX, plus
+ *     Réglages en pied. Le menu ne se déplie JAMAIS et ne défile JAMAIS : c'est tout l'objet du
+ *     lot. Ajouter une septième entrée n'est pas une décision d'implémentation.
+ *  2. ONGLET — le second niveau, qui vit DANS l'écran, jamais dans le menu. Un accordéon à six
+ *     groupes ne réduit pas la charge, il la déplace et ajoute un état à gérer (« quel groupe est
+ *     ouvert ? »).
+ *  3. VUE — le troisième niveau, optionnel, pour les onglets qui portent réellement plusieurs
+ *     angles sur la même matière (les sous-vues en italique du tableau §4.2, ex. Pointage
+ *     « Mon travail · Journal · Équipe »). Dépôt pneus n'en porte plus depuis la fusion de
+ *     `EcranJeuxARelancer` dans `EcranHangarPneus` : la distinction « au dépôt · à relancer » vit
+ *     désormais en onglet INTERNE de cet écran, pas dans ce modèle (voir `ONGLETS_ATELIER`).
+ *
+ * OÙ RANGER UN ÉCRAN FUTUR : Destination -> une VUE ou un ONGLET d'une entrée existante. Objet
+ * (un client, un OR, une facture) -> la recherche et les liens de fiche, JAMAIS le menu. Réglage
+ * -> un onglet de Réglages. Ces trois classes couvrent tout ; si un écran n'entre dans aucune,
+ * c'est le rangement qu'il faut interroger, pas le menu qu'il faut rallonger.
+ *
+ * L'ORDRE DES ENTRÉES SUIT LA JOURNÉE, pas la fréquence : le matin (Aujourd'hui), la journée
+ * (Atelier), le téléphone (Clients & véhicules), la pièce qu'on va chercher (Pièces), le soir
+ * (Facturation), le rythme mensuel (Ventes). Il est IDENTIQUE POUR TOUS LES RÔLES — un ordre
+ * variable détruirait la mémoire spatiale et le support téléphonique (« troisième entrée, sous
+ * Atelier » doit être vrai pour l'interlocuteur quel que soit son compte). Les droits FILTRENT ce
+ * tableau, ils ne le RÉORDONNENT jamais.
+ */
+
+/** Rôles autorisés, ou `undefined` pour « aucune restriction » — voir `estAutorise`. */
+type Roles = readonly RoleUtilisateur[] | undefined;
+
+export interface VueDomaine {
+  readonly id: string;
+  /** Clé i18n complète, namespace compris (`navigation:onglets.*`). */
+  readonly cleLibelle: string;
+  readonly chemin: (site?: string) => string;
+  /** Préfixes d'URL qui activent cette vue — voir `cheminCorrespond`. */
+  readonly motifs: readonly string[];
+  readonly roles?: Roles;
+}
+
+export interface OngletDomaine {
+  readonly id: string;
+  readonly cleLibelle: string;
+  readonly chemin: (site?: string) => string;
+  /**
+   * Préfixes d'URL qui activent cet onglet. DOIT couvrir les motifs de toutes ses vues, sinon une
+   * URL de vue activerait l'onglet voisin (la correspondance descend onglet -> vue, jamais
+   * l'inverse).
+   */
+  readonly motifs: readonly string[];
+  readonly roles?: Roles;
+  readonly vues?: readonly VueDomaine[];
+}
+
+export interface EntreeMenu {
+  readonly id: string;
+  readonly cleLibelle: string;
+  readonly icone: LucideIcon;
+  readonly onglets: readonly OngletDomaine[];
+}
+
+// =================================================================================================
+// Le tableau
+// =================================================================================================
+
+const ONGLETS_AUJOURDHUI: readonly OngletDomaine[] = [
+  /**
+   * `/` (`EcranAccueil`) et `/tableau-bord` (`EcranTableauBord`) sont DEUX écrans distincts que
+   * §4.2 demande de fusionner en un seul écran « Aujourd'hui ». Cette fusion est le Lot F, pas
+   * celui-ci : ici ils cohabitent en deux onglets, ce qui garde les deux atteignables et rend la
+   * fusion future invisible côté menu (l'onglet « Accueil » disparaîtra, l'entrée ne bougera pas).
+   *
+   * `roles` sur « Accueil » : exactement les quatre rôles dont l'atterrissage EST `/`
+   * (`ATTERRISSAGE_PAR_ROLE`, `routes/atterrissage.ts`). Les cinq autres sont redirigés hors de `/`
+   * dès la route index — leur proposer un onglet qui rebondit immédiatement serait un lien mort.
+   */
+  {
+    id: 'accueil',
+    cleLibelle: 'navigation:onglets.aujourdhuiAccueil',
+    chemin: () => '/',
+    motifs: ['/'],
+    roles: ['direction', 'admin', 'receptionnaire', 'chef_atelier'],
+  },
+  {
+    id: 'tableauBord',
+    cleLibelle: 'navigation:onglets.aujourdhuiTableauBord',
+    chemin: (site) => chemins.tableauBord(site),
+    motifs: ['/tableau-bord'],
+    roles: ROLES_TABLEAU_BORD_ACTIVITE,
+  },
+];
+
+/**
+ * `EcranPointage` choisit son onglet interne (Journal/Équipe) exclusivement via `?vue=`
+ * (`ecrans/pointage/EcranPointage.tsx`) et retombe sur Journal quand ce paramètre est absent —
+ * y compris sur les URL `/pointage/equipe` et `/pointage/cloture` elles-mêmes, puisque
+ * `trouverCorrespondance` matche par PATHNAME (voir plus bas) alors que l'écran, lui, ne regarde
+ * jamais le pathname. Sans ce paramètre explicite, cliquer « Équipe » ou « Clôture » depuis le
+ * menu atterrirait donc sur Journal. `chemins.pointage.*` (hors périmètre d'écriture de ce
+ * fichier, `routes/chemins.ts`) ne pose pas ce paramètre — on l'ajoute ici, côté modèle.
+ */
+function avecVueEquipe(chemin: string): string {
+  return `${chemin}${chemin.includes('?') ? '&' : '?'}vue=equipe`;
+}
+
+const ONGLETS_ATELIER: readonly OngletDomaine[] = [
+  /**
+   * Aucune restriction de rôle : `atelier.or.lire` est ouvert à tout rôle authentifié
+   * (`LECTURE_ETENDUE`), et la route `/ordres-reparation` ne pose déjà aucun `rolesAutorises`.
+   * Trois motifs — la ressource vit sous `/ordres-reparation` SAUF sa route de création, restée
+   * sous `/atelier/ordres-reparation/nouveau` (repris du design, cf. `routeur.tsx`) : sans ce
+   * second motif, l'écran de création serait le seul écran d'atelier sans onglet actif.
+   */
+  {
+    id: 'ordresReparation',
+    cleLibelle: 'navigation:onglets.atelierOrdresReparation',
+    chemin: (site) => chemins.atelier.ordresReparation.liste(site),
+    motifs: ['/ordres-reparation', '/atelier/ordres-reparation'],
+  },
+  /**
+   * Pointage — CINQ vues, dont la borne. « Clôture de période » N'EST PLUS un écran autonome
+   * depuis la fusion Lot E (`ecrans/pointage/EcranPointage.tsx`, commentaire de tête) :
+   * `EcranCloturePeriodePointage` a été supprimé, et le geste de clôture (§4.5, « on clôture ce
+   * qu'on regarde ») est devenu une action de la vue Équipe (`DialogueCloturePeriode`, montée par
+   * `VueEquipePointage.tsx`).
+   *
+   * La vue `cloture` reste néanmoins déclarée ci-dessous, RATTACHÉE à Équipe plutôt que retirée :
+   * `routes/routeur.tsx` monte encore une route réelle `/pointage/cloture` (qui rend
+   * `EcranPointage`, comme `jour`/`equipe`), volontairement conservée par l'agent `routes/` parce
+   * que `routes/atteignabilite.spec.ts` verrouille `trouverCorrespondance('/pointage/cloture')
+   * ?.vue?.id === 'cloture'` — un test hors du périmètre d'écriture de ce fichier. La retirer
+   * ferait rougir ce test sans pouvoir le corriger ici. Son `chemin` pointe donc explicitement sur
+   * `?vue=equipe` (voir `avecVueEquipe` ci-dessus) : cliquer « Clôture » depuis le menu amène sur
+   * l'onglet Équipe, là où vit désormais le dialogue de clôture — pas sur Journal, l'onglet par
+   * défaut de `EcranPointage` en l'absence de ce paramètre. Le même correctif est appliqué à la
+   * vue « Équipe » ci-dessous, qui souffrait du même défaut (son `chemin` ne portait pas non plus
+   * `?vue=equipe`, donc atterrissait lui aussi sur Journal malgré son nom).
+   *
+   * « Borne d'atelier » : la borne est un APPAREIL, pas un poste de travail — §2 la met hors de
+   * l'arborescence et `poste_atelier` y atterrit directement au login. Elle figure quand même ici
+   * pour `chef_atelier`/`admin`, qui installent la tablette et ont besoin d'ouvrir l'écran pour
+   * relever l'URL à mettre en favori. Voir `ROLES_BORNE_POINTAGE` (`routes/droits-routes.ts`) pour
+   * la limite assumée de cet accès (l'identification par PIN y répond `403` pour ces deux rôles).
+   */
+  {
+    id: 'pointage',
+    cleLibelle: 'navigation:onglets.atelierPointage',
+    chemin: (site) => chemins.pointage.saisie(site),
+    motifs: ['/pointage'],
+    roles: ROLES_POINTAGE,
+    vues: [
+      {
+        id: 'monTravail',
+        cleLibelle: 'navigation:onglets.pointageMonTravail',
+        chemin: (site) => chemins.pointage.saisie(site),
+        motifs: ['/pointage'],
+        roles: ROLES_POINTAGE,
+      },
+      {
+        id: 'journal',
+        cleLibelle: 'navigation:onglets.pointageJournal',
+        chemin: (site) => chemins.pointage.jour(site),
+        motifs: ['/pointage/jour'],
+        roles: ROLES_POINTAGE,
+      },
+      {
+        id: 'equipe',
+        cleLibelle: 'navigation:onglets.pointageEquipe',
+        chemin: (site) => avecVueEquipe(chemins.pointage.equipe(site)),
+        motifs: ['/pointage/equipe'],
+        roles: ROLES_POINTAGE_ENCADREMENT,
+      },
+      {
+        id: 'cloture',
+        cleLibelle: 'navigation:onglets.pointageCloture',
+        chemin: (site) => avecVueEquipe(chemins.pointage.cloture(site)),
+        motifs: ['/pointage/cloture'],
+        roles: ROLES_POINTAGE_ENCADREMENT,
+      },
+      {
+        id: 'borne',
+        cleLibelle: 'navigation:onglets.pointageBorne',
+        chemin: () => chemins.pointage.borne(),
+        motifs: ['/pointage/borne'],
+        roles: ROLES_BORNE_POINTAGE,
+      },
+    ],
+  },
+  /**
+   * Dépôt pneus sous ATELIER, pas sous Pièces (§4.4) : le test comptable tranche — un dépôt de
+   * tiers ne se range pas dans le même écran que l'inventaire valorisé, sous peine d'être compté
+   * un jour dans les actifs.
+   *
+   * AUCUNE vue ici, à la différence de la version d'origine du Lot D : « Au dépôt » et
+   * « À relancer » étaient alors deux écrans réels (`EcranHangarPneus` et `EcranJeuxARelancer`),
+   * depuis fusionnés en un seul écran à onglets INTERNES (`EcranHangarPneus.tsx`,
+   * `TabsContent value="a_relancer"`, piloté par `?onglet=`, lequel n'apparaît jamais dans le
+   * pathname). `trouverCorrespondance` résout par PATHNAME, pas par query (`cheminCorrespond`,
+   * plus bas dans ce fichier) : `chemins.pneus.aRelancer()` (`routes/chemins.ts`) construit
+   * désormais `/pneus?onglet=a_relancer`, un pathname identique à celui de « Au dépôt ». Une vue
+   * « À relancer » motifée sur l'ancienne route `/pneus/a-relancer` ne matcherait donc plus jamais
+   * rien — cette route a d'ailleurs été retirée de `routeur.tsx`. Complexifier
+   * `trouverCorrespondance` pour lire la query, au bénéfice d'un seul onglet d'un seul écran, n'en
+   * vaut pas la peine : l'onglet interne de l'écran assure déjà la distinction visuelle, et le
+   * menu n'a besoin de surligner que « Dépôt pneus » dans son ensemble.
+   */
+  {
+    id: 'depotPneus',
+    cleLibelle: 'navigation:onglets.atelierDepotPneus',
+    chemin: (site) => chemins.pneus.hangar(site),
+    motifs: ['/pneus'],
+    roles: ROLES_PNEUS,
+  },
+];
+
+const ONGLETS_CLIENTS_VEHICULES: readonly OngletDomaine[] = [
+  /**
+   * « Doublons » en VUE et non en entrée de menu (§4.5) : une entrée de menu attend qu'on pense à
+   * cliquer. Le rangement cible est un bandeau DANS l'écran Clients (« 12 fiches probablement en
+   * double ») plus une détection à la frappe dans le formulaire de création — un doublon se crée
+   * là, c'est là qu'il faut l'empêcher. Ce bandeau appartient à `ecrans/clients/` (hors périmètre
+   * d'écriture du Lot D) ; la vue ci-dessous garde `EcranDoublonsClients` atteignable en attendant,
+   * et disparaîtra quand le bandeau sera posé.
+   */
+  {
+    id: 'clients',
+    cleLibelle: 'navigation:onglets.clients',
+    chemin: (site) => chemins.clients.liste(site),
+    motifs: ['/clients'],
+    vues: [
+      {
+        id: 'tous',
+        cleLibelle: 'navigation:onglets.clientsTous',
+        chemin: (site) => chemins.clients.liste(site),
+        motifs: ['/clients'],
+      },
+      {
+        id: 'doublons',
+        cleLibelle: 'navigation:onglets.clientsDoublons',
+        chemin: () => chemins.clients.doublons(),
+        motifs: ['/clients/doublons'],
+      },
+    ],
+  },
+  {
+    id: 'vehicules',
+    cleLibelle: 'navigation:onglets.vehicules',
+    chemin: (site) => chemins.vehicules.liste(site),
+    motifs: ['/vehicules'],
+  },
+];
+
+const ONGLETS_PIECES: readonly OngletDomaine[] = [
+  /**
+   * Les quatre onglets portent tous `ROLES_PIECES` : `DROITS_PIECES_PAR_ROLE.admin` vaut `[]`
+   * littéralement côté API (RF-115), la LECTURE elle-même est fermée à `admin` — l'entrée Pièces
+   * entière disparaît donc pour lui, comme aujourd'hui.
+   *
+   * « Comptoir » est le PREMIER onglet, donc l'onglet par défaut de l'entrée : c'est
+   * l'atterrissage du magasinier (§2), qui ne doit pas tomber sur l'inventaire.
+   */
+  {
+    id: 'comptoir',
+    cleLibelle: 'navigation:onglets.piecesComptoir',
+    chemin: (site) => chemins.pieces.rechercheComptoir(site),
+    motifs: ['/pieces/recherche-comptoir'],
+    roles: ROLES_PIECES,
+  },
+  /**
+   * §4.5 range « Réservations » comme un FILTRE d'Articles. `EcranReservationsPieces` est
+   * aujourd'hui un écran autonome vérifié comme NE FUSIONNANT PAS avec la liste d'articles
+   * (avertissement explicite de l'arbitrage : « un onglet n'est pas une fusion, c'est un
+   * rangement ») — il devient donc une VUE de l'onglet Articles, pas un onglet de plus.
+   */
+  {
+    id: 'articles',
+    cleLibelle: 'navigation:onglets.piecesArticles',
+    chemin: (site) => chemins.pieces.articles(site),
+    motifs: ['/pieces/articles', '/pieces/reservations'],
+    roles: ROLES_PIECES,
+    vues: [
+      {
+        id: 'tous',
+        cleLibelle: 'navigation:onglets.piecesArticlesTous',
+        chemin: (site) => chemins.pieces.articles(site),
+        motifs: ['/pieces/articles'],
+        roles: ROLES_PIECES,
+      },
+      {
+        id: 'reservations',
+        cleLibelle: 'navigation:onglets.piecesReservations',
+        chemin: (site) => chemins.pieces.reservations(site),
+        motifs: ['/pieces/reservations'],
+        roles: ROLES_PIECES,
+      },
+    ],
+  },
+  /**
+   * Approvisionnement rassemble les trois entrées de menu qui décrivaient la même chaîne :
+   * « À commander » (le réapprovisionnement pré-rempli), « Commandes » (les commandes fournisseur)
+   * et « Fournisseurs ». Un fournisseur se consulte depuis une commande, jamais dans l'absolu —
+   * d'où sa place en troisième vue et non en onglet.
+   */
+  {
+    id: 'approvisionnement',
+    cleLibelle: 'navigation:onglets.piecesApprovisionnement',
+    chemin: (site) => chemins.pieces.reapprovisionnement(site),
+    motifs: [
+      '/pieces/reapprovisionnement',
+      '/pieces/commandes-fournisseur',
+      '/pieces/fournisseurs',
+    ],
+    roles: ROLES_PIECES,
+    vues: [
+      {
+        id: 'aCommander',
+        cleLibelle: 'navigation:onglets.piecesACommander',
+        chemin: (site) => chemins.pieces.reapprovisionnement(site),
+        motifs: ['/pieces/reapprovisionnement'],
+        roles: ROLES_PIECES,
+      },
+      {
+        id: 'commandes',
+        cleLibelle: 'navigation:onglets.piecesCommandes',
+        chemin: (site) => chemins.pieces.commandesFournisseur.liste(site),
+        motifs: ['/pieces/commandes-fournisseur'],
+        roles: ROLES_PIECES,
+      },
+      {
+        id: 'fournisseurs',
+        cleLibelle: 'navigation:onglets.piecesFournisseurs',
+        chemin: (site) => chemins.pieces.fournisseurs.liste(site),
+        motifs: ['/pieces/fournisseurs'],
+        roles: ROLES_PIECES,
+      },
+    ],
+  },
+  {
+    id: 'consignes',
+    cleLibelle: 'navigation:onglets.piecesConsignes',
+    chemin: (site) => chemins.pieces.consignes(site),
+    motifs: ['/pieces/consignes'],
+    roles: ROLES_PIECES,
+  },
+];
+
+const ONGLETS_FACTURATION: readonly OngletDomaine[] = [
+  /**
+   * PAS de vues « toutes · impayées · à relancer » ici, contrairement à ce que suggère le tableau
+   * §4.2 : `EcranListeFactures` porte DÉJÀ ces trois onglets, en état local (« Non réglées » par
+   * défaut, §7.1 de la spécification de facturation). Les redoubler d'une rangée de vues qui ne
+   * pilote rien produirait deux jeux d'onglets contradictoires sur le même écran. Le jour où ces
+   * filtres passeront dans l'URL (ce qu'ils devraient — un filtre se partage par lien), ils
+   * viendront ici en vues, et la rangée locale disparaîtra.
+   */
+  {
+    id: 'factures',
+    cleLibelle: 'navigation:onglets.facturationFactures',
+    chemin: (site) => chemins.facturation.liste(site),
+    motifs: ['/factures'],
+    roles: ROLES_MENU_FACTURATION,
+  },
+  /**
+   * Relances sous FACTURATION, pas sous Réglages. §4.5 sépare « paliers -> Réglages » et
+   * « déclenchement -> Factures » ; `EcranRelances` fait aujourd'hui LES DEUX dans un seul écran
+   * (règles ET planification/envoi à la demande). Entre les deux rangements possibles, celui qui
+   * décrit l'écran réel est Facturation : ce n'est pas un réglage qu'on pose une fois puis qu'on
+   * oublie, c'est un écran actionné régulièrement — et le `comptable`, dont c'est l'outil, atterrit
+   * précisément sur Facturation. Un emplacement reste RÉSERVÉ dans Réglages (voir
+   * `EMPLACEMENTS_RESERVES`) pour le jour où les paliers s'en détacheront.
+   */
+  {
+    id: 'relances',
+    cleLibelle: 'navigation:onglets.facturationRelances',
+    chemin: (site) => chemins.relances(site),
+    motifs: ['/relances'],
+    roles: ROLES_RELANCES,
+  },
+];
+
+const ONGLETS_VENTES: readonly OngletDomaine[] = [
+  /**
+   * « Dossiers » en PREMIER, donc onglet par défaut : c'est l'atterrissage du vendeur (§2). Les
+   * trois onglets portent `ROLES_VENTES` — `ventes.*` est `[]` pour `admin`/`technicien`/
+   * `magasinier` côté API (RF-115), l'entrée entière disparaît pour eux.
+   *
+   * « Véhicules en parc » et non « Stock » (§4.3) : lève l'homonymie avec Pièces, et dit ce que
+   * c'est plutôt que d'où ça vient.
+   */
+  {
+    id: 'dossiers',
+    cleLibelle: 'navigation:onglets.ventesDossiers',
+    chemin: (site) => chemins.ventes.dossiers.liste(site),
+    motifs: ['/ventes/dossiers'],
+    roles: ROLES_VENTES,
+  },
+  {
+    id: 'parc',
+    cleLibelle: 'navigation:onglets.ventesParc',
+    chemin: (site) => chemins.ventes.stock.liste(site),
+    motifs: ['/ventes/stock'],
+    roles: ROLES_VENTES,
+  },
+  {
+    id: 'suivi',
+    cleLibelle: 'navigation:onglets.ventesSuivi',
+    chemin: (site) => chemins.ventes.suivi(site),
+    motifs: ['/ventes/suivi'],
+    roles: ROLES_VENTES,
+  },
+];
+
+const ONGLETS_REGLAGES: readonly OngletDomaine[] = [
+  /**
+   * ORDRE REPRIS DE §4.2 tel quel (Atelier · Sites · Facturation · Tarifs · Pièces). Conséquence
+   * assumée : l'onglet par défaut de Réglages dépend du rôle, puisque c'est le PREMIER ONGLET
+   * VISIBLE qui fait défaut (`cheminEntree`). Un `receptionnaire` n'a accès qu'à « Tarifs et
+   * prestations » — Réglages l'ouvre donc directement dessus, sans jamais lui montrer un onglet
+   * refusé.
+   *
+   * « Tarifs et prestations » n'a VOLONTAIREMENT aucune restriction de rôle : c'est un outil de
+   * comptoir (« combien coûte ce service ? »), et le réceptionniste est celui qui le consulte le
+   * plus alors qu'il n'appartient à aucun groupe de gouvernance. L'absence de restriction est la
+   * décision, pas un oubli — voir `droits-routes.ts`.
+   */
+  {
+    id: 'atelier',
+    cleLibelle: 'navigation:onglets.reglagesAtelier',
+    chemin: (site) => chemins.parametrage.atelier(site),
+    motifs: ['/parametrage/atelier'],
+    roles: ROLES_MENU_PARAMETRAGE_ATELIER,
+  },
+  {
+    id: 'sites',
+    cleLibelle: 'navigation:onglets.reglagesSites',
+    chemin: (site) => chemins.parametrage.sites(site),
+    motifs: ['/parametrage/sites'],
+    roles: ROLES_MENU_PARAMETRAGE_ATELIER,
+  },
+  {
+    id: 'facturation',
+    cleLibelle: 'navigation:onglets.reglagesFacturation',
+    chemin: (site) => chemins.parametrage.facturation(site),
+    motifs: ['/parametrage/facturation'],
+    roles: ROLES_MENU_FINANCIER,
+  },
+  {
+    id: 'tarifs',
+    cleLibelle: 'navigation:onglets.reglagesTarifs',
+    chemin: (site) => chemins.parametrage.referentiels(site),
+    motifs: ['/parametrage/referentiels'],
+  },
+  {
+    id: 'pieces',
+    cleLibelle: 'navigation:onglets.reglagesPieces',
+    chemin: (site) => chemins.parametrage.pieces(site),
+    motifs: ['/parametrage/pieces'],
+    roles: ROLES_PARAMETRAGE_PIECES,
+  },
+];
+
+/** Les SIX entrées, dans l'ordre de la journée. Réglages n'en fait pas partie : il vit en pied. */
+export const ENTREES_MENU: readonly EntreeMenu[] = [
+  {
+    id: 'aujourdhui',
+    cleLibelle: 'navigation:entrees.aujourdhui',
+    icone: Sunrise,
+    onglets: ONGLETS_AUJOURDHUI,
+  },
+  {
+    id: 'atelier',
+    cleLibelle: 'navigation:entrees.atelier',
+    icone: Wrench,
+    onglets: ONGLETS_ATELIER,
+  },
+  {
+    id: 'clientsVehicules',
+    cleLibelle: 'navigation:entrees.clientsVehicules',
+    icone: Users,
+    onglets: ONGLETS_CLIENTS_VEHICULES,
+  },
+  {
+    id: 'pieces',
+    cleLibelle: 'navigation:entrees.pieces',
+    icone: Boxes,
+    onglets: ONGLETS_PIECES,
+  },
+  {
+    id: 'facturation',
+    cleLibelle: 'navigation:entrees.facturation',
+    icone: Receipt,
+    onglets: ONGLETS_FACTURATION,
+  },
+  {
+    id: 'ventes',
+    cleLibelle: 'navigation:entrees.ventes',
+    icone: CarFront,
+    onglets: ONGLETS_VENTES,
+  },
+];
+
+/** Réglages — séparé des six par un filet, en pied de barre (§4.2). Une seule porte pour tout ce
+ *  qui se configure rarement et jamais dans le flux de travail. */
+export const ENTREE_REGLAGES: EntreeMenu = {
+  id: 'reglages',
+  cleLibelle: 'navigation:entrees.reglages',
+  icone: Settings,
+  onglets: ONGLETS_REGLAGES,
+};
+
+/** Toutes les entrées, six + Réglages — pour la résolution d'URL, qui ne distingue pas le pied. */
+export const TOUTES_ENTREES: readonly EntreeMenu[] = [...ENTREES_MENU, ENTREE_REGLAGES];
+
+// =================================================================================================
+// Emplacements réservés
+// =================================================================================================
+
+/**
+ * PLACES TENUES pour des écrans qui n'existent pas encore, afin que leur arrivée n'ait pas à
+ * ROUVRIR le menu (le lot D est le lot qui referme l'arborescence : la rouvrir six mois plus tard
+ * pour caser un écran, c'est refaire le débat à chaque livraison).
+ *
+ * Elles ne sont PAS rendues. Ce dépôt s'interdit les entrées grisées « à venir » depuis l'étape 0
+ * (voir l'en-tête historique de `BarreLaterale.tsx` : « aucun élément grisé à venir — chaque lien
+ * pointe vers un écran réellement atteignable ») : un onglet mort annonce un contenu qui n'existe
+ * pas et se fait cliquer trois fois avant d'être compris. Ce que « réserver » veut dire ici, c'est
+ * que le RANGEMENT est décidé et écrit — l'entrée d'accueil, le libellé, le voisinage — de sorte
+ * que livrer l'écran se réduise à déplacer une ligne d'ici vers le tableau ci-dessus.
+ */
+export const EMPLACEMENTS_RESERVES: readonly {
+  readonly entree: string;
+  readonly onglet: string;
+  readonly cleLibelle: string;
+  readonly motif: string;
+}[] = [
+  {
+    entree: 'facturation',
+    onglet: 'exportFiduciaire',
+    cleLibelle: 'navigation:onglets.facturationExportFiduciaire',
+    motif:
+      "Export vers la fiduciaire (WinBIZ, Bexio, Abacus, Banana). L'API expose déjà " +
+      "`facturation.export.creer` (direction/comptable seuls, `admin: []`) ; il manque l'écran. " +
+      'Va en TROISIÈME onglet de Facturation, après Relances — un export se déclenche depuis le ' +
+      "domaine dont il exporte les documents, jamais depuis Réglages (ce n'est pas un paramètre, " +
+      "c'est une opération datée qu'on rejoue chaque fin de mois).",
+  },
+  {
+    entree: 'facturation',
+    onglet: 'encaissements',
+    cleLibelle: 'navigation:onglets.facturationEncaissements',
+    motif:
+      "§4.2 prévoit « Factures · Encaissements » ; les opérations d'encaissement et de lettrage " +
+      "existent côté API (étape 2) mais n'ont aucun écran de liste autonome — elles se pratiquent " +
+      'depuis la fiche facture. Emplacement tenu en DEUXIÈME onglet de Facturation.',
+  },
+  {
+    entree: 'reglages',
+    onglet: 'relances',
+    cleLibelle: 'navigation:onglets.reglagesRelances',
+    motif:
+      'Paliers de relance (§4.5 : « paliers -> Réglages »). Tant que `EcranRelances` mélange les ' +
+      "règles et le déclenchement, l'écran vit en onglet de Facturation (voir ONGLETS_FACTURATION). " +
+      "Le jour où les paliers s'en détachent, ils viennent ici en DERNIER onglet de Réglages.",
+  },
+  {
+    entree: 'atelier',
+    onglet: 'planning',
+    cleLibelle: 'navigation:onglets.atelierPlanning',
+    motif:
+      "Planning d'atelier (Lot I). §4.2 le place en DEUXIÈME onglet d'Atelier, entre Ordres de " +
+      'réparation et Pointage. Repli explicite retenu par le plan (option a) : onglet absent tant ' +
+      "que son contenu n'est pas cadré, plutôt qu'un onglet qui retrie une liste déjà existante.",
+  },
+];
+
+// =================================================================================================
+// Résolution : URL -> entrée / onglet / vue, et filtrage par rôle
+// =================================================================================================
+
+/**
+ * Correspondance par SEGMENT, jamais par simple préfixe de chaîne : `/pneus` ne doit pas activer
+ * l'onglet Dépôt pneus sur une hypothétique URL `/pneusomatic`. `/` est traité à part — préfixe de
+ * tout, il n'activerait jamais rien d'autre que lui-même.
+ */
+export function cheminCorrespond(pathname: string, motif: string): boolean {
+  if (motif === '/') return pathname === '/';
+  return pathname === motif || pathname.startsWith(`${motif}/`);
+}
+
+/** Longueur du motif le plus spécifique qui matche, ou `undefined` si aucun. Le plus long gagne :
+ *  `/pointage/jour` bat `/pointage`. */
+function scoreCorrespondance(pathname: string, motifs: readonly string[]): number | undefined {
+  let meilleur: number | undefined;
+  for (const motif of motifs) {
+    if (cheminCorrespond(pathname, motif) && (meilleur === undefined || motif.length > meilleur)) {
+      meilleur = motif.length;
+    }
+  }
+  return meilleur;
+}
+
+/** `undefined` sur `roles` = aucune restriction, visible même session non encore résolue (le menu
+ *  ne doit pas clignoter au chargement). Une restriction posée + rôle inconnu = masqué : on ne
+ *  montre jamais une entrée gouvernée « au cas où ». */
+export function estAutorise(roles: Roles, role: RoleUtilisateur | undefined): boolean {
+  if (roles === undefined) return true;
+  return role !== undefined && roles.includes(role);
+}
+
+/**
+ * `poste_atelier` est un APPAREIL, pas un employé (§2, décision « on n'y revient pas ») : la borne
+ * murale n'a ni menu, ni onglets, ni recherche — un seul geste, le pavé numérique. Filtrer entrée
+ * par entrée laisserait passer celles qui n'ont aucune restriction (Clients & véhicules, Ordres de
+ * réparation), ce qui remettrait un menu sur une tablette qui n'en veut pas.
+ */
+function estCompteAppareil(role: RoleUtilisateur | undefined): boolean {
+  return role === 'poste_atelier';
+}
+
+export function vuesVisibles(
+  onglet: OngletDomaine,
+  role: RoleUtilisateur | undefined,
+): readonly VueDomaine[] {
+  // Même garde que `ongletsVisibles` : la borne murale ne rend aucun niveau de navigation. Sans
+  // elle, `poste_atelier` verrait la rangée de vues du pointage — précisément ce que §2 exclut.
+  if (estCompteAppareil(role)) return [];
+  return (onglet.vues ?? []).filter((vue) => estAutorise(vue.roles, role));
+}
+
+export function ongletsVisibles(
+  entree: EntreeMenu,
+  role: RoleUtilisateur | undefined,
+): readonly OngletDomaine[] {
+  if (estCompteAppareil(role)) return [];
+  return entree.onglets.filter((onglet) => estAutorise(onglet.roles, role));
+}
+
+/** Une entrée existe pour un rôle si et seulement si au moins un de ses onglets lui est ouvert —
+ *  aucune liste de rôles séparée au niveau de l'entrée, donc aucune divergence possible entre
+ *  « l'entrée est visible » et « son contenu est vide ». */
+export function entreesVisibles(role: RoleUtilisateur | undefined): readonly EntreeMenu[] {
+  return ENTREES_MENU.filter((entree) => ongletsVisibles(entree, role).length > 0);
+}
+
+export function reglagesVisibles(role: RoleUtilisateur | undefined): boolean {
+  return ongletsVisibles(ENTREE_REGLAGES, role).length > 0;
+}
+
+/**
+ * ONGLET PAR DÉFAUT PAR RÔLE (§2, « l'onglet par défaut d'une entrée varie par rôle »). Par
+ * construction, le défaut est le PREMIER ONGLET VISIBLE — ce qui suffit déjà pour le magasinier
+ * (Pièces -> Comptoir, premier onglet) et pour Réglages (dont le premier onglet visible dépend
+ * mécaniquement des droits). Ce tableau ne porte que les exceptions RÉELLES, celles où l'ordre de
+ * lecture du domaine et l'usage d'un rôle divergent.
+ */
+type DefautsOngletParEntree = Readonly<Record<string, string>>;
+
+const ONGLET_DEFAUT_PAR_ROLE: Partial<Record<RoleUtilisateur, DefautsOngletParEntree>> = {
+  /** Le technicien qui ouvre Atelier vient pointer, pas lire la liste des OR du garage — « Mon
+   *  travail » est sa page, § 2 (« il n'a jamais à traverser quoi que ce soit pour y arriver »). */
+  technicien: { atelier: 'pointage' },
+  /** Même raison pour le magasinier : il pointe aussi (`atelier.pointage.lire` lui est ouvert) et
+   *  n'a rien à faire dans la liste des OR quand il ouvre Atelier. */
+  magasinier: { atelier: 'pointage' },
+};
+
+/** L'onglet sur lequel une entrée s'ouvre pour ce rôle. `undefined` si l'entrée entière lui est
+ *  fermée. */
+export function ongletDefaut(
+  entree: EntreeMenu,
+  role: RoleUtilisateur | undefined,
+): OngletDomaine | undefined {
+  const visibles = ongletsVisibles(entree, role);
+  if (visibles.length === 0) return undefined;
+  const idSouhaite = role === undefined ? undefined : ONGLET_DEFAUT_PAR_ROLE[role]?.[entree.id];
+  return visibles.find((onglet) => onglet.id === idSouhaite) ?? visibles[0];
+}
+
+/** La cible du lien de menu : le chemin de l'onglet par défaut, site courant conservé. */
+export function cheminEntree(
+  entree: EntreeMenu,
+  role: RoleUtilisateur | undefined,
+  site: string | undefined,
+): string | undefined {
+  return ongletDefaut(entree, role)?.chemin(site);
+}
+
+export interface CorrespondanceNavigation {
+  readonly entree: EntreeMenu;
+  readonly onglet: OngletDomaine;
+  /** Vue active, si l'onglet en porte et que l'URL en désigne une. */
+  readonly vue?: VueDomaine;
+}
+
+/**
+ * Où suis-je dans l'arborescence ? Résolu depuis l'URL SEULE — jamais depuis un état de
+ * composant : une fiche (`/clients/42`, `/ordres-reparation/…`) doit surligner l'onglet de son
+ * domaine, c'est là que le garagiste lit « je suis dans Clients », et c'est aussi ce qui rend le
+ * bouton Précédent et un lien partagé cohérents avec ce que montre l'écran.
+ *
+ * `undefined` pour une URL hors arborescence (`/login`, `/recherche`, une 404) — l'appelant
+ * n'affiche alors simplement aucun onglet.
+ */
+export function trouverCorrespondance(pathname: string): CorrespondanceNavigation | undefined {
+  let meilleur: { entree: EntreeMenu; onglet: OngletDomaine; score: number } | undefined;
+  for (const entree of TOUTES_ENTREES) {
+    for (const onglet of entree.onglets) {
+      const score = scoreCorrespondance(pathname, onglet.motifs);
+      if (score !== undefined && (meilleur === undefined || score > meilleur.score)) {
+        meilleur = { entree, onglet, score };
+      }
+    }
+  }
+  if (meilleur === undefined) return undefined;
+
+  let vue: VueDomaine | undefined;
+  let scoreVue = -1;
+  for (const candidate of meilleur.onglet.vues ?? []) {
+    const score = scoreCorrespondance(pathname, candidate.motifs);
+    if (score !== undefined && score > scoreVue) {
+      vue = candidate;
+      scoreVue = score;
+    }
+  }
+  return { entree: meilleur.entree, onglet: meilleur.onglet, vue };
+}

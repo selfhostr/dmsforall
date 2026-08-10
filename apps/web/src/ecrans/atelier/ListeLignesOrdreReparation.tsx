@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { ReponseLigneOr, StatutLigneOr, TypeLigneOr } from '@dfa/shared';
 
-import { ErreurApi, messageErreur } from '@/api/erreurs';
+import { ErreurApi } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -32,6 +32,8 @@ import {
 } from '@/hooks/atelier/useActionsLigneOr';
 import { useSession } from '@/hooks/useSession';
 import { formaterMontant, formaterPourmille } from '@/lib/formats';
+
+import { messagesErreurMutation } from './messages-erreur-mutation';
 
 const FORMATEUR_QUANTITE = new Intl.NumberFormat('de-CH', { maximumFractionDigits: 3 });
 
@@ -390,11 +392,13 @@ export function ListeLignesOrdreReparation({ orId, lignes, lignesTronquees }: Pr
             {erreurValidation ? (
               <p className="texte-libelle text-destructive">{erreurValidation}</p>
             ) : null}
-            {erreurActive ? (
-              <p role="alert" className="texte-libelle text-destructive">
-                {messageErreur(erreurActive, t)}
-              </p>
-            ) : null}
+            {erreurActive
+              ? messagesErreurMutation(erreurActive, t).map((message, index) => (
+                  <p key={index} role="alert" className="texte-libelle text-destructive">
+                    {message}
+                  </p>
+                ))
+              : null}
           </div>
 
           <DialogFooter>

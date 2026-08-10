@@ -4,6 +4,7 @@ import type { ReponseClient } from '@dfa/shared';
 
 import { requeteApi } from '@/api/client';
 import { clesQuery } from '@/api/cles';
+import { useDoitReessayer } from '@/hooks/pagination-curseur';
 
 import { exigerCorps } from './support';
 
@@ -13,6 +14,7 @@ import { exigerCorps } from './support';
  *  `ReponseClient.notesAlerte` (RM-13) embarque les notes de nature `alerte` directement dans
  *  cette réponse — `BandeauAlerteClient` les consomme telles quelles, sans appel réseau séparé. */
 export function useClient(id: string | undefined): UseQueryResult<ReponseClient> {
+  const reessayer = useDoitReessayer();
   return useQuery({
     queryKey: clesQuery.clients.detail(id ?? ''),
     queryFn: async () => {
@@ -20,5 +22,6 @@ export function useClient(id: string | undefined): UseQueryResult<ReponseClient>
       return exigerCorps(client, `GET /clients/${id ?? ''}`);
     },
     enabled: Boolean(id),
+    retry: reessayer,
   });
 }

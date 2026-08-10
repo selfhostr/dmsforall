@@ -1,5 +1,4 @@
 import {
-  useInfiniteQuery,
   useMutation,
   useQueryClient,
   type InfiniteData,
@@ -17,33 +16,22 @@ import type {
 import { requeteApi } from '@/api/client';
 import { clesQuery } from '@/api/cles';
 import { donneesEcriture } from '@/api/enveloppe';
+import { useDoitReessayer, useListeCurseur } from '@/hooks/pagination-curseur';
 
-import { construireRequete, exigerCorps } from './support';
-
-const LIMITE_PAR_PAGE = 50;
+import { chargeurSousCollectionClient, exigerCorps } from './support';
 
 /** `GET /clients/{id}/contacts` (RM-04, rôles cumulables) — onglet « Contacts » de la fiche.
  *  Pagination par curseur v1 (`creeLe desc, id desc`), pas de `tri` exposé au contrat. */
 export function useContactsClient(
   clientId: string | undefined,
 ): UseInfiniteQueryResult<InfiniteData<PageCurseur<ReponseClientContact>>, unknown> {
-  return useInfiniteQuery({
-    queryKey: clesQuery.clients.contacts(clientId ?? ''),
-    queryFn: async ({ pageParam }) => {
-      const params = construireRequete({
-        limite: LIMITE_PAR_PAGE,
-        curseur: pageParam ?? undefined,
-      });
-      const page = await requeteApi<PageCurseur<ReponseClientContact>>(
-        `/clients/${clientId}/contacts?${params.toString()}`,
-        { method: 'GET' },
-      );
-      return exigerCorps(page, `GET /clients/${clientId ?? ''}/contacts`);
-    },
-    initialPageParam: null as string | null,
-    getNextPageParam: (dernierePage) => dernierePage.curseurSuivant,
-    enabled: Boolean(clientId),
+  const reessayer = useDoitReessayer();
+  const { resultat } = useListeCurseur<ReponseClientContact>({
+    cle: clesQuery.clients.contacts(clientId ?? ''),
+    charger: clientId ? chargeurSousCollectionClient(clientId, 'contacts') : undefined,
+    reessayer,
   });
+  return resultat;
 }
 
 /** `POST /clients/{id}/contacts`. */

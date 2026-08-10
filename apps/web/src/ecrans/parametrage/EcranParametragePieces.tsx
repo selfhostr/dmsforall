@@ -154,9 +154,10 @@ function FormulaireParametresPieces({
 
   useEffect(() => {
     form.reset(versValeursFormulaire(donnees));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- voir le commentaire de `chargeLe`
-    // ci-dessus : dépendance volontairement limitée, `form` est stable et `versValeursFormulaire`
-    // pure.
+    // Dépendance volontairement limitée à `chargeLe` — voir le commentaire ci-dessus : `form` est
+    // stable et `versValeursFormulaire` est pure. L'effet se redéclenchera seulement au chargement
+    // initial et après modification, jamais à chaque rendu du parent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chargeLe]);
 
   const soumettre = form.handleSubmit((valeurs) => {

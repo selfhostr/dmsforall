@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { schemaConfigConsole } from '../exploitation/config-console';
 import { calculerBrancheParDefaut, calculerVersionAppParDefaut } from './version-app';
 
 /**
@@ -203,6 +204,20 @@ export const schemaConfig = z
     // explicitement par déploiement une fois ce besoin réel et le nettoyage éprouvé en
     // production.
     SENTRY_TAUX_ECHANTILLONNAGE_TRACES: z.coerce.number().min(0).max(1).default(0),
+    // --- Console d'exploitation (plateforme, PORTE 1 uniquement) --------------------------
+    // Bloc ENTIÈREMENT optionnel, défini une seule fois dans `exploitation/config-console.ts`
+    // et fusionné ici via `.shape` : dupliquer les champs à la main les ferait diverger
+    // silencieusement de la validation réellement appliquée par `resoudreConfigConsole`.
+    // `DATABASE_URL_CONSOLE` ABSENTE (cas par défaut) ⇒ `ExploitationModule.pourConfig` rend un
+    // module vide (aucun contrôleur, aucun pool `dfa_console`) — voir app.module.ts et
+    // exploitation/exploitation.module.ts pour le mécanisme d'extinction. Une valeur PRÉSENTE
+    // mais incohérente (URL identique à DATABASE_URL/DATABASE_URL_MIGRATION, cookie homonyme de
+    // SESSION_COOKIE_NOM, inactivité > durée absolue) ne fait PAS échouer `chargerConfig` ici :
+    // `resoudreConfigConsole` porte ces contrôles croisés (elle a besoin de DATABASE_URL et
+    // SESSION_COOKIE_NOM, déjà résolus à ce stade) et lève au moment où `AppModule.pourConfig`
+    // monte `ExploitationModule` — donc toujours avant l'ouverture du port, jamais un démarrage
+    // silencieux avec une console mal branchée.
+    ...schemaConfigConsole.shape,
   })
   .superRefine((c, ctx) => {
     if (c.NODE_ENV === 'production' && !c.COOKIE_SECURE) {

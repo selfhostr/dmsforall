@@ -1,5 +1,9 @@
 {
   "titre": "Pointage",
+  "vues": {
+    "journal": "Journal",
+    "equipe": "Équipe"
+  },
   "identification": {
     "titre": "Qui êtes-vous ?",
     "saisisseCode": "Saisissez le code PIN",
@@ -201,6 +205,7 @@
       "actions": "Actions"
     },
     "corriger": "Corriger",
+    "clotureAction": "Clôturer la période",
     "parOr": {
       "rechercherOrLabel": "Numéro d'OR ou véhicule",
       "rechercherOrPlaceholder": "Rechercher un OR…",
@@ -221,11 +226,6 @@
   },
   "periode": {
     "titre": "Clôture de période",
-    "site": "Site",
-    "vide": {
-      "titre": "Choisissez un site",
-      "description": "Sélectionnez un site pour verrouiller ou déverrouiller une période de pointage."
-    },
     "verrouiller": {
       "titre": "Verrouiller une période",
       "description": "Tout pointage terminé ou validé, dont le début précède cette date, sera verrouillé. Un pointage encore en cours dans la plage bloque l'opération entière.",
@@ -237,7 +237,6 @@
       "blocageAvecTechniciens": "Pointages encore en cours pour : {liste} — ils doivent être arrêtés avant de pouvoir verrouiller.",
       "arreterPointages": "Arrêter les pointages en cours",
       "arretEnCours": "Arrêt des pointages en cours…",
-      "arretEchec": "Certains pointages n'ont pas pu être arrêtés. Réessayez.",
       "arretReussi": "Pointages arrêtés — vous pouvez verrouiller à nouveau."
     },
     "deverrouiller": {
@@ -248,9 +247,6 @@
       "motifRequis": "Le motif est obligatoire pour déverrouiller une période.",
       "action": "Déverrouiller",
       "resultat": "{count, plural, one {# pointage déverrouillé.} other {# pointages déverrouillés.}}"
-    },
-    "erreur": {
-      "titre": "Action impossible"
     }
   }
 }

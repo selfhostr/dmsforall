@@ -1,10 +1,8 @@
-import {
-  useInfiniteQuery,
-  type InfiniteData,
-  type UseInfiniteQueryResult,
-} from '@tanstack/react-query';
+import { type InfiniteData, type UseInfiniteQueryResult } from '@tanstack/react-query';
 
 import type { PageCurseur, ReponsePrestation } from '@dfa/shared';
+
+import { useListeCurseur } from '@/hooks/pagination-curseur';
 
 import { clesParametrage } from './cles';
 import { listerPrestations } from './prestations.api';
@@ -15,10 +13,12 @@ export function useListePrestations(): UseInfiniteQueryResult<
   InfiniteData<PageCurseur<ReponsePrestation>>,
   unknown
 > {
-  return useInfiniteQuery({
-    queryKey: clesParametrage.prestations.liste(),
-    queryFn: ({ pageParam }) => listerPrestations(pageParam),
-    initialPageParam: null as string | null,
-    getNextPageParam: (dernierePage) => dernierePage.curseurSuivant,
+  const { resultat } = useListeCurseur<ReponsePrestation>({
+    cle: clesParametrage.prestations.liste(),
+    // `listerPrestations` attend `string | null` (« pas de curseur » y est écrit `null`) là où le
+    // patron partagé écrit `undefined` — les deux sont traités à l'identique par cette API, qui
+    // teste la valeur en truthiness.
+    charger: (curseur) => listerPrestations(curseur ?? null),
   });
+  return resultat;
 }

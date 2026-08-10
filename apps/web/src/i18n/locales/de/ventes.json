@@ -207,7 +207,8 @@
         "mettreAJour": "Aktualisieren",
         "receptionner": "Annehmen",
         "remettreDisponible": "Wieder verfügbar machen",
-        "marquerVendu": "Als verkauft markieren"
+        "marquerVendu": "Als verkauft markieren",
+        "autresActions": "Weitere Aktionen"
       },
       "donneesCommerciales": "Verkaufsdaten",
       "historique": "Verlauf",
@@ -316,7 +317,7 @@
       "assignerVehicule": "Fahrzeug zuweisen",
       "prix": "Preis",
       "prixAucun": "Preis nicht festgelegt",
-      "prixIndicatif": "Unverbindlich (Kostenvoranschlag): {montant}",
+      "prixIndicatif": "Unverbindlich: {montant}",
       "dateLivraisonEstimee": "Voraussichtliches Übergabedatum",
       "modifier": {
         "titre": "Dossier bearbeiten",

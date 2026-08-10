@@ -22,6 +22,14 @@ export interface ProprietesCarteVehicule {
  * `composants/identite/`) plutôt que de recomposer plaque/désignation/badge d'incomplétude
  * localement — c'est la SEULE variante d'identité véhicule pour tout le produit. Ne fait aucun
  * appel réseau : reçoit la projection `VehiculeResume` déjà résolue par l'appelant.
+ *
+ * Reste un `<div>` porteur d'un rôle ARIA plutôt qu'un `<button>`/`<a>` natif — la carte contient
+ * elle-même un élément interactif (`BoutonCopier` sur le VIN, qui stoppe la propagation de son
+ * clic) : imbriquer un `<button>` dans un `<button>` est invalide en HTML et casse la navigation
+ * clavier/lecteur d'écran (élément interactif dans un élément interactif). Rôle `button` — pas
+ * `link` comme dans une version antérieure — car le geste répond à Entrée ET Espace ; `link` ne
+ * répond, dans les pratiques ARIA, qu'à Entrée : une carte qui accepte Espace sous l'étiquette
+ * « link » n'est fiable pour aucun des deux contrats.
  */
 export function CarteVehicule({ vehicule, onOuvrir, className }: ProprietesCarteVehicule) {
   function gererClavier(evenement: KeyboardEvent<HTMLDivElement>) {
@@ -34,13 +42,14 @@ export function CarteVehicule({ vehicule, onOuvrir, className }: ProprietesCarte
 
   return (
     <div
-      role={onOuvrir ? 'link' : undefined}
+      role={onOuvrir ? 'button' : undefined}
       tabIndex={onOuvrir ? 0 : undefined}
       onClick={onOuvrir}
       onKeyDown={gererClavier}
       className={cn(
         'flex flex-col gap-2 rounded-lg border bg-card p-4 text-card-foreground',
-        onOuvrir && 'cursor-pointer transition-colors hover:bg-muted/50',
+        onOuvrir &&
+          'cursor-pointer transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         className,
       )}
     >

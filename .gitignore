@@ -38,8 +38,6 @@ blob-report/
 .eslintcache
 .turbo/
 .cache/
-# Graphe de connaissances AST généré localement, volatil et volumineux
-graphify-out/
 
 # Logs
 *.log
@@ -70,3 +68,5 @@ Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
 
+
+# CodeGraph — index de graphe du dépôt, reconstruit par `codegraph init` sur chaque poste

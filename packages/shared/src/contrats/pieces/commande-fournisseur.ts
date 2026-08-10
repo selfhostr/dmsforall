@@ -145,7 +145,7 @@ export type EntreeCreationCommandeFournisseur = z.infer<typeof schemaCreationCom
 
 /** `POST /commandes-fournisseur/{id}/envoyer` — `brouillon → envoyee` (§6.2). Aucun corps requis ;
  *  pas d'`Idempotency-Key` (transition gardée par l'état de départ, même patron que
- *  `reservation.ts::schemaSatisfactionReservation`). */
+ *  `POST /reservations/{id}/satisfaire`, `reservation.ts`). */
 
 /**
  * `POST /commandes-fournisseur/{id}/reception` — `Idempotency-Key` OBLIGATOIRE (génère un ou

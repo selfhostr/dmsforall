@@ -26,12 +26,22 @@
       "changerSaison": "Changer de saison",
       "deplacer": "Déplacer",
       "sortir": "Sortir"
+    },
+    "misEnEvidence": {
+      "badge": "Jeu recherché",
+      "ariaLabel": "Jeu recherché, repère {repere}"
     }
   },
   "hangar": {
     "titre": "Hangar à pneus",
     "erreur": {
       "titre": "Impossible d'afficher le hangar"
+    },
+    "misEnEvidence": {
+      "absent": {
+        "titre": "Jeu introuvable ici",
+        "description": "Le dépôt demandé n'est plus visible dans ce hangar sur ce site — il a peut-être été déplacé, sorti, ou son site a changé. Le plan ci-dessous reste à jour."
+      }
     },
     "siteRequis": {
       "titre": "Choisissez un site",
@@ -50,9 +60,6 @@
       }
     },
     "filtres": {
-      "statut": "Statut",
-      "statutActifs": "Tous les jeux du hangar",
-      "statutARelancer": "À relancer uniquement",
       "saison": "Saison",
       "saisonToutes": "Toutes",
       "repere": "Filtrer par repère",
@@ -61,12 +68,12 @@
     "vide": {
       "titre": "Hangar à pneus",
       "filtreDescription": "Aucun jeu ne correspond à ce repère.",
-      "aucunARelancer": "Aucun jeu à relancer pour l'instant.",
       "premierUsage": "Aucun jeu de pneus n'est encore entré dans ce hangar."
     },
-    "lienARelancer": {
-      "description": "Des jeux oubliés depuis plus de deux ans se cachent peut-être dans ce hangar.",
-      "lien": "Voir les jeux à relancer"
+    "onglets": {
+      "ariaLabel": "Vue du dépôt de pneus",
+      "actifs": "Dans le hangar",
+      "aRelancer": "À relancer"
     }
   },
   "creation": {

@@ -1,17 +1,11 @@
-import {
-  useInfiniteQuery,
-  type InfiniteData,
-  type UseInfiniteQueryResult,
-} from '@tanstack/react-query';
+import { type InfiniteData, type UseInfiniteQueryResult } from '@tanstack/react-query';
 
 import type { PageCurseur, VehiculeResume } from '@dfa/shared';
 
-import { requeteApi } from '@/api/client';
 import { clesQuery } from '@/api/cles';
+import { useDoitReessayer, useListeCurseur } from '@/hooks/pagination-curseur';
 
-import { construireRequete, exigerCorps } from './support';
-
-const LIMITE_PAR_PAGE = 50;
+import { chargeurSousCollectionClient } from './support';
 
 export interface FiltresVehiculesClient {
   /** RM-20 : les détentions closes ne sont visibles que sur demande explicite. */
@@ -24,25 +18,16 @@ export function useVehiculesClient(
   clientId: string | undefined,
   filtres: FiltresVehiculesClient = {},
 ): UseInfiniteQueryResult<InfiniteData<PageCurseur<VehiculeResume>>, unknown> {
-  return useInfiniteQuery({
-    queryKey: clesQuery.clients.vehicules(clientId ?? ''),
-    queryFn: async ({ pageParam }) => {
-      const params = construireRequete({
-        inclureAnciennesDetentions: filtres.inclureAnciennesDetentions,
-        tri: filtres.tri,
-        limite: LIMITE_PAR_PAGE,
-        curseur: pageParam ?? undefined,
-      });
-      const page = await requeteApi<PageCurseur<VehiculeResume>>(
-        `/clients/${clientId}/vehicules?${params.toString()}`,
-        {
-          method: 'GET',
-        },
-      );
-      return exigerCorps(page, `GET /clients/${clientId ?? ''}/vehicules`);
-    },
-    initialPageParam: null as string | null,
-    getNextPageParam: (dernierePage) => dernierePage.curseurSuivant,
-    enabled: Boolean(clientId),
+  const reessayer = useDoitReessayer();
+  const { resultat } = useListeCurseur<VehiculeResume>({
+    cle: clesQuery.clients.vehicules(clientId ?? ''),
+    charger: clientId
+      ? chargeurSousCollectionClient(clientId, 'vehicules', {
+          inclureAnciennesDetentions: filtres.inclureAnciennesDetentions,
+          tri: filtres.tri,
+        })
+      : undefined,
+    reessayer,
   });
+  return resultat;
 }

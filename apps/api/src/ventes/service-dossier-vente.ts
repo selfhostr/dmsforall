@@ -55,6 +55,12 @@ import {
   type ResultatIdempotent,
   type ServiceIdempotence,
 } from '../common/idempotence';
+// Import direct du fichier (jamais le barrel `../recherche`) : ce dernier réexporte aussi
+// `recherche.controller.ts`/`recherche.module.ts` — inutile ici et évite tout risque de dépendance
+// circulaire entre `ventes/` et `recherche/`. `motifFragment` est une fonction PURE (voir son
+// en-tête) : aucune connexion, aucun couplage NestJS. Même idiome exact que
+// `facturation/documents/service-documents.ts::lister`.
+import { motifFragment } from '../recherche/utilitaires-recherche';
 
 import {
   calculerTypeVehicule,
@@ -348,6 +354,44 @@ export class ServiceDossierVente {
       if (filtres.clientAcheteurId)
         conditions.push(sql`dv.client_acheteur_id = ${filtres.clientAcheteurId}`);
       if (filtres.vehiculeId) conditions.push(sql`dv.vehicule_id = ${filtres.vehiculeId}`);
+      // `q` — DÉFAUT CORRIGÉ (constaté en exécution réelle, `GET /dossiers-vente?q=...` rendait
+      // TOUJOURS la même liste, y compris pour un fragment qui ne correspond à rien) : le contrat
+      // (`contrats/ventes/dossier-vente.ts::schemaFiltresDossiersVente`) documente déjà « porte sur
+      // le nom du client acheteur et la plaque/désignation du véhicule associé », mais ce filtre
+      // n'était lu NULLE PART dans cette méthode — même famille de défaut que `ordreReparationId`
+      // sur `GET /documents-vente` (piège documenté du dépôt).
+      //
+      // Porte sur le NOM DU CLIENT ACHETEUR et la PLAQUE COURANTE du véhicule associé — pas sur la
+      // désignation (marque/modèle/version), volontairement écartée : `migrations/
+      // 0013_ordre_reparation_numero_recherche.sql` documente déjà que la recherche par fragment sur
+      // `marque`/`modele` de `vehicule` n'a JAMAIS eu de chemin d'index utilisable dans ce dépôt
+      // (`vehicule_marque_modele_idx`, 0007, est un btree SANS `gin_trgm_ops` sur une expression
+      // SANS `coalesce` — inutilisable par un `LIKE '%fragment%'`) et que la corriger exige une
+      // restructuration de requête, pas une clause `OR` de plus. Ajouter cette branche ICI aurait
+      // réintroduit sciemment le même défaut ailleurs jugé non trivial. Signalé à l'orchestrateur
+      // plutôt que deviné : le contrat promet plus que ce filtre ne couvre (« désignation »), voir
+      // le rapport de livraison.
+      //
+      // MÊME idiome que `facturation/documents/service-documents.ts::lister` : `public
+      // .normaliser_recherche()` des deux côtés du `LIKE`, JAMAIS une normalisation TypeScript
+      // reconstruite (elle divergerait de celle de la base, `recherche/utilitaires-recherche.ts`).
+      //
+      // Expression du nom EXACTEMENT celle indexée par `client_recherche_idx` (migrations/
+      // 0006_clients.sql : `coalesce(raison_sociale, nom || ' ' || coalesce(prenom, ''), '')`) —
+      // écart syntaxique = index inutilisable (même piège que `vehicule_marque_modele_idx`
+      // ci-dessus). `vp.valeur` (plaque COURANTE, `au is null`) n'a pas besoin de
+      // `vehicule_plaque_recherche_idx` ici : le `LEFT JOIN LATERAL` la résout déjà PAR VÉHICULE
+      // (index `vehicule_plaque_courante_idx`), le `LIKE` ne filtre plus qu'une valeur déjà en
+      // main — pas un balayage par fragment de toute la table `vehicule_plaque`.
+      if (filtres.q) {
+        const motif = motifFragment(filtres.q);
+        conditions.push(sql`(
+          public.normaliser_recherche(
+            coalesce(cl.raison_sociale, cl.nom || ' ' || coalesce(cl.prenom, ''), '')
+          ) like public.normaliser_recherche(${motif})
+          or public.normaliser_recherche(vp.valeur) like public.normaliser_recherche(${motif})
+        )`);
+      }
       if (curseurDecode) {
         conditions.push(
           construireConditionKeyset(definition, idExpr, curseurDecode.valeur, curseurDecode.id),
@@ -357,6 +401,12 @@ export class ServiceDossierVente {
       const requete = sql`
         select dv.id as "id", ${expressionTriValeur(definition)} as "triValeur"
           from public.dossier_vente dv
+          join public.client cl on cl.tenant_id = dv.tenant_id and cl.id = dv.client_acheteur_id
+          left join lateral (
+            select vp.valeur from public.vehicule_plaque vp
+             where vp.tenant_id = dv.tenant_id and vp.vehicule_id = dv.vehicule_id and vp.au is null
+             order by vp.du desc limit 1
+          ) vp on true
          where ${sql.join(conditions, sql` and `)}
          order by ${construireOrderBy(definition, idExpr)}
          limit ${filtres.limite + 1}

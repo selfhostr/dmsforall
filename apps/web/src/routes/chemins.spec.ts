@@ -11,10 +11,6 @@ describe('chemins.clients', () => {
     expect(chemins.clients.liste('site-lausanne')).toBe('/clients?site=site-lausanne');
   });
 
-  it('construit le chemin de création', () => {
-    expect(chemins.clients.nouveau('site-1')).toBe('/clients/nouveau?site=site-1');
-  });
-
   it('construit le chemin de détail avec id', () => {
     expect(chemins.clients.detail('abc-123', 'site-1')).toBe('/clients/abc-123?site=site-1');
   });
@@ -59,6 +55,41 @@ describe('chemins.parametrage', () => {
   });
 });
 
+/**
+ * Ajouté au Lot D : la facturation n'avait aucun constructeur, la barre latérale pointait
+ * `/factures` en chaîne brute et perdait le site courant à chaque clic — l'en-tête retombait alors
+ * sur « Tous les sites » sans que l'utilisateur ait changé de site.
+ */
+describe('chemins.facturation', () => {
+  it('conserve le site courant, sans jamais l’inventer', () => {
+    expect(chemins.facturation.liste()).toBe('/factures');
+    expect(chemins.facturation.liste('site-1')).toBe('/factures?site=site-1');
+  });
+
+  it('construit la fiche et l’avoir (dont l’identifiant est la facture d’ORIGINE)', () => {
+    expect(chemins.facturation.detail('fac-1')).toBe('/factures/fac-1');
+    expect(chemins.facturation.avoir('fac-1', 'site-1')).toBe('/factures/fac-1/avoir?site=site-1');
+  });
+});
+
+/** La création d'OR est la SEULE route de la ressource hors du préfixe `/ordres-reparation` — sans
+ *  constructeur, elle restait le seul écran d'atelier que le modèle de navigation ne savait pas
+ *  rattacher à son onglet. */
+describe('chemins.atelier.ordresReparation', () => {
+  it('construit la création avec ses deux paramètres de requête, jamais de paramètre de chemin', () => {
+    expect(chemins.atelier.ordresReparation.nouveau()).toBe('/atelier/ordres-reparation/nouveau');
+    expect(chemins.atelier.ordresReparation.nouveau('site-1', 'client-9')).toBe(
+      '/atelier/ordres-reparation/nouveau?site=site-1&clientId=client-9',
+    );
+  });
+
+  it('construit la passerelle de facturation d’un OR', () => {
+    expect(chemins.atelier.ordresReparation.facturer('or-1')).toBe(
+      '/ordres-reparation/or-1/facturer',
+    );
+  });
+});
+
 describe('chemins.pieces', () => {
   it('construit la recherche comptoir, scopée par site', () => {
     expect(chemins.pieces.rechercheComptoir()).toBe('/pieces/recherche-comptoir');
@@ -80,5 +111,40 @@ describe('chemins.pieces', () => {
     expect(chemins.pieces.reapprovisionnement('site-1')).toBe(
       '/pieces/reapprovisionnement?site=site-1',
     );
+  });
+});
+
+/**
+ * Module pointage (lot 2, fusion Lot D) — `cloture()` construit toujours `/pointage/cloture`,
+ * INCHANGÉ malgré la fusion des écrans dans `EcranPointage` (voir `routeur.tsx` : la route rend
+ * désormais cet écran fusionné, et `composants/layout/navigation-modele.ts`, hors périmètre de
+ * `routes/`, dépend encore de ce constructeur pour sa vue « Clôture »). Ce test verrouille cette
+ * décision dans le sens inverse : il rougit si quelqu'un retire `cloture()` en croyant achever la
+ * fusion sans vérifier ses appelants hors `routes/`.
+ */
+describe('chemins.pointage', () => {
+  it('construit jour, équipe et clôture, conservés tels quels malgré la fusion des écrans', () => {
+    expect(chemins.pointage.jour('site-1')).toBe('/pointage/jour?site=site-1');
+    expect(chemins.pointage.equipe('site-1')).toBe('/pointage/equipe?site=site-1');
+    expect(chemins.pointage.cloture('site-1')).toBe('/pointage/cloture?site=site-1');
+  });
+});
+
+/**
+ * Hangar à pneus (Lot B, fusion Lot D) — `aRelancer` a changé de FORME au Lot D : l'ancien écran
+ * séparé (`EcranJeuxARelancer`) est supprimé, fusionné dans `EcranHangarPneus` comme onglet lu
+ * depuis `?onglet=`. Ce test verrouille la nouvelle forme, celle que lit réellement
+ * `EcranHangarPneus.tsx` (`searchParams.get('onglet')`) — pas l'ancienne route `/pneus/a-relancer`,
+ * retirée de `routeur.tsx` faute d'écran à monter.
+ */
+describe('chemins.pneus', () => {
+  it('construit le plan du hangar', () => {
+    expect(chemins.pneus.hangar()).toBe('/pneus');
+    expect(chemins.pneus.hangar('site-1')).toBe('/pneus?site=site-1');
+  });
+
+  it('construit « à relancer » comme un onglet de /pneus, jamais comme une route séparée', () => {
+    expect(chemins.pneus.aRelancer()).toBe('/pneus?onglet=a_relancer');
+    expect(chemins.pneus.aRelancer('site-1')).toBe('/pneus?onglet=a_relancer&site=site-1');
   });
 });

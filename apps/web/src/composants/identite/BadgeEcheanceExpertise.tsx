@@ -26,6 +26,15 @@ function moisRestants(dateEcheanceIso: string, maintenant: Date): number {
  * Échéance d'expertise (MFK) — forme + mot, jamais de couleur de la palette statut (§5.4).
  * Invariant n°5 (docs/plan-etape-1-frontend.md §11) : le relatif (« échoit dans 2 mois »)
  * n'apparaît jamais seul, toujours accompagné de la date absolue (`formaterDate`).
+ *
+ * Gardé en réserve, non câblé : la liste des véhicules (`EcranListeVehicules`) trie déjà par
+ * `prochaineExpertiseLe:asc`, ce qui en ferait un candidat naturel pour une pastille par ligne,
+ * mais sa projection `VehiculeResume` n'expose ni `prochaineEcheanceLe` ni `echue` — le serveur ne
+ * calcule aujourd'hui `echue` que pour le contexte-atelier d'UN véhicule
+ * (`apps/api/src/vehicules/service-vehicule-contexte-atelier.ts`), jamais pour une liste. La fiche
+ * véhicule montre déjà cette échéance via `BlocEcheances` (plus détaillé qu'une pastille) : y
+ * ajouter ce badge serait redondant. À câbler dans la liste si ces deux champs rejoignent un jour
+ * cette projection côté API.
  */
 export function BadgeEcheanceExpertise({ prochaineLe, echue, className }: Props) {
   const { t } = useTranslation('vehicules');

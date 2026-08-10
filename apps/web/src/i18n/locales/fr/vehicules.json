@@ -46,7 +46,9 @@
       "vide": "Aucun détenteur enregistré pour ce véhicule."
     },
     "dossierVente": {
-      "titre": "Dossier de vente"
+      "titre": "Dossier de vente",
+      "vide": "Aucun dossier de vente pour ce véhicule.",
+      "droitRequis": "Vous n'avez pas le droit de consulter les dossiers de vente de ce véhicule."
     },
     "ordresReparation": {
       "titre": "Ordres de réparation",
