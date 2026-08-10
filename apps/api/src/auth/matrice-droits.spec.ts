@@ -433,6 +433,52 @@ describe('MATRICE_DROITS — export fiduciaire (facturation/export, même palier
 });
 
 /**
+ * Plafond d'avoir réceptionnaire (`PATCH /parametres-atelier`,
+ * `apps/api/src/parametrage/parametres-atelier/`, hors périmètre de ce fichier) : issue #45, RF-117.
+ * `reception.plafondAvoirReceptionnaireCentimes` gouverne le montant au-delà duquel un
+ * `receptionnaire` ne peut plus émettre un avoir seul (`EMISSION_AVOIR` ci-dessus). MÊME PALIER que
+ * le bloc créancier — direction + comptable SEULS, PAS admin (RF-115). Contraste explicite et
+ * DÉLIBÉRÉ avec `parametrage.atelier.modifier`/`parametrage.referentiel.modifier`, qui, eux, donnent
+ * bien l'écriture à `admin` (`INFERE_PARAMETRAGE_GOUVERNANCE`) — même piège de recopie que le bloc
+ * créancier documente déjà, avec un risque encore plus élevé ici puisque les deux droits partagent
+ * le MÊME endpoint HTTP (`PATCH /parametres-atelier`).
+ */
+describe('MATRICE_DROITS — plafond d’avoir réceptionnaire (issue #45, RF-117, même palier de gouvernance que le bloc créancier)', () => {
+  it('« Fixer le plafond d’avoir réceptionnaire » : direction, comptable SEULS — même palier que le bloc créancier et l’export fiduciaire', () => {
+    expect(rolesAyant('parametrage.atelier.plafond_avoir.modifier')).toEqual(
+      ['comptable', 'direction'].sort(),
+    );
+  });
+
+  it('RF-115 (issue #45) — admin N’A PAS le droit de fixer le plafond, à la différence de parametrage.atelier.modifier qui, lui, lui est accordé sur le MÊME endpoint : un test doit échouer si l’entrée admin de ce bloc est un jour remplie par copier-coller de direction, en la prenant pour un oubli de recopie plutôt qu’une décision RF-115 délibérée', () => {
+    expect(MATRICE_DROITS.admin).not.toContain('parametrage.atelier.plafond_avoir.modifier');
+    // Contraste explicite : admin garde bien l'écriture des réglages ORDINAIRES du même endpoint.
+    expect(MATRICE_DROITS.admin).toContain('parametrage.atelier.modifier');
+    // Et direction/comptable ont bien le droit fort.
+    expect(MATRICE_DROITS.direction).toContain('parametrage.atelier.plafond_avoir.modifier');
+    expect(MATRICE_DROITS.comptable).toContain('parametrage.atelier.plafond_avoir.modifier');
+  });
+
+  it('aucun autre rôle que direction/comptable ne détient ce droit — chef_atelier compris, qui garde parametrage.atelier.modifier pour le reste de l’endpoint', () => {
+    const rolesExclus: RoleUtilisateur[] = [
+      'vendeur',
+      'receptionnaire',
+      'chef_atelier',
+      'technicien',
+      'magasinier',
+    ];
+    for (const role of rolesExclus) {
+      expect(
+        MATRICE_DROITS[role],
+        `${role} ne devrait détenir aucun droit sur le plafond d'avoir réceptionnaire`,
+      ).not.toContain('parametrage.atelier.plafond_avoir.modifier');
+    }
+    // chef_atelier garde néanmoins le droit générique sur le reste de l'endpoint.
+    expect(MATRICE_DROITS.chef_atelier).toContain('parametrage.atelier.modifier');
+  });
+});
+
+/**
  * Impression PDF facture QR (`GET /documents-vente/{id}/pdf`, `apps/api/src/facturation/
  * impression/`, hors périmètre de ce fichier) : le PDF expose les montants en clair (et sa charge
  * QR aussi), donc RF-116 (visibilité des montants selon le rôle) s'applique à l'impression comme à
@@ -504,12 +550,16 @@ describe('MATRICE_DROITS — lecture large (LECTURE_SOCLE et LECTURE_ETENDUE)', 
     expect(MATRICE_DROITS.vendeur).not.toContain('atelier.or.lire');
   });
 
-  it('comptable — consulte, ne modifie rien dans l’atelier/clients/véhicules (§2.1) : uniquement des actions *.lire ou recherche.executer HORS domaines facturation, ventes et relances (RF-114 étape 2, §11 étape 4 ET l’arbitrage relances lui donnent délibérément des droits d’écriture/de confirmation financiers — comptable n’est plus lecture-seule sur ces trois domaines)', () => {
+  it('comptable — consulte, ne modifie rien dans l’atelier/clients/véhicules (§2.1) : uniquement des actions *.lire ou recherche.executer HORS domaines facturation, ventes et relances, et hors le plafond d’avoir réceptionnaire (RF-114 étape 2, §11 étape 4, l’arbitrage relances ET issue #45/RF-117 lui donnent délibérément des droits d’écriture/de confirmation financiers — comptable n’est plus lecture-seule sur ces domaines)', () => {
     for (const action of MATRICE_DROITS.comptable) {
       if (
         action.startsWith('facturation.') ||
         action.startsWith('ventes.') ||
-        action.startsWith('relances.')
+        action.startsWith('relances.') ||
+        // Issue #45 / RF-117 : seule action d'écriture du domaine `parametrage.*` que comptable
+        // détient — le plafond d'avoir réceptionnaire est un geste financier, pas un réglage
+        // d'atelier ordinaire (voir le bloc dédié « plafond d'avoir réceptionnaire » plus bas).
+        action === 'parametrage.atelier.plafond_avoir.modifier'
       ) {
         continue;
       }
@@ -522,6 +572,8 @@ describe('MATRICE_DROITS — lecture large (LECTURE_SOCLE et LECTURE_ETENDUE)', 
     expect(MATRICE_DROITS.comptable).toContain('ventes.financement.confirmer');
     // Relances : comptable détient aussi l'écriture (arbitrage @laupernoe, voir le bloc dédié plus bas).
     expect(MATRICE_DROITS.comptable).toContain('relances.facturation.regle.ecrire');
+    // Issue #45 / RF-117 : comptable fixe aussi le plafond d'avoir réceptionnaire.
+    expect(MATRICE_DROITS.comptable).toContain('parametrage.atelier.plafond_avoir.modifier');
   });
 
   it('vendeur — hors flux de l’étape 1 : aucune écriture atelier, pas même la lecture d’un OR, HORS domaines facturation et ventes (RF-114 lui donne l’encaissement et l’émission devis/BC/facture mais PAS l’avoir ; §11 étape 4 lui donne le pilotage du dossier de vente mais PAS l’écriture sur `vehicule_stock`, QV-15 non tranché)', () => {
@@ -557,7 +609,11 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
     // correct puisque ce test ne prétend vérifier QUE les domaines non financiers. `relances.`
     // exclu pour la MÊME raison : les 4 actions `relances.facturation.*` divergent EN BLOC entre
     // admin ([]) et direction (les 4) — voir `DROITS_RELANCES_PAR_ROLE` et le test dédié
-    // « MATRICE_DROITS — relances automatiques » plus bas.
+    // « MATRICE_DROITS — relances automatiques » plus bas. `parametrage.atelier.plafond_avoir.
+    // modifier` (issue #45, RF-117) exclu SEUL, PAS tout le préfixe `parametrage.` : c'est la SEULE
+    // action du domaine paramétrage qui diverge entre admin ([]) et direction — le reste de
+    // `parametrage.*` (lecture, écriture générique atelier/référentiels) NE diverge PAS et continue
+    // d'être couvert par ce test comme avant issue #45.
     const sansFacturationNiPiecesNiVentesNiTableauBordNiRelances = (actions: readonly Action[]) =>
       actions.filter(
         (a) =>
@@ -565,7 +621,8 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
           !a.startsWith('pieces.') &&
           !a.startsWith('ventes.') &&
           !a.startsWith('tableau_bord.') &&
-          !a.startsWith('relances.'),
+          !a.startsWith('relances.') &&
+          a !== 'parametrage.atelier.plafond_avoir.modifier',
       );
     expect(
       [...sansFacturationNiPiecesNiVentesNiTableauBordNiRelances(MATRICE_DROITS.admin)].sort(),
@@ -1011,6 +1068,8 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'socle.site.lire',
       'parametrage.atelier.lire',
       'parametrage.atelier.modifier',
+      // Issue #45 / RF-117 : plafond d'avoir réceptionnaire, direction/comptable seuls.
+      'parametrage.atelier.plafond_avoir.modifier',
       'parametrage.referentiel.lire',
       'parametrage.referentiel.modifier',
       'client.lire',
