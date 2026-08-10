@@ -41,149 +41,29 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  # --- Porte de qualité : identique à ci.yml -----------------------------------------------
-  # Volontairement dupliqué plutôt que factorisé via un `workflow_call` : un push de tag n'a
-  # jamais fait tourner ci.yml (son déclencheur ne couvre que push sur main + pull_request), donc
-  # rien ne garantit qu'une release ait été vérifiée par ci.yml au moment où elle est taguée. Ce
-  # workflow doit donc pouvoir juger la qualité par lui-même, sans dépendre d'un run externe. Le
-  # coût (deux exécutions de lint/typecheck/test/build sur un push main, une dans ci.yml et une
-  # ici) est accepté sciemment — factoriser en `workflow_call` est la prochaine étape naturelle si
-  # les minutes CI deviennent un jour un vrai problème, pas avant (philosophie du projet : ne pas
-  # complexifier sans contrainte réelle).
-  verifier:
-    name: Vérifier (lint, typecheck, tests, build)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Récupérer le code
-        uses: actions/checkout@v4
-
-      # Pas de `version:` ici : pnpm/action-setup@v4 la lit dans `packageManager` de
-      # package.json, seule source de vérité. La spécifier aussi ici ferait échouer
-      # l'action (conflit de version détecté entre les deux sources).
-      - name: Installer pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Installer les dépendances (lockfile figé)
-        run: pnpm install --frozen-lockfile
-
-      - name: Formatage (Prettier)
-        run: pnpm format:check
-
-      - name: Lint (ESLint)
-        run: pnpm lint
-
-      - name: Vérification des types (TypeScript)
-        run: pnpm typecheck
-
-      - name: Tests unitaires
-        run: pnpm test
-
-      - name: Build
-        run: pnpm build
-
-  tests-integration:
-    name: Tests d'intégration (testcontainers)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Récupérer le code
-        uses: actions/checkout@v4
-
-      # Pas de `version:` ici : pnpm/action-setup@v4 la lit dans `packageManager` de
-      # package.json, seule source de vérité. La spécifier aussi ici ferait échouer
-      # l'action (conflit de version détecté entre les deux sources).
-      - name: Installer pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Installer les dépendances (lockfile figé)
-        run: pnpm install --frozen-lockfile
-
-      - name: Tests d'intégration
-        run: pnpm test:integration
-        env:
-          # Identique à ci.yml : valeurs de test en dur, aucun secret réel, testcontainers
-          # démarre ses propres conteneurs Postgres/Redis éphémères.
-          NODE_ENV: test
-          PORT: '3000'
-          API_URL_PUBLIQUE: http://localhost:3000
-          WEB_URL_PUBLIQUE: http://localhost:5173
-          DATABASE_URL: postgresql://dfa_app:dfa_app_dev@localhost:5432/dfa_test
-          DATABASE_URL_MIGRATION: postgresql://dfa_migrator:dfa_migrator_dev@localhost:5432/dfa_test
-          DATABASE_POOL_MAX: '10'
-          DATABASE_TIMEOUT_REQUETE_MS: '10000'
-          REDIS_URL: redis://localhost:6379
-          SESSION_COOKIE_NOM: dfa_session
-          SESSION_DUREE_MINUTES: '480'
-          SESSION_INACTIVITE_MINUTES: '120'
-          COOKIE_SECURE: 'false'
-          ARGON2_MEMOIRE_KIB: '19456'
-          ARGON2_ITERATIONS: '2'
-          ARGON2_PARALLELISME: '1'
-          LIMITE_CONNEXION_IP: '20'
-          LIMITE_CONNEXION_COMPTE: '5'
-          # DOIT rester STRICTEMENT INFÉRIEUR à LIMITE_CONNEXION_COMPTE ci-dessus (contrainte
-          # croisée du schéma zod, superRefine) — voir le commentaire détaillé sur cette même
-          # ligne dans ci.yml (dont ce bloc est la copie) : sans elle, SEUIL_VERROUILLAGE_COMPTE
-          # retombe sur son défaut de 5, égal à LIMITE_CONNEXION_COMPTE, et `chargerConfig` refuse
-          # de démarrer (ErreurConfigInvalide). Abaissé plutôt que relevé LIMITE_CONNEXION_COMPTE,
-          # pour garder ce filet rapide à satisfaire.
-          SEUIL_VERROUILLAGE_COMPTE: '3'
-          LIMITE_FENETRE_SECONDES: '900'
-          LOG_NIVEAU: debug
-          OPENAPI_EXPOSER_DOCS: 'true'
-          VERSION_APP: 0.1.0-ci
-
-  # Réversibilité des migrations : identique au job du même nom dans ci.yml (dont ce bloc est la
-  # copie — même raisonnement de duplication volontaire que `verifier`/`tests-integration`
-  # ci-dessus : un push de tag ne déclenche jamais ci.yml, ce workflow doit donc pouvoir juger par
-  # lui-même). Avant ce correctif, `construire-publier` ne dépendait que de `verifier` et
-  # `tests-integration` : une image pouvait donc partir sur ghcr.io — et de là être déployée via
-  # docker-compose.yml — sans qu'aucune vérification n'ait jamais prouvé qu'on peut revenir
-  # en arrière sur les migrations qu'elle embarque. Coût mesuré ~45-90s (scripts/verifier-
-  # reversibilite-migrations.sh, voir son en-tête) : négligeable devant le risque qu'il couvre.
-  verifier-reversibilite-migrations:
-    name: Réversibilité des migrations (up → down → up, une par une)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Récupérer le code
-        uses: actions/checkout@v4
-
-      # Pas de `version:` ici : pnpm/action-setup@v4 la lit dans `packageManager` de
-      # package.json, seule source de vérité. La spécifier aussi ici ferait échouer
-      # l'action (conflit de version détecté entre les deux sources).
-      - name: Installer pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Installer Node ${{ env.NODE_VERSION }} (avec cache du store pnpm)
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      # Pas de `pnpm install` séparé : le script l'exécute lui-même, UNE seule fois pour toute la
-      # vérification (jamais par migration) — voir son en-tête.
-      - name: Vérifier la réversibilité de chaque migration
-        run: scripts/verifier-reversibilite-migrations.sh
+  # --- Porte de qualité : les trois jobs de ci.yml, invoqués via `workflow_call` -------------
+  # Anciennement une copie complète des trois jobs (verifier, tests-integration,
+  # verifier-reversibilite-migrations) — remplacée par un seul appel au workflow réutilisable.
+  # Un `workflow_call` exécute les jobs du fichier appelé DANS le run de l'appelant, sans exiger
+  # que ci.yml ait tourné séparément : ça couvre exactement le cas qui justifiait la copie (un
+  # push de tag ne déclenche jamais ci.yml par ses propres `on:`). La duplication de code
+  # disparaît ; la duplication d'EXÉCUTION sur un push main demeure (ci.yml tourne pour son propre
+  # déclencheur ET dans cet appel) et reste acceptée sciemment, comme avant ce correctif — voir le
+  # commentaire équivalent, déplacé dans ci.yml.
+  verification-qualite:
+    name: Vérification qualité (ci.yml)
+    uses: ./.github/workflows/ci.yml
 
   # --- Construction et publication -----------------------------------------------------------
   # Une image publiée est une image potentiellement déployée (docker-compose.yml n'a aucun
   # garde-fou qui distingue une image « bonne » d'une image « mauvaise » au moment du
   # déploiement) : ce job ne démarre donc que si les trois jobs de qualité ci-dessus réussissent —
-  # y compris la réversibilité des migrations (voir son job ci-dessus).
+  # y compris la réversibilité des migrations (voir son job dans ci.yml). `needs` sur un job
+  # `uses:` attend la réussite de TOUS les jobs qu'il contient, pas seulement du premier en échec :
+  # un job de ci.yml qui échoue fait échouer `verification-qualite` dans son ensemble.
   construire-publier:
     name: Construire et publier dfa-${{ matrix.image }} (ghcr.io)
-    needs: [verifier, tests-integration, verifier-reversibilite-migrations]
+    needs: [verification-qualite]
     runs-on: ubuntu-latest
     # Permissions minimales pour CE job seulement : `packages: write` pour pousser sur ghcr.io,
     # `id-token`/`attestations: write` pour la signature Sigstore de la provenance (voir plus bas).
