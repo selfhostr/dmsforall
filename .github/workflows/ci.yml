@@ -39,19 +39,39 @@ name: CI
 # ailleurs au préalable. C'est ce qui rend la factorisation praticable même pour un push de tag, qui
 # ne déclenche jamais ci.yml par ses propres `on:` ci-dessus.
 #
-# Sur un push main, les deux déclencheurs coexistent : ci.yml tourne pour son propre `on: push`
-# ET à l'intérieur du run de publier-images.yml qui l'appelle — donc deux exécutions des mêmes
-# jobs de qualité. Accepté sciemment (déjà le cas avant ce fichier, quand publier-images.yml en
-# gardait sa propre copie, et distinct de la duplication push/pull_request corrigée ci-dessus) :
-# factoriser plus loin pour l'éviter n'est justifié que si les minutes CI deviennent un vrai
-# problème, pas avant. Non vérifié en revanche, faute de pouvoir exécuter GitHub Actions ici : le
-# groupe de `concurrency` ci-dessous s'appuie sur `github.workflow`, qui vaut le nom de l'appelant
-# (« Publier les images ») quand ci.yml tourne en workflow_call — donc un groupe différent de celui
-# du run direct de ci.yml (« CI »). Les deux devraient coexister sans s'annuler l'un l'autre, mais
-# seul un vrai push le confirmera.
+# `main` ABSENT de `push.branches` ci-dessous (retiré le 10.08.2026) : il y était, et ça faisait
+# tourner ci.yml DEUX FOIS en parallèle sur chaque push main — une fois pour son propre
+# déclencheur `push`, une fois à l'intérieur du run publier-images.yml qui l'invoque en
+# `workflow_call`. Un ancien commentaire ici qualifiait ça d'« accepté sciemment » ; ça ne l'était
+# plus. Preuve mesurée sur `main`, commit d21452a : les deux runs sur le MÊME sha n'ont PAS rendu
+# le même résultat (l'un vert partout, l'autre avec l'intégration en échec). Cause : les deux
+# suites `tests-integration` démarrent chacune leurs propres conteneurs testcontainers
+# (Postgres + Redis) sur le même runner à 2 cœurs — deux démarrages simultanés se disputent le
+# démon Docker. Déjà vu sur ce commit et le précédent : un `HTTP 500` du démon Docker, et un
+# Postgres `57P01 admin_shutdown` (conteneur arrêté pendant qu'une connexion vivait encore). Ce
+# n'était donc pas seulement du gaspillage de minutes CI, mais la cause de checks rouges au
+# hasard sur du code sain.
+#
+# publier-images.yml invoque déjà ce fichier en `workflow_call` pour ses trois jobs de qualité sur
+# un push main (voir son commentaire de tête) : retirer `main` d'ici ne perd donc aucune
+# couverture, ça élimine seulement la seconde exécution simultanée. Un push main déclenche
+# toujours les trois portes de qualité, une seule fois, via l'appelant.
+#
+# Effet sur le NOM des checks GitHub (importe si une protection de branche en référence un) : un
+# push `dev` continue de produire les noms directs (« Vérifier (lint, typecheck, tests, build) »,
+# etc. — visibles aussi sur une PR dev->main par association de SHA, voir plus haut). Un push
+# `main`, lui, ne produit plus QUE les noms préfixés par l'appelant (« Vérification qualité
+# (ci.yml) / Vérifier (...) »), plus jamais les noms directs — avant ce correctif, main produisait
+# les deux séries de noms. Vérifié avant d'écrire ce changement : `gh api
+# repos/selfhostr/dmsforall/branches/main/protection` ET `.../rulesets` rendent tous les deux
+# `403 Upgrade to GitHub Pro or make this repository public to enable this feature` — ce dépôt,
+# privé sur un compte personnel gratuit, ne PEUT PAS avoir de protection de branche ni de ruleset
+# configuré aujourd'hui, donc aucune règle n'existe qui référence l'un ou l'autre nom. À
+# revérifier le jour où ce dépôt passe public ou sur un plan payant : une protection ajoutée à ce
+# moment-là doit cibler les noms préfixés pour un check sur `main`.
 on:
   push:
-    branches: [main, dev]
+    branches: [dev]
   pull_request:
     branches: [dev]
   workflow_call:
