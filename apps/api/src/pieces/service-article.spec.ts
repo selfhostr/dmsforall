@@ -112,6 +112,61 @@ function idempotenceFactice(tx: TransactionDfa): ServiceIdempotence {
   };
 }
 
+describe(
+  'ServiceArticle.modifier — F-01-bis : `.partial()` zod n’annule pas un `.default(...)`, ' +
+    '`estEchangeStandard` ne doit jamais être réinitialisé par un PATCH qui ne le mentionne pas',
+  () => {
+    it('un `PATCH` ne portant que `designation` ne touche pas `estEchangeStandard` (défaut fantôme F-01-bis)', async () => {
+      const { tx, setArgs } = txFactice({
+        selects: [
+          [ligneArticle({ estEchangeStandard: true, montantConsigneTtcCentimes: 5000 })], // chargerOu404
+          [
+            ligneArticle({
+              designation: 'Nouvelle désignation',
+              estEchangeStandard: true,
+              montantConsigneTtcCentimes: 5000,
+            }),
+          ], // reload
+          [], // références
+          [], // stocks
+        ],
+      });
+      const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+
+      // `corpsBrut` — exactement ce que `@Body()` rend côté contrôleur, jamais pré-parsé : le
+      // service doit lui-même distinguer « non envoyé » de « envoyé false » (`neGarderQueChampsEnvoyes`).
+      await service.modifier(CTX, 'magasinier', 'a1', { designation: 'Nouvelle désignation' });
+
+      expect(setArgs[0]).toMatchObject({ designation: 'Nouvelle désignation' });
+      // Preuve du défaut corrigé : `estEchangeStandard` ne doit JAMAIS apparaître dans les valeurs
+      // écrites puisque le PATCH ne l’a jamais mentionné.
+      expect(setArgs[0]).not.toHaveProperty('estEchangeStandard');
+    });
+
+    it('cas symétrique : un `PATCH { estEchangeStandard: false }` explicite reste appliqué (valeur métier, pas une absence)', async () => {
+      const { tx, setArgs } = txFactice({
+        selects: [
+          [ligneArticle({ estEchangeStandard: true, montantConsigneTtcCentimes: 5000 })], // chargerOu404
+          [ligneArticle({ estEchangeStandard: false, montantConsigneTtcCentimes: null })], // reload
+          [], // références
+          [], // stocks
+        ],
+      });
+      const service = new ServiceArticle(accesFactice(tx), idempotenceFactice(tx));
+
+      await service.modifier(CTX, 'magasinier', 'a1', {
+        estEchangeStandard: false,
+        montantConsigneTtcCentimes: null,
+      });
+
+      expect(setArgs[0]).toMatchObject({
+        estEchangeStandard: false,
+        montantConsigneTtcCentimes: null,
+      });
+    });
+  },
+);
+
 describe('ServiceArticle.ajouterReference — RP-03 : une référence n’appartient qu’à un seul article', () => {
   it('409 ARTICLE_REFERENCE_COLLISION quand la référence existe déjà, portée par un AUTRE article, sans écriture', async () => {
     const { tx, setArgs, insertValuesArgs } = txFactice({

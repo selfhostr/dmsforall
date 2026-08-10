@@ -1,20 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
-import type {
-  ElementBloquant,
-  EntreeAnnulationLignes,
-  EntreeCreationLigneOr,
-  EntreeMarquageRealisee,
-  EntreeModificationLigneOr,
-  EntreeRefusLignes,
-  EntreeSoumissionLignesADevis,
-  EntreeValidationLignes,
-  FiltresLignesOr,
-  PageCurseur,
-  PayeurLigneOr,
-  ReponseAvecAvertissements,
-  ReponseLigneOr,
-  ReponseOrdreReparation,
+import {
+  schemaModificationLigneOr,
+  type ElementBloquant,
+  type EntreeAnnulationLignes,
+  type EntreeCreationLigneOr,
+  type EntreeMarquageRealisee,
+  type EntreeModificationLigneOr,
+  type EntreeRefusLignes,
+  type EntreeSoumissionLignesADevis,
+  type EntreeValidationLignes,
+  type FiltresLignesOr,
+  type PageCurseur,
+  type PayeurLigneOr,
+  type ReponseAvecAvertissements,
+  type ReponseLigneOr,
+  type ReponseOrdreReparation,
 } from '@dfa/shared';
 
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
@@ -28,6 +29,7 @@ import {
   type NouvelleReservationPiece,
 } from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
+import { neGarderQueChampsEnvoyes, PipeZod } from '../common/validation';
 import { remonterCausePg } from '../common/erreurs-pg/remonter-cause-pg';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { JETON_EVENEMENTS, type ServiceEvenements } from '../common/evenements';
@@ -330,14 +332,29 @@ export class ServiceLigneOr {
    * Garde `OR_PLAFOND_DEPASSE` (ligne.ts : « sur une ligne déjà `validee`, une hausse de montant
    * peut produire 409 ») quand la ligne a dépassé le stade de validation (`validee`, `en_cours`,
    * `realisee`) et que le nouveau total dépasserait le plafond de l'OR.
+   *
+   * F-01-bis (même défaut que `client/service-client-sous-collections.ts` — voir
+   * `neGarderQueChampsEnvoyes`) : `schemaModificationLigneOr` porte SIX `.default(...)` que
+   * `.partial()` ne neutralise PAS (`quantiteMillieme(1000)`, `rabaisPourmille(0)`,
+   * `payeur('client')`, `securite(false)`, `fournieParClient(false)`, `pieceARestituer(false)`).
+   * Reçoit donc le corps BRUT (jamais pré-parsé par le contrôleur, voir `ligne-or.controller.ts`)
+   * et fait le `.parse()` ICI, puis filtre par présence réelle dans `corpsBrut` — sinon un `PATCH
+   * { designation }` isolé ressortirait avec les six défauts injectés et les écrirait tels quels :
+   * payeur rebasculé sur `'client'` (une ligne prise en charge par l'assurance/le constructeur/le
+   * garage repasse silencieusement à la charge du client), quantité/rabais remis à zéro, drapeaux
+   * `securite`/`fournieParClient`/`pieceARestituer` effacés. Voir le test "F-01-bis" de
+   * `service-ligne-or.spec.ts` pour la preuve rouge → verte (ligne `payeur = 'garage'`, geste
+   * commercial à 0.-, qui se remettait silencieusement à facturer le client).
    */
   async modifier(
     ctx: ContexteTenant,
     principal: PrincipalAuthentifie,
     orId: string,
     ligneId: string,
-    entree: EntreeModificationLigneOr,
+    corpsBrut: Record<string, unknown>,
   ): Promise<ReponseAvecAvertissements<ReponseLigneOr>> {
+    const entreeParsee = new PipeZod(schemaModificationLigneOr).transform(corpsBrut);
+    const entree: EntreeModificationLigneOr = neGarderQueChampsEnvoyes(corpsBrut, entreeParsee);
     return this.acces.enTenant(ctx, async (tx) => {
       const or = await chargerOrPourEcriture(tx, ctx, orId);
       this.garantirNonVerrouille(or, orId);

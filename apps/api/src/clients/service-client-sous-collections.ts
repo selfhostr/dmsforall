@@ -38,7 +38,7 @@ import {
   encoderCurseurTrie,
   valeurCurseurTimestamptz,
 } from '../common/pagination';
-import { PipeZod } from '../common/validation';
+import { neGarderQueChampsEnvoyes, PipeZod } from '../common/validation';
 
 import type { AuteurNote } from './mappers';
 import {
@@ -87,31 +87,10 @@ function estViolation(erreur: unknown, sqlstate: string, contrainte?: string): b
   return false;
 }
 
-/**
- * F-01-bis (constaté en reproduction du 10.08, en creusant le F-01 de l'audit du 28.07) : ne
- * retient d'un objet zod-parsé QUE les clés réellement présentes dans le corps brut envoyé par le
- * client.
- *
- * `schemaModificationAdresseClient` (`@dfa/shared`) est un `schemaAdresseClientBase.partial()` —
- * mais `.partial()` rend une clé OPTIONNELLE, il n'annule PAS un `.default(...)` posé sur cette
- * même clé dans la base (`pays: schemaCodePays.default('CH')`). Résultat vérifié en exécution
- * réelle : un `PATCH` qui ne mentionne JAMAIS `pays` (y compris `{}`, y compris un `PATCH
- * { localite: … }` qui ne touche que la localité) ressort du `parse` zod avec `pays: 'CH'` posé
- * malgré tout. Sans ce filtre, ce `'CH'` fantôme est écrit tel quel en base : une adresse
- * étrangère au NPA homographe du format suisse (Autriche, NPA à 4 chiffres — ex. `1010` Wien)
- * bascule silencieusement en `pays: 'CH'` sur un simple `PATCH { localite: 'Linz-Zentrum' }`,
- * `200`, aucune erreur. Reproduit contre l'API réelle avant ce correctif.
- *
- * Filtrer par présence dans le corps brut restaure l'intention du code appelant (`'npa' in
- * entree`, `'pays' in entree`) : ces tests ne redeviennent fiables que si `entree` ne contient que
- * ce que le client a RÉELLEMENT envoyé.
- */
-function neGarderQueChampsEnvoyes<T extends Record<string, unknown>>(
-  corpsBrut: Readonly<Record<string, unknown>>,
-  entreeParsee: T,
-): T {
-  return Object.fromEntries(Object.entries(entreeParsee).filter(([cle]) => cle in corpsBrut)) as T;
-}
+// `neGarderQueChampsEnvoyes` (F-01-bis, ce correctif est né sur ce fichier) a été promue en
+// utilitaire partagé : voir `common/validation/champs-envoyes.ts` pour le mécanisme zod
+// `.partial()` + `.default(...)` et le cas réel (adresse autrichienne basculée en `pays: 'CH'`)
+// qui l'a révélé.
 
 /**
  * Curseur v2 (`creeLe:desc`, seul tri des cinq sous-collections — aucune n'expose de `tri`
