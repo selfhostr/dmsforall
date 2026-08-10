@@ -292,6 +292,9 @@
   },
   "liste": {
     "titre": "Ordini di riparazione",
+    "actions": {
+      "nouveau": "Nuovo OR"
+    },
     "colonnes": {
       "numero": "N. ordine",
       "vehicule": "Veicolo",

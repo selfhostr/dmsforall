@@ -1,6 +1,7 @@
+import { Plus } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import {
   STATUTS_ORDRE_REPARATION,
@@ -11,6 +12,7 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -31,8 +33,11 @@ import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { peutCreerOrdreReparation } from '@/ecrans/atelier/droits';
 import { useListeOrdresReparation } from '@/hooks/atelier/useListeOrdresReparation';
+import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
+import { chemins } from '@/routes/chemins';
 
 const DELAI_DEBOUNCE_MS = 300;
 
@@ -88,6 +93,16 @@ export function EcranListeOrdresReparation() {
   // deux onglets sur deux sites différents ne doivent pas se contredire.
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
+
+  // CORRECTIF issue #47 : cet écran n'avait aucun bouton de création — le geste le plus fréquent
+  // du comptoir (`EcranNouvelOrdreReparation.tsx`) n'était atteignable que depuis la fiche d'un
+  // client ou d'un véhicule. Gardé par `atelier.or.creer` (défensif d'ergonomie, voir
+  // `ecrans/atelier/droits.ts` — le serveur reste l'arbitre final) : `vendeur`/`technicien`/
+  // `magasinier`/`comptable`/`poste_atelier` ne le voient pas. Sans `clientId` dans le lien : la
+  // liste ne porte pas de client précis, `EcranNouvelOrdreReparation` gère déjà cette absence en
+  // renvoyant vers `/recherche` (état « Client non sélectionné »).
+  const session = useSession();
+  const peutCreer = peutCreerOrdreReparation(session.data?.utilisateur.role);
 
   const [qSaisie, setQSaisie] = useState('');
   const [q, setQ] = useState('');
@@ -168,6 +183,18 @@ export function EcranListeOrdresReparation() {
     },
   ];
 
+  // Même bouton dans la barre d'actions (persistant) et dans l'état vide « premier usage »
+  // (`EtatVidePremierUsage.action`) — même patron que `EcranListeVehicules.tsx`. Absent des deux
+  // s'il n'y a rien à créer OU si le rôle courant n'a pas `atelier.or.creer`.
+  const boutonNouveauOr = peutCreer ? (
+    <Button asChild>
+      <Link to={chemins.atelier.ordresReparation.nouveau(site)}>
+        <Plus aria-hidden className="h-4 w-4" />
+        {t('or:liste.actions.nouveau')}
+      </Link>
+    </Button>
+  ) : undefined;
+
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
     contenuVide = (
@@ -186,6 +213,7 @@ export function EcranListeOrdresReparation() {
       <EtatVidePremierUsage
         titre={t('or:liste.titre')}
         description={t('or:liste.vide.premierUsage')}
+        action={boutonNouveauOr}
       />
     );
   }
@@ -219,6 +247,10 @@ export function EcranListeOrdresReparation() {
           d'écran et la structure du document, mais n'ajoute rien visuellement à côté de la barre
           d'onglets déjà en surbrillance. */}
       <h1 className="sr-only">{t('or:liste.titre')}</h1>
+
+      {boutonNouveauOr ? (
+        <div className="flex items-center justify-end gap-4">{boutonNouveauOr}</div>
+      ) : null}
 
       <BarreFiltres
         q={qSaisie}

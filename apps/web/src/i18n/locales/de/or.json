@@ -292,6 +292,9 @@
   },
   "liste": {
     "titre": "Reparaturaufträge",
+    "actions": {
+      "nouveau": "Neuer RA"
+    },
     "colonnes": {
       "numero": "RA-Nr.",
       "vehicule": "Fahrzeug",

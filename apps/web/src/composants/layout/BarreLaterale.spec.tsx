@@ -260,7 +260,13 @@ describe('BarreLaterale — entrée active', () => {
 
     const actif = await screen.findByRole('link', { name: /clients & véhicules/i });
     expect(actif).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: /^atelier$/i })).not.toHaveAttribute('aria-current');
+    // `findByRole`, pas `getByRole` : depuis le correctif de l'issue #46 (`ordresReparation` porte
+    // désormais `roles: ROLES_LECTURE_OR`), Atelier est une entrée GOUVERNÉE comme les autres —
+    // elle n'apparaît plus forcément dans le même tick que « Clients & véhicules » (restée, elle,
+    // sans restriction). Attendre son apparition, pas seulement son état une fois affichée.
+    expect(await screen.findByRole('link', { name: /^atelier$/i })).not.toHaveAttribute(
+      'aria-current',
+    );
   });
 
   /**
@@ -380,7 +386,7 @@ describe('BarreLaterale — masquage par rôle', () => {
   /**
    * `poste_atelier` est un APPAREIL, pas un employé (§2, « aucun menu, aucun en-tête, aucune
    * recherche »). Filtrer entrée par entrée aurait laissé passer celles sans restriction de rôle
-   * (Clients & véhicules, Ordres de réparation) et remis un menu sur une tablette murale.
+   * (Clients & véhicules) et remis un menu sur une tablette murale.
    */
   it('poste_atelier (borne murale) : aucune entrée du tout', async () => {
     connecte('poste_atelier');
@@ -394,14 +400,20 @@ describe('BarreLaterale — masquage par rôle', () => {
   /**
    * Session non encore résolue : les entrées SANS restriction de rôle s'affichent, les entrées
    * gouvernées apparaissent ensuite — jamais l'inverse. Le menu s'enrichit, il ne clignote pas.
+   *
+   * CORRECTIF issue #46 : `Atelier` a rejoint les entrées GOUVERNÉES (ses trois onglets —
+   * Ordres de réparation, Pointage, Dépôt pneus — portent désormais tous une restriction de rôle ;
+   * `ordresReparation` ne fait plus exception, `vendeur` n'a pas `atelier.or.lire`). Elle
+   * n'apparaît donc plus AVANT la résolution de la session, comme `Pièces` : c'est le prix correct
+   * d'un menu qui ne propose plus une destination qui martelait un 403 permanent pour `vendeur`.
    */
   it('sans session : les entrées gouvernées restent absentes, les autres sont déjà là', async () => {
     rendre('/');
 
     await waitFor(() => {
       expect(screen.queryByRole('link', { name: /^pièces$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /^atelier$/i })).not.toBeInTheDocument();
     });
-    expect(screen.getByRole('link', { name: /^atelier$/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /clients & véhicules/i })).toBeInTheDocument();
     // Réglages reste proposé : « Tarifs et prestations » est ouvert à tout rôle authentifié
     // (outil de comptoir — voir droits-routes.ts, l'absence de restriction EST la décision).
@@ -509,10 +521,11 @@ describe('BarreLaterale — repli desktop', () => {
     connecte('direction');
     rendreAvecRepli('/', true);
 
-    // Attendre une entrée GOUVERNÉE (comme le reste du fichier) : « Atelier » n'a aucune
-    // restriction de rôle et apparaîtrait avant que la session (et donc les entrées Pièces/
-    // Facturation/Ventes) ait fini de se résoudre — un `getAllByRole` immédiatement après aurait
-    // compté un menu encore partiel.
+    // Attendre une entrée GOUVERNÉE avant d'interroger le reste : `direction` a droit à tout, donc
+    // Pièces/Facturation/Ventes/Atelier apparaissent tous au même tick une fois la session résolue
+    // (depuis le correctif de l'issue #46, Atelier EST gouvernée elle aussi — voir
+    // `navigation-modele.ts`, `ROLES_LECTURE_OR`) — un `getAllByRole` avant cette résolution
+    // aurait compté un menu encore partiel.
     const pieces = await screen.findByRole('link', { name: /^pièces$/i });
     expect(pieces).toHaveAccessibleName('Pièces');
     const atelier = screen.getByRole('link', { name: /^atelier$/i });

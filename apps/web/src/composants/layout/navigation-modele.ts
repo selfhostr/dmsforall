@@ -138,10 +138,36 @@ function avecVueEquipe(chemin: string): string {
   return `${chemin}${chemin.includes('?') ? '&' : '?'}vue=equipe`;
 }
 
+/**
+ * Lecture de l'OR (`atelier.or.lire`, `apps/api/src/auth/matrice-droits.ts` — constante `LECTURE_OR`,
+ * DISTINCTE de `LECTURE_ETENDUE` qui ne couvre que paramétrage/clients/véhicules/recherche) :
+ * accordée à tous les rôles opérationnels de l'atelier, SAUF `vendeur` — seul des huit rôles de
+ * personne à ne pas l'avoir (`DROITS_VENDEUR`, hors flux du lot 1). `poste_atelier` la reçoit aussi
+ * (`DROITS_POSTE_ATELIER`), sans effet pratique ici : la borne murale ne rend de toute façon aucun
+ * onglet (`estCompteAppareil`, plus bas dans ce fichier) — mais la liste reste fidèle au droit réel
+ * plutôt que de l'omettre par convention de menu.
+ *
+ * CORRECTIF issue #46 : cet onglet ne portait aucune restriction, avec un commentaire qui confondait
+ * `LECTURE_OR` et `LECTURE_ETENDUE` (deux constantes distinctes de la matrice) et n'avait pas
+ * remarqué l'exclusion explicite de `vendeur` trois lignes plus haut dans le même fichier qu'il
+ * citait. Un `vendeur` connecté voyait donc l'onglet, cliquait, et l'écran martelait
+ * `GET /ordres-reparation` en 403 quatre fois en dix secondes avant de se stabiliser sur un message
+ * de refus — voir aussi `useListeOrdresReparation.ts` pour le second correctif (arrêt du réessai).
+ */
+const ROLES_LECTURE_OR: readonly RoleUtilisateur[] = [
+  'admin',
+  'direction',
+  'receptionnaire',
+  'chef_atelier',
+  'technicien',
+  'magasinier',
+  'comptable',
+  'poste_atelier',
+];
+
 const ONGLETS_ATELIER: readonly OngletDomaine[] = [
   /**
-   * Aucune restriction de rôle : `atelier.or.lire` est ouvert à tout rôle authentifié
-   * (`LECTURE_ETENDUE`), et la route `/ordres-reparation` ne pose déjà aucun `rolesAutorises`.
+   * Restreint à `ROLES_LECTURE_OR` ci-dessus (issue #46) — `vendeur` n'a pas `atelier.or.lire`.
    * Trois motifs — la ressource vit sous `/ordres-reparation` SAUF sa route de création, restée
    * sous `/atelier/ordres-reparation/nouveau` (repris du design, cf. `routeur.tsx`) : sans ce
    * second motif, l'écran de création serait le seul écran d'atelier sans onglet actif.
@@ -151,6 +177,7 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
     cleLibelle: 'navigation:onglets.atelierOrdresReparation',
     chemin: (site) => chemins.atelier.ordresReparation.liste(site),
     motifs: ['/ordres-reparation', '/atelier/ordres-reparation'],
+    roles: ROLES_LECTURE_OR,
   },
   /**
    * Pointage — CINQ vues, dont la borne. « Clôture de période » N'EST PLUS un écran autonome
