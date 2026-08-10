@@ -209,6 +209,7 @@ export class PointageController {
   }
 
   @Post(':id/arreter')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.pointage.arreter')
   @ApiOperation({
     summary:
@@ -243,6 +244,7 @@ export class PointageController {
   }
 
   @Post(':id/corriger')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.pointage.corriger_autrui')
   @ApiOperation({
     summary:
