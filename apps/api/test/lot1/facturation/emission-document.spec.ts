@@ -208,6 +208,54 @@ async function lire(tenant: DonneesLot1Tenant, role: RoleUtilisateur, documentId
   };
 }
 
+/** Même remarque que `emettre()` ci-dessus : AUCUN `.send()`, donc AUCUN corps — reproduit un
+ *  appel réel à `POST .../accepter`. */
+async function accepter(tenant: DonneesLot1Tenant, role: RoleUtilisateur, documentId: string) {
+  const cookie = await cookiePour(tenant, role);
+  return ctx.requete
+    .post(`/api/v1/documents-vente/${documentId}/accepter`)
+    .set('Origin', ctx.config.WEB_URL_PUBLIQUE)
+    .set('Cookie', cookie);
+}
+
+// =================================================================================================
+// 0. Corps de requête ABSENT — compatibilité ascendante (régression CI du 10.08.2026)
+// =================================================================================================
+//
+// `emettre()`/`accepter()` ci-dessus n'envoient JAMAIS de corps (`.send()` n'apparaît dans aucune
+// des deux) — c'est le comportement de TOUT appelant existant avant l'ajout de `confirmations` à
+// ces deux endpoints, y compris notre propre front (`useEmettreDocumentVente.ts`) et tout
+// connecteur tiers. `schemaEmissionDocumentVente`/`schemaAccepterDevis` n'ont AUCUN champ
+// obligatoire, mais `z.object(...)` refuse `undefined` À LA RACINE même quand toutes ses
+// propriétés sont optionnelles : brancher `@CorpsZod` sans rendre le corps LUI-MÊME optionnel a
+// fait rendre `400 VALIDATION_ECHOUEE` à CHAQUE test de ce fichier — sans qu'aucun test unitaire
+// (qui ne passe jamais par la vraie couche HTTP Express/Nest) ne puisse le voir, exactement le
+// piège documenté dans CONTRIBUTING.md (« un test qui simule la couche réseau ne prouve rien sur le
+// serveur »). Ce bloc isole la preuve, à part de toute logique de droit ou d'état, pour qu'une
+// régression future rougisse ICI EN PREMIER, avec un message sans ambiguïté.
+
+describe('émission/acceptation — corps de requête absent (rétrocompatibilité)', () => {
+  it('POST .../emettre SANS corps rend 200 (émission d’un devis brouillon valide)', async () => {
+    const devis = await creerBrouillon(garage.tenantA, 'receptionnaire', 'devis');
+
+    const reponse = await emettre(garage.tenantA, 'receptionnaire', devis.id);
+
+    expect(reponse.status).toBe(200);
+    expect((reponse.body as { donnees: DocumentDeTest }).donnees.statut).toBe('emis');
+  });
+
+  it('POST .../accepter SANS corps rend 200 (devis déjà émis)', async () => {
+    const devis = await creerBrouillon(garage.tenantA, 'receptionnaire', 'devis');
+    const emis = await emettre(garage.tenantA, 'receptionnaire', devis.id);
+    expect(emis.status).toBe(200);
+
+    const reponse = await accepter(garage.tenantA, 'receptionnaire', devis.id);
+
+    expect(reponse.status).toBe(200);
+    expect((reponse.body as { donnees: DocumentDeTest }).donnees.statut).toBe('accepte');
+  });
+});
+
 // =================================================================================================
 // 1. Contrôle de droit dynamique à l'émission (RF-114) — verifierDroitEmission()
 // =================================================================================================

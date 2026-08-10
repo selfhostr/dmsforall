@@ -45,6 +45,27 @@ import { ServiceEmissionDocument } from './service-emission';
 const EnveloppeDocumentVenteDto = EnveloppeDocumentDto(ReponseDocumentVenteDto, 'DocumentVente');
 
 /**
+ * `schemaEmissionDocumentVente`/`schemaAccepterDevis` (`@dfa/shared`) n'imposent AUCUN champ — seul
+ * `confirmations` existe, et il est optionnel. Mais `z.object(...)` refuse `undefined` À LA RACINE
+ * même quand toutes ses propriétés le sont : Express ne construit `req.body` QUE s'il reconnaît le
+ * `Content-Type` de la requête, donc un appelant qui n'envoie AUCUN corps — notre propre front,
+ * tout connecteur tiers, et le SEUL appel possible sur ces deux routes avant l'ajout de
+ * `confirmations` — livre `undefined`, pas `{}`. Régression constatée : `POST .../emettre` et
+ * `POST .../accepter` rendaient `400 VALIDATION_ECHOUEE` (« (racine) : expected object, received
+ * undefined ») pour tout appelant existant, sur le point de non-retour de la chaîne documentaire —
+ * rupture de compatibilité ascendante (règle non négociable du dépôt).
+ *
+ * `.optional()` rend le CORPS ENTIER facultatif : absent -> `entree === undefined`, transmis tel
+ * quel aux services `ServiceEmissionDocument.emettre`/`.accepter`, dont le paramètre `entree`
+ * porte déjà `= {}` en valeur par défaut (`service-emission.ts`) — un `undefined` explicite
+ * déclenche ce défaut exactement comme un argument omis, comportement déjà couvert par
+ * `service-emission-confirmations.spec.ts` (« appel à 4 arguments (entree absent) »). Corps
+ * envoyé (`{}` ou `{ confirmations: [...] }`) continue de passer par la validation normale.
+ */
+const schemaEmissionDocumentVenteCorpsOptionnel = schemaEmissionDocumentVente.optional();
+const schemaAccepterDevisCorpsOptionnel = schemaAccepterDevis.optional();
+
+/**
  * Transitions de la chaîne documentaire — émission (`RF-5`, `RF-10`, `RF-22`→`RF-28`), acceptation/
  * refus/annulation, et création d'avoir (`RF-11`→`RF-18`). Découpage par sous-domaine, même
  * organisation que `atelier/ordre-reparation-transitions.controller.ts`.
@@ -86,7 +107,8 @@ export class DocumentVenteTransitionsController {
   )
   async emettre(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,
-    @CorpsZod(schemaEmissionDocumentVente, { exemple: {} }) entree: EntreeEmissionDocumentVente,
+    @CorpsZod(schemaEmissionDocumentVenteCorpsOptionnel, { exemple: {} })
+    entree: EntreeEmissionDocumentVente | undefined,
     @Headers(EN_TETE_IDEMPOTENCE.toLowerCase()) cleIdempotence: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ): Promise<unknown> {
@@ -101,6 +123,7 @@ export class DocumentVenteTransitionsController {
   }
 
   @Post(':id/accepter')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('facturation.document.transitionner')
   @ApiOperation({ summary: 'Acceptation — devis uniquement (devis.emis → accepte, terminal).' })
   @ApiParam({ name: 'id', format: 'uuid' })
@@ -112,7 +135,7 @@ export class DocumentVenteTransitionsController {
   @ApiReponseProbleme(409, 'DOCUMENT_TRANSITION_INTERDITE.')
   async accepter(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,
-    @CorpsZod(schemaAccepterDevis, { exemple: {} }) _entree: unknown,
+    @CorpsZod(schemaAccepterDevisCorpsOptionnel, { exemple: {} }) _entree: unknown,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
@@ -120,6 +143,7 @@ export class DocumentVenteTransitionsController {
   }
 
   @Post(':id/refuser')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('facturation.document.transitionner')
   @ApiOperation({ summary: 'Refus — devis ou bon de commande.' })
   @ApiParam({ name: 'id', format: 'uuid' })
@@ -140,6 +164,7 @@ export class DocumentVenteTransitionsController {
   }
 
   @Post(':id/annuler')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('facturation.document.transitionner')
   @ApiOperation({ summary: 'Annulation — bon de commande uniquement, motif obligatoire.' })
   @ApiParam({ name: 'id', format: 'uuid' })
