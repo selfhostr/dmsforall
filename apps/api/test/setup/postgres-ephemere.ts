@@ -237,10 +237,20 @@ export async function appliquerMigrationsDown(client: Client): Promise<void> {
 // n'ont `pg_dump` d'installé, alors que le conteneur l'a garanti.
 // -------------------------------------------------------------------------------------------
 
+/** Chemin du dump à l'intérieur du conteneur. Réutilisé d'un appel à l'autre (`migrations.spec.ts`
+ *  appelle `dumperSchema` deux fois, jamais en parallèle) — chaque appel écrase le précédent. */
+const CHEMIN_DUMP_DANS_CONTENEUR = '/tmp/dfa-schema-dump.sql';
+
 export async function dumperSchema(
   conteneur: StartedPostgreSqlContainer,
   roleMigrateur: IdentifiantsRole,
 ): Promise<string> {
+  // `pg_dump -f <fichier>` écrit DANS le conteneur plutôt que sur stdout : le contenu du dump
+  // (qui peut contenir des commentaires accentués, ex. compteur_document) ne transite donc
+  // JAMAIS par le flux `exec` de testcontainers. C'est volontaire, voir la note de
+  // `lireFichierDepuisConteneur` ci-dessous pour la raison précise. Seuls exitCode/stderr
+  // (courts, ASCII en pratique) transitent encore par `exec` — sans impact sur l'exactitude du
+  // schéma comparé, qui est tout ce que ce test vérifie.
   const resultat = await conteneur.exec(
     [
       'pg_dump',
@@ -251,21 +261,99 @@ export async function dumperSchema(
       roleMigrateur.utilisateur,
       '-d',
       NOM_BASE,
+      '-f',
+      CHEMIN_DUMP_DANS_CONTENEUR,
     ],
     { env: { PGPASSWORD: roleMigrateur.motDePasse } },
   );
   const codeSortie = (resultat as { exitCode?: number }).exitCode;
   const sortieErreur = (resultat as { stderr?: string }).stderr ?? '';
-  const sortieStandard =
-    (resultat as { stdout?: string; output?: string }).stdout ??
-    (resultat as { output?: string }).output ??
-    '';
   if (codeSortie !== undefined && codeSortie !== 0) {
+    throw new Error(`pg_dump a échoué dans le conteneur (code ${codeSortie}) : ${sortieErreur}`);
+  }
+  const contenuBrut = await lireFichierDepuisConteneur(conteneur, CHEMIN_DUMP_DANS_CONTENEUR);
+  return normaliserDumpSchema(contenuBrut.toString('utf8'));
+}
+
+/**
+ * Rapatrie un fichier du conteneur en octets bruts, sans jamais passer par `conteneur.exec()`.
+ *
+ * Cause du bug corrigé ici (constaté sur `test/integration/migrations.spec.ts`, intermittent —
+ * 1 échec sur ~3 selon le diagnostic) : `testcontainers@10.28.0`
+ * (`container-runtime/clients/container/docker-container-client.js:206-208`) décode CHAQUE
+ * fragment du flux `exec` en UTF-8 séparément (`chunk.toString()`) avant de les concaténer.
+ * Quand un caractère multi-octets (ex. `é` = `C3 A9`) tombe pile sur la frontière entre deux
+ * événements `data`, chaque moitié se décode seule et se corrompt individuellement — d'où la
+ * signature observée : DEUX caractères de remplacement U+FFFD (`EF BF BD EF BF BD`) pour un seul
+ * caractère source. Mécanisme reproduit et confirmé à l'identique par
+ * `scratchpad/preuve-mecanisme.mjs` (accessible dans les preuves de la tâche). Le bug est dans la
+ * dépendance, pas dans nos migrations ni dans le schéma : il ne dépend que du hasard du
+ * découpage réseau du flux `exec`, jamais du contenu SQL lui-même.
+ *
+ * `conteneur.exec(['cat', chemin])` ne serait PAS un correctif : ce serait le même flux `exec`
+ * de testcontainers, donc exactement le même risque de coupure — seul le contenu transporté
+ * changerait. La voie qui évite réellement le bug est `copyArchiveFromContainer`, qui restitue
+ * l'archive tar TELLE QUELLE (flux brut de dockerode, `getArchive`, jamais passé par
+ * `chunk.toString()`) : on accumule les fragments en `Buffer` (jamais en `string`) et on ne
+ * décode qu'UNE SEULE FOIS, sur le buffer complet — la coupure ne peut alors plus se produire,
+ * quelle que soit la façon dont le réseau a fragmenté le flux.
+ */
+async function lireFichierDepuisConteneur(
+  conteneur: StartedPostgreSqlContainer,
+  cheminFichier: string,
+): Promise<Buffer> {
+  // `NodeJS.ReadableStream` type son itérateur asynchrone en `any` (voir @types/node) : rien ne
+  // garantit STATIQUEMENT que les fragments sont des `Buffer`. On l'a vérifié en exécution
+  // (flux tar de `docker.getArchive()`, jamais reconfiguré en mode "objet"/texte) ; le contrôle
+  // ci-dessous transforme une éventuelle rupture de cette hypothèse en échec immédiat et clair,
+  // plutôt qu'en décodage silencieusement faux — exactement l'erreur que ce correctif corrige.
+  const flux = (await conteneur.copyArchiveFromContainer(
+    cheminFichier,
+  )) as unknown as AsyncIterable<unknown>;
+  const fragments: Buffer[] = [];
+  for await (const fragment of flux) {
+    if (!Buffer.isBuffer(fragment)) {
+      throw new Error(
+        `Fragment inattendu du flux d'archive tar (${cheminFichier}) : ${typeof fragment} au ` +
+          `lieu de Buffer. testcontainers a peut-être changé de comportement — revoir ce parseur ` +
+          `avant de décoder du texte multi-octets à partir de ce flux.`,
+      );
+    }
+    fragments.push(fragment);
+  }
+  return extraireFichierUniqueDeTar(Buffer.concat(fragments));
+}
+
+/**
+ * Parseur tar volontairement minimal, restreint au seul cas produit par
+ * `copyArchiveFromContainer` d'un chemin de FICHIER (jamais un répertoire) : l'archive `ustar`
+ * rendue par `docker.getArchive()` ne contient alors qu'une seule entrée, ce fichier. On lit son
+ * en-tête à l'offset 0 (format ustar, POSIX 1003.1-1990 §10.1 — le champ taille, octal ASCII,
+ * occupe les octets 124 à 135), puis on retourne exactement ce nombre d'octets de contenu. Ce
+ * n'est délibérément PAS un parseur tar généraliste (pas d'entrées multiples, pas de liens, pas
+ * de format GNU étendu pour les noms longs) : ajouter ce support serait une source de bugs pour
+ * un besoin qui ne se présente jamais ici.
+ */
+function extraireFichierUniqueDeTar(archive: Buffer): Buffer {
+  const TAILLE_ENTETE = 512;
+  if (archive.length < TAILLE_ENTETE) {
     throw new Error(
-      `pg_dump a échoué dans le conteneur (code ${codeSortie}) : ${sortieErreur || sortieStandard}`,
+      `Archive tar trop courte pour contenir un en-tête ustar (${archive.length} octets reçus).`,
     );
   }
-  return normaliserDumpSchema(sortieStandard);
+  const champTaille = archive.subarray(124, 136).toString('ascii').replace(/\0/g, ' ').trim();
+  const taille = parseInt(champTaille, 8);
+  if (!Number.isFinite(taille) || taille < 0) {
+    throw new Error(`Champ de taille tar illisible dans l'en-tête ustar : "${champTaille}".`);
+  }
+  const debutContenu = TAILLE_ENTETE;
+  if (archive.length < debutContenu + taille) {
+    throw new Error(
+      `Archive tar tronquée : l'en-tête annonce ${taille} octets de contenu, seulement ` +
+        `${archive.length - debutContenu} sont disponibles.`,
+    );
+  }
+  return archive.subarray(debutContenu, debutContenu + taille);
 }
 
 /** Retire tout ce qui peut varier sans que le SCHÉMA lui-même ait changé (commentaires,
