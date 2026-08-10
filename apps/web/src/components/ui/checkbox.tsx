@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 // API composée standard shadcn (`checked`/`onCheckedChange`), à la différence de l'ancienne
 // implémentation sur <input type="checkbox"> natif (voir docs/design-comptoir.md §3) :
-// changement d'appel assumé, aucun écran consommateur à ce jour.
+// changement d'appel assumé, documenté comme tel dans ce même document.
 //
 // La racine Radix (un <button role="checkbox">) est elle-même la cible tactile 44x44 — la case
 // visuelle 20x20 est un enfant centré dedans, stylé par l'attribut `data-state` posé par Radix

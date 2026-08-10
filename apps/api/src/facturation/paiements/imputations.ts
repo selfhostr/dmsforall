@@ -20,6 +20,20 @@ import { verifierArrondiEspeces } from './arrondi-especes';
 import { chargerArrondiEspecesActif, chargerDocumentPourEcriture } from './paiement-requetes';
 
 /**
+ * Formatage suisse d'un montant en centimes : 123456 → "1'234.56" pour la présentation au
+ * garagiste dans les messages d'erreur.
+ */
+function formaterMontantCentimes(centimes: number | bigint): string {
+  const num = typeof centimes === 'bigint' ? Number(centimes) : centimes;
+  const negatif = num < 0;
+  const absolu = Math.abs(num);
+  const entiers = Math.floor(absolu / 100);
+  const centimesRestants = String(absolu % 100).padStart(2, '0');
+  const entiersGroupes = entiers.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+  return `${negatif ? '-' : ''}${entiersGroupes}.${centimesRestants}`;
+}
+
+/**
  * Natures d'imputation acceptées par les endpoints GÉNÉRIQUES de lettrage (`POST /paiements` en
  * ligne, `POST /paiements/{id}/imputations`) — PAS les cinq de `NATURES_IMPUTATION` en entier.
  *
@@ -286,9 +300,7 @@ function verifierPaiementImputable(
   if (paiementLigne.montantCentimes <= 0n) {
     throw new ErreurMetier(
       'IMPUTATION_MONTANT_EXCEDENTAIRE',
-      `Le paiement ${paiementLigne.id} a un montant non positif ` +
-        `(${paiementLigne.montantCentimes.toString()} ct) — c'est un remboursement ou une écriture ` +
-        'nulle, il ne peut recevoir aucune imputation (MD-51.b, MD-57).',
+      `Le paiement ${paiementLigne.id} a un montant non positif (CHF ${formaterMontantCentimes(paiementLigne.montantCentimes)}) — c'est un remboursement ou une écriture nulle, aucune imputation n'est possible.`,
       {
         detail: `paiement_id=${paiementLigne.id};montant_centimes=${paiementLigne.montantCentimes.toString()}`,
       },
@@ -377,7 +389,7 @@ export async function appliquerImputationsLettrage(
     if (sommeReglement > restantAvant) {
       throw new ErreurMetier(
         'IMPUTATION_MONTANT_EXCEDENTAIRE',
-        `La somme des imputations dépasse le solde restant du document ${documentId} (MD-51.a).`,
+        `La somme des imputations (CHF ${formaterMontantCentimes(sommeReglement)}) dépasse le solde restant du document (CHF ${formaterMontantCentimes(restantAvant)}).`,
         {
           detail: `document_id=${documentId};restant=${restantAvant.toString()};demande=${sommeReglement.toString()}`,
         },
@@ -464,7 +476,7 @@ export async function appliquerCompensationAvance(
   if (BigInt(montantCentimes) > restantAvant) {
     throw new ErreurMetier(
       'IMPUTATION_MONTANT_EXCEDENTAIRE',
-      `La compensation demandée dépasse le solde restant du document de régularisation ${documentRegularisationId} (MD-51.a).`,
+      `La compensation demandée (CHF ${formaterMontantCentimes(montantCentimes)}) dépasse le solde restant du document (CHF ${formaterMontantCentimes(restantAvant)}).`,
       {
         detail: `document_id=${documentRegularisationId};restant=${restantAvant.toString()};demande=${montantCentimes}`,
       },

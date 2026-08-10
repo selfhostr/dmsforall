@@ -1,6 +1,7 @@
 {
   "titre": "Fahrzeuge",
   "nouveau": "Neues Fahrzeug",
+  "nouveauPourClient": "Dieses Fahrzeug wird {nom} zugeordnet.",
   "creer": "Fahrzeug erstellen",
   "liste": {
     "titre": "Fahrzeuge",
@@ -94,12 +95,24 @@
     "detenteur": "Aktueller Halter",
     "historique": "Halter-Verlauf",
     "changer": "Halter ändern",
+    "rattacher": "Einem Kunden zuordnen",
     "motifs": {
       "vente": "Verkauf",
       "reprise": "Rücknahme",
       "deces": "Todesfall",
       "correction": "Berichtigung",
       "export": "Export"
+    },
+    "dialogue": {
+      "titreRattacher": "Dieses Fahrzeug einem Kunden zuordnen",
+      "titreChanger": "Halter dieses Fahrzeugs ändern",
+      "detenteurActuelLabel": "Aktueller Halter",
+      "clientLabel": "Kunde",
+      "rechercherPlaceholder": "Name, Kundennummer…",
+      "aucunClient": "Kein Kunde gefunden.",
+      "dateLabel": "Ab dem",
+      "motifLabel": "Grund des Halterwechsels",
+      "modifierSelection": "Ändern"
     }
   },
   "kilometrage": {

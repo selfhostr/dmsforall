@@ -1,3 +1,4 @@
+import { schemaModificationPrestation } from '@dfa/shared';
 import { describe, expect, it, vi } from 'vitest';
 import type { AccesBase, ContexteTenant } from '../../../db';
 import { schema } from '../../../db';
@@ -54,7 +55,18 @@ interface OptionsAcces {
   readonly ligneSelectUnitaire?: schema.LignePrestation | undefined;
 }
 
-function accesFactice(options: OptionsAcces, journal: string[] = []): AccesBase {
+/** Reçoit, si fourni, les colonnes exactes passées à `.update(schema.prestation).set(...)` —
+ *  seul moyen d'observer depuis le test ce que le service a réellement tenté d'écrire (le mock
+ *  `update` ci-dessous ignorait jusqu'ici l'argument de `.set()`). */
+interface CaptureEcriture {
+  colonnesPrestation?: Record<string, unknown>;
+}
+
+function accesFactice(
+  options: OptionsAcces,
+  journal: string[] = [],
+  capture: CaptureEcriture = {},
+): AccesBase {
   const tx = {
     select: () => ({
       from: (table: unknown) => ({
@@ -99,9 +111,10 @@ function accesFactice(options: OptionsAcces, journal: string[] = []): AccesBase 
       },
     }),
     update: (table: unknown) => ({
-      set: () => ({
+      set: (colonnes: Record<string, unknown>) => ({
         where: () => {
           if (table === schema.prestation) {
+            capture.colonnesPrestation = colonnes;
             return {
               returning: () =>
                 Promise.resolve(options.lignePrestationMaj ? [options.lignePrestationMaj] : []),
@@ -314,6 +327,76 @@ describe('ServicePrestations.modifier', () => {
     );
     const dto = await service.modifier(CTX, 'pr-1', { actif: false });
     expect(dto.prixCentimes).toBe(19500);
+  });
+
+  // F-01-ter : `schemaModificationPrestation` dérive de `schemaCreationPrestation.partial()`, et
+  // `tauxTvaPourmille` y porte `schemaPourmille.default(81)`. `.partial()` (zod) rend la clé
+  // OPTIONNELLE, il n'annule PAS son `.default(...)` — un `PATCH` qui ne mentionne jamais
+  // `tauxTvaPourmille` ressort quand même du `.parse()` avec `tauxTvaPourmille: 81` injecté.
+  // Même mécanisme que `pays: 'CH'` sur les adresses clients (`common/validation/champs-envoyes.ts`).
+  describe('F-01-ter : le PATCH ne doit jamais écraser tauxTvaPourmille par le défaut zod (81‰)', () => {
+    it('RÉVÈLE LE MÉCANISME zod : un corps qui ne mentionne QUE designationFr ressort du .parse() avec tauxTvaPourmille: 81 injecté', () => {
+      // Preuve isolée, indépendante du service : c'est CE comportement de zod qui, non filtré,
+      // corrompt la fiscalité d'une prestation taxée à 2.6% ou 3.8% au moindre renommage.
+      const entreeParsee = schemaModificationPrestation.parse({ designationFr: 'Nouveau nom' });
+      expect(entreeParsee).toStrictEqual({ designationFr: 'Nouveau nom', tauxTvaPourmille: 81 });
+    });
+
+    it('PATCH { designationFr } seul sur une prestation à 26‰ (taux réduit) : le taux réel doit rester 26‰ en base, jamais retomber à 81‰', async () => {
+      const journal: string[] = [];
+      const capture: CaptureEcriture = {};
+      const service = new ServicePrestations(
+        accesFactice(
+          {
+            // La ligne que Postgres RENDRAIT après l'UPDATE si le service n'écrivait QUE
+            // `designationFr` — c'est cette hypothèse (taux réduit préservé) que ce test vérifie.
+            lignePrestationMaj: prestationBrute({
+              designationFr: 'Nouveau nom',
+              tauxTvaPourmille: 26,
+            }),
+            lignesPrix: [],
+          },
+          journal,
+          capture,
+        ),
+        horlogeFigee(),
+      );
+
+      // Corps EXACTEMENT tel qu'un client HTTP l'enverrait — un `PATCH` qui ne parle que du
+      // libellé. `service.modifier` DOIT recevoir ce corps BRUT (jamais un objet déjà passé au
+      // travers de `schemaModificationPrestation.parse(...)`, qui y injecte `tauxTvaPourmille:
+      // 81` — voir le test précédent) et faire lui-même le tri entre « champ absent » et « champ
+      // valant le défaut ». C'est exactement le contrat que porte `prestations.controller.ts`
+      // après ce correctif (`@Body() corpsBrut: Record<string, unknown>`, plus de `@CorpsZod`
+      // sur cette route).
+      const dto = await service.modifier(CTX, 'pr-1', { designationFr: 'Nouveau nom' });
+
+      // Le cœur de la preuve : la colonne `tauxTvaPourmille` ne doit MÊME PAS apparaître dans les
+      // colonnes envoyées à l'UPDATE — un corps qui ne la mentionne pas ne doit toucher à rien.
+      expect(capture.colonnesPrestation).not.toHaveProperty('tauxTvaPourmille');
+      expect(dto.tauxTvaPourmille).toBe(26);
+    });
+
+    it('PATCH { tauxTvaPourmille: 81 } explicite reste appliqué (cas symétrique : envoyer la valeur du défaut doit continuer de fonctionner)', async () => {
+      const journal: string[] = [];
+      const capture: CaptureEcriture = {};
+      const service = new ServicePrestations(
+        accesFactice(
+          {
+            lignePrestationMaj: prestationBrute({ tauxTvaPourmille: 81 }),
+            lignesPrix: [],
+          },
+          journal,
+          capture,
+        ),
+        horlogeFigee(),
+      );
+
+      const dto = await service.modifier(CTX, 'pr-1', { tauxTvaPourmille: 81 });
+
+      expect(capture.colonnesPrestation).toMatchObject({ tauxTvaPourmille: 81 });
+      expect(dto.tauxTvaPourmille).toBe(81);
+    });
   });
 
   it('id introuvable : RESSOURCE_INTROUVABLE', async () => {

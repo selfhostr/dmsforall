@@ -12,7 +12,7 @@ import { schemaCodeConnecteur } from './primitives';
 import type { SanteConnecteurActivation } from './sante';
 import type { NatureExportConnecteur, NatureImportConnecteur } from './enums';
 import { schemaIdentifiant } from '../atelier/primitives';
-import { schemaListeQuery } from '../filtres';
+import { schemaBooleenQuery, schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 
 /* ------------------------------------------------------------------ */
@@ -56,7 +56,7 @@ export const TRI_DEFAUT_TYPES_CONNECTEUR = 'nom:asc';
 
 export const schemaFiltresTypesConnecteur = schemaParametresPage.extend({
   famille: schemaListeQuery(z.enum(FAMILLES_CONNECTEUR)).optional(),
-  disponible: z.coerce.boolean().optional(),
+  disponible: schemaBooleenQuery().optional(),
   tri: z.enum(TRIS_TYPES_CONNECTEUR).default(TRI_DEFAUT_TYPES_CONNECTEUR),
 });
 export type FiltresTypesConnecteur = z.infer<typeof schemaFiltresTypesConnecteur>;

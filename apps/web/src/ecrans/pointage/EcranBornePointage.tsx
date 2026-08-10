@@ -446,15 +446,22 @@ export function EcranBornePointage() {
 
   return (
     <div
-      className="flex min-h-[70vh] flex-col items-center justify-center gap-8"
+      // `.densite-tres-aeree` (index.css §Densités, « très aérée = pointage ») — SEUL écran du
+      // pointage à la porter : borne murale, consultée debout avec des gants, à distance, jamais
+      // assise devant un clavier. Les autres écrans du domaine (`EcranPointage` — journal/équipe,
+      // `DialogueCloturePeriode`) restent sur le repli `densite-dense` : poste de travail, chef
+      // d'atelier assis. Cascade par variables CSS custom properties sur toute la sous-arborescence
+      // en DOM réel (`PaveNumerique`, `CartePointageEnCours`) — aucune classe dupliquée côté
+      // enfants. EXCEPTION mesurée : `DialogueChoixCiblePointage` rend via un portail Radix (hors
+      // de cette sous-arborescence DOM) et reçoit donc `densite="tres-aeree"` explicitement plus
+      // bas, voir sa docstring.
+      className="densite-tres-aeree flex min-h-[70vh] flex-col items-center justify-center gap-8"
       onPointerDown={identifie ? reinitialiserInactivite : undefined}
     >
       {!identifie ? (
         <div className="flex flex-col items-center gap-6 text-center">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">
-              {t('pointage:identification.titre')}
-            </h1>
+            <h1 className="texte-titre-page">{t('pointage:identification.titre')}</h1>
             <p className="mt-2 texte-corps text-muted-foreground">
               {t('pointage:identification.saisisseCode')}
             </p>
@@ -493,7 +500,7 @@ export function EcranBornePointage() {
       ) : (
         <div className="flex w-full max-w-2xl flex-col gap-6">
           <div className="flex items-center justify-between gap-4">
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="texte-titre-page">
               {t('pointage:identification.bonjour', { prenom: identifie.prenom })}
             </h1>
             <Button
@@ -626,6 +633,7 @@ export function EcranBornePointage() {
             onChoisirLigne={handleChoisirLigne}
             onChoisirOrEntier={handleChoisirOrEntier}
             enDemarrage={demarrer.isPending}
+            densite="tres-aeree"
           />
         </div>
       )}

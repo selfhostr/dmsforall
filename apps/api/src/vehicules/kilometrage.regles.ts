@@ -6,9 +6,12 @@ import type { UniteDistance } from '@dfa/shared';
  * rejouer une arithmétique d'unité.
  *
  * `valeur_km` est en réalité une colonne GÉNÉRÉE en base (`round(valeur * 1.609344)::integer`,
- * voir `migrations/0007_vehicules.sql`) : cette fonction DOIT rester l'exacte réciproque de cette
- * expression SQL, sinon un relevé en mi comparerait un `valeurKm` applicatif différent de celui
- * persisté.
+ * voir `migrations/0007_vehicules.sql` lignes 312-313) : cette fonction DOIT rester l'exacte
+ * réciproque de cette expression SQL. La précision du facteur est CRITIQUE : à 250 000+ miles,
+ * une approximation (1.60934 au lieu de 1.609344) produit une divergence d'1+ km dans l'arrondi,
+ * assez pour déclencher ou manquer à tort `VEHICULE_KILOMETRAGE_REGRESSIF` (qui compare la valeur
+ * applicative à celle persistée en base). Cette constante est l'UNIQUE source de vérité, importée
+ * par `atelier/kilometrage.ts`.
  */
 const FACTEUR_MILE_VERS_KM = 1.609344;
 

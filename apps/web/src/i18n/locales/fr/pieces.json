@@ -134,11 +134,13 @@
       "commandesFournisseur": {
         "titre": "Commandes fournisseur en attente",
         "vide": "Aucune commande fournisseur en attente pour cet article.",
-        "sansFournisseur": "Aucun fournisseur connu pour cet article."
+        "sansFournisseur": "Aucun fournisseur connu pour cet article.",
+        "droitRequis": "Vous n'avez pas le droit de consulter les commandes fournisseur."
       },
       "fournisseur": {
         "titre": "Fournisseur",
-        "vide": "Aucun fournisseur référencé pour cet article."
+        "vide": "Aucun fournisseur référencé pour cet article.",
+        "droitRequis": "Vous n'avez pas le droit de consulter les fournisseurs."
       }
     },
     "confirmations": {
@@ -347,7 +349,8 @@
     "fiche": {
       "erreur": {
         "titre": "Impossible d'afficher cette commande"
-      }
+      },
+      "droitRequis": "Vous n'avez pas le droit de consulter les commandes fournisseur."
     },
     "vide": "Aucune commande."
   },
@@ -417,7 +420,8 @@
     "fiche": {
       "erreur": {
         "titre": "Impossible d'afficher ce fournisseur"
-      }
+      },
+      "droitRequis": "Vous n'avez pas le droit de consulter les fournisseurs."
     },
     "vide": "Aucun fournisseur."
   },

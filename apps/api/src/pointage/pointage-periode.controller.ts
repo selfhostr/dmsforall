@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards } from '@nestjs/common';
+import { Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   schemaDeverrouillagePeriodePointage,
@@ -34,6 +34,7 @@ export class PointagePeriodeController {
   ) {}
 
   @Post('verrouiller-periode')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.pointage.verrouiller_periode')
   @ApiOperation({
     summary:
@@ -58,6 +59,7 @@ export class PointagePeriodeController {
   }
 
   @Post('deverrouiller-periode')
+  @HttpCode(HttpStatus.OK)
   @ExigerDroit('atelier.pointage.deverrouiller_periode')
   @ApiOperation({
     summary:

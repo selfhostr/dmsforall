@@ -576,6 +576,25 @@ describe('ServiceClient.creer — un doublon probable est un avertissement, jama
       type: 'particulier',
     });
   });
+
+  it("un particulier créé sans adresse (comptoir sans rendez-vous, RF-59) n'écrit AUCUNE ligne client_adresse — l'absence n'est pas une adresse à champs vides", async () => {
+    const { tx, poserRetourInsert, insertValuesArgs } = txFactice({ executes: [{ rows: [] }] });
+    poserRetourInsert([ligneClient()]);
+    const acces = accesFactice(tx);
+    const service = new ServiceClient(
+      acces,
+      idempotenceFactice(tx),
+      compteursFactice(7),
+      new Horloge(),
+    );
+    const { adressePrincipale: _adressePrincipale, ...entreeSansAdresse } = ENTREE_MINIMALE;
+
+    const resultat = await service.creer(CTX, entreeSansAdresse, 'idem-key-4');
+
+    expect(resultat.reponse.statutHttp).toBe(201);
+    const insertAdresse = insertValuesArgs.find((appel) => 'rue' in appel);
+    expect(insertAdresse).toBeUndefined();
+  });
 });
 
 describe('ServiceClient — isolation tenant : le tenant du contexte est explicitement filtré (le RLS est le filet, pas le mécanisme)', () => {

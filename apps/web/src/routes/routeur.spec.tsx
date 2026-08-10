@@ -6,7 +6,11 @@ import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import type { ReponseOrdreReparation } from '@dfa/shared';
+import type {
+  ReponseActiviteTableauBord,
+  ReponseFinancierTableauBord,
+  ReponseOrdreReparation,
+} from '@dfa/shared';
 
 import '@/i18n';
 
@@ -111,6 +115,58 @@ const OR_TEST: ReponseOrdreReparation = {
   modifiePar: null,
 };
 
+/** Réponses minimales mais complètes des deux endpoints `/tableau-bord/*` — nécessaires dès que la
+ *  route index redirige un rôle de pilotage vers `/tableau-bord` (voir tests ci-dessous) : ce
+ *  fichier teste le CÂBLAGE de la redirection, pas le contenu par rôle (couvert par
+ *  `ecrans/tableau-bord/EcranTableauBord.spec.tsx`), donc des valeurs à zéro suffisent — encore
+ *  faut-il la BONNE FORME (objet, jamais `PageCurseur`) pour que les blocs qui font `.map()` sur
+ *  `ordresReparationParStatut` ne lèvent pas silencieusement une exception de rendu. */
+const ACTIVITE_MINIMALE: ReponseActiviteTableauBord = {
+  periode: { du: '2026-08-01', au: '2026-08-31' },
+  siteId: null,
+  ordresReparationParStatut: [
+    { statut: 'planifie', nombre: 0 },
+    { statut: 'ouvert', nombre: 0 },
+    { statut: 'en_cours', nombre: 0 },
+    { statut: 'controle', nombre: 0 },
+    { statut: 'termine', nombre: 0 },
+    { statut: 'facture', nombre: 0 },
+  ],
+  ordresReparationOuvertsPeriode: 0,
+  ordresReparationRestituesPeriode: 0,
+  delaiMoyenRestitutionMinutes: null,
+  lignesEnAttenteValidation: 0,
+  articlesSousSeuilReapprovisionnement: 0,
+};
+
+const FINANCIER_MINIMAL: ReponseFinancierTableauBord = {
+  periode: { du: '2026-08-01', au: '2026-08-31' },
+  siteId: null,
+  chiffreAffaires: {
+    totalHtCentimes: 0,
+    totalTvaCentimes: 0,
+    totalTtcCentimes: 0,
+    nombreDocuments: 0,
+  },
+  encaissementsCentimes: 0,
+  encoursClientsCentimes: 0,
+};
+
+/** Filet générique pour toutes les collections paginées par curseur qu'un dashboard par rôle peut
+ *  interroger (OR, pointages, réservations, réapprovisionnement, dépôts pneus) — même patron que le
+ *  filet déjà utilisé plus bas pour les cinq écrans de travail, étendu aux deux endpoints
+ *  `/tableau-bord/*` qui NE sont PAS des `PageCurseur` et doivent donc rester des handlers
+ *  explicites, jamais absorbés par ce catch-all. */
+function handlersTableauBordFusionne() {
+  return [
+    http.get('/api/v1/tableau-bord/activite', () => HttpResponse.json(ACTIVITE_MINIMALE)),
+    http.get('/api/v1/tableau-bord/financier', () => HttpResponse.json(FINANCIER_MINIMAL)),
+    http.get('/api/v1/*', () =>
+      HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 50 }),
+    ),
+  ];
+}
+
 /**
  * Comportements de bout en bout du routeur réel (`routesConfig`, la même configuration que celle
  * utilisée en production par `routeur` — voir routeur.tsx) : ce fichier teste l'ASSEMBLAGE, pas
@@ -132,13 +188,24 @@ describe('routeur — protection par défaut', () => {
     expect(await screen.findByRole('heading', { name: 'Clients' })).toBeInTheDocument();
   });
 
-  it('/ amène à l’accueil', async () => {
-    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
-    renduAvecRoutes(routesConfig, { routeInitiale: '/' });
-    expect(await screen.findByText("Ce qui se passe aujourd'hui")).toBeInTheDocument();
+  it('/ redirige vers le tableau de bord fusionné (fusion Accueil/Tableau de bord, 10.08.2026)', async () => {
+    // `SESSION_TEST` porte `chef_atelier`, un rôle de PILOTAGE (`routes/atterrissage.ts`, arbitrage
+    // du 10.08.2026) : absent de `ATTERRISSAGE_PAR_ROLE`, donc jamais redirigé par lui — il traverse
+    // `/` via le relais `<Navigate to="/tableau-bord"/>` (`routeur.tsx`, route index). `EcranAccueil`
+    // a disparu : il n'existe plus de contenu propre à `/` pour personne.
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      ...handlersTableauBordFusionne(),
+    );
+    const { routeur } = renduAvecRoutes(routesConfig, { routeInitiale: '/' });
+
+    expect(
+      await screen.findByRole('heading', { name: 'Tableau de bord', level: 1 }),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(routeur.state.location.pathname).toBe('/tableau-bord'));
   });
 
-  it('/ redirige `poste_atelier` vers la borne de pointage, jamais l’accueil générique (Lot 0)', async () => {
+  it('/ redirige `poste_atelier` vers la borne de pointage, jamais le tableau de bord (Lot 0)', async () => {
     // Défaut que ce test attrape : avant le Lot 0 (`docs/plan-refonte-navigation.md`), TOUT rôle
     // atterrissait sur `EcranAccueil` — `poste_atelier` (borne murale partagée) n'atteignait
     // `/pointage/borne` qu'en tapant l'URL à la main. `siteRattachementId: 'site-1'` (contrairement
@@ -162,26 +229,21 @@ describe('routeur — protection par défaut', () => {
     renduAvecRoutes(routesConfig, { routeInitiale: '/' });
 
     expect(await screen.findByText('Qui êtes-vous ?')).toBeInTheDocument();
-    expect(screen.queryByText("Ce qui se passe aujourd'hui")).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Tableau de bord' })).not.toBeInTheDocument();
   });
 
   /**
-   * TABLE D'ATTERRISSAGE PAR RÔLE — Lot D (`routes/atterrissage.ts`, arbitrage §2). Le Lot 0
-   * n'avait posé la redirection que pour `poste_atelier` (test ci-dessus) ; le Lot D l'étend aux
-   * quatre rôles qui ont un plan de travail propre, pour que personne n'ait à traverser un
-   * lanceur générique avant d'arriver là où il va de toute façon.
-   *
-   * Les QUATRE rôles absents de la table (`direction`, `admin`, `receptionnaire`, `chef_atelier`)
-   * continuent d'atterrir sur `EcranAccueil` — c'est ce que prouve le test « / amène à l'accueil »
-   * ci-dessus, `SESSION_TEST` portant `chef_atelier`.
+   * TABLE D'ATTERRISSAGE PAR RÔLE — Lot D (`routes/atterrissage.ts`), révisée par l'arbitrage du
+   * 10.08.2026 : QUATRE rôles d'EXÉCUTION seulement gardent un atterrissage dédié hors du tableau
+   * de bord (`comptable` en est SORTI par cet arbitrage — c'était `/factures` avant, il rejoint
+   * désormais les rôles de pilotage, testés séparément ci-dessous).
    */
   it.each([
     ['technicien', '/pointage'],
     ['magasinier', '/pieces/recherche-comptoir'],
     ['vendeur', '/ventes/dossiers'],
-    ['comptable', '/factures'],
   ])(
-    '/ fait atterrir %s sur %s (table §2), jamais sur le lanceur générique',
+    '/ fait atterrir %s sur %s (rôle d’exécution), jamais sur le tableau de bord',
     async (role, cible) => {
       server.use(
         http.get('/api/v1/auth/moi', () =>
@@ -192,7 +254,7 @@ describe('routeur — protection par défaut', () => {
         ),
         // Filet générique pour les appels de l'écran de DESTINATION, quel qu'il soit : `onUnhandledRequest:
         // 'error'` (test/setup.ts) ferait échouer le test sur une requête non simulée, et lister à la main
-        // les endpoints de quatre écrans distincts rendrait ce test faux au premier hook ajouté ailleurs.
+        // les endpoints de trois écrans distincts rendrait ce test faux au premier hook ajouté ailleurs.
         // Enregistré APRÈS le handler de session, donc consulté après lui (msw retient la première
         // correspondance).
         http.get('/api/v1/*', () =>
@@ -205,12 +267,12 @@ describe('routeur — protection par défaut', () => {
       const { routeur } = renduAvecRoutes(routesConfig, { routeInitiale: '/' });
 
       await waitFor(() => expect(routeur.state.location.pathname).toBe(cible));
-      expect(screen.queryByText("Ce qui se passe aujourd'hui")).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Tableau de bord' })).not.toBeInTheDocument();
     },
   );
 
-  it.each(['direction', 'admin', 'receptionnaire', 'chef_atelier'])(
-    '/ garde %s sur l’accueil : les quatre rôles absents de la table ne sont jamais redirigés',
+  it.each(['direction', 'admin', 'receptionnaire', 'chef_atelier', 'comptable'])(
+    '/ fait atterrir %s sur le tableau de bord fusionné (rôle de pilotage, arbitrage du 10.08.2026)',
     async (role) => {
       server.use(
         http.get('/api/v1/auth/moi', () =>
@@ -219,11 +281,14 @@ describe('routeur — protection par défaut', () => {
             utilisateur: { ...SESSION_TEST.utilisateur, role },
           }),
         ),
+        ...handlersTableauBordFusionne(),
       );
       const { routeur } = renduAvecRoutes(routesConfig, { routeInitiale: '/' });
 
-      expect(await screen.findByText("Ce qui se passe aujourd'hui")).toBeInTheDocument();
-      expect(routeur.state.location.pathname).toBe('/');
+      expect(
+        await screen.findByRole('heading', { name: 'Tableau de bord', level: 1 }),
+      ).toBeInTheDocument();
+      expect(routeur.state.location.pathname).toBe('/tableau-bord');
     },
   );
 

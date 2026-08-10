@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Headers,
@@ -35,14 +36,13 @@ import {
   type EntreeAnnulationLignes,
   type EntreeCreationLigneOr,
   type EntreeMarquageRealisee,
-  type EntreeModificationLigneOr,
   type EntreeRefusLignes,
   type EntreeSoumissionLignesADevis,
   type EntreeValidationLignes,
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
-import { CorpsZod } from '../common/documentation';
+import { ApiCorpsZod, CorpsZod } from '../common/documentation';
 import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
@@ -174,17 +174,30 @@ export class LigneOrController {
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Ordre de réparation ou ligne introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'OR_LIGNE_VERROUILLEE ou OR_PLAFOND_DEPASSE.')
+  @ApiCorpsZod(schemaModificationLigneOr, {
+    description:
+      // F-01-bis (même défaut que `client/service-client-sous-collections.ts::modifierAdresse` —
+      // voir `neGarderQueChampsEnvoyes`) : `schemaModificationLigneOr` porte SIX `.default(...)`
+      // que `.partial()` ne neutralise pas (`quantiteMillieme`, `rabaisPourmille`, `payeur`,
+      // `securite`, `fournieParClient`, `pieceARestituer`). Si ce contrôleur parsait le corps
+      // avec zod AVANT d'appeler le service (comme `@CorpsZod` le ferait), un `PATCH
+      // { designation }` isolé ressortirait avec ces six champs remplis par leur défaut, et
+      // `ServiceLigneOr.modifier` les écrirait tels quels — payeur écrasé sur `'client'`,
+      // quantité/rabais remis à zéro, drapeaux `securite`/`fournieParClient`/`pieceARestituer`
+      // effacés. Le corps brut est transmis TEL QUEL au service, qui parse ET filtre lui-même par
+      // présence réelle dans le corps (`neGarderQueChampsEnvoyes`) — voir le test
+      // "F-01-bis" de `service-ligne-or.spec.ts` pour la preuve rouge → verte.
+      'Corps brut transmis tel quel au service (jamais pré-parsé ici) — voir `ServiceLigneOr.modifier`.',
+    exemple: { designation: 'Remplacement plaquettes + disques avant', rabaisPourmille: 50 },
+  })
   async modifier(
     @Param('orId', new PipeZod(schemaIdentifiant)) orId: string,
     @Param('ligneId', new PipeZod(schemaIdentifiant)) ligneId: string,
-    @CorpsZod(schemaModificationLigneOr, {
-      exemple: { designation: 'Remplacement plaquettes + disques avant', rabaisPourmille: 50 },
-    })
-    entree: EntreeModificationLigneOr,
+    @Body() corpsBrut: Record<string, unknown>,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    return this.serviceLigneOr.modifier(ctx, principal, orId, ligneId, entree);
+    return this.serviceLigneOr.modifier(ctx, principal, orId, ligneId, corpsBrut);
   }
 
   @Post(':orId/lignes/:ligneId/marquer-realisee')

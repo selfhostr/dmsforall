@@ -168,7 +168,7 @@ export function EcranListeVehicules() {
   if (isPending) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('vehicules:liste.titre')}</h1>
+        <h1 className="sr-only">{t('vehicules:liste.titre')}</h1>
         <EtatChargement lignes={6} />
       </div>
     );
@@ -177,7 +177,7 @@ export function EcranListeVehicules() {
   if (isError) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('vehicules:liste.titre')}</h1>
+        <h1 className="sr-only">{t('vehicules:liste.titre')}</h1>
         <EtatErreur
           titre={t('vehicules:liste.erreur.titre')}
           description={messageErreur(error, t)}
@@ -189,8 +189,13 @@ export function EcranListeVehicules() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('vehicules:liste.titre')}</h1>
+      {/* Doublon strict du libellé de l'onglet actif « Véhicules »
+          (`navigation-modele.ts`, `ONGLETS_CLIENTS_VEHICULES`) : le h1 reste dans le DOM pour le
+          lecteur d'écran et la structure du document, sans répéter visuellement ce que la barre
+          d'onglets affiche déjà en surbrillance. */}
+      <h1 className="sr-only">{t('vehicules:liste.titre')}</h1>
+
+      <div className="flex items-center justify-end gap-4">
         <Button asChild>
           <Link to={chemins.vehicules.nouveau(site)}>
             <Plus aria-hidden className="h-4 w-4" />

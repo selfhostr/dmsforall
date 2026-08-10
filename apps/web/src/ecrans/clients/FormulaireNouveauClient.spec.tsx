@@ -103,16 +103,19 @@ describe('FormulaireNouveauClient', () => {
     const utilisateur = userEvent.setup();
     const { onCree } = rendreFormulaire();
 
-    // Aucun champ requis rempli (nom, rue, npa, localité) : la validation zod doit échouer.
+    // Nom vide (requis) + adresse PARTIELLE (seule la rue saisie) : depuis RF-59, une adresse
+    // ENTIÈREMENT vide est acceptée (comptoir sans rendez-vous, cf. describe ci-dessous), mais une
+    // adresse partielle reste refusée — ce scénario prouve encore plusieurs erreurs de champ
+    // simultanées dans le DOM (nom, npa, localité), sans dépendre d'une adresse redevenue requise.
+    await utilisateur.type(screen.getByLabelText('Rue et numéro'), 'Rue Neuve 5');
     await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
 
     // Les erreurs de champ apparaissent réellement dans le DOM (formState.errors peuplé), pas
     // seulement l'absence de throw.
     const erreursRequis = await screen.findAllByText('Ce champ est obligatoire.');
-    expect(erreursRequis.length).toBeGreaterThanOrEqual(3); // nom, rue, npa, localité
+    expect(erreursRequis.length).toBeGreaterThanOrEqual(3); // nom, npa, localité
 
     expect(screen.getByLabelText('Nom')).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByLabelText('Rue et numéro')).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByLabelText('NPA')).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByLabelText('Localité')).toHaveAttribute('aria-invalid', 'true');
 
@@ -332,6 +335,62 @@ describe('FormulaireNouveauClient', () => {
       await utilisateur.type(screen.getByLabelText('IDE'), 'CHE-116.281.277');
       await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
       await waitFor(() => expect(onCree).toHaveBeenCalledWith('cl-99'));
+    });
+  });
+
+  describe('adresse à la création (comptoir sans rendez-vous)', () => {
+    // Défaut réel constaté en parcourant l'application comme un réceptionniste : un client se
+    // présente sans rendez-vous, on veut ouvrir un OR tout de suite, l'adresse suivra — ou pas, s'il
+    // paie comptant en repartant. Arbitrage rendu (RF-59) : `schemaCreationClient.adressePrincipale`
+    // (`packages/shared/src/contrats/atelier/client.ts`) est désormais `.optional()` — l'aval
+    // (émission de facture avec `debiteur: null`) gère déjà l'absence, prouvé en exécution avant ce
+    // correctif. Ce test encodait le comportement cible en `it.fails` tant que le contrat bloquait ;
+    // repassé en `it` normal maintenant qu'il passe.
+    it('crée un client particulier sans indiquer aucune adresse', async () => {
+      server.use(
+        http.get('/api/v1/doublons-clients', () =>
+          HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients),
+        ),
+        http.post('/api/v1/clients', () =>
+          HttpResponse.json({
+            donnees: { ...CLIENT_CREE, id: 'cl-sans-adresse' },
+            avertissements: [],
+          }),
+        ),
+      );
+      const utilisateur = userEvent.setup();
+      const { onCree } = rendreFormulaire();
+
+      // Volontairement AUCUN champ d'adresse rempli — seule l'identité minimale.
+      await utilisateur.type(screen.getByLabelText('Nom'), 'Rossi');
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
+
+      await waitFor(() => expect(onCree).toHaveBeenCalledWith('cl-sans-adresse'));
+    });
+
+    it('conserve l’adresse saisie telle quelle dans la requête de création (aucune perte de saisie)', async () => {
+      let corpsRecu: Record<string, unknown> | undefined;
+      server.use(
+        http.get('/api/v1/doublons-clients', () =>
+          HttpResponse.json({ candidats: [] } satisfies ReponseDoublonsClients),
+        ),
+        http.post('/api/v1/clients', async ({ request }) => {
+          corpsRecu = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({ donnees: CLIENT_CREE, avertissements: [] });
+        }),
+      );
+      const utilisateur = userEvent.setup();
+      const { onCree } = rendreFormulaire();
+
+      await remplirIdentiteMinimale(utilisateur);
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer le client' }));
+
+      await waitFor(() => expect(onCree).toHaveBeenCalledWith('cl-42'));
+      expect(corpsRecu?.adressePrincipale).toMatchObject({
+        rue: 'Rue Neuve 5',
+        npa: '1000',
+        localite: 'Lausanne',
+      });
     });
   });
 

@@ -364,7 +364,7 @@ const TAUX_HORAIRE_DEMO = [
 
 /**
  * Conditions commerciales (RM-07), volontairement posées sur UN SEUL des trois clients GARAGE
- * (CL-0001 à CL-0003 — CL-0004/CL-0005 sont des organismes de financement, pas des clients atelier
+ * (CL-000001 à CL-000003 — CL-000004/CL-000005 sont des organismes de financement, pas des clients atelier
  * au sens de ce module, la notion n'a pas de sens pour eux) : c'est la proportion du terrain — un
  * garage ne négocie un tarif qu'avec une poignée de comptes flotte, et l'immense majorité de ses
  * clients particuliers n'a AUCUNE ligne `client_condition`. Le jeu de démonstration doit refléter
@@ -373,7 +373,7 @@ const TAUX_HORAIRE_DEMO = [
  */
 const CONDITIONS_CLIENT_DEMO = [
   {
-    clientNumero: 'CL-0003',
+    clientNumero: 'CL-000003',
     rabaisMoPourmille: 100,
     rabaisPiecesPourmille: 50,
     rabaisPneusPourmille: null,
@@ -421,7 +421,7 @@ const PRESTATIONS_DEMO = [
 
 const CLIENTS_DEMO = [
   {
-    numero: 'CL-0001',
+    numero: 'CL-000001',
     type: 'particulier' as const,
     civilite: 'M.',
     nom: 'Meier',
@@ -432,7 +432,7 @@ const CLIENTS_DEMO = [
     adresse: { rue: 'Bahnhofstrasse 12', npa: '1950', localite: 'Sion' },
   },
   {
-    numero: 'CL-0002',
+    numero: 'CL-000002',
     type: 'particulier' as const,
     civilite: 'Mme',
     nom: 'Dupont',
@@ -443,7 +443,7 @@ const CLIENTS_DEMO = [
     adresse: { rue: 'Avenue de la Gare 5', npa: '1920', localite: 'Martigny' },
   },
   {
-    numero: 'CL-0003',
+    numero: 'CL-000003',
     type: 'entreprise' as const,
     raisonSociale: 'Transports Rhône Sàrl',
     ide: 'CHE-101.202.303',
@@ -462,7 +462,7 @@ const CLIENTS_DEMO = [
    * sociale suisse réelle dans un jeu de démonstration versionné publiquement).
    */
   {
-    numero: 'CL-0004',
+    numero: 'CL-000004',
     type: 'entreprise' as const,
     raisonSociale: 'CarCrédit Suisse SA',
     ide: 'CHE-105.222.333',
@@ -472,7 +472,7 @@ const CLIENTS_DEMO = [
     adresse: { rue: 'Musterstrasse 1', npa: '8048', localite: 'Zürich' },
   },
   {
-    numero: 'CL-0005',
+    numero: 'CL-000005',
     type: 'entreprise' as const,
     raisonSociale: 'AlpiLeasing SA',
     ide: 'CHE-109.444.555',
@@ -491,7 +491,7 @@ const VEHICULES_DEMO = [
     version: 'VII 2.0 TDI',
     carburant: 'diesel',
     couleur: 'gris',
-    clientNumero: 'CL-0001',
+    clientNumero: 'CL-000001',
     plaque: 'VS 123456',
     kilometrages: [
       { valeur: 82_000, releveLe: '2026-01-15T09:00:00Z', source: 'reception' as const },
@@ -530,7 +530,7 @@ const VEHICULES_DEMO = [
     version: 'Combi 1.5 TSI',
     carburant: 'essence',
     couleur: 'bleu',
-    clientNumero: 'CL-0002',
+    clientNumero: 'CL-000002',
     plaque: 'VS 55512',
     kilometrages: [
       { valeur: 41_500, releveLe: '2026-04-02T08:15:00Z', source: 'reception' as const },
@@ -543,7 +543,7 @@ const VEHICULES_DEMO = [
     version: 'Fourgon L2H2',
     carburant: 'diesel',
     couleur: 'blanc',
-    clientNumero: 'CL-0003',
+    clientNumero: 'CL-000003',
     plaque: 'VS 90001',
     kilometrages: [
       { valeur: 128_300, releveLe: '2026-06-20T07:00:00Z', source: 'reception' as const },
@@ -556,7 +556,7 @@ const VEHICULES_DEMO = [
     version: '320d Touring',
     carburant: 'diesel',
     couleur: 'noir',
-    clientNumero: 'CL-0001',
+    clientNumero: 'CL-000001',
     plaque: 'GE 445566',
     kilometrages: [
       { valeur: 63_200, releveLe: '2026-03-11T11:45:00Z', source: 'reception' as const },

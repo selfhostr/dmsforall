@@ -15,6 +15,7 @@ import {
 } from '../../../db';
 import { ErreurMetier } from '../../../common/erreurs';
 import { Horloge } from '../../../common/horloge';
+import { neGarderQueChampsEnvoyes, PipeZod } from '../../../common/validation';
 import { decoderCurseurDefaut, pageDepuisLignes } from '../pagination-defaut';
 import { versDtoPrestation } from './mappeur-prestation';
 
@@ -116,18 +117,31 @@ export class ServicePrestations {
   async modifier(
     ctx: ContexteTenant,
     id: string,
-    entree: EntreeModificationPrestation,
+    corpsBrut: Record<string, unknown>,
   ): Promise<ReponsePrestation> {
+    // F-01-ter : `schemaModificationPrestation` dérive de `schemaCreationPrestation.partial()`, et
+    // `tauxTvaPourmille` y porte `schemaPourmille.default(81)`. `.partial()` (zod) rend la clé
+    // OPTIONNELLE, il n'annule PAS son `.default(...)` : un `PATCH` qui ne mentionne jamais
+    // `tauxTvaPourmille` (ex. un simple renommage, `{ designationFr: '...' }` seul) ressort quand
+    // même du `.parse()` avec `tauxTvaPourmille: 81` injecté — écrasant silencieusement un taux
+    // réduit (2.6% ou 3.8%) configuré sur la prestation, propagé ensuite à chaque ligne de facture
+    // qui l'utilise. `neGarderQueChampsEnvoyes` ne retient que les clés RÉELLEMENT présentes dans
+    // `corpsBrut` (avant parse) — seul moment où « ce champ a-t-il été envoyé ? » a encore une
+    // réponse fiable. Voir `common/validation/champs-envoyes.ts` (même mécanisme que `pays: 'CH'`
+    // sur les adresses clients, qui l'a révélé).
+    const entreeParsee = new PipeZod(schemaModificationPrestation).transform(corpsBrut);
+    const entree = neGarderQueChampsEnvoyes(corpsBrut, entreeParsee);
+
     const colonnes: Partial<typeof schema.prestation.$inferInsert> = {};
-    if (entree.designationFr !== undefined) colonnes.designationFr = entree.designationFr;
-    if (entree.designationDe !== undefined) colonnes.designationDe = entree.designationDe;
-    if (entree.designationIt !== undefined) colonnes.designationIt = entree.designationIt;
-    if (entree.typeLigne !== undefined) colonnes.typeLigne = entree.typeLigne;
-    if (entree.tempsBaremeCentiemes !== undefined)
+    if ('designationFr' in entree) colonnes.designationFr = entree.designationFr;
+    if ('designationDe' in entree) colonnes.designationDe = entree.designationDe;
+    if ('designationIt' in entree) colonnes.designationIt = entree.designationIt;
+    if ('typeLigne' in entree) colonnes.typeLigne = entree.typeLigne;
+    if ('tempsBaremeCentiemes' in entree)
       colonnes.tempsBaremeCentiemes = entree.tempsBaremeCentiemes;
-    if (entree.tauxHoraireCode !== undefined) colonnes.tauxHoraireCode = entree.tauxHoraireCode;
-    if (entree.tauxTvaPourmille !== undefined) colonnes.tauxTvaPourmille = entree.tauxTvaPourmille;
-    if (entree.actif !== undefined) colonnes.actif = entree.actif;
+    if ('tauxHoraireCode' in entree) colonnes.tauxHoraireCode = entree.tauxHoraireCode;
+    if ('tauxTvaPourmille' in entree) colonnes.tauxTvaPourmille = entree.tauxTvaPourmille;
+    if ('actif' in entree) colonnes.actif = entree.actif;
 
     return this.acces.enTenant(ctx, async (tx) => {
       let prestation: schema.LignePrestation;
@@ -164,6 +178,12 @@ export class ServicePrestations {
       let prixCentimesActuel =
         (await this.chargerPrixActuels(tx, ctx.tenantId, [id])).get(id) ?? null;
 
+      // `!== undefined` (pas `'in'`) DÉLIBÉRÉMENT ICI : `prixCentimes` (`schemaCentimesPositif
+      // .nullish()`) ne porte AUCUN `.default(...)` — rien à filtrer côté zod pour ce champ, donc
+      // aucune raison de perdre le rétrécissement de type que `!==undefined` donne sur un accès de
+      // propriété (`'x' in entree` ne rétrécit pas `entree.prixCentimes` hors de
+      // `number | null | undefined`, TS2345/TS2322 plus bas). Seul `tauxTvaPourmille` (plus haut)
+      // avait besoin du filtre `neGarderQueChampsEnvoyes` + `'in'` — voir le commentaire F-01-ter.
       if (entree.prixCentimes !== undefined && entree.prixCentimes !== prixCentimesActuel) {
         if (entree.prixCentimes === null) {
           // Clôturer le prix courant sans en ouvrir un nouveau : la prestation redevient sans

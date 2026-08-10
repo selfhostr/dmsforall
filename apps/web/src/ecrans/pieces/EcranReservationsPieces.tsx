@@ -166,7 +166,7 @@ export function EcranReservationsPieces() {
   if (isPending) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:reservations.titre')}</h1>
+        <h1 className="sr-only">{t('pieces:reservations.titre')}</h1>
         <EtatChargement lignes={6} />
       </div>
     );
@@ -175,7 +175,7 @@ export function EcranReservationsPieces() {
   if (isError) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:reservations.titre')}</h1>
+        <h1 className="sr-only">{t('pieces:reservations.titre')}</h1>
         <EtatErreur
           titre={t('pieces:reservations.erreur.titre')}
           description={messageErreur(error, t)}
@@ -187,7 +187,11 @@ export function EcranReservationsPieces() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:reservations.titre')}</h1>
+      {/* Doublon strict du libellé de la vue active « Réservations » (`navigation-modele.ts`,
+          `ONGLETS_PIECES`, vue « reservations » de l'onglet Articles) : le h1 reste dans le DOM
+          pour le lecteur d'écran et la structure du document, sans répéter visuellement ce que la
+          barre d'onglets affiche déjà en surbrillance. */}
+      <h1 className="sr-only">{t('pieces:reservations.titre')}</h1>
 
       <div className="flex flex-col gap-1.5 max-w-xs">
         <Label htmlFor="filtre-statut-reservation">{t('pieces:reservations.statut')}</Label>

@@ -34,7 +34,8 @@
     "titre": "Scheda cliente",
     "ouvrirOr": "Apri ordine",
     "actions": {
-      "fusionner": "Unisci"
+      "fusionner": "Unisci",
+      "ajouterVehicule": "Aggiungi un veicolo"
     },
     "onglets": {
       "contacts": "Contatti",

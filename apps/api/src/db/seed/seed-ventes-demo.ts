@@ -19,7 +19,7 @@
  * données qu'aucun code de production n'aurait produites (cas réel, coûteux, ailleurs dans ce
  * dépôt : un OR de démo sans conditions commerciales figées, faute d'avoir posé
  * `client_condition` — RM-65 — avant l'ouverture de l'OR, a bloqué l'ajout de main-d'œuvre pendant
- * une journée). Le même risque existe ici : les organismes de financement (`CL-0004`/`CL-0005`)
+ * une journée). Le même risque existe ici : les organismes de financement (`CL-000004`/`CL-000005`)
  * ET le compte `vendeur` doivent exister AVANT que ce fichier ne s'exécute — tous deux posés par
  * `seed-dev.ts`, qui appelle ce module en dernier pour cette raison précise.
  *
@@ -153,11 +153,11 @@ export async function semerVentesDemo(options: OptionsSeedVentes): Promise<void>
 
   const idMartigny = options.idsSitesParCode.get('MARTIGNY');
   const idSion = options.idsSitesParCode.get('SION');
-  const idClientMeier = options.idsClientsParNumero.get('CL-0001');
-  const idClientDupont = options.idsClientsParNumero.get('CL-0002');
-  const idClientTransportsRhone = options.idsClientsParNumero.get('CL-0003');
-  const idOrganismeCredit = options.idsClientsParNumero.get('CL-0004');
-  const idOrganismeLeasing = options.idsClientsParNumero.get('CL-0005');
+  const idClientMeier = options.idsClientsParNumero.get('CL-000001');
+  const idClientDupont = options.idsClientsParNumero.get('CL-000002');
+  const idClientTransportsRhone = options.idsClientsParNumero.get('CL-000003');
+  const idOrganismeCredit = options.idsClientsParNumero.get('CL-000004');
+  const idOrganismeLeasing = options.idsClientsParNumero.get('CL-000005');
   const idReceptionnaire = options.idsUtilisateursParRole.get('receptionnaire');
   const idDirection = options.idsUtilisateursParRole.get('direction');
   const idVendeur = options.idsUtilisateursParRole.get('vendeur');
@@ -265,7 +265,7 @@ export async function semerVentesDemo(options: OptionsSeedVentes): Promise<void>
     };
 
     // =============================================================================================
-    // Dossier 1 — Audi A4 Avant / Mme Dupont (CL-0002) / MARTIGNY
+    // Dossier 1 — Audi A4 Avant / Mme Dupont (CL-000002) / MARTIGNY
     // Statut cible : « pret_a_livrer ». Financement crédit CONFIRMÉ (CarCrédit Suisse SA).
     // =============================================================================================
 
@@ -539,7 +539,7 @@ export async function semerVentesDemo(options: OptionsSeedVentes): Promise<void>
     );
 
     // =============================================================================================
-    // Dossier 2 — Škoda Kodiaq / M. Meier (CL-0001) / SION
+    // Dossier 2 — Škoda Kodiaq / M. Meier (CL-000001) / SION
     // Statut cible : « prospection » (encore au stade du devis, aucun bon de commande signé).
     // Financement comptant — `confirme` d'emblée (RV-44 : aucune confirmation tierce n'a de sens).
     // =============================================================================================
@@ -572,7 +572,7 @@ export async function semerVentesDemo(options: OptionsSeedVentes): Promise<void>
     journaliser(`  financement comptant Kodiaq/Meier — confirmé (dérivé, RV-44)`);
 
     // =============================================================================================
-    // Dossier 3 — Volkswagen Tiguan / Transports Rhône Sàrl (CL-0003) / SION
+    // Dossier 3 — Volkswagen Tiguan / Transports Rhône Sàrl (CL-000003) / SION
     // Reprise du fourgon Iveco Daily (négociée puis CONFIRMÉE à la signature, RV-19/RV-27).
     // Financement leasing (AlpiLeasing SA) laissé EN ATTENTE (organisme pas encore revenu vers
     // nous) : le dossier ne peut donc PAS aller plus loin que « en_preparation »
@@ -683,7 +683,7 @@ export async function semerVentesDemo(options: OptionsSeedVentes): Promise<void>
     }
 
     // =============================================================================================
-    // Dossier 4 — Dacia Duster / M. Meier (CL-0001) / MARTIGNY
+    // Dossier 4 — Dacia Duster / M. Meier (CL-000001) / MARTIGNY
     // Financement crédit REFUSÉ par l'organisme -> dossier ANNULÉ depuis « prospection » (le refus
     // arrive le plus souvent AVANT tout bon de commande signé, jamais après — pas de bon de commande
     // ni d'engagement ici, contrairement aux autres dossiers).

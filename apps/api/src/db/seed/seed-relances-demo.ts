@@ -10,7 +10,7 @@
  * `conditions_paiement_figees`) — ces conditions sont facultatives à la création d'un client
  * (`FormulaireNouveauClient` ne les envoie jamais) et AUCUN des trois clients de
  * `seed-dev.ts::CLIENTS_DEMO` n'en a. Ce fichier pose donc explicitement une condition sur
- * M. Meier (CL-0001) AVANT de créer la facture en retard ci-dessous — sans cet ordre précis,
+ * M. Meier (CL-000001) AVANT de créer la facture en retard ci-dessous — sans cet ordre précis,
  * `dateEcheance` resterait `null` et cette facture serait invisible aux relances, exactement le
  * symptôme décrit par #17.
  *
@@ -83,12 +83,12 @@ export async function semerRelancesDemo(options: OptionsSeedRelances): Promise<v
   }
 
   const idSion = options.idsSitesParCode.get('SION');
-  const idClientMeier = options.idsClientsParNumero.get('CL-0001');
+  const idClientMeier = options.idsClientsParNumero.get('CL-000001');
   const idGolf = options.idsVehiculesParCle.get('WVWZZZ1KZAW123456');
   const idReceptionnaire = options.idsUtilisateursParRole.get('receptionnaire');
   if (!idSion || !idClientMeier || !idGolf || !idReceptionnaire) {
     throw new Error(
-      `seed-relances-demo : site SION, client CL-0001, véhicule Golf ou compte réceptionnaire introuvable — vérifier l'ordre d'exécution de seed-dev.ts.`,
+      `seed-relances-demo : site SION, client CL-000001, véhicule Golf ou compte réceptionnaire introuvable — vérifier l'ordre d'exécution de seed-dev.ts.`,
     );
   }
 

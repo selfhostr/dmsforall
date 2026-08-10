@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { LANGUES, type Langue } from '../enums';
-import { schemaListeQuery } from '../filtres';
+import { schemaBooleenQuery, schemaListeQuery } from '../filtres';
 import { schemaConfirmations } from './avertissement';
 import {
   NATURES_NOTE,
@@ -253,7 +253,7 @@ export const schemaFiltresClients = z.object({
   type: z.enum(TYPES_CLIENT).optional(),
   statut: schemaListeQuery(z.enum(STATUTS_CLIENT)).optional(),
   groupeId: schemaIdentifiant.optional(),
-  poObligatoire: z.coerce.boolean().optional(),
+  poObligatoire: schemaBooleenQuery().optional(),
   /** Utile seulement si P-30 = cloisonné. Ignoré sinon. */
   siteId: schemaIdentifiant.optional(),
   tri: z.enum(TRIS_CLIENTS).default(TRI_DEFAUT_CLIENTS),
@@ -261,7 +261,7 @@ export const schemaFiltresClients = z.object({
 
 /** RM-20 : les détentions closes ne sont visibles que sur demande explicite. */
 export const schemaFiltresVehiculesDuClient = z.object({
-  inclureAnciennesDetentions: z.coerce.boolean().default(false),
+  inclureAnciennesDetentions: schemaBooleenQuery(false),
   tri: z.enum(TRIS_VEHICULES_DU_CLIENT).default(TRI_DEFAUT_VEHICULES_DU_CLIENT),
 });
 
@@ -417,9 +417,24 @@ export const schemaCreationClient = z
     raisonSociale: schemaTexteCourt.nullish(),
     ide: schemaIde.nullish(),
     langueCorrespondance: z.enum(LANGUES),
+    /**
+     * FACULTATIVE (RF-59) : un client au comptoir sans rendez-vous n'a souvent qu'un nom à donner
+     * — l'adresse suivra, ou pas, s'il paie comptant en repartant. Exiger `rue`/`npa`/`localite`
+     * dès la création bloquait précisément ce cas, constaté en testant l'ouverture d'un OR au
+     * comptoir. L'aval gère déjà l'absence : un client `particulier` sans aucune ligne
+     * `client_adresse` a été prouvé EN EXÉCUTION capable d'aller jusqu'à l'émission d'une facture
+     * (`QRFacture` avec `debiteur: null`, créancier intact) — ce n'est pas une régression tolérée,
+     * c'est le comportement voulu. Ne PAS « corriger » ce champ en le rendant à nouveau requis sans
+     * revérifier ce chemin.
+     *
+     * Reste validée à l'identique QUAND elle est fournie : `.optional()` change seulement si le
+     * champ peut être absent, pas ce qui est exigé une fois présent — une adresse partielle ou un
+     * NPA suisse mal formé est toujours refusé par `schemaAdresseClientBase` + `validerNpaSelonPays`.
+     */
     adressePrincipale: schemaAdresseClientBase
       .omit({ type: true })
-      .superRefine(validerNpaSelonPays),
+      .superRefine(validerNpaSelonPays)
+      .optional(),
     telephones: z
       .array(
         z.object({

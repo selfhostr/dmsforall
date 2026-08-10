@@ -35,7 +35,7 @@ export function BarreFiltres({
   const { t } = useTranslation('commun');
 
   return (
-    <div className={cn('flex flex-wrap items-center gap-3', className)}>
+    <div className={cn('flex flex-wrap items-end gap-3', className)}>
       <div className="relative min-w-[220px] flex-1">
         <Search
           aria-hidden

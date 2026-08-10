@@ -6,6 +6,7 @@ import type { ReponseLigneOr, ReponseOrdreReparation } from '@dfa/shared';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { type Densite } from '@/components/ui/table';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { lignesAssigneesPointables } from '@/hooks/pointage/lignes-assignees';
@@ -18,6 +19,9 @@ interface Props {
   readonly onChoisirLigne: (or: ReponseOrdreReparation, ligne: ReponseLigneOr) => void;
   readonly onChoisirOrEntier: (or: ReponseOrdreReparation) => void;
   readonly enDemarrage: boolean;
+  /** Repli `'dense'`, identique au reste du produit — voir la note sur `DialogContent` ci-dessous
+   *  pour pourquoi ce dialogue ne peut PAS se contenter d'hériter de son appelant. */
+  readonly densite?: Densite;
 }
 
 /**
@@ -25,6 +29,15 @@ interface Props {
  * Liste UNIQUEMENT les lignes qui LUI sont assignées (`ligne.technicienId === technicienId`) et
  * encore pointables, plus un bouton « OR entier » toujours disponible (RM-87, nature
  * `productif_or` — un OR ne porte pas forcément une répartition par ligne).
+ *
+ * Partagé par DEUX appelants à densités différentes : `EcranBornePointage` (très aérée) et
+ * `EcranPointageTechnicien` (repli dense, poste de travail, inchangé). `DialogContent` rend via
+ * `DialogPortal` (Radix) — un portail vers `document.body`, donc HORS de la sous-arborescence DOM
+ * de l'écran appelant. Les variables `--densite-*`/`--texte-*` posées par la classe `densite-*` de
+ * l'écran (héritage CSS par ancêtre DOM) n'atteignent JAMAIS ce contenu : mesuré en Playwright,
+ * sans ce prop le dialogue retombait systématiquement sur les valeurs `dense` (titre 16px) même
+ * ouvert depuis la borne en `densite-tres-aeree`. D'où ce prop explicite, posé ICI sur
+ * `DialogContent`, plutôt qu'une hypothèse d'héritage qui ne tient pas pour du contenu porté.
  */
 export function DialogueChoixCiblePointage({
   ouvert,
@@ -34,6 +47,7 @@ export function DialogueChoixCiblePointage({
   onChoisirLigne,
   onChoisirOrEntier,
   enDemarrage,
+  densite = 'dense',
 }: Props) {
   const { t } = useTranslation(['pointage', 'commun']);
 
@@ -43,7 +57,7 @@ export function DialogueChoixCiblePointage({
 
   return (
     <Dialog open={ouvert} onOpenChange={(valeur) => !valeur && onFermer()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className={`densite-${densite} sm:max-w-lg`}>
         <DialogHeader>
           <DialogTitle>{t('pointage:technicien.choisirCible.titre')}</DialogTitle>
         </DialogHeader>

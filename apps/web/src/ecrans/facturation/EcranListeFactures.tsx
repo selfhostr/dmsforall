@@ -243,7 +243,12 @@ export function EcranListeFactures() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('facturation:liste.titre')}</h1>
+      {/* L'onglet de navigation « Factures » (OngletsDomaine, actif sur cette route) porte déjà ce
+          nom à l'écran : un h1 visible identique ne dit rien de neuf, il ne fait que répéter en
+          plus petit ce que l'utilisateur vient de lire en cliquant. Le h1 reste dans le DOM,
+          masqué visuellement, pour la structure de document (lecteur d'écran, navigation au
+          clavier) — voir le même choix sur `EcranFicheFacture`, `EcranAvoir`. */}
+      <h1 className="sr-only">{t('facturation:liste.titre')}</h1>
 
       <Tabs value={onglet} onValueChange={(valeur) => setOnglet(valeur as OngletListeFactures)}>
         <TabsList>

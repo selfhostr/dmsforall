@@ -15,6 +15,7 @@ import { useClient } from '@/hooks/clients/useClient';
 import { chemins } from '@/routes/chemins';
 
 import { FormulaireNouvelOrdreReparation } from './FormulaireNouvelOrdreReparation';
+import { SelecteurSiteOrRequis } from './SelecteurSiteOrRequis';
 import { SelecteurVehiculeOrdre } from './SelecteurVehiculeOrdre';
 
 /** `chemins.ts` (routes/) n'a pas encore d'entrée Atelier — module en cours de câblage par un
@@ -79,7 +80,7 @@ function versClientResume(client: {
 export function EcranNouvelOrdreReparation() {
   const { t } = useTranslation(['or', 'commun', 'erreurs']);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
   const clientId = searchParams.get('clientId') ?? undefined;
 
@@ -91,17 +92,23 @@ export function EcranNouvelOrdreReparation() {
     navigate(cheminOr(or.id, site));
   }
 
+  // Revue UX du 10.08.2026 : un réceptionnaire arrivé ici (souvent sans avoir jamais choisi de
+  // site ce jour-là) tombait sur un cul-de-sac — « Retour à l'accueil » perdait le `clientId` déjà
+  // trouvé, l'obligeant à rechercher le client une seconde fois après avoir choisi un site depuis
+  // l'en-tête. `SelecteurSiteOrRequis` (même doctrine que `ecrans/pieces/SelecteurSiteRequis.tsx`)
+  // résout le site SANS quitter cet écran ni perdre `clientId` : il complète juste `?site=` dans
+  // l'URL courante.
   if (!site) {
     return (
       <div className="mx-auto flex max-w-lg flex-col gap-4 p-6">
         <h1 className="sr-only">{t('or:nouveau.titre')}</h1>
-        <EtatVide
-          titre={t('or:nouveau.siteManquant.titre')}
-          description={t('or:nouveau.siteManquant.description')}
-          action={
-            <Button asChild variant="outline">
-              <Link to="/">{t('commun:actions.retourAccueil')}</Link>
-            </Button>
+        <SelecteurSiteOrRequis
+          onChoisir={(siteId) =>
+            setSearchParams((params) => {
+              const suivant = new URLSearchParams(params);
+              suivant.set('site', siteId);
+              return suivant;
+            })
           }
         />
       </div>

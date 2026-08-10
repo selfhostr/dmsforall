@@ -65,7 +65,7 @@ export function PaveNumerique({
             key={chiffre}
             type="button"
             variant="outline"
-            className="h-20 w-20 text-3xl font-semibold"
+            className="h-20 w-20 texte-chiffre-geant"
             disabled={desactive}
             aria-label={t('pointage:identification.pave.chiffre', { chiffre })}
             onClick={() => onChiffre(chiffre)}
@@ -87,7 +87,7 @@ export function PaveNumerique({
         <Button
           type="button"
           variant="outline"
-          className="h-20 w-20 text-3xl font-semibold"
+          className="h-20 w-20 texte-chiffre-geant"
           disabled={desactive}
           aria-label={t('pointage:identification.pave.chiffre', { chiffre: '0' })}
           onClick={() => onChiffre('0')}

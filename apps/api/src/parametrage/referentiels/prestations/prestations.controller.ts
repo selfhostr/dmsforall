@@ -11,7 +11,17 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   schemaCreationPrestation,
   schemaIdentifiant,
@@ -23,11 +33,11 @@ import {
 
 import { ApiReponseProbleme } from '../../../common/erreurs';
 import { ServiceContexteRequete } from '../../../common/contexte';
-import { CorpsZod } from '../../../common/documentation';
+import { ApiCorpsZod, CorpsZod } from '../../../common/documentation';
 import { ExigerDroit } from '../../../common/droits';
 import { PipeZod } from '../../../common/validation';
 import { PagePrestationDto, ReponsePrestationDto } from '../../dto/reponse-prestation.dto';
-import { ServicePrestations, type EntreeModificationPrestation } from './service-prestations';
+import { ServicePrestations } from './service-prestations';
 
 @ApiTags('Paramétrage')
 @ApiCookieAuth()
@@ -91,11 +101,18 @@ export class PrestationsController {
   @ApiResponse({ status: 200, description: 'Prestation mise à jour.', type: ReponsePrestationDto })
   @ApiReponseProbleme(400, 'VALIDATION_ECHOUEE — corps invalide.')
   @ApiReponseProbleme(404, 'RESSOURCE_INTROUVABLE — prestation inconnue de ce tenant.')
+  @ApiCorpsZod(schemaModificationPrestation, {
+    description:
+      'Corps PARTIEL — seuls les champs présents sont modifiés. `tauxTvaPourmille` porte un ' +
+      "défaut zod (81‰) qui ne s'applique qu'à la CRÉATION : un `PATCH` qui l'omet ne touche " +
+      'jamais le taux existant (F-01-ter), le distinguer du cas où il est envoyé avec la même ' +
+      'valeur exige de lire le corps brut — voir `service-prestations.ts`.',
+    exemple: { prixCentimes: 9900, actif: true },
+  })
   async modifier(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,
-    @CorpsZod(schemaModificationPrestation, { exemple: { prixCentimes: 9900, actif: true } })
-    corps: EntreeModificationPrestation,
+    @Body() corpsBrut: Record<string, unknown>,
   ): Promise<ReponsePrestationDto> {
-    return this.service.modifier(this.contexte.contexteTenant(), id, corps);
+    return this.service.modifier(this.contexte.contexteTenant(), id, corpsBrut);
   }
 }

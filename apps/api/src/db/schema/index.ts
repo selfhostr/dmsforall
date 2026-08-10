@@ -24,3 +24,4 @@ export * from './pointage';
 export * from './ventes';
 export * from './pneus';
 export * from './relances';
+export * from './referentiel';

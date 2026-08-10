@@ -30,9 +30,13 @@ beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 
+// Forme SERVEUR réelle (`VehiculeResume.plaque` contient déjà le canton en préfixe, voir
+// `Plaque.tsx`/`EnTeteOrdreReparation.tsx`) — jamais `'123456'` seul : cette forme tronquée ne
+// peut jamais révéler un doublon de canton (« VD VD 123456 ») dans le fil d'Ariane, exactement
+// l'angle mort qui a laissé passer ce bug une première fois.
 const VEHICULE: VehiculeResume = {
   id: 'v1',
-  plaque: '123456',
+  plaque: 'VD 123456',
   canton: 'VD',
   designation: 'VW Touran 2.0 TDI',
   vin: 'WVGZZZ1TZ8W123456',
@@ -67,7 +71,7 @@ function construireOr(overrides: Partial<ReponseOrdreReparation> = {}): ReponseO
     figees: {
       clientDesignation: 'Jean Dupont',
       adresseFacturation: null,
-      plaque: '123456',
+      plaque: 'VD 123456',
       detenteurClientId: 'cl-1',
     },
     conducteurPresentNom: null,
@@ -181,6 +185,15 @@ describe('EcranFicheOrdreReparation', () => {
       await screen.findByText("Impossible de charger l'ordre de réparation"),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
+  });
+
+  it("le fil d'Ariane affiche la plaque telle que rendue par le serveur, SANS préfixer le canton une seconde fois (VD 123456, jamais VD VD 123456)", async () => {
+    installerHandler(construireOr());
+    rendre();
+
+    const filAriane = await screen.findByRole('navigation', { name: "Fil d'Ariane" });
+    expect(within(filAriane).getByText(/VD 123456/)).toBeInTheDocument();
+    expect(within(filAriane).queryByText(/VD VD 123456/)).not.toBeInTheDocument();
   });
 
   describe("badge « État » de l'en-tête — EtatAfficheOrdreReparation, jamais StatutOrdreReparation brut", () => {

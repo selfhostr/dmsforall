@@ -193,7 +193,7 @@ export function EcranListeOrdresReparation() {
   if (isPending) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('or:liste.titre')}</h1>
+        <h1 className="sr-only">{t('or:liste.titre')}</h1>
         <EtatChargement lignes={6} />
       </div>
     );
@@ -202,7 +202,7 @@ export function EcranListeOrdresReparation() {
   if (isError) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('or:liste.titre')}</h1>
+        <h1 className="sr-only">{t('or:liste.titre')}</h1>
         <EtatErreur
           titre={t('or:liste.erreur.titre')}
           description={messageErreur(error, t)}
@@ -214,7 +214,11 @@ export function EcranListeOrdresReparation() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('or:liste.titre')}</h1>
+      {/* Doublon strict du libellé de l'onglet actif « Ordres de réparation »
+          (`navigation-modele.ts`, `ONGLETS_ATELIER`) : le h1 reste dans le DOM pour le lecteur
+          d'écran et la structure du document, mais n'ajoute rien visuellement à côté de la barre
+          d'onglets déjà en surbrillance. */}
+      <h1 className="sr-only">{t('or:liste.titre')}</h1>
 
       <BarreFiltres
         q={qSaisie}

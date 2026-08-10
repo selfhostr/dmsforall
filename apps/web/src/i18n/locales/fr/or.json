@@ -366,7 +366,11 @@
     "titre": "Nouvel ordre de réparation",
     "siteManquant": {
       "titre": "Site non sélectionné",
-      "description": "Choisissez un site avant d'ouvrir un ordre de réparation : la numérotation et le paramétrage de l'OR en dépendent."
+      "description": "Choisissez un site avant d'ouvrir un ordre de réparation : la numérotation et le paramétrage de l'OR en dépendent.",
+      "label": "Site",
+      "erreur": {
+        "titre": "Impossible de charger vos sites"
+      }
     },
     "client": {
       "requisTitre": "Client non sélectionné",

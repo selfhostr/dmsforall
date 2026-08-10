@@ -28,7 +28,7 @@ import {
   schemaTexteCourt,
   schemaTexteLong,
 } from '../atelier/primitives';
-import { schemaListeQuery } from '../filtres';
+import { schemaBooleenQuery, schemaListeQuery } from '../filtres';
 
 /**
  * Documents de vente (`document_vente`) — chaîne devis → bon de commande → facture → avoir
@@ -355,7 +355,7 @@ export const schemaFiltresDocumentsVente = z.object({
    * `nonImputeUniquement` de `facturation/paiement.ts` — seul `true` a un effet, `false` ne exclut
    * PAS les factures en retard).
    */
-  enRetard: z.coerce.boolean().optional(),
+  enRetard: schemaBooleenQuery().optional(),
   /**
    * Filtre à ÉGALITÉ STRICTE sur `document_vente.relance_niveau` (colonne réelle, `smallint not null
    * default 0`, migration `0010_facturation.sql` — déjà exposée en lecture par

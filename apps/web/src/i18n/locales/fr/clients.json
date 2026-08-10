@@ -34,7 +34,8 @@
     "titre": "Fiche client",
     "ouvrirOr": "Ouvrir un OR",
     "actions": {
-      "fusionner": "Fusionner"
+      "fusionner": "Fusionner",
+      "ajouterVehicule": "Ajouter un véhicule"
     },
     "onglets": {
       "contacts": "Contacts",

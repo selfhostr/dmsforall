@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Headers,
@@ -33,13 +34,12 @@ import {
   type EntreeArchivageVehicule,
   type EntreeCreationVehicule,
   type EntreeFusionVehicule,
-  type EntreeModificationVehicule,
   type ReponseContexteAtelier,
   type ReponseVehicule,
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
-import { CorpsZod } from '../common/documentation';
+import { ApiCorpsZod, CorpsZod } from '../common/documentation';
 import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { JETON_IDEMPOTENCE, type ServiceIdempotence } from '../common/idempotence';
@@ -205,22 +205,25 @@ export class VehiculeController {
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Véhicule introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'VEHICULE_VIN_EXISTANT.')
+  @ApiCorpsZod(schemaModificationVehicule, {
+    exemple: {
+      pneusHiver: 'Continental 205/55 R16',
+      intervalleEntretienKm: 15000,
+      garantieMois: 24,
+    },
+  })
   async modifier(
     @Param('vehiculeId', new PipeZod(schemaIdentifiant)) vehiculeId: string,
-    @CorpsZod(schemaModificationVehicule, {
-      exemple: {
-        pneusHiver: 'Continental 205/55 R16',
-        intervalleEntretienKm: 15000,
-        garantieMois: 24,
-      },
-    })
-    entree: EntreeModificationVehicule,
+    // Corps BRUT, jamais pré-parsé ici : `schemaModificationVehicule` porte `importe` hérité
+    // avec `.default(false)` (`.partial()` ne l'annule pas) — c'est `ServiceVehicule.modifier`
+    // qui parse ET filtre sur les clés réellement envoyées (F-01-bis, `neGarderQueChampsEnvoyes`).
+    @Body() corpsBrut: Record<string, unknown>,
   ) {
     const ctx = this.contexte.contexteTenant();
     const { donnees, avertissements } = await this.serviceVehicule.modifier(
       ctx,
       vehiculeId,
-      entree,
+      corpsBrut,
     );
     return avertissements.envelopper(donnees);
   }

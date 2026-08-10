@@ -10,7 +10,10 @@ import { CarteVehicule } from './CarteVehicule';
 
 const VEHICULE: VehiculeResume = {
   id: 'v1',
-  plaque: '123456',
+  // Forme réelle envoyée par le serveur (`VehiculeResume.plaque`) : le canton y est déjà inclus en
+  // préfixe (voir `composants/identite/Plaque.tsx`) — un fixture sans préfixe ne reproduit jamais
+  // le doublon "VD VD 123456" que ce test doit surveiller.
+  plaque: 'VD 123456',
   canton: 'VD',
   designation: 'VW Touran 2.0 TDI',
   vin: 'WVGZZZ1TZ8W123456',

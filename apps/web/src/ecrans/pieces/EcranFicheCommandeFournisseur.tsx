@@ -27,7 +27,11 @@ import { formaterDate, formaterDateHeure, formaterMontant } from '@/lib/formats'
 
 import { DialogueMotifCommandeFournisseur } from './DialogueMotifCommandeFournisseur';
 import { DialogueReceptionCommande } from './DialogueReceptionCommande';
-import { peutEcrireCommandeFournisseur, peutReceptionnerCommandeFournisseur } from './droits';
+import {
+  peutEcrireCommandeFournisseur,
+  peutLireCommandeFournisseur,
+  peutReceptionnerCommandeFournisseur,
+} from './droits';
 import { formaterQuantiteMillieme, texteOuVide } from './utils';
 
 type Confirmation =
@@ -54,20 +58,50 @@ const VARIANTE_BADGE_STATUT: Record<string, 'default' | 'secondary' | 'outline' 
 export function EcranFicheCommandeFournisseur() {
   const { t } = useTranslation(['pieces', 'commun', 'erreurs']);
   const { id } = useParams<{ id: string }>();
-  const { data: session } = useSession();
-  const role = session?.utilisateur.role;
-  const sites = session?.sites ?? [];
+  const session = useSession();
+  const role = session.data?.utilisateur.role;
+  const sites = session.data?.sites ?? [];
+  const peutLire = peutLireCommandeFournisseur(role);
 
   const [receptionOuverte, setReceptionOuverte] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
 
-  const requeteCommande = useCommandeFournisseur(id);
+  // Défaut corrigé : `pieces.commande_fournisseur.lire` (direction/chef_atelier/magasinier SEULS)
+  // est STRICTEMENT plus étroit que `ROLES_PIECES` qui protège la ROUTE
+  // `/pieces/commandes-fournisseur/:id` (les sept rôles) — un vendeur/réceptionnaire/technicien/
+  // comptable qui l'atteignait (menu masqué mais URL directe toujours accessible, doctrine
+  // documentée en tête de `routes/droits-routes.ts`) déclenchait un `403` rendu comme une erreur
+  // technique générique. Même doctrine que `EcranFicheClient.tsx` (`peutVoirDossiersVente`) :
+  // gardé par le droit AVANT de partir. `useFournisseur` en aval ne peut jamais être refusé pour
+  // un rôle qui a passé cette garde : `peutLireCommandeFournisseur`/`peutLireFournisseur`
+  // partagent EXACTEMENT le même trio de rôles (`ecrans/pieces/droits.ts`).
+  const requeteCommande = useCommandeFournisseur(session.isLoading || !peutLire ? undefined : id);
   const commande = requeteCommande.data;
   const requeteFournisseur = useFournisseur(commande?.fournisseurId);
 
   const envoyer = useEnvoyerCommandeFournisseur(id ?? '');
   const annuler = useAnnulerCommandeFournisseur(id ?? '');
   const annulerReliquat = useAnnulerReliquatLigneCommande(id ?? '');
+
+  if (session.isLoading) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <h1 className="sr-only">{t('pieces:commandes.titre')}</h1>
+        <EtatChargement lignes={8} />
+      </div>
+    );
+  }
+
+  if (!peutLire) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <h1 className="sr-only">{t('pieces:commandes.titre')}</h1>
+        <p className="texte-corps text-muted-foreground">
+          {t('pieces:commandes.fiche.droitRequis')}
+        </p>
+      </div>
+    );
+  }
 
   if (requeteCommande.isPending) {
     return (

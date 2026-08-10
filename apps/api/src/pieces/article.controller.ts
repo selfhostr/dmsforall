@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Headers,
@@ -33,12 +34,11 @@ import {
   type EntreeCreationReferenceArticle,
   type EntreeDesactivationArticle,
   type EntreeMarquageObsolete,
-  type EntreeModificationArticle,
   type FiltresReferencesArticle,
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
-import { CorpsZod } from '../common/documentation';
+import { ApiCorpsZod, CorpsZod } from '../common/documentation';
 import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
@@ -201,13 +201,21 @@ export class ArticleController {
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Article introuvable pour ce tenant.')
+  @ApiCorpsZod(schemaModificationArticle, {
+    description:
+      'Corps brut transmis tel quel au service (jamais pré-parsé ici) : `schemaModificationArticle` ' +
+      'porte `estEchangeStandard.default(false)`, que `.partial()` rend facultatif SANS annuler le ' +
+      "défaut — un parse ici l'appliquerait à tort à un corps qui ne touche pas `estEchangeStandard` " +
+      '(F-01-bis). Voir `ServiceArticle.modifier`.',
+    exemple: { designation: 'Plaquettes de frein avant' },
+  })
   async modifier(
     @Param('articleId', new PipeZod(schemaUuid)) articleId: string,
-    @CorpsZod(schemaModificationArticle) entree: EntreeModificationArticle,
+    @Body() corpsBrut: Record<string, unknown>,
   ): Promise<ArticleAvecAvertissementsDto> {
     const ctx = this.contexte.contexteTenant();
     const { role } = this.contexte.exigerPrincipal();
-    return this.service.modifier(ctx, role, articleId, entree);
+    return this.service.modifier(ctx, role, articleId, corpsBrut);
   }
 
   @Post(':articleId/references')

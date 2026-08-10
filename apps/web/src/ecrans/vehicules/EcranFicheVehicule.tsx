@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Wrench } from 'lucide-react';
+import { Link2, Wrench } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
@@ -32,6 +32,7 @@ import { useListeDossiersVente } from '@/hooks/ventes/dossiers/useListeDossiersV
 import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
+import { DialogueRattacherClient } from './DialogueRattacherClient';
 import { EnTeteFicheVehicule } from './EnTeteFicheVehicule';
 import { FormulaireKilometrage } from './FormulaireKilometrage';
 import { PanneauTravauxReportes } from './PanneauTravauxReportes';
@@ -53,6 +54,7 @@ export function EcranFicheVehicule() {
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
   const [formulaireKmOuvert, setFormulaireKmOuvert] = useState(false);
+  const [rattacherOuvert, setRattacherOuvert] = useState(false);
 
   const requeteVehicule = useVehicule(vehiculeId);
   const requeteContexte = useContexteAtelier(vehiculeId);
@@ -522,8 +524,20 @@ export function EcranFicheVehicule() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle className="texte-titre-section">{t('vehicules:detentions.titre')}</CardTitle>
+          {/* Geste manquant signalé par @laupernoe : « je ne sais pas comment assigner un véhicule à un
+           *  client ». `POST /changer-detenteur` (RM-20/21) couvre les deux cas d'un seul bouton —
+           *  aucun détenteur courant (« Rattacher à un client ») ou détenteur existant (« Changer
+           *  de détenteur », occasion revendue) — voir `DialogueRattacherClient.tsx`. */}
+          <Button type="button" variant="outline" onClick={() => setRattacherOuvert(true)}>
+            <Link2 aria-hidden className="h-4 w-4" />
+            {t(
+              proprietaireActuel
+                ? 'vehicules:detentions.changer'
+                : 'vehicules:detentions.rattacher',
+            )}
+          </Button>
         </CardHeader>
         <CardContent>
           {requeteDetentions.isPending ? (
@@ -541,11 +555,19 @@ export function EcranFicheVehicule() {
       </Card>
 
       {vehiculeId ? (
-        <FormulaireKilometrage
-          vehiculeId={vehiculeId}
-          ouvert={formulaireKmOuvert}
-          onOuvertChange={setFormulaireKmOuvert}
-        />
+        <>
+          <FormulaireKilometrage
+            vehiculeId={vehiculeId}
+            ouvert={formulaireKmOuvert}
+            onOuvertChange={setFormulaireKmOuvert}
+          />
+          <DialogueRattacherClient
+            vehiculeId={vehiculeId}
+            detenteurActuel={proprietaireActuel ? proprietaireActuel.client : null}
+            ouvert={rattacherOuvert}
+            onOuvertChange={setRattacherOuvert}
+          />
+        </>
       ) : null}
     </div>
   );

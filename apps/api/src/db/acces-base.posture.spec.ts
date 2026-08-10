@@ -299,6 +299,23 @@ describe('analyserPostureTables — tables sans tenant_id', () => {
     expect(analyserPostureTables([t], ROLE)).toEqual([]);
   });
 
+  it('accepte un référentiel SANS RLS activé du tout : la table n’a rien à filtrer (cas type_approbation_ch, 0050)', () => {
+    // Régression exacte constatée en CI : `type_approbation_ch` (0050) est déclarée
+    // [dfa:referentiel-partage], bornée à SELECT seul, mais ne pose AUCUN `enable row level
+    // security` — délibérément, puisqu'une politique sur une table sans tenant_id ne pourrait
+    // être que `using (true)`, c'est-à-dire ne rien filtrer du tout. Avant la correction de
+    // l'ordre des contrôles, `!t.rls_active` était jugé avant même de lire le marqueur et
+    // rejetait la table avec « ROW LEVEL SECURITY non activé » sans jamais atteindre
+    // `analyserTableSansTenant()`.
+    const t = referentielConforme({
+      table_name: 'type_approbation_ch',
+      rls_active: false,
+      politiques_non_isolantes: [],
+      inventaire_politiques: [],
+    });
+    expect(analyserPostureTables([t], ROLE)).toEqual([]);
+  });
+
   it('REFUSE un référentiel déclaré sur lequel dfa_app peut écrire', () => {
     const problemes = analyserPostureTables(
       [referentielConforme({ peut_inserer: true, peut_modifier: true })],

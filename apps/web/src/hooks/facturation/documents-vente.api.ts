@@ -17,20 +17,31 @@ import { requeteApi } from '@/api/client';
 /**
  * Couche transport de la facturation — même convention que `hooks/atelier/ordres-reparation.api.ts` :
  * les types consommés sont ceux de `@dfa/shared` (`packages/shared/src/contrats/facturation/`),
- * jamais ceux de `api/types.gen.ts` (l'OpenAPI de la facturation n'existe pas encore, voir l'en-tête
- * de `packages/shared/src/contrats/facturation/index.ts` : « un écart nécessaire se remonte à
- * l'orchestrateur, il ne se code pas en attendant »).
+ * jamais ceux de `api/types.gen.ts`. NOTE DE FRAÎCHEUR (corrigée `10.08.2026`) : l'en-tête ci-dessus
+ * affirmait que « l'OpenAPI de la facturation n'existe pas encore » — c'était vrai au `04.08.2026`,
+ * ça ne l'est plus depuis la régénération du contrat (`33b0124`, "Contrat: regenerer l'OpenAPI et les
+ * types du front") : `apps/web/src/api/types.gen.ts` documente désormais `/documents-vente` et ses
+ * sous-routes. Ce fichier continue néanmoins de consommer `@dfa/shared` plutôt que les `operations[]`
+ * générées, par choix délibéré (même raison que `hooks/atelier/ordres-reparation.api.ts` : les filtres
+ * de liste sérialisés à la main ne sont pas documentés par les `operations[]`), pas par retard de
+ * régénération — ne pas relancer cette vérification, la question a été tranchée.
  *
- * ÉCART SIGNALÉ (à confirmer avec expert-api / l'agent propriétaire des endpoints `documents-vente`) :
- * le contrat partagé documente le CORPS de chaque action (`schemaCreationAvoir`,
- * `schemaCorrectionFacture`, `schemaEmissionDocumentVente`…) et le VERBE dans ses commentaires
- * (`POST /documents-vente/{id}/emettre`, etc.) mais ne fixe pas explicitement le verbe de
- * suppression d'une ligne de brouillon ajoutée en écran 2 (§4.3 du design : « retirer une ligne
- * ajoutée par erreur à l'écran 1 »). `ligne.ts` indique seulement qu'aucun `DELETE` n'existe sur une
- * ligne d'OR (RM-71) et que la facturation suit un principe voisin mais INVERSE pour un brouillon
- * (« la ligne se retire librement », contrairement à l'OR) — `supprimerLigneDocument` ci-dessous
- * suppose donc un `DELETE /documents-vente/{id}/lignes/{ligneId}` classique, à vérifier avant mise
- * en service réelle.
+ * ÉCART SIGNALÉ, DÉSORMAIS CONFIRMÉ (corrigé `10.08.2026`) : le paragraphe ci-dessous doutait du verbe
+ * HTTP de suppression d'une ligne de brouillon (« à confirmer avec expert-api »). `types.gen.ts`
+ * confirme `DELETE /documents-vente/{id}/lignes/{ligneId}` → `DocumentVenteController_supprimerLigne`
+ * ("Suppression d'une ligne sur un brouillon (MD-21, MD-19)") : l'hypothèse de `supprimerLigneDocument`
+ * ci-dessous était correcte. Reste vrai en revanche : ni cette fonction ni `useSupprimerLigneDocument`
+ * (`useLignesDocumentVente.ts`) n'ont d'appelant dans `apps/web/src/ecrans/**` à ce jour — écrit,
+ * jamais câblé à un écran, pas du code mort à supprimer sans un avis du propriétaire de l'écran 2.
+ * `PATCH /documents-vente/{id}/lignes/{ligneId}` (`DocumentVenteController_modifierLigne`) existe
+ * aussi côté contrat sans hook `modifierLigneDocument` correspondant ici — même statut, à confirmer
+ * avant d'écrire quoi que ce soit.
+ *
+ * Historique (contexte, ne plus revérifier) : le contrat partagé documente le CORPS de chaque action
+ * (`schemaCreationAvoir`, `schemaCorrectionFacture`, `schemaEmissionDocumentVente`…) et le VERBE dans
+ * ses commentaires (`POST /documents-vente/{id}/emettre`, etc.) ; `ligne.ts` indique qu'aucun `DELETE`
+ * n'existe sur une ligne d'OR (RM-71) et que la facturation suit un principe voisin mais INVERSE pour
+ * un brouillon (« la ligne se retire librement », contrairement à l'OR).
  *
  * ÉCART SIGNALÉ ET CONTOURNÉ (bug confirmé en exécution, `2026-08-04`) : `GET /documents-vente`
  * NE renvoie PAS `DocumentVenteResume` malgré le commentaire ci-dessous et le type annoncé par

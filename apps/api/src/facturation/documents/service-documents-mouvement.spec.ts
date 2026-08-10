@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  schemaCleIdempotence,
-  type EntreeCreationLigneDocument,
-  type EntreeModificationLigneDocument,
-} from '@dfa/shared';
+import { schemaCleIdempotence, type EntreeCreationLigneDocument } from '@dfa/shared';
 
 import type { ContexteTenant, TransactionDfa } from '../../db';
 import type { LigneDocumentVente, LigneLigneDocument } from '../../db/schema';
@@ -474,7 +470,7 @@ describe('ServiceDocumentsVente.modifierLigne/supprimerLigne — immuabilité de
     await expect(
       service.modifierLigne(CTX, principal(), DOCUMENT_ID, LIGNE_ID, {
         prixUnitaireTtcCentimes: 9500,
-      } as EntreeModificationLigneDocument),
+      }),
     ).rejects.toMatchObject({ code: 'LIGNE_DOCUMENT_STOCK_LIEE', status: 409 });
 
     expect(update).not.toHaveBeenCalled();
@@ -489,7 +485,7 @@ describe('ServiceDocumentsVente.modifierLigne/supprimerLigne — immuabilité de
 
     const resultat = await service.modifierLigne(CTX, principal(), DOCUMENT_ID, LIGNE_ID, {
       prixUnitaireTtcCentimes: 9500,
-    } as EntreeModificationLigneDocument);
+    });
 
     expect(resultat.donnees).toMatchObject({ id: DOCUMENT_ID });
     expect(update).toHaveBeenCalledTimes(1);

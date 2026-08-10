@@ -66,3 +66,36 @@ export function coercionListeQuery(valeur: unknown): unknown {
 export function schemaListeQuery<Schema extends z.ZodTypeAny>(schemaElement: Schema) {
   return z.preprocess(coercionListeQuery, z.array(schemaElement));
 }
+
+/**
+ * Filtre booléen de query string, sans `z.coerce.boolean()`.
+ *
+ * LE PIÈGE (issue #43, prouvé en exécution — 3 pointages sains en base, 0 avec anomalie) :
+ * `z.coerce.boolean()` délègue à `Boolean(valeur)`. Sur une chaîne, seule la chaîne VIDE est
+ * falsy — `Boolean('false')`, `Boolean('0')`, `Boolean('non')` valent tous `true`. Une query
+ * string HTTP ne transporte jamais de chaîne vide pour `?x=false` (c'est la chaîne NON vide
+ * `"false"`), donc `z.coerce.boolean()` sur un paramètre d'URL coerce SYSTÉMATIQUEMENT à `true`
+ * dès que le paramètre est présent — `?anomalie=false` et `?anomalie=true` produisaient alors
+ * exactement le même filtre, et seule l'absence totale du paramètre changeait quoi que ce soit
+ * (`GET /pointages?anomalie=false` rendait une liste vide au lieu des 3 pointages sains).
+ *
+ * Cette fonction distingue explicitement les trois états attendus d'un filtre booléen de query :
+ * absent (pas de filtre — `.optional()` reste à la charge de l'appelant, même convention que
+ * `schemaListeQuery`), `"true"`, `"false"`. Toute autre valeur (`"oui"`, `"1"`, `"TRUE"`…) est
+ * REFUSÉE en `400 VALIDATION_ECHOUEE` plutôt que devinée — un paramètre mal orthographié doit
+ * être visible à l'appelant, jamais silencieusement retomber sur « pas de filtre » ou sur une
+ * valeur arbitraire.
+ *
+ * `valeurParDefaut` couvre le cas d'un filtre booléen de query avec une valeur par défaut si le
+ * paramètre est absent (ex. `inclureAnciennesDetentions`) : NE PAS chaîner `.default(false)`
+ * APRÈS l'appel de cette fonction — `z.enum(['true', 'false']).transform(...).default(false)`
+ * casse, car `ZodDefault` réinjecte sa valeur par défaut (un booléen) en ENTRÉE du schéma
+ * enveloppé (l'enum de CHAÎNES), pas en sortie du `transform`, et `'true'|'false'` n'accepte pas
+ * un booléen. Passer `valeurParDefaut` ici applique le défaut AVANT le transform, au bon niveau.
+ */
+export function schemaBooleenQuery(valeurParDefaut?: boolean) {
+  const base = z.enum(['true', 'false']);
+  const schemaAvecDefaut =
+    valeurParDefaut === undefined ? base : base.default(valeurParDefaut ? 'true' : 'false');
+  return schemaAvecDefaut.transform((valeur) => valeur === 'true');
+}

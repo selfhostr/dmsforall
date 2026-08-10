@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -34,12 +35,11 @@ import {
   type EntreeCreationDocumentVente,
   type EntreeCreationLigneDocument,
   type EntreeModificationDocumentVente,
-  type EntreeModificationLigneDocument,
   type ReponseDocumentVente,
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../../common/contexte';
-import { CorpsZod } from '../../common/documentation';
+import { ApiCorpsZod, CorpsZod } from '../../common/documentation';
 import { ExigerDroit, GardeDroit } from '../../common/droits';
 import { ApiReponseProbleme } from '../../common/erreurs';
 import { PipeZod } from '../../common/validation';
@@ -318,15 +318,23 @@ export class DocumentVenteController {
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Document ou ligne introuvable pour ce tenant.')
   @ApiReponseProbleme(409, 'DOCUMENT_VERROUILLE (document émis).')
+  @ApiCorpsZod(schemaModificationLigneDocument, {
+    description:
+      'Corps brut transmis tel quel au service (jamais pré-parsé ici) : `schemaModificationLigneDocument' +
+      "` porte `quantiteMillieme.default(1000)` et `regimeTva.default('normal')`, qui s'appliqueraient à " +
+      'tort sur un corps qui ne touche ni l’un ni l’autre si le parse avait lieu dans ce contrôleur — ' +
+      'défaut critique corrigé (facturait la quantité/le régime par défaut), voir ' +
+      '`ServiceDocumentsVente.modifierLigne`.',
+    exemple: { prixUnitaireTtcCentimes: 9500 },
+  })
   async modifierLigne(
     @Param('id', new PipeZod(schemaIdentifiant)) id: string,
     @Param('ligneId', new PipeZod(schemaIdentifiant)) ligneId: string,
-    @CorpsZod(schemaModificationLigneDocument, { exemple: { prixUnitaireTtcCentimes: 9500 } })
-    entree: EntreeModificationLigneDocument,
+    @Body() corpsBrut: Record<string, unknown>,
   ) {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
-    return this.service.modifierLigne(ctx, principal, id, ligneId, entree);
+    return this.service.modifierLigne(ctx, principal, id, ligneId, corpsBrut);
   }
 
   @Delete(':id/lignes/:ligneId')

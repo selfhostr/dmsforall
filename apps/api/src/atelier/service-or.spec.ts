@@ -7,31 +7,17 @@ import type { LigneOrdreReparation } from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 
 /**
- * Point de vigilance n°1 de l'audit sécurité (docs/audit-securite-lot1.md §4) : `PATCH
- * /ordres-reparation/{orId}` sert TOUS les champs libres de l'en-tête sous le SEUL droit
- * `atelier.or.modifier`, alors que `plafondCentimes` (RM-54, §10 L969 : le montant au-delà duquel
- * l'accord du client est requis — décide si on rappelle le client avant d'engager des frais)
- * mérite son propre droit, structurellement plus fort, `atelier.or.plafond_modifier`. L'audit
- * notait que ce n'était PAS exploitable au moment de la revue (les deux droits étaient accordés
- * aux mêmes rôles — réceptionnaire, chef d'atelier, direction, admin) mais que « le jour où l'une
- * des deux sera resserrée, le contrôle sera silencieusement inopérant » — exactement le même
- * schéma que É-01 (`ServiceVehiculeKilometrage.creer` / `vehicule.kilometrage.corriger_regression`,
- * `apps/api/src/vehicules/service-vehicule-kilometrage.ts`).
+ * Garantie de sécurité : `PATCH /ordres-reparation/{orId}` sert TOUS les champs libres de
+ * l'en-tête sous le SEUL droit `atelier.or.modifier`, alors que `plafondCentimes` (RM-54 : le
+ * montant au-delà duquel l'accord du client est requis) mérite son propre droit
+ * `atelier.or.plafond_modifier`. Ce test prouve que `ServiceOr.modifier` vérifie explicitement
+ * ce droit UNIQUEMENT quand `plafondCentimes` change RÉELLEMENT — jamais en permanence — et que
+ * le refus n'écrit RIEN en base (aucun `tx.update`, aucun assemblage de document).
  *
- * Ce fichier prouve, sans base réelle (fonctions de requête et transaction MOQUÉES — même doctrine
- * que `service-vehicule-kilometrage.spec.ts`), que `ServiceOr.modifier` vérifie désormais
- * explicitement `MATRICE_DROITS[role].includes('atelier.or.plafond_modifier')`, à partir du `role`
- * transmis par l'appelant (jamais déduit ailleurs), UNIQUEMENT quand `plafondCentimes` change
- * RÉELLEMENT — jamais en permanence (un `@ExigerDroit` statique sur cette route interdirait aussi
- * les modifications ordinaires à tout rôle qui n'aurait que `atelier.or.modifier`) — et que le
- * refus n'écrit RIEN en base (aucun appel à `tx.update`, aucun assemblage de document).
- *
- * Les rôles choisis ci-dessous (`technicien`) n'ont AUJOURD'HUI ni `atelier.or.modifier` ni
- * `atelier.or.plafond_modifier` dans la matrice réelle (les deux sont actuellement accordés aux
- * mêmes rôles, cf. audit) — ce test exerce volontairement `ServiceOr.modifier` directement,
- * court-circuitant le garde-fou plus grossier posé par le contrôleur (`@ExigerDroit('atelier.or.modifier')`),
- * pour prouver que le contrôle fin du plafond tient PAR LUI-MÊME, indépendamment de cette
- * coïncidence actuelle des deux droits — c'est précisément ce que l'audit appelait à vérifier.
+ * Les rôles testés (`technicien`) n'ont actuellement ni `atelier.or.modifier` ni
+ * `atelier.or.plafond_modifier` dans la matrice réelle — ce test exerce volontairement
+ * `ServiceOr.modifier` directement pour prouver que le contrôle fin du plafond tient
+ * PAR LUI-MÊME, indépendant du garde-fou du contrôleur.
  */
 vi.mock('./or-requetes', () => ({
   chargerOrPourEcriture: vi.fn(),

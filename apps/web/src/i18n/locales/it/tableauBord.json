@@ -5,6 +5,9 @@
     "au": "Al",
     "periodeAffichee": "Periodo visualizzato: {du} – {au}"
   },
+  "communs": {
+    "voirFactures": "Vedere le fatture"
+  },
   "activite": {
     "titre": "Attività officina",
     "erreur": {
@@ -14,7 +17,8 @@
       "titre": "Ordini di riparazione in corso per stato"
     },
     "ordresOuverts": {
-      "libelle": "Ordini di riparazione aperti nel periodo"
+      "libelle": "Ordini di riparazione aperti nel periodo",
+      "libelleAujourdhui": "Ordini di riparazione aperti oggi"
     },
     "ordresRestitues": {
       "libelle": "Veicoli restituiti nel periodo"
@@ -48,6 +52,81 @@
     },
     "encoursClients": {
       "libelle": "Crediti clienti in essere"
+    }
+  },
+  "direction": {
+    "sortiesDuSoir": {
+      "titre": "Consegne di stasera",
+      "description": "Restituzioni promesse ai clienti per oggi.",
+      "vide": {
+        "titre": "Nessuna consegna prevista stasera",
+        "description": "Nessun ordine di riparazione aperto ha una data di restituzione promessa per oggi."
+      }
+    }
+  },
+  "comptable": {
+    "aRelancer": {
+      "titre": "Fatture da sollecitare",
+      "description": "Apra l'elenco delle fatture e selezioni la scheda «Da sollecitare».",
+      "lien": "Aprire le fatture"
+    }
+  },
+  "chefAtelier": {
+    "sortiesDuJour": {
+      "titre": "Consegne di oggi",
+      "description": "Restituzioni promesse ai clienti per oggi.",
+      "vide": {
+        "titre": "Nessuna consegna prevista oggi",
+        "description": "Nessun ordine di riparazione aperto ha una data di restituzione promessa per oggi."
+      }
+    },
+    "equipeEnCours": {
+      "titre": "Chi lavora su cosa",
+      "erreur": "Impossibile visualizzare la squadra al lavoro",
+      "vide": {
+        "titre": "Nessuna timbratura attiva",
+        "description": "Nessuna timbratura in corso al momento."
+      },
+      "activiteIndirecte": "Attività indiretta",
+      "autres": "{count, plural, one {+ # altro} other {+ # altri}}"
+    }
+  },
+  "magasinier": {
+    "reservations": {
+      "titre": "Prenotazioni attive",
+      "description": "Pezzi prenotati su un ordine di riparazione, non ancora consegnati.",
+      "lien": "Vedere le prenotazioni"
+    },
+    "reapprovisionnement": {
+      "erreur": "Impossibile visualizzare il riordino",
+      "vide": {
+        "titre": "Nessun articolo sotto soglia",
+        "description": "Tutti gli articoli monitorati sono sopra la loro soglia di riordino."
+      },
+      "ecart": "{ecart, plural, one {# unità mancante} other {# unità mancanti}}",
+      "autres": "{count, plural, one {+ # altro articolo} other {+ # altri articoli}}"
+    }
+  },
+  "technicien": {
+    "titre": "I miei ordini assegnati",
+    "erreur": "Impossibile visualizzare i suoi ordini di riparazione",
+    "vide": {
+      "titre": "Nessun ordine assegnato",
+      "description": "Al momento non le è assegnata alcuna riga su un ordine di riparazione aperto."
+    }
+  },
+  "admin": {
+    "raccourcis": {
+      "titre": "Scorciatoie",
+      "sites": "Gestire le sedi",
+      "parametrageAtelier": "Impostazioni officina"
+    }
+  },
+  "vendeur": {
+    "indisponible": {
+      "titre": "Cruscotto non disponibile",
+      "description": "L'API non permette ancora di filtrare le pratiche di vendita per venditore responsabile: mostrare tutte le pratiche della sede come «le sue pratiche» sarebbe fuorviante. Trova il suo lavoro in Vendite › Pratiche.",
+      "lien": "Vai alle mie pratiche"
     }
   }
 }

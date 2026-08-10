@@ -106,6 +106,30 @@ describe('OngletsDomaine — les onglets d’un domaine', () => {
       'page',
     );
   });
+
+  /**
+   * Issue #44, second cas trouvé en vérifiant le reste du fichier : `pieces.consigne.lire`
+   * n'est accordé qu'à `direction`/`chef_atelier`/`magasinier`/`comptable` — un `vendeur` ne doit
+   * pas voir l'onglet Consignes du tout (avant correctif, il le voyait et se heurtait à un `403`).
+   */
+  it('Pièces : un vendeur ne voit pas Consignes', async () => {
+    connecte('vendeur');
+    rendre('/pieces/articles');
+
+    const onglets = await screen.findByRole('navigation', { name: /onglets/i });
+    expect(libelles(onglets)).toEqual(['Comptoir', 'Articles', 'Approvisionnement']);
+  });
+
+  /** Contre-épreuve : `comptable` n'a pas `pieces.fournisseur.lire` (pas dans
+   *  `ROLES_LECTURE_FOURNISSEUR_PIECES`) mais a bien `pieces.consigne.lire` — Consignes doit lui
+   *  rester visible, seul l'onglet Approvisionnement change de contenu interne (testé plus bas). */
+  it('Pièces : un comptable voit Consignes', async () => {
+    connecte('comptable');
+    rendre('/pieces/articles');
+
+    const onglets = await screen.findByRole('navigation', { name: /onglets/i });
+    expect(libelles(onglets)).toEqual(['Comptoir', 'Articles', 'Approvisionnement', 'Consignes']);
+  });
 });
 
 describe('OngletsDomaine — les vues d’un onglet', () => {
@@ -164,6 +188,36 @@ describe('OngletsDomaine — les vues d’un onglet', () => {
 
     await screen.findByRole('navigation', { name: /onglets/i });
     expect(screen.queryByRole('navigation', { name: /vues/i })).toBeNull();
+  });
+
+  /**
+   * Issue #44 : `pieces.fournisseur.lire`/`pieces.commande_fournisseur.lire`
+   * (`apps/api/src/auth/matrice-droits.ts`, `DROITS_PIECES_PAR_ROLE`) ne sont accordés qu'à
+   * `direction`/`chef_atelier`/`magasinier`. Un `vendeur` qui ouvre Approvisionnement ne doit
+   * proposer QUE « À commander » — avant correctif, « Commandes » et « Fournisseurs » étaient
+   * proposés aussi et menaient à un `403` en cul-de-sac.
+   */
+  it('Approvisionnement : un vendeur ne voit ni Commandes ni Fournisseurs, seulement À commander', async () => {
+    connecte('vendeur');
+    rendre('/pieces/reapprovisionnement');
+
+    await screen.findByRole('navigation', { name: /onglets/i });
+    // Une seule vue visible pour ce rôle (« À commander ») : la rangée de vues ne se rend pas du
+    // tout, même règle que « un onglet sans vue » — un choix à une seule option n'en est pas un.
+    expect(screen.queryByRole('navigation', { name: /vues/i })).toBeNull();
+    // Garde-fou : les deux vues refusées à ce rôle ne doivent apparaître nulle part dans le
+    // document, pas seulement être absentes de la rangée de vues.
+    expect(screen.queryByRole('link', { name: /^commandes$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^fournisseurs$/i })).not.toBeInTheDocument();
+  });
+
+  /** Contre-épreuve du test précédent : un rôle qui a réellement le droit voit les trois vues. */
+  it('Approvisionnement : un magasinier voit À commander, Commandes et Fournisseurs', async () => {
+    connecte('magasinier');
+    rendre('/pieces/reapprovisionnement');
+
+    const vues = await screen.findByRole('navigation', { name: /vues/i });
+    expect(libelles(vues)).toEqual(['À commander', 'Commandes', 'Fournisseurs']);
   });
 });
 

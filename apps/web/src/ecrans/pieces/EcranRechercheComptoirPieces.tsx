@@ -170,6 +170,10 @@ export function EcranRechercheComptoirPieces() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6">
+      {/* NON masqué volontairement : l'onglet actif est « Comptoir » (`navigation-modele.ts`,
+          `ONGLETS_PIECES`, onglet « comptoir », sans vue), qui ne dit pas ce qu'on y fait —
+          « Recherche comptoir » porte l'information « Recherche » qu'aucun onglet n'affiche.
+          Comparaison mot pour mot avec la barre d'onglets active : pas un doublon. */}
       <h1 className="text-2xl font-semibold tracking-tight">
         {t('pieces:rechercheComptoir.titre')}
       </h1>

@@ -1,14 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, sql, type SQL } from 'drizzle-orm';
-import type {
-  EntreeArchivageVehicule,
-  EntreeCreationVehicule,
-  EntreeFusionVehicule,
-  EntreeModificationVehicule,
-  FiltresVehicules,
-  PageCurseur,
-  ReponseVehicule,
-  VehiculeResume,
+import {
+  schemaModificationVehicule,
+  type EntreeArchivageVehicule,
+  type EntreeCreationVehicule,
+  type EntreeFusionVehicule,
+  type EntreeModificationVehicule,
+  type FiltresVehicules,
+  type PageCurseur,
+  type ReponseVehicule,
+  type VehiculeResume,
 } from '@dfa/shared';
 import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } from '../db';
 import { vehicule, type LigneVehicule } from '../db/schema';
@@ -20,6 +21,7 @@ import {
   encoderCurseurTrie,
   valeurCurseurTimestamptz,
 } from '../common/pagination';
+import { neGarderQueChampsEnvoyes, PipeZod } from '../common/validation';
 import { interpreterContrainteVehicule } from './erreurs-contraintes';
 import { versVehiculeResume } from './vehicule.mappers';
 import {
@@ -193,7 +195,7 @@ export class ServiceVehicule {
     tx: TransactionDfa,
     ctx: ContexteTenant,
     vehiculeId: string,
-    entree: EntreeModificationVehicule,
+    entree: Partial<EntreeModificationVehicule>,
   ): Promise<ResultatEcritureVehicule> {
     const avertissements = new CollecteurAvertissements();
     const existante = await chargerLigneVehicule(tx, ctx, vehiculeId);
@@ -243,7 +245,17 @@ export class ServiceVehicule {
             entree.proprietaireEconomiqueClientId !== undefined
               ? (entree.proprietaireEconomiqueClientId ?? null)
               : undefined,
-          importe: entree.importe,
+          // F-01-bis (corruption silencieuse, gravité haute) : `schemaModificationVehicule` naît
+          // de `schemaCreationVehicule.omit({...}).partial()`, et `importe` porte
+          // `.default(false)` sur le schéma de BASE. `.partial()` rend la clé optionnelle, il
+          // n'annule PAS le `.default(...)` : un corps qui ne mentionne jamais `importe` ressort
+          // quand même du `.parse()` avec `importe: false`. La garde `!== undefined` ci-dessous
+          // ne suffit PAS à elle seule contre ce défaut précis (voir `neGarderQueChampsEnvoyes`,
+          // `common/validation/champs-envoyes.ts`) : elle protège ici seulement parce que
+          // `entree` est le résultat DÉJÀ FILTRÉ sur le corps brut (voir `modifier()` ci-dessous),
+          // pas l'objet zod-parsé brut — sans ce filtrage en amont, `entree.importe` vaudrait
+          // TOUJOURS `false` que le client l'ait envoyé ou non, et cette garde serait inopérante.
+          importe: entree.importe !== undefined ? entree.importe : undefined,
           paysOrigine: entree.paysOrigine !== undefined ? (entree.paysOrigine ?? null) : undefined,
           dateImportation: entree.importeLe !== undefined ? (entree.importeLe ?? null) : undefined,
           pneusEte: entree.pneusEte !== undefined ? (entree.pneusEte ?? null) : undefined,
@@ -288,12 +300,23 @@ export class ServiceVehicule {
     return { donnees: reponse, avertissements };
   }
 
-  /** `PATCH /vehicules/{id}` — pas d'idempotence requise (contrat §7.4), transaction ouverte ici. */
+  /**
+   * `PATCH /vehicules/{id}` — pas d'idempotence requise (contrat §7.4), transaction ouverte ici.
+   *
+   * Reçoit le corps BRUT (pas encore parsé) : `schemaModificationVehicule` porte `importe`
+   * hérité de `schemaCreationVehicule` avec `.default(false)` — `.partial()` ne l'annule pas.
+   * `neGarderQueChampsEnvoyes` retire donc toute clé absente du corps brut AVANT que
+   * `modifierDansTransaction` ne construise le `.set()`, sinon un `PATCH` qui ne mentionne
+   * jamais `importe` écraserait silencieusement le statut « importé » d'un véhicule (F-01-bis,
+   * voir `common/validation/champs-envoyes.ts`).
+   */
   async modifier(
     ctx: ContexteTenant,
     vehiculeId: string,
-    entree: EntreeModificationVehicule,
+    corpsBrut: Readonly<Record<string, unknown>>,
   ): Promise<ResultatEcritureVehicule> {
+    const entreeParsee = new PipeZod(schemaModificationVehicule).transform(corpsBrut);
+    const entree = neGarderQueChampsEnvoyes(corpsBrut, entreeParsee);
     return this.acces.enTenant(ctx, (tx) =>
       this.modifierDansTransaction(tx, ctx, vehiculeId, entree),
     );
@@ -524,6 +547,14 @@ async function executerListeVehicules(
   limite: number,
 ): Promise<readonly LigneListeVehicule[]> {
   const conditions: SQL[] = [sql`v.tenant_id = ${tenantId}`];
+  // `filtres.siteId` (schéma `schemaFiltresVehicules`, `@dfa/shared`) : volontairement IGNORÉ ici,
+  // même décision que `siteId` sur `GET /clients` (voir `service-client.ts::lister`) — `vehicule`
+  // ne porte aucune colonne de site, et P-30 (`docs/specification-etape-1-atelier-clients.md` §annexe,
+  // `docs/plan-etape-1-backend.md` N-13) tranche le défaut du lot 1 en faveur du PARTAGE entre sites
+  // d'un même tenant : clients et véhicules ne sont cloisonnés par site que si P-30 devient
+  // « cloisonné », ce qui exigerait un second niveau de RLS qui n'existe pas encore. Le champ reste
+  // accepté par le contrat pour ne pas casser un futur client qui l'enverrait, mais n'a aucun effet
+  // aujourd'hui — ce n'est PAS un oubli à « corriger » isolément dans ce module.
   if (filtres.statut && filtres.statut.length > 0) {
     // `sql.param(...)::public.statut_vehicule[]` — jamais l'interpolation directe d'un tableau JS
     // dans `sql\`\``, qui produit un constructeur d'enregistrement (`any(($2, $3))`) au lieu d'un
