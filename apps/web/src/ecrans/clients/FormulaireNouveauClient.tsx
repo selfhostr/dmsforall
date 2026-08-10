@@ -460,7 +460,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
       </fieldset>
 
       {candidats.length > 0 ? (
-        <div className="space-y-2 rounded-md border border-statut-attention/40 bg-statut-attention/12 p-3">
+        <div className="space-y-2 rounded-md border border-statut-attention bg-statut-attention-fond p-3">
           <p className="texte-libelle font-semibold text-foreground">
             {t('clients:doublons.titre')}
           </p>

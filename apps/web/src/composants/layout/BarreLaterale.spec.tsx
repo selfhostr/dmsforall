@@ -1,8 +1,9 @@
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
 import { render, screen, waitFor, within, type RenderResult } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import '@/i18n';
 
@@ -35,6 +36,26 @@ function rendre(routeInitiale: string): RenderResult & { queryClient: QueryClien
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[routeInitiale]}>
           <BarreLaterale />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    ),
+  };
+}
+
+/** Même rendu que `rendre` ci-dessus, avec le prop `repli` fourni — c'est ce que fait uniquement
+ *  l'`aside` desktop d'`AppShell.tsx` (jamais le tiroir mobile), voir `useRepliBarreLaterale.ts`. */
+function rendreAvecRepli(
+  routeInitiale: string,
+  replie: boolean,
+  basculer: () => void = vi.fn(),
+): RenderResult & { queryClient: QueryClient } {
+  const queryClient = creerQueryClientTest();
+  return {
+    queryClient,
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[routeInitiale]}>
+          <BarreLaterale repli={{ replie, basculer }} />
         </MemoryRouter>
       </QueryClientProvider>,
     ),
@@ -471,5 +492,102 @@ describe('BarreLaterale — numéro de version', () => {
     expect(zonePied?.contains(pied)).toBe(true);
     // Les six entrées sont bien dans la liste, et elles sont six.
     expect(within(listeDesSix as HTMLElement).getAllByRole('link')).toHaveLength(6);
+  });
+});
+
+/**
+ * REPLI DESKTOP (demande @laupernoe, revue webui du 10.08.2026) — un bouton réduit la colonne aux
+ * icônes seules. Deux promesses testées, dans l'ordre du brief : rien ne casse quand `repli` est
+ * fourni mais déplié (c'est ce que fait l'`aside` d'`AppShell.tsx` par défaut, avant tout clic), et
+ * le nom accessible de chaque entrée survit au repli — l'icône seule est `aria-hidden`, c'est
+ * `aria-label` qui porte le nom, pas le texte visible qui disparaît (`sr-only`).
+ */
+describe('BarreLaterale — repli desktop', () => {
+  it('repliée : les six entrées + Réglages gardent un nom accessible malgré l’icône seule', async () => {
+    connecte('direction');
+    rendreAvecRepli('/', true);
+
+    // Attendre une entrée GOUVERNÉE (comme le reste du fichier) : « Atelier » n'a aucune
+    // restriction de rôle et apparaîtrait avant que la session (et donc les entrées Pièces/
+    // Facturation/Ventes) ait fini de se résoudre — un `getAllByRole` immédiatement après aurait
+    // compté un menu encore partiel.
+    const pieces = await screen.findByRole('link', { name: /^pièces$/i });
+    expect(pieces).toHaveAccessibleName('Pièces');
+    const atelier = screen.getByRole('link', { name: /^atelier$/i });
+    expect(atelier).toHaveAccessibleName('Atelier');
+    // Sept liens (six entrées + Réglages), chacun nommé — pas un seul lien muet une fois l'icône
+    // seule affichée.
+    const liens = screen.getAllByRole('link');
+    expect(liens).toHaveLength(7);
+    for (const lien of liens) {
+      expect(lien.getAttribute('aria-label')).not.toBe('');
+    }
+  });
+
+  it('dépliée (prop `repli` fourni, `replie: false`) : rien ne change de ce qui passait déjà sans repli', async () => {
+    connecte('direction');
+    rendreAvecRepli('/', false);
+
+    await screen.findByRole('link', { name: /^pièces$/i });
+
+    expect(libellesDesEntrees()).toEqual([
+      "Aujourd'hui",
+      'Atelier',
+      'Clients & véhicules',
+      'Pièces',
+      'Facturation',
+      'Ventes',
+      'Réglages',
+    ]);
+    // Déplié, le libellé reste un texte normal (pas `sr-only`) — repli fourni ou non ne doit rien
+    // changer au rendu déplié.
+    expect(screen.getByRole('link', { name: /^atelier$/i }).querySelector('span')).not.toHaveClass(
+      'sr-only',
+    );
+  });
+
+  it('le filet actif (aria-current + fond secondaire) reste posé sur l’entrée repliée', async () => {
+    connecte('direction');
+    rendreAvecRepli('/clients/42', true);
+
+    const actif = await screen.findByRole('link', { name: /clients & véhicules/i });
+    expect(actif).toHaveAttribute('aria-current', 'page');
+    expect(actif.className).toContain('border-secondary-foreground');
+    expect(actif.className).toContain('bg-secondary');
+  });
+
+  it('le bouton de repli annonce son état via `aria-expanded` et appelle `basculer` au clic', async () => {
+    connecte('direction');
+    const basculer = vi.fn();
+    const utilisateur = userEvent.setup();
+    rendreAvecRepli('/', false, basculer);
+
+    const boutonReduire = await screen.findByRole('button', {
+      name: 'Réduire la barre latérale',
+    });
+    expect(boutonReduire).toHaveAttribute('aria-expanded', 'true');
+
+    await utilisateur.click(boutonReduire);
+    expect(basculer).toHaveBeenCalledOnce();
+  });
+
+  it('repliée, le bouton propose « Agrandir » — jamais « Réduire » une seconde fois', async () => {
+    connecte('direction');
+    rendreAvecRepli('/', true);
+
+    expect(
+      await screen.findByRole('button', { name: 'Agrandir la barre latérale' }),
+    ).toHaveAttribute('aria-expanded', 'false');
+    expect(
+      screen.queryByRole('button', { name: 'Réduire la barre latérale' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('sans prop `repli` (tiroir mobile) : aucun bouton de repli n’est rendu', async () => {
+    connecte('direction');
+    rendre('/');
+
+    await screen.findByRole('link', { name: /^atelier$/i });
+    expect(screen.queryByRole('button', { name: /barre latérale/i })).not.toBeInTheDocument();
   });
 });

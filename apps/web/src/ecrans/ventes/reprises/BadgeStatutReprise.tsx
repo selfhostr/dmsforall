@@ -31,10 +31,10 @@ const CONFIG_STATUT_REPRISE: Readonly<Record<StatutReprise, EntreeStatutReprise>
 };
 
 const CLASSES_PLEIN: Readonly<Record<TokenStatut, string>> = {
-  neutre: 'border-transparent bg-statut-neutre text-white',
-  info: 'border-transparent bg-statut-info text-white',
-  succes: 'border-transparent bg-statut-succes text-white',
-  danger: 'border-transparent bg-statut-danger text-white',
+  neutre: 'border-transparent bg-statut-neutre-fond text-statut-neutre',
+  info: 'border-transparent bg-statut-info-fond text-statut-info',
+  succes: 'border-transparent bg-statut-succes-fond text-statut-succes',
+  danger: 'border-transparent bg-statut-danger-fond text-statut-danger',
 };
 
 const CLASSES_CONTOUR: Readonly<Record<TokenStatut, string>> = {

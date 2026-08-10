@@ -22,8 +22,8 @@ const ICONES: Record<NiveauUrgence, typeof AlertTriangle> = {
 };
 
 const CLASSES_TOKEN: Record<NiveauUrgence, string> = {
-  echue: 'border-transparent bg-statut-danger text-white',
-  imminente: 'border-transparent bg-statut-attention text-white',
+  echue: 'border-transparent bg-statut-danger-fond text-statut-danger',
+  imminente: 'border-transparent bg-statut-attention-fond text-statut-attention',
   proche: 'border-statut-info bg-background text-statut-info',
   lointaine: 'border-statut-neutre bg-background text-statut-neutre',
 };

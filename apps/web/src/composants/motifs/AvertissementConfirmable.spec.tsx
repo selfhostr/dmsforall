@@ -94,12 +94,12 @@ describe('AvertissementConfirmable', () => {
 
     // RefusBloquant : encart rouge inline (--statut-danger), jamais un dialog modal.
     expect(document.querySelector('.text-statut-danger')).not.toBeNull();
-    expect(document.querySelector('.bg-statut-danger\\/12')).not.toBeNull();
+    expect(document.querySelector('.bg-statut-danger-fond')).not.toBeNull();
     expect(screen.getByRole('alert')).toBeInTheDocument();
 
     // Aucune des deux couleurs n'apparaît sur l'autre composant : jamais indiscernables.
     const dialogPanel = screen.getByRole('dialog');
-    expect(dialogPanel.querySelector('.bg-statut-danger\\/12')).toBeNull();
+    expect(dialogPanel.querySelector('.bg-statut-danger-fond')).toBeNull();
     const encartRefus = screen.getByRole('alert');
     expect(encartRefus.querySelector('.text-statut-attention')).toBeNull();
   });

@@ -1,5 +1,11 @@
 {
   "titre": "Rechnungseinstellungen",
+  "monCompte": {
+    "titre": "Mein Konto",
+    "langue": {
+      "description": "Diese Sprache betrifft nur Ihr Konto, nicht die anderen Benutzer der Garage."
+    }
+  },
   "creancier": {
     "titre": "Bankverbindung der Garage",
     "description": "Diese Angaben erscheinen auf dem QR-Zahlteil jeder ausgestellten Rechnung. Solange sie unvollständig sind, kann keine Rechnung mit einer zahlbaren QR-Rechnung ausgestellt werden.",

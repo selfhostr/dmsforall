@@ -70,7 +70,12 @@
     "aria": "{action} (action principale)"
   },
   "entete": {
-    "tousLesSites": "Tous les sites"
+    "tousLesSites": "Tous les sites",
+    "changerSite": "Changer de site"
+  },
+  "repli": {
+    "reduire": "Réduire la barre latérale",
+    "agrandir": "Agrandir la barre latérale"
   },
   "pied": {
     "version": "{branche} · {numero}"

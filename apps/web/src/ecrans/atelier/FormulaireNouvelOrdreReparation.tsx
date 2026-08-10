@@ -202,7 +202,7 @@ export function FormulaireNouvelOrdreReparation({
       {confirmationsRequises.length > 0 ? (
         <div
           role="alert"
-          className="rounded-md border border-statut-attention/40 bg-statut-attention/10 p-3"
+          className="rounded-md border border-statut-attention bg-statut-attention-fond p-3"
         >
           <p className="texte-corps text-statut-attention">
             {creation.erreurActive ? messageErreurMutation(creation.erreurActive, t) : ''}

@@ -233,7 +233,7 @@ export function DialogueCorrectionFacture({ facture, ouvert, onOuvertChange, onS
           ) : null}
 
           {brancheMontantTaux ? (
-            <div className="flex flex-col gap-2 rounded-md border border-statut-info/40 bg-statut-info/10 p-3">
+            <div className="flex flex-col gap-2 rounded-md border border-statut-info bg-statut-info-fond p-3">
               <p className="texte-corps">{t('facturation:fiche.correction.motifMontantTaux')}</p>
               <Button
                 type="button"

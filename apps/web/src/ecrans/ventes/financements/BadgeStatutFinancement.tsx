@@ -27,9 +27,9 @@ const CONFIG_STATUT_FINANCEMENT: Readonly<
 };
 
 const CLASSES_PLEIN: Readonly<Record<TokenStatut, string>> = {
-  attention: 'border-transparent bg-statut-attention text-white',
-  succes: 'border-transparent bg-statut-succes text-white',
-  danger: 'border-transparent bg-statut-danger text-white',
+  attention: 'border-transparent bg-statut-attention-fond text-statut-attention',
+  succes: 'border-transparent bg-statut-succes-fond text-statut-succes',
+  danger: 'border-transparent bg-statut-danger-fond text-statut-danger',
 };
 
 const CLASSES_CONTOUR: Readonly<Record<TokenStatut, string>> = {

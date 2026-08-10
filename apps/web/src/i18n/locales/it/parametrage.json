@@ -1,5 +1,11 @@
 {
   "titre": "Impostazioni di fatturazione",
+  "monCompte": {
+    "titre": "Il mio account",
+    "langue": {
+      "description": "Questa lingua riguarda solo il vostro account, non gli altri utenti dell'officina."
+    }
+  },
   "creancier": {
     "titre": "Coordinate bancarie dell'officina",
     "description": "Questi dati compaiono sulla polizza QR di ogni fattura emessa. Finché non sono completi, nessuna fattura può avere una fattura QR pagabile.",

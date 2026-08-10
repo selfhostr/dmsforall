@@ -1,5 +1,28 @@
 {
   "demarrage": {
-    "titre": "Kunde, Fahrzeug oder Auftrag finden"
+    "titre": "Was heute ansteht"
+  },
+  "calendrier": {
+    "titre": "Diese Woche",
+    "apercu": "Vorschau — die diese Woche versprochenen Rückgabetermine. Die Terminplanung der Werkstatt kommt später in dmsforall; dieser Kalender wird dann ihre Oberfläche sein.",
+    "droitRequis": "Sie haben keine Berechtigung, Reparaturaufträge einzusehen.",
+    "vide": {
+      "titre": "Kein versprochener Rückgabetermin diese Woche",
+      "description": "Kein offener Reparaturauftrag hat einen versprochenen Rückgabetermin in den nächsten 7 Tagen."
+    },
+    "autres": "{count, plural, one {+ # weiterer} other {+ # weitere}}"
+  },
+  "echeances": {
+    "titre": "Anstehende Fristen",
+    "description": "Reifensätze ohne Bewegung seit mehr als zwei Jahren, beim Kunden nachzufragen.",
+    "droitRequis": "Sie haben keine Berechtigung, das Reifenlager einzusehen.",
+    "vide": {
+      "titre": "Keine Frist",
+      "description": "Aktuell ist kein Reifensatz nachzuverfolgen."
+    },
+    "depuisLe": "Ohne Bewegung seit dem {date}",
+    "autres": "{count, plural, one {+ # weiterer nachzuverfolgender Satz} other {+ # weitere nachzuverfolgende Sätze}}",
+    "voirTout": "Ganzes Reifenlager anzeigen",
+    "aVenir": "MFK-Prüfungen und Garantien werden dieser Liste beitreten, sobald dafür ein aggregierter Endpunkt existiert."
   }
 }

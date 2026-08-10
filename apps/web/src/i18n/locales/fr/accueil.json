@@ -1,5 +1,28 @@
 {
   "demarrage": {
-    "titre": "Retrouvez un client, un véhicule ou un ordre"
+    "titre": "Ce qui se passe aujourd'hui"
+  },
+  "calendrier": {
+    "titre": "Cette semaine",
+    "apercu": "Aperçu — les dates de restitution promises aux clients cette semaine. La prise de rendez-vous d'atelier viendra plus tard dans dmsforall ; ce calendrier en sera alors la surface.",
+    "droitRequis": "Vous n'avez pas le droit de consulter les ordres de réparation.",
+    "vide": {
+      "titre": "Aucune restitution promise cette semaine",
+      "description": "Aucun ordre de réparation ouvert n'a de date de restitution promise dans les 7 prochains jours."
+    },
+    "autres": "{count, plural, one {+ # autre} other {+ # autres}}"
+  },
+  "echeances": {
+    "titre": "Échéances à venir",
+    "description": "Jeux de pneus sans mouvement depuis plus de deux ans, à relancer auprès du client.",
+    "droitRequis": "Vous n'avez pas le droit de consulter le hangar à pneus.",
+    "vide": {
+      "titre": "Aucune échéance",
+      "description": "Aucun jeu de pneus n'est à relancer pour le moment."
+    },
+    "depuisLe": "Sans mouvement depuis le {date}",
+    "autres": "{count, plural, one {+ # autre jeu à relancer} other {+ # autres jeux à relancer}}",
+    "voirTout": "Voir tout le hangar à pneus",
+    "aVenir": "Les expertises MFK et les garanties rejoindront cette liste dès qu'un endpoint agrégé existera pour elles."
   }
 }

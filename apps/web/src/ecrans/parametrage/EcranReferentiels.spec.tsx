@@ -72,6 +72,33 @@ function rendre() {
   );
 }
 
+describe('EcranReferentiels — mon compte (choix de langue)', () => {
+  // `parametrage/referentiels` est le SEUL onglet de Réglages ouvert à tout rôle authentifié sans
+  // restriction (voir le commentaire de tête d'`EcranReferentiels` et `routes/droits-routes.ts` :
+  // les quatre autres onglets — atelier, sites, facturation, pièces — ferment la ROUTE elle-même à
+  // des sous-ensembles de rôles). Un rôle qui ne verrait pas ce sélecteur ici perdrait toute
+  // possibilité de changer de langue une fois connecté : les deux tests ci-dessous couvrent un rôle
+  // de gouvernance (chef_atelier) et un rôle sans aucun droit d'écriture sur le paramétrage
+  // (technicien) pour prouver que l'un comme l'autre l'atteint.
+  it.each(['chef_atelier', 'technicien'] as const)(
+    'affiche le sélecteur de langue, réutilisé tel quel, pour le rôle %s',
+    async (role) => {
+      connecterSession(role);
+      server.use(
+        http.get(CHEMIN_TAUX_HORAIRES, () => HttpResponse.json(pageVide<ReponseTauxHoraire>())),
+        http.get(CHEMIN_PRESTATIONS, () => HttpResponse.json(pageVide<ReponsePrestation>())),
+      );
+      rendre();
+
+      expect(await screen.findByText(i18n.t('parametrage:monCompte.titre'))).toBeInTheDocument();
+      const groupe = screen.getByRole('group', { name: i18n.t('commun:langue.choisir') });
+      for (const code of ['fr', 'de', 'it']) {
+        expect(within(groupe).getByRole('button', { name: code })).toBeInTheDocument();
+      }
+    },
+  );
+});
+
 describe('EcranReferentiels — taux horaires', () => {
   it('affiche un état vide avec action de création quand le catalogue est vide (rôle habilité)', async () => {
     connecterSession('chef_atelier');
