@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -33,7 +34,7 @@ import {
 } from '@dfa/shared';
 
 import { ServiceContexteRequete } from '../common/contexte';
-import { CorpsZod } from '../common/documentation';
+import { ApiCorpsZod, CorpsZod } from '../common/documentation';
 import { ExigerDroit, GardeDroit } from '../common/droits';
 import { ApiReponseProbleme } from '../common/erreurs';
 import { PipeZod } from '../common/validation';
@@ -51,9 +52,6 @@ import {
 } from './dto';
 import { schemaPageSousCollection, schemaUuid, type ParametresPageSousCollection } from './schemas';
 import { ServiceClientSousCollections } from './service-client-sous-collections';
-
-type EntreeModificationAdresse = Partial<EntreeAdresseClient> & { readonly actif?: boolean };
-type EntreeModificationContact = Partial<EntreeContactClient> & { readonly actif?: boolean };
 
 /**
  * Sous-collections de la fiche client (RM-03, RM-04, RM-07, RM-09, RM-13). Un contrôleur par
@@ -128,16 +126,20 @@ export class ClientAdresseController {
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Client ou adresse introuvable pour ce tenant.')
+  @ApiCorpsZod(schemaModificationAdresseClient, {
+    description:
+      'Corps brut transmis tel quel au service (jamais pré-parsé ici) : `schemaModificationAdresseClient` ' +
+      "porte `pays.default('CH')`, qui s'appliquerait à tort sur un corps qui ne touche pas `pays` si le " +
+      'parse avait lieu dans ce contrôleur — voir `ServiceClientSousCollections.modifierAdresse`.',
+    exemple: { complement: 'Bâtiment B, 2e étage', actif: true },
+  })
   async modifier(
     @Param('clientId', new PipeZod(schemaUuid)) clientId: string,
     @Param('adresseId', new PipeZod(schemaUuid)) adresseId: string,
-    @CorpsZod(schemaModificationAdresseClient, {
-      exemple: { complement: 'Bâtiment B, 2e étage', actif: true },
-    })
-    entree: EntreeModificationAdresse,
+    @Body() corpsBrut: Record<string, unknown>,
   ): Promise<ClientAdresseAvecAvertissementsDto> {
     const ctx = this.contexte.contexteTenant();
-    return this.service.modifierAdresse(ctx, clientId, adresseId, entree);
+    return this.service.modifierAdresse(ctx, clientId, adresseId, corpsBrut);
   }
 }
 
@@ -206,16 +208,19 @@ export class ClientContactController {
   @ApiReponseProbleme(401, 'Session absente ou expirée.')
   @ApiReponseProbleme(403, 'Droit insuffisant.')
   @ApiReponseProbleme(404, 'Client ou contact introuvable pour ce tenant.')
+  @ApiCorpsZod(schemaModificationContactClient, {
+    description:
+      'Corps brut transmis tel quel au service — même patron que `ClientAdresseController.modifier`, ' +
+      'pour rester protégé si un `.default(...)` était ajouté un jour à ce schéma.',
+    exemple: { telephone: '+41 78 234 56 79', actif: true },
+  })
   async modifier(
     @Param('clientId', new PipeZod(schemaUuid)) clientId: string,
     @Param('contactId', new PipeZod(schemaUuid)) contactId: string,
-    @CorpsZod(schemaModificationContactClient, {
-      exemple: { telephone: '+41 78 234 56 79', actif: true },
-    })
-    entree: EntreeModificationContact,
+    @Body() corpsBrut: Record<string, unknown>,
   ): Promise<ClientContactAvecAvertissementsDto> {
     const ctx = this.contexte.contexteTenant();
-    return this.service.modifierContact(ctx, clientId, contactId, entree);
+    return this.service.modifierContact(ctx, clientId, contactId, corpsBrut);
   }
 }
 

@@ -524,6 +524,14 @@ async function executerListeVehicules(
   limite: number,
 ): Promise<readonly LigneListeVehicule[]> {
   const conditions: SQL[] = [sql`v.tenant_id = ${tenantId}`];
+  // `filtres.siteId` (schéma `schemaFiltresVehicules`, `@dfa/shared`) : volontairement IGNORÉ ici,
+  // même décision que `siteId` sur `GET /clients` (voir `service-client.ts::lister`) — `vehicule`
+  // ne porte aucune colonne de site, et P-30 (`docs/specification-etape-1-atelier-clients.md` §annexe,
+  // `docs/plan-etape-1-backend.md` N-13) tranche le défaut du lot 1 en faveur du PARTAGE entre sites
+  // d'un même tenant : clients et véhicules ne sont cloisonnés par site que si P-30 devient
+  // « cloisonné », ce qui exigerait un second niveau de RLS qui n'existe pas encore. Le champ reste
+  // accepté par le contrat pour ne pas casser un futur client qui l'enverrait, mais n'a aucun effet
+  // aujourd'hui — ce n'est PAS un oubli à « corriger » isolément dans ce module.
   if (filtres.statut && filtres.statut.length > 0) {
     // `sql.param(...)::public.statut_vehicule[]` — jamais l'interpolation directe d'un tableau JS
     // dans `sql\`\``, qui produit un constructeur d'enregistrement (`any(($2, $3))`) au lieu d'un

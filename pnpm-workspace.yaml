@@ -20,3 +20,14 @@ allowBuilds:
   # Binaire natif du compilateur SWC, requis par Vitest pour émettre les métadonnées de
   # décorateurs sans lesquelles l'injection de dépendances NestJS ne se résout pas en test.
   '@swc/core': true
+# Surcharges de sécurité. pnpm 11 ne lit plus le champ "pnpm.overrides" de package.json ;
+# ce bloc est son remplaçant.
+overrides:
+  # @nestjs/swagger@11.4.6 pin js-yaml en 5.2.1 EXACT (pas de range) -> GHSA-pm4m-ph32-ghv5,
+  # HIGH, déni de service par parsing exponentiel dans les collections "flow" de YAML.
+  # Aucune version publiée de @nestjs/swagger ne desserre ce pin (vérifié le 10.08.2026,
+  # dernière version = 11.4.6, identique à celle installée). Retirer cette ligne dès que
+  # @nestjs/swagger publie une release avec js-yaml >=5.2.2 (`npm view @nestjs/swagger
+  # dependencies` pour vérifier), ou dès qu'on migre vers un générateur OpenAPI qui n'en
+  # dépend pas.
+  '@nestjs/swagger>js-yaml': '>=5.2.2'

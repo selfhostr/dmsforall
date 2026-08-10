@@ -20,14 +20,15 @@ import { requeteApi } from '@/api/client';
  * et `hooks/facturation/documents-vente.api.ts` : les types consommés sont ceux de `@dfa/shared`
  * (`packages/shared/src/contrats/pieces/`), jamais `api/types.gen.ts`.
  *
- * ÉCART SIGNALÉ (même nature que celui documenté en tête de `documents-vente.api.ts`) :
- * `apps/web/src/api/types.gen.ts` n'a pas encore été régénéré depuis l'OpenAPI pour inclure le
- * module `pieces` (`pnpm api:openapi && pnpm web:types`, non exécuté ici — le dépôt a des agents
- * en vol en parallèle sur `apps/api/**`, régénérer maintenant risquait de capturer un état
- * intermédiaire d'un autre agent). Les 18 routes elles-mêmes existent et sont prouvées côté API
- * (`apps/api/src/pieces/*.controller.ts`) ; ce fichier s'aligne sur leurs DTO, qui implémentent
- * eux-mêmes les types `@dfa/shared` importés ci-dessus (voir `apps/api/src/pieces/dto/article.dto.ts`).
- * À réconcilier avec `types.gen.ts` à la prochaine régénération planifiée.
+ * NOTE DE FRAÎCHEUR (corrigée `10.08.2026`) : ce paragraphe affirmait que `types.gen.ts` n'avait pas
+ * encore été régénéré pour inclure le module `pieces`. Faux depuis la régénération du contrat
+ * (`33b0124`, "Contrat: regenerer l'OpenAPI et les types du front") : `types.gen.ts` documente
+ * désormais `/articles`, `/commandes-fournisseur`, `/stock/reapprovisionnement`, etc. Ce fichier
+ * continue néanmoins de consommer `@dfa/shared` plutôt que les `operations[]` générées, par choix
+ * délibéré (filtres de liste sérialisés à la main, non documentés par les `operations[]` — même
+ * raison que `hooks/atelier/ordres-reparation.api.ts`), pas par retard de régénération. Les autres
+ * fichiers de `hooks/**` qui renvoient à cette note (« même nature que celui documenté en tête
+ * d'`articles.api.ts` ») partagent la même correction — ne pas relancer cette vérification.
  */
 
 /** Sous-ensemble de `FiltresArticles` (@dfa/shared) réellement exposé par l'écran — un seul

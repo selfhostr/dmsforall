@@ -481,6 +481,92 @@ describe('ServiceClientSousCollections.modifierAdresse — NPA×pays sur l’ét
     // supplémentaire de l'adresse existante n'a été faite, puisque ni npa ni pays n'est touché.
     expect(fabrique.updateSetArgs).toEqual([{ localite: 'Berlin' }]);
   });
+
+  /**
+   * F-01-bis (constaté en reproduction du 10.08 du finding F-01 de l'audit du 28.07, RESSAISI ici
+   * : `schemaModificationAdresseClient` porte `pays: schemaCodePays.default('CH')` — hérité de
+   * `schemaAdresseClientBase` — que `.partial()` rend OPTIONNEL sans annuler le `.default(...)`.
+   * Un corps qui ne mentionne jamais `pays` ressortait donc du `parse` zod avec `pays: 'CH'` posé
+   * malgré tout, écrit tel quel en base. Preuve en exécution réelle (avant correctif) : un
+   * `PATCH { localite: … }` sur une adresse autrichienne (NPA à 4 chiffres, homographe du format
+   * suisse — ex. `1010` Wien) faisait basculer silencieusement `pays` à `CH`, `200`, aucune erreur
+   * ni avertissement. `neGarderQueChampsEnvoyes` (service) filtre désormais l'objet zod-parsé sur
+   * les clés réellement présentes dans le corps brut avant tout usage — ces deux tests le prouvent.
+   */
+  it(
+    'PATCH { localite } seul sur une adresse AT au NPA homographe suisse (1010) ne réécrit PAS ' +
+      '`pays` — ni dans la lecture de l’état effectif, ni dans l’écriture (défaut corrigé)',
+    async () => {
+      const fabrique = txFactice({
+        selects: [
+          [{ id: 'c1' }],
+          [adresseExistante({ npa: '1010', pays: 'AT', localite: 'Linz-Zentrum' })],
+        ],
+      });
+      const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
+
+      const enveloppe = await service.modifierAdresse(CTX, 'c1', 'a1', {
+        localite: 'Linz-Zentrum',
+      });
+
+      expect(enveloppe.donnees.pays).toBe('AT');
+      // Aucune lecture de l'existant ni écriture de `pays` : `entree` ne doit porter QUE
+      // `localite`, jamais le `pays: 'CH'` fantôme posé par le `.default(...)` du schéma.
+      expect(fabrique.updateSetArgs).toEqual([{ localite: 'Linz-Zentrum' }]);
+    },
+  );
+
+  it(
+    'PATCH {} sur une adresse AT au NPA homographe suisse (1010) est refusé en 400 corps_vide, ' +
+      'jamais un no-op qui basculerait `pays` en CH',
+    async () => {
+      const fabrique = txFactice({
+        selects: [[{ id: 'c1' }], [adresseExistante({ npa: '1010', pays: 'AT' })]],
+      });
+      const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
+
+      const erreur = await service.modifierAdresse(CTX, 'c1', 'a1', {}).catch((e: unknown) => e);
+
+      expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+      expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe('corps_vide');
+      expect(fabrique.updateSetArgs).toHaveLength(0);
+    },
+  );
+
+  it(
+    'modifierAdresse : un corps qui ne porte QUE des clés inconnues (retirées par zod au parse) ' +
+      'est refusé en 400 corps_vide, jamais un no-op silencieux',
+    async () => {
+      const fabrique = txFactice();
+      const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
+
+      const erreur = await service
+        .modifierAdresse(CTX, 'c1', 'a1', { champInconnu: 'x' })
+        .catch((e: unknown) => e);
+
+      expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+      expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe('corps_vide');
+      expect(fabrique.updateSetArgs).toHaveLength(0);
+      expect(fabrique.whereArgs).toHaveLength(0);
+    },
+  );
+
+  it(
+    'modifierContact : un corps qui ne porte QUE des clés inconnues est refusé en 400 corps_vide, ' +
+      'même garde que modifierAdresse',
+    async () => {
+      const fabrique = txFactice();
+      const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
+
+      const erreur = await service
+        .modifierContact(CTX, 'c1', 'ct1', { champInconnu: 'x' })
+        .catch((e: unknown) => e);
+
+      expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
+      expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe('corps_vide');
+      expect(fabrique.updateSetArgs).toHaveLength(0);
+    },
+  );
 });
 
 describe('ServiceClientSousCollections.creerConsentement — append-only, jamais de mise à jour (RM-09, nLPD)', () => {
