@@ -13,7 +13,7 @@ import {
   type VehiculeResume,
 } from '@dfa/shared';
 
-import { ErreurReseau, messageErreur } from '@/api/erreurs';
+import { ErreurReseau } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,8 @@ import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfi
 import { useCreationOrdreReparation } from '@/hooks/atelier/useCreationOrdreReparation';
 import { useParametresAtelier } from '@/hooks/parametres/useParametresAtelier';
 import { cn } from '@/lib/utils';
+
+import { messageErreurMutation } from './messages-erreur-mutation';
 
 interface Props {
   readonly site: string;
@@ -190,7 +192,7 @@ export function FormulaireNouvelOrdreReparation({
           <AlertTitle>
             {t(estErreurReseau ? 'erreurs:reseau.titre' : 'or:nouveau.erreur.titre')}
           </AlertTitle>
-          <AlertDescription>{messageErreur(creation.erreur, t)}</AlertDescription>
+          <AlertDescription>{messageErreurMutation(creation.erreur, t)}</AlertDescription>
         </Alert>
       ) : null}
 
@@ -203,7 +205,7 @@ export function FormulaireNouvelOrdreReparation({
           className="rounded-md border border-statut-attention/40 bg-statut-attention/10 p-3"
         >
           <p className="texte-corps text-statut-attention">
-            {creation.erreurActive ? messageErreur(creation.erreurActive, t) : ''}
+            {creation.erreurActive ? messageErreurMutation(creation.erreurActive, t) : ''}
           </p>
           <Button
             type="button"
@@ -402,7 +404,7 @@ export function FormulaireNouvelOrdreReparation({
         ouvert={confirmationOuverte}
         onOuvertChange={setConfirmationOuverte}
         titre={t('or:nouveau.titre')}
-        description={creation.erreurActive ? messageErreur(creation.erreurActive, t) : ''}
+        description={creation.erreurActive ? messageErreurMutation(creation.erreurActive, t) : ''}
         libelleConfirmation={t('commun:actions.continuerQuandMeme')}
         onConfirmer={() => {
           setConfirmationOuverte(false);

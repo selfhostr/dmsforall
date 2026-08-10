@@ -15,7 +15,7 @@ import {
   type ReponseOrdreReparation,
 } from '@dfa/shared';
 
-import { ErreurApi, messageErreur } from '@/api/erreurs';
+import { ErreurApi } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -46,6 +46,8 @@ import {
   useValiderControleOr,
 } from '@/hooks/atelier/useTransitionsOrdreReparation';
 import { useSession } from '@/hooks/useSession';
+
+import { messageErreurMutation } from './messages-erreur-mutation';
 
 /**
  * Barre d'actions de l'OR — LES actions réellement proposées par le serveur (`actionsDisponibles`,
@@ -328,7 +330,7 @@ export function PanneauActionsOr({ or }: Props) {
               className="rounded-md border border-statut-attention/40 bg-statut-attention/10 p-3"
             >
               <p className="texte-corps text-statut-attention">
-                {erreurActive ? messageErreur(erreurActive, t) : ''}
+                {erreurActive ? messageErreurMutation(erreurActive, t) : ''}
               </p>
               <Button
                 type="button"
@@ -604,7 +606,7 @@ export function PanneauActionsOr({ or }: Props) {
         ouvert={confirmationOuverte}
         onOuvertChange={setConfirmationOuverte}
         titre={titreDialogue}
-        description={erreurActive ? messageErreur(erreurActive, t) : ''}
+        description={erreurActive ? messageErreurMutation(erreurActive, t) : ''}
         libelleConfirmation={t('commun:actions.continuerQuandMeme')}
         onConfirmer={() => resoumettreAvecConfirmations(confirmationsRequises)}
         enCours={mutationActive?.isPending}

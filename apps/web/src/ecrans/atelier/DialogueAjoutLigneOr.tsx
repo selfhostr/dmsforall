@@ -11,7 +11,7 @@ import {
   type TypeLigneOr,
 } from '@dfa/shared';
 
-import { ErreurApi, messageErreur } from '@/api/erreurs';
+import { ErreurApi } from '@/api/erreurs';
 import { genererCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -36,6 +36,7 @@ import {
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { useCreerLigneOr } from '@/hooks/atelier/useActionsLigneOr';
 
+import { messagesErreurMutation } from './messages-erreur-mutation';
 import { CLES_TYPE } from './ListeLignesOrdreReparation';
 
 interface Props {
@@ -341,11 +342,13 @@ export function DialogueAjoutLigneOr({ orId }: Props) {
           {erreurValidation ? (
             <p className="texte-libelle text-destructive">{erreurValidation}</p>
           ) : null}
-          {erreurActive ? (
-            <p role="alert" className="texte-libelle text-destructive">
-              {messageErreur(erreurActive, t)}
-            </p>
-          ) : null}
+          {erreurActive
+            ? messagesErreurMutation(erreurActive, t).map((message, index) => (
+                <p key={index} role="alert" className="texte-libelle text-destructive">
+                  {message}
+                </p>
+              ))
+            : null}
         </div>
 
         <DialogFooter>
