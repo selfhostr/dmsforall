@@ -207,7 +207,8 @@
         "mettreAJour": "Mettre à jour",
         "receptionner": "Réceptionner",
         "remettreDisponible": "Remettre disponible",
-        "marquerVendu": "Marquer vendu"
+        "marquerVendu": "Marquer vendu",
+        "autresActions": "Autres actions"
       },
       "donneesCommerciales": "Données commerciales",
       "historique": "Historique",
@@ -316,7 +317,7 @@
       "assignerVehicule": "Assigner un véhicule",
       "prix": "Prix",
       "prixAucun": "Prix non défini",
-      "prixIndicatif": "Indicatif (devis) : {montant}",
+      "prixIndicatif": "Indicatif : {montant}",
       "dateLivraisonEstimee": "Date de livraison estimée",
       "modifier": {
         "titre": "Modifier le dossier",

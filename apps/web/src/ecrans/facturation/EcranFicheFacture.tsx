@@ -308,27 +308,40 @@ export function EcranFicheFacture() {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
+              {/* Le nom est un vrai bouton de navigation vers la fiche client (défaut corrigé :
+                  aucun chemin ne menait au client depuis une facture normale, seul un bouton
+                  « Compléter la fiche » apparaissait, et seulement si l'adresse était incomplète).
+                  Rendu HORS de `ChampVerrouille` ci-dessous à dessein : `ChampVerrouille` enveloppe
+                  son `enfant` dans un `<div role="button">` (voir son commentaire de tête) — y
+                  imbriquer un `<button>` natif superposerait deux cibles interactives sur la même
+                  zone (le clic sur le nom aurait aussi ouvert le popover « verrouillé », le focus
+                  clavier aurait créé deux arrêts de tabulation pour un seul élément visuel). Même
+                  patron que le lien vers l'OR ci-dessus (~ligne 220) : un `<button type="button">`
+                  natif, jamais un `<div onClick>`. */}
+              <button
+                type="button"
+                className="w-fit rounded-sm text-left texte-corps font-medium text-foreground underline-offset-2 outline-none hover:text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                onClick={() => navigate(`/clients/${document_.clientId}`)}
+              >
+                {destinataireNom}
+              </button>
               {(() => {
-                const blocIdentite = (
-                  <>
-                    <p className="texte-corps font-medium text-foreground">{destinataireNom}</p>
-                    {adresse ? (
-                      <p className="texte-corps text-muted-foreground">
-                        {adresse.rue} {adresse.numero ?? ''}
-                        <br />
-                        {adresse.npa} {adresse.localite}
-                      </p>
-                    ) : null}
-                  </>
+                if (!adresse) return null;
+                const blocAdresse = (
+                  <p className="texte-corps text-muted-foreground">
+                    {adresse.rue} {adresse.numero ?? ''}
+                    <br />
+                    {adresse.npa} {adresse.localite}
+                  </p>
                 );
                 // Verrouillé dès que le document n'est plus un brouillon (§4.6) — un avoir émis
                 // n'a de toute façon aucune correction possible (`onAction` reste néanmoins
                 // câblé pour l'uniformité, la facture d'origine seule est corrigible en pratique).
                 return estBrouillon ? (
-                  blocIdentite
+                  blocAdresse
                 ) : (
                   <ChampVerrouille
-                    enfant={blocIdentite}
+                    enfant={blocAdresse}
                     message={t('facturation:verrouille.message')}
                     libelleAction={t('facturation:verrouille.corriger')}
                     onAction={ouvrirCorrection}

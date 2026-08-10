@@ -17,6 +17,7 @@ import { useListeDocumentsVente } from '@/hooks/facturation/useListeDocumentsVen
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
 
+import { BadgeEtatDocument } from './BadgeEtatDocument';
 import { BadgeStatutReglement } from './BadgeStatutReglement';
 import { peutVoirMontantsFacturation } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
@@ -29,16 +30,23 @@ type OngletListeFactures = 'toutes' | 'nonReglees' | 'enRetard' | 'aRelancer';
  * Écran 5 — liste des factures (`design-etape-2-facturation.md` §7). Route attendue : `/factures`,
  * dans la navigation principale (câblage `routes/` hors périmètre de cet agent).
  *
- * ÉCART SIGNALÉ — onglets « En retard » et « À relancer » : le design (§7.1) suppose un FILTRE et
- * un TRI dédiés sur la LISTE (paramètre de requête sur le retard/la relance). `dateEcheance`/
- * `enRetard`/`joursRetard` sont désormais bien portés par `DocumentVenteResume` (colonne « Retard »
- * ci-dessous, câblée sur `IndicateurRetard`) — CE volet de l'écart est levé. Ce qui manque encore :
- * `schemaFiltresDocumentsVente` (`@dfa/shared`) n'expose toujours aucun paramètre `enRetard`/
- * `relanceNiveau`, et `TRIS_DOCUMENTS_VENTE` ne porte aucun tri par retard — sans ces deux ajouts
- * côté contrat, reconstruire ce filtre CÔTÉ CLIENT sur une seule page déjà chargée donnerait un
- * résultat silencieusement faux dès la deuxième page d'une liste paginée. Ces deux onglets restent
- * donc dans leur état « donnée indisponible » actuel — à lever le jour où le contrat de filtre/tri
- * les expose.
+ * ONGLETS « EN RETARD » ET « À RELANCER » — câblés sur de vrais paramètres de requête serveur
+ * (`schemaFiltresDocumentsVente.enRetard`/`.relanceNiveau`, `packages/shared/src/contrats/
+ * facturation/document.ts`), plus de filtrage côté client : l'ancien commentaire qui justifiait un
+ * état « donnée indisponible » statique sur ces deux onglets décrivait un contrat qui n'expose plus
+ * cette lacune — le laisser en l'état aurait fait mentir l'écran (deux onglets affichant « tout est
+ * à jour » alors que des factures en retard existaient bel et bien, confirmé en navigateur sur le
+ * jeu de démo : `2026-00002`, 176 jours de retard, `2026-00001`, 5 jours).
+ * - « En retard » : `enRetard: true` — même définition que `ReponseDocumentVente.enRetard`
+ *   (`echeance.ts::calculerRetardDocument`), aucun filtre sur `relanceNiveau`.
+ * - « À relancer » : le contrat porte une AMBIGUÏTÉ SIGNALÉE, non tranchée, sur `relanceNiveau`
+ *   (voir le commentaire au-dessus de ce champ dans `document.ts`) — l'onglet pourrait vouloir dire
+ *   « en retard ET jamais relancée » (`enRetard=true&relanceNiveau=0`, EXPLICITEMENT cité par le
+ *   contrat comme couvrant « déjà le cas usuel ») ou « en retard, relancée, palier suivant pas
+ *   atteint » (sémantique de seuil non exprimable par ce schéma de filtre, tenant-dépendante). Choix
+ *   retenu ici, EN CITANT le contrat : `enRetard=true&relanceNiveau=0` — la seule primitive qui
+ *   repose sur une colonne réelle et couvre le cas usuel ; le raffinement par seuil reste hors
+ *   périmètre de cet agent, à trancher côté expert-metier/expert-api comme le contrat l'indique.
  *
  * ÉCART SIGNALÉ — accélérateur « Encaisser » au survol de ligne (§7.1, risque n°2 du design) :
  * NON implémenté ici. `DocumentVenteResume` ne porte pas `siteId` (seulement `document.ts` §
@@ -71,8 +79,6 @@ export function EcranListeFactures() {
     return () => window.clearTimeout(identifiant);
   }, [qSaisie]);
 
-  const donneeRetardIndisponible = onglet === 'enRetard' || onglet === 'aRelancer';
-
   const filtres: FiltresDocumentsVente = useMemo(() => {
     const base: FiltresDocumentsVente = {
       typeDocument: ['facture'],
@@ -80,7 +86,20 @@ export function EcranListeFactures() {
       tri: onglet === 'nonReglees' ? 'dateDocument:asc' : 'dateDocument:desc',
     };
     if (onglet === 'nonReglees') {
-      return { ...base, statutReglement: ['non_regle', 'partiel'] };
+      // `statut: ['emis']` — même correctif que `useFacturesOuvertesClient` (`hooks/facturation/`) :
+      // `statutReglement` seul laissait passer une facture `annule_par_avoir`, qui conserve le
+      // `statutReglement` d'avant son annulation (`RF-32` ne le nettoie pas). Sans ce filtre,
+      // l'onglet « Non réglées » proposait comme dette active une créance déjà éteinte par avoir.
+      return { ...base, statut: ['emis'], statutReglement: ['non_regle', 'partiel'] };
+    }
+    if (onglet === 'enRetard') {
+      return { ...base, enRetard: true };
+    }
+    if (onglet === 'aRelancer') {
+      // Choix cité en tête de fichier : `enRetard=true&relanceNiveau=0`, la primitive que le
+      // contrat désigne explicitement comme couvrant « déjà le cas usuel » « en retard, jamais
+      // relancée » — pas une égalité de seuil sur le palier de relance suivant (non exprimable ici).
+      return { ...base, enRetard: true, relanceNiveau: 0 };
     }
     return base;
   }, [q, onglet]);
@@ -154,8 +173,17 @@ export function EcranListeFactures() {
           {
             id: 'statut',
             libelle: t('facturation:liste.colonnes.statut'),
+            // L'onglet « Toutes » n'a AUCUN filtre `statut` (§ tête de fichier, correctif
+            // `nonReglees` ci-dessus) : une facture `annule_par_avoir` y reste visible — l'écran ne
+            // doit jamais donner l'impression qu'elle n'a pas existé. Mais son `statutReglement`
+            // (`non_regle`/`partiel`) est celui d'AVANT l'annulation (`RF-32` ne le nettoie pas) :
+            // afficher ce badge sur une créance déjà éteinte par avoir la ferait lire comme une
+            // dette active. `BadgeEtatDocument` (déjà utilisé sur la fiche facture) rend l'état réel
+            // à la place, jamais les deux superposés.
             rendu: (document_: DocumentVenteResume) =>
-              document_.statutReglement ? (
+              document_.statut === 'annule_par_avoir' ? (
+                <BadgeEtatDocument etat="annule_par_avoir" />
+              ) : document_.statutReglement ? (
                 <BadgeStatutReglement statut={document_.statutReglement} />
               ) : null,
           },
@@ -233,16 +261,7 @@ export function EcranListeFactures() {
         onEffacerFiltres={effacerFiltres}
       />
 
-      {donneeRetardIndisponible ? (
-        <EtatVide
-          titre={t('facturation:liste.titre')}
-          description={
-            onglet === 'enRetard'
-              ? t('facturation:liste.vide.enRetard')
-              : t('facturation:liste.vide.aRelancer')
-          }
-        />
-      ) : isPending ? (
+      {isPending ? (
         <EtatChargement lignes={6} />
       ) : isError ? (
         <EtatErreur

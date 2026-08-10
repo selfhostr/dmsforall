@@ -1,5 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -182,6 +183,64 @@ describe('EcranListeFactures', () => {
     await waitFor(() => expect(screen.getByText('2026-00008')).toBeInTheDocument());
     expect(screen.getByText('Jean Dupont')).toBeInTheDocument();
   });
+});
+
+describe('EcranListeFactures — facture annulée par avoir', () => {
+  it(
+    'reste visible sur l’onglet « Toutes » (aucun filtre `statut` n’exclut ce document, voir la ' +
+      "construction des filtres en tête de fichier) — l'écran ne doit jamais donner l'impression " +
+      "qu'un document annulé n'a pas existé",
+    async () => {
+      connecterSession('chef_atelier');
+      server.use(
+        http.get('/api/v1/documents-vente', () =>
+          HttpResponse.json({
+            donnees: [construireDocumentBrut({ statut: 'annule_par_avoir', numero: '2026-00099' })],
+            curseurSuivant: null,
+            limite: 50,
+          }),
+        ),
+      );
+
+      rendre();
+      await userEvent.setup().click(await screen.findByRole('tab', { name: 'Toutes' }));
+
+      expect(await screen.findByText('2026-00099')).toBeInTheDocument();
+    },
+  );
+
+  it(
+    'affiche le badge « Annulée par avoir » dans la colonne Statut plutôt que le badge de ' +
+      'règlement STALE — DÉFAUT CORRIGÉ : `statutReglement` sur un document annulé reste celui ' +
+      "d'AVANT l'annulation (`RF-32` ne le nettoie pas côté serveur), l'afficher tel quel aurait " +
+      'fait lire une créance déjà éteinte comme une dette active',
+    async () => {
+      connecterSession('chef_atelier');
+      server.use(
+        http.get('/api/v1/documents-vente', () =>
+          HttpResponse.json({
+            donnees: [
+              construireDocumentBrut({
+                statut: 'annule_par_avoir',
+                statutReglement: 'partiel',
+                numero: '2026-00099',
+              }),
+            ],
+            curseurSuivant: null,
+            limite: 50,
+          }),
+        ),
+      );
+
+      rendre();
+      await userEvent.setup().click(await screen.findByRole('tab', { name: 'Toutes' }));
+      await screen.findByText('2026-00099');
+
+      expect(screen.getByText('Annulée par avoir')).toBeInTheDocument();
+      expect(screen.queryByText('Partiellement réglée')).not.toBeInTheDocument();
+      expect(screen.queryByText('Non réglée')).not.toBeInTheDocument();
+    },
+  );
 });
 
 describe('EcranListeFactures — colonne Retard', () => {

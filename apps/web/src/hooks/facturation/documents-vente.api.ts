@@ -92,6 +92,13 @@ function construireParametres(filtres: FiltresDocumentsVente): string {
   if (filtres.ordreReparationId) parametres.set('ordreReparationId', filtres.ordreReparationId);
   if (filtres.dateDocumentDu) parametres.set('dateDocumentDu', filtres.dateDocumentDu);
   if (filtres.dateDocumentAu) parametres.set('dateDocumentAu', filtres.dateDocumentAu);
+  if (filtres.enRetard !== undefined) parametres.set('enRetard', String(filtres.enRetard));
+  // `relanceNiveau: 0` est une valeur significative (palier « jamais relancée ») — comparer à
+  // `undefined`, jamais tester la véracité de `filtres.relanceNiveau` (même convention que
+  // `filtres.importe`/`filtres.anomalie` ci-dessus dans les hooks voisins).
+  if (filtres.relanceNiveau !== undefined) {
+    parametres.set('relanceNiveau', String(filtres.relanceNiveau));
+  }
   if (filtres.q && filtres.q.trim() !== '') parametres.set('q', filtres.q.trim());
   parametres.set('tri', filtres.tri);
   return parametres.toString();

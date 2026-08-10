@@ -256,7 +256,9 @@ describe("RM-62 : une pièce déjà SORTIE (ligne realisee) bloque l'annulation 
     const pointageId = (pointage.body as { donnees: { id: string } }).donnees.id;
 
     const realisation = await marquerRealisee(ctx, cookie, or.id, ligneId);
-    expect(realisation.status, JSON.stringify(realisation.body)).toBe(201);
+    // `200`, pas `201` : transition d'une ligne existante, aucune création (même raison que
+    // `pont-atelier-pieces.spec.ts`, fichier sœur).
+    expect(realisation.status, JSON.stringify(realisation.body)).toBe(200);
 
     // `marquerRealisee` NE ferme PAS le pointage tout seul (vérifié : `ServiceLigneOr.
     // marquerRealisee` n'appelle jamais `ServiceArret`/`ServicePointage.arreter`) — sans cet arrêt
@@ -327,7 +329,7 @@ describe("RM-62 : une pièce déjà SORTIE (ligne realisee) bloque l'annulation 
     expect(pointage.status, JSON.stringify(pointage.body)).toBeLessThan(300);
     const pointageId = (pointage.body as { donnees: { id: string } }).donnees.id;
     const realisation = await marquerRealisee(ctx, cookie, or.id, ligneRealiseeId);
-    expect(realisation.status, JSON.stringify(realisation.body)).toBe(201);
+    expect(realisation.status, JSON.stringify(realisation.body)).toBe(200);
     // Isole la garde « pièce sortie » (RM-62) du blocage préexistant « pointage ouvert » (I-09) —
     // même raison que le test précédent.
     const arret = await arreterPointage(ctx, cookie, pointageId);

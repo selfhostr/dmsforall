@@ -17,6 +17,7 @@ import type { Config } from './config';
 import { ConfigModule } from './config';
 import { ConnecteursModule } from './connecteurs/connecteurs.module';
 import { DbModule } from './db/db.module';
+import { ExploitationModule } from './exploitation';
 import { FacturationModule } from './facturation/facturation.module';
 import { ImpressionModule } from './facturation/impression/impression.module';
 import { ParametrageModule } from './parametrage/parametrage.module';
@@ -93,6 +94,15 @@ export class AppModule implements NestModule {
         // résolution de l'adaptateur `NotificationSender`) ; placé après lui par lisibilité,
         // aucune contrainte d'ordre réelle (même raisonnement que `PneusModule` juste au-dessus).
         RelancesModule,
+        // `ExploitationModule` (console d'exploitation, PORTE 1 — agrégats de plateforme, aucune
+        // donnée personnelle, `docs/conception-console-exploitation-acces.md`) — ÉTEINTE PAR
+        // DÉFAUT : `ExploitationModule.pourConfig` rend un module vide (aucun contrôleur, aucun
+        // pool `dfa_console`) tant que `DATABASE_URL_CONSOLE` n'est pas renseignée. Placé en
+        // toute fin, comme `ConnecteursModule`/`RelancesModule` juste au-dessus : aucune
+        // dépendance de compilation avec un autre module métier, et volontairement PAS `@Global`
+        // — voir la tête de fichier d'`exploitation.module.ts` pour pourquoi aucun module métier
+        // ne doit pouvoir injecter le plan console.
+        ExploitationModule.pourConfig(config),
       ],
     };
   }

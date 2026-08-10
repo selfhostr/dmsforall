@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { TFunction } from 'i18next';
+import { Fragment, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -55,18 +56,31 @@ function estOrigineLigneOrConnue(valeur: unknown): valeur is OrigineLigneOr {
  * `travail_reporte`, `ressource_planning`, `document_vente`, `ligne_document`) se dégradent sur le
  * libellé de base seul, sans jamais inventer un texte non traduit.
  */
-function detailElement(element: ElementBloquant, t: TFunction): string | undefined {
+function detailElement(element: ElementBloquant, t: TFunction): ReactNode | undefined {
   const donnees = element.donnees ?? {};
 
   switch (element.type) {
     case 'ligne_or': {
-      const parties: string[] = [];
-      if (typeof donnees.numeroLigne === 'number') parties.push(`#${donnees.numeroLigne}`);
+      // Le montant reste un nœud à part (`.texte-montant`, `tabular-nums`) plutôt qu'un
+      // fragment de chaîne joint : c'est la seule des trois parties qui est un chiffre, les
+      // deux autres (numéro de ligne, origine traduite) n'en bénéficieraient pas.
+      const morceaux: ReactNode[] = [];
+      if (typeof donnees.numeroLigne === 'number') morceaux.push(`#${donnees.numeroLigne}`);
       if (estOrigineLigneOrConnue(donnees.origine))
-        parties.push(t(`or:lignes.origines.${donnees.origine}`));
+        morceaux.push(t(`or:lignes.origines.${donnees.origine}`));
       if (typeof donnees.totalTtcCentimes === 'number')
-        parties.push(formaterMontant(donnees.totalTtcCentimes));
-      return parties.length > 0 ? parties.join(' · ') : undefined;
+        morceaux.push(
+          <span key="montant" className="texte-montant">
+            {formaterMontant(donnees.totalTtcCentimes)}
+          </span>,
+        );
+      if (morceaux.length === 0) return undefined;
+      return morceaux.map((morceau, index) => (
+        <Fragment key={index}>
+          {index > 0 ? ' · ' : null}
+          {morceau}
+        </Fragment>
+      ));
     }
     case 'pointage': {
       const parties: string[] = [];
@@ -140,7 +154,7 @@ export function ListeElementsBloquants({ blocages, onElementClic, className }: P
           <li key={`${element.type}-${element.id}`}>
             <button
               type="button"
-              className="flex w-full min-h-11 items-center gap-2 px-3 py-2 text-left texte-corps hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+              className="flex w-full min-h-11 items-center gap-2 px-3 py-2 text-left texte-corps hover:bg-muted anneau-focus-interne"
               onClick={() => onElementClic?.(element)}
             >
               <Icone aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground" />

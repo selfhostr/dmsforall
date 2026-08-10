@@ -1,7 +1,7 @@
 import type { KeyboardEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { ReponseRecherche, ResultatRecherche } from '@dfa/shared';
+import type { ReponseRecherche, ResultatRecherche, TypeResultatRecherche } from '@dfa/shared';
 
 import {
   Command,
@@ -12,8 +12,10 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { EtatVide } from '@/composants/commun/EtatVide';
+import { useSession } from '@/hooks/useSession';
 
 import { ChoixPlaqueInterchangeable } from './ChoixPlaqueInterchangeable';
+import { naturesRechercheesPourRole, recherchePerimetreRestreint } from './droits-recherche';
 import { ResultatArticle } from './ResultatArticle';
 import { ResultatClient } from './ResultatClient';
 import { ResultatDepotPneu } from './ResultatDepotPneu';
@@ -21,6 +23,14 @@ import { ResultatDocumentVente } from './ResultatDocumentVente';
 import { ResultatFournisseur } from './ResultatFournisseur';
 import { ResultatOr } from './ResultatOr';
 import { ResultatVehicule } from './ResultatVehicule';
+
+/** Formate la liste des natures effectivement interrogées en une énumération lisible, dans la
+ *  langue courante — jamais un `join(', ')` figé qui lirait mal en allemand/italien pour le
+ *  dernier élément (« et »/« und »/« e »). Utilisé UNIQUEMENT pour dire ce qui A été cherché
+ *  (sûr : ça ne révèle l'existence de rien), jamais pour lister ce qui a été exclu. */
+function formaterListeNatures(libelles: readonly string[], langue: string): string {
+  return new Intl.ListFormat(langue, { style: 'long', type: 'conjunction' }).format(libelles);
+}
 
 export interface ProprietesPanneauResultatsRecherche {
   readonly valeur: string;
@@ -53,7 +63,9 @@ export function PanneauResultatsRecherche({
   placeholder,
   className,
 }: ProprietesPanneauResultatsRecherche) {
-  const { t } = useTranslation('recherche');
+  const { t, i18n } = useTranslation('recherche');
+  const { data: session } = useSession();
+  const role = session?.utilisateur.role;
 
   function gererClavier(evenement: KeyboardEvent<HTMLDivElement>) {
     if (evenement.key === 'Escape' && onEchap) {
@@ -75,6 +87,32 @@ export function PanneauResultatsRecherche({
   const plaqueInterchangeable = reponse?.plaqueInterchangeable === true;
   const aucunResultat = reponse !== null && reponse.resultats.length === 0;
 
+  // RF-116 / « une absence de donnée n'est pas une valeur » (CONTRIBUTING.md) : un rôle sans droit sur
+  // une nature (ex. `admin` sans `pieces.article.lire`, RF-115) ne doit jamais lire « Aucun
+  // résultat » — ce message affirme que la donnée n'existe pas, alors que le serveur n'a
+  // simplement pas cherché là. `naturesRechercheesPourRole` ne révèle QUE ce qui a été cherché
+  // (toujours sûr), jamais ce qui a été exclu ni un compte de résultats masqués — voir
+  // `droits-recherche.ts` pour la limite anti-fuite.
+  //
+  // Symétrique : `role` peut être `undefined` (session pas encore résolue — la palette Ctrl+K est
+  // montée dans l'en-tête, avant `RouteProtegee` — ou session résolue à « pas de session »).
+  // `recherchePerimetreRestreint` retourne alors `false` par contrat : le vrai portillon a joué
+  // côté serveur sur la session serveur, qui a cherché dans les sept natures — affirmer ici un
+  // périmètre restreint qu'on n'a pas vérifié serait un mensonge, pas une prudence. On retombe
+  // simplement sur le message plat (`vide.description`).
+  const perimetreRestreint = recherchePerimetreRestreint(role);
+  const titreVide = perimetreRestreint ? t('vide.titrePerimetreRestreint') : t('vide.titre');
+  const descriptionVide = perimetreRestreint
+    ? t('vide.descriptionPerimetreRestreint', {
+        natures: formaterListeNatures(
+          naturesRechercheesPourRole(role).map((nature: TypeResultatRecherche) =>
+            t(`natures.${nature}`),
+          ),
+          i18n.language,
+        ),
+      })
+    : t('vide.description');
+
   // Le focus reste dans `CommandInput` pendant toute la frappe : le changement de résultats en
   // dessous (nombre, passage chargement -> vide/rempli) ne serait jamais annoncé par un lecteur
   // d'écran sans cette région dédiée — `CommandList`/`CommandEmpty` (cmdk) ne posent aucun
@@ -83,7 +121,7 @@ export function PanneauResultatsRecherche({
   if (enChargement) {
     annonceLive = t('chargement');
   } else if (aucunResultat) {
-    annonceLive = t('vide.titre');
+    annonceLive = titreVide;
   } else if (reponse !== null) {
     annonceLive = t('annonceResultats', { count: reponse.resultats.length });
   } else {
@@ -115,7 +153,7 @@ export function PanneauResultatsRecherche({
           {enChargement ? <CommandEmpty>{t('chargement')}</CommandEmpty> : null}
           {!enChargement && aucunResultat ? (
             <CommandEmpty>
-              <EtatVide titre={t('vide.titre')} description={t('vide.description')} />
+              <EtatVide titre={titreVide} description={descriptionVide} />
             </CommandEmpty>
           ) : null}
 

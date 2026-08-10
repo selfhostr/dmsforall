@@ -121,8 +121,12 @@ export const schemaCreationPaiement = z.object({
   siteId: schemaIdentifiant,
   dateValeur: schemaDateJour,
   moyen: z.enum(MOYENS_PAIEMENT),
-  /** Signé — un remboursement se saisit comme un paiement négatif, jamais comme une correction du
-   *  paiement initial (`MD-52`). */
+  /** STRICTEMENT POSITIF pour cette création : `POST /paiements` est le geste d'ENCAISSEMENT, et
+   *  `service-paiement.ts::creer()` rejette tout montant `<= 0` (issue #9 GitHub, commit `49a89d9`,
+   *  « un paiement négatif ne crédite plus une facture »). Un remboursement ne se saisit JAMAIS ici
+   *  avec un montant négatif : il se crée via `POST /paiements/{id}/rembourser` (RF-79,
+   *  `schemaRembourserAvance` plus bas dans ce fichier), qui insère directement un paiement de sens
+   *  opposé, plafonné au solde remboursable et tracé par `contrePasseId` — jamais via ce champ. */
   montantCentimes: schemaCentimesTtc,
   devise: schemaDeviseFacturation,
   payeurClientId: schemaIdentifiant.nullish(),

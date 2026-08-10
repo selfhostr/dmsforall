@@ -46,7 +46,9 @@
       "vide": "Nessun detentore registrato per questo veicolo."
     },
     "dossierVente": {
-      "titre": "Pratica di vendita"
+      "titre": "Pratica di vendita",
+      "vide": "Nessuna pratica di vendita per questo veicolo.",
+      "droitRequis": "Non ha il diritto di consultare le pratiche di vendita di questo veicolo."
     },
     "ordresReparation": {
       "titre": "Ordini di riparazione",

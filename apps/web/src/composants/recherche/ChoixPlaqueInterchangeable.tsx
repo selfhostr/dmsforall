@@ -36,7 +36,7 @@ export function ChoixPlaqueInterchangeable({
             key={vehicule.id}
             type="button"
             onClick={() => onChoisir(vehicule)}
-            className="flex min-h-11 items-center rounded-md border border-input p-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex min-h-11 items-center rounded-md border border-input p-3 text-left transition-colors hover:bg-muted anneau-focus"
           >
             <ResultatVehicule resultat={vehicule} />
           </button>

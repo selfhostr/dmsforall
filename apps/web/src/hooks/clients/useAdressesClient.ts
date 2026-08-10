@@ -1,5 +1,4 @@
 import {
-  useInfiniteQuery,
   useMutation,
   useQueryClient,
   type InfiniteData,
@@ -17,33 +16,22 @@ import type {
 import { requeteApi } from '@/api/client';
 import { clesQuery } from '@/api/cles';
 import { donneesEcriture } from '@/api/enveloppe';
+import { useDoitReessayer, useListeCurseur } from '@/hooks/pagination-curseur';
 
-import { construireRequete, exigerCorps } from './support';
-
-const LIMITE_PAR_PAGE = 50;
+import { chargeurSousCollectionClient, exigerCorps } from './support';
 
 /** `GET /clients/{id}/adresses` (RM-03, une seule `principale` active à la fois) — onglet
  *  « Adresses » de la fiche. */
 export function useAdressesClient(
   clientId: string | undefined,
 ): UseInfiniteQueryResult<InfiniteData<PageCurseur<ReponseClientAdresse>>, unknown> {
-  return useInfiniteQuery({
-    queryKey: clesQuery.clients.adresses(clientId ?? ''),
-    queryFn: async ({ pageParam }) => {
-      const params = construireRequete({
-        limite: LIMITE_PAR_PAGE,
-        curseur: pageParam ?? undefined,
-      });
-      const page = await requeteApi<PageCurseur<ReponseClientAdresse>>(
-        `/clients/${clientId}/adresses?${params.toString()}`,
-        { method: 'GET' },
-      );
-      return exigerCorps(page, `GET /clients/${clientId ?? ''}/adresses`);
-    },
-    initialPageParam: null as string | null,
-    getNextPageParam: (dernierePage) => dernierePage.curseurSuivant,
-    enabled: Boolean(clientId),
+  const reessayer = useDoitReessayer();
+  const { resultat } = useListeCurseur<ReponseClientAdresse>({
+    cle: clesQuery.clients.adresses(clientId ?? ''),
+    charger: clientId ? chargeurSousCollectionClient(clientId, 'adresses') : undefined,
+    reessayer,
   });
+  return resultat;
 }
 
 /** `POST /clients/{id}/adresses`. */

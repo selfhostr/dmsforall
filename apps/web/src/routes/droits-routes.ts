@@ -120,12 +120,13 @@ export const ROLES_VENTES: readonly RoleUtilisateur[] = [
 
 /**
  * Hangar à pneus (Lot B) — CAS DE FIGURE 1 CI-DESSUS (protection RÉELLE de route), même
- * raisonnement que `ROLES_PIECES`/`ROLES_VENTES` : `apps/api/src/pneus/droits-provisoires.ts`
- * (`ROLES_PNEUS_DEPOT_LECTURE`) ferme la LECTURE elle-même à `poste_atelier` (la borne murale de
- * l'atelier n'a aucune utilité au hangar à pneus) — poser `rolesAutorises: ROLES_PNEUS` reflète
- * donc une restriction RÉELLE, même si PROVISOIRE côté API (`@AucunDroitRequis()` + vérification
- * en service, `pneus.depot.*` n'existe pas encore dans `auth/matrice-droits.ts`, voir le
- * commentaire de tête de `droits-provisoires.ts`).
+ * raisonnement que `ROLES_PIECES`/`ROLES_VENTES` : `pneus.depot.lire`
+ * (`apps/api/src/auth/matrice-droits.ts`, `LECTURE_PNEUS`) ferme la LECTURE elle-même à
+ * `poste_atelier` (la borne murale de l'atelier n'a aucune utilité au hangar à pneus) — poser
+ * `rolesAutorises: ROLES_PNEUS` reflète donc une restriction RÉELLE. Les droits `pneus.depot.*`
+ * sont DÉFINITIFS côté API — appliqués par `@ExigerDroit(...)` et `GardeDroit`, vérifié en
+ * exécution. `apps/api/src/pneus/droits-provisoires.ts` N'EXISTE PLUS — ne pas y renvoyer dans un
+ * futur commentaire.
  *
  * Liste DUPLIQUÉE depuis `ecrans/pneus/droits.ts` (`ROLES_PNEUS`, même chaîne de duplication
  * assumée que `ROLES_PIECES`/`ROLES_VENTES`/`ROLES_TABLEAU_BORD_ACTIVITE` ci-dessus — `routes/` ne
@@ -145,13 +146,13 @@ export const ROLES_PNEUS: readonly RoleUtilisateur[] = [
 /**
  * Tableau de bord — CAS DE FIGURE 1 CI-DESSUS (protection RÉELLE de route) : `GET /tableau-bord/
  * activite` est ouvert à tout rôle de PERSONNE, mais explicitement fermé à `poste_atelier` (la
- * borne murale partagée, voir `apps/api/src/tableau-bord/droits-provisoires.ts`) — la LECTURE
- * elle-même exclut ce rôle, poser `rolesAutorises` sur la route reflète donc une restriction
- * RÉELLE, elle ne l'invente pas. `GET /tableau-bord/financier` est ENCORE plus restreint
- * (`direction`/`comptable` seuls, RF-115, `admin` exclu) mais N'A PAS de route dédiée — le bloc
- * financier est géré EN PLUS, à l'intérieur de l'écran (`ecrans/tableau-bord/droits.ts`,
- * `peutVoirFinancierTableauBord`) : une garde de route ne peut pas exprimer deux niveaux de droits
- * différents sur la même route.
+ * borne murale partagée) — la LECTURE elle-même exclut ce rôle, poser `rolesAutorises` sur la
+ * route reflète donc une restriction RÉELLE. Les droits `tableau_bord.activite.*` sont DÉFINITIFS
+ * côté API — appliqués par `@ExigerDroit(...)` et `GardeDroit`. `GET /tableau-bord/financier` est
+ * ENCORE plus restreint (`direction`/`comptable` seuls, RF-115, `admin` exclu) mais N'A PAS de
+ * route dédiée — le bloc financier est géré EN PLUS, à l'intérieur de l'écran
+ * (`ecrans/tableau-bord/droits.ts`, `peutVoirFinancierTableauBord`) : une garde de route ne peut
+ * pas exprimer deux niveaux de droits différents sur la même route.
  *
  * Liste DUPLIQUÉE depuis `ecrans/tableau-bord/droits.ts` (même chaîne de duplication assumée que
  * `ROLES_PIECES`/`ROLES_VENTES` ci-dessus, `routes/` ne dépend pas d'`ecrans/*`).
@@ -180,3 +181,92 @@ export const ROLES_TABLEAU_BORD_ACTIVITE: readonly RoleUtilisateur[] = [
  * l'API applique déjà, ça ne l'invente pas.
  */
 export const ROLES_RELANCES: readonly RoleUtilisateur[] = ['direction', 'comptable'];
+
+/**
+ * Module pointage (lot 2) — listes DUPLIQUÉES depuis `ecrans/pointage/droits.ts`
+ * (`ROLES_LECTURE_POINTAGE` / `ROLES_GOUVERNANCE_POINTAGE`, elles-mêmes dupliquées depuis
+ * `DROITS_POINTAGE_PAR_ROLE` côté API), même chaîne de duplication assumée que `ROLES_PIECES`/
+ * `ROLES_VENTES`/`ROLES_PNEUS` ci-dessus : `routes/` ne dépend pas d'`ecrans/*`.
+ *
+ * Lot D (menu à six entrées) : `routeur.tsx` et `BarreLaterale.tsx` importaient auparavant ces
+ * deux listes depuis `@/ecrans/pointage/droits` — une dépendance de `routes/` et de
+ * `composants/layout/` vers un répertoire d'écran, seule de son espèce dans le fichier de routes.
+ * Elles vivent désormais ici, à côté des huit autres listes de gouvernance de route, ce qui rend
+ * `routes/` et `composants/layout/` autonomes.
+ *
+ * CAS DE FIGURE 1 (protection RÉELLE de route) : `atelier.pointage.lire` est fermé à
+ * `comptable`/`receptionnaire`/`vendeur`/`poste_atelier` côté API — la LECTURE elle-même, pas
+ * seulement l'écriture.
+ */
+export const ROLES_POINTAGE: readonly RoleUtilisateur[] = [
+  'chef_atelier',
+  'direction',
+  'admin',
+  'technicien',
+  'magasinier',
+];
+
+/** `corriger_autrui`, `verrouiller_periode`, `deverrouiller_periode` — encadrement SEUL
+ *  (vue équipe et clôture de période). Sous-ensemble strict de `ROLES_POINTAGE` ci-dessus. */
+export const ROLES_POINTAGE_ENCADREMENT: readonly RoleUtilisateur[] = [
+  'chef_atelier',
+  'direction',
+  'admin',
+];
+
+/**
+ * Borne d'atelier (`/pointage/borne`) — TROIS rôles, pour DEUX usages qui ne se confondent pas :
+ *
+ *  - `poste_atelier` : l'USAGE réel. C'est le compte de service de la tablette murale, seul
+ *    détenteur de `atelier.pointage.identifier` (`DROITS_POINTAGE_PAR_ROLE`, côté API) — donc le
+ *    seul pour qui l'identification par PIN aboutit.
+ *  - `chef_atelier` / `admin` : la CONFIGURATION. Ce sont eux qui installent la tablette au mur,
+ *    et ils doivent pouvoir ouvrir l'écran depuis le menu pour vérifier l'URL à mettre en favori
+ *    et le rendu sur l'appareil. Jusqu'au Lot D, `/pointage/borne` n'était atteignable qu'en
+ *    tapant l'URL à la main pour eux (`rolesAutorises={['poste_atelier']}` seul), ce qui rendait
+ *    la mise en service de la borne indocumentable au téléphone.
+ *
+ * LIMITE ASSUMÉE, à connaître avant de s'en étonner : un `chef_atelier`/`admin` qui SAISIT un PIN
+ * sur cet écran reçoit un `403 DROIT_INSUFFISANT` de `POST /pointage/identifier` — il n'a pas
+ * `atelier.pointage.identifier`, et c'est correct (seule la borne identifie des techniciens).
+ * L'écran affiche alors son message d'erreur générique. L'accès accordé ici est un accès de mise
+ * en service, pas un accès d'usage — `EcranBornePointage` gagnerait à porter un état dédié pour ce
+ * cas (hors du périmètre d'écriture du Lot D, signalé à la session).
+ */
+export const ROLES_BORNE_POINTAGE: readonly RoleUtilisateur[] = [
+  'poste_atelier',
+  'chef_atelier',
+  'admin',
+];
+
+/**
+ * Entrée « Facturation » du menu — CAS DE FIGURE 2 (ERGONOMIE, PAS SÉCURITÉ), à ne surtout pas
+ * transformer en `rolesAutorises` sur la route `/factures` : `facturation.document.lire` EST
+ * accordé à `admin` côté API (`DROITS_DOCUMENT_VENTE_PAR_ROLE.admin = [...LECTURE_DOCUMENT]`,
+ * `apps/api/src/auth/matrice-droits.ts`). Une garde de route inventerait donc une restriction que
+ * le serveur n'applique pas — exactement ce que l'en-tête de ce fichier interdit.
+ *
+ * DÉCISION DU LOT D (RF-115) : `admin` est retiré de l'ENTRÉE DE MENU. Motif — `admin` est un rôle
+ * technique sans aucun droit financier : `EcranListeFactures` retire structurellement les colonnes
+ * « montant », « statut » et « retard » pour lui (le serveur ne renvoie même pas les champs), et
+ * l'écran d'encaissement comme le bloc créancier lui sont fermés. Lui proposer une entrée qui
+ * ouvre une liste sans un seul montant est PIRE que de ne pas la lui proposer : elle annonce
+ * l'existence d'un contenu qu'il ne verra jamais. Jusqu'ici le `NavLink /factures` ne portait
+ * AUCUNE garde de rôle — seule entrée du menu dans ce cas, incohérence corrigée ici.
+ *
+ * `poste_atelier` est exclu pour une raison différente et plus dure : `[]` littéralement sur tout
+ * le domaine `facturation.*` côté API (compte de service, aucun droit financier par construction).
+ *
+ * Les SEPT autres rôles portent tous `facturation.document.lire`, `technicien` compris (il consulte
+ * la facture rattachée à l'OR qu'il vient de terminer) — la liste ci-dessous est dérivée de la
+ * matrice, pas choisie séparément.
+ */
+export const ROLES_MENU_FACTURATION: readonly RoleUtilisateur[] = [
+  'direction',
+  'comptable',
+  'vendeur',
+  'receptionnaire',
+  'chef_atelier',
+  'magasinier',
+  'technicien',
+];

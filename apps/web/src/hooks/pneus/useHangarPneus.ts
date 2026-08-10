@@ -1,6 +1,8 @@
-import { useInfiniteQuery, type UseInfiniteQueryResult } from '@tanstack/react-query';
+import { type UseInfiniteQueryResult } from '@tanstack/react-query';
 
 import type { PageCurseur, ReponseDepotPneus } from '@dfa/shared';
+
+import { useListeCurseur } from '@/hooks/pagination-curseur';
 
 import { clesPneus } from './cles';
 import { recupererHangarPneus, type FiltresHangar } from './depot-pneus.api';
@@ -22,17 +24,13 @@ export function useHangarPneus(
   siteId: string | undefined,
   filtres: FiltresHangar,
 ): ResultatHangarPneus {
-  const resultat = useInfiniteQuery({
-    queryKey: clesPneus.hangar.liste(siteId ?? '', filtres),
-    queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
-      recupererHangarPneus(siteId as string, filtres, { limite: LIMITE_PAGE, curseur: pageParam }),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (dernierePage) => dernierePage.curseurSuivant ?? undefined,
-    enabled: siteId !== undefined,
+  const { resultat, elements } = useListeCurseur<ReponseDepotPneus>({
+    cle: clesPneus.hangar.liste(siteId ?? '', filtres),
+    charger:
+      siteId === undefined
+        ? undefined
+        : (curseur) => recupererHangarPneus(siteId, filtres, { limite: LIMITE_PAGE, curseur }),
   });
 
-  return {
-    ...resultat,
-    depots: resultat.data?.pages.flatMap((page) => page.donnees) ?? [],
-  };
+  return { ...resultat, depots: elements };
 }

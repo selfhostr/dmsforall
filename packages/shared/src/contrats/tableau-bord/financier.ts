@@ -2,9 +2,10 @@ import type { PeriodeResolueTableauBord } from './query';
 
 /**
  * `GET /tableau-bord/financier` — indicateurs FINANCIERS agrégés sur l'ensemble du garage :
- * chiffre d'affaires, encaissements, encours clients. Réservé à `direction`/`comptable` — voir
- * `apps/api/src/tableau-bord/droits-provisoires.ts` pour la justification complète du découpage
- * (RF-115, admin exclu) et la note sur l'action de droit encore à ajouter à la matrice.
+ * chiffre d'affaires, encaissements, encours clients. Réservé à `direction`/`comptable` via
+ * l'action `tableau_bord.financier.lire` (`apps/api/src/auth/matrice-droits.ts`, RF-115 : `admin`
+ * explicitement exclu), appliquée par `@ExigerDroit(...)` + `GardeDroit` dans
+ * `apps/api/src/tableau-bord/financier.controller.ts`.
  *
  * DÉLIBÉRÉMENT ABSENT DE CE CONTRAT : toute notion de MARGE (pièces ou globale). Signalé plutôt
  * qu'inventé — voir le rapport de livraison de ce module pour le détail complet du raisonnement ;

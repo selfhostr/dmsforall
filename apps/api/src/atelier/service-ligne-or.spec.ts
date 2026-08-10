@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   EntreeAnnulationLignes,
   EntreeCreationLigneOr,
@@ -12,12 +12,15 @@ import {
   article,
   ligneOr,
   reservationPiece,
+  tauxHoraire,
   type LigneArticle,
   type LigneLigneOr,
   type LigneOrdreReparation,
+  type LigneTauxHoraire,
 } from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import type { CreationTravailReporte } from './atelier.jetons';
+import { CalculLigneSimple } from './calcul-ligne';
 
 /**
  * RM-73 : quand un client refuse une ligne de devis, l'information ne doit plus disparaître —
@@ -48,7 +51,7 @@ vi.mock('./or-requetes', () => ({
   listerLignesOr: vi.fn(),
 }));
 
-import { ServiceLigneOr } from './service-ligne-or';
+import { CODE_TAUX_HORAIRE_DEFAUT, ServiceLigneOr } from './service-ligne-or';
 import * as orRequetes from './or-requetes';
 
 const CTX: ContexteTenant = { tenantId: 'tenant-a', utilisateurId: 'user-1', requeteId: 'req-1' };
@@ -250,15 +253,28 @@ function resultatChaine<T>(lignes: T[], erreur?: unknown) {
   };
 }
 
-/** `select().from(table).where().limit()` générique, indexé par référence de TABLE Drizzle
- *  (`article`, `reservationPiece`…) — plusieurs tables interviennent dans un même scénario
- *  (`marquerRealisee` lit `reservation_piece` PUIS `article`). */
+/** `select().from(table).where()` générique, indexé par référence de TABLE Drizzle (`article`,
+ *  `reservationPiece`, `tauxHoraire`…) — plusieurs tables interviennent dans un même scénario
+ *  (`marquerRealisee` lit `reservation_piece` PUIS `article`).
+ *
+ *  Le `.where()` est THENABLE **et** porte `.limit()` : Drizzle exécute la requête dans les deux
+ *  formes, et les deux sont réellement employées ici — `chargerArticleLigne` termine par `.limit(1)`
+ *  quand `resoudreTauxHoraireCentimes` (RM-65) `await`e le `.where()` directement, pour lire TOUS
+ *  les taux du tenant. Un `.where()` qui ne rendrait que `{ limit }` ferait échouer le second en
+ *  `await` sur un objet non thenable — donc en `undefined.filter is not a function`. */
 function construireSelect(donnees: Map<unknown, unknown[]>) {
   return vi.fn(() => ({
     from: vi.fn((table: unknown) => ({
-      where: vi.fn(() => ({
-        limit: vi.fn(async () => donnees.get(table) ?? []),
-      })),
+      where: vi.fn(() => {
+        const lignes = donnees.get(table) ?? [];
+        const promesse = Promise.resolve(lignes);
+        return {
+          limit: vi.fn(async () => lignes),
+          then: (onFulfilled: (v: unknown[]) => unknown, onRejected: (e: unknown) => unknown) =>
+            promesse.then(onFulfilled, onRejected),
+          catch: (onRejected: (e: unknown) => unknown) => promesse.catch(onRejected),
+        };
+      }),
     })),
   }));
 }
@@ -961,5 +977,509 @@ describe('ServiceLigneOr.annulerLignes — libération automatique de la réserv
 
     expect(libererPourLigneTx).toHaveBeenCalledTimes(1);
     expect(libererPourLigneTx).toHaveBeenCalledWith(tx, CTX, LIGNE_ID, 'annulation_ligne');
+  });
+});
+
+/* ------------------------------------------------------------------------------------------- */
+/* RM-65 / RM-07 / P-02 : résolution du taux horaire d'une ligne de main-d'œuvre                 */
+/*                                                                                                */
+/* Trou de couverture qui a laissé passer un défaut BLOQUANT en exécution réelle : `POST          */
+/* /ordres-reparation/{id}/lignes` avec `type: main_oeuvre_temps_reel` répondait 400              */
+/* `taux_horaire_introuvable` pour TOUT client sans condition commerciale négociée — c'est-à-dire */
+/* pour l'immense majorité des clients d'un garage (seuls quelques comptes flotte en ont une).    */
+/* La résolution ne lisait que `or.conditionsFigees.tauxHoraireCode` et rendait `null` sinon,     */
+/* alors que RM-07 qualifie ce taux client d'« ÉVENTUEL » et que §7.9/P-02 rattachent le          */
+/* référentiel `taux_horaire` au GARAGE. Une ligne `piece` sur le même OR passait : seule la      */
+/* main-d'œuvre était cassée, et aucun test ne couvrait `resoudreTauxHoraireCentimes`.            */
+/*                                                                                                */
+/* Ces tests exercent le VRAI `CalculLigneSimple` (pas un calcul factice) : le taux résolu doit   */
+/* non seulement exister, mais produire les bons centimes, TVA 8.1 % comprise.                    */
+/* ------------------------------------------------------------------------------------------- */
+
+function tauxHoraireFixture(overrides: Partial<LigneTauxHoraire> = {}): LigneTauxHoraire {
+  return {
+    id: 'taux-1',
+    tenantId: 'tenant-a',
+    code: CODE_TAUX_HORAIRE_DEFAUT,
+    libelle: 'Taux horaire atelier',
+    montantCentimes: 14_500,
+    // Bornes volontairement très larges : ces tests ne doivent pas dépendre du jour où ils
+    // tournent (`resoudreTauxHoraireCentimes` compare à la date du jour).
+    valideDu: '2020-01-01',
+    valideAu: null,
+    creeLe: new Date('2026-07-28T07:00:00.000Z'),
+    modifieLe: new Date('2026-07-28T07:00:00.000Z'),
+    ...overrides,
+  } as LigneTauxHoraire;
+}
+
+/** 1.5 h barémée, sans pièce ni prix unitaire — la ligne d'atelier la plus banale qui soit. */
+function entreeMainOeuvreFixture(
+  overrides: Partial<EntreeCreationLigneOr> = {},
+): EntreeCreationLigneOr {
+  return entreePieceFixture({
+    type: 'main_oeuvre_bareme',
+    designation: 'Remplacement plaquettes AV — main-d’œuvre',
+    articleId: null,
+    prixUnitaireCentimes: null,
+    tempsBaremeCentiemes: 150,
+    ...overrides,
+  });
+}
+
+/** Comme `serviceFacticePieces`, mais avec le VRAI calcul de montants (arithmétique prouvée). */
+function serviceFacticeMainOeuvre(tx: TransactionDfa): ServiceLigneOr {
+  return new ServiceLigneOr(
+    {} as never,
+    idempotenceFactice(tx) as never,
+    { publier: vi.fn() } as never,
+    new CalculLigneSimple(),
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+}
+
+function txMainOeuvre(taux: readonly LigneTauxHoraire[], ligneInseree: LigneLigneOr) {
+  const select = construireSelect(new Map<unknown, unknown[]>([[tauxHoraire, [...taux]]]));
+  const { insert, appels: appelsInsert } = construireInsert(
+    new Map<unknown, { lignes?: unknown[]; erreur?: unknown }>([
+      [ligneOr, { lignes: [ligneInseree] }],
+    ]),
+  );
+  const { update } = construireUpdate(new Map());
+  const tx = ajouterTransactionPassthrough({ select, insert, update }) as unknown as TransactionDfa;
+  return { tx, appelsInsert };
+}
+
+/** Valeurs figées telles qu'elles partent à l'`INSERT` — c'est là que RM-65 se joue. */
+function valeursLigneInseree(appels: readonly { table: unknown; valeurs: unknown }[]) {
+  return appels.find((a) => a.table === ligneOr)?.valeurs as
+    | {
+        tauxHoraireCentimes: number | null;
+        montantHtCentimes: number;
+        montantTvaCentimes: number;
+        montantTtcCentimes: number;
+      }
+    | undefined;
+}
+
+describe("ServiceLigneOr.creer — taux horaire d'une ligne de main-d'œuvre (RM-65)", () => {
+  it('client SANS condition commerciale négociée → la ligne PASSE au taux standard du garage, figé à 145.00/h (1.5 h → 217.50 HT, 235.12 TTC à 8.1 %)', async () => {
+    // `conditionsFigees: {}` = exactement ce que rend `GET /ordres-reparation/{id}` pour un client
+    // ordinaire : le snapshot RM-50 n'a trouvé aucune ligne `client_condition` à figer.
+    const or = { ...orFixture(), conditionsFigees: {} };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+
+    const { tx, appelsInsert } = txMainOeuvre(
+      [tauxHoraireFixture()],
+      ligneFixture({ type: 'main_oeuvre_bareme', tauxHoraireCentimes: 14_500 }),
+    );
+    const service = serviceFacticeMainOeuvre(tx);
+
+    const resultat = await service.creer(
+      CTX,
+      principal('receptionnaire'),
+      OR_ID,
+      entreeMainOeuvreFixture(),
+      'idem-mo-1',
+    );
+
+    expect(resultat.reponse.statutHttp).toBe(201);
+    expect(valeursLigneInseree(appelsInsert)).toMatchObject({
+      tauxHoraireCentimes: 14_500,
+      montantHtCentimes: 21_750,
+      montantTvaCentimes: 1_762,
+      montantTtcCentimes: 23_512,
+    });
+  });
+
+  it("conditionsFigees ABSENTES (`null`, OR ouvert avant l'existence des conditions) → même repli sur le taux standard", async () => {
+    const or = { ...orFixture(), conditionsFigees: null };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+
+    const { tx, appelsInsert } = txMainOeuvre(
+      [tauxHoraireFixture()],
+      ligneFixture({ type: 'main_oeuvre_bareme', tauxHoraireCentimes: 14_500 }),
+    );
+
+    await serviceFacticeMainOeuvre(tx).creer(
+      CTX,
+      principal('receptionnaire'),
+      OR_ID,
+      entreeMainOeuvreFixture({ type: 'main_oeuvre_temps_reel' }),
+      'idem-mo-2',
+    );
+
+    expect(valeursLigneInseree(appelsInsert)?.tauxHoraireCentimes).toBe(14_500);
+  });
+
+  it('client AVEC taux négocié (RM-07) → le taux flotte PRIME sur le taux standard du garage', async () => {
+    const or = { ...orFixture(), conditionsFigees: { tauxHoraireCode: 'FLOTTE' } };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+
+    const { tx, appelsInsert } = txMainOeuvre(
+      [
+        tauxHoraireFixture(),
+        tauxHoraireFixture({
+          id: 'taux-2',
+          code: 'FLOTTE',
+          libelle: 'Taux flotte',
+          montantCentimes: 11_000,
+        }),
+      ],
+      ligneFixture({ type: 'main_oeuvre_bareme', tauxHoraireCentimes: 11_000 }),
+    );
+
+    await serviceFacticeMainOeuvre(tx).creer(
+      CTX,
+      principal('receptionnaire'),
+      OR_ID,
+      entreeMainOeuvreFixture(),
+      'idem-mo-3',
+    );
+
+    expect(valeursLigneInseree(appelsInsert)).toMatchObject({
+      tauxHoraireCentimes: 11_000,
+      montantHtCentimes: 16_500,
+      montantTvaCentimes: 1_337,
+      montantTtcCentimes: 17_837,
+    });
+  });
+
+  it("taux négocié EXPIRÉ → refus explicite qui NOMME le code, jamais un repli silencieux sur le tarif public (facturer 145.- un client à qui on a promis 110.- est pire qu'un blocage)", async () => {
+    const or = { ...orFixture(), conditionsFigees: { tauxHoraireCode: 'FLOTTE' } };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+
+    const { tx, appelsInsert } = txMainOeuvre(
+      [
+        tauxHoraireFixture(),
+        tauxHoraireFixture({
+          id: 'taux-2',
+          code: 'FLOTTE',
+          montantCentimes: 11_000,
+          valideDu: '2020-01-01',
+          valideAu: '2020-12-31',
+        }),
+      ],
+      ligneFixture(),
+    );
+
+    await expect(
+      serviceFacticeMainOeuvre(tx).creer(
+        CTX,
+        principal('receptionnaire'),
+        OR_ID,
+        entreeMainOeuvreFixture(),
+        'idem-mo-4',
+      ),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION_ECHOUEE',
+      erreurs: [
+        expect.objectContaining({
+          code: 'taux_horaire_introuvable',
+          message: expect.stringContaining('FLOTTE'),
+        }),
+      ],
+    });
+    expect(appelsInsert.some((a) => a.table === ligneOr)).toBe(false);
+  });
+
+  it("P-02, garage à taux UNIQUE nommé autrement que « ATELIER » → ce taux-là s'applique", async () => {
+    const or = { ...orFixture(), conditionsFigees: {} };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+
+    const { tx, appelsInsert } = txMainOeuvre(
+      [tauxHoraireFixture({ code: 'MO', libelle: 'Main-d’œuvre', montantCentimes: 12_000 })],
+      ligneFixture({ type: 'main_oeuvre_bareme', tauxHoraireCentimes: 12_000 }),
+    );
+
+    await serviceFacticeMainOeuvre(tx).creer(
+      CTX,
+      principal('receptionnaire'),
+      OR_ID,
+      entreeMainOeuvreFixture(),
+      'idem-mo-5',
+    );
+
+    expect(valeursLigneInseree(appelsInsert)).toMatchObject({
+      tauxHoraireCentimes: 12_000,
+      montantHtCentimes: 18_000,
+      montantTvaCentimes: 1_458,
+      montantTtcCentimes: 19_458,
+    });
+  });
+
+  it('référentiel de taux VIDE → refus, et le message désigne le paramétrage du garage (pas le client)', async () => {
+    const or = { ...orFixture(), conditionsFigees: {} };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+
+    const { tx, appelsInsert } = txMainOeuvre([], ligneFixture());
+
+    await expect(
+      serviceFacticeMainOeuvre(tx).creer(
+        CTX,
+        principal('receptionnaire'),
+        OR_ID,
+        entreeMainOeuvreFixture(),
+        'idem-mo-6',
+      ),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION_ECHOUEE',
+      erreurs: [
+        expect.objectContaining({
+          code: 'taux_horaire_introuvable',
+          message: expect.stringContaining('taux horaires'),
+        }),
+      ],
+    });
+    expect(appelsInsert.some((a) => a.table === ligneOr)).toBe(false);
+  });
+
+  it("PLUSIEURS taux en vigueur, aucun « ATELIER » → AMBIGU, donc refus : deviner lequel facturer n'est pas au logiciel de le faire", async () => {
+    const or = { ...orFixture(), conditionsFigees: {} };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+
+    const { tx, appelsInsert } = txMainOeuvre(
+      [
+        tauxHoraireFixture({ code: 'MECANIQUE', montantCentimes: 14_000 }),
+        tauxHoraireFixture({ id: 'taux-2', code: 'CARROSSERIE', montantCentimes: 16_000 }),
+      ],
+      ligneFixture(),
+    );
+
+    await expect(
+      serviceFacticeMainOeuvre(tx).creer(
+        CTX,
+        principal('receptionnaire'),
+        OR_ID,
+        entreeMainOeuvreFixture(),
+        'idem-mo-7',
+      ),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE' });
+    expect(appelsInsert.some((a) => a.table === ligneOr)).toBe(false);
+  });
+
+  it("un taux PÉRIMÉ et son remplaçant en vigueur (même code, historisation §7.9) → c'est le taux du jour qui est figé", async () => {
+    const or = { ...orFixture(), conditionsFigees: {} };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+
+    const { tx, appelsInsert } = txMainOeuvre(
+      [
+        tauxHoraireFixture({
+          id: 'taux-ancien',
+          montantCentimes: 13_500,
+          valideDu: '2015-01-01',
+          valideAu: '2019-12-31',
+        }),
+        tauxHoraireFixture({ montantCentimes: 14_500 }),
+      ],
+      ligneFixture({ type: 'main_oeuvre_bareme', tauxHoraireCentimes: 14_500 }),
+    );
+
+    await serviceFacticeMainOeuvre(tx).creer(
+      CTX,
+      principal('receptionnaire'),
+      OR_ID,
+      entreeMainOeuvreFixture(),
+      'idem-mo-8',
+    );
+
+    expect(valeursLigneInseree(appelsInsert)?.tauxHoraireCentimes).toBe(14_500);
+  });
+});
+
+/* ------------------------------------------------------------------------------------------- */
+/* RM-65 — désaccord de borne base/code sur une bascule de tarif, reproduit en exécution le      */
+/* 10.08.2026 :                                                                                  */
+/*                                                                                                */
+/*   POST /referentiels/taux-horaires {code:TEST-LIMITE, valideDuLe:2026-08-01,                  */
+/*        valideAuLe:2026-08-10}                                                    → 201        */
+/*   POST /referentiels/taux-horaires {code:TEST-LIMITE, valideDuLe:2026-08-10,                  */
+/*        valideAuLe:null}                                                          → 201        */
+/*                                                                                                */
+/* La contrainte EXCLUDE `daterange(valide_du, valide_au, '[)')` (migration 0005_parametrage.sql, */
+/* même borne sur `client_condition` en 0006) ACCEPTE cette saisie : borne haute EXCLUSIVE, les    */
+/* deux périodes ne se chevauchent pas. `resoudreTauxHoraireCentimes` lisait AUPARAVANT           */
+/* `valideAu >= dateJour` — borne haute INCLUSIVE, en désaccord avec la base — et les DEUX lignes  */
+/* remontaient comme « en vigueur » le jour de la bascule ; sans ORDER BY, laquelle `.find()`      */
+/* retenait dépendait de l'ordre de retour de PostgreSQL, non garanti. Ces tests rejouent EXACTEMENT */
+/* cette séquence et prouvent qu'un seul taux est retenu, TOUJOURS LE MÊME, quel que soit l'ordre  */
+/* dans lequel les lignes sont rendues.                                                            */
+/* ------------------------------------------------------------------------------------------- */
+describe('ServiceLigneOr.creer — bascule de tarif sur la borne de date (RM-65)', () => {
+  const VEILLE_BASCULE = new Date('2026-08-09T10:00:00.000Z');
+  const JOUR_BASCULE = new Date('2026-08-10T10:00:00.000Z');
+
+  const ANCIEN_TAUX = tauxHoraireFixture({
+    id: 'taux-ancien-limite',
+    code: 'TEST-LIMITE',
+    libelle: 'Ancien taux (avant bascule)',
+    montantCentimes: 10_000,
+    valideDu: '2026-08-01',
+    valideAu: '2026-08-10',
+  });
+  const NOUVEAU_TAUX = tauxHoraireFixture({
+    id: 'taux-nouveau-limite',
+    code: 'TEST-LIMITE',
+    libelle: 'Nouveau taux (dès bascule)',
+    montantCentimes: 20_000,
+    valideDu: '2026-08-10',
+    valideAu: null,
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it.each([
+    ['ancien puis nouveau', [ANCIEN_TAUX, NOUVEAU_TAUX], 'idem-limite-ordre-1'],
+    [
+      'nouveau puis ancien (ordre PostgreSQL non garanti)',
+      [NOUVEAU_TAUX, ANCIEN_TAUX],
+      'idem-limite-ordre-2',
+    ],
+  ])(
+    "le jour de la bascule (le 10, borne haute exclusive de l'ancien = borne basse inclusive du nouveau) → le NOUVEAU taux (200.00/h) s'applique SEUL, quel que soit l'ordre de retour des lignes (%s)",
+    async (_libelle, ordreLignes, idemKey) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(JOUR_BASCULE);
+
+      const or = { ...orFixture(), conditionsFigees: { tauxHoraireCode: 'TEST-LIMITE' } };
+      vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+      vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+
+      const { tx, appelsInsert } = txMainOeuvre(
+        ordreLignes,
+        ligneFixture({ type: 'main_oeuvre_bareme', tauxHoraireCentimes: 20_000 }),
+      );
+
+      const resultat = await serviceFacticeMainOeuvre(tx).creer(
+        CTX,
+        principal('receptionnaire'),
+        OR_ID,
+        entreeMainOeuvreFixture(),
+        idemKey,
+      );
+
+      expect(resultat.reponse.statutHttp).toBe(201);
+      // 1.5 h à 200.00/h : HT = 30'000, TVA 8.1 % = 2'430 (pas d'arrondi ambigu), TTC = 32'430.
+      expect(valeursLigneInseree(appelsInsert)).toMatchObject({
+        tauxHoraireCentimes: 20_000,
+        montantHtCentimes: 30_000,
+        montantTvaCentimes: 2_430,
+        montantTtcCentimes: 32_430,
+      });
+    },
+  );
+
+  it("la veille de la bascule (le 9) → l'ANCIEN taux (100.00/h) s'applique encore, seul", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(VEILLE_BASCULE);
+
+    const or = { ...orFixture(), conditionsFigees: { tauxHoraireCode: 'TEST-LIMITE' } };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+
+    const { tx, appelsInsert } = txMainOeuvre(
+      [ANCIEN_TAUX, NOUVEAU_TAUX],
+      ligneFixture({ type: 'main_oeuvre_bareme', tauxHoraireCentimes: 10_000 }),
+    );
+
+    await serviceFacticeMainOeuvre(tx).creer(
+      CTX,
+      principal('receptionnaire'),
+      OR_ID,
+      entreeMainOeuvreFixture(),
+      'idem-limite-veille',
+    );
+
+    // 1.5 h à 100.00/h : HT = 15'000, TVA 8.1 % = 1'215 (pas d'arrondi ambigu), TTC = 16'215.
+    expect(valeursLigneInseree(appelsInsert)).toMatchObject({
+      tauxHoraireCentimes: 10_000,
+      montantHtCentimes: 15_000,
+      montantTvaCentimes: 1_215,
+      montantTtcCentimes: 16_215,
+    });
+  });
+});
+
+describe("ServiceLigneOr.modifier — taux horaire d'une ligne devenue main-d'œuvre (RM-65)", () => {
+  it("PATCH type=main_oeuvre_temps_reel sur une ligne sans taux figé, client sans condition → le taux standard s'applique (pas de 400)", async () => {
+    const or = { ...orFixture(), conditionsFigees: {} };
+    const ligne = ligneFixture({ type: 'forfait', tauxHoraireCentimes: null, statut: 'validee' });
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.chargerLigneOrPourEcriture).mockResolvedValue(ligne);
+
+    const select = construireSelect(
+      new Map<unknown, unknown[]>([[tauxHoraire, [tauxHoraireFixture()]]]),
+    );
+    const { update, appels: appelsUpdate } = construireUpdate(
+      new Map([[ligneOr, [{ ...ligne, type: 'main_oeuvre_temps_reel' }]]]),
+    );
+    const tx = { select, update } as unknown as TransactionDfa;
+    const service = new ServiceLigneOr(
+      accesBaseFactice(tx) as never,
+      {} as never,
+      {} as never,
+      new CalculLigneSimple(),
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await service.modifier(CTX, principal('receptionnaire'), OR_ID, LIGNE_ID, {
+      type: 'main_oeuvre_temps_reel',
+      tempsBaremeCentiemes: 150,
+    } as never);
+
+    expect(appelsUpdate.find((a) => a.table === ligneOr)?.valeurs).toMatchObject({
+      tauxHoraireCentimes: 14_500,
+      montantHtCentimes: 21_750,
+      montantTvaCentimes: 1_762,
+      montantTtcCentimes: 23_512,
+    });
+  });
+
+  it('référentiel VIDE → 400 VALIDATION_ECHOUEE, jamais un UPDATE qui violerait `ligne_or_taux_horaire_requis_chk`', async () => {
+    const or = { ...orFixture(), conditionsFigees: {} };
+    const ligne = ligneFixture({ type: 'forfait', tauxHoraireCentimes: null, statut: 'validee' });
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.chargerLigneOrPourEcriture).mockResolvedValue(ligne);
+
+    const select = construireSelect(new Map<unknown, unknown[]>([[tauxHoraire, []]]));
+    const { update, appels: appelsUpdate } = construireUpdate(new Map());
+    const tx = { select, update } as unknown as TransactionDfa;
+    const service = new ServiceLigneOr(
+      accesBaseFactice(tx) as never,
+      {} as never,
+      {} as never,
+      new CalculLigneSimple(),
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await expect(
+      service.modifier(CTX, principal('receptionnaire'), OR_ID, LIGNE_ID, {
+        type: 'main_oeuvre_bareme',
+        tempsBaremeCentiemes: 150,
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION_ECHOUEE',
+      erreurs: [expect.objectContaining({ code: 'taux_horaire_introuvable' })],
+    });
+    expect(appelsUpdate.some((a) => a.table === ligneOr)).toBe(false);
   });
 });

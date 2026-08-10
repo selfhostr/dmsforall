@@ -4,6 +4,7 @@ import type { ReponseDoublonsClients } from '@dfa/shared';
 
 import { requeteApi } from '@/api/client';
 import { clesQuery } from '@/api/cles';
+import { useDoitReessayer } from '@/hooks/pagination-curseur';
 
 import { construireRequete, exigerCorps } from './support';
 
@@ -31,6 +32,7 @@ export function useDoublonsClients(
   criteres: CriteresDoublonsClients,
 ): UseQueryResult<ReponseDoublonsClients> {
   const actif = auMoinsUnCritere(criteres);
+  const reessayer = useDoitReessayer();
   return useQuery({
     queryKey: clesQuery.clients.doublons(JSON.stringify(criteres)),
     queryFn: async () => {
@@ -52,5 +54,6 @@ export function useDoublonsClients(
     },
     enabled: actif,
     staleTime: 30_000,
+    retry: reessayer,
   });
 }

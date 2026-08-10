@@ -58,6 +58,10 @@ export const TableRow = forwardRef<HTMLTableRowElement, HTMLAttributes<HTMLTable
       ref={ref}
       className={cn(
         'h-[var(--densite-hauteur-ligne,40px)] border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted',
+        // Sans effet tant que la ligne n'est pas focusable ; l'anneau apparaît de lui-même dès
+        // que l'appelant applique le patron `role="button" tabIndex={0}` documenté ci-dessus,
+        // pour qu'une liste cliquable ne puisse pas naître sans indicateur de focus.
+        'anneau-focus',
         className,
       )}
       {...props}

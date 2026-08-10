@@ -23,7 +23,7 @@ export const DropdownMenuContent = forwardRef<
       align={align}
       sideOffset={sideOffset}
       className={cn(
-        'z-50 min-w-[10rem] overflow-hidden rounded-md border border-input bg-popover p-1 texte-corps text-popover-foreground shadow-md',
+        'z-50 min-w-[10rem] overflow-hidden rounded-md border border-border bg-popover p-1 texte-corps text-popover-foreground shadow-md',
         className,
       )}
       {...props}
@@ -39,8 +39,7 @@ export const DropdownMenuItem = forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex min-h-11 cursor-pointer select-none items-center gap-2 rounded-sm px-2 texte-corps outline-none',
-      'focus:bg-muted',
+      'element-menu relative flex min-h-11 cursor-pointer select-none items-center gap-2 rounded-sm px-2 texte-corps outline-none',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className,
     )}
@@ -57,8 +56,7 @@ export const DropdownMenuCheckboxItem = forwardRef<
     ref={ref}
     checked={checked}
     className={cn(
-      'relative flex min-h-11 cursor-pointer select-none items-center gap-2 rounded-sm py-1.5 pl-8 pr-2 texte-corps outline-none',
-      'focus:bg-muted',
+      'element-menu relative flex min-h-11 cursor-pointer select-none items-center gap-2 rounded-sm py-1.5 pl-8 pr-2 texte-corps outline-none',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className,
     )}

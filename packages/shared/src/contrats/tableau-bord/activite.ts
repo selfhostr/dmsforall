@@ -3,8 +3,9 @@ import type { PeriodeResolueTableauBord } from './query';
 
 /**
  * `GET /tableau-bord/activite` — indicateurs D'ACTIVITÉ (atelier + stock), **sans aucun montant**.
- * Ouvert à tout rôle de personne (voir `apps/api/src/tableau-bord/droits-provisoires.ts` pour le
- * détail des rôles et la note sur l'action de droit encore à ajouter à la matrice).
+ * Ouvert à tout rôle de personne via l'action `tableau_bord.activite.lire`
+ * (`apps/api/src/auth/matrice-droits.ts`), appliquée par `@ExigerDroit(...)` + `GardeDroit` dans
+ * `apps/api/src/tableau-bord/activite.controller.ts`.
  *
  * Six statuts seulement — les statuts d'un OR encore « au garage » : un OR `restitue`, `cloture`
  * ou `annule` est sorti du flux actif, il n'a plus sa place dans un indicateur de charge courante

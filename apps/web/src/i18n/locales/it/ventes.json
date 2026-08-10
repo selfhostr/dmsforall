@@ -207,7 +207,8 @@
         "mettreAJour": "Aggiornare",
         "receptionner": "Accettare",
         "remettreDisponible": "Rendere di nuovo disponibile",
-        "marquerVendu": "Contrassegnare come venduto"
+        "marquerVendu": "Contrassegnare come venduto",
+        "autresActions": "Altre azioni"
       },
       "donneesCommerciales": "Dati commerciali",
       "historique": "Cronologia",
@@ -316,7 +317,7 @@
       "assignerVehicule": "Assegnare un veicolo",
       "prix": "Prezzo",
       "prixAucun": "Prezzo non definito",
-      "prixIndicatif": "Indicativo (preventivo): {montant}",
+      "prixIndicatif": "Indicativo: {montant}",
       "dateLivraisonEstimee": "Data di consegna prevista",
       "modifier": {
         "titre": "Modificare la pratica",

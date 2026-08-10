@@ -13,6 +13,7 @@ import { EcranFacturerOrdreReparation } from '@/ecrans/facturation/EcranFacturer
 import { EcranFicheFacture } from '@/ecrans/facturation/EcranFicheFacture';
 import { EcranListeFactures } from '@/ecrans/facturation/EcranListeFactures';
 import { EcranDoublonsClients } from '@/ecrans/clients/EcranDoublonsClients';
+import { EcranConsolePlateforme } from '@/ecrans/console/EcranConsolePlateforme';
 import { EcranParametragePieces } from '@/ecrans/parametrage/EcranParametragePieces';
 import { EcranParametrageAtelier } from '@/ecrans/parametrage/EcranParametrageAtelier';
 import { EcranParametresFacturation } from '@/ecrans/parametrage/EcranParametresFacturation';
@@ -30,13 +31,9 @@ import { EcranReapprovisionnement } from '@/ecrans/pieces/EcranReapprovisionneme
 import { EcranRechercheComptoirPieces } from '@/ecrans/pieces/EcranRechercheComptoirPieces';
 import { EcranReservationsPieces } from '@/ecrans/pieces/EcranReservationsPieces';
 import { EcranHangarPneus } from '@/ecrans/pneus/EcranHangarPneus';
-import { EcranJeuxARelancer } from '@/ecrans/pneus/EcranJeuxARelancer';
 import { EcranBornePointage } from '@/ecrans/pointage/EcranBornePointage';
-import { EcranCloturePeriodePointage } from '@/ecrans/pointage/EcranCloturePeriodePointage';
-import { EcranEquipePointage } from '@/ecrans/pointage/EcranEquipePointage';
-import { EcranJournalPointage } from '@/ecrans/pointage/EcranJournalPointage';
+import { EcranPointage } from '@/ecrans/pointage/EcranPointage';
 import { EcranPointageTechnicien } from '@/ecrans/pointage/EcranPointageTechnicien';
-import { ROLES_POINTAGE, ROLES_POINTAGE_ENCADREMENT } from '@/ecrans/pointage/droits';
 import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
 import { EcranRelances } from '@/ecrans/relances/EcranRelances';
 import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
@@ -52,13 +49,15 @@ import { EcranFicheVehiculeStock } from '@/ecrans/ventes/stock/EcranFicheVehicul
 import { EcranListeVehiculesStock } from '@/ecrans/ventes/stock/EcranListeVehiculesStock';
 import { EcranSuiviVentes } from '@/ecrans/ventes/suivi/EcranSuiviVentes';
 
-import { chemins } from './chemins';
+import { ATTERRISSAGE_PAR_ROLE } from './atterrissage';
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
 import {
+  ROLES_BORNE_POINTAGE,
   ROLES_PARAMETRAGE_PIECES,
   ROLES_PIECES,
   ROLES_PNEUS,
+  ROLES_POINTAGE,
   ROLES_RELANCES,
   ROLES_TABLEAU_BORD_ACTIVITE,
   ROLES_VENTES,
@@ -66,11 +65,18 @@ import {
 
 /**
  * Convention structurelle qui fait qu'une route oubliée tombe du côté SÛR (même principe que la
- * garde côté API) : la SEULE route publique de tout le tableau est `/login`, explicitement sous
- * `RoutePublique`. Tout le reste vit comme enfant de l'unique route protégée `/` (sous
- * `RouteProtegee` + `AppShell`) — c'est aussi l'endroit naturel où ajouter un futur écran, à côté
- * de ceux déjà listés ci-dessous, jamais un nouveau frère top-level du tableau : il n'y a tout
- * simplement pas d'autre emplacement « pratique » qui échapperait à l'authentification.
+ * garde côté API) : `/login` est la seule route PUBLIQUE de tout le tableau, explicitement sous
+ * `RoutePublique`. Tout écran MÉTIER (garage) vit comme enfant de l'unique route protégée `/`
+ * (sous `RouteProtegee` + `AppShell`) — c'est l'endroit naturel où ajouter un futur écran de
+ * garage, à côté de ceux déjà listés ci-dessous, jamais un nouveau frère top-level : il n'y a pas
+ * d'autre emplacement « pratique » qui échapperait à l'authentification tenant.
+ *
+ * EXCEPTION UNIQUE, posée au Lot D : `/console` (console d'exploitation plateforme, voir son
+ * commentaire dédié ci-dessous). Ce n'est pas un écran de garage — ni tenant, ni `AppShell`, ni
+ * menu — et son mécanisme de session est volontairement DISTINCT (`session_exploitant`, pas la
+ * session tenant que `RouteProtegee` vérifie). Cette exception ne rouvre pas la règle ci-dessus
+ * pour un futur écran métier : elle ne vaut que pour la console, dont le modèle d'accès est par
+ * nature hors du tableau tenant.
  *
  * Exporté séparément de `routeur` (créé juste en dessous) pour que les tests puissent construire
  * un `createMemoryRouter` avec exactement cette configuration (voir routeur.spec.tsx), plutôt que
@@ -85,6 +91,34 @@ export const routesConfig: RouteObject[] = [
       </RoutePublique>
     ),
   },
+  // Console d'exploitation (palier 1, `docs/conception-console-exploitation-ecrans.md` §2 ;
+  // modèle d'accès : `docs/conception-console-exploitation-acces.md`) — HORS de l'arborescence
+  // métier, comme `/login` ci-dessus : ni `RouteProtegee`, ni `AppShell` (pas de barre latérale,
+  // §2 de la conception des écrans). C'est un poste d'exploitation DFA, pas un écran de garage.
+  //
+  // PROTECTION — choix délibéré à faire valider, SIGNALÉ plutôt qu'inventé : la console a son
+  // PROPRE mécanisme de session (`session_exploitant`, cookie et table distincts de la session
+  // tenant — `apps/api/src/exploitation/service-session-exploitant.ts`,
+  // `docs/conception-console-exploitation-acces.md` §4 point « noms de cookie distincts, gardes
+  // distinctes »). Aucun hook frontend (`useSessionExploitant` ou équivalent) ni composant de garde
+  // dédié n'existe encore dans ce dépôt à la date de ce lot. Envelopper cette route dans
+  // `RouteProtegee` (qui appelle `useSession()`, LA session TENANT) serait donc doublement faux :
+  // ça n'ouvrirait rien à un exploitant réel (il n'a pas de session tenant) et ça n'empêcherait pas
+  // un employé de garage connecté sous n'importe quel rôle métier d'atteindre le shell de la page
+  // (`RoleUtilisateur` ne modélise pas « personnel DFA » — en inventer un ici serait la sécurité de
+  // façade que ce fichier interdit ailleurs, voir `droits-routes.ts`). La barrière réelle reste donc
+  // côté serveur : `recupererSantePlateformeConsole` (`ecrans/console/console.api.ts`) appelle
+  // `GET /exploitation/v1/garages`, qui exige `session_exploitant` et répond 401/403 sans elle —
+  // `EcranConsolePlateforme` gère déjà cet échec proprement (`requete.isError`, `EtatErreur`,
+  // aucune donnée de garage n'est jamais rendue sans réponse serveur valide). À CONSTRUIRE avant
+  // mise en service réelle : un hook de session exploitant + un composant de garde dédié
+  // (`RouteExploitantProtegee` ou équivalent), remplaçant ce commentaire par une vraie garde
+  // frontend — périmètre `expert-auth`/`expert-react`, hors de celui de cet agent (`routes/` sait
+  // désormais monter l'écran, mais la décision d'accès reste ouverte).
+  {
+    path: '/console',
+    element: <EcranConsolePlateforme />,
+  },
   {
     path: '/',
     element: (
@@ -93,17 +127,20 @@ export const routesConfig: RouteObject[] = [
       </RouteProtegee>
     ),
     children: [
-      // Route index — Lot 0 (`docs/plan-refonte-navigation.md`, « Lot 0 — Dettes préalables ») :
-      // `redirectionParRole` fait atterrir `poste_atelier` (borne murale partagée) sur
-      // `/pointage/borne` plutôt que sur `EcranAccueil`, sans passer par `rolesAutorises` — le rôle
-      // a bien le droit de voir l'accueil, on choisit seulement de ne jamais le lui montrer. Avant
-      // ce lot, la borne n'était atteignable qu'en tapant l'URL à la main : aucun `NavLink` dans
-      // `BarreLaterale.tsx`, aucune redirection ici. Tous les autres rôles continuent d'atterrir
-      // sur `EcranAccueil`, comportement inchangé (`redirectionParRole` ne contient qu'une entrée).
+      // Route index — le POINT D'ATTERRISSAGE de toute l'application. Le Lot 0 y avait posé
+      // `redirectionParRole` pour le seul `poste_atelier` (borne murale) ; le Lot D l'étend aux
+      // quatre autres rôles qui ont un plan de travail propre, en lisant la table de l'arbitrage
+      // (§2) telle qu'elle est écrite dans `atterrissage.ts` — table complète et commentée rôle par
+      // rôle là-bas, JAMAIS recopiée ici (deux copies divergeraient au premier ajout de rôle).
+      //
+      // Ce n'est pas une restriction : chacun de ces rôles a le droit de voir `/`, on choisit de ne
+      // pas le lui montrer parce qu'un lanceur générique n'est utile à personne qui sait déjà où il
+      // va. Les quatre rôles absents de la table (`direction`, `admin`, `receptionnaire`,
+      // `chef_atelier`) continuent d'atterrir sur `EcranAccueil`, comportement inchangé.
       {
         index: true,
         element: (
-          <RouteProtegee redirectionParRole={{ poste_atelier: chemins.pointage.borne() }}>
+          <RouteProtegee redirectionParRole={ATTERRISSAGE_PAR_ROLE}>
             <EcranAccueil />
           </RouteProtegee>
         ),
@@ -148,13 +185,6 @@ export const routesConfig: RouteObject[] = [
       // chemin ici) — voir EcranNouvelOrdreReparation.tsx pour le détail des deux repos honnêtes
       // affichés quand l'un des deux manque.
       { path: 'atelier/ordres-reparation/nouveau', element: <EcranNouvelOrdreReparation /> },
-      // Même paramètre `orId` que la fiche d'OR ci-dessus (`EcranFacturerOrdreReparation` lit
-      // `useParams<{ orId: string }>()`) et même préfixe `ordres-reparation/` que le reste de la
-      // ressource — le commentaire en tête d'`EcranFacturerOrdreReparation.tsx` documente
-      // `/or/:orId/facturer` (calque du design), mais rien dans le dépôt ne navigue déjà vers cette
-      // URL : `/or/` n'existe nulle part ailleurs dans le routeur, alors que `ordres-reparation/`
-      // est le préfixe déjà en place pour cette même ressource (liste, fiche). Choisi pour
-      // cohérence avec les routes existantes plutôt que pour coller littéralement au commentaire.
       { path: 'ordres-reparation/:orId/facturer', element: <EcranFacturerOrdreReparation /> },
       { path: 'factures', element: <EcranListeFactures /> },
       // `:id` (pas `:orId` ni `:factureId`) — `EcranFicheFacture` lit `useParams<{ id: string }>()`.
@@ -162,9 +192,10 @@ export const routesConfig: RouteObject[] = [
       // Même remarque : `EcranAvoir` lit aussi `useParams<{ id: string }>()` — `id` y désigne la
       // facture d'origine à partir de laquelle l'avoir est émis, pas l'avoir lui-même (qui n'existe
       // pas encore au moment où cet écran s'ouvre). Chemin construit par les écrans appelants via
-      // `` `/factures/${document.id}/avoir` `` (EcranFicheFacture, DialogueCorrectionFacture) — pas
-      // de constructeur dans `chemins.ts` pour cette route, les écrans de facturation naviguent en
-      // gabarit littéral plutôt que via `chemins.*`.
+      // `` `/factures/${document.id}/avoir` `` (EcranFicheFacture, DialogueCorrectionFacture) ; le
+      // Lot D a ajouté `chemins.facturation.avoir(id)` pour les mêmes cibles — les écrans de
+      // facturation peuvent y passer, ils n'y sont pas obligés (leur répertoire n'est pas dans le
+      // périmètre d'écriture du Lot D).
       { path: 'factures/:id/avoir', element: <EcranAvoir /> },
       // Singleton par tenant (bloc créancier du QR-facture) — jamais de paramètre de chemin,
       // voir `chemins.parametrage.facturation` et le commentaire de tête d'`EcranParametresFacturation`.
@@ -282,7 +313,6 @@ export const routesConfig: RouteObject[] = [
           </RouteProtegee>
         ),
       },
-      // `EcranFicheCommandeFournisseur` lit `useParams<{ id: string }>()`.
       {
         path: 'pieces/commandes-fournisseur/:id',
         element: (
@@ -299,7 +329,6 @@ export const routesConfig: RouteObject[] = [
           </RouteProtegee>
         ),
       },
-      // `EcranFicheFournisseur` lit `useParams<{ id: string }>()`.
       {
         path: 'pieces/fournisseurs/:id',
         element: (
@@ -331,11 +360,19 @@ export const routesConfig: RouteObject[] = [
           </RouteProtegee>
         ),
       },
-      // Module pointage (lot 2) — DEUX gardes distinctes selon le rôle requis, reflétant la même
-      // restriction RÉELLE que celle documentée dans `ecrans/pointage/droits.ts`
-      // (`DROITS_POINTAGE_PAR_ROLE` côté API) : `ROLES_POINTAGE` pour les écrans ouverts à tout
-      // rôle qui pointe (y compris `technicien`/`magasinier`), `ROLES_POINTAGE_ENCADREMENT` pour
-      // les écrans réservés à l'encadrement (vue équipe, corrections, clôture de période).
+      // Module pointage (lot 2, fusion Lot D) — `/pointage` reste l'écran individuel
+      // (« Mon travail », `EcranPointageTechnicien`, inchangé). `pointage/jour`, `pointage/equipe`
+      // ET `pointage/cloture` pointent maintenant TOUS les trois sur le même écran fusionné
+      // `EcranPointage` (voir son commentaire de tête, `ecrans/pointage/EcranPointage.tsx`) :
+      // l'ancien Journal et l'ancienne Équipe sont devenus ses deux onglets internes
+      // (`?vue=journal|equipe`), et l'ancienne Clôture de période (`EcranCloturePeriodePointage`,
+      // écran supprimé) est devenue une action de l'onglet Équipe (`DialogueCloturePeriode`).
+      //
+      // GARDE UNIQUE `ROLES_POINTAGE` (la plus large des deux gardes qui existaient avant la
+      // fusion) sur les trois : `EcranPointage` gère lui-même la restriction interne de l'onglet
+      // Équipe (`peutVoirEquipePointage`) — absent du DOM pour qui n'y a pas droit, jamais grisé —
+      // donc une garde de route plus étroite que `ROLES_POINTAGE` bloquerait `technicien`/
+      // `magasinier` avant même d'atteindre l'onglet Journal, qui leur reste pourtant ouvert.
       {
         path: 'pointage',
         element: (
@@ -348,65 +385,74 @@ export const routesConfig: RouteObject[] = [
         path: 'pointage/jour',
         element: (
           <RouteProtegee rolesAutorises={ROLES_POINTAGE}>
-            <EcranJournalPointage />
+            <EcranPointage />
           </RouteProtegee>
         ),
       },
       {
         path: 'pointage/equipe',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_POINTAGE_ENCADREMENT}>
-            <EcranEquipePointage />
+          <RouteProtegee rolesAutorises={ROLES_POINTAGE}>
+            <EcranPointage />
           </RouteProtegee>
         ),
       },
+      // `chemins.pointage.cloture()` N'A PAS été retiré de `chemins.ts`, à la différence de ce que
+      // suggérait le mandat initial de ce lot : `composants/layout/navigation-modele.ts` (hors
+      // périmètre d'écriture de cet agent — `composants/layout/`) porte encore une vue « Clôture »
+      // dédiée (`chemin: (site) => chemins.pointage.cloture(site)`) et `routes/atteignabilite.spec.ts`
+      // verrouille explicitement `trouverCorrespondance('/pointage/cloture')?.vue?.id === 'cloture'`.
+      // Retirer le constructeur aurait cassé la compilation de ce fichier et fait rougir ce test —
+      // aucun des deux n'est dans le périmètre d'écriture de cet agent. SIGNALÉ au coordinateur :
+      // la vue « Clôture » de `navigation-modele.ts` (et son JSDoc, qui suppose encore
+      // `EcranCloturePeriodePointage` en écran autonome) est désormais périmée et gagnerait à être
+      // retirée ou fusionnée dans la vue « Équipe », maintenant que le geste vit dans
+      // `DialogueCloturePeriode`. La route ci-dessous continue néanmoins de rendre un écran réel.
       {
         path: 'pointage/cloture',
         element: (
-          <RouteProtegee rolesAutorises={ROLES_POINTAGE_ENCADREMENT}>
-            <EcranCloturePeriodePointage />
+          <RouteProtegee rolesAutorises={ROLES_POINTAGE}>
+            <EcranPointage />
           </RouteProtegee>
         ),
       },
       // Borne d'atelier (mode « borne partagée », identification par PIN) — TROISIÈME garde du
-      // module pointage, distincte des deux précédentes : réservée au seul rôle `poste_atelier`
-      // (compte de service de la borne), le seul détenteur de `atelier.pointage.identifier`
-      // (`DROITS_POINTAGE_PAR_ROLE.poste_atelier`, `apps/api/src/auth/matrice-droits.ts`) —
-      // restriction RÉELLE de l'API, pas une ergonomie de menu (même raisonnement que
-      // `ROLES_PIECES`/`ROLES_VENTES` ci-dessus). Le paramètre DE SITE qui devrait piloter le choix
-      // entre `pointage` (session personnelle) et `pointage/borne` (borne partagée) n'existe pas
-      // encore côté API au moment d'écrire cette route (recherché dans `apps/api/src/parametrage/`
-      // et le schéma `site` — absent) : cette route reste donc atteinte par lien direct/favori sur
-      // la tablette murale, pas par une redirection automatique — voir le commentaire de tête
-      // d'`EcranBornePointage.tsx`.
+      // module pointage, distincte des deux précédentes. Elle valait `['poste_atelier']` seul
+      // jusqu'au Lot D, ce qui rendait la borne inatteignable depuis l'interface pour ceux qui
+      // l'INSTALLENT : un `chef_atelier` qui accroche la tablette au mur doit pouvoir ouvrir
+      // l'écran, relever l'URL à mettre en favori et vérifier le rendu. `ROLES_BORNE_POINTAGE`
+      // (`droits-routes.ts`) ajoute donc `chef_atelier`/`admin`, et documente la limite assumée :
+      // l'identification par PIN leur répond `403` (seul `poste_atelier` détient
+      // `atelier.pointage.identifier`), c'est un accès de mise en service, pas d'usage.
+      //
+      // `poste_atelier` y ARRIVE désormais tout seul : la table d'atterrissage l'y redirige depuis
+      // la route index (voir plus haut). L'entrée de menu vit dans Atelier › Pointage › Borne
+      // d'atelier, réservée aux deux rôles d'installation.
       {
         path: 'pointage/borne',
         element: (
-          <RouteProtegee rolesAutorises={['poste_atelier']}>
+          <RouteProtegee rolesAutorises={ROLES_BORNE_POINTAGE}>
             <EcranBornePointage />
           </RouteProtegee>
         ),
       },
-      // Hangar à pneus (Lot B) — DEUX routes, TOUTES sous `rolesAutorises={ROLES_PNEUS}`
-      // (`droits-routes.ts`) : `ROLES_PNEUS_DEPOT_LECTURE` ferme la lecture elle-même à
-      // `poste_atelier` côté API (voir `apps/api/src/pneus/droits-provisoires.ts`) — même
-      // raisonnement que `ROLES_PIECES`/`ROLES_VENTES` ci-dessus, cette garde reflète une
+      // Hangar à pneus (Lot B, fusion Lot D) — UNE SEULE route désormais, sous
+      // `rolesAutorises={ROLES_PNEUS}` (`droits-routes.ts`) : `ROLES_PNEUS_DEPOT_LECTURE` ferme la
+      // lecture elle-même à `poste_atelier` côté API (voir `apps/api/src/pneus/droits-provisoires.ts`)
+      // — même raisonnement que `ROLES_PIECES`/`ROLES_VENTES` ci-dessus, cette garde reflète une
       // restriction RÉELLE (bien que PROVISOIRE côté matrice de droits).
+      //
+      // `pneus/a-relancer` a été RETIRÉE (l'ancien écran `EcranJeuxARelancer` est supprimé, fusionné
+      // dans `EcranHangarPneus` comme onglet `TabsContent value="a_relancer"`, lu depuis `?onglet=`
+      // — voir le commentaire de tête d'`EcranHangarPneus.tsx`, section « ROUTES SIGNALÉ »).
+      // `chemins.pneus.aRelancer(site)` construit désormais directement `/pneus?onglet=a_relancer`
+      // (voir `chemins.ts`) : un lien externe (menu, futur bloc « Aujourd'hui ») atterrit donc sur
+      // le bon onglet sans hop de redirection.
       {
         path: 'pneus',
         element: (
           <RouteProtegee rolesAutorises={ROLES_PNEUS}>
             <EcranHangarPneus />
-          </RouteProtegee>
-        ),
-      },
-      // Segment statique `a-relancer` : aucun risque d'ambiguïté avec un futur segment
-      // dynamique sous `pneus/`, même convention que `pieces/articles/:id` plus haut.
-      {
-        path: 'pneus/a-relancer',
-        element: (
-          <RouteProtegee rolesAutorises={ROLES_PNEUS}>
-            <EcranJeuxARelancer />
           </RouteProtegee>
         ),
       },
@@ -440,7 +486,6 @@ export const routesConfig: RouteObject[] = [
           </RouteProtegee>
         ),
       },
-      // `EcranFicheVehiculeStock` lit `useParams<{ id: string }>()`.
       {
         path: 'ventes/stock/:id',
         element: (
@@ -475,7 +520,6 @@ export const routesConfig: RouteObject[] = [
           </RouteProtegee>
         ),
       },
-      // `EcranFicheDossierVente` lit `useParams<{ id: string }>()`.
       {
         path: 'ventes/dossiers/:id',
         element: (

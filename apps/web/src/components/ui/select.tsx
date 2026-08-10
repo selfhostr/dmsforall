@@ -2,6 +2,7 @@ import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown } from 'lucide-react';
 import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from 'react';
 
+import { CLASSES_CHAMP } from '@/components/ui/classes-champ';
 import { cn } from '@/lib/utils';
 
 // API composée standard shadcn (Select/SelectTrigger/SelectValue/SelectContent/SelectItem),
@@ -19,12 +20,13 @@ export const SelectTrigger = forwardRef<
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
+    // Habillage et cinq états partagés avec Input/Textarea/DateInput : voir `classes-champ.ts`.
+    // Avant le Lot K, ce déclencheur posait `focus:outline-none` là où `Input` posait
+    // `focus-visible:outline-none` — deux champs voisins d'un même formulaire n'avaient pas le
+    // même comportement de focus.
     className={cn(
-      'flex h-11 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-base',
-      'placeholder:text-muted-foreground',
-      'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-      'disabled:cursor-not-allowed disabled:opacity-50',
-      '[&>span]:line-clamp-1',
+      CLASSES_CHAMP,
+      'h-11 items-center justify-between [&>span]:line-clamp-1',
       className,
     )}
     {...props}
@@ -46,7 +48,7 @@ export const SelectContent = forwardRef<
       ref={ref}
       position={position}
       className={cn(
-        'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border border-input bg-popover text-popover-foreground shadow-md',
+        'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md',
         position === 'popper' &&
           'translate-y-1 data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1',
         className,
@@ -86,8 +88,7 @@ export const SelectItem = forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex min-h-11 w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-base outline-none',
-      'focus:bg-muted',
+      'element-menu relative flex min-h-11 w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-base outline-none',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className,
     )}

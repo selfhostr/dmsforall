@@ -1,0 +1,119 @@
+{
+  "titre": "Console di amministrazione",
+  "titreOnglet": "Console di amministrazione — Console DFA",
+  "bandeConsole": {
+    "deconnexion": "Esci"
+  },
+  "plateforme": {
+    "titre": "Vista piattaforma",
+    "sousTitre": "Panoramica dei problemi in tutti i garage.",
+    "etatErreur": {
+      "titre": "Impossibile visualizzare la vista piattaforma",
+      "moduleInactif": {
+        "titre": "La console di amministrazione non è abilitata su questo server.",
+        "description": "La variabile di connessione dedicata non è configurata sul server (DATABASE_URL_CONSOLE). Configurarla e riavviare l'API per abilitare la console."
+      },
+      "accesRefuse": {
+        "titre": "Non hai accesso alla console.",
+        "description": "La tua sessione non dispone dei diritti necessari per accedere alla console di amministrazione."
+      }
+    },
+    "etatVide": {
+      "titre": "Nessun garage",
+      "description": "Nessun garage è stato ancora registrato sulla piattaforma."
+    },
+    "etatVideFiltre": {
+      "titre": "Nessun garage corrisponde",
+      "description": "Nessun garage corrisponde a questi criteri. Prova una ricerca diversa o rimuovi i filtri."
+    },
+    "recherche": {
+      "placeholder": "Nome o identificatore del garage…"
+    },
+    "statutFiltre": {
+      "label": "Stato",
+      "tous": "Tutti"
+    },
+    "statut": {
+      "critique": "Critico",
+      "attention": "Attenzione",
+      "ok": "OK"
+    },
+    "filtre": {
+      "actif": "Filtrato per: {libelle}",
+      "retirer": "Rimuovi filtro"
+    },
+    "indicateurs": {
+      "groupe": "Indicatori piattaforma — fai clic per filtrare l'elenco dei garage",
+      "garagesCritiques": {
+        "libelle": "Garage in stato critico"
+      },
+      "garageSuspendu": {
+        "libelle": "Garage sospesi o terminati"
+      },
+      "comptesVerrouilles": {
+        "libelle": "Account bloccati"
+      },
+      "aucuneConnexion": {
+        "libelle": "Nessuna connessione recente"
+      },
+      "exportComptableEnEchec": {
+        "libelle": "Ultimo export contabile rifiutato"
+      },
+      "relancesEnRetard": {
+        "libelle": "Solleciti in ritardo"
+      },
+      "relancesEnvoisEchoues": {
+        "libelle": "Invii solleciti non riusciti"
+      },
+      "moduleInactif": {
+        "libelle": "Modulo attivo ma inutilizzato"
+      }
+    },
+    "indicateursIndisponibles": {
+      "titre": "Attualmente non misurato:",
+      "code": {
+        "erreurs_serveur_5xx": "Errori server (24 h)",
+        "jobs_en_echec": "Job non riusciti",
+        "disjoncteurs_connecteur_ouverts": "Disgiuntori connector aperti",
+        "connecteurs_configures": "Connector configurati",
+        "modules_souscrits": "Moduli sottoscritti"
+      }
+    },
+    "table": {
+      "colonnes": {
+        "garage": "Garage",
+        "statut": "Stato",
+        "derniereActivite": "Ultima attività",
+        "comptesVerrouilles": "Account bloccati",
+        "relancesEnRetard": "Solleciti in ritardo",
+        "exportCompta": "Contabilità",
+        "entrer": "Accedi"
+      },
+      "entrer": "Accedi",
+      "entrerAria": "Accedi a {raisonSociale}",
+      "jamaisConnecte": "Mai connesso",
+      "derniereActivite": {
+        "minute": "{n, plural, =0 {Proprio ora} one {# minuto fa} other {# minuti fa}}",
+        "heure": "{n, plural, one {# ora fa} other {# ore fa}}",
+        "jour": "{n, plural, one {# giorno fa} other {# giorni fa}}"
+      },
+      "exportCompta": {
+        "genere": "Generato",
+        "transmis": "Trasmesso",
+        "accepte": "Accettato",
+        "rejete": "Rifiutato",
+        "inconnu": "Sconosciuto"
+      }
+    }
+  },
+  "bandeauContexte": {
+    "contenu": "Stai consultando {nomGarage} — accesso supporto",
+    "quitter": "Esci",
+    "duree": {
+      "moins5Min": "meno di 5 minuti fa",
+      "moins30Min": "meno di 30 minuti fa",
+      "moins1h": "meno di un'ora fa",
+      "plus1h": "più di un'ora fa"
+    }
+  }
+}

@@ -24,10 +24,13 @@ export const TabsTrigger = forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'inline-flex h-11 items-center justify-center whitespace-nowrap border-b-2 border-transparent px-3 texte-corps font-medium text-muted-foreground transition-colors hover:text-foreground',
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+      'inline-flex h-11 items-center justify-center whitespace-nowrap border-b-2 border-transparent px-3 texte-corps font-medium text-muted-foreground transition-colors',
+      'hover:border-border hover:text-foreground',
+      'anneau-focus',
       'disabled:pointer-events-none disabled:opacity-50',
-      'data-[state=active]:border-primary data-[state=active]:text-foreground',
+      // L'onglet actif combine trait de marque, texte plein et graisse : la couleur ne porte
+      // jamais seule l'information « c'est ici que vous êtes ».
+      'data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-foreground',
       className,
     )}
     {...props}
@@ -39,13 +42,6 @@ export const TabsContent = forwardRef<
   ElementRef<typeof TabsPrimitive.Content>,
   ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
 >(({ className, ...props }, ref) => (
-  <TabsPrimitive.Content
-    ref={ref}
-    className={cn(
-      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-      className,
-    )}
-    {...props}
-  />
+  <TabsPrimitive.Content ref={ref} className={cn('anneau-focus', className)} {...props} />
 ));
 TabsContent.displayName = TabsPrimitive.Content.displayName;

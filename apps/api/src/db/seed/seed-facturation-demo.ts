@@ -14,24 +14,38 @@
  * `import 'reflect-metadata'` inutile ici : déjà chargé par `seed-atelier-demo.ts`, importé avant
  * ce module dans `seed-dev.ts::principal()`.
  *
- * CE QUI N'EST PAS FAIT ICI, ET POURQUOI (trouvaille à signaler, pas un oubli) :
- *   `POST /ordres-reparation/{id}/facturer` (RF-81, qui recopierait les lignes d'un OR terminé
- *   vers une facture et poserait `document_vente.ordreReparationId`) N'EST PAS implémenté dans ce
- *   lot — voir la note de tête de `facturation/documents/service-documents.ts::creer`. La facture
- *   émise ci-dessous est donc créée DIRECTEMENT (vente comptoir), sans lien `ordreReparationId`,
- *   même si son contenu est thématiquement calqué sur l'OR « Master / Transports Rhône » (terminé,
- *   voir `seed-atelier-demo.ts`). Pour la même raison, aucun OR ne peut légitimement atteindre le
- *   statut `facture` de `STATUTS_ORDRE_REPARATION` : `atelier/service-transitions.ts` n'expose
- *   AUCUNE méthode qui y mène (seules `receptionner` → `demarrer` → `passerEnControle`/
- *   `validerControle` → `terminer` → `restituer` → `cloturer` existent). Poser ce statut par
- *   écriture directe aurait été EXACTEMENT l'écriture contournant la machine à états que cette
- *   tâche interdit — l'OR « terminé, prêt à facturer » (Master) suffit à démontrer cet état-là ;
- *   la chaîne devis → facture → paiement est démontrée séparément, sur les documents ci-dessous.
+ * DÉFAUT CORRIGÉ (constat en base réelle : `document_vente.ordre_reparation_id` était NULL sur
+ * les 5 documents de ce jeu de démo — la section « Devis et facture » de toute fiche d'OR restait
+ * donc structurellement vide) : `POST /ordres-reparation/{id}/facturer` (RF-81) EST DÉSORMAIS
+ * implémenté (`atelier/service-facturation-or.ts`, `ServiceFacturationOr`) — la note qui figurait
+ * ici affirmant le contraire datait du lot 1 et n'a jamais été rafraîchie. La facture Master
+ * ci-dessous est donc créée en empruntant CE chemin réel (recopie des lignes `realisee` de l'OR
+ * « Master / Transports Rhône », `seed-atelier-demo.ts`, en brouillon), pas par une création
+ * directe déconnectée de sa source : c'est ce qui pose enfin `document_vente.ordreReparationId`
+ * sur au moins un document de ce jeu de données. `ordre_reparation.statut` atteint donc aussi
+ * légitimement `'facture'` pour cet OR précis (dernier groupe payeur traité par cet appel, RF-84)
+ * — plus une limitation du jeu de démo, un état réellement atteint par le code applicatif.
+ *
+ * CE QUI RESTE DÉLIBÉRÉMENT SANS OR, ET POURQUOI (chacun vérifié individuellement, pas un défaut
+ * répété) :
+ *   - le DEVIS Golf/Meier ci-dessous chiffre les travaux REPORTÉS du véhicule
+ *     (`vehicule_travail_reporte`, posés par `seed-dev.ts::VEHICULES_DEMO`), pas les lignes d'un
+ *     OR précis — aucun OR de ce jeu de démo n'est la source de ce devis, `RF-81` ne produit de
+ *     toute façon jamais de `devis` (uniquement des brouillons de `facture`) ;
+ *   - la facture Octavia/Dupont reste un BROUILLON créé DIRECTEMENT (vente comptoir), et l'OR
+ *     Octavia (`seed-atelier-demo.ts`) reste volontairement `en_cours` (pas `termine` — seul état
+ *     qu'accepte `RF-81`) : le faire progresser jusqu'à `termine` aurait changé un état affiché
+ *     par ailleurs (l'atelier a besoin d'au moins un OR `en_cours` SANS pointage pour démontrer le
+ *     déclenchement manuel `T-04`) sans nécessité pour CETTE tâche ;
+ *   - la facture Meier en retard (`seed-relances-demo.ts`) et le bon de commande VN/VO
+ *     (`seed-ventes-demo.ts`) sont, par construction métier, des documents SANS OR d'atelier —
+ *     vente comptoir directe pour la première, dossier de vente de véhicule pour la seconde (RV-37 :
+ *     `document_vente.dossierVenteId`, pas `ordreReparationId`).
  *
  * Rejouable par construction : clés d'idempotence FIXES (même mécanisme que
  * `seed-atelier-demo.ts` — `ServiceIdempotence` mémorise `(statut, corps)`, un rejeu avec la même
- * clé ET le même corps renvoie la réponse déjà mémorisée, jamais un doublon). `creer()` et
- * `emettre()` sont TOUS DEUX idempotents par construction (contrairement aux transitions d'OR type
+ * clé ET le même corps renvoie la réponse déjà mémorisée, jamais un doublon). `creer()`/`facturer()`
+ * et `emettre()` sont TOUS idempotents par construction (contrairement aux transitions d'OR type
  * `demarrer`/`terminer`, dépourvues d'idempotence) : aucune relecture de statut n'est donc
  * nécessaire avant de les rejouer, à la différence de `seed-atelier-demo.ts`.
  */
@@ -40,8 +54,13 @@ import type {
   EntreeCreationImputation,
   EntreeCreationLigneDocument,
   EntreeCreationPaiement,
+  EntreeFacturationOrdreReparation,
 } from '@dfa/shared';
 
+import { LecturePointageVide } from '../../atelier/atelier.jetons';
+import { ServiceFacturationOr } from '../../atelier/service-facturation-or';
+import { ServiceOr } from '../../atelier/service-or';
+import { ServiceSnapshotOr } from '../../atelier/service-snapshot-or';
 import { ServiceAuditImpl } from '../../common/audit';
 import type { PrincipalAuthentifie } from '../../common/contexte/contexte-requete.types';
 import { ServiceEvenementsImpl } from '../../common/evenements';
@@ -64,6 +83,10 @@ export interface OptionsSeedFacturation {
   readonly idsClientsParNumero: ReadonlyMap<string, string>;
   readonly idsVehiculesParCle: ReadonlyMap<string, string>;
   readonly idsUtilisateursParRole: ReadonlyMap<string, string>;
+  /** Clé = celles rendues par `seed-atelier-demo.ts::ResultatSeedAtelier` (`'golf'`, `'octavia'`,
+   *  `'master'`, `'bmw'`) — seule `'master'` est consommée ici, pour facturer réellement cet OR via
+   *  RF-81 (voir la tête de fichier). */
+  readonly idsOrdresReparationParCle: ReadonlyMap<string, string>;
   readonly journaliser?: (message: string) => void;
 }
 
@@ -71,7 +94,9 @@ export interface OptionsSeedFacturation {
 const CLE_DEVIS_GOLF_CREATION = '965bdd61-1abf-40d1-8e49-d3b66ed14774';
 const CLE_DEVIS_GOLF_EMISSION = 'd66041a1-4a7d-43f7-bd46-8449aa65d858';
 const CLE_FACTURE_OCTAVIA_CREATION = '45512f0d-fc25-4b02-9f61-ceb55f6328e9';
-const CLE_FACTURE_MASTER_CREATION = '797fbda9-38fc-4274-bdff-fcbe1b976382';
+/** `POST /ordres-reparation/{orId}/facturer` (RF-81) — remplace l'ancienne
+ *  `CLE_FACTURE_MASTER_CREATION` (création directe, sans lien à l'OR). */
+const CLE_FACTURATION_OR_MASTER = '0c078ff4-dd23-4507-b98d-8bd0a3bffbd5';
 const CLE_FACTURE_MASTER_EMISSION = 'c0cd060b-fec6-4a8f-a903-38719d11baf9';
 const CLE_PAIEMENT_MASTER = '0484cda5-5649-4f46-8d49-91f5fff82f63';
 
@@ -96,6 +121,7 @@ export async function semerFacturationDemo(options: OptionsSeedFacturation): Pro
   const idMaster = options.idsVehiculesParCle.get('Renault::Master::Fourgon L2H2');
   const idReceptionnaire = options.idsUtilisateursParRole.get('receptionnaire');
   const idComptable = options.idsUtilisateursParRole.get('comptable');
+  const idOrMaster = options.idsOrdresReparationParCle.get('master');
 
   if (
     !idSion ||
@@ -107,12 +133,16 @@ export async function semerFacturationDemo(options: OptionsSeedFacturation): Pro
     !idOctavia ||
     !idMaster ||
     !idReceptionnaire ||
-    !idComptable
+    !idComptable ||
+    !idOrMaster
   ) {
     throw new Error(
-      `seed-facturation-demo : une clé attendue de seed-dev.ts est absente (site, client, véhicule ou utilisateur). ` +
-        `Les fichiers ont dérivé l'un de l'autre — vérifier que les codes/numéros/VIN/rôles utilisés ici ` +
-        `correspondent encore à SITES_DEMO / CLIENTS_DEMO / VEHICULES_DEMO / UTILISATEURS_DEMO de seed-dev.ts.`,
+      `seed-facturation-demo : une clé attendue de seed-dev.ts ou de seed-atelier-demo.ts est absente ` +
+        `(site, client, véhicule, utilisateur ou OR). Les fichiers ont dérivé l'un de l'autre — vérifier ` +
+        `que les codes/numéros/VIN/rôles utilisés ici correspondent encore à SITES_DEMO / CLIENTS_DEMO / ` +
+        `VEHICULES_DEMO / UTILISATEURS_DEMO de seed-dev.ts, et que seed-atelier-demo.ts tourne bien AVANT ` +
+        `seed-facturation-demo.ts dans seed-dev.ts::principal() (l'OR « master » doit exister, réalisé, ` +
+        `avant d'être facturé ici).`,
     );
   }
 
@@ -154,6 +184,30 @@ export async function semerFacturationDemo(options: OptionsSeedFacturation): Pro
       vehiculeStock,
     );
     const paiements = new ServicePaiement(acces, idempotence, horloge);
+    // RF-81 : pont OR -> facturation (`POST /ordres-reparation/{orId}/facturer`). `ServiceOr` est
+    // requis par `ServiceFacturationOr` pour relire l'OR/assembler le document OR à jour dans sa
+    // réponse — même câblage minimal (lecture de pointage inerte, snapshot) que
+    // `seed-atelier-demo.ts`, ce fichier n'a pas besoin de `ServiceTransitions`/`ServiceLigneOr`
+    // (l'OR Master est déjà `termine`, ses lignes déjà `realisee`, avant d'arriver ici).
+    const pointageInerte = new LecturePointageVide();
+    const snapshot = new ServiceSnapshotOr(horloge);
+    const serviceOr = new ServiceOr(
+      acces,
+      idempotence,
+      evenements,
+      audit,
+      compteurs,
+      pointageInerte,
+      snapshot,
+      horloge,
+    );
+    const facturationOr = new ServiceFacturationOr(
+      acces,
+      idempotence,
+      horloge,
+      serviceOr,
+      documents,
+    );
 
     // Front de comptoir (RF-114 : créer/émettre devis et factures) et back-office comptable
     // (encaissement) — deux comptes distincts, exactement comme sur le terrain, et ça peuple
@@ -223,37 +277,52 @@ export async function semerFacturationDemo(options: OptionsSeedFacturation): Pro
     );
     journaliser(`  facture Octavia/Dupont — brouillon, 2 lignes (44'000 c. TTC)`);
 
-    // === Facture émise — Master / Transports Rhône, reprend le thème de l'OR terminé =============
-    // + paiement partiel (150.00 CHF sur 240.00 CHF dus) — statutReglement passe à 'partiel',
-    // soldeCentimes à 9'000, exactement ce qu'exige la preuve n°4 de la tâche (arithmétique de la
-    // facture émise vérifiable par l'API).
-    const entreeFactureMaster: EntreeCreationDocumentVente = {
-      typeDocument: 'facture',
-      natureFacture: 'ordinaire',
-      siteId: idSion,
-      clientId: idClientRhone,
-      vehiculeId: idMaster,
-      dateDocument: '2026-07-05',
-      devise: 'CHF',
-      lignes: [
-        ligneDocument('forfait', "Préparation à l'expertise MFK", 15_000, '2026-07-05'),
-        ligneDocument('forfait', 'Vidange huile + filtre', 9_000, '2026-07-05'),
-      ],
+    // === Facture émise — Master / Transports Rhône, RÉELLEMENT facturée depuis l'OR terminé =======
+    // via `POST /ordres-reparation/{orId}/facturer` (RF-81, `ServiceFacturationOr`) — l'OR
+    // « Master » (`seed-atelier-demo.ts`) porte deux lignes `realisee`, toutes deux `payeur:
+    // 'client'` : un seul groupe à traiter, donc un seul brouillon créé et l'OR passe directement
+    // à `'facture'` (RF-84, dernier groupe traité). Montants ISSUS DU CALCUL RÉEL (RM-65, prix
+    // unitaires HT + TVA 8.1%, voir le commentaire de ces lignes dans `seed-atelier-demo.ts`), plus
+    // « ronds » que l'ancienne saisie manuelle TTC — c'est attendu : ce sont maintenant deux
+    // représentations différentes (atelier HT-ancré, facturation TTC-ancré, §0.2) du MÊME travail,
+    // pas une resaisie arbitraire.
+    //   - « Préparation à l'expertise MFK » : 150.00 HT -> 16'215 c. TTC (12.15 c. de TVA/centime
+    //     déjà arrondis à la ligne, RM-65).
+    //   - « Vidange huile + filtre » : 90.00 HT -> 9'729 c. TTC.
+    //   - Total facture : 25'944 c. TTC (259.44 CHF).
+    // + paiement partiel (150.00 CHF sur 259.44 CHF dus) — statutReglement passe à 'partiel',
+    // soldeCentimes à 10'944 (109.44 CHF), exactement ce qu'exige la preuve n°4 de la tâche
+    // (arithmétique de la facture émise vérifiable par l'API).
+    const entreeFacturationOrMaster: EntreeFacturationOrdreReparation = {
+      groupes: [{ payeur: 'client' }],
+      motifsReport: [],
     };
-    const resultatFactureMaster = await documents.creer(
+    const resultatFacturationOrMaster = await facturationOr.facturer(
       ctxReceptionnaire,
       receptionnaire,
-      entreeFactureMaster,
-      CLE_FACTURE_MASTER_CREATION,
+      idOrMaster,
+      entreeFacturationOrMaster,
+      CLE_FACTURATION_OR_MASTER,
     );
-    const factureMasterId = resultatFactureMaster.reponse.corps.donnees.id;
+    const [factureMasterBrouillon] =
+      resultatFacturationOrMaster.reponse.corps.donnees.facturesCreees;
+    if (!factureMasterBrouillon) {
+      throw new Error(
+        `seed-facturation-demo : POST /ordres-reparation/${idOrMaster}/facturer n'a rendu aucun ` +
+          `brouillon de facture — vérifier que l'OR « master » (seed-atelier-demo.ts) a bien deux ` +
+          `lignes « realisee » avant d'être terminé.`,
+      );
+    }
+    const factureMasterId = factureMasterBrouillon.id;
     await emission.emettre(
       ctxReceptionnaire,
       receptionnaire,
       factureMasterId,
       CLE_FACTURE_MASTER_EMISSION,
     );
-    journaliser(`  facture Master/Transports Rhône — ÉMISE, 2 lignes (24'000 c. TTC)`);
+    journaliser(
+      `  facture Master/Transports Rhône — ÉMISE via RF-81 depuis l'OR, 2 lignes (25'944 c. TTC), OR -> 'facture'`,
+    );
 
     const imputation: EntreeCreationImputation = {
       documentId: factureMasterId,
@@ -272,7 +341,7 @@ export async function semerFacturationDemo(options: OptionsSeedFacturation): Pro
     };
     await paiements.creer(ctxComptable, entreePaiement, CLE_PAIEMENT_MASTER);
     journaliser(
-      `  paiement Transports Rhône — 150.00 CHF (virement), imputé partiel sur la facture Master (solde 90.00 CHF)`,
+      `  paiement Transports Rhône — 150.00 CHF (virement), imputé partiel sur la facture Master (solde 109.44 CHF)`,
     );
   } finally {
     // Même raison que `seed-atelier-demo.ts` : pas de conteneur Nest ici pour appeler

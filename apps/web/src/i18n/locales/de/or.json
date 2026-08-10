@@ -355,7 +355,8 @@
     "signatureDifferee": "Später unterschreiben",
     "motifSignatureDifferee": "Grund für die aufgeschobene Unterschrift",
     "paiementRecu": "Zahlung bei Rückgabe erhalten",
-    "aucuneActionDisponible": "Momentan keine Aktion möglich."
+    "aucuneActionDisponible": "Momentan keine Aktion möglich.",
+    "autresActions": "Weitere Aktionen"
   },
   "totaux": {
     "titre": "Totale",

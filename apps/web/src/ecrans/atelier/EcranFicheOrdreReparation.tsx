@@ -284,7 +284,7 @@ export function EcranFicheOrdreReparation() {
                       ? ` — ${totaux.destinataire.nomAffiche}`
                       : ''}
                   </dt>
-                  <dd className="col-span-2 font-medium text-foreground sm:col-span-1">
+                  <dd className="col-span-2 font-medium text-foreground sm:col-span-1 texte-montant">
                     {formaterMontant(totaux.montantTtcCentimes)}
                   </dd>
                 </div>
@@ -292,7 +292,7 @@ export function EcranFicheOrdreReparation() {
               {or.totalValideCentimes !== undefined ? (
                 <div className="contents border-t pt-2">
                   <dt className="text-muted-foreground">{t('or:totaux.totalValide')}</dt>
-                  <dd className="col-span-2 font-semibold text-foreground sm:col-span-1">
+                  <dd className="col-span-2 font-semibold text-foreground sm:col-span-1 texte-montant">
                     {formaterMontant(or.totalValideCentimes)}
                   </dd>
                 </div>

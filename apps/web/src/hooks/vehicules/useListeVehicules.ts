@@ -1,8 +1,9 @@
-import { useInfiniteQuery, type UseInfiniteQueryResult } from '@tanstack/react-query';
+import { type UseInfiniteQueryResult } from '@tanstack/react-query';
 
 import type { PageCurseur, VehiculeResume } from '@dfa/shared';
 
 import { clesQuery } from '@/api/cles';
+import { useListeCurseur } from '@/hooks/pagination-curseur';
 
 import { listerVehicules, type FiltresListeVehicules } from './vehicules.api';
 
@@ -27,17 +28,11 @@ export function useListeVehicules(
   filtres: FiltresListeVehicules,
   options?: { readonly enabled?: boolean },
 ): ResultatListeVehicules {
-  const resultat = useInfiniteQuery({
-    queryKey: clesQuery.vehicules.liste(filtres),
-    queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
-      listerVehicules(filtres, { limite: LIMITE_PAGE, curseur: pageParam }),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (dernierePage) => dernierePage.curseurSuivant ?? undefined,
-    enabled: options?.enabled,
+  const { resultat, elements } = useListeCurseur<VehiculeResume>({
+    cle: clesQuery.vehicules.liste(filtres),
+    charger: (curseur) => listerVehicules(filtres, { limite: LIMITE_PAGE, curseur }),
+    actif: options?.enabled,
   });
 
-  return {
-    ...resultat,
-    vehicules: resultat.data?.pages.flatMap((page) => page.donnees) ?? [],
-  };
+  return { ...resultat, vehicules: elements };
 }

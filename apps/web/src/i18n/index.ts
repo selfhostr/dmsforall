@@ -28,6 +28,7 @@ import deVentes from './locales/de/ventes.json';
 import dePneus from './locales/de/pneus.json';
 import deTableauBord from './locales/de/tableauBord.json';
 import deRelances from './locales/de/relances.json';
+import deConsole from './locales/de/console.json';
 import frAccueil from './locales/fr/accueil.json';
 import frAuth from './locales/fr/auth.json';
 import frCommun from './locales/fr/commun.json';
@@ -48,6 +49,7 @@ import frVentes from './locales/fr/ventes.json';
 import frPneus from './locales/fr/pneus.json';
 import frTableauBord from './locales/fr/tableauBord.json';
 import frRelances from './locales/fr/relances.json';
+import frConsole from './locales/fr/console.json';
 import itAccueil from './locales/it/accueil.json';
 import itAuth from './locales/it/auth.json';
 import itCommun from './locales/it/commun.json';
@@ -68,8 +70,9 @@ import itVentes from './locales/it/ventes.json';
 import itPneus from './locales/it/pneus.json';
 import itTableauBord from './locales/it/tableauBord.json';
 import itRelances from './locales/it/relances.json';
+import itConsole from './locales/it/console.json';
 
-/** 18 namespaces par domaine (propriété expert-i18n) : jamais modifiés ici, seulement importés.
+/** 19 namespaces par domaine (propriété expert-i18n) : jamais modifiés ici, seulement importés.
  *  Les 6 premiers sont le socle (étape 0) ; les 7 suivants (`recherche` à `or`) sont le lot 1 —
  *  voir docs/plan-lot1-frontend-execution.md §2.3 (verrou V3). `facturation` et `parametrage`
  *  sont l'étape 2, `pieces` l'étape 3, `ventes` l'étape 4, `tableauBord` le tableau de bord.
@@ -77,7 +80,14 @@ import itRelances from './locales/it/relances.json';
  *  (`src/i18n/locales/fr/*.json`) n'apparaît pas ici : ne jamais ajouter un fichier de traduction
  *  sans l'enregistrer à la fois dans ce tableau et dans `ressources` ci-dessous, pour les trois
  *  langues — un oubli ici rend un namespace parfaitement traduit totalement inutilisable à
- *  l'exécution, sans qu'aucun test ni lint ne le voie. */
+ *  l'exécution, sans qu'aucun test ni lint ne le voie.
+ *
+ *  `console` (palier 1 de la console d'exploitation, `docs/conception-console-exploitation-ecrans.md`
+ *  §10) est un CAS PARTICULIER assumé : la conception conclut que le français seul suffit pour la
+ *  V1 (public interne restreint, @laupernoe et son équipe support) — `de/console.json` et `it/console.json`
+ *  sont donc des COPIES LITTÉRALES du texte français, pas des traductions, en attendant un besoin
+ *  réel. La STRUCTURE (clés, parité stricte FR/DE/IT) existe dès le départ comme partout ailleurs :
+ *  `i18n:check` continue de s'appliquer sans exception à ce namespace. */
 export const NAMESPACES = [
   'commun',
   'auth',
@@ -99,6 +109,7 @@ export const NAMESPACES = [
   'pneus',
   'tableauBord',
   'relances',
+  'console',
 ] as const;
 
 const ressources = {
@@ -123,6 +134,7 @@ const ressources = {
     pneus: frPneus,
     tableauBord: frTableauBord,
     relances: frRelances,
+    console: frConsole,
   },
   de: {
     commun: deCommun,
@@ -145,6 +157,7 @@ const ressources = {
     pneus: dePneus,
     tableauBord: deTableauBord,
     relances: deRelances,
+    console: deConsole,
   },
   it: {
     commun: itCommun,
@@ -167,6 +180,7 @@ const ressources = {
     pneus: itPneus,
     tableauBord: itTableauBord,
     relances: itRelances,
+    console: itConsole,
   },
 } as const;
 

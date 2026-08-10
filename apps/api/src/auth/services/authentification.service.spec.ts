@@ -470,6 +470,110 @@ describe('ServiceAuthentificationImpl.connecter', () => {
   });
 });
 
+describe('ServiceAuthentificationImpl.connecter — rehachage en arrière-plan, scoping tenant', () => {
+  it('scope l’UPDATE de rehachage du mot de passe par tenantId, pas seulement par id (le RLS est le filet, pas le mécanisme)', async () => {
+    const clausesWhereUpdate: unknown[] = [];
+    const donnees = {
+      utilisateur: [
+        {
+          id: 'utilisateur-id',
+          email: 'garage@example.ch',
+          prenom: 'Jean',
+          nom: 'Dupont',
+          role: 'admin',
+          langue: 'fr',
+          siteId: null,
+        },
+      ],
+      tenant: [
+        {
+          id: 'tenant-id',
+          slug: 'garage-dupont',
+          raisonSociale: 'Garage Dupont Sàrl',
+          langueDefaut: 'fr',
+        },
+      ],
+      sites: [{ id: 'site-id', code: 'SION', nom: 'Sion', actif: true }],
+      session: [{ expireLe: new Date('2026-07-28T12:00:00.000Z') }],
+    };
+
+    const tx = {
+      select: () => ({
+        from: (table: unknown) => ({
+          where: () => {
+            if (table === tableUtilisateur) return requeteMock(donnees.utilisateur);
+            if (table === tableTenant) return requeteMock(donnees.tenant);
+            if (table === tableSite) return requeteMock(donnees.sites);
+            if (table === tableSession) return requeteMock(donnees.session);
+            throw new Error('Table inattendue dans le mock de test.');
+          },
+        }),
+      }),
+      update: (table: unknown) => ({
+        set: () => ({
+          where: (clause: unknown) => {
+            if (table === tableUtilisateur) clausesWhereUpdate.push(clause);
+            return Promise.resolve(undefined);
+          },
+        }),
+      }),
+    };
+
+    const accesBase: AccesBase = {
+      enTenant: vi.fn((_ctx, travail) => travail(tx as never)),
+      verifierConnexion: vi.fn(),
+      verifierPostureRls: vi.fn(),
+    };
+
+    const svc = new ServiceAuthentificationImpl(
+      configTest(),
+      accesBase,
+      {
+        utilisateurParEmail: vi.fn().mockResolvedValue(utilisateurTest()),
+        sessionParEmpreinte: vi.fn(),
+        toucherSession: vi.fn(),
+        enregistrerEchecConnexion: vi.fn(),
+        reinitialiserEchecsConnexion: vi.fn().mockResolvedValue(undefined),
+        journaliserSecurite: vi.fn().mockResolvedValue(undefined),
+      },
+      {
+        hacher: vi.fn().mockResolvedValue('$argon2id$nouveau-hash'),
+        verifier: vi.fn().mockResolvedValue(true),
+        verifierLeurre: vi.fn(),
+        // Déclenche le chemin de rehachage best-effort : c'est CE chemin, et lui seul, qui exécute
+        // l'UPDATE audité (authentification.service.ts, `rehacherEnArrierePlan()`).
+        doitEtreRehache: vi.fn().mockReturnValue(true),
+      },
+      {
+        ouvrir: vi.fn().mockResolvedValue({
+          tokenClair: 'jeton-clair',
+          sessionId: 'session-id',
+          expireLe: new Date('2026-07-28T12:00:00.000Z'),
+        }),
+        resoudre: vi.fn(),
+        fermer: vi.fn(),
+      },
+      { consommer: vi.fn().mockResolvedValue({ autorise: true, resteSecondes: 0 }) },
+      contexteTest(),
+    );
+
+    await svc.connecter({ email: 'garage@example.ch', motDePasse: 'bon' }, null, null);
+
+    // Le rehachage tourne en arrière-plan (fire-and-forget, best-effort — voir le commentaire de
+    // `rehacherEnArrierePlan()`) : attendre qu'il ait eu l'occasion de s'exécuter avant d'asserter,
+    // plutôt que de dépendre d'un ordonnancement précis des microtâches.
+    await vi.waitFor(() => {
+      expect(clausesWhereUpdate).toHaveLength(1);
+    });
+
+    // Un `.where()` scopé UNIQUEMENT par id (régression de ce correctif) n'aurait qu'UN seul
+    // paramètre bindé ; la correction en exige deux : id ET tenant_id.
+    const dialecte = new PgDialect();
+    const requeteUpdate = dialecte.sqlToQuery(clausesWhereUpdate[0] as SQL);
+    expect(requeteUpdate.params).toEqual(['utilisateur-id', 'tenant-id']);
+  });
+});
+
 describe('ServiceAuthentificationImpl.sessionCourante — scoping tenant (finding sécurité #9)', () => {
   it('filtre les requêtes `utilisateur` et `session` par tenantId, pas seulement par id (le RLS est le filet, pas le mécanisme)', async () => {
     const clausesWhere: unknown[] = [];

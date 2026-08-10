@@ -355,7 +355,8 @@
     "signatureDifferee": "Signer plus tard",
     "motifSignatureDifferee": "Motif du report de signature",
     "paiementRecu": "Paiement reçu à la restitution",
-    "aucuneActionDisponible": "Aucune action possible pour le moment."
+    "aucuneActionDisponible": "Aucune action possible pour le moment.",
+    "autresActions": "Autres actions"
   },
   "totaux": {
     "titre": "Totaux",

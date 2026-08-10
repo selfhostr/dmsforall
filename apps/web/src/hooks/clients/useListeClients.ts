@@ -1,13 +1,10 @@
-import {
-  useInfiniteQuery,
-  type InfiniteData,
-  type UseInfiniteQueryResult,
-} from '@tanstack/react-query';
+import { type InfiniteData, type UseInfiniteQueryResult } from '@tanstack/react-query';
 
 import type { ClientResume, PageCurseur, StatutClient, TypeClient } from '@dfa/shared';
 
 import { requeteApi } from '@/api/client';
 import { clesQuery } from '@/api/cles';
+import { useDoitReessayer, useListeCurseur } from '@/hooks/pagination-curseur';
 
 import { construireRequete, exigerCorps } from './support';
 
@@ -33,14 +30,14 @@ export interface FiltresListeClients {
   readonly tri?: TriClients;
 }
 
-function cheminListeClients(filtres: FiltresListeClients, curseur: string | null): string {
+function cheminListeClients(filtres: FiltresListeClients, curseur: string | undefined): string {
   const params = construireRequete(
     {
       q: filtres.q,
       type: filtres.type,
       tri: filtres.tri,
       limite: LIMITE_PAR_PAGE,
-      curseur: curseur ?? undefined,
+      curseur,
     },
     { statut: filtres.statut },
   );
@@ -57,24 +54,23 @@ export function useListeClients(
   filtres: FiltresListeClients = {},
   options?: { readonly enabled?: boolean },
 ): UseInfiniteQueryResult<InfiniteData<PageCurseur<ClientResume>>, unknown> {
-  return useInfiniteQuery({
-    queryKey: clesQuery.clients.liste({
+  const reessayer = useDoitReessayer();
+  const { resultat } = useListeCurseur<ClientResume>({
+    cle: clesQuery.clients.liste({
       q: filtres.q ?? '',
       type: filtres.type ?? '',
       statut: [...(filtres.statut ?? [])].sort().join(','),
       tri: filtres.tri ?? '',
     }),
-    queryFn: async ({ pageParam }) => {
+    charger: async (curseur) => {
       const page = await requeteApi<PageCurseur<ClientResume>>(
-        cheminListeClients(filtres, pageParam),
-        {
-          method: 'GET',
-        },
+        cheminListeClients(filtres, curseur),
+        { method: 'GET' },
       );
       return exigerCorps(page, 'GET /clients');
     },
-    initialPageParam: null as string | null,
-    getNextPageParam: (dernierePage) => dernierePage.curseurSuivant,
-    enabled: options?.enabled,
+    actif: options?.enabled,
+    reessayer,
   });
+  return resultat;
 }

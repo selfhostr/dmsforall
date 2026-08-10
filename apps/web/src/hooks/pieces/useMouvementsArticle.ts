@@ -1,4 +1,4 @@
-import { useInfiniteQuery, type UseInfiniteQueryResult } from '@tanstack/react-query';
+import { type UseInfiniteQueryResult } from '@tanstack/react-query';
 
 import {
   TRI_DEFAUT_MOUVEMENTS_STOCK,
@@ -7,6 +7,8 @@ import {
   type ReponseMouvementStock,
   type TypeMouvementStock,
 } from '@dfa/shared';
+
+import { useDoitReessayer, useListeCurseur } from '@/hooks/pagination-curseur';
 
 import { clesPieces } from './cles';
 import { listerMouvementsArticle } from './mouvements.api';
@@ -34,7 +36,9 @@ interface FiltresMouvementsArticleEcran {
 }
 
 /** `GET /articles/{id}/mouvements` — historique complet, pagination par curseur. `enabled: false`
- *  tant que l'article n'est pas résolu (fiche article encore en chargement). */
+ *  tant que l'article n'est pas résolu (fiche article encore en chargement). `reessayer` : RF-115,
+ *  `admin` porte `[]` sur tout le domaine Pièces (`matrice-droits.ts`), même raison que
+ *  `useListeArticles`. */
 export function useMouvementsArticle(
   articleId: string | undefined,
   filtres: FiltresMouvementsArticleEcran = {},
@@ -44,21 +48,20 @@ export function useMouvementsArticle(
     tri: TRI_DEFAUT_MOUVEMENTS_STOCK,
     limite: LIMITE_PAGE,
   };
+  const reessayer = useDoitReessayer();
 
-  const resultat = useInfiniteQuery({
-    queryKey: clesPieces.articles.mouvements(articleId ?? '', filtresComplets),
-    queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
-      listerMouvementsArticle(articleId as string, filtresComplets, {
-        limite: LIMITE_PAGE,
-        curseur: pageParam,
-      }),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (dernierePage) => dernierePage.curseurSuivant ?? undefined,
-    enabled: articleId !== undefined,
+  const { resultat, elements } = useListeCurseur<ReponseMouvementStock>({
+    cle: clesPieces.articles.mouvements(articleId ?? '', filtresComplets),
+    // `undefined` tant que l'article n'est pas résolu (fiche encore en chargement) : c'est CE
+    // rétrécissement qui donne `articleId: string` à `listerMouvementsArticle`, là où la version
+    // précédente devait écrire `articleId as string` sous une garde `enabled` séparée.
+    charger:
+      articleId === undefined
+        ? undefined
+        : (curseur) =>
+            listerMouvementsArticle(articleId, filtresComplets, { limite: LIMITE_PAGE, curseur }),
+    reessayer,
   });
 
-  return {
-    ...resultat,
-    mouvements: resultat.data?.pages.flatMap((page) => page.donnees) ?? [],
-  };
+  return { ...resultat, mouvements: elements };
 }

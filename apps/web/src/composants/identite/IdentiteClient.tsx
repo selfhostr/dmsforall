@@ -56,7 +56,7 @@ export function IdentiteClient({ client, alerte = false, className, onClick }: P
         type="button"
         onClick={onClick}
         className={cn(
-          '-mx-1.5 -my-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-md px-1.5 py-1 text-left outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          '-mx-1.5 -my-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-md px-1.5 py-1 text-left transition-colors hover:text-primary anneau-focus',
           className,
         )}
       >

@@ -4,7 +4,7 @@ import type { SuiviFinancement } from '@dfa/shared';
 
 import { formaterDate } from '@/lib/formats';
 
-import { BadgeStatutFinancement } from '../dossiers/BadgeStatutFinancement';
+import { BadgeStatutFinancement } from '../financements/BadgeStatutFinancement';
 
 interface Props {
   /** `null` : ce dossier n'a aucun financement crédit/leasing à suivre (il apparaît alors dans

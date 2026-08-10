@@ -1,6 +1,8 @@
-import { useInfiniteQuery, type UseInfiniteQueryResult } from '@tanstack/react-query';
+import { type UseInfiniteQueryResult } from '@tanstack/react-query';
 
 import type { PageCurseur, ReponsePointage } from '@dfa/shared';
+
+import { useListeCurseur } from '@/hooks/pagination-curseur';
 
 import { clesPointage } from './cles';
 import { listerPointages, type FiltresListePointages } from './pointage.api';
@@ -25,17 +27,11 @@ export function useListePointages(
   filtres: FiltresListePointages,
   options?: { readonly enabled?: boolean },
 ): ResultatListePointages {
-  const resultat = useInfiniteQuery({
-    queryKey: clesPointage.liste(filtres),
-    queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
-      listerPointages(filtres, { limite: LIMITE_PAGE, curseur: pageParam }),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (dernierePage) => dernierePage.curseurSuivant ?? undefined,
-    enabled: options?.enabled ?? true,
+  const { resultat, elements } = useListeCurseur<ReponsePointage>({
+    cle: clesPointage.liste(filtres),
+    charger: (curseur) => listerPointages(filtres, { limite: LIMITE_PAGE, curseur }),
+    actif: options?.enabled,
   });
 
-  return {
-    ...resultat,
-    pointages: resultat.data?.pages.flatMap((page) => page.donnees) ?? [],
-  };
+  return { ...resultat, pointages: elements };
 }

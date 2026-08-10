@@ -46,7 +46,9 @@
       "vide": "Kein Halter für dieses Fahrzeug erfasst."
     },
     "dossierVente": {
-      "titre": "Verkaufsdossier"
+      "titre": "Verkaufsdossier",
+      "vide": "Kein Verkaufsdossier für dieses Fahrzeug.",
+      "droitRequis": "Sie sind nicht berechtigt, die Verkaufsdossiers dieses Fahrzeugs einzusehen."
     },
     "ordresReparation": {
       "titre": "Reparaturaufträge",

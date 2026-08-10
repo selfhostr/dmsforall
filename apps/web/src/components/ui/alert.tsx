@@ -3,6 +3,12 @@ import { type HTMLAttributes, forwardRef } from 'react';
 
 import { cn } from '@/lib/utils';
 
+// Encart d'alerte de PAGE (« la facture est verrouillée », « le stock est négatif »), jamais un
+// badge de statut. La variante `avertissement` utilisait des classes Tailwind en dur
+// (`amber-500/50`, `bg-amber-50`, `text-amber-900`) : seule couleur codée en dur qui subsistait
+// dans `components/ui/`. Elle passe par la famille de tokens `--avertissement-*` (index.css),
+// distincte à la fois de la couleur de marque et des six tokens `--statut-*` réservés au statut
+// d'OR et de ligne. Contraste mesuré : texte sur fond 7.66:1, bordure sur blanc 3.44:1.
 const variantesAlerte = cva(
   'relative w-full rounded-lg border p-4 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:h-4 [&>svg]:w-4 [&>svg~*]:pl-7',
   {
@@ -10,7 +16,8 @@ const variantesAlerte = cva(
       variant: {
         default: 'bg-background text-foreground',
         destructive: 'border-destructive/50 text-destructive [&>svg]:text-destructive',
-        avertissement: 'border-amber-500/50 bg-amber-50 text-amber-900 [&>svg]:text-amber-600',
+        avertissement:
+          'border-avertissement-bordure bg-avertissement-fond text-avertissement [&>svg]:text-avertissement',
       },
     },
     defaultVariants: {
@@ -38,7 +45,7 @@ export const AlertTitle = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLHe
   ({ className, ...props }, ref) => (
     <h5
       ref={ref}
-      className={cn('mb-1 font-medium leading-none tracking-tight', className)}
+      className={cn('mb-1 texte-corps font-semibold leading-none', className)}
       {...props}
     />
   ),
@@ -49,6 +56,6 @@ export const AlertDescription = forwardRef<
   HTMLParagraphElement,
   HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn('text-sm [&_p]:leading-relaxed', className)} {...props} />
+  <div ref={ref} className={cn('texte-corps [&_p]:leading-relaxed', className)} {...props} />
 ));
 AlertDescription.displayName = 'AlertDescription';

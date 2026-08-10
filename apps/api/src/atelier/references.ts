@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, or } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { ClientResume, VehiculeResume } from '@dfa/shared';
 
 import type { ContexteTenant, TransactionDfa } from '../db';
@@ -289,9 +289,20 @@ export async function chargerConditionsEnVigueur(
     .select()
     .from(clientCondition)
     .where(and(eq(clientCondition.tenantId, ctx.tenantId), eq(clientCondition.clientId, clientId)));
+  /**
+   * Borne haute EXCLUSIVE — alignée sur la contrainte `EXCLUDE ... daterange(valide_du, valide_au,
+   * '[)')` de `client_condition` (migration 0006_clients.sql). Même défaut que
+   * `service-ligne-or.ts::resoudreTauxHoraireCentimes` (RM-65) : une lecture inclusive de
+   * `valideAu` désaccorde le code de la base sur une bascule de conditions saisie « ancien jusqu'au
+   * 10 inclus, nouveau dès le 10 ». Tri décroissant sur `valideDu` avant le `.find()` : ceinture et
+   * bretelles, l'EXCLUDE garantit qu'au plus une période n'est en vigueur à une date donnée, mais un
+   * `.find()` sur un résultat potentiellement ambigu ne doit jamais dépendre d'un ordre non garanti
+   * — la période la plus récemment valide est celle qui a un sens métier en cas d'ambiguïté.
+   */
   return (
-    lignes.find((l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu >= dateJour)) ??
-    null
+    [...lignes]
+      .sort((a, b) => b.valideDu.localeCompare(a.valideDu))
+      .find((l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu > dateJour)) ?? null
   );
 }
 
@@ -371,4 +382,37 @@ export async function chargerResumeUtilisateur(
     .limit(1);
   if (!ligne) return null;
   return { utilisateurId: ligne.id, nomAffiche: `${ligne.prenom} ${ligne.nom}` };
+}
+
+/**
+ * Version PAR LOT de `chargerResumeUtilisateur` ci-dessus — UNE requête `IN (...)` pour tous les
+ * identifiants distincts d'une liste, plutôt qu'une requête par élément (N+1 mesuré à l'audit sur
+ * trois listes d'`atelier/` : devis complémentaires, demandes client, journal d'un OR). Même
+ * doctrine de lot que `enrichirVehicules` (`recherche/service-recherche.ts`) et que
+ * `ServiceOr.calculerTotauxAvecDestinataires` (résolveur `client` par lot, ce fichier) : Set pour
+ * dédoublonner avant de partir en base — un même utilisateur peut apparaître pour plusieurs lignes
+ * (ex. plusieurs demandes saisies par la même personne) — puis Map pour l'appariement en mémoire.
+ *
+ * `null` dans `utilisateurIds` est filtré avant la requête (un `saisiParId`/`emetteurId`/
+ * `utilisateurId` optionnel n'a jamais de résumé à résoudre). Un identifiant SANS ligne
+ * correspondante (utilisateur supprimé, ou d'un autre tenant si le scope tenant échouait) est
+ * simplement absent du Map rendu — c'est à l'appelant de retomber sur `null`, jamais une valeur
+ * inventée (`resumes.get(id) ?? null`, jamais `resumes.get(id)!`) : même règle « une absence n'est
+ * pas une valeur » que `chargerResumeUtilisateur`, dont le comportement reste inchangé — cette
+ * fonction ne le remplace pas, elle sert les appelants qui itéraient dessus.
+ */
+export async function chargerResumesUtilisateurs(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  utilisateurIds: readonly (string | null)[],
+): Promise<ReadonlyMap<string, ResumeUtilisateur>> {
+  const ids = [...new Set(utilisateurIds.filter((id): id is string => id !== null))];
+  if (ids.length === 0) return new Map();
+  const lignes = await tx
+    .select({ id: utilisateur.id, prenom: utilisateur.prenom, nom: utilisateur.nom })
+    .from(utilisateur)
+    .where(and(eq(utilisateur.tenantId, ctx.tenantId), inArray(utilisateur.id, ids)));
+  return new Map(
+    lignes.map((l) => [l.id, { utilisateurId: l.id, nomAffiche: `${l.prenom} ${l.nom}` }]),
+  );
 }
