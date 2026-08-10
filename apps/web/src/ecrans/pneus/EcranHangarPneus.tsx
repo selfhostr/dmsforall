@@ -38,7 +38,12 @@ import { DialogueChangerSaisonPneu } from './DialogueChangerSaisonPneu';
 import { DialogueDeplacerDepotPneu } from './DialogueDeplacerDepotPneu';
 import { DialogueNouveauDepotPneu } from './DialogueNouveauDepotPneu';
 import { DialogueSortirDepotPneu } from './DialogueSortirDepotPneu';
-import { peutGererDepotPneus } from './droits';
+import {
+  peutChangerSaisonDepotPneus,
+  peutCreerDepotPneus,
+  peutDeplacerDepotPneus,
+  peutSortirDepotPneus,
+} from './droits';
 
 /** « Physiquement dans le hangar » (RPP-04) : `en_depot` + `a_relancer` — `monte` est sur le
  *  véhicule, `sorti` n'y est plus. Fixe désormais (plus de sélecteur « Statut ») : l'onglet «À
@@ -171,7 +176,16 @@ export function EcranHangarPneus() {
     refetch: relancerSession,
   } = useSession();
   const role = session?.utilisateur.role;
-  const peutGerer = peutGererDepotPneus(role);
+  // Droits PAR ACTION, calqués un à un sur `apps/api/src/auth/matrice-droits.ts` — DÉFAUT CORRIGÉ :
+  // un seul booléen `peutGererDepotPneus` gouvernait auparavant `creer`/`changer_saison`/`deplacer`/
+  // `sortir` indifféremment, alors que le serveur distingue deux périmètres (`technicien`/
+  // `magasinier` ont `creer`/`changer_saison`/`deplacer` mais PAS `sortir`) — un technicien voyait
+  // le bouton « Sortir », cliquait, remplissait le dialogue, et recevait un `403` honnête mais
+  // évitable. Voir `ecrans/pneus/droits.ts` pour le détail de chaque liste de rôles.
+  const peutCreer = peutCreerDepotPneus(role);
+  const peutChangerSaison = peutChangerSaisonDepotPneus(role);
+  const peutDeplacer = peutDeplacerDepotPneus(role);
+  const peutSortir = peutSortirDepotPneus(role);
 
   const [filtreSaison, setFiltreSaison] = useState<SaisonPneu | 'toutes'>('toutes');
   const [filtreRepere, setFiltreRepere] = useState('');
@@ -281,7 +295,7 @@ export function EcranHangarPneus() {
         </Link>
       ),
     },
-    ...(peutGerer
+    ...(peutDeplacer || peutSortir
       ? [
           {
             id: 'actions',
@@ -291,26 +305,31 @@ export function EcranHangarPneus() {
               // Pas de « Changer de saison » ici : cette liste ne contient QUE des dépôts au
               // statut `a_relancer`, un statut où le serveur rejette systématiquement ce geste
               // (autorisé seulement `en_depot`/`monte`, voir `CarteJeuPneu.tsx` — `estActif`).
-              // « Déplacer » reste valide : un jeu `a_relancer` n'est PAS `sorti` (seul statut que
-              // `POST .../deplacer` refuse), et un jeu oublié depuis longtemps est justement celui
-              // qu'on retrouve mal rangé.
+              // « Déplacer » et « Sortir » restent gouvernés CHACUN par son propre droit (voir le
+              // commentaire au-dessus de `peutCreer` plus haut) : un technicien voit « Déplacer »
+              // (un jeu `a_relancer` n'est pas `sorti`, seul statut que `POST .../deplacer`
+              // refuse) mais jamais « Sortir », qu'il n'a jamais eu.
               <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setDepotDeplacement(depot)}
-                >
-                  {t('pneus:jeu.actions.deplacer')}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setDepotSortie(depot)}
-                >
-                  {t('pneus:jeu.actions.sortir')}
-                </Button>
+                {peutDeplacer ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setDepotDeplacement(depot)}
+                  >
+                    {t('pneus:jeu.actions.deplacer')}
+                  </Button>
+                ) : null}
+                {peutSortir ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setDepotSortie(depot)}
+                  >
+                    {t('pneus:jeu.actions.sortir')}
+                  </Button>
+                ) : null}
               </div>
             ),
           } satisfies ColonneComptoir<ReponseDepotPneus>,
@@ -322,7 +341,7 @@ export function EcranHangarPneus() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{t('pneus:hangar.titre')}</h1>
-        {peutGerer && site ? (
+        {peutCreer && site ? (
           <Button type="button" onClick={() => setCreationOuverte(true)}>
             {t('pneus:creation.actions.ouvrir')}
           </Button>
@@ -403,7 +422,9 @@ export function EcranHangarPneus() {
                             clientNom: candidat.clientNom,
                           }}
                           site={site}
-                          peutGerer={peutGerer}
+                          peutChangerSaison={peutChangerSaison}
+                          peutDeplacer={peutDeplacer}
+                          peutSortir={peutSortir}
                           misEnEvidence={depot.id === depotSurligne}
                           onChangerSaison={setDepotChangementSaison}
                           onDeplacer={setDepotDeplacement}
@@ -489,7 +510,7 @@ export function EcranHangarPneus() {
                         titre={t('pneus:hangar.vide.titre')}
                         description={t('pneus:hangar.vide.premierUsage')}
                         action={
-                          peutGerer ? (
+                          peutCreer ? (
                             <Button type="button" onClick={() => setCreationOuverte(true)}>
                               {t('pneus:creation.actions.ouvrir')}
                             </Button>
@@ -505,7 +526,9 @@ export function EcranHangarPneus() {
                             key={depot.id}
                             depot={depot}
                             site={site}
-                            peutGerer={peutGerer}
+                            peutChangerSaison={peutChangerSaison}
+                            peutDeplacer={peutDeplacer}
+                            peutSortir={peutSortir}
                             misEnEvidence={depot.id === depotSurligne}
                             onChangerSaison={setDepotChangementSaison}
                             onDeplacer={setDepotDeplacement}

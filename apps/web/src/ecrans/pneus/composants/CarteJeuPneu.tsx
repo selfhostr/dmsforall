@@ -29,7 +29,14 @@ interface Props {
   readonly depot: ReponseDepotPneus;
   readonly identification?: IdentificationJeuPneu;
   readonly site?: string;
-  readonly peutGerer: boolean;
+  /** Droits PAR ACTION, calqués un à un sur `apps/api/src/auth/matrice-droits.ts`
+   *  (`ENTREE_PNEUS`/`SORTIE_PNEUS`) — DÉFAUT CORRIGÉ : un seul booléen `peutGerer` gouvernait
+   *  auparavant les trois boutons ci-dessous alors que le serveur distingue deux périmètres
+   *  (`technicien`/`magasinier` ont `changer_saison`/`deplacer` mais PAS `sortir`). Voir
+   *  `ecrans/pneus/droits.ts` pour le détail de chaque liste de rôles. */
+  readonly peutChangerSaison: boolean;
+  readonly peutDeplacer: boolean;
+  readonly peutSortir: boolean;
   /** Vrai quand ce jeu est celui ciblé par `?depot=` (venu d'un lien externe, ex. la fiche
    *  véhicule — voir le commentaire de tête d'`EcranHangarPneus.tsx`). Fait défiler la carte à
    *  l'écran ET la place au clavier/lecteur d'écran (`focus()` sur un conteneur `tabIndex={-1}`,
@@ -51,7 +58,9 @@ export function CarteJeuPneu({
   depot,
   identification,
   site,
-  peutGerer,
+  peutChangerSaison,
+  peutDeplacer,
+  peutSortir,
   misEnEvidence = false,
   onChangerSaison,
   onDeplacer,
@@ -149,7 +158,7 @@ export function CarteJeuPneu({
           >
             {t('pneus:jeu.actions.voirVehicule')}
           </Link>
-          {peutGerer && estActif ? (
+          {peutChangerSaison && estActif ? (
             <Button
               type="button"
               size="sm"
@@ -159,12 +168,12 @@ export function CarteJeuPneu({
               {t('pneus:jeu.actions.changerSaison')}
             </Button>
           ) : null}
-          {peutGerer && depot.statut !== 'sorti' ? (
+          {peutDeplacer && depot.statut !== 'sorti' ? (
             <Button type="button" size="sm" variant="outline" onClick={() => onDeplacer(depot)}>
               {t('pneus:jeu.actions.deplacer')}
             </Button>
           ) : null}
-          {peutGerer && depot.statut !== 'sorti' ? (
+          {peutSortir && depot.statut !== 'sorti' ? (
             <Button type="button" size="sm" variant="ghost" onClick={() => onSortir(depot)}>
               {t('pneus:jeu.actions.sortir')}
             </Button>

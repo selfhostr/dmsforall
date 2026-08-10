@@ -317,7 +317,7 @@
       "assignerVehicule": "Assegnare un veicolo",
       "prix": "Prezzo",
       "prixAucun": "Prezzo non definito",
-      "prixIndicatif": "Indicativo (preventivo): {montant}",
+      "prixIndicatif": "Indicativo: {montant}",
       "dateLivraisonEstimee": "Data di consegna prevista",
       "modifier": {
         "titre": "Modificare la pratica",

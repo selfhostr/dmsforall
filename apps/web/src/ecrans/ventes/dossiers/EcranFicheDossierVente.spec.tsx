@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -355,6 +355,45 @@ describe('EcranFicheDossierVente', () => {
     );
     expect(screen.getAllByText('Comptant').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Confirmé').length).toBeGreaterThan(0);
+  });
+
+  // Non-régression du bug mesuré en navigateur : un bon de commande `brouillon` jamais rempli
+  // (`totalTtcCentimes: 0`, la somme d'aucune ligne) ne doit plus jamais s'afficher comme un prix
+  // engagé « 0.00 » — indiscernable d'un vrai montant nul. Voir `utils.ts::selectionnerPrixDossierVente`.
+  it("dossier avec un bon de commande brouillon vide : l'en-tête n'affiche aucun montant, jamais « 0.00 »", async () => {
+    const BON_COMMANDE_BROUILLON_VIDE: DocumentVenteResume = {
+      id: 'bc-vide-1',
+      typeDocument: 'bon_commande',
+      natureFacture: null,
+      numero: null,
+      statut: 'brouillon',
+      clientId: 'client-1',
+      clientDesignation: 'Jean Dupont',
+      dateDocument: '2026-08-04',
+      devise: 'CHF',
+      totalTtcCentimes: 0,
+    };
+
+    server.use(
+      http.get('/api/v1/dossiers-vente/dossier-1', () =>
+        HttpResponse.json({ ...DOSSIER, documents: [BON_COMMANDE_BROUILLON_VIDE] }),
+      ),
+    );
+
+    rendre();
+
+    // Portée volontairement restreinte au bloc « Prix » de l'EN-TÊTE (`<dl>` qui porte le `<dt>`
+    // « Prix ») : `CarteDocumentsVente` plus bas affiche elle aussi « 0.00 » pour ce même document
+    // brouillon, LÉGITIMEMENT — chaque ligne de sa table porte son propre type/statut en regard, le
+    // contexte lève l'ambiguïté que l'en-tête, lui, ne doit jamais introduire (§7.1, prix DÉRIVÉ,
+    // seul résumé que le vendeur lit d'un coup d'œil).
+    const dtPrix = await screen.findByText('Prix');
+    const blocPrix = dtPrix.closest('dl');
+    if (!blocPrix) throw new Error('Bloc <dl> du prix introuvable dans l’en-tête.');
+
+    expect(within(blocPrix).getByText('Prix non défini')).toBeInTheDocument();
+    expect(within(blocPrix).queryByText('0.00')).not.toBeInTheDocument();
+    expect(within(blocPrix).queryByText(/0[.,]00/)).not.toBeInTheDocument();
   });
 
   it('état erreur : message actionnable avec retry', async () => {

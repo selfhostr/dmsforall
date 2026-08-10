@@ -207,6 +207,60 @@ describe('EcranHangarPneus', () => {
   });
 
   /**
+   * Défaut corrigé (parcours navigateur, 10.08.2026) : un technicien voyait le bouton « Sortir »
+   * bien que `pneus.depot.sortir` (`apps/api/src/auth/matrice-droits.ts`, `SORTIE_PNEUS`) ne lui
+   * soit jamais accordé — un seul booléen `peutGererDepotPneus` gouvernait auparavant les trois
+   * gestes indifféremment. Il cliquait, remplissait le dialogue (motif obligatoire), soumettait, et
+   * recevait un `403` honnête mais évitable : un geste offert puis repris, ce que ce dépôt s'interdit
+   * ailleurs (`EcranFicheFacture.tsx` : « un rôle sans droit ne voit pas un bouton grisé, il ne voit
+   * pas de bouton »). Matrice rôle × action : `technicien`/`magasinier` ont `creer`/`changer_saison`
+   * (donc « Changer de saison » ET « Déplacer », ce dernier partageant le même droit serveur, voir
+   * `depot-pneus.controller.ts`) mais PAS `sortir` ; `receptionnaire`/`chef_atelier`/`direction`/
+   * `admin` ont les quatre.
+   */
+  it('matrice rôle × action : un technicien ne voit pas « Sortir », un réceptionnaire le voit', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'technicien' },
+        }),
+      ),
+      http.get('/api/v1/sites/site-1/hangar-pneus', () => HttpResponse.json(pageDe([DEPOT]))),
+    );
+
+    rendre();
+
+    await screen.findByText('Rack 3');
+    expect(screen.getByRole('button', { name: 'Changer de saison' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Déplacer' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sortir' })).not.toBeInTheDocument();
+    // La création reste un geste d'entrée physique (`pneus.depot.creer`, même périmètre que
+    // `changer_saison`) : accordée au technicien.
+    expect(screen.getByRole('button', { name: 'Nouveau dépôt' })).toBeInTheDocument();
+  });
+
+  it('matrice rôle × action : un réceptionnaire voit les quatre actions, dont « Sortir »', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'receptionnaire' },
+        }),
+      ),
+      http.get('/api/v1/sites/site-1/hangar-pneus', () => HttpResponse.json(pageDe([DEPOT]))),
+    );
+
+    rendre();
+
+    await screen.findByText('Rack 3');
+    expect(screen.getByRole('button', { name: 'Nouveau dépôt' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Changer de saison' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Déplacer' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sortir' })).toBeInTheDocument();
+  });
+
+  /**
    * Défaut corrigé : l'erreur de mutation n'était jamais réinitialisée à la réouverture du
    * dialogue — un échec sur le jeu A restait affiché à l'ouverture pour le jeu B. Deux jeux
    * distincts (`DEPOT`/Rack 3, `DEPOT_2`/Rack 5) : ouverture pour A → échec → fermeture →
