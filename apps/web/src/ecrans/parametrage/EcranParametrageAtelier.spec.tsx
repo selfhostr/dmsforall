@@ -182,6 +182,46 @@ describe('EcranParametrageAtelier', () => {
     expect(corps.planning).toBeUndefined();
   });
 
+  it('enregistre depuis l’état sorti de boîte (préfixe vide, `orPrefixe` nullable en base) sans jamais envoyer une chaîne vide', async () => {
+    connecterSession('chef_atelier');
+    let corpsRecu: unknown;
+    let requetePatchEmise = false;
+    server.use(
+      http.get(CHEMIN, () =>
+        HttpResponse.json({ ...PARAMETRES, or: { ...PARAMETRES.or, prefixe: '' } }),
+      ),
+      http.patch(CHEMIN, async ({ request }) => {
+        requetePatchEmise = true;
+        corpsRecu = await request.json();
+        return HttpResponse.json({ ...PARAMETRES, or: { ...PARAMETRES.or, prefixe: '' } });
+      }),
+    );
+    rendre();
+
+    // Préfixe vide dès le chargement, exactement l'état sorti de boîte de la démo — on ne le
+    // touche pas, on modifie un champ SANS RAPPORT pour prouver que ce champ vide et facultatif
+    // n'empêche plus l'enregistrement du reste.
+    const champPrefixe = await screen.findByLabelText(i18n.t('parametrage:atelier.or.prefixe'));
+    expect(champPrefixe).toHaveValue('');
+    await userEvent
+      .setup()
+      .click(screen.getByLabelText(i18n.t('parametrage:atelier.or.sansRdvAutorise')));
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: i18n.t('commun:actions.enregistrer') }));
+
+    expect(
+      await screen.findByText(i18n.t('parametrage:atelier.enregistrementReussi')),
+    ).toBeInTheDocument();
+    // La régression exacte constatée : AUCUNE requête PATCH n'était émise, `prefixe: ''` violait
+    // `min(1)` côté client avant tout `fetch`. Prouve les deux à la fois : la requête part, et
+    // `prefixe` est ABSENT du corps (jamais envoyé comme chaîne vide).
+    expect(requetePatchEmise).toBe(true);
+    const corps = corpsRecu as { or?: Record<string, unknown> };
+    expect(corps.or).not.toHaveProperty('prefixe');
+    expect(corps.or?.sansRdvAutorise).toBe(false);
+  });
+
   it('affiche un état d’erreur actionnable sur une panne serveur', async () => {
     connecterSession('chef_atelier');
     server.use(
