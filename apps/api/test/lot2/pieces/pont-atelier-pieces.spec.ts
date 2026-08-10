@@ -252,12 +252,12 @@ describe('cycle complet : poser une ligne pièce réserve, marquer réalisée so
     const or = await creerOrFrais();
     const { ligneId } = await poserLigneEtDemarrer(or.id, articleId, siteId, 2000);
 
-    // `201`, PAS `200` : `marquerRealisee` (`ligne-or.controller.ts`) ne porte aucun `@HttpCode`
-    // explicite — défaut NestJS d'un `@Post` sans décorateur, même piège déjà documenté par
-    // `test/lot1/metier-machine-etats-or.spec.ts` sur des routes sœurs du même style. Mesuré en
-    // exécution, pas supposé.
+    // `200`, pas `201` : `marquerRealisee` transitionne une ligne existante (`en_cours -> realisee`),
+    // elle ne crée aucune ressource. `ligne-or.controller.ts` porte `@HttpCode(HttpStatus.OK)` et
+    // `@ApiOkResponse` — code et contrat s'accordent (commit 4092524, qui a corrigé le défaut NestJS
+    // par défaut d'un `@Post` sans décorateur explicite, documenté jusque-là par erreur ici même).
     const realisation = await marquerRealisee(ctx, await cookieAtelier(), or.id, ligneId);
-    expect(realisation.status, JSON.stringify(realisation.body)).toBe(201);
+    expect(realisation.status, JSON.stringify(realisation.body)).toBe(200);
     expect((realisation.body as { donnees: { statut: string } }).donnees.statut).toBe('realisee');
 
     // Stock : 5000 physiques, 2000 sortis, 0 réservé restant (la réservation vient d'être
@@ -310,7 +310,7 @@ describe('consigne d’échange standard : réaliser une ligne dont l’article 
     const { ligneId } = await poserLigneEtDemarrer(or.id, articleId, siteId, 1000);
 
     const realisation = await marquerRealisee(ctx, await cookieAtelier(), or.id, ligneId);
-    expect(realisation.status, JSON.stringify(realisation.body)).toBe(201);
+    expect(realisation.status, JSON.stringify(realisation.body)).toBe(200);
 
     // 3000 physiques : -1000 (sortie de la pièce neuve) +1000 (entrée du cœur échangé, RP-38 :
     // « c'est LE MÊME geste ») -> 3000, net INCHANGÉ. Réservé retombe à 0.
@@ -441,7 +441,7 @@ describe('atomicité réelle : marquer réalisée une ligne dont la réservation
     expect(ligneAvant.statut).toBe('en_cours');
 
     const realisation = await marquerRealisee(ctx, await cookieAtelier(), or.id, ligneId);
-    expect(realisation.status, JSON.stringify(realisation.body)).toBe(201);
+    expect(realisation.status, JSON.stringify(realisation.body)).toBe(200);
     expect((realisation.body as { donnees: { statut: string } }).donnees.statut).toBe('realisee');
 
     const ligneApres = await ligneDansOr(or.id, ligneId);

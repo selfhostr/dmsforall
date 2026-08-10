@@ -58,7 +58,7 @@ export function BoutonCopier({ valeur, className }: ProprietesBoutonCopier) {
       aria-label={t('actions.copier')}
       title={t('actions.copier')}
       className={cn(
-        'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground anneau-focus',
         className,
       )}
     >

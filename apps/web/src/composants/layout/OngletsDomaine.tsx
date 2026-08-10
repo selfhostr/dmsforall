@@ -101,7 +101,7 @@ export function OngletsDomaine({ className }: Props) {
                       // h-11 = 44 px, plancher tactile du produit (postes de comptoir tactiles,
                       // §4.6) — jamais réduit sur desktop, la souris n'est pas la seule entrée.
                       'flex h-11 items-center whitespace-nowrap rounded-t-md border-b-2 px-4 text-sm transition-colors',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+                      'anneau-focus',
                       actif
                         ? 'border-primary font-semibold text-foreground'
                         : 'border-transparent font-medium text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -138,7 +138,7 @@ export function OngletsDomaine({ className }: Props) {
                     aria-current={actif ? 'page' : undefined}
                     className={cn(
                       'flex h-11 items-center whitespace-nowrap rounded-md px-3 text-sm transition-colors',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                      'anneau-focus',
                       actif
                         ? 'bg-secondary font-semibold text-secondary-foreground'
                         : 'font-medium text-muted-foreground hover:bg-muted hover:text-foreground',

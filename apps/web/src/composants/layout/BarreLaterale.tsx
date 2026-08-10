@@ -104,7 +104,7 @@ export function BarreLaterale({ className }: Props) {
             // h-11 = 44 px : plancher tactile du produit, jamais réduit sur desktop (les postes de
             // comptoir sont des écrans tactiles de 24 pouces, §4.6).
             'flex h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            'anneau-focus',
             actif
               ? 'bg-primary text-primary-foreground'
               : 'text-foreground hover:bg-muted hover:text-foreground',
