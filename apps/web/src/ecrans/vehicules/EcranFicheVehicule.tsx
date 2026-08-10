@@ -204,17 +204,19 @@ export function EcranFicheVehicule() {
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <EnTeteFicheVehicule vehicule={vehicule} dernierKilometrage={contexte.dernierKilometrage} />
-        {/* Lot B — action primaire « nouvel OR » depuis la fiche véhicule. `EcranNouvelOrdreReparation`
-         *  ne lit aujourd'hui que `clientId`/`site` en paramètres de requête (aucun `vehiculeId` —
-         *  écran hors du périmètre exclusif de cet agent, signalé plutôt que modifié) : le
-         *  technicien devra encore chercher/sélectionner le véhicule une fois sur cet écran si le
-         *  propriétaire actuel n'est pas connu, mais le geste part bien d'ici. */}
+        {/* Lot B — action primaire « nouvel OR » depuis la fiche véhicule. CORRECTIF issue #48 :
+         *  `vehiculeId` (le véhicule DÉJÀ affiché à l'écran) est désormais transmis en plus de
+         *  `clientId` — `EcranNouvelOrdreReparation` (périmètre atelier, corrigé au même lot) le lit
+         *  pour présélectionner ce véhicule via `SelecteurVehiculeOrdre` plutôt que de faire
+         *  rechoisir parmi TOUS les véhicules du client (dont d'autres sans rapport avec cette
+         *  fiche). Le choix reste modifiable sur l'écran suivant : un véhicule peut être amené par
+         *  quelqu'un d'autre que son détenteur (cas réel en garage). */}
         <Button
           type="button"
           onClick={() =>
             navigate(
               proprietaireActuel
-                ? `/atelier/ordres-reparation/nouveau?clientId=${encodeURIComponent(proprietaireActuel.client.id)}${site ? `&site=${encodeURIComponent(site)}` : ''}`
+                ? `/atelier/ordres-reparation/nouveau?clientId=${encodeURIComponent(proprietaireActuel.client.id)}&vehiculeId=${encodeURIComponent(vehicule.id)}${site ? `&site=${encodeURIComponent(site)}` : ''}`
                 : `/atelier/ordres-reparation/nouveau${site ? `?site=${encodeURIComponent(site)}` : ''}`,
             )
           }
