@@ -68,6 +68,17 @@
 -- a que SELECT, vérifié par `verifierPostureRls()` au démarrage — la déclaration n'ouvre rien par
 -- elle-même.
 --
+-- PAS DE `enable row level security` NON PLUS, À LA DIFFÉRENCE DE `transition_autorisee` (0003) —
+-- écart assumé, pas un oubli. `transition_autorisee` pose RLS + une politique `using (true)`
+-- parce que c'était, à l'époque de 0003, la seule façon de satisfaire un contrôle de démarrage qui
+-- exigeait `relrowsecurity` sur TOUTE table sans exception. Cette politique ne filtre RIEN — une
+-- table sans `tenant_id` n'a aucune colonne sur laquelle discriminer — et ne protège donc que par
+-- l'illusion. `verifierPostureRls()` (apps/api/src/db/acces-base.service.ts, fonction
+-- `analyserTable`) a depuis été corrigée pour juger une table `[dfa:referentiel-partage]` sur son
+-- PRIVILÈGE réel (SELECT seul, vérifié en section « Assertions de fin de migration » ci-dessous)
+-- plutôt que d'exiger RLS actif au préalable. `type_approbation_ch` n'a donc ni RLS ni politique :
+-- les en ajouter ferait remonter le même théâtre que 0003, sans rien filtrer de plus.
+--
 -- CE QUI N'EST PAS FAIT ICI, DÉLIBÉRÉMENT :
 --   - aucune donnée chargée (mécanisme d'import = tâche séparée, hors périmètre) ;
 --   - aucun trigger d'audit : ce n'est pas une entité sensible au sens du dépôt (pas d'argent, pas

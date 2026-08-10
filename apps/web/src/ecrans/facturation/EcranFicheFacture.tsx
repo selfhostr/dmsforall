@@ -88,10 +88,6 @@ import { SheetEncaissement } from './SheetEncaissement';
  *    (`impression-facture.controller.ts`, `estEligibleImpression`) sans dupliquer la matrice de
  *    droits côté front. Un lien `<a>` simple (pas de `fetch`+blob) vers `GET .../pdf` : le
  *    navigateur gère nativement le cache via l'`ETag` (SHA-256 du PDF) sur les clics suivants.
- *  - **`CarteBulletinVersement` (bloc paiement figé, `ReponseDocumentVente.qr`) reste au stade
- *    « masque proprement le cas absent »** : le contenu (créancier/débiteur/IBAN/référence/montant)
- *    est bloqué sur cinq clés i18n manquantes dans `facturation.json` — voir le commentaire de tête
- *    de ce composant.
  *  - **`RefusBloquant` pour bloc créancier incomplet (§4.5)** : aucun champ de `ReponseDocumentVente`
  *    ne signale ce blocage AVANT tentative d'émission (contrairement à ce que suppose le design,
  *    « détecté en amont, dès l'ouverture du brouillon ») — il n'apparaît ici qu'EN RÉACTION à un

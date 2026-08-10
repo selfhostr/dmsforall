@@ -17,7 +17,7 @@ import {
 } from '@/hooks/pieces/useTransitionsFournisseur';
 import { useSession } from '@/hooks/useSession';
 
-import { peutEcrireFournisseur } from './droits';
+import { peutEcrireFournisseur, peutLireFournisseur } from './droits';
 import { FormulaireFournisseur } from './FormulaireFournisseur';
 import { texteOuVide } from './utils';
 
@@ -35,15 +35,44 @@ const VARIANTE_BADGE_STATUT: Record<StatutFournisseur, 'default' | 'secondary'> 
 export function EcranFicheFournisseur() {
   const { t } = useTranslation(['pieces', 'commun', 'erreurs']);
   const { id } = useParams<{ id: string }>();
-  const { data: session } = useSession();
-  const role = session?.utilisateur.role;
+  const session = useSession();
+  const role = session.data?.utilisateur.role;
+  const peutLire = peutLireFournisseur(role);
 
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
 
-  const requeteFournisseur = useFournisseur(id);
+  // Défaut corrigé : `pieces.fournisseur.lire` (direction/chef_atelier/magasinier SEULS) est
+  // STRICTEMENT plus étroit que `ROLES_PIECES` qui protège la ROUTE `/pieces/fournisseurs/:id`
+  // (les sept rôles, `routes/droits-routes.ts`) — un vendeur/réceptionnaire/technicien/comptable
+  // qui atteignait cette route (menu masqué mais URL directe toujours accessible, doctrine
+  // documentée en tête de `droits-routes.ts`) déclenchait un `403` rendu comme une erreur
+  // technique générique. Même doctrine que `EcranFicheClient.tsx` (`peutVoirDossiersVente`) :
+  // gardé par le droit AVANT de partir — tant que la session n'est pas résolue OU que le rôle n'a
+  // pas le droit, `id` n'est jamais transmis à `useFournisseur`, qui n'émet donc aucune requête.
+  const requeteFournisseur = useFournisseur(session.isLoading || !peutLire ? undefined : id);
   const desactiver = useDesactiverFournisseur(id ?? '');
   const reactiver = useReactiverFournisseur(id ?? '');
+
+  if (session.isLoading) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <h1 className="sr-only">{t('pieces:fournisseurs.titre')}</h1>
+        <EtatChargement lignes={6} />
+      </div>
+    );
+  }
+
+  if (!peutLire) {
+    return (
+      <div className="flex flex-col gap-6 p-6">
+        <h1 className="sr-only">{t('pieces:fournisseurs.titre')}</h1>
+        <p className="texte-corps text-muted-foreground">
+          {t('pieces:fournisseurs.fiche.droitRequis')}
+        </p>
+      </div>
+    );
+  }
 
   if (requeteFournisseur.isPending) {
     return (

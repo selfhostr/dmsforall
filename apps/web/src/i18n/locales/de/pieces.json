@@ -134,11 +134,13 @@
       "commandesFournisseur": {
         "titre": "Ausstehende Lieferantenbestellungen",
         "vide": "Keine ausstehende Lieferantenbestellung für diesen Artikel.",
-        "sansFournisseur": "Kein Lieferant für diesen Artikel bekannt."
+        "sansFournisseur": "Kein Lieferant für diesen Artikel bekannt.",
+        "droitRequis": "Sie sind nicht berechtigt, Lieferantenbestellungen einzusehen."
       },
       "fournisseur": {
         "titre": "Lieferant",
-        "vide": "Kein Lieferant für diesen Artikel referenziert."
+        "vide": "Kein Lieferant für diesen Artikel referenziert.",
+        "droitRequis": "Sie sind nicht berechtigt, Lieferanten einzusehen."
       }
     },
     "confirmations": {
@@ -347,7 +349,8 @@
     "fiche": {
       "erreur": {
         "titre": "Diese Bestellung kann nicht angezeigt werden"
-      }
+      },
+      "droitRequis": "Sie sind nicht berechtigt, Lieferantenbestellungen einzusehen."
     },
     "vide": "Keine Bestellungen."
   },
@@ -417,7 +420,8 @@
     "fiche": {
       "erreur": {
         "titre": "Dieser Lieferant kann nicht angezeigt werden"
-      }
+      },
+      "droitRequis": "Sie sind nicht berechtigt, Lieferanten einzusehen."
     },
     "vide": "Keine Lieferanten."
   },
