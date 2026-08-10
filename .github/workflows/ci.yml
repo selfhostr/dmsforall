@@ -1,15 +1,36 @@
 name: CI
 
-# Push sur main et dev (post-merge), et toute PR ciblant l'une des deux.
+# Push sur main et dev (post-merge, ou tout push direct hors PR), et PR ciblant `dev` uniquement.
 #
-# `dev` ajouté ici : le modèle de branches du dépôt est feature -> dev -> main, donc TOUTES les
-# relectures passent par une PR vers `dev` — celles vers `main` ne sont que la promotion d'un `dev`
-# déjà intégré. Sans `dev` dans ces deux listes, aucune PR de travail n'était jamais vérifiée : les
-# checks n'apparaissaient qu'au moment de promouvoir, c'est-à-dire trop tard pour servir de garde-fou.
+# `dev` dans `push` ET `pull_request` : le modèle de branches du dépôt est feature -> dev -> main,
+# donc TOUTES les relectures passent par une PR vers `dev` — celles vers `main` ne sont que la
+# promotion d'un `dev` déjà intégré. Sans `dev` dans ces deux listes, aucune PR de travail n'était
+# jamais vérifiée : les checks n'apparaissaient qu'au moment de promouvoir, c'est-à-dire trop tard
+# pour servir de garde-fou.
 #
 # Constaté en vrai : la PR « reconciliation des tests d'integration » est sortie avec ZÉRO check,
 # alors qu'elle rendait justement le job d'intégration vert. Impossible de le prouver autrement qu'en
 # local, ce qui est exactement ce que la CI existe pour éviter.
+#
+# `main` ABSENT de `pull_request` (retiré le 10.08.2026, voir commit qui a introduit ce
+# commentaire) : dans ce modèle, la SEULE source de PR vers `main` est `dev` — jamais une branche
+# `feat/*` directement. Or `dev` est déjà dans `push.branches` ci-dessus : chaque commit qui
+# atterrit sur `dev` (merge d'une PR feat->dev, ou push direct) déclenche déjà un run `push`, sur
+# CE MÊME sha. Garder `main` dans `pull_request.branches` faisait tourner un DEUXIÈME run
+# identique dès qu'une PR dev->main restait ouverte pendant qu'on continuait à pousser sur `dev` —
+# mesuré sur le commit a695bf0 (deux runs complets, 11 min de job « Vérifier » chacun, donc 22 min
+# consommées pour 11 utiles). GitHub associe les check runs à un commit par SHA, pas par
+# déclencheur : les checks produits par le run `push` sur `dev` s'affichent normalement sur la PR
+# dev->main (même sha en tête de PR) et alimentent la protection de branche sans qu'un second run
+# `pull_request` soit nécessaire. C'est le même principe que le contournement standard « pas de
+# run pull_request pour les branches déjà couvertes par push », habituellement utilisé pour
+# distinguer PR internes et PR de fork.
+#
+# Trou assumé : une PR vers `main` dont la tête n'est PAS `dev` (contournement exceptionnel du
+# process, en théorie interdit par CONTRIBUTING.md — « main ne reçoit que les merges de dev ») n'aurait
+# de check ni via push (sa branche n'est pas dans push.branches) ni via pull_request (main en est
+# sorti) — zéro couverture CI sur GitHub pour ce cas-là. Accepté parce que hors process documenté ;
+# à revisiter si ce contournement devient un usage réel.
 #
 # `workflow_call` en plus : publier-images.yml (push sur main, push de tag vX.Y.Z) invoque CE
 # fichier comme workflow réutilisable pour ses trois jobs de qualité, au lieu d'en garder une copie.
@@ -21,17 +42,18 @@ name: CI
 # Sur un push main, les deux déclencheurs coexistent : ci.yml tourne pour son propre `on: push`
 # ET à l'intérieur du run de publier-images.yml qui l'appelle — donc deux exécutions des mêmes
 # jobs de qualité. Accepté sciemment (déjà le cas avant ce fichier, quand publier-images.yml en
-# gardait sa propre copie) : factoriser plus loin pour l'éviter n'est justifié que si les minutes
-# CI deviennent un vrai problème, pas avant. Non vérifié en revanche, faute de pouvoir exécuter
-# GitHub Actions ici : le groupe de `concurrency` ci-dessous s'appuie sur `github.workflow`, qui
-# vaut le nom de l'appelant (« Publier les images ») quand ci.yml tourne en workflow_call — donc un
-# groupe différent de celui du run direct de ci.yml (« CI »). Les deux devraient coexister sans
-# s'annuler l'un l'autre, mais seul un vrai push le confirmera.
+# gardait sa propre copie, et distinct de la duplication push/pull_request corrigée ci-dessus) :
+# factoriser plus loin pour l'éviter n'est justifié que si les minutes CI deviennent un vrai
+# problème, pas avant. Non vérifié en revanche, faute de pouvoir exécuter GitHub Actions ici : le
+# groupe de `concurrency` ci-dessous s'appuie sur `github.workflow`, qui vaut le nom de l'appelant
+# (« Publier les images ») quand ci.yml tourne en workflow_call — donc un groupe différent de celui
+# du run direct de ci.yml (« CI »). Les deux devraient coexister sans s'annuler l'un l'autre, mais
+# seul un vrai push le confirmera.
 on:
   push:
     branches: [main, dev]
   pull_request:
-    branches: [main, dev]
+    branches: [dev]
   workflow_call:
 
 # Annule les runs obsolètes d'une même branche/PR quand de nouveaux commits arrivent :

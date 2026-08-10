@@ -1,5 +1,11 @@
 {
   "titre": "Paramètres de facturation",
+  "monCompte": {
+    "titre": "Mon compte",
+    "langue": {
+      "description": "Cette langue ne concerne que votre compte, pas les autres utilisateurs du garage."
+    }
+  },
   "creancier": {
     "titre": "Coordonnées bancaires du garage",
     "description": "Ces coordonnées apparaissent sur le bulletin QR de chaque facture émise. Tant qu'elles ne sont pas complètes, aucune facture ne peut porter de QR-facture payable.",

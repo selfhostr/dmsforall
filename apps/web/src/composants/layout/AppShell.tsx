@@ -6,11 +6,13 @@ import { Outlet } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useSession } from '@/hooks/useSession';
+import { cn } from '@/lib/utils';
 
 import { BarreLaterale } from './BarreLaterale';
 import { EnTete } from './EnTete';
 import { entreesVisibles } from './navigation-modele';
 import { OngletsDomaine } from './OngletsDomaine';
+import { useRepliBarreLaterale } from './useRepliBarreLaterale';
 
 /**
  * >=1024px : barre latérale fixe 240px. En dessous : Sheet (tiroir) déclenché par un bouton
@@ -34,6 +36,12 @@ export function AppShell() {
   const [ouvert, setOuvert] = useState(false);
   const { data: session } = useSession();
   const afficheNavigation = entreesVisibles(session?.utilisateur.role).length > 0;
+  // Repli DESKTOP de la barre latérale (demande @laupernoe, revue webui du 10.08.2026) — préférence
+  // mémorisée (`useRepliBarreLaterale`), lue ici et nulle part ailleurs : seul l'`aside` ci-dessous
+  // la reçoit. Le tiroir mobile (`Sheet`) monte `BarreLaterale` SANS le prop `repli`, il reste donc
+  // toujours déplié quelle que soit cette préférence — déjà en surimpression, déjà refermable d'un
+  // geste, un repli y ferait double emploi.
+  const repliBarreLaterale = useRepliBarreLaterale();
 
   return (
     <div className="min-h-dvh lg:flex">
@@ -54,8 +62,16 @@ export function AppShell() {
         // (`h-full` s'y résout) et garde son pied (Réglages + version) collé en bas — sans jamais
         // faire défiler ses six entrées, voir BarreLaterale.tsx. `lg:self-start` empêche
         // `align-items: stretch` du flex parent d'étirer l'aside à la hauteur de la colonne droite.
-        <aside className="hidden w-60 shrink-0 self-start border-r lg:sticky lg:top-0 lg:block lg:h-dvh">
-          <BarreLaterale />
+        <aside
+          className={cn(
+            'hidden shrink-0 self-start border-r lg:sticky lg:top-0 lg:block lg:h-dvh',
+            // w-16 = 64 px replié : au-dessus du plancher tactile de 44 px une fois l'inset `p-2`
+            // du repli soustrait (voir `BarreLaterale.tsx`) — jamais en dessous de 44 px, même
+            // repliée, borne et comptoir compris.
+            repliBarreLaterale.replie ? 'w-16' : 'w-60',
+          )}
+        >
+          <BarreLaterale repli={repliBarreLaterale} />
         </aside>
       ) : null}
 

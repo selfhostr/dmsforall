@@ -64,7 +64,7 @@ export function RefusBloquant({
     <div
       role="alert"
       className={cn(
-        'flex flex-col gap-3 rounded-md border border-statut-danger/40 bg-statut-danger/12 p-4',
+        'flex flex-col gap-3 rounded-md border border-statut-danger bg-statut-danger-fond p-4',
         className,
       )}
     >

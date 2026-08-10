@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 
 import { MenuUtilisateur } from './MenuUtilisateur';
 import { RechercheGlobale } from './RechercheGlobale';
-import { SelecteurLangue } from './SelecteurLangue';
+import { SelecteurSiteEntete } from './SelecteurSiteEntete';
 
 /** Bouton « Se déconnecter » visible en clair, jamais enfoui dans un menu : poste d'atelier
  *  partagé entre plusieurs collègues, la déconnexion doit être un geste immédiat et visible. */
@@ -26,6 +26,11 @@ export function EnTete() {
   // réel qu'on affiche tel quel plutôt que d'y substituer un site deviné. Un id présent mais qui
   // ne correspond à aucun site de la session (lien obsolète, site renommé/supprimé entre-temps)
   // retombe sur la même mention : jamais la valeur brute de l'URL, non fiable, affichée à l'écran.
+  //
+  // `SelecteurSiteEntete` ci-dessous REÇOIT ce même `siteId`/`libelleSite`, il ne les recalcule
+  // pas : c'était le seul endroit de l'en-tête qui affichait un site avant ce lot (demande @laupernoe,
+  // revue webui du 10.08.2026) — pas de second sélecteur à fusionner, seulement du texte à rendre
+  // cliquable.
   const siteId = searchParams.get('site');
   const site = siteId ? session.sites.find((candidat) => candidat.id === siteId) : undefined;
   const libelleSite = site?.nom ?? t('navigation:entete.tousLesSites');
@@ -36,9 +41,11 @@ export function EnTete() {
         <p className="truncate font-semibold" title={session.tenant.raisonSociale}>
           {session.tenant.raisonSociale}
         </p>
-        <p className="truncate text-sm text-muted-foreground" title={libelleSite}>
-          {libelleSite}
-        </p>
+        <SelecteurSiteEntete
+          sites={session.sites}
+          siteIdActif={siteId ?? undefined}
+          libelle={libelleSite}
+        />
       </div>
       {/* Lot A (`docs/plan-refonte-navigation.md`) : centre de la barre haute, auparavant vide —
           la recherche partout, jamais à une route dédiée. `min-w-0` laisse le bouton se réduire
@@ -47,7 +54,9 @@ export function EnTete() {
         <RechercheGlobale />
       </div>
       <div className="flex shrink-0 items-center gap-3">
-        <SelecteurLangue />
+        {/* `SelecteurLangue` retiré d'ici (demande @laupernoe, revue webui du 10.08.2026) : la langue se
+            choisit déjà à la connexion et rejoint les Réglages — composant CONSERVÉ tel quel,
+            `EcranConnexion` et `ConsoleShell` le montent toujours. */}
         <MenuUtilisateur utilisateur={session.utilisateur} />
         <Button
           type="button"

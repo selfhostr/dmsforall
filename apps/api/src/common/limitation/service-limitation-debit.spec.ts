@@ -145,4 +145,40 @@ describe('ServiceLimitationDebitRedis.consommer', () => {
     expect(nombreAutorises).toBe(limite);
     expect(resultats.length - nombreAutorises).toBe(nombreRequetesConcurrentes - limite);
   });
+
+  describe('Redis indisponible', () => {
+    /** Double dont `eval` rejette systématiquement — simule une connexion Redis coupée
+     *  (ECONNREFUSED, épuisement de `maxRetriesPerRequest`, etc.), pas une absence d'écouteur. */
+    class RedisEnPanne {
+      eval(): Promise<[number, number]> {
+        return Promise.reject(new Error('ECONNREFUSED: Redis injoignable (simulation de test)'));
+      }
+    }
+
+    function creerServiceEnPanne(horloge: Horloge): ServiceLimitationDebitRedis {
+      const redis = new RedisEnPanne() as unknown as Redis;
+      return new ServiceLimitationDebitRedis(redis, horloge);
+    }
+
+    it("ne lève jamais d'exception quand Redis est indisponible : l'appelant (login, recherche) continue de répondre", async () => {
+      const service = creerServiceEnPanne(horlogeFigeeA(1_000_000));
+
+      // La preuve attendue n'est pas « une erreur est journalisée » mais « l'appel se résout »
+      // — c'est ce qui empêche `POST /auth/connexion` de tomber en 500 pour toute l'instance
+      // pendant une panne Redis.
+      await expect(service.consommer('auth:connexion:email:a@b.ch', 5, 900)).resolves.toEqual({
+        autorise: true,
+        resteSecondes: 0,
+      });
+    });
+
+    it('autorise en dégradé de façon répétée : une panne Redis prolongée ne finit pas par refuser faute de compteur', async () => {
+      const service = creerServiceEnPanne(horlogeFigeeA(1_000_000));
+
+      for (let i = 0; i < 10; i += 1) {
+        const resultat = await service.consommer('cle-panne', 1, 900);
+        expect(resultat.autorise, `appel ${String(i + 1)} pendant la panne`).toBe(true);
+      }
+    });
+  });
 });

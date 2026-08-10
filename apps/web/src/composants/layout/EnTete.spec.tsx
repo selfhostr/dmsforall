@@ -1,5 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -93,5 +94,69 @@ describe('EnTete', () => {
     expect(screen.queryByText('site-inconnu')).not.toBeInTheDocument();
     expect(screen.queryByText('Martigny')).not.toBeInTheDocument();
     expect(screen.queryByText('Sion')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * CHANGEUR DE SITE (demande @laupernoe, revue webui du 10.08.2026) — jusqu'ici le nom de site sous le
+ * tenant était un texte inerte. `session` (2 sites, tous ACTIFS) prouve le cas à plusieurs sites ;
+ * `sessionSiteUnique` prouve qu'un menu à une seule option n'est jamais affiché.
+ */
+describe('EnTete — changeur de site', () => {
+  const sessionSiteUnique: SessionCourante = {
+    ...session,
+    sites: [{ id: 'site-martigny', code: 'MTG', nom: 'Martigny', actif: true }],
+  };
+
+  it('plusieurs sites actifs : le nom de site devient un déclencheur qui propose les AUTRES sites', async () => {
+    useSessionMock.mockReturnValue({ data: session });
+    const utilisateur = userEvent.setup();
+    rendre('/vehicules?site=site-martigny');
+
+    const declencheur = screen.getByRole('button', { name: /martigny/i });
+    await utilisateur.click(declencheur);
+
+    expect(await screen.findByRole('menuitem', { name: 'Sion' })).toBeInTheDocument();
+    // Le site déjà consulté n'est pas reproposé dans son propre menu (« changer de site »,
+    // pas se reconfirmer sur le même).
+    expect(screen.queryByRole('menuitem', { name: 'Martigny' })).not.toBeInTheDocument();
+  });
+
+  it('ne liste que les sites ACTIFS dans le menu, jamais un site désactivé', async () => {
+    const sessionAvecSiteInactif: SessionCourante = {
+      ...session,
+      sites: [...session.sites, { id: 'site-ferme', code: 'FER', nom: 'Site fermé', actif: false }],
+    };
+    useSessionMock.mockReturnValue({ data: sessionAvecSiteInactif });
+    const utilisateur = userEvent.setup();
+    rendre('/vehicules?site=site-martigny');
+
+    await utilisateur.click(screen.getByRole('button', { name: /martigny/i }));
+
+    expect(await screen.findByRole('menuitem', { name: 'Sion' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Site fermé' })).not.toBeInTheDocument();
+  });
+
+  it('un seul site actif : aucun sélecteur — un menu à une option est du bruit', () => {
+    useSessionMock.mockReturnValue({ data: sessionSiteUnique });
+    rendre('/vehicules?site=site-martigny');
+
+    expect(screen.getByText('Martigny')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /martigny/i })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * SÉLECTEUR DE LANGUE RETIRÉ (demande @laupernoe, revue webui du 10.08.2026) — la langue se choisit déjà
+ * à la connexion et rejoint les Réglages. `SelecteurLangue` lui-même n'est PAS supprimé
+ * (`EcranConnexion`/`ConsoleShell` le montent toujours) : seul son montage dans `EnTete` disparaît.
+ */
+describe('EnTete — sélecteur de langue', () => {
+  it('ne monte plus SelecteurLangue', () => {
+    useSessionMock.mockReturnValue({ data: session });
+    rendre('/');
+
+    expect(screen.queryByRole('group', { name: /langue/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^fr$/i })).not.toBeInTheDocument();
   });
 });

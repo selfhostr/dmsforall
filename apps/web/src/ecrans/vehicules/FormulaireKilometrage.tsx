@@ -171,7 +171,7 @@ export function FormulaireKilometrage({
             {erreurRegression ? (
               <div
                 role="alert"
-                className="flex flex-col gap-3 rounded-md border border-statut-attention/40 bg-statut-attention/10 p-3"
+                className="flex flex-col gap-3 rounded-md border border-statut-attention bg-statut-attention-fond p-3"
               >
                 <p className="texte-corps text-statut-attention">
                   {messageErreur(erreurRegression, t)}

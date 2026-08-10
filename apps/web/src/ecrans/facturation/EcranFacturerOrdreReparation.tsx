@@ -278,7 +278,7 @@ export function EcranFacturerOrdreReparation() {
       {bloque ? (
         <div
           role="alert"
-          className="flex flex-col gap-3 rounded-md border border-statut-danger/40 bg-statut-danger/12 p-4"
+          className="flex flex-col gap-3 rounded-md border border-statut-danger bg-statut-danger-fond p-4"
         >
           <div className="flex items-start gap-3">
             <Ban aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-statut-danger" />
@@ -420,7 +420,7 @@ export function EcranFacturerOrdreReparation() {
       {facturation.confirmationsRequises.length > 0 ? (
         <div
           role="alert"
-          className="flex flex-col gap-2 rounded-md border border-statut-attention/40 bg-statut-attention/10 p-3"
+          className="flex flex-col gap-2 rounded-md border border-statut-attention bg-statut-attention-fond p-3"
         >
           <p className="texte-corps text-statut-attention">
             {facturation.erreurActive ? messageErreur(facturation.erreurActive, t) : ''}

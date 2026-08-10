@@ -18,10 +18,10 @@ import { valeurHslJeton } from './jetons-css';
  * jour où quelqu'un l'a calculée à la main.
  *
  * Portée assumée : ceci vérifie les JETONS eux-mêmes (les valeurs HSL déclarées), pas qu'un
- * composant donné les applique à pleine opacité — un `bg-statut-info/10` (fond éclairci par une
- * classe d'opacité Tailwind, vu dans `DialogueCorrectionFacture.tsx`) change le ratio réel et
- * N'EST PAS mesuré ici. Un jeton faux se répare une fois ; un mésusage d'opacité se répare par
- * écran, hors périmètre de ce fichier.
+ * composant donné les applique à pleine opacité — un `bg-statut-x/NN` (fond éclairci par une
+ * classe d'opacité Tailwind) réintroduit dans un écran change le ratio réel et N'EST PAS mesuré
+ * ici. Un jeton faux se répare une fois ; un mésusage d'opacité se répare par écran, hors périmètre
+ * de ce fichier.
  */
 
 function ratio(nomA: string, nomB: string): number {
@@ -89,6 +89,59 @@ describe('statuts — six tokens, trois usages chacun (docs/design-comptoir.md)'
 
   it('statut-attention reste sous 34 % de luminosité (régression connue : 34 % échouait à 3.93:1)', () => {
     expect(analyserHsl(valeurHslJeton('statut-attention')).l).toBeLessThanOrEqual(30);
+  });
+});
+
+describe("statuts — variantes « fond » (décision @laupernoe : fond clair + texte foncé, jamais l'inverse)", () => {
+  // `--statut-X` (déjà mesuré ≥ 4.5:1 sur background/muted ci-dessus) est le texte destiné à
+  // porter sur son propre `--statut-X-fond`, un fond OPAQUE explicite (jamais une opacité
+  // Tailwind — voir le commentaire `index.css` juste au-dessus des déclarations `-fond`).
+  const paires: ReadonlyArray<readonly [string, string]> = [
+    ['statut-neutre', 'statut-neutre-fond'],
+    ['statut-info', 'statut-info-fond'],
+    ['statut-attention', 'statut-attention-fond'],
+    ['statut-succes', 'statut-succes-fond'],
+    ['statut-danger', 'statut-danger-fond'],
+    ['statut-terminal', 'statut-terminal-fond'],
+  ];
+
+  it.each(paires)('%s (texte) sur %s atteint 4.5:1', (texte, fond) => {
+    expect(ratio(texte, fond)).toBeGreaterThanOrEqual(SEUIL_AA_TEXTE_NORMAL);
+  });
+
+  // Sentinelle daltonisme/proximité : `--statut-neutre-fond` et `--statut-terminal-fond` sont les
+  // deux seuls fonds quasi achromatiques (S 4-7 %) de la famille — les deux qui risqueraient de
+  // devenir indiscernables l'un de l'autre en s'éclaircissant. Ce test fige l'écart de luminosité
+  // qui les garde visuellement distincts, en plus de la forme/icône/mot obligatoires sur un badge.
+  it("statut-neutre-fond et statut-terminal-fond restent écartés d'au moins 4 points de luminosité", () => {
+    const neutre = analyserHsl(valeurHslJeton('statut-neutre-fond')).l;
+    const terminal = analyserHsl(valeurHslJeton('statut-terminal-fond')).l;
+    expect(neutre - terminal).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe('statuts — texte générique (foreground/muted-foreground) sur fond « fond »', () => {
+  // Plusieurs bandeaux migrés posent le texte générique de l'app (pas le token de couleur du
+  // statut lui-même) sur un fond `statut-X-fond` — ex. EncartAlertesVehicule.tsx,
+  // RefusBloquant.tsx, BandeauBrouillon.tsx, et les bandeaux de facturation. Cette paire n'est
+  // mesurée nulle part ailleurs dans ce fichier.
+  const statuts = [
+    'statut-neutre',
+    'statut-info',
+    'statut-attention',
+    'statut-succes',
+    'statut-danger',
+    'statut-terminal',
+  ];
+
+  it.each(statuts)('foreground sur %s-fond atteint 4.5:1', (statut) => {
+    expect(ratio('foreground', `${statut}-fond`)).toBeGreaterThanOrEqual(SEUIL_AA_TEXTE_NORMAL);
+  });
+
+  it.each(statuts)('muted-foreground sur %s-fond atteint 4.5:1', (statut) => {
+    expect(ratio('muted-foreground', `${statut}-fond`)).toBeGreaterThanOrEqual(
+      SEUIL_AA_TEXTE_NORMAL,
+    );
   });
 });
 

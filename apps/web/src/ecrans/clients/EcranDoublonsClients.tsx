@@ -204,7 +204,7 @@ export function EcranDoublonsClients() {
       ) : candidats.length === 0 ? (
         <div
           role="status"
-          className="flex flex-col items-center gap-3 rounded-lg border border-statut-succes/40 bg-statut-succes/10 p-10 text-center"
+          className="flex flex-col items-center gap-3 rounded-lg border border-statut-succes bg-statut-succes-fond p-10 text-center"
         >
           <CheckCircle2 aria-hidden className="h-8 w-8 text-statut-succes" />
           <h2 className="text-lg font-semibold text-foreground">

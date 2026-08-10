@@ -51,6 +51,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 FROM deps AS build
 COPY tsconfig.base.json ./
 COPY packages/shared/tsconfig.json packages/shared/tsconfig.json
+COPY packages/shared/tsconfig.build.json packages/shared/tsconfig.build.json
 COPY packages/shared/src packages/shared/src
 COPY apps/api/tsconfig.json apps/api/tsconfig.json
 COPY apps/api/tsconfig.build.json apps/api/tsconfig.build.json

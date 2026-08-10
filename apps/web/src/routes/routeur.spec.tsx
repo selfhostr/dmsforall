@@ -135,9 +135,7 @@ describe('routeur — protection par défaut', () => {
   it('/ amène à l’accueil', async () => {
     server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
     renduAvecRoutes(routesConfig, { routeInitiale: '/' });
-    expect(
-      await screen.findByText('Retrouvez un client, un véhicule ou un ordre'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Ce qui se passe aujourd'hui")).toBeInTheDocument();
   });
 
   it('/ redirige `poste_atelier` vers la borne de pointage, jamais l’accueil générique (Lot 0)', async () => {
@@ -164,9 +162,7 @@ describe('routeur — protection par défaut', () => {
     renduAvecRoutes(routesConfig, { routeInitiale: '/' });
 
     expect(await screen.findByText('Qui êtes-vous ?')).toBeInTheDocument();
-    expect(
-      screen.queryByText('Retrouvez un client, un véhicule ou un ordre'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Ce qui se passe aujourd'hui")).not.toBeInTheDocument();
   });
 
   /**
@@ -209,9 +205,7 @@ describe('routeur — protection par défaut', () => {
       const { routeur } = renduAvecRoutes(routesConfig, { routeInitiale: '/' });
 
       await waitFor(() => expect(routeur.state.location.pathname).toBe(cible));
-      expect(
-        screen.queryByText('Retrouvez un client, un véhicule ou un ordre'),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText("Ce qui se passe aujourd'hui")).not.toBeInTheDocument();
     },
   );
 
@@ -228,9 +222,7 @@ describe('routeur — protection par défaut', () => {
       );
       const { routeur } = renduAvecRoutes(routesConfig, { routeInitiale: '/' });
 
-      expect(
-        await screen.findByText('Retrouvez un client, un véhicule ou un ordre'),
-      ).toBeInTheDocument();
+      expect(await screen.findByText("Ce qui se passe aujourd'hui")).toBeInTheDocument();
       expect(routeur.state.location.pathname).toBe('/');
     },
   );
