@@ -227,6 +227,16 @@ for (const iban of [IBAN_DEMO, QR_IBAN_DEMO]) {
  *   - `receptionnaire` (déjà présent) est le rôle du comptoir : émet devis ET factures, encaisse
  *     — mais pas de remboursement d'avance (réservé `direction`/`comptable`).
  *
+ * UN COMPTE POUR LE DOMAINE VENTES (étape 4), `vendeur` — TROU CONSTATÉ EN PARCOURS NAVIGATEUR :
+ * c'est le rôle qui porte le PLUS de droits d'écriture sur `ventes.*`
+ * (`DROITS_VENTES_PAR_ROLE.vendeur`, `auth/matrice-droits.ts`) — dossier de vente de bout en bout
+ * (créer, engager, préparer, marquer prêt à livrer, livrer), négociation/refus de reprise,
+ * proposition/confirmation/refus de financement — et pourtant AUCUN compte ne portait ce rôle.
+ * Un testeur devait se rabattre sur `direction`, sur-ensemble strict de `vendeur` sur ce domaine,
+ * qui masque donc tout défaut de droit PROPRE au vendeur (ex. `vendeur` n'a PAS l'écriture sur
+ * `vehicule_stock` — `ECRITURE_VEHICULE_STOCK` reste `direction` seule, `[À VALIDER, QV-15]` —
+ * un refus 403 précis, invérifiable sans ce compte).
+ *
  * UN COMPTE DE SERVICE POUR LE LOT 2 (pointage, mode borne), `borne.atelier@garage-martin.ch` —
  * constat mesuré en exécution : l'écran `/pointage/borne` exige `atelier.pointage.identifier`
  * (`@ExigerDroit`, `pin.controller.ts`), droit qu'AUCUN rôle de personne ne détient
@@ -281,6 +291,13 @@ const UTILISATEURS_DEMO = [
     langue: 'fr',
   },
   {
+    email: 'vendeur@garage-martin.ch',
+    prenom: 'Julien',
+    nom: 'Fellay',
+    role: 'vendeur',
+    langue: 'fr',
+  },
+  {
     // Étape 3 (pièces) — sans ce compte, la matrice de droits `pieces.*` (auth/matrice-droits.ts,
     // `DROITS_PIECES_PAR_ROLE`) ne peut être exercée par AUCUN compte de démo : `magasinier` est le
     // seul rôle qui reçoit `pieces.mouvement.creer`/`pieces.reservation.satisfaire` (sortie
@@ -316,7 +333,12 @@ const TAUX_HORAIRE_DEMO = [
     libelle: 'Taux horaire atelier',
     montantCentimes: 13500,
     valideDu: '2020-01-01',
-    valideAu: '2025-12-31',
+    // Borne haute EXCLUSIVE (`daterange(valide_du, valide_au, '[)')` — la période s'arrête au
+    // dernier jour AVANT `valideAu`, jamais AU jour `valideAu` lui-même). La valeur correcte est
+    // donc la date où le tarif SUIVANT commence, pas la veille : écrire `2025-12-31` ici laissait
+    // le 31.12.2025 hors de toute période (trou d'un jour, même défaut que le bug d'argent corrigé
+    // sur les bornes de validité — juste reproduit ici dans les données de démonstration).
+    valideAu: '2026-01-01',
   },
   {
     code: 'ATELIER',
@@ -341,11 +363,13 @@ const TAUX_HORAIRE_DEMO = [
 ] as const;
 
 /**
- * Conditions commerciales (RM-07), volontairement posées sur UN SEUL client sur trois : c'est la
- * proportion du terrain — un garage ne négocie un tarif qu'avec une poignée de comptes flotte, et
- * l'immense majorité de ses clients particuliers n'a AUCUNE ligne `client_condition`. Le jeu de
- * démonstration doit refléter les deux cas, sinon un défaut qui ne frappe QUE les clients sans
- * condition (cas réel : la main-d'œuvre était insaisissable pour eux, RM-65) reste invisible.
+ * Conditions commerciales (RM-07), volontairement posées sur UN SEUL des trois clients GARAGE
+ * (CL-0001 à CL-0003 — CL-0004/CL-0005 sont des organismes de financement, pas des clients atelier
+ * au sens de ce module, la notion n'a pas de sens pour eux) : c'est la proportion du terrain — un
+ * garage ne négocie un tarif qu'avec une poignée de comptes flotte, et l'immense majorité de ses
+ * clients particuliers n'a AUCUNE ligne `client_condition`. Le jeu de démonstration doit refléter
+ * les deux cas, sinon un défaut qui ne frappe QUE les clients sans condition (cas réel : la
+ * main-d'œuvre était insaisissable pour eux, RM-65) reste invisible.
  */
 const CONDITIONS_CLIENT_DEMO = [
   {
@@ -427,6 +451,35 @@ const CLIENTS_DEMO = [
     telephone: '027 555 12 34',
     telephoneE164: '+41275551234',
     adresse: { rue: 'Route Industrielle 8', npa: '1950', localite: 'Sion' },
+  },
+  /**
+   * Organismes de financement (RV-40/RV-44, étape 4 — ventes), AJOUTÉS pour que
+   * `seed-ventes-demo.ts` puisse poser un financement crédit/leasing réel : `organismeId` pointe
+   * une fiche `client` existante (`ServiceFinancement.creer` charge la ligne avant d'écrire),
+   * aucun raccourci de type texte-libre n'aurait suffi pour le cas COURANT (`RV-40`). Ce sont des
+   * clients au sens BASE (une ligne `client`), jamais des clients au sens GARAGE : ni véhicule, ni
+   * OR, ni condition commerciale n'a de sens pour eux — noms délibérément FICTIFS (pas de raison
+   * sociale suisse réelle dans un jeu de démonstration versionné publiquement).
+   */
+  {
+    numero: 'CL-0004',
+    type: 'entreprise' as const,
+    raisonSociale: 'CarCrédit Suisse SA',
+    ide: 'CHE-105.222.333',
+    langue: 'de',
+    telephone: '044 555 01 11',
+    telephoneE164: '+41445550111',
+    adresse: { rue: 'Musterstrasse 1', npa: '8048', localite: 'Zürich' },
+  },
+  {
+    numero: 'CL-0005',
+    type: 'entreprise' as const,
+    raisonSociale: 'AlpiLeasing SA',
+    ide: 'CHE-109.444.555',
+    langue: 'fr',
+    telephone: '021 555 01 40',
+    telephoneE164: '+41215550140',
+    adresse: { rue: 'Avenue de la Gare 10', npa: '1003', localite: 'Lausanne' },
   },
 ] as const;
 
@@ -807,11 +860,24 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
       });
     journaliser(`  bloc créancier (IBAN ${IBAN_DEMO}, QR-IBAN ${QR_IBAN_DEMO})`);
 
-    // --- Taux horaires (2, datés — pas de contrainte UNIQUE simple, EXCLUDE seulement : on
+    // --- Taux horaires (3, datés — pas de contrainte UNIQUE simple, EXCLUDE seulement : on
     // s'assure de la présence par lecture avant écriture, idempotent au sens applicatif) --------
+    // RÉALIGNE (`UPDATE`) une ligne déjà présente dont `valideAu`/`montantCentimes`/`libelle`
+    // aurait dérivé de la constante — pas seulement une garde d'ABSENCE. Correctif constaté : la
+    // borne haute EXCLUSIVE de `valideAu` (`daterange(valide_du, valide_au, '[)')`) a changé de
+    // convention de saisie (voir la note sur `TAUX_HORAIRE_DEMO` ci-dessus, période `ATELIER`
+    // 2020-2026) — sans ce correctif, une base DÉJÀ semée avec l'ancienne valeur restait périmée à
+    // chaque `pnpm db:seed`, silencieusement : la garde d'ABSENCE ne réécrit jamais une ligne déjà
+    // là, seul un `INSERT` neuf en aurait profité. Même doctrine que le bloc créancier ci-dessus
+    // (« cet upsert la RÉALIGNE… au lieu d'entrer en conflit »).
     for (const th of TAUX_HORAIRE_DEMO) {
       const existant = await base
-        .select({ id: tauxHoraire.id })
+        .select({
+          id: tauxHoraire.id,
+          libelle: tauxHoraire.libelle,
+          montantCentimes: tauxHoraire.montantCentimes,
+          valideAu: tauxHoraire.valideAu,
+        })
         .from(tauxHoraire)
         .where(
           and(
@@ -820,7 +886,8 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
             eq(tauxHoraire.valideDu, th.valideDu),
           ),
         );
-      if (existant.length === 0) {
+      const ligneExistante = existant[0];
+      if (ligneExistante === undefined) {
         await base.insert(tauxHoraire).values({
           tenantId,
           code: th.code,
@@ -829,6 +896,15 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
           valideDu: th.valideDu,
           valideAu: th.valideAu,
         });
+      } else if (
+        ligneExistante.libelle !== th.libelle ||
+        ligneExistante.montantCentimes !== th.montantCentimes ||
+        ligneExistante.valideAu !== th.valideAu
+      ) {
+        await base
+          .update(tauxHoraire)
+          .set({ libelle: th.libelle, montantCentimes: th.montantCentimes, valideAu: th.valideAu })
+          .where(eq(tauxHoraire.id, ligneExistante.id));
       }
     }
     journaliser(`  ${String(TAUX_HORAIRE_DEMO.length)} taux horaires`);
