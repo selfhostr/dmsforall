@@ -463,6 +463,62 @@ describe('ServiceDocumentsVente.lister — filtres enRetard/relanceNiveau (Lot E
     });
   });
 
+  /**
+   * `statut` protège désormais un chemin argent précis (correctif 2026-08-10, voir
+   * `paiements/imputations.ts::verifierDocumentImputable`) : c'est ce filtre, câblé côté
+   * `useFacturesOuvertesClient` (front), qui évite de PROPOSER une facture `annule_par_avoir` au
+   * panneau d'encaissement — la barrière applicative dans `imputations.ts` REFUSE le geste s'il est
+   * malgré tout tenté (un `curl` direct, un connecteur tiers), mais ce filtre-ci est ce qui évite de
+   * l'offrir en premier lieu. Câblage RÉ-VÉRIFIÉ en exécution contre l'API réelle (pas seulement par
+   * lecture) : `statut=emis` → 2 lignes, `statut=annule_par_avoir` → 1, `statut=refuse` → liste
+   * vide, sur le même client — trois valeurs, trois résultats distincts. Ce bloc-ci comble
+   * uniquement l'absence de garde-fou AUTOMATISÉ (même rôle que `statutReglement`/
+   * `ordreReparationId` juste au-dessus, aucun des deux n'avait de test avant leur découverte) :
+   * sans lui, une régression future sur CE filtre ne rougirait NULLE PART — ni les tests front (qui
+   * simulent la couche réseau, jamais le serveur), ni le reste de cette suite.
+   *
+   * RÉSERVE HONNÊTE (même que les blocs voisins de cette describe) : ceci capture le SQL
+   * RÉELLEMENT CONSTRUIT par le query-builder Drizzle (`toSQL()`), PAS un `tx.execute` simulé — la
+   * même technique qui a fait rougir `ordreReparationId` sur le défaut d'origine. Ça prouve que la
+   * VALEUR du filtre atteint la clause `where`, avec le bon paramètre. Ça NE prouve PAS le
+   * comportement contre une vraie base (RLS, `inArray` réellement exécuté, page de résultats) — la
+   * preuve d'exécution réelle mentionnée ci-dessus (2/1/0 lignes sur l'API en marche) est CE qui
+   * couvre ce dernier mètre, pas ce bloc.
+   */
+  describe('statut — câblé', () => {
+    it("statut=['emis'] : `inArray` sur la colonne réelle `statut`, composé par ET avec le scope tenant", async () => {
+      const { sql, params } = await executerListerEtCapturer({ statut: ['emis'] });
+
+      expect(sql).toContain('"document_vente"."statut" in (');
+      expect(params).toContain('emis');
+      expect(sql).toMatch(/"tenant_id" = \$1 and "document_vente"."statut" in \(/);
+    });
+
+    it("statut=['annule_par_avoir'] (valeur distincte, précisément celle du défaut prouvé par la tâche) : la condition change avec la valeur — preuve qu'elle n'est pas ignorée", async () => {
+      const { sql, params } = await executerListerEtCapturer({ statut: ['annule_par_avoir'] });
+
+      expect(sql).toContain('"document_vente"."statut" in (');
+      expect(params).toContain('annule_par_avoir');
+      expect(params).not.toContain('emis');
+    });
+
+    it('statut à plusieurs valeurs : toutes portées par le même `inArray`, aucune perdue', async () => {
+      const { sql, params } = await executerListerEtCapturer({
+        statut: ['emis', 'annule_par_avoir'],
+      });
+
+      expect(sql).toContain('"document_vente"."statut" in (');
+      expect(params).toContain('emis');
+      expect(params).toContain('annule_par_avoir');
+    });
+
+    it('statut absent : aucune condition sur la colonne — le filtre reste inerte par défaut', async () => {
+      const { sql } = await executerListerEtCapturer({});
+
+      expect(clauseWhere(sql)).not.toContain('"document_vente"."statut" in (');
+    });
+  });
+
   describe('natureFacture — câblé, composé avec typeDocument = facture (MD-12)', () => {
     it("natureFacture='acompte' : pose l'égalité sur `nature_facture` ET `type_document = 'facture'` — la colonne vaut 'ordinaire' par défaut même hors facture, sans cette seconde condition le filtre remonterait aussi des devis/bons de commande", async () => {
       const { sql, params } = await executerListerEtCapturer({ natureFacture: 'acompte' });

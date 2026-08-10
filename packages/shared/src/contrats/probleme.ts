@@ -271,6 +271,18 @@ export const CODES_ERREUR = [
   // une erreur comptable silencieuse jusqu'ici possible faute de contrôle. Refusé explicitement,
   // jamais laissé passer ni corrigé en silence en réécrivant une devise à la place de l'appelant.
   'IMPUTATION_DEVISE_INCOHERENTE',
+  // --- Étape 2 : paiements et imputations — correctif « facture soldée par avoir encore
+  // encaissable » (parcours navigateur prouvé jusqu'en base, 2026-08-10) : ni le trigger
+  // `imputation_paiement_verifier_invariants` (MD-51, il ne vérifie QUE des montants) ni
+  // `statut_reglement` (RF-68 : colonne délibérément INDÉPENDANTE de `statut`, jamais fusionnée —
+  // voir `STATUTS_REGLEMENT_DOCUMENT` ci-dessus) ne s'opposaient à une imputation sur un document
+  // dont le `statut` ne permet plus de règlement (typiquement `annule_par_avoir`, RF-32 : la
+  // facture créditée garde un `solde_centimes`/`statut_reglement` d'AVANT son annulation, ni l'un
+  // ni l'autre n'étant nettoyé). Même doctrine que `relances/regles-planification.ts::
+  // factureEligibleRelance` et `facturation/documents/echeance.ts::calculerRetardDocument` : c'est
+  // au CONSOMMATEUR de recombiner `statut` et `statut_reglement`, jamais à `statut_reglement` de
+  // porter l'information d'annulation.
+  'IMPUTATION_DOCUMENT_NON_REGLABLE',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -401,6 +413,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE: 409,
   LIGNE_DOCUMENT_STOCK_LIEE: 409,
   IMPUTATION_DEVISE_INCOHERENTE: 409,
+  IMPUTATION_DOCUMENT_NON_REGLABLE: 409,
 };
 
 /**
@@ -517,6 +530,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE: 'Transition interdite pour cet abonnement webhook',
   LIGNE_DOCUMENT_STOCK_LIEE: 'Ligne liée à un mouvement de stock, immuable',
   IMPUTATION_DEVISE_INCOHERENTE: 'Devise incohérente entre le paiement et le document',
+  IMPUTATION_DOCUMENT_NON_REGLABLE: 'Document non réglable',
 };
 
 /**

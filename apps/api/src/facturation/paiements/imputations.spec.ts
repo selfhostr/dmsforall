@@ -56,6 +56,19 @@ function paiementFactice(champs: Partial<LignePaiement> = {}): LignePaiement {
  * `documents` (un par appel `select().from().where().limit().for('update')`) ; `execute()` sert
  * `chargerArrondiEspecesActif` ; `insert().values().returning()` fabrique une `LigneImputationPaiement`
  * à partir des valeurs écrites ; `update().set().where()` capture le recalcul du document.
+ *
+ * `avoirs` alimente un DEUXIÈME canal, DISTINCT de `documents` : la nouvelle
+ * `verifierDocumentImputable` (`imputations.ts`) interroge, pour un document `annule_par_avoir`,
+ * le NUMÉRO de l'avoir qui l'a soldé — un `select({ numero }).from(documentVente).where(...)
+ * .limit(1)` SANS `.for('update')`. Le même chaînage `select().from().where().limit()` doit donc
+ * pouvoir servir DEUX formes différentes selon qu'il est prolongé par `.for()` ou non — et le
+ * distinguo doit être PARESSEUX : `chargerDocumentPourEcriture` appelle aussi `.limit(1)` avant son
+ * propre `.for('update')`, donc consommer `avoirsQueue` DÈS `.limit()` volerait l'entrée destinée au
+ * VRAI lookup d'avoir (bug reproduit puis corrigé pendant l'écriture de ce fichier). `.limit()` rend
+ * donc un objet « thenable » : `.for()` consomme `documentsQueue` et renvoie sa PROPRE Promise (le
+ * `then` de l'objet n'est alors jamais invoqué, `await x.limit().for(...)` attend cette Promise-là,
+ * pas l'objet) ; `.then()` — invoqué seulement par un `await` DIRECT sur `.limit()`, sans `.for()`
+ * — consomme `avoirsQueue` à cet instant seulement.
  */
 function txFactice(params: {
   documents: readonly LigneDocumentVente[];
@@ -65,8 +78,12 @@ function txFactice(params: {
    *  (ZDFA4) est bien traduit en `IMPUTATION_MONTANT_EXCEDENTAIRE`, pas seulement le pré-contrôle
    *  applicatif. */
   insertError?: unknown;
+  /** Numéros d'avoir rendus, DANS L'ORDRE, par le lookup de `verifierDocumentImputable` sur un
+   *  document `annule_par_avoir` — voir le commentaire de tête. */
+  avoirs?: readonly { readonly numero: string }[];
 }) {
   const documentsQueue = [...params.documents];
+  const avoirsQueue = [...(params.avoirs ?? [])];
   const updates: Array<Record<string, unknown>> = [];
   const inserts: Array<Record<string, unknown>> = [];
   let compteurImputation = 0;
@@ -77,6 +94,13 @@ function txFactice(params: {
         where: () => ({
           limit: () => ({
             for: () => Promise.resolve([documentsQueue.shift()]),
+            then: (
+              resolve: (valeur: readonly { readonly numero: string }[]) => void,
+              reject: (erreur: unknown) => void,
+            ) => {
+              const avoir = avoirsQueue.shift();
+              return Promise.resolve(avoir ? [avoir] : []).then(resolve, reject);
+            },
           }),
         }),
       }),
@@ -483,6 +507,288 @@ describe('cohérence de devise entre le paiement et le document imputé (correct
     // du client — le contrôle s'appliquera à la première imputation qui la rattache à un document.
     const paiement = paiementFactice({ devise: 'CHF', montantCentimes: 5000n });
     expect(paiement.devise).toBe('CHF');
+  });
+});
+
+/**
+ * Défaut prouvé de bout en bout par un parcours navigateur (2026-08-10) — DOMAINE ARGENT : une
+ * facture créditée en TOTALITÉ par un avoir (`statut = 'annule_par_avoir'`, RF-32) restait
+ * imputable pour son montant D'ORIGINE. Séquence reproduite : facture CHF 60.00 → avoir total émis
+ * → panneau Encaisser la propose encore « reste dû CHF 60.00 » → `POST /paiements` avec une
+ * imputation dessus répondait `201 Created` → la facture portait ensuite `statutReglement:
+ * 'partiel'`, un vrai encaissement réconcilié contre une créance déjà éteinte. Cause : RF-32
+ * (`service-emission.ts` §6) met à jour `statut`/`annule_par_avoir_id` mais NE TOUCHE JAMAIS
+ * `statut_reglement`/`solde_centimes` — `documentFactice` ci-dessous simule fidèlement CET état
+ * exact : `statut: 'annule_par_avoir'` avec `statutReglement`/`soldeCentimes` D'AVANT l'annulation,
+ * inchangés, exactement comme RF-32 les laisse en base.
+ */
+describe('imputation sur un document dont le statut ne permet plus de règlement (correctif 2026-08-10)', () => {
+  it("appliquerImputationsLettrage — refuse une imputation sur une facture 'annule_par_avoir', message nommant l'avoir, AVANT toute écriture", async () => {
+    const factureAnnulee = documentFactice({
+      id: 'doc-facture-annulee',
+      numero: 'F-000002',
+      statut: 'annule_par_avoir',
+      annuleParAvoirId: 'doc-avoir-1',
+      // État D'AVANT l'annulation, jamais nettoyé par RF-32 — reproduit fidèlement le bug : la
+      // facture se présente encore comme si elle devait CHF 60.00.
+      statutReglement: 'non_regle',
+      totalTtcCentimes: 6000n,
+      montantRegleCentimes: 0n,
+      soldeCentimes: 6000n,
+    });
+    const { tx, inserts, updates } = txFactice({
+      documents: [factureAnnulee],
+      avoirs: [{ numero: 'A-000001' }],
+    });
+    const paiement = paiementFactice({ montantCentimes: 100n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-facture-annulee', montantCentimes: 100, nature: 'reglement' },
+      ]),
+    ).rejects.toMatchObject({
+      code: 'IMPUTATION_DOCUMENT_NON_REGLABLE',
+      status: 409,
+      message: expect.stringContaining("F-000002 a été annulé par l'avoir A-000001"),
+    });
+
+    // Refus AVANT toute écriture : ni l'imputation ni le recalcul du document ne doivent partir —
+    // c'est exactement le défaut prouvé (le paiement de CHF 1.00 réellement en base sur 2026-00002).
+    expect(inserts).toHaveLength(0);
+    expect(updates).toHaveLength(0);
+  });
+
+  it("appliquerImputationsLettrage — l'avoir créditeur introuvable (incohérence de données) retombe sur son identifiant brut, jamais une exception non gérée", async () => {
+    const factureAnnulee = documentFactice({
+      id: 'doc-facture-annulee',
+      numero: 'F-000003',
+      statut: 'annule_par_avoir',
+      annuleParAvoirId: 'doc-avoir-introuvable',
+      soldeCentimes: 6000n,
+    });
+    const { tx } = txFactice({ documents: [factureAnnulee], avoirs: [] });
+    const paiement = paiementFactice({ montantCentimes: 100n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-facture-annulee', montantCentimes: 100, nature: 'reglement' },
+      ]),
+    ).rejects.toMatchObject({
+      code: 'IMPUTATION_DOCUMENT_NON_REGLABLE',
+      message: expect.stringContaining('doc-avoir-introuvable'),
+    });
+  });
+
+  it("appliquerCompensationAvance — refuse aussi une compensation sur un document de régularisation 'annule_par_avoir'", async () => {
+    const documentRegul = documentFactice({
+      id: 'doc-regul-annule',
+      numero: 'F-000004',
+      statut: 'annule_par_avoir',
+      annuleParAvoirId: 'doc-avoir-2',
+      soldeCentimes: 1000n,
+    });
+    const { tx, inserts } = txFactice({
+      documents: [documentRegul],
+      avoirs: [{ numero: 'A-000002' }],
+    });
+    const paiementAvance = paiementFactice({ id: 'pmt-avance', montantCentimes: 5000n });
+
+    await expect(
+      appliquerCompensationAvance(tx, CTX, paiementAvance, 'doc-regul-annule', 200),
+    ).rejects.toMatchObject({ code: 'IMPUTATION_DOCUMENT_NON_REGLABLE' });
+    expect(inserts).toHaveLength(0);
+  });
+
+  it("appliquerImputationsLettrage — refuse aussi un document encore en 'brouillon' (pas de total figé opposable), message générique sans lookup d'avoir", async () => {
+    const brouillon = documentFactice({
+      id: 'doc-brouillon',
+      numero: null,
+      statut: 'brouillon',
+      annuleParAvoirId: null,
+    });
+    const { tx, inserts } = txFactice({ documents: [brouillon] });
+    const paiement = paiementFactice({ montantCentimes: 100n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-brouillon', montantCentimes: 100, nature: 'reglement' },
+      ]),
+    ).rejects.toMatchObject({
+      code: 'IMPUTATION_DOCUMENT_NON_REGLABLE',
+      message: expect.stringContaining('"brouillon"'),
+    });
+    expect(inserts).toHaveLength(0);
+  });
+
+  it("un document 'emis' (nominal) reste imputable — non-régression de cette barrière", async () => {
+    const document = documentFactice({ statut: 'emis', totalTtcCentimes: 10000n });
+    const { tx, updates } = txFactice({ documents: [document] });
+    const paiement = paiementFactice({ montantCentimes: 500n });
+
+    await appliquerImputationsLettrage(tx, CTX, paiement, [
+      { documentId: 'doc-1', montantCentimes: 500, nature: 'reglement' },
+    ]);
+
+    expect(updates[0]?.montantRegleCentimes).toBe(500n);
+  });
+});
+
+/**
+ * Second défaut du MÊME chemin, trouvé par le test d'intégration écrit pour PROUVER le premier
+ * correctif ci-dessus (2026-08-10) : la barrière de `statut` laisse passer un avoir ÉMIS (il porte
+ * bien `statut: 'emis'`, comme n'importe quelle facture ouverte) — rien d'autre ne s'opposait à ce
+ * qu'un `POST /paiements` avec une imputation `reglement` vise DIRECTEMENT un avoir. Tranché par
+ * MD-57 (`docs/modele-documentaire-facturation.md` §4.3) : « Ce qu'on ne fait jamais : créer un
+ * avoir pour matérialiser un trop-perçu. Un avoir corrige un document, pas un mouvement d'argent. »
+ * — `reglement`/`arrondi` sont, à l'inverse d'`escompte`/`perte`/`compensation`, les DEUX SEULES
+ * natures où de l'argent circule RÉELLEMENT (MD-51) : les imputer sur un avoir revient à faire
+ * *rentrer* un encaissement contre un document qui ne peut, par nature, que faire *sortir* de
+ * l'argent du garage.
+ */
+describe("imputation d'un règlement sur un avoir (second correctif du même défaut, 2026-08-10)", () => {
+  it("appliquerImputationsLettrage — refuse une imputation 'reglement' visant un avoir ÉMIS, AVANT toute écriture", async () => {
+    const avoir = documentFactice({
+      id: 'doc-avoir',
+      numero: 'A-000001',
+      typeDocument: 'avoir',
+      statut: 'emis',
+      totalTtcCentimes: -6000n,
+      montantRegleCentimes: 0n,
+      soldeCentimes: 0n,
+    });
+    const { tx, inserts, updates } = txFactice({ documents: [avoir] });
+    const paiement = paiementFactice({ montantCentimes: 100n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-avoir', montantCentimes: 100, nature: 'reglement' },
+      ]),
+    ).rejects.toMatchObject({
+      code: 'IMPUTATION_DOCUMENT_NON_REGLABLE',
+      status: 409,
+      message: expect.stringContaining('A-000001 est un avoir'),
+    });
+    expect(inserts).toHaveLength(0);
+    expect(updates).toHaveLength(0);
+  });
+
+  it("appliquerImputationsLettrage — refuse aussi une imputation 'arrondi' visant un avoir (même raison : l'argent circule aussi sur cette nature, MD-49)", async () => {
+    const avoir = documentFactice({
+      id: 'doc-avoir',
+      typeDocument: 'avoir',
+      statut: 'emis',
+      totalTtcCentimes: -6000n,
+    });
+    const { tx, inserts } = txFactice({ documents: [avoir] });
+    const paiement = paiementFactice({ moyen: 'especes', montantCentimes: 100n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-avoir', montantCentimes: 1, nature: 'arrondi' },
+      ]),
+    ).rejects.toMatchObject({ code: 'IMPUTATION_DOCUMENT_NON_REGLABLE' });
+    expect(inserts).toHaveLength(0);
+  });
+
+  it("appliquerImputationsLettrage — un lot visant un avoir AVANT une facture légitime rejette dès l'avoir, sans jamais atteindre la facture", async () => {
+    const avoir = documentFactice({
+      id: 'doc-avoir',
+      typeDocument: 'avoir',
+      statut: 'emis',
+      totalTtcCentimes: -6000n,
+    });
+    const facture = documentFactice({
+      id: 'doc-facture',
+      typeDocument: 'facture',
+      statut: 'emis',
+      totalTtcCentimes: 10000n,
+      montantRegleCentimes: 0n,
+    });
+    // Ordre [avoir, facture] — DÉLIBÉRÉMENT, pas l'inverse : la garde s'exécute PAR DOCUMENT, à
+    // L'INTÉRIEUR de la boucle `for (const [documentId, groupe] of parDocument)`, dans l'ORDRE
+    // d'itération du `Map` (celui du premier `documentId` rencontré dans `imputations[]`). Avec
+    // l'avoir en tête, ce test prouve honnêtement, sur cette fausse transaction SANS sémantique de
+    // rollback, qu'AUCUNE écriture ne part avant le refus — `doc-facture` n'est même jamais atteint.
+    // L'inverse (une facture légitime AVANT un avoir dans le même lot) écrirait bien l'imputation de
+    // la facture ICI, dans cette boucle ; l'atomicité qui l'annule ensuite vient de la TRANSACTION
+    // Postgres englobante (`ServiceIdempotence.executer` → `AccesBase.enTenant`, voir
+    // `common/idempotence/service-idempotence.ts`), pas de cette fonction — une fausse `tx` sans
+    // `ROLLBACK` ne peut pas prouver cette moitié-là, seul un test d'intégration le peut.
+    const { tx, inserts, updates } = txFactice({ documents: [avoir, facture] });
+    const paiement = paiementFactice({ montantCentimes: 1000n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-avoir', montantCentimes: 100, nature: 'reglement' },
+        { documentId: 'doc-facture', montantCentimes: 500, nature: 'reglement' },
+      ]),
+    ).rejects.toMatchObject({ code: 'IMPUTATION_DOCUMENT_NON_REGLABLE' });
+
+    expect(inserts).toHaveLength(0);
+    expect(updates).toHaveLength(0);
+  });
+
+  it("appliquerCompensationAvance — reste AUTORISÉE sur un avoir : c'est PRÉCISÉMENT l'issue « abandon en faveur du garage » de MD-57, via le document de régularisation explicite (non-régression, cette garde ne s'applique PAS à `compensation`)", async () => {
+    const avoir = documentFactice({
+      id: 'doc-avoir-regul',
+      typeDocument: 'avoir',
+      statut: 'emis',
+      totalTtcCentimes: -1000n,
+      montantRegleCentimes: 0n,
+    });
+    const { tx, inserts, updates } = txFactice({ documents: [avoir] });
+    const paiementAvance = paiementFactice({ id: 'pmt-avance', montantCentimes: 5000n });
+
+    const ligne = await appliquerCompensationAvance(
+      tx,
+      CTX,
+      paiementAvance,
+      'doc-avoir-regul',
+      200,
+    );
+
+    expect(ligne.nature).toBe('compensation');
+    expect(inserts[0]?.nature).toBe('compensation');
+    expect(updates[0]?.montantRegleCentimes).toBe(200n);
+  });
+
+  it('un avoir ENCORE en brouillon reste refusé par la barrière de statut (pas de doublon de raison nécessaire, la barrière de statut suffit déjà)', async () => {
+    const avoirBrouillon = documentFactice({
+      id: 'doc-avoir-brouillon',
+      typeDocument: 'avoir',
+      statut: 'brouillon',
+      annuleParAvoirId: null,
+      totalTtcCentimes: -1000n,
+    });
+    const { tx } = txFactice({ documents: [avoirBrouillon] });
+    const paiement = paiementFactice({ montantCentimes: 100n });
+
+    await expect(
+      appliquerImputationsLettrage(tx, CTX, paiement, [
+        { documentId: 'doc-avoir-brouillon', montantCentimes: 100, nature: 'reglement' },
+      ]),
+    ).rejects.toMatchObject({
+      code: 'IMPUTATION_DOCUMENT_NON_REGLABLE',
+      message: expect.stringContaining('"brouillon"'),
+    });
+  });
+
+  it("une FACTURE émise (pas un avoir) reste imputable en 'reglement' — non-régression : la nouvelle garde ne touche que `typeDocument === 'avoir'`", async () => {
+    const facture = documentFactice({
+      id: 'doc-facture',
+      typeDocument: 'facture',
+      statut: 'emis',
+      totalTtcCentimes: 10000n,
+      montantRegleCentimes: 0n,
+    });
+    const { tx, updates } = txFactice({ documents: [facture] });
+    const paiement = paiementFactice({ montantCentimes: 500n });
+
+    await appliquerImputationsLettrage(tx, CTX, paiement, [
+      { documentId: 'doc-facture', montantCentimes: 500, nature: 'reglement' },
+    ]);
+
+    expect(updates[0]?.montantRegleCentimes).toBe(500n);
   });
 });
 

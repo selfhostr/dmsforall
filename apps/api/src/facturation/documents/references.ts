@@ -187,8 +187,24 @@ export async function chargerConditionsPaiementEnVigueur(
     .select()
     .from(clientCondition)
     .where(and(eq(clientCondition.tenantId, ctx.tenantId), eq(clientCondition.clientId, clientId)));
+  /**
+   * Borne haute EXCLUSIVE — alignée sur la contrainte `EXCLUDE ... daterange(valide_du, valide_au,
+   * '[)')` de `client_condition` (migration 0006_clients.sql), PAS sur une lecture inclusive de
+   * `valideAu`. Défaut EXACTEMENT DUPLIQUÉ (même « copie locale du patron », voir la docstring
+   * ci-dessus) de celui corrigé dans `atelier/references.ts::chargerConditionsEnVigueur` — reproduit
+   * en exécution côté taux horaire (RM-65, `service-ligne-or.ts::resoudreTauxHoraireCentimes`) :
+   * le jour d'une bascule « ancien jusqu'au 10 inclus, nouveau dès le 10 », une lecture `>=`
+   * remontait DEUX périodes au lieu d'une, et `.find()` retenait l'une ou l'autre selon l'ordre de
+   * retour de PostgreSQL — non garanti sans `order by` explicite. Tri décroissant sur `valideDu`
+   * avant le `.find()` : ceinture et bretelles, l'EXCLUDE garantit qu'au plus une période est en
+   * vigueur à une date donnée, mais un `.find()` sur un résultat potentiellement ambigu ne doit
+   * jamais dépendre d'un ordre non garanti — la période la plus récemment valide est celle qui a un
+   * sens métier en cas d'ambiguïté.
+   */
   const enVigueur =
-    lignes.find((l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu >= dateJour)) ??
+    [...lignes]
+      .sort((a, b) => b.valideDu.localeCompare(a.valideDu))
+      .find((l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu > dateJour)) ??
     null;
   if (!enVigueur) return {};
   return {
