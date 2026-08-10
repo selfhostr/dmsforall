@@ -157,9 +157,9 @@ export async function semerAtelierDemo(options: OptionsSeedAtelier): Promise<Res
 
   const idSion = options.idsSitesParCode.get('SION');
   const idMartigny = options.idsSitesParCode.get('MARTIGNY');
-  const idClientMeier = options.idsClientsParNumero.get('CL-0001');
-  const idClientDupont = options.idsClientsParNumero.get('CL-0002');
-  const idClientRhone = options.idsClientsParNumero.get('CL-0003');
+  const idClientMeier = options.idsClientsParNumero.get('CL-000001');
+  const idClientDupont = options.idsClientsParNumero.get('CL-000002');
+  const idClientRhone = options.idsClientsParNumero.get('CL-000003');
   const idGolf = options.idsVehiculesParCle.get('WVWZZZ1KZAW123456');
   const idOctavia = options.idsVehiculesParCle.get('TMBJJ7NE1M0123457');
   const idMaster = options.idsVehiculesParCle.get('Renault::Master::Fourgon L2H2');
