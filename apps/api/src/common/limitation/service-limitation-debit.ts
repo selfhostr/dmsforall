@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type Redis from 'ioredis';
 import { Horloge } from '../horloge/horloge';
 import { JETON_REDIS } from './redis.provider';
@@ -58,6 +58,8 @@ return {1, 0}
  */
 @Injectable()
 export class ServiceLimitationDebitRedis implements ServiceLimitationDebit {
+  private readonly journal = new Logger(ServiceLimitationDebitRedis.name);
+
   constructor(
     @Inject(JETON_REDIS) private readonly redis: Redis,
     private readonly horloge: Horloge,
@@ -75,15 +77,48 @@ export class ServiceLimitationDebitRedis implements ServiceLimitationDebit {
 
     // Signature publique inchangée (contrat gelé, module auth dépendant) : seule la mécanique
     // interne devient atomique.
-    const resultat = (await this.redis.eval(
-      SCRIPT_CONSOMMER,
-      1,
-      cleRedis,
-      maintenantMs,
-      fenetreMs,
-      limite,
-      membre,
-    )) as [number, number];
+    let resultat: [number, number];
+    try {
+      resultat = (await this.redis.eval(
+        SCRIPT_CONSOMMER,
+        1,
+        cleRedis,
+        maintenantMs,
+        fenetreMs,
+        limite,
+        membre,
+      )) as [number, number];
+    } catch (erreur) {
+      // FAIL OPEN, délibérément — et ce n'est pas un choix nouveau : `ServiceLimitationDebit`
+      // (limitation-debit.types.ts) documente déjà « n'échoue jamais par exception : le refus
+      // est une valeur de retour, pas une erreur ». L'implémentation ne respectait pas son
+      // propre contrat gelé (aucun `catch` ici avant ce correctif) — Redis indisponible faisait
+      // remonter une exception non gérée jusqu'au contrôleur.
+      //
+      // Pourquoi fail OPEN et non fail CLOSED : les deux consommateurs de cette classe
+      // (`authentification.service.ts` pour `POST /auth/connexion`, `garde-limitation-
+      // recherche.ts` pour la recherche) s'appuient sur cette fenêtre glissante Redis comme
+      // défense DE DÉBIT, jamais comme unique rempart. Pour la connexion en particulier, le
+      // commentaire de `authentification.service.ts` est explicite : le verrouillage progressif
+      // du compte, persisté en base (`utilisateur.verrouille_jusqu_a`), « reste une seconde
+      // barrière indépendante, pas la seule ligne de défense » — c'est-à-dire l'inverse : LUI est
+      // la barrière primaire, et NE DÉPEND PAS de Redis. Fail closed transformerait Redis en
+      // point de défaillance unique pour l'authentification et la recherche de tout le tenant —
+      // un Redis en panne bloquerait alors des logins légitimes que la défense primaire (en
+      // base) continue, elle, de couvrir. Le compromis : une salve de force brute pendant une
+      // panne Redis n'est freinée que par le verrouillage progressif en base, plus lent à
+      // s'armer — dégradation mesurée, pas un trou de sécurité silencieux (voir le log ci-
+      // dessous).
+      //
+      // Distinct du verrouillage PIN de la borne (`pointage/service-verrouillage-pin.ts`) : ce
+      // service-là N'A PAS de défense primaire alternative (aucune table, par construction —
+      // voir son en-tête), donc le même arbitrage ne s'y applique pas forcément. Hors périmètre
+      // de ce correctif (répertoire `pointage/`) — signalé, pas changé.
+      this.journal.error(
+        `Redis indisponible pour la limitation de débit (clé="${cle}") — tentative autorisée en dégradé, la protection de débit est momentanément hors service : ${String(erreur)}`,
+      );
+      return { autorise: true, resteSecondes: 0 };
+    }
 
     const [autoriseBrut, scorePlusAncien] = resultat;
 

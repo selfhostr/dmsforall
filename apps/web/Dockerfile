@@ -42,6 +42,11 @@ FROM deps AS build
 # `@dfa/shared` est consommé depuis ses SOURCES via l'alias Vite (voir commentaire de tête) :
 # copier son package.json (déjà fait par l'étape deps) ne suffit pas, il faut le code lui-même.
 COPY packages/shared/src packages/shared/src
+# apps/web/tsconfig.json étend ce fichier racine ("extends": "../../tsconfig.base.json") ; sans
+# lui, esbuild (utilisé par Vite pour transformer index.html) ne peut pas résoudre l'extends et
+# le build échoue avant même de transformer un module (vu localement : "Cannot find base config
+# file" puis "0 modules transformed").
+COPY tsconfig.base.json ./
 COPY apps/web/index.html apps/web/index.html
 COPY apps/web/vite.config.ts apps/web/vite.config.ts
 COPY apps/web/tsconfig.json apps/web/tsconfig.json
@@ -73,7 +78,7 @@ RUN mkdir -p /var/cache/nginx/client_temp /var/cache/nginx/proxy_temp \
              /var/cache/nginx/fastcgi_temp /var/cache/nginx/uwsgi_temp /var/cache/nginx/scgi_temp && \
     chown -R nginx:nginx /var/cache/nginx /etc/nginx
 
-COPY --chown=nginx:nginx nginx.conf /etc/nginx/nginx.conf
+COPY --chown=nginx:nginx apps/web/nginx.conf /etc/nginx/nginx.conf
 COPY --from=build --chown=nginx:nginx /repo/apps/web/dist /usr/share/nginx/html
 
 USER nginx

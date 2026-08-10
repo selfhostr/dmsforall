@@ -205,6 +205,18 @@ export async function creerAppTest(
     poolApp: bdd.poolApp,
     poolMigrateur: bdd.poolMigrateur,
     async fermer(): Promise<void> {
+      // `app.close()` suffit : depuis `common/limitation/redis.provider.ts` (providerRedis),
+      // le client `ioredis` du jeton `JETON_REDIS` porte désormais son propre
+      // `onModuleDestroy` (quit(), repli disconnect()) — NestJS l'invoque pendant `app.close()`,
+      // avant que la promesse ne se résolve. Fermer le client une SECONDE fois ici (ancien
+      // correctif, avant que le provider n'ait ce cycle de vie) court-circuitait
+      // `providerRedis` : le second `quit()` retombait sur une connexion déjà en train de se
+      // fermer et l'écouteur `.on('error', ...)` ajouté au provider rendait ce second échec
+      // audible (`Connection is closed.`), faisant échouer `fermer()` — donc l'`afterAll` de
+      // chaque fichier d'intégration qui l'appelle. L'ordre reste garanti : le client Redis est
+      // fermé PENDANT `app.close()`, donc avant que cette fonction ne retourne et donc avant que
+      // l'appelant n'arrête le conteneur Redis éphémère (`RedisEphemere.fermer()`), sans qu'il
+      // soit nécessaire de le refaire ici.
       await app.close();
     },
   };
