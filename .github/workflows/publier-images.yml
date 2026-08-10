@@ -47,9 +47,12 @@ jobs:
   # Un `workflow_call` exécute les jobs du fichier appelé DANS le run de l'appelant, sans exiger
   # que ci.yml ait tourné séparément : ça couvre exactement le cas qui justifiait la copie (un
   # push de tag ne déclenche jamais ci.yml par ses propres `on:`). La duplication de code
-  # disparaît ; la duplication d'EXÉCUTION sur un push main demeure (ci.yml tourne pour son propre
-  # déclencheur ET dans cet appel) et reste acceptée sciemment, comme avant ce correctif — voir le
-  # commentaire équivalent, déplacé dans ci.yml.
+  # disparaît ; la duplication d'EXÉCUTION sur un push main a existé un temps (ci.yml tournait
+  # pour son propre déclencheur ET dans cet appel, deux suites testcontainers simultanées sur le
+  # même runner à 2 cœurs) et causait des checks rouges au hasard, pas seulement du gaspillage —
+  # voir le commentaire du bloc `on:` de ci.yml pour la preuve mesurée (commit d21452a) et le
+  # correctif du 10.08.2026 : `main` retiré de `push.branches` dans ci.yml, cet appel
+  # `workflow_call` est désormais la SEULE exécution des jobs de qualité sur un push main.
   verification-qualite:
     name: Vérification qualité (ci.yml)
     uses: ./.github/workflows/ci.yml

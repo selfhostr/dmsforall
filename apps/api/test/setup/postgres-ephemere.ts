@@ -163,6 +163,29 @@ export async function demarrerBaseEphemere(
   const poolMigrateur = new Pool({ connectionString: migrateur.url, max: 3 });
   const poolSuperutilisateur = new Pool({ connectionString: superutilisateur.url, max: 3 });
 
+  // Sans ce gestionnaire, une erreur sur une connexion INACTIVE de l'un de ces trois pools —
+  // le conteneur qui reçoit un admin_shutdown (57P01) pendant qu'une connexion reste ouverte,
+  // un démon Docker à court de mémoire, ... — remonte en `unhandledError` d'EventEmitter et
+  // tue tout le PROCESSUS de test, y compris les suites d'autres fichiers qui n'ont rien à
+  // voir. Même raisonnement, même correctif que `ServiceAccesBase`/`ServiceAccesAmorcage`
+  // (apps/api/src/db/acces-base.service.ts, acces-amorcage.service.ts) et le client Redis
+  // partagé (apps/api/src/common/limitation/redis.provider.ts) : ces pools applicatifs ont
+  // déjà l'écouteur, mais poolApp/poolMigrateur/poolSuperutilisateur sont ouverts DIRECTEMENT
+  // par ce harnais, en dehors de tout cycle de vie NestJS, et n'en héritent donc pas. On
+  // journalise fort (console.error, pas un `debug` silencieux) : perdre la trace d'un
+  // conteneur mort en cours de suite serait presque aussi grave que l'absence d'écouteur.
+  for (const [nom, pool] of [
+    ['app', poolApp],
+    ['migrateur', poolMigrateur],
+    ['superutilisateur', poolSuperutilisateur],
+  ] as const) {
+    pool.on('error', (erreur) => {
+      console.error(
+        `[postgres-ephemere] erreur sur une connexion inactive du pool ${nom} : ${erreur.message}`,
+      );
+    });
+  }
+
   // Vérification de connectivité immédiate : mieux vaut un échec clair ici qu'un timeout
   // mystérieux 100 lignes plus loin dans le premier test qui s'en sert.
   await poolApp.query('select 1');
