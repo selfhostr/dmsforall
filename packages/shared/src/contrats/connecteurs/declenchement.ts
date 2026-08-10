@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { OPERATIONS_CONNECTEUR, type OperationConnecteur } from './enums';
 import { schemaExpressionCron } from './primitives';
+import { schemaBooleenQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 import { TYPES_EVENEMENT_METIER, type TypeEvenementMetier } from '../atelier/evenement';
 
@@ -77,7 +78,7 @@ export const TRIS_DECLENCHEURS_CONNECTEUR = ['creeLe:desc', 'creeLe:asc'] as con
 export const TRI_DEFAUT_DECLENCHEURS_CONNECTEUR = 'creeLe:desc';
 
 export const schemaFiltresDeclencheursConnecteur = schemaParametresPage.extend({
-  actif: z.coerce.boolean().optional(),
+  actif: schemaBooleenQuery().optional(),
   tri: z.enum(TRIS_DECLENCHEURS_CONNECTEUR).default(TRI_DEFAUT_DECLENCHEURS_CONNECTEUR),
 });
 export type FiltresDeclencheursConnecteur = z.infer<typeof schemaFiltresDeclencheursConnecteur>;

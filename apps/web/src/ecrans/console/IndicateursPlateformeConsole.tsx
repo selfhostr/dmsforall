@@ -59,7 +59,7 @@ export function IndicateursPlateformeConsole({
               )}
             >
               <span className="flex w-full items-center justify-between gap-2">
-                <span className="tabular-nums text-3xl font-semibold leading-none text-foreground">
+                <span className="texte-donnee-proeminente leading-none text-foreground">
                   {total}
                 </span>
                 <Icone

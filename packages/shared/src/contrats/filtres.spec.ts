@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { coercionListeQuery, schemaListeQuery } from './filtres';
+import { coercionListeQuery, schemaBooleenQuery, schemaListeQuery } from './filtres';
 
 /**
  * Le cas qui compte est celui à UNE seule valeur (`?statut=en_cours`) : c'est celui qu'Express
@@ -62,5 +62,56 @@ describe('coercionListeQuery', () => {
   it('laisse un tableau existant inchangé (même référence de contenu, pas de copie superflue)', () => {
     const source = ['en_cours', 'termine'];
     expect(coercionListeQuery(source)).toEqual(source);
+  });
+});
+
+/**
+ * Non-régression de l'issue #43 : `GET /pointages?anomalie=false` rendait une liste vide (comme
+ * `anomalie=true`) parce que `z.coerce.boolean().parse('false')` vaut `true` — `Boolean('false')`
+ * est vrai, seule la chaîne vide est falsy. Les trois états (absent / `"true"` / `"false"`) DOIVENT
+ * rester distincts, et toute valeur qui n'est ni l'une ni l'autre doit échouer plutôt que deviner.
+ */
+describe('schemaBooleenQuery', () => {
+  describe('sans valeur par défaut (`.optional()` à la charge de l’appelant)', () => {
+    const schemaAnomalie = schemaBooleenQuery().optional();
+
+    it('laisse `undefined` inchangé quand le filtre est absent — « pas de filtre »', () => {
+      expect(schemaAnomalie.parse(undefined)).toBeUndefined();
+    });
+
+    it('`"true"` devient le booléen `true`', () => {
+      expect(schemaAnomalie.parse('true')).toBe(true);
+    });
+
+    it('RÉGRESSION #43 : `"false"` devient le booléen `false`, pas `true`', () => {
+      expect(schemaAnomalie.parse('false')).toBe(false);
+    });
+
+    it('rejette une valeur qui n’est ni `"true"` ni `"false"` au lieu de la deviner', () => {
+      expect(() => schemaAnomalie.parse('oui')).toThrow();
+      expect(() => schemaAnomalie.parse('0')).toThrow();
+      expect(() => schemaAnomalie.parse('1')).toThrow();
+      expect(() => schemaAnomalie.parse('TRUE')).toThrow();
+    });
+  });
+
+  describe('avec valeur par défaut (ex. `inclureAnciennesDetentions`)', () => {
+    const schemaInclure = schemaBooleenQuery(false);
+
+    it('applique la valeur par défaut quand le paramètre est absent', () => {
+      expect(schemaInclure.parse(undefined)).toBe(false);
+    });
+
+    it('`"true"` reste prioritaire sur le défaut', () => {
+      expect(schemaInclure.parse('true')).toBe(true);
+    });
+
+    it('`"false"` explicite est équivalent au défaut mais reste validé normalement', () => {
+      expect(schemaInclure.parse('false')).toBe(false);
+    });
+
+    it('rejette toujours une valeur invalide malgré le défaut', () => {
+      expect(() => schemaInclure.parse('oui')).toThrow();
+    });
   });
 });

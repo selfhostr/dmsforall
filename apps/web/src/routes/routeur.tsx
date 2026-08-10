@@ -1,7 +1,6 @@
-import { createBrowserRouter, type RouteObject } from 'react-router';
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 
 import { AppShell } from '@/composants/layout/AppShell';
-import { EcranAccueil } from '@/ecrans/EcranAccueil';
 import { EcranConnexion } from '@/ecrans/EcranConnexion';
 import { EcranFicheOrdreReparation } from '@/ecrans/atelier/EcranFicheOrdreReparation';
 import { EcranListeOrdresReparation } from '@/ecrans/atelier/EcranListeOrdresReparation';
@@ -128,26 +127,37 @@ export const routesConfig: RouteObject[] = [
     ),
     children: [
       // Route index — le POINT D'ATTERRISSAGE de toute l'application. Le Lot 0 y avait posé
-      // `redirectionParRole` pour le seul `poste_atelier` (borne murale) ; le Lot D l'étend aux
-      // quatre autres rôles qui ont un plan de travail propre, en lisant la table de l'arbitrage
-      // (§2) telle qu'elle est écrite dans `atterrissage.ts` — table complète et commentée rôle par
-      // rôle là-bas, JAMAIS recopiée ici (deux copies divergeraient au premier ajout de rôle).
+      // `redirectionParRole` pour le seul `poste_atelier` (borne murale) ; le Lot D l'a étendu aux
+      // quatre rôles d'EXÉCUTION qui ont un plan de travail propre, en lisant la table de
+      // l'arbitrage telle qu'elle est écrite dans `atterrissage.ts` — table complète et commentée
+      // rôle par rôle là-bas, JAMAIS recopiée ici (deux copies divergeraient au premier ajout de
+      // rôle).
       //
       // Ce n'est pas une restriction : chacun de ces rôles a le droit de voir `/`, on choisit de ne
       // pas le lui montrer parce qu'un lanceur générique n'est utile à personne qui sait déjà où il
-      // va. Les quatre rôles absents de la table (`direction`, `admin`, `receptionnaire`,
-      // `chef_atelier`) continuent d'atterrir sur `EcranAccueil`, comportement inchangé.
+      // va.
+      //
+      // FUSION Accueil/Tableau de bord (10.08.2026, `docs/design-tableau-bord-par-role.md`) :
+      // `EcranAccueil` a disparu, plus de contenu propre à `/` — tout rôle qui n'est PAS redirigé
+      // par `ATTERRISSAGE_PAR_ROLE` (les cinq rôles de PILOTAGE : direction, comptable,
+      // chef_atelier, receptionnaire, admin) traverse `/` sans jamais y rester affiché, `<Navigate>`
+      // vers `/tableau-bord` (route juste en dessous, SEULE désormais à porter un écran réel). Un
+      // simple relais plutôt qu'un doublon : `/tableau-bord` reste la SEULE URL canonique du
+      // tableau de bord (motif attendu par `composants/layout/navigation-modele.ts` pour
+      // surligner l'onglet « Aujourd'hui » — un `/` qui rendrait directement `EcranTableauBord`
+      // sans redirection laisserait cet onglet éteint pour qui y atterrit).
       {
         index: true,
         element: (
           <RouteProtegee redirectionParRole={ATTERRISSAGE_PAR_ROLE}>
-            <EcranAccueil />
+            <Navigate to="/tableau-bord" replace />
           </RouteProtegee>
         ),
       },
-      // Tableau de bord — restriction RÉELLE côté API (`GET /tableau-bord/activite` ferme
-      // `poste_atelier`, voir `droits-routes.ts` pour le détail complet et la distinction avec le
-      // bloc financier, géré EN PLUS à l'intérieur de l'écran, pas ici).
+      // Tableau de bord fusionné (Accueil + Tableau de bord, `EcranTableauBord.tsx`) — restriction
+      // RÉELLE côté API (`GET /tableau-bord/activite` ferme `poste_atelier`, voir `droits-routes.ts`
+      // pour le détail complet et la distinction avec le bloc financier, géré EN PLUS à l'intérieur
+      // de l'écran par rôle, pas ici).
       {
         path: 'tableau-bord',
         element: (

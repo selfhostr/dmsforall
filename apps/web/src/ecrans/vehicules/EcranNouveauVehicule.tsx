@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useClient } from '@/hooks/clients/useClient';
 import { useCreerVehicule } from '@/hooks/vehicules/useCreerVehicule';
 import { chemins } from '@/routes/chemins';
 
@@ -35,8 +36,20 @@ function videVersIndefini(valeur: string): string | undefined {
  *
  * Comme pour la création client, seule l'identité minimale (marque, modèle, et les identifiants
  * qui évitent un doublon — VIN, plaque) est demandée ici. Le reste (données d'atelier, garanties,
- * détenteur, importation détaillée…) se saisit après création, depuis la fiche
- * (`EcranFicheVehicule`), jamais dans ce formulaire de première saisie.
+ * importation détaillée…) se saisit après création, depuis la fiche (`EcranFicheVehicule`), jamais
+ * dans ce formulaire de première saisie.
+ *
+ * `?clientId=` (geste manquant signalé par @laupernoe : « je ne sais pas comment assigner un véhicule à
+ * un client ») — posé par `EcranFicheClient` (« Ajouter un véhicule », `cheminNouveauVehicule`,
+ * hors périmètre d'écriture ici : chemin construit localement, `chemins.vehicules.nouveau` ne
+ * porte pas ce paramètre). Quand il est présent, le détenteur (`detenteurId`,
+ * `schemaCreationVehicule`) est envoyé SANS champ de saisie — la fiche client d'où l'on vient EST
+ * la sélection, redemander reviendrait à revalider ce que le garagiste a déjà établi en cliquant
+ * depuis là. `POST /vehicules` crée déjà la détention d'origine atomiquement avec le véhicule
+ * (`service-vehicule.ts`, ligne `if (entree.detenteurId)`) — aucun second appel n'est nécessaire.
+ * Sans `?clientId=` (accès direct, Ventes VN/VO...), le détenteur reste absent à la création,
+ * assignable ensuite depuis la fiche (`DialogueRattacherClient`, même écran que le changement de
+ * détenteur — RM-20/21).
  *
  * Un VIN absent ou court (< 17 caractères) N'EST PAS refusé (RM-15) : les véhicules anciens et
  * certains imports n'ont pas de VIN normalisé, et bloquer la saisie enverrait le garagiste dans un
@@ -52,6 +65,8 @@ export function EcranNouveauVehicule() {
   // conservé pour revenir à la même liste filtrée après annulation ou création.
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
+  const clientId = searchParams.get('clientId') ?? undefined;
+  const requeteClient = useClient(clientId);
 
   const form = useForm({
     resolver: zodResolver(schemaCreationVehicule),
@@ -66,7 +81,7 @@ export function EcranNouveauVehicule() {
 
   const soumettre = form.handleSubmit((entree) => {
     creerVehicule.mutate(
-      { entree, idempotencyKey: idempotence.cle },
+      { entree: { ...entree, detenteurId: clientId ?? null }, idempotencyKey: idempotence.cle },
       {
         onSuccess: (reponse) => {
           idempotence.regenerer();
@@ -79,10 +94,19 @@ export function EcranNouveauVehicule() {
   const enCours = creerVehicule.isPending;
   const erreur = creerVehicule.error;
   const estErreurReseau = erreur instanceof ErreurReseau;
+  const cheminAnnuler = clientId
+    ? chemins.clients.detail(clientId, site)
+    : chemins.vehicules.liste(site);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-6">
       <h1 className="texte-titre font-semibold text-foreground">{t('vehicules:nouveau')}</h1>
+
+      {clientId && requeteClient.data ? (
+        <p className="texte-corps text-muted-foreground">
+          {t('vehicules:nouveauPourClient', { nom: requeteClient.data.nomAffiche })}
+        </p>
+      ) : null}
 
       <form onSubmit={soumettre} noValidate className="flex flex-col gap-5">
         {erreur ? (
@@ -223,7 +247,7 @@ export function EcranNouveauVehicule() {
             {enCours ? t('commun:chargement.enCours') : t('vehicules:creer')}
           </Button>
           <Button type="button" variant="outline" disabled={enCours} asChild>
-            <Link to={chemins.vehicules.liste(site)}>{t('commun:actions.annuler')}</Link>
+            <Link to={cheminAnnuler}>{t('commun:actions.annuler')}</Link>
           </Button>
         </div>
       </form>

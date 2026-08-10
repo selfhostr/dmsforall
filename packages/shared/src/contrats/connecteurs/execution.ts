@@ -9,7 +9,7 @@ import {
   type TypeDeclenchementConnecteur,
 } from './enums';
 import { schemaMotif, schemaIdentifiant } from '../atelier/primitives';
-import { schemaListeQuery } from '../filtres';
+import { schemaBooleenQuery, schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 import type { TypeEvenementMetier } from '../atelier/evenement';
 
@@ -98,7 +98,7 @@ export const schemaFiltresExecutionsConnecteur = schemaParametresPage.extend({
   /** `true` : exécutions qui attendent une action humaine (`RC-04`) — sucre équivalent à
    *  `statut: ['necessite_action']`, même doctrine que `avecReliquat`
    *  (`pieces/commande-fournisseur.ts`) : une vue reste reproductible par les filtres primitifs. */
-  necessiteAction: z.coerce.boolean().optional(),
+  necessiteAction: schemaBooleenQuery().optional(),
   tri: z.enum(TRIS_EXECUTIONS_CONNECTEUR).default(TRI_DEFAUT_EXECUTIONS_CONNECTEUR),
 });
 export type FiltresExecutionsConnecteur = z.infer<typeof schemaFiltresExecutionsConnecteur>;

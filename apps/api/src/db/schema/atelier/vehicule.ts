@@ -31,6 +31,7 @@ import {
 } from '../colonnes-communes';
 import { tenant } from '../tenant';
 import { utilisateur } from '../utilisateur';
+import { typeApprobationCh } from '../referentiel/type-approbation-ch';
 import { client } from './client';
 import {
   motifArchivageVehiculeEnum,
@@ -108,6 +109,20 @@ export const vehicule = pgTable(
      * avancerait sur N'IMPORTE QUELLE modification du véhicule, pas seulement sa position).
      */
     emplacementMajLe: timestamp('emplacement_maj_le', { withTimezone: true, mode: 'date' }),
+    /**
+     * Référentiel véhicules suisse (migrations/0050_referentiel_vehicules_ch.sql) : lien
+     * OPTIONNEL et silencieux vers la fiche `type_approbation_ch` qui a servi à préremplir ce
+     * véhicule (mode 1 : saisie du code type ; mode 2 : autocomplétion en cascade). PAS une FK
+     * composite `(tenant_id, …)` comme les relations ci-dessous : `type_approbation_ch` n'a pas
+     * de `tenant_id`, elle est partagée par construction.
+     *
+     * `marque`/`modele`/`version` (ci-dessus) restent du texte libre et NE deviennent JAMAIS des
+     * clés étrangères vers ce référentiel — arbitrage explicite de @laupernoe, à ne pas rouvrir sans
+     * revalider les trois modes de saisie (voir l'en-tête de 0050) : le rendre obligatoire
+     * bloquerait le mode 3 (saisie 100% libre, véhicule importé/ancien/transformé absent du
+     * référentiel) et casserait tous les véhicules déjà saisis en texte libre.
+     */
+    typeApprobationChId: uuid('type_approbation_ch_id'),
     ...colonnesHorodatage(),
   },
   (t) => [
@@ -122,6 +137,11 @@ export const vehicule = pgTable(
       columns: [t.tenantId, t.fusionneVersVehiculeId],
       foreignColumns: [t.tenantId, t.id],
     }).onDelete('restrict'),
+    foreignKey({
+      name: 'vehicule_fk_type_approbation',
+      columns: [t.typeApprobationChId],
+      foreignColumns: [typeApprobationCh.id],
+    }).onDelete('set null'),
     check(
       'vehicule_vin_format_chk',
       sql`${t.vin} is null or length(${t.vin}) <> 17 or ${t.vin} ~ '^[A-HJ-NPR-Z0-9]{17}$'`,
@@ -133,6 +153,13 @@ export const vehicule = pgTable(
       sql`(${t.statut} = 'archive') = (${t.motifArchivage} is not null)`,
     ),
     index('vehicule_pagination_idx').on(t.tenantId, t.creeLe.desc(), t.id.desc()),
+    /**
+     * Sert le `on delete set null` du référentiel (0050) : sans cet index, un réimport qui
+     * retire une ligne obsolète de `type_approbation_ch` balaierait `vehicule` en entier — sur
+     * tous les tenants, cette colonne n'ayant pas `tenant_id` en tête — pour trouver les lignes à
+     * détacher.
+     */
+    index('vehicule_type_approbation_ch_id_idx').on(t.typeApprobationChId),
   ],
 );
 

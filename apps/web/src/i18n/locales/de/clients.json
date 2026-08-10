@@ -34,7 +34,8 @@
     "titre": "Kundenkarte",
     "ouvrirOr": "RA öffnen",
     "actions": {
-      "fusionner": "Zusammenführen"
+      "fusionner": "Zusammenführen",
+      "ajouterVehicule": "Fahrzeug hinzufügen"
     },
     "onglets": {
       "contacts": "Kontakte",

@@ -11,7 +11,7 @@ import {
 } from './enums';
 import { schemaCentimesTtc, schemaCentimesTtcPositif, schemaDeviseFacturation } from './primitives';
 import { schemaDateJour, schemaIdentifiant, schemaTexteCourt } from '../atelier/primitives';
-import { schemaListeQuery } from '../filtres';
+import { schemaBooleenQuery, schemaListeQuery } from '../filtres';
 
 /**
  * Paiements et imputations (§4.1 → §4.3, §6.5 du modèle documentaire ; `RF-65` → `RF-80`).
@@ -88,7 +88,7 @@ export const schemaFiltresPaiements = z.object({
   documentId: schemaIdentifiant.optional(),
   /** Ne montre que les paiements avec un reliquat non imputé — l'écran « encaissements à
    *  affecter » de `RF-72`, qui doit être vide en fin de journée. */
-  nonImputeUniquement: z.coerce.boolean().optional(),
+  nonImputeUniquement: schemaBooleenQuery().optional(),
   dateValeurDu: schemaDateJour.optional(),
   dateValeurAu: schemaDateJour.optional(),
   tri: z.enum(TRIS_PAIEMENTS).default(TRI_DEFAUT_PAIEMENTS),

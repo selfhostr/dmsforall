@@ -98,16 +98,6 @@ export class ErreurOrigineRefusee extends ErreurAuth {
   }
 }
 
-/** 403 — session valide mais rôle ne portant pas l'action requise (`MATRICE_DROITS`). */
-export class ErreurDroitInsuffisant extends ErreurAuth {
-  constructor() {
-    super(HttpStatus.FORBIDDEN, {
-      code: 'DROIT_INSUFFISANT',
-      message: 'Droit insuffisant pour cette action.',
-    });
-  }
-}
-
 /**
  * 403 — un COMPTE DE SERVICE (borne d'atelier) tente d'agir sur un site autre que le sien
  * (`utilisateur.site_id`, migration 0039). Levée par `verifierSiteAutorise()`

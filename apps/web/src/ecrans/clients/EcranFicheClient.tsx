@@ -1,4 +1,4 @@
-import { Wrench } from 'lucide-react';
+import { Plus, Wrench } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
@@ -48,6 +48,18 @@ function cheminNouvelOr(clientId: string, site: string | undefined): string {
   const parametres = new URLSearchParams({ clientId });
   if (site) parametres.set('site', site);
   return `/atelier/ordres-reparation/nouveau?${parametres.toString()}`;
+}
+
+/** `chemins.vehicules.nouveau` (`routes/chemins.ts`, hors périmètre d'écriture ici) n'accepte
+ *  qu'un `?site=` — pas de `clientId`. Même doctrine que `cheminNouvelOr` ci-dessus : le paramètre
+ *  manquant se construit localement plutôt que d'éditer un fichier hors périmètre.
+ *  `EcranNouveauVehicule.tsx` lit `?clientId=` pour préremplir le détenteur à la création
+ *  (`detenteurId`, `POST /vehicules` — geste manquant signalé par @laupernoe : « je ne sais pas comment
+ *  assigner un véhicule à un client »). */
+function cheminNouveauVehicule(clientId: string, site: string | undefined): string {
+  const parametres = new URLSearchParams({ clientId });
+  if (site) parametres.set('site', site);
+  return `/vehicules/nouveau?${parametres.toString()}`;
 }
 
 /** `:id` — convention assumée en l'absence de routage câblé à ce jour (hors périmètre, un agent
@@ -206,9 +218,20 @@ export function EcranFicheClient() {
            *  réessai dédiée aux 403/404 — à aligner sur `useListeDossiersVente` par le
            *  propriétaire de `hooks/clients/`. */}
           <section className="space-y-2">
-            <h2 className="texte-titre-section font-medium text-foreground">
-              {t('clients:fiche.vehicules')}
-            </h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="texte-titre-section font-medium text-foreground">
+                {t('clients:fiche.vehicules')}
+              </h2>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(cheminNouveauVehicule(client.id, site))}
+              >
+                <Plus aria-hidden className="h-4 w-4" />
+                {t('clients:fiche.actions.ajouterVehicule')}
+              </Button>
+            </div>
             <EtatSousCollection
               enChargement={vehicules.isLoading}
               erreur={vehicules.error}

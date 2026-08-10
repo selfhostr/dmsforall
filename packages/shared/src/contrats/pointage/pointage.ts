@@ -16,7 +16,7 @@ import {
 } from '../atelier/primitives';
 import { ACTIVITES_INDIRECTES, type ActiviteIndirecte, type MotifAnomaliePointage } from './enums';
 import { schemaDecalageHorlogeMs, schemaIdAppareil } from './primitives';
-import { schemaListeQuery } from '../filtres';
+import { schemaBooleenQuery, schemaListeQuery } from '../filtres';
 
 /**
  * Ressource `pointage` (RM-87 → RM-99, RM-113 → RM-123 de `docs/specification-pointage.md`).
@@ -191,7 +191,7 @@ export const schemaFiltresPointages = z.object({
   source: z.enum(SOURCES_POINTAGE).optional(),
   /** `true` = corbeille d'anomalies (`anomalie !== null`) ; `false` = seulement les pointages
    *  sains ; absent = tous. */
-  anomalie: z.coerce.boolean().optional(),
+  anomalie: schemaBooleenQuery().optional(),
   /** Bornes INCLUSES sur `debutLe`, convention `xDu` / `xAu` de toute l'API. */
   debutDu: schemaHorodatage.optional(),
   debutAu: schemaHorodatage.optional(),

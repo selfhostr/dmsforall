@@ -5,6 +5,9 @@
     "au": "Bis",
     "periodeAffichee": "Angezeigter Zeitraum: {du} – {au}"
   },
+  "communs": {
+    "voirFactures": "Rechnungen anzeigen"
+  },
   "activite": {
     "titre": "Werkstattaktivität",
     "erreur": {
@@ -14,7 +17,8 @@
       "titre": "Laufende Reparaturaufträge nach Status"
     },
     "ordresOuverts": {
-      "libelle": "Eröffnete Reparaturaufträge im Zeitraum"
+      "libelle": "Eröffnete Reparaturaufträge im Zeitraum",
+      "libelleAujourdhui": "Heute eröffnete Reparaturaufträge"
     },
     "ordresRestitues": {
       "libelle": "Zurückgegebene Fahrzeuge im Zeitraum"
@@ -48,6 +52,81 @@
     },
     "encoursClients": {
       "libelle": "Offene Kundenforderungen"
+    }
+  },
+  "direction": {
+    "sortiesDuSoir": {
+      "titre": "Abendliche Fahrzeugübergaben",
+      "description": "Den Kunden für heute zugesagte Rückgaben.",
+      "vide": {
+        "titre": "Keine Übergabe für heute Abend geplant",
+        "description": "Kein eröffneter Reparaturauftrag hat ein zugesagtes Rückgabedatum für heute."
+      }
+    }
+  },
+  "comptable": {
+    "aRelancer": {
+      "titre": "Zu mahnende Rechnungen",
+      "description": "Öffnen Sie die Rechnungsliste und wählen Sie den Reiter „Zu mahnen“.",
+      "lien": "Rechnungen öffnen"
+    }
+  },
+  "chefAtelier": {
+    "sortiesDuJour": {
+      "titre": "Heutige Fahrzeugübergaben",
+      "description": "Den Kunden für heute zugesagte Rückgaben.",
+      "vide": {
+        "titre": "Keine Übergabe für heute geplant",
+        "description": "Kein eröffneter Reparaturauftrag hat ein zugesagtes Rückgabedatum für heute."
+      }
+    },
+    "equipeEnCours": {
+      "titre": "Wer arbeitet woran",
+      "erreur": "Laufendes Team kann nicht angezeigt werden",
+      "vide": {
+        "titre": "Niemand aktiv eingestempelt",
+        "description": "Derzeit keine laufende Zeiterfassung."
+      },
+      "activiteIndirecte": "Indirekte Tätigkeit",
+      "autres": "{count, plural, one {+ # weitere} other {+ # weitere}}"
+    }
+  },
+  "magasinier": {
+    "reservations": {
+      "titre": "Aktive Reservierungen",
+      "description": "Für einen Reparaturauftrag reservierte, noch nicht ausgegebene Teile.",
+      "lien": "Reservierungen anzeigen"
+    },
+    "reapprovisionnement": {
+      "erreur": "Nachbestellung kann nicht angezeigt werden",
+      "vide": {
+        "titre": "Kein Artikel unter dem Meldebestand",
+        "description": "Alle überwachten Artikel liegen über ihrem Meldebestand."
+      },
+      "ecart": "{ecart, plural, one {# fehlende Einheit} other {# fehlende Einheiten}}",
+      "autres": "{count, plural, one {+ # weiterer Artikel} other {+ # weitere Artikel}}"
+    }
+  },
+  "technicien": {
+    "titre": "Meine zugewiesenen Aufträge",
+    "erreur": "Ihre Reparaturaufträge können nicht angezeigt werden",
+    "vide": {
+      "titre": "Kein zugewiesener Auftrag",
+      "description": "Ihnen ist derzeit keine Position auf einem eröffneten Reparaturauftrag zugewiesen."
+    }
+  },
+  "admin": {
+    "raccourcis": {
+      "titre": "Verknüpfungen",
+      "sites": "Standorte verwalten",
+      "parametrageAtelier": "Werkstatteinstellungen"
+    }
+  },
+  "vendeur": {
+    "indisponible": {
+      "titre": "Übersicht nicht verfügbar",
+      "description": "Die API erlaubt noch keine Filterung der Verkaufsdossiers nach zuständigem Verkäufer: alle Dossiers des Standorts als „Ihre Dossiers“ anzuzeigen wäre irreführend. Ihre Arbeit finden Sie unter Verkauf › Dossiers.",
+      "lien": "Zu meinen Dossiers"
     }
   }
 }

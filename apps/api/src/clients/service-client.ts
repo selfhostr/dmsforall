@@ -334,7 +334,7 @@ export class ServiceClient {
         // RM-05 : détection AVANT création, jamais bloquante (CT-01) — voir `detection-doublons.ts`.
         const candidats = await detecterDoublons(tx, ctx.tenantId, {
           nomComplet: nomComplet || undefined,
-          npa: entree.adressePrincipale.npa,
+          npa: entree.adressePrincipale?.npa,
           email: entree.email ?? undefined,
           telephoneE164: telephoneE164 ?? undefined,
           ide: entree.type === 'entreprise' ? (entree.ide ?? undefined) : undefined,
@@ -377,16 +377,20 @@ export class ServiceClient {
           .returning();
         if (!ligne) throw new ErreurMetier('ERREUR_INTERNE', 'Échec de création du client.');
 
-        await tx.insert(clientAdresse).values({
-          tenantId: ctx.tenantId,
-          clientId: ligne.id,
-          type: 'principale',
-          rue: entree.adressePrincipale.rue,
-          complement: entree.adressePrincipale.complement ?? null,
-          npa: entree.adressePrincipale.npa,
-          localite: entree.adressePrincipale.localite,
-          pays: entree.adressePrincipale.pays,
-        });
+        // Particulier au comptoir sans rendez-vous (RF-59) : pas d'adresse, pas de ligne
+        // `client_adresse` — une absence n'est pas une adresse à champs vides.
+        if (entree.adressePrincipale) {
+          await tx.insert(clientAdresse).values({
+            tenantId: ctx.tenantId,
+            clientId: ligne.id,
+            type: 'principale',
+            rue: entree.adressePrincipale.rue,
+            complement: entree.adressePrincipale.complement ?? null,
+            npa: entree.adressePrincipale.npa,
+            localite: entree.adressePrincipale.localite,
+            pays: entree.adressePrincipale.pays,
+          });
+        }
 
         if (entree.conditions) {
           await tx.insert(clientCondition).values({

@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, WifiOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useForm, type DefaultValues, type FieldPath } from 'react-hook-form';
+import { useForm, type DefaultValues, type FieldPath, type Resolver } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 import type { z } from 'zod';
@@ -59,6 +59,46 @@ function videVersIndefini(valeur: string): string | undefined {
  *  packages/shared/src/contrats/atelier/client.ts) fait diverger le type déduit de `useForm` de
  *  celui produit par `zodResolver`, et `tsc` refuse la valeur de retour du resolver. */
 type ValeursSaisieFormulaire = z.input<typeof schemaCreationClient>;
+
+/**
+ * Un bloc adresse où RIEN n'a été saisi (formulaire resté tel que `valeursParDefaut` l'a posé)
+ * compte comme AUCUNE adresse — RF-59, voir le commentaire de
+ * `schemaCreationClient.adressePrincipale` (`packages/shared/src/contrats/atelier/client.ts`).
+ * `pays` est exclu du test : il vaut toujours `'CH'` depuis `valeursParDefaut`, ce n'est jamais une
+ * saisie de l'utilisateur — le compter ferait qu'aucune adresse n'est jamais « vide ». Une saisie
+ * PARTIELLE (ex. seul le NPA rempli) n'est PAS vide ici : elle repart telle quelle vers la
+ * validation zod, qui la refuse normalement (facultatif ne veut pas dire permissif).
+ */
+function adresseEstVide(adresse: ValeursSaisieFormulaire['adressePrincipale']): boolean {
+  if (!adresse) return true;
+  return (
+    !adresse.rue?.trim() &&
+    !adresse.complement?.trim() &&
+    !adresse.npa?.trim() &&
+    !adresse.localite?.trim()
+  );
+}
+
+/**
+ * Enveloppe `zodResolver(schemaCreationClient)` plutôt que de l'utiliser tel quel : React Hook
+ * Form garde `adressePrincipale` comme un OBJET (jamais `undefined`) tant qu'aucun champ n'a
+ * remplacé les valeurs par défaut — un input non contrôlé sans saisie vaut toujours `''`, pas
+ * l'absence de clé. Sans cette normalisation, un client sans adresse soumettrait
+ * `{ rue: '', npa: '', localite: '', pays: 'CH' }`, que `schemaAdresseClientBase` refuse
+ * (`rue`/`npa`/`localite` en `min(1)`) — exactement le blocage que `.optional()` vient de lever
+ * côté contrat. Le contrat lui-même reste inchangé quand une adresse est réellement fournie :
+ * cette fonction ne réécrit QUE le cas entièrement vide, jamais un cas partiel.
+ */
+const resolverClient: Resolver<ValeursSaisieFormulaire, unknown, EntreeCreationClient> = (
+  valeurs,
+  contexte,
+  options,
+) => {
+  const valeursValidees = adresseEstVide(valeurs.adressePrincipale)
+    ? { ...valeurs, adressePrincipale: undefined }
+    : valeurs;
+  return zodResolver(schemaCreationClient)(valeursValidees, contexte, options);
+};
 
 /** Valeurs par défaut du formulaire — fonction, pas un objet constant : `langueCorrespondance`
  *  dépend de la langue courante au moment de l'appel, et cette fonction est réappelée à CHAQUE
@@ -118,7 +158,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
   // type déduit de `resolver` (entrée) et celui de `defaultValues` (qui pourrait, par erreur,
   // redevenir la sortie) — les rendre explicites élimine toute ambiguïté d'inférence.
   const form = useForm<ValeursSaisieFormulaire, unknown, EntreeCreationClient>({
-    resolver: zodResolver(schemaCreationClient),
+    resolver: resolverClient,
     defaultValues: valeursParDefaut(langueCourante),
   });
 

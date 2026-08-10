@@ -14,7 +14,6 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -39,6 +38,7 @@ import { useListeVehiculesStock } from '@/hooks/ventes/stock/useListeVehiculesSt
 import { formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
+import { BadgeStatutVehiculeStock } from './BadgeStatutVehiculeStock';
 import { peutEcrireVehiculeStock } from './droits';
 
 const DELAI_DEBOUNCE_MS = 300;
@@ -50,18 +50,6 @@ const CLES_TRI: Record<(typeof TRIS_VEHICULES_STOCK)[number], string> = {
   'prixVenteAfficheCentimes:asc': 'ventes:stock.liste.tri.prixVenteAsc',
   'prixVenteAfficheCentimes:desc': 'ventes:stock.liste.tri.prixVenteDesc',
 };
-
-/** `en_commande`/`reserve` restent des étapes transitoires (outline/secondary, discrets) ;
- *  `disponible` est l'état qui intéresse le vendeur au comptoir (default, mis en avant) ;
- *  `vendu`/`livre` sont des états terminaux (secondary, plus neutres qu'un badge d'action). */
-const VARIANTE_BADGE_STATUT: Record<StatutCommercialVehicule, 'default' | 'secondary' | 'outline'> =
-  {
-    en_commande: 'outline',
-    disponible: 'default',
-    reserve: 'secondary',
-    vendu: 'secondary',
-    livre: 'secondary',
-  };
 
 /**
  * Liste des véhicules en stock (RV-01→RV-14, priorité 4 du module) — `GET /vehicules-stock`,
@@ -160,11 +148,7 @@ export function EcranListeVehiculesStock() {
     {
       id: 'statut',
       libelle: t('ventes:stock.liste.colonnes.statut'),
-      rendu: (ligne) => (
-        <Badge variant={VARIANTE_BADGE_STATUT[ligne.statutCommercial]}>
-          {t(`ventes:stock.statuts.${ligne.statutCommercial}`)}
-        </Badge>
-      ),
+      rendu: (ligne) => <BadgeStatutVehiculeStock statut={ligne.statutCommercial} />,
     },
     {
       id: 'joursStock',
@@ -236,7 +220,7 @@ export function EcranListeVehiculesStock() {
   if (isPending) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('ventes:stock.liste.titre')}</h1>
+        <h1 className="sr-only">{t('ventes:stock.liste.titre')}</h1>
         <EtatChargement lignes={6} />
       </div>
     );
@@ -245,7 +229,7 @@ export function EcranListeVehiculesStock() {
   if (isError) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('ventes:stock.liste.titre')}</h1>
+        <h1 className="sr-only">{t('ventes:stock.liste.titre')}</h1>
         <EtatErreur
           titre={t('ventes:stock.liste.erreur.titre')}
           description={messageErreur(error, t)}
@@ -257,14 +241,19 @@ export function EcranListeVehiculesStock() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('ventes:stock.liste.titre')}</h1>
-        {peutEcrireVehiculeStock(role) ? (
+      {/* L'onglet de navigation « Véhicules en parc » (OngletsDomaine, actif sur cette route) porte
+          déjà ce référent à l'écran : « Parc en stock » ne fait que le reformuler (mêmes deux mots,
+          ordre inversé), sans qualificatif neuf (aucun compte, aucun filtre, aucun site). Un h1
+          visible identique en substance ne dit rien de neuf — masqué visuellement, conservé dans
+          le DOM pour la structure de document, même choix que `EcranListeFactures`/`EcranSuiviVentes`. */}
+      <h1 className="sr-only">{t('ventes:stock.liste.titre')}</h1>
+      {peutEcrireVehiculeStock(role) ? (
+        <div className="flex items-center justify-end gap-3">
           <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
             {t('ventes:stock.liste.actions.mettreEnStock')}
           </Button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <BarreFiltres
         q={qSaisie}

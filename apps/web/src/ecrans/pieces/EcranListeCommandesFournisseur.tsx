@@ -164,6 +164,10 @@ export function EcranListeCommandesFournisseur() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* NON masqué volontairement : la vue active « Commandes » (`navigation-modele.ts`,
+          `ONGLETS_PIECES`, vue « commandes » de l'onglet Approvisionnement) ne dit pas de quoi il
+          s'agit — « Commandes fournisseur » porte l'information « fournisseur » qu'aucun onglet ni
+          vue n'affiche. Comparaison mot pour mot avec la barre d'onglets active : pas un doublon. */}
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:commandes.titre')}</h1>
         {peutEcrireCommandeFournisseur(role) ? (

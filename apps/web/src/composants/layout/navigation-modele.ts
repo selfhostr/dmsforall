@@ -103,27 +103,24 @@ export interface EntreeMenu {
 
 const ONGLETS_AUJOURDHUI: readonly OngletDomaine[] = [
   /**
-   * `/` (`EcranAccueil`) et `/tableau-bord` (`EcranTableauBord`) sont DEUX écrans distincts que
-   * §4.2 demande de fusionner en un seul écran « Aujourd'hui ». Cette fusion est le Lot F, pas
-   * celui-ci : ici ils cohabitent en deux onglets, ce qui garde les deux atteignables et rend la
-   * fusion future invisible côté menu (l'onglet « Accueil » disparaîtra, l'entrée ne bougera pas).
+   * `/` (`EcranAccueil`) et `/tableau-bord` (`EcranTableauBord`) ont été FUSIONNÉS (Lot F) :
+   * `EcranAccueil` est supprimé, `/` n'est plus qu'un relais vers `/tableau-bord`. Un seul onglet
+   * subsiste donc ici — deux onglets pour un seul écran auraient fait rebondir « Accueil » sur son
+   * voisin. `roles` reprend ceux du tableau de bord (`ROLES_TABLEAU_BORD_ACTIVITE`), plus large que
+   * les quatre rôles dont l'ancien atterrissage était `/` : tout rôle qui lit l'activité du garage y
+   * a sa place, plus de restriction héritée du relais.
    *
-   * `roles` sur « Accueil » : exactement les quatre rôles dont l'atterrissage EST `/`
-   * (`ATTERRISSAGE_PAR_ROLE`, `routes/atterrissage.ts`). Les cinq autres sont redirigés hors de `/`
-   * dès la route index — leur proposer un onglet qui rebondit immédiatement serait un lien mort.
+   * `motifs` porte AUSSI `/` : la route index n'a pas disparu, elle est devenue un simple relais
+   * vers `/tableau-bord` (redirection immédiate, `routes/routeur.tsx`). Sans ce motif, la fenêtre
+   * entre le montage de `/` et la redirection effective n'activerait aucun onglet, et
+   * `routes/atteignabilite.spec.ts` refuse justement qu'une route du menu reste sans motif ni
+   * exception documentée en `HORS_MENU`.
    */
-  {
-    id: 'accueil',
-    cleLibelle: 'navigation:onglets.aujourdhuiAccueil',
-    chemin: () => '/',
-    motifs: ['/'],
-    roles: ['direction', 'admin', 'receptionnaire', 'chef_atelier'],
-  },
   {
     id: 'tableauBord',
     cleLibelle: 'navigation:onglets.aujourdhuiTableauBord',
     chemin: (site) => chemins.tableauBord(site),
-    motifs: ['/tableau-bord'],
+    motifs: ['/', '/tableau-bord'],
     roles: ROLES_TABLEAU_BORD_ACTIVITE,
   },
 ];
@@ -288,11 +285,48 @@ const ONGLETS_CLIENTS_VEHICULES: readonly OngletDomaine[] = [
   },
 ];
 
+/**
+ * Lecture fournisseur/commande fournisseur (`pieces.fournisseur.lire`,
+ * `pieces.commande_fournisseur.lire`, `apps/api/src/auth/matrice-droits.ts`,
+ * `DROITS_PIECES_PAR_ROLE`) : `direction`, `chef_atelier`, `magasinier` SEULS — PAS `comptable`,
+ * `vendeur`, `receptionnaire`, `technicien` (qui n'ont que la lecture générale `pieces.article.lire`/
+ * `pieces.stock.lire`). Mêmes trois rôles, MÊMES VALEURS littérales que la constante privée
+ * `ROLES_LECTURE_FOURNISSEUR` d'`apps/web/src/ecrans/pieces/droits.ts` — reprise ici plutôt
+ * qu'importée (`routes/` et `composants/layout/` ne dépendent jamais d'`ecrans/*`, voir l'en-tête
+ * de `routes/droits-routes.ts` : « Lot D... rend routes/ et composants/layout/ autonomes »), même
+ * chaîne de duplication assumée que `ROLES_PIECES`/`ROLES_PARAMETRAGE_PIECES` ci-dessous
+ * (`routes/droits-routes.ts`). CORRECTIF issue #44 : ces deux vues portaient à tort `ROLES_PIECES`
+ * (les sept rôles), un menu affichant un onglet que le serveur refuse en 403 à quatre d'entre eux.
+ */
+const ROLES_LECTURE_FOURNISSEUR_PIECES: readonly RoleUtilisateur[] = [
+  'direction',
+  'chef_atelier',
+  'magasinier',
+];
+
+/**
+ * Lecture consigne (`pieces.consigne.lire`, `DROITS_PIECES_PAR_ROLE`) : `direction`, `chef_atelier`,
+ * `magasinier`, ET `comptable` (donnée financière — « une consigne jamais rendue est une créance
+ * qui dort ») — PAS `vendeur`, `receptionnaire`, `technicien`. Mêmes valeurs que la constante privée
+ * `ROLES_LECTURE_CONSIGNE` d'`ecrans/pieces/droits.ts`, même raisonnement de duplication que
+ * `ROLES_LECTURE_FOURNISSEUR_PIECES` ci-dessus. CORRECTIF issue #44, second cas trouvé en vérifiant
+ * systématiquement les autres onglets du fichier après le rapport du chasseur : l'onglet Consignes
+ * portait le même défaut (`ROLES_PIECES`) et n'avait pas été testé par lui.
+ */
+const ROLES_LECTURE_CONSIGNE_PIECES: readonly RoleUtilisateur[] = [
+  'direction',
+  'chef_atelier',
+  'magasinier',
+  'comptable',
+];
+
 const ONGLETS_PIECES: readonly OngletDomaine[] = [
   /**
-   * Les quatre onglets portent tous `ROLES_PIECES` : `DROITS_PIECES_PAR_ROLE.admin` vaut `[]`
-   * littéralement côté API (RF-115), la LECTURE elle-même est fermée à `admin` — l'entrée Pièces
-   * entière disparaît donc pour lui, comme aujourd'hui.
+   * `DROITS_PIECES_PAR_ROLE.admin` vaut `[]` littéralement côté API (RF-115), la LECTURE elle-même
+   * est fermée à `admin` — l'entrée Pièces entière disparaît donc pour lui, comme aujourd'hui.
+   * Comptoir et Articles portent `ROLES_PIECES` (les sept rôles, `pieces.article.lire`/
+   * `pieces.stock.lire`/`pieces.reservation.lire` ouverts à tous) ; Approvisionnement et Consignes
+   * sont plus étroits à l'intérieur — voir leurs commentaires respectifs.
    *
    * « Comptoir » est le PREMIER onglet, donc l'onglet par défaut de l'entrée : c'est
    * l'atterrissage du magasinier (§2), qui ne doit pas tomber sur l'inventaire.
@@ -338,6 +372,14 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
    * « À commander » (le réapprovisionnement pré-rempli), « Commandes » (les commandes fournisseur)
    * et « Fournisseurs ». Un fournisseur se consulte depuis une commande, jamais dans l'absolu —
    * d'où sa place en troisième vue et non en onglet.
+   *
+   * L'ONGLET porte `ROLES_PIECES` (les sept rôles) parce que sa vue par défaut, « À commander »
+   * (`pieces.stock.lire`), leur est ouverte à tous. SES DEUX AUTRES VUES sont plus étroites :
+   * « Commandes » et « Fournisseurs » portent `ROLES_LECTURE_FOURNISSEUR_PIECES` (trois rôles),
+   * pas `ROLES_PIECES` — voir sa définition ci-dessus. Avant correctif (issue #44), les deux
+   * portaient `ROLES_PIECES` : un `vendeur`/`comptable`/`receptionnaire`/`technicien` voyait ces
+   * deux vues, cliquait, et recevait un `403` de l'API suivi d'un écran d'erreur sans retour
+   * possible — l'onglet mentait sur ce qu'il proposait.
    */
   {
     id: 'approvisionnement',
@@ -362,23 +404,29 @@ const ONGLETS_PIECES: readonly OngletDomaine[] = [
         cleLibelle: 'navigation:onglets.piecesCommandes',
         chemin: (site) => chemins.pieces.commandesFournisseur.liste(site),
         motifs: ['/pieces/commandes-fournisseur'],
-        roles: ROLES_PIECES,
+        roles: ROLES_LECTURE_FOURNISSEUR_PIECES,
       },
       {
         id: 'fournisseurs',
         cleLibelle: 'navigation:onglets.piecesFournisseurs',
         chemin: (site) => chemins.pieces.fournisseurs.liste(site),
         motifs: ['/pieces/fournisseurs'],
-        roles: ROLES_PIECES,
+        roles: ROLES_LECTURE_FOURNISSEUR_PIECES,
       },
     ],
   },
+  /**
+   * `pieces.consigne.lire` est fermé à `vendeur`/`receptionnaire`/`technicien` (voir
+   * `ROLES_LECTURE_CONSIGNE_PIECES` ci-dessus) — DEUXIÈME cas du même défaut qu'Approvisionnement,
+   * trouvé en vérifiant systématiquement ce fichier après le rapport de l'issue #44 (le chasseur
+   * n'avait testé que Commandes/Fournisseurs). Portait `ROLES_PIECES` avant correctif.
+   */
   {
     id: 'consignes',
     cleLibelle: 'navigation:onglets.piecesConsignes',
     chemin: (site) => chemins.pieces.consignes(site),
     motifs: ['/pieces/consignes'],
-    roles: ROLES_PIECES,
+    roles: ROLES_LECTURE_CONSIGNE_PIECES,
   },
 ];
 

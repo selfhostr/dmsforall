@@ -53,9 +53,13 @@ export function EnTeteOrdreReparation({ or }: Props) {
   // Lot C (`docs/plan-refonte-navigation.md`) — fil d'Ariane contextuel « qui et quoi » (client ›
   // véhicule › OR), à la place du fil de menu générique. Mêmes cibles que les blocs identité
   // cliquables ci-dessous (Lot B) : `chemins.clients.detail`/`chemins.vehicules.detail`.
-  const plaqueTexte = or.vehicule.plaque
-    ? `${or.vehicule.canton ? `${or.vehicule.canton} ` : ''}${or.vehicule.plaque}`
-    : null;
+  // `or.vehicule.plaque` porte DÉJÀ le canton en préfixe côté contrat (même doctrine que
+  // `composants/identite/Plaque.tsx`, corrigé pour le même bug) : ne jamais le préfixer une
+  // seconde fois avec `or.vehicule.canton`, ça produit un doublon (« VS VS 123456 »). `libelle`
+  // du fil d'Ariane est une chaîne simple (`SegmentFilAriane.libelle: string`), donc pas question
+  // de réutiliser ici le composant `Plaque` (qui rend du JSX) — la chaîne serveur suffit telle
+  // quelle.
+  const plaqueTexte = or.vehicule.plaque;
   const libelleVehicule = plaqueTexte
     ? `${plaqueTexte} · ${or.vehicule.designation}`
     : or.vehicule.designation;
