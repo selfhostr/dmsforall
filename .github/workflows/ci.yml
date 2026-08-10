@@ -10,11 +10,29 @@ name: CI
 # Constaté en vrai : la PR « reconciliation des tests d'integration » est sortie avec ZÉRO check,
 # alors qu'elle rendait justement le job d'intégration vert. Impossible de le prouver autrement qu'en
 # local, ce qui est exactement ce que la CI existe pour éviter.
+#
+# `workflow_call` en plus : publier-images.yml (push sur main, push de tag vX.Y.Z) invoque CE
+# fichier comme workflow réutilisable pour ses trois jobs de qualité, au lieu d'en garder une copie.
+# Un `workflow_call` exécute les jobs appelés dans le run de l'appelant lui-même — contrairement à
+# une dépendance sur un run externe de ci.yml, il n'exige donc PAS que ci.yml ait été déclenché par
+# ailleurs au préalable. C'est ce qui rend la factorisation praticable même pour un push de tag, qui
+# ne déclenche jamais ci.yml par ses propres `on:` ci-dessus.
+#
+# Sur un push main, les deux déclencheurs coexistent : ci.yml tourne pour son propre `on: push`
+# ET à l'intérieur du run de publier-images.yml qui l'appelle — donc deux exécutions des mêmes
+# jobs de qualité. Accepté sciemment (déjà le cas avant ce fichier, quand publier-images.yml en
+# gardait sa propre copie) : factoriser plus loin pour l'éviter n'est justifié que si les minutes
+# CI deviennent un vrai problème, pas avant. Non vérifié en revanche, faute de pouvoir exécuter
+# GitHub Actions ici : le groupe de `concurrency` ci-dessous s'appuie sur `github.workflow`, qui
+# vaut le nom de l'appelant (« Publier les images ») quand ci.yml tourne en workflow_call — donc un
+# groupe différent de celui du run direct de ci.yml (« CI »). Les deux devraient coexister sans
+# s'annuler l'un l'autre, mais seul un vrai push le confirmera.
 on:
   push:
     branches: [main, dev]
   pull_request:
     branches: [main, dev]
+  workflow_call:
 
 # Annule les runs obsolètes d'une même branche/PR quand de nouveaux commits arrivent :
 # évite de consommer des minutes CI sur du code déjà dépassé.
