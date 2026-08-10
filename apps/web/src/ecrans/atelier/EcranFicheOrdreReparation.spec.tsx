@@ -557,7 +557,17 @@ describe('EcranFicheOrdreReparation', () => {
 
       // La ligne créée apparaît dans le tableau une fois l'OR relu (invalidation, pas
       // `setQueryData` — la réponse de `POST …/lignes` ne porte que la ligne, pas le document).
-      expect(await screen.findByText('Remplacement plaquettes de frein avant')).toBeInTheDocument();
+      // Chaîne à deux requêtes réseau (POST puis, via l'invalidation, un second GET) avant que le
+      // tableau ne se re-rende : plus longue que le timeout par défaut de `findBy*` (1000 ms) une
+      // fois les trois suites (API/web/shared) en concurrence pour le CPU — même correctif, pour la
+      // même raison, que `EcranDoublonsClients.spec.tsx`/`FormulaireNouveauClient.spec.tsx`
+      // (3000 ms) et `EcranEntreeEnStock.spec.tsx`/`EcranRechercheComptoirPieces.spec.tsx`/
+      // `EcranHangarPneus.spec.tsx`/`EcranListeVehicules.spec.tsx` (2000 ms) : une attente
+      // déterministe sur l'effet observable (le texte de la ligne), juste avec plus de marge sous
+      // charge — jamais un délai arbitraire, jamais le timeout global de la suite.
+      expect(
+        await screen.findByText('Remplacement plaquettes de frein avant', {}, { timeout: 3000 }),
+      ).toBeInTheDocument();
       expect(corpsRequete).toMatchObject({
         type: 'main_oeuvre_bareme',
         origine: 'commandee',
