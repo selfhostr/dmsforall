@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   EntreeAnnulationLignes,
   EntreeCreationLigneOr,
@@ -1295,6 +1295,121 @@ describe("ServiceLigneOr.creer — taux horaire d'une ligne de main-d'œuvre (RM
     );
 
     expect(valeursLigneInseree(appelsInsert)?.tauxHoraireCentimes).toBe(14_500);
+  });
+});
+
+/* ------------------------------------------------------------------------------------------- */
+/* RM-65 — désaccord de borne base/code sur une bascule de tarif, reproduit en exécution le      */
+/* 10.08.2026 :                                                                                  */
+/*                                                                                                */
+/*   POST /referentiels/taux-horaires {code:TEST-LIMITE, valideDuLe:2026-08-01,                  */
+/*        valideAuLe:2026-08-10}                                                    → 201        */
+/*   POST /referentiels/taux-horaires {code:TEST-LIMITE, valideDuLe:2026-08-10,                  */
+/*        valideAuLe:null}                                                          → 201        */
+/*                                                                                                */
+/* La contrainte EXCLUDE `daterange(valide_du, valide_au, '[)')` (migration 0005_parametrage.sql, */
+/* même borne sur `client_condition` en 0006) ACCEPTE cette saisie : borne haute EXCLUSIVE, les    */
+/* deux périodes ne se chevauchent pas. `resoudreTauxHoraireCentimes` lisait AUPARAVANT           */
+/* `valideAu >= dateJour` — borne haute INCLUSIVE, en désaccord avec la base — et les DEUX lignes  */
+/* remontaient comme « en vigueur » le jour de la bascule ; sans ORDER BY, laquelle `.find()`      */
+/* retenait dépendait de l'ordre de retour de PostgreSQL, non garanti. Ces tests rejouent EXACTEMENT */
+/* cette séquence et prouvent qu'un seul taux est retenu, TOUJOURS LE MÊME, quel que soit l'ordre  */
+/* dans lequel les lignes sont rendues.                                                            */
+/* ------------------------------------------------------------------------------------------- */
+describe('ServiceLigneOr.creer — bascule de tarif sur la borne de date (RM-65)', () => {
+  const VEILLE_BASCULE = new Date('2026-08-09T10:00:00.000Z');
+  const JOUR_BASCULE = new Date('2026-08-10T10:00:00.000Z');
+
+  const ANCIEN_TAUX = tauxHoraireFixture({
+    id: 'taux-ancien-limite',
+    code: 'TEST-LIMITE',
+    libelle: 'Ancien taux (avant bascule)',
+    montantCentimes: 10_000,
+    valideDu: '2026-08-01',
+    valideAu: '2026-08-10',
+  });
+  const NOUVEAU_TAUX = tauxHoraireFixture({
+    id: 'taux-nouveau-limite',
+    code: 'TEST-LIMITE',
+    libelle: 'Nouveau taux (dès bascule)',
+    montantCentimes: 20_000,
+    valideDu: '2026-08-10',
+    valideAu: null,
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it.each([
+    ['ancien puis nouveau', [ANCIEN_TAUX, NOUVEAU_TAUX], 'idem-limite-ordre-1'],
+    [
+      'nouveau puis ancien (ordre PostgreSQL non garanti)',
+      [NOUVEAU_TAUX, ANCIEN_TAUX],
+      'idem-limite-ordre-2',
+    ],
+  ])(
+    "le jour de la bascule (le 10, borne haute exclusive de l'ancien = borne basse inclusive du nouveau) → le NOUVEAU taux (200.00/h) s'applique SEUL, quel que soit l'ordre de retour des lignes (%s)",
+    async (_libelle, ordreLignes, idemKey) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(JOUR_BASCULE);
+
+      const or = { ...orFixture(), conditionsFigees: { tauxHoraireCode: 'TEST-LIMITE' } };
+      vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+      vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+
+      const { tx, appelsInsert } = txMainOeuvre(
+        ordreLignes,
+        ligneFixture({ type: 'main_oeuvre_bareme', tauxHoraireCentimes: 20_000 }),
+      );
+
+      const resultat = await serviceFacticeMainOeuvre(tx).creer(
+        CTX,
+        principal('receptionnaire'),
+        OR_ID,
+        entreeMainOeuvreFixture(),
+        idemKey,
+      );
+
+      expect(resultat.reponse.statutHttp).toBe(201);
+      // 1.5 h à 200.00/h : HT = 30'000, TVA 8.1 % = 2'430 (pas d'arrondi ambigu), TTC = 32'430.
+      expect(valeursLigneInseree(appelsInsert)).toMatchObject({
+        tauxHoraireCentimes: 20_000,
+        montantHtCentimes: 30_000,
+        montantTvaCentimes: 2_430,
+        montantTtcCentimes: 32_430,
+      });
+    },
+  );
+
+  it("la veille de la bascule (le 9) → l'ANCIEN taux (100.00/h) s'applique encore, seul", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(VEILLE_BASCULE);
+
+    const or = { ...orFixture(), conditionsFigees: { tauxHoraireCode: 'TEST-LIMITE' } };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.listerLignesOr).mockResolvedValue([]);
+
+    const { tx, appelsInsert } = txMainOeuvre(
+      [ANCIEN_TAUX, NOUVEAU_TAUX],
+      ligneFixture({ type: 'main_oeuvre_bareme', tauxHoraireCentimes: 10_000 }),
+    );
+
+    await serviceFacticeMainOeuvre(tx).creer(
+      CTX,
+      principal('receptionnaire'),
+      OR_ID,
+      entreeMainOeuvreFixture(),
+      'idem-limite-veille',
+    );
+
+    // 1.5 h à 100.00/h : HT = 15'000, TVA 8.1 % = 1'215 (pas d'arrondi ambigu), TTC = 16'215.
+    expect(valeursLigneInseree(appelsInsert)).toMatchObject({
+      tauxHoraireCentimes: 10_000,
+      montantHtCentimes: 15_000,
+      montantTvaCentimes: 1_215,
+      montantTtcCentimes: 16_215,
+    });
   });
 });
 

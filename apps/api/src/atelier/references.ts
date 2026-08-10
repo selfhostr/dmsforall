@@ -289,9 +289,20 @@ export async function chargerConditionsEnVigueur(
     .select()
     .from(clientCondition)
     .where(and(eq(clientCondition.tenantId, ctx.tenantId), eq(clientCondition.clientId, clientId)));
+  /**
+   * Borne haute EXCLUSIVE — alignée sur la contrainte `EXCLUDE ... daterange(valide_du, valide_au,
+   * '[)')` de `client_condition` (migration 0006_clients.sql). Même défaut que
+   * `service-ligne-or.ts::resoudreTauxHoraireCentimes` (RM-65) : une lecture inclusive de
+   * `valideAu` désaccorde le code de la base sur une bascule de conditions saisie « ancien jusqu'au
+   * 10 inclus, nouveau dès le 10 ». Tri décroissant sur `valideDu` avant le `.find()` : ceinture et
+   * bretelles, l'EXCLUDE garantit qu'au plus une période n'est en vigueur à une date donnée, mais un
+   * `.find()` sur un résultat potentiellement ambigu ne doit jamais dépendre d'un ordre non garanti
+   * — la période la plus récemment valide est celle qui a un sens métier en cas d'ambiguïté.
+   */
   return (
-    lignes.find((l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu >= dateJour)) ??
-    null
+    [...lignes]
+      .sort((a, b) => b.valideDu.localeCompare(a.valideDu))
+      .find((l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu > dateJour)) ?? null
   );
 }
 

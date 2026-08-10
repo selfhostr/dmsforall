@@ -1018,9 +1018,27 @@ export class ServiceLigneOr {
       .where(eq(tauxHoraire.tenantId, ctx.tenantId));
 
     const dateJour = new Date().toISOString().slice(0, 10);
-    const enVigueur = lignes.filter(
-      (l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu >= dateJour),
-    );
+    /**
+     * Borne haute EXCLUSIVE — alignée sur la contrainte `EXCLUDE ... daterange(valide_du,
+     * valide_au, '[)')` de `taux_horaire` (migration 0005_parametrage.sql). Avant ce correctif,
+     * ce filtre lisait la borne haute comme INCLUSIVE (`valideAu >= dateJour`), en désaccord avec
+     * la base : une saisie naturelle « ancien tarif jusqu'au 10 inclus, nouveau dès le 10 »
+     * (`valideAuLe` de l'ancien = `valideDuLe` du nouveau) est ACCEPTÉE par la contrainte (les deux
+     * périodes ne se chevauchent pas en `[)`) mais faisait remonter LES DEUX lignes ici — le taux
+     * facturé le jour de la bascule dépendait alors de l'ordre de retour de PostgreSQL, non
+     * garanti. Reproduit en exécution le 10.08.2026 ; voir service-ligne-or.spec.ts pour le test
+     * qui rejoue exactement cette séquence.
+     *
+     * Tri décroissant sur `valideDu`, ceinture et bretelles : l'EXCLUDE garantit qu'au plus UNE
+     * période d'un même `code` peut être en vigueur à une date donnée (donc `.find()` ci-dessous
+     * ne peut normalement pas être ambigu), mais un filtre qui PEUT rendre plusieurs lignes ne
+     * doit jamais dépendre d'un ordre non garanti. Retenir la période la plus RÉCEMMENT valide en
+     * cas d'ambiguïté résiduelle est le choix qui a un sens métier : un tarif fraîchement saisi
+     * prime sur un résidu historique mal clôturé.
+     */
+    const enVigueur = [...lignes]
+      .sort((a, b) => b.valideDu.localeCompare(a.valideDu))
+      .filter((l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu > dateJour));
 
     if (codeClient) {
       const negocie = enVigueur.find((l) => l.code === codeClient);
