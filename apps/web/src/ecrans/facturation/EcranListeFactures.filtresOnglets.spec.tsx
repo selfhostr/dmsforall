@@ -26,15 +26,14 @@ import { EcranListeFactures } from './EcranListeFactures';
  * la couche transport (`hooks/facturation/documents-vente.api.ts`, HORS périmètre de cet agent) est
  * doublée ici — volontairement, pour ne pas faire dépendre ce test de sa sérialisation d'URL.
  *
- * SIGNALÉ, PAS CORRIGÉ (hors périmètre `apps/web/src/ecrans/facturation/`) :
- * `construireParametres` dans `apps/web/src/hooks/facturation/documents-vente.api.ts` construit
- * aujourd'hui l'URL de `GET /documents-vente` champ par champ et n'ajoute NI `enRetard` NI
- * `relanceNiveau` à la requête HTTP réelle — seuls `siteId`, `typeDocument`, `natureFacture`,
- * `statut`, `statutReglement`, `clientId`, `vehiculeId`, `ordreReparationId`, `dateDocumentDu/Au`,
- * `q` et `tri` sont sérialisés. Sans l'ajout de ces deux lignes dans cette fonction, les filtres
- * corrects construits ici n'atteignent jamais le serveur : le doublage de `listerDocumentsVente`
- * dans ce fichier de test est ce qui permet de vérifier la responsabilité de CET écran sans être
- * bloqué par ce défaut voisin, à corriger par le propriétaire de `hooks/facturation/`.
+ * CORRIGÉ DEPUIS (vérifié en relisant `apps/web/src/hooks/facturation/documents-vente.api.ts` lors
+ * du correctif « facture annulée par avoir visible dans le panneau d'encaissement ») : ce paragraphe
+ * signalait autrefois que `construireParametres` n'ajoutait NI `enRetard` NI `relanceNiveau` à l'URL
+ * réelle — ce n'est plus le cas, les deux sont sérialisés (`if (filtres.enRetard !== undefined) ...`,
+ * `if (filtres.relanceNiveau !== undefined) ...`). Le doublage de `listerDocumentsVente` dans ce
+ * fichier reste néanmoins volontaire : il isole la responsabilité de CET écran (construire le bon
+ * `FiltresDocumentsVente` par onglet) de celle de la couche transport, déjà couverte séparément par
+ * `hooks/facturation/documents-vente.api.spec.ts`.
  *
  * Un test qui se contenterait de vérifier le texte affiché resterait vert même si
  * `onglet === 'enRetard'` ne posait plus aucun filtre — d'où l'assertion directe sur l'argument
@@ -119,6 +118,41 @@ describe('EcranListeFactures — filtres réels par onglet', () => {
       expect(filtres.relanceNiveau).toBeUndefined();
     });
   });
+
+  it(
+    "ne pose AUCUN filtre `statut` sur l'onglet « Toutes » — une facture annulée par avoir doit " +
+      "y rester visible (§ tête de fichier : l'écran ne doit jamais donner l'impression qu'un " +
+      "document annulé n'a pas existé, correctif « facture annulée par avoir visible dans le " +
+      'panneau d’encaissement »)',
+    async () => {
+      const utilisateur = userEvent.setup();
+      rendre();
+      await waitFor(() => expect(listerDocumentsVenteMock).toHaveBeenCalled());
+
+      // Le défaut au premier rendu est « Non réglées » (§7.1), PAS « Toutes » — navigation
+      // explicite, pour ne pas dépendre de l'ordre des tests ni du défaut de l'écran.
+      await utilisateur.click(await screen.findByRole('tab', { name: 'Toutes' }));
+
+      await waitFor(() => expect(dernierFiltres().statut).toBeUndefined());
+    },
+  );
+
+  it(
+    "pose statut=['emis'] sur l'onglet « Non réglées » (défaut au premier rendu) — DÉFAUT CORRIGÉ : " +
+      '`statutReglement` seul ne suffit pas, une facture `annule_par_avoir` conserve le ' +
+      "`statutReglement` d'AVANT son annulation (`RF-32` ne le nettoie pas côté serveur) et passait " +
+      'ce filtre alors que sa dette est éteinte — voir `useFacturesOuvertesClient.spec.tsx` pour le ' +
+      'même correctif côté panneau d’encaissement',
+    async () => {
+      rendre();
+
+      await waitFor(() => {
+        const filtres = dernierFiltres();
+        expect(filtres.statut).toEqual(['emis']);
+        expect(filtres.statutReglement).toEqual(['non_regle', 'partiel']);
+      });
+    },
+  );
 
   it(
     "affiche l'état vide « aucune facture en retard » seulement APRÈS une réponse serveur " +

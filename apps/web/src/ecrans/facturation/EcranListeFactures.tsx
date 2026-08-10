@@ -17,6 +17,7 @@ import { useListeDocumentsVente } from '@/hooks/facturation/useListeDocumentsVen
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
 
+import { BadgeEtatDocument } from './BadgeEtatDocument';
 import { BadgeStatutReglement } from './BadgeStatutReglement';
 import { peutVoirMontantsFacturation } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
@@ -85,7 +86,11 @@ export function EcranListeFactures() {
       tri: onglet === 'nonReglees' ? 'dateDocument:asc' : 'dateDocument:desc',
     };
     if (onglet === 'nonReglees') {
-      return { ...base, statutReglement: ['non_regle', 'partiel'] };
+      // `statut: ['emis']` — même correctif que `useFacturesOuvertesClient` (`hooks/facturation/`) :
+      // `statutReglement` seul laissait passer une facture `annule_par_avoir`, qui conserve le
+      // `statutReglement` d'avant son annulation (`RF-32` ne le nettoie pas). Sans ce filtre,
+      // l'onglet « Non réglées » proposait comme dette active une créance déjà éteinte par avoir.
+      return { ...base, statut: ['emis'], statutReglement: ['non_regle', 'partiel'] };
     }
     if (onglet === 'enRetard') {
       return { ...base, enRetard: true };
@@ -168,8 +173,17 @@ export function EcranListeFactures() {
           {
             id: 'statut',
             libelle: t('facturation:liste.colonnes.statut'),
+            // L'onglet « Toutes » n'a AUCUN filtre `statut` (§ tête de fichier, correctif
+            // `nonReglees` ci-dessus) : une facture `annule_par_avoir` y reste visible — l'écran ne
+            // doit jamais donner l'impression qu'elle n'a pas existé. Mais son `statutReglement`
+            // (`non_regle`/`partiel`) est celui d'AVANT l'annulation (`RF-32` ne le nettoie pas) :
+            // afficher ce badge sur une créance déjà éteinte par avoir la ferait lire comme une
+            // dette active. `BadgeEtatDocument` (déjà utilisé sur la fiche facture) rend l'état réel
+            // à la place, jamais les deux superposés.
             rendu: (document_: DocumentVenteResume) =>
-              document_.statutReglement ? (
+              document_.statut === 'annule_par_avoir' ? (
+                <BadgeEtatDocument etat="annule_par_avoir" />
+              ) : document_.statutReglement ? (
                 <BadgeStatutReglement statut={document_.statutReglement} />
               ) : null,
           },
