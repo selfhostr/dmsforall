@@ -24,6 +24,7 @@ import { GenericContainer, type StartedTestContainer } from 'testcontainers';
 import { Test } from '@nestjs/testing';
 import { INestApplication, VersioningType } from '@nestjs/common';
 import type { Pool } from 'pg';
+import type Redis from 'ioredis';
 import supertest from 'supertest';
 
 import { chargerConfig, ConfigModule, type Config } from '../../src/config';
@@ -31,6 +32,7 @@ import { DbModule, type AccesBase } from '../../src/db';
 import { FiltreProbleme } from '../../src/common/erreurs';
 import { AppModule } from '../../src/app.module';
 import { initialiserSentry } from '../../src/observabilite';
+import { JETON_REDIS } from '../../src/common/limitation/redis.provider';
 import type { BaseEphemere } from './postgres-ephemere';
 
 // -----------------------------------------------------------------------------------------
@@ -197,6 +199,25 @@ export async function creerAppTest(
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   await app.init();
 
+  // Capturé maintenant (DI garantie vivante) plutôt qu'au moment de `fermer()` : évite de
+  // dépendre du fait qu'`app.get()` reste utilisable après `app.close()`, et rend explicite
+  // que ce client est LE MÊME que celui injecté dans toute l'app (LimitationModule est
+  // `@Global`, voir `common.module.ts` — un seul `JETON_REDIS` pour tout le graphe de test).
+  //
+  // Pourquoi c'est nécessaire : `providerRedis` (`src/common/limitation/redis.provider.ts`)
+  // est un simple `useFactory` qui construit un client `ioredis` — ni classe `OnModuleDestroy`
+  // ni `onApplicationShutdown` enregistré nulle part. `app.close()` ne le ferme donc JAMAIS de
+  // lui-même : la connexion TCP reste ouverte après le retour de `fermer()`. Dans une suite
+  // d'intégration qui arrête ensuite le conteneur Redis éphémère (`RedisEphemere.fermer()`),
+  // cette connexion encore vivante essaie d'écrire sur un socket qui vient de disparaître —
+  // `ioredis` émet alors un événement `error` (EPIPE / AggregateError) sur une instance sans
+  // AUCUN écouteur `.on('error', ...)`, ce qui remonte en exception non rattrapée et fait
+  // sortir le process Node en code 1, même quand toute la suite est verte. Fermer ce client
+  // explicitement, ICI, avant que le conteneur ne soit arrêté, retire la connexion AVANT que le
+  // serveur qu'elle cible ne disparaisse — plutôt que de masquer le symptôme en ajoutant un
+  // écouteur `error` muet, ce qui ferait disparaître le rouge sans rien fermer.
+  const redisClient = app.get<Redis>(JETON_REDIS);
+
   return {
     app,
     requete: supertest(app.getHttpServer()),
@@ -205,7 +226,18 @@ export async function creerAppTest(
     poolApp: bdd.poolApp,
     poolMigrateur: bdd.poolMigrateur,
     async fermer(): Promise<void> {
+      // Ordre délibéré : d'abord `app.close()` (plus aucune requête HTTP en vol, tous les
+      // `onModuleDestroy` de l'app tournent), PUIS le client Redis applicatif — un consommateur
+      // ferme toujours avant le conteneur qu'il consomme (voir le commentaire ci-dessus). C'est
+      // le SEUL client Redis de toute l'app de test : `ServiceLimitationDebitRedis`,
+      // `ServiceVerrouillagePin` et `SanteController` injectent tous le même `JETON_REDIS`
+      // (`@Global`), aucun autre client n'est créé ailleurs dans le graphe.
       await app.close();
+      // `quit()` (fermeture propre : laisse partir les commandes en vol) plutôt que
+      // `disconnect()` : rien ici ne justifie une coupure brutale, et `quit()` échoue de toute
+      // façon proprement si la connexion est déjà tombée (pas de nouvel `unhandledRejection` :
+      // la promesse rejetée serait attendue par ce `await`, pas laissée filer).
+      await redisClient.quit();
     },
   };
 }
