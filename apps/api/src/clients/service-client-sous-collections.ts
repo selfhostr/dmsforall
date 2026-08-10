@@ -2,6 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, getTableColumns, sql } from 'drizzle-orm';
 import {
   npaSuisseValide,
+  schemaModificationAdresseClient,
+  schemaModificationContactClient,
   TRI_DEFAUT_CREATION,
   type EntreeAdresseClient,
   type EntreeConditionClient,
@@ -36,6 +38,7 @@ import {
   encoderCurseurTrie,
   valeurCurseurTimestamptz,
 } from '../common/pagination';
+import { neGarderQueChampsEnvoyes, PipeZod } from '../common/validation';
 
 import type { AuteurNote } from './mappers';
 import {
@@ -83,6 +86,11 @@ function estViolation(erreur: unknown, sqlstate: string, contrainte?: string): b
   }
   return false;
 }
+
+// `neGarderQueChampsEnvoyes` (F-01-bis, ce correctif est né sur ce fichier) a été promue en
+// utilitaire partagé : voir `common/validation/champs-envoyes.ts` pour le mécanisme zod
+// `.partial()` + `.default(...)` et le cas réel (adresse autrichienne basculée en `pays: 'CH'`)
+// qui l'a révélé.
 
 /**
  * Curseur v2 (`creeLe:desc`, seul tri des cinq sous-collections — aucune n'expose de `tri`
@@ -238,13 +246,22 @@ export class ServiceClientSousCollections {
     ctx: ContexteTenant,
     clientId: string,
     adresseId: string,
-    entree: Partial<EntreeAdresseClient> & { readonly actif?: boolean },
+    corpsBrut: Record<string, unknown>,
   ): Promise<ReponseAvecAvertissements<ReponseClientAdresse>> {
     // F-01 (audit sécurité) : un corps vide n'est pas une erreur interne — c'est une entrée
     // invalide, refusée AVANT d'ouvrir la transaction, avant même de vérifier que le client
     // existe. Sans cette garde, `tx.update(...).set({})` atteint Drizzle/Postgres, qui refuse
     // avec un message d'infrastructure ("No values to set") — c'est CE message qui fuitait au
     // client via `detail` (voir `traduireViolationAdresse`, corrigé dans le même correctif).
+    //
+    // La garde porte sur le corps BRUT (`corpsBrut`), jamais sur l'objet zod-parsé : voir
+    // `neGarderQueChampsEnvoyes` ci-dessus pour la raison (un `.default(...)` de
+    // `schemaModificationAdresseClient` rend un corps `{}` non vide UNE FOIS PARSÉ).
+    this.exigerCorpsNonVide(corpsBrut);
+    const entreeParsee = new PipeZod(schemaModificationAdresseClient).transform(corpsBrut);
+    const entree = neGarderQueChampsEnvoyes(corpsBrut, entreeParsee);
+    // Un corps qui ne porte QUE des clés inconnues (zod les retire silencieusement au parse) est
+    // vide une fois filtré, même si `corpsBrut` ne l'était pas — même garde, second passage.
     this.exigerCorpsNonVide(entree);
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);
@@ -386,10 +403,18 @@ export class ServiceClientSousCollections {
     ctx: ContexteTenant,
     clientId: string,
     contactId: string,
-    entree: Partial<EntreeContactClient> & { readonly actif?: boolean },
+    corpsBrut: Record<string, unknown>,
   ): Promise<ReponseAvecAvertissements<ReponseClientContact>> {
     // F-01 (audit sécurité) : même garde que `modifierAdresse` — un corps vide est une entrée
-    // invalide, refusée avant d'atteindre la base.
+    // invalide, refusée avant d'atteindre la base. `schemaModificationContactClient` ne porte
+    // aucun `.default(...)` aujourd'hui (contrairement à `schemaModificationAdresseClient`,
+    // `pays`) donc `entree === corpsBrut` en pratique ici — même patron gardé par cohérence et
+    // pour rester protégé si un `.default(...)` y était ajouté un jour.
+    this.exigerCorpsNonVide(corpsBrut);
+    const entreeParsee = new PipeZod(schemaModificationContactClient).transform(corpsBrut);
+    const entree = neGarderQueChampsEnvoyes(corpsBrut, entreeParsee);
+    // Même garde en second passage que `modifierAdresse` — voir ce commentaire pour le cas
+    // (corps ne portant que des clés inconnues) qu'elle ferme.
     this.exigerCorpsNonVide(entree);
     return this.acces.enTenant(ctx, async (tx) => {
       await this.verifierClientExiste(tx, ctx, clientId);

@@ -5,7 +5,6 @@ import type {
   EntreeCreationReferenceArticle,
   EntreeDesactivationArticle,
   EntreeMarquageObsolete,
-  EntreeModificationArticle,
   FiltresReferencesArticle,
   PageCurseur,
   ReponseArticle,
@@ -14,7 +13,7 @@ import type {
   ResultatRechercheComptoirArticle,
   RoleUtilisateur,
 } from '@dfa/shared';
-import { SEUIL_REFERENCES_EMBARQUEES_ARTICLE } from '@dfa/shared';
+import { schemaModificationArticle, SEUIL_REFERENCES_EMBARQUEES_ARTICLE } from '@dfa/shared';
 
 import type { AccesBase, ContexteTenant, TransactionDfa } from '../db';
 import { JETON_DB } from '../db';
@@ -33,6 +32,7 @@ import type {
   ResultatIdempotent,
   ServiceIdempotence,
 } from '../common/idempotence';
+import { neGarderQueChampsEnvoyes, PipeZod } from '../common/validation';
 
 import {
   versArticleReferenceResponse,
@@ -362,12 +362,30 @@ export class ServiceArticle {
     });
   }
 
+  /**
+   * `PATCH /articles/{id}` — `corpsBrut` reste NON PARSÉ à l'entrée du service, jamais un
+   * `EntreeModificationArticle` déjà passé par zod côté contrôleur (F-01-bis, même défaut que
+   * `ServiceClient.modifier` / `ServiceClientSousCollections.modifierAdresse`, voir
+   * `common/validation/champs-envoyes.ts`) : `schemaModificationArticle` porte
+   * `estEchangeStandard.default(false)`, que `.partial()` rend FACULTATIF sans annuler le défaut.
+   * Un `PATCH` qui ne mentionne jamais `estEchangeStandard` ressort du `.parse()` avec
+   * `estEchangeStandard: false` injecté — et cette valeur fantôme désynchronise
+   * `montantConsigneTtcCentimes` (toujours en base), ce qui fait taire
+   * `ServiceConsigne.consigneAGenerer` (`RP-37` : plus de consigne facturée/restituée à la
+   * réalisation d'une ligne d'échange standard). `neGarderQueChampsEnvoyes` ne retient que les
+   * clés réellement présentes dans `corpsBrut` — c'est elle, jamais `entree.champ !== undefined`
+   * (toujours vrai après coup pour un champ à défaut), qui distingue « non envoyé » de « envoyé
+   * false ».
+   */
   async modifier(
     ctx: ContexteTenant,
     role: RoleUtilisateur,
     articleId: string,
-    entree: EntreeModificationArticle,
+    corpsBrut: Record<string, unknown>,
   ): Promise<ReponseAvecAvertissements<ReponseArticle>> {
+    const entreeParsee = new PipeZod(schemaModificationArticle).transform(corpsBrut);
+    const entree = neGarderQueChampsEnvoyes(corpsBrut, entreeParsee);
+
     return this.acces.enTenant(ctx, async (tx) => {
       await this.chargerOu404(tx, ctx, articleId);
 

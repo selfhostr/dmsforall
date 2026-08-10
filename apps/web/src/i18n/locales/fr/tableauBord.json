@@ -5,6 +5,9 @@
     "au": "Au",
     "periodeAffichee": "Période affichée : {du} – {au}"
   },
+  "communs": {
+    "voirFactures": "Voir les factures"
+  },
   "activite": {
     "titre": "Activité",
     "erreur": {
@@ -14,7 +17,8 @@
       "titre": "OR en cours par statut"
     },
     "ordresOuverts": {
-      "libelle": "OR ouverts sur la période"
+      "libelle": "OR ouverts sur la période",
+      "libelleAujourdhui": "OR ouverts aujourd'hui"
     },
     "ordresRestitues": {
       "libelle": "OR restitués sur la période"
@@ -48,6 +52,81 @@
     },
     "encoursClients": {
       "libelle": "Encours clients"
+    }
+  },
+  "direction": {
+    "sortiesDuSoir": {
+      "titre": "Sorties du soir",
+      "description": "Restitutions promises aux clients aujourd'hui.",
+      "vide": {
+        "titre": "Aucune sortie prévue ce soir",
+        "description": "Aucun ordre de réparation ouvert n'a de date de restitution promise aujourd'hui."
+      }
+    }
+  },
+  "comptable": {
+    "aRelancer": {
+      "titre": "Factures à relancer",
+      "description": "Ouvrez la liste des factures et sélectionnez l'onglet « À relancer ».",
+      "lien": "Ouvrir les factures"
+    }
+  },
+  "chefAtelier": {
+    "sortiesDuJour": {
+      "titre": "Sorties du jour",
+      "description": "Restitutions promises aux clients aujourd'hui.",
+      "vide": {
+        "titre": "Aucune sortie prévue aujourd'hui",
+        "description": "Aucun ordre de réparation ouvert n'a de date de restitution promise aujourd'hui."
+      }
+    },
+    "equipeEnCours": {
+      "titre": "Qui travaille sur quoi",
+      "erreur": "Impossible d'afficher l'équipe en cours",
+      "vide": {
+        "titre": "Personne en pointage actif",
+        "description": "Aucun pointage en cours pour le moment."
+      },
+      "activiteIndirecte": "Activité indirecte",
+      "autres": "{count, plural, one {+ # autre} other {+ # autres}}"
+    }
+  },
+  "magasinier": {
+    "reservations": {
+      "titre": "Réservations actives",
+      "description": "Pièces réservées sur un ordre de réparation, pas encore remises.",
+      "lien": "Voir les réservations"
+    },
+    "reapprovisionnement": {
+      "erreur": "Impossible d'afficher le réapprovisionnement",
+      "vide": {
+        "titre": "Aucun article sous le seuil",
+        "description": "Tous les articles suivis sont au-dessus de leur seuil de réapprovisionnement."
+      },
+      "ecart": "{ecart, plural, one {# unité manquante} other {# unités manquantes}}",
+      "autres": "{count, plural, one {+ # autre article} other {+ # autres articles}}"
+    }
+  },
+  "technicien": {
+    "titre": "Mes OR assignés",
+    "erreur": "Impossible d'afficher vos ordres de réparation",
+    "vide": {
+      "titre": "Aucun OR assigné",
+      "description": "Vous n'avez aucune ligne assignée sur un ordre de réparation ouvert pour le moment."
+    }
+  },
+  "admin": {
+    "raccourcis": {
+      "titre": "Raccourcis",
+      "sites": "Gérer les sites",
+      "parametrageAtelier": "Paramétrage de l'atelier"
+    }
+  },
+  "vendeur": {
+    "indisponible": {
+      "titre": "Tableau de bord indisponible",
+      "description": "L'API ne permet pas encore de filtrer les dossiers de vente par vendeur responsable : afficher tous les dossiers du site sous « vos dossiers » serait trompeur. Retrouvez votre travail dans Ventes › Dossiers.",
+      "lien": "Aller à mes dossiers"
     }
   }
 }

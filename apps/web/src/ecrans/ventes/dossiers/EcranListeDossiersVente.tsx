@@ -229,7 +229,7 @@ export function EcranListeDossiersVente() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-6 p-6">
+      <div className="flex flex-col gap-6">
         <h1 className="texte-titre-section font-semibold text-foreground">
           {t('ventes:dossier.liste.titre')}
         </h1>
@@ -240,7 +240,7 @@ export function EcranListeDossiersVente() {
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6 p-6">
+      <div className="flex flex-col gap-6">
         <h1 className="texte-titre-section font-semibold text-foreground">
           {t('ventes:dossier.liste.titre')}
         </h1>
@@ -253,8 +253,12 @@ export function EcranListeDossiersVente() {
     );
   }
 
+  // Pas de `p-6` ici : `AppShell` pose déjà `p-4 sm:p-6` sur le `<main>` qui enveloppe cet écran —
+  // un `p-6` local le DOUBLAIT (48px au lieu de 24px, mesuré), seul le titre restait visible ici
+  // (h1 « Dossiers de vente », qui AJOUTE une précision absente de l'onglet « Dossiers » — pas un
+  // doublon, donc pas de `sr-only`, à la différence de `EcranListeVehiculesStock`/`EcranSuiviVentes`).
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <h1 className="texte-titre-section font-semibold text-foreground">
           {t('ventes:dossier.liste.titre')}

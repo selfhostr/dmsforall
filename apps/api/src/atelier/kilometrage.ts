@@ -1,10 +1,10 @@
-import type { UniteDistance } from '@dfa/shared';
+/**
+ * Réexporte `convertirEnKm` depuis `vehicules/kilometrage.regles.ts`.
+ *
+ * Cette fonction compare toujours la valeur convertie à `vehicule_kilometrage.valeur_km`
+ * (colonne GÉNÉRÉE en base : `round(valeur * 1.609344)::integer`, voir `migrations/0007_vehicules.sql`)
+ * pour détecter `VEHICULE_KILOMETRAGE_REGRESSIF`. Il n'existe qu'une seule implémentation,
+ * importée ici — la source de vérité est `vehicules/kilometrage.regles.ts`.
+ */
 
-/** Conversion mile -> km FAITE PAR LE SERVEUR (CT-08) : le client n'a aucune arithmétique
- *  d'unité à rejouer, et la comparaison de régression (VEHICULE_KILOMETRAGE_REGRESSIF) se fait
- *  toujours sur la valeur convertie. */
-const FACTEUR_MILE_VERS_KM = 1.60934;
-
-export function convertirEnKm(valeur: number, unite: UniteDistance): number {
-  return unite === 'mi' ? Math.round(valeur * FACTEUR_MILE_VERS_KM) : valeur;
-}
+export { convertirEnKm } from '../vehicules/kilometrage.regles';

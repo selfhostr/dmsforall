@@ -1,6 +1,7 @@
 {
   "titre": "Veicoli",
   "nouveau": "Nuovo veicolo",
+  "nouveauPourClient": "Questo veicolo sarà associato a {nom}.",
   "creer": "Crea veicolo",
   "liste": {
     "titre": "Veicoli",
@@ -94,12 +95,24 @@
     "detenteur": "Proprietario attuale",
     "historique": "Storico dei proprietari",
     "changer": "Cambia proprietario",
+    "rattacher": "Associa a un cliente",
     "motifs": {
       "vente": "Vendita",
       "reprise": "Ripresa",
       "deces": "Decesso",
       "correction": "Correzione",
       "export": "Esportazione"
+    },
+    "dialogue": {
+      "titreRattacher": "Associa questo veicolo a un cliente",
+      "titreChanger": "Cambia il proprietario di questo veicolo",
+      "detenteurActuelLabel": "Proprietario attuale",
+      "clientLabel": "Cliente",
+      "rechercherPlaceholder": "Nome, numero cliente…",
+      "aucunClient": "Nessun cliente trovato.",
+      "dateLabel": "Dal",
+      "motifLabel": "Motivo di fine detenzione",
+      "modifierSelection": "Modifica"
     }
   },
   "kilometrage": {

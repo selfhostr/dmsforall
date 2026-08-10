@@ -35,7 +35,9 @@ interface VariablesSuppressionLigne {
 }
 
 /** Retrait d'une ligne ajoutée par erreur en facturation (§4.3) — jamais une ligne recopiée d'un
- *  OR. Voir l'ÉCART SIGNALÉ dans `documents-vente.api.ts` (verbe HTTP supposé, non confirmé). */
+ *  OR. Le verbe `DELETE` est confirmé par le contrat régénéré (voir la note de fraîcheur en tête de
+ *  `documents-vente.api.ts`) — reste vrai en revanche : ni ce hook ni `useAjouterLigneDocument`
+ *  ci-dessus n'ont d'appelant dans `apps/web/src/ecrans/**` à ce jour. */
 export function useSupprimerLigneDocument(): UseMutationResult<
   ReponseDocumentVente,
   unknown,

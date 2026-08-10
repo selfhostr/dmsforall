@@ -366,7 +366,11 @@
     "titre": "Nuovo ordine di riparazione",
     "siteManquant": {
       "titre": "Nessuna sede selezionata",
-      "description": "Selezionare una sede prima di aprire un ordine di riparazione: la numerazione e i parametri dell'ordine ne dipendono."
+      "description": "Selezionare una sede prima di aprire un ordine di riparazione: la numerazione e i parametri dell'ordine ne dipendono.",
+      "label": "Sede",
+      "erreur": {
+        "titre": "Impossibile caricare le sedi"
+      }
     },
     "client": {
       "requisTitre": "Nessun cliente selezionato",

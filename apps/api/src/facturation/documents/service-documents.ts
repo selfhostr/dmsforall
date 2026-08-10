@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, gt, gte, inArray, isNotNull, lt, lte, sql } from 'drizzle-orm';
+import { schemaModificationLigneDocument } from '@dfa/shared';
 import type {
   EntreeCreationDocumentVente,
   EntreeCreationLigneDocument,
@@ -38,6 +39,7 @@ import { ServiceMouvement } from '../../pieces/service-mouvement';
 // circulaire entre `facturation/` et `recherche/`. `motifFragment` est une fonction PURE (voir son
 // en-tête) : aucune connexion, aucun couplage NestJS.
 import { motifFragment } from '../../recherche/utilitaires-recherche';
+import { neGarderQueChampsEnvoyes, PipeZod } from '../../common/validation';
 
 import { calculerLigneDocument, calculerTotauxDocument } from './calcul-document';
 import {
@@ -413,13 +415,34 @@ export class ServiceDocumentsVente {
     );
   }
 
+  /**
+   * DÉFAUT CRITIQUE CORRIGÉ (argent) : `schemaModificationLigneDocument` est un
+   * `formeLigneDocument.partial()` — `.partial()` rend `quantiteMillieme`/`regimeTva`
+   * OPTIONNELS, il n'annule PAS leurs `.default(1000)`/`.default('normal')` (même mécanisme que
+   * F-01-bis, `common/validation/champs-envoyes.ts`). Avant ce correctif, le contrôleur parsait le
+   * corps AVANT d'appeler ce service (`@CorpsZod`) : un `PATCH { designation: '…' }` qui ne touche
+   * QUE le libellé ressortait du `.parse()` avec `quantiteMillieme: 1000`/`regimeTva: 'normal'`
+   * PEU IMPORTE la ligne réelle — `fusionnerLigne` (`entree.quantiteMillieme ?? actuelle...`) ne
+   * voyait donc jamais `undefined`, retenait TOUJOURS la valeur fantôme, et les montants étaient
+   * recalculés (et facturés) sur cette base erronée. Corrigé en recevant désormais le CORPS BRUT
+   * ici — jamais pré-parsé par le contrôleur (voir `document-vente.controller.ts`) — et en ne
+   * retenant, après `.parse()`, que les clés RÉELLEMENT envoyées (`neGarderQueChampsEnvoyes`,
+   * même patron que `ServiceClientSousCollections.modifierAdresse`).
+   */
   async modifierLigne(
     ctx: ContexteTenant,
     principal: PrincipalAuthentifie,
     documentId: string,
     ligneId: string,
-    entree: EntreeModificationLigneDocument,
+    corpsBrut: Readonly<Record<string, unknown>>,
   ): Promise<ReponseAvecAvertissements<ReponseDocumentVente>> {
+    this.exigerCorpsNonVide(corpsBrut);
+    const entreeParsee = new PipeZod(schemaModificationLigneDocument).transform(corpsBrut);
+    const entree = neGarderQueChampsEnvoyes(corpsBrut, entreeParsee);
+    // Un corps qui ne porte QUE des clés inconnues (zod les retire silencieusement au parse) est
+    // vide une fois filtré, même si `corpsBrut` ne l'était pas — même garde, second passage
+    // (F-01, `ServiceClientSousCollections.modifierAdresse`).
+    this.exigerCorpsNonVide(entree);
     return this.acces.enTenant(ctx, async (tx) => {
       const doc = await chargerDocumentPourEcriture(tx, ctx, documentId);
       if (!estDocumentModifiable(doc.statut)) throw this.erreurVerrouille(doc);
@@ -577,6 +600,30 @@ export class ServiceDocumentsVente {
   /* -------------------------------------------------------------------------------------------- */
   /* Aides internes                                                                                */
   /* -------------------------------------------------------------------------------------------- */
+
+  /**
+   * F-01/F-01-bis : un corps qui ne porte AUCUN champ (`{}`, ou un corps qui ne contient que des
+   * clés inconnues — zod les a déjà retirées en amont) n'est pas une panne serveur, c'est une
+   * entrée invalide. Même garde que `ServiceClientSousCollections.exigerCorpsNonVide`, dupliquée
+   * localement (périmètre `facturation/`, pas de dépendance croisée vers `clients/` pour ça).
+   */
+  private exigerCorpsNonVide(entree: Readonly<Record<string, unknown>>): void {
+    if (Object.keys(entree).length === 0) {
+      throw new ErreurMetier(
+        'VALIDATION_ECHOUEE',
+        'Le corps de la requête ne contient aucun champ à modifier.',
+        {
+          erreurs: [
+            {
+              champ: '(corps)',
+              code: 'corps_vide',
+              message: 'Au moins un champ doit être fourni pour une modification.',
+            },
+          ],
+        },
+      );
+    }
+  }
 
   private erreurVerrouille(doc: LigneDocumentVente): ErreurMetier {
     return new ErreurMetier(

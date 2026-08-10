@@ -12,6 +12,7 @@ import type {
 } from '@dfa/shared';
 
 import i18n from '@/i18n';
+import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { renduAvecRoutes } from '@/test/utils';
 
@@ -199,12 +200,15 @@ describe('EcranNouvelOrdreReparation', () => {
     await i18n.changeLanguage('fr');
   });
 
-  describe("le site n'est jamais inventé", () => {
+  describe("le site n'est jamais inventé, mais son absence se résout SANS quitter l'écran", () => {
     it("sans `?site=`, l'écran DEMANDE explicitement un site plutôt que d'en choisir un par défaut, même si `clientId` est connu", async () => {
       // Le client GET peut être déclenché (le hook est appelé inconditionnellement), mais l'écran
       // ne doit JAMAIS afficher le formulaire de création — ouvrir un OR sur un site incorrect ne
       // se découvre qu'à la facturation (voir l'en-tête du composant).
-      server.use(http.get(`/api/v1/clients/${CLIENT_ID}`, () => HttpResponse.json(CLIENT)));
+      server.use(
+        http.get(`/api/v1/clients/${CLIENT_ID}`, () => HttpResponse.json(CLIENT)),
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+      );
       rendre(`/ordres-reparation/nouveau?clientId=${CLIENT_ID}`);
 
       expect(await screen.findByText('Site non sélectionné')).toBeInTheDocument();
@@ -213,8 +217,36 @@ describe('EcranNouvelOrdreReparation', () => {
           "Choisissez un site avant d'ouvrir un ordre de réparation : la numérotation et le paramétrage de l'OR en dépendent.",
         ),
       ).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: "Retour à l'accueil" })).toBeInTheDocument();
+      // Plus de renvoi vers l'accueil (ça perdait `clientId`, obligeant à rechercher le client une
+      // seconde fois) : un sélecteur de site inline, même écran.
+      expect(screen.queryByRole('link', { name: "Retour à l'accueil" })).not.toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: 'Site' })).toBeInTheDocument();
       expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+    });
+
+    it('choisir un site dans le sélecteur inline complète `?site=` SANS perdre `clientId` et révèle le choix du véhicule', async () => {
+      server.use(
+        http.get(`/api/v1/clients/${CLIENT_ID}`, () => HttpResponse.json(CLIENT)),
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get(`/api/v1/clients/${CLIENT_ID}/vehicules`, () =>
+          HttpResponse.json({
+            donnees: [VEHICULE],
+            curseurSuivant: null,
+            limite: 50,
+          } satisfies PageCurseur<VehiculeResume>),
+        ),
+      );
+      const utilisateur = userEvent.setup();
+      rendre(`/ordres-reparation/nouveau?clientId=${CLIENT_ID}`);
+
+      const selecteur = await screen.findByRole('combobox', { name: 'Site' });
+      await utilisateur.click(selecteur);
+      await utilisateur.click(
+        await screen.findByRole('option', { name: SESSION_TEST.sites[0]!.nom }),
+      );
+
+      expect(await screen.findByRole('radiogroup')).toBeInTheDocument();
+      expect(screen.queryByText('Site non sélectionné')).not.toBeInTheDocument();
     });
   });
 

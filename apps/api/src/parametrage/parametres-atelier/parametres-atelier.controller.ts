@@ -3,7 +3,10 @@
  *
  * Singleton du tenant, lisible par TOUT utilisateur authentifié (l'UI en dépend à chaque écran),
  * modifiable par `admin`/`chef_atelier`/`direction` (`INFERE_PARAMETRAGE_GOUVERNANCE`,
- * `auth/matrice-droits.ts`). `ETag` + `Cache-Control: private, must-revalidate` sur `GET`.
+ * `auth/matrice-droits.ts`) — SAUF `reception.plafondAvoirReceptionnaireCentimes` (RF-117), plafond
+ * financier retiré d'`admin` et réservé à `direction`/`comptable`
+ * (`parametrage.atelier.plafond_avoir.modifier`, vérifié EN SERVICE — voir le commentaire sur
+ * `modifier` ci-dessous, issue #45). `ETag` + `Cache-Control: private, must-revalidate` sur `GET`.
  */
 import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Controller, Get, Header, Headers, Patch, Res } from '@nestjs/common';
@@ -63,18 +66,19 @@ export class ParametresAtelierController {
   }
 
   /**
-   * `RF-117` : `reception.plafondAvoirReceptionnaireCentimes` est gouverné par CE MÊME droit
-   * générique (`parametrage.atelier.modifier`, `chef_atelier`/`direction`/`admin` via
-   * `INFERE_PARAMETRAGE_GOUVERNANCE`, `auth/matrice-droits.ts` — hors périmètre de ce module).
-   * MESURÉ, PAS SUPPOSÉ : ce droit donne l'écriture à `admin`, alors que `RF-115` est littéral
-   * (« admin est un rôle technique et n'a aucun droit financier ») — le bloc créancier QR-facture
-   * a précisément affronté ce même problème pour un autre champ de gouvernance financière et en
-   * est sorti avec DEUX actions dédiées (`facturation.parametrage.creancier.*`,
-   * direction+comptable seuls, `admin: []`) plutôt que de rester sur le droit générique. Ce champ
-   * partage l'endpoint et le droit de `plafondDefautCentimes` (déjà générique) sur consigne
-   * explicite de tâche — SIGNALÉ, à arbitrer par @laupernoe : soit ce plafond mérite le même traitement
-   * que le bloc créancier (action dédiée, nouvel endpoint ou vérification de service), soit le
-   * dégradé (`admin` peut aujourd'hui le relever) est accepté tel quel.
+   * `RF-117` / issue #45 — FERMÉ : `reception.plafondAvoirReceptionnaireCentimes` partageait CE
+   * MÊME droit générique (`parametrage.atelier.modifier`, `chef_atelier`/`direction`/`admin` via
+   * `INFERE_PARAMETRAGE_GOUVERNANCE`, `auth/matrice-droits.ts`) que le reste de cet endpoint,
+   * donnant l'écriture d'un plafond FINANCIER à `admin` — violation prouvée en exécution de
+   * `RF-115` (« admin est un rôle technique et n'a aucun droit financier »), exactement le problème
+   * déjà affronté par le bloc créancier QR-facture (`facturation.parametrage.creancier.*`).
+   * `parametrage.atelier.modifier` reste posé ICI, statiquement, pour TOUS les autres réglages de
+   * l'endpoint (kilométrage obligatoire, signature de réception, préfixe OR…) : un droit fort posé
+   * statiquement sur toute la route interdirait aussi ces réglages ordinaires à `chef_atelier`. Le
+   * droit dédié `parametrage.atelier.plafond_avoir.modifier` (direction/comptable seuls,
+   * `admin: []`) est vérifié EN SERVICE, uniquement quand ce champ précis change effectivement —
+   * voir `ServiceParametresAtelier.verifierDroitPlafondAvoir`, même patron que
+   * `ServiceOr.modifier`/`atelier.or.plafond_modifier`.
    */
   @ExigerDroit('parametrage.atelier.modifier')
   @Patch()
@@ -107,7 +111,8 @@ export class ParametresAtelierController {
     })
     corps: EntreeModificationParametresAtelierEtendue,
   ): Promise<ReponseParametresAtelierDto> {
-    const dto = await this.service.modifier(this.contexte.contexteTenant(), corps);
+    const principal = this.contexte.exigerPrincipal();
+    const dto = await this.service.modifier(this.contexte.contexteTenant(), principal.role, corps);
     return {
       ...dto,
       facturation: {

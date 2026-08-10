@@ -366,7 +366,11 @@
     "titre": "Neuer Reparaturauftrag",
     "siteManquant": {
       "titre": "Kein Standort ausgewählt",
-      "description": "Wählen Sie einen Standort, bevor Sie einen Reparaturauftrag eröffnen: Die Nummerierung und die Einstellungen des RA hängen davon ab."
+      "description": "Wählen Sie einen Standort, bevor Sie einen Reparaturauftrag eröffnen: Die Nummerierung und die Einstellungen des RA hängen davon ab.",
+      "label": "Standort",
+      "erreur": {
+        "titre": "Ihre Standorte konnten nicht geladen werden"
+      }
     },
     "client": {
       "requisTitre": "Kein Kunde ausgewählt",

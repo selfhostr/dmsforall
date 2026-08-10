@@ -1483,3 +1483,84 @@ describe("ServiceLigneOr.modifier — taux horaire d'une ligne devenue main-d'œ
     expect(appelsUpdate.some((a) => a.table === ligneOr)).toBe(false);
   });
 });
+
+/**
+ * F-01-bis pour `ligne_or` (même défaut que `neGarderQueChampsEnvoyes`, ici sur
+ * `schemaModificationLigneOr` — SIX champs à `.default(...)` survivent à `.partial()` :
+ * `quantiteMillieme(1000)`, `rabaisPourmille(0)`, `payeur('client')`, `securite(false)`,
+ * `fournieParClient(false)`, `pieceARestituer(false)`).
+ *
+ * Ligne mise en scène : `payeur = 'garage'` (geste commercial, RM-70 — montants valorisés à 0,
+ * AUCUN `payeurClientId` requis, donc rien ne bloque le repli buggé sur `'client'`), quantité
+ * réelle 2× (2000 millièmes), rabais réel 10% (100 pour-mille), et les trois drapeaux à `true`.
+ * Le corps envoyé ne touche QUE `designation`.
+ */
+describe("ServiceLigneOr.modifier — F-01-bis, un PATCH { designation } ne doit RIEN écraser d'autre", () => {
+  function ligneGoodwillFixture(): LigneLigneOr {
+    return ligneFixture({
+      type: 'piece',
+      statut: 'validee',
+      payeur: 'garage',
+      payeurClientId: null,
+      quantiteMillieme: 2_000,
+      rabaisPourmille: 100,
+      prixUnitaireCentimes: 8_000,
+      tauxTvaPourmille: 81,
+      montantHtCentimes: 0,
+      montantTvaCentimes: 0,
+      montantTtcCentimes: 0,
+      securite: true,
+      fourniParClient: true,
+      aRestituer: true,
+    });
+  }
+
+  function construireServiceEtTx() {
+    const ligne = ligneGoodwillFixture();
+    const or = { ...orFixture(), plafondCentimes: null };
+    vi.mocked(orRequetes.chargerOrPourEcriture).mockResolvedValue(or);
+    vi.mocked(orRequetes.chargerLigneOrPourEcriture).mockResolvedValue(ligne);
+
+    const { update, appels: appelsUpdate } = construireUpdate(new Map([[ligneOr, [ligne]]]));
+    const tx = { update } as unknown as TransactionDfa;
+    const service = new ServiceLigneOr(
+      accesBaseFactice(tx) as never,
+      {} as never,
+      {} as never,
+      new CalculLigneSimple(),
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    return { service, appelsUpdate, ligne };
+  }
+
+  it("un PATCH { designation } SEUL ne doit PAS toucher payeur/quantité/rabais/drapeaux/montants d'une ligne au geste commercial 'garage'", async () => {
+    const { service, appelsUpdate } = construireServiceEtTx();
+
+    // Corps BRUT tel qu'il arrive réellement sur le fil HTTP — `ligne-or.controller.ts` ne parse
+    // plus rien lui-même (voir son commentaire `@ApiCorpsZod`) : c'est `ServiceLigneOr.modifier`
+    // qui parse ET filtre par présence réelle dans CE corps (`neGarderQueChampsEnvoyes`).
+    await service.modifier(CTX, principal('receptionnaire'), OR_ID, LIGNE_ID, {
+      designation: 'Nouvelle désignation',
+    });
+
+    const valeurs = appelsUpdate.find((a) => a.table === ligneOr)?.valeurs;
+    // Seul `designation` doit apparaître dans le `SET` (plus les montants, toujours réécrits mais
+    // INCHANGÉS puisque rien de tarifaire n'a été envoyé) — jamais `payeur`, `quantiteMillieme`,
+    // `rabaisPourmille`, `securite`, `fourniParClient`, `aRestituer` avec une valeur par défaut.
+    expect(valeurs).toMatchObject({
+      designation: 'Nouvelle désignation',
+      montantHtCentimes: 0,
+      montantTvaCentimes: 0,
+      montantTtcCentimes: 0,
+    });
+    expect(valeurs).not.toHaveProperty('payeur');
+    expect(valeurs).not.toHaveProperty('quantiteMillieme');
+    expect(valeurs).not.toHaveProperty('rabaisPourmille');
+    expect(valeurs).not.toHaveProperty('securite');
+    expect(valeurs).not.toHaveProperty('fourniParClient');
+    expect(valeurs).not.toHaveProperty('aRestituer');
+  });
+});

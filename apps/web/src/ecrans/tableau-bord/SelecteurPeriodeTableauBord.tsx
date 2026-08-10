@@ -54,7 +54,7 @@ export function SelecteurPeriodeTableauBord({
         />
       </div>
       {periodeAppliquee ? (
-        <p className="pb-2.5 text-sm text-muted-foreground">
+        <p className="pb-2.5 texte-libelle text-muted-foreground">
           {t('tableauBord:periode.periodeAffichee', {
             du: formaterDate(periodeAppliquee.du),
             au: formaterDate(periodeAppliquee.au),

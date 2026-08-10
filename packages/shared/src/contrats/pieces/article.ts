@@ -15,7 +15,7 @@ import {
   schemaPourmille,
   schemaTexteCourt,
 } from '../atelier/primitives';
-import { schemaListeQuery } from '../filtres';
+import { schemaBooleenQuery, schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 
 /**
@@ -137,7 +137,7 @@ export const schemaFiltresArticles = z.object({
   q: z.string().trim().min(1).max(120).optional(),
   categorie: schemaListeQuery(z.enum(CATEGORIES_ARTICLE)).optional(),
   statut: schemaListeQuery(z.enum(STATUTS_ARTICLE)).optional(),
-  estEchangeStandard: z.coerce.boolean().optional(),
+  estEchangeStandard: schemaBooleenQuery().optional(),
   tri: z.enum(TRIS_ARTICLES).default(TRI_DEFAUT_ARTICLES),
 });
 export type FiltresArticles = z.infer<typeof schemaFiltresArticles>;

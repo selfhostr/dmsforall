@@ -22,7 +22,12 @@ import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
-import { peutCreerMouvement, peutEcrireArticle } from './droits';
+import {
+  peutCreerMouvement,
+  peutEcrireArticle,
+  peutLireCommandeFournisseur,
+  peutLireFournisseur,
+} from './droits';
 import { EnTeteFicheArticle } from './EnTeteFicheArticle';
 import { FormulaireArticle } from './FormulaireArticle';
 import { PanneauMouvementsArticle } from './PanneauMouvementsArticle';
@@ -42,9 +47,23 @@ export function EcranFicheArticle() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
-  const { data: session } = useSession();
-  const role = session?.utilisateur.role;
-  const sites = session?.sites ?? [];
+  const session = useSession();
+  const role = session.data?.utilisateur.role;
+  const sites = session.data?.sites ?? [];
+  // Défaut corrigé : `pieces.fournisseur.lire`/`pieces.commande_fournisseur.lire` (direction,
+  // chef_atelier, magasinier SEULS, `ecrans/pieces/droits.ts`) sont STRICTEMENT plus étroits que
+  // `pieces.article.lire` qui ouvre cette fiche à `ROLES_PIECES` en entier (les sept rôles) — un
+  // vendeur/réceptionnaire/technicien/comptable ouvrant une fiche article référençant un
+  // fournisseur déclenchait donc systématiquement un `403` sur les deux requêtes secondaires
+  // ci-dessous, rendu comme une erreur technique générique. Même doctrine que
+  // `EcranFicheClient.tsx` (`peutVoirDossiersVente`) : gardé par le droit AVANT de partir, pas
+  // réagi après coup sur le `403`. Tant que `session.isLoading`, `role` vaut `undefined` — ni les
+  // deux `peutLire*` ci-dessous (donc aucune requête ne part encore, cf. leur usage plus bas) ni le
+  // texte « droit refusé » ne doivent s'afficher avant que la session soit résolue : les deux
+  // sections gardent leur squelette de chargement pendant ce court instant (voir le rendu plus
+  // bas, `session.isLoading ? …`).
+  const peutLireFournisseurArticle = peutLireFournisseur(role);
+  const peutLireCommandesArticle = peutLireCommandeFournisseur(role);
 
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
@@ -81,7 +100,9 @@ export function EcranFicheArticle() {
   const premiereReferenceFournisseur =
     requeteArticle.data?.references.find((reference) => reference.type === 'fournisseur') ?? null;
   const fournisseurId = premiereReferenceFournisseur?.fournisseurId ?? undefined;
-  const requeteFournisseur = useFournisseur(fournisseurId);
+  const requeteFournisseur = useFournisseur(
+    !session.isLoading && peutLireFournisseurArticle ? fournisseurId : undefined,
+  );
 
   // « les commandes fournisseur en attente » — `schemaFiltresCommandesFournisseur` n'a PAS de
   // filtre `articleId` (seulement `fournisseurId`/`siteId`/`statut`/`avecReliquat`) : chaque
@@ -102,7 +123,7 @@ export function EcranFicheArticle() {
         },
         { limite: 50 },
       ),
-    enabled: fournisseurId !== undefined,
+    enabled: fournisseurId !== undefined && !session.isLoading && peutLireCommandesArticle,
   });
 
   if (requeteArticle.isPending) {
@@ -211,6 +232,12 @@ export function EcranFicheArticle() {
               titre={t('pieces:articles.fiche.fournisseur.titre')}
               description={t('pieces:articles.fiche.fournisseur.vide')}
             />
+          ) : session.isLoading ? (
+            <EtatChargement lignes={1} />
+          ) : !peutLireFournisseurArticle ? (
+            <p className="texte-corps text-muted-foreground">
+              {t('pieces:articles.fiche.fournisseur.droitRequis')}
+            </p>
           ) : requeteFournisseur.isPending ? (
             <EtatChargement lignes={1} />
           ) : requeteFournisseur.isError ? (
@@ -244,6 +271,12 @@ export function EcranFicheArticle() {
               titre={t('pieces:articles.fiche.commandesFournisseur.titre')}
               description={t('pieces:articles.fiche.commandesFournisseur.sansFournisseur')}
             />
+          ) : session.isLoading ? (
+            <EtatChargement lignes={2} />
+          ) : !peutLireCommandesArticle ? (
+            <p className="texte-corps text-muted-foreground">
+              {t('pieces:articles.fiche.commandesFournisseur.droitRequis')}
+            </p>
           ) : requeteCommandes.isPending ? (
             <EtatChargement lignes={2} />
           ) : requeteCommandes.isError ? (

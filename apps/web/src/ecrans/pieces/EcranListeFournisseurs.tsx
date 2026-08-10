@@ -107,7 +107,7 @@ export function EcranListeFournisseurs() {
   if (isPending) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:fournisseurs.titre')}</h1>
+        <h1 className="sr-only">{t('pieces:fournisseurs.titre')}</h1>
         <EtatChargement lignes={6} />
       </div>
     );
@@ -116,7 +116,7 @@ export function EcranListeFournisseurs() {
   if (isError) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:fournisseurs.titre')}</h1>
+        <h1 className="sr-only">{t('pieces:fournisseurs.titre')}</h1>
         <EtatErreur
           titre={t('pieces:fournisseurs.erreur.titre')}
           description={messageErreur(error, t)}
@@ -128,8 +128,13 @@ export function EcranListeFournisseurs() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:fournisseurs.titre')}</h1>
+      {/* Doublon strict du libellé de la vue active « Fournisseurs » (`navigation-modele.ts`,
+          `ONGLETS_PIECES`, vue « fournisseurs » de l'onglet Approvisionnement) : le h1 reste dans
+          le DOM pour le lecteur d'écran et la structure du document, sans répéter visuellement ce
+          que la barre d'onglets affiche déjà en surbrillance. */}
+      <h1 className="sr-only">{t('pieces:fournisseurs.titre')}</h1>
+
+      <div className="flex items-center justify-end gap-3">
         {peutEcrireFournisseur(role) ? (
           <Button onClick={() => setFormulaireOuvert(true)}>
             {t('pieces:fournisseurs.actions.ajouter')}

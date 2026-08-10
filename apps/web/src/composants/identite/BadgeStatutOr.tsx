@@ -17,10 +17,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { EtatAfficheOrdreReparation } from '@dfa/shared';
 
-import { cn } from '@/lib/utils';
-
-type TokenStatut = 'neutre' | 'info' | 'attention' | 'succes' | 'terminal' | 'danger';
-type FormeBadge = 'plein' | 'contour';
+import { BadgeStatut, type FormeBadge, type TokenStatut } from './BadgeStatut';
 
 interface EntreeStatutOr {
   /** Suffixe de la clé `or:statuts.<cle>` — casse camelCase du fichier de traduction, distincte
@@ -64,51 +61,30 @@ const CONFIG_STATUT_OR: Readonly<Record<EtatAfficheOrdreReparation, EntreeStatut
   annule: { cle: 'annule', icone: Ban, token: 'danger', forme: 'contour' },
 };
 
-const CLASSES_PLEIN: Readonly<Record<TokenStatut, string>> = {
-  neutre: 'border-transparent bg-statut-neutre-fond text-statut-neutre',
-  info: 'border-transparent bg-statut-info-fond text-statut-info',
-  attention: 'border-transparent bg-statut-attention-fond text-statut-attention',
-  succes: 'border-transparent bg-statut-succes-fond text-statut-succes',
-  terminal: 'border-transparent bg-statut-terminal-fond text-statut-terminal',
-  danger: 'border-transparent bg-statut-danger-fond text-statut-danger',
-};
-
-const CLASSES_CONTOUR: Readonly<Record<TokenStatut, string>> = {
-  neutre: 'border-statut-neutre bg-background text-statut-neutre',
-  info: 'border-statut-info bg-background text-statut-info',
-  attention: 'border-statut-attention bg-background text-statut-attention',
-  succes: 'border-statut-succes bg-background text-statut-succes',
-  terminal: 'border-statut-terminal bg-background text-statut-terminal',
-  danger: 'border-statut-danger bg-background text-statut-danger',
-};
-
 interface Props {
   readonly etat: EtatAfficheOrdreReparation;
   readonly className?: string;
 }
 
-/** Statut affiché d'un OR — LE seul badge du produit autorisé à consommer les tokens
- *  `--statut-*` (§5.1 du document atelier, §2 de docs/design-comptoir.md : le budget couleur leur
- *  est exclusivement réservé). Couleur + forme (plein/contour) + icône + mot : jamais la couleur
- *  seule (vérification daltonisme §5.5, `--statut-info` et `--statut-succes` restent séparables
- *  en protanopie grâce à des formes/icônes distinctes). */
+/** Statut affiché d'un OR — un badge de la famille des badges de statut dédiés (§2 de
+ *  docs/design-comptoir.md : les tokens `--statut-*` leur sont réservés, jamais consommés
+ *  directement par un écran). Le rendu (forme + icône + mot, jamais la couleur seule — vérification
+ *  daltonisme §5.5, `--statut-info` et `--statut-succes` restent séparables en protanopie) est
+ *  porté par `BadgeStatut`, partagé avec ses pairs (`BadgeStatutDossierVente`,
+ *  `BadgeStatutVehiculeStock`) ; seul le mapping `EtatAfficheOrdreReparation -> {icone, token,
+ *  forme}` reste local à ce fichier. */
 export function BadgeStatutOr({ etat, className }: Props) {
   const { t } = useTranslation('or');
   const config = CONFIG_STATUT_OR[etat];
-  const Icone = config.icone;
-  const classesToken =
-    config.forme === 'plein' ? CLASSES_PLEIN[config.token] : CLASSES_CONTOUR[config.token];
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 texte-libelle font-medium',
-        classesToken,
-        className,
-      )}
+    <BadgeStatut
+      icone={config.icone}
+      token={config.token}
+      forme={config.forme}
+      className={className}
     >
-      <Icone aria-hidden className="h-3.5 w-3.5 shrink-0" />
       {t(`or:statuts.${config.cle}`)}
-    </span>
+    </BadgeStatut>
   );
 }

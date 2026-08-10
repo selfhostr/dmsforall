@@ -666,16 +666,34 @@ function analyserTable(t: PostureTable, nomRole: string): string[] {
     );
   }
 
-  if (!t.rls_active) {
-    problemes.push(`table « ${t.table_name} » : ROW LEVEL SECURITY non activé`);
-    return problemes;
-  }
-
   // La table `tenant` s'isole sur `id` et non sur `tenant_id` : elle est son propre tenant.
   const doitEtreIsolee = t.porte_tenant_id || t.table_name === 'tenant';
 
+  // Une table SANS tenant_id est jugée AVANT d'exiger RLS actif — et c'est délibéré, pas un
+  // relâchement. `analyserTableSansTenant()` l'explique dans son propre commentaire : sans
+  // colonne `tenant_id`, aucune politique RLS n'a rien à filtrer, donc `using (true)` est la
+  // SEULE politique écrivable et elle ne protège rien. La seule frontière réelle pour ces
+  // tables est le PRIVILÈGE (SELECT seul pour un référentiel partagé, aucun pour une table hors
+  // portée) — c'est exactement ce que cette fonction vérifie, indépendamment de `rls_active`.
+  //
+  // Poser du RLS ici serait du théâtre : soit une politique qui filtre sur une colonne
+  // inexistante (impossible), soit `using (true)` qui laisse tout passer — pire que l'absence de
+  // politique, puisqu'elle donne l'illusion d'une protection à la lecture du catalogue. Exiger
+  // `rls_active` avant même de regarder le marqueur transformait chaque référentiel partagé
+  // légitime (`[dfa:referentiel-partage]`, `[dfa:hors-portee-app]`) en obligation de poser cette
+  // même politique décorative pour pouvoir démarrer — constaté sur `type_approbation_ch` (0050),
+  // déclarée et bornée en privilèges mais sans RLS, refusée par ce seul ordre de contrôle avant
+  // que le marqueur n'ait jamais été lu. Voir 0050_referentiel_vehicules_ch.sql.
   if (!doitEtreIsolee) {
     problemes.push(...analyserTableSansTenant(t, declaration, nomRole));
+    return problemes;
+  }
+
+  // À partir d'ici, la table PORTE tenant_id (ou est `tenant`) : c'est le motif standard, et lui
+  // seul exige un RLS réellement actif — colonne à filtrer, donc politique isolante possible et
+  // obligatoire.
+  if (!t.rls_active) {
+    problemes.push(`table « ${t.table_name} » : ROW LEVEL SECURITY non activé`);
     return problemes;
   }
 

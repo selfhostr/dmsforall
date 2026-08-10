@@ -1,6 +1,7 @@
 {
   "titre": "Véhicules",
   "nouveau": "Nouveau véhicule",
+  "nouveauPourClient": "Ce véhicule sera rattaché à {nom}.",
   "creer": "Créer le véhicule",
   "liste": {
     "titre": "Véhicules",
@@ -94,12 +95,24 @@
     "detenteur": "Détenteur actuel",
     "historique": "Historique des détenteurs",
     "changer": "Changer le détenteur",
+    "rattacher": "Rattacher à un client",
     "motifs": {
       "vente": "Vente",
       "reprise": "Reprise",
       "deces": "Décès",
       "correction": "Correction",
       "export": "Export"
+    },
+    "dialogue": {
+      "titreRattacher": "Rattacher ce véhicule à un client",
+      "titreChanger": "Changer le détenteur de ce véhicule",
+      "detenteurActuelLabel": "Détenteur actuel",
+      "clientLabel": "Client",
+      "rechercherPlaceholder": "Nom, numéro client…",
+      "aucunClient": "Aucun client trouvé.",
+      "dateLabel": "Depuis le",
+      "motifLabel": "Motif de fin de détention",
+      "modifierSelection": "Modifier"
     }
   },
   "kilometrage": {

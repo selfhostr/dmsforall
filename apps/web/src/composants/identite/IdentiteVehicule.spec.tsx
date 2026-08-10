@@ -8,7 +8,9 @@ import { IdentiteVehicule } from './IdentiteVehicule';
 
 const VEHICULE: VehiculeResume = {
   id: 'v1',
-  plaque: '123456',
+  // Forme réelle servie par l'API : `plaque` porte déjà le canton en préfixe
+  // (`VehiculeResume.plaque` / `ReponseVehiculePlaque.valeur`), `canton` est redondant.
+  plaque: 'VD 123456',
   canton: 'VD',
   designation: 'VW Touran 2.0 TDI',
   vin: 'WVGZZZ1TZ8W123456',
@@ -24,6 +26,12 @@ describe('IdentiteVehicule', () => {
     expect(screen.getByText('123456')).toBeInTheDocument();
     expect(screen.getByText('VW Touran 2.0 TDI')).toBeInTheDocument();
     expect(screen.getByText('2018')).toBeInTheDocument();
+  });
+
+  it('ne double jamais le canton dans la plaque (régression)', () => {
+    render(<IdentiteVehicule vehicule={VEHICULE} />);
+    expect(screen.queryByText('VD VD 123456')).not.toBeInTheDocument();
+    expect(screen.queryByText('VD 123456')).not.toBeInTheDocument();
   });
 
   it("n'affiche pas d'année quand la date de première mise en circulation est inconnue", () => {

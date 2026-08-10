@@ -93,30 +93,107 @@ describe('ServiceParametresAtelier.obtenir', () => {
 describe('ServiceParametresAtelier.modifier', () => {
   it('domaine actif (or.prefixe) : écrit et rend la ligne mise à jour', async () => {
     const service = new ServiceParametresAtelier(
-      accesFactice({ ligneUpdate: ligneBrute({ orPrefixe: 'REP' }) }),
+      accesFactice({
+        ligneSelect: ligneBrute(),
+        ligneUpdate: ligneBrute({ orPrefixe: 'REP' }),
+      }),
     );
-    const dto = await service.modifier(CTX, { or: { prefixe: 'REP' } });
+    const dto = await service.modifier(CTX, 'chef_atelier', { or: { prefixe: 'REP' } });
     expect(dto.or.prefixe).toBe('REP');
   });
 
-  it('reception.plafondAvoirReceptionnaireCentimes (RF-117) : écrit et rend la ligne mise à jour', async () => {
+  it('reception.plafondAvoirReceptionnaireCentimes (RF-117) : écrit et rend la ligne mise à jour pour direction', async () => {
     const service = new ServiceParametresAtelier(
-      accesFactice({ ligneUpdate: ligneBrute({ plafondAvoirReceptionnaireCentimes: 500000 }) }),
+      accesFactice({
+        ligneSelect: ligneBrute({ plafondAvoirReceptionnaireCentimes: null }),
+        ligneUpdate: ligneBrute({ plafondAvoirReceptionnaireCentimes: 500000 }),
+      }),
     );
-    const dto = await service.modifier(CTX, {
+    const dto = await service.modifier(CTX, 'direction', {
       reception: { plafondAvoirReceptionnaireCentimes: 500000 },
     });
     expect(dto.reception.plafondAvoirReceptionnaireCentimes).toBe(500000);
   });
 
-  it('reception.plafondAvoirReceptionnaireCentimes : `null` explicite remet « aucun plafond convenu »', async () => {
+  it('reception.plafondAvoirReceptionnaireCentimes (RF-117) : écrit et rend la ligne mise à jour pour comptable', async () => {
     const service = new ServiceParametresAtelier(
-      accesFactice({ ligneUpdate: ligneBrute({ plafondAvoirReceptionnaireCentimes: null }) }),
+      accesFactice({
+        ligneSelect: ligneBrute({ plafondAvoirReceptionnaireCentimes: null }),
+        ligneUpdate: ligneBrute({ plafondAvoirReceptionnaireCentimes: 500000 }),
+      }),
     );
-    const dto = await service.modifier(CTX, {
+    const dto = await service.modifier(CTX, 'comptable', {
+      reception: { plafondAvoirReceptionnaireCentimes: 500000 },
+    });
+    expect(dto.reception.plafondAvoirReceptionnaireCentimes).toBe(500000);
+  });
+
+  it('reception.plafondAvoirReceptionnaireCentimes : `null` explicite remet « aucun plafond convenu » pour direction', async () => {
+    const service = new ServiceParametresAtelier(
+      accesFactice({
+        ligneSelect: ligneBrute({ plafondAvoirReceptionnaireCentimes: 500000 }),
+        ligneUpdate: ligneBrute({ plafondAvoirReceptionnaireCentimes: null }),
+      }),
+    );
+    const dto = await service.modifier(CTX, 'direction', {
       reception: { plafondAvoirReceptionnaireCentimes: null },
     });
     expect(dto.reception.plafondAvoirReceptionnaireCentimes).toBeNull();
+  });
+
+  // ---------------------------------------------------------------------------------------------
+  // Issue #45 / RF-115 / RF-117 : matrice rôle × action pour le plafond d'avoir réceptionnaire.
+  // ---------------------------------------------------------------------------------------------
+
+  it('RF-115 (issue #45) — admin est REFUSÉ (DROIT_INSUFFISANT) quand il tente de FIXER le plafond, sans écriture en base', async () => {
+    const acces = accesFactice({
+      ligneSelect: ligneBrute({ plafondAvoirReceptionnaireCentimes: null }),
+    });
+    const service = new ServiceParametresAtelier(acces);
+
+    await expect(
+      service.modifier(CTX, 'admin', {
+        reception: { plafondAvoirReceptionnaireCentimes: 999999 },
+      }),
+    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT' });
+  });
+
+  it('chef_atelier peut toujours modifier un réglage NON financier (or.prefixe) du même endpoint', async () => {
+    const service = new ServiceParametresAtelier(
+      accesFactice({
+        ligneSelect: ligneBrute(),
+        ligneUpdate: ligneBrute({ orPrefixe: 'ATL' }),
+      }),
+    );
+    const dto = await service.modifier(CTX, 'chef_atelier', { or: { prefixe: 'ATL' } });
+    expect(dto.or.prefixe).toBe('ATL');
+  });
+
+  it('chef_atelier est REFUSÉ (DROIT_INSUFFISANT) quand il tente de FIXER le plafond, sans écriture en base', async () => {
+    const acces = accesFactice({
+      ligneSelect: ligneBrute({ plafondAvoirReceptionnaireCentimes: null }),
+    });
+    const service = new ServiceParametresAtelier(acces);
+
+    await expect(
+      service.modifier(CTX, 'chef_atelier', {
+        reception: { plafondAvoirReceptionnaireCentimes: 200000 },
+      }),
+    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT' });
+  });
+
+  it('resoumettre EXACTEMENT la même valeur de plafond ne déclenche pas la garde (admin peut resoumettre le formulaire sans toucher au plafond)', async () => {
+    const service = new ServiceParametresAtelier(
+      accesFactice({
+        ligneSelect: ligneBrute({ plafondAvoirReceptionnaireCentimes: 300000, orPrefixe: 'OR' }),
+        ligneUpdate: ligneBrute({ plafondAvoirReceptionnaireCentimes: 300000, orPrefixe: 'REP' }),
+      }),
+    );
+    const dto = await service.modifier(CTX, 'admin', {
+      or: { prefixe: 'REP' },
+      reception: { plafondAvoirReceptionnaireCentimes: 300000 },
+    });
+    expect(dto.or.prefixe).toBe('REP');
   });
 
   it('domaine inerte (facturation) : 501 FONCTION_NON_DISPONIBLE, AVANT tout accès base', async () => {
@@ -126,7 +203,7 @@ describe('ServiceParametresAtelier.modifier', () => {
       facturation: { multiPayeursAutorise: true },
     };
 
-    await expect(service.modifier(CTX, entree)).rejects.toMatchObject({
+    await expect(service.modifier(CTX, 'chef_atelier', entree)).rejects.toMatchObject({
       code: 'FONCTION_NON_DISPONIBLE',
     });
     expect(acces.enTenant).not.toHaveBeenCalled();
@@ -137,28 +214,46 @@ describe('ServiceParametresAtelier.modifier', () => {
     const service = new ServiceParametresAtelier(acces);
 
     await expect(
-      service.modifier(CTX, { travaux: { controleQualite: 'selon_type' } }),
+      service.modifier(CTX, 'chef_atelier', { travaux: { controleQualite: 'selon_type' } }),
     ).rejects.toMatchObject({ code: 'VALIDATION_ECHOUEE' });
     expect(acces.enTenant).not.toHaveBeenCalled();
   });
 
   it('controleQualite = "toujours" (valeur lot 1 admise) : accepté', async () => {
     const service = new ServiceParametresAtelier(
-      accesFactice({ ligneUpdate: ligneBrute({ controleQualite: 'toujours' }) }),
+      accesFactice({
+        ligneSelect: ligneBrute(),
+        ligneUpdate: ligneBrute({ controleQualite: 'toujours' }),
+      }),
     );
-    const dto = await service.modifier(CTX, { travaux: { controleQualite: 'toujours' } });
+    const dto = await service.modifier(CTX, 'chef_atelier', {
+      travaux: { controleQualite: 'toujours' },
+    });
     expect(dto.travaux.controleQualite).toBe('toujours');
   });
 
   it("corps sans colonne à écrire : relit l'état courant sans UPDATE sans SET", async () => {
     const service = new ServiceParametresAtelier(accesFactice({ ligneSelect: ligneBrute() }));
-    const dto = await service.modifier(CTX, {});
+    const dto = await service.modifier(CTX, 'chef_atelier', {});
     expect(dto.or.prefixe).toBe('OR');
   });
 
-  it('ligne disparue entre la validation et le UPDATE : RESSOURCE_INTROUVABLE', async () => {
-    const service = new ServiceParametresAtelier(accesFactice({ ligneUpdate: undefined }));
-    await expect(service.modifier(CTX, { or: { prefixe: 'X' } })).rejects.toMatchObject({
+  it('ligne absente pour ce tenant : RESSOURCE_INTROUVABLE, avant même la vérification du plafond', async () => {
+    const service = new ServiceParametresAtelier(accesFactice({ ligneSelect: undefined }));
+    await expect(
+      service.modifier(CTX, 'chef_atelier', { or: { prefixe: 'X' } }),
+    ).rejects.toMatchObject({
+      code: 'RESSOURCE_INTROUVABLE',
+    });
+  });
+
+  it('ligne disparue entre la lecture et le UPDATE (course concurrente) : RESSOURCE_INTROUVABLE', async () => {
+    const service = new ServiceParametresAtelier(
+      accesFactice({ ligneSelect: ligneBrute(), ligneUpdate: undefined }),
+    );
+    await expect(
+      service.modifier(CTX, 'chef_atelier', { or: { prefixe: 'X' } }),
+    ).rejects.toMatchObject({
       code: 'RESSOURCE_INTROUVABLE',
     });
   });

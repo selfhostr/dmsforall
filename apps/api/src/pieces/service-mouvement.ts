@@ -412,7 +412,7 @@ export class ServiceMouvement {
           if (valeurEcart > seuil) {
             collecteur.ajouter(
               'INVENTAIRE_ECART_SIGNIFICATIF',
-              `Écart d'inventaire significatif : ${String(Math.abs(delta))} millièmes (valeur estimée ${String(Math.round(valeurEcart))} centimes).`,
+              `Écart d'inventaire significatif : ${formaterQuantiteMillieme(Math.abs(delta))} unité(s) (valeur estimée CHF ${formaterMontantCentimes(Math.round(valeurEcart))}).`,
               {
                 articleId,
                 siteId: entree.siteId,
@@ -568,7 +568,7 @@ export class ServiceMouvement {
     if (!forcer) {
       throw new ErreurMetier(
         'STOCK_INSUFFISANT',
-        `Stock disponible insuffisant : disponible ${String(disponible)}, demandé ${String(quantiteDemandee)}.`,
+        `Stock disponible insuffisant : ${formaterQuantiteMillieme(disponible)} unité(s) disponible(s), ${formaterQuantiteMillieme(quantiteDemandee)} unité(s) demandée(s).`,
         {
           detail: `tenant=${ctx.tenantId};article=${articleId};site=${siteId};disponible=${String(disponible)};demande=${String(quantiteDemandee)}`,
         },
@@ -847,6 +847,29 @@ export class ServiceMouvement {
       .limit(1);
     if (!lignes[0]) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Site introuvable.');
   }
+}
+
+/**
+ * Formatage lisible d'une quantité en millièmes (unités décimales) : 12345 → "12.345" pour la
+ * présentation au garagiste dans les messages d'erreur.
+ */
+function formaterQuantiteMillieme(millieme: number): string {
+  const unitees = Math.floor(millieme / 1000);
+  const millimes = millieme % 1000;
+  return `${unitees}.${String(millimes).padStart(3, '0')}`;
+}
+
+/**
+ * Formatage suisse d'un montant en centimes : 123456 → "1'234.56" pour la présentation au
+ * garagiste dans les messages d'erreur.
+ */
+function formaterMontantCentimes(centimes: number): string {
+  const negatif = centimes < 0;
+  const absolu = Math.abs(centimes);
+  const entiers = Math.floor(absolu / 100);
+  const centimesRestants = String(absolu % 100).padStart(2, '0');
+  const entiersGroupes = entiers.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+  return `${negatif ? '-' : ''}${entiersGroupes}.${centimesRestants}`;
 }
 
 /**

@@ -71,6 +71,11 @@ export const TOUTES_ACTIONS = [
   // ---- Paramétrage atelier et référentiels (plan-lot1-execution.md §6.4) ----------------------
   'parametrage.atelier.lire',
   'parametrage.atelier.modifier',
+  // Issue #45 / RF-117 (0018) : `reception.plafondAvoirReceptionnaireCentimes` partage
+  // l'endpoint `PATCH /parametres-atelier` avec des réglages non financiers (§ « Bloc plafond
+  // d'avoir réceptionnaire » plus bas pour le détail de l'arbitrage) — droit dédié, retiré
+  // d'`admin` (RF-115), PAS couvert par `parametrage.atelier.modifier`.
+  'parametrage.atelier.plafond_avoir.modifier',
   'parametrage.referentiel.lire',
   'parametrage.referentiel.modifier',
   // ---- Clients (§6.4 ; RM-01 → RM-14, spec lignes 233-248) -------------------------------------
@@ -1076,6 +1081,61 @@ const DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE: Readonly<Record<RoleUtilisateur, re
   };
 
 // =================================================================================================
+// Plafond d'avoir réceptionnaire (RF-117, issue #45) : bloc ADDITIF PUR, MÊME PALIER que le bloc
+// créancier ci-dessus.
+// =================================================================================================
+//
+// `PATCH /parametres-atelier` (`apps/api/src/parametrage/parametres-atelier/`, PAS le périmètre de
+// ce fichier) est le SEUL endpoint qui écrit `reception.plafondAvoirReceptionnaireCentimes` — le
+// montant au-delà duquel un `receptionnaire` ne peut plus émettre un avoir seul (`EMISSION_AVOIR`
+// ci-dessus, contrôlé dynamiquement par `ServiceEmissionDocument.emettre()`). Preuve en exécution
+// (issue #45) : connecté `admin`, `PATCH /parametres-atelier { reception:
+// { plafondAvoirReceptionnaireCentimes: 999999 } }` répondait `200` et écrivait la valeur — alors
+// que `RF-115` est littéral (« admin est un rôle technique et n'a aucun droit financier »). Fixer ce
+// plafond EST un geste financier, au moins aussi engageant que changer l'IBAN créancier ou lancer un
+// export fiduciaire : mêmes rôles, direction + comptable SEULS, `admin: []` VOLONTAIREMENT.
+//
+// PAS `parametrage.atelier.modifier` (`INFERE_PARAMETRAGE_GOUVERNANCE`, chef_atelier/direction/admin
+// via `DROITS_CHEF_ATELIER`) : ce droit générique gouverne TOUT le reste de l'endpoint (kilométrage
+// obligatoire, signature de réception, préfixe OR…) et reste posé statiquement sur la route — la même
+// route sert donc DEUX usages que `@ExigerDroit` ne peut pas distinguer avant exécution (il ne connaît
+// pas encore, au moment de la garde, si CE corps touche le plafond). Même famille que
+// `atelier.or.plafond_modifier` (`ServiceOr.modifier`) et `vehicule.kilometrage.corriger_regression`
+// (`ServiceVehiculeKilometrage.creer`) : contrôle posé EN SERVICE
+// (`ServiceParametresAtelier.modifier`), uniquement quand la valeur soumise diffère de la valeur
+// actuelle en base, jamais en permanence — sinon `chef_atelier` ne pourrait plus modifier AUCUN
+// réglage ordinaire de ce même endpoint. Couverte par une entrée `verification-conditionnelle-service`
+// dans `common/droits/allowlist-actions-non-decorees.ts`, PAS par un `@ExigerDroit` statique.
+// Pas de `.lire` dédiée : la LECTURE de `reception.plafondAvoirReceptionnaireCentimes` reste
+// embarquée dans `GET /parametres-atelier` sous `parametrage.atelier.lire` (ouvert à tout rôle
+// authentifié), exactement comme `atelier.or.plafondCentimes` reste lisible sous `atelier.or.lire`
+// alors que sa modification exige `atelier.or.plafond_modifier` — seule l'ÉCRITURE de ce montant est
+// le geste financier que RF-115 vise, pas sa simple lecture au milieu d'un singleton de paramétrage
+// à 30+ champs très majoritairement non financiers. Distinct du bloc créancier (endpoint DÉDIÉ,
+// entièrement financier, où lecture ET écriture sont gouvernées) : décision consciente, pas un oubli.
+const ECRITURE_PLAFOND_AVOIR_RECEPTIONNAIRE: readonly Action[] = [
+  'parametrage.atelier.plafond_avoir.modifier',
+];
+
+const DROITS_PLAFOND_AVOIR_RECEPTIONNAIRE_PAR_ROLE: Readonly<
+  Record<RoleUtilisateur, readonly Action[]>
+> = {
+  direction: [...ECRITURE_PLAFOND_AVOIR_RECEPTIONNAIRE],
+  comptable: [...ECRITURE_PLAFOND_AVOIR_RECEPTIONNAIRE],
+  vendeur: [],
+  receptionnaire: [],
+  chef_atelier: [],
+  technicien: [],
+  magasinier: [],
+  // RF-115 / issue #45 : jamais de droit financier pour admin — voir le commentaire de tête de
+  // section. Fixer le plafond d'avoir réceptionnaire est au moins aussi engageant que rembourser un
+  // trop-perçu ou modifier l'IBAN créancier.
+  admin: [],
+  // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
+  poste_atelier: [],
+};
+
+// =================================================================================================
 // Export fiduciaire (étape 2) : bloc ADDITIF PUR, même patron et MÊME PALIER que le bloc créancier.
 // =================================================================================================
 //
@@ -1765,6 +1825,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PAIEMENT_PAR_ROLE.admin,
     ...DROITS_DOCUMENT_PAR_ROLE.admin,
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.admin,
+    ...DROITS_PLAFOND_AVOIR_RECEPTIONNAIRE_PAR_ROLE.admin,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.admin,
     ...DROITS_IMPRESSION_PAR_ROLE.admin,
     ...DROITS_PIECES_PAR_ROLE.admin,
@@ -1780,6 +1841,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PAIEMENT_PAR_ROLE.direction,
     ...DROITS_DOCUMENT_PAR_ROLE.direction,
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.direction,
+    ...DROITS_PLAFOND_AVOIR_RECEPTIONNAIRE_PAR_ROLE.direction,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.direction,
     ...DROITS_IMPRESSION_PAR_ROLE.direction,
     ...DROITS_PIECES_PAR_ROLE.direction,
@@ -1795,6 +1857,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PAIEMENT_PAR_ROLE.vendeur,
     ...DROITS_DOCUMENT_PAR_ROLE.vendeur,
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.vendeur,
+    ...DROITS_PLAFOND_AVOIR_RECEPTIONNAIRE_PAR_ROLE.vendeur,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.vendeur,
     ...DROITS_IMPRESSION_PAR_ROLE.vendeur,
     ...DROITS_PIECES_PAR_ROLE.vendeur,
@@ -1810,6 +1873,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PAIEMENT_PAR_ROLE.receptionnaire,
     ...DROITS_DOCUMENT_PAR_ROLE.receptionnaire,
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.receptionnaire,
+    ...DROITS_PLAFOND_AVOIR_RECEPTIONNAIRE_PAR_ROLE.receptionnaire,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.receptionnaire,
     ...DROITS_IMPRESSION_PAR_ROLE.receptionnaire,
     ...DROITS_PIECES_PAR_ROLE.receptionnaire,
@@ -1825,6 +1889,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PAIEMENT_PAR_ROLE.chef_atelier,
     ...DROITS_DOCUMENT_PAR_ROLE.chef_atelier,
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.chef_atelier,
+    ...DROITS_PLAFOND_AVOIR_RECEPTIONNAIRE_PAR_ROLE.chef_atelier,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.chef_atelier,
     ...DROITS_IMPRESSION_PAR_ROLE.chef_atelier,
     ...DROITS_PIECES_PAR_ROLE.chef_atelier,
@@ -1840,6 +1905,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PAIEMENT_PAR_ROLE.technicien,
     ...DROITS_DOCUMENT_PAR_ROLE.technicien,
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.technicien,
+    ...DROITS_PLAFOND_AVOIR_RECEPTIONNAIRE_PAR_ROLE.technicien,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.technicien,
     ...DROITS_IMPRESSION_PAR_ROLE.technicien,
     ...DROITS_PIECES_PAR_ROLE.technicien,
@@ -1855,6 +1921,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PAIEMENT_PAR_ROLE.magasinier,
     ...DROITS_DOCUMENT_PAR_ROLE.magasinier,
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.magasinier,
+    ...DROITS_PLAFOND_AVOIR_RECEPTIONNAIRE_PAR_ROLE.magasinier,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.magasinier,
     ...DROITS_IMPRESSION_PAR_ROLE.magasinier,
     ...DROITS_PIECES_PAR_ROLE.magasinier,
@@ -1870,6 +1937,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PAIEMENT_PAR_ROLE.comptable,
     ...DROITS_DOCUMENT_PAR_ROLE.comptable,
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.comptable,
+    ...DROITS_PLAFOND_AVOIR_RECEPTIONNAIRE_PAR_ROLE.comptable,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.comptable,
     ...DROITS_IMPRESSION_PAR_ROLE.comptable,
     ...DROITS_PIECES_PAR_ROLE.comptable,
@@ -1885,6 +1953,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PAIEMENT_PAR_ROLE.poste_atelier,
     ...DROITS_DOCUMENT_PAR_ROLE.poste_atelier,
     ...DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE.poste_atelier,
+    ...DROITS_PLAFOND_AVOIR_RECEPTIONNAIRE_PAR_ROLE.poste_atelier,
     ...DROITS_EXPORT_COMPTABLE_PAR_ROLE.poste_atelier,
     ...DROITS_IMPRESSION_PAR_ROLE.poste_atelier,
     ...DROITS_PIECES_PAR_ROLE.poste_atelier,

@@ -13,7 +13,7 @@ import {
   schemaMotif,
   schemaQuantiteMillieme,
 } from '../atelier/primitives';
-import { schemaListeQuery } from '../filtres';
+import { schemaBooleenQuery, schemaListeQuery } from '../filtres';
 import { schemaParametresPage } from '../pagination';
 
 /**
@@ -113,7 +113,7 @@ export const schemaFiltresCommandesFournisseur = schemaParametresPage.extend({
    *  `statut: ['envoyee','partiellement_recue']`, documenté explicitement (même doctrine que
    *  `VUES_ORDRE_REPARATION`, §6.3 de l'étape 1 : une vue est toujours reproductible par les
    *  filtres primitifs). */
-  avecReliquat: z.coerce.boolean().optional(),
+  avecReliquat: schemaBooleenQuery().optional(),
   tri: z.enum(TRIS_COMMANDES_FOURNISSEUR).default(TRI_DEFAUT_COMMANDES_FOURNISSEUR),
 });
 export type FiltresCommandesFournisseur = z.infer<typeof schemaFiltresCommandesFournisseur>;

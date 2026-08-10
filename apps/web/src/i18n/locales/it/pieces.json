@@ -134,11 +134,13 @@
       "commandesFournisseur": {
         "titre": "Ordini fornitore in attesa",
         "vide": "Nessun ordine fornitore in attesa per questo articolo.",
-        "sansFournisseur": "Nessun fornitore noto per questo articolo."
+        "sansFournisseur": "Nessun fornitore noto per questo articolo.",
+        "droitRequis": "Non ha il diritto di consultare gli ordini fornitore."
       },
       "fournisseur": {
         "titre": "Fornitore",
-        "vide": "Nessun fornitore referenziato per questo articolo."
+        "vide": "Nessun fornitore referenziato per questo articolo.",
+        "droitRequis": "Non ha il diritto di consultare i fornitori."
       }
     },
     "confirmations": {
@@ -347,7 +349,8 @@
     "fiche": {
       "erreur": {
         "titre": "Impossibile visualizzare questo ordine"
-      }
+      },
+      "droitRequis": "Non ha il diritto di consultare gli ordini fornitore."
     },
     "vide": "Nessun ordine."
   },
@@ -417,7 +420,8 @@
     "fiche": {
       "erreur": {
         "titre": "Impossibile visualizzare questo fornitore"
-      }
+      },
+      "droitRequis": "Non ha il diritto di consultare i fornitori."
     },
     "vide": "Nessun fornitore."
   },

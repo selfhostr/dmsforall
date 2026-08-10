@@ -19,11 +19,11 @@ import { ServiceRecherche } from './service-recherche';
  * `schemaParametresRecherche` (gelé, `@dfa/shared`) type `types` en `z.array(z.enum(...))
  * .optional()`. Express/`qs` (le parseur de requête par défaut de Nest) rend UNE seule occurrence
  * de paramètre répétable (`?types=vehicule`) en CHAÎNE, pas en tableau à un élément — seules deux
- * occurrences ou plus (`?types=vehicule&types=client`) produisent un tableau. Sans ce
- * `preprocess`, `?types=vehicule` échouerait la validation zod (« Expected array, received
- * string »), alors que c'est la forme la plus courante en pratique (filtrer sur un seul type).
- * Le schéma gelé lui-même n'est PAS modifié : cette adaptation est locale à la lecture de la
- * requête HTTP, avant que le schéma partagé ne s'applique.
+ * occurrences ou plus (`?types=vehicule&types=client`) produisent un tableau.
+ *
+ * Ce `preprocess` adapte la forme brute de la requête HTTP avant validation zod. Il double une
+ * protection déjà présente dans le schéma partagé (`schemaListeQuery.coercionListeQuery`), ce qui
+ * le rend inoffensif mais redondant. Gardé pour la robustesse locale sans risque.
  */
 const schemaParametresRechercheRequete = schemaParametresRecherche.extend({
   types: z.preprocess(

@@ -174,7 +174,9 @@ describe('BarreLaterale — où mène chaque entrée', () => {
 
     await screen.findByRole('link', { name: /^pièces$/i });
 
-    expect(hrefDuLien(/aujourd/i)).toBe('/');
+    // Fusion accueil/tableau de bord : l'entrée « Aujourd'hui » pointe directement sur
+    // `/tableau-bord`, plus sur `/` (qui n'est plus qu'un relais vers cette même page).
+    expect(hrefDuLien(/aujourd/i)).toBe('/tableau-bord');
     expect(hrefDuLien(/^atelier$/i)).toBe('/ordres-reparation');
     expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients');
     expect(hrefDuLien(/^pièces$/i)).toBe('/pieces/recherche-comptoir');

@@ -1,7 +1,20 @@
-import type { BlocPaiementQrFige } from '@dfa/shared';
+import { useTranslation } from 'react-i18next';
+
+import type { AdresseStructureeQr, BlocPaiementQrFige } from '@dfa/shared';
+
+import { formaterMontantAvecDevise } from '@/lib/formats';
 
 interface Props {
   readonly qr: BlocPaiementQrFige | null;
+}
+
+/** Même patron ligne-1/ligne-2 que `OngletAdresses.tsx` (`clients:adresses`) : rue + numéro sur
+ *  une ligne, NPA + localité sur la suivante — le pays n'est montré que s'il diffère de la Suisse,
+ *  seul cas où l'information ajoute quelque chose (créancier et débiteur sont CH par défaut). */
+function ligneAdresse(adresse: AdresseStructureeQr): string {
+  const rue = adresse.numero ? `${adresse.rue} ${adresse.numero}` : adresse.rue;
+  const ville = `${adresse.npa} ${adresse.localite}`;
+  return adresse.pays === 'CH' ? `${rue}, ${ville}` : `${rue}, ${ville}, ${adresse.pays}`;
 }
 
 /**
@@ -19,17 +32,61 @@ interface Props {
  * Dans tous ces cas : PAS DE CARTE DU TOUT, même patron que `RecapitulatifTVA` (absent en bloc
  * plutôt qu'une zone vide à expliquer).
  *
- * BLOQUÉ — signalé à l'orchestrateur (30.07.2026) : le contenu (créancier, débiteur, IBAN,
- * référence, montant à payer) exige des clés i18n qui n'existent pas encore dans
- * `facturation.json` (`fiche.bulletin.payableA`, `.payablePar`, `.iban`, `.reference`,
- * `.sansReference` — le libellé du montant réutilise `fiche.totalTtc`, déjà présent). Écrire ces
- * appels `t()` avant que les clés existent ferait échouer `pnpm i18n:check` (clé FR manquante) —
- * exactement la « chaîne française en attendant » que la consigne interdit. Ce composant reste
- * donc au stade « masque proprement le cas absent » ; le contenu (créancier/débiteur/montant/
- * référence) est à ajouter ICI dès que les clés seront posées dans les trois langues.
+ * Débloqué (10.08.2026) : les cinq clés i18n dont le contenu dépendait (`fiche.bulletin.payableA`,
+ * `.payablePar`, `.iban`, `.reference`, `.sansReference`) sont posées dans les trois langues —
+ * voir l'ancien commentaire de blocage, périmé, retiré d'ici. `debiteur` reste omis quand `null`
+ * (`RF-59`, adresse incomplète à l'émission) plutôt que d'inventer une ligne « Payable par » vide.
  */
 export function CarteBulletinVersement({ qr }: Props) {
+  const { t } = useTranslation('facturation');
+
   if (!qr) return null;
 
-  return null;
+  return (
+    <div className="flex flex-col gap-2 rounded-md border p-3">
+      <h2 className="texte-libelle font-medium text-foreground">
+        {t('facturation:document.type.bulletinPaiement')}
+      </h2>
+      <dl className="grid grid-cols-1 gap-x-4 gap-y-2 texte-corps sm:grid-cols-2">
+        <div>
+          <dt className="texte-libelle text-muted-foreground">
+            {t('facturation:fiche.bulletin.payableA')}
+          </dt>
+          <dd className="text-foreground">{qr.creancier.nom}</dd>
+          <dd className="text-foreground">{ligneAdresse(qr.creancier.adresse)}</dd>
+        </div>
+        {qr.debiteur ? (
+          <div>
+            <dt className="texte-libelle text-muted-foreground">
+              {t('facturation:fiche.bulletin.payablePar')}
+            </dt>
+            <dd className="text-foreground">{qr.debiteur.nom}</dd>
+            <dd className="text-foreground">{ligneAdresse(qr.debiteur)}</dd>
+          </div>
+        ) : null}
+        <div>
+          <dt className="texte-libelle text-muted-foreground">
+            {t('facturation:fiche.bulletin.iban')}
+          </dt>
+          <dd className="font-mono text-foreground">{qr.creancier.iban}</dd>
+        </div>
+        <div>
+          <dt className="texte-libelle text-muted-foreground">
+            {t('facturation:fiche.bulletin.reference')}
+          </dt>
+          <dd className="font-mono text-foreground">
+            {qr.qrReference ?? t('facturation:fiche.bulletin.sansReference')}
+          </dd>
+        </div>
+      </dl>
+      <div className="flex items-center justify-between border-t pt-2">
+        <span className="texte-corps font-semibold text-foreground">
+          {t('facturation:fiche.totalTtc')}
+        </span>
+        <span className="tabular-nums texte-corps font-semibold text-foreground">
+          {formaterMontantAvecDevise(qr.qrMontantCentimes, qr.qrDevise)}
+        </span>
+      </div>
+    </div>
+  );
 }

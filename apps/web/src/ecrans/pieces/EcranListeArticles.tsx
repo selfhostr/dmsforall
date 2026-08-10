@@ -183,9 +183,7 @@ export function EcranListeArticles() {
   if (isPending) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('pieces:articles.liste.titre')}
-        </h1>
+        <h1 className="sr-only">{t('pieces:articles.liste.titre')}</h1>
         <EtatChargement lignes={6} />
       </div>
     );
@@ -194,9 +192,7 @@ export function EcranListeArticles() {
   if (isError) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('pieces:articles.liste.titre')}
-        </h1>
+        <h1 className="sr-only">{t('pieces:articles.liste.titre')}</h1>
         <EtatErreur
           titre={t('pieces:articles.liste.erreur.titre')}
           description={messageErreur(error, t)}
@@ -208,10 +204,13 @@ export function EcranListeArticles() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('pieces:articles.liste.titre')}
-        </h1>
+      {/* Doublon strict du libellé de l'onglet actif « Articles » (`navigation-modele.ts`,
+          `ONGLETS_PIECES`) : le h1 reste dans le DOM pour le lecteur d'écran et la structure du
+          document, sans répéter visuellement ce que la barre d'onglets affiche déjà en
+          surbrillance. */}
+      <h1 className="sr-only">{t('pieces:articles.liste.titre')}</h1>
+
+      <div className="flex items-center justify-end gap-3">
         {peutEcrireArticle(role) ? (
           <Button onClick={() => setFormulaireOuvert(true)}>
             {t('pieces:articles.actions.ajouter')}

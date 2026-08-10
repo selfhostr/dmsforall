@@ -36,7 +36,7 @@ import {
   schemaTexteCourt,
   schemaTexteLong,
 } from './primitives';
-import { schemaListeQuery } from '../filtres';
+import { schemaBooleenQuery, schemaListeQuery } from '../filtres';
 
 /**
  * Véhicules (contrats-api-etape-1.md §7.4, §8.1).
@@ -360,7 +360,7 @@ export const schemaFiltresVehicules = z.object({
   detenteurId: schemaIdentifiant.optional(),
   statut: schemaListeQuery(z.enum(STATUTS_VEHICULE)).optional(),
   marque: z.string().trim().max(60).optional(),
-  importe: z.coerce.boolean().optional(),
+  importe: schemaBooleenQuery().optional(),
   /** Sert la liste de relance d'expertise (RM-29) : « échéance au plus tard le … ». */
   prochaineExpertiseAu: schemaDateJour.optional(),
   siteId: schemaIdentifiant.optional(),

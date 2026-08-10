@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 // API composée standard shadcn (Select/SelectTrigger/SelectValue/SelectContent/SelectItem),
 // à la différence de l'ancienne implémentation maison sur <select> natif (voir
 // docs/design-comptoir.md §3) : changement d'appel assumé, documenté comme tel dans ce même
-// document — il n'y a encore aucun écran consommateur à ce jour (F1-U1 non démarré).
+// document.
 
 export const Select = SelectPrimitive.Root;
 export const SelectGroup = SelectPrimitive.Group;
