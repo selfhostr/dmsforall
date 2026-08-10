@@ -212,7 +212,26 @@ jobs:
       # aucune infrastructure à opérer) pour une garantie vérifiable après coup : quelle définition
       # de workflow, quel commit, sur quel dépôt, a produit exactement cette image. Se vérifie avec
       # `gh attestation verify oci://<image>@<digest> --owner <org>`.
+      #
+      # NEUTRALISÉE (10.08.2026) : `actions/attest-build-provenance` échoue systématiquement ici
+      # avec « Feature not available for user-owned private repositories. To enable this feature,
+      # please make this repository public. » — GitHub réserve l'attestation d'artefact aux dépôts
+      # publics et aux dépôts d'organisation sur un plan Team/Enterprise. Ce dépôt est privé et
+      # détenu par un compte personnel : l'étape ne PEUT PAS réussir dans cet état, quel que soit le
+      # code ou le workflow — ce n'est donc pas une vérification qui échoue à juste titre (les
+      # images sont déjà poussées à l'étape précédente). On la fait SAUTER plutôt que la laisser
+      # échouer : un `if:` évalué à faux donne un statut « ignorée » dans le journal, pas un rouge
+      # permanent sur `main` qui se lirait à tort comme « quelque chose ne va pas ». Un
+      # `continue-on-error: true` masquerait la même absence de problème derrière un vrai échec.
+      #
+      # Déblocage : dès que ce dépôt passe en public, `repository.private` devient `false` et
+      # l'étape se remet à tourner d'elle-même, sans toucher ce fichier. Un dépôt qui reste privé
+      # mais rejoint une organisation sur plan Team/Enterprise débloquerait aussi la fonctionnalité
+      # côté GitHub — mais aucun champ de plan de facturation n'est exposé dans le contexte d'un
+      # workflow, donc CE cas-là ne peut pas s'auto-détecter : il faudra alors ajuster la condition
+      # ci-dessous à la main.
       - name: Attestation de provenance
+        if: ${{ github.event.repository.private == false }}
         uses: actions/attest-build-provenance@v2
         with:
           subject-name: ${{ env.REGISTRY }}/${{ steps.repo.outputs.owner }}/dfa-${{ matrix.image }}
