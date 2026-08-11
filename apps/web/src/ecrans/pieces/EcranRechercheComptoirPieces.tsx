@@ -7,9 +7,10 @@ import type { ResultatRechercheComptoirArticle } from '@dfa/shared';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
-import { EtatVide } from '@/composants/commun/EtatVide';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
+import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
+import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { useRechercheComptoirPieces } from '@/hooks/pieces/useRechercheComptoirPieces';
 import { useSession } from '@/hooks/useSession';
@@ -23,11 +24,16 @@ import { SelecteurSiteRequis } from './SelecteurSiteRequis';
 import { formaterQuantiteMillieme } from './utils';
 
 /**
- * Recherche comptoir pièces (`GET /articles/recherche-comptoir`) — LE geste n°1 du magasinier
- * (brief) : un client au comptoir, une référence, « est-ce que je l'ai, et à quel prix ». Un seul
- * appel donne prix (TTC, RF-40), référence et disponibilité au site. « Aucun résultat » pour une
- * référence inexistante est le cas NOMINAL, pas une erreur — traité comme une réponse utile
- * (`EtatVideRecherche`), jamais comme un échec.
+ * Recherche comptoir pièces (`GET /articles/recherche-comptoir` en recherche, `GET /articles` en
+ * parcours) — LE geste n°1 du magasinier (brief) : un client au comptoir, une référence, « est-ce
+ * que je l'ai, et à quel prix ». Un seul appel donne prix (TTC, RF-40), référence et disponibilité
+ * au site.
+ *
+ * PARCOURABLE, pas seulement interrogeable (constat testeur : « une case vide, il faut taper une
+ * référence que je ne connais pas ») : saisie vide -> liste du catalogue actif du site, triée par
+ * désignation, chargeable page par page (`useRechercheComptoirPieces`, mode « parcours »). « Aucun
+ * résultat » pour une recherche qui n'aboutit pas reste le cas NOMINAL, pas une erreur — traité
+ * comme une réponse utile (`EtatVideRecherche`), jamais comme un échec.
  */
 export function EcranRechercheComptoirPieces() {
   const { t } = useTranslation(['pieces', 'commun']);
@@ -38,8 +44,19 @@ export function EcranRechercheComptoirPieces() {
   const { data: session } = useSession();
   const peutVendre = peutCreerMouvement(session?.utilisateur.role);
 
-  const { saisie, onSaisieChange, enChargement, resultats, enErreur, erreur, relancer } =
-    useRechercheComptoirPieces(site);
+  const {
+    saisie,
+    onSaisieChange,
+    enParcours,
+    enChargement,
+    resultats,
+    enErreur,
+    erreur,
+    relancer,
+    aDavantage,
+    chargementSuivant,
+    chargerDavantage,
+  } = useRechercheComptoirPieces(site);
 
   // Id de l'article ciblé par chaque dialogue — jamais l'objet lui-même : `article` est
   // retrouvé par id dans `resultats` À CHAQUE rendu (voir l'en-tête des deux dialogues), pour que
@@ -154,9 +171,7 @@ export function EcranRechercheComptoirPieces() {
   if (enErreur) {
     return (
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('pieces:rechercheComptoir.titre')}
-        </h1>
+        <h1 className="texte-titre-page">{t('pieces:rechercheComptoir.titre')}</h1>
         <EtatErreur
           titre={t('pieces:rechercheComptoir.erreur.titre')}
           description={messageErreur(erreur, t)}
@@ -168,15 +183,33 @@ export function EcranRechercheComptoirPieces() {
 
   const saisieNonVide = saisie.trim().length > 0;
 
+  // Deux raisons distinctes pour une liste vide : le catalogue actif n'a AUCUN article (mode
+  // parcours) contre « rien ne correspond à cette recherche » (mode recherche) — même distinction
+  // que `EcranListeArticles` entre `EtatVidePremierUsage` et `EtatVideRecherche`, jamais le même
+  // message pour les deux cas.
+  const contenuVide = enParcours ? (
+    <EtatVidePremierUsage
+      titre={t('pieces:rechercheComptoir.titre')}
+      description={t('pieces:articles.vide')}
+    />
+  ) : (
+    <EtatVideRecherche
+      titre={t('pieces:rechercheComptoir.titre')}
+      description={t('pieces:rechercheComptoir.vide.recherche')}
+    />
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6">
       {/* NON masqué volontairement : l'onglet actif est « Comptoir » (`navigation-modele.ts`,
           `ONGLETS_PIECES`, onglet « comptoir », sans vue), qui ne dit pas ce qu'on y fait —
           « Recherche comptoir » porte l'information « Recherche » qu'aucun onglet n'affiche.
           Comparaison mot pour mot avec la barre d'onglets active : pas un doublon. */}
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {t('pieces:rechercheComptoir.titre')}
-      </h1>
+      <h1 className="texte-titre-page">{t('pieces:rechercheComptoir.titre')}</h1>
+
+      {/* Rappel permanent (pas seulement dans le placeholder, coupé sur tablette) que la
+          recherche accepte un bout de désignation, pas seulement une référence exacte. */}
+      <p className="texte-libelle text-muted-foreground">{t('pieces:rechercheComptoir.aide')}</p>
 
       <BarreFiltres
         q={saisie}
@@ -186,31 +219,23 @@ export function EcranRechercheComptoirPieces() {
         onEffacerFiltres={() => onSaisieChange('')}
       />
 
-      {!saisieNonVide ? (
-        <EtatVide
-          titre={t('pieces:rechercheComptoir.titre')}
-          description={t('pieces:rechercheComptoir.aide')}
+      <TableComptoir
+        colonnes={colonnes}
+        lignes={resultats ?? []}
+        cleLigne={(article) => article.articleId}
+        enChargement={enChargement}
+        onOuvrirLigne={(article) => navigate(chemins.pieces.articleDetail(article.articleId, site))}
+        libelleLigne={(article) => t('commun:actions.ouvrirElement', { nom: article.designation })}
+        contenuVide={contenuVide}
+      />
+
+      {enParcours ? (
+        <BoutonChargerPlus
+          aChargerPlus={aDavantage}
+          enChargement={chargementSuivant}
+          onChargerPlus={chargerDavantage}
         />
-      ) : (
-        <TableComptoir
-          colonnes={colonnes}
-          lignes={resultats ?? []}
-          cleLigne={(article) => article.articleId}
-          enChargement={enChargement}
-          onOuvrirLigne={(article) =>
-            navigate(chemins.pieces.articleDetail(article.articleId, site))
-          }
-          libelleLigne={(article) =>
-            t('commun:actions.ouvrirElement', { nom: article.designation })
-          }
-          contenuVide={
-            <EtatVideRecherche
-              titre={t('pieces:rechercheComptoir.titre')}
-              description={t('pieces:rechercheComptoir.vide.recherche')}
-            />
-          }
-        />
-      )}
+      ) : null}
 
       {peutVendre ? (
         <>

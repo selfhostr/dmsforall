@@ -14,6 +14,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrer.ts",
     "db:seed": "tsx src/db/seed/seed-dev.ts",
+    "db:import:vehicules-ch": "tsx src/db/seed/import-referentiel-vehicules-ch.ts",
     "openapi:export": "nest build && node dist/openapi/exporter-openapi.js"
   },
   "dependencies": {
@@ -25,6 +26,7 @@
     "@node-rs/argon2": "^2.0.2",
     "@sentry/nestjs": "^10.68.0",
     "cookie-parser": "^1.4.7",
+    "csv-parse": "^7.0.2",
     "drizzle-orm": "^0.45.2",
     "ioredis": "^5.4.1",
     "jsqr": "^1.4.0",

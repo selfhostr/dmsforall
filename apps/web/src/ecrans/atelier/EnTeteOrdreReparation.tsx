@@ -83,7 +83,7 @@ export function EnTeteOrdreReparation({ or }: Props) {
   // (`DialogueAjoutLigneOr`) vit dans `EcranFicheOrdreReparation.tsx` (fiche hors en-tête, hors
   // périmètre) et n'expose aucun moyen de lui donner un libellé accessible distinct depuis
   // l'extérieur ; le réutiliser tel quel créerait un second bouton strictement identique
-  // (même nom accessible « Ajouter une ligne ») et casserait les requêtes `findByRole` à
+  // (même nom accessible « Ajouter un travail ou une pièce ») et casserait les requêtes `findByRole` à
   // correspondance unique déjà vertes dans `EcranFicheOrdreReparation.spec.tsx`. Un futur lot qui
   // toucherait ce fichier pourrait déplacer ce déclencheur ici plutôt que de le dupliquer.
   const peutFacturer = or.actionsDisponibles.includes('facturer');

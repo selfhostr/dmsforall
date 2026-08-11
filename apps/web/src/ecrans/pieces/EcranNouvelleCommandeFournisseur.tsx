@@ -256,9 +256,7 @@ export function EcranNouvelleCommandeFournisseur() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {t('pieces:commandes.actions.creer')}
-      </h1>
+      <h1 className="texte-titre-page">{t('pieces:commandes.actions.creer')}</h1>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">

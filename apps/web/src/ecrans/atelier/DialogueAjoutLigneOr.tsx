@@ -260,14 +260,27 @@ export function DialogueAjoutLigneOr({ orId }: Props) {
           {estMainOeuvre ? (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="or-ligne-temps">{t('or:lignes.colonnes.tempsBareme')}</Label>
-              <Input
-                id="or-ligne-temps"
-                type="text"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={etat.tempsBaremeSaisie}
-                onChange={(evenement) => majEtat({ tempsBaremeSaisie: evenement.target.value })}
-              />
+              {/* CORRECTIF (test d'utilisabilité novice, 11.08.2026) : « est-ce 1 heure 20, ou
+               *  1,2 heure ? Personne ne me le dit, et ça change la facture du client. » Suffixe
+               *  « h » ajouté dans le même patron visuel que `ChampKilometrage` (unité en overlay
+               *  à droite du champ, jamais une chaîne i18n : une unité SI/de mesure n'est pas une
+               *  traduction, même convention que « km »/« CHF » ailleurs dans ce module) — combiné
+               *  au séparateur décimal (point, jamais deux-points), lève l'ambiguïté sans texte
+               *  d'aide supplémentaire ni nouvelle clé i18n. */}
+              <div className="relative">
+                <Input
+                  id="or-ligne-temps"
+                  type="text"
+                  inputMode="decimal"
+                  className="pr-9 tabular-nums"
+                  placeholder="0.00"
+                  value={etat.tempsBaremeSaisie}
+                  onChange={(evenement) => majEtat({ tempsBaremeSaisie: evenement.target.value })}
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 texte-libelle text-muted-foreground">
+                  h
+                </span>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4">
@@ -306,14 +319,25 @@ export function DialogueAjoutLigneOr({ orId }: Props) {
             </Select>
           </div>
 
-          <label htmlFor="or-ligne-securite" className="flex items-center gap-2 texte-corps">
-            <Checkbox
-              id="or-ligne-securite"
-              checked={etat.securite}
-              onCheckedChange={(coche) => majEtat({ securite: coche === true })}
-            />
-            {t('or:lignes.marqueurs.securite')}
-          </label>
+          {/* CORRECTIF (test d'utilisabilité novice, 11.08.2026) : « aucune idée de ce qu'elle
+           *  fait » — cette case porte pourtant un enjeu légal (bloque la restitution du véhicule
+           *  sans réserve signée, RM-XX). Clé i18n `or:lignes.marqueurs.securiteAide` posée en
+           *  FR/DE/IT (`i18n/locales/{fr,de,it}/or.json`) ; `aria-describedby` relie la case à
+           *  cette explication pour les lecteurs d'écran, pas seulement visuellement. */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="or-ligne-securite" className="flex items-center gap-2 texte-corps">
+              <Checkbox
+                id="or-ligne-securite"
+                checked={etat.securite}
+                aria-describedby="or-ligne-securite-aide"
+                onCheckedChange={(coche) => majEtat({ securite: coche === true })}
+              />
+              {t('or:lignes.marqueurs.securite')}
+            </label>
+            <p id="or-ligne-securite-aide" className="pl-6 texte-libelle text-muted-foreground">
+              {t('or:lignes.marqueurs.securiteAide')}
+            </p>
+          </div>
 
           {etat.type === 'piece' ? (
             <>

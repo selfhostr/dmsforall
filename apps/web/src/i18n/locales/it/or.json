@@ -40,7 +40,7 @@
     "plafond": "Tetto di spesa",
     "totalDuJour": "Oggi",
     "techniciensEnCours": "Tecnici attivi",
-    "numeroPo": "PO cliente",
+    "numeroPo": "N. buono d'ordine del cliente",
     "restitutionReportee": "Posticipata",
     "orPrecedent": "Ordine precedente: {numero}"
   },
@@ -57,7 +57,7 @@
   "lignes": {
     "titre": "Lavori",
     "vide": "Nessun lavoro registrato.",
-    "ajouter": "Aggiungi lavoro",
+    "ajouter": "Aggiungi lavoro o ricambio",
     "tronquees": "Alcune righe non sono visualizzate qui (limite raggiunto) — consultare l'elenco completo.",
     "groupes": {
       "aValider": "Da approvare",
@@ -81,13 +81,13 @@
       "statut": "Stato"
     },
     "types": {
-      "mainOeuvreBaremee": "M.O. tariffaria",
-      "mainOeuvreTempsReel": "M.O. tempo reale",
+      "mainOeuvreBaremee": "Manodopera (tempo tariffario)",
+      "mainOeuvreTempsReel": "Manodopera (tempo effettivamente registrato)",
       "forfait": "Forfait",
-      "piece": "Ricambio",
-      "fourniture": "Accessorio",
+      "piece": "Ricambio (prelevato dal magazzino)",
+      "fourniture": "Accessorio (piccolo materiale di consumo)",
       "sousTraitance": "Subfornitura",
-      "produitAtelier": "Prodotto officina",
+      "produitAtelier": "Prodotto officina (es. olio, prodotti di manutenzione)",
       "taxeElimination": "Tassa / Smaltimento",
       "remise": "Sconto",
       "texte": "Informazione"
@@ -124,6 +124,7 @@
     },
     "marqueurs": {
       "securite": "Sicurezza",
+      "securiteAide": "Blocca la restituzione del veicolo finché non è firmata una riserva scritta.",
       "pieceARestituer": "Ricambio da restituire",
       "fournieParClient": "Fornito dal cliente",
       "attentePiece": "In attesa ricambio",
@@ -260,7 +261,7 @@
     "receptionRequise": "Il veicolo deve essere accettato prima di poter lavorare su di esso.",
     "orFacture": "Un ordine fatturato non può essere riaperto direttamente. Crea un ordine di rilavorazione collegato.",
     "checklistIncomplete": "Checklist incompleta. Punti mancanti elencati di seguito.",
-    "poManquant": "Il numero d'ordine (PO) è obbligatorio per questo cliente.",
+    "poManquant": "Il numero del buono d'ordine del cliente è obbligatorio.",
     "reserveSecuriteRequise": "Una dichiarazione di sicurezza deve essere sottoscritta prima della restituzione."
   },
   "vues": {
@@ -287,13 +288,13 @@
     "aucunResultat": "Nessun risultato."
   },
   "chargement": {
-    "or": "Caricamento ordine…",
+    "or": "Caricamento dell'ordine di riparazione…",
     "lignes": "Caricamento lavori…"
   },
   "liste": {
     "titre": "Ordini di riparazione",
     "actions": {
-      "nouveau": "Nuovo OR"
+      "nouveau": "Nuovo ordine di riparazione"
     },
     "colonnes": {
       "numero": "N. ordine",
@@ -351,6 +352,7 @@
     "titre": "Azioni",
     "confirmer": "Confermare",
     "confirmerAction": "Confermare questa azione.",
+    "annulerAvertissement": "Questa azione è definitiva: un ordine di riparazione annullato non potrà più essere né modificato né ripreso.",
     "motif": "Motivo",
     "motifRequis": "Il motivo è obbligatorio",
     "kilometrageEntree": "Chilometraggio all'ingresso",
@@ -369,7 +371,7 @@
     "titre": "Nuovo ordine di riparazione",
     "siteManquant": {
       "titre": "Nessuna sede selezionata",
-      "description": "Selezionare una sede prima di aprire un ordine di riparazione: la numerazione e i parametri dell'ordine ne dipendono.",
+      "description": "Selezionare una sede prima di aprire un ordine di riparazione: la numerazione e i parametri dell'ordine di riparazione ne dipendono.",
       "label": "Sede",
       "erreur": {
         "titre": "Impossibile caricare le sedi"
@@ -377,7 +379,7 @@
     },
     "client": {
       "requisTitre": "Nessun cliente selezionato",
-      "requisDescription": "Aprire un ordine di riparazione dalla scheda del cliente (pulsante «Apri ordine»), oppure cercare prima il cliente."
+      "requisDescription": "Aprire un ordine di riparazione dalla scheda del cliente (pulsante «Apri l'ordine di riparazione»), oppure cercare prima il cliente."
     },
     "vehicule": {
       "titre": "Veicolo",
@@ -385,7 +387,7 @@
       "erreur": "Impossibile caricare i veicoli di questo cliente"
     },
     "type": {
-      "libelle": "Tipo di ordine",
+      "libelle": "Tipo di ordine di riparazione",
       "service": "Service",
       "reparation": "Riparazione",
       "diagnostic": "Diagnosi",
@@ -410,7 +412,7 @@
       "titre": "Impossibile aprire l'ordine di riparazione"
     },
     "actions": {
-      "creer": "Apri ordine",
+      "creer": "Apri l'ordine di riparazione",
       "enCours": "Apertura in corso…"
     }
   }

@@ -39,7 +39,7 @@ export function EcranRecherche() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4">
-      <h1 className="text-xl font-semibold">{t('commun:titres.recherche')}</h1>
+      <h1 className="texte-titre-page">{t('commun:titres.recherche')}</h1>
 
       {enErreur ? (
         <EtatErreur

@@ -243,6 +243,45 @@ describe('EcranListeFactures — facture annulée par avoir', () => {
   );
 });
 
+describe('EcranListeFactures — brouillon', () => {
+  it(
+    'affiche le badge « Brouillon » dans la colonne Statut plutôt que « Non réglée » — DÉFAUT ' +
+      "CORRIGÉ (issue #61, testeur novice) : `statutReglement: 'non_regle'` n'est qu'une valeur " +
+      "PAR DÉFAUT tant que rien n'est émis, jamais le signal d'une créance due (`RF-68`, `statut` " +
+      'et `statutReglement` sont deux colonnes délibérément indépendantes) — un brouillon sans ' +
+      'numéro ni échéance ne doit jamais se présenter comme une facture impayée à relancer',
+    async () => {
+      connecterSession('chef_atelier');
+      server.use(
+        http.get('/api/v1/documents-vente', () =>
+          HttpResponse.json({
+            donnees: [
+              construireDocumentBrut({
+                statut: 'brouillon',
+                statutReglement: 'non_regle',
+                numero: null,
+                numeroSequence: null,
+                exercice: null,
+                emisLe: null,
+                emisPar: null,
+              }),
+            ],
+            curseurSuivant: null,
+            limite: 50,
+          }),
+        ),
+      );
+
+      rendre();
+      await userEvent.setup().click(await screen.findByRole('tab', { name: 'Toutes' }));
+      await screen.findByText('Jean Dupont');
+
+      expect(screen.getByText('Brouillon')).toBeInTheDocument();
+      expect(screen.queryByText('Non réglée')).not.toBeInTheDocument();
+    },
+  );
+});
+
 describe('EcranListeFactures — colonne Retard', () => {
   it('affiche "en retard de 20 jours" (alarme) pour une facture en retard', async () => {
     // Le handler par défaut de `/auth/moi` répond 401 (« non connecté », voir

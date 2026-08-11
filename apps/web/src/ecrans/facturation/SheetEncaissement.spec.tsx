@@ -1,5 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 
@@ -187,6 +188,144 @@ describe('SheetEncaissement — facture annulée par avoir', () => {
       // (`totalSelectionneCentimes = factures.filter(f => selection.has(f.id)).reduce(...)`).
       expect(screen.getAllByText('0.00')).toHaveLength(2); // « Total sélectionné » + « Reste à encaisser »
       expect(screen.queryByText(/60\.00/)).not.toBeInTheDocument();
+    },
+  );
+});
+
+/** Réponse `POST /paiements` minimale mais valide (`ReponsePaiement`), pour les deux tests
+ *  ci-dessous — seuls les champs lus par `useEncaissement`/le panneau (`imputations`,
+ *  `montantCentimes` n'est PAS relu, la confirmation affichée vient du calcul local) importent. */
+function reponsePaiementBrute() {
+  return {
+    donnees: {
+      id: 'paiement-1',
+      siteId: 'site-1',
+      dateValeur: '2026-08-11',
+      moyen: 'especes',
+      montantCentimes: 4500,
+      devise: 'CHF',
+      payeurClientId: 'cl-1',
+      payeurLibelle: 'Jean Dupont',
+      referenceQr: null,
+      identifiantTransactionBanque: null,
+      source: 'manuel',
+      contrePasseId: null,
+      imputations: [
+        {
+          id: 'imp-1',
+          paiementId: 'paiement-1',
+          documentId: 'doc-emis-1',
+          montantCentimes: 4500,
+          nature: 'reglement',
+          imputeLe: '2026-08-11T00:00:00.000Z',
+          imputePar: null,
+        },
+      ],
+      montantNonImputeCentimes: 0,
+      issuesDisponibles: [],
+      creeLe: '2026-08-11T00:00:00.000Z',
+      creePar: null,
+    },
+    avertissements: [],
+  };
+}
+
+/**
+ * Reproduit le défaut d'argent le plus grave remonté par le testeur novice (facture Meier Urs,
+ * 60 CHF, « L'opération n'a pas pu être effectuée. Réessayez. » puis, au rejeu, « Le montant
+ * imputé dépasse le reste à payer. ») — CAUSE RACINE PROUVÉE en exécution réelle (`POST
+ * /paiements` sur l'API tournante, deux clés distinctes, même corps) : le premier appel réussit
+ * réellement côté serveur (`201`, facture soldée), le second — portant une NOUVELLE clé
+ * d'idempotence générée à chaque clic — est un encaissement DISTINCT que le serveur refuse à bon
+ * droit (`409`, solde déjà nul). Le défaut n'est donc pas le refus du second appel : c'est que le
+ * rejeu n'était jamais reconnu comme un rejeu.
+ */
+describe('SheetEncaissement — encaissement (idempotence du rejeu, confirmation de succès)', () => {
+  it(
+    'porte la MÊME Idempotency-Key sur un rejeu après échec, contenu inchangé — DÉFAUT CORRIGÉ : ' +
+      'avant ce correctif, `soumettre()` appelait `genererCleIdempotence()` À CHAQUE CLIC, donc ' +
+      'un simple rejeu envoyait un encaissement structurellement DISTINCT aux yeux du serveur',
+    async () => {
+      const facture = construireDocumentBrut({ soldeCentimes: 4500 });
+      server.use(
+        http.get('/api/v1/documents-vente', () =>
+          HttpResponse.json({ donnees: [facture], curseurSuivant: null, limite: 100 }),
+        ),
+      );
+
+      const clesRecues: (string | null)[] = [];
+      let appel = 0;
+      server.use(
+        http.post('/api/v1/paiements', ({ request }) => {
+          appel += 1;
+          clesRecues.push(request.headers.get('Idempotency-Key'));
+          if (appel === 1) {
+            return HttpResponse.json(
+              {
+                type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
+                title: 'Erreur interne',
+                status: 500,
+                code: 'ERREUR_INTERNE',
+                instance: '',
+              },
+              { status: 500, headers: { 'Content-Type': 'application/problem+json' } },
+            );
+          }
+          return HttpResponse.json(reponsePaiementBrute(), { status: 201 });
+        }),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await utilisateur.click(await screen.findByRole('checkbox'));
+      await utilisateur.click(screen.getByRole('button', { name: 'Ajouter un moyen de paiement' }));
+      await utilisateur.click(screen.getByRole('button', { name: "Enregistrer l'encaissement" }));
+
+      // Premier essai : le message d'erreur générique apparaît, la clé a été prise par le serveur
+      // (visible dans `clesRecues`, capturée par le handler MSW ci-dessus).
+      await waitFor(() => expect(clesRecues).toHaveLength(1));
+      expect(clesRecues[0]).toMatch(/^[0-9a-f-]{36}$/i);
+
+      // Rejeu SANS rien modifier (le geste exact du testeur) : DOIT porter la MÊME clé.
+      await utilisateur.click(screen.getByRole('button', { name: "Enregistrer l'encaissement" }));
+      await waitFor(() => expect(clesRecues).toHaveLength(2));
+      expect(clesRecues[1]).toEqual(clesRecues[0]);
+    },
+  );
+
+  it(
+    'confirme explicitement le succès (montant + badge « Réglée ») plutôt que de fermer le ' +
+      'panneau en silence — item 3 du correctif : un succès et un échec ne doivent jamais se ' +
+      "ressembler à l'écran",
+    async () => {
+      const facture = construireDocumentBrut({ soldeCentimes: 4500 });
+      server.use(
+        http.get('/api/v1/documents-vente', () =>
+          HttpResponse.json({ donnees: [facture], curseurSuivant: null, limite: 100 }),
+        ),
+        http.post('/api/v1/paiements', () =>
+          HttpResponse.json(reponsePaiementBrute(), { status: 201 }),
+        ),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await utilisateur.click(await screen.findByRole('checkbox'));
+      await utilisateur.click(screen.getByRole('button', { name: 'Ajouter un moyen de paiement' }));
+      await utilisateur.click(screen.getByRole('button', { name: "Enregistrer l'encaissement" }));
+
+      // `findByText` (async) attend la confirmation elle-même — le montant « CHF 45.00 » seul
+      // apparaîtrait prématurément (déjà visible dans le formulaire, sous « Total sélectionné »,
+      // AVANT même l'envoi), d'où l'attente portée sur le badge « Réglée » qui, lui, n'existe que
+      // dans la confirmation.
+      expect(await screen.findByText('Réglée')).toBeInTheDocument();
+      expect(screen.getAllByText('CHF 45.00').length).toBeGreaterThan(0);
+      // Le formulaire de saisie a disparu — remplacé par la confirmation, jamais superposé.
+      expect(
+        screen.queryByRole('button', { name: "Enregistrer l'encaissement" }),
+      ).not.toBeInTheDocument();
     },
   );
 });

@@ -38,7 +38,9 @@ describe('Accessibilité WCAG 2.1 AA — dialogue « Ajouter une ligne »', () =
     const utilisateur = userEvent.setup();
     renduAvecQueryClient(<DialogueAjoutLigneOr orId={OR_ID} />);
 
-    await utilisateur.click(screen.getByRole('button', { name: 'Ajouter une ligne' }));
+    await utilisateur.click(
+      screen.getByRole('button', { name: 'Ajouter un travail ou une pièce' }),
+    );
     await screen.findByRole('dialog');
 
     const audit = await auditerAccessibiliteEcran(
