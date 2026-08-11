@@ -3,10 +3,11 @@
  *
  * Singleton du tenant, lisible par TOUT utilisateur authentifié (l'UI en dépend à chaque écran),
  * modifiable par `admin`/`chef_atelier`/`direction` (`INFERE_PARAMETRAGE_GOUVERNANCE`,
- * `auth/matrice-droits.ts`) — SAUF `reception.plafondAvoirReceptionnaireCentimes` (RF-117), plafond
- * financier retiré d'`admin` et réservé à `direction`/`comptable`
+ * `auth/matrice-droits.ts`) — SAUF les deux plafonds financiers de `reception`,
+ * `plafondAvoirReceptionnaireCentimes` (RF-117, issue #45) et `plafondDefautCentimes` (issue #52,
+ * même sémantique), retirés d'`admin` et réservés à `direction`/`comptable`
  * (`parametrage.atelier.plafond_avoir.modifier`, vérifié EN SERVICE — voir le commentaire sur
- * `modifier` ci-dessous, issue #45). `ETag` + `Cache-Control: private, must-revalidate` sur `GET`.
+ * `modifier` ci-dessous). `ETag` + `Cache-Control: private, must-revalidate` sur `GET`.
  */
 import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Controller, Get, Header, Headers, Patch, Res } from '@nestjs/common';
@@ -66,19 +67,21 @@ export class ParametresAtelierController {
   }
 
   /**
-   * `RF-117` / issue #45 — FERMÉ : `reception.plafondAvoirReceptionnaireCentimes` partageait CE
-   * MÊME droit générique (`parametrage.atelier.modifier`, `chef_atelier`/`direction`/`admin` via
+   * `RF-117` / issue #45 — FERMÉ, puis ÉTENDU par issue #52 : `reception.
+   * plafondAvoirReceptionnaireCentimes` ET `reception.plafondDefautCentimes` (même sémantique
+   * documentée, `db/schema/atelier/parametrage.ts`) partageaient CE MÊME droit générique
+   * (`parametrage.atelier.modifier`, `chef_atelier`/`direction`/`admin` via
    * `INFERE_PARAMETRAGE_GOUVERNANCE`, `auth/matrice-droits.ts`) que le reste de cet endpoint,
-   * donnant l'écriture d'un plafond FINANCIER à `admin` — violation prouvée en exécution de
+   * donnant l'écriture de deux plafonds FINANCIERS à `admin` — violation prouvée en exécution de
    * `RF-115` (« admin est un rôle technique et n'a aucun droit financier »), exactement le problème
    * déjà affronté par le bloc créancier QR-facture (`facturation.parametrage.creancier.*`).
    * `parametrage.atelier.modifier` reste posé ICI, statiquement, pour TOUS les autres réglages de
    * l'endpoint (kilométrage obligatoire, signature de réception, préfixe OR…) : un droit fort posé
    * statiquement sur toute la route interdirait aussi ces réglages ordinaires à `chef_atelier`. Le
    * droit dédié `parametrage.atelier.plafond_avoir.modifier` (direction/comptable seuls,
-   * `admin: []`) est vérifié EN SERVICE, uniquement quand ce champ précis change effectivement —
-   * voir `ServiceParametresAtelier.verifierDroitPlafondAvoir`, même patron que
-   * `ServiceOr.modifier`/`atelier.or.plafond_modifier`.
+   * `admin: []`) couvre les DEUX champs, vérifié EN SERVICE, uniquement quand l'un d'eux change
+   * effectivement — voir `ServiceParametresAtelier.verifierDroitPlafondsFinanciers`, même patron
+   * que `ServiceOr.modifier`/`atelier.or.plafond_modifier`.
    */
   @ExigerDroit('parametrage.atelier.modifier')
   @Patch()

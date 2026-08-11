@@ -71,10 +71,13 @@ export const TOUTES_ACTIONS = [
   // ---- Paramétrage atelier et référentiels (plan-lot1-execution.md §6.4) ----------------------
   'parametrage.atelier.lire',
   'parametrage.atelier.modifier',
-  // Issue #45 / RF-117 (0018) : `reception.plafondAvoirReceptionnaireCentimes` partage
-  // l'endpoint `PATCH /parametres-atelier` avec des réglages non financiers (§ « Bloc plafond
-  // d'avoir réceptionnaire » plus bas pour le détail de l'arbitrage) — droit dédié, retiré
-  // d'`admin` (RF-115), PAS couvert par `parametrage.atelier.modifier`.
+  // Issue #45 / RF-117 (0018), ÉTENDUE par issue #52 : `reception.
+  // plafondAvoirReceptionnaireCentimes` ET `reception.plafondDefautCentimes` (même sémantique
+  // documentée, `db/schema/atelier/parametrage.ts`) partagent l'endpoint `PATCH
+  // /parametres-atelier` avec des réglages non financiers (§ « Bloc plafond d'avoir
+  // réceptionnaire » plus bas pour le détail de l'arbitrage) — UN SEUL droit dédié pour les deux
+  // champs (même table, même population de rôles), retiré d'`admin` (RF-115), PAS couvert par
+  // `parametrage.atelier.modifier`.
   'parametrage.atelier.plafond_avoir.modifier',
   'parametrage.referentiel.lire',
   'parametrage.referentiel.modifier',
@@ -1081,38 +1084,52 @@ const DROITS_PARAMETRAGE_CREANCIER_PAR_ROLE: Readonly<Record<RoleUtilisateur, re
   };
 
 // =================================================================================================
-// Plafond d'avoir réceptionnaire (RF-117, issue #45) : bloc ADDITIF PUR, MÊME PALIER que le bloc
-// créancier ci-dessus.
+// Plafonds financiers de `reception` (RF-117, issue #45 ; ÉTENDU issue #52) : bloc ADDITIF PUR,
+// MÊME PALIER que le bloc créancier ci-dessus.
 // =================================================================================================
 //
 // `PATCH /parametres-atelier` (`apps/api/src/parametrage/parametres-atelier/`, PAS le périmètre de
-// ce fichier) est le SEUL endpoint qui écrit `reception.plafondAvoirReceptionnaireCentimes` — le
-// montant au-delà duquel un `receptionnaire` ne peut plus émettre un avoir seul (`EMISSION_AVOIR`
-// ci-dessus, contrôlé dynamiquement par `ServiceEmissionDocument.emettre()`). Preuve en exécution
-// (issue #45) : connecté `admin`, `PATCH /parametres-atelier { reception:
-// { plafondAvoirReceptionnaireCentimes: 999999 } }` répondait `200` et écrivait la valeur — alors
-// que `RF-115` est littéral (« admin est un rôle technique et n'a aucun droit financier »). Fixer ce
-// plafond EST un geste financier, au moins aussi engageant que changer l'IBAN créancier ou lancer un
-// export fiduciaire : mêmes rôles, direction + comptable SEULS, `admin: []` VOLONTAIREMENT.
+// ce fichier) est le SEUL endpoint qui écrit DEUX colonnes à sémantique IDENTIQUE (`db/schema/
+// atelier/parametrage.ts` : NULL = aucun plafond convenu, 0 = accord requis pour tout, n>0 =
+// plafond nominal) : `reception.plafondAvoirReceptionnaireCentimes` — le montant au-delà duquel un
+// `receptionnaire` ne peut plus émettre un avoir seul (`EMISSION_AVOIR` ci-dessus, contrôlé
+// dynamiquement par `ServiceEmissionDocument.emettre()`) — et `reception.plafondDefautCentimes`
+// (issue #52 : pas encore consommé par un service au lot 1, mais même famille de politique de
+// réception, même table). Preuve en exécution (issue #45, rejouée à l'identique pour #52) :
+// connecté `admin`, `PATCH /parametres-atelier { reception: { plafondAvoirReceptionnaireCentimes:
+// 999999 } }` PUIS `{ reception: { plafondDefautCentimes: 777777 } }` répondaient tous deux `200`
+// et écrivaient la valeur — alors que `RF-115` est littéral (« admin est un rôle technique et n'a
+// aucun droit financier »). Fixer l'un OU l'autre de ces plafonds EST un geste financier, au moins
+// aussi engageant que changer l'IBAN créancier ou lancer un export fiduciaire : mêmes rôles,
+// direction + comptable SEULS, `admin: []` VOLONTAIREMENT.
+//
+// UN SEUL droit pour les deux champs, pas un par champ (arbitrage issue #52) : même table, même
+// commentaire de sémantique tête à tête dans le schéma, même population de rôles gouvernée
+// (direction + comptable) — dédoubler l'action aurait ajouté une distinction que rien ne justifie.
+// Contraste DÉLIBÉRÉ avec `atelier.or.plafond_modifier` (bloc `atelier/`, hors périmètre de ce
+// fichier) : celui-ci gouverne un plafond OPÉRATIONNEL par OR (réceptionnaire + chef_atelier +
+// direction), population réellement différente de celle-ci — les deux plafonds ne sont PAS
+// fusionnés avec `atelier.or.plafond_modifier`, volontairement.
 //
 // PAS `parametrage.atelier.modifier` (`INFERE_PARAMETRAGE_GOUVERNANCE`, chef_atelier/direction/admin
 // via `DROITS_CHEF_ATELIER`) : ce droit générique gouverne TOUT le reste de l'endpoint (kilométrage
 // obligatoire, signature de réception, préfixe OR…) et reste posé statiquement sur la route — la même
-// route sert donc DEUX usages que `@ExigerDroit` ne peut pas distinguer avant exécution (il ne connaît
-// pas encore, au moment de la garde, si CE corps touche le plafond). Même famille que
-// `atelier.or.plafond_modifier` (`ServiceOr.modifier`) et `vehicule.kilometrage.corriger_regression`
+// route sert donc PLUSIEURS usages que `@ExigerDroit` ne peut pas distinguer avant exécution (il ne
+// connaît pas encore, au moment de la garde, si CE corps touche l'un des deux plafonds). Même famille
+// que `atelier.or.plafond_modifier` (`ServiceOr.modifier`) et `vehicule.kilometrage.corriger_regression`
 // (`ServiceVehiculeKilometrage.creer`) : contrôle posé EN SERVICE
-// (`ServiceParametresAtelier.modifier`), uniquement quand la valeur soumise diffère de la valeur
-// actuelle en base, jamais en permanence — sinon `chef_atelier` ne pourrait plus modifier AUCUN
-// réglage ordinaire de ce même endpoint. Couverte par une entrée `verification-conditionnelle-service`
-// dans `common/droits/allowlist-actions-non-decorees.ts`, PAS par un `@ExigerDroit` statique.
-// Pas de `.lire` dédiée : la LECTURE de `reception.plafondAvoirReceptionnaireCentimes` reste
-// embarquée dans `GET /parametres-atelier` sous `parametrage.atelier.lire` (ouvert à tout rôle
-// authentifié), exactement comme `atelier.or.plafondCentimes` reste lisible sous `atelier.or.lire`
-// alors que sa modification exige `atelier.or.plafond_modifier` — seule l'ÉCRITURE de ce montant est
-// le geste financier que RF-115 vise, pas sa simple lecture au milieu d'un singleton de paramétrage
-// à 30+ champs très majoritairement non financiers. Distinct du bloc créancier (endpoint DÉDIÉ,
-// entièrement financier, où lecture ET écriture sont gouvernées) : décision consciente, pas un oubli.
+// (`ServiceParametresAtelier.modifier` → `verifierDroitPlafondsFinanciers`), uniquement quand la
+// valeur soumise diffère de la valeur actuelle en base, jamais en permanence — sinon `chef_atelier`
+// ne pourrait plus modifier AUCUN réglage ordinaire de ce même endpoint. Couverte par une entrée
+// `verification-conditionnelle-service` dans `common/droits/allowlist-actions-non-decorees.ts`, PAS
+// par un `@ExigerDroit` statique.
+// Pas de `.lire` dédiée : la LECTURE des deux plafonds reste embarquée dans `GET /parametres-atelier`
+// sous `parametrage.atelier.lire` (ouvert à tout rôle authentifié), exactement comme
+// `atelier.or.plafondCentimes` reste lisible sous `atelier.or.lire` alors que sa modification exige
+// `atelier.or.plafond_modifier` — seule l'ÉCRITURE de ces montants est le geste financier que RF-115
+// vise, pas leur simple lecture au milieu d'un singleton de paramétrage à 30+ champs très
+// majoritairement non financiers. Distinct du bloc créancier (endpoint DÉDIÉ, entièrement financier,
+// où lecture ET écriture sont gouvernées) : décision consciente, pas un oubli.
 const ECRITURE_PLAFOND_AVOIR_RECEPTIONNAIRE: readonly Action[] = [
   'parametrage.atelier.plafond_avoir.modifier',
 ];
@@ -1127,9 +1144,9 @@ const DROITS_PLAFOND_AVOIR_RECEPTIONNAIRE_PAR_ROLE: Readonly<
   chef_atelier: [],
   technicien: [],
   magasinier: [],
-  // RF-115 / issue #45 : jamais de droit financier pour admin — voir le commentaire de tête de
-  // section. Fixer le plafond d'avoir réceptionnaire est au moins aussi engageant que rembourser un
-  // trop-perçu ou modifier l'IBAN créancier.
+  // RF-115 / issue #45, étendu #52 : jamais de droit financier pour admin — voir le commentaire de
+  // tête de section. Fixer l'un ou l'autre des deux plafonds de réception est au moins aussi
+  // engageant que rembourser un trop-perçu ou modifier l'IBAN créancier.
   admin: [],
   // Compte de service (borne d'atelier) : aucun droit dans ce domaine, par construction.
   poste_atelier: [],
