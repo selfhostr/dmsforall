@@ -433,15 +433,17 @@ describe('MATRICE_DROITS — export fiduciaire (facturation/export, même palier
 });
 
 /**
- * Plafond d'avoir réceptionnaire (`PATCH /parametres-atelier`,
- * `apps/api/src/parametrage/parametres-atelier/`, hors périmètre de ce fichier) : issue #45, RF-117.
- * `reception.plafondAvoirReceptionnaireCentimes` gouverne le montant au-delà duquel un
- * `receptionnaire` ne peut plus émettre un avoir seul (`EMISSION_AVOIR` ci-dessus). MÊME PALIER que
- * le bloc créancier — direction + comptable SEULS, PAS admin (RF-115). Contraste explicite et
- * DÉLIBÉRÉ avec `parametrage.atelier.modifier`/`parametrage.referentiel.modifier`, qui, eux, donnent
- * bien l'écriture à `admin` (`INFERE_PARAMETRAGE_GOUVERNANCE`) — même piège de recopie que le bloc
- * créancier documente déjà, avec un risque encore plus élevé ici puisque les deux droits partagent
- * le MÊME endpoint HTTP (`PATCH /parametres-atelier`).
+ * Plafonds financiers de `reception` (`PATCH /parametres-atelier`,
+ * `apps/api/src/parametrage/parametres-atelier/`, hors périmètre de ce fichier) : issue #45, RF-117,
+ * ÉTENDU par issue #52. `reception.plafondAvoirReceptionnaireCentimes` gouverne le montant au-delà
+ * duquel un `receptionnaire` ne peut plus émettre un avoir seul (`EMISSION_AVOIR` ci-dessus) ;
+ * `reception.plafondDefautCentimes` (issue #52) partage la MÊME action (même table, même sémantique
+ * documentée, même population de rôles — voir `matrice-droits.ts` pour l'arbitrage complet). MÊME
+ * PALIER que le bloc créancier — direction + comptable SEULS, PAS admin (RF-115). Contraste explicite
+ * et DÉLIBÉRÉ avec `parametrage.atelier.modifier`/`parametrage.referentiel.modifier`, qui, eux,
+ * donnent bien l'écriture à `admin` (`INFERE_PARAMETRAGE_GOUVERNANCE`) — même piège de recopie que le
+ * bloc créancier documente déjà, avec un risque encore plus élevé ici puisque les droits partagent le
+ * MÊME endpoint HTTP (`PATCH /parametres-atelier`).
  */
 describe('MATRICE_DROITS — plafond d’avoir réceptionnaire (issue #45, RF-117, même palier de gouvernance que le bloc créancier)', () => {
   it('« Fixer le plafond d’avoir réceptionnaire » : direction, comptable SEULS — même palier que le bloc créancier et l’export fiduciaire', () => {
@@ -1068,7 +1070,8 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'socle.site.lire',
       'parametrage.atelier.lire',
       'parametrage.atelier.modifier',
-      // Issue #45 / RF-117 : plafond d'avoir réceptionnaire, direction/comptable seuls.
+      // Issue #45 / RF-117, étendu #52 : plafonds d'avoir réceptionnaire ET par défaut de
+      // réception (même action, même population), direction/comptable seuls.
       'parametrage.atelier.plafond_avoir.modifier',
       'parametrage.referentiel.lire',
       'parametrage.referentiel.modifier',

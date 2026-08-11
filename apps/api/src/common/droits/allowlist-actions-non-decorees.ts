@@ -156,34 +156,39 @@ export const ALLOWLIST_ACTIONS_SANS_DECORATEUR: readonly EntreeAllowlistAction[]
   },
 
   {
-    // FAILLE CORRIGÉE (issue #45) : `PATCH /parametres-atelier` écrivait
+    // FAILLE CORRIGÉE (issue #45), ÉTENDUE (issue #52) : `PATCH /parametres-atelier` écrivait
     // `reception.plafondAvoirReceptionnaireCentimes` (RF-117, montant au-delà duquel un
-    // `receptionnaire` ne peut plus émettre un avoir seul) sous le SEUL droit générique
+    // `receptionnaire` ne peut plus émettre un avoir seul) ET `reception.plafondDefautCentimes`
+    // (même sémantique documentée, `db/schema/atelier/parametrage.ts`) sous le SEUL droit générique
     // `parametrage.atelier.modifier` — accordé à `admin` via `INFERE_PARAMETRAGE_GOUVERNANCE`, ce
-    // qui violait `RF-115` (« admin est un rôle technique et n'a aucun droit financier »). La route
-    // sert À LA FOIS ce plafond financier ET tous les réglages ordinaires du même endpoint
-    // (kilométrage obligatoire, signature de réception, préfixe OR…) : `@ExigerDroit` est statique
-    // par route, il ne peut pas distinguer les deux AVANT exécution — un droit fort posé
-    // statiquement interdirait aussi à `chef_atelier` de modifier les réglages non financiers du
-    // même endpoint. Même famille que `atelier.or.plafond_modifier` et
-    // `vehicule.kilometrage.corriger_regression` ci-dessus.
+    // qui violait `RF-115` (« admin est un rôle technique et n'a aucun droit financier ») pour les
+    // DEUX champs (prouvé en exécution séparément pour chacun). La route sert À LA FOIS ces deux
+    // plafonds financiers ET tous les réglages ordinaires du même endpoint (kilométrage
+    // obligatoire, signature de réception, préfixe OR…) : `@ExigerDroit` est statique par route, il
+    // ne peut pas distinguer les usages AVANT exécution — un droit fort posé statiquement
+    // interdirait aussi à `chef_atelier` de modifier les réglages non financiers du même endpoint.
+    // Même famille que `atelier.or.plafond_modifier` et `vehicule.kilometrage.corriger_regression`
+    // ci-dessus.
     action: 'parametrage.atelier.plafond_avoir.modifier',
     categorie: 'verification-conditionnelle-service',
     justification:
       'Contrôle réel : ServiceParametresAtelier.modifier() (apps/api/src/parametrage/parametres-atelier/' +
-      'service-parametres-atelier.ts), méthode privée verifierDroitPlafondAvoir() appelée AVANT tout ' +
-      'UPDATE — bloc `if (modifiePlafondAvoir) { const droitsDuRole = MATRICE_DROITS[role] ?? []; if ' +
+      'service-parametres-atelier.ts), méthode privée verifierDroitPlafondsFinanciers() appelée AVANT ' +
+      'tout UPDATE, qui vérifie CHACUN des deux champs via verifierDroitPlafondFinancier() — bloc ' +
+      '`if (modifieLePlafond) { const droitsDuRole = MATRICE_DROITS[role] ?? []; if ' +
       "(!droitsDuRole.includes('parametrage.atelier.plafond_avoir.modifier')) throw new " +
-      "ErreurMetier('DROIT_INSUFFISANT', ...); }`, exécuté UNIQUEMENT quand " +
-      'reception.plafondAvoirReceptionnaireCentimes soumis diffère de la valeur actuelle en base ' +
-      '(resoumettre la même valeur ne déclenche pas la garde) — jamais en permanence, sinon la ' +
-      'modification des réglages ordinaires du même endpoint (droit parametrage.atelier.modifier, ' +
-      'chef_atelier compris) serait aussi bloquée par ce droit plus fort. Le rôle est lu depuis le ' +
-      'principal de session (jamais depuis le client). Couvert par des tests dans ' +
+      "ErreurMetier('DROIT_INSUFFISANT', ...); }`, exécuté UNIQUEMENT quand la valeur soumise " +
+      '(reception.plafondAvoirReceptionnaireCentimes OU reception.plafondDefautCentimes) diffère de ' +
+      'la valeur actuelle en base (resoumettre la même valeur ne déclenche pas la garde, pour aucun ' +
+      'des deux champs) — jamais en permanence, sinon la modification des réglages ordinaires du ' +
+      'même endpoint (droit parametrage.atelier.modifier, chef_atelier compris) serait aussi bloquée ' +
+      'par ce droit plus fort. Le rôle est lu depuis le principal de session (jamais depuis le ' +
+      'client). Couvert par des tests dans ' +
       'apps/api/src/parametrage/parametres-atelier/service-parametres-atelier.spec.ts : refus 403 sans ' +
-      'écriture en base pour admin qui tente de FIXER le plafond, acceptation pour direction/comptable, ' +
-      'un réglage ordinaire (or.prefixe) reste modifiable par chef_atelier sans le droit fort, et ' +
-      'resoumission de la même valeur ne déclenche pas la garde.',
+      'écriture en base pour admin qui tente de FIXER chacun des deux plafonds, acceptation pour ' +
+      'direction/comptable sur chacun, refus pour chef_atelier sur chacun, un réglage ordinaire ' +
+      '(or.prefixe) reste modifiable par chef_atelier sans le droit fort, et resoumission de la même ' +
+      'valeur ne déclenche pas la garde (pour les deux champs).',
   },
 
   // ---------------------------------------------------------------------------------------------
