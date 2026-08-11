@@ -196,6 +196,94 @@ describe('ServiceParametresAtelier.modifier', () => {
     expect(dto.or.prefixe).toBe('REP');
   });
 
+  // ---------------------------------------------------------------------------------------------
+  // Issue #52 (extension d'issue #45) : `reception.plafondDefautCentimes` — même sémantique
+  // documentée que `plafondAvoirReceptionnaireCentimes` (voir `db/schema/atelier/parametrage.ts`),
+  // même action `parametrage.atelier.plafond_avoir.modifier`, même population de rôles. Patron de
+  // tests identique à celui écrit pour RF-117 ci-dessus.
+  // ---------------------------------------------------------------------------------------------
+
+  it('reception.plafondDefautCentimes (issue #52) : écrit et rend la ligne mise à jour pour direction', async () => {
+    const service = new ServiceParametresAtelier(
+      accesFactice({
+        ligneSelect: ligneBrute({ plafondDefautCentimes: 30000 }),
+        ligneUpdate: ligneBrute({ plafondDefautCentimes: 500000 }),
+      }),
+    );
+    const dto = await service.modifier(CTX, 'direction', {
+      reception: { plafondDefautCentimes: 500000 },
+    });
+    expect(dto.reception.plafondDefautCentimes).toBe(500000);
+  });
+
+  it('reception.plafondDefautCentimes (issue #52) : écrit et rend la ligne mise à jour pour comptable', async () => {
+    const service = new ServiceParametresAtelier(
+      accesFactice({
+        ligneSelect: ligneBrute({ plafondDefautCentimes: 30000 }),
+        ligneUpdate: ligneBrute({ plafondDefautCentimes: 500000 }),
+      }),
+    );
+    const dto = await service.modifier(CTX, 'comptable', {
+      reception: { plafondDefautCentimes: 500000 },
+    });
+    expect(dto.reception.plafondDefautCentimes).toBe(500000);
+  });
+
+  it('RF-115 (issue #52) — admin est REFUSÉ (DROIT_INSUFFISANT) quand il tente de FIXER plafondDefautCentimes, sans écriture en base', async () => {
+    const acces = accesFactice({
+      ligneSelect: ligneBrute({ plafondDefautCentimes: 30000 }),
+    });
+    const service = new ServiceParametresAtelier(acces);
+
+    await expect(
+      service.modifier(CTX, 'admin', {
+        reception: { plafondDefautCentimes: 777777 },
+      }),
+    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT' });
+    expect(acces.enTenant).toHaveBeenCalled();
+  });
+
+  it('chef_atelier est REFUSÉ (DROIT_INSUFFISANT) quand il tente de FIXER plafondDefautCentimes, sans écriture en base', async () => {
+    const acces = accesFactice({
+      ligneSelect: ligneBrute({ plafondDefautCentimes: 30000 }),
+    });
+    const service = new ServiceParametresAtelier(acces);
+
+    await expect(
+      service.modifier(CTX, 'chef_atelier', {
+        reception: { plafondDefautCentimes: 777777 },
+      }),
+    ).rejects.toMatchObject({ code: 'DROIT_INSUFFISANT' });
+  });
+
+  it('resoumettre EXACTEMENT la même valeur de plafondDefautCentimes ne déclenche pas la garde (admin peut resoumettre le formulaire sans toucher au plafond)', async () => {
+    const service = new ServiceParametresAtelier(
+      accesFactice({
+        ligneSelect: ligneBrute({ plafondDefautCentimes: 30000, orPrefixe: 'OR' }),
+        ligneUpdate: ligneBrute({ plafondDefautCentimes: 30000, orPrefixe: 'REP' }),
+      }),
+    );
+    const dto = await service.modifier(CTX, 'admin', {
+      or: { prefixe: 'REP' },
+      reception: { plafondDefautCentimes: 30000 },
+    });
+    expect(dto.or.prefixe).toBe('REP');
+  });
+
+  it('chef_atelier peut toujours modifier un réglage NON financier (or.prefixe) alors que plafondDefautCentimes est présent mais inchangé dans le même corps', async () => {
+    const service = new ServiceParametresAtelier(
+      accesFactice({
+        ligneSelect: ligneBrute({ plafondDefautCentimes: 30000 }),
+        ligneUpdate: ligneBrute({ plafondDefautCentimes: 30000, orPrefixe: 'ATL' }),
+      }),
+    );
+    const dto = await service.modifier(CTX, 'chef_atelier', {
+      or: { prefixe: 'ATL' },
+      reception: { plafondDefautCentimes: 30000 },
+    });
+    expect(dto.or.prefixe).toBe('ATL');
+  });
+
   it('domaine inerte (facturation) : 501 FONCTION_NON_DISPONIBLE, AVANT tout accès base', async () => {
     const acces = accesFactice({});
     const service = new ServiceParametresAtelier(acces);
