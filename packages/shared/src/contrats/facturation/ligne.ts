@@ -140,27 +140,36 @@ export interface ReponseLigneDocumentVente {
  *
  * Réservés à `type = 'piece'` (refine ci-dessous) : une ligne `forfait`/`main_oeuvre_*`/`texte`…
  * avec `articleId` renseigné n'a pas de sens, le stock ne se décrémente jamais pour ces types.
+ *
+ * `.strict()` (issue #12) : un nom de champ voisin mais faux (`prixUnitaireCentimes` au lieu de
+ * `prixUnitaireTtcCentimes`) était jusqu'ici silencieusement jeté par le `.strip()` implicite de
+ * zod — la ligne se créait à 0.00, sans erreur, jusqu'à un document ÉMIS et VERROUILLÉ (`MD-21`).
+ * Sur une donnée d'argent, un échec bruyant et nommé vaut mieux que le silence. Rétrocompatibilité
+ * vérifiée : le client web (généré depuis l'OpenAPI, `documents-vente.api.ts`) envoie des corps
+ * typés sans champ superflu — aucun appelant connu n'est cassé par ce durcissement.
  */
-export const formeLigneDocument = z.object({
-  type: z.enum(TYPES_LIGNE_DOCUMENT_VENTE),
-  designation: schemaTexteCourt,
-  referenceTexte: z.string().trim().max(80).nullish(),
-  /** Voir le paragraphe dédié ci-dessus — facultatifs ENSEMBLE, réservés à `type = 'piece'`. */
-  articleId: schemaIdentifiant.nullish(),
-  siteId: schemaIdentifiant.nullish(),
-  quantiteMillieme: schemaQuantiteLigneDocument.default(1000),
-  /** `null` UNIQUEMENT pour `type = 'texte'` (note libre sans prix). */
-  prixUnitaireTtcCentimes: schemaCentimesTtc.nullish(),
-  regimeTva: z.enum(REGIMES_TVA).default('normal'),
-  tauxTvaPourmille: schemaPourmille,
-  /** `MD-39`. Défaut proposé par le client = date du jour ; le serveur ne le déduit jamais tout
-   *  seul, une prestation exécutée un autre jour doit porter SA date. */
-  datePrestation: schemaDateJour,
-  remisePourmille: schemaPourmille.optional(),
-  remiseMontantCentimes: schemaCentimesTtc.optional(),
-  /** `MD-55`, obligatoire et uniquement pour `type = 'acompte_deduit'`. */
-  documentAcompteId: schemaIdentifiant.nullish(),
-});
+export const formeLigneDocument = z
+  .object({
+    type: z.enum(TYPES_LIGNE_DOCUMENT_VENTE),
+    designation: schemaTexteCourt,
+    referenceTexte: z.string().trim().max(80).nullish(),
+    /** Voir le paragraphe dédié ci-dessus — facultatifs ENSEMBLE, réservés à `type = 'piece'`. */
+    articleId: schemaIdentifiant.nullish(),
+    siteId: schemaIdentifiant.nullish(),
+    quantiteMillieme: schemaQuantiteLigneDocument.default(1000),
+    /** `null` UNIQUEMENT pour `type = 'texte'` (note libre sans prix). */
+    prixUnitaireTtcCentimes: schemaCentimesTtc.nullish(),
+    regimeTva: z.enum(REGIMES_TVA).default('normal'),
+    tauxTvaPourmille: schemaPourmille,
+    /** `MD-39`. Défaut proposé par le client = date du jour ; le serveur ne le déduit jamais tout
+     *  seul, une prestation exécutée un autre jour doit porter SA date. */
+    datePrestation: schemaDateJour,
+    remisePourmille: schemaPourmille.optional(),
+    remiseMontantCentimes: schemaCentimesTtc.optional(),
+    /** `MD-55`, obligatoire et uniquement pour `type = 'acompte_deduit'`. */
+    documentAcompteId: schemaIdentifiant.nullish(),
+  })
+  .strict();
 
 export const schemaCreationLigneDocument = formeLigneDocument
   .refine((v) => !(v.remisePourmille != null && v.remiseMontantCentimes != null), {

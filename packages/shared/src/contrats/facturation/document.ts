@@ -66,13 +66,15 @@ export interface AdresseStructureeQr {
   readonly pays: string;
 }
 
-export const formeAdresseStructureeQr = z.object({
-  rue: schemaTexteCourt,
-  numero: z.string().trim().max(20).nullish(),
-  npa: z.string().trim().max(16),
-  localite: z.string().trim().max(35),
-  pays: schemaCodePays.default('CH'),
-});
+export const formeAdresseStructureeQr = z
+  .object({
+    rue: schemaTexteCourt,
+    numero: z.string().trim().max(20).nullish(),
+    npa: z.string().trim().max(16),
+    localite: z.string().trim().max(35),
+    pays: schemaCodePays.default('CH'),
+  })
+  .strict();
 
 /**
  * `MD-79`, `RF-59`, `RF-60` : le bloc débiteur n'existe QUE si les cinq champs sont présents. Un
@@ -426,6 +428,7 @@ export const schemaCreationDocumentVente = z
     lignes: z.array(schemaCreationLigneDocument).max(200).default([]),
   })
   .extend(schemaConfirmations.shape)
+  .strict()
   .refine((v) => !(v.remiseGlobaleSaisieCentimes != null && v.remiseGlobalePourmille != null), {
     message: 'Remise globale en montant et en pour mille sont exclusives (MD-41).',
     path: ['remiseGlobalePourmille'],
@@ -455,6 +458,7 @@ export const schemaModificationDocumentVente = z
     remiseGlobaleSaisieCentimes: schemaCentimesTtc.nullish(),
     remiseGlobalePourmille: schemaPourmille.nullish(),
   })
+  .strict()
   .refine((v) => !(v.remiseGlobaleSaisieCentimes != null && v.remiseGlobalePourmille != null), {
     message: 'Remise globale en montant et en pour mille sont exclusives (MD-41).',
     path: ['remiseGlobalePourmille'],
@@ -471,16 +475,16 @@ export type EntreeModificationDocumentVente = z.infer<typeof schemaModificationD
  * non-retour (`MD-18`) : aucun endpoint, aucun droit, aucun rôle ne permet de revenir en arrière
  * (`RF-10`).
  */
-export const schemaEmissionDocumentVente = z.object({}).extend(schemaConfirmations.shape);
+export const schemaEmissionDocumentVente = z.object({}).extend(schemaConfirmations.shape).strict();
 export type EntreeEmissionDocumentVente = z.infer<typeof schemaEmissionDocumentVente>;
 
 /** `POST /documents-vente/{id}/accepter` — devis uniquement. */
-export const schemaAccepterDevis = z.object({}).extend(schemaConfirmations.shape);
+export const schemaAccepterDevis = z.object({}).extend(schemaConfirmations.shape).strict();
 /** `POST /documents-vente/{id}/refuser` — devis ou bon de commande. */
-export const schemaRefuserDocument = z.object({ motif: schemaTexteLong.optional() });
+export const schemaRefuserDocument = z.object({ motif: schemaTexteLong.optional() }).strict();
 /** `POST /documents-vente/{id}/annuler` — bon de commande uniquement ; motif OBLIGATOIRE, même
  *  raison que `schemaActionAnnuler` de l'étape 1 : une annulation sans motif détruit la traçabilité. */
-export const schemaAnnulerDocument = z.object({ motif: schemaTexteLong });
+export const schemaAnnulerDocument = z.object({ motif: schemaTexteLong }).strict();
 
 export type EntreeAccepterDevis = z.infer<typeof schemaAccepterDevis>;
 export type EntreeRefuserDocument = z.infer<typeof schemaRefuserDocument>;
@@ -512,17 +516,20 @@ export const schemaCreationAvoir = z
      */
     lignes: z
       .array(
-        z.object({
-          ligneDocumentId: schemaIdentifiant,
-          /** TTC, positif — plafonné côté serveur au solde restant de la ligne d'origine
-           *  (`MD-23` : Σ avoirs ≤ facture, par taux). */
-          montantTtcCentimes: schemaCentimesTtcPositif,
-        }),
+        z
+          .object({
+            ligneDocumentId: schemaIdentifiant,
+            /** TTC, positif — plafonné côté serveur au solde restant de la ligne d'origine
+             *  (`MD-23` : Σ avoirs ≤ facture, par taux). */
+            montantTtcCentimes: schemaCentimesTtcPositif,
+          })
+          .strict(),
       )
       .max(200)
       .default([]),
   })
   .extend(schemaConfirmations.shape)
+  .strict()
   .refine((v) => v.motif !== 'autre' || Boolean(v.motifAutre?.trim()), {
     message: "Un motif 'autre' exige un texte libre (RF-15).",
     path: ['motifAutre'],
@@ -566,11 +573,13 @@ export const schemaCorrectionFacture = z
         clientDesignation: schemaTexteCourt.optional(),
         adresseFacturation: formeAdresseStructureeQr.optional(),
       })
+      .strict()
       .refine((v) => Object.keys(v).length > 0, {
         message: 'Au moins un champ à corriger est requis.',
       }),
   })
   .extend(schemaConfirmations.shape)
+  .strict()
   .refine((v) => v.motif !== 'autre' || Boolean(v.motifAutre?.trim()), {
     message: "Un motif 'autre' exige un texte libre (RF-15).",
     path: ['motifAutre'],

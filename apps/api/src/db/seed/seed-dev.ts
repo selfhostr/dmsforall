@@ -15,7 +15,7 @@
  * aucune visibilité hors de son tenant courant.
  */
 
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { basename } from 'node:path';
 import { Client } from 'pg';
@@ -25,6 +25,7 @@ import {
   client as clientMetier,
   clientAdresse,
   clientCondition,
+  compteurDocument,
   parametreAtelier,
   parametreSite,
   pinPointage,
@@ -1005,6 +1006,59 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
       }
     }
     journaliser(`  ${String(CLIENTS_DEMO.length)} clients`);
+
+    // --- Initialisation des compteurs de numérotation -------------------------------------------
+    // Le seed écrit les numéros clients en dur (CL-000001 à CL-000005), mais `compteur_document`
+    // doit être initialisé pour que le prochain client créé via l'API obtienne le bon numéro.
+    // Sémantique de `valeur` : le DERNIER numéro attribué (pas le prochain). Au prochain appel à
+    // `ServiceCompteurs.prochainNumero`, il incrémente `valeur` de 1.
+    //
+    // Stratégie : lire le MAX réellement attribué en base (pas le compte du seed), pour survivre
+    // au rejeu sur une base « sale » déjà contaminée par des clients de test (cas courant d'une
+    // démo). Sans cela, rejeu sur une base ayant CL-000006 et CL-000007 ramène le compteur à 5,
+    // et la création suivante heurte une contrainte d'unicité.
+    const clientsActuels = await base
+      .select({ numero: clientMetier.numero })
+      .from(clientMetier)
+      .where(eq(clientMetier.tenantId, tenantId));
+    const maxNumeroActuel = clientsActuels.reduce((acc, c) => {
+      if (!c.numero) return acc;
+      const match = c.numero.match(/^CL-(\d+)$/);
+      if (!match || !match[1]) return acc;
+      const num = parseInt(match[1], 10);
+      return Math.max(acc, num);
+    }, 0);
+
+    const compteurClientExistant = await base
+      .select({ id: compteurDocument.id })
+      .from(compteurDocument)
+      .where(
+        and(
+          eq(compteurDocument.tenantId, tenantId),
+          eq(compteurDocument.typeDocument, 'client'),
+          eq(compteurDocument.annee, 2000), // Constant, vérifier `ANNEE_COMPTEUR_CLIENT` dans `service-client.ts`
+          // `siteId` NULL pour la portée tenant (jamais une portée par site pour les clients)
+          sql`${compteurDocument.siteId} is null`,
+        ),
+      );
+    if (compteurClientExistant.length === 0) {
+      await base.insert(compteurDocument).values({
+        tenantId,
+        typeDocument: 'client',
+        annee: 2000,
+        siteId: null,
+        valeur: maxNumeroActuel,
+      });
+    } else {
+      // Rejeu du seed : réaligner le compteur sur le MAX réellement attribué (robust à base sale).
+      await base
+        .update(compteurDocument)
+        .set({ valeur: maxNumeroActuel })
+        .where(eq(compteurDocument.id, compteurClientExistant[0]!.id));
+    }
+    journaliser(
+      `  compteur de clients initialisé (${maxNumeroActuel} attribué, prochains numéros à partir de CL-${String(maxNumeroActuel + 1).padStart(6, '0')})`,
+    );
 
     // --- Conditions commerciales (RM-07) — UN client sur trois, voir CONDITIONS_CLIENT_DEMO ----
     // Posées AVANT `semerAtelierDemo` (appelé plus bas par `principal()`) : c'est le seul moment
