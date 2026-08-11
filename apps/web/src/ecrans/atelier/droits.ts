@@ -34,6 +34,26 @@ const ROLES_DECISION_LIGNE: ReadonlySet<RoleUtilisateur> = new Set([
   'admin',
 ]);
 
+/**
+ * `atelier.or.creer` (§10 L965 « ouverture d'OR », `L965_OR_OUVERTURE`) : accordé À
+ * `DROITS_RECEPTIONNAIRE` seul, puis hérité par `DROITS_CHEF_ATELIER`/`DROITS_DIRECTION`/`admin`
+ * (composition en chaîne côté API — voir `matrice-droits.ts`). `technicien`/`magasinier` créent des
+ * LIGNES d'OR (`L966_LIGNE_CREATION`) mais jamais l'OR lui-même ; `vendeur`/`comptable`/
+ * `poste_atelier` n'ont ni l'un ni l'autre. Même doctrine que `ROLES_CREATION_LIGNE` ci-dessus :
+ * défensif d'ERGONOMIE (issue #47, bouton de création sur `EcranListeOrdresReparation.tsx`), le
+ * serveur reste l'arbitre final (`@ExigerDroit('atelier.or.creer')` sur `POST /ordres-reparation`).
+ */
+const ROLES_CREATION_OR: ReadonlySet<RoleUtilisateur> = new Set([
+  'receptionnaire',
+  'chef_atelier',
+  'direction',
+  'admin',
+]);
+
+export function peutCreerOrdreReparation(role: RoleUtilisateur | undefined): boolean {
+  return role !== undefined && ROLES_CREATION_OR.has(role);
+}
+
 export function peutCreerLigneOr(role: RoleUtilisateur | undefined): boolean {
   return role !== undefined && ROLES_CREATION_LIGNE.has(role);
 }

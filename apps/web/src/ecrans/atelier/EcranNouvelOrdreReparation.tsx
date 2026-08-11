@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
@@ -12,6 +12,7 @@ import { EtatVide } from '@/composants/commun/EtatVide';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { BandeauAlerteClient } from '@/composants/motifs/BandeauAlerteClient';
 import { useClient } from '@/hooks/clients/useClient';
+import { useVehiculesClient } from '@/hooks/clients/useVehiculesClient';
 import { chemins } from '@/routes/chemins';
 
 import { FormulaireNouvelOrdreReparation } from './FormulaireNouvelOrdreReparation';
@@ -74,8 +75,11 @@ function versClientResume(client: {
  *    lui, on renvoie vers `/recherche` — l'écran déjà construit pour trouver un client — plutôt
  *    que de dupliquer une seconde recherche ici.
  *
- * `vehiculeId`, lui, n'arrive JAMAIS pré-rempli (aucun écran ne le porte encore dans son URL) :
- * son choix est donc TOUJOURS fait ici, via `SelecteurVehiculeOrdre`, une fois le client connu.
+ * `vehiculeId` (`?vehiculeId=`) : CORRECTIF issue #48 — arrive désormais pré-rempli quand on
+ * vient de la fiche d'un véhicule (`EcranFicheVehicule.tsx`), qui connaît déjà le véhicule
+ * affiché. Présélectionné dans `SelecteurVehiculeOrdre` SANS retirer la liste ni sauter d'étape :
+ * un OR peut viser un autre véhicule du même client (amené par quelqu'un d'autre que son
+ * détenteur, cas réel en garage) — le champ reste modifiable via `onChangerVehicule`.
  */
 export function EcranNouvelOrdreReparation() {
   const { t } = useTranslation(['or', 'commun', 'erreurs']);
@@ -83,10 +87,35 @@ export function EcranNouvelOrdreReparation() {
   const [searchParams, setSearchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
   const clientId = searchParams.get('clientId') ?? undefined;
+  const vehiculeIdPreselectionne = searchParams.get('vehiculeId') ?? undefined;
 
   const [vehiculeChoisi, setVehiculeChoisi] = useState<VehiculeResume | null>(null);
+  // La présélection ne doit s'appliquer QU'UNE FOIS : si l'utilisateur revient explicitement au
+  // sélecteur (`onChangerVehicule`, plus bas), l'effet ci-dessous ne doit pas la réimposer aussitôt.
+  const preselectionTenteeRef = useRef(false);
 
   const requeteClient = useClient(clientId);
+  // Même clé de cache que `SelecteurVehiculeOrdre` (`clesQuery.clients.vehicules`, via
+  // `useVehiculesClient`) : aucun appel réseau supplémentaire, seulement une lecture anticipée qui
+  // permet de résoudre `vehiculeIdPreselectionne` en `VehiculeResume` avant même que le sélecteur
+  // ne soit monté. Désactivée (`clientId` non transmis au hook) tant qu'il n'y a rien à
+  // présélectionner — pas de requête superflue sur le chemin sans `vehiculeId` (issue #47).
+  const requeteVehiculesPreselection = useVehiculesClient(
+    vehiculeIdPreselectionne ? clientId : undefined,
+  );
+
+  useEffect(() => {
+    if (preselectionTenteeRef.current || !vehiculeIdPreselectionne) return;
+    const page = requeteVehiculesPreselection.data;
+    if (!page) return;
+    const vehicules = page.pages.flatMap((p) => p.donnees);
+    const trouve = vehicules.find((v) => v.id === vehiculeIdPreselectionne);
+    // Trouvé -> présélection. Pas trouvé (véhicule hors page chargée, ou n'appartenant pas à ce
+    // client) -> abandon silencieux, l'utilisateur choisit normalement dans la liste. Dans les
+    // deux cas, une seule tentative — voir le commentaire de `preselectionTenteeRef`.
+    if (trouve) setVehiculeChoisi(trouve);
+    preselectionTenteeRef.current = true;
+  }, [vehiculeIdPreselectionne, requeteVehiculesPreselection.data]);
 
   function surCreation(or: ReponseOrdreReparation) {
     navigate(cheminOr(or.id, site));

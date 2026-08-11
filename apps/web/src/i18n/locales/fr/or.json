@@ -292,6 +292,9 @@
   },
   "liste": {
     "titre": "Ordres de réparation",
+    "actions": {
+      "nouveau": "Nouvel OR"
+    },
     "colonnes": {
       "numero": "N° OR",
       "vehicule": "Véhicule",
