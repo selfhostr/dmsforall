@@ -47,6 +47,7 @@ import {
 } from '@/hooks/atelier/useTransitionsOrdreReparation';
 import { useSession } from '@/hooks/useSession';
 
+import { BoutonImprimerOr } from './BoutonImprimerOr';
 import { messageErreurMutation } from './messages-erreur-mutation';
 
 /**
@@ -240,10 +241,16 @@ export function PanneauActionsOr({ or }: Props) {
   }
 
   if (actionsNiveauOr.length === 0) {
+    // Imprimer reste toujours proposé, même sans AUCUNE transition disponible pour ce rôle/statut
+    // (ex. OR clôturé) : c'est un geste de consultation (`atelier.or.lire`), jamais gouverné par
+    // `or.actionsDisponibles` — voir le commentaire d'en-tête de `BoutonImprimerOr`.
     return (
-      <p className="texte-libelle text-muted-foreground">
-        {t('or:actions.aucuneActionDisponible')}
-      </p>
+      <div className="flex flex-col items-start gap-3">
+        <BoutonImprimerOr orId={or.id} />
+        <p className="texte-libelle text-muted-foreground">
+          {t('or:actions.aucuneActionDisponible')}
+        </p>
+      </div>
     );
   }
 
@@ -322,6 +329,8 @@ export function PanneauActionsOr({ or }: Props) {
             <Link to={`/ordres-reparation/${or.id}/facturer`}>{libelleTransition('facturer')}</Link>
           </Button>
         ) : null}
+
+        <BoutonImprimerOr orId={or.id} />
       </div>
 
       <Dialog

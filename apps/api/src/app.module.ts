@@ -10,6 +10,7 @@
 import type { DynamicModule, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { Module } from '@nestjs/common';
 import { AtelierModule } from './atelier/atelier.module';
+import { ImpressionOrModule } from './atelier/impression/impression-or.module';
 import { AuthModule } from './auth/auth.module';
 import { ClientsModule } from './clients/clients.module';
 import { CommonModule, MiddlewareContexteRequete } from './common';
@@ -55,6 +56,12 @@ export class AppModule implements NestModule {
         VehiculesModule,
         RechercheModule,
         AtelierModule,
+        // `ImpressionOrModule` (GET /ordres-reparation/{orId}/pdf — feuille d'atelier, chantier
+        // « impression OR ») importe `AtelierModule` lui-même (pour `ServiceOr`, exporté) plutôt
+        // que l'inverse — même raison et même câblage en fin de section que `ImpressionModule`
+        // (facturation) plus bas : sans cette ligne, le module compile et ses tests passent, mais
+        // AUCUNE route `/ordres-reparation/{orId}/pdf` n'existe.
+        ImpressionOrModule,
         PiecesModule,
         // `PointageModule` livré, non enregistré jusqu'ici (lot 2) — enregistré par l'orchestrateur
         // au nom de l'agent `pointage/`, qui n'a pas accès à ce fichier. Après `AtelierModule` :
