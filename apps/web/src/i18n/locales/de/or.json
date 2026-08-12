@@ -162,15 +162,19 @@
     "selecteurArticle": {
       "label": "Ersatzteil im Lager suchen",
       "placeholder": "Bezeichnung, Referenz oder Barcode",
-      "aide": "Optionale Suche — Sie können das Teil auch direkt in den Feldern unten erfassen.",
       "recherche": "Suche läuft…",
       "aucunResultat": "Kein Artikel im Lager gefunden. Sie können das Teil unten manuell erfassen.",
       "resultats": "{count, plural, one {# Ergebnis} other {# Ergebnisse}}",
       "choisi": "Aus dem Lager übernommen",
       "changer": "Anderes Teil suchen",
       "prixConverti": "Katalogpreis {prixTtc} inkl. MWST, umgerechnet auf netto (MWST {taux} %).",
+      "parcours": {
+        "aide": "Tippen Sie eine genaue Referenz zum Suchen, oder wählen Sie direkt aus dem Katalog unten.",
+        "vide": "Für diesen Standort ist aktuell kein Artikel im Katalog aktiv. Sie können das Teil unten manuell erfassen."
+      },
       "erreur": {
-        "reessayer": "Erneut versuchen"
+        "reessayer": "Erneut versuchen",
+        "parcours": "Der Lagerkatalog konnte nicht geladen werden. {message}"
       },
       "disponibilite": {
         "nonSuiviNullePart": "Dieses Teil wird an keinem Standort geführt — nie ins Lager aufgenommen.",
@@ -371,6 +375,7 @@
   },
   "actions": {
     "titre": "Aktionen",
+    "imprimer": "RA drucken",
     "confirmer": "Bestätigen",
     "confirmerAction": "Bestätigen Sie diese Aktion.",
     "annulerAvertissement": "Diese Aktion ist endgültig: Ein stornierter Reparaturauftrag kann weder geändert noch fortgesetzt werden.",
@@ -387,6 +392,10 @@
   "totaux": {
     "titre": "Totale",
     "totalValide": "Validiertes Total"
+  },
+  "impression": {
+    "enCours": "Druckvorgang läuft…",
+    "erreur": "Werkstattblatt konnte nicht gedruckt werden. {message}"
   },
   "nouveau": {
     "titre": "Neuer Reparaturauftrag",

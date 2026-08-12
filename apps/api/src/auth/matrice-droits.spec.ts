@@ -158,11 +158,9 @@ describe('MATRICE_DROITS — §10 de la spec métier, ligne par ligne', () => {
     );
   });
 
-  it('L959, L963, L964, L972-974, L977, L980-981 — hors périmètre du lot 1 (Δ4 : fusion client, RDV, pointage, facturation étape 2, rétention, indicateurs) : aucune action de ces domaines n’existe', () => {
+  it('L959, L963, L964, L972-974, L977, L980-981 — hors périmètre à ce jour : fusion client, rétention (levée de blocage), indicateurs de productivité n’ont encore aucune action. RDV (lot RDV-1, préfixe `rendez_vous.*`, voir le bloc dédié plus bas) et pointage (lot 2, préfixe `atelier.pointage.*`, voir le bloc « pointage (lot 2) ») SONT livrés depuis Δ4 — retirés de cette garde, testés par des blocs structurels dédiés plutôt que par une simple absence', () => {
     const toutesActionsAccordees = new Set(Object.values(MATRICE_DROITS).flat());
     for (const action of toutesActionsAccordees) {
-      expect(action.startsWith('rendez_vous.creer')).toBe(false);
-      expect(action.startsWith('pointage.')).toBe(false);
       expect(action).not.toBe('client.fusionner');
       expect(action).not.toBe('atelier.or.facturer');
       expect(action).not.toBe('atelier.retention.lever');
@@ -663,9 +661,10 @@ describe('MATRICE_DROITS — admin et direction (superset SAUF droits financiers
     expect(MATRICE_DROITS.chef_atelier).not.toContain('client.condition.modifier');
   });
 
-  it('chef_atelier détient tout ce que réceptionnaire détient (supervision), plus la correction et la gouvernance — HORS domaines facturation et ventes, où RF-114 et §11 (étape 4) cassent délibérément cette hiérarchie (voir les tests dédiés dans les blocs « RF-114, facturation/documents » et « ventes »)', () => {
+  it('chef_atelier détient tout ce que réceptionnaire détient (supervision), plus la correction et la gouvernance — HORS domaines facturation et ventes, où RF-114 et §11 (étape 4) cassent délibérément cette hiérarchie (voir les tests dédiés dans les blocs « RF-114, facturation/documents » et « ventes »), ET HORS rendez_vous.creer : le chef d’atelier « voit et réorganise » les RDV mais ne les prend jamais au téléphone (brief métier, voir le bloc « rendez-vous d’atelier » plus bas) — seule action RDV où la hiérarchie casse', () => {
     for (const action of MATRICE_DROITS.receptionnaire) {
       if (action.startsWith('facturation.') || action.startsWith('ventes.')) continue;
+      if (action === 'rendez_vous.creer') continue;
       expect(MATRICE_DROITS.chef_atelier).toContain(action);
     }
   });
@@ -1063,7 +1062,76 @@ describe('MATRICE_DROITS — relances automatiques (facturation)', () => {
   });
 });
 
-describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste close du lot 1 + facturation/paiements + facturation/documents + bloc créancier + export fiduciaire + impression PDF étape 2 + pièces étape 3 + ventes étape 4 + pointage lot 2 + tableau de bord)', () => {
+/**
+ * Rendez-vous d'atelier (lot RDV-1, docs/conception-rendez-vous-metier.md) —
+ * `DROITS_RENDEZ_VOUS_PAR_ROLE` dans matrice-droits.ts. Comparaisons structurelles plutôt que
+ * listes recopiées à la main partout où c'est possible : les 4 actions du cycle de vie
+ * (modifier/arrivée/absence/annulation) partagent EXACTEMENT la même population par construction
+ * (`CYCLE_VIE_RDV`), donc testées comme égales entre elles — une divergence future entre elles
+ * serait un bug de matrice, pas une décision consciente.
+ */
+describe('MATRICE_DROITS — rendez-vous d’atelier (lot RDV-1)', () => {
+  it('rendez_vous.lire — réceptionnaire, chef d’atelier, direction, admin, technicien (le technicien consulte son planning, il ne décide rien) — PAS vendeur, magasinier, comptable, ni le compte de service poste_atelier (écran mural sans utilité de prise de RDV)', () => {
+    expect(rolesAyant('rendez_vous.lire')).toEqual(
+      ['admin', 'chef_atelier', 'direction', 'receptionnaire', 'technicien'].sort(),
+    );
+  });
+
+  it('rendez_vous.creer — EXACTEMENT la population de rendez_vous.lire MOINS {chef_atelier, technicien} : réceptionnaire, direction, admin SEULS prennent un rendez-vous au téléphone (brief métier — le chef d’atelier « voit et réorganise », il ne prend pas)', () => {
+    const rolesLire = rolesAyant('rendez_vous.lire');
+    expect(rolesAyant('rendez_vous.creer')).toEqual(
+      rolesLire.filter((role) => role !== 'chef_atelier' && role !== 'technicien'),
+    );
+    expect(MATRICE_DROITS.chef_atelier).not.toContain('rendez_vous.creer');
+    expect(MATRICE_DROITS.technicien).not.toContain('rendez_vous.creer');
+  });
+
+  it('cycle de vie (modifier/arrivée/absence/annulation) — EXACTEMENT la même population sur les 4 actions, par construction (CYCLE_VIE_RDV) : une divergence future entre elles serait un bug de matrice', () => {
+    const rolesCycleVie = rolesAyant('rendez_vous.modifier');
+    expect(rolesAyant('rendez_vous.arrivee')).toEqual(rolesCycleVie);
+    expect(rolesAyant('rendez_vous.absence')).toEqual(rolesCycleVie);
+    expect(rolesAyant('rendez_vous.annuler')).toEqual(rolesCycleVie);
+  });
+
+  it('ANNULER un rendez-vous et constater une ABSENCE — réceptionnaire, chef d’atelier, direction, admin SEULS : gestes qui engagent le garage vis-à-vis du client (promesse rompue ou non honorée), jamais le technicien (lecture seule stricte) ni aucun rôle hors atelier/comptoir', () => {
+    const attendus = ['admin', 'chef_atelier', 'direction', 'receptionnaire'].sort();
+    expect(rolesAyant('rendez_vous.annuler')).toEqual(attendus);
+    expect(rolesAyant('rendez_vous.absence')).toEqual(attendus);
+
+    const rolesExclus: RoleUtilisateur[] = [
+      'technicien',
+      'vendeur',
+      'magasinier',
+      'comptable',
+      'poste_atelier',
+    ];
+    for (const role of rolesExclus) {
+      expect(MATRICE_DROITS[role]).not.toContain('rendez_vous.annuler');
+      expect(MATRICE_DROITS[role]).not.toContain('rendez_vous.absence');
+    }
+  });
+
+  it('admin = superset de direction sur tout le domaine RDV (RF-115 non applicable : aucune des 6 actions n’est financière — même doctrine que le lot 1 atelier/clients, PAS la doctrine plus stricte du domaine pièces où admin n’a même pas la lecture)', () => {
+    const actionsRdv: Action[] = [
+      'rendez_vous.lire',
+      'rendez_vous.creer',
+      'rendez_vous.modifier',
+      'rendez_vous.arrivee',
+      'rendez_vous.absence',
+      'rendez_vous.annuler',
+    ];
+    for (const action of actionsRdv) {
+      expect(MATRICE_DROITS.direction).toContain(action);
+      expect(MATRICE_DROITS.admin).toContain(action);
+    }
+  });
+
+  it('poste_atelier (compte de service, borne d’atelier) ne détient AUCUNE action rendez_vous.*, pas même la lecture : aucun geste de comptoir depuis un écran mural', () => {
+    expect(MATRICE_DROITS.poste_atelier.filter((a) => a.startsWith('rendez_vous.'))).toEqual([]);
+  });
+});
+
+describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste close du lot 1 + facturation/paiements + facturation/documents + bloc créancier + export fiduciaire + impression PDF étape 2 + pièces étape 3 + ventes étape 4 + pointage lot 2 + tableau de bord + rendez-vous lot RDV-1)', () => {
   it('l’union de toutes les actions accordées ne contient QUE les actions du socle + les actions closes du lot 1 + les 5 actions facturation.paiement.* (agent paiements) + les 9 actions facturation.document.*/facturation.avoir.creer (agent documents) + les 2 actions facturation.parametrage.creancier.* + facturation.export.creer + facturation.document.imprimer (arbitrages coordinateur) + les 9 actions pieces.* (étape 3)', () => {
     const actionsAttendues: Action[] = [
       'socle.tenant.lire',
@@ -1122,6 +1190,13 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'atelier.confirmation.or_sans_rdv',
       'rendez_vous.confirmation.ressource_chevauchement',
       'rendez_vous.confirmation.hors_ouverture',
+      // --- Rendez-vous d'atelier (lot RDV-1) — DROITS_RENDEZ_VOUS_PAR_ROLE, voir bloc dédié plus bas ---
+      'rendez_vous.lire',
+      'rendez_vous.creer',
+      'rendez_vous.modifier',
+      'rendez_vous.arrivee',
+      'rendez_vous.absence',
+      'rendez_vous.annuler',
       'pret_vehicule.confirmation.indisponible',
       // --- Étape 2 : facturation — documents (RF-1 → RF-32, RF-114 → RF-120) ---
       'facturation.document.lire',

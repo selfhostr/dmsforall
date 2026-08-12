@@ -162,15 +162,19 @@
     "selecteurArticle": {
       "label": "Chercher une pièce au magasin",
       "placeholder": "Désignation, référence ou code-barres",
-      "aide": "Recherche facultative — vous pouvez aussi saisir la pièce vous-même dans les champs ci-dessous.",
       "recherche": "Recherche en cours…",
       "aucunResultat": "Aucun article ne correspond dans le magasin. Vous pouvez saisir la pièce manuellement ci-dessous.",
       "resultats": "{count, plural, one {# résultat} other {# résultats}}",
       "choisi": "Choisi depuis le magasin",
       "changer": "Chercher une autre pièce",
       "prixConverti": "Prix catalogue {prixTtc} TTC, converti en HT (TVA {taux} %).",
+      "parcours": {
+        "aide": "Tapez pour chercher une référence précise, ou choisissez directement dans le catalogue ci-dessous.",
+        "vide": "Aucun article actif au catalogue de ce site pour le moment. Vous pouvez saisir la pièce manuellement ci-dessous."
+      },
       "erreur": {
-        "reessayer": "Réessayer"
+        "reessayer": "Réessayer",
+        "parcours": "Impossible de charger le catalogue du magasin. {message}"
       },
       "disponibilite": {
         "nonSuiviNullePart": "Cette pièce n'est suivie dans aucun site du magasin — jamais reçue en stock.",
@@ -371,6 +375,7 @@
   },
   "actions": {
     "titre": "Actions",
+    "imprimer": "Imprimer l'OR",
     "confirmer": "Confirmer",
     "confirmerAction": "Confirmez cette action.",
     "annulerAvertissement": "Cette action est définitive : l'ordre de réparation annulé ne pourra plus être ni modifié ni repris.",
@@ -387,6 +392,10 @@
   "totaux": {
     "titre": "Totaux",
     "totalValide": "Total validé"
+  },
+  "impression": {
+    "enCours": "Impression en cours…",
+    "erreur": "Impossible d'imprimer la feuille d'atelier. {message}"
   },
   "nouveau": {
     "titre": "Nouvel ordre de réparation",

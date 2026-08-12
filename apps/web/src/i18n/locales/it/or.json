@@ -162,15 +162,19 @@
     "selecteurArticle": {
       "label": "Cerca un pezzo in magazzino",
       "placeholder": "Descrizione, riferimento o codice a barre",
-      "aide": "Ricerca facoltativa — puoi anche inserire il pezzo manualmente nei campi qui sotto.",
       "recherche": "Ricerca in corso…",
       "aucunResultat": "Nessun articolo trovato in magazzino. Puoi inserire il pezzo manualmente qui sotto.",
       "resultats": "{count, plural, one {# risultato} other {# risultati}}",
       "choisi": "Scelto dal magazzino",
       "changer": "Cerca un altro pezzo",
       "prixConverti": "Prezzo di catalogo {prixTtc} IVA inclusa, convertito in netto (IVA {taux} %).",
+      "parcours": {
+        "aide": "Digita un riferimento preciso per cercare, oppure scegli direttamente dal catalogo qui sotto.",
+        "vide": "Nessun articolo attivo nel catalogo di questa sede al momento. Puoi inserire il pezzo manualmente qui sotto."
+      },
       "erreur": {
-        "reessayer": "Riprova"
+        "reessayer": "Riprova",
+        "parcours": "Impossibile caricare il catalogo del magazzino. {message}"
       },
       "disponibilite": {
         "nonSuiviNullePart": "Questo pezzo non è gestito a magazzino in nessuna sede — mai ricevuto.",
@@ -371,6 +375,7 @@
   },
   "actions": {
     "titre": "Azioni",
+    "imprimer": "Stampare l'OR",
     "confirmer": "Confermare",
     "confirmerAction": "Confermare questa azione.",
     "annulerAvertissement": "Questa azione è definitiva: un ordine di riparazione annullato non potrà più essere né modificato né ripreso.",
@@ -387,6 +392,10 @@
   "totaux": {
     "titre": "Totali",
     "totalValide": "Totale validato"
+  },
+  "impression": {
+    "enCours": "Stampa in corso…",
+    "erreur": "Impossibile stampare il foglio d'officina. {message}"
   },
   "nouveau": {
     "titre": "Nuovo ordine di riparazione",
