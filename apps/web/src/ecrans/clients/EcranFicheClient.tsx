@@ -32,6 +32,7 @@ import { OngletConditions } from './onglets/OngletConditions';
 import { OngletConsentements } from './onglets/OngletConsentements';
 import { OngletContacts } from './onglets/OngletContacts';
 import { OngletNotes } from './onglets/OngletNotes';
+import { SectionRendezVousClient } from './SectionRendezVousClient';
 import { texteOuVide } from './utils';
 
 /** `chemins.ts` (routes/) n'a pas encore d'entrée Atelier — module en cours de câblage par un
@@ -121,6 +122,14 @@ export function EcranFicheClient() {
   const lignesVehicules = vehicules.data?.pages.flatMap((page) => page.donnees) ?? [];
   const lignesOrdres = ordres.data?.pages.flatMap((page) => page.donnees) ?? [];
 
+  // `DialogueNouveauRendezVous.site` (composants/rendez-vous/) est obligatoire (un `SiteResume`
+  // complet, pas juste un id) — même repli que `TableauBordMagasinier.tsx` (site actif du tenant,
+  // sinon le premier) quand la fiche est ouverte sans `?site=` explicite : jamais un site inventé,
+  // seulement le seul choix non ambigu quand aucun n'est précisé.
+  const siteRendezVous = site
+    ? session.data?.sites.find((candidat) => candidat.id === site)
+    : (session.data?.sites.find((candidat) => candidat.actif) ?? session.data?.sites[0]);
+
   // `IdentiteClient` prend un `ClientResume` (projection de LISTE) ; `GET /clients/{id}` renvoie
   // `ReponseClient` (fiche complète), qui n'a pas `localite`/`nombreVehicules` — des agrégats que
   // `IdentiteClient` ne lit d'ailleurs pas (seuls nomAffiche/numeroClient/statut le sont). Valeurs
@@ -209,6 +218,12 @@ export function EcranFicheClient() {
         </div>
 
         <div className="min-w-0 space-y-6">
+          <SectionRendezVousClient
+            client={clientPourIdentite}
+            vehiculesClient={lignesVehicules}
+            site={siteRendezVous}
+          />
+
           {/* Défaut corrigé : cette section testait `isLoading` puis la longueur de la liste,
            *  SANS branche d'erreur — un 403/404 stable retombait indéfiniment dans le squelette
            *  de chargement (TanStack Query réessaie par défaut), jamais résolu. `EtatSousCollection`

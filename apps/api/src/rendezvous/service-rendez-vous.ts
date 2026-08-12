@@ -211,6 +211,8 @@ export class ServiceRendezVous {
       if (filtres.statut !== undefined) conditions.push(eq(rendezVous.statut, filtres.statut));
       if (filtres.clientId !== undefined)
         conditions.push(eq(rendezVous.clientId, filtres.clientId));
+      if (filtres.vehiculeId !== undefined)
+        conditions.push(eq(rendezVous.vehiculeId, filtres.vehiculeId));
 
       if (curseurDecode) {
         if (typeof curseurDecode.valeur !== 'string') {

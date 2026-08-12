@@ -50,7 +50,13 @@
     "dossiersVente": "Verkaufsdossiers",
     "dossiersVenteVide": "Kein Verkaufsdossier.",
     "dossiersVenteDroitRequis": "Sie sind nicht berechtigt, die Verkaufsdossiers dieses Kunden einzusehen.",
-    "dossierSansVehicule": "Kein Fahrzeug zugewiesen"
+    "dossierSansVehicule": "Kein Fahrzeug zugewiesen",
+    "rendezVous": {
+      "titre": "Nächste Termine",
+      "prendre": "Termin vereinbaren",
+      "vide": "Kein Termin geplant.",
+      "creeTitre": "Termin gespeichert"
+    }
   },
   "alertes": {
     "bloque": "Gesperrt – Zahlungsrückstände",

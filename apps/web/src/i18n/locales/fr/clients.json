@@ -50,7 +50,13 @@
     "dossiersVente": "Dossiers de vente",
     "dossiersVenteVide": "Aucun dossier de vente.",
     "dossiersVenteDroitRequis": "Vous n'avez pas le droit de consulter les dossiers de vente de ce client.",
-    "dossierSansVehicule": "Véhicule non assigné"
+    "dossierSansVehicule": "Véhicule non assigné",
+    "rendezVous": {
+      "titre": "Prochains rendez-vous",
+      "prendre": "Prendre un rendez-vous",
+      "vide": "Aucun rendez-vous prévu.",
+      "creeTitre": "Rendez-vous enregistré"
+    }
   },
   "alertes": {
     "bloque": "Bloqué – impayés",

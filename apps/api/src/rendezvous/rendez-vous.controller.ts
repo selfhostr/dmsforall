@@ -17,6 +17,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -29,6 +30,8 @@ import {
   schemaFiltresRendezVous,
   schemaIdentifiant,
   schemaModificationRendezVous,
+  STATUTS_RDV,
+  TRIS_RENDEZ_VOUS,
   type EntreeCreationRendezVous,
   type EntreeModificationRendezVous,
   type FiltresCapaciteRendezVous,
@@ -77,6 +80,22 @@ export class RendezVousController {
   @Get()
   @ExigerDroit('rendez_vous.lire')
   @ApiOperation({ summary: 'Rendez-vous de la période demandée, pour un site.' })
+  @ApiQuery({ name: 'du', required: true, type: String, format: 'date', example: '2026-08-01' })
+  @ApiQuery({ name: 'au', required: true, type: String, format: 'date', example: '2026-08-31' })
+  @ApiQuery({ name: 'siteId', required: false, type: String, format: 'uuid' })
+  @ApiQuery({ name: 'statut', required: false, enum: STATUTS_RDV })
+  @ApiQuery({ name: 'clientId', required: false, type: String, format: 'uuid' })
+  @ApiQuery({
+    name: 'vehiculeId',
+    required: false,
+    type: String,
+    format: 'uuid',
+    description:
+      "Rendez-vous d'un véhicule précis (fiche véhicule), indépendant du détenteur courant.",
+  })
+  @ApiQuery({ name: 'tri', required: false, enum: TRIS_RENDEZ_VOUS })
+  @ApiQuery({ name: 'limite', required: false, type: Number, example: 50 })
+  @ApiQuery({ name: 'curseur', required: false, type: String })
   @ApiOkResponse({ type: PageRendezVousDto })
   @ApiReponseProbleme(400, 'Filtres, tri ou curseur invalides.')
   @ApiReponseProbleme(401, 'Session absente ou expirée.')

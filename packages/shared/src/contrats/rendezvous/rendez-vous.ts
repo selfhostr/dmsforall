@@ -125,6 +125,10 @@ export const schemaFiltresRendezVous = z.object({
   siteId: schemaIdentifiant.optional(),
   statut: z.enum(STATUTS_RDV).optional(),
   clientId: schemaIdentifiant.optional(),
+  /** Rendez-vous d'un véhicule précis — ex. fiche véhicule (« prochains rendez-vous de CE
+   *  véhicule »), indépendant du détenteur courant (véhicule sans détenteur, ou détenteur avec
+   *  plusieurs véhicules). */
+  vehiculeId: schemaIdentifiant.optional(),
   tri: z.enum(TRIS_RENDEZ_VOUS).default(TRI_DEFAUT_RENDEZ_VOUS),
 });
 export type FiltresRendezVous = z.infer<typeof schemaFiltresRendezVous>;
