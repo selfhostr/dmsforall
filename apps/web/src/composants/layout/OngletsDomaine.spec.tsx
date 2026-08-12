@@ -52,12 +52,20 @@ function libelles(nav: HTMLElement): string[] {
 }
 
 describe('OngletsDomaine — les onglets d’un domaine', () => {
-  it('Atelier : Ordres de réparation, Pointage et Dépôt pneus — les entrées de menu retirées, retrouvées ici', async () => {
+  it('Atelier : Ordres de réparation, Rendez-vous, Pointage et Dépôt pneus — les entrées de menu retirées, retrouvées ici', async () => {
     connecte('chef_atelier');
     rendre('/ordres-reparation');
 
     const onglets = await screen.findByRole('navigation', { name: /onglets/i });
-    expect(libelles(onglets)).toEqual(['Ordres de réparation', 'Pointage', 'Dépôt pneus']);
+    // « Planning » (Lot RDV-1, slot activé dans `navigation-modele.ts`) prend la deuxième place,
+    // entre Ordres de réparation et Pointage — exactement l'emplacement tenu par
+    // `EMPLACEMENTS_RESERVES` avant son activation.
+    expect(libelles(onglets)).toEqual([
+      'Ordres de réparation',
+      'Planning',
+      'Pointage',
+      'Dépôt pneus',
+    ]);
   });
 
   it('Pièces : Comptoir, Articles, Approvisionnement, Consignes — six entrées de menu devenues quatre onglets', async () => {

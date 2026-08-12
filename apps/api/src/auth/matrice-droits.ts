@@ -447,6 +447,33 @@ export const TOUTES_ACTIONS = [
   'relances.facturation.regle.ecrire',
   'relances.facturation.planifier',
   'relances.facturation.envoyer',
+  // ---- Rendez-vous d'atelier (lot RDV-1, docs/conception-rendez-vous-metier.md §7, §9) ---------
+  // Bloc ADDITIF PUR, ajouté par l'agent `apps/api/src/rendezvous/` (périmètre disjoint autorisé
+  // à toucher ce fichier pour cette tâche — contrairement aux autres blocs additifs ci-dessus, pas
+  // un palliatif : aucune route ne tournait avant ce bloc).
+  //
+  // Distinct de `atelier.confirmation.or_sans_rdv`/`rendez_vous.confirmation.*` (préexistants,
+  // inertes) : ceux-là gouvernent des CONFIRMATIONS (§4.4), ceux-ci des ACTIONS. Distinct aussi de
+  // `parametrage.referentiel.lire`, réutilisé tel quel pour `GET /motifs-rendez-vous` (catalogue
+  // paramétrable, même nature que `GET /referentiels/taux-horaires` — pas une action propre au
+  // domaine rendez-vous, aucune entrée dédiée nécessaire ici).
+  //
+  // Répartition calée sur le brief de l'orchestrateur, littéral : « le réceptionniste prend et
+  // déplace les rendez-vous, le chef d'atelier les voit et les réorganise, le technicien les
+  // consulte » — donc `rendez_vous.creer` au réceptionniste SEUL (« prend »), `rendez_vous.
+  // modifier`/`arrivee`/`absence`/`annuler` à réceptionniste ET chef_atelier (« déplace » /
+  // « réorganise » couvrent le cycle de vie complet une fois pris), `rendez_vous.lire` ouvert aux
+  // trois plus direction/admin. `admin` reçoit le périmètre de `direction` (rôle technique,
+  // superset par construction, même doctrine que `DROITS_ADMIN` — RF-115 n'entre pas en jeu ici,
+  // aucune de ces actions n'est financière). `vendeur`/`magasinier`/`comptable`/`poste_atelier` :
+  // exclus, même périmètre que `atelier.or.*` (ni l'un ni l'autre n'est acteur du flux RDV, même
+  // raisonnement que `LECTURE_OR` déjà posé plus haut dans ce fichier).
+  'rendez_vous.lire',
+  'rendez_vous.creer',
+  'rendez_vous.modifier',
+  'rendez_vous.arrivee',
+  'rendez_vous.absence',
+  'rendez_vous.annuler',
 ] as const;
 
 /**
@@ -1836,6 +1863,39 @@ const DROITS_RELANCES_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action
   poste_atelier: [],
 };
 
+// =================================================================================================
+// Rendez-vous d'atelier (lot RDV-1) — bloc ADDITIF PUR, voir le commentaire des 6 entrées
+// `rendez_vous.*` de `TOUTES_ACTIONS` ci-dessus pour la justification complète de la répartition.
+// =================================================================================================
+const LECTURE_RDV: readonly Action[] = ['rendez_vous.lire'];
+const CYCLE_VIE_RDV: readonly Action[] = [
+  'rendez_vous.modifier',
+  'rendez_vous.arrivee',
+  'rendez_vous.absence',
+  'rendez_vous.annuler',
+];
+const RDV_COMPLET: readonly Action[] = [...LECTURE_RDV, 'rendez_vous.creer', ...CYCLE_VIE_RDV];
+
+const DROITS_RENDEZ_VOUS_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  // « Le réceptionniste prend et déplace les rendez-vous » (brief) : périmètre complet.
+  receptionnaire: [...RDV_COMPLET],
+  // « Le chef d'atelier les voit et les réorganise » : cycle de vie complet SAUF la prise
+  // initiale au téléphone — comptoir seul, cohérent avec `L958_CLIENT_ECRITURE`/`L960_
+  // VEHICULE_ECRITURE` où chef_atelier a déjà l'écriture courante mais pas la primauté d'accueil.
+  chef_atelier: [...LECTURE_RDV, ...CYCLE_VIE_RDV],
+  direction: [...RDV_COMPLET],
+  // `admin` = superset de `direction` par construction (RF-115 non applicable : aucune de ces
+  // actions n'est financière) — même doctrine que `DROITS_ADMIN` ci-dessous.
+  admin: [...RDV_COMPLET],
+  // « Le technicien les consulte » : lecture seule, même périmètre que `LECTURE_OR`.
+  technicien: [...LECTURE_RDV],
+  vendeur: [],
+  magasinier: [],
+  comptable: [],
+  // Compte de service (borne d'atelier) : aucun geste de comptoir depuis un écran mural.
+  poste_atelier: [],
+};
+
 export const MATRICE_DROITS = {
   admin: [
     ...DROITS_ADMIN,
@@ -1852,6 +1912,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.admin,
     ...DROITS_PNEUS_PAR_ROLE.admin,
     ...DROITS_RELANCES_PAR_ROLE.admin,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.admin,
   ],
   direction: [
     ...DROITS_DIRECTION,
@@ -1868,6 +1929,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.direction,
     ...DROITS_PNEUS_PAR_ROLE.direction,
     ...DROITS_RELANCES_PAR_ROLE.direction,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.direction,
   ],
   vendeur: [
     ...DROITS_VENDEUR,
@@ -1884,6 +1946,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.vendeur,
     ...DROITS_PNEUS_PAR_ROLE.vendeur,
     ...DROITS_RELANCES_PAR_ROLE.vendeur,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.vendeur,
   ],
   receptionnaire: [
     ...DROITS_RECEPTIONNAIRE,
@@ -1900,6 +1963,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.receptionnaire,
     ...DROITS_PNEUS_PAR_ROLE.receptionnaire,
     ...DROITS_RELANCES_PAR_ROLE.receptionnaire,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.receptionnaire,
   ],
   chef_atelier: [
     ...DROITS_CHEF_ATELIER,
@@ -1916,6 +1980,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.chef_atelier,
     ...DROITS_PNEUS_PAR_ROLE.chef_atelier,
     ...DROITS_RELANCES_PAR_ROLE.chef_atelier,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.chef_atelier,
   ],
   technicien: [
     ...DROITS_TECHNICIEN,
@@ -1932,6 +1997,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.technicien,
     ...DROITS_PNEUS_PAR_ROLE.technicien,
     ...DROITS_RELANCES_PAR_ROLE.technicien,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.technicien,
   ],
   magasinier: [
     ...DROITS_MAGASINIER,
@@ -1948,6 +2014,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.magasinier,
     ...DROITS_PNEUS_PAR_ROLE.magasinier,
     ...DROITS_RELANCES_PAR_ROLE.magasinier,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.magasinier,
   ],
   comptable: [
     ...DROITS_COMPTABLE,
@@ -1964,6 +2031,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.comptable,
     ...DROITS_PNEUS_PAR_ROLE.comptable,
     ...DROITS_RELANCES_PAR_ROLE.comptable,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.comptable,
   ],
   poste_atelier: [
     ...DROITS_POSTE_ATELIER,
@@ -1980,6 +2048,7 @@ export const MATRICE_DROITS = {
     ...DROITS_TABLEAU_BORD_FINANCIER_PAR_ROLE.poste_atelier,
     ...DROITS_PNEUS_PAR_ROLE.poste_atelier,
     ...DROITS_RELANCES_PAR_ROLE.poste_atelier,
+    ...DROITS_RENDEZ_VOUS_PAR_ROLE.poste_atelier,
   ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 

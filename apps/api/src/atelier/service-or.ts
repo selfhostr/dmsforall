@@ -45,6 +45,7 @@ import { verifierConfirmation } from './confirmations';
 import { calculerActionsDisponiblesPourRole, calculerEtatAffiche } from './etat-affiche';
 import { convertirEnKm } from './kilometrage';
 import { mapperDemande, mapperDevis, mapperLigneOr, roleVoitLesMontants } from './mappeurs';
+import { estRestitutionEnRetard } from './restitution-retard';
 import {
   chargerControleQualite,
   chargerLigneOrPourEcriture,
@@ -781,6 +782,12 @@ export class ServiceOr {
       restitutionInitialeLe: or.restitutionInitialeLe
         ? or.restitutionInitialeLe.toISOString()
         : null,
+      // Calculé UNE SEULE FOIS ici — voir `restitution-retard.ts` pour la garde complète (une
+      // date promise absente n'est jamais un retard, les statuts terminaux ne comptent plus).
+      enRetard: estRestitutionEnRetard(
+        { statut: or.statut, restitutionPromiseLe: or.restitutionPromiseLe },
+        this.horloge.maintenant(),
+      ),
       localisation: or.localisation,
       sousTraitantNom: or.sousTraitantNom,
       ordreReparationParentId: or.ordreReparationParentId,

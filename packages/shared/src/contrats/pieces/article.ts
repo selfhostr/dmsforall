@@ -9,6 +9,7 @@ import {
   type TypeReferenceArticle,
 } from './enums';
 import { schemaCentimesPositif, schemaCodeBarres, schemaReferenceArticle } from './primitives';
+import type { StatutSuiviStockArticle } from './stock';
 import {
   schemaIdentifiant,
   schemaMotif,
@@ -161,8 +162,13 @@ export interface ResultatRechercheComptoirArticle {
   readonly numeroArticle: string;
   readonly designation: string;
   readonly referencePrincipale: string;
+  /** TVA comprise (RP-36) — jamais le prix hors taxe, voir `contrats/atelier/ligne.ts::ReponseLigneOr.prixUnitaireCentimes`
+   *  pour la conversion éventuelle attendue côté saisie de ligne d'OR (HT, capturé serveur). */
   readonly prixVenteTtcCentimes: number;
+  /** Fiable UNIQUEMENT si `statutSuivi = 'suivi'` — sinon vaut 0 par convention, voir `StatutSuiviStockArticle`. */
   readonly quantiteDisponibleMillieme: number;
+  /** Suivi de stock au site demandé — à lire AVANT `quantiteDisponibleMillieme`. */
+  readonly statutSuivi: StatutSuiviStockArticle;
   readonly emplacement: string | null;
   readonly estEchangeStandard: boolean;
   readonly montantConsigneTtcCentimes: number | null;

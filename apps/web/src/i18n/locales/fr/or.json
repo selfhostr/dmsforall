@@ -57,7 +57,7 @@
   "lignes": {
     "titre": "Travaux",
     "vide": "Aucun travail enregistré.",
-    "ajouter": "Ajouter une ligne",
+    "ajouter": "Ajouter un travail ou une pièce",
     "tronquees": "Certaines lignes ne sont pas affichées ici (limite atteinte) — consultez la liste complète des lignes.",
     "groupes": {
       "aValider": "À valider",
@@ -73,7 +73,7 @@
       "quantite": "Qté",
       "tempsBareme": "Temps barémé",
       "tempsPointe": "Temps pointé",
-      "prixUnitaire": "PU",
+      "prixUnitaire": "Prix unitaire HT",
       "rabais": "Rabais",
       "payeur": "Payeur",
       "technicien": "Technicien",
@@ -157,6 +157,27 @@
     },
     "champs": {
       "referenceTexte": "Référence"
+    },
+    "selecteurArticle": {
+      "label": "Chercher une pièce au magasin",
+      "placeholder": "Désignation, référence ou code-barres",
+      "aide": "Recherche facultative — vous pouvez aussi saisir la pièce vous-même dans les champs ci-dessous.",
+      "recherche": "Recherche en cours…",
+      "aucunResultat": "Aucun article ne correspond dans le magasin. Vous pouvez saisir la pièce manuellement ci-dessous.",
+      "resultats": "{count, plural, one {# résultat} other {# résultats}}",
+      "choisi": "Choisi depuis le magasin",
+      "changer": "Chercher une autre pièce",
+      "prixConverti": "Prix catalogue {prixTtc} TTC, converti en HT (TVA {taux} %).",
+      "erreur": {
+        "reessayer": "Réessayer"
+      },
+      "disponibilite": {
+        "nonSuiviNullePart": "Cette pièce n'est suivie dans aucun site du magasin — jamais reçue en stock.",
+        "nonSuiviSurCeSite": "Ce site ne suit pas cette pièce en stock — elle est suivie ailleurs.",
+        "aucune": "Aucune actuellement disponible à ce site.",
+        "disponible": "{n} disponible(s) à ce site."
+      },
+      "calculPrixEnCours": "Calcul du prix hors taxe…"
     },
     "groupees": {
       "colonneSelection": "Sélection",

@@ -57,7 +57,7 @@
   "lignes": {
     "titre": "Arbeiten",
     "vide": "Keine Arbeiten erfasst.",
-    "ajouter": "Arbeit hinzufügen",
+    "ajouter": "Arbeit oder Ersatzteil hinzufügen",
     "tronquees": "Einige Positionen werden hier nicht angezeigt (Limite erreicht) — vollständige Liste konsultieren.",
     "groupes": {
       "aValider": "Zur Freigabe",
@@ -73,7 +73,7 @@
       "quantite": "Menge",
       "tempsBareme": "Richtzeit",
       "tempsPointe": "Erfasste Zeit",
-      "prixUnitaire": "Einzelpreis",
+      "prixUnitaire": "Einzelpreis exkl. MWST",
       "rabais": "Rabatt",
       "payeur": "Zahler",
       "technicien": "Techniker",
@@ -157,6 +157,27 @@
     },
     "champs": {
       "referenceTexte": "Referenz"
+    },
+    "selecteurArticle": {
+      "label": "Ersatzteil im Lager suchen",
+      "placeholder": "Bezeichnung, Referenz oder Barcode",
+      "aide": "Optionale Suche — Sie können das Teil auch direkt in den Feldern unten erfassen.",
+      "recherche": "Suche läuft…",
+      "aucunResultat": "Kein Artikel im Lager gefunden. Sie können das Teil unten manuell erfassen.",
+      "resultats": "{count, plural, one {# Ergebnis} other {# Ergebnisse}}",
+      "choisi": "Aus dem Lager übernommen",
+      "changer": "Anderes Teil suchen",
+      "prixConverti": "Katalogpreis {prixTtc} inkl. MWST, umgerechnet auf netto (MWST {taux} %).",
+      "erreur": {
+        "reessayer": "Erneut versuchen"
+      },
+      "disponibilite": {
+        "nonSuiviNullePart": "Dieses Teil wird an keinem Standort geführt — nie ins Lager aufgenommen.",
+        "nonSuiviSurCeSite": "Dieser Standort führt dieses Teil nicht — es wird anderswo geführt.",
+        "aucune": "Aktuell an diesem Standort nicht verfügbar.",
+        "disponible": "{n} an diesem Standort verfügbar."
+      },
+      "calculPrixEnCours": "Nettopreis wird berechnet…"
     },
     "groupees": {
       "colonneSelection": "Auswahl",

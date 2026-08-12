@@ -3,6 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
+import '@/i18n';
+import i18n from '@/i18n';
+
 import { server } from '@/test/msw/server';
 import { renduAvecQueryClient } from '@/test/utils';
 
@@ -34,8 +37,8 @@ const MESSAGE_TAUX_HORAIRE =
   'Renseigner les taux horaires dans le paramétrage.';
 
 async function ouvrirDialogueEtSaisirDesignation(utilisateur: ReturnType<typeof userEvent.setup>) {
-  renduAvecQueryClient(<DialogueAjoutLigneOr orId={OR_ID} />);
-  await utilisateur.click(screen.getByRole('button', { name: 'Ajouter une ligne' }));
+  renduAvecQueryClient(<DialogueAjoutLigneOr orId={OR_ID} siteId="site-1" />);
+  await utilisateur.click(screen.getByRole('button', { name: i18n.t('or:lignes.ajouter') }));
   await screen.findByRole('dialog');
   await utilisateur.type(screen.getByLabelText(/Désignation/), 'Remplacement plaquettes avant');
 }

@@ -40,7 +40,9 @@ import {
   chargerClientLigne,
   chargerDernierKilometrage,
   chargerParametresAtelier,
+  chargerRendezVousPourAmorcage,
 } from './references';
+import { calculerRestitutionAmorcee } from './restitution-amorcage';
 import { ServiceOr, estOrVerrouille } from './service-or';
 import { traduireErreurTransition } from './traducteur-transition';
 
@@ -112,10 +114,37 @@ export class ServiceTransitions {
         }
 
         const maintenant = this.horloge.maintenant();
+
+        // Le cœur du chantier RDV : `restitution_promise_le` existait en base depuis le lot 1
+        // sans AUCUN écrivain — amorcée ici, UNE SEULE FOIS, depuis l'estimation prise au
+        // téléphone (`rendez_vous.duree_estimee_minutes`), si elle n'est pas déjà renseignée (un
+        // OR peut déjà porter une promesse posée à la création, `ServiceOr.creer`, jamais
+        // écrasée). Silencieusement absente si l'OR n'a aucun rendez-vous lié (walk-in) ou si le
+        // rendez-vous a disparu entre-temps — dégradation neutre, pas une régression
+        // (`docs/conception-rendez-vous-donnees.md` §9 : « reste NULL comme aujourd'hui »).
+        let restitutionAmorcee:
+          { restitutionPromiseLe: Date; restitutionInitialeLe: Date } | undefined;
+        if (or.restitutionPromiseLe === null && or.rendezVousId) {
+          const rdv = await chargerRendezVousPourAmorcage(tx, ctx, or.rendezVousId);
+          if (rdv) {
+            const restitutionPromiseLe = calculerRestitutionAmorcee({
+              dateLe: rdv.date,
+              moment: rdv.moment,
+              heureSouhaitee: rdv.heureSouhaitee,
+              dureeEstimeeMinutes: rdv.dureeEstimeeMinutes,
+            });
+            restitutionAmorcee = {
+              restitutionPromiseLe,
+              restitutionInitialeLe: restitutionPromiseLe,
+            };
+          }
+        }
+
         await this.transitionner(tx, or, 'ouvert', {
           kmEntree: kmKm,
           ouvertLe: maintenant,
           receptionnaireId: principal.utilisateurId,
+          ...restitutionAmorcee,
         });
         await tx.insert(vehiculeKilometrage).values({
           tenantId: ctx.tenantId,

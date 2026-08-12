@@ -202,6 +202,22 @@ export interface ReponseOrdreReparation {
   readonly restitutionPromiseLe: string | null;
   /** RM-56 : la promesse INITIALE, conservée pour que le report soit visible et motivé. */
   readonly restitutionInitialeLe: string | null;
+  /**
+   * Calculé UNE SEULE FOIS côté serveur, ici et nulle part ailleurs (constat du testeur : deux
+   * tableaux de bord lisant chacun leur propre notion de « en retard » se sont contredits — l'un
+   * voyait cinq sorties du jour, l'autre aucune). `true` uniquement si `restitutionPromiseLe` est
+   * renseigné, que l'OR n'est pas encore restitué (`restitue`/`cloture`/`annule` exclus) et que
+   * l'instant courant dépasse la promesse. **Une date promise absente n'est JAMAIS un retard** —
+   * `null` et « en retard » ne partagent jamais le même rendu. Voir
+   * `apps/api/src/atelier/restitution-retard.ts`.
+   *
+   * FACULTATIF dans le TYPE (le serveur le peuple TOUJOURS, sans exception) : rendre le champ
+   * obligatoire casserait la compilation des très nombreuses fixtures `ReponseOrdreReparation`
+   * déjà écrites dans `apps/web/**.spec.tsx` par l'agent front parallèle (périmètre disjoint,
+   * hors de portée d'écriture ici) — même arbitrage que `OrdreReparationResume.enRetard?`
+   * ci-dessous, additif pur, jamais une rupture de compatibilité (§11.1).
+   */
+  readonly enRetard?: boolean;
   readonly localisation: LocalisationVehicule;
   readonly sousTraitantNom: string | null;
   readonly ordreReparationParentId: string | null;
@@ -280,6 +296,14 @@ export interface OrdreReparationResume {
   readonly localisation: LocalisationVehicule;
   readonly ouvertLe: string | null;
   readonly restitutionPromiseLe: string | null;
+  /**
+   * Même calcul, même garde qu'`ReponseOrdreReparation.enRetard` — voir ce champ. FACULTATIF ici
+   * (contrairement au document complet) : ce résumé est aussi assemblé par `clients/` (périmètre
+   * disjoint de l'agent rendez-vous), qui ne le peuple pas encore — absent, jamais `false` par
+   * défaut trompeur, pour ne pas laisser croire « jamais en retard » à un consommateur qui lirait
+   * cette projection.
+   */
+  readonly enRetard?: boolean;
   readonly vehicule: VehiculeResume;
   readonly client: ClientResume;
   readonly nombreLignes: number;

@@ -1,87 +1,139 @@
 {
-  "titre": "Pianificazione",
-  "nouveau": "Nuovo appuntamento",
-  "jour": "Giorno",
-  "semaine": "Settimana",
-  "charge": {
-    "titre": "Carico officina",
-    "capacite": "{heures} h / {capacite} h",
-    "saturation": "Officina satura"
+  "titre": "Appuntamenti",
+  "toolbar": {
+    "bascule": {
+      "jour": "Giorno",
+      "semaine": "Settimana",
+      "liste": "Elenco"
+    },
+    "navigation": {
+      "semainePrecedente": "Settimana precedente",
+      "semaineSuivante": "Settimana successiva",
+      "jourPrecedent": "Giorno precedente",
+      "jourSuivant": "Giorno successivo",
+      "aujourdhui": "Oggi"
+    },
+    "rechercheLabel": "Cerca cliente, veicolo o targa",
+    "recherchePlaceholder": "Cliente, veicolo, targa…",
+    "nouveauRendezVous": "Nuovo appuntamento"
   },
-  "rdv": {
-    "heure": "Ora",
-    "duree": "Durata",
-    "plaque": "Targa",
-    "client": "Cliente",
-    "motif": "Motivo",
-    "motifs": "Motivi",
-    "modeAttente": "Modalita d'attesa",
-    "ressource": "Risorsa",
-    "vehiculeRempl": "Veicolo sostitutivo",
-    "presetVehicule": "Veicolo sostitutivo prenotato"
-  },
-  "modesAttente": {
-    "place": "Aspetta in officina",
-    "depot": "Deposito - ritiro al prossimo appuntamento",
-    "depotVeille": "Deposito - cassetta con chiavi",
-    "navette": "Navetta officina",
-    "prise": "Ritiro"
-  },
-  "motifs": {
-    "service": "Manutenzione / Servizio",
-    "expertise": "Collaudo / Ispezione",
-    "preExpertise": "Pre-collaudo",
-    "pneus": "Pneumatici",
-    "diagnostic": "Diagnosi",
-    "carrosserie": "Carrozzeria",
-    "rappel": "Richiamo costruttore",
-    "retouche": "Rilavorazione",
-    "devis": "Preventivo"
-  },
-  "statuts": {
-    "demande": "Richiesta",
-    "planifie": "Programmato",
-    "honore": "Completato",
-    "absent": "Assente",
-    "annuleClient": "Annullato (cliente)",
-    "annuleGarage": "Annullato (officina)",
-    "reporte": "Rimandato"
-  },
-  "transitions": {
-    "honorer": "Onora",
-    "absent": "Segna assente",
-    "annulerClient": "Annulla (cliente)",
-    "annulerGarage": "Annulla (officina)",
-    "reporter": "Rimanda"
-  },
-  "colonnes": {
-    "vehiculesAttendus": "Veicoli attesi",
-    "orDuJour": "Ordini del giorno",
-    "restitutions": "Restituzione promessa"
-  },
-  "formulaire": {
-    "titre": "Nuovo appuntamento",
-    "plaque": "Targa",
-    "vehicule": "Veicolo",
-    "client": "Cliente",
-    "motifs": "Motivi",
-    "verbatim": "Dichiarazione cliente",
-    "date": "Data",
-    "heure": "Ora",
-    "duree": "Durata stimata",
-    "heuresAtelier": "Ore officina",
-    "modeAttente": "Modalita d'attesa",
-    "vehiculeRempl": "Veicolo sostitutivo",
-    "ressource": "Risorsa",
-    "creer": "Crea appuntamento",
-    "enCours": "Creazione...",
-    "avertissements": {
-      "aucunVehicule": "Non potrai essere convertito in ordine cosi com'e",
-      "ressourceChevauchement": "Questa risorsa e gia prenotata per questo orario"
+  "site": {
+    "manquant": {
+      "titre": "Scegliere una sede",
+      "description": "Selezionare una sede nell’intestazione per vedere la sua agenda appuntamenti."
     }
   },
   "vide": {
-    "premier": "Nessun appuntamento programmato per questo giorno.",
-    "recherche": "Nessun risultato."
+    "semaine": {
+      "titre": "Nessun appuntamento previsto questa settimana",
+      "description": "L’agenda di questa settimana è vuota per questa sede."
+    },
+    "jour": {
+      "titre": "Nessun appuntamento previsto in questo giorno",
+      "description": "L’agenda di questo giorno è vuota per questa sede."
+    },
+    "recherche": {
+      "titre": "Nessun risultato",
+      "description": "Nessun appuntamento corrisponde a « {recherche} »."
+    }
+  },
+  "erreur": {
+    "titre": "L’agenda non è stata caricata",
+    "capaciteTitre": "La capacità del giorno non è stata caricata"
+  },
+  "capacite": {
+    "fraction": "{occupe} / {capacite}",
+    "brut": "{reserves} appuntamenti",
+    "etat": {
+      "disponible": "Disponibile",
+      "presqueComplet": "Quasi al completo",
+      "complet": "Al completo",
+      "nonDefinie": "Capacità non definita"
+    },
+    "lienConfigurer": "Configurare la capacità",
+    "ariaJourDefinie": "{jour}, {reserves} appuntamenti, occupazione {occupe} su {capacite}, {etat}",
+    "ariaJourNonDefinie": "{jour}, {reserves} appuntamenti, capacità non definita",
+    "avertissementComplet": "Questo giorno è al completo.",
+    "ajouterEnDepassement": "Aggiungere comunque"
+  },
+  "statuts": {
+    "confirme": "Confermato",
+    "arrive": "Arrivato",
+    "absent": "Cliente assente",
+    "annule": "Annullato"
+  },
+  "moments": {
+    "matin": "Mattina",
+    "apres_midi": "Pomeriggio",
+    "toute_journee": "Tutto il giorno"
+  },
+  "carte": {
+    "ouvrir": "Apri l’appuntamento di {client}, {heure}"
+  },
+  "champs": {
+    "client": "Cliente",
+    "vehicule": "Veicolo",
+    "site": "Sede",
+    "date": "Data dell’appuntamento",
+    "moment": "Fascia oraria",
+    "heureSouhaitee": "Ora desiderata",
+    "duree": "Durata stimata",
+    "motif": "Motivo dell’appuntamento",
+    "motifPlaceholder": "Scegliere un motivo",
+    "remarque": "Osservazione",
+    "conducteurPresent": "Conducente presente (se diverso dal cliente)"
+  },
+  "dureeMinutes": "{minutes} min",
+  "identite": {
+    "changer": "Cambiare",
+    "sansVehicule": "Continuare senza veicolo noto"
+  },
+  "dialogueNouveau": {
+    "titre": "Nuovo appuntamento",
+    "confirmer": "Confermare l’appuntamento",
+    "enCours": "Salvataggio…",
+    "echec": "L’appuntamento non è stato salvato. I dati inseriti sono conservati, correggeteli e riprovate.",
+    "rechercheClientPlaceholder": "Nome, numero cliente, telefono…",
+    "aucunClient": "Nessun cliente corrisponde a questa ricerca.",
+    "aucunVehicule": "Questo cliente non ha alcun veicolo registrato."
+  },
+  "dialogueArrivee": {
+    "titre": "Il veicolo è arrivato",
+    "confirmer": "Confermare l’arrivo"
+  },
+  "detail": {
+    "titre": "Appuntamento",
+    "actions": {
+      "vehiculeArrive": "Il veicolo è arrivato",
+      "signalerAbsence": "Segnalare l’assenza del cliente",
+      "annuler": "Annullare l’appuntamento",
+      "voirOrdre": "Vedere l’ordine di riparazione"
+    },
+    "annulation": {
+      "titre": "Annullare l’appuntamento",
+      "description": "Questa azione è definitiva: l’appuntamento non comparirà più nell’agenda, ma resta visibile nella storia del cliente.",
+      "motifLabel": "Motivo dell’annullamento",
+      "motifRequis": "Il motivo è obbligatorio.",
+      "confirmer": "Annullare l’appuntamento"
+    },
+    "lectureSeule": "Questo appuntamento è annullato — sola lettura.",
+    "historique": {
+      "titre": "Cronologia",
+      "creePar": "Creato da {nom}, il {date}",
+      "modifiePar": "Modificato da {nom}, il {date}",
+      "annulePar": "Annullato da {nom}, il {date}"
+    },
+    "succesEnregistrement": "Appuntamento aggiornato.",
+    "echecEnregistrement": "L’azione non è stata salvata."
+  },
+  "vueListe": {
+    "titre": "Elenco degli appuntamenti",
+    "colonnes": {
+      "heure": "Ora",
+      "client": "Cliente",
+      "vehicule": "Veicolo",
+      "motif": "Motivo",
+      "statut": "Stato"
+    }
   }
 }

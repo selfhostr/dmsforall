@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { z } from 'zod';
 
@@ -8,6 +8,7 @@ import {
   schemaCreationLigneOr,
   type OrigineLigneOr,
   type PayeurLigneOr,
+  type ResultatRechercheComptoirArticle,
   type TypeLigneOr,
 } from '@dfa/shared';
 
@@ -35,12 +36,25 @@ import {
 } from '@/components/ui/select';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { useCreerLigneOr } from '@/hooks/atelier/useActionsLigneOr';
+import { useArticle } from '@/hooks/pieces/useArticle';
+import { formaterMontant } from '@/lib/formats';
 
+import { BadgeDisponibilitePiece } from './BadgeDisponibilitePiece';
+import { calculerDisponibilitePiece, convertirTtcVersHtCentimes } from './disponibilite-piece';
 import { messagesErreurMutation } from './messages-erreur-mutation';
 import { CLES_TYPE } from './ListeLignesOrdreReparation';
+import { SelecteurArticlePiece } from './SelecteurArticlePiece';
 
 interface Props {
   readonly orId: string;
+  /**
+   * Site de l'OR — permet d'interroger la disponibilité magasin au bon endroit
+   * (`SelecteurArticlePiece`, même doctrine que `useRechercheComptoirPieces`).
+   * `ReponseOrdreReparation.siteId` n'est jamais absent en pratique (§contrat).
+   * Requis pour afficher le raccourci catalogue : un magasinier qui ouvre le dialogue
+   * depuis un ordre de réparation doit toujours pouvoir chercher une pièce.
+   */
+  readonly siteId: string;
 }
 
 const TYPES_MAIN_OEUVRE: ReadonlySet<TypeLigneOr> = new Set([
@@ -73,6 +87,11 @@ interface EtatFormulaire {
   readonly securite: boolean;
   readonly fournieParClient: boolean;
   readonly pieceARestituer: boolean;
+  /** Article du magasin choisi via `SelecteurArticlePiece` (`null` = saisie manuelle, TOUJOURS le
+   *  cas par défaut — voir `RP-19`/`RP-20` : renseigné et `fournieParClient = false` fait naître
+   *  une réservation de stock comme effet de bord SERVEUR de `POST …/lignes`). Vidé dès que `type`
+   *  quitte `piece` — n'a de sens que pour une ligne pièce. */
+  readonly articleId: string | null;
 }
 
 const ETAT_INITIAL: EtatFormulaire = {
@@ -87,6 +106,7 @@ const ETAT_INITIAL: EtatFormulaire = {
   securite: false,
   fournieParClient: false,
   pieceARestituer: false,
+  articleId: null,
 };
 
 /**
@@ -101,13 +121,19 @@ const ETAT_INITIAL: EtatFormulaire = {
  *  - `payeur` limité à `client`/`garage` — `constructeur`/`assurance`/`tiers` exigent un
  *    sélecteur de tiers payeur (`payeurClientId`, AC-08/MD-62) qui n'existe encore dans aucun
  *    écran ;
- *  - aucun lien catalogue (`articleId`) — une ligne « pièce » saisie ici est LIBRE (désignation et
- *    prix tapés à la main, aucune réservation de stock) ; le catalogue vit derrière
- *    `POST …/lignes-depuis-prestation`, hors périmètre ;
  *  - aucune affectation de technicien à la création (`technicienId`).
- * Aucun de ces trois manques ne bloque la chaîne devis -> facture que ce correctif rouvre.
+ * Aucun de ces deux manques ne bloque la chaîne devis -> facture que ce correctif rouvre.
+ *
+ * CORRECTIF (rapport de test terrain) : une ligne « pièce » saisie ici RESTE saisissable
+ * intégralement à la main (désignation/référence/prix tapés, aucun lien catalogue) — mais peut
+ * DÉSORMAIS aussi reprendre un article du magasin via `SelecteurArticlePiece`, qui préremplit
+ * référence/désignation/prix et pose `articleId` sur `entree` (accepté par `schemaCreationLigneOr`
+ * depuis l'étape 3 pièces, RP-19/RP-20 : fait naître une réservation de stock comme effet de bord
+ * SERVEUR quand `fournieParClient = false`). `POST …/lignes-depuis-prestation` reste un chemin
+ * DISTINCT (prestations catalogue à prix figé serveur, hors périmètre ici) — ce correctif ne le
+ * remplace pas, il comble seulement l'absence de raccourci catalogue sur CE dialogue.
  */
-export function DialogueAjoutLigneOr({ orId }: Props) {
+export function DialogueAjoutLigneOr({ orId, siteId }: Props) {
   const { t } = useTranslation(['or', 'commun', 'validation']);
   const mutation = useCreerLigneOr(orId);
   const [ouvert, setOuvert] = useState(false);
@@ -115,17 +141,86 @@ export function DialogueAjoutLigneOr({ orId }: Props) {
   const [erreurValidation, setErreurValidation] = useState<string | null>(null);
 
   const estMainOeuvre = TYPES_MAIN_OEUVRE.has(etat.type);
+  const estPiece = etat.type === 'piece';
   const erreurActive = mutation.error instanceof ErreurApi ? mutation.error : null;
+
+  // Résultat de recherche magasin CHOISI (`SelecteurArticlePiece`) — porte déjà `statutSuivi` et
+  // `quantiteDisponibleMillieme` (contrat `ResultatRechercheComptoirArticle`, @dfa/shared) : la
+  // disponibilité en trois états s'affiche donc IMMÉDIATEMENT au choix, sans requête
+  // supplémentaire. Distinct de `etat.articleId` (soumis au serveur) : purement présentationnel,
+  // jamais envoyé tel quel.
+  const [resultatChoisi, setResultatChoisi] = useState<ResultatRechercheComptoirArticle | null>(
+    null,
+  );
+
+  // Fiche complète de l'article choisi — SEULEMENT pour connaître son taux de TVA courant
+  // (préremplissage du prix HT ci-dessous, RM-01 : jamais une copie brute du TTC catalogue,
+  // voir `convertirTtcVersHtCentimes`). Le résultat de recherche ci-dessus ne porte PAS ce taux.
+  const detailArticlePourPrix = useArticle(etat.articleId ?? undefined);
+
+  // Préremplit le prix unitaire HT UNE SEULE FOIS par sélection, dès que le taux de TVA de
+  // l'article est connu — jamais une seconde fois pour le MÊME `articleId` : si le garagiste
+  // corrige ensuite le prix à la main, cet effet ne doit jamais l'écraser (`dernierArticleApplique`
+  // mémorise pour quel `articleId` le prix a déjà été posé).
+  const dernierArticleApplique = useRef<string | null>(null);
+  useEffect(() => {
+    if (!etat.articleId) {
+      dernierArticleApplique.current = null;
+      return;
+    }
+    if (dernierArticleApplique.current === etat.articleId) return;
+    if (detailArticlePourPrix.data && detailArticlePourPrix.data.id === etat.articleId) {
+      const prixHt = convertirTtcVersHtCentimes(
+        detailArticlePourPrix.data.prixVenteTtcCentimes,
+        detailArticlePourPrix.data.tauxTvaPourmille,
+      );
+      dernierArticleApplique.current = etat.articleId;
+      setEtat((precedent) =>
+        precedent.articleId === etat.articleId
+          ? { ...precedent, prixUnitaireCentimes: prixHt }
+          : precedent,
+      );
+    }
+  }, [etat.articleId, detailArticlePourPrix.data]);
+
+  const disponibilitePiece = resultatChoisi
+    ? calculerDisponibilitePiece(
+        resultatChoisi.statutSuivi,
+        resultatChoisi.quantiteDisponibleMillieme,
+      )
+    : null;
 
   function fermer() {
     setOuvert(false);
     setEtat(ETAT_INITIAL);
     setErreurValidation(null);
+    setResultatChoisi(null);
     mutation.reset();
   }
 
   function majEtat(partiel: Partial<EtatFormulaire>) {
     setEtat((precedent) => ({ ...precedent, ...partiel }));
+  }
+
+  /** Choix d'un article au magasin (`SelecteurArticlePiece`) : reprend référence/désignation/prix
+   *  affiché — le prix unitaire HT réel est posé par l'effet ci-dessus dès que le taux de TVA de
+   *  l'article est connu, jamais deviné ici. La saisie manuelle reste intacte pour tout le reste :
+   *  ce choix ne fait QUE préremplir, jamais un verrou sur les champs. */
+  function choisirArticle(article: ResultatRechercheComptoirArticle) {
+    majEtat({
+      designation: article.designation,
+      referenceTexte: article.referencePrincipale,
+      articleId: article.articleId,
+    });
+    setResultatChoisi(article);
+  }
+
+  /** Dissocie l'article choisi (bouton « Chercher une autre pièce ») — la désignation/référence/
+   *  prix déjà repris RESTENT dans le formulaire, librement réédités ; seul le lien catalogue et
+   *  la disponibilité affichée disparaissent. */
+  function dissocierArticle() {
+    majEtat({ articleId: null });
+    setResultatChoisi(null);
   }
 
   function soumettre() {
@@ -170,6 +265,7 @@ export function DialogueAjoutLigneOr({ orId }: Props) {
       securite: etat.securite,
       fournieParClient: etat.type === 'piece' ? etat.fournieParClient : false,
       pieceARestituer: etat.type === 'piece' ? etat.pieceARestituer : false,
+      articleId: etat.type === 'piece' ? (etat.articleId ?? undefined) : undefined,
     };
 
     const resultat = schemaCreationLigneOr.safeParse(entree);
@@ -202,7 +298,16 @@ export function DialogueAjoutLigneOr({ orId }: Props) {
               <Label htmlFor="or-ligne-type">{t('or:lignes.colonnes.type')}</Label>
               <Select
                 value={etat.type}
-                onValueChange={(valeur) => majEtat({ type: valeur as TypeLigneOr })}
+                onValueChange={(valeur) => {
+                  // `articleId` n'a de sens QUE pour une ligne « pièce » — le quitter dissocie
+                  // proprement l'article choisi, jamais une réservation fantôme sur une ligne
+                  // devenue main d'œuvre/forfait/remise.
+                  if (valeur !== 'piece') setResultatChoisi(null);
+                  majEtat({
+                    type: valeur as TypeLigneOr,
+                    articleId: valeur === 'piece' ? etat.articleId : null,
+                  });
+                }}
               >
                 <SelectTrigger id="or-ligne-type" aria-label={t('or:lignes.colonnes.type')}>
                   <SelectValue />
@@ -236,6 +341,31 @@ export function DialogueAjoutLigneOr({ orId }: Props) {
               </Select>
             </div>
           </div>
+
+          {estPiece ? (
+            <SelecteurArticlePiece
+              id="or-ligne-recherche-article"
+              siteId={siteId}
+              onSelectionArticle={choisirArticle}
+            />
+          ) : null}
+
+          {estPiece && etat.articleId ? (
+            <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">
+              <span className="texte-libelle text-muted-foreground">
+                {t('or:lignes.selecteurArticle.choisi')}
+              </span>
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto p-0"
+                onClick={dissocierArticle}
+              >
+                {t('or:lignes.selecteurArticle.changer')}
+              </Button>
+            </div>
+          ) : null}
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="or-ligne-designation">{t('or:lignes.colonnes.designation')} *</Label>
@@ -289,6 +419,24 @@ export function DialogueAjoutLigneOr({ orId }: Props) {
               />
             </div>
           )}
+
+          {estPiece && disponibilitePiece ? (
+            <div className="flex flex-col gap-1">
+              <BadgeDisponibilitePiece etat={disponibilitePiece} />
+              {detailArticlePourPrix.data ? (
+                <p className="texte-libelle text-muted-foreground">
+                  {t('or:lignes.selecteurArticle.prixConverti', {
+                    prixTtc: formaterMontant(detailArticlePourPrix.data.prixVenteTtcCentimes),
+                    taux: (detailArticlePourPrix.data.tauxTvaPourmille / 10).toFixed(1),
+                  })}
+                </p>
+              ) : detailArticlePourPrix.isPending ? (
+                <p className="texte-libelle text-muted-foreground">
+                  {t('or:lignes.selecteurArticle.calculPrixEnCours')}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="or-ligne-payeur">{t('or:lignes.colonnes.payeur')}</Label>
@@ -355,7 +503,7 @@ export function DialogueAjoutLigneOr({ orId }: Props) {
           <DialogClose asChild>
             <Button variant="outline">{t('commun:actions.annuler')}</Button>
           </DialogClose>
-          <Button disabled={mutation.isPending} onClick={soumettre}>
+          <Button enChargement={mutation.isPending} onClick={soumettre}>
             {t('or:actions.confirmer')}
           </Button>
         </DialogFooter>

@@ -145,7 +145,7 @@ export function EcranFicheOrdreReparation() {
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle className="texte-titre-section">{t('or:lignes.titre')}</CardTitle>
           {peutCreerLigneOr(session.data?.utilisateur.role) ? (
-            <DialogueAjoutLigneOr orId={or.id} />
+            <DialogueAjoutLigneOr orId={or.id} siteId={or.siteId} />
           ) : null}
         </CardHeader>
         <CardContent>

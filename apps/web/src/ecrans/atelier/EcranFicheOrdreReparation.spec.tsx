@@ -509,7 +509,9 @@ describe('EcranFicheOrdreReparation', () => {
       installerHandler(construireOr());
       rendre();
 
-      expect(await screen.findByRole('button', { name: 'Ajouter une ligne' })).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', { name: i18n.t('or:lignes.ajouter') }),
+      ).toBeInTheDocument();
     });
 
     it('un rôle sans le droit (comptable) ne voit PAS le bouton', async () => {
@@ -528,7 +530,9 @@ describe('EcranFicheOrdreReparation', () => {
       // (page courante) en plus du titre de l'en-tête : deux occurrences légitimes, `findAllByText`
       // plutôt que `findByText` (qui exigerait une correspondance unique et échouerait ici).
       await screen.findAllByText('OR-000123');
-      expect(screen.queryByRole('button', { name: 'Ajouter une ligne' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: i18n.t('or:lignes.ajouter') }),
+      ).not.toBeInTheDocument();
     });
 
     it('ajoute une ligne de main-d’œuvre depuis le dialogue, qui apparaît ensuite dans le tableau', async () => {
@@ -560,7 +564,9 @@ describe('EcranFicheOrdreReparation', () => {
       const utilisateur = userEvent.setup();
       rendre();
 
-      await utilisateur.click(await screen.findByRole('button', { name: 'Ajouter une ligne' }));
+      await utilisateur.click(
+        await screen.findByRole('button', { name: i18n.t('or:lignes.ajouter') }),
+      );
       const dialogue = await screen.findByRole('dialog');
       await utilisateur.type(
         within(dialogue).getByLabelText('Désignation *'),

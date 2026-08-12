@@ -35,6 +35,10 @@ import { EcranPointage } from '@/ecrans/pointage/EcranPointage';
 import { EcranPointageTechnicien } from '@/ecrans/pointage/EcranPointageTechnicien';
 import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
 import { EcranRelances } from '@/ecrans/relances/EcranRelances';
+// `EcranRendezVous` (routé ci-dessous) est le CONTENEUR réseau ; il rend `EcranAgendaRendezVous`
+// (présentation pure, testée séparément par fixtures locales) — l'écran métier existe donc bien
+// dans ce fichier, à un niveau d'indirection près (`ecrans/rendez-vous/EcranAgendaRendezVous.tsx`).
+import { EcranRendezVous } from '@/ecrans/rendez-vous/EcranRendezVous';
 import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
 import { EcranTableauBord } from '@/ecrans/tableau-bord/EcranTableauBord';
 import { EcranFicheVehicule } from '@/ecrans/vehicules/EcranFicheVehicule';
@@ -53,6 +57,7 @@ import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
 import {
   ROLES_BORNE_POINTAGE,
+  ROLES_LECTURE_RENDEZ_VOUS,
   ROLES_PARAMETRAGE_PIECES,
   ROLES_PIECES,
   ROLES_PNEUS,
@@ -196,6 +201,17 @@ export const routesConfig: RouteObject[] = [
       // affichés quand l'un des deux manque.
       { path: 'atelier/ordres-reparation/nouveau', element: <EcranNouvelOrdreReparation /> },
       { path: 'ordres-reparation/:orId/facturer', element: <EcranFacturerOrdreReparation /> },
+      // Agenda de rendez-vous (Lot RDV-1) — `rendez_vous.lire` ferme la LECTURE elle-même à
+      // `vendeur`/`magasinier`/`comptable`/`poste_atelier` côté API (`droits-routes.ts`), cette
+      // garde reflète donc une restriction RÉELLE, comme `ROLES_PIECES`/`ROLES_PNEUS` plus bas.
+      {
+        path: 'rendez-vous',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_LECTURE_RENDEZ_VOUS}>
+            <EcranRendezVous />
+          </RouteProtegee>
+        ),
+      },
       { path: 'factures', element: <EcranListeFactures /> },
       // `:id` (pas `:orId` ni `:factureId`) — `EcranFicheFacture` lit `useParams<{ id: string }>()`.
       { path: 'factures/:id', element: <EcranFicheFacture /> },

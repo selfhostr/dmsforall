@@ -57,7 +57,7 @@
   "lignes": {
     "titre": "Lavori",
     "vide": "Nessun lavoro registrato.",
-    "ajouter": "Aggiungi lavoro",
+    "ajouter": "Aggiungi lavoro o ricambio",
     "tronquees": "Alcune righe non sono visualizzate qui (limite raggiunto) — consultare l'elenco completo.",
     "groupes": {
       "aValider": "Da approvare",
@@ -73,7 +73,7 @@
       "quantite": "Qta",
       "tempsBareme": "Tempo tariffario",
       "tempsPointe": "Tempo registrato",
-      "prixUnitaire": "Prezzo unitario",
+      "prixUnitaire": "Prezzo unitario IVA esclusa",
       "rabais": "Sconto",
       "payeur": "Pagante",
       "technicien": "Tecnico",
@@ -157,6 +157,27 @@
     },
     "champs": {
       "referenceTexte": "Riferimento"
+    },
+    "selecteurArticle": {
+      "label": "Cerca un pezzo in magazzino",
+      "placeholder": "Descrizione, riferimento o codice a barre",
+      "aide": "Ricerca facoltativa — puoi anche inserire il pezzo manualmente nei campi qui sotto.",
+      "recherche": "Ricerca in corso…",
+      "aucunResultat": "Nessun articolo trovato in magazzino. Puoi inserire il pezzo manualmente qui sotto.",
+      "resultats": "{count, plural, one {# risultato} other {# risultati}}",
+      "choisi": "Scelto dal magazzino",
+      "changer": "Cerca un altro pezzo",
+      "prixConverti": "Prezzo di catalogo {prixTtc} IVA inclusa, convertito in netto (IVA {taux} %).",
+      "erreur": {
+        "reessayer": "Riprova"
+      },
+      "disponibilite": {
+        "nonSuiviNullePart": "Questo pezzo non è gestito a magazzino in nessuna sede — mai ricevuto.",
+        "nonSuiviSurCeSite": "Questa sede non gestisce questo pezzo — è gestito altrove.",
+        "aucune": "Nessuna disponibilità attuale in questa sede.",
+        "disponible": "{n} disponibile/i in questa sede."
+      },
+      "calculPrixEnCours": "Calcolo del prezzo IVA esclusa in corso…"
     },
     "groupees": {
       "colonneSelection": "Selezione",

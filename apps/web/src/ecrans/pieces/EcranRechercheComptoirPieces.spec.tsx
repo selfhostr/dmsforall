@@ -32,6 +32,7 @@ const ARTICLE: ResultatRechercheComptoirArticle = {
   emplacement: 'B3',
   estEchangeStandard: false,
   montantConsigneTtcCentimes: null,
+  statutSuivi: 'suivi',
 };
 
 function resultats(disponibleMillieme: number): readonly ResultatRechercheComptoirArticle[] {

@@ -1,87 +1,139 @@
 {
-  "titre": "Planung",
-  "nouveau": "Neuer Termin",
-  "jour": "Tag",
-  "semaine": "Woche",
-  "charge": {
-    "titre": "Werkstatt-Auslastung",
-    "capacite": "{heures} h / {capacite} h",
-    "saturation": "Werkstatt überlastet"
+  "titre": "Termine",
+  "toolbar": {
+    "bascule": {
+      "jour": "Tag",
+      "semaine": "Woche",
+      "liste": "Liste"
+    },
+    "navigation": {
+      "semainePrecedente": "Vorherige Woche",
+      "semaineSuivante": "Nächste Woche",
+      "jourPrecedent": "Vorheriger Tag",
+      "jourSuivant": "Nächster Tag",
+      "aujourdhui": "Heute"
+    },
+    "rechercheLabel": "Kunde, Fahrzeug oder Kontrollschild suchen",
+    "recherchePlaceholder": "Kunde, Fahrzeug, Kontrollschild…",
+    "nouveauRendezVous": "Neuer Termin"
   },
-  "rdv": {
-    "heure": "Zeit",
-    "duree": "Dauer",
-    "plaque": "Kennzeichen",
-    "client": "Kunde",
-    "motif": "Grund",
-    "motifs": "Gründe",
-    "modeAttente": "Wartemodus",
-    "ressource": "Ressource",
-    "vehiculeRempl": "Ersatzfahrzeug",
-    "presetVehicule": "Ersatzfahrzeug reserviert"
-  },
-  "modesAttente": {
-    "place": "Wartet vor Ort",
-    "depot": "Abgabe – Abholung nächster Termin",
-    "depotVeille": "Abgabe – Schlüsselversteck",
-    "navette": "Werkstatt-Shuttle",
-    "prise": "Abholung"
-  },
-  "motifs": {
-    "service": "Wartung / Service",
-    "expertise": "MFK / Expertise",
-    "preExpertise": "Vor-MFK",
-    "pneus": "Reifen",
-    "diagnostic": "Diagnose",
-    "carrosserie": "Karosserie",
-    "rappel": "Herstellerrückruf",
-    "retouche": "Nacharbeit",
-    "devis": "Kostenvoranschlag"
-  },
-  "statuts": {
-    "demande": "Anfrage",
-    "planifie": "Geplant",
-    "honore": "Angenommen",
-    "absent": "Abwesend",
-    "annuleClient": "Storniert (Kunde)",
-    "annuleGarage": "Storniert (Werkstatt)",
-    "reporte": "Verschoben"
-  },
-  "transitions": {
-    "honorer": "Annehmen",
-    "absent": "Abwesend markieren",
-    "annulerClient": "Stornieren (Kunde)",
-    "annulerGarage": "Stornieren (Werkstatt)",
-    "reporter": "Verschieben"
-  },
-  "colonnes": {
-    "vehiculesAttendus": "Erwartete Fahrzeuge",
-    "orDuJour": "RA des Tages",
-    "restitutions": "Versprochene Rückgaben"
-  },
-  "formulaire": {
-    "titre": "Neuer Termin",
-    "plaque": "Kennzeichen",
-    "vehicule": "Fahrzeug",
-    "client": "Kunde",
-    "motifs": "Gründe",
-    "verbatim": "Kundenangabe",
-    "date": "Datum",
-    "heure": "Zeit",
-    "duree": "Geschätzte Dauer",
-    "heuresAtelier": "Werkstatt-Stunden",
-    "modeAttente": "Wartemodus",
-    "vehiculeRempl": "Ersatzfahrzeug",
-    "ressource": "Ressource",
-    "creer": "Termin erstellen",
-    "enCours": "Ersteller…",
-    "avertissements": {
-      "aucunVehicule": "Kann so nicht in einen RA konvertiert werden",
-      "ressourceChevauchement": "Ressource ist bereits für diese Zeit reserviert"
+  "site": {
+    "manquant": {
+      "titre": "Standort wählen",
+      "description": "Wählen Sie oben einen Standort, um dessen Terminkalender zu sehen."
     }
   },
   "vide": {
-    "premier": "Keine Termine für diesen Tag geplant.",
-    "recherche": "Keine Ergebnisse."
+    "semaine": {
+      "titre": "Diese Woche sind keine Termine geplant",
+      "description": "Der Kalender dieser Woche ist für diesen Standort leer."
+    },
+    "jour": {
+      "titre": "Für diesen Tag sind keine Termine geplant",
+      "description": "Der Kalender dieses Tages ist für diesen Standort leer."
+    },
+    "recherche": {
+      "titre": "Kein Ergebnis",
+      "description": "Kein Termin entspricht „{recherche}“."
+    }
+  },
+  "erreur": {
+    "titre": "Der Kalender konnte nicht geladen werden",
+    "capaciteTitre": "Die Kapazität des Tages konnte nicht geladen werden"
+  },
+  "capacite": {
+    "fraction": "{occupe} / {capacite}",
+    "brut": "{reserves} Termine",
+    "etat": {
+      "disponible": "Verfügbar",
+      "presqueComplet": "Fast ausgebucht",
+      "complet": "Ausgebucht",
+      "nonDefinie": "Kapazität nicht festgelegt"
+    },
+    "lienConfigurer": "Kapazität konfigurieren",
+    "ariaJourDefinie": "{jour}, {reserves} Termine, Auslastung {occupe} von {capacite}, {etat}",
+    "ariaJourNonDefinie": "{jour}, {reserves} Termine, Kapazität nicht festgelegt",
+    "avertissementComplet": "Dieser Tag ist ausgebucht.",
+    "ajouterEnDepassement": "Trotzdem hinzufügen"
+  },
+  "statuts": {
+    "confirme": "Bestätigt",
+    "arrive": "Eingetroffen",
+    "absent": "Kunde nicht erschienen",
+    "annule": "Storniert"
+  },
+  "moments": {
+    "matin": "Vormittag",
+    "apres_midi": "Nachmittag",
+    "toute_journee": "Ganztägig"
+  },
+  "carte": {
+    "ouvrir": "Termin von {client} öffnen, {heure}"
+  },
+  "champs": {
+    "client": "Kunde",
+    "vehicule": "Fahrzeug",
+    "site": "Standort",
+    "date": "Termindatum",
+    "moment": "Zeitfenster",
+    "heureSouhaitee": "Gewünschte Uhrzeit",
+    "duree": "Geschätzte Dauer",
+    "motif": "Grund des Termins",
+    "motifPlaceholder": "Einen Grund wählen",
+    "remarque": "Bemerkung",
+    "conducteurPresent": "Anwesender Fahrer (falls abweichend vom Kunden)"
+  },
+  "dureeMinutes": "{minutes} Min.",
+  "identite": {
+    "changer": "Ändern",
+    "sansVehicule": "Ohne bekanntes Fahrzeug fortfahren"
+  },
+  "dialogueNouveau": {
+    "titre": "Neuer Termin",
+    "confirmer": "Termin bestätigen",
+    "enCours": "Wird gespeichert…",
+    "echec": "Der Termin konnte nicht gespeichert werden. Ihre Angaben bleiben erhalten, korrigieren Sie sie und versuchen Sie es erneut.",
+    "rechercheClientPlaceholder": "Name, Kundennummer, Telefon…",
+    "aucunClient": "Kein Kunde entspricht dieser Suche.",
+    "aucunVehicule": "Dieser Kunde hat kein registriertes Fahrzeug."
+  },
+  "dialogueArrivee": {
+    "titre": "Das Fahrzeug ist eingetroffen",
+    "confirmer": "Ankunft bestätigen"
+  },
+  "detail": {
+    "titre": "Termin",
+    "actions": {
+      "vehiculeArrive": "Das Fahrzeug ist eingetroffen",
+      "signalerAbsence": "Abwesenheit des Kunden melden",
+      "annuler": "Termin stornieren",
+      "voirOrdre": "Reparaturauftrag ansehen"
+    },
+    "annulation": {
+      "titre": "Termin stornieren",
+      "description": "Diese Aktion ist endgültig: Der Termin erscheint nicht mehr im Kalender, bleibt aber in der Kundenhistorie sichtbar.",
+      "motifLabel": "Grund der Stornierung",
+      "motifRequis": "Der Grund ist erforderlich.",
+      "confirmer": "Termin stornieren"
+    },
+    "lectureSeule": "Dieser Termin ist storniert — nur Ansicht.",
+    "historique": {
+      "titre": "Verlauf",
+      "creePar": "Erstellt von {nom}, am {date}",
+      "modifiePar": "Geändert von {nom}, am {date}",
+      "annulePar": "Storniert von {nom}, am {date}"
+    },
+    "succesEnregistrement": "Termin aktualisiert.",
+    "echecEnregistrement": "Die Aktion konnte nicht gespeichert werden."
+  },
+  "vueListe": {
+    "titre": "Terminliste",
+    "colonnes": {
+      "heure": "Uhrzeit",
+      "client": "Kunde",
+      "vehicule": "Fahrzeug",
+      "motif": "Grund",
+      "statut": "Status"
+    }
   }
 }
