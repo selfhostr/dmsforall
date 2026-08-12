@@ -38,7 +38,8 @@
       "titre": "Sezione non disponibile"
     },
     "actions": {
-      "nouvelOr": "Nuovo ordine"
+      "nouvelOr": "Nuovo ordine",
+      "modifierTitre": "Modifica identità del veicolo"
     },
     "proprietaire": {
       "titre": "Proprietario e detentori",
@@ -80,13 +81,26 @@
     "vin": "VIN",
     "codeType": "Codice CH",
     "plaque": "Targa",
+    "plaqueExemple": "VS 123456",
+    "plaqueAide": "Cantone poi numero, con uno spazio, come sulla targa: VS 123456.",
     "mise1reCirc": "1a immatricolazione",
     "kmActuels": "Km attuali",
-    "copierCodeType": "Copia codice tipo"
+    "copierCodeType": "Copia codice tipo",
+    "autocompletion": {
+      "placeholderMarque": "Es. Volkswagen",
+      "placeholderModele": "Es. Golf",
+      "recherche": "Ricerca in corso…",
+      "aucunResultat": "Nessuna corrispondenza nel repertorio — la digitazione libera resta possibile.",
+      "resultats": "{count, plural, one {# risultato} other {# risultati}}",
+      "horsReferentiel": "Non presente nel repertorio — verrà registrato così com'è.",
+      "nombreModeles": "{count, plural, one {# modello} other {# modelli}}",
+      "erreurRecherche": "Suggerimenti non disponibili al momento — la digitazione libera resta possibile."
+    }
   },
   "plaques": {
     "titre": "Targhe",
     "canton": "Cantone",
+    "cantonExemple": "VS",
     "type": "Tipo",
     "historique": "Storico delle targhe"
   },

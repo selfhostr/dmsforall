@@ -222,11 +222,18 @@ export function EcranFicheFacture() {
               {t('facturation:fiche.issueDeOr')}
             </button>
           ) : null}
-          {document_.emisLe ? (
-            <span className="texte-libelle text-muted-foreground">
-              {t('facturation:fiche.emiseLe', { date: formaterDate(document_.emisLe) })}
-            </span>
-          ) : null}
+          {/* Défaut corrigé (issue #60, testeur novice) : `emisLe` est l'horodatage SERVEUR de
+              l'émission, jamais la date légale/métier du document (`document.ts` : « les deux
+              champs ne sont PAS interchangeables et ne doivent pas partager le même libellé côté
+              écran »). Cette ligne affichait `emisLe` sous le libellé « émise le », en désaccord
+              avec la liste (`EcranListeFactures.tsx`) et la feuille d'encaissement
+              (`SheetEncaissement.tsx`), qui affichent TOUTES DEUX `dateDocument` sous ce même
+              libellé — trois dates différentes pour un même document selon l'écran. `dateDocument`
+              est non nul par construction (`document.ts`) : plus de garde de nullité nécessaire,
+              affiché pour tout document comme le fait déjà la liste. */}
+          <span className="texte-libelle text-muted-foreground">
+            {t('facturation:fiche.emiseLe', { date: formaterDate(document_.dateDocument) })}
+          </span>
           {/* `dateEcheance` n'a de sens que sur une facture (`document.ts` : toujours `null` pour
               un devis/bon de commande/avoir — « aucune échéance de paiement ne les concerne »).
               Restreindre l'affichage au `typeDocument` évite un "Échéance inconnue" trompeur sur

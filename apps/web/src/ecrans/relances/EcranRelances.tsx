@@ -56,7 +56,7 @@ export function EcranRelances() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <div className="flex flex-col gap-1">
-        <h1 className="texte-titre font-semibold text-foreground">{t('relances:titre')}</h1>
+        <h1 className="texte-titre-page font-semibold text-foreground">{t('relances:titre')}</h1>
         <p className="texte-corps text-muted-foreground">{t('relances:sousTitre')}</p>
       </div>
 
@@ -126,7 +126,7 @@ function BlocRegleFactureEchue({ regle }: PropsBlocRegle) {
   return (
     <section className="flex flex-col gap-4 rounded-lg border p-4">
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold">{t('relances:regles.titre')}</h2>
+        <h2 className="texte-titre-section">{t('relances:regles.titre')}</h2>
         <p className="texte-corps text-muted-foreground">{t('relances:regles.description')}</p>
       </div>
 
@@ -427,7 +427,7 @@ function BlocDeclenchementManuel() {
   return (
     <section className="flex flex-col gap-4 rounded-lg border p-4">
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold">{t('relances:declenchement.titre')}</h2>
+        <h2 className="texte-titre-section">{t('relances:declenchement.titre')}</h2>
         <p className="texte-corps text-muted-foreground">
           {t('relances:declenchement.description')}
         </p>
@@ -524,7 +524,7 @@ function BlocTracabilite() {
   const { t } = useTranslation(['relances', 'commun']);
   return (
     <section className="flex flex-col gap-2 rounded-lg border border-dashed p-4">
-      <h2 className="text-lg font-semibold">{t('relances:tracabilite.titre')}</h2>
+      <h2 className="texte-titre-section">{t('relances:tracabilite.titre')}</h2>
       <p className="texte-corps text-muted-foreground">{t('relances:tracabilite.note')}</p>
     </section>
   );

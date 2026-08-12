@@ -1,12 +1,14 @@
 import type {
   EntreeKilometrageVehicule,
   EntreeModificationVehicule,
+  EntreePlaqueVehicule,
   PageCurseur,
   ReponseAvecAvertissements,
   ReponseContexteAtelier,
   ReponseVehicule,
   ReponseVehiculeDetention,
   ReponseVehiculeKilometrage,
+  ReponseVehiculePlaque,
   VehiculeResume,
 } from '@dfa/shared';
 
@@ -86,6 +88,27 @@ export async function modifierVehicule(
   );
   if (!reponse) {
     throw new Error('Réponse vide inattendue : PATCH /vehicules/{id}.');
+  }
+  return reponse;
+}
+
+/**
+ * `POST /vehicules/{id}/plaques` (RM-17/18/19) — attribution d'une nouvelle plaque. Endpoint
+ * dédié et historisé, distinct de `PATCH /vehicules/{id}` (voir `modifierVehicule` ci-dessus) :
+ * une plaque garde sa période de validité propre. Utilisé par `useAttribuerPlaqueVehicule.ts`
+ * (geste « Modifier » de la fiche, compléter une identification incomplète) — AUCUN écran ne
+ * consommait encore cet endpoint côté client avant ce correctif.
+ */
+export async function attribuerPlaqueVehicule(
+  vehiculeId: string,
+  entree: EntreePlaqueVehicule,
+): Promise<ReponseVehiculePlaque> {
+  const reponse = await requeteApi<ReponseVehiculePlaque>(`/vehicules/${vehiculeId}/plaques`, {
+    method: 'POST',
+    body: JSON.stringify(entree),
+  });
+  if (!reponse) {
+    throw new Error('Réponse vide inattendue : POST /vehicules/{id}/plaques.');
   }
   return reponse;
 }

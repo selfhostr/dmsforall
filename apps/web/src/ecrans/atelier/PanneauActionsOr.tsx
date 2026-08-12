@@ -273,6 +273,20 @@ export function PanneauActionsOr({ or }: Props) {
     null;
   const actionsSecondaires = actionsTransition.filter((action) => action !== actionPrimaire);
 
+  // CORRECTIF (test d'utilisabilité novice, 11.08.2026) : sur un OR encore `ouvert` (véhicule pas
+  // même réceptionné), `terminer` PEUT être l'action primaire calculée ci-dessus — non par erreur
+  // de tri (il n'est pas dans `RESERVEES_SECONDAIRES`, à raison : plus loin dans le cycle, ex.
+  // `en_cours`, c'est bien LE bouton attendu), mais parce que le rôle courant n'a parfois droit
+  // qu'à `terminer`/`annuler` à ce statut (`demarrer`/`passer-en-controle` filtrés en amont par
+  // `atelier.or.demarrer`/`atelier.or.passer_en_controle`, voir `apps/api/.../etat-affiche.ts` —
+  // SIGNALÉ séparément : cette matrice de droits mérite sa propre revue, hors périmètre ici). Le
+  // testeur : « Terminer quoi ? La voiture n'est même pas rentrée. » Plutôt que de RETIRER
+  // `terminer` (il reste l'action structurellement possible que ce rôle peut légitimement
+  // déclencher, jamais désinventée côté client), on retire seulement le POIDS VISUEL trompeur :
+  // `variant="outline"`, comme `facturer` juste à côté — reconnaissable, atteignable, mais qui
+  // n'affirme plus être « l'étape attendue » sur un OR dont les travaux n'ont pas commencé.
+  const primaireAAttenuer = actionPrimaire === 'terminer' && or.statut === 'ouvert';
+
   const menuSecondaire: ActionSecondaireMenu[] = actionsSecondaires.map((action) => ({
     cle: action,
     libelle: libelleTransition(action),
@@ -289,7 +303,13 @@ export function PanneauActionsOr({ or }: Props) {
           >
             <Button
               type="button"
-              variant={actionPrimaire === 'annuler' ? 'destructive' : 'default'}
+              variant={
+                actionPrimaire === 'annuler'
+                  ? 'destructive'
+                  : primaireAAttenuer
+                    ? 'outline'
+                    : 'default'
+              }
               onClick={() => ouvrir(actionPrimaire)}
             >
               {libelleTransition(actionPrimaire)}
@@ -444,6 +464,17 @@ export function PanneauActionsOr({ or }: Props) {
           actionOuverte === 'rouvrir' ||
           actionOuverte === 'annuler' ? (
             <div className="flex flex-col gap-4">
+              {/* CORRECTIF (test d'utilisabilité novice, 11.08.2026) : « ça annule ou ça
+               *  efface ? est-ce que je peux revenir ? ». `annuler` mène au statut `annule`, qui
+               *  n'autorise plus AUCUNE transition (`ACTIONS_DEPUIS_STATUT.annule = []`,
+               *  `apps/api/.../etat-affiche.ts`) — irréversible, à dire AVANT la confirmation,
+               *  jamais après. Clé i18n `or:actions.annulerAvertissement` posée en FR/DE/IT
+               *  (`i18n/locales/{fr,de,it}/or.json`). */}
+              {actionOuverte === 'annuler' ? (
+                <p role="note" className="texte-corps text-muted-foreground">
+                  {t('or:actions.annulerAvertissement')}
+                </p>
+              ) : null}
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="or-action-motif">{t('or:actions.motif')}</Label>
                 <Textarea

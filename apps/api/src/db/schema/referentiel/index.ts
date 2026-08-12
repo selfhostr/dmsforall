@@ -5,3 +5,4 @@
  */
 
 export * from './type-approbation-ch';
+export * from './type-approbation-ch-marque-alias';

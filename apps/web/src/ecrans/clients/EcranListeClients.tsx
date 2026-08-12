@@ -181,7 +181,7 @@ export function EcranListeClients() {
   return (
     <div className="flex flex-col gap-4 p-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="texte-titre font-semibold text-foreground">{t('clients:titre')}</h1>
+        <h1 className="texte-titre-page font-semibold text-foreground">{t('clients:titre')}</h1>
         <Button type="button" onClick={() => setSheetOuvert(true)}>
           <Plus aria-hidden className="h-4 w-4" />
           {t('clients:nouveau')}

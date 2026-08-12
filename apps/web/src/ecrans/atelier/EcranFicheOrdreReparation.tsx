@@ -271,7 +271,12 @@ export function EcranFicheOrdreReparation() {
             <CardTitle className="texte-titre-section">{t('or:totaux.titre')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 texte-corps sm:grid-cols-3">
+            {/* Grille à 2 colonnes FIXES, jamais `sm:grid-cols-3` : chaque paire (`dt` + `dd`)
+             *  n'utilise que 2 cellules — sur une grille à 3 colonnes, le nombre total de
+             *  cellules n'est multiple de 3 que par coïncidence (payeur unique = 4 cellules =
+             *  décalage garanti). Le total n'a plus besoin de `col-span`/`sm:col-span` puisque
+             *  chaque paire occupe naturellement sa propre ligne. */}
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 texte-corps">
               {or.totauxParPayeur.map((totaux) => (
                 // Clé = `(payeur, payeurClientId)` (MD-62), jamais `payeur` seul : deux assurances
                 // distinctes sur le même OR partagent `payeur = 'assurance'` mais sont deux groupes
@@ -284,15 +289,20 @@ export function EcranFicheOrdreReparation() {
                       ? ` — ${totaux.destinataire.nomAffiche}`
                       : ''}
                   </dt>
-                  <dd className="col-span-2 font-medium text-foreground sm:col-span-1 texte-montant">
+                  <dd className="font-medium text-foreground texte-montant">
                     {formaterMontant(totaux.montantTtcCentimes)}
                   </dd>
                 </div>
               ))}
               {or.totalValideCentimes !== undefined ? (
-                <div className="contents border-t pt-2">
-                  <dt className="text-muted-foreground">{t('or:totaux.totalValide')}</dt>
-                  <dd className="col-span-2 font-semibold text-foreground sm:col-span-1 texte-montant">
+                // `border-t`/`pt-2` posés sur `dt`/`dd` eux-mêmes, jamais sur ce conteneur
+                // `display: contents` : un élément à `display: contents` ne génère aucune boîte
+                // propre, donc une bordure/un padding posé dessus ne s'affiche jamais.
+                <div className="contents">
+                  <dt className="border-t pt-2 text-muted-foreground">
+                    {t('or:totaux.totalValide')}
+                  </dt>
+                  <dd className="border-t pt-2 font-semibold text-foreground texte-montant">
                     {formaterMontant(or.totalValideCentimes)}
                   </dd>
                 </div>

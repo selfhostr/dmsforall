@@ -38,7 +38,7 @@ export function EcranParametresFacturation() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('parametrage:titre')}</h1>
+      <h1 className="texte-titre-page">{t('parametrage:titre')}</h1>
 
       {requete.isPending ? (
         <EtatChargement lignes={8} />
@@ -48,7 +48,7 @@ export function EcranParametresFacturation() {
           role="alert"
         >
           <ShieldAlert className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
-          <h2 className="text-lg font-semibold">{t('parametrage:creancier.refus.titre')}</h2>
+          <h2 className="texte-titre-section">{t('parametrage:creancier.refus.titre')}</h2>
           <p className="max-w-md text-muted-foreground">
             {t('parametrage:creancier.refus.description')}
           </p>

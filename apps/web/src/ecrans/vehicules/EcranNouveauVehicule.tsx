@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, WifiOff } from 'lucide-react';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router';
@@ -14,8 +15,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  ChampAutocompletionVehicule,
+  type OptionAutocompletionVehicule,
+} from '@/composants/vehicules/ChampAutocompletionVehicule';
 import { useClient } from '@/hooks/clients/useClient';
 import { useCreerVehicule } from '@/hooks/vehicules/useCreerVehicule';
+import { useMarquesVehicule } from '@/hooks/vehicules/useMarquesVehicule';
+import { useModelesVehicule } from '@/hooks/vehicules/useModelesVehicule';
+import { useValeurDebouncee } from '@/hooks/vehicules/useValeurDebouncee';
 import { chemins } from '@/routes/chemins';
 
 /** Transforme une saisie vide en `undefined` — nécessaire pour tout champ `.nullish()` de
@@ -79,6 +87,47 @@ export function EcranNouveauVehicule() {
 
   const importe = form.watch('importe');
 
+  // Autocomplétion marque/modèle (référentiel véhicules suisse ASTRA/TAS, contrat gelé
+  // `packages/shared/src/contrats/vehicules/referentiel-vehicules-ch.ts`) — repli manuel TOUJOURS
+  // possible : `marque`/`modele` restent des champs texte libres au sens du formulaire
+  // (`schemaCreationVehicule`), l'autocomplétion ne fait que suggérer.
+  const marqueSaisie = form.watch('marque');
+  const modeleSaisie = form.watch('modele');
+  const marqueTemporisee = useValeurDebouncee(marqueSaisie);
+  const rechercheModeleTemporisee = useValeurDebouncee(modeleSaisie);
+
+  const marquesQuery = useMarquesVehicule(marqueTemporisee, {
+    enabled: marqueTemporisee.trim() !== '',
+  });
+  const modelesQuery = useModelesVehicule(marqueTemporisee, rechercheModeleTemporisee, {
+    enabled: marqueTemporisee.trim() !== '',
+  });
+
+  const optionsMarques: readonly OptionAutocompletionVehicule[] = (
+    marquesQuery.data?.marques ?? []
+  ).map((marque) => ({
+    valeur: marque.nom,
+    complement: t('vehicules:identite.autocompletion.nombreModeles', {
+      count: marque.nombreModeles,
+    }),
+  }));
+  const optionsModeles: readonly OptionAutocompletionVehicule[] = (
+    modelesQuery.data?.modeles ?? []
+  ).map((modele) => ({ valeur: modele.nom, complement: modele.codeTypeCh }));
+
+  const erreurMarques = marquesQuery.isError
+    ? t('vehicules:identite.autocompletion.erreurRecherche')
+    : null;
+  const erreurModeles = modelesQuery.isError
+    ? t('vehicules:identite.autocompletion.erreurRecherche')
+    : null;
+
+  // Choisir une marque conditionne les modèles suggérés ; changer VRAIMENT de marque réinitialise
+  // le modèle déjà saisi — mais UNIQUEMENT sur un choix explicite dans la liste (`onSelectOption`),
+  // jamais à chaque frappe : un garagiste qui corrige une faute de frappe dans la marque ne doit
+  // jamais se faire effacer le modèle qu'il vient de saisir (besoin explicite de @laupernoe).
+  const derniereMarqueConfirmeeRef = useRef('');
+
   const soumettre = form.handleSubmit((entree) => {
     creerVehicule.mutate(
       { entree: { ...entree, detenteurId: clientId ?? null }, idempotencyKey: idempotence.cle },
@@ -100,7 +149,7 @@ export function EcranNouveauVehicule() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-6">
-      <h1 className="texte-titre font-semibold text-foreground">{t('vehicules:nouveau')}</h1>
+      <h1 className="texte-titre-page font-semibold text-foreground">{t('vehicules:nouveau')}</h1>
 
       {clientId && requeteClient.data ? (
         <p className="texte-corps text-muted-foreground">
@@ -126,11 +175,29 @@ export function EcranNouveauVehicule() {
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="nv-marque">{t('vehicules:identite.marque')}</Label>
-            <Input
-              id="nv-marque"
-              readOnly={enCours}
-              aria-invalid={form.formState.errors.marque ? true : undefined}
-              {...form.register('marque')}
+            <Controller
+              control={form.control}
+              name="marque"
+              render={({ field }) => (
+                <ChampAutocompletionVehicule
+                  id="nv-marque"
+                  libelle={t('vehicules:identite.marque')}
+                  valeur={field.value}
+                  onValeurChange={field.onChange}
+                  options={optionsMarques}
+                  enChargement={marquesQuery.isFetching}
+                  erreur={erreurMarques}
+                  placeholder={t('vehicules:identite.autocompletion.placeholderMarque')}
+                  disabled={enCours}
+                  ariaInvalid={form.formState.errors.marque ? true : undefined}
+                  onSelectionOption={(option) => {
+                    if (option.valeur !== derniereMarqueConfirmeeRef.current) {
+                      form.setValue('modele', '');
+                    }
+                    derniereMarqueConfirmeeRef.current = option.valeur;
+                  }}
+                />
+              )}
             />
             {form.formState.errors.marque ? (
               <p className="text-sm text-destructive">{t('validation:requis')}</p>
@@ -138,11 +205,23 @@ export function EcranNouveauVehicule() {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="nv-modele">{t('vehicules:identite.modele')}</Label>
-            <Input
-              id="nv-modele"
-              readOnly={enCours}
-              aria-invalid={form.formState.errors.modele ? true : undefined}
-              {...form.register('modele')}
+            <Controller
+              control={form.control}
+              name="modele"
+              render={({ field }) => (
+                <ChampAutocompletionVehicule
+                  id="nv-modele"
+                  libelle={t('vehicules:identite.modele')}
+                  valeur={field.value}
+                  onValeurChange={field.onChange}
+                  options={optionsModeles}
+                  enChargement={modelesQuery.isFetching}
+                  erreur={erreurModeles}
+                  placeholder={t('vehicules:identite.autocompletion.placeholderModele')}
+                  disabled={enCours}
+                  ariaInvalid={form.formState.errors.modele ? true : undefined}
+                />
+              )}
             />
             {form.formState.errors.modele ? (
               <p className="text-sm text-destructive">{t('validation:requis')}</p>
@@ -198,8 +277,12 @@ export function EcranNouveauVehicule() {
             <Input
               id="nv-plaque"
               readOnly={enCours}
+              placeholder={t('vehicules:identite.plaqueExemple')}
               {...form.register('plaque', { setValueAs: videVersIndefini })}
             />
+            <p className="texte-libelle text-muted-foreground">
+              {t('vehicules:identite.plaqueAide')}
+            </p>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="nv-canton">{t('vehicules:plaques.canton')}</Label>
@@ -207,6 +290,7 @@ export function EcranNouveauVehicule() {
               id="nv-canton"
               readOnly={enCours}
               maxLength={2}
+              placeholder={t('vehicules:plaques.cantonExemple')}
               aria-invalid={form.formState.errors.canton ? true : undefined}
               {...form.register('canton', { setValueAs: videVersIndefini })}
             />

@@ -84,7 +84,7 @@ export function EnTeteFicheArticle({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">{article.designation}</h1>
+            <h1 className="texte-titre-page">{article.designation}</h1>
             <Badge variant={VARIANTE_BADGE_STATUT[article.statut]}>
               {t(`pieces:articles.statuts.${article.statut}`)}
             </Badge>

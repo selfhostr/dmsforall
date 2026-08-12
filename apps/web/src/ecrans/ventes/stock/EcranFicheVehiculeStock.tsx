@@ -1,5 +1,5 @@
 import { TriangleAlert } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams, useSearchParams } from 'react-router';
 
@@ -33,6 +33,7 @@ import { useVehiculeStock } from '@/hooks/ventes/stock/useVehiculeStock';
 import { formaterDate, formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
+import { ValeurConfidentielle } from '../_composants/ValeurConfidentielle';
 import { DialogueActionAvecMotif } from './_composants/DialogueActionAvecMotif';
 import { FormulaireVehiculeStock } from './_composants/FormulaireVehiculeStock';
 import { peutCorrigerVehiculeStock, peutEcrireVehiculeStock } from './droits';
@@ -80,6 +81,17 @@ export function EcranFicheVehiculeStock() {
   const [remettreDisponibleOuvert, setRemettreDisponibleOuvert] = useState(false);
   const [marquerVenduOuvert, setMarquerVenduOuvert] = useState(false);
   const [confirmationReceptionOuverte, setConfirmationReceptionOuverte] = useState(false);
+
+  // Prix d'achat / frais de remise en état masqués par défaut (constat testeur : juxtaposés au
+  // prix de vente, ils révèlent la marge si le vendeur tourne l'écran vers le client — PAS une
+  // mesure de sécurité, une protection contre le regard par-dessus l'épaule). Remis à `false` non
+  // seulement au montage mais aussi à chaque CHANGEMENT d'`id` : react-router ne démonte pas cet
+  // écran quand on navigue d'une fiche véhicule à une autre (même route, seul `:id` change), un
+  // simple `useState(false)` resterait donc révélé pour le véhicule suivant sans ce reset explicite.
+  const [prixConfidentielsReveles, setPrixConfidentielsReveles] = useState(false);
+  useEffect(() => {
+    setPrixConfidentielsReveles(false);
+  }, [id]);
 
   const requeteStock = useVehiculeStock(id);
   const receptionner = useReceptionnerVehiculeStock(id ?? '');
@@ -249,7 +261,12 @@ export function EcranFicheVehiculeStock() {
                 {t('ventes:stock.champs.prixAchat')}
               </dt>
               <dd className="tabular-nums font-medium">
-                {formaterMontant(stock.prixAchatCentimes)}
+                <ValeurConfidentielle
+                  revele={prixConfidentielsReveles}
+                  onToggle={() => setPrixConfidentielsReveles((valeur) => !valeur)}
+                  valeur={formaterMontant(stock.prixAchatCentimes)}
+                  nomChamp={t('ventes:stock.champs.prixAchat')}
+                />
               </dd>
             </div>
             <div>
@@ -257,7 +274,12 @@ export function EcranFicheVehiculeStock() {
                 {t('ventes:stock.champs.fraisRemiseEtatCumules')}
               </dt>
               <dd className="tabular-nums">
-                {formaterMontant(stock.fraisRemiseEtatCumulesCentimes)}
+                <ValeurConfidentielle
+                  revele={prixConfidentielsReveles}
+                  onToggle={() => setPrixConfidentielsReveles((valeur) => !valeur)}
+                  valeur={formaterMontant(stock.fraisRemiseEtatCumulesCentimes)}
+                  nomChamp={t('ventes:stock.champs.fraisRemiseEtatCumules')}
+                />
               </dd>
             </div>
             <div>

@@ -172,6 +172,27 @@ function rendre(id = 'facture-1') {
   };
 }
 
+describe('EcranFicheFacture — date affichée en en-tête (issue #60, testeur novice)', () => {
+  it(
+    'affiche `dateDocument` (date légale/métier), jamais `emisLe` (horodatage serveur) — DÉFAUT ' +
+      'CORRIGÉ : la fiche affichait `emisLe` sous le libellé « émise le », en désaccord avec la ' +
+      'liste des factures et la feuille d’encaissement, qui affichent TOUTES DEUX `dateDocument` ' +
+      "sous ce même libellé (trois dates différentes pour un même document selon l'écran). " +
+      '`document.ts` : « les deux champs ne sont PAS interchangeables et ne doivent pas partager ' +
+      'le même libellé côté écran »',
+    async () => {
+      installerHandlerDocument(
+        construireDocument({ dateDocument: '2026-01-15', emisLe: '2026-08-11T08:25:14.996Z' }),
+      );
+
+      rendre();
+
+      expect(await screen.findByText('émise le 15.01.2026')).toBeInTheDocument();
+      expect(screen.queryByText('émise le 11.08.2026')).not.toBeInTheDocument();
+    },
+  );
+});
+
 describe('EcranFicheFacture — action Imprimer / télécharger le PDF', () => {
   beforeEach(() => {
     Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);

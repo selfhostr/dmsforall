@@ -173,7 +173,7 @@ export function EcranConsignesPieces() {
   if (isPending) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:consignes.titre')}</h1>
+        <h1 className="texte-titre-page">{t('pieces:consignes.titre')}</h1>
         <EtatChargement lignes={6} />
       </div>
     );
@@ -182,7 +182,7 @@ export function EcranConsignesPieces() {
   if (isError) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:consignes.titre')}</h1>
+        <h1 className="texte-titre-page">{t('pieces:consignes.titre')}</h1>
         <EtatErreur
           titre={t('pieces:consignes.erreur.titre')}
           description={messageErreur(error, t)}
@@ -194,7 +194,7 @@ export function EcranConsignesPieces() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:consignes.titre')}</h1>
+      <h1 className="texte-titre-page">{t('pieces:consignes.titre')}</h1>
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5 max-w-xs">

@@ -237,7 +237,7 @@ export function EcranHangarPneus() {
   if (sessionEnChargement) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pneus:hangar.titre')}</h1>
+        <h1 className="texte-titre-page">{t('pneus:hangar.titre')}</h1>
         <EtatChargement lignes={4} />
       </div>
     );
@@ -246,7 +246,7 @@ export function EcranHangarPneus() {
   if (sessionEnErreur) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pneus:hangar.titre')}</h1>
+        <h1 className="texte-titre-page">{t('pneus:hangar.titre')}</h1>
         <EtatErreur
           titre={t('pneus:hangar.erreur.titre')}
           description={t('erreurs:inattendue.description')}
@@ -340,7 +340,7 @@ export function EcranHangarPneus() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pneus:hangar.titre')}</h1>
+        <h1 className="texte-titre-page">{t('pneus:hangar.titre')}</h1>
         {peutCreer && site ? (
           <Button type="button" onClick={() => setCreationOuverte(true)}>
             {t('pneus:creation.actions.ouvrir')}
