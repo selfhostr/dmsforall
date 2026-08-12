@@ -77,11 +77,13 @@ export interface AccountingExporter {
  * l'appel à l'adaptateur, de façon bloquante (`RF-28`, `RF-105`) : un trou ne part jamais chez la
  * fiduciaire — voir `EXPORT_TROU_NUMEROTATION`.
  */
-export const schemaLancerExport = z.object({
-  cible: z.enum(CIBLES_EXPORT),
-  granularite: z.enum(MODES_GRANULARITE_EXPORT).optional(),
-  periodeDu: schemaDateJour,
-  periodeAu: schemaDateJour,
-  siteId: schemaIdentifiant.optional(),
-});
+export const schemaLancerExport = z
+  .object({
+    cible: z.enum(CIBLES_EXPORT),
+    granularite: z.enum(MODES_GRANULARITE_EXPORT).optional(),
+    periodeDu: schemaDateJour,
+    periodeAu: schemaDateJour,
+    siteId: schemaIdentifiant.optional(),
+  })
+  .strict();
 export type EntreeLancerExport = z.infer<typeof schemaLancerExport>;

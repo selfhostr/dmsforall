@@ -35,3 +35,42 @@ describe('schemaCreationPaiement — devise (compatibilité ascendante, RF-58/MD
     expect(resultat.success).toBe(false);
   });
 });
+
+/**
+ * Issue #12, appliquée à `schemaCreationPaiement` (`.strict()`) : même défaut de principe que sur
+ * la ligne de document — un montant d'encaissement mal nommé disparaissait silencieusement avant
+ * ce correctif. `POST /paiements` est un encaissement réel, donc le même risque financier.
+ */
+describe('schemaCreationPaiement — champ inconnu REFUSÉ, nommé (issue #12, .strict())', () => {
+  const CORPS_VALIDE = {
+    siteId: '00000000-0000-0000-0000-000000000000',
+    dateValeur: '2026-08-05',
+    moyen: 'especes',
+    montantCentimes: 10000,
+    payeurLibelle: 'Client comptoir',
+  };
+
+  it('un nom de champ voisin mais faux (montantCentime, sans le "s") est REFUSÉ', () => {
+    const resultat = schemaCreationPaiement.safeParse({ ...CORPS_VALIDE, montantCentime: 10000 });
+    expect(resultat.success).toBe(false);
+    if (resultat.success) return;
+    expect(resultat.error.issues[0]?.code).toBe('unrecognized_keys');
+    expect(resultat.error.issues[0]?.message).toBe('Unrecognized key: "montantCentime"');
+  });
+
+  it('une imputation embarquée avec un champ inconnu est REFUSÉE (formeImputationInline, même garde)', () => {
+    const resultat = schemaCreationPaiement.safeParse({
+      ...CORPS_VALIDE,
+      imputations: [
+        {
+          documentId: '11111111-1111-4111-8111-111111111111',
+          montantCentimes: 5000,
+          natur: 'reglement',
+        },
+      ],
+    });
+    expect(resultat.success).toBe(false);
+    if (resultat.success) return;
+    expect(resultat.error.issues[0]?.message).toBe('Unrecognized key: "natur"');
+  });
+});
