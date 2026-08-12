@@ -15,20 +15,22 @@ export type MomentRendezVous = (typeof MOMENTS_RENDEZ_VOUS)[number];
  * (arbitrage @laupernoe, `migrations/0052` §B), pas `no_show` : vocabulaire métier français à l'écran
  * comme en base — « no-show » reste réservé à la documentation interne (§10 conception métier).
  *
- * ÉCART DE CONTRAT SIGNALÉ : `contrats/atelier/enums.ts` déclare déjà un `STATUTS_RENDEZ_VOUS`/
- * `StatutRendezVous` **GELÉ** (« déclaré au lot 1, servi au lot 4 ») avec des valeurs DIFFÉRENTES
- * (`demande, planifie, honore, absent, annule_client, annule_garage, reporte`) — une spéculation
- * antérieure, jamais implémentée (aucune table `rendez_vous`, aucun consommateur). La conception
- * commissionnée pour CE chantier (`docs/conception-rendez-vous-metier.md` §7, arbitrages de @laupernoe)
- * prescrit un modèle plus simple et délibérément différent : pas d'état brouillon (un RDV
- * téléphonique est confirmé par construction), un report n'est PAS un état (RV-16), une seule
- * valeur `annule` (client/garage non distingués en base). Je n'ai NI modifié NI supprimé l'enum
- * spéculatif gelé (hors de mon périmètre d'écriture, et la doctrine interdit de toucher un enum
- * gelé) — je nomme donc les valeurs RÉELLEMENT implémentées ici `STATUTS_RDV`/`StatutRdv` (préfixe
- * déjà utilisé par les codes d'erreur `RDV_*` de `contrats/probleme.ts`) pour éviter la collision
- * de nom sans trancher unilatéralement lequel des deux modèles est le bon. À arbitrer avec
- * l'orchestrateur : l'ancien `STATUTS_RENDEZ_VOUS` (mort, sans table ni service) devrait
- * probablement être retiré au prochain nettoyage.
+ * ARBITRAGE TRANCHÉ (dette technique n°3, réglée) : `contrats/atelier/enums.ts` déclarait un
+ * `STATUTS_RENDEZ_VOUS`/`StatutRendezVous` **GELÉ** (« déclaré au lot 1, servi au lot 4 ») avec des
+ * valeurs DIFFÉRENTES (`demande, planifie, honore, absent, annule_client, annule_garage, reporte`)
+ * — une spéculation antérieure, jamais implémentée (aucune table `rendez_vous`, aucun
+ * consommateur) et jamais confrontée aux types Postgres qu'elle était censée piloter. @laupernoe a tranché
+ * en faveur du modèle CI-DESSOUS, celui réellement implémenté par `docs/conception-rendez-vous-
+ * metier.md` §7 : pas d'état brouillon (un RDV téléphonique est confirmé par construction), un
+ * report n'est PAS un état (RV-16), une seule valeur `annule` (client/garage non distingués en
+ * base). L'enum gelé spéculatif et son pendant `ORIGINES_RENDEZ_VOUS`/`OrigineRendezVous` ont été
+ * supprimés de `contrats/atelier/enums.ts` ; les types Postgres orphelins qu'ils pilotaient
+ * (`statut_rendez_vous`/`origine_rendez_vous`, posés sans consommateur par `0005_parametrage.sql`)
+ * ont été supprimés par la migration `0053_purge_enums_rendez_vous_geles.sql`. Le nom reste
+ * `STATUTS_RDV`/`StatutRdv` (préfixe déjà utilisé par les codes d'erreur `RDV_*` de
+ * `contrats/probleme.ts`) : `STATUTS_RENDEZ_VOUS`/`StatutRendezVous` est maintenant un nom libre,
+ * mais renommer touche des dizaines de fichiers hors du périmètre de ce nettoyage — chantier séparé
+ * si @laupernoe le décide.
  */
 export const STATUTS_RDV = ['confirme', 'honore', 'absent', 'annule'] as const;
 export type StatutRdv = (typeof STATUTS_RDV)[number];
