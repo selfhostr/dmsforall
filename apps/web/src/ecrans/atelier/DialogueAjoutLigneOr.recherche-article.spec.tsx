@@ -75,6 +75,13 @@ function mockRecherche(resultat: ResultatRechercheComptoirArticle) {
   server.use(
     http.get('/api/v1/articles/recherche-comptoir', () => HttpResponse.json([resultat])),
     http.get(`/api/v1/articles/${ARTICLE_ID}`, () => HttpResponse.json(articleComplet())),
+    // Mode PARCOURS du sélecteur (`SelecteurArticlePiece`, `GET /articles`, saisie vide au
+    // montage) : catalogue vide par défaut, sans incidence sur ces tests qui tapent une saisie
+    // immédiatement via `choisirLaPiece` — mais nécessaire pour que ce mode n'échoue jamais en
+    // réseau (sinon un bouton « Réessayer » parasite apparaîtrait avant la frappe).
+    http.get('/api/v1/articles', () =>
+      HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 20 }),
+    ),
   );
 }
 

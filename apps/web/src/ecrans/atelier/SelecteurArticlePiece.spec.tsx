@@ -1,9 +1,9 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ResultatRechercheComptoirArticle } from '@dfa/shared';
+import type { PageCurseur, ReponseArticle, ResultatRechercheComptoirArticle } from '@dfa/shared';
 
 import '@/i18n';
 import i18n from '@/i18n';
@@ -32,8 +32,52 @@ function mockRechercheComptoir(resultats: readonly ResultatRechercheComptoirArti
   server.use(http.get('/api/v1/articles/recherche-comptoir', () => HttpResponse.json(resultats)));
 }
 
+function articleCatalogue(
+  partiel: Partial<ReponseArticle> & { readonly id: string },
+): ReponseArticle {
+  return {
+    numeroArticle: 'P-000000',
+    designation: 'Article catalogue',
+    marque: null,
+    categorie: 'piece_mecanique',
+    statut: 'actif',
+    referencePrincipale: '0000000',
+    codeBarres: null,
+    prixAchatCentimes: null,
+    prixVenteTtcCentimes: 5000,
+    tauxTvaPourmille: 81,
+    estEchangeStandard: false,
+    montantConsigneTtcCentimes: null,
+    referenceRemplacementId: null,
+    references: [],
+    referencesTronquees: false,
+    stocksResume: [],
+    creeLe: '2026-01-01T08:00:00.000Z',
+    modifieLe: '2026-01-01T08:00:00.000Z',
+    ...partiel,
+  };
+}
+
+function pageArticles(donnees: readonly ReponseArticle[]): PageCurseur<ReponseArticle> {
+  return { donnees, curseurSuivant: null, limite: 20 };
+}
+
+/** Mode PARCOURS (`GET /articles`) : catalogue vide par défaut tant qu'un test ne mocke pas
+ *  explicitement autre chose — même raison que `useRechercheComptoirPieces.spec.tsx` (saisie vide
+ *  dès le premier rendu, avant toute frappe). `server.use()` donne priorité au handler le plus
+ *  récemment enregistré, donc ce défaut doit être posé AVANT le `server.use()` propre à chaque
+ *  test pour ne jamais le masquer. */
+beforeEach(() => {
+  server.use(http.get('/api/v1/articles', () => HttpResponse.json(pageArticles([]))));
+});
+
 describe('SelecteurArticlePiece', () => {
-  it('invite à taper avant toute recherche — jamais "aucun résultat" pour une saisie vide', async () => {
+  it('parcours du catalogue avant toute recherche — jamais "aucun résultat" pour un catalogue non vide', async () => {
+    server.use(
+      http.get('/api/v1/articles', () =>
+        HttpResponse.json(pageArticles([articleCatalogue({ id: 'art-catalogue' })])),
+      ),
+    );
     const utilisateur = userEvent.setup();
     renduAvecQueryClient(
       <SelecteurArticlePiece id="a" siteId={SITE_ID} onSelectionArticle={vi.fn()} />,
@@ -44,9 +88,34 @@ describe('SelecteurArticlePiece', () => {
     );
 
     const popover = within(await screen.findByRole('dialog'));
-    const texteAide = i18n.t('or:lignes.selecteurArticle.aide');
+    // Légende du mode parcours, via sa clé i18n (résout le changement de vocabulaire).
+    const texteAideParcours = i18n.t('or:lignes.selecteurArticle.parcours.aide');
     expect(
-      await popover.findByText(new RegExp(texteAide.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))),
+      await popover.findByText(
+        new RegExp(texteAideParcours.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      ),
+    ).toBeInTheDocument();
+    // Le catalogue est bien affiché : au moins une option visible.
+    expect(await popover.findByRole('option', { name: /Article catalogue/ })).toBeInTheDocument();
+    expect(popover.queryByText(/Aucun article ne correspond/)).not.toBeInTheDocument();
+  });
+
+  it('catalogue vide sur ce site : invite explicitement à saisir la pièce à la main', async () => {
+    const utilisateur = userEvent.setup();
+    renduAvecQueryClient(
+      <SelecteurArticlePiece id="a" siteId={SITE_ID} onSelectionArticle={vi.fn()} />,
+    );
+
+    await utilisateur.click(
+      screen.getByRole('combobox', { name: 'Chercher une pièce au magasin' }),
+    );
+
+    const popover = within(await screen.findByRole('dialog'));
+    const texteVideParcours = i18n.t('or:lignes.selecteurArticle.parcours.vide');
+    expect(
+      await popover.findByText(
+        new RegExp(texteVideParcours.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      ),
     ).toBeInTheDocument();
     expect(popover.queryByText(/Aucun article ne correspond/)).not.toBeInTheDocument();
   });
@@ -146,6 +215,15 @@ describe('SelecteurArticlePiece', () => {
   });
 
   it('panne réseau : message actionnable avec un Réessayer qui relance réellement la requête', async () => {
+    // Mode PARCOURS toujours en succès dans ce test — seule la recherche assistée est en panne.
+    // Sans ce mock, le mode parcours (actif au montage, saisie vide) échouerait lui aussi et
+    // afficherait SON propre bouton « Réessayer » (jamais lié à `recherche-comptoir`), rendant le
+    // test ambigu sur lequel des deux boutons il attrape.
+    server.use(
+      http.get('/api/v1/articles', () =>
+        HttpResponse.json(pageArticles([articleCatalogue({ id: 'art-parcours-ok' })])),
+      ),
+    );
     let appels = 0;
     server.use(
       http.get('/api/v1/articles/recherche-comptoir', () => {
@@ -165,6 +243,9 @@ describe('SelecteurArticlePiece', () => {
     );
 
     const bouton = await screen.findByRole('button', { name: 'Réessayer' });
+    // Un seul bouton « Réessayer » à cet instant (mode recherche, en erreur) — le mode parcours,
+    // mocké en succès ci-dessus, n'en affiche aucun.
+    expect(screen.getAllByRole('button', { name: 'Réessayer' })).toHaveLength(1);
     await utilisateur.click(bouton);
 
     await waitFor(() => {

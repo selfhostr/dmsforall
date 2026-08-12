@@ -1,9 +1,16 @@
 import { Info } from 'lucide-react';
-import { useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { Input } from '@/components/ui/input';
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
+import { Popover } from '@/components/ui/popover';
+import {
+  AnnonceLiveCombobox,
+  ChampCombobox,
+  ListeOptionsCombobox,
+  OptionCombobox,
+  PopoverContenuCombobox,
+  useComboboxAccessible,
+} from '@/composants/saisie/ComboboxAccessible';
 import {
   estValeurDansReferentiel,
   type OptionAutocompletionVehicule,
@@ -72,75 +79,19 @@ export function ChampAutocompletionVehicule({
   className,
 }: ProprietesChampAutocompletionVehicule) {
   const { t } = useTranslation('vehicules');
-  const idBase = useId();
-  const idListe = `${idBase}-listbox`;
-  const idOption = (index: number) => `${idBase}-option-${String(index)}`;
-
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [ouvert, setOuvert] = useState(false);
-  const [indexActif, setIndexActif] = useState(-1);
   // Le repli "hors référentiel" ne s'affiche qu'une fois la saisie terminée (perte de focus) —
   // pas à chaque frappe, sinon le message clignoterait sur toute marque en cours de complétion
   // ("Merc" serait annoncé hors référentiel juste avant que "Mercedes-Benz" ne soit tapé en
   // entier). Réarmé au focus suivant.
   const [saisieTerminee, setSaisieTerminee] = useState(false);
 
-  function choisir(option: OptionAutocompletionVehicule) {
-    onValeurChange(option.valeur);
-    onSelectionOption?.(option);
-    setOuvert(false);
-    setIndexActif(-1);
-    inputRef.current?.focus();
-  }
-
-  function gererClavier(evenement: KeyboardEvent<HTMLInputElement>) {
-    switch (evenement.key) {
-      case 'ArrowDown': {
-        if (options.length === 0) return;
-        evenement.preventDefault();
-        setOuvert(true);
-        setIndexActif((index) => Math.min(index + 1, options.length - 1));
-        return;
-      }
-      case 'ArrowUp': {
-        if (options.length === 0) return;
-        evenement.preventDefault();
-        setOuvert(true);
-        setIndexActif((index) => Math.max(index - 1, 0));
-        return;
-      }
-      case 'Home': {
-        if (!ouvert || options.length === 0) return;
-        evenement.preventDefault();
-        setIndexActif(0);
-        return;
-      }
-      case 'End': {
-        if (!ouvert || options.length === 0) return;
-        evenement.preventDefault();
-        setIndexActif(options.length - 1);
-        return;
-      }
-      case 'Enter': {
-        if (!ouvert || indexActif < 0) return; // saisie libre : Entrée sans sélection ne fait rien de spécial ici (soumission normale du formulaire englobant).
-        const option = options[indexActif];
-        if (!option) return;
-        evenement.preventDefault();
-        choisir(option);
-        return;
-      }
-      case 'Escape': {
-        if (!ouvert) return;
-        evenement.preventDefault();
-        evenement.stopPropagation();
-        setOuvert(false);
-        setIndexActif(-1);
-        return;
-      }
-      default:
-        return;
-    }
-  }
+  const combobox = useComboboxAccessible<OptionAutocompletionVehicule>({
+    options,
+    onChoisir: (option) => {
+      onValeurChange(option.valeur);
+      onSelectionOption?.(option);
+    },
+  });
 
   const dansReferentiel = estValeurDansReferentiel(valeur, options);
   // Une panne de la recherche de suggestions ne prouve RIEN sur la saisie elle-même : ne jamais
@@ -149,7 +100,7 @@ export function ChampAutocompletionVehicule({
     saisieTerminee && !enChargement && !erreur && valeur.trim() !== '' && !dansReferentiel;
 
   let annonceLive = '';
-  if (ouvert) {
+  if (combobox.ouvert) {
     if (enChargement) {
       annonceLive = t('identite.autocompletion.recherche');
     } else if (erreur) {
@@ -163,64 +114,37 @@ export function ChampAutocompletionVehicule({
 
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
-      <Popover open={ouvert} onOpenChange={setOuvert}>
-        <PopoverAnchor asChild>
-          <Input
-            ref={inputRef}
-            id={id}
-            role="combobox"
-            // `aria-label` redondant avec le `<Label htmlFor={id}>` externe (même texte que
-            // `libelle`, voir intégration dans l'écran) — pas un conflit : les deux portent le
-            // même nom. Nécessaire pour que CE composant reste nommé de façon autonome (tests
-            // isolés, futurs appelants qui oublieraient le `<Label>` externe).
-            aria-label={libelle}
-            aria-expanded={ouvert}
-            aria-controls={idListe}
-            aria-autocomplete="list"
-            aria-activedescendant={indexActif >= 0 ? idOption(indexActif) : undefined}
-            aria-invalid={ariaInvalid ? true : undefined}
-            autoComplete="off"
-            value={valeur}
-            placeholder={placeholder}
-            disabled={disabled}
-            onChange={(evenement) => {
-              onValeurChange(evenement.target.value);
-              setOuvert(true);
-              setIndexActif(-1);
-            }}
-            onFocus={() => {
-              setOuvert(true);
-              setSaisieTerminee(false);
-            }}
-            onBlur={() => {
-              setOuvert(false);
-              setSaisieTerminee(true);
-            }}
-            onKeyDown={gererClavier}
-          />
-        </PopoverAnchor>
-        <PopoverContent
-          align="start"
-          sideOffset={4}
-          // Le focus ne doit JAMAIS quitter le champ de saisie — ni à l'ouverture ni à la
-          // fermeture de la liste — sinon chaque suggestion affichée déplacerait le curseur du
-          // garagiste hors du champ qu'il est en train de remplir.
-          onOpenAutoFocus={(evenement) => evenement.preventDefault()}
-          onCloseAutoFocus={(evenement) => evenement.preventDefault()}
-          // Défaut corrigé (constaté au navigateur, pas seulement en test) : `PopoverAnchor` n'est
-          // PAS exclu de la détection « clic extérieur » de Radix (contrairement à
-          // `PopoverTrigger`) — sur un focus qui ouvre la liste SANS frappe ensuite (ex. cascade
-          // marque → modèle, ouverture par simple clic), le `pointerdown` qui donne le focus au
-          // champ est lui-même capté comme « extérieur au contenu » (pas encore monté au moment du
-          // `pointerdown`) et referme la liste dans la foulée — invisible dès qu'une frappe suit
-          // (chaque `onChange` la rouvre), mais bloquant sur un simple focus. Ce composant gère
-          // DÉJÀ la fermeture lui-même de façon exhaustive (`onBlur`, `Échap`, sélection) : la
-          // détection « extérieure » de Radix est redondante, jamais la seule protection — la
-          // désactiver élimine la course sans rien perdre.
-          onPointerDownOutside={(evenement) => evenement.preventDefault()}
-          onFocusOutside={(evenement) => evenement.preventDefault()}
-          className="w-[var(--radix-popover-trigger-width)] p-1"
-        >
+      <Popover open={combobox.ouvert} onOpenChange={combobox.setOuvert}>
+        <ChampCombobox
+          ref={combobox.inputRef}
+          id={id}
+          // `aria-label` redondant avec le `<Label htmlFor={id}>` externe (même texte que
+          // `libelle`, voir intégration dans l'écran) — pas un conflit : les deux portent le
+          // même nom. Nécessaire pour que CE composant reste nommé de façon autonome (tests
+          // isolés, futurs appelants qui oublieraient le `<Label>` externe).
+          ariaLabel={libelle}
+          ouvert={combobox.ouvert}
+          idListe={combobox.idListe}
+          idActif={combobox.idActif}
+          ariaInvalid={ariaInvalid}
+          value={valeur}
+          placeholder={placeholder}
+          disabled={disabled}
+          onChange={(evenement) => {
+            onValeurChange(evenement.target.value);
+            combobox.gererSaisie();
+          }}
+          onFocus={() => {
+            combobox.gererFocus();
+            setSaisieTerminee(false);
+          }}
+          onBlur={() => {
+            combobox.gererPerteFocus();
+            setSaisieTerminee(true);
+          }}
+          onKeyDown={combobox.gererClavier}
+        />
+        <PopoverContenuCombobox>
           {enChargement ? (
             <p className="px-2 py-3 text-center texte-corps text-muted-foreground">
               {t('identite.autocompletion.recherche')}
@@ -232,37 +156,27 @@ export function ChampAutocompletionVehicule({
               {t('identite.autocompletion.aucunResultat')}
             </p>
           ) : (
-            <ul id={idListe} role="listbox" aria-label={libelle} className="flex flex-col gap-0.5">
+            <ListeOptionsCombobox id={combobox.idListe} ariaLabel={libelle}>
               {options.map((option, index) => (
-                <li
+                <OptionCombobox
                   key={option.valeur}
-                  id={idOption(index)}
-                  role="option"
-                  aria-selected={index === indexActif}
-                  // `onMouseDown`+`preventDefault` : empêche le `blur` du champ de se déclencher
-                  // AVANT le `onClick` de l'option — sinon la liste se ferme (voir `onBlur`
-                  // ci-dessus) avant même que la sélection ne soit prise en compte.
-                  onMouseDown={(evenement) => evenement.preventDefault()}
-                  onClick={() => choisir(option)}
-                  className={cn(
-                    'element-menu flex min-h-11 cursor-pointer select-none items-center justify-between gap-3 rounded-sm px-2 py-2 texte-corps outline-none',
-                    index === indexActif ? 'bg-accent text-accent-foreground' : undefined,
-                  )}
+                  id={combobox.idOption(index)}
+                  actif={index === combobox.indexActif}
+                  onClick={() => combobox.choisir(option)}
+                  className="flex min-h-11 items-center justify-between gap-3 texte-corps"
                 >
                   <span>{option.valeur}</span>
                   {option.complement ? (
                     <span className="texte-libelle text-muted-foreground">{option.complement}</span>
                   ) : null}
-                </li>
+                </OptionCombobox>
               ))}
-            </ul>
+            </ListeOptionsCombobox>
           )}
-        </PopoverContent>
+        </PopoverContenuCombobox>
       </Popover>
 
-      <span role="status" aria-live="polite" className="sr-only">
-        {annonceLive}
-      </span>
+      <AnnonceLiveCombobox>{annonceLive}</AnnonceLiveCombobox>
 
       {afficherHorsReferentiel ? (
         <p className="flex items-center gap-1.5 texte-libelle text-muted-foreground">
