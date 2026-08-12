@@ -67,6 +67,13 @@
       "emplacement": "Standort: {emplacement}",
       "emplacementNonRenseigne": "Standort nicht erfasst",
       "lienHangar": "Im Reifenlager ansehen"
+    },
+    "rendezVous": {
+      "titre": "Nächste Termine",
+      "prendre": "Termin vereinbaren",
+      "vide": "Kein Termin für dieses Fahrzeug geplant.",
+      "detenteurInconnu": "Ordnen Sie diesem Fahrzeug einen Kunden zu, um Termine zu vereinbaren oder anzuzeigen.",
+      "creeTitre": "Termin gespeichert"
     }
   },
   "archiver": {
@@ -103,6 +110,11 @@
     "cantonExemple": "VS",
     "type": "Typ",
     "historique": "Kennzeichen-Verlauf"
+  },
+  "collisionPlaque": {
+    "avecDetail": "Kennzeichen {plaque} wird bereits seit dem {debutLe} von {vehicule} getragen.",
+    "sansDetail": "Dieses Kennzeichen ist bereits einem anderen Fahrzeug zugeordnet.",
+    "voirVehicule": "Dieses Fahrzeug ansehen"
   },
   "detentions": {
     "titre": "Halter",

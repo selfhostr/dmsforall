@@ -67,6 +67,13 @@
       "emplacement": "Emplacement : {emplacement}",
       "emplacementNonRenseigne": "Emplacement non renseigné",
       "lienHangar": "Voir dans le hangar à pneus"
+    },
+    "rendezVous": {
+      "titre": "Prochains rendez-vous",
+      "prendre": "Prendre un rendez-vous",
+      "vide": "Aucun rendez-vous prévu pour ce véhicule.",
+      "detenteurInconnu": "Rattachez un client à ce véhicule pour prendre ou voir ses rendez-vous.",
+      "creeTitre": "Rendez-vous enregistré"
     }
   },
   "archiver": {
@@ -103,6 +110,11 @@
     "cantonExemple": "VS",
     "type": "Type",
     "historique": "Historique des plaques"
+  },
+  "collisionPlaque": {
+    "avecDetail": "Plaque {plaque} déjà portée par {vehicule} depuis le {debutLe}.",
+    "sansDetail": "Cette plaque est déjà attribuée à un autre véhicule.",
+    "voirVehicule": "Voir ce véhicule"
   },
   "detentions": {
     "titre": "Détention",

@@ -4,7 +4,12 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 
-import type { FiltresDocumentsVente, OrdreReparationResume, PageCurseur } from '@dfa/shared';
+import type {
+  FiltresDocumentsVente,
+  OrdreReparationResume,
+  PageCurseur,
+  VehiculeResume,
+} from '@dfa/shared';
 
 import { requeteApi } from '@/api/client';
 import { messageErreur } from '@/api/erreurs';
@@ -36,6 +41,7 @@ import { DialogueRattacherClient } from './DialogueRattacherClient';
 import { EnTeteFicheVehicule } from './EnTeteFicheVehicule';
 import { FormulaireKilometrage } from './FormulaireKilometrage';
 import { PanneauTravauxReportes } from './PanneauTravauxReportes';
+import { SectionRendezVousVehicule } from './SectionRendezVousVehicule';
 
 /**
  * Fiche véhicule — ce que le comptoir doit voir en ouvrant un dossier : identité, alertes SANS
@@ -180,6 +186,27 @@ export function EcranFicheVehicule() {
   const proprietaireActuel = detentions.find((detention) => detention.finLe === null) ?? null;
   const detenteursPrecedents = detentions.filter((detention) => detention.finLe !== null);
 
+  // `DialogueNouveauRendezVous.site` (composants/rendez-vous/) est obligatoire (un `SiteResume`
+  // complet, pas juste un id) — même repli que `TableauBordMagasinier.tsx` (site actif du tenant,
+  // sinon le premier) quand la fiche est ouverte sans `?site=` explicite.
+  const siteRendezVous = site
+    ? session.data?.sites.find((candidat) => candidat.id === site)
+    : (session.data?.sites.find((candidat) => candidat.actif) ?? session.data?.sites[0]);
+
+  // Projection `VehiculeResume` depuis `ReponseVehicule` (fiche complète) — `DialogueNouveauRendezVous`
+  // et `IdentiteVehicule` n'attendent que le résumé, même doctrine que `clientPourIdentite` dans
+  // `EcranFicheClient.tsx`.
+  const vehiculePourRendezVous: VehiculeResume = {
+    id: vehicule.id,
+    plaque: vehicule.plaque,
+    canton: vehicule.canton,
+    designation: vehicule.designation,
+    vin: vehicule.vin,
+    premiereMiseEnCirculationLe: vehicule.premiereMiseEnCirculationLe,
+    identificationIncomplete: vehicule.identificationIncomplete,
+    emplacementLibre: vehicule.emplacementLibre,
+  };
+
   const ordresVehicule = requeteOr.data ?? [];
   const facturesVehicule = requeteFactures.data?.donnees ?? [];
   const depotsPneus = requeteDepotsPneus.data?.donnees ?? [];
@@ -286,6 +313,12 @@ export function EcranFicheVehicule() {
           ) : null}
         </CardContent>
       </Card>
+
+      <SectionRendezVousVehicule
+        vehicule={vehiculePourRendezVous}
+        detenteur={proprietaireActuel?.client ?? null}
+        site={siteRendezVous}
+      />
 
       {/* Lot B (correction 6, vendeur) — dossier de vente en cours ou passé, si ce véhicule est ou
        *  a été en stock. Le contrat ne porte pas de numéro court identifiable à l'oral pour un

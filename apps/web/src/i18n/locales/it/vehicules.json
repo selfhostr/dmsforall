@@ -67,6 +67,13 @@
       "emplacement": "Posizione: {emplacement}",
       "emplacementNonRenseigne": "Posizione non indicata",
       "lienHangar": "Vedi nel deposito pneumatici"
+    },
+    "rendezVous": {
+      "titre": "Prossimi appuntamenti",
+      "prendre": "Fissa un appuntamento",
+      "vide": "Nessun appuntamento previsto per questo veicolo.",
+      "detenteurInconnu": "Associa un cliente a questo veicolo per fissare o vedere i suoi appuntamenti.",
+      "creeTitre": "Appuntamento registrato"
     }
   },
   "archiver": {
@@ -103,6 +110,11 @@
     "cantonExemple": "VS",
     "type": "Tipo",
     "historique": "Storico delle targhe"
+  },
+  "collisionPlaque": {
+    "avecDetail": "Targa {plaque} già assegnata a {vehicule} dal {debutLe}.",
+    "sansDetail": "Questa targa è già assegnata a un altro veicolo.",
+    "voirVehicule": "Vedi questo veicolo"
   },
   "detentions": {
     "titre": "Proprietà",

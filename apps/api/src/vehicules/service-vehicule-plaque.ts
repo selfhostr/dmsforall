@@ -5,7 +5,11 @@ import { JETON_DB, type AccesBase, type ContexteTenant } from '../db';
 import { vehiculePlaque, type LigneVehiculePlaque } from '../db/schema';
 import { ErreurMetier } from '../common/erreurs';
 import { interpreterContrainteVehicule } from './erreurs-contraintes';
-import { exigerVehiculeExiste, listerPlaques } from './vehicule-requetes';
+import {
+  exigerVehiculeExiste,
+  listerPlaques,
+  trouverVehiculeCollisionPlaque,
+} from './vehicule-requetes';
 
 function versReponse(ligne: LigneVehiculePlaque): ReponseVehiculePlaque {
   return {
@@ -38,15 +42,25 @@ export class ServiceVehiculePlaque {
     });
   }
 
+  /**
+   * Le `try/catch` enveloppe l'APPEL À `enTenant`, pas seulement l'INSERT : une fois l'INSERT en
+   * échec, la transaction Postgres est ABORTÉE (25P02, « current transaction is aborted ») —
+   * toute requête supplémentaire sur cette même transaction serait rejetée, y compris une simple
+   * lecture. `enTenant` rollback et referme cette transaction dès que sa callback rejette ; la
+   * relecture de secours (dette technique n°6, `trouverVehiculeCollisionPlaque`) doit donc
+   * s'exécuter dans une NOUVELLE transaction, ouverte APRÈS ce rollback — jamais dans `tx`
+   * ci-dessous. (Mesuré : la version qui réutilisait `tx` produisait un `500 ERREUR_INTERNE`
+   * systématique sur toute collision réelle, jamais un `409` — vérifié contre la vraie base.)
+   */
   async creer(
     ctx: ContexteTenant,
     vehiculeId: string,
     entree: EntreePlaqueVehicule,
   ): Promise<ReponseVehiculePlaque> {
-    return this.acces.enTenant(ctx, async (tx) => {
-      await exigerVehiculeExiste(tx, ctx, vehiculeId);
+    try {
+      return await this.acces.enTenant(ctx, async (tx) => {
+        await exigerVehiculeExiste(tx, ctx, vehiculeId);
 
-      try {
         const lignes = await tx
           .insert(vehiculePlaque)
           .values({
@@ -68,17 +82,47 @@ export class ServiceVehiculePlaque {
           );
         }
         return versReponse(inseree);
-      } catch (erreur) {
-        const interpretation = interpreterContrainteVehicule(erreur);
-        if (interpretation) {
-          throw new ErreurMetier(
-            interpretation.code,
-            'Cette plaque est déjà portée par un autre véhicule sur une période qui chevauche (RM-18).',
-          );
-        }
+      });
+    } catch (erreur) {
+      if (erreur instanceof ErreurMetier) {
         throw erreur;
       }
-    });
+      const interpretation = interpreterContrainteVehicule(erreur);
+      if (!interpretation) {
+        throw erreur;
+      }
+      // Dette technique n°6 : la contrainte d'EXCLUSION qui vient de refuser ne porte pas la
+      // ligne fautive (ce n'est pas une clé unique) — on va la rechercher pour nommer le véhicule
+      // dans le `problem+json`, UNIQUEMENT dans cette branche d'erreur, jamais sur le chemin
+      // nominal, dans une transaction FRAÎCHE (voir commentaire de tête). Cas de course (ligne
+      // disparue entre l'échec de l'INSERT et cette relecture) : `collision` vaut `null`, l'erreur
+      // reste correcte sans détail de véhicule — jamais un identifiant inventé.
+      const collision =
+        interpretation.code === 'VEHICULE_PLAQUE_COLLISION'
+          ? await this.acces.enTenant(ctx, (tx) =>
+              trouverVehiculeCollisionPlaque(tx, ctx, {
+                valeur: entree.valeur,
+                debutLe: entree.debutLe,
+              }),
+            )
+          : null;
+      throw new ErreurMetier(
+        interpretation.code,
+        'Cette plaque est déjà portée par un autre véhicule sur une période qui chevauche (RM-18).',
+        {
+          blocages: collision
+            ? [
+                {
+                  type: 'champ',
+                  id: 'valeur',
+                  libelle: `Plaque déjà portée par le véhicule ${collision.marque} ${collision.modele}`,
+                  donnees: { ...collision },
+                },
+              ]
+            : undefined,
+        },
+      );
+    }
   }
 
   async cloturer(

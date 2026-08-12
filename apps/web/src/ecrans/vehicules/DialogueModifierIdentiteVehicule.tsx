@@ -1,9 +1,10 @@
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 
-import type { ReponseVehicule } from '@dfa/shared';
+import type { DetailCollisionPlaqueVehicule, ReponseVehicule } from '@dfa/shared';
 
-import { ErreurReseau, messageErreur } from '@/api/erreurs';
+import { ErreurApi, ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -11,6 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAttribuerPlaqueVehicule } from '@/hooks/vehicules/useAttribuerPlaqueVehicule';
 import { useModifierIdentiteVehicule } from '@/hooks/vehicules/useModifierIdentiteVehicule';
+import { formaterDate } from '@/lib/formats';
+import { chemins } from '@/routes/chemins';
 
 export interface ProprietesDialogueModifierIdentiteVehicule {
   readonly vehicule: Pick<ReponseVehicule, 'id' | 'vin' | 'plaque'>;
@@ -134,7 +137,27 @@ export function DialogueModifierIdentiteVehicule({
   }
 
   const enCours = mutationIdentite.isPending || mutationPlaque.isPending;
-  const erreur = mutationIdentite.error ?? mutationPlaque.error;
+
+  // 409 VEHICULE_PLAQUE_COLLISION (RM-18, CT-06) : traité à part, SOUS le champ plaque (voir plus
+  // bas), jamais dans le bandeau générique — sinon la réceptionniste voit un message anonyme
+  // alors que le serveur a nommé le véhicule fautif. `erreurPlaque` figé dans une variable pour
+  // que le contrôle de flux TypeScript (`instanceof`) reste valable à travers les deux constantes
+  // qui en dépendent ci-dessous.
+  const erreurPlaque = mutationPlaque.error;
+  const erreurPlaqueEstCollision =
+    erreurPlaque instanceof ErreurApi && erreurPlaque.probleme.code === 'VEHICULE_PLAQUE_COLLISION';
+  // Présent seulement si la relecture serveur a retrouvé la ligne fautive (voir le commentaire de
+  // tête de `DetailCollisionPlaqueVehicule`) — `donnees` est un `Record<string, unknown>`
+  // générique côté contrat (`ElementBloquant`), jamais validé par zod ici : le cast est documenté,
+  // pas deviné, la forme exacte étant posée par `service-vehicule-plaque.ts` uniquement pour ce
+  // code précis.
+  const detailCollisionPlaque: DetailCollisionPlaqueVehicule | undefined =
+    erreurPlaque instanceof ErreurApi && erreurPlaqueEstCollision
+      ? (erreurPlaque.blocages[0]?.donnees as DetailCollisionPlaqueVehicule | undefined)
+      : undefined;
+
+  const erreurPlaqueBandeau = erreurPlaqueEstCollision ? undefined : mutationPlaque.error;
+  const erreur = mutationIdentite.error ?? erreurPlaqueBandeau;
   const estErreurReseau = erreur instanceof ErreurReseau;
 
   return (
@@ -153,9 +176,9 @@ export function DialogueModifierIdentiteVehicule({
                 {mutationIdentite.error
                   ? `${t('vehicules:identite.vin')} : ${messageErreur(mutationIdentite.error, t)}`
                   : null}
-                {mutationIdentite.error && mutationPlaque.error ? <br /> : null}
-                {mutationPlaque.error
-                  ? `${t('vehicules:identite.plaque')} : ${messageErreur(mutationPlaque.error, t)}`
+                {mutationIdentite.error && erreurPlaqueBandeau ? <br /> : null}
+                {erreurPlaqueBandeau
+                  ? `${t('vehicules:identite.plaque')} : ${messageErreur(erreurPlaqueBandeau, t)}`
                   : null}
               </AlertDescription>
             </Alert>
@@ -181,10 +204,45 @@ export function DialogueModifierIdentiteVehicule({
                   placeholder={t('vehicules:identite.plaqueExemple')}
                   value={plaqueValeur}
                   onChange={(evenement) => setPlaqueValeur(evenement.target.value)}
+                  aria-invalid={erreurPlaqueEstCollision ? true : undefined}
+                  aria-describedby={
+                    erreurPlaqueEstCollision ? 'modifier-plaque-collision-erreur' : undefined
+                  }
                 />
                 <p className="texte-libelle text-muted-foreground">
                   {t('vehicules:identite.plaqueAide')}
                 </p>
+                {erreurPlaqueEstCollision ? (
+                  <Alert
+                    id="modifier-plaque-collision-erreur"
+                    variant="destructive"
+                    className="p-3"
+                  >
+                    <AlertDescription>
+                      {detailCollisionPlaque ? (
+                        <>
+                          {t('vehicules:collisionPlaque.avecDetail', {
+                            plaque: detailCollisionPlaque.plaque,
+                            vehicule: `${detailCollisionPlaque.marque} ${detailCollisionPlaque.modele}${
+                              detailCollisionPlaque.version
+                                ? ` ${detailCollisionPlaque.version}`
+                                : ''
+                            }`,
+                            debutLe: formaterDate(detailCollisionPlaque.debutLe),
+                          })}{' '}
+                          <Link
+                            to={chemins.vehicules.detail(detailCollisionPlaque.vehiculeId)}
+                            className="underline"
+                          >
+                            {t('vehicules:collisionPlaque.voirVehicule')}
+                          </Link>
+                        </>
+                      ) : (
+                        t('vehicules:collisionPlaque.sansDetail')
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="modifier-canton">{t('vehicules:plaques.canton')}</Label>

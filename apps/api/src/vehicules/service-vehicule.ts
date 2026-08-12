@@ -28,6 +28,7 @@ import {
   chargerLigneVehicule,
   construireReponseVehicule,
   listerOrOuverts,
+  trouverVehiculeCollisionPlaque,
 } from './vehicule-requetes';
 
 /**
@@ -170,13 +171,17 @@ export class ServiceVehicule {
     }
 
     if (entree.plaque) {
+      const debutLe = jourIso(this.horloge.maintenant());
       try {
         await tx.execute(sql`
           insert into public.vehicule_plaque (tenant_id, vehicule_id, valeur, canton, pays, du, interchangeable, professionnelle)
-          values (${ctx.tenantId}, ${inseree.id}, ${entree.plaque}, ${entree.canton ?? null}, 'CH', ${jourIso(this.horloge.maintenant())}, false, false)
+          values (${ctx.tenantId}, ${inseree.id}, ${entree.plaque}, ${entree.canton ?? null}, 'CH', ${debutLe}, false, false)
         `);
       } catch (erreur) {
-        relancerErreurContrainte(erreur);
+        await this.relancerErreurContraintePlaqueCreation(ctx, erreur, {
+          valeur: entree.plaque,
+          debutLe,
+        });
       }
     }
 
@@ -417,6 +422,60 @@ export class ServiceVehicule {
       );
       return { donnees: reponse, avertissements: new CollecteurAvertissements() };
     });
+  }
+
+  /**
+   * Seconde voie d'entrée sur la même collision que `ServiceVehiculePlaque.creer` (dette
+   * technique n°6) : l'INSERT de plaque de `creerDansTransaction` ci-dessus vit dans `tx`, une
+   * transaction OUVERTE PAR L'APPELANT (`POST /vehicules`, sous `ServiceIdempotence.executer`) —
+   * jamais par cette méthode. Une fois cet INSERT en échec, `tx` est ABORTÉE côté Postgres
+   * (25P02) : toute requête supplémentaire dessus, y compris une simple lecture, serait rejetée.
+   * La relecture de secours (`trouverVehiculeCollisionPlaque`) doit donc courir dans une
+   * transaction FRAÎCHE, ouverte par un second appel À `this.acces.enTenant` — jamais sur `tx` —
+   * exactement la structure déjà prouvée contre la vraie base sur `ServiceVehiculePlaque.creer`.
+   *
+   * Contrat de sortie IDENTIQUE à `ServiceVehiculePlaque.creer` : même code `409
+   * VEHICULE_PLAQUE_COLLISION`, `blocages[0].donnees` au même type `DetailCollisionPlaqueVehicule`
+   * — seul `blocages[0].id` diffère (`'plaque'`, le nom du champ ici plutôt que `'valeur'`, RM-18).
+   * Cas de course identique : ligne fautive disparue entre l'échec de l'INSERT et cette relecture
+   * → `collision` vaut `null`, l'erreur reste un `409` correct, `blocages` simplement OMIS —
+   * jamais un `500`, jamais un identifiant inventé.
+   */
+  private async relancerErreurContraintePlaqueCreation(
+    ctx: ContexteTenant,
+    erreur: unknown,
+    plaque: { readonly valeur: string; readonly debutLe: string },
+  ): Promise<never> {
+    const interpretation = interpreterContrainteVehicule(erreur);
+    if (!interpretation) {
+      throw erreur;
+    }
+    if (interpretation.code !== 'VEHICULE_PLAQUE_COLLISION') {
+      throw new ErreurMetier(
+        interpretation.code,
+        MESSAGES_CONTRAINTE[interpretation.contrainte] ??
+          `Contrainte violée : ${interpretation.contrainte}.`,
+      );
+    }
+    const collision = await this.acces.enTenant(ctx, (tx) =>
+      trouverVehiculeCollisionPlaque(tx, ctx, plaque),
+    );
+    throw new ErreurMetier(
+      interpretation.code,
+      'Cette plaque est déjà portée par un autre véhicule sur une période qui chevauche (RM-18).',
+      {
+        blocages: collision
+          ? [
+              {
+                type: 'champ',
+                id: 'plaque',
+                libelle: `Plaque déjà portée par le véhicule ${collision.marque} ${collision.modele}`,
+                donnees: { ...collision },
+              },
+            ]
+          : undefined,
+      },
+    );
   }
 
   /**
