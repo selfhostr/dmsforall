@@ -357,6 +357,36 @@ describe('EcranFicheOrdreReparation', () => {
       expect(screen.getByRole('menuitem', { name: 'Reprendre les travaux' })).toBeInTheDocument();
     });
 
+    it("atténue visuellement « Terminer » quand il est primaire sur un OR encore `ouvert` (test d'utilisabilité novice, 11.08.2026 : « Terminer quoi ? La voiture n'est même pas rentrée. »)", async () => {
+      // Rôle qui n'a droit qu'à `terminer`/`annuler` à ce statut (ex. réceptionniste sans
+      // `atelier.or.demarrer`) — `terminer` devient PRIMAIRE (il n'est pas dans
+      // `RESERVEES_SECONDAIRES`), mais reste `outline`, jamais `default`, tant que l'OR n'a pas
+      // commencé : ne doit plus ressembler à « l'étape attendue ».
+      installerHandler(
+        construireOr({ statut: 'ouvert', actionsDisponibles: ['terminer', 'annuler'] }),
+      );
+      const premierRendu = rendre();
+
+      const boutonTerminer = await screen.findByRole('button', { name: 'Terminer' });
+      expect(boutonTerminer).not.toHaveClass('bg-primary');
+
+      // Non-régression du chemin déjà correct : sur `en_cours` (travaux commencés), `terminer`
+      // primaire reste le bouton plein — même bouton, même libellé, poids visuel différent selon
+      // le statut, jamais une seconde machine à états côté client.
+      //
+      // CORRECTIF (le second rendu se superposait au premier sans le démonter : `findAllByRole`
+      // se résolvait dès qu'UN SEUL bouton « Terminer » existait — celui, déjà présent, du premier
+      // rendu — avant même que le second ait fini de charger. `boutonsTerminer[length - 1]`
+      // pointait alors vers le bouton `ouvert`/atténué, pas vers celui de `en_cours` : le test
+      // observait le mauvais élément, pas un vrai défaut de `PanneauActionsOr`. Démonter le
+      // premier rendu avant le second isole chaque assertion sur SON propre bouton.
+      premierRendu.unmount();
+      installerHandler(construireOr({ statut: 'en_cours', actionsDisponibles: ['terminer'] }));
+      rendre();
+      const boutonTerminerEnCours = await screen.findByRole('button', { name: 'Terminer' });
+      expect(boutonTerminerEnCours).toHaveClass('bg-primary');
+    });
+
     it("un clic sur une action du menu « Autres actions » ouvre le même dialogue de confirmation qu'un bouton de premier niveau", async () => {
       installerHandler(
         construireOr({ statut: 'ouvert', actionsDisponibles: ['demarrer', 'annuler'] }),
@@ -461,7 +491,7 @@ describe('EcranFicheOrdreReparation', () => {
     });
   });
 
-  describe('bouton « Ajouter une ligne » — gouverné par `atelier.ligne.creer` (ecrans/atelier/droits.ts)', () => {
+  describe('bouton « Ajouter un travail ou une pièce » — gouverné par `atelier.ligne.creer` (ecrans/atelier/droits.ts)', () => {
     function construireLigne(overrides: Partial<ReponseLigneOr> = {}): ReponseLigneOr {
       return {
         id: 'ligne-1',

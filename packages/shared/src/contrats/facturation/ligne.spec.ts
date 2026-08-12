@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { schemaCreationLigneDocument } from './ligne';
+import { schemaCreationLigneDocument, schemaModificationLigneDocument } from './ligne';
 
 /**
  * RP-43 — le pont vente comptoir ↔ facturation : `articleId`/`siteId` sur
@@ -80,5 +80,87 @@ describe('schemaCreationLigneDocument — pont stock pièces (RP-43, articleId/s
       siteId: ID_SITE,
     });
     expect(resultat.success).toBe(false);
+  });
+});
+
+/**
+ * Issue #12 — `formeLigneDocument` était un `z.object` SANS `.strict()`, donc zod appliquait le
+ * `.strip()` par défaut : un nom de champ inconnu (voisin plausible d'un vrai champ) disparaissait
+ * SILENCIEUSEMENT, `201 Created` rendu, ligne créée à `montantTtcCentimes: 0`. Preuve en exécution
+ * (branche `fix/champs-inconnus-et-compteur-seed`) : `POST /documents-vente/{id}/lignes` avec
+ * `prixUnitaireCentimes` (au lieu de `prixUnitaireTtcCentimes`) rendait `201`, puis
+ * `POST .../emettre` verrouillait un document `emis` à zéro (`MD-21` : plus aucune correction
+ * possible autrement que par un avoir). Ces tests verrouillent le comportement corrigé — valeurs
+ * exactes, jamais `toBeCloseTo` : une donnée d'argent ne s'approxime pas.
+ */
+describe('schemaCreationLigneDocument — champ inconnu REFUSÉ, nommé (issue #12, .strict())', () => {
+  const LIGNE_VALIDE_TEXTE = {
+    type: 'forfait',
+    designation: 'Révision complète',
+    quantiteMillieme: 1000,
+    tauxTvaPourmille: 81,
+    datePrestation: '2026-08-04',
+  };
+
+  it('reproduit exactement le geste de l’issue #12 : prixUnitaireCentimes (faux nom) est REFUSÉ, jamais accepté à 0', () => {
+    const resultat = schemaCreationLigneDocument.safeParse({
+      ...LIGNE_VALIDE_TEXTE,
+      prixUnitaireCentimes: 8900, // faux nom de champ — le vrai est prixUnitaireTtcCentimes
+    });
+    expect(resultat.success).toBe(false);
+    if (resultat.success) return;
+    // Avant le correctif, ceci n'aurait jamais été atteint : `success` valait `true` et
+    // `resultat.data.prixUnitaireTtcCentimes` valait `undefined` (donc 0 après calcul serveur),
+    // sans la moindre issue de validation.
+    expect(resultat.error.issues).toHaveLength(1);
+    const issue = resultat.error.issues[0];
+    expect(issue?.code).toBe('unrecognized_keys');
+    // Le corollaire de l'issue #12 : le message DOIT nommer le champ fautif, pas juste dire
+    // « validation échouée ». `PipeZod` (apps/api/src/common/validation/pipe-zod.ts) restitue ce
+    // message tel quel dans le `problem+json` rendu au client.
+    expect(issue?.message).toBe('Unrecognized key: "prixUnitaireCentimes"');
+  });
+
+  it('le même champ correctement nommé (prixUnitaireTtcCentimes) est accepté, montant exact préservé', () => {
+    const resultat = schemaCreationLigneDocument.safeParse({
+      ...LIGNE_VALIDE_TEXTE,
+      prixUnitaireTtcCentimes: 8900,
+    });
+    expect(resultat.success).toBe(true);
+    if (resultat.success) expect(resultat.data.prixUnitaireTtcCentimes).toBe(8900);
+  });
+
+  it('une ligne par ailleurs valide, sans aucun champ superflu, reste acceptée (non-régression)', () => {
+    const resultat = schemaCreationLigneDocument.safeParse({
+      ...LIGNE_VALIDE_TEXTE,
+      prixUnitaireTtcCentimes: 8900,
+    });
+    expect(resultat.success).toBe(true);
+  });
+
+  it('plusieurs champs inconnus à la fois : chacun est nommé dans le message (aucun ne se cache derrière un autre)', () => {
+    const resultat = schemaCreationLigneDocument.safeParse({
+      ...LIGNE_VALIDE_TEXTE,
+      prixUnitaireTtcCentimes: 8900,
+      montantTtcCentimes: 8900, // champ dérivé, jamais saisi côté client
+      remiseCentimes: 100, // faux nom — le vrai est remiseMontantCentimes
+    });
+    expect(resultat.success).toBe(false);
+    if (resultat.success) return;
+    const issue = resultat.error.issues[0];
+    expect(issue?.code).toBe('unrecognized_keys');
+    expect((issue as { keys?: readonly string[] } | undefined)?.keys).toEqual([
+      'montantTtcCentimes',
+      'remiseCentimes',
+    ]);
+  });
+
+  it('PATCH (schemaModificationLigneDocument, .partial() hérite du .strict() de la base) refuse aussi un champ inconnu', () => {
+    const resultat = schemaModificationLigneDocument.safeParse({
+      prixUnitaireCentimes: 5000,
+    });
+    expect(resultat.success).toBe(false);
+    if (resultat.success) return;
+    expect(resultat.error.issues[0]?.message).toBe('Unrecognized key: "prixUnitaireCentimes"');
   });
 });

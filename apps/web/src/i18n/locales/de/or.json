@@ -81,13 +81,13 @@
       "statut": "Status"
     },
     "types": {
-      "mainOeuvreBaremee": "Arbeitszeit Tarif",
-      "mainOeuvreTempsReel": "Arbeitszeit Realzeit",
+      "mainOeuvreBaremee": "Arbeitszeit (Richtzeit-Tarif)",
+      "mainOeuvreTempsReel": "Arbeitszeit (effektiv erfasste Zeit)",
       "forfait": "Pauschal",
-      "piece": "Teil",
-      "fourniture": "Zubehör",
+      "piece": "Teil (aus Lager entnommen)",
+      "fourniture": "Zubehör (Kleinmaterial)",
       "sousTraitance": "Fremdfertigung",
-      "produitAtelier": "Werkstattprodukt",
+      "produitAtelier": "Werkstattprodukt (z. B. Öl, Pflegemittel)",
       "taxeElimination": "Steuern / Entsorgung",
       "remise": "Rabatt",
       "texte": "Information"
@@ -124,6 +124,7 @@
     },
     "marqueurs": {
       "securite": "Sicherheit",
+      "securiteAide": "Verhindert die Fahrzeugrückgabe, solange kein schriftlicher Vorbehalt unterzeichnet ist.",
       "pieceARestituer": "Teil zurückzugeben",
       "fournieParClient": "Von Kunde",
       "attentePiece": "Wartet auf Teil",
@@ -281,7 +282,7 @@
     "receptionRequise": "Das Fahrzeug muss angenommen werden, bevor daran gearbeitet werden kann.",
     "orFacture": "Ein fakturierter RA kann nicht direkt wiedergeöffnet werden. Erstellen Sie einen verknüpften Nacharbeits-RA.",
     "checklistIncomplete": "Checkliste nicht komplett. Fehlende Punkte unten aufgelistet.",
-    "poManquant": "Kundenauftrag (PO) ist erforderlich.",
+    "poManquant": "Kundenauftrag ist erforderlich.",
     "reserveSecuriteRequise": "Sicherheitsmitteilung muss vor Rückgabe unterzeichnet werden."
   },
   "vues": {
@@ -308,13 +309,13 @@
     "aucunResultat": "Kein Ergebnis."
   },
   "chargement": {
-    "or": "RA wird geladen…",
+    "or": "Reparaturauftrag wird geladen…",
     "lignes": "Arbeiten werden geladen…"
   },
   "liste": {
     "titre": "Reparaturaufträge",
     "actions": {
-      "nouveau": "Neuer RA"
+      "nouveau": "Neuer Reparaturauftrag"
     },
     "colonnes": {
       "numero": "RA-Nr.",
@@ -372,6 +373,7 @@
     "titre": "Aktionen",
     "confirmer": "Bestätigen",
     "confirmerAction": "Bestätigen Sie diese Aktion.",
+    "annulerAvertissement": "Diese Aktion ist endgültig: Ein stornierter Reparaturauftrag kann weder geändert noch fortgesetzt werden.",
     "motif": "Grund",
     "motifRequis": "Der Grund ist obligatorisch",
     "kilometrageEntree": "Kilometerstand bei Annahme",
@@ -390,7 +392,7 @@
     "titre": "Neuer Reparaturauftrag",
     "siteManquant": {
       "titre": "Kein Standort ausgewählt",
-      "description": "Wählen Sie einen Standort, bevor Sie einen Reparaturauftrag eröffnen: Die Nummerierung und die Einstellungen des RA hängen davon ab.",
+      "description": "Wählen Sie einen Standort, bevor Sie einen Reparaturauftrag eröffnen: Die Nummerierung und die Einstellungen des Reparaturauftrags hängen davon ab.",
       "label": "Standort",
       "erreur": {
         "titre": "Ihre Standorte konnten nicht geladen werden"
@@ -398,7 +400,7 @@
     },
     "client": {
       "requisTitre": "Kein Kunde ausgewählt",
-      "requisDescription": "Eröffnen Sie einen Reparaturauftrag über die Kundenkarte (Schaltfläche «RA eröffnen»), oder suchen Sie den Kunden zuerst."
+      "requisDescription": "Eröffnen Sie einen Reparaturauftrag über die Kundenkarte (Schaltfläche «Reparaturauftrag eröffnen»), oder suchen Sie den Kunden zuerst."
     },
     "vehicule": {
       "titre": "Fahrzeug",
@@ -406,7 +408,7 @@
       "erreur": "Die Fahrzeuge dieses Kunden konnten nicht geladen werden"
     },
     "type": {
-      "libelle": "RA-Typ",
+      "libelle": "Reparaturauftrag-Typ",
       "service": "Service",
       "reparation": "Reparatur",
       "diagnostic": "Diagnose",
@@ -431,7 +433,7 @@
       "titre": "Der Reparaturauftrag konnte nicht eröffnet werden"
     },
     "actions": {
-      "creer": "RA eröffnen",
+      "creer": "Reparaturauftrag eröffnen",
       "enCours": "Wird eröffnet…"
     }
   }

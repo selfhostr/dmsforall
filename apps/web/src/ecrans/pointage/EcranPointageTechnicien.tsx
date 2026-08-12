@@ -337,9 +337,7 @@ export function EcranPointageTechnicien() {
   if (pointageOuvert.isPending || mesOrdres.isPending) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('pointage:technicien.titreEcran')}
-        </h1>
+        <h1 className="texte-titre-page">{t('pointage:technicien.titreEcran')}</h1>
         <EtatChargement lignes={5} />
       </div>
     );
@@ -348,9 +346,7 @@ export function EcranPointageTechnicien() {
   if (pointageOuvert.isError) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('pointage:technicien.titreEcran')}
-        </h1>
+        <h1 className="texte-titre-page">{t('pointage:technicien.titreEcran')}</h1>
         <EtatErreur
           titre={t('pointage:technicien.erreur.titre')}
           description={messageErreur(pointageOuvert.error, t)}
@@ -386,9 +382,7 @@ export function EcranPointageTechnicien() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {t('pointage:technicien.titreEcran')}
-      </h1>
+      <h1 className="texte-titre-page">{t('pointage:technicien.titreEcran')}</h1>
 
       {pointageActuel ? (
         <CartePointageEnCours

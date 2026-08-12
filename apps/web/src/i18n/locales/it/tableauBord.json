@@ -32,7 +32,7 @@
       "jours": "{jours} g"
     },
     "lignesEnAttenteValidation": {
-      "libelle": "Righe in attesa di convalida"
+      "libelle": "Lavori da approvare"
     },
     "articlesSousSeuil": {
       "libelle": "Articoli sotto la soglia di riordino"

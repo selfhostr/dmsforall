@@ -143,7 +143,7 @@ export function EcranListeCommandesFournisseur() {
   if (isPending) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:commandes.titre')}</h1>
+        <h1 className="texte-titre-page">{t('pieces:commandes.titre')}</h1>
         <EtatChargement lignes={6} />
       </div>
     );
@@ -152,7 +152,7 @@ export function EcranListeCommandesFournisseur() {
   if (isError) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:commandes.titre')}</h1>
+        <h1 className="texte-titre-page">{t('pieces:commandes.titre')}</h1>
         <EtatErreur
           titre={t('pieces:commandes.erreur.titre')}
           description={messageErreur(error, t)}
@@ -169,7 +169,7 @@ export function EcranListeCommandesFournisseur() {
           s'agit — « Commandes fournisseur » porte l'information « fournisseur » qu'aucun onglet ni
           vue n'affiche. Comparaison mot pour mot avec la barre d'onglets active : pas un doublon. */}
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('pieces:commandes.titre')}</h1>
+        <h1 className="texte-titre-page">{t('pieces:commandes.titre')}</h1>
         {peutEcrireCommandeFournisseur(role) ? (
           <Button onClick={() => navigate('/pieces/commandes-fournisseur/nouvelle')}>
             {t('pieces:commandes.actions.creer')}

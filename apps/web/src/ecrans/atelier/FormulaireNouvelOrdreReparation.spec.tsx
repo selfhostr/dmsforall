@@ -211,7 +211,9 @@ describe('FormulaireNouvelOrdreReparation', () => {
     const utilisateur = userEvent.setup();
     const { onCree } = rendre();
 
-    await utilisateur.click(await screen.findByRole('button', { name: "Ouvrir l'OR" }));
+    await utilisateur.click(
+      await screen.findByRole('button', { name: "Ouvrir l'ordre de réparation" }),
+    );
 
     await waitFor(() => expect(onCree).toHaveBeenCalledWith(construireOr()));
     expect(corpsRecu).toMatchObject({
@@ -241,10 +243,66 @@ describe('FormulaireNouvelOrdreReparation', () => {
 
     expect(screen.getByText('« Bruit bizarre au freinage »')).toBeInTheDocument();
 
-    await utilisateur.click(screen.getByRole('button', { name: "Ouvrir l'OR" }));
+    await utilisateur.click(screen.getByRole('button', { name: "Ouvrir l'ordre de réparation" }));
 
     await waitFor(() =>
       expect(corpsRecu?.demandes).toEqual([{ verbatim: 'Bruit bizarre au freinage' }]),
+    );
+  });
+
+  it("CORRECTIF (test d'utilisabilité novice, 11.08.2026) : un texte tapé dans « Demandes du client » sans jamais cliquer « + Ajouter » n'est PAS perdu à la soumission — « le mécanicien reçoit une voiture sans savoir pourquoi elle est là »", async () => {
+    let corpsRecu: { readonly demandes?: readonly { readonly verbatim: string }[] } | null = null;
+    server.use(
+      http.post('/api/v1/ordres-reparation', async ({ request }) => {
+        corpsRecu = (await request.json()) as {
+          readonly demandes?: readonly { readonly verbatim: string }[];
+        };
+        return HttpResponse.json({ donnees: construireOr(), avertissements: [] }, { status: 201 });
+      }),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    const champDemande = screen.getByLabelText('Verbatim');
+    await utilisateur.type(
+      champDemande,
+      'Bruit anormal à l’avant droit quand je roule, surtout dans les virages',
+    );
+    // AUCUN clic sur « + Ajouter » — exactement le geste du testeur : direct sur le bouton du bas.
+    await utilisateur.click(screen.getByRole('button', { name: "Ouvrir l'ordre de réparation" }));
+
+    await waitFor(() =>
+      expect(corpsRecu?.demandes).toEqual([
+        { verbatim: 'Bruit anormal à l’avant droit quand je roule, surtout dans les virages' },
+      ]),
+    );
+  });
+
+  it('un texte tapé mais non ajouté se combine avec les demandes déjà ajoutées, sans doublon ni perte', async () => {
+    let corpsRecu: { readonly demandes?: readonly { readonly verbatim: string }[] } | null = null;
+    server.use(
+      http.post('/api/v1/ordres-reparation', async ({ request }) => {
+        corpsRecu = (await request.json()) as {
+          readonly demandes?: readonly { readonly verbatim: string }[];
+        };
+        return HttpResponse.json({ donnees: construireOr(), avertissements: [] }, { status: 201 });
+      }),
+    );
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    const champDemande = screen.getByLabelText('Verbatim');
+    await utilisateur.type(champDemande, 'Vidange à faire');
+    await utilisateur.click(screen.getByRole('button', { name: 'Ajouter' }));
+    await utilisateur.type(champDemande, 'Bruit au freinage');
+    // Ce second texte reste dans le champ, jamais cliqué « + Ajouter ».
+    await utilisateur.click(screen.getByRole('button', { name: "Ouvrir l'ordre de réparation" }));
+
+    await waitFor(() =>
+      expect(corpsRecu?.demandes).toEqual([
+        { verbatim: 'Vidange à faire' },
+        { verbatim: 'Bruit au freinage' },
+      ]),
     );
   });
 
@@ -279,7 +337,9 @@ describe('FormulaireNouvelOrdreReparation', () => {
       const utilisateur = userEvent.setup({ pointerEventsCheck: 0 });
       const { onCree } = rendre();
 
-      await utilisateur.click(await screen.findByRole('button', { name: "Ouvrir l'OR" }));
+      await utilisateur.click(
+        await screen.findByRole('button', { name: "Ouvrir l'ordre de réparation" }),
+      );
 
       const boutonContinuer = await screen.findByRole('button', { name: 'Continuer quand même' });
       await utilisateur.click(boutonContinuer);
@@ -303,7 +363,9 @@ describe('FormulaireNouvelOrdreReparation', () => {
     const utilisateur = userEvent.setup();
     rendre();
 
-    await utilisateur.click(await screen.findByRole('button', { name: "Ouvrir l'OR" }));
+    await utilisateur.click(
+      await screen.findByRole('button', { name: "Ouvrir l'ordre de réparation" }),
+    );
 
     expect(await screen.findByText('Connexion impossible')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Continuer quand même' })).not.toBeInTheDocument();

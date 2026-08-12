@@ -84,7 +84,14 @@ describe('EcranFicheVehiculeStock', () => {
     expect(await screen.findByText('VW Touran 2.0 TDI')).toBeInTheDocument();
     expect(screen.getByText('En commande')).toBeInTheDocument();
     expect(screen.getByText('Non fixé')).toBeInTheDocument();
-    expect(screen.getByText("32'000.00")).toBeInTheDocument();
+
+    // Prix d'achat masqué par défaut (constat testeur : juxtaposé au prix de vente, il révèle la
+    // marge si le vendeur tourne l'écran vers le client) — la valeur brute n'apparaît qu'après un
+    // clic explicite sur le bouton de révélation.
+    expect(screen.queryByText("32'000.00")).not.toBeInTheDocument();
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(screen.getByRole('button', { name: "Voir Prix d'achat" }));
+    expect(await screen.findByText("32'000.00")).toBeInTheDocument();
   });
 
   it('un rôle sans droit d’écriture ne voit aucune action (ni primaire ni menu de débordement)', async () => {

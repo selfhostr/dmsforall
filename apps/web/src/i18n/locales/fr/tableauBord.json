@@ -32,7 +32,7 @@
       "jours": "{jours} j"
     },
     "lignesEnAttenteValidation": {
-      "libelle": "Lignes en attente de validation"
+      "libelle": "Travaux à valider"
     },
     "articlesSousSeuil": {
       "libelle": "Articles sous seuil de réapprovisionnement"

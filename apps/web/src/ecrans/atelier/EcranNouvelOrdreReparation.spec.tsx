@@ -214,7 +214,7 @@ describe('EcranNouvelOrdreReparation', () => {
       expect(await screen.findByText('Site non sélectionné')).toBeInTheDocument();
       expect(
         screen.getByText(
-          "Choisissez un site avant d'ouvrir un ordre de réparation : la numérotation et le paramétrage de l'OR en dépendent.",
+          "Choisissez un site avant d'ouvrir un ordre de réparation : la numérotation et le paramétrage de l'ordre de réparation en dépendent.",
         ),
       ).toBeInTheDocument();
       // Plus de renvoi vers l'accueil (ça perdait `clientId`, obligeant à rechercher le client une
@@ -288,7 +288,9 @@ describe('EcranNouvelOrdreReparation', () => {
       const optionVehicule = await screen.findByRole('radio', { name: /VW Touran 2\.0 TDI/ });
       await utilisateur.click(optionVehicule);
 
-      const boutonCreer = await screen.findByRole('button', { name: "Ouvrir l'OR" });
+      const boutonCreer = await screen.findByRole('button', {
+        name: "Ouvrir l'ordre de réparation",
+      });
       await utilisateur.click(boutonCreer);
 
       await waitFor(() => expect(screen.getByText('PAGE_FICHE_OR')).toBeInTheDocument());

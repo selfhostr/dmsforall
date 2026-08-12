@@ -107,7 +107,9 @@ export function EcranParametragePieces() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="texte-titre font-semibold text-foreground">{t('parametrage:pieces.titre')}</h1>
+      <h1 className="texte-titre-page font-semibold text-foreground">
+        {t('parametrage:pieces.titre')}
+      </h1>
 
       {requete.isPending ? (
         <EtatChargement lignes={8} />

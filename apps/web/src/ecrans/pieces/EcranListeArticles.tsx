@@ -39,6 +39,7 @@ import { chemins } from '@/routes/chemins';
 
 import { FormulaireArticle } from './FormulaireArticle';
 import { peutEcrireArticle } from './droits';
+import { formaterQuantiteMillieme } from './utils';
 
 const DELAI_DEBOUNCE_MS = 300;
 
@@ -70,6 +71,21 @@ export function EcranListeArticles() {
   const [statut, setStatut] = useState<StatutArticle | undefined>(undefined);
   const [tri, setTri] = useState<string>(TRI_DEFAUT_ARTICLES);
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
+
+  // Site dont la colonne « disponible » lit le stock — jamais deviné à plusieurs choix possibles
+  // (même doctrine que `SelecteurSiteRequis`) : auto-sélectionné UNIQUEMENT quand un seul site
+  // actif existe (aucune ambiguïté à deviner), sinon laissé au magasinier. Filtre d'affichage
+  // pur : ne change jamais la requête `/articles`, seulement la lecture de `stocksResume`.
+  const sitesActifs = useMemo(() => (session?.sites ?? []).filter((site) => site.actif), [session]);
+  const [site, setSite] = useState('');
+  useEffect(() => {
+    if (site === '' && sitesActifs.length === 1) {
+      const siteUnique = sitesActifs[0];
+      if (siteUnique) {
+        setSite(siteUnique.id);
+      }
+    }
+  }, [site, sitesActifs]);
 
   useEffect(() => {
     const identifiant = window.setTimeout(() => setQ(qSaisie), DELAI_DEBOUNCE_MS);
@@ -139,12 +155,48 @@ export function EcranListeArticles() {
       ),
     },
     {
+      // Libellé « TTC » explicite (pas « Prix » nu) — même clé et même doctrine que la colonne
+      // prix de `EcranRechercheComptoirPieces` : un magasinier qui saisit un montant sous un
+      // libellé ambigu peut croire au hors-taxe (constat testeur, prix affiché ≠ prix saisi).
       id: 'prix',
-      libelle: t('pieces:articles.liste.colonnes.prix'),
+      libelle: t('pieces:articles.prix.ttc'),
       alignement: 'droite',
       rendu: (article) => (
         <span className="tabular-nums">{formaterMontant(article.prixVenteTtcCentimes)}</span>
       ),
+    },
+    {
+      // Disponibilité RÉELLE au site choisi, jamais un total tous sites confondus (brief : « ce
+      // qu'il peut réellement sortir aujourd'hui, sur son site »). Trois rendus distincts, jamais
+      // confondus (règle du dépôt « absence de donnée ≠ valeur ») :
+      //  - aucun site choisi -> « — » (inconnu, pas zéro) ;
+      //  - site choisi, stock à 0 (ou jamais mouvementé sur ce site) -> badge « Rupture »,
+      //    l'information utile pour le magasinier reste la même dans les deux cas (rien à sortir
+      //    aujourd'hui sur ce site) ;
+      //  - site choisi, stock > 0 -> quantité en unités (conversion millièmes -> unités, JAMAIS
+      //    le brut millième affiché tel quel).
+      id: 'disponibilite',
+      libelle: t('pieces:stock.quantites.disponible'),
+      alignement: 'droite',
+      rendu: (article) => {
+        if (site === '') {
+          return <span className="tabular-nums text-muted-foreground">—</span>;
+        }
+        const quantite =
+          article.stocksResume.find((resume) => resume.siteId === site)
+            ?.quantiteDisponibleMillieme ?? 0;
+        return quantite > 0 ? (
+          <span className="tabular-nums text-statut-succes">
+            {t('pieces:rechercheComptoir.resultat.disponible', {
+              n: formaterQuantiteMillieme(quantite),
+            })}
+          </span>
+        ) : (
+          <span className="texte-libelle text-destructive">
+            {t('pieces:rechercheComptoir.resultat.rupture')}
+          </span>
+        );
+      },
     },
   ];
 
@@ -274,6 +326,27 @@ export function EcranListeArticles() {
             </SelectContent>
           </Select>
         </div>
+        {sitesActifs.length > 1 ? (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="filtre-site">{t('pieces:siteRequis.label')}</Label>
+            <Select value={site} onValueChange={setSite}>
+              <SelectTrigger
+                id="filtre-site"
+                className="w-[200px]"
+                aria-label={t('pieces:siteRequis.label')}
+              >
+                <SelectValue placeholder={t('pieces:siteRequis.label')} />
+              </SelectTrigger>
+              <SelectContent>
+                {sitesActifs.map((siteOption) => (
+                  <SelectItem key={siteOption.id} value={siteOption.id}>
+                    {siteOption.nom}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
       </BarreFiltres>
 
       <SelecteurTri

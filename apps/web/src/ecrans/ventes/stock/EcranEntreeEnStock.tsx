@@ -32,7 +32,7 @@ export function EcranEntreeEnStock() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('ventes:stock.entree.titre')}</h1>
+      <h1 className="texte-titre-page">{t('ventes:stock.entree.titre')}</h1>
 
       {vehiculeChoisi === null ? (
         <SelecteurVehiculeExistant onChoisir={setVehiculeChoisi} />

@@ -509,6 +509,97 @@ describe('EcranFicheVehicule', () => {
     expect(screen.queryByRole('button', { name: 'Modifier' })).not.toBeInTheDocument();
   });
 
+  // Défaut mesuré en test d'utilisabilité (`DialogueModifierIdentiteVehicule.tsx`) : un véhicule
+  // créé sans VIN ni plaque après un refus de saisie silencieux n'avait ENSUITE aucun moyen d'en
+  // recevoir une — pas de bouton « Modifier » sur la fiche, l'étiquette « Identification
+  // incomplète » ne menant nulle part. Preuve bout en bout depuis la session réelle que
+  // « Modifier l'identité du véhicule » (en-tête) ouvre le dialogue, que les deux mutations
+  // indépendantes (VIN, plaque) partent avec les valeurs saisies, et que le dialogue se ferme
+  // seulement une fois les deux réussies.
+  it(
+    "répare une identification incomplète (VIN + plaque) depuis le crayon de l'en-tête, " +
+      'et fait disparaître le badge « Identification incomplète »',
+    async () => {
+      // GET /vehicules/v1 avec ÉTAT MUABLE : les deux mutations (VIN, plaque) invalident cette
+      // ressource — pour prouver que le badge disparaît RÉELLEMENT après coup (pas seulement que
+      // les corps envoyés sont corrects), le handler doit refléter ce que les mutations ont écrit,
+      // comme le ferait le vrai serveur.
+      let vehiculeActuel: ReponseVehicule = {
+        ...VEHICULE,
+        vin: null,
+        plaque: null,
+        canton: null,
+        identificationIncomplete: true,
+      };
+      installerHandlersLotB();
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/vehicules/v1', () => HttpResponse.json(vehiculeActuel)),
+        http.get('/api/v1/vehicules/v1/contexte-atelier', () =>
+          HttpResponse.json({
+            ...CONTEXTE,
+            vehicule: { ...CONTEXTE.vehicule, vin: null, plaque: null, canton: null },
+          }),
+        ),
+        http.get('/api/v1/vehicules/v1/kilometrages', () => HttpResponse.json(KILOMETRAGES)),
+        http.get('/api/v1/vehicules/v1/detentions', () => HttpResponse.json(DETENTIONS)),
+        http.get('/api/v1/vehicules/v1/travaux-reportes', () =>
+          HttpResponse.json(TRAVAUX_REPORTES),
+        ),
+      );
+      let corpsVin: Record<string, unknown> | null = null;
+      let corpsPlaque: Record<string, unknown> | null = null;
+      server.use(
+        http.patch('/api/v1/vehicules/v1', async ({ request }) => {
+          corpsVin = (await request.json()) as Record<string, unknown>;
+          vehiculeActuel = { ...vehiculeActuel, vin: 'WVGZZZ1TZ8W123456' };
+          return HttpResponse.json({ donnees: vehiculeActuel, avertissements: [] });
+        }),
+        http.post('/api/v1/vehicules/v1/plaques', async ({ request }) => {
+          corpsPlaque = (await request.json()) as Record<string, unknown>;
+          vehiculeActuel = {
+            ...vehiculeActuel,
+            plaque: 'VS 123456',
+            canton: 'VS',
+            identificationIncomplete: false,
+          };
+          return HttpResponse.json(
+            { id: 'p1', valeur: 'VS 123456', canton: 'VS' },
+            { status: 201 },
+          );
+        }),
+      );
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      expect(await screen.findByText('Identification incomplète')).toBeInTheDocument();
+      await utilisateur.click(
+        screen.getByRole('button', { name: "Modifier l'identité du véhicule" }),
+      );
+      const dialogue = await screen.findByRole('dialog');
+      await utilisateur.type(within(dialogue).getByLabelText('VIN'), 'WVGZZZ1TZ8W123456');
+      await utilisateur.type(within(dialogue).getByLabelText('Plaque'), 'VS 123456');
+      await utilisateur.type(within(dialogue).getByLabelText('Canton'), 'VS');
+      await utilisateur.click(within(dialogue).getByRole('button', { name: 'Enregistrer' }));
+
+      await waitFor(() => expect(corpsVin).toEqual({ vin: 'WVGZZZ1TZ8W123456' }));
+      await waitFor(() =>
+        expect(corpsPlaque).toEqual({
+          valeur: 'VS 123456',
+          canton: 'VS',
+          pays: 'CH',
+          debutLe: expect.any(String),
+          interchangeable: false,
+          professionnelle: false,
+        }),
+      );
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.queryByText('Identification incomplète')).not.toBeInTheDocument(),
+      );
+    },
+  );
+
   // Défaut corrigé (« le lien qui n'aboutit qu'à moitié ») : « Voir dans le hangar à pneus » menait
   // à `/pneus` sans jamais désigner LEQUEL des jeux du véhicule regarder — le magasinier devait
   // refaire une recherche visuelle dans le local pour retrouver la case H-014. Le lien transmet

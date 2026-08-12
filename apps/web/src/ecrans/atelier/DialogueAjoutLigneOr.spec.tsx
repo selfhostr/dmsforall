@@ -12,7 +12,8 @@ import { renduAvecQueryClient } from '@/test/utils';
 import { DialogueAjoutLigneOr } from './DialogueAjoutLigneOr';
 
 /**
- * Défaut réel reproduit en navigateur (fiche OR, dialogue « Ajouter une ligne ») : pour un client
+ * Défaut réel reproduit en navigateur (fiche OR, dialogue « Ajouter un travail ou une pièce ») :
+ * pour un client
  * sans taux négocié (RM-07) et un référentiel garage sans taux standard, le serveur répond
  * `VALIDATION_ECHOUEE` avec, dans `erreurs[0]`, un message précis rédigé à la main (« Aucun taux
  * horaire standard : ... Renseigner les taux horaires dans le paramétrage. »). Avant le correctif,
@@ -42,6 +43,31 @@ async function ouvrirDialogueEtSaisirDesignation(utilisateur: ReturnType<typeof 
   await screen.findByRole('dialog');
   await utilisateur.type(screen.getByLabelText(/Désignation/), 'Remplacement plaquettes avant');
 }
+
+describe("DialogueAjoutLigneOr — correctifs test d'utilisabilité novice (11.08.2026)", () => {
+  it('affiche une unité « h » à côté du Temps barémé — « est-ce 1 heure 20, ou 1,2 heure ? »', async () => {
+    const utilisateur = userEvent.setup();
+    renduAvecQueryClient(<DialogueAjoutLigneOr orId={OR_ID} siteId="site-1" />);
+    await utilisateur.click(screen.getByRole('button', { name: i18n.t('or:lignes.ajouter') }));
+    await screen.findByRole('dialog');
+
+    // Type par défaut = « Main-d'œuvre (temps barémé) » : le champ Temps barémé est visible d'emblée.
+    const champTemps = screen.getByLabelText('Temps barémé');
+    expect(champTemps.parentElement).toHaveTextContent('h');
+  });
+
+  it("relie la case « Sécurité » à une explication accessible (`aria-describedby`) — avant, aucune indication sur ce qu'elle fait", async () => {
+    const utilisateur = userEvent.setup();
+    renduAvecQueryClient(<DialogueAjoutLigneOr orId={OR_ID} siteId="site-1" />);
+    await utilisateur.click(screen.getByRole('button', { name: i18n.t('or:lignes.ajouter') }));
+    await screen.findByRole('dialog');
+
+    const caseSecurite = screen.getByRole('checkbox', { name: 'Sécurité' });
+    const idAide = caseSecurite.getAttribute('aria-describedby');
+    expect(idAide).toBe('or-ligne-securite-aide');
+    expect(document.getElementById('or-ligne-securite-aide')).not.toBeNull();
+  });
+});
 
 describe('DialogueAjoutLigneOr — défaut : message métier du serveur perdu derrière le bandeau générique', () => {
   it('affiche le message serveur précis (taux_horaire_introuvable) au lieu de « Certaines informations sont incorrectes. »', async () => {

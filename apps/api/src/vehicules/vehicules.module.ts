@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 
+import { ReferentielVehiculesChController } from './referentiel/referentiel-vehicules-ch.controller';
+import { ServiceReferentielVehiculesCh } from './referentiel/service-referentiel-vehicules-ch';
 import { ServiceVehicule } from './service-vehicule';
 import { ServiceVehiculeCampagne } from './service-vehicule-campagne';
 import { ServiceVehiculeContexteAtelier } from './service-vehicule-contexte-atelier';
@@ -41,6 +43,7 @@ import { VehiculeTravailReporteController } from './vehicule-travail-reporte.con
     VehiculeKilometrageController,
     VehiculePlaqueController,
     VehiculeTravailReporteController,
+    ReferentielVehiculesChController,
   ],
   providers: [
     ServiceVehicule,
@@ -51,6 +54,7 @@ import { VehiculeTravailReporteController } from './vehicule-travail-reporte.con
     ServiceVehiculeKilometrage,
     ServiceVehiculePlaque,
     ServiceVehiculeTravailReporte,
+    ServiceReferentielVehiculesCh,
   ],
   exports: [ServiceVehiculeTravailReporte],
 })

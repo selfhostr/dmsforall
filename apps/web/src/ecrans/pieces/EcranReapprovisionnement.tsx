@@ -157,9 +157,7 @@ export function EcranReapprovisionnement() {
   if (isError) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('pieces:stock.reapprovisionnement.titre')}
-        </h1>
+        <h1 className="texte-titre-page">{t('pieces:stock.reapprovisionnement.titre')}</h1>
         <EtatErreur
           titre={t('pieces:stock.reapprovisionnement.erreur.titre')}
           description={messageErreur(error, t)}
@@ -172,9 +170,7 @@ export function EcranReapprovisionnement() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('pieces:stock.reapprovisionnement.titre')}
-        </h1>
+        <h1 className="texte-titre-page">{t('pieces:stock.reapprovisionnement.titre')}</h1>
         {peutCommander && selection.size > 0 ? (
           <div className="flex items-center gap-3 rounded-md border bg-muted/50 px-3 py-2">
             <span className="texte-corps text-foreground">

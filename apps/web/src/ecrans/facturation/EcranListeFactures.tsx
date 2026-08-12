@@ -180,9 +180,20 @@ export function EcranListeFactures() {
             // afficher ce badge sur une créance déjà éteinte par avoir la ferait lire comme une
             // dette active. `BadgeEtatDocument` (déjà utilisé sur la fiche facture) rend l'état réel
             // à la place, jamais les deux superposés.
+            //
+            // Défaut corrigé (issue #61, testeur novice) : un `brouillon` portait le badge
+            // `BadgeStatutReglement` (« Non réglée ») comme une vraie créance, alors que `statut` et
+            // `statutReglement` sont DEUX colonnes délibérément indépendantes (`RF-68`) —
+            // `statutReglement: 'non_regle'` n'est qu'une valeur PAR DÉFAUT tant que rien n'a été
+            // émis, jamais un signal de créance due. Un brouillon n'est pas encore émis (`numero`/
+            // `dateEcheance` valent `null` par construction, `MD-03`/`MD-19`) : rien n'est dû, donc
+            // rien à relancer. Même traitement que `annule_par_avoir` ci-dessus — l'état réel
+            // (`BadgeEtatDocument`) prime sur l'état de règlement, jamais les deux superposés.
             rendu: (document_: DocumentVenteResume) =>
               document_.statut === 'annule_par_avoir' ? (
                 <BadgeEtatDocument etat="annule_par_avoir" />
+              ) : document_.statut === 'brouillon' ? (
+                <BadgeEtatDocument etat="brouillon" />
               ) : document_.statutReglement ? (
                 <BadgeStatutReglement statut={document_.statutReglement} />
               ) : null,

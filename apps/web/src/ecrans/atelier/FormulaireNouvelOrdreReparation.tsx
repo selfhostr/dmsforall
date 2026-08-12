@@ -108,6 +108,23 @@ export function FormulaireNouvelOrdreReparation({
     setDemandes((valeur) => valeur.filter((_, i) => i !== index));
   }
 
+  /**
+   * Demandes réellement soumises = `demandes` (déjà « ajoutées ») + le texte encore dans le champ
+   * de saisie, s'il n'est pas vide (CORRECTIF — test d'utilisabilité novice, 11.08.2026) :
+   * « le mécanicien reçoit une voiture sans savoir pourquoi elle est là » — un texte tapé puis
+   * jamais explicitement « + Ajouté » ne doit JAMAIS disparaître silencieusement à la soumission,
+   * c'est la seule information vraiment importante de tout l'écran. Choix retenu (vs. bloquer la
+   * soumission en exigeant l'ajout explicite) : conserver SANS geste supplémentaire — le « +
+   * Ajouter » garde son utilité pour composer PLUSIEURS demandes distinctes, mais n'est plus une
+   * condition pour que la première survive. Recalculé à chaque appel (jamais mémorisé dans un
+   * state à part) : idempotent si `soumettre()` est rappelé après une erreur serveur, sans risque
+   * de dupliquer la phrase en attente.
+   */
+  function demandesEffectives(): readonly string[] {
+    const enAttente = demandeSaisie.trim();
+    return enAttente === '' ? demandes : [...demandes, enAttente];
+  }
+
   function construireEntree(): EntreeCreationOrdreReparation {
     return {
       siteId: site,
@@ -117,7 +134,7 @@ export function FormulaireNouvelOrdreReparation({
       statutInitial,
       kilometrageEntree,
       uniteKilometrage: 'km',
-      demandes: demandes.map((verbatim) => ({ verbatim })),
+      demandes: demandesEffectives().map((verbatim) => ({ verbatim })),
       plafondCentimes: plafondCentimes ?? undefined,
       plafondAutorisePar: plafondAutorisePar.trim() === '' ? undefined : plafondAutorisePar.trim(),
       restitutionPromiseLe:
@@ -197,7 +214,7 @@ export function FormulaireNouvelOrdreReparation({
       ) : null}
 
       {/* CONFIRMATION_REQUISE (§4.4) : la création reste possible, un accord explicite suffit —
-       *  jamais un second clic silencieux sur « Ouvrir l'OR ». Prompt inline PUIS modal, comme
+       *  jamais un second clic silencieux sur « Ouvrir l'ordre de réparation ». Prompt inline PUIS modal, comme
        *  `PanneauActionsOr` (le seul autre écran de ce module à traiter ce cas). */}
       {confirmationsRequises.length > 0 ? (
         <div

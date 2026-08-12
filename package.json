@@ -22,6 +22,7 @@
     "db:generate": "pnpm --filter @dfa/api db:generate",
     "db:migrate": "pnpm --filter @dfa/api db:migrate",
     "db:seed": "pnpm --filter @dfa/api db:seed",
+    "db:import:vehicules-ch": "pnpm --filter @dfa/api db:import:vehicules-ch",
     "api:openapi": "pnpm --filter @dfa/api openapi:export",
     "web:types": "pnpm --filter @dfa/web types:api",
     "docker:up": "docker compose up -d",

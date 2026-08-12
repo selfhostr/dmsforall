@@ -40,7 +40,7 @@
     "plafond": "Plafond",
     "totalDuJour": "Aujourd'hui",
     "techniciensEnCours": "Techniciens en cours",
-    "numeroPo": "PO du client",
+    "numeroPo": "N° de bon de commande du client",
     "restitutionReportee": "Reportée",
     "orPrecedent": "OR précédent : {numero}"
   },
@@ -81,13 +81,13 @@
       "statut": "Statut"
     },
     "types": {
-      "mainOeuvreBaremee": "M.O. barémée",
-      "mainOeuvreTempsReel": "M.O. temps réel",
+      "mainOeuvreBaremee": "Main-d'œuvre (temps barémé)",
+      "mainOeuvreTempsReel": "Main-d'œuvre (temps réellement pointé)",
       "forfait": "Forfait",
-      "piece": "Pièce",
-      "fourniture": "Fourniture",
+      "piece": "Pièce (prélevée du stock)",
+      "fourniture": "Fourniture (petit consommable)",
       "sousTraitance": "Sous-traitance",
-      "produitAtelier": "Produit d'atelier",
+      "produitAtelier": "Produit d'atelier (huile, consommables d'entretien)",
       "taxeElimination": "Taxe / Élimination",
       "remise": "Remise",
       "texte": "Information"
@@ -124,6 +124,7 @@
     },
     "marqueurs": {
       "securite": "Sécurité",
+      "securiteAide": "Bloque la restitution du véhicule tant qu'aucune réserve écrite n'est signée.",
       "pieceARestituer": "Pièce à restituer",
       "fournieParClient": "Fournie par client",
       "attentePiece": "Attente pièce",
@@ -281,7 +282,7 @@
     "receptionRequise": "Le véhicule doit être réceptionné avant de pouvoir travailler dessus.",
     "orFacture": "Un OR facturé ne peut pas être réouvert directement. Créez un OR de retouche lié.",
     "checklistIncomplete": "La check-list n'est pas complète. Points manquants listés ci-dessous.",
-    "poManquant": "Le numéro de commande (PO) est obligatoire pour ce client.",
+    "poManquant": "Le numéro de bon de commande du client est obligatoire.",
     "reserveSecuriteRequise": "Une mention de sécurité doit être signée avant la restitution."
   },
   "vues": {
@@ -308,13 +309,13 @@
     "aucunResultat": "Aucun résultat."
   },
   "chargement": {
-    "or": "Chargement de l'OR…",
+    "or": "Chargement de l'ordre de réparation…",
     "lignes": "Chargement des lignes…"
   },
   "liste": {
     "titre": "Ordres de réparation",
     "actions": {
-      "nouveau": "Nouvel OR"
+      "nouveau": "Nouvel ordre de réparation"
     },
     "colonnes": {
       "numero": "N° OR",
@@ -372,6 +373,7 @@
     "titre": "Actions",
     "confirmer": "Confirmer",
     "confirmerAction": "Confirmez cette action.",
+    "annulerAvertissement": "Cette action est définitive : l'ordre de réparation annulé ne pourra plus être ni modifié ni repris.",
     "motif": "Motif",
     "motifRequis": "Le motif est obligatoire",
     "kilometrageEntree": "Kilométrage à l'entrée",
@@ -390,7 +392,7 @@
     "titre": "Nouvel ordre de réparation",
     "siteManquant": {
       "titre": "Site non sélectionné",
-      "description": "Choisissez un site avant d'ouvrir un ordre de réparation : la numérotation et le paramétrage de l'OR en dépendent.",
+      "description": "Choisissez un site avant d'ouvrir un ordre de réparation : la numérotation et le paramétrage de l'ordre de réparation en dépendent.",
       "label": "Site",
       "erreur": {
         "titre": "Impossible de charger vos sites"
@@ -398,7 +400,7 @@
     },
     "client": {
       "requisTitre": "Client non sélectionné",
-      "requisDescription": "Ouvrez un ordre de réparation depuis la fiche d'un client (bouton « Ouvrir un OR »), ou recherchez-le d'abord."
+      "requisDescription": "Ouvrez un ordre de réparation depuis la fiche d'un client (bouton « Ouvrir un ordre de réparation »), ou recherchez-le d'abord."
     },
     "vehicule": {
       "titre": "Véhicule",
@@ -406,7 +408,7 @@
       "erreur": "Impossible de charger les véhicules de ce client"
     },
     "type": {
-      "libelle": "Type d'OR",
+      "libelle": "Type d'ordre de réparation",
       "service": "Service",
       "reparation": "Réparation",
       "diagnostic": "Diagnostic",
@@ -431,7 +433,7 @@
       "titre": "Impossible d'ouvrir l'ordre de réparation"
     },
     "actions": {
-      "creer": "Ouvrir l'OR",
+      "creer": "Ouvrir l'ordre de réparation",
       "enCours": "Création en cours…"
     }
   }

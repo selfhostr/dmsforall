@@ -38,7 +38,8 @@
       "titre": "Section indisponible"
     },
     "actions": {
-      "nouvelOr": "Nouvel OR"
+      "nouvelOr": "Nouvel OR",
+      "modifierTitre": "Modifier l'identité du véhicule"
     },
     "proprietaire": {
       "titre": "Propriétaire et détenteurs",
@@ -80,13 +81,26 @@
     "vin": "VIN",
     "codeType": "Code type CH",
     "plaque": "Plaque",
+    "plaqueExemple": "VS 123456",
+    "plaqueAide": "Canton puis numéro, avec un espace, comme sur la plaque : VS 123456.",
     "mise1reCirc": "1re mise en circulation",
     "kmActuels": "Km actuels",
-    "copierCodeType": "Copier le code type"
+    "copierCodeType": "Copier le code type",
+    "autocompletion": {
+      "placeholderMarque": "Ex. : Volkswagen",
+      "placeholderModele": "Ex. : Golf",
+      "recherche": "Recherche en cours…",
+      "aucunResultat": "Aucune correspondance dans le référentiel — vous pouvez saisir librement.",
+      "resultats": "{count, plural, one {# résultat} other {# résultats}}",
+      "horsReferentiel": "Ne figure pas dans le référentiel — sera enregistré tel quel.",
+      "nombreModeles": "{count, plural, one {# modèle} other {# modèles}}",
+      "erreurRecherche": "Suggestions indisponibles pour le moment — vous pouvez saisir librement."
+    }
   },
   "plaques": {
     "titre": "Plaques",
     "canton": "Canton",
+    "cantonExemple": "VS",
     "type": "Type",
     "historique": "Historique des plaques"
   },
