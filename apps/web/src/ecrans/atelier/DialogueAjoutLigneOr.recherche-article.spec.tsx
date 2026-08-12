@@ -84,7 +84,9 @@ async function ouvrirEnTypePiece(utilisateur: ReturnType<typeof userEvent.setup>
   await screen.findByRole('dialog');
 
   await utilisateur.click(screen.getByRole('combobox', { name: 'Type' }));
-  await utilisateur.click(await screen.findByRole('option', { name: 'Pièce' }));
+  await utilisateur.click(
+    await screen.findByRole('option', { name: i18n.t('or:lignes.types.piece') }),
+  );
 }
 
 async function choisirLaPiece(utilisateur: ReturnType<typeof userEvent.setup>) {

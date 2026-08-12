@@ -5,6 +5,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { ResultatRechercheComptoirArticle } from '@dfa/shared';
 
+import '@/i18n';
+import i18n from '@/i18n';
+
 import { server } from '@/test/msw/server';
 import { renduAvecQueryClient } from '@/test/utils';
 
@@ -41,8 +44,9 @@ describe('SelecteurArticlePiece', () => {
     );
 
     const popover = within(await screen.findByRole('dialog'));
+    const texteAide = i18n.t('or:lignes.selecteurArticle.aide');
     expect(
-      popover.getByText(/Recherche facultative — vous pouvez aussi saisir la pièce vous-même/),
+      await popover.findByText(new RegExp(texteAide.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))),
     ).toBeInTheDocument();
     expect(popover.queryByText(/Aucun article ne correspond/)).not.toBeInTheDocument();
   });
@@ -133,8 +137,11 @@ describe('SelecteurArticlePiece', () => {
     );
 
     const popover = within(await screen.findByRole('dialog'));
+    const texteAucunResultat = i18n.t('or:lignes.selecteurArticle.aucunResultat');
     expect(
-      await popover.findByText(/Vous pouvez saisir la pièce manuellement ci-dessous/),
+      await popover.findByText(
+        new RegExp(texteAucunResultat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+      ),
     ).toBeInTheDocument();
   });
 
