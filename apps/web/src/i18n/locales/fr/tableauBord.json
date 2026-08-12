@@ -36,7 +36,8 @@
     },
     "articlesSousSeuil": {
       "libelle": "Articles sous seuil de réapprovisionnement"
-    }
+    },
+    "enRetard": "En retard"
   },
   "financier": {
     "titre": "Financier",
@@ -127,6 +128,30 @@
       "titre": "Tableau de bord indisponible",
       "description": "L'API ne permet pas encore de filtrer les dossiers de vente par vendeur responsable : afficher tous les dossiers du site sous « vos dossiers » serait trompeur. Retrouvez votre travail dans Ventes › Dossiers.",
       "lien": "Aller à mes dossiers"
+    }
+  },
+  "receptionnaire": {
+    "rendezVousJour": {
+      "titre": "Rendez-vous du jour",
+      "description": "Rendez-vous confirmés ou déjà honorés aujourd'hui, dans l'ordre de la journée.",
+      "siteRequis": "Choisissez un site pour voir les rendez-vous du jour.",
+      "vide": {
+        "titre": "Aucun rendez-vous aujourd'hui",
+        "description": "Aucun rendez-vous n'est planifié pour aujourd'hui sur ce site."
+      },
+      "erreur": {
+        "titre": "Impossible d'afficher les rendez-vous du jour"
+      },
+      "vehiculeInconnu": "Véhicule non renseigné",
+      "voirAgenda": "Voir l'agenda"
+    },
+    "restitutionsJour": {
+      "titre": "Restitutions aujourd'hui",
+      "description": "Véhicules dont la restitution est promise au client aujourd'hui.",
+      "vide": {
+        "titre": "Aucune restitution prévue aujourd'hui",
+        "description": "Aucun ordre de réparation ouvert n'a de date de restitution promise aujourd'hui."
+      }
     }
   }
 }

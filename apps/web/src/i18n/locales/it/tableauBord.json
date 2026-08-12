@@ -36,7 +36,8 @@
     },
     "articlesSousSeuil": {
       "libelle": "Articoli sotto la soglia di riordino"
-    }
+    },
+    "enRetard": "In ritardo"
   },
   "financier": {
     "titre": "Finanza",
@@ -127,6 +128,30 @@
       "titre": "Cruscotto non disponibile",
       "description": "L'API non permette ancora di filtrare le pratiche di vendita per venditore responsabile: mostrare tutte le pratiche della sede come «le sue pratiche» sarebbe fuorviante. Trova il suo lavoro in Vendite › Pratiche.",
       "lien": "Vai alle mie pratiche"
+    }
+  },
+  "receptionnaire": {
+    "rendezVousJour": {
+      "titre": "Appuntamenti di oggi",
+      "description": "Appuntamenti confermati o già arrivati per oggi, nell'ordine della giornata.",
+      "siteRequis": "Selezioni una sede per vedere gli appuntamenti di oggi.",
+      "vide": {
+        "titre": "Nessun appuntamento oggi",
+        "description": "Nessun appuntamento è previsto per oggi in questa sede."
+      },
+      "erreur": {
+        "titre": "Impossibile visualizzare gli appuntamenti di oggi"
+      },
+      "vehiculeInconnu": "Veicolo non indicato",
+      "voirAgenda": "Aprire l'agenda"
+    },
+    "restitutionsJour": {
+      "titre": "Consegne di oggi",
+      "description": "Restituzioni promesse ai clienti per oggi.",
+      "vide": {
+        "titre": "Nessuna consegna prevista oggi",
+        "description": "Nessun ordine di riparazione aperto ha una data di restituzione promessa per oggi."
+      }
     }
   }
 }

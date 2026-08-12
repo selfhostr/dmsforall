@@ -12,6 +12,7 @@ import type {
   ReponseFinancierTableauBord,
   ReponseOrdreReparation,
   ReponsePointage,
+  ReponseRendezVous,
   VehiculeResume,
 } from '@dfa/shared';
 
@@ -31,6 +32,7 @@ const CHEMIN_PNEUS = '/api/v1/depots-pneus/a-relancer';
 const CHEMIN_POINTAGES = '/api/v1/pointages';
 const CHEMIN_REAPPRO = '/api/v1/stock/reapprovisionnement';
 const CHEMIN_DOSSIERS_VENTE = '/api/v1/dossiers-vente';
+const CHEMIN_RENDEZ_VOUS = '/api/v1/rendez-vous';
 
 const PERIODE = { du: '2026-08-01', au: '2026-08-31' };
 const PAGE_VIDE = { donnees: [], curseurSuivant: null, limite: 50 };
@@ -178,6 +180,57 @@ const OR_RESUME_TEST: OrdreReparationResume = {
   nombreLignes: 1,
 };
 
+/** OR de démo dont la restitution est promise aujourd'hui ET en retard (`enRetard`, calculé
+ *  serveur, `OrdreReparationResume.enRetard`) — fixture dédiée pour ne pas modifier `OR_RESUME_TEST`
+ *  (réutilisé tel quel par Direction/Chef d'atelier, sans ce champ). */
+const OR_RESUME_EN_RETARD: OrdreReparationResume = {
+  ...OR_RESUME_TEST,
+  id: 'or-2',
+  numero: 'OR-2026-000456',
+  enRetard: true,
+  // Client DISTINCT de `CLIENT_TEST` (repris par `RENDEZ_VOUS_TEST`) : les deux blocs cohabitent
+  // dans le même test « site choisi », un nom partagé rendrait `getByText` ambigu.
+  client: { ...CLIENT_TEST, id: 'client-2', nomAffiche: 'Urs Meier' },
+};
+
+const MOTIF_SERVICE_TEST = {
+  id: 'motif-1',
+  code: 'SERVICE',
+  libelleFr: 'Entretien / service courant',
+  libelleDe: 'Service / Wartung',
+  libelleIt: 'Tagliando / manutenzione',
+  dureeDefautMinutes: 60,
+  heuresAtelierDefautCentiemes: null,
+  actif: true,
+};
+
+/** Rendez-vous confirmé du jour (site `site-1`, seul site de `SESSION_TEST`) — fixture du bloc
+ *  `CarteRendezVousJour`. */
+const RENDEZ_VOUS_TEST: ReponseRendezVous = {
+  id: 'rdv-1',
+  siteId: 'site-1',
+  client: CLIENT_TEST,
+  vehicule: VEHICULE_TEST,
+  type: 'service',
+  motif: MOTIF_SERVICE_TEST,
+  commentaire: null,
+  dateLe: '2026-08-12',
+  moment: 'matin',
+  heureSouhaitee: '08:30:00',
+  dureeEstimeeMinutes: 60,
+  statut: 'confirme',
+  motifAnnulation: null,
+  origine: 'reservation',
+  confirmeLe: '2026-08-10T09:00:00.000Z',
+  honoreLe: null,
+  absentConstateLe: null,
+  annuleLe: null,
+  ordreReparationId: null,
+  creeParId: null,
+  creeLe: '2026-08-10T09:00:00.000Z',
+  modifieLe: '2026-08-10T09:00:00.000Z',
+};
+
 const POINTAGE_EN_COURS: ReponsePointage = {
   id: 'pointage-1',
   siteId: 'site-1',
@@ -211,11 +264,11 @@ function connecterSession(role: (typeof SESSION_TEST)['utilisateur']['role']) {
   );
 }
 
-function rendre() {
+function rendre(cheminInitial = '/tableau-bord') {
   const queryClient = creerQueryClientTest();
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/tableau-bord']}>
+      <MemoryRouter initialEntries={[cheminInitial]}>
         <Routes>
           <Route path="/tableau-bord" element={<EcranTableauBord />} />
         </Routes>
@@ -288,20 +341,107 @@ describe('EcranTableauBord — Chef d’atelier', () => {
 });
 
 describe('EcranTableauBord — Réceptionnaire', () => {
-  it('reprend le calendrier de la semaine et les échéances pneus, plus les lignes en attente', async () => {
+  it('sans site choisi : invite à en choisir un pour les rendez-vous, garde les autres blocs réels', async () => {
     connecterSession('receptionnaire');
     server.use(
       http.get(CHEMIN_ACTIVITE, () => HttpResponse.json(ACTIVITE_NOMINALE)),
-      http.get(CHEMIN_OR, () => HttpResponse.json(PAGE_VIDE)),
-      http.get(CHEMIN_PNEUS, () => HttpResponse.json(PAGE_VIDE)),
+      http.get(CHEMIN_OR, () => HttpResponse.json({ ...PAGE_VIDE, donnees: [OR_RESUME_TEST] })),
     );
     rendre();
 
-    expect(await screen.findByText(i18n.t('accueil:calendrier.titre'))).toBeInTheDocument();
-    expect(screen.getByText(i18n.t('accueil:echeances.titre'))).toBeInTheDocument();
     expect(
-      screen.getByText(i18n.t('tableauBord:activite.lignesEnAttenteValidation.libelle')),
+      await screen.findByText(i18n.t('tableauBord:receptionnaire.rendezVousJour.siteRequis')),
     ).toBeInTheDocument();
+    // Répartition par statut : reste un bloc de comptes agrégés « tous sites », pas de site requis.
+    expect(
+      screen.getByText(i18n.t('tableauBord:activite.repartitionStatuts.titre')),
+    ).toBeInTheDocument();
+    // Restitutions du jour : ne dépend pas non plus d'un site choisi (agrège tous les sites).
+    expect(
+      await screen.findByText(i18n.t('tableauBord:receptionnaire.restitutionsJour.titre')),
+    ).toBeInTheDocument();
+  });
+
+  it('site choisi : affiche les rendez-vous du jour, les restitutions (avec retard signalé) et la répartition par statut', async () => {
+    connecterSession('receptionnaire');
+    server.use(
+      http.get(CHEMIN_ACTIVITE, () => HttpResponse.json(ACTIVITE_NOMINALE)),
+      http.get(CHEMIN_RENDEZ_VOUS, () =>
+        HttpResponse.json({ ...PAGE_VIDE, donnees: [RENDEZ_VOUS_TEST] }),
+      ),
+      http.get(CHEMIN_OR, () =>
+        HttpResponse.json({ ...PAGE_VIDE, donnees: [OR_RESUME_EN_RETARD] }),
+      ),
+    );
+    rendre('/tableau-bord?site=site-1');
+
+    // Rendez-vous du jour : heure, client, motif.
+    expect(await screen.findByText('08:30')).toBeInTheDocument();
+    expect(screen.getByText('Jean Dupont')).toBeInTheDocument();
+    expect(screen.getByText('Entretien / service courant')).toBeInTheDocument();
+
+    // Restitutions du jour : le retard réel (serveur) est signalé, jamais rederivé côté client.
+    expect(await screen.findByText(i18n.t('tableauBord:activite.enRetard'))).toBeInTheDocument();
+
+    // Répartition par statut : vrais comptes, plus le zéro incertain « lignes en attente ».
+    expect(
+      await screen.findByText(i18n.t('tableauBord:activite.repartitionStatuts.titre')),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n.t('tableauBord:activite.lignesEnAttenteValidation.libelle')),
+    ).not.toBeInTheDocument();
+  });
+
+  it('aucun rendez-vous aujourd’hui : état vide rassurant, distinct d’une erreur', async () => {
+    connecterSession('receptionnaire');
+    server.use(
+      http.get(CHEMIN_ACTIVITE, () => HttpResponse.json(ACTIVITE_NOMINALE)),
+      http.get(CHEMIN_RENDEZ_VOUS, () => HttpResponse.json(PAGE_VIDE)),
+      http.get(CHEMIN_OR, () => HttpResponse.json(PAGE_VIDE)),
+    );
+    rendre('/tableau-bord?site=site-1');
+
+    expect(
+      await screen.findByText(i18n.t('tableauBord:receptionnaire.rendezVousJour.vide.titre')),
+    ).toBeInTheDocument();
+  });
+
+  it('erreur serveur sur /rendez-vous : état d’erreur actionnable, le réessai redéclenche la requête', async () => {
+    connecterSession('receptionnaire');
+    let compteurAppels = 0;
+    server.use(
+      http.get(CHEMIN_ACTIVITE, () => HttpResponse.json(ACTIVITE_NOMINALE)),
+      http.get(CHEMIN_RENDEZ_VOUS, () => {
+        compteurAppels += 1;
+        if (compteurAppels === 1) {
+          return HttpResponse.json(
+            {
+              type: 'https://docs.dmsforall.example/erreurs/ERREUR_INTERNE',
+              title: 'Erreur interne',
+              status: 500,
+              code: 'ERREUR_INTERNE',
+              instance: 'req-1',
+            },
+            { status: 500, headers: { 'content-type': 'application/problem+json' } },
+          );
+        }
+        return HttpResponse.json({ ...PAGE_VIDE, donnees: [RENDEZ_VOUS_TEST] });
+      }),
+      http.get(CHEMIN_OR, () => HttpResponse.json(PAGE_VIDE)),
+    );
+    rendre('/tableau-bord?site=site-1');
+
+    expect(
+      await screen.findByText(i18n.t('tableauBord:receptionnaire.rendezVousJour.erreur.titre')),
+    ).toBeInTheDocument();
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(
+      screen.getByRole('button', { name: i18n.t('commun:actions.reessayer') }),
+    );
+
+    await waitFor(() => expect(compteurAppels).toBe(2));
+    expect(await screen.findByText('08:30')).toBeInTheDocument();
   });
 });
 

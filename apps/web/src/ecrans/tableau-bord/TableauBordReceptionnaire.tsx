@@ -1,42 +1,56 @@
 import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 
 import type { FiltreTableauBord } from '@dfa/shared';
 
-import { CalendrierEcheances } from '@/ecrans/accueil/composants/CalendrierEcheances';
-import { EcheancesAVenir } from '@/ecrans/accueil/composants/EcheancesAVenir';
 import { useActiviteTableauBord } from '@/hooks/tableau-bord/useActiviteTableauBord';
 
-import { CarteChiffreRequete } from './composants/CarteChiffreRequete';
+import { CarteRendezVousJour } from './composants/CarteRendezVousJour';
+import { CarteRepartitionStatuts } from './composants/CarteRepartitionStatuts';
+import { CarteRestitutionsJour } from './composants/CarteRestitutionsJour';
 
 interface Props {
   readonly site: string | undefined;
 }
 
 /**
- * Réceptionnaire — 3 blocs (`docs/design-tableau-bord-par-role.md` §3.4) : les deux premiers sont
- * la reprise À L'IDENTIQUE de l'ancien `EcranAccueil` (`CalendrierEcheances` en vue semaine,
- * `EcheancesAVenir`) — son outil réel reste la recherche en en-tête, ce dashboard est un
- * complément léger, pas son geste principal. Le troisième (« lignes en attente de validation »,
- * même champ SNAPSHOT que le chef d'atelier) est marqué INCERTAIN par le design : hypothèse « elle
- * rappelle le client pour un devis complémentaire », pas confirmée terrain — construit quand même
- * (chiffre réel, pas inventé), à retirer si l'hypothèse s'avère fausse.
+ * Réceptionnaire — 3 blocs, REFONDUS le 12.08.2026 (constat de @laupernoe, verbatim : « son écran du
+ * lundi matin affiche trois fois "Aucun…" et un zéro »). Mesuré avant de corriger — le serveur
+ * n'était PAS en cause : `GET /tableau-bord/activite` rend des données réelles (voir git-blame de
+ * ce fichier pour le détail des appels). La faute était dans le CHOIX des blocs, hérité d'un écran
+ * bâti avant que le domaine `rendez-vous` n'existe :
+ *  - l'ancien `CalendrierEcheances` était une PRÉVERSION explicitement documentée « aucune table
+ *    rendez_vous n'existe à ce jour » — obsolète depuis que ce domaine est livré (`apps/api/src/
+ *    rendezvous/`) ;
+ *  - `EcheancesAVenir` (pneus à relancer) n'a jamais répondu au geste du lundi matin, seulement à
+ *    celui du magasinier ;
+ *  - « lignes en attente de validation » était marqué INCERTAIN par son propre design
+ *    (`docs/design-tableau-bord-par-role.md` §3.4 : hypothèse jamais confirmée terrain) — un ZÉRO
+ *    réel affiché sans ce contexte se lit comme un écran cassé, pas comme une information utile.
+ *
+ * Les 3 blocs actuels répondent au VRAI besoin (recherché avec @laupernoe) : qui est attendu aujourd'hui
+ * (`CarteRendezVousJour`, domaine rendez-vous), qui doit repartir aujourd'hui et qui est en retard
+ * (`CarteRestitutionsJour`, même composant que Direction/Chef d'atelier — « même endpoint, même
+ * composant, prop de fenêtre différente »), et l'état du parc à l'atelier en un coup d'œil
+ * (`CarteRepartitionStatuts`, même composant que Chef d'atelier — remplace le zéro incertain par un
+ * VRAI compte par statut, `planifie` = attendu, `en_cours`/`controle` = à l'atelier maintenant).
  */
 export function TableauBordReceptionnaire({ site }: Props) {
-  const { t } = useTranslation(['tableauBord', 'commun']);
   const filtre = useMemo<FiltreTableauBord>(() => ({ siteId: site }), [site]);
   const activite = useActiviteTableauBord(filtre);
 
   return (
     <div className="flex flex-col gap-6">
-      <CalendrierEcheances site={site} />
-      <EcheancesAVenir site={site} />
-      <CarteChiffreRequete
-        titre={t('tableauBord:activite.lignesEnAttenteValidation.libelle')}
-        resultat={activite}
-        libelleErreur={t('tableauBord:activite.erreur.titre')}
-        valeur={(donnees) => String(donnees.lignesEnAttenteValidation)}
+      <CarteRendezVousJour site={site} />
+
+      <CarteRestitutionsJour
+        site={site}
+        titreCle="tableauBord:receptionnaire.restitutionsJour.titre"
+        descriptionCle="tableauBord:receptionnaire.restitutionsJour.description"
+        videTitreCle="tableauBord:receptionnaire.restitutionsJour.vide.titre"
+        videDescriptionCle="tableauBord:receptionnaire.restitutionsJour.vide.description"
       />
+
+      <CarteRepartitionStatuts resultat={activite} />
     </div>
   );
 }

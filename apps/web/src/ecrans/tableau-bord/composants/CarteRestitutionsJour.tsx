@@ -1,3 +1,4 @@
+import { AlertTriangle } from 'lucide-react';
 import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -29,9 +30,15 @@ interface Props {
 /**
  * Restitutions promises AUJOURD'HUI (fenêtre resserrée à un jour) — même source que
  * `ecrans/accueil/composants/CalendrierEcheances.tsx` (`GET /ordres-reparation`, bornes
- * `restitutionPromiseDu`/`Au`), reprise pour Direction et Chef d'atelier plutôt que la vue semaine
- * du réceptionnaire (`docs/design-tableau-bord-par-role.md` §3.1/§3.3/§5). Liste plutôt que grille
- * de 7 colonnes : un seul jour n'a pas besoin du gabarit hebdomadaire.
+ * `restitutionPromiseDu`/`Au`), reprise pour Direction, Chef d'atelier ET Réceptionnaire (§ constat
+ * @laupernoe du 12.08.2026 : son ancien bloc « calendrier de la semaine » ne répondait pas à « qu'est-ce
+ * qui sort AUJOURD'HUI ») — même endpoint, même composant, prop de fenêtre différente. Liste plutôt
+ * que grille de 7 colonnes : un seul jour n'a pas besoin du gabarit hebdomadaire.
+ *
+ * Marque un OR `enRetard` (`OrdreReparationResume.enRetard`, calculé UNE SEULE FOIS côté serveur —
+ * jamais rederivé ici, voir sa doc dans `contrats/atelier/ordre-reparation.ts`) d'un tag distinct,
+ * ACCOLÉ au badge de statut, jamais une variante de couleur du badge lui-même (même doctrine que
+ * `IndicateurRetard`, `ecrans/facturation/`).
  */
 export function CarteRestitutionsJour({
   site,
@@ -82,7 +89,15 @@ export function CarteRestitutionsJour({
                   {or.client.nomAffiche}
                 </span>
               </div>
-              <BadgeStatutOr etat={or.etatAffiche} />
+              <div className="flex shrink-0 items-center gap-1.5">
+                {or.enRetard ? (
+                  <span className="inline-flex items-center gap-1 texte-libelle font-medium text-statut-danger">
+                    <AlertTriangle aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                    {t('tableauBord:activite.enRetard')}
+                  </span>
+                ) : null}
+                <BadgeStatutOr etat={or.etatAffiche} />
+              </div>
             </Link>
           </li>
         ))}
