@@ -818,10 +818,11 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
     for (const idSite of idsSitesParCode.values()) {
       await base
         .insert(parametreSite)
-        .values({ tenantId, siteId: idSite })
-        // Rien à harmoniser sur rejeu : un opérateur a pu personnaliser les horaires du site
-        // depuis le seed initial, ce script ne doit pas les écraser.
-        .onConflictDoNothing({ target: parametreSite.siteId });
+        .values({ tenantId, siteId: idSite, capaciteHeuresJourCentiemes: 800 })
+        .onConflictDoUpdate({
+          target: parametreSite.siteId,
+          set: { capaciteHeuresJourCentiemes: 800 },
+        });
     }
 
     // --- Bloc créancier (QR-facture, migration 0014) -----------------------------------------

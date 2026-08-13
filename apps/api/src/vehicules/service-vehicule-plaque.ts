@@ -106,6 +106,12 @@ export class ServiceVehiculePlaque {
               }),
             )
           : null;
+      // `id: 'valeur'` — nom du champ fautif DANS LE CORPS DE CETTE requête
+      // (`EntreePlaqueVehicule.valeur`). Diffère volontairement de `'plaque'` posé par
+      // `ServiceVehicule.relancerErreurContraintePlaqueCreation` (`POST /vehicules`,
+      // `EntreeCreationVehicule.plaque`) — CONFIRMÉ, pas un bug (issue #95), doc complète dans
+      // `DetailCollisionPlaqueVehicule` (`@dfa/shared`). Un consommateur ne doit JAMAIS brancher
+      // sur `blocages[0].id`, seulement sur `.donnees`.
       throw new ErreurMetier(
         interpretation.code,
         'Cette plaque est déjà portée par un autre véhicule sur une période qui chevauche (RM-18).',

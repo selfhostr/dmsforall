@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, exists, inArray } from 'drizzle-orm';
+import { and, asc, eq, exists, gte, inArray, lte, or, sql, type SQL } from 'drizzle-orm';
 import type {
   AttentesOr,
   ClientResume,
@@ -580,11 +580,94 @@ export class ServiceOr {
 
   /**
    * `GET /ordres-reparation` — SOUS-ENSEMBLE des filtres du contrat (§6.2) : `siteId`, `statut`
-   * (multi), `clientId`, `vehiculeId`, `technicienId`, tri `ouvertLe:desc` par défaut.
-   * SIMPLIFICATION SIGNALÉE : `vue`, `attente`, `localisation`, `q`, les bornes de date et les
-   * tris alternatifs ne sont pas câblés dans cette passe — chacun est une combinaison de filtres
-   * primitifs déjà exprimable par `statut`/`siteId` pour l'essentiel des vues, et la recherche
-   * plein texte (`q`) est le périmètre de `recherche/` (L1-11), pas d'`atelier`.
+   * (multi), `clientId`, `vehiculeId`, `technicienId`, `localisation` (multi), `attente` (multi),
+   * `restitutionPromiseDu`/`Au`, `ouvertDu`/`Au`, tri `ouvertLe:desc` par défaut.
+   *
+   * CORRECTIF #73 (constat terrain du 12.08.2026, `apps/web/…/CarteRestitutionsJour.tsx`) :
+   * `restitutionPromiseDu`/`Au` étaient acceptés par le schéma et TRANSMIS jusqu'ici sans jamais
+   * poser de condition SQL — la liste rendait tous les OR actifs quel que soit
+   * `restitutionPromiseLe`, `null` compris, sous un appel qui prétendait filtrer « aujourd'hui ».
+   * Câblés ci-dessous en bornes UTC INCLUSIVES (même doctrine que
+   * `pointage/service-verrouillage-periode.ts::finDeJournee` — UTC pur, pas de fuseau par site,
+   * `parametre_atelier`/`site` ne portent aucune colonne de fuseau horaire ; écart potentiel d'une
+   * heure (hiver) ou deux (été) autour de minuit local, à corriger le jour où un fuseau par site
+   * existe). `ouvertDu`/`Au`, MÊME lacune sur `ouvertLe`, câblés ici pour la même raison.
+   *
+   * DÉCISION explicite sur le troisième état (RESTITUTION_PROMISE_LE NULL) : un OR sans date de
+   * restitution promise n'est NI « dans la fenêtre » NI « hors fenêtre » — `gte`/`lte` sur une
+   * colonne `NULL` s'évalue à `NULL` en SQL, donc `WHERE` l'exclut naturellement dès qu'UNE des
+   * deux bornes est posée (jamais un filtre `IS NOT NULL` explicite à maintenir en double), et il
+   * reste visible quand aucune des deux bornes n'est demandée — l'absence de donnée ne partage
+   * jamais le rendu d'une valeur (CONTRIBUTING.md). Prouvé par `service-or.spec.ts` (mutation : neutraliser
+   * ces conditions fait rougir un test dédié à ce comportement).
+   *
+   * `localisation`/`attente` (multi) : `localisation` est une colonne enum directe
+   * (`inArray`, même patron que `statut`). `attente` est un OU logique entre les drapeaux
+   * `attenteAccord`/`attentePieces`/`attenteExterne` demandés (AU MOINS UN vrai) — cohérent avec
+   * une sélection multi-valeurs de type « tag » (même sémantique OU que `statut`/`localisation`
+   * en `inArray`), pas un ET qui exigerait que l'OR porte SIMULTANÉMENT tous les drapeaux cochés.
+   *
+   * `tri` (suite du #73, câblage du 12.08.2026) — LES 5 valeurs de `TRIS_ORDRES_REPARATION` sont
+   * désormais câblées ci-dessous via `construireOrdreTri` : `ouvertLe:asc/desc`,
+   * `restitutionPromiseLe:asc/desc`, `joursAttenteRetrait:desc` (arbitrage @laupernoe, voir plus bas).
+   * `numeroSequence:asc/desc` a été RETIRÉ du contrat (`packages/shared/.../ordre-reparation.ts`),
+   * jamais rendu décoratif — voir le commentaire de tête de `TRIS_ORDRES_REPARATION`.
+   *
+   * `ouvertLe`/`restitutionPromiseLe` sont NULLABLES (`ouvert_le` : un OR `planifie` jamais réceptionné ;
+   * `restitution_promise_le` : aucune promesse posée) — DOCTRINE explicite, la même dans les deux
+   * sens : `NULLS LAST` TOUJOURS, quelle que soit la direction demandée (même choix que
+   * `vehicules/service-vehicule.ts::construireTriEtSeuil` sur `plaque`/`prochaineExpertiseLe`,
+   * sentinelles différentes par sens pour obtenir NULLS LAST des deux côtés). Un OR sans date n'est
+   * ni « le plus ancien » ni « le plus récent » — le mélanger au milieu du tri (comportement Postgres
+   * par défaut : NULLS LAST en ASC, mais NULLS FIRST en DESC) l'aurait fait apparaître EN TÊTE d'un
+   * tri `ouvertLe:desc`/`restitutionPromiseLe:desc`, ce qui est exactement le « mélangé au milieu »
+   * à éviter (CONTRIBUTING.md : l'absence de donnée ne partage jamais le rendu d'une valeur). Ce choix
+   * CHANGE le tri par défaut réellement servi jusqu'ici : l'ancien `orderBy(desc(ouvertLe),
+   * desc(creeLe))` laissait Postgres placer les `planifie` (ouvert_le NULL) EN TÊTE de liste sous
+   * NULLS FIRST implicite — un défaut non voulu, jamais un choix arbitré, corrigé au passage plutôt
+   * que reconduit à l'identique (câbler `ouvertLe:desc` proprement, y compris comme valeur par
+   * défaut, fait partie du périmètre de ce correctif).
+   *
+   * Cohérence du CURSEUR (offset opaque, `decoderCurseurOffset`/`encoderCurseurOffset`, partagé
+   * avec `service-ligne-or.ts`/`service-devis.ts`/`service-documents.ts` — pas touché ici) : un
+   * curseur d'offset exige un ORDER BY qui soit un ORDRE TOTAL déterministe, sinon Postgres peut
+   * réordonner les ex æquo différemment entre deux exécutions et la page 2 saute ou répète des
+   * lignes SANS qu'aucune écriture concurrente n'ait eu lieu. L'ancien tiebreak `creeLe desc`
+   * n'était pas garanti unique (deux OR ouverts dans la même transaction batch, même seconde) ;
+   * `construireOrdreTri` ajoute désormais `id asc` comme DERNIER critère, sur TOUTES les branches
+   * (y compris le défaut) — `id` est la clé primaire, donc unique par construction, ce qui rend
+   * l'ordre total quel que soit le nombre d'ex æquo sur la colonne de tri principale.
+   *
+   * `joursAttenteRetrait:desc` (arbitrage @laupernoe, 12.08.2026) — lecture ATELIER, pas lecture client :
+   * « la voiture est prête, elle occupe une place, le client ne vient pas la chercher ». Le décompte
+   * part de la FIN DES TRAVAUX, jamais de `restitutionPromiseLe` dépassée (explicitement écarté —
+   * ça mélangerait le retard du garage et celui du client, déjà couvert par `restitutionRetard`/
+   * `estRestitutionEnRetard`, un concept différent).
+   *
+   * Colonne retenue : `ordre_reparation.termine_le` — posée à l'entrée en statut `termine`
+   * (`service-transitions.ts::terminer`), remise à `null` par `rouvrir` (retour en `en_cours`),
+   * PAS retouchée par la facturation (`service-facturation-or.ts::transitionnerVersFacture`, statut
+   * `termine -> facture` : `termine_le` reste celui posé à l'entrée en `termine`). Un OR est donc
+   * « terminé et en attente de retrait » tant que son statut est `termine` OU `facture` — les deux
+   * statuts depuis lesquels `restituer` (T-17/T-18) est valide (voir `service-transitions.ts`).
+   *
+   * Un OR qui n'est ni `termine` ni `facture` n'attend PAS d'être retiré (encore en travaux, ou déjà
+   * restitué/clôturé/annulé) : `construireOrdreTri` le place en fin de liste, NULLS LAST — même
+   * doctrine que `ouvertLe`/`restitutionPromiseLe` ci-dessus, un OR qui ne concerne pas ce tri
+   * n'est ni « le plus attendu » ni « le moins attendu ». Le tri ne FILTRE jamais de lignes (ça
+   * reste le rôle de `?statut=`) — il se contente de reléguer les OR hors-sujet en queue.
+   *
+   * `vue` : toujours documentée comme SUCRE (équivalence filtres primitifs), mais cette équivalence
+   * n'est écrite NULLE PART (ni ici, ni dans les contrats) — vérifié qu'AUCUN consommateur front
+   * actuel ne l'utilise sur cette collection (`hooks/atelier/ordres-reparation.api.ts`,
+   * `EcranListeOrdresReparation.tsx` : aucune référence à `vue`/`VUES_ORDRE_REPARATION`), donc rien
+   * ne casse à le laisser en l'état, mais la câbler à l'aveugle inventerait quand même une sémantique
+   * métier non arbitrée.
+   *
+   * `q` : plein texte, explicitement hors périmètre d'`atelier` par conception (porté par
+   * `recherche/`, L1-11) — accepté par ce schéma mais jamais appliqué ICI ; candidat à un retrait du
+   * contrat de CETTE collection plutôt qu'un correctif, si `recherche/` ne l'expose pas déjà par un
+   * autre chemin.
    *
    * `technicienId` (I-18/#19) : « OR du technicien » = porte AU MOINS UNE ligne (`ligne_or`,
    * tout statut confondu — y compris `annulee`/`realisee` : un OR déjà travaillé par ce
@@ -613,6 +696,35 @@ export class ServiceOr {
       if (filtres.vehiculeId) conditions.push(eq(ordreReparation.vehiculeId, filtres.vehiculeId));
       if (filtres.statut && filtres.statut.length > 0)
         conditions.push(inArray(ordreReparation.statut, filtres.statut));
+      if (filtres.localisation && filtres.localisation.length > 0)
+        conditions.push(inArray(ordreReparation.localisation, filtres.localisation));
+      if (filtres.attente && filtres.attente.length > 0) {
+        const drapeauxParAttente = {
+          accord: ordreReparation.attenteAccord,
+          pieces: ordreReparation.attentePieces,
+          externe: ordreReparation.attenteExterne,
+        } as const;
+        const drapeaux = filtres.attente.map((a) => eq(drapeauxParAttente[a], true));
+        // `or(...)` toujours appelé avec AU MOINS un élément ici (`length > 0` ci-dessus) : jamais
+        // le `or()` sans argument (qui produirait une condition vide, silencieusement inerte).
+        const condition = or(...drapeaux);
+        if (condition) conditions.push(condition);
+      }
+      if (filtres.restitutionPromiseDu)
+        conditions.push(
+          gte(
+            ordreReparation.restitutionPromiseLe,
+            debutDeJourneeUtc(filtres.restitutionPromiseDu),
+          ),
+        );
+      if (filtres.restitutionPromiseAu)
+        conditions.push(
+          lte(ordreReparation.restitutionPromiseLe, finDeJourneeUtc(filtres.restitutionPromiseAu)),
+        );
+      if (filtres.ouvertDu)
+        conditions.push(gte(ordreReparation.ouvertLe, debutDeJourneeUtc(filtres.ouvertDu)));
+      if (filtres.ouvertAu)
+        conditions.push(lte(ordreReparation.ouvertLe, finDeJourneeUtc(filtres.ouvertAu)));
       if (filtres.technicienId) {
         const technicienId = filtres.technicienId;
         conditions.push(
@@ -636,7 +748,7 @@ export class ServiceOr {
         .select()
         .from(ordreReparation)
         .where(and(...conditions))
-        .orderBy(desc(ordreReparation.ouvertLe), desc(ordreReparation.creeLe))
+        .orderBy(...construireOrdreTri(filtres.tri))
         .limit(limite + 1)
         .offset(decalage);
 
@@ -968,6 +1080,64 @@ export function decoderCurseurOffset(curseur: string | undefined): number {
     });
   }
   return brut;
+}
+
+/**
+ * `'AAAA-MM-JJ'` -> instant UTC de DÉBUT de journée (00:00:00.000) — borne inférieure INCLUSE des
+ * filtres `xDu` de `ServiceOr.lister` (`restitutionPromiseDu`, `ouvertDu`). Même doctrine que
+ * `pointage/service-verrouillage-periode.ts::finDeJournee` : UTC pur, pas de fuseau par site
+ * (`parametre_atelier`/`site` ne portent aucune colonne de fuseau horaire) — écart potentiel
+ * d'une heure (hiver) ou deux (été) autour de minuit local, à corriger le jour où un fuseau par
+ * site existe.
+ */
+function debutDeJourneeUtc(dateJour: string): Date {
+  return new Date(`${dateJour}T00:00:00.000Z`);
+}
+
+/** `'AAAA-MM-JJ'` -> instant UTC de FIN de journée (23:59:59.999) — borne supérieure INCLUSE des
+ *  filtres `xAu` de `ServiceOr.lister`. Voir `debutDeJourneeUtc` pour la doctrine UTC. */
+function finDeJourneeUtc(dateJour: string): Date {
+  return new Date(`${dateJour}T23:59:59.999Z`);
+}
+
+/**
+ * Traduit `filtres.tri` (`FiltresOrdresReparation['tri']`, 5 valeurs, `TRIS_ORDRES_REPARATION`) en
+ * critères `ORDER BY` réels pour `ServiceOr.lister` — voir la doc de tête de `lister()` pour la
+ * doctrine complète (NULLS LAST dans les deux sens, tiebreak `id`, et l'arbitrage
+ * `joursAttenteRetrait`).
+ *
+ * `switch` exhaustif sur les 5 valeurs (pas de `default` générique) : toute future valeur ajoutée à
+ * `TRIS_ORDRES_REPARATION` sans être traitée ICI casse la compilation (`exhaustif: never`) plutôt
+ * que de retomber en silence sur le tri par défaut — exactement le mensonge que le correctif #73 a
+ * fermé.
+ */
+function construireOrdreTri(tri: FiltresOrdresReparation['tri']): SQL[] {
+  const tiebreakId = asc(ordreReparation.id);
+  switch (tri) {
+    case 'ouvertLe:asc':
+      return [sql`${ordreReparation.ouvertLe} asc nulls last`, tiebreakId];
+    case 'ouvertLe:desc':
+      return [sql`${ordreReparation.ouvertLe} desc nulls last`, tiebreakId];
+    case 'restitutionPromiseLe:asc':
+      return [sql`${ordreReparation.restitutionPromiseLe} asc nulls last`, tiebreakId];
+    case 'restitutionPromiseLe:desc':
+      return [sql`${ordreReparation.restitutionPromiseLe} desc nulls last`, tiebreakId];
+    case 'joursAttenteRetrait:desc': {
+      // « jours d'attente de retrait » = maintenant - termine_le, UNIQUEMENT pour un OR encore
+      // `termine` ou `facture` (voir la doc de tête de `lister()`) — les autres statuts n'attendent
+      // pas d'être retirés. Trier `joursAttenteRetrait` DESC (le plus longtemps en attente
+      // d'abord) équivaut à trier `termine_le` ASC (le plus ancien d'abord) parmi ces deux statuts
+      // : pas besoin de matérialiser la soustraction, l'ordre relatif est le même. Le `case` (sans
+      // `else`) rend NULL pour tout autre statut, donc `nulls last` les relègue en fin de liste —
+      // jamais un tri qui invente une position pour un OR hors-sujet.
+      const attenteDepuisFinTravaux = sql`(case when ${ordreReparation.statut} in ('termine', 'facture') then ${ordreReparation.termineLe} end)`;
+      return [sql`${attenteDepuisFinTravaux} asc nulls last`, tiebreakId];
+    }
+    default: {
+      const exhaustif: never = tri;
+      return exhaustif;
+    }
+  }
 }
 
 // Réexporté pour les actions de transition (marquage réalisée, etc.) qui doivent charger une

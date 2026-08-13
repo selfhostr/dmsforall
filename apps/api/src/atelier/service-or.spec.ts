@@ -340,3 +340,387 @@ describe('ServiceOr.lister — filtre technicienId (I-19/#19)', () => {
     expect(params).toContain('tech-1');
   });
 });
+
+/**
+ * #73 — `restitutionPromiseDu`/`Au` (constat terrain du 12.08.2026, carte « Sorties du jour ») ET
+ * `ouvertDu`/`Au`, `localisation`, `attente` étaient acceptés par `schemaFiltresOrdresReparation`
+ * mais AUCUN des quatre ne posait de condition SQL — `ServiceOr.lister` le signalait lui-même en
+ * commentaire (« SIMPLIFICATION SIGNALÉE »— piège documenté CONTRIBUTING.md : « filtre accepté par le
+ * contrat ≠ filtre appliqué au SQL »). Même doctrine et même patron que le bloc `technicienId`
+ * ci-dessus : `QueryBuilder` driver-less de `drizzle-orm/pg-core`, requête RÉELLEMENT construite
+ * par le service (jamais reconstruite indépendamment), le test décisif étant qu'une valeur
+ * FOURNIE pose la condition SQL et qu'une valeur ABSENTE n'en pose AUCUNE — jamais la même absence
+ * de condition dans les deux cas.
+ */
+describe('ServiceOr.lister — bornes de date restitutionPromiseDu/Au, ouvertDu/Au, localisation, attente (#73)', () => {
+  function txQueryBuilderFactice() {
+    const qb = new QueryBuilder();
+    const capturedSelects: { toSQL: () => { sql: string; params: unknown[] } }[] = [];
+    const tx = {
+      select: (...args: unknown[]) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const builder: any = (qb.select as any)(...args);
+        const fromOriginal = builder.from.bind(builder);
+        builder.from = (...fromArgs: unknown[]) => {
+          const requete = fromOriginal(...fromArgs);
+          capturedSelects.push(requete);
+          return requete;
+        };
+        return builder;
+      },
+    };
+    return { tx: tx as unknown as TransactionDfa, capturedSelects };
+  }
+
+  function requeteOuter(capturedSelects: { toSQL: () => { sql: string; params: unknown[] } }[]) {
+    const derniere = capturedSelects.at(-1);
+    if (!derniere) throw new Error('Aucune requête capturée — tx.select() jamais appelé.');
+    return derniere.toSQL();
+  }
+
+  /** Isole la clause `where` : le `select` liste TOUTES les colonnes d'`ordre_reparation` (dont
+   *  `restitution_promise_le`, `ouvert_le`, `localisation`, `attente_accord`… qui font partie du
+   *  document indépendamment de tout filtre) — chercher ces noms dans le SQL ENTIER serait donc
+   *  toujours vrai. Seule la clause `where` révèle si un filtre a effectivement posé sa condition
+   *  (même piège, même correctif que `service-rendez-vous.spec.ts::clauseWhere`). */
+  function clauseWhere(sql: string): string {
+    const debut = sql.indexOf(' where ');
+    if (debut === -1) return '';
+    const fin = sql.indexOf(' order by ', debut);
+    return fin === -1 ? sql.slice(debut) : sql.slice(debut, fin);
+  }
+
+  async function executerListerEtCapturer(filtres: Omit<FiltresOrdresReparation, 'tri'>) {
+    const { tx, capturedSelects } = txQueryBuilderFactice();
+    const acces = accesBaseFactice(tx);
+    const service = serviceFactice(acces);
+
+    await expect(
+      service.lister(
+        CTX,
+        principal('technicien'),
+        { ...filtres, tri: TRI_DEFAUT_ORDRES_REPARATION },
+        25,
+        undefined,
+      ),
+    ).rejects.toThrow();
+
+    return requeteOuter(capturedSelects);
+  }
+
+  describe('restitutionPromiseDu / restitutionPromiseAu', () => {
+    it('restitutionPromiseDu fourni : pose `restitution_promise_le >= $<début de journée UTC>`', async () => {
+      const { sql, params } = await executerListerEtCapturer({
+        restitutionPromiseDu: '2026-08-12',
+      });
+
+      expect(clauseWhere(sql)).toContain('"ordre_reparation"."restitution_promise_le" >= $');
+      // Params sérialisés en ISO string par drizzle (pas une instance `Date`) — vérifié en
+      // conditions réelles via `drizzle-orm/pg-core`.
+      expect(params).toContain('2026-08-12T00:00:00.000Z');
+    });
+
+    it('restitutionPromiseAu fourni : pose `restitution_promise_le <= $<fin de journée UTC>` — bornes INCLUSES', async () => {
+      const { sql, params } = await executerListerEtCapturer({
+        restitutionPromiseAu: '2026-08-12',
+      });
+
+      expect(clauseWhere(sql)).toContain('"ordre_reparation"."restitution_promise_le" <= $');
+      expect(params).toContain('2026-08-12T23:59:59.999Z');
+    });
+
+    it('les deux bornes fournies avec des dates DIFFÉRENTES : les deux conditions coexistent, chacune avec SA valeur propre — jamais la même date recopiée sur les deux', async () => {
+      const { sql, params } = await executerListerEtCapturer({
+        restitutionPromiseDu: '2026-08-10',
+        restitutionPromiseAu: '2026-08-12',
+      });
+
+      expect(clauseWhere(sql)).toContain('"ordre_reparation"."restitution_promise_le" >= $');
+      expect(clauseWhere(sql)).toContain('"ordre_reparation"."restitution_promise_le" <= $');
+      expect(params).toContain('2026-08-10T00:00:00.000Z');
+      expect(params).toContain('2026-08-12T23:59:59.999Z');
+    });
+
+    it('absentes : AUCUNE condition sur restitution_promise_le dans la clause where — le filtre reste inerte par défaut (et un OR sans date promise reste visible, troisième état non exclu)', async () => {
+      const { sql } = await executerListerEtCapturer({});
+
+      expect(clauseWhere(sql)).not.toContain('restitution_promise_le');
+    });
+  });
+
+  describe('ouvertDu / ouvertAu', () => {
+    it('ouvertDu fourni : pose `ouvert_le >= $<début de journée UTC>`', async () => {
+      const { sql, params } = await executerListerEtCapturer({ ouvertDu: '2026-07-01' });
+
+      expect(clauseWhere(sql)).toContain('"ordre_reparation"."ouvert_le" >= $');
+      expect(params).toContain('2026-07-01T00:00:00.000Z');
+    });
+
+    it('ouvertAu fourni : pose `ouvert_le <= $<fin de journée UTC>`', async () => {
+      const { sql, params } = await executerListerEtCapturer({ ouvertAu: '2026-07-31' });
+
+      expect(clauseWhere(sql)).toContain('"ordre_reparation"."ouvert_le" <= $');
+      expect(params).toContain('2026-07-31T23:59:59.999Z');
+    });
+
+    it("absentes : aucune comparaison `>=`/`<=` sur ouvert_le dans la clause where — seul l'`order by ... ouvert_le desc` mentionne la colonne", async () => {
+      const { sql } = await executerListerEtCapturer({});
+
+      expect(clauseWhere(sql)).not.toMatch(/"ordre_reparation"\."ouvert_le" (>=|<=) \$/);
+    });
+  });
+
+  describe('localisation (multi)', () => {
+    it("localisation=['atelier'] : pose `localisation in ($<atelier>)`", async () => {
+      const { sql, params } = await executerListerEtCapturer({ localisation: ['atelier'] });
+
+      expect(sql).toContain('"ordre_reparation"."localisation" in ($');
+      expect(params).toContain('atelier');
+    });
+
+    it("localisation=['lavage'] (valeur DISTINCTE) : le paramètre change avec la valeur demandée — preuve que ce n'est pas un filtre figé", async () => {
+      const { sql, params } = await executerListerEtCapturer({ localisation: ['lavage'] });
+
+      expect(sql).toContain('"ordre_reparation"."localisation" in ($');
+      expect(params).toContain('lavage');
+      expect(params).not.toContain('atelier');
+    });
+
+    it('plusieurs valeurs : toutes présentes dans la clause `in`', async () => {
+      const { params } = await executerListerEtCapturer({
+        localisation: ['atelier', 'pret_au_retrait'],
+      });
+
+      expect(params).toContain('atelier');
+      expect(params).toContain('pret_au_retrait');
+    });
+
+    it('absente : aucune condition sur localisation', async () => {
+      const { sql } = await executerListerEtCapturer({});
+
+      expect(sql).not.toContain('"ordre_reparation"."localisation" in');
+    });
+  });
+
+  describe('attente (multi, OU logique entre les drapeaux)', () => {
+    it("attente=['accord'] : pose `attente_accord = true`, RIEN sur pieces/externe", async () => {
+      const { sql } = await executerListerEtCapturer({ attente: ['accord'] });
+
+      expect(sql).toContain('"ordre_reparation"."attente_accord" = $');
+      expect(sql).not.toContain('"ordre_reparation"."attente_pieces" = $');
+      expect(sql).not.toContain('"ordre_reparation"."attente_externe" = $');
+    });
+
+    it("attente=['pieces'] (valeur DISTINCTE) : pose `attente_pieces = true` — preuve que le drapeau suit la valeur demandée", async () => {
+      const { sql } = await executerListerEtCapturer({ attente: ['pieces'] });
+
+      expect(sql).toContain('"ordre_reparation"."attente_pieces" = $');
+      expect(sql).not.toContain('"ordre_reparation"."attente_accord" = $');
+    });
+
+    it("attente=['accord','pieces'] : les DEUX drapeaux composent par OU (au moins un vrai), jamais par ET", async () => {
+      const { sql } = await executerListerEtCapturer({ attente: ['accord', 'pieces'] });
+
+      expect(sql).toContain('"ordre_reparation"."attente_accord" = $');
+      expect(sql).toContain('"ordre_reparation"."attente_pieces" = $');
+      expect(sql).toMatch(/\bor\b/i);
+    });
+
+    it('absente : aucune condition sur les colonnes attente_* dans la clause where', async () => {
+      const { sql } = await executerListerEtCapturer({});
+
+      expect(clauseWhere(sql)).not.toContain('attente_accord');
+      expect(clauseWhere(sql)).not.toContain('attente_pieces');
+      expect(clauseWhere(sql)).not.toContain('attente_externe');
+    });
+  });
+
+  describe('composition — jamais un filtre qui en écrase un autre', () => {
+    it('siteId + restitutionPromiseDu/Au + localisation + attente composent tous par ET', async () => {
+      const { sql, params } = await executerListerEtCapturer({
+        siteId: 'site-1',
+        restitutionPromiseDu: '2026-08-12',
+        restitutionPromiseAu: '2026-08-12',
+        localisation: ['pret_au_retrait'],
+        attente: ['accord'],
+      });
+
+      expect(sql).toContain('"ordre_reparation"."site_id" = $');
+      expect(sql).toContain('"ordre_reparation"."restitution_promise_le" >= $');
+      expect(sql).toContain('"ordre_reparation"."restitution_promise_le" <= $');
+      expect(sql).toContain('"ordre_reparation"."localisation" in ($');
+      expect(sql).toContain('"ordre_reparation"."attente_accord" = $');
+      expect(params).toContain('site-1');
+      expect(params).toContain('pret_au_retrait');
+      // La clause where entière compose par ET — un seul `or` isolé (celui d'`attente`, group par
+      // parenthèses) ne fait pas de la clause globale une disjonction.
+      expect(sql).toMatch(/^select .* from "ordre_reparation" where \(/);
+    });
+  });
+});
+
+/**
+ * Suite directe de l'audit #73 : `filtres.tri` n'était JAMAIS lu par `ServiceOr.lister`, l'ORDER
+ * BY restait figé sur `ouvertLe desc, creeLe desc` quelle que soit la valeur demandée. Les 5 valeurs
+ * de `TRIS_ORDRES_REPARATION` sont maintenant toutes câblées par `construireOrdreTri` :
+ * `ouvertLe:asc/desc`, `restitutionPromiseLe:asc/desc` (colonnes réelles) et `joursAttenteRetrait:desc`
+ * (arbitrage @laupernoe du 12.08.2026, décompte depuis `termineLe` pour un OR `termine`/`facture` — voir
+ * la doc de tête de `ServiceOr.lister`). `numeroSequence:asc/desc` a été RETIRÉ du contrat (aucune
+ * colonne de séquence numérique en base) — plus aucune valeur décorative dans ce module.
+ *
+ * Même patron `QueryBuilder` driver-less que les blocs `technicienId`/`#73` ci-dessus — la requête
+ * est RÉELLEMENT construite par `ServiceOr.lister()`, jamais reconstruite indépendamment dans le
+ * test.
+ */
+describe('ServiceOr.lister — tri (#73 suite, filtres.tri câblé)', () => {
+  function txQueryBuilderFactice() {
+    const qb = new QueryBuilder();
+    const capturedSelects: { toSQL: () => { sql: string; params: unknown[] } }[] = [];
+    const tx = {
+      select: (...args: unknown[]) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const builder: any = (qb.select as any)(...args);
+        const fromOriginal = builder.from.bind(builder);
+        builder.from = (...fromArgs: unknown[]) => {
+          const requete = fromOriginal(...fromArgs);
+          capturedSelects.push(requete);
+          return requete;
+        };
+        return builder;
+      },
+    };
+    return { tx: tx as unknown as TransactionDfa, capturedSelects };
+  }
+
+  function requeteOuter(capturedSelects: { toSQL: () => { sql: string; params: unknown[] } }[]) {
+    const derniere = capturedSelects.at(-1);
+    if (!derniere) throw new Error('Aucune requête capturée — tx.select() jamais appelé.');
+    return derniere.toSQL();
+  }
+
+  /** Isole la clause `order by` (entre `order by` et `limit`) — chercher les noms de colonnes dans
+   *  le SQL ENTIER serait toujours vrai puisque le `select()` liste toutes les colonnes de la
+   *  table. Même piège, même correctif que `clauseWhere` du bloc `#73` ci-dessus. */
+  function clauseOrderBy(sqlTexte: string): string {
+    const debut = sqlTexte.indexOf(' order by ');
+    if (debut === -1) return '';
+    const fin = sqlTexte.indexOf(' limit ', debut);
+    return fin === -1 ? sqlTexte.slice(debut) : sqlTexte.slice(debut, fin);
+  }
+
+  async function executerListerEtCapturer(tri: FiltresOrdresReparation['tri']) {
+    const { tx, capturedSelects } = txQueryBuilderFactice();
+    const acces = accesBaseFactice(tx);
+    const service = serviceFactice(acces);
+
+    await expect(
+      service.lister(CTX, principal('technicien'), { tri }, 25, undefined),
+    ).rejects.toThrow();
+
+    return requeteOuter(capturedSelects).sql;
+  }
+
+  it('ouvertLe:asc — `ouvert_le asc nulls last`, tiebreak `id asc`', async () => {
+    const sqlTexte = await executerListerEtCapturer('ouvertLe:asc');
+    expect(clauseOrderBy(sqlTexte)).toBe(
+      ' order by "ordre_reparation"."ouvert_le" asc nulls last, "ordre_reparation"."id" asc',
+    );
+  });
+
+  it("ouvertLe:desc — `ouvert_le desc nulls last` — sens STRICTEMENT inverse d'ouvertLe:asc, même colonne", async () => {
+    const sqlTexte = await executerListerEtCapturer('ouvertLe:desc');
+    expect(clauseOrderBy(sqlTexte)).toBe(
+      ' order by "ordre_reparation"."ouvert_le" desc nulls last, "ordre_reparation"."id" asc',
+    );
+  });
+
+  it('restitutionPromiseLe:asc — `restitution_promise_le asc nulls last`', async () => {
+    const sqlTexte = await executerListerEtCapturer('restitutionPromiseLe:asc');
+    expect(clauseOrderBy(sqlTexte)).toBe(
+      ' order by "ordre_reparation"."restitution_promise_le" asc nulls last, "ordre_reparation"."id" asc',
+    );
+  });
+
+  it('restitutionPromiseLe:desc — `restitution_promise_le desc nulls last` — sens STRICTEMENT inverse de restitutionPromiseLe:asc, même colonne', async () => {
+    const sqlTexte = await executerListerEtCapturer('restitutionPromiseLe:desc');
+    expect(clauseOrderBy(sqlTexte)).toBe(
+      ' order by "ordre_reparation"."restitution_promise_le" desc nulls last, "ordre_reparation"."id" asc',
+    );
+  });
+
+  it('NULLS LAST dans les DEUX sens : ni asc ni desc ne mentionne `nulls first` — un OR sans date ne remonte jamais en tête par accident', async () => {
+    for (const tri of [
+      'ouvertLe:asc',
+      'ouvertLe:desc',
+      'restitutionPromiseLe:asc',
+      'restitutionPromiseLe:desc',
+    ] as const) {
+      // eslint-disable-next-line no-await-in-loop -- lecture séquentielle de 4 requêtes indépendantes, pas d'écriture
+      const sqlTexte = await executerListerEtCapturer(tri);
+      expect(clauseOrderBy(sqlTexte)).toContain('nulls last');
+      expect(clauseOrderBy(sqlTexte)).not.toContain('nulls first');
+    }
+  });
+
+  it(
+    TRI_DEFAUT_ORDRES_REPARATION +
+      " (valeur par défaut du contrat) produit EXACTEMENT le même ORDER BY qu'ouvertLe:desc — le défaut n'est pas un cas à part",
+    async () => {
+      const sqlDefaut = await executerListerEtCapturer(TRI_DEFAUT_ORDRES_REPARATION);
+      const sqlExplicite = await executerListerEtCapturer('ouvertLe:desc');
+      expect(clauseOrderBy(sqlDefaut)).toBe(clauseOrderBy(sqlExplicite));
+    },
+  );
+
+  it(
+    'joursAttenteRetrait:desc — décompte depuis `termine_le`, UNIQUEMENT pour les statuts ' +
+      '`termine`/`facture` (T-17/T-18, les deux statuts depuis lesquels une restitution est valide) ' +
+      '— trié ASC NULLS LAST (le plus longtemps en attente en premier, un OR hors-sujet relégué en fin)',
+    async () => {
+      const sqlTexte = await executerListerEtCapturer('joursAttenteRetrait:desc');
+      expect(clauseOrderBy(sqlTexte)).toBe(
+        ' order by (case when "ordre_reparation"."statut" in (\'termine\', \'facture\') ' +
+          'then "ordre_reparation"."termine_le" end) asc nulls last, "ordre_reparation"."id" asc',
+      );
+    },
+  );
+
+  it(
+    'joursAttenteRetrait:desc — NE mentionne PAS `nulls first` (un OR pas encore terminé, déjà ' +
+      'restitué ou clôturé ne doit jamais remonter en tête par accident) — MUTATION : neutraliser le ' +
+      '`nulls last` de la branche `joursAttenteRetrait` dans construireOrdreTri (le remplacer par une ' +
+      'chaîne vide) doit faire rougir ce test',
+    async () => {
+      const sqlTexte = await executerListerEtCapturer('joursAttenteRetrait:desc');
+      expect(clauseOrderBy(sqlTexte)).toContain('nulls last');
+      expect(clauseOrderBy(sqlTexte)).not.toContain('nulls first');
+    },
+  );
+
+  it(
+    "joursAttenteRetrait:desc — restreint le décompte à `statut in ('termine', 'facture')` — " +
+      'MUTATION : élargir ou supprimer cette liste dans construireOrdreTri (ex. retirer `facture`, ou ' +
+      'remplacer par `true`) doit faire rougir ce test, sinon rien ne prouve que le filtre de statut ' +
+      'est réellement appliqué au SQL plutôt que simplement accepté par le contrat',
+    async () => {
+      const sqlTexte = await executerListerEtCapturer('joursAttenteRetrait:desc');
+      expect(clauseOrderBy(sqlTexte)).toContain(
+        '"ordre_reparation"."statut" in (\'termine\', \'facture\')',
+      );
+    },
+  );
+
+  it("le tiebreak `id asc` termine TOUJOURS la clause order by, quelle que soit la valeur de tri — garantit un ordre total pour une pagination par curseur d'offset cohérente", async () => {
+    for (const tri of [
+      'ouvertLe:asc',
+      'ouvertLe:desc',
+      'restitutionPromiseLe:asc',
+      'restitutionPromiseLe:desc',
+      'joursAttenteRetrait:desc',
+    ] as const) {
+      // eslint-disable-next-line no-await-in-loop -- lecture séquentielle indépendante, pas d'écriture
+      const sqlTexte = await executerListerEtCapturer(tri);
+      expect(clauseOrderBy(sqlTexte)).toMatch(/, "ordre_reparation"\."id" asc$/);
+    }
+  });
+});

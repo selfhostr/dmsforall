@@ -41,9 +41,21 @@
  * que des lignes de §10). Pour ces cas, l'attribution est **inférée** et documentée comme telle,
  * avec sa justification (règle métier RM-xx, transition T-xx, ou principe explicite) :
  *
- *  - `admin` reçoit le même périmètre que `direction` (rôle technique/propriétaire du tenant,
- *    superset par construction — cohérent avec le fait que `direction` est "oui" ou "sans limite"
- *    sur les 24 lignes de §10, sans exception).
+ *  - `admin` reçoit le même périmètre que `direction` pour CE lot (atelier/clients/véhicules) —
+ *    superset par construction, cohérent avec le fait que `direction` est "oui" ou "sans limite"
+ *    sur les 24 lignes de §10, sans exception. DOCTRINE COMPLÈTE, ARBITRÉE (issue #21, tranchée
+ *    12.08.2026, à ne PAS rouvrir) : `admin` est le compte TECHNIQUE de l'intégrateur — celui qui
+ *    administre le système pour le compte du garage (tenants, sites, utilisateurs, paramètres). Il
+ *    ne vend pas, ne facture pas, ne touche pas au stock. `direction`, elle, EST le patron du
+ *    garage : il vend souvent lui-même et doit pouvoir contrôler et dépanner ses employés sur
+ *    l'intégralité du métier — c'est pour ça que `direction` reste le rôle « sans limite », jamais
+ *    `admin`. Les deux rôles reçoivent le MÊME périmètre ici (lot 1, atelier) parce que §10 ne
+ *    décrit pas `admin` comme acteur et que rien n'exclut explicitement l'atelier pour un compte
+ *    technique — mais dès qu'une action touche à l'argent (facturation, pièces/stock, export
+ *    fiduciaire, bloc créancier — voir RF-115 plus bas), `admin` retombe à `[]`, littéralement,
+ *    JAMAIS comblé par copier-coller de `direction`. Le compte de démo à utiliser pour tester le
+ *    métier est `direction@garage-martin.ch`, jamais `admin@` (qui n'a AUCUN droit métier
+ *    financier/stock et rend des 403 attendus sur ces domaines — voir la doc de démarrage).
  *  - `vendeur` n'est PAS un acteur de l'étape 1 (§2.1 ligne 66-67 : seul le manque de
  *    `receptionnaire` y est signalé, `vendeur` n'apparaît dans aucun flux du §3). Il reçoit une
  *    lecture minimale (paramétrage, clients, véhicules, recherche) et AUCUN droit d'écriture
@@ -933,9 +945,13 @@ const DROITS_POSTE_ATELIER: readonly Action[] = [...LECTURE_SOCLE, ...LECTURE_OR
 const DROITS_DIRECTION: readonly Action[] = [...DROITS_CHEF_ATELIER, ...INFERE_CLIENT_CONDITIONS];
 
 /**
- * `admin` : rôle technique/propriétaire du tenant (`ARCHITECTURE.md §3`), non décrit comme acteur
- * métier de l'étape 1 — reçoit par construction le même périmètre que `direction` (voir note de
- * tête de fichier).
+ * `admin` : compte technique de l'intégrateur (`ARCHITECTURE.md §3`) — administre le système
+ * (tenants, sites, utilisateurs, paramètres), ne vend pas, ne facture pas, ne touche pas au stock.
+ * PAS le propriétaire métier du garage : ça, c'est `direction` (voir note de tête de fichier,
+ * doctrine complète arbitrée par l'issue #21). Non décrit comme acteur métier de l'étape 1 — reçoit
+ * par construction le même périmètre que `direction` UNIQUEMENT ici (atelier/clients/véhicules) ;
+ * retombe à `[]` littéral dès qu'une action touche à l'argent ou au stock (RF-115, blocs additifs
+ * plus bas).
  */
 const DROITS_ADMIN: readonly Action[] = [...DROITS_DIRECTION];
 
@@ -962,7 +978,9 @@ const DROITS_ADMIN: readonly Action[] = [...DROITS_DIRECTION];
 // — séparation des pouvoirs explicite dès l'étape 2 (qui crée des comptes ne doit pas pouvoir
 // émettre/encaisser), À LA DIFFÉRENCE de la doctrine de l'étape 1 rappelée en tête de fichier
 // (`admin` = superset de `direction`). Son entrée ci-dessous est donc `[]`, VOLONTAIREMENT, et ne
-// doit JAMAIS être remplie par copier-coller de celle de `direction`.
+// doit JAMAIS être remplie par copier-coller de celle de `direction`. CONFIRMÉ EXPLICITEMENT par
+// l'arbitrage de l'issue #21 (12.08.2026, voir tête de fichier) : `admin` = compte technique de
+// l'intégrateur, ne vend ni ne facture jamais — ce n'est pas un oubli de la matrice §11.
 
 /** RF-114, ligne « Voir les montants » côté paiements. */
 const LECTURE_PAIEMENT: readonly Action[] = ['facturation.paiement.lire'];
@@ -1254,7 +1272,9 @@ const DROITS_IMPRESSION_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Acti
 // matrice §11 écrit « non (RF-115, aucun droit métier) » jusque sur la ligne « Consulter
 // article/stock », ce qui est plus strict que la doctrine habituelle de ce fichier (`admin` =
 // superset de `direction` pour le lot 1 atelier/clients) : ici `admin` n'a AUCUN droit métier
-// pièces, ni écriture ni lecture, jamais à combler par copier-coller de `direction`.
+// pièces, ni écriture ni lecture, jamais à combler par copier-coller de `direction`. CONFIRMÉ,
+// DÉLIBÉRÉ (issue #21, tranchée 12.08.2026, voir tête de fichier) : `admin` administre le système,
+// il ne touche pas au stock — `direction` (le patron, qui vend et dépanne ses employés) le voit.
 //
 // COLONNES « (P) » DE LA MATRICE §11 — paramétrables en théorie, NON implémentées ce lot (aucun
 // paramètre `parametre_pieces` ne porte ces réglages, voir `contrats/pieces/parametrage.ts`,

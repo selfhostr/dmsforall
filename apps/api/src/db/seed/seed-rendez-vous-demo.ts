@@ -3,9 +3,13 @@
  * `seed-dev.ts`/`seed-atelier-demo.ts` avec :
  *   1. le référentiel `motif_rendez_vous` (aucune ligne semée jusqu'ici — la table existe depuis
  *      0005 mais n'avait aucun consommateur avant ce lot) ;
- *   2. six rendez-vous couvrant les quatre statuts (`confirme`/`honore`/`absent`/`annule`), les deux
- *      origines (`reservation`/`retroactif`), le cas `vehicule_id` NULL, et deux liens réels vers
- *      des OR existants (`ordre_reparation.rendez_vous_id`, FK posée par 0052).
+ *   2. six rendez-vous à dates FIXES couvrant les quatre statuts (`confirme`/`honore`/`absent`/
+ *      `annule`), les deux origines (`reservation`/`retroactif`), le cas `vehicule_id` NULL, et
+ *      deux liens réels vers des OR existants (`ordre_reparation.rendez_vous_id`, FK posée par
+ *      0052) ; PLUS quatre rendez-vous à dates DÉRIVÉES de l'exécution du seed (jamais figées) :
+ *      deux confirmés du jour courant sur des créneaux différents (parcours nominal « le véhicule
+ *      est arrivé »), un honoré plus tôt dans la journée (lié au second OR BMW délibéré, voir
+ *      `seed-atelier-demo.ts` § « OR n°5 »), et un confirmé plus tard cette semaine.
  *
  * PAS de `ServiceRendezVous` à câbler ici (à la différence de `seed-atelier-demo.ts` et consorts) :
  * ce lot est le socle DONNÉES seul (`apps/api/src/db/`) — le service applicatif
@@ -37,8 +41,10 @@ export interface OptionsSeedRendezVous {
   readonly idsClientsParNumero: ReadonlyMap<string, string>;
   readonly idsVehiculesParCle: ReadonlyMap<string, string>;
   readonly idsUtilisateursParRole: ReadonlyMap<string, string>;
-  /** `seed-atelier-demo.ts::ResultatSeedAtelier.idsOrdresReparationParCle` — permet de lier deux
-   *  OR de démo existants à un rendez-vous réel (`ordre_reparation.rendez_vous_id`, FK 0052). */
+  /** `seed-atelier-demo.ts::ResultatSeedAtelier.idsOrdresReparationParCle` — permet de lier des
+   *  OR de démo existants à un rendez-vous réel (`ordre_reparation.rendez_vous_id`, FK 0052) :
+   *  `golf`/`bmw` pour les deux liens historiques, `bmw-second` pour le rendez-vous honoré du jour
+   *  courant (voir `seed-atelier-demo.ts` § « OR n°5 »). */
   readonly idsOrdresReparationParCle: ReadonlyMap<string, string>;
   readonly journaliser?: (message: string) => void;
 }
@@ -104,6 +110,15 @@ const ID_RDV_DUPONT_ANNULE = 'e7c8a3d2-6f4b-4e2c-9d5a-4f8d3a6e7c44';
 const ID_RDV_MEIER_BMW_RETROACTIF = 'f2d9b4e3-8a5c-4f3d-ae6b-5a9e4b7f2d55';
 const ID_RDV_RHONE_PNEUS = 'a3e0c5f4-1b6d-4a4e-bf7c-6b0f5c8a3e66';
 
+/** Rendez-vous du jour courant — démontrent le parcours nominal du jour. */
+const ID_RDV_AUJOURD_HUI_MATIN = 'c5e1a9f7-2b4d-4f6c-a8d2-8f3e5c7b1a4d';
+const ID_RDV_AUJOURD_HUI_APRES = 'd6f2ba08-3c5e-5d7c-b9e3-9e4f6d8c2b5e';
+/** Déjà honoré plus tôt dans la journée — voir `seed-atelier-demo.ts` § « OR n°5 — BMW (second) » :
+ *  c'est CE rendez-vous qui « explique » le second OR ouvert sur le véhicule BMW de Mme Meier. */
+const ID_RDV_AUJOURD_HUI_BMW_HONORE = '5b6ceba3-ed1e-463b-b1e1-aa31e7d1491e';
+/** Confirmé, plus tard cette semaine (date dérivée de l'exécution du seed, jamais figée). */
+const ID_RDV_SEMAINE_MASTER_SERVICE = '71306309-e26d-4ef2-b9be-475a77e68658';
+
 export async function semerRendezVousDemo(options: OptionsSeedRendezVous): Promise<void> {
   const journaliser = options.journaliser ?? ((m: string) => process.stdout.write(`${m}\n`));
 
@@ -125,6 +140,7 @@ export async function semerRendezVousDemo(options: OptionsSeedRendezVous): Promi
   const idReceptionnaire = options.idsUtilisateursParRole.get('receptionnaire');
   const idOrGolf = options.idsOrdresReparationParCle.get('golf');
   const idOrBmw = options.idsOrdresReparationParCle.get('bmw');
+  const idOrBmwSecond = options.idsOrdresReparationParCle.get('bmw-second');
 
   if (
     !idSion ||
@@ -138,12 +154,13 @@ export async function semerRendezVousDemo(options: OptionsSeedRendezVous): Promi
     !idBmw ||
     !idReceptionnaire ||
     !idOrGolf ||
-    !idOrBmw
+    !idOrBmw ||
+    !idOrBmwSecond
   ) {
     throw new Error(
       `seed-rendez-vous-demo : une clé attendue de seed-dev.ts ou seed-atelier-demo.ts est absente ` +
-        `(site, client, véhicule, receptionnaire ou OR golf/bmw) — vérifier que seed-atelier-demo.ts ` +
-        `tourne bien AVANT seed-rendez-vous-demo.ts dans seed-dev.ts::principal().`,
+        `(site, client, véhicule, receptionnaire ou OR golf/bmw/bmw-second) — vérifier que ` +
+        `seed-atelier-demo.ts tourne bien AVANT seed-rendez-vous-demo.ts dans seed-dev.ts::principal().`,
     );
   }
 
@@ -486,6 +503,208 @@ export async function semerRendezVousDemo(options: OptionsSeedRendezVous): Promi
           },
         });
       journaliser(`  RDV confirmé — Transports Rhône/Master, 22.08 après-midi (pneus, 45 min)`);
+
+      // --- Rendez-vous du jour courant -------------------------------------------------------
+      // Date d'exécution du seed — ces rendez-vous sont créés AUX DATES DU JOUR, pour que le
+      // garagiste testant le logiciel le jour du seed voit une journée crédible : des
+      // rendez-vous confirmés arrivés ce jour-là (état `confirme`, pas encore honorés ni
+      // absents) sur des créneaux différents, un client et un véhicule renseignés, et pas
+      // uniquement un bouton rouge « Annuler » (cf. le panneau de détail qui explique l'attente
+      // tant que le rendez-vous n'est pas arrivable).
+      const maintenant = new Date();
+      // `.slice(0, 10)` et JAMAIS `.split('T')[0]` : sous `noUncheckedIndexedAccess` (tsconfig.base
+      // .json), l'accès à un élément de tableau par index rend `string | undefined` (TS2769 sur les
+      // `.values(...)` Drizzle ci-dessous, qui exigent une colonne `date` définie) — `String.slice`
+      // rend directement `string`, sans cette perte de type.
+      const jourAujourdHui = maintenant.toISOString().slice(0, 10); // format YYYY-MM-DD
+      // Toujours dans le passé par rapport à `maintenant`, quelle que soit l'heure d'exécution du
+      // seed (jamais une heure d'horloge murale fixe comme `setHours(7, ...)`, qui pourrait tomber
+      // dans le futur si le seed tourne tôt le matin) — sert à `confirmeLe`/`honoreLe` du rendez-vous
+      // « déjà arrivé » ci-dessous : sa présence au passé doit rester vraie quelle que soit l'heure.
+      const troisHeuresAvantMaintenant = new Date(maintenant.getTime() - 3 * 60 * 60 * 1000);
+      const veilleDeMaintenant = new Date(maintenant.getTime() - 24 * 60 * 60 * 1000);
+      const dansTroisJours = new Date(maintenant);
+      dansTroisJours.setDate(dansTroisJours.getDate() + 3);
+      const jourDansTroisJours = dansTroisJours.toISOString().slice(0, 10);
+
+      // 7. Confirmé, prévu ce matin (PAS encore arrivé : statut `confirme`, exerce le parcours
+      //    « le véhicule est arrivé ») — Meier/Golf, crénel 08:00.
+      await tx
+        .insert(rendezVous)
+        .values({
+          id: ID_RDV_AUJOURD_HUI_MATIN,
+          tenantId: options.tenantId,
+          siteId: idSion,
+          clientId: idClientMeier,
+          vehiculeId: idGolf,
+          motifId: idMotifService,
+          type: 'service',
+          date: jourAujourdHui,
+          moment: 'matin',
+          heureSouhaitee: '08:00:00',
+          dureeEstimeeMinutes: 60,
+          statut: 'confirme',
+          origine: 'reservation',
+          confirmeLe: maintenant,
+          creeParId: idReceptionnaire,
+        })
+        .onConflictDoUpdate({
+          target: rendezVous.id,
+          set: {
+            siteId: idSion,
+            clientId: idClientMeier,
+            vehiculeId: idGolf,
+            motifId: idMotifService,
+            type: 'service',
+            date: jourAujourdHui,
+            moment: 'matin',
+            heureSouhaitee: '08:00:00',
+            dureeEstimeeMinutes: 60,
+            statut: 'confirme',
+            origine: 'reservation',
+          },
+        });
+      journaliser(`  RDV confirmé du jour — Meier/Golf, ${jourAujourdHui} 08:00 (service, 60 min)`);
+
+      // 8. Confirmé, prévu cet après-midi (PAS encore arrivé) — Dupont/Octavia, crénel 14:00.
+      await tx
+        .insert(rendezVous)
+        .values({
+          id: ID_RDV_AUJOURD_HUI_APRES,
+          tenantId: options.tenantId,
+          siteId: idMartigny,
+          clientId: idClientDupont,
+          vehiculeId: idOctavia,
+          motifId: idMotifDiagnostic,
+          type: 'diagnostic',
+          date: jourAujourdHui,
+          moment: 'apres_midi',
+          heureSouhaitee: '14:00:00',
+          dureeEstimeeMinutes: 45,
+          statut: 'confirme',
+          origine: 'reservation',
+          confirmeLe: maintenant,
+          creeParId: idReceptionnaire,
+        })
+        .onConflictDoUpdate({
+          target: rendezVous.id,
+          set: {
+            siteId: idMartigny,
+            clientId: idClientDupont,
+            vehiculeId: idOctavia,
+            motifId: idMotifDiagnostic,
+            type: 'diagnostic',
+            date: jourAujourdHui,
+            moment: 'apres_midi',
+            heureSouhaitee: '14:00:00',
+            dureeEstimeeMinutes: 45,
+            statut: 'confirme',
+            origine: 'reservation',
+          },
+        });
+      journaliser(
+        `  RDV confirmé du jour — Dupont/Octavia (MARTIGNY), ${jourAujourdHui} 14:00 (diagnostic, 45 min)`,
+      );
+
+      // 9. Honoré, DÉJÀ arrivé plus tôt dans la journée — BMW/Meier, Sion. Récit : le kit
+      //    plaquettes/disques (OR n°4, `bmw`) est en attente fournisseur, rien à faire dessus
+      //    aujourd'hui ; Mme Meier revient le jour même pour un problème de démarrage SANS RAPPORT
+      //    → second OR actif sur le même véhicule (`bmw-second`, `seed-atelier-demo.ts` § « OR
+      //    n°5 »), ouvert avec confirmation explicite de `VEHICULE_DEUX_OR_OUVERTS` (P-29). C'est
+      //    ce rendez-vous honoré qui « explique » ce second OR au comptoir.
+      await tx
+        .insert(rendezVous)
+        .values({
+          id: ID_RDV_AUJOURD_HUI_BMW_HONORE,
+          tenantId: options.tenantId,
+          siteId: idSion,
+          clientId: idClientMeier,
+          vehiculeId: idBmw,
+          motifId: idMotifDiagnostic,
+          commentaire: 'Problème de démarrage à froid, sans rapport avec les plaquettes en cours.',
+          type: 'diagnostic',
+          date: jourAujourdHui,
+          moment: 'matin',
+          heureSouhaitee: '07:30:00',
+          dureeEstimeeMinutes: 30,
+          statut: 'honore',
+          origine: 'reservation',
+          confirmeLe: veilleDeMaintenant,
+          honoreLe: troisHeuresAvantMaintenant,
+          creeParId: idReceptionnaire,
+        })
+        .onConflictDoUpdate({
+          target: rendezVous.id,
+          set: {
+            siteId: idSion,
+            clientId: idClientMeier,
+            vehiculeId: idBmw,
+            motifId: idMotifDiagnostic,
+            commentaire:
+              'Problème de démarrage à froid, sans rapport avec les plaquettes en cours.',
+            type: 'diagnostic',
+            date: jourAujourdHui,
+            moment: 'matin',
+            heureSouhaitee: '07:30:00',
+            dureeEstimeeMinutes: 30,
+            statut: 'honore',
+            origine: 'reservation',
+            honoreLe: troisHeuresAvantMaintenant,
+          },
+        });
+      await tx
+        .update(ordreReparation)
+        .set({ rendezVousId: ID_RDV_AUJOURD_HUI_BMW_HONORE })
+        .where(
+          and(
+            eq(ordreReparation.tenantId, options.tenantId),
+            eq(ordreReparation.id, idOrBmwSecond),
+          ),
+        );
+      journaliser(
+        `  RDV honoré du jour — Meier/BMW, ${jourAujourdHui} 07:30 (diagnostic) → lié au second OR BMW`,
+      );
+
+      // 10. Confirmé, plus tard cette semaine — Transports Rhône/Master, Sion (journée crédible :
+      //     pas seulement aujourd'hui et les dates fixes lointaines du haut de fichier).
+      await tx
+        .insert(rendezVous)
+        .values({
+          id: ID_RDV_SEMAINE_MASTER_SERVICE,
+          tenantId: options.tenantId,
+          siteId: idSion,
+          clientId: idClientRhone,
+          vehiculeId: idMaster,
+          motifId: idMotifService,
+          type: 'service',
+          date: jourDansTroisJours,
+          moment: 'matin',
+          heureSouhaitee: '09:00:00',
+          dureeEstimeeMinutes: 60,
+          statut: 'confirme',
+          origine: 'reservation',
+          confirmeLe: maintenant,
+          creeParId: idReceptionnaire,
+        })
+        .onConflictDoUpdate({
+          target: rendezVous.id,
+          set: {
+            siteId: idSion,
+            clientId: idClientRhone,
+            vehiculeId: idMaster,
+            motifId: idMotifService,
+            type: 'service',
+            date: jourDansTroisJours,
+            moment: 'matin',
+            heureSouhaitee: '09:00:00',
+            dureeEstimeeMinutes: 60,
+            statut: 'confirme',
+            origine: 'reservation',
+          },
+        });
+      journaliser(
+        `  RDV confirmé plus tard cette semaine — Transports Rhône/Master, ${jourDansTroisJours} 09:00 (service, 60 min)`,
+      );
     });
   } finally {
     await acces.onModuleDestroy();

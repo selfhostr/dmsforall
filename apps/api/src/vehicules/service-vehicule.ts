@@ -436,7 +436,13 @@ export class ServiceVehicule {
    *
    * Contrat de sortie IDENTIQUE à `ServiceVehiculePlaque.creer` : même code `409
    * VEHICULE_PLAQUE_COLLISION`, `blocages[0].donnees` au même type `DetailCollisionPlaqueVehicule`
-   * — seul `blocages[0].id` diffère (`'plaque'`, le nom du champ ici plutôt que `'valeur'`, RM-18).
+   * — seul `blocages[0].id` diffère (`'plaque'` ici, `'valeur'` là-bas). CONFIRMÉ, pas un bug
+   * (issue #95) : `id` pour `type: 'champ'` est TOUJOURS le nom du champ fautif DANS LE CORPS DE
+   * CETTE requête (`EntreeCreationVehicule.plaque` ici, `EntreePlaqueVehicule.valeur` sur l'autre
+   * route) — jamais un identifiant de rôle stable entre endpoints. Doc complète et convention
+   * produit dans `DetailCollisionPlaqueVehicule` (`@dfa/shared`, `contrats/vehicules/collision-
+   * plaque.ts`) : un consommateur ne doit JAMAIS brancher sur `blocages[0].id`, seulement sur
+   * `.donnees`.
    * Cas de course identique : ligne fautive disparue entre l'échec de l'INSERT et cette relecture
    * → `collision` vaut `null`, l'erreur reste un `409` correct, `blocages` simplement OMIS —
    * jamais un `500`, jamais un identifiant inventé.

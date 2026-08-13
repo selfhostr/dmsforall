@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
 import type {
+  DetailStockInsuffisantPieces,
   EntreeCreationAjustementInventaire,
   EntreeCreationMouvementCasse,
   EntreeCreationMouvementPerte,
@@ -566,11 +567,31 @@ export class ServiceMouvement {
     if (quantiteDemandee <= disponible) return;
 
     if (!forcer) {
+      // Issue #15, point 3 : `detail` ci-dessous reste un identifiant technique pour le support/les
+      // logs (JAMAIS affiché au front, voir `ErreurMetier.detail`) — les quantités RÉELLEMENT
+      // exploitables par l'écran vont dans `blocages[0].donnees`
+      // (`DetailStockInsuffisantPieces`, `@dfa/shared`), seul canal que le front est censé lire.
+      // `id: 'quantiteMillieme'` — nom du champ fautif dans le corps de LA requête qui a échoué
+      // (voir la doc du contrat pour les schémas concernés), même convention que
+      // `service-vehicule-plaque.ts::creer` pour `VEHICULE_PLAQUE_COLLISION`.
       throw new ErreurMetier(
         'STOCK_INSUFFISANT',
         `Stock disponible insuffisant : ${formaterQuantiteMillieme(disponible)} unité(s) disponible(s), ${formaterQuantiteMillieme(quantiteDemandee)} unité(s) demandée(s).`,
         {
           detail: `tenant=${ctx.tenantId};article=${articleId};site=${siteId};disponible=${String(disponible)};demande=${String(quantiteDemandee)}`,
+          blocages: [
+            {
+              type: 'champ',
+              id: 'quantiteMillieme',
+              libelle: `Stock disponible insuffisant : ${formaterQuantiteMillieme(disponible)} unité(s) disponible(s), ${formaterQuantiteMillieme(quantiteDemandee)} unité(s) demandée(s).`,
+              donnees: {
+                articleId,
+                siteId,
+                disponibleMillieme: disponible,
+                demandeMillieme: quantiteDemandee,
+              } satisfies DetailStockInsuffisantPieces,
+            },
+          ],
         },
       );
     }
