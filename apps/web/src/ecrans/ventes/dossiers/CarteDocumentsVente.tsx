@@ -19,8 +19,9 @@ import { formaterDate, formaterMontant } from '@/lib/formats';
  *  `ventes:dossier.documents.statuts`. `BadgeEtatDocument` (`ecrans/facturation/`) n'en couvre que
  *  3 (brouillon/emis/annule_par_avoir, périmètre volontairement restreint de son auteur) — un
  *  dossier peut embarquer un devis `expire`/`refuse` ou un bon de commande `transforme`, les 7
- *  autres valeurs. */
-const CLES_STATUT_DOCUMENT: Record<StatutDocumentVente, string> = {
+ *  autres valeurs. Exporté : `PanneauActionsDossierVente` le réutilise (#128) pour composer un
+ *  libellé lisible à la place de l'UUID quand `document.numero` est encore `null` (brouillon). */
+export const CLES_STATUT_DOCUMENT: Record<StatutDocumentVente, string> = {
   brouillon: 'brouillon',
   emis: 'emis',
   accepte: 'accepte',

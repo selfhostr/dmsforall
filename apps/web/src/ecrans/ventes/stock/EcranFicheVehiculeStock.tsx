@@ -39,9 +39,15 @@ import {
   lireVueAffichageStock,
   type VueAffichageStock,
 } from './_composants/BasculeVueStock';
+import { ChampEmplacementVehiculeStock } from './_composants/ChampEmplacementVehiculeStock';
 import { DialogueActionAvecMotif } from './_composants/DialogueActionAvecMotif';
+import { DialogueGarantieVehiculeStock } from './_composants/DialogueGarantieVehiculeStock';
 import { FormulaireVehiculeStock } from './_composants/FormulaireVehiculeStock';
-import { peutCorrigerVehiculeStock, peutEcrireVehiculeStock } from './droits';
+import {
+  peutCorrigerVehiculeStock,
+  peutEcrireVehiculeStock,
+  peutModifierVehiculeAssocie,
+} from './droits';
 
 const VARIANTE_BADGE_STATUT: Record<StatutCommercialVehicule, 'default' | 'secondary' | 'outline'> =
   {
@@ -102,6 +108,7 @@ export function EcranFicheVehiculeStock() {
   const [remettreDisponibleOuvert, setRemettreDisponibleOuvert] = useState(false);
   const [marquerVenduOuvert, setMarquerVenduOuvert] = useState(false);
   const [confirmationReceptionOuverte, setConfirmationReceptionOuverte] = useState(false);
+  const [garantieOuverte, setGarantieOuverte] = useState(false);
 
   // Prix d'achat / frais de remise en état : en vue client (issue #84), ces deux lignes ne sont
   // plus rendues DU TOUT — voir plus bas — donc rien à masquer ni à révéler ici. En vue vendeur
@@ -154,6 +161,10 @@ export function EcranFicheVehiculeStock() {
   const stock = requeteStock.data;
   const peutEcrire = peutEcrireVehiculeStock(role);
   const peutCorriger = peutCorrigerVehiculeStock(role);
+  // Droit DISTINCT de `peutEcrire`/`peutCorriger` ci-dessus : gouverne le véhicule lui-même
+  // (emplacement, garantie), pas la fiche commerciale de stock — voir
+  // `droits.ts::peutModifierVehiculeAssocie`.
+  const peutModifierVehicule = peutModifierVehiculeAssocie(role);
 
   const proposeMettreAJour = peutEcrire && stock.actionsDisponibles.includes('mettre_a_jour');
   const proposeReceptionner = peutEcrire && stock.actionsDisponibles.includes('receptionner');
@@ -245,19 +256,45 @@ export function EcranFicheVehiculeStock() {
           >
             {t('ventes:stock.fiche.voirFicheVehicule')}
           </Link>
+
+          {/* Emplacement (issue #142) : géré au comptoir, pas un geste accessible en vue client
+              (même retrait que les autres actions internes ci-dessous). */}
+          {vue === 'vendeur' ? (
+            <ChampEmplacementVehiculeStock
+              vehiculeId={stock.vehicule.id}
+              emplacement={stock.vehicule.emplacementLibre}
+              peutModifier={peutModifierVehicule}
+            />
+          ) : null}
         </div>
 
-        {/* Actions internes (mettre à jour, réceptionner, corrections) retirées en vue client :
-            pas de geste d'écriture accessible pendant qu'un client regarde l'écran. */}
-        {vue === 'vendeur' && actionPrimaire ? (
-          <ActionPrimaire
-            actionsSecondaires={actionsSecondaires}
-            libelleMenuSecondaire={t('ventes:stock.fiche.actions.autresActions')}
-          >
-            <Button type="button" variant="default" onClick={actionPrimaire.onClick}>
-              {actionPrimaire.libelle}
-            </Button>
-          </ActionPrimaire>
+        {/* Actions internes (mettre à jour, réceptionner, corrections, garantie) retirées en vue
+            client : pas de geste d'écriture accessible pendant qu'un client regarde l'écran. */}
+        {vue === 'vendeur' ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {/* « Garantie » (issue #141) : gardée par `vehicule.modifier`, un droit DISTINCT de
+                celui qui gouverne `actionPrimaire`/`actionsSecondaires` ci-dessous (voir
+                `peutModifierVehiculeAssocie`) — placée à côté, hors du composant `ActionPrimaire`,
+                qui n'admet qu'UNE seule action primaire construite par l'appelant (voir son
+                en-tête) : la coincer dans son menu de débordement l'aurait rendue invisible pour
+                un rôle sans action commerciale primaire (ex. `receptionnaire`) alors qu'il a bien
+                le droit de renseigner la garantie. */}
+            {peutModifierVehicule ? (
+              <Button type="button" variant="outline" onClick={() => setGarantieOuverte(true)}>
+                {t('ventes:stock.fiche.actions.garantie')}
+              </Button>
+            ) : null}
+            {actionPrimaire ? (
+              <ActionPrimaire
+                actionsSecondaires={actionsSecondaires}
+                libelleMenuSecondaire={t('ventes:stock.fiche.actions.autresActions')}
+              >
+                <Button type="button" variant="default" onClick={actionPrimaire.onClick}>
+                  {actionPrimaire.libelle}
+                </Button>
+              </ActionPrimaire>
+            ) : null}
+          </div>
         ) : null}
       </div>
 
@@ -434,6 +471,14 @@ export function EcranFicheVehiculeStock() {
           description={t('ventes:stock.fiche.marquerVenduDescription')}
           libelleConfirmation={t('ventes:stock.fiche.actions.marquerVendu')}
           mutation={marquerVendu}
+        />
+      ) : null}
+
+      {garantieOuverte ? (
+        <DialogueGarantieVehiculeStock
+          ouvert={garantieOuverte}
+          onOuvertChange={setGarantieOuverte}
+          vehiculeId={stock.vehicule.id}
         />
       ) : null}
 

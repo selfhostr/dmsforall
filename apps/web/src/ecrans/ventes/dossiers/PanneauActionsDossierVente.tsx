@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 
 import {
   schemaActionAbandonnerDossierVente,
@@ -38,6 +39,7 @@ import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
 import { useCreerBonCommandeDossier } from '@/hooks/ventes/dossiers/useCreerBonCommandeDossier';
+import { useCreerFactureDossier } from '@/hooks/ventes/dossiers/useCreerFactureDossier';
 import {
   useAbandonnerDossierVente,
   useAnnulerDossierVente,
@@ -47,7 +49,9 @@ import {
   useMarquerDossierPretALivrer,
   usePreparerDossierVente,
 } from '@/hooks/ventes/dossiers/useTransitionsDossierVente';
-import { formaterMontant } from '@/lib/formats';
+import { formaterDate, formaterMontant } from '@/lib/formats';
+
+import { CLES_STATUT_DOCUMENT } from './CarteDocumentsVente';
 
 /** Segment d'action (§6.2, `ACTIONS_DOSSIER_VENTE`) -> suffixe camelCase de `ventes:dossier.transitions`
  *  — mapping non trivial (`marquer_pret_a_livrer` -> `marquerPretALivrer`), même doctrine que
@@ -93,6 +97,7 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
 
   const engager = useEngagerDossierVente(dossier.id);
   const creationBonCommande = useCreerBonCommandeDossier(dossier);
+  const creationFacture = useCreerFactureDossier(dossier);
   const preparer = usePreparerDossierVente(dossier.id);
   const marquerPretALivrer = useMarquerDossierPretALivrer(dossier.id);
   const livrer = useLivrerDossierVente(dossier.id);
@@ -101,6 +106,11 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
   const abandonner = useAbandonnerDossierVente(dossier.id);
 
   const [bonCommandeDocumentId, setBonCommandeDocumentId] = useState('');
+  // #124 : identifiant de la facture tout juste créée par ce dialogue — le dossier n'a pas encore
+  // été refetché au moment du succès (l'invalidation TanStack Query est asynchrone), donc
+  // `dossier.documents` ne la porte pas encore : c'est ce champ, pas `facturesDossier` dérivé plus
+  // bas, qui fait apparaître le lien immédiatement après création.
+  const [factureCreeeId, setFactureCreeeId] = useState<string | null>(null);
   const [identitePieceType, setIdentitePieceType] = useState('');
   const [identitePieceAutre, setIdentitePieceAutre] = useState('');
   const [motif, setMotif] = useState('');
@@ -118,6 +128,7 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
   function fermer() {
     setActionOuverte(null);
     setBonCommandeDocumentId('');
+    setFactureCreeeId(null);
     setIdentitePieceType('');
     setIdentitePieceAutre('');
     setMotif('');
@@ -183,6 +194,11 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
   const titreDialogue = cleTitre ? t(`ventes:dossier.transitions.${cleTitre}`) : '';
 
   const bonsCommande = dossier.documents.filter((d) => d.typeDocument === 'bon_commande');
+  // #124 : au moins une facture rattachée (peu importe son statut — même un brouillon confirme
+  // que le lien `/factures/{id}` existe déjà et évite d'en recréer une seconde). L'union avec
+  // `factureCreeeId` (voir sa note ci-dessus) couvre l'instant entre la création et le refetch.
+  const facturesDossier = dossier.documents.filter((d) => d.typeDocument === 'facture');
+  const factureAAfficherId = factureCreeeId ?? facturesDossier[0]?.id;
   const repriseNegocieePresente = dossier.reprise?.statut === 'negociee';
 
   return (
@@ -289,7 +305,11 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
                     <SelectContent>
                       {bonsCommande.map((document) => (
                         <SelectItem key={document.id} value={document.id}>
-                          {document.numero ?? document.id}
+                          {document.numero ??
+                            // #128 : un document `brouillon` n'a jamais de `numero` avant émission —
+                            // afficher `document.id` exposait l'UUID brut en clair dans un libellé
+                            // visible. Statut traduit + date, jamais l'identifiant technique.
+                            `${t(`ventes:dossier.documents.statuts.${CLES_STATUT_DOCUMENT[document.statut]}`)} · ${formaterDate(document.dateDocument)}`}
                           {document.totalTtcCentimes !== undefined ? (
                             <span className="texte-montant">
                               {' '}
@@ -428,6 +448,57 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
               <LegendeChampsObligatoires>
                 {t('commun:formulaires.champsObligatoiresLegende')}
               </LegendeChampsObligatoires>
+
+              {/* #124 : `livrer` (RV-37) exige côté serveur une facture ÉMISE — jusqu'ici aucun
+                  écran ne permettait d'en créer une depuis le dossier, ce qui rendait le parcours
+                  de vente impasse. Même doctrine que le bloc « bon de commande » du dialogue
+                  `engager` : un bouton, pas un formulaire, `lignes: []`, le contenu (véhicule,
+                  prix, TVA) se saisit ensuite sur `/factures/{id}` (écran facturation, hors
+                  périmètre) — cette carte ne fait qu'amorcer et signposter le geste suivant. */}
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="dossier-livrer-facture">
+                  {t('ventes:dossier.transitions.facture')}
+                </Label>
+                {factureAAfficherId === undefined ? (
+                  <div className="flex flex-col gap-2">
+                    <p className="texte-libelle text-muted-foreground">
+                      {t('ventes:dossier.transitions.aucuneFacture')}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="self-start"
+                      disabled={creationFacture.enCours}
+                      onClick={() =>
+                        creationFacture.creer({
+                          onSuccess: (document) => setFactureCreeeId(document.id),
+                        })
+                      }
+                    >
+                      {t('ventes:dossier.transitions.creerFacture')}
+                    </Button>
+                    {creationFacture.erreur ? (
+                      <p className="texte-libelle text-destructive" role="alert">
+                        {messageErreur(creationFacture.erreur, t)}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <Link
+                      id="dossier-livrer-facture"
+                      to={`/factures/${factureAAfficherId}`}
+                      className="texte-corps text-primary hover:underline"
+                    >
+                      {t('ventes:dossier.transitions.voirFacture')}
+                    </Link>
+                    <p className="texte-libelle text-muted-foreground">
+                      {t('ventes:dossier.transitions.factureACompleter')}
+                    </p>
+                  </div>
+                )}
+              </div>
 
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="dossier-livrer-date" requis>

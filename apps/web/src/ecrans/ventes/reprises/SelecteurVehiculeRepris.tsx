@@ -7,8 +7,11 @@ import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useCleIdempotence } from '@/api/idempotence';
+import { useCreerVehicule } from '@/hooks/vehicules/useCreerVehicule';
 import { useListeVehicules } from '@/hooks/vehicules/useListeVehicules';
 import { messageErreur } from '@/api/erreurs';
 import { cn } from '@/lib/utils';
@@ -22,19 +25,21 @@ interface Props {
 }
 
 /**
- * Sélection du véhicule repris parmi les véhicules DÉJÀ connus de DFA — recherche par
+ * Sélection du véhicule repris — recherche d'abord parmi les véhicules DÉJÀ connus de DFA par
  * plaque/désignation (`GET /vehicules?q=`), même patron de recherche anti-rebond que
  * `useRechercheComptoir` (300ms), rendu radiogroup identique à
  * `ecrans/atelier/SelecteurVehiculeOrdre.tsx` (invariant n°1, `IdentiteVehicule`).
  *
- * LIMITE CONNUE, signalée (§8.1 du design : « référence à un véhicule existant OU nouvellement
- * créé ») : ce composant ne couvre QUE le cas « véhicule déjà connu ». La création à la volée
- * d'un véhicule pas encore enregistré n'est pas câblée ici — `/vehicules/nouveau` n'a pas de route
- * indépendante à ce jour (même constat que `SelecteurVehiculeOrdre.tsx`, ligne 28 : proposer un
- * lien mènerait sur un 404). À combler quand cette route existera.
+ * Cas fréquent (§8.1 du design : « référence à un véhicule existant OU nouvellement créé ») :
+ * un client apporte une voiture jamais vue par le garage. Quand la recherche ne remonte rien,
+ * l'état vide propose un petit formulaire de création à la volée (`POST /vehicules` via
+ * `useCreerVehicule`, importé tel quel — module véhicules, module étape 1) avec les seuls champs
+ * obligatoires du contrat (marque, modèle), plaque en option. Le véhicule créé est sélectionné
+ * automatiquement, exactement comme un résultat de recherche normal — `onChangeValeur` ne
+ * distingue pas les deux origines.
  */
 export function SelecteurVehiculeRepris({ valeur, onChangeValeur, erreur }: Props) {
-  const { t } = useTranslation(['ventes', 'commun', 'erreurs']);
+  const { t } = useTranslation(['ventes', 'commun', 'erreurs', 'vehicules', 'validation']);
   const [saisie, setSaisie] = useState('');
   const [termeDebounce, setTermeDebounce] = useState('');
 
@@ -54,6 +59,62 @@ export function SelecteurVehiculeRepris({ valeur, onChangeValeur, erreur }: Prop
     { q: termeDebounce, tri: 'plaque:asc' },
     { enabled: rechercheActive },
   );
+
+  // Création à la volée (§8.1, cas « véhicule jamais vu par le garage ») — état local distinct de
+  // la recherche : une clé d'idempotence par ouverture du mini-formulaire, régénérée après succès,
+  // même contrat que `useCreerClient`/`DialogueCreationFinancement` (un rejeu ne doit jamais créer
+  // deux fiches).
+  const [creationOuverte, setCreationOuverte] = useState(false);
+  const [nouvelleMarque, setNouvelleMarque] = useState('');
+  const [nouveauModele, setNouveauModele] = useState('');
+  const [nouvellePlaque, setNouvellePlaque] = useState('');
+  const [erreursCreation, setErreursCreation] = useState<Record<string, string>>({});
+  const idempotenceCreation = useCleIdempotence();
+  const creerVehicule = useCreerVehicule();
+
+  function ouvrirCreation() {
+    creerVehicule.reset();
+    setErreursCreation({});
+    setCreationOuverte(true);
+  }
+
+  function annulerCreation() {
+    creerVehicule.reset();
+    setErreursCreation({});
+    setNouvelleMarque('');
+    setNouveauModele('');
+    setNouvellePlaque('');
+    setCreationOuverte(false);
+  }
+
+  function soumettreCreationVehicule() {
+    const marque = nouvelleMarque.trim();
+    const modele = nouveauModele.trim();
+    const erreurs: Record<string, string> = {};
+    if (!marque) erreurs.marque = t('validation:requis');
+    if (!modele) erreurs.modele = t('validation:requis');
+    setErreursCreation(erreurs);
+    if (Object.keys(erreurs).length > 0) return;
+
+    const plaque = nouvellePlaque.trim();
+    creerVehicule.mutate(
+      {
+        entree: { marque, modele, importe: false, plaque: plaque === '' ? undefined : plaque },
+        idempotencyKey: idempotenceCreation.cle,
+      },
+      {
+        onSuccess: (reponse) => {
+          idempotenceCreation.regenerer();
+          onChangeValeur(reponse.donnees.id, reponse.donnees);
+          setNouvelleMarque('');
+          setNouveauModele('');
+          setNouvellePlaque('');
+          setErreursCreation({});
+          setCreationOuverte(false);
+        },
+      },
+    );
+  }
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -80,10 +141,104 @@ export function SelecteurVehiculeRepris({ valeur, onChangeValeur, erreur }: Prop
           {messageErreur(requete.error, t)}
         </p>
       ) : requete.vehicules.length === 0 ? (
-        <EtatVide
-          titre={t('ventes:reprise.creation.champVehicule')}
-          description={t('ventes:reprise.creation.aucunVehiculeTrouve')}
-        />
+        <div className="flex flex-col gap-3">
+          <EtatVide
+            titre={t('ventes:reprise.creation.champVehicule')}
+            description={t('ventes:reprise.creation.aucunVehiculeTrouve')}
+            action={
+              creationOuverte ? undefined : (
+                <Button type="button" variant="outline" onClick={ouvrirCreation}>
+                  {t('ventes:reprise.creation.creerVehiculeBouton')}
+                </Button>
+              )
+            }
+          />
+
+          {creationOuverte ? (
+            <div className="flex flex-col gap-3 rounded-md border p-3">
+              <p className="texte-libelle text-muted-foreground">
+                {t('ventes:reprise.creation.creerVehiculeAide')}
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="reprise-vehicule-nouveau-marque" requis>
+                    {t('vehicules:identite.marque')}
+                  </Label>
+                  <Input
+                    id="reprise-vehicule-nouveau-marque"
+                    value={nouvelleMarque}
+                    onChange={(evenement) => setNouvelleMarque(evenement.target.value)}
+                    aria-invalid={erreursCreation.marque ? true : undefined}
+                    disabled={creerVehicule.isPending}
+                    required
+                  />
+                  {erreursCreation.marque ? (
+                    <p className="texte-libelle text-destructive" role="alert">
+                      {erreursCreation.marque}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="reprise-vehicule-nouveau-modele" requis>
+                    {t('vehicules:identite.modele')}
+                  </Label>
+                  <Input
+                    id="reprise-vehicule-nouveau-modele"
+                    value={nouveauModele}
+                    onChange={(evenement) => setNouveauModele(evenement.target.value)}
+                    aria-invalid={erreursCreation.modele ? true : undefined}
+                    disabled={creerVehicule.isPending}
+                    required
+                  />
+                  {erreursCreation.modele ? (
+                    <p className="texte-libelle text-destructive" role="alert">
+                      {erreursCreation.modele}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="reprise-vehicule-nouveau-plaque">
+                  {t('vehicules:identite.plaque')}
+                </Label>
+                <Input
+                  id="reprise-vehicule-nouveau-plaque"
+                  value={nouvellePlaque}
+                  onChange={(evenement) => setNouvellePlaque(evenement.target.value)}
+                  disabled={creerVehicule.isPending}
+                />
+              </div>
+
+              {creerVehicule.isError ? (
+                <p className="texte-libelle text-destructive" role="alert">
+                  {messageErreur(creerVehicule.error, t)}
+                </p>
+              ) : null}
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={annulerCreation}
+                  disabled={creerVehicule.isPending}
+                >
+                  {t('commun:actions.annuler')}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={soumettreCreationVehicule}
+                  disabled={creerVehicule.isPending}
+                >
+                  {creerVehicule.isPending
+                    ? t('commun:chargement.enCours')
+                    : t('ventes:reprise.creation.creerVehiculeSoumettre')}
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </div>
       ) : (
         <div className="flex flex-col gap-2">
           <div

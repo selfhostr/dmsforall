@@ -212,6 +212,21 @@ export function EcranListeVehiculesStock() {
       rendu: (ligne) => <span className="tabular-nums">{ligne.joursStock}</span>,
     },
     {
+      // Issue #142 : colonne à faible coût de lecture, `emplacementLibre` est une colonne plate de
+      // `vehicule` (VehiculeResume la porte déjà, @dfa/shared). Motif « non renseigné » explicite
+      // plutôt qu'une cellule vide silencieuse (aucun signal visuel de rien-à-lire ne se distingue
+      // d'une erreur de chargement) — même clé `ventes:commun.nonRenseigne` que
+      // `CelluleGarantieSuivi`, cohérente avec le reste du module. L'édition ne vit PAS ici : la
+      // liste reste une lecture rapide, elle se fait sur la fiche (`ChampEmplacementVehiculeStock`).
+      id: 'emplacement',
+      libelle: t('ventes:stock.liste.colonnes.emplacement'),
+      rendu: (ligne) => (
+        <span className="texte-corps text-muted-foreground">
+          {ligne.vehicule.emplacementLibre ?? t('ventes:commun.nonRenseigne')}
+        </span>
+      ),
+    },
+    {
       id: 'prix',
       libelle: t('ventes:stock.liste.colonnes.prixVente'),
       alignement: 'droite',

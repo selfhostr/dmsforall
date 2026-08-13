@@ -149,6 +149,7 @@ export function DialogueCreationFinancement({
           ) : (
             <SelecteurOrganismeVente
               label={t('ventes:financement.proposer.champOrganisme')}
+              placeholder={t('ventes:financement.proposer.champOrganismePlaceholder')}
               obligatoire
               valeur={organismeId}
               onChangeValeur={setOrganismeId}

@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -213,6 +213,86 @@ describe('EcranFicheVehiculeStock', () => {
     // dans `DialogContent`) — la modale reste ouverte, le message n'est pas perdu sous l'overlay.
     expect(await within(dialogue).findByRole('alert')).toBeInTheDocument();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  /**
+   * Issue #142 : le champ `emplacementLibre` existe en base depuis la migration `0044` mais
+   * aucune fiche du module ventes ne permettait de le renseigner. Preuve bout en bout : bouton →
+   * saisie → `PATCH /vehicules/{id}` → valeur reflétée, sans quitter la fiche stock.
+   */
+  it("renseigne l'emplacement du véhicule depuis la fiche stock (#142)", async () => {
+    let corpsRecu: Record<string, unknown> | null = null;
+    rendre('direction');
+    server.use(
+      http.patch('/api/v1/vehicules/veh-1', async ({ request }) => {
+        corpsRecu = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          donnees: { ...VEHICULE_STOCK.vehicule, emplacementLibre: 'Devant, place 3' },
+          avertissements: [],
+        });
+      }),
+    );
+
+    const utilisateur = userEvent.setup();
+    expect(await screen.findByText('VW Touran 2.0 TDI')).toBeInTheDocument();
+    expect(screen.getByText('Emplacement :')).toBeInTheDocument();
+
+    await utilisateur.click(screen.getByRole('button', { name: 'Modifier' }));
+    const champ = screen.getByLabelText('Emplacement');
+    await utilisateur.type(champ, 'Devant, place 3');
+    await utilisateur.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(corpsRecu).toEqual({ emplacementLibre: 'Devant, place 3' }));
+    expect(await screen.findByText('Devant, place 3')).toBeInTheDocument();
+  });
+
+  /**
+   * Issue #141 : `CelluleGarantieSuivi` affichait systématiquement « — » faute d'un endroit où
+   * saisir la garantie. Preuve bout en bout depuis la fiche stock : dialogue « Garantie » → saisie
+   * des trois champs → `PATCH /vehicules/{id}` avec exactement ces trois champs, rien de plus
+   * (aucune valeur devinée).
+   */
+  it('renseigne la garantie du véhicule depuis la fiche stock (#141)', async () => {
+    let corpsRecu: Record<string, unknown> | null = null;
+    rendre('direction');
+    server.use(
+      http.patch('/api/v1/vehicules/veh-1', async ({ request }) => {
+        corpsRecu = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ donnees: VEHICULE_STOCK.vehicule, avertissements: [] });
+      }),
+    );
+
+    const utilisateur = userEvent.setup();
+    await utilisateur.click(await screen.findByRole('button', { name: 'Garantie' }));
+
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.type(within(dialogue).getByLabelText('Début de la garantie'), '04.08.2026');
+    await utilisateur.type(within(dialogue).getByLabelText('Durée (mois)'), '24');
+    await utilisateur.type(within(dialogue).getByLabelText('Plafond kilométrique'), '100000');
+    await utilisateur.click(within(dialogue).getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() =>
+      expect(corpsRecu).toEqual({
+        garantieDebutLe: '2026-08-04',
+        garantieMois: 24,
+        garantieKm: 100000,
+      }),
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  /**
+   * `vehicule.modifier` (emplacement, garantie) est un droit DISTINCT de
+   * `ventes.vehicule_stock.modifier` (prix, statut) — un `vendeur` a le second mais PAS le
+   * premier (exclu côté API, `droits.ts::peutModifierVehiculeAssocie`). Ce test échoue si les deux
+   * droits sont confondus par erreur.
+   */
+  it('un vendeur (droit vehicule_stock, pas vehicule.modifier) ne voit ni le crayon d’emplacement ni le bouton Garantie', async () => {
+    rendre('vendeur');
+
+    expect(await screen.findByText('VW Touran 2.0 TDI')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Modifier' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Garantie' })).not.toBeInTheDocument();
   });
 
   it('état erreur : message actionnable avec retry', async () => {
