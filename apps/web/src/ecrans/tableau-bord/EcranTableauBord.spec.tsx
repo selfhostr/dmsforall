@@ -9,6 +9,7 @@ import type {
   ClientResume,
   OrdreReparationResume,
   ReponseActiviteTableauBord,
+  ReponseDocumentVente,
   ReponseFinancierTableauBord,
   ReponseOrdreReparation,
   ReponsePointage,
@@ -33,6 +34,7 @@ const CHEMIN_POINTAGES = '/api/v1/pointages';
 const CHEMIN_REAPPRO = '/api/v1/stock/reapprovisionnement';
 const CHEMIN_DOSSIERS_VENTE = '/api/v1/dossiers-vente';
 const CHEMIN_RENDEZ_VOUS = '/api/v1/rendez-vous';
+const CHEMIN_DOCUMENTS_VENTE = '/api/v1/documents-vente';
 
 const PERIODE = { du: '2026-08-01', au: '2026-08-31' };
 const PAGE_VIDE = { donnees: [], curseurSuivant: null, limite: 50 };
@@ -256,6 +258,75 @@ const POINTAGE_EN_COURS: ReponsePointage = {
   modifieLe: '2026-08-10T08:00:00.000Z',
 };
 
+/** `GET /documents-vente` rend des `ReponseDocumentVente` COMPLETS, jamais la projection
+ *  `DocumentVenteResume` (voir l'ÉCART SIGNALÉ dans `documents-vente.api.ts`) — fixture fidèle à
+ *  cette forme réelle, pas à celle du contrat, pour la carte « à relancer » du tableau de bord. */
+function construireFactureARelancer(id: string): ReponseDocumentVente {
+  return {
+    id,
+    typeDocument: 'facture',
+    natureFacture: 'ordinaire',
+    origine: 'dfa',
+    numero: `2026-${id}`,
+    numeroSequence: 1,
+    numeroOrigine: null,
+    exercice: 2026,
+    statut: 'emis',
+    statutReglement: 'partiel',
+    siteId: 'site-1',
+    clientId: 'cl-1',
+    vehiculeId: null,
+    ordreReparationId: null,
+    dossierVenteId: null,
+    documentSourceId: null,
+    factureAnnuleeId: null,
+    annuleParAvoirId: null,
+    remplaceId: null,
+    figees: {
+      clientDesignation: 'Client Test',
+      clientIde: null,
+      clientLangue: 'fr',
+      adresseFacturation: null,
+      conditionsPaiement: null,
+      plaque: null,
+    },
+    dateDocument: '2026-07-01',
+    devise: 'CHF',
+    tvaNonVentilee: false,
+    tauxTvaPourmilleDocument: null,
+    mentionTvaInterdite: false,
+    totalHtCentimes: 10_000,
+    totalTvaCentimes: 810,
+    ecartRepriseCentimes: 0,
+    totalTtcCentimes: 10_810,
+    ventilationTva: [],
+    remiseGlobaleSaisieCentimes: null,
+    remiseGlobalePourmille: null,
+    montantRegleCentimes: 0,
+    soldeCentimes: 10_810,
+    relanceNiveau: 0,
+    relanceLe: null,
+    motifAvoir: null,
+    motifAvoirAutre: null,
+    porteeAvoir: null,
+    qr: null,
+    pdfCle: null,
+    pdfSha256: null,
+    exporteLe: null,
+    exportId: null,
+    contentieux: false,
+    lignes: [],
+    nombreLignes: 1,
+    lignesTronquees: false,
+    version: 1,
+    emisLe: '2026-07-01T08:00:00.000Z',
+    emisPar: { utilisateurId: 'u1', nomAffiche: 'Isabelle Bonvin' },
+    creeLe: '2026-07-01T08:00:00.000Z',
+    modifieLe: '2026-07-01T08:00:00.000Z',
+    modifiePar: null,
+  };
+}
+
 function connecterSession(role: (typeof SESSION_TEST)['utilisateur']['role']) {
   server.use(
     http.get('/api/v1/auth/moi', () =>
@@ -301,15 +372,59 @@ describe('EcranTableauBord — Direction', () => {
 });
 
 describe('EcranTableauBord — Comptable', () => {
-  it('affiche encours, encaissements, et un LIEN « à relancer » honnête (jamais un compte inventé)', async () => {
+  it('affiche encours, encaissements, et un COMPTE « à relancer » réel — jamais un compte inventé', async () => {
     connecterSession('comptable');
-    server.use(http.get(CHEMIN_FINANCIER, () => HttpResponse.json(FINANCIER_NOMINAL)));
+    server.use(
+      http.get(CHEMIN_FINANCIER, () => HttpResponse.json(FINANCIER_NOMINAL)),
+      // Sous la limite de comptage (`LIMITE_COMPTAGE_A_RELANCER` = 50, `TableauBordComptable.tsx`) :
+      // la longueur de la première page EST le compte exact, pas un chiffre plafonné.
+      http.get(CHEMIN_DOCUMENTS_VENTE, () =>
+        HttpResponse.json({
+          donnees: [
+            construireFactureARelancer('f1'),
+            construireFactureARelancer('f2'),
+            construireFactureARelancer('f3'),
+          ],
+          curseurSuivant: null,
+          limite: 50,
+        }),
+      ),
+    );
     rendre();
 
     expect(await screen.findByText('CHF 456.00')).toBeInTheDocument(); // encours
     expect(screen.getByText('CHF 987.00')).toBeInTheDocument(); // encaissements
     // Le CA facturé n'est pas son geste (écarté, §3.2 du design).
     expect(screen.queryByText("CHF 1'234.50")).not.toBeInTheDocument();
+
+    // Le compte réel (3), pas un texte générique et pas une valeur devinée.
+    expect(await screen.findByText('3')).toBeInTheDocument();
+
+    const lien = screen.getByRole('link', { name: i18n.t('tableauBord:comptable.aRelancer.lien') });
+    expect(lien).toHaveAttribute('href', '/factures');
+  });
+
+  it('« à relancer » au-delà de la limite : annonce honnêtement « 50+ », jamais un chiffre exact non fondé', async () => {
+    connecterSession('comptable');
+    server.use(
+      http.get(CHEMIN_FINANCIER, () => HttpResponse.json(FINANCIER_NOMINAL)),
+      // Page pleine (50, la `LIMITE_PAGE` de `useListeDocumentsVente`) + `curseurSuivant` non nul :
+      // il existe une suite, la carte ne doit donc PAS afficher « 50 » comme s'il s'agissait du
+      // total exact — c'est tout le sens du plafond honnête (`docs`/commentaire `TableauBordComptable.tsx`).
+      http.get(CHEMIN_DOCUMENTS_VENTE, () =>
+        HttpResponse.json({
+          donnees: Array.from({ length: 50 }, (_, index) =>
+            construireFactureARelancer(`f${index}`),
+          ),
+          curseurSuivant: 'curseur-page-2',
+          limite: 50,
+        }),
+      ),
+    );
+    rendre();
+
+    expect(await screen.findByText('50+')).toBeInTheDocument();
+    expect(screen.queryByText('50')).not.toBeInTheDocument();
 
     const lien = screen.getByRole('link', { name: i18n.t('tableauBord:comptable.aRelancer.lien') });
     expect(lien).toHaveAttribute('href', '/factures');
@@ -612,7 +727,12 @@ describe('EcranTableauBord — erreur serveur sur /tableau-bord/activite (chef d
 describe('EcranTableauBord — sélecteur de site commun', () => {
   it('reste présent quel que soit le rôle (en-tête partagée)', async () => {
     connecterSession('comptable');
-    server.use(http.get(CHEMIN_FINANCIER, () => HttpResponse.json(FINANCIER_NOMINAL)));
+    server.use(
+      http.get(CHEMIN_FINANCIER, () => HttpResponse.json(FINANCIER_NOMINAL)),
+      // Rôle comptable : la carte « à relancer » interroge aussi `documents-vente` (voir le
+      // describe dédié plus haut) — sans handler ici, MSW logue une requête non interceptée.
+      http.get(CHEMIN_DOCUMENTS_VENTE, () => HttpResponse.json(PAGE_VIDE)),
+    );
     rendre();
 
     await screen.findByText('CHF 456.00');

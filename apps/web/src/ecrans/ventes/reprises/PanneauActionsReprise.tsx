@@ -27,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
@@ -232,6 +232,10 @@ export function PanneauActionsReprise({
 
           {actionOuverte === 'negocier' ? (
             <div className="flex flex-col gap-4">
+              <LegendeChampsObligatoires>
+                {t('commun:formulaires.champsObligatoiresLegende')}
+              </LegendeChampsObligatoires>
+
               <p className="texte-corps text-muted-foreground">
                 {t('ventes:reprise.negocier.aide')}
               </p>
@@ -270,12 +274,17 @@ export function PanneauActionsReprise({
 
           {actionOuverte === 'refuser' ? (
             <div className="flex flex-col gap-4">
+              <LegendeChampsObligatoires>
+                {t('commun:formulaires.champsObligatoiresLegende')}
+              </LegendeChampsObligatoires>
+
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="reprise-action-motif-refus">
+                <Label htmlFor="reprise-action-motif-refus" requis>
                   {t('ventes:reprise.refuser.motifLabel')}
                 </Label>
                 <Textarea
                   id="reprise-action-motif-refus"
+                  required
                   placeholder={t('ventes:reprise.refuser.motifPlaceholder')}
                   value={motif}
                   onChange={(evenement) => setMotif(evenement.target.value)}
@@ -308,15 +317,20 @@ export function PanneauActionsReprise({
 
           {actionOuverte === 'confirmer' ? (
             <div className="flex flex-col gap-4">
+              <LegendeChampsObligatoires>
+                {t('commun:formulaires.champsObligatoiresLegende')}
+              </LegendeChampsObligatoires>
+
               <p className="texte-corps text-muted-foreground">
                 {t('ventes:reprise.confirmer.aide')}
               </p>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="reprise-action-motif-confirmer">
+                <Label htmlFor="reprise-action-motif-confirmer" requis>
                   {t('ventes:reprise.confirmer.motifLabel')}
                 </Label>
                 <Textarea
                   id="reprise-action-motif-confirmer"
+                  required
                   value={motif}
                   onChange={(evenement) => setMotif(evenement.target.value)}
                 />

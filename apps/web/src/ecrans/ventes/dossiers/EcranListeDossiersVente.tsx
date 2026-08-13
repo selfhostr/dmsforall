@@ -32,6 +32,7 @@ import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useListeDossiersVente } from '@/hooks/ventes/dossiers/useListeDossiersVente';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
@@ -94,9 +95,12 @@ const CLES_STATUT: Record<StatutDossierVente, string> = {
  *  3. **Filtre « période »** — demandé par le brief, aucun paramètre de plage de dates n'existe sur
  *     le contrat (seul le TRI par `dateLivraisonEstimee` existe). Non implémenté.
  *
- * Lien vers le suivi financement/garantie (`chemins.ventes.suivi`, route dédiée `/ventes/suivi`,
- * `routes/routeur.tsx`) affiché dans l'en-tête ci-dessous — simple découvrabilité, pas un
- * aiguillage : `EcranSuiviVentes` est un écran autonome atteignable par sa propre route.
+ * PAS de lien vers le suivi financement/garantie dans l'en-tête (retiré, retour @laupernoe du 12.08.2026 :
+ * « c'est doublé aussi sur les dossiers de vente ») — `OngletsDomaine` affiche déjà « Suivi
+ * financement & garantie » comme onglet actif un rang au-dessus de cet écran (même arborescence que
+ * « Dossiers »/« Véhicules en parc »), même destination que ce bouton retiré. Deux commandes vers la
+ * même route sur le même écran, l'une ancrée (onglet) et l'autre flottante (bouton), ne font gagner
+ * aucune découvrabilité — seulement du doute sur laquelle est la bonne.
  */
 export function EcranListeDossiersVente() {
   const { t } = useTranslation(['ventes', 'commun']);
@@ -229,48 +233,31 @@ export function EcranListeDossiersVente() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="texte-titre-section font-semibold text-foreground">
-          {t('ventes:dossier.liste.titre')}
-        </h1>
+      <GabaritEcran titre={t('ventes:dossier.liste.titre')}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="texte-titre-section font-semibold text-foreground">
-          {t('ventes:dossier.liste.titre')}
-        </h1>
+      <GabaritEcran titre={t('ventes:dossier.liste.titre')}>
         <EtatErreur
           titre={t('ventes:dossier.liste.erreur.titre')}
           description={messageErreur(error, t)}
           onReessayer={() => void refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
-  // Pas de `p-6` ici : `AppShell` pose déjà `p-4 sm:p-6` sur le `<main>` qui enveloppe cet écran —
-  // un `p-6` local le DOUBLAIT (48px au lieu de 24px, mesuré), seul le titre restait visible ici
-  // (h1 « Dossiers de vente », qui AJOUTE une précision absente de l'onglet « Dossiers » — pas un
-  // doublon, donc pas de `sr-only`, à la différence de `EcranListeVehiculesStock`/`EcranSuiviVentes`).
+  // Titre VISIBLE (h1 « Dossiers de vente », qui AJOUTE une précision absente de l'onglet
+  // « Dossiers » — pas un doublon, donc pas de `titreVisible={false}`, à la différence
+  // d'`EcranListeVehiculesStock`/`EcranSuiviVentes`). Seule action du titre : « Nouveau dossier de
+  // vente » — le bouton « Suivi financement & garantie » qui siégeait ici a été retiré, voir la
+  // note de l'en-tête de fichier.
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="texte-titre-section font-semibold text-foreground">
-          {t('ventes:dossier.liste.titre')}
-        </h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <Link to={chemins.ventes.suivi(site)}>{t('ventes:suivi.lienDepuisListe')}</Link>
-          </Button>
-          {boutonNouveauDossier}
-        </div>
-      </div>
-
+    <GabaritEcran titre={t('ventes:dossier.liste.titre')} actions={boutonNouveauDossier}>
       <BarreFiltres
         q={qSaisie}
         onChangeQ={setQSaisie}
@@ -347,6 +334,6 @@ export function EcranListeDossiersVente() {
         enChargement={isFetchingNextPage}
         onChargerPlus={() => void fetchNextPage()}
       />
-    </div>
+    </GabaritEcran>
   );
 }

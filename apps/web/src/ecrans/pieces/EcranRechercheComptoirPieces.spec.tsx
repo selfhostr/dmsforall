@@ -215,7 +215,9 @@ describe('EcranRechercheComptoirPieces — actions de comptoir', () => {
     // Quantité par défaut (1) : prix unitaire et total TTC coïncident.
     expect(screen.getByText('Prix unitaire TTC')).toBeInTheDocument();
     expect(screen.getByText('Total TTC')).toBeInTheDocument();
-    const champQuantite = screen.getByLabelText('Quantité');
+    // `*` : champ obligatoire (`schemaQuantiteMillieme`) — `<Label requis>` ajoute l'étoile au
+    // texte accessible du label (`getTextContent` ne filtre pas `aria-hidden`).
+    const champQuantite = screen.getByLabelText('Quantité*');
     expect(champQuantite).toHaveValue('1');
     const zonePrixUnitaire = screen.getByText('Prix unitaire TTC').closest('div')!;
     const zoneTotal = screen.getByText('Total TTC').closest('div')!;
@@ -307,7 +309,9 @@ describe('EcranRechercheComptoirPieces — actions de comptoir', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Retour client' }));
     expect(await screen.findByRole('heading', { name: 'Retour client' })).toBeInTheDocument();
 
-    const champMotif = screen.getByLabelText('Motif du retour *');
+    // `*` : champ obligatoire (`schemaMotif`, `schemaCreationMouvementRetourClient`) —
+    // `<Label requis>` ajoute l'étoile au texte accessible du label.
+    const champMotif = screen.getByLabelText('Motif du retour*');
     await userEvent.type(champMotif, 'Pièce non montée');
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer le retour' }));
 

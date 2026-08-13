@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
@@ -192,12 +192,17 @@ export function PanneauActionsFinancement({
 
           {actionOuverte === 'refuser' ? (
             <div className="flex flex-col gap-4">
+              <LegendeChampsObligatoires>
+                {t('commun:formulaires.champsObligatoiresLegende')}
+              </LegendeChampsObligatoires>
+
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="financement-action-motif">
+                <Label htmlFor="financement-action-motif" requis>
                   {t('ventes:financement.refuser.motifLabel')}
                 </Label>
                 <Textarea
                   id="financement-action-motif"
+                  required
                   placeholder={t('ventes:financement.refuser.motifPlaceholder')}
                   value={motif}
                   onChange={(evenement) => setMotif(evenement.target.value)}

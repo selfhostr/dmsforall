@@ -25,7 +25,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { DateInput } from '@/components/ui/date-input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -248,8 +248,12 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
 
           {actionOuverte === 'engager' ? (
             <div className="flex flex-col gap-4">
+              <LegendeChampsObligatoires>
+                {t('commun:formulaires.champsObligatoiresLegende')}
+              </LegendeChampsObligatoires>
+
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="dossier-engager-bon-commande">
+                <Label htmlFor="dossier-engager-bon-commande" requis>
                   {t('ventes:dossier.transitions.bonCommande')}
                 </Label>
                 {bonsCommande.length === 0 ? (
@@ -279,7 +283,7 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
                   </div>
                 ) : (
                   <Select value={bonCommandeDocumentId} onValueChange={setBonCommandeDocumentId}>
-                    <SelectTrigger id="dossier-engager-bon-commande">
+                    <SelectTrigger id="dossier-engager-bon-commande" aria-required="true">
                       <SelectValue placeholder={t('ventes:dossier.transitions.bonCommande')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -300,11 +304,11 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="dossier-engager-identite">
+                <Label htmlFor="dossier-engager-identite" requis>
                   {t('ventes:dossier.transitions.identitePieceType')}
                 </Label>
                 <Select value={identitePieceType} onValueChange={setIdentitePieceType}>
-                  <SelectTrigger id="dossier-engager-identite">
+                  <SelectTrigger id="dossier-engager-identite" aria-required="true">
                     <SelectValue placeholder={t('ventes:dossier.transitions.identitePieceType')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -319,10 +323,17 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
                   </SelectContent>
                 </Select>
                 {identitePieceType === 'autre' ? (
-                  <Textarea
-                    value={identitePieceAutre}
-                    onChange={(evenement) => setIdentitePieceAutre(evenement.target.value)}
-                  />
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="dossier-engager-identite-autre" requis>
+                      {t('ventes:dossier.transitions.identitePieceTypeAutrePrecision')}
+                    </Label>
+                    <Textarea
+                      id="dossier-engager-identite-autre"
+                      required
+                      value={identitePieceAutre}
+                      onChange={(evenement) => setIdentitePieceAutre(evenement.target.value)}
+                    />
+                  </div>
                 ) : null}
               </div>
 
@@ -414,12 +425,17 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
 
           {actionOuverte === 'livrer' ? (
             <div className="flex flex-col gap-4">
+              <LegendeChampsObligatoires>
+                {t('commun:formulaires.champsObligatoiresLegende')}
+              </LegendeChampsObligatoires>
+
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="dossier-livrer-date">
+                <Label htmlFor="dossier-livrer-date" requis>
                   {t('ventes:dossier.transitions.dateLivraisonEffective')}
                 </Label>
                 <DateInput
                   id="dossier-livrer-date"
+                  required
                   value={dateLivraisonEffective}
                   onChange={(valeurISO: string | undefined) =>
                     setDateLivraisonEffective(valeurISO ?? '')
@@ -481,10 +497,17 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
 
           {actionOuverte === 'annuler' || actionOuverte === 'abandonner' ? (
             <div className="flex flex-col gap-4">
+              <LegendeChampsObligatoires>
+                {t('commun:formulaires.champsObligatoiresLegende')}
+              </LegendeChampsObligatoires>
+
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="dossier-motif">{t('ventes:dossier.transitions.motif')}</Label>
+                <Label htmlFor="dossier-motif" requis>
+                  {t('ventes:dossier.transitions.motif')}
+                </Label>
                 <Textarea
                   id="dossier-motif"
+                  required
                   value={motif}
                   onChange={(evenement) => setMotif(evenement.target.value)}
                 />

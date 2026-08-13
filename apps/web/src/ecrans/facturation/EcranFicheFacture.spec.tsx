@@ -598,6 +598,30 @@ describe('EcranFicheFacture — droits par geste (émettre / encaisser / créer 
   );
 
   it(
+    'DÉFAUT CORRIGÉ (issues #80/#94, testeur novice — « je n’ai pas osé cliquer, j’allais ' +
+      'enregistrer une avance sur le compte d’un client qui a déjà payé ») : « Encaisser » ' +
+      'disparaît sur une facture émise dont le solde est nul (`statutReglement: regle`), MÊME pour ' +
+      'un rôle autorisé à encaisser — et le badge « Réglée » apparaît à côté de « Émise » plutôt ' +
+      'que de laisser la fiche taire l’état du règlement',
+    async () => {
+      installerHandlerDocument(
+        construireDocument({
+          statutReglement: 'regle',
+          soldeCentimes: 0,
+          montantRegleCentimes: 12345,
+        }),
+      );
+      connecterSession('magasinier');
+      rendre();
+
+      await screen.findByText('Jean Dupont');
+      expect(screen.getByText('Émise')).toBeInTheDocument();
+      expect(screen.getByText('Réglée')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Encaisser' })).not.toBeInTheDocument();
+    },
+  );
+
+  it(
     '« Créer un avoir » (menu ⋯) : absent pour vendeur (pas de droit `emettre_avoir`), présent ' +
       'pour réceptionnaire (autorisé)',
     async () => {

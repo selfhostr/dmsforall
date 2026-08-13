@@ -221,9 +221,13 @@ describe('EcranNouvelleCommandeFournisseur — pré-remplissage depuis le réapp
     rendreAvecPreremplissage(ETAT_PREREMPLISSAGE);
 
     expect(await screen.findByText('Plaquettes de frein avant')).toBeInTheDocument();
-    expect(screen.getByLabelText(i18n.t('pieces:commandes.lignes.quantiteCommandee'))).toHaveValue(
-      '4',
-    );
+    // `*` : champ obligatoire (`schemaQuantiteMillieme`, non optionnel dans
+    // `schemaLigneCreationCommandeFournisseur`) — `<Label requis>` ajoute l'étoile au texte
+    // accessible du label (`getTextContent`, `@testing-library/dom`, ne filtre pas
+    // `aria-hidden`), donc au nom que `getByLabelText` doit matcher.
+    expect(
+      screen.getByLabelText(`${i18n.t('pieces:commandes.lignes.quantiteCommandee')}*`),
+    ).toHaveValue('4');
   });
 
   it('reprend le dernier prix d’achat connu et détecte le fournisseur unique de l’article, puis crée la commande sans aucune resaisie manuelle', async () => {

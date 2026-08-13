@@ -32,6 +32,7 @@ import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/Table
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useSession } from '@/hooks/useSession';
 import { useListeArticles } from '@/hooks/pieces/useListeArticles';
 import { formaterMontant } from '@/lib/formats';
@@ -234,42 +235,36 @@ export function EcranListeArticles() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('pieces:articles.liste.titre')}</h1>
+      <GabaritEcran titre={t('pieces:articles.liste.titre')} titreVisible={false}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('pieces:articles.liste.titre')}</h1>
+      <GabaritEcran titre={t('pieces:articles.liste.titre')} titreVisible={false}>
         <EtatErreur
           titre={t('pieces:articles.liste.erreur.titre')}
           description={messageErreur(error, t)}
           onReessayer={() => void refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
+  // Titre masqué : doublon strict du libellé de l'onglet actif « Articles » (`navigation-modele.ts`,
+  // `ONGLETS_PIECES`) — le h1 reste dans le DOM pour le lecteur d'écran et la structure du
+  // document, sans répéter visuellement ce que la barre d'onglets affiche déjà en surbrillance.
+  //
+  // « Créer un article » n'est PAS dans le slot `actions` du gabarit (qui siégerait alors juste
+  // sous les onglets, seul sur sa ligne) — retour @laupernoe du 12.08.2026 : « le bouton "Créer un
+  // article" devrait être plus bas ». Il rejoint la ligne « Trier par », à droite — même
+  // déplacement que celui demandé pour Atelier (« Nouvel ordre de réparation », voir le rapport de
+  // ce chantier) : la barre de recherche remonte directement sous les onglets, plus rien ne
+  // l'en sépare.
   return (
-    <div className="flex flex-col gap-6">
-      {/* Doublon strict du libellé de l'onglet actif « Articles » (`navigation-modele.ts`,
-          `ONGLETS_PIECES`) : le h1 reste dans le DOM pour le lecteur d'écran et la structure du
-          document, sans répéter visuellement ce que la barre d'onglets affiche déjà en
-          surbrillance. */}
-      <h1 className="sr-only">{t('pieces:articles.liste.titre')}</h1>
-
-      <div className="flex items-center justify-end gap-3">
-        {peutEcrireArticle(role) ? (
-          <Button onClick={() => setFormulaireOuvert(true)}>
-            {t('pieces:articles.actions.ajouter')}
-          </Button>
-        ) : null}
-      </div>
-
+    <GabaritEcran titre={t('pieces:articles.liste.titre')} titreVisible={false}>
       <BarreFiltres
         q={qSaisie}
         onChangeQ={setQSaisie}
@@ -349,13 +344,20 @@ export function EcranListeArticles() {
         ) : null}
       </BarreFiltres>
 
-      <SelecteurTri
-        options={TRIS_ARTICLES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-        valeur={tri}
-        onChangeValeur={setTri}
-        label={t('pieces:articles.tri.label')}
-        className="max-w-xs"
-      />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <SelecteurTri
+          options={TRIS_ARTICLES.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
+          valeur={tri}
+          onChangeValeur={setTri}
+          label={t('pieces:articles.tri.label')}
+          className="max-w-xs"
+        />
+        {peutEcrireArticle(role) ? (
+          <Button onClick={() => setFormulaireOuvert(true)}>
+            {t('pieces:articles.actions.ajouter')}
+          </Button>
+        ) : null}
+      </div>
 
       <TableComptoir
         colonnes={colonnes}
@@ -377,6 +379,6 @@ export function EcranListeArticles() {
         onOuvertChange={setFormulaireOuvert}
         onCree={(article) => navigate(chemins.pieces.articleDetail(article.id))}
       />
-    </div>
+    </GabaritEcran>
   );
 }

@@ -97,21 +97,28 @@ export function ChampDetteFinancementReprise({ valeurs, onChange, disabled }: Pr
             </div>
           </div>
 
+          {/* Une fois la dette activée, AU MOINS l'un des deux (client existant OU texte libre)
+           *  est obligatoire (`reprise_dette_organisme_coherent_chk`, `db/schema/ventes/reprise.ts`)
+           *  — non encodé en zod (« vérifié serveur »), mais bien une obligation réelle : sans
+           *  étoile ici, un réceptionniste qui coche « dette » et ne renseigne aucun organisme se
+           *  fait bloquer par un 400 serveur qu'il ne comprend pas. */}
           {valeurs.organismeMode === 'client' ? (
             <SelecteurOrganismeVente
               label={t('ventes:reprise.creation.detteOrganismeRecherche')}
+              obligatoire
               valeur={valeurs.organismeId}
               onChangeValeur={(clientId) => onChange({ ...valeurs, organismeId: clientId })}
             />
           ) : (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="reprise-dette-organisme-texte">
+              <Label htmlFor="reprise-dette-organisme-texte" requis>
                 {t('ventes:reprise.creation.detteOrganismeTexte')}
               </Label>
               <Input
                 id="reprise-dette-organisme-texte"
                 value={valeurs.organismeNom}
                 disabled={disabled}
+                required
                 onChange={(evenement) =>
                   onChange({ ...valeurs, organismeNom: evenement.target.value })
                 }

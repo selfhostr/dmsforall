@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 
 import { AppShell } from '@/composants/layout/AppShell';
+import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { EcranConnexion } from '@/ecrans/EcranConnexion';
 import { EcranFicheOrdreReparation } from '@/ecrans/atelier/EcranFicheOrdreReparation';
 import { EcranListeOrdresReparation } from '@/ecrans/atelier/EcranListeOrdresReparation';
@@ -53,6 +54,7 @@ import { EcranListeVehiculesStock } from '@/ecrans/ventes/stock/EcranListeVehicu
 import { EcranSuiviVentes } from '@/ecrans/ventes/suivi/EcranSuiviVentes';
 
 import { ATTERRISSAGE_PAR_ROLE } from './atterrissage';
+import { chemins } from './chemins';
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
 import {
@@ -86,6 +88,23 @@ import {
  * un `createMemoryRouter` avec exactement cette configuration (voir routeur.spec.tsx), plutôt que
  * de la dupliquer.
  */
+
+/**
+ * Atterrissage des rôles de PILOTAGE (`ATTERRISSAGE_PAR_ROLE` ne les redirige pas, voir
+ * `atterrissage.ts`) — CORRECTIF issue #91 (« le logiciel me redemande sans arrêt un site »). Avant
+ * ce correctif, cette route rendait littéralement `<Navigate to="/tableau-bord" replace />` : un
+ * utilisateur qui travaille toujours au même site atterrissait pourtant sur « aucun site » à
+ * CHAQUE connexion, devant re-choisir un site qu'il avait déjà choisi la veille. Cette route lit
+ * la préférence mémorisée (`hooks/site/ContexteSiteCourant.tsx`, posée par `SelecteurSiteEntete`
+ * dès qu'un site est choisi une fois) et la propage dans l'URL d'atterrissage — `undefined` la
+ * laisse simplement absente, comportement identique à avant pour un poste qui n'a encore jamais
+ * choisi de site.
+ */
+function AtterrissageTableauBord() {
+  const { preferenceSiteId } = useSiteCourant();
+  return <Navigate to={chemins.tableauBord(preferenceSiteId)} replace />;
+}
+
 export const routesConfig: RouteObject[] = [
   {
     path: '/login',
@@ -155,7 +174,7 @@ export const routesConfig: RouteObject[] = [
         index: true,
         element: (
           <RouteProtegee redirectionParRole={ATTERRISSAGE_PAR_ROLE}>
-            <Navigate to="/tableau-bord" replace />
+            <AtterrissageTableauBord />
           </RouteProtegee>
         ),
       },

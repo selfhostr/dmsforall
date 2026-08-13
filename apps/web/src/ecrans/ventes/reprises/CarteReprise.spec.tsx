@@ -243,7 +243,7 @@ describe('CarteReprise', () => {
 
     await utilisateur.click(screen.getByRole('button', { name: 'Actions de correction' }));
     await utilisateur.click(screen.getByRole('menuitem', { name: 'Confirmer' }));
-    await utilisateur.type(screen.getByLabelText('Motif'), 'Signature du bon de commande');
+    await utilisateur.type(screen.getByLabelText(/^Motif\s*\*$/), 'Signature du bon de commande');
     await utilisateur.click(screen.getByRole('button', { name: 'Confirmer' }));
 
     await waitFor(() => expect(screen.getByText('Confirmée')).toBeInTheDocument());
@@ -272,7 +272,10 @@ describe('CarteReprise', () => {
     rendre(<CarteReprise dossierVenteId="dossier-1" possedeReprise role="vendeur" />);
 
     await utilisateur.click(await screen.findByRole('button', { name: 'Refuser' }));
-    await utilisateur.type(screen.getByLabelText('Motif du refus'), 'Le client garde son véhicule');
+    await utilisateur.type(
+      screen.getByLabelText(/^Motif du refus\s*\*$/),
+      'Le client garde son véhicule',
+    );
     await utilisateur.click(screen.getByRole('button', { name: 'Confirmer' }));
 
     await waitFor(() => expect(screen.getByText('Refusée')).toBeInTheDocument());

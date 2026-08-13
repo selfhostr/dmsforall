@@ -167,6 +167,30 @@ describe('EcranListeFactures', () => {
     expect(screen.getByText('Non réglée')).toBeInTheDocument();
   });
 
+  it(
+    'DÉFAUT CORRIGÉ (issue #80, testeur novice — « Réglée » dans la liste, « Émise » sur la ' +
+      'fiche, l’utilisateur ne sait plus si la facture est payée) : une facture émise porte les ' +
+      'DEUX badges côte à côte, « Émise » et « Réglée » — jamais l’un au détriment de l’autre',
+    async () => {
+      connecterSession('chef_atelier');
+      server.use(
+        http.get('/api/v1/documents-vente', () =>
+          HttpResponse.json({
+            donnees: [construireDocumentBrut({ statutReglement: 'regle', soldeCentimes: 0 })],
+            curseurSuivant: null,
+            limite: 50,
+          }),
+        ),
+      );
+
+      rendre();
+
+      await waitFor(() => expect(screen.getByText('Jean Dupont')).toBeInTheDocument());
+      expect(screen.getByText('Émise')).toBeInTheDocument();
+      expect(screen.getByText('Réglée')).toBeInTheDocument();
+    },
+  );
+
   it('ne masque jamais un tableau déjà chargé derrière un état "vide" après une seconde page identique (pas de régression au chargement suivant)', async () => {
     server.use(
       http.get('/api/v1/documents-vente', () =>

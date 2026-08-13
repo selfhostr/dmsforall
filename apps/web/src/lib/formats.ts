@@ -168,3 +168,105 @@ export function isoDirectValide(valeur: string): string | undefined {
 
   return trimmed;
 }
+
+/** Convertit un horodatage ISO ou objet Date en chaîne au format suisse jj.mm.aaaa HH:MM pour
+ *  saisie/affichage. Utilisé par DatetimeInput pour afficher le placeholder et la valeur.
+ *
+ *  FUSEAU HORAIRE : reçoit une valeur ISO (UTC) du serveur et la convertit en heure locale
+ *  du navigateur (CET/CEST). Le aller-retour formatSuisseVersISO_Datetime →
+ *  datetimeVersFormatSuisse doit reproduire la même heure que celle tapée initialement. */
+export function datetimeVersFormatSuisse(datetime: Date | string | undefined): string {
+  if (!datetime) return '';
+  const d = typeof datetime === 'string' ? new Date(datetime) : datetime;
+  if (Number.isNaN(d.getTime())) return '';
+
+  // `d` contient un horodatage UTC. Pour l'afficher en heure locale (de - CH), on soustrait
+  // le décalage de fuseau horaire du navigateur. `getTimezoneOffset()` retourne le décalage
+  // de la DATE ACTUELLE (changement heure d'été/hiver pris en compte), ce qui est correct.
+  //
+  // Exemple inverse : serveur stocke 2026-08-12T12:30:00.000Z (UTC).
+  // Navigateur en CEST (UTC+2) doit afficher 14:30 (local).
+  // `d.getTimezoneOffset()` retourne -120 (minutes).
+  // `d.getTime() - (-120 * 60 * 1000)` ajoute 2h, produisant 14:30.
+  const offsetMs = d.getTimezoneOffset() * 60 * 1000;
+  const localDate = new Date(d.getTime() - offsetMs);
+
+  const jour = String(localDate.getUTCDate()).padStart(2, '0');
+  const mois = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+  const annee = localDate.getUTCFullYear();
+  const heure = String(localDate.getUTCHours()).padStart(2, '0');
+  const minute = String(localDate.getUTCMinutes()).padStart(2, '0');
+  return `${jour}.${mois}.${annee} ${heure}:${minute}`;
+}
+
+/** Convertit une saisie au format suisse jj.mm.aaaa HH:MM en ISO datetime pour react-hook-form.
+ *  Tolère les espaces superflus ; retourne undefined si le format est invalide.
+ *  Valide aussi que la date existe réellement (ex: rejet de 31.02.2026) et que l'heure est valide. */
+export function formatSuisseVersISO_Datetime(valeur: string | undefined): string | undefined {
+  if (!valeur || !valeur.trim()) return undefined;
+
+  const trimmed = valeur.trim();
+  // Accepte "jj.mm.aaaa HH:MM" avec espaces flexibles autour de "HH:MM"
+  const match = trimmed.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{1,2})$/);
+  if (!match || !match[1] || !match[2] || !match[3] || !match[4] || !match[5]) return undefined;
+
+  const jour = parseInt(match[1], 10);
+  const mois = parseInt(match[2], 10);
+  const annee = parseInt(match[3], 10);
+  const heure = parseInt(match[4], 10);
+  const minute = parseInt(match[5], 10);
+
+  // Valide que la date existe réellement
+  const d = new Date(annee, mois - 1, jour, heure, minute, 0, 0);
+  if (d.getFullYear() !== annee || d.getMonth() !== mois - 1 || d.getDate() !== jour) {
+    return undefined; // ex: 31.02.2026 échoue
+  }
+
+  // Valide que l'heure est valide
+  if (heure < 0 || heure > 23 || minute < 0 || minute > 59) {
+    return undefined;
+  }
+
+  // Convertit l'heure locale en UTC en appliquant le décalage de fuseau horaire.
+  // `d` a été créée avec new Date(annee, mois, jour, heure, minute), ce qui l'interprète
+  // comme heure locale du navigateur. `getTimezoneOffset()` retourne le décalage en minutes
+  // (négatif pour UTC+, positif pour UTC-). Pour obtenir l'heure UTC équivalente, on ajoute
+  // ce décalage au timestamp.
+  //
+  // Exemple : en CEST (UTC+2), un utilisateur qui tape "14:30" veut dire 14:30 local.
+  // `new Date(2027, 6, 15, 14, 30)` crée une Date représentant 14:30 comme timestamp interne.
+  // `getTimezoneOffset()` retourne -120 (minutes) pour UTC+2.
+  // `d.getTime() + (-120 * 60 * 1000)` soustrait 2h, produisant 12:30 UTC.
+  const offsetMs = d.getTimezoneOffset() * 60 * 1000;
+  const utcDate = new Date(d.getTime() + offsetMs);
+  return utcDate.toISOString();
+}
+
+/** Valide qu'une saisie est déjà un horodatage ISO structurellement correct ET réellement
+ *  existant. Utilisé par `DatetimeInput` pour accepter une valeur ISO directe collée ou
+ *  déposée par le remplissage automatique du navigateur. */
+export function isoDatetimeDirectValide(valeur: string): string | undefined {
+  const trimmed = valeur.trim();
+  // Accepte les formats ISO datetime courants : aaaa-mm-jjThh:mm, aaaa-mm-jjThh:mm:ss, aaaa-mm-jjThh:mm:ss.sssZ
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2})?(?:\.\d{3})?Z?$/);
+  if (!match || !match[1] || !match[2] || !match[3] || !match[4] || !match[5]) return undefined;
+
+  const annee = parseInt(match[1], 10);
+  const mois = parseInt(match[2], 10);
+  const jour = parseInt(match[3], 10);
+  const heure = parseInt(match[4], 10);
+  const minute = parseInt(match[5], 10);
+
+  // Valide que la date existe réellement
+  const d = new Date(annee, mois - 1, jour, heure, minute);
+  if (d.getFullYear() !== annee || d.getMonth() !== mois - 1 || d.getDate() !== jour) {
+    return undefined;
+  }
+
+  // Valide que l'heure est valide
+  if (heure < 0 || heure > 23 || minute < 0 || minute > 59) {
+    return undefined;
+  }
+
+  return trimmed;
+}
