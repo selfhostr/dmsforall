@@ -159,6 +159,11 @@
     "champs": {
       "referenceTexte": "Riferimento"
     },
+    "montants": {
+      "ttc": "{montant} IVA incl.",
+      "ht": "{montant} IVA esclusa",
+      "calculMainOeuvre": "{temps} × {taux}/h"
+    },
     "selecteurArticle": {
       "label": "Cerca un pezzo in magazzino",
       "placeholder": "Descrizione, riferimento o codice a barre",
@@ -391,7 +396,8 @@
   },
   "totaux": {
     "titre": "Totali",
-    "totalValide": "Totale validato"
+    "totalValide": "Totale validato (controllo tetto di spesa)",
+    "aideDistinction": "«Totale validato» segue il tetto di spesa dell'OR (righe già validate, tutti i pagatori insieme) — non è un importo da fatturare. Per comunicare un importo, usare la riga del pagatore interessato qui sopra."
   },
   "impression": {
     "enCours": "Stampa in corso…",
@@ -409,7 +415,7 @@
     },
     "client": {
       "requisTitre": "Nessun cliente selezionato",
-      "requisDescription": "Aprire un ordine di riparazione dalla scheda del cliente (pulsante «Apri l'ordine di riparazione»), oppure cercare prima il cliente."
+      "requisDescription": "Cercate prima il cliente, poi aprite un ordine di riparazione dalla sua scheda."
     },
     "vehicule": {
       "titre": "Veicolo",
@@ -441,9 +447,13 @@
     "erreur": {
       "titre": "Impossibile aprire l'ordine di riparazione"
     },
+    "confirmation": {
+      "vehiculeDeuxOrOuverts": "Già aperto per questo veicolo: {numeros}. Aprire comunque un nuovo ordine di riparazione?"
+    },
     "actions": {
       "creer": "Apri l'ordine di riparazione",
-      "enCours": "Apertura in corso…"
+      "enCours": "Apertura in corso…",
+      "ignorerBrouillon": "Ignora la bozza"
     }
   }
 }

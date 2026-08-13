@@ -49,6 +49,9 @@
     "clientDetail": "Fiche client",
     "vehiculeDetail": "Fiche véhicule"
   },
+  "formulaires": {
+    "champsObligatoiresLegende": "Les champs marqués d'une étoile (*) sont obligatoires."
+  },
   "roles": {
     "direction": "Direction",
     "vendeur": "Vendeur",

@@ -72,7 +72,6 @@
       "titre": "Prochains rendez-vous",
       "prendre": "Prendre un rendez-vous",
       "vide": "Aucun rendez-vous prévu pour ce véhicule.",
-      "detenteurInconnu": "Rattachez un client à ce véhicule pour prendre ou voir ses rendez-vous.",
       "creeTitre": "Rendez-vous enregistré"
     }
   },
@@ -276,6 +275,7 @@
     "travauxReportes": "Travaux reportés",
     "campagnes": "Campagnes ouvertes",
     "expertise": "Expertise prochaine",
+    "expertiseEchue": "Expertise échue",
     "garantie": "Garantie",
     "alerteClient": "Alerte client",
     "importe": "Véhicule importé",
@@ -292,7 +292,7 @@
     "detentions": "Aucune détention enregistrée"
   },
   "badges": {
-    "identificationIncomplete": "Identification incomplète"
+    "identificationIncomplete": "Numéro de châssis manquant"
   },
   "emplacement": {
     "titre": "Emplacement",

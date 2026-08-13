@@ -37,6 +37,11 @@
     "articlesSousSeuil": {
       "libelle": "Artikel unter Meldebestand"
     },
+    "orEnAttentePieces": {
+      "libelle": "Aufträge, die auf Teile warten",
+      "description": "Lieferanten nachfassen oder Kunden informieren.",
+      "erreur": "Aufträge in Teilewartestellung können nicht angezeigt werden"
+    },
     "enRetard": "Verspätet"
   },
   "financier": {
@@ -52,7 +57,8 @@
       "libelle": "Zahlungseingänge im Zeitraum"
     },
     "encoursClients": {
-      "libelle": "Offene Kundenforderungen"
+      "libelle": "Offene Kundenforderungen",
+      "definition": "Ausgestellte, unbezahlte Rechnungen."
     }
   },
   "direction": {
@@ -68,8 +74,9 @@
   "comptable": {
     "aRelancer": {
       "titre": "Zu mahnende Rechnungen",
-      "description": "Öffnen Sie die Rechnungsliste und wählen Sie den Reiter „Zu mahnen“.",
-      "lien": "Rechnungen öffnen"
+      "description": "Ausgestellte, überfällige, noch nie gemahnte Rechnungen.",
+      "lien": "Rechnungen öffnen",
+      "erreur": "Die zu mahnenden Rechnungen können nicht angezeigt werden"
     }
   },
   "chefAtelier": {

@@ -193,5 +193,16 @@
     "rechercheDescription": "Essayez une autre recherche.",
     "filtre": "Aucun résultat avec ces filtres.",
     "filtreDescription": "Modifiez ou effacez les filtres actifs."
+  },
+  "formulaireNouveau": {
+    "brouillon": {
+      "ignorer": "Ignorer le brouillon"
+    },
+    "reessaiSansDoublon": "Cliquer de nouveau sur « Créer le client » ne créera pas de doublon : une tentative précédente est reconnue automatiquement."
+  },
+  "ficheApresCreation": {
+    "titre": "Client enregistré",
+    "description": "Le client {nom} a bien été enregistré ({numero}), mais sa fiche n'a pas pu s'afficher. Réessayez, ou retrouvez-le depuis la liste des clients — ne le recréez pas.",
+    "retourListe": "Retour à la liste des clients"
   }
 }

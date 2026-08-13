@@ -133,6 +133,11 @@
       "non": "Non",
       "nonRenseigne": "Non renseigné"
     },
+    "vue": {
+      "groupeLabel": "Mode d'affichage",
+      "vendeur": "Vue vendeur",
+      "client": "Vue client"
+    },
     "joursStock": {
       "libelle": "Jours en stock",
       "valeur": "{n, plural, one {# jour} other {# jours}}"
@@ -350,6 +355,7 @@
         "titre_sejour": "Titre de séjour",
         "autre": "Autre"
       },
+      "identitePieceTypeAutrePrecision": "Précisez la pièce présentée",
       "engagerConfirmation": "Le véhicule sera réservé.",
       "engagerConfirmationReprise": "La reprise sera confirmée.",
       "confirmerAction": "Confirmer",
@@ -682,8 +688,6 @@
   },
   "suivi": {
     "titre": "Suivi financement & garantie",
-    "lienDepuisListe": "Suivi financement & garantie",
-    "retourListe": "Retour aux dossiers de vente",
     "colonnes": {
       "dossier": "Client / véhicule",
       "echeance": "Prochaine échéance",

@@ -20,7 +20,7 @@
   "site": {
     "manquant": {
       "titre": "Scegliere una sede",
-      "description": "Selezionare una sede nell’intestazione per vedere la sua agenda appuntamenti."
+      "description": "Cliccare in alto a sinistra, sotto il nome dell’officina, per scegliere una sede e vederne l’agenda appuntamenti."
     }
   },
   "vide": {
@@ -42,7 +42,9 @@
     "capaciteTitre": "La capacità del giorno non è stata caricata"
   },
   "capacite": {
-    "fraction": "{occupe} / {capacite}",
+    "fraction": "{occupe} occupati su {capacite}",
+    "fractionAvecReste": "{occupe} occupati su {capacite} — ancora {reste} liberi",
+    "resteSeul": "ancora {reste} liberi",
     "brut": "{reserves} appuntamenti",
     "etat": {
       "disponible": "Disponibile",
@@ -77,7 +79,7 @@
     "date": "Data dell’appuntamento",
     "moment": "Fascia oraria",
     "heureSouhaitee": "Ora desiderata",
-    "duree": "Durata stimata",
+    "duree": "Durata stimata (min)",
     "motif": "Motivo dell’appuntamento",
     "motifPlaceholder": "Scegliere un motivo",
     "remarque": "Osservazione",
@@ -117,6 +119,7 @@
       "confirmer": "Annullare l’appuntamento"
     },
     "lectureSeule": "Questo appuntamento è annullato — sola lettura.",
+    "attenteBouton": "L'arrivo sarà possibile a partire dal giorno dell'appuntamento.",
     "historique": {
       "titre": "Cronologia",
       "creePar": "Creato da {nom}, il {date}",

@@ -37,6 +37,11 @@
     "articlesSousSeuil": {
       "libelle": "Articles sous seuil de réapprovisionnement"
     },
+    "orEnAttentePieces": {
+      "libelle": "OR en attente de pièces",
+      "description": "Relancez le fournisseur ou prévenez le client.",
+      "erreur": "Impossible d'afficher les OR en attente de pièces"
+    },
     "enRetard": "En retard"
   },
   "financier": {
@@ -52,7 +57,8 @@
       "libelle": "Encaissements sur la période"
     },
     "encoursClients": {
-      "libelle": "Encours clients"
+      "libelle": "Encours clients",
+      "definition": "Factures émises non réglées."
     }
   },
   "direction": {
@@ -68,8 +74,9 @@
   "comptable": {
     "aRelancer": {
       "titre": "Factures à relancer",
-      "description": "Ouvrez la liste des factures et sélectionnez l'onglet « À relancer ».",
-      "lien": "Ouvrir les factures"
+      "description": "Factures émises en retard, jamais relancées.",
+      "lien": "Ouvrir les factures",
+      "erreur": "Impossible d'afficher les factures à relancer"
     }
   },
   "chefAtelier": {

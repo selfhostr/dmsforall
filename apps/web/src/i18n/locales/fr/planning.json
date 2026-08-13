@@ -20,7 +20,7 @@
   "site": {
     "manquant": {
       "titre": "Choisissez un site",
-      "description": "Sélectionnez un site dans l’en-tête pour voir son agenda de rendez-vous."
+      "description": "Cliquez en haut à gauche, sous le nom du garage, pour choisir un site et voir son agenda de rendez-vous."
     }
   },
   "vide": {
@@ -42,7 +42,9 @@
     "capaciteTitre": "La capacité du jour n’a pas pu être chargée"
   },
   "capacite": {
-    "fraction": "{occupe} / {capacite}",
+    "fraction": "{occupe} occupée sur {capacite}",
+    "fractionAvecReste": "{occupe} occupée sur {capacite} — encore {reste} libres",
+    "resteSeul": "encore {reste} libres",
     "brut": "{reserves} rendez-vous",
     "etat": {
       "disponible": "Disponible",
@@ -77,7 +79,7 @@
     "date": "Date du rendez-vous",
     "moment": "Moment",
     "heureSouhaitee": "Heure souhaitée",
-    "duree": "Durée estimée",
+    "duree": "Durée estimée (min)",
     "motif": "Motif du rendez-vous",
     "motifPlaceholder": "Choisir un motif",
     "remarque": "Remarque",
@@ -117,6 +119,7 @@
       "confirmer": "Annuler le rendez-vous"
     },
     "lectureSeule": "Ce rendez-vous est annulé — lecture seule.",
+    "attenteBouton": "L'arrivée sera possible à partir du jour du rendez-vous.",
     "historique": {
       "titre": "Historique",
       "creePar": "Créé par {nom}, le {date}",

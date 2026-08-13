@@ -133,6 +133,11 @@
       "non": "Nein",
       "nonRenseigne": "Nicht angegeben"
     },
+    "vue": {
+      "groupeLabel": "Anzeigemodus",
+      "vendeur": "Verkäuferansicht",
+      "client": "Kundenansicht"
+    },
     "joursStock": {
       "libelle": "Tage im Bestand",
       "valeur": "{n, plural, one {# Tag} other {# Tage}}"
@@ -350,6 +355,7 @@
         "titre_sejour": "Aufenthaltsbewilligung",
         "autre": "Andere"
       },
+      "identitePieceTypeAutrePrecision": "Ausweis genauer angeben",
       "engagerConfirmation": "Das Fahrzeug wird reserviert.",
       "engagerConfirmationReprise": "Der Eintausch wird bestätigt.",
       "confirmerAction": "Bestätigen",
@@ -682,8 +688,6 @@
   },
   "suivi": {
     "titre": "Finanzierungs- & Garantieübersicht",
-    "lienDepuisListe": "Finanzierungs- & Garantieübersicht",
-    "retourListe": "Zurück zu den Verkaufsdossiers",
     "colonnes": {
       "dossier": "Kunde / Fahrzeug",
       "echeance": "Nächste Fälligkeit",

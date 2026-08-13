@@ -71,6 +71,7 @@
   },
   "entete": {
     "tousLesSites": "Alle Werkstätten",
+    "siteNonChoisi": "Kein Standort ausgewählt",
     "changerSite": "Standort wechseln"
   },
   "repli": {

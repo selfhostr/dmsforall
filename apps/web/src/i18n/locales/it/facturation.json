@@ -49,7 +49,8 @@
   },
   "avanceClient": {
     "message": "Questo incasso supera il saldo di {montant} — l'eccedenza sarà registrata come acconto cliente, da imputare in seguito.",
-    "aucuneFactureOuverte": "Questo incasso sarà registrato come acconto cliente."
+    "aucuneFactureOuverte": "Questo cliente non ha nessuna fattura aperta da saldare.",
+    "confirmerAction": "Registrare comunque come acconto cliente"
   },
   "motifsAvoir": {
     "erreurAdresse": "Errore d'indirizzo",

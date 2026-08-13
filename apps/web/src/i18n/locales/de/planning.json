@@ -20,7 +20,7 @@
   "site": {
     "manquant": {
       "titre": "Standort wählen",
-      "description": "Wählen Sie oben einen Standort, um dessen Terminkalender zu sehen."
+      "description": "Klicken Sie oben links, unter dem Namen des Betriebs, um einen Standort zu wählen und dessen Terminkalender zu sehen."
     }
   },
   "vide": {
@@ -42,7 +42,9 @@
     "capaciteTitre": "Die Kapazität des Tages konnte nicht geladen werden"
   },
   "capacite": {
-    "fraction": "{occupe} / {capacite}",
+    "fraction": "{occupe} von {capacite} belegt",
+    "fractionAvecReste": "{occupe} von {capacite} belegt — noch {reste} frei",
+    "resteSeul": "noch {reste} frei",
     "brut": "{reserves} Termine",
     "etat": {
       "disponible": "Verfügbar",
@@ -77,7 +79,7 @@
     "date": "Termindatum",
     "moment": "Zeitfenster",
     "heureSouhaitee": "Gewünschte Uhrzeit",
-    "duree": "Geschätzte Dauer",
+    "duree": "Geschätzte Dauer (Min.)",
     "motif": "Grund des Termins",
     "motifPlaceholder": "Einen Grund wählen",
     "remarque": "Bemerkung",
@@ -117,6 +119,7 @@
       "confirmer": "Termin stornieren"
     },
     "lectureSeule": "Dieser Termin ist storniert — nur Ansicht.",
+    "attenteBouton": "Die Ankunft ist ab dem Termintag möglich.",
     "historique": {
       "titre": "Verlauf",
       "creePar": "Erstellt von {nom}, am {date}",

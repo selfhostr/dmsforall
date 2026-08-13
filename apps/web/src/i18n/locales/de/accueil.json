@@ -4,7 +4,7 @@
   },
   "calendrier": {
     "titre": "Diese Woche",
-    "apercu": "Vorschau — die diese Woche versprochenen Rückgabetermine. Die Terminplanung der Werkstatt kommt später in dmsforall; dieser Kalender wird dann ihre Oberfläche sein.",
+    "apercu": "Vorschau — die diese Woche versprochenen Rückgabetermine.",
     "droitRequis": "Sie haben keine Berechtigung, Reparaturaufträge einzusehen.",
     "vide": {
       "titre": "Kein versprochener Rückgabetermin diese Woche",
@@ -23,6 +23,6 @@
     "depuisLe": "Ohne Bewegung seit dem {date}",
     "autres": "{count, plural, one {+ # weiterer nachzuverfolgender Satz} other {+ # weitere nachzuverfolgende Sätze}}",
     "voirTout": "Ganzes Reifenlager anzeigen",
-    "aVenir": "MFK-Prüfungen und Garantien werden dieser Liste beitreten, sobald dafür ein aggregierter Endpunkt existiert."
+    "aVenir": "MFK-Prüfungen und Garantien werden dieser Liste sehr bald hinzugefügt."
   }
 }

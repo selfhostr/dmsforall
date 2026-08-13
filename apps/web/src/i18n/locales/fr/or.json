@@ -159,6 +159,11 @@
     "champs": {
       "referenceTexte": "Référence"
     },
+    "montants": {
+      "ttc": "{montant} TTC",
+      "ht": "{montant} HT",
+      "calculMainOeuvre": "{temps} × {taux}/h"
+    },
     "selecteurArticle": {
       "label": "Chercher une pièce au magasin",
       "placeholder": "Désignation, référence ou code-barres",
@@ -391,7 +396,8 @@
   },
   "totaux": {
     "titre": "Totaux",
-    "totalValide": "Total validé"
+    "totalValide": "Total validé (suivi plafond)",
+    "aideDistinction": "« Total validé » suit le plafond de l'OR (lignes déjà validées, tous payeurs confondus) — ce n'est pas un montant à facturer. Pour annoncer un montant, utilisez la ligne du payeur concerné ci-dessus."
   },
   "impression": {
     "enCours": "Impression en cours…",
@@ -409,7 +415,7 @@
     },
     "client": {
       "requisTitre": "Client non sélectionné",
-      "requisDescription": "Ouvrez un ordre de réparation depuis la fiche d'un client (bouton « Ouvrir un ordre de réparation »), ou recherchez-le d'abord."
+      "requisDescription": "Recherchez d'abord le client, puis ouvrez un ordre de réparation depuis sa fiche."
     },
     "vehicule": {
       "titre": "Véhicule",
@@ -441,9 +447,13 @@
     "erreur": {
       "titre": "Impossible d'ouvrir l'ordre de réparation"
     },
+    "confirmation": {
+      "vehiculeDeuxOrOuverts": "Déjà ouvert pour ce véhicule : {numeros}. Ouvrir quand même un nouvel ordre de réparation ?"
+    },
     "actions": {
       "creer": "Ouvrir l'ordre de réparation",
-      "enCours": "Création en cours…"
+      "enCours": "Création en cours…",
+      "ignorerBrouillon": "Ignorer le brouillon"
     }
   }
 }

@@ -72,7 +72,6 @@
       "titre": "Nächste Termine",
       "prendre": "Termin vereinbaren",
       "vide": "Kein Termin für dieses Fahrzeug geplant.",
-      "detenteurInconnu": "Ordnen Sie diesem Fahrzeug einen Kunden zu, um Termine zu vereinbaren oder anzuzeigen.",
       "creeTitre": "Termin gespeichert"
     }
   },
@@ -276,6 +275,7 @@
     "travauxReportes": "Zurückgestellte Arbeiten",
     "campagnes": "Offene Rückrufe",
     "expertise": "MFK nächste Fälligkeit",
+    "expertiseEchue": "MFK abgelaufen",
     "garantie": "Garantie",
     "alerteClient": "Kundenalert",
     "importe": "Importiertes Fahrzeug",
@@ -292,7 +292,7 @@
     "detentions": "Kein Halterwechsel registriert"
   },
   "badges": {
-    "identificationIncomplete": "Identifikation unvollständig"
+    "identificationIncomplete": "Fahrgestellnummer fehlt"
   },
   "emplacement": {
     "titre": "Standort",

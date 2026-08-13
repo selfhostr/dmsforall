@@ -159,6 +159,11 @@
     "champs": {
       "referenceTexte": "Referenz"
     },
+    "montants": {
+      "ttc": "{montant} inkl. MWST",
+      "ht": "{montant} exkl. MWST",
+      "calculMainOeuvre": "{temps} × {taux}/Std."
+    },
     "selecteurArticle": {
       "label": "Ersatzteil im Lager suchen",
       "placeholder": "Bezeichnung, Referenz oder Barcode",
@@ -391,7 +396,8 @@
   },
   "totaux": {
     "titre": "Totale",
-    "totalValide": "Validiertes Total"
+    "totalValide": "Validiertes Total (Kostengrenze-Überwachung)",
+    "aideDistinction": "«Validiertes Total» überwacht die Kostengrenze des Auftrags (bereits validierte Positionen, alle Kostenträger zusammen) — kein zu fakturierender Betrag. Für einen Betrag an einen Kostenträger die entsprechende Zeile oben verwenden."
   },
   "impression": {
     "enCours": "Druckvorgang läuft…",
@@ -409,7 +415,7 @@
     },
     "client": {
       "requisTitre": "Kein Kunde ausgewählt",
-      "requisDescription": "Eröffnen Sie einen Reparaturauftrag über die Kundenkarte (Schaltfläche «Reparaturauftrag eröffnen»), oder suchen Sie den Kunden zuerst."
+      "requisDescription": "Suchen Sie zuerst den Kunden, und eröffnen Sie dann einen Reparaturauftrag über seine Kundenkarte."
     },
     "vehicule": {
       "titre": "Fahrzeug",
@@ -441,9 +447,13 @@
     "erreur": {
       "titre": "Der Reparaturauftrag konnte nicht eröffnet werden"
     },
+    "confirmation": {
+      "vehiculeDeuxOrOuverts": "Für dieses Fahrzeug bereits offen: {numeros}. Trotzdem einen neuen Reparaturauftrag eröffnen?"
+    },
     "actions": {
       "creer": "Reparaturauftrag eröffnen",
-      "enCours": "Wird eröffnet…"
+      "enCours": "Wird eröffnet…",
+      "ignorerBrouillon": "Entwurf verwerfen"
     }
   }
 }
