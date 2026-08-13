@@ -156,9 +156,11 @@ export interface LigneReapprovisionnement {
 /** `PATCH /articles/{id}/stock/{siteId}` — réglages de site, PAS la quantité physique (qui ne
  *  bouge que par mouvement, `RP-16`→`RP-18` : aucune écriture directe sur `quantitePhysiqueMillieme`
  *  n'existe dans ce contrat, exactement pour empêcher un ajustement silencieux hors traçabilité). */
-export const schemaModificationStockSite = z.object({
-  emplacement: schemaEmplacement.nullish(),
-  stockMinimumMillieme: schemaQuantiteMillieme.nullish(),
-  quantiteCommandeStandardMillieme: schemaQuantiteMillieme.nullish(),
-});
+export const schemaModificationStockSite = z
+  .object({
+    emplacement: schemaEmplacement.nullish(),
+    stockMinimumMillieme: schemaQuantiteMillieme.nullish(),
+    quantiteCommandeStandardMillieme: schemaQuantiteMillieme.nullish(),
+  })
+  .strict();
 export type EntreeModificationStockSite = z.infer<typeof schemaModificationStockSite>;

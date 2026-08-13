@@ -23,23 +23,27 @@ import { TYPES_EVENEMENT_METIER, type TypeEvenementMetier } from '../atelier/eve
  * déclenche le retrait PRIORITAIRE de l'annonce (`export.ts::ACTIONS_EXPORT_CONNECTEUR`).
  */
 
-export const schemaCreationDeclencheurPlanifie = z.object({
-  type: z.literal('planifie'),
-  operation: z.enum(OPERATIONS_CONNECTEUR),
-  /** Sous-catégorie (`NatureImportConnecteur` | `NatureExportConnecteur`) — typée `string` ici,
-   *  même raison que `ReponseExecutionConnecteur.nature`. */
-  nature: z.string().trim().min(1).max(60),
-  expressionCron: schemaExpressionCron,
-  fuseauHoraire: z.string().trim().min(1).max(64).default('Europe/Zurich'),
-});
+export const schemaCreationDeclencheurPlanifie = z
+  .object({
+    type: z.literal('planifie'),
+    operation: z.enum(OPERATIONS_CONNECTEUR),
+    /** Sous-catégorie (`NatureImportConnecteur` | `NatureExportConnecteur`) — typée `string` ici,
+     *  même raison que `ReponseExecutionConnecteur.nature`. */
+    nature: z.string().trim().min(1).max(60),
+    expressionCron: schemaExpressionCron,
+    fuseauHoraire: z.string().trim().min(1).max(64).default('Europe/Zurich'),
+  })
+  .strict();
 export type EntreeCreationDeclencheurPlanifie = z.infer<typeof schemaCreationDeclencheurPlanifie>;
 
-export const schemaCreationDeclencheurEvenement = z.object({
-  type: z.literal('evenement'),
-  operation: z.enum(OPERATIONS_CONNECTEUR),
-  nature: z.string().trim().min(1).max(60),
-  evenement: z.enum(TYPES_EVENEMENT_METIER),
-});
+export const schemaCreationDeclencheurEvenement = z
+  .object({
+    type: z.literal('evenement'),
+    operation: z.enum(OPERATIONS_CONNECTEUR),
+    nature: z.string().trim().min(1).max(60),
+    evenement: z.enum(TYPES_EVENEMENT_METIER),
+  })
+  .strict();
 export type EntreeCreationDeclencheurEvenement = z.infer<typeof schemaCreationDeclencheurEvenement>;
 
 /**

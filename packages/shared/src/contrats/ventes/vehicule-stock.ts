@@ -153,14 +153,16 @@ export type FiltresVehiculesStock = z.infer<typeof schemaFiltresVehiculesStock>;
  * `en_commande` si `provenance = 'neuf_constructeur'` et que le véhicule n'a pas encore de VIN
  * connu, `disponible` sinon.
  */
-export const schemaMiseEnStock = z.object({
-  siteId: schemaIdentifiant,
-  provenance: z.string().trim().min(1).max(60),
-  dateEntreeStock: schemaDateJour,
-  prixAchatCentimes: schemaCentimesPositif,
-  prixVenteAfficheCentimes: schemaCentimesPositif.nullish(),
-  vendeurPrecedentAssujetti: z.boolean().nullish(),
-});
+export const schemaMiseEnStock = z
+  .object({
+    siteId: schemaIdentifiant,
+    provenance: z.string().trim().min(1).max(60),
+    dateEntreeStock: schemaDateJour,
+    prixAchatCentimes: schemaCentimesPositif,
+    prixVenteAfficheCentimes: schemaCentimesPositif.nullish(),
+    vendeurPrecedentAssujetti: z.boolean().nullish(),
+  })
+  .strict();
 export type EntreeMiseEnStock = z.infer<typeof schemaMiseEnStock>;
 
 /** `PATCH /vehicules/{vehiculeId}/stock` — `If-Match` OBLIGATOIRE (même règle que
@@ -172,19 +174,24 @@ export type EntreeMiseEnStock = z.infer<typeof schemaMiseEnStock>;
  *  `prixAchatCentimes` reste modifiable jusqu'à `statutCommercial = 'vendu'` exclu (contrôlé
  *  serveur, pas ici) : une correction après vente fausserait la marge d'une affaire déjà conclue —
  *  elle passe alors par une note interne, pas par ce endpoint. */
-export const schemaModificationVehiculeStock = z.object({
-  dateEntreeStock: schemaDateJour.optional(),
-  prixAchatCentimes: schemaCentimesPositif.optional(),
-  prixVenteAfficheCentimes: schemaCentimesPositif.nullish(),
-  vendeurPrecedentAssujetti: z.boolean().nullish(),
-});
+export const schemaModificationVehiculeStock = z
+  .object({
+    dateEntreeStock: schemaDateJour.optional(),
+    prixAchatCentimes: schemaCentimesPositif.optional(),
+    prixVenteAfficheCentimes: schemaCentimesPositif.nullish(),
+    vendeurPrecedentAssujetti: z.boolean().nullish(),
+  })
+  .strict();
 export type EntreeModificationVehiculeStock = z.infer<typeof schemaModificationVehiculeStock>;
 
 /** `POST /vehicules/{vehiculeId}/stock/receptionner` — réception physique d'un VN commandé
  *  (`en_commande → disponible`, `RV-09`). Le VIN et les caractéristiques réelles se saisissent par
  *  `PATCH /vehicules/{id}` (étape 1, hors périmètre) — cette action ne fait QUE la transition de
  *  statut commercial, elle ne duplique pas la fiche technique. */
-export const schemaReceptionnerVehiculeStock = z.object({}).extend(schemaConfirmations.shape);
+export const schemaReceptionnerVehiculeStock = z
+  .object({})
+  .extend(schemaConfirmations.shape)
+  .strict();
 export type EntreeReceptionnerVehiculeStock = z.infer<typeof schemaReceptionnerVehiculeStock>;
 
 /**
@@ -194,7 +201,7 @@ export type EntreeReceptionnerVehiculeStock = z.infer<typeof schemaReceptionnerV
  * exceptionnelle (dossier orphelin, incohérence constatée), motif obligatoire pour la même raison
  * que `POST /ordres-reparation/{id}/rouvrir`.
  */
-export const schemaRemettreDisponibleVehiculeStock = z.object({ motif: schemaTexteLong });
+export const schemaRemettreDisponibleVehiculeStock = z.object({ motif: schemaTexteLong }).strict();
 export type EntreeRemettreDisponibleVehiculeStock = z.infer<
   typeof schemaRemettreDisponibleVehiculeStock
 >;
@@ -214,5 +221,5 @@ export type EntreeRemettreDisponibleVehiculeStock = z.infer<
  * `schemaRemettreDisponibleVehiculeStock`, motif obligatoire pour la même raison (traçabilité d'une
  * correction exceptionnelle, `dernier_motif_transition`).
  */
-export const schemaMarquerVenduVehiculeStock = z.object({ motif: schemaTexteLong });
+export const schemaMarquerVenduVehiculeStock = z.object({ motif: schemaTexteLong }).strict();
 export type EntreeMarquerVenduVehiculeStock = z.infer<typeof schemaMarquerVenduVehiculeStock>;

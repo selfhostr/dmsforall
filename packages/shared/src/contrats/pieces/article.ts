@@ -188,17 +188,19 @@ export interface ResultatRechercheComptoirArticle {
  * des réceptions. `statut` reste hors de ce schéma : voir les actions nommées ci-dessous, même
  * patron que `ligne_or.statut`.
  */
-const schemaArticleObjet = z.object({
-  designation: schemaTexteCourt,
-  marque: z.string().trim().max(80).nullish(),
-  categorie: z.enum(CATEGORIES_ARTICLE),
-  referencePrincipale: schemaReferenceArticle,
-  codeBarres: schemaCodeBarres.nullish(),
-  prixVenteTtcCentimes: schemaCentimesPositif,
-  tauxTvaPourmille: schemaPourmille,
-  estEchangeStandard: z.boolean().default(false),
-  montantConsigneTtcCentimes: schemaCentimesPositif.nullish(),
-});
+const schemaArticleObjet = z
+  .object({
+    designation: schemaTexteCourt,
+    marque: z.string().trim().max(80).nullish(),
+    categorie: z.enum(CATEGORIES_ARTICLE),
+    referencePrincipale: schemaReferenceArticle,
+    codeBarres: schemaCodeBarres.nullish(),
+    prixVenteTtcCentimes: schemaCentimesPositif,
+    tauxTvaPourmille: schemaPourmille,
+    estEchangeStandard: z.boolean().default(false),
+    montantConsigneTtcCentimes: schemaCentimesPositif.nullish(),
+  })
+  .strict();
 
 /**
  * `POST /articles` — `Idempotency-Key` OBLIGATOIRE : même raison que `POST /ordres-reparation`
@@ -240,6 +242,7 @@ export const schemaCreationReferenceArticle = z
     reference: schemaReferenceArticle,
     fournisseurId: schemaIdentifiant.nullish(),
   })
+  .strict()
   .refine((v) => (v.type === 'fournisseur') === (v.fournisseurId != null), {
     message:
       "`fournisseurId` est obligatoire pour `type = 'fournisseur'`, et doit être absent sinon (RP-02).",
@@ -250,18 +253,22 @@ export type EntreeCreationReferenceArticle = z.infer<typeof schemaCreationRefere
 /** `POST /articles/{id}/marquer-obsolete` — `referenceRemplacementId` obligatoire SI une référence
  *  `remplace_par` existe déjà pour cet article, refusé sinon (`RP-04` →
  *  `409 ARTICLE_REMPLACANT_REQUIS`, contrôle SERVEUR car il dépend de l'état des références). */
-export const schemaMarquageObsolete = z.object({
-  referenceRemplacementId: schemaIdentifiant.optional(),
-});
+export const schemaMarquageObsolete = z
+  .object({
+    referenceRemplacementId: schemaIdentifiant.optional(),
+  })
+  .strict();
 export type EntreeMarquageObsolete = z.infer<typeof schemaMarquageObsolete>;
 
 /** `POST /articles/{id}/desactiver` — refusé (`409 ARTICLE_DESACTIVATION_IMPOSSIBLE`) si une
  *  réservation `active` porte sur cet article (§6.1) — le motif reste facultatif : désactiver un
  *  article dormant n'est pas un geste destructeur au sens de `schemaMotif` (RM-71 ne s'applique
  *  qu'aux lignes d'OR). */
-export const schemaDesactivationArticle = z.object({
-  motif: schemaMotif.optional(),
-});
+export const schemaDesactivationArticle = z
+  .object({
+    motif: schemaMotif.optional(),
+  })
+  .strict();
 export type EntreeDesactivationArticle = z.infer<typeof schemaDesactivationArticle>;
 
 /** `POST /articles/{id}/reactiver` — retour à `actif` depuis `obsolete` ou `desactive`, aucun

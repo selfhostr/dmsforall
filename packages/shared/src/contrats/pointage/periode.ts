@@ -40,12 +40,14 @@ import { schemaDateJour, schemaIdentifiant, schemaMotif } from '../atelier/primi
  * restent `verrouille`, `pointagesVerrouilles` compte alors 0 sur le rejeu. Même patron que les
  * transitions gardées par état ailleurs dans l'API.
  */
-export const schemaVerrouillagePeriodePointage = z.object({
-  siteId: schemaIdentifiant,
-  /** Borne INCLUSE. */
-  jusquauLe: schemaDateJour,
-  motif: schemaMotif.optional(),
-});
+export const schemaVerrouillagePeriodePointage = z
+  .object({
+    siteId: schemaIdentifiant,
+    /** Borne INCLUSE. */
+    jusquauLe: schemaDateJour,
+    motif: schemaMotif.optional(),
+  })
+  .strict();
 export type EntreeVerrouillagePeriodePointage = z.infer<typeof schemaVerrouillagePeriodePointage>;
 
 /**
@@ -56,11 +58,13 @@ export type EntreeVerrouillagePeriodePointage = z.infer<typeof schemaVerrouillag
  * `verrouille` du site vers `valide` (jamais `en_cours` : un pointage déverrouillé redevient
  * corrigeable, pas réouvrable).
  */
-export const schemaDeverrouillagePeriodePointage = z.object({
-  siteId: schemaIdentifiant,
-  jusquauLe: schemaDateJour,
-  motif: schemaMotif,
-});
+export const schemaDeverrouillagePeriodePointage = z
+  .object({
+    siteId: schemaIdentifiant,
+    jusquauLe: schemaDateJour,
+    motif: schemaMotif,
+  })
+  .strict();
 export type EntreeDeverrouillagePeriodePointage = z.infer<
   typeof schemaDeverrouillagePeriodePointage
 >;

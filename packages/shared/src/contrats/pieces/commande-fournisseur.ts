@@ -126,21 +126,25 @@ export type FiltresCommandesFournisseur = z.infer<typeof schemaFiltresCommandesF
  * `POST /commandes-fournisseur` — `Idempotency-Key` OBLIGATOIRE (création sensible, listée
  * explicitement par le brief). Statut initial toujours `brouillon` — `statut` n'est jamais entrant.
  */
-export const schemaLigneCreationCommandeFournisseur = z.object({
-  articleId: schemaIdentifiant,
-  quantiteCommandeeMillieme: schemaQuantiteMillieme,
-  prixAchatAttenduCentimes: schemaCentimesPositif.nullish(),
-  ligneOrOrigineId: schemaIdentifiant.nullish(),
-});
+export const schemaLigneCreationCommandeFournisseur = z
+  .object({
+    articleId: schemaIdentifiant,
+    quantiteCommandeeMillieme: schemaQuantiteMillieme,
+    prixAchatAttenduCentimes: schemaCentimesPositif.nullish(),
+    ligneOrOrigineId: schemaIdentifiant.nullish(),
+  })
+  .strict();
 
-export const schemaCreationCommandeFournisseur = z.object({
-  fournisseurId: schemaIdentifiant,
-  siteId: schemaIdentifiant,
-  dateCommande: schemaDateJour.optional(),
-  reference: z.string().trim().max(80).nullish(),
-  origine: z.enum(ORIGINES_COMMANDE_FOURNISSEUR).default('manuelle'),
-  lignes: z.array(schemaLigneCreationCommandeFournisseur).min(1).max(200),
-});
+export const schemaCreationCommandeFournisseur = z
+  .object({
+    fournisseurId: schemaIdentifiant,
+    siteId: schemaIdentifiant,
+    dateCommande: schemaDateJour.optional(),
+    reference: z.string().trim().max(80).nullish(),
+    origine: z.enum(ORIGINES_COMMANDE_FOURNISSEUR).default('manuelle'),
+    lignes: z.array(schemaLigneCreationCommandeFournisseur).min(1).max(200),
+  })
+  .strict();
 export type EntreeCreationCommandeFournisseur = z.infer<typeof schemaCreationCommandeFournisseur>;
 
 /** `POST /commandes-fournisseur/{id}/envoyer` — `brouillon → envoyee` (§6.2). Aucun corps requis ;
@@ -154,28 +158,32 @@ export type EntreeCreationCommandeFournisseur = z.infer<typeof schemaCreationCom
  * reliquat restant (avertissement `RECEPTION_EXCEDENT_RELIQUAT`, jamais un blocage — RP-27 ne
  * prévoit aucune limite haute) ou être inférieure (reliquat qui reste ouvert).
  */
-export const schemaLigneReceptionCommandeFournisseur = z.object({
-  ligneId: schemaIdentifiant,
-  quantiteRecueMillieme: schemaQuantiteMillieme,
-  /** Prix réellement payé, peut différer du prix attendu (`RP-29`) — enregistré sur le MOUVEMENT,
-   *  jamais réécrit sur `prixAchatAttenduCentimes` de la ligne d'origine. */
-  prixAchatReelCentimes: schemaCentimesPositif.nullish(),
-  /**
-   * Renseigné UNIQUEMENT quand la référence livrée diffère de celle commandée (`§7.4`, « le
-   * fournisseur a substitué une équivalente sans prévenir »). Accepté par le serveur SEULEMENT si
-   * `articleRecuId` est une référence `equivalente` (`RP-02`) connue de `article`
-   * (`schemaLigneCreationCommandeFournisseur.articleId`) — sinon `409
-   * RECEPTION_REFERENCE_NON_EQUIVALENTE`, pour ne jamais forcer une correspondance fausse
-   * (§7.4 : « le magasinier crée l'écart en anomalie de réception plutôt que de forcer une
-   * correspondance fausse »).
-   */
-  articleRecuId: schemaIdentifiant.nullish(),
-  motif: schemaMotif.optional(),
-});
+export const schemaLigneReceptionCommandeFournisseur = z
+  .object({
+    ligneId: schemaIdentifiant,
+    quantiteRecueMillieme: schemaQuantiteMillieme,
+    /** Prix réellement payé, peut différer du prix attendu (`RP-29`) — enregistré sur le MOUVEMENT,
+     *  jamais réécrit sur `prixAchatAttenduCentimes` de la ligne d'origine. */
+    prixAchatReelCentimes: schemaCentimesPositif.nullish(),
+    /**
+     * Renseigné UNIQUEMENT quand la référence livrée diffère de celle commandée (`§7.4`, « le
+     * fournisseur a substitué une équivalente sans prévenir »). Accepté par le serveur SEULEMENT si
+     * `articleRecuId` est une référence `equivalente` (`RP-02`) connue de `article`
+     * (`schemaLigneCreationCommandeFournisseur.articleId`) — sinon `409
+     * RECEPTION_REFERENCE_NON_EQUIVALENTE`, pour ne jamais forcer une correspondance fausse
+     * (§7.4 : « le magasinier crée l'écart en anomalie de réception plutôt que de forcer une
+     * correspondance fausse »).
+     */
+    articleRecuId: schemaIdentifiant.nullish(),
+    motif: schemaMotif.optional(),
+  })
+  .strict();
 
-export const schemaReceptionCommandeFournisseur = z.object({
-  lignes: z.array(schemaLigneReceptionCommandeFournisseur).min(1).max(200),
-});
+export const schemaReceptionCommandeFournisseur = z
+  .object({
+    lignes: z.array(schemaLigneReceptionCommandeFournisseur).min(1).max(200),
+  })
+  .strict();
 export type EntreeReceptionCommandeFournisseur = z.infer<typeof schemaReceptionCommandeFournisseur>;
 
 export interface ReponseReceptionCommandeFournisseur {
@@ -191,17 +199,21 @@ export interface ReponseReceptionCommandeFournisseur {
  * reliquat ait été soldé par livraison OU par une annulation antérieure — le code ne distingue pas
  * la cause, `reliquatAnnuleLe`/`quantiteRecueCumuleeMillieme` de la ligne le font.
  */
-export const schemaAnnulationReliquat = z.object({
-  motif: schemaMotif,
-});
+export const schemaAnnulationReliquat = z
+  .object({
+    motif: schemaMotif,
+  })
+  .strict();
 export type EntreeAnnulationReliquat = z.infer<typeof schemaAnnulationReliquat>;
 
 /** `POST /commandes-fournisseur/{id}/annuler` — UNIQUEMENT depuis `brouillon` ou `envoyee`, AVANT
  *  toute réception (§6.2 : après réception partielle, seul le reliquat s'annule ligne par ligne,
  *  jamais la commande entière — `409 COMMANDE_FOURNISSEUR_TRANSITION_INTERDITE` sinon). */
-export const schemaAnnulationCommandeFournisseur = z.object({
-  motif: schemaMotif,
-});
+export const schemaAnnulationCommandeFournisseur = z
+  .object({
+    motif: schemaMotif,
+  })
+  .strict();
 export type EntreeAnnulationCommandeFournisseur = z.infer<
   typeof schemaAnnulationCommandeFournisseur
 >;

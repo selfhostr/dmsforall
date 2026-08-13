@@ -200,7 +200,8 @@ export const schemaCreationRendezVous = z
       .nullish(),
     dureeEstimeeMinutes: z.number().int().min(1).max(1440).nullish(),
   })
-  .extend(schemaConfirmations.shape);
+  .extend(schemaConfirmations.shape)
+  .strict();
 export type EntreeCreationRendezVous = z.infer<typeof schemaCreationRendezVous>;
 
 /**
@@ -220,7 +221,8 @@ export const schemaModificationRendezVous = z
     vehiculeId: schemaIdentifiant.nullish(),
     commentaire: schemaTexteLong.nullish(),
   })
-  .extend(schemaConfirmations.shape);
+  .extend(schemaConfirmations.shape)
+  .strict();
 export type EntreeModificationRendezVous = z.infer<typeof schemaModificationRendezVous>;
 
 /* ------------------------------------------------------------------ */
@@ -247,6 +249,7 @@ export const schemaActionArriveeRendezVous = z
     motifDifferee: schemaMotif.optional(),
   })
   .extend(schemaConfirmations.shape)
+  .strict()
   .refine((v) => !v.signatureDifferee || Boolean(v.motifDifferee), {
     message: 'Une signature différée exige un motif.',
     path: ['motifDifferee'],
@@ -255,12 +258,15 @@ export type EntreeActionArriveeRendezVous = z.infer<typeof schemaActionArriveeRe
 
 /** `POST /rendez-vous/{id}/absence` — RV-24 : constat manuel qu'un client ne s'est pas présenté.
  *  Pas de motif : un no-show n'a par définition aucune explication connue du garage. */
-export const schemaActionAbsenceRendezVous = z.object({}).extend(schemaConfirmations.shape);
+export const schemaActionAbsenceRendezVous = z
+  .object({})
+  .extend(schemaConfirmations.shape)
+  .strict();
 export type EntreeActionAbsenceRendezVous = z.infer<typeof schemaActionAbsenceRendezVous>;
 
 /** `POST /rendez-vous/{id}/annuler` — motif OBLIGATOIRE (§7 : « action explicite, jamais
  *  silencieuse »). */
-export const schemaActionAnnulerRendezVous = z.object({ motif: schemaMotif });
+export const schemaActionAnnulerRendezVous = z.object({ motif: schemaMotif }).strict();
 export type EntreeActionAnnulerRendezVous = z.infer<typeof schemaActionAnnulerRendezVous>;
 
 /* ------------------------------------------------------------------ */

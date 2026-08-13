@@ -54,7 +54,7 @@ import { schemaCodePin } from './primitives';
  * que le statut HTTP identique aux codes `AUTH_*` est un piège facile pour un connecteur écrit
  * vite.
  */
-export const schemaIdentificationPin = z.object({ codePin: schemaCodePin });
+export const schemaIdentificationPin = z.object({ codePin: schemaCodePin }).strict();
 export type EntreeIdentificationPin = z.infer<typeof schemaIdentificationPin>;
 
 /**

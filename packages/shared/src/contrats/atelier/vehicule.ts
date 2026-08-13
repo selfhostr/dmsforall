@@ -391,29 +391,31 @@ export const schemaFiltresTravauxReportes = z.object({
  * les véhicules anciens et certains imports n'ont pas de VIN normalisé, et refuser la saisie
  * enverrait le garagiste dans un tableur.
  */
-export const schemaCreationVehicule = z.object({
-  vin: z.string().trim().min(5).max(17).toUpperCase().nullish(),
-  marque: schemaTexteCourt,
-  modele: schemaTexteCourt,
-  version: schemaTexteCourt.nullish(),
-  finition: schemaTexteCourt.nullish(),
-  codeTypeCh: z.string().trim().max(20).nullish(),
-  premiereMiseEnCirculationLe: schemaDateJour.nullish(),
-  plaque: z.string().trim().max(20).nullish(),
-  canton: z.string().trim().length(2).toUpperCase().nullish(),
-  detenteurId: schemaIdentifiant.nullish(),
-  importe: z.boolean().default(false),
-  paysOrigine: schemaCodePays.nullish(),
-  importeLe: schemaDateJour.nullish(),
-  carburant: z.string().trim().max(40).nullish(),
-  cylindreeCm3: z.number().int().min(0).max(20_000).nullish(),
-  puissanceKw: z.number().int().min(0).max(2000).nullish(),
-  boite: z.string().trim().max(40).nullish(),
-  transmission: z.string().trim().max(40).nullish(),
-  couleur: z.string().trim().max(40).nullish(),
-  conducteurHabituel: schemaTexteCourt.nullish(),
-  proprietaireEconomiqueClientId: schemaIdentifiant.nullish(),
-});
+export const schemaCreationVehicule = z
+  .object({
+    vin: z.string().trim().min(5).max(17).toUpperCase().nullish(),
+    marque: schemaTexteCourt,
+    modele: schemaTexteCourt,
+    version: schemaTexteCourt.nullish(),
+    finition: schemaTexteCourt.nullish(),
+    codeTypeCh: z.string().trim().max(20).nullish(),
+    premiereMiseEnCirculationLe: schemaDateJour.nullish(),
+    plaque: z.string().trim().max(20).nullish(),
+    canton: z.string().trim().length(2).toUpperCase().nullish(),
+    detenteurId: schemaIdentifiant.nullish(),
+    importe: z.boolean().default(false),
+    paysOrigine: schemaCodePays.nullish(),
+    importeLe: schemaDateJour.nullish(),
+    carburant: z.string().trim().max(40).nullish(),
+    cylindreeCm3: z.number().int().min(0).max(20_000).nullish(),
+    puissanceKw: z.number().int().min(0).max(2000).nullish(),
+    boite: z.string().trim().max(40).nullish(),
+    transmission: z.string().trim().max(40).nullish(),
+    couleur: z.string().trim().max(40).nullish(),
+    conducteurHabituel: schemaTexteCourt.nullish(),
+    proprietaireEconomiqueClientId: schemaIdentifiant.nullish(),
+  })
+  .strict();
 
 /** `PATCH /vehicules/{vehiculeId}` — données d'atelier (RM-26) et garanties (RM-33).
  *  `statut`, `plaque` et le détenteur ne sont PAS modifiables ici : chacun a son endpoint dédié,
@@ -443,39 +445,49 @@ export const schemaModificationVehicule = schemaCreationVehicule
 
 /** `POST /vehicules/{vehiculeId}/archiver` (RM-31). Refusé s'il reste des OR ouverts
  *  (`409 VEHICULE_ARCHIVAGE_IMPOSSIBLE`, `blocages` = les OR concernés). */
-export const schemaArchivageVehicule = z.object({
-  motifArchivage: z.enum(MOTIFS_ARCHIVAGE_VEHICULE),
-  motif: schemaMotif,
-});
+export const schemaArchivageVehicule = z
+  .object({
+    motifArchivage: z.enum(MOTIFS_ARCHIVAGE_VEHICULE),
+    motif: schemaMotif,
+  })
+  .strict();
 
-export const schemaFusionVehicule = z.object({
-  vehiculeSourceId: schemaIdentifiant,
-  /** Garde saisie, comme `confirmationNom` sur la fusion de clients. */
-  confirmationVin: z.string().trim().min(5).max(17).toUpperCase(),
-});
+export const schemaFusionVehicule = z
+  .object({
+    vehiculeSourceId: schemaIdentifiant,
+    /** Garde saisie, comme `confirmationNom` sur la fusion de clients. */
+    confirmationVin: z.string().trim().min(5).max(17).toUpperCase(),
+  })
+  .strict();
 
-export const schemaPlaqueVehicule = z.object({
-  valeur: z.string().trim().min(2).max(20),
-  canton: z.string().trim().length(2).toUpperCase().nullish(),
-  pays: schemaCodePays.default('CH'),
-  debutLe: schemaDateJour,
-  interchangeable: z.boolean().default(false),
-  professionnelle: z.boolean().default(false),
-});
+export const schemaPlaqueVehicule = z
+  .object({
+    valeur: z.string().trim().min(2).max(20),
+    canton: z.string().trim().length(2).toUpperCase().nullish(),
+    pays: schemaCodePays.default('CH'),
+    debutLe: schemaDateJour,
+    interchangeable: z.boolean().default(false),
+    professionnelle: z.boolean().default(false),
+  })
+  .strict();
 
-export const schemaCloturePlaque = z.object({ finLe: schemaDateJour });
+export const schemaCloturePlaque = z.object({ finLe: schemaDateJour }).strict();
 
 /** Correction d'historique et import UNIQUEMENT. Le geste métier normal est
  *  `POST /changer-detenteur`, atomique. */
-export const schemaDetentionVehicule = z.object({
-  clientId: schemaIdentifiant,
-  debutLe: schemaDateJour,
-});
+export const schemaDetentionVehicule = z
+  .object({
+    clientId: schemaIdentifiant,
+    debutLe: schemaDateJour,
+  })
+  .strict();
 
-export const schemaClotureDetention = z.object({
-  finLe: schemaDateJour,
-  motifFin: z.enum(MOTIFS_FIN_DETENTION),
-});
+export const schemaClotureDetention = z
+  .object({
+    finLe: schemaDateJour,
+    motifFin: z.enum(MOTIFS_FIN_DETENTION),
+  })
+  .strict();
 
 /**
  * `POST /vehicules/{vehiculeId}/changer-detenteur` — UN appel, UNE transaction, UNE entrée
@@ -487,12 +499,14 @@ export const schemaClotureDetention = z.object({
  * et qu'on ne doit pas pouvoir violer temporairement depuis l'API. Les deux endpoints atomiques
  * restent exposés pour les corrections d'historique et les imports.
  */
-export const schemaChangementDetenteur = z.object({
-  nouveauClientId: schemaIdentifiant,
-  changementLe: schemaDateJour,
-  motifFin: z.enum(MOTIFS_FIN_DETENTION),
-  nouvellePlaque: schemaPlaqueVehicule.omit({ debutLe: true }).optional(),
-});
+export const schemaChangementDetenteur = z
+  .object({
+    nouveauClientId: schemaIdentifiant,
+    changementLe: schemaDateJour,
+    motifFin: z.enum(MOTIFS_FIN_DETENTION),
+    nouvellePlaque: schemaPlaqueVehicule.omit({ debutLe: true }).optional(),
+  })
+  .strict();
 
 /**
  * `POST /vehicules/{vehiculeId}/kilometrages`.
@@ -502,45 +516,55 @@ export const schemaChangementDetenteur = z.object({
  * `actionsProposees: [{ code: 'FOURNIR_MOTIF', parametres: { motifsAcceptes: [...] } }]`.
  * La conversion mi -> km est faite PAR LE SERVEUR avant comparaison (CT-08).
  */
-export const schemaKilometrageVehicule = z.object({
-  valeur: schemaKilometrage,
-  unite: z.enum(UNITES_DISTANCE).default('km'),
-  releveLe: schemaHorodatage,
-  source: z.enum(SOURCES_KILOMETRAGE),
-  motifRegression: z.enum(MOTIFS_KILOMETRAGE_REGRESSIF).nullish(),
-  ordreReparationId: schemaIdentifiant.nullish(),
-});
+export const schemaKilometrageVehicule = z
+  .object({
+    valeur: schemaKilometrage,
+    unite: z.enum(UNITES_DISTANCE).default('km'),
+    releveLe: schemaHorodatage,
+    source: z.enum(SOURCES_KILOMETRAGE),
+    motifRegression: z.enum(MOTIFS_KILOMETRAGE_REGRESSIF).nullish(),
+    ordreReparationId: schemaIdentifiant.nullish(),
+  })
+  .strict();
 
-export const schemaExpertiseVehicule = z.object({
-  dateLe: schemaDateJour,
-  resultat: z.enum(RESULTATS_EXPERTISE),
-  defauts: schemaTexteLong.nullish(),
-  delaiContreVisiteLe: schemaDateJour.nullish(),
-  dateContreVisiteLe: schemaDateJour.nullish(),
-  prochaineEcheanceLe: schemaDateJour.nullish(),
-  sourceEcheance: z.enum(SOURCES_ECHEANCE_EXPERTISE),
-});
+export const schemaExpertiseVehicule = z
+  .object({
+    dateLe: schemaDateJour,
+    resultat: z.enum(RESULTATS_EXPERTISE),
+    defauts: schemaTexteLong.nullish(),
+    delaiContreVisiteLe: schemaDateJour.nullish(),
+    dateContreVisiteLe: schemaDateJour.nullish(),
+    prochaineEcheanceLe: schemaDateJour.nullish(),
+    sourceEcheance: z.enum(SOURCES_ECHEANCE_EXPERTISE),
+  })
+  .strict();
 
-export const schemaCampagneVehicule = z.object({
-  code: z.string().trim().min(1).max(40),
-  description: schemaTexteCourt,
-  obligatoire: z.boolean().default(false),
-});
+export const schemaCampagneVehicule = z
+  .object({
+    code: z.string().trim().min(1).max(40),
+    description: schemaTexteCourt,
+    obligatoire: z.boolean().default(false),
+  })
+  .strict();
 
-export const schemaModificationCampagneVehicule = z.object({
-  description: schemaTexteCourt.optional(),
-  obligatoire: z.boolean().optional(),
-  statut: z.enum(STATUTS_CAMPAGNE).optional(),
-});
+export const schemaModificationCampagneVehicule = z
+  .object({
+    description: schemaTexteCourt.optional(),
+    obligatoire: z.boolean().optional(),
+    statut: z.enum(STATUTS_CAMPAGNE).optional(),
+  })
+  .strict();
 
 /** RM-73 : un travail reporté s'écarte (`abandonne`) ou se corrige, il ne se supprime pas. */
-export const schemaModificationTravailReporte = z.object({
-  designation: schemaTexteCourt.optional(),
-  urgence: z.enum(URGENCES_TRAVAIL).optional(),
-  montantEstimeCentimes: schemaCentimesPositif.nullish(),
-  statut: z.enum(STATUTS_TRAVAIL_REPORTE).optional(),
-  motif: schemaMotif.optional(),
-});
+export const schemaModificationTravailReporte = z
+  .object({
+    designation: schemaTexteCourt.optional(),
+    urgence: z.enum(URGENCES_TRAVAIL).optional(),
+    montantEstimeCentimes: schemaCentimesPositif.nullish(),
+    statut: z.enum(STATUTS_TRAVAIL_REPORTE).optional(),
+    motif: schemaMotif.optional(),
+  })
+  .strict();
 
 export type EntreeCreationVehicule = z.infer<typeof schemaCreationVehicule>;
 export type EntreeModificationVehicule = z.infer<typeof schemaModificationVehicule>;

@@ -260,22 +260,28 @@ const champsCommunsDemarragePointage = {
 };
 
 export const schemaDemarragePointage = z.discriminatedUnion('nature', [
-  z.object({
-    nature: z.literal('productif_ligne'),
-    ordreReparationId: schemaIdentifiant,
-    ligneOrId: schemaIdentifiant,
-    ...champsCommunsDemarragePointage,
-  }),
-  z.object({
-    nature: z.literal('productif_or'),
-    ordreReparationId: schemaIdentifiant,
-    ...champsCommunsDemarragePointage,
-  }),
-  z.object({
-    nature: z.literal('indirect'),
-    activiteIndirecte: z.enum(ACTIVITES_INDIRECTES),
-    ...champsCommunsDemarragePointage,
-  }),
+  z
+    .object({
+      nature: z.literal('productif_ligne'),
+      ordreReparationId: schemaIdentifiant,
+      ligneOrId: schemaIdentifiant,
+      ...champsCommunsDemarragePointage,
+    })
+    .strict(),
+  z
+    .object({
+      nature: z.literal('productif_or'),
+      ordreReparationId: schemaIdentifiant,
+      ...champsCommunsDemarragePointage,
+    })
+    .strict(),
+  z
+    .object({
+      nature: z.literal('indirect'),
+      activiteIndirecte: z.enum(ACTIVITES_INDIRECTES),
+      ...champsCommunsDemarragePointage,
+    })
+    .strict(),
 ]);
 export type EntreeDemarragePointage = z.infer<typeof schemaDemarragePointage>;
 
@@ -298,10 +304,12 @@ export type EntreeDemarragePointage = z.infer<typeof schemaDemarragePointage>;
  * `plan-etape-1-frontend.md` §4.3 point 4 le dit de façon générique pour « chaque événement » ;
  * ce fichier l'applique nommément aux trois actions d'écriture du pointage.
  */
-export const schemaArretPointage = z.object({
-  finLe: schemaHorodatage,
-  decalageHorlogeMs: schemaDecalageHorlogeMs.optional(),
-});
+export const schemaArretPointage = z
+  .object({
+    finLe: schemaHorodatage,
+    decalageHorlogeMs: schemaDecalageHorlogeMs.optional(),
+  })
+  .strict();
 export type EntreeArretPointage = z.infer<typeof schemaArretPointage>;
 
 /**
@@ -337,15 +345,17 @@ export type EntreeArretPointage = z.infer<typeof schemaArretPointage>;
  * pertinente (`actionsProposees` → contre-passation par un rôle habilité), alors que
  * `POINTAGE_TRANSITION_INTERDITE` ne dirait qu'« interdit », sans dire pourquoi.
  */
-export const schemaCorrectionPointage = z.object({
-  debutLe: schemaHorodatage.optional(),
-  finLe: schemaHorodatage.optional(),
-  nature: z.enum(NATURES_ACTIVITE_POINTAGE).optional(),
-  ordreReparationId: schemaIdentifiant.nullish(),
-  ligneOrId: schemaIdentifiant.nullish(),
-  activiteIndirecte: z.enum(ACTIVITES_INDIRECTES).nullish(),
-  motif: schemaMotif.optional(),
-});
+export const schemaCorrectionPointage = z
+  .object({
+    debutLe: schemaHorodatage.optional(),
+    finLe: schemaHorodatage.optional(),
+    nature: z.enum(NATURES_ACTIVITE_POINTAGE).optional(),
+    ordreReparationId: schemaIdentifiant.nullish(),
+    ligneOrId: schemaIdentifiant.nullish(),
+    activiteIndirecte: z.enum(ACTIVITES_INDIRECTES).nullish(),
+    motif: schemaMotif.optional(),
+  })
+  .strict();
 export type EntreeCorrectionPointage = z.infer<typeof schemaCorrectionPointage>;
 
 /**
@@ -364,6 +374,8 @@ export type EntreeCorrectionPointage = z.infer<typeof schemaCorrectionPointage>;
  * `valider` de `ACTIONS_POINTAGE` reste un changement ADDITIF côté client (une action en moins
  * dans une liste extensible), pas une rupture.
  */
-export const schemaValidationPointage = z.object({});
-export const schemaValidationPointages = z.object({ pointageIds: schemaListeIdentifiants });
+export const schemaValidationPointage = z.object({}).strict();
+export const schemaValidationPointages = z
+  .object({ pointageIds: schemaListeIdentifiants })
+  .strict();
 export type EntreeValidationPointages = z.infer<typeof schemaValidationPointages>;

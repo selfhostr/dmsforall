@@ -61,13 +61,15 @@ export const schemaFiltresDevis = z.object({
  * référencées, avec leurs valeurs figées. Un montant fourni par le client serait un montant
  * contestable.
  */
-export const schemaCreationDevisComplementaire = z.object({
-  ligneIds: schemaListeIdentifiants,
-  nouveauPlafondCentimes: schemaCentimesPositif,
-  canal: z.enum(CANAUX_DEVIS),
-  destinataireContactId: schemaIdentifiant.nullish(),
-  impactRestitutionLe: schemaHorodatage.nullish(),
-});
+export const schemaCreationDevisComplementaire = z
+  .object({
+    ligneIds: schemaListeIdentifiants,
+    nouveauPlafondCentimes: schemaCentimesPositif,
+    canal: z.enum(CANAUX_DEVIS),
+    destinataireContactId: schemaIdentifiant.nullish(),
+    impactRestitutionLe: schemaHorodatage.nullish(),
+  })
+  .strict();
 
 /**
  * `POST /…/devis-complementaires/{devisId}/repondre` — `Idempotency-Key` OBLIGATOIRE :
@@ -96,10 +98,13 @@ export const schemaReponseDevisComplementaire = z
     retranscription: schemaTexteLong.nullish(),
     /** Requis et suffisant pour `partiel` ; ignoré pour `accepte` / `refuse`. */
     lignes: z
-      .array(z.object({ ligneId: schemaIdentifiant, decision: z.enum(['accepte', 'refuse']) }))
+      .array(
+        z.object({ ligneId: schemaIdentifiant, decision: z.enum(['accepte', 'refuse']) }).strict(),
+      )
       .max(200)
       .optional(),
   })
+  .strict()
   .refine((v) => v.decision !== 'partiel' || (v.lignes !== undefined && v.lignes.length > 0), {
     message: 'Une réponse `partiel` exige la décision de chaque ligne.',
     path: ['lignes'],
