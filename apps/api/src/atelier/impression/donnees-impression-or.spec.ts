@@ -131,7 +131,7 @@ function ordreReparationFixture(
 }
 
 describe('construireDonneesImpressionOr', () => {
-  it("porte le numéro d'OR, le site, le véhicule, le client et la ligne — vocabulaire garagiste, pas les codes bruts", () => {
+  it("porte le numéro d'OR, le site, le véhicule et la ligne — vocabulaire garagiste, pas les codes bruts", () => {
     const d = construireDonneesImpressionOr(ordreReparationFixture(), 'Garage Martin — Sion');
 
     expect(d.numero).toBe('OR-2026-042');
@@ -142,78 +142,69 @@ describe('construireDonneesImpressionOr', () => {
     expect(d.immatriculation).toBe('VS 123456');
     expect(d.vin).toBe('WVWZZZ1KZAW123456');
     expect(d.kilometrageEntree).toBe("84'500 km");
-    expect(d.clientNom).toBe('Jean Dupont');
-    expect(d.telephone).toBe('+41 79 123 45 67');
     expect(d.demandes).toEqual(['Bruit au freinage avant droit']);
     expect(d.restitutionPromise).toBe('03.08.2026 15:30');
   });
 
-  it('imprime les colonnes de prix quand le rôle voit les montants (totauxParPayeur présent, même vide)', () => {
-    const d = construireDonneesImpressionOr(
+  // Issue #114 : cette feuille est accrochée au rétroviseur d'un véhicule garé DEHORS — elle ne
+  // porte plus JAMAIS le nom du client ni son téléphone, quel que soit le rôle qui imprime.
+  it('NE porte NI le nom du client NI son téléphone — jamais, quel que soit le rôle', () => {
+    const d = construireDonneesImpressionOr(ordreReparationFixture(), 'Garage');
+
+    expect(d).not.toHaveProperty('clientNom');
+    expect(d).not.toHaveProperty('telephone');
+  });
+
+  // Distinct du masquage des montants par rôle (`ROLES_SANS_MONTANT`), qui reste actif AILLEURS
+  // sur `ReponseOrdreReparation` (`document.totauxParPayeur`) — ce module ne le lit simplement
+  // plus jamais : aucun prix, aucun total, pour personne, quelle que soit la présence de
+  // `totauxParPayeur` sur le document source.
+  it("N'IMPRIME AUCUN prix ni montant, présence ou non de totauxParPayeur sur le document source", () => {
+    const avecMontants = construireDonneesImpressionOr(
       ordreReparationFixture({ totauxParPayeur: [] }),
       'Garage',
     );
+    const sansMontants = construireDonneesImpressionOr(
+      ordreReparationFixture({ totauxParPayeur: undefined }),
+      'Garage',
+    );
 
-    expect(d.voitMontants).toBe(true);
-    expect(d.lignes).toHaveLength(1);
-    expect(d.lignes[0]?.prixUnitaire).toBe('45.00');
-    expect(d.lignes[0]?.montant).toBe('90.00');
+    for (const d of [avecMontants, sansMontants]) {
+      expect(d).not.toHaveProperty('voitMontants');
+      expect(d.lignes[0]).not.toHaveProperty('prixUnitaire');
+      expect(d.lignes[0]).not.toHaveProperty('montant');
+      expect(d.lignes[0]?.designation).toContain('Plaquettes de frein avant');
+      expect(d.lignes[0]?.quantite).toBe('2');
+    }
   });
 
-  it('OMET les colonnes de prix (null, jamais "0.00") quand le rôle ne voit pas les montants (technicien)', () => {
+  it('nomme le·s technicien·ne·s ayant pointé sur l’OR, joints par une virgule', () => {
     const d = construireDonneesImpressionOr(
       ordreReparationFixture({
-        totauxParPayeur: undefined,
-        lignes: [
-          {
-            id: 'ligne-1',
-            ordreReparationId: 'or-1',
-            numeroOrdre: 1,
-            type: 'piece',
-            origine: 'constatee',
-            statut: 'validee',
-            payeur: 'client',
-            payeurClientId: null,
-            blocage: 'aucun',
-            designation: 'Plaquettes de frein avant',
-            referenceTexte: null,
-            articleId: null,
-            quantiteMillieme: 2000,
-            tempsBaremeCentiemes: null,
-            tempsBaremeConstructeurCentiemes: null,
-            tempsReelCentiemes: null,
-            rabaisPourmille: 0,
-            tauxTvaPourmille: 81,
-            figeLe: '2026-07-28T07:00:00.000Z',
-            // Ni `montants` ni `prixUnitaireCentimes` — exactement ce que `mapperLigneOr` rend
-            // pour un rôle sans droit aux montants.
-            technicienId: null,
-            codeOperation: null,
-            codeDefaut: null,
-            numeroSinistre: null,
-            numeroAccord: null,
-            urgence: null,
-            securite: false,
-            fournieParClient: false,
-            aRestituer: false,
-            restituee: false,
-            motifAnnulation: null,
-            factureId: null,
-            creeLe: '2026-07-28T07:00:00.000Z',
-            modifieLe: '2026-07-28T07:00:00.000Z',
-          },
-        ],
+        cumulsPointage: {
+          totalCentiemes: 480,
+          parTechnicien: [
+            { technicienId: 't-1', nomAffiche: 'Marco Rossi', centiemes: 300 },
+            { technicienId: 't-2', nomAffiche: 'Sophie Bruchez', centiemes: 180 },
+          ],
+          pointagesOuverts: 0,
+        },
       }),
       'Garage',
     );
 
-    expect(d.voitMontants).toBe(false);
-    expect(d.lignes[0]?.prixUnitaire).toBeNull();
-    expect(d.lignes[0]?.montant).toBeNull();
-    // La désignation et la quantité, elles, restent visibles — seul le prix est un geste de
-    // gouvernance distinct (RM du droit d'imprimer partagé avec le droit de lire l'OR).
-    expect(d.lignes[0]?.designation).toContain('Plaquettes de frein avant');
-    expect(d.lignes[0]?.quantite).toBe('2');
+    expect(d.technicien).toBe('Marco Rossi, Sophie Bruchez');
+  });
+
+  it('aucun pointage rattaché -> technicien `null` (ligne omise à l’impression), jamais une chaîne vide', () => {
+    const d = construireDonneesImpressionOr(
+      ordreReparationFixture({
+        cumulsPointage: { totalCentiemes: 0, parTechnicien: [], pointagesOuverts: 0 },
+      }),
+      'Garage',
+    );
+
+    expect(d.technicien).toBeNull();
   });
 
   it('restitution non définie -> phrase explicite, jamais un champ vide ambigu', () => {
@@ -225,7 +216,7 @@ describe('construireDonneesImpressionOr', () => {
     expect(d.restitutionPromise).toBe('Non définie');
   });
 
-  it('plaque/VIN/téléphone absents -> phrase explicite par champ, jamais le même rendu qu’une valeur', () => {
+  it('plaque/VIN absents -> phrase explicite par champ, jamais le même rendu qu’une valeur', () => {
     const d = construireDonneesImpressionOr(
       ordreReparationFixture({
         vehicule: {
@@ -238,14 +229,12 @@ describe('construireDonneesImpressionOr', () => {
           identificationIncomplete: true,
           emplacementLibre: null,
         },
-        client: { ...ordreReparationFixture().client, telephone: null },
       }),
       'Garage',
     );
 
     expect(d.immatriculation).toBe('Plaque non renseignée');
     expect(d.vin).toBe('VIN non renseigné');
-    expect(d.telephone).toBe('Non renseigné');
   });
 
   it('site introuvable (chaîne vide transmise par le service) -> `site` vide, jamais un uuid affiché', () => {
@@ -279,6 +268,6 @@ describe('construireDonneesImpressionOr', () => {
 
     expect(d.type).toBe('Reparatur');
     expect(d.statut).toBe('In Arbeit');
-    expect(d.libelles.client).toBe('Kunde');
+    expect(d.libelles.technicien).toBe('Techniker');
   });
 });

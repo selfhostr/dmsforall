@@ -10,6 +10,7 @@ import { formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
 import { CarteChiffreRequete } from './composants/CarteChiffreRequete';
+import { CarteOrEnRetard } from './composants/CarteOrEnRetard';
 import { CarteRestitutionsJour } from './composants/CarteRestitutionsJour';
 import { SelecteurPeriodeTableauBord } from './SelecteurPeriodeTableauBord';
 
@@ -104,6 +105,9 @@ export function TableauBordDirection({ site }: Props) {
         videTitreCle="tableauBord:direction.sortiesDuSoir.vide.titre"
         videDescriptionCle="tableauBord:direction.sortiesDuSoir.vide.description"
       />
+
+      {/* Issue #112 : voir la doc de tête de `CarteOrEnRetard.tsx`. */}
+      <CarteOrEnRetard site={site} />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import type { FiltreTableauBord } from '@dfa/shared';
 
 import { useActiviteTableauBord } from '@/hooks/tableau-bord/useActiviteTableauBord';
 
+import { CarteOrEnRetard } from './composants/CarteOrEnRetard';
 import { CarteRendezVousJour } from './composants/CarteRendezVousJour';
 import { CarteRepartitionStatuts } from './composants/CarteRepartitionStatuts';
 import { CarteRestitutionsJour } from './composants/CarteRestitutionsJour';
@@ -49,6 +50,10 @@ export function TableauBordReceptionnaire({ site }: Props) {
         videTitreCle="tableauBord:receptionnaire.restitutionsJour.vide.titre"
         videDescriptionCle="tableauBord:receptionnaire.restitutionsJour.vide.description"
       />
+
+      {/* Issue #112 : `CarteRestitutionsJour` ci-dessus reste bornée à aujourd'hui — carte
+       *  distincte pour ce qui traîne depuis avant, voir sa doc de tête. */}
+      <CarteOrEnRetard site={site} />
 
       <CarteRepartitionStatuts resultat={activite} />
     </div>

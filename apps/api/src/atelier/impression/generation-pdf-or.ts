@@ -3,11 +3,16 @@
  * au rétroviseur pour travailler sur le véhicule — PAS un document comptable (voir
  * `docs/etat-du-depot.md`, chantier « impression OR »).
  *
- * Pure MISE EN PAGE : toute la logique d'affichage (traduction des enums, masquage des montants,
- * absence de donnée) est déjà résolue par `donnees-impression-or.ts` — ce module ne fait plus
- * aucun choix, il dessine ce qu'on lui donne. Voir `donnees-impression-or.spec.ts` pour les tests
- * de CONTENU (masquage des montants par rôle, phrases d'absence) ; ce fichier n'a que le smoke
- * test « ça produit un PDF valide » (`generation-pdf-or.spec.ts`).
+ * Contenu volontairement MINIMAL (issue #114) : ce document reste visible depuis l'extérieur
+ * d'un véhicule garé dehors — plaque, marque/modèle, n° d'OR, travaux à cocher, technicien.
+ * JAMAIS le nom du client, son téléphone, un prix, un total ou une signature — voir la tête de
+ * fichier de `donnees-impression-or.ts` pour la doctrine complète (distincte du masquage des
+ * montants par rôle, qui reste actif ailleurs et n'est pas altéré par ce module).
+ *
+ * Pure MISE EN PAGE : toute la logique d'affichage (traduction des enums, absence de donnée) est
+ * déjà résolue par `donnees-impression-or.ts` — ce module ne fait plus aucun choix de CONTENU, il
+ * dessine ce qu'on lui donne. Voir `donnees-impression-or.spec.ts` pour les tests de CONTENU ;
+ * ce fichier n'a que le smoke test « ça produit un PDF valide » (`generation-pdf-or.spec.ts`).
  *
  * Différence de doctrine DÉLIBÉRÉE avec `facturation/impression/generation-pdf-facture.ts` : une
  * facture émise est immuable, son PDF se met en cache une fois pour toutes. Un OR est VIVANT
@@ -22,6 +27,9 @@ import { construireDonneesImpressionOr, type DonneesImpressionOr } from './donne
 
 const MARGE_PT = 40;
 const LARGEUR_PAGE_PT = 555;
+/** Case à cocher dessinée en trait (pas le glyphe Unicode `☐`, absent de l'encodage WinAnsi des
+ *  14 polices standard de `pdfkit` — un rectangle vectoriel reste fiable quel que soit le PDF. */
+const TAILLE_CASE_PT = 9;
 
 function dessinerEnTete(doc: PDFKit.PDFDocument, d: DonneesImpressionOr): void {
   const l = d.libelles;
@@ -37,7 +45,7 @@ function dessinerEnTete(doc: PDFKit.PDFDocument, d: DonneesImpressionOr): void {
   doc.moveDown(1);
 }
 
-function dessinerFicheVehiculeClient(doc: PDFKit.PDFDocument, d: DonneesImpressionOr): void {
+function dessinerFicheVehicule(doc: PDFKit.PDFDocument, d: DonneesImpressionOr): void {
   const l = d.libelles;
 
   doc.fontSize(11).fillColor('#000000').text(l.vehicule, MARGE_PT);
@@ -47,12 +55,15 @@ function dessinerFicheVehiculeClient(doc: PDFKit.PDFDocument, d: DonneesImpressi
   doc.text(`${l.vin} : ${d.vin}`);
   doc.text(`${l.kilometrageEntree} : ${d.kilometrageEntree}`);
   if (d.kilometrageSortie) doc.text(`${l.kilometrageSortie} : ${d.kilometrageSortie}`);
-  doc.moveDown(0.8);
+  doc.moveDown(1);
+}
 
-  doc.fontSize(11).fillColor('#000000').text(l.client, MARGE_PT);
-  doc.fontSize(10).fillColor('#333333');
-  doc.text(d.clientNom);
-  doc.text(`${l.telephone} : ${d.telephone}`);
+/** Ligne « Technicien » omise si aucun pointage n'est encore rattaché à l'OR (`d.technicien ===
+ *  null`) — jamais un champ vide affiché, même doctrine que le kilométrage de sortie. */
+function dessinerTechnicien(doc: PDFKit.PDFDocument, d: DonneesImpressionOr): void {
+  if (!d.technicien) return;
+  const l = d.libelles;
+  doc.fontSize(10).fillColor('#333333').text(`${l.technicien} : ${d.technicien}`, MARGE_PT);
   doc.moveDown(1);
 }
 
@@ -70,6 +81,8 @@ function dessinerDemandes(doc: PDFKit.PDFDocument, d: DonneesImpressionOr): void
   doc.moveDown(1);
 }
 
+/** Travaux à effectuer, en liste à cocher (case dessinée + désignation + quantité) — JAMAIS de
+ *  colonne prix/montant, pour aucun rôle (voir la tête de fichier). */
 function dessinerLignes(doc: PDFKit.PDFDocument, d: DonneesImpressionOr): void {
   const l = d.libelles;
   doc.fontSize(11).fillColor('#000000').text(l.lignesTitre, MARGE_PT);
@@ -81,60 +94,31 @@ function dessinerLignes(doc: PDFKit.PDFDocument, d: DonneesImpressionOr): void {
     return;
   }
 
-  const colX = d.voitMontants
-    ? { designation: MARGE_PT, quantite: 330, prixUnitaire: 380, montant: 470 }
-    : { designation: MARGE_PT, quantite: 480, prixUnitaire: 0, montant: 0 };
+  const colCase = MARGE_PT;
+  const colDesignation = MARGE_PT + TAILLE_CASE_PT + 8;
+  const colQuantite = 480;
 
   doc.fontSize(9).fillColor('#000000');
   const yEntete = doc.y;
-  doc.text(l.colonneDesignation, colX.designation, yEntete, {
-    width: colX.quantite - colX.designation,
-  });
-  doc.text(l.colonneQuantite, colX.quantite, yEntete, {
-    width: (d.voitMontants ? colX.prixUnitaire : LARGEUR_PAGE_PT) - colX.quantite,
-  });
-  if (d.voitMontants) {
-    doc.text(l.colonnePrixUnitaire, colX.prixUnitaire, yEntete, {
-      width: colX.montant - colX.prixUnitaire,
-    });
-    doc.text(l.colonneMontant, colX.montant, yEntete);
-  }
+  doc.text(l.colonneDesignation, colDesignation, yEntete, { width: colQuantite - colDesignation });
+  doc.text(l.colonneQuantite, colQuantite, yEntete, { width: LARGEUR_PAGE_PT - colQuantite });
   doc.moveDown(0.3);
   doc.moveTo(MARGE_PT, doc.y).lineTo(LARGEUR_PAGE_PT, doc.y).strokeColor('#cccccc').stroke();
   doc.moveDown(0.3);
 
   for (const ligne of d.lignes) {
     const y = doc.y;
+    doc
+      .rect(colCase, y + 1, TAILLE_CASE_PT, TAILLE_CASE_PT)
+      .strokeColor('#000000')
+      .lineWidth(0.75)
+      .stroke();
     doc.fillColor('#000000');
-    doc.text(ligne.designation, colX.designation, y, { width: colX.quantite - colX.designation });
-    doc.text(ligne.quantite, colX.quantite, y, {
-      width: (d.voitMontants ? colX.prixUnitaire : LARGEUR_PAGE_PT) - colX.quantite,
-    });
-    if (d.voitMontants) {
-      doc.text(ligne.prixUnitaire ?? '', colX.prixUnitaire, y, {
-        width: colX.montant - colX.prixUnitaire,
-      });
-      doc.text(ligne.montant ?? '', colX.montant, y);
-    }
-    doc.moveDown(0.4);
+    doc.text(ligne.designation, colDesignation, y, { width: colQuantite - colDesignation });
+    doc.text(ligne.quantite, colQuantite, y, { width: LARGEUR_PAGE_PT - colQuantite });
+    doc.moveDown(0.5);
   }
   doc.moveDown(0.6);
-}
-
-function dessinerSignature(doc: PDFKit.PDFDocument, d: DonneesImpressionOr): void {
-  // Un OR peut être imprimé avant même l'ouverture du dossier (peu de contenu au-dessus) : on
-  // place le bloc signature en position ABSOLUE en bas de la PREMIÈRE page plutôt qu'en suite du
-  // flux — sans quoi il remonterait juste sous les demandes sur un OR sans lignes.
-  const y = doc.page.height - doc.page.margins.bottom - 60;
-  doc
-    .moveTo(MARGE_PT, y)
-    .lineTo(MARGE_PT + 220, y)
-    .strokeColor('#333333')
-    .stroke();
-  doc
-    .fontSize(9)
-    .fillColor('#333333')
-    .text(d.libelles.signatureClient, MARGE_PT, y + 4);
 }
 
 export async function genererPdfOr(
@@ -160,10 +144,10 @@ export async function genererPdfOr(
     pdf.on('error', reject);
 
     dessinerEnTete(pdf, donnees);
-    dessinerFicheVehiculeClient(pdf, donnees);
+    dessinerFicheVehicule(pdf, donnees);
+    dessinerTechnicien(pdf, donnees);
     dessinerDemandes(pdf, donnees);
     dessinerLignes(pdf, donnees);
-    dessinerSignature(pdf, donnees);
 
     pdf.end();
   });

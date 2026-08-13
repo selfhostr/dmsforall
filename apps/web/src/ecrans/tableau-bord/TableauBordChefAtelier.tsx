@@ -8,6 +8,7 @@ import { useOrEnAttentePieces } from '@/hooks/tableau-bord/useOrEnAttentePieces'
 
 import { CarteChiffreRequete } from './composants/CarteChiffreRequete';
 import { CarteEquipeEnCours } from './composants/CarteEquipeEnCours';
+import { CarteOrEnRetard } from './composants/CarteOrEnRetard';
 import { CarteRepartitionStatuts } from './composants/CarteRepartitionStatuts';
 import { CarteRestitutionsJour } from './composants/CarteRestitutionsJour';
 
@@ -49,6 +50,9 @@ export function TableauBordChefAtelier({ site }: Props) {
         videTitreCle="tableauBord:chefAtelier.sortiesDuJour.vide.titre"
         videDescriptionCle="tableauBord:chefAtelier.sortiesDuJour.vide.description"
       />
+
+      {/* Issue #112 : voir la doc de tête de `CarteOrEnRetard.tsx`. */}
+      <CarteOrEnRetard site={site} />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <CarteChiffreRequete

@@ -1,8 +1,13 @@
 /**
- * Formats suisses pour la feuille d'atelier — ré-EXPORTE les deux helpers déjà établis par
- * `facturation/impression/formatage-suisse.ts` (montants centimes, dates) pour éviter toute
- * seconde implémentation qui pourrait diverger, et ajoute UNIQUEMENT ce que la facture n'a jamais
- * eu besoin de formater : une heure (restitution promise, horodatée) et un kilométrage.
+ * Formats suisses pour la feuille d'atelier — ré-EXPORTE le helper de date déjà établi par
+ * `facturation/impression/formatage-suisse.ts` pour éviter toute seconde implémentation qui
+ * pourrait diverger, et ajoute UNIQUEMENT ce que la facture n'a jamais eu besoin de formater :
+ * une heure (restitution promise, horodatée) et un kilométrage.
+ *
+ * `formaterMontantCentimes` N'EST PLUS ré-exporté ici (issue #114) : la feuille d'atelier
+ * n'affiche plus aucun prix, pour aucun rôle — voir `donnees-impression-or.ts`, tête de fichier.
+ * La fonction reste disponible pour son domaine d'origine (`facturation/**`), simplement plus
+ * consommée par ce module.
  *
  * Import en LECTURE SEULE d'un module `facturation/**` — autorisé, cette tâche ne modifie jamais
  * ce fichier (même doctrine que `ImpressionModule` important `FacturationModule`, voir
@@ -12,10 +17,7 @@
  * d'exécution à l'autre, donc écarté ici aussi.
  */
 
-export {
-  formaterDateSuisse,
-  formaterMontantCentimes,
-} from '../../facturation/impression/formatage-suisse';
+export { formaterDateSuisse } from '../../facturation/impression/formatage-suisse';
 
 import { formaterDateSuisse } from '../../facturation/impression/formatage-suisse';
 

@@ -351,8 +351,19 @@ export function ListeLignesOrdreReparation({ orId, lignes, lignesTronquees }: Pr
     {
       id: 'statut',
       libelle: t('or:lignes.colonnes.statut'),
+      // Issue #105 (rapport terrain) : le motif d'annulation (`motifAnnulation`, RM-71 le rend
+      // OBLIGATOIRE à la saisie — donc toujours non-null pour une ligne `annulee` réelle) était
+      // déjà envoyé par le serveur mais jamais lu ici, alors qu'il tranche à lui seul la question
+      // « pourquoi cette ligne est-elle annulée ? » sans obliger la réceptionniste à aller
+      // rouvrir l'historique. Même patron que la colonne `designation` juste à côté (badge +
+      // sous-texte discret en `flex flex-col gap-0.5`).
       rendu: (ligne) => (
-        <Badge variant="secondary">{t(`or:lignes.statuts.${CLES_STATUT[ligne.statut]}`)}</Badge>
+        <div className="flex flex-col gap-0.5">
+          <Badge variant="secondary">{t(`or:lignes.statuts.${CLES_STATUT[ligne.statut]}`)}</Badge>
+          {ligne.statut === 'annulee' && ligne.motifAnnulation ? (
+            <span className="texte-libelle text-muted-foreground">{ligne.motifAnnulation}</span>
+          ) : null}
+        </div>
       ),
     },
   ];

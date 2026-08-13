@@ -500,6 +500,63 @@ describe('EcranFicheOrdreReparation', () => {
     });
   });
 
+  describe('lien « OR précédent » (`EnTeteOrdreReparation.tsx`)', () => {
+    // Issue #113 (rapport de test terrain) : « le lien OR précédent : OR-2026-4 mène à la fiche
+    // du véhicule au lieu d'ouvrir l'ordre annoncé ». ÉTABLI avant tout changement : relecture du
+    // code actuel (`EnTeteOrdreReparation.tsx`, `onClick` du bouton « OR précédent ») montre un
+    // `navigate(chemins.atelier.ordresReparation.detail(...))` déjà correct — aucune trace d'un
+    // lien vers `chemins.vehicules.detail(...)`. Non couvert par un test jusqu'ici (aucun fichier
+    // `EnTeteOrdreReparation.spec.tsx` n'existait). Ce test PROUVE le comportement actuel plutôt
+    // que de se fier à la lecture seule — et sert de garde-fou si la régression décrite revenait.
+    function rendreAvecRoutePrecedentEtVehicule() {
+      const queryClient = creerQueryClientTest();
+      return render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={['/ordres-reparation/or-1']}>
+            <Routes>
+              <Route path="/ordres-reparation/:orId" element={<EcranFicheOrdreReparation />} />
+              {/* Sentinelle : si un jour ce lien redevenait un lien véhicule, ce texte apparaîtrait
+               *  à la place du numéro de l'OR précédent ci-dessous — échec net, jamais un faux vert. */}
+              <Route path="/vehicules/:id" element={<p>Fiche véhicule (mauvaise destination)</p>} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+    }
+
+    it("navigue vers la FICHE DE L'OR précédent (jamais la fiche du véhicule) au clic", async () => {
+      installerHandler(construireOr());
+      server.use(
+        http.get('/api/v1/ordres-reparation', ({ request }) => {
+          const url = new URL(request.url);
+          expect(url.searchParams.get('vehiculeId')).toBe(VEHICULE.id);
+          return HttpResponse.json({
+            donnees: [
+              { id: 'or-1', numero: 'OR-000123' },
+              { id: 'or-2', numero: 'OR-000099' },
+            ],
+            curseurSuivant: null,
+            limite: 5,
+          });
+        }),
+        http.get('/api/v1/ordres-reparation/or-2', () =>
+          HttpResponse.json(construireOr({ id: 'or-2', numero: 'OR-000099' })),
+        ),
+      );
+      const utilisateur = userEvent.setup();
+      rendreAvecRoutePrecedentEtVehicule();
+
+      await utilisateur.click(
+        await screen.findByRole('button', { name: 'OR précédent : OR-000099' }),
+      );
+
+      // Arrivée sur la fiche du bon OR (son propre numéro s'affiche), jamais sur la sentinelle
+      // « fiche véhicule ».
+      await screen.findAllByText('OR-000099');
+      expect(screen.queryByText('Fiche véhicule (mauvaise destination)')).not.toBeInTheDocument();
+    });
+  });
+
   describe('bouton « Ajouter un travail ou une pièce » — gouverné par `atelier.ligne.creer` (ecrans/atelier/droits.ts)', () => {
     function construireLigne(overrides: Partial<ReponseLigneOr> = {}): ReponseLigneOr {
       return {
@@ -637,6 +694,54 @@ describe('EcranFicheOrdreReparation', () => {
       expect(cleIdempotence).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
       );
+    });
+  });
+
+  describe('carte « Devis et facture » sans document lié — trois rendus distincts (issue #105)', () => {
+    // Issue #105 (rapport terrain) : un OR `restitue`/`cloture` sans document lié rendait jusqu'ici
+    // exactement le même message générique qu'un OR encore actif — impossible pour une
+    // réceptionniste de savoir si « pas de facture » était normal ou un oubli. Trois statuts
+    // distincts (`termine` = pas terminal, `cloture`, `annule`), tous SANS document (le handler
+    // `beforeEach` renvoie déjà une liste vide par défaut).
+
+    it('OR non terminal (`termine`) sans document — « pas encore facturé », pas une absence de renoncement', async () => {
+      installerHandler(construireOr({ statut: 'termine' }));
+      rendre();
+
+      expect(
+        await screen.findByText("Pas encore facturé. L'OR reste ouvert à la facturation."),
+      ).toBeInTheDocument();
+    });
+
+    it('OR `cloture` sans document — message factuel de clôture, jamais le message générique « actif »', async () => {
+      installerHandler(construireOr({ statut: 'cloture', clotureLe: '2026-08-10T09:00:00.000Z' }));
+      rendre();
+
+      expect(
+        await screen.findByText(
+          "Aucune facture n'a été émise pour cet OR, désormais clôturé — plus aucune facturation n'est possible.",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText("Pas encore facturé. L'OR reste ouvert à la facturation."),
+      ).not.toBeInTheDocument();
+    });
+
+    it('OR `annule` sans document — motif d’annulation interpolé depuis `or.motifAnnulation`, jamais inventé', async () => {
+      installerHandler(
+        construireOr({
+          statut: 'annule',
+          annuleLe: '2026-08-10T09:00:00.000Z',
+          motifAnnulation: 'Demande client, sans rapport avec les plaquettes déjà en cours',
+        }),
+      );
+      rendre();
+
+      expect(
+        await screen.findByText(
+          'OR annulé, aucune facture ne sera émise. Motif : Demande client, sans rapport avec les plaquettes déjà en cours',
+        ),
+      ).toBeInTheDocument();
     });
   });
 

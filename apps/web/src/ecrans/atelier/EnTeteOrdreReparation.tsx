@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import type {
+  EtatAfficheOrdreReparation,
   LocalisationVehicule,
   OrdreReparationResume,
   PageCurseur,
@@ -32,6 +33,39 @@ const CLES_LOCALISATION: Record<LocalisationVehicule, string> = {
   pret_au_retrait: 'pretAuRetrait',
   sorti_provisoirement: 'sortiProvisoirement',
   restitue: 'restitue',
+};
+
+// `EtatAfficheOrdreReparation` -> suffixe camelCase de `or:statutsAide` — même mapping que
+// `BadgeStatutOr.CONFIG_STATUT_OR.cle`, dupliqué ici faute d'export partagé (ce composant
+// n'appartient pas au périmètre de cet écran, même doctrine que `CLES_STATUT`,
+// `EcranListeOrdresReparation.tsx`).
+//
+// CORRECTIF issue #110 (test terrain, verbatim : « je ne saurais pas dire à un client si sa
+// voiture est prête »). ÉTABLI avant tout changement : `termine`/`restitue`/`cloture` sont TROIS
+// ÉTATS RÉELS distincts de la machine à états (`STATUTS_ORDRE_REPARATION`,
+// `packages/shared/src/contrats/atelier/enums.ts`) — « travaux finis, prêt au retrait » /
+// « rendu au client » / « dossier administrativement fermé » — jamais trois mots pour la même
+// chose, et `BadgeStatutOr` (seul point de rendu du statut, vérifié : liste, fiche, tableau de
+// bord et fiche client passent tous par lui avec `etatAffiche`) les libelle DÉJÀ de façon
+// cohérente partout. Rien à unifier. Ce que le rapport de test décrit vient d'ailleurs : `or.json`
+// portait déjà un texte `statutsAide.*` par état (« Travaux terminés, prêt au retrait », etc.)
+// mais AUCUN écran ne le consommait — la seule information disponible au comptoir était le mot
+// seul du badge, insuffisant pour trancher entre trois états voisins. Rendu ici en texte TOUJOURS
+// VISIBLE (jamais une infobulle au survol : la moitié du parc de ce produit est une tablette, sans
+// pointeur ni hover, docs/design-comptoir.md).
+const CLES_ETAT_AIDE: Record<EtatAfficheOrdreReparation, string> = {
+  planifie: 'planifie',
+  ouvert: 'ouvert',
+  en_cours: 'enCours',
+  attente_accord: 'attenteAccord',
+  attente_pieces: 'attentePieces',
+  attente_externe: 'attenteExterne',
+  controle: 'controle',
+  termine: 'termine',
+  facture: 'facture',
+  restitue: 'restitue',
+  cloture: 'cloture',
+  annule: 'annule',
 };
 
 interface Props {
@@ -153,6 +187,13 @@ export function EnTeteOrdreReparation({ or }: Props) {
             </ActionPrimaire>
           ) : null}
         </div>
+
+        {/* Issue #110 — voir `CLES_ETAT_AIDE` ci-dessus pour le contexte complet. Texte TOUJOURS
+         *  visible (jamais une infobulle), juste sous le badge : de quoi répondre au client sans
+         *  avoir à deviner ce que « Terminé »/« Restitué »/« Clôturé » distinguent. */}
+        <p className="-mt-2 texte-libelle text-muted-foreground">
+          {t(`or:statutsAide.${CLES_ETAT_AIDE[or.etatAffiche]}`)}
+        </p>
 
         <IdentiteVehicule
           vehicule={or.vehicule}

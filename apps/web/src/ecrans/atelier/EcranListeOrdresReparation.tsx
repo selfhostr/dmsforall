@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import {
+  ATTENTES_ORDRE_REPARATION,
   STATUTS_ORDRE_REPARATION,
   TRI_DEFAUT_ORDRES_REPARATION,
   TRIS_ORDRES_REPARATION,
+  type AttenteOrdreReparation,
   type OrdreReparationResume,
   type StatutOrdreReparation,
 } from '@dfa/shared';
@@ -66,6 +68,16 @@ const CLES_STATUT: Record<StatutOrdreReparation, string> = {
   annule: 'annule',
 };
 
+/** `AttenteOrdreReparation` -> suffixe de `or:statuts` — issue #111 : PAS un statut (voir la doc
+ *  du filtre `attente` sur `FiltresListeOrdresReparation`), donc ABSENT de `CLES_STATUT`
+ *  ci-dessus, mais le mot affiché reste le même que sur le badge (« Attente pièces »…) : réutilise
+ *  les clés `or:statuts.attente*` existantes plutôt que d'en dupliquer trois de plus. */
+const CLES_ATTENTE: Record<AttenteOrdreReparation, string> = {
+  accord: 'attenteAccord',
+  pieces: 'attentePieces',
+  externe: 'attenteExterne',
+};
+
 /** Convention assumée en l'absence de câblage de `src/routes/` à ce jour (agent dédié) — même
  *  chemin que celui déjà utilisé par `EcranFicheClient.tsx` (`/ordres-reparation/${id}`) ; à
  *  ajuster ici si le nom réel diffère une fois le routage posé. */
@@ -106,6 +118,10 @@ export function EcranListeOrdresReparation() {
   const [qSaisie, setQSaisie] = useState('');
   const [q, setQ] = useState('');
   const [statut, setStatut] = useState<StatutOrdreReparation | undefined>(undefined);
+  // Issue #111 — filtre ORTHOGONAL au statut (voir `CLES_ATTENTE` ci-dessus), jamais fusionné dans
+  // le même `<Select>` : un OR « attente pièces » a par ailleurs un statut réel (`en_cours` le
+  // plus souvent) que ce second filtre ne doit jamais masquer.
+  const [attente, setAttente] = useState<AttenteOrdreReparation | undefined>(undefined);
   const [tri, setTri] = useState<string>(TRI_DEFAUT_ORDRES_REPARATION);
 
   useEffect(() => {
@@ -114,8 +130,8 @@ export function EcranListeOrdresReparation() {
   }, [qSaisie]);
 
   const filtres = useMemo(
-    () => ({ q: q.trim() === '' ? undefined : q.trim(), statut, siteId: site, tri }),
-    [q, statut, site, tri],
+    () => ({ q: q.trim() === '' ? undefined : q.trim(), statut, attente, siteId: site, tri }),
+    [q, statut, attente, site, tri],
   );
 
   const {
@@ -129,13 +145,14 @@ export function EcranListeOrdresReparation() {
     fetchNextPage,
   } = useListeOrdresReparation(filtres);
 
-  const filtresStructuresActifs = statut !== undefined;
+  const filtresStructuresActifs = statut !== undefined || attente !== undefined;
   const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
     setQSaisie('');
     setQ('');
     setStatut(undefined);
+    setAttente(undefined);
   }
 
   const colonnes: ColonneComptoir<OrdreReparationResume>[] = [
@@ -282,6 +299,35 @@ export function EcranListeOrdresReparation() {
               {STATUTS_ORDRE_REPARATION.map((valeur) => (
                 <SelectItem key={valeur} value={valeur}>
                   {t(`or:statuts.${CLES_STATUT[valeur]}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Issue #111 — filtre séparé, jamais fusionné dans le `<Select>` du statut ci-dessus
+         *  (voir `CLES_ATTENTE`) : « Attente pièces » est un drapeau, pas un état de la liste des
+         *  statuts réels, cumulable avec n'importe lequel d'entre eux. */}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="filtre-attente-or">{t('or:liste.filtres.attente')}</Label>
+          <Select
+            value={attente ?? 'toutes'}
+            onValueChange={(valeur) =>
+              setAttente(valeur === 'toutes' ? undefined : (valeur as AttenteOrdreReparation))
+            }
+          >
+            <SelectTrigger
+              id="filtre-attente-or"
+              className="w-[200px]"
+              aria-label={t('or:liste.filtres.attente')}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="toutes">{t('or:liste.filtres.attenteToutes')}</SelectItem>
+              {ATTENTES_ORDRE_REPARATION.map((valeur) => (
+                <SelectItem key={valeur} value={valeur}>
+                  {t(`or:statuts.${CLES_ATTENTE[valeur]}`)}
                 </SelectItem>
               ))}
             </SelectContent>

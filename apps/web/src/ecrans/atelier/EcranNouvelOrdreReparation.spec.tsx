@@ -251,13 +251,21 @@ describe('EcranNouvelOrdreReparation', () => {
   });
 
   describe('le client est un prérequis explicite, jamais deviné', () => {
-    it('sans `?clientId=`, renvoie vers `/recherche` (site conservé) plutôt que de proposer un second moyen de chercher un client ici', async () => {
+    it('sans `?clientId=`, propose de rechercher un client existant (renvoie vers `/recherche`, site conservé) OU d’en créer un nouveau sans quitter cet écran', async () => {
       rendre(`/ordres-reparation/nouveau?site=${SITE_ID}`);
 
       expect(await screen.findByText('Client non sélectionné')).toBeInTheDocument();
       const lien = screen.getByRole('link', { name: 'Rechercher' });
       expect(lien).toHaveAttribute('href', expect.stringContaining('/recherche'));
       expect(lien).toHaveAttribute('href', expect.stringContaining(`site=${SITE_ID}`));
+
+      // CORRECTIF issue #107 (test terrain, verbatim : « c'est là que j'aurais attrapé un
+      // bloc-notes ») : un nom introuvable via « Rechercher » n'est plus un cul-de-sac — ce
+      // bouton ouvre directement `FormulaireNouveauClient` (même formulaire que l'écran Clients),
+      // sans jamais quitter la création d'OR en cours.
+      const utilisateur = userEvent.setup();
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer un nouveau client' }));
+      expect(await screen.findByRole('button', { name: 'Créer le client' })).toBeInTheDocument();
     });
   });
 

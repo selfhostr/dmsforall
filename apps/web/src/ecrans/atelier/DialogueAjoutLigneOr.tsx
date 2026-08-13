@@ -6,6 +6,7 @@ import {
   ORIGINES_LIGNE_OR,
   TYPES_LIGNE_OR,
   schemaCreationLigneOr,
+  type EntreeCreationLigneOr,
   type OrigineLigneOr,
   type PayeurLigneOr,
   type ResultatRechercheComptoirArticle,
@@ -34,11 +35,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
+import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { useCreerLigneOr } from '@/hooks/atelier/useActionsLigneOr';
 import { useArticle } from '@/hooks/pieces/useArticle';
 import { useSession } from '@/hooks/useSession';
 import { formaterMontant } from '@/lib/formats';
 
+import { formaterQuantiteMillieme } from '../pieces/utils';
 import { BadgeDisponibilitePiece } from './BadgeDisponibilitePiece';
 import { calculerDisponibilitePiece, convertirTtcVersHtCentimes } from './disponibilite-piece';
 import { peutRechercherArticlePiece } from './droits';
@@ -205,12 +208,45 @@ export function DialogueAjoutLigneOr({ orId, siteId }: Props) {
       )
     : null;
 
+  // Issue #106 (test terrain) : 20 saisis sur une pièce à 8 disponible(s) — la mention « 8
+  // disponible(s) » restait un simple texte informatif, sans avertissement ni blocage à la
+  // confirmation. PAS un blocage (RP-19/RP-20 : un garage peut légitimement commander la pièce
+  // manquante, la vente au-delà du stock existant reste un geste métier normal) — un avertissement
+  // CONFIRMABLE (`AvertissementConfirmable`, invariant n°8), même doctrine que
+  // `VEHICULE_DEUX_OR_OUVERTS` côté serveur : l'action reste possible, jamais silencieuse.
+  // `quantiteDisponibleMillieme` n'est fiable que si `statutSuivi === 'suivi'` (`disponibilite-piece.ts`)
+  // — comparaison omise pour `nonSuiviNullePart`/`nonSuiviSurCeSite`, où ce nombre ne veut rien dire.
+  const quantiteSaisieMillieme = estPiece
+    ? analyserDecimalPositif(etat.quantiteSaisie, 1000)
+    : null;
+  const depassementStock =
+    estPiece &&
+    resultatChoisi !== null &&
+    resultatChoisi.statutSuivi === 'suivi' &&
+    quantiteSaisieMillieme !== null &&
+    quantiteSaisieMillieme > resultatChoisi.quantiteDisponibleMillieme;
+
+  // Entrée déjà validée (zod), en attente de la confirmation explicite du dépassement de stock
+  // ci-dessus — `null` tant qu'aucune soumission n'a rencontré ce cas. Distinct de `erreurActive`
+  // (refus SERVEUR) : ceci est un avertissement CLIENT, jamais envoyé tel quel au serveur avant
+  // confirmation.
+  const [entreeEnAttenteConfirmationStock, setEntreeEnAttenteConfirmationStock] =
+    useState<EntreeCreationLigneOr | null>(null);
+
   function fermer() {
     setOuvert(false);
     setEtat(ETAT_INITIAL);
     setErreurValidation(null);
     setResultatChoisi(null);
+    setEntreeEnAttenteConfirmationStock(null);
     mutation.reset();
+  }
+
+  function envoyer(entree: EntreeCreationLigneOr) {
+    mutation.mutate(
+      { entree, idempotencyKey: genererCleIdempotence() },
+      { onSuccess: () => fermer() },
+    );
   }
 
   function majEtat(partiel: Partial<EtatFormulaire>) {
@@ -289,10 +325,15 @@ export function DialogueAjoutLigneOr({ orId, siteId }: Props) {
       return;
     }
     setErreurValidation(null);
-    mutation.mutate(
-      { entree: resultat.data, idempotencyKey: genererCleIdempotence() },
-      { onSuccess: () => fermer() },
-    );
+
+    // Issue #106 : la confirmation explicite n'intervient qu'UNE FOIS, à LA soumission — jamais
+    // en boucle si l'utilisateur retouche la quantité après avoir déjà confirmé (il resoumettrait
+    // alors normalement, ce `if` reste évalué à chaque appel de `soumettre()`).
+    if (depassementStock) {
+      setEntreeEnAttenteConfirmationStock(resultat.data);
+      return;
+    }
+    envoyer(resultat.data);
   }
 
   /**
@@ -487,6 +528,13 @@ export function DialogueAjoutLigneOr({ orId, siteId }: Props) {
             {estPiece && disponibilitePiece ? (
               <div className="flex flex-col gap-1">
                 <BadgeDisponibilitePiece etat={disponibilitePiece} />
+                {depassementStock ? (
+                  <p role="alert" className="texte-libelle font-medium text-statut-attention">
+                    {t('or:lignes.selecteurArticle.quantiteSuperieureStock', {
+                      quantite: formaterQuantiteMillieme(quantiteSaisieMillieme ?? 0),
+                    })}
+                  </p>
+                ) : null}
                 {detailArticlePourPrix.data ? (
                   <p className="texte-libelle text-muted-foreground">
                     {t('or:lignes.selecteurArticle.prixConverti', {
@@ -589,6 +637,32 @@ export function DialogueAjoutLigneOr({ orId, siteId }: Props) {
           </DialogFooter>
         </form>
       </DialogContent>
+
+      {/* Issue #106 — avertissement CONFIRMABLE (invariant n°8), jamais un blocage : voir la doc
+       *  de `depassementStock` ci-dessus. Modal séparée de `DialogContent` ci-dessus (même
+       *  Dialog racine `open={ouvert}`, cohérent avec `DialogueNouveauRendezVous`/
+       *  `FormulaireNouveauClient` qui suivent le même patron). */}
+      {entreeEnAttenteConfirmationStock && resultatChoisi ? (
+        <AvertissementConfirmable
+          ouvert
+          onOuvertChange={(valeur) => {
+            if (!valeur) setEntreeEnAttenteConfirmationStock(null);
+          }}
+          titre={t('or:lignes.selecteurArticle.avertissementStock.titre')}
+          description={t('or:lignes.selecteurArticle.avertissementStock.description', {
+            quantite: formaterQuantiteMillieme(quantiteSaisieMillieme ?? 0),
+            disponible: formaterQuantiteMillieme(resultatChoisi.quantiteDisponibleMillieme),
+          })}
+          libelleConfirmation={t('or:lignes.selecteurArticle.avertissementStock.confirmer')}
+          enCours={mutation.isPending}
+          onConfirmer={() => {
+            const entree = entreeEnAttenteConfirmationStock;
+            if (!entree) return;
+            setEntreeEnAttenteConfirmationStock(null);
+            envoyer(entree);
+          }}
+        />
+      ) : null}
     </Dialog>
   );
 }

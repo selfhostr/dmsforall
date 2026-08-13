@@ -4,36 +4,33 @@
  * raisons :
  *  1. `generation-pdf-or.ts` reste un pur exercice de MISE EN PAGE, sans logique métier ;
  *  2. ce module est testable SANS parser le flux binaire d'un PDF (`generation-pdf-or.spec.ts`
- *     aurait dû décoder les chaînes hexadécimales `<...>Tj` de `pdfkit` pour vérifier qu'un
- *     montant est bien absent — fragile et indirect ; `donnees-impression-or.spec.ts` vérifie la
+ *     aurait dû décoder les chaînes hexadécimales `<...>Tj` de `pdfkit` pour vérifier qu'une
+ *     donnée est bien absente — fragile et indirect ; `donnees-impression-or.spec.ts` vérifie la
  *     même règle directement sur les CHAÎNES avant tout rendu).
  *
- * Règle centrale (masquage des montants) : `document.totauxParPayeur` n'est présent QUE pour un
- * rôle qui voit les montants (`ServiceOr.assemblerDocument` / `atelier/mappeurs.ts::
- * roleVoitLesMontants`) — signal fiable, indépendant de la valeur réelle (même tableau vide si
- * l'OR n'a aucun groupe payeur tiers). Quand `voitMontants` est faux, `prixUnitaire`/`montant`
- * valent `null` sur CHAQUE ligne — jamais `"0.00"`, jamais un tiret : `null` signifie « colonne
- * absente », une valeur numérique signifierait « travail gratuit ».
+ * Doctrine de contenu (issue #114) — cette feuille est accrochée au rétroviseur d'un véhicule
+ * garé DEHORS, lisible par n'importe qui passant devant la vitre, pas remise en main propre :
+ * c'est un support de TRAVAIL pour le mécanicien, pas un document commercial. Elle ne porte donc
+ * JAMAIS le nom du client, son téléphone, un prix ou un total, ni de ligne de signature — quel
+ * que soit le rôle qui imprime. C'est DIFFÉRENT du masquage des montants par rôle
+ * (`ROLES_SANS_MONTANT`, `atelier/mappeurs.ts::roleVoitLesMontants`, encore actif ailleurs sur
+ * `ReponseOrdreReparation` — `document.totauxParPayeur`/`lignes[].montants` restent filtrés en
+ * amont, ce module n'y touche pas) : ici, les prix disparaissent pour TOUT LE MONDE, parce que
+ * c'est le support physique qui l'exige, pas le droit de l'utilisateur qui imprime. Ce module ne
+ * lit donc plus du tout `montants`/`prixUnitaireCentimes`/`totauxParPayeur`.
  */
 
 import type { ReponseOrdreReparation, ReponseLigneOr } from '@dfa/shared';
 
-import {
-  formaterDateHeureSuisse,
-  formaterDateSuisse,
-  formaterKilometrage,
-  formaterMontantCentimes,
-} from './formatage-or';
+import { formaterDateHeureSuisse, formaterDateSuisse, formaterKilometrage } from './formatage-or';
 import { libellesImpressionOr, type LibellesOr } from './libelles-impression-or';
 
 export interface LigneImprimeeOr {
-  /** `<type traduit> — <désignation>`, ex. « Pièce — Plaquettes de frein avant ». */
+  /** `<type traduit> — <désignation>`, ex. « Pièce — Plaquettes de frein avant ». Cochée à la
+   *  main par le mécanicien à l'atelier (case dessinée par `generation-pdf-or.ts`) — jamais de
+   *  prix ni de montant sur cette ligne, pour personne. */
   readonly designation: string;
   readonly quantite: string;
-  /** `null` : colonne absente (rôle sans droit aux montants) — jamais `"0.00"`. */
-  readonly prixUnitaire: string | null;
-  /** `null` : colonne absente (rôle sans droit aux montants) — jamais `"0.00"`. */
-  readonly montant: string | null;
 }
 
 export interface DonneesImpressionOr {
@@ -51,29 +48,21 @@ export interface DonneesImpressionOr {
   readonly kilometrageEntree: string;
   /** `null` : jamais relevé — la ligne « Kilométrage sortie » est alors omise (pas « 0 km »). */
   readonly kilometrageSortie: string | null;
-  readonly clientNom: string;
-  readonly telephone: string;
   readonly demandes: readonly string[];
-  readonly voitMontants: boolean;
+  /** Noms des technicien·ne·s ayant pointé sur cet OR (`cumulsPointage.parTechnicien`), joints
+   *  par une virgule. `null` — jamais une chaîne vide — quand aucun pointage n'est encore
+   *  enregistré : la ligne « Technicien » est alors omise à l'impression, jamais un champ vide
+   *  ambigu. Ce cumul reste TOUJOURS vide au lot 1 (module pointage, lot 2) — voir
+   *  `ServiceOr.assemblerDocument` — cette feuille se peuplera automatiquement dès que
+   *  `LecturePointage.cumulsPourOr` sera câblé, sans changement ici (champ additif). */
+  readonly technicien: string | null;
   readonly lignes: readonly LigneImprimeeOr[];
 }
 
-function construireLigneImprimee(
-  ligne: ReponseLigneOr,
-  voitMontants: boolean,
-  l: LibellesOr,
-): LigneImprimeeOr {
+function construireLigneImprimee(ligne: ReponseLigneOr, l: LibellesOr): LigneImprimeeOr {
   return {
     designation: `${l.typeLigneOr[ligne.type]} — ${ligne.designation}`,
     quantite: String(ligne.quantiteMillieme / 1000),
-    prixUnitaire:
-      voitMontants && ligne.prixUnitaireCentimes != null
-        ? formaterMontantCentimes(ligne.prixUnitaireCentimes)
-        : null,
-    montant:
-      voitMontants && ligne.montants
-        ? formaterMontantCentimes(ligne.montants.montantTtcCentimes)
-        : null,
   };
 }
 
@@ -83,8 +72,7 @@ export function construireDonneesImpressionOr(
 ): DonneesImpressionOr {
   const langue = document.client.langueCorrespondance;
   const l = libellesImpressionOr(langue);
-  // Voir la tête de fichier : signal fiable et indépendant de la valeur réelle du tableau.
-  const voitMontants = document.totauxParPayeur !== undefined;
+  const nomsTechniciens = document.cumulsPointage.parTechnicien.map((t) => t.nomAffiche);
 
   return {
     libelles: l,
@@ -105,10 +93,8 @@ export function construireDonneesImpressionOr(
         : l.kilometrageNonReleve,
     kilometrageSortie:
       document.kilometrageSortie != null ? formaterKilometrage(document.kilometrageSortie) : null,
-    clientNom: document.client.nomAffiche,
-    telephone: document.client.telephone ?? l.telephoneNonRenseigne,
     demandes: document.demandes.map((d) => d.verbatim),
-    voitMontants,
-    lignes: document.lignes.map((ligne) => construireLigneImprimee(ligne, voitMontants, l)),
+    technicien: nomsTechniciens.length > 0 ? nomsTechniciens.join(', ') : null,
+    lignes: document.lignes.map((ligne) => construireLigneImprimee(ligne, l)),
   };
 }

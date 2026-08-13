@@ -496,7 +496,12 @@ describe('EcranTableauBord — Réceptionnaire', () => {
     expect(screen.getByText('Entretien / service courant')).toBeInTheDocument();
 
     // Restitutions du jour : le retard réel (serveur) est signalé, jamais rederivé côté client.
-    expect(await screen.findByText(i18n.t('tableauBord:activite.enRetard'))).toBeInTheDocument();
+    // TROIS occurrences depuis l'issue #112 (`CarteOrEnRetard.tsx`) : le même mock `CHEMIN_OR`
+    // alimente à la fois « Restitutions du jour » (badge « En retard » sur `OR_RESUME_EN_RETARD`,
+    // vérifié ici) ET la nouvelle carte dédiée — son titre (« En retard », même texte que le
+    // badge, clé i18n distincte `enRetardCarte.titre`) PLUS son propre badge sur la même ligne
+    // (les deux cartes lisent la même donnée serveur, jamais deux calculs distincts).
+    expect(await screen.findAllByText(i18n.t('tableauBord:activite.enRetard'))).toHaveLength(3);
 
     // Répartition par statut : vrais comptes, plus le zéro incertain « lignes en attente ».
     expect(

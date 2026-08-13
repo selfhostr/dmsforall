@@ -37,13 +37,16 @@ export class ImpressionOrController {
   @Get(':orId/pdf')
   @ExigerDroit('atelier.or.lire')
   @ApiOperation({
-    summary: "Feuille d'atelier de l'ordre de réparation au format PDF (impression comptoir).",
+    summary: "Feuille d'atelier de l'ordre de réparation au format PDF (accrochée au rétroviseur).",
     description:
       'RÉGÉNÉRÉE À CHAQUE APPEL, sans cache : contrairement au PDF de facture (immuable une fois ' +
       "émis), un OR est VIVANT — lignes, statut et restitution promise évoluent tant qu'il n'est " +
       'pas clôturé. Imprimable quel que soit le statut de l’OR — ce document sert à travailler sur ' +
-      "le véhicule, pas à l'engager. Les colonnes de prix sont omises (jamais un zéro, jamais un " +
-      'tiret) pour un rôle sans droit aux montants (`atelier/mappeurs.ts::roleVoitLesMontants`).',
+      "le véhicule, pas à l'engager. Document DE TRAVAIL, pas commercial : reste visible depuis " +
+      "l'extérieur d'un véhicule garé dehors, donc SANS nom de client, téléphone, prix, total ni " +
+      'signature, quel que soit le rôle qui imprime — distinct du masquage des montants par rôle ' +
+      '(`atelier/mappeurs.ts::roleVoitLesMontants`), qui reste actif ailleurs sur `GET ' +
+      '/ordres-reparation/{orId}` et non altéré ici.',
   })
   @ApiParam({ name: 'orId', format: 'uuid' })
   @ApiProduces('application/pdf')

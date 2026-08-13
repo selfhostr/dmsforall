@@ -209,7 +209,23 @@ export function EcranFicheOrdreReparation() {
           ) : documentsLies.length === 0 ? (
             <EtatVide
               titre={t('or:fiche.documentsVente.titre')}
-              description={t('or:fiche.documentsVente.vide')}
+              description={
+                // Issue #105 (rapport terrain) : « OR restitué + clôturé, aucune facture liée,
+                // bug ? » — non, `cloturer()` ne vérifie jamais l'existence d'un document
+                // (RF-83, migration 0010_facturation.sql §15 : facturation et restitution
+                // INDÉPENDANTES). Mais l'écran rendait jusqu'ici le MÊME message générique
+                // qu'un OR encore ouvert à la facturation — exactement la règle maison violée
+                // (« absence de donnée ≠ valeur : "inconnu", "aucun", "interdit" ne partagent
+                // jamais le même rendu »). Trois cas distincts, aucun motif métier inventé
+                // au-delà de ce que le contrat porte déjà (`or.statut`/`or.motifAnnulation`).
+                or.statut === 'cloture'
+                  ? t('or:fiche.documentsVente.clotureSansFacture')
+                  : or.statut === 'annule'
+                    ? t('or:fiche.documentsVente.annuleSansFacture', {
+                        motif: or.motifAnnulation,
+                      })
+                    : t('or:fiche.documentsVente.pasEncoreFacture')
+              }
             />
           ) : (
             <ul className="flex flex-col divide-y">

@@ -27,20 +27,15 @@ export interface LibellesOr {
   readonly kilometrageEntree: string;
   readonly kilometrageSortie: string;
   readonly kilometrageNonReleve: string;
-  readonly client: string;
-  readonly telephone: string;
-  readonly telephoneNonRenseigne: string;
   readonly restitutionPromise: string;
   readonly restitutionNonDefinie: string;
+  readonly technicien: string;
   readonly demandesTitre: string;
   readonly aucuneDemande: string;
   readonly lignesTitre: string;
   readonly colonneDesignation: string;
   readonly colonneQuantite: string;
-  readonly colonnePrixUnitaire: string;
-  readonly colonneMontant: string;
   readonly aucuneLigne: string;
-  readonly signatureClient: string;
   readonly typeOrdreReparation: Readonly<Record<TypeOrdreReparation, string>>;
   readonly statutOrdreReparation: Readonly<Record<StatutOrdreReparation, string>>;
   readonly typeLigneOr: Readonly<Record<TypeLigneOr, string>>;
@@ -60,20 +55,15 @@ const FR: LibellesOr = {
   kilometrageEntree: "Kilométrage à l'entrée",
   kilometrageSortie: 'Kilométrage à la sortie',
   kilometrageNonReleve: 'Non relevé',
-  client: 'Client',
-  telephone: 'Téléphone',
-  telephoneNonRenseigne: 'Non renseigné',
   restitutionPromise: 'Restitution prévue',
   restitutionNonDefinie: 'Non définie',
+  technicien: 'Technicien',
   demandesTitre: 'Demandes du client / instructions',
   aucuneDemande: 'Aucune demande enregistrée.',
   lignesTitre: 'Travaux à effectuer',
   colonneDesignation: 'Désignation',
   colonneQuantite: 'Qté',
-  colonnePrixUnitaire: 'Prix unitaire',
-  colonneMontant: 'Montant',
   aucuneLigne: 'Aucune ligne enregistrée.',
-  signatureClient: 'Signature du client',
   typeOrdreReparation: {
     service: 'Service',
     reparation: 'Réparation',
@@ -123,20 +113,15 @@ const DE: LibellesOr = {
   kilometrageEntree: 'Kilometerstand bei Eingang',
   kilometrageSortie: 'Kilometerstand bei Ausgang',
   kilometrageNonReleve: 'Nicht erfasst',
-  client: 'Kunde',
-  telephone: 'Telefon',
-  telephoneNonRenseigne: 'Nicht erfasst',
   restitutionPromise: 'Voraussichtliche Rückgabe',
   restitutionNonDefinie: 'Nicht festgelegt',
+  technicien: 'Techniker',
   demandesTitre: 'Kundenwünsche / Anweisungen',
   aucuneDemande: 'Keine Anfrage erfasst.',
   lignesTitre: 'Auszuführende Arbeiten',
   colonneDesignation: 'Bezeichnung',
   colonneQuantite: 'Menge',
-  colonnePrixUnitaire: 'Einzelpreis',
-  colonneMontant: 'Betrag',
   aucuneLigne: 'Keine Position erfasst.',
-  signatureClient: 'Unterschrift Kunde',
   typeOrdreReparation: {
     service: 'Service',
     reparation: 'Reparatur',
@@ -186,20 +171,15 @@ const IT: LibellesOr = {
   kilometrageEntree: "Chilometraggio all'entrata",
   kilometrageSortie: "Chilometraggio all'uscita",
   kilometrageNonReleve: 'Non rilevato',
-  client: 'Cliente',
-  telephone: 'Telefono',
-  telephoneNonRenseigne: 'Non indicato',
   restitutionPromise: 'Restituzione prevista',
   restitutionNonDefinie: 'Non definita',
+  technicien: 'Tecnico',
   demandesTitre: 'Richieste del cliente / istruzioni',
   aucuneDemande: 'Nessuna richiesta registrata.',
   lignesTitre: 'Lavori da eseguire',
   colonneDesignation: 'Designazione',
   colonneQuantite: 'Qtà',
-  colonnePrixUnitaire: 'Prezzo unitario',
-  colonneMontant: 'Importo',
   aucuneLigne: 'Nessuna riga registrata.',
-  signatureClient: 'Firma del cliente',
   typeOrdreReparation: {
     service: 'Service',
     reparation: 'Riparazione',
