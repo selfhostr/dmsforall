@@ -7,6 +7,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type {
   ClientResume,
+  EntreeDemarragePointage,
   PageCurseur,
   ReponseLigneOr,
   ReponseOrdreReparation,
@@ -16,22 +17,22 @@ import type {
 
 import '@/i18n';
 
+import { genererUuid } from '@/lib/uuid';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
 
 import { EcranPointageTechnicien } from './EcranPointageTechnicien';
 
-// Le bug corrigé ici (voir apps/web/src/lib/uuid.ts) : `construireEntreeDemarrage` peut lever
-// (génération d'identifiant), et cette construction doit rester DANS le `try` de
-// `demarrerEtMemoriser` pour que l'erreur s'affiche au lieu de disparaître en promesse rejetée non
-// observée (les appelants invoquent `void demarrerEtMemoriser(...)`). On force ce cas en mockant
-// le module `@/lib/uuid` pour qu'il lève systématiquement, sans dépendre d'un environnement réseau
-// particulier.
+// Mock CONTRÔLABLE (pas une fonction qui lève systématiquement) : les correctifs #148/#117
+// ajoutés à ce fichier exercent RÉELLEMENT `demarrerEtMemoriser` de bout en bout (un vrai
+// `POST /pointages` doit partir), ce qui exige un `entree.id` valide à chaque appel — un mock qui
+// lève TOUJOURS empêcherait ces scénarios de jamais atteindre le réseau. Par défaut, un identifiant
+// stable suffisant pour ces tests (aucune assertion ne porte sur son unicité). Le SEUL test qui a
+// encore besoin du comportement historique (lever) l'active explicitement via
+// `mockImplementationOnce`, pour ce seul appel — voir plus bas.
 vi.mock('@/lib/uuid', () => ({
-  genererUuid: () => {
-    throw new TypeError('crypto.randomUUID is not a function');
-  },
+  genererUuid: vi.fn(() => 'uuid-mock-test'),
 }));
 
 // Radix Select (SelecteurSitePointage) appelle des API absentes de jsdom — même stub que les
@@ -244,19 +245,220 @@ describe('EcranPointageTechnicien', () => {
     expect(screen.getByRole('button', { name: 'Nettoyage' })).toBeInTheDocument();
   });
 
-  it('état vide : invite honnête quand aucun OR n’est assigné au technicien', async () => {
-    server.use(
-      http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
-      http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
-      http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([]))),
-    );
+  it(
+    'état vide (#148) : invite EXPLICITE quand aucun OR n’est assigné, jamais le texte muet ' +
+      "d'avant ce correctif — la Direction/l'encadrement, qui n'a normalement aucune ligne " +
+      "assignée, doit comprendre POURQUOI la liste est vide et qu'un autre chemin existe",
+    async () => {
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([]))),
+      );
 
-    rendre();
+      rendre();
 
-    expect(
-      await screen.findByText("Aucun OR à pointer pour vous aujourd'hui."),
-    ).toBeInTheDocument();
-  });
+      expect(
+        await screen.findByText("Aucun OR ne vous est assigné pour l'instant."),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Vous pouvez tout de même choisir n'importe quelle OR ouverte ci-dessous pour démarrer un pointage.",
+        ),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it(
+    'correctif #148 : rôle chef_atelier/direction sans aucun OR assigné peut quand même démarrer ' +
+      'un pointage sur N’IMPORTE QUELLE OR ouverte via « Toutes les OR ouvertes » (dépliée ' +
+      'automatiquement puisque « Mes OR du jour » est vide) — même chemin de démarrage que « Mes ' +
+      'OR du jour » (`orSelectionneId` -> `DialogueChoixCiblePointage` -> `handleChoisirOrEntier`)',
+    async () => {
+      const orNonAssigne = construireOrDetail({ id: 'or-9', numero: 'OR-000999' });
+      const appelsDemarrer: EntreeDemarragePointage[] = [];
+
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([]))),
+        // Deux appelants DIFFÉRENTS frappent ce même endpoint : « Mes OR du jour »
+        // (`useMesOrdresAssignes`, TOUJOURS `technicienId=`) et « Toutes les OR ouvertes »
+        // (`SelecteurOrOuvert`, JAMAIS `technicienId=`) — seul ce paramètre les distingue,
+        // voir `mes-ordres-assignes.api.ts` vs `hooks/atelier/ordres-reparation.api.ts`.
+        http.get('/api/v1/ordres-reparation', ({ request }) => {
+          const url = new URL(request.url);
+          if (url.searchParams.has('technicienId')) {
+            return HttpResponse.json(pageOrdres([]));
+          }
+          return HttpResponse.json(pageOrdres([orNonAssigne]));
+        }),
+        http.get('/api/v1/ordres-reparation/or-9', () => HttpResponse.json(orNonAssigne)),
+        http.post('/api/v1/pointages', async ({ request }) => {
+          const entree = (await request.json()) as EntreeDemarragePointage;
+          appelsDemarrer.push(entree);
+          return HttpResponse.json(
+            {
+              donnees: {
+                ...POINTAGE_EN_COURS,
+                id: entree.id,
+                ordreReparationId: orNonAssigne.id,
+                ordreReparationNumero: orNonAssigne.numero,
+                nature: 'productif_or',
+                ligneOrId: null,
+                ligneOrDesignation: null,
+              },
+              avertissements: [],
+            },
+            { status: 201 },
+          );
+        }),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await screen.findByText("Aucun OR ne vous est assigné pour l'instant.");
+      // Repli automatique : la liste élargie est déjà visible, aucun clic « Afficher » requis.
+      expect(await screen.findByText('OR-000999')).toBeInTheDocument();
+
+      await utilisateur.click(screen.getByText('OR-000999'));
+      await utilisateur.click(await screen.findByRole('button', { name: 'Pointer sur cet OR' }));
+
+      await waitFor(() => expect(appelsDemarrer).toHaveLength(1));
+      expect(appelsDemarrer[0]).toMatchObject({
+        nature: 'productif_or',
+        ordreReparationId: 'or-9',
+      });
+      expect(await screen.findByRole('button', { name: 'Arrêter' })).toBeInTheDocument();
+    },
+  );
+
+  it(
+    'correctif #117 : « Changer » de cible pendant un pointage en cours envoie UN SEUL appel ' +
+      '`POST /pointages` (aucun `arreter` explicite côté client — le serveur referme l’ancien ' +
+      'pointage en cascade, RM-89/90) et affiche l’avertissement de clôture automatique renvoyé',
+    async () => {
+      const orCible = construireOrDetail({ id: 'or-2', numero: 'OR-000456' });
+      const appelsDemarrer: EntreeDemarragePointage[] = [];
+      const appelsArreter: string[] = [];
+
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([POINTAGE_EN_COURS]))),
+        http.get('/api/v1/ordres-reparation', ({ request }) => {
+          const url = new URL(request.url);
+          if (url.searchParams.has('technicienId')) {
+            return HttpResponse.json(pageOrdres([orCible]));
+          }
+          return HttpResponse.json(pageOrdres([]));
+        }),
+        http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(construireOrDetail())),
+        http.get('/api/v1/ordres-reparation/or-2', () => HttpResponse.json(orCible)),
+        http.post('/api/v1/pointages/:id/arreter', ({ params }) => {
+          appelsArreter.push(String(params.id));
+          return HttpResponse.json({
+            donnees: { ...POINTAGE_EN_COURS, statut: 'termine' },
+            avertissements: [],
+          });
+        }),
+        http.post('/api/v1/pointages', async ({ request }) => {
+          const entree = (await request.json()) as EntreeDemarragePointage;
+          appelsDemarrer.push(entree);
+          return HttpResponse.json(
+            {
+              donnees: {
+                ...POINTAGE_EN_COURS,
+                id: entree.id,
+                ordreReparationId: orCible.id,
+                ordreReparationNumero: orCible.numero,
+                nature: 'productif_or',
+                ligneOrId: null,
+                ligneOrDesignation: null,
+              },
+              avertissements: [
+                {
+                  code: 'POINTAGE_CLOTURE_AUTOMATIQUE',
+                  message: 'Le pointage précédent de ce technicien a été clôturé automatiquement.',
+                  donnees: { pointageId: POINTAGE_EN_COURS.id },
+                },
+              ],
+            },
+            { status: 201 },
+          );
+        }),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await utilisateur.click(await screen.findByRole('button', { name: 'Changer' }));
+      await utilisateur.click(await screen.findByText('OR-000456'));
+      await utilisateur.click(await screen.findByRole('button', { name: 'Pointer sur cet OR' }));
+
+      await waitFor(() => expect(appelsDemarrer).toHaveLength(1));
+      expect(appelsArreter).toHaveLength(0);
+      expect(
+        await screen.findByText('Ce pointage a été clôturé automatiquement à la fermeture.'),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it(
+    'non-régression : « Mettre en pause » continue d’enchaîner arrêter PUIS démarrer (deux appels ' +
+      'distincts), à la différence de « Changer » (un seul appel) — le mécanisme pause/reprise ' +
+      "n'est pas touché par le correctif #117",
+    async () => {
+      const appelsDemarrer: EntreeDemarragePointage[] = [];
+      const appelsArreter: string[] = [];
+
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([POINTAGE_EN_COURS]))),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([]))),
+        http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(construireOrDetail())),
+        http.post('/api/v1/pointages/:id/arreter', ({ params }) => {
+          appelsArreter.push(String(params.id));
+          return HttpResponse.json({
+            donnees: {
+              ...POINTAGE_EN_COURS,
+              statut: 'termine',
+              finLe: new Date().toISOString(),
+            },
+            avertissements: [],
+          });
+        }),
+        http.post('/api/v1/pointages', async ({ request }) => {
+          const entree = (await request.json()) as EntreeDemarragePointage;
+          appelsDemarrer.push(entree);
+          return HttpResponse.json(
+            {
+              donnees: {
+                ...POINTAGE_EN_COURS,
+                id: entree.id,
+                nature: 'indirect',
+                activiteIndirecte: 'pause',
+                ordreReparationId: null,
+                ordreReparationNumero: null,
+                ligneOrId: null,
+                ligneOrDesignation: null,
+              },
+              avertissements: [],
+            },
+            { status: 201 },
+          );
+        }),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await utilisateur.click(await screen.findByRole('button', { name: 'Mettre en pause' }));
+
+      await waitFor(() => expect(appelsArreter).toHaveLength(1));
+      await waitFor(() => expect(appelsDemarrer).toHaveLength(1));
+      expect(appelsDemarrer[0]).toMatchObject({ nature: 'indirect', activiteIndirecte: 'pause' });
+    },
+  );
 
   it('affiche le chrono et le bouton Arrêter quand un pointage est en cours', async () => {
     server.use(
@@ -422,11 +624,15 @@ describe('EcranPointageTechnicien', () => {
         await utilisateur.click(await screen.findByText('OR-000123'));
         const boutonOrEntier = await screen.findByRole('button', { name: 'Pointer sur cet OR' });
 
-        // `genererUuid` (mocké en tête de fichier) lève : `construireEntreeDemarrage` lève avec
-        // lui. Avant le correctif, cette erreur était HORS du `try` de `demarrerEtMemoriser` et
-        // disparaissait sans jamais appeler `setErreurAction` — aucune requête réseau, aucun
-        // message, la boîte de dialogue se refermait et plus rien ne se passait. Après le
-        // correctif, elle est capturée et traduite comme n'importe quelle autre panne d'action.
+        // `genererUuid` (mocké en tête de fichier, contrôlable — voir sa déclaration) lève
+        // UNE SEULE FOIS, pour CE clic précis : `construireEntreeDemarrage` lève avec lui. Avant
+        // le correctif, cette erreur était HORS du `try` de `demarrerEtMemoriser` et disparaissait
+        // sans jamais appeler `setErreurAction` — aucune requête réseau, aucun message, la boîte
+        // de dialogue se refermait et plus rien ne se passait. Après le correctif, elle est
+        // capturée et traduite comme n'importe quelle autre panne d'action.
+        vi.mocked(genererUuid).mockImplementationOnce(() => {
+          throw new TypeError('crypto.randomUUID is not a function');
+        });
         await utilisateur.click(boutonOrEntier);
 
         expect(

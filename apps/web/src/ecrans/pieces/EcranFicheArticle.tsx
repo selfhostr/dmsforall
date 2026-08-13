@@ -25,6 +25,7 @@ import { chemins } from '@/routes/chemins';
 import {
   peutCreerMouvement,
   peutEcrireArticle,
+  peutEcrireStockSite,
   peutLireCommandeFournisseur,
   peutLireFournisseur,
 } from './droits';
@@ -417,6 +418,7 @@ export function EcranFicheArticle() {
         articleId={article.id}
         stocksResume={article.stocksResume}
         sites={sites}
+        peutModifierStock={peutEcrireStockSite(role)}
       />
 
       <PanneauMouvementsArticle

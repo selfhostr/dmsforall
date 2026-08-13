@@ -1,16 +1,19 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
 import type {
+  ClientResume,
+  EntreeDemarragePointage,
   PageCurseur,
   ReponseIdentificationPin,
   ReponseOrdreReparation,
   ReponsePointage,
   SessionCourante,
+  VehiculeResume,
 } from '@dfa/shared';
 
 import '@/i18n';
@@ -59,6 +62,120 @@ function pageOrdres(
   donnees: readonly ReponseOrdreReparation[],
 ): PageCurseur<ReponseOrdreReparation> {
   return { donnees, curseurSuivant: null, limite: 50 };
+}
+
+const VEHICULE_TEST: VehiculeResume = {
+  id: 'veh-1',
+  plaque: '123456',
+  canton: 'VD',
+  designation: 'VW Touran 2.0 TDI',
+  vin: null,
+  premiereMiseEnCirculationLe: null,
+  identificationIncomplete: false,
+  emplacementLibre: null,
+};
+
+const CLIENT_TEST: ClientResume = {
+  id: 'cl-1',
+  numeroClient: 'CL-000123',
+  nomAffiche: 'Jean Dupont',
+  type: 'particulier',
+  statut: 'actif',
+  langueCorrespondance: 'fr',
+  poObligatoire: false,
+  telephone: null,
+  localite: 'Lausanne',
+  nombreVehicules: 1,
+  dernierPassageLe: null,
+};
+
+/** Document complet minimal — même convention que `construireOrDetail` d'
+ *  `EcranPointageTechnicien.spec.tsx` (endpoint `/ordres-reparation` réel : document complet, pas
+ *  la projection `OrdreReparationResume`). */
+function construireOrDetail(
+  overrides: Partial<ReponseOrdreReparation> = {},
+): ReponseOrdreReparation {
+  return {
+    id: 'or-1',
+    numero: 'OR-000123',
+    siteId: 'site-1',
+    type: 'reparation',
+    statut: 'ouvert',
+    client: CLIENT_TEST,
+    vehicule: VEHICULE_TEST,
+    figees: {
+      clientDesignation: 'Jean Dupont',
+      adresseFacturation: null,
+      plaque: '123456',
+      detenteurClientId: 'cl-1',
+    },
+    conducteurPresentNom: null,
+    kilometrageEntree: 90000,
+    kilometrageSortie: null,
+    restitutionPromiseLe: null,
+    restitutionInitialeLe: null,
+    localisation: 'atelier',
+    sousTraitantNom: null,
+    ordreReparationParentId: null,
+    motifLien: null,
+    rendezVousId: null,
+    numeroCommandeInterne: null,
+    receptionnaireId: null,
+    retentionInvoqueeLe: null,
+    litigeOuvertLe: null,
+    ouvertLe: '2026-08-03T06:00:00.000Z',
+    termineLe: null,
+    factureLe: null,
+    restitueLe: null,
+    clotureLe: null,
+    annuleLe: null,
+    motifAnnulation: null,
+    demandes: [],
+    lignes: [],
+    nombreLignes: 0,
+    lignesTronquees: false,
+    devisComplementaires: [],
+    controleQualite: null,
+    signatures: [],
+    pret: null,
+    cumulsPointage: { totalCentiemes: 0, parTechnicien: [], pointagesOuverts: 0 },
+    attentes: { accord: false, pieces: false, externe: false },
+    etatAffiche: 'ouvert',
+    actionsDisponibles: [],
+    version: 1,
+    creeLe: '2026-08-03T06:00:00.000Z',
+    modifieLe: '2026-08-03T06:00:00.000Z',
+    modifiePar: null,
+    ...overrides,
+  };
+}
+
+function construirePointageEnCours(overrides: Partial<ReponsePointage> = {}): ReponsePointage {
+  return {
+    id: 'pointage-1',
+    siteId: 'site-1',
+    technicienId: IDENTIFICATION_MARCO.technicienId,
+    technicienNomAffiche: `${IDENTIFICATION_MARCO.prenom} ${IDENTIFICATION_MARCO.nom}`,
+    statut: 'en_cours',
+    nature: 'productif_or',
+    ordreReparationId: 'or-1',
+    ordreReparationNumero: 'OR-000123',
+    ligneOrId: null,
+    ligneOrDesignation: null,
+    activiteIndirecte: null,
+    source: 'badge',
+    appareilId: null,
+    debutLe: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    finLe: null,
+    dureeBruteSecondes: null,
+    dureeArrondieCentiemes: null,
+    clotureAutomatique: false,
+    anomalie: null,
+    derniereCorrection: null,
+    creeLe: new Date().toISOString(),
+    modifieLe: new Date().toISOString(),
+    ...overrides,
+  };
 }
 
 /** Handlers de base, communs à tous les scénarios : session borne + « rien en cours, aucun OR »
@@ -122,11 +239,194 @@ describe('EcranBornePointage', () => {
 
     expect(await screen.findByText('Bonjour Marco')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Terminé' })).toBeInTheDocument();
-    // Panneau du technicien identifié : aucun pointage en cours, aucun OR assigné -> repli honnête.
+    // Panneau du technicien identifié : aucun pointage en cours, aucun OR assigné -> repli
+    // EXPLICITE (#148), plus le texte muet d'avant ce correctif.
     expect(
-      await screen.findByText("Aucun OR à pointer pour vous aujourd'hui.", { exact: false }),
+      await screen.findByText("Aucun OR ne vous est assigné pour l'instant.", { exact: false }),
     ).toBeInTheDocument();
   });
+
+  it(
+    'correctif #148 : sur la borne aussi, un technicien identifié sans OR assigné peut démarrer ' +
+      'un pointage via « Toutes les OR ouvertes » (repli automatique, dépliée sans action requise)',
+    async () => {
+      const orOuvertNonAssigne = construireOrDetail({ id: 'or-9', numero: 'OR-000999' });
+      const appelsDemarrer: EntreeDemarragePointage[] = [];
+
+      poserHandlersSession();
+      server.use(
+        http.post('/api/v1/pointages/identification', () =>
+          HttpResponse.json(IDENTIFICATION_MARCO),
+        ),
+        // « Mes OR » (technicienId=) reste vide ; « Toutes les OR ouvertes » (sans technicienId)
+        // propose l'OR non assigné — même discriminateur qu'`EcranPointageTechnicien.spec.tsx`.
+        http.get('/api/v1/ordres-reparation', ({ request }) => {
+          const url = new URL(request.url);
+          if (url.searchParams.has('technicienId')) {
+            return HttpResponse.json(pageOrdres([]));
+          }
+          return HttpResponse.json(pageOrdres([orOuvertNonAssigne]));
+        }),
+        http.get('/api/v1/ordres-reparation/or-9', () => HttpResponse.json(orOuvertNonAssigne)),
+        http.post('/api/v1/pointages', async ({ request }) => {
+          const entree = (await request.json()) as EntreeDemarragePointage;
+          appelsDemarrer.push(entree);
+          return HttpResponse.json(
+            {
+              donnees: construirePointageEnCours({
+                id: entree.id,
+                ordreReparationId: orOuvertNonAssigne.id,
+                ordreReparationNumero: orOuvertNonAssigne.numero,
+              }),
+              avertissements: [],
+            },
+            { status: 201 },
+          );
+        }),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await taperCode(utilisateur, '4071');
+      await screen.findByText("Aucun OR ne vous est assigné pour l'instant.");
+
+      expect(await screen.findByText('OR-000999')).toBeInTheDocument();
+      await utilisateur.click(screen.getByText('OR-000999'));
+      await utilisateur.click(await screen.findByRole('button', { name: 'Pointer sur cet OR' }));
+
+      await waitFor(() => expect(appelsDemarrer).toHaveLength(1));
+      expect(appelsDemarrer[0]).toMatchObject({
+        nature: 'productif_or',
+        ordreReparationId: 'or-9',
+      });
+      expect(await screen.findByRole('button', { name: 'Arrêter' })).toBeInTheDocument();
+    },
+  );
+
+  it(
+    'correctif #117 : « Changer » de cible pendant un pointage en cours (borne) envoie UN SEUL ' +
+      'appel `POST /pointages`, aucun `arreter` explicite, et affiche l’avertissement renvoyé',
+    async () => {
+      const pointageEnCours = construirePointageEnCours();
+      const orCible = construireOrDetail({ id: 'or-2', numero: 'OR-000456' });
+      const appelsDemarrer: EntreeDemarragePointage[] = [];
+      const appelsArreter: string[] = [];
+
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_BORNE)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([pointageEnCours]))),
+        http.post('/api/v1/pointages/identification', () =>
+          HttpResponse.json(IDENTIFICATION_MARCO),
+        ),
+        http.get('/api/v1/ordres-reparation', ({ request }) => {
+          const url = new URL(request.url);
+          if (url.searchParams.has('technicienId')) {
+            return HttpResponse.json(pageOrdres([orCible]));
+          }
+          return HttpResponse.json(pageOrdres([]));
+        }),
+        http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(construireOrDetail())),
+        http.get('/api/v1/ordres-reparation/or-2', () => HttpResponse.json(orCible)),
+        http.post('/api/v1/pointages/:id/arreter', ({ params }) => {
+          appelsArreter.push(String(params.id));
+          return HttpResponse.json({
+            donnees: { ...pointageEnCours, statut: 'termine' },
+            avertissements: [],
+          });
+        }),
+        http.post('/api/v1/pointages', async ({ request }) => {
+          const entree = (await request.json()) as EntreeDemarragePointage;
+          appelsDemarrer.push(entree);
+          return HttpResponse.json(
+            {
+              donnees: construirePointageEnCours({
+                id: entree.id,
+                ordreReparationId: orCible.id,
+                ordreReparationNumero: orCible.numero,
+              }),
+              avertissements: [
+                {
+                  code: 'POINTAGE_CLOTURE_AUTOMATIQUE',
+                  message: 'Le pointage précédent de ce technicien a été clôturé automatiquement.',
+                  donnees: { pointageId: pointageEnCours.id },
+                },
+              ],
+            },
+            { status: 201 },
+          );
+        }),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await taperCode(utilisateur, '4071');
+      await utilisateur.click(await screen.findByRole('button', { name: 'Changer' }));
+      await utilisateur.click(await screen.findByText('OR-000456'));
+      await utilisateur.click(await screen.findByRole('button', { name: 'Pointer sur cet OR' }));
+
+      await waitFor(() => expect(appelsDemarrer).toHaveLength(1));
+      expect(appelsArreter).toHaveLength(0);
+      expect(
+        await screen.findByText('Ce pointage a été clôturé automatiquement à la fermeture.'),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it(
+    'non-régression (borne) : « Mettre en pause » continue d’enchaîner arrêter PUIS démarrer ' +
+      '(deux appels distincts), à la différence de « Changer »',
+    async () => {
+      const pointageEnCours = construirePointageEnCours();
+      const appelsDemarrer: EntreeDemarragePointage[] = [];
+      const appelsArreter: string[] = [];
+
+      server.use(
+        http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_BORNE)),
+        http.get('/api/v1/pointages', () => HttpResponse.json(pagePointages([pointageEnCours]))),
+        http.post('/api/v1/pointages/identification', () =>
+          HttpResponse.json(IDENTIFICATION_MARCO),
+        ),
+        http.get('/api/v1/ordres-reparation', () => HttpResponse.json(pageOrdres([]))),
+        http.get('/api/v1/ordres-reparation/or-1', () => HttpResponse.json(construireOrDetail())),
+        http.post('/api/v1/pointages/:id/arreter', ({ params }) => {
+          appelsArreter.push(String(params.id));
+          return HttpResponse.json({
+            donnees: { ...pointageEnCours, statut: 'termine', finLe: new Date().toISOString() },
+            avertissements: [],
+          });
+        }),
+        http.post('/api/v1/pointages', async ({ request }) => {
+          const entree = (await request.json()) as EntreeDemarragePointage;
+          appelsDemarrer.push(entree);
+          return HttpResponse.json(
+            {
+              donnees: construirePointageEnCours({
+                id: entree.id,
+                nature: 'indirect',
+                activiteIndirecte: 'pause',
+                ordreReparationId: null,
+                ordreReparationNumero: null,
+              }),
+              avertissements: [],
+            },
+            { status: 201 },
+          );
+        }),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      await taperCode(utilisateur, '4071');
+      await utilisateur.click(await screen.findByRole('button', { name: 'Mettre en pause' }));
+
+      await waitFor(() => expect(appelsArreter).toHaveLength(1));
+      await waitFor(() => expect(appelsDemarrer).toHaveLength(1));
+      expect(appelsDemarrer[0]).toMatchObject({ nature: 'indirect', activiteIndirecte: 'pause' });
+    },
+  );
 
   it('refuse un PIN inconnu sans ouvrir de session ni afficher le code, et laisse le pavé actif', async () => {
     poserHandlersSession();

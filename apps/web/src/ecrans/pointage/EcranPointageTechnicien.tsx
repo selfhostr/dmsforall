@@ -32,6 +32,7 @@ import { CartePointageEnCours } from './CartePointageEnCours';
 import { DialogueChoixCiblePointage } from './DialogueChoixCiblePointage';
 import { peutDemarrerPointage } from './droits';
 import { libelleActiviteIndirecte, libelleCiblePointageTechnicien } from './libelles';
+import { SelecteurOrOuvert } from './SelecteurOrOuvert';
 import { SelecteurSitePointage } from './SelecteurSitePointage';
 
 /** Cible productive mémorisée pour permettre une « reprise » directe après une pause (RM-116 : la
@@ -112,14 +113,34 @@ function construireEntreeDemarrage(
 
 /**
  * Écran de pointage du technicien — le plus important du module (voir le brief de livraison) :
- * voir ses OR du jour, démarrer/mettre en pause/reprendre/arrêter un pointage, chrono qui défile.
- * Pensé tablette d'atelier : peu de texte, cibles tactiles généreuses, un seul état affiché à la
- * fois (soit « en train de pointer », soit « à choisir quoi pointer », jamais les deux mélangés).
+ * voir ses OR du jour, démarrer/mettre en pause/reprendre/changer de cible/arrêter un pointage,
+ * chrono qui défile. Pensé tablette d'atelier : peu de texte, cibles tactiles généreuses, un seul
+ * état affiché à la fois (soit « en train de pointer », soit « à choisir quoi pointer », jamais
+ * les deux mélangés — sauf pendant un « Changer », voir `changementCibleOuvert` plus bas, qui
+ * superpose délibérément les deux le temps du choix).
  *
  * `technicienId` = l'utilisateur SESSION courant, jamais un paramètre de route ni de requête :
  * chaque technicien pointe pour lui-même (voir l'en-tête de `pointage.api.ts` — le PIN décrit par
  * le contrat n'est PAS implémenté côté serveur à ce jour, ce module s'appuie donc entièrement sur
  * la session applicative normale, même mécanisme que tout autre écran protégé).
+ *
+ * DÉCISION #148 (« la Direction ne peut pas pointer ») — investigation tranchée, à ne pas rouvrir :
+ * `direction`/`chef_atelier`/`admin` ONT déjà `atelier.pointage.demarrer` (`matrice-droits.ts`,
+ * `DROITS_POINTAGE_PAR_ROLE`), et `ServicePointage.exigerDroitCiblerAutrui` laisse toujours passer
+ * un pointage sur SOI-MÊME quel que soit le rôle — la Direction PEUT pointer pour elle-même dès
+ * aujourd'hui, ce n'est PAS un problème de droit. Plus largement, `ServicePointage.demarrer` ne
+ * vérifie JAMAIS qu'`entree.technicienId` est « assigné » à l'OR/la ligne ciblée : seuls comptent
+ * le site et le statut pointable de la cible (`estOrPointable`/`estLignePointable`,
+ * `regles-pointage.ts`) — pointer sur N'IMPORTE QUEL OR ouvert est légal côté serveur pour
+ * quiconque a `atelier.pointage.demarrer`, assigné ou non. Le VRAI défaut était que « Mes OR du
+ * jour » (`useMesOrdresAssignes`) est un filtre de CONFORT purement côté FRONT (une commodité pour
+ * le cas courant, jamais une règle métier) — un rôle d'encadrement, qui n'a normalement AUCUNE
+ * ligne d'OR assignée, se heurtait donc à un mur décoratif : liste vide, aucune explication, aucun
+ * autre chemin proposé. Corrigé par : un message vide EXPLICITE (`pointage:vide.aucunOr` +
+ * `aucunOrDescription`, au lieu d'un texte muet) et `SelecteurOrOuvert` (« Toutes les OR ouvertes »,
+ * `./SelecteurOrOuvert.tsx`), qui réutilise EXACTEMENT le même chemin de démarrage que « Mes OR »
+ * (`orSelectionneId` -> `DialogueChoixCiblePointage` -> `handleChoisirLigne`/`handleChoisirOrEntier`)
+ * — aucune mécanique de démarrage dupliquée, seule la SOURCE de la liste change.
  */
 export function EcranPointageTechnicien() {
   const { t } = useTranslation(['pointage', 'commun']);
@@ -135,7 +156,19 @@ export function EcranPointageTechnicien() {
   const [orSelectionneId, setOrSelectionneId] = useState<string | undefined>(undefined);
   const [dernierCible, setDernierCible] = useState<CibleMemorisee | undefined>(undefined);
   const [erreurAction, setErreurAction] = useState<string | undefined>(undefined);
+  const [avertissementAction, setAvertissementAction] = useState<string | undefined>(undefined);
   const [enChainage, setEnChainage] = useState(false);
+  // Correctif #148 : `undefined` = pas encore de choix EXPLICITE de l'utilisateur, la visibilité
+  // suit alors `mesOrdres` (repliée par défaut, révélée automatiquement dès que « Mes OR du jour »
+  // se révèle vide — voir `toutesOrOuvertesVisible` plus bas) ; `true`/`false` = l'utilisateur a
+  // lui-même actionné le bouton « Afficher »/« Masquer », ce choix explicite prime alors sur le
+  // repli automatique (ex. il rouvre la recherche même après avoir reçu ses propres OR).
+  const [toutesOrOuvertesManuel, setToutesOrOuvertesManuel] = useState<boolean | undefined>(
+    undefined,
+  );
+  // Correctif #117 : révèle le sélecteur de cible (Mes OR / Toutes les OR / activités indirectes)
+  // MÊME QUAND un pointage est déjà en cours — voir `onChanger` de `CartePointageEnCours`.
+  const [changementCibleOuvert, setChangementCibleOuvert] = useState(false);
 
   const pointageOuvert = usePointageOuvertTechnicien(technicien?.id);
   const mesOrdres = useMesOrdresAssignes(technicien?.id);
@@ -188,6 +221,7 @@ export function EcranPointageTechnicien() {
         },
   ) {
     setErreurAction(undefined);
+    setAvertissementAction(undefined);
     try {
       // `construireEntreeDemarrage` DOIT rester à l'intérieur de ce `try` : c'est une fonction
       // synchrone qui peut lever (ex. génération d'identifiant, voir `@/lib/uuid`), et rien ne
@@ -198,7 +232,23 @@ export function EcranPointageTechnicien() {
         { technicienId, debutLe: new Date().toISOString() },
         cible,
       );
-      await demarrer.mutateAsync({ entree, idempotencyKey: genererCleIdempotence() });
+      const reponse = await demarrer.mutateAsync({
+        entree,
+        idempotencyKey: genererCleIdempotence(),
+      });
+      // Correctif #117 : démarrer PENDANT qu'un pointage est déjà ouvert (geste « Changer ») fait
+      // clôturer ce dernier en cascade côté serveur (RM-89/90) — un SEUL appel `demarrer`, jamais
+      // un `arreter` explicite depuis cet écran (voir `handleChoisirLigne`/`handleChoisirOrEntier`/
+      // `handleDemarrerActiviteIndirecte` ci-dessous, tous appellent directement cette fonction).
+      // `reponse.avertissements` porte alors `POINTAGE_CLOTURE_AUTOMATIQUE` — affiché tel quel via
+      // le catalogue partagé `erreurs:codes.<CODE>` (même convention que `messageErreur`, pas de
+      // clé dupliquée dans le namespace `pointage`).
+      if (reponse.avertissements.some((a) => a.code === 'POINTAGE_CLOTURE_AUTOMATIQUE')) {
+        setAvertissementAction(t('erreurs:codes.POINTAGE_CLOTURE_AUTOMATIQUE'));
+      }
+      // Referme le sélecteur de changement de cible, s'il était ouvert — no-op sinon (flux normal
+      // « Mes OR »/activités quand aucun pointage n'était en cours).
+      setChangementCibleOuvert(false);
       if (cible.nature === 'productif_ligne') {
         setDernierCible({
           type: 'ligne',
@@ -266,6 +316,11 @@ export function EcranPointageTechnicien() {
         idempotencyKey: genererCleIdempotence(),
       });
       setDernierCible(undefined);
+      setAvertissementAction(undefined);
+      // Un pointage « Changer » resté ouvert n'a plus de sens une fois qu'il n'y a plus AUCUN
+      // pointage en cours — sans ce reset, un « Changer » démarré puis un « Arrêter » explicite
+      // laisserait le sélecteur ouvert en mémoire, prêt à réapparaître au prochain démarrage.
+      setChangementCibleOuvert(false);
     } catch (erreur) {
       setErreurAction(messageErreur(erreur, t));
     }
@@ -380,6 +435,125 @@ export function EcranPointageTechnicien() {
     if (memeCible) libelleCibleActuelle = dernierCible.libelle;
   }
 
+  // Correctif #148 : repli automatique quand « Mes OR du jour » est chargée et vide, sauf choix
+  // EXPLICITE de l'utilisateur (voir la déclaration de `toutesOrOuvertesManuel` plus haut).
+  const toutesOrOuvertesVisible = toutesOrOuvertesManuel ?? (mesOrdres.data ?? []).length === 0;
+
+  // Bloc de choix de cible — partagé par DEUX emplacements : le flux normal (`!pointageActuel`,
+  // inchangé) et le correctif #117 « Changer » (`pointageActuel && changementCibleOuvert`), pour
+  // qu'un technicien change de cible SANS d'abord arrêter. Un seul bloc, jamais deux copies.
+  const blocChoixCible = (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="texte-titre-section">
+            {t('pointage:technicien.mesOrs.titre')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {mesOrdres.isError ? (
+            <EtatErreur
+              titre={t('pointage:technicien.erreur.titre')}
+              description={messageErreur(mesOrdres.error, t)}
+              onReessayer={() => void mesOrdres.refetch()}
+            />
+          ) : (mesOrdres.data ?? []).length === 0 ? (
+            <EtatVide
+              titre={t('pointage:vide.aucunOr')}
+              description={t('pointage:vide.aucunOrDescription')}
+            />
+          ) : (
+            <div className="flex flex-col gap-3">
+              {(mesOrdres.data ?? []).map((or) => (
+                <button
+                  key={or.id}
+                  type="button"
+                  disabled={!peutDemarrerPointage(role) || enTraitement}
+                  onClick={() => setOrSelectionneId(or.id)}
+                  className="flex min-h-[64px] flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium">{or.numero}</span>
+                    <IdentiteVehicule vehicule={or.vehicule} taillePlaque="sm" />
+                    <IdentiteClient client={or.client} />
+                  </div>
+                  <span className="texte-libelle text-muted-foreground">
+                    {t('pointage:technicien.mesOrs.lignesAssignees', {
+                      // `or.nombreLignes` compte TOUTES les lignes de l'OR côté serveur, sans
+                      // distinction de technicien (voir `mes-ordres-assignes.api.ts`) — jamais
+                      // ce qu'il faut afficher ici. `compterLignesAssigneesPointables` applique
+                      // le même critère que `DialogueChoixCiblePointage` (technicien courant +
+                      // ligne pointable), pour que la carte et le détail montrent toujours le
+                      // même nombre.
+                      count: compterLignesAssigneesPointables(or, technicienId),
+                    })}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3">
+          <CardTitle className="texte-titre-section">{t('pointage:toutesLesOr.titre')}</CardTitle>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setToutesOrOuvertesManuel(!toutesOrOuvertesVisible)}
+          >
+            {toutesOrOuvertesVisible
+              ? t('pointage:toutesLesOr.masquer')
+              : t('pointage:toutesLesOr.afficher')}
+          </Button>
+        </CardHeader>
+        {toutesOrOuvertesVisible ? (
+          <CardContent>
+            <SelecteurOrOuvert
+              siteId={siteId}
+              onChoisirOr={(orId) => setOrSelectionneId(orId)}
+              disabled={!peutDemarrerPointage(role) || enTraitement}
+            />
+          </CardContent>
+        ) : null}
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="texte-titre-section">{t('pointage:activites.titre')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!siteId ? (
+            <SelecteurSitePointage
+              onChoisir={(valeur) => {
+                const parametres = new URLSearchParams(searchParams);
+                parametres.set('site', valeur);
+                setSearchParams(parametres);
+              }}
+            />
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {ACTIVITES_INDIRECTES.map((activite) => (
+                <Button
+                  key={activite}
+                  size="lg"
+                  variant="outline"
+                  className="h-16 text-base"
+                  disabled={!peutDemarrerPointage(role) || enTraitement}
+                  onClick={() => handleDemarrerActiviteIndirecte(activite)}
+                >
+                  {libelleActiviteIndirecte(activite, t)}
+                </Button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="texte-titre-page">{t('pointage:technicien.titreEcran')}</h1>
@@ -401,96 +575,32 @@ export function EcranPointageTechnicien() {
               ? () => void handleReprendre()
               : undefined
           }
+          onChanger={
+            peutDemarrerPointage(role)
+              ? () => setChangementCibleOuvert((valeur) => !valeur)
+              : undefined
+          }
           enTraitement={enTraitement}
           messageErreur={erreurAction}
+          avertissement={avertissementAction}
         />
-      ) : (
+      ) : null}
+
+      {!pointageActuel ? (
         <>
           {erreurAction ? (
             <EtatErreur titre={t('pointage:technicien.erreur.titre')} description={erreurAction} />
           ) : null}
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="texte-titre-section">
-                {t('pointage:technicien.mesOrs.titre')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {mesOrdres.isError ? (
-                <EtatErreur
-                  titre={t('pointage:technicien.erreur.titre')}
-                  description={messageErreur(mesOrdres.error, t)}
-                  onReessayer={() => void mesOrdres.refetch()}
-                />
-              ) : (mesOrdres.data ?? []).length === 0 ? (
-                <EtatVide titre={t('pointage:vide.aucunOr')} description="" />
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {(mesOrdres.data ?? []).map((or) => (
-                    <button
-                      key={or.id}
-                      type="button"
-                      disabled={!peutDemarrerPointage(role) || enTraitement}
-                      onClick={() => setOrSelectionneId(or.id)}
-                      className="flex min-h-[64px] flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="flex flex-col gap-1">
-                        <span className="font-medium">{or.numero}</span>
-                        <IdentiteVehicule vehicule={or.vehicule} taillePlaque="sm" />
-                        <IdentiteClient client={or.client} />
-                      </div>
-                      <span className="texte-libelle text-muted-foreground">
-                        {t('pointage:technicien.mesOrs.lignesAssignees', {
-                          // `or.nombreLignes` compte TOUTES les lignes de l'OR côté serveur, sans
-                          // distinction de technicien (voir `mes-ordres-assignes.api.ts`) — jamais
-                          // ce qu'il faut afficher ici. `compterLignesAssigneesPointables` applique
-                          // le même critère que `DialogueChoixCiblePointage` (technicien courant +
-                          // ligne pointable), pour que la carte et le détail montrent toujours le
-                          // même nombre.
-                          count: compterLignesAssigneesPointables(or, technicienId),
-                        })}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="texte-titre-section">{t('pointage:activites.titre')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!siteId ? (
-                <SelecteurSitePointage
-                  onChoisir={(valeur) => {
-                    const parametres = new URLSearchParams(searchParams);
-                    parametres.set('site', valeur);
-                    setSearchParams(parametres);
-                  }}
-                />
-              ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {ACTIVITES_INDIRECTES.map((activite) => (
-                    <Button
-                      key={activite}
-                      size="lg"
-                      variant="outline"
-                      className="h-16 text-base"
-                      disabled={!peutDemarrerPointage(role) || enTraitement}
-                      onClick={() => handleDemarrerActiviteIndirecte(activite)}
-                    >
-                      {libelleActiviteIndirecte(activite, t)}
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {blocChoixCible}
         </>
-      )}
+      ) : null}
+
+      {pointageActuel && changementCibleOuvert ? (
+        <div className="flex flex-col gap-6">
+          <h2 className="texte-titre-section">{t('pointage:technicien.choisirCible.titre')}</h2>
+          {blocChoixCible}
+        </div>
+      ) : null}
 
       <DialogueChoixCiblePointage
         ouvert={Boolean(orSelectionneId)}

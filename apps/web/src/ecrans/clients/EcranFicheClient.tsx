@@ -274,7 +274,11 @@ export function EcranFicheClient() {
               <OngletAdresses clientId={client.id} />
             </TabsContent>
             <TabsContent value="consentements" className="pt-4">
-              <OngletConsentements clientId={client.id} />
+              <OngletConsentements
+                clientId={client.id}
+                plusAucunContact={client.plusAucunContact}
+                motifContact={client.motif}
+              />
             </TabsContent>
             <TabsContent value="notes" className="pt-4">
               <OngletNotes clientId={client.id} />
