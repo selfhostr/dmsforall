@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { useVenteComptoir } from '@/hooks/pieces/useVenteComptoirPieces';
 import { formaterMontant } from '@/lib/formats';
 
@@ -123,6 +123,10 @@ export function DialogueVenteComptoir({ ouvert, onOuvertChange, siteId, article 
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('commun:formulaires.champsObligatoiresLegende')}
+          </LegendeChampsObligatoires>
+
           <div className="flex flex-col gap-0.5">
             <span className="font-medium">{article.designation}</span>
             <span className="font-mono texte-libelle text-muted-foreground">
@@ -135,11 +139,14 @@ export function DialogueVenteComptoir({ ouvert, onOuvertChange, siteId, article 
           </Alert>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="vente-quantite">{t('pieces:comptoirVente.vente.quantite')}</Label>
+            <Label htmlFor="vente-quantite" requis>
+              {t('pieces:comptoirVente.vente.quantite')}
+            </Label>
             <Input
               id="vente-quantite"
               type="text"
               inputMode="decimal"
+              required
               autoFocus
               readOnly={enCours}
               value={quantiteSaisie}

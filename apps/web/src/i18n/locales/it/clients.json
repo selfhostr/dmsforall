@@ -50,7 +50,13 @@
     "dossiersVente": "Pratiche di vendita",
     "dossiersVenteVide": "Nessuna pratica di vendita.",
     "dossiersVenteDroitRequis": "Non ha il diritto di consultare le pratiche di vendita di questo cliente.",
-    "dossierSansVehicule": "Veicolo non assegnato"
+    "dossierSansVehicule": "Veicolo non assegnato",
+    "rendezVous": {
+      "titre": "Prossimi appuntamenti",
+      "prendre": "Fissa un appuntamento",
+      "vide": "Nessun appuntamento previsto.",
+      "creeTitre": "Appuntamento registrato"
+    }
   },
   "alertes": {
     "bloque": "Bloccato - arretrati",
@@ -187,5 +193,16 @@
     "rechercheDescription": "Prova un'altra ricerca.",
     "filtre": "Nessun risultato con questi filtri.",
     "filtreDescription": "Modifica o cancella i filtri attivi."
+  },
+  "formulaireNouveau": {
+    "brouillon": {
+      "ignorer": "Ignora la bozza"
+    },
+    "reessaiSansDoublon": "Cliccare di nuovo su «Crea cliente» non crea un doppione: un tentativo precedente viene riconosciuto automaticamente."
+  },
+  "ficheApresCreation": {
+    "titre": "Cliente registrato",
+    "description": "Il cliente {nom} è stato registrato correttamente ({numero}), ma la sua scheda non è potuta essere visualizzata. Riprova, oppure trovalo nell'elenco clienti — non crearlo di nuovo.",
+    "retourListe": "Torna all'elenco clienti"
   }
 }

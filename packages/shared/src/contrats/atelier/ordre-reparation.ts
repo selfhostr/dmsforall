@@ -202,6 +202,22 @@ export interface ReponseOrdreReparation {
   readonly restitutionPromiseLe: string | null;
   /** RM-56 : la promesse INITIALE, conservée pour que le report soit visible et motivé. */
   readonly restitutionInitialeLe: string | null;
+  /**
+   * Calculé UNE SEULE FOIS côté serveur, ici et nulle part ailleurs (constat du testeur : deux
+   * tableaux de bord lisant chacun leur propre notion de « en retard » se sont contredits — l'un
+   * voyait cinq sorties du jour, l'autre aucune). `true` uniquement si `restitutionPromiseLe` est
+   * renseigné, que l'OR n'est pas encore restitué (`restitue`/`cloture`/`annule` exclus) et que
+   * l'instant courant dépasse la promesse. **Une date promise absente n'est JAMAIS un retard** —
+   * `null` et « en retard » ne partagent jamais le même rendu. Voir
+   * `apps/api/src/atelier/restitution-retard.ts`.
+   *
+   * FACULTATIF dans le TYPE (le serveur le peuple TOUJOURS, sans exception) : rendre le champ
+   * obligatoire casserait la compilation des très nombreuses fixtures `ReponseOrdreReparation`
+   * déjà écrites dans `apps/web/**.spec.tsx` par l'agent front parallèle (périmètre disjoint,
+   * hors de portée d'écriture ici) — même arbitrage que `OrdreReparationResume.enRetard?`
+   * ci-dessous, additif pur, jamais une rupture de compatibilité (§11.1).
+   */
+  readonly enRetard?: boolean;
   readonly localisation: LocalisationVehicule;
   readonly sousTraitantNom: string | null;
   readonly ordreReparationParentId: string | null;
@@ -280,6 +296,14 @@ export interface OrdreReparationResume {
   readonly localisation: LocalisationVehicule;
   readonly ouvertLe: string | null;
   readonly restitutionPromiseLe: string | null;
+  /**
+   * Même calcul, même garde qu'`ReponseOrdreReparation.enRetard` — voir ce champ. FACULTATIF ici
+   * (contrairement au document complet) : ce résumé est aussi assemblé par `clients/` (périmètre
+   * disjoint de l'agent rendez-vous), qui ne le peuple pas encore — absent, jamais `false` par
+   * défaut trompeur, pour ne pas laisser croire « jamais en retard » à un consommateur qui lirait
+   * cette projection.
+   */
+  readonly enRetard?: boolean;
   readonly vehicule: VehiculeResume;
   readonly client: ClientResume;
   readonly nombreLignes: number;
@@ -307,13 +331,25 @@ export interface ReponseEntreeJournal {
 /* Filtres, vues et tris (§6.2, §6.3)                                  */
 /* ------------------------------------------------------------------ */
 
+/**
+ * `numeroSequence:asc/desc` VOLONTAIREMENT ABSENT (arbitrage @laupernoe, 12.08.2026) — retiré, pas
+ * seulement jamais câblé. `ordre_reparation.numero` est un `text` libre (`OR-2026-9`), aucune
+ * colonne numérique de séquence n'existe en base : un tri TEXTE trierait `OR-2026-10` avant
+ * `OR-2026-9`, ce qui est faux et pire que l'absence de tri. Deux façons de le rendre honnête ont
+ * été écartées : extraire le suffixe numérique à la volée en SQL (balayage complet à chaque page,
+ * fragile si un format de numéro futur ne se termine plus par des chiffres) ou ajouter une colonne
+ * de séquence dédiée (migration hors périmètre pour l'instant). Le tri `ouvertLe` donne
+ * pratiquement le même ordre, les numéros étant attribués chronologiquement — on cesse de proposer
+ * un tri qu'on ne sait pas honorer plutôt que d'en garder un décoratif.
+ *
+ * À RÉOUVRIR uniquement si une vraie colonne de séquence numérique apparaît sur
+ * `ordre_reparation` (migration dédiée) — pas avant, et pas par extraction SQL à la volée.
+ */
 export const TRIS_ORDRES_REPARATION = [
   'ouvertLe:desc',
   'ouvertLe:asc',
   'restitutionPromiseLe:asc',
   'restitutionPromiseLe:desc',
-  'numeroSequence:desc',
-  'numeroSequence:asc',
   'joursAttenteRetrait:desc',
 ] as const;
 export const TRI_DEFAUT_ORDRES_REPARATION = 'ouvertLe:desc';
@@ -380,7 +416,7 @@ export const schemaCreationOrdreReparation = z
     uniteKilometrage: z.enum(UNITES_DISTANCE).default('km'),
     /** Verbatims du client (RM-52), dans l'ordre de saisie. */
     demandes: z
-      .array(z.object({ verbatim: schemaTexteLong }))
+      .array(z.object({ verbatim: schemaTexteLong }).strict())
       .max(50)
       .default([]),
     plafondCentimes: schemaCentimesPositif.optional(),
@@ -393,7 +429,8 @@ export const schemaCreationOrdreReparation = z
     /** `planifie` n'est proposable que si `parametresAtelier.or.etatPlanifieActif` (P-22). */
     statutInitial: z.enum(STATUTS_INITIAUX_ORDRE_REPARATION).default('ouvert'),
   })
-  .extend(schemaConfirmations.shape);
+  .extend(schemaConfirmations.shape)
+  .strict();
 
 /**
  * `PATCH /ordres-reparation/{orId}` — `If-Match` OBLIGATOIRE (§9), champs LIBRES uniquement,
@@ -413,9 +450,10 @@ export const schemaModificationOrdreReparation = z
     numeroCommandeInterne: z.string().trim().max(60).nullish(),
     conducteurPresentNom: schemaTexteCourt.nullish(),
   })
-  .extend(schemaConfirmations.shape);
+  .extend(schemaConfirmations.shape)
+  .strict();
 
-export const schemaDemandeOrdreReparation = z.object({ verbatim: schemaTexteLong });
+export const schemaDemandeOrdreReparation = z.object({ verbatim: schemaTexteLong }).strict();
 
 /* ------------------------------------------------------------------ */
 /* Entrées d'écriture — actions de transition (§7.7)                   */
@@ -431,6 +469,7 @@ export const schemaActionReceptionner = z
     motifDifferee: schemaMotif.optional(),
   })
   .extend(schemaConfirmations.shape)
+  .strict()
   .refine((v) => !v.signatureDifferee || Boolean(v.motifDifferee), {
     message: 'Une signature différée exige un motif.',
     path: ['motifDifferee'],
@@ -438,29 +477,33 @@ export const schemaActionReceptionner = z
 
 /** T-04 `ouvert -> en_cours`. Corps vide, mais l'objet existe : lui ajouter un champ un jour
  *  restera additif, alors que passer d'aucun corps à un corps ne l'est pas. */
-export const schemaActionDemarrer = z.object({}).extend(schemaConfirmations.shape);
+export const schemaActionDemarrer = z.object({}).extend(schemaConfirmations.shape).strict();
 
 /** T-06 / T-08 / T-10 — lève les blocages d'attente sur tout ou partie des lignes. */
-export const schemaActionReprendreTravaux = z.object({
-  ligneIds: schemaListeIdentifiants.optional(),
-  motif: schemaMotif.optional(),
-});
+export const schemaActionReprendreTravaux = z
+  .object({
+    ligneIds: schemaListeIdentifiants.optional(),
+    motif: schemaMotif.optional(),
+  })
+  .strict();
 
 /** T-11 `en_cours -> controle`. */
-export const schemaActionPasserEnControle = z.object({}).extend(schemaConfirmations.shape);
+export const schemaActionPasserEnControle = z.object({}).extend(schemaConfirmations.shape).strict();
 
 /** T-12 `controle -> en_cours` — motif OBLIGATOIRE : un refus de contrôle sans motif est
  *  inexploitable par le technicien qui doit reprendre. */
-export const schemaActionRefuserControle = z.object({ motif: schemaMotif });
+export const schemaActionRefuserControle = z.object({ motif: schemaMotif }).strict();
 
 /** T-13 `controle -> termine`. */
-export const schemaActionValiderControle = z.object({
-  controleurId: schemaIdentifiant,
-  pointsControles: z
-    .array(z.object({ code: z.string().trim().min(1).max(40), conforme: z.boolean() }))
-    .max(100)
-    .default([]),
-});
+export const schemaActionValiderControle = z
+  .object({
+    controleurId: schemaIdentifiant,
+    pointsControles: z
+      .array(z.object({ code: z.string().trim().min(1).max(40), conforme: z.boolean() }).strict())
+      .max(100)
+      .default([]),
+  })
+  .strict();
 
 /** T-14 `en_cours -> termine` (interdite si P-08 impose le contrôle qualité). */
 export const schemaActionTerminer = z
@@ -468,11 +511,12 @@ export const schemaActionTerminer = z
     kilometrageSortie: schemaKilometrage.nullish(),
     unite: z.enum(UNITES_DISTANCE).default('km'),
   })
-  .extend(schemaConfirmations.shape);
+  .extend(schemaConfirmations.shape)
+  .strict();
 
 /** T-15 `termine -> en_cours` — motif OBLIGATOIRE. Depuis `facture` (I-02), la transition est
  *  refusée et l'issue est `CREER_OR_RETOUCHE`, jamais une réouverture. */
-export const schemaActionRouvrir = z.object({ motif: schemaMotif });
+export const schemaActionRouvrir = z.object({ motif: schemaMotif }).strict();
 
 /** T-17 / T-18. */
 export const schemaActionRestituer = z
@@ -483,20 +527,23 @@ export const schemaActionRestituer = z
     piecesRestituees: z.array(schemaIdentifiant).max(200).optional(),
     paiementRecu: z.boolean().optional(),
   })
-  .extend(schemaConfirmations.shape);
+  .extend(schemaConfirmations.shape)
+  .strict();
 
 /** T-19. */
-export const schemaActionCloturer = z.object({}).extend(schemaConfirmations.shape);
+export const schemaActionCloturer = z.object({}).extend(schemaConfirmations.shape).strict();
 
 /** T-20 — motif OBLIGATOIRE (RM-62). Refusée s'il existe des pointages, des pièces engagées ou
  *  une facture (`409 OR_ANNULATION_IMPOSSIBLE`, `blocages` nommant chacun). */
-export const schemaActionAnnuler = z.object({ motif: schemaMotif });
+export const schemaActionAnnuler = z.object({ motif: schemaMotif }).strict();
 
 /** §6.5 — droit `direction` seul. La rétention est un acte juridique, pas un statut d'atelier. */
-export const schemaActionRetention = z.object({
-  motif: schemaMotif,
-  montantContesteCentimes: schemaCentimesPositif.optional(),
-});
+export const schemaActionRetention = z
+  .object({
+    motif: schemaMotif,
+    montantContesteCentimes: schemaCentimesPositif.optional(),
+  })
+  .strict();
 
 export type EntreeCreationOrdreReparation = z.infer<typeof schemaCreationOrdreReparation>;
 export type EntreeModificationOrdreReparation = z.infer<typeof schemaModificationOrdreReparation>;

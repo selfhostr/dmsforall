@@ -31,3 +31,30 @@ overrides:
   # dependencies` pour vérifier), ou dès qu'on migre vers un générateur OpenAPI qui n'en
   # dépend pas.
   '@nestjs/swagger>js-yaml': '>=5.2.2'
+  # Dependabot 12.08.2026, dépendances de dev uniquement (aucun chemin de production) :
+  #
+  # - brace-expansion : minimatch en tire trois lignes majeures incompatibles (1.x via
+  #   eslint/@nestjs/cli, 2.x via testcontainers/archiver et openapi-typescript/@redocly,
+  #   5.x via typescript-eslint et @nestjs/cli/rimraf). Chaque ligne a un correctif publié
+  #   dans sa propre majeure ; pas de dépendance directe unique à monter pour les trois à la
+  #   fois, d'où trois sélecteurs plutôt qu'une seule contrainte globale (qui casserait les
+  #   lignes majeures qui n'en ont pas besoin).
+  'brace-expansion@1': '^1.1.18'
+  'brace-expansion@2': '^2.1.4'
+  'brace-expansion@5': '^5.0.9'
+  # - js-yaml (instances 4.x, distinctes du pin @nestjs/swagger ci-dessus) : @redocly/openapi-
+  #   core@1.x (tiré par openapi-typescript, génération des types API front) épingle
+  #   js-yaml en 4.2.0 EXACT ; @redocly/openapi-core@2.x corrige déjà (js-yaml >=5.2.2) mais
+  #   openapi-typescript@7.13.0 (dernière version, vérifié le 12.08.2026) dépend encore de
+  #   ^1.34.6. Retirer cette ligne quand openapi-typescript migre vers @redocly/openapi-core
+  #   2.x (`pnpm info openapi-typescript dependencies` pour vérifier).
+  'js-yaml@4': '^4.3.1'
+  # - nanoid : postcss (via vite/webpack, outillage de build) l'autorise déjà (^3.3.16) ;
+  #   simple retard de résolution, pas de pin en cause. Override par simplicité plutôt que
+  #   forcer une résolution complète du graphe.
+  'nanoid@3': '^3.3.18'
+  # - esbuild : @esbuild-kit/core-utils (tiré par drizzle-kit, CLI de migration) épingle
+  #   esbuild en ~0.18.20. Le paquet @esbuild-kit est déprécié (remplacé par tsx, déjà présent
+  #   par ailleurs) et drizzle-kit@0.31.10 (dernière version, vérifié le 12.08.2026) le tire
+  #   encore. Retirer cette ligne quand drizzle-kit abandonne @esbuild-kit/esm-loader.
+  'esbuild@0.18.20': '^0.25.12'

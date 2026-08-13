@@ -49,6 +49,9 @@
     "clientDetail": "Scheda cliente",
     "vehiculeDetail": "Scheda veicolo"
   },
+  "formulaires": {
+    "champsObligatoiresLegende": "I campi contrassegnati con un asterisco (*) sono obbligatori."
+  },
   "roles": {
     "direction": "Direzione",
     "vendeur": "Consulente vendite",

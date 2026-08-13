@@ -818,10 +818,11 @@ export async function semerDev(options: OptionsSeed): Promise<ResultatSeedDev> {
     for (const idSite of idsSitesParCode.values()) {
       await base
         .insert(parametreSite)
-        .values({ tenantId, siteId: idSite })
-        // Rien à harmoniser sur rejeu : un opérateur a pu personnaliser les horaires du site
-        // depuis le seed initial, ce script ne doit pas les écraser.
-        .onConflictDoNothing({ target: parametreSite.siteId });
+        .values({ tenantId, siteId: idSite, capaciteHeuresJourCentiemes: 800 })
+        .onConflictDoUpdate({
+          target: parametreSite.siteId,
+          set: { capaciteHeuresJourCentiemes: 800 },
+        });
     }
 
     // --- Bloc créancier (QR-facture, migration 0014) -----------------------------------------
@@ -1383,6 +1384,22 @@ async function principal(): Promise<void> {
     idsSitesParCode: resultat.idsSitesParCode,
     idsVehiculesParCle: resultat.idsVehiculesParCle,
     idsUtilisateursParRole: resultat.idsUtilisateursParRole,
+  });
+
+  // Étape 7 du seed : rendez-vous d'atelier (migrations/0052_rendez_vous_atelier.sql) — référentiel
+  // de motifs + six rendez-vous couvrant les quatre statuts, les deux origines, et deux liens réels
+  // vers des OR existants. APRÈS `semerAtelierDemo` : ce fichier a besoin de
+  // `resultatAtelier.idsOrdresReparationParCle` pour poser `ordre_reparation.rendez_vous_id` sur
+  // les OR Golf et BMW. Voir la tête de `seed-rendez-vous-demo.ts`.
+  const { semerRendezVousDemo } = await import('./seed-rendez-vous-demo');
+  await semerRendezVousDemo({
+    config,
+    tenantId: resultat.tenantId,
+    idsSitesParCode: resultat.idsSitesParCode,
+    idsClientsParNumero: resultat.idsClientsParNumero,
+    idsVehiculesParCle: resultat.idsVehiculesParCle,
+    idsUtilisateursParRole: resultat.idsUtilisateursParRole,
+    idsOrdresReparationParCle: resultatAtelier.idsOrdresReparationParCle,
   });
 }
 

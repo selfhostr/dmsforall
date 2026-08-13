@@ -14,6 +14,7 @@ import type {
   ReponseStockArticle,
   ReservationActiveResume,
   ResultatRechercheComptoirArticle,
+  StatutSuiviStockArticle,
   StockResumeArticle,
 } from '@dfa/shared';
 import { SEUIL_LIGNES_EMBARQUEES_COMMANDE_FOURNISSEUR } from '@dfa/shared';
@@ -126,11 +127,17 @@ export function versStockResponse(ligne: LigneStockArticle): ReponseStockArticle
   };
 }
 
-/** `ligne` peut être `null` : aucune ligne `stock_article` n'existe encore pour ce (article, site). */
+/**
+ * `ligne` peut être `null` : aucune ligne `stock_article` n'existe encore pour ce (article, site).
+ * `statutSuivi` DOIT alors être `'nonSuiviSurCeSite'`/`'nonSuiviNullePart'` (jamais `'suivi'` sans
+ * `ligne` — c'est `ServiceStock.disponibilite` qui tranche, voir sa note de tête) : les quantités
+ * ci-dessous valent 0 par convention dans ce cas, PAS une lecture de stock réel.
+ */
 export function versDisponibiliteResponse(
   articleId: string,
   siteId: string,
   ligne: LigneStockArticle | null,
+  statutSuivi: StatutSuiviStockArticle,
   reservationsActives: readonly ReservationActiveResume[],
   reservationsActivesTronquees: boolean,
 ): ReponseDisponibiliteArticle {
@@ -142,6 +149,7 @@ export function versDisponibiliteResponse(
     quantitePhysiqueMillieme: physique,
     quantiteReserveeMillieme: reservee,
     quantiteDisponibleMillieme: physique - reservee,
+    statutSuivi,
     reservationsActives,
     reservationsActivesTronquees,
   };
@@ -241,14 +249,24 @@ export function versReservationResponse(ligne: LigneReservationPiece): ReponseRe
   };
 }
 
-/** `ligne`/`emplacement` proviennent de `recherche-comptoir` — voir `service-article.ts`. */
+/**
+ * `donnees` provient de `recherche-comptoir` — voir `service-article.ts::rechercheComptoir`.
+ * `quantitePhysiqueMillieme`/`quantiteReserveeMillieme` restent NULLABLES (jamais `coalesce()`é en
+ * SQL) : c'est cette nullité, pas une valeur à 0, qui distingue « aucune ligne `stock_article` pour
+ * CE site » d'un stock réellement nul — voir `StatutSuiviStockArticle`. `suiviQuelquePart` répond à
+ * « une ligne `stock_article` existe-t-elle pour cet article, sur N'IMPORTE QUEL site du tenant ? »
+ * (`exists(...)` corrélé côté SQL), seul moyen de distinguer `nonSuiviSurCeSite` de
+ * `nonSuiviNullePart` sans redemander la disponibilité site par site.
+ */
 export interface DonneesRechercheComptoir {
   readonly articleId: string;
   readonly numeroArticle: string;
   readonly designation: string;
   readonly referencePrincipale: string;
   readonly prixVenteTtcCentimes: number;
-  readonly quantiteDisponibleMillieme: number;
+  readonly quantitePhysiqueMillieme: number | null;
+  readonly quantiteReserveeMillieme: number | null;
+  readonly suiviQuelquePart: boolean;
   readonly emplacement: string | null;
   readonly estEchangeStandard: boolean;
   readonly montantConsigneTtcCentimes: number | null;
@@ -257,7 +275,26 @@ export interface DonneesRechercheComptoir {
 export function versRechercheComptoirResultat(
   donnees: DonneesRechercheComptoir,
 ): ResultatRechercheComptoirArticle {
-  return { ...donnees };
+  const suivi = donnees.quantitePhysiqueMillieme !== null;
+  const statutSuivi: StatutSuiviStockArticle = suivi
+    ? 'suivi'
+    : donnees.suiviQuelquePart
+      ? 'nonSuiviSurCeSite'
+      : 'nonSuiviNullePart';
+  return {
+    articleId: donnees.articleId,
+    numeroArticle: donnees.numeroArticle,
+    designation: donnees.designation,
+    referencePrincipale: donnees.referencePrincipale,
+    prixVenteTtcCentimes: donnees.prixVenteTtcCentimes,
+    quantiteDisponibleMillieme: suivi
+      ? (donnees.quantitePhysiqueMillieme ?? 0) - (donnees.quantiteReserveeMillieme ?? 0)
+      : 0,
+    statutSuivi,
+    emplacement: donnees.emplacement,
+    estEchangeStandard: donnees.estEchangeStandard,
+    montantConsigneTtcCentimes: donnees.montantConsigneTtcCentimes,
+  };
 }
 
 export function versLigneReapprovisionnement(donnees: {

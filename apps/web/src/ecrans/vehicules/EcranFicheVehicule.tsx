@@ -4,7 +4,12 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 
-import type { FiltresDocumentsVente, OrdreReparationResume, PageCurseur } from '@dfa/shared';
+import type {
+  FiltresDocumentsVente,
+  OrdreReparationResume,
+  PageCurseur,
+  VehiculeResume,
+} from '@dfa/shared';
 
 import { requeteApi } from '@/api/client';
 import { messageErreur } from '@/api/erreurs';
@@ -36,6 +41,7 @@ import { DialogueRattacherClient } from './DialogueRattacherClient';
 import { EnTeteFicheVehicule } from './EnTeteFicheVehicule';
 import { FormulaireKilometrage } from './FormulaireKilometrage';
 import { PanneauTravauxReportes } from './PanneauTravauxReportes';
+import { SectionRendezVousVehicule } from './SectionRendezVousVehicule';
 
 /**
  * Fiche véhicule — ce que le comptoir doit voir en ouvrant un dossier : identité, alertes SANS
@@ -103,10 +109,32 @@ export function EcranFicheVehicule() {
   // (`FiltresDocumentsVente`, contrat gelé) : rien à contourner ici, contrairement à la requête OR
   // ci-dessus. `useQuery` local plutôt que le hook `useListeDocumentsVente` (pagination infinie,
   // sans option `enabled`) — même raisonnement que `EcranFicheOrdreReparation.tsx`.
+  //
+  // CORRIGE issue #59 : `typeDocument` était absent d'office — `devis`/`bon_commande`/`facture`
+  // remontaient TOUS sous une carte intitulée « Factures », fabriquant l'illusion d'un doublon de
+  // numérotation (un devis et une facture ne partagent jamais la même série). `typeDocument:
+  // ['facture']` MÊME convention que partout ailleurs dans le dépôt où « facture » est filtré
+  // explicitement (`EcranListeFactures.tsx`, `useFacturesOuvertesClient.ts`,
+  // `TableauBordComptable.tsx`) — un `avoir` (série ET numérotation propres, `MD-14`) en est
+  // exclu au même titre qu'un devis, pas seulement les documents de pré-vente. Filtre appliqué
+  // RÉELLEMENT au SQL, pas seulement accepté par le contrat (`ServiceDocumentsVente.lister`,
+  // `apps/api/src/facturation/documents/service-documents.ts` : `inArray(documentVente
+  // .typeDocument, filtres.typeDocument)`), vérifié en exécution réelle (voir rapport de
+  // livraison) plutôt que supposé du contrat seul.
+  //
+  // Un devis EN COURS n'est pas perdu pour autant : la carte « Dossier de vente » ci-dessous
+  // (`requeteDossiersVente`, même écran) couvre déjà cette affaire en attente — statut affiché via
+  // `BadgeStatutDossierVente`, lien vers le dossier complet. Dupliquer cette information sous
+  // « Factures » réintroduirait exactement la confusion signalée plutôt que de la corriger ; le
+  // titre de la carte reste donc inchangé, aucun second bloc ni renommage n'est nécessaire.
   const requeteFactures = useQuery({
     queryKey: ['vehicule-documents-vente', vehiculeId],
     queryFn: () => {
-      const filtres: FiltresDocumentsVente = { vehiculeId, tri: 'dateDocument:desc' };
+      const filtres: FiltresDocumentsVente = {
+        vehiculeId,
+        typeDocument: ['facture'],
+        tri: 'dateDocument:desc',
+      };
       return listerDocumentsVente(filtres, { limite: 20 });
     },
     enabled: vehiculeId !== undefined,
@@ -179,6 +207,27 @@ export function EcranFicheVehicule() {
   const detentions = requeteDetentions.data ?? [];
   const proprietaireActuel = detentions.find((detention) => detention.finLe === null) ?? null;
   const detenteursPrecedents = detentions.filter((detention) => detention.finLe !== null);
+
+  // `DialogueNouveauRendezVous.site` (composants/rendez-vous/) est obligatoire (un `SiteResume`
+  // complet, pas juste un id) — même repli que `TableauBordMagasinier.tsx` (site actif du tenant,
+  // sinon le premier) quand la fiche est ouverte sans `?site=` explicite.
+  const siteRendezVous = site
+    ? session.data?.sites.find((candidat) => candidat.id === site)
+    : (session.data?.sites.find((candidat) => candidat.actif) ?? session.data?.sites[0]);
+
+  // Projection `VehiculeResume` depuis `ReponseVehicule` (fiche complète) — `DialogueNouveauRendezVous`
+  // et `IdentiteVehicule` n'attendent que le résumé, même doctrine que `clientPourIdentite` dans
+  // `EcranFicheClient.tsx`.
+  const vehiculePourRendezVous: VehiculeResume = {
+    id: vehicule.id,
+    plaque: vehicule.plaque,
+    canton: vehicule.canton,
+    designation: vehicule.designation,
+    vin: vehicule.vin,
+    premiereMiseEnCirculationLe: vehicule.premiereMiseEnCirculationLe,
+    identificationIncomplete: vehicule.identificationIncomplete,
+    emplacementLibre: vehicule.emplacementLibre,
+  };
 
   const ordresVehicule = requeteOr.data ?? [];
   const facturesVehicule = requeteFactures.data?.donnees ?? [];
@@ -286,6 +335,12 @@ export function EcranFicheVehicule() {
           ) : null}
         </CardContent>
       </Card>
+
+      <SectionRendezVousVehicule
+        vehicule={vehiculePourRendezVous}
+        detenteur={proprietaireActuel?.client ?? null}
+        site={siteRendezVous}
+      />
 
       {/* Lot B (correction 6, vendeur) — dossier de vente en cours ou passé, si ce véhicule est ou
        *  a été en stock. Le contrat ne porte pas de numéro court identifiable à l'oral pour un

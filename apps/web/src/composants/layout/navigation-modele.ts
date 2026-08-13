@@ -14,6 +14,7 @@ import type { RoleUtilisateur } from '@dfa/shared';
 import { chemins } from '@/routes/chemins';
 import {
   ROLES_BORNE_POINTAGE,
+  ROLES_LECTURE_RENDEZ_VOUS,
   ROLES_MENU_FACTURATION,
   ROLES_MENU_FINANCIER,
   ROLES_MENU_PARAMETRAGE_ATELIER,
@@ -178,6 +179,19 @@ const ONGLETS_ATELIER: readonly OngletDomaine[] = [
     chemin: (site) => chemins.atelier.ordresReparation.liste(site),
     motifs: ['/ordres-reparation', '/atelier/ordres-reparation'],
     roles: ROLES_LECTURE_OR,
+  },
+  /**
+   * Rendez-vous (Lot RDV-1) — activation du slot réservé au Lot D (§4.2 : « DEUXIÈME onglet
+   * d'Atelier, entre Ordres de réparation et Pointage »), retiré d'`EMPLACEMENTS_RESERVES`
+   * ci-dessous. `ROLES_LECTURE_RENDEZ_VOUS` reflète `rendez_vous.lire` (`droits-routes.ts`) : ferme
+   * la lecture elle-même à `vendeur`/`magasinier`/`comptable`/`poste_atelier`.
+   */
+  {
+    id: 'rendezVous',
+    cleLibelle: 'navigation:onglets.atelierPlanning',
+    chemin: (site) => chemins.atelier.rendezVous.agenda(site),
+    motifs: ['/rendez-vous'],
+    roles: ROLES_LECTURE_RENDEZ_VOUS,
   },
   /**
    * Pointage — CINQ vues, dont la borne. « Clôture de période » N'EST PLUS un écran autonome
@@ -674,15 +688,6 @@ export const EMPLACEMENTS_RESERVES: readonly {
       'Paliers de relance (§4.5 : « paliers -> Réglages »). Tant que `EcranRelances` mélange les ' +
       "règles et le déclenchement, l'écran vit en onglet de Facturation (voir ONGLETS_FACTURATION). " +
       "Le jour où les paliers s'en détachent, ils viennent ici en DERNIER onglet de Réglages.",
-  },
-  {
-    entree: 'atelier',
-    onglet: 'planning',
-    cleLibelle: 'navigation:onglets.atelierPlanning',
-    motif:
-      "Planning d'atelier (Lot I). §4.2 le place en DEUXIÈME onglet d'Atelier, entre Ordres de " +
-      'réparation et Pointage. Repli explicite retenu par le plan (option a) : onglet absent tant ' +
-      "que son contenu n'est pas cadré, plutôt qu'un onglet qui retrie une liste déjà existante.",
   },
 ];
 

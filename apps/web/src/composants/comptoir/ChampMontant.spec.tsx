@@ -48,4 +48,21 @@ describe('ChampMontant', () => {
     render(<ChampMontant valeurCentimes={123450} onChangeCentimes={vi.fn()} label="Montant" />);
     expect(screen.getByText("1'234.50")).toBeInTheDocument();
   });
+
+  it('marque le champ obligatoire via `aria-required`, jamais via une étoile lue à voix haute', () => {
+    render(
+      <ChampMontant valeurCentimes={null} onChangeCentimes={vi.fn()} label="Montant" obligatoire />,
+    );
+
+    // `getByRole` calcule le VRAI nom accessible (ignore `aria-hidden`) — `getByLabelText`
+    // matcherait sur le texte brut "Montant *" et échouerait à trouver "Montant" seul, preuve
+    // que l'astérisque ne s'ajoute jamais au nom accessible.
+    const champ = screen.getByRole('textbox', { name: 'Montant' });
+    expect(champ).toHaveAttribute('aria-required', 'true');
+  });
+
+  it("ne pose pas `aria-required` quand le champ n'est pas obligatoire", () => {
+    render(<ChampMontant valeurCentimes={null} onChangeCentimes={vi.fn()} label="Montant" />);
+    expect(screen.getByRole('textbox', { name: 'Montant' })).not.toHaveAttribute('aria-required');
+  });
 });

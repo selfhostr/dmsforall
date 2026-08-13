@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { keepPreviousData, useQuery, type UseQueryResult } from '@tanstack/react-query';
 
-import type { ReponseArticle, ResultatRechercheComptoirArticle } from '@dfa/shared';
+import type {
+  ReponseArticle,
+  ResultatRechercheComptoirArticle,
+  StatutSuiviStockArticle,
+} from '@dfa/shared';
 
 import { useDoitReessayer, useListeCurseur } from '@/hooks/pagination-curseur';
 
@@ -40,12 +44,22 @@ const FILTRES_PARCOURS: FiltresListeArticles = { statut: 'actif', tri: 'designat
  *  `stocksResume` (article jamais mouvementé sur ce site) compte pour 0 disponible — même
  *  décision que la colonne « disponible » de `EcranListeArticles` : dans les deux cas, la réponse
  *  utile au magasinier est identique (« rien à sortir aujourd'hui sur ce site »).
+ *
+ * `statutSuivi` est dérivable de `stocksResume` (qui ne liste que les sites avec activité/seuil) :
+ *  - entrée pour CE site → `'suivi'` ;
+ *  - pas d'entrée pour CE site, mais existe ailleurs → `'nonSuiviSurCeSite'` ;
+ *  - aucune entrée nulle part → `'nonSuiviNullePart'`.
  */
 function versResultatParcours(
   article: ReponseArticle,
   siteId: string,
 ): ResultatRechercheComptoirArticle {
   const stock = article.stocksResume.find((resume) => resume.siteId === siteId);
+  const statutSuivi: StatutSuiviStockArticle = stock
+    ? 'suivi'
+    : article.stocksResume.length > 0
+      ? 'nonSuiviSurCeSite'
+      : 'nonSuiviNullePart';
   return {
     articleId: article.id,
     numeroArticle: article.numeroArticle,
@@ -53,6 +67,7 @@ function versResultatParcours(
     referencePrincipale: article.referencePrincipale,
     prixVenteTtcCentimes: article.prixVenteTtcCentimes,
     quantiteDisponibleMillieme: stock?.quantiteDisponibleMillieme ?? 0,
+    statutSuivi,
     emplacement: null,
     estEchangeStandard: article.estEchangeStandard,
     montantConsigneTtcCentimes: article.montantConsigneTtcCentimes,

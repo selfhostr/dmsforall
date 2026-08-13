@@ -20,6 +20,7 @@ export * from './enums';
 export * from './article';
 export * from './stock';
 export * from './mouvement';
+export * from './stock-insuffisant';
 export * from './reservation';
 export * from './fournisseur';
 export * from './commande-fournisseur';

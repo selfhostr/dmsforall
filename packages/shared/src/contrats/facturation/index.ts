@@ -22,3 +22,4 @@ export * from './paiement';
 export * from './export';
 export * from './facturer-or';
 export * from './creancier';
+export * from './imputation-devise-incoherente';

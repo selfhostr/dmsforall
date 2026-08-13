@@ -61,20 +61,24 @@ export interface ReponseAbonnementWebhook {
  * `secretReferenceId` DOIT déjà exister — même mécanisme de dépôt hors périmètre que celui noté
  * dans `connecteur.ts` (`RC-08`).
  */
-export const schemaCreationAbonnementWebhook = z.object({
-  url: schemaUrlWebhookHttps,
-  evenements: z.array(z.enum(TYPES_EVENEMENT_METIER)).min(1).max(50),
-  secretReferenceId: schemaIdentifiant,
-});
+export const schemaCreationAbonnementWebhook = z
+  .object({
+    url: schemaUrlWebhookHttps,
+    evenements: z.array(z.enum(TYPES_EVENEMENT_METIER)).min(1).max(50),
+    secretReferenceId: schemaIdentifiant,
+  })
+  .strict();
 export type EntreeCreationAbonnementWebhook = z.infer<typeof schemaCreationAbonnementWebhook>;
 
 /** `PATCH /webhooks/{id}` — `url`/`evenements` uniquement ; le secret se change par l'action
  *  dédiée ci-dessous (séparation délibérée : changer la liste d'événements n'a pas besoin de
  *  passer par un flux de rotation à deux secrets). */
-export const schemaModificationAbonnementWebhook = z.object({
-  url: schemaUrlWebhookHttps.optional(),
-  evenements: z.array(z.enum(TYPES_EVENEMENT_METIER)).min(1).max(50).optional(),
-});
+export const schemaModificationAbonnementWebhook = z
+  .object({
+    url: schemaUrlWebhookHttps.optional(),
+    evenements: z.array(z.enum(TYPES_EVENEMENT_METIER)).min(1).max(50).optional(),
+  })
+  .strict();
 export type EntreeModificationAbonnementWebhook = z.infer<
   typeof schemaModificationAbonnementWebhook
 >;
@@ -84,9 +88,11 @@ export type EntreeModificationAbonnementWebhook = z.infer<
  * (fenêtre de rotation) plutôt que de la remplacer sèchement. Remplacement idempotent par
  * construction, pas d'`Idempotency-Key`.
  */
-export const schemaRotationSecretAbonnementWebhook = z.object({
-  secretReferenceId: schemaIdentifiant,
-});
+export const schemaRotationSecretAbonnementWebhook = z
+  .object({
+    secretReferenceId: schemaIdentifiant,
+  })
+  .strict();
 export type EntreeRotationSecretAbonnementWebhook = z.infer<
   typeof schemaRotationSecretAbonnementWebhook
 >;
@@ -108,9 +114,11 @@ export type FiltresAbonnementsWebhook = z.infer<typeof schemaFiltresAbonnementsW
  * `tentativesConsecutivesEnEchec` à zéro : un motif est exigé pour laisser une trace de la
  * correction apportée côté tiers (URL corrigée, service revenu en ligne…).
  */
-export const schemaReactivationAbonnementWebhook = z.object({
-  motif: schemaMotif,
-});
+export const schemaReactivationAbonnementWebhook = z
+  .object({
+    motif: schemaMotif,
+  })
+  .strict();
 export type EntreeReactivationAbonnementWebhook = z.infer<
   typeof schemaReactivationAbonnementWebhook
 >;

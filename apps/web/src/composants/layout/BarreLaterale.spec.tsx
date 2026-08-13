@@ -3,13 +3,14 @@ import { render, screen, waitFor, within, type RenderResult } from '@testing-lib
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import '@/i18n';
 
 import type { RoleUtilisateur } from '@dfa/shared';
 
 import { clesQuery } from '@/api/cles';
+import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { creerQueryClientTest } from '@/test/utils';
@@ -40,6 +41,22 @@ function rendre(routeInitiale: string): RenderResult & { queryClient: QueryClien
       </QueryClientProvider>,
     ),
   };
+}
+
+/** Même rendu que `rendre`, sous `FournisseurSiteCourant` — seul moyen d'exercer la préférence de
+ *  site mémorisée (`hooks/site/ContexteSiteCourant.tsx`, issue #91), que `BarreLaterale` seule ne
+ *  peut pas lire (contexte non fourni hors d'`AppShell.tsx` en usage réel). */
+function rendreAvecPreferenceSite(routeInitiale: string): void {
+  const queryClient = creerQueryClientTest();
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[routeInitiale]}>
+        <FournisseurSiteCourant>
+          <BarreLaterale />
+        </FournisseurSiteCourant>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
 }
 
 /** Même rendu que `rendre` ci-dessus, avec le prop `repli` fourni — c'est ce que fait uniquement
@@ -249,6 +266,41 @@ describe('BarreLaterale — conservation du site courant', () => {
 });
 
 /**
+ * Régression issue #91 (« il oublie mon choix dès que je change d'écran ») : quand l'URL courante
+ * ne porte AUCUN `?site=` (parce qu'un écran hors de ce périmètre a construit un lien interne sans
+ * le propager), la barre latérale ne retombe plus sur « aucun site » — elle reprend la dernière
+ * préférence mémorisée (`hooks/site/ContexteSiteCourant.tsx`, tenant `SESSION_TEST.tenant.id` =
+ * `'tenant-1'`). Un `?site=` déjà présent dans l'URL continue de faire foi (test précédent,
+ * inchangé) : la préférence ne comble que son absence, jamais ne l'écrase.
+ */
+describe('BarreLaterale — reprise de la préférence de site (issue #91)', () => {
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('reprend la préférence mémorisée quand l’URL n’en porte pas', async () => {
+    window.localStorage.setItem('dfa.site-courant.tenant-1', 'site-secondaire');
+    connecte('direction');
+    rendreAvecPreferenceSite('/');
+
+    await screen.findByRole('link', { name: /^pièces$/i });
+
+    expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients?site=site-secondaire');
+    expect(hrefDuLien(/^atelier$/i)).toBe('/ordres-reparation?site=site-secondaire');
+  });
+
+  it('l’URL reste prioritaire sur la préférence mémorisée quand les deux sont présents', async () => {
+    window.localStorage.setItem('dfa.site-courant.tenant-1', 'site-secondaire');
+    connecte('direction');
+    rendreAvecPreferenceSite('/clients?site=site-sion');
+
+    await screen.findByRole('link', { name: /^pièces$/i });
+
+    expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients?site=site-sion');
+  });
+});
+
+/**
  * `aria-current="page"` vient de l'état RÉSOLU du modèle (`trouverCorrespondance`), pas du
  * `isActive` de `NavLink` : une fiche ou une vue doit garder son entrée surlignée, alors que
  * `NavLink` ne compare que l'URL au `to` du lien.
@@ -426,17 +478,37 @@ describe('BarreLaterale — masquage par rôle', () => {
  * @laupernoe : « branche · version » (ex. « main · 0.1.234 »), le point médian étant le seul séparateur.
  * AUCUN état de chargement/erreur ne doit produire de texte (exception assumée à la règle
  * « chargement / vide / erreur », voir le commentaire dans `BarreLaterale.tsx`).
+ *
+ * ISSUE #85 — la version n'est plus VISIBLE pour un utilisateur ni pour un lecteur d'écran, mais
+ * l'information reste RÉCUPÉRABLE dans le document (attributs `data-version` et `data-branche` sur
+ * un élément masqué) pour que le support puisse répondre à « quelle version tournez-vous ? »
+ * sans voir un nom de branche Git ou un hash à l'écran d'un client. Les tests passent de vérifier
+ * l'affichage du texte à vérifier cette présence cachée.
  */
 describe('BarreLaterale — numéro de version', () => {
-  it('affiche « branche · version » une fois la sonde de vie résolue', async () => {
+  it('stocke branche et version dans le DOM masqué, récupérable mais invisible', async () => {
     server.use(
       http.get('/api/v1/sante', () =>
         HttpResponse.json({ statut: 'ok', version: '3.4.5-verif', branche: 'main' }),
       ),
     );
-    rendre('/');
+    const { container } = rendre('/');
 
-    expect(await screen.findByText('main · 3.4.5-verif')).toBeInTheDocument();
+    // Attend que la sonde de vie soit résolue : le conteneur `hidden` doit être présent.
+    // Si `sante` reste undefined, le div ne s'affiche jamais (pas même masqué).
+    await waitFor(() => {
+      const divVersion = container.querySelector('[data-version="3.4.5-verif"]');
+      expect(divVersion).toBeInTheDocument();
+    });
+
+    const divVersion = container.querySelector('[data-version="3.4.5-verif"]');
+    expect(divVersion).toHaveAttribute('data-branche', 'main');
+    // Le titre ( `title` attribute) porte le texte formaté pour les requêtes support.
+    expect(divVersion).toHaveAttribute('title', 'main · 3.4.5-verif');
+    // Vérification cruciale : le texte n'est pas visible. Ni `screen.queryByText` ni
+    // un lecteur d'écran ne doivent trouver la version — le `hidden` suffit.
+    expect(screen.queryByText(/3\.4\.5-verif/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/main · /)).not.toBeInTheDocument();
   });
 
   it('n’affiche aucun texte de version tant que la sonde de vie n’a pas répondu (pas de squelette, pas de placeholder)', async () => {
@@ -485,6 +557,9 @@ describe('BarreLaterale — numéro de version', () => {
    * un DESCENDANT — c'est cette séparation structurelle qui garde le filet et le pied ancrés en
    * bas de colonne quelle que soit la hauteur disponible. jsdom ne calculant aucun layout, c'est
    * la seule forme de preuve disponible ici (le rendu visuel, lui, se vérifie au navigateur).
+   *
+   * Le pied contient le `div[data-version]` masqué, qui n'est jamais visible textuel mais doit
+   * rester présent dans la structure DOM.
    */
   it('le pied de version reste hors de la liste des six entrées, jamais un descendant', async () => {
     connecte('direction');
@@ -493,17 +568,25 @@ describe('BarreLaterale — numéro de version', () => {
         HttpResponse.json({ statut: 'ok', version: '9.9.9-pied', branche: 'main' }),
       ),
     );
-    rendre('/');
+    const { container } = rendre('/');
 
-    const pied = await screen.findByText('main · 9.9.9-pied');
     const nav = screen.getByRole('navigation');
     const listeDesSix = nav.firstElementChild;
     const zonePied = nav.lastElementChild;
 
     expect(listeDesSix).not.toBeNull();
     expect(listeDesSix).not.toBe(zonePied);
-    expect(listeDesSix?.contains(pied)).toBe(false);
-    expect(zonePied?.contains(pied)).toBe(true);
+
+    // Attendre que le div[data-version] soit rendu (la sonde de vie doit répondre).
+    await waitFor(() => {
+      const divVersion = container.querySelector('[data-version="9.9.9-pied"]');
+      expect(divVersion).toBeInTheDocument();
+    });
+
+    const divVersion = container.querySelector('[data-version="9.9.9-pied"]');
+    // Le div masqué doit être dans le pied, jamais dans la liste des six entrées.
+    expect(listeDesSix?.contains(divVersion)).toBe(false);
+    expect(zonePied?.contains(divVersion)).toBe(true);
     // Les six entrées sont bien dans la liste, et elles sont six.
     expect(within(listeDesSix as HTMLElement).getAllByRole('link')).toHaveLength(6);
   });
@@ -561,14 +644,14 @@ describe('BarreLaterale — repli desktop', () => {
     );
   });
 
-  it('le filet actif (aria-current + fond secondaire) reste posé sur l’entrée repliée', async () => {
+  it('la pilule active (aria-current + fond de marque) reste posée sur l’entrée repliée', async () => {
     connecte('direction');
     rendreAvecRepli('/clients/42', true);
 
     const actif = await screen.findByRole('link', { name: /clients & véhicules/i });
     expect(actif).toHaveAttribute('aria-current', 'page');
-    expect(actif.className).toContain('border-secondary-foreground');
-    expect(actif.className).toContain('bg-secondary');
+    expect(actif.className).toContain('bg-primary');
+    expect(actif.className).toContain('text-primary-foreground');
   });
 
   it('le bouton de repli annonce son état via `aria-expanded` et appelle `basculer` au clic', async () => {

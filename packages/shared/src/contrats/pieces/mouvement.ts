@@ -114,13 +114,15 @@ export type FiltresMouvementsStock = z.infer<typeof schemaFiltresMouvementsStock
  * pouvoir de forcer un stock négatif — un rôle futur qui recevrait `pieces.mouvement.creer` sans
  * décision délibérée sur le forçage n'hériterait plus de cette capacité désormais.
  */
-export const schemaCreationMouvementCasse = z.object({
-  siteId: schemaIdentifiant,
-  quantiteMillieme: schemaQuantiteMillieme,
-  motif: schemaMotif,
-  ligneOrId: schemaIdentifiant.nullish(),
-  forcer: z.boolean().default(false),
-});
+export const schemaCreationMouvementCasse = z
+  .object({
+    siteId: schemaIdentifiant,
+    quantiteMillieme: schemaQuantiteMillieme,
+    motif: schemaMotif,
+    ligneOrId: schemaIdentifiant.nullish(),
+    forcer: z.boolean().default(false),
+  })
+  .strict();
 export type EntreeCreationMouvementCasse = z.infer<typeof schemaCreationMouvementCasse>;
 
 /** `POST /articles/{id}/mouvements/perte` — même forme et mêmes règles que `casse` (`RP-17`), type
@@ -140,6 +142,7 @@ export const schemaCreationMouvementTransfert = z
     quantiteMillieme: schemaQuantiteMillieme,
     motif: schemaMotif.optional(),
   })
+  .strict()
   .refine((v) => v.siteSourceId !== v.siteDestinationId, {
     message: 'Le site source et le site destination doivent être différents.',
     path: ['siteDestinationId'],
@@ -160,11 +163,13 @@ export type EntreeCreationMouvementTransfert = z.infer<typeof schemaCreationMouv
  * `seuilValeurAjustementSignificatifCentimes`) — JAMAIS bloquant (§7.6 : la saisie du magasinier
  * n'est jamais refusée pour ce motif, seule la visibilité change).
  */
-export const schemaCreationAjustementInventaire = z.object({
-  siteId: schemaIdentifiant,
-  quantiteCompteeMillieme: z.number().int().min(0),
-  motif: schemaMotif,
-});
+export const schemaCreationAjustementInventaire = z
+  .object({
+    siteId: schemaIdentifiant,
+    quantiteCompteeMillieme: z.number().int().min(0),
+    motif: schemaMotif,
+  })
+  .strict();
 export type EntreeCreationAjustementInventaire = z.infer<typeof schemaCreationAjustementInventaire>;
 
 /**
@@ -172,12 +177,14 @@ export type EntreeCreationAjustementInventaire = z.infer<typeof schemaCreationAj
  * commande si elle existe (`commandeFournisseurLigneId` facultatif, `RP-30`) — un retour SANS
  * commande d'origine reste possible (pièce jamais commandée, rendue quand même).
  */
-export const schemaCreationRetourFournisseur = z.object({
-  siteId: schemaIdentifiant,
-  quantiteMillieme: schemaQuantiteMillieme,
-  motif: schemaMotif,
-  commandeFournisseurLigneId: schemaIdentifiant.nullish(),
-});
+export const schemaCreationRetourFournisseur = z
+  .object({
+    siteId: schemaIdentifiant,
+    quantiteMillieme: schemaQuantiteMillieme,
+    motif: schemaMotif,
+    commandeFournisseurLigneId: schemaIdentifiant.nullish(),
+  })
+  .strict();
 export type EntreeCreationRetourFournisseur = z.infer<typeof schemaCreationRetourFournisseur>;
 
 /**
@@ -191,11 +198,13 @@ export type EntreeCreationRetourFournisseur = z.infer<typeof schemaCreationRetou
  * `casse`/`perte`/`ajustement_inventaire`/`retour_fournisseur`/`retour_client` — une vente n'a pas
  * de « motif » au sens de ces types-là).
  */
-export const schemaCreationMouvementSortieComptoir = z.object({
-  siteId: schemaIdentifiant,
-  quantiteMillieme: schemaQuantiteMillieme,
-  motif: schemaMotif.optional(),
-});
+export const schemaCreationMouvementSortieComptoir = z
+  .object({
+    siteId: schemaIdentifiant,
+    quantiteMillieme: schemaQuantiteMillieme,
+    motif: schemaMotif.optional(),
+  })
+  .strict();
 export type EntreeCreationMouvementSortieComptoir = z.infer<
   typeof schemaCreationMouvementSortieComptoir
 >;
@@ -206,11 +215,13 @@ export type EntreeCreationMouvementSortieComptoir = z.infer<
  * OBLIGATOIRE (`mouvement_stock_motif_requis_chk`). Aucune vérification de disponibilité — une
  * entrée n'est jamais refusée pour stock insuffisant, seule une sortie l'est.
  */
-export const schemaCreationMouvementRetourClient = z.object({
-  siteId: schemaIdentifiant,
-  quantiteMillieme: schemaQuantiteMillieme,
-  motif: schemaMotif,
-});
+export const schemaCreationMouvementRetourClient = z
+  .object({
+    siteId: schemaIdentifiant,
+    quantiteMillieme: schemaQuantiteMillieme,
+    motif: schemaMotif,
+  })
+  .strict();
 export type EntreeCreationMouvementRetourClient = z.infer<
   typeof schemaCreationMouvementRetourClient
 >;

@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { useLibererReservation } from '@/hooks/pieces/useTransitionsReservation';
 
 interface Props {
@@ -46,10 +46,17 @@ export function DialogueLiberationReservation({ reservationId, onFerme }: Props)
           <DialogDescription>{t('pieces:reservations.liberation.description')}</DialogDescription>
         </DialogHeader>
 
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
+
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="resa-motif">{t('pieces:reservations.liberation.champMotif')}</Label>
+          <Label htmlFor="resa-motif" requis>
+            {t('pieces:reservations.liberation.champMotif')}
+          </Label>
           <Input
             id="resa-motif"
+            required
             readOnly={liberer.isPending}
             value={motif}
             onChange={(evenement) => setMotif(evenement.target.value)}

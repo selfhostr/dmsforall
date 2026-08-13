@@ -142,6 +142,13 @@ function pointageFactice() {
   return { pointagesOuvertsPourOr: vi.fn().mockResolvedValue([]) };
 }
 
+/** `ServiceOr.assemblerDocument` calcule désormais `enRetard` (voir `restitution-retard.ts`) via
+ *  `this.horloge.maintenant()` — un `{} as never` ne suffit plus, il faut une horloge factice qui
+ *  répond réellement à `maintenant()`. */
+function horlogeFactice() {
+  return { maintenant: () => new Date('2026-08-12T09:00:00.000Z') };
+}
+
 function serviceFactice(audit: ServiceAudit, pointage: ReturnType<typeof pointageFactice>) {
   return new ServiceOr(
     {} as never,
@@ -151,7 +158,7 @@ function serviceFactice(audit: ServiceAudit, pointage: ReturnType<typeof pointag
     {} as never,
     pointage as never,
     {} as never,
-    {} as never,
+    horlogeFactice() as never,
   );
 }
 

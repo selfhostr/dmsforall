@@ -329,3 +329,52 @@ describe('SheetEncaissement — encaissement (idempotence du rejeu, confirmation
     },
   );
 });
+
+/**
+ * DÉFAUT CORRIGÉ (issues #80/#61, testeur novice — « je n'ai pas osé aller plus loin : j'allais
+ * enregistrer de l'argent en avance sur le compte d'un client qui a déjà payé ») : quand ce
+ * panneau s'ouvrait sur un client sans aucune facture ouverte, il affichait déjà le message
+ * « aucune facture ouverte » MAIS laissait la section de saisie et le bouton d'enregistrement
+ * pleinement actifs juste en dessous — un encaissement pouvait devenir une avance client comme
+ * simple EFFET DE BORD, sans qu'aucun geste explicite ne l'ait choisi.
+ */
+describe('SheetEncaissement — aucune facture ouverte (avance client, geste explicite)', () => {
+  it(
+    'verrouille la saisie tant que l’avance n’est pas confirmée explicitement : ni le bouton ' +
+      '« Ajouter un moyen de paiement », ni « Enregistrer l’encaissement » ne sont proposés avant ' +
+      'le clic sur « Enregistrer quand même comme avance client »',
+    async () => {
+      server.use(
+        http.get('/api/v1/documents-vente', () =>
+          HttpResponse.json({ donnees: [], curseurSuivant: null, limite: 100 }),
+        ),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      expect(
+        await screen.findByText("Ce client n'a aucune facture ouverte à régler."),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Ajouter un moyen de paiement' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: "Enregistrer l'encaissement" }),
+      ).not.toBeInTheDocument();
+
+      const boutonConfirmer = screen.getByRole('button', {
+        name: 'Enregistrer quand même comme avance client',
+      });
+      await utilisateur.click(boutonConfirmer);
+
+      // Une fois le geste choisi explicitement, la saisie se révèle — jamais avant.
+      expect(
+        await screen.findByRole('button', { name: 'Ajouter un moyen de paiement' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: "Enregistrer l'encaissement" }),
+      ).toBeInTheDocument();
+    },
+  );
+});

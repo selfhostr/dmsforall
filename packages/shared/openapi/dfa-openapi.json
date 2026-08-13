@@ -680,6 +680,47 @@
         ],
         "type": "object"
       },
+      "CapaciteJourRendezVousDto": {
+        "properties": {
+          "capaciteMinutes": {
+            "description": "`null` = capacité jamais paramétrée pour ce site (RV-08) — jamais `0`.",
+            "nullable": true,
+            "type": "number"
+          },
+          "dateLe": {
+            "example": "2026-08-20",
+            "format": "date",
+            "type": "string"
+          },
+          "etat": {
+            "enum": [
+              "non_definie",
+              "disponible",
+              "complete"
+            ],
+            "type": "string"
+          },
+          "minutesOccupees": {
+            "type": "number"
+          },
+          "moment": {
+            "enum": [
+              "matin",
+              "apres_midi",
+              "toute_journee"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "dateLe",
+          "moment",
+          "minutesOccupees",
+          "capaciteMinutes",
+          "etat"
+        ],
+        "type": "object"
+      },
       "ChiffreAffairesPeriodeTableauBordDto": {
         "properties": {
           "nombreDocuments": {
@@ -1057,6 +1098,11 @@
             "format": "date-time",
             "type": "string"
           },
+          "motif": {
+            "description": "Motif de `plusAucunContact` — requis tant que le drapeau est posé, `null` sinon.",
+            "nullable": true,
+            "type": "string"
+          },
           "nom": {
             "nullable": true,
             "type": "string"
@@ -1076,6 +1122,10 @@
             "description": "Numéro continu par tenant, jamais réutilisé (RM-11).",
             "example": "CL-000123",
             "type": "string"
+          },
+          "plusAucunContact": {
+            "description": "RA-14 : arrêt de tout contact demandé par le client — prime sur tout consentement marketing, y compris pour une relance de facture impayée. Posé/levé par `POST .../arreter-contact` et `.../reprendre-contact`, jamais par ce `PATCH`.",
+            "type": "boolean"
           },
           "poObligatoire": {
             "description": "RM-14 : impose `numeroCommandeInterne` sur les OR de ce client.",
@@ -1138,6 +1188,8 @@
           "groupeId",
           "fusionneVersClientId",
           "referenceExterne",
+          "plusAucunContact",
+          "motif",
           "dernierPassageLe",
           "notesAlerte",
           "creeLe",
@@ -1921,6 +1973,7 @@
             "type": "string"
           },
           "quantiteDisponibleMillieme": {
+            "description": "Fiable UNIQUEMENT si statutSuivi = 'suivi' ; sinon vaut 0 par convention et NE DOIT PAS être lu comme un stock nul — voir statutSuivi.",
             "type": "number"
           },
           "quantitePhysiqueMillieme": {
@@ -1941,6 +1994,15 @@
           "siteId": {
             "format": "uuid",
             "type": "string"
+          },
+          "statutSuivi": {
+            "description": "Suivi de stock au site demandé : 'suivi' (quantités fiables, y compris à 0), 'nonSuiviSurCeSite' (suivi ailleurs, inconnu ici) ou 'nonSuiviNullePart' (jamais mis en stock). À lire AVANT les quantités ci-dessus.",
+            "enum": [
+              "suivi",
+              "nonSuiviSurCeSite",
+              "nonSuiviNullePart"
+            ],
+            "type": "string"
           }
         },
         "required": [
@@ -1949,6 +2011,7 @@
           "quantitePhysiqueMillieme",
           "quantiteReserveeMillieme",
           "quantiteDisponibleMillieme",
+          "statutSuivi",
           "reservationsActives",
           "reservationsActivesTronquees"
         ],
@@ -2326,6 +2389,42 @@
           },
           "donnees": {
             "$ref": "#/components/schemas/ReponsePointageDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "EnveloppeRendezVousDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementOrDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ReponseRendezVousDto"
+          }
+        },
+        "required": [
+          "donnees",
+          "avertissements"
+        ],
+        "type": "object"
+      },
+      "EnveloppeRendezVousTransitionDto": {
+        "properties": {
+          "avertissements": {
+            "items": {
+              "$ref": "#/components/schemas/AvertissementOrDto"
+            },
+            "type": "array"
+          },
+          "donnees": {
+            "$ref": "#/components/schemas/ReponseRendezVousDto"
           }
         },
         "required": [
@@ -2961,7 +3060,7 @@
                 "$ref": "#/components/schemas/SuiviFinancementDto"
               }
             ],
-            "description": "Le financement COURANT du dossier, restreint aux types credit/leasing — null si aucun (RV-44).",
+            "description": "Le financement COURANT du dossier, restreint aux types credit/leasing — null si aucun (RV-44), pour un rôle autorisé. ABSENT (pas null) = le rôle appelant n'a pas ventes.financement.lire (FAILLE CORRIGÉE, audit sécurité).",
             "nullable": true,
             "type": "object"
           },
@@ -3002,7 +3101,6 @@
           "dossierStatut",
           "clientAcheteur",
           "vehicule",
-          "financement",
           "garantie",
           "prochaineEcheanceLe"
         ],
@@ -4030,6 +4128,31 @@
         ],
         "type": "object"
       },
+      "PageRendezVousDto": {
+        "properties": {
+          "curseurSuivant": {
+            "description": "Opaque base64url ; null = fin de liste.",
+            "nullable": true,
+            "type": "string"
+          },
+          "donnees": {
+            "items": {
+              "$ref": "#/components/schemas/ReponseRendezVousDto"
+            },
+            "type": "array"
+          },
+          "limite": {
+            "example": 50,
+            "type": "number"
+          }
+        },
+        "required": [
+          "donnees",
+          "curseurSuivant",
+          "limite"
+        ],
+        "type": "object"
+      },
       "PageReponsePaiementDto": {
         "properties": {
           "curseurSuivant": {
@@ -4479,6 +4602,7 @@
               "VENTE_VEHICULE_MANQUANT",
               "VENTE_FINANCEMENT_NON_CONFIRME",
               "VENTE_LIVRAISON_EXPERTISE_REQUISE",
+              "VENTE_LIVRAISON_FACTURE_REQUISE",
               "VENTE_LIVRAISON_INCOMPLETE",
               "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE",
               "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE",
@@ -4490,7 +4614,8 @@
               "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE",
               "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE",
               "LIGNE_DOCUMENT_STOCK_LIEE",
-              "IMPUTATION_DEVISE_INCOHERENTE"
+              "IMPUTATION_DEVISE_INCOHERENTE",
+              "IMPUTATION_DOCUMENT_NON_REGLABLE"
             ],
             "type": "string"
           },
@@ -4628,6 +4753,7 @@
               "VENTE_VEHICULE_MANQUANT",
               "VENTE_FINANCEMENT_NON_CONFIRME",
               "VENTE_LIVRAISON_EXPERTISE_REQUISE",
+              "VENTE_LIVRAISON_FACTURE_REQUISE",
               "VENTE_LIVRAISON_INCOMPLETE",
               "VENTE_DOSSIER_ANNULATION_IMPOSSIBLE",
               "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE",
@@ -4639,7 +4765,8 @@
               "CONNECTEUR_EXECUTION_TRANSITION_INTERDITE",
               "ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE",
               "LIGNE_DOCUMENT_STOCK_LIEE",
-              "IMPUTATION_DEVISE_INCOHERENTE"
+              "IMPUTATION_DEVISE_INCOHERENTE",
+              "IMPUTATION_DOCUMENT_NON_REGLABLE"
             ],
             "type": "string"
           },
@@ -5010,6 +5137,25 @@
           "iban",
           "qrIban",
           "version"
+        ],
+        "type": "object"
+      },
+      "ReponseCapaciteRendezVousDto": {
+        "properties": {
+          "jours": {
+            "items": {
+              "$ref": "#/components/schemas/CapaciteJourRendezVousDto"
+            },
+            "type": "array"
+          },
+          "siteId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "siteId",
+          "jours"
         ],
         "type": "object"
       },
@@ -5710,18 +5856,19 @@
                 "$ref": "#/components/schemas/FinancementResumeDto"
               }
             ],
-            "description": "Le financement COURANT — null uniquement en prospection.",
+            "description": "Le financement COURANT — null uniquement en prospection, pour un rôle autorisé. ABSENT (pas null) = le rôle appelant n'a pas ventes.financement.lire (FAILLE CORRIGÉE, audit sécurité).",
             "nullable": true,
             "type": "object"
           },
           "financements": {
-            "description": "Historique COMPLET des tentatives de financement (CV-03).",
+            "description": "Historique COMPLET des tentatives de financement (CV-03). ABSENT si le rôle n'a pas ventes.financement.lire — même doctrine que `financement` ci-dessus.",
             "items": {
               "$ref": "#/components/schemas/FinancementResumeDto"
             },
             "type": "array"
           },
           "financementsTronques": {
+            "description": "ABSENT dans les mêmes conditions que `financements`.",
             "type": "boolean"
           },
           "id": {
@@ -5780,7 +5927,7 @@
                 "$ref": "#/components/schemas/RepriseResumeDto"
               }
             ],
-            "description": "null = pas de reprise sur ce dossier (RV-25).",
+            "description": "null = pas de reprise sur ce dossier (RV-25), pour un rôle autorisé. ABSENT (clé manquante, pas null) = le rôle appelant n'a pas ventes.reprise.lire — omission complète de l'entité (FAILLE CORRIGÉE, audit sécurité).",
             "nullable": true,
             "type": "object"
           },
@@ -5833,10 +5980,6 @@
           "clientAcheteur",
           "clientFacture",
           "clientConducteur",
-          "reprise",
-          "financement",
-          "financements",
-          "financementsTronques",
           "documents",
           "documentsTronques",
           "documentsRequis",
@@ -6660,6 +6803,54 @@
         ],
         "type": "object"
       },
+      "ReponseMotifRendezVousDto": {
+        "properties": {
+          "actif": {
+            "type": "boolean"
+          },
+          "code": {
+            "example": "SERVICE",
+            "type": "string"
+          },
+          "dureeDefautMinutes": {
+            "description": "RV-02 : non nul seulement pour un motif à créneau réel (expertise, remorquage…).",
+            "nullable": true,
+            "type": "number"
+          },
+          "heuresAtelierDefautCentiemes": {
+            "description": "RV-01 : non nul seulement pour un motif qui consomme de la capacité de journée.",
+            "nullable": true,
+            "type": "number"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "libelleDe": {
+            "nullable": true,
+            "type": "string"
+          },
+          "libelleFr": {
+            "example": "Entretien / service courant",
+            "type": "string"
+          },
+          "libelleIt": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "libelleFr",
+          "libelleDe",
+          "libelleIt",
+          "dureeDefautMinutes",
+          "heuresAtelierDefautCentiemes",
+          "actif"
+        ],
+        "type": "object"
+      },
       "ReponseOrdreReparationDemandeDto": {
         "properties": {
           "id": {
@@ -6774,6 +6965,10 @@
               "$ref": "#/components/schemas/ReponseDevisComplementaireDto"
             },
             "type": "array"
+          },
+          "enRetard": {
+            "description": "Calculé UNE SEULE FOIS côté serveur (jamais recalculé par le client) : true seulement si restitutionPromiseLe est renseigné, que le statut est encore actif (ni restitue, cloture, ni annule) et que l’instant courant dépasse la promesse. Une date promise absente n’est JAMAIS un retard. Toujours peuplé par le serveur malgré le type facultatif (voir le contrat).",
+            "type": "boolean"
           },
           "etatAffiche": {
             "description": "Le plus bloquant des attentes, sinon le statut. Calculé UNE FOIS côté serveur.",
@@ -7019,6 +7214,7 @@
           "kilometrageSortie",
           "restitutionPromiseLe",
           "restitutionInitialeLe",
+          "enRetard",
           "localisation",
           "sousTraitantNom",
           "ordreReparationParentId",
@@ -7549,6 +7745,156 @@
         "required": [
           "resultats",
           "plaqueInterchangeable"
+        ],
+        "type": "object"
+      },
+      "ReponseRendezVousDto": {
+        "properties": {
+          "absentConstateLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "annuleLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "client": {
+            "$ref": "#/components/schemas/ClientResumeOrDto"
+          },
+          "commentaire": {
+            "description": "Verbatim secondaire, jamais un substitut au motif.",
+            "nullable": true,
+            "type": "string"
+          },
+          "confirmeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "creeLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "creeParId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "dateLe": {
+            "example": "2026-08-20",
+            "format": "date",
+            "type": "string"
+          },
+          "dureeEstimeeMinutes": {
+            "description": "Figée à la création depuis le motif, modifiable ensuite.",
+            "type": "number"
+          },
+          "heureSouhaitee": {
+            "example": "08:00",
+            "nullable": true,
+            "type": "string"
+          },
+          "honoreLe": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "modifieLe": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "moment": {
+            "enum": [
+              "matin",
+              "apres_midi",
+              "toute_journee"
+            ],
+            "type": "string"
+          },
+          "motif": {
+            "$ref": "#/components/schemas/ReponseMotifRendezVousDto"
+          },
+          "motifAnnulation": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ordreReparationId": {
+            "description": "L'OR déjà créé par ce rendez-vous (mode « OR anticipé »). `null` tant qu'aucun n'existe.",
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "origine": {
+            "enum": [
+              "reservation",
+              "retroactif"
+            ],
+            "type": "string"
+          },
+          "siteId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "statut": {
+            "enum": [
+              "confirme",
+              "honore",
+              "absent",
+              "annule"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "service",
+              "reparation",
+              "diagnostic",
+              "expertise",
+              "pneus",
+              "carrosserie",
+              "retouche",
+              "interne"
+            ],
+            "type": "string"
+          },
+          "vehicule": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VehiculeResumeOrDto"
+              }
+            ],
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "siteId",
+          "client",
+          "vehicule",
+          "type",
+          "motif",
+          "commentaire",
+          "dateLe",
+          "moment",
+          "heureSouhaitee",
+          "dureeEstimeeMinutes",
+          "statut",
+          "motifAnnulation",
+          "origine",
+          "confirmeLe",
+          "honoreLe",
+          "absentConstateLe",
+          "annuleLe",
+          "ordreReparationId",
+          "creeParId",
+          "creeLe",
+          "modifieLe"
         ],
         "type": "object"
       },
@@ -8558,7 +8904,8 @@
             "enum": [
               "annulation_ligne",
               "refus_devis",
-              "liberation_manuelle"
+              "liberation_manuelle",
+              "liberation_forcage_stock"
             ],
             "nullable": true,
             "type": "string"
@@ -8639,12 +8986,23 @@
             "type": "string"
           },
           "prixVenteTtcCentimes": {
+            "description": "TVA comprise (RP-36) — jamais le prix hors taxe.",
             "type": "number"
           },
           "quantiteDisponibleMillieme": {
+            "description": "Fiable UNIQUEMENT si statutSuivi = 'suivi' ; sinon vaut 0 par convention et NE DOIT PAS être lu comme un stock nul — voir statutSuivi.",
             "type": "number"
           },
           "referencePrincipale": {
+            "type": "string"
+          },
+          "statutSuivi": {
+            "description": "Suivi de stock au site demandé : 'suivi' (quantiteDisponibleMillieme fiable, y compris à 0), 'nonSuiviSurCeSite' (suivi ailleurs, inconnu ici) ou 'nonSuiviNullePart' (jamais mis en stock). À lire AVANT quantiteDisponibleMillieme.",
+            "enum": [
+              "suivi",
+              "nonSuiviSurCeSite",
+              "nonSuiviNullePart"
+            ],
             "type": "string"
           }
         },
@@ -8655,6 +9013,7 @@
           "referencePrincipale",
           "prixVenteTtcCentimes",
           "quantiteDisponibleMillieme",
+          "statutSuivi",
           "emplacement",
           "estEchangeStandard",
           "montantConsigneTtcCentimes"
@@ -9163,7 +9522,10 @@
           "vehicule",
           "client",
           "ordre_reparation",
-          "document_vente"
+          "document_vente",
+          "article",
+          "fournisseur",
+          "depot_pneu"
         ],
         "type": "string"
       },
@@ -9586,7 +9948,7 @@
     "contact": {},
     "description": "API du DMS (Dealer Management System) pour garages et concessions suisses. Contrat d'erreur unique application/problem+json (schéma ProblemeDetailCommunDto, code machine stable). Le tenant est toujours résolu depuis la session — aucun endpoint n'accepte de tenantId en paramètre.",
     "title": "API dmsforall (DFA)",
-    "version": "0.1.0-dev"
+    "version": "0.1.261+65ded3d"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -9915,6 +10277,13 @@
         "requestBody": {
           "content": {
             "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "designation": "Plaquettes de frein avant"
+                  }
+                }
+              },
               "schema": {
                 "properties": {
                   "categorie": {
@@ -9991,6 +10360,7 @@
               }
             }
           },
+          "description": "Corps brut transmis tel quel au service (jamais pré-parsé ici) : `schemaModificationArticle` porte `estEchangeStandard.default(false)`, que `.partial()` rend facultatif SANS annuler le défaut — un parse ici l'appliquerait à tort à un corps qui ne touche pas `estEchangeStandard` (F-01-bis). Voir `ServiceArticle.modifier`.",
           "required": true
         },
         "responses": {
@@ -12357,8 +12727,7 @@
                 },
                 "required": [
                   "type",
-                  "langueCorrespondance",
-                  "adressePrincipale"
+                  "langueCorrespondance"
                 ],
                 "type": "object"
               }
@@ -13028,6 +13397,7 @@
               }
             }
           },
+          "description": "Corps brut transmis tel quel au service (jamais pré-parsé ici) : `schemaModificationAdresseClient` porte `pays.default('CH')`, qui s'appliquerait à tort sur un corps qui ne touche pas `pays` si le parse avait lieu dans ce contrôleur — voir `ServiceClientSousCollections.modifierAdresse`.",
           "required": true
         },
         "responses": {
@@ -13088,6 +13458,111 @@
           }
         ],
         "summary": "Modification d'une adresse (RM-03).",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/clients/{clientId}/arreter-contact": {
+      "post": {
+        "description": "Un client peut demander à ne plus être contacté (litige, mandataire) — ce drapeau prime sur tout consentement marketing, y compris pour une relance de facture impayée, où aucun consentement marketing n'est pourtant requis. `motif` obligatoire. GESTE DÉDIÉ, jamais un champ du `PATCH` générique — même doctrine que la désactivation ci-dessus. Rôle vérifié EN SERVICE (`client.contact.arreter`, droit provisoire — voir `droits-provisoires.ts`).",
+        "operationId": "ClientController_arreterContact",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motif": "Client en litige avec le garage, mandataire désigné pour tout contact."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Motif manquant."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Rôle non autorisé (contrôle provisoire en service)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Pose l'arrêt de tout contact d'un client (RA-14).",
         "tags": [
           "Clients"
         ]
@@ -13924,6 +14399,7 @@
               }
             }
           },
+          "description": "Corps brut transmis tel quel au service — même patron que `ClientAdresseController.modifier`, pour rester protégé si un `.default(...)` était ajouté un jour à ce schéma.",
           "required": true
         },
         "responses": {
@@ -14355,6 +14831,111 @@
           }
         ],
         "summary": "Ordres de réparation du client (RM-21).",
+        "tags": [
+          "Clients"
+        ]
+      }
+    },
+    "/clients/{clientId}/reprendre-contact": {
+      "post": {
+        "description": "Pendant symétrique de `arreter-contact` — `motif` obligatoire (traçabilité 'pourquoi', conservé en note interne puisque `client.motif` documente uniquement la raison COURANTE du drapeau, effacée à la levée). Rôle vérifié EN SERVICE (`client.contact.reprendre`, droit provisoire — voir `droits-provisoires.ts`).",
+        "operationId": "ClientController_reprendreContact",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motif": "Litige résolu, le client a demandé la reprise du contact le 06.08.2026."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientAvecAvertissementsDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Motif manquant."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Rôle non autorisé (contrôle provisoire en service)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Lève l'arrêt de tout contact d'un client (RA-14).",
         "tags": [
           "Clients"
         ]
@@ -15831,7 +16412,7 @@
     },
     "/documents-vente": {
       "get": {
-        "description": "SOUS-ENSEMBLE des filtres du contrat (`siteId`, `typeDocument`, `statut`, `clientId`, `vehiculeId`) — voir `ServiceDocumentsVente.lister`.",
+        "description": "SOUS-ENSEMBLE des filtres du contrat (`siteId`, `typeDocument`, `statut`, `clientId`, `vehiculeId`, `enRetard`, `relanceNiveau`) — voir `ServiceDocumentsVente.lister`. `enRetard=true` : facture `emis`, échéance dépassée, solde encore dû (même règle que `ReponseDocumentVente.enRetard`, une facture annulée par avoir en est exclue). `relanceNiveau` : égalité stricte sur le palier de relance déjà atteint.",
         "operationId": "DocumentVenteController_lister",
         "parameters": [],
         "responses": {
@@ -16681,6 +17262,38 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {}
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -16892,6 +17505,38 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {}
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -17458,6 +18103,7 @@
               }
             }
           },
+          "description": "Corps brut transmis tel quel au service (jamais pré-parsé ici) : `schemaModificationLigneDocument` porte `quantiteMillieme.default(1000)` et `regimeTva.default('normal')`, qui s'appliqueraient à tort sur un corps qui ne touche ni l’un ni l’autre si le parse avait lieu dans ce contrôleur — défaut critique corrigé (facturait la quantité/le régime par défaut), voir `ServiceDocumentsVente.modifierLigne`.",
           "required": true
         },
         "responses": {
@@ -19227,7 +19873,7 @@
     },
     "/dossiers-vente/{dossierVenteId}/livrer": {
       "post": {
-        "description": "Bascule la détention du véhicule vers le client conducteur (ou acheteur), motif `vente`.",
+        "description": "Bascule la détention du véhicule vers le client conducteur (ou acheteur), motif `vente`. Exige que le véhicule soit déjà `vendu` — la facture doit avoir été émise AVANT cet appel (RV-37) : l’enchaînement réel du parcours est engager → préparer → prêt à livrer → **facturer** → livrer, pas « prêt à livrer → livrer » directement. `dateLivraisonEffective` accepte le jour même (cas le plus courant en concession, issue #13) : une détention déjà ouverte pour ce véhicule et démarrée ce même jour civil n’est pas un conflit ; seule une date antérieure au début d’une détention déjà enregistrée reste refusée.",
         "operationId": "DossierVenteController_livrer",
         "parameters": [
           {
@@ -19357,7 +20003,7 @@
                 }
               }
             },
-            "description": "VENTE_DOSSIER_TRANSITION_INTERDITE, VENTE_VEHICULE_MANQUANT ou VENTE_VEHICULE_INDISPONIBLE (facture pas encore émise)."
+            "description": "VENTE_DOSSIER_TRANSITION_INTERDITE, VENTE_VEHICULE_MANQUANT ou VENTE_LIVRAISON_FACTURE_REQUISE (la facture de vente doit être émise avant la livraison — RV-37)."
           }
         },
         "security": [
@@ -21045,6 +21691,46 @@
         "summary": "Réactive un fournisseur (retour à `actif`).",
         "tags": [
           "Pièces — Fournisseurs"
+        ]
+      }
+    },
+    "/motifs-rendez-vous": {
+      "get": {
+        "operationId": "MotifsRendezVousController_lister",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReponseMotifRendezVousDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Catalogue des motifs de rendez-vous, avec leur durée par défaut (RV-01/RV-02).",
+        "tags": [
+          "Rendez-vous"
         ]
       }
     },
@@ -23741,6 +24427,7 @@
               }
             }
           },
+          "description": "Corps brut transmis tel quel au service (jamais pré-parsé ici) — voir `ServiceLigneOr.modifier`.",
           "required": true
         },
         "responses": {
@@ -28230,7 +28917,7 @@
     },
     "/recherche": {
       "get": {
-        "description": "Projection, pas une collection : aucun curseur, `limite` <= 50 (défaut 20). La normalisation (casse, accents, espaces, apostrophes, tirets, points) est strictement serveur (§7.5) — le front ne normalise que pour l'affichage. `types` est répétable (`?types=vehicule&types=client`), jamais une liste séparée par virgules. Une plaque historique (RM-17) reste trouvable : `correspondance.historique = true` + `porteeJusquLe`. Une plaque interchangeable (RM-18) renvoie les DEUX véhicules et `plaqueInterchangeable = true` — le serveur ne choisit jamais à la place de l'utilisateur.",
+        "description": "Projection, pas une collection : aucun curseur, `limite` <= 50 (défaut 20). La normalisation (casse, accents, espaces, apostrophes, tirets, points) est strictement serveur (§7.5) — le front ne normalise que pour l'affichage. `types` est répétable (`?types=vehicule&types=client`), jamais une liste séparée par virgules. Une plaque historique (RM-17) reste trouvable : `correspondance.historique = true` + `porteeJusquLe`. Une plaque interchangeable (RM-18) renvoie les DEUX véhicules et `plaqueInterchangeable = true` — le serveur ne choisit jamais à la place de l'utilisateur. Quatre natures (`document_vente`, `article`, `fournisseur`, `depot_pneu`) portent chacune un portillon de droit supplémentaire, indépendant de `recherche.executer` : un rôle sans le droit correspondant (`facturation.document.lire`, `pieces.article.lire`, `pieces.fournisseur.lire`, `pneus.depot.lire`) ne voit jamais ce type de résultat, même demandé explicitement.",
         "operationId": "RechercheController_rechercher",
         "parameters": [
           {
@@ -28244,7 +28931,7 @@
             }
           },
           {
-            "description": "Répétable. Par défaut, les trois natures sont cherchées.",
+            "description": "Répétable. Par défaut, les sept natures sont cherchées (sous réserve des droits de rôle propres à `document_vente`/`article`/`fournisseur`/`depot_pneu`).",
             "explode": true,
             "in": "query",
             "name": "types",
@@ -28255,7 +28942,10 @@
                   "vehicule",
                   "client",
                   "ordre_reparation",
-                  "document_vente"
+                  "document_vente",
+                  "article",
+                  "fournisseur",
+                  "depot_pneu"
                 ],
                 "type": "string"
               },
@@ -28329,7 +29019,7 @@
             "cookie": []
           }
         ],
-        "summary": "Recherche comptoir unifiée — véhicules, clients, ordres de réparation.",
+        "summary": "Recherche comptoir unifiée — véhicules, clients, ordres de réparation, documents de vente, articles, fournisseurs, dépôts de pneus.",
         "tags": [
           "Recherche"
         ]
@@ -28666,6 +29356,7 @@
               }
             }
           },
+          "description": "Corps PARTIEL — seuls les champs présents sont modifiés. `tauxTvaPourmille` porte un défaut zod (81‰) qui ne s'applique qu'à la CRÉATION : un `PATCH` qui l'omet ne touche jamais le taux existant (F-01-ter), le distinguer du cas où il est envoyé avec la même valeur exige de lire le corps brut — voir `service-prestations.ts`.",
           "required": true
         },
         "responses": {
@@ -29234,6 +29925,987 @@
         "summary": "Upsert idempotent de la configuration d’un type de relance (une ligne par (tenant, type), §5).",
         "tags": [
           "Relances"
+        ]
+      }
+    },
+    "/rendez-vous": {
+      "get": {
+        "operationId": "RendezVousController_lister",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageRendezVousDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres, tri ou curseur invalides."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Rendez-vous de la période demandée, pour un site.",
+        "tags": [
+          "Rendez-vous"
+        ]
+      },
+      "post": {
+        "description": "`Idempotency-Key` obligatoire (uuid v4). Surbooking jamais bloquant : avertit via `PLANNING_CAPACITE_DEPASSEE` si la capacité du (jour, moment) est déjà atteinte.",
+        "operationId": "RendezVousController_creer",
+        "parameters": [
+          {
+            "description": "uuid v4.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "clientId": "22222222-2222-2222-2222-222222222222",
+                    "dateLe": "2026-08-20",
+                    "moment": "matin",
+                    "motifId": "33333333-3333-3333-3333-333333333333",
+                    "siteId": "11111111-1111-1111-1111-111111111111",
+                    "type": "service"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "clientId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "commentaire": {
+                    "anyOf": [
+                      {
+                        "maxLength": 4000,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "dateLe": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  },
+                  "dureeEstimeeMinutes": {
+                    "anyOf": [
+                      {
+                        "maximum": 1440,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "heureSouhaitee": {
+                    "anyOf": [
+                      {
+                        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "moment": {
+                    "enum": [
+                      "matin",
+                      "apres_midi",
+                      "toute_journee"
+                    ],
+                    "type": "string"
+                  },
+                  "motifId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "siteId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "service",
+                      "reparation",
+                      "diagnostic",
+                      "expertise",
+                      "pneus",
+                      "carrosserie",
+                      "retouche",
+                      "interne"
+                    ],
+                    "type": "string"
+                  },
+                  "vehiculeId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "siteId",
+                  "clientId",
+                  "motifId",
+                  "type",
+                  "dateLe",
+                  "moment"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeRendezVousDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide, Idempotency-Key manquante/mal formée, ou motif sans durée par défaut sans dureeEstimeeMinutes fourni."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Client, véhicule, motif ou site introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "IDEMPOTENCE_CONFLIT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Prise de rendez-vous (§6 métier) — motif OBLIGATOIRE (arbitrage @laupernoe #2).",
+        "tags": [
+          "Rendez-vous"
+        ]
+      }
+    },
+    "/rendez-vous/{id}": {
+      "get": {
+        "operationId": "RendezVousController_obtenir",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseRendezVousDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Rendez-vous introuvable pour ce tenant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Fiche complète du rendez-vous.",
+        "tags": [
+          "Rendez-vous"
+        ]
+      },
+      "patch": {
+        "description": "N'accepte jamais de statut — voir les actions dédiées (arrivée/absence/annulation).",
+        "operationId": "RendezVousController_modifier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "dateLe": "2026-08-21",
+                    "moment": "apres_midi"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "commentaire": {
+                    "anyOf": [
+                      {
+                        "maxLength": 4000,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "dateLe": {
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "type": "string"
+                  },
+                  "dureeEstimeeMinutes": {
+                    "maximum": 1440,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "heureSouhaitee": {
+                    "anyOf": [
+                      {
+                        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "moment": {
+                    "enum": [
+                      "matin",
+                      "apres_midi",
+                      "toute_journee"
+                    ],
+                    "type": "string"
+                  },
+                  "vehiculeId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseRendezVousDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Rendez-vous ou véhicule introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "RDV_TRANSITION_INTERDITE (déjà honoré/absent/annulé)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Déplace ou corrige un rendez-vous encore `confirme` (RV-16).",
+        "tags": [
+          "Rendez-vous"
+        ]
+      }
+    },
+    "/rendez-vous/{id}/absence": {
+      "post": {
+        "operationId": "RendezVousTransitionsController_absence",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {}
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseRendezVousDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Rendez-vous introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "RDV_TRANSITION_INTERDITE (déjà honoré/absent/annulé)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Le véhicule ne s’est pas présenté (RV-24) — constat manuel, sans motif.",
+        "tags": [
+          "Rendez-vous — transitions"
+        ]
+      }
+    },
+    "/rendez-vous/{id}/annuler": {
+      "post": {
+        "operationId": "RendezVousTransitionsController_annuler",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motif": "Client reporte, véhicule pas encore prêt."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "motif": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motif"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseRendezVousDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Motif manquant."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Rendez-vous introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "RDV_ANNULATION_IMPOSSIBLE (déjà honoré/absent/annulé)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Annulation — motif obligatoire, jamais silencieuse.",
+        "tags": [
+          "Rendez-vous — transitions"
+        ]
+      }
+    },
+    "/rendez-vous/{id}/arrivee": {
+      "post": {
+        "description": "`honore` n'est jamais déclaré manuellement (RV-18), c'est un effet de bord de cette action. Amorce `restitutionPromiseLe` depuis la durée estimée du rendez-vous (le cœur du chantier).",
+        "operationId": "RendezVousTransitionsController_arrivee",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "uuid v4 — porte sur la création de l'OR si aucun n'est encore lié à ce rendez-vous.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "kilometrageEntree": 84500,
+                    "unite": "km"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "conducteurPresentNom": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "confirmations": {
+                    "items": {
+                      "enum": [
+                        "CLIENT_BLOQUE",
+                        "VEHICULE_DEUX_OR_OUVERTS",
+                        "RDV_RESSOURCE_CHEVAUCHEMENT",
+                        "RDV_HORS_OUVERTURE",
+                        "PRET_VEHICULE_INDISPONIBLE",
+                        "OR_SANS_RDV"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  },
+                  "kilometrageEntree": {
+                    "maximum": 9999999,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "motifDifferee": {
+                    "maxLength": 500,
+                    "minLength": 3,
+                    "type": "string"
+                  },
+                  "signatureDifferee": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "unite": {
+                    "default": "km",
+                    "enum": [
+                      "km",
+                      "mi"
+                    ],
+                    "type": "string"
+                  },
+                  "vehiculeId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "kilometrageEntree"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeRendezVousTransitionDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide, ou Idempotency-Key manquante/mal formée."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Rendez-vous introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "RDV_TRANSITION_INTERDITE ou RDV_IDENTIFICATION_INCOMPLETE (aucun véhicule connu)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Le véhicule arrive : réutilise T-03 (`planifie -> ouvert`) si un OR est déjà lié, sinon crée l'OR directement `ouvert` — jamais une seconde machine à états.",
+        "tags": [
+          "Rendez-vous — transitions"
+        ]
+      }
+    },
+    "/rendez-vous/capacite": {
+      "get": {
+        "description": "`capaciteMinutes: null` + `etat: 'non_definie'` sur un site jamais paramétré : jamais `0`, jamais `'disponible'`.",
+        "operationId": "RendezVousController_capacite",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseCapaciteRendezVousDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Filtres invalides ou période trop longue."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Capacité par jour et par moment (RV-06/RV-07/RV-08) — informe, ne bloque jamais.",
+        "tags": [
+          "Rendez-vous"
         ]
       }
     },
@@ -32194,7 +33866,7 @@
         ]
       },
       "post": {
-        "description": "Une convocation cantonale (`sourceEcheance: \"convocation\"`) prime toujours sur une périodicité calculée.",
+        "description": "Une convocation cantonale (`sourceEcheance: \"convocation\"`) prime toujours sur une périodicité calculée. `delaiContreVisiteLe` et `dateContreVisiteLe`, si fournies, doivent être postérieures ou égales à `dateLe` : la contre-visite suit toujours l’expertise qui la déclenche, jamais l’inverse.",
         "operationId": "VehiculeExpertiseController_creer",
         "parameters": [
           {
@@ -32322,7 +33994,7 @@
                 }
               }
             },
-            "description": "Corps invalide."
+            "description": "Corps invalide, ou `delaiContreVisiteLe`/`dateContreVisiteLe` antérieure à `dateLe` — la contre-visite suit toujours l’expertise qui la déclenche (RM-28) ; `erreurs[].champ` nomme le champ en cause."
           },
           "401": {
             "content": {

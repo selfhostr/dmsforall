@@ -67,6 +67,12 @@
       "emplacement": "Standort: {emplacement}",
       "emplacementNonRenseigne": "Standort nicht erfasst",
       "lienHangar": "Im Reifenlager ansehen"
+    },
+    "rendezVous": {
+      "titre": "Nächste Termine",
+      "prendre": "Termin vereinbaren",
+      "vide": "Kein Termin für dieses Fahrzeug geplant.",
+      "creeTitre": "Termin gespeichert"
     }
   },
   "archiver": {
@@ -103,6 +109,11 @@
     "cantonExemple": "VS",
     "type": "Typ",
     "historique": "Kennzeichen-Verlauf"
+  },
+  "collisionPlaque": {
+    "avecDetail": "Kennzeichen {plaque} wird bereits seit dem {debutLe} von {vehicule} getragen.",
+    "sansDetail": "Dieses Kennzeichen ist bereits einem anderen Fahrzeug zugeordnet.",
+    "voirVehicule": "Dieses Fahrzeug ansehen"
   },
   "detentions": {
     "titre": "Halter",
@@ -264,6 +275,7 @@
     "travauxReportes": "Zurückgestellte Arbeiten",
     "campagnes": "Offene Rückrufe",
     "expertise": "MFK nächste Fälligkeit",
+    "expertiseEchue": "MFK abgelaufen",
     "garantie": "Garantie",
     "alerteClient": "Kundenalert",
     "importe": "Importiertes Fahrzeug",
@@ -280,7 +292,7 @@
     "detentions": "Kein Halterwechsel registriert"
   },
   "badges": {
-    "identificationIncomplete": "Identifikation unvollständig"
+    "identificationIncomplete": "Fahrgestellnummer fehlt"
   },
   "emplacement": {
     "titre": "Standort",

@@ -2,6 +2,9 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeAll, describe, it, vi } from 'vitest';
 
+import '@/i18n';
+import i18n from '@/i18n';
+
 import { renduAvecQueryClient } from '@/test/utils';
 
 import { DialogueAjoutLigneOr } from '@/ecrans/atelier/DialogueAjoutLigneOr';
@@ -36,11 +39,9 @@ const OR_ID = '44444444-4444-4444-8444-444444444444';
 describe('Accessibilité WCAG 2.1 AA — dialogue « Ajouter une ligne »', () => {
   it('dialogue ouvert, formulaire de ligne au repos', async () => {
     const utilisateur = userEvent.setup();
-    renduAvecQueryClient(<DialogueAjoutLigneOr orId={OR_ID} />);
+    renduAvecQueryClient(<DialogueAjoutLigneOr orId={OR_ID} siteId="site-1" />);
 
-    await utilisateur.click(
-      screen.getByRole('button', { name: 'Ajouter un travail ou une pièce' }),
-    );
+    await utilisateur.click(screen.getByRole('button', { name: i18n.t('or:lignes.ajouter') }));
     await screen.findByRole('dialog');
 
     const audit = await auditerAccessibiliteEcran(

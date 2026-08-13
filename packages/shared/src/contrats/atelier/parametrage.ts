@@ -211,119 +211,136 @@ export interface ReponseTransitions {
  * `fonctionnalites` ne sont jamais entrants : le premier est géré par le serveur, le second est
  * un drapeau d'étape, pas un réglage de garage.
  */
-export const schemaModificationParametresAtelier = z.object({
-  or: z
-    .object({
-      prefixe: z.string().trim().min(1).max(10).optional(),
-      porteeNumerotation: z.enum(PORTEES_NUMEROTATION).optional(),
-      resetAnnuel: z.boolean().optional(),
-      etatPlanifieActif: z.boolean().optional(),
-      sansRdvAutorise: z.boolean().optional(),
-      rdvRetroactifAuto: z.boolean().optional(),
-      deuxOrMemeVehicule: z.enum(POLITIQUES_DEUX_OR_MEME_VEHICULE).optional(),
-    })
-    .optional(),
-  reception: z
-    .object({
-      kmEntreeObligatoire: z.boolean().optional(),
-      kmSortieObligatoire: z.boolean().optional(),
-      signature: z.enum(POLITIQUES_SIGNATURE_RECEPTION).optional(),
-      plafondDefautCentimes: schemaCentimesPositif.optional(),
-    })
-    .optional(),
-  travaux: z
-    .object({
-      uniteTemps: z.enum(UNITES_TEMPS).optional(),
-      arrondiPointage: z.enum(ARRONDIS_POINTAGE).optional(),
-      chevauchementPointageAutorise: z.boolean().optional(),
-      pointageObligatoirePourTerminer: z.boolean().optional(),
-      controleQualite: z.enum(POLITIQUES_CONTROLE_QUALITE).optional(),
-      dureeMaxPointageHeures: z.number().int().min(1).max(24).optional(),
-    })
-    .optional(),
-  facturation: z
-    .object({
-      multiPayeursAutorise: z.boolean().optional(),
-      restitutionAvantPaiement: z.boolean().optional(),
-      piecesClientAutorisees: z.boolean().optional(),
-      politiqueDemontageRefuse: z.enum(POLITIQUES_DEMONTAGE_REFUSE).optional(),
-      seuilDemontageCentimes: schemaCentimesPositif.nullish(),
-      produitsAtelier: z
-        .object({
-          mode: z.enum(MODES_PRODUITS_ATELIER),
-          pourmille: schemaPourmille.nullish(),
-          plafondCentimes: schemaCentimesPositif.nullish(),
-        })
-        .optional(),
-    })
-    .optional(),
-  documents: z
-    .object({
-      langue: z.enum(POLITIQUES_LANGUE_DOCUMENT).optional(),
-      mentionSecurite: z.enum(POLITIQUES_MENTION_SECURITE).optional(),
-    })
-    .optional(),
-  vehicule: z
-    .object({
-      expertiseAlerteMois: z.number().int().min(0).max(24).optional(),
-      visibiliteHistoriqueNouveauDetenteur: z.enum(VISIBILITES_HISTORIQUE_VEHICULE).optional(),
-    })
-    .optional(),
-  planning: z
-    .object({
-      noShowSeuilAlerte: z.number().int().min(0).max(20).optional(),
-      tamponPretMinutes: z.number().int().min(0).max(1440).optional(),
-      rappel: z
-        .object({
-          canal: z.enum(CANAUX_RAPPEL),
-          joursAvant: z.number().int().min(0).max(30),
-        })
-        .optional(),
-    })
-    .optional(),
-});
+export const schemaModificationParametresAtelier = z
+  .object({
+    or: z
+      .object({
+        prefixe: z.string().trim().min(1).max(10).optional(),
+        porteeNumerotation: z.enum(PORTEES_NUMEROTATION).optional(),
+        resetAnnuel: z.boolean().optional(),
+        etatPlanifieActif: z.boolean().optional(),
+        sansRdvAutorise: z.boolean().optional(),
+        rdvRetroactifAuto: z.boolean().optional(),
+        deuxOrMemeVehicule: z.enum(POLITIQUES_DEUX_OR_MEME_VEHICULE).optional(),
+      })
+      .strict()
+      .optional(),
+    reception: z
+      .object({
+        kmEntreeObligatoire: z.boolean().optional(),
+        kmSortieObligatoire: z.boolean().optional(),
+        signature: z.enum(POLITIQUES_SIGNATURE_RECEPTION).optional(),
+        plafondDefautCentimes: schemaCentimesPositif.optional(),
+      })
+      .strict()
+      .optional(),
+    travaux: z
+      .object({
+        uniteTemps: z.enum(UNITES_TEMPS).optional(),
+        arrondiPointage: z.enum(ARRONDIS_POINTAGE).optional(),
+        chevauchementPointageAutorise: z.boolean().optional(),
+        pointageObligatoirePourTerminer: z.boolean().optional(),
+        controleQualite: z.enum(POLITIQUES_CONTROLE_QUALITE).optional(),
+        dureeMaxPointageHeures: z.number().int().min(1).max(24).optional(),
+      })
+      .strict()
+      .optional(),
+    facturation: z
+      .object({
+        multiPayeursAutorise: z.boolean().optional(),
+        restitutionAvantPaiement: z.boolean().optional(),
+        piecesClientAutorisees: z.boolean().optional(),
+        politiqueDemontageRefuse: z.enum(POLITIQUES_DEMONTAGE_REFUSE).optional(),
+        seuilDemontageCentimes: schemaCentimesPositif.nullish(),
+        produitsAtelier: z
+          .object({
+            mode: z.enum(MODES_PRODUITS_ATELIER),
+            pourmille: schemaPourmille.nullish(),
+            plafondCentimes: schemaCentimesPositif.nullish(),
+          })
+          .strict()
+          .optional(),
+      })
+      .strict()
+      .optional(),
+    documents: z
+      .object({
+        langue: z.enum(POLITIQUES_LANGUE_DOCUMENT).optional(),
+        mentionSecurite: z.enum(POLITIQUES_MENTION_SECURITE).optional(),
+      })
+      .strict()
+      .optional(),
+    vehicule: z
+      .object({
+        expertiseAlerteMois: z.number().int().min(0).max(24).optional(),
+        visibiliteHistoriqueNouveauDetenteur: z.enum(VISIBILITES_HISTORIQUE_VEHICULE).optional(),
+      })
+      .strict()
+      .optional(),
+    planning: z
+      .object({
+        noShowSeuilAlerte: z.number().int().min(0).max(20).optional(),
+        tamponPretMinutes: z.number().int().min(0).max(1440).optional(),
+        rappel: z
+          .object({
+            canal: z.enum(CANAUX_RAPPEL),
+            joursAvant: z.number().int().min(0).max(30),
+          })
+          .strict()
+          .optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
 
-export const schemaModificationParametresSite = z.object({
-  heureOuverture: z
-    .string()
-    .regex(/^\d{2}:\d{2}$/)
-    .nullish(),
-  heureFermeture: z
-    .string()
-    .regex(/^\d{2}:\d{2}$/)
-    .nullish(),
-  heureCloturePointage: z
-    .string()
-    .regex(/^\d{2}:\d{2}$/)
-    .nullish(),
-  /** `null` = non saisie. Ne jamais confondre avec `0` (voir `ReponseParametresSite`). */
-  capaciteHeuresJourCentiemes: schemaCentiemes.nullish(),
-  joursFermeture: z.array(schemaDateJour).max(400).optional(),
-});
+export const schemaModificationParametresSite = z
+  .object({
+    heureOuverture: z
+      .string()
+      .regex(/^\d{2}:\d{2}$/)
+      .nullish(),
+    heureFermeture: z
+      .string()
+      .regex(/^\d{2}:\d{2}$/)
+      .nullish(),
+    heureCloturePointage: z
+      .string()
+      .regex(/^\d{2}:\d{2}$/)
+      .nullish(),
+    /** `null` = non saisie. Ne jamais confondre avec `0` (voir `ReponseParametresSite`). */
+    capaciteHeuresJourCentiemes: schemaCentiemes.nullish(),
+    joursFermeture: z.array(schemaDateJour).max(400).optional(),
+  })
+  .strict();
 
-export const schemaCreationTauxHoraire = z.object({
-  code: z.string().trim().min(1).max(40),
-  libelle: schemaTexteCourt,
-  montantCentimes: schemaCentimesPositif,
-  valideDuLe: schemaDateJour,
-  valideAuLe: schemaDateJour.nullish(),
-});
+export const schemaCreationTauxHoraire = z
+  .object({
+    code: z.string().trim().min(1).max(40),
+    libelle: schemaTexteCourt,
+    montantCentimes: schemaCentimesPositif,
+    valideDuLe: schemaDateJour,
+    valideAuLe: schemaDateJour.nullish(),
+  })
+  .strict();
 
 export const schemaModificationTauxHoraire = schemaCreationTauxHoraire
   .partial()
   .omit({ code: true });
 
-export const schemaCreationPrestation = z.object({
-  code: z.string().trim().min(1).max(40),
-  designationFr: schemaTexteCourt,
-  designationDe: schemaTexteCourt.nullish(),
-  designationIt: schemaTexteCourt.nullish(),
-  typeLigne: z.enum(TYPES_LIGNE_OR),
-  tempsBaremeCentiemes: schemaCentiemes.nullish(),
-  tauxHoraireCode: z.string().trim().max(40).nullish(),
-  tauxTvaPourmille: schemaPourmille.default(81),
-  prixCentimes: schemaCentimesPositif.nullish(),
-});
+export const schemaCreationPrestation = z
+  .object({
+    code: z.string().trim().min(1).max(40),
+    designationFr: schemaTexteCourt,
+    designationDe: schemaTexteCourt.nullish(),
+    designationIt: schemaTexteCourt.nullish(),
+    typeLigne: z.enum(TYPES_LIGNE_OR),
+    tempsBaremeCentiemes: schemaCentiemes.nullish(),
+    tauxHoraireCode: z.string().trim().max(40).nullish(),
+    tauxTvaPourmille: schemaPourmille.default(81),
+    prixCentimes: schemaCentimesPositif.nullish(),
+  })
+  .strict();
 
 export const schemaModificationPrestation = schemaCreationPrestation
   .partial()

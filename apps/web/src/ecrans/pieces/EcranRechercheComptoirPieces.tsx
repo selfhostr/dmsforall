@@ -12,6 +12,7 @@ import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useRechercheComptoirPieces } from '@/hooks/pieces/useRechercheComptoirPieces';
 import { useSession } from '@/hooks/useSession';
 import { formaterMontant } from '@/lib/formats';
@@ -161,23 +162,23 @@ export function EcranRechercheComptoirPieces() {
 
   if (!site) {
     return (
-      <div className="mx-auto flex w-full max-w-lg flex-col gap-4 p-6">
-        <h1 className="sr-only">{t('pieces:rechercheComptoir.titre')}</h1>
-        <SelecteurSiteRequis onChoisir={(siteId) => setSearchParams({ site: siteId })} />
-      </div>
+      <GabaritEcran titre={t('pieces:rechercheComptoir.titre')} titreVisible={false}>
+        <div className="mx-auto w-full max-w-lg">
+          <SelecteurSiteRequis onChoisir={(siteId) => setSearchParams({ site: siteId })} />
+        </div>
+      </GabaritEcran>
     );
   }
 
   if (enErreur) {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6">
-        <h1 className="texte-titre-page">{t('pieces:rechercheComptoir.titre')}</h1>
+      <GabaritEcran titre={t('pieces:rechercheComptoir.titre')}>
         <EtatErreur
           titre={t('pieces:rechercheComptoir.erreur.titre')}
           description={messageErreur(erreur, t)}
           onReessayer={relancer}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
@@ -200,13 +201,16 @@ export function EcranRechercheComptoirPieces() {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6">
-      {/* NON masqué volontairement : l'onglet actif est « Comptoir » (`navigation-modele.ts`,
-          `ONGLETS_PIECES`, onglet « comptoir », sans vue), qui ne dit pas ce qu'on y fait —
-          « Recherche comptoir » porte l'information « Recherche » qu'aucun onglet n'affiche.
-          Comparaison mot pour mot avec la barre d'onglets active : pas un doublon. */}
-      <h1 className="texte-titre-page">{t('pieces:rechercheComptoir.titre')}</h1>
-
+    // Pleine largeur (retour @laupernoe du 12.08.2026 : « le module comptoir ne prend pas du tout la
+    // largeur de la page ») — `GabaritEcran` ne pose plus de `max-w-2xl`/`mx-auto` sur l'écran
+    // entier ; seul l'état « choisir un site » ci-dessus, une carte de sélection volontairement
+    // centrée et étroite, garde sa propre largeur limitée (`max-w-lg` posé localement dessus, pas
+    // sur tout l'écran). Titre VISIBLE, voir la justification ci-dessous : NON masqué
+    // volontairement — l'onglet actif est « Comptoir » (`navigation-modele.ts`, `ONGLETS_PIECES`,
+    // onglet « comptoir », sans vue), qui ne dit pas ce qu'on y fait — « Recherche comptoir » porte
+    // l'information « Recherche » qu'aucun onglet n'affiche. Comparaison mot pour mot avec la barre
+    // d'onglets active : pas un doublon.
+    <GabaritEcran titre={t('pieces:rechercheComptoir.titre')}>
       {/* Rappel permanent (pas seulement dans le placeholder, coupé sur tablette) que la
           recherche accepte un bout de désignation, pas seulement une référence exacte. */}
       <p className="texte-libelle text-muted-foreground">{t('pieces:rechercheComptoir.aide')}</p>
@@ -257,6 +261,6 @@ export function EcranRechercheComptoirPieces() {
           />
         </>
       ) : null}
-    </div>
+    </GabaritEcran>
   );
 }

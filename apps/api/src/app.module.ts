@@ -10,6 +10,7 @@
 import type { DynamicModule, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { Module } from '@nestjs/common';
 import { AtelierModule } from './atelier/atelier.module';
+import { ImpressionOrModule } from './atelier/impression/impression-or.module';
 import { AuthModule } from './auth/auth.module';
 import { ClientsModule } from './clients/clients.module';
 import { CommonModule, MiddlewareContexteRequete } from './common';
@@ -26,6 +27,7 @@ import { PneusModule } from './pneus/pneus.module';
 import { PointageModule } from './pointage/pointage.module';
 import { RechercheModule } from './recherche/recherche.module';
 import { RelancesModule } from './relances/relances.module';
+import { RendezVousModule } from './rendezvous/rendezvous.module';
 import { SanteModule } from './sante';
 import { SocleModule } from './socle';
 import { TableauBordModule } from './tableau-bord/tableau-bord.module';
@@ -54,6 +56,12 @@ export class AppModule implements NestModule {
         VehiculesModule,
         RechercheModule,
         AtelierModule,
+        // `ImpressionOrModule` (GET /ordres-reparation/{orId}/pdf — feuille d'atelier, chantier
+        // « impression OR ») importe `AtelierModule` lui-même (pour `ServiceOr`, exporté) plutôt
+        // que l'inverse — même raison et même câblage en fin de section que `ImpressionModule`
+        // (facturation) plus bas : sans cette ligne, le module compile et ses tests passent, mais
+        // AUCUNE route `/ordres-reparation/{orId}/pdf` n'existe.
+        ImpressionOrModule,
         PiecesModule,
         // `PointageModule` livré, non enregistré jusqu'ici (lot 2) — enregistré par l'orchestrateur
         // au nom de l'agent `pointage/`, qui n'a pas accès à ce fichier. Après `AtelierModule` :
@@ -94,6 +102,13 @@ export class AppModule implements NestModule {
         // résolution de l'adaptateur `NotificationSender`) ; placé après lui par lisibilité,
         // aucune contrainte d'ordre réelle (même raisonnement que `PneusModule` juste au-dessus).
         RelancesModule,
+        // `RendezVousModule` (lot RDV-1 — prise de rendez-vous d'atelier,
+        // `docs/conception-rendez-vous-metier.md`/`docs/conception-rendez-vous-donnees.md`) —
+        // importe `AtelierModule` lui-même (`ServiceOr`/`ServiceTransitions`, réception du
+        // véhicule via T-03 `planifie -> ouvert` déjà câblée) ; placé après lui par lisibilité,
+        // même raisonnement que `PneusModule`/`RelancesModule` ci-dessus (aucune contrainte
+        // d'ordre réelle, `AtelierModule` n'importe jamais ce module — sens unique).
+        RendezVousModule,
         // `ExploitationModule` (console d'exploitation, PORTE 1 — agrégats de plateforme, aucune
         // donnée personnelle, `docs/conception-console-exploitation-acces.md`) — ÉTEINTE PAR
         // DÉFAUT : `ExploitationModule.pourConfig` rend un module vide (aucun contrôleur, aucun

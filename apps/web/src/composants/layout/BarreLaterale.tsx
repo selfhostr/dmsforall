@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useSearchParams } from 'react-router';
 
 import { Button } from '@/components/ui/button';
+import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { useSession } from '@/hooks/useSession';
 import { useVersionApplication } from '@/hooks/useVersionApplication';
 import { cn } from '@/lib/utils';
@@ -79,7 +80,15 @@ interface Props {
 export function BarreLaterale({ className, repli }: Props) {
   const { t } = useTranslation('navigation');
   const [searchParams] = useSearchParams();
-  const site = searchParams.get('site') ?? undefined;
+  const { preferenceSiteId } = useSiteCourant();
+  // CORRECTIF issue #91 (« le logiciel oublie mon choix dès que je change d'écran ») : l'URL reste
+  // la source qui FAIT FOI (doctrine ci-dessous, inchangée), mais quand elle n'en porte AUCUN, on
+  // retombe sur la dernière préférence connue (`hooks/site/ContexteSiteCourant.tsx`) plutôt que sur
+  // « aucun site » — c'est précisément ce qui faisait retomber la navigation sur « Tous les sites »
+  // sans que l'utilisateur ait rien changé, quand un écran hors de ce périmètre construisait un lien
+  // interne sans propager `?site=`. Une fois CE lien cliqué, l'URL suivante porte à nouveau le site,
+  // qui redevient alors la source pour la navigation suivante.
+  const site = searchParams.get('site') ?? preferenceSiteId;
   const { pathname } = useLocation();
   const { data: session } = useSession();
   const role = session?.utilisateur.role;
@@ -117,7 +126,7 @@ export function BarreLaterale({ className, repli }: Props) {
             l'entrée est bien la bonne au sens métier (`actif`, dérivé de `trouverCorrespondance`,
             qui lui rattache correctement toute URL du domaine à son entrée). Un `Link` ne gère pas
             `aria-current` lui-même : ce qu'on lui passe atteint le DOM tel quel, ce qui permet de
-            faire porter l'attribut par `actif` — la même valeur qui pose déjà le filet et le fond
+            faire porter l'attribut par `actif` — la même valeur qui pose déjà le remplissage plein
             de l'état actif ci-dessous.
             `aria-label` posé dans LES DEUX états, pas seulement replié : replié, c'est le SEUL
             porteur du nom accessible (l'icône est `aria-hidden`, le libellé texte devient
@@ -135,20 +144,32 @@ export function BarreLaterale({ className, repli }: Props) {
             // comptoir sont des écrans tactiles de 24 pouces, §4.6) — y compris replié, voir la
             // largeur de colonne posée par `AppShell.tsx` (`w-16`, 64 px, largement au-dessus du
             // plancher une fois l'inset `p-2` du repli soustrait).
-            // `border-l-4` posé dans les deux états (transparent au repos) : ne varier que la
-            // couleur au clic, jamais la largeur de la ligne (un bord ajouté seulement quand actif
-            // décalerait l'icône et le libellé de 4 px).
-            'flex h-11 items-center rounded-md border-l-4 text-sm font-medium transition-colors',
+            // `rounded-md` posé dans les deux états, jamais conditionnel : la FORME de la ligne
+            // ne change jamais, seul son remplissage change au clic. Poser la forme uniquement à
+            // l'état actif aurait fait « sauter » la ligne d'un rectangle à un autre au clic — ici
+            // rien ne bouge, seule la couleur transite (`transition-colors`).
+            // Retour @laupernoe du 12.08.2026 (revue structure haute) : la pilule pleine (`rounded-full`,
+            // posée le même jour, voir git blame) détonnait avec l'arrondi des boutons du produit
+            // (`components/ui/button.tsx` : `rounded-md` partout, `variantesBouton`) — « je veux que
+            // ce soit la même chose que les autres boutons ». Remplacement par `rounded-md`, seul
+            // rayon d'arrondi utilisé ailleurs dans l'interface (boutons, `Select`, `Input`, cartes) :
+            // l'indicateur d'écran actif rejoint ce vocabulaire au lieu d'en inventer un second.
+            'flex h-11 items-center rounded-md text-sm font-medium transition-colors',
             replie ? 'justify-center px-2' : 'gap-3 px-3',
             'anneau-focus',
             actif
-              ? // Demande @laupernoe (10.08.2026) : plus de bloc plein (violet ni gris) — un filet gris
-                // foncé (`--secondary-foreground`) à gauche, sur un fond gris clair (`--secondary`),
-                // même paire de tokens que l'état actif des « vues » d'`OngletsDomaine.tsx`. Le
-                // filet fonctionne à l'identique replié : il est posé sur le `Link` lui-même, pas
-                // sur son contenu, donc indépendant du texte qui disparaît visuellement à côté.
-                'border-secondary-foreground bg-secondary text-secondary-foreground'
-              : 'border-transparent text-foreground hover:bg-muted hover:text-foreground',
+              ? // Refonte du 12.08.2026 (demande @laupernoe : « le truc gris avec un autre gris avec une
+                // barre à gauche » manquait de contraste et ne se voyait pas d'un coup d'œil). Le
+                // filet gris sur gris (`--secondary`/`--secondary-foreground`, hérité de l'état actif
+                // des onglets et abandonné ici) est remplacé par un REMPLISSAGE PLEIN dans la couleur
+                // de marque (`--primary` = `--marque`, blanc dessus) : 11.28:1 de contraste mesuré
+                // (AAA, voir `index.css`), largement au-dessus de la paire grise qu'elle remplace.
+                // Le signal ne tient jamais à la seule couleur (doctrine `BadgeStatut`) : la FORME
+                // change (fond plein contre rien), le POIDS du texte change (`font-semibold`
+                // contre `font-medium`), et `aria-current="page"` reste posé pour les technologies
+                // d'assistance — trois signaux, pas un.
+                'bg-primary font-semibold text-primary-foreground shadow-sm'
+              : 'text-foreground hover:bg-muted hover:text-foreground',
           )}
         >
           <Icone className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -230,15 +251,15 @@ export function BarreLaterale({ className, repli }: Props) {
             <ul className="flex flex-col gap-1">{rendreEntree(ENTREE_REGLAGES)}</ul>
           ) : null}
           {sante ? (
-            <p
-              className="mt-2 truncate px-3 texte-libelle text-muted-foreground"
+            <div
+              className="hidden"
+              data-version={sante.version}
+              data-branche={sante.branche}
               title={t('navigation:pied.version', {
                 branche: sante.branche,
                 numero: sante.version,
               })}
-            >
-              {t('navigation:pied.version', { branche: sante.branche, numero: sante.version })}
-            </p>
+            />
           ) : null}
         </div>
       ) : null}

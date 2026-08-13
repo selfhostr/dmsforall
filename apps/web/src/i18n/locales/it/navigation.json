@@ -71,6 +71,7 @@
   },
   "entete": {
     "tousLesSites": "Tutte le officine",
+    "siteNonChoisi": "Nessuna sede selezionata",
     "changerSite": "Cambia sede"
   },
   "repli": {

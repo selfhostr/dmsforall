@@ -49,6 +49,9 @@
     "clientDetail": "Kundenkarte",
     "vehiculeDetail": "Fahrzeugkarte"
   },
+  "formulaires": {
+    "champsObligatoiresLegende": "Mit einem Stern (*) markierte Felder sind Pflichtfelder."
+  },
   "roles": {
     "direction": "Geschäftsführung",
     "vendeur": "Verkaufsberater",

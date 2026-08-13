@@ -268,7 +268,7 @@ describe('CarteFinancement', () => {
     // l'ambiguïté.
     const dialogue = await screen.findByRole('dialog', { name: 'Refuser ce financement' });
     await utilisateur.type(
-      within(dialogue).getByLabelText('Motif du refus'),
+      within(dialogue).getByLabelText(/^Motif du refus\s*\*$/),
       'Dossier de solvabilité incomplet',
     );
     await utilisateur.click(within(dialogue).getByRole('button', { name: 'Confirmer' }));

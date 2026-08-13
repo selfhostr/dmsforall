@@ -31,7 +31,7 @@ import {
   useValiderLignesOr,
 } from '@/hooks/atelier/useActionsLigneOr';
 import { useSession } from '@/hooks/useSession';
-import { formaterMontant, formaterPourmille } from '@/lib/formats';
+import { formaterMontant, formaterMontantAvecDevise, formaterPourmille } from '@/lib/formats';
 
 import { messagesErreurMutation } from './messages-erreur-mutation';
 
@@ -47,6 +47,13 @@ function formaterQuantite(quantiteMillieme: number): string {
 function formaterTempsHeures(centiemes: number): string {
   return `${(centiemes / 100).toFixed(2)} h`;
 }
+
+/** Mêmes deux types que `DialogueAjoutLigneOr.TYPES_MAIN_OEUVRE` (non exporté de ce fichier
+ *  voisin) — seuls ceux-là portent `tauxHoraireCentimes` (§ contrat `ReponseLigneOr`). */
+const TYPES_MAIN_OEUVRE: ReadonlySet<TypeLigneOr> = new Set([
+  'main_oeuvre_bareme',
+  'main_oeuvre_temps_reel',
+]);
 
 // `TypeLigneOr` -> suffixe de `or:lignes.types` : mapping NON trivial (ex. `taxe` -> `taxeElimination`,
 // `main_oeuvre_bareme` -> `mainOeuvreBaremee`), donc explicite plutôt que dérivé par manipulation
@@ -305,11 +312,41 @@ export function ListeLignesOrdreReparation({ orId, lignes, lignesTronquees }: Pr
       alignement: 'droite',
       // Absent (pas 0) pour un rôle sans droit aux montants : `ligne.montants` est alors omis en
       // bloc par le serveur (§ contrat MontantsLigneOr), jamais substitué à « 0.00 ».
-      rendu: (ligne) => (
-        <span className="tabular-nums font-medium">
-          {ligne.montants ? formaterMontant(ligne.montants.montantTtcCentimes) : ''}
-        </span>
-      ),
+      //
+      // CORRECTIF issue #72 (rapport de test terrain) : « la ligne s'affiche à 156.75, d'où ça
+      // sort ? Nulle part on ne me montre le tarif horaire ... pas un seul CHF ni TTC/HT ». Le
+      // TTC seul restait juste mais illisible sans base de calcul. Sous le TTC (devise + mention
+      // explicite, jamais un chiffre nu) : le HT, et pour une ligne de main-d'œuvre dont le taux a
+      // pu être figé (`tauxHoraireCentimes`, § contrat RM-65/RM-50 — absent si la résolution du
+      // taux a échoué côté serveur), le calcul « temps × taux/h » qui y mène — jamais recalculé
+      // ici, seulement réaffiché depuis ce que le serveur a déjà figé.
+      rendu: (ligne) => {
+        if (!ligne.montants) return '';
+        const estMainOeuvre = TYPES_MAIN_OEUVRE.has(ligne.type);
+        const tempsCentiemes = ligne.tempsBaremeCentiemes ?? ligne.tempsReelCentiemes;
+        return (
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="tabular-nums font-medium texte-montant">
+              {t('or:lignes.montants.ttc', {
+                montant: formaterMontantAvecDevise(ligne.montants.montantTtcCentimes, 'CHF'),
+              })}
+            </span>
+            <span className="texte-libelle tabular-nums text-muted-foreground">
+              {t('or:lignes.montants.ht', {
+                montant: formaterMontant(ligne.montants.montantHtCentimes),
+              })}
+            </span>
+            {estMainOeuvre && ligne.tauxHoraireCentimes != null && tempsCentiemes !== null ? (
+              <span className="texte-libelle tabular-nums text-muted-foreground">
+                {t('or:lignes.montants.calculMainOeuvre', {
+                  temps: formaterTempsHeures(tempsCentiemes),
+                  taux: formaterMontantAvecDevise(ligne.tauxHoraireCentimes, 'CHF'),
+                })}
+              </span>
+            ) : null}
+          </div>
+        );
+      },
     },
     {
       id: 'statut',

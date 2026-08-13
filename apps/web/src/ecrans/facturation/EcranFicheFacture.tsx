@@ -47,6 +47,7 @@ import {
 } from '@/lib/formats';
 
 import { BadgeEtatDocument } from './BadgeEtatDocument';
+import { BadgeStatutReglement } from './BadgeStatutReglement';
 import { BadgeTypeDocument } from './BadgeTypeDocument';
 import { CarteBulletinVersement } from './CarteBulletinVersement';
 import { ChampVerrouille } from './ChampVerrouille';
@@ -164,13 +165,22 @@ export function EcranFicheFacture() {
   // fois).
   const peutGererFacture =
     !estBrouillon && !estAnnuleeParAvoir && document_.typeDocument === 'facture';
+  // Défaut corrigé (issue #80/#94, testeur novice — « je n'ai pas osé cliquer Encaisser, j'allais
+  // enregistrer une avance sur le compte d'un client qui a déjà payé ») : `peutGererFacture` ne
+  // regarde que l'ÉTAT DU DOCUMENT (émis, pas annulé), jamais s'il reste quelque chose À ENCAISSER
+  // — une facture `emis` intégralement `regle` (`soldeCentimes === 0`) remplissait la condition et
+  // affichait quand même le bouton. `soldeCentimes` (jamais négatif, `RF-67`) est le seul prédicat
+  // correct : « rien à encaisser » se lit sur l'ARGENT dû, pas sur le libellé `statutReglement`
+  // (`irrecouvrable` reste, par exemple, un solde non nul qu'on peut légitimement recevoir).
+  const resteDuCentimes = document_.soldeCentimes;
+  const resteAEncaisser = resteDuCentimes !== undefined && resteDuCentimes > 0;
   // Trois droits DISTINCTS, superposés à `estBrouillon`/`peutGererFacture` (état du document) —
   // défaut corrigé : ces deux booléens ne dépendaient auparavant que de l'état, jamais du rôle, et
   // affichaient les trois gestes financiers à des rôles sans le droit correspondant côté serveur
   // (`apps/api/src/auth/matrice-droits.ts`, voir `./droits.ts` pour le miroir exact). Doctrine du
   // dépôt : un rôle sans droit ne voit pas un bouton grisé, il ne voit pas de bouton.
   const proposeEmettre = estBrouillon && peutEmettreFacture(role);
-  const proposeEncaisser = peutGererFacture && peutEncaisser(role);
+  const proposeEncaisser = peutGererFacture && resteAEncaisser && peutEncaisser(role);
   const proposeCreerAvoir = peutGererFacture && peutEmettreAvoir(role);
   const proposeCorriger = peutGererFacture;
   // Imprimer : condition DÉCOUPLÉE de `peutGererFacture` — voir le commentaire de tête de fichier.
@@ -209,6 +219,16 @@ export function EcranFicheFacture() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <BadgeEtatDocument etat={etatAffiche} />
+          {/* Défaut corrigé (issue #80, testeur novice) : cette fiche n'affichait QUE l'état du
+              DOCUMENT (« Émise »), jamais l'état du RÈGLEMENT — la liste (`EcranListeFactures.tsx`)
+              affichait l'inverse (règlement seul, jamais « Émise »). Même paire de badges, mêmes
+              mots, aux deux endroits — voir le commentaire jumeau côté liste. Restreint à `emis` :
+              un brouillon (`statutReglement` par défaut, rien n'est dû) ou une facture déjà
+              `annule_par_avoir` (`statutReglement` figé d'AVANT l'annulation, `RF-32`) ne doivent
+              jamais porter ce badge, même doctrine que la liste. */}
+          {etatAffiche === 'emis' && document_.statutReglement ? (
+            <BadgeStatutReglement statut={document_.statutReglement} />
+          ) : null}
           <span className="texte-titre-section font-semibold text-foreground">
             {document_.numero ?? t('facturation:document.etat.brouillon')} — {destinataireNom}
           </span>

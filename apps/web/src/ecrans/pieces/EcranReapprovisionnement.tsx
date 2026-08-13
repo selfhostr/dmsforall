@@ -11,6 +11,7 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useReapprovisionnement } from '@/hooks/pieces/useReapprovisionnement';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
@@ -147,44 +148,42 @@ export function EcranReapprovisionnement() {
 
   if (!site) {
     return (
-      <div className="mx-auto flex w-full max-w-lg flex-col gap-4 p-6">
-        <h1 className="sr-only">{t('pieces:stock.reapprovisionnement.titre')}</h1>
-        <SelecteurSiteRequis onChoisir={(siteId) => setSearchParams({ site: siteId })} />
-      </div>
+      <GabaritEcran titre={t('pieces:stock.reapprovisionnement.titre')} titreVisible={false}>
+        <div className="mx-auto w-full max-w-lg">
+          <SelecteurSiteRequis onChoisir={(siteId) => setSearchParams({ site: siteId })} />
+        </div>
+      </GabaritEcran>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="texte-titre-page">{t('pieces:stock.reapprovisionnement.titre')}</h1>
+      <GabaritEcran titre={t('pieces:stock.reapprovisionnement.titre')}>
         <EtatErreur
           titre={t('pieces:stock.reapprovisionnement.erreur.titre')}
           description={messageErreur(error, t)}
           onReessayer={() => void refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="texte-titre-page">{t('pieces:stock.reapprovisionnement.titre')}</h1>
-        {peutCommander && selection.size > 0 ? (
-          <div className="flex items-center gap-3 rounded-md border bg-muted/50 px-3 py-2">
-            <span className="texte-corps text-foreground">
-              {t('pieces:stock.reapprovisionnement.selection.nombreSelectionnes', {
-                count: selection.size,
-              })}
-            </span>
-            <Button type="button" onClick={commanderSelection}>
-              {t('pieces:stock.reapprovisionnement.actions.commander')}
-            </Button>
-          </div>
-        ) : null}
+  const actionCommander =
+    peutCommander && selection.size > 0 ? (
+      <div className="flex items-center gap-3 rounded-md border bg-muted/50 px-3 py-2">
+        <span className="texte-corps text-foreground">
+          {t('pieces:stock.reapprovisionnement.selection.nombreSelectionnes', {
+            count: selection.size,
+          })}
+        </span>
+        <Button type="button" onClick={commanderSelection}>
+          {t('pieces:stock.reapprovisionnement.actions.commander')}
+        </Button>
       </div>
+    ) : undefined;
 
+  return (
+    <GabaritEcran titre={t('pieces:stock.reapprovisionnement.titre')} actions={actionCommander}>
       <TableComptoir
         colonnes={colonnes}
         lignes={lignes}
@@ -205,6 +204,6 @@ export function EcranReapprovisionnement() {
         enChargement={isFetchingNextPage}
         onChargerPlus={() => void fetchNextPage()}
       />
-    </div>
+    </GabaritEcran>
   );
 }

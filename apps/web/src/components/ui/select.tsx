@@ -88,7 +88,13 @@ export const SelectItem = forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      'element-menu relative flex min-h-11 w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-base outline-none',
+      // `texte-corps` (pas `text-base` brut) : aligne l'option de liste sur `CommandItem`
+      // (`command.tsx`) et `DropdownMenuItem` (`dropdown-menu.tsx`), les deux autres primitives
+      // « ligne d'un menu déroulant » du produit, qui portent déjà ce rôle. Avant ce correctif,
+      // ouvrir un `<Select>` puis un `<Command>` sur le même écran dense montrait deux tailles
+      // d'option (16px vs 14px) pour un rôle identique. `SelectTrigger` reste volontairement fixé
+      // à 16px (`CLASSES_CHAMP`, anti-zoom iPad) : seul le contenu du menu change ici.
+      'element-menu relative flex min-h-11 w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 texte-corps outline-none',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className,
     )}

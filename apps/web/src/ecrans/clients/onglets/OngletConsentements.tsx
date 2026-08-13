@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -85,13 +85,19 @@ export function OngletConsentements({ clientId }: Props) {
             <DialogHeader>
               <DialogTitle>{t('clients:consentements.ajouter')}</DialogTitle>
             </DialogHeader>
+            <LegendeChampsObligatoires>
+              {t('commun:formulaires.champsObligatoiresLegende')}
+            </LegendeChampsObligatoires>
             <div className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="consentement-type">{t('clients:consentements.champs.type')}</Label>
+                <Label htmlFor="consentement-type" requis>
+                  {t('clients:consentements.champs.type')}
+                </Label>
                 <Select value={type} onValueChange={(v) => setType(v as TypeConsentement)}>
                   <SelectTrigger
                     id="consentement-type"
                     aria-label={t('clients:consentements.champs.type')}
+                    aria-required="true"
                   >
                     <SelectValue />
                   </SelectTrigger>

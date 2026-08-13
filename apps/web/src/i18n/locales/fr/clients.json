@@ -50,7 +50,13 @@
     "dossiersVente": "Dossiers de vente",
     "dossiersVenteVide": "Aucun dossier de vente.",
     "dossiersVenteDroitRequis": "Vous n'avez pas le droit de consulter les dossiers de vente de ce client.",
-    "dossierSansVehicule": "Véhicule non assigné"
+    "dossierSansVehicule": "Véhicule non assigné",
+    "rendezVous": {
+      "titre": "Prochains rendez-vous",
+      "prendre": "Prendre un rendez-vous",
+      "vide": "Aucun rendez-vous prévu.",
+      "creeTitre": "Rendez-vous enregistré"
+    }
   },
   "alertes": {
     "bloque": "Bloqué – impayés",
@@ -187,5 +193,16 @@
     "rechercheDescription": "Essayez une autre recherche.",
     "filtre": "Aucun résultat avec ces filtres.",
     "filtreDescription": "Modifiez ou effacez les filtres actifs."
+  },
+  "formulaireNouveau": {
+    "brouillon": {
+      "ignorer": "Ignorer le brouillon"
+    },
+    "reessaiSansDoublon": "Cliquer de nouveau sur « Créer le client » ne créera pas de doublon : une tentative précédente est reconnue automatiquement."
+  },
+  "ficheApresCreation": {
+    "titre": "Client enregistré",
+    "description": "Le client {nom} a bien été enregistré ({numero}), mais sa fiche n'a pas pu s'afficher. Réessayez, ou retrouvez-le depuis la liste des clients — ne le recréez pas.",
+    "retourListe": "Retour à la liste des clients"
   }
 }

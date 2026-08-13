@@ -59,9 +59,8 @@ export function SelecteurOrganismeVente({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor="organisme-vente-recherche">
+      <Label htmlFor="organisme-vente-recherche" requis={obligatoire}>
         {label}
-        {obligatoire ? ' *' : ''}
       </Label>
       <Input
         id="organisme-vente-recherche"
@@ -69,6 +68,7 @@ export function SelecteurOrganismeVente({
         value={saisie}
         onChange={(evenement) => setSaisie(evenement.target.value)}
         aria-invalid={erreur ? true : undefined}
+        required={obligatoire}
       />
 
       {rechercheActive ? (
@@ -85,6 +85,7 @@ export function SelecteurOrganismeVente({
             <div
               role="radiogroup"
               aria-label={label}
+              aria-required={obligatoire || undefined}
               className="flex max-h-64 flex-col gap-2 overflow-y-auto"
             >
               {clients.map((client) => {

@@ -534,8 +534,8 @@ describe('ServiceClientSousCollections.modifierAdresse — NPA×pays sur l’ét
   );
 
   it(
-    'modifierAdresse : un corps qui ne porte QUE des clés inconnues (retirées par zod au parse) ' +
-      'est refusé en 400 corps_vide, jamais un no-op silencieux',
+    'modifierAdresse : un corps qui ne porte QUE des clés inconnues (avec `.strict()`, ' +
+      "refusées plutôt qu'élaguées) est refusé en 400 unrecognized_keys, jamais un no-op silencieux",
     async () => {
       const fabrique = txFactice();
       const service = new ServiceClientSousCollections(accesFactice(fabrique.tx), journalFactice());
@@ -545,14 +545,16 @@ describe('ServiceClientSousCollections.modifierAdresse — NPA×pays sur l’ét
         .catch((e: unknown) => e);
 
       expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
-      expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe('corps_vide');
+      expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe(
+        'unrecognized_keys',
+      );
       expect(fabrique.updateSetArgs).toHaveLength(0);
       expect(fabrique.whereArgs).toHaveLength(0);
     },
   );
 
   it(
-    'modifierContact : un corps qui ne porte QUE des clés inconnues est refusé en 400 corps_vide, ' +
+    'modifierContact : un corps qui ne porte QUE des clés inconnues est refusé en 400 unrecognized_keys, ' +
       'même garde que modifierAdresse',
     async () => {
       const fabrique = txFactice();
@@ -563,7 +565,9 @@ describe('ServiceClientSousCollections.modifierAdresse — NPA×pays sur l’ét
         .catch((e: unknown) => e);
 
       expect(erreur).toMatchObject({ code: 'VALIDATION_ECHOUEE', status: 400 });
-      expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe('corps_vide');
+      expect((erreur as { erreurs: Array<{ code: string }> }).erreurs[0]?.code).toBe(
+        'unrecognized_keys',
+      );
       expect(fabrique.updateSetArgs).toHaveLength(0);
     },
   );

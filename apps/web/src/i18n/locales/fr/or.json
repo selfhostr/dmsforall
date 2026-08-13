@@ -73,7 +73,7 @@
       "quantite": "Qté",
       "tempsBareme": "Temps barémé",
       "tempsPointe": "Temps pointé",
-      "prixUnitaire": "PU",
+      "prixUnitaire": "Prix unitaire HT",
       "rabais": "Rabais",
       "payeur": "Payeur",
       "technicien": "Technicien",
@@ -158,6 +158,36 @@
     },
     "champs": {
       "referenceTexte": "Référence"
+    },
+    "montants": {
+      "ttc": "{montant} TTC",
+      "ht": "{montant} HT",
+      "calculMainOeuvre": "{temps} × {taux}/h"
+    },
+    "selecteurArticle": {
+      "label": "Chercher une pièce au magasin",
+      "placeholder": "Désignation, référence ou code-barres",
+      "recherche": "Recherche en cours…",
+      "aucunResultat": "Aucun article ne correspond dans le magasin. Vous pouvez saisir la pièce manuellement ci-dessous.",
+      "resultats": "{count, plural, one {# résultat} other {# résultats}}",
+      "choisi": "Choisi depuis le magasin",
+      "changer": "Chercher une autre pièce",
+      "prixConverti": "Prix catalogue {prixTtc} TTC, converti en HT (TVA {taux} %).",
+      "parcours": {
+        "aide": "Tapez pour chercher une référence précise, ou choisissez directement dans le catalogue ci-dessous.",
+        "vide": "Aucun article actif au catalogue de ce site pour le moment. Vous pouvez saisir la pièce manuellement ci-dessous."
+      },
+      "erreur": {
+        "reessayer": "Réessayer",
+        "parcours": "Impossible de charger le catalogue du magasin. {message}"
+      },
+      "disponibilite": {
+        "nonSuiviNullePart": "Cette pièce n'est suivie dans aucun site du magasin — jamais reçue en stock.",
+        "nonSuiviSurCeSite": "Ce site ne suit pas cette pièce en stock — elle est suivie ailleurs.",
+        "aucune": "Aucune actuellement disponible à ce site.",
+        "disponible": "{n} disponible(s) à ce site."
+      },
+      "calculPrixEnCours": "Calcul du prix hors taxe…"
     },
     "groupees": {
       "colonneSelection": "Sélection",
@@ -350,6 +380,7 @@
   },
   "actions": {
     "titre": "Actions",
+    "imprimer": "Imprimer l'OR",
     "confirmer": "Confirmer",
     "confirmerAction": "Confirmez cette action.",
     "annulerAvertissement": "Cette action est définitive : l'ordre de réparation annulé ne pourra plus être ni modifié ni repris.",
@@ -365,7 +396,12 @@
   },
   "totaux": {
     "titre": "Totaux",
-    "totalValide": "Total validé"
+    "totalValide": "Total validé (suivi plafond)",
+    "aideDistinction": "« Total validé » suit le plafond de l'OR (lignes déjà validées, tous payeurs confondus) — ce n'est pas un montant à facturer. Pour annoncer un montant, utilisez la ligne du payeur concerné ci-dessus."
+  },
+  "impression": {
+    "enCours": "Impression en cours…",
+    "erreur": "Impossible d'imprimer la feuille d'atelier. {message}"
   },
   "nouveau": {
     "titre": "Nouvel ordre de réparation",
@@ -379,7 +415,7 @@
     },
     "client": {
       "requisTitre": "Client non sélectionné",
-      "requisDescription": "Ouvrez un ordre de réparation depuis la fiche d'un client (bouton « Ouvrir un ordre de réparation »), ou recherchez-le d'abord."
+      "requisDescription": "Recherchez d'abord le client, puis ouvrez un ordre de réparation depuis sa fiche."
     },
     "vehicule": {
       "titre": "Véhicule",
@@ -411,9 +447,13 @@
     "erreur": {
       "titre": "Impossible d'ouvrir l'ordre de réparation"
     },
+    "confirmation": {
+      "vehiculeDeuxOrOuverts": "Déjà ouvert pour ce véhicule : {numeros}. Ouvrir quand même un nouvel ordre de réparation ?"
+    },
     "actions": {
       "creer": "Ouvrir l'ordre de réparation",
-      "enCours": "Création en cours…"
+      "enCours": "Création en cours…",
+      "ignorerBrouillon": "Ignorer le brouillon"
     }
   }
 }

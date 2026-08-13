@@ -133,6 +133,11 @@
       "non": "No",
       "nonRenseigne": "Non indicato"
     },
+    "vue": {
+      "groupeLabel": "Modalità di visualizzazione",
+      "vendeur": "Vista venditore",
+      "client": "Vista cliente"
+    },
     "joursStock": {
       "libelle": "Giorni in stock",
       "valeur": "{n, plural, one {# giorno} other {# giorni}}"
@@ -350,6 +355,7 @@
         "titre_sejour": "Permesso di soggiorno",
         "autre": "Altro"
       },
+      "identitePieceTypeAutrePrecision": "Precisare il documento presentato",
       "engagerConfirmation": "Il veicolo sarà riservato.",
       "engagerConfirmationReprise": "La permuta sarà confermata.",
       "confirmerAction": "Confermare",
@@ -682,8 +688,6 @@
   },
   "suivi": {
     "titre": "Monitoraggio finanziamento e garanzia",
-    "lienDepuisListe": "Monitoraggio finanziamento e garanzia",
-    "retourListe": "Torna alle pratiche di vendita",
     "colonnes": {
       "dossier": "Cliente / veicolo",
       "echeance": "Prossima scadenza",

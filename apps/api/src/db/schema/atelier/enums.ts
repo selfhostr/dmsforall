@@ -27,7 +27,6 @@ import {
   NATURES_ACTIVITE_POINTAGE,
   NATURES_NOTE,
   ORIGINES_LIGNE_OR,
-  ORIGINES_RENDEZ_VOUS,
   PAYEURS_LIGNE_OR,
   POLITIQUES_CONTROLE_QUALITE,
   POLITIQUES_DEMONTAGE_REFUSE,
@@ -48,7 +47,6 @@ import {
   STATUTS_PERIODE_POINTAGE,
   STATUTS_POINTAGE,
   STATUTS_PRET_COURTOISIE,
-  STATUTS_RENDEZ_VOUS,
   STATUTS_TRAVAIL_REPORTE,
   STATUTS_VEHICULE,
   TYPES_ADRESSE,
@@ -119,9 +117,12 @@ export const blocageLigneOrEnum = pgEnum('blocage_ligne_or', BLOCAGES_LIGNE_OR);
 export const canalDevisEnum = pgEnum('canal_devis', CANAUX_DEVIS);
 export const decisionDevisEnum = pgEnum('decision_devis', DECISIONS_DEVIS);
 
-export const statutRendezVousEnum = pgEnum('statut_rendez_vous', STATUTS_RENDEZ_VOUS);
+// `statut_rendez_vous`/`origine_rendez_vous` (0005_parametrage.sql) retirés — dette technique n°3.
+// C'étaient les types Postgres pilotés par les enums GELÉS `STATUTS_RENDEZ_VOUS`/
+// `ORIGINES_RENDEZ_VOUS` (`@dfa/shared`, jamais implémentés), jamais consommés par une colonne de
+// table. Le domaine rendez-vous utilise `statut_prise_rendez_vous`/`origine_creation_rendez_vous`
+// (migration 0052, `./rendez-vous.ts`) — noms distincts, valeurs distinctes, arbitrage de @laupernoe.
 export const modeAttenteRdvEnum = pgEnum('mode_attente_rdv', MODES_ATTENTE_RDV);
-export const origineRendezVousEnum = pgEnum('origine_rendez_vous', ORIGINES_RENDEZ_VOUS);
 export const typeRessourcePlanningEnum = pgEnum(
   'type_ressource_planning',
   TYPES_RESSOURCE_PLANNING,

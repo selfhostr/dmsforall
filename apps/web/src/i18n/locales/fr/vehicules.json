@@ -67,6 +67,12 @@
       "emplacement": "Emplacement : {emplacement}",
       "emplacementNonRenseigne": "Emplacement non renseigné",
       "lienHangar": "Voir dans le hangar à pneus"
+    },
+    "rendezVous": {
+      "titre": "Prochains rendez-vous",
+      "prendre": "Prendre un rendez-vous",
+      "vide": "Aucun rendez-vous prévu pour ce véhicule.",
+      "creeTitre": "Rendez-vous enregistré"
     }
   },
   "archiver": {
@@ -103,6 +109,11 @@
     "cantonExemple": "VS",
     "type": "Type",
     "historique": "Historique des plaques"
+  },
+  "collisionPlaque": {
+    "avecDetail": "Plaque {plaque} déjà portée par {vehicule} depuis le {debutLe}.",
+    "sansDetail": "Cette plaque est déjà attribuée à un autre véhicule.",
+    "voirVehicule": "Voir ce véhicule"
   },
   "detentions": {
     "titre": "Détention",
@@ -264,6 +275,7 @@
     "travauxReportes": "Travaux reportés",
     "campagnes": "Campagnes ouvertes",
     "expertise": "Expertise prochaine",
+    "expertiseEchue": "Expertise échue",
     "garantie": "Garantie",
     "alerteClient": "Alerte client",
     "importe": "Véhicule importé",
@@ -280,7 +292,7 @@
     "detentions": "Aucune détention enregistrée"
   },
   "badges": {
-    "identificationIncomplete": "Identification incomplète"
+    "identificationIncomplete": "Numéro de châssis manquant"
   },
   "emplacement": {
     "titre": "Emplacement",

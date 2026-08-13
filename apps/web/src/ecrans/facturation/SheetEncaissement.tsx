@@ -113,6 +113,19 @@ export function SheetEncaissement({
     readonly devise: DeviseFacturation;
     readonly regle: boolean;
   } | null>(null);
+  /**
+   * Défaut corrigé (issues #80/#61, testeur novice — « je n'ai pas osé cliquer, j'allais enregistrer
+   * une avance sur le compte d'un client qui a déjà payé ») : quand `factures.length === 0`, ce
+   * panneau composait DÉJÀ le message « aucune facture ouverte », mais laissait la section
+   * « Encaissements » et le bouton « Enregistrer » pleinement actifs juste en dessous — un utilisateur
+   * pressé pouvait saisir un montant et soumettre SANS jamais avoir choisi une avance, elle se
+   * produisait comme EFFET DE BORD d'un geste qui se voulait un encaissement normal. `avanceConfirmee`
+   * verrouille la saisie tant que l'utilisateur n'a pas cliqué un bouton dédié, EXPLICITE, qui NOMME
+   * ce que ce geste va faire — jamais un défaut silencieux. Sans objet (et donc sans effet) tant
+   * qu'au moins une facture ouverte existe : dans ce cas la saisie reste immédiatement disponible,
+   * comme avant ce correctif.
+   */
+  const [avanceConfirmee, setAvanceConfirmee] = useState(false);
 
   // Réinitialisation à chaque ouverture — la présélection (`RF-70`) n'a de sens qu'au premier
   // rendu après ouverture, jamais recalculée pendant la saisie.
@@ -122,9 +135,15 @@ export function SheetEncaissement({
     setLignes([]);
     setErreurGenerique(null);
     setConfirmationSucces(null);
+    setAvanceConfirmee(false);
   }, [ouvert, factureIdPreselectionnee]);
 
   const factures = facturesOuvertes.data ?? [];
+  // Voir le commentaire de `avanceConfirmee` ci-dessus : tant que la question n'est pas tranchée
+  // (chargement en cours), on ne bascule PAS en mode avance — un flash « aucune facture ouverte »
+  // pendant les quelques centaines de ms du premier rendu serait un mensonge temporaire.
+  const aucuneFactureOuverte = !facturesOuvertes.isPending && factures.length === 0;
+  const saisieDisponible = !aucuneFactureOuverte || avanceConfirmee;
   const totalSelectionneCentimes = factures
     .filter((facture) => selection.has(facture.id))
     .reduce((somme, facture) => somme + (facture.soldeCentimes ?? 0), 0);
@@ -425,103 +444,127 @@ export function SheetEncaissement({
                 )}
               </section>
 
-              <section className="flex flex-col gap-3">
-                <h2 className="texte-libelle font-medium text-foreground">
-                  {t('facturation:encaissement.lignes.titre')}
-                </h2>
-                {lignes.map((ligne) => (
-                  <div key={ligne.id} className="flex items-end gap-2 rounded-md border p-2">
-                    <div className="flex flex-col gap-1.5">
-                      <span className="texte-libelle text-muted-foreground">
-                        {t('facturation:encaissement.lignes.moyen')}
-                      </span>
-                      <Select
-                        value={ligne.moyen}
-                        onValueChange={(valeur) => modifierMoyen(ligne.id, valeur as MoyenPaiement)}
-                      >
-                        <SelectTrigger
-                          className="w-[160px]"
-                          aria-label={t('facturation:encaissement.lignes.moyen')}
+              {saisieDisponible ? (
+                <>
+                  <section className="flex flex-col gap-3">
+                    <h2 className="texte-libelle font-medium text-foreground">
+                      {t('facturation:encaissement.lignes.titre')}
+                    </h2>
+                    {lignes.map((ligne) => (
+                      <div key={ligne.id} className="flex items-end gap-2 rounded-md border p-2">
+                        <div className="flex flex-col gap-1.5">
+                          <span className="texte-libelle text-muted-foreground">
+                            {t('facturation:encaissement.lignes.moyen')}
+                          </span>
+                          <Select
+                            value={ligne.moyen}
+                            onValueChange={(valeur) =>
+                              modifierMoyen(ligne.id, valeur as MoyenPaiement)
+                            }
+                          >
+                            <SelectTrigger
+                              className="w-[160px]"
+                              aria-label={t('facturation:encaissement.lignes.moyen')}
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MOYENS_PAIEMENT.map((moyen) => (
+                                <SelectItem key={moyen} value={moyen}>
+                                  {t(`facturation:moyensPaiement.${moyen}`)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex-1">
+                          <ChampMontant
+                            valeurCentimes={ligne.montantCentimes}
+                            onChangeCentimes={(centimes) => modifierMontant(ligne.id, centimes)}
+                            label={t('facturation:encaissement.lignes.montant')}
+                          />
+                          {ligne.ecartArrondiCentimes !== null ? (
+                            <p className="texte-libelle text-muted-foreground">
+                              {t('facturation:encaissement.lignes.arrondi', {
+                                ecart: `${ligne.ecartArrondiCentimes > 0 ? '+' : ''}${formaterMontant(ligne.ecartArrondiCentimes)}`,
+                              })}
+                            </p>
+                          ) : null}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={t('facturation:encaissement.lignes.retirer')}
+                          onClick={() => retirerLigne(ligne.id)}
                         >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {MOYENS_PAIEMENT.map((moyen) => (
-                            <SelectItem key={moyen} value={moyen}>
-                              {t(`facturation:moyensPaiement.${moyen}`)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex-1">
-                      <ChampMontant
-                        valeurCentimes={ligne.montantCentimes}
-                        onChangeCentimes={(centimes) => modifierMontant(ligne.id, centimes)}
-                        label={t('facturation:encaissement.lignes.montant')}
-                      />
-                      {ligne.ecartArrondiCentimes !== null ? (
-                        <p className="texte-libelle text-muted-foreground">
-                          {t('facturation:encaissement.lignes.arrondi', {
-                            ecart: `${ligne.ecartArrondiCentimes > 0 ? '+' : ''}${formaterMontant(ligne.ecartArrondiCentimes)}`,
-                          })}
-                        </p>
-                      ) : null}
-                    </div>
+                          <X className="h-4 w-4" aria-hidden />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button type="button" variant="outline" onClick={ajouterLigne}>
+                      {t('facturation:encaissement.lignes.ajouter')}
+                    </Button>
+                  </section>
+
+                  {tropPercuCentimes > 0 ? (
+                    <EncartAvanceClient
+                      message={t('facturation:avanceClient.message', {
+                        montant: formaterTotalSelection(totalSelectionneCentimes),
+                      })}
+                    />
+                  ) : null}
+
+                  <div className="flex items-center justify-between border-t pt-3 texte-corps font-semibold">
+                    <span>{t('facturation:encaissement.resteAEncaisser')}</span>
+                    <span className="tabular-nums">
+                      {formaterTotalSelection(Math.max(resteAEncaisserCentimes, 0))}
+                    </span>
+                  </div>
+
+                  {encaissement.isError ? (
+                    <p className="texte-libelle text-destructive">
+                      {messageErreur(encaissement.error, t)}
+                    </p>
+                  ) : null}
+                  {erreurGenerique ? (
+                    <p className="texte-libelle text-destructive">{erreurGenerique}</p>
+                  ) : null}
+
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={fermer} disabled={enCours}>
+                      {t('commun:actions.annuler')}
+                    </Button>
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label={t('facturation:encaissement.lignes.retirer')}
-                      onClick={() => retirerLigne(ligne.id)}
+                      onClick={() => void soumettre()}
+                      disabled={enCours || lignes.length === 0}
                     >
-                      <X className="h-4 w-4" aria-hidden />
+                      {enCours
+                        ? t('facturation:encaissement.enCours')
+                        : t('facturation:encaissement.confirmer')}
                     </Button>
                   </div>
-                ))}
-                <Button type="button" variant="outline" onClick={ajouterLigne}>
-                  {t('facturation:encaissement.lignes.ajouter')}
-                </Button>
-              </section>
-
-              {tropPercuCentimes > 0 ? (
-                <EncartAvanceClient
-                  message={t('facturation:avanceClient.message', {
-                    montant: formaterTotalSelection(totalSelectionneCentimes),
-                  })}
-                />
-              ) : null}
-
-              <div className="flex items-center justify-between border-t pt-3 texte-corps font-semibold">
-                <span>{t('facturation:encaissement.resteAEncaisser')}</span>
-                <span className="tabular-nums">
-                  {formaterTotalSelection(Math.max(resteAEncaisserCentimes, 0))}
-                </span>
-              </div>
-
-              {encaissement.isError ? (
-                <p className="texte-libelle text-destructive">
-                  {messageErreur(encaissement.error, t)}
-                </p>
-              ) : null}
-              {erreurGenerique ? (
-                <p className="texte-libelle text-destructive">{erreurGenerique}</p>
-              ) : null}
-
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={fermer} disabled={enCours}>
-                  {t('commun:actions.annuler')}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => void soumettre()}
-                  disabled={enCours || lignes.length === 0}
-                >
-                  {enCours
-                    ? t('facturation:encaissement.enCours')
-                    : t('facturation:encaissement.confirmer')}
-                </Button>
-              </div>
+                </>
+              ) : (
+                // Défaut corrigé (issues #80/#61, voir le commentaire de `avanceConfirmee`) : aucune
+                // facture ouverte pour ce client — la saisie d'encaissement reste VERROUILLÉE tant
+                // que l'utilisateur n'a pas choisi, explicitement, d'enregistrer une avance. Le seul
+                // autre geste possible d'ici est d'annuler — jamais une saisie qui déboucherait sur
+                // une avance sans que ce mot ait été prononcé par un clic.
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={fermer}>
+                    {t('commun:actions.annuler')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setAvanceConfirmee(true)}
+                  >
+                    {t('facturation:avanceClient.confirmerAction')}
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>

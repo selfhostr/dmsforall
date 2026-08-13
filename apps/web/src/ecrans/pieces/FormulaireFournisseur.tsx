@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { ChampTelephone } from '@/composants/comptoir/ChampTelephone';
 import { useCreerFournisseur } from '@/hooks/pieces/useCreerFournisseur';
 import { useModifierFournisseur } from '@/hooks/pieces/useTransitionsFournisseur';
@@ -147,10 +147,17 @@ export function FormulaireFournisseur({ ouvert, onOuvertChange, fournisseur, onC
           noValidate
           className="flex flex-col gap-4"
         >
+          <LegendeChampsObligatoires>
+            {t('commun:formulaires.champsObligatoiresLegende')}
+          </LegendeChampsObligatoires>
+
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="fourn-nom">{t('pieces:fournisseurs.nom')}</Label>
+            <Label htmlFor="fourn-nom" requis>
+              {t('pieces:fournisseurs.nom')}
+            </Label>
             <Input
               id="fourn-nom"
+              required
               readOnly={enCours}
               aria-invalid={erreurNom ? true : undefined}
               value={valeurs.nom}

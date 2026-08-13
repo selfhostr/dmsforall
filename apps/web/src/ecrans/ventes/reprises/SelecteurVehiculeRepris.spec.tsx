@@ -58,7 +58,7 @@ describe('SelecteurVehiculeRepris', () => {
 
     rendre();
     const utilisateur = userEvent.setup();
-    await utilisateur.type(screen.getByLabelText('Véhicule repris *'), '123456');
+    await utilisateur.type(screen.getByLabelText(/^Véhicule repris\s*\*$/), '123456');
 
     await screen.findByText('VW Touran 2.0 TDI');
     expect(gestionnaire).toHaveBeenCalledTimes(1);

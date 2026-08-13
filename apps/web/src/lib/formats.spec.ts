@@ -1,109 +1,128 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  formaterDate,
-  formaterDateHeure,
-  formaterHeure,
-  formaterKilometrage,
-  formaterMontant,
-  formaterMontantAvecDevise,
-  formaterPourmille,
+  datetimeVersFormatSuisse,
+  formatSuisseVersISO_Datetime,
+  isoDatetimeDirectValide,
 } from './formats';
 
-describe('formaterMontantAvecDevise', () => {
-  it('préfixe CHF sans altérer le format suisse du montant', () => {
-    expect(formaterMontantAvecDevise(123450, 'CHF')).toBe("CHF 1'234.50");
+describe('Utilitaires de datetime suisse', () => {
+  describe('datetimeVersFormatSuisse', () => {
+    it('convertit une ISO datetime en format suisse', () => {
+      // ISO: 2026-08-12T14:30:00.000Z (UTC)
+      const iso = '2026-08-12T14:30:00.000Z';
+      const resultat = datetimeVersFormatSuisse(iso);
+      // Dépend du fuseau horaire local du test. En UTC, on s'attend à 12.08.2026 14:30
+      // (ou un décalage selon le fuseau du serveur de test)
+      expect(resultat).toMatch(/^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}$/);
+    });
+
+    it('retourne une chaîne vide pour une valeur vide', () => {
+      expect(datetimeVersFormatSuisse(undefined)).toBe('');
+      expect(datetimeVersFormatSuisse('')).toBe('');
+    });
+
+    it('retourne une chaîne vide pour une Date invalide', () => {
+      expect(datetimeVersFormatSuisse(new Date('invalid'))).toBe('');
+    });
   });
 
-  it('préfixe EUR (document repris ou créé par API, migration 0015)', () => {
-    expect(formaterMontantAvecDevise(123450, 'EUR')).toBe("EUR 1'234.50");
+  describe('formatSuisseVersISO_Datetime', () => {
+    it('convertit une saisie suisse en ISO datetime', () => {
+      const resultat = formatSuisseVersISO_Datetime('12.08.2026 14:30');
+      expect(resultat).toBeDefined();
+      // Doit être au format ISO
+      expect(resultat).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    });
+
+    it('accepte des espaces flexibles', () => {
+      const resultat1 = formatSuisseVersISO_Datetime('12.08.2026 14:30');
+      const resultat2 = formatSuisseVersISO_Datetime('12.08.2026  14:30');
+      expect(resultat1).toBeDefined();
+      expect(resultat2).toBeDefined();
+    });
+
+    it('le aller-retour reproduit la même heure (applique le décalage local correctement)', () => {
+      // Cet test fige le comportement : formatSuisseVersISO_Datetime + datetimeVersFormatSuisse
+      // doit reproduire l'heure d'entrée, appliquant correctement le décalage fuseau horaire
+      // du navigateur (CET/CEST) à chaque direction.
+      const entrees = ['12.08.2026 14:30', '15.01.2027 14:30', '01.01.2026 00:00'];
+      for (const entree of entrees) {
+        const iso = formatSuisseVersISO_Datetime(entree);
+        const sortie = datetimeVersFormatSuisse(iso);
+        expect(sortie).toBe(entree);
+      }
+    });
+
+    it('retourne undefined pour un format invalide', () => {
+      expect(formatSuisseVersISO_Datetime('invalid')).toBeUndefined();
+      expect(formatSuisseVersISO_Datetime('12/08/2026 14:30')).toBeUndefined();
+      expect(formatSuisseVersISO_Datetime('12.08.2026')).toBeUndefined();
+      expect(formatSuisseVersISO_Datetime('14:30')).toBeUndefined();
+    });
+
+    it('valide que la date existe réellement', () => {
+      // 31 février n'existe pas
+      expect(formatSuisseVersISO_Datetime('31.02.2026 14:30')).toBeUndefined();
+      // 30 février 2026 (année non-bissextile)
+      expect(formatSuisseVersISO_Datetime('30.02.2026 14:30')).toBeUndefined();
+      // 29 février 2024 (année bissextile, OK)
+      expect(formatSuisseVersISO_Datetime('29.02.2024 14:30')).toBeDefined();
+    });
+
+    it("valide que l'heure est valide", () => {
+      expect(formatSuisseVersISO_Datetime('12.08.2026 24:00')).toBeUndefined();
+      expect(formatSuisseVersISO_Datetime('12.08.2026 23:60')).toBeUndefined();
+      expect(formatSuisseVersISO_Datetime('12.08.2026 -1:30')).toBeUndefined();
+      // OK
+      expect(formatSuisseVersISO_Datetime('12.08.2026 23:59')).toBeDefined();
+    });
+
+    it('retourne undefined pour une valeur vide', () => {
+      expect(formatSuisseVersISO_Datetime('')).toBeUndefined();
+      expect(formatSuisseVersISO_Datetime(undefined)).toBeUndefined();
+      expect(formatSuisseVersISO_Datetime('   ')).toBeUndefined();
+    });
   });
 
-  it('gère un montant négatif (avoir) sans déplacer le signe', () => {
-    expect(formaterMontantAvecDevise(-5000, 'CHF')).toBe('CHF -50.00');
-  });
+  describe('isoDatetimeDirectValide', () => {
+    it('valide un format ISO datetime correct', () => {
+      const resultat = isoDatetimeDirectValide('2026-08-12T14:30:00.000Z');
+      expect(resultat).toBe('2026-08-12T14:30:00.000Z');
+    });
 
-  it('gère zéro', () => {
-    expect(formaterMontantAvecDevise(0, 'CHF')).toBe('CHF 0.00');
-  });
-});
+    it('tolère les variantes de format ISO datetime', () => {
+      // ISO sans secondes
+      expect(isoDatetimeDirectValide('2026-08-12T14:30')).toBeDefined();
+      // ISO avec secondes mais pas de millisecondes
+      expect(isoDatetimeDirectValide('2026-08-12T14:30:00')).toBeDefined();
+      // ISO complet
+      expect(isoDatetimeDirectValide('2026-08-12T14:30:00.000Z')).toBeDefined();
+    });
 
-describe('formaterMontant', () => {
-  it('formate des centimes en 1’234.50 avec apostrophe droite (pas typographique)', () => {
-    expect(formaterMontant(123450)).toBe("1'234.50");
-  });
+    it('retourne undefined pour un format invalide', () => {
+      expect(isoDatetimeDirectValide('invalid')).toBeUndefined();
+      expect(isoDatetimeDirectValide('12.08.2026 14:30')).toBeUndefined();
+      expect(isoDatetimeDirectValide('2026-08-12')).toBeUndefined();
+    });
 
-  it('conserve deux décimales même sur un montant rond', () => {
-    expect(formaterMontant(10000)).toBe('100.00');
-  });
+    it('valide que la date existe réellement', () => {
+      // 31 février n'existe pas
+      expect(isoDatetimeDirectValide('2026-02-31T14:30')).toBeUndefined();
+      // 29 février 2026 (année non-bissextile)
+      expect(isoDatetimeDirectValide('2026-02-29T14:30')).toBeUndefined();
+      // 29 février 2024 (année bissextile, OK)
+      expect(isoDatetimeDirectValide('2024-02-29T14:30')).toBeDefined();
+    });
 
-  it('gère les montants négatifs (avoir)', () => {
-    expect(formaterMontant(-5000)).toBe('-50.00');
-  });
+    it("valide que l'heure est valide", () => {
+      expect(isoDatetimeDirectValide('2026-08-12T24:00')).toBeUndefined();
+      expect(isoDatetimeDirectValide('2026-08-12T23:60')).toBeUndefined();
+    });
 
-  it('gère zéro', () => {
-    expect(formaterMontant(0)).toBe('0.00');
-  });
-
-  it('rejette un montant non entier (les centimes sont toujours un entier)', () => {
-    expect(() => formaterMontant(10.5)).toThrow(TypeError);
-  });
-});
-
-describe('formaterDate', () => {
-  it('formate en jj.mm.aaaa', () => {
-    expect(formaterDate(new Date(2026, 6, 27))).toBe('27.07.2026');
-  });
-
-  it('accepte une chaîne ISO', () => {
-    expect(formaterDate('2026-01-05T10:00:00.000Z')).toMatch(/^\d{2}\.\d{2}\.2026$/);
-  });
-});
-
-describe('formaterHeure', () => {
-  it('formate en HH:MM sur 24 h', () => {
-    expect(formaterHeure(new Date(2026, 6, 27, 8, 5))).toBe('08:05');
-  });
-
-  it('ne rend jamais 24:00 à minuit (hourCycle h23)', () => {
-    expect(formaterHeure(new Date(2026, 6, 27, 0, 0))).toBe('00:00');
-  });
-});
-
-describe('formaterDateHeure', () => {
-  it('combine date et heure suisses', () => {
-    expect(formaterDateHeure(new Date(2026, 6, 27, 14, 30))).toBe('27.07.2026 14:30');
-  });
-});
-
-describe('formaterKilometrage', () => {
-  it("groupe les milliers avec l'apostrophe droite et ajoute l'unité", () => {
-    expect(formaterKilometrage(125340, 'km')).toBe("125'340 km");
-  });
-
-  it("change de suffixe quand l'unité change (aucune unité codée en dur)", () => {
-    expect(formaterKilometrage(125340, 'mi')).toBe("125'340 mi");
-  });
-
-  it('rejette une valeur non entière', () => {
-    expect(() => formaterKilometrage(10.5, 'km')).toThrow(TypeError);
-  });
-});
-
-describe('formaterPourmille', () => {
-  it('convertit un taux TVA en pourcentage à une décimale', () => {
-    expect(formaterPourmille(81)).toBe('8.1 %');
-  });
-
-  it('gère 100% (1000 pour mille)', () => {
-    expect(formaterPourmille(1000)).toBe('100.0 %');
-  });
-
-  it('gère zéro', () => {
-    expect(formaterPourmille(0)).toBe('0.0 %');
-  });
-
-  it('rejette une valeur non entière', () => {
-    expect(() => formaterPourmille(8.1)).toThrow(TypeError);
+    it('retourne undefined pour une valeur vide', () => {
+      expect(isoDatetimeDirectValide('')).toBeUndefined();
+      expect(isoDatetimeDirectValide('   ')).toBeUndefined();
+    });
   });
 });

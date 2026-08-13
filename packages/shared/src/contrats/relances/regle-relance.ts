@@ -41,6 +41,7 @@ export const schemaUpsertRegleRelance = z
     delaisJours: z.array(z.number().int().positive()).max(10),
     canaux: z.array(z.enum(CANAUX_MESSAGE_CLIENT)).max(CANAUX_MESSAGE_CLIENT.length),
   })
+  .strict()
   .refine((valeurs) => !valeurs.actif || valeurs.canaux.length > 0, {
     message: 'Au moins un canal est requis pour activer une règle de relance.',
     path: ['canaux'],

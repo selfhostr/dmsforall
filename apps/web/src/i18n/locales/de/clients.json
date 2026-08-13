@@ -50,7 +50,13 @@
     "dossiersVente": "Verkaufsdossiers",
     "dossiersVenteVide": "Kein Verkaufsdossier.",
     "dossiersVenteDroitRequis": "Sie sind nicht berechtigt, die Verkaufsdossiers dieses Kunden einzusehen.",
-    "dossierSansVehicule": "Kein Fahrzeug zugewiesen"
+    "dossierSansVehicule": "Kein Fahrzeug zugewiesen",
+    "rendezVous": {
+      "titre": "Nächste Termine",
+      "prendre": "Termin vereinbaren",
+      "vide": "Kein Termin geplant.",
+      "creeTitre": "Termin gespeichert"
+    }
   },
   "alertes": {
     "bloque": "Gesperrt – Zahlungsrückstände",
@@ -187,5 +193,16 @@
     "rechercheDescription": "Versuchen Sie eine andere Suche.",
     "filtre": "Keine Ergebnisse mit diesen Filtern.",
     "filtreDescription": "Ändern oder löschen Sie die aktiven Filter."
+  },
+  "formulaireNouveau": {
+    "brouillon": {
+      "ignorer": "Entwurf verwerfen"
+    },
+    "reessaiSansDoublon": "Erneutes Klicken auf «Kunde erstellen» erzeugt keinen Doppeleintrag: ein vorheriger Versuch wird automatisch erkannt."
+  },
+  "ficheApresCreation": {
+    "titre": "Kunde erfasst",
+    "description": "Der Kunde {nom} wurde erfolgreich erfasst ({numero}), doch die Kundenkarte konnte nicht angezeigt werden. Versuchen Sie es erneut, oder suchen Sie ihn in der Kundenliste — bitte nicht neu anlegen.",
+    "retourListe": "Zurück zur Kundenliste"
   }
 }

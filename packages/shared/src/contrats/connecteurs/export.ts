@@ -26,15 +26,17 @@ import type { ReponseExecutionConnecteur } from './execution';
  * fichier — à porter par expert-nestjs (file BullMQ avec clé de regroupement
  * `(connecteurActivationId, objetType, objetId)`).
  */
-export const schemaLancerExportConnecteur = z.object({
-  nature: z.enum(NATURES_EXPORT_CONNECTEUR),
-  action: z.enum(ACTIONS_EXPORT_CONNECTEUR),
-  /** L'objet métier concerné (ex. l'identifiant d'un véhicule en stock, `RV-05`/`RV-09`) — jamais
-   *  son contenu : le worker relit l'objet à jour au moment de l'envoi, ce contrat ne transporte
-   *  aucune donnée métier dupliquée qui pourrait devenir périmée entre la mise en file et
-   *  l'exécution (`RC-40` : DFA reste la source de vérité). */
-  objetId: schemaIdentifiant,
-});
+export const schemaLancerExportConnecteur = z
+  .object({
+    nature: z.enum(NATURES_EXPORT_CONNECTEUR),
+    action: z.enum(ACTIONS_EXPORT_CONNECTEUR),
+    /** L'objet métier concerné (ex. l'identifiant d'un véhicule en stock, `RV-05`/`RV-09`) — jamais
+     *  son contenu : le worker relit l'objet à jour au moment de l'envoi, ce contrat ne transporte
+     *  aucune donnée métier dupliquée qui pourrait devenir périmée entre la mise en file et
+     *  l'exécution (`RC-40` : DFA reste la source de vérité). */
+    objetId: schemaIdentifiant,
+  })
+  .strict();
 export type EntreeLancerExportConnecteur = z.infer<typeof schemaLancerExportConnecteur>;
 
 export interface ReponseLancerExportConnecteur {

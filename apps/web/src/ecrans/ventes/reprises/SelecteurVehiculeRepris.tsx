@@ -57,8 +57,8 @@ export function SelecteurVehiculeRepris({ valeur, onChangeValeur, erreur }: Prop
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor="reprise-vehicule-recherche">
-        {t('ventes:reprise.creation.champVehicule')} *
+      <Label htmlFor="reprise-vehicule-recherche" requis>
+        {t('ventes:reprise.creation.champVehicule')}
       </Label>
       <Input
         id="reprise-vehicule-recherche"
@@ -66,6 +66,7 @@ export function SelecteurVehiculeRepris({ valeur, onChangeValeur, erreur }: Prop
         value={saisie}
         onChange={(evenement) => setSaisie(evenement.target.value)}
         aria-invalid={erreur ? true : undefined}
+        required
       />
 
       {!rechercheActive ? (
@@ -88,6 +89,7 @@ export function SelecteurVehiculeRepris({ valeur, onChangeValeur, erreur }: Prop
           <div
             role="radiogroup"
             aria-label={t('ventes:reprise.creation.champVehicule')}
+            aria-required="true"
             className="flex max-h-64 flex-col gap-2 overflow-y-auto"
           >
             {requete.vehicules.map((vehicule) => {

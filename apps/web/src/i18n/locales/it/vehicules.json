@@ -67,6 +67,12 @@
       "emplacement": "Posizione: {emplacement}",
       "emplacementNonRenseigne": "Posizione non indicata",
       "lienHangar": "Vedi nel deposito pneumatici"
+    },
+    "rendezVous": {
+      "titre": "Prossimi appuntamenti",
+      "prendre": "Fissa un appuntamento",
+      "vide": "Nessun appuntamento previsto per questo veicolo.",
+      "creeTitre": "Appuntamento registrato"
     }
   },
   "archiver": {
@@ -103,6 +109,11 @@
     "cantonExemple": "VS",
     "type": "Tipo",
     "historique": "Storico delle targhe"
+  },
+  "collisionPlaque": {
+    "avecDetail": "Targa {plaque} già assegnata a {vehicule} dal {debutLe}.",
+    "sansDetail": "Questa targa è già assegnata a un altro veicolo.",
+    "voirVehicule": "Vedi questo veicolo"
   },
   "detentions": {
     "titre": "Proprietà",
@@ -264,6 +275,7 @@
     "travauxReportes": "Lavori rinviati",
     "campagnes": "Richiami aperti",
     "expertise": "Collaudo prossimo",
+    "expertiseEchue": "Collaudo scaduto",
     "garantie": "Garanzia",
     "alerteClient": "Avviso cliente",
     "importe": "Veicolo importato",
@@ -280,7 +292,7 @@
     "detentions": "Nessun cambio proprietario registrato"
   },
   "badges": {
-    "identificationIncomplete": "Identificazione incompleta"
+    "identificationIncomplete": "Numero di telaio mancante"
   },
   "emplacement": {
     "titre": "Ubicazione",

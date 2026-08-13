@@ -11,3 +11,4 @@
  */
 
 export * from './referentiel-vehicules-ch';
+export * from './collision-plaque';

@@ -84,6 +84,14 @@ export const chemins = {
       facturer: (id: string, site?: string) =>
         construireChemin(`/ordres-reparation/${id}/facturer`, { site }),
     },
+    /** Agenda des rendez-vous (Lot RDV-1, `docs/conception-rendez-vous-ecrans.md`) — chemin
+     *  littéral `/rendez-vous` (pas `/atelier/rendez-vous`) : même convention que
+     *  `ordresReparation.liste`/`detail` ci-dessus, c'est le préfixe que lit `routeur.tsx`. Un
+     *  agenda reste TOUJOURS scopé à un seul site (RV-06) — `?site=` conservé au même titre que le
+     *  reste de l'app. */
+    rendezVous: {
+      agenda: (site?: string) => construireChemin('/rendez-vous', { site }),
+    },
   },
   /** Facturation (étape 2) — ces chemins n'avaient AUCUN constructeur avant le Lot D : la barre
    *  latérale pointait `/factures` en chaîne brute et les écrans de facturation naviguaient en

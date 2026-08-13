@@ -433,6 +433,26 @@ export interface paths {
     patch: operations['ClientAdresseController_modifier'];
     trace?: never;
   };
+  '/clients/{clientId}/arreter-contact': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Pose l'arrêt de tout contact d'un client (RA-14).
+     * @description Un client peut demander à ne plus être contacté (litige, mandataire) — ce drapeau prime sur tout consentement marketing, y compris pour une relance de facture impayée, où aucun consentement marketing n'est pourtant requis. `motif` obligatoire. GESTE DÉDIÉ, jamais un champ du `PATCH` générique — même doctrine que la désactivation ci-dessus. Rôle vérifié EN SERVICE (`client.contact.arreter`, droit provisoire — voir `droits-provisoires.ts`).
+     */
+    post: operations['ClientController_arreterContact'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/clients/{clientId}/conditions': {
     parameters: {
       query?: never;
@@ -562,6 +582,26 @@ export interface paths {
     get: operations['ClientOrdresReparationController_lister'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/clients/{clientId}/reprendre-contact': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Lève l'arrêt de tout contact d'un client (RA-14).
+     * @description Pendant symétrique de `arreter-contact` — `motif` obligatoire (traçabilité 'pourquoi', conservé en note interne puisque `client.motif` documente uniquement la raison COURANTE du drapeau, effacée à la levée). Rôle vérifié EN SERVICE (`client.contact.reprendre`, droit provisoire — voir `droits-provisoires.ts`).
+     */
+    post: operations['ClientController_reprendreContact'];
     delete?: never;
     options?: never;
     head?: never;
@@ -819,7 +859,7 @@ export interface paths {
     };
     /**
      * Liste des documents de vente du tenant courant.
-     * @description SOUS-ENSEMBLE des filtres du contrat (`siteId`, `typeDocument`, `statut`, `clientId`, `vehiculeId`) — voir `ServiceDocumentsVente.lister`.
+     * @description SOUS-ENSEMBLE des filtres du contrat (`siteId`, `typeDocument`, `statut`, `clientId`, `vehiculeId`, `enRetard`, `relanceNiveau`) — voir `ServiceDocumentsVente.lister`. `enRetard=true` : facture `emis`, échéance dépassée, solde encore dû (même règle que `ReponseDocumentVente.enRetard`, une facture annulée par avoir en est exclue). `relanceNiveau` : égalité stricte sur le palier de relance déjà atteint.
      */
     get: operations['DocumentVenteController_lister'];
     put?: never;
@@ -1202,7 +1242,7 @@ export interface paths {
     put?: never;
     /**
      * `pret_a_livrer -> livre` (RV-52/RV-53).
-     * @description Bascule la détention du véhicule vers le client conducteur (ou acheteur), motif `vente`.
+     * @description Bascule la détention du véhicule vers le client conducteur (ou acheteur), motif `vente`. Exige que le véhicule soit déjà `vendu` — la facture doit avoir été émise AVANT cet appel (RV-37) : l’enchaînement réel du parcours est engager → préparer → prêt à livrer → **facturer** → livrer, pas « prêt à livrer → livrer » directement. `dateLivraisonEffective` accepte le jour même (cas le plus courant en concession, issue #13) : une détention déjà ouverte pour ce véhicule et démarrée ce même jour civil n’est pas un conflit ; seule une date antérieure au début d’une détention déjà enregistrée reste refusée.
      */
     post: operations['DossierVenteController_livrer'];
     delete?: never;
@@ -1425,6 +1465,23 @@ export interface paths {
     put?: never;
     /** Réactive un fournisseur (retour à `actif`). */
     post: operations['FournisseurController_reactiver'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/motifs-rendez-vous': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Catalogue des motifs de rendez-vous, avec leur durée par défaut (RV-01/RV-02). */
+    get: operations['MotifsRendezVousController_lister'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -2279,8 +2336,8 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Recherche comptoir unifiée — véhicules, clients, ordres de réparation.
-     * @description Projection, pas une collection : aucun curseur, `limite` <= 50 (défaut 20). La normalisation (casse, accents, espaces, apostrophes, tirets, points) est strictement serveur (§7.5) — le front ne normalise que pour l'affichage. `types` est répétable (`?types=vehicule&types=client`), jamais une liste séparée par virgules. Une plaque historique (RM-17) reste trouvable : `correspondance.historique = true` + `porteeJusquLe`. Une plaque interchangeable (RM-18) renvoie les DEUX véhicules et `plaqueInterchangeable = true` — le serveur ne choisit jamais à la place de l'utilisateur.
+     * Recherche comptoir unifiée — véhicules, clients, ordres de réparation, documents de vente, articles, fournisseurs, dépôts de pneus.
+     * @description Projection, pas une collection : aucun curseur, `limite` <= 50 (défaut 20). La normalisation (casse, accents, espaces, apostrophes, tirets, points) est strictement serveur (§7.5) — le front ne normalise que pour l'affichage. `types` est répétable (`?types=vehicule&types=client`), jamais une liste séparée par virgules. Une plaque historique (RM-17) reste trouvable : `correspondance.historique = true` + `porteeJusquLe`. Une plaque interchangeable (RM-18) renvoie les DEUX véhicules et `plaqueInterchangeable = true` — le serveur ne choisit jamais à la place de l'utilisateur. Quatre natures (`document_vente`, `article`, `fournisseur`, `depot_pneu`) portent chacune un portillon de droit supplémentaire, indépendant de `recherche.executer` : un rôle sans le droit correspondant (`facturation.document.lire`, `pieces.article.lire`, `pieces.fournisseur.lire`, `pneus.depot.lire`) ne voit jamais ce type de résultat, même demandé explicitement.
      */
     get: operations['RechercheController_rechercher'];
     put?: never;
@@ -2434,6 +2491,122 @@ export interface paths {
     get?: never;
     /** Upsert idempotent de la configuration d’un type de relance (une ligne par (tenant, type), §5). */
     put: operations['RelancesController_upserter'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/rendez-vous': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Rendez-vous de la période demandée, pour un site. */
+    get: operations['RendezVousController_lister'];
+    put?: never;
+    /**
+     * Prise de rendez-vous (§6 métier) — motif OBLIGATOIRE (arbitrage @laupernoe #2).
+     * @description `Idempotency-Key` obligatoire (uuid v4). Surbooking jamais bloquant : avertit via `PLANNING_CAPACITE_DEPASSEE` si la capacité du (jour, moment) est déjà atteinte.
+     */
+    post: operations['RendezVousController_creer'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/rendez-vous/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Fiche complète du rendez-vous. */
+    get: operations['RendezVousController_obtenir'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Déplace ou corrige un rendez-vous encore `confirme` (RV-16).
+     * @description N'accepte jamais de statut — voir les actions dédiées (arrivée/absence/annulation).
+     */
+    patch: operations['RendezVousController_modifier'];
+    trace?: never;
+  };
+  '/rendez-vous/{id}/absence': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Le véhicule ne s’est pas présenté (RV-24) — constat manuel, sans motif. */
+    post: operations['RendezVousTransitionsController_absence'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/rendez-vous/{id}/annuler': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Annulation — motif obligatoire, jamais silencieuse. */
+    post: operations['RendezVousTransitionsController_annuler'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/rendez-vous/{id}/arrivee': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Le véhicule arrive : réutilise T-03 (`planifie -> ouvert`) si un OR est déjà lié, sinon crée l'OR directement `ouvert` — jamais une seconde machine à états.
+     * @description `honore` n'est jamais déclaré manuellement (RV-18), c'est un effet de bord de cette action. Amorce `restitutionPromiseLe` depuis la durée estimée du rendez-vous (le cœur du chantier).
+     */
+    post: operations['RendezVousTransitionsController_arrivee'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/rendez-vous/capacite': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Capacité par jour et par moment (RV-06/RV-07/RV-08) — informe, ne bloque jamais.
+     * @description `capaciteMinutes: null` + `etat: 'non_definie'` sur un site jamais paramétré : jamais `0`, jamais `'disponible'`.
+     */
+    get: operations['RendezVousController_capacite'];
+    put?: never;
     post?: never;
     delete?: never;
     options?: never;
@@ -2859,7 +3032,7 @@ export interface paths {
     put?: never;
     /**
      * Enregistrement d'une expertise (RM-28, CT-10).
-     * @description Une convocation cantonale (`sourceEcheance: "convocation"`) prime toujours sur une périodicité calculée.
+     * @description Une convocation cantonale (`sourceEcheance: "convocation"`) prime toujours sur une périodicité calculée. `delaiContreVisiteLe` et `dateContreVisiteLe`, si fournies, doivent être postérieures ou égales à `dateLe` : la contre-visite suit toujours l’expertise qui la déclenche, jamais l’inverse.
      */
     post: operations['VehiculeExpertiseController_creer'];
     delete?: never;
@@ -3412,6 +3585,20 @@ export interface components {
       /** @example 0.9 */
       score: number;
     };
+    CapaciteJourRendezVousDto: {
+      /** @description `null` = capacité jamais paramétrée pour ce site (RV-08) — jamais `0`. */
+      capaciteMinutes: number | null;
+      /**
+       * Format: date
+       * @example 2026-08-20
+       */
+      dateLe: string;
+      /** @enum {string} */
+      etat: 'non_definie' | 'disponible' | 'complete';
+      minutesOccupees: number;
+      /** @enum {string} */
+      moment: 'matin' | 'apres_midi' | 'toute_journee';
+    };
     ChiffreAffairesPeriodeTableauBordDto: {
       /** @description Nombre de factures + avoirs émis entrant dans la somme. */
       nombreDocuments: number;
@@ -3524,6 +3711,8 @@ export interface components {
       langueCorrespondance: 'fr' | 'de' | 'it';
       /** Format: date-time */
       modifieLe: string;
+      /** @description Motif de `plusAucunContact` — requis tant que le drapeau est posé, `null` sinon. */
+      motif: string | null;
       nom: string | null;
       /** @description Rendu d’affichage calculé par le serveur (raisonSociale, ou nom prenom). */
       nomAffiche: string;
@@ -3534,6 +3723,8 @@ export interface components {
        * @example CL-000123
        */
       numeroClient: string;
+      /** @description RA-14 : arrêt de tout contact demandé par le client — prime sur tout consentement marketing, y compris pour une relance de facture impayée. Posé/levé par `POST .../arreter-contact` et `.../reprendre-contact`, jamais par ce `PATCH`. */
+      plusAucunContact: boolean;
       /** @description RM-14 : impose `numeroCommandeInterne` sur les OR de ce client. */
       poObligatoire: boolean;
       prenom: string | null;
@@ -3803,6 +3994,7 @@ export interface components {
     DisponibiliteArticleDto: {
       /** Format: uuid */
       articleId: string;
+      /** @description Fiable UNIQUEMENT si statutSuivi = 'suivi' ; sinon vaut 0 par convention et NE DOIT PAS être lu comme un stock nul — voir statutSuivi. */
       quantiteDisponibleMillieme: number;
       quantitePhysiqueMillieme: number;
       quantiteReserveeMillieme: number;
@@ -3810,6 +4002,11 @@ export interface components {
       reservationsActivesTronquees: boolean;
       /** Format: uuid */
       siteId: string;
+      /**
+       * @description Suivi de stock au site demandé : 'suivi' (quantités fiables, y compris à 0), 'nonSuiviSurCeSite' (suivi ailleurs, inconnu ici) ou 'nonSuiviNullePart' (jamais mis en stock). À lire AVANT les quantités ci-dessus.
+       * @enum {string}
+       */
+      statutSuivi: 'suivi' | 'nonSuiviSurCeSite' | 'nonSuiviNullePart';
     };
     DocumentExporteDto: {
       /** Format: uuid */
@@ -3917,6 +4114,14 @@ export interface components {
     EnveloppePointageDto: {
       avertissements: components['schemas']['AvertissementPointageDto'][];
       donnees: components['schemas']['ReponsePointageDto'];
+    };
+    EnveloppeRendezVousDto: {
+      avertissements: components['schemas']['AvertissementOrDto'][];
+      donnees: components['schemas']['ReponseRendezVousDto'];
+    };
+    EnveloppeRendezVousTransitionDto: {
+      avertissements: components['schemas']['AvertissementOrDto'][];
+      donnees: components['schemas']['ReponseRendezVousDto'];
     };
     EnveloppeVehiculeDetenteurChangeDto: {
       avertissements: components['schemas']['AvertissementVehiculeDto'][];
@@ -4116,8 +4321,8 @@ export interface components {
         | 'abandonne';
       /** Format: uuid */
       dossierVenteId: string;
-      /** @description Le financement COURANT du dossier, restreint aux types credit/leasing — null si aucun (RV-44). */
-      financement: components['schemas']['SuiviFinancementDto'] | null;
+      /** @description Le financement COURANT du dossier, restreint aux types credit/leasing — null si aucun (RV-44), pour un rôle autorisé. ABSENT (pas null) = le rôle appelant n'a pas ventes.financement.lire (FAILLE CORRIGÉE, audit sécurité). */
+      financement?: components['schemas']['SuiviFinancementDto'] | null;
       /** @description null si le véhicule associé (ou aucun véhicule) n'a pas de garantieDebut renseigné. */
       garantie: components['schemas']['SuiviGarantieDto'] | null;
       /**
@@ -4459,6 +4664,13 @@ export interface components {
       /** @example 50 */
       limite: number;
     };
+    PageRendezVousDto: {
+      /** @description Opaque base64url ; null = fin de liste. */
+      curseurSuivant: string | null;
+      donnees: components['schemas']['ReponseRendezVousDto'][];
+      /** @example 50 */
+      limite: number;
+    };
     PageReponsePaiementDto: {
       /** @description Opaque base64url ; null = fin de liste. */
       curseurSuivant: string | null;
@@ -4669,6 +4881,7 @@ export interface components {
         | 'VENTE_VEHICULE_MANQUANT'
         | 'VENTE_FINANCEMENT_NON_CONFIRME'
         | 'VENTE_LIVRAISON_EXPERTISE_REQUISE'
+        | 'VENTE_LIVRAISON_FACTURE_REQUISE'
         | 'VENTE_LIVRAISON_INCOMPLETE'
         | 'VENTE_DOSSIER_ANNULATION_IMPOSSIBLE'
         | 'VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE'
@@ -4680,7 +4893,8 @@ export interface components {
         | 'CONNECTEUR_EXECUTION_TRANSITION_INTERDITE'
         | 'ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE'
         | 'LIGNE_DOCUMENT_STOCK_LIEE'
-        | 'IMPUTATION_DEVISE_INCOHERENTE';
+        | 'IMPUTATION_DEVISE_INCOHERENTE'
+        | 'IMPUTATION_DOCUMENT_NON_REGLABLE';
       /** @description Détail technique — jamais affiché à l'utilisateur final. */
       detail?: string;
       erreurs?: components['schemas']['ErreurChampCommunDto'][];
@@ -4792,6 +5006,7 @@ export interface components {
         | 'VENTE_VEHICULE_MANQUANT'
         | 'VENTE_FINANCEMENT_NON_CONFIRME'
         | 'VENTE_LIVRAISON_EXPERTISE_REQUISE'
+        | 'VENTE_LIVRAISON_FACTURE_REQUISE'
         | 'VENTE_LIVRAISON_INCOMPLETE'
         | 'VENTE_DOSSIER_ANNULATION_IMPOSSIBLE'
         | 'VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE'
@@ -4803,7 +5018,8 @@ export interface components {
         | 'CONNECTEUR_EXECUTION_TRANSITION_INTERDITE'
         | 'ABONNEMENT_WEBHOOK_TRANSITION_INTERDITE'
         | 'LIGNE_DOCUMENT_STOCK_LIEE'
-        | 'IMPUTATION_DEVISE_INCOHERENTE';
+        | 'IMPUTATION_DEVISE_INCOHERENTE'
+        | 'IMPUTATION_DOCUMENT_NON_REGLABLE';
       detail?: string;
       erreurs?: components['schemas']['ErreurChampDto'][];
       instance: string;
@@ -4924,6 +5140,11 @@ export interface components {
       rue: string | null;
       /** @description Sert l'ETag (`W/"<version>"`). Dérivé de `modifie_le` ; `0` si aucun bloc créancier n'a encore été enregistré pour ce tenant. */
       version: number;
+    };
+    ReponseCapaciteRendezVousDto: {
+      jours: components['schemas']['CapaciteJourRendezVousDto'][];
+      /** Format: uuid */
+      siteId: string;
     };
     ReponseContexteAtelierDto: {
       alertesClient: components['schemas']['AlerteClientContexteDto'][];
@@ -5164,11 +5385,12 @@ export interface components {
       engageLe: string | null;
       /** Format: date-time */
       enPreparationLe: string | null;
-      /** @description Le financement COURANT — null uniquement en prospection. */
-      financement: components['schemas']['FinancementResumeDto'] | null;
-      /** @description Historique COMPLET des tentatives de financement (CV-03). */
-      financements: components['schemas']['FinancementResumeDto'][];
-      financementsTronques: boolean;
+      /** @description Le financement COURANT — null uniquement en prospection, pour un rôle autorisé. ABSENT (pas null) = le rôle appelant n'a pas ventes.financement.lire (FAILLE CORRIGÉE, audit sécurité). */
+      financement?: components['schemas']['FinancementResumeDto'] | null;
+      /** @description Historique COMPLET des tentatives de financement (CV-03). ABSENT si le rôle n'a pas ventes.financement.lire — même doctrine que `financement` ci-dessus. */
+      financements?: components['schemas']['FinancementResumeDto'][];
+      /** @description ABSENT dans les mêmes conditions que `financements`. */
+      financementsTronques?: boolean;
       /** Format: uuid */
       id: string;
       /** @description RV-34 : type de pièce présentée à la signature du bon de commande. */
@@ -5187,8 +5409,8 @@ export interface components {
       pretALivrerLe: string | null;
       /** Format: date-time */
       prospectionLe: string;
-      /** @description null = pas de reprise sur ce dossier (RV-25). */
-      reprise: components['schemas']['RepriseResumeDto'] | null;
+      /** @description null = pas de reprise sur ce dossier (RV-25), pour un rôle autorisé. ABSENT (clé manquante, pas null) = le rôle appelant n'a pas ventes.reprise.lire — omission complète de l'entité (FAILLE CORRIGÉE, audit sécurité). */
+      reprise?: components['schemas']['RepriseResumeDto'] | null;
       /** Format: uuid */
       siteId: string;
       /** @enum {string} */
@@ -5520,6 +5742,21 @@ export interface components {
       /** @enum {string|null} */
       urgence: 'urgent' | 'a_faire' | 'a_surveiller' | null;
     };
+    ReponseMotifRendezVousDto: {
+      actif: boolean;
+      /** @example SERVICE */
+      code: string;
+      /** @description RV-02 : non nul seulement pour un motif à créneau réel (expertise, remorquage…). */
+      dureeDefautMinutes: number | null;
+      /** @description RV-01 : non nul seulement pour un motif qui consomme de la capacité de journée. */
+      heuresAtelierDefautCentiemes: number | null;
+      /** Format: uuid */
+      id: string;
+      libelleDe: string | null;
+      /** @example Entretien / service courant */
+      libelleFr: string;
+      libelleIt: string | null;
+    };
     ReponseOrdreReparationDemandeDto: {
       /** Format: uuid */
       id: string;
@@ -5567,6 +5804,8 @@ export interface components {
       cumulsPointage: components['schemas']['CumulsPointageOrDto'];
       demandes: components['schemas']['ReponseOrdreReparationDemandeDto'][];
       devisComplementaires: components['schemas']['ReponseDevisComplementaireDto'][];
+      /** @description Calculé UNE SEULE FOIS côté serveur (jamais recalculé par le client) : true seulement si restitutionPromiseLe est renseigné, que le statut est encore actif (ni restitue, cloture, ni annule) et que l’instant courant dépasse la promesse. Une date promise absente n’est JAMAIS un retard. Toujours peuplé par le serveur malgré le type facultatif (voir le contrat). */
+      enRetard: boolean;
       /**
        * @description Le plus bloquant des attentes, sinon le statut. Calculé UNE FOIS côté serveur.
        * @enum {string}
@@ -5888,6 +6127,62 @@ export interface components {
       plaqueInterchangeable: boolean;
       resultats: components['schemas']['ResultatRechercheDto'][];
     };
+    ReponseRendezVousDto: {
+      /** Format: date-time */
+      absentConstateLe: string | null;
+      /** Format: date-time */
+      annuleLe: string | null;
+      client: components['schemas']['ClientResumeOrDto'];
+      /** @description Verbatim secondaire, jamais un substitut au motif. */
+      commentaire: string | null;
+      /** Format: date-time */
+      confirmeLe: string;
+      /** Format: date-time */
+      creeLe: string;
+      /** Format: uuid */
+      creeParId: string | null;
+      /**
+       * Format: date
+       * @example 2026-08-20
+       */
+      dateLe: string;
+      /** @description Figée à la création depuis le motif, modifiable ensuite. */
+      dureeEstimeeMinutes: number;
+      /** @example 08:00 */
+      heureSouhaitee: string | null;
+      /** Format: date-time */
+      honoreLe: string | null;
+      /** Format: uuid */
+      id: string;
+      /** Format: date-time */
+      modifieLe: string;
+      /** @enum {string} */
+      moment: 'matin' | 'apres_midi' | 'toute_journee';
+      motif: components['schemas']['ReponseMotifRendezVousDto'];
+      motifAnnulation: string | null;
+      /**
+       * Format: uuid
+       * @description L'OR déjà créé par ce rendez-vous (mode « OR anticipé »). `null` tant qu'aucun n'existe.
+       */
+      ordreReparationId: string | null;
+      /** @enum {string} */
+      origine: 'reservation' | 'retroactif';
+      /** Format: uuid */
+      siteId: string;
+      /** @enum {string} */
+      statut: 'confirme' | 'honore' | 'absent' | 'annule';
+      /** @enum {string} */
+      type:
+        | 'service'
+        | 'reparation'
+        | 'diagnostic'
+        | 'expertise'
+        | 'pneus'
+        | 'carrosserie'
+        | 'retouche'
+        | 'interne';
+      vehicule: components['schemas']['VehiculeResumeOrDto'] | null;
+    };
     ReponseRepriseDto: {
       actionsDisponibles: ('modifier' | 'negocier' | 'confirmer' | 'refuser')[];
       /** Format: date-time */
@@ -6194,7 +6489,12 @@ export interface components {
       /** Format: uuid */
       ligneOrId: string;
       /** @enum {string|null} */
-      motifLiberation: 'annulation_ligne' | 'refus_devis' | 'liberation_manuelle' | null;
+      motifLiberation:
+        | 'annulation_ligne'
+        | 'refus_devis'
+        | 'liberation_manuelle'
+        | 'liberation_forcage_stock'
+        | null;
       motifLiberationTexte: string | null;
       /** Format: uuid */
       mouvementSortieId: string | null;
@@ -6216,9 +6516,16 @@ export interface components {
       estEchangeStandard: boolean;
       montantConsigneTtcCentimes: number | null;
       numeroArticle: string;
+      /** @description TVA comprise (RP-36) — jamais le prix hors taxe. */
       prixVenteTtcCentimes: number;
+      /** @description Fiable UNIQUEMENT si statutSuivi = 'suivi' ; sinon vaut 0 par convention et NE DOIT PAS être lu comme un stock nul — voir statutSuivi. */
       quantiteDisponibleMillieme: number;
       referencePrincipale: string;
+      /**
+       * @description Suivi de stock au site demandé : 'suivi' (quantiteDisponibleMillieme fiable, y compris à 0), 'nonSuiviSurCeSite' (suivi ailleurs, inconnu ici) ou 'nonSuiviNullePart' (jamais mis en stock). À lire AVANT quantiteDisponibleMillieme.
+       * @enum {string}
+       */
+      statutSuivi: 'suivi' | 'nonSuiviSurCeSite' | 'nonSuiviNullePart';
     };
     ResultatRechercheDto: {
       correspondance: components['schemas']['CorrespondanceRechercheDto'];
@@ -6381,7 +6688,14 @@ export interface components {
       total: number;
     };
     /** @enum {string} */
-    TypeResultatRecherche: 'vehicule' | 'client' | 'ordre_reparation' | 'document_vente';
+    TypeResultatRecherche:
+      | 'vehicule'
+      | 'client'
+      | 'ordre_reparation'
+      | 'document_vente'
+      | 'article'
+      | 'fournisseur'
+      | 'depot_pneu';
     UtilisateurCourantDto: {
       /** Format: email */
       email: string;
@@ -6715,6 +7029,7 @@ export interface operations {
       };
       cookie?: never;
     };
+    /** @description Corps brut transmis tel quel au service (jamais pré-parsé ici) : `schemaModificationArticle` porte `estEchangeStandard.default(false)`, que `.partial()` rend facultatif SANS annuler le défaut — un parse ici l'appliquerait à tort à un corps qui ne touche pas `estEchangeStandard` (F-01-bis). Voir `ServiceArticle.modifier`. */
     requestBody: {
       content: {
         'application/json': {
@@ -8060,7 +8375,7 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
-          adressePrincipale: {
+          adressePrincipale?: {
             complement?: string | null;
             localite: string;
             npa: string;
@@ -8427,6 +8742,7 @@ export interface operations {
       };
       cookie?: never;
     };
+    /** @description Corps brut transmis tel quel au service (jamais pré-parsé ici) : `schemaModificationAdresseClient` porte `pays.default('CH')`, qui s'appliquerait à tort sur un corps qui ne touche pas `pays` si le parse avait lieu dans ce contrôleur — voir `ServiceClientSousCollections.modifierAdresse`. */
     requestBody: {
       content: {
         'application/json': {
@@ -8479,6 +8795,69 @@ export interface operations {
         };
       };
       /** @description Client ou adresse introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  ClientController_arreterContact: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        clientId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          motif: string;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClientAvecAvertissementsDto'];
+        };
+      };
+      /** @description Motif manquant. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Rôle non autorisé (contrôle provisoire en service). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Client introuvable pour ce tenant. */
       404: {
         headers: {
           [name: string]: unknown;
@@ -8855,6 +9234,7 @@ export interface operations {
       };
       cookie?: never;
     };
+    /** @description Corps brut transmis tel quel au service — même patron que `ClientAdresseController.modifier`, pour rester protégé si un `.default(...)` était ajouté un jour à ce schéma. */
     requestBody: {
       content: {
         'application/json': {
@@ -9139,6 +9519,69 @@ export interface operations {
         };
       };
       /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Client introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  ClientController_reprendreContact: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        clientId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          motif: string;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClientAvecAvertissementsDto'];
+        };
+      };
+      /** @description Motif manquant. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Rôle non autorisé (contrôle provisoire en service). */
       403: {
         headers: {
           [name: string]: unknown;
@@ -10553,7 +10996,20 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        'application/json': {
+          confirmations?: (
+            | 'CLIENT_BLOQUE'
+            | 'VEHICULE_DEUX_OR_OUVERTS'
+            | 'RDV_RESSOURCE_CHEVAUCHEMENT'
+            | 'RDV_HORS_OUVERTURE'
+            | 'PRET_VEHICULE_INDISPONIBLE'
+            | 'OR_SANS_RDV'
+          )[];
+        };
+      };
+    };
     responses: {
       200: {
         headers: {
@@ -10694,7 +11150,20 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        'application/json': {
+          confirmations?: (
+            | 'CLIENT_BLOQUE'
+            | 'VEHICULE_DEUX_OR_OUVERTS'
+            | 'RDV_RESSOURCE_CHEVAUCHEMENT'
+            | 'RDV_HORS_OUVERTURE'
+            | 'PRET_VEHICULE_INDISPONIBLE'
+            | 'OR_SANS_RDV'
+          )[];
+        };
+      };
+    };
     responses: {
       200: {
         headers: {
@@ -10927,6 +11396,7 @@ export interface operations {
       };
       cookie?: never;
     };
+    /** @description Corps brut transmis tel quel au service (jamais pré-parsé ici) : `schemaModificationLigneDocument` porte `quantiteMillieme.default(1000)` et `regimeTva.default('normal')`, qui s'appliqueraient à tort sur un corps qui ne touche ni l’un ni l’autre si le parse avait lieu dans ce contrôleur — défaut critique corrigé (facturait la quantité/le régime par défaut), voir `ServiceDocumentsVente.modifierLigne`. */
     requestBody: {
       content: {
         'application/json': {
@@ -12075,7 +12545,7 @@ export interface operations {
           'application/json': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description VENTE_DOSSIER_TRANSITION_INTERDITE, VENTE_VEHICULE_MANQUANT ou VENTE_VEHICULE_INDISPONIBLE (facture pas encore émise). */
+      /** @description VENTE_DOSSIER_TRANSITION_INTERDITE, VENTE_VEHICULE_MANQUANT ou VENTE_LIVRAISON_FACTURE_REQUISE (la facture de vente doit être émise avant la livraison — RV-37). */
       409: {
         headers: {
           [name: string]: unknown;
@@ -13105,6 +13575,34 @@ export interface operations {
       };
       /** @description Fournisseur introuvable pour ce tenant. */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  MotifsRendezVousController_lister: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseMotifRendezVousDto'][];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
         headers: {
           [name: string]: unknown;
         };
@@ -14406,6 +14904,7 @@ export interface operations {
       };
       cookie?: never;
     };
+    /** @description Corps brut transmis tel quel au service (jamais pré-parsé ici) — voir `ServiceLigneOr.modifier`. */
     requestBody: {
       content: {
         'application/json': {
@@ -16983,8 +17482,16 @@ export interface operations {
       query: {
         /** @description Entre 1 et 50, défaut 20. */
         limite?: number;
-        /** @description Répétable. Par défaut, les trois natures sont cherchées. */
-        types?: ('vehicule' | 'client' | 'ordre_reparation' | 'document_vente')[];
+        /** @description Répétable. Par défaut, les sept natures sont cherchées (sous réserve des droits de rôle propres à `document_vente`/`article`/`fournisseur`/`depot_pneu`). */
+        types?: (
+          | 'vehicule'
+          | 'client'
+          | 'ordre_reparation'
+          | 'document_vente'
+          | 'article'
+          | 'fournisseur'
+          | 'depot_pneu'
+        )[];
         q: string;
       };
       header?: never;
@@ -17135,6 +17642,7 @@ export interface operations {
       };
       cookie?: never;
     };
+    /** @description Corps PARTIEL — seuls les champs présents sont modifiés. `tauxTvaPourmille` porte un défaut zod (81‰) qui ne s'applique qu'à la CRÉATION : un `PATCH` qui l'omet ne touche jamais le taux existant (F-01-ter), le distinguer du cas où il est envoyé avec la même valeur exige de lire le corps brut — voir `service-prestations.ts`. */
     requestBody: {
       content: {
         'application/json': {
@@ -17489,6 +17997,572 @@ export interface operations {
         };
       };
       /** @description Droit insuffisant (relances.facturation.regle.ecrire). */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  RendezVousController_lister: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PageRendezVousDto'];
+        };
+      };
+      /** @description Filtres, tri ou curseur invalides. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  RendezVousController_creer: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description uuid v4. */
+        'Idempotency-Key': string;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          /** Format: uuid */
+          clientId: string;
+          commentaire?: string | null;
+          confirmations?: (
+            | 'CLIENT_BLOQUE'
+            | 'VEHICULE_DEUX_OR_OUVERTS'
+            | 'RDV_RESSOURCE_CHEVAUCHEMENT'
+            | 'RDV_HORS_OUVERTURE'
+            | 'PRET_VEHICULE_INDISPONIBLE'
+            | 'OR_SANS_RDV'
+          )[];
+          /** Format: date */
+          dateLe: string;
+          dureeEstimeeMinutes?: number | null;
+          heureSouhaitee?: string | null;
+          /** @enum {string} */
+          moment: 'matin' | 'apres_midi' | 'toute_journee';
+          /** Format: uuid */
+          motifId: string;
+          /** Format: uuid */
+          siteId: string;
+          /** @enum {string} */
+          type:
+            | 'service'
+            | 'reparation'
+            | 'diagnostic'
+            | 'expertise'
+            | 'pneus'
+            | 'carrosserie'
+            | 'retouche'
+            | 'interne';
+          vehiculeId?: string | null;
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EnveloppeRendezVousDto'];
+        };
+      };
+      /** @description Corps invalide, Idempotency-Key manquante/mal formée, ou motif sans durée par défaut sans dureeEstimeeMinutes fourni. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Client, véhicule, motif ou site introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description IDEMPOTENCE_CONFLIT. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  RendezVousController_obtenir: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseRendezVousDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Rendez-vous introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  RendezVousController_modifier: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          commentaire?: string | null;
+          confirmations?: (
+            | 'CLIENT_BLOQUE'
+            | 'VEHICULE_DEUX_OR_OUVERTS'
+            | 'RDV_RESSOURCE_CHEVAUCHEMENT'
+            | 'RDV_HORS_OUVERTURE'
+            | 'PRET_VEHICULE_INDISPONIBLE'
+            | 'OR_SANS_RDV'
+          )[];
+          /** Format: date */
+          dateLe?: string;
+          dureeEstimeeMinutes?: number;
+          heureSouhaitee?: string | null;
+          /** @enum {string} */
+          moment?: 'matin' | 'apres_midi' | 'toute_journee';
+          vehiculeId?: string | null;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseRendezVousDto'];
+        };
+      };
+      /** @description Corps invalide. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Rendez-vous ou véhicule introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description RDV_TRANSITION_INTERDITE (déjà honoré/absent/annulé). */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  RendezVousTransitionsController_absence: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          confirmations?: (
+            | 'CLIENT_BLOQUE'
+            | 'VEHICULE_DEUX_OR_OUVERTS'
+            | 'RDV_RESSOURCE_CHEVAUCHEMENT'
+            | 'RDV_HORS_OUVERTURE'
+            | 'PRET_VEHICULE_INDISPONIBLE'
+            | 'OR_SANS_RDV'
+          )[];
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseRendezVousDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Rendez-vous introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description RDV_TRANSITION_INTERDITE (déjà honoré/absent/annulé). */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  RendezVousTransitionsController_annuler: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          motif: string;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseRendezVousDto'];
+        };
+      };
+      /** @description Motif manquant. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Rendez-vous introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description RDV_ANNULATION_IMPOSSIBLE (déjà honoré/absent/annulé). */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  RendezVousTransitionsController_arrivee: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description uuid v4 — porte sur la création de l'OR si aucun n'est encore lié à ce rendez-vous. */
+        'Idempotency-Key': string;
+      };
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          conducteurPresentNom?: string | null;
+          confirmations?: (
+            | 'CLIENT_BLOQUE'
+            | 'VEHICULE_DEUX_OR_OUVERTS'
+            | 'RDV_RESSOURCE_CHEVAUCHEMENT'
+            | 'RDV_HORS_OUVERTURE'
+            | 'PRET_VEHICULE_INDISPONIBLE'
+            | 'OR_SANS_RDV'
+          )[];
+          kilometrageEntree: number;
+          motifDifferee?: string;
+          /** @default false */
+          signatureDifferee?: boolean;
+          /**
+           * @default km
+           * @enum {string}
+           */
+          unite?: 'km' | 'mi';
+          vehiculeId?: string | null;
+        };
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EnveloppeRendezVousTransitionDto'];
+        };
+      };
+      /** @description Corps invalide, ou Idempotency-Key manquante/mal formée. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Rendez-vous introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description RDV_TRANSITION_INTERDITE ou RDV_IDENTIFICATION_INCOMPLETE (aucun véhicule connu). */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  RendezVousController_capacite: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReponseCapaciteRendezVousDto'];
+        };
+      };
+      /** @description Filtres invalides ou période trop longue. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
       403: {
         headers: {
           [name: string]: unknown;
@@ -19122,7 +20196,7 @@ export interface operations {
           'application/json': components['schemas']['ReponseVehiculeExpertiseDto'];
         };
       };
-      /** @description Corps invalide. */
+      /** @description Corps invalide, ou `delaiContreVisiteLe`/`dateContreVisiteLe` antérieure à `dateLe` — la contre-visite suit toujours l’expertise qui la déclenche (RM-28) ; `erreurs[].champ` nomme le champ en cause. */
       400: {
         headers: {
           [name: string]: unknown;

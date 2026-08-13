@@ -10,7 +10,7 @@
  * COMPATIBILITÉ ASCENDANTE (contrats-api-etape-1.md §11.2) — deux classes d'enums :
  *
  *  - **GELÉS** (`x-dfa-enum-extensible: false`) : `statut_ordre_reparation`, `statut_ligne_or`,
- *    `statut_rendez_vous`, `statut_pointage`, `payeur_ligne_or`, `origine_ligne_or`. Aucune
+ *    `statut_pointage`, `payeur_ligne_or`, `origine_ligne_or`. Aucune
  *    valeur ne sera ajoutée en v1 — un client peut les énumérer exhaustivement sans risque.
  *    `facture` et `facturee` existent DÉJÀ : l'étape 2 ne les ajoutera pas, elle les rendra
  *    atteignables.
@@ -369,17 +369,14 @@ export type DecisionDevis = (typeof DECISIONS_DEVIS)[number];
 /* Rendez-vous et planning — déclarés au lot 1, servis au lot 4        */
 /* ------------------------------------------------------------------ */
 
-/** `statut_rendez_vous` — **GELÉ**. */
-export const STATUTS_RENDEZ_VOUS = [
-  'demande',
-  'planifie',
-  'honore',
-  'absent',
-  'annule_client',
-  'annule_garage',
-  'reporte',
-] as const;
-export type StatutRendezVous = (typeof STATUTS_RENDEZ_VOUS)[number];
+// Dette technique n°3 (réglée) : `STATUTS_RENDEZ_VOUS`/`StatutRendezVous` et
+// `ORIGINES_RENDEZ_VOUS`/`OrigineRendezVous` — déclarés GELÉS ici, jamais implémentés — ont été
+// retirés. Le modèle qui fait foi pour le domaine rendez-vous est `contrats/rendezvous/enums.ts`
+// (`STATUTS_RDV`, `ORIGINES_RDV`), qui mirrore les types Postgres RÉELLEMENT créés par la
+// migration `0052_rendez_vous_atelier.sql` (`statut_prise_rendez_vous`, `origine_creation_rendez_vous`).
+// Les types Postgres `statut_rendez_vous`/`origine_rendez_vous` (créés par 0005_parametrage.sql,
+// jamais consommés par aucune table) portaient les valeurs de CES enums gelés ; ils ont été
+// supprimés par la migration `0053_purge_enums_rendez_vous_geles.sql`.
 
 /** `mode_attente_rdv` — extensible. Le client attend-il sur place, dépose-t-il, etc. */
 export const MODES_ATTENTE_RDV = [
@@ -390,17 +387,6 @@ export const MODES_ATTENTE_RDV = [
   'prise_en_charge',
 ] as const;
 export type ModeAttenteRdv = (typeof MODES_ATTENTE_RDV)[number];
-
-/** `origine_rendez_vous` — extensible (§11.2). */
-export const ORIGINES_RENDEZ_VOUS = [
-  'telephone',
-  'comptoir',
-  'email',
-  'formulaire_web',
-  'importe',
-  'rappel_automatique',
-] as const;
-export type OrigineRendezVous = (typeof ORIGINES_RENDEZ_VOUS)[number];
 
 /** `type_ressource_planning` — extensible. */
 export const TYPES_RESSOURCE_PLANNING = [

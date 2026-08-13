@@ -71,6 +71,7 @@
   },
   "entete": {
     "tousLesSites": "Tous les sites",
+    "siteNonChoisi": "Aucun site choisi",
     "changerSite": "Changer de site"
   },
   "repli": {

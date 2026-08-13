@@ -49,7 +49,8 @@
   },
   "avanceClient": {
     "message": "Cet encaissement dépasse le solde de {montant} — l'excédent sera enregistré comme avance client, à affecter plus tard.",
-    "aucuneFactureOuverte": "Cet encaissement sera enregistré comme avance client."
+    "aucuneFactureOuverte": "Ce client n'a aucune facture ouverte à régler.",
+    "confirmerAction": "Enregistrer quand même comme avance client"
   },
   "motifsAvoir": {
     "erreurAdresse": "Erreur d'adresse",

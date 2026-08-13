@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DateInput } from '@/components/ui/date-input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
@@ -184,10 +184,21 @@ export function EcranNouveauDossierVente() {
         {t('ventes:dossier.nouveau.titre')}
       </h1>
 
+      <LegendeChampsObligatoires>
+        {t('commun:formulaires.champsObligatoiresLegende')}
+      </LegendeChampsObligatoires>
+
       <Card>
         <CardHeader>
           <CardTitle className="texte-corps font-medium">
             {t('ventes:dossier.nouveau.client.titre')}
+            {/* Seul champ réellement obligatoire de cet écran (`clientAcheteurId`,
+             *  `schemaCreationDossierVente`) — `CardTitle` (pas `<Label>`) porte ici le nom visible
+             *  du champ (le sélecteur ci-dessous n'a pas de libellé visible propre), même rendu
+             *  d'étoile (`aria-hidden`) que `Label requis` pour rester cohérent avec la légende. */}
+            <span aria-hidden="true" className="ml-0.5 text-destructive">
+              *
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -205,6 +216,7 @@ export function EcranNouveauDossierVente() {
               valeur={null}
               onChangeValeur={(_id, client) => setClientAcheteur(client)}
               libelle={t('ventes:dossier.nouveau.client.titre')}
+              requis
             />
           )}
         </CardContent>

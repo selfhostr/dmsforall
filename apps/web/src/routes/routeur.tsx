@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 
 import { AppShell } from '@/composants/layout/AppShell';
+import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
 import { EcranConnexion } from '@/ecrans/EcranConnexion';
 import { EcranFicheOrdreReparation } from '@/ecrans/atelier/EcranFicheOrdreReparation';
 import { EcranListeOrdresReparation } from '@/ecrans/atelier/EcranListeOrdresReparation';
@@ -35,6 +36,10 @@ import { EcranPointage } from '@/ecrans/pointage/EcranPointage';
 import { EcranPointageTechnicien } from '@/ecrans/pointage/EcranPointageTechnicien';
 import { EcranRecherche } from '@/ecrans/recherche/EcranRecherche';
 import { EcranRelances } from '@/ecrans/relances/EcranRelances';
+// `EcranRendezVous` (routé ci-dessous) est le CONTENEUR réseau ; il rend `EcranAgendaRendezVous`
+// (présentation pure, testée séparément par fixtures locales) — l'écran métier existe donc bien
+// dans ce fichier, à un niveau d'indirection près (`ecrans/rendez-vous/EcranAgendaRendezVous.tsx`).
+import { EcranRendezVous } from '@/ecrans/rendez-vous/EcranRendezVous';
 import { EcranPageIntrouvable } from '@/ecrans/systeme/EcranPageIntrouvable';
 import { EcranTableauBord } from '@/ecrans/tableau-bord/EcranTableauBord';
 import { EcranFicheVehicule } from '@/ecrans/vehicules/EcranFicheVehicule';
@@ -49,10 +54,12 @@ import { EcranListeVehiculesStock } from '@/ecrans/ventes/stock/EcranListeVehicu
 import { EcranSuiviVentes } from '@/ecrans/ventes/suivi/EcranSuiviVentes';
 
 import { ATTERRISSAGE_PAR_ROLE } from './atterrissage';
+import { chemins } from './chemins';
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
 import {
   ROLES_BORNE_POINTAGE,
+  ROLES_LECTURE_RENDEZ_VOUS,
   ROLES_PARAMETRAGE_PIECES,
   ROLES_PIECES,
   ROLES_PNEUS,
@@ -81,6 +88,23 @@ import {
  * un `createMemoryRouter` avec exactement cette configuration (voir routeur.spec.tsx), plutôt que
  * de la dupliquer.
  */
+
+/**
+ * Atterrissage des rôles de PILOTAGE (`ATTERRISSAGE_PAR_ROLE` ne les redirige pas, voir
+ * `atterrissage.ts`) — CORRECTIF issue #91 (« le logiciel me redemande sans arrêt un site »). Avant
+ * ce correctif, cette route rendait littéralement `<Navigate to="/tableau-bord" replace />` : un
+ * utilisateur qui travaille toujours au même site atterrissait pourtant sur « aucun site » à
+ * CHAQUE connexion, devant re-choisir un site qu'il avait déjà choisi la veille. Cette route lit
+ * la préférence mémorisée (`hooks/site/ContexteSiteCourant.tsx`, posée par `SelecteurSiteEntete`
+ * dès qu'un site est choisi une fois) et la propage dans l'URL d'atterrissage — `undefined` la
+ * laisse simplement absente, comportement identique à avant pour un poste qui n'a encore jamais
+ * choisi de site.
+ */
+function AtterrissageTableauBord() {
+  const { preferenceSiteId } = useSiteCourant();
+  return <Navigate to={chemins.tableauBord(preferenceSiteId)} replace />;
+}
+
 export const routesConfig: RouteObject[] = [
   {
     path: '/login',
@@ -150,7 +174,7 @@ export const routesConfig: RouteObject[] = [
         index: true,
         element: (
           <RouteProtegee redirectionParRole={ATTERRISSAGE_PAR_ROLE}>
-            <Navigate to="/tableau-bord" replace />
+            <AtterrissageTableauBord />
           </RouteProtegee>
         ),
       },
@@ -196,6 +220,17 @@ export const routesConfig: RouteObject[] = [
       // affichés quand l'un des deux manque.
       { path: 'atelier/ordres-reparation/nouveau', element: <EcranNouvelOrdreReparation /> },
       { path: 'ordres-reparation/:orId/facturer', element: <EcranFacturerOrdreReparation /> },
+      // Agenda de rendez-vous (Lot RDV-1) — `rendez_vous.lire` ferme la LECTURE elle-même à
+      // `vendeur`/`magasinier`/`comptable`/`poste_atelier` côté API (`droits-routes.ts`), cette
+      // garde reflète donc une restriction RÉELLE, comme `ROLES_PIECES`/`ROLES_PNEUS` plus bas.
+      {
+        path: 'rendez-vous',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_LECTURE_RENDEZ_VOUS}>
+            <EcranRendezVous />
+          </RouteProtegee>
+        ),
+      },
       { path: 'factures', element: <EcranListeFactures /> },
       // `:id` (pas `:orId` ni `:factureId`) — `EcranFicheFacture` lit `useParams<{ id: string }>()`.
       { path: 'factures/:id', element: <EcranFicheFacture /> },

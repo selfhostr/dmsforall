@@ -36,7 +36,13 @@
     },
     "articlesSousSeuil": {
       "libelle": "Articoli sotto la soglia di riordino"
-    }
+    },
+    "orEnAttentePieces": {
+      "libelle": "Ordini in attesa di ricambi",
+      "description": "Solleciti il fornitore o avvisi il cliente.",
+      "erreur": "Impossibile visualizzare gli ordini in attesa di ricambi"
+    },
+    "enRetard": "In ritardo"
   },
   "financier": {
     "titre": "Finanza",
@@ -51,7 +57,8 @@
       "libelle": "Incassi nel periodo"
     },
     "encoursClients": {
-      "libelle": "Crediti clienti in essere"
+      "libelle": "Crediti clienti in essere",
+      "definition": "Fatture emesse non pagate."
     }
   },
   "direction": {
@@ -67,8 +74,9 @@
   "comptable": {
     "aRelancer": {
       "titre": "Fatture da sollecitare",
-      "description": "Apra l'elenco delle fatture e selezioni la scheda «Da sollecitare».",
-      "lien": "Aprire le fatture"
+      "description": "Fatture emesse in ritardo, mai sollecitate.",
+      "lien": "Aprire le fatture",
+      "erreur": "Impossibile visualizzare le fatture da sollecitare"
     }
   },
   "chefAtelier": {
@@ -127,6 +135,30 @@
       "titre": "Cruscotto non disponibile",
       "description": "L'API non permette ancora di filtrare le pratiche di vendita per venditore responsabile: mostrare tutte le pratiche della sede come «le sue pratiche» sarebbe fuorviante. Trova il suo lavoro in Vendite › Pratiche.",
       "lien": "Vai alle mie pratiche"
+    }
+  },
+  "receptionnaire": {
+    "rendezVousJour": {
+      "titre": "Appuntamenti di oggi",
+      "description": "Appuntamenti confermati o già arrivati per oggi, nell'ordine della giornata.",
+      "siteRequis": "Selezioni una sede per vedere gli appuntamenti di oggi.",
+      "vide": {
+        "titre": "Nessun appuntamento oggi",
+        "description": "Nessun appuntamento è previsto per oggi in questa sede."
+      },
+      "erreur": {
+        "titre": "Impossibile visualizzare gli appuntamenti di oggi"
+      },
+      "vehiculeInconnu": "Veicolo non indicato",
+      "voirAgenda": "Aprire l'agenda"
+    },
+    "restitutionsJour": {
+      "titre": "Consegne di oggi",
+      "description": "Restituzioni promesse ai clienti per oggi.",
+      "vide": {
+        "titre": "Nessuna consegna prevista oggi",
+        "description": "Nessun ordine di riparazione aperto ha una data di restituzione promessa per oggi."
+      }
     }
   }
 }

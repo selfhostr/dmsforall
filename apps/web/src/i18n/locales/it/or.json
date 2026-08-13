@@ -73,7 +73,7 @@
       "quantite": "Qta",
       "tempsBareme": "Tempo tariffario",
       "tempsPointe": "Tempo registrato",
-      "prixUnitaire": "Prezzo unitario",
+      "prixUnitaire": "Prezzo unitario IVA esclusa",
       "rabais": "Sconto",
       "payeur": "Pagante",
       "technicien": "Tecnico",
@@ -158,6 +158,36 @@
     },
     "champs": {
       "referenceTexte": "Riferimento"
+    },
+    "montants": {
+      "ttc": "{montant} IVA incl.",
+      "ht": "{montant} IVA esclusa",
+      "calculMainOeuvre": "{temps} × {taux}/h"
+    },
+    "selecteurArticle": {
+      "label": "Cerca un pezzo in magazzino",
+      "placeholder": "Descrizione, riferimento o codice a barre",
+      "recherche": "Ricerca in corso…",
+      "aucunResultat": "Nessun articolo trovato in magazzino. Puoi inserire il pezzo manualmente qui sotto.",
+      "resultats": "{count, plural, one {# risultato} other {# risultati}}",
+      "choisi": "Scelto dal magazzino",
+      "changer": "Cerca un altro pezzo",
+      "prixConverti": "Prezzo di catalogo {prixTtc} IVA inclusa, convertito in netto (IVA {taux} %).",
+      "parcours": {
+        "aide": "Digita un riferimento preciso per cercare, oppure scegli direttamente dal catalogo qui sotto.",
+        "vide": "Nessun articolo attivo nel catalogo di questa sede al momento. Puoi inserire il pezzo manualmente qui sotto."
+      },
+      "erreur": {
+        "reessayer": "Riprova",
+        "parcours": "Impossibile caricare il catalogo del magazzino. {message}"
+      },
+      "disponibilite": {
+        "nonSuiviNullePart": "Questo pezzo non è gestito a magazzino in nessuna sede — mai ricevuto.",
+        "nonSuiviSurCeSite": "Questa sede non gestisce questo pezzo — è gestito altrove.",
+        "aucune": "Nessuna disponibilità attuale in questa sede.",
+        "disponible": "{n} disponibile/i in questa sede."
+      },
+      "calculPrixEnCours": "Calcolo del prezzo IVA esclusa in corso…"
     },
     "groupees": {
       "colonneSelection": "Selezione",
@@ -350,6 +380,7 @@
   },
   "actions": {
     "titre": "Azioni",
+    "imprimer": "Stampare l'OR",
     "confirmer": "Confermare",
     "confirmerAction": "Confermare questa azione.",
     "annulerAvertissement": "Questa azione è definitiva: un ordine di riparazione annullato non potrà più essere né modificato né ripreso.",
@@ -365,7 +396,12 @@
   },
   "totaux": {
     "titre": "Totali",
-    "totalValide": "Totale validato"
+    "totalValide": "Totale validato (controllo tetto di spesa)",
+    "aideDistinction": "«Totale validato» segue il tetto di spesa dell'OR (righe già validate, tutti i pagatori insieme) — non è un importo da fatturare. Per comunicare un importo, usare la riga del pagatore interessato qui sopra."
+  },
+  "impression": {
+    "enCours": "Stampa in corso…",
+    "erreur": "Impossibile stampare il foglio d'officina. {message}"
   },
   "nouveau": {
     "titre": "Nuovo ordine di riparazione",
@@ -379,7 +415,7 @@
     },
     "client": {
       "requisTitre": "Nessun cliente selezionato",
-      "requisDescription": "Aprire un ordine di riparazione dalla scheda del cliente (pulsante «Apri l'ordine di riparazione»), oppure cercare prima il cliente."
+      "requisDescription": "Cercate prima il cliente, poi aprite un ordine di riparazione dalla sua scheda."
     },
     "vehicule": {
       "titre": "Veicolo",
@@ -411,9 +447,13 @@
     "erreur": {
       "titre": "Impossibile aprire l'ordine di riparazione"
     },
+    "confirmation": {
+      "vehiculeDeuxOrOuverts": "Già aperto per questo veicolo: {numeros}. Aprire comunque un nuovo ordine di riparazione?"
+    },
     "actions": {
       "creer": "Apri l'ordine di riparazione",
-      "enCours": "Apertura in corso…"
+      "enCours": "Apertura in corso…",
+      "ignorerBrouillon": "Ignora la bozza"
     }
   }
 }

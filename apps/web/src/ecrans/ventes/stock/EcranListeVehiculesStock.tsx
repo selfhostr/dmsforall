@@ -33,12 +33,18 @@ import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useSession } from '@/hooks/useSession';
 import { useListeVehiculesStock } from '@/hooks/ventes/stock/useListeVehiculesStock';
 import { formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
 import { BadgeStatutVehiculeStock } from './BadgeStatutVehiculeStock';
+import {
+  BasculeVueStock,
+  lireVueAffichageStock,
+  type VueAffichageStock,
+} from './_composants/BasculeVueStock';
 import { peutEcrireVehiculeStock } from './droits';
 
 const DELAI_DEBOUNCE_MS = 300;
@@ -72,8 +78,29 @@ export function EcranListeVehiculesStock() {
 
   // Le site sélectionné est un paramètre de requête, jamais un état global (routes/chemins.ts) :
   // deux onglets sur deux sites différents ne doivent pas se contredire.
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
+  const vue = lireVueAffichageStock(searchParams);
+
+  function definirVue(valeur: VueAffichageStock) {
+    const parametres = new URLSearchParams(searchParams);
+    if (valeur === 'client') {
+      parametres.set('vue', 'client');
+    } else {
+      parametres.delete('vue');
+    }
+    setSearchParams(parametres);
+  }
+
+  // Bouton « Fiche commerciale » d'une ligne (seule navigation OUVERTE par cet écran vers
+  // `EcranFicheVehiculeStock`) : propage `?vue=client` pour que la bascule reste cohérente en
+  // enchaînant liste -> fiche pendant qu'un client regarde encore l'écran. Le lien « voir la fiche
+  // véhicule » de la fiche commerciale part vers un autre écran (`/vehicules/{id}`, hors périmètre
+  // de ce module) qui n'a pas cette notion — pas propagé là.
+  function cheminFicheCommerciale(id: string) {
+    const base = chemins.ventes.stock.detail(id, site);
+    return vue === 'client' ? `${base}${base.includes('?') ? '&' : '?'}vue=client` : base;
+  }
 
   const [qSaisie, setQSaisie] = useState('');
   const [q, setQ] = useState('');
@@ -89,16 +116,30 @@ export function EcranListeVehiculesStock() {
     return () => window.clearTimeout(identifiant);
   }, [qSaisie]);
 
+  // Vue client (issue #84) : la provenance et le tri par ancienneté sont des dimensions RETIRÉES
+  // de l'écran, pas des filtres qu'on continue d'appliquer en douce. La sélection du vendeur
+  // (`provenance`/`tri`) reste en état telle quelle — seule la valeur EFFECTIVE (envoyée à l'API,
+  // rendue dans les contrôles) est recalculée depuis `vue` ; revenir en vue vendeur la restaure
+  // sans rien perdre.
+  const provenanceActive = vue === 'client' ? undefined : provenance;
+  const optionsTri =
+    vue === 'client'
+      ? TRIS_VEHICULES_STOCK.filter((valeur) => !valeur.startsWith('joursStock'))
+      : TRIS_VEHICULES_STOCK;
+  const triActif = (optionsTri as readonly string[]).includes(tri)
+    ? tri
+    : TRI_DEFAUT_VEHICULES_STOCK;
+
   const filtres = useMemo(
     () => ({
       q: q.trim() === '' ? undefined : q.trim(),
       siteId: site,
-      provenance: provenance === undefined ? undefined : [provenance],
+      provenance: provenanceActive === undefined ? undefined : [provenanceActive],
       statutCommercial: statutCommercial === undefined ? undefined : [statutCommercial],
       typeVehicule,
-      tri,
+      tri: triActif,
     }),
-    [q, site, provenance, statutCommercial, typeVehicule, tri],
+    [q, site, provenanceActive, statutCommercial, typeVehicule, triActif],
   );
 
   const {
@@ -113,7 +154,7 @@ export function EcranListeVehiculesStock() {
   } = useListeVehiculesStock(filtres);
 
   const filtresStructuresActifs =
-    provenance !== undefined || statutCommercial !== undefined || typeVehicule !== undefined;
+    provenanceActive !== undefined || statutCommercial !== undefined || typeVehicule !== undefined;
   const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
@@ -124,11 +165,25 @@ export function EcranListeVehiculesStock() {
     setTypeVehicule(undefined);
   }
 
-  const colonnes: ColonneComptoir<VehiculeStockResume>[] = [
+  // Colonnes retirées en vue client (issue #84), pas masquées derrière un clic : la provenance
+  // (« c'est mon affaire, pas la sienne ») et les jours en stock (« si le client voit qu'une
+  // voiture est là depuis trois mois, il négocie 2000 francs »). `identificationIncomplete` de
+  // `IdentiteVehicule` est masqué de la même façon — la donnée n'est modifiée que dans l'objet
+  // passé au composant partagé, jamais chez lui (hors périmètre d'écriture de cet écran).
+  const toutesColonnes: ColonneComptoir<VehiculeStockResume>[] = [
     {
       id: 'vehicule',
       libelle: t('ventes:stock.liste.colonnes.vehicule'),
-      rendu: (ligne) => <IdentiteVehicule vehicule={ligne.vehicule} taillePlaque="sm" />,
+      rendu: (ligne) => (
+        <IdentiteVehicule
+          vehicule={
+            vue === 'client'
+              ? { ...ligne.vehicule, identificationIncomplete: false }
+              : ligne.vehicule
+          }
+          taillePlaque="sm"
+        />
+      ),
     },
     {
       id: 'type',
@@ -177,13 +232,19 @@ export function EcranListeVehiculesStock() {
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => navigate(chemins.ventes.stock.detail(ligne.id, site))}
+          onClick={() => navigate(cheminFicheCommerciale(ligne.id))}
         >
           {t('ventes:stock.liste.actions.ficheCommerciale')}
         </Button>
       ),
     },
   ];
+
+  const colonnesMasqueesVueClient = new Set(['provenance', 'joursStock']);
+  const colonnes =
+    vue === 'client'
+      ? toutesColonnes.filter((colonne) => !colonnesMasqueesVueClient.has(colonne.id))
+      : toutesColonnes;
 
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
@@ -207,7 +268,7 @@ export function EcranListeVehiculesStock() {
         titre={t('ventes:stock.liste.titre')}
         description={t('ventes:stock.liste.vide')}
         action={
-          peutEcrireVehiculeStock(role) ? (
+          peutEcrireVehiculeStock(role) && vue === 'vendeur' ? (
             <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
               {t('ventes:stock.liste.actions.mettreEnStock')}
             </Button>
@@ -219,41 +280,43 @@ export function EcranListeVehiculesStock() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('ventes:stock.liste.titre')}</h1>
+      <GabaritEcran titre={t('ventes:stock.liste.titre')} titreVisible={false}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('ventes:stock.liste.titre')}</h1>
+      <GabaritEcran titre={t('ventes:stock.liste.titre')} titreVisible={false}>
         <EtatErreur
           titre={t('ventes:stock.liste.erreur.titre')}
           description={messageErreur(error, t)}
           onReessayer={() => void refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* L'onglet de navigation « Véhicules en parc » (OngletsDomaine, actif sur cette route) porte
-          déjà ce référent à l'écran : « Parc en stock » ne fait que le reformuler (mêmes deux mots,
-          ordre inversé), sans qualificatif neuf (aucun compte, aucun filtre, aucun site). Un h1
-          visible identique en substance ne dit rien de neuf — masqué visuellement, conservé dans
-          le DOM pour la structure de document, même choix que `EcranListeFactures`/`EcranSuiviVentes`. */}
-      <h1 className="sr-only">{t('ventes:stock.liste.titre')}</h1>
-      {peutEcrireVehiculeStock(role) ? (
-        <div className="flex items-center justify-end gap-3">
+    // L'onglet de navigation « Véhicules en parc » (OngletsDomaine, actif sur cette route) porte
+    // déjà ce référent à l'écran : « Parc en stock » ne fait que le reformuler (mêmes deux mots,
+    // ordre inversé), sans qualificatif neuf (aucun compte, aucun filtre, aucun site) — titre gardé
+    // dans le DOM (`titreVisible={false}`, jamais retiré) pour la structure de document, même choix
+    // que `EcranListeFactures`/`EcranSuiviVentes`. `BasculeVueStock` n'est pas une ACTION de cet
+    // écran (elle ne crée ni ne modifie rien) — elle ne va donc pas dans le slot `actions` du
+    // gabarit, qui reste réservé à « Mettre en stock » ; elle garde sa propre ligne, comme avant ce
+    // gabarit (silhouette déjà jugée correcte par @laupernoe, seul son style a changé, voir
+    // `BasculeVueStock.tsx`).
+    <GabaritEcran titre={t('ventes:stock.liste.titre')} titreVisible={false}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <BasculeVueStock vue={vue} onChangeVue={definirVue} />
+        {peutEcrireVehiculeStock(role) && vue === 'vendeur' ? (
           <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
             {t('ventes:stock.liste.actions.mettreEnStock')}
           </Button>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       <BarreFiltres
         q={qSaisie}
@@ -316,34 +379,36 @@ export function EcranListeVehiculesStock() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="filtre-provenance">{t('ventes:stock.champs.provenance')}</Label>
-          <Select
-            value={provenance ?? 'toutes'}
-            onValueChange={(valeur) => setProvenance(valeur === 'toutes' ? undefined : valeur)}
-          >
-            <SelectTrigger
-              id="filtre-provenance"
-              className="w-[200px]"
-              aria-label={t('ventes:stock.champs.provenance')}
+        {vue === 'vendeur' ? (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="filtre-provenance">{t('ventes:stock.champs.provenance')}</Label>
+            <Select
+              value={provenance ?? 'toutes'}
+              onValueChange={(valeur) => setProvenance(valeur === 'toutes' ? undefined : valeur)}
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="toutes">{t('ventes:stock.filtres.provenanceToutes')}</SelectItem>
-              {PROVENANCES_VEHICULE_STOCK.map((valeur) => (
-                <SelectItem key={valeur} value={valeur}>
-                  {t(`ventes:stock.provenances.${valeur}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+              <SelectTrigger
+                id="filtre-provenance"
+                className="w-[200px]"
+                aria-label={t('ventes:stock.champs.provenance')}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="toutes">{t('ventes:stock.filtres.provenanceToutes')}</SelectItem>
+                {PROVENANCES_VEHICULE_STOCK.map((valeur) => (
+                  <SelectItem key={valeur} value={valeur}>
+                    {t(`ventes:stock.provenances.${valeur}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
       </BarreFiltres>
 
       <SelecteurTri
-        options={TRIS_VEHICULES_STOCK.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-        valeur={tri}
+        options={optionsTri.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
+        valeur={triActif}
         onChangeValeur={setTri}
         label={t('ventes:stock.liste.tri.label')}
         className="max-w-xs"
@@ -365,6 +430,6 @@ export function EcranListeVehiculesStock() {
         enChargement={isFetchingNextPage}
         onChargerPlus={() => void fetchNextPage()}
       />
-    </div>
+    </GabaritEcran>
   );
 }

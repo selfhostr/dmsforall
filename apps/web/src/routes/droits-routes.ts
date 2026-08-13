@@ -270,3 +270,21 @@ export const ROLES_MENU_FACTURATION: readonly RoleUtilisateur[] = [
   'magasinier',
   'technicien',
 ];
+
+/**
+ * Agenda de rendez-vous (Lot RDV-1) — CAS DE FIGURE 1 CI-DESSUS (protection RÉELLE de route) :
+ * `rendez_vous.lire` (`apps/api/src/auth/matrice-droits.ts`, `DROITS_RENDEZ_VOUS_PAR_ROLE`) ferme
+ * la LECTURE elle-même à `vendeur`/`magasinier`/`comptable`/`poste_atelier` — poser
+ * `rolesAutorises={ROLES_LECTURE_RENDEZ_VOUS}` reflète donc une restriction réelle, elle ne
+ * l'invente pas. Même liste que `ecrans/rendez-vous/droits.ts` (duplication assumée, même chaîne
+ * que `ROLES_PIECES`/`ROLES_VENTES` ci-dessus). CRÉATION (`rendez_vous.creer`, réceptionniste/
+ * direction/admin seuls) et CYCLE DE VIE (modifier/arrivée/absence/annulation, sans `technicien`)
+ * sont plus étroits que la simple lecture — gérés DANS l'écran, jamais par une garde de route.
+ */
+export const ROLES_LECTURE_RENDEZ_VOUS: readonly RoleUtilisateur[] = [
+  'receptionnaire',
+  'chef_atelier',
+  'direction',
+  'admin',
+  'technicien',
+];

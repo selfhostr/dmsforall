@@ -98,13 +98,15 @@ export type FiltresARelancerPneus = z.infer<typeof schemaFiltresARelancerPneus>;
  * selon `saison` (spec §4.3) ; le CLIENT peut aussi la fournir explicitement (pneus non
  * d'origine).
  */
-export const schemaCreationDepotPneus = z.object({
-  siteId: schemaIdentifiant,
-  saison: z.enum(SAISONS_PNEU),
-  codeCase: schemaCodeCase.nullish(),
-  dimension: schemaCodeCase.nullish(),
-  etat: z.string().trim().max(500).nullish(),
-});
+export const schemaCreationDepotPneus = z
+  .object({
+    siteId: schemaIdentifiant,
+    saison: z.enum(SAISONS_PNEU),
+    codeCase: schemaCodeCase.nullish(),
+    dimension: schemaCodeCase.nullish(),
+    etat: z.string().trim().max(500).nullish(),
+  })
+  .strict();
 export type EntreeCreationDepotPneus = z.infer<typeof schemaCreationDepotPneus>;
 
 /**
@@ -114,18 +116,22 @@ export type EntreeCreationDepotPneus = z.infer<typeof schemaCreationDepotPneus>;
  * Pas d'`Idempotency-Key` — transition gardée par l'état de départ, même doctrine que
  * `reservations/{id}/satisfaire` (rejeu sur un jeu déjà transitionné échoue proprement en 409).
  */
-export const schemaChangementSaisonDepotPneus = z.object({
-  ligneOrId: schemaIdentifiant.nullish(),
-});
+export const schemaChangementSaisonDepotPneus = z
+  .object({
+    ligneOrId: schemaIdentifiant.nullish(),
+  })
+  .strict();
 export type EntreeChangementSaisonDepotPneus = z.infer<typeof schemaChangementSaisonDepotPneus>;
 
 /**
  * `POST /depots-pneus/{id}/sortir` — RPP-05 : statut TERMINAL, motif obligatoire. Jamais une
  * suppression de ligne. Refusé (`409 CONFLIT`) si le jeu est déjà `sorti`.
  */
-export const schemaSortieDepotPneus = z.object({
-  motif: z.enum(MOTIFS_SORTIE_DEPOT_PNEUS),
-});
+export const schemaSortieDepotPneus = z
+  .object({
+    motif: z.enum(MOTIFS_SORTIE_DEPOT_PNEUS),
+  })
+  .strict();
 export type EntreeSortieDepotPneus = z.infer<typeof schemaSortieDepotPneus>;
 
 /**
@@ -136,7 +142,9 @@ export type EntreeSortieDepotPneus = z.infer<typeof schemaSortieDepotPneus>;
  * repère connu). Refusé (`409 CONFLIT`) sur un dépôt déjà `sorti` (RPP-05, statut TERMINAL — un
  * bien qui a quitté la garde du garage n'a plus de repère de rangement à tenir à jour).
  */
-export const schemaDeplacementDepotPneus = z.object({
-  codeCase: schemaCodeCase.nullish(),
-});
+export const schemaDeplacementDepotPneus = z
+  .object({
+    codeCase: schemaCodeCase.nullish(),
+  })
+  .strict();
 export type EntreeDeplacementDepotPneus = z.infer<typeof schemaDeplacementDepotPneus>;

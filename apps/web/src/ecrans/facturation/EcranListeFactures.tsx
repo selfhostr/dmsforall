@@ -189,13 +189,25 @@ export function EcranListeFactures() {
             // `dateEcheance` valent `null` par construction, `MD-03`/`MD-19`) : rien n'est dû, donc
             // rien à relancer. Même traitement que `annule_par_avoir` ci-dessus — l'état réel
             // (`BadgeEtatDocument`) prime sur l'état de règlement, jamais les deux superposés.
+            //
+            // Défaut corrigé (issue #80, testeur novice — « Réglée » dans la liste, « Émise » sur la
+            // fiche, l'utilisateur ne sait plus si la facture est payée) : `statut` (document verrouillé
+            // ou non) et `statutReglement` (créance soldée ou non) sont deux notions ORTHOGONALES et
+            // toutes deux légitimes une fois le document `emis` — la liste n'affichait alors QUE le
+            // règlement, jamais le mot « Émise », pendant que la fiche (`EcranFicheFacture.tsx`)
+            // n'affichait QUE l'état document, jamais le règlement : deux vérités partielles qui se
+            // contredisaient en apparence. Les DEUX badges, mêmes mots qu'ailleurs dans l'app, côte à
+            // côte — jamais l'un choisi au détriment de l'autre.
             rendu: (document_: DocumentVenteResume) =>
               document_.statut === 'annule_par_avoir' ? (
                 <BadgeEtatDocument etat="annule_par_avoir" />
               ) : document_.statut === 'brouillon' ? (
                 <BadgeEtatDocument etat="brouillon" />
               ) : document_.statutReglement ? (
-                <BadgeStatutReglement statut={document_.statutReglement} />
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <BadgeEtatDocument etat="emis" />
+                  <BadgeStatutReglement statut={document_.statutReglement} />
+                </div>
               ) : null,
           },
           {

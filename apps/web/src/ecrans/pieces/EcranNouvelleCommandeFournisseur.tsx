@@ -15,7 +15,7 @@ import { useCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -258,9 +258,15 @@ export function EcranNouvelleCommandeFournisseur() {
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-6">
       <h1 className="texte-titre-page">{t('pieces:commandes.actions.creer')}</h1>
 
+      <LegendeChampsObligatoires>
+        {t('commun:formulaires.champsObligatoiresLegende')}
+      </LegendeChampsObligatoires>
+
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="cmd-fournisseur">{t('pieces:commandes.fournisseur')}</Label>
+          <Label htmlFor="cmd-fournisseur" requis>
+            {t('pieces:commandes.fournisseur')}
+          </Label>
           {fournisseursRequete.isPending ? (
             <EtatChargement lignes={1} />
           ) : fournisseursRequete.isError ? (
@@ -271,7 +277,11 @@ export function EcranNouvelleCommandeFournisseur() {
             />
           ) : (
             <Select value={fournisseurId} onValueChange={setFournisseurId} disabled={enCours}>
-              <SelectTrigger id="cmd-fournisseur" aria-label={t('pieces:commandes.fournisseur')}>
+              <SelectTrigger
+                id="cmd-fournisseur"
+                aria-label={t('pieces:commandes.fournisseur')}
+                aria-required="true"
+              >
                 <SelectValue placeholder={t('pieces:fournisseurs.titre')} />
               </SelectTrigger>
               <SelectContent>
@@ -285,9 +295,15 @@ export function EcranNouvelleCommandeFournisseur() {
           )}
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="cmd-site">{t('pieces:commandes.site')}</Label>
+          <Label htmlFor="cmd-site" requis>
+            {t('pieces:commandes.site')}
+          </Label>
           <Select value={siteId} onValueChange={setSiteId} disabled={enCours}>
-            <SelectTrigger id="cmd-site" aria-label={t('pieces:commandes.site')}>
+            <SelectTrigger
+              id="cmd-site"
+              aria-label={t('pieces:commandes.site')}
+              aria-required="true"
+            >
               <SelectValue placeholder={t('pieces:stock.site')} />
             </SelectTrigger>
             <SelectContent>
@@ -391,13 +407,14 @@ export function EcranNouvelleCommandeFournisseur() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`cmd-qte-${ligne.articleId}`}>
+                    <Label htmlFor={`cmd-qte-${ligne.articleId}`} requis>
                       {t('pieces:commandes.lignes.quantiteCommandee')}
                     </Label>
                     <Input
                       id={`cmd-qte-${ligne.articleId}`}
                       type="text"
                       inputMode="decimal"
+                      required
                       disabled={enCours}
                       value={ligne.quantiteSaisie}
                       onChange={(evenement) =>
