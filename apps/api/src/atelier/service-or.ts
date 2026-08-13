@@ -68,7 +68,7 @@ import {
   versClientResume,
 } from './references';
 import { ServiceSnapshotOr } from './service-snapshot-or';
-import { calculerTotauxParPayeur } from './totaux-payeur';
+import { calculerTotauxParPayeur, STATUTS_EXCLUS_DES_TOTAUX } from './totaux-payeur';
 
 /** OR encore actif — sert la garde P-29 (deux OR ouverts sur le même véhicule). */
 const STATUTS_OR_ACTIFS = ['planifie', 'ouvert', 'en_cours', 'controle'] as const;
@@ -79,6 +79,13 @@ const STATUTS_OR_VERROUILLES = ['facture', 'restitue', 'cloture', 'annule'] as c
 export function estOrVerrouille(statut: LigneOrdreReparation['statut']): boolean {
   return (STATUTS_OR_VERROUILLES as readonly string[]).includes(statut);
 }
+
+/**
+ * #82 : borne `ReponseOrdreReparation.designationsApercu` à quelques désignations, jamais la liste
+ * entière — l'aperçu sert à dire EN UNE LIGNE ce qui a été fait (fiche véhicule, RM-59 côté lecture
+ * comptoir), pas à dupliquer `lignes`/`nombreLignes` qui restent la source complète.
+ */
+const SEUIL_DESIGNATIONS_APERCU = 3;
 
 @Injectable()
 export class ServiceOr {
@@ -846,6 +853,21 @@ export class ServiceOr {
     const lignesTronquees = lignesToutes.length > 200;
     const lignesEmbarquees = lignesTronquees ? lignesToutes.slice(0, 200) : lignesToutes;
 
+    // #82 : aperçu borné (`SEUIL_DESIGNATIONS_APERCU`), calculé ICI depuis `lignesToutes` — déjà en
+    // main (chargée une seule fois ci-dessus, `listerLignesOr`), JAMAIS une requête par OR affiché.
+    // Mêmes lignes exclues que les totaux (`STATUTS_EXCLUS_DES_TOTAUX`) : une ligne annulée n'a
+    // jamais eu lieu, une ligne refusée n'a jamais été faite — ni l'une ni l'autre ne répond à
+    // « qu'est-ce qui a été fait ». `lignesToutes` est déjà triée par `numeroOrdre` ASC
+    // (`or-requetes.ts::listerLignesOr`), donc les 3 premières désignations retenues sont bien les
+    // 3 premières lignes de l'OR, jamais un sous-ensemble arbitraire. Jamais gaté par `voitMontants`
+    // (une désignation n'est pas un montant) — le serveur le peuple TOUJOURS, tableau vide inclus
+    // (un OR sans ligne facturable n'est pas une absence de donnée, c'est un fait : rien à montrer).
+    const designationsApercu = lignesToutes
+      .filter((l) => !STATUTS_EXCLUS_DES_TOTAUX.has(l.statut))
+      .map((l) => l.designation?.trim())
+      .filter((d): d is string => !!d)
+      .slice(0, SEUIL_DESIGNATIONS_APERCU);
+
     const attentes: AttentesOr = {
       accord: or.attenteAccord,
       pieces: or.attentePieces,
@@ -861,6 +883,21 @@ export class ServiceOr {
     // `technicien`.
     const totauxParPayeur = voitMontants
       ? await this.calculerTotauxAvecDestinataires(tx, ctx, lignesToutes, clientResume)
+      : undefined;
+
+    // #76 : `totalTtcCentimes` — la colonne « Total TTC » de la liste des OR (`ServiceOr.lister`,
+    // qui appelle CETTE méthode) était vide car `assemblerDocument` ne le rendait jamais, alors que
+    // le front le type déjà (`OrdreReparationResume.totalTtcCentimes`, ajouté avant ce document
+    // complet). DÉRIVÉ de `totauxParPayeur` plutôt que recalculé par une seconde boucle sur
+    // `lignesToutes` : `totauxParPayeur` applique déjà `STATUTS_EXCLUS_DES_TOTAUX` par groupe payeur
+    // (`totaux-payeur.ts`) et couvre TOUTES les lignes de l'OR (garage compris, fusionné dans le
+    // groupe `'client'`, RF-92) — en sommer les `montantTtcCentimes` reproduit exactement le calcul
+    // déjà en place dans `clients/service-client-ordres-reparation.ts` (somme des lignes non
+    // `annulee`/`refusee`), un seul mécanisme, jamais deux qui pourraient diverger. Même garde que
+    // `totalValideCentimes` : `undefined` (absent du JSON) pour un rôle sans droit aux montants,
+    // JAMAIS `0` qui mentirait sur « aucun montant » là où c'est en fait « pas le droit de voir ».
+    const totalTtcCentimes = totauxParPayeur
+      ? totauxParPayeur.reduce((somme, t) => somme + t.montantTtcCentimes, 0)
       : undefined;
 
     return {
@@ -888,6 +925,7 @@ export class ServiceOr {
             plafondCentimes: or.plafondCentimes ?? undefined,
             plafondAutorisePar: or.plafondAutorisePar,
             totalValideCentimes: or.totalValideCentimes,
+            totalTtcCentimes,
           }
         : {}),
       restitutionPromiseLe: or.restitutionPromiseLe ? or.restitutionPromiseLe.toISOString() : null,
@@ -920,6 +958,7 @@ export class ServiceOr {
       lignes: lignesEmbarquees.map((l) => mapperLigneOr(l, role)),
       nombreLignes: lignesToutes.length,
       lignesTronquees,
+      designationsApercu,
       devisComplementaires: devis,
       controleQualite: controle
         ? {

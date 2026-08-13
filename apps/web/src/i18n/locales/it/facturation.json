@@ -271,6 +271,7 @@
   "liste": {
     "titre": "Fatture",
     "onglets": {
+      "groupeLabel": "Filtra le fatture",
       "toutes": "Tutte",
       "nonReglees": "Non pagate",
       "enRetard": "In ritardo",

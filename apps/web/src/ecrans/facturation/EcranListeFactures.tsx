@@ -1,3 +1,4 @@
+import * as TabsPrimitive from '@radix-ui/react-tabs';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -5,17 +6,18 @@ import { useNavigate } from 'react-router';
 import type { DocumentVenteResume, FiltresDocumentsVente } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { useListeDocumentsVente } from '@/hooks/facturation/useListeDocumentsVente';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate, formaterMontant } from '@/lib/formats';
+import { cn } from '@/lib/utils';
 
 import { BadgeEtatDocument } from './BadgeEtatDocument';
 import { BadgeStatutReglement } from './BadgeStatutReglement';
@@ -25,6 +27,15 @@ import { IndicateurRetard } from './IndicateurRetard';
 const DELAI_DEBOUNCE_MS = 300;
 
 type OngletListeFactures = 'toutes' | 'nonReglees' | 'enRetard' | 'aRelancer';
+
+// Ordre d'affichage des onglets, réutilisé pour le rendu — `satisfies` garantit que la liste
+// reste synchronisée avec `OngletListeFactures` si une valeur est ajoutée ou renommée.
+const ONGLETS_LISTE_FACTURES = [
+  'toutes',
+  'nonReglees',
+  'enRetard',
+  'aRelancer',
+] as const satisfies readonly OngletListeFactures[];
 
 /**
  * Écran 5 — liste des factures (`design-etape-2-facturation.md` §7). Route attendue : `/factures`,
@@ -265,22 +276,47 @@ export function EcranListeFactures() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* L'onglet de navigation « Factures » (OngletsDomaine, actif sur cette route) porte déjà ce
-          nom à l'écran : un h1 visible identique ne dit rien de neuf, il ne fait que répéter en
-          plus petit ce que l'utilisateur vient de lire en cliquant. Le h1 reste dans le DOM,
-          masqué visuellement, pour la structure de document (lecteur d'écran, navigation au
-          clavier) — voir le même choix sur `EcranFicheFacture`, `EcranAvoir`. */}
-      <h1 className="sr-only">{t('facturation:liste.titre')}</h1>
-
-      <Tabs value={onglet} onValueChange={(valeur) => setOnglet(valeur as OngletListeFactures)}>
-        <TabsList>
-          <TabsTrigger value="toutes">{t('facturation:liste.onglets.toutes')}</TabsTrigger>
-          <TabsTrigger value="nonReglees">{t('facturation:liste.onglets.nonReglees')}</TabsTrigger>
-          <TabsTrigger value="enRetard">{t('facturation:liste.onglets.enRetard')}</TabsTrigger>
-          <TabsTrigger value="aRelancer">{t('facturation:liste.onglets.aRelancer')}</TabsTrigger>
-        </TabsList>
-      </Tabs>
+    // L'onglet de navigation « Factures » (OngletsDomaine, actif sur cette route) porte déjà ce
+    // nom à l'écran : un h1 visible identique ne dit rien de neuf, il ne fait que répéter en plus
+    // petit ce que l'utilisateur vient de lire en cliquant. `titreVisible={false}` garde le h1
+    // dans le DOM, masqué visuellement, pour la structure de document (lecteur d'écran,
+    // navigation au clavier) — même choix que `EcranFicheFacture`, `EcranAvoir`,
+    // `EcranListeVehiculesStock`. Aucun padding local : le gabarit ne pose ni max-largeur ni
+    // remplissage, `AppShell` fournit déjà l'unique `p-4 sm:p-6` de tout écran routé.
+    <GabaritEcran titre={t('facturation:liste.titre')} titreVisible={false}>
+      {/* Bascule de VUE à l'intérieur de cet écran (elle ne navigue nulle part — elle change quelles
+          factures la même liste affiche), pas un second niveau de NAVIGATION : empilée sous la
+          rangée d'onglets d'`OngletsDomaine` (soulignement, `components/ui/tabs.tsx`), une même
+          apparence soulignée lisait comme une double barre de navigation ambiguë (retour @laupernoe du
+          13.08.2026). Reconstruite sur `@radix-ui/react-tabs` directement, avec le style déjà
+          retenu pour ce rôle — fond `bg-muted/40`, onglet actif en `bg-background` — même modèle
+          que `BasculeVueStock` (`ecrans/ventes/stock/_composants/BasculeVueStock.tsx`). Rôles ARIA
+          et clavier Radix inchangés (`tablist`/`tab`, flèches, Home/End, `getByRole('tab', …)`) —
+          seul l'habillage change. */}
+      <TabsPrimitive.Root
+        value={onglet}
+        onValueChange={(valeur) => setOnglet(valeur as OngletListeFactures)}
+      >
+        <TabsPrimitive.List
+          aria-label={t('facturation:liste.onglets.groupeLabel')}
+          className="inline-flex items-stretch gap-1 rounded-md border bg-muted/40 p-1"
+        >
+          {ONGLETS_LISTE_FACTURES.map((valeur) => (
+            <TabsPrimitive.Trigger
+              key={valeur}
+              value={valeur}
+              className={cn(
+                'flex h-9 items-center whitespace-nowrap rounded-sm px-3 text-sm font-medium transition-colors',
+                'anneau-focus',
+                'text-muted-foreground hover:text-foreground',
+                'data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm',
+              )}
+            >
+              {t(`facturation:liste.onglets.${valeur}`)}
+            </TabsPrimitive.Trigger>
+          ))}
+        </TabsPrimitive.List>
+      </TabsPrimitive.Root>
 
       <BarreFiltres
         q={qSaisie}
@@ -316,6 +352,6 @@ export function EcranListeFactures() {
           />
         </>
       )}
-    </div>
+    </GabaritEcran>
   );
 }

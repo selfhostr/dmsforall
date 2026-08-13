@@ -43,6 +43,13 @@ import { FormulaireKilometrage } from './FormulaireKilometrage';
 import { PanneauTravauxReportes } from './PanneauTravauxReportes';
 import { SectionRendezVousVehicule } from './SectionRendezVousVehicule';
 
+/** Miroir de `SEUIL_DESIGNATIONS_APERCU` (`apps/api/src/atelier/service-or.ts`) — non exporté par
+ *  `@dfa/shared`. `designationsApercu` n'atteint jamais plus de trois entrées ; si la longueur
+ *  reçue touche ce seuil, on ne peut pas savoir si d'autres désignations existent (le contrat ne
+ *  porte pas de compte exact des lignes valides) — l'aperçu se signale alors comme tel plutôt que
+ *  de se faire passer pour la liste complète. */
+const SEUIL_DESIGNATIONS_APERCU_FRONT = 3;
+
 /**
  * Fiche véhicule — ce que le comptoir doit voir en ouvrant un dossier : identité, alertes SANS
  * CLIQUER (`EncartAlertesVehicule`, alimenté par `contexte-atelier`), échéances, données
@@ -495,20 +502,41 @@ export function EcranFicheVehicule() {
           ) : (
             <ul className="flex flex-col divide-y">
               {ordresVehicule.map((or) => (
-                <li key={or.id} className="flex items-center justify-between gap-3 py-2">
-                  <button
-                    type="button"
-                    className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    onClick={() => navigate(chemins.atelier.ordresReparation.detail(or.id, site))}
-                  >
-                    {or.numero}
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <span className="texte-libelle text-muted-foreground">
-                      {or.ouvertLe ? formaterDate(or.ouvertLe) : ''}
-                    </span>
-                    <BadgeStatutOr etat={or.etatAffiche} />
+                <li key={or.id} className="flex flex-col gap-1 py-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      className="text-left texte-corps text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      onClick={() => navigate(chemins.atelier.ordresReparation.detail(or.id, site))}
+                    >
+                      {or.numero}
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <span className="texte-libelle text-muted-foreground">
+                        {or.ouvertLe ? formaterDate(or.ouvertLe) : ''}
+                      </span>
+                      <BadgeStatutOr etat={or.etatAffiche} />
+                    </div>
                   </div>
+                  {/* CORRECTIF issue #82 (rapport terrain réceptionniste) : cette liste ne disait
+                   *  jamais CE QUI avait été fait sur l'OR, obligeant à ouvrir chaque ordre un par
+                   *  un pour répondre au client. `designationsApercu` (§82, `@dfa/shared`) est
+                   *  BORNÉ à `SEUIL_DESIGNATIONS_APERCU` côté serveur (actuellement 3, dupliqué ici
+                   *  faute d'export partagé — même limite que celle déjà dupliquée par
+                   *  `EcranListeOrdresReparation.tsx`) et exclut déjà les lignes annulées/refusées.
+                   *  Tableau vide (OR sans ligne facturable) : aucune ligne n'est rendue, jamais une
+                   *  virgule orpheline. `nombreLignes` mélange les lignes annulées et n'est donc PAS
+                   *  un signal fiable de troncature — seul le fait d'atteindre le seuil de 3 l'est. */}
+                  {or.designationsApercu && or.designationsApercu.length > 0 ? (
+                    <p className="texte-libelle text-muted-foreground">
+                      {t(
+                        or.designationsApercu.length >= SEUIL_DESIGNATIONS_APERCU_FRONT
+                          ? 'vehicules:fiche.ordresReparation.designationsTronquees'
+                          : 'vehicules:fiche.ordresReparation.designations',
+                        { liste: or.designationsApercu.join(', ') },
+                      )}
+                    </p>
+                  ) : null}
                 </li>
               ))}
             </ul>

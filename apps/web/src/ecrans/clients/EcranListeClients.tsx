@@ -30,6 +30,7 @@ import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useListeClients, type TriClients } from '@/hooks/clients/useListeClients';
 import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
@@ -182,15 +183,19 @@ export function EcranListeClients() {
   const estErreurReseau = requete.error instanceof ErreurReseau;
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="texte-titre-page font-semibold text-foreground">{t('clients:titre')}</h1>
+    // Titre VISIBLE (défaut du gabarit) — référence citée par @laupernoe pour généraliser ce choix
+    // (« dans Clients il y a écrit Clients, c'est mieux ») : cet écran garde son h1 à l'écran,
+    // il ne fait pas que répéter un onglet déjà affiché. Aucun padding local : `AppShell` pose
+    // déjà `p-4 sm:p-6` sur tout écran routé — un `p-6` ici le doublerait (48px au lieu de 24px).
+    <GabaritEcran
+      titre={t('clients:titre')}
+      actions={
         <Button type="button" onClick={() => setSheetOuvert(true)}>
           <Plus aria-hidden className="h-4 w-4" />
           {t('clients:nouveau')}
         </Button>
-      </div>
-
+      }
+    >
       <BarreFiltres
         q={qSaisi}
         onChangeQ={setQSaisi}
@@ -292,6 +297,6 @@ export function EcranListeClients() {
           />
         </SheetContent>
       </Sheet>
-    </div>
+    </GabaritEcran>
   );
 }

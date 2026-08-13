@@ -54,7 +54,9 @@
     },
     "ordresReparation": {
       "titre": "Ordres de réparation",
-      "vide": "Aucun ordre de réparation pour ce véhicule."
+      "vide": "Aucun ordre de réparation pour ce véhicule.",
+      "designations": "{liste}",
+      "designationsTronquees": "{liste}…"
     },
     "factures": {
       "titre": "Factures",

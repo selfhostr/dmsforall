@@ -81,6 +81,7 @@
     "rabaisPneus": "Reifenrabatt",
     "delaiPaiement": "Zahlungsfrist",
     "tauxHoraire": "Stundensatz",
+    "tauxHoraireDetail": "{libelle} · {montant} / Stunde",
     "plafond": "Kostengrenze",
     "dateEffet": "Gültig seit",
     "vide": "Keine Handelsbedingungen erfasst."

@@ -163,6 +163,19 @@ export interface ReponseClientCondition {
   readonly rabaisPiecesPourmille: number;
   readonly rabaisPneusPourmille: number;
   readonly tauxHoraireCode: string | null;
+  /**
+   * Résolus depuis le référentiel `taux_horaire` À LA DATE `valideDuLe` de CETTE condition (#72) —
+   * même mécanisme que la résolution RM-65 d'une ligne d'OR
+   * (`apps/api/src/atelier/taux-horaire.ts::resoudreTauxHorairePourDate`), appliqué ici à la date de
+   * la condition plutôt qu'à « aujourd'hui » : un taux modifié après coup dans le paramétrage ne
+   * doit pas réécrire l'historique d'une condition déjà en vigueur. `null` quand `tauxHoraireCode`
+   * est absent (rien à résoudre) ou que le code ne correspond à aucune période de validité couvrant
+   * `valideDuLe` (référentiel modifié depuis). FACULTATIFS dans le TYPE (le serveur les peuple
+   * TOUJOURS, `null` inclus) — additif pur, jamais une rupture de compatibilité (§11.1), même
+   * arbitrage qu'`OrdreReparationResume.enRetard?`.
+   */
+  readonly tauxHoraireLibelle?: string | null;
+  readonly tauxHoraireMontantCentimes?: number | null;
   readonly delaiPaiementJours: number | null;
   readonly modePaiement: string | null;
   readonly plafondCentimes: number | null;

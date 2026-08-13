@@ -54,7 +54,9 @@
     },
     "ordresReparation": {
       "titre": "Reparaturaufträge",
-      "vide": "Kein Reparaturauftrag für dieses Fahrzeug."
+      "vide": "Kein Reparaturauftrag für dieses Fahrzeug.",
+      "designations": "{liste}",
+      "designationsTronquees": "{liste}…"
     },
     "factures": {
       "titre": "Rechnungen",
