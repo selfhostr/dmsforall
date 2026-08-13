@@ -328,6 +328,10 @@ describe('EcranListeFactures — colonne Retard', () => {
     rendre();
 
     expect(await screen.findByText('en retard de 20 jours')).toBeInTheDocument();
+    // Défaut corrigé (issue #134) : la date d'échéance doit rester VISIBLE même en retard, pas
+    // seulement dans l'attribut `title` (`IndicateurRetard.tsx`, mutualisé entre cette liste et
+    // la fiche facture).
+    expect(await screen.findByText('Échéance : 15.07.2026')).toBeInTheDocument();
   });
 
   it("affiche l'échéance SANS alarme pour une facture à venir (enRetard: false)", async () => {

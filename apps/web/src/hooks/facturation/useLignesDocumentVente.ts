@@ -1,9 +1,17 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 
-import type { EntreeCreationLigneDocument, ReponseDocumentVente } from '@dfa/shared';
+import type {
+  EntreeCreationLigneDocument,
+  EntreeModificationLigneDocument,
+  ReponseDocumentVente,
+} from '@dfa/shared';
 
 import { clesFacturation } from './cles';
-import { ajouterLigneDocument, supprimerLigneDocument } from './documents-vente.api';
+import {
+  ajouterLigneDocument,
+  modifierLigneDocument,
+  supprimerLigneDocument,
+} from './documents-vente.api';
 
 interface VariablesAjoutLigne {
   readonly documentId: string;
@@ -12,7 +20,8 @@ interface VariablesAjoutLigne {
 }
 
 /** `POST /documents-vente/{id}/lignes` — écran 2 §4.3 (rattrapage de la ligne de démontage
- *  proposée si elle n'a pas été ajoutée à l'écran 1). */
+ *  proposée si elle n'a pas été ajoutée à l'écran 1), et depuis l'issue #125 l'ajout générique de
+ *  ligne sur un brouillon (`DialogueLigneDocumentVente.tsx`). */
 export function useAjouterLigneDocument(): UseMutationResult<
   ReponseDocumentVente,
   unknown,
@@ -29,6 +38,32 @@ export function useAjouterLigneDocument(): UseMutationResult<
   });
 }
 
+interface VariablesModificationLigne {
+  readonly documentId: string;
+  readonly ligneId: string;
+  readonly entree: EntreeModificationLigneDocument;
+}
+
+/** `PATCH /documents-vente/{id}/lignes/{ligneId}` — édition d'une ligne sur un brouillon (issue
+ *  #125, `DialogueLigneDocumentVente.tsx`). Même doctrine de cache que les deux mutations
+ *  ci-dessus : le document COMPLET revient dans la réponse, posé directement en cache plutôt
+ *  qu'une invalidation (pas de round-trip GET supplémentaire après chaque frappe). */
+export function useModifierLigneDocument(): UseMutationResult<
+  ReponseDocumentVente,
+  unknown,
+  VariablesModificationLigne
+> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ documentId, ligneId, entree }: VariablesModificationLigne) =>
+      modifierLigneDocument(documentId, ligneId, entree),
+    onSuccess: (document) => {
+      queryClient.setQueryData(clesFacturation.documents.detail(document.id), document);
+    },
+  });
+}
+
 interface VariablesSuppressionLigne {
   readonly documentId: string;
   readonly ligneId: string;
@@ -36,8 +71,7 @@ interface VariablesSuppressionLigne {
 
 /** Retrait d'une ligne ajoutée par erreur en facturation (§4.3) — jamais une ligne recopiée d'un
  *  OR. Le verbe `DELETE` est confirmé par le contrat régénéré (voir la note de fraîcheur en tête de
- *  `documents-vente.api.ts`) — reste vrai en revanche : ni ce hook ni `useAjouterLigneDocument`
- *  ci-dessus n'ont d'appelant dans `apps/web/src/ecrans/**` à ce jour. */
+ *  `documents-vente.api.ts`). Câblé depuis l'issue #125 (`EcranFicheFacture.tsx`). */
 export function useSupprimerLigneDocument(): UseMutationResult<
   ReponseDocumentVente,
   unknown,

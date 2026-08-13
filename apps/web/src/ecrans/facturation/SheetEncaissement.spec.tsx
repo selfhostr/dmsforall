@@ -378,3 +378,101 @@ describe('SheetEncaissement — aucune facture ouverte (avance client, geste exp
     },
   );
 });
+
+/**
+ * DÉFAUT CORRIGÉ (issue #135) : « CHF » était un texte fixe, et le paiement envoyé au serveur
+ * était codé en dur `devise: 'CHF'` — une facture EUR sélectionnée envoyait donc TOUJOURS un
+ * paiement CHF, refusé (`409 IMPUTATION_DEVISE_INCOHERENTE`) sans qu'aucun signal ne l'ait
+ * annoncé. Décision : pas de sélecteur de devise (le produit ne fait pas de change, `MD-50`) —
+ * le paiement suit désormais TOUJOURS la devise de la facture réglée.
+ */
+describe('SheetEncaissement — devise du paiement suit la facture réglée (issue #135)', () => {
+  it('une facture EUR sélectionnée envoie un paiement en EUR, jamais CHF codé en dur', async () => {
+    const factureEur = construireDocumentBrut({
+      id: 'doc-eur-1',
+      numero: '2026-00020',
+      devise: 'EUR',
+      soldeCentimes: 4500,
+    });
+    server.use(
+      http.get('/api/v1/documents-vente', () =>
+        HttpResponse.json({ donnees: [factureEur], curseurSuivant: null, limite: 100 }),
+      ),
+    );
+
+    const corpsRecus: unknown[] = [];
+    server.use(
+      http.post('/api/v1/paiements', async ({ request }) => {
+        corpsRecus.push(await request.json());
+        return HttpResponse.json(reponsePaiementBrute(), { status: 201 });
+      }),
+    );
+
+    const utilisateur = userEvent.setup();
+    rendre();
+
+    await utilisateur.click(await screen.findByRole('checkbox'));
+    await utilisateur.click(screen.getByRole('button', { name: 'Ajouter un moyen de paiement' }));
+    await utilisateur.click(screen.getByRole('button', { name: "Enregistrer l'encaissement" }));
+
+    await waitFor(() => expect(corpsRecus).toHaveLength(1));
+    expect((corpsRecus[0] as { devise: string }).devise).toBe('EUR');
+  });
+
+  it(
+    'une sélection mixte CHF/EUR verrouille la saisie et affiche un message explicite, ' +
+      'plutôt que de laisser partir un paiement dans une devise devinée',
+    async () => {
+      const factureChf = construireDocumentBrut({ id: 'doc-chf-1', numero: '2026-00021' });
+      const factureEur = construireDocumentBrut({
+        id: 'doc-eur-1',
+        numero: '2026-00022',
+        devise: 'EUR',
+        soldeCentimes: 3000,
+      });
+      server.use(
+        http.get('/api/v1/documents-vente', () =>
+          HttpResponse.json({
+            donnees: [factureChf, factureEur],
+            curseurSuivant: null,
+            limite: 100,
+          }),
+        ),
+      );
+
+      const utilisateur = userEvent.setup();
+      rendre();
+
+      const cases = await screen.findAllByRole('checkbox');
+      expect(cases).toHaveLength(2);
+      const case0 = cases[0];
+      const case1 = cases[1];
+      expect(case0).toBeDefined();
+      expect(case1).toBeDefined();
+      if (case0 && case1) {
+        await utilisateur.click(case0);
+        await utilisateur.click(case1);
+
+        expect(
+          await screen.findByText(
+            "Ces factures sont dans des devises différentes. Décochez-en pour ne garder que des factures dans la même devise avant d'encaisser.",
+          ),
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', { name: 'Ajouter un moyen de paiement' }),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', { name: "Enregistrer l'encaissement" }),
+        ).not.toBeInTheDocument();
+
+        // Décocher la facture EUR ramène la sélection à une seule devise : la saisie se débloque
+        // sans qu'aucun autre geste n'ait été nécessaire.
+        await utilisateur.click(case1);
+      }
+      expect(
+        await screen.findByRole('button', { name: 'Ajouter un moyen de paiement' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/devises différentes/)).not.toBeInTheDocument();
+    },
+  );
+});

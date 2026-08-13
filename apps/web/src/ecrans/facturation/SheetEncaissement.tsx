@@ -143,29 +143,33 @@ export function SheetEncaissement({
   // (chargement en cours), on ne bascule PAS en mode avance — un flash « aucune facture ouverte »
   // pendant les quelques centaines de ms du premier rendu serait un mensonge temporaire.
   const aucuneFactureOuverte = !facturesOuvertes.isPending && factures.length === 0;
-  const saisieDisponible = !aucuneFactureOuverte || avanceConfirmee;
-  const totalSelectionneCentimes = factures
-    .filter((facture) => selection.has(facture.id))
-    .reduce((somme, facture) => somme + (facture.soldeCentimes ?? 0), 0);
 
   /**
    * Devise portée par les factures sélectionnées (`DocumentVenteResume.devise`, migration `0015`)
    * — déterminée UNIQUEMENT quand la sélection est homogène. Sélection vide (rien à régler
    * encore) ou mélangeant CHF/EUR (un client peut, en théorie, avoir des factures reprises dans
-   * deux devises) : `undefined`, jamais une devise devinée par défaut (règle du correctif).
-   *
-   * Un mélange réel resterait de toute façon arithmétiquement faux : `totalSelectionneCentimes`
-   * additionne des soldes qui ne partageraient pas une seule devise, et le paiement lui-même n'est
-   * créé qu'en CHF (`devise: 'CHF'` plus bas, `soumettre`) quelle que soit la devise de la facture
-   * réglée. Un vrai support multi-devise de l'encaissement (empêcher la sélection mixte, aligner la
-   * devise du paiement sur celle de la facture) est un chantier métier distinct qui dépasse un
-   * correctif d'affichage — signalé, non traité ici.
+   * deux devises) : `undefined`, jamais une devise devinée par défaut.
    */
   const devisesSelectionnees = new Set(
     factures.filter((facture) => selection.has(facture.id)).map((facture) => facture.devise),
   );
   const deviseSelectionCommune: DeviseFacturation | undefined =
     devisesSelectionnees.size === 1 ? [...devisesSelectionnees][0] : undefined;
+  /**
+   * Défaut corrigé (issue #135) : une sélection mixte (une facture CHF + une facture EUR cochées
+   * ensemble) laissait auparavant `totalSelectionneCentimes` additionner des soldes de deux
+   * devises différentes ET le paiement partait quand même codé en dur `devise: 'CHF'` — un
+   * garagiste qui cochait par erreur deux factures de devises différentes n'avait AUCUN signal
+   * avant l'échec, et l'échec lui-même (`409 IMPUTATION_DEVISE_INCOHERENTE`) n'aurait porté que
+   * sur la SECONDE facture imputée, jamais sur la sélection dans son ensemble. Verrouille la
+   * saisie (même patron que `avanceConfirmee` ci-dessus) tant que la sélection n'est pas ramenée
+   * à une seule devise — voir le message dédié plus bas dans le rendu.
+   */
+  const selectionMultiDevises = selection.size > 0 && devisesSelectionnees.size > 1;
+  const saisieDisponible = (!aucuneFactureOuverte || avanceConfirmee) && !selectionMultiDevises;
+  const totalSelectionneCentimes = factures
+    .filter((facture) => selection.has(facture.id))
+    .reduce((somme, facture) => somme + (facture.soldeCentimes ?? 0), 0);
 
   /** Affiche la devise quand elle est connue et non ambiguë (`deviseSelectionCommune`), sinon un
    *  montant nu plutôt qu'un préfixe inventé — voir le commentaire ci-dessus. */
@@ -325,11 +329,20 @@ export function SheetEncaissement({
           dateValeur: new Date().toISOString().slice(0, 10),
           moyen: ligne.moyen,
           montantCentimes: ligne.montantCentimes as number,
-          // Codé en dur (pas de sélecteur de devise sur les lignes de paiement, `ChampMontant`
-          // ci-dessous affiche d'ailleurs son préfixe `CHF` par défaut) — voir le commentaire de
-          // `deviseSelectionCommune` plus haut : un paiement en EUR pour solder une facture EUR
-          // reprise n'est structurellement pas possible avec cet écran aujourd'hui.
-          devise: 'CHF',
+          // Défaut corrigé (issue #135) : cette valeur était codée en dur `'CHF'` quelle que soit
+          // la facture réglée — une facture EUR sélectionnée envoyait donc TOUJOURS un paiement
+          // CHF, refusé par le serveur (`409 IMPUTATION_DEVISE_INCOHERENTE`) sans qu'aucun geste
+          // de l'utilisateur n'ait pu prévenir l'échec, ni le corriger (« CHF » restait un texte
+          // fixe, sans sélecteur). Décision (arbitrée en revue, pas d'écran de choix de devise) :
+          // le paiement suit TOUJOURS la devise de la facture réglée, jamais une devise choisie
+          // librement — le produit ne fait pas de change (`MD-50`), un paiement dans une autre
+          // devise que celle du document n'est jamais une opération valide, seulement une erreur
+          // de saisie à empêcher plutôt qu'à permettre puis refuser. `deviseSelectionCommune`
+          // (§ plus haut) porte déjà cette règle : `undefined` uniquement pour une sélection
+          // vide (avance client, RF-65, sans document à aligner — CHF par défaut, seule devise
+          // que ce flux connaît aujourd'hui) puisque `selectionMultiDevises` bloque déjà la
+          // saisie avant d'arriver ici pour toute sélection mixte.
+          devise: deviseSelectionCommune ?? 'CHF',
           payeurClientId: clientId,
           payeurLibelle: destinataireNom ?? '',
           imputations: index === 0 ? imputations : [],
@@ -442,6 +455,15 @@ export function SheetEncaissement({
                     </span>
                   </div>
                 )}
+                {/* Défaut corrigé (issue #135) : le paiement suit TOUJOURS la devise de la
+                    facture réglée (voir le commentaire de `soumettre`) — une sélection mixte
+                    CHF/EUR n'a donc pas de devise unique à suivre. Message explicite plutôt
+                    qu'un échec serveur silencieux ou un montant total dans une devise inventée. */}
+                {selectionMultiDevises ? (
+                  <p className="texte-libelle text-statut-attention" role="alert">
+                    {t('facturation:encaissement.facturesOuvertes.devisesMultiples')}
+                  </p>
+                ) : null}
               </section>
 
               {saisieDisponible ? (
@@ -478,10 +500,18 @@ export function SheetEncaissement({
                           </Select>
                         </div>
                         <div className="flex-1">
+                          {/* Défaut corrigé (issue #135) : préfixe désormais la VRAIE devise de
+                              la facture réglée (`deviseSelectionCommune`) au lieu du défaut
+                              `CHF` figé de `ChampMontant` — un texte mort sur une sélection EUR,
+                              qui laissait croire à un paiement en francs sur une facture en
+                              euros. `undefined` uniquement pour l'avance client (aucune facture
+                              sélectionnée, § commentaire de `soumettre`), repli CHF alors
+                              inchangé. */}
                           <ChampMontant
                             valeurCentimes={ligne.montantCentimes}
                             onChangeCentimes={(centimes) => modifierMontant(ligne.id, centimes)}
                             label={t('facturation:encaissement.lignes.montant')}
+                            devise={deviseSelectionCommune}
                           />
                           {ligne.ecartArrondiCentimes !== null ? (
                             <p className="texte-libelle text-muted-foreground">
