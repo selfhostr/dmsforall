@@ -271,6 +271,7 @@
   "liste": {
     "titre": "Factures",
     "onglets": {
+      "groupeLabel": "Filtrer les factures",
       "toutes": "Toutes",
       "nonReglees": "Non réglées",
       "enRetard": "En retard",

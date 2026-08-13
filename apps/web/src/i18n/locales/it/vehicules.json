@@ -54,7 +54,9 @@
     },
     "ordresReparation": {
       "titre": "Ordini di riparazione",
-      "vide": "Nessun ordine di riparazione per questo veicolo."
+      "vide": "Nessun ordine di riparazione per questo veicolo.",
+      "designations": "{liste}",
+      "designationsTronquees": "{liste}…"
     },
     "factures": {
       "titre": "Fatture",

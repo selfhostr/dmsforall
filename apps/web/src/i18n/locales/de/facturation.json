@@ -271,6 +271,7 @@
   "liste": {
     "titre": "Rechnungen",
     "onglets": {
+      "groupeLabel": "Rechnungen filtern",
       "toutes": "Alle",
       "nonReglees": "Nicht bezahlt",
       "enRetard": "Überfällig",

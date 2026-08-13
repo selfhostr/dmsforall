@@ -81,6 +81,7 @@
     "rabaisPneus": "Rabais pneus",
     "delaiPaiement": "Délai de paiement",
     "tauxHoraire": "Taux horaire",
+    "tauxHoraireDetail": "{libelle} · {montant} / heure",
     "plafond": "Plafond d'engagement",
     "dateEffet": "En vigueur depuis le",
     "vide": "Aucune condition commerciale enregistrée."

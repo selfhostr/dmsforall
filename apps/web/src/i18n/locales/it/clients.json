@@ -81,6 +81,7 @@
     "rabaisPneus": "Sconto pneumatici",
     "delaiPaiement": "Termini di pagamento",
     "tauxHoraire": "Tariffa oraria",
+    "tauxHoraireDetail": "{libelle} · {montant} / ora",
     "plafond": "Tetto di spesa",
     "dateEffet": "Valido dal",
     "vide": "Nessuna condizione commerciale registrata."
