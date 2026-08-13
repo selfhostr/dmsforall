@@ -16,6 +16,7 @@ import {
   ROLES_BORNE_POINTAGE,
   ROLES_LECTURE_RENDEZ_VOUS,
   ROLES_MENU_FACTURATION,
+  ROLES_GESTION_UTILISATEURS,
   ROLES_MENU_FINANCIER,
   ROLES_MENU_PARAMETRAGE_ATELIER,
   ROLES_PARAMETRAGE_PIECES,
@@ -583,6 +584,17 @@ const ONGLETS_REGLAGES: readonly OngletDomaine[] = [
     chemin: (site) => chemins.parametrage.pieces(site),
     motifs: ['/parametrage/pieces'],
     roles: ROLES_PARAMETRAGE_PIECES,
+  },
+  /** Gestion des employés (issue #137) — dernier onglet de Réglages : « le patron d'un garage ne
+   *  peut pas gérer ses employés » (brief). Visible SEULEMENT à `direction`/`admin`, même groupe
+   *  que la garde de route (`ROLES_GESTION_UTILISATEURS`, `droits-routes.ts`) — reflet direct de
+   *  `socle.utilisateur.lire` côté API, pas une restriction inventée par ce menu. */
+  {
+    id: 'utilisateurs',
+    cleLibelle: 'navigation:onglets.reglagesUtilisateurs',
+    chemin: (site) => chemins.parametrage.utilisateurs(site),
+    motifs: ['/parametrage/utilisateurs'],
+    roles: ROLES_GESTION_UTILISATEURS,
   },
 ];
 

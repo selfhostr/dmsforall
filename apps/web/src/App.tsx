@@ -1,13 +1,24 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { RouterProvider } from 'react-router';
 
+import { gererEchecMutationSansTraitement } from '@/api/gestion-echecs-mutation';
 import { SynchronisationLangue } from '@/composants/commun/SynchronisationLangue';
+import { FiletErreurMutation } from '@/composants/motifs/FiletErreurMutation';
 import { EcranErreurFatale } from '@/ecrans/systeme/EcranErreurFatale';
 import { signalerErreur } from '@/observabilite/sentry';
 import { routeur } from '@/routes/routeur';
 
-const queryClient = new QueryClient();
+// `mutationCache` : filet de sécurité générique sur l'échec d'une mutation (issue #63), voir
+// `gererEchecMutationSansTraitement` pour le mécanisme complet — n'affiche RIEN quand un écran a
+// déjà traité l'erreur lui-même, quelle que soit la façon dont il l'a fait.
+const queryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onError: (erreur, _variables, _onMutateResult, mutation) => {
+      gererEchecMutationSansTraitement(erreur, mutation);
+    },
+  }),
+});
 
 interface EtatLimiteErreur {
   readonly aPlante: boolean;
@@ -46,6 +57,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <SynchronisationLangue />
         <RouterProvider router={routeur} />
+        <FiletErreurMutation />
       </QueryClientProvider>
     </LimiteErreur>
   );

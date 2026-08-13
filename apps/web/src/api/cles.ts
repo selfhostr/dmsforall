@@ -98,4 +98,11 @@ export const clesQuery = {
     liste: (site: string) => ['prets', 'liste', site] as const,
     detail: (id: string) => ['prets', 'detail', id] as const,
   },
+
+  /** Absent de la vague 0 (gelée) — ajout additif pour la gestion des employés (issue #137),
+   *  même patron que `parametres.site` ci-dessus : un domaine neuf, pas une modification d'une
+   *  clé existante. */
+  utilisateurs: {
+    liste: () => ['utilisateurs', 'liste'] as const,
+  },
 } as const;

@@ -19,6 +19,7 @@ import { EcranParametrageAtelier } from '@/ecrans/parametrage/EcranParametrageAt
 import { EcranParametresFacturation } from '@/ecrans/parametrage/EcranParametresFacturation';
 import { EcranReferentiels } from '@/ecrans/parametrage/EcranReferentiels';
 import { EcranSites } from '@/ecrans/parametrage/EcranSites';
+import { EcranUtilisateurs } from '@/ecrans/parametrage/EcranUtilisateurs';
 import { EcranConsignesPieces } from '@/ecrans/pieces/EcranConsignesPieces';
 import { EcranFicheArticle } from '@/ecrans/pieces/EcranFicheArticle';
 import { EcranFicheCommandeFournisseur } from '@/ecrans/pieces/EcranFicheCommandeFournisseur';
@@ -59,6 +60,7 @@ import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
 import {
   ROLES_BORNE_POINTAGE,
+  ROLES_GESTION_UTILISATEURS,
   ROLES_LECTURE_RENDEZ_VOUS,
   ROLES_PARAMETRAGE_PIECES,
   ROLES_PIECES,
@@ -280,6 +282,18 @@ export const routesConfig: RouteObject[] = [
       // par tenant). L'écran gère lui-même l'absence de `?site=` (repli honnête), pas un paramètre de
       // chemin ici : cohérent avec `EcranNouvelOrdreReparation` plus haut.
       { path: 'parametrage/sites', element: <EcranSites /> },
+      // Gestion des employés (issue #137) — `rolesAutorises={ROLES_GESTION_UTILISATEURS}` REFLÈTE
+      // une restriction RÉELLE côté API (`socle.utilisateur.lire` : direction/admin seuls,
+      // `auth/matrice-droits.ts`), même raisonnement que `ROLES_PIECES`/`ROLES_VENTES` — la garde
+      // ne fait qu'anticiper le 403 que tout autre rôle recevrait de toute façon.
+      {
+        path: 'parametrage/utilisateurs',
+        element: (
+          <RouteProtegee rolesAutorises={ROLES_GESTION_UTILISATEURS}>
+            <EcranUtilisateurs />
+          </RouteProtegee>
+        ),
+      },
       // `GET /doublons-clients` (RM-05) n'exige que `client.lire`, ouvert à tous les rôles
       // authentifiés (`LECTURE_ETENDUE` dans `auth/matrice-droits.ts`) — AUCUNE restriction de rôle
       // ici, à la différence des trois routes `parametrage/*` ci-dessus. Placé après `clients/:id`

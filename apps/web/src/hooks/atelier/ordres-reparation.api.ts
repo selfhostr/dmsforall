@@ -1,4 +1,5 @@
 import type {
+  AttenteOrdreReparation,
   CodeConfirmation,
   EntreeActionAnnuler,
   EntreeActionReceptionner,
@@ -37,6 +38,11 @@ import { requeteApi } from '@/api/client';
 export interface FiltresListeOrdresReparation {
   readonly q?: string;
   readonly statut?: StatutOrdreReparation;
+  /** Issue #111 : PAS un statut (`attente_pieces` n'existe QUE dans `EtatAfficheOrdreReparation`,
+   *  jamais dans `StatutOrdreReparation`) — un drapeau orthogonal (`AttentesOr`), donc un filtre
+   *  SÉPARÉ de `statut` ci-dessus, cumulable avec lui (§6.3, `schemaFiltresOrdresReparation.attente`
+   *  côté contrat). Mono-sélection en v1, même doctrine que `statut` juste au-dessus. */
+  readonly attente?: AttenteOrdreReparation;
   /** Site sélectionné (`?site=` de l'URL, jamais un état global — voir `routes/chemins.ts`). */
   readonly siteId?: string;
   readonly tri: string;
@@ -63,6 +69,7 @@ function construireParametres(
   const parametres = new URLSearchParams();
   if (filtres.q && filtres.q.trim() !== '') parametres.set('q', filtres.q.trim());
   if (filtres.statut) parametres.set('statut', filtres.statut);
+  if (filtres.attente) parametres.set('attente', filtres.attente);
   if (filtres.siteId) parametres.set('siteId', filtres.siteId);
   parametres.set('tri', filtres.tri);
   parametres.set('limite', String(page.limite));

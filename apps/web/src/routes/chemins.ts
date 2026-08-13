@@ -130,6 +130,9 @@ export const chemins = {
      *  gardée par `rolesAutorises={ROLES_PARAMETRAGE_PIECES}` (`routeur.tsx`) : la lecture elle-même
      *  est restreinte côté API (`pieces.parametrage.lire`), pas seulement l'écriture. */
     pieces: (site?: string) => construireChemin('/parametrage/pieces', { site }),
+    /** Gestion des employés (issue #137) — jamais scopé par site (le rôle vaut sur tout le
+     *  tenant), `site` reçu pour la seule cohérence de sélecteur avec les autres onglets. */
+    utilisateurs: (site?: string) => construireChemin('/parametrage/utilisateurs', { site }),
   },
   /** Module pièces (étape 3). Même mécanique `?site=` que `clients`/`vehicules` : la recherche
    *  comptoir et le réapprovisionnement sont scopés par site (RP-03/RP-12), la fiche et la liste

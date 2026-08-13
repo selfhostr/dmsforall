@@ -12,8 +12,11 @@ import { requeteApi } from '@/api/client';
  * filtres diffère, pour ne toucher aucun fichier du domaine atelier.
  */
 export interface FiltresEcheancesOr {
-  /** Bornes INCLUSES, format `aaaa-mm-jj` — même convention que le reste de l'API (§6.2). */
-  readonly restitutionPromiseDu: string;
+  /** Bornes INCLUSES, format `aaaa-mm-jj` — même convention que le reste de l'API (§6.2).
+   *  `restitutionPromiseDu` OPTIONNELLE (issue #112, `CarteOrEnRetard.tsx`) : une borne basse
+   *  absente interroge « jusqu'à `restitutionPromiseAu` », pas seulement CE jour-là — nécessaire
+   *  pour une vue « en retard » qui ne doit jamais se limiter aux promesses d'aujourd'hui. */
+  readonly restitutionPromiseDu?: string;
   readonly restitutionPromiseAu: string;
   readonly siteId?: string;
 }
@@ -22,7 +25,9 @@ const LIMITE = 100;
 
 function construireParametres(filtres: FiltresEcheancesOr): string {
   const parametres = new URLSearchParams();
-  parametres.set('restitutionPromiseDu', filtres.restitutionPromiseDu);
+  if (filtres.restitutionPromiseDu) {
+    parametres.set('restitutionPromiseDu', filtres.restitutionPromiseDu);
+  }
   parametres.set('restitutionPromiseAu', filtres.restitutionPromiseAu);
   if (filtres.siteId) parametres.set('siteId', filtres.siteId);
   parametres.set('tri', 'restitutionPromiseLe:asc');

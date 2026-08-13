@@ -144,7 +144,7 @@ describe('DialogueNouveauRendezVous', () => {
         onConfirmer={onConfirmer}
       />,
     );
-    await utilisateur.click(screen.getByRole('combobox', { name: 'Moment' }));
+    await utilisateur.click(screen.getByRole('combobox', { name: 'Créneau' }));
     await utilisateur.click(screen.getByText('Matin'));
     await utilisateur.click(screen.getByRole('combobox', { name: 'Motif du rendez-vous' }));
     await utilisateur.click(screen.getByText('Entretien / service courant'));

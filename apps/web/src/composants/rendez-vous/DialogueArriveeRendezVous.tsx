@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { EntreeActionArriveeRendezVous } from '@dfa/shared';
+import type { CodeConfirmation, EntreeActionArriveeRendezVous } from '@dfa/shared';
 
 import { Button } from '@/components/ui/button';
 import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 
 interface Props {
   readonly ouvert: boolean;
@@ -23,6 +24,14 @@ interface Props {
   readonly onConfirmer: (entree: EntreeActionArriveeRendezVous) => void;
   readonly enCours?: boolean;
   readonly erreur?: string | null;
+  /** Codes à confirmer explicitement (409 CONFIRMATION_REQUISE, ex. VEHICULE_DEUX_OR_OUVERTS) —
+   *  même protocole que `DialogueNouveauRendezVous`/`FormulaireNouvelOrdreReparation` (issue #108 :
+   *  sans ce relais, un 409 ici retombait purement et simplement en écran blanc, rien
+   *  d'enregistré, aucun message — voir `useArriveeRendezVous`, qui met `erreur` à `null` par
+   *  conception dès que cette liste est non vide, EN SUPPOSANT qu'une UI de confirmation prend le
+   *  relais). */
+  readonly confirmationsRequises?: readonly CodeConfirmation[];
+  readonly onConfirmerQuandMeme?: () => void;
 }
 
 /**
@@ -37,12 +46,18 @@ export function DialogueArriveeRendezVous({
   onConfirmer,
   enCours = false,
   erreur = null,
+  confirmationsRequises = [],
+  onConfirmerQuandMeme,
 }: Props) {
   const { t } = useTranslation(['planning', 'or', 'commun']);
   const [kilometrage, setKilometrage] = useState<number | null>(null);
   const [signatureDifferee, setSignatureDifferee] = useState(false);
   const [motifDifferee, setMotifDifferee] = useState('');
   const [erreurValidation, setErreurValidation] = useState<string | null>(null);
+  // Même garde-fou que `FormulaireNouvelOrdreReparation` (patron figé aujourd'hui pour l'ouverture
+  // d'un OR) : sans ce drapeau, fermer la modale de confirmation par « Annuler » la rouvrirait
+  // aussitôt — `confirmationsRequises` reste posé côté hook tant qu'aucun nouvel envoi n'a eu lieu.
+  const [confirmationRejetee, setConfirmationRejetee] = useState(false);
 
   useEffect(() => {
     if (!ouvert) return;
@@ -50,6 +65,7 @@ export function DialogueArriveeRendezVous({
     setSignatureDifferee(false);
     setMotifDifferee('');
     setErreurValidation(null);
+    setConfirmationRejetee(false);
   }, [ouvert]);
 
   function gererConfirmer() {
@@ -62,12 +78,24 @@ export function DialogueArriveeRendezVous({
       return;
     }
     setErreurValidation(null);
+    setConfirmationRejetee(false);
     onConfirmer({
       kilometrageEntree: kilometrage,
       unite: 'km',
       signatureDifferee,
       motifDifferee: motifDifferee.trim() === '' ? undefined : motifDifferee.trim(),
     });
+  }
+
+  /** Le message serveur générique (`erreur`) est délibérément `null` tant qu'une confirmation
+   *  reste à traiter (voir `useArriveeRendezVous`, pour ne pas superposer l'alerte générique ET
+   *  cette modale) — la description vient donc du CODE de confirmation, pas de `erreur`. Cas réel
+   *  connu (jeu de démo) : un véhicule portant déjà deux OR ouverts. */
+  function descriptionConfirmation(): string {
+    if (confirmationsRequises.includes('VEHICULE_DEUX_OR_OUVERTS')) {
+      return t('planning:dialogueArrivee.confirmationDeuxOrOuverts');
+    }
+    return t('planning:dialogueArrivee.confirmationGenerique');
   }
 
   return (
@@ -128,6 +156,20 @@ export function DialogueArriveeRendezVous({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {onConfirmerQuandMeme ? (
+        <AvertissementConfirmable
+          ouvert={confirmationsRequises.length > 0 && !confirmationRejetee}
+          onOuvertChange={(ouvertConfirmation) => {
+            if (!ouvertConfirmation) setConfirmationRejetee(true);
+          }}
+          titre={t('planning:dialogueArrivee.titre')}
+          description={descriptionConfirmation()}
+          libelleConfirmation={t('commun:actions.continuerQuandMeme')}
+          onConfirmer={onConfirmerQuandMeme}
+          enCours={enCours}
+        />
+      ) : null}
     </Dialog>
   );
 }

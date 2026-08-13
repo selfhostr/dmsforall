@@ -268,7 +268,7 @@ export function DialogueNouveauRendezVous({
                   onValueChange={(valeur) => setMoment(valeur as MomentRendezVous)}
                 >
                   <SelectTrigger id="rdv-moment" aria-invalid={Boolean(erreursChamps.moment)}>
-                    <SelectValue placeholder={t('planning:champs.moment')} />
+                    <SelectValue placeholder={t('planning:champs.momentPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {MOMENTS.map((m) => (
