@@ -148,7 +148,7 @@ export function EcranReapprovisionnement() {
 
   if (!site) {
     return (
-      <GabaritEcran titre={t('pieces:stock.reapprovisionnement.titre')} titreVisible={false}>
+      <GabaritEcran titre={t('pieces:stock.reapprovisionnement.titre')}>
         <div className="mx-auto w-full max-w-lg">
           <SelecteurSiteRequis onChoisir={(siteId) => setSearchParams({ site: siteId })} />
         </div>
@@ -182,8 +182,15 @@ export function EcranReapprovisionnement() {
       </div>
     ) : undefined;
 
+  // « Commander » ne siège PAS dans le slot `actions` du gabarit (qui le placerait juste sous le
+  // titre, seul sur sa ligne) — même déplacement que « Créer un article » (`EcranListeArticles`) et
+  // « Nouvel ordre de réparation » (Atelier) : l'action principale d'un écran de liste rejoint le
+  // haut du tableau, jamais l'en-tête. Ici, pas de ligne « Trier par » à partager : l'action
+  // n'existe QUE quand une sélection est active (`actionCommander` reste `undefined` sinon), donc
+  // sa propre ligne, alignée à droite, juste au-dessus du tableau.
   return (
-    <GabaritEcran titre={t('pieces:stock.reapprovisionnement.titre')} actions={actionCommander}>
+    <GabaritEcran titre={t('pieces:stock.reapprovisionnement.titre')}>
+      {actionCommander ? <div className="flex justify-end">{actionCommander}</div> : null}
       <TableComptoir
         colonnes={colonnes}
         lignes={lignes}

@@ -187,15 +187,12 @@ export function EcranListeClients() {
     // (« dans Clients il y a écrit Clients, c'est mieux ») : cet écran garde son h1 à l'écran,
     // il ne fait pas que répéter un onglet déjà affiché. Aucun padding local : `AppShell` pose
     // déjà `p-4 sm:p-6` sur tout écran routé — un `p-6` ici le doublerait (48px au lieu de 24px).
-    <GabaritEcran
-      titre={t('clients:titre')}
-      actions={
-        <Button type="button" onClick={() => setSheetOuvert(true)}>
-          <Plus aria-hidden className="h-4 w-4" />
-          {t('clients:nouveau')}
-        </Button>
-      }
-    >
+    //
+    // « Nouveau client » N'EST PLUS dans l'emplacement `actions` du gabarit (qui le plaçait juste
+    // sous le titre, seul sur sa ligne, et décalait tout le reste) — retour @laupernoe, chantier
+    // « zone haute des écrans de liste » : le bouton descend juste sous la barre de filtres,
+    // aligné à droite, même déplacement que sur Atelier/Pneus/Véhicules.
+    <GabaritEcran titre={t('clients:titre')}>
       <BarreFiltres
         q={qSaisi}
         onChangeQ={setQSaisi}
@@ -228,6 +225,16 @@ export function EcranListeClients() {
           </Label>
         </div>
       </BarreFiltres>
+
+      {/* Pas de `SelecteurTri` sur cet écran (tri par colonnes triables de `TableComptoir`) :
+          le bouton d'action rejoint donc sa propre ligne, aligné à droite, directement sous la
+          barre de filtres — même principe que la ligne « Trier par » des autres écrans. */}
+      <div className="flex justify-end">
+        <Button type="button" onClick={() => setSheetOuvert(true)}>
+          <Plus aria-hidden className="h-4 w-4" />
+          {t('clients:nouveau')}
+        </Button>
+      </div>
 
       {requete.isError ? (
         <EtatErreur

@@ -276,14 +276,13 @@ export function EcranListeFactures() {
   }
 
   return (
-    // L'onglet de navigation « Factures » (OngletsDomaine, actif sur cette route) porte déjà ce
-    // nom à l'écran : un h1 visible identique ne dit rien de neuf, il ne fait que répéter en plus
-    // petit ce que l'utilisateur vient de lire en cliquant. `titreVisible={false}` garde le h1
-    // dans le DOM, masqué visuellement, pour la structure de document (lecteur d'écran,
-    // navigation au clavier) — même choix que `EcranFicheFacture`, `EcranAvoir`,
-    // `EcranListeVehiculesStock`. Aucun padding local : le gabarit ne pose ni max-largeur ni
-    // remplissage, `AppShell` fournit déjà l'unique `p-4 sm:p-6` de tout écran routé.
-    <GabaritEcran titre={t('facturation:liste.titre')} titreVisible={false}>
+    // Titre TOUJOURS visible (retour @laupernoe du 13.08.2026 : titres de page incohérents d'un écran à
+    // l'autre — plus de `titreVisible={false}` réservé au lecteur d'écran). L'onglet de navigation
+    // « Factures » (OngletsDomaine) affiche déjà ce nom, mais un h1 qui le répète reste le repère
+    // attendu (doctrine tranchée sur `EcranListeClients` : « il y a écrit Clients, c'est mieux »).
+    // Aucun padding local : le gabarit ne pose ni max-largeur ni remplissage, `AppShell` fournit
+    // déjà l'unique `p-4 sm:p-6` de tout écran routé.
+    <GabaritEcran titre={t('facturation:liste.titre')}>
       {/* Bascule de VUE à l'intérieur de cet écran (elle ne navigue nulle part — elle change quelles
           factures la même liste affiche), pas un second niveau de NAVIGATION : empilée sous la
           rangée d'onglets d'`OngletsDomaine` (soulignement, `components/ui/tabs.tsx`), une même

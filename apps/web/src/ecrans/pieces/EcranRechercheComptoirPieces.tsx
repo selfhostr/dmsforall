@@ -162,7 +162,7 @@ export function EcranRechercheComptoirPieces() {
 
   if (!site) {
     return (
-      <GabaritEcran titre={t('pieces:rechercheComptoir.titre')} titreVisible={false}>
+      <GabaritEcran titre={t('pieces:rechercheComptoir.titre')}>
         <div className="mx-auto w-full max-w-lg">
           <SelecteurSiteRequis onChoisir={(siteId) => setSearchParams({ site: siteId })} />
         </div>

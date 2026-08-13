@@ -235,7 +235,7 @@ export function EcranListeArticles() {
 
   if (isPending) {
     return (
-      <GabaritEcran titre={t('pieces:articles.liste.titre')} titreVisible={false}>
+      <GabaritEcran titre={t('pieces:articles.liste.titre')}>
         <EtatChargement lignes={6} />
       </GabaritEcran>
     );
@@ -243,7 +243,7 @@ export function EcranListeArticles() {
 
   if (isError) {
     return (
-      <GabaritEcran titre={t('pieces:articles.liste.titre')} titreVisible={false}>
+      <GabaritEcran titre={t('pieces:articles.liste.titre')}>
         <EtatErreur
           titre={t('pieces:articles.liste.erreur.titre')}
           description={messageErreur(error, t)}
@@ -253,18 +253,21 @@ export function EcranListeArticles() {
     );
   }
 
-  // Titre masqué : doublon strict du libellé de l'onglet actif « Articles » (`navigation-modele.ts`,
-  // `ONGLETS_PIECES`) — le h1 reste dans le DOM pour le lecteur d'écran et la structure du
-  // document, sans répéter visuellement ce que la barre d'onglets affiche déjà en surbrillance.
+  // Titre TOUJOURS visible (retour @laupernoe du 13.08.2026 : « des fois il y a les titres de page, des
+  // fois il n'y en a pas » — sur Pièces précisément, « est-ce qu'on est dans le comptoir, ou dans
+  // le réapprovisionnement ? »). L'onglet actif « Articles » (`OngletsDomaine`) reste au-dessus,
+  // mais ne dit pas TOUJOURS ce qu'affiche l'écran (cf. Comptoir/Réapprovisionnement) — un titre
+  // dupliquant à la lettre son onglet reste préférable à son absence, doctrine tranchée par @laupernoe sur
+  // `EcranListeClients` (« il y a écrit Clients, c'est mieux ») puis reconduite ici pour Pièces.
   //
   // « Créer un article » n'est PAS dans le slot `actions` du gabarit (qui siégerait alors juste
   // sous les onglets, seul sur sa ligne) — retour @laupernoe du 12.08.2026 : « le bouton "Créer un
   // article" devrait être plus bas ». Il rejoint la ligne « Trier par », à droite — même
   // déplacement que celui demandé pour Atelier (« Nouvel ordre de réparation », voir le rapport de
-  // ce chantier) : la barre de recherche remonte directement sous les onglets, plus rien ne
+  // ce chantier) : la barre de recherche remonte directement sous le titre, plus rien ne
   // l'en sépare.
   return (
-    <GabaritEcran titre={t('pieces:articles.liste.titre')} titreVisible={false}>
+    <GabaritEcran titre={t('pieces:articles.liste.titre')}>
       <BarreFiltres
         q={qSaisie}
         onChangeQ={setQSaisie}

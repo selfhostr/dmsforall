@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useEnvoyerRelances } from '@/hooks/relances/useEnvoyerRelances';
 import { usePlanifierRelances } from '@/hooks/relances/usePlanifierRelances';
 import { useReglesRelance } from '@/hooks/relances/useReglesRelance';
@@ -53,12 +54,16 @@ export function EcranRelances() {
   const { t } = useTranslation(['relances', 'commun']);
   const requete = useReglesRelance();
 
+  // Migré sur `GabaritEcran` (retour @laupernoe du 13.08.2026 : « dans 'Relances' il y a un écart entre
+  // le titre et la barre ») — cet écran posait son propre `p-6` EN PLUS du `p-4 sm:p-6` que
+  // `AppShell` applique déjà à tout écran routé (même défaut, déjà documenté et corrigé une
+  // première fois sur `EcranListeDossiersVente`/`EcranSuiviVentes`, voir le commentaire de tête de
+  // `GabaritEcran`) : le padding DOUBLÉ en haut de page se lisait comme un écart vide entre la barre
+  // d'onglets de domaine (Factures/Relances) et le titre. Le sous-titre reste un paragraphe normal,
+  // premier enfant sous le titre — même patron que l'aide de `EcranRechercheComptoirPieces`.
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="texte-titre-page font-semibold text-foreground">{t('relances:titre')}</h1>
-        <p className="texte-corps text-muted-foreground">{t('relances:sousTitre')}</p>
-      </div>
+    <GabaritEcran titre={t('relances:titre')}>
+      <p className="texte-corps text-muted-foreground">{t('relances:sousTitre')}</p>
 
       {requete.isPending ? (
         <EtatChargement lignes={6} />
@@ -77,7 +82,7 @@ export function EcranRelances() {
           <BlocTracabilite />
         </>
       )}
-    </div>
+    </GabaritEcran>
   );
 }
 

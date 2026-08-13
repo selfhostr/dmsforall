@@ -33,6 +33,7 @@ import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
 import { EtatVideFiltre } from '@/composants/motifs/EtatVideFiltre';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
+import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { peutCreerOrdreReparation } from '@/ecrans/atelier/droits';
 import { useListeOrdresReparation } from '@/hooks/atelier/useListeOrdresReparation';
 import { useSession } from '@/hooks/useSession';
@@ -229,38 +230,32 @@ export function EcranListeOrdresReparation() {
 
   if (isPending) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('or:liste.titre')}</h1>
+      <GabaritEcran titre={t('or:liste.titre')}>
         <EtatChargement lignes={6} />
-      </div>
+      </GabaritEcran>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="sr-only">{t('or:liste.titre')}</h1>
+      <GabaritEcran titre={t('or:liste.titre')}>
         <EtatErreur
           titre={t('or:liste.erreur.titre')}
           description={messageErreur(error, t)}
           onReessayer={() => void refetch()}
         />
-      </div>
+      </GabaritEcran>
     );
   }
 
+  // Titre TOUJOURS visible (retour @laupernoe, chantier « zone haute des écrans de liste ») : ce n'est
+  // plus un doublon muet de l'onglet actif « Ordres de réparation » — @laupernoe veut voir écrit où il
+  // est. « Nouvel ordre de réparation » n'est PAS passé en `actions` de `GabaritEcran` (qui le
+  // placerait juste sous le titre, seul sur sa ligne, et décalerait tout le reste) : il rejoint la
+  // ligne « Trier par », à droite — écran de référence de ce chantier, même déplacement appliqué
+  // ensuite à Pneus/Clients/Véhicules et, en parallèle, à Pièces (`EcranListeArticles.tsx`).
   return (
-    <div className="flex flex-col gap-6">
-      {/* Doublon strict du libellé de l'onglet actif « Ordres de réparation »
-          (`navigation-modele.ts`, `ONGLETS_ATELIER`) : le h1 reste dans le DOM pour le lecteur
-          d'écran et la structure du document, mais n'ajoute rien visuellement à côté de la barre
-          d'onglets déjà en surbrillance. */}
-      <h1 className="sr-only">{t('or:liste.titre')}</h1>
-
-      {boutonNouveauOr ? (
-        <div className="flex items-center justify-end gap-4">{boutonNouveauOr}</div>
-      ) : null}
-
+    <GabaritEcran titre={t('or:liste.titre')}>
       <BarreFiltres
         q={qSaisie}
         onChangeQ={setQSaisie}
@@ -294,13 +289,19 @@ export function EcranListeOrdresReparation() {
         </div>
       </BarreFiltres>
 
-      <SelecteurTri
-        options={TRIS_ORDRES_REPARATION.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-        valeur={tri}
-        onChangeValeur={setTri}
-        label={t('or:liste.tri.label')}
-        className="max-w-xs"
-      />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <SelecteurTri
+          options={TRIS_ORDRES_REPARATION.map((valeur) => ({
+            valeur,
+            libelle: t(CLES_TRI[valeur]),
+          }))}
+          valeur={tri}
+          onChangeValeur={setTri}
+          label={t('or:liste.tri.label')}
+          className="max-w-xs"
+        />
+        {boutonNouveauOr}
+      </div>
 
       <TableComptoir
         colonnes={colonnes}
@@ -316,6 +317,6 @@ export function EcranListeOrdresReparation() {
         enChargement={isFetchingNextPage}
         onChargerPlus={() => void fetchNextPage()}
       />
-    </div>
+    </GabaritEcran>
   );
 }
