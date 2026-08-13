@@ -34,7 +34,7 @@ function aujourdhuiIso(): string {
  * (RM-16 : VIN absent -> `identificationIncomplete`) et attribuer une plaque à un véhicule qui
  * n'en porte aucune (RM-17). Défaut mesuré en test d'utilisabilité : un véhicule créé sans plaque
  * après un refus de saisie silencieux n'avait ENSUITE aucun moyen d'en recevoir une — la fiche
- * n'exposait aucun bouton « Modifier », et l'étiquette « Identification incomplète » ne menait
+ * n'exposait aucun bouton « Modifier », et l'étiquette « Numéro de châssis manquant » ne menait
  * nulle part.
  *
  * Volontairement restreint à VIN + plaque/canton (pas version/finition/code type CH ni les champs

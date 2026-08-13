@@ -23,9 +23,9 @@ function rendre() {
 
 async function ouvrirEtRemplirFormulaire(utilisateur: ReturnType<typeof userEvent.setup>) {
   await utilisateur.click(screen.getByRole('button', { name: 'Ajouter une adresse' }));
-  await utilisateur.type(screen.getByLabelText('Rue et numéro'), 'Rue du Lac 12');
-  await utilisateur.type(screen.getByLabelText('NPA'), '1000');
-  await utilisateur.type(screen.getByLabelText('Localité'), 'Lausanne');
+  await utilisateur.type(screen.getByLabelText(/^Rue et numéro\s*\*$/), 'Rue du Lac 12');
+  await utilisateur.type(screen.getByLabelText(/^NPA\s*\*$/), '1000');
+  await utilisateur.type(screen.getByLabelText(/^Localité\s*\*$/), 'Lausanne');
 }
 
 describe('OngletAdresses — erreur de création (RM-03)', () => {
@@ -53,7 +53,7 @@ describe('OngletAdresses — erreur de création (RM-03)', () => {
     expect(await screen.findByText('Certaines informations sont incorrectes.')).toBeInTheDocument();
     // Le dialogue reste ouvert : le champ saisi avant l'échec est toujours visible et non perdu.
     // (S'il s'était refermé, `getByLabelText` échouerait — le champ serait démonté.)
-    expect(screen.getByLabelText('Rue et numéro')).toHaveValue('Rue du Lac 12');
+    expect(screen.getByLabelText(/^Rue et numéro\s*\*$/)).toHaveValue('Rue du Lac 12');
   });
 
   it("affiche le message serveur SUR le champ « type » pour un doublon d'adresse active (défaut 3), sans perdre le bandeau générique", async () => {
@@ -104,16 +104,16 @@ describe('OngletAdresses — erreur de création (RM-03)', () => {
     const utilisateur = userEvent.setup();
 
     await ouvrirEtRemplirFormulaire(utilisateur);
-    expect(screen.getByLabelText('Rue et numéro')).toHaveValue('Rue du Lac 12');
+    expect(screen.getByLabelText(/^Rue et numéro\s*\*$/)).toHaveValue('Rue du Lac 12');
 
     // Fermeture (Échap, gérée par Radix) puis réouverture — sans jamais soumettre.
     await utilisateur.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByLabelText('Rue et numéro')).not.toBeInTheDocument());
     await utilisateur.click(screen.getByRole('button', { name: 'Ajouter une adresse' }));
 
-    expect(screen.getByLabelText('Rue et numéro')).toHaveValue('');
-    expect(screen.getByLabelText('NPA')).toHaveValue('');
-    expect(screen.getByLabelText('Localité')).toHaveValue('');
+    expect(screen.getByLabelText(/^Rue et numéro\s*\*$/)).toHaveValue('');
+    expect(screen.getByLabelText(/^NPA\s*\*$/)).toHaveValue('');
+    expect(screen.getByLabelText(/^Localité\s*\*$/)).toHaveValue('');
   });
 
   it('crée normalement quand le serveur accepte (pas de régression)', async () => {

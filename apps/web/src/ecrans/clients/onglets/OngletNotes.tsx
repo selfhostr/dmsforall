@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -93,11 +93,20 @@ export function OngletNotes({ clientId }: Props) {
             <DialogHeader>
               <DialogTitle>{t('clients:notes.titre')}</DialogTitle>
             </DialogHeader>
+            <LegendeChampsObligatoires>
+              {t('commun:formulaires.champsObligatoiresLegende')}
+            </LegendeChampsObligatoires>
             <form onSubmit={soumettre} noValidate className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="note-nature">{t('clients:notes.titre')}</Label>
+                <Label htmlFor="note-nature" requis>
+                  {t('clients:notes.titre')}
+                </Label>
                 <Select value={nature} onValueChange={(v) => setNature(v as NatureNote)}>
-                  <SelectTrigger id="note-nature" aria-label={t('clients:notes.titre')}>
+                  <SelectTrigger
+                    id="note-nature"
+                    aria-label={t('clients:notes.titre')}
+                    aria-required="true"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -110,7 +119,9 @@ export function OngletNotes({ clientId }: Props) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="note-texte">{t('clients:notes.champTexte')}</Label>
+                <Label htmlFor="note-texte" requis>
+                  {t('clients:notes.champTexte')}
+                </Label>
                 <Textarea
                   id="note-texte"
                   value={texte}

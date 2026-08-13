@@ -96,7 +96,7 @@ export function SectionRendezVousVehicule({ vehicule, detenteur, site }: Props) 
   // toute façon pas (`localite`/`nombreVehicules`).
   const requeteDetenteurComplet = useClient(detenteur?.id);
 
-  const requeteRdv = useRendezVousAVenirVehicule(vehicule.id, detenteur?.id);
+  const requeteRdv = useRendezVousAVenirVehicule(vehicule.id);
   const requeteMotifs = useMotifsRendezVous();
   const creation = useCreationRendezVous();
 
@@ -162,11 +162,7 @@ export function SectionRendezVousVehicule({ vehicule, detenteur, site }: Props) 
           </Alert>
         ) : null}
 
-        {!detenteur ? (
-          <p className="texte-corps text-muted-foreground">
-            {t('vehicules:fiche.rendezVous.detenteurInconnu')}
-          </p>
-        ) : requeteRdv.isLoading ? (
+        {requeteRdv.isLoading ? (
           <EtatChargement lignes={2} />
         ) : requeteRdv.isError ? (
           <EtatErreur

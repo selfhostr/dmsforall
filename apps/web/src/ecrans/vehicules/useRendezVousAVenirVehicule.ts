@@ -11,18 +11,17 @@ export function clesRendezVousAVenirVehicule(vehiculeId: string): readonly unkno
   return ['vehicules', vehiculeId, 'rendez-vous-a-venir'];
 }
 
-/** `enabled` seulement si un détenteur courant est connu (`clientDetenteurId`) — voir
- *  `rendez-vous-vehicule.api.ts` : aucun filtre serveur `vehiculeId` n'existe pour s'en passer.
- *  Distinct d'une liste VIDE (« aucun rendez-vous ») : ici, on ne SAIT PAS — l'appelant doit rendre
- *  ce cas différemment (§ règle « absence de donnée ≠ valeur »). */
+/**
+ * Rendez-vous à venir de CE véhicule, filtre `vehiculeId` appliqué côté serveur (voir
+ * `rendez-vous-vehicule.api.ts`) — n'a plus besoin du détenteur courant (issue #97) : un véhicule
+ * sans détenteur affiche désormais ses rendez-vous comme n'importe quel autre.
+ */
 export function useRendezVousAVenirVehicule(
   vehiculeId: string | undefined,
-  clientDetenteurId: string | undefined,
 ): UseQueryResult<readonly ReponseRendezVous[]> {
   return useQuery({
     queryKey: clesRendezVousAVenirVehicule(vehiculeId ?? ''),
-    queryFn: () =>
-      listerRendezVousAVenirVehicule(clientDetenteurId as string, vehiculeId as string),
-    enabled: vehiculeId !== undefined && clientDetenteurId !== undefined,
+    queryFn: () => listerRendezVousAVenirVehicule(vehiculeId as string),
+    enabled: vehiculeId !== undefined,
   });
 }

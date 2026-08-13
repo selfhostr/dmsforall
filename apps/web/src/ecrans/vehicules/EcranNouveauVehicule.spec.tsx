@@ -185,6 +185,96 @@ describe('EcranNouveauVehicule', () => {
     expect(screen.getByLabelText('Modèle')).toHaveValue('Golf');
   });
 
+  describe('collision de plaque (issue #96)', () => {
+    it('nomme le véhicule fautif et propose un lien vers sa fiche quand le serveur fournit le détail', async () => {
+      server.use(
+        http.post('/api/v1/vehicules', () =>
+          HttpResponse.json(
+            {
+              type: 'https://docs.dmsforall.example/erreurs/VEHICULE_PLAQUE_COLLISION',
+              title: 'Plaque déjà attribuée',
+              status: 409,
+              code: 'VEHICULE_PLAQUE_COLLISION',
+              instance: 'req-1',
+              // `blocages[0].id` vaut `'plaque'` sur CETTE route (nom du champ dans
+              // `EntreeCreationVehicule`) — jamais `'valeur'` (`POST /vehicules/{id}/plaques`,
+              // `DialogueModifierIdentiteVehicule`) : convention documentée par
+              // `DetailCollisionPlaqueVehicule`, l'écran ne doit brancher que sur le `code`.
+              blocages: [
+                {
+                  type: 'champ',
+                  id: 'plaque',
+                  libelle: 'Plaque déjà portée par le véhicule Volkswagen Golf VII Comfortline',
+                  donnees: {
+                    vehiculeId: 'veh-golf-existant',
+                    marque: 'Volkswagen',
+                    modele: 'Golf VII',
+                    version: 'Comfortline',
+                    plaque: '999999',
+                    canton: 'VD',
+                    debutLe: '2026-03-12',
+                    finLe: null,
+                  },
+                },
+              ],
+            },
+            { status: 409, headers: { 'content-type': 'application/problem+json' } },
+          ),
+        ),
+      );
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      await remplirIdentiteMinimale(utilisateur);
+      await utilisateur.type(screen.getByLabelText('Plaque'), '999999');
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer le véhicule' }));
+
+      expect(
+        await screen.findByText(
+          'Plaque 999999 déjà portée par Volkswagen Golf VII Comfortline depuis le 12.03.2026.',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Voir ce véhicule' })).toHaveAttribute(
+        'href',
+        '/vehicules/veh-golf-existant',
+      );
+      // Jamais dans le bandeau générique — même doctrine que `DialogueModifierIdentiteVehicule`.
+      expect(
+        screen.queryByText("Une erreur interne s'est produite. Réessayez."),
+      ).not.toBeInTheDocument();
+      // La saisie survit à l'échec, standard non négociable (CONTRIBUTING.md).
+      expect(screen.getByLabelText('Plaque')).toHaveValue('999999');
+    });
+
+    it('affiche un message sobre, jamais un libellé à trous, quand le serveur ne fournit aucun détail (course rare)', async () => {
+      server.use(
+        http.post('/api/v1/vehicules', () =>
+          HttpResponse.json(
+            {
+              type: 'https://docs.dmsforall.example/erreurs/VEHICULE_PLAQUE_COLLISION',
+              title: 'Plaque déjà attribuée',
+              status: 409,
+              code: 'VEHICULE_PLAQUE_COLLISION',
+              instance: 'req-1',
+            },
+            { status: 409, headers: { 'content-type': 'application/problem+json' } },
+          ),
+        ),
+      );
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      await remplirIdentiteMinimale(utilisateur);
+      await utilisateur.type(screen.getByLabelText('Plaque'), '999999');
+      await utilisateur.click(screen.getByRole('button', { name: 'Créer le véhicule' }));
+
+      expect(
+        await screen.findByText('Cette plaque est déjà attribuée à un autre véhicule.'),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/^Plaque .* déjà portée par/)).not.toBeInTheDocument();
+    });
+  });
+
   describe('autocomplétion marque/modèle (référentiel véhicules suisse)', () => {
     it('propose des marques après une frappe partielle, puis conditionne les modèles suggérés à la marque choisie', async () => {
       server.use(

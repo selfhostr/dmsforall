@@ -15,7 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -99,14 +99,20 @@ export function OngletAdresses({ clientId }: Props) {
             <DialogHeader>
               <DialogTitle>{t('clients:adresses.ajouter')}</DialogTitle>
             </DialogHeader>
+            <LegendeChampsObligatoires>
+              {t('commun:formulaires.champsObligatoiresLegende')}
+            </LegendeChampsObligatoires>
             <form onSubmit={soumettre} noValidate className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="adresse-type">{t('clients:adresses.champs.type')}</Label>
+                <Label htmlFor="adresse-type" requis>
+                  {t('clients:adresses.champs.type')}
+                </Label>
                 <Select value={type} onValueChange={(v) => setType(v as TypeAdresse)}>
                   <SelectTrigger
                     id="adresse-type"
                     aria-label={t('clients:adresses.champs.type')}
                     aria-invalid={erreurServeur?.champErreur('type') ? true : undefined}
+                    aria-required="true"
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -129,7 +135,9 @@ export function OngletAdresses({ clientId }: Props) {
                 ) : null}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="adresse-rue">{t('clients:adresses.champs.rue')}</Label>
+                <Label htmlFor="adresse-rue" requis>
+                  {t('clients:adresses.champs.rue')}
+                </Label>
                 <Input
                   id="adresse-rue"
                   value={rue}
@@ -145,7 +153,9 @@ export function OngletAdresses({ clientId }: Props) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="adresse-npa">{t('clients:adresses.champs.npa')}</Label>
+                  <Label htmlFor="adresse-npa" requis>
+                    {t('clients:adresses.champs.npa')}
+                  </Label>
                   <Input
                     id="adresse-npa"
                     value={npa}
@@ -160,7 +170,9 @@ export function OngletAdresses({ clientId }: Props) {
                   ) : null}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="adresse-localite">{t('clients:adresses.champs.localite')}</Label>
+                  <Label htmlFor="adresse-localite" requis>
+                    {t('clients:adresses.champs.localite')}
+                  </Label>
                   <Input
                     id="adresse-localite"
                     value={localite}

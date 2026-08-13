@@ -5,9 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
-import { schemaCreationVehicule } from '@dfa/shared';
+import { schemaCreationVehicule, type DetailCollisionPlaqueVehicule } from '@dfa/shared';
 
-import { ErreurReseau, messageErreur } from '@/api/erreurs';
+import { ErreurApi, ErreurReseau, messageErreur } from '@/api/erreurs';
 import { useCleIdempotence } from '@/api/idempotence';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import { useCreerVehicule } from '@/hooks/vehicules/useCreerVehicule';
 import { useMarquesVehicule } from '@/hooks/vehicules/useMarquesVehicule';
 import { useModelesVehicule } from '@/hooks/vehicules/useModelesVehicule';
 import { useValeurDebouncee } from '@/hooks/vehicules/useValeurDebouncee';
+import { formaterDate } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
 /** Transforme une saisie vide en `undefined` — nécessaire pour tout champ `.nullish()` de
@@ -142,7 +143,24 @@ export function EcranNouveauVehicule() {
 
   const enCours = creerVehicule.isPending;
   const erreur = creerVehicule.error;
-  const estErreurReseau = erreur instanceof ErreurReseau;
+
+  // 409 VEHICULE_PLAQUE_COLLISION (RM-18, CT-06, issue #96) : même traitement que
+  // `DialogueModifierIdentiteVehicule.tsx` — nommer le véhicule fautif SOUS le champ plaque,
+  // jamais dans le bandeau générique. `blocages[0].id` vaut `'plaque'` ICI (nom du champ dans
+  // `EntreeCreationVehicule`) contre `'valeur'` sur `POST /vehicules/{id}/plaques` — convention du
+  // dépôt documentée dans `DetailCollisionPlaqueVehicule` (`@dfa/shared`) : ne jamais brancher sur
+  // `.id`, seulement sur le `code` puis lire `.donnees`.
+  const erreurEstCollisionPlaque =
+    erreur instanceof ErreurApi && erreur.probleme.code === 'VEHICULE_PLAQUE_COLLISION';
+  // Absent dans le cas de course où la ligne fautive n'est plus retrouvable à la relecture
+  // serveur (voir l'en-tête de `DetailCollisionPlaqueVehicule`) — message sobre en repli, jamais
+  // un libellé à trous.
+  const detailCollisionPlaque: DetailCollisionPlaqueVehicule | undefined =
+    erreur instanceof ErreurApi && erreurEstCollisionPlaque
+      ? (erreur.blocages[0]?.donnees as DetailCollisionPlaqueVehicule | undefined)
+      : undefined;
+  const erreurBandeau = erreurEstCollisionPlaque ? undefined : erreur;
+  const estErreurReseau = erreurBandeau instanceof ErreurReseau;
   const cheminAnnuler = clientId
     ? chemins.clients.detail(clientId, site)
     : chemins.vehicules.liste(site);
@@ -158,7 +176,7 @@ export function EcranNouveauVehicule() {
       ) : null}
 
       <form onSubmit={soumettre} noValidate className="flex flex-col gap-5">
-        {erreur ? (
+        {erreurBandeau ? (
           <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'}>
             {estErreurReseau ? (
               <WifiOff className="h-4 w-4" aria-hidden="true" />
@@ -168,7 +186,7 @@ export function EcranNouveauVehicule() {
             <AlertTitle>
               {t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
             </AlertTitle>
-            <AlertDescription>{messageErreur(erreur, t)}</AlertDescription>
+            <AlertDescription>{messageErreur(erreurBandeau, t)}</AlertDescription>
           </Alert>
         ) : null}
 
@@ -278,11 +296,42 @@ export function EcranNouveauVehicule() {
               id="nv-plaque"
               readOnly={enCours}
               placeholder={t('vehicules:identite.plaqueExemple')}
+              aria-invalid={erreurEstCollisionPlaque ? true : undefined}
+              aria-describedby={erreurEstCollisionPlaque ? 'nv-plaque-collision-erreur' : undefined}
               {...form.register('plaque', { setValueAs: videVersIndefini })}
             />
             <p className="texte-libelle text-muted-foreground">
               {t('vehicules:identite.plaqueAide')}
             </p>
+            {/* 409 VEHICULE_PLAQUE_COLLISION (issue #96) — même rendu que
+             *  `DialogueModifierIdentiteVehicule.tsx` : le véhicule fautif est NOMMÉ quand le
+             *  serveur a pu le relire, sinon message sobre (course rare où la ligne fautive n'est
+             *  plus retrouvable à la relecture), jamais un libellé à trous. */}
+            {erreurEstCollisionPlaque ? (
+              <Alert id="nv-plaque-collision-erreur" variant="destructive" className="p-3">
+                <AlertDescription>
+                  {detailCollisionPlaque ? (
+                    <>
+                      {t('vehicules:collisionPlaque.avecDetail', {
+                        plaque: detailCollisionPlaque.plaque,
+                        vehicule: `${detailCollisionPlaque.marque} ${detailCollisionPlaque.modele}${
+                          detailCollisionPlaque.version ? ` ${detailCollisionPlaque.version}` : ''
+                        }`,
+                        debutLe: formaterDate(detailCollisionPlaque.debutLe),
+                      })}{' '}
+                      <Link
+                        to={chemins.vehicules.detail(detailCollisionPlaque.vehiculeId)}
+                        className="underline"
+                      >
+                        {t('vehicules:collisionPlaque.voirVehicule')}
+                      </Link>
+                    </>
+                  ) : (
+                    t('vehicules:collisionPlaque.sansDetail')
+                  )}
+                </AlertDescription>
+              </Alert>
+            ) : null}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="nv-canton">{t('vehicules:plaques.canton')}</Label>

@@ -109,10 +109,32 @@ export function EcranFicheVehicule() {
   // (`FiltresDocumentsVente`, contrat gelé) : rien à contourner ici, contrairement à la requête OR
   // ci-dessus. `useQuery` local plutôt que le hook `useListeDocumentsVente` (pagination infinie,
   // sans option `enabled`) — même raisonnement que `EcranFicheOrdreReparation.tsx`.
+  //
+  // CORRIGE issue #59 : `typeDocument` était absent d'office — `devis`/`bon_commande`/`facture`
+  // remontaient TOUS sous une carte intitulée « Factures », fabriquant l'illusion d'un doublon de
+  // numérotation (un devis et une facture ne partagent jamais la même série). `typeDocument:
+  // ['facture']` MÊME convention que partout ailleurs dans le dépôt où « facture » est filtré
+  // explicitement (`EcranListeFactures.tsx`, `useFacturesOuvertesClient.ts`,
+  // `TableauBordComptable.tsx`) — un `avoir` (série ET numérotation propres, `MD-14`) en est
+  // exclu au même titre qu'un devis, pas seulement les documents de pré-vente. Filtre appliqué
+  // RÉELLEMENT au SQL, pas seulement accepté par le contrat (`ServiceDocumentsVente.lister`,
+  // `apps/api/src/facturation/documents/service-documents.ts` : `inArray(documentVente
+  // .typeDocument, filtres.typeDocument)`), vérifié en exécution réelle (voir rapport de
+  // livraison) plutôt que supposé du contrat seul.
+  //
+  // Un devis EN COURS n'est pas perdu pour autant : la carte « Dossier de vente » ci-dessous
+  // (`requeteDossiersVente`, même écran) couvre déjà cette affaire en attente — statut affiché via
+  // `BadgeStatutDossierVente`, lien vers le dossier complet. Dupliquer cette information sous
+  // « Factures » réintroduirait exactement la confusion signalée plutôt que de la corriger ; le
+  // titre de la carte reste donc inchangé, aucun second bloc ni renommage n'est nécessaire.
   const requeteFactures = useQuery({
     queryKey: ['vehicule-documents-vente', vehiculeId],
     queryFn: () => {
-      const filtres: FiltresDocumentsVente = { vehiculeId, tri: 'dateDocument:desc' };
+      const filtres: FiltresDocumentsVente = {
+        vehiculeId,
+        typeDocument: ['facture'],
+        tri: 'dateDocument:desc',
+      };
       return listerDocumentsVente(filtres, { limite: 20 });
     },
     enabled: vehiculeId !== undefined,
