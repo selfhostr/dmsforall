@@ -42,7 +42,15 @@
       "description": "Solleciti il fornitore o avvisi il cliente.",
       "erreur": "Impossibile visualizzare gli ordini in attesa di ricambi"
     },
-    "enRetard": "In ritardo"
+    "enRetard": "In ritardo",
+    "enRetardCarte": {
+      "titre": "In ritardo",
+      "description": "Restituzione promessa superata, veicolo non ancora riconsegnato — tutti i giorni, non solo oggi.",
+      "vide": {
+        "titre": "Nessun ritardo",
+        "description": "Nessuna restituzione promessa è al momento superata."
+      }
+    }
   },
   "financier": {
     "titre": "Finanza",

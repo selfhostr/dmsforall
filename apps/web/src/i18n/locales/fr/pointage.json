@@ -101,7 +101,16 @@
     "perimees": "Données périmées"
   },
   "vide": {
-    "aucunOr": "Aucun OR à pointer pour vous aujourd'hui."
+    "aucunOr": "Aucun OR ne vous est assigné pour l'instant.",
+    "aucunOrDescription": "Vous pouvez tout de même choisir n'importe quelle OR ouverte ci-dessous pour démarrer un pointage."
+  },
+  "toutesLesOr": {
+    "titre": "Toutes les OR ouvertes",
+    "afficher": "Afficher toutes les OR ouvertes",
+    "masquer": "Masquer",
+    "rechercherLabel": "Numéro d'OR ou véhicule",
+    "rechercherPlaceholder": "Rechercher une OR…",
+    "aucunResultat": "Aucune OR ouverte ne correspond à cette recherche."
   },
   "statuts": {
     "en_cours": "En cours",
@@ -146,6 +155,7 @@
       "arreter": "Arrêter",
       "pause": "Mettre en pause",
       "reprendre": "Reprendre",
+      "changer": "Changer",
       "demarrerOr": "Pointer sur cet OR",
       "demarrerLigne": "Pointer sur cette ligne"
     },

@@ -101,7 +101,16 @@
     "perimees": "Dati obsoleti"
   },
   "vide": {
-    "aucunOr": "Nessun lavoro da timbrare per te oggi."
+    "aucunOr": "Al momento non ti è assegnato nessun ordine.",
+    "aucunOrDescription": "Puoi comunque scegliere un ordine aperto qualsiasi qui sotto per iniziare una timbratura."
+  },
+  "toutesLesOr": {
+    "titre": "Tutti gli ordini aperti",
+    "afficher": "Mostra tutti gli ordini aperti",
+    "masquer": "Nascondi",
+    "rechercherLabel": "Numero ordine o veicolo",
+    "rechercherPlaceholder": "Cerca un ordine…",
+    "aucunResultat": "Nessun ordine aperto corrisponde a questa ricerca."
   },
   "statuts": {
     "en_cours": "In corso",
@@ -146,6 +155,7 @@
       "arreter": "Ferma",
       "pause": "Metti in pausa",
       "reprendre": "Riprendi",
+      "changer": "Cambia",
       "demarrerOr": "Timbra su questo ordine",
       "demarrerLigne": "Timbra su questo lavoro"
     },

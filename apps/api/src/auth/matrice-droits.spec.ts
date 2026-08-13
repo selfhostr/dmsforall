@@ -1131,11 +1131,62 @@ describe('MATRICE_DROITS — rendez-vous d’atelier (lot RDV-1)', () => {
   });
 });
 
-describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste close du lot 1 + facturation/paiements + facturation/documents + bloc créancier + export fiduciaire + impression PDF étape 2 + pièces étape 3 + ventes étape 4 + pointage lot 2 + tableau de bord + rendez-vous lot RDV-1)', () => {
-  it('l’union de toutes les actions accordées ne contient QUE les actions du socle + les actions closes du lot 1 + les 5 actions facturation.paiement.* (agent paiements) + les 9 actions facturation.document.*/facturation.avoir.creer (agent documents) + les 2 actions facturation.parametrage.creancier.* + facturation.export.creer + facturation.document.imprimer (arbitrages coordinateur) + les 9 actions pieces.* (étape 3)', () => {
+/**
+ * Gestion des employés (issue #137, arbitrage @laupernoe 13.08.2026) — `DROITS_UTILISATEUR_PAR_ROLE`
+ * dans matrice-droits.ts. Exactement deux rôles détiennent ces cinq actions : `direction` (le
+ * patron) et `admin` (le compte technique de l'intégrateur, qui doit pouvoir créer le tout
+ * premier compte `direction` d'un nouveau garage). AUCUN autre rôle, pas même en lecture — gérer
+ * les comptes de ses collègues n'est le métier d'aucun rôle opérationnel.
+ */
+describe('MATRICE_DROITS — gestion des employés (issue #137)', () => {
+  const actionsGestionUtilisateurs: Action[] = [
+    'socle.utilisateur.lire',
+    'socle.utilisateur.creer',
+    'socle.utilisateur.modifier',
+    'socle.utilisateur.desactiver',
+    'socle.utilisateur.reinitialiser_acces',
+  ];
+
+  it('EXACTEMENT direction et admin détiennent chacune des cinq actions socle.utilisateur.* — ni plus, ni moins', () => {
+    for (const action of actionsGestionUtilisateurs) {
+      expect(rolesAyant(action)).toEqual(['admin', 'direction']);
+    }
+  });
+
+  it('admin = superset EXACT de direction sur ce domaine (RF-115 non applicable : administration système, pas métier — voir le commentaire de tête de TOUTES_ACTIONS)', () => {
+    const utilisateurDirection = MATRICE_DROITS.direction.filter((a) =>
+      a.startsWith('socle.utilisateur.'),
+    );
+    const utilisateurAdmin = MATRICE_DROITS.admin.filter((a) => a.startsWith('socle.utilisateur.'));
+    expect(new Set(utilisateurAdmin)).toEqual(new Set(utilisateurDirection));
+  });
+
+  it('aucun rôle opérationnel (vendeur, receptionnaire, chef_atelier, technicien, magasinier, comptable, poste_atelier) ne détient la moindre action socle.utilisateur.*, pas même la lecture', () => {
+    const rolesExclus: RoleUtilisateur[] = [
+      'vendeur',
+      'receptionnaire',
+      'chef_atelier',
+      'technicien',
+      'magasinier',
+      'comptable',
+      'poste_atelier',
+    ];
+    for (const role of rolesExclus) {
+      expect(MATRICE_DROITS[role].filter((a) => a.startsWith('socle.utilisateur.'))).toEqual([]);
+    }
+  });
+});
+
+describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste close du lot 1 + facturation/paiements + facturation/documents + bloc créancier + export fiduciaire + impression PDF étape 2 + pièces étape 3 + ventes étape 4 + pointage lot 2 + tableau de bord + rendez-vous lot RDV-1 + gestion des employés issue #137)', () => {
+  it('l’union de toutes les actions accordées ne contient QUE les actions du socle + les actions closes du lot 1 + les 5 actions facturation.paiement.* (agent paiements) + les 9 actions facturation.document.*/facturation.avoir.creer (agent documents) + les 2 actions facturation.parametrage.creancier.* + facturation.export.creer + facturation.document.imprimer (arbitrages coordinateur) + les 9 actions pieces.* (étape 3) + les 5 actions socle.utilisateur.* (issue #137)', () => {
     const actionsAttendues: Action[] = [
       'socle.tenant.lire',
       'socle.site.lire',
+      'socle.utilisateur.lire',
+      'socle.utilisateur.creer',
+      'socle.utilisateur.modifier',
+      'socle.utilisateur.desactiver',
+      'socle.utilisateur.reinitialiser_acces',
       'parametrage.atelier.lire',
       'parametrage.atelier.modifier',
       // Issue #45 / RF-117, étendu #52 : plafonds d'avoir réceptionnaire ET par défaut de

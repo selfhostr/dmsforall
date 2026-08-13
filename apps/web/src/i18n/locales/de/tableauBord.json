@@ -42,7 +42,15 @@
       "description": "Lieferanten nachfassen oder Kunden informieren.",
       "erreur": "Aufträge in Teilewartestellung können nicht angezeigt werden"
     },
-    "enRetard": "Verspätet"
+    "enRetard": "Verspätet",
+    "enRetardCarte": {
+      "titre": "Verspätet",
+      "description": "Zugesagte Rückgabe überschritten, Fahrzeug noch nicht übergeben — alle Tage zusammen, nicht nur heute.",
+      "vide": {
+        "titre": "Keine Verspätung",
+        "description": "Derzeit ist keine zugesagte Rückgabe überschritten."
+      }
+    }
   },
   "financier": {
     "titre": "Finanzen",

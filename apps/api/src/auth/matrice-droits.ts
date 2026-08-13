@@ -80,6 +80,23 @@ export const TOUTES_ACTIONS = [
   // ---- Socle (étape 0), inchangé --------------------------------------------------------------
   'socle.tenant.lire',
   'socle.site.lire',
+  // ---- Gestion des employés (issue #137, arbitrage @laupernoe 13.08.2026) -----------------------------
+  // Rangée dans l'administration SYSTÈME par la doctrine RF-115 déjà écrite plus bas dans ce
+  // fichier (« tenants, sites, utilisateurs, paramètres »), pas dans le métier — c'est pourquoi
+  // `admin` reçoit ces cinq actions au même titre que `direction`, sans que ça rouvre RF-115 :
+  // gérer QUI a un accès et QUEL rôle il porte n'est ni une vente, ni une facture, ni un
+  // mouvement de stock. `direction` (le patron) gère ses employés au quotidien ; `admin` (le
+  // compte technique de l'intégrateur) le peut aussi, ne serait-ce que pour créer le tout premier
+  // compte `direction` d'un nouveau garage — geste qui, avant ce lot, se faisait par insertion
+  // directe en base (`db/seed/seed-dev.ts`). La garde qui empêche un patron de distribuer un
+  // accès d'intégrateur (créer/promouvoir un `admin`) ne vit PAS ici — voir
+  // `auth/gouvernance-roles.ts::verifierAttributionRoleAutorisee`, appliquée par
+  // `ServiceUtilisateur` en plus de cette matrice, jamais à sa place.
+  'socle.utilisateur.lire',
+  'socle.utilisateur.creer',
+  'socle.utilisateur.modifier',
+  'socle.utilisateur.desactiver',
+  'socle.utilisateur.reinitialiser_acces',
   // ---- Paramétrage atelier et référentiels (plan-lot1-execution.md §6.4) ----------------------
   'parametrage.atelier.lire',
   'parametrage.atelier.modifier',
@@ -1916,6 +1933,38 @@ const DROITS_RENDEZ_VOUS_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Act
   poste_atelier: [],
 };
 
+// =================================================================================================
+// Gestion des employés (issue #137) — voir le commentaire des 5 entrées `socle.utilisateur.*` de
+// `TOUTES_ACTIONS` ci-dessus pour la justification complète (RF-115 : administration système, pas
+// métier — `direction` ET `admin`, seuls). AUCUN autre rôle ne détient ces actions : un technicien
+// ou un magasinier ne gère jamais les comptes de ses collègues, même en lecture.
+// =================================================================================================
+const LECTURE_GESTION_UTILISATEURS: readonly Action[] = ['socle.utilisateur.lire'];
+const GESTION_UTILISATEURS_COMPLETE: readonly Action[] = [
+  ...LECTURE_GESTION_UTILISATEURS,
+  'socle.utilisateur.creer',
+  'socle.utilisateur.modifier',
+  'socle.utilisateur.desactiver',
+  'socle.utilisateur.reinitialiser_acces',
+];
+
+const DROITS_UTILISATEUR_PAR_ROLE: Readonly<Record<RoleUtilisateur, readonly Action[]>> = {
+  direction: [...GESTION_UTILISATEURS_COMPLETE],
+  // `admin` = superset de `direction` sur CE domaine précis (RF-115 non applicable : gérer les
+  // comptes est de l'administration système, pas du métier financier/commercial — voir le
+  // commentaire de tête de `TOUTES_ACTIONS`), contrairement au reste de la matrice où `admin`
+  // retombe à `[]` dès qu'une action touche à l'argent.
+  admin: [...GESTION_UTILISATEURS_COMPLETE],
+  vendeur: [],
+  receptionnaire: [],
+  chef_atelier: [],
+  technicien: [],
+  magasinier: [],
+  comptable: [],
+  // Compte de service (borne d'atelier) : ne gère jamais de comptes, pas même en lecture.
+  poste_atelier: [],
+};
+
 export const MATRICE_DROITS = {
   admin: [
     ...DROITS_ADMIN,
@@ -1933,6 +1982,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PNEUS_PAR_ROLE.admin,
     ...DROITS_RELANCES_PAR_ROLE.admin,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.admin,
+    ...DROITS_UTILISATEUR_PAR_ROLE.admin,
   ],
   direction: [
     ...DROITS_DIRECTION,
@@ -1950,6 +2000,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PNEUS_PAR_ROLE.direction,
     ...DROITS_RELANCES_PAR_ROLE.direction,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.direction,
+    ...DROITS_UTILISATEUR_PAR_ROLE.direction,
   ],
   vendeur: [
     ...DROITS_VENDEUR,
@@ -1967,6 +2018,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PNEUS_PAR_ROLE.vendeur,
     ...DROITS_RELANCES_PAR_ROLE.vendeur,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.vendeur,
+    ...DROITS_UTILISATEUR_PAR_ROLE.vendeur,
   ],
   receptionnaire: [
     ...DROITS_RECEPTIONNAIRE,
@@ -1984,6 +2036,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PNEUS_PAR_ROLE.receptionnaire,
     ...DROITS_RELANCES_PAR_ROLE.receptionnaire,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.receptionnaire,
+    ...DROITS_UTILISATEUR_PAR_ROLE.receptionnaire,
   ],
   chef_atelier: [
     ...DROITS_CHEF_ATELIER,
@@ -2001,6 +2054,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PNEUS_PAR_ROLE.chef_atelier,
     ...DROITS_RELANCES_PAR_ROLE.chef_atelier,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.chef_atelier,
+    ...DROITS_UTILISATEUR_PAR_ROLE.chef_atelier,
   ],
   technicien: [
     ...DROITS_TECHNICIEN,
@@ -2018,6 +2072,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PNEUS_PAR_ROLE.technicien,
     ...DROITS_RELANCES_PAR_ROLE.technicien,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.technicien,
+    ...DROITS_UTILISATEUR_PAR_ROLE.technicien,
   ],
   magasinier: [
     ...DROITS_MAGASINIER,
@@ -2035,6 +2090,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PNEUS_PAR_ROLE.magasinier,
     ...DROITS_RELANCES_PAR_ROLE.magasinier,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.magasinier,
+    ...DROITS_UTILISATEUR_PAR_ROLE.magasinier,
   ],
   comptable: [
     ...DROITS_COMPTABLE,
@@ -2052,6 +2108,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PNEUS_PAR_ROLE.comptable,
     ...DROITS_RELANCES_PAR_ROLE.comptable,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.comptable,
+    ...DROITS_UTILISATEUR_PAR_ROLE.comptable,
   ],
   poste_atelier: [
     ...DROITS_POSTE_ATELIER,
@@ -2069,6 +2126,7 @@ export const MATRICE_DROITS = {
     ...DROITS_PNEUS_PAR_ROLE.poste_atelier,
     ...DROITS_RELANCES_PAR_ROLE.poste_atelier,
     ...DROITS_RENDEZ_VOUS_PAR_ROLE.poste_atelier,
+    ...DROITS_UTILISATEUR_PAR_ROLE.poste_atelier,
   ],
 } as const satisfies Readonly<Record<RoleUtilisateur, readonly Action[]>>;
 

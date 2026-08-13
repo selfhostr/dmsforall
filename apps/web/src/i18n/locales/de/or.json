@@ -187,7 +187,13 @@
         "aucune": "Aktuell an diesem Standort nicht verfügbar.",
         "disponible": "{n} an diesem Standort verfügbar."
       },
-      "calculPrixEnCours": "Nettopreis wird berechnet…"
+      "calculPrixEnCours": "Nettopreis wird berechnet…",
+      "quantiteSuperieureStock": "Eingegebene Menge ({quantite}) übersteigt den verfügbaren Bestand.",
+      "avertissementStock": {
+        "titre": "Menge über dem Bestand bestätigen?",
+        "description": "{quantite} verlangt für {disponible} an diesem Standort verfügbar. Das fehlende Teil kann separat bestellt werden.",
+        "confirmer": "Trotzdem hinzufügen"
+      }
     },
     "groupees": {
       "colonneSelection": "Auswahl",
@@ -336,7 +342,9 @@
     },
     "filtres": {
       "statut": "Status",
-      "statutTous": "Alle Status"
+      "statutTous": "Alle Status",
+      "attente": "Wartestatus",
+      "attenteToutes": "Alle"
     },
     "tri": {
       "label": "Sortieren nach",
@@ -371,7 +379,9 @@
     },
     "documentsVente": {
       "titre": "Offerte und Rechnung",
-      "vide": "Kein Verkaufsdokument mit diesem RA verknüpft."
+      "pasEncoreFacture": "Noch nicht fakturiert. Der RA bleibt für die Fakturierung offen.",
+      "clotureSansFacture": "Für diesen RA wurde keine Rechnung ausgestellt, jetzt geschlossen — weitere Fakturierung ist nicht möglich.",
+      "annuleSansFacture": "RA storniert, es wird keine Rechnung ausgestellt. Grund: {motif}"
     },
     "pointage": {
       "titre": "Wer hat erfasst",
@@ -415,7 +425,9 @@
     },
     "client": {
       "requisTitre": "Kein Kunde ausgewählt",
-      "requisDescription": "Suchen Sie zuerst den Kunden, und eröffnen Sie dann einen Reparaturauftrag über seine Kundenkarte."
+      "requisDescription": "Suchen Sie zuerst den Kunden, und eröffnen Sie dann einen Reparaturauftrag über seine Kundenkarte.",
+      "creerAction": "Neuen Kunden erfassen",
+      "creerTitre": "Neuer Kunde"
     },
     "vehicule": {
       "titre": "Fahrzeug",

@@ -101,7 +101,16 @@
     "perimees": "Daten veraltet"
   },
   "vide": {
-    "aucunOr": "Für Sie heute keine Arbeiten zu erfassen."
+    "aucunOr": "Ihnen ist derzeit kein RA zugewiesen.",
+    "aucunOrDescription": "Sie können trotzdem unten einen beliebigen offenen RA wählen, um eine Zeiterfassung zu starten."
+  },
+  "toutesLesOr": {
+    "titre": "Alle offenen RA",
+    "afficher": "Alle offenen RA anzeigen",
+    "masquer": "Ausblenden",
+    "rechercherLabel": "RA-Nummer oder Fahrzeug",
+    "rechercherPlaceholder": "RA suchen…",
+    "aucunResultat": "Kein offener RA entspricht dieser Suche."
   },
   "statuts": {
     "en_cours": "Läuft",
@@ -146,6 +155,7 @@
       "arreter": "Beenden",
       "pause": "Pausieren",
       "reprendre": "Fortsetzen",
+      "changer": "Wechseln",
       "demarrerOr": "Auf diesem RA erfassen",
       "demarrerLigne": "Auf dieser Arbeit erfassen"
     },

@@ -103,6 +103,8 @@
   "adresses": {
     "titre": "Adressen",
     "ajouter": "Adresse hinzufügen",
+    "modifier": "Adresse bearbeiten",
+    "modifierAriaLabel": "Adresse {type} bearbeiten",
     "types": {
       "principale": "Hauptadresse",
       "facturation": "Rechnungsadresse",
@@ -112,8 +114,18 @@
       "type": "Adresstyp",
       "rue": "Strasse und Hausnummer",
       "npa": "PLZ",
-      "localite": "Ort"
+      "localite": "Ort",
+      "pays": "Land"
     },
+    "pays": {
+      "CH": "Schweiz",
+      "DE": "Deutschland",
+      "FR": "Frankreich",
+      "IT": "Italien",
+      "AT": "Österreich",
+      "LI": "Liechtenstein"
+    },
+    "npaFormatInvalide": "Die Schweizer PLZ besteht aus genau 4 Ziffern (z. B. 1950).",
     "vide": "Keine Adresse erfasst."
   },
   "notes": {
@@ -175,6 +187,18 @@
   "desactivation": {
     "titre": "Kunden deaktivieren",
     "motif": "Grund für Deaktivierung"
+  },
+  "contact": {
+    "titre": "Kommunikation",
+    "statutActif": "Der Kunde kann normal kontaktiert werden.",
+    "statutArrete": "Dieser Kunde hat jeglichen Kontakt abgelehnt.",
+    "motifLabel": "Grund",
+    "arreterAction": "Jeglichen Kontakt stoppen",
+    "reprendreAction": "Kontakt wieder aufnehmen",
+    "arreterTitre": "Jeglichen Kontakt mit diesem Kunden stoppen",
+    "arreterDescription": "Dieser Kunde erhält keine Kommunikation mehr (Marketing, Erinnerungen, Mahnungen), auch nicht für eine offene Rechnung. Der Grund ist obligatorisch und wird im Verlauf gespeichert.",
+    "reprendreTitre": "Kontakt mit diesem Kunden wieder aufnehmen",
+    "reprendreDescription": "Dieser Kunde kann gemäss den erfassten Einwilligungen wieder kontaktiert werden. Der Grund ist obligatorisch und wird im Verlauf gespeichert."
   },
   "fusion": {
     "titre": "Zwei Kunden zusammenführen",

@@ -77,7 +77,8 @@
     "vehicule": "Véhicule",
     "site": "Site",
     "date": "Date du rendez-vous",
-    "moment": "Moment",
+    "moment": "Créneau",
+    "momentPlaceholder": "Choisir un créneau",
     "heureSouhaitee": "Heure souhaitée",
     "duree": "Durée estimée (min)",
     "motif": "Motif du rendez-vous",
@@ -101,7 +102,9 @@
   },
   "dialogueArrivee": {
     "titre": "Le véhicule est arrivé",
-    "confirmer": "Confirmer l’arrivée"
+    "confirmer": "Confirmer l’arrivée",
+    "confirmationDeuxOrOuverts": "Ce véhicule a déjà deux ordres de réparation ouverts.",
+    "confirmationGenerique": "Une confirmation est nécessaire pour enregistrer l’arrivée."
   },
   "detail": {
     "titre": "Rendez-vous",

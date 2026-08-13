@@ -84,6 +84,6 @@
   },
   "tracabilite": {
     "titre": "Cronologia degli invii",
-    "note": "Il registro dettagliato — chi ha ricevuto quale promemoria, quando e con quale esito — apparirà qui non appena sarà disponibile l'API di listing degli invii. Nel frattempo, ogni avvio qui sopra mostra il bilancio della sua esecuzione."
+    "note": "Il dettaglio invio per invio (chi ha ricevuto quale promemoria, quando, con quale esito) non è ancora disponibile in DFA. Il bilancio di ogni avvio (numero inviati, falliti, annullati) resta visibile qui sopra."
   }
 }

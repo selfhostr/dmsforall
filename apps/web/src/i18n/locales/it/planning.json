@@ -78,6 +78,7 @@
     "site": "Sede",
     "date": "Data dell’appuntamento",
     "moment": "Fascia oraria",
+    "momentPlaceholder": "Scegliere una fascia oraria",
     "heureSouhaitee": "Ora desiderata",
     "duree": "Durata stimata (min)",
     "motif": "Motivo dell’appuntamento",
@@ -101,7 +102,9 @@
   },
   "dialogueArrivee": {
     "titre": "Il veicolo è arrivato",
-    "confirmer": "Confermare l’arrivo"
+    "confirmer": "Confermare l’arrivo",
+    "confirmationDeuxOrOuverts": "Questo veicolo ha già due ordini di riparazione aperti.",
+    "confirmationGenerique": "È necessaria una conferma per registrare l’arrivo."
   },
   "detail": {
     "titre": "Appuntamento",

@@ -78,6 +78,7 @@
     "site": "Standort",
     "date": "Termindatum",
     "moment": "Zeitfenster",
+    "momentPlaceholder": "Zeitfenster wählen",
     "heureSouhaitee": "Gewünschte Uhrzeit",
     "duree": "Geschätzte Dauer (Min.)",
     "motif": "Grund des Termins",
@@ -101,7 +102,9 @@
   },
   "dialogueArrivee": {
     "titre": "Das Fahrzeug ist eingetroffen",
-    "confirmer": "Ankunft bestätigen"
+    "confirmer": "Ankunft bestätigen",
+    "confirmationDeuxOrOuverts": "Für dieses Fahrzeug sind bereits zwei Reparaturaufträge offen.",
+    "confirmationGenerique": "Eine Bestätigung ist erforderlich, um die Ankunft zu speichern."
   },
   "detail": {
     "titre": "Termin",

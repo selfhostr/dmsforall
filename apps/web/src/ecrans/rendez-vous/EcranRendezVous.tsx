@@ -381,15 +381,23 @@ export function EcranRendezVous() {
         ouvert={dialogueArriveeOuvert}
         onOpenChange={setDialogueArriveeOuvert}
         onConfirmer={(entree) =>
+          // Ferme SEULEMENT le dialogue de saisie — le panneau de détail reste ouvert (issue #108,
+          // second volet) : un succès qui referme aussi le panneau ramène le réceptionniste au
+          // planning sans qu'il voie le rendez-vous passer à « Arrivé », ce qui a été confondu sur
+          // le terrain avec « rien ne s'est passé ». `rdvSelectionne` se met à jour tout seul dès
+          // que `requeteAgenda` se rafraîchit (invalidation `['rdv','plage']` dans le hook).
           arrivee.soumettre(entree, {
-            onSuccess: () => {
-              setDialogueArriveeOuvert(false);
-              setPanneauOuvert(false);
-            },
+            onSuccess: () => setDialogueArriveeOuvert(false),
           })
         }
         enCours={arrivee.enCours}
         erreur={arrivee.erreur ? messageErreur(arrivee.erreur, t) : null}
+        confirmationsRequises={arrivee.confirmationsRequises}
+        onConfirmerQuandMeme={() =>
+          arrivee.confirmerEtResoumettre({
+            onSuccess: () => setDialogueArriveeOuvert(false),
+          })
+        }
       />
     </>
   );

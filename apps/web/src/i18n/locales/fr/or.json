@@ -187,7 +187,13 @@
         "aucune": "Aucune actuellement disponible à ce site.",
         "disponible": "{n} disponible(s) à ce site."
       },
-      "calculPrixEnCours": "Calcul du prix hors taxe…"
+      "calculPrixEnCours": "Calcul du prix hors taxe…",
+      "quantiteSuperieureStock": "Quantité saisie ({quantite}) supérieure au stock disponible.",
+      "avertissementStock": {
+        "titre": "Confirmer une quantité supérieure au stock ?",
+        "description": "{quantite} demandé(s) pour {disponible} disponible(s) à ce site. La pièce manquante peut être commandée séparément.",
+        "confirmer": "Ajouter quand même"
+      }
     },
     "groupees": {
       "colonneSelection": "Sélection",
@@ -336,7 +342,9 @@
     },
     "filtres": {
       "statut": "Statut",
-      "statutTous": "Tous les statuts"
+      "statutTous": "Tous les statuts",
+      "attente": "Attente",
+      "attenteToutes": "Toutes"
     },
     "tri": {
       "label": "Trier par",
@@ -371,7 +379,9 @@
     },
     "documentsVente": {
       "titre": "Devis et facture",
-      "vide": "Aucun document de vente lié à cet OR."
+      "pasEncoreFacture": "Pas encore facturé. L'OR reste ouvert à la facturation.",
+      "clotureSansFacture": "Aucune facture n'a été émise pour cet OR, désormais clôturé — plus aucune facturation n'est possible.",
+      "annuleSansFacture": "OR annulé, aucune facture ne sera émise. Motif : {motif}"
     },
     "pointage": {
       "titre": "Qui a pointé",
@@ -415,7 +425,9 @@
     },
     "client": {
       "requisTitre": "Client non sélectionné",
-      "requisDescription": "Recherchez d'abord le client, puis ouvrez un ordre de réparation depuis sa fiche."
+      "requisDescription": "Recherchez d'abord le client, puis ouvrez un ordre de réparation depuis sa fiche.",
+      "creerAction": "Créer un nouveau client",
+      "creerTitre": "Nouveau client"
     },
     "vehicule": {
       "titre": "Véhicule",

@@ -22,6 +22,13 @@
       "regle": "Bezahlt",
       "tropPercu": "Überzahlung",
       "irrecouvrable": "Uneinbringlich"
+    },
+    "statutAvoir": {
+      "nonRegle": "Nicht verrechnet",
+      "partiel": "Teilweise verrechnet",
+      "regle": "Verrechnet",
+      "tropPercu": "Zu viel verrechnet",
+      "irrecouvrable": "Abgeschrieben"
     }
   },
   "retard": {
@@ -150,8 +157,47 @@
         "tva": "MWST"
       },
       "ajouterDemontage": "Vorgeschlagene Demontage-Position hinzufügen",
+      "ajouter": "Position hinzufügen",
       "retirer": "Entfernen",
-      "vide": "Keine Position auf diesem Dokument."
+      "modifierAria": "Position „{designation}“ bearbeiten",
+      "retirerAria": "Position „{designation}“ entfernen",
+      "vide": "Keine Position auf diesem Dokument.",
+      "dialogueAjout": {
+        "titre": "Position hinzufügen"
+      },
+      "dialogueModifier": {
+        "titre": "Position bearbeiten"
+      },
+      "champs": {
+        "type": "Typ",
+        "designation": "Bezeichnung",
+        "reference": "Referenz",
+        "quantite": "Menge",
+        "prixUnitaire": "Einzelpreis inkl. MWST",
+        "taux": "MWST-Satz",
+        "datePrestation": "Leistungsdatum"
+      },
+      "types": {
+        "main_oeuvre_bareme": "Arbeitszeit (Tarif)",
+        "main_oeuvre_temps_reel": "Arbeitszeit (effektiv)",
+        "forfait": "Pauschale",
+        "piece": "Ersatzteil",
+        "fourniture": "Material",
+        "sous_traitance": "Fremdleistung",
+        "produit_atelier": "Werkstattprodukt",
+        "taxe": "Gebühr",
+        "texte": "Text (freie Notiz)",
+        "ecart_reprise": "Eintauschdifferenz",
+        "repartition": "Aufteilung",
+        "consigne": "Depot"
+      },
+      "taux": {
+        "normal": "Normalsatz — 8.1%",
+        "reduit": "Reduzierter Satz — 2.6%",
+        "hebergement": "Beherbergung — 3.8%",
+        "exonere": "Befreit — 0%",
+        "exclu": "Nicht MWST-pflichtig — 0%"
+      }
     },
     "documentsLies": {
       "titre": "Verknüpfte Dokumente",
@@ -231,7 +277,8 @@
       "resteDu": "Restbetrag {montant}",
       "emiseLe": "ausgestellt am {date}",
       "totalSelectionne": "Ausgewähltes Total",
-      "vide": "Keine offene Rechnung"
+      "vide": "Keine offene Rechnung",
+      "devisesMultiples": "Diese Rechnungen sind in unterschiedlichen Währungen. Wählen Sie nur Rechnungen derselben Währung aus, bevor Sie den Zahlungseingang erfassen."
     },
     "lignes": {
       "titre": "Zahlungseingänge",

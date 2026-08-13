@@ -103,6 +103,8 @@
   "adresses": {
     "titre": "Indirizzi",
     "ajouter": "Aggiungi indirizzo",
+    "modifier": "Modifica indirizzo",
+    "modifierAriaLabel": "Modifica indirizzo {type}",
     "types": {
       "principale": "Principale",
       "facturation": "Fatturazione",
@@ -112,8 +114,18 @@
       "type": "Tipo di indirizzo",
       "rue": "Via e numero",
       "npa": "CAP",
-      "localite": "Localita"
+      "localite": "Localita",
+      "pays": "Paese"
     },
+    "pays": {
+      "CH": "Svizzera",
+      "DE": "Germania",
+      "FR": "Francia",
+      "IT": "Italia",
+      "AT": "Austria",
+      "LI": "Liechtenstein"
+    },
+    "npaFormatInvalide": "Il CAP svizzero e composto da esattamente 4 cifre (es. 1950).",
     "vide": "Nessun indirizzo registrato."
   },
   "notes": {
@@ -175,6 +187,18 @@
   "desactivation": {
     "titre": "Disattiva cliente",
     "motif": "Motivo della disattivazione"
+  },
+  "contact": {
+    "titre": "Comunicazione",
+    "statutActif": "Il cliente puo essere contattato normalmente.",
+    "statutArrete": "Questo cliente ha richiesto l'interruzione di ogni contatto.",
+    "motifLabel": "Motivo",
+    "arreterAction": "Interrompi ogni contatto",
+    "reprendreAction": "Riprendi il contatto",
+    "arreterTitre": "Interrompere ogni contatto con questo cliente",
+    "arreterDescription": "Questo cliente non ricevera piu alcuna comunicazione (marketing, promemoria, solleciti), anche per una fattura non pagata. Il motivo e obbligatorio e viene conservato nello storico.",
+    "reprendreTitre": "Riprendere il contatto con questo cliente",
+    "reprendreDescription": "Questo cliente potra essere nuovamente contattato secondo i consensi registrati. Il motivo e obbligatorio e viene conservato nello storico."
   },
   "fusion": {
     "titre": "Unisci due clienti",

@@ -22,6 +22,13 @@
       "regle": "Pagata",
       "tropPercu": "Eccedenza incassata",
       "irrecouvrable": "Inesigibile"
+    },
+    "statutAvoir": {
+      "nonRegle": "Non imputato",
+      "partiel": "Imputato parzialmente",
+      "regle": "Imputato",
+      "tropPercu": "Imputato in eccesso",
+      "irrecouvrable": "Abbandonato"
     }
   },
   "retard": {
@@ -150,8 +157,47 @@
         "tva": "IVA"
       },
       "ajouterDemontage": "Aggiungere la riga di smontaggio proposta",
+      "ajouter": "Aggiungi una riga",
       "retirer": "Rimuovere",
-      "vide": "Nessuna riga su questo documento."
+      "modifierAria": "Modificare la riga « {designation} »",
+      "retirerAria": "Rimuovere la riga « {designation} »",
+      "vide": "Nessuna riga su questo documento.",
+      "dialogueAjout": {
+        "titre": "Aggiungi una riga"
+      },
+      "dialogueModifier": {
+        "titre": "Modifica riga"
+      },
+      "champs": {
+        "type": "Tipo",
+        "designation": "Descrizione",
+        "reference": "Riferimento",
+        "quantite": "Quantità",
+        "prixUnitaire": "Prezzo unitario IVA incl.",
+        "taux": "Aliquota IVA",
+        "datePrestation": "Data prestazione"
+      },
+      "types": {
+        "main_oeuvre_bareme": "Manodopera (tariffario)",
+        "main_oeuvre_temps_reel": "Manodopera (tempo reale)",
+        "forfait": "Forfait",
+        "piece": "Pezzo",
+        "fourniture": "Fornitura",
+        "sous_traitance": "Subappalto",
+        "produit_atelier": "Prodotto officina",
+        "taxe": "Tassa",
+        "texte": "Testo (nota libera)",
+        "ecart_reprise": "Differenza di permuta",
+        "repartition": "Ripartizione",
+        "consigne": "Cauzione"
+      },
+      "taux": {
+        "normal": "Normale — 8.1%",
+        "reduit": "Ridotta — 2.6%",
+        "hebergement": "Alloggio — 3.8%",
+        "exonere": "Esente — 0%",
+        "exclu": "Escluso dal campo IVA — 0%"
+      }
     },
     "documentsLies": {
       "titre": "Documenti collegati",
@@ -231,7 +277,8 @@
       "resteDu": "residuo dovuto {montant}",
       "emiseLe": "emessa il {date}",
       "totalSelectionne": "Totale selezionato",
-      "vide": "Nessuna fattura aperta"
+      "vide": "Nessuna fattura aperta",
+      "devisesMultiples": "Queste fatture sono in valute diverse. Deseleziona alcune fatture per conservare solo fatture nella stessa valuta prima di incassare."
     },
     "lignes": {
       "titre": "Incassi",

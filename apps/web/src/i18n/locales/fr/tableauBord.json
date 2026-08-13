@@ -42,7 +42,15 @@
       "description": "Relancez le fournisseur ou prévenez le client.",
       "erreur": "Impossible d'afficher les OR en attente de pièces"
     },
-    "enRetard": "En retard"
+    "enRetard": "En retard",
+    "enRetardCarte": {
+      "titre": "En retard",
+      "description": "Restitution promise dépassée, véhicule pas encore rendu — tous les jours confondus, pas seulement aujourd'hui.",
+      "vide": {
+        "titre": "Aucun retard",
+        "description": "Aucune restitution promise n'est dépassée pour le moment."
+      }
+    }
   },
   "financier": {
     "titre": "Financier",

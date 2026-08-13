@@ -103,6 +103,8 @@
   "adresses": {
     "titre": "Adresses",
     "ajouter": "Ajouter une adresse",
+    "modifier": "Modifier l'adresse",
+    "modifierAriaLabel": "Modifier l'adresse {type}",
     "types": {
       "principale": "Principale",
       "facturation": "Facturation",
@@ -112,8 +114,18 @@
       "type": "Type d'adresse",
       "rue": "Rue et numéro",
       "npa": "NPA",
-      "localite": "Localité"
+      "localite": "Localité",
+      "pays": "Pays"
     },
+    "pays": {
+      "CH": "Suisse",
+      "DE": "Allemagne",
+      "FR": "France",
+      "IT": "Italie",
+      "AT": "Autriche",
+      "LI": "Liechtenstein"
+    },
+    "npaFormatInvalide": "Le NPA suisse comporte exactement 4 chiffres (ex. 1950).",
     "vide": "Aucune adresse enregistrée."
   },
   "notes": {
@@ -175,6 +187,18 @@
   "desactivation": {
     "titre": "Désactiver le client",
     "motif": "Motif de la désactivation"
+  },
+  "contact": {
+    "titre": "Communication",
+    "statutActif": "Le client peut être contacté normalement.",
+    "statutArrete": "Ce client a demandé l'arrêt de tout contact.",
+    "motifLabel": "Motif",
+    "arreterAction": "Arrêter tout contact",
+    "reprendreAction": "Reprendre le contact",
+    "arreterTitre": "Arrêter tout contact avec ce client",
+    "arreterDescription": "Ce client ne recevra plus aucune communication (marketing, rappels, relances), y compris pour une facture impayée. Motif obligatoire, conservé dans l'historique.",
+    "reprendreTitre": "Reprendre le contact avec ce client",
+    "reprendreDescription": "Ce client pourra de nouveau être contacté selon les consentements enregistrés. Motif obligatoire, conservé dans l'historique."
   },
   "fusion": {
     "titre": "Fusionner deux clients",

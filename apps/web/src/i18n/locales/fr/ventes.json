@@ -126,7 +126,9 @@
       "reserveLe": "Réservé le",
       "venduLe": "Vendu le",
       "livreLe": "Livré le",
-      "motif": "Motif"
+      "motif": "Motif",
+      "emplacement": "Emplacement",
+      "emplacementPlaceholder": "Ex. : devant, place 3"
     },
     "assujetti": {
       "oui": "Oui",
@@ -187,7 +189,8 @@
         "provenance": "Provenance",
         "statut": "Statut",
         "joursStock": "Jours en stock",
-        "prixVente": "Prix de vente"
+        "prixVente": "Prix de vente",
+        "emplacement": "Emplacement"
       },
       "actions": {
         "ficheCommerciale": "Fiche commerciale",
@@ -213,7 +216,8 @@
         "receptionner": "Réceptionner",
         "remettreDisponible": "Remettre disponible",
         "marquerVendu": "Marquer vendu",
-        "autresActions": "Autres actions"
+        "autresActions": "Autres actions",
+        "garantie": "Garantie"
       },
       "donneesCommerciales": "Données commerciales",
       "historique": "Historique",
@@ -222,7 +226,16 @@
       "prixAchatVerrouille": "Le prix d'achat n'est plus modifiable après la vente.",
       "remettreDisponibleDescription": "Le véhicule redevient disponible à la vente.",
       "receptionnerDescription": "Le véhicule passe en statut « Disponible ».",
-      "marquerVenduDescription": "Le véhicule passe en statut « Vendu »."
+      "marquerVenduDescription": "Le véhicule passe en statut « Vendu ».",
+      "garantie": {
+        "titre": "Garantie",
+        "description": "Saisie manuelle — à renseigner quand vous connaissez l'information, jamais calculée automatiquement.",
+        "debutLe": "Début de la garantie",
+        "mois": "Durée (mois)",
+        "km": "Plafond kilométrique",
+        "moisHorsPlage": "Doit être compris entre 0 et 240 mois.",
+        "kmHorsPlage": "Doit être compris entre 0 et 1'000'000 km."
+      }
     },
     "entree": {
       "titre": "Mettre en stock",
@@ -347,6 +360,11 @@
       "bonCommande": "Bon de commande",
       "aucunBonCommande": "Aucun bon de commande sur ce dossier",
       "creerBonCommande": "Créer le bon de commande",
+      "facture": "Facture",
+      "aucuneFacture": "Aucune facture sur ce dossier",
+      "creerFacture": "Créer la facture",
+      "voirFacture": "Voir la facture",
+      "factureACompleter": "Ajoutez les lignes et émettez la facture pour pouvoir livrer.",
       "identitePieceType": "Pièce d'identité présentée",
       "identitePieceTypes": {
         "carte_identite": "Carte d'identité",
@@ -549,6 +567,9 @@
       "champVehiculePlaceholder": "Plaque ou désignation…",
       "champVehiculeIndication": "Tapez une plaque ou une désignation pour rechercher le véhicule repris.",
       "aucunVehiculeTrouve": "Aucun véhicule ne correspond à cette recherche.",
+      "creerVehiculeBouton": "Créer ce véhicule",
+      "creerVehiculeAide": "Le client apporte un véhicule que le garage ne connaît pas encore ? Créez-le avec le minimum d'informations — le reste se complète plus tard depuis sa fiche.",
+      "creerVehiculeSoumettre": "Créer et sélectionner",
       "vehiculeSelectionne": "Véhicule sélectionné : {designation}",
       "champValeurEstimee": "Valeur estimée",
       "valeurEstimee": "Valeur estimée",
@@ -658,6 +679,7 @@
       "titre": "Proposer un financement",
       "champType": "Type de financement",
       "champOrganisme": "Organisme",
+      "champOrganismePlaceholder": "Rechercher un organisme…",
       "champReferenceContrat": "Référence de contrat",
       "aideComptant": "Aucune confirmation supplémentaire n'est nécessaire pour un paiement comptant.",
       "bouton": "Proposer"

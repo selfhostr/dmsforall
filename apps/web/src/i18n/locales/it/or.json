@@ -187,7 +187,13 @@
         "aucune": "Nessuna disponibilità attuale in questa sede.",
         "disponible": "{n} disponibile/i in questa sede."
       },
-      "calculPrixEnCours": "Calcolo del prezzo IVA esclusa in corso…"
+      "calculPrixEnCours": "Calcolo del prezzo IVA esclusa in corso…",
+      "quantiteSuperieureStock": "Quantità inserita ({quantite}) superiore allo stock disponibile.",
+      "avertissementStock": {
+        "titre": "Confermare una quantità superiore allo stock?",
+        "description": "{quantite} richiesti per {disponible} disponibili in questa sede. Il pezzo mancante può essere ordinato separatamente.",
+        "confirmer": "Aggiungi comunque"
+      }
     },
     "groupees": {
       "colonneSelection": "Selezione",
@@ -336,7 +342,9 @@
     },
     "filtres": {
       "statut": "Stato",
-      "statutTous": "Tutti gli stati"
+      "statutTous": "Tutti gli stati",
+      "attente": "Attesa",
+      "attenteToutes": "Tutte"
     },
     "tri": {
       "label": "Ordina per",
@@ -371,7 +379,9 @@
     },
     "documentsVente": {
       "titre": "Preventivo e fattura",
-      "vide": "Nessun documento di vendita collegato a questo ordine."
+      "pasEncoreFacture": "Non ancora fatturato. L'ordine rimane aperto alla fatturazione.",
+      "clotureSansFacture": "Nessuna fattura è stata emessa per questo ordine, ora chiuso — non è possibile ulteriore fatturazione.",
+      "annuleSansFacture": "Ordine annullato, nessuna fattura verrà emessa. Motivo: {motif}"
     },
     "pointage": {
       "titre": "Chi ha timbrato",
@@ -415,7 +425,9 @@
     },
     "client": {
       "requisTitre": "Nessun cliente selezionato",
-      "requisDescription": "Cercate prima il cliente, poi aprite un ordine di riparazione dalla sua scheda."
+      "requisDescription": "Cercate prima il cliente, poi aprite un ordine di riparazione dalla sua scheda.",
+      "creerAction": "Crea un nuovo cliente",
+      "creerTitre": "Nuovo cliente"
     },
     "vehicule": {
       "titre": "Veicolo",
