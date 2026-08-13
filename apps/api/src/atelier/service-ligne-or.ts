@@ -22,10 +22,8 @@ import { JETON_DB, type AccesBase, type ContexteTenant, type TransactionDfa } fr
 import {
   ligneOr,
   reservationPiece,
-  tauxHoraire,
   type LigneLigneOr,
   type LigneOrdreReparation,
-  type LigneTauxHoraire,
   type NouvelleReservationPiece,
 } from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
@@ -63,6 +61,11 @@ import {
   estOrVerrouille,
   ServiceOr,
 } from './service-or';
+import {
+  chargerToutesTauxHoraire,
+  resoudreTauxHorairePourDate,
+  type ResolutionTauxHoraire,
+} from './taux-horaire';
 import { traduireErreurTransition } from './traducteur-transition';
 
 /** `AC-08`/`MD-62`/`MD-67` : `payeurClientId` obligatoire et UNIQUEMENT pour ces trois payeurs —
@@ -76,27 +79,13 @@ const PAYEURS_AVEC_TIERS: ReadonlySet<PayeurLigneOr> = new Set([
 ]);
 
 /**
- * Code du taux horaire STANDARD du garage dans `taux_horaire` — celui qui s'applique à un client
- * qui n'a négocié aucun tarif particulier (RM-07 : le taux client est « éventuel »). C'est la
- * convention déjà en place dans le référentiel de démonstration (`db/seed/seed-dev.ts`, dont les
- * prestations pointent toutes sur ce code).
- *
- * CONVENTION, PAS ENCORE UN PARAMÈTRE : `parametre_atelier` ne porte aucune colonne désignant le
- * taux par défaut du tenant. Un garage qui nomme son taux autrement est rattrapé par le 3ᵉ cran de
- * la cascade (`resoudreTauxHoraireCentimes`) tant qu'il n'en pratique qu'un seul ; au-delà, il doit
- * nommer `ATELIER` celui qui sert de référence. Le vrai correctif —
- * `parametre_atelier.taux_horaire_defaut_code` (migration + schéma Drizzle) — est HORS du périmètre
- * d'écriture de ce fichier ; signalé au rapport de livraison.
+ * Réexporté depuis `taux-horaire.ts` (#72) — déplacé là pour devenir le mécanisme PARTAGÉ de
+ * résolution RM-65, réutilisé aussi par `clients/service-client-sous-collections.ts` pour afficher
+ * le taux horaire lisible d'une condition commerciale. Réexporté ICI pour ne rien casser côté
+ * imports existants (`service-ligne-or.spec.ts` : `import { CODE_TAUX_HORAIRE_DEFAUT } from
+ * './service-ligne-or'`).
  */
-export const CODE_TAUX_HORAIRE_DEFAUT = 'ATELIER';
-
-/**
- * Résultat de la résolution RM-65. L'échec porte SON MOTIF : « le taux négocié du client a expiré »
- * et « le garage n'a pas de taux standard » appellent deux gestes de correction différents, et le
- * réceptionniste qui lit le message doit savoir lequel — une absence de donnée n'est pas une valeur.
- */
-type ResolutionTauxHoraire =
-  { readonly centimes: number } | { readonly centimes: null; readonly motif: string };
+export { CODE_TAUX_HORAIRE_DEFAUT } from './taux-horaire';
 
 /**
  * Lignes d'ordre de réparation (contrats-api-etape-1.md §7.8) : création, modification libre,
@@ -1020,6 +1009,13 @@ export class ServiceLigneOr {
    *
    * Lecture directe de `taux_horaire` (une poignée de lignes par tenant), même doctrine que
    * `references.ts` pour `parametre_atelier` : pas de jeton pour une lecture de table.
+   *
+   * DÉLÈGUE désormais à `taux-horaire.ts` (#72) — même algorithme mot pour mot (voir son
+   * commentaire pour le détail de la cascade et de la borne haute exclusive), extrait pour être
+   * réutilisable par `clients/service-client-sous-collections.ts` (résolution d'une condition
+   * commerciale à SA date `valideDuLe`, plutôt qu'à « aujourd'hui »). `dateJour` reste calculé ICI,
+   * pas dans la fonction pure : résoudre le taux d'une ligne d'OR se fait toujours à la date de
+   * LECTURE, jamais à une date figée.
    */
   private async resoudreTauxHoraireCentimes(
     tx: TransactionDfa,
@@ -1028,61 +1024,9 @@ export class ServiceLigneOr {
   ): Promise<ResolutionTauxHoraire> {
     const conditions = (or.conditionsFigees as { tauxHoraireCode?: string | null } | null) ?? null;
     const codeClient = conditions?.tauxHoraireCode ?? null;
-
-    const lignes: readonly LigneTauxHoraire[] = await tx
-      .select()
-      .from(tauxHoraire)
-      .where(eq(tauxHoraire.tenantId, ctx.tenantId));
-
+    const lignes = await chargerToutesTauxHoraire(tx, ctx);
     const dateJour = new Date().toISOString().slice(0, 10);
-    /**
-     * Borne haute EXCLUSIVE — alignée sur la contrainte `EXCLUDE ... daterange(valide_du,
-     * valide_au, '[)')` de `taux_horaire` (migration 0005_parametrage.sql). Avant ce correctif,
-     * ce filtre lisait la borne haute comme INCLUSIVE (`valideAu >= dateJour`), en désaccord avec
-     * la base : une saisie naturelle « ancien tarif jusqu'au 10 inclus, nouveau dès le 10 »
-     * (`valideAuLe` de l'ancien = `valideDuLe` du nouveau) est ACCEPTÉE par la contrainte (les deux
-     * périodes ne se chevauchent pas en `[)`) mais faisait remonter LES DEUX lignes ici — le taux
-     * facturé le jour de la bascule dépendait alors de l'ordre de retour de PostgreSQL, non
-     * garanti. Reproduit en exécution le 10.08.2026 ; voir service-ligne-or.spec.ts pour le test
-     * qui rejoue exactement cette séquence.
-     *
-     * Tri décroissant sur `valideDu`, ceinture et bretelles : l'EXCLUDE garantit qu'au plus UNE
-     * période d'un même `code` peut être en vigueur à une date donnée (donc `.find()` ci-dessous
-     * ne peut normalement pas être ambigu), mais un filtre qui PEUT rendre plusieurs lignes ne
-     * doit jamais dépendre d'un ordre non garanti. Retenir la période la plus RÉCEMMENT valide en
-     * cas d'ambiguïté résiduelle est le choix qui a un sens métier : un tarif fraîchement saisi
-     * prime sur un résidu historique mal clôturé.
-     */
-    const enVigueur = [...lignes]
-      .sort((a, b) => b.valideDu.localeCompare(a.valideDu))
-      .filter((l) => l.valideDu <= dateJour && (l.valideAu === null || l.valideAu > dateJour));
-
-    if (codeClient) {
-      const negocie = enVigueur.find((l) => l.code === codeClient);
-      return negocie
-        ? { centimes: negocie.montantCentimes }
-        : {
-            centimes: null,
-            motif:
-              `Le taux horaire « ${codeClient} » convenu avec ce client (RM-07, figé à ` +
-              `l'ouverture de l'OR) n'a aucune période de validité couvrant le ${dateJour}.`,
-          };
-    }
-
-    const standard = enVigueur.find((l) => l.code === CODE_TAUX_HORAIRE_DEFAUT);
-    if (standard) return { centimes: standard.montantCentimes };
-
-    const codesEnVigueur = new Set(enVigueur.map((l) => l.code));
-    const unique = codesEnVigueur.size === 1 ? enVigueur[0] : undefined;
-    if (unique) return { centimes: unique.montantCentimes };
-
-    return {
-      centimes: null,
-      motif:
-        `Aucun taux horaire standard : ce client n'a pas de taux négocié (RM-07) et le ` +
-        `référentiel du garage ne porte ni le code « ${CODE_TAUX_HORAIRE_DEFAUT} » ni un taux ` +
-        `unique en vigueur au ${dateJour}. Renseigner les taux horaires dans le paramétrage.`,
-    };
+    return resoudreTauxHorairePourDate(lignes, codeClient, dateJour);
   }
 
   /** Traduit une résolution en échec (RM-65) en `400 VALIDATION_ECHOUEE` lisible au comptoir. */

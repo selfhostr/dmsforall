@@ -199,6 +199,15 @@ export interface ReponseOrdreReparation {
   readonly plafondAutorisePar?: string | null;
   /** Dérivé, maintenu par trigger : sert RM-54 sans recompter les lignes à chaque validation. */
   readonly totalValideCentimes?: number;
+  /**
+   * Somme des `montantTtcCentimes` des lignes non `annulee`/`refusee` (§76) — même calcul que
+   * `OrdreReparationResume.totalTtcCentimes`, qui porte déjà ce champ ; il manquait ici, sur le
+   * DOCUMENT COMPLET, alors que `GET /ordres-reparation` (liste) rend cette forme-ci (voir
+   * `ServiceOr.lister` → `assemblerDocument`) — la colonne « Total TTC » de la liste des OR était
+   * vide pour cette raison précise. Même garde que `totalValideCentimes` : absent pour un rôle sans
+   * droit aux montants, jamais `0` (qui mentirait sur « aucun montant »).
+   */
+  readonly totalTtcCentimes?: number;
   readonly restitutionPromiseLe: string | null;
   /** RM-56 : la promesse INITIALE, conservée pour que le report soit visible et motivé. */
   readonly restitutionInitialeLe: string | null;
@@ -240,6 +249,16 @@ export interface ReponseOrdreReparation {
   readonly nombreLignes: number;
   /** Voir `SEUIL_LIGNES_EMBARQUEES`. */
   readonly lignesTronquees: boolean;
+  /**
+   * Quelques désignations de lignes (§82), BORNÉES côté serveur — de quoi dire en une phrase ce qui
+   * a été fait, sans obliger l'appelant à ouvrir l'OR (constat terrain : « pour répondre au client,
+   * je dois ouvrir chaque ordre un par un »). Voir `SEUIL_DESIGNATIONS_APERCU`
+   * (`apps/api/src/atelier/service-or.ts`, actuellement 3) — jamais la liste complète, qui reste
+   * `lignes`/`nombreLignes`. Exclut les lignes `annulee`/`refusee` (jamais faites) et les
+   * désignations vides. Tableau VIDE, jamais absent : un OR sans ligne facturable n'est pas une
+   * absence de donnée, c'est un fait (rien à montrer).
+   */
+  readonly designationsApercu?: readonly string[];
   readonly devisComplementaires: readonly ReponseDevisComplementaire[];
   readonly controleQualite: ReponseControleQualiteOr | null;
   readonly signatures: readonly ReponseSignatureOr[];
@@ -309,6 +328,13 @@ export interface OrdreReparationResume {
   readonly nombreLignes: number;
   /** Absent pour un rôle sans droit aux montants. */
   readonly totalTtcCentimes?: number;
+  /**
+   * Même champ, même bornage (`SEUIL_DESIGNATIONS_APERCU`) que
+   * `ReponseOrdreReparation.designationsApercu` (§82) — voir ce champ. FACULTATIF ici comme
+   * `enRetard` ci-dessus : ce résumé est aussi assemblé par `clients/` (périmètre disjoint), qui ne
+   * le peuple pas encore — absent, jamais un tableau vide qui laisserait croire « rien de fait ».
+   */
+  readonly designationsApercu?: readonly string[];
 }
 
 /** Entrée du journal d'audit (`GET /ordres-reparation/{orId}/journal`, RM-59, RM-111). */

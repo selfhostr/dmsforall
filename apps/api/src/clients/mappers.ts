@@ -128,13 +128,28 @@ export function versContactResponse(ligne: LigneClientContact): ReponseClientCon
   };
 }
 
-export function versConditionResponse(ligne: LigneClientCondition): ReponseClientCondition {
+/** Taux horaire déjà RÉSOLU par l'appelant (`ServiceClientSousCollections`, via
+ *  `atelier/taux-horaire.ts::resoudreTauxHorairePourDate`) — ce mapper reste pur/synchrone, jamais
+ *  d'accès base ici, même doctrine que `ExtraClientResume` ci-dessus. `null`/absent : le code n'a
+ *  pas pu être résolu à `valideDuLe` (ou n'existait pas), voir `ReponseClientCondition` pour le
+ *  détail des deux cas. */
+export interface TauxHoraireResoluCondition {
+  readonly libelle: string;
+  readonly montantCentimes: number;
+}
+
+export function versConditionResponse(
+  ligne: LigneClientCondition,
+  tauxHoraireResolu?: TauxHoraireResoluCondition | null,
+): ReponseClientCondition {
   return {
     id: ligne.id,
     rabaisMoPourmille: ligne.rabaisMoPourmille ?? 0,
     rabaisPiecesPourmille: ligne.rabaisPiecesPourmille ?? 0,
     rabaisPneusPourmille: ligne.rabaisPneusPourmille ?? 0,
     tauxHoraireCode: ligne.tauxHoraireCode,
+    tauxHoraireLibelle: tauxHoraireResolu?.libelle ?? null,
+    tauxHoraireMontantCentimes: tauxHoraireResolu?.montantCentimes ?? null,
     delaiPaiementJours: ligne.delaiPaiementJours,
     modePaiement: ligne.modePaiement,
     plafondCentimes: ligne.plafondCentimes,
