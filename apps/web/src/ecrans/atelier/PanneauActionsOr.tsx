@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
 import { ActionPrimaire, type ActionSecondaireMenu } from '@/composants/layout/ActionPrimaire';
@@ -169,7 +169,14 @@ export function PanneauActionsOr({ or }: Props) {
   const [paiementRecu, setPaiementRecu] = useState(false);
   const [erreurValidation, setErreurValidation] = useState<string | null>(null);
   const [derniereEntree, setDerniereEntree] = useState<object | null>(null);
-  const [confirmationOuverte, setConfirmationOuverte] = useState(false);
+  // Issues #64/#66 (même correctif que `FormulaireNouvelOrdreReparation`, son voisin naturel dans
+  // ce module) : un drapeau de REJET plutôt qu'un simple `confirmationsRequises.length > 0` — la
+  // modale (voir `AvertissementConfirmable` plus bas) s'ouvre désormais D'ELLE-MÊME dès que le
+  // serveur exige une confirmation, jamais derrière un second clic sur un encart qu'on peut
+  // manquer. Sans ce drapeau, fermer la modale par « Annuler » la rouvrirait aussitôt (l'erreur de
+  // mutation reste posée tant qu'aucun nouvel envoi n'a eu lieu) : reposer la question exige un
+  // nouvel envoi explicite.
+  const [confirmationRejetee, setConfirmationRejetee] = useState(false);
 
   const actionsNiveauOr = or.actionsDisponibles.filter((action) => !ACTIONS_LIGNE.has(action));
 
@@ -182,7 +189,7 @@ export function PanneauActionsOr({ or }: Props) {
     setPaiementRecu(false);
     setErreurValidation(null);
     setDerniereEntree(null);
-    setConfirmationOuverte(false);
+    setConfirmationRejetee(false);
   }
 
   const mutationActive =
@@ -231,7 +238,6 @@ export function PanneauActionsOr({ or }: Props) {
 
   function resoumettreAvecConfirmations(confirmations: readonly CodeConfirmation[]) {
     if (!derniereEntree) return;
-    setConfirmationOuverte(false);
     soumettre({ ...derniereEntree, confirmations });
   }
 
@@ -351,29 +357,11 @@ export function PanneauActionsOr({ or }: Props) {
             />
           ) : null}
 
-          {/* CONFIRMATION_REQUISE (§4.4) : la transition reste possible, un rôle habilité doit
-           *  juste confirmer explicitement — jamais un second clic silencieux sur le même bouton. */}
-          {confirmationsRequises.length > 0 ? (
-            <div
-              role="alert"
-              className="rounded-md border border-statut-attention bg-statut-attention-fond p-3"
-            >
-              <p className="texte-corps text-statut-attention">
-                {erreurActive ? messageErreurMutation(erreurActive, t) : ''}
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-2"
-                onClick={() => setConfirmationOuverte(true)}
-              >
-                {t('commun:actions.continuerQuandMeme')}
-              </Button>
-            </div>
-          ) : null}
-
           {actionOuverte === 'receptionner' ? (
             <div className="flex flex-col gap-4">
+              <LegendeChampsObligatoires>
+                {t('commun:formulaires.champsObligatoiresLegende')}
+              </LegendeChampsObligatoires>
               <ChampKilometrage
                 valeur={kilometrage}
                 onChangeValeur={setKilometrage}
@@ -394,12 +382,19 @@ export function PanneauActionsOr({ or }: Props) {
               </label>
               {signatureDifferee ? (
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="or-action-motif-differee">
+                  {/* `motifDifferee` est `schemaMotif.optional()` (`schemaActionReceptionner`) au
+                   *  sens strict du contrat, mais le commentaire du schéma (RM-51/§6.12) est
+                   *  explicite : « la signature peut être différée, MAIS ALORS le motif est
+                   *  exigé » — obligation business non capturée par zod, même patron que le PO
+                   *  du client (`FormulaireNouvelOrdreReparation.tsx`). Toujours requis dans CETTE
+                   *  branche puisqu'elle ne s'affiche QUE quand `signatureDifferee` est coché. */}
+                  <Label htmlFor="or-action-motif-differee" requis>
                     {t('or:actions.motifSignatureDifferee')}
                   </Label>
                   <Textarea
                     id="or-action-motif-differee"
                     value={motifDifferee}
+                    aria-required="true"
                     onChange={(evenement) => setMotifDifferee(evenement.target.value)}
                   />
                 </div>
@@ -473,6 +468,9 @@ export function PanneauActionsOr({ or }: Props) {
           actionOuverte === 'rouvrir' ||
           actionOuverte === 'annuler' ? (
             <div className="flex flex-col gap-4">
+              <LegendeChampsObligatoires>
+                {t('commun:formulaires.champsObligatoiresLegende')}
+              </LegendeChampsObligatoires>
               {/* CORRECTIF (test d'utilisabilité novice, 11.08.2026) : « ça annule ou ça
                *  efface ? est-ce que je peux revenir ? ». `annuler` mène au statut `annule`, qui
                *  n'autorise plus AUCUNE transition (`ACTIONS_DEPUIS_STATUT.annule = []`,
@@ -485,10 +483,17 @@ export function PanneauActionsOr({ or }: Props) {
                 </p>
               ) : null}
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="or-action-motif">{t('or:actions.motif')}</Label>
+                {/* `motif: schemaMotif` (sans `.optional()`) dans les TROIS schémas que cette
+                 *  branche partage — `schemaActionRefuserControle`, `schemaActionRouvrir`,
+                 *  `schemaActionAnnuler` (`packages/shared/src/contrats/atelier/ordre-reparation.ts`)
+                 *  — obligatoire dans les trois cas, jamais conditionnel ici. */}
+                <Label htmlFor="or-action-motif" requis>
+                  {t('or:actions.motif')}
+                </Label>
                 <Textarea
                   id="or-action-motif"
                   value={motif}
+                  required
                   onChange={(evenement) => setMotif(evenement.target.value)}
                 />
                 {erreurValidation ? (
@@ -642,9 +647,18 @@ export function PanneauActionsOr({ or }: Props) {
         </DialogContent>
       </Dialog>
 
+      {/* CONFIRMATION_REQUISE (§4.4, issues #64/#66) : s'ouvre D'ELLE-MÊME dès que le serveur
+       *  l'exige, jamais derrière un second clic sur un encart qu'on peut manquer — même mécanisme
+       *  que `FormulaireNouvelOrdreReparation` pour ce même refus. La modale de Radix déplace le
+       *  focus clavier à l'ouverture, donc autant l'œil que le clavier tombent directement sur la
+       *  question. Le refus reste un geste normal (`Annuler`, Échap) : `confirmationRejetee`
+       *  l'enregistre pour ne pas rouvrir la modale toute seule — reposer la question exige un
+       *  nouvel envoi explicite (voir `soumettre` ci-dessus). */}
       <AvertissementConfirmable
-        ouvert={confirmationOuverte}
-        onOuvertChange={setConfirmationOuverte}
+        ouvert={confirmationsRequises.length > 0 && !confirmationRejetee}
+        onOuvertChange={(ouvertConfirmation) => {
+          if (!ouvertConfirmation) setConfirmationRejetee(true);
+        }}
         titre={titreDialogue}
         description={erreurActive ? messageErreurMutation(erreurActive, t) : ''}
         libelleConfirmation={t('commun:actions.continuerQuandMeme')}

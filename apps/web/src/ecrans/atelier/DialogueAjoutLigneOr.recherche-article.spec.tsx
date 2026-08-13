@@ -5,9 +5,11 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { ReponseArticle, ResultatRechercheComptoirArticle } from '@dfa/shared';
 
+import { clesQuery } from '@/api/cles';
 import '@/i18n';
 import i18n from '@/i18n';
 
+import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { renduAvecQueryClient } from '@/test/utils';
 
@@ -19,6 +21,9 @@ import { DialogueAjoutLigneOr } from './DialogueAjoutLigneOr';
  * (`statutSuivi`, `@dfa/shared`) visible AU MOMENT DU CHOIX, jamais de perte de la saisie manuelle.
  */
 beforeAll(() => {
+  // Radix Select appelle `hasPointerCapture`/`scrollIntoView`, absents de jsdom.
+  // (`ResizeObserver`, requis par `SelectTrigger` via `useSize`, est stubé globalement dans
+  // `test/setup.ts` — plus besoin de copie locale ici.)
   Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
   Element.prototype.setPointerCapture = vi.fn();
   Element.prototype.releasePointerCapture = vi.fn();
@@ -73,6 +78,11 @@ function articleComplet(): ReponseArticle {
 
 function mockRecherche(resultat: ResultatRechercheComptoirArticle) {
   server.use(
+    // Issue #71 : le raccourci catalogue (`SelecteurArticlePiece`) n'est proposé qu'à un rôle qui
+    // lit effectivement le catalogue pièces (`peutRechercherArticlePiece`, `ecrans/atelier/droits.ts`)
+    // — sans session authentifiée ici, le handler par défaut (401 sur `/auth/moi`) le masquerait
+    // pour tous ces scénarios. `chef_atelier` (`SESSION_TEST`) fait partie de `ROLES_PIECES`.
+    http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
     http.get('/api/v1/articles/recherche-comptoir', () => HttpResponse.json([resultat])),
     http.get(`/api/v1/articles/${ARTICLE_ID}`, () => HttpResponse.json(articleComplet())),
     // Mode PARCOURS du sélecteur (`SelecteurArticlePiece`, `GET /articles`, saisie vide au
@@ -97,8 +107,12 @@ async function ouvrirEnTypePiece(utilisateur: ReturnType<typeof userEvent.setup>
 }
 
 async function choisirLaPiece(utilisateur: ReturnType<typeof userEvent.setup>) {
+  // `findByRole` (pas `getByRole`) : le champ de recherche ne s'affiche qu'une fois la session
+  // résolue (`useSession`, issue #71 — le raccourci catalogue est masqué à un rôle qui ne lit pas
+  // le catalogue pièces) — dans ce test isolé, sans le parent qui la préchargerait déjà, la
+  // première frappe possible n'est jamais synchrone.
   await utilisateur.type(
-    screen.getByRole('combobox', { name: 'Chercher une pièce au magasin' }),
+    await screen.findByRole('combobox', { name: 'Chercher une pièce au magasin' }),
     'plaquettes',
   );
   await utilisateur.click(await screen.findByRole('option', { name: /Plaquettes de frein avant/ }));
@@ -243,5 +257,63 @@ describe('DialogueAjoutLigneOr — reprendre une pièce du magasin au lieu de to
     expect(boutonConfirmer).toHaveAttribute('aria-busy', 'true');
     expect(boutonConfirmer).toBeDisabled();
     expect(boutonConfirmer).toHaveTextContent('Confirmer');
+  });
+});
+
+describe("DialogueAjoutLigneOr — issue #71 : un rôle qui ne lit pas le catalogue pièces (`admin`) n'a jamais le raccourci", () => {
+  it('admin ne voit pas le champ de recherche magasin, mais crée quand même une ligne pièce à la main', async () => {
+    let corpsRecu: unknown;
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'admin' },
+        }),
+      ),
+      http.post(`/api/v1/ordres-reparation/${OR_ID}/lignes`, async ({ request }) => {
+        corpsRecu = await request.json();
+        return HttpResponse.json(
+          { donnees: { id: 'ligne-1' }, avertissements: [] },
+          { status: 201 },
+        );
+      }),
+    );
+
+    const utilisateur = userEvent.setup();
+    const { queryClient } = renduAvecQueryClient(
+      <DialogueAjoutLigneOr orId={OR_ID} siteId={SITE_ID} />,
+    );
+    await utilisateur.click(screen.getByRole('button', { name: i18n.t('or:lignes.ajouter') }));
+    await screen.findByRole('dialog');
+    await utilisateur.click(screen.getByRole('combobox', { name: 'Type' }));
+    await utilisateur.click(
+      await screen.findByRole('option', { name: i18n.t('or:lignes.types.piece') }),
+    );
+
+    // Attend que `useSession` soit RÉELLEMENT résolue (pas seulement « pas encore montée ») avant
+    // de constater l'absence — sinon ce test réussirait aussi bien si le raccourci apparaissait
+    // simplement en retard (défaut différent, jamais celui qu'on veut prouver ici).
+    await waitFor(() => {
+      expect(queryClient.getQueryState(clesQuery.session())?.status).toBe('success');
+    });
+    expect(
+      screen.queryByRole('combobox', { name: 'Chercher une pièce au magasin' }),
+    ).not.toBeInTheDocument();
+
+    // La saisie manuelle — seul chemin qui reste pour ce rôle — fonctionne intégralement.
+    await utilisateur.type(screen.getByLabelText(/Désignation/), 'Ampoule feu de croisement');
+    await utilisateur.type(screen.getByLabelText('Référence'), 'REF-9000');
+    await utilisateur.click(screen.getByRole('button', { name: 'Confirmer' }));
+
+    await waitFor(() => {
+      expect(corpsRecu).toMatchObject({
+        type: 'piece',
+        designation: 'Ampoule feu de croisement',
+        referenceTexte: 'REF-9000',
+      });
+    });
+    // Pas de lien catalogue : `articleId` est absent du corps JSON envoyé (jamais deviné, jamais
+    // celui d'un précédent choix qu'un rôle sans accès au raccourci n'a jamais pu faire).
+    expect(corpsRecu).not.toHaveProperty('articleId');
   });
 });

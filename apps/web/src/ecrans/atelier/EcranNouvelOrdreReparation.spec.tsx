@@ -273,6 +273,35 @@ describe('EcranNouvelOrdreReparation', () => {
           } satisfies PageCurseur<VehiculeResume>),
         ),
         http.get('/api/v1/parametres-atelier', () => HttpResponse.json(PARAMETRES_ATELIER)),
+        // `FormulaireNouvelOrdreReparation` interroge ce contexte pour NOMMER les OR déjà ouverts
+        // dans la confirmation `VEHICULE_DEUX_OR_OUVERTS` (issues #64/#66) — vide ici, ce parcours
+        // ne teste pas cette confirmation (voir `FormulaireNouvelOrdreReparation.spec.tsx` pour
+        // ce cas). Sans ce handler, `onUnhandledRequest: 'error'` (`test/setup.ts`) le signale.
+        http.get(`/api/v1/vehicules/${VEHICULE_ID}/contexte-atelier`, () =>
+          HttpResponse.json({
+            vehicule: {
+              id: VEHICULE_ID,
+              plaque: VEHICULE.plaque,
+              canton: VEHICULE.canton,
+              designation: VEHICULE.designation,
+              premiereMiseEnCirculationLe: VEHICULE.premiereMiseEnCirculationLe,
+              vin: VEHICULE.vin,
+              codeTypeCh: null,
+              importe: { estImporte: false, paysOrigine: null, importeLe: null },
+              identificationIncomplete: false,
+            },
+            detenteurCourant: null,
+            dernierKilometrage: null,
+            expertise: null,
+            garantie: { constructeur: null, garage: null },
+            campagnesOuvertes: [],
+            travauxReportes: { total: 0, elements: [] },
+            alertesClient: [],
+            ordresReparationOuverts: [],
+            depotPneus: null,
+            avertissements: [],
+          }),
+        ),
         http.post('/api/v1/ordres-reparation', () =>
           HttpResponse.json({ donnees: construireOr(), avertissements: [] }, { status: 201 }),
         ),

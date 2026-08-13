@@ -252,4 +252,44 @@ describe('SelecteurArticlePiece', () => {
       expect(screen.getByRole('option', { name: /Plaquettes avant/ })).toBeInTheDocument();
     });
   });
+
+  it('vrai 500 serveur (pas une panne réseau) : message distinct de "aucun résultat", Réessayer proposé — jamais le même rendu qu\'un refus stable 403/404', async () => {
+    // Mode PARCOURS toujours en succès — même raison que le test « panne réseau » ci-dessus :
+    // isoler le mode recherche assistée, seul concerné par ce mock.
+    server.use(
+      http.get('/api/v1/articles', () =>
+        HttpResponse.json(pageArticles([articleCatalogue({ id: 'art-parcours-ok' })])),
+      ),
+    );
+    // Un VRAI 500 serveur, PAS `HttpResponse.error()` (qui simule une coupure réseau côté client,
+    // scénario déjà couvert ci-dessus) : corps vide en `text/plain` (content-type par défaut de
+    // `HttpResponse.text`, jamais `application/problem+json`) — exactement la forme d'un 500 non
+    // formé en `problem+json` que `construireErreurApi` (`api/erreurs.ts`) synthétise en
+    // `ERREUR_INTERNE` plutôt que de planter. C'est le cas mesuré en test terrain (serveur de dev
+    // qui redémarre en cours de requête).
+    server.use(
+      http.get('/api/v1/articles/recherche-comptoir', () => HttpResponse.text('', { status: 500 })),
+    );
+
+    const utilisateur = userEvent.setup();
+    renduAvecQueryClient(
+      <SelecteurArticlePiece id="a" siteId={SITE_ID} onSelectionArticle={vi.fn()} />,
+    );
+
+    await utilisateur.type(
+      screen.getByRole('combobox', { name: 'Chercher une pièce au magasin' }),
+      'plaq',
+    );
+
+    const popover = within(await screen.findByRole('dialog'));
+    expect(await popover.findByText(i18n.t('erreurs:codes.ERREUR_INTERNE'))).toBeInTheDocument();
+    // Distinct du texte « aucun résultat » — un 500 n'est jamais rendu comme une recherche sans
+    // correspondance (règle maison « absence de donnée ≠ valeur »).
+    expect(
+      popover.queryByText(i18n.t('or:lignes.selecteurArticle.aucunResultat')),
+    ).not.toBeInTheDocument();
+    // Un 500 est un échec PASSAGER (contrairement à 403/404, refus stable) : le bouton
+    // « Réessayer » (`!estRefusStable`) doit être proposé.
+    expect(await popover.findByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
+  });
 });

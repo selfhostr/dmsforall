@@ -13,7 +13,7 @@ import { useOrdreReparation } from '@/hooks/atelier/useOrdreReparation';
 import { listerDocumentsVente } from '@/hooks/facturation/documents-vente.api';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
-import { formaterDate, formaterMontant } from '@/lib/formats';
+import { formaterDate, formaterMontantAvecDevise } from '@/lib/formats';
 
 import { DialogueAjoutLigneOr } from './DialogueAjoutLigneOr';
 import { peutCreerLigneOr } from './droits';
@@ -270,7 +270,7 @@ export function EcranFicheOrdreReparation() {
           <CardHeader>
             <CardTitle className="texte-titre-section">{t('or:totaux.titre')}</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-2">
             {/* Grille à 2 colonnes FIXES, jamais `sm:grid-cols-3` : chaque paire (`dt` + `dd`)
              *  n'utilise que 2 cellules — sur une grille à 3 colonnes, le nombre total de
              *  cellules n'est multiple de 3 que par coïncidence (payeur unique = 4 cellules =
@@ -290,7 +290,9 @@ export function EcranFicheOrdreReparation() {
                       : ''}
                   </dt>
                   <dd className="font-medium text-foreground texte-montant">
-                    {formaterMontant(totaux.montantTtcCentimes)}
+                    {t('or:lignes.montants.ttc', {
+                      montant: formaterMontantAvecDevise(totaux.montantTtcCentimes, 'CHF'),
+                    })}
                   </dd>
                 </div>
               ))}
@@ -303,11 +305,26 @@ export function EcranFicheOrdreReparation() {
                     {t('or:totaux.totalValide')}
                   </dt>
                   <dd className="border-t pt-2 font-semibold text-foreground texte-montant">
-                    {formaterMontant(or.totalValideCentimes)}
+                    {t('or:lignes.montants.ttc', {
+                      montant: formaterMontantAvecDevise(or.totalValideCentimes, 'CHF'),
+                    })}
                   </dd>
                 </div>
               ) : null}
             </dl>
+            {/* CORRECTIF issue #72 (rapport de test terrain) : « il y a deux totaux différents,
+             *  Client 958.31 et Total validé 894.53. Lequel je dis au client ? » — les deux
+             *  chiffres sont réels mais répondent à des questions différentes (`totaux-payeur.ts`
+             *  regroupe TOUTES les lignes non annulées/refusées par payeur ; `totalValideCentimes`
+             *  suit le plafond, § RM-54, sur les lignes VALIDÉES de TOUS les payeurs confondus,
+             *  jamais un montant facturable). Le renommage du libellé ci-dessus ne suffit pas à
+             *  lui seul à lever l'ambiguïté une fois les deux chiffres sous les yeux — cette phrase
+             *  la tranche explicitement. */}
+            {or.totalValideCentimes !== undefined ? (
+              <p className="texte-libelle text-muted-foreground">
+                {t('or:totaux.aideDistinction')}
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}

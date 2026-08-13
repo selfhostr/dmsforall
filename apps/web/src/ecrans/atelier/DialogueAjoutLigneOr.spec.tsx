@@ -24,6 +24,8 @@ import { DialogueAjoutLigneOr } from './DialogueAjoutLigneOr';
 beforeAll(() => {
   // Même stub que la mesure d'accessibilité de ce dialogue (`mesures.dialogue-ajout-ligne-or.spec.tsx`) :
   // Radix Select appelle `hasPointerCapture`/`scrollIntoView`, absents de jsdom.
+  // (`ResizeObserver`, requis par `SelectTrigger` via `useSize`, est stubé globalement dans
+  // `test/setup.ts` — plus besoin de copie locale ici.)
   Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
   Element.prototype.setPointerCapture = vi.fn();
   Element.prototype.releasePointerCapture = vi.fn();
@@ -180,5 +182,39 @@ describe('DialogueAjoutLigneOr — défaut : message métier du serveur perdu de
     await utilisateur.click(screen.getByRole('button', { name: 'Confirmer' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+});
+
+describe('DialogueAjoutLigneOr — défaut : panne réseau/générique sur la création de ligne, bandeau resté silencieux', () => {
+  /**
+   * Défaut réel (test terrain, rapport de panne serveur pendant la saisie) : `erreurActive` ne
+   * retenait QUE `mutation.error instanceof ErreurApi` — toute autre panne (`ErreurReseau` :
+   * connexion coupée, timeout, serveur de dev qui redémarre en cours de requête ; ou une erreur
+   * générique non reconnue) laissait `erreurActive` à `null`, donc RIEN ne s'affichait, alors que
+   * `mutation.isError` était pourtant vrai. `messagesErreurMutation` (déjà utilisé par ce même
+   * fichier ci-dessus) sait pourtant déjà traiter `unknown` — c'est le garde-fou `instanceof
+   * ErreurApi` qui était trop étroit, pas la fonction de messages.
+   */
+  it('une panne réseau (pas une ErreurApi) affiche quand même un message actionnable, sans perte de saisie', async () => {
+    server.use(http.post(`/api/v1/ordres-reparation/${OR_ID}/lignes`, () => HttpResponse.error()));
+    const utilisateur = userEvent.setup();
+    await ouvrirDialogueEtSaisirDesignation(utilisateur);
+    await utilisateur.type(screen.getByLabelText('Référence'), 'REF-PANNE-1');
+
+    const boutonConfirmer = screen.getByRole('button', { name: 'Confirmer' });
+    await utilisateur.click(boutonConfirmer);
+
+    // Message actionnable, à l'endroit où le garagiste a agi — `erreurs:reseau.description`
+    // (`messageErreur`, cas `ErreurReseau`), jamais un bandeau vide.
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      i18n.t('erreurs:reseau.description'),
+    );
+    // Le dialogue reste ouvert — jamais fermé sur un échec.
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    // Aucune perte de saisie (règle maison) : les champs déjà tapés restent intacts.
+    expect(screen.getByLabelText(/Désignation/)).toHaveValue('Remplacement plaquettes avant');
+    expect(screen.getByLabelText('Référence')).toHaveValue('REF-PANNE-1');
+    // Le bouton redevient cliquable : plus en chargement après l'échec.
+    await waitFor(() => expect(boutonConfirmer).not.toBeDisabled());
   });
 });

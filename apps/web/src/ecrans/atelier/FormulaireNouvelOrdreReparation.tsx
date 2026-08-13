@@ -16,8 +16,9 @@ import {
 import { ErreurReseau } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { DatetimeInput } from '@/components/ui/datetime-input';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -29,8 +30,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
+import { BandeauBrouillon } from '@/composants/motifs/BandeauBrouillon';
 import { useCreationOrdreReparation } from '@/hooks/atelier/useCreationOrdreReparation';
+import { effacerBrouillon, lireBrouillon } from '@/hooks/brouillon/brouillon';
+import { useSauvegardeBrouillon } from '@/hooks/brouillon/useSauvegardeBrouillon';
 import { useParametresAtelier } from '@/hooks/parametres/useParametresAtelier';
+import { useContexteAtelier } from '@/hooks/vehicules/useContexteAtelier';
 import { cn } from '@/lib/utils';
 
 import { messageErreurMutation } from './messages-erreur-mutation';
@@ -58,6 +63,33 @@ interface ErreursChamps {
   plafondCentimes?: string;
 }
 
+/** Champs couverts par le brouillon local (issue #77) : `demandes` (l'array déjà « ajouté ») ET
+ *  `demandeSaisie` (le texte encore dans la zone de saisie, pas encore « + Ajouté ») — la demande
+ *  la plus coûteuse à reperdre est souvent celle qu'on est justement en train de taper au moment
+ *  d'une panne. `kilometrageEntree` est l'autre champ nommé par le testeur terrain (issue #77).
+ *  Volontairement PAS le reste du formulaire (plafond, PO, restitution…) : portée étroite au
+ *  strict nécessaire décrit par l'incident, pas un brouillon générique de tout le formulaire. */
+interface ValeursBrouillonNouvelOr {
+  readonly demandes: readonly string[];
+  readonly demandeSaisie: string;
+  readonly kilometrageEntree: number | null;
+}
+
+/** `useSauvegardeBrouillon` réécrit sans condition à chaque changement des trois champs couverts
+ *  — y compris juste après `ignorerBrouillon()`, qui les remet à vide : un brouillon « vide »
+ *  finit donc réellement réécrit dans `sessionStorage` (harmless en soi, mais un ARTEFACT, jamais
+ *  une intention). Sans ce garde-fou, `BandeauBrouillon` réapparaîtrait à la prochaine ouverture
+ *  du formulaire pour annoncer la reprise... de rien — exactement le genre de bandeau qui fait
+ *  perdre confiance dans le mécanisme. Traité comme une ABSENCE de brouillon, jamais comme une
+ *  reprise à afficher. */
+function brouillonEstVide(valeurs: ValeursBrouillonNouvelOr): boolean {
+  return (
+    valeurs.demandes.length === 0 &&
+    valeurs.demandeSaisie.trim() === '' &&
+    valeurs.kilometrageEntree === null
+  );
+}
+
 /**
  * Le corps du formulaire d'ouverture d'OR (§7.6) — champs libres, une fois `site`/`client`/
  * `vehicule` connus (portés par `EcranNouvelOrdreReparation`, jamais redécidés ici). Tous les
@@ -80,12 +112,44 @@ export function FormulaireNouvelOrdreReparation({
   const { t } = useTranslation(['or', 'commun', 'erreurs', 'validation']);
   const parametresAtelier = useParametresAtelier();
   const creation = useCreationOrdreReparation();
+  // Déjà chargé par `EcranFicheVehicule` pour ce même véhicule dans le parcours normal (choix
+  // depuis la fiche) — même clé de cache (`clesQuery.vehicules.contexteAtelier`), donc pas de
+  // requête réseau supplémentaire dans ce cas. Sert UNIQUEMENT à NOMMER les OR déjà ouverts dans
+  // la confirmation ci-dessous (issues #64/#66, « voici lesquels ») ; son absence ou son chargement
+  // encore en cours ne bloque rien — `descriptionConfirmation` retombe alors sur le message
+  // générique du serveur.
+  const contexteAtelier = useContexteAtelier(vehicule.id);
+
+  // Issue #77 : un réceptionniste a perdu trois fois la demande client et le kilométrage saisis
+  // ici quand `RouteProtegee` démontait tout l'écran sur une panne réseau passagère. Clé stable
+  // dès le premier rendu (`vehicule` est un prop requis, jamais inconnu à ce stade) — voir
+  // `hooks/brouillon/brouillon.ts` pour la doctrine (sessionStorage, jamais pour éditer une
+  // ressource déjà persistée). Lu UNE SEULE fois à l'ouverture (`useState` paresseux, pas un effet
+  // qui réécrirait la saisie en cours à chaque changement de `vehicule.id`) : ce formulaire est
+  // toujours (re)monté pour un véhicule choisi une fois par le parent, jamais réutilisé en place
+  // pour un second véhicule.
+  const cleBrouillon = `or-nouveau.${vehicule.id}`;
+  const [brouillonInitial] = useState(() => lireBrouillon<ValeursBrouillonNouvelOr>(cleBrouillon));
 
   const [type, setType] = useState<TypeOrdreReparation>(TYPE_PAR_DEFAUT);
   const [statutInitial, setStatutInitial] = useState<StatutInitialOrdreReparation>('ouvert');
-  const [demandeSaisie, setDemandeSaisie] = useState('');
-  const [demandes, setDemandes] = useState<readonly string[]>([]);
-  const [kilometrageEntree, setKilometrageEntree] = useState<number | null>(null);
+  const [demandeSaisie, setDemandeSaisie] = useState(
+    () => brouillonInitial?.valeurs.demandeSaisie ?? '',
+  );
+  const [demandes, setDemandes] = useState<readonly string[]>(
+    () => brouillonInitial?.valeurs.demandes ?? [],
+  );
+  const [kilometrageEntree, setKilometrageEntree] = useState<number | null>(
+    () => brouillonInitial?.valeurs.kilometrageEntree ?? null,
+  );
+  // Distinct de `brouillonInitial` : reste posé tant que l'utilisateur n'a pas explicitement
+  // rejeté la reprise (`ignorerBrouillon`) — sert UNIQUEMENT à piloter `BandeauBrouillon`, jamais
+  // à revalider quoi que ce soit côté saisie.
+  const [brouillonRepriseLe, setBrouillonRepriseLe] = useState<string | null>(() =>
+    brouillonInitial && !brouillonEstVide(brouillonInitial.valeurs)
+      ? brouillonInitial.enregistreLe
+      : null,
+  );
   const [plafondCentimes, setPlafondCentimes] = useState<number | null>(null);
   const [plafondAutorisePar, setPlafondAutorisePar] = useState('');
   const [restitutionSaisie, setRestitutionSaisie] = useState('');
@@ -93,9 +157,29 @@ export function FormulaireNouvelOrdreReparation({
   const [conducteurPresentNom, setConducteurPresentNom] = useState('');
   const [erreursChamps, setErreursChamps] = useState<ErreursChamps>({});
   const [erreurGenerique, setErreurGenerique] = useState<string | null>(null);
-  const [confirmationOuverte, setConfirmationOuverte] = useState(false);
+  // Issues #64/#66 (test terrain, 12.08.2026) : un réceptionniste a cliqué TROIS FOIS sur
+  // « Ouvrir l'ordre de réparation » sans rien voir se passer — le serveur répondait bien
+  // `409 CONFIRMATION_REQUISE`/`VEHICULE_DEUX_OR_OUVERTS`, mais l'encart qui le disait vivait tout
+  // en HAUT de l'écran (juste sous la carte véhicule) pendant que le bouton cliqué était tout en
+  // BAS : hors du champ visuel de l'action, un second clic silencieux était le résultat le plus
+  // probable. Retenu un `useState` de REJET plutôt qu'un simple `confirmationsRequises.length > 0`
+  // : la modale (voir plus bas) s'ouvre désormais D'ELLE-MÊME dès que le serveur exige une
+  // confirmation (même mécanisme que `DialogueNouveauRendezVous`, `composants/rendez-vous/` — la
+  // référence explicite plutôt qu'un quatrième mécanisme inventé ici), mais `confirmationsRequises`
+  // reste posé côté hook tant qu'aucun nouvel envoi n'a eu lieu (`useCreationOrdreReparation` n'a
+  // pas de `reset()`) : sans ce drapeau, fermer la modale par « Annuler » la rouvrirait aussitôt,
+  // rendant le refus impossible — exactement ce que le coordinateur a exclu.
+  const [confirmationRejetee, setConfirmationRejetee] = useState(false);
 
   const etatPlanifieActif = parametresAtelier.data?.or.etatPlanifieActif ?? false;
+
+  // Sauvegarde AUTOMATIQUE à chaque changement de l'un des trois champs couverts (issue #77) —
+  // voir `ValeursBrouillonNouvelOr` pour la justification de cette portée précise.
+  useSauvegardeBrouillon<ValeursBrouillonNouvelOr>(cleBrouillon, {
+    demandes,
+    demandeSaisie,
+    kilometrageEntree,
+  });
 
   function ajouterDemande() {
     const verbatim = demandeSaisie.trim();
@@ -106,6 +190,18 @@ export function FormulaireNouvelOrdreReparation({
 
   function retirerDemande(index: number) {
     setDemandes((valeur) => valeur.filter((_, i) => i !== index));
+  }
+
+  /** Rejet EXPLICITE du brouillon repris (exigence n°2, `BandeauBrouillon` sans ce geste ne ferait
+   *  que l'annoncer, jamais permettre de l'écarter) : remet les trois champs couverts à vide et
+   *  efface le stockage local — un formulaire qui se serait rempli tout seul sans offrir de retour
+   *  arrière ferait douter de ce qu'on envoie réellement. */
+  function ignorerBrouillon() {
+    effacerBrouillon(cleBrouillon);
+    setDemandes([]);
+    setDemandeSaisie('');
+    setKilometrageEntree(null);
+    setBrouillonRepriseLe(null);
   }
 
   /**
@@ -137,8 +233,13 @@ export function FormulaireNouvelOrdreReparation({
       demandes: demandesEffectives().map((verbatim) => ({ verbatim })),
       plafondCentimes: plafondCentimes ?? undefined,
       plafondAutorisePar: plafondAutorisePar.trim() === '' ? undefined : plafondAutorisePar.trim(),
-      restitutionPromiseLe:
-        restitutionSaisie === '' ? undefined : new Date(restitutionSaisie).toISOString(),
+      // `restitutionSaisie` est DÉJÀ un ISO correctement converti — `DatetimeInput.onChange`
+      // (`components/ui/datetime-input.tsx`) le rend directement. Ne PAS repasser par
+      // `new Date(restitutionSaisie).toISOString()` : ce champ contenait un `<input
+      // type="datetime-local">` NAÏF (ni fuseau ni ISO, format navigateur — issue #89, décalage
+      // constaté l'été comme l'hiver), `DatetimeInput` a corrigé le fond, réappliquer une
+      // conversion par-dessus réintroduirait le même décalage qu'on vient d'éliminer.
+      restitutionPromiseLe: restitutionSaisie === '' ? undefined : restitutionSaisie,
       conducteurPresentNom:
         conducteurPresentNom.trim() === '' ? undefined : conducteurPresentNom.trim(),
       numeroCommandeInterne:
@@ -149,6 +250,7 @@ export function FormulaireNouvelOrdreReparation({
   function soumettre() {
     setErreursChamps({});
     setErreurGenerique(null);
+    setConfirmationRejetee(false);
     const entree = construireEntree();
     const resultat = schemaCreationOrdreReparation.safeParse(entree);
     if (!resultat.success) {
@@ -166,7 +268,17 @@ export function FormulaireNouvelOrdreReparation({
       if (autre) setErreurGenerique(t('validation:requis'));
       return;
     }
-    creation.soumettre(resultat.data, { onSuccess: onCree });
+    creation.soumettre(resultat.data, {
+      // Effacé UNIQUEMENT sur un succès serveur confirmé (exigence n°1, issue #77) : un OR ouvert
+      // avec succès rend le brouillon local obsolète — le laisser vivre ferait resurgir la demande
+      // du CLIENT PRÉCÉDENT dans le formulaire suivant, envoyée sans relecture parce qu'on croirait
+      // reconnaître sa propre saisie. Jamais sur un simple échec de soumission (validation locale
+      // ou refus serveur) : l'utilisateur doit encore pouvoir corriger et renvoyer sans retaper.
+      onSuccess: (or) => {
+        effacerBrouillon(cleBrouillon);
+        onCree(or);
+      },
+    });
   }
 
   const enCours = creation.enCours;
@@ -176,6 +288,21 @@ export function FormulaireNouvelOrdreReparation({
   // `useCreationOrdreReparation`) — même distinction que `PanneauActionsOr`, le voisin naturel de
   // cet écran dans le module atelier.
   const confirmationsRequises = creation.confirmationsRequises;
+
+  /** Le message serveur générique (« Un ordre de réparation est déjà ouvert pour ce véhicule. »)
+   *  ne dit pas LEQUEL — un réceptionniste qui gère plusieurs OR par jour ne peut pas juger sans
+   *  ouvrir un second écran. Nomme les OR déjà ouverts quand `contexteAtelier` les connaît déjà ;
+   *  retombe sur le message serveur sinon (chargement encore en cours, ou requête distincte
+   *  échouée — l'un n'empêche jamais l'autre, la confirmation reste utilisable dans les deux cas). */
+  function descriptionConfirmation(): string {
+    const orsOuverts = contexteAtelier.data?.ordresReparationOuverts ?? [];
+    if (confirmationsRequises.includes('VEHICULE_DEUX_OR_OUVERTS') && orsOuverts.length > 0) {
+      return t('or:nouveau.confirmation.vehiculeDeuxOrOuverts', {
+        numeros: orsOuverts.map((or) => or.numero).join(', '),
+      });
+    }
+    return creation.erreurActive ? messageErreurMutation(creation.erreurActive, t) : '';
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -199,6 +326,19 @@ export function FormulaireNouvelOrdreReparation({
         </Button>
       </div>
 
+      {/* Issue #77 : signale ET permet de rejeter une saisie restaurée — un formulaire qui se
+       *  remplit tout seul sans le dire ferait douter de ce qu'on est en train d'envoyer.
+       *  `BandeauBrouillon` (partagé) ne porte pas de bouton de rejet lui-même (présentation
+       *  seule) : le geste vit ici, propre à ce formulaire. */}
+      {brouillonRepriseLe ? (
+        <div className="flex items-center gap-2">
+          <BandeauBrouillon repriseLe={brouillonRepriseLe} className="flex-1" />
+          <Button type="button" variant="outline" size="sm" onClick={ignorerBrouillon}>
+            {t('or:nouveau.actions.ignorerBrouillon')}
+          </Button>
+        </div>
+      ) : null}
+
       {creation.erreur ? (
         <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'}>
           {estErreurReseau ? (
@@ -213,32 +353,20 @@ export function FormulaireNouvelOrdreReparation({
         </Alert>
       ) : null}
 
-      {/* CONFIRMATION_REQUISE (§4.4) : la création reste possible, un accord explicite suffit —
-       *  jamais un second clic silencieux sur « Ouvrir l'ordre de réparation ». Prompt inline PUIS modal, comme
-       *  `PanneauActionsOr` (le seul autre écran de ce module à traiter ce cas). */}
-      {confirmationsRequises.length > 0 ? (
-        <div
-          role="alert"
-          className="rounded-md border border-statut-attention bg-statut-attention-fond p-3"
-        >
-          <p className="texte-corps text-statut-attention">
-            {creation.erreurActive ? messageErreurMutation(creation.erreurActive, t) : ''}
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-2"
-            onClick={() => setConfirmationOuverte(true)}
-          >
-            {t('commun:actions.continuerQuandMeme')}
-          </Button>
-        </div>
-      ) : null}
+      <LegendeChampsObligatoires>
+        {t('commun:formulaires.champsObligatoiresLegende')}
+      </LegendeChampsObligatoires>
 
       <div className="space-y-2">
-        <Label htmlFor="or-nouveau-type">{t('or:nouveau.type.libelle')}</Label>
+        <Label htmlFor="or-nouveau-type" requis>
+          {t('or:nouveau.type.libelle')}
+        </Label>
         <Select value={type} onValueChange={(valeur) => setType(valeur as TypeOrdreReparation)}>
-          <SelectTrigger id="or-nouveau-type" aria-label={t('or:nouveau.type.libelle')}>
+          <SelectTrigger
+            id="or-nouveau-type"
+            aria-label={t('or:nouveau.type.libelle')}
+            aria-required="true"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -371,25 +499,35 @@ export function FormulaireNouvelOrdreReparation({
 
         <div className="space-y-2">
           <Label htmlFor="or-nouveau-restitution">{t('or:bandeau.restitutionPromise')}</Label>
-          <Input
+          {/* Issue #89 : `<input type="datetime-local">` natif affichait la date au format du
+           *  système d'exploitation (`mm/dd/yyyy` constaté sur le terrain), jamais `jj.mm.aaaa`
+           *  comme le reste du produit. `DatetimeInput` rend déjà une valeur ISO correctement
+           *  convertie — voir le commentaire de `restitutionPromiseLe` dans `construireEntree`
+           *  ci-dessus : ne jamais lui faire subir une seconde conversion. */}
+          <DatetimeInput
             id="or-nouveau-restitution"
-            type="datetime-local"
             disabled={enCours}
             value={restitutionSaisie}
-            onChange={(evenement) => setRestitutionSaisie(evenement.target.value)}
+            onChange={(valeurISO) => setRestitutionSaisie(valeurISO ?? '')}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="or-nouveau-po">
+          {/* Étoile CONDITIONNELLE (RM-14) : `numeroCommandeInterne` est `.nullish()` dans
+           *  `schemaCreationOrdreReparation` — le contrat ne l'exige jamais statiquement, c'est
+           *  `client.poObligatoire` (fiche client) qui le rend obligatoire pour CE client
+           *  précis, refusé serveur par `409 OR_PO_MANQUANT` sinon. Remplace l'ancien `' *'`
+           *  codé en dur (pas `aria-hidden`, jamais annoncé comme obligatoire à un lecteur
+           *  d'écran) par le mécanisme partagé. */}
+          <Label htmlFor="or-nouveau-po" requis={client.poObligatoire}>
             {t('or:bandeau.numeroPo')}
-            {client.poObligatoire ? ' *' : ''}
           </Label>
           <Input
             id="or-nouveau-po"
             maxLength={60}
             disabled={enCours}
             value={numeroCommandeInterne}
+            aria-required={client.poObligatoire || undefined}
             onChange={(evenement) => setNumeroCommandeInterne(evenement.target.value)}
           />
           {client.poObligatoire ? (
@@ -417,16 +555,23 @@ export function FormulaireNouvelOrdreReparation({
         {enCours ? t('or:nouveau.actions.enCours') : t('or:nouveau.actions.creer')}
       </Button>
 
+      {/* CONFIRMATION_REQUISE (§4.4, issues #64/#66) : s'ouvre D'ELLE-MÊME dès que le serveur
+       *  l'exige, jamais derrière un second clic sur un encart qu'on peut manquer — même mécanisme
+       *  que `DialogueNouveauRendezVous` (`composants/rendez-vous/`) pour ce même refus
+       *  `VEHICULE_DEUX_OR_OUVERTS`. La modale de Radix déplace le focus clavier à l'ouverture,
+       *  donc autant l'œil que le clavier tombent directement sur la question, plutôt que devoir
+       *  remonter en haut de l'écran pour la trouver. Le refus reste un geste normal (`Annuler`,
+       *  Échap) : `confirmationRejetee` l'enregistre pour ne pas rouvrir la modale toute seule —
+       *  reposer la question exige un nouvel envoi explicite (voir `soumettre` ci-dessus). */}
       <AvertissementConfirmable
-        ouvert={confirmationOuverte}
-        onOuvertChange={setConfirmationOuverte}
-        titre={t('or:nouveau.titre')}
-        description={creation.erreurActive ? messageErreurMutation(creation.erreurActive, t) : ''}
-        libelleConfirmation={t('commun:actions.continuerQuandMeme')}
-        onConfirmer={() => {
-          setConfirmationOuverte(false);
-          creation.confirmerEtResoumettre({ onSuccess: onCree });
+        ouvert={confirmationsRequises.length > 0 && !confirmationRejetee}
+        onOuvertChange={(ouvertConfirmation) => {
+          if (!ouvertConfirmation) setConfirmationRejetee(true);
         }}
+        titre={t('or:nouveau.titre')}
+        description={descriptionConfirmation()}
+        libelleConfirmation={t('commun:actions.continuerQuandMeme')}
+        onConfirmer={() => creation.confirmerEtResoumettre({ onSuccess: onCree })}
         enCours={enCours}
       />
     </div>

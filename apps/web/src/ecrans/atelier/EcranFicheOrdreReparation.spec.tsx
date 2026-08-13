@@ -23,6 +23,8 @@ import { EcranFicheOrdreReparation } from './EcranFicheOrdreReparation';
 
 // Radix Dialog (`PanneauActionsOr`) appelle `hasPointerCapture`/`scrollIntoView`, absents de
 // jsdom — même stub que `composants/comptoir/SelecteurTri.spec.tsx` et `EcranFicheVehicule.spec.tsx`.
+// (`ResizeObserver`, aussi requis par `SelectTrigger` via `useSize`, est stubé globalement dans
+// `test/setup.ts` — plus besoin de copie locale ici.)
 beforeAll(() => {
   Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
   Element.prototype.setPointerCapture = vi.fn();
@@ -248,7 +250,9 @@ describe('EcranFicheOrdreReparation', () => {
       rendre();
 
       expect(await screen.findByText('Totaux')).toBeInTheDocument();
-      expect(screen.getByText('216.20')).toBeInTheDocument();
+      // Issue #72 : le montant seul ne disait pas d'où il sortait — devise et mention TTC
+      // désormais explicites (voir `or:lignes.montants.ttc`), jamais un chiffre nu.
+      expect(screen.getByText('CHF 216.20 TTC')).toBeInTheDocument();
       expect(screen.queryByText('Total validé')).not.toBeInTheDocument();
     });
   });
@@ -399,7 +403,12 @@ describe('EcranFicheOrdreReparation', () => {
 
       const dialogue = await screen.findByRole('dialog');
       expect(within(dialogue).getByText("Annuler l'OR")).toBeInTheDocument();
-      expect(within(dialogue).getByLabelText('Motif')).toBeInTheDocument();
+      // `/^Motif/` (pas `'Motif'` exact) : `motif` est OBLIGATOIRE pour cette action
+      // (`schemaActionAnnuler`, sans `.optional()`) — le libellé porte désormais une étoile
+      // (`Label requis`, `components/ui/label.tsx`), donc son texte accessible devient
+      // « Motif* », jamais confondue avec l'astérisque comme caractère lu par un lecteur d'écran
+      // (`aria-hidden`) mais présente dans le `textContent` que `getByLabelText` compare.
+      expect(within(dialogue).getByLabelText(/^Motif/)).toBeInTheDocument();
     });
 
     it('choisit le chemin positif comme primaire au contrôle qualité (« Valider le contrôle », pas « Refuser »)', async () => {
@@ -598,8 +607,11 @@ describe('EcranFicheOrdreReparation', () => {
         await screen.findByRole('button', { name: i18n.t('or:lignes.ajouter') }),
       );
       const dialogue = await screen.findByRole('dialog');
+      // `/^Désignation/` : l'ancien `' *'` codé en dur dans le JSX est remplacé par le mécanisme
+      // partagé (`Label requis`, `components/ui/label.tsx`) — même étoile, texte accessible
+      // légèrement différent (« Désignation* », sans espace).
       await utilisateur.type(
-        within(dialogue).getByLabelText('Désignation *'),
+        within(dialogue).getByLabelText(/^Désignation/),
         'Remplacement plaquettes de frein avant',
       );
       await utilisateur.click(within(dialogue).getByRole('button', { name: 'Confirmer' }));

@@ -13,4 +13,8 @@ import type { FiltreTableauBord } from '@dfa/shared';
 export const clesTableauBord = {
   activite: (filtre: FiltreTableauBord) => ['tableauBord', 'activite', filtre] as const,
   financier: (filtre: FiltreTableauBord) => ['tableauBord', 'financier', filtre] as const,
+  /** Voir `or-attente-pieces.api.ts` — clé distincte de `activite` : source différente
+   *  (`GET /ordres-reparation`, pas `GET /tableau-bord/activite`), échoue/réussit indépendamment. */
+  orEnAttentePieces: (siteId: string | undefined) =>
+    ['tableauBord', 'orEnAttentePieces', siteId] as const,
 } as const;
