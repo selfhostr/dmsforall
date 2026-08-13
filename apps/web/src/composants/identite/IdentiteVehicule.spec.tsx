@@ -41,6 +41,6 @@ describe('IdentiteVehicule', () => {
 
   it('intègre le badge identification incomplète quand le VIN est absent (RM-16)', () => {
     render(<IdentiteVehicule vehicule={{ ...VEHICULE, identificationIncomplete: true }} />);
-    expect(screen.getByText('Identification incomplète')).toBeInTheDocument();
+    expect(screen.getByText('Numéro de châssis manquant')).toBeInTheDocument();
   });
 });

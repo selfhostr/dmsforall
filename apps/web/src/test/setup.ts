@@ -24,6 +24,19 @@ definirEnvPourTests({ VITE_API_URL: '/api/v1' });
 // couvert par `test.testTimeout` (vitest.config.ts) pour les tests à plusieurs attentes en chaîne.
 configure({ asyncUtilTimeout: 5000 });
 
+// `ResizeObserver`, absent de jsdom (comme `AbortController`/`AbortSignal`, corrigé pour une autre
+// raison dans `environnementJsdomFetch.ts`) : `useSize` (`@radix-ui/react-use-size`), utilisé par
+// le `SelectTrigger` partagé (`components/ui/select.tsx`) pour suivre sa propre largeur, plante au
+// montage sans lui — tout `<Select>` rendu en test est concerné, pas seulement ceux qui exercent le
+// redimensionnement. Posé une seule fois ici plutôt que redupliqué localement dans chaque spec qui
+// monte un `<Select>` (c'était le cas avant ce correctif — voir les specs `ecrans/atelier/*.spec.tsx`
+// qui portaient chacune leur propre copie du même stub minimal).
+global.ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
+
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());

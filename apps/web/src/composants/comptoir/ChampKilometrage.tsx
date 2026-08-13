@@ -61,9 +61,8 @@ export function ChampKilometrage({
 
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
-      <Label htmlFor={idChamp}>
+      <Label htmlFor={idChamp} requis={obligatoire}>
         {label}
-        {obligatoire ? ' *' : ''}
       </Label>
       <div className="relative">
         <Input
@@ -76,6 +75,7 @@ export function ChampKilometrage({
           disabled={disabled}
           aria-invalid={erreur ? true : undefined}
           aria-describedby={erreur ? idErreur : undefined}
+          aria-required={obligatoire || undefined}
           onChange={(evenement) => gererChangement(evenement.target.value)}
         />
         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 texte-libelle text-muted-foreground">

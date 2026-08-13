@@ -139,4 +139,52 @@ describe('GrilleAgendaSemaine', () => {
       screen.getByRole('button', { name: /3 rendez-vous, capacité non définie/ }),
     ).toBeInTheDocument();
   });
+
+  // Régression : le badge de capacité (« 0h00 occupée sur 8h00 — encore 8h00 libres ») débordait de
+  // sa colonne et se cassait sur cinq lignes une fois enrichi de la marge encore libre — sept
+  // pastilles fusionnaient en une bande continue. Vue Semaine (7 jours) -> résumé compact ; vue
+  // Jour (1 jour, même grille) -> phrase complète, la colonne unique a la place.
+  describe('résumé de capacité selon la densité de la vue', () => {
+    it('en vue Semaine (sept jours), n’affiche jamais la phrase complète occupé/capacité', () => {
+      const jours = Array.from({ length: 7 }, (_, index) =>
+        construireJour({ dateIso: `2026-08-1${index}`, date: new Date(2026, 7, 10 + index) }),
+      );
+      render(
+        <GrilleAgendaSemaine jours={jours} onCliquerJour={vi.fn()} onOuvrirRendezVous={vi.fn()} />,
+      );
+      expect(screen.getAllByText(/Disponible/)).toHaveLength(7);
+      expect(screen.queryByText('2h00 occupée sur 8h00 — encore 6h00 libres')).toBeNull();
+    });
+
+    it('en vue Jour (un seul jour, même composant), affiche la phrase complète occupé/capacité', () => {
+      const jour = construireJour();
+      render(
+        <GrilleAgendaSemaine jours={[jour]} onCliquerJour={vi.fn()} onOuvrirRendezVous={vi.fn()} />,
+      );
+      expect(screen.getByText('2h00 occupée sur 8h00 — encore 6h00 libres')).toBeInTheDocument();
+    });
+
+    it('n’active la grille dense à sept colonnes qu’en vue Semaine', () => {
+      const jours7 = Array.from({ length: 7 }, (_, index) =>
+        construireJour({ dateIso: `2026-08-1${index}`, date: new Date(2026, 7, 10 + index) }),
+      );
+      const { container: conteneurSemaine } = render(
+        <GrilleAgendaSemaine jours={jours7} onCliquerJour={vi.fn()} onOuvrirRendezVous={vi.fn()} />,
+      );
+      expect(conteneurSemaine.querySelector('[role="grid"]')?.className).toContain(
+        'lg:grid-cols-7',
+      );
+
+      const { container: conteneurJour } = render(
+        <GrilleAgendaSemaine
+          jours={[construireJour()]}
+          onCliquerJour={vi.fn()}
+          onOuvrirRendezVous={vi.fn()}
+        />,
+      );
+      expect(conteneurJour.querySelector('[role="grid"]')?.className).not.toContain(
+        'lg:grid-cols-7',
+      );
+    });
+  });
 });

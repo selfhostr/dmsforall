@@ -40,3 +40,18 @@ export function formaterDureeCourte(minutes: number): string {
   const reste = minutes % 60;
   return `${heures}h${String(reste).padStart(2, '0')}`;
 }
+
+/**
+ * Marge encore libre avant d'atteindre la capacité du jour — jamais négative : un jour en
+ * surbooking (`minutesOccupees > capaciteMinutes`) reste à `0`, pas un solde négatif illisible au
+ * comptoir (le mot « Complet » porte déjà l'alerte, pas besoin d'un chiffre qui descend sous zéro).
+ * `null` UNIQUEMENT si `capaciteMinutes` est `null` — même garde que `classerCapaciteJour` : un
+ * solde sans dénominateur ne dit rien de la place restante.
+ */
+export function minutesRestantes(
+  minutesOccupees: number,
+  capaciteMinutes: number | null,
+): number | null {
+  if (capaciteMinutes === null) return null;
+  return Math.max(0, capaciteMinutes - minutesOccupees);
+}

@@ -174,6 +174,18 @@ export function PanneauDetailRendezVous({
             ) : null}
           </dl>
 
+          {!lectureSeule && !estArrive && !estJourJOuApres ? (
+            <div
+              className="rounded-md border border-info/40 bg-info/5 p-3"
+              role="status"
+              aria-live="polite"
+            >
+              <p className="texte-corps text-muted-foreground">
+                {t('planning:detail.attenteBouton')}
+              </p>
+            </div>
+          ) : null}
+
           {!lectureSeule && !estArrive && peutAgir ? (
             <div
               className="flex flex-wrap items-center gap-2"

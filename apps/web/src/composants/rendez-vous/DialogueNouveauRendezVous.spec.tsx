@@ -148,7 +148,7 @@ describe('DialogueNouveauRendezVous', () => {
     await utilisateur.click(screen.getByText('Matin'));
     await utilisateur.click(screen.getByRole('combobox', { name: 'Motif du rendez-vous' }));
     await utilisateur.click(screen.getByText('Entretien / service courant'));
-    expect(screen.getByLabelText('Durée estimée')).toHaveValue(60);
+    expect(screen.getByLabelText('Durée estimée (min)')).toHaveValue(60);
     await utilisateur.click(screen.getByRole('button', { name: 'Confirmer le rendez-vous' }));
     expect(onConfirmer).toHaveBeenCalledWith(
       expect.objectContaining({

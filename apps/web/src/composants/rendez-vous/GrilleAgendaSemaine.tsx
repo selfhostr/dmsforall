@@ -1,6 +1,8 @@
 import { useMemo, useRef, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { cn } from '@/lib/utils';
+
 import { BadgeCapaciteJour } from './BadgeCapaciteJour';
 import { CarteRendezVous } from './CarteRendezVous';
 import { classerCapaciteJour, formaterDureeCourte } from './capacite';
@@ -52,6 +54,14 @@ export function GrilleAgendaSemaine({ jours, onCliquerJour, onOuvrirRendezVous }
   const formateurJour = useMemo(() => creerFormateurJourComplet(i18n.language), [i18n.language]);
   const refsEnTetes = useRef<(HTMLButtonElement | null)[]>([]);
 
+  // Même convention que `EcranAgendaRendezVous` (« En vue Jour : UN SEUL élément ») : cette grille
+  // sert les deux vues Jour/Semaine, seul le nombre de jours reçus les distingue. Sept colonnes
+  // étroites en vue Semaine n'ont pas la place pour la phrase de capacité complète — d'où le
+  // résumé compact (`BadgeCapaciteJour` en `niveauDetail="resume"`) ; l'unique colonne de la vue
+  // Jour, elle, a toute la largeur pour la phrase entière.
+  const vueSemaine = jours.length > 1;
+  const niveauDetailCapacite = vueSemaine ? 'resume' : 'complet';
+
   function gererClavierEnTete(evenement: KeyboardEvent<HTMLButtonElement>, index: number) {
     if (evenement.key === 'ArrowRight') {
       evenement.preventDefault();
@@ -74,7 +84,10 @@ export function GrilleAgendaSemaine({ jours, onCliquerJour, onOuvrirRendezVous }
     <div
       role="grid"
       aria-label={t('planning:titre')}
-      className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-7"
+      className={cn(
+        'grid gap-2',
+        vueSemaine ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-7' : 'grid-cols-1',
+      )}
     >
       {jours.map((jour, index) => {
         const etat = classerCapaciteJour(jour.minutesOccupees, jour.capaciteMinutes);
@@ -107,7 +120,7 @@ export function GrilleAgendaSemaine({ jours, onCliquerJour, onOuvrirRendezVous }
               onKeyDown={(evenement) => gererClavierEnTete(evenement, index)}
               onClick={() => onCliquerJour(jour)}
               aria-label={ariaJour}
-              className="flex min-h-11 flex-col items-start gap-1 rounded-md p-1 text-left anneau-focus hover:bg-muted"
+              className="flex min-h-11 min-w-0 flex-col items-start gap-1 rounded-md p-1 text-left anneau-focus hover:bg-muted"
             >
               <span className="texte-corps font-semibold capitalize text-foreground">
                 {formateurJour.format(jour.date)}
@@ -116,6 +129,7 @@ export function GrilleAgendaSemaine({ jours, onCliquerJour, onOuvrirRendezVous }
                 nombreRendezVous={jour.nombreRendezVous}
                 minutesOccupees={jour.minutesOccupees}
                 capaciteMinutes={jour.capaciteMinutes}
+                niveauDetail={niveauDetailCapacite}
               />
             </button>
 

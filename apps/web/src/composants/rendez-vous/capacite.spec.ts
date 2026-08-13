@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { classerCapaciteJour, formaterDureeCourte } from './capacite';
+import { classerCapaciteJour, formaterDureeCourte, minutesRestantes } from './capacite';
 
 describe('classerCapaciteJour', () => {
   it('rend non_definie quand la capacité est null, quel que soit le nombre de minutes occupées', () => {
@@ -27,6 +27,23 @@ describe('classerCapaciteJour', () => {
   it('rend disponible au-delà du seuil', () => {
     expect(classerCapaciteJour(400, 480)).toBe('disponible');
     expect(classerCapaciteJour(0, 480)).toBe('disponible');
+  });
+});
+
+describe('minutesRestantes', () => {
+  it('rend null quand la capacité est null — jamais un solde sans dénominateur', () => {
+    expect(minutesRestantes(0, null)).toBeNull();
+    expect(minutesRestantes(120, null)).toBeNull();
+  });
+
+  it('rend la marge encore libre quand la journée n’est pas pleine', () => {
+    expect(minutesRestantes(120, 480)).toBe(360);
+    expect(minutesRestantes(0, 480)).toBe(480);
+  });
+
+  it('ne descend jamais sous zéro en surbooking — le mot "Complet" porte déjà l’alerte', () => {
+    expect(minutesRestantes(510, 480)).toBe(0);
+    expect(minutesRestantes(480, 480)).toBe(0);
   });
 });
 
