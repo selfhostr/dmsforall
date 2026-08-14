@@ -2,11 +2,13 @@ import type {
   AgregatTempsLigneOr,
   ArrondiPointage,
   EntreeDemarragePointage,
+  MotifAnomaliePointage,
   StatutLigneOr,
   StatutOrdreReparation,
   StatutPointage,
 } from '@dfa/shared';
 import type { LignePointage } from '../db/schema';
+import { instantLocalSuisse, jourCivilSuisse } from '../common/temps';
 
 /**
  * Règles métier PURES du pointage (RM-87 → RM-99, RM-113 → RM-123,
@@ -14,6 +16,17 @@ import type { LignePointage } from '../db/schema';
  * testable sans base de données (voir `regles-pointage.spec.ts`), à la différence de
  * `service-pointage.ts` qui, lui, ne peut être prouvé que par un test d'intégration (Postgres réel,
  * RLS, triggers ZDFA1).
+ *
+ * `journeeTravailCourante()` — LA FONCTION QUE LE RAPPORT DE LIVRAISON ATTENDAIT ICI (RM-91/RM-119,
+ * bornage UTC pur répliqué depuis `service-verrouillage-periode.ts::finDeJournee`) N'EXISTE PAS
+ * ENCORE dans cette branche au moment de ce chantier — mesuré, pas supposé : elle appartient à
+ * `GET /pointages/dernier-du-jour` (reprise de cible, écran de pointage repensé), une fonctionnalité
+ * livrée SUR `feat/pointage-ergonomie-et-socle-courriel` (commit `f3f9353`) APRÈS le point où ce
+ * worktree a été créé (`f437774`, en amont de dev). SIGNALÉ EN RÉPONSE DE TÂCHE, PAS DEVINÉ EN
+ * SILENCE : quand les deux branches convergeront, `journeeTravailCourante()` devra être recâblée sur
+ * `common/temps/fuseau-suisse.ts` EXACTEMENT comme `service-verrouillage-periode.ts::finDeJournee`
+ * l'a été ici — même bug UTC pur, même correctif, un seul propriétaire (`common/temps/`) pour cette
+ * doctrine plutôt qu'une troisième copie.
  */
 
 /* ------------------------------------------------------------------ */
@@ -367,4 +380,95 @@ export function calculerAgregatsTempsLigne(
             : null,
       };
     });
+}
+
+/* ------------------------------------------------------------------ */
+/* RM-91 / RM-119 / CT-57 : clôture automatique de fin de journée                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Candidat à la clôture automatique — un pointage `en_cours` dont le site porte une heure de
+ * clôture configurée (`parametre_site.heure_cloture_pointage`, P-31). Entrée minimale, DB-agnostique
+ * (même doctrine que `LigneOrPourAgregat`/`PointagePourAgregat` plus haut) — voir
+ * `pointage-requetes.ts::chargerCandidatsClotureAutomatique` pour la requête qui la produit.
+ */
+export interface CandidatClotureAutomatique {
+  readonly id: string;
+  readonly debutLe: Date;
+  /** `'HH:MM'`, `'HH:MM:SS'` ou `'HH:MM:SS.mmm'` — ce que rend la colonne `time` de Postgres via
+   *  le pilote `pg`. JAMAIS `null` ici : `chargerCandidatsClotureAutomatique` filtre déjà les
+   *  sites sans heure de clôture configurée (fail-closed, RM-91 ne peut rien clore sans elle). */
+  readonly heureCloturePointage: string;
+  readonly arrondiPointage: ArrondiPointage;
+  /** Anomalie DÉJÀ posée sur ce pointage (RM-89/RM-96/RM-123, ex. `ligne_non_pointable` pendant
+   *  qu'il tournait encore) — préservée si présente, voir `determinerDecisionClotureAutomatique`. */
+  readonly anomalieMotif: MotifAnomaliePointage | null;
+  readonly anomalieDetecteeLe: Date | null;
+}
+
+/** Ce que `ServiceClotureAutomatiquePointage` doit écrire pour clore CE candidat MAINTENANT —
+ *  `null` rendu par `determinerDecisionClotureAutomatique` = rien à faire pour l'instant (l'heure
+ *  de clôture du jour où il a démarré n'est pas encore atteinte). */
+export interface DecisionClotureAutomatique {
+  readonly pointageId: string;
+  readonly finLe: Date;
+  readonly dureeArrondieCentiemes: number;
+  readonly anomalieMotif: MotifAnomaliePointage;
+  readonly anomalieDetecteeLe: Date;
+}
+
+/**
+ * RM-91/RM-119/CT-57 : décide si CE candidat doit être clos MAINTENANT, et avec quelles valeurs —
+ * fonction PURE (même doctrine que le reste de ce fichier, aucune I/O), testable sans base de
+ * données. `ServiceClotureAutomatiquePointage` (I/O) ne fait qu'appliquer ce que cette fonction
+ * décide, jamais l'inverse.
+ *
+ * L'INSTANT DE CLÔTURE EST CELUI DE L'HEURE DE FERMETURE DU JOUR CIVIL SUISSE OÙ LE POINTAGE A
+ * DÉMARRÉ — jamais celui du jour d'exécution du job. C'est le point CT-57 (« absence prolongée ») :
+ * un pointage oublié ouvert deux semaines se clôture « le soir même » de son ouverture, PAS à la
+ * date où le job finit par le détecter — sans quoi deux semaines d'heures fantômes s'accumuleraient
+ * avant qu'un job qui tournerait enfin ne les découvre. `maintenant` ne sert qu'à décider SI cet
+ * instant est déjà passé (rien à faire tant que l'heure de clôture du jour d'ouverture n'est pas
+ * encore atteinte) — jamais à devenir lui-même la valeur de `finLe`.
+ *
+ * GARDE `pointage_periode_coherente_chk` (migration 0030, `finLe >= debutLe`) : un pointage démarré
+ * APRÈS l'heure de clôture nominale de son propre jour (badge hors horaire, correction manuelle
+ * antérieure repoussant `debutLe` — cas résiduel, pas le chemin normal) ne peut pas se voir attribuer
+ * un `finLe` antérieur à son `debutLe`. Dans ce cas précis, `finLe := debutLe` (durée nulle,
+ * cohérente avec la CHECK) plutôt que de lever une erreur qui bloquerait tout le lot.
+ *
+ * PRÉSERVATION D'UNE ANOMALIE EXISTANTE (RM-123, même précédence que `ServicePointage.arreter` —
+ * `service-pointage.ts`, bloc `anomalieMotif === null`) : un pointage déjà en anomalie pour une
+ * autre raison (ex. sa ligne est devenue `annulee` PENDANT qu'il tournait encore) garde CE motif
+ * d'origine — la clôture automatique ne l'écrase jamais. Le pointage reste de toute façon dans la
+ * corbeille d'anomalies (`anomalieMotif` non nul, quel qu'il soit) : la propriété recherchée par
+ * RM-91 (« le chef d'atelier le voit ») tient déjà, écraser la cause première serait une PERTE
+ * d'information, pas un gain.
+ */
+export function determinerDecisionClotureAutomatique(
+  candidat: CandidatClotureAutomatique,
+  maintenant: Date,
+): DecisionClotureAutomatique | null {
+  const jourOuverture = jourCivilSuisse(candidat.debutLe);
+  const instantCloture = instantLocalSuisse(jourOuverture, candidat.heureCloturePointage);
+
+  if (instantCloture.getTime() > maintenant.getTime()) {
+    return null;
+  }
+
+  const finLe =
+    instantCloture.getTime() >= candidat.debutLe.getTime() ? instantCloture : candidat.debutLe;
+  const dureeBruteSecondes = Math.floor((finLe.getTime() - candidat.debutLe.getTime()) / 1000);
+  const dureeArrondieCentiemes = calculerDureeArrondieCentiemes(
+    dureeBruteSecondes,
+    candidat.arrondiPointage,
+  );
+
+  return {
+    pointageId: candidat.id,
+    finLe,
+    dureeArrondieCentiemes,
+    anomalieMotif: candidat.anomalieMotif ?? 'cloture_fin_journee',
+    anomalieDetecteeLe: candidat.anomalieDetecteeLe ?? maintenant,
+  };
 }

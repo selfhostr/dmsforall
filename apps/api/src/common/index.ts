@@ -12,4 +12,5 @@ export * from './identite-client';
 export * from './journal';
 export * from './limitation';
 export * from './pagination';
+export * from './temps';
 export * from './validation';

@@ -12,6 +12,7 @@ import { pointage, pointageVerrouillageSite } from '../db/schema';
 import type { PrincipalAuthentifie } from '../common/contexte/contexte-requete.types';
 import { ErreurMetier } from '../common/erreurs/erreur-metier';
 import { Horloge } from '../common/horloge/horloge';
+import { finJourneeSuisse } from '../common/temps';
 
 /**
  * RM-95 : verrouillage de période, modélisé comme un SEUIL MUTABLE par site
@@ -27,11 +28,12 @@ import { Horloge } from '../common/horloge/horloge';
  * verrouille tout ce qui est ANTÉRIEUR ou égal. Si `jusquauLe` n'est pas inférieur au seuil actuel,
  * l'opération est un NO-OP (`pointagesDeverrouilles = 0`), jamais une erreur.
  *
- * BORNE DE JOURNÉE EN UTC, SIGNALÉ : `parametre_atelier`/`site` ne portent aujourd'hui aucune colonne
- * de fuseau horaire (vérifié : `grep fuseau|timezone` ne trouve rien dans `db/schema/`) — la
- * conversion « ce jour calendaire » -> « cet instant » se fait donc en UTC pur, pas en
- * Europe/Zurich. Écart potentiel d'une heure (hiver) ou deux (été) autour de minuit local, à
- * corriger le jour où un fuseau par site existe.
+ * BORNE DE JOURNÉE — CORRIGÉE le 14.08.2026 (mesurée en UTC pur avant ce correctif, écart d'une
+ * heure en hiver, deux en été, autour de minuit local) : la conversion « ce jour calendaire » ->
+ * « cet instant » passe désormais par `common/temps/fuseau-suisse.ts`, Europe/Zurich, CET/CEST
+ * gérées automatiquement (décision de @laupernoe : un seul fuseau pour tout le produit, jamais un réglage
+ * par site). Voir l'en-tête de ce fichier commun pour la doctrine complète et les deux autres
+ * endroits qui répliquaient la même convention UTC.
  */
 @Injectable()
 export class ServiceVerrouillagePeriode {
@@ -168,8 +170,8 @@ export class ServiceVerrouillagePeriode {
   }
 }
 
-/** `'AAAA-MM-JJ'` -> instant UTC de fin de journée (23:59:59.999) — voir l'en-tête pour la limite
- *  (UTC pur, pas de fuseau par site). */
+/** `'AAAA-MM-JJ'` -> instant de fin de journée CIVILE SUISSE (23:59:59.999 Europe/Zurich) — voir
+ *  l'en-tête pour la correction du 14.08.2026 (remplace le bornage UTC pur). */
 function finDeJournee(dateJour: string): Date {
-  return new Date(`${dateJour}T23:59:59.999Z`);
+  return finJourneeSuisse(dateJour);
 }

@@ -7,6 +7,7 @@ import {
   calculerDureeArrondieCentiemes,
   chevauchementDoitProduireAnomalie,
   deriveHorlogeAnormale,
+  determinerDecisionClotureAutomatique,
   dureeDepasseLeSeuil,
   estLignePointable,
   estOrPointable,
@@ -16,6 +17,7 @@ import {
   orDoitPasserEnCours,
   pointageCorrespondEntree,
   SEUIL_DERIVE_HORLOGE_MS,
+  type CandidatClotureAutomatique,
   type LigneOrPourAgregat,
   type PointagePourAgregat,
 } from './regles-pointage';
@@ -485,5 +487,105 @@ describe('calculerAgregatsTempsLigne (GET /pointages/agregats-ligne)', () => {
     );
     expect(Number.isInteger(resultat[0]?.dureePointeeCentiemes)).toBe(true);
     expect(Number.isInteger(resultat[0]?.ecartCentiemes)).toBe(true);
+  });
+});
+
+/* -------------------------------------------------------------------------------------------- */
+/* RM-91 / RM-119 / CT-57 : determinerDecisionClotureAutomatique                                   */
+/* -------------------------------------------------------------------------------------------- */
+
+function candidatCloture(
+  surcharge: Partial<CandidatClotureAutomatique> = {},
+): CandidatClotureAutomatique {
+  return {
+    id: 'p1',
+    debutLe: new Date('2026-06-10T06:00:00.000Z'), // 08:00 heure suisse (CEST, +2h)
+    heureCloturePointage: '18:00',
+    arrondiPointage: 'quart',
+    anomalieMotif: null,
+    anomalieDetecteeLe: null,
+    ...surcharge,
+  };
+}
+
+describe('determinerDecisionClotureAutomatique — RM-91/RM-119/CT-57', () => {
+  it("rend null : l'heure de clôture du jour d'ouverture n'est pas encore atteinte", () => {
+    // 18:00 heure suisse le 10.06.2026 (CEST, +2h) = 16:00:00.000Z. `maintenant` = 15:00Z = 17:00
+    // local, une heure AVANT la clôture — rien à faire.
+    const decision = determinerDecisionClotureAutomatique(
+      candidatCloture(),
+      new Date('2026-06-10T15:00:00.000Z'),
+    );
+    expect(decision).toBeNull();
+  });
+
+  it("clôture au bon instant, avec la durée exacte, dès que l'heure de clôture du jour d'ouverture est atteinte", () => {
+    // debutLe 06:00Z (08:00 local), clôture 18:00 local = 16:00Z, maintenant 17:00Z (après).
+    const decision = determinerDecisionClotureAutomatique(
+      candidatCloture(),
+      new Date('2026-06-10T17:00:00.000Z'),
+    );
+    expect(decision).not.toBeNull();
+    expect(decision?.finLe.toISOString()).toBe('2026-06-10T16:00:00.000Z');
+    // 10h brutes -> arrondi 'quart' -> 1000 centièmes (10.00h), valeur exacte, jamais approximée.
+    expect(decision?.dureeArrondieCentiemes).toBe(1000);
+  });
+
+  it('CT-57 — absence prolongée : un pointage oublié deux semaines se clôture le SOIR MÊME de son ouverture, pas à la date de détection', () => {
+    // Ouvert le 05.01.2026 à 08:00 heure suisse (CET, +1h) = 07:00Z. Clôture du site 18:00 local.
+    const candidat = candidatCloture({
+      debutLe: new Date('2026-01-05T07:00:00.000Z'),
+    });
+    // Le job ne tourne enfin QUE deux semaines plus tard.
+    const decision = determinerDecisionClotureAutomatique(
+      candidat,
+      new Date('2026-01-19T09:00:00.000Z'),
+    );
+    expect(decision).not.toBeNull();
+    // finLe = l'heure de clôture DU 05.01.2026 (17:00Z, 18:00 CET) — jamais le 19.01, jamais
+    // `maintenant`.
+    expect(decision?.finLe.toISOString()).toBe('2026-01-05T17:00:00.000Z');
+    expect(decision?.dureeArrondieCentiemes).toBe(1000); // même 10h que le cas nominal.
+  });
+
+  it('garde pointage_periode_coherente_chk : un pointage démarré APRÈS l’heure de clôture nominale de son propre jour ne reçoit jamais un finLe antérieur à debutLe', () => {
+    // Démarré à 19:30 heure suisse (17:30Z), après la clôture nominale (18:00 local = 16:00Z).
+    const candidat = candidatCloture({ debutLe: new Date('2026-06-10T17:30:00.000Z') });
+    const decision = determinerDecisionClotureAutomatique(
+      candidat,
+      new Date('2026-06-10T20:00:00.000Z'),
+    );
+    expect(decision).not.toBeNull();
+    expect(decision?.finLe.getTime()).toBe(candidat.debutLe.getTime());
+    expect(decision?.dureeArrondieCentiemes).toBe(0);
+  });
+
+  it('sans anomalie préexistante : pose cloture_fin_journee, détectée à `maintenant`', () => {
+    const maintenant = new Date('2026-06-10T17:00:00.000Z');
+    const decision = determinerDecisionClotureAutomatique(candidatCloture(), maintenant);
+    expect(decision?.anomalieMotif).toBe('cloture_fin_journee');
+    expect(decision?.anomalieDetecteeLe.getTime()).toBe(maintenant.getTime());
+  });
+
+  it('anomalie PRÉEXISTANTE (RM-123) préservée — jamais écrasée par la clôture automatique', () => {
+    const detecteeLeOrigine = new Date('2026-06-10T10:00:00.000Z');
+    const candidat = candidatCloture({
+      anomalieMotif: 'ligne_non_pointable',
+      anomalieDetecteeLe: detecteeLeOrigine,
+    });
+    const decision = determinerDecisionClotureAutomatique(
+      candidat,
+      new Date('2026-06-10T17:00:00.000Z'),
+    );
+    expect(decision?.anomalieMotif).toBe('ligne_non_pointable');
+    expect(decision?.anomalieDetecteeLe.getTime()).toBe(detecteeLeOrigine.getTime());
+  });
+
+  it('accepte le format HH:MM:SS rendu par la colonne `time` de Postgres', () => {
+    const decision = determinerDecisionClotureAutomatique(
+      candidatCloture({ heureCloturePointage: '18:00:00' }),
+      new Date('2026-06-10T17:00:00.000Z'),
+    );
+    expect(decision?.finLe.toISOString()).toBe('2026-06-10T16:00:00.000Z');
   });
 });

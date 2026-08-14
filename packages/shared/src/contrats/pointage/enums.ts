@@ -56,15 +56,29 @@ export type ActiviteIndirecte = (typeof ACTIVITES_INDIRECTES)[number];
  *      `annulee` / `refusee` PENDANT que le pointage tourne (RM-123 : on ne l'interrompt pas de
  *      force, on le signale au prochain événement le concernant).
  *
- * `derive_horloge` — SEULE valeur AJOUTÉE par ce fichier, absente du namespace i18n actuel.
+ * `derive_horloge` — absente du namespace i18n actuel au moment de son ajout.
  * Source : `plan-etape-1-frontend.md` §4.3 point 6 (dérive d'horloge mesurée au dernier échange
  * réussi, anomalie si l'écart dépasse un seuil) — le mécanisme est déjà spécifié et déjà justifié
  * métier (une tablette hors ligne plusieurs heures a une horloge qui dérive), seul le NOM du
- * motif est neuf ici. CONSÉQUENCE À SIGNALER, hors périmètre de ce fichier : une clé
+ * motif est neuf ici. CONSÉQUENCE SIGNALÉE À L'ÉPOQUE, TOUJOURS VRAIE : une clé
  * `anomalies.motifs.deriveHorloge` doit être ajoutée aux trois fichiers
  * `apps/web/src/i18n/locales/{fr,de,it}/pointage.json` avant qu'un écran puisse l'afficher — sans
  * elle, l'enum accepte la valeur (il est extensible) mais la corbeille d'anomalies n'a rien à
  * rendre pour ce motif précis : un repli générique, pas un crash, mais un motif muet à l'écran.
+ *
+ * `cloture_fin_journee` — AJOUTÉE le 14.08.2026 (RM-91/RM-119, clôture automatique de fin de
+ * journée à l'heure de fermeture du site, `parametre_site.heure_cloture_pointage`/P-31). AUCUNE
+ * des six valeurs précédentes ne porte ce sens : `nuit` est un CHEVAUCHEMENT de nuit (deux
+ * pointages, horloge en désordre — voir `pointage:anomalies.motifs.nuit` = « Chevauchement de
+ * nuit », `apps/web/src/i18n/locales/fr/pointage.json`), pas un pointage simplement oublié ouvert
+ * au-delà de l'heure de fermeture. `docs/specification-pointage.md` §3.3/§11/§12 (RM-91, RM-119,
+ * CT-57) encadre ce motif explicitement comme distinct — pas un raccourci pris ici. MÊME
+ * CONSÉQUENCE QUE `derive_horloge` CI-DESSUS, SIGNALÉE ICI POUR LA MÊME RAISON : aucune clé
+ * `anomalies.motifs.clotureFinJournee` n'existe encore dans le namespace i18n `pointage` —
+ * l'enum accepte la valeur (extensible), la corbeille d'anomalies n'a rien à rendre pour elle tant
+ * que cette clé n'est pas ajoutée aux trois locales. Voir le rapport de livraison du chantier qui a
+ * introduit ce motif pour le détail du mécanisme de clôture automatique lui-même
+ * (`apps/api/src/pointage/service-cloture-automatique-pointage.ts`).
  */
 export const MOTIFS_ANOMALIE_POINTAGE = [
   'duree_trop',
@@ -74,6 +88,7 @@ export const MOTIFS_ANOMALIE_POINTAGE = [
   'or_facture',
   'ligne_non_pointable',
   'derive_horloge',
+  'cloture_fin_journee',
 ] as const;
 export type MotifAnomaliePointage = (typeof MOTIFS_ANOMALIE_POINTAGE)[number];
 

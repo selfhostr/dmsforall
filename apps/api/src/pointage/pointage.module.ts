@@ -6,6 +6,7 @@ import { ServiceMotDePasseArgon2id } from '../auth/services/mot-de-passe.service
 import { PinController } from './pin.controller';
 import { PointagePeriodeController } from './pointage-periode.controller';
 import { PointageController } from './pointage.controller';
+import { ServiceClotureAutomatiquePointage } from './service-cloture-automatique-pointage';
 import { ServiceIdentificationPin } from './service-identification-pin';
 import { ServiceLecturePointage } from './service-lecture-pointage';
 import { ServicePointage } from './service-pointage';
@@ -50,8 +51,18 @@ import { ServiceVerrouillagePin } from './service-verrouillage-pin';
     ServiceLecturePointage,
     ServiceIdentificationPin,
     ServiceVerrouillagePin,
+    // RM-91/RM-119 : clôture automatique de fin de journée. Provider posé pour que le futur
+    // déclencheur périodique (voir l'en-tête de la classe) puisse l'injecter dès qu'il existe —
+    // AUCUN contrôleur ni processeur ne l'appelle encore (signalé, pas fait, hors périmètre de ce
+    // chantier : voir le rapport de livraison).
+    ServiceClotureAutomatiquePointage,
     { provide: JETON_SERVICE_MOT_DE_PASSE, useClass: ServiceMotDePasseArgon2id },
   ],
-  exports: [ServicePointage, ServiceVerrouillagePeriode, ServiceLecturePointage],
+  exports: [
+    ServicePointage,
+    ServiceVerrouillagePeriode,
+    ServiceLecturePointage,
+    ServiceClotureAutomatiquePointage,
+  ],
 })
 export class PointageModule {}
