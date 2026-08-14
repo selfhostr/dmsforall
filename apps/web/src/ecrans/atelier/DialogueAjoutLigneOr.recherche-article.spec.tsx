@@ -47,6 +47,11 @@ function resultatRecherche(
     quantiteDisponibleMillieme,
     statutSuivi,
     emplacement: 'A-12',
+    // Casier structuré (0056) : cette fixture ne pose pas de rayon/tiroir, donc `null` — jamais
+    // une valeur inventée qui ferait passer pour testé un rendu de casier structuré qui ne l'est
+    // pas (« absence de donnée ≠ valeur »).
+    rayon: null,
+    tiroir: null,
     estEchangeStandard: false,
     montantConsigneTtcCentimes: null,
   };
